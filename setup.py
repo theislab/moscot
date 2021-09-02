@@ -26,7 +26,7 @@ if __name__ == "__main__":
         download_url="https://github.com/theislab/scott",
         license="BSD",
         install_requires=Path("requirements.txt").read_text("utf-8").split("\n"),
-        extras_dict={
+        extras_require={
             "dev": ["pre-commit>=2.14.0", "tox>=3.24.0"],
         },
         zip_safe=False,
