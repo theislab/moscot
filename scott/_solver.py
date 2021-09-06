@@ -159,8 +159,9 @@ class FusedGromowWassersteinOT(TransportMixin, BaseGromowWassersteinOT):
         h2 = self._cost_fn.right_y
         C_ab = geom_ab.cost_matrix
         C_a, C_b = geom_a.cost_matrix, geom_b.cost_matrix
+        # TODO(michalk8): use jax's geom
         # TODO(michalk8, Marius1311): correct sign -/+?
-        return (1 - alpha) * C_ab - 2 * alpha * np.dot(h1(C_a), T).dot(h2(C_b).T)
+        return (1 - alpha) * C_ab + 2 * alpha * np.dot(h1(C_a), T).dot(h2(C_b).T)
 
     @property
     def alpha(self) -> float:
