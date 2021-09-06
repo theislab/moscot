@@ -58,6 +58,6 @@ class TransportMixin:
 
 
 class GWLossMixin(BaseCostFn, ABC):
-    # TODO(michalk8): verify correctness + shapes + add protocol
+    # TODO(michalk8): remove this?
     def __call__(self, x: jnp.array, y: jnp.array):
         return self.fn_x(x) + self.fn_y(y) - self.left_x(x) * self.right_y(y)

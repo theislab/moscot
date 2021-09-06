@@ -7,6 +7,7 @@ from scott._base import BaseCostFn
 from scott._mixins import GWLossMixin
 
 
+# TODO(michalk8): necessary? if not, remove
 @register_pytree_node_class
 class WeightedCostFn(CostFn, BaseCostFn):
     """TODO."""

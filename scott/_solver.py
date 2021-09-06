@@ -118,10 +118,11 @@ class FusedGromowWassersteinOT(TransportMixin, BaseGromowWassersteinOT):
         self,
         geom_a: Union[jnp.array, Geometry],
         geom_b: Union[jnp.array, Geometry],
-        geom_ab: Optional[Union[jnp.array, Geometry]] = None,
+        geom_ab: Union[jnp.array, Geometry],
         a: Optional[jnp.array] = None,
         b: Optional[jnp.array] = None,
         tol: float = 1e-6,
+        log: bool = False,
         **kwargs: Any,
     ) -> "FusedGromowWassersteinOT":
         # TODO(michalk8): handle kwargs
@@ -137,25 +138,29 @@ class FusedGromowWassersteinOT(TransportMixin, BaseGromowWassersteinOT):
 
         # TODO(michalk8): jax.lax.scan, similar in GW
         for i in range(self._n_iter):
-            G, T_prev = self._gwgrad(geom_a, geom_b, T), T
+            G, T_prev = self._grad(self.alpha, geom_ab, geom_a, geom_b, T), T
             geom = Geometry(cost_matrix=G)
             self._transport = Transport(geom, a=a, b=b, **self._sink_kwargs)
             # TODO(michalk8): linesearch
-            T = (1 - self.alpha) * T_prev + self.alpha * self.matrix
+            T = (1 - self.alpha) * T_prev + self.alpha * self._transport.matrix
 
             # TODO(michalk8): every n-th iter
             err = jnp.linalg.norm(T - T_prev)
-            print(i, err)
+            if log:
+                print(i, err)
 
             if err <= tol:
                 break
 
         return self
 
-    def _gwgrad(self, geom_a: Geometry, geom_b: Geometry, T: jnp.ndarray) -> jnp.ndarray:
+    def _grad(self, alpha: float, geom_ab: Geometry, geom_a: Geometry, geom_b: Geometry, T: jnp.ndarray) -> jnp.ndarray:
         h1 = self._cost_fn.left_x
         h2 = self._cost_fn.right_y
-        return -np.dot(h1(geom_a.cost_matrix), T).dot(h2(geom_b.cost_matrix).T)
+        C_ab = geom_ab.cost_matrix
+        C_a, C_b = geom_a.cost_matrix, geom_b.cost_matrix
+        # TODO(michalk8, Marius1311): correct sign -/+?
+        return (1 - alpha) * C_ab - 2 * alpha * np.dot(h1(C_a), T).dot(h2(C_b).T)
 
     @property
     def alpha(self) -> float:
