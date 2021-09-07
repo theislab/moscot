@@ -12,7 +12,7 @@ repos:
     -   id: mypy
         additional_dependencies: [numpy>=1.21.0, jax]
 -   repo: https://github.com/psf/black
-    rev: 21.7b0
+    rev: 21.8b0
     hooks:
     -   id: black
         additional_dependencies: [toml]

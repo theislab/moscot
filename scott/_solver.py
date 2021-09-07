@@ -2,8 +2,6 @@ from abc import ABC
 from typing import Any, Dict, Union, Optional
 
 from jax import numpy as jnp
-
-# TODO(michalk8):
 from ott.geometry.costs import CostFn, Euclidean
 from ott.tools.transport import Transport
 from ott.geometry.geometry import Geometry
