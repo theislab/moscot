@@ -13,7 +13,7 @@ from ott.geometry.epsilon_scheduler import Epsilon
 import numpy as np
 
 from scott._base import CostFn_t, BaseSolver
-from scott._mixins import GeomMixin, SimpleMixin, TransportMixin
+from scott._mixins import SimpleMixin, TransportMixin
 
 
 class RegularizedOT(BaseSolver, ABC):
@@ -139,7 +139,7 @@ class BaseGromowWassersteinOT(RegularizedOT, ABC):
         return geom
 
 
-class GromowWassersteinOT(GeomMixin, BaseGromowWassersteinOT):
+class GromowWassersteinOT(SimpleMixin, BaseGromowWassersteinOT):
     def fit(
         self,
         geom_a: Union[jnp.array, Geometry],
@@ -173,9 +173,7 @@ class GromowWassersteinOT(GeomMixin, BaseGromowWassersteinOT):
         geom_b = self._prepare_geom(geom_b, **kwargs)
 
         res = gromov_wasserstein(geom_a, geom_b, a=a, b=b, loss=self._cost_fn, sinkhorn_kwargs=self._sink_kwargs)
-        self._geom = Geometry(cost_matrix=res.cost_matrix, epsilon=self.epsilon)
-        self._f = res.f
-        self._g = res.g
+        self._matrix = res.transport
 
         return self
 
@@ -193,7 +191,7 @@ class FusedGromowWassersteinOT(SimpleMixin, BaseGromowWassersteinOT):
         Keyword arguments for :func:`ott.core.sinkhorn.sinkhorn`.
     """
 
-    def __init__(self, alpha: float, **kwargs: Any):
+    def __init__(self, alpha: float = 0.5, **kwargs: Any):
         if not (0 < alpha < 1):
             raise ValueError("TODO.")
 
