@@ -5,7 +5,7 @@ from jax import numpy as jnp
 from ott.tools.transport import Transport
 from ott.geometry.geometry import Geometry
 from ott.geometry.pointcloud import PointCloud
-from ott.core.gromov_wasserstein import GWLoss, gromov_wasserstein
+from ott.core.gromov_wasserstein import GWLoss, _init_geometry_gw, gromov_wasserstein, _update_geometry_gw
 from ott.geometry.epsilon_scheduler import Epsilon
 import numpy as np
 
@@ -105,7 +105,7 @@ class GromowWassersteinOT(GeomMixin, BaseGromowWassersteinOT):
 
 
 class FusedGromowWassersteinOT(TransportMixin, BaseGromowWassersteinOT):
-    def __init__(self, alpha: float = 0.5, n_iter: int = 1000, **kwargs):
+    def __init__(self, alpha: float = 0.5, n_iter: int = 20, **kwargs):
         if not (0 < alpha < 1):
             raise ValueError("TODO.")
 
@@ -134,34 +134,40 @@ class FusedGromowWassersteinOT(TransportMixin, BaseGromowWassersteinOT):
             a = jnp.ones((geom_a.shape[0],)) / geom_a.shape[0]
         if b is None:
             b = jnp.ones((geom_b.shape[0],)) / geom_b.shape[0]
-        T = jnp.outer(a, b)
+
+        geom_ab = Geometry(cost_matrix=(1 - self.alpha) * geom_ab.cost_matrix)
+
+        geom = _init_geometry_gw(geom_a, geom_b, a, b, epsilon=self.epsilon, loss=self._cost_fn)
+        geom = Geometry(cost_matrix=geom_ab.cost_matrix + self.alpha * geom.cost_matrix)
+        T, T_prev = jnp.outer(a, b), None
 
         # TODO(michalk8): jax.lax.scan, similar in GW
         for i in range(self._n_iter):
-            G, T_prev = self._grad(self.alpha, geom_ab, geom_a, geom_b, T), T
-            geom = Geometry(cost_matrix=G)
             self._transport = Transport(geom, a=a, b=b, **self._sink_kwargs)
-            # TODO(michalk8): linesearch
-            T = (1 - self.alpha) * T_prev + self.alpha * self._transport.matrix
+            T, T_prev = self.matrix, T
+            geom = self._update(geom, geom_a, geom_b, geom_ab, f=self._transport._f, g=self._transport._g)
 
-            # TODO(michalk8): every n-th iter
+            # TODO(michalk8): linesearch
+            tau = 0.5
+            T = (1 - tau) * T_prev + tau * T
             err = jnp.linalg.norm(T - T_prev)
+
             if log:
                 print(i, err)
 
-            if err <= tol:
-                break
+        self._matrix = T
 
         return self
 
-    def _grad(self, alpha: float, geom_ab: Geometry, geom_a: Geometry, geom_b: Geometry, T: jnp.ndarray) -> jnp.ndarray:
-        h1 = self._cost_fn.left_x
-        h2 = self._cost_fn.right_y
-        C_ab = geom_ab.cost_matrix
-        C_a, C_b = geom_a.cost_matrix, geom_b.cost_matrix
-        # TODO(michalk8): use jax's geom
-        # TODO(michalk8, Marius1311): correct sign -/+?
-        return (1 - alpha) * C_ab + 2 * alpha * np.dot(h1(C_a), T).dot(h2(C_b).T)
+    def _update(
+        self, geom: Geometry, geom_a: Geometry, geom_b: Geometry, geom_ab: Geometry, f: jnp.ndarray, g: jnp.ndarray
+    ) -> Geometry:
+        geom_gw = _update_geometry_gw(geom, geom_a, geom_b, f=f, g=g, loss=self._cost_fn)
+        tmp = geom_ab.cost_matrix + self.alpha * geom_gw.cost_matrix
+        return Geometry(cost_matrix=tmp + jnp.min(tmp))
+
+    def _linesearch(self):
+        pass
 
     @property
     def alpha(self) -> float:
