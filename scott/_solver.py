@@ -97,19 +97,6 @@ class UnbalancedOT(TransportMixin, RegularizedOT):
 
 # TODO(michalk8): cite
 class BaseGromowWassersteinOT(RegularizedOT, ABC):
-    """
-    Gromow-Wasserstein OT.
-
-    Parameters
-    ----------
-    cost_fn
-        Cost function to use. Default is euclidean.
-    epsilon
-        Regularization parameter.
-    kwargs
-        Keyword arguments for :func:`ott.core.sinkhorn.sinkhorn`.
-    """
-
     def __init__(
         self, cost_fn: Optional[GWLoss] = None, epsilon: Optional[Union[float, Epsilon]] = None, **kwargs: Any
     ):
@@ -138,6 +125,19 @@ class BaseGromowWassersteinOT(RegularizedOT, ABC):
 
 
 class GromowWassersteinOT(SimpleMixin, BaseGromowWassersteinOT):
+    """
+    Gromow-Wasserstein OT.
+
+    Parameters
+    ----------
+    cost_fn
+        Cost function to use. Default is euclidean.
+    epsilon
+        Regularization parameter.
+    kwargs
+        Keyword arguments for :func:`ott.core.sinkhorn.sinkhorn`.
+    """
+
     def fit(
         self,
         geom_a: Union[jnp.array, Geometry],
@@ -185,6 +185,10 @@ class FusedGromowWassersteinOT(SimpleMixin, BaseGromowWassersteinOT):
     ----------
     alpha
         Weight of GW. Must be in `(0, 1)`.
+    cost_fn
+        Cost function to use. Default is euclidean.
+    epsilon
+        Regularization parameter.
     kwargs
         Keyword arguments for :func:`ott.core.sinkhorn.sinkhorn`.
     """

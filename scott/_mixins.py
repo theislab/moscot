@@ -15,10 +15,12 @@ class GeomMixin:
     # TODO(michalk8): do we want to expose the geometry?
     @property
     def geometry(self) -> Geometry:
+        """Underlying geometry."""
         return self._geom
 
     @property
     def matrix(self) -> jnp.ndarray:
+        """Transport matrix."""
         # TODO(michalk8): improve message/ensure fitted (use sklearn)?
         if self.geometry is None:
             raise RuntimeError("Not fitted.")
@@ -30,6 +32,7 @@ class GeomMixin:
             return self.geometry.transport_from_scalings(u, v)
 
     def transport(self, inputs: jnp.ndarray, forward: bool = True) -> jnp.ndarray:
+        """Transport mass."""
         if self.geometry is None:
             raise RuntimeError("Not fitted.")
         axis = 0 if forward else 1
@@ -48,11 +51,13 @@ class TransportMixin:
 
     @property
     def matrix(self) -> jnp.array:
+        """Transport matrix."""
         if self._transport is None:
             raise RuntimeError("Not fitted.")
         return None if self._transport is None else self._transport.matrix
 
     def transport(self, inputs: jnp.ndarray, forward: bool = True) -> jnp.array:
+        """Transport mass."""
         if self._transport is None:
             raise RuntimeError("Not fitted.")
         return self._transport.apply(inputs, axis=0 if forward else 1)
@@ -66,10 +71,12 @@ class SimpleMixin:
 
     @property
     def matrix(self) -> jnp.array:
+        """Transport matrix."""
         if self._matrix is None:
             raise RuntimeError("Not fitted.")
         return self._matrix
 
     def transport(self, inputs: jnp.ndarray, forward: bool = True) -> jnp.array:
+        """Transport mass."""
         matrix = self.matrix.T if forward else self.matrix
         return matrix @ inputs

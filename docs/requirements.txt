@@ -1,2 +1,6 @@
-furo>=2021.8.17b43
+-r ../requirements.txt
 sphinx>=4
+sphinx-autodoc-annotation
+sphinx-autodoc-typehints>=1.10.3
+sphinx_copybutton
+sphinx_rtd_theme

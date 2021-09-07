@@ -10,7 +10,7 @@ CostFn_t = Union[CostFn, GWLoss]
 
 
 class BaseSolver(ABC):
-    """TODO."""
+    """Base solver for OT problems."""
 
     def __init__(self, cost_fn: Optional[CostFn_t] = None):
         self._cost_fn = cost_fn or self._default_cost_fn
@@ -34,15 +34,15 @@ class BaseSolver(ABC):
     # TODO(michalk8): add some basic visualization (optional matplotlib req)
     @abstractmethod
     def transport(self, inputs: jnp.ndarray, forward: bool = True) -> jnp.ndarray:
-        pass
+        """Transport mass."""
 
     @property
     @abstractmethod
     def matrix(self) -> jnp.ndarray:
-        """TODO."""
+        """Transport matrix."""
 
     @property
     def params(self) -> Dict[str, Any]:
-        """TODO."""
+        """NYI: Solver parameters."""
         return NotImplemented
         # return self.get_params(deep=True)
