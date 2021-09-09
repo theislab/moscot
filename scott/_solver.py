@@ -19,7 +19,7 @@ class RegularizedOT(BaseSolver, ABC):
         super().__init__(cost_fn=cost_fn)
         self._epsilon: Epsilon = epsilon if isinstance(epsilon, Epsilon) else Epsilon(target=epsilon)
 
-    # TODO(michalk8): refactor/remove this
+    # TODO(michalk8): refactor this
     @property
     def _default_cost_fn(self) -> Union[CostFn, GWLoss]:
         return Euclidean()
@@ -42,10 +42,10 @@ class RegularizedOT(BaseSolver, ABC):
         return geom
 
 
-# TODO(michalk8): find a suitable (balanced case when tau_a=1.0, tau_b=1.0)
-class UnbalancedOT(TransportMixin, RegularizedOT):
+# TODO(michalk8): find a more suitable name (balanced case when tau_a=1.0, tau_b=1.0)
+class Unbalanced(TransportMixin, RegularizedOT):
     """
-    Regularized OT.
+    Unbalanced entropy-regularized OT.
 
     Parameters
     ----------
@@ -69,9 +69,9 @@ class UnbalancedOT(TransportMixin, RegularizedOT):
         a: Optional[jnp.array] = None,
         b: Optional[jnp.array] = None,
         **kwargs: Any,
-    ) -> "UnbalancedOT":
+    ) -> "Unbalanced":
         """
-        Compute GW.
+        Computer unbalanced entropy-regularized OT.
 
         Parameters
         ----------
@@ -95,8 +95,7 @@ class UnbalancedOT(TransportMixin, RegularizedOT):
         return self
 
 
-# TODO(michalk8): cite
-class BaseGromowWassersteinOT(RegularizedOT, ABC):
+class BaseGW(RegularizedOT, ABC):
     def __init__(
         self, cost_fn: Optional[GWLoss] = None, epsilon: Optional[Union[float, Epsilon]] = None, **kwargs: Any
     ):
@@ -116,7 +115,7 @@ class BaseGromowWassersteinOT(RegularizedOT, ABC):
             geom = jnp.asarray(geom)
         if isinstance(geom, jnp.ndarray):
             cost_fn = Euclidean if isinstance(self._cost_fn, GWSqEuclLoss) else None
-            # TODO(michalk8): this will always be euclidean, nicer solution
+            # TODO(michalk8): this will always be euclidean (if passing None), nicer solution
             geom = PointCloud(geom, cost_fn=cost_fn, epsilon=self.epsilon, **kwargs)
         if not isinstance(geom, Geometry):
             raise TypeError()
@@ -124,9 +123,9 @@ class BaseGromowWassersteinOT(RegularizedOT, ABC):
         return geom
 
 
-class GromowWassersteinOT(SimpleMixin, BaseGromowWassersteinOT):
+class GW(SimpleMixin, BaseGW):
     """
-    Gromow-Wasserstein OT.
+    Gromov-Wasserstein OT.
 
     Parameters
     ----------
@@ -136,7 +135,16 @@ class GromowWassersteinOT(SimpleMixin, BaseGromowWassersteinOT):
         Regularization parameter.
     kwargs
         Keyword arguments for :func:`ott.core.sinkhorn.sinkhorn`.
+
+    References
+    ----------
+    :cite:`memoli:2011` :cite:`peyre:2016`
     """
+
+    def __init__(
+        self, cost_fn: Optional[GWLoss] = None, epsilon: Optional[Union[float, Epsilon]] = None, **kwargs: Any
+    ):
+        super().__init__(cost_fn=cost_fn, epsilon=epsilon, **kwargs)
 
     def fit(
         self,
@@ -145,7 +153,7 @@ class GromowWassersteinOT(SimpleMixin, BaseGromowWassersteinOT):
         a: Optional[jnp.array] = None,
         b: Optional[jnp.array] = None,
         **kwargs: Any,
-    ) -> "GromowWassersteinOT":
+    ) -> "GW":
         """
         Compute GW.
 
@@ -176,10 +184,9 @@ class GromowWassersteinOT(SimpleMixin, BaseGromowWassersteinOT):
         return self
 
 
-# TODO(michalk8): cite
-class FusedGromowWassersteinOT(SimpleMixin, BaseGromowWassersteinOT):
+class FusedGW(SimpleMixin, BaseGW):
     """
-    Fused Gromow-Wasserstein OT.
+    Fused Gromov-Wasserstein OT.
 
     Parameters
     ----------
@@ -191,11 +198,15 @@ class FusedGromowWassersteinOT(SimpleMixin, BaseGromowWassersteinOT):
         Regularization parameter.
     kwargs
         Keyword arguments for :func:`ott.core.sinkhorn.sinkhorn`.
+
+    References
+    ----------
+    :cite:`vayer:2019` :cite:`nitzan:2019`
     """
 
     def __init__(self, alpha: float = 0.5, **kwargs: Any):
         if not (0 < alpha < 1):
-            raise ValueError("TODO.")
+            raise ValueError(f"Expected `alpha` to be in interval `(0, 1)`, found `{alpha}`.")
 
         super().__init__(**kwargs)
         self._alpha = alpha
@@ -209,11 +220,12 @@ class FusedGromowWassersteinOT(SimpleMixin, BaseGromowWassersteinOT):
         b: Optional[jnp.array] = None,
         n_iters: int = 20,
         tol: float = 1e-6,
+        linesearch: bool = True,
         log: bool = True,
         **kwargs: Any,
-    ) -> "FusedGromowWassersteinOT":
+    ) -> "FusedGW":
         """
-        Compute FGW.
+        Compute Fused Gromov-Wasserstein OT.
 
         Parameters
         ----------
@@ -254,13 +266,16 @@ class FusedGromowWassersteinOT(SimpleMixin, BaseGromowWassersteinOT):
         T, T_hat = jnp.outer(a, b), None
 
         geom_ab = Geometry(cost_matrix=(1 - self.alpha) * geom_ab.cost_matrix)
-        # TODO(michalk8): jax.lax.scan, similar in GW
+        # TODO(michalk8): jax.lax.scan, similar in GW in ott
         for i in range(n_iters):
             geom = self._update(geom_a, geom_b, geom_ab, T, C12=C12)
             transport = Transport(geom, a=a, b=b, **self._sink_kwargs)
             T_hat = transport.matrix
 
-            tau = self._linesearch(geom_a, geom_b, geom_ab, T=T, T_hat=T_hat, C12=C12)
+            if linesearch:
+                tau = self._linesearch(geom_a, geom_b, geom_ab, T=T, T_hat=T_hat, C12=C12)
+            else:
+                tau = 0
             err = jnp.linalg.norm(T - T_hat)
             if log:
                 print(f"{i + 1}. err={err} tau={tau}")
@@ -286,7 +301,7 @@ class FusedGromowWassersteinOT(SimpleMixin, BaseGromowWassersteinOT):
         return Geometry(cost_matrix=tmp + jnp.min(tmp))
 
     def _marginal_dep_term(self, geom_a: Geometry, geom_b: Geometry, a: jnp.ndarray, b: jnp.ndarray) -> jnp.ndarray:
-        # TODO(michalk8): we could be more mem. efficient
+        # TODO(michalk8): taken from ott, we could be more mem. efficient
         ab = a[:, None] * b[None, :]
         marginal_x = ab.sum(1)
         marginal_y = ab.sum(0)
@@ -321,5 +336,5 @@ class FusedGromowWassersteinOT(SimpleMixin, BaseGromowWassersteinOT):
 
     @property
     def alpha(self) -> float:
-        """Weight of GW."""
+        """Weight of Gromov-Wasserstein."""
         return self._alpha

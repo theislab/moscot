@@ -40,6 +40,7 @@ extensions = [
     "sphinx.ext.intersphinx",
     "sphinx.ext.autosummary",
     "sphinx_copybutton",
+    "sphinxcontrib.bibtex",
 ]
 intersphinx_mapping = {
     "numpy": ("https://docs.scipy.org/doc/numpy/", None),
@@ -49,6 +50,10 @@ intersphinx_mapping = {
 master_doc = "index"
 pygments_style = "sphinx"
 
+# bibliography
+bibtex_bibfiles = ["references.bib"]
+bibtex_reference_style = "author_year"
+bibtex_default_style = "alpha"
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ["_templates"]

@@ -6,6 +6,6 @@ Solvers
 .. autosummary::
     :toctree: api
 
-    UnbalancedOT
-    GromowWassersteinOT
-    FusedGromowWassersteinOT
+    Unbalanced
+    GW
+    FusedGW
