@@ -1,8 +1,8 @@
-scOTT - Single-Cell Optimal Transport Tools
-===========================================
+moscot - Multi-Omics Single-Cell Optimal Transport
+==================================================
 
-scOTT is intended to be a general framework to apply tools from optimal transport
-to time-course single-cell data. It should support:
+**moscot** is intended to be a general framework to apply tools from
+optimal transport to time-course single-cell data. It should support:
 
 - multimodal data (esp. ATAC & RNA)
 - lineage-tracing data (prospective & retrospective)
@@ -14,9 +14,9 @@ In the backend, it will be based on either `OTT <https://ott-jax.readthedocs.io/
 
 Installation
 ------------
-In order to install ``scoTT`` run::
+In order to install **moscot** run::
 
-    git clone https://github.com/theislab/scott
+    git clone https://github.com/theislab/moscot
     cd scott
     pip install -e.'[dev]'
     pre-commit install

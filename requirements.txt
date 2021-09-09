@@ -1,4 +1,7 @@
 anndata>=0.7.6
 jax>=0.2.19
 jaxlib>=0.1.70
-ott>=0.1.15
+# not listed in ott's requirements
+matplotlib
+numpy>=1.20.0
+ott-jax>=0.1.15
