@@ -130,3 +130,6 @@ dmypy.json
 
 # editors
 .idea
+
+# docs
+docs/source/api

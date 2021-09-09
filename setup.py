@@ -3,7 +3,7 @@ from pathlib import Path
 from setuptools import setup, find_packages
 
 try:
-    from scott import __email__, __author__, __version__
+    from moscot import __email__, __author__, __version__
 except ImportError:
     __author__ = ""
     __version__ = "0.0.0"
@@ -12,7 +12,7 @@ except ImportError:
 
 if __name__ == "__main__":
     setup(
-        name="scott",
+        name="moscot",
         use_scm_version=True,
         setup_requires=["setuptools_scm"],
         author=__author__,
