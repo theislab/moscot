@@ -221,6 +221,7 @@ class FusedGW(SimpleMixin, BaseGW):
         n_iters: int = 20,
         tol: float = 1e-6,
         linesearch: bool = True,
+        novosparc: bool = False,
         log: bool = True,
         **kwargs: Any,
     ) -> "FusedGW":
@@ -243,6 +244,10 @@ class FusedGW(SimpleMixin, BaseGW):
             Number of iterations.
         tol
             Tolerance stopping criterion.
+        linesearch
+            Whether to perform line search to find :math:`\tau` as described in :cite:`vayer:2019`.
+        novosparc
+            Whether to stay true to :mod:`novosparc` :cite:`nitzan:2019`.
         log
             Whether to log.
         kwargs
@@ -264,11 +269,13 @@ class FusedGW(SimpleMixin, BaseGW):
 
         C12 = self._marginal_dep_term(geom_a, geom_b, a, b)
         T, T_hat = jnp.outer(a, b), None
+        if novosparc:
+            linesearch = False
 
         geom_ab = Geometry(cost_matrix=(1 - self.alpha) * geom_ab.cost_matrix)
         # TODO(michalk8): jax.lax.scan, similar in GW in ott
         for i in range(n_iters):
-            geom = self._update(geom_a, geom_b, geom_ab, T, C12=C12)
+            geom = self._update(geom_a, geom_b, geom_ab, T, C12=C12, novosparc=novosparc)
             transport = Transport(geom, a=a, b=b, **self._sink_kwargs)
             T_hat = transport.matrix
 
@@ -289,7 +296,13 @@ class FusedGW(SimpleMixin, BaseGW):
         return self
 
     def _update(
-        self, geom_a: Geometry, geom_b: Geometry, geom_ab: Geometry, T: jnp.ndarray, C12: jnp.ndarray
+        self,
+        geom_a: Geometry,
+        geom_b: Geometry,
+        geom_ab: Geometry,
+        T: jnp.ndarray,
+        C12: jnp.ndarray,
+        novosparc: bool = False,
     ) -> Geometry:
         # TODO(michalk8): refactor this in the future
         h1 = self._cost_fn.left_x
@@ -297,8 +310,21 @@ class FusedGW(SimpleMixin, BaseGW):
         C_ab = geom_ab.cost_matrix
         C_a, C_b = geom_a.cost_matrix, geom_b.cost_matrix
 
+        # TODO(michalk8): which one to use? in novosparc, the cost fn is 1/2 * |a - b|^2, in ott, it's without 1/2
+        # and POT uses also the constant: https://github.com/PythonOT/POT/blob/master/ot/gromov.py#L138
+        if novosparc:
+            assert isinstance(self._cost_fn, GWSqEuclLoss), "Expected euclidean cost"
+            # ott: h2(y) = y * 2; novosparc: h2(y) = y
+            tens = -jnp.dot(h1(C_a), T).dot(h2(C_b).T / 2.0)
+            tens -= tens.min()
+
+            return Geometry(cost_matrix=C_ab + self.alpha * tens, epsilon=self.epsilon)
+
+        # see:
+        # https://github.com/PythonOT/POT/blob/master/ot/gromov.py#L205 (TODO(Marius1311): is the comment in POT right?
+        # https://github.com/PythonOT/POT/blob/master/ot/gromov.py#L137-L138
         tmp = C_ab + self.alpha * 2 * (C12 - np.dot(h1(C_a), T).dot(h2(C_b).T))
-        return Geometry(cost_matrix=tmp + jnp.min(tmp))
+        return Geometry(cost_matrix=tmp + jnp.min(tmp), epsilon=self.epsilon)
 
     def _marginal_dep_term(self, geom_a: Geometry, geom_b: Geometry, a: jnp.ndarray, b: jnp.ndarray) -> jnp.ndarray:
         # TODO(michalk8): taken from ott, we could be more mem. efficient
