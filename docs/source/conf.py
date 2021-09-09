@@ -17,15 +17,14 @@ import sys
 
 HERE = Path(__file__).parent
 sys.path.insert(0, str(HERE.parent.parent))
-
+import moscot
 
 # -- Project information -----------------------------------------------------
-import scott
 
-project = "scOTT"
+project = "moscot"
 copyright = "2021, Theislab"  # noqa: A001
-author = scott.__author__
-version = scott.__version__
+author = moscot.__author__
+version = moscot.__version__
 
 # -- General configuration ---------------------------------------------------
 

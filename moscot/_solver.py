@@ -10,8 +10,8 @@ from ott.core.gromov_wasserstein import GWLoss, GWSqEuclLoss, gromov_wasserstein
 from ott.geometry.epsilon_scheduler import Epsilon
 import numpy as np
 
-from scott._base import CostFn_t, BaseSolver
-from scott._mixins import SimpleMixin, TransportMixin
+from moscot._base import CostFn_t, BaseSolver
+from moscot._mixins import SimpleMixin, TransportMixin
 
 
 class RegularizedOT(BaseSolver, ABC):

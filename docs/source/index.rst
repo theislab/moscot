@@ -1,5 +1,5 @@
-scOTT - Single-Cell Optimal Transport Tools
-===========================================
+moscot - Multi-Omics Single-Cell Optimal Transport
+==================================================
 
 .. toctree::
     :caption: General

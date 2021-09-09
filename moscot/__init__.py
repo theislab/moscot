@@ -1,4 +1,4 @@
-from scott._solver import GW, FusedGW, Unbalanced
+from moscot._solver import GW, FusedGW, Unbalanced
 
 __author__ = ""
 __version__ = "0.0.0"

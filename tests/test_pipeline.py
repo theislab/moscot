@@ -8,8 +8,8 @@ from ott.geometry.geometry import Geometry
 from ott.core.gromov_wasserstein import gromov_wasserstein
 import numpy as np
 
-from scott import GW, FusedGW, Unbalanced
-from scott._base import BaseSolver
+from moscot import GW, FusedGW, Unbalanced
+from moscot._base import BaseSolver
 
 
 @pytest.mark.parametrize("solver_t", [Unbalanced, GW, FusedGW])
