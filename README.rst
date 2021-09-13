@@ -1,22 +1,27 @@
-moscot - Multi-Omics Single-Cell Optimal Transport
-==================================================
+moscot - multi-omic single-cell optimal transport tools
+=======================================================
 
-**moscot** is intended to be a general framework to apply tools from
-optimal transport to time-course single-cell data. It should support:
+.. image:: https://raw.githubusercontent.com/theislab/moscot/master/resources/images/logo.png
+    :width: 600px
+    :align: center
+    :alt: Logo
 
-- multimodal data (esp. ATAC & RNA)
-- lineage-tracing data (prospective & retrospective)
+**moscot** is a general framework to apply tools from
+optimal transport to time-course single-cell data. It supports:
 
-while scaling to large (~10k cells per time point) samples.
+- single-cell RNA-seq and ATAC-seq data (paired and unpaired)
+- single-cell lineage-traced data (prospective and retrospective)
 
-In the backend, it will be based on either `OTT <https://ott-jax.readthedocs.io/en/latest/index.html>`_ or
-`GeomLoss <https://www.kernel-operations.io/geomloss/index.html>`_ for fast and memory-efficient computations.
+while scaling to large cell numbers. In the backend, moscot is powered by
+`OTT <https://ott-jax.readthedocs.io/en/latest/>`_ which is a Jax-based optimal
+transport toolkit that supports just-in-time compilation, automatic
+differentiation and linear memory complexity for OT problems.
 
 Installation
 ------------
-In order to install **moscot** run::
+In order to install **moscot**, run::
 
     git clone https://github.com/theislab/moscot
-    cd scott
+    cd moscot
     pip install -e.'[dev]'
     pre-commit install
