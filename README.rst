@@ -1,6 +1,11 @@
 moscot - multi-omic single-cell optimal transport tools
 =======================================================
 
+.. image:: https://raw.githubusercontent.com/theislab/moscot/master/resources/images/logo.png
+    :width: 600px
+    :align: center
+    :alt: Logo
+
 **moscot** is a general framework to apply tools from
 optimal transport to time-course single-cell data. It supports:
 
