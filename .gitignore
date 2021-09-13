@@ -133,3 +133,6 @@ dmypy.json
 
 # docs
 docs/source/api
+
+# mac OS
+*.DS_Store
