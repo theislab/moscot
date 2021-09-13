@@ -1,7 +1,7 @@
 moscot - multi-omic single-cell optimal transport tools
 =======================================================
 
-.. image:: https://raw.githubusercontent.com/theislab/moscot/master/resources/images/logo.png
+.. image:: https://raw.githubusercontent.com/theislab/moscot/dev/resources/images/logo.png?token=ALENVBUCUOVM2PZLG4XE5LTBJCBSU
     :width: 600px
     :align: center
     :alt: Logo
