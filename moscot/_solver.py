@@ -268,24 +268,39 @@ class FusedGW(SimpleMixin, BaseGW):
             b = jnp.ones((geom_b.shape[0],)) / geom_b.shape[0]
 
         C12 = self._marginal_dep_term(geom_a, geom_b, a, b)
-        T, T_hat = jnp.outer(a, b), None
+        T, T_hat, f_val = jnp.outer(a, b), None, 0
         if novosparc:
             linesearch = False
+
+        if log:
+            print(
+                "{:5s}|{:12s}|{:8s}|{:8s}|{:8s}|{:8s}".format(
+                    "It.", "Loss", "Rel.loss    ", "Abs. loss   ", "Difference  ", "tau         "
+                )
+                + "\n"
+                + "-" * 70
+            )
 
         geom_ab = Geometry(cost_matrix=(1 - self.alpha) * geom_ab.cost_matrix)
         # TODO(michalk8): jax.lax.scan, similar in GW in ott
         for i in range(n_iters):
+            old_fval = f_val
             geom = self._update(geom_a, geom_b, geom_ab, T, C12=C12, novosparc=novosparc)
             transport = Transport(geom, a=a, b=b, **self._sink_kwargs)
             T_hat = transport.matrix
+
+            f_val = transport.reg_ot_cost
+            abs_delta_fval = abs(f_val - old_fval)
+            relative_delta_fval = abs_delta_fval / abs(f_val)
 
             if linesearch:
                 tau = self._linesearch(geom_a, geom_b, geom_ab, T=T, T_hat=T_hat, C12=C12)
             else:
                 tau = 0
+
             err = jnp.linalg.norm(T - T_hat)
             if log:
-                print(f"{i + 1}. err={err} tau={tau}")
+                print(f"{i + 1:5d}|{f_val:8e}|{relative_delta_fval:8e}|{abs_delta_fval:8e}|{err:8e}|{tau:8e}")
 
             T = (1 - tau) * T_hat + tau * T
             if err < tol:
