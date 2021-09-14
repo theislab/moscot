@@ -274,9 +274,11 @@ class FusedGW(SimpleMixin, BaseGW):
 
         if log:
             print(
-                "{:5s}|{:12s}|{:8s}|{:8s}|{:8s}".format("It.", "Loss", "Rel.loss    ", "Abs. loss   ", "Difference")
+                "{:5s}|{:12s}|{:8s}|{:8s}|{:8s}|{:8s}".format(
+                    "It.", "Loss", "Rel.loss    ", "Abs. loss   ", "Difference  ", "tau         "
+                )
                 + "\n"
-                + "-" * 55
+                + "-" * 70
             )
 
         geom_ab = Geometry(cost_matrix=(1 - self.alpha) * geom_ab.cost_matrix)
@@ -298,7 +300,7 @@ class FusedGW(SimpleMixin, BaseGW):
 
             err = jnp.linalg.norm(T - T_hat)
             if log:
-                print(f"{i + 1:5d}|{f_val:8e}|{relative_delta_fval:8e}|{abs_delta_fval:8e}|{err:8e}")
+                print(f"{i + 1:5d}|{f_val:8e}|{relative_delta_fval:8e}|{abs_delta_fval:8e}|{err:8e}|{tau:8e}")
 
             T = (1 - tau) * T_hat + tau * T
             if err < tol:
