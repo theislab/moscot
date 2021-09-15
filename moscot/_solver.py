@@ -15,9 +15,14 @@ from moscot._mixins import SimpleMixin, TransportMixin
 
 
 class RegularizedOT(BaseSolver, ABC):
-    def __init__(self, cost_fn: Optional[CostFn_t] = None, epsilon: Optional[Union[float, Epsilon]] = None):
+    def __init__(
+        self, cost_fn: Optional[CostFn_t] = None, epsilon: Optional[Union[float, Epsilon]] = None, **kwargs: Any
+    ):
         super().__init__(cost_fn=cost_fn)
-        self._epsilon: Epsilon = epsilon if isinstance(epsilon, Epsilon) else Epsilon(target=epsilon)
+        self._epsilon: Epsilon = epsilon if isinstance(epsilon, (Epsilon, type(None))) else Epsilon(target=epsilon)
+
+        kwargs.setdefault("jit", True)
+        self._kwargs: Dict[str, Any] = kwargs
 
     # TODO(michalk8): refactor this
     @property
@@ -25,7 +30,7 @@ class RegularizedOT(BaseSolver, ABC):
         return Euclidean()
 
     @property
-    def epsilon(self) -> Epsilon:
+    def epsilon(self) -> Optional[Epsilon]:
         """Regularization parameter."""
         return self._epsilon
 
@@ -57,12 +62,6 @@ class Unbalanced(TransportMixin, RegularizedOT):
         Keyword arguments for :func:`ott.core.sinkhorn.sinkhorn`.
     """
 
-    def __init__(
-        self, cost_fn: Optional[CostFn_t] = None, epsilon: Optional[Union[float, Epsilon]] = None, **kwargs: Any
-    ):
-        super().__init__(cost_fn=cost_fn, epsilon=epsilon)
-        self._transport_kwargs: Dict[str, Any] = kwargs
-
     def fit(
         self,
         geom: Union[jnp.array, Geometry],
@@ -90,7 +89,7 @@ class Unbalanced(TransportMixin, RegularizedOT):
         Fitted self.
         """
         geom = self._prepare_geom(geom, **kwargs)
-        self._transport = Transport(geom, a=a, b=b, **self._transport_kwargs)
+        self._transport = Transport(geom, a=a, b=b, **self._kwargs)
 
         return self
 
@@ -104,7 +103,6 @@ class BaseGW(RegularizedOT, ABC):
             raise TypeError(
                 f"Expected the cost function to be of type `{GWLoss.__name__}`, found `{type(self._cost_fn)}`."
             )
-        self._sink_kwargs: Dict[str, Any] = kwargs
 
     @property
     def _default_cost_fn(self) -> Union[CostFn, GWLoss]:
@@ -144,6 +142,10 @@ class GW(SimpleMixin, BaseGW):
     def __init__(
         self, cost_fn: Optional[GWLoss] = None, epsilon: Optional[Union[float, Epsilon]] = None, **kwargs: Any
     ):
+        # TODO(michalk8): shall we keep/not keep jit for sinkhorn? does it matter?
+        self._jit = kwargs.get("jit", True)
+        self._max_iterations = kwargs.pop("max_iterations", 20)
+        self._warm_start = kwargs.pop("warm_start", True)
         super().__init__(cost_fn=cost_fn, epsilon=epsilon, **kwargs)
 
     def fit(
@@ -178,7 +180,18 @@ class GW(SimpleMixin, BaseGW):
         geom_a = self._prepare_geom(geom_a, **kwargs)
         geom_b = self._prepare_geom(geom_b, **kwargs)
 
-        res = gromov_wasserstein(geom_a, geom_b, a=a, b=b, loss=self._cost_fn, sinkhorn_kwargs=self._sink_kwargs)
+        res = gromov_wasserstein(
+            geom_a,
+            geom_b,
+            a=a,
+            b=b,
+            epsilon=self.epsilon,
+            loss=self._cost_fn,
+            max_iterations=self._max_iterations,
+            jit=self._jit,
+            warm_start=self._warm_start,
+            sinkhorn_kwargs=self._kwargs,
+        )
         self._matrix = res.transport
 
         return self
@@ -221,7 +234,7 @@ class FusedGW(SimpleMixin, BaseGW):
         n_iters: int = 20,
         tol: float = 1e-6,
         linesearch: bool = True,
-        log: bool = True,
+        verbose: bool = True,
         **kwargs: Any,
     ) -> "FusedGW":
         """
@@ -245,7 +258,7 @@ class FusedGW(SimpleMixin, BaseGW):
             Tolerance stopping criterion.
         linesearch
             Whether to perform line search to find :math:`\tau` as described in :cite:`vayer:2019`.
-        log
+        verbose
             Whether to log.
         kwargs
             Keyword arguments for :class:`ott.geometry.pointcloud.PointCloud`.
@@ -267,13 +280,21 @@ class FusedGW(SimpleMixin, BaseGW):
         C12 = self._marginal_dep_term(geom_a, geom_b, a, b)
         T, T_hat, f_val = jnp.outer(a, b), None, 0
 
-        if log:
+        fmt = "{:5s}|{:12s}|{:8s}|{:8s}|{:8s}|{:8s}|{:8s}|{:8s}"
+        if verbose:
             print(
-                "{:5s}|{:12s}|{:8s}|{:8s}|{:8s}|{:8s}".format(
-                    "It.", "Loss", "Rel.loss    ", "Abs. loss   ", "Difference  ", "tau         "
+                fmt.format(
+                    "It.",
+                    "Loss",
+                    "Rel.loss    ",
+                    "Abs. loss   ",
+                    "Difference  ",
+                    "tau         ",
+                    "converged   ",
+                    "eps         ",
                 )
                 + "\n"
-                + "-" * 70
+                + "-" * 96
             )
 
         geom_ab = Geometry(cost_matrix=(1 - self.alpha) * geom_ab.cost_matrix)
@@ -283,7 +304,7 @@ class FusedGW(SimpleMixin, BaseGW):
             old_fval = f_val
             geom = self._update(geom_a, geom_b, geom_ab, T, C12=C12)
 
-            transport = Transport(geom, a=a, b=b, **self._sink_kwargs)
+            transport = Transport(geom, a=a, b=b, **self._kwargs)
             T_hat = transport.matrix
 
             f_val = transport.reg_ot_cost
@@ -294,10 +315,13 @@ class FusedGW(SimpleMixin, BaseGW):
                 tau = self._linesearch(geom_a, geom_b, geom_ab, T=T, T_hat=T_hat, C12=C12)
             else:
                 tau = 1.0
-  
+
             err = jnp.linalg.norm(T - T_hat)
-            if log:
-                print(f"{i + 1:5d}|{f_val:8e}|{relative_delta_fval:8e}|{abs_delta_fval:8e}|{err:8e}|{tau:8e}")
+            if verbose:
+                print(
+                    f"{i + 1:5d}|{f_val:8e}|{relative_delta_fval:8e}|{abs_delta_fval:8e}|"
+                    f"{err:8e}|{tau:8e}|{transport.converged:12d}|{geom.epsilon:8e}"
+                )
 
             T = (1 - tau) * T + tau * T_hat
             if err < tol:
