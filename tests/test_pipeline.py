@@ -27,6 +27,7 @@ def test_solver_runs(geom_a: Geometry, geom_b: Geometry, geom_ab: Geometry, solv
         solver.fit(geom_a, geom_b, geom_ab)
 
     assert isinstance(solver.matrix, jnp.ndarray)
+    assert isinstance(solver.converged, bool)
 
 
 def test_sinkhorn_matches_jax(geom_a: Geometry):

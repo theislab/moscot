@@ -178,6 +178,7 @@ class GW(SimpleMixin, BaseGW):
 
         res = gromov_wasserstein(geom_a, geom_b, a=a, b=b, loss=self._cost_fn, sinkhorn_kwargs=self._kwargs)
         self._matrix = res.transport
+        self._converged = all(res.converged_sinkhorn)
 
         return self
 
@@ -264,6 +265,7 @@ class FusedGW(SimpleMixin, BaseGW):
 
         C12 = self._marginal_dep_term(geom_a, geom_b, a, b)
         T, T_hat, f_val = jnp.outer(a, b), None, 0
+        converged = []
 
         fmt = "{:5s}|{:12s}|{:8s}|{:8s}|{:8s}|{:8s}|{:8s}|{:8s}"
         if verbose:
@@ -291,6 +293,7 @@ class FusedGW(SimpleMixin, BaseGW):
 
             transport = Transport(geom, a=a, b=b, **self._kwargs)
             T_hat = transport.matrix
+            converged.append(transport.converged)
 
             f_val = transport.reg_ot_cost
             abs_delta_fval = abs(f_val - old_fval)
@@ -313,6 +316,7 @@ class FusedGW(SimpleMixin, BaseGW):
                 break
 
         self._matrix = T
+        self._converged = all(converged)
 
         return self
 

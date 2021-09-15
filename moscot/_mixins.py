@@ -50,6 +50,11 @@ class TransportMixin:
         self._transport: Optional[Transport] = None
 
     @property
+    def converged(self) -> Optional[bool]:
+        """`True` if the solver converged."""
+        return None if self._transport is None else bool(self._transport.converged)
+
+    @property
     def matrix(self) -> jnp.array:
         """Transport matrix."""
         if self._transport is None:
@@ -68,10 +73,17 @@ class SimpleMixin:
     def __init__(self, **kwargs: Any):
         super().__init__(**kwargs)
         self._matrix: Optional[jnp.ndarray] = None
+        self._converged: Optional[bool] = None
+
+    @property
+    def converged(self) -> Optional[bool]:
+        """`True` if the solver converged."""
+        return self._converged
 
     @property
     def matrix(self) -> jnp.array:
         """Transport matrix."""
+        # TODO(michalk8): unify interface (None or raise)
         if self._matrix is None:
             raise RuntimeError("Not fitted.")
         return self._matrix
