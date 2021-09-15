@@ -221,7 +221,6 @@ class FusedGW(SimpleMixin, BaseGW):
         n_iters: int = 20,
         tol: float = 1e-6,
         linesearch: bool = True,
-        novosparc: bool = False,
         log: bool = True,
         **kwargs: Any,
     ) -> "FusedGW":
@@ -246,8 +245,6 @@ class FusedGW(SimpleMixin, BaseGW):
             Tolerance stopping criterion.
         linesearch
             Whether to perform line search to find :math:`\tau` as described in :cite:`vayer:2019`.
-        novosparc
-            Whether to stay true to :mod:`novosparc` :cite:`nitzan:2019`.
         log
             Whether to log.
         kwargs
@@ -269,8 +266,6 @@ class FusedGW(SimpleMixin, BaseGW):
 
         C12 = self._marginal_dep_term(geom_a, geom_b, a, b)
         T, T_hat, f_val = jnp.outer(a, b), None, 0
-        if novosparc:
-            linesearch = False
 
         if log:
             print(
@@ -282,10 +277,12 @@ class FusedGW(SimpleMixin, BaseGW):
             )
 
         geom_ab = Geometry(cost_matrix=(1 - self.alpha) * geom_ab.cost_matrix)
+
         # TODO(michalk8): jax.lax.scan, similar in GW in ott
         for i in range(n_iters):
             old_fval = f_val
-            geom = self._update(geom_a, geom_b, geom_ab, T, C12=C12, novosparc=novosparc)
+            geom = self._update(geom_a, geom_b, geom_ab, T, C12=C12)
+
             transport = Transport(geom, a=a, b=b, **self._sink_kwargs)
             T_hat = transport.matrix
 
@@ -296,13 +293,13 @@ class FusedGW(SimpleMixin, BaseGW):
             if linesearch:
                 tau = self._linesearch(geom_a, geom_b, geom_ab, T=T, T_hat=T_hat, C12=C12)
             else:
-                tau = 0
-
+                tau = 1.0
+  
             err = jnp.linalg.norm(T - T_hat)
             if log:
                 print(f"{i + 1:5d}|{f_val:8e}|{relative_delta_fval:8e}|{abs_delta_fval:8e}|{err:8e}|{tau:8e}")
 
-            T = (1 - tau) * T_hat + tau * T
+            T = (1 - tau) * T + tau * T_hat
             if err < tol:
                 break
 
@@ -317,29 +314,16 @@ class FusedGW(SimpleMixin, BaseGW):
         geom_ab: Geometry,
         T: jnp.ndarray,
         C12: jnp.ndarray,
-        novosparc: bool = False,
     ) -> Geometry:
-        # TODO(michalk8): refactor this in the future
         h1 = self._cost_fn.left_x
         h2 = self._cost_fn.right_y
         C_ab = geom_ab.cost_matrix
         C_a, C_b = geom_a.cost_matrix, geom_b.cost_matrix
-
-        # TODO(michalk8): which one to use? in novosparc, the cost fn is 1/2 * |a - b|^2, in ott, it's without 1/2
-        # and POT uses also the constant: https://github.com/PythonOT/POT/blob/master/ot/gromov.py#L138
-        if novosparc:
-            assert isinstance(self._cost_fn, GWSqEuclLoss), "Expected euclidean cost"
-            # ott: h2(y) = y * 2; novosparc: h2(y) = y
-            tens = -jnp.dot(h1(C_a), T).dot(h2(C_b).T / 2.0)
-            tens -= tens.min()
-
-            return Geometry(cost_matrix=C_ab + self.alpha * tens, epsilon=self.epsilon)
-
-        # see:
-        # https://github.com/PythonOT/POT/blob/master/ot/gromov.py#L205 (TODO(Marius1311): is the comment in POT right?
+        # references:
+        # https://github.com/PythonOT/POT/blob/master/ot/gromov.py#L205
         # https://github.com/PythonOT/POT/blob/master/ot/gromov.py#L137-L138
         tmp = C_ab + self.alpha * 2 * (C12 - np.dot(h1(C_a), T).dot(h2(C_b).T))
-        return Geometry(cost_matrix=tmp + jnp.min(tmp), epsilon=self.epsilon)
+        return Geometry(cost_matrix=tmp, epsilon=self.epsilon)
 
     def _marginal_dep_term(self, geom_a: Geometry, geom_b: Geometry, a: jnp.ndarray, b: jnp.ndarray) -> jnp.ndarray:
         # TODO(michalk8): taken from ott, we could be more mem. efficient
@@ -367,7 +351,7 @@ class FusedGW(SimpleMixin, BaseGW):
         tmp = jnp.dot(jnp.dot(C1, T_hat), C2)
 
         a = -2 * self.alpha * jnp.sum(tmp * T_hat)
-        b = jnp.sum(M + self.alpha * C12)
+        b = jnp.sum((M + self.alpha * C12) * T_hat)
         b -= 2 * self.alpha * (jnp.sum(tmp * T) + jnp.sum(jnp.dot(jnp.dot(C1, T), C2) * T_hat))
 
         if a > 0:
