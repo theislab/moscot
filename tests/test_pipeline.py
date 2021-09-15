@@ -44,6 +44,6 @@ def test_gw_matches_jax(geom_a: Geometry, geom_b: Geometry, jit: bool):
     solver = GW(jit=jit)
 
     solver = solver.fit(geom_a, geom_b)
-    res = gromov_wasserstein(geom_a, geom_b, sinkhorn_kwargs={"jit": jit})
+    res = gromov_wasserstein(geom_a, geom_b, sinkhorn_kwargs={"jit": jit}, jit=jit)
 
     np.testing.assert_allclose(solver.matrix, res.transport, rtol=1e-5)
