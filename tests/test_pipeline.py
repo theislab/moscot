@@ -30,7 +30,7 @@ def test_solver_runs(geom_a: Geometry, geom_b: Geometry, geom_ab: Geometry, solv
     assert isinstance(solver.matrix, jnp.ndarray)
     assert isinstance(solver.converged, bool)
     if isinstance(solver, BaseGW):
-        assert isinstance(solver.converged, list)
+        assert isinstance(solver.converged_sinkhorn, list)
 
 
 def test_sinkhorn_matches_jax(geom_a: Geometry):
