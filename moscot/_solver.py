@@ -266,8 +266,6 @@ class FusedGW(SimpleMixin, BaseGW):
 
         C12 = self._marginal_dep_term(geom_a, geom_b, a, b)
         T, T_hat, f_val = jnp.outer(a, b), None, 0
-        if novosparc:
-            linesearch = False
 
         if log:
             print(
