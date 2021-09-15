@@ -10,6 +10,7 @@ import numpy as np
 
 from moscot import GW, FusedGW, Unbalanced
 from moscot._base import BaseSolver
+from moscot._solver import BaseGW
 
 
 @pytest.mark.parametrize("solver_t", [Unbalanced, GW, FusedGW])
@@ -28,6 +29,8 @@ def test_solver_runs(geom_a: Geometry, geom_b: Geometry, geom_ab: Geometry, solv
 
     assert isinstance(solver.matrix, jnp.ndarray)
     assert isinstance(solver.converged, bool)
+    if isinstance(solver, BaseGW):
+        assert isinstance(solver.converged, list)
 
 
 def test_sinkhorn_matches_jax(geom_a: Geometry):
@@ -48,3 +51,16 @@ def test_gw_matches_jax(geom_a: Geometry, geom_b: Geometry, jit: bool):
     res = gromov_wasserstein(geom_a, geom_b, sinkhorn_kwargs=solver._kwargs, jit=jit, epsilon=solver.epsilon)
 
     np.testing.assert_allclose(solver.matrix, res.transport, rtol=1e-5)
+
+
+@pytest.mark.parametrize("rtol", [-1.0, 1.0])
+def test_fgw_converged(geom_a: Geometry, geom_b: Geometry, geom_ab: Geometry, rtol: float):
+    max_iters = 10
+    solver = FusedGW().fit(geom_a, geom_b, geom_ab, rtol=rtol, atol=-1.0, max_iterations=max_iters)
+
+    if rtol == 1.0:
+        assert solver.converged
+        assert len(solver.converged_sinkhorn) == 1
+    elif rtol == -1.0:
+        assert not solver.converged
+        assert len(solver.converged_sinkhorn) == max_iters
