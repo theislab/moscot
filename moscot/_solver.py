@@ -1,5 +1,5 @@
 from abc import ABC
-from typing import Any, Dict, Union, Optional
+from typing import Any, Dict, List, Union, Optional
 
 from jax import numpy as jnp
 from ott.geometry.costs import CostFn, Euclidean
@@ -103,6 +103,12 @@ class BaseGW(RegularizedOT, ABC):
             raise TypeError(
                 f"Expected the cost function to be of type `{GWLoss.__name__}`, found `{type(self._cost_fn)}`."
             )
+        self._converged_sinkhorn: List[bool] = []
+
+    @property
+    def converged_sinkhorn(self) -> List[bool]:
+        """Convergence of each sinkhorn iteration."""
+        return self._converged_sinkhorn
 
     @property
     def _default_cost_fn(self) -> Union[CostFn, GWLoss]:
@@ -193,6 +199,8 @@ class GW(SimpleMixin, BaseGW):
             sinkhorn_kwargs=self._kwargs,
         )
         self._matrix = res.transport
+        self._converged = all(res.converged_sinkhorn)
+        self._converged_sinkhorn = list(map(bool, res.converged_sinkhorn))
 
         return self
 
@@ -224,6 +232,7 @@ class FusedGW(SimpleMixin, BaseGW):
         super().__init__(**kwargs)
         self._alpha = alpha
 
+    # TODO(michalk8): move max_iterations to init?
     def fit(
         self,
         geom_a: Union[jnp.array, Geometry],
@@ -231,8 +240,9 @@ class FusedGW(SimpleMixin, BaseGW):
         geom_ab: Union[jnp.array, Geometry],
         a: Optional[jnp.array] = None,
         b: Optional[jnp.array] = None,
-        n_iters: int = 20,
-        tol: float = 1e-6,
+        max_iterations: int = 20,
+        rtol: float = 1e-6,
+        atol: float = 1e-6,
         linesearch: bool = True,
         verbose: bool = True,
         **kwargs: Any,
@@ -252,10 +262,12 @@ class FusedGW(SimpleMixin, BaseGW):
             Weights of ``geom_a``.
         b
             Weights of ``geom_b``.
-        n_iters
+        max_iterations
             Number of iterations.
-        tol
-            Tolerance stopping criterion.
+        rtol
+            Relative tolerance stopping criterion.
+        atol
+            Relative tolerance stopping criterion.
         linesearch
             Whether to perform line search to find :math:`\tau` as described in :cite:`vayer:2019`.
         verbose
@@ -279,34 +291,37 @@ class FusedGW(SimpleMixin, BaseGW):
 
         C12 = self._marginal_dep_term(geom_a, geom_b, a, b)
         T, T_hat, f_val = jnp.outer(a, b), None, 0
+        converged = []
 
-        fmt = "{:5s}|{:12s}|{:8s}|{:8s}|{:8s}|{:8s}|{:8s}|{:8s}"
+        fmt = "{:5s}|{:12s}|{:8s}|{:8s}|{:8s}|{:8s}|{:8s}"
         if verbose:
             print(
                 fmt.format(
                     "It.",
                     "Loss",
-                    "Rel.loss    ",
+                    "Rel. loss   ",
                     "Abs. loss   ",
-                    "Difference  ",
                     "tau         ",
                     "converged   ",
                     "eps         ",
                 )
                 + "\n"
-                + "-" * 96
+                + "-" * 83
             )
 
         geom_ab = Geometry(cost_matrix=(1 - self.alpha) * geom_ab.cost_matrix)
 
         # TODO(michalk8): jax.lax.scan, similar in GW in ott
-        for i in range(n_iters):
+        self._converged = True
+        for i in range(max_iterations):
             old_fval = f_val
             geom = self._update(geom_a, geom_b, geom_ab, T, C12=C12)
 
             transport = Transport(geom, a=a, b=b, **self._kwargs)
             T_hat = transport.matrix
+            converged.append(bool(transport.converged))
 
+            # TODO(michalk8): will need to eval the cost after line search if tau != 1.0
             f_val = transport.reg_ot_cost
             abs_delta_fval = abs(f_val - old_fval)
             relative_delta_fval = abs_delta_fval / abs(f_val)
@@ -315,19 +330,21 @@ class FusedGW(SimpleMixin, BaseGW):
                 tau = self._linesearch(geom_a, geom_b, geom_ab, T=T, T_hat=T_hat, C12=C12)
             else:
                 tau = 1.0
+            T = (1 - tau) * T + tau * T_hat
 
-            err = jnp.linalg.norm(T - T_hat)
             if verbose:
                 print(
                     f"{i + 1:5d}|{f_val:8e}|{relative_delta_fval:8e}|{abs_delta_fval:8e}|"
-                    f"{err:8e}|{tau:8e}|{transport.converged:12d}|{geom.epsilon:8e}"
+                    f"{tau:8e}|{transport.converged:12d}|{geom.epsilon:8e}"
                 )
 
-            T = (1 - tau) * T + tau * T_hat
-            if err < tol:
+            if relative_delta_fval <= rtol or abs_delta_fval <= atol:
                 break
+        else:
+            self._converged = False
 
         self._matrix = T
+        self._converged_sinkhorn = converged
 
         return self
 

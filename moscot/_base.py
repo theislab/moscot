@@ -38,6 +38,11 @@ class BaseSolver(ABC):
 
     @property
     @abstractmethod
+    def converged(self) -> Optional[bool]:
+        """`True` if the solver converged."""
+
+    @property
+    @abstractmethod
     def matrix(self) -> jnp.ndarray:
         """Transport matrix."""
 
