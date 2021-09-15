@@ -142,6 +142,10 @@ class GW(SimpleMixin, BaseGW):
     def __init__(
         self, cost_fn: Optional[GWLoss] = None, epsilon: Optional[Union[float, Epsilon]] = None, **kwargs: Any
     ):
+        # TODO(michalk8): shall we keep/not keep jit for sinkhorn? does it matter?
+        self._jit = kwargs.get("jit", True)
+        self._max_iterations = kwargs.pop("max_iterations", 20)
+        self._warm_start = kwargs.pop("warm_start", True)
         super().__init__(cost_fn=cost_fn, epsilon=epsilon, **kwargs)
 
     def fit(
@@ -176,7 +180,18 @@ class GW(SimpleMixin, BaseGW):
         geom_a = self._prepare_geom(geom_a, **kwargs)
         geom_b = self._prepare_geom(geom_b, **kwargs)
 
-        res = gromov_wasserstein(geom_a, geom_b, a=a, b=b, loss=self._cost_fn, sinkhorn_kwargs=self._kwargs)
+        res = gromov_wasserstein(
+            geom_a,
+            geom_b,
+            a=a,
+            b=b,
+            epsilon=self.epsilon,
+            loss=self._cost_fn,
+            max_iterations=self._max_iterations,
+            jit=self._jit,
+            warm_start=self._warm_start,
+            sinkhorn_kwargs=self._kwargs,
+        )
         self._matrix = res.transport
         self._converged = all(res.converged_sinkhorn)
 
