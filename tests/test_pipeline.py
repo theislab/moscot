@@ -41,9 +41,9 @@ def test_sinkhorn_matches_jax(geom_a: Geometry):
 
 @pytest.mark.parametrize("jit", [False, True])
 def test_gw_matches_jax(geom_a: Geometry, geom_b: Geometry, jit: bool):
-    solver = GW(jit=jit)
+    solver = GW(jit=jit, epsilon=0.01)
 
     solver = solver.fit(geom_a, geom_b)
-    res = gromov_wasserstein(geom_a, geom_b, sinkhorn_kwargs={"jit": jit}, jit=jit)
+    res = gromov_wasserstein(geom_a, geom_b, sinkhorn_kwargs=solver._kwargs, jit=jit, epsilon=solver.epsilon)
 
     np.testing.assert_allclose(solver.matrix, res.transport, rtol=1e-5)

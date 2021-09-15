@@ -145,7 +145,7 @@ class GW(SimpleMixin, BaseGW):
         # TODO(michalk8): shall we keep/not keep jit for sinkhorn? does it matter?
         self._jit = kwargs.get("jit", True)
         self._max_iterations = kwargs.pop("max_iterations", 20)
-        self._warm_start = kwargs.pop("warn_start", True)
+        self._warm_start = kwargs.pop("warm_start", True)
         super().__init__(cost_fn=cost_fn, epsilon=epsilon, **kwargs)
 
     def fit(
