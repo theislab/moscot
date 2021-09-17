@@ -118,9 +118,9 @@ class BaseGW(RegularizedOT, ABC):
         if isinstance(geom, np.ndarray):
             geom = jnp.asarray(geom)
         if isinstance(geom, jnp.ndarray):
-            cost_fn = Euclidean if isinstance(self._cost_fn, GWSqEuclLoss) else None
+            cost_fn = Euclidean() if isinstance(self._cost_fn, GWSqEuclLoss) else None
             # TODO(michalk8): this will always be euclidean (if passing None), nicer solution
-            geom = PointCloud(geom, cost_fn=cost_fn, epsilon=self.epsilon, **kwargs)
+            geom = PointCloud(geom, geom, cost_fn=cost_fn, epsilon=self.epsilon, **kwargs)
         if not isinstance(geom, Geometry):
             raise TypeError()
 
