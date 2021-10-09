@@ -316,13 +316,13 @@ class FusedGW(SimpleMixin, BaseGW):
             )
 
         scale_ab = float(1.0 if scale_fn is None else scale_fn(geom_ab.cost_matrix))
-        geom_ab = Geometry(cost_matrix=(1 - self.alpha) * geom_ab.cost_matrix)
+        geom_ab = Geometry(cost_matrix=(1 - self.alpha) * geom_ab.cost_matrix / scale_ab)
 
         # TODO(michalk8): jax.lax.scan, similar in GW in ott
         self._converged = True
         for i in range(max_iterations):
             old_fval = f_val
-            geom = self._update(geom_a, geom_b, geom_ab, T, C12=C12, scale_ab=scale_ab, scale_fn=scale_fn)
+            geom = self._update(geom_a, geom_b, geom_ab, T, C12=C12, scale_fn=scale_fn)
 
             transport = Transport(geom, a=a, b=b, **self._kwargs)
             T_hat = transport.matrix
@@ -362,7 +362,6 @@ class FusedGW(SimpleMixin, BaseGW):
         geom_ab: Geometry,
         T: jnp.ndarray,
         C12: jnp.ndarray,
-        scale_ab: float = 1.0,
         scale_fn: Optional[Callable[[jnp.array], float]] = None,
     ) -> Geometry:
         h1 = self._cost_fn.left_x
@@ -375,7 +374,7 @@ class FusedGW(SimpleMixin, BaseGW):
         C = 2 * (C12 - np.dot(h1(C_a), T).dot(h2(C_b).T))
         scale_c = float(1.0 if scale_fn is None else scale_fn(C))
         # tmp = C_ab + self.alpha * 2 * (C12 - np.dot(h1(C_a), T).dot(h2(C_b).T))
-        return Geometry(cost_matrix=(C_ab / scale_ab) + self.alpha * (C / scale_c), epsilon=self.epsilon)
+        return Geometry(cost_matrix=C_ab + self.alpha * (C / scale_c), epsilon=self.epsilon)
 
     def _marginal_dep_term(self, geom_a: Geometry, geom_b: Geometry, a: jnp.ndarray, b: jnp.ndarray) -> jnp.ndarray:
         # TODO(michalk8): taken from ott, we could be more mem. efficient
