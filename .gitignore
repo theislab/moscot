@@ -136,3 +136,7 @@ docs/source/api
 
 # macOS
 *.DS_Store
+
+# benchmarks
+notebooks/*.pdf
+notebooks/*.pickle

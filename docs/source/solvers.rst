@@ -6,6 +6,6 @@ Solvers
 .. autosummary::
     :toctree: api
 
-    Unbalanced
+    Regularized
     GW
     FusedGW
