@@ -1,5 +1,5 @@
 from abc import ABC
-from typing import Any, Dict, List, Union, Optional
+from typing import Any, Dict, List, Union, Callable, Optional
 
 from jax import numpy as jnp
 from ott.geometry.costs import CostFn, Euclidean
@@ -246,6 +246,7 @@ class FusedGW(SimpleMixin, BaseGW):
         max_iterations: int = 20,
         rtol: float = 1e-6,
         atol: float = 1e-6,
+        scale_fn: Optional[Callable[[jnp.array], float]] = None,
         linesearch: bool = True,
         verbose: bool = True,
         **kwargs: Any,
@@ -271,6 +272,8 @@ class FusedGW(SimpleMixin, BaseGW):
             Relative tolerance stopping criterion.
         atol
             Relative tolerance stopping criterion.
+        scale_fn
+            How to scale cost matrix terms.
         linesearch
             Whether to perform line search to find :math:`\tau` as described in :cite:`vayer:2019`.
         verbose
@@ -312,13 +315,14 @@ class FusedGW(SimpleMixin, BaseGW):
                 + "-" * 83
             )
 
-        geom_ab = Geometry(cost_matrix=(1 - self.alpha) * geom_ab.cost_matrix)
+        scale_ab = float(1.0 if scale_fn is None else scale_fn(geom_ab.cost_matrix))
+        geom_ab = Geometry(cost_matrix=(1 - self.alpha) * geom_ab.cost_matrix / scale_ab)
 
         # TODO(michalk8): jax.lax.scan, similar in GW in ott
         self._converged = True
         for i in range(max_iterations):
             old_fval = f_val
-            geom = self._update(geom_a, geom_b, geom_ab, T, C12=C12)
+            geom = self._update(geom_a, geom_b, geom_ab, T, C12=C12, scale_fn=scale_fn)
 
             transport = Transport(geom, a=a, b=b, **self._kwargs)
             T_hat = transport.matrix
@@ -358,6 +362,7 @@ class FusedGW(SimpleMixin, BaseGW):
         geom_ab: Geometry,
         T: jnp.ndarray,
         C12: jnp.ndarray,
+        scale_fn: Optional[Callable[[jnp.array], float]] = None,
     ) -> Geometry:
         h1 = self._cost_fn.left_x
         h2 = self._cost_fn.right_y
@@ -366,8 +371,10 @@ class FusedGW(SimpleMixin, BaseGW):
         # references:
         # https://github.com/PythonOT/POT/blob/master/ot/gromov.py#L205
         # https://github.com/PythonOT/POT/blob/master/ot/gromov.py#L137-L138
-        tmp = C_ab + self.alpha * 2 * (C12 - np.dot(h1(C_a), T).dot(h2(C_b).T))
-        return Geometry(cost_matrix=tmp, epsilon=self.epsilon)
+        C = 2 * (C12 - np.dot(h1(C_a), T).dot(h2(C_b).T))
+        scale_c = float(1.0 if scale_fn is None else scale_fn(C))
+        # tmp = C_ab + self.alpha * 2 * (C12 - np.dot(h1(C_a), T).dot(h2(C_b).T))
+        return Geometry(cost_matrix=C_ab + self.alpha * (C / scale_c), epsilon=self.epsilon)
 
     def _marginal_dep_term(self, geom_a: Geometry, geom_b: Geometry, a: jnp.ndarray, b: jnp.ndarray) -> jnp.ndarray:
         # TODO(michalk8): taken from ott, we could be more mem. efficient
