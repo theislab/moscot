@@ -38,10 +38,8 @@ class RegularizedOT(BaseSolver, ABC):
     # i.e. distance=True, kernel=True, only 1 allowed to be True
     def _prepare_geom(self, geom: Union[jnp.ndarray, Geometry], **kwargs: Any) -> Geometry:
         if isinstance(geom, Geometry):
-            geom._epsilon_init = self.epsilon
-            geom._relative_epsilon = False
-            # TODO(michalk8): (deep)copy? the former doesn't seem to work with jax
-            return geom
+            # TODO(michalk8): not efficient
+            return Geometry(cost_matrix=geom.cost_matrix, epsilon=self.epsilon)
 
         if isinstance(geom, np.ndarray):
             geom = jnp.asarray(geom)
