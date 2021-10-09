@@ -37,20 +37,25 @@ class RegularizedOT(BaseSolver, ABC):
     # TODO(michalk8): if array, allow it to be kernel/distance matrix
     # i.e. distance=True, kernel=True, only 1 allowed to be True
     def _prepare_geom(self, geom: Union[jnp.ndarray, Geometry], **kwargs: Any) -> Geometry:
+        if isinstance(geom, Geometry):
+            geom._epsilon_init = self.epsilon
+            geom._relative_epsilon = False
+            # TODO(michalk8): (deep)copy? the former doesn't seem to work with jax
+            return geom
+
         if isinstance(geom, np.ndarray):
             geom = jnp.asarray(geom)
         if isinstance(geom, jnp.ndarray):
             geom = PointCloud(geom, cost_fn=self._cost_fn, epsilon=self.epsilon, **kwargs)
         if not isinstance(geom, Geometry):
-            raise TypeError()
+            raise TypeError(type(geom))
 
         return geom
 
 
-# TODO(michalk8): find a more suitable name (balanced case when tau_a=1.0, tau_b=1.0)
-class Unbalanced(TransportMixin, RegularizedOT):
+class Regularized(TransportMixin, RegularizedOT):
     """
-    Unbalanced entropy-regularized OT.
+    Entropy-regularized OT.
 
     Parameters
     ----------
@@ -68,7 +73,7 @@ class Unbalanced(TransportMixin, RegularizedOT):
         a: Optional[jnp.array] = None,
         b: Optional[jnp.array] = None,
         **kwargs: Any,
-    ) -> "Unbalanced":
+    ) -> "Regularized":
         """
         Computer unbalanced entropy-regularized OT.
 

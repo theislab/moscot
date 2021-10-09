@@ -1,4 +1,4 @@
-from typing import Type
+from typing import Type, Optional
 
 import pytest
 
@@ -8,19 +8,19 @@ from ott.geometry.geometry import Geometry
 from ott.core.gromov_wasserstein import gromov_wasserstein
 import numpy as np
 
-from moscot import GW, FusedGW, Unbalanced
+from moscot import GW, FusedGW, Regularized
 from moscot._base import BaseSolver
 from moscot._solver import BaseGW
 
 
-@pytest.mark.parametrize("solver_t", [Unbalanced, GW, FusedGW])
+@pytest.mark.parametrize("solver_t", [Regularized, GW, FusedGW])
 def test_solver_runs(geom_a: Geometry, geom_b: Geometry, geom_ab: Geometry, solver_t: Type[BaseSolver]):
     solver = solver_t()
 
     with pytest.raises(RuntimeError, match=r"Not fitted\."):
         _ = solver.matrix
 
-    if isinstance(solver, Unbalanced):
+    if isinstance(solver, Regularized):
         solver.fit(geom_a)
     elif isinstance(solver, GW):
         solver.fit(geom_a, geom_b)
@@ -34,7 +34,7 @@ def test_solver_runs(geom_a: Geometry, geom_b: Geometry, geom_ab: Geometry, solv
 
 
 def test_sinkhorn_matches_jax(geom_a: Geometry):
-    solver = Unbalanced()
+    solver = Regularized()
 
     solver = solver.fit(geom_a)
     res = sinkhorn(geom_a)
@@ -64,3 +64,13 @@ def test_fgw_converged(geom_a: Geometry, geom_b: Geometry, geom_ab: Geometry, rt
     elif rtol == -1.0:
         assert not solver.converged
         assert len(solver.converged_sinkhorn) == max_iters
+
+
+@pytest.mark.parametrize("eps", [None, 1e-2, 1e-3])
+def test_regularized_eps(geom_ab: Geometry, eps: Optional[float]):
+    solver = Regularized(epsilon=eps)
+    solver.fit(geom_ab)
+
+    if eps is None:
+        eps = 0.05
+    assert geom_ab.epsilon == eps
