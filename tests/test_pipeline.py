@@ -68,9 +68,11 @@ def test_fgw_converged(geom_a: Geometry, geom_b: Geometry, geom_ab: Geometry, rt
 
 @pytest.mark.parametrize("eps", [None, 1e-2, 1e-3])
 def test_regularized_eps(geom_ab: Geometry, eps: Optional[float]):
+    eps_orig = geom_ab.epsilon
     solver = Regularized(epsilon=eps)
     solver.fit(geom_ab)
 
     if eps is None:
-        eps = 0.05
-    assert geom_ab.epsilon == eps
+        eps = eps_orig
+    assert geom_ab.epsilon == eps_orig
+    assert solver._transport.geom.epsilon == eps
