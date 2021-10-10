@@ -1,5 +1,7 @@
 from abc import ABC
-from typing import Any, Dict, List, Union, Literal, Callable, Optional
+from typing import Any, Dict, List, Union, Callable, Optional
+
+from typing_extensions import Literal
 
 from jax import numpy as jnp, random
 from ott.geometry.costs import CostFn, Euclidean
