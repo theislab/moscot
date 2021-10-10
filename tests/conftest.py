@@ -1,3 +1,5 @@
+from typing import Tuple, Optional
+
 import ot
 import pytest
 
@@ -7,7 +9,7 @@ import numpy as np
 
 
 @pytest.fixture()
-def geom_a():
+def geom_a() -> Geometry:
     np.random.seed(0)
     n = 20  # number of points in the first distribution
     sig = 1  # std of first distribution
@@ -19,7 +21,7 @@ def geom_a():
 
 
 @pytest.fixture()
-def geom_b():
+def geom_b() -> Geometry:
     np.random.seed(1)
     n = 20  # number of points in the first distribution
     n2 = 30  # number of points in the second distribution
@@ -34,7 +36,7 @@ def geom_b():
 
 
 @pytest.fixture()
-def geom_ab():
+def geom_ab() -> Geometry:
     np.random.seed(2)
     n = 20  # number of points in the first distribution
     n2 = 30  # number of points in the second distribution
@@ -51,3 +53,20 @@ def geom_ab():
     yt = yt[::-1, :]
 
     return Geometry(cost_matrix=jnp.asarray(ot.dist(ys, yt)))
+
+
+def create_marginals(
+    n: int, m: int, *, uniform: bool = False, seed: Optional[int] = None
+) -> Tuple[jnp.ndarray, jnp.ndarray]:
+    np.random.seed(seed)
+    if uniform:
+        a, b = np.ones((n,)), np.ones((m,))
+    else:
+        a = np.abs(np.random.normal(size=(n,)))
+        b = np.abs(np.random.normal(size=(m,)))
+    a /= np.sum(a)
+    b /= np.sum(b)
+    a = jnp.asarray(a)
+    b = jnp.asarray(b)
+
+    return a, b
