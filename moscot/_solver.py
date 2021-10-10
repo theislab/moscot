@@ -1,7 +1,9 @@
 from abc import ABC
 from typing import Any, Dict, List, Union, Callable, Optional
 
-from jax import numpy as jnp
+from typing_extensions import Literal
+
+from jax import numpy as jnp, random
 from ott.geometry.costs import CostFn, Euclidean
 from ott.tools.transport import Transport
 from ott.geometry.geometry import Geometry
@@ -246,8 +248,10 @@ class FusedGW(SimpleMixin, BaseGW):
         max_iterations: int = 20,
         rtol: float = 1e-6,
         atol: float = 1e-6,
+        init_method: Literal["uniform", "random"] = "uniform",
         scale_fn: Optional[Callable[[jnp.array], float]] = None,
         linesearch: bool = True,
+        seed: Optional[int] = None,
         verbose: bool = True,
         **kwargs: Any,
     ) -> "FusedGW":
@@ -272,10 +276,14 @@ class FusedGW(SimpleMixin, BaseGW):
             Relative tolerance stopping criterion.
         atol
             Relative tolerance stopping criterion.
+        init_method
+            How to initialize the coupling.
         scale_fn
             How to scale cost matrix terms.
         linesearch
             Whether to perform line search to find :math:`\tau` as described in :cite:`vayer:2019`.
+        seed
+            Random seed when ``init_method = 'random'``.
         verbose
             Whether to log.
         kwargs
@@ -296,7 +304,7 @@ class FusedGW(SimpleMixin, BaseGW):
             b = jnp.ones((geom_b.shape[0],)) / geom_b.shape[0]
 
         C12 = self._marginal_dep_term(geom_a, geom_b, a, b)
-        T, T_hat, f_val = jnp.outer(a, b), None, 0
+        T, T_hat, f_val = self._get_initial_coupling(a, b, method=init_method, seed=seed), None, 0
         converged = []
 
         fmt = "{:5s}|{:12s}|{:8s}|{:8s}|{:8s}|{:8s}|{:8s}"
@@ -354,6 +362,30 @@ class FusedGW(SimpleMixin, BaseGW):
         self._converged_sinkhorn = converged
 
         return self
+
+    def _get_initial_coupling(
+        self,
+        a: jnp.ndarray,
+        b: jnp.ndarray,
+        *,
+        method: Literal["uniform", "random"],
+        seed: Optional[int] = None,
+    ) -> jnp.ndarray:
+        seed = np.random.RandomState(seed).randint(0, 2 ** 32 - 1)
+        key = random.PRNGKey(seed)
+
+        if method == "uniform":
+            return jnp.outer(a, b)
+        if method == "random":
+            # TODO(michalk8): RecursionError in `ott` if epsilon is `None`
+            if self.epsilon is None:
+                raise ValueError("Please specify `epsilon=...` when using `init_method='random'.`")
+            geom = Geometry(
+                kernel_matrix=random.uniform(key, shape=(len(a), len(b)), dtype=float), epsilon=self.epsilon
+            )
+            return Transport(geom, a=a, b=b).matrix
+
+        raise NotImplementedError(method)
 
     def _update(
         self,

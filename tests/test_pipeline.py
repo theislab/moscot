@@ -1,5 +1,6 @@
 from typing import Type, Optional
 
+from conftest import create_marginals
 import pytest
 
 from jax import numpy as jnp
@@ -76,3 +77,33 @@ def test_regularized_eps(geom_ab: Geometry, eps: Optional[float]):
         eps = eps_orig
     assert geom_ab.epsilon == eps_orig
     assert solver._transport.geom.epsilon == eps
+
+
+@pytest.mark.parametrize("uniform", [False, True])
+@pytest.mark.parametrize("eps", [None, 1e-2])
+def test_random_init_coupling_epsilon(eps: Optional[float], uniform: bool):
+    a, b = create_marginals(32, 64, uniform=uniform, seed=42)
+    solver = FusedGW(epsilon=eps)
+    if eps is None:
+        with pytest.raises(ValueError, match=r"Please specify `epsilon="):
+            _ = solver._get_initial_coupling(a, b, method="random")
+        return
+    T = solver._get_initial_coupling(a, b, method="random")
+
+    assert isinstance(T, jnp.ndarray)
+    np.testing.assert_array_equal(T.shape, (len(a), len(b)))
+    np.testing.assert_allclose(T.sum(1), a, rtol=1e-6)
+    np.testing.assert_allclose(T.sum(0), b, rtol=1e-6)
+
+
+@pytest.mark.parametrize("uniform", [False, True])
+def test_random_init_coupling_reproducible(uniform: bool):
+    a, b = create_marginals(32, 64, uniform=uniform, seed=42)
+
+    T1 = FusedGW(epsilon=1e-2)._get_initial_coupling(a, b, method="random", seed=42)
+    T2 = FusedGW(epsilon=1e-2)._get_initial_coupling(a, b, method="random", seed=42)
+    T3 = FusedGW(epsilon=1e-2)._get_initial_coupling(a, b, method="random", seed=0)
+
+    np.testing.assert_allclose(T1, T2)
+    with pytest.raises(AssertionError):
+        np.testing.assert_allclose(T1, T3)
