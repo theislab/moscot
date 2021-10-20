@@ -140,3 +140,10 @@ docs/source/api
 # benchmarks
 notebooks/*.pdf
 notebooks/*.pickle
+*.gz
+*.pickle
+*.h5ad
+*.p
+*.jpg
+*.jpeg
+*.key
