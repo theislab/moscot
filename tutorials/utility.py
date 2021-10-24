@@ -88,24 +88,6 @@ def plot2D_samples_mat(xs, xt, G, thr=1e-8, alpha_scale=1, ax=None, **kwargs):
                         alpha=alpha_scale * G[i, j] / mx, zorder=0, **kwargs)
 
 
-def create_geometry(cost_matrix: np.ndarray, scale='max') -> Geometry:
-    cost_matrix = jnp.array(cost_matrix)
-    if scale is None:
-        pass
-    elif scale == 'max':
-        cost_matrix /= cost_matrix.max()
-        assert cost_matrix.max() == 1.0
-    elif scale == 'mean':
-        cost_matrix /= np.mean(cost_matrix)
-    elif scale == 'median':
-        cost_matrix /= np.median(cost_matrix)
-    else:
-        raise NotImplementedError(scale)
-
-    assert (cost_matrix >= 0).all()
-    return Geometry(cost_matrix=cost_matrix)
-
-
 def init_sim(flow_type: Literal['bifurcation', 'convergent', 'partial_convergent', 'mistmatched_clusters'],
              seed: int = 257,  **kwargs):
     """
