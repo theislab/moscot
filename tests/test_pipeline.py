@@ -47,7 +47,7 @@ def test_sinkhorn_matches_jax(geom_a: Geometry):
 
 @pytest.mark.parametrize("jit", [False, True])
 def test_gw_matches_jax(geom_a: Geometry, geom_b: Geometry, jit: bool):
-    solver = GW(jit=jit, epsilon=0.01)
+    solver = GW(jit=jit)
 
     solver = solver.fit(geom_a, geom_b)
     res = gromov_wasserstein(geom_a, geom_b, sinkhorn_kwargs=solver._kwargs, jit=jit, epsilon=solver.epsilon)
@@ -89,6 +89,7 @@ def test_random_init_coupling_epsilon(eps: Optional[float], uniform: bool):
         with pytest.raises(ValueError, match=r"Please specify `epsilon="):
             _ = solver._get_initial_coupling(a, b, method="random")
         return
+
     T = solver._get_initial_coupling(a, b, method="random")
 
     assert isinstance(T, jnp.ndarray)
@@ -114,18 +115,22 @@ def test_fgw_not_converged_warns(geom_a: Geometry, geom_b: Geometry, geom_ab: Ge
     solver = FusedGW(epsilon=1e-3)
 
     with pytest.warns(UserWarning, match=r"Maximum number of iterations \(1\) reached"):
-        solver.fit(geom_a, geom_b, geom_ab, rtol=1e-12, atol=1e-12, max_iterations=1)
+        try:
+            solver.fit(geom_a, geom_b, geom_ab, rtol=1e-12, atol=1e-12, max_iterations=1)
+        except ValueError:
+            # in case marginals are not satisfied
+            pass
 
 
-@pytest.mark.parametrize("mistmatch", [False, True])
-def test_marginals_check(geom_a: Geometry, geom_b: Geometry, mocker: MockerFixture, mistmatch: bool):
+@pytest.mark.parametrize("mismatch", [False, True])
+def test_marginals_check(geom_a: Geometry, geom_b: Geometry, mocker: MockerFixture, mismatch: bool):
     a, b = create_marginals(geom_a.shape[0], geom_b.shape[0], uniform=False, seed=42)
-    tmat = jnp.outer(a, b) + float(mistmatch)
+    tmat = jnp.outer(a, b) + float(mismatch)
 
     solver = GW()
     mocker.patch.object(solver, "_matrix", new=tmat)
 
-    if mistmatch:
+    if mismatch:
         with pytest.raises(ValueError, match=r"\nNot equal to tolerance"):
             solver._check_marginals(a, b)
     else:
