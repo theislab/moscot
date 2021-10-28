@@ -1,5 +1,6 @@
 from abc import ABC
 from typing import Any, Dict, List, Union, Callable, Optional
+import warnings
 
 from typing_extensions import Literal
 
@@ -328,6 +329,8 @@ class FusedGW(SimpleMixin, BaseGW):
 
         # TODO(michalk8): jax.lax.scan, similar in GW in ott
         self._converged = True
+        relative_delta_fval, abs_delta_fval = np.inf, np.inf
+
         for i in range(max_iterations):
             old_fval = f_val
             geom = self._update(geom_a, geom_b, geom_ab, T, C12=C12, scale_fn=scale_fn)
@@ -360,6 +363,13 @@ class FusedGW(SimpleMixin, BaseGW):
 
         self._matrix = T
         self._converged_sinkhorn = converged
+
+        if not self.converged:
+            warnings.warn(
+                f"Maximum number of iterations ({max_iterations}) reached "
+                f"with `rtol={relative_delta_fval:.4e}`, `atol={abs_delta_fval:.4e}`",
+                category=UserWarning,
+            )
 
         return self
 

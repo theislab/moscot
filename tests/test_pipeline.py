@@ -107,3 +107,10 @@ def test_random_init_coupling_reproducible(uniform: bool):
     np.testing.assert_allclose(T1, T2)
     with pytest.raises(AssertionError):
         np.testing.assert_allclose(T1, T3)
+
+
+def test_fgw_not_converged_warns(geom_a: Geometry, geom_b: Geometry, geom_ab: Geometry):
+    solver = FusedGW(epsilon=1e-3)
+
+    with pytest.warns(UserWarning, match=r"Maximum number of iterations \(1\) reached"):
+        solver.fit(geom_a, geom_b, geom_ab, rtol=1e-12, atol=1e-12, max_iterations=1)
