@@ -1,6 +1,7 @@
 from typing import Type, Optional
 
 from conftest import create_marginals
+from pytest_mock import MockerFixture
 import pytest
 
 from jax import numpy as jnp
@@ -114,3 +115,18 @@ def test_fgw_not_converged_warns(geom_a: Geometry, geom_b: Geometry, geom_ab: Ge
 
     with pytest.warns(UserWarning, match=r"Maximum number of iterations \(1\) reached"):
         solver.fit(geom_a, geom_b, geom_ab, rtol=1e-12, atol=1e-12, max_iterations=1)
+
+
+@pytest.mark.parametrize("mistmatch", [False, True])
+def test_marginals_check(geom_a: Geometry, geom_b: Geometry, mocker: MockerFixture, mistmatch: bool):
+    a, b = create_marginals(geom_a.shape[0], geom_b.shape[0], uniform=False, seed=42)
+    tmat = jnp.outer(a, b) + float(mistmatch)
+
+    solver = GW()
+    mocker.patch.object(solver, "_matrix", new=tmat)
+
+    if mistmatch:
+        with pytest.raises(ValueError, match=r"\nNot equal to tolerance"):
+            solver._check_marginals(a, b)
+    else:
+        solver._check_marginals(a, b)

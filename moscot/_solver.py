@@ -96,6 +96,7 @@ class Regularized(TransportMixin, RegularizedOT):
         """
         geom = self._prepare_geom(geom, **kwargs)
         self._transport = Transport(geom, a=a, b=b, **self._kwargs)
+        self._check_marginals(a, b)
 
         return self
 
@@ -207,6 +208,7 @@ class GW(SimpleMixin, BaseGW):
         self._matrix = res.transport
         self._converged = all(res.converged_sinkhorn)
         self._converged_sinkhorn = list(map(bool, res.converged_sinkhorn))
+        self._check_marginals(a, b)
 
         return self
 
@@ -370,6 +372,7 @@ class FusedGW(SimpleMixin, BaseGW):
                 f"with `rtol={relative_delta_fval:.4e}`, `atol={abs_delta_fval:.4e}`",
                 category=UserWarning,
             )
+        self._check_marginals(a, b)
 
         return self
 

@@ -59,7 +59,7 @@ class TransportMixin:
         """Transport matrix."""
         if self._transport is None:
             raise RuntimeError("Not fitted.")
-        return None if self._transport is None else self._transport.matrix
+        return self._transport.matrix
 
     def transport(self, inputs: jnp.ndarray, forward: bool = True) -> jnp.array:
         """Transport mass."""
