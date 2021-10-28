@@ -3,9 +3,13 @@ from typing import Tuple, Optional
 import ot
 import pytest
 
-from jax import numpy as jnp
-from ott.geometry.geometry import Geometry
-import numpy as np
+from jax.config import config
+
+config.update("jax_enable_x64", True)
+
+from jax import numpy as jnp  # noqa: E402
+from ott.geometry.geometry import Geometry  # noqa: E402
+import numpy as np  # noqa: E402
 
 
 @pytest.fixture()

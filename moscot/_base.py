@@ -1,10 +1,13 @@
 from abc import ABC, abstractmethod
 from typing import Any, Dict, Union, Optional
 
+from typing_extensions import Literal
+
 from jax import numpy as jnp
 from ott.geometry.costs import CostFn
 from ott.geometry.geometry import Geometry
 from ott.core.gromov_wasserstein import GWLoss
+import numpy as np
 
 CostFn_t = Union[CostFn, GWLoss]
 
@@ -20,6 +23,7 @@ class BaseSolver(ABC):
     def _default_cost_fn(self) -> Union[CostFn, GWLoss]:
         pass
 
+    # TODO(michalk8): in the future, let `_fit` be abstract and `fit` call `_check_marginals` in the end
     @abstractmethod
     def fit(
         self,
@@ -29,6 +33,30 @@ class BaseSolver(ABC):
         **kwargs: Any,
     ) -> "BaseSolver":
         """TODO."""
+
+    # TODO(michalk8): in the future, consider exposing the tolerances e.g. via persistent config
+    def _check_marginals(
+        self, a: Optional[jnp.array] = None, b: Optional[jnp.array] = None, rtol: float = 1e-2, atol: float = 1e-2
+    ) -> None:
+        def assert_isclose(expected_marginals: Optional[jnp.ndarray], *, axis: Literal[0, 1]) -> None:
+            matrix = self.matrix
+            if expected_marginals is None:
+                expected_marginals = jnp.ones((matrix.shape[axis],)) / matrix.shape[axis]
+
+            try:
+                np.testing.assert_allclose(
+                    matrix.sum(1 - axis),
+                    expected_marginals,
+                    rtol=rtol,
+                    atol=atol,
+                    verbose=False,
+                    err_msg=f"{'Target' if axis else 'Source'} marginals do not match the expected marginals.",
+                )
+            except AssertionError as e:
+                raise ValueError(str(e)) from None
+
+        assert_isclose(a, axis=0)
+        assert_isclose(b, axis=1)
 
     # TODO(michalk8): add predict (alias for transport?)
     # TODO(michalk8): add some basic visualization (optional matplotlib req)
