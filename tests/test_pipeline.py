@@ -19,7 +19,7 @@ from moscot._solver import BaseGW
 def test_solver_runs(geom_a: Geometry, geom_b: Geometry, geom_ab: Geometry, solver_t: Type[BaseSolver]):
     solver = solver_t()
 
-    with pytest.raises(RuntimeError, match=r"Not fitted\."):
+    with pytest.raises(RuntimeError, match=r"No transportation map found\."):
         _ = solver.matrix
 
     if isinstance(solver, Regularized):
