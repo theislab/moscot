@@ -16,6 +16,12 @@ from moscot._solver import BaseGW
 
 
 @pytest.mark.parametrize("solver_t", [Regularized, GW, FusedGW])
+def test_solver_kwargs_passed(geom_a: Geometry, geom_b: Geometry, geom_ab: Geometry, solver_t: Type[BaseSolver]):
+    solver = solver_t(foo="bar")
+    assert solver._kwargs["foo"] == "bar"
+
+
+@pytest.mark.parametrize("solver_t", [Regularized, GW, FusedGW])
 def test_solver_runs(geom_a: Geometry, geom_b: Geometry, geom_ab: Geometry, solver_t: Type[BaseSolver]):
     solver = solver_t()
 
