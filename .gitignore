@@ -139,4 +139,6 @@ docs/source/api
 
 # benchmarks
 notebooks/*.pdf
-notebooks/*.pickle
+*.pickle
+*.h5ad
+*.p
