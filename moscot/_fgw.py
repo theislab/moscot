@@ -12,6 +12,8 @@ from ott.core.gromov_wasserstein import GWLoss, GWSqEuclLoss, _marginal_dependen
 import jax
 import numpy as np
 
+from moscot._solver import _sinkhorn
+
 fgw_carry = namedtuple("fgw_carry", ["iter", "T", "prev_fval", "curr_fval"])
 fgw_res = namedtuple("fgw_res", ["iter", "T"])
 
@@ -118,16 +120,15 @@ def _fgw(
 
     def while_body_fn(carry: fgw_carry) -> fgw_carry:
         geom = _update_fgw(geom_a, geom_b, geom_ab, alpha, epsilon, carry.T, C12, cost_fn, scale_fn)
-        transport = Transport(geom, a=a, b=b, **kwargs)
-        T_hat, f_val = transport.matrix, transport.reg_ot_cost
-        del geom, transport
+        f_val, T_hat, _ = sinkhorn(geom)
+        del geom, _
 
         return fgw_carry(carry.iter + 1, T_hat, carry.curr_fval, f_val)
 
     def for_body_fn(carry: jnp.ndarray, _: Any = None) -> Tuple[jnp.array, type(None)]:
         del _
         geom = _update_fgw(geom_a, geom_b, geom_ab, alpha, epsilon, carry, C12, cost_fn, scale_fn)
-        return Transport(geom, a=a, b=b, **kwargs).matrix, None
+        return sinkhorn(geom)[1], None
 
     if cost_fn is None:
         cost_fn = GWSqEuclLoss()
@@ -147,6 +148,7 @@ def _fgw(
     )
 
     # TODO(michalk8): return more info (for warnings/etc.)
+    sinkhorn = partial(_sinkhorn, a=a, b=b, **kwargs)
     if rtol is None or atol is None:
         iteration = max_iterations - 1
         T = jax.lax.scan(f=for_body_fn, init=T, xs=None, length=iteration)[0]

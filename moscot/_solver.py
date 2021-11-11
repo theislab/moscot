@@ -1,5 +1,6 @@
 from abc import ABC
 from typing import Any, Dict, List, Tuple, Union, Callable, Optional
+from functools import partial
 import warnings
 
 from typing_extensions import Literal
@@ -334,7 +335,7 @@ class FusedGW(SimpleMixin, BaseGW):
         self._converged = True
         relative_delta_fval, abs_delta_fval = np.inf, np.inf
 
-        get_tmap = lambda g: _sinkhorn(g, a=a, b=b, **self._kwargs)
+        get_tmap = partial(_sinkhorn, a=a, b=b, **self._kwargs)
         if self._jit:
             get_tmap = jit(get_tmap)
 
