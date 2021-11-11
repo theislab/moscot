@@ -1,9 +1,11 @@
 from abc import ABC
-from typing import Any, Dict, List, Union, Callable, Optional
+from typing import Any, Dict, List, Tuple, Union, Callable, Optional
+import warnings
 
 from typing_extensions import Literal
 
-from jax import numpy as jnp, random
+from jax import jit, numpy as jnp, random
+from ott.core.sinkhorn import sinkhorn
 from ott.geometry.costs import CostFn, Euclidean
 from ott.tools.transport import Transport
 from ott.geometry.geometry import Geometry
@@ -21,9 +23,8 @@ class RegularizedOT(BaseSolver, ABC):
         self, cost_fn: Optional[CostFn_t] = None, epsilon: Optional[Union[float, Epsilon]] = None, **kwargs: Any
     ):
         super().__init__(cost_fn=cost_fn)
-        self._epsilon: Epsilon = epsilon if isinstance(epsilon, (Epsilon, type(None))) else Epsilon(target=epsilon)
 
-        kwargs.setdefault("jit", True)
+        self._epsilon: Epsilon = epsilon if isinstance(epsilon, (Epsilon, type(None))) else Epsilon(target=epsilon)
         self._kwargs: Dict[str, Any] = kwargs
 
     # TODO(michalk8): refactor this
@@ -95,6 +96,7 @@ class Regularized(TransportMixin, RegularizedOT):
         """
         geom = self._prepare_geom(geom, **kwargs)
         self._transport = Transport(geom, a=a, b=b, **self._kwargs)
+        self._check_marginals(a, b)
 
         return self
 
@@ -103,7 +105,7 @@ class BaseGW(RegularizedOT, ABC):
     def __init__(
         self, cost_fn: Optional[GWLoss] = None, epsilon: Optional[Union[float, Epsilon]] = None, **kwargs: Any
     ):
-        super().__init__(cost_fn=cost_fn, epsilon=epsilon)
+        super().__init__(cost_fn=cost_fn, epsilon=epsilon, **kwargs)
         if not isinstance(self._cost_fn, GWLoss):
             raise TypeError(
                 f"Expected the cost function to be of type `{GWLoss.__name__}`, found `{type(self._cost_fn)}`."
@@ -154,7 +156,7 @@ class GW(SimpleMixin, BaseGW):
         self, cost_fn: Optional[GWLoss] = None, epsilon: Optional[Union[float, Epsilon]] = None, **kwargs: Any
     ):
         # TODO(michalk8): shall we keep/not keep jit for sinkhorn? does it matter?
-        self._jit = kwargs.get("jit", True)
+        self._jit = kwargs.get("jit", False)
         self._max_iterations = kwargs.pop("max_iterations", 20)
         self._warm_start = kwargs.pop("warm_start", True)
         super().__init__(cost_fn=cost_fn, epsilon=epsilon, **kwargs)
@@ -206,6 +208,7 @@ class GW(SimpleMixin, BaseGW):
         self._matrix = res.transport
         self._converged = all(res.converged_sinkhorn)
         self._converged_sinkhorn = list(map(bool, res.converged_sinkhorn))
+        self._check_marginals(a, b)
 
         return self
 
@@ -234,6 +237,7 @@ class FusedGW(SimpleMixin, BaseGW):
         if not (0 < alpha < 1):
             raise ValueError(f"Expected `alpha` to be in interval `(0, 1)`, found `{alpha}`.")
 
+        self._jit = kwargs.pop("jit", False)
         super().__init__(**kwargs)
         self._alpha = alpha
 
@@ -328,16 +332,20 @@ class FusedGW(SimpleMixin, BaseGW):
 
         # TODO(michalk8): jax.lax.scan, similar in GW in ott
         self._converged = True
+        relative_delta_fval, abs_delta_fval = np.inf, np.inf
+
+        get_tmap = lambda g: _sinkhorn(g, a=a, b=b, **self._kwargs)
+        if self._jit:
+            get_tmap = jit(get_tmap)
+
         for i in range(max_iterations):
             old_fval = f_val
             geom = self._update(geom_a, geom_b, geom_ab, T, C12=C12, scale_fn=scale_fn)
 
-            transport = Transport(geom, a=a, b=b, **self._kwargs)
-            T_hat = transport.matrix
-            converged.append(bool(transport.converged))
+            f_val, T_hat, conv = get_tmap(geom)
+            converged.append(bool(conv))
 
             # TODO(michalk8): will need to eval the cost after line search if tau != 1.0
-            f_val = transport.reg_ot_cost
             abs_delta_fval = abs(f_val - old_fval)
             relative_delta_fval = abs_delta_fval / abs(f_val)
 
@@ -350,7 +358,7 @@ class FusedGW(SimpleMixin, BaseGW):
             if verbose:
                 print(
                     f"{i + 1:5d}|{f_val:8e}|{relative_delta_fval:8e}|{abs_delta_fval:8e}|"
-                    f"{tau:8e}|{transport.converged:12d}|{geom.epsilon:8e}"
+                    f"{tau:8e}|{conv:12d}|{geom.epsilon:8e}"
                 )
 
             if relative_delta_fval <= rtol or abs_delta_fval <= atol:
@@ -360,6 +368,14 @@ class FusedGW(SimpleMixin, BaseGW):
 
         self._matrix = T
         self._converged_sinkhorn = converged
+
+        if not self.converged:
+            warnings.warn(
+                f"Maximum number of iterations ({max_iterations}) reached "
+                f"with `rtol={relative_delta_fval:.4e}`, `atol={abs_delta_fval:.4e}`",
+                category=UserWarning,
+            )
+        self._check_marginals(a, b)
 
         return self
 
@@ -446,3 +462,15 @@ class FusedGW(SimpleMixin, BaseGW):
     def alpha(self) -> float:
         """Weight of Gromov-Wasserstein."""
         return self._alpha
+
+
+def _sinkhorn(geom: Geometry, a: jnp.ndarray, b: jnp.ndarray, **kwargs) -> Tuple[float, jnp.ndarray, bool]:
+    out = sinkhorn(geom, a, b, **kwargs)
+    f, g = out.f, out.g
+
+    try:
+        return out.reg_ot_cost, geom.transport_from_potentials(f, g), out.converged
+    except ValueError:
+        u = geom.scaling_from_potential(f)
+        v = geom.scaling_from_potential(g)
+        return out.reg_ot_cost, geom.transport_from_scalings(u, v), out.converged
