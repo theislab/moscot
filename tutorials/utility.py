@@ -41,8 +41,8 @@ palette = sns.color_palette("Set1")
 data_path = DATA_DIR / 'simulations/'
 figs_path = FIG_DIR / 'simulations/'
 
-bnt = namedtuple("bnt", "tmat early_cost late_cost norm_diff converged time")
-stn = namedtuple("sim",
+res = namedtuple("res", "tmat early_cost late_cost converged")
+simulation = namedtuple("simulation",
                  "ancestor_info "
                  "rna_arrays "
                  "true_coupling "
@@ -102,7 +102,7 @@ def init_sim(flow_type: Literal['bifurcation', 'convergent', 'partial_convergent
 
     Returns
     -------
-    stn
+    simulation
         simulation object
     """
     print(f'simulating `{flow_type}` flow with {seed} seed.')
@@ -201,7 +201,7 @@ def init_sim(flow_type: Literal['bifurcation', 'convergent', 'partial_convergent
                                                                     late_time_rna_cost),
                                            late_time_rna_cost)
 
-    res = stn(ancestor_info, rna_arrays, true_coupling, true_distances,
+    res = simulation(ancestor_info, rna_arrays, true_coupling, true_distances,
               barcode_arrays, ind_ancestor_error, ind_descendant_error,
               early_time_rna_cost, late_time_rna_cost, dimensions_to_plot)
 
@@ -209,4 +209,36 @@ def init_sim(flow_type: Literal['bifurcation', 'convergent', 'partial_convergent
         pickle.dump(tuple(res), fout)
 
     return res
+
+def create_geometry(cost_matrix: np.ndarray, scale='max') -> Geometry:
+    """
+    create a Geometry object for OTT package.
+    
+    Parameters
+    ----------
+    cost_matrix
+        the cost matrix to use
+    scale
+        the scaling function
+
+    Returns
+    -------
+        a Geometry object with the scaled cost matrix
+    """
+    cost_matrix = jnp.array(cost_matrix)
+    if scale is None:
+        pass
+    elif scale == 'max':
+        cost_matrix /= cost_matrix.max()
+        assert cost_matrix.max() == 1.0
+    elif scale == 'mean':
+        cost_matrix /= np.mean(cost_matrix)
+    elif scale == 'median':
+        cost_matrix /= np.median(cost_matrix)
+    else:
+        raise NotImplementedError(scale)
+
+    assert (cost_matrix >= 0).all()
+    return Geometry(cost_matrix=cost_matrix)
+
 
