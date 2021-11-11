@@ -23,7 +23,7 @@ class GeomMixin:
         """Transport matrix."""
         # TODO(michalk8): improve message/ensure fitted (use sklearn)?
         if self.geometry is None:
-            raise RuntimeError("Not fitted.")
+            raise RuntimeError("No transportation map found.")
         try:
             return self.geometry.transport_from_potentials(self._f, self._g)
         except ValueError:
@@ -34,7 +34,7 @@ class GeomMixin:
     def transport(self, inputs: jnp.ndarray, forward: bool = True) -> jnp.ndarray:
         """Transport mass."""
         if self.geometry is None:
-            raise RuntimeError("Not fitted.")
+            raise RuntimeError("No transportation map found.")
         axis = 0 if forward else 1
         try:
             return self.geometry.apply_transport_from_potentials(self._f, self._g, inputs, axis=axis)
@@ -58,13 +58,13 @@ class TransportMixin:
     def matrix(self) -> jnp.array:
         """Transport matrix."""
         if self._transport is None:
-            raise RuntimeError("Not fitted.")
+            raise RuntimeError("No transportation map found.")
         return self._transport.matrix
 
     def transport(self, inputs: jnp.ndarray, forward: bool = True) -> jnp.array:
         """Transport mass."""
         if self._transport is None:
-            raise RuntimeError("Not fitted.")
+            raise RuntimeError("No transportation map found.")
         return self._transport.apply(inputs, axis=0 if forward else 1)
 
 
@@ -85,7 +85,7 @@ class SimpleMixin:
         """Transport matrix."""
         # TODO(michalk8): unify interface (None or raise)
         if self._matrix is None:
-            raise RuntimeError("Not fitted.")
+            raise RuntimeError("No transportation map found.")
         return self._matrix
 
     def transport(self, inputs: jnp.ndarray, forward: bool = True) -> jnp.array:
