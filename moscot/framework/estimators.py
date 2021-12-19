@@ -1,4 +1,4 @@
-from typing import Any, Dict, List, Tuple, Union, Optional, Literal
+from typing import Any, Dict, List, Tuple, Union, Literal, Optional
 from numbers import Number
 
 from networkx import DiGraph
@@ -15,13 +15,18 @@ from ott.geometry.epsilon_scheduler import Epsilon
 
 from anndata import AnnData
 
-from moscot._solver import FusedGW, RegularizedOT, Regularized
-from moscot.framework.results import OTResult
+from moscot._solver import FusedGW, Regularized, RegularizedOT
+from moscot.framework.utils import (
+    _verify_key,
+    _check_arguments,
+    _prepare_geometry,
+    _prepare_geometries,
+    _create_constant_weights,
+)
 from moscot.framework.BaseProblem import BaseProblem
-from moscot.framework.utils import _verify_key, _prepare_geometry, _prepare_geometries, _check_arguments, _create_constant_weights
+from moscot.framework.settings import strategies_MatchingEstimator
+from moscot.framework.results import BaseResult, OTResult
 
-
-strategies_MatchingEstimator = Literal["pairwise"]
 
 class OTEstimator(BaseProblem, RegularizedOT):
     def __init__(
@@ -32,8 +37,13 @@ class OTEstimator(BaseProblem, RegularizedOT):
         epsilon: Optional[Union[float, Epsilon]] = None,
         **kwargs: Any,
     ) -> None:
+        super().__init__(adata=adata, cost_fn=cost_fn, epsilon=epsilon, params=params)
+        self._kwargs: Dict[str, Any] = kwargs
 
-        super().__init__(adata=adata, params=params, cost_fn=cost_fn, epsilon=epsilon, **kwargs)
+    #@property
+    #def epsilon(self) -> Optional[Epsilon]:
+    #    """Regularization parameter."""
+    #    return self._epsilon
 
     def serialize_to_adata(self) -> Optional[AnnData]:
         pass
@@ -57,45 +67,51 @@ class OTEstimator(BaseProblem, RegularizedOT):
 
 
 class MatchingEstimator(OTEstimator):
-    def __init__(self,
-                 adata: AnnData,
-                 key: str,
-                 params: Dict,
-                 cost_fn: Optional[CostFn_t] = None,
-                 epsilon: Optional[Union[float, Epsilon]] = None,
-                 **kwargs: Any
-                 ) -> None:
+    def __init__(
+        self,
+        adata: AnnData,
+        key: str,
+        params: Dict = None,
+        cost_fn: Optional[CostFn_t] = None,
+        epsilon: Optional[Union[float, Epsilon]] = None,
+        **kwargs: Any,
+    ) -> None:
         self.key = key
         self.geometries = None
-        self.a = None #TODO: check whether we can put them in class of higher order
+        self.a = None  # TODO: check whether we can put them in class of higher order
         self.b = None
         self._solver = Regularized
         self._regularized = None
+        self.rep = None
         super().__init__(adata=adata, params=params, cost_fn=cost_fn, epsilon=epsilon, **kwargs)
 
-    def prepare(self,
-                policy: Union[Tuple, List[Tuple], strategies_MatchingEstimator],
-                rep: None,
-                cost_fn: Union[CostFn, None],
-                eps: Union[float, None],
-                groups: Union[List[str], Tuple[str]],
-                **kwargs: Any
-                ) -> None:
+    def prepare(
+        self,
+        policy: Union[Tuple, List[Tuple], strategies_MatchingEstimator],
+        rep: Union[str, None] = "X",
+        cost_fn: Union[CostFn, None] = None,
+        eps: Union[float, None] = None,
+        groups: Union[List[str], Tuple[str]] = None,
+        **kwargs: Any,
+    ) -> None:
 
-        transport_sets = _verify_key(self.adata, self.key, policy)
+        transport_sets = _verify_key(self._adata, self.key, policy)
+        if (not isinstance(getattr(self._adata, rep), np.ndarray)):
+            raise ValueError("Please provide a valid layer from the")
 
         if isinstance(policy, Tuple) or policy == "pairwise":
-            self.geometries = _prepare_geometry(self.adata, self.key, transport_sets, cost_fn, **kwargs)
+            self.geometries = _prepare_geometry(self._adata, self.key, transport_sets, cost_fn, **kwargs)
         elif isinstance(policy, List):
             self.geometries = _prepare_geometries(self.adata, transport_sets, cost_fn, **kwargs)
         else:
             raise NotImplementedError
 
-    def fit(self,
-            a: Optional[Union[jnp.array, List[jnp.array]]] = None,
-            b: Optional[Union[jnp.array, List[jnp.array]]] = None,
-            **kwargs: Any,
-            ):
+    def fit(
+        self,
+        a: Optional[Union[jnp.array, List[jnp.array]]] = None,
+        b: Optional[Union[jnp.array, List[jnp.array]]] = None,
+        **kwargs: Any,
+    ):
 
         if self.geometries is None:
             raise ValueError("Please run 'fit()' first.")
@@ -111,6 +127,7 @@ class MatchingEstimator(OTEstimator):
                 self.b = list(b)
 
         if isinstance(self.geometries, Geometry):
+            print("self._solver is ", self._solver)
             self._regularized = self._solver.fit(self.geometries, self.a, self.b)
         else:
             self._regularized = []
@@ -119,7 +136,14 @@ class MatchingEstimator(OTEstimator):
 
         return OTResult(self.adata, self._regularized)
 
+    def converged(self) -> Optional[bool]:
+        pass
 
+    def matrix(self) -> jnp.ndarray:
+        pass
+
+    def transport(self, inputs: jnp.ndarray, forward: bool = True) -> jnp.ndarray:
+        pass
 
 
 class LineageEstimator(OTEstimator):
@@ -160,7 +184,7 @@ class LineageEstimator(OTEstimator):
         **kwargs: Any,
     ) -> BaseResult:
 
-        _fused_gw = self._sovler.fit(
+        _fused_gw = self._solver.fit(
             geom_a=geom_a,
             geom_b=geom_b,
             geom_ab=geom_ab,
@@ -214,3 +238,5 @@ class SpatialMappingEstimator(OTEstimator):
         self.spatial_cost = spatial_cost
         self.reference_var = reference_var
         super().__init__(adata=adata, params=params, cost_fn=cost_fn, epsilon=epsilon, **kwargs)
+
+
