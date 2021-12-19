@@ -14,7 +14,6 @@ from ott.geometry.epsilon_scheduler import Epsilon
 
 from anndata import AnnData
 
-from moscot.framework.results import BaseResult
 
 
 class BaseProblem(BaseEstimator):
@@ -22,15 +21,15 @@ class BaseProblem(BaseEstimator):
 
     def __init__(
         self,
-        adata: AnnData,
-        params: Dict,
+        adata: AnnData = None,
         cost_fn: Optional[CostFn_t] = None,
         epsilon: Optional[Union[float, Epsilon]] = None,
+        params: Dict = None,
     ) -> None:
-        self.adata = adata
-        self.params = params
-        self.cost_fn = cost_fn
-        self.epsilon = epsilon
+        self._adata = adata
+        self._cost_fn = cost_fn
+        self._epsilon = epsilon
+        self._params = params
 
     @abstractmethod
     def serialize_to_adata(self) -> Optional[AnnData]:
@@ -59,13 +58,27 @@ class BaseProblem(BaseEstimator):
         a: Optional[jnp.array] = None,
         b: Optional[jnp.array] = None,
         **kwargs: Any,
-    ) -> BaseResult:
+    ) -> 'BaseResult':
         pass
 
     @abstractmethod
     def _create_cost(self, cost: Union[CostFn, None] = Euclidean) -> None:
         pass
 
-    @property
-    def params(self) -> Dict[str, Any]:
-        return self.get_params(deep=True)
+    #@property
+    #def params(self) -> Dict[str, Any]:
+    #    """NYI: Solver parameters."""
+    #    return NotImplemented
+        # return self.get_params(deep=True)
+
+    """def get_params(self, deep=True):
+        return {param: getattr(self, param)
+                for param in self._param_names}
+
+    def set_params(self, **kwargs):
+        for parameter, value in kwargs.items():
+            setattr(self, parameter, value)
+        return self"""
+
+
+
