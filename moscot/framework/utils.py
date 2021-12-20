@@ -83,7 +83,6 @@ def _check_arguments(
 
 
 def _create_constant_weights(geometry: Geometry):
+    num_a, num_b = geometry.shape
+    return jnp.ones((num_a,)) / num_a, jnp.ones((num_b,)) / num_b
 
-    return jnp.full(geometry.cost_matrix.shape[1], 1 / geometry.cost_matrix.shape[1]), jnp.full(
-        geometry.cost_matrix.shape[0], 1 / geometry.cost_matrix.shape[0]
-    )

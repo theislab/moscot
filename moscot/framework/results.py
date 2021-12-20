@@ -30,7 +30,6 @@ class OTResult(BaseResult):
     def __init__(self, adata: AnnData, _estimators: Union[List['BaseProblem'], 'BaseProblem']) -> None:
         super().__init__(adata=adata, _estimators=_estimators)
 
-        return self
 
     def plot_aggregate_transport(self, key: str, groups: List[str]):
         pass

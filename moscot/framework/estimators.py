@@ -40,11 +40,6 @@ class OTEstimator(BaseProblem, RegularizedOT):
         super().__init__(adata=adata, cost_fn=cost_fn, epsilon=epsilon, params=params)
         self._kwargs: Dict[str, Any] = kwargs
 
-    #@property
-    #def epsilon(self) -> Optional[Epsilon]:
-    #    """Regularization parameter."""
-    #    return self._epsilon
-
     def serialize_to_adata(self) -> Optional[AnnData]:
         pass
 
@@ -80,10 +75,10 @@ class MatchingEstimator(OTEstimator):
         self.geometries = None
         self.a = None  # TODO: check whether we can put them in class of higher order
         self.b = None
-        self._solver = Regularized
+        self._solver = None
         self._regularized = None
         self.rep = None
-        super().__init__(adata=adata, params=params, cost_fn=cost_fn, epsilon=epsilon, **kwargs)
+        super().__init__(adata=adata, cost_fn=cost_fn, epsilon=epsilon, params=params, **kwargs)
 
     def prepare(
         self,
@@ -96,7 +91,7 @@ class MatchingEstimator(OTEstimator):
     ) -> None:
 
         transport_sets = _verify_key(self._adata, self.key, policy)
-        if (not isinstance(getattr(self._adata, rep), np.ndarray)):
+        if not isinstance(getattr(self._adata, rep), np.ndarray):
             raise ValueError("Please provide a valid layer from the")
 
         if isinstance(policy, Tuple) or policy == "pairwise":
@@ -111,14 +106,15 @@ class MatchingEstimator(OTEstimator):
         a: Optional[Union[jnp.array, List[jnp.array]]] = None,
         b: Optional[Union[jnp.array, List[jnp.array]]] = None,
         **kwargs: Any,
-    ):
+    ) -> "OTResult":
 
         if self.geometries is None:
             raise ValueError("Please run 'fit()' first.")
 
         _check_arguments(a, b, self.geometries)
 
-        if a is None:
+        if a is None: #TODO: discuss whether we want to have this here, i.e. whether we want to explicitly create weights because OTT would do this for us.
+            #TODO: atm do it here to have all parameter saved in the estimator class
             if isinstance(self.geometries, Geometry):
                 self.a, self.b = _create_constant_weights(self.geometries)
             else:
@@ -127,8 +123,8 @@ class MatchingEstimator(OTEstimator):
                 self.b = list(b)
 
         if isinstance(self.geometries, Geometry):
-            print("self._solver is ", self._solver)
-            self._regularized = self._solver.fit(self.geometries, self.a, self.b)
+            self._solver = Regularized(cost_fn=self.cost_fn, epsilon=self.epsilon)
+            self._regularized = self._solver.fit(self.geometries, a=self.a, b=self.b)
         else:
             self._regularized = []
             for i in range(len(self.geometries)):
