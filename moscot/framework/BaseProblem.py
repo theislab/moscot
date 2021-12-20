@@ -1,6 +1,6 @@
 from abc import abstractmethod
 from typing import Any, Dict, List, Tuple, Union, Optional
-
+from numbers import Number
 from jax import numpy as jnp
 from ott.geometry.costs import CostFn
 from ott.geometry.geometry import Geometry
@@ -65,20 +65,22 @@ class BaseProblem(BaseEstimator):
     def _create_cost(self, cost: Union[CostFn, None] = Euclidean) -> None:
         pass
 
-    #@property
-    #def params(self) -> Dict[str, Any]:
-    #    """NYI: Solver parameters."""
-    #    return NotImplemented
-        # return self.get_params(deep=True)
+    @property
+    def adata(self) -> AnnData:
+        return self._adata
 
-    """def get_params(self, deep=True):
-        return {param: getattr(self, param)
-                for param in self._param_names}
+    @property
+    def cost_fn(self) -> CostFn_t:
+        return self._cost_fn
 
-    def set_params(self, **kwargs):
-        for parameter, value in kwargs.items():
-            setattr(self, parameter, value)
-        return self"""
+    @property
+    def epsilon(self) -> Number:
+        return self._epsilon
+
+    @property
+    def params(self) -> Dict[str, Any]:
+        return self._params
+
 
 
 
