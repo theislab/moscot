@@ -21,7 +21,8 @@ from moscot.framework.utils import (
     _check_arguments,
     _prepare_geometry,
     _prepare_geometries,
-    _create_constant_weights,
+    _create_constant_weights_source,
+    _create_constant_weights_target
 )
 from moscot.framework.BaseProblem import BaseProblem
 from moscot.framework.settings import strategies_MatchingEstimator
@@ -58,6 +59,7 @@ class OTEstimator(BaseProblem, RegularizedOT):
         pass
 
     def estimate_growth_rates(self) -> None:
+        # https://github.com/broadinstitute/wot/blob/master/wot/gene_set_scores.py
         pass
 
 
@@ -72,11 +74,11 @@ class MatchingEstimator(OTEstimator):
         **kwargs: Any,
     ) -> None:
         self.key = key
-        self.geometries = None
-        self.a = None  # TODO: check whether we can put them in class of higher order
-        self.b = None
-        self._solver = None
-        self._regularized = None
+        self.geometries_dict = None
+        self.a_dict = None  # TODO: check whether we can put them in class of higher order
+        self.b_dict = None
+        self._solver_dict = None
+        self._regularized_dict = None
         self.rep = None
         super().__init__(adata=adata, cost_fn=cost_fn, epsilon=epsilon, params=params, **kwargs)
 
@@ -94,12 +96,7 @@ class MatchingEstimator(OTEstimator):
         if not isinstance(getattr(self._adata, rep), np.ndarray):
             raise ValueError("Please provide a valid layer from the")
 
-        if isinstance(policy, Tuple) or policy == "pairwise":
-            self.geometries = _prepare_geometry(self._adata, self.key, transport_sets, cost_fn, **kwargs)
-        elif isinstance(policy, List):
-            self.geometries = _prepare_geometries(self.adata, transport_sets, cost_fn, **kwargs)
-        else:
-            raise NotImplementedError
+        self.geometries_dict = _prepare_geometries(self.adata, self.key, transport_sets, cost_fn, **kwargs)
 
     def fit(
         self,
@@ -109,28 +106,25 @@ class MatchingEstimator(OTEstimator):
     ) -> "OTResult":
 
         if self.geometries is None:
-            raise ValueError("Please run 'fit()' first.")
+            raise ValueError("Please run 'prepare()' first.")
 
-        _check_arguments(a, b, self.geometries)
+        _check_arguments(a, b, self.geometries_dict)
 
         if a is None: #TODO: discuss whether we want to have this here, i.e. whether we want to explicitly create weights because OTT would do this for us.
             #TODO: atm do it here to have all parameter saved in the estimator class
-            if isinstance(self.geometries, Geometry):
-                self.a, self.b = _create_constant_weights(self.geometries)
-            else:
-                a, b = map(_create_constant_weights, self.geometries)
-                self.a = list(a)
-                self.b = list(b)
+            self.a_dict = {tup: _create_constant_weights_source(geom) for tup, geom in self.geometries_dict.items()}
+            self.b_dict = {tup: _create_constant_weights_target(geom) for tup, geom in self.geometries_dict.items()}
 
-        if isinstance(self.geometries, Geometry):
-            self._solver = Regularized(cost_fn=self.cost_fn, epsilon=self.epsilon)
-            self._regularized = self._solver.fit(self.geometries, a=self.a, b=self.b)
-        else:
-            self._regularized = []
-            for i in range(len(self.geometries)):
-                self._regularized.append(self._solver.fit(self.geometries[i], self.a[i], self.b[i]))
+        #if isinstance(self.geometries, Geometry):
+        #    self._solver = Regularized(cost_fn=self.cost_fn, epsilon=self.epsilon)
+        #    self._regularized = self._solver.fit(self.geometries, a=self.a, b=self.b)
+        #else:
+        self._solver_dict = {tup: Regularized(cost_fn=self.cost_fn, epsilon=self.epsilon) for tup, _ in self.geometries_dict.items()}
+        self._regularized_dict = {}
+        for tup, geom in self.geometries_dict.items():
+            self._regularized_dict[tup] = self._solver_dict[tup].fit(self.geometries_dict[tup], self.a_dict[tup], self.b_dict[tup])
 
-        return OTResult(self.adata, self._regularized)
+        return OTResult(self.adata, self._regularized_dict)
 
     def converged(self) -> Optional[bool]:
         pass
