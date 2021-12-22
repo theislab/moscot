@@ -6,7 +6,7 @@ from ott.geometry.costs import CostFn, Euclidean
 from ott.geometry.geometry import Geometry
 from ott.geometry.pointcloud import PointCloud
 from ott.core.gromov_wasserstein import GWLoss
-
+import numpy as np
 CostFn_t = Union[CostFn, GWLoss]
 
 from ott.geometry.costs import Euclidean
@@ -24,7 +24,7 @@ def _verify_key(adata: AnnData,
         raise ValueError(f"Key {key} not found in adata.obs.columns")
 
     if isinstance(policy, tuple):
-        if len(tuple) != 2:
+        if len(policy) != 2:
             raise ValueError("The length of the tuple must be 2.")
         values_adata = set(adata.obs[key].values)
         for item in policy:
@@ -58,13 +58,14 @@ def _prepare_geometry(
         adata: AnnData,
         key: str,
         transport_tuple: Tuple,
+        rep: str,
         cost_fn: Union[CostFn, None] = Euclidean,
         **kwargs: Any
 ) -> PointCloud:
 
     return PointCloud(
-        adata[adata.obs[key] == transport_tuple[0]].X, #TODO: do we also want to allow layers
-        adata[adata.obs[key] == transport_tuple[1]].X,
+        getattr(adata[adata.obs[key] == transport_tuple[0]], rep), #TODO: do we also want to allow layers, wouldn't be possible to fetch with getattr
+        getattr(adata[adata.obs[key] == transport_tuple[1]], rep),
         cost_fn=cost_fn,
         **kwargs,
     )
@@ -74,16 +75,38 @@ def _prepare_geometries(
         adata: AnnData,
         key: str,
         transport_sets: List[Tuple],
+        rep: str,
         cost_fn: Union[CostFn, None] = Euclidean,
         **kwargs: Any
 ) -> Dict[Tuple, PointCloud]:
 
-    dict_geometries = []
+    dict_geometries = {}
     for tup in transport_sets:
-        dict_geometries[tup] = _prepare_geometry(adata, key, tup, cost_fn, **kwargs)
+        dict_geometries[tup] = _prepare_geometry(adata, key, tup, cost_fn, rep, **kwargs)
 
     return dict_geometries
 
+
+def _prepare_geometries_from_cost(cost_matrices_dict: Dict[Tuple, jnp.ndarray],
+                                  scale: Optional[str] = "max",
+                                  **kwargs: Any) -> Dict[Geometry]:
+    dict_geometries = {}
+    for tup, cost_matrix in cost_matrices_dict:
+        dict_geometries[tup] = _prepare_geometry_from_cost(cost_matrix, scale, **kwargs)
+
+
+def _prepare_geometry_from_cost(cost_matrix: jnp.ndarray,
+                                scale: Optional[str] = "max",
+                                **kwargs: Any) -> Geometry:
+    if scale == "max":
+        cost_matrix /= cost_matrix.max()
+    elif scale == "mean":
+        cost_matrix /= cost_matrix.mean()
+    elif scale == "median":
+        cost_matrix /= np.median(cost_matrix)  # https://github.com/google/jax/issues/4379
+    else:
+        raise NotImplementedError(scale)
+    return Geometry(cost_matrix=cost_matrix, **kwargs)
 
 def _check_arguments(
     a: Optional[Union[jnp.array, List[jnp.array]]] = None,

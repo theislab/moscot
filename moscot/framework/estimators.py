@@ -22,7 +22,8 @@ from moscot.framework.utils import (
     _prepare_geometry,
     _prepare_geometries,
     _create_constant_weights_source,
-    _create_constant_weights_target
+    _create_constant_weights_target,
+    _prepare_geometries_from_cost
 )
 from moscot.framework.BaseProblem import BaseProblem
 from moscot.framework.settings import strategies_MatchingEstimator
@@ -64,6 +65,9 @@ class OTEstimator(BaseProblem, RegularizedOT):
 
 
 class MatchingEstimator(OTEstimator):
+    """
+    This estimator handles linear OT problems
+    """
     def __init__(
         self,
         adata: AnnData,
@@ -78,7 +82,6 @@ class MatchingEstimator(OTEstimator):
         self.a_dict = None  # TODO: check whether we can put them in class of higher order
         self.b_dict = None
         self._solver_dict = None
-        self._regularized_dict = None
         self.rep = None
         super().__init__(adata=adata, cost_fn=cost_fn, epsilon=epsilon, params=params, **kwargs)
 
@@ -96,7 +99,7 @@ class MatchingEstimator(OTEstimator):
         if not isinstance(getattr(self._adata, rep), np.ndarray):
             raise ValueError("Please provide a valid layer from the")
 
-        self.geometries_dict = _prepare_geometries(self.adata, self.key, transport_sets, cost_fn, **kwargs)
+        self.geometries_dict = _prepare_geometries(self.adata, self.key, transport_sets, self.rep, cost_fn, **kwargs)
 
     def fit(
         self,
@@ -105,7 +108,7 @@ class MatchingEstimator(OTEstimator):
         **kwargs: Any,
     ) -> "OTResult":
 
-        if self.geometries is None:
+        if self.geometries_dict is None:
             raise ValueError("Please run 'prepare()' first.")
 
         _check_arguments(a, b, self.geometries_dict)
@@ -115,16 +118,11 @@ class MatchingEstimator(OTEstimator):
             self.a_dict = {tup: _create_constant_weights_source(geom) for tup, geom in self.geometries_dict.items()}
             self.b_dict = {tup: _create_constant_weights_target(geom) for tup, geom in self.geometries_dict.items()}
 
-        #if isinstance(self.geometries, Geometry):
-        #    self._solver = Regularized(cost_fn=self.cost_fn, epsilon=self.epsilon)
-        #    self._regularized = self._solver.fit(self.geometries, a=self.a, b=self.b)
-        #else:
         self._solver_dict = {tup: Regularized(cost_fn=self.cost_fn, epsilon=self.epsilon) for tup, _ in self.geometries_dict.items()}
-        self._regularized_dict = {}
         for tup, geom in self.geometries_dict.items():
-            self._regularized_dict[tup] = self._solver_dict[tup].fit(self.geometries_dict[tup], self.a_dict[tup], self.b_dict[tup])
+            self._solver_dict[tup] = self._solver_dict[tup].fit(self.geometries_dict[tup], self.a_dict[tup], self.b_dict[tup])
 
-        return OTResult(self.adata, self._regularized_dict)
+        return OTResult(self.adata, self.key, self._solver_dict)
 
     def converged(self) -> Optional[bool]:
         pass
@@ -137,34 +135,58 @@ class MatchingEstimator(OTEstimator):
 
 
 class LineageEstimator(OTEstimator):
+    """
+    This estimator handles FGW estimators for temporal data
+    """
     def __init__(
         self,
         adata: AnnData,
+        key: str,
         params: Dict,
         cost_fn: Optional[CostFn_t] = None,
         epsilon: Optional[Union[float, Epsilon]] = None,
-        alpha: Number = None,
+        alpha: Number = 0.5, # TODO: adapt from paper
         tree_rep: Union[str, DiGraph, None] = None,
         tree_cost: Union["MLE", "edgesum", "uniform_edge"] = None,
         **kwargs: Any,
     ) -> None:
+        self.key = key
         self.alpha = alpha
         self.tree_rep = tree_rep
         self.tree_cost = tree_cost
-        self._solver = FusedGW(alpha=alpha)
-        super().__init__(adata=adata, params=params, cost_fn=cost_fn, epsilon=epsilon, **kwargs)
+        self.geometries_xy_dict: Dict[Tuple, Geometry] = None
+        self.geometries_xx_dict: Dict[Tuple, Geometry] = None
+        self.geometries_yy_dict: Dict[Tuple, Geometry] = None
+        self.a_dict: Dict[Tuple, jnp.ndarray] = None  # TODO: check whether we can put them in class of higher order
+        self.b_dict: Dict[Tuple, jnp.ndarray] = None
+        self.cost_xx_dict: Dict[Tuple, jnp.ndarray] = None
+        self.cost_yy_dict: Dict[Tuple, jnp.ndarray] = None
+        self._solver_dict: Dict[Tuple, FusedGW] = None
+        super().__init__(adata=adata, cost_fn=cost_fn, epsilon=epsilon, params=params, **kwargs)
+
 
     def prepare(
         self,
-        key: Union[str, None],
-        policy: None,
-        rep: None,
-        cost_fn: Union[CostFn, None],
+        key: str,
+        policy: Union[Tuple, List[Tuple]],
+        rep: str, # representation of trees
+        trees: List,
+        cost_fn: Union[CostFn, None], # cost function for linear problem
         eps: Union[float, None],
         groups: Union[List[str], Tuple[str]],
+        **kwargs
     ) -> None:
+        self._scale = kwargs.pop("scale", "max")
         if key not in self.adata.obs.columns:
             raise ValueError(f"The provided key {key} is not found in the AnnData object.")
+        transport_sets = _verify_key(self._adata, self.key, policy)
+        #if not isinstance(getattr(self._adata, rep), np.ndarray):
+        #    raise ValueError("Please provide a valid layer from the")
+
+        self.geometries_xy_dict = _prepare_geometries(self.adata, self.key, transport_sets, self.rep, cost_fn, **kwargs)
+        self.geometries_xx_dict = _prepare_geometries_from_cost(self.cost_xx_dict,
+                                                                scale=self._scale)  # TODO: here we assume we can never save it as online=True
+        self.geometries_yy_dict = _prepare_geometries_from_cost(self.cost_yy_dict, scale=self._scale)
 
     def fit(
         self,
@@ -193,6 +215,9 @@ class LineageEstimator(OTEstimator):
 
 
 class SpatialAlignmentEstimator(OTEstimator):
+    """
+    This estimator ...
+    """
     def __init__(
         self,
         adata: AnnData,
@@ -204,13 +229,14 @@ class SpatialAlignmentEstimator(OTEstimator):
         spatial_cost: Union["spatial_cost", np.ndarray, None] = None,  # TODO: specify spatial cost
         **kwargs: Any,
     ) -> None:
-        self.alpha = alpha
-        self.spatial_rep = spatial_rep
-        self.spatial_cost = spatial_cost
-        super().__init__(adata=adata, params=params, cost_fn=cost_fn, epsilon=epsilon, **kwargs)
+
+        super().__init__(adata=adata, cost_fn=cost_fn, epsilon=epsilon, params=params, **kwargs)
 
 
 class SpatialMappingEstimator(OTEstimator):
+    """
+    This estimator ...
+    """
     def __init__(
         self,
         adata: AnnData,
@@ -223,10 +249,7 @@ class SpatialMappingEstimator(OTEstimator):
         reference_var: Union[List, None] = None,
         **kwargs: Any,
     ) -> None:
-        self.alpha = alpha
-        self.spatial_rep = spatial_rep
-        self.spatial_cost = spatial_cost
-        self.reference_var = reference_var
-        super().__init__(adata=adata, params=params, cost_fn=cost_fn, epsilon=epsilon, **kwargs)
+
+        super().__init__(adata=adata, cost_fn=cost_fn, epsilon=epsilon, params=params, **kwargs)
 
 
