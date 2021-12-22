@@ -109,9 +109,9 @@ def _prepare_geometry_from_cost(cost_matrix: jnp.ndarray,
     return Geometry(cost_matrix=cost_matrix, **kwargs)
 
 def _check_arguments(
-    a: Optional[Union[jnp.array, List[jnp.array]]] = None,
-    b: Optional[Union[jnp.array, List[jnp.array]]] = None,
-    geometry_dict: Dict[Tuple, Geometry] = None,
+    a: Optional[Union[jnp.array, List[jnp.array]]],
+    b: Optional[Union[jnp.array, List[jnp.array]]],
+    geometry_dict: Dict[Tuple, Geometry],
 ):
     if (a == a and b != b) or (a != a and b == b):
         raise ValueError("Either both a and b must be provided or none of them.")

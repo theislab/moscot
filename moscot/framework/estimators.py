@@ -25,6 +25,7 @@ from moscot.framework.utils import (
     _create_constant_weights_target,
     _prepare_geometries_from_cost
 )
+from moscot.framework.custom_costs import lca_cost
 from moscot.framework.BaseProblem import BaseProblem
 from moscot.framework.settings import strategies_MatchingEstimator
 from moscot.framework.results import BaseResult, OTResult
@@ -120,7 +121,7 @@ class MatchingEstimator(OTEstimator):
 
         self._solver_dict = {tup: Regularized(cost_fn=self.cost_fn, epsilon=self.epsilon) for tup, _ in self.geometries_dict.items()}
         for tup, geom in self.geometries_dict.items():
-            self._solver_dict[tup] = self._solver_dict[tup].fit(self.geometries_dict[tup], self.a_dict[tup], self.b_dict[tup])
+            self._solver_dict[tup].fit(self.geometries_dict[tup], self.a_dict[tup], self.b_dict[tup])
 
         return OTResult(self.adata, self.key, self._solver_dict)
 
@@ -151,16 +152,14 @@ class LineageEstimator(OTEstimator):
         **kwargs: Any,
     ) -> None:
         self.key = key
-        self.alpha = alpha
+        self.alpha = alpha  # #TODO: currently all pairs are computed with the same alpha, maybe change
         self.tree_rep = tree_rep
         self.tree_cost = tree_cost
-        self.geometries_xy_dict: Dict[Tuple, Geometry] = None
-        self.geometries_xx_dict: Dict[Tuple, Geometry] = None
-        self.geometries_yy_dict: Dict[Tuple, Geometry] = None
+        self.geometries_inter_dict: Dict[Tuple, Geometry] = None
+        self.geometries_intra_dict: Dict[int, Geometry] = None
         self.a_dict: Dict[Tuple, jnp.ndarray] = None  # TODO: check whether we can put them in class of higher order
         self.b_dict: Dict[Tuple, jnp.ndarray] = None
-        self.cost_xx_dict: Dict[Tuple, jnp.ndarray] = None
-        self.cost_yy_dict: Dict[Tuple, jnp.ndarray] = None
+        self.cost_intra: Dict[int, jnp.ndarray] = None
         self._solver_dict: Dict[Tuple, FusedGW] = None
         super().__init__(adata=adata, cost_fn=cost_fn, epsilon=epsilon, params=params, **kwargs)
 
@@ -180,38 +179,37 @@ class LineageEstimator(OTEstimator):
         if key not in self.adata.obs.columns:
             raise ValueError(f"The provided key {key} is not found in the AnnData object.")
         transport_sets = _verify_key(self._adata, self.key, policy)
-        #if not isinstance(getattr(self._adata, rep), np.ndarray):
-        #    raise ValueError("Please provide a valid layer from the")
 
-        self.geometries_xy_dict = _prepare_geometries(self.adata, self.key, transport_sets, self.rep, cost_fn, **kwargs)
-        self.geometries_xx_dict = _prepare_geometries_from_cost(self.cost_xx_dict,
+        self.cost_intra_dict = lca_cost(trees)
+
+        self.geometries_inter_dict = _prepare_geometries(self.adata, self.key, transport_sets, self.rep, cost_fn, **kwargs)
+        self.geometries_intra_dict = _prepare_geometries_from_cost(self.cost_intra_dict,
                                                                 scale=self._scale)  # TODO: here we assume we can never save it as online=True
-        self.geometries_yy_dict = _prepare_geometries_from_cost(self.cost_yy_dict, scale=self._scale)
+
+        #TODO: add some tests here, e.g. costs should be positive
 
     def fit(
-        self,
-        geom: Union[jnp.array, Geometry],
-        a: Optional[jnp.array] = None,
-        b: Optional[jnp.array] = None,
-        **kwargs: Any,
-    ) -> BaseResult:
+            self,
+            a: Optional[Union[jnp.array, List[jnp.array]]] = None,
+            b: Optional[Union[jnp.array, List[jnp.array]]] = None,
+            **kwargs: Any,
+    ) -> "OTResult":
 
-        _fused_gw = self._solver.fit(
-            geom_a=geom_a,
-            geom_b=geom_b,
-            geom_ab=geom_ab,
-            a=a,
-            b=b,
-            max_iterations=max_iterations,
-            rtol=rtol,
-            atol=atol,
-            init_method=init_method,
-            scale_fn=scale_fn,
-            linesearch=linesearch,
-            seed=seed,
-            verbose=verbose,
-            **kwargs,
-        )
+        if self.geometries_inter_dict is None or self.geometries_intra_dict is None:
+            raise ValueError("Please run 'prepare()' first.")
+
+        _check_arguments(a, b, self.geometries_inter_dict)
+
+        if a is None: #TODO: discuss whether we want to have this here, i.e. whether we want to explicitly create weights because OTT would do this for us.
+            #TODO: atm do it here to have all parameter saved in the estimator class
+            self.a_dict = {tup: _create_constant_weights_source(geom) for tup, geom in self.geometries_inter_dict.items()}
+            self.b_dict = {tup: _create_constant_weights_target(geom) for tup, geom in self.geometries_inter_dict.items()}
+
+        self._solver_dict = {tup: FusedGW(alpha=self.alpha, epsilon=self.epsilon) for tup, _ in self.geometries_dict.items()}
+        for tup, geom in self.geometries_inter.items():
+            self._solver_dict[tup].fit(self.geometries_inter[tup], self.geometries_intra_dict[tup[0]], self.geometries_intra_dict[tup[1]], self.a_dict[tup], self.b_dict[tup])
+
+        return OTResult(self.adata, self.key, self._solver_dict)
 
 
 class SpatialAlignmentEstimator(OTEstimator):
