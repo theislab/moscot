@@ -26,7 +26,6 @@ class BaseResult(ABC):
         self._key = key
         self._estimators_dict = estimators_dict
 
-
     def group_cells(self, key: Union[str, List[str]]) -> List:
         if isinstance(key, str):
             adata_groups = self._adata.obs[key].values
@@ -68,12 +67,32 @@ class OTResult(BaseResult):
     def push_forward_composed(self,
                               start: int,
                               end: int,
-                              key_groups: Optional[str],
-                              groups: Optional[List[str]]
-                              ) -> jnp.ndarray:
-        if start < end:
-            raise ValueError("push_forward_composed() requires start < end.")
+                              key_groups: Optional[str] = None,
+                              groups: Optional[List[str]] = None
+                              ) -> List[jnp.ndarray]:
+        if start > end:
+            raise ValueError("push_forward_composed() requires start > end.")
+        self._verify_sequence_exists(start, end)
+        matrix = self.matrix_dict[(start, start+1)]
+        masses = [self._prepare_transport(matrix, start, groups, key_groups)]
+        for i in range(start, end):
+            masses += [self._push_forward(masses[-1], self.matrix_dict[(i, i+1)])]
+        return masses
 
+    def pull_back_composed(self,
+                           start: int,
+                           end: int,
+                           key_groups: Optional[str] = None,
+                           groups: Optional[List[str]] = None
+                           ) -> List[jnp.ndarray]:
+        if start < end:
+            raise ValueError("pull_back_composed() requires start < end.")
+        self._verify_sequence_exists(end, start)
+        matrix = self.matrix_dict[(start, start-1)]
+        masses = [self._prepare_transport(matrix, start, groups, key_groups)]
+        for i in range(start, end, -1):
+            masses += [self._pull_back(masses[-1], self.matrix_dict[(i-1, i)])]
+        return masses
 
     def push_forward(self,
                      start: int, #TODO: check what type the key values should be
@@ -83,8 +102,8 @@ class OTResult(BaseResult):
                      mass: Optional[np.ndarray] = None,
                      ) -> jnp.ndarray:
 
-        if start < end:
-            raise ValueError("push_forward() requires start < end.")
+        if start > end:
+            raise ValueError("push_forward() requires start > end.")
         if (start, end) not in self.matrix_dict.keys():
             raise ValueError("The transport matrix for the tuple {} has not been calculated. Try running 'push_forward_composed' instead".format((start, end)))
         matrix = self.matrix_dict[(start, end)]
@@ -101,8 +120,8 @@ class OTResult(BaseResult):
                   groups: Optional[List[str]] = None,
                   mass: Optional[np.ndarray] = None,
                   ) -> jnp.ndarray:
-        if end < start:
-            raise ValueError("pull_back() requires start > end.")
+        if start < end:
+            raise ValueError("pull_back() requires start < end.")
         if (end, start) not in self.matrix_dict.keys():
             raise ValueError("The transport matrix for the tuple {} has not been calculated. Try running 'pull_back_composed' instead".format((end, start)))
         matrix = self.matrix_dict[(end, start)]
@@ -155,5 +174,13 @@ class OTResult(BaseResult):
         n_cells = jnp.sum(in_group)
         mass[in_group] = 1/n_cells
         return mass
+
+    def _verify_sequence_exists(self,
+                                early: int,
+                                late: int) -> None:
+        matrix_keys = self.matrix_dict.keys()
+        for i in range(early, late):
+            if (i, i+1) not in matrix_keys:
+                raise ValueError("No transport matrix was calculated for {}".format((i, i+1)))
 
 
