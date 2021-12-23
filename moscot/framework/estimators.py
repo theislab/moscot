@@ -2,7 +2,6 @@ from typing import Any, Dict, List, Tuple, Union, Literal, Optional
 from numbers import Number
 
 from networkx import DiGraph
-
 from jax import numpy as jnp
 from ott.geometry.costs import CostFn
 from ott.geometry.geometry import Geometry
@@ -89,13 +88,13 @@ class MatchingEstimator(OTEstimator):
     def prepare(
         self,
         policy: Union[Tuple, List[Tuple], strategies_MatchingEstimator],
-        rep: Union[str, None] = "X",
+        rep: str = "X",
         cost_fn: Union[CostFn, None] = None,
-        eps: Union[float, None] = None,
-        groups: Union[List[str], Tuple[str]] = None,
+        #eps: Union[float, None] = None,
+        #groups: Union[List[str], Tuple[str]] = None,
         **kwargs: Any,
     ) -> None:
-
+        self.rep = rep
         transport_sets = _verify_key(self._adata, self.key, policy)
         if not isinstance(getattr(self._adata, rep), np.ndarray):
             raise ValueError("Please provide a valid layer from the")
@@ -143,6 +142,7 @@ class LineageEstimator(OTEstimator):
         self,
         adata: AnnData,
         key: str,
+        trees: Dict[int, DiGraph],
         params: Dict,
         cost_fn: Optional[CostFn_t] = None,
         epsilon: Optional[Union[float, Epsilon]] = None,
@@ -152,6 +152,7 @@ class LineageEstimator(OTEstimator):
         **kwargs: Any,
     ) -> None:
         self.key = key
+        self.tree_dict = trees
         self.alpha = alpha  # #TODO: currently all pairs are computed with the same alpha, maybe change
         self.tree_rep = tree_rep
         self.tree_cost = tree_cost
@@ -163,26 +164,22 @@ class LineageEstimator(OTEstimator):
         self._solver_dict: Dict[Tuple, FusedGW] = None
         super().__init__(adata=adata, cost_fn=cost_fn, epsilon=epsilon, params=params, **kwargs)
 
-
     def prepare(
         self,
-        key: str,
         policy: Union[Tuple, List[Tuple]],
-        rep: str, # representation of trees
-        trees: List,
-        cost_fn: Union[CostFn, None], # cost function for linear problem
-        eps: Union[float, None],
-        groups: Union[List[str], Tuple[str]],
+        #rep: str = "nx.DiGraph",  # representation of trees
+        rep: str = "X",
+        cost_fn: Optional[CostFn] = None, # cost function for linear problem
         **kwargs
     ) -> None:
+        self.rep = rep
         self._scale = kwargs.pop("scale", "max")
-        if key not in self.adata.obs.columns:
-            raise ValueError(f"The provided key {key} is not found in the AnnData object.")
+        if self.key not in self.adata.obs.columns:
+            raise ValueError(f"The provided key {self.key} is not found in the AnnData object.")
         transport_sets = _verify_key(self._adata, self.key, policy)
 
-        self.cost_intra_dict = lca_cost(trees)
-
-        self.geometries_inter_dict = _prepare_geometries(self.adata, self.key, transport_sets, self.rep, cost_fn, **kwargs)
+        self.cost_intra_dict = lca_cost(self.tree_dict)
+        self.geometries_inter_dict = _prepare_geometries(self.adata, self.key, transport_sets, self.rep, cost_fn=cost_fn, **kwargs)
         self.geometries_intra_dict = _prepare_geometries_from_cost(self.cost_intra_dict,
                                                                 scale=self._scale)  # TODO: here we assume we can never save it as online=True
 
@@ -205,11 +202,20 @@ class LineageEstimator(OTEstimator):
             self.a_dict = {tup: _create_constant_weights_source(geom) for tup, geom in self.geometries_inter_dict.items()}
             self.b_dict = {tup: _create_constant_weights_target(geom) for tup, geom in self.geometries_inter_dict.items()}
 
-        self._solver_dict = {tup: FusedGW(alpha=self.alpha, epsilon=self.epsilon) for tup, _ in self.geometries_dict.items()}
-        for tup, geom in self.geometries_inter.items():
-            self._solver_dict[tup].fit(self.geometries_inter[tup], self.geometries_intra_dict[tup[0]], self.geometries_intra_dict[tup[1]], self.a_dict[tup], self.b_dict[tup])
+        self._solver_dict = {tup: FusedGW(alpha=self.alpha, epsilon=self.epsilon) for tup, _ in self.geometries_inter_dict.items()}
+        for tup, geom in self.geometries_inter_dict.items():
+            self._solver_dict[tup].fit(self.geometries_inter_dict[tup], self.geometries_intra_dict[tup[0]], self.geometries_intra_dict[tup[1]], self.a_dict[tup], self.b_dict[tup])
 
         return OTResult(self.adata, self.key, self._solver_dict)
+
+    def converged(self) -> Optional[bool]:
+        pass
+
+    def matrix(self) -> jnp.ndarray:
+        pass
+
+    def transport(self, inputs: jnp.ndarray, forward: bool = True) -> jnp.ndarray:
+        pass
 
 
 class SpatialAlignmentEstimator(OTEstimator):

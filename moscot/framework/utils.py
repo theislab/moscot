@@ -8,6 +8,7 @@ from ott.geometry.pointcloud import PointCloud
 from ott.core.gromov_wasserstein import GWLoss
 import numpy as np
 CostFn_t = Union[CostFn, GWLoss]
+from scipy.sparse import issparse
 
 from ott.geometry.costs import Euclidean
 
@@ -59,16 +60,26 @@ def _prepare_geometry(
         key: str,
         transport_tuple: Tuple,
         rep: str,
+        online: bool = False,
         cost_fn: Union[CostFn, None] = Euclidean,
         **kwargs: Any
-) -> PointCloud:
-
-    return PointCloud(
+) -> PointCloud: #TODO: we currently can only pass dense matrices
+    if issparse(getattr(adata, rep)):
+        return PointCloud(
+            getattr(adata[adata.obs[key] == transport_tuple[0]], rep).todense(),
+            getattr(adata[adata.obs[key] == transport_tuple[1]], rep).todense(),
+            cost_fn=cost_fn,
+            online=online,
+            **kwargs,
+        )
+    else:
+        return PointCloud(
         getattr(adata[adata.obs[key] == transport_tuple[0]], rep), #TODO: do we also want to allow layers, wouldn't be possible to fetch with getattr
         getattr(adata[adata.obs[key] == transport_tuple[1]], rep),
         cost_fn=cost_fn,
+        online=online,
         **kwargs,
-    )
+        )
 
 
 def _prepare_geometries(
@@ -76,23 +87,24 @@ def _prepare_geometries(
         key: str,
         transport_sets: List[Tuple],
         rep: str,
+        online: bool = False,
         cost_fn: Union[CostFn, None] = Euclidean,
         **kwargs: Any
 ) -> Dict[Tuple, PointCloud]:
-
     dict_geometries = {}
     for tup in transport_sets:
-        dict_geometries[tup] = _prepare_geometry(adata, key, tup, cost_fn, rep, **kwargs)
+        dict_geometries[tup] = _prepare_geometry(adata, key, tup, rep, online, cost_fn, **kwargs)
 
     return dict_geometries
 
 
 def _prepare_geometries_from_cost(cost_matrices_dict: Dict[Tuple, jnp.ndarray],
                                   scale: Optional[str] = "max",
-                                  **kwargs: Any) -> Dict[Geometry]:
+                                  **kwargs: Any) -> Dict[Tuple, Geometry]:
     dict_geometries = {}
-    for tup, cost_matrix in cost_matrices_dict:
+    for tup, cost_matrix in cost_matrices_dict.items():
         dict_geometries[tup] = _prepare_geometry_from_cost(cost_matrix, scale, **kwargs)
+    return dict_geometries
 
 
 def _prepare_geometry_from_cost(cost_matrix: jnp.ndarray,
