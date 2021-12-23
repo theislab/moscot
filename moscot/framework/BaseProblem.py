@@ -26,12 +26,14 @@ class BaseProblem(BaseEstimator):
         cost_fn: Optional[CostFn_t] = None,
         epsilon: Optional[Union[float, Epsilon]] = None,
         params: Dict = None,
+        rep: str = "X",
     ) -> None:
         self._adata = adata
         self._key = key
         self._cost_fn = cost_fn
         self._epsilon = epsilon
         self._params = params
+        self._rep = rep
 
     @abstractmethod
     def serialize_to_adata(self) -> Optional[AnnData]:
@@ -85,6 +87,10 @@ class BaseProblem(BaseEstimator):
     @property
     def key(self) -> str:
         return self._key
+
+    @property
+    def rep(self) -> str:
+        return self._rep
 
 
 

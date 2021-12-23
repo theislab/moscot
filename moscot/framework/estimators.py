@@ -38,6 +38,7 @@ class OTEstimator(BaseProblem, RegularizedOT):
         params: Dict,
         cost_fn: Optional[CostFn_t] = None,
         epsilon: Optional[Union[float, Epsilon]] = None,
+        rep: str = "X",
         **kwargs: Any,
     ) -> None:
         """
@@ -55,10 +56,12 @@ class OTEstimator(BaseProblem, RegularizedOT):
             Cost function to use. Default is euclidean.
         epsilon
             regularization parameter for OT problem
+        rep
+            instance defining how the gene expression is saved in adata
         kwargs:
             ott.sinkhorn.sinkhorn kwargs
         """
-        super().__init__(adata=adata, key=key, cost_fn=cost_fn, epsilon=epsilon, params=params)
+        super().__init__(adata=adata, key=key, cost_fn=cost_fn, epsilon=epsilon, params=params, rep=rep)
         self._kwargs: Dict[str, Any] = kwargs
 
     def serialize_to_adata(self) -> Optional[AnnData]:
@@ -94,6 +97,7 @@ class MatchingEstimator(OTEstimator):
         params: Dict = None,
         cost_fn: Optional[CostFn_t] = None,
         epsilon: Optional[Union[float, Epsilon]] = None,
+        rep: str = "X",
         **kwargs: Any,
     ) -> None:
         """
@@ -101,24 +105,29 @@ class MatchingEstimator(OTEstimator):
         Parameters
         ----------
         adata
+            AnnData object containing the gene expression for all data points
         key
+            column of AnnData.obs containing assignment of data points to distributions
         params
+            #TODO: clarify
         cost_fn
+            Cost function to use. Default is euclidean.
         epsilon
-        kwargs: ott.sinkhorn.sinkhorn kwargs
+            regularization parameter for OT problem
+        rep
+            instance defining how the gene expression is saved in adata
+        kwargs:
+            ott.sinkhorn.sinkhorn kwargs
         """
-        self.geometries_dict = None
-        self.a_dict = None  # TODO: check whether we can put them in class of higher order
-        self.b_dict = None
-        self._solver_dict = None
-        self.rep = None
-        super().__init__(adata=adata, key=key, cost_fn=cost_fn, epsilon=epsilon, params=params, **kwargs)
+        self.geometries_dict: Dict[Tuple, Geometry] = {}
+        self.a_dict: Dict[Tuple, Geometry] = {}  # TODO: check whether we can put them in class of higher order
+        self.b_dict: Dict[Tuple, Geometry] = {}
+        self._solver_dict: Dict[Tuple, Regularized] = {}
+        super().__init__(adata=adata, key=key, cost_fn=cost_fn, epsilon=epsilon, params=params, rep=rep, **kwargs)
 
     def prepare(
         self,
         policy: Union[Tuple, List[Tuple], strategies_MatchingEstimator],
-        rep: str = "X",
-        cost_fn: Union[CostFn, None] = None,
         **kwargs: Any,
     ) -> None:
         """
@@ -126,20 +135,16 @@ class MatchingEstimator(OTEstimator):
         Parameters
         ----------
         policy
-        rep
-        cost_fn
-        kwargs: ott.Geometry kwargs
-
+            2-tuples of values of self.key defining the distribution which the optimal transport maps are calculated for
         Returns
+            None
         -------
-
         """
-        self.rep = rep
         transport_sets = _verify_key(self._adata, self.key, policy)
-        if not isinstance(getattr(self._adata, rep), np.ndarray):
+        if not isinstance(getattr(self._adata, self.rep), np.ndarray):
             raise ValueError("Please provide a valid layer from the")
 
-        self.geometries_dict = _prepare_geometries(self.adata, self.key, transport_sets, self.rep, cost_fn, **kwargs)
+        self.geometries_dict = _prepare_geometries(self.adata, self.key, transport_sets, self.rep, self.cost_fn, **kwargs)
 
     def fit(
         self,
@@ -150,15 +155,20 @@ class MatchingEstimator(OTEstimator):
 
         Parameters
         ----------
-        a
-        b
+        a:
+            weights for source distribution. If of type jnp.ndarray the same distribution is taken for all models, if of type
+            List[jnp.ndarray] the length of the list must be equal to the number of transport maps defined in prepare()
+        b:
+            weights for target distribution. If of type jnp.ndarray the same distribution is taken for all models, if of type
+            List[jnp.ndarray] the length of the list must be equal to the number of transport maps defined in prepare()
 
         Returns
+            moscot.framework.results.OTResult
         -------
 
         """
 
-        if self.geometries_dict is None:
+        if not bool(self.geometries_dict):
             raise ValueError("Please run 'prepare()' first.")
 
         _check_arguments(a, b, self.geometries_dict)
@@ -197,27 +207,47 @@ class LineageEstimator(OTEstimator):
         cost_fn: Optional[CostFn_t] = None,
         epsilon: Optional[Union[float, Epsilon]] = None,
         alpha: Number = 0.5, # TODO: adapt from paper
-        tree_rep: Union[str, DiGraph, None] = None,
+        rep: str = "X",
         tree_cost: Union["MLE", "edgesum", "uniform_edge"] = None,
         **kwargs: Any,
     ) -> None:
+        """
+
+        Parameters
+        ----------
+        adata
+            AnnData object containing the gene expression for all data points
+        key
+            column of AnnData.obs containing assignment of data points to distributions
+        trees
+            dictionary with keys being the time points and values the corresponding lineage tree
+        params
+            #TODO: clarify
+        cost_fn
+            Cost function to use. Default is euclidean.
+        epsilon
+            regularization parameter for OT problem
+        alpha
+            penalty term of FGW, i.e. cost = cost(GW) + alpha * cost(linear_OT)
+        rep
+            instance defining how the gene expression is saved in adata
+        kwargs:
+            ott.sinkhorn.sinkhorn kwargs
+        """
         self.tree_dict = trees
         self.alpha = alpha  # #TODO: currently all pairs are computed with the same alpha, maybe change
-        self.tree_rep = tree_rep
         self.tree_cost = tree_cost
-        self.geometries_inter_dict: Dict[Tuple, Geometry] = None
-        self.geometries_intra_dict: Dict[int, Geometry] = None
-        self.a_dict: Dict[Tuple, jnp.ndarray] = None  # TODO: check whether we can put them in class of higher order
-        self.b_dict: Dict[Tuple, jnp.ndarray] = None
-        self.cost_intra: Dict[int, jnp.ndarray] = None
-        self._solver_dict: Dict[Tuple, FusedGW] = None
-        super().__init__(adata=adata, key=key, cost_fn=cost_fn, epsilon=epsilon, params=params, **kwargs)
+        self.geometries_inter_dict: Dict[Tuple, Geometry] = {}
+        self.geometries_intra_dict: Dict[int, Geometry] = {}
+        self.a_dict: Dict[Tuple, jnp.ndarray] = {}  # TODO: check whether we can put them in class of higher order
+        self.b_dict: Dict[Tuple, jnp.ndarray] = {}
+        self.cost_intra: Dict[int, jnp.ndarray] = {}
+        self._solver_dict: Dict[Tuple, FusedGW] = {}
+        super().__init__(adata=adata, key=key, cost_fn=cost_fn, epsilon=epsilon, params=params, rep=rep, **kwargs)
 
     def prepare(
         self,
         policy: Union[Tuple, List[Tuple]],
-        rep: str = "X",
-        cost_fn: Optional[CostFn] = None,  # cost function for linear problem
         **kwargs
     ) -> None:
         """
@@ -225,22 +255,21 @@ class LineageEstimator(OTEstimator):
         Parameters
         ----------
         policy
-        rep
-        cost_fn
-        kwargs: kwargs for ott.geometry
+            2-tuples of values of self.key defining the distribution which the optimal transport maps are calculated for
+        kwargs:
+            kwargs for ott.geometry
 
         Returns
         -------
 
         """
-        self.rep = rep
         self._scale = kwargs.pop("scale", "max")
         if self.key not in self.adata.obs.columns:
             raise ValueError(f"The provided key {self.key} is not found in the AnnData object.")
         transport_sets = _verify_key(self._adata, self.key, policy)
 
         self.cost_intra_dict = lca_cost(self.tree_dict)
-        self.geometries_inter_dict = _prepare_geometries(self.adata, self.key, transport_sets, self.rep, cost_fn=cost_fn, **kwargs)
+        self.geometries_inter_dict = _prepare_geometries(self.adata, self.key, transport_sets, self.rep, cost_fn=self.cost_fn, **kwargs)
         self.geometries_intra_dict = _prepare_geometries_from_cost(self.cost_intra_dict,
                                                                 scale=self._scale)  # TODO: here we assume we can never save it as online=True
 
@@ -251,8 +280,24 @@ class LineageEstimator(OTEstimator):
             a: Optional[Union[jnp.array, List[jnp.array]]] = None,
             b: Optional[Union[jnp.array, List[jnp.array]]] = None,
     ) -> "OTResult":
+        """
 
-        if self.geometries_inter_dict is None or self.geometries_intra_dict is None:
+        Parameters
+        ----------
+        a:
+            weights for source distribution. If of type jnp.ndarray the same distribution is taken for all models, if of type
+            List[jnp.ndarray] the length of the list must be equal to the number of transport maps defined in prepare()
+        b:
+            weights for target distribution. If of type jnp.ndarray the same distribution is taken for all models, if of type
+            List[jnp.ndarray] the length of the list must be equal to the number of transport maps defined in prepare()
+
+        Returns
+            moscot.framework.results.OTResult
+        -------
+
+        """
+
+        if not (bool(self.geometries_inter_dict) or bool(self.geometries_intra_dict)):
             raise ValueError("Please run 'prepare()' first.")
 
         _check_arguments(a, b, self.geometries_inter_dict)
