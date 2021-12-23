@@ -22,11 +22,13 @@ class BaseProblem(BaseEstimator):
     def __init__(
         self,
         adata: AnnData = None,
+        key: str = None,
         cost_fn: Optional[CostFn_t] = None,
         epsilon: Optional[Union[float, Epsilon]] = None,
         params: Dict = None,
     ) -> None:
         self._adata = adata
+        self._key = key
         self._cost_fn = cost_fn
         self._epsilon = epsilon
         self._params = params
@@ -57,7 +59,6 @@ class BaseProblem(BaseEstimator):
         geom: Union[jnp.array, Geometry],
         a: Optional[jnp.array] = None,
         b: Optional[jnp.array] = None,
-        **kwargs: Any,
     ) -> 'BaseResult':
         pass
 
@@ -80,6 +81,10 @@ class BaseProblem(BaseEstimator):
     @property
     def params(self) -> Dict[str, Any]:
         return self._params
+
+    @property
+    def key(self) -> str:
+        return self._key
 
 
 

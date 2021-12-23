@@ -34,12 +34,31 @@ class OTEstimator(BaseProblem, RegularizedOT):
     def __init__(
         self,
         adata: AnnData,
+        key: str,
         params: Dict,
         cost_fn: Optional[CostFn_t] = None,
         epsilon: Optional[Union[float, Epsilon]] = None,
         **kwargs: Any,
     ) -> None:
-        super().__init__(adata=adata, cost_fn=cost_fn, epsilon=epsilon, params=params)
+        """
+        General estimator class whose subclasses solve specific OT problems.
+
+        Parameters
+        ----------
+        adata
+            AnnData object containing the gene expression for all data points
+        key
+            column of AnnData.obs containing assignment of data points to distributions
+        params
+            #TODO: clarify
+        cost_fn
+            Cost function to use. Default is euclidean.
+        epsilon
+            regularization parameter for OT problem
+        kwargs:
+            ott.sinkhorn.sinkhorn kwargs
+        """
+        super().__init__(adata=adata, key=key, cost_fn=cost_fn, epsilon=epsilon, params=params)
         self._kwargs: Dict[str, Any] = kwargs
 
     def serialize_to_adata(self) -> Optional[AnnData]:
@@ -77,23 +96,44 @@ class MatchingEstimator(OTEstimator):
         epsilon: Optional[Union[float, Epsilon]] = None,
         **kwargs: Any,
     ) -> None:
-        self.key = key
+        """
+
+        Parameters
+        ----------
+        adata
+        key
+        params
+        cost_fn
+        epsilon
+        kwargs: ott.sinkhorn.sinkhorn kwargs
+        """
         self.geometries_dict = None
         self.a_dict = None  # TODO: check whether we can put them in class of higher order
         self.b_dict = None
         self._solver_dict = None
         self.rep = None
-        super().__init__(adata=adata, cost_fn=cost_fn, epsilon=epsilon, params=params, **kwargs)
+        super().__init__(adata=adata, key=key, cost_fn=cost_fn, epsilon=epsilon, params=params, **kwargs)
 
     def prepare(
         self,
         policy: Union[Tuple, List[Tuple], strategies_MatchingEstimator],
         rep: str = "X",
         cost_fn: Union[CostFn, None] = None,
-        #eps: Union[float, None] = None,
-        #groups: Union[List[str], Tuple[str]] = None,
         **kwargs: Any,
     ) -> None:
+        """
+
+        Parameters
+        ----------
+        policy
+        rep
+        cost_fn
+        kwargs: ott.Geometry kwargs
+
+        Returns
+        -------
+
+        """
         self.rep = rep
         transport_sets = _verify_key(self._adata, self.key, policy)
         if not isinstance(getattr(self._adata, rep), np.ndarray):
@@ -105,8 +145,18 @@ class MatchingEstimator(OTEstimator):
         self,
         a: Optional[Union[jnp.array, List[jnp.array]]] = None,
         b: Optional[Union[jnp.array, List[jnp.array]]] = None,
-        **kwargs: Any,
     ) -> "OTResult":
+        """
+
+        Parameters
+        ----------
+        a
+        b
+
+        Returns
+        -------
+
+        """
 
         if self.geometries_dict is None:
             raise ValueError("Please run 'prepare()' first.")
@@ -151,7 +201,6 @@ class LineageEstimator(OTEstimator):
         tree_cost: Union["MLE", "edgesum", "uniform_edge"] = None,
         **kwargs: Any,
     ) -> None:
-        self.key = key
         self.tree_dict = trees
         self.alpha = alpha  # #TODO: currently all pairs are computed with the same alpha, maybe change
         self.tree_rep = tree_rep
@@ -162,16 +211,28 @@ class LineageEstimator(OTEstimator):
         self.b_dict: Dict[Tuple, jnp.ndarray] = None
         self.cost_intra: Dict[int, jnp.ndarray] = None
         self._solver_dict: Dict[Tuple, FusedGW] = None
-        super().__init__(adata=adata, cost_fn=cost_fn, epsilon=epsilon, params=params, **kwargs)
+        super().__init__(adata=adata, key=key, cost_fn=cost_fn, epsilon=epsilon, params=params, **kwargs)
 
     def prepare(
         self,
         policy: Union[Tuple, List[Tuple]],
-        #rep: str = "nx.DiGraph",  # representation of trees
         rep: str = "X",
-        cost_fn: Optional[CostFn] = None, # cost function for linear problem
+        cost_fn: Optional[CostFn] = None,  # cost function for linear problem
         **kwargs
     ) -> None:
+        """
+
+        Parameters
+        ----------
+        policy
+        rep
+        cost_fn
+        kwargs: kwargs for ott.geometry
+
+        Returns
+        -------
+
+        """
         self.rep = rep
         self._scale = kwargs.pop("scale", "max")
         if self.key not in self.adata.obs.columns:
@@ -189,7 +250,6 @@ class LineageEstimator(OTEstimator):
             self,
             a: Optional[Union[jnp.array, List[jnp.array]]] = None,
             b: Optional[Union[jnp.array, List[jnp.array]]] = None,
-            **kwargs: Any,
     ) -> "OTResult":
 
         if self.geometries_inter_dict is None or self.geometries_intra_dict is None:
@@ -225,6 +285,7 @@ class SpatialAlignmentEstimator(OTEstimator):
     def __init__(
         self,
         adata: AnnData,
+        key: str,
         params: Dict,
         cost_fn: Optional[CostFn_t] = None,
         epsilon: Optional[Union[float, Epsilon]] = None,
@@ -234,7 +295,7 @@ class SpatialAlignmentEstimator(OTEstimator):
         **kwargs: Any,
     ) -> None:
 
-        super().__init__(adata=adata, cost_fn=cost_fn, epsilon=epsilon, params=params, **kwargs)
+        super().__init__(adata=adata, key=key, cost_fn=cost_fn, epsilon=epsilon, params=params, **kwargs)
 
 
 class SpatialMappingEstimator(OTEstimator):
@@ -244,6 +305,7 @@ class SpatialMappingEstimator(OTEstimator):
     def __init__(
         self,
         adata: AnnData,
+        key: str,
         params: Dict,
         cost_fn: Optional[CostFn_t] = None,
         epsilon: Optional[Union[float, Epsilon]] = None,
@@ -254,6 +316,6 @@ class SpatialMappingEstimator(OTEstimator):
         **kwargs: Any,
     ) -> None:
 
-        super().__init__(adata=adata, cost_fn=cost_fn, epsilon=epsilon, params=params, **kwargs)
+        super().__init__(adata=adata, key=key, cost_fn=cost_fn, epsilon=epsilon, params=params, **kwargs)
 
 
