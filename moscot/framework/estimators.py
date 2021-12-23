@@ -230,7 +230,7 @@ class LineageEstimator(OTEstimator):
         alpha
             penalty term of FGW, i.e. cost = cost(GW) + alpha * cost(linear_OT)
         rep
-            instance defining how the gene expression is saved in adata
+            instance defining how the gene expression is saved in the AnnData object
         kwargs:
             ott.sinkhorn.sinkhorn kwargs
         """
