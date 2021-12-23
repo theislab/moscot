@@ -20,7 +20,24 @@ from moscot.framework.settings import strategies_MatchingEstimator
 def _verify_key(adata: AnnData,
                 key: str,
                 policy: Union[Tuple, List[Tuple],
-                strategies_MatchingEstimator]) -> List:
+                strategies_MatchingEstimator]) -> List[Tuple]:
+    """
+    verifies that key is a valid adata.obs column name and that the policy is actionable given the data
+
+    Parameters
+    ----------
+    adata
+        AnnData object containing the gene expression
+    key
+        column of AnnData.obs containing assignment of data points to distributions
+    policy
+        2-tuples of values of self.key defining the distribution which the optimal transport maps are calculated for
+
+    Returns
+        List of 2-tuples defining the (source, target) pairs of distributions which the transport maps are calculated for
+    -------
+
+    """
     if key not in adata.obs.columns:
         raise ValueError(f"Key {key} not found in adata.obs.columns")
 
@@ -63,7 +80,31 @@ def _prepare_geometry(
         online: bool = False,
         cost_fn: Union[CostFn, None] = Euclidean,
         **kwargs: Any
-) -> PointCloud: #TODO: we currently can only pass dense matrices
+) -> PointCloud:
+    """
+
+    Parameters
+    ----------
+    adata
+        AnnData object containing the gene expression
+    key
+        column of AnnData.obs containing assignment of data points to distributions
+    transport_tuple
+        2-Tuple defining distributions which the transport map is to be calculated for
+    rep
+        instance defining how the gene expression is saved in the AnnData object
+    online #TODO: clarify if we want to have this as kwargs
+        whether to save the geometry object online; reduces memory consumption
+    cost_fn:
+        Cost function to use.
+    kwargs
+        kwargs for ott.PointCloud
+
+    Returns
+        ott.PointCloud
+    -------
+
+    """
     if issparse(getattr(adata, rep)):
         return PointCloud(
             getattr(adata[adata.obs[key] == transport_tuple[0]], rep).todense(),
@@ -87,10 +128,34 @@ def _prepare_geometries(
         key: str,
         transport_sets: List[Tuple],
         rep: str,
-        online: bool = False,
+        online: bool = False, #TODO: discuss whether we want to have it as kwarg or not
         cost_fn: Union[CostFn, None] = Euclidean,
         **kwargs: Any
 ) -> Dict[Tuple, PointCloud]:
+    """
+
+    Parameters
+    ----------
+    adata
+        AnnData object containing the gene expression
+    key
+        column of AnnData.obs containing assignment of data points to distributions
+    transport_sets
+
+    rep
+        instance defining how the gene expression is saved in the AnnData object
+    online #TODO: clarify if we want to have this as kwargs
+        whether to save the geometry object online; reduces memory consumption
+    cost_fn:
+        Cost function to use.
+    kwargs
+        kwargs for ott.PointCloud
+
+    Returns
+        Dictionary with keys the tuples defining the transport and values being the corresponding ott.Geometry
+    -------
+
+    """
     dict_geometries = {}
     for tup in transport_sets:
         dict_geometries[tup] = _prepare_geometry(adata, key, tup, rep, online, cost_fn, **kwargs)

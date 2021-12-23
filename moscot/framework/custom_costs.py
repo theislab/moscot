@@ -10,7 +10,17 @@ from networkx.algorithms.lowest_common_ancestors import all_pairs_lowest_common_
 
 def lca_cost(trees: Dict[int, DiGraph]) -> Dict[int, jnp.ndarray]: #TODO: specify Any, i.e. which data type trees have
     """
-    uses nx.algorithms.lowest_common_ancestors
+    creates cost matrix from trees based on nx.algorithms.lowest_common_ancestors
+
+    Parameters
+    ----------
+    trees
+        Dictionary of trees for each of which a cost matrix is calculated
+
+    Returns
+        Dictionary with keys being the input keys and values being the calculated cost matrices
+    -------
+
     """
     cost_matrix_dict = {}
     for key, tree in trees.items():
