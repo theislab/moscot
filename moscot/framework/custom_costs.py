@@ -15,11 +15,13 @@ def lca_cost(trees: Dict[int, DiGraph]) -> Dict[int, jnp.ndarray]: #TODO: specif
     cost_matrix_dict = {}
     for key, tree in trees.items():
         n_nodes = len(tree.nodes)
-        cost = jnp.zeros((n_nodes, n_nodes))
-        for nodes, an in all_pairs_lowest_common_ancestor(tree):
+        cost = np.zeros((n_nodes, n_nodes))
+        for nodes, an in all_pairs_lowest_common_ancestor(tree): #TODO: rewrite to make it more efficient
             cost[int(nodes[0]), int(nodes[1])] = nx.dijkstra_path_length(tree, an,
                                 nodes[0]) + nx.dijkstra_path_length(tree, an, nodes[1])
-        cost_matrix_dict[key] = cost + jnp.transpose(cost)
+        cost_matrix_dict[key] = jnp.array(cost + jnp.transpose(cost))
+
+    return cost_matrix_dict
 
 
 
