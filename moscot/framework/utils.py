@@ -78,7 +78,7 @@ def _prepare_geometry(
         transport_tuple: Tuple,
         rep: str,
         online: bool = False,
-        cost_fn: Union[CostFn, None] = Euclidean,
+        cost_fn: Union[CostFn, None] = Euclidean(),
         **kwargs: Any
 ) -> PointCloud:
     """
@@ -129,7 +129,7 @@ def _prepare_geometries(
         transport_sets: List[Tuple],
         rep: str,
         online: bool = False, #TODO: discuss whether we want to have it as kwarg or not
-        cost_fn: Union[CostFn, None] = Euclidean,
+        cost_fn: Union[CostFn, None] = Euclidean(),
         **kwargs: Any
 ) -> Dict[Tuple, PointCloud]:
     """

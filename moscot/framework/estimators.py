@@ -127,9 +127,9 @@ class MatchingEstimator(OTEstimator):
 
     def prepare(
         self,
-        key: str,
-        policy: Union[List[2-Tuple], strategies_MatchingEstimator],
-        subset: List = None, # e.g. time points [1,3,5,7]
+        #key: str,
+        policy: Union[List[Tuple], strategies_MatchingEstimator],
+        #subset: List = None, # e.g. time points [1,3,5,7]
         **kwargs: Any,
     ) -> "MatchingEstimator":
         """
@@ -272,7 +272,8 @@ class LineageEstimator(OTEstimator):
             raise ValueError(f"The provided key {self.key} is not found in the AnnData object.")
         transport_sets = _verify_key(self._adata, self.key, policy)
 
-        self.cost_intra_dict = lca_cost(self.tree_dict)
+        self.pre_cost_intra_dict = lca_cost(self.tree_dict)
+        self.cost_intra_dict = _cell_costs_from_matrix(self.pre_cost_intra_dict)
         self.geometries_inter_dict = _prepare_geometries(self.adata, self.key, transport_sets, self.rep, cost_fn=self.cost_fn, **kwargs)
         self.geometries_intra_dict = _prepare_geometries_from_cost(self.cost_intra_dict,
                                                                 scale=self._scale)  # TODO: here we assume we can never save it as online=True
