@@ -30,7 +30,7 @@ from moscot.framework.settings import strategies_MatchingEstimator
 from moscot.framework.results import BaseResult, OTResult
 
 
-class OTEstimator(BaseProblem, RegularizedOT):
+class OTEstimator(BaseProblem):
     def __init__(
         self,
         adata: AnnData,
@@ -127,9 +127,11 @@ class MatchingEstimator(OTEstimator):
 
     def prepare(
         self,
-        policy: Union[Tuple, List[Tuple], strategies_MatchingEstimator],
+        key: str,
+        policy: Union[List[2-Tuple], strategies_MatchingEstimator],
+        subset: List = None, # e.g. time points [1,3,5,7]
         **kwargs: Any,
-    ) -> None:
+    ) -> "MatchingEstimator":
         """
 
         Parameters
@@ -145,6 +147,8 @@ class MatchingEstimator(OTEstimator):
             raise ValueError("Please provide a valid layer from the")
 
         self.geometries_dict = _prepare_geometries(self.adata, self.key, transport_sets, self.rep, self.cost_fn, **kwargs)
+
+        return self
 
     def fit(
         self,
