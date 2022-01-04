@@ -7,6 +7,7 @@ from ott.geometry.costs import CostFn
 from ott.geometry.geometry import Geometry
 from ott.core.gromov_wasserstein import GWLoss
 import numpy as np
+from ott.geometry.costs import CostFn, Euclidean
 
 CostFn_t = Union[CostFn, GWLoss]
 
@@ -22,7 +23,8 @@ from moscot.framework.utils import (
     _prepare_geometries,
     _create_constant_weights_source,
     _create_constant_weights_target,
-    _prepare_geometries_from_cost
+    _prepare_geometries_from_cost,
+    get_param_dict,
 )
 from moscot.framework.custom_costs import lca_cost
 from moscot.framework.BaseProblem import BaseProblem
@@ -34,10 +36,6 @@ class OTEstimator(BaseProblem):
     def __init__(
         self,
         adata: AnnData,
-        key: str,
-        params: Dict,
-        cost_fn: Optional[CostFn_t] = None,
-        epsilon: Optional[Union[float, Epsilon]] = None,
         rep: str = "X",
         **kwargs: Any,
     ) -> None:
@@ -61,7 +59,7 @@ class OTEstimator(BaseProblem):
         kwargs:
             ott.sinkhorn.sinkhorn kwargs
         """
-        super().__init__(adata=adata, key=key, cost_fn=cost_fn, epsilon=epsilon, params=params, rep=rep)
+        super().__init__(adata=adata, rep=rep)
         self._kwargs: Dict[str, Any] = kwargs
 
     def serialize_to_adata(self) -> Optional[AnnData]:
@@ -93,10 +91,6 @@ class MatchingEstimator(OTEstimator):
     def __init__(
         self,
         adata: AnnData,
-        key: str,
-        params: Dict = None,
-        cost_fn: Optional[CostFn_t] = None,
-        epsilon: Optional[Union[float, Epsilon]] = None,
         rep: str = "X",
         **kwargs: Any,
     ) -> None:
@@ -123,13 +117,17 @@ class MatchingEstimator(OTEstimator):
         self.a_dict: Dict[Tuple, Geometry] = {}  # TODO: check whether we can put them in class of higher order
         self.b_dict: Dict[Tuple, Geometry] = {}
         self._solver_dict: Dict[Tuple, Regularized] = {}
-        super().__init__(adata=adata, key=key, cost_fn=cost_fn, epsilon=epsilon, params=params, rep=rep, **kwargs)
+        super().__init__(adata=adata, rep=rep, **kwargs)
 
     def prepare(
         self,
-        #key: str,
+        key: str,
         policy: Union[List[Tuple], strategies_MatchingEstimator],
-        #subset: List = None, # e.g. time points [1,3,5,7]
+        subset: List = None, # e.g. time points [1,3,5,7]
+        a: Optional[Union[jnp.array, List[jnp.array]]] = None,
+        b: Optional[Union[jnp.array, List[jnp.array]]] = None,
+        cost_fn: Optional[CostFn_t] = Euclidean(),
+        custom_cost_matrix_dict: Optional[Dict[Tuple, jnp.ndarray]] = None,
         **kwargs: Any,
     ) -> "MatchingEstimator":
         """
@@ -138,34 +136,48 @@ class MatchingEstimator(OTEstimator):
         ----------
         policy
             2-tuples of values of self.key defining the distribution which the optimal transport maps are calculated for
-        Returns
-            None
-        -------
-        """
-        transport_sets = _verify_key(self._adata, self.key, policy)
-        if not isinstance(getattr(self._adata, self.rep), np.ndarray):
-            raise ValueError("Please provide a valid layer from the")
 
-        self.geometries_dict = _prepare_geometries(self.adata, self.key, transport_sets, self.rep, self.cost_fn, **kwargs)
-
-        return self
-
-    def fit(
-        self,
-        a: Optional[Union[jnp.array, List[jnp.array]]] = None,
-        b: Optional[Union[jnp.array, List[jnp.array]]] = None,
-    ) -> "OTResult":
-        """
-
-        Parameters
-        ----------
         a:
             weights for source distribution. If of type jnp.ndarray the same distribution is taken for all models, if of type
             List[jnp.ndarray] the length of the list must be equal to the number of transport maps defined in prepare()
         b:
             weights for target distribution. If of type jnp.ndarray the same distribution is taken for all models, if of type
             List[jnp.ndarray] the length of the list must be equal to the number of transport maps defined in prepare()
+        Returns
+            None
+        -------
+        """
+        self.key = key
+        self.cost_fn = cost_fn
+        transport_sets = _verify_key(self._adata, self.key, policy, subset)
+        if not isinstance(getattr(self._adata, self.rep), np.ndarray):
+            raise ValueError("Please provide a valid layer from the")
 
+        self.geometries_dict = _prepare_geometries(self.adata, key=self.key, transport_sets=transport_sets, rep=self.rep, cost_fn=self.cost_fn, custom_cost_matrix_dict=custom_cost_matrix_dict, **kwargs)
+
+        _check_arguments(a, b, self.geometries_dict)
+
+        if a is None:  # TODO: discuss whether we want to have this here, i.e. whether we want to explicitly create weights because OTT would do this for us.
+            # TODO: atm do it here to have all parameter saved in the estimator class
+            self.a_dict = {tup: _create_constant_weights_source(geom) for tup, geom in self.geometries_dict.items()}
+            self.b_dict = {tup: _create_constant_weights_target(geom) for tup, geom in self.geometries_dict.items()}
+
+        return self
+
+    def fit(
+        self,
+        epsilon: Optional[Union[List[Union[float, Epsilon]], float, Epsilon]] = 0.5,
+        tau_a: Optional[Union[List, Dict[Tuple, List], float]] = 1.0,
+        tau_b: Optional[Union[List, Dict[Tuple, List], float]] = 1.0,
+        sinkhorn_kwargs: Optional[Union[List, Dict[Tuple, List]]] = None,
+        **kwargs
+    ) -> "OTResult":
+        """
+
+        Parameters
+        ----------
+        sinkhorn_kwargs: estimator-specific kwargs for ott.core.sinkhorn.sinkhorn
+        **kwargs: ott.core.sinkhorn.sinkhorn keyword arguments applied to all estimators
         Returns
             moscot.framework.results.OTResult
         -------
@@ -175,16 +187,15 @@ class MatchingEstimator(OTEstimator):
         if not bool(self.geometries_dict):
             raise ValueError("Please run 'prepare()' first.")
 
-        _check_arguments(a, b, self.geometries_dict)
+        tuples = list(self.geometries_dict.keys())
+        self.epsilon_dict = get_param_dict(epsilon, tuples)
+        self.tau_a_dict = get_param_dict(tau_a, tuples)
+        self.tau_b_dict = get_param_dict(tau_b, tuples)
+        self.sinkorn_kwargs_dict = get_param_dict(sinkhorn_kwargs, tuples)
 
-        if a is None: #TODO: discuss whether we want to have this here, i.e. whether we want to explicitly create weights because OTT would do this for us.
-            #TODO: atm do it here to have all parameter saved in the estimator class
-            self.a_dict = {tup: _create_constant_weights_source(geom) for tup, geom in self.geometries_dict.items()}
-            self.b_dict = {tup: _create_constant_weights_target(geom) for tup, geom in self.geometries_dict.items()}
-
-        self._solver_dict = {tup: Regularized(cost_fn=self.cost_fn, epsilon=self.epsilon) for tup, _ in self.geometries_dict.items()}
+        self._solver_dict = {tup: Regularized(cost_fn=self.cost_fn, epsilon=self.epsilon_dict[tup]) for tup in tuples}
         for tup, geom in self.geometries_dict.items():
-            self._solver_dict[tup].fit(self.geometries_dict[tup], self.a_dict[tup], self.b_dict[tup])
+            self._solver_dict[tup].fit(self.geometries_dict[tup], self.a_dict[tup], self.b_dict[tup], tau_a=self.tau_a_dict[tup], tau_b=self.tau_b_dict[tup], **kwargs)
 
         return OTResult(self.adata, self.key, self._solver_dict)
 
