@@ -19,8 +19,8 @@ from moscot.framework.settings import strategies_MatchingEstimator
 
 def _verify_key(adata: AnnData,
                 key: str,
-                policy: Union[Tuple, List[Tuple],
-                strategies_MatchingEstimator]) -> List[Tuple]:
+                policy: Union[List[Tuple], strategies_MatchingEstimator],
+                subset: List = None) -> List[Tuple]:
     """
     verifies that key is a valid adata.obs column name and that the policy is actionable given the data
 
@@ -41,16 +41,7 @@ def _verify_key(adata: AnnData,
     if key not in adata.obs.columns:
         raise ValueError(f"Key {key} not found in adata.obs.columns")
 
-    if isinstance(policy, tuple):
-        if len(policy) != 2:
-            raise ValueError("The length of the tuple must be 2.")
-        values_adata = set(adata.obs[key].values)
-        for item in policy:
-            if item not in values_adata:
-                raise ValueError(f"Value {item} in column {key} of the AnnData object does not exist.")
-        return [policy]
-
-    elif type(policy) == list:
+    if isinstance(policy, list):
         values_adata = set(adata.obs[key].values)
         for tup in policy:
             if len(tup) != 2:
@@ -62,15 +53,18 @@ def _verify_key(adata: AnnData,
 
     elif policy == "pairwise":
         values_adata = set(adata.obs[key].values)
+        if subset is not None:
+            values_adata = values_adata.intersection(set(subset))
         return [(el_1, el_2) for el_1 in sorted(values_adata) for el_2 in sorted(values_adata) if el_1 != el_2]
 
     elif policy == "sequential":
         values_adata = set(adata.obs[key].values)
+        if subset is not None:
+            values_adata = values_adata.intersection(set(subset))
         return [(values_adata[i], values_adata[i+1]) for i in range(len(values_adata))]
 
     else:
         raise NotImplementedError
-
 
 def _prepare_geometry(
         adata: AnnData,
@@ -130,8 +124,10 @@ def _prepare_geometries(
         rep: str,
         online: bool = False, #TODO: discuss whether we want to have it as kwarg or not
         cost_fn: Union[CostFn, None] = Euclidean(),
+        custom_cost_matrix_dict: Optional[Dict[Tuple, jnp.ndarray]] = None,
+        scale: Optional[str] = None,
         **kwargs: Any
-) -> Dict[Tuple, PointCloud]:
+) -> Dict[Tuple, Geometry]:
     """
 
     Parameters
@@ -157,9 +153,11 @@ def _prepare_geometries(
 
     """
     dict_geometries = {}
-    for tup in transport_sets:
-        dict_geometries[tup] = _prepare_geometry(adata, key, tup, rep, online, cost_fn, **kwargs)
-
+    if custom_cost_matrix_dict is None:
+        for tup in transport_sets:
+            dict_geometries[tup] = _prepare_geometry(adata, key, tup, rep, online, cost_fn, **kwargs)
+    else:
+        dict_geometries = _prepare_geometries_from_cost(custom_cost_matrix_dict, scale=scale)
     return dict_geometries
 
 
@@ -181,6 +179,8 @@ def _prepare_geometry_from_cost(cost_matrix: jnp.ndarray,
         cost_matrix /= cost_matrix.mean()
     elif scale == "median":
         cost_matrix /= np.median(cost_matrix)  # https://github.com/google/jax/issues/4379
+    elif scale is None:
+        pass
     else:
         raise NotImplementedError(scale)
     return Geometry(cost_matrix=cost_matrix, **kwargs)
@@ -208,3 +208,15 @@ def _create_constant_weights_target(geometry: Geometry) -> jnp.ndarray:
     _, num_b = geometry.shape
     return jnp.ones((num_b,)) / num_b
 
+def get_param_dict(param, tuple_keys):
+    if isinstance(param, list):
+        if len(param) != len(tuple_keys):
+            raise ValueError("If 'param' is a list its length must be equal to the number of OT problems solved, "
+                             "i.e. {}".format(len(tuple_keys)))
+        return {tup: param[i] for i, tup in enumerate(tuple_keys)}
+    elif isinstance(param, Dict):
+        if set(param.keys()) != set(tuple_keys):
+            raise ValueError("The keys in the dictionary provided are not the same ones as expected.")
+        return param
+    else:
+        return {tup: param for tup in tuple_keys}

@@ -22,17 +22,9 @@ class BaseProblem(BaseEstimator):
     def __init__(
         self,
         adata: AnnData = None,
-        key: str = None,
-        cost_fn: Optional[CostFn_t] = None,
-        epsilon: Optional[Union[float, Epsilon]] = None,
-        params: Dict = None,
         rep: str = "X",
     ) -> None:
         self._adata = adata
-        self._key = key
-        self._cost_fn = cost_fn
-        self._epsilon = epsilon
-        self._params = params
         self._rep = rep
 
     @abstractmethod
@@ -71,22 +63,6 @@ class BaseProblem(BaseEstimator):
     @property
     def adata(self) -> AnnData:
         return self._adata
-
-    @property
-    def cost_fn(self) -> CostFn_t:
-        return self._cost_fn
-
-    @property
-    def epsilon(self) -> Number:
-        return self._epsilon
-
-    @property
-    def params(self) -> Dict[str, Any]:
-        return self._params
-
-    @property
-    def key(self) -> str:
-        return self._key
 
     @property
     def rep(self) -> str:
