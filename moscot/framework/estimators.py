@@ -9,8 +9,6 @@ from ott.core.gromov_wasserstein import GWLoss
 import numpy as np
 from ott.geometry.costs import CostFn, Euclidean
 
-CostFn_t = Union[CostFn, GWLoss]
-
 from ott.geometry.epsilon_scheduler import Epsilon
 
 from anndata import AnnData
@@ -19,17 +17,23 @@ from moscot._solver import FusedGW, Regularized, RegularizedOT
 from moscot.framework.utils import (
     _verify_key,
     _check_arguments,
-    _prepare_geometry,
-    _prepare_geometries,
+    _prepare_xy_geometry,
+    _prepare_xy_geometries,
     _create_constant_weights_source,
     _create_constant_weights_target,
     _prepare_geometries_from_cost,
     get_param_dict,
+    _prepare_xx_geometries,
 )
-from moscot.framework.custom_costs import lca_cost
+from moscot.framework.custom_costs import Leaf_distance
 from moscot.framework.BaseProblem import BaseProblem
 from moscot.framework.settings import strategies_MatchingEstimator
 from moscot.framework.results import BaseResult, OTResult
+
+
+CostFn_t = Union[CostFn, GWLoss]
+CostFn_tree = Union[Leaf_distance]
+
 
 
 class OTEstimator(BaseProblem):
@@ -128,6 +132,7 @@ class MatchingEstimator(OTEstimator):
         b: Optional[Union[jnp.array, List[jnp.array]]] = None,
         cost_fn: Optional[CostFn_t] = Euclidean(),
         custom_cost_matrix_dict: Optional[Dict[Tuple, jnp.ndarray]] = None,
+        scale: str = None,
         **kwargs: Any,
     ) -> "MatchingEstimator":
         """
@@ -151,9 +156,9 @@ class MatchingEstimator(OTEstimator):
         self.cost_fn = cost_fn
         transport_sets = _verify_key(self._adata, self.key, policy, subset)
         if not isinstance(getattr(self._adata, self.rep), np.ndarray):
-            raise ValueError("Please provide a valid layer from the")
+            raise ValueError("The gene expression data in the AnnData object is not correctly saved in {}".format(self.rep))
 
-        self.geometries_dict = _prepare_geometries(self.adata, key=self.key, transport_sets=transport_sets, rep=self.rep, cost_fn=self.cost_fn, custom_cost_matrix_dict=custom_cost_matrix_dict, **kwargs)
+        self.geometries_dict = _prepare_xy_geometries(self.adata, key=self.key, transport_sets=transport_sets, rep=self.rep, cost_fn=self.cost_fn, custom_cost_matrix_dict=custom_cost_matrix_dict, scale=scale, **kwargs)
 
         _check_arguments(a, b, self.geometries_dict)
 
@@ -169,7 +174,7 @@ class MatchingEstimator(OTEstimator):
         epsilon: Optional[Union[List[Union[float, Epsilon]], float, Epsilon]] = 0.5,
         tau_a: Optional[Union[List, Dict[Tuple, List], float]] = 1.0,
         tau_b: Optional[Union[List, Dict[Tuple, List], float]] = 1.0,
-        sinkhorn_kwargs: Optional[Union[List, Dict[Tuple, List]]] = None,
+        sinkhorn_kwargs: Optional[Union[List, Dict[Tuple, List]]] = {},
         **kwargs
     ) -> "OTResult":
         """
@@ -195,7 +200,8 @@ class MatchingEstimator(OTEstimator):
 
         self._solver_dict = {tup: Regularized(cost_fn=self.cost_fn, epsilon=self.epsilon_dict[tup]) for tup in tuples}
         for tup, geom in self.geometries_dict.items():
-            self._solver_dict[tup].fit(self.geometries_dict[tup], self.a_dict[tup], self.b_dict[tup], tau_a=self.tau_a_dict[tup], tau_b=self.tau_b_dict[tup], **kwargs)
+            self._solver_dict[tup].fit(self.geometries_dict[tup], self.a_dict[tup], self.b_dict[tup],
+                                       tau_a=self.tau_a_dict[tup], tau_b=self.tau_b_dict[tup], **self.sinkorn_kwargs_dict[tup], **kwargs)
 
         return OTResult(self.adata, self.key, self._solver_dict)
 
@@ -216,14 +222,8 @@ class LineageEstimator(OTEstimator):
     def __init__(
         self,
         adata: AnnData,
-        key: str,
         trees: Dict[int, DiGraph],
-        params: Dict,
-        cost_fn: Optional[CostFn_t] = None,
-        epsilon: Optional[Union[float, Epsilon]] = None,
-        alpha: Number = 0.5, # TODO: adapt from paper
         rep: str = "X",
-        tree_cost: Union["MLE", "edgesum", "uniform_edge"] = None,
         **kwargs: Any,
     ) -> None:
         """
@@ -250,20 +250,24 @@ class LineageEstimator(OTEstimator):
             ott.sinkhorn.sinkhorn kwargs
         """
         self.tree_dict = trees
-        self.alpha = alpha  # #TODO: currently all pairs are computed with the same alpha, maybe change
-        self.tree_cost = tree_cost
-        self.geometries_inter_dict: Dict[Tuple, Geometry] = {}
-        self.geometries_intra_dict: Dict[int, Geometry] = {}
         self.a_dict: Dict[Tuple, jnp.ndarray] = {}  # TODO: check whether we can put them in class of higher order
         self.b_dict: Dict[Tuple, jnp.ndarray] = {}
-        self.cost_intra: Dict[int, jnp.ndarray] = {}
         self._solver_dict: Dict[Tuple, FusedGW] = {}
-        super().__init__(adata=adata, key=key, cost_fn=cost_fn, epsilon=epsilon, params=params, rep=rep, **kwargs)
+        super().__init__(adata=adata, rep=rep, **kwargs)
 
     def prepare(
         self,
-        policy: Union[Tuple, List[Tuple]],
-        **kwargs
+        key: str,
+        policy: Union[List[Tuple], strategies_MatchingEstimator],
+        subset: List = None,  # e.g. time points [1,3,5,7]
+        a: Optional[Union[jnp.array, List[jnp.array]]] = None,
+        b: Optional[Union[jnp.array, List[jnp.array]]] = None,
+        rna_cost_fn: Optional[CostFn_t] = Euclidean(),
+        tree_cost_fn: Optional[CostFn_tree] = Leaf_distance(),
+        custom_inter_cost_matrix_dict: Optional[Dict[Tuple, jnp.ndarray]] = None,
+        custom_intra_cost_matrix_dict: Optional[Dict[Tuple, jnp.ndarray]] = None,
+        scale = None,
+        **kwargs: Any,
     ) -> None:
         """
 
@@ -278,23 +282,38 @@ class LineageEstimator(OTEstimator):
         -------
 
         """
+        self.key = key
         self._scale = kwargs.pop("scale", "max")
         if self.key not in self.adata.obs.columns:
             raise ValueError(f"The provided key {self.key} is not found in the AnnData object.")
         transport_sets = _verify_key(self._adata, self.key, policy)
 
-        self.pre_cost_intra_dict = lca_cost(self.tree_dict)
-        self.cost_intra_dict = _cell_costs_from_matrix(self.pre_cost_intra_dict)
-        self.geometries_inter_dict = _prepare_geometries(self.adata, self.key, transport_sets, self.rep, cost_fn=self.cost_fn, **kwargs)
-        self.geometries_intra_dict = _prepare_geometries_from_cost(self.cost_intra_dict,
-                                                                scale=self._scale)  # TODO: here we assume we can never save it as online=True
+        if not isinstance(getattr(self._adata, self.rep), np.ndarray):
+            raise ValueError("The gene expression data in the AnnData object is not correctly saved in {}".format(self.rep))
+
+        _check_arguments(a, b, self.geometries_dict)
+
+        if a is None:  # TODO: discuss whether we want to have this here, i.e. whether we want to explicitly create weights because OTT would do this for us.
+            # TODO: atm do it here to have all parameter saved in the estimator class
+            self.a_dict = {tup: _create_constant_weights_source(geom) for tup, geom in self.geometries_dict.items()}
+            self.b_dict = {tup: _create_constant_weights_target(geom) for tup, geom in self.geometries_dict.items()}
+
+
+        self.tree_cost_dict = _prepare_xx_geometries(self.tree_dict, CostFn_tree, custom_intra_cost_matrix_dict, scale, **kwargs)
+        self.rna_cost_dict = _prepare_xy_geometries(self.adata, self.key, transport_sets, self.rep, cost_fn=self.cost_fn,
+                                                    custom_cost_matrix_dict=custom_inter_cost_matrix_dict, scale=scale, **kwargs)
 
         #TODO: add some tests here, e.g. costs should be positive
+        return self
 
     def fit(
             self,
-            a: Optional[Union[jnp.array, List[jnp.array]]] = None,
-            b: Optional[Union[jnp.array, List[jnp.array]]] = None,
+            epsilon: Optional[Union[List[Union[float, Epsilon]], float, Epsilon]] = 0.5,
+            alpha: Optional[Union[List[float], float]] = 0.5,
+            tau_a: Optional[Union[List, Dict[Tuple, List], float]] = 1.0,
+            tau_b: Optional[Union[List, Dict[Tuple, List], float]] = 1.0,
+            sinkhorn_kwargs: Optional[Union[List, Dict[Tuple, List]]] = None,
+            **kwargs: Any,
     ) -> "OTResult":
         """
 
@@ -312,20 +331,24 @@ class LineageEstimator(OTEstimator):
         -------
 
         """
+        if tau_a != 1 or tau_b != 1:
+            raise NotImplementedError("Currently, only balanced problems are supported for GW and FGW problems.")
 
-        if not (bool(self.geometries_inter_dict) or bool(self.geometries_intra_dict)):
+        if not (bool(self.tree_cost_dict) or bool(self.rna_cost_dict)):
             raise ValueError("Please run 'prepare()' first.")
 
-        _check_arguments(a, b, self.geometries_inter_dict)
+        tuples = list(self.geometries_dict.keys())  # TODO: make a class attribute out of this
+        self.epsilon_dict = get_param_dict(epsilon, tuples)
+        self.tau_a_dict = get_param_dict(tau_a, tuples)
+        self.tau_b_dict = get_param_dict(tau_b, tuples)
+        self.alpha_dict = get_param_dict(alpha, tuples)
+        self.sinkorn_kwargs_dict = get_param_dict(sinkhorn_kwargs, tuples)
 
-        if a is None: #TODO: discuss whether we want to have this here, i.e. whether we want to explicitly create weights because OTT would do this for us.
-            #TODO: atm do it here to have all parameter saved in the estimator class
-            self.a_dict = {tup: _create_constant_weights_source(geom) for tup, geom in self.geometries_inter_dict.items()}
-            self.b_dict = {tup: _create_constant_weights_target(geom) for tup, geom in self.geometries_inter_dict.items()}
 
-        self._solver_dict = {tup: FusedGW(alpha=self.alpha, epsilon=self.epsilon) for tup, _ in self.geometries_inter_dict.items()}
+        self._solver_dict = {tup: FusedGW(alpha=self.alpha_dict[tup], epsilon=self.epsilon_dict[tup]) for tup in tuples}
         for tup, geom in self.geometries_inter_dict.items():
-            self._solver_dict[tup].fit(self.geometries_inter_dict[tup], self.geometries_intra_dict[tup[0]], self.geometries_intra_dict[tup[1]], self.a_dict[tup], self.b_dict[tup])
+            self._solver_dict[tup].fit(self.rna_cost_dict[tup], self.tree_cost_dict[tup[0]], self.tree_cost_dict[tup[1]],
+                                       self.a_dict[tup], self.b_dict[tup], tau_a=self.tau_a_dict[tup], tau_b=self.tau_b_dict[tup], **self.sinkorn_kwargs_dict[tup], **kwargs)
 
         return OTResult(self.adata, self.key, self._solver_dict)
 
@@ -346,17 +369,11 @@ class SpatialAlignmentEstimator(OTEstimator):
     def __init__(
         self,
         adata: AnnData,
-        key: str,
-        params: Dict,
-        cost_fn: Optional[CostFn_t] = None,
-        epsilon: Optional[Union[float, Epsilon]] = None,
-        alpha: Number = None,
-        spatial_rep: Union[str, np.ndarray, None] = None,
-        spatial_cost: Union["spatial_cost", np.ndarray, None] = None,  # TODO: specify spatial cost
+        rep: str = "X",
         **kwargs: Any,
     ) -> None:
 
-        super().__init__(adata=adata, key=key, cost_fn=cost_fn, epsilon=epsilon, params=params, **kwargs)
+        super().__init__(adata=adata, rep=rep, **kwargs)
 
 
 class SpatialMappingEstimator(OTEstimator):
@@ -366,17 +383,10 @@ class SpatialMappingEstimator(OTEstimator):
     def __init__(
         self,
         adata: AnnData,
-        key: str,
-        params: Dict,
-        cost_fn: Optional[CostFn_t] = None,
-        epsilon: Optional[Union[float, Epsilon]] = None,
-        alpha: Number = None,
-        spatial_rep: Union[str, np.ndarray, None] = None,
-        spatial_cost: Union["spatial_cost", np.ndarray, None] = None,  # TODO: specify spatial cost
-        reference_var: Union[List, None] = None,
+        rep: str = "X",
         **kwargs: Any,
     ) -> None:
 
-        super().__init__(adata=adata, key=key, cost_fn=cost_fn, epsilon=epsilon, params=params, **kwargs)
+        super().__init__(adata=adata, rep=rep, **kwargs)
 
 

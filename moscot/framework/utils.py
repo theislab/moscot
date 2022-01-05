@@ -9,7 +9,7 @@ from ott.core.gromov_wasserstein import GWLoss
 import numpy as np
 CostFn_t = Union[CostFn, GWLoss]
 from scipy.sparse import issparse
-
+from lineageot.inference import compute_tree_distances
 from ott.geometry.costs import Euclidean
 
 from anndata import AnnData
@@ -66,7 +66,7 @@ def _verify_key(adata: AnnData,
     else:
         raise NotImplementedError
 
-def _prepare_geometry(
+def _prepare_xy_geometry(
         adata: AnnData,
         key: str,
         transport_tuple: Tuple,
@@ -117,7 +117,7 @@ def _prepare_geometry(
         )
 
 
-def _prepare_geometries(
+def _prepare_xy_geometries(
         adata: AnnData,
         key: str,
         transport_sets: List[Tuple],
@@ -155,18 +155,18 @@ def _prepare_geometries(
     dict_geometries = {}
     if custom_cost_matrix_dict is None:
         for tup in transport_sets:
-            dict_geometries[tup] = _prepare_geometry(adata, key, tup, rep, online, cost_fn, **kwargs)
+            dict_geometries[tup] = _prepare_xy_geometry(adata, key, tup, rep, online, cost_fn, **kwargs)
     else:
         dict_geometries = _prepare_geometries_from_cost(custom_cost_matrix_dict, scale=scale)
     return dict_geometries
 
 
-def _prepare_geometries_from_cost(cost_matrices_dict: Dict[Tuple, jnp.ndarray],
+def _prepare_geometries_from_cost(cost_matrices_dict: Dict[Union[int,Tuple], jnp.ndarray],
                                   scale: Optional[str] = "max",
                                   **kwargs: Any) -> Dict[Tuple, Geometry]:
     dict_geometries = {}
-    for tup, cost_matrix in cost_matrices_dict.items():
-        dict_geometries[tup] = _prepare_geometry_from_cost(cost_matrix, scale, **kwargs)
+    for key, cost_matrix in cost_matrices_dict.items():
+        dict_geometries[key] = _prepare_geometry_from_cost(cost_matrix, scale, **kwargs)
     return dict_geometries
 
 
@@ -214,9 +214,32 @@ def get_param_dict(param, tuple_keys):
             raise ValueError("If 'param' is a list its length must be equal to the number of OT problems solved, "
                              "i.e. {}".format(len(tuple_keys)))
         return {tup: param[i] for i, tup in enumerate(tuple_keys)}
-    elif isinstance(param, Dict):
+    elif isinstance(param, dict):
+        if not bool(param):
+            return {tup: param for tup in tuple_keys}
         if set(param.keys()) != set(tuple_keys):
             raise ValueError("The keys in the dictionary provided are not the same ones as expected.")
         return param
     else:
         return {tup: param for tup in tuple_keys}
+
+def _prepare_xx_geometries(
+        tree_dict,
+        TreeCostFn,
+        custom_cost_matrix_dict: Optional[Dict[Tuple, jnp.ndarray]] = None,
+        scale: Optional[str] = None,
+        **kwargs: Any
+) -> Dict[Tuple, Geometry]:
+    dict_geometries = {}
+    if custom_cost_matrix_dict is None:
+        for tup in list(tree_dict.keys()):
+            dict_geometries[tup] = _prepare_xx_geometry(tree_dict, TreeCostFn, scale)
+    else:
+        dict_geometries = _prepare_geometries_from_cost(custom_cost_matrix_dict, scale=scale)
+    return dict_geometries
+
+def _prepare_xx_geometry(tree, TreeCostFn, scale=None):
+    return _prepare_geometry_from_cost(_compute_tree_cost(tree, TreeCostFn), scale=scale)
+
+def _compute_tree_cost(tree, TreeCostFn):
+    return TreeCostFn.compute_distance(tree)
