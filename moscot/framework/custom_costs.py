@@ -7,31 +7,51 @@ from numbers import Number
 import jax.numpy as jnp
 from networkx.algorithms.lowest_common_ancestors import all_pairs_lowest_common_ancestor
 from anndata import AnnData
+from lineageot.inference import compute_tree_distances
+import abc
 
-def lca_cost(trees: Dict[int, DiGraph]) -> Dict[int, jnp.ndarray]: #TODO: specify Any, i.e. which data type trees have
-    """
-    creates cost matrix from trees based on nx.algorithms.lowest_common_ancestors
+class TreeCostFn(abc.ABC):
+    def __init__(self):
+        pass
 
-    Parameters
-    ----------
-    trees
-        Dictionary of trees for each of which a cost matrix is calculated
+    @abc.abstractmethod
+    def compute_distance(self, tree):
+        pass
 
-    Returns
-        Dictionary with keys being the input keys and values being the calculated cost matrices
-    -------
 
-    """
-    cost_matrix_dict = {}
-    for key, tree in trees.items():
+class Leaf_distance(TreeCostFn):
+    def compute_distance(self, tree) -> jnp.ndarray:
+        """
+        Computes the matrix of pairwise distances between leaves of the tree
+        """
+        return compute_tree_distances(tree)
+
+class LCA_distance(TreeCostFn):
+    def compute_distance(self, tree) -> jnp.ndarray: #TODO: specify Any, i.e. which data type trees have
+        """
+        creates cost matrix from trees based on nx.algorithms.lowest_common_ancestors
+
+        Parameters
+        ----------
+        trees
+            Dictionary of trees for each of which a cost matrix is calculated
+
+        Returns
+            Dictionary with keys being the input keys and values being the calculated cost matrices
+        -------
+
+        """
+        #cost_matrix_dict = {}
+        #for key, tree in trees.items():
+        #    n_nodes = len(tree.nodes)
         n_nodes = len(tree.nodes)
         cost = np.zeros((n_nodes, n_nodes))
         for nodes, an in all_pairs_lowest_common_ancestor(tree): #TODO: rewrite to make it more efficient
             cost[int(nodes[0]), int(nodes[1])] = nx.dijkstra_path_length(tree, an,
                                 nodes[0]) + nx.dijkstra_path_length(tree, an, nodes[1])
-        cost_matrix_dict[key] = jnp.array(cost + jnp.transpose(cost))
+        #cost_matrix_dict[key] = jnp.array(cost + jnp.transpose(cost))
 
-    return cost_matrix_dict
+        return cost
 
 def _create_column_from_trees(adata: AnnData, new_col_name: str, trees, key):
     for val in adata.obs[key].unique():
