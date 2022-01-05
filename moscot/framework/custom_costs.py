@@ -9,6 +9,7 @@ from networkx.algorithms.lowest_common_ancestors import all_pairs_lowest_common_
 from anndata import AnnData
 from lineageot.inference import compute_tree_distances
 import abc
+from lineageot.inference import get_leaves
 
 class TreeCostFn(abc.ABC):
     def __init__(self):
@@ -20,11 +21,12 @@ class TreeCostFn(abc.ABC):
 
 
 class Leaf_distance(TreeCostFn):
-    def compute_distance(self, tree) -> jnp.ndarray:
+    @staticmethod
+    def compute_distance(tree) -> jnp.ndarray:
         """
         Computes the matrix of pairwise distances between leaves of the tree
         """
-        return compute_tree_distances(tree)
+        return _compute_tree_distances(tree)
 
 class LCA_distance(TreeCostFn):
     def compute_distance(self, tree) -> jnp.ndarray: #TODO: specify Any, i.e. which data type trees have
@@ -95,6 +97,17 @@ def _cell_costs_from_matrix(adata: AnnData, key: str, pre_costs_dict: Dict[int, 
     for tup, pre_cost in pre_costs_dict.items():
         cell_cost_matrices[tup] = _cell_cost_from_matrix(adata, key, tup, pre_cost)
 
-
+def _compute_tree_distances(tree): # TODO: this is adapted from lineageOT, we want to make it more efficient.
+    """
+    Computes the matrix of pairwise distances between leaves of the tree
+    """
+    leaves = get_leaves(tree)
+    num_leaves = len(leaves) - 1
+    distances = np.zeros([num_leaves, num_leaves])
+    for leaf_index in range(num_leaves):
+        distance_dictionary, tmp = nx.multi_source_dijkstra(tree.to_undirected(), [leaves[leaf_index]], weight = 'time')
+        for target_leaf_index in range(num_leaves):
+            distances[leaf_index, target_leaf_index] = distance_dictionary[leaves[target_leaf_index]]
+    return distances
 
 

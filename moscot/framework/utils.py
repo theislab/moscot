@@ -1,3 +1,4 @@
+import logging
 from typing import Any, List, Optional, Tuple, Union, Dict
 
 
@@ -13,7 +14,7 @@ from lineageot.inference import compute_tree_distances
 from ott.geometry.costs import Euclidean
 
 from anndata import AnnData
-
+from moscot.framework.custom_costs import Leaf_distance
 from moscot.framework.settings import strategies_MatchingEstimator
 
 
@@ -55,13 +56,15 @@ def _verify_key(adata: AnnData,
         values_adata = set(adata.obs[key].values)
         if subset is not None:
             values_adata = values_adata.intersection(set(subset))
-        return [(el_1, el_2) for el_1 in sorted(values_adata) for el_2 in sorted(values_adata) if el_1 != el_2]
+        sorted_values = sorted(list(values_adata))
+        return [(el_1, el_2) for el_1 in sorted_values for el_2 in sorted_values if el_1 != el_2]
 
     elif policy == "sequential":
         values_adata = set(adata.obs[key].values)
         if subset is not None:
             values_adata = values_adata.intersection(set(subset))
-        return [(values_adata[i], values_adata[i+1]) for i in range(len(values_adata))]
+        sorted_values = sorted(list(values_adata))
+        return [(sorted_values[i], sorted_values[i+1]) for i in range(len(values_adata)-1)]
 
     else:
         raise NotImplementedError
@@ -232,8 +235,10 @@ def _prepare_xx_geometries(
 ) -> Dict[Tuple, Geometry]:
     dict_geometries = {}
     if custom_cost_matrix_dict is None:
-        for tup in list(tree_dict.keys()):
-            dict_geometries[tup] = _prepare_xx_geometry(tree_dict, TreeCostFn, scale)
+        logging.info("Calculating cost matrices from trees ...")
+        for key, tree in tree_dict.items():
+            dict_geometries[key] = _prepare_xx_geometry(tree, TreeCostFn, scale)
+        logging.info("Done.")
     else:
         dict_geometries = _prepare_geometries_from_cost(custom_cost_matrix_dict, scale=scale)
     return dict_geometries
