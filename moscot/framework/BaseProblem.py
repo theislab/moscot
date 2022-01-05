@@ -28,14 +28,6 @@ class BaseProblem(BaseEstimator):
         self._rep = rep
 
     @abstractmethod
-    def serialize_to_adata(self) -> Optional[AnnData]:
-        pass
-
-    @abstractmethod
-    def load_from_adata(self) -> None:
-        pass
-
-    @abstractmethod
     def prepare(
         self,
         key: Union[str, None],
@@ -44,20 +36,16 @@ class BaseProblem(BaseEstimator):
         cost_fn: Union[CostFn, None],
         eps: Union[float, None],
         groups: Union[List[str], Tuple[str]],
-    ) -> None:
+    ) -> "BaseProblem":
         pass
 
     @abstractmethod
     def fit(
         self,
-        geom: Union[jnp.array, Geometry],
-        a: Optional[jnp.array] = None,
-        b: Optional[jnp.array] = None,
-    ) -> 'BaseResult':
-        pass
-
-    @abstractmethod
-    def _create_cost(self, cost: Union[CostFn, None] = Euclidean) -> None:
+        epsilon: Optional[Union[List[Union[float, Epsilon]], float, Epsilon]] = 0.5,
+        tau_a: Optional[Union[List, Dict[Tuple, List], float]] = 1.0,
+        tau_b: Optional[Union[List, Dict[Tuple, List], float]] = 1.0,
+    ) -> "BaseResult":
         pass
 
     @property
