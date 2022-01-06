@@ -42,4 +42,4 @@ To generate a "classes.dot" and "packages.dot" file run::
 Finally, create the png file from "classes.dot", e.g. via::
 
     from subprocess import check_call
-    check_call(['dot','-Tpng','classes.dot','-o','OutputFile.png'])
+    check_call(['dot','-Tpng','classes.dot','-o','UML.png'])

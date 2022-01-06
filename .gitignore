@@ -142,3 +142,7 @@ notebooks/*.pdf
 *.pickle
 *.h5ad
 *.p
+
+# UML generation
+classes.dot
+packages.dot
