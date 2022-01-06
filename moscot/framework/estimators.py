@@ -33,6 +33,7 @@ from moscot.framework.results import BaseResult, OTResult
 
 CostFn_t = Union[CostFn, GWLoss]
 CostFn_tree = Union[Leaf_distance]
+Scales = Union["mean", "meadian", "max"]
 
 
 class OTEstimator(BaseProblem):
@@ -65,28 +66,11 @@ class OTEstimator(BaseProblem):
         super().__init__(adata=adata, rep=rep)
         self.a_dict: Dict[Tuple, jnp.ndarray] = {}
         self.b_dict: Dict[Tuple, jnp.ndarray] = {}
-        self.key = None
-        self.tau_a_dict = None
-        self.tau_b_dict = None
-        self.scale = None
+        self.key: str = None
+        self.tau_a_dict: Optional[Dict[Tuple, jnp.ndarray]] = None
+        self.tau_b_dict: Optional[Dict[Tuple, jnp.ndarray]] = None
+        self.scale: Optional[Scales] = None
         self._kwargs: Dict[str, Any] = kwargs
-
-    def serialize_to_adata(self) -> Optional[AnnData]:
-        pass
-
-    def load_from_adata(self) -> None:
-        pass
-
-    def prepare(
-        self,
-        key: Union[str, None],
-        policy: None,
-        rep: None,
-        cost_fn: Union[CostFn, None],
-        eps: Union[float, None],
-        groups: Union[List[str], Tuple[str]],
-    ) -> None:
-        pass
 
     def estimate_growth_rates(self) -> None:
         # https://github.com/broadinstitute/wot/blob/master/wot/gene_set_scores.py
@@ -114,10 +98,10 @@ class MatchingEstimator(OTEstimator):
         """
         self.geometries_dict: Dict[Tuple, Geometry] = {}
         self._solver_dict: Dict[Tuple, Regularized] = {}
-        self.cost_fn = None
-        self.transport_sets = None
-        self.epsilon_dict = None
-        self.sinkhorn_kwargs_dict = None
+        self.cost_fn: CostFn_t = None
+        self._transport_sets: List[Tuple] = None
+        self.epsilon_dict: Dict[Tuple, Union[List[Union[float, Epsilon]], float, Epsilon]] = None
+        self.sinkhorn_kwargs_dict: Dict[Tuple, Dict[str, Any]] = None
 
         super().__init__(adata=adata, rep=rep, **kwargs)
 
@@ -157,6 +141,8 @@ class MatchingEstimator(OTEstimator):
             cost matrix. If custom_cost_matrix_dict is provided cost_fn is neglected
         scale
             how to scale the cost matrix, currently only provided for custom cost matrices
+        **kwargs
+            ott.geometry.Geometry kwargs
 
         Returns
             self
@@ -164,14 +150,14 @@ class MatchingEstimator(OTEstimator):
         """
         self.key = key
         self.cost_fn = cost_fn
-        self.transport_sets = _verify_key(self._adata, self.key, policy, subset)
+        self._transport_sets = _verify_key(self._adata, self.key, policy, subset)
         self.scale = scale
         if not isinstance(getattr(self._adata, self.rep), np.ndarray):
             raise ValueError("The gene expression data in the AnnData object is not correctly saved in {}".format(self.rep))
 
         self.geometries_dict = _prepare_xy_geometries(self.adata,
                                                       key=self.key,
-                                                      transport_sets=self.transport_sets,
+                                                      transport_sets=self._transport_sets,
                                                       rep=self.rep,
                                                       cost_fn=self.cost_fn,
                                                       custom_cost_matrix_dict=custom_cost_matrix_dict,
@@ -180,8 +166,7 @@ class MatchingEstimator(OTEstimator):
 
         _check_arguments(a, b, self.geometries_dict)
 
-        if a is None:  # TODO: discuss whether we want to have this here, i.e. whether we want to explicitly create weights because OTT would do this for us.
-            # TODO: atm do it here to have all parameter saved in the estimator class
+        if a is None:
             self.a_dict = {tup: _create_constant_weights_source(geom) for tup, geom in self.geometries_dict.items()}
             self.b_dict = {tup: _create_constant_weights_target(geom) for tup, geom in self.geometries_dict.items()}
 
@@ -199,8 +184,20 @@ class MatchingEstimator(OTEstimator):
 
         Parameters
         ----------
-        sinkhorn_kwargs: estimator-specific kwargs for ott.core.sinkhorn.sinkhorn
-        **kwargs: ott.core.sinkhorn.sinkhorn keyword arguments applied to all estimators
+        epsilon
+            regularization parameter for OT problem
+        tau_a
+             ratio rho/(rho+eps) between KL divergence regularizer to first
+             marginal and itself + epsilon regularizer used in the unbalanced
+             formulation.
+        tau_b:
+             ratio rho/(rho+eps) between KL divergence regularizer to first
+             marginal and itself + epsilon regularizer used in the unbalanced
+             formulation.
+        sinkhorn_kwargs
+            estimator-specific kwargs for ott.core.sinkhorn.sinkhorn
+        **kwargs
+            ott.core.sinkhorn.sinkhorn keyword arguments applied to all estimators
         Returns
             moscot.framework.results.OTResult
         -------
@@ -210,26 +207,25 @@ class MatchingEstimator(OTEstimator):
         if not bool(self.geometries_dict):
             raise ValueError("Please run 'prepare()' first.")
 
-        self.epsilon_dict = get_param_dict(epsilon, self.transport_sets)
-        self.tau_a_dict = get_param_dict(tau_a, self.transport_sets)
-        self.tau_b_dict = get_param_dict(tau_b, self.transport_sets)
-        self.sinkhorn_kwargs_dict = get_param_dict(sinkhorn_kwargs, self.transport_sets)
+        self.epsilon_dict = get_param_dict(epsilon, self._transport_sets)
+        self.tau_a_dict = get_param_dict(tau_a, self._transport_sets)
+        self.tau_b_dict = get_param_dict(tau_b, self._transport_sets)
+        self.sinkhorn_kwargs_dict = get_param_dict(sinkhorn_kwargs, self._transport_sets)
 
-        self._solver_dict = {tup: Regularized(cost_fn=self.cost_fn, epsilon=self.epsilon_dict[tup]) for tup in self.transport_sets}
+        self._solver_dict = {tup: Regularized(cost_fn=self.cost_fn, epsilon=self.epsilon_dict[tup]) for tup in self._transport_sets}
         for tup, geom in self.geometries_dict.items():
             self._solver_dict[tup].fit(self.geometries_dict[tup], self.a_dict[tup], self.b_dict[tup],
                                        tau_a=self.tau_a_dict[tup], tau_b=self.tau_b_dict[tup], **self.sinkhorn_kwargs_dict[tup], **kwargs)
 
         return OTResult(self.adata, self.key, self._solver_dict)
 
-    def converged(self) -> Optional[bool]:
-        pass
+    @property
+    def solvers(self) -> Dict[Tuple, Regularized]:
+        return self._solver_dict
 
-    def matrix(self) -> jnp.ndarray:
-        pass
-
-    def transport(self, inputs: jnp.ndarray, forward: bool = True) -> jnp.ndarray:
-        pass
+    @property
+    def transport_sets(self) -> List[Tuple]:
+        return self._transport_sets
 
 
 class LineageEstimator(OTEstimator):
@@ -293,13 +289,13 @@ class LineageEstimator(OTEstimator):
         self.rna_cost_fn = rna_cost_fn
         if self.key not in self.adata.obs.columns:
             raise ValueError(f"The provided key {self.key} is not found in the AnnData object.")
-        self.transport_sets = _verify_key(self._adata, self.key, policy)
+        self._transport_sets = _verify_key(self._adata, self.key, policy)
 
         if not isinstance(getattr(self._adata, self.rep), np.ndarray):
             raise ValueError("The gene expression data in the AnnData object is not correctly saved in {}".format(self.rep))
 
         self.tree_cost_dict = _prepare_xx_geometries(self.tree_dict, CostFn_tree, custom_intra_cost_matrix_dict, scale, **kwargs)
-        self.rna_cost_dict = _prepare_xy_geometries(self.adata, self.key, self.transport_sets, self.rep, cost_fn=self.rna_cost_fn,
+        self.rna_cost_dict = _prepare_xy_geometries(self.adata, self.key, self._transport_sets, self.rep, cost_fn=self.rna_cost_fn,
                                                     custom_cost_matrix_dict=custom_inter_cost_matrix_dict, scale=self.scale, **kwargs)
 
 
@@ -344,27 +340,26 @@ class LineageEstimator(OTEstimator):
         if not (bool(self.tree_cost_dict) or bool(self.rna_cost_dict)):
             raise ValueError("Please run 'prepare()' first.")
 
-        self.epsilon_dict = get_param_dict(epsilon, self.transport_sets)
-        self.tau_a_dict = get_param_dict(tau_a, self.transport_sets)
-        self.tau_b_dict = get_param_dict(tau_b, self.transport_sets)
-        self.alpha_dict = get_param_dict(alpha, self.transport_sets)
-        self.sinkhorn_kwargs_dict = get_param_dict(sinkhorn_kwargs, self.transport_sets)
+        self.epsilon_dict = get_param_dict(epsilon, self._transport_sets)
+        self.tau_a_dict = get_param_dict(tau_a, self._transport_sets)
+        self.tau_b_dict = get_param_dict(tau_b, self._transport_sets)
+        self.alpha_dict = get_param_dict(alpha, self._transport_sets)
+        self.sinkhorn_kwargs_dict = get_param_dict(sinkhorn_kwargs, self._transport_sets)
 
-        self._solver_dict = {tup: FusedGW(alpha=self.alpha_dict[tup], epsilon=self.epsilon_dict[tup]) for tup in self.transport_sets}
+        self._solver_dict = {tup: FusedGW(alpha=self.alpha_dict[tup], epsilon=self.epsilon_dict[tup]) for tup in self._transport_sets}
         for tup, geom in self.rna_cost_dict.items():
             self._solver_dict[tup].fit(self.tree_cost_dict[tup[0]], self.tree_cost_dict[tup[1]], self.rna_cost_dict[tup],
                                        self.a_dict[tup], self.b_dict[tup], tau_a=self.tau_a_dict[tup], tau_b=self.tau_b_dict[tup], **self.sinkhorn_kwargs_dict[tup], **kwargs)
 
         return OTResult(self.adata, self.key, self._solver_dict)
 
-    def converged(self) -> Optional[bool]:
-        pass
+    @property
+    def solvers(self) -> Dict[Tuple, FusedGW]:
+        return self._solver_dict
 
-    def matrix(self) -> jnp.ndarray:
-        pass
-
-    def transport(self, inputs: jnp.ndarray, forward: bool = True) -> jnp.ndarray:
-        pass
+    @property
+    def transport_sets(self) -> List[Tuple]:
+        return self._transport_sets
 
 
 class SpatialAlignmentEstimator(OTEstimator):

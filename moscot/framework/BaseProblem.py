@@ -56,6 +56,16 @@ class BaseProblem(BaseEstimator):
     def rep(self) -> str:
         return self._rep
 
+    @property
+    @abstractmethod
+    def solvers(self) -> Dict[Tuple, Any]:
+        pass
+
+    @property
+    @abstractmethod
+    def transport_sets(self) -> List[Tuple]:
+        pass
+
 
 
 
