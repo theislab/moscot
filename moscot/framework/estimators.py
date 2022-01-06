@@ -144,6 +144,9 @@ class FGWEstimator(OTEstimator):
     ) -> None:
         super().__init__(adata=adata, rep=rep)
         self._solver_dict: Dict[Tuple, FusedGW] = {}
+        self.alpha_dict: Dict[Tuple, float] = {}
+        self.xx_geometries_dict: Dict[Any, Geometry] = {}
+        self.xy_geometries_dict: Dict[Tuple, Geometry] = {}
         self.xy_cost_fn: CostFn_t = None
         self.xx_cost_fn: CostFn_general = None
 
@@ -330,21 +333,43 @@ class LineageEstimator(FGWEstimator):
         b: Optional[Union[jnp.array, List[jnp.array]]] = None,
         rna_cost_fn: Optional[CostFn_t] = Euclidean(),
         tree_cost_fn: Optional[CostFn_tree] = Leaf_distance(),
-        xy_cost_matrix_dict: Optional[Dict[Tuple, jnp.ndarray]] = None,
-        xx_cost_matrix_dict: Optional[Dict[Tuple, jnp.ndarray]] = None,
-        scale = None,
+        rna_cost_matrix_dict: Optional[Dict[Tuple, jnp.ndarray]] = None,
+        tree_cost_matrix_dict: Optional[Dict[Any, jnp.ndarray]] = None,
+        scale: Scales = None,
         **kwargs: Any,
-    ) -> None:
+    ) -> "LineageEstimator":
         """
 
         Parameters
         ----------
         policy
             2-tuples of values of self._key defining the distribution which the optimal transport maps are calculated for
-        kwargs:
-            kwargs for ott.geometry
+        subset
+            If policy is not explicit, i.e. a list of tuples, but a strategy is given the strategy is applied to the
+            subset of values given in the key column
+        a:
+            weights for source distribution. If of type jnp.ndarray the same distribution is taken for all models, if of type
+            List[jnp.ndarray] the length of the list must be equal to the number of transport maps defined in prepare()
+        b:
+            weights for target distribution. If of type jnp.ndarray the same distribution is taken for all models, if of type
+            List[jnp.ndarray] the length of the list must be equal to the number of transport maps defined in prepare()
+        rna_cost_fn
+            cost function used to create the cost matrix for gene expression spaces
+        tree_cost_fn
+            cost function used to create the cost matrix for lineage trees
+        rna_cost_matrix_dict
+            dictionary of custom cost matrices for gene expression with keys corresponding to the transport tuple and value the corresponding
+            cost matrix. If rna_cost_matrix_dict is provided rna_cost_fn is neglected
+        tree_cost_matrix_dict
+            dictionary of custom cost matrices for lineage trees with keys corresponding to the transport tuple and value the corresponding
+            cost matrix. If tree_cost_matrix_dict is provided tree_cost_fn is neglected
+        scale
+            how to scale the cost matrices, currently only provided for custom cost matrices
+        **kwargs
+            ott.geometry.Geometry kwargs
 
         Returns
+            None
         -------
 
         """
@@ -359,10 +384,9 @@ class LineageEstimator(FGWEstimator):
         if not isinstance(getattr(self._adata, self.rep), np.ndarray):
             raise ValueError("The gene expression data in the AnnData object is not correctly saved in {}".format(self.rep))
 
-        self.xx_geometries_dict = _prepare_xx_geometries(self.tree_dict, self.xx_cost_fn, xx_cost_matrix_dict, self.scale, **kwargs)
+        self.xx_geometries_dict = _prepare_xx_geometries(self.tree_dict, self.xx_cost_fn, custom_cost_matrix_dict=tree_cost_matrix_dict, sacle=self.scale, **kwargs)
         self.xy_geometries_dict = _prepare_xy_geometries(self.adata, self._key, self._transport_sets, self.rep, cost_fn=self.xy_cost_fn,
-                                                    custom_cost_matrix_dict=xy_cost_matrix_dict, scale=self.scale, **kwargs)
-
+                                                    custom_cost_matrix_dict=rna_cost_matrix_dict, scale=self.scale, **kwargs)
 
         _check_arguments(a, b, self.xy_geometries_dict)
 
@@ -387,12 +411,22 @@ class LineageEstimator(FGWEstimator):
 
         Parameters
         ----------
-        a:
-            weights for source distribution. If of type jnp.ndarray the same distribution is taken for all models, if of type
-            List[jnp.ndarray] the length of the list must be equal to the number of transport maps defined in prepare()
-        b:
-            weights for target distribution. If of type jnp.ndarray the same distribution is taken for all models, if of type
-            List[jnp.ndarray] the length of the list must be equal to the number of transport maps defined in prepare()
+        epsilon
+            regularization parameter for OT problem
+        alpha
+            penalty term for linear term in FGW, i.e. cost = quadratic_cost + alpha * linear_cost
+        tau_a
+             ratio rho/(rho+eps) between KL divergence regularizer to first
+             marginal and itself + epsilon regularizer used in the unbalanced
+             formulation.
+        tau_b:
+             ratio rho/(rho+eps) between KL divergence regularizer to first
+             marginal and itself + epsilon regularizer used in the unbalanced
+             formulation.
+        sinkhorn_kwargs
+            estimator-specific kwargs for ott.core.sinkhorn.sinkhorn
+        **kwargs
+            ott.core.sinkhorn.sinkhorn keyword arguments applied to all estimators
 
         Returns
             moscot.framework.results.OTResult
