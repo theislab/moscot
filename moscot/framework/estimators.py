@@ -1,6 +1,6 @@
 from typing import Any, Dict, List, Tuple, Union, Literal, Optional
 from numbers import Number
-
+from abc import abstractmethod
 from networkx import DiGraph
 from jax import numpy as jnp
 from ott.geometry.costs import CostFn
@@ -33,8 +33,8 @@ from moscot.framework.results import BaseResult, OTResult
 
 CostFn_t = Union[CostFn, GWLoss]
 CostFn_tree = Union[Leaf_distance]
+CostFn_general = Union[CostFn_t, CostFn_tree]
 Scales = Union["mean", "meadian", "max"]
-
 
 class OTEstimator(BaseProblem):
     def __init__(
@@ -63,21 +63,100 @@ class OTEstimator(BaseProblem):
         kwargs:
             ott.sinkhorn.sinkhorn kwargs
         """
-        super().__init__(adata=adata, rep=rep)
+
+        self.geometries_dict: Dict[Tuple, Geometry] = {}
+        self.epsilon_dict: Dict[Tuple, Union[List[Union[float, Epsilon]], float, Epsilon]] = None
+        self.sinkhorn_kwargs_dict: Dict[Tuple, Dict[str, Any]] = None
         self.a_dict: Dict[Tuple, jnp.ndarray] = {}
         self.b_dict: Dict[Tuple, jnp.ndarray] = {}
-        self.key: str = None
+        self._key: str = None
         self.tau_a_dict: Optional[Dict[Tuple, jnp.ndarray]] = None
         self.tau_b_dict: Optional[Dict[Tuple, jnp.ndarray]] = None
         self.scale: Optional[Scales] = None
         self._kwargs: Dict[str, Any] = kwargs
+        self._transport_sets: List[Tuple] = None
+
+        super().__init__(adata=adata, rep=rep)
 
     def estimate_growth_rates(self) -> None:
         # https://github.com/broadinstitute/wot/blob/master/wot/gene_set_scores.py
         pass
+    
+    @property
+    def transport_sets(self) -> List[Tuple]:
+        return self._transport_sets
+    
+    @property
+    def key(self) -> str:
+        return self._key
+
+    @property
+    def solvers(self) -> Dict[Tuple, Any]:
+        pass
 
 
-class MatchingEstimator(OTEstimator):
+class SinkhornEstimator(OTEstimator):
+    """
+    class handling all estimators using Sinkhorn / linear optimal transport
+    """
+    def __init__(
+            self,
+            adata: AnnData,
+            rep: str = "X",
+            **kwargs: Any,
+    ) -> None:
+        super().__init__(adata=adata, rep=rep)
+
+        self._solver_dict: Dict[Tuple, Regularized] = {}
+        self.cost_fn: CostFn_t = None
+
+    @property
+    def solvers(self) -> Dict[Tuple, Regularized]:  # we need it here because of return type ->Dict[Tuple, Regularized]
+        return self._solver_dict
+
+    @property
+    def transport_matrix(self) -> Dict[Tuple, jnp.ndarray]:  # we need it here because self._solver_dict of type Dict[Tuple, Regularized] is initialized in this class
+        return {tup: self._solver_dict[tup]._transport.matrix for tup in self._transport_sets} #TODO use getter functino for _transport
+
+
+class GWEstimator(OTEstimator):
+    """
+    class handling all estimators using pure Gromov-Wasserstein
+    """
+    def __init__(
+            self,
+            adata: AnnData,
+            rep: str = "X",
+            **kwargs: Any,
+    ) -> None:
+        pass
+
+
+class FGWEstimator(OTEstimator):
+    """
+    class handling all estimators using Fused Gromov Wasserstein
+    """
+    def __init__(
+            self,
+            adata: AnnData,
+            rep: str = "X",
+            **kwargs: Any,
+    ) -> None:
+        super().__init__(adata=adata, rep=rep)
+        self._solver_dict: Dict[Tuple, FusedGW] = {}
+        self.xy_cost_fn: CostFn_t = None
+        self.xx_cost_fn: CostFn_general = None
+
+    @property
+    def solvers(self) -> Dict[Tuple, FusedGW]:
+        return self._solver_dict
+
+    @property
+    def transport_matrix(self) -> Dict[Tuple, jnp.ndarray]:
+        return {tup: self._solver_dict[tup]._transport.matrix for tup in self._transport_sets} #TODO: use getter fn for _transport
+
+
+class MatchingEstimator(SinkhornEstimator):
     """
     This estimator handles linear OT problems
     """
@@ -96,12 +175,6 @@ class MatchingEstimator(OTEstimator):
         rep
             instance defining how the gene expression is saved in adata
         """
-        self.geometries_dict: Dict[Tuple, Geometry] = {}
-        self._solver_dict: Dict[Tuple, Regularized] = {}
-        self.cost_fn: CostFn_t = None
-        self._transport_sets: List[Tuple] = None
-        self.epsilon_dict: Dict[Tuple, Union[List[Union[float, Epsilon]], float, Epsilon]] = None
-        self.sinkhorn_kwargs_dict: Dict[Tuple, Dict[str, Any]] = None
 
         super().__init__(adata=adata, rep=rep, **kwargs)
 
@@ -113,7 +186,7 @@ class MatchingEstimator(OTEstimator):
         a: Optional[Union[jnp.array, List[jnp.array]]] = None,
         b: Optional[Union[jnp.array, List[jnp.array]]] = None,
         cost_fn: Optional[CostFn_t] = Euclidean(),
-        custom_cost_matrix_dict: Optional[Dict[Tuple, jnp.ndarray]] = None,
+        cost_matrix_dict: Optional[Dict[Tuple, jnp.ndarray]] = None,
         scale: str = None,
         **kwargs: Any,
     ) -> "MatchingEstimator":
@@ -124,7 +197,7 @@ class MatchingEstimator(OTEstimator):
         key
             column of AnnData.obs containing assignment of data points to distributions
         policy
-            2-tuples of values of self.key defining the distribution which the optimal transport maps are calculated for
+            2-tuples of values of self._key defining the distribution which the optimal transport maps are calculated for
         subset
             If policy is not explicit, i.e. a list of tuples, but a strategy is given the strategy is applied to the
             subset of values given in the key column
@@ -136,9 +209,9 @@ class MatchingEstimator(OTEstimator):
             List[jnp.ndarray] the length of the list must be equal to the number of transport maps defined in prepare()
         cost_fn
             cost function used to create the cost matrix for the OT problem
-        custom_cost_matrix_dict
+        cost_matrix_dict
             dictionary of custom cost matrices with keys corresponding to the transport tuple and value the corresponding
-            cost matrix. If custom_cost_matrix_dict is provided cost_fn is neglected
+            cost matrix. If cost_matrix_dict is provided cost_fn is neglected
         scale
             how to scale the cost matrix, currently only provided for custom cost matrices
         **kwargs
@@ -148,19 +221,19 @@ class MatchingEstimator(OTEstimator):
             self
         -------
         """
-        self.key = key
+        self._key = key
         self.cost_fn = cost_fn
-        self._transport_sets = _verify_key(self._adata, self.key, policy, subset)
+        self._transport_sets = _verify_key(self._adata, self._key, policy, subset)
         self.scale = scale
         if not isinstance(getattr(self._adata, self.rep), np.ndarray):
             raise ValueError("The gene expression data in the AnnData object is not correctly saved in {}".format(self.rep))
 
         self.geometries_dict = _prepare_xy_geometries(self.adata,
-                                                      key=self.key,
+                                                      key=self._key,
                                                       transport_sets=self._transport_sets,
                                                       rep=self.rep,
                                                       cost_fn=self.cost_fn,
-                                                      custom_cost_matrix_dict=custom_cost_matrix_dict,
+                                                      custom_cost_matrix_dict=cost_matrix_dict,
                                                       scale=self.scale,
                                                       **kwargs)
 
@@ -217,22 +290,10 @@ class MatchingEstimator(OTEstimator):
             self._solver_dict[tup].fit(self.geometries_dict[tup], self.a_dict[tup], self.b_dict[tup],
                                        tau_a=self.tau_a_dict[tup], tau_b=self.tau_b_dict[tup], **self.sinkhorn_kwargs_dict[tup], **kwargs)
 
-        return OTResult(self.adata, self.key, self._solver_dict)
-
-    @property
-    def solvers(self) -> Dict[Tuple, Regularized]:
-        return self._solver_dict
-
-    @property
-    def transport_sets(self) -> List[Tuple]:
-        return self._transport_sets
-
-    @property
-    def transport_matrix(self) -> Dict[Tuple, jnp.ndarray]:
-        return {tup: self._solver_dict[tup]._transport.matrix for tup in self._transport_sets}
+        return OTResult(self.adata, self._key, self._solver_dict)
 
 
-class LineageEstimator(OTEstimator):
+class LineageEstimator(FGWEstimator):
     """
     This estimator handles FGW estimators for temporal data
     """
@@ -258,7 +319,6 @@ class LineageEstimator(OTEstimator):
             None
         """
         self.tree_dict = tree_dict
-        self._solver_dict: Dict[Tuple, FusedGW] = {}
         super().__init__(adata=adata, rep=rep, **kwargs)
 
     def prepare(
@@ -270,8 +330,8 @@ class LineageEstimator(OTEstimator):
         b: Optional[Union[jnp.array, List[jnp.array]]] = None,
         rna_cost_fn: Optional[CostFn_t] = Euclidean(),
         tree_cost_fn: Optional[CostFn_tree] = Leaf_distance(),
-        custom_inter_cost_matrix_dict: Optional[Dict[Tuple, jnp.ndarray]] = None,
-        custom_intra_cost_matrix_dict: Optional[Dict[Tuple, jnp.ndarray]] = None,
+        xy_cost_matrix_dict: Optional[Dict[Tuple, jnp.ndarray]] = None,
+        xx_cost_matrix_dict: Optional[Dict[Tuple, jnp.ndarray]] = None,
         scale = None,
         **kwargs: Any,
     ) -> None:
@@ -280,7 +340,7 @@ class LineageEstimator(OTEstimator):
         Parameters
         ----------
         policy
-            2-tuples of values of self.key defining the distribution which the optimal transport maps are calculated for
+            2-tuples of values of self._key defining the distribution which the optimal transport maps are calculated for
         kwargs:
             kwargs for ott.geometry
 
@@ -288,27 +348,28 @@ class LineageEstimator(OTEstimator):
         -------
 
         """
-        self.key = key
-        self.scale = kwargs.pop("scale", "max")
-        self.rna_cost_fn = rna_cost_fn
-        if self.key not in self.adata.obs.columns:
-            raise ValueError(f"The provided key {self.key} is not found in the AnnData object.")
-        self._transport_sets = _verify_key(self._adata, self.key, policy)
+        self._key = key
+        self.scale = scale
+        self.xy_cost_fn = rna_cost_fn
+        self.xx_cost_fn = tree_cost_fn
+        if self._key not in self.adata.obs.columns:
+            raise ValueError(f"The provided key {self._key} is not found in the AnnData object.")
+        self._transport_sets = _verify_key(self._adata, self._key, policy)
 
         if not isinstance(getattr(self._adata, self.rep), np.ndarray):
             raise ValueError("The gene expression data in the AnnData object is not correctly saved in {}".format(self.rep))
 
-        self.tree_cost_dict = _prepare_xx_geometries(self.tree_dict, CostFn_tree, custom_intra_cost_matrix_dict, scale, **kwargs)
-        self.rna_cost_dict = _prepare_xy_geometries(self.adata, self.key, self._transport_sets, self.rep, cost_fn=self.rna_cost_fn,
-                                                    custom_cost_matrix_dict=custom_inter_cost_matrix_dict, scale=self.scale, **kwargs)
+        self.xx_geometries_dict = _prepare_xx_geometries(self.tree_dict, self.xx_cost_fn, xx_cost_matrix_dict, self.scale, **kwargs)
+        self.xy_geometries_dict = _prepare_xy_geometries(self.adata, self._key, self._transport_sets, self.rep, cost_fn=self.xy_cost_fn,
+                                                    custom_cost_matrix_dict=xy_cost_matrix_dict, scale=self.scale, **kwargs)
 
 
-        _check_arguments(a, b, self.rna_cost_dict)
+        _check_arguments(a, b, self.xy_geometries_dict)
 
         if a is None:  # TODO: discuss whether we want to have this here, i.e. whether we want to explicitly create weights because OTT would do this for us.
             # TODO: atm do it here to have all parameter saved in the estimator class
-            self.a_dict = {tup: _create_constant_weights_source(geom) for tup, geom in self.rna_cost_dict.items()}
-            self.b_dict = {tup: _create_constant_weights_target(geom) for tup, geom in self.rna_cost_dict.items()}
+            self.a_dict = {tup: _create_constant_weights_source(geom) for tup, geom in self.xy_geometries_dict.items()}
+            self.b_dict = {tup: _create_constant_weights_target(geom) for tup, geom in self.xy_geometries_dict.items()}
 
         #TODO: add some tests here, e.g. costs should be positive
         return self
@@ -341,7 +402,7 @@ class LineageEstimator(OTEstimator):
         if tau_a != 1 or tau_b != 1:
             raise NotImplementedError("Currently, only balanced problems are supported for GW and FGW problems.")
 
-        if not (bool(self.tree_cost_dict) or bool(self.rna_cost_dict)):
+        if not (bool(self.xx_geometries_dict) or bool(self.xy_geometries_dict)):
             raise ValueError("Please run 'prepare()' first.")
 
         self.epsilon_dict = get_param_dict(epsilon, self._transport_sets)
@@ -351,26 +412,14 @@ class LineageEstimator(OTEstimator):
         self.sinkhorn_kwargs_dict = get_param_dict(sinkhorn_kwargs, self._transport_sets)
 
         self._solver_dict = {tup: FusedGW(alpha=self.alpha_dict[tup], epsilon=self.epsilon_dict[tup]) for tup in self._transport_sets}
-        for tup, geom in self.rna_cost_dict.items():
-            self._solver_dict[tup].fit(self.tree_cost_dict[tup[0]], self.tree_cost_dict[tup[1]], self.rna_cost_dict[tup],
+        for tup, geom in self.xy_geometries_dict.items():
+            self._solver_dict[tup].fit(self.xx_geometries_dict[tup[0]], self.xx_geometries_dict[tup[1]], self.xy_geometries_dict[tup],
                                        self.a_dict[tup], self.b_dict[tup], tau_a=self.tau_a_dict[tup], tau_b=self.tau_b_dict[tup], **self.sinkhorn_kwargs_dict[tup], **kwargs)
 
-        return OTResult(self.adata, self.key, self._solver_dict)
-
-    @property
-    def solvers(self) -> Dict[Tuple, FusedGW]:
-        return self._solver_dict
-
-    @property
-    def transport_sets(self) -> List[Tuple]:
-        return self._transport_sets
-
-    @property
-    def transport_matrix(self) -> Dict[Tuple, jnp.ndarray]:
-        return {tup: self._solver_dict[tup]._transport.matrix for tup in self._transport_sets}
+        return OTResult(self.adata, self._key, self._solver_dict)
 
 
-class SpatialAlignmentEstimator(OTEstimator):
+class SpatialAlignmentEstimator(FGWEstimator):
     """
     This estimator ...
     """
@@ -384,7 +433,7 @@ class SpatialAlignmentEstimator(OTEstimator):
         super().__init__(adata=adata, rep=rep, **kwargs)
 
 
-class SpatialMappingEstimator(OTEstimator):
+class SpatialMappingEstimator(FGWEstimator):
     """
     This estimator ...
     """
