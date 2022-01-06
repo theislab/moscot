@@ -25,3 +25,21 @@ In order to install **moscot**, run::
     cd moscot
     pip install -e.'[dev]'
     pre-commit install
+
+Development (temporary)
+------------
+For generating the UML proceed as follows (reference: https://medium.com/@ganesh.alalasundaram/uml-diagram-using-pyreverse-for-python-repository-dd68cdf9e7e1)::
+
+    pip install pylint
+    pip install graphviz
+    pip install pydot
+
+Grahpviz might have to be installed via brew on MAC (brew install graphviz).
+To generate a "classes.dot" and "packages.dot" file run::
+
+    pyreverse <location of repository>
+
+Finally, create the png file from "classes.dot", e.g. via::
+
+    from subprocess import check_call
+    check_call(['dot','-Tpng','classes.dot','-o','OutputFile.png'])
