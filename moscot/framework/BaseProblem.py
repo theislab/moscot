@@ -66,6 +66,11 @@ class BaseProblem(BaseEstimator):
     def transport_sets(self) -> List[Tuple]:
         pass
 
+    @property
+    @abstractmethod
+    def transport_matrix(self) -> Dict[Tuple, jnp.ndarray]:
+        pass
+
 
 
 

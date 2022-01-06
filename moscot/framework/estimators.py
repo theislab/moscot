@@ -227,6 +227,10 @@ class MatchingEstimator(OTEstimator):
     def transport_sets(self) -> List[Tuple]:
         return self._transport_sets
 
+    @property
+    def transport_matrix(self) -> Dict[Tuple, jnp.ndarray]:
+        return {tup: self._solver_dict[tup]._transport.matrix for tup in self._transport_sets}
+
 
 class LineageEstimator(OTEstimator):
     """
@@ -360,6 +364,10 @@ class LineageEstimator(OTEstimator):
     @property
     def transport_sets(self) -> List[Tuple]:
         return self._transport_sets
+
+    @property
+    def transport_matrix(self) -> Dict[Tuple, jnp.ndarray]:
+        return {tup: self._solver_dict[tup]._transport.matrix for tup in self._transport_sets}
 
 
 class SpatialAlignmentEstimator(OTEstimator):
