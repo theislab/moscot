@@ -100,7 +100,7 @@ class OTResult(BaseResult):
                      key_groups: Optional[str] = None,
                      groups: Optional[List[str]] = None,
                      mass: Optional[np.ndarray] = None,
-                     ) -> jnp.ndarray:
+                     ) -> List[jnp.ndarray]:
 
         if start > end:
             raise ValueError("push_forward() requires start > end.")
@@ -111,7 +111,7 @@ class OTResult(BaseResult):
             mass = self._prepare_transport(matrix, start, groups, key_groups)
         else:
             self._verify_mass(matrix, mass, 0)
-        return self._push_forward(mass, matrix)
+        return [mass, self._push_forward(mass, matrix)]
 
     def pull_back(self,
                   start: int, #TODO: check what type the key values should be
@@ -119,7 +119,7 @@ class OTResult(BaseResult):
                   key_groups: Optional[str] = None,
                   groups: Optional[List[str]] = None,
                   mass: Optional[np.ndarray] = None,
-                  ) -> jnp.ndarray:
+                  ) -> List[jnp.ndarray]:
         if start < end:
             raise ValueError("pull_back() requires start < end.")
         if (end, start) not in self.matrix_dict.keys():
@@ -129,7 +129,7 @@ class OTResult(BaseResult):
             mass = self._prepare_transport(matrix, start, groups, key_groups)
         else:
             self._verify_mass(matrix, mass, 1)
-        return self._pull_back(mass, matrix)
+        return [mass, self._pull_back(mass, matrix)]
 
     @staticmethod
     def _verify_mass(matrix, mass, dimension):
