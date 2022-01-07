@@ -1,3 +1,10 @@
+"""
+
+This file is temporary and is needed for the tutorials. Some of these functions might be incorporated into moscot framework
+
+"""
+
+
 from jax.config import config
 config.update("jax_enable_x64", True)
 

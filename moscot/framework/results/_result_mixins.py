@@ -1,17 +1,14 @@
-from typing import Any, Dict, List, Tuple, Union, Literal, Optional
-from numbers import Number
+from typing import Any, List, Union, Optional
 
-from networkx import DiGraph
-from abc import ABC, abstractmethod
+from abc import ABC
 
 from ott.geometry.costs import CostFn
-from ott.geometry.geometry import Geometry
 from ott.core.gromov_wasserstein import GWLoss
 import numpy as np
 from anndata import AnnData
 
 
-from moscot.framework._result_cls import MatrixOTResult, PotentialOTResult, OTResult
+from moscot.framework.results._results import MatrixOTResult, PotentialOTResult, OTResult
 
 CostFn_t = Union[CostFn, GWLoss]
 
@@ -20,6 +17,8 @@ CostFn_t = Union[CostFn, GWLoss]
 
 class ResultMixin(ABC):
     """ Mixin class for OT estimators handling downstream functions """
+    #TODO: @giovp, @michalk8, @MUCDK: Do we need all of these methods as they are for spatial problems?
+    #TODO continued: probably not, hence move those not needed to TemporalResultMixin
     def __init__(self,
                  adata: AnnData,
                  otResult: Union[OTResult, "from_matrix", "from_potentials"],
@@ -172,5 +171,13 @@ class ResultMixin(ABC):
             raise ValueError("The dimensions of the matrix and the mass do not match.")
 
 
+class TemporalResultMixin(ResultMixin):
+    """ This class handles time-specific downstream functions
+    TODO: check with @giovp which methods in ResultMixin he needs to change / which are not sufficiently generic
+    TODO continued: and add them to this class"""
+
+
+class SpatialResultMixin(ResultMixin):
+    """ This class handles downstream functions of spatial problems"""
 
 

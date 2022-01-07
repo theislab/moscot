@@ -1,13 +1,14 @@
 # TODO: This file should be independent of backend, e.g. JAX
 from abc import abstractmethod
-from typing import Any, Dict, List, Tuple, Union, Optional
+from typing import Any, Dict, List, Tuple, Optional
 import numpy as np
 from sklearn.base import BaseEstimator
 from anndata import AnnData
+from moscot.framework.results.results import ResultMixin
 
 
 
-class BaseProblem(BaseEstimator):
+class BaseProblem(BaseEstimator, ResultMixin):
     """Base estimator for OT problems."""
 
     def __init__(
