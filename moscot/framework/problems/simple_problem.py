@@ -22,7 +22,7 @@ from moscot.framework.utils.custom_costs import Leaf_distance
 from moscot.framework.problems.BaseProblem import BaseProblem
 from moscot.framework.settings import strategies_MatchingEstimator
 from moscot.framework.results._results import OTResult
-
+from moscot.framework.results._result_mixins import ResultMixin
 
 CostFn_t = Union[CostFn, GWLoss]
 CostFn_tree = Union[Leaf_distance]
@@ -30,7 +30,7 @@ CostFn_general = Union[CostFn_t, CostFn_tree]
 Scales = Union["mean", "median", "max"]
 
 
-class SimpleProblem(BaseProblem):
+class SimpleProblem(BaseProblem, ResultMixin):
     """
     This estimator handles linear OT problems
     """

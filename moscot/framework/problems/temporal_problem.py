@@ -24,6 +24,7 @@ from moscot.framework.utils.custom_costs import Leaf_distance
 from moscot.framework.problems.BaseProblem import BaseProblem
 from moscot.framework.settings import strategies_MatchingEstimator
 from moscot.framework.results._results import OTResult
+from moscot.framework.results._result_mixins import TemporalResultMixin
 
 CostFn_t = Union[CostFn, GWLoss]
 CostFn_tree = Union[Leaf_distance]
@@ -32,7 +33,7 @@ Scales = Union["mean", "meadian", "max"]
 
 
 
-class TemporalProblem(BaseProblem):
+class TemporalProblem(BaseProblem, TemporalResultMixin):
     """
     This class handles all OT problems revolving around temporal sc data
     """
