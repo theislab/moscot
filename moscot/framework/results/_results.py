@@ -83,3 +83,26 @@ class PotentialOTResult(OTResult):
     def _pull_back(mass: np.ndarray,
                    potentials: Tuple[np.ndarray, np.ndarray]) -> np.ndarray:
         pass #TODO: @MUCDK implement
+
+
+class LRResult(OTResult):
+    """ Class handling OT results based on low rank transport matrices"""
+
+    def __init__(self,
+                 ) -> None:
+        pass
+
+    @staticmethod
+    def transport_matrix(self,
+                         pre_transport_matrix: np.ndarray) -> np.ndarray:
+        pass #TODO: @MUCDK implement
+
+    @staticmethod
+    def _push_forward(mass: np.ndarray,
+                      matrix: np.ndarray) -> np.ndarray:
+        pass #TODO: @MUCDK implement
+
+    @staticmethod
+    def _pull_back(mass: np.ndarray,
+                   matrix: np.ndarray) -> np.ndarray:
+        pass #TODO: @MUCDK implement

@@ -4,7 +4,7 @@ from typing import Any, Dict, List, Tuple, Optional
 import numpy as np
 from sklearn.base import BaseEstimator
 from anndata import AnnData
-from moscot.framework.results.results import ResultMixin
+from moscot.framework.results._result_mixins import ResultMixin
 
 
 

@@ -1,5 +1,4 @@
 from typing import Any, Dict, List, Tuple, Union, Optional
-from networkx import DiGraph
 from jax import numpy as jnp
 from ott.geometry.geometry import Geometry
 from ott.core.gromov_wasserstein import GWLoss
@@ -10,18 +9,17 @@ from ott.geometry.epsilon_scheduler import Epsilon
 
 from anndata import AnnData
 
-from moscot._solver import FusedGW, Regularized
-from moscot.framework.utils import (
+from moscot._solver import Regularized
+from moscot.framework.utils.utils import (
     _verify_key,
     _check_arguments,
-    _prepare_xy_geometries,
     _create_constant_weights_source,
     _create_constant_weights_target,
     get_param_dict,
-    _prepare_xx_geometries,
 )
-from moscot.framework.custom_costs import Leaf_distance
-from moscot.framework.BaseProblem import BaseProblem
+from moscot.framework.geom.utils import _prepare_xy_geometries
+from moscot.framework.utils.custom_costs import Leaf_distance
+from moscot.framework.problems.BaseProblem import BaseProblem
 from moscot.framework.settings import strategies_MatchingEstimator
 from moscot.framework.results._results import OTResult
 
@@ -29,7 +27,7 @@ from moscot.framework.results._results import OTResult
 CostFn_t = Union[CostFn, GWLoss]
 CostFn_tree = Union[Leaf_distance]
 CostFn_general = Union[CostFn_t, CostFn_tree]
-Scales = Union["mean", "meadian", "max"]
+Scales = Union["mean", "median", "max"]
 
 
 class SimpleProblem(BaseProblem):
@@ -39,7 +37,6 @@ class SimpleProblem(BaseProblem):
     def __init__(
         self,
         adata: AnnData,
-        rep: str = "X",
         **kwargs: Any,
     ) -> None:
         """
@@ -48,20 +45,17 @@ class SimpleProblem(BaseProblem):
         ----------
         adata
             AnnData object containing the gene expression for all data points
-        rep
-            instance defining how the gene expression is saved in adata
         """
-        self._rep = rep
         self._solver_dict: Dict[Tuple, Regularized] = {}
         self.cost_fn: CostFn_t = None
         self.geometries_dict: Dict[Tuple, Geometry] = {}
         self.epsilon_dict: Dict[Tuple, Union[List[Union[float, Epsilon]], float, Epsilon]] = None
         self.sinkhorn_kwargs_dict: Dict[Tuple, Dict[str, Any]] = None
-        self.a_dict: Dict[Tuple, jnp.ndarray] = {}
-        self.b_dict: Dict[Tuple, jnp.ndarray] = {}
+        self.a_dict: Dict[Tuple, np.ndarray] = {}
+        self.b_dict: Dict[Tuple, np.ndarray] = {}
         self._key: str = None
-        self.tau_a_dict: Optional[Dict[Tuple, jnp.ndarray]] = None
-        self.tau_b_dict: Optional[Dict[Tuple, jnp.ndarray]] = None
+        self.tau_a_dict: Optional[Dict[Tuple, np.ndarray]] = None
+        self.tau_b_dict: Optional[Dict[Tuple, np.ndarray]] = None
         self.scale: Optional[Scales] = None
         self._kwargs: Dict[str, Any] = kwargs
         self._transport_sets: List[Tuple] = None
@@ -73,7 +67,7 @@ class SimpleProblem(BaseProblem):
 
     @property
     def transport_matrix(self) -> Dict[
-        Tuple, jnp.ndarray]:  # we need it here because self._solver_dict of type Dict[Tuple, Regularized] is initialized in this class
+        Tuple, np.ndarray]:  # we need it here because self._solver_dict of type Dict[Tuple, Regularized] is initialized in this class
         return {tup: self._solver_dict[tup]._transport.matrix for tup in
                 self._transport_sets}  # TODO use getter function for _transport
 
@@ -85,7 +79,7 @@ class SimpleProblem(BaseProblem):
         a: Optional[Union[jnp.array, List[jnp.array]]] = None,
         b: Optional[Union[jnp.array, List[jnp.array]]] = None,
         cost_fn: Optional[CostFn_t] = Euclidean(),
-        cost_matrix_dict: Optional[Dict[Tuple, jnp.ndarray]] = None,
+        cost_matrix_dict: Optional[Dict[Tuple, np.ndarray]] = None,
         scale: str = None,
         **kwargs: Any,
     ) -> "MatchingEstimator":
@@ -101,11 +95,11 @@ class SimpleProblem(BaseProblem):
             If policy is not explicit, i.e. a list of tuples, but a strategy is given the strategy is applied to the
             subset of values given in the key column
         a:
-            weights for source distribution. If of type jnp.ndarray the same distribution is taken for all models, if of type
-            List[jnp.ndarray] the length of the list must be equal to the number of transport maps defined in prepare()
+            weights for source distribution. If of type np.ndarray the same distribution is taken for all models, if of type
+            List[np.ndarray] the length of the list must be equal to the number of transport maps defined in prepare()
         b:
-            weights for target distribution. If of type jnp.ndarray the same distribution is taken for all models, if of type
-            List[jnp.ndarray] the length of the list must be equal to the number of transport maps defined in prepare()
+            weights for target distribution. If of type np.ndarray the same distribution is taken for all models, if of type
+            List[np.ndarray] the length of the list must be equal to the number of transport maps defined in prepare()
         cost_fn
             cost function used to create the cost matrix for the OT problem
         cost_matrix_dict
@@ -114,7 +108,7 @@ class SimpleProblem(BaseProblem):
         scale
             how to scale the cost matrix, currently only provided for custom cost matrices
         **kwargs
-            ott.geometry.Geometry kwargs
+            moscot.framework.geom.geometry.geom kwargs
 
         Returns
             self
@@ -144,7 +138,7 @@ class SimpleProblem(BaseProblem):
 
         return self
 
-    def fit(
+    def solve(
         self,
         epsilon: Optional[Union[List[Union[float, Epsilon]], float, Epsilon]] = 0.5,
         tau_a: Optional[Union[List, Dict[Tuple, List], float]] = 1.0,
@@ -192,33 +186,5 @@ class SimpleProblem(BaseProblem):
         return OTResult(self.adata, self._key, self._solver_dict)
 
 
-
-
-class SpatialAlignmentEstimator(FGWEstimator):
-    """
-    This estimator ...
-    """
-    def __init__(
-        self,
-        adata: AnnData,
-        rep: str = "X",
-        **kwargs: Any,
-    ) -> None:
-
-        super().__init__(adata=adata, rep=rep, **kwargs)
-
-
-class SpatialMappingEstimator(FGWEstimator):
-    """
-    This estimator ...
-    """
-    def __init__(
-        self,
-        adata: AnnData,
-        rep: str = "X",
-        **kwargs: Any,
-    ) -> None:
-
-        super().__init__(adata=adata, rep=rep, **kwargs)
 
 

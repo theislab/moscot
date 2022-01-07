@@ -10,18 +10,18 @@ from ott.geometry.epsilon_scheduler import Epsilon
 
 from anndata import AnnData
 
-from moscot._solver import FusedGW, Regularized
-from moscot.framework.utils import (
+from moscot._solver import FusedGW
+from moscot.framework.utils.utils import (
     _verify_key,
     _check_arguments,
-    _prepare_xy_geometries,
     _create_constant_weights_source,
     _create_constant_weights_target,
     get_param_dict,
-    _prepare_xx_geometries,
 )
-from moscot.framework.custom_costs import Leaf_distance
-from moscot.framework.BaseProblem import BaseProblem
+from moscot.framework.geom.utils import _prepare_geometries_from_cost
+from moscot.framework.geom.utils import _prepare_xy_geometries, _prepare_geoms_from_tree
+from moscot.framework.utils.custom_costs import Leaf_distance
+from moscot.framework.problems.BaseProblem import BaseProblem
 from moscot.framework.settings import strategies_MatchingEstimator
 from moscot.framework.results._results import OTResult
 
@@ -32,16 +32,19 @@ Scales = Union["mean", "meadian", "max"]
 
 
 
-
-
 class TemporalProblem(BaseProblem):
     """
-    This class handles temporal problems
+    This class handles all OT problems revolving around temporal sc data
     """
+    def __init__(self,
+                 adata: AnnData,
+                 **kwargs
+                 ):
+        super().__init__(adata)
 
 class LineageEstimator(TemporalProblem):
     """
-    This estimator handles FGW estimators for temporal data
+    This estimator handles lineage estimation for temporal sc data
     """
     def __init__(
         self,
@@ -68,9 +71,8 @@ class LineageEstimator(TemporalProblem):
         self.alpha_dict: Dict[Tuple, float] = {}
         self.xx_geometries_dict: Dict[Any, Geometry] = {}
         self.xy_geometries_dict: Dict[Tuple, Geometry] = {}
-        self.xy_cost_fn: CostFn_t = None
-        self.xx_cost_fn: CostFn_general = None
-        self.yy_cost_fn: CostFn_general = None
+        self.xy_cost_fn: Optional[Union[CostFn_t, List[CostFn_general]]] = None
+        self.xx_cost_fn: Optional[Union[CostFn_general, List[CostFn_general]]] = None
         self.tree_dict = tree_dict
         super().__init__(adata=adata, rep=rep, **kwargs)
 
@@ -83,8 +85,8 @@ class LineageEstimator(TemporalProblem):
         b: Optional[Union[jnp.array, List[jnp.array]]] = None,
         rna_cost_fn: Optional[CostFn_t] = Euclidean(),
         tree_cost_fn: Optional[CostFn_tree] = Leaf_distance(),
-        rna_cost_matrix_dict: Optional[Dict[Tuple, jnp.ndarray]] = None,
-        tree_cost_matrix_dict: Optional[Dict[Any, jnp.ndarray]] = None,
+        rna_cost_matrix_dict: Optional[Dict[Tuple, np.ndarray]] = None,
+        tree_cost_matrix_dict: Optional[Dict[Any, np.ndarray]] = None,
         scale: Scales = None,
         **kwargs: Any,
     ) -> "LineageEstimator":
@@ -98,11 +100,11 @@ class LineageEstimator(TemporalProblem):
             If policy is not explicit, i.e. a list of tuples, but a strategy is given the strategy is applied to the
             subset of values given in the key column
         a:
-            weights for source distribution. If of type jnp.ndarray the same distribution is taken for all models, if of type
-            List[jnp.ndarray] the length of the list must be equal to the number of transport maps defined in prepare()
+            weights for source distribution. If of type np.ndarray the same distribution is taken for all models, if of type
+            List[np.ndarray] the length of the list must be equal to the number of transport maps defined in prepare()
         b:
-            weights for target distribution. If of type jnp.ndarray the same distribution is taken for all models, if of type
-            List[jnp.ndarray] the length of the list must be equal to the number of transport maps defined in prepare()
+            weights for target distribution. If of type np.ndarray the same distribution is taken for all models, if of type
+            List[np.ndarray] the length of the list must be equal to the number of transport maps defined in prepare()
         rna_cost_fn
             cost function used to create the cost matrix for gene expression spaces
         tree_cost_fn
@@ -116,7 +118,7 @@ class LineageEstimator(TemporalProblem):
         scale
             how to scale the cost matrices, currently only provided for custom cost matrices
         **kwargs
-            ott.geometry.Geometry kwargs
+            moscot.framework.geom.geometry.geom kwargs
 
         Returns
             None
@@ -134,7 +136,10 @@ class LineageEstimator(TemporalProblem):
         if not isinstance(getattr(self._adata, self.rep), np.ndarray):
             raise ValueError("The gene expression data in the AnnData object is not correctly saved in {}".format(self.rep))
 
-        self.xx_geometries_dict = _prepare_xx_geometries(self.tree_dict, self.xx_cost_fn, custom_cost_matrix_dict=tree_cost_matrix_dict, sacle=self.scale, **kwargs)
+        if tree_cost_matrix_dict is None:
+            self.xx_geometries_dict = _prepare_geoms_from_tree(self.tree_dict, self.xx_cost_fn, sacle=self.scale, **kwargs)
+        else:
+            self.xx_geometries_dict = _prepare_geometries_from_cost(tree_cost_matrix_dict, scale=scale, **kwargs)
         self.xy_geometries_dict = _prepare_xy_geometries(self.adata, self._key, self._transport_sets, self.rep, cost_fn=self.xy_cost_fn,
                                                     custom_cost_matrix_dict=rna_cost_matrix_dict, scale=self.scale, **kwargs)
 
@@ -207,6 +212,6 @@ class LineageEstimator(TemporalProblem):
         return self._solver_dict
 
     @property
-    def transport_matrix(self) -> Dict[Tuple, jnp.ndarray]:
+    def transport_matrix(self) -> Dict[Tuple, np.ndarray]:
         return {tup: self._solver_dict[tup]._transport.matrix for tup in
                 self._transport_sets}  # TODO: use getter fn for _transport
