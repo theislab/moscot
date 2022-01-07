@@ -8,7 +8,7 @@ import numpy as np
 from anndata import AnnData
 
 
-from moscot.framework.results._results import MatrixOTResult, PotentialOTResult, OTResult
+from moscot.framework.results._results import MatrixOTResult, PotentialOTResult, OTResult, LRResult
 
 CostFn_t = Union[CostFn, GWLoss]
 
@@ -30,6 +30,8 @@ class ResultMixin(ABC):
             self._otResult = MatrixOTResult
         elif otResult == "from_potentials":
             self._otResult = PotentialOTResult
+        elif otResult == "low_rank":
+            self._otResult = LRResult
         else:
             self._otResult = otResult
 
