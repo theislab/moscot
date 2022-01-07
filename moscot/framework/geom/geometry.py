@@ -73,7 +73,7 @@ class NP_Geom(Geom):
                  cost_matrix: Optional[np.ndarray] = None,
                  x: Optional[np.ndarray] = None,
                  y: Optional[np.ndarray] = None,
-                 cost_fn: Optional[str] = 'sqeuclidean',,
+                 cost_fn: Optional[str] = 'sqeuclidean',
                  online: bool = False,
                  **kwargs: Any):
         if online:
