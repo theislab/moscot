@@ -6,7 +6,8 @@ from typing_extensions import Literal
 from jax import numpy as jnp
 from ott.geometry.costs import CostFn
 from ott.geometry.geometry import Geometry
-from ott.core.gromov_wasserstein import GWLoss
+
+GWLoss = type(None)
 import numpy as np
 
 CostFn_t = Union[CostFn, GWLoss]

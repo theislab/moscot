@@ -10,7 +10,9 @@ from ott.geometry.costs import CostFn, Euclidean
 from ott.tools.transport import Transport
 from ott.geometry.geometry import Geometry
 from ott.geometry.pointcloud import PointCloud
-from ott.core.gromov_wasserstein import GWLoss, GWSqEuclLoss, gromov_wasserstein, _marginal_dependent_cost
+
+# from ott.core.gromov_wasserstein import GWLoss, GWSqEuclLoss, gromov_wasserstein, _marginal_dependent_cost
+GWLoss = GWSqEuclLoss = type(None)
 from ott.geometry.epsilon_scheduler import Epsilon
 import numpy as np
 
