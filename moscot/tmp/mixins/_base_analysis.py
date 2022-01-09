@@ -1,13 +1,14 @@
-from abc import ABCMeta
+from abc import ABC, abstractmethod
+from typing import Any
+
+import numpy.typing as npt
 
 
-class AnalysisMixinMeta(ABCMeta):
-    pass
-
-
-class AnalysisMixin(metaclass=AnalysisMixinMeta):
-    def push_forward(self):
+class AnalysisMixin(ABC):
+    @abstractmethod
+    def push_forward(self, *args: Any, **kwargs: Any) -> npt.ArrayLike:
         pass
 
-    def pull_backward(self):
+    @abstractmethod
+    def pull_backward(self, *args: Any, **kwargs: Any) -> npt.ArrayLike:
         pass

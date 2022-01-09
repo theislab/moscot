@@ -1,4 +1,5 @@
-from typing import Any, Optional
+from abc import abstractmethod
+from typing import Any, Type, Union, Optional
 
 from ott.geometry import Grid, Geometry, PointCloud
 from ott.core.problems import LinearProblem, QuadraticProblem
@@ -8,13 +9,19 @@ import jax.numpy as jnp
 import numpy.typing as npt
 
 from moscot.tmp.solvers._data import TaggedArray
-from moscot.tmp.backends.ott._output import GWOutput, SinkhornOutput
-from moscot.tmp.solvers._base_solver import BaseSolver, SolverInput
 
 # TODO(michalk8): initialize ott solvers in init (so that they are not re-jitted
+from moscot.tmp.solvers._output import BaseSolverOutput
+from moscot.tmp.backends.ott._output import GWOutput, SinkhornOutput
+from moscot.tmp.solvers._base_solver import BaseSolver
 
 
 class GeometryMixin:
+    @property
+    @abstractmethod
+    def _output_type(self) -> Type[BaseSolverOutput]:
+        pass
+
     def _create_geometry(
         self,
         x: TaggedArray,
@@ -47,6 +54,28 @@ class GeometryMixin:
 
         raise NotImplementedError(x)
 
+    def _set_eps(
+        self, problem: Union[LinearProblem, QuadraticProblem], eps: Optional[float] = None
+    ) -> Union[LinearProblem, QuadraticProblem]:
+        if eps is None:
+            # TODO(michalk8): mb. the below code also works for this case
+            return problem
+
+        eps_geom = Geometry(epsilon=eps)
+        if isinstance(problem, LinearProblem):
+            problem.geom.copy_epsilon(eps_geom)
+            return problem
+        if isinstance(problem, QuadraticProblem):
+            problem.geom_xx.copy_epsilon(eps_geom)
+            problem.geom_yy.copy_epsilon(eps_geom)
+            if problem.is_fused:
+                problem.geom_xy.copy_epsilon(eps_geom)
+            return problem
+        raise TypeError("TODO: expected OTT problem")
+
+    def _solve(self, data: Union[LinearProblem, QuadraticProblem], **kwargs: Any) -> BaseSolverOutput:
+        return self._output_type(self._solver(data, **kwargs))
+
 
 class SinkhornSolver(GeometryMixin, BaseSolver):
     def __init__(self, **kwargs: Any):
@@ -58,51 +87,67 @@ class SinkhornSolver(GeometryMixin, BaseSolver):
         x: TaggedArray,
         y: Optional[TaggedArray] = None,
         **kwargs: Any,
-    ) -> SolverInput:
-        if y is not None:
-            return SolverInput(xy=self._create_geometry(x, y, **kwargs))
-        return SolverInput(xy=self._create_geometry(x, **kwargs))
+    ) -> LinearProblem:
+        kwargs.pop("xx", None)
+        kwargs.pop("yy", None)
+        geom = self._create_geometry(x, **kwargs) if y is None else self._create_geometry(x, y, **kwargs)
+        return LinearProblem(geom)
 
-    def _solve(self, data: SolverInput, **kwargs: Any) -> SinkhornOutput:
-        # TODO(michalk8): marginals
-        # TODO(michalk8): add method to modify eps (fairly simple) and allow to modify here?
-        problem = LinearProblem(data.xy)
-        return SinkhornOutput(self._solver(problem))
+    @property
+    def _output_type(self) -> Type[BaseSolverOutput]:
+        return SinkhornOutput
 
 
 class GWSolver(GeometryMixin, BaseSolver):
     def __init__(self, **kwargs: Any):
         super().__init__()
         self._solver = GW(**kwargs)
-        self._alpha = 0.0
 
     def _prepare_input(
         self,
         x: TaggedArray,
         y: Optional[TaggedArray] = None,
         **kwargs: Any,
-    ) -> SolverInput:
+    ) -> QuadraticProblem:
         if y is None:
             raise ValueError("TODO: missing second data")
+        kwargs.pop("xx", None)
+        kwargs.pop("yy", None)
         # TODO(michalk8): pass epsilon
         geom_x = self._create_geometry(x, **kwargs)
         geom_y = self._create_geometry(y, **kwargs)
 
-        # TODO(michalk8): marginals
-        return SolverInput(x=geom_x, y=geom_y)
+        # TODO(michalk8): marginals + kwargs?
+        return QuadraticProblem(geom_x, geom_y, geom_xy=None, fused_penalty=0.0, is_fused=False)
 
-    def _solve(self, data: SolverInput, **kwargs: Any) -> GWOutput:
-        # TODO(michalk8): marginals + loss
-        problem = QuadraticProblem(data.x, data.y, data.xy, fused_penalty=self._alpha, is_fused=self._alpha > 0)
-        return GWOutput(self._solver(problem))
+    @property
+    def _output_type(self) -> Type[BaseSolverOutput]:
+        return GWOutput
 
 
 class FGWSolver(GWSolver):
-    def __init__(self, alpha: float = 0.5, **kwargs: Any):
-        if not (0 < alpha < 1):
-            raise ValueError()
-        super().__init__(**kwargs)
-        self._alpha = alpha
+    def _prepare_input(
+        self,
+        x: TaggedArray,
+        y: Optional[TaggedArray] = None,
+        xx: Optional[TaggedArray] = None,
+        yy: Optional[TaggedArray] = None,
+        **kwargs: Any,
+    ) -> QuadraticProblem:
+        if xx is None:
+            raise ValueError("TODO: no array defining joint")
+        problem = super()._prepare_input(x, y, **kwargs)
+
+        if yy is None:
+            if not xx.is_cost and not xx.is_kernel:
+                raise ValueError("TODO")
+            geom_xy = self._create_geometry(xx)
+        else:
+            geom_xy = self._create_geometry(xx, yy)
+        self._validate_geoms(problem.geom_xx, problem.geom_yy, geom_xy)
+
+        # TODO(michalk8): marginals + kwargs?
+        return QuadraticProblem(problem.geom_xx, problem.geom_yy, geom_xy, is_fused=True, fused_penalty=0.5)
 
     @staticmethod
     def _validate_geoms(geom_x: Geometry, geom_y: Geometry, geom_xy: Geometry) -> None:
@@ -112,25 +157,10 @@ class FGWSolver(GWSolver):
         if geom_y.shape[0] != geom_xy.shape[1]:
             raise ValueError("TODO: second and joint geom mismatch")
 
-    def _prepare_input(
-        self,
-        x: TaggedArray,
-        y: Optional[TaggedArray] = None,
-        xx: Optional[TaggedArray] = None,
-        yy: Optional[TaggedArray] = None,
-        **kwargs: Any,
-    ) -> SolverInput:
-        if xx is None:
-            raise ValueError("TODO: no array defining joint")
-        res = super()._prepare_input(x, y, **kwargs)
+    def _solve(self, data: QuadraticProblem, alpha: float = 0.5, **kwargs: Any) -> GWOutput:
+        if not (0 < alpha < 1):
+            raise ValueError("TODO: wrong alpha range")
+        if alpha != data.fused_penalty:
+            data.fused_penalty = alpha
 
-        if yy is None:
-            if not xx.is_cost and not xx.is_kernel:
-                raise ValueError("TODO")
-            geom_xy = self._create_geometry(xx)
-        else:
-            geom_xy = self._create_geometry(xx, yy)
-        self._validate_geoms(res.x, res.y, geom_xy)
-
-        # TODO(michalk8): marginals
-        return SolverInput(x=res.x, y=res.y, xy=geom_xy)
+        return super()._solve(data, **kwargs)

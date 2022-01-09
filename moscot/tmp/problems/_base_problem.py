@@ -34,15 +34,6 @@ class BaseProblem(ABC):
     def solve(self) -> "BaseProblem":
         pass
 
-    # usually, these will be provided by mixins
-    @abstractmethod
-    def push_forward(self, x: npt.ArrayLike, **kwargs: Any) -> Any:
-        pass
-
-    @abstractmethod
-    def pull_backward(self, x: npt.ArrayLike, **kwargs) -> Any:
-        pass
-
     def _create_default_solver(self, solver: Optional[BaseSolver] = None) -> BaseSolver:
         if not len(self._valid_solver_types):
             raise ValueError("TODO: shouldn't happen")
