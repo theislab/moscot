@@ -12,10 +12,11 @@ class Tag(Enum):
 
 
 @dataclass(frozen=True, repr=True)
-class TaggedArray:  # TODO(michalk8): rename me
+class TaggedArray:
     # passed to solver._prepare_input
     data: npt.ArrayLike
     tag: Tag = Tag.POINT_CLOUD  # TODO(michalk8): in post_init, do check if it's correct type
+    # TODO(michalk8): add loss here so that OTT can construct geometry
 
     @property
     def is_cost(self) -> bool:
