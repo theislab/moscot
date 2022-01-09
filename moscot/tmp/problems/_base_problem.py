@@ -19,12 +19,6 @@ class BaseProblem(ABC):
         self._adata = adata
         self._solver: BaseSolver = self._create_default_solver(solver)
 
-    @property
-    @abstractmethod
-    def _valid_solver_types(self) -> Tuple[Type[BaseSolver], ...]:
-        # TODO(michalk8): backend dependend
-        pass
-
     @abstractmethod
     def prepare(self, *args: Any, **kwargs: Any) -> "BaseProblem":
         pass
@@ -33,6 +27,24 @@ class BaseProblem(ABC):
     @abstractmethod
     def solve(self) -> "BaseProblem":
         pass
+
+    @property
+    @abstractmethod
+    # endpoint for mixins, will be used to check whether downstream methods can run
+    def solution(self) -> Any:  # Optional[Union[SolverOutput, Mapping[..., SolverOutput]]]?
+        pass
+
+    # TODO(michalk8): not sure how I feel about this, mb. remove; mb. make a class property
+    @property
+    @abstractmethod
+    def _valid_solver_types(self) -> Tuple[Type[BaseSolver], ...]:
+        pass
+
+    # TODO(michalk8): add IO (de)serialization from/to adata? or mb. just pickle
+
+    @property
+    def adata(self) -> AnnData:
+        return self._adata
 
     def _create_default_solver(self, solver: Optional[BaseSolver] = None) -> BaseSolver:
         if not len(self._valid_solver_types):
@@ -44,20 +56,6 @@ class BaseProblem(ABC):
         # TODO(michalk8): this assumes all solvers always have defaults
         # alt. would be to force a classmethod called e.g. `BaseSolver.create(cls)`
         return self._valid_solver_types[0]()
-
-    # TODO(michalk8): add IO (de)serialization from/to adata?
-
-    @property
-    def adata(self) -> AnnData:
-        return self._adata
-
-    @property
-    @abstractmethod
-    # endpoint for mixins, will be used to check whether downstream methods can run
-    def solution(self) -> Any:  # Optional[Union[SolverOutput, Mapping[..., SolverOutput]]]?
-        pass
-
-    # TODO(michalk8): backed/solvers getters/setters? must be coupled
 
 
 class GeneralProblem(BaseProblem):
@@ -91,10 +89,16 @@ class GeneralProblem(BaseProblem):
         return SinkhornSolver, GWSolver, FGWSolver
 
     def _handle_joint(
-        self, tag: Tag = Tag.COST, create_kwargs: Mapping[str, Any] = MappingProxyType({}), **kwargs: Any
+        self, create_kwargs: Mapping[str, Any] = MappingProxyType({}), **kwargs: Any
     ) -> Optional[Union[TaggedArray, Tuple[TaggedArray, TaggedArray]]]:
         if not isinstance(self._solver, FGWSolver):
             return None
+
+        tag = kwargs.get("tag", None)
+        if tag is None:
+            # TODO(michalk8): better/more strict condition?
+            # TODO(michalk8): specify which tag is being using
+            tag = Tag.POINT_CLOUD if "x_attr" in kwargs and "y_attr" in kwargs else Tag.COST
 
         tag = Tag(tag)
         if tag in (Tag.COST, Tag.KERNEL):
@@ -110,14 +114,15 @@ class GeneralProblem(BaseProblem):
                 raise ValueError("TODO: Specifying cost/kernel requires joint adata.")
             return AnnDataPointer(self._adata_xy, tag=tag, **kwargs).create(**create_kwargs)
         if tag != Tag.POINT_CLOUD:
-            # TODO(michalk8): warn
+            # TODO(michalk8): log-warn
             tag = Tag.POINT_CLOUD
 
-        x_kwargs = {k: v for k, v in kwargs.items() if k.startswith("x_")}
-        y_kwargs = {k: v for k, v in kwargs.items() if k.startswith("y_")}
+        # TODO(michalk8): mb. be less stringent and assume without the prefix x_ belong to x
+        x_kwargs = {k[2:]: v for k, v in kwargs.items() if k.startswith("x_")}
+        y_kwargs = {k[2:]: v for k, v in kwargs.items() if k.startswith("y_")}
 
         x_array = AnnDataPointer(self.adata, tag=tag, **x_kwargs).create(**create_kwargs)
-        y_array = AnnDataPointer(self.adata, tag=tag, **y_kwargs).create(**create_kwargs)
+        y_array = AnnDataPointer(self._adata_y, tag=tag, **y_kwargs).create(**create_kwargs)
 
         return x_array, y_array
 
@@ -134,9 +139,11 @@ class GeneralProblem(BaseProblem):
 
         return self
 
-    def solve(self, **kwargs: Any) -> "BaseProblem":
+    def solve(self, eps: Optional[float] = None, alpha: float = 0.5, **kwargs: Any) -> "BaseProblem":
+        kwargs["alpha"] = alpha
         if not isinstance(self._solver, FGWSolver):
             kwargs["xx"] = kwargs["yy"] = None
+            kwargs.pop("alpha", None)
         elif isinstance(self._xy, tuple):
             # point cloud
             kwargs["xx"] = self._xy[0]
@@ -146,9 +153,10 @@ class GeneralProblem(BaseProblem):
             kwargs["xx"] = self._xy
             kwargs["yy"] = None
 
-        self._solution = self._solver(self._x, self._y, **kwargs)
+        self._solution = self._solver(self._x, self._y, eps=eps, **kwargs)
         return self
 
+    # TODO(michalk8): require in BaseProblem
     def push_forward(self, x: npt.ArrayLike, **_: Any) -> npt.ArrayLike:
         return self.solution.push_forward(x)
 
