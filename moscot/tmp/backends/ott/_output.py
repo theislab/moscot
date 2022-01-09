@@ -11,12 +11,14 @@ class SinkhornOutput(PotentialSolverOutput):
         self._output = output
 
     def _apply(self, x: npt.ArrayLike, *, forward: bool) -> npt.ArrayLike:
-        if x.ndim == 2 and x.shape[1] == 1:
-            # OTT produces weird output - a full matrix, should post an issue
-            x = x.squeeze(-1)
+        axis = int(not forward)
         if x.ndim == 1:
-            return self._output.apply(x.squeeze(), axis=int(not forward))
-        raise NotImplementedError("TODO(michalk8): vmap over second dim.")
+            return self._output.apply(x, axis=axis)
+        if x.ndim == 2:
+            # convert to batch first
+            return self._output.apply(x.T, axis=axis).T
+
+        raise ValueError("TODO - dim error")
 
     @property
     def transport_matrix(self) -> npt.ArrayLike:
