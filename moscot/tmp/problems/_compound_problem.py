@@ -1,6 +1,7 @@
 from enum import Enum
 from typing import Any, Dict, Type, Tuple, Union, Literal, Iterator, Optional, Sequence
 from itertools import product
+from numpy.typing import ArrayLike
 
 from pandas.api.types import is_categorical_dtype
 import pandas as pd
@@ -11,6 +12,7 @@ from moscot._base import BaseSolver
 from moscot.tmp.backends.ott import GWSolver, FGWSolver, SinkhornSolver
 from moscot.tmp.solvers._output import BaseSolverOutput
 from moscot.tmp.problems._base_problem import BaseProblem, GeneralProblem
+from moscot.tmp.utils import _validate_losses
 
 
 # TODO(michalk8): should be a base class + subclasses + classmethod create
@@ -61,13 +63,20 @@ class CompoundProblem(BaseProblem):
         key: str,
         subset: Optional[Sequence[Any]] = None,
         policy: Literal["pairwise", "subsequent", "upper_diag"] = "pairwise",
+        xy_loss: Optional[Union[str, Union[Sequence[ArrayLike], Sequence[Sequence[ArrayLike]]]]] = "Euclidean",
+        xx_loss: Optional[Union[str, Union[Sequence[ArrayLike], Sequence[Sequence[ArrayLike]]]]] = "Euclidean",
+        yy_loss: Optional[Union[str, Union[Sequence[ArrayLike], Sequence[Sequence[ArrayLike]]]]] = "Euclidean",
         **kwargs: Any,
     ) -> "BaseProblem":
 
         subsets = Policy(policy).create(self.adata.obs[key], subset=subset)
+        xx_losses = _validate_losses(xx_loss, subsets)
+        xy_losses = _validate_losses(xy_loss, subsets)
+        yy_losses = _validate_losses(yy_loss, subsets)
         self._problems = {
-            subset: GeneralProblem(self.adata[x_mask], self.adata[y_mask], solver=self._solver).prepare(**kwargs)
-            for subset, (x_mask, y_mask) in subsets.items()
+            subset: GeneralProblem(self.adata[x_mask, :], self.adata[y_mask, :], solver=self._solver,
+                                   xy_losses=xy_losses[i], xx_loss=xx_losses[i], yy_loss=yy_losses[i]).prepare(**kwargs)
+            for i, (subset, (x_mask, y_mask)) in enumerate(subsets.items())
         }
 
         return self

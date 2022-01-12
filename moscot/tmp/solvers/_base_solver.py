@@ -11,7 +11,12 @@ ArrayLike = Union[npt.ArrayLike, TaggedArray]
 
 class BaseSolver(ABC):
     @abstractmethod
-    def _prepare_input(self, x: TaggedArray, y: Optional[TaggedArray] = None, **kwargs: Any) -> Any:
+    def _prepare_input(self,
+                       x: TaggedArray,
+                       y: Optional[TaggedArray] = None,
+                       a: npt.ArrayLike = None,
+                       b: npt.ArrayLike = None,
+                       **kwargs: Any) -> Any:
         pass
 
     @abstractmethod
@@ -30,6 +35,8 @@ class BaseSolver(ABC):
         self,
         x: ArrayLike,
         y: Optional[ArrayLike] = None,
+        a: Optional[npt.ArrayLike] = None,
+        b: Optional[npt.ArrayLike] = None,
         xx: Optional[ArrayLike] = None,
         yy: Optional[ArrayLike] = None,
         eps: Optional[float] = None,
@@ -51,7 +58,7 @@ class BaseSolver(ABC):
 
         # TODO(michalk8): create TaggedArray here if not passed, taking x_tag/y_tag/xy_tag from kwargs
         # TODO(michak8): filter kwargs
-        data = self._prepare_input(x, y, xx=xx, yy=yy)
+        data = self._prepare_input(x, y, a, b, tau_a=tau_a, tau_b=tau_b, xx=xx, yy=yy)
         data = self._set_eps(data, eps)
         res = self._solve(data, **kwargs)
         self._check_marginals(res)

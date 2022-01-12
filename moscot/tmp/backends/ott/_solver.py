@@ -47,7 +47,7 @@ class GeometryMixin:
             return PointCloud(ensure_2D(x.data), epsilon=eps, **kwargs)
         if x.is_grid:
             return Grid(jnp.asarray(x.data), epsilon=eps, **kwargs)
-        if x.is_cost:
+        if x.is_cost_matrix:
             return Geometry(cost_matrix=ensure_2D(x.data, allow_reshape=False), epsilon=eps, **kwargs)
         if x.is_kernel:
             return Geometry(kernel_matrix=ensure_2D(x.data, allow_reshape=False), epsilon=eps, **kwargs)
@@ -86,12 +86,16 @@ class SinkhornSolver(GeometryMixin, BaseSolver):
         self,
         x: TaggedArray,
         y: Optional[TaggedArray] = None,
+        a: Optional[npt.ArrayLike] = None,
+        b: Optional[npt.ArrayLike] = None,
+        tau_a: Optional[float] = 1.0,
+        tau_b: Optional[float] = 1.0,
         **kwargs: Any,
     ) -> LinearProblem:
         kwargs.pop("xx", None)
         kwargs.pop("yy", None)
         geom = self._create_geometry(x, **kwargs) if y is None else self._create_geometry(x, y, **kwargs)
-        return LinearProblem(geom)
+        return LinearProblem(geom, a=a, b=b, tau_a=tau_a, tau_b=tau_b)
 
     @property
     def _output_type(self) -> Type[BaseSolverOutput]:
@@ -107,6 +111,10 @@ class GWSolver(GeometryMixin, BaseSolver):
         self,
         x: TaggedArray,
         y: Optional[TaggedArray] = None,
+        a: Optional[npt.ArrayLike] = None,
+        b: Optional[npt.ArrayLike] = None,
+        tau_a: Optional[float] = 1.0,
+        tau_b: Optional[float] = 1.0,
         **kwargs: Any,
     ) -> QuadraticProblem:
         if y is None:
@@ -118,7 +126,7 @@ class GWSolver(GeometryMixin, BaseSolver):
         geom_y = self._create_geometry(y, **kwargs)
 
         # TODO(michalk8): marginals + kwargs?
-        return QuadraticProblem(geom_x, geom_y, geom_xy=None, fused_penalty=0.0, is_fused=False)
+        return QuadraticProblem(geom_x, geom_y, geom_xy=None, fused_penalty=0.0, a=a, b=b, is_fused=False, tau_a=tau_a, tau_b=tau_b)
 
     @property
     def _output_type(self) -> Type[BaseSolverOutput]:
@@ -130,6 +138,10 @@ class FGWSolver(GWSolver):
         self,
         x: TaggedArray,
         y: Optional[TaggedArray] = None,
+        a: Optional[npt.ArrayLike] = None,
+        b: Optional[npt.ArrayLike] = None,
+        tau_a: Optional[float] = 1.0,
+        tau_b: Optional[float] = 1.0,
         xx: Optional[TaggedArray] = None,
         yy: Optional[TaggedArray] = None,
         **kwargs: Any,
@@ -139,7 +151,7 @@ class FGWSolver(GWSolver):
         problem = super()._prepare_input(x, y, **kwargs)
 
         if yy is None:
-            if not xx.is_cost and not xx.is_kernel:
+            if not xx.is_cost_matrix and not xx.is_kernel:
                 raise ValueError("TODO")
             geom_xy = self._create_geometry(xx)
         else:
@@ -147,7 +159,7 @@ class FGWSolver(GWSolver):
         self._validate_geoms(problem.geom_xx, problem.geom_yy, geom_xy)
 
         # TODO(michalk8): marginals + kwargs?
-        return QuadraticProblem(problem.geom_xx, problem.geom_yy, geom_xy, is_fused=True, fused_penalty=0.5)
+        return QuadraticProblem(problem.geom_xx, problem.geom_yy, geom_xy, fused_penalty=0.5, a=a, b=b, is_fused=False, tau_a=tau_a, tau_b=tau_b)
 
     @staticmethod
     def _validate_geoms(geom_x: Geometry, geom_y: Geometry, geom_xy: Geometry) -> None:

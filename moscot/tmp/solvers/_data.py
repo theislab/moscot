@@ -1,11 +1,12 @@
 from enum import auto, Enum
 from dataclasses import dataclass
-
+from typing import Union
 import numpy.typing as npt
 
+Loss = Union[str, ]
 
 class Tag(Enum):
-    COST = auto()
+    COST_MATRIX = auto()
     KERNEL = auto()
     POINT_CLOUD = auto()
     GRID = auto()
@@ -16,11 +17,11 @@ class TaggedArray:
     # passed to solver._prepare_input
     data: npt.ArrayLike
     tag: Tag = Tag.POINT_CLOUD  # TODO(michalk8): in post_init, do check if it's correct type
-    # TODO(michalk8): add loss here so that OTT can construct geometry
+    loss: Loss = "sqeucl"
 
     @property
-    def is_cost(self) -> bool:
-        return self.tag == Tag.COST
+    def is_cost_matrix(self) -> bool:
+        return self.tag == Tag.COST_MATRIX
 
     @property
     def is_kernel(self) -> bool:
