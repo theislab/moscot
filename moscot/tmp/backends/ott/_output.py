@@ -1,3 +1,5 @@
+from typing import Tuple
+
 from numpy import typing as npt
 from ott.core.sinkhorn import SinkhornOutput as OTTSinkhornOutput
 from ott.core.sinkhorn_lr import LRSinkhornOutput as OTTLRSinkhornOutput
@@ -42,17 +44,18 @@ class LRSinkhornOutput(SinkhornOutput):
         self._threshold = threshold
 
     @property
+    def shape(self) -> Tuple[int, int]:
+        return self._output.geom.shape
+
+    @property
     def converged(self) -> bool:
+        costs, tol = self._output.costs, self._threshold
+        costs = costs[costs != -1]
         # TODO(michalk8): is this correct?
+        # modified the condition from:
         # https://github.com/google-research/ott/blob/a2be0c0703bd5b37cc0ef41e4c79bc10419ca542/ott/core/sinkhorn_lr.py#L239
-        costs, i, tol = self._output.costs, len(self._output.costs), self._threshold
         return bool(
-            jnp.logical_or(
-                i <= 2,
-                jnp.logical_and(
-                    jnp.isfinite(costs[i - 1]), jnp.logical_not(jnp.isclose(costs[i - 2], costs[i - 1], rtol=tol))
-                ),
-            )
+            len(costs) > 1 and jnp.isfinite(costs[-1]) and jnp.isclose(costs[-2], costs[-1], rtol=self._threshold)
         )
 
 

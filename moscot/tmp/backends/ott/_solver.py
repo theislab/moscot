@@ -1,26 +1,29 @@
 from abc import abstractmethod
-from typing import Any, Type, Union, Optional
+from typing import Any, Type, Tuple, Union, Optional
 
 from ott.geometry import Grid, Geometry, PointCloud
 from ott.core.problems import LinearProblem, QuadraticProblem
 from ott.core.sinkhorn import make as Sinkhorn
 from ott.geometry.costs import Euclidean
+from ott.core.sinkhorn_lr import LRSinkhorn as SinkhornLR
 from ott.core.gromov_wasserstein import make as GW
 import jax.numpy as jnp
 import numpy.typing as npt
 
 from moscot.tmp.solvers._data import TaggedArray
-
-# TODO(michalk8): initialize ott solvers in init (so that they are not re-jitted
 from moscot.tmp.solvers._output import BaseSolverOutput
 from moscot.tmp.backends.ott._output import GWOutput, SinkhornOutput, LRSinkhornOutput
 from moscot.tmp.solvers._base_solver import BaseSolver
 
 
 class GeometryMixin:
+    def __init__(self, **kwargs: Any):
+        super().__init__()
+        self._solver = self._solver_output[0](**kwargs)
+
     @property
     @abstractmethod
-    def _output_type(self) -> Type[BaseSolverOutput]:
+    def _solver_output(self) -> Tuple[Type[Any], Type[BaseSolverOutput]]:
         pass
 
     def _create_geometry(
@@ -46,7 +49,6 @@ class GeometryMixin:
                 raise ValueError("TODO: x/y dimension mismatch")
             return PointCloud(x, y=y, epsilon=eps, cost_fn=cost_fn, **kwargs)
         if x.is_point_cloud:
-            print(x.loss)
             cost_fn = x.loss  # TODO: need mapping from string to ott cost_fn
             return PointCloud(ensure_2D(x.data), epsilon=eps, cost_fn=cost_fn, **kwargs)
         if x.is_grid:
@@ -81,14 +83,10 @@ class GeometryMixin:
         raise TypeError("TODO: expected OTT problem")
 
     def _solve(self, data: Union[LinearProblem, QuadraticProblem], **kwargs: Any) -> BaseSolverOutput:
-        return self._output_type(self._solver(data, **kwargs))
+        return self._solver_output[1](self._solver(data, **kwargs))
 
 
 class SinkhornSolver(GeometryMixin, BaseSolver):
-    def __init__(self, **kwargs: Any):
-        super().__init__()
-        self._solver = Sinkhorn(**kwargs)
-
     def _prepare_input(
         self,
         x: TaggedArray,
@@ -105,24 +103,20 @@ class SinkhornSolver(GeometryMixin, BaseSolver):
         return LinearProblem(geom, a=a, b=b, tau_a=tau_a, tau_b=tau_b)
 
     @property
-    def _output_type(self) -> Type[BaseSolverOutput]:
-        return SinkhornOutput
+    def _solver_output(self) -> Type[BaseSolverOutput]:
+        return Sinkhorn, SinkhornOutput
 
 
-class LRSinkhorn(SinkhornSolver):
-    @property
-    def _output_type(self) -> Type[BaseSolverOutput]:
-        return LRSinkhornOutput
-
+class LRSinkhornSolver(SinkhornSolver):
     def _solve(self, data: Union[LinearProblem, QuadraticProblem], **kwargs: Any) -> BaseSolverOutput:
-        return self._output_type(self._solver(data, **kwargs), converged=self._solver.threshold)
+        return self._solver_output[1](self._solver(data, **kwargs), threshold=self._solver.threshold)
+
+    @property
+    def _solver_output(self) -> Tuple[Type[Any], Type[BaseSolverOutput]]:
+        return SinkhornLR, LRSinkhornOutput
 
 
 class GWSolver(GeometryMixin, BaseSolver):
-    def __init__(self, **kwargs: Any):
-        super().__init__()
-        self._solver = GW(**kwargs)
-
     def _prepare_input(
         self,
         x: TaggedArray,
@@ -147,8 +141,8 @@ class GWSolver(GeometryMixin, BaseSolver):
         )
 
     @property
-    def _output_type(self) -> Type[BaseSolverOutput]:
-        return GWOutput
+    def _solver_output(self) -> Tuple[Type[Any], Type[BaseSolverOutput]]:
+        return GW, GWOutput
 
 
 class FGWSolver(GWSolver):
