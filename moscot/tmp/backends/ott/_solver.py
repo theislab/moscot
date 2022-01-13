@@ -4,8 +4,8 @@ from typing import Any, Type, Union, Optional
 from ott.geometry import Grid, Geometry, PointCloud
 from ott.core.problems import LinearProblem, QuadraticProblem
 from ott.core.sinkhorn import make as Sinkhorn
-from ott.core.gromov_wasserstein import make as GW
 from ott.geometry.costs import Euclidean
+from ott.core.gromov_wasserstein import make as GW
 import jax.numpy as jnp
 import numpy.typing as npt
 
@@ -13,7 +13,7 @@ from moscot.tmp.solvers._data import TaggedArray
 
 # TODO(michalk8): initialize ott solvers in init (so that they are not re-jitted
 from moscot.tmp.solvers._output import BaseSolverOutput
-from moscot.tmp.backends.ott._output import GWOutput, SinkhornOutput
+from moscot.tmp.backends.ott._output import GWOutput, SinkhornOutput, LRSinkhornOutput
 from moscot.tmp.solvers._base_solver import BaseSolver
 
 
@@ -39,20 +39,23 @@ class GeometryMixin:
             return arr
 
         if y is not None:
-            cost_fn = x.loss #TODO: need mapping from string to ott cost_fn
+            cost_fn = x.loss  # TODO: need mapping from string to ott cost_fn
             x = ensure_2D(x.data)
             y = ensure_2D(y.data)
             if x.shape[1] != y.shape[1]:
                 raise ValueError("TODO: x/y dimension mismatch")
             return PointCloud(x, y=y, epsilon=eps, cost_fn=cost_fn, **kwargs)
         if x.is_point_cloud:
-            cost_fn = x.loss #TODO: need mapping from string to ott cost_fn
+            print(x.loss)
+            cost_fn = x.loss  # TODO: need mapping from string to ott cost_fn
             return PointCloud(ensure_2D(x.data), epsilon=eps, cost_fn=cost_fn, **kwargs)
         if x.is_grid:
             cost_fn = kwargs.pop("cost_fn", Euclidean())
             return Grid(jnp.asarray(x.data), epsilon=eps, cost_fn=cost_fn, **kwargs)
         if x.is_cost_matrix:
-            return Geometry(cost_matrix=ensure_2D(x.loss, allow_reshape=False), epsilon=eps, **kwargs) #TODO do also want to have cost matrices saved in x.data? Now changed it to x.loss, discuss
+            return Geometry(
+                cost_matrix=ensure_2D(x.loss, allow_reshape=False), epsilon=eps, **kwargs
+            )  # TODO do also want to have cost matrices saved in x.data? Now changed it to x.loss, discuss
         if x.is_kernel:
             return Geometry(kernel_matrix=ensure_2D(x.loss, allow_reshape=False), epsilon=eps, **kwargs)
 
@@ -106,6 +109,15 @@ class SinkhornSolver(GeometryMixin, BaseSolver):
         return SinkhornOutput
 
 
+class LRSinkhorn(SinkhornSolver):
+    @property
+    def _output_type(self) -> Type[BaseSolverOutput]:
+        return LRSinkhornOutput
+
+    def _solve(self, data: Union[LinearProblem, QuadraticProblem], **kwargs: Any) -> BaseSolverOutput:
+        return self._output_type(self._solver(data, **kwargs), converged=self._solver.threshold)
+
+
 class GWSolver(GeometryMixin, BaseSolver):
     def __init__(self, **kwargs: Any):
         super().__init__()
@@ -130,7 +142,9 @@ class GWSolver(GeometryMixin, BaseSolver):
         geom_y = self._create_geometry(y, **kwargs)
 
         # TODO(michalk8): marginals + kwargs?
-        return QuadraticProblem(geom_x, geom_y, geom_xy=None, fused_penalty=0.0, a=a, b=b, is_fused=False, tau_a=tau_a, tau_b=tau_b)
+        return QuadraticProblem(
+            geom_x, geom_y, geom_xy=None, fused_penalty=0.0, a=a, b=b, is_fused=False, tau_a=tau_a, tau_b=tau_b
+        )
 
     @property
     def _output_type(self) -> Type[BaseSolverOutput]:
@@ -163,7 +177,17 @@ class FGWSolver(GWSolver):
         self._validate_geoms(problem.geom_xx, problem.geom_yy, geom_xy)
 
         # TODO(michalk8): marginals + kwargs?
-        return QuadraticProblem(problem.geom_xx, problem.geom_yy, geom_xy, fused_penalty=0.5, a=a, b=b, is_fused=False, tau_a=tau_a, tau_b=tau_b)
+        return QuadraticProblem(
+            problem.geom_xx,
+            problem.geom_yy,
+            geom_xy,
+            fused_penalty=0.5,
+            a=a,
+            b=b,
+            is_fused=False,
+            tau_a=tau_a,
+            tau_b=tau_b,
+        )
 
     @staticmethod
     def _validate_geoms(geom_x: Geometry, geom_y: Geometry, geom_xy: Geometry) -> None:

@@ -11,12 +11,14 @@ ArrayLike = Union[npt.ArrayLike, TaggedArray]
 
 class BaseSolver(ABC):
     @abstractmethod
-    def _prepare_input(self,
-                       x: TaggedArray,
-                       y: Optional[TaggedArray] = None,
-                       a: npt.ArrayLike = None,
-                       b: npt.ArrayLike = None,
-                       **kwargs: Any) -> Any:
+    def _prepare_input(
+        self,
+        x: TaggedArray,
+        y: Optional[TaggedArray] = None,
+        a: npt.ArrayLike = None,
+        b: npt.ArrayLike = None,
+        **kwargs: Any,
+    ) -> Any:
         pass
 
     @abstractmethod
@@ -53,7 +55,7 @@ class BaseSolver(ABC):
 
         x = to_tagged_array(x, kwargs.pop("x_tag", Tag.POINT_CLOUD))
         y = to_tagged_array(y, kwargs.pop("y_tag", Tag.POINT_CLOUD))
-        xx = to_tagged_array(xx, kwargs.pop("xx_tag", Tag.COST) if yy is None else Tag.POINT_CLOUD)
+        xx = to_tagged_array(xx, kwargs.pop("xx_tag", Tag.COST_MATRIX) if yy is None else Tag.POINT_CLOUD)
         yy = to_tagged_array(yy, kwargs.pop("yy_tag", Tag.POINT_CLOUD))
 
         # TODO(michalk8): create TaggedArray here if not passed, taking x_tag/y_tag/xy_tag from kwargs

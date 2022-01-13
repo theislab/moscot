@@ -1,9 +1,9 @@
 from enum import auto, Enum
+from typing import Union, Optional
 from dataclasses import dataclass
-from typing import Union
+
 import numpy.typing as npt
 
-Loss = Union[str]
 
 class Tag(Enum):
     COST_MATRIX = auto()
@@ -17,7 +17,7 @@ class TaggedArray:
     # passed to solver._prepare_input
     data: npt.ArrayLike
     tag: Tag = Tag.POINT_CLOUD  # TODO(michalk8): in post_init, do check if it's correct type
-    loss: Loss = Union[str, npt.ArrayLike]
+    loss: Optional[Union[str, npt.ArrayLike]] = None
 
     @property
     def is_cost_matrix(self) -> bool:
