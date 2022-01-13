@@ -3,15 +3,23 @@ from lineageot.inference import get_leaves
 import networkx as nx
 import numpy as np
 from numpy.typing import ArrayLike
+from abc import abstractmethod, ABC
 
 
-class BaseLoss:
+class BaseLoss(ABC):
 
-    def __init__(self,
+    @abstractmethod
+    def compute(self, *args: Any, **kwargs: Any) -> ArrayLike:
+        pass
+
+    def __call__(self,
                  kind: Literal,
+                 scale: Optional[str] = None,
+                 *args: Any,
                  **kwargs):
         if kind == "LeafDistance":
-            self._loss = LeafDistance(**kwargs)
+            tree = kwargs.pop("tree", None)
+            return LeafDistance(tree, scale, **kwargs)
         else:
             raise NotImplementedError
 
@@ -35,17 +43,19 @@ class BaseLoss:
 
 class LeafDistance(BaseLoss):
 
-    def __call__(self,
+    def compute(self,
                  tree: nx.DiGraph,
                  scale: Literal,
                  **kwargs: Any):
         """
         Computes the matrix of pairwise distances between leaves of the tree
         """
+        if tree is None:
+            raise ValueError("For computing the LeafDistance a tree needs to be provided.")
         if scale is None:
-            return _compute_leaf_distances(self.tree)
+            return _compute_leaf_distances(tree)
         else:
-            return self.normalize(_compute_leaf_distances(self.tree), scale)
+            return self.normalize(_compute_leaf_distances(tree), scale) #Can we do this in a stateless class?
 
 
 def _compute_leaf_distances(tree): # TODO(MUCDK): this is adapted from lineageOT, we want to make it more efficient.

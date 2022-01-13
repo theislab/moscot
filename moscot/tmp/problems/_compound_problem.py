@@ -74,8 +74,8 @@ class CompoundProblem(BaseProblem):
         xy_losses = _validate_losses(xy_loss, subsets)
         yy_losses = _validate_losses(yy_loss, subsets)
         self._problems = {
-            subset: GeneralProblem(self.adata[x_mask, :], self.adata[y_mask, :], solver=self._solver,
-                                   xy_losses=xy_losses[i], xx_loss=xx_losses[i], yy_loss=yy_losses[i]).prepare(**kwargs)
+            subset: GeneralProblem(self.adata[x_mask, :], self.adata[y_mask, :], solver=self._solver).prepare(
+                xy_losses=xy_losses[i], xx_loss=xx_losses[i], yy_loss=yy_losses[i], **kwargs)
             for i, (subset, (x_mask, y_mask)) in enumerate(subsets.items())
         }
 

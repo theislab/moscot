@@ -5,6 +5,7 @@ from ott.geometry import Grid, Geometry, PointCloud
 from ott.core.problems import LinearProblem, QuadraticProblem
 from ott.core.sinkhorn import make as Sinkhorn
 from ott.core.gromov_wasserstein import make as GW
+from ott.geometry.costs import Euclidean
 import jax.numpy as jnp
 import numpy.typing as npt
 
@@ -38,19 +39,22 @@ class GeometryMixin:
             return arr
 
         if y is not None:
+            cost_fn = x.loss #TODO: need mapping from string to ott cost_fn
             x = ensure_2D(x.data)
             y = ensure_2D(y.data)
             if x.shape[1] != y.shape[1]:
                 raise ValueError("TODO: x/y dimension mismatch")
-            return PointCloud(x, y=y, epsilon=eps, **kwargs)
+            return PointCloud(x, y=y, epsilon=eps, cost_fn=cost_fn, **kwargs)
         if x.is_point_cloud:
-            return PointCloud(ensure_2D(x.data), epsilon=eps, **kwargs)
+            cost_fn = x.loss #TODO: need mapping from string to ott cost_fn
+            return PointCloud(ensure_2D(x.data), epsilon=eps, cost_fn=cost_fn, **kwargs)
         if x.is_grid:
-            return Grid(jnp.asarray(x.data), epsilon=eps, **kwargs)
+            cost_fn = kwargs.pop("cost_fn", Euclidean())
+            return Grid(jnp.asarray(x.data), epsilon=eps, cost_fn=cost_fn, **kwargs)
         if x.is_cost_matrix:
-            return Geometry(cost_matrix=ensure_2D(x.data, allow_reshape=False), epsilon=eps, **kwargs)
+            return Geometry(cost_matrix=ensure_2D(x.loss, allow_reshape=False), epsilon=eps, **kwargs) #TODO do also want to have cost matrices saved in x.data? Now changed it to x.loss, discuss
         if x.is_kernel:
-            return Geometry(kernel_matrix=ensure_2D(x.data, allow_reshape=False), epsilon=eps, **kwargs)
+            return Geometry(kernel_matrix=ensure_2D(x.loss, allow_reshape=False), epsilon=eps, **kwargs)
 
         raise NotImplementedError(x)
 

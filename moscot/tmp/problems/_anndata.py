@@ -37,8 +37,12 @@ class AnnDataPointer:
         container = container[self.key]
 
         # TODO(michalk8): here we'd construct custom loss (BC/graph distances)
+        if self.tag == Tag.COST_MATRIX and isinstance(self.loss, str):
+            loss = BaseLoss(kind=self.loss).create(**kwargs)
+        elif self.tag == Tag.COST_MATRIX:
+            loss = self.loss
 
-        return TaggedArray(container, tag=self.tag, loss=self.loss)
+        return TaggedArray(container, tag=self.tag, loss=loss)
 
 
 @dataclass(frozen=True)

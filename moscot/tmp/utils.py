@@ -1,6 +1,8 @@
 from typing import Union, Sequence, Any, Optional
 from numpy.typing import ArrayLike
 from anndata import AnnData
+from moscot.tmp.solvers._data import Tag
+
 
 def _validate_losses(loss: Union[str, Sequence[ArrayLike]],
                      subsets: Sequence[Any]):
