@@ -143,15 +143,12 @@ class GeneralProblem(BaseProblem):
         xy: Optional[Mapping[str, Any]] = None,
         x_marg: Optional[Mapping[str, Any]] = None,
         y_marg: Optional[Mapping[str, Any]] = None,
-        x_loss: Optional[Mapping[str, Any]] = None,
-        y_loss: Optional[Mapping[str, Any]] = None,
-        xy_loss: Optional[Mapping[str, Any]] = None,
         **kwargs: Any,
     ) -> "BaseProblem":
 
-        self._x = AnnDataPointer(adata=self.adata, **x, **x_loss).create(**kwargs)
-        self._y = None if y is None else AnnDataPointer(adata=self._adata_y, **y_loss, **y).create(**kwargs)
-        self._xy = None if xy is None else self._handle_joint(**xy, **xy_loss, create_kwargs=kwargs) #TODO: add the loss
+        self._x = AnnDataPointer(adata=self.adata, **x).create(**kwargs)
+        self._y = None if y is None else AnnDataPointer(adata=self._adata_y, **y).create(**kwargs)
+        self._xy = None if xy is None else self._handle_joint(**xy, create_kwargs=kwargs)
         self._a = _get_marginal(self.adata, **kwargs) if x_marg is None else AnnDataMarginal(self.adata, **x_marg)
         if self._adata_y is not None:
             self._b = self._get_marginal(self._adata_y, **kwargs) if y_marg is None else AnnDataMarginal(self._adata_y, **y_marg).create(**kwargs)

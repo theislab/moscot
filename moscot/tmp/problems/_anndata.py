@@ -23,33 +23,34 @@ class AnnDataPointer:
     #TODO(MUCDK): handle Grid cost. this must be a sequence: https://github.com/google-research/ott/blob/b1adc2894b76b7360f639acb10181f2ce97c656a/ott/geometry/grid.py#L55
 
     def create(self, **kwargs: Any) -> TaggedArray:  # I rewrote the logic a bit as this way I find it more readable
-        if self.tag != Tag.COST_MATRIX:
-            backend_losses = _get_backend_losses(**kwargs)  # TODO: put in registry
-            if self.loss not in backend_losses.keys():
-                if self.loss in moscot_losses:
-                    container = BaseLoss(kind=self.loss).create(**kwargs)
-                    return TaggedArray(container, tag=self.tag, loss=None)
-                raise ValueError(f"The loss `{self.loss}` is not implemented. Please provide your own cost matrix.")
+        if self.tag == Tag.COST_MATRIX:
             if not hasattr(self.adata, self.attr):
                 raise AttributeError("TODO: invalid attribute")
             container = getattr(self.adata, self.attr)
-            if self.key is None:
+            if self.key is not None:
+                if self.key not in container:
+                    raise KeyError(f"TODO: unable to find `adata.{self.attr}['{self.key}']`.")
+                container = container[self.key]
                 # TODO(michalk8): check if array-like
                 # TODO(michalk8): here we'd construct custom loss (BC/graph distances)
-                return TaggedArray(container, tag=self.tag, loss=backend_losses[self.loss])
-            if self.key not in container:
-                raise KeyError(f"TODO: unable to find `adata.{self.attr}['{self.key}']`.")
-            container = container[self.key]
-            return TaggedArray(container, tag=self.tag, loss=backend_losses[self.loss])
+            if isinstance(container, ArrayLike):
+                return TaggedArray(container, tag=self.tag, loss=None)
+            if self.loss in moscot_losses:
+                container = BaseLoss(kind=self.loss).create(**kwargs)
+                return TaggedArray(container, tag=self.tag, loss=None)
+            raise ValueError(f"The loss `{self.loss}` is not implemented. Please provide your own cost matrix.")
 
+        backend_losses = _get_backend_losses(**kwargs)  # TODO: put in registry
+        if self.loss not in backend_losses.keys():
+            raise ValueError(f"The loss `{self.loss}` is not implemented. Please provide your own cost matrix.")
         if not hasattr(self.adata, self.attr):
             raise AttributeError("TODO: invalid attribute")
         container = getattr(self.adata, self.attr)
         if self.key is None:
             # TODO(michalk8): check if array-like
             # TODO(michalk8): here we'd construct custom loss (BC/graph distances)
-            return TaggedArray(container, tag=self.tag, loss=None)
+            return TaggedArray(container, tag=self.tag, loss=backend_losses[self.loss])
         if self.key not in container:
             raise KeyError(f"TODO: unable to find `adata.{self.attr}['{self.key}']`.")
         container = container[self.key]
-        return TaggedArray(container, tag=self.tag, loss=None)
+        return TaggedArray(container, tag=self.tag, loss=backend_losses[self.loss])
