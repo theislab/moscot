@@ -5,29 +5,34 @@ import numpy as np
 from numpy.typing import ArrayLike
 from abc import abstractmethod, ABC
 
+__all__ = ["LeafDistance"]
+
 
 class BaseLoss(ABC):
 
     @abstractmethod
-    def compute(self, *args: Any, **kwargs: Any) -> ArrayLike:
+    def _compute(self, *args: Any, **kwargs: Any) -> ArrayLike:
         pass
 
     def __call__(self,
-                 kind: Literal,
-                 scale: Optional[str] = None,
                  *args: Any,
+                 scale: Optional[str] = None,
                  **kwargs):
+        cost = self._compute(*args, **kwargs)
+        if scale is not None:
+            return self._normalize(cost, scale)
+        return cost
+
+    @classmethod
+    def create(cls, kind: Literal) -> "BaseLoss":
         if kind == "LeafDistance":
-            tree = kwargs.pop("tree", None)
-            return LeafDistance(tree, scale, **kwargs)
-        else:
-            raise NotImplementedError
+            return LeafDistance()
 
     @staticmethod
-    def normalize(cost_matrix: ArrayLike,
-                  scale: Optional[str] = "max",
-                  **kwargs: Any) -> ArrayLike:
+    def _normalize(cost_matrix: ArrayLike,
+                  scale: Union[str, int, float] = "max") -> ArrayLike:
         # TODO: @MUCDK find a way to have this for non-materialized matrices (will be backend specific)
+        ...
         if scale == "max":
             cost_matrix /= cost_matrix.max()
         elif scale == "mean":
@@ -43,7 +48,7 @@ class BaseLoss(ABC):
 
 class LeafDistance(BaseLoss):
 
-    def compute(self,
+    def _compute(self,
                  tree: nx.DiGraph,
                  scale: Literal,
                  **kwargs: Any):

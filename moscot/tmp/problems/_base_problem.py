@@ -14,6 +14,7 @@ from moscot.tmp.problems._anndata import AnnDataPointer, AnnDataMarginal
 from moscot.tmp.solvers._base_solver import BaseSolver
 from moscot.tmp.utils import _validate_loss
 from moscot.tmp.solvers._data import Tag
+from moscot.tmp.utils import _get_marginal
 
 
 class BaseProblem(ABC):
@@ -137,35 +138,33 @@ class GeneralProblem(BaseProblem):
 
     def prepare(
         self,
-        x: Mapping[str, Any] = MappingProxyType({}),
+        x: Mapping[str, Any] = MappingProxyType({}), # add loss in dict, key_loss, attr_loss, Optional[Union[str, ArrayLike]]
         y: Optional[Mapping[str, Any]] = None,
         xy: Optional[Mapping[str, Any]] = None,
         x_marg: Optional[Mapping[str, Any]] = None,
         y_marg: Optional[Mapping[str, Any]] = None,
-        xy_loss: Optional[Union[str, Sequence[ArrayLike]]] = "Euclidean",
-        xx_loss: Optional[Union[str, Sequence[ArrayLike]]] = "Euclidean",
-        yy_loss: Optional[Union[str, Sequence[ArrayLike]]] = "Euclidean",
+        x_loss: Optional[Mapping[str, Any]] = None,
+        y_loss: Optional[Mapping[str, Any]] = None,
+        xy_loss: Optional[Mapping[str, Any]] = None,
         **kwargs: Any,
     ) -> "BaseProblem":
-        if y is None:
-            _validate_loss(xy_loss, self._adata, self._adata, **kwargs)
-        elif xx_loss is None:
-            _validate_loss(xy_loss, self._adata, self._adata_y)
-        else:
-            _validate_loss(xx_loss, self._adata, self._adata)
-            _validate_loss(yy_loss, self._adata_y, self._adata_y)
 
-        self._x = AnnDataPointer(adata=self.adata, loss=xy_loss, **x).create(**kwargs)
-        self._y = None if y is None else AnnDataPointer(adata=self._adata_y, loss=yy_loss, **y).create(**kwargs)
-        self._xy = None if xy is None else self._handle_joint(**xy, create_kwargs=kwargs) #TODO: add the loss
-        self._a = AnnDataMarginal(self.adata).create(**kwargs) if x_marg is None else AnnDataMarginal(self.adata, **x_marg).create(**kwargs)
+        self._x = AnnDataPointer(adata=self.adata, **x, **x_loss).create(**kwargs)
+        self._y = None if y is None else AnnDataPointer(adata=self._adata_y, **y_loss, **y).create(**kwargs)
+        self._xy = None if xy is None else self._handle_joint(**xy, **xy_loss, create_kwargs=kwargs) #TODO: add the loss
+        self._a = _get_marginal(self.adata, **kwargs) if x_marg is None else AnnDataMarginal(self.adata, **x_marg)
         if self._adata_y is not None:
-            self._b = AnnDataMarginal(self._adata_y).create(**kwargs) if y_marg is None else AnnDataMarginal(self._adata_y, **y_marg).create(**kwargs)
+            self._b = self._get_marginal(self._adata_y, **kwargs) if y_marg is None else AnnDataMarginal(self._adata_y, **y_marg).create(**kwargs)
         else:
             self._b = self._a
         return self
 
-    def solve(self, eps: Optional[float] = None, alpha: float = 0.5, **kwargs: Any) -> "BaseProblem":
+    def solve(self,
+              eps: Optional[float] = None,
+              alpha: float = 0.5,
+              tau_a: Optional[float] = 1.0,
+              tau_b: Optional[float] = 1.0,
+              **kwargs: Any) -> "BaseProblem":
         kwargs["alpha"] = alpha
         if not isinstance(self._solver, FGWSolver):
             kwargs["xx"] = kwargs["yy"] = None
@@ -179,7 +178,7 @@ class GeneralProblem(BaseProblem):
             kwargs["xx"] = self._xy
             kwargs["yy"] = None
 
-        self._solution = self._solver(self._x, self._y, self._a, self._b, eps=eps, **kwargs)
+        self._solution = self._solver(self._x, self._y, self._a, self._b, eps=eps, tau_a=tau_a, tau_b=tau_b, **kwargs)
         return self
 
     # TODO(michalk8): require in BaseProblem

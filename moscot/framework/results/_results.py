@@ -4,6 +4,7 @@ from numbers import Number
 from abc import ABC, abstractmethod
 import numpy as np
 
+
 class OTResult(ABC):
     """ Abstract base class parenting classes to solve OT downstream functions. Can be manually provided"""
     def __init__(self):

@@ -63,28 +63,26 @@ class CompoundProblem(BaseProblem):
         key: str,
         subset: Optional[Sequence[Any]] = None,
         policy: Literal["pairwise", "subsequent", "upper_diag"] = "pairwise",
-        xy_loss: Optional[Union[str, Union[Sequence[ArrayLike], Sequence[Sequence[ArrayLike]]]]] = "Euclidean",
-        xx_loss: Optional[Union[str, Union[Sequence[ArrayLike], Sequence[Sequence[ArrayLike]]]]] = "Euclidean",
-        yy_loss: Optional[Union[str, Union[Sequence[ArrayLike], Sequence[Sequence[ArrayLike]]]]] = "Euclidean",
         **kwargs: Any,
     ) -> "BaseProblem":
 
         subsets = Policy(policy).create(self.adata.obs[key], subset=subset)
-        xx_losses = _validate_losses(xx_loss, subsets)
-        xy_losses = _validate_losses(xy_loss, subsets)
-        yy_losses = _validate_losses(yy_loss, subsets)
         self._problems = {
-            subset: GeneralProblem(self.adata[x_mask, :], self.adata[y_mask, :], solver=self._solver).prepare(
-                xy_losses=xy_losses[i], xx_loss=xx_losses[i], yy_loss=yy_losses[i], **kwargs)
+            subset: GeneralProblem(self.adata[x_mask, :], self.adata[y_mask, :], solver=self._solver).prepare(**kwargs)
             for i, (subset, (x_mask, y_mask)) in enumerate(subsets.items())
         }
 
         return self
 
-    def solve(self, eps: Optional[float] = None, alpha: float = 0.5, **kwargs: Any) -> "BaseProblem":
+    def solve(self,
+              eps: Optional[float] = None,
+              alpha: float = 0.5,
+              tau_a: Optional[float] = 1.0,
+              tau_b: Optional[float] = 1.0,
+              **kwargs: Any) -> "BaseProblem":
         self._solutions = {}
         for subset, problem in self._problems.items():
-            self._solutions[subset] = problem.solve(eps=eps, alpha=alpha, **kwargs)
+            self._solutions[subset] = problem.solve(eps=eps, alpha=alpha, tau_a=tau_a, tau_b=tau_b, **kwargs)
 
         return self
 

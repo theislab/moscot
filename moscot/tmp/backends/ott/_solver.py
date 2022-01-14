@@ -39,7 +39,7 @@ class GeometryMixin:
             return arr
 
         if y is not None:
-            cost_fn = x.loss #TODO: need mapping from string to ott cost_fn
+            cost_fn = y.loss if y.loss is not None else x.loss
             x = ensure_2D(x.data)
             y = ensure_2D(y.data)
             if x.shape[1] != y.shape[1]:
@@ -52,9 +52,9 @@ class GeometryMixin:
             cost_fn = kwargs.pop("cost_fn", Euclidean())
             return Grid(jnp.asarray(x.data), epsilon=eps, cost_fn=cost_fn, **kwargs)
         if x.is_cost_matrix:
-            return Geometry(cost_matrix=ensure_2D(x.loss, allow_reshape=False), epsilon=eps, **kwargs) #TODO do also want to have cost matrices saved in x.data? Now changed it to x.loss, discuss
+            return Geometry(cost_matrix=ensure_2D(x.data, allow_reshape=False), epsilon=eps, **kwargs)
         if x.is_kernel:
-            return Geometry(kernel_matrix=ensure_2D(x.loss, allow_reshape=False), epsilon=eps, **kwargs)
+            return Geometry(kernel_matrix=ensure_2D(x.data, allow_reshape=False), epsilon=eps, **kwargs)
 
         raise NotImplementedError(x)
 
@@ -98,7 +98,7 @@ class SinkhornSolver(GeometryMixin, BaseSolver):
     ) -> LinearProblem:
         kwargs.pop("xx", None)
         kwargs.pop("yy", None)
-        geom = self._create_geometry(x, **kwargs) if y is None else self._create_geometry(x, y, **kwargs)
+        geom = self._create_geometry(x, y, **kwargs)
         return LinearProblem(geom, a=a, b=b, tau_a=tau_a, tau_b=tau_b)
 
     @property
