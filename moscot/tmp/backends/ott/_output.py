@@ -1,6 +1,10 @@
+from typing import Tuple
+
 from numpy import typing as npt
 from ott.core.sinkhorn import SinkhornOutput as OTTSinkhornOutput
+from ott.core.sinkhorn_lr import LRSinkhornOutput as OTTLRSinkhornOutput
 from ott.core.gromov_wasserstein import GWOutput as OTTGWOutput
+import jax.numpy as jnp
 
 from moscot.tmp.solvers._output import MatrixSolverOutput, PotentialSolverOutput
 
@@ -31,6 +35,28 @@ class SinkhornOutput(PotentialSolverOutput):
     @property
     def converged(self) -> bool:
         return bool(self._output.converged)
+
+
+class LRSinkhornOutput(SinkhornOutput):
+    def __init__(self, output: OTTLRSinkhornOutput, *, threshold: float):
+        super(SinkhornOutput, self).__init__(None, None)
+        self._output = output
+        self._threshold = threshold
+
+    @property
+    def shape(self) -> Tuple[int, int]:
+        return self._output.geom.shape
+
+    @property
+    def converged(self) -> bool:
+        costs, tol = self._output.costs, self._threshold
+        costs = costs[costs != -1]
+        # TODO(michalk8): is this correct?
+        # modified the condition from:
+        # https://github.com/google-research/ott/blob/a2be0c0703bd5b37cc0ef41e4c79bc10419ca542/ott/core/sinkhorn_lr.py#L239
+        return bool(
+            len(costs) > 1 and jnp.isfinite(costs[-1]) and jnp.isclose(costs[-2], costs[-1], rtol=self._threshold)
+        )
 
 
 class GWOutput(MatrixSolverOutput):

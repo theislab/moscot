@@ -1,11 +1,13 @@
 from abc import abstractmethod
-from typing import Any, Type, Union, Optional
+from typing import Any, Type, Tuple, Union, Optional
 
 from ott.geometry import Grid, Geometry, PointCloud
 from ott.core.problems import LinearProblem, QuadraticProblem
 from ott.core.sinkhorn import make as Sinkhorn
 from ott.core.gromov_wasserstein import make as GW
 from ott.geometry.costs import Euclidean
+from ott.core.sinkhorn_lr import LRSinkhorn as SinkhornLR
+from ott.core.gromov_wasserstein import make as GW
 import jax.numpy as jnp
 import numpy.typing as npt
 
@@ -13,14 +15,18 @@ from moscot.tmp.solvers._data import TaggedArray
 
 # TODO(michalk8): initialize ott solvers in init (so that they are not re-jitted
 from moscot.tmp.solvers._output import BaseSolverOutput
-from moscot.tmp.backends.ott._output import GWOutput, SinkhornOutput
+from moscot.tmp.backends.ott._output import GWOutput, SinkhornOutput, LRSinkhornOutput
 from moscot.tmp.solvers._base_solver import BaseSolver
 
 
 class GeometryMixin:
+    def __init__(self, **kwargs: Any):
+        super().__init__()
+        self._solver = self._solver_output[0](**kwargs)
+
     @property
     @abstractmethod
-    def _output_type(self) -> Type[BaseSolverOutput]:
+    def _solver_output(self) -> Tuple[Type[Any], Type[BaseSolverOutput]]:
         pass
 
     def _create_geometry(
@@ -37,7 +43,6 @@ class GeometryMixin:
             if arr.ndim != 2:
                 raise ValueError("TODO: expected 2D")
             return arr
-
         if y is not None:
             cost_fn = y.loss if y.loss is not None else x.loss
             x = ensure_2D(x.data)
@@ -54,7 +59,7 @@ class GeometryMixin:
         if x.is_cost_matrix:
             return Geometry(cost_matrix=ensure_2D(x.data, allow_reshape=False), epsilon=eps, **kwargs)
         if x.is_kernel:
-            return Geometry(kernel_matrix=ensure_2D(x.data, allow_reshape=False), epsilon=eps, **kwargs)
+            return Geometry(kernel_matrix=ensure_2D(x.loss, allow_reshape=False), epsilon=eps, **kwargs)
 
         raise NotImplementedError(x)
 
@@ -78,14 +83,10 @@ class GeometryMixin:
         raise TypeError("TODO: expected OTT problem")
 
     def _solve(self, data: Union[LinearProblem, QuadraticProblem], **kwargs: Any) -> BaseSolverOutput:
-        return self._output_type(self._solver(data, **kwargs))
+        return self._solver_output[1](self._solver(data, **kwargs))
 
 
 class SinkhornSolver(GeometryMixin, BaseSolver):
-    def __init__(self, **kwargs: Any):
-        super().__init__()
-        self._solver = Sinkhorn(**kwargs)
-
     def _prepare_input(
         self,
         x: TaggedArray,
@@ -102,15 +103,20 @@ class SinkhornSolver(GeometryMixin, BaseSolver):
         return LinearProblem(geom, a=a, b=b, tau_a=tau_a, tau_b=tau_b)
 
     @property
-    def _output_type(self) -> Type[BaseSolverOutput]:
-        return SinkhornOutput
+    def _solver_output(self) -> Type[BaseSolverOutput]:
+        return Sinkhorn, SinkhornOutput
+
+
+class LRSinkhornSolver(SinkhornSolver):
+    def _solve(self, data: Union[LinearProblem, QuadraticProblem], **kwargs: Any) -> BaseSolverOutput:
+        return self._solver_output[1](self._solver(data, **kwargs), threshold=self._solver.threshold)
+
+    @property
+    def _solver_output(self) -> Tuple[Type[Any], Type[BaseSolverOutput]]:
+        return SinkhornLR, LRSinkhornOutput
 
 
 class GWSolver(GeometryMixin, BaseSolver):
-    def __init__(self, **kwargs: Any):
-        super().__init__()
-        self._solver = GW(**kwargs)
-
     def _prepare_input(
         self,
         x: TaggedArray,
@@ -130,11 +136,13 @@ class GWSolver(GeometryMixin, BaseSolver):
         geom_y = self._create_geometry(y, **kwargs)
 
         # TODO(michalk8): marginals + kwargs?
-        return QuadraticProblem(geom_x, geom_y, geom_xy=None, fused_penalty=0.0, a=a, b=b, is_fused=False, tau_a=tau_a, tau_b=tau_b)
+        return QuadraticProblem(
+            geom_x, geom_y, geom_xy=None, fused_penalty=0.0, a=a, b=b, is_fused=False, tau_a=tau_a, tau_b=tau_b
+        )
 
     @property
-    def _output_type(self) -> Type[BaseSolverOutput]:
-        return GWOutput
+    def _solver_output(self) -> Tuple[Type[Any], Type[BaseSolverOutput]]:
+        return GW, GWOutput
 
 
 class FGWSolver(GWSolver):
@@ -163,7 +171,17 @@ class FGWSolver(GWSolver):
         self._validate_geoms(problem.geom_xx, problem.geom_yy, geom_xy)
 
         # TODO(michalk8): marginals + kwargs?
-        return QuadraticProblem(problem.geom_xx, problem.geom_yy, geom_xy, fused_penalty=0.5, a=a, b=b, is_fused=False, tau_a=tau_a, tau_b=tau_b)
+        return QuadraticProblem(
+            problem.geom_xx,
+            problem.geom_yy,
+            geom_xy,
+            fused_penalty=0.5,
+            a=a,
+            b=b,
+            is_fused=False,
+            tau_a=tau_a,
+            tau_b=tau_b,
+        )
 
     @staticmethod
     def _validate_geoms(geom_x: Geometry, geom_y: Geometry, geom_xy: Geometry) -> None:

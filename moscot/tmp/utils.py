@@ -2,7 +2,6 @@ from typing import Union, Sequence, Any, Optional
 from numpy.typing import ArrayLike
 from anndata import AnnData
 from moscot.tmp.solvers._data import Tag
-from sklearn.preprocessing import normalize
 from numpy.typing import ArrayLike
 import numpy as np
 from ott.geometry.costs import Euclidean, Cosine, Bures, UnbalancedBures
@@ -43,23 +42,24 @@ def _get_marginal(adata: AnnData,
     container = getattr(adata, attr)
 
     if key is None:
-        return ensure_1D(np.array(normalize(container, norm="l1")))
+        return np.array(_normalize(container))
     if key not in container:
         raise KeyError(f"TODO: unable to find `adata.{attr}['{key}']`.")
-    return normalize(ensure_1D(np.array(container[key])), norm="l1")
+    return _normalize(np.array(container[key]))
 
 
-def ensure_1D(arr: ArrayLike) -> ArrayLike:
+def _normalize(arr: ArrayLike) -> ArrayLike:
     if arr.ndim != 1:
         raise ValueError("TODO: expected 1D")
-    return arr.reshape(-1, 1)
+    return arr/np.sum(arr)
 
 
-def _get_backend_losses(backend: str = "JAX"):
+def _get_backend_losses(backend: str = "JAX", **kwargs: Any):
     if backend == "JAX":
-        return {"Euclidean": Euclidean(),
-                "Cosine": Cosine(),
-                "Bures": Bures(),
-                "UnbalancedBures": UnbalancedBures()}
+        dimension = kwargs.pop("dimension", 1)
+        return {"Euclidean": Euclidean(**kwargs),
+                "Cosine": Cosine(**kwargs),
+                "Bures": Bures(dimension, **kwargs),
+                "UnbalancedBures": UnbalancedBures(dimension, **kwargs)}
     else:
-        raise NotImplementedError
+        raise NotImplementedError()

@@ -10,7 +10,7 @@ from anndata import AnnData
 from moscot.tmp.backends.ott import GWSolver, FGWSolver, SinkhornSolver
 from moscot.tmp.solvers._data import Tag, TaggedArray
 from moscot.tmp.solvers._output import BaseSolverOutput
-from moscot.tmp.problems._anndata import AnnDataPointer, AnnDataMarginal
+from moscot.tmp.problems._anndata import AnnDataPointer
 from moscot.tmp.solvers._base_solver import BaseSolver
 from moscot.tmp.utils import _validate_loss
 from moscot.tmp.solvers._data import Tag
@@ -108,10 +108,10 @@ class GeneralProblem(BaseProblem):
         if tag is None:
             # TODO(michalk8): better/more strict condition?
             # TODO(michalk8): specify which tag is being using
-            tag = Tag.POINT_CLOUD if "x_attr" in kwargs and "y_attr" in kwargs else Tag.COST
+            tag = Tag.POINT_CLOUD if "x_attr" in kwargs and "y_attr" in kwargs else Tag.COST_MATRIX
 
         tag = Tag(tag)
-        if tag in (Tag.COST, Tag.KERNEL):
+        if tag in (Tag.COST_MATRIX, Tag.KERNEL):
             attr = kwargs.get("attr", "X")
             if attr == "obsm":
                 return AnnDataPointer(self.adata, tag=tag, **kwargs).create(**create_kwargs)
@@ -141,19 +141,19 @@ class GeneralProblem(BaseProblem):
         x: Mapping[str, Any] = MappingProxyType({}), # add loss in dict, key_loss, attr_loss, Optional[Union[str, ArrayLike]]
         y: Optional[Mapping[str, Any]] = None,
         xy: Optional[Mapping[str, Any]] = None,
-        x_marg: Optional[Mapping[str, Any]] = None,
-        y_marg: Optional[Mapping[str, Any]] = None,
+        a_marg: Optional[Mapping[str, Any]] = None,
+        b_marg: Optional[Mapping[str, Any]] = None,
         **kwargs: Any,
     ) -> "BaseProblem":
 
         self._x = AnnDataPointer(adata=self.adata, **x).create(**kwargs)
         self._y = None if y is None else AnnDataPointer(adata=self._adata_y, **y).create(**kwargs)
         self._xy = None if xy is None else self._handle_joint(**xy, create_kwargs=kwargs)
-        self._a = _get_marginal(self.adata, **kwargs) if x_marg is None else AnnDataMarginal(self.adata, **x_marg)
-        if self._adata_y is not None:
-            self._b = self._get_marginal(self._adata_y, **kwargs) if y_marg is None else AnnDataMarginal(self._adata_y, **y_marg).create(**kwargs)
+        self._a = _get_marginal(self.adata, **a_marg) if a_marg is not None else _get_marginal(self.adata)
+        if self._adata_y is None:
+            self._b = _get_marginal(self.adata, **b_marg) if b_marg is not None else _get_marginal(self.adata)
         else:
-            self._b = self._a
+            self._b = _get_marginal(self._adata_y, **b_marg) if b_marg is not None else _get_marginal(self._adata_y)
         return self
 
     def solve(self,
@@ -174,7 +174,6 @@ class GeneralProblem(BaseProblem):
             # cost/kernel
             kwargs["xx"] = self._xy
             kwargs["yy"] = None
-
         self._solution = self._solver(self._x, self._y, self._a, self._b, eps=eps, tau_a=tau_a, tau_b=tau_b, **kwargs)
         return self
 

@@ -69,7 +69,7 @@ class CompoundProblem(BaseProblem):
         subsets = Policy(policy).create(self.adata.obs[key], subset=subset)
         self._problems = {
             subset: GeneralProblem(self.adata[x_mask, :], self.adata[y_mask, :], solver=self._solver).prepare(**kwargs)
-            for i, (subset, (x_mask, y_mask)) in enumerate(subsets.items())
+            for subset, (x_mask, y_mask) in subsets.items()
         }
 
         return self
