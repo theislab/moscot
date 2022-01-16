@@ -1,6 +1,7 @@
 from enum import auto, Enum
+from typing import Optional
 from dataclasses import dataclass
-from typing import Union, Optional
+
 import numpy.typing as npt
 
 
@@ -16,7 +17,9 @@ class TaggedArray:
     # passed to solver._prepare_input
     data: npt.ArrayLike
     tag: Tag = Tag.POINT_CLOUD  # TODO(michalk8): in post_init, do check if it's correct type
-    loss: Optional[str] = None # if cost matrix is in data we don't need loss. Easier to read the code if loss is then set to None
+    loss: Optional[
+        str
+    ] = None  # if cost matrix is in data we don't need loss. Easier to read the code if loss is then set to None
 
     @property
     def is_cost_matrix(self) -> bool:

@@ -1,23 +1,21 @@
-from typing import Union, Literal, Optional, Any
+from abc import ABC, abstractmethod
+from typing import Any, Union, Literal, Optional
+
 from lineageot.inference import get_leaves
 import networkx as nx
-import numpy as np
+
 from numpy.typing import ArrayLike
-from abc import abstractmethod, ABC
+import numpy as np
 
 __all__ = ["LeafDistance"]
 
 
 class BaseLoss(ABC):
-
     @abstractmethod
     def _compute(self, *args: Any, **kwargs: Any) -> ArrayLike:
         pass
 
-    def __call__(self,
-                 *args: Any,
-                 scale: Optional[str] = None,
-                 **kwargs):
+    def __call__(self, *args: Any, scale: Optional[str] = None, **kwargs):
         cost = self._compute(*args, **kwargs)
         if scale is not None:
             return self._normalize(cost, scale)
@@ -29,8 +27,7 @@ class BaseLoss(ABC):
             return LeafDistance()
 
     @staticmethod
-    def _normalize(cost_matrix: ArrayLike,
-                  scale: Union[str, int, float] = "max") -> ArrayLike:
+    def _normalize(cost_matrix: ArrayLike, scale: Union[str, int, float] = "max") -> ArrayLike:
         # TODO: @MUCDK find a way to have this for non-materialized matrices (will be backend specific)
         ...
         if scale == "max":
@@ -47,11 +44,7 @@ class BaseLoss(ABC):
 
 
 class LeafDistance(BaseLoss):
-
-    def _compute(self,
-                 tree: nx.DiGraph,
-                 scale: Literal,
-                 **kwargs: Any):
+    def _compute(self, tree: nx.DiGraph, scale: Literal, **kwargs: Any):
         """
         Computes the matrix of pairwise distances between leaves of the tree
         """
@@ -60,10 +53,10 @@ class LeafDistance(BaseLoss):
         if scale is None:
             return _compute_leaf_distances(tree)
         else:
-            return self.normalize(_compute_leaf_distances(tree), scale) #Can we do this in a stateless class?
+            return self.normalize(_compute_leaf_distances(tree), scale)  # Can we do this in a stateless class?
 
 
-def _compute_leaf_distances(tree): # TODO(MUCDK): this is adapted from lineageOT, we want to make it more efficient.
+def _compute_leaf_distances(tree):  # TODO(MUCDK): this is adapted from lineageOT, we want to make it more efficient.
     """
     Computes the matrix of pairwise distances between leaves of the tree
     """
@@ -71,9 +64,7 @@ def _compute_leaf_distances(tree): # TODO(MUCDK): this is adapted from lineageOT
     num_leaves = len(leaves) - 1
     distances = np.zeros([num_leaves, num_leaves])
     for leaf_index in range(num_leaves):
-        distance_dictionary, tmp = nx.multi_source_dijkstra(tree.to_undirected(), [leaves[leaf_index]], weight = 'time')
+        distance_dictionary, tmp = nx.multi_source_dijkstra(tree.to_undirected(), [leaves[leaf_index]], weight="time")
         for target_leaf_index in range(num_leaves):
             distances[leaf_index, target_leaf_index] = distance_dictionary[leaves[target_leaf_index]]
     return distances
-
-

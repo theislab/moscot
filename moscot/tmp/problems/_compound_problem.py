@@ -1,7 +1,6 @@
 from enum import Enum
 from typing import Any, Dict, Type, Tuple, Union, Literal, Iterator, Optional, Sequence
 from itertools import product
-from numpy.typing import ArrayLike
 
 from pandas.api.types import is_categorical_dtype
 import pandas as pd
@@ -12,7 +11,6 @@ from moscot._base import BaseSolver
 from moscot.tmp.backends.ott import GWSolver, FGWSolver, SinkhornSolver
 from moscot.tmp.solvers._output import BaseSolverOutput
 from moscot.tmp.problems._base_problem import BaseProblem, GeneralProblem
-from moscot.tmp.utils import _validate_losses
 
 
 # TODO(michalk8): should be a base class + subclasses + classmethod create
@@ -74,12 +72,14 @@ class CompoundProblem(BaseProblem):
 
         return self
 
-    def solve(self,
-              eps: Optional[float] = None,
-              alpha: float = 0.5,
-              tau_a: Optional[float] = 1.0,
-              tau_b: Optional[float] = 1.0,
-              **kwargs: Any) -> "BaseProblem":
+    def solve(
+        self,
+        eps: Optional[float] = None,
+        alpha: float = 0.5,
+        tau_a: Optional[float] = 1.0,
+        tau_b: Optional[float] = 1.0,
+        **kwargs: Any,
+    ) -> "BaseProblem":
         self._solutions = {}
         for subset, problem in self._problems.items():
             self._solutions[subset] = problem.solve(eps=eps, alpha=alpha, tau_a=tau_a, tau_b=tau_b, **kwargs)

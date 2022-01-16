@@ -54,7 +54,10 @@ class BaseSolver(ABC):
                 return TaggedArray(arr, tag=tag)
             # force new tag
             return TaggedArray(arr.data, tag=tag)
-        if not isinstance(x, TaggedArray):  # currently we don't provide x_tag as kwarg, hence we would always convert tags here
+
+        if not isinstance(
+            x, TaggedArray
+        ):  # currently we don't provide x_tag as kwarg, hence we would always convert tags here
             x = to_tagged_array(x, kwargs.pop("x_tag", Tag.POINT_CLOUD))
         if not isinstance(x, TaggedArray):
             y = to_tagged_array(y, kwargs.pop("y_tag", Tag.POINT_CLOUD))

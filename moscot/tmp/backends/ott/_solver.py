@@ -4,7 +4,6 @@ from typing import Any, Type, Tuple, Union, Optional
 from ott.geometry import Grid, Geometry, PointCloud
 from ott.core.problems import LinearProblem, QuadraticProblem
 from ott.core.sinkhorn import make as Sinkhorn
-from ott.core.gromov_wasserstein import make as GW
 from ott.geometry.costs import Euclidean
 from ott.core.sinkhorn_lr import LRSinkhorn as SinkhornLR
 from ott.core.gromov_wasserstein import make as GW
@@ -43,6 +42,7 @@ class GeometryMixin:
             if arr.ndim != 2:
                 raise ValueError("TODO: expected 2D")
             return arr
+
         if y is not None:
             cost_fn = y.loss if y.loss is not None else x.loss
             x = ensure_2D(x.data)
@@ -51,7 +51,7 @@ class GeometryMixin:
                 raise ValueError("TODO: x/y dimension mismatch")
             return PointCloud(x, y=y, epsilon=eps, cost_fn=cost_fn, **kwargs)
         if x.is_point_cloud:
-            cost_fn = x.loss #TODO: need mapping from string to ott cost_fn
+            cost_fn = x.loss  # TODO: need mapping from string to ott cost_fn
             return PointCloud(ensure_2D(x.data), epsilon=eps, cost_fn=cost_fn, **kwargs)
         if x.is_grid:
             cost_fn = kwargs.pop("cost_fn", Euclidean())

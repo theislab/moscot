@@ -1,4 +1,4 @@
-from typing import List, Optional, Tuple, Union, Dict
+from typing import Dict, List, Tuple, Union, Optional
 
 from jax import numpy as jnp
 from ott.geometry.costs import CostFn
@@ -6,9 +6,10 @@ from ott.core.gromov_wasserstein import GWLoss
 
 CostFn_t = Union[CostFn, GWLoss]
 from anndata import AnnData
+
 from moscot.framework.settings import strategies_MatchingEstimator
-from moscot.framework.utils.custom_costs import Leaf_distance
 from moscot.framework.geom.geometry import Geom
+from moscot.framework.utils.custom_costs import Leaf_distance
 
 CostFn_t = Union[CostFn, GWLoss]
 CostFn_tree = Union[Leaf_distance]
@@ -16,10 +17,9 @@ CostFn_general = Union[CostFn_t, CostFn_tree]
 Scales = Union["mean", "median", "max"]
 
 
-def _verify_key(adata: AnnData,
-                key: str,
-                policy: Union[List[Tuple], strategies_MatchingEstimator],
-                subset: List = None) -> List[Tuple]:
+def _verify_key(
+    adata: AnnData, key: str, policy: Union[List[Tuple], strategies_MatchingEstimator], subset: List = None
+) -> List[Tuple]:
     """
     verifies that key is a valid adata.obs column name and that the policy is actionable given the data
 
@@ -62,7 +62,7 @@ def _verify_key(adata: AnnData,
         if subset is not None:
             values_adata = values_adata.intersection(set(subset))
         sorted_values = sorted(list(values_adata))
-        return [(sorted_values[i], sorted_values[i+1]) for i in range(len(values_adata)-1)]
+        return [(sorted_values[i], sorted_values[i + 1]) for i in range(len(values_adata) - 1)]
 
     else:
         raise NotImplementedError
@@ -91,11 +91,14 @@ def _create_constant_weights_target(geometry: Geom) -> jnp.ndarray:
     _, num_b = geometry.shape
     return jnp.ones((num_b,)) / num_b
 
+
 def get_param_dict(param, tuple_keys):
     if isinstance(param, list):
         if len(param) != len(tuple_keys):
-            raise ValueError("If 'param' is a list its length must be equal to the number of OT problems solved, "
-                             "i.e. {}".format(len(tuple_keys)))
+            raise ValueError(
+                "If 'param' is a list its length must be equal to the number of OT problems solved, "
+                "i.e. {}".format(len(tuple_keys))
+            )
         return {tup: param[i] for i, tup in enumerate(tuple_keys)}
     elif isinstance(param, dict):
         if not bool(param):

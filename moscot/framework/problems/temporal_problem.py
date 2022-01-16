@@ -1,29 +1,29 @@
 from typing import Any, Dict, List, Tuple, Union, Optional
+
 from networkx import DiGraph
+
 from jax import numpy as jnp
+from ott.geometry.costs import CostFn, Euclidean
 from ott.geometry.geometry import Geometry
 from ott.core.gromov_wasserstein import GWLoss
-import numpy as np
-from ott.geometry.costs import CostFn, Euclidean
-
 from ott.geometry.epsilon_scheduler import Epsilon
+import numpy as np
 
 from anndata import AnnData
 
 from moscot._solver import FusedGW
+from moscot.framework.settings import strategies_MatchingEstimator
+from moscot.framework.geom.utils import _prepare_xy_geometries, _prepare_geoms_from_tree, _prepare_geometries_from_cost
 from moscot.framework.utils.utils import (
     _verify_key,
+    get_param_dict,
     _check_arguments,
     _create_constant_weights_source,
     _create_constant_weights_target,
-    get_param_dict,
 )
-from moscot.framework.geom.utils import _prepare_geometries_from_cost
-from moscot.framework.geom.utils import _prepare_xy_geometries, _prepare_geoms_from_tree
+from moscot.framework.results._results import OTResult
 from moscot.framework.utils.custom_costs import Leaf_distance
 from moscot.framework.problems.BaseProblem import BaseProblem
-from moscot.framework.settings import strategies_MatchingEstimator
-from moscot.framework.results._results import OTResult
 from moscot.framework.results._result_mixins import TemporalResultMixin
 
 CostFn_t = Union[CostFn, GWLoss]
@@ -32,21 +32,20 @@ CostFn_general = Union[CostFn_t, CostFn_tree]
 Scales = Union["mean", "meadian", "max"]
 
 
-
 class TemporalProblem(BaseProblem, TemporalResultMixin):
     """
     This class handles all OT problems revolving around temporal sc data
     """
-    def __init__(self,
-                 adata: AnnData,
-                 **kwargs
-                 ):
+
+    def __init__(self, adata: AnnData, **kwargs):
         super().__init__(adata)
+
 
 class LineageEstimator(TemporalProblem):
     """
     This estimator handles lineage estimation for temporal sc data
     """
+
     def __init__(
         self,
         adata: AnnData,
@@ -135,33 +134,45 @@ class LineageEstimator(TemporalProblem):
         self._transport_sets = _verify_key(self._adata, self._key, policy)
 
         if not isinstance(getattr(self._adata, self.rep), np.ndarray):
-            raise ValueError("The gene expression data in the AnnData object is not correctly saved in {}".format(self.rep))
+            raise ValueError(f"The gene expression data in the AnnData object is not correctly saved in {self.rep}")
 
         if tree_cost_matrix_dict is None:
-            self.xx_geometries_dict = _prepare_geoms_from_tree(self.tree_dict, self.xx_cost_fn, sacle=self.scale, **kwargs)
+            self.xx_geometries_dict = _prepare_geoms_from_tree(
+                self.tree_dict, self.xx_cost_fn, sacle=self.scale, **kwargs
+            )
         else:
             self.xx_geometries_dict = _prepare_geometries_from_cost(tree_cost_matrix_dict, scale=scale, **kwargs)
-        self.xy_geometries_dict = _prepare_xy_geometries(self.adata, self._key, self._transport_sets, self.rep, cost_fn=self.xy_cost_fn,
-                                                    custom_cost_matrix_dict=rna_cost_matrix_dict, scale=self.scale, **kwargs)
+        self.xy_geometries_dict = _prepare_xy_geometries(
+            self.adata,
+            self._key,
+            self._transport_sets,
+            self.rep,
+            cost_fn=self.xy_cost_fn,
+            custom_cost_matrix_dict=rna_cost_matrix_dict,
+            scale=self.scale,
+            **kwargs,
+        )
 
         _check_arguments(a, b, self.xy_geometries_dict)
 
-        if a is None:  # TODO: discuss whether we want to have this here, i.e. whether we want to explicitly create weights because OTT would do this for us.
+        if (
+            a is None
+        ):  # TODO: discuss whether we want to have this here, i.e. whether we want to explicitly create weights because OTT would do this for us.
             # TODO: atm do it here to have all parameter saved in the estimator class
             self.a_dict = {tup: _create_constant_weights_source(geom) for tup, geom in self.xy_geometries_dict.items()}
             self.b_dict = {tup: _create_constant_weights_target(geom) for tup, geom in self.xy_geometries_dict.items()}
 
-        #TODO: add some tests here, e.g. costs should be positive
+        # TODO: add some tests here, e.g. costs should be positive
         return self
 
     def solve(
-            self,
-            epsilon: Optional[Union[List[Union[float, Epsilon]], float, Epsilon]] = 0.5,
-            alpha: Optional[Union[List[float], float]] = 0.5,
-            tau_a: Optional[Union[List, Dict[Tuple, List], float]] = 1.0,
-            tau_b: Optional[Union[List, Dict[Tuple, List], float]] = 1.0,
-            sinkhorn_kwargs: Optional[Union[List, Dict[Tuple, List]]] = {},
-            **kwargs: Any,
+        self,
+        epsilon: Optional[Union[List[Union[float, Epsilon]], float, Epsilon]] = 0.5,
+        alpha: Optional[Union[List[float], float]] = 0.5,
+        tau_a: Optional[Union[List, Dict[Tuple, List], float]] = 1.0,
+        tau_b: Optional[Union[List, Dict[Tuple, List], float]] = 1.0,
+        sinkhorn_kwargs: Optional[Union[List, Dict[Tuple, List]]] = {},
+        **kwargs: Any,
     ) -> "OTResult":
         """
 
@@ -201,10 +212,21 @@ class LineageEstimator(TemporalProblem):
         self.alpha_dict = get_param_dict(alpha, self._transport_sets)
         self.sinkhorn_kwargs_dict = get_param_dict(sinkhorn_kwargs, self._transport_sets)
 
-        self._solver_dict = {tup: FusedGW(alpha=self.alpha_dict[tup], epsilon=self.epsilon_dict[tup]) for tup in self._transport_sets}
+        self._solver_dict = {
+            tup: FusedGW(alpha=self.alpha_dict[tup], epsilon=self.epsilon_dict[tup]) for tup in self._transport_sets
+        }
         for tup, geom in self.xy_geometries_dict.items():
-            self._solver_dict[tup].fit(self.xx_geometries_dict[tup[0]], self.xx_geometries_dict[tup[1]], self.xy_geometries_dict[tup],
-                                       self.a_dict[tup], self.b_dict[tup], tau_a=self.tau_a_dict[tup], tau_b=self.tau_b_dict[tup], **self.sinkhorn_kwargs_dict[tup], **kwargs)
+            self._solver_dict[tup].fit(
+                self.xx_geometries_dict[tup[0]],
+                self.xx_geometries_dict[tup[1]],
+                self.xy_geometries_dict[tup],
+                self.a_dict[tup],
+                self.b_dict[tup],
+                tau_a=self.tau_a_dict[tup],
+                tau_b=self.tau_b_dict[tup],
+                **self.sinkhorn_kwargs_dict[tup],
+                **kwargs,
+            )
 
         return OTResult(self.adata, self._key, self._solver_dict)
 
@@ -214,5 +236,6 @@ class LineageEstimator(TemporalProblem):
 
     @property
     def transport_matrix(self) -> Dict[Tuple, np.ndarray]:
-        return {tup: self._solver_dict[tup]._transport.matrix for tup in
-                self._transport_sets}  # TODO: use getter fn for _transport
+        return {
+            tup: self._solver_dict[tup]._transport.matrix for tup in self._transport_sets
+        }  # TODO: use getter fn for _transport

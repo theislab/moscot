@@ -1,27 +1,25 @@
 from abc import ABC, abstractmethod
 from types import MappingProxyType
-from typing import Any, Type, Tuple, Union, Mapping, Optional, Sequence
-from numpy.typing import ArrayLike
+from typing import Any, Type, Tuple, Union, Mapping, Optional
 
 import numpy.typing as npt
 
 from anndata import AnnData
 
+from moscot.tmp.utils import _get_marginal
 from moscot.tmp.backends.ott import GWSolver, FGWSolver, SinkhornSolver
 from moscot.tmp.solvers._data import Tag, TaggedArray
 from moscot.tmp.solvers._output import BaseSolverOutput
 from moscot.tmp.problems._anndata import AnnDataPointer
 from moscot.tmp.solvers._base_solver import BaseSolver
-from moscot.tmp.utils import _validate_loss
-from moscot.tmp.solvers._data import Tag
-from moscot.tmp.utils import _get_marginal
 
 
 class BaseProblem(ABC):
-    def __init__(self,
-                 adata: AnnData,
-                 solver: Optional[BaseSolver] = None,
-                 ):
+    def __init__(
+        self,
+        adata: AnnData,
+        solver: Optional[BaseSolver] = None,
+    ):
         # TODO(michalk8): check if view, if yes, materialize
         self._adata = adata
         self._solver: BaseSolver = self._create_default_solver(solver)
@@ -138,7 +136,9 @@ class GeneralProblem(BaseProblem):
 
     def prepare(
         self,
-        x: Mapping[str, Any] = MappingProxyType({}), # add loss in dict, key_loss, attr_loss, Optional[Union[str, ArrayLike]]
+        x: Mapping[str, Any] = MappingProxyType(
+            {}
+        ),  # add loss in dict, key_loss, attr_loss, Optional[Union[str, ArrayLike]]
         y: Optional[Mapping[str, Any]] = None,
         xy: Optional[Mapping[str, Any]] = None,
         a_marg: Optional[Mapping[str, Any]] = None,
@@ -156,12 +156,14 @@ class GeneralProblem(BaseProblem):
             self._b = _get_marginal(self._adata_y, **b_marg) if b_marg is not None else _get_marginal(self._adata_y)
         return self
 
-    def solve(self,
-              eps: Optional[float] = None,
-              alpha: float = 0.5,
-              tau_a: Optional[float] = 1.0,
-              tau_b: Optional[float] = 1.0,
-              **kwargs: Any) -> "BaseProblem":
+    def solve(
+        self,
+        eps: Optional[float] = None,
+        alpha: float = 0.5,
+        tau_a: Optional[float] = 1.0,
+        tau_b: Optional[float] = 1.0,
+        **kwargs: Any,
+    ) -> "BaseProblem":
         kwargs["alpha"] = alpha
         if not isinstance(self._solver, FGWSolver):
             kwargs["xx"] = kwargs["yy"] = None

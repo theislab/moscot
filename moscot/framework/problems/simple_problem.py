@@ -1,27 +1,27 @@
 from typing import Any, Dict, List, Tuple, Union, Optional
+
 from jax import numpy as jnp
+from ott.geometry.costs import CostFn, Euclidean
 from ott.geometry.geometry import Geometry
 from ott.core.gromov_wasserstein import GWLoss
-import numpy as np
-from ott.geometry.costs import CostFn, Euclidean
-
 from ott.geometry.epsilon_scheduler import Epsilon
+import numpy as np
 
 from anndata import AnnData
 
 from moscot._solver import Regularized
+from moscot.framework.settings import strategies_MatchingEstimator
+from moscot.framework.geom.utils import _prepare_xy_geometries
 from moscot.framework.utils.utils import (
     _verify_key,
+    get_param_dict,
     _check_arguments,
     _create_constant_weights_source,
     _create_constant_weights_target,
-    get_param_dict,
 )
-from moscot.framework.geom.utils import _prepare_xy_geometries
+from moscot.framework.results._results import OTResult
 from moscot.framework.utils.custom_costs import Leaf_distance
 from moscot.framework.problems.BaseProblem import BaseProblem
-from moscot.framework.settings import strategies_MatchingEstimator
-from moscot.framework.results._results import OTResult
 from moscot.framework.results._result_mixins import ResultMixin
 
 CostFn_t = Union[CostFn, GWLoss]
@@ -34,6 +34,7 @@ class SimpleProblem(BaseProblem, ResultMixin):
     """
     This estimator handles linear OT problems
     """
+
     def __init__(
         self,
         adata: AnnData,
@@ -62,20 +63,26 @@ class SimpleProblem(BaseProblem, ResultMixin):
         super().__init__(adata=adata, **kwargs)
 
     @property
-    def solvers(self) -> Dict[Tuple, Regularized]:  # we need it here because of return type ->Dict[Tuple, **Regularized**]
+    def solvers(
+        self,
+    ) -> Dict[Tuple, Regularized]:  # we need it here because of return type ->Dict[Tuple, **Regularized**]
         return self._solver_dict
 
     @property
-    def transport_matrix(self) -> Dict[
-        Tuple, np.ndarray]:  # we need it here because self._solver_dict of type Dict[Tuple, Regularized] is initialized in this class
-        return {tup: self._solver_dict[tup]._transport.matrix for tup in
-                self._transport_sets}  # TODO use getter function for _transport
+    def transport_matrix(
+        self,
+    ) -> Dict[
+        Tuple, np.ndarray
+    ]:  # we need it here because self._solver_dict of type Dict[Tuple, Regularized] is initialized in this class
+        return {
+            tup: self._solver_dict[tup]._transport.matrix for tup in self._transport_sets
+        }  # TODO use getter function for _transport
 
     def prepare(
         self,
         key: str,
         policy: Union[List[Tuple], strategies_MatchingEstimator],
-        subset: List = None, # e.g. time points [1,3,5,7]
+        subset: List = None,  # e.g. time points [1,3,5,7]
         a: Optional[Union[jnp.array, List[jnp.array]]] = None,
         b: Optional[Union[jnp.array, List[jnp.array]]] = None,
         cost_fn: Optional[CostFn_t] = Euclidean(),
@@ -119,16 +126,18 @@ class SimpleProblem(BaseProblem, ResultMixin):
         self._transport_sets = _verify_key(self._adata, self._key, policy, subset)
         self.scale = scale
         if not isinstance(getattr(self._adata, self.rep), np.ndarray):
-            raise ValueError("The gene expression data in the AnnData object is not correctly saved in {}".format(self.rep))
+            raise ValueError(f"The gene expression data in the AnnData object is not correctly saved in {self.rep}")
 
-        self.geometries_dict = _prepare_xy_geometries(self.adata,
-                                                      key=self._key,
-                                                      transport_sets=self._transport_sets,
-                                                      rep=self.rep,
-                                                      cost_fn=self.cost_fn,
-                                                      custom_cost_matrix_dict=cost_matrix_dict,
-                                                      scale=self.scale,
-                                                      **kwargs)
+        self.geometries_dict = _prepare_xy_geometries(
+            self.adata,
+            key=self._key,
+            transport_sets=self._transport_sets,
+            rep=self.rep,
+            cost_fn=self.cost_fn,
+            custom_cost_matrix_dict=cost_matrix_dict,
+            scale=self.scale,
+            **kwargs,
+        )
 
         _check_arguments(a, b, self.geometries_dict)
 
@@ -144,7 +153,7 @@ class SimpleProblem(BaseProblem, ResultMixin):
         tau_a: Optional[Union[List, Dict[Tuple, List], float]] = 1.0,
         tau_b: Optional[Union[List, Dict[Tuple, List], float]] = 1.0,
         sinkhorn_kwargs: Optional[Union[List, Dict[Tuple, List]]] = {},
-        **kwargs
+        **kwargs,
     ) -> "OTResult":
         """
 
@@ -178,13 +187,18 @@ class SimpleProblem(BaseProblem, ResultMixin):
         self.tau_b_dict = get_param_dict(tau_b, self._transport_sets)
         self.sinkhorn_kwargs_dict = get_param_dict(sinkhorn_kwargs, self._transport_sets)
 
-        self._solver_dict = {tup: Regularized(cost_fn=self.cost_fn, epsilon=self.epsilon_dict[tup]) for tup in self._transport_sets}
+        self._solver_dict = {
+            tup: Regularized(cost_fn=self.cost_fn, epsilon=self.epsilon_dict[tup]) for tup in self._transport_sets
+        }
         for tup, geom in self.geometries_dict.items():
-            self._solver_dict[tup].fit(self.geometries_dict[tup], self.a_dict[tup], self.b_dict[tup],
-                                       tau_a=self.tau_a_dict[tup], tau_b=self.tau_b_dict[tup], **self.sinkhorn_kwargs_dict[tup], **kwargs)
+            self._solver_dict[tup].fit(
+                self.geometries_dict[tup],
+                self.a_dict[tup],
+                self.b_dict[tup],
+                tau_a=self.tau_a_dict[tup],
+                tau_b=self.tau_b_dict[tup],
+                **self.sinkhorn_kwargs_dict[tup],
+                **kwargs,
+            )
 
         return OTResult(self.adata, self._key, self._solver_dict)
-
-
-
-

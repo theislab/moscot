@@ -1,14 +1,14 @@
-from typing import Any, Optional, Union
+from typing import Any, Optional
 from dataclasses import dataclass
-import numpy.typing as npt
-import numpy as np
-from anndata import AnnData
-from numpy.typing import ArrayLike
 
-from moscot.tmp.solvers._data import Tag, TaggedArray
-from moscot.tmp._costs import BaseLoss
-from moscot.tmp._costs import __all__ as moscot_losses
+import numpy as np
+import numpy.typing as npt
+
+from anndata import AnnData
+
 from moscot.tmp.utils import _get_backend_losses
+from moscot.tmp._costs import __all__ as moscot_losses, BaseLoss
+from moscot.tmp.solvers._data import Tag, TaggedArray
 
 
 @dataclass(frozen=True)
@@ -20,10 +20,9 @@ class AnnDataPointer:
     # TODO(michalk8): determine whether this needs to really be here or can be inferred purely from loss/attr
     tag: Tag = Tag.POINT_CLOUD
     loss: str = "Euclidean"
-    #TODO(MUCDK): handle Grid cost. this must be a sequence: https://github.com/google-research/ott/blob/b1adc2894b76b7360f639acb10181f2ce97c656a/ott/geometry/grid.py#L55
+    # TODO(MUCDK): handle Grid cost. this must be a sequence: https://github.com/google-research/ott/blob/b1adc2894b76b7360f639acb10181f2ce97c656a/ott/geometry/grid.py#L55
 
     def create(self, **kwargs: Any) -> TaggedArray:  # I rewrote the logic a bit as this way I find it more readable
-
         def ensure_2D(arr: npt.ArrayLike, *, allow_reshape: bool = True) -> np.ndarray:
             arr = np.asarray(arr)
             arr = np.reshape(arr, (-1, 1)) if (allow_reshape and arr.ndim == 1) else arr
