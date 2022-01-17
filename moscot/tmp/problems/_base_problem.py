@@ -66,29 +66,33 @@ class BaseProblem(ABC):
     @staticmethod
     def _get_mass(
         adata: AnnData,
+        # TODO: Sequence[str]
         data: Optional[Union[str, npt.ArrayLike]] = None,
         subset: Optional[Sequence[Any]] = None,
         normalize: bool = True,
     ) -> npt.ArrayLike:
         if data is None:
             data = np.ones((adata.n_obs,), dtype=float)
-        elif isinstance(data, str):
-            if subset is None:
-                data = np.ones((adata.n_obs,), dtype=float)
+        elif isinstance(data, (str, list, tuple)):
+            # TODO: allow mix numeric/categorical keys (how to handle multiple subsets then?)
+            if subset is None:  # allow for numeric values
+                data = np.asarray(adata.obs[data], dtype=float)
             elif isinstance(subset, Iterable) and not isinstance(subset, str):
                 data = np.asarray(adata.obs[data].isin(subset), dtype=float)
             else:
                 data = np.asarray(adata.obs[data] == subset, dtype=float)
         else:
             data = np.asarray(data)
-            if data.ndim != 2:
-                raise ValueError("TODO: wrong dim")
-            if data.shape[0] != adata.n_obs:
-                raise ValueError("TODO: wrong shape")
 
-        total = np.sum(data)
-        if not total:
+        if data.ndim != 2:
+            data = np.reshape(data, (-1, 1))
+        if data.shape[0] != adata.n_obs:
+            raise ValueError("TODO: wrong shape")
+
+        total = np.sum(data != 0, axis=0)[None, :]
+        if not np.all(total > 0):
             raise ValueError("TODO: no mass.")
+
         return data / total if normalize else data
 
 
