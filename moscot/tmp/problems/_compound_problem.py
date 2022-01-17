@@ -5,12 +5,15 @@ from itertools import product
 from pandas.api.types import is_categorical_dtype
 import pandas as pd
 
+import numpy.typing as npt
+
 from anndata import AnnData
 
 from moscot._base import BaseSolver
 from moscot.tmp.backends.ott import GWSolver, FGWSolver, SinkhornSolver
 from moscot.tmp.solvers._output import BaseSolverOutput
 from moscot.tmp.problems._base_problem import BaseProblem, GeneralProblem
+from moscot.tmp.problems._subset_policy import SubsetPolicy
 
 
 # TODO(michalk8): should be a base class + subclasses + classmethod create
@@ -55,6 +58,7 @@ class CompoundProblem(BaseProblem):
 
         self._problems: Optional[Dict[Tuple[Any, Any], GeneralProblem]] = None
         self._solutions: Optional[Dict[Tuple[Any, Any], BaseSolverOutput]] = None
+        self._subset: Optional[SubsetPolicy] = None
 
     def prepare(
         self,
@@ -63,11 +67,10 @@ class CompoundProblem(BaseProblem):
         policy: Literal["pairwise", "subsequent", "upper_diag"] = "pairwise",
         **kwargs: Any,
     ) -> "BaseProblem":
-
-        subsets = Policy(policy).create(self.adata.obs[key], subset=subset)
+        self._subset = SubsetPolicy.create(policy, self.adata, key=key)
         self._problems = {
             subset: GeneralProblem(self.adata[x_mask, :], self.adata[y_mask, :], solver=self._solver).prepare(**kwargs)
-            for subset, (x_mask, y_mask) in subsets.items()
+            for subset, (x_mask, y_mask) in self._subset.subset.items()
         }
 
         return self
@@ -85,6 +88,20 @@ class CompoundProblem(BaseProblem):
             self._solutions[subset] = problem.solve(eps=eps, alpha=alpha, tau_a=tau_a, tau_b=tau_b, **kwargs)
 
         return self
+
+    def _apply(self, x: npt.ArrayLike, *, forward: bool) -> npt.ArrayLike:
+        pass
+
+    def push_forward(
+        self,
+        key: Union[str, npt.ArrayLike],
+        subset: Optional[Sequence[Any]] = None,
+        start: Optional[Any] = None,
+        end: Optional[Any] = None,
+        normalize: bool = True,
+        as_operator: bool = False,
+    ) -> npt.ArrayLike:
+        pass
 
     @property
     def _valid_solver_types(self) -> Tuple[Type[BaseSolver], ...]:
