@@ -9,7 +9,7 @@ import numpy.typing as npt
 
 from anndata import AnnData
 
-from moscot._base import BaseSolver
+from moscot.moscot.solvers._base_solver import BaseSolver
 from moscot.moscot.backends.ott import GWSolver, FGWSolver, SinkhornSolver
 from moscot.moscot.solvers._output import BaseSolverOutput
 from moscot.moscot.problems._base_problem import BaseProblem, GeneralProblem
