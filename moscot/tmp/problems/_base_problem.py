@@ -81,7 +81,9 @@ class BaseProblem(ABC):
                 data = np.asarray(adata.obs[data] == subset, dtype=float)
         else:
             data = np.asarray(data)
-            if data.shape != (adata.n_obs,):
+            if data.ndim != 2:
+                raise ValueError("TODO: wrong dim")
+            if data.shape[0] != adata.n_obs:
                 raise ValueError("TODO: wrong shape")
 
         total = np.sum(data)
