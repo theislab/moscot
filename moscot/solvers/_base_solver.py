@@ -3,8 +3,8 @@ from typing import Any, Union, Optional
 
 import numpy.typing as npt
 
-from moscot.moscot.solvers._data import Tag, TaggedArray
-from moscot.moscot.solvers._output import BaseSolverOutput
+from moscot.solvers._data import Tag, TaggedArray
+from moscot.solvers._output import BaseSolverOutput
 
 ArrayLike = Union[npt.ArrayLike, TaggedArray]
 

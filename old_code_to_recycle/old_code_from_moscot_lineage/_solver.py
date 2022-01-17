@@ -16,8 +16,8 @@ GWLoss = GWSqEuclLoss = type(None)
 from ott.geometry.epsilon_scheduler import Epsilon
 import numpy as np
 
-from moscot._base import CostFn_t, BaseSolver
-from moscot._mixins import SimpleMixin, TransportMixin
+from msc._base import CostFn_t, BaseSolver
+from msc._mixins import SimpleMixin, TransportMixin
 
 
 class RegularizedOT(BaseSolver, ABC):

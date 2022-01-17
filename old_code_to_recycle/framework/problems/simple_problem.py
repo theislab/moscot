@@ -9,7 +9,7 @@ import numpy as np
 
 from anndata import AnnData
 
-from moscot._solver import Regularized
+from msc._solver import Regularized
 from old_code_to_recycle.framework.settings import strategies_MatchingEstimator
 from old_code_to_recycle.framework.geom.utils import _prepare_xy_geometries
 from old_code_to_recycle.framework.utils.utils import (

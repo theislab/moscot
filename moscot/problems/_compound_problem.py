@@ -9,11 +9,11 @@ import numpy.typing as npt
 
 from anndata import AnnData
 
-from moscot.moscot.solvers._base_solver import BaseSolver
-from moscot.moscot.backends.ott import GWSolver, FGWSolver, SinkhornSolver
-from moscot.moscot.solvers._output import BaseSolverOutput
-from moscot.moscot.problems._base_problem import BaseProblem, GeneralProblem
-from moscot.moscot.problems._subset_policy import StarPolicy, SubsetPolicy, ExplicitPolicy
+from moscot.solvers._base_solver import BaseSolver
+from moscot.backends.ott import GWSolver, FGWSolver, SinkhornSolver
+from moscot.solvers._output import BaseSolverOutput
+from moscot.problems._base_problem import BaseProblem, GeneralProblem
+from moscot.problems._subset_policy import StarPolicy, SubsetPolicy, ExplicitPolicy
 
 
 # TODO(michalk8): should be a base class + subclasses + classmethod create

@@ -6,9 +6,9 @@ import numpy.typing as npt
 
 from anndata import AnnData
 
-from moscot.moscot.utils import _get_backend_losses
-from moscot.moscot._costs import __all__ as moscot_losses, BaseLoss
-from moscot.moscot.solvers._data import Tag, TaggedArray
+from moscot.utils import _get_backend_losses
+from moscot._costs import __all__ as moscot_losses, BaseLoss
+from moscot.solvers._data import Tag, TaggedArray
 
 
 @dataclass(frozen=True)

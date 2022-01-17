@@ -11,12 +11,12 @@ from ott.core.gromov_wasserstein import make as GW
 import jax.numpy as jnp
 import numpy.typing as npt
 
-from moscot.moscot.solvers._data import TaggedArray
+from moscot.solvers._data import TaggedArray
 
 # TODO(michalk8): initialize ott solvers in init (so that they are not re-jitted
-from moscot.moscot.solvers._output import BaseSolverOutput
-from moscot.moscot.backends.ott._output import GWOutput, SinkhornOutput, LRSinkhornOutput
-from moscot.moscot.solvers._base_solver import BaseSolver
+from moscot.solvers._output import BaseSolverOutput
+from moscot.backends.ott._output import GWOutput, SinkhornOutput, LRSinkhornOutput
+from moscot.solvers._base_solver import BaseSolver
 
 
 class Cost(str, Enum):

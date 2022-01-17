@@ -11,7 +11,7 @@ import numpy as np
 
 from anndata import AnnData
 
-from moscot._solver import FusedGW
+from msc._solver import FusedGW
 from old_code_to_recycle.framework.settings import strategies_MatchingEstimator
 from old_code_to_recycle.framework.geom.utils import (
     _prepare_xy_geometries,

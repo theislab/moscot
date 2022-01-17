@@ -3,7 +3,7 @@ from pathlib import Path
 from setuptools import setup, find_packages
 
 try:
-    from moscot import __email__, __author__, __version__
+    from msc import __email__, __author__, __version__
 except ImportError:
     __author__ = ""
     __version__ = "0.0.0"

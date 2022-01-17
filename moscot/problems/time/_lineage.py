@@ -1,5 +1,5 @@
-from moscot.moscot.mixins import TemporalAnalysisMixin
-from moscot.moscot.problems._compound_problem import CompoundProblem
+from moscot.mixins import TemporalAnalysisMixin
+from moscot.problems._compound_problem import CompoundProblem
 
 
 class TemporalProblem(TemporalAnalysisMixin, CompoundProblem):

@@ -2,7 +2,7 @@ from typing import Any
 
 from numpy import typing as npt
 
-from moscot.moscot.mixins._base_analysis import AnalysisMixin
+from moscot.mixins._base_analysis import AnalysisMixin
 
 
 class TemporalAnalysisMixin(AnalysisMixin):

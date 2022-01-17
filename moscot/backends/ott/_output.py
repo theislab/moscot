@@ -6,7 +6,7 @@ from ott.core.sinkhorn_lr import LRSinkhornOutput as OTTLRSinkhornOutput
 from ott.core.gromov_wasserstein import GWOutput as OTTGWOutput
 import jax.numpy as jnp
 
-from moscot.moscot.solvers._output import MatrixSolverOutput, PotentialSolverOutput
+from moscot.solvers._output import MatrixSolverOutput, PotentialSolverOutput
 
 
 class SinkhornOutput(PotentialSolverOutput):

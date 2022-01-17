@@ -7,12 +7,12 @@ import numpy.typing as npt
 
 from anndata import AnnData
 
-from moscot.moscot.utils import _get_marginal
-from moscot.moscot.backends.ott import GWSolver, FGWSolver, SinkhornSolver
-from moscot.moscot.solvers._data import Tag, TaggedArray
-from moscot.moscot.solvers._output import BaseSolverOutput
-from moscot.moscot.problems._anndata import AnnDataPointer
-from moscot.moscot.solvers._base_solver import BaseSolver
+from moscot.utils import _get_marginal
+from moscot.backends.ott import GWSolver, FGWSolver, SinkhornSolver
+from moscot.solvers._data import Tag, TaggedArray
+from moscot.solvers._output import BaseSolverOutput
+from moscot.problems._anndata import AnnDataPointer
+from moscot.solvers._base_solver import BaseSolver
 
 
 class BaseProblem(ABC):

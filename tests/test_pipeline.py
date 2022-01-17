@@ -10,9 +10,9 @@ from ott.geometry.geometry import Geometry
 from ott.core.gromov_wasserstein import gromov_wasserstein
 import numpy as np
 
-from moscot import GW, FusedGW, Regularized
-from moscot._base import BaseSolver
-from moscot._solver import BaseGW
+from msc import GW, FusedGW, Regularized
+from msc._base import BaseSolver
+from msc._solver import BaseGW
 
 
 @pytest.mark.parametrize("solver_t", [Regularized, GW, FusedGW])
