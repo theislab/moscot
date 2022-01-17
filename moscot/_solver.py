@@ -318,7 +318,7 @@ class FusedGW(SimpleMixin, BaseGW):
             print(
                 fmt.format(
                     "It.",
-                    "Loss",
+                    "Cost",
                     "Rel. loss   ",
                     "Abs. loss   ",
                     "tau         ",

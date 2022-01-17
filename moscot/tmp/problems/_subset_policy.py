@@ -87,7 +87,9 @@ class SubsetPolicy:
 
         raise NotImplementedError(kind)
 
-    def chain(self, start: Any, end: Any) -> List[Item_t]:
+    def chain(self, start: Optional[Any] = None, end: Optional[Any] = None) -> List[Item_t]:
+        start = self._cat[0] if start is None else start
+        end = self._cat[-1] if end is None else end
         if start == end:
             raise ValueError("TODO: start is the same as end.")
         if self._subset is None:
@@ -147,11 +149,15 @@ class ExplicitPolicy(SubsetPolicy):
         # pass-through, all checks are done by us later
         return subset
 
-    def chain(self, start: Any, end: Any, interp_step: Optional[Union[int, float]] = None) -> List[Item_t]:
+    def chain(
+        self, start: Optional[Any] = None, end: Optional[Any] = None, interp_step: Optional[Union[int, float]] = None
+    ) -> List[Item_t]:
         if not interp_step:
             return super().chain(start, end)
-        # TODO: if data not ordered, raise
-        G = nx.DiGraph()
+
+        start = self._cat[0] if start is None else start
+        end = self._cat[-1] if end is None else end
+        G = nx.DiGraph()  # TODO: if data not ordered, raise
 
         if isinstance(interp_step, int):
             G.add_edges_from(

@@ -29,12 +29,12 @@ class BaseSolverOutput(ABC):
     def converged(self) -> bool:
         pass
 
-    def push_forward(self, x: npt.ArrayLike) -> npt.ArrayLike:
+    def push(self, x: npt.ArrayLike) -> npt.ArrayLike:
         if x.shape[0] != self.shape[0]:
             raise ValueError("TODO: wrong shape")
         return self._apply(x, forward=True)
 
-    def pull_backward(self, x: npt.ArrayLike) -> npt.ArrayLike:
+    def rename(self, x: npt.ArrayLike) -> npt.ArrayLike:
         if x.shape[0] != self.shape[1]:
             raise ValueError("TODO: wrong shape")
         return self._apply(x, forward=False)

@@ -5,6 +5,7 @@ from itertools import product
 from pandas.api.types import is_categorical_dtype
 import pandas as pd
 
+import numpy as np
 import numpy.typing as npt
 
 from anndata import AnnData
@@ -67,10 +68,10 @@ class CompoundProblem(BaseProblem):
         policy: Literal["pairwise", "subsequent", "upper_diag"] = "pairwise",
         **kwargs: Any,
     ) -> "BaseProblem":
-        self._subset = SubsetPolicy.create(policy, self.adata, key=key)
+        self._subset = SubsetPolicy.create(policy, self.adata, key=key).subset()
         self._problems = {
             subset: GeneralProblem(self.adata[x_mask, :], self.adata[y_mask, :], solver=self._solver).prepare(**kwargs)
-            for subset, (x_mask, y_mask) in self._subset.subset.items()
+            for subset, (x_mask, y_mask) in self._subset.mask(discard_empty=True)
         }
 
         return self
@@ -92,16 +93,17 @@ class CompoundProblem(BaseProblem):
     def _apply(self, x: npt.ArrayLike, *, forward: bool) -> npt.ArrayLike:
         pass
 
-    def push_forward(
+    def push(
         self,
         key: Union[str, npt.ArrayLike],
         subset: Optional[Sequence[Any]] = None,
         start: Optional[Any] = None,
         end: Optional[Any] = None,
         normalize: bool = True,
-        as_operator: bool = False,
     ) -> npt.ArrayLike:
-        pass
+        if isinstance(key, str):
+            key = ...
+        key = np.asarray(key)
 
     @property
     def _valid_solver_types(self) -> Tuple[Type[BaseSolver], ...]:

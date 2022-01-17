@@ -1,7 +1,8 @@
 from abc import ABC, abstractmethod
 from types import MappingProxyType
-from typing import Any, Type, Tuple, Union, Mapping, Optional
+from typing import Any, Type, Tuple, Union, Mapping, Iterable, Optional, Sequence
 
+import numpy as np
 import numpy.typing as npt
 
 from anndata import AnnData
@@ -61,6 +62,30 @@ class BaseProblem(ABC):
         # TODO(michalk8): this assumes all solvers always have defaults
         # alt. would be to force a classmethod called e.g. `BaseSolver.create(cls)`
         return self._valid_solver_types[0]()
+
+    @staticmethod
+    def _get_mass(
+        adata: AnnData,
+        key: Union[str, npt.ArrayLike],
+        subset: Optional[Sequence[Any]] = None,
+        normalize: bool = True,
+    ) -> npt.ArrayLike:
+        if isinstance(key, str):
+            if subset is None:
+                values = np.ones((adata.n_obs,), dtype=float)
+            elif isinstance(subset, Iterable) and not isinstance(subset, str):
+                values = np.asarray(adata.obs[key].isin(subset), dtype=float)
+            else:
+                values = np.asarray(adata.obs[key] == subset, dtype=float)
+        else:
+            values = np.asarray(key)
+            if values.shape != (adata.n_obs,):
+                raise ValueError("TODO: wrong shape")
+
+        total = np.sum(values)
+        if not total:
+            raise ValueError("TODO: no mass.")
+        return values / total if normalize else values
 
 
 class GeneralProblem(BaseProblem):
@@ -176,15 +201,23 @@ class GeneralProblem(BaseProblem):
             # cost/kernel
             kwargs["xx"] = self._xy
             kwargs["yy"] = None
+
         self._solution = self._solver(self._x, self._y, self._a, self._b, eps=eps, tau_a=tau_a, tau_b=tau_b, **kwargs)
         return self
 
-    # TODO(michalk8): require in BaseProblem
-    def push_forward(self, x: npt.ArrayLike, **_: Any) -> npt.ArrayLike:
-        return self.solution.push_forward(x)
+    # TODO(michalk8): require in BaseProblem?
+    def push(
+        self, key: Union[str, npt.ArrayLike], subset: Optional[Sequence[Any]] = None, normalize: bool = True
+    ) -> npt.ArrayLike:
+        key = self._get_mass(self.adata, key, subset, normalize=normalize)
+        return self.solution.push(key)
 
-    def pull_backward(self, x: npt.ArrayLike, **_: Any) -> npt.ArrayLike:
-        return self.solution.pull_backward(x)
+    def pull(
+        self, key: Union[str, npt.ArrayLike], subset: Optional[Sequence[Any]] = None, normalize: bool = True
+    ) -> npt.ArrayLike:
+        adata = self.adata if self._adata_y is None else self._adata_y
+        key = self._get_mass(adata, key, subset, normalize=normalize)
+        return self.solution.rename(key)
 
     @property
     def solution(self) -> Optional[BaseSolverOutput]:

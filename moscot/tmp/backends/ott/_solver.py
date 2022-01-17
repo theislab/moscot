@@ -1,10 +1,11 @@
 from abc import abstractmethod
-from typing import Any, Type, Tuple, Union, Optional
+from enum import Enum
+from typing import Any, Dict, Type, Tuple, Union, Optional
 
 from ott.geometry import Grid, Geometry, PointCloud
 from ott.core.problems import LinearProblem, QuadraticProblem
 from ott.core.sinkhorn import make as Sinkhorn
-from ott.geometry.costs import Euclidean
+from ott.geometry.costs import Bures, Cosine, CostFn, Euclidean, UnbalancedBures
 from ott.core.sinkhorn_lr import LRSinkhorn as SinkhornLR
 from ott.core.gromov_wasserstein import make as GW
 import jax.numpy as jnp
@@ -16,6 +17,24 @@ from moscot.tmp.solvers._data import TaggedArray
 from moscot.tmp.solvers._output import BaseSolverOutput
 from moscot.tmp.backends.ott._output import GWOutput, SinkhornOutput, LRSinkhornOutput
 from moscot.tmp.solvers._base_solver import BaseSolver
+
+
+class Cost(str, Enum):
+    SQEUCL = "sqeucl"
+    COSINE = "cosine"
+    BURES = "bures"
+    BUREL_UNBAL = "bures_unbal"
+
+    def __call__(self, **kwargs: Any) -> CostFn:
+        return _losses[self.value](**kwargs)
+
+
+_losses: Dict[str, Type[CostFn]] = {
+    Cost.SQEUCL: Euclidean,
+    Cost.COSINE: Cosine,
+    Cost.BURES: Bures,
+    Cost.BUREL_UNBAL: UnbalancedBures,
+}
 
 
 class GeometryMixin:
@@ -36,35 +55,31 @@ class GeometryMixin:
         eps: Optional[float] = None,
         **kwargs: Any,
     ) -> Geometry:
-        def ensure_2D(arr: npt.ArrayLike, *, allow_reshape: bool = True) -> jnp.ndarray:
-            arr = jnp.asarray(arr)
-            arr = jnp.reshape(arr, (-1, 1)) if (allow_reshape and arr.ndim == 1) else arr
-            if arr.ndim != 2:
-                raise ValueError("TODO: expected 2D")
-            return arr
-
         if y is not None:
-            cost_fn = y.loss if y.loss is not None else x.loss
-            x = ensure_2D(x.data)
-            y = ensure_2D(y.data)
+            # TODO: pass cost kwargs
+            cost_fn = self._create_cost(x.loss if y.loss is None else y.loss)
+            x, y = self._assert2d(x.data), self._assert2d(y.data)
             if x.shape[1] != y.shape[1]:
                 raise ValueError("TODO: x/y dimension mismatch")
             return PointCloud(x, y=y, epsilon=eps, cost_fn=cost_fn, **kwargs)
         if x.is_point_cloud:
-            cost_fn = x.loss  # TODO: need mapping from string to ott cost_fn
-            return PointCloud(ensure_2D(x.data), epsilon=eps, cost_fn=cost_fn, **kwargs)
+            # TODO: pass cost kwargs
+            cost_fn = self._create_cost(x.loss)
+            return PointCloud(self._assert2d(x.data), epsilon=eps, cost_fn=cost_fn, **kwargs)
         if x.is_grid:
-            cost_fn = kwargs.pop("cost_fn", Euclidean())
+            # TODO: pass cost kwargs
+            cost_fn = self._create_cost(x.loss)
             return Grid(jnp.asarray(x.data), epsilon=eps, cost_fn=cost_fn, **kwargs)
         if x.is_cost_matrix:
-            return Geometry(cost_matrix=ensure_2D(x.data, allow_reshape=False), epsilon=eps, **kwargs)
+            return Geometry(cost_matrix=self._assert2d(x.data, allow_reshape=False), epsilon=eps, **kwargs)
         if x.is_kernel:
-            return Geometry(kernel_matrix=ensure_2D(x.loss, allow_reshape=False), epsilon=eps, **kwargs)
+            return Geometry(kernel_matrix=self._assert2d(x.loss, allow_reshape=False), epsilon=eps, **kwargs)
 
-        raise NotImplementedError(x)
+        raise NotImplementedError("TODO: invalid tag")
 
+    @staticmethod
     def _set_eps(
-        self, problem: Union[LinearProblem, QuadraticProblem], eps: Optional[float] = None
+        problem: Union[LinearProblem, QuadraticProblem], eps: Optional[float] = None
     ) -> Union[LinearProblem, QuadraticProblem]:
         if eps is None:
             # TODO(michalk8): mb. the below code also works for this case
@@ -81,6 +96,22 @@ class GeometryMixin:
                 problem.geom_xy.copy_epsilon(eps_geom)
             return problem
         raise TypeError("TODO: expected OTT problem")
+
+    @staticmethod
+    def _assert2d(arr: npt.ArrayLike, *, allow_reshape: bool = True) -> jnp.ndarray:
+        arr = jnp.asarray(arr)
+        arr = jnp.reshape(arr, (-1, 1)) if (allow_reshape and arr.ndim == 1) else arr
+        if arr.ndim != 2:
+            raise ValueError("TODO: expected 2D")
+        return arr
+
+    @staticmethod
+    def _create_cost(cost: Optional[Union[str, CostFn]], **kwargs: Any) -> CostFn:
+        if isinstance(cost, CostFn):
+            return cost
+        if cost is None:
+            cost = "sqeucl"
+        return Cost(cost)(**kwargs)
 
     def _solve(self, data: Union[LinearProblem, QuadraticProblem], **kwargs: Any) -> BaseSolverOutput:
         return self._solver_output[1](self._solver(data, **kwargs))

@@ -59,11 +59,11 @@ class BaseSolver(ABC):
             x, TaggedArray
         ):  # currently we don't provide x_tag as kwarg, hence we would always convert tags here
             x = to_tagged_array(x, kwargs.pop("x_tag", Tag.POINT_CLOUD))
-        if not isinstance(x, TaggedArray):
+        if not isinstance(y, TaggedArray):
             y = to_tagged_array(y, kwargs.pop("y_tag", Tag.POINT_CLOUD))
-        if not isinstance(x, TaggedArray):
+        if not isinstance(xx, TaggedArray):
             xx = to_tagged_array(xx, kwargs.pop("xx_tag", Tag.COST_MATRIX) if yy is None else Tag.POINT_CLOUD)
-        if not isinstance(x, TaggedArray):
+        if not isinstance(yy, TaggedArray):
             yy = to_tagged_array(yy, kwargs.pop("yy_tag", Tag.POINT_CLOUD))
 
         # TODO(michalk8): create TaggedArray here if not passed, taking x_tag/y_tag/xy_tag from kwargs
