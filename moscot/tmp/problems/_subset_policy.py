@@ -80,6 +80,8 @@ class SubsetPolicy:
             return SequentialPolicy(adata, key=key)
         if kind == "pairwise":
             return PairwisePolicy(adata, key=key)
+        if kind == "star":
+            return StarPolicy(adata, key=key)
         if kind == "triu":
             return TriangularPolicy(adata, key=key, upper=True)
         if kind == "tril":
@@ -130,6 +132,11 @@ class OrderedPolicy(SubsetPolicy, ABC):
 class PairwisePolicy(SubsetPolicy):
     def _create_subset(self, *_: Any, **__: Any) -> Sequence[Item_t]:
         return [(a, b) for a, b in zip(self._cat[:-1], self._cat[1:])]
+
+
+class StarPolicy(SubsetPolicy):
+    def _create_subset(self, reference: Any, **kwargs: Any) -> Sequence[Item_t]:
+        return [(c, reference) for c in self._cat if c != reference]
 
 
 class SequentialPolicy(OrderedPolicy):
