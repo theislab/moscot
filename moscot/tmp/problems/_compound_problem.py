@@ -14,7 +14,7 @@ from moscot._base import BaseSolver
 from moscot.tmp.backends.ott import GWSolver, FGWSolver, SinkhornSolver
 from moscot.tmp.solvers._output import BaseSolverOutput
 from moscot.tmp.problems._base_problem import BaseProblem, GeneralProblem
-from moscot.tmp.problems._subset_policy import SubsetPolicy
+from moscot.tmp.problems._subset_policy import SubsetPolicy, ExplicitPolicy
 
 
 # TODO(michalk8): should be a base class + subclasses + classmethod create
@@ -65,13 +65,17 @@ class CompoundProblem(BaseProblem):
         self,
         key: str,
         subset: Optional[Sequence[Any]] = None,
-        policy: Literal["pairwise", "subsequent", "upper_diag"] = "pairwise",
+        policy: Literal["sequential", "pairwise", "triu", "tril", "explicit"] = "sequential",
         **kwargs: Any,
     ) -> "BaseProblem":
-        self._subset = SubsetPolicy.create(policy, self.adata, key=key).subset()
+        if isinstance(policy, str):
+            self._subset = SubsetPolicy.create(policy, self.adata, key=key).subset(subset)
+        else:  # policy contains the actual pairs
+            self._subset = ExplicitPolicy(self.adata, key=key).subset(subset, policy)
+
         self._problems = {
             subset: GeneralProblem(self.adata[x_mask, :], self.adata[y_mask, :], solver=self._solver).prepare(**kwargs)
-            for subset, (x_mask, y_mask) in self._subset.mask(discard_empty=True)
+            for subset, (x_mask, y_mask) in self._subset.mask(discard_empty=True).items()
         }
 
         return self

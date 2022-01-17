@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 from typing import Any, Dict, List, Sized, Tuple, Union, Literal, Optional, Sequence
-from operator import ge, le
+from operator import gt, lt
 from itertools import product
 
 import pandas as pd
@@ -62,12 +62,14 @@ class SubsetPolicy:
     def _create_subset(self, *args: Any, **kwargs: Any) -> Sequence[Item_t]:
         pass
 
-    def subset(self, *args: Any, **kwargs: Any) -> "SubsetPolicy":
+    def subset(self, filter: Optional[Sequence[Any]], *args: Any, **kwargs: Any) -> "SubsetPolicy":
         subset = self._create_subset(*args, **kwargs)
-        if not len(subset):
-            raise ValueError("TODO: empty subset")
         if not all(isinstance(s, Sized) and len(s) == 2 for s in subset):
             raise ValueError("TODO: not all values are two-pair")
+        if filter is not None:
+            subset = [(a, b) for a, b in subset if (a in filter and b in filter) or (a, b) in filter]
+        if not len(subset):
+            raise ValueError("TODO: empty subset")
         # TODO(michalk8): make unique, but order-preserving
         self._subset = subset
         return self
@@ -131,14 +133,14 @@ class PairwisePolicy(SubsetPolicy):
 
 
 class SequentialPolicy(OrderedPolicy):
-    def _create_subset(self, *args: Any, **kwargs: Any) -> Sequence[Item_t]:
+    def _create_subset(self, *_: Any, **__: Any) -> Sequence[Item_t]:
         return [(c, self._cat.next(c)) for c in self._cat[:-1]]
 
 
 class TriangularPolicy(OrderedPolicy):
     def __init__(self, adata: Union[AnnData, pd.Series, pd.Categorical], key: Optional[str] = None, upper: bool = True):
         super().__init__(adata, key=key)
-        self._compare = le if upper else ge
+        self._compare = lt if upper else gt
 
     def _create_subset(self, *_: Any, **__: Any) -> Sequence[Item_t]:
         return [(a, b) for a, b in product(self._cat, self._cat) if self._compare(a, b)]
