@@ -161,24 +161,21 @@ class GeneralProblem(BaseProblem):
 
     def prepare(
         self,
-        x: Mapping[str, Any] = MappingProxyType(
-            {}
-        ),  # add loss in dict, key_loss, attr_loss, Optional[Union[str, ArrayLike]]
+        # add loss in dict, key_loss, attr_loss, Optional[Union[str, ArrayLike]]
+        x: Mapping[str, Any] = MappingProxyType({}),
         y: Optional[Mapping[str, Any]] = None,
         xy: Optional[Mapping[str, Any]] = None,
-        a_marg: Optional[Mapping[str, Any]] = None,
-        b_marg: Optional[Mapping[str, Any]] = None,
+        a_marg: Optional[Mapping[str, Any]] = MappingProxyType({}),
+        b_marg: Optional[Mapping[str, Any]] = MappingProxyType({}),
         **kwargs: Any,
     ) -> "BaseProblem":
-
         self._x = AnnDataPointer(adata=self.adata, **x).create(**kwargs)
         self._y = None if y is None else AnnDataPointer(adata=self._adata_y, **y).create(**kwargs)
         self._xy = None if xy is None else self._handle_joint(**xy, create_kwargs=kwargs)
-        self._a = _get_marginal(self.adata, **a_marg) if a_marg is not None else _get_marginal(self.adata)
-        if self._adata_y is None:
-            self._b = _get_marginal(self.adata, **b_marg) if b_marg is not None else _get_marginal(self.adata)
-        else:
-            self._b = _get_marginal(self._adata_y, **b_marg) if b_marg is not None else _get_marginal(self._adata_y)
+
+        self._a = _get_marginal(self.adata, **a_marg)
+        self._b = _get_marginal(self.adata if self._adata_y is None else self._adata_y, **b_marg)
+
         return self
 
     def solve(
