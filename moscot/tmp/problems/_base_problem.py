@@ -66,26 +66,28 @@ class BaseProblem(ABC):
     @staticmethod
     def _get_mass(
         adata: AnnData,
-        key: Union[str, npt.ArrayLike],
+        data: Optional[Union[str, npt.ArrayLike]] = None,
         subset: Optional[Sequence[Any]] = None,
         normalize: bool = True,
     ) -> npt.ArrayLike:
-        if isinstance(key, str):
+        if data is None:
+            data = np.ones((adata.n_obs,), dtype=float)
+        elif isinstance(data, str):
             if subset is None:
-                values = np.ones((adata.n_obs,), dtype=float)
+                data = np.ones((adata.n_obs,), dtype=float)
             elif isinstance(subset, Iterable) and not isinstance(subset, str):
-                values = np.asarray(adata.obs[key].isin(subset), dtype=float)
+                data = np.asarray(adata.obs[data].isin(subset), dtype=float)
             else:
-                values = np.asarray(adata.obs[key] == subset, dtype=float)
+                data = np.asarray(adata.obs[data] == subset, dtype=float)
         else:
-            values = np.asarray(key)
-            if values.shape != (adata.n_obs,):
+            data = np.asarray(data)
+            if data.shape != (adata.n_obs,):
                 raise ValueError("TODO: wrong shape")
 
-        total = np.sum(values)
+        total = np.sum(data)
         if not total:
             raise ValueError("TODO: no mass.")
-        return values / total if normalize else values
+        return data / total if normalize else data
 
 
 class GeneralProblem(BaseProblem):
@@ -204,17 +206,25 @@ class GeneralProblem(BaseProblem):
 
     # TODO(michalk8): require in BaseProblem?
     def push(
-        self, key: Union[str, npt.ArrayLike], subset: Optional[Sequence[Any]] = None, normalize: bool = True
+        self,
+        data: Optional[Union[str, npt.ArrayLike]] = None,
+        subset: Optional[Sequence[Any]] = None,
+        normalize: bool = True,
     ) -> npt.ArrayLike:
-        key = self._get_mass(self.adata, key, subset, normalize=normalize)
-        return self.solution.push(key)
+        # TODO: check if solved - decorator?
+        data = self._get_mass(self.adata, data, subset, normalize=normalize)
+        return self.solution.push(data)
 
     def pull(
-        self, key: Union[str, npt.ArrayLike], subset: Optional[Sequence[Any]] = None, normalize: bool = True
+        self,
+        data: Optional[Union[str, npt.ArrayLike]] = None,
+        subset: Optional[Sequence[Any]] = None,
+        normalize: bool = True,
     ) -> npt.ArrayLike:
+        # TODO: check if solved - decorator?
         adata = self.adata if self._adata_y is None else self._adata_y
-        key = self._get_mass(adata, key, subset, normalize=normalize)
-        return self.solution.rename(key)
+        data = self._get_mass(adata, data, subset, normalize=normalize)
+        return self.solution.pull(data)
 
     @property
     def solution(self) -> Optional[BaseSolverOutput]:

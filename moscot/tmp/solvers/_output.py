@@ -34,7 +34,7 @@ class BaseSolverOutput(ABC):
             raise ValueError("TODO: wrong shape")
         return self._apply(x, forward=True)
 
-    def rename(self, x: npt.ArrayLike) -> npt.ArrayLike:
+    def pull(self, x: npt.ArrayLike) -> npt.ArrayLike:
         if x.shape[0] != self.shape[1]:
             raise ValueError("TODO: wrong shape")
         return self._apply(x, forward=False)

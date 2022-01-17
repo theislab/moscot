@@ -5,7 +5,6 @@ from itertools import product
 from pandas.api.types import is_categorical_dtype
 import pandas as pd
 
-import numpy as np
 import numpy.typing as npt
 
 from anndata import AnnData
@@ -94,20 +93,44 @@ class CompoundProblem(BaseProblem):
 
         return self
 
-    def _apply(self, x: npt.ArrayLike, *, forward: bool) -> npt.ArrayLike:
-        pass
-
-    def push(
+    def _apply(
         self,
-        key: Union[str, npt.ArrayLike],
+        data: Optional[Union[str, npt.ArrayLike]] = None,
         subset: Optional[Sequence[Any]] = None,
         start: Optional[Any] = None,
         end: Optional[Any] = None,
         normalize: bool = True,
-    ) -> npt.ArrayLike:
-        if isinstance(key, str):
-            key = ...
-        key = np.asarray(key)
+        return_all: bool = False,
+        forward: bool = True,
+    ) -> Union[npt.ArrayLike, npt.ArrayLike]:
+        # TODO: check if solved - decorator?
+        if forward:
+            pairs = self._subset.chain(start, end)
+        else:
+            # TODO: mb. don't swap start/end
+            # start, end = end, start
+            pairs = self._subset.chain(start, end)[::-1]
+
+        if return_all:
+            problem = self._problems[pairs[0]]
+            adata = problem.adata if forward or problem._adata_y is None else problem._adata_y
+            data = [problem._get_mass(adata, data, subset=subset, normalize=True)]
+        else:
+            data = [data]
+
+        for pair in pairs:
+            problem = self._problems[pair]
+            data.append((problem.push if forward else problem.pull)(data[-1], subset=subset, normalize=normalize))
+            if not return_all:
+                data = [data[-1]]
+
+        return data if return_all else data[-1]
+
+    def push(self, *args: Any, **kwargs: Any) -> npt.ArrayLike:
+        return self._apply(*args, forward=True, **kwargs)
+
+    def pull(self, *args: Any, **kwargs: Any) -> npt.ArrayLike:
+        return self._apply(*args, forward=False, **kwargs)
 
     @property
     def _valid_solver_types(self) -> Tuple[Type[BaseSolver], ...]:
