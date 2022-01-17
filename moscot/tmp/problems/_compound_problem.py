@@ -13,7 +13,7 @@ from moscot._base import BaseSolver
 from moscot.tmp.backends.ott import GWSolver, FGWSolver, SinkhornSolver
 from moscot.tmp.solvers._output import BaseSolverOutput
 from moscot.tmp.problems._base_problem import BaseProblem, GeneralProblem
-from moscot.tmp.problems._subset_policy import SubsetPolicy, ExplicitPolicy
+from moscot.tmp.problems._subset_policy import StarPolicy, SubsetPolicy, ExplicitPolicy
 
 
 # TODO(michalk8): should be a base class + subclasses + classmethod create
@@ -58,7 +58,7 @@ class CompoundProblem(BaseProblem):
 
         self._problems: Optional[Dict[Tuple[Any, Any], GeneralProblem]] = None
         self._solutions: Optional[Dict[Tuple[Any, Any], BaseSolverOutput]] = None
-        self._subset: Optional[SubsetPolicy] = None
+        self._policy: Optional[SubsetPolicy] = None
 
     def prepare(
         self,
@@ -67,14 +67,22 @@ class CompoundProblem(BaseProblem):
         policy: Literal["sequential", "pairwise", "triu", "tril", "explicit"] = "sequential",
         **kwargs: Any,
     ) -> "BaseProblem":
-        if isinstance(policy, str):
-            self._subset = SubsetPolicy.create(policy, self.adata, key=key).subset(subset)
-        else:  # policy contains the actual pairs
-            self._subset = ExplicitPolicy(self.adata, key=key).subset(subset, policy)
+        self._policy = (
+            SubsetPolicy.create(policy, self.adata, key=key)
+            if isinstance(policy, str)
+            else ExplicitPolicy(self.adata, key=key)
+        )
+
+        if isinstance(self._policy, ExplicitPolicy):
+            self._policy = self._policy.subset(subset, policy)
+        elif isinstance(self._policy, StarPolicy):
+            self._policy = self._policy.subset(subset, reference=kwargs.pop("reference"))
+        else:
+            self._policy = self._policy.subset(subset)
 
         self._problems = {
             subset: GeneralProblem(self.adata[x_mask, :], self.adata[y_mask, :], solver=self._solver).prepare(**kwargs)
-            for subset, (x_mask, y_mask) in self._subset.mask(discard_empty=True).items()
+            for subset, (x_mask, y_mask) in self._policy.mask(discard_empty=True).items()
         }
 
         return self
@@ -105,11 +113,11 @@ class CompoundProblem(BaseProblem):
     ) -> Union[npt.ArrayLike, npt.ArrayLike]:
         # TODO: check if solved - decorator?
         if forward:
-            pairs = self._subset.chain(start, end)
+            pairs = self._policy.chain(start, end)
         else:
             # TODO: mb. don't swap start/end
             # start, end = end, start
-            pairs = self._subset.chain(start, end)[::-1]
+            pairs = self._policy.chain(start, end)[::-1]
 
         if return_all:
             problem = self._problems[pairs[0]]
