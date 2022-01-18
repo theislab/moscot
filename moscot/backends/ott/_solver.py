@@ -3,10 +3,11 @@ from enum import Enum
 from typing import Any, Dict, Type, Tuple, Union, Optional
 
 from ott.geometry import Grid, Geometry, PointCloud
-from ott.core.problems import LinearProblem, QuadraticProblem
+from ott.core.problems import LinearProblem
 from ott.core.sinkhorn import make as Sinkhorn
 from ott.geometry.costs import Bures, Cosine, CostFn, Euclidean, UnbalancedBures
 from ott.core.sinkhorn_lr import LRSinkhorn as SinkhornLR
+from ott.core.quad_problems import QuadraticProblem
 from ott.core.gromov_wasserstein import make as GW
 import jax.numpy as jnp
 import numpy.typing as npt
