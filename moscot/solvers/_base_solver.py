@@ -68,7 +68,8 @@ class BaseSolver(ABC):
 
         # TODO(michalk8): create TaggedArray here if not passed, taking x_tag/y_tag/xy_tag from kwargs
         # TODO(michak8): filter kwargs
-        data = self._prepare_input(x, y, a, b, xx=xx, yy=yy, tau_a=tau_a, tau_b=tau_b)
+        online = kwargs.pop("online", True)
+        data = self._prepare_input(x, y, a, b, xx=xx, yy=yy, tau_a=tau_a, tau_b=tau_b, online=online)
         data = self._set_eps(data, eps)
         res = self._solve(data, **kwargs)
         self._check_marginals(res)
