@@ -207,6 +207,13 @@ class GeneralProblem(BaseProblem):
             kwargs["xx"] = self._xy
             kwargs["yy"] = None
 
+        # This part is needed for WOT growth rate estimates when the marginals change but cost matrix remains the same
+        if "a_marg" in kwargs:
+            a_marg = kwargs.pop("a_marg")
+            self._a = _get_marginal(self.adata, **a_marg)
+        if "b_marg" in kwargs:
+            b_marg = kwargs.pop("b_marg")
+            self._b = _get_marginal(self._adata_y, **b_marg)
         self._solution = self._solver(self._x, self._y, self._a, self._b, eps=eps, tau_a=tau_a, tau_b=tau_b, **kwargs)
         return self
 

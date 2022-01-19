@@ -47,7 +47,6 @@ class AnnDataPointer:
                 # TODO(michalk8): here we'd construct custom loss (BC/graph distances)
                 return TaggedArray(container, tag=self.tag, loss=None)
             raise ValueError(f"The loss `{self.loss}` is not implemented. Please provide your own cost matrix.")
-
         backend_losses = _get_backend_losses(**kwargs)  # TODO: put in registry
         if self.loss not in backend_losses.keys():
             raise ValueError(f"The loss `{self.loss}` is not implemented. Please provide your own cost matrix.")
@@ -62,3 +61,6 @@ class AnnDataPointer:
             raise KeyError(f"TODO: unable to find `adata.{self.attr}['{self.key}']`.")
         container = container[self.key]
         return TaggedArray(container, tag=self.tag, loss=backend_losses[self.loss])
+
+
+
