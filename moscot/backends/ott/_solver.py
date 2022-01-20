@@ -3,7 +3,8 @@ from enum import Enum
 from typing import Any, Dict, Type, Tuple, Union, Optional
 
 from ott.geometry import Grid, Geometry, PointCloud
-from ott.core.problems import LinearProblem, QuadraticProblem
+from ott.core.problems import LinearProblem
+from ott.core.quad_problems import QuadraticProblem
 from ott.core.sinkhorn import make as Sinkhorn
 from ott.geometry.costs import Bures, Cosine, CostFn, Euclidean, UnbalancedBures
 from ott.core.sinkhorn_lr import LRSinkhorn as SinkhornLR
@@ -115,6 +116,7 @@ class GeometryMixin:
         return Cost(cost)(**kwargs)
 
     def _solve(self, data: Union[LinearProblem, QuadraticProblem], **kwargs: Any) -> BaseSolverOutput:
+        print(data)
         return self._solver_output[1](self._solver(data, **kwargs))
 
 
@@ -170,7 +172,7 @@ class GWSolver(GeometryMixin, BaseSolver):
 
         # TODO(michalk8): marginals + kwargs?
         return QuadraticProblem(
-            geom_x, geom_y, geom_xy=None, fused_penalty=0.0, a=a, b=b, is_fused=False, tau_a=tau_a, tau_b=tau_b
+            geom_x, geom_y, geom_xy=None, fused_penalty=0.0, a=a, b=b, tau_a=tau_a, tau_b=tau_b
         )
 
     @property
@@ -211,7 +213,6 @@ class FGWSolver(GWSolver):
             fused_penalty=0.5,
             a=a,
             b=b,
-            is_fused=False,
             tau_a=tau_a,
             tau_b=tau_b,
         )
@@ -229,5 +230,4 @@ class FGWSolver(GWSolver):
             raise ValueError("TODO: wrong alpha range")
         if alpha != data.fused_penalty:
             data.fused_penalty = alpha
-
         return super()._solve(data, **kwargs)

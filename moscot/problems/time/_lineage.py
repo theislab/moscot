@@ -38,7 +38,6 @@ class TemporalProblem(TemporalAnalysisMixin, CompoundProblem):
         n_growth_rates_estimates: Optional[int] = None, # currently, a prior can only be passed to the first transport map
         **kwargs: Any,
     ) -> "BaseProblem":
-
         if x is None:
             x = {"attr": "X"}
         if y is None:
@@ -112,6 +111,95 @@ class TemporalProblem(TemporalAnalysisMixin, CompoundProblem):
                     self._problems[subset].adata.obs[current_key] = growth_array
                     self._marginal_container.iloc[mask, current_col_index] = growth_array
 
+    def push_forward(self,
+                     start: Any,
+                     end: Any,
+                     key_groups: Optional[Literal] = None,
+                     groups: Optional[Sequence] = None,
+                     mass: Optional[npt.ArrayLike] = None,
+                     normalize: bool = True,
+                     return_all: bool = False,
+                     ) -> Union[Sequence[npt.ArrayLike], npt.ArrayLike]:
+
+        if mass is None:
+            pairs = self._policy.chain(start, end)
+            start_adata = self._problems[pairs[0]].adata
+            mass = self._prepare_transport(start_adata, key_groups, groups)
+        return self._apply(mass, start=start, end=end, normalize=normalize, return_all=return_all)
+
+    def push_forward_composed(self,
+                              start: Any,
+                              end: Any,
+                              key_groups: Optional[Literal] = None,
+                              groups: Optional[Sequence] = None,
+                              mass: Optional[npt.ArrayLike] = None,
+                              subset: Optional[Sequence[Any]] = None,
+                             normalize: bool = True,
+                             return_all: bool = False,
+                             ) -> Union[Sequence[npt.ArrayLike], npt.ArrayLike]:
+        if mass is None:
+            pairs = self._policy.chain(start, end)
+            start_adata = self._problems[pairs[0]].adata
+            mass = self._prepare_transport(start_adata, key_groups, groups)
+        return self._apply(mass, subset, start, end, normalize, return_all, forward=True)
+
+    def pull_back(self,
+                  start: Any,
+                  end: Any,
+                  key_groups: Optional[Literal] = None,
+                  groups: Optional[Sequence] = None,
+                  mass: Optional[npt.ArrayLike] = None,
+                  normalize: bool = True,
+                  return_all: bool = False,
+                  ) -> Union[Sequence[npt.ArrayLike], npt.ArrayLike]:
+        if (start, end) not in self._problems.keys():
+            raise ValueError("No transport map computed for {}. Try calling 'push_forward_composed' instead.".format((start, end)))
+        if mass is None:
+            pairs = self._policy.chain(start, end)
+            start_adata = self._problems[pairs[0]].adata
+            mass = self._prepare_transport(start_adata, key_groups, groups)
+        return self._apply(mass, start=start, end=end, normalize=normalize, return_all=return_all, forward=True)
+
+    def pull_back_composed(self,
+                           start: Any,
+                           end: Any,
+                           key_groups: Optional[Literal] = None,
+                           groups: Optional[Sequence] = None,
+                           mass: Optional[npt.ArrayLike] = None,
+                           subset: Optional[Sequence[Any]] = None,
+                           normalize: bool = True,
+                           return_all: bool = False,
+                           ) -> Union[Sequence[npt.ArrayLike], npt.ArrayLike]:
+        if mass is None:
+            pairs = self._policy.chain(start, end)
+            start_adata = self._problems[pairs[0]].adata
+            mass = self._prepare_transport(start_adata, key_groups, groups)
+        return self._apply(mass, subset, start, end, normalize, return_all, forward=False)
+
+    def _prepare_transport(self, adata: AnnData, key_groups: Optional[Literal] = None, groups: Optional[Sequence[Any]] = None):
+        if key_groups is None:
+            mass_length = adata.n_obs
+            return np.full(mass_length, 1 / mass_length)
+        if key_groups not in self._adata.obs.columns:
+            raise ValueError(f"column {key_groups} not found in AnnData.obs")
+
+        self._verify_groups_are_present(groups, key_groups)
+        return self._make_mass_from_groups(groups, key_groups)
+
+    def _verify_groups_are_present(self, adata: AnnData, key_groups: Optional[Literal] = None, groups: Optional[Sequence[Any]] = None) -> None:
+        adata_groups = adata.obs[key_groups].values
+        for group in groups:
+            if group not in adata_groups:
+                raise ValueError(f"Group {group} is not present for considered data point {start}")
+
+    def _make_mass_from_groups(self, adata: AnnData, key_groups: Optional[Literal] = None, groups: Optional[Sequence[Any]] = None) -> np.ndarray:
+        isin_group = adata.obs[key_groups].isin(groups)
+        mass = np.zeros(adata.n_obs)
+        mass[isin_group] = 1/sum(isin_group)
+        return mass
+
+    def get_transport_matrix(self):
+        return {subset: self.solution[subset].solution.transport_matrix for subset, problem in self._problems.items()}
 
 
     def estimate_growth_rates(self,
