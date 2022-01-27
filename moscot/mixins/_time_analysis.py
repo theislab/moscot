@@ -10,10 +10,10 @@ import moscot.solvers._base_solver
 
 from numpy import typing as npt
 import numpy as np
-from moscot.mixins._base_analysis import AnalysisMixin
+from moscot.mixins._base_analysis import AnalysisMixin, CompoundAnalysisMixin
 
 
-class TemporalAnalysisMixin(AnalysisMixin):
+class TemporalAnalysisMixin(CompoundAnalysisMixin):
     def push_forward(self, *args: Any, **kwargs: Any) -> npt.ArrayLike:
         pass
 

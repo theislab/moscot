@@ -1,5 +1,5 @@
-from moscot.mixins._base_analysis import AnalysisMixin
+from moscot.mixins._base_analysis import CompoundAnalysisMixin
 
 
-class SpatialAnalysisMixin(AnalysisMixin):
+class SpatialAnalysisMixin(CompoundAnalysisMixin):
     pass
