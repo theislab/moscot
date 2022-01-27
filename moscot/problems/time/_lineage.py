@@ -121,7 +121,7 @@ class TemporalProblem(TemporalAnalysisMixin, CompoundProblem):
     def push_forward(self,
                      start: Any,
                      end: Any,
-                     key_groups: Optional[Literal] = None,
+                     key_groups: Optional[str] = None,
                      groups: Optional[Sequence] = None,
                      mass: Optional[npt.ArrayLike] = None,
                      normalize: bool = True,
@@ -137,7 +137,7 @@ class TemporalProblem(TemporalAnalysisMixin, CompoundProblem):
     def push_forward_composed(self,
                               start: Any,
                               end: Any,
-                              key_groups: Optional[Literal] = None,
+                              key_groups: Optional[str] = None,
                               groups: Optional[Sequence] = None,
                               mass: Optional[npt.ArrayLike] = None,
                               subset: Optional[Sequence[Any]] = None,
@@ -153,7 +153,7 @@ class TemporalProblem(TemporalAnalysisMixin, CompoundProblem):
     def pull_back(self,
                   start: Any,
                   end: Any,
-                  key_groups: Optional[Literal] = None,
+                  key_groups: Optional[str] = None,
                   groups: Optional[Sequence] = None,
                   mass: Optional[npt.ArrayLike] = None,
                   normalize: bool = True,
@@ -170,7 +170,7 @@ class TemporalProblem(TemporalAnalysisMixin, CompoundProblem):
     def pull_back_composed(self,
                            start: Any,
                            end: Any,
-                           key_groups: Optional[Literal] = None,
+                           key_groups: Optional[str] = None,
                            groups: Optional[Sequence] = None,
                            mass: Optional[npt.ArrayLike] = None,
                            subset: Optional[Sequence[Any]] = None,
@@ -183,7 +183,7 @@ class TemporalProblem(TemporalAnalysisMixin, CompoundProblem):
             mass = self._prepare_transport(start_adata, key_groups, groups)
         return self._apply(mass, subset, start, end, normalize, return_all, forward=False)
 
-    def _prepare_transport(self, adata: AnnData, key_groups: Optional[Literal] = None, groups: Optional[Sequence[Any]] = None):
+    def _prepare_transport(self, adata: AnnData, key_groups: Optional[str] = None, groups: Optional[Sequence[Any]] = None):
         if key_groups is None:
             mass_length = adata.n_obs
             return np.full(mass_length, 1 / mass_length)
@@ -193,13 +193,13 @@ class TemporalProblem(TemporalAnalysisMixin, CompoundProblem):
         self._verify_groups_are_present(groups, key_groups)
         return self._make_mass_from_groups(groups, key_groups)
 
-    def _verify_groups_are_present(self, adata: AnnData, key_groups: Optional[Literal] = None, groups: Optional[Sequence[Any]] = None) -> None:
+    def _verify_groups_are_present(self, adata: AnnData, key_groups: Optional[str] = None, groups: Optional[Sequence[Any]] = None) -> None:
         adata_groups = adata.obs[key_groups].values
         for group in groups:
             if group not in adata_groups:
-                raise ValueError(f"Group {group} is not present for considered data point {start}")
+                raise ValueError(f"Group {group} is not present for considered data point")
 
-    def _make_mass_from_groups(self, adata: AnnData, key_groups: Optional[Literal] = None, groups: Optional[Sequence[Any]] = None) -> np.ndarray:
+    def _make_mass_from_groups(self, adata: AnnData, key_groups: Optional[str] = None, groups: Optional[Sequence[Any]] = None) -> np.ndarray:
         isin_group = adata.obs[key_groups].isin(groups)
         mass = np.zeros(adata.n_obs)
         mass[isin_group] = 1/sum(isin_group)
@@ -230,6 +230,7 @@ class TemporalProblem(TemporalAnalysisMixin, CompoundProblem):
         """
         given a group of cell types in the target distribution compute their origin
         """
+        pass
         if (start, end) not in self._problems.keys():
             logging.info("No transport map computed for {}. Trying to compose transports.".format((start, end)))
             pairs = self._policy.chain(start, end)
@@ -325,40 +326,6 @@ class TemporalProblem(TemporalAnalysisMixin, CompoundProblem):
 
         return distance_gex_ot_interpolated, distance_gex_randomly_interpolated, distance_gex_randomly_interpolated_growth
 
-    def _interpolate_gex_with_ot(self,
-                                 number_cells: int,
-                                 adata_1: AnnData,
-                                 adata_2: AnnData,
-                                 solver: moscot.solvers._base_solver.BaseSolverOutput,
-                                 interpolation_parameter: int = 0.5,
-                                 adjust_by_growth = True
-                                 ):
-        #TODO: make online available
-        if adjust_by_growth:
-            transport_matrix = solver.transport_matrix / np.power(solver.transport_matrix.sum(axis=0), 1. - interpolation_parameter)
-        else:
-            transport_matrix = solver.transport_matrix
-        transport_matrix = transport_matrix.flatten(order='C')
-        transport_matrix_flattened = transport_matrix / transport_matrix.sum()
-        choices = np.random.choice(adata_1.n_obs * adata_2.n_obs, p=transport_matrix_flattened, size=number_cells)
-        return np.asarray([adata_1.X[i // adata_2.n_obs] * (1 - interpolation_parameter) + adata_2.X[i % adata_2.n_obs] * interpolation_parameter for i in choices], dtype=np.float64)
-
-    def _interpolate_gex_randomly(self,
-                                  number_cells: int,
-                                  adata_1: AnnData,
-                                  adata_2: AnnData,
-                                  interpolation_parameter: int = 0.5,
-                                  growth_rates: Optional[npt.ArrayLike] = None):
-
-        if growth_rates is None:
-            choices = np.random.choice(adata_1.n_obs * adata_2.n_obs, size=number_cells)
-        else:
-            outer_product = np.outer(growth_rates, np.ones(len(growth_rates)))
-            outer_product_flattened = outer_product.flatten(order="C")
-            outer_product_flattened /= outer_product_flattened.sum()
-            choices = np.random.choice(adata_1.n_obs * adata_2.n_obs, p=outer_product_flattened, size=number_cells)
-
-        return np.asarray([adata_1.X[i // adata_2.n_obs] * (1 - interpolation_parameter) + adata_2.X[i % adata_2.n_obs] * interpolation_parameter for i in choices], dtype=np.float64)
 
     def _compute_wasserstein_distance(self,
                                      adata_1: AnnData = None,
@@ -371,8 +338,7 @@ class TemporalProblem(TemporalAnalysisMixin, CompoundProblem):
         return result.cost
 
 
-
-
-    def estimate_marginals(self):
-        pass
+    @property
+    def transport_matrix(self):
+        return {pair: solution.transport_matrix for pair, solution in self._solutions.items()}
 
