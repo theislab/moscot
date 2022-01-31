@@ -60,7 +60,7 @@ def _verify_dict(adata: AnnData, d: dict):
         if not hasattr(getattr(adata, d["attr"]), d["key"]):
             raise AttributeError("TODO: invalid key of attribute")
 
-def _verify_marginals(adata: AnnData, marginals: Optional[Union[Sequence[Union[Mapping[str, Any], npt.ArrayLike]]], Mapping[str, Any], npt.ArrayLike]):
+def _verify_marginals(adata: AnnData, marginals: Optional[Union[Sequence[Union[Mapping[str, Any], npt.ArrayLike]], Mapping[str, Any], npt.ArrayLike]]):
 
     if isinstance(marginals, Sequence):
         for marg in marginals:
