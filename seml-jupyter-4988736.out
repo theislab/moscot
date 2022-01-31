@@ -1,0 +1,27 @@
+Starting job 4988736
+SLURM assigned me the node(s): supergpu02pxe
+[W 2022-01-31 21:12:47.325 LabApp] 'ip' has moved from NotebookApp to ServerApp. This config will be passed to ServerApp. Be sure to update your config before our next release.
+[W 2022-01-31 21:12:47.325 LabApp] 'ip' has moved from NotebookApp to ServerApp. This config will be passed to ServerApp. Be sure to update your config before our next release.
+[W 2022-01-31 21:12:47.325 LabApp] 'ip' has moved from NotebookApp to ServerApp. This config will be passed to ServerApp. Be sure to update your config before our next release.
+[I 2022-01-31 21:12:47.332 LabApp] JupyterLab extension loaded from /home/icb/dominik.klein/miniconda3/envs/moscot_with_cupti/lib/python3.8/site-packages/jupyterlab
+[I 2022-01-31 21:12:47.332 LabApp] JupyterLab application directory is /mnt/home/icb/dominik.klein/miniconda3/envs/moscot_with_cupti/share/jupyter/lab
+[I 21:12:47.338 NotebookApp] Serving notebooks from local directory: /mnt/home/icb/dominik.klein/git_repos/moscot
+[I 21:12:47.338 NotebookApp] Jupyter Notebook 6.4.7 is running at:
+[I 21:12:47.338 NotebookApp] http://supergpu02pxe.scidom.de:8888/?token=1ac992fe42b67b37c84edacbd1cee98dbe834719f58687a2
+[I 21:12:47.338 NotebookApp]  or http://127.0.0.1:8888/?token=1ac992fe42b67b37c84edacbd1cee98dbe834719f58687a2
+[I 21:12:47.338 NotebookApp] Use Control-C to stop this server and shut down all kernels (twice to skip confirmation).
+[C 21:12:47.353 NotebookApp] 
+    
+    To access the notebook, open this file in a browser:
+        file:///mnt/home/icb/dominik.klein/.local/share/jupyter/runtime/nbserver-38237-open.html
+    Or copy and paste one of these URLs:
+        http://supergpu02pxe.scidom.de:8888/?token=1ac992fe42b67b37c84edacbd1cee98dbe834719f58687a2
+     or http://127.0.0.1:8888/?token=1ac992fe42b67b37c84edacbd1cee98dbe834719f58687a2
+[W 21:13:52.306 NotebookApp] Notebook WOT_duplication.ipynb is not trusted
+[I 21:13:53.487 NotebookApp] Kernel started: 0d17d4ca-ecd9-4820-add3-d617f8006554, name: moscot_with_cupti_kernel
+[I 21:17:53.599 NotebookApp] Saving file at /WOT_duplication.ipynb
+[W 21:17:53.601 NotebookApp] Notebook WOT_duplication.ipynb is not trusted
+[I 21:27:53.590 NotebookApp] Saving file at /WOT_duplication.ipynb
+[W 21:27:53.592 NotebookApp] Notebook WOT_duplication.ipynb is not trusted
+[I 21:29:54.571 NotebookApp] Saving file at /WOT_duplication.ipynb
+[W 21:29:54.572 NotebookApp] Notebook WOT_duplication.ipynb is not trusted

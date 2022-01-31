@@ -79,14 +79,18 @@ class CompoundProblem(BaseProblem):
             self._policy = self._policy.subset(subset, reference=kwargs.pop("reference"))
         else:
             self._policy = self._policy.subset(subset)
-
+        # https://stackoverflow.com/questions/41905978/pythonic-way-to-broadcast-loop-through-values-when-expanding-kwargs
+        # use this for handling x, y, xx, yy, a_marg, b_marg
+        x = kwargs.pop("x")
         a_marg = kwargs.pop("a_marg", {})
         b_marg = kwargs.pop("b_marg", {})
         if not isinstance(a_marg, Sequence):
             a_marg = [a_marg] * len(self._policy._subset)
-            b_marg = [b_marg] * len(self._policy._subset)
         else:
             assert len(a_marg) == len(self._policy._subset), "The length of a_marg must be equal to the number of problems"
+        if not isinstance(b_marg, Sequence):
+            b_marg = [b_marg] * len(self._policy._subset)
+        else:
             assert len(b_marg) == len(self._policy._subset), "The length of b_marg must be equal to the number of problems"
 
         self._problems = {

@@ -40,11 +40,11 @@ class TemporalProblem(TemporalAnalysisMixin, CompoundProblem):
         key: str,
         subset: Optional[Sequence[Any]] = None,
         policy: Literal["sequential", "pairwise", "triu", "tril", "explicit"] = "sequential",
-        x: Optional[Mapping[str, Any]] = None,#TODO: check differnece with mappringproxytype
-        y: Optional[Mapping[str, Any]] = None,
+        x: Optional[Union[Mapping[str, Any], Sequence[Mapping[str, Any]]]] = None,#TODO: check differnece with mappringproxytype
+        y: Optional[Union[Mapping[str, Any], Sequence[Mapping[str, Any]]]] = None,
         a_marg: Optional[Sequence[Union[Mapping[str, Any], npt.ArrayLike]]] = None,
         b_marg: Optional[Sequence[Union[Mapping[str, Any], npt.ArrayLike]]] = None,
-        n_growth_rates_estimates: Optional[int] = None, # currently, a prior can only be passed to the first transport map
+        n_growth_rates_estimates: Optional[int] = None, 
         growth_rates_column_name: Optional[str] = "g",
         **kwargs: Any,
     ) -> "BaseProblem":
