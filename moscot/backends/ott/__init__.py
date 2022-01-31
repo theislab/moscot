@@ -1,1 +1,1 @@
-from moscot.backends.ott._solver import GWSolver, FGWSolver, SinkhornSolver, LRSinkhornSolver
+from moscot.backends.ott._solver import GWSolver, FGWSolver, SinkhornSolver
