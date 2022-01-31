@@ -116,7 +116,6 @@ class GeometryMixin:
         return Cost(cost)(**kwargs)
 
     def _solve(self, data: Union[LinearProblem, QuadraticProblem], **kwargs: Any) -> BaseSolverOutput:
-        print(data)
         return self._solver_output[1](self._solver(data, **kwargs))
 
 

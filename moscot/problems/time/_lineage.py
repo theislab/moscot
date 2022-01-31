@@ -50,8 +50,6 @@ class TemporalProblem(TemporalAnalysisMixin, CompoundProblem):
     ) -> "BaseProblem":
         if x is None:
             x = {"attr": "X"}
-        if y is None:
-            y = {"attr": "X"}
         self._n_growth_rates_estimates = n_growth_rates_estimates
         self._a_marg = a_marg
         self._b_marg = b_marg
@@ -76,18 +74,18 @@ class TemporalProblem(TemporalAnalysisMixin, CompoundProblem):
             if self._b_marg is not None:
                 _verify_marginals(self._b_marg)
 
-            for tuple, problem in self._problems.items():
+            for tup, problem in self._problems.items():
                 try:
-                    delta_t = np.float(tuple[1]) - np.float(tuple[0])
-                    self._time_deltas[tuple] = delta_t
+                    delta_t = np.float(tup[1]) - np.float(tup[0])
+                    self._time_deltas[tup] = delta_t
                 except ValueError:
-                    print("The values {} of the time column cannot be interpreted as floats.".format(tuple))
+                    print("The values {} of the time column cannot be interpreted as floats.".format(tup))
                 initial_growth_rate = np.power(self._a_marg_container, delta_t)
                 initial_marginal = initial_growth_rate / np.mean(initial_growth_rate) / len(initial_growth_rate)
                 problem._a = initial_marginal
-                mask = self._policy.mask(discard_empty=True)[tuple][0]
+                mask = self._policy.mask(discard_empty=True)[tup][0]
                 self._a_marg_container.iloc[mask, current_col_index] = initial_marginal
-                self._problems[tuple].adata.obs["g0"] = initial_marginal
+                self._problems[tup].adata.obs["g0"] = initial_marginal
         else:
             super().prepare(key, subset, policy, x=x, y=y, **kwargs)
 
@@ -106,9 +104,9 @@ class TemporalProblem(TemporalAnalysisMixin, CompoundProblem):
                 current_key = f"{self._name}_g1"
                 self._a_marg_container[current_key] = np.nan
                 current_col_index = self._a_marg_container.columns.get_loc(current_key)
-                for tuple, problem in self._problems.items():
-                    mask = self._policy.mask(discard_empty=True)[tuple][0]
-                    self._problems[tuple].adata.obs["marginal_a"] = np.ones(sum(mask))/sum(mask)
+                for tup, problem in self._problems.items():
+                    mask = self._policy.mask(discard_empty=True)[tup][0]
+                    self._problems[tup].adata.obs["marginal_a"] = np.ones(sum(mask))/sum(mask)
                     self._a_marg_container.iloc[mask, current_col_index] = np.ones(sum(mask)) / sum(mask)
                 logging.info("No prior distribution was provided. A uniform prior was chosen")
             super().solve(eps, alpha, tau_a, tau_b, a_marg=self._a_marg, **kwargs)
@@ -357,4 +355,8 @@ class TemporalProblem(TemporalAnalysisMixin, CompoundProblem):
     @property
     def transport_matrix(self):
         return {pair: solution._solution.transport_matrix for pair, solution in self._solutions.items()}
+
+    @property
+    def solution(self):
+        return {pair: solution._solution for pair, solution in self._solutions.items()}
 
