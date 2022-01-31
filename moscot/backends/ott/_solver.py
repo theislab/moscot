@@ -168,9 +168,7 @@ class GWSolver(GeometryMixin, BaseSolver):
         geom_y = self._create_geometry(y, **kwargs)
 
         # TODO(michalk8): marginals + kwargs?
-        return QuadraticProblem(
-            geom_x, geom_y, geom_xy=None, fused_penalty=0.0, a=a, b=b, is_fused=False, tau_a=tau_a, tau_b=tau_b
-        )
+        return QuadraticProblem(geom_x, geom_y, geom_xy=None, fused_penalty=0.0, a=a, b=b, tau_a=tau_a, tau_b=tau_b)
 
     @property
     def _solver_output(self) -> Tuple[Type[Any], Type[BaseSolverOutput]]:
@@ -210,7 +208,6 @@ class FGWSolver(GWSolver):
             fused_penalty=0.5,
             a=a,
             b=b,
-            is_fused=False,
             tau_a=tau_a,
             tau_b=tau_b,
         )
