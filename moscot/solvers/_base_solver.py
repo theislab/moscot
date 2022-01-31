@@ -33,13 +33,13 @@ class BaseSolver(ABC):
         self,
         x: ArrayLike,
         y: Optional[ArrayLike] = None,
-        a: Optional[npt.ArrayLike] = None,
-        b: Optional[npt.ArrayLike] = None,
         xx: Optional[ArrayLike] = None,
         yy: Optional[ArrayLike] = None,
-        eps: Optional[float] = None,
+        a: Optional[npt.ArrayLike] = None,
+        b: Optional[npt.ArrayLike] = None,
         tau_a: Optional[float] = 1.0,
         tau_b: Optional[float] = 1.0,
+        eps: Optional[float] = None,
         **kwargs: Any,
     ) -> BaseSolverOutput:
         def to_tagged_array(arr: Optional[ArrayLike], tag: Tag) -> Optional[TaggedArray]:

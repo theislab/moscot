@@ -114,6 +114,8 @@ class GeometryMixin:
 class RankMixin:
     def __init__(self, rank: Optional[int] = None, **kwargs: Any):
         self._rank = rank
+        if rank is not None:
+            kwargs["rank"] = rank
         super().__init__(**kwargs)
 
     @property
@@ -145,12 +147,16 @@ class RankMixin:
         if value is None and type(self._linear_solver) is Sinkhorn:
             return
 
+        [threshold], kwargs = self._linear_solver.tree_flatten()
+
         clazz = Sinkhorn if value is None else LRSinkhorn
         params = signature(clazz).parameters
-        [threshold], rest = self._linear_solver.tree_flatten()
+        kwargs = {k: v for k, v in kwargs.items() if k in params}
+        if value is not None:
+            kwargs["rank"] = value
 
         # TODO(michalk8): warn if using defaults
-        self._linear_solver = clazz(**{k: v for k, v in rest.items() if k in params}, threshold=threshold)
+        self._linear_solver = clazz(**kwargs, threshold=threshold)
 
     @property
     def is_low_rank(self) -> bool:
@@ -159,11 +165,12 @@ class RankMixin:
     def _solve(
         self,
         data: Union[LinearProblem, QuadraticProblem],
-        rank: Optional[int] = None,
         _output_kwargs: Mapping[str, Any] = MappingProxyType({}),
         **kwargs: Any,
     ) -> BaseSolverOutput:
-        self.rank = rank
+        if "rank" in kwargs:
+            print(kwargs)
+            self.rank = kwargs.pop("rank")
         if self.is_low_rank:
             _output_kwargs = dict(_output_kwargs)
             _output_kwargs["threshold"] = self._linear_solver.threshold

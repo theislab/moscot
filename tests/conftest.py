@@ -1,4 +1,4 @@
-from typing import Tuple, Optional
+from typing import Tuple, Union, Optional
 
 import pytest
 
@@ -9,11 +9,11 @@ config.update("jax_enable_x64", True)
 from jax import numpy as jnp  # noqa: E402
 import numpy as np  # noqa: E402
 
-Geom_t = Tuple[jnp.ndarray, jnp.ndarray]
+Geom_t = Union[jnp.ndarray, Tuple[jnp.ndarray, jnp.ndarray]]
 
 
 @pytest.fixture()
-def geom_xx() -> Geom_t:
+def x() -> Geom_t:
     rng = np.random.RandomState(0)
     n = 20  # number of points in the first distribution
     sig = 1  # std of first distribution
@@ -21,26 +21,23 @@ def geom_xx() -> Geom_t:
     phi = np.arange(n)[:, None]
     xs = phi + sig * rng.randn(n, 1)
 
-    return jnp.asarray(xs), jnp.asarray(xs)
+    return jnp.asarray(xs)
 
 
 @pytest.fixture()
-def geom_yy() -> Geom_t:
+def y() -> Geom_t:
     rng = np.random.RandomState(1)
-    n = 20  # number of points in the first distribution
     n2 = 30  # number of points in the second distribution
     sig = 1  # std of first distribution
-    sig2 = 0.1  # std of second distribution
 
-    np.vstack((np.ones((n // 2, 1)), 0 * np.ones((n // 2, 1)))) + sig2 * rng.randn(n, 1)
     phi2 = np.arange(n2)[:, None]
     xt = phi2 + sig * rng.randn(n2, 1)
 
-    return jnp.asarray(xt), jnp.asarray(xt)
+    return jnp.asarray(xt)
 
 
 @pytest.fixture()
-def geom_xy() -> Geom_t:
+def xy() -> Geom_t:
     rng = np.random.RandomState(2)
     n = 20  # number of points in the first distribution
     n2 = 30  # number of points in the second distribution
@@ -56,7 +53,7 @@ def geom_xy() -> Geom_t:
     yt = np.vstack((np.ones((n2 // 2, 1)), 0 * np.ones((n2 // 2, 1)))) + sig2 * rng.randn(n2, 1)
     yt = yt[::-1, :]
 
-    return jnp.asarray(yt), jnp.asarray(ys)
+    return jnp.asarray(ys), jnp.asarray(yt)
 
 
 def create_marginals(n: int, m: int, *, uniform: bool = False, seed: Optional[int] = None) -> Geom_t:
