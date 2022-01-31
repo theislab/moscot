@@ -80,8 +80,8 @@ class CompoundProblem(BaseProblem):
         else:
             self._policy = self._policy.subset(subset)
 
-        a_marg = kwargs.pop("a_marg", None)
-        b_marg = kwargs.pop("b_marg", None)
+        a_marg = kwargs.pop("a_marg", {})
+        b_marg = kwargs.pop("b_marg", {})
         if not isinstance(a_marg, Sequence):
             a_marg = [a_marg] * len(self._policy._subset)
             b_marg = [b_marg] * len(self._policy._subset)
