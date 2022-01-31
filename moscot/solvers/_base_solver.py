@@ -3,8 +3,8 @@ from typing import Any, Union, Optional
 
 import numpy.typing as npt
 
-from moscot.solvers._data import Tag, TaggedArray
 from moscot.solvers._output import BaseSolverOutput
+from moscot.solvers._tagged_arry import Tag, TaggedArray
 
 ArrayLike = Union[npt.ArrayLike, TaggedArray]
 
@@ -19,10 +19,6 @@ class BaseSolver(ABC):
         b: npt.ArrayLike = None,
         **kwargs: Any,
     ) -> Any:
-        pass
-
-    @abstractmethod
-    def _set_eps(self, data: Any, eps: Optional[float] = None) -> Any:
         pass
 
     @abstractmethod
@@ -68,8 +64,7 @@ class BaseSolver(ABC):
 
         # TODO(michalk8): create TaggedArray here if not passed, taking x_tag/y_tag/xy_tag from kwargs
         # TODO(michak8): filter kwargs
-        data = self._prepare_input(x, y, a, b, xx=xx, yy=yy, tau_a=tau_a, tau_b=tau_b)
-        data = self._set_eps(data, eps)
+        data = self._prepare_input(x, y, a, b, xx=xx, yy=yy, tau_a=tau_a, tau_b=tau_b, eps=eps)
         res = self._solve(data, **kwargs)
         self._check_marginals(res)
         return res

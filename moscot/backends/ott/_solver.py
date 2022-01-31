@@ -14,12 +14,11 @@ from ott.core.gromov_wasserstein import make as make_gw, GromovWasserstein
 import jax.numpy as jnp
 import numpy.typing as npt
 
-from moscot.solvers._data import TaggedArray
-
 # TODO(michalk8): initialize ott solvers in init (so that they are not re-jitted
 from moscot.solvers._output import BaseSolverOutput
 from moscot.backends.ott._output import GWOutput, SinkhornOutput, LRSinkhornOutput
 from moscot.solvers._base_solver import BaseSolver
+from moscot.solvers._tagged_arry import TaggedArray
 
 __all__ = ("Cost", "SinkhornSolver", "GWSolver", "FGWSolver")
 
@@ -86,26 +85,6 @@ class GeometryMixin:
             return Geometry(kernel_matrix=self._assert2d(x.loss, allow_reshape=False), epsilon=eps, **kwargs)
 
         raise NotImplementedError("TODO: invalid tag")
-
-    @staticmethod
-    def _set_eps(
-        problem: Union[LinearProblem, QuadraticProblem], eps: Optional[float] = None
-    ) -> Union[LinearProblem, QuadraticProblem]:
-        if eps is None:
-            # TODO(michalk8): mb. the below code also works for this case
-            return problem
-
-        eps_geom = Geometry(epsilon=eps)
-        if isinstance(problem, LinearProblem):
-            problem.geom.copy_epsilon(eps_geom)
-            return problem
-        if isinstance(problem, QuadraticProblem):
-            problem.geom_xx.copy_epsilon(eps_geom)
-            problem.geom_yy.copy_epsilon(eps_geom)
-            if problem.is_fused:
-                problem.geom_xy.copy_epsilon(eps_geom)
-            return problem
-        raise TypeError("TODO: expected OTT problem")
 
     @staticmethod
     def _assert2d(arr: npt.ArrayLike, *, allow_reshape: bool = True) -> jnp.ndarray:
@@ -206,8 +185,8 @@ class SinkhornSolver(RankMixin, GeometryMixin, BaseSolver):
         y: Optional[TaggedArray] = None,
         a: Optional[npt.ArrayLike] = None,
         b: Optional[npt.ArrayLike] = None,
-        tau_a: Optional[float] = 1.0,
-        tau_b: Optional[float] = 1.0,
+        tau_a: float = 1.0,
+        tau_b: float = 1.0,
         **kwargs: Any,
     ) -> LinearProblem:
         kwargs.pop("xx", None)
@@ -229,8 +208,8 @@ class GWSolver(RankMixin, GeometryMixin, BaseSolver):
         y: Optional[TaggedArray] = None,
         a: Optional[npt.ArrayLike] = None,
         b: Optional[npt.ArrayLike] = None,
-        tau_a: Optional[float] = 1.0,
-        tau_b: Optional[float] = 1.0,
+        tau_a: float = 1.0,
+        tau_b: float = 1.0,
         **kwargs: Any,
     ) -> QuadraticProblem:
         if y is None:
@@ -264,8 +243,8 @@ class FGWSolver(GWSolver):
         y: Optional[TaggedArray] = None,
         a: Optional[npt.ArrayLike] = None,
         b: Optional[npt.ArrayLike] = None,
-        tau_a: Optional[float] = 1.0,
-        tau_b: Optional[float] = 1.0,
+        tau_a: float = 1.0,
+        tau_b: float = 1.0,
         xx: Optional[TaggedArray] = None,
         yy: Optional[TaggedArray] = None,
         **kwargs: Any,

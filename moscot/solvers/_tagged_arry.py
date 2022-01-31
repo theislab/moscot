@@ -1,15 +1,15 @@
-from enum import auto, Enum
+from enum import Enum
 from typing import Optional
 from dataclasses import dataclass
 
 import numpy.typing as npt
 
 
-class Tag(Enum):
-    COST_MATRIX = auto()
-    KERNEL = auto()
-    POINT_CLOUD = auto()
-    GRID = auto()
+class Tag(str, Enum):
+    COST_MATRIX = "cost"
+    KERNEL = "kernel"
+    POINT_CLOUD = "point_cloud"
+    GRID = "grid"
 
 
 @dataclass(frozen=True, repr=True)
