@@ -173,8 +173,8 @@ class GeneralProblem(BaseProblem):
         x: Mapping[str, Any] = MappingProxyType({}),
         y: Optional[Mapping[str, Any]] = None,
         xy: Optional[Mapping[str, Any]] = None,
-        a_marg: Optional[Union[Mapping[str, Any]], npt.ArrayLike] = MappingProxyType({}),
-        b_marg: Optional[Union[Mapping[str, Any]], npt.ArrayLike] = MappingProxyType({}),
+        a_marg: Optional[Union[Mapping[str, Any], npt.ArrayLike]] = MappingProxyType({}),
+        b_marg: Optional[Union[Mapping[str, Any], npt.ArrayLike]] = MappingProxyType({}),
         **kwargs: Any,
     ) -> "BaseProblem":
         self._x = AnnDataPointer(adata=self.adata, **x).create(**kwargs)
