@@ -83,11 +83,11 @@ class CompoundProblem(BaseProblem):
         a_marg = kwargs.pop("a_marg", None)
         b_marg = kwargs.pop("b_marg", None)
         if not isinstance(a_marg, Sequence):
-            a_marg = [a_marg] * len(self._problems)
-            b_marg = [b_marg] * len(self._problems)
+            a_marg = [a_marg] * len(self._policy._subset)
+            b_marg = [b_marg] * len(self._policy._subset)
         else:
-            assert len(a_marg) == len(self._problems), "The length of a_marg must be equal to the number of problems"
-            assert len(b_marg) == len(self._problems), "The length of b_marg must be equal to the number of problems"
+            assert len(a_marg) == len(self._policy._subset), "The length of a_marg must be equal to the number of problems"
+            assert len(b_marg) == len(self._policy._subset), "The length of b_marg must be equal to the number of problems"
 
         self._problems = {
             subset: GeneralProblem(self.adata[x_mask, :], self.adata[y_mask, :], solver=self._solver).prepare(a_marg=a_marg[i], b_marg=b_marg[i], **kwargs)
