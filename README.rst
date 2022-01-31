@@ -27,7 +27,7 @@ In order to install **moscot**, run::
     pre-commit install
 
 Development (temporary)
-------------
+-----------------------
 For generating the UML proceed as follows (reference: https://medium.com/@ganesh.alalasundaram/uml-diagram-using-pyreverse-for-python-repository-dd68cdf9e7e1)::
 
     pip install pylint
