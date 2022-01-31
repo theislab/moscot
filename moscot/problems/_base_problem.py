@@ -181,8 +181,8 @@ class GeneralProblem(BaseProblem):
         self._y = None if y is None else AnnDataPointer(adata=self._adata_y, **y).create(**kwargs)
         self._xy = None if xy is None else self._handle_joint(**xy, create_kwargs=kwargs)
 
-        self._a = a_marg if isinstance(a_marg, npt.ArrayLike) else _get_marginal(self.adata, **a_marg)
-        self._b = b_marg if isinstance(b_marg, npt.ArrayLike) else _get_marginal(self.adata if self._adata_y is None else self._adata_y, **b_marg)
+        self._a = a_marg if isinstance(a_marg, np.ndarray) else _get_marginal(self.adata, **a_marg)
+        self._b = b_marg if isinstance(b_marg, np.ndarray) else _get_marginal(self.adata if self._adata_y is None else self._adata_y, **b_marg)
 
         return self
 
