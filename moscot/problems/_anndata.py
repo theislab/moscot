@@ -8,7 +8,7 @@ from anndata import AnnData
 
 from moscot.utils import _get_backend_losses
 from moscot._costs import __all__ as moscot_losses, BaseLoss
-from moscot.solvers._data import Tag, TaggedArray
+from moscot.solvers._tagged_arry import Tag, TaggedArray
 
 
 @dataclass(frozen=True)

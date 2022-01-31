@@ -1,23 +1,26 @@
 from abc import abstractmethod
 from enum import Enum
-from typing import Any, Dict, Type, Tuple, Union, Optional
+from types import MappingProxyType
+from typing import Any, Dict, Type, Union, Mapping, Callable, Optional, NamedTuple
+from inspect import signature
 
 from ott.geometry import Grid, Geometry, PointCloud
 from ott.core.problems import LinearProblem
-from ott.core.sinkhorn import make as Sinkhorn
+from ott.core.sinkhorn import make as make_sinkhorn, Sinkhorn
 from ott.geometry.costs import Bures, Cosine, CostFn, Euclidean, UnbalancedBures
-from ott.core.sinkhorn_lr import LRSinkhorn as SinkhornLR
+from ott.core.sinkhorn_lr import LRSinkhorn
 from ott.core.quad_problems import QuadraticProblem
-from ott.core.gromov_wasserstein import make as GW
+from ott.core.gromov_wasserstein import make as make_gw, GromovWasserstein
 import jax.numpy as jnp
 import numpy.typing as npt
-
-from moscot.solvers._data import TaggedArray
 
 # TODO(michalk8): initialize ott solvers in init (so that they are not re-jitted
 from moscot.solvers._output import BaseSolverOutput
 from moscot.backends.ott._output import GWOutput, SinkhornOutput, LRSinkhornOutput
 from moscot.solvers._base_solver import BaseSolver
+from moscot.solvers._tagged_arry import TaggedArray
+
+__all__ = ("Cost", "SinkhornSolver", "GWSolver", "FGWSolver")
 
 
 class Cost(str, Enum):
@@ -38,14 +41,19 @@ _losses: Dict[str, Type[CostFn]] = {
 }
 
 
+class SolverDescription(NamedTuple):
+    solver: Callable[[Any], Union[Sinkhorn, LRSinkhorn, GromovWasserstein]]
+    output: Union[Type[SinkhornOutput], Type[LRSinkhornOutput], Type[GWOutput]]
+
+
 class GeometryMixin:
     def __init__(self, **kwargs: Any):
         super().__init__()
-        self._solver = self._solver_output[0](**kwargs)
+        self._solver = self._description.solver(**kwargs)
 
     @property
     @abstractmethod
-    def _solver_output(self) -> Tuple[Type[Any], Type[BaseSolverOutput]]:
+    def _description(self) -> SolverDescription:
         pass
 
     def _create_geometry(
@@ -79,26 +87,6 @@ class GeometryMixin:
         raise NotImplementedError("TODO: invalid tag")
 
     @staticmethod
-    def _set_eps(
-        problem: Union[LinearProblem, QuadraticProblem], eps: Optional[float] = None
-    ) -> Union[LinearProblem, QuadraticProblem]:
-        if eps is None:
-            # TODO(michalk8): mb. the below code also works for this case
-            return problem
-
-        eps_geom = Geometry(epsilon=eps)
-        if isinstance(problem, LinearProblem):
-            problem.geom.copy_epsilon(eps_geom)
-            return problem
-        if isinstance(problem, QuadraticProblem):
-            problem.geom_xx.copy_epsilon(eps_geom)
-            problem.geom_yy.copy_epsilon(eps_geom)
-            if problem.is_fused:
-                problem.geom_xy.copy_epsilon(eps_geom)
-            return problem
-        raise TypeError("TODO: expected OTT problem")
-
-    @staticmethod
     def _assert2d(arr: npt.ArrayLike, *, allow_reshape: bool = True) -> jnp.ndarray:
         arr = jnp.asarray(arr)
         arr = jnp.reshape(arr, (-1, 1)) if (allow_reshape and arr.ndim == 1) else arr
@@ -114,19 +102,98 @@ class GeometryMixin:
             cost = "sqeucl"
         return Cost(cost)(**kwargs)
 
-    def _solve(self, data: Union[LinearProblem, QuadraticProblem], **kwargs: Any) -> BaseSolverOutput:
-        return self._solver_output[1](self._solver(data, **kwargs))
+    def _solve(
+        self,
+        data: Union[LinearProblem, QuadraticProblem],
+        _output_kwargs: Mapping[str, Any] = MappingProxyType({}),
+        **kwargs: Any,
+    ) -> BaseSolverOutput:
+        return self._description.output(self._solver(data, **kwargs), **_output_kwargs)
 
 
-class SinkhornSolver(GeometryMixin, BaseSolver):
+class RankMixin:
+    def __init__(self, rank: Optional[int] = None, **kwargs: Any):
+        self._rank = rank
+        if rank is not None:
+            kwargs["rank"] = rank
+        super().__init__(**kwargs)
+
+    @property
+    @abstractmethod
+    def _linear_solver(self) -> Union[Sinkhorn, LRSinkhorn]:
+        pass
+
+    @_linear_solver.setter
+    @abstractmethod
+    def _linear_solver(self, solver: Union[Sinkhorn, LRSinkhorn]) -> None:
+        pass
+
+    @property
+    def rank(self) -> Optional[int]:
+        return self._rank
+
+    @rank.setter
+    def rank(self, value: Optional[int]) -> None:
+        if value == self.rank:
+            return
+        if value is not None:
+            assert value > 1, "Rank must be positive."
+        self._rank = value
+
+        if value is not None and isinstance(self._linear_solver, LRSinkhorn):
+            self._linear_solver.rank = value
+            return
+        # TODO(michalk8): find a nicer check
+        if value is None and type(self._linear_solver) is Sinkhorn:
+            return
+
+        [threshold], kwargs = self._linear_solver.tree_flatten()
+
+        clazz = Sinkhorn if value is None else LRSinkhorn
+        params = signature(clazz).parameters
+        kwargs = {k: v for k, v in kwargs.items() if k in params}
+        if value is not None:
+            kwargs["rank"] = value
+
+        # TODO(michalk8): warn if using defaults
+        self._linear_solver = clazz(**kwargs, threshold=threshold)
+
+    @property
+    def is_low_rank(self) -> bool:
+        return self.rank is not None
+
+    def _solve(
+        self,
+        data: Union[LinearProblem, QuadraticProblem],
+        _output_kwargs: Mapping[str, Any] = MappingProxyType({}),
+        **kwargs: Any,
+    ) -> BaseSolverOutput:
+        if "rank" in kwargs:
+            print(kwargs)
+            self.rank = kwargs.pop("rank")
+        if self.is_low_rank:
+            _output_kwargs = dict(_output_kwargs)
+            _output_kwargs["threshold"] = self._linear_solver.threshold
+        return super()._solve(data, _output_kwargs=_output_kwargs, **kwargs)
+
+
+class SinkhornSolver(RankMixin, GeometryMixin, BaseSolver):
+    @property
+    def _linear_solver(self) -> Union[Sinkhorn, LRSinkhorn]:
+        return self._solver
+
+    @_linear_solver.setter
+    def _linear_solver(self, solver: Union[Sinkhorn, LRSinkhorn]) -> None:
+        self._solver = solver
+
     def _prepare_input(
         self,
         x: TaggedArray,
         y: Optional[TaggedArray] = None,
         a: Optional[npt.ArrayLike] = None,
         b: Optional[npt.ArrayLike] = None,
-        tau_a: Optional[float] = 1.0,
-        tau_b: Optional[float] = 1.0,
+        tau_a: float = 1.0,
+        tau_b: float = 1.0,
         **kwargs: Any,
     ) -> LinearProblem:
         kwargs.pop("xx", None)
@@ -135,28 +202,21 @@ class SinkhornSolver(GeometryMixin, BaseSolver):
         return LinearProblem(geom, a=a, b=b, tau_a=tau_a, tau_b=tau_b)
 
     @property
-    def _solver_output(self) -> Type[BaseSolverOutput]:
-        return Sinkhorn, SinkhornOutput
+    def _description(self) -> SolverDescription:
+        if self.is_low_rank:
+            return SolverDescription(LRSinkhorn, LRSinkhornOutput)
+        return SolverDescription(make_sinkhorn, SinkhornOutput)
 
 
-class LRSinkhornSolver(SinkhornSolver):
-    def _solve(self, data: Union[LinearProblem, QuadraticProblem], **kwargs: Any) -> BaseSolverOutput:
-        return self._solver_output[1](self._solver(data, **kwargs), threshold=self._solver.threshold)
-
-    @property
-    def _solver_output(self) -> Tuple[Type[Any], Type[BaseSolverOutput]]:
-        return SinkhornLR, LRSinkhornOutput
-
-
-class GWSolver(GeometryMixin, BaseSolver):
+class GWSolver(RankMixin, GeometryMixin, BaseSolver):
     def _prepare_input(
         self,
         x: TaggedArray,
         y: Optional[TaggedArray] = None,
         a: Optional[npt.ArrayLike] = None,
         b: Optional[npt.ArrayLike] = None,
-        tau_a: Optional[float] = 1.0,
-        tau_b: Optional[float] = 1.0,
+        tau_a: float = 1.0,
+        tau_b: float = 1.0,
         **kwargs: Any,
     ) -> QuadraticProblem:
         if y is None:
@@ -168,13 +228,19 @@ class GWSolver(GeometryMixin, BaseSolver):
         geom_y = self._create_geometry(y, **kwargs)
 
         # TODO(michalk8): marginals + kwargs?
-        return QuadraticProblem(
-            geom_x, geom_y, geom_xy=None, fused_penalty=0.0, a=a, b=b, is_fused=False, tau_a=tau_a, tau_b=tau_b
-        )
+        return QuadraticProblem(geom_x, geom_y, geom_xy=None, fused_penalty=0.0, a=a, b=b, tau_a=tau_a, tau_b=tau_b)
 
     @property
-    def _solver_output(self) -> Tuple[Type[Any], Type[BaseSolverOutput]]:
-        return GW, GWOutput
+    def _linear_solver(self) -> Union[Sinkhorn, LRSinkhorn]:
+        return self._solver.linear_ot_solver
+
+    @_linear_solver.setter
+    def _linear_solver(self, solver: Union[Sinkhorn, LRSinkhorn]) -> None:
+        self._solver.linear_ot_solver = solver
+
+    @property
+    def _description(self) -> SolverDescription:
+        return SolverDescription(make_gw, GWOutput)
 
 
 class FGWSolver(GWSolver):
@@ -184,8 +250,8 @@ class FGWSolver(GWSolver):
         y: Optional[TaggedArray] = None,
         a: Optional[npt.ArrayLike] = None,
         b: Optional[npt.ArrayLike] = None,
-        tau_a: Optional[float] = 1.0,
-        tau_b: Optional[float] = 1.0,
+        tau_a: float = 1.0,
+        tau_b: float = 1.0,
         xx: Optional[TaggedArray] = None,
         yy: Optional[TaggedArray] = None,
         **kwargs: Any,
@@ -210,7 +276,6 @@ class FGWSolver(GWSolver):
             fused_penalty=0.5,
             a=a,
             b=b,
-            is_fused=False,
             tau_a=tau_a,
             tau_b=tau_b,
         )
@@ -224,7 +289,7 @@ class FGWSolver(GWSolver):
             raise ValueError("TODO: second and joint geom mismatch")
 
     def _solve(self, data: QuadraticProblem, alpha: float = 0.5, **kwargs: Any) -> GWOutput:
-        if not (0 < alpha < 1):
+        if alpha < 0:
             raise ValueError("TODO: wrong alpha range")
         if alpha != data.fused_penalty:
             data.fused_penalty = alpha
