@@ -7,7 +7,7 @@ import numpy.typing as npt
 
 from anndata import AnnData
 
-from moscot.utils import _get_marginal
+from moscot._utils import _get_marginal
 from moscot.backends.ott import GWSolver, FGWSolver, SinkhornSolver
 from moscot.solvers._output import BaseSolverOutput
 from moscot.problems._anndata import AnnDataPointer

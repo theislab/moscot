@@ -39,9 +39,9 @@ class BaseSolverOutput(ABC):
             raise ValueError("TODO: wrong shape")
         return self._apply(x, forward=False)
 
-    def _format_params(self, val_formatter: Callable[[Any], str]) -> str:
+    def _format_params(self, fmt: Callable[[Any], str]) -> str:
         params = {"shape": self.shape, "cost": round(self.cost, 4), "converged": self.converged}
-        return ", ".join(f"{name}={val!r}" for name, val in params.items())
+        return ", ".join(f"{name}={fmt(val)}" for name, val in params.items())
 
     def __bool__(self) -> bool:
         return self.converged
