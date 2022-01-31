@@ -7,7 +7,7 @@ import logging
 
 import moscot.solvers._base_solver
 from moscot.solvers._base_solver import BaseSolver
-from moscot.utils import _get_marginal, _verify_dict
+from moscot.utils import _get_marginal, _verify_dict, _verify_marginals
 from moscot.mixins._time_analysis import TemporalAnalysisMixin
 from moscot.problems._compound_problem import CompoundProblem
 from moscot.problems._base_problem import GeneralProblem
@@ -22,13 +22,17 @@ class TemporalProblem(TemporalAnalysisMixin, CompoundProblem):
     def __init__(self,
                  adata: AnnData,
                  solver: Optional[BaseSolver] = None):
-        self._marginal_container = None
+        self._a_marg_container = None
         self._n_growth_rates_estimates = None
+        self._a_marg = None
+        self._b_marg = None
         self._a_marg_attr = None
         self._a_marg_key = None
         self._name = None
         self._temporal_key = None
         self._last_growth_key = None
+        self._time_deltas = None
+        self._name = None
         super().__init__(adata, solver)
 
     def prepare(
@@ -38,9 +42,10 @@ class TemporalProblem(TemporalAnalysisMixin, CompoundProblem):
         policy: Literal["sequential", "pairwise", "triu", "tril", "explicit"] = "sequential",
         x: Optional[Mapping[str, Any]] = None,#TODO: check differnece with mappringproxytype
         y: Optional[Mapping[str, Any]] = None,
-        a_marg: Optional[Mapping[str, Any]] = None,
-        b_marg: Optional[Mapping[str, Any]] = None,
+        a_marg: Optional[Sequence[Union[Mapping[str, Any], npt.ArrayLike]]] = None,
+        b_marg: Optional[Sequence[Union[Mapping[str, Any], npt.ArrayLike]]] = None,
         n_growth_rates_estimates: Optional[int] = None, # currently, a prior can only be passed to the first transport map
+        growth_rates_column_name: Optional[str] = "g",
         **kwargs: Any,
     ) -> "BaseProblem":
         if x is None:
@@ -51,24 +56,38 @@ class TemporalProblem(TemporalAnalysisMixin, CompoundProblem):
         self._a_marg = a_marg
         self._b_marg = b_marg
         self._temporal_key = key
+        self._name = growth_rates_column_name
         if self._n_growth_rates_estimates is not None:
             if policy != "sequential":
                 raise ValueError("Growth estimates are only available for sequential transport maps.")
             if self._n_growth_rates_estimates < 1:
                 raise ValueError("At least one iteration is required.")
-            if self._a_marg is not None:
-                _verify_dict(self.adata, self._a_marg)
-                if "key" in self._a_marg.keys():
-                    self._a_marg_key = self._a_marg["key"]
-                    self._marginal_container = getattr(self.adata, self._a_marg["attr"])
-                    self._name = self._a_marg["key"]
-                else:
-                    self._marginal_container = self._adata
-                    self._name = self._a_marg["attr"]
 
-                super().prepare(key, subset, policy, x=x, y=y, a_marg=self._a_marg, b_marg=self._b_marg, **kwargs)
+            super().prepare(key, subset, policy, x=x, y=y, **kwargs)
+            if self._a_marg is not None:
+                _verify_marginals(self._a_marg)
+            if "key" in self._a_marg.keys():
+                self._a_marg_key = self._a_marg["key"]
+                self._a_marg_container = getattr(self.adata, self._a_marg["attr"])
             else:
-                super().prepare(key, subset, policy, x=x, y=y, **kwargs)
+                self._a_marg_container = self.adata.obs
+                current_key = f"{self._name}_0"
+                current_col_index = self._a_marg_container.columns.get_loc(current_key)
+            if self._b_marg is not None:
+                _verify_marginals(self._b_marg)
+
+            for tuple, problem in self._problems.items():
+                try:
+                    delta_t = np.float(tuple[1]) - np.float(tuple[0])
+                    self._time_deltas[tuple] = delta_t
+                except ValueError:
+                    print("The values {} of the time column cannot be interpreted as floats.".format(tuple))
+                initial_growth_rate = np.power(self._a_marg_container, delta_t)
+                initial_marginal = initial_growth_rate / np.mean(initial_growth_rate) / len(initial_growth_rate)
+                problem._a = initial_marginal
+                mask = self._policy.mask(discard_empty=True)[tuple][0]
+                self._a_marg_container.iloc[mask, current_col_index] = initial_marginal
+                self._problems[tuple].adata.obs["g0"] = initial_marginal
         else:
             super().prepare(key, subset, policy, x=x, y=y, **kwargs)
 
@@ -84,16 +103,13 @@ class TemporalProblem(TemporalAnalysisMixin, CompoundProblem):
             super().solve(eps, alpha, tau_a, tau_b, **kwargs)
         else:
             if self._a_marg is None:
-                self._a_marg = {"attr": "obs", "key": "marginal_a"}
-                self._marginal_container = self._adata.obs
-                self._name = "marginal_a"
                 current_key = f"{self._name}_g1"
-                self._marginal_container[current_key] = np.nan
-                current_col_index = self._marginal_container.columns.get_loc(current_key)
+                self._a_marg_container[current_key] = np.nan
+                current_col_index = self._a_marg_container.columns.get_loc(current_key)
                 for tuple, problem in self._problems.items():
                     mask = self._policy.mask(discard_empty=True)[tuple][0]
                     self._problems[tuple].adata.obs["marginal_a"] = np.ones(sum(mask))/sum(mask)
-                    self._marginal_container.iloc[mask, current_col_index] = np.ones(sum(mask))/sum(mask)
+                    self._a_marg_container.iloc[mask, current_col_index] = np.ones(sum(mask)) / sum(mask)
                 logging.info("No prior distribution was provided. A uniform prior was chosen")
             super().solve(eps, alpha, tau_a, tau_b, a_marg=self._a_marg, **kwargs)
             current_key = f"{self._name}_g1"
@@ -101,21 +117,21 @@ class TemporalProblem(TemporalAnalysisMixin, CompoundProblem):
                 growth_array = self.solution[subset].solution.transport_matrix.sum(axis=1)
                 mask = self._policy.mask(discard_empty=True)[subset][0]
                 self._problems[subset].adata.obs[current_key] = growth_array
-                self._marginal_container.iloc[mask, current_col_index] = growth_array
+                self._a_marg_container.iloc[mask, current_col_index] = np.power(growth_array, 1.0 / self._time_deltas[subset])
 
             for i in range(1, self._n_growth_rates_estimates):
                 a_marg = {"attr": current_key} if len(self._a_marg) == 1 else {"attr": self._a_marg["attr"],
                                                                                  "key": current_key}
                 b_marg = {}  # TODO: do we need to adapt this as well?
                 current_key = f"{self._name}_g{i+1}"
-                self._marginal_container[current_key] = np.nan
-                current_col_index = self._marginal_container.columns.get_loc(current_key)
+                self._a_marg_container[current_key] = np.nan
+                current_col_index = self._a_marg_container.columns.get_loc(current_key)
                 super().solve(eps, alpha, tau_a, tau_b, a_marg=a_marg, b_marg=b_marg, **kwargs)
                 for subset, problem in self._problems.items():
                     growth_array = self.solution[subset].solution.transport_matrix.sum(axis=1)
                     mask = self._policy.mask(discard_empty=True)[subset][0]
                     self._problems[subset].adata.obs[current_key] = growth_array
-                    self._marginal_container.iloc[mask, current_col_index] = growth_array
+                    self._a_marg_container.iloc[mask, current_col_index] = growth_array
                 self._last_growth_key = current_key
 
     def push_forward(self,
@@ -319,7 +335,7 @@ class TemporalProblem(TemporalAnalysisMixin, CompoundProblem):
         distance_gex_randomly_interpolated = self._compute_wasserstein_distance(intermediate_adata, AnnData(gex_randomly_interpolated))
         if self._last_growth_key is not None:
             intermediate_adata.obs[self._last_growth_key]
-            gex_randomly_interpolated_growth = self._interpolate_gex_randomly(intermediate_adata.n_obs, source_adata, target_adata, self._problems[(start, end)]._solver, self._marginal_container.iloc[intermediate_indices, -1])
+            gex_randomly_interpolated_growth = self._interpolate_gex_randomly(intermediate_adata.n_obs, source_adata, target_adata, self._problems[(start, end)]._solver, self._a_marg_container.iloc[intermediate_indices, -1])
             distance_gex_randomly_interpolated_growth = self._compute_wasserstein_distance((intermediate_adata, AnnData(gex_randomly_interpolated_growth)))
         else:
             distance_gex_randomly_interpolated_growth = None
@@ -340,5 +356,5 @@ class TemporalProblem(TemporalAnalysisMixin, CompoundProblem):
 
     @property
     def transport_matrix(self):
-        return {pair: solution.transport_matrix for pair, solution in self._solutions.items()}
+        return {pair: solution._solution.transport_matrix for pair, solution in self._solutions.items()}
 

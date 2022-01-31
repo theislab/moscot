@@ -1,9 +1,10 @@
-from typing import Any, Union, Optional, Sequence
+from typing import Any, Union, Optional, Sequence, Mapping
+
 
 from numpy.typing import ArrayLike
 from ott.geometry.costs import Bures, Cosine, Euclidean, UnbalancedBures
 import numpy as np
-
+import numpy.typing as npt
 from anndata import AnnData
 
 
@@ -34,6 +35,7 @@ def _validate_loss(loss: Union[str, ArrayLike], adata_source: Optional[AnnData],
 
 
 def _get_marginal(adata: AnnData, attr: Optional[str] = None, key: Optional[str] = None) -> ArrayLike:
+
     if attr is None:
         return np.ones(adata.n_obs) / adata.n_obs
 
@@ -58,6 +60,25 @@ def _verify_dict(adata: AnnData, d: dict):
         if not hasattr(getattr(adata, d["attr"]), d["key"]):
             raise AttributeError("TODO: invalid key of attribute")
 
+def _verify_marginals(adata: AnnData, marginals: Optional[Union[Sequence[Union[Mapping[str, Any], npt.ArrayLike]]], Mapping[str, Any], npt.ArrayLike]):
+
+    if isinstance(marginals, Sequence):
+        for marg in marginals:
+            if isinstance(marg, Mapping):
+                _verify_dict(adata, marg)
+            elif isinstance(marg, npt.ArrayLike):
+                pass
+            else:
+                raise ValueError(
+                    "The marginals must be given as npt.ArrayLike or as a Mapping pointing to their locations.")
+    else:
+        if isinstance(marginals, Mapping):
+            _verify_dict(adata, marginals)
+        elif isinstance(marginals, npt.ArrayLike):
+            pass
+        else:
+            raise ValueError(
+                "The marginals must be given as npt.ArrayLike or as a Mapping pointing to their locations.")
 
 def _normalize(arr: ArrayLike) -> ArrayLike:
     if arr.ndim != 1:

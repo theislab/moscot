@@ -173,16 +173,16 @@ class GeneralProblem(BaseProblem):
         x: Mapping[str, Any] = MappingProxyType({}),
         y: Optional[Mapping[str, Any]] = None,
         xy: Optional[Mapping[str, Any]] = None,
-        a_marg: Optional[Mapping[str, Any]] = MappingProxyType({}),
-        b_marg: Optional[Mapping[str, Any]] = MappingProxyType({}),
+        a_marg: Optional[Union[Mapping[str, Any]], npt.ArrayLike] = MappingProxyType({}),
+        b_marg: Optional[Union[Mapping[str, Any]], npt.ArrayLike] = MappingProxyType({}),
         **kwargs: Any,
     ) -> "BaseProblem":
         self._x = AnnDataPointer(adata=self.adata, **x).create(**kwargs)
         self._y = None if y is None else AnnDataPointer(adata=self._adata_y, **y).create(**kwargs)
         self._xy = None if xy is None else self._handle_joint(**xy, create_kwargs=kwargs)
 
-        self._a = _get_marginal(self.adata, **a_marg)
-        self._b = _get_marginal(self.adata if self._adata_y is None else self._adata_y, **b_marg)
+        self._a = a_marg if isinstance(a_marg, npt.ArrayLike) else _get_marginal(self.adata, **a_marg)
+        self._b = b_marg if isinstance(b_marg, npt.ArrayLike) else _get_marginal(self.adata if self._adata_y is None else self._adata_y, **b_marg)
 
         return self
 
