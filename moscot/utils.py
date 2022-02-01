@@ -54,9 +54,11 @@ def _verify_dict(adata: AnnData, d: dict):
     if "attr" not in d.keys():
         raise ValueError(
             "Please provide the item with key 'attr'.")
-    if not hasattr(adata, dict["attr"]):
+    if not hasattr(adata, d["attr"]):
         raise AttributeError("TODO: invalid attribute")
-    if "key" in dict.keys():
+    if "key" not in d.keys():
+        raise AttributeError("TODO: provide 'attr' and 'key' as keys for this dict")
+    else:
         if not hasattr(getattr(adata, d["attr"]), d["key"]):
             raise AttributeError("TODO: invalid key of attribute")
 
@@ -80,6 +82,17 @@ def _verify_marginals(adata: AnnData, marginals: Optional[Union[Sequence[Union[M
             raise ValueError(
                 "The marginals must be given as npt.ArrayLike or as a Mapping pointing to their locations.")
 
+def _get_differences(items):
+    diff_dict = {}
+    for tup in items:
+        try:
+            delta_t = np.float(tup[1]) - np.float(tup[0])
+            diff_dict[tup] = delta_t
+        except ValueError:
+            print("The values {} of the time column cannot be interpreted as floats.".format(tup))
+    return diff_dict
+
+    
 def _normalize(arr: ArrayLike) -> ArrayLike:
     if arr.ndim != 1:
         raise ValueError("TODO: expected 1D")

@@ -122,6 +122,9 @@ class SubsetPolicy:
 
         return res
 
+    def __len__(self) -> int:
+        return len(self._cat)
+
 
 class OrderedPolicy(SubsetPolicy, ABC):
     def __init__(self, adata: Union[AnnData, pd.Series, pd.Categorical], key: Optional[str] = None):

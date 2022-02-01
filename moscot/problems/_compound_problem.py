@@ -1,7 +1,8 @@
 from enum import Enum
 from typing import Any, Dict, Type, Tuple, Union, Literal, Iterator, Optional, Sequence
 from itertools import product
-
+from collections import abc
+from itertools import repeat
 from pandas.api.types import is_categorical_dtype
 import pandas as pd
 
@@ -81,8 +82,21 @@ class CompoundProblem(BaseProblem):
             self._policy = self._policy.subset(subset)
         # https://stackoverflow.com/questions/41905978/pythonic-way-to-broadcast-loop-through-values-when-expanding-kwargs
         # use this for handling x, y, xx, yy, a_marg, b_marg
-        x = kwargs.pop("x")
-        a_marg = kwargs.pop("a_marg", {})
+
+        n_problems = len(self._policy)
+        kw_args = []
+        for k, v in kwargs.items():
+            if isinstance(v, abc.Iterable):
+                if k == "x":
+                    assert len(v) == n_problems - 1, print(n_problems, len(v)) #TODO: @MUCDK: check which length kwargs should have in general
+                else:
+                    assert len(v) == n_problems, print(n_problems, len(v)) #TODO: @MUCDK: check which length kwargs should have in general
+            else:
+                v = repeat(v)
+            kw_args.append(v)
+        kw_args = zip(*kw_args)
+
+        """a_marg = kwargs.pop("a_marg", {})
         b_marg = kwargs.pop("b_marg", {})
         if not isinstance(a_marg, Sequence):
             a_marg = [a_marg] * len(self._policy._subset)
@@ -91,10 +105,10 @@ class CompoundProblem(BaseProblem):
         if not isinstance(b_marg, Sequence):
             b_marg = [b_marg] * len(self._policy._subset)
         else:
-            assert len(b_marg) == len(self._policy._subset), "The length of b_marg must be equal to the number of problems"
+            assert len(b_marg) == len(self._policy._subset), "The length of b_marg must be equal to the number of problems"""
 
         self._problems = {
-            subset: GeneralProblem(self.adata[x_mask, :], self.adata[y_mask, :], solver=self._solver).prepare(a_marg=a_marg[i], b_marg=b_marg[i], **kwargs)
+            subset: GeneralProblem(self.adata[x_mask, :], self.adata[y_mask, :], solver=self._solver).prepare(**dict(zip(kwargs, next(kw_args))))
             for i, (subset, (x_mask, y_mask)) in enumerate(self._policy.mask(discard_empty=True).items())
         }
 
