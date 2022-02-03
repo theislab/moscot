@@ -61,6 +61,3 @@ class AnnDataPointer:
             raise KeyError(f"TODO: unable to find `adata.{self.attr}['{self.key}']`.")
         container = container[self.key]
         return TaggedArray(container, tag=self.tag, loss=backend_losses[self.loss])
-
-
-

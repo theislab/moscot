@@ -89,7 +89,7 @@ class BaseProblem(ABC):
         if data.shape[0] != adata.n_obs:
             raise ValueError("TODO: wrong shape")
 
-        total = np.sum(data != 0, axis=0)[None, :] #TODO: check if total=np.sum(data) is necessary
+        total = np.sum(data != 0, axis=0)[None, :]  # TODO: check if total=np.sum(data) is necessary
         if not np.all(total > 0):
             raise ValueError("TODO: no mass.")
         return data / total if normalize else data
@@ -181,7 +181,11 @@ class GeneralProblem(BaseProblem):
         self._xy = None if xy is None else self._handle_joint(**xy, create_kwargs=kwargs)
 
         self._a = a_marg if isinstance(a_marg, np.ndarray) else _get_marginal(self.adata, **a_marg)
-        self._b = b_marg if isinstance(b_marg, np.ndarray) else _get_marginal(self.adata if self._adata_y is None else self._adata_y, **b_marg)
+        self._b = (
+            b_marg
+            if isinstance(b_marg, np.ndarray)
+            else _get_marginal(self.adata if self._adata_y is None else self._adata_y, **b_marg)
+        )
 
         return self
 
@@ -213,7 +217,9 @@ class GeneralProblem(BaseProblem):
         if "b_marg" in kwargs:
             b_marg = kwargs.pop("b_marg")
             self._b = _get_marginal(self._adata_y, **b_marg)
-        self._solution = self._solver(self._x, self._y, a=self._a, b=self._b, eps=eps, tau_a=tau_a, tau_b=tau_b, **kwargs)
+        self._solution = self._solver(
+            self._x, self._y, a=self._a, b=self._b, eps=eps, tau_a=tau_a, tau_b=tau_b, **kwargs
+        )
         return self
 
     # TODO(michalk8): require in BaseProblem?

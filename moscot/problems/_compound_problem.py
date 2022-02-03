@@ -1,19 +1,18 @@
 from enum import Enum
 from typing import Any, Dict, Type, Tuple, Union, Literal, Iterator, Optional, Sequence
-from itertools import product
-from collections import abc
-from itertools import repeat
+from operator import itemgetter
+from itertools import repeat, product
+
 from pandas.api.types import is_categorical_dtype
 import pandas as pd
-import numpy as np
-from operator import itemgetter
+
 import numpy.typing as npt
 
 from anndata import AnnData
 
-from moscot.solvers._base_solver import BaseSolver
 from moscot.backends.ott import GWSolver, FGWSolver, SinkhornSolver
 from moscot.solvers._output import BaseSolverOutput
+from moscot.solvers._base_solver import BaseSolver
 from moscot.problems._base_problem import BaseProblem, GeneralProblem
 from moscot.problems._subset_policy import StarPolicy, SubsetPolicy, ExplicitPolicy
 
@@ -82,7 +81,7 @@ class CompoundProblem(BaseProblem):
         else:
             self._policy = self._policy.subset(subset)
 
-        n_problems = len(self._policy)
+        len(self._policy)
         kwargs_copy = []
         for k, v in kwargs.items():
             if isinstance(v, dict):
@@ -98,7 +97,9 @@ class CompoundProblem(BaseProblem):
                 kwargs_copy.append(repeat(v))
         kw_args = zip(*kwargs_copy)
         self._problems = {
-            subset: GeneralProblem(self.adata[x_mask, :], self.adata[y_mask, :], solver=self._solver).prepare(**dict(zip(list(kwargs.keys()), next(kw_args))))
+            subset: GeneralProblem(self.adata[x_mask, :], self.adata[y_mask, :], solver=self._solver).prepare(
+                **dict(zip(list(kwargs.keys()), next(kw_args)))
+            )
             for i, (subset, (x_mask, y_mask)) in enumerate(self._policy.mask(discard_empty=True).items())
         }
 

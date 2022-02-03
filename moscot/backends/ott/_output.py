@@ -64,7 +64,7 @@ class LRSinkhornOutput(SinkhornOutput):
             return self._output.apply(x, axis=axis)
         if x.ndim == 2:
             # TODO: convert to batch first
-            x = jnp.squeeze(x) # This is needed that for LR
+            x = jnp.squeeze(x)  # This is needed that for LR
             return self._output.apply(x.T, axis=axis).T
 
         raise ValueError("TODO - dim error")
