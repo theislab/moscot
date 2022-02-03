@@ -136,12 +136,6 @@ class CompoundProblem(BaseProblem):
             # start, end = end, start
             pairs = self._policy.chain(start, end)[::-1]
 
-        """if return_all:
-            problem = self._problems[pairs[0]]
-            adata = problem.adata if forward or problem._adata_y is None else problem._adata_y
-            data = [problem._get_mass(adata, data, subset=subset, normalize=normalize)]
-        else:
-            data = [data]"""
         problem = self._problems[pairs[0]]
         adata = problem.adata if forward or problem._adata_y is None else problem._adata_y
         data = [problem._get_mass(adata, data, subset=subset, normalize=True)]

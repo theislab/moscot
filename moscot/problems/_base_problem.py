@@ -89,7 +89,7 @@ class BaseProblem(ABC):
         if data.shape[0] != adata.n_obs:
             raise ValueError("TODO: wrong shape")
 
-        total = np.sum(data)
+        total = np.sum(data != 0, axis=0)[None, :] #TODO: check if total=np.sum(data) is necessary
         if not np.all(total > 0):
             raise ValueError("TODO: no mass.")
         return data / total if normalize else data

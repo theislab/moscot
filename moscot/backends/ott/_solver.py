@@ -62,7 +62,6 @@ class GeometryMixin:
         y: Optional[TaggedArray] = None,
         *,
         eps: Optional[float] = None,
-        online: bool = False,
         **kwargs: Any,
     ) -> Geometry:
         if y is not None:
@@ -71,15 +70,15 @@ class GeometryMixin:
             x, y = self._assert2d(x.data), self._assert2d(y.data)
             if x.shape[1] != y.shape[1]:
                 raise ValueError("TODO: x/y dimension mismatch")
-            return PointCloud(x, y=y, epsilon=eps, cost_fn=cost_fn, online=online, **kwargs)
+            return PointCloud(x, y=y, epsilon=eps, cost_fn=cost_fn, **kwargs)
         if x.is_point_cloud:
             # TODO: pass cost kwargs
             cost_fn = self._create_cost(x.loss)
-            return PointCloud(self._assert2d(x.data), epsilon=eps, cost_fn=cost_fn, online=online, **kwargs)
+            return PointCloud(self._assert2d(x.data), epsilon=eps, cost_fn=cost_fn, **kwargs)
         if x.is_grid:
             # TODO: pass cost kwargs
             cost_fn = self._create_cost(x.loss)
-            return Grid(jnp.asarray(x.data), epsilon=eps, **kwargs)
+            return Grid(jnp.asarray(x.data), epsilon=eps, cost_fn=cost_fn, **kwargs)
         if x.is_cost_matrix:
             return Geometry(cost_matrix=self._assert2d(x.data, allow_reshape=False), epsilon=eps, **kwargs)
         if x.is_kernel:
@@ -199,8 +198,7 @@ class SinkhornSolver(RankMixin, GeometryMixin, BaseSolver):
     ) -> LinearProblem:
         kwargs.pop("xx", None)
         kwargs.pop("yy", None)
-        online = kwargs.pop("online", False)
-        geom = self._create_geometry(x, y, online=online, **kwargs)
+        geom = self._create_geometry(x, y, **kwargs)
         return LinearProblem(geom, a=a, b=b, tau_a=tau_a, tau_b=tau_b)
 
     @property
