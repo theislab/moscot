@@ -61,7 +61,7 @@ class LRSinkhornOutput(SinkhornOutput):
 
 class GWOutput(MatrixSolverOutput):
     def __init__(self, output: OTTGWOutput):
-        super().__init__(output.transport)
+        super().__init__(output.matrix)
         self._converged = bool(output.convergence)
         self._cost = float(output.reg_gw_cost)
 

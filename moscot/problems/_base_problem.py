@@ -7,12 +7,12 @@ import numpy.typing as npt
 
 from anndata import AnnData
 
-from moscot.utils import _get_marginal
+from moscot._utils import _get_marginal
 from moscot.backends.ott import GWSolver, FGWSolver, SinkhornSolver
-from moscot.solvers._data import Tag, TaggedArray
 from moscot.solvers._output import BaseSolverOutput
 from moscot.problems._anndata import AnnDataPointer
 from moscot.solvers._base_solver import BaseSolver
+from moscot.solvers._tagged_arry import Tag, TaggedArray
 
 
 class BaseProblem(ABC):
@@ -213,7 +213,7 @@ class GeneralProblem(BaseProblem):
         if "b_marg" in kwargs:
             b_marg = kwargs.pop("b_marg")
             self._b = _get_marginal(self._adata_y, **b_marg)
-        self._solution = self._solver(self._x, self._y, self._a, self._b, eps=eps, tau_a=tau_a, tau_b=tau_b, **kwargs)
+        self._solution = self._solver(self._x, self._y, a=self._a, b=self._b, eps=eps, tau_a=tau_a, tau_b=tau_b, **kwargs)
         return self
 
     # TODO(michalk8): require in BaseProblem?
