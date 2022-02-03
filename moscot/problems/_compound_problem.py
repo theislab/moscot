@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import Any, Dict, Type, Tuple, Union, Literal, Mapping, Iterator, Optional, Sequence
+from typing import Any, Dict, List, Type, Tuple, Union, Literal, Mapping, Iterator, Optional, Sequence
 
 import pandas as pd
 
@@ -157,7 +157,11 @@ class CompoundProblem(CompoundBaseProblem):
 class MultiCompoundProblem(CompoundBaseProblem):
     _KEY = "subset"
 
-    def __init__(self, *adatas: AnnData, solver: Optional[BaseSolver] = None):
+    def __init__(
+        self,
+        *adatas: Union[AnnData, Mapping[Any, AnnData], Tuple[AnnData], List[AnnData]],
+        solver: Optional[BaseSolver] = None,
+    ):
         if not len(adatas):
             raise ValueError("TODO: no adatas passed")
 
@@ -175,6 +179,7 @@ class MultiCompoundProblem(CompoundBaseProblem):
         else:
             adata = adatas[0]
 
+        # TODO(michalk8): can this have unintended consequences in push/pull?
         super().__init__(adata, solver)
 
         if not isinstance(adatas, Mapping):
