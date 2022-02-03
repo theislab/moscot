@@ -24,7 +24,7 @@ class TemporalAnalysisMixin(CompoundAnalysisMixin):
                                  number_cells: int,
                                  adata_1: AnnData,
                                  adata_2: AnnData,
-                                 solver: moscot.solvers._base_solver.BaseSolverOutput,
+                                 solver: Any, #TODO
                                  interpolation_parameter: int = 0.5,
                                  adjust_by_growth = True
                                  ):

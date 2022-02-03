@@ -146,6 +146,7 @@ class CompoundProblem(BaseProblem):
         adata = problem.adata if forward or problem._adata_y is None else problem._adata_y
         data = [problem._get_mass(adata, data, subset=subset, normalize=True)]
         for pair in pairs:
+            print(pair)
             problem = self._problems[pair]
             data.append((problem.push if forward else problem.pull)(data[-1], subset=subset, normalize=normalize))
             if not return_all:

@@ -58,6 +58,17 @@ class LRSinkhornOutput(SinkhornOutput):
             len(costs) > 1 and jnp.isfinite(costs[-1]) and jnp.isclose(costs[-2], costs[-1], rtol=self._threshold)
         )
 
+    def _apply(self, x: npt.ArrayLike, *, forward: bool) -> npt.ArrayLike:
+        axis = int(not forward)
+        if x.ndim == 1:
+            return self._output.apply(x, axis=axis)
+        if x.ndim == 2:
+            # TODO: convert to batch first
+            x = jnp.squeeze(x) # This is needed that for LR
+            return self._output.apply(x.T, axis=axis).T
+
+        raise ValueError("TODO - dim error")
+
 
 class GWOutput(MatrixSolverOutput):
     def __init__(self, output: OTTGWOutput):

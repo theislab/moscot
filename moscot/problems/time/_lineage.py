@@ -155,59 +155,34 @@ class TemporalProblem(TemporalAnalysisMixin, CompoundProblem):
     def pull_back(self,
                   start: Any,
                   end: Any,
+                  mass: Optional[npt.ArrayLike] = None,
                   key_groups: Optional[str] = None,
                   groups: Optional[Sequence] = None,
-                  mass: Optional[npt.ArrayLike] = None,
                   normalize: bool = True,
                   return_all: bool = False,
                   ) -> Union[Sequence[npt.ArrayLike], npt.ArrayLike]:
         if (start, end) not in self._problems.keys():
             raise ValueError("No transport map computed for {}. Try calling 'push_back_composed' instead.".format((start, end)))
         if mass is None:
-            pairs = self._policy.chain(start, end)
-            start_adata = self._problems[pairs[0]].adata
-            mass = self._prepare_transport(start_adata, key_groups, groups)
-        return self._apply(mass, start=start, end=end, normalize=normalize, return_all=return_all, forward=True)
+            return self._apply(data=key_groups, subset=groups, start=start, end=end, normalize=normalize, return_all=return_all, forward=False)
+        else:
+            return self._apply(data=mass, start=start, end=end, normalize=normalize, return_all=return_all, forward=False)
 
     def pull_back_composed(self,
+                            start: Any,
+                            end: Any,
                             mass: Optional[npt.ArrayLike] = None,
                             key_groups: Optional[str] = None,
                             groups: Optional[str] = None,
                             subset: Optional[Sequence[Any]] = None,
-                            start: Optional[Any] = None,
-                            end: Optional[Any] = None,
                             normalize: bool = True,
                             return_all: bool = False,
-                            forward: bool = True,
-                           ) -> Union[Sequence[npt.ArrayLike], npt.ArrayLike]:
+                            ) -> Union[Sequence[npt.ArrayLike], npt.ArrayLike]:
         if mass is None:
             return self._apply(data=key_groups, subset=groups, start=start, end=end, normalize=normalize, return_all=return_all, forward=False)
         else:
             return self._apply(data=mass, start=start, end=end, normalize=normalize, return_all=return_all, forward=False)
 
-    def _prepare_transport(self, adata: AnnData, key_groups: Optional[str] = None, groups: Optional[Sequence[Any]] = None):
-        if key_groups is None:
-            mass_length = adata.n_obs
-            return np.full(mass_length, 1 / mass_length)
-        if key_groups not in adata.obs.columns:
-            raise ValueError(f"column {key_groups} not found in AnnData.obs")
-
-        self._verify_groups_are_present(adata, key_groups, groups)
-        return self._make_mass_from_groups(adata, key_groups, groups)
-
-    @staticmethod #TODO: move to utils/mixin
-    def _verify_groups_are_present(adata: AnnData, key_groups: Optional[str] = None, groups: Optional[Sequence[Any]] = None) -> None:
-        adata_groups = adata.obs[key_groups].values
-        for group in groups:
-            if group not in adata_groups:
-                raise ValueError(f"Group {group} is not present for considered data point")
-    @staticmethod #TODO: move to utils/mixin
-    def _make_mass_from_groups(adata: AnnData, key_groups: Optional[str] = None, groups: Optional[Sequence[Any]] = None) -> np.ndarray:
-        isin_group = adata.obs[key_groups].isin(groups)
-        mass = np.zeros(adata.n_obs)
-        mass[isin_group] = 1/sum(isin_group)
-        print(mass.shape)
-        return mass
 
     def get_transport_matrix(self):
         return {subset: self.solution[subset].transport_matrix for subset, problem in self._problems.items()}
