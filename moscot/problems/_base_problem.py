@@ -207,7 +207,9 @@ class GeneralProblem(BaseProblem):
             kwargs["xx"] = self._xy
             kwargs["yy"] = None
 
-        self._solution = self._solver(self._x, self._y, self._a, self._b, eps=eps, tau_a=tau_a, tau_b=tau_b, **kwargs)
+        self._solution = self._solver(
+            self._x, self._y, a=self._a, b=self._b, eps=eps, tau_a=tau_a, tau_b=tau_b, **kwargs
+        )
         return self
 
     # TODO(michalk8): require in BaseProblem?

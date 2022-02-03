@@ -1,64 +1,43 @@
-from enum import Enum
-from typing import Any, Dict, Type, Tuple, Union, Literal, Iterator, Optional, Sequence
-from itertools import product
+from abc import ABC, abstractmethod
+from typing import Any, Dict, List, Type, Tuple, Union, Literal, Mapping, Iterator, Optional, Sequence
 
-from pandas.api.types import is_categorical_dtype
 import pandas as pd
 
+import numpy as np
 import numpy.typing as npt
 
 from anndata import AnnData
 
-from moscot.solvers._base_solver import BaseSolver
 from moscot.backends.ott import GWSolver, FGWSolver, SinkhornSolver
 from moscot.solvers._output import BaseSolverOutput
+from moscot.solvers._base_solver import BaseSolver
 from moscot.problems._base_problem import BaseProblem, GeneralProblem
 from moscot.problems._subset_policy import StarPolicy, SubsetPolicy, ExplicitPolicy
 
-
-# TODO(michalk8): should be a base class + subclasses + classmethod create
-class Policy(str, Enum):
-    PAIRWISE = "pairwise"
-    SUBSEQUENT = "subsequent"
-    UPPER_DIAG = "upper_diag"
-
-    def create(
-        self, data: Union[pd.Series, pd.Categorical], subset: Optional[Sequence[Any]] = None
-    ) -> Dict[Tuple[Any, Any], Tuple[pd.Series, pd.Series]]:
-        # TODO(michalk8): handle explicitly passed policy: must be a sequence of 2-tuples
-        if not isinstance(data, pd.Series):
-            data = pd.Series(data)
-        # TODO(michalk8): allow explicit conversion from bools/numeric/strings as long as number of generated
-        # categories is sane (e.g. <= 64)?
-        if not is_categorical_dtype(data):
-            raise TypeError("TODO - expected categorical")
-        categories = [c for c in data.cat.categories if subset is None or c in subset]
-        if not categories:
-            raise ValueError("TODO - no valid subset has been selected.")
-
-        if self.value == "pairwise":
-            return {(x, y): (data == x, data == y) for x, y in product(categories, categories)}
-
-        if not data.cat.ordered:
-            # TODO(michalk8): use? https://github.com/theislab/cellrank/blob/dev/cellrank/tl/kernels/_utils.py#L255
-            raise ValueError("TODO - expected ordered categorical")
-
-        if self.value == "upper_diag":
-            return {(x, y): (data == x, data == y) for x, y in product(categories, categories) if x <= y}
-
-        if len(categories) < 2:
-            raise ValueError("TODO - subsequent too few categories, point to GeneralProblem")
-        return {(x, y): (data == x, data == y) for x, y in zip(categories[:-1], categories[1:])}
+__all__ = ("CompoundProblem", "MultiCompoundProblem")
 
 
-# TODO(michalk8): make abstract?
-class CompoundProblem(BaseProblem):
+class CompoundBaseProblem(BaseProblem, ABC):
     def __init__(self, adata: AnnData, solver: Optional[BaseSolver] = None):
         super().__init__(adata, solver)
 
         self._problems: Optional[Dict[Tuple[Any, Any], GeneralProblem]] = None
         self._solutions: Optional[Dict[Tuple[Any, Any], BaseSolverOutput]] = None
         self._policy: Optional[SubsetPolicy] = None
+
+    @abstractmethod
+    def _create_problems(self, **kwargs: Any) -> Dict[Tuple[Any, Any], GeneralProblem]:
+        pass
+
+    @abstractmethod
+    def _create_policy(
+        self,
+        policy: Literal["sequential", "pairwise", "triu", "tril", "explicit"] = "sequential",
+        key: Optional[str] = None,
+        subset: Optional[Sequence[Any]] = None,
+        reference: Optional[Any] = None,
+    ) -> SubsetPolicy:
+        pass
 
     def prepare(
         self,
@@ -67,23 +46,10 @@ class CompoundProblem(BaseProblem):
         policy: Literal["sequential", "pairwise", "triu", "tril", "explicit"] = "sequential",
         **kwargs: Any,
     ) -> "BaseProblem":
-        self._policy = (
-            SubsetPolicy.create(policy, self.adata, key=key)
-            if isinstance(policy, str)
-            else ExplicitPolicy(self.adata, key=key)
+        self._policy = self._create_policy(
+            policy=policy, key=key, subset=subset, reference=kwargs.pop("reference", None)
         )
-
-        if isinstance(self._policy, ExplicitPolicy):
-            self._policy = self._policy.subset(subset, policy)
-        elif isinstance(self._policy, StarPolicy):
-            self._policy = self._policy.subset(subset, reference=kwargs.pop("reference"))
-        else:
-            self._policy = self._policy.subset(subset)
-
-        self._problems = {
-            subset: GeneralProblem(self.adata[x_mask, :], self.adata[y_mask, :], solver=self._solver).prepare(**kwargs)
-            for subset, (x_mask, y_mask) in self._policy.mask(discard_empty=True).items()
-        }
+        self._problems = self._create_problems(**kwargs)
 
         return self
 
@@ -158,3 +124,97 @@ class CompoundProblem(BaseProblem):
         if self.solution is None:
             raise StopIteration
         return iter(self.solution.items())
+
+
+class CompoundProblem(CompoundBaseProblem):
+    def _create_problems(self, **kwargs: Any) -> Dict[Tuple[Any, Any], GeneralProblem]:
+        return {
+            subset: GeneralProblem(self.adata[x_mask, :], self.adata[y_mask, :], solver=self._solver).prepare(**kwargs)
+            for subset, (x_mask, y_mask) in self._policy.mask(discard_empty=True).items()
+        }
+
+    def _create_policy(
+        self,
+        policy: Literal["sequential", "pairwise", "triu", "tril", "explicit"] = "sequential",
+        key: Optional[str] = None,
+        subset: Optional[Sequence[Any]] = None,
+        reference: Optional[Any] = None,
+    ) -> SubsetPolicy:
+        policy = (
+            SubsetPolicy.create(policy, self.adata, key=key)
+            if isinstance(policy, str)
+            else ExplicitPolicy(self.adata, key=key)
+        )
+
+        if isinstance(policy, ExplicitPolicy):
+            return policy.subset(subset, policy)
+        if isinstance(policy, StarPolicy):
+            return policy.subset(subset, reference=reference)
+
+        return policy.subset(subset)
+
+
+class MultiCompoundProblem(CompoundBaseProblem):
+    _KEY = "subset"
+
+    def __init__(
+        self,
+        *adatas: Union[AnnData, Mapping[Any, AnnData], Tuple[AnnData], List[AnnData]],
+        solver: Optional[BaseSolver] = None,
+    ):
+        if not len(adatas):
+            raise ValueError("TODO: no adatas passed")
+
+        if len(adatas) == 1:
+            if isinstance(adatas[0], Mapping):
+                adata = next(iter(adatas[0].values()))
+                adatas = adatas[0]
+            elif isinstance(adatas[0], AnnData):
+                adata = adatas[0]
+            elif isinstance(adatas[0], (tuple, list)):
+                adatas = adatas[0]
+                adata = adatas[0]
+            else:
+                raise TypeError("TODO: no adatas passed")
+        else:
+            adata = adatas[0]
+
+        # TODO(michalk8): can this have unintended consequences in push/pull?
+        super().__init__(adata, solver)
+
+        if not isinstance(adatas, Mapping):
+            adatas = {i: adata for i, adata in enumerate(adatas)}
+
+        self._adatas: Mapping[Any, AnnData] = adatas
+        self._policy_adata = AnnData(
+            np.empty((len(self._adatas), 1)),
+            obs=pd.DataFrame({self._KEY: pd.Series(list(self._adatas.keys())).astype("category")}),
+        )
+
+    def _create_problems(self, **kwargs: Any) -> Dict[Tuple[Any, Any], GeneralProblem]:
+        return {
+            (x, y): GeneralProblem(self._adatas[x], self._adatas[y], solver=self._solver).prepare(**kwargs)
+            for x, y in self._policy.mask(discard_empty=True).keys()
+        }
+
+    def _create_policy(
+        self,
+        policy: Literal["sequential", "pairwise", "triu", "tril", "explicit"] = "sequential",
+        key: Optional[str] = None,
+        subset: Optional[Sequence[Any]] = None,
+        reference: Optional[Any] = None,
+    ) -> SubsetPolicy:
+        policy = (
+            SubsetPolicy.create(policy, self._policy_adata, key=self._KEY)
+            if isinstance(policy, str)
+            else ExplicitPolicy(self._policy_adata, key=self._KEY)
+        )
+
+        if isinstance(policy, ExplicitPolicy):
+            return policy.subset(subset, policy)
+        if isinstance(policy, StarPolicy):
+            if reference not in self._adatas:
+                raise ValueError("TODO: specify star reference")
+            return policy.subset(subset, reference=reference)
+
+        return policy.subset(subset)
