@@ -1,8 +1,8 @@
 from moscot.mixins import TemporalAnalysisMixin
-from moscot.problems._compound_problem import CompoundProblem
+from moscot.problems._compound_problem import SingleCompoundProblem
 
 
-class TemporalProblem(TemporalAnalysisMixin, CompoundProblem):
+class TemporalProblem(TemporalAnalysisMixin, SingleCompoundProblem):
     # TODO(michalk8): decide how to pass marginals
     # maybe require for BaseProblem as
     # _compute_marginals(self, **kwargs: Any) -> Tuple[Optional[npt.ArrayLike], Optional[npt.ArrayLike]]:

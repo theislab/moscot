@@ -14,7 +14,7 @@ from moscot.solvers._base_solver import BaseSolver
 from moscot.problems._base_problem import BaseProblem, GeneralProblem
 from moscot.problems._subset_policy import StarPolicy, SubsetPolicy, ExplicitPolicy
 
-__all__ = ("CompoundProblem", "MultiCompoundProblem")
+__all__ = ("SingleCompoundProblem", "MultiCompoundProblem", "CompoundProblem")
 
 
 class CompoundBaseProblem(BaseProblem, ABC):
@@ -126,7 +126,7 @@ class CompoundBaseProblem(BaseProblem, ABC):
         return iter(self.solution.items())
 
 
-class CompoundProblem(CompoundBaseProblem):
+class SingleCompoundProblem(CompoundBaseProblem):
     def _create_problems(self, **kwargs: Any) -> Dict[Tuple[Any, Any], GeneralProblem]:
         return {
             subset: GeneralProblem(self.adata[x_mask, :], self.adata[y_mask, :], solver=self._solver).prepare(**kwargs)
@@ -218,3 +218,31 @@ class MultiCompoundProblem(CompoundBaseProblem):
             return policy.subset(subset, reference=reference)
 
         return policy.subset(subset)
+
+
+class CompoundProblem(CompoundBaseProblem):
+    def __init__(
+        self,
+        *adatas: Union[AnnData, Mapping[Any, AnnData], Tuple[AnnData], List[AnnData]],
+        solver: Optional[BaseSolver] = None,
+    ):
+        if len(adatas) == 1 and isinstance(adatas[0], AnnData):
+            self._prob = SingleCompoundProblem(adatas[0], solver=solver)
+        else:
+            self._prob = MultiCompoundProblem(*adatas, solver=solver)
+
+        super().__init__(self._prob.adata, self._prob._solver)
+
+    def _create_problems(self, **kwargs: Any) -> Dict[Tuple[Any, Any], GeneralProblem]:
+        return self._prob._create_problems(**kwargs)
+
+    def _create_policy(
+        self,
+        policy: Literal["sequential", "pairwise", "triu", "tril", "explicit"] = "sequential",
+        key: Optional[str] = None,
+        subset: Optional[Sequence[Any]] = None,
+        reference: Optional[Any] = None,
+    ) -> SubsetPolicy:
+        policy = self._prob._create_policy(policy=policy, key=key, subset=subset, reference=reference)
+        self._prob._policy = policy
+        return policy
