@@ -14,7 +14,7 @@ from moscot.solvers._base_solver import BaseSolver
 from moscot.problems._base_problem import BaseProblem, GeneralProblem
 from moscot.problems._subset_policy import StarPolicy, SubsetPolicy, ExplicitPolicy
 
-__all__ = ("CompoundProblem", "MultiCompoundProblem")
+__all__ = ("SingleCompoundProblem", "MultiCompoundProblem", "CompoundProblem")
 
 
 class CompoundBaseProblem(BaseProblem, ABC):
@@ -33,9 +33,7 @@ class CompoundBaseProblem(BaseProblem, ABC):
     def _create_policy(
         self,
         policy: Literal["sequential", "pairwise", "triu", "tril", "explicit"] = "sequential",
-        key: Optional[str] = None,
-        subset: Optional[Sequence[Any]] = None,
-        reference: Optional[Any] = None,
+        **kwargs: Any,
     ) -> SubsetPolicy:
         pass
 
@@ -44,11 +42,21 @@ class CompoundBaseProblem(BaseProblem, ABC):
         key: str,
         subset: Optional[Sequence[Any]] = None,
         policy: Literal["sequential", "pairwise", "triu", "tril", "explicit"] = "sequential",
+        reference: Optional[Any] = None,
         **kwargs: Any,
-    ) -> "BaseProblem":
-        self._policy = self._create_policy(
-            policy=policy, key=key, subset=subset, reference=kwargs.pop("reference", None)
-        )
+    ) -> "CompoundProblem":
+        policy = self._create_policy(policy=policy, key=key)
+
+        if isinstance(policy, ExplicitPolicy):
+            policy = policy.subset(subset, policy)
+        elif isinstance(policy, StarPolicy):
+            if reference is None:
+                raise ValueError("TODO: specify star reference")
+            policy = policy.subset(subset, reference=reference)
+        else:
+            policy = policy.subset(subset)
+
+        self._policy = policy
         self._problems = self._create_problems(**kwargs)
 
         return self
@@ -60,7 +68,7 @@ class CompoundBaseProblem(BaseProblem, ABC):
         tau_a: Optional[float] = 1.0,
         tau_b: Optional[float] = 1.0,
         **kwargs: Any,
-    ) -> "BaseProblem":
+    ) -> "CompoundProblem":
         self._solutions = {}
         for subset, problem in self._problems.items():
             self._solutions[subset] = problem.solve(eps=eps, alpha=alpha, tau_a=tau_a, tau_b=tau_b, **kwargs)
@@ -78,6 +86,7 @@ class CompoundBaseProblem(BaseProblem, ABC):
         forward: bool = True,
     ) -> Union[npt.ArrayLike, npt.ArrayLike]:
         # TODO: check if solved - decorator?
+        # TODO(michalk8): default should be policy dependent (star/seq esp.)
         if forward:
             pairs = self._policy.chain(start, end)
         else:
@@ -126,7 +135,7 @@ class CompoundBaseProblem(BaseProblem, ABC):
         return iter(self.solution.items())
 
 
-class CompoundProblem(CompoundBaseProblem):
+class SingleCompoundProblem(CompoundBaseProblem):
     def _create_problems(self, **kwargs: Any) -> Dict[Tuple[Any, Any], GeneralProblem]:
         return {
             subset: GeneralProblem(self.adata[x_mask, :], self.adata[y_mask, :], solver=self._solver).prepare(**kwargs)
@@ -137,21 +146,13 @@ class CompoundProblem(CompoundBaseProblem):
         self,
         policy: Literal["sequential", "pairwise", "triu", "tril", "explicit"] = "sequential",
         key: Optional[str] = None,
-        subset: Optional[Sequence[Any]] = None,
-        reference: Optional[Any] = None,
+        **_: Any,
     ) -> SubsetPolicy:
-        policy = (
+        return (
             SubsetPolicy.create(policy, self.adata, key=key)
             if isinstance(policy, str)
             else ExplicitPolicy(self.adata, key=key)
         )
-
-        if isinstance(policy, ExplicitPolicy):
-            return policy.subset(subset, policy)
-        if isinstance(policy, StarPolicy):
-            return policy.subset(subset, reference=reference)
-
-        return policy.subset(subset)
 
 
 class MultiCompoundProblem(CompoundBaseProblem):
@@ -191,6 +192,15 @@ class MultiCompoundProblem(CompoundBaseProblem):
             obs=pd.DataFrame({self._KEY: pd.Series(list(self._adatas.keys())).astype("category")}),
         )
 
+    def prepare(
+        self,
+        subset: Optional[Sequence[Any]] = None,
+        policy: Literal["sequential", "pairwise", "triu", "tril", "explicit"] = "sequential",
+        reference: Optional[Any] = None,
+        **kwargs: Any,
+    ) -> "MultiCompoundProblem":
+        return super().prepare(None, subset=subset, policy=policy, reference=reference, **kwargs)
+
     def _create_problems(self, **kwargs: Any) -> Dict[Tuple[Any, Any], GeneralProblem]:
         return {
             (x, y): GeneralProblem(self._adatas[x], self._adatas[y], solver=self._solver).prepare(**kwargs)
@@ -200,21 +210,36 @@ class MultiCompoundProblem(CompoundBaseProblem):
     def _create_policy(
         self,
         policy: Literal["sequential", "pairwise", "triu", "tril", "explicit"] = "sequential",
-        key: Optional[str] = None,
-        subset: Optional[Sequence[Any]] = None,
-        reference: Optional[Any] = None,
+        **_: Any,
     ) -> SubsetPolicy:
-        policy = (
+        return (
             SubsetPolicy.create(policy, self._policy_adata, key=self._KEY)
             if isinstance(policy, str)
             else ExplicitPolicy(self._policy_adata, key=self._KEY)
         )
 
-        if isinstance(policy, ExplicitPolicy):
-            return policy.subset(subset, policy)
-        if isinstance(policy, StarPolicy):
-            if reference not in self._adatas:
-                raise ValueError("TODO: specify star reference")
-            return policy.subset(subset, reference=reference)
 
-        return policy.subset(subset)
+class CompoundProblem(CompoundBaseProblem):
+    def __init__(
+        self,
+        *adatas: Union[AnnData, Mapping[Any, AnnData], Tuple[AnnData], List[AnnData]],
+        solver: Optional[BaseSolver] = None,
+    ):
+        if len(adatas) == 1 and isinstance(adatas[0], AnnData):
+            self._prob = SingleCompoundProblem(adatas[0], solver=solver)
+        else:
+            self._prob = MultiCompoundProblem(*adatas, solver=solver)
+
+        super().__init__(self._prob.adata, self._prob._solver)
+
+    def _create_problems(self, **kwargs: Any) -> Dict[Tuple[Any, Any], GeneralProblem]:
+        return self._prob._create_problems(**kwargs)
+
+    def _create_policy(
+        self,
+        policy: Literal["sequential", "pairwise", "triu", "tril", "explicit"] = "sequential",
+        key: Optional[str] = None,
+        **_: Any,
+    ) -> SubsetPolicy:
+        self._prob._policy = self._prob._create_policy(policy=policy, key=key)
+        return self._prob._policy
