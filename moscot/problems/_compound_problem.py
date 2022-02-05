@@ -88,7 +88,7 @@ class CompoundBaseProblem(BaseProblem, ABC):
                 # always valid shapes, since accessing AnnData
                 return data
             if isinstance(data, Mapping):
-                return data.get(plan, None)
+                return data.get(plan[0], None) if isinstance(self._policy, StarPolicy) else data.get(plan, None)
             if len(plans) == 1:
                 return data
             # TODO(michalk8): warn
