@@ -22,8 +22,8 @@ if __name__ == "__main__":
         version=__version__,
         description=Path("README.rst").read_text("utf-8").split("\n")[0],
         long_description=Path("README.rst").read_text("utf-8"),
-        url="https://github.com/theislab/scott",
-        download_url="https://github.com/theislab/scott",
+        url="https://github.com/theislab/moscot",
+        download_url="https://github.com/theislab/moscot",
         license="BSD",
         install_requires=Path("requirements.txt").read_text("utf-8").split("\n"),
         extras_require={
@@ -31,7 +31,7 @@ if __name__ == "__main__":
         },
         zip_safe=False,
         packages=find_packages(),
-        python_requires=">=3.7",
+        python_requires=">=3.8",
         platforms=["Linux", "MacOs", "Windows"],
         keywords=sorted(
             [
@@ -50,9 +50,9 @@ if __name__ == "__main__":
             "Operating System :: Microsoft :: Windows",
             "Typing :: Typed",
             "Programming Language :: Python :: 3",
-            "Programming Language :: Python :: 3.7",
             "Programming Language :: Python :: 3.8",
             "Programming Language :: Python :: 3.9",
+            "Programming Language :: Python :: 3.10",
             "Topic :: Scientific/Engineering :: Bio-Informatics",
             "Topic :: Scientific / Engineering :: Mathematics",
         ],

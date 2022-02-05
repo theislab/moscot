@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 from types import MappingProxyType
-from typing import Any, Type, Tuple, Union, Mapping, Iterable, Optional, Sequence
+from typing import Any, List, Type, Tuple, Union, Mapping, Iterable, Optional, Sequence
 
 import numpy as np
 import numpy.typing as npt
@@ -66,14 +66,15 @@ class BaseProblem(ABC):
     @staticmethod
     def _get_mass(
         adata: AnnData,
-        # TODO: Sequence[str]
-        data: Optional[Union[str, npt.ArrayLike]] = None,
+        data: Optional[Union[str, List[str], Tuple[str, ...], npt.ArrayLike]] = None,
         subset: Optional[Sequence[Any]] = None,
         normalize: bool = True,
     ) -> npt.ArrayLike:
         if data is None:
             data = np.ones((adata.n_obs,), dtype=float)
         elif isinstance(data, (str, list, tuple)):
+            if isinstance(data, (list, tuple)) and not len(data):
+                raise ValueError("TODO: no subset keys specified.")
             # TODO: allow mix numeric/categorical keys (how to handle multiple subsets then?)
             if subset is None:  # allow for numeric values
                 data = np.asarray(adata.obs[data], dtype=float)
@@ -87,7 +88,7 @@ class BaseProblem(ABC):
         if data.ndim != 2:
             data = np.reshape(data, (-1, 1))
         if data.shape[0] != adata.n_obs:
-            raise ValueError("TODO: wrong shape")
+            raise ValueError(f"TODO: expected shape `{adata.n_obs,}`, found `{data.shape[0],}`")
 
         total = np.sum(data != 0, axis=0)[None, :]
         if not np.all(total > 0):
@@ -220,7 +221,7 @@ class GeneralProblem(BaseProblem):
         normalize: bool = True,
     ) -> npt.ArrayLike:
         # TODO: check if solved - decorator?
-        data = self._get_mass(self.adata, data, subset, normalize=normalize)
+        data = self._get_mass(self.adata, data=data, subset=subset, normalize=normalize)
         return self.solution.push(data)
 
     def pull(
@@ -231,7 +232,7 @@ class GeneralProblem(BaseProblem):
     ) -> npt.ArrayLike:
         # TODO: check if solved - decorator?
         adata = self.adata if self._adata_y is None else self._adata_y
-        data = self._get_mass(adata, data, subset, normalize=normalize)
+        data = self._get_mass(adata, data=data, subset=subset, normalize=normalize)
         return self.solution.pull(data)
 
     @property

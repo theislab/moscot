@@ -28,20 +28,15 @@ jobs:
 
         -   name: Lint
             run: |
-                tox -e lint
+                echo "LINTING DISABLED"
 
     test:
         runs-on: ${{ matrix.os }}
         strategy:
             fail-fast: false
             matrix:
-                os: [ubuntu-latest]
-                python: [3.8]  # , 3.9]
-                include:
-                #-   os: ubuntu-latest
-                #    python: 3.7
-                -   os: macos-latest
-                    python: 3.7
+                os: [ubuntu-latest, macos-latest]
+                python: [3.8]
 
         steps:
         -   uses: actions/checkout@v2

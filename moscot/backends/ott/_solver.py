@@ -169,7 +169,6 @@ class RankMixin:
         **kwargs: Any,
     ) -> BaseSolverOutput:
         if "rank" in kwargs:
-            print(kwargs)
             self.rank = kwargs.pop("rank")
         if self.is_low_rank:
             _output_kwargs = dict(_output_kwargs)
