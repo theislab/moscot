@@ -15,7 +15,7 @@ Item_t = Tuple[Any, Any]
 Value_t = Tuple[npt.ArrayLike, npt.ArrayLike]
 
 
-__all__ = ("SubsetPolicy", "OrderedPolicy", "PairwisePolicy", "SequentialPolicy", "TriangularPolicy")
+__all__ = ("SubsetPolicy", "OrderedPolicy", "PairwisePolicy", "SequentialPolicy", "TriangularPolicy", "ExplicitPolicy")
 
 
 class SubsetPolicy:
@@ -55,14 +55,18 @@ class SubsetPolicy:
 
     def __init__(self, adata: Union[AnnData, pd.Series, pd.Categorical], key: Optional[str] = None):
         self._data: pd.Series = pd.Series(adata.obs[key] if isinstance(adata, AnnData) else adata)
-        self._subset: Optional[Dict[Tuple[Any, Any], Tuple[npt.ArrayLike, npt.ArrayLike]]] = None
+        self._subset: Optional[List[Item_t]] = None
         self._cat = self.Category(self._data.cat.categories)
 
     @abstractmethod
     def _create_subset(self, *args: Any, **kwargs: Any) -> Sequence[Item_t]:
         pass
 
-    def subset(self, filter: Optional[Sequence[Any]], *args: Any, **kwargs: Any) -> "SubsetPolicy":
+    @abstractmethod
+    def plan(self, **kwargs: Any) -> Dict[Item_t, List[Item_t]]:
+        pass
+
+    def __call__(self, *args: Any, filter: Optional[Sequence[Any]] = None, **kwargs: Any) -> "SubsetPolicy":
         subset = self._create_subset(*args, **kwargs)
         if not all(isinstance(s, Sized) and len(s) == 2 for s in subset):
             raise ValueError("TODO: not all values are two-pair")
@@ -75,7 +79,12 @@ class SubsetPolicy:
         return self
 
     @classmethod
-    def create(cls, kind: Literal["TODO"], adata: AnnData, key: Optional[str] = None) -> "SubsetPolicy":
+    def create(
+        cls,
+        kind: Literal["sequential", "pairwise", "star", "triu", "tril", "explicit"],
+        adata: AnnData,
+        key: Optional[str] = None,
+    ) -> "SubsetPolicy":
         if kind == "sequential":
             return SequentialPolicy(adata, key=key)
         if kind == "pairwise":
@@ -90,20 +99,6 @@ class SubsetPolicy:
             return ExplicitPolicy(adata, key=key)
 
         raise NotImplementedError(kind)
-
-    def chain(self, start: Optional[Any] = None, end: Optional[Any] = None) -> List[Item_t]:
-        start = self._cat[0] if start is None else start
-        end = self._cat[-1] if end is None else end
-        if start == end:
-            raise ValueError("TODO: start is the same as end.")
-        if self._subset is None:
-            raise ValueError("TODO: initialize the subset first")
-
-        G = nx.DiGraph() if isinstance(self, OrderedPolicy) else nx.Graph()
-        G.add_edges_from(self._subset)
-        path = nx.shortest_path(G, start, end)
-
-        return list(zip(path[:-1], path[1:]))
 
     def mask(self, discard_empty: bool = True) -> Dict[Item_t, Value_t]:
         res = {}
@@ -122,14 +117,46 @@ class SubsetPolicy:
 
         return res
 
+    @property
+    def _default_plan(self) -> Dict[Tuple[Any, Any], List[Any]]:
+        return {s: [s] for s in self._subset}
+
+
+class SimplePlanFilterMixin:
+    def plan(self, filter: Optional[Sequence[Item_t]] = None, **_: Any) -> Dict[Item_t, List[Item_t]]:
+        if filter is None:
+            return self._default_plan
+        return {s: [s] for s in self._subset if s in filter}
+
 
 class OrderedPolicy(SubsetPolicy, ABC):
     def __init__(self, adata: Union[AnnData, pd.Series, pd.Categorical], key: Optional[str] = None):
         super().__init__(adata, key=key)
         # TODO(michalk8): verify whether they can be ordered (only numeric?) + warn (or just raise)
 
+    def plan(self, start: Optional[Any] = None, end: Optional[Any] = None, **_: Any) -> Dict[Item_t, List[Item_t]]:
+        if self._subset is None:
+            raise RuntimeError("TODO: init subset first")
+        if start is None and end is None:
+            return self._default_plan
 
-class PairwisePolicy(SubsetPolicy):
+        G = nx.DiGraph()
+        G.add_edges_from(self._subset)
+
+        if start is None:
+            paths = nx.single_target_shortest_path(G, end)
+            return {(n, path[-1][-1]): list(zip(path[:-1], path[1:])) for n, path in paths.items() if n != end}
+        if end is None:
+            paths = nx.single_source_shortest_path(G, start)
+            return {(path[0][0], n): list(zip(path[:-1], path[1:])) for n, path in paths.items() if n != start}
+        if start != end:
+            path = nx.shortest_path(G, start, end)
+            return {(start, end): list(zip(path[:-1], path[1:]))}
+
+        raise ValueError("TODO: start is the same as end.")
+
+
+class PairwisePolicy(SimplePlanFilterMixin, SubsetPolicy):
     def _create_subset(self, *_: Any, **__: Any) -> Sequence[Item_t]:
         return [(a, b) for a, b in zip(self._cat[:-1], self._cat[1:])]
 
@@ -137,6 +164,11 @@ class PairwisePolicy(SubsetPolicy):
 class StarPolicy(SubsetPolicy):
     def _create_subset(self, reference: Any, **kwargs: Any) -> Sequence[Item_t]:
         return [(c, reference) for c in self._cat if c != reference]
+
+    def plan(self, filter: Optional[Sequence[Any]] = None, **_: Any) -> Dict[Item_t, List[Item_t]]:
+        if filter is None:
+            return self._default_plan
+        return {s: [s] for s in self._subset if s[0] in filter}
 
 
 class SequentialPolicy(OrderedPolicy):
@@ -153,31 +185,9 @@ class TriangularPolicy(OrderedPolicy):
         return [(a, b) for a, b in product(self._cat, self._cat) if self._compare(a, b)]
 
 
-class ExplicitPolicy(SubsetPolicy):
+class ExplicitPolicy(SimplePlanFilterMixin, SubsetPolicy):
     def _create_subset(self, subset: Sequence[Item_t], **_: Any) -> Sequence[Item_t]:
+        if subset is None:
+            raise ValueError("TODO: specify subset for explicit policy.")
         # pass-through, all checks are done by us later
         return subset
-
-    def chain(
-        self, start: Optional[Any] = None, end: Optional[Any] = None, interp_step: Optional[Union[int, float]] = None
-    ) -> List[Item_t]:
-        if not interp_step:
-            return super().chain(start, end)
-
-        start = self._cat[0] if start is None else start
-        end = self._cat[-1] if end is None else end
-        G = nx.DiGraph()  # TODO: if data not ordered, raise
-
-        if isinstance(interp_step, int):
-            G.add_edges_from(
-                [(a, b) for a, b in self._subset if abs(self._cat._c2i[a] - self._cat._c2i[b]) <= interp_step]
-            )
-        elif isinstance(interp_step, float):
-            # TODO: assert self._data is numeric
-            G.add_edges_from([(a, b) for a, b in self._subset if abs(b - a) <= interp_step])
-        else:
-            raise TypeError("TODO: wrong interpolation type")
-
-        # TODO: catch the error and print a nice message
-        path = nx.shortest_path(G, start, end)
-        return list(zip(path[:-1], path[1:]))

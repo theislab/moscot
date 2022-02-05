@@ -40,23 +40,22 @@ class CompoundBaseProblem(BaseProblem, ABC):
     def prepare(
         self,
         key: str,
-        subset: Optional[Sequence[Any]] = None,
         policy: Literal["sequential", "pairwise", "triu", "tril", "explicit"] = "sequential",
+        subset: Optional[Sequence[Tuple[Any, Any]]] = None,
         reference: Optional[Any] = None,
         **kwargs: Any,
     ) -> "CompoundProblem":
-        policy = self._create_policy(policy=policy, key=key)
+        self._policy = self._create_policy(policy=policy, key=key)
 
-        if isinstance(policy, ExplicitPolicy):
-            policy = policy.subset(subset, policy)
-        elif isinstance(policy, StarPolicy):
+        if isinstance(self._policy, ExplicitPolicy):
+            self._policy = self._policy(policy)
+        elif isinstance(self._policy, StarPolicy):
             if reference is None:
                 raise ValueError("TODO: specify star reference")
-            policy = policy.subset(subset, reference=reference)
+            self._policy = self._policy(filter=subset, reference=reference)
         else:
-            policy = policy.subset(subset)
+            self._policy = self._policy(filter=subset)
 
-        self._policy = policy
         self._problems = self._create_problems(**kwargs)
 
         return self
@@ -77,37 +76,45 @@ class CompoundBaseProblem(BaseProblem, ABC):
 
     def _apply(
         self,
-        data: Optional[Union[str, npt.ArrayLike]] = None,
+        data: Optional[Union[str, npt.ArrayLike, Mapping[Tuple[Any, Any], Union[str, npt.ArrayLike]]]] = None,
         subset: Optional[Sequence[Any]] = None,
-        start: Optional[Any] = None,
-        end: Optional[Any] = None,
         normalize: bool = True,
-        return_all: bool = False,
         forward: bool = True,
-    ) -> Union[npt.ArrayLike, npt.ArrayLike]:
+        return_all: bool = False,
+        **kwargs: Any,
+    ) -> Dict[Tuple[Any, Any], npt.ArrayLike]:
+        def get_data(plan: Tuple[Any, Any]) -> Optional[npt.ArrayLike]:
+            if data is None or isinstance(data, (str, tuple, list)):
+                # always valid shapes, since accessing AnnData
+                return data
+            if isinstance(data, Mapping):
+                return data.get(plan, None)
+            if len(plans) == 1:
+                return data
+            # TODO(michalk8): warn
+            # would pass an array that will most likely have invalid shapes
+            print("HINT: use `data={<pair>: array}`")
+            return None
+
         # TODO: check if solved - decorator?
-        # TODO(michalk8): default should be policy dependent (star/seq esp.)
-        if forward:
-            pairs = self._policy.chain(start, end)
-        else:
-            # TODO: mb. don't swap start/end
-            # start, end = end, start
-            pairs = self._policy.chain(start, end)[::-1]
 
-        if return_all:
-            problem = self._problems[pairs[0]]
-            adata = problem.adata if forward or problem._adata_y is None else problem._adata_y
-            data = [problem._get_mass(adata, data, subset=subset, normalize=True)]
-        else:
-            data = [data]
+        plans = self._policy.plan(**kwargs)
+        res: Dict[Tuple[Any, Any], npt.ArrayLike] = {}
 
-        for pair in pairs:
-            problem = self._problems[pair]
-            data.append((problem.push if forward else problem.pull)(data[-1], subset=subset, normalize=normalize))
-            if not return_all:
-                data = [data[-1]]
+        for plan, steps in plans.items():
+            if not forward:
+                steps = steps[::-1]
 
-        return data if return_all else data[-1]
+            ds = [get_data(plan)]
+            for step in steps:
+                problem = self._problems[step]
+                ds.append((problem.push if forward else problem.pull)(ds[-1], subset=subset, normalize=normalize))
+
+            # TODO(michalk8): shall we include initial input? or add as option?
+            res[plan] = ds[1:] if return_all else ds[-1]
+
+        # TODO(michalk8): return the values iff only 1 plan?
+        return res
 
     def push(self, *args: Any, **kwargs: Any) -> npt.ArrayLike:
         return self._apply(*args, forward=True, **kwargs)
