@@ -192,7 +192,8 @@ class GeneralProblem(BaseProblem):
         self._xy = None if xy is None else self._handle_joint(**xy, create_kwargs=kwargs)
 
         self._a = BaseProblem._get_or_create_marginal(self.adata, a)
-        self._b = BaseProblem._get_or_create_marginal(self.adata if self._adata_y is None else self._adata_y, b)
+        self._b = BaseProblem._get_or_create_marginal(self._marginal_b_adata, b)
+        self._solution = None
 
         return self
 
@@ -218,8 +219,8 @@ class GeneralProblem(BaseProblem):
             kwargs["yy"] = None
 
         # this allows for MultiMarginalProblem to pass new marginals
-        a = kwargs.get("a", self._a)
-        b = kwargs.get("b", self._b)
+        a = kwargs.pop("a", self._a)
+        b = kwargs.pop("b", self._b)
 
         self._solution = self._solver(self._x, self._y, a=a, b=b, eps=eps, tau_a=tau_a, tau_b=tau_b, **kwargs)
         return self
@@ -249,3 +250,7 @@ class GeneralProblem(BaseProblem):
     @property
     def solution(self) -> Optional[BaseSolverOutput]:
         return self._solution
+
+    @property
+    def _marginal_b_adata(self) -> AnnData:
+        return self.adata if self._adata_y is None else self._adata_y

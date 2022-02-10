@@ -57,6 +57,7 @@ class CompoundBaseProblem(BaseProblem, ABC):
             self._policy = self._policy(filter=subset)
 
         self._problems = self._create_problems(**kwargs)
+        self._solutions = None
 
         return self
 

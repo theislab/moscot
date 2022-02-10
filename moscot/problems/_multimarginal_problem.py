@@ -21,7 +21,7 @@ class MultiMarginalProblem(GeneralProblem, ABC):
     _b: Optional[List[np.ndarray]]
 
     @abstractmethod
-    def _estimate_marginals(self, adata: AnnData, **kwargs: Any) -> npt.ArrayLike:
+    def _estimate_marginals(self, adata: AnnData, **kwargs: Any) -> Optional[npt.ArrayLike]:
         pass
 
     def prepare(
@@ -29,12 +29,20 @@ class MultiMarginalProblem(GeneralProblem, ABC):
         x: Mapping[str, Any] = MappingProxyType({}),
         y: Optional[Mapping[str, Any]] = None,
         xy: Optional[Mapping[str, Any]] = None,
-        a: Optional[Union[str, npt.ArrayLike]] = None,
-        b: Optional[Union[str, npt.ArrayLike]] = None,
+        a: Optional[Union[bool, str, npt.ArrayLike]] = True,
+        b: Optional[Union[bool, str, npt.ArrayLike]] = True,
+        marginal_kwargs: Mapping[str, Any] = MappingProxyType({}),
         **kwargs: Any,
     ) -> "MultiMarginalProblem":
+        # TODO(michalk8): some sentinel value would be nicer
+        if a is True:
+            a = self._estimate_marginals(self.adata, **marginal_kwargs)
+        if b is True:
+            b = self._estimate_marginals(self._marginal_b_adata, **marginal_kwargs)
+
         super().prepare(x, y, xy, a=a, b=b, **kwargs)
         # base problem prepare array-like structure, just wrap it
+        # alt. we could just append and not reset
         self._a = [self._a]
         self._b = [self._b]
 
@@ -50,7 +58,7 @@ class MultiMarginalProblem(GeneralProblem, ABC):
         reset_marginals: bool = True,
         **kwargs: Any,
     ) -> "MultiMarginalProblem":
-        assert n_iters > 1, "TODO: Number of iterations must be > 1."
+        assert n_iters > 0, "TODO: Number of iterations must be > 0."
         if reset_marginals:
             self._reset_marginals()
 
@@ -72,8 +80,8 @@ class MultiMarginalProblem(GeneralProblem, ABC):
         self._b = [] if self._b is None or not len(self._b) else [self._b[0]]
 
     def _add_marginals(self, sol: BaseSolverOutput) -> None:
-        self._a.append(np.asarray(sol.push(np.ones((sol.shape[0],), dtype=float))))
-        self._b.append(np.asarray(sol.pull(np.ones((sol.shape[1],), dtype=float))))
+        self._a.append(np.asarray(sol.pull(np.ones((sol.shape[1],), dtype=float))))
+        self._b.append(np.asarray(sol.push(np.ones((sol.shape[0],), dtype=float))))
 
     def _get_last_marginals(self) -> Marginals_t:
         # solvers are expected to handle `None` as marginals
@@ -85,6 +93,7 @@ class MultiMarginalProblem(GeneralProblem, ABC):
     # TODO(michalk8): use 2 large arrays? append is costlier for np.arrays
     @property
     def marginals(self) -> Marginals_t:
+        # they should always be linked (either both empty or both of the same shape)
         if not len(self._a):
             return None, None
         if not len(self._b):
