@@ -6,7 +6,7 @@ import numpy.typing as npt
 
 class BaseSolverOutput(ABC):
     @abstractmethod
-    def _apply(self, x: npt.ArrayLike, *, forward: bool) -> npt.ArrayLike:
+    def _apply(self, x: npt.ArrayLike, *, forward: bool, scale_by_marginals: bool = False) -> npt.ArrayLike:
         pass
 
     @property
@@ -29,15 +29,15 @@ class BaseSolverOutput(ABC):
     def converged(self) -> bool:
         pass
 
-    def push(self, x: npt.ArrayLike) -> npt.ArrayLike:
+    def push(self, x: npt.ArrayLike, scale_by_marginals: bool = False) -> npt.ArrayLike:
         if x.shape[0] != self.shape[0]:
             raise ValueError("TODO: wrong shape")
-        return self._apply(x, forward=True)
+        return self._apply(x, forward=True, scale_by_marginals=scale_by_marginals)
 
-    def pull(self, x: npt.ArrayLike) -> npt.ArrayLike:
+    def pull(self, x: npt.ArrayLike, scale_by_marginals: bool = False) -> npt.ArrayLike:
         if x.shape[0] != self.shape[1]:
             raise ValueError("TODO: wrong shape")
-        return self._apply(x, forward=False)
+        return self._apply(x, forward=False, scale_by_marginals=scale_by_marginals)
 
     def _format_params(self, fmt: Callable[[Any], str]) -> str:
         params = {"shape": self.shape, "cost": round(self.cost, 4), "converged": self.converged}
@@ -57,7 +57,9 @@ class MatrixSolverOutput(BaseSolverOutput, ABC):
     def __init__(self, matrix: npt.ArrayLike):
         self._matrix = matrix
 
-    def _apply(self, x: npt.ArrayLike, *, forward: bool) -> npt.ArrayLike:
+    def _apply(self, x: npt.ArrayLike, *, forward: bool, scale_by_marginals: bool = False) -> npt.ArrayLike:
+        if scale_by_marginals:
+            raise NotImplementedError("TODO")
         if forward:
             return self.transport_matrix.T @ x
         return self.transport_matrix @ x

@@ -12,7 +12,7 @@ from moscot.backends.ott import GWSolver, FGWSolver, SinkhornSolver
 from moscot.solvers._output import BaseSolverOutput
 from moscot.problems._anndata import AnnDataPointer
 from moscot.solvers._base_solver import BaseSolver
-from moscot.solvers._tagged_arry import Tag, TaggedArray
+from moscot.solvers._tagged_array import Tag, TaggedArray
 
 
 class BaseProblem(ABC):

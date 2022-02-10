@@ -27,7 +27,10 @@ class OTTBaseOutput(BaseSolverOutput, ABC):
 
 
 class SinkhornOutput(OTTBaseOutput):
-    def _apply(self, x: npt.ArrayLike, *, forward: bool) -> npt.ArrayLike:
+    def _apply(self, x: npt.ArrayLike, *, forward: bool, scale_by_marginals: bool = False) -> npt.ArrayLike:
+        if scale_by_marginals:
+            raise NotImplementedError("TODO")
+
         axis = int(not forward)
         if x.ndim == 1:
             return self._output.apply(x, axis=axis)
@@ -52,7 +55,10 @@ class LRSinkhornOutput(OTTBaseOutput):
         super().__init__(output)
         self._threshold = threshold
 
-    def _apply(self, x: npt.ArrayLike, *, forward: bool) -> npt.ArrayLike:
+    def _apply(self, x: npt.ArrayLike, *, forward: bool, scale_by_marginals: bool = False) -> npt.ArrayLike:
+        if scale_by_marginals:
+            raise NotImplementedError("TODO")
+
         axis = int(not forward)
         if x.ndim == 1:
             return self._output.apply(x, axis=axis)

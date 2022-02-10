@@ -18,7 +18,7 @@ import numpy.typing as npt
 from moscot.solvers._output import BaseSolverOutput
 from moscot.backends.ott._output import GWOutput, SinkhornOutput, LRSinkhornOutput
 from moscot.solvers._base_solver import BaseSolver
-from moscot.solvers._tagged_arry import TaggedArray
+from moscot.solvers._tagged_array import TaggedArray
 
 __all__ = ("Cost", "SinkhornSolver", "GWSolver", "FGWSolver")
 
