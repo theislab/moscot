@@ -69,13 +69,3 @@ class MatrixSolverOutput(BaseSolverOutput, ABC):
     @property
     def shape(self) -> Tuple[int, int]:
         return self.transport_matrix.shape
-
-
-class PotentialSolverOutput(BaseSolverOutput, ABC):
-    def __init__(self, f: npt.ArrayLike, g: npt.ArrayLike):
-        self._f = f
-        self._g = g
-
-    @property
-    def shape(self) -> Tuple[int, int]:
-        return self._f.shape[0], self._g.shape[0]
