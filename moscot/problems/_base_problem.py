@@ -35,8 +35,7 @@ class BaseProblem(ABC):
 
     @property
     @abstractmethod
-    # endpoint for mixins, will be used to check whether downstream methods can run
-    def solution(self) -> Any:  # Optional[Union[SolverOutput, Mapping[..., SolverOutput]]]?
+    def solution(self) -> Optional[BaseSolverOutput]:
         pass
 
     # TODO(michalk8): not sure how I feel about this, mb. remove; mb. make a class property
