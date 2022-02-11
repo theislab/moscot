@@ -4,6 +4,9 @@ from typing import Any, Tuple, Callable
 import numpy.typing as npt
 
 
+# TODO(michalk8):
+#  1. mb. use more contrained type hints
+#  2. consider always returning 2-dim array, even if 1-dim is passed (not sure which convenient for user)
 class BaseSolverOutput(ABC):
     @abstractmethod
     def _apply(self, x: npt.ArrayLike, *, forward: bool) -> npt.ArrayLike:
@@ -29,15 +32,29 @@ class BaseSolverOutput(ABC):
     def converged(self) -> bool:
         pass
 
-    def push(self, x: npt.ArrayLike) -> npt.ArrayLike:
+    # TODO(michalk8): mention in docs it needs to be broadcastable
+    @abstractmethod
+    def _ones(self, n: int) -> npt.ArrayLike:
+        pass
+
+    def push(self, x: npt.ArrayLike, scale_by_marginals: bool = False) -> npt.ArrayLike:
         if x.shape[0] != self.shape[0]:
             raise ValueError("TODO: wrong shape")
+        x = self._scale_by_marginals(x, forward=True) if scale_by_marginals else x
         return self._apply(x, forward=True)
 
-    def pull(self, x: npt.ArrayLike) -> npt.ArrayLike:
+    def pull(self, x: npt.ArrayLike, scale_by_marginals: bool = False) -> npt.ArrayLike:
         if x.shape[0] != self.shape[1]:
             raise ValueError("TODO: wrong shape")
+        x = self._scale_by_marginals(x, forward=False) if scale_by_marginals else x
         return self._apply(x, forward=False)
+
+    def _scale_by_marginals(self, x: npt.ArrayLike, *, forward: bool) -> npt.ArrayLike:
+        # alt. we could use the public push/pull
+        scale = self._apply(self._ones(self.shape[forward]), forward=not forward)
+        if x.ndim == 2:
+            scale = scale[:, None]
+        return x / (scale + 1e-12)
 
     def _format_params(self, fmt: Callable[[Any], str]) -> str:
         params = {"shape": self.shape, "cost": round(self.cost, 4), "converged": self.converged}

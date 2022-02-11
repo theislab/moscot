@@ -1,7 +1,6 @@
 from abc import abstractmethod
 from enum import Enum
-from types import MappingProxyType
-from typing import Any, Dict, Type, Union, Mapping, Callable, Optional, NamedTuple
+from typing import Any, Dict, Type, Union, Callable, Optional, NamedTuple
 from inspect import signature
 
 from ott.geometry import Grid, Geometry, PointCloud
@@ -18,7 +17,7 @@ import numpy.typing as npt
 from moscot.solvers._output import BaseSolverOutput
 from moscot.backends.ott._output import GWOutput, SinkhornOutput, LRSinkhornOutput
 from moscot.solvers._base_solver import BaseSolver
-from moscot.solvers._tagged_arry import TaggedArray
+from moscot.solvers._tagged_array import TaggedArray
 
 __all__ = ("Cost", "SinkhornSolver", "GWSolver", "FGWSolver")
 
@@ -105,10 +104,9 @@ class GeometryMixin:
     def _solve(
         self,
         data: Union[LinearProblem, QuadraticProblem],
-        _output_kwargs: Mapping[str, Any] = MappingProxyType({}),
         **kwargs: Any,
     ) -> BaseSolverOutput:
-        return self._description.output(self._solver(data, **kwargs), **_output_kwargs)
+        return self._description.output(self._solver(data, **kwargs))
 
 
 class RankMixin:
@@ -165,15 +163,11 @@ class RankMixin:
     def _solve(
         self,
         data: Union[LinearProblem, QuadraticProblem],
-        _output_kwargs: Mapping[str, Any] = MappingProxyType({}),
         **kwargs: Any,
     ) -> BaseSolverOutput:
         if "rank" in kwargs:
             self.rank = kwargs.pop("rank")
-        if self.is_low_rank:
-            _output_kwargs = dict(_output_kwargs)
-            _output_kwargs["threshold"] = self._linear_solver.threshold
-        return super()._solve(data, _output_kwargs=_output_kwargs, **kwargs)
+        return super()._solve(data, **kwargs)
 
 
 class SinkhornSolver(RankMixin, GeometryMixin, BaseSolver):

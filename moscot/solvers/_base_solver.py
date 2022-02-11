@@ -4,7 +4,7 @@ from typing import Any, Union, Optional
 import numpy.typing as npt
 
 from moscot.solvers._output import BaseSolverOutput
-from moscot.solvers._tagged_arry import Tag, TaggedArray
+from moscot.solvers._tagged_array import Tag, TaggedArray
 
 ArrayLike = Union[npt.ArrayLike, TaggedArray]
 
