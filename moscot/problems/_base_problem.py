@@ -191,8 +191,8 @@ class GeneralProblem(BaseProblem):
         self,
         eps: Optional[float] = None,
         alpha: float = 0.5,
-        tau_a: Optional[float] = 1.0,
-        tau_b: Optional[float] = 1.0,
+        tau_a: float = 1.0,
+        tau_b: float = 1.0,
         **kwargs: Any,
     ) -> "BaseProblem":
         kwargs["alpha"] = alpha
