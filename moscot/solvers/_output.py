@@ -49,12 +49,20 @@ class BaseSolverOutput(ABC):
         x = self._scale_by_marginals(x, forward=False) if scale_by_marginals else x
         return self._apply(x, forward=False)
 
+    @property
+    def a(self) -> npt.ArrayLike:
+        return self.pull(self._ones(self.shape[1]))
+
+    @property
+    def b(self) -> npt.ArrayLike:
+        return self.push(self._ones(self.shape[0]))
+
     def _scale_by_marginals(self, x: npt.ArrayLike, *, forward: bool) -> npt.ArrayLike:
         # alt. we could use the public push/pull
-        scale = self._apply(self._ones(self.shape[forward]), forward=not forward)
+        marginals = self.a if forward else self.b
         if x.ndim == 2:
-            scale = scale[:, None]
-        return x / (scale + 1e-12)
+            marginals = marginals[:, None]
+        return x / (marginals + 1e-12)
 
     def _format_params(self, fmt: Callable[[Any], str]) -> str:
         params = {"shape": self.shape, "cost": round(self.cost, 4), "converged": self.converged}
