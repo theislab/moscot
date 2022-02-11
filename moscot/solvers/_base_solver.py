@@ -66,8 +66,10 @@ class BaseSolver(ABC):
         res = self._solve(data, **kwargs)
 
         n, m = res.shape
-        # TODO(michalk8): how to handle unbalanced?
-        _warn_not_close((res._ones(n) / n) if a is None else a, res.a, kind="source")
-        _warn_not_close((res._ones(m) / m) if b is None else b, res.b, kind="target")
+        # TODO(michalk8): correct handling of unbalanced case?
+        if tau_a == 1.0:
+            _warn_not_close((res._ones(n) / n) if a is None else a, res.a, kind="source")
+        if tau_b == 1.0:
+            _warn_not_close((res._ones(m) / m) if b is None else b, res.b, kind="target")
 
         return res
