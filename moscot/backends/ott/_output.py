@@ -25,6 +25,10 @@ class OTTBaseOutput(BaseSolverOutput, ABC):
     def cost(self) -> float:
         return float(self._output.reg_ot_cost)
 
+    @property
+    def converged(self) -> bool:
+        return bool(self._output.converged)
+
     def _ones(self, n: int) -> jnp.ndarray:
         return jnp.ones((n,))
 
@@ -42,18 +46,8 @@ class SinkhornOutput(OTTBaseOutput):
     def shape(self) -> Tuple[int, int]:
         return self._output.f.shape[0], self._output.g.shape[0]
 
-    @property
-    def converged(self) -> bool:
-        return bool(self._output.converged)
-
 
 class LRSinkhornOutput(OTTBaseOutput):
-
-    # TODO(michalk8): threshold currently necessary to get convergence, raise issue in OTT
-    def __init__(self, output: OTTLRSinkhornOutput, *, threshold: float):
-        super().__init__(output)
-        self._threshold = threshold
-
     def _apply(self, x: npt.ArrayLike, *, forward: bool) -> npt.ArrayLike:
         axis = int(not forward)
         if x.ndim == 1:
@@ -65,17 +59,6 @@ class LRSinkhornOutput(OTTBaseOutput):
     @property
     def shape(self) -> Tuple[int, int]:
         return self._output.geom.shape
-
-    @property
-    def converged(self) -> bool:
-        costs = self._output.costs
-        costs = costs[costs != -1]
-        # TODO(michalk8): is this correct?
-        # modified the condition from:
-        # https://github.com/google-research/ott/blob/a2be0c0703bd5b37cc0ef41e4c79bc10419ca542/ott/core/sinkhorn_lr.py#L239
-        return bool(
-            len(costs) > 1 and jnp.isfinite(costs[-1]) and jnp.isclose(costs[-2], costs[-1], rtol=self._threshold)
-        )
 
 
 class GWOutput(MatrixSolverOutput):
