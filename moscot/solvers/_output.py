@@ -54,7 +54,7 @@ class BaseSolverOutput(ABC):
         scale = self._apply(self._ones(self.shape[forward]), forward=not forward)
         if x.ndim == 2:
             scale = scale[:, None]
-        return x / scale
+        return x / (scale + 1e-12)
 
     def _format_params(self, fmt: Callable[[Any], str]) -> str:
         params = {"shape": self.shape, "cost": round(self.cost, 4), "converged": self.converged}
