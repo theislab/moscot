@@ -11,7 +11,7 @@ from moscot.backends.ott import GWSolver, FGWSolver, SinkhornSolver
 from moscot.solvers._output import BaseSolverOutput
 from moscot.problems._anndata import AnnDataPointer
 from moscot.solvers._base_solver import BaseSolver
-from moscot.solvers._tagged_arry import Tag, TaggedArray
+from moscot.solvers._tagged_array import Tag, TaggedArray
 
 
 class BaseProblem(ABC):
@@ -200,8 +200,8 @@ class GeneralProblem(BaseProblem):
         self,
         eps: Optional[float] = None,
         alpha: float = 0.5,
-        tau_a: Optional[float] = 1.0,
-        tau_b: Optional[float] = 1.0,
+        tau_a: float = 1.0,
+        tau_b: float = 1.0,
         **kwargs: Any,
     ) -> "GeneralProblem":
         kwargs["alpha"] = alpha
@@ -230,21 +230,23 @@ class GeneralProblem(BaseProblem):
         data: Optional[Union[str, npt.ArrayLike]] = None,
         subset: Optional[Sequence[Any]] = None,
         normalize: bool = True,
+        **kwargs: Any,
     ) -> npt.ArrayLike:
         # TODO: check if solved - decorator?
         data = self._get_mass(self.adata, data=data, subset=subset, normalize=normalize)
-        return self.solution.push(data)
+        return self.solution.push(data, **kwargs)
 
     def pull(
         self,
         data: Optional[Union[str, npt.ArrayLike]] = None,
         subset: Optional[Sequence[Any]] = None,
         normalize: bool = True,
+        **kwargs: Any,
     ) -> npt.ArrayLike:
         # TODO: check if solved - decorator?
         adata = self.adata if self._adata_y is None else self._adata_y
         data = self._get_mass(adata, data=data, subset=subset, normalize=normalize)
-        return self.solution.pull(data)
+        return self.solution.pull(data, **kwargs)
 
     @property
     def solution(self) -> Optional[BaseSolverOutput]:

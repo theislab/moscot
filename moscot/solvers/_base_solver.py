@@ -1,10 +1,14 @@
 from abc import ABC, abstractmethod
 from typing import Any, Union, Optional
+import warnings
 
 import numpy.typing as npt
 
+from moscot.solvers._utils import _warn_not_close
 from moscot.solvers._output import BaseSolverOutput
-from moscot.solvers._tagged_arry import Tag, TaggedArray
+from moscot.solvers._tagged_array import Tag, TaggedArray
+
+__all__ = ("BaseSolver",)
 
 ArrayLike = Union[npt.ArrayLike, TaggedArray]
 
@@ -25,10 +29,6 @@ class BaseSolver(ABC):
     def _solve(self, data: Any, **kwargs: Any) -> BaseSolverOutput:
         pass
 
-    def _check_marginals(self, output: BaseSolverOutput) -> None:
-        # TODO(michalk8): implement me
-        pass
-
     def __call__(
         self,
         x: ArrayLike,
@@ -37,8 +37,8 @@ class BaseSolver(ABC):
         yy: Optional[ArrayLike] = None,
         a: Optional[npt.ArrayLike] = None,
         b: Optional[npt.ArrayLike] = None,
-        tau_a: Optional[float] = 1.0,
-        tau_b: Optional[float] = 1.0,
+        tau_a: float = 1.0,
+        tau_b: float = 1.0,
         eps: Optional[float] = None,
         **kwargs: Any,
     ) -> BaseSolverOutput:
@@ -51,9 +51,8 @@ class BaseSolver(ABC):
             # force new tag
             return TaggedArray(arr.data, tag=tag)
 
-        if not isinstance(
-            x, TaggedArray
-        ):  # currently we don't provide x_tag as kwarg, hence we would always convert tags here
+        # currently we don't provide x_tag as kwarg, hence we would always convert tags here
+        if not isinstance(x, TaggedArray):
             x = to_tagged_array(x, kwargs.pop("x_tag", Tag.POINT_CLOUD))
         if not isinstance(y, TaggedArray):
             y = to_tagged_array(y, kwargs.pop("y_tag", Tag.POINT_CLOUD))
@@ -66,5 +65,14 @@ class BaseSolver(ABC):
         # TODO(michak8): filter kwargs
         data = self._prepare_input(x, y, a, b, xx=xx, yy=yy, tau_a=tau_a, tau_b=tau_b, eps=eps)
         res = self._solve(data, **kwargs)
-        self._check_marginals(res)
+
+        if not res.converged:
+            warnings.warn("Solver did not converge")
+
+        n, m = res.shape
+        if tau_a == 1.0:
+            _warn_not_close((res._ones(n) / n) if a is None else a, res.a, kind="source")
+        if tau_b == 1.0:
+            _warn_not_close((res._ones(m) / m) if b is None else b, res.b, kind="target")
+
         return res

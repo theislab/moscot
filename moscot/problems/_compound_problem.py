@@ -91,6 +91,7 @@ class CompoundBaseProblem(BaseProblem, ABC):
         normalize: bool = True,
         forward: bool = True,
         return_all: bool = False,
+        scale_by_marginals: bool = False,
         **kwargs: Any,
     ) -> Dict[Tuple[Any, Any], npt.ArrayLike]:
         def get_data(plan: Tuple[Any, Any]) -> Optional[npt.ArrayLike]:
@@ -118,7 +119,8 @@ class CompoundBaseProblem(BaseProblem, ABC):
             ds = [get_data(plan)]
             for step in steps:
                 problem = self._problems[step]
-                ds.append((problem.push if forward else problem.pull)(ds[-1], subset=subset, normalize=normalize))
+                fun = problem.push if forward else problem.pull
+                ds.append(fun(ds[-1], subset=subset, normalize=normalize, scale_by_marginals=scale_by_marginals))
 
             # TODO(michalk8): shall we include initial input? or add as option?
             res[plan] = ds[1:] if return_all else ds[-1]
