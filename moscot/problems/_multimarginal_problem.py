@@ -80,8 +80,8 @@ class MultiMarginalProblem(GeneralProblem, ABC):
         self._b = [] if self._b is None or not len(self._b) else [self._b[0]]
 
     def _add_marginals(self, sol: BaseSolverOutput) -> None:
-        self._a.append(np.asarray(sol.pull(np.ones((sol.shape[1],), dtype=float))))
-        self._b.append(np.asarray(sol.push(np.ones((sol.shape[0],), dtype=float))))
+        self._a.append(np.asarray(sol.a))
+        self._b.append(np.asarray(sol.b))
 
     def _get_last_marginals(self) -> Marginals_t:
         # solvers are expected to handle `None` as marginals
