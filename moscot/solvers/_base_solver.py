@@ -1,5 +1,6 @@
 from abc import ABC, abstractmethod
 from typing import Any, Union, Optional
+import warnings
 
 import numpy.typing as npt
 
@@ -65,8 +66,10 @@ class BaseSolver(ABC):
         data = self._prepare_input(x, y, a, b, xx=xx, yy=yy, tau_a=tau_a, tau_b=tau_b, eps=eps)
         res = self._solve(data, **kwargs)
 
+        if not res.converged:
+            warnings.warn("Solver did not converge")
+
         n, m = res.shape
-        # TODO(michalk8): correct handling of unbalanced case?
         if tau_a == 1.0:
             _warn_not_close((res._ones(n) / n) if a is None else a, res.a, kind="source")
         if tau_b == 1.0:
