@@ -59,7 +59,7 @@ class BaseSolverOutput(ABC):
 
     def _scale_by_marginals(self, x: npt.ArrayLike, *, forward: bool) -> npt.ArrayLike:
         # alt. we could use the public push/pull
-        marginals = self.b if forward else self.a
+        marginals = self.a if forward else self.b
         if x.ndim == 2:
             marginals = marginals[:, None]
         return x / (marginals + 1e-12)
