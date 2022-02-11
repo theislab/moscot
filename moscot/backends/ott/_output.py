@@ -25,18 +25,17 @@ class OTTBaseOutput(BaseSolverOutput, ABC):
     def cost(self) -> float:
         return float(self._output.reg_ot_cost)
 
+    def _ones(self, n: int) -> jnp.ndarray:
+        return jnp.ones((n,))
+
 
 class SinkhornOutput(OTTBaseOutput):
-    def _apply(self, x: npt.ArrayLike, *, forward: bool, scale_by_marginals: bool = False) -> npt.ArrayLike:
-        if scale_by_marginals:
-            raise NotImplementedError("TODO")
-
-        axis = int(not forward)
+    def _apply(self, x: npt.ArrayLike, *, forward: bool) -> npt.ArrayLike:
         if x.ndim == 1:
-            return self._output.apply(x, axis=axis)
+            return self._output.apply(x, axis=1 - forward)
         if x.ndim == 2:
             # convert to batch first
-            return self._output.apply(x.T, axis=axis).T
+            return self._output.apply(x.T, axis=1 - forward).T
         raise ValueError("TODO - dim error")
 
     @property
@@ -55,10 +54,7 @@ class LRSinkhornOutput(OTTBaseOutput):
         super().__init__(output)
         self._threshold = threshold
 
-    def _apply(self, x: npt.ArrayLike, *, forward: bool, scale_by_marginals: bool = False) -> npt.ArrayLike:
-        if scale_by_marginals:
-            raise NotImplementedError("TODO")
-
+    def _apply(self, x: npt.ArrayLike, *, forward: bool) -> npt.ArrayLike:
         axis = int(not forward)
         if x.ndim == 1:
             return self._output.apply(x, axis=axis)
@@ -72,7 +68,7 @@ class LRSinkhornOutput(OTTBaseOutput):
 
     @property
     def converged(self) -> bool:
-        costs, tol = self._output.costs, self._threshold
+        costs = self._output.costs
         costs = costs[costs != -1]
         # TODO(michalk8): is this correct?
         # modified the condition from:
@@ -95,3 +91,6 @@ class GWOutput(MatrixSolverOutput):
     @property
     def converged(self) -> bool:
         return self._converged
+
+    def _ones(self, n: int) -> jnp.ndarray:
+        return jnp.ones((n,))

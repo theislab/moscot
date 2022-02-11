@@ -219,21 +219,23 @@ class GeneralProblem(BaseProblem):
         data: Optional[Union[str, npt.ArrayLike]] = None,
         subset: Optional[Sequence[Any]] = None,
         normalize: bool = True,
+        **kwargs: Any,
     ) -> npt.ArrayLike:
         # TODO: check if solved - decorator?
         data = self._get_mass(self.adata, data=data, subset=subset, normalize=normalize)
-        return self.solution.push(data)
+        return self.solution.push(data, **kwargs)
 
     def pull(
         self,
         data: Optional[Union[str, npt.ArrayLike]] = None,
         subset: Optional[Sequence[Any]] = None,
         normalize: bool = True,
+        **kwargs: Any,
     ) -> npt.ArrayLike:
         # TODO: check if solved - decorator?
         adata = self.adata if self._adata_y is None else self._adata_y
         data = self._get_mass(adata, data=data, subset=subset, normalize=normalize)
-        return self.solution.pull(data)
+        return self.solution.pull(data, **kwargs)
 
     @property
     def solution(self) -> Optional[BaseSolverOutput]:
