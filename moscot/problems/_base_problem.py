@@ -7,7 +7,6 @@ import numpy.typing as npt
 
 from anndata import AnnData
 
-from moscot._utils import _get_marginal
 from moscot.backends.ott import GWSolver, FGWSolver, SinkhornSolver
 from moscot.solvers._output import BaseSolverOutput
 from moscot.problems._anndata import AnnDataPointer
@@ -36,8 +35,7 @@ class BaseProblem(ABC):
 
     @property
     @abstractmethod
-    # endpoint for mixins, will be used to check whether downstream methods can run
-    def solution(self) -> Any:  # Optional[Union[SolverOutput, Mapping[..., SolverOutput]]]?
+    def solution(self) -> Optional[BaseSolverOutput]:
         pass
 
     # TODO(michalk8): not sure how I feel about this, mb. remove; mb. make a class property
@@ -95,6 +93,17 @@ class BaseProblem(ABC):
             raise ValueError("TODO: no mass.")
 
         return data / total if normalize else data
+
+    @staticmethod
+    def _get_or_create_marginal(adata: AnnData, data: Optional[Union[str, npt.ArrayLike]] = None) -> npt.ArrayLike:
+        if data is None:
+            return np.ones((adata.n_obs,), dtype=float) / adata.n_obs
+        if isinstance(data, str):
+            # TODO(michalk8): some nice error message
+            data = adata.obs[data]
+        data = np.asarray(data)
+        # TODO(michalk8): check shape
+        return data
 
 
 class GeneralProblem(BaseProblem):
@@ -170,20 +179,20 @@ class GeneralProblem(BaseProblem):
 
     def prepare(
         self,
-        # add loss in dict, key_loss, attr_loss, Optional[Union[str, ArrayLike]]
         x: Mapping[str, Any] = MappingProxyType({}),
         y: Optional[Mapping[str, Any]] = None,
         xy: Optional[Mapping[str, Any]] = None,
-        a_marg: Optional[Mapping[str, Any]] = MappingProxyType({}),
-        b_marg: Optional[Mapping[str, Any]] = MappingProxyType({}),
+        a: Optional[Union[str, npt.ArrayLike]] = None,
+        b: Optional[Union[str, npt.ArrayLike]] = None,
         **kwargs: Any,
-    ) -> "BaseProblem":
+    ) -> "GeneralProblem":
         self._x = AnnDataPointer(adata=self.adata, **x).create(**kwargs)
         self._y = None if y is None else AnnDataPointer(adata=self._adata_y, **y).create(**kwargs)
         self._xy = None if xy is None else self._handle_joint(**xy, create_kwargs=kwargs)
 
-        self._a = _get_marginal(self.adata, **a_marg)
-        self._b = _get_marginal(self.adata if self._adata_y is None else self._adata_y, **b_marg)
+        self._a = BaseProblem._get_or_create_marginal(self.adata, a)
+        self._b = BaseProblem._get_or_create_marginal(self._marginal_b_adata, b)
+        self._solution = None
 
         return self
 
@@ -194,7 +203,7 @@ class GeneralProblem(BaseProblem):
         tau_a: float = 1.0,
         tau_b: float = 1.0,
         **kwargs: Any,
-    ) -> "BaseProblem":
+    ) -> "GeneralProblem":
         kwargs["alpha"] = alpha
         if not isinstance(self._solver, FGWSolver):
             kwargs["xx"] = kwargs["yy"] = None
@@ -208,9 +217,11 @@ class GeneralProblem(BaseProblem):
             kwargs["xx"] = self._xy
             kwargs["yy"] = None
 
-        self._solution = self._solver(
-            self._x, self._y, a=self._a, b=self._b, eps=eps, tau_a=tau_a, tau_b=tau_b, **kwargs
-        )
+        # this allows for MultiMarginalProblem to pass new marginals
+        a = kwargs.pop("a", self._a)
+        b = kwargs.pop("b", self._b)
+
+        self._solution = self._solver(self._x, self._y, a=a, b=b, eps=eps, tau_a=tau_a, tau_b=tau_b, **kwargs)
         return self
 
     # TODO(michalk8): require in BaseProblem?
@@ -240,3 +251,7 @@ class GeneralProblem(BaseProblem):
     @property
     def solution(self) -> Optional[BaseSolverOutput]:
         return self._solution
+
+    @property
+    def _marginal_b_adata(self) -> AnnData:
+        return self.adata if self._adata_y is None else self._adata_y

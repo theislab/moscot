@@ -18,15 +18,24 @@ __all__ = ("SingleCompoundProblem", "MultiCompoundProblem", "CompoundProblem")
 
 
 class CompoundBaseProblem(BaseProblem, ABC):
-    def __init__(self, adata: AnnData, solver: Optional[BaseSolver] = None):
+    def __init__(
+        self,
+        adata: AnnData,
+        solver: Optional[BaseSolver] = None,
+        *,
+        base_problem_type: Type[BaseProblem] = GeneralProblem,
+    ):
         super().__init__(adata, solver)
 
-        self._problems: Optional[Dict[Tuple[Any, Any], GeneralProblem]] = None
+        self._problems: Optional[Dict[Tuple[Any, Any], BaseProblem]] = None
         self._solutions: Optional[Dict[Tuple[Any, Any], BaseSolverOutput]] = None
         self._policy: Optional[SubsetPolicy] = None
+        if not issubclass(base_problem_type, BaseProblem):
+            raise TypeError("TODO: `base_problem_type` must be a subtype of `BaseProblem`.")
+        self._base_problem_type = base_problem_type
 
     @abstractmethod
-    def _create_problems(self, **kwargs: Any) -> Dict[Tuple[Any, Any], GeneralProblem]:
+    def _create_problems(self, **kwargs: Any) -> Dict[Tuple[Any, Any], BaseProblem]:
         pass
 
     @abstractmethod
@@ -57,6 +66,7 @@ class CompoundBaseProblem(BaseProblem, ABC):
             self._policy = self._policy(filter=subset)
 
         self._problems = self._create_problems(**kwargs)
+        self._solutions = None
 
         return self
 
@@ -145,9 +155,11 @@ class CompoundBaseProblem(BaseProblem, ABC):
 
 
 class SingleCompoundProblem(CompoundBaseProblem):
-    def _create_problems(self, **kwargs: Any) -> Dict[Tuple[Any, Any], GeneralProblem]:
+    def _create_problems(self, **kwargs: Any) -> Dict[Tuple[Any, Any], BaseProblem]:
         return {
-            subset: GeneralProblem(self.adata[x_mask, :], self.adata[y_mask, :], solver=self._solver).prepare(**kwargs)
+            subset: self._base_problem_type(self.adata[x_mask, :], self.adata[y_mask, :], solver=self._solver).prepare(
+                **kwargs
+            )
             for subset, (x_mask, y_mask) in self._policy.mask(discard_empty=True).items()
         }
 
@@ -171,6 +183,7 @@ class MultiCompoundProblem(CompoundBaseProblem):
         self,
         *adatas: Union[AnnData, Mapping[Any, AnnData], Tuple[AnnData], List[AnnData]],
         solver: Optional[BaseSolver] = None,
+        **kwargs: Any,
     ):
         if not len(adatas):
             raise ValueError("TODO: no adatas passed")
@@ -190,7 +203,7 @@ class MultiCompoundProblem(CompoundBaseProblem):
             adata = adatas[0]
 
         # TODO(michalk8): can this have unintended consequences in push/pull?
-        super().__init__(adata, solver)
+        super().__init__(adata, solver, **kwargs)
 
         if not isinstance(adatas, Mapping):
             adatas = {i: adata for i, adata in enumerate(adatas)}
@@ -210,9 +223,9 @@ class MultiCompoundProblem(CompoundBaseProblem):
     ) -> "MultiCompoundProblem":
         return super().prepare(None, subset=subset, policy=policy, reference=reference, **kwargs)
 
-    def _create_problems(self, **kwargs: Any) -> Dict[Tuple[Any, Any], GeneralProblem]:
+    def _create_problems(self, **kwargs: Any) -> Dict[Tuple[Any, Any], BaseProblem]:
         return {
-            (x, y): GeneralProblem(self._adatas[x], self._adatas[y], solver=self._solver).prepare(**kwargs)
+            (x, y): self._base_problem_type(self._adatas[x], self._adatas[y], solver=self._solver).prepare(**kwargs)
             for x, y in self._policy.mask(discard_empty=True).keys()
         }
 
@@ -233,15 +246,16 @@ class CompoundProblem(CompoundBaseProblem):
         self,
         *adatas: Union[AnnData, Mapping[Any, AnnData], Tuple[AnnData], List[AnnData]],
         solver: Optional[BaseSolver] = None,
+        **kwargs: Any,
     ):
         if len(adatas) == 1 and isinstance(adatas[0], AnnData):
-            self._prob = SingleCompoundProblem(adatas[0], solver=solver)
+            self._prob = SingleCompoundProblem(adatas[0], solver=solver, **kwargs)
         else:
-            self._prob = MultiCompoundProblem(*adatas, solver=solver)
+            self._prob = MultiCompoundProblem(*adatas, solver=solver, **kwargs)
 
         super().__init__(self._prob.adata, self._prob._solver)
 
-    def _create_problems(self, **kwargs: Any) -> Dict[Tuple[Any, Any], GeneralProblem]:
+    def _create_problems(self, **kwargs: Any) -> Dict[Tuple[Any, Any], BaseProblem]:
         return self._prob._create_problems(**kwargs)
 
     def _create_policy(
