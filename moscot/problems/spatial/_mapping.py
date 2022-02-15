@@ -1,5 +1,10 @@
 from types import MappingProxyType
-from typing import Any, Dict, Type, Tuple, Union, Literal, Iterator, Optional, Sequence, Mapping
+from typing import Any, Dict, Type, Tuple, Union, Iterator, Optional, Sequence, Mapping
+try:
+    from typing import Literal
+except ImportError:
+    from typing_extensions import Literal
+    
 from moscot.problems._compound_problem import CompoundProblem
 from moscot.problems._base_problem import GeneralProblem
 from anndata import AnnData
@@ -54,9 +59,12 @@ class SpatialMappingProblem(CompoundProblem):
         if self._spatial_ref:
             if keys_subset is not None:
                 if not isinstance(keys_subset, Mapping):
-                    keys_subset = {'markers': keys_subset}
-                self._subsets = {subset: (self._adata_sc.var[key_], self._adata_sp.var[key_])
+                    self._subsets = {key_: (self._adata_sc.var[key_], self._adata_sp.var[key_])
+                                 for key_ in keys_subset}
+                else:
+                    self._subsets = {subset: (self._adata_sc.var[key_], self._adata_sp.var[key_])
                                  for subset, key_ in keys_subset.items()}
+                    
             self._problems = {subset: GeneralProblem(self._adata_sc[:, sc_mask],
                                                      self._adata_sp[:, sp_mask],
                                                      solver=self._solver).prepare(x=sc_attr,
@@ -68,8 +76,8 @@ class SpatialMappingProblem(CompoundProblem):
                               for subset, (sc_mask, sp_mask) in self._subsets.items()}
         else:
             self._problems = {'denovo': GeneralProblem(self.adata,
-                                                   self.adata,
-                                                   solver=self._solver).prepare(x=sc_attr,
+                                                       self.adata,
+                                                       solver=self._solver).prepare(x=sc_attr,
                                                                                 y=sp_attr,
                                                                                 a_marg=sc_attr,
                                                                                 b_marg=sp_attr,
