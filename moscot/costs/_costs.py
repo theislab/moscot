@@ -1,5 +1,10 @@
 from abc import ABC, abstractmethod
-from typing import Any, Union, Literal, Optional
+from typing import Any, Union, Optional
+
+try:
+    from typing import Literal
+except ImportError:
+    from typing_extensions import Literal
 
 from lineageot.inference import get_leaves
 import networkx as nx

@@ -2,6 +2,7 @@ from typing import Any, Optional
 from dataclasses import dataclass
 
 import numpy as np
+import scipy
 import numpy.typing as npt
 
 from anndata import AnnData
@@ -37,6 +38,8 @@ class AnnDataPointer:
             if not hasattr(self.adata, self.attr):
                 raise AttributeError("TODO: invalid attribute")
             container = getattr(self.adata, self.attr)
+            if scipy.sparse.issparse(container):
+                container = container.A
             if self.key is None:
                 return TaggedArray(ensure_2D(container), tag=self.tag, loss=None)
             else:
@@ -54,6 +57,8 @@ class AnnDataPointer:
         if not hasattr(self.adata, self.attr):
             raise AttributeError("TODO: invalid attribute")
         container = getattr(self.adata, self.attr)
+        if scipy.sparse.issparse(container):
+            container = container.A
         if self.key is None:
             # TODO(michalk8): check if array-like
             # TODO(michalk8): here we'd construct custom loss (BC/graph distances)

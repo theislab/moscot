@@ -1,6 +1,11 @@
 from abc import ABC, abstractmethod
-from typing import Any, Dict, List, Type, Tuple, Union, Literal, Mapping, Iterator, Optional, Sequence
+from typing import Any, Dict, List, Type, Tuple, Union, Mapping, Iterator, Optional, Sequence
 
+try:
+    from typing import Literal
+except ImportError:
+    from typing_extensions import Literal
+    
 import pandas as pd
 
 import numpy as np
@@ -209,6 +214,7 @@ class MultiCompoundProblem(CompoundBaseProblem):
             adatas = {i: adata for i, adata in enumerate(adatas)}
 
         self._adatas: Mapping[Any, AnnData] = adatas
+        # TODO (ZP): raises a warning
         self._policy_adata = AnnData(
             np.empty((len(self._adatas), 1)),
             obs=pd.DataFrame({self._KEY: pd.Series(list(self._adatas.keys())).astype("category")}),
