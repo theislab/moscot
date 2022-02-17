@@ -266,13 +266,12 @@ class FGWSolver(GWSolver):
         else:
             geom_xy = self._create_geometry(xx, yy)
         self._validate_geoms(problem.geom_xx, problem.geom_yy, geom_xy)
-        fused_penalty = kwargs.pop("fused_penalty", None)
         # TODO(michalk8): marginals + kwargs?
         return QuadraticProblem(
             problem.geom_xx,
             problem.geom_yy,
             geom_xy,
-            fused_penalty=fused_penalty,
+            fused_penalty=0.5,
             a=a,
             b=b,
             tau_a=tau_a,

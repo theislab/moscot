@@ -84,6 +84,7 @@ class SpatialGeneralProblem(GeneralProblem):
             # TODO(michalk8): log-warn
             tag = Tag.POINT_CLOUD
 
+
         sc_array = AnnDataPointer(self.adata[:, sc_mask], tag=tag, **sc_kwargs).create(**create_kwargs)
         sp_array = AnnDataPointer(self._adata_y[:, sp_mask], tag=tag, **sp_kwargs).create(**create_kwargs)
 
