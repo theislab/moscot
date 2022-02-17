@@ -143,8 +143,7 @@ class GeneralProblem(BaseProblem):
         self, create_kwargs: Mapping[str, Any] = MappingProxyType({}), **kwargs: Any
     ) -> Optional[Union[TaggedArray, Tuple[TaggedArray, TaggedArray]]]:
         if not isinstance(self._solver, FGWSolver):
-            return None
-
+            return None  # TODO: raise ValueError
         tag = kwargs.get("tag", None)
         if tag is None:
             # TODO(michalk8): better/more strict condition?
