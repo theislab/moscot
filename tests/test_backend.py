@@ -22,7 +22,7 @@ _ATOL = 1e-6
 
 class TestSinkhorn:
     @pytest.mark.parametrize("jit", [False, True])
-    @pytest.mark.parametrize("eps,", [None, 1e-2, 1e-1])
+    @pytest.mark.parametrize("eps", [None, 1e-2, 1e-1])
     def test_matches_ott(self, x: Geom_t, eps: Optional[float], jit: bool):
         gt = sinkhorn(PointCloud(x, epsilon=eps), jit=jit)
         pred = SinkhornSolver(jit=jit)(x, x, eps=eps)
@@ -63,7 +63,7 @@ class TestSinkhorn:
 
 class TestGW:
     @pytest.mark.parametrize("jit", [False, True])
-    @pytest.mark.parametrize("eps,", [None, 1e-2, 1e-1])
+    @pytest.mark.parametrize("eps", [None, 1e-2, 1e-1])
     def test_matches_ott(self, x: Geom_t, y: Geom_t, eps: Optional[float], jit: bool):
         gt = gromov_wasserstein(PointCloud(x, epsilon=eps), PointCloud(y, epsilon=eps))
         pred = GWSolver()(x, y, eps=eps)
@@ -74,7 +74,7 @@ class TestGW:
 
 class TestFGW:
     @pytest.mark.parametrize("alpha", [0.25, 0.75])
-    @pytest.mark.parametrize("eps,", [None, 1e-2, 1e-1])
+    @pytest.mark.parametrize("eps", [None, 1e-2, 1e-1])
     def test_matches_ott(self, x: Geom_t, y: Geom_t, xy: Geom_t, eps: Optional[float], alpha: float):
         xx, yy = xy
 
@@ -140,7 +140,7 @@ class TestSolverOutput:
         solver = SinkhornSolver(rank=rank)
 
         out = solver(x, y)
-        p = out.push(a)
+        p = out.push(a, scale_by_marginals=False)
 
         assert isinstance(out, BaseSolverOutput)
         assert isinstance(p, jnp.ndarray)
@@ -165,7 +165,7 @@ class TestSolverOutput:
         solver = solver_t()
 
         out = solver(x, y, xx=xx, yy=yy)
-        p = out.pull(b)
+        p = out.pull(b, scale_by_marginals=False)
 
         assert isinstance(out, BaseSolverOutput)
         assert isinstance(p, jnp.ndarray)
@@ -174,6 +174,16 @@ class TestSolverOutput:
         else:
             assert p.shape == (out.shape[0],)
 
+    @pytest.mark.parametrize("batched", [False, True])
     @pytest.mark.parametrize("forward", [False, True])
-    def test_normalize_by_marginals(self, x: Geom_t, y: Geom_t, forward: bool):
-        pass
+    def test_scale_by_marginals(self, x: Geom_t, ab: Tuple[np.ndarray, np.ndarray], forward: bool, batched: bool):
+        solver = SinkhornSolver()
+        z = ab[0] if batched else ab[0][:, 0]
+
+        out = solver(x)
+        p = (out.push if forward else out.pull)(z, scale_by_marginals=True)
+
+        if batched:
+            np.testing.assert_allclose(p.sum(axis=0), z.sum(axis=0))
+        else:
+            np.testing.assert_allclose(p.sum(), z.sum())
