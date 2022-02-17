@@ -59,8 +59,6 @@ class CompoundBaseProblem(BaseProblem, ABC):
         if isinstance(self._policy, ExplicitPolicy):
             self._policy = self._policy(policy)
         elif isinstance(self._policy, StarPolicy):
-            if reference is None:
-                raise ValueError("TODO: specify star reference")
             self._policy = self._policy(filter=subset, reference=reference)
         else:
             self._policy = self._policy(filter=subset)
@@ -160,7 +158,7 @@ class SingleCompoundProblem(CompoundBaseProblem):
             subset: self._base_problem_type(self.adata[x_mask, :], self.adata[y_mask, :], solver=self._solver).prepare(
                 **kwargs
             )
-            for subset, (x_mask, y_mask) in self._policy.mask(discard_empty=True).items()
+            for subset, (x_mask, y_mask) in self._policy.mask().items()
         }
 
     def _create_policy(
@@ -226,7 +224,7 @@ class MultiCompoundProblem(CompoundBaseProblem):
     def _create_problems(self, **kwargs: Any) -> Dict[Tuple[Any, Any], BaseProblem]:
         return {
             (x, y): self._base_problem_type(self._adatas[x], self._adatas[y], solver=self._solver).prepare(**kwargs)
-            for x, y in self._policy.mask(discard_empty=True).keys()
+            for x, y in self._policy.mask().keys()
         }
 
     def _create_policy(
