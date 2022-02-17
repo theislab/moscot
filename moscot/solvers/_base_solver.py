@@ -63,7 +63,9 @@ class BaseSolver(ABC):
 
         # TODO(michalk8): create TaggedArray here if not passed, taking x_tag/y_tag/xy_tag from kwargs
         # TODO(michak8): filter kwargs
-        data = self._prepare_input(x, y, a, b, xx=xx, yy=yy, tau_a=tau_a, tau_b=tau_b, eps=eps)
+        gw_rescale_correction = kwargs.pop("gw_rescale_correction", None)
+        data = self._prepare_input(x, y, a, b, xx=xx, yy=yy, tau_a=tau_a, tau_b=tau_b, eps=eps,
+                                   gw_rescale_correction=gw_rescale_correction)
         res = self._solve(data, **kwargs)
 
         if not res.converged:

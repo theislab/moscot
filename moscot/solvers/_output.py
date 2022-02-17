@@ -2,6 +2,7 @@ from abc import ABC, abstractmethod
 from typing import Any, Tuple, Callable
 
 import numpy.typing as npt
+import numpy as np
 
 
 # TODO(michalk8):
@@ -63,6 +64,13 @@ class BaseSolverOutput(ABC):
         if x.ndim == 2:
             marginals = marginals[:, None]
         return x / (marginals + 1e-12)
+
+    def scaled_transport(self, forward: bool) -> npt.ArrayLike:
+        if forward:
+            stochastic_transport = np.dot(np.diag(self.a), self.transport_matrix)
+        else:
+            stochastic_transport = np.dot(self.transport_matrix, np.diag(self.b))
+        return stochastic_transport
 
     def _format_params(self, fmt: Callable[[Any], str]) -> str:
         params = {"shape": self.shape, "cost": round(self.cost, 4), "converged": self.converged}

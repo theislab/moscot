@@ -83,7 +83,7 @@ class SpatialMappingAnalysisMixin(SpatialAnalysisMixin):
             if scipy.sparse.issparse(adata_sp_ref.X):
                 adata_sp_ref.X = adata_sp_ref.X.A
 
-            sp_gex_pred = np.asarray(jnp.dot(adata_ref.X.T, prob_val.solution.transport_matrix).T)
+            sp_gex_pred = np.asarray(jnp.dot(adata_ref.X.T, prob_val.solution.scaled_transport(forward=True)).T)
             sp_gex_pred = pd.DataFrame(sp_gex_pred,
                                        index=self._adata_sp.obs_names,
                                        columns=adata_sp_ref.var_names)
@@ -126,5 +126,7 @@ class SpatialMappingAnalysisMixin(SpatialAnalysisMixin):
                     key_pred_ = key_pred[prob_key]
                 else:
                     key_pred_ = '_'.join((prob_key, key_pred))
-            self._corr_vals[prob_key] = self._correlate(prob_val.solution.transport_matrix, mask_sc=mask, key_pred=key_pred_)
+            self._corr_vals[prob_key] = self._correlate(prob_val.solution.scaled_transport(forward=True),
+                                                        mask_sc=mask,
+                                                        key_pred=key_pred_)
             return self
