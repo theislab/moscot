@@ -109,6 +109,19 @@ class SpatialMappingProblem(CompoundProblem):
         else:
             super().__init__(adata_sc, solver=solver)
 
+    # TODO (ZP) return copies ?
+    @property
+    def adata_sp(self):
+        return self._adata_sp
+
+    @property
+    def adata_sc(self):
+        return self._adata_sc
+
+    @property
+    def problems(self):
+        return self._problems
+
     def prepare(
             self,
             sc_attr: Mapping[str, Any],  # ={'atrr':'obsm', 'key':'X_pca'},
@@ -159,7 +172,7 @@ class SpatialMappingProblem(CompoundProblem):
                                                             solver=self._solver).prepare(sc=sc_attr,
                                                                                          sp=sp_attr,
                                                                                          atlas={'sc_mask': sc_mask,
-                                                                                                'sp_mask':  sp_mask,
+                                                                                                'sp_mask': sp_mask,
                                                                                                 'sc_attr': sc_attr_ref,
                                                                                                 'sp_attr': sp_attr_ref},
                                                                                          a_marg=a_marg,
@@ -206,3 +219,4 @@ class SpatialMappingProblem(CompoundProblem):
             res[problem_key] = (problem.push if forward else problem.pull)(data_pk, subset=subset, normalize=normalize)
 
         return res
+
