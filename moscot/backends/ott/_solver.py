@@ -225,7 +225,7 @@ class GWSolver(RankMixin, GeometryMixin, BaseSolver):
         return QuadraticProblem(geom_x, geom_y, geom_xy=None, fused_penalty=0.0, a=a, b=b,
                                 tau_a=tau_a,
                                 tau_b=tau_b,
-                                # gw_rescale_correction=gw_rescale_correction
+                                gw_rescale_correction=gw_rescale_correction
                                 )
 
     @property
@@ -276,7 +276,7 @@ class FGWSolver(GWSolver):
             b=b,
             tau_a=tau_a,
             tau_b=tau_b,
-            # gw_rescale_correction=gw_rescale_correction
+            gw_rescale_correction=gw_rescale_correction
         )
 
     @staticmethod
@@ -288,9 +288,10 @@ class FGWSolver(GWSolver):
             raise ValueError("TODO: second and joint geom mismatch")
 
     def _solve(self, data: QuadraticProblem, alpha: float = 0.5, **kwargs: Any) -> GWOutput:
-        if alpha < 0:
-            raise ValueError("TODO: wrong alpha range")
-        if alpha != data.fused_penalty:
-            data.fused_penalty = alpha
+        fused_penalty = (1-alpha)/alpha
+        if fused_penalty < 0:
+            raise ValueError("TODO: wrong fused_penalty range")
+        if fused_penalty != data.fused_penalty:
+            data.fused_penalty = fused_penalty
 
         return super()._solve(data, **kwargs)
