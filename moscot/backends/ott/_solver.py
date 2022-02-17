@@ -282,9 +282,10 @@ class FGWSolver(GWSolver):
             raise ValueError("TODO: second and joint geom mismatch")
 
     def _solve(self, data: QuadraticProblem, alpha: float = 0.5, **kwargs: Any) -> GWOutput:
-        if alpha < 0:
-            raise ValueError("TODO: wrong alpha range")
-        if alpha != data.fused_penalty:
-            data.fused_penalty = alpha
+        fused_penalty = (1-alpha)/alpha
+        if fused_penalty < 0:
+            raise ValueError("TODO: wrong fused_penalty range")
+        if fused_penalty != data.fused_penalty:
+            data.fused_penalty = fused_penalty
 
         return super()._solve(data, **kwargs)
