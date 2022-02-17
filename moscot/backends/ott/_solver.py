@@ -61,27 +61,25 @@ class GeometryMixin:
         y: Optional[TaggedArray] = None,
         *,
         eps: Optional[float] = None,
-        **kwargs: Any,
+        online: bool = False,
     ) -> Geometry:
+        # TODO(michalk8): maybe in the future, enable (more) kwargs for PC/Geometry
         if y is not None:
-            # TODO: pass cost kwargs
             cost_fn = self._create_cost(x.loss if y.loss is None else y.loss)
             x, y = self._assert2d(x.data), self._assert2d(y.data)
             if x.shape[1] != y.shape[1]:
                 raise ValueError("TODO: x/y dimension mismatch")
-            return PointCloud(x, y=y, epsilon=eps, cost_fn=cost_fn, **kwargs)
+            return PointCloud(x, y=y, epsilon=eps, cost_fn=cost_fn, online=online)
         if x.is_point_cloud:
-            # TODO: pass cost kwargs
             cost_fn = self._create_cost(x.loss)
-            return PointCloud(self._assert2d(x.data), epsilon=eps, cost_fn=cost_fn, **kwargs)
+            return PointCloud(self._assert2d(x.data), epsilon=eps, cost_fn=cost_fn, online=online)
         if x.is_grid:
-            # TODO: pass cost kwargs
             cost_fn = self._create_cost(x.loss)
-            return Grid(jnp.asarray(x.data), epsilon=eps, cost_fn=cost_fn, **kwargs)
+            return Grid(jnp.asarray(x.data), epsilon=eps, cost_fn=cost_fn)
         if x.is_cost_matrix:
-            return Geometry(cost_matrix=self._assert2d(x.data, allow_reshape=False), epsilon=eps, **kwargs)
+            return Geometry(cost_matrix=self._assert2d(x.data, allow_reshape=False), epsilon=eps)
         if x.is_kernel:
-            return Geometry(kernel_matrix=self._assert2d(x.loss, allow_reshape=False), epsilon=eps, **kwargs)
+            return Geometry(kernel_matrix=self._assert2d(x.loss, allow_reshape=False), epsilon=eps)
 
         raise NotImplementedError("TODO: invalid tag")
 
@@ -109,9 +107,9 @@ class GeometryMixin:
         return self._description.output(self._solver(data, **kwargs))
 
 
-class RankMixin:
+class RankMixin(GeometryMixin):
     def __init__(self, rank: Optional[int] = None, **kwargs: Any):
-        self._rank = rank
+        self._rank = rank  # must be se before calling super().__init__
         if rank is not None:
             kwargs["rank"] = rank
         super().__init__(**kwargs)
@@ -153,24 +151,15 @@ class RankMixin:
         if value is not None:
             kwargs["rank"] = value
 
-        # TODO(michalk8): warn if using defaults
+        # TODO(michalk8): warn if using defaults?
         self._linear_solver = clazz(**kwargs, threshold=threshold)
 
     @property
     def is_low_rank(self) -> bool:
         return self.rank is not None
 
-    def _solve(
-        self,
-        data: Union[LinearProblem, QuadraticProblem],
-        **kwargs: Any,
-    ) -> BaseSolverOutput:
-        if "rank" in kwargs:
-            self.rank = kwargs.pop("rank")
-        return super()._solve(data, **kwargs)
 
-
-class SinkhornSolver(RankMixin, GeometryMixin, BaseSolver):
+class SinkhornSolver(RankMixin, BaseSolver):
     @property
     def _linear_solver(self) -> Union[Sinkhorn, LRSinkhorn]:
         return self._solver
@@ -183,16 +172,18 @@ class SinkhornSolver(RankMixin, GeometryMixin, BaseSolver):
         self,
         x: TaggedArray,
         y: Optional[TaggedArray] = None,
-        a: Optional[npt.ArrayLike] = None,
-        b: Optional[npt.ArrayLike] = None,
-        tau_a: float = 1.0,
-        tau_b: float = 1.0,
+        eps: Optional[float] = None,
+        online: bool = False,
         **kwargs: Any,
     ) -> LinearProblem:
+        # case when user switched from FGW -> GW
         kwargs.pop("xx", None)
         kwargs.pop("yy", None)
-        geom = self._create_geometry(x, y, **kwargs)
-        return LinearProblem(geom, a=a, b=b, tau_a=tau_a, tau_b=tau_b)
+        if "rank" in kwargs:
+            self.rank = kwargs.pop("rank")
+
+        geom = self._create_geometry(x, y, eps=eps, online=online)
+        return LinearProblem(geom, **kwargs)
 
     @property
     def _description(self) -> SolverDescription:
@@ -201,27 +192,27 @@ class SinkhornSolver(RankMixin, GeometryMixin, BaseSolver):
         return SolverDescription(make_sinkhorn, SinkhornOutput)
 
 
-class GWSolver(RankMixin, GeometryMixin, BaseSolver):
+class GWSolver(RankMixin, BaseSolver):
     def _prepare_input(
         self,
         x: TaggedArray,
         y: Optional[TaggedArray] = None,
-        a: Optional[npt.ArrayLike] = None,
-        b: Optional[npt.ArrayLike] = None,
-        tau_a: float = 1.0,
-        tau_b: float = 1.0,
+        eps: Optional[float] = None,
+        online: bool = False,
         **kwargs: Any,
     ) -> QuadraticProblem:
         if y is None:
             raise ValueError("TODO: missing second data")
+        # case when user switched from FGW -> GW
         kwargs.pop("xx", None)
         kwargs.pop("yy", None)
-        # TODO(michalk8): pass epsilon
-        geom_x = self._create_geometry(x, **kwargs)
-        geom_y = self._create_geometry(y, **kwargs)
+        if "rank" in kwargs:
+            # maybe instantiate the new solver only when the rank is passed
+            self.rank = kwargs.pop("rank")
 
-        # TODO(michalk8): marginals + kwargs?
-        return QuadraticProblem(geom_x, geom_y, geom_xy=None, fused_penalty=0.0, a=a, b=b, tau_a=tau_a, tau_b=tau_b)
+        geom_x = self._create_geometry(x, eps=eps, online=online)
+        geom_y = self._create_geometry(y, eps=eps, online=online)
+        return QuadraticProblem(geom_x, geom_y, geom_xy=None, fused_penalty=0.0, **kwargs)
 
     @property
     def _linear_solver(self) -> Union[Sinkhorn, LRSinkhorn]:
@@ -241,36 +232,32 @@ class FGWSolver(GWSolver):
         self,
         x: TaggedArray,
         y: Optional[TaggedArray] = None,
-        a: Optional[npt.ArrayLike] = None,
-        b: Optional[npt.ArrayLike] = None,
-        tau_a: float = 1.0,
-        tau_b: float = 1.0,
         xx: Optional[TaggedArray] = None,
         yy: Optional[TaggedArray] = None,
+        eps: Optional[float] = None,
+        online: bool = False,
+        alpha: float = 0.5,
         **kwargs: Any,
     ) -> QuadraticProblem:
         if xx is None:
             raise ValueError("TODO: no array defining joint")
-        problem = super()._prepare_input(x, y, **kwargs)
+        problem = super()._prepare_input(x, y, eps=eps, online=online)
 
-        if yy is None:
-            if not xx.is_cost_matrix and not xx.is_kernel:
-                raise ValueError("TODO")
-            geom_xy = self._create_geometry(xx)
+        if xx.is_cost_matrix or xx.is_kernel:
+            # TODO(michalk8): warn if `yy` is not None that we're ignoring it?
+            geom_xy = self._create_geometry(xx, eps=eps, online=online)
+        elif yy is not None:
+            geom_xy = self._create_geometry(xx, yy, eps=eps, online=online)
         else:
-            geom_xy = self._create_geometry(xx, yy)
+            raise ValueError("TODO: specify the 2nd array if this is not kernel/cost")
         self._validate_geoms(problem.geom_xx, problem.geom_yy, geom_xy)
 
-        # TODO(michalk8): marginals + kwargs?
         return QuadraticProblem(
             problem.geom_xx,
             problem.geom_yy,
-            geom_xy,
-            fused_penalty=0.5,
-            a=a,
-            b=b,
-            tau_a=tau_a,
-            tau_b=tau_b,
+            geom_xy=geom_xy,
+            fused_penalty=self._alpha_to_fused_penalty(alpha),
+            **kwargs,
         )
 
     @staticmethod
@@ -281,10 +268,7 @@ class FGWSolver(GWSolver):
         if geom_y.shape[0] != geom_xy.shape[1]:
             raise ValueError("TODO: second and joint geom mismatch")
 
-    def _solve(self, data: QuadraticProblem, alpha: float = 0.5, **kwargs: Any) -> GWOutput:
-        if alpha < 0:
-            raise ValueError("TODO: wrong alpha range")
-        if alpha != data.fused_penalty:
-            data.fused_penalty = alpha
-
-        return super()._solve(data, **kwargs)
+    @staticmethod
+    def _alpha_to_fused_penalty(alpha: float) -> float:
+        assert 0 < alpha < 1, "TODO: alpha must be in (0, 1)"
+        return (1 - alpha) / alpha
