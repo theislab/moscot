@@ -30,7 +30,7 @@ class BaseProblem(ABC):
 
     # TODO(michalk8): figure out args/kwargs
     @abstractmethod
-    def solve(self) -> "BaseProblem":
+    def solve(self, *args: Any, **kwargs: Any) -> "BaseProblem":
         pass
 
     @property

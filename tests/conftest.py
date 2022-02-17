@@ -56,6 +56,12 @@ def xy() -> Geom_t:
     return jnp.asarray(ys), jnp.asarray(yt)
 
 
+@pytest.fixture()
+def ab() -> Tuple[np.ndarray, np.ndarray]:
+    rng = np.random.RandomState(42)
+    return rng.normal(size=(20, 2)), rng.normal(size=(30, 4))
+
+
 def create_marginals(n: int, m: int, *, uniform: bool = False, seed: Optional[int] = None) -> Geom_t:
     rng = np.random.RandomState(seed)
     if uniform:
