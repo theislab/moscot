@@ -18,7 +18,7 @@ from moscot.problems._base_problem import GeneralProblem
 from moscot.problems._compound_problem import SingleCompoundProblem
 
 
-class SpatialMappingProblem(SingleCompoundProblem):
+class SpatialMappingProblem(GeneralProblem):
     def __init__(
         self,
         adata_sc: AnnData,
@@ -28,11 +28,13 @@ class SpatialMappingProblem(SingleCompoundProblem):
         rank: Optional[int] = None,
         solver_jit: Optional[bool] = None,
     ):
+        # save full adatas for later analysis
+        self._adata_sc = adata_sc
+        self._adata_sp = adata_sp
 
-        adata_sc, adata_sp = self.filter_vars(adata_sc, adata_sp, var_names, use_reference)
+        adata_sc_ref, adata_sp_ref = self.filter_vars(adata_sc, adata_sp, var_names, use_reference)
         solver = FGWSolver(rank=rank, jit=solver_jit) if use_reference else GWSolver(rank=rank, jit=solver_jit)
-        super().__init__(adata_sp, solver=solver)
-        self._adata_ref = adata_sc
+        super().__init__(adata_sc_ref, adata_sp_ref, solver=solver)
         self.use_reference = use_reference
 
     @property
@@ -48,10 +50,6 @@ class SpatialMappingProblem(SingleCompoundProblem):
     @property
     def problems(self) -> GeneralProblem:
         return self._problems
-
-    @property
-    def _adata_tgt(self):
-        return self._adata_ref
 
     def filter_vars(
         self,
@@ -87,14 +85,9 @@ class SpatialMappingProblem(SingleCompoundProblem):
     ) -> GeneralProblem:
 
         if self.use_reference:
-            return super().prepare(x=attr_sp, y=attr_sc, xy=attr_joint, policy="external_star", **kwargs)
+            return super().prepare(x=attr_sc, y=attr_sp, xy=attr_joint, **kwargs)
         else:
-            return super().prepare(x=attr_sp, y=attr_sc, policy="external_star", **kwargs)
-
-    def _mask(self, key: Any, mask, adata: AnnData) -> AnnData:
-        if key is self._policy._SENTINEL:
-            return adata
-        return super()._mask(key, mask, adata)
+            return super().prepare(x=attr_sc, y=attr_sp, **kwargs)
 
     def solve(
         self,
