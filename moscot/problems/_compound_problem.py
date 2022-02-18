@@ -59,8 +59,6 @@ class CompoundBaseProblem(BaseProblem, ABC):
         if isinstance(self._policy, ExplicitPolicy):
             self._policy = self._policy(policy)
         elif isinstance(self._policy, StarPolicy):
-            if reference is None:
-                raise ValueError("TODO: specify star reference")
             self._policy = self._policy(filter=subset, reference=reference)
         else:
             self._policy = self._policy(filter=subset)
@@ -157,10 +155,10 @@ class CompoundBaseProblem(BaseProblem, ABC):
 class SingleCompoundProblem(CompoundBaseProblem):
     def _create_problems(self, **kwargs: Any) -> Dict[Tuple[Any, Any], BaseProblem]:
         return {
-            subset: self._base_problem_type(self.adata[x_mask, :], self.adata[y_mask, :], solver=self._solver).prepare(
-                **kwargs
-            )
-            for subset, (x_mask, y_mask) in self._policy.mask(discard_empty=True).items()
+            (x, y): self._base_problem_type(
+                self._mask(x, x_mask, self._adata_src), self._mask(y, y_mask, self._adata_tgt), solver=self._solver
+            ).prepare(**kwargs)
+            for (x, y), (x_mask, y_mask) in self._policy.mask().items()
         }
 
     def _create_policy(
@@ -174,6 +172,18 @@ class SingleCompoundProblem(CompoundBaseProblem):
             if isinstance(policy, str)
             else ExplicitPolicy(self.adata, key=key)
         )
+
+    def _mask(self, key: Any, mask: npt.ArrayLike, adata: AnnData) -> AnnData:
+        # TODO(michalk8): can include logging/extra sanity that mask is not empty
+        return adata[mask]
+
+    @property
+    def _adata_src(self) -> AnnData:
+        return self.adata
+
+    @property
+    def _adata_tgt(self) -> AnnData:
+        return self.adata
 
 
 class MultiCompoundProblem(CompoundBaseProblem):
@@ -226,7 +236,7 @@ class MultiCompoundProblem(CompoundBaseProblem):
     def _create_problems(self, **kwargs: Any) -> Dict[Tuple[Any, Any], BaseProblem]:
         return {
             (x, y): self._base_problem_type(self._adatas[x], self._adatas[y], solver=self._solver).prepare(**kwargs)
-            for x, y in self._policy.mask(discard_empty=True).keys()
+            for x, y in self._policy.mask().keys()
         }
 
     def _create_policy(
