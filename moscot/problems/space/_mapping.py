@@ -87,9 +87,9 @@ class SpatialMappingProblem(SingleCompoundProblem):
     ) -> GeneralProblem:
 
         if self.use_reference:
-            super().prepare(x=attr_sp, y=attr_sc, xy=attr_joint, policy="external_star", **kwargs)
+            return super().prepare(x=attr_sp, y=attr_sc, xy=attr_joint, policy="external_star", **kwargs)
         else:
-            super().prepare(x=attr_sp, y=attr_sc, policy="external_star", **kwargs)
+            return super().prepare(x=attr_sp, y=attr_sc, policy="external_star", **kwargs)
 
     def _mask(self, key: Any, mask, adata: AnnData) -> AnnData:
         if key is self._policy._SENTINEL:
@@ -105,4 +105,4 @@ class SpatialMappingProblem(SingleCompoundProblem):
         **kwargs: Any,
     ) -> GeneralProblem:
 
-        super().solve(eps=eps, alpha=alpha, tau_a=tau_a, tau_b=tau_b, **kwargs)
+        return super().solve(eps=eps, alpha=alpha, tau_a=tau_a, tau_b=tau_b, **kwargs)

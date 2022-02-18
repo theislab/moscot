@@ -1,34 +1,96 @@
 from moscot.mixins._spatial_analysis import SpatialAnalysisMixin
-from moscot.problems.space import SpatialMappingProblem
-from typing import Any, Dict, Tuple, Union, Optional
+from moscot.problems.spatial import SpatialMappingProblem
+from typing import Any, Dict, Tuple, Union, Optional, Iterable, Mapping
+
+import numpy.typing as npt
+import jax.numpy as jnp
+import numpy as np
+import pandas as pd
+
+import scipy
+from scipy.stats import pearsonr
 
 class SpatialMappingAnalysisMixin(SpatialAnalysisMixin):
-
-    def __init__(self, problem: SpatialMappingProblem):
-        self._problem = problem
-
-    def correlate(self, keys_subset: Optional[Union[str, Dict[Any, Tuple[str, str]]]] = None,
-                  var_subset: Optional[Union[Tuple[Any, Any], Dict[Any, Tuple[Any, Any]]]] = None,):
+    
+    
+    def filter_vars(
+        self,
+        adata_sc: AnnData,
+        adata_sp: Optional[AnnData] = None,
+        var_names: Optional[List[str]] = None,
+    ) -> Tuple[AnnData, AnnData]:
+        vars_sc = set(adata_sc.var_names)  # TODO: allow alternative gene symbol by passing var_key
+        vars_sp = set(adata_sp.var_names) if adata_sp is not None
+        var_names = set(var_names) if var_names is not None else None
+        if var_names is None and adata_sp is not None:
+            var_names = vars_sp.intersection(vars_sc)
+            if len(var_names):
+                return adata_sc[:, list(var_names)], adata_sp[:, list(var_names)]
+            else:
+                logg.warning(f"`adata_sc` and `adata_sp` do not share `var_names`. ")
+                return adata_sc, adata_sp
+        elif var_names is None:
+            return adata_sc
+        elif adata_sp is not None:
+            if var_names.issubset(vars_sc) and var_names.issubset(vars_sp):
+                return adata_sc[:, list(var_names)], adata_sp[:, list(var_names)]
+            else:
+                raise ValueError("Some `var_names` ares missing in either `adata_sc` or `adata_sp`.")
+        else:
+            if var_names.issubset(vars_sc):
+                return adata_sc[:, list(var_names)]
+            else:
+                raise ValueError("Some `var_names` ares missing in `adata_sc`.")
+            
+                
+    def correlate(self, 
+                   adata_sc,
+                   adata_sp,
+                   transport_matrix: npt.ArrayLike,
+                   var_names: Optional[List[str]] = None,
+                   key_pred: str = None):
         """
-        compute correlation of spatial mappings sols wrt given genes
+        calculate correlation between the predicted gene expression and observed in tissue space.
         Parameters
         ----------
-        keys_subset: key(s) for .var which indicate marker genes (expects identical keys for `spatial` and 'scRNA' adata).
-         either a single key or a key for each problem.
-        var_subset: subset(s) of marker genes to use, either a single list or dictionary of lists.
-        either a single list or a lists for each problem.
+        transport_matrix: learnt transport_matrix
+        var_names: genes to correlate, if none correlate all.
         Returns
         -------
-
+        corr_val: the pearsonr correlation
         """
-        # if var_subset is not None:
-        #     if len()
-        # for i, prob in enumerate(self._problem._problems):
-        #
-        #
-        #     masks = var_subset if var_subset is not None else (prob.adata.var[keys_subset],
-        #                                                              prob._adata_y.var[keys_subset])
+        adata_sc, adata_sp = self.filter_vars(adata_sc, adata_sp, var_names)
+        if scipy.sparse.issparse(adata_sc.X):
+            adata_sc.X = adata_sc.X.A
+        if scipy.sparse.issparse(adata_sp.X):
+            adata_sp.X = adata_sp.X.A
+        sp_gex_pred = np.asarray(jnp.dot(adata_sc.X.T, transport_matrix).T)
+        corr_val = np.nanmean([pearsonr(sp_gex_pred[:, gi],
+                                        adata_sp.X[:, gi])[0]
+                               for gi, g in enumerate(adata_sp.var_names)])
+        return corr_val
 
-
-
-        return
+    def get_imputation(self, 
+                       adata_sc,
+                       adata_sp,
+                       transport_matrix: npt.ArrayLike,
+                       var_names: Optional[List[str]] = None,) -> pd.DataFrame:
+        """
+        return imputation of spatial expression of given genes
+        Parameters
+        ----------
+        transport_matrix: learnt transport_matrix
+        var_names: genes to correlate, if none correlate all.
+        Returns
+        -------
+        genes_impute; df of spatial gex
+        """     
+        adata_sc = self.filter_vars(adata_sc, var_names=var_names)
+        if scipy.sparse.issparse(adata_sc.X):
+            adata_sc.X = adata_sc.X.A     
+        sp_gex_pred = np.asarray(jnp.dot(adata_ref.X.T, transport_matrix).T)
+        sp_gex_pred = pd.DataFrame(sp_gex_pred,
+                                   index=adata_sp.obs_names,
+                                   columns=adata_sc.var_names)
+        return sp_gex_pred           
+                       

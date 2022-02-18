@@ -206,17 +206,6 @@ class GWSolver(RankMixin, BaseSolver):
         # case when user switched from FGW -> GW
         kwargs.pop("xx", None)
         kwargs.pop("yy", None)
-<<<<<<< HEAD
-        # TODO(michalk8): pass epsilon
-        geom_x = self._create_geometry(x, **kwargs)
-        geom_y = self._create_geometry(y, **kwargs)
-
-        # TODO(michalk8): marginals + kwargs?
-        return QuadraticProblem(geom_x, geom_y, geom_xy=None, fused_penalty=0.0, a=a, b=b,
-                                tau_a=tau_a,
-                                tau_b=tau_b,
-                                )
-=======
         if "rank" in kwargs:
             # maybe instantiate the new solver only when the rank is passed
             self.rank = kwargs.pop("rank")
@@ -224,7 +213,6 @@ class GWSolver(RankMixin, BaseSolver):
         geom_x = self._create_geometry(x, eps=eps, online=online)
         geom_y = self._create_geometry(y, eps=eps, online=online)
         return QuadraticProblem(geom_x, geom_y, geom_xy=None, fused_penalty=0.0, **kwargs)
->>>>>>> 42055ad21699f9e10f50d4438bd481d4b0899ef7
 
     @property
     def _linear_solver(self) -> Union[Sinkhorn, LRSinkhorn]:
