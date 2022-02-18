@@ -70,7 +70,7 @@ class TestGW:
 
 
 class TestFGW:
-    @pytest.mark.parametrize("alpha", [0.5, 1.5])
+    @pytest.mark.parametrize("alpha", [0.25, 0.75])
     @pytest.mark.parametrize("eps,", [None, 1e-2, 1e-1])
     def test_matches_ott(self, x: Geom_t, y: Geom_t, xy: Geom_t, eps: Optional[float], alpha: float):
         xx, yy = xy
@@ -79,7 +79,7 @@ class TestFGW:
             geom_xx=PointCloud(x, epsilon=eps),
             geom_yy=PointCloud(y, epsilon=eps),
             geom_xy=PointCloud(xx, yy, epsilon=eps),
-            fused_penalty=alpha,
+            fused_penalty=FGWSolver._alpha_to_fused_penalty(alpha),
         )
         pred = FGWSolver()(x, y, xx=xx, yy=yy, alpha=alpha, eps=eps)
 
@@ -91,14 +91,13 @@ class TestFGW:
         xx, yy = xy
 
         solver = FGWSolver()
-        assert not solver.is_low_rank
 
         for alpha in (0.1, 0.9):
             gt = gromov_wasserstein(
                 geom_xx=PointCloud(x, epsilon=eps),
                 geom_yy=PointCloud(y, epsilon=eps),
                 geom_xy=PointCloud(xx, yy, epsilon=eps),
-                fused_penalty=alpha,
+                fused_penalty=FGWSolver._alpha_to_fused_penalty(alpha),
             )
             pred = solver(x, y, xx=xx, yy=yy, alpha=alpha, eps=eps)
 

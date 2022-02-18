@@ -20,7 +20,16 @@ Item_t = Tuple[Any, Any]
 Value_t = Tuple[npt.ArrayLike, npt.ArrayLike]
 
 
-__all__ = ("SubsetPolicy", "OrderedPolicy", "PairwisePolicy", "SequentialPolicy", "TriangularPolicy", "ExplicitPolicy")
+__all__ = (
+    "SubsetPolicy",
+    "OrderedPolicy",
+    "PairwisePolicy",
+    "StarPolicy",
+    "ExternalStarPolicy",
+    "SequentialPolicy",
+    "TriangularPolicy",
+    "ExplicitPolicy",
+)
 
 
 class SubsetPolicy:
@@ -96,6 +105,8 @@ class SubsetPolicy:
             return PairwisePolicy(adata, key=key)
         if kind == "star":
             return StarPolicy(adata, key=key)
+        if kind == "external_star":
+            return ExternalStarPolicy(adata, key=key)
         if kind == "triu":
             return TriangularPolicy(adata, key=key, upper=True)
         if kind == "tril":
@@ -168,12 +179,24 @@ class PairwisePolicy(SimplePlanFilterMixin, SubsetPolicy):
 
 class StarPolicy(SubsetPolicy):
     def _create_subset(self, reference: Any, **kwargs: Any) -> Sequence[Item_t]:
+        if reference not in self._cat:
+            raise ValueError(f"TODO: Reference {reference} not in {self._cat}")
         return [(c, reference) for c in self._cat if c != reference]
 
     def plan(self, filter: Optional[Sequence[Any]] = None, **_: Any) -> Dict[Item_t, List[Item_t]]:
         if filter is None:
             return self._default_plan
         return {s: [s] for s in self._subset if s[0] in filter}
+
+
+class ExternalStarPolicy(StarPolicy):
+    _SENTINEL = object()
+
+    def _create_subset(self, **kwargs: Any) -> Sequence[Item_t]:
+        return [(c, self._SENTINEL) for c in self._cat if c != self._SENTINEL]
+
+    def mask(self, discard_empty: bool = True) -> Dict[Item_t, Value_t]:
+        return super().mask(discard_empty=False)
 
 
 class SequentialPolicy(OrderedPolicy):
