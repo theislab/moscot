@@ -216,7 +216,6 @@ class GWSolver(RankMixin, GeometryMixin, BaseSolver):
             raise ValueError("TODO: missing second data")
         kwargs.pop("xx", None)
         kwargs.pop("yy", None)
-        gw_rescale_correction = kwargs.pop("gw_rescale_correction", None)
         # TODO(michalk8): pass epsilon
         geom_x = self._create_geometry(x, **kwargs)
         geom_y = self._create_geometry(y, **kwargs)
@@ -225,7 +224,6 @@ class GWSolver(RankMixin, GeometryMixin, BaseSolver):
         return QuadraticProblem(geom_x, geom_y, geom_xy=None, fused_penalty=0.0, a=a, b=b,
                                 tau_a=tau_a,
                                 tau_b=tau_b,
-                                gw_rescale_correction=gw_rescale_correction
                                 )
 
     @property
@@ -257,7 +255,6 @@ class FGWSolver(GWSolver):
         if xx is None:
             raise ValueError("TODO: no array defining joint")
         problem = super()._prepare_input(x, y, **kwargs)
-        gw_rescale_correction = kwargs.pop("gw_rescale_correction", None)
 
         if yy is None:
             if not xx.is_cost_matrix and not xx.is_kernel:
@@ -276,7 +273,6 @@ class FGWSolver(GWSolver):
             b=b,
             tau_a=tau_a,
             tau_b=tau_b,
-            gw_rescale_correction=gw_rescale_correction
         )
 
     @staticmethod
