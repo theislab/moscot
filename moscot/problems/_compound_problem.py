@@ -168,7 +168,7 @@ class SingleCompoundProblem(CompoundBaseProblem):
 
     def _create_policy(
         self,
-        policy: Literal["sequential", "pairwise", "triu", "tril", "explicit"] = "sequential",
+        policy: Literal["sequential", "pairwise", "triu", "tril", "explicit", "external_star"] = "sequential",
         key: Optional[str] = None,
         **_: Any,
     ) -> SubsetPolicy:
