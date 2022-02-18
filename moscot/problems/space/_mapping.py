@@ -14,11 +14,11 @@ from scanpy import logging as logg
 from anndata import AnnData
 
 from moscot.backends.ott import GWSolver, FGWSolver
-from moscot.problems._base_problem import BaseProblem, GeneralProblem
-from moscot.problems._compound_problem import CompoundProblem
+from moscot.problems._base_problem import GeneralProblem
+from moscot.problems._compound_problem import SingleCompoundProblem
 
 
-class SpatialMappingProblem(CompoundProblem):
+class SpatialMappingProblem(SingleCompoundProblem):
     def __init__(
         self,
         adata_sc: AnnData,
@@ -30,12 +30,10 @@ class SpatialMappingProblem(CompoundProblem):
     ):
 
         adata_sc, adata_sp = self.filter_vars(adata_sc, adata_sp, var_names, use_reference)
-        self._adata_sc = adata_sc
-        self._adata_sp = adata_sp
-        self.use_reference = use_reference
-
         solver = FGWSolver(rank=rank, jit=solver_jit) if use_reference else GWSolver(rank=rank, jit=solver_jit)
-        super().__init__(adata_sc, adata_sp, solver=solver)
+        super().__init__(adata_sp, solver=solver)
+        self._adata_ref = adata_sc
+        self.use_reference = use_reference
 
     @property
     def adata_sp(
@@ -50,6 +48,10 @@ class SpatialMappingProblem(CompoundProblem):
     @property
     def problems(self) -> GeneralProblem:
         return self._problems
+
+    @property
+    def _adata_tgt(self):
+        return self._adata_ref
 
     def filter_vars(
         self,
@@ -82,13 +84,17 @@ class SpatialMappingProblem(CompoundProblem):
         attr_sp: Optional[Mapping[str, Any]] = {"attr": "obsm", "key": "spatial"},
         attr_joint: Optional[Mapping[str, Any]] = {"x_attr": "X", "y_attr": "X"},
         **kwargs: Any,
-    ) -> BaseProblem:
-        # TODO(ZP): (1) add `policy` like option; random sampling of genes, increasing number of markers etc.
+    ) -> GeneralProblem:
 
         if self.use_reference:
-            super().prepare(x=attr_sc, y=attr_sp, xy=attr_joint, **kwargs)
+            super().prepare(x=attr_sp, y=attr_sc, xy=attr_joint, policy="external_star", **kwargs)
         else:
-            super().prepare(x=attr_sc, y=attr_sp, **kwargs)
+            super().prepare(x=attr_sp, y=attr_sc, policy="external_star", **kwargs)
+
+    def _mask(self, key: Any, mask, adata: AnnData) -> AnnData:
+        if key is self._policy._SENTINEL:
+            return adata
+        return super()._mask(key, mask, adata)
 
     def solve(
         self,
@@ -97,6 +103,6 @@ class SpatialMappingProblem(CompoundProblem):
         tau_a: Optional[float] = 1.0,
         tau_b: Optional[float] = 1.0,
         **kwargs: Any,
-    ) -> BaseProblem:
+    ) -> GeneralProblem:
 
         super().solve(eps=eps, alpha=alpha, tau_a=tau_a, tau_b=tau_b, **kwargs)
