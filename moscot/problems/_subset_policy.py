@@ -1,10 +1,11 @@
 from abc import ABC, abstractmethod
 from typing import Any, Dict, List, Sized, Tuple, Union, Optional, Sequence
+
 try:
     from typing import Literal
 except ImportError:
     from typing_extensions import Literal
-    
+
 from operator import gt, lt
 from itertools import product
 

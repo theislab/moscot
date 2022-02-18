@@ -5,7 +5,7 @@ try:
     from typing import Literal
 except ImportError:
     from typing_extensions import Literal
-    
+
 import pandas as pd
 
 import numpy as np
