@@ -20,7 +20,6 @@ class BaseProblem(ABC):
         adata: AnnData,
         solver: Optional[BaseSolver] = None,
     ):
-        # TODO(michalk8): check if view, if yes, materialize
         self._adata = adata
         self._solver: BaseSolver = self._create_default_solver(solver)
 
@@ -28,7 +27,6 @@ class BaseProblem(ABC):
     def prepare(self, *args: Any, **kwargs: Any) -> "BaseProblem":
         pass
 
-    # TODO(michalk8): figure out args/kwargs
     @abstractmethod
     def solve(self, *args: Any, **kwargs: Any) -> "BaseProblem":
         pass
@@ -198,7 +196,7 @@ class GeneralProblem(BaseProblem):
 
     def solve(
         self,
-        eps: Optional[float] = None,
+        epsilon: Optional[float] = None,
         alpha: float = 0.5,
         tau_a: float = 1.0,
         tau_b: float = 1.0,
@@ -221,7 +219,7 @@ class GeneralProblem(BaseProblem):
         a = kwargs.pop("a", self._a)
         b = kwargs.pop("b", self._b)
 
-        self._solution = self._solver(self._x, self._y, a=a, b=b, eps=eps, tau_a=tau_a, tau_b=tau_b, **kwargs)
+        self._solution = self._solver(self._x, self._y, a=a, b=b, epsilon=epsilon, tau_a=tau_a, tau_b=tau_b, **kwargs)
         return self
 
     # TODO(michalk8): require in BaseProblem?

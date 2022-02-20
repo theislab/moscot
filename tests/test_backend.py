@@ -4,10 +4,11 @@ from conftest import Geom_t
 import pytest
 
 from ott.core import LinearProblem
-from ott.geometry import PointCloud
+from ott.geometry import Geometry, PointCloud
 from ott.core.sinkhorn import sinkhorn
 from ott.core.sinkhorn_lr import LRSinkhorn
-from ott.core.gromov_wasserstein import gromov_wasserstein
+from ott.core.quad_problems import QuadraticProblem
+from ott.core.gromov_wasserstein import make as make_gw, gromov_wasserstein
 import numpy as np
 import jax.numpy as jnp
 
@@ -15,6 +16,7 @@ from moscot.backends.ott import GWSolver, FGWSolver, SinkhornSolver
 from moscot.solvers._output import BaseSolverOutput
 from moscot.backends.ott._output import GWOutput, SinkhornOutput, LRSinkhornOutput
 from moscot.solvers._base_solver import BaseSolver
+from moscot.solvers._tagged_array import Tag
 
 _RTOL = 1e-6
 _ATOL = 1e-6
@@ -25,7 +27,7 @@ class TestSinkhorn:
     @pytest.mark.parametrize("eps", [None, 1e-2, 1e-1])
     def test_matches_ott(self, x: Geom_t, eps: Optional[float], jit: bool):
         gt = sinkhorn(PointCloud(x, epsilon=eps), jit=jit)
-        pred = SinkhornSolver(jit=jit)(x, x, eps=eps)
+        pred = SinkhornSolver(jit=jit)(x, x, epsilon=eps)
 
         assert isinstance(pred, SinkhornOutput)
         np.testing.assert_allclose(gt.matrix, pred.transport_matrix, rtol=_RTOL, atol=_ATOL)
@@ -37,7 +39,7 @@ class TestSinkhorn:
         problem = LinearProblem(PointCloud(y, y, epsilon=eps))
 
         gt = lr_sinkhorn(problem)
-        pred = SinkhornSolver(rank=rank)(y, y, eps=eps)
+        pred = SinkhornSolver(rank=rank)(y, y, epsilon=eps)
 
         assert isinstance(pred, LRSinkhornOutput)
         np.testing.assert_allclose(gt.matrix, pred.transport_matrix, rtol=_RTOL, atol=_ATOL)
@@ -54,7 +56,7 @@ class TestSinkhorn:
             problem = LinearProblem(PointCloud(x, x, epsilon=eps))
 
             gt = lr_sinkhorn(problem)
-            pred = solver(x, x, eps=eps, rank=rank)
+            pred = solver(x, x, epsilon=eps, rank=rank)
 
             assert isinstance(pred, LRSinkhornOutput)
             assert solver.rank == rank
@@ -65,10 +67,23 @@ class TestGW:
     @pytest.mark.parametrize("jit", [False, True])
     @pytest.mark.parametrize("eps", [None, 1e-2, 1e-1])
     def test_matches_ott(self, x: Geom_t, y: Geom_t, eps: Optional[float], jit: bool):
-        gt = gromov_wasserstein(PointCloud(x, epsilon=eps), PointCloud(y, epsilon=eps))
-        pred = GWSolver()(x, y, eps=eps)
+        gt = gromov_wasserstein(PointCloud(x, epsilon=eps), PointCloud(y, epsilon=eps), jit=jit, epsilon=eps)
+        pred = GWSolver(jit=jit)(x, y, epsilon=eps)
 
         assert isinstance(pred, GWOutput)
+        np.testing.assert_allclose(gt.matrix, pred.transport_matrix, rtol=_RTOL, atol=_ATOL)
+
+    @pytest.mark.parametrize("eps", [5e-1, 1])
+    def test_epsilon(self, x_cost: jnp.ndarray, y_cost: jnp.ndarray, eps: Optional[float]):
+        solver = GWSolver()
+
+        problem = QuadraticProblem(
+            geom_xx=Geometry(cost_matrix=x_cost, epsilon=eps), geom_yy=Geometry(cost_matrix=y_cost, epsilon=eps)
+        )
+        gt = make_gw(epsilon=eps)(problem)
+        pred = solver(x_cost, y_cost, x_tag=Tag.COST_MATRIX, y_tag=Tag.COST_MATRIX, epsilon=eps)
+
+        assert solver._solver.epsilon == eps
         np.testing.assert_allclose(gt.matrix, pred.transport_matrix, rtol=_RTOL, atol=_ATOL)
 
 
@@ -83,8 +98,9 @@ class TestFGW:
             geom_yy=PointCloud(y, epsilon=eps),
             geom_xy=PointCloud(xx, yy, epsilon=eps),
             fused_penalty=FGWSolver._alpha_to_fused_penalty(alpha),
+            epsilon=eps,
         )
-        pred = FGWSolver()(x, y, xx=xx, yy=yy, alpha=alpha, eps=eps)
+        pred = FGWSolver()(x, y, xx=xx, yy=yy, alpha=alpha, epsilon=eps)
 
         assert isinstance(pred, GWOutput)
         np.testing.assert_allclose(gt.matrix, pred.transport_matrix, rtol=_RTOL, atol=_ATOL)
@@ -101,18 +117,45 @@ class TestFGW:
                 geom_yy=PointCloud(y, epsilon=eps),
                 geom_xy=PointCloud(xx, yy, epsilon=eps),
                 fused_penalty=FGWSolver._alpha_to_fused_penalty(alpha),
+                epsilon=eps,
             )
-            pred = solver(x, y, xx=xx, yy=yy, alpha=alpha, eps=eps)
+            pred = solver(x, y, xx=xx, yy=yy, alpha=alpha, epsilon=eps)
 
             assert isinstance(pred, GWOutput)
             np.testing.assert_allclose(gt.matrix, pred.transport_matrix, rtol=_RTOL, atol=_ATOL)
+
+    @pytest.mark.parametrize("eps", [1e-3, 5e-2])
+    def test_epsilon(self, x_cost: jnp.ndarray, y_cost: jnp.ndarray, xy_cost: jnp.ndarray, eps: Optional[float]):
+        alpha = 0.66
+        solver = FGWSolver()
+
+        problem = QuadraticProblem(
+            geom_xx=Geometry(cost_matrix=x_cost, epsilon=eps),
+            geom_yy=Geometry(cost_matrix=y_cost, epsilon=eps),
+            geom_xy=Geometry(cost_matrix=xy_cost, epsilon=eps),
+            fused_penalty=FGWSolver._alpha_to_fused_penalty(alpha),
+        )
+        gt = make_gw(epsilon=eps)(problem)
+        pred = solver(
+            x_cost,
+            y_cost,
+            xx=xy_cost,
+            x_tag=Tag.COST_MATRIX,
+            y_tag=Tag.COST_MATRIX,
+            xx_tag=Tag.COST_MATRIX,
+            alpha=alpha,
+            epsilon=eps,
+        )
+
+        assert solver._solver.epsilon == eps
+        np.testing.assert_allclose(gt.matrix, pred.transport_matrix, rtol=_RTOL, atol=_ATOL)
 
 
 class TestSolverOutput:
     def test_properties(self, x: Geom_t, y: Geom_t):
         solver = SinkhornSolver()
 
-        out = solver(x, y, eps=1e-1)
+        out = solver(x, y, epsilon=1e-1)
         a, b = out.a, out.b
 
         assert isinstance(a, jnp.ndarray)
