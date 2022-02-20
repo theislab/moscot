@@ -50,7 +50,7 @@ class MultiMarginalProblem(GeneralProblem, ABC):
 
     def solve(
         self,
-        eps: Optional[float] = None,
+        epsilon: Optional[float] = None,
         alpha: float = 0.5,
         tau_a: Optional[float] = 1.0,
         tau_b: Optional[float] = 1.0,
@@ -69,7 +69,7 @@ class MultiMarginalProblem(GeneralProblem, ABC):
         kwargs.setdefault("b", b)
 
         for _ in range(n_iters):
-            sol = super().solve(eps, alpha=alpha, tau_a=tau_a, tau_b=tau_b, **kwargs).solution
+            sol = super().solve(epsilon=epsilon, alpha=alpha, tau_a=tau_a, tau_b=tau_b, **kwargs).solution
             self._add_marginals(sol)
             kwargs["a"], kwargs["b"] = self._get_last_marginals()
 

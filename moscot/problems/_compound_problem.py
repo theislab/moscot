@@ -70,7 +70,7 @@ class CompoundBaseProblem(BaseProblem, ABC):
 
     def solve(
         self,
-        eps: Optional[float] = None,
+        epsilon: Optional[float] = None,
         alpha: float = 0.5,
         tau_a: Optional[float] = 1.0,
         tau_b: Optional[float] = 1.0,
@@ -78,7 +78,7 @@ class CompoundBaseProblem(BaseProblem, ABC):
     ) -> "CompoundProblem":
         self._solutions = {}
         for subset, problem in self._problems.items():
-            self._solutions[subset] = problem.solve(eps=eps, alpha=alpha, tau_a=tau_a, tau_b=tau_b, **kwargs)
+            self._solutions[subset] = problem.solve(epsilon=epsilon, alpha=alpha, tau_a=tau_a, tau_b=tau_b, **kwargs)
 
         return self
 
