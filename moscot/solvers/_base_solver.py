@@ -20,7 +20,7 @@ class BaseSolver(ABC):
         self,
         x: TaggedArray,
         y: Optional[TaggedArray] = None,
-        eps: Optional[float] = None,
+        epsilon: Optional[float] = None,
         **kwargs: Any,
     ) -> Any:
         pass
@@ -39,7 +39,7 @@ class BaseSolver(ABC):
         b: Optional[npt.ArrayLike] = None,
         tau_a: float = 1.0,
         tau_b: float = 1.0,
-        eps: Optional[float] = None,
+        epsilon: Optional[float] = None,
         solve_kwargs: Mapping[str, Any] = MappingProxyType({}),
         **prepare_kwargs: Any,
     ) -> BaseSolverOutput:
@@ -53,7 +53,9 @@ class BaseSolver(ABC):
         if not isinstance(yy, TaggedArray):
             yy = _to_tagged_array(yy, prepare_kwargs.pop("yy_tag", Tag.POINT_CLOUD))
 
-        data = self._prepare_input(x, y, eps=eps, xx=xx, yy=yy, a=a, b=b, tau_a=tau_a, tau_b=tau_b, **prepare_kwargs)
+        data = self._prepare_input(
+            x, y, epsilon=epsilon, xx=xx, yy=yy, a=a, b=b, tau_a=tau_a, tau_b=tau_b, **prepare_kwargs
+        )
         res = self._solve(data, **solve_kwargs)
 
         if not res.converged:

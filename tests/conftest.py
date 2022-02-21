@@ -56,6 +56,22 @@ def xy() -> Geom_t:
     return jnp.asarray(ys), jnp.asarray(yt)
 
 
+@pytest.fixture()
+def x_cost(x: Geom_t) -> jnp.ndarray:
+    return ((x[:, None, :] - x[None, ...]) ** 2).sum(-1)
+
+
+@pytest.fixture()
+def y_cost(y: Geom_t) -> jnp.ndarray:
+    return ((y[:, None, :] - y[None, ...]) ** 2).sum(-1)
+
+
+@pytest.fixture()
+def xy_cost(xy: Geom_t) -> jnp.ndarray:
+    x, y = xy
+    return ((x[:, None, :] - y[None, ...]) ** 2).sum(-1)
+
+
 def create_marginals(n: int, m: int, *, uniform: bool = False, seed: Optional[int] = None) -> Geom_t:
     rng = np.random.RandomState(seed)
     if uniform:

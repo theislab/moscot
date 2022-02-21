@@ -60,7 +60,7 @@ class GeometryMixin:
         x: TaggedArray,
         y: Optional[TaggedArray] = None,
         *,
-        eps: Optional[float] = None,
+        epsilon: Optional[float] = None,
         online: bool = False,
     ) -> Geometry:
         # TODO(michalk8): maybe in the future, enable (more) kwargs for PC/Geometry
@@ -69,17 +69,17 @@ class GeometryMixin:
             x, y = self._assert2d(x.data), self._assert2d(y.data)
             if x.shape[1] != y.shape[1]:
                 raise ValueError("TODO: x/y dimension mismatch")
-            return PointCloud(x, y=y, epsilon=eps, cost_fn=cost_fn, online=online)
+            return PointCloud(x, y=y, epsilon=epsilon, cost_fn=cost_fn, online=online)
         if x.is_point_cloud:
             cost_fn = self._create_cost(x.loss)
-            return PointCloud(self._assert2d(x.data), epsilon=eps, cost_fn=cost_fn, online=online)
+            return PointCloud(self._assert2d(x.data), epsilon=epsilon, cost_fn=cost_fn, online=online)
         if x.is_grid:
             cost_fn = self._create_cost(x.loss)
-            return Grid(jnp.asarray(x.data), epsilon=eps, cost_fn=cost_fn)
+            return Grid(jnp.asarray(x.data), epsilon=epsilon, cost_fn=cost_fn)
         if x.is_cost_matrix:
-            return Geometry(cost_matrix=self._assert2d(x.data, allow_reshape=False), epsilon=eps)
+            return Geometry(cost_matrix=self._assert2d(x.data, allow_reshape=False), epsilon=epsilon)
         if x.is_kernel:
-            return Geometry(kernel_matrix=self._assert2d(x.loss, allow_reshape=False), epsilon=eps)
+            return Geometry(kernel_matrix=self._assert2d(x.loss, allow_reshape=False), epsilon=epsilon)
 
         raise NotImplementedError("TODO: invalid tag")
 
@@ -172,7 +172,7 @@ class SinkhornSolver(RankMixin, BaseSolver):
         self,
         x: TaggedArray,
         y: Optional[TaggedArray] = None,
-        eps: Optional[float] = None,
+        epsilon: Optional[float] = None,
         online: bool = False,
         **kwargs: Any,
     ) -> LinearProblem:
@@ -182,7 +182,7 @@ class SinkhornSolver(RankMixin, BaseSolver):
         if "rank" in kwargs:
             self.rank = kwargs.pop("rank")
 
-        geom = self._create_geometry(x, y, eps=eps, online=online)
+        geom = self._create_geometry(x, y, epsilon=epsilon, online=online)
         return LinearProblem(geom, **kwargs)
 
     @property
@@ -197,7 +197,7 @@ class GWSolver(RankMixin, BaseSolver):
         self,
         x: TaggedArray,
         y: Optional[TaggedArray] = None,
-        eps: Optional[float] = None,
+        epsilon: Optional[float] = None,
         online: bool = False,
         **kwargs: Any,
     ) -> QuadraticProblem:
@@ -210,8 +210,9 @@ class GWSolver(RankMixin, BaseSolver):
             # maybe instantiate the new solver only when the rank is passed
             self.rank = kwargs.pop("rank")
 
-        geom_x = self._create_geometry(x, eps=eps, online=online)
-        geom_y = self._create_geometry(y, eps=eps, online=online)
+        self._solver.epsilon = epsilon
+        geom_x = self._create_geometry(x, epsilon=epsilon, online=online)
+        geom_y = self._create_geometry(y, epsilon=epsilon, online=online)
         return QuadraticProblem(geom_x, geom_y, geom_xy=None, fused_penalty=0.0, **kwargs)
 
     @property
@@ -234,20 +235,20 @@ class FGWSolver(GWSolver):
         y: Optional[TaggedArray] = None,
         xx: Optional[TaggedArray] = None,
         yy: Optional[TaggedArray] = None,
-        eps: Optional[float] = None,
+        epsilon: Optional[float] = None,
         online: bool = False,
         alpha: float = 0.5,
         **kwargs: Any,
     ) -> QuadraticProblem:
         if xx is None:
             raise ValueError("TODO: no array defining joint")
-        problem = super()._prepare_input(x, y, eps=eps, online=online)
+        problem = super()._prepare_input(x, y, epsilon=epsilon, online=online)
 
         if xx.is_cost_matrix or xx.is_kernel:
             # TODO(michalk8): warn if `yy` is not None that we're ignoring it?
-            geom_xy = self._create_geometry(xx, eps=eps, online=online)
+            geom_xy = self._create_geometry(xx, epsilon=epsilon, online=online)
         elif yy is not None:
-            geom_xy = self._create_geometry(xx, yy, eps=eps, online=online)
+            geom_xy = self._create_geometry(xx, yy, epsilon=epsilon, online=online)
         else:
             raise ValueError("TODO: specify the 2nd array if this is not kernel/cost")
         self._validate_geoms(problem.geom_xx, problem.geom_yy, geom_xy)
