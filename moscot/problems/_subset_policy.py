@@ -36,7 +36,7 @@ __all__ = (
 class SubsetPolicy:
     class Category:
         def __init__(self, cats: Sequence[Any]):
-            assert len(cats) > 1, "TODO: too few categories"
+            #assert len(cats) > 1, "TODO: too few categories"
             self._i2c = tuple(cats)
             self._c2i = dict(zip(cats, range(len(cats))))
             self._next_cat = dict(zip(cats[:-1], cats[1:]))

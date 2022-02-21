@@ -53,7 +53,7 @@ class SpatialMappingAnalysisMixin(SpatialAnalysisMixin):
         calculate correlation between the predicted gene expression and observed in tissue space.
         Parameters
         ----------
-        transport_matrix: learnt transport_matrix
+        transport_matrix: learnt transport_matrix - - assumes [n_cell_sp X n_cells_sc]
         var_names: genes to correlate, if none correlate all.
         Returns
         -------
@@ -64,7 +64,7 @@ class SpatialMappingAnalysisMixin(SpatialAnalysisMixin):
             adata_sc.X = adata_sc.X.A
         if scipy.sparse.issparse(adata_sp.X):
             adata_sp.X = adata_sp.X.A
-        sp_gex_pred = np.asarray(jnp.dot(adata_sc.X.T, transport_matrix).T)
+        sp_gex_pred = np.asarray(jnp.dot(transport_matrix, adata_sc.X))
         corr_val = np.nanmean([pearsonr(sp_gex_pred[:, gi],
                                         adata_sp.X[:, gi])[0]
                                for gi, g in enumerate(adata_sp.var_names)])
@@ -79,7 +79,7 @@ class SpatialMappingAnalysisMixin(SpatialAnalysisMixin):
         return imputation of spatial expression of given genes
         Parameters
         ----------
-        transport_matrix: learnt transport_matrix
+        transport_matrix: learnt transport_matrix - - assumes [n_cell_sp X n_cells_sc]
         var_names: genes to correlate, if none correlate all.
         Returns
         -------
@@ -88,7 +88,7 @@ class SpatialMappingAnalysisMixin(SpatialAnalysisMixin):
         adata_sc = self.filter_vars(adata_sc, var_names=var_names)
         if scipy.sparse.issparse(adata_sc.X):
             adata_sc.X = adata_sc.X.A     
-        sp_gex_pred = np.asarray(jnp.dot(adata_ref.X.T, transport_matrix).T)
+        sp_gex_pred = np.asarray(jnp.dot(transport_matrix, adata_ref.X))
         sp_gex_pred = pd.DataFrame(sp_gex_pred,
                                    index=adata_sp.obs_names,
                                    columns=adata_sc.var_names)
