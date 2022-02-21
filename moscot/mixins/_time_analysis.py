@@ -42,32 +42,15 @@ class TemporalAnalysisMixin(AnalysisMixin):
         currently this assumes that we have preprocessed data which results in the questionable assumption that
         the held out data was also used for the preprocessing (whereas it should follow the independent preprocessing
         step of WOT
-        Parameters
-        ----------
-        start
-        end
-        intermediate
-        interpolation_parameter
-        Returns
-        -------
         """
-        # TODO: compute interpolation factor if start and end numeric. Therefore, we first need to allow start and end to be numeric
         if intermediate not in self.adata.obs[self._temporal_key].unique():
             raise ValueError(f"No data points corresponding to {intermediate} found in `adata.obs[{self._temporal_key}]`")
         if (start, end) not in self._problems.keys():
             logging.info(f"No transport map computed for {(start, end)}. Trying to compose transport maps.")
 
-        
-        #source_adata = self.adata[self.adata.obs[self._temporal_key == start]].copy()
-        #target_adata = self.adata[self.adata.obs[self._temporal_key == end]].copy()
-        #intermediate_adata = self.adata[self.adata.obs[self._temporal_key == intermediate]].copy()
         if interpolation_parameter is None:
             interpolation_parameter = (intermediate - start) / (end - start)
 
-        #assert self._problems[(start, end)].Tag == COST_MATRIX
-        #source_data = self._problems[(start, end)]._x.data
-        #growth_rates_source = self._problems[(start, end)].growth_rates[-1]
-        #target_data = self._problems[(start, end)]._y.data
         for subset in self._problems.keys():
             if subset[0] == start:
                 source_data = self._problems[subset]._x.data
@@ -119,9 +102,9 @@ class TemporalAnalysisMixin(AnalysisMixin):
             transport_matrix = transport_matrix / np.power(
                 transport_matrix.sum(axis=0), 1.0 - interpolation_parameter
             )
-        transport_matrix_flattened = transport_matrix.flatten(order="C").astype('float64')
-        transport_matrix_flattened /= transport_matrix_flattened.sum().astype(float)
-        choices = np.random.choice((len(source_data) * len(target_data))+1, p=np.concatenate(transport_matrix_flattened, 1-transport_matrix_flattened.sum()), size=number_cells)
+        transport_matrix_flattened = transport_matrix.flatten(order="C")
+        transport_matrix_flattened /= transport_matrix_flattened.sum()
+        choices = np.random.choice((len(source_data) * len(target_data))+1, p=np.concatenate((transport_matrix_flattened, np.array([1-transport_matrix_flattened.sum()])), axis=0), size=number_cells)
         #TODO(@MUCDK): think about more efficient implementation
 
         res = np.asarray(
@@ -146,21 +129,24 @@ class TemporalAnalysisMixin(AnalysisMixin):
     ):
 
         if growth_rates is None:
-            choices = np.random.choice(source_data.n_obs * target_data.n_obs, size=number_cells)
+            choices = np.random.choice(len(source_data) * len(target_data), size=number_cells)
         else:
-            outer_product = np.outer(growth_rates, np.ones(len(growth_rates)))
+            outer_product = np.outer(growth_rates, np.ones(len(target_data)))
             outer_product_flattened = outer_product.flatten(order="C")
             outer_product_flattened /= outer_product_flattened.sum()
-            choices = np.random.choice(source_data.n_obs * target_data.n_obs, p=outer_product_flattened, size=number_cells)
-
-        return np.asarray(
+            choices = np.random.choice((len(source_data) * len(target_data))+1, p=np.concatenate((outer_product_flattened, np.array([1-outer_product_flattened.sum()])), axis=0), size=number_cells)
+        
+        res = np.asarray(
             [
                 source_data[i // len(target_data)] * (1 - interpolation_parameter)
                 + target_data[i % len(target_data)] * interpolation_parameter
-                for i in choices
+                for i in choices if i != (len(source_data) * len(target_data))+1
             ],
             dtype=np.float64,
         )
+        n_to_replace = np.sum(choices==(len(source_data) * len(target_data))+1)
+        rows_to_add = np.random.choice(len(res), replace=False, size=n_to_replace) # this creates a slightly biased estimator but needs to be done due to numerical errors
+        return np.concatenate((res, res[rows_to_add,:]), axis=0)
 
     #TODO(@MUCDK) possibly offer two alternatives, once exact EMD with POT backend and once approximate, faster with same solver as used for original problems
     def _compute_wasserstein_distance(
