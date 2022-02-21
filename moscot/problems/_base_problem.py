@@ -77,7 +77,7 @@ class BaseProblem(ABC):
             elif isinstance(subset, Iterable) and not isinstance(subset, str):
                 data = np.asarray(adata.obs[data].isin(subset), dtype=float)
             else:
-                data = np.asarray(adata.obs[data] == subset, dtype=float)
+                data = np.asarray(adata.obs[data].values == subset, dtype=float)
         else:
             data = np.asarray(data)
 
@@ -86,7 +86,7 @@ class BaseProblem(ABC):
         if data.shape[0] != adata.n_obs:
             raise ValueError(f"TODO: expected shape `{adata.n_obs,}`, found `{data.shape[0],}`")
 
-        total = np.sum(data != 0, axis=0)[None, :]
+        total = np.sum(data, axis=0)[None, :]
         if not np.all(total > 0):
             raise ValueError("TODO: no mass.")
 

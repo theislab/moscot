@@ -21,7 +21,7 @@ class MultiMarginalProblem(GeneralProblem, ABC):
     _b: Optional[List[np.ndarray]]
 
     @abstractmethod
-    def _estimate_marginals(self, adata: AnnData, **kwargs: Any) -> Optional[npt.ArrayLike]:
+    def _estimate_marginals(self, adata: AnnData, a: bool, **kwargs: Any) -> Optional[npt.ArrayLike]:
         pass
 
     def prepare(
@@ -36,9 +36,9 @@ class MultiMarginalProblem(GeneralProblem, ABC):
     ) -> "MultiMarginalProblem":
         # TODO(michalk8): some sentinel value would be nicer
         if a is True:
-            a = self._estimate_marginals(self.adata, **marginal_kwargs)
+            a = self._estimate_marginals(self.adata, a=True, **marginal_kwargs)
         if b is True:
-            b = self._estimate_marginals(self._marginal_b_adata, **marginal_kwargs)
+            b = self._estimate_marginals(self._marginal_b_adata, a=False, **marginal_kwargs)
 
         super().prepare(x, y, xy, a=a, b=b, **kwargs)
         # base problem prepare array-like structure, just wrap it
