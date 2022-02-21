@@ -34,7 +34,7 @@ class SpatialMappingProblem(SingleCompoundProblem):
 
         # filter genes
         adata_sc, adata_sp = self.filter_vars(adata_sc, adata_sp, var_names, use_reference)
-        solver = FGWSolver(rank=rank, jit=solver_jit, epsilon=None) if use_reference else GWSolver(rank=rank, jit=solver_jit)
+        solver = FGWSolver(rank=rank, jit=solver_jit) if use_reference else GWSolver(rank=rank, jit=solver_jit)
         super().__init__(adata_sp, solver=solver)
         
         self._adata_ref = adata_sc
