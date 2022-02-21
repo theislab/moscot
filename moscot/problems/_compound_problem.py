@@ -114,11 +114,18 @@ class CompoundBaseProblem(BaseProblem, ABC):
         for plan, steps in plans.items():
             if forward:
                 initial_problem = self._problems[steps[0]]
-                current_mass = initial_problem._get_mass(initial_problem.adata, data=get_data(plan), subset=subset, normalize=normalize)
+                current_mass = initial_problem._get_mass(
+                    initial_problem.adata, data=get_data(plan), subset=subset, normalize=normalize
+                )
             else:
                 steps = steps[::-1]
                 initial_problem = self._problems[steps[0]]
-                current_mass = initial_problem._get_mass(initial_problem.adata if initial_problem._adata_y is None else initial_problem._adata_y, data=get_data(plan), subset=subset, normalize=normalize)
+                current_mass = initial_problem._get_mass(
+                    initial_problem.adata if initial_problem._adata_y is None else initial_problem._adata_y,
+                    data=get_data(plan),
+                    subset=subset,
+                    normalize=normalize,
+                )
             if return_as_dict:
                 ds = {}
                 ds[steps[0][0] if forward else steps[0][1]] = current_mass
@@ -127,7 +134,9 @@ class CompoundBaseProblem(BaseProblem, ABC):
             for step in steps:
                 problem = self._problems[step]
                 fun = problem.push if forward else problem.pull
-                current_mass = fun(current_mass, subset=subset, normalize=normalize, scale_by_marginals=scale_by_marginals)
+                current_mass = fun(
+                    current_mass, subset=subset, normalize=normalize, scale_by_marginals=scale_by_marginals
+                )
                 if return_as_dict:
                     ds[step[1] if forward else step[0]] = current_mass
                 else:
@@ -166,13 +175,16 @@ class CompoundBaseProblem(BaseProblem, ABC):
 
 
 class SingleCompoundProblem(CompoundBaseProblem):
-    def _create_problems(self, add_metadata: bool=False, **kwargs: Any) -> Dict[Tuple[Any, Any], BaseProblem]:
+    def _create_problems(self, add_metadata: bool = False, **kwargs: Any) -> Dict[Tuple[Any, Any], BaseProblem]:
         return {
             (x, y): self._base_problem_type(
-                self._mask(x, x_mask, self._adata_src), self._mask(y, y_mask, self._adata_tgt), solver=self._solver, metadata=(x,y)
-            ).prepare(**kwargs) if add_metadata
-            else 
-            self._base_problem_type(
+                self._mask(x, x_mask, self._adata_src),
+                self._mask(y, y_mask, self._adata_tgt),
+                solver=self._solver,
+                metadata=(x, y),
+            ).prepare(**kwargs)
+            if add_metadata
+            else self._base_problem_type(
                 self._mask(x, x_mask, self._adata_src), self._mask(y, y_mask, self._adata_tgt), solver=self._solver
             ).prepare(**kwargs)
             for (x, y), (x_mask, y_mask) in self._policy.mask().items()
@@ -250,11 +262,13 @@ class MultiCompoundProblem(CompoundBaseProblem):
     ) -> "MultiCompoundProblem":
         return super().prepare(None, subset=subset, policy=policy, reference=reference, **kwargs)
 
-    def _create_problems(self, add_metadata: bool =False, **kwargs: Any) -> Dict[Tuple[Any, Any], BaseProblem]:
+    def _create_problems(self, add_metadata: bool = False, **kwargs: Any) -> Dict[Tuple[Any, Any], BaseProblem]:
         return {
-            (x, y): self._base_problem_type(self._adatas[x], self._adatas[y], solver=self._solver, metadata=(x, y)).prepare(**kwargs) if add_metadata 
-            else
-            self._base_problem_type(self._adatas[x], self._adatas[y], solver=self._solver).prepare(**kwargs)
+            (x, y): self._base_problem_type(
+                self._adatas[x], self._adatas[y], solver=self._solver, metadata=(x, y)
+            ).prepare(**kwargs)
+            if add_metadata
+            else self._base_problem_type(self._adatas[x], self._adatas[y], solver=self._solver).prepare(**kwargs)
             for x, y in self._policy.mask().keys()
         }
 
