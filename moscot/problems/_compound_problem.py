@@ -52,6 +52,7 @@ class CompoundBaseProblem(BaseProblem, ABC):
         policy: Literal["sequential", "pairwise", "triu", "tril", "explicit"] = "sequential",
         subset: Optional[Sequence[Tuple[Any, Any]]] = None,
         reference: Optional[Any] = None,
+        init_kwargs: Dict[Any, Any] = {},
         **kwargs: Any,
     ) -> "CompoundProblem":
         self._policy = self._create_policy(policy=policy, key=key)
@@ -63,7 +64,7 @@ class CompoundBaseProblem(BaseProblem, ABC):
         else:
             self._policy = self._policy(filter=subset)
 
-        self._problems = self._create_problems(**kwargs)
+        self._problems = self._create_problems(init_kwargs, **kwargs)
         self._solutions = None
 
         return self
@@ -90,7 +91,6 @@ class CompoundBaseProblem(BaseProblem, ABC):
         forward: bool = True,
         return_all: bool = False,
         scale_by_marginals: bool = False,
-        return_as_dict: bool = False,
         **kwargs: Any,
     ) -> Dict[Tuple[Any, Any], npt.ArrayLike]:
         def get_data(plan: Tuple[Any, Any]) -> Optional[npt.ArrayLike]:
@@ -126,32 +126,29 @@ class CompoundBaseProblem(BaseProblem, ABC):
                     subset=subset,
                     normalize=normalize,
                 )
-            if return_as_dict:
-                ds = {}
-                ds[steps[0][0] if forward else steps[0][1]] = current_mass
-            else:
-                ds = [get_data(plan)]
+            
+            ds = {}
+            ds[steps[0][0] if forward else steps[0][1]] = current_mass
             for step in steps:
                 problem = self._problems[step]
                 fun = problem.push if forward else problem.pull
                 current_mass = fun(
                     current_mass, subset=subset, normalize=normalize, scale_by_marginals=scale_by_marginals
                 )
-                if return_as_dict:
-                    ds[step[1] if forward else step[0]] = current_mass
-                else:
-                    ds.append(current_mass)
+                ds[step[1] if forward else step[0]] = current_mass
 
-            # TODO(michalk8): shall we include initial input? or add as option?
-            res[plan] = ds if return_all else ds[-1]
+            if return_all:
+                res[plan] = ds
+            else:
+                res[plan] = current_mass
 
         # TODO(michalk8): return the values iff only 1 plan?
         return res
 
-    def push(self, *args: Any, **kwargs: Any) -> npt.ArrayLike:
+    def push(self, *args: Any, **kwargs: Any) -> Union[npt.ArrayLike, Dict[Any, npt.ArrayLike]]:
         return self._apply(*args, forward=True, **kwargs)
 
-    def pull(self, *args: Any, **kwargs: Any) -> npt.ArrayLike:
+    def pull(self, *args: Any, **kwargs: Any) -> Union[npt.ArrayLike, Dict[Any, npt.ArrayLike]]:
         return self._apply(*args, forward=False, **kwargs)
 
     @property
@@ -175,17 +172,13 @@ class CompoundBaseProblem(BaseProblem, ABC):
 
 
 class SingleCompoundProblem(CompoundBaseProblem):
-    def _create_problems(self, add_metadata: bool = False, **kwargs: Any) -> Dict[Tuple[Any, Any], BaseProblem]:
+    def _create_problems(self, init_kwargs: Dict[Any, Any] = {}, **kwargs: Any) -> Dict[Tuple[Any, Any], BaseProblem]:
         return {
             (x, y): self._base_problem_type(
                 self._mask(x, x_mask, self._adata_src),
                 self._mask(y, y_mask, self._adata_tgt),
                 solver=self._solver,
-                metadata=(x, y),
-            ).prepare(**kwargs)
-            if add_metadata
-            else self._base_problem_type(
-                self._mask(x, x_mask, self._adata_src), self._mask(y, y_mask, self._adata_tgt), solver=self._solver
+                **init_kwargs,
             ).prepare(**kwargs)
             for (x, y), (x_mask, y_mask) in self._policy.mask().items()
         }
@@ -262,13 +255,11 @@ class MultiCompoundProblem(CompoundBaseProblem):
     ) -> "MultiCompoundProblem":
         return super().prepare(None, subset=subset, policy=policy, reference=reference, **kwargs)
 
-    def _create_problems(self, add_metadata: bool = False, **kwargs: Any) -> Dict[Tuple[Any, Any], BaseProblem]:
+    def _create_problems(self, init_kwargs: Dict[Any, Any] = {}, **kwargs: Any) -> Dict[Tuple[Any, Any], BaseProblem]:
         return {
             (x, y): self._base_problem_type(
-                self._adatas[x], self._adatas[y], solver=self._solver, metadata=(x, y)
+                self._adatas[x], self._adatas[y], solver=self._solver, **init_kwargs
             ).prepare(**kwargs)
-            if add_metadata
-            else self._base_problem_type(self._adatas[x], self._adatas[y], solver=self._solver).prepare(**kwargs)
             for x, y in self._policy.mask().keys()
         }
 

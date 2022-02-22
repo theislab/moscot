@@ -64,7 +64,7 @@ class SubsetPolicy:
 
     def __init__(self, adata: Union[AnnData, pd.Series, pd.Categorical], key: Optional[str] = None):
         self._data: pd.Series = pd.Series(adata.obs[key] if isinstance(adata, AnnData) else adata)
-        if type(self._data) != "category":
+        if not pd.api.types.is_categorical_dtype(self._data):
             self._data = self._data.astype("category")  # TODO(@MUCDK): catch conversion error
         self._subset: Optional[List[Item_t]] = None
         self._cat = self.Category(self._data.cat.categories)

@@ -1,4 +1,4 @@
-from typing import Any, Optional
+from typing import Any, Optional, Union, List
 import logging
 
 import ot
@@ -7,7 +7,7 @@ import sklearn
 
 from numpy import typing as npt
 import numpy as np
-
+from matplotlib.axes import Axes
 
 from moscot.mixins._base_analysis import AnalysisMixin
 
@@ -15,19 +15,14 @@ from moscot.mixins._base_analysis import AnalysisMixin
 class TemporalAnalysisMixin(AnalysisMixin):
     def plot_trajectory(
         self,
-        color_key: str = None,
+        color_key: Optional[str] = None,
         threshold: float = 1e-8,
         probability_key: str = "pull_result",
         show_density: bool = False,
-        **kwargs,
-    ):
+        **kwargs: Any,
+    ) -> Union[Axes, List[Axes], None]:
         if color_key is None:
             color_key = self._temporal_key
-        if not "neighbors" in self.adata.uns:
-            sc.pp.neighbors(self.adata)
-        if not "X_umap" in self.adata.obsm:
-            logging.info("Calculating UMAP.")
-            sc.tl.umap(self.adata, **kwargs)
 
         self.adata.obs["color_code_umap"] = self.adata.obs.apply(
             lambda x: x[color_key] if x[probability_key] >= threshold else np.nan, axis=1
@@ -56,22 +51,28 @@ class TemporalAnalysisMixin(AnalysisMixin):
         if interpolation_parameter is None:
             interpolation_parameter = (intermediate - start) / (end - start)
 
-        for subset in self._problems.keys():
-            if subset[0] == start:
-                source_data = self._problems[subset]._x.data
-                growth_rates_source = self._problems[subset].growth_rates[-1]
+        for (start_, end_) in self._problems.keys():
+            if start_ == start:
+                source_data = self._problems[(start_, end_)]._x.data
+                growth_rates_source = self._problems[(start_, end_)].growth_rates[-1]
                 break
-        for subset in self._problems.keys():
-            if subset[0] == intermediate:
-                intermediate_data = self._problems[subset]._x.data
+        else:
+            raise ValueError(f"No data found for time point {start}")
+        for (start_, end_) in self._problems.keys():
+            if start_ == intermediate:
+                intermediate_data = self._problems[(start_, end_)]._x.data
                 break
-        for subset in self._problems.keys():
-            if subset[1] == end:
-                target_data = self._problems[subset]._y.data
+        else:
+            raise ValueError(f"No data found for time point {intermediate}")
+        for (start_, end_) in self._problems.keys():
+            if end_ == end:
+                target_data = self._problems[(start_, end_)]._y.data
                 break
+        else:
+            raise ValueError(f"No data found for time point {end}")
         transport_matrix = self._compute_transport_map(start=start, end=end)[1]
 
-        gex_ot_interpolated = self._interpolate_gex_with_ot(
+        gex_ot_interpolated = self._interpolate_gex_with_ot_new(
             len(intermediate_data), source_data, target_data, transport_matrix, interpolation_parameter
         )
         distance_gex_ot_interpolated = self._compute_wasserstein_distance(intermediate_data, gex_ot_interpolated)
@@ -129,6 +130,21 @@ class TemporalAnalysisMixin(AnalysisMixin):
         )  # this creates a slightly biased estimator but needs to be done due to numerical errors
         return np.concatenate((res, res[rows_to_add, :]), axis=0)
 
+    def _interpolate_gex_with_ot_new(self, number_cells: int, source_data: npt.ArrayLike, target_data: npt.ArrayLike, start: Any, end: Any, interpolation_parameter: int = 0.5) -> npt.ArrayLike:
+        row_probability = self.pull(start=start, end=end, data=np.ones(len(target_data)), scale_by_marginals=False)
+        rows_sampled = np.random.choice(len(target_data), p=row_probability/row_probability.sum(), size=number_cells)
+        rows, counts = np.unique(rows_sampled, return_counts=True)
+        result = np.zeros((number_cells, source_data.shape[1]))
+        current_index = 0
+        for row, count in zip(rows, counts):
+            data = np.zeros(len(source_data))
+            data[row] = 1
+            col_p_given_row = self.push(start=start, end=end, data=data, scale_by_marginals=False)
+            cols_sampled = np.random.choice(len(source_data), p=col_p_given_row/col_p_given_row.sum(), size=count)
+            result[current_index:current_index+count, :] = source_data[row] * (1 - interpolation_parameter) + target_data[cols_sampled] * interpolation_parameter
+        return result
+            
+
     def _interpolate_gex_randomly(
         self,
         number_cells: int,
@@ -149,6 +165,7 @@ class TemporalAnalysisMixin(AnalysisMixin):
                 p=np.concatenate((outer_product_flattened, np.array([1 - outer_product_flattened.sum()])), axis=0),
                 size=number_cells,
             )
+
 
         res = np.asarray(
             [
