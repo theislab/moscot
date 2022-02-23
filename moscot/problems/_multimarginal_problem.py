@@ -89,13 +89,14 @@ class MultiMarginalProblem(GeneralProblem, ABC):
         b = self._b[-1] if len(self._b) else None
         return a, b
 
-    # TODO(michalk8): better 2 properties?
-    # TODO(michalk8): use 2 large arrays? append is costlier for np.arrays
     @property
-    def marginals(self) -> Marginals_t:
-        # they should always be linked (either both empty or both of the same shape)
+    def a(self) -> Optional[np.ndarray]:
         if not len(self._a):
-            return None, None
+            return None
+        return np.asarray(self._a)
+
+    @property
+    def b(self) -> Optional[np.ndarray]:
         if not len(self._b):
-            return None, None
-        return np.asarray(self._a), np.asarray(self._b)
+            return None
+        return np.asarray(self._b)

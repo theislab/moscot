@@ -58,7 +58,7 @@ class CompoundBaseProblem(BaseProblem, ABC):
         self._policy = self._create_policy(policy=policy, key=key)
 
         if isinstance(self._policy, ExplicitPolicy):
-            self._policy = self._policy(policy)
+            self._policy = self._policy(subset)
         elif isinstance(self._policy, StarPolicy):
             self._policy = self._policy(filter=subset, reference=reference)
         else:
@@ -107,7 +107,6 @@ class CompoundBaseProblem(BaseProblem, ABC):
             return None
 
         # TODO: check if solved - decorator?
-
         plans = self._policy.plan(**kwargs)
         res: Dict[Tuple[Any, Any], npt.ArrayLike] = {}
 
@@ -130,6 +129,8 @@ class CompoundBaseProblem(BaseProblem, ABC):
             ds = {}
             ds[steps[0][0] if forward else steps[0][1]] = current_mass
             for step in steps:
+                if step not in self._problems.keys():
+                    raise ValueError(f"No transport map computed for {step}")
                 problem = self._problems[step]
                 fun = problem.push if forward else problem.pull
                 current_mass = fun(

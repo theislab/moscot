@@ -1,3 +1,4 @@
+from locale import normalize
 from typing import Any, Optional, Union, List
 import logging
 
@@ -7,31 +8,12 @@ import sklearn
 
 from numpy import typing as npt
 import numpy as np
-from matplotlib.axes import Axes
 
 from moscot.mixins._base_analysis import AnalysisMixin
 
 
 class TemporalAnalysisMixin(AnalysisMixin):
-    def plot_trajectory(
-        self,
-        color_key: Optional[str] = None,
-        threshold: float = 1e-8,
-        probability_key: str = "pull_result",
-        show_density: bool = False,
-        **kwargs: Any,
-    ) -> Union[Axes, List[Axes], None]:
-        if color_key is None:
-            color_key = self._temporal_key
-
-        self.adata.obs["color_code_umap"] = self.adata.obs.apply(
-            lambda x: x[color_key] if x[probability_key] >= threshold else np.nan, axis=1
-        )
-        if show_density:
-            color = ["color_code_umap", probability_key]
-        else:
-            color = ["color_code_umap"]
-        sc.pl.umap(self.adata, color=color, **kwargs)
+    
 
     def validate_by_interpolation(
         self, start: Any, end: Any, intermediate: Any, interpolation_parameter: Optional[int] = None
@@ -70,11 +52,13 @@ class TemporalAnalysisMixin(AnalysisMixin):
                 break
         else:
             raise ValueError(f"No data found for time point {end}")
-        transport_matrix = self._compute_transport_map(start=start, end=end)[1]
+        transport_matrix = self._compute_transport_map(start=start, end=end)
 
-        gex_ot_interpolated = self._interpolate_gex_with_ot_new(
-            len(intermediate_data), source_data, target_data, transport_matrix, interpolation_parameter
-        )
+        gex_ot_interpolated = self._interpolate_gex_with_ot(len(intermediate_data),
+        source_data,
+        target_data,
+        transport_matrix)
+
         distance_gex_ot_interpolated = self._compute_wasserstein_distance(intermediate_data, gex_ot_interpolated)
         gex_randomly_interpolated = self._interpolate_gex_randomly(len(intermediate_data), source_data, target_data)
         distance_gex_randomly_interpolated = self._compute_wasserstein_distance(
@@ -93,6 +77,7 @@ class TemporalAnalysisMixin(AnalysisMixin):
             distance_gex_randomly_interpolated_growth,
         )
 
+    
     def _interpolate_gex_with_ot(
         self,
         number_cells: int,
@@ -129,21 +114,6 @@ class TemporalAnalysisMixin(AnalysisMixin):
             len(res), replace=False, size=n_to_replace
         )  # this creates a slightly biased estimator but needs to be done due to numerical errors
         return np.concatenate((res, res[rows_to_add, :]), axis=0)
-
-    def _interpolate_gex_with_ot_new(self, number_cells: int, source_data: npt.ArrayLike, target_data: npt.ArrayLike, start: Any, end: Any, interpolation_parameter: int = 0.5) -> npt.ArrayLike:
-        row_probability = self.pull(start=start, end=end, data=np.ones(len(target_data)), scale_by_marginals=False)
-        rows_sampled = np.random.choice(len(target_data), p=row_probability/row_probability.sum(), size=number_cells)
-        rows, counts = np.unique(rows_sampled, return_counts=True)
-        result = np.zeros((number_cells, source_data.shape[1]))
-        current_index = 0
-        for row, count in zip(rows, counts):
-            data = np.zeros(len(source_data))
-            data[row] = 1
-            col_p_given_row = self.push(start=start, end=end, data=data, scale_by_marginals=False)
-            cols_sampled = np.random.choice(len(source_data), p=col_p_given_row/col_p_given_row.sum(), size=count)
-            result[current_index:current_index+count, :] = source_data[row] * (1 - interpolation_parameter) + target_data[cols_sampled] * interpolation_parameter
-        return result
-            
 
     def _interpolate_gex_randomly(
         self,
