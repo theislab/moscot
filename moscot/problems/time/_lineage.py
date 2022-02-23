@@ -1,4 +1,4 @@
-from typing import Any, Dict, Literal, Mapping, Optional, Sequence, Tuple, Union
+from typing import Any, Dict, Tuple, Union, Literal, Mapping, Optional, Sequence
 from numbers import Number
 import logging
 
@@ -108,31 +108,22 @@ class TemporalProblem(TemporalAnalysisMixin, SingleCompoundProblem):
         return_as_dict: bool = False,
         scale_by_marginals: bool = True,
         **kwargs: Any,
-    ) -> Union[npt.ArrayLike, Dict[Any, npt.ArrayLike]]:
+    ) -> Optional[Union[npt.ArrayLike, Dict[Any, npt.ArrayLike]]]:
 
-        if result_key is None:
-            return super().push(
-                start=start,
-                end=end,
-                data=data,
-                subset=subset,
-                normalize=normalize,
-                return_all=return_all,
-                scale_by_marginals=scale_by_marginals,
-                return_as_dict=return_as_dict,
-                **kwargs,
-            )[start, end]
         result = super().push(
             start=start,
             end=end,
             data=data,
             subset=subset,
             normalize=normalize,
-            return_all=True,
+            return_all=return_all,
             scale_by_marginals=scale_by_marginals,
-            return_as_dict=True,
+            return_as_dict=return_as_dict,
             **kwargs,
         )[start, end]
+
+        if result_key is None:
+            return result
         self._dict_to_adata(result, result_key)
 
     def pull(
@@ -147,31 +138,20 @@ class TemporalProblem(TemporalAnalysisMixin, SingleCompoundProblem):
         return_as_dict: bool = False,
         scale_by_marginals: bool = True,
         **kwargs: Any,
-    ) -> Union[npt.ArrayLike, Dict[Any, npt.ArrayLike]]:
-
-        if result_key is None:
-            return super().pull(
-                start=start,
-                end=end,
-                data=data,
-                subset=subset,
-                normalize=normalize,
-                return_all=return_all,
-                scale_by_marginals=scale_by_marginals,
-                return_as_dict=return_as_dict,
-                **kwargs,
-            )[start, end]
+    ) -> Optional[Union[npt.ArrayLike, Dict[Any, npt.ArrayLike]]]:
         result = super().pull(
             start=start,
             end=end,
             data=data,
             subset=subset,
             normalize=normalize,
-            return_all=True,
+            return_all=return_all,
             scale_by_marginals=scale_by_marginals,
-            return_as_dict=True,
+            return_as_dict=return_as_dict,
             **kwargs,
         )[start, end]
+        if result_key is None:
+            return result
         self._dict_to_adata(result, result_key)
 
     def _dict_to_adata(self, d: Dict, obs_key: str):
@@ -221,18 +201,6 @@ class TemporalProblem(TemporalAnalysisMixin, SingleCompoundProblem):
         for subset in subsets:
             try:
                 result = fun(start=start, end=end, data=key, subset=subset, normalize=True, return_all=False, **kwargs)
-                """result = self._apply(
-                    data=key_groups,
-                    subset=subset,
-                    start=start,
-                    end=end,
-                    normalize=True,
-                    return_all=False,
-                    forward=forward,
-                    scale_by_marginals=True,
-                    return_as_dict=False,
-                    **kwargs
-                )[start, end]"""
             except ValueError:  # this happens if there are requested cell types are not in the corresponding time step
                 logging.info(
                     f"No data points corresponding to {subset} found in `adata.obs[groups_key]` for {start if forward else end}"

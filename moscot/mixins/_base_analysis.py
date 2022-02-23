@@ -23,10 +23,6 @@ class AnalysisMixin(ABC):
             if normalize:
                 transition_matrix /= np.sum(transition_matrix, axis=1)[:, None]
             return transition_matrix
-            """"transition_matrix = self._problems[(start, end)].solution.transport_matrix
-            if normalize:
-                transition_matrix /= np.sum(transition_matrix, axis=1)[:, None]
-            return transition_matrix"""
 
 
 # TODO(michalk8): CompoundAnalysisMixin?
