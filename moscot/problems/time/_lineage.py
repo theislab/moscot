@@ -132,13 +132,13 @@ class TemporalProblem(TemporalAnalysisMixin, SingleCompoundProblem):
         result = super().pull(start=start, end=end, data=data, subset=subset, normalize=normalize, return_all=True, scale_by_marginals=scale_by_marginals, return_as_dict=True, **kwargs)[start, end]
         self._dict_to_adata(result, result_key)
 
-    def _dict_to_adata(self, d: Dict, key: str):
+    def _dict_to_adata(self, d: Dict, obs_key: str):
         tmp = np.empty(len(self.adata))
         tmp[:] = np.nan
         for key, value in d.items():
             mask = self.adata.obs[self._temporal_key] == key
             tmp[mask] = np.squeeze(value)
-        self.adata.obs[key] = tmp
+        self.adata.obs[obs_key] = tmp
 
     def cell_transition(
         self,
@@ -171,7 +171,7 @@ class TemporalProblem(TemporalAnalysisMixin, SingleCompoundProblem):
         df_late = self.adata[self.adata.obs[self._temporal_key] == end].obs[[_late_cells_key]].copy()
 
         subsets = _early_cells if forward else _late_cells
-        fun, key = self.push, _early_cells_key if forward else self.pull, _late_cells_key
+        (fun, key) = (self.push, _early_cells_key) if forward else (self.pull, _late_cells_key)
         for subset in subsets:
             try:
                 result = fun(start=start, end=end, data=key, subset=subset, normalize=True, return_all=False, **kwargs)
@@ -229,15 +229,16 @@ class TemporalBaseProblem(MultiMarginalProblem):
     def _estimate_marginals(
         self, adata: AnnData, source: bool, proliferation_key: str, apoptosis_key: str, **kwargs: Any
     ) -> npt.ArrayLike:
+        birth = beta(adata.obs[proliferation_key], **kwargs)
+        death = delta(adata.obs[apoptosis_key], **kwargs)
+        growth = np.exp((birth - death) * (self._t_end - self._t_start))
         if source:
-            birth = beta(adata.obs[proliferation_key], **kwargs)
-            death = delta(adata.obs[apoptosis_key], **kwargs)
-            return np.exp((birth - death) * (self._t_end - self._t_start))
-        return np.average(self._get_last_marginals[0])
+            return growth
+        return np.full(len(self._marginal_b_adata), np.average(growth))
 
     def _add_marginals(self, sol: BaseSolverOutput) -> None:
         self._a.append(np.asarray(sol.a))
-        self._b.append(np.average(sol.a)*np.ones(len(self._marginal_b_adata)))
+        self._b.append(np.full(len(self._marginal_b_adata), np.average(sol.a)))
 
     @property
     def growth_rates(self) -> npt.ArrayLike:
