@@ -110,6 +110,8 @@ class TemporalProblem(TemporalAnalysisMixin, SingleCompoundProblem):
         **kwargs: Any,
     ) -> Optional[Union[npt.ArrayLike, Dict[Any, npt.ArrayLike]]]:
 
+        if result_key is not None:
+            return_all = True
         result = super().push(
             start=start,
             end=end,
@@ -118,7 +120,6 @@ class TemporalProblem(TemporalAnalysisMixin, SingleCompoundProblem):
             normalize=normalize,
             return_all=return_all,
             scale_by_marginals=scale_by_marginals,
-            return_as_dict=return_as_dict,
             **kwargs,
         )[start, end]
 
@@ -135,10 +136,11 @@ class TemporalProblem(TemporalAnalysisMixin, SingleCompoundProblem):
         normalize: bool = True,
         result_key: Optional[str] = None,
         return_all: bool = False,
-        return_as_dict: bool = False,
         scale_by_marginals: bool = True,
         **kwargs: Any,
     ) -> Optional[Union[npt.ArrayLike, Dict[Any, npt.ArrayLike]]]:
+        if result_key is not None:
+            return_all = True
         result = super().pull(
             start=start,
             end=end,
@@ -147,7 +149,6 @@ class TemporalProblem(TemporalAnalysisMixin, SingleCompoundProblem):
             normalize=normalize,
             return_all=return_all,
             scale_by_marginals=scale_by_marginals,
-            return_as_dict=return_as_dict,
             **kwargs,
         )[start, end]
         if result_key is None:

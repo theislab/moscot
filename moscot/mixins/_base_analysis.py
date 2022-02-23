@@ -16,7 +16,9 @@ class AnalysisMixin(ABC):
                 transition_matrix /= np.sum(transition_matrix, axis=1)[:, None]
             return transition_matrix
         else:
-            transition_matrix = self.solution[(start, end)].solution.transport_matrix #TODO(@MUCDK) report bug, one "solution" too much
+            transition_matrix = self.solution[
+                (start, end)
+            ].solution.transport_matrix  # TODO(@MUCDK) report bug, one "solution" too much
             if normalize:
                 transition_matrix /= np.sum(transition_matrix, axis=1)[:, None]
             return transition_matrix
