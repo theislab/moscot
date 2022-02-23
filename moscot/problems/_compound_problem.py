@@ -125,7 +125,7 @@ class CompoundBaseProblem(BaseProblem, ABC):
                     subset=subset,
                     normalize=normalize,
                 )
-            
+
             ds = {}
             ds[steps[0][0] if forward else steps[0][1]] = current_mass
             for step in steps:

@@ -1,24 +1,33 @@
-from locale import normalize
-from typing import Any, Optional, Union, List, Dict
-import logging
+from typing import Any, Dict, Optional
 from numbers import Number
-import ot
-import scanpy as sc
-from anndata import AnnData
-import sklearn
+import logging
 import itertools
+
+import ot
+import sklearn
 
 from numpy import typing as npt
 import numpy as np
+
+from anndata import AnnData
 
 from moscot.mixins._base_analysis import AnalysisMixin
 
 
 class TemporalAnalysisMixin(AnalysisMixin):
-    
-
     def validate_by_interpolation(
-        self, start: Any, end: Any, intermediate: Any, interpolation_parameter: Optional[int] = None, val_ot: bool = True, val_random: bool = True, val_random_with_growth: bool = True, val_source_to_intermediate: bool = True, val_intermediate_to_target: bool = True, batch_key: Optional[str] = None, **kwargs: Any
+        self,
+        start: Any,
+        end: Any,
+        intermediate: Any,
+        interpolation_parameter: Optional[int] = None,
+        val_ot: bool = True,
+        val_random: bool = True,
+        val_random_with_growth: bool = True,
+        val_source_to_intermediate: bool = True,
+        val_intermediate_to_target: bool = True,
+        batch_key: Optional[str] = None,
+        **kwargs: Any,
     ) -> Dict[str, Number]:
         """
         currently this assumes that we have preprocessed data which results in the questionable assumption that
@@ -59,38 +68,42 @@ class TemporalAnalysisMixin(AnalysisMixin):
 
         result = {}
         if val_ot:
-            gex_ot_interpolated = self._interpolate_gex_with_ot(len(intermediate_data),
-            source_data,
-            target_data,
-            transport_matrix)
+            gex_ot_interpolated = self._interpolate_gex_with_ot(
+                len(intermediate_data), source_data, target_data, transport_matrix
+            )
             result["ot"] = self._compute_wasserstein_distance(intermediate_data, gex_ot_interpolated, **kwargs)
-        
+
         if val_random:
             gex_randomly_interpolated = self._interpolate_gex_randomly(len(intermediate_data), source_data, target_data)
-            result["random"]  = self._compute_wasserstein_distance(
+            result["random"] = self._compute_wasserstein_distance(
                 intermediate_data, gex_randomly_interpolated, **kwargs
             )
-        
+
         if val_random_with_growth:
             gex_randomly_interpolated_growth = self._interpolate_gex_randomly(
-            len(intermediate_data), source_data, target_data, growth_rates=growth_rates_source
+                len(intermediate_data), source_data, target_data, growth_rates=growth_rates_source
             )
-            result["random_with_growth"]  = self._compute_wasserstein_distance(
-            intermediate_data, gex_randomly_interpolated_growth, **kwargs
+            result["random_with_growth"] = self._compute_wasserstein_distance(
+                intermediate_data, gex_randomly_interpolated_growth, **kwargs
             )
 
         if val_source_to_intermediate:
-            result["source_to_intermediate"] = self._compute_wasserstein_distance(source_data, intermediate_data, **kwargs)
+            result["source_to_intermediate"] = self._compute_wasserstein_distance(
+                source_data, intermediate_data, **kwargs
+            )
 
         if val_intermediate_to_target:
-            result["intermediate_to_target"] = self._compute_wasserstein_distance(intermediate_data, target_data, **kwargs)
+            result["intermediate_to_target"] = self._compute_wasserstein_distance(
+                intermediate_data, target_data, **kwargs
+            )
         if batch_key is not None:
 
-            result["batches"] = self._compute_distance_between_batches(intermediate_adata, intermediate_data, batch_key, **kwargs)
+            result["batches"] = self._compute_distance_between_batches(
+                intermediate_adata, intermediate_data, batch_key, **kwargs
+            )
 
         return result
 
-    
     def _interpolate_gex_with_ot(
         self,
         number_cells: int,
@@ -128,7 +141,6 @@ class TemporalAnalysisMixin(AnalysisMixin):
         )  # this creates a slightly biased estimator but needs to be done due to numerical errors
         return np.concatenate((res, res[rows_to_add, :]), axis=0)
 
-
     def _interpolate_gex_randomly(
         self,
         number_cells: int,
@@ -141,7 +153,7 @@ class TemporalAnalysisMixin(AnalysisMixin):
         if growth_rates is None:
             choices = np.random.choice(len(source_data) * len(target_data), size=number_cells)
         else:
-            outer_product = np.outer(growth_rates**interpolation_parameter, np.ones(len(target_data)))
+            outer_product = np.outer(growth_rates ** interpolation_parameter, np.ones(len(target_data)))
             outer_product_flattened = outer_product.flatten(order="C")
             outer_product_flattened /= outer_product_flattened.sum()
             choices = np.random.choice(
@@ -149,7 +161,6 @@ class TemporalAnalysisMixin(AnalysisMixin):
                 p=np.concatenate((outer_product_flattened, np.array([1 - outer_product_flattened.sum()])), axis=0),
                 size=number_cells,
             )
-
 
         res = np.asarray(
             [
@@ -166,13 +177,18 @@ class TemporalAnalysisMixin(AnalysisMixin):
         )  # this creates a slightly biased estimator but needs to be done due to numerical errors
         return np.concatenate((res, res[rows_to_add, :]), axis=0)
 
-    def _compute_distance_between_batches(self, adata: AnnData, data: npt.ArrayLike, batch_key: str, **kwargs: Any) -> Number: 
+    def _compute_distance_between_batches(
+        self, adata: AnnData, data: npt.ArrayLike, batch_key: str, **kwargs: Any
+    ) -> Number:
         assert len(adata) == len(data), "TODO: wrong shapes"
         dist = []
         for batch_1, batch_2 in itertools.combinations(adata.obs[batch_key].unique(), 2):
-            dist.append(self._compute_wasserstein_distance(data[adata.obs[batch_key==batch_1]], data[adata.obs[batch_key==batch_2]], **kwargs))
+            dist.append(
+                self._compute_wasserstein_distance(
+                    data[adata.obs[batch_key == batch_1]], data[adata.obs[batch_key == batch_2]], **kwargs
+                )
+            )
         return np.mean(dist)
-
 
     # TODO(@MUCDK) possibly offer two alternatives, once exact EMD with POT backend and once approximate, faster with same solver as used for original problems
     def _compute_wasserstein_distance(
