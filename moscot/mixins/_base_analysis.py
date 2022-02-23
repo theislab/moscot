@@ -16,10 +16,7 @@ class AnalysisMixin(ABC):
                 transition_matrix /= np.sum(transition_matrix, axis=1)[:, None]
             return transition_matrix
         else:
-            steps = self._policy.plan(start=start, end=end, filter=[(start, end)])[start, end]
-            transition_matrix = self._problems[steps[0]].solution.transport_matrix
-            for i in range(len(steps) - 1):
-                transition_matrix @= self._problems[steps[i + 1]].solution.transport_matrix
+            transition_matrix = self.solution[(start, end)].solution.transport_matrix #TODO(@MUCDK) report bug, one "solution" too much
             if normalize:
                 transition_matrix /= np.sum(transition_matrix, axis=1)[:, None]
             return transition_matrix
