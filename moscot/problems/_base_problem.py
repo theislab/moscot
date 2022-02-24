@@ -85,7 +85,6 @@ class BaseProblem(ABC):
             data = np.reshape(data, (-1, 1))
         if data.shape[0] != adata.n_obs:
             raise ValueError(f"TODO: expected shape `{adata.n_obs,}`, found `{data.shape[0],}`")
-
         assert np.all(data >= 0, axis=0), "Not all entries of the mass are non-negative"
         total = np.sum(data, axis=0)[None, :]
         if not np.all(total > 0):

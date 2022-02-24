@@ -65,6 +65,8 @@ class MultiMarginalProblem(GeneralProblem, ABC):
         # TODO(michalk8): keep?
         # set this after the 1st run so that user can ignore the 1st marginals (for consistency with GeneralProblem)
         a, b = self._get_last_marginals()
+        a = a/a.sum() 
+        b = b/b.sum() 
         kwargs.setdefault("a", a)
         kwargs.setdefault("b", b)
 
