@@ -57,6 +57,12 @@ def xy() -> Geom_t:
 
 
 @pytest.fixture()
+def ab() -> Tuple[np.ndarray, np.ndarray]:
+    rng = np.random.RandomState(42)
+    return rng.normal(size=(20, 2)), rng.normal(size=(30, 4))
+
+
+@pytest.fixture()
 def x_cost(x: Geom_t) -> jnp.ndarray:
     return ((x[:, None, :] - x[None, ...]) ** 2).sum(-1)
 

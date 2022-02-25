@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Type, Tuple, Union, Optional
 
 from conftest import Geom_t
 import pytest
@@ -13,7 +13,9 @@ import numpy as np
 import jax.numpy as jnp
 
 from moscot.backends.ott import GWSolver, FGWSolver, SinkhornSolver
+from moscot.solvers._output import BaseSolverOutput
 from moscot.backends.ott._output import GWOutput, SinkhornOutput, LRSinkhornOutput
+from moscot.solvers._base_solver import BaseSolver
 from moscot.solvers._tagged_array import Tag
 
 _RTOL = 1e-6
@@ -148,3 +150,84 @@ class TestFGW:
 
         assert solver._solver.epsilon == eps
         np.testing.assert_allclose(gt.matrix, pred.transport_matrix, rtol=_RTOL, atol=_ATOL)
+
+
+class TestSolverOutput:
+    def test_properties(self, x: Geom_t, y: Geom_t):
+        solver = SinkhornSolver()
+
+        out = solver(x, y, epsilon=1e-1)
+        a, b = out.a, out.b
+
+        assert isinstance(a, jnp.ndarray)
+        assert a.shape == (out.shape[0],)
+        assert isinstance(b, jnp.ndarray)
+        assert b.shape == (out.shape[1],)
+
+        assert isinstance(out.converged, bool)
+        assert isinstance(out.cost, float)
+        assert out.cost >= 0
+        assert out.shape == (x.shape[0], y.shape[0])
+
+    @pytest.mark.parametrize("batched", [False, True])
+    @pytest.mark.parametrize("solver_t", [SinkhornSolver, 5])
+    def test_push(
+        self,
+        x: Geom_t,
+        y: Geom_t,
+        ab: Tuple[np.ndarray, np.ndarray],
+        solver_t: Union[int, Type[BaseSolver]],
+        batched: bool,
+    ):
+        a, ndim = (ab[0], ab[0].shape[1]) if batched else (ab[0][:, 0], None)
+        rank = solver_t if isinstance(solver_t, int) else None
+        solver = SinkhornSolver(rank=rank)
+
+        out = solver(x, y)
+        p = out.push(a, scale_by_marginals=False)
+
+        assert isinstance(out, BaseSolverOutput)
+        assert isinstance(p, jnp.ndarray)
+        if batched:
+            assert p.shape == (out.shape[1], ndim)
+        else:
+            assert p.shape == (out.shape[1],)
+
+    @pytest.mark.parametrize("batched", [False, True])
+    @pytest.mark.parametrize("solver_t", [GWSolver, FGWSolver])
+    def test_pull(
+        self,
+        x: Geom_t,
+        y: Geom_t,
+        xy: Geom_t,
+        ab: Tuple[np.ndarray, np.ndarray],
+        solver_t: Type[BaseSolver],
+        batched: bool,
+    ):
+        b, ndim = (ab[1], ab[1].shape[1]) if batched else (ab[1][:, 0], None)
+        xx, yy = xy
+        solver = solver_t()
+
+        out = solver(x, y, xx=xx, yy=yy)
+        p = out.pull(b, scale_by_marginals=False)
+
+        assert isinstance(out, BaseSolverOutput)
+        assert isinstance(p, jnp.ndarray)
+        if batched:
+            assert p.shape == (out.shape[0], ndim)
+        else:
+            assert p.shape == (out.shape[0],)
+
+    @pytest.mark.parametrize("batched", [False, True])
+    @pytest.mark.parametrize("forward", [False, True])
+    def test_scale_by_marginals(self, x: Geom_t, ab: Tuple[np.ndarray, np.ndarray], forward: bool, batched: bool):
+        solver = SinkhornSolver()
+        z = ab[0] if batched else ab[0][:, 0]
+
+        out = solver(x)
+        p = (out.push if forward else out.pull)(z, scale_by_marginals=True)
+
+        if batched:
+            np.testing.assert_allclose(p.sum(axis=0), z.sum(axis=0))
+        else:
+            np.testing.assert_allclose(p.sum(), z.sum())
