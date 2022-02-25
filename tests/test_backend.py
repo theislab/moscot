@@ -66,7 +66,7 @@ class TestSinkhorn:
 
 class TestGW:
     @pytest.mark.parametrize("jit", [False, True])
-    @pytest.mark.parametrize("eps", [None, 1e-2, 1e-1])
+    @pytest.mark.parametrize("eps", [5e-2, 1e-2, 1e-1])  # TODO(michalk8): for BWD compat, add None test case
     def test_matches_ott(self, x: Geom_t, y: Geom_t, eps: Optional[float], jit: bool):
         gt = gromov_wasserstein(PointCloud(x, epsilon=eps), PointCloud(y, epsilon=eps), jit=jit, epsilon=eps)
         pred = GWSolver(jit=jit)(x, y, epsilon=eps)
@@ -90,7 +90,7 @@ class TestGW:
 
 class TestFGW:
     @pytest.mark.parametrize("alpha", [0.25, 0.75])
-    @pytest.mark.parametrize("eps", [None, 1e-2, 1e-1])
+    @pytest.mark.parametrize("eps", [1e-2, 1e-1, 5e-1])  # TODO(michalk8): for BWD compat, add None test case
     def test_matches_ott(self, x: Geom_t, y: Geom_t, xy: Geom_t, eps: Optional[float], alpha: float):
         xx, yy = xy
 

@@ -200,7 +200,7 @@ class GWSolver(RankMixin, BaseSolver):
         self,
         x: TaggedArray,
         y: Optional[TaggedArray] = None,
-        epsilon: Optional[float] = None,
+        epsilon: Optional[float] = None,  # TODO(michlalk8): cannot be None, use default
         online: bool = False,
         **kwargs: Any,
     ) -> QuadraticProblem:
