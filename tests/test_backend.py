@@ -42,15 +42,16 @@ class TestSinkhorn:
         assert isinstance(pred, LRSinkhornOutput)
         np.testing.assert_allclose(gt.matrix, pred.transport_matrix, rtol=_RTOL, atol=_ATOL)
 
+    @pytest.mark.parametrize("implicit_diff", [False])
     @pytest.mark.parametrize("inner_iterations", [1, 10])
-    def test_rank_in_call(self, x: Geom_t, inner_iterations: int):
+    def test_rank_in_call(self, x: Geom_t, inner_iterations: int, implicit_diff: bool):
         eps = 1e-2
 
         solver = SinkhornSolver(inner_iterations=inner_iterations)
         assert not solver.is_low_rank
 
         for rank in (7, 15):
-            lr_sinkhorn = LRSinkhorn(rank=rank, inner_iterations=inner_iterations)
+            lr_sinkhorn = LRSinkhorn(rank=rank, inner_iterations=inner_iterations, implicit_diff=implicit_diff)
             problem = LinearProblem(PointCloud(x, x, epsilon=eps))
 
             gt = lr_sinkhorn(problem)
