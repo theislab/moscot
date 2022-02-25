@@ -2,15 +2,7 @@ from __future__ import annotations
 
 from typing import Any, List, Tuple, Mapping, Optional
 
-try:
-    pass
-except ImportError:
-    pass
-
-from typing import Optional
-
 from scanpy import logging as logg
-
 from anndata import AnnData
 
 from moscot.backends.ott import GWSolver, FGWSolver
@@ -22,11 +14,11 @@ class SpatialMappingProblem(SingleCompoundProblem):
     def __init__(
         self,
         adata_sc: AnnData,
-        adata_sp: AnnData = None,
+        adata_sp: Optional[AnnData] = None,
         use_reference: bool = False,
         var_names: List[str] | bool | None = None,
         rank: Optional[int] = None,
-        solver_jit: Optional[bool] = None,
+        **kwargs: Any,
     ):
         # keep orig adatas
         self._adata_sc = adata_sc
@@ -34,9 +26,9 @@ class SpatialMappingProblem(SingleCompoundProblem):
 
         # filter genes
         adata_sc, adata_sp = self.filter_vars(adata_sc, adata_sp, var_names, use_reference)
-        solver = FGWSolver(rank=rank, jit=solver_jit) if use_reference else GWSolver(rank=rank, jit=solver_jit)
+        solver = FGWSolver(rank=rank, **kwargs) if use_reference else GWSolver(rank=rank, **kwargs)
         super().__init__(adata_sp, solver=solver)
-        
+
         self._adata_ref = adata_sc
         self.use_reference = use_reference
 
@@ -100,14 +92,3 @@ class SpatialMappingProblem(SingleCompoundProblem):
         if key is self._policy._SENTINEL:
             return adata
         return super()._mask(key, mask, adata)
-
-    def solve(
-        self,
-        epsilon: Optional[float] = None,
-        alpha: float = 0.5,
-        tau_a: Optional[float] = 1.0,
-        tau_b: Optional[float] = 1.0,
-        **kwargs: Any,
-    ) -> GeneralProblem:
-
-        return super().solve(epsilon=epsilon, alpha=alpha, tau_a=tau_a, tau_b=tau_b, **kwargs)
