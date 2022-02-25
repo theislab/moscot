@@ -129,27 +129,30 @@ class RankMixin(GeometryMixin):
         return self._rank
 
     @rank.setter
-    def rank(self, value: Optional[int]) -> None:
-        if value == self.rank:
+    def rank(self, rank: Optional[int]) -> None:
+        if rank == self.rank:
             return
-        if value is not None:
-            assert value > 1, "Rank must be positive."
-        self._rank = value
+        if rank is not None:
+            assert rank > 1, "Rank must be positive."
+        self._rank = rank
 
-        if value is not None and isinstance(self._linear_solver, LRSinkhorn):
-            self._linear_solver.rank = value
+        if rank is not None and isinstance(self._linear_solver, LRSinkhorn):
+            self._linear_solver.rank = rank
             return
         # TODO(michalk8): find a nicer check
-        if value is None and type(self._linear_solver) is Sinkhorn:
+        if rank is None and type(self._linear_solver) is Sinkhorn:
             return
 
         [threshold], kwargs = self._linear_solver.tree_flatten()
 
-        clazz = Sinkhorn if value is None else LRSinkhorn
+        clazz = Sinkhorn if rank is None else LRSinkhorn
         params = signature(clazz).parameters
         kwargs = {k: v for k, v in kwargs.items() if k in params}
-        if value is not None:
-            kwargs["rank"] = value
+        if rank is not None:
+            kwargs["rank"] = rank
+            # TODO(michalk8): remove me in the future
+            # OTT: AssertionError: Implicit diff. not yet implemented for LRSink.
+            kwargs["implicit_diff"] = False
 
         # TODO(michalk8): warn if using defaults?
         self._linear_solver = clazz(**kwargs, threshold=threshold)
@@ -197,7 +200,7 @@ class GWSolver(RankMixin, BaseSolver):
         self,
         x: TaggedArray,
         y: Optional[TaggedArray] = None,
-        epsilon: Optional[float] = None,
+        epsilon: Optional[float] = None,  # TODO(michlalk8): cannot be None, use default
         online: bool = False,
         **kwargs: Any,
     ) -> QuadraticProblem:
