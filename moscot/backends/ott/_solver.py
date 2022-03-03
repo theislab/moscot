@@ -1,6 +1,7 @@
 from abc import abstractmethod
 from enum import Enum
-from typing import Any, Dict, Type, Union, Optional, NamedTuple
+from types import MappingProxyType
+from typing import Any, Dict, Type, Tuple, Union, Mapping, Optional, NamedTuple
 from inspect import signature
 
 from ott.geometry import Grid, Geometry, PointCloud
@@ -101,17 +102,21 @@ class GeometryMixin:
     def _solve(
         self,
         data: Union[LinearProblem, QuadraticProblem],
+        output_kwargs: Mapping[str, Any] = MappingProxyType({}),
         **kwargs: Any,
     ) -> BaseSolverOutput:
-        return self._description.output(self._solver(data, **kwargs))
+        return self._description.output(self._solver(data, **kwargs), **output_kwargs)
 
 
 class RankMixin(GeometryMixin):
-    def __init__(self, rank: Optional[int] = None, **kwargs: Any):
-        self._rank = rank  # must be se before calling super().__init__
-        if rank is not None:
+    def __init__(self, rank: int = -1, **kwargs: Any):
+        # a bit ugly - must be set before calling super().__init__
+        # otherwise, would need to refactor how description works
+        self._rank = max(-1, rank)
+        if rank > 0:
             kwargs["rank"] = rank
         super().__init__(**kwargs)
+        self._other_solver: Union[LRSinkhorn, Sinkhorn] = self._create_other_solver()
 
     @property
     @abstractmethod
@@ -123,42 +128,62 @@ class RankMixin(GeometryMixin):
     def _linear_solver(self, solver: Union[Sinkhorn, LRSinkhorn]) -> None:
         pass
 
+    def _solve(
+        self,
+        data: Union[LinearProblem, QuadraticProblem],
+        output_kwargs: Mapping[str, Any] = MappingProxyType({}),
+        **kwargs: Any,
+    ) -> BaseSolverOutput:
+        return super()._solve(data, output_kwargs={**output_kwargs, "rank": self.rank}, **kwargs)
+
+    def _create_other_solver(self) -> Union[Sinkhorn, LRSinkhorn]:
+        new = Sinkhorn if isinstance(self._linear_solver, LRSinkhorn) else LRSinkhorn
+        [threshold], kwargs = self._linear_solver.tree_flatten()
+        actual_params = signature(new).parameters
+        kwargs = {k: v for k, v in kwargs.items() if k in actual_params}
+        if new is LRSinkhorn:
+            kwargs["rank"] = 42  # dummy value, updated when setting rank
+            kwargs["implicit_diff"] = False  # implicit diff. not yet implemented for LRSink (yet)
+
+        return new(threshold=threshold, **kwargs)
+
     @property
-    def rank(self) -> Optional[int]:
+    def rank(self) -> int:
         return self._rank
 
     @rank.setter
     def rank(self, rank: Optional[int]) -> None:
+        if rank is None:  # TODO(michalk8): remove me once writing middle-end tests
+            rank = -1
+        rank = max(-1, rank)
         if rank == self.rank:
             return
-        if rank is not None:
-            assert rank > 1, "Rank must be positive."
+
+        if self.is_low_rank:
+            if rank > 0:  # update the rank
+                self._linear_solver.rank = rank
+            else:  # or just swap the solvers
+                self._linear_solver, self._other_solver = self._other_solver, self._linear_solver
+            self._rank = rank
+            return
+
+        # we're not LR, but the other solver is
+        self._linear_solver, self._other_solver = self._other_solver, self._linear_solver
+        self._linear_solver.rank = rank
         self._rank = rank
 
-        if rank is not None and isinstance(self._linear_solver, LRSinkhorn):
-            self._linear_solver.rank = rank
-            return
-        # TODO(michalk8): find a nicer check
-        if rank is None and type(self._linear_solver) is Sinkhorn:
-            return
+    def _set_ctx(self, _: Any, **kwargs: Any) -> Any:
+        if "rank" not in kwargs:
+            return self.rank
+        old_rank, self.rank = self.rank, kwargs.pop("rank")
+        return old_rank
 
-        [threshold], kwargs = self._linear_solver.tree_flatten()
-
-        clazz = Sinkhorn if rank is None else LRSinkhorn
-        params = signature(clazz).parameters
-        kwargs = {k: v for k, v in kwargs.items() if k in params}
-        if rank is not None:
-            kwargs["rank"] = rank
-            # TODO(michalk8): remove me in the future
-            # OTT: AssertionError: Implicit diff. not yet implemented for LRSink.
-            kwargs["implicit_diff"] = False
-
-        # TODO(michalk8): warn if using defaults?
-        self._linear_solver = clazz(**kwargs, threshold=threshold)
+    def _reset_ctx(self, rank: Optional[int]) -> None:
+        self.rank = rank
 
     @property
     def is_low_rank(self) -> bool:
-        return self.rank is not None
+        return self.rank > 0
 
 
 class SinkhornSolver(RankMixin, BaseSolver):
@@ -181,8 +206,8 @@ class SinkhornSolver(RankMixin, BaseSolver):
         # case when user switched from FGW -> GW
         kwargs.pop("xx", None)
         kwargs.pop("yy", None)
-        if "rank" in kwargs:
-            self.rank = kwargs.pop("rank")
+        # set in context afterwards
+        kwargs.pop("rank", None)
 
         geom = self._create_geometry(x, y, epsilon=epsilon, online=online)
         return LinearProblem(geom, **kwargs)
@@ -208,14 +233,18 @@ class GWSolver(RankMixin, BaseSolver):
         # case when user switched from FGW -> GW
         kwargs.pop("xx", None)
         kwargs.pop("yy", None)
-        if "rank" in kwargs:
-            # maybe instantiate the new solver only when the rank is passed
-            self.rank = kwargs.pop("rank")
+        # set in context afterwards
+        kwargs.pop("rank", None)
 
-        self.epsilon = epsilon
         geom_x = self._create_geometry(x, epsilon=epsilon, online=online)
         geom_y = self._create_geometry(y, epsilon=epsilon, online=online)
         return QuadraticProblem(geom_x, geom_y, geom_xy=None, fused_penalty=0.0, **kwargs)
+
+    @RankMixin.rank.setter
+    def rank(self, rank: int) -> None:
+        RankMixin.rank.fset(self, rank)  # correctly sets rank for `_linear_solver`
+        # TODO(michalk8): make a PR to OTT that simplifies how rank is stored
+        self._solver.rank = rank  # sets rank of the GW solver (see above TODO)
 
     @property
     def epsilon(self) -> float:
@@ -226,6 +255,8 @@ class GWSolver(RankMixin, BaseSolver):
         if epsilon is None:
             epsilon = 1e-2
         self._solver.epsilon = epsilon
+        if self.is_low_rank:
+            self._linear_solver.epsilon = epsilon
 
     @property
     def _linear_solver(self) -> Union[Sinkhorn, LRSinkhorn]:
@@ -234,6 +265,22 @@ class GWSolver(RankMixin, BaseSolver):
     @_linear_solver.setter
     def _linear_solver(self, solver: Union[Sinkhorn, LRSinkhorn]) -> None:
         self._solver.linear_ot_solver = solver
+
+    def _set_ctx(self, data: Any, **kwargs: Any) -> Tuple[Optional[int], Optional[int]]:
+        if "epsilon" not in kwargs:
+            old_epsilon = self.epsilon
+            old_ctx = super()._set_ctx(data, **kwargs)
+        else:
+            # important: to first set rank, then epsilon; the former changes the solver
+            old_ctx = super()._set_ctx(data, **kwargs)
+            old_epsilon, self.epsilon = self.epsilon, kwargs.pop("epsilon")
+        return old_ctx, old_epsilon
+
+    def _reset_ctx(self, rank_epsilon: Tuple[Optional[int], Optional[float]]) -> None:
+        rank, epsilon = rank_epsilon
+        # important: to first set rank, then epsilon; the former changes the solver
+        super()._reset_ctx(rank)
+        self.epsilon = epsilon
 
     @property
     def _description(self) -> SolverDescription:
@@ -265,6 +312,7 @@ class FGWSolver(GWSolver):
             raise ValueError("TODO: specify the 2nd array if this is not kernel/cost")
         self._validate_geoms(problem.geom_xx, problem.geom_yy, geom_xy)
 
+        kwargs.pop("rank", None)
         return QuadraticProblem(
             problem.geom_xx,
             problem.geom_yy,
