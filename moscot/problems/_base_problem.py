@@ -13,6 +13,8 @@ from moscot.problems._anndata import AnnDataPointer
 from moscot.solvers._base_solver import BaseSolver, ProblemKind
 from moscot.solvers._tagged_array import Tag, TaggedArray
 
+__all__ = ("BaseProblem", "GeneralProblem")
+
 
 class BaseProblem(ABC):
     def __init__(
@@ -130,9 +132,8 @@ class GeneralProblem(BaseProblem):
                 raise ValueError("First and joint shape mismatch")
 
     def _handle_joint(
-        self, create_kwargs: Mapping[str, Any] = MappingProxyType({}), **kwargs: Any
+        self, create_kwargs: Mapping[str, Any] = MappingProxyType({}), tag: Optional[Tag] = None, **kwargs: Any
     ) -> Union[TaggedArray, Tuple[TaggedArray, TaggedArray]]:
-        tag = kwargs.get("tag", None)
         if tag is None:
             # TODO(michalk8): better/more strict condition?
             # TODO(michalk8): specify which tag is being using

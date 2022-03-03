@@ -68,8 +68,8 @@ class BaseSolver(TagConverterMixin, ABC):
     def _solve(self, data: Any, **kwargs: Any) -> BaseSolverOutput:
         pass
 
-    @abstractmethod
     @property
+    @abstractmethod
     def problem_kind(self) -> ProblemKind:
         # helps to check whether necessary inputs were passed
         pass
