@@ -1,19 +1,18 @@
 from abc import abstractmethod
 from enum import Enum
-from typing import Any, Dict, Type, Union, Callable, Optional, NamedTuple
+from typing import Any, Dict, Type, Union, Optional, NamedTuple
 from inspect import signature
 
 from ott.geometry import Grid, Geometry, PointCloud
 from ott.core.problems import LinearProblem
-from ott.core.sinkhorn import make as make_sinkhorn, Sinkhorn
+from ott.core.sinkhorn import Sinkhorn
 from ott.geometry.costs import Bures, Cosine, CostFn, Euclidean, UnbalancedBures
 from ott.core.sinkhorn_lr import LRSinkhorn
 from ott.core.quad_problems import QuadraticProblem
-from ott.core.gromov_wasserstein import make as make_gw, GromovWasserstein
+from ott.core.gromov_wasserstein import GromovWasserstein
 import jax.numpy as jnp
 import numpy.typing as npt
 
-# TODO(michalk8): initialize ott solvers in init (so that they are not re-jitted
 from moscot.solvers._output import BaseSolverOutput
 from moscot.backends.ott._output import GWOutput, SinkhornOutput, LRSinkhornOutput
 from moscot.solvers._base_solver import BaseSolver
@@ -41,7 +40,7 @@ _losses: Dict[str, Type[CostFn]] = {
 
 
 class SolverDescription(NamedTuple):
-    solver: Callable[[Any], Union[Sinkhorn, LRSinkhorn, GromovWasserstein]]
+    solver: Union[Type[Sinkhorn], Type[LRSinkhorn], Type[GromovWasserstein]]
     output: Union[Type[SinkhornOutput], Type[LRSinkhornOutput], Type[GWOutput]]
 
 
@@ -192,7 +191,7 @@ class SinkhornSolver(RankMixin, BaseSolver):
     def _description(self) -> SolverDescription:
         if self.is_low_rank:
             return SolverDescription(LRSinkhorn, LRSinkhornOutput)
-        return SolverDescription(make_sinkhorn, SinkhornOutput)
+        return SolverDescription(Sinkhorn, SinkhornOutput)
 
 
 class GWSolver(RankMixin, BaseSolver):
@@ -200,7 +199,7 @@ class GWSolver(RankMixin, BaseSolver):
         self,
         x: TaggedArray,
         y: Optional[TaggedArray] = None,
-        epsilon: Optional[float] = None,  # TODO(michlalk8): cannot be None, use default
+        epsilon: Optional[float] = None,
         online: bool = False,
         **kwargs: Any,
     ) -> QuadraticProblem:
@@ -213,10 +212,20 @@ class GWSolver(RankMixin, BaseSolver):
             # maybe instantiate the new solver only when the rank is passed
             self.rank = kwargs.pop("rank")
 
-        self._solver.epsilon = epsilon
+        self.epsilon = epsilon
         geom_x = self._create_geometry(x, epsilon=epsilon, online=online)
         geom_y = self._create_geometry(y, epsilon=epsilon, online=online)
         return QuadraticProblem(geom_x, geom_y, geom_xy=None, fused_penalty=0.0, **kwargs)
+
+    @property
+    def epsilon(self) -> float:
+        return self._solver.epsilon
+
+    @epsilon.setter
+    def epsilon(self, epsilon: Optional[float]):
+        if epsilon is None:
+            epsilon = 1e-2
+        self._solver.epsilon = epsilon
 
     @property
     def _linear_solver(self) -> Union[Sinkhorn, LRSinkhorn]:
@@ -228,7 +237,7 @@ class GWSolver(RankMixin, BaseSolver):
 
     @property
     def _description(self) -> SolverDescription:
-        return SolverDescription(make_gw, GWOutput)
+        return SolverDescription(GromovWasserstein, GWOutput)
 
 
 class FGWSolver(GWSolver):
@@ -266,7 +275,6 @@ class FGWSolver(GWSolver):
 
     @staticmethod
     def _validate_geoms(geom_x: Geometry, geom_y: Geometry, geom_xy: Geometry) -> None:
-        # TODO(michalk8): check if this is right
         if geom_x.shape[0] != geom_xy.shape[0]:
             raise ValueError("TODO: first and joint geom mismatch")
         if geom_y.shape[0] != geom_xy.shape[1]:
