@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 from typing import Any, Dict, List, Type, Tuple, Union, Literal, Mapping, Iterator, Optional, Sequence
-
+from types import MappingProxyType
 import pandas as pd
 
 import numpy as np
@@ -52,11 +52,10 @@ class CompoundBaseProblem(BaseProblem, ABC):
         policy: Literal["sequential", "pairwise", "triu", "tril", "explicit"] = "sequential",
         subset: Optional[Sequence[Tuple[Any, Any]]] = None,
         reference: Optional[Any] = None,
-        init_kwargs: Dict[Any, Any] = {},
+        init_kwargs: Mapping[str, Any] = MappingProxyType({}),
         **kwargs: Any,
     ) -> "CompoundProblem":
         self._policy = self._create_policy(policy=policy, key=key)
-
         if isinstance(self._policy, ExplicitPolicy):
             self._policy = self._policy(subset)
         elif isinstance(self._policy, StarPolicy):
@@ -64,7 +63,7 @@ class CompoundBaseProblem(BaseProblem, ABC):
         else:
             self._policy = self._policy(filter=subset)
 
-        self._problems = self._create_problems(init_kwargs, **kwargs)
+        self._problems = self._create_problems(init_kwargs=init_kwargs, **kwargs)
         self._solutions = None
 
         return self
@@ -92,7 +91,7 @@ class CompoundBaseProblem(BaseProblem, ABC):
         return_all: bool = False,
         scale_by_marginals: bool = False,
         **kwargs: Any,
-    ) -> Dict[Tuple[Any, Any], npt.ArrayLike]:
+    ) -> Union[Dict[Tuple[Any, Any], npt.ArrayLike], Dict[Tuple[Any, Any], Dict[Tuple[Any, Any], npt.ArrayLike]]]:
         def get_data(plan: Tuple[Any, Any]) -> Optional[npt.ArrayLike]:
             if data is None or isinstance(data, (str, tuple, list)):
                 # always valid shapes, since accessing AnnData
@@ -138,10 +137,7 @@ class CompoundBaseProblem(BaseProblem, ABC):
                 )
                 ds[step[1] if forward else step[0]] = current_mass
 
-            if return_all:
-                res[plan] = ds
-            else:
-                res[plan] = current_mass
+            res[plan] = ds if return_all else current_mass
 
         # TODO(michalk8): return the values iff only 1 plan?
         return res
@@ -256,7 +252,7 @@ class MultiCompoundProblem(CompoundBaseProblem):
     ) -> "MultiCompoundProblem":
         return super().prepare(None, subset=subset, policy=policy, reference=reference, **kwargs)
 
-    def _create_problems(self, init_kwargs: Dict[Any, Any] = {}, **kwargs: Any) -> Dict[Tuple[Any, Any], BaseProblem]:
+    def _create_problems(self, init_kwargs: Mapping[str, Any] = MappingProxyType({}), **kwargs: Any) -> Dict[Tuple[Any, Any], BaseProblem]:
         return {
             (x, y): self._base_problem_type(
                 self._adatas[x], self._adatas[y], solver=self._solver, **init_kwargs
