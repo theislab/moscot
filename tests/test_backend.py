@@ -76,12 +76,13 @@ class TestGW:
 
     @pytest.mark.parametrize("eps", [5e-1, 1])
     def test_epsilon(self, x_cost: jnp.ndarray, y_cost: jnp.ndarray, eps: Optional[float]):
-        solver = GWSolver()
+        thresh = 1e-3
+        solver = GWSolver(threshold=thresh)
 
         problem = QuadraticProblem(
             geom_xx=Geometry(cost_matrix=x_cost, epsilon=eps), geom_yy=Geometry(cost_matrix=y_cost, epsilon=eps)
         )
-        gt = make_gw(epsilon=eps)(problem)
+        gt = make_gw(epsilon=eps, threshold=thresh)(problem)
         pred = solver(x_cost, y_cost, x_tag=Tag.COST_MATRIX, y_tag=Tag.COST_MATRIX, epsilon=eps)
 
         assert solver._solver.epsilon == eps
@@ -92,6 +93,7 @@ class TestFGW:
     @pytest.mark.parametrize("alpha", [0.25, 0.75])
     @pytest.mark.parametrize("eps", [1e-2, 1e-1, 5e-1])  # TODO(michalk8): for BWD compat, add None test case
     def test_matches_ott(self, x: Geom_t, y: Geom_t, xy: Geom_t, eps: Optional[float], alpha: float):
+        thresh = 1e-2
         xx, yy = xy
 
         gt = gromov_wasserstein(
@@ -100,8 +102,9 @@ class TestFGW:
             geom_xy=PointCloud(xx, yy, epsilon=eps),
             fused_penalty=FGWSolver._alpha_to_fused_penalty(alpha),
             epsilon=eps,
+            threshold=thresh,
         )
-        pred = FGWSolver()(x, y, xx=xx, yy=yy, alpha=alpha, epsilon=eps)
+        pred = FGWSolver(threshold=thresh)(x, y, xx=xx, yy=yy, alpha=alpha, epsilon=eps)
 
         assert isinstance(pred, GWOutput)
         np.testing.assert_allclose(gt.matrix, pred.transport_matrix, rtol=_RTOL, atol=_ATOL)
