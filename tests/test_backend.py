@@ -8,7 +8,7 @@ from ott.geometry import Geometry, PointCloud
 from ott.core.sinkhorn import sinkhorn
 from ott.core.sinkhorn_lr import LRSinkhorn
 from ott.core.quad_problems import QuadraticProblem
-from ott.core.gromov_wasserstein import make as make_gw, gromov_wasserstein
+from ott.core.gromov_wasserstein import GromovWasserstein, gromov_wasserstein
 import numpy as np
 import jax.numpy as jnp
 
@@ -60,38 +60,63 @@ class TestSinkhorn:
             pred = solver(x, x, epsilon=eps, rank=rank)
 
             assert isinstance(pred, LRSinkhornOutput)
-            assert solver.rank == rank
+            assert not solver.is_low_rank  # we keep the original rank
             np.testing.assert_allclose(gt.matrix, pred.transport_matrix, rtol=_RTOL, atol=_ATOL)
 
 
 class TestGW:
     @pytest.mark.parametrize("jit", [False, True])
-    @pytest.mark.parametrize("eps", [5e-2, 1e-2, 1e-1])  # TODO(michalk8): for BWD compat, add None test case
+    @pytest.mark.parametrize("eps", [5e-2, 1e-2, 1e-1])
     def test_matches_ott(self, x: Geom_t, y: Geom_t, eps: Optional[float], jit: bool):
-        gt = gromov_wasserstein(PointCloud(x, epsilon=eps), PointCloud(y, epsilon=eps), jit=jit, epsilon=eps)
-        pred = GWSolver(jit=jit)(x, y, epsilon=eps)
+        thresh = 1e-2
+        gt = gromov_wasserstein(
+            PointCloud(x, epsilon=eps), PointCloud(y, epsilon=eps), threshold=thresh, jit=jit, epsilon=eps
+        )
+        pred = GWSolver(threshold=thresh, jit=jit)(x, y, epsilon=eps)
 
         assert isinstance(pred, GWOutput)
         np.testing.assert_allclose(gt.matrix, pred.transport_matrix, rtol=_RTOL, atol=_ATOL)
 
     @pytest.mark.parametrize("eps", [5e-1, 1])
     def test_epsilon(self, x_cost: jnp.ndarray, y_cost: jnp.ndarray, eps: Optional[float]):
-        thresh = 1e-3
-        solver = GWSolver(threshold=thresh)
+        thresh, default_eps = 1e-3, 1e-1
+        solver = GWSolver(threshold=thresh, epsilon=default_eps)
 
         problem = QuadraticProblem(
             geom_xx=Geometry(cost_matrix=x_cost, epsilon=eps), geom_yy=Geometry(cost_matrix=y_cost, epsilon=eps)
         )
-        gt = make_gw(epsilon=eps, threshold=thresh)(problem)
-        pred = solver(x_cost, y_cost, x_tag=Tag.COST_MATRIX, y_tag=Tag.COST_MATRIX, epsilon=eps)
+        gt = GromovWasserstein(epsilon=eps, threshold=thresh)(problem)
+        pred = solver(x_cost, y_cost, epsilon=eps, tags={"x": Tag.COST_MATRIX, "y": Tag.COST_MATRIX})
 
-        assert solver._solver.epsilon == eps
+        assert solver._solver.epsilon == default_eps
+        np.testing.assert_allclose(gt.matrix, pred.transport_matrix, rtol=_RTOL, atol=_ATOL)
+
+    @pytest.mark.parametrize("init_rank", [2])
+    @pytest.mark.parametrize("call_rank", [7])
+    def test_rank(self, x: Geom_t, y: Geom_t, call_rank: int, init_rank: int):
+        thresh, eps = 1e-2, 1e-2
+        gt = gromov_wasserstein(
+            PointCloud(x, epsilon=eps), PointCloud(y, epsilon=eps), rank=call_rank, threshold=thresh, epsilon=eps
+        )
+        solver = GWSolver(threshold=thresh, rank=init_rank)
+        assert isinstance(solver._linear_solver, LRSinkhorn)
+        assert solver.is_low_rank
+        assert solver.rank == init_rank
+        assert solver._solver.rank == init_rank
+        assert solver._linear_solver.rank == init_rank
+
+        pred = solver(x, y, epsilon=eps, rank=call_rank)
+
+        assert solver.is_low_rank
+        assert solver.rank == init_rank
+        assert solver._solver.rank == init_rank
+        assert solver._linear_solver.rank == init_rank
         np.testing.assert_allclose(gt.matrix, pred.transport_matrix, rtol=_RTOL, atol=_ATOL)
 
 
 class TestFGW:
     @pytest.mark.parametrize("alpha", [0.25, 0.75])
-    @pytest.mark.parametrize("eps", [1e-2, 1e-1, 5e-1])  # TODO(michalk8): for BWD compat, add None test case
+    @pytest.mark.parametrize("eps", [1e-2, 1e-1, 5e-1])
     def test_matches_ott(self, x: Geom_t, y: Geom_t, xy: Geom_t, eps: Optional[float], alpha: float):
         thresh = 1e-2
         xx, yy = xy
@@ -110,10 +135,10 @@ class TestFGW:
         np.testing.assert_allclose(gt.matrix, pred.transport_matrix, rtol=_RTOL, atol=_ATOL)
 
     def test_alpha_in_call(self, x: Geom_t, y: Geom_t, xy: Geom_t):
-        eps = 1e-1
+        thresh, eps = 5e-2, 1e-1
         xx, yy = xy
 
-        solver = FGWSolver()
+        solver = FGWSolver(threshold=thresh)
 
         for alpha in (0.1, 0.9):
             gt = gromov_wasserstein(
@@ -122,6 +147,7 @@ class TestFGW:
                 geom_xy=PointCloud(xx, yy, epsilon=eps),
                 fused_penalty=FGWSolver._alpha_to_fused_penalty(alpha),
                 epsilon=eps,
+                threshold=thresh,
             )
             pred = solver(x, y, xx=xx, yy=yy, alpha=alpha, epsilon=eps)
 
@@ -130,8 +156,9 @@ class TestFGW:
 
     @pytest.mark.parametrize("eps", [1e-3, 5e-2])
     def test_epsilon(self, x_cost: jnp.ndarray, y_cost: jnp.ndarray, xy_cost: jnp.ndarray, eps: Optional[float]):
-        alpha = 0.66
-        solver = FGWSolver()
+        thresh, alpha = 5e-1, 0.66
+        default_eps = 1e-1
+        solver = FGWSolver(threshold=thresh, epsilon=default_eps)
 
         problem = QuadraticProblem(
             geom_xx=Geometry(cost_matrix=x_cost, epsilon=eps),
@@ -139,19 +166,17 @@ class TestFGW:
             geom_xy=Geometry(cost_matrix=xy_cost, epsilon=eps),
             fused_penalty=FGWSolver._alpha_to_fused_penalty(alpha),
         )
-        gt = make_gw(epsilon=eps)(problem)
+        gt = GromovWasserstein(epsilon=eps, threshold=thresh)(problem)
         pred = solver(
             x_cost,
             y_cost,
             xx=xy_cost,
-            x_tag=Tag.COST_MATRIX,
-            y_tag=Tag.COST_MATRIX,
-            xx_tag=Tag.COST_MATRIX,
             alpha=alpha,
             epsilon=eps,
+            tags={"x": Tag.COST_MATRIX, "y": Tag.COST_MATRIX, "xx": Tag.COST_MATRIX},
         )
 
-        assert solver._solver.epsilon == eps
+        assert solver._solver.epsilon == default_eps
         np.testing.assert_allclose(gt.matrix, pred.transport_matrix, rtol=_RTOL, atol=_ATOL)
 
 

@@ -1,6 +1,7 @@
 from abc import abstractmethod
 from enum import Enum
-from typing import Any, Dict, Type, Union, Optional, NamedTuple
+from types import MappingProxyType
+from typing import Any, Dict, Type, Tuple, Union, Mapping, Optional, NamedTuple
 from inspect import signature
 
 from ott.geometry import Grid, Geometry, PointCloud
@@ -101,9 +102,10 @@ class GeometryMixin:
     def _solve(
         self,
         data: Union[LinearProblem, QuadraticProblem],
+        output_kwargs: Mapping[str, Any] = MappingProxyType({}),
         **kwargs: Any,
     ) -> BaseSolverOutput:
-        return self._description.output(self._solver(data, **kwargs))
+        return self._description.output(self._solver(data, **kwargs), **output_kwargs)
 
 
 class RankMixin(GeometryMixin):
@@ -127,6 +129,7 @@ class RankMixin(GeometryMixin):
     def rank(self) -> Optional[int]:
         return self._rank
 
+    # TODO(michalk8): refactor me
     @rank.setter
     def rank(self, rank: Optional[int]) -> None:
         if rank == self.rank:
@@ -156,6 +159,15 @@ class RankMixin(GeometryMixin):
         # TODO(michalk8): warn if using defaults?
         self._linear_solver = clazz(**kwargs, threshold=threshold)
 
+    def _set_ctx(self, _: Any, **kwargs: Any) -> Any:
+        if "rank" not in kwargs:
+            return self.rank
+        old_rank, self.rank = self.rank, kwargs.pop("rank")
+        return old_rank
+
+    def _reset_ctx(self, rank: Optional[int]) -> None:
+        self.rank = rank
+
     @property
     def is_low_rank(self) -> bool:
         return self.rank is not None
@@ -181,8 +193,8 @@ class SinkhornSolver(RankMixin, BaseSolver):
         # case when user switched from FGW -> GW
         kwargs.pop("xx", None)
         kwargs.pop("yy", None)
-        if "rank" in kwargs:
-            self.rank = kwargs.pop("rank")
+        # set in context afterwards
+        kwargs.pop("rank", None)
 
         geom = self._create_geometry(x, y, epsilon=epsilon, online=online)
         return LinearProblem(geom, **kwargs)
@@ -208,11 +220,9 @@ class GWSolver(RankMixin, BaseSolver):
         # case when user switched from FGW -> GW
         kwargs.pop("xx", None)
         kwargs.pop("yy", None)
-        if "rank" in kwargs:
-            # maybe instantiate the new solver only when the rank is passed
-            self.rank = kwargs.pop("rank")
+        # set in context afterwards
+        kwargs.pop("rank", None)
 
-        self.epsilon = epsilon
         geom_x = self._create_geometry(x, epsilon=epsilon, online=online)
         geom_y = self._create_geometry(y, epsilon=epsilon, online=online)
         return QuadraticProblem(geom_x, geom_y, geom_xy=None, fused_penalty=0.0, **kwargs)
@@ -226,6 +236,8 @@ class GWSolver(RankMixin, BaseSolver):
         if epsilon is None:
             epsilon = 1e-2
         self._solver.epsilon = epsilon
+        if self.is_low_rank:
+            self._linear_solver.epsilon = epsilon
 
     @property
     def _linear_solver(self) -> Union[Sinkhorn, LRSinkhorn]:
@@ -234,6 +246,21 @@ class GWSolver(RankMixin, BaseSolver):
     @_linear_solver.setter
     def _linear_solver(self, solver: Union[Sinkhorn, LRSinkhorn]) -> None:
         self._solver.linear_ot_solver = solver
+
+    def _set_ctx(self, data: Any, **kwargs: Any) -> Tuple[Optional[int], Optional[int]]:
+        if "epsilon" not in kwargs:
+            old_epsilon = self.epsilon
+            old_ctx = super()._set_ctx(data, **kwargs)
+        else:
+            # important to first set the rank and then epsilon, since the former determines the solver
+            old_ctx = super()._set_ctx(data, **kwargs)
+            old_epsilon, self.epsilon = self.epsilon, kwargs.pop("epsilon")
+        return old_ctx, old_epsilon
+
+    def _reset_ctx(self, rank_epsilon: Tuple[Optional[int], Optional[float]]) -> None:
+        rank, epsilon = rank_epsilon
+        super()._reset_ctx(rank)
+        self.epsilon = epsilon
 
     @property
     def _description(self) -> SolverDescription:
@@ -265,6 +292,7 @@ class FGWSolver(GWSolver):
             raise ValueError("TODO: specify the 2nd array if this is not kernel/cost")
         self._validate_geoms(problem.geom_xx, problem.geom_yy, geom_xy)
 
+        kwargs.pop("rank", None)
         return QuadraticProblem(
             problem.geom_xx,
             problem.geom_yy,
