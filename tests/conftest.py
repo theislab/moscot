@@ -4,6 +4,8 @@ import pytest
 
 from jax.config import config
 
+from anndata import AnnData
+
 config.update("jax_enable_x64", True)
 
 from jax import numpy as jnp  # noqa: E402
@@ -76,6 +78,21 @@ def y_cost(y: Geom_t) -> jnp.ndarray:
 def xy_cost(xy: Geom_t) -> jnp.ndarray:
     x, y = xy
     return ((x[:, None, :] - y[None, ...]) ** 2).sum(-1)
+
+
+@pytest.fixture()
+def adata_x(x: Geom_t) -> AnnData:
+    return AnnData(X=np.asarray(x))
+
+
+@pytest.fixture()
+def adata_y(y: Geom_t) -> AnnData:
+    return AnnData(X=np.asarray(y))
+
+
+@pytest.fixture()
+def adata_xy(xy_cost: jnp.ndarray) -> AnnData:
+    return AnnData(X=np.asarray(xy_cost))
 
 
 def create_marginals(n: int, m: int, *, uniform: bool = False, seed: Optional[int] = None) -> Geom_t:

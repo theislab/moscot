@@ -1,17 +1,19 @@
 from abc import ABC, abstractmethod
 from types import MappingProxyType
-from typing import Any, List, Type, Tuple, Union, Mapping, Iterable, Optional, Sequence
+from typing import Any, List, Tuple, Union, Mapping, Iterable, Optional, Sequence
 
 import numpy as np
 import numpy.typing as npt
 
 from anndata import AnnData
 
-from moscot.backends.ott import GWSolver, FGWSolver, SinkhornSolver
+from moscot.backends.ott import SinkhornSolver
 from moscot.solvers._output import BaseSolverOutput
 from moscot.problems._anndata import AnnDataPointer
-from moscot.solvers._base_solver import BaseSolver
+from moscot.solvers._base_solver import BaseSolver, ProblemKind
 from moscot.solvers._tagged_array import Tag, TaggedArray
+
+__all__ = ("BaseProblem", "GeneralProblem")
 
 
 class BaseProblem(ABC):
@@ -21,7 +23,7 @@ class BaseProblem(ABC):
         solver: Optional[BaseSolver] = None,
     ):
         self._adata = adata
-        self._solver: BaseSolver = self._create_default_solver(solver)
+        self.solver = self._default_solver if solver is None else solver
 
     @abstractmethod
     def prepare(self, *args: Any, **kwargs: Any) -> "BaseProblem":
@@ -36,28 +38,10 @@ class BaseProblem(ABC):
     def solution(self) -> Optional[BaseSolverOutput]:
         pass
 
-    # TODO(michalk8): not sure how I feel about this, mb. remove; mb. make a class property
     @property
     @abstractmethod
-    def _valid_solver_types(self) -> Tuple[Type[BaseSolver], ...]:
+    def _default_solver(self) -> BaseSolver:
         pass
-
-    # TODO(michalk8): add IO (de)serialization from/to adata? or mb. just pickle
-
-    @property
-    def adata(self) -> AnnData:
-        return self._adata
-
-    def _create_default_solver(self, solver: Optional[BaseSolver] = None) -> BaseSolver:
-        if not len(self._valid_solver_types):
-            raise ValueError("TODO: shouldn't happen")
-        if solver is not None:
-            if not isinstance(solver, self._valid_solver_types):
-                raise TypeError("TODO: wrong type")
-            return solver
-        # TODO(michalk8): this assumes all solvers always have defaults
-        # alt. would be to force a classmethod called e.g. `BaseSolver.create(cls)`
-        return self._valid_solver_types[0]()
 
     @staticmethod
     def _get_mass(
@@ -103,6 +87,20 @@ class BaseProblem(ABC):
         # TODO(michalk8): check shape
         return data
 
+    @property
+    def adata(self) -> AnnData:
+        return self._adata
+
+    @property
+    def solver(self) -> BaseSolver:
+        return self._solver
+
+    @solver.setter
+    def solver(self, solver: BaseSolver) -> None:
+        if not isinstance(solver, BaseSolver):
+            raise TypeError("TOOD: not a solver")
+        self._solver = solver
+
 
 class GeneralProblem(BaseProblem):
     def __init__(
@@ -112,7 +110,7 @@ class GeneralProblem(BaseProblem):
         adata_xy: Optional[AnnData] = None,
         solver: Optional[BaseSolver] = None,
     ):
-        super().__init__(adata_x, solver)
+        super().__init__(adata_x, solver=solver)
         self._solution: Optional[BaseSolverOutput] = None
 
         self._x: Optional[TaggedArray] = None
@@ -133,17 +131,9 @@ class GeneralProblem(BaseProblem):
             if adata_y.n_obs != adata_xy.n_vars:
                 raise ValueError("First and joint shape mismatch")
 
-    @property
-    def _valid_solver_types(self) -> Tuple[Type[BaseSolver], ...]:
-        return SinkhornSolver, GWSolver, FGWSolver
-
     def _handle_joint(
-        self, create_kwargs: Mapping[str, Any] = MappingProxyType({}), **kwargs: Any
-    ) -> Optional[Union[TaggedArray, Tuple[TaggedArray, TaggedArray]]]:
-        if not isinstance(self._solver, FGWSolver):
-            return None
-
-        tag = kwargs.get("tag", None)
+        self, create_kwargs: Mapping[str, Any] = MappingProxyType({}), tag: Optional[Tag] = None, **kwargs: Any
+    ) -> Union[TaggedArray, Tuple[TaggedArray, TaggedArray]]:
         if tag is None:
             # TODO(michalk8): better/more strict condition?
             # TODO(michalk8): specify which tag is being using
@@ -186,10 +176,14 @@ class GeneralProblem(BaseProblem):
     ) -> "GeneralProblem":
         self._x = AnnDataPointer(adata=self.adata, **x).create(**kwargs)
         self._y = None if y is None else AnnDataPointer(adata=self._adata_y, **y).create(**kwargs)
-        self._xy = None if xy is None else self._handle_joint(**xy, create_kwargs=kwargs)
+        self._xy = (
+            None
+            if xy is None or self.solver.problem_kind != ProblemKind.QUAD_FUSED
+            else self._handle_joint(**xy, create_kwargs=kwargs)
+        )
 
-        self._a = BaseProblem._get_or_create_marginal(self.adata, a)
-        self._b = BaseProblem._get_or_create_marginal(self._marginal_b_adata, b)
+        self._a = self._get_or_create_marginal(self.adata, a)
+        self._b = self._get_or_create_marginal(self._marginal_b_adata, b)
         self._solution = None
 
         return self
@@ -197,21 +191,12 @@ class GeneralProblem(BaseProblem):
     def solve(
         self,
         epsilon: Optional[float] = None,
-        alpha: float = 0.5,
-        tau_a: float = 1.0,
-        tau_b: float = 1.0,
         **kwargs: Any,
     ) -> "GeneralProblem":
-        kwargs["alpha"] = alpha
-        if not isinstance(self._solver, FGWSolver):
-            kwargs["xx"] = kwargs["yy"] = None
-            kwargs.pop("alpha", None)
-        elif isinstance(self._xy, tuple):
-            # point cloud
+        if isinstance(self._xy, tuple):  # point cloud
             kwargs["xx"] = self._xy[0]
             kwargs["yy"] = self._xy[1]
-        else:
-            # cost/kernel
+        else:  # cost/kernel
             kwargs["xx"] = self._xy
             kwargs["yy"] = None
 
@@ -219,7 +204,7 @@ class GeneralProblem(BaseProblem):
         a = kwargs.pop("a", self._a)
         b = kwargs.pop("b", self._b)
 
-        self._solution = self._solver(self._x, self._y, a=a, b=b, epsilon=epsilon, tau_a=tau_a, tau_b=tau_b, **kwargs)
+        self._solution = self.solver(self._x, self._y, a=a, b=b, epsilon=epsilon, **kwargs)
         return self
 
     # TODO(michalk8): require in BaseProblem?
@@ -245,6 +230,10 @@ class GeneralProblem(BaseProblem):
         adata = self.adata if self._adata_y is None else self._adata_y
         data = self._get_mass(adata, data=data, subset=subset, normalize=normalize)
         return self.solution.pull(data, **kwargs)
+
+    @property
+    def _default_solver(self) -> BaseSolver:
+        return SinkhornSolver()
 
     @property
     def solution(self) -> Optional[BaseSolverOutput]:
