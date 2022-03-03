@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+from enum import auto, Enum
 from types import MappingProxyType
 from typing import Any, Tuple, Union, Literal, Mapping, Optional
 from contextlib import contextmanager
@@ -13,6 +14,13 @@ from moscot.solvers._tagged_array import Tag, TaggedArray
 __all__ = ("BaseSolver", "ContextlessBaseSolver")
 
 ArrayLike = Union[npt.ArrayLike, TaggedArray]
+
+
+# TODO(michalk8): in the future, this would include barycenter, but needs more thought
+class ProblemKind(Enum):
+    LINEAR = auto()
+    QUAD = auto()
+    QUAD_FUSED = auto()
 
 
 class TagConverterMixin:
@@ -39,11 +47,9 @@ class TagConverterMixin:
     def _to_tagged_array(arr: Optional[ArrayLike], tag: Tag) -> Optional[TaggedArray]:
         if arr is None:
             return None
-
         tag = Tag(tag)
         if not isinstance(arr, TaggedArray):
             return TaggedArray(arr, tag=tag)
-
         return TaggedArray(arr.data, tag=tag)
 
 
@@ -60,6 +66,12 @@ class BaseSolver(TagConverterMixin, ABC):
 
     @abstractmethod
     def _solve(self, data: Any, **kwargs: Any) -> BaseSolverOutput:
+        pass
+
+    @abstractmethod
+    @property
+    def problem_kind(self) -> ProblemKind:
+        # helps to check whether necessary inputs were passed
         pass
 
     @abstractmethod
@@ -82,8 +94,6 @@ class BaseSolver(TagConverterMixin, ABC):
         self,
         x: ArrayLike,
         y: Optional[ArrayLike] = None,
-        xx: Optional[ArrayLike] = None,
-        yy: Optional[ArrayLike] = None,
         a: Optional[npt.ArrayLike] = None,
         b: Optional[npt.ArrayLike] = None,
         tau_a: float = 1.0,
@@ -92,13 +102,46 @@ class BaseSolver(TagConverterMixin, ABC):
         solve_kwargs: Mapping[str, Any] = MappingProxyType({}),
         **prepare_kwargs: Any,
     ) -> BaseSolverOutput:
-        x, y, xx, yy = self._convert(x, y, xx, yy, prepare_kwargs.pop("tags", {}))
-        data = self._prepare_input(
-            x=x, y=y, epsilon=epsilon, xx=xx, yy=yy, a=a, b=b, tau_a=tau_a, tau_b=tau_b, **prepare_kwargs
+        x, y, xx, yy = self._convert(
+            x,
+            y,
+            xx=prepare_kwargs.pop("xx", None),
+            yy=prepare_kwargs.pop("yy", None),
+            tags=prepare_kwargs.pop("tags", {}),
         )
+        prepare_kwargs = {**prepare_kwargs, **self._verify_input(x, y, xx, yy)}
+        if self.problem_kind != ProblemKind.QUAD_FUSED:
+            prepare_kwargs.pop("alpha", None)
+
+        data = self._prepare_input(x=x, y=y, epsilon=epsilon, a=a, b=b, tau_a=tau_a, tau_b=tau_b, **prepare_kwargs)
         with self._solve_ctx(data, epsilon=epsilon, **prepare_kwargs):
             res = self._solve(data, **solve_kwargs)
+
         return self._check_result(res, a=a, b=b, tau_a=tau_a, tau_b=tau_b)
+
+    def _verify_input(
+        self,
+        x: TaggedArray,
+        y: Optional[TaggedArray] = None,
+        xx: Optional[TaggedArray] = None,
+        yy: Optional[TaggedArray] = None,
+    ) -> Mapping[str, Optional[TaggedArray]]:
+        if not isinstance(x, TaggedArray):
+            raise TypeError("TODO: no `x` array.")
+
+        if self.problem_kind == ProblemKind.QUAD:
+            if y is None:
+                raise ValueError("TODO: missing 2nd data for GW")
+            return {}
+
+        if self.problem_kind == ProblemKind.QUAD_FUSED:
+            if y is None:
+                raise ValueError("TODO: missing 2nd data for FGW")
+            if xx is None:
+                raise ValueError("TODO: missing joint for FGW")
+            return {"xx": xx, "yy": yy}
+
+        return {}
 
     def _check_result(
         self,

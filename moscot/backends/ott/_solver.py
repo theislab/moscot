@@ -16,7 +16,7 @@ import numpy.typing as npt
 
 from moscot.solvers._output import BaseSolverOutput
 from moscot.backends.ott._output import GWOutput, SinkhornOutput, LRSinkhornOutput
-from moscot.solvers._base_solver import BaseSolver
+from moscot.solvers._base_solver import BaseSolver, ProblemKind
 from moscot.solvers._tagged_array import TaggedArray
 
 __all__ = ("Cost", "SinkhornSolver", "GWSolver", "FGWSolver")
@@ -188,6 +188,10 @@ class RankMixin(GeometryMixin):
 
 class SinkhornSolver(RankMixin, BaseSolver):
     @property
+    def problem_kind(self) -> ProblemKind:
+        return ProblemKind.LINEAR
+
+    @property
     def _linear_solver(self) -> Union[Sinkhorn, LRSinkhorn]:
         return self._solver
 
@@ -203,12 +207,7 @@ class SinkhornSolver(RankMixin, BaseSolver):
         online: bool = False,
         **kwargs: Any,
     ) -> LinearProblem:
-        # case when user switched from FGW -> GW
-        kwargs.pop("xx", None)
-        kwargs.pop("yy", None)
-        # set in context afterwards
-        kwargs.pop("rank", None)
-
+        kwargs.pop("rank", None)  # set in context afterwards
         geom = self._create_geometry(x, y, epsilon=epsilon, online=online)
         return LinearProblem(geom, **kwargs)
 
@@ -228,17 +227,14 @@ class GWSolver(RankMixin, BaseSolver):
         online: bool = False,
         **kwargs: Any,
     ) -> QuadraticProblem:
-        if y is None:
-            raise ValueError("TODO: missing second data")
-        # case when user switched from FGW -> GW
-        kwargs.pop("xx", None)
-        kwargs.pop("yy", None)
-        # set in context afterwards
-        kwargs.pop("rank", None)
-
+        kwargs.pop("rank", None)  # set in context afterwards
         geom_x = self._create_geometry(x, epsilon=epsilon, online=online)
         geom_y = self._create_geometry(y, epsilon=epsilon, online=online)
         return QuadraticProblem(geom_x, geom_y, geom_xy=None, fused_penalty=0.0, **kwargs)
+
+    @property
+    def problem_kind(self) -> ProblemKind:
+        return ProblemKind.QUAD
 
     @RankMixin.rank.setter
     def rank(self, rank: int) -> None:
@@ -299,8 +295,6 @@ class FGWSolver(GWSolver):
         alpha: float = 0.5,
         **kwargs: Any,
     ) -> QuadraticProblem:
-        if xx is None:
-            raise ValueError("TODO: no array defining joint")
         problem = super()._prepare_input(x, y, epsilon=epsilon, online=online)
 
         if xx.is_cost_matrix or xx.is_kernel:
@@ -312,7 +306,7 @@ class FGWSolver(GWSolver):
             raise ValueError("TODO: specify the 2nd array if this is not kernel/cost")
         self._validate_geoms(problem.geom_xx, problem.geom_yy, geom_xy)
 
-        kwargs.pop("rank", None)
+        kwargs.pop("rank", None)  # set in context afterwards
         return QuadraticProblem(
             problem.geom_xx,
             problem.geom_yy,
@@ -320,6 +314,10 @@ class FGWSolver(GWSolver):
             fused_penalty=self._alpha_to_fused_penalty(alpha),
             **kwargs,
         )
+
+    @property
+    def problem_kind(self) -> ProblemKind:
+        return ProblemKind.QUAD_FUSED
 
     @staticmethod
     def _validate_geoms(geom_x: Geometry, geom_y: Geometry, geom_xy: Geometry) -> None:
