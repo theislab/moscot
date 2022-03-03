@@ -110,7 +110,9 @@ class GeometryMixin:
 
 class RankMixin(GeometryMixin):
     def __init__(self, rank: int = -1, **kwargs: Any):
-        self._rank = max(-1, rank)  # must be se before calling super().__init__
+        # a bit ugly - must be se before calling super().__init__
+        # otherwise, would need to refactor how description works
+        self._rank = max(-1, rank)
         if rank > 0:
             kwargs["rank"] = rank
         super().__init__(**kwargs)
@@ -126,30 +128,13 @@ class RankMixin(GeometryMixin):
     def _linear_solver(self, solver: Union[Sinkhorn, LRSinkhorn]) -> None:
         pass
 
-    @property
-    def rank(self) -> int:
-        return self._rank
-
-    @rank.setter
-    def rank(self, rank: int) -> None:
-        rank = max(-1, rank)
-        if rank == self.rank:
-            return
-
-        if self.is_low_rank:
-            if rank > 0:  # just update the rank
-                self._solver.rank = rank
-                self._linear_solver.rank = rank
-            else:  # or swap solvers
-                self._linear_solver, self._other_solver = self._other_solver, self._linear_solver
-            self._rank = rank
-            return
-
-        # we're not LR, but the other solver is
-        self._linear_solver, self._other_solver = self._other_solver, self._linear_solver
-        self._solver.rank = rank
-        self._linear_solver.rank = rank
-        self._rank = rank
+    def _solve(
+        self,
+        data: Union[LinearProblem, QuadraticProblem],
+        output_kwargs: Mapping[str, Any] = MappingProxyType({}),
+        **kwargs: Any,
+    ) -> BaseSolverOutput:
+        return super()._solve(data, output_kwargs={**output_kwargs, "rank": self.rank}, **kwargs)
 
     def _create_other_solver(self) -> Union[Sinkhorn, LRSinkhorn]:
         new = Sinkhorn if isinstance(self._linear_solver, LRSinkhorn) else LRSinkhorn
@@ -161,6 +146,31 @@ class RankMixin(GeometryMixin):
             kwargs["implicit_diff"] = False  # implicit diff. not yet implemented for LRSink (yet)
 
         return new(threshold=threshold, **kwargs)
+
+    @property
+    def rank(self) -> int:
+        return self._rank
+
+    @rank.setter
+    def rank(self, rank: Optional[int]) -> None:
+        if rank is None:  # TODO(michalk8): remove me once writing middle-end tests
+            rank = -1
+        rank = max(-1, rank)
+        if rank == self.rank:
+            return
+
+        if self.is_low_rank:
+            if rank > 0:  # update the rank
+                self._linear_solver.rank = rank
+            else:  # or just swap the solvers
+                self._linear_solver, self._other_solver = self._other_solver, self._linear_solver
+            self._rank = rank
+            return
+
+        # we're not LR, but the other solver is
+        self._linear_solver, self._other_solver = self._other_solver, self._linear_solver
+        self._linear_solver.rank = rank
+        self._rank = rank
 
     def _set_ctx(self, _: Any, **kwargs: Any) -> Any:
         if "rank" not in kwargs:
@@ -230,6 +240,12 @@ class GWSolver(RankMixin, BaseSolver):
         geom_y = self._create_geometry(y, epsilon=epsilon, online=online)
         return QuadraticProblem(geom_x, geom_y, geom_xy=None, fused_penalty=0.0, **kwargs)
 
+    @RankMixin.rank.setter
+    def rank(self, rank: int) -> None:
+        RankMixin.rank.fset(self, rank)  # correctly sets rank for `_linear_solver`
+        # TODO(michalk8): make a PR to OTT that simplifies how rank is stored
+        self._solver.rank = rank  # sets rank of the GW solver (see above TODO)
+
     @property
     def epsilon(self) -> float:
         return self._solver.epsilon
@@ -255,13 +271,14 @@ class GWSolver(RankMixin, BaseSolver):
             old_epsilon = self.epsilon
             old_ctx = super()._set_ctx(data, **kwargs)
         else:
-            # important to first set the rank and then epsilon, since the former determines the solver
+            # important: to first set rank, then epsilon; the former changes the solver
             old_ctx = super()._set_ctx(data, **kwargs)
             old_epsilon, self.epsilon = self.epsilon, kwargs.pop("epsilon")
         return old_ctx, old_epsilon
 
     def _reset_ctx(self, rank_epsilon: Tuple[Optional[int], Optional[float]]) -> None:
         rank, epsilon = rank_epsilon
+        # important: to first set rank, then epsilon; the former changes the solver
         super()._reset_ctx(rank)
         self.epsilon = epsilon
 

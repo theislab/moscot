@@ -32,6 +32,10 @@ class BaseSolverOutput(ABC):
     def converged(self) -> bool:
         pass
 
+    @property
+    def rank(self) -> int:
+        return -1
+
     # TODO(michalk8): mention in docs it needs to be broadcastable
     @abstractmethod
     def _ones(self, n: int) -> npt.ArrayLike:

@@ -1,5 +1,5 @@
 from abc import ABC
-from typing import Tuple, Union
+from typing import Any, Tuple, Union
 
 from numpy import typing as npt
 from ott.core.sinkhorn import SinkhornOutput as OTTSinkhornOutput
@@ -12,8 +12,18 @@ from moscot.solvers._output import BaseSolverOutput, MatrixSolverOutput
 __all__ = ("SinkhornOutput", "LRSinkhornOutput", "GWOutput")
 
 
+class OutputRankMixin:
+    def __init__(self, *args: Any, rank: int, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._rank = max(-1, rank)
+
+    @property
+    def rank(self) -> int:
+        return self._rank
+
+
 class OTTBaseOutput(BaseSolverOutput, ABC):
-    def __init__(self, output: Union[OTTSinkhornOutput, OTTLRSinkhornOutput]):
+    def __init__(self, output: Union[OTTSinkhornOutput, OTTLRSinkhornOutput], **_: Any):
         super().__init__()
         self._output = output
 
@@ -47,7 +57,7 @@ class SinkhornOutput(OTTBaseOutput):
         return self._output.f.shape[0], self._output.g.shape[0]
 
 
-class LRSinkhornOutput(OTTBaseOutput):
+class LRSinkhornOutput(OutputRankMixin, OTTBaseOutput):
     def _apply(self, x: npt.ArrayLike, *, forward: bool) -> npt.ArrayLike:
         axis = int(not forward)
         if x.ndim == 1:
@@ -60,10 +70,14 @@ class LRSinkhornOutput(OTTBaseOutput):
     def shape(self) -> Tuple[int, int]:
         return self._output.geom.shape
 
+    @property
+    def rank(self) -> int:
+        return self._rank
 
-class GWOutput(MatrixSolverOutput):
-    def __init__(self, output: OTTGWOutput):
-        super().__init__(output.matrix)
+
+class GWOutput(OutputRankMixin, MatrixSolverOutput):
+    def __init__(self, output: OTTGWOutput, rank: int = -1):
+        super().__init__(output.matrix, rank=rank)
         self._converged = bool(output.convergence)
         self._cost = float(output.reg_gw_cost)
 

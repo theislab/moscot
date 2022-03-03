@@ -5,7 +5,7 @@ import pytest
 
 from ott.core import LinearProblem
 from ott.geometry import Geometry, PointCloud
-from ott.core.sinkhorn import sinkhorn
+from ott.core.sinkhorn import sinkhorn, Sinkhorn
 from ott.core.sinkhorn_lr import LRSinkhorn
 from ott.core.quad_problems import QuadraticProblem
 from ott.core.gromov_wasserstein import GromovWasserstein, gromov_wasserstein
@@ -30,6 +30,7 @@ class TestSinkhorn:
         pred = SinkhornSolver(jit=jit)(x, x, epsilon=eps)
 
         assert isinstance(pred, SinkhornOutput)
+        assert pred.rank == -1
         np.testing.assert_allclose(gt.matrix, pred.transport_matrix, rtol=_RTOL, atol=_ATOL)
 
     @pytest.mark.parametrize("rank", [5, 10])
@@ -42,6 +43,7 @@ class TestSinkhorn:
         pred = SinkhornSolver(rank=rank)(y, y, epsilon=eps)
 
         assert isinstance(pred, LRSinkhornOutput)
+        assert pred.rank == rank
         np.testing.assert_allclose(gt.matrix, pred.transport_matrix, rtol=_RTOL, atol=_ATOL)
 
     @pytest.mark.parametrize("implicit_diff", [False])
@@ -60,6 +62,7 @@ class TestSinkhorn:
             pred = solver(x, x, epsilon=eps, rank=rank)
 
             assert isinstance(pred, LRSinkhornOutput)
+            assert pred.rank == rank
             assert not solver.is_low_rank  # we keep the original rank
             np.testing.assert_allclose(gt.matrix, pred.transport_matrix, rtol=_RTOL, atol=_ATOL)
 
@@ -75,6 +78,7 @@ class TestGW:
         pred = GWSolver(threshold=thresh, jit=jit)(x, y, epsilon=eps)
 
         assert isinstance(pred, GWOutput)
+        assert pred.rank == -1
         np.testing.assert_allclose(gt.matrix, pred.transport_matrix, rtol=_RTOL, atol=_ATOL)
 
     @pytest.mark.parametrize("eps", [5e-1, 1])
@@ -89,28 +93,39 @@ class TestGW:
         pred = solver(x_cost, y_cost, epsilon=eps, tags={"x": Tag.COST_MATRIX, "y": Tag.COST_MATRIX})
 
         assert solver._solver.epsilon == default_eps
+        assert pred.rank == -1
         np.testing.assert_allclose(gt.matrix, pred.transport_matrix, rtol=_RTOL, atol=_ATOL)
 
-    @pytest.mark.parametrize("init_rank", [2])
-    @pytest.mark.parametrize("call_rank", [7])
+    @pytest.mark.parametrize("init_rank", [-1, 2])
+    @pytest.mark.parametrize("call_rank", [-1, 7])
     def test_rank(self, x: Geom_t, y: Geom_t, call_rank: int, init_rank: int):
         thresh, eps = 1e-2, 1e-2
         gt = gromov_wasserstein(
             PointCloud(x, epsilon=eps), PointCloud(y, epsilon=eps), rank=call_rank, threshold=thresh, epsilon=eps
         )
         solver = GWSolver(threshold=thresh, rank=init_rank)
-        assert isinstance(solver._linear_solver, LRSinkhorn)
-        assert solver.is_low_rank
-        assert solver.rank == init_rank
-        assert solver._solver.rank == init_rank
-        assert solver._linear_solver.rank == init_rank
+        if init_rank > 0:
+            assert solver.is_low_rank
+            assert isinstance(solver._linear_solver, LRSinkhorn)
+            assert solver.rank == init_rank
+            assert solver._linear_solver.rank == init_rank
+        else:
+            assert not solver.is_low_rank
+            assert isinstance(solver._linear_solver, Sinkhorn)
+            assert solver.rank == -1
 
         pred = solver(x, y, epsilon=eps, rank=call_rank)
 
-        assert solver.is_low_rank
-        assert solver.rank == init_rank
-        assert solver._solver.rank == init_rank
-        assert solver._linear_solver.rank == init_rank
+        if init_rank > 0:
+            assert solver.is_low_rank
+            assert isinstance(solver._linear_solver, LRSinkhorn)
+            assert solver.rank == init_rank
+            assert solver._linear_solver.rank == init_rank
+        else:
+            assert not solver.is_low_rank
+            assert isinstance(solver._linear_solver, Sinkhorn)
+            assert solver.rank == -1
+        assert pred.rank == call_rank
         np.testing.assert_allclose(gt.matrix, pred.transport_matrix, rtol=_RTOL, atol=_ATOL)
 
 
@@ -132,6 +147,7 @@ class TestFGW:
         pred = FGWSolver(threshold=thresh)(x, y, xx=xx, yy=yy, alpha=alpha, epsilon=eps)
 
         assert isinstance(pred, GWOutput)
+        assert pred.rank == -1
         np.testing.assert_allclose(gt.matrix, pred.transport_matrix, rtol=_RTOL, atol=_ATOL)
 
     def test_alpha_in_call(self, x: Geom_t, y: Geom_t, xy: Geom_t):
@@ -152,6 +168,7 @@ class TestFGW:
             pred = solver(x, y, xx=xx, yy=yy, alpha=alpha, epsilon=eps)
 
             assert isinstance(pred, GWOutput)
+            assert pred.rank == -1
             np.testing.assert_allclose(gt.matrix, pred.transport_matrix, rtol=_RTOL, atol=_ATOL)
 
     @pytest.mark.parametrize("eps", [1e-3, 5e-2])
@@ -177,6 +194,7 @@ class TestFGW:
         )
 
         assert solver._solver.epsilon == default_eps
+        assert pred.rank == -1
         np.testing.assert_allclose(gt.matrix, pred.transport_matrix, rtol=_RTOL, atol=_ATOL)
 
 
