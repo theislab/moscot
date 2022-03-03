@@ -1,4 +1,4 @@
-from typing import Type, Tuple, Union, Optional
+from typing import Type, Tuple, Optional
 
 from conftest import Geom_t
 import pytest
@@ -198,17 +198,16 @@ class TestSolverOutput:
         assert out.shape == (x.shape[0], y.shape[0])
 
     @pytest.mark.parametrize("batched", [False, True])
-    @pytest.mark.parametrize("solver_t", [SinkhornSolver, 5])
+    @pytest.mark.parametrize("rank", [-1, 5])
     def test_push(
         self,
         x: Geom_t,
         y: Geom_t,
         ab: Tuple[np.ndarray, np.ndarray],
-        solver_t: Union[int, Type[BaseSolver]],
+        rank: int,
         batched: bool,
     ):
         a, ndim = (ab[0], ab[0].shape[1]) if batched else (ab[0][:, 0], None)
-        rank = solver_t if isinstance(solver_t, int) else None
         solver = SinkhornSolver(rank=rank)
 
         out = solver(x, y)
