@@ -169,7 +169,7 @@ class OrderedPolicy(SubsetPolicy, ABC):
 
 class PairwisePolicy(SimplePlanFilterMixin, SubsetPolicy):
     def _create_subset(self, *_: Any, **__: Any) -> Sequence[Item_t]:
-        return [(a, b) for a, b in zip(self._cat[:-1], self._cat[1:])]
+        return [(a, b) for a, b in product(self._cat, self._cat) if a != b]
 
 
 class StarPolicy(SubsetPolicy):
