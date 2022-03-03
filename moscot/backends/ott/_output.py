@@ -70,10 +70,6 @@ class LRSinkhornOutput(OutputRankMixin, OTTBaseOutput):
     def shape(self) -> Tuple[int, int]:
         return self._output.geom.shape
 
-    @property
-    def rank(self) -> int:
-        return self._rank
-
 
 class GWOutput(OutputRankMixin, MatrixSolverOutput):
     def __init__(self, output: OTTGWOutput, rank: int = -1):

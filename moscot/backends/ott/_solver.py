@@ -110,7 +110,7 @@ class GeometryMixin:
 
 class RankMixin(GeometryMixin):
     def __init__(self, rank: int = -1, **kwargs: Any):
-        # a bit ugly - must be se before calling super().__init__
+        # a bit ugly - must be set before calling super().__init__
         # otherwise, would need to refactor how description works
         self._rank = max(-1, rank)
         if rank > 0:
