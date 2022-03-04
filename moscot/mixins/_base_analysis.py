@@ -6,7 +6,7 @@ import numpy.typing as npt
 
 # TODO(michalk8): need to think about this a bit more
 class AnalysisMixin(ABC):
-    def _compute_transport_map(self, start: int, end: int, normalize: bool = True) -> npt.ArrayLike:
+    def _compute_transport_map(self, start: int, end: int, normalize: bool = False) -> npt.ArrayLike:
         if (start, end) not in self._problems.keys():
             steps = self._policy.plan(start=start, end=end)[start, end]
             transition_matrix = self._problems[steps[0]].solution.transport_matrix
@@ -21,7 +21,7 @@ class AnalysisMixin(ABC):
             ].solution.transport_matrix  # TODO(@MUCDK) report bug, one "solution" too much
             if normalize:
                 transition_matrix /= np.sum(transition_matrix, axis=1)[:, None]
-                transition_matrix = np.nan_to_num(transition_matrix, nan=0.0)
+                #transition_matrix = np.nan_to_num(transition_matrix, nan=0.0)
             return transition_matrix
 
 
