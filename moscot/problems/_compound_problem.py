@@ -1,6 +1,7 @@
 from abc import ABC, abstractmethod
-from typing import Any, Dict, List, Type, Tuple, Union, Literal, Mapping, Iterator, Optional, Sequence
 from types import MappingProxyType
+from typing import Any, Dict, List, Type, Tuple, Union, Literal, Mapping, Iterator, Optional, Sequence
+
 import pandas as pd
 
 import numpy as np
@@ -252,7 +253,9 @@ class MultiCompoundProblem(CompoundBaseProblem):
     ) -> "MultiCompoundProblem":
         return super().prepare(None, subset=subset, policy=policy, reference=reference, **kwargs)
 
-    def _create_problems(self, init_kwargs: Mapping[str, Any] = MappingProxyType({}), **kwargs: Any) -> Dict[Tuple[Any, Any], BaseProblem]:
+    def _create_problems(
+        self, init_kwargs: Mapping[str, Any] = MappingProxyType({}), **kwargs: Any
+    ) -> Dict[Tuple[Any, Any], BaseProblem]:
         return {
             (x, y): self._base_problem_type(
                 self._adatas[x], self._adatas[y], solver=self._solver, **init_kwargs

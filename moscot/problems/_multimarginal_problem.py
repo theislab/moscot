@@ -65,11 +65,11 @@ class MultiMarginalProblem(GeneralProblem, ABC):
         # TODO(michalk8): keep?
         # set this after the 1st run so that user can ignore the 1st marginals (for consistency with GeneralProblem)
         a, b = self._get_last_marginals()
-        a = a/float(np.sum(a)) 
-        b = b/float(np.sum(b))  
+        a = a / float(np.sum(a))
+        b = b / float(np.sum(b))
         kwargs.setdefault("a", a)
         kwargs.setdefault("b", b)
-        
+
         for _ in range(n_iters):
             sol = super().solve(epsilon=epsilon, alpha=alpha, tau_a=tau_a, tau_b=tau_b, **kwargs).solution
             self._add_marginals(sol)

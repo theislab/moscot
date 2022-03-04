@@ -104,7 +104,7 @@ class TemporalAnalysisMixin(AnalysisMixin):
 
         return result
 
-    def _interpolate_gex_with_ot( #TODO: more efficient implementation
+    def _interpolate_gex_with_ot(  # TODO: more efficient implementation
         self,
         number_cells: int,
         source_data: npt.ArrayLike,
@@ -119,12 +119,14 @@ class TemporalAnalysisMixin(AnalysisMixin):
             transport_matrix = transport_matrix / np.power(transport_matrix.sum(axis=0), 1.0 - interpolation_parameter)
             transport_matrix = np.nan_to_num(transport_matrix, nan=0)
         transport_matrix_flattened = transport_matrix.flatten(order="C").astype("float64")
-        transport_matrix_flattened /= (transport_matrix_flattened.sum()+1e-3)
+        transport_matrix_flattened /= transport_matrix_flattened.sum() + 1e-3
         choices = np.random.choice(
-                (len(source_data) * len(target_data)) + 1,
-                p=np.concatenate((transport_matrix_flattened, np.array([max(0, 1 - transport_matrix_flattened.sum())])), axis=0),
-                size=number_cells,
-            )
+            (len(source_data) * len(target_data)) + 1,
+            p=np.concatenate(
+                (transport_matrix_flattened, np.array([max(0, 1 - transport_matrix_flattened.sum())])), axis=0
+            ),
+            size=number_cells,
+        )
         res = np.asarray(
             [
                 source_data[i // len(target_data)] * (1 - interpolation_parameter)
@@ -141,7 +143,7 @@ class TemporalAnalysisMixin(AnalysisMixin):
         )  # this creates a slightly biased estimator but needs to be done due to numerical errors
         return np.concatenate((res, res[rows_to_add]), axis=0)
 
-    def _interpolate_gex_randomly( #TODO: more efficient implementation
+    def _interpolate_gex_randomly(  # TODO: more efficient implementation
         self,
         number_cells: int,
         source_data: npt.ArrayLike,
@@ -155,10 +157,12 @@ class TemporalAnalysisMixin(AnalysisMixin):
         else:
             outer_product = np.outer(growth_rates ** interpolation_parameter, np.ones(len(target_data)))
             outer_product_flattened = outer_product.flatten(order="C")
-            outer_product_flattened /= (outer_product_flattened.sum()+1e-3)
+            outer_product_flattened /= outer_product_flattened.sum() + 1e-3
             choices = np.random.choice(
                 (len(source_data) * len(target_data)) + 1,
-                p=np.concatenate((outer_product_flattened, np.array([max(0, 1 - outer_product_flattened.sum())])), axis=0),
+                p=np.concatenate(
+                    (outer_product_flattened, np.array([max(0, 1 - outer_product_flattened.sum())])), axis=0
+                ),
                 size=number_cells,
             )
 
@@ -185,7 +189,9 @@ class TemporalAnalysisMixin(AnalysisMixin):
         for batch_1, batch_2 in itertools.combinations(adata.obs[batch_key].unique(), 2):
             dist.append(
                 self._compute_wasserstein_distance(
-                    data[(adata.obs[batch_key] == batch_1).values, :], data[(adata.obs[batch_key] == batch_2).values, :], **kwargs
+                    data[(adata.obs[batch_key] == batch_1).values, :],
+                    data[(adata.obs[batch_key] == batch_2).values, :],
+                    **kwargs,
                 )
             )
         return np.mean(dist)

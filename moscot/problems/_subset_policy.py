@@ -4,7 +4,6 @@ from operator import gt, lt
 from itertools import product
 
 import pandas as pd
-from pandas.api.types import is_categorical_dtype
 import networkx as nx
 
 import numpy as np
@@ -65,10 +64,10 @@ class SubsetPolicy:
 
     def __init__(self, adata: Union[AnnData, pd.Series, pd.Categorical], key: Optional[str] = None):
         self._data: pd.Series = pd.Series(adata.obs[key] if isinstance(adata, AnnData) else adata)
-        if not is_categorical_dtype(self._data):
-            self._data = pd.Categorical(self._data)  # TODO(@MUCDK): catch conversion error
+        if not hasattr(self._data, "cat"):
+            self._data = self._data.astype("category")  # TODO(@MUCDK): catch conversion error
         self._subset: Optional[List[Item_t]] = None
-        self._cat = self.Category(self._data.categories)
+        self._cat = self.Category(self._data.cat.categories)
 
     @abstractmethod
     def _create_subset(self, *args: Any, **kwargs: Any) -> Sequence[Item_t]:
@@ -133,7 +132,6 @@ class SubsetPolicy:
 
     @property
     def _default_plan(self) -> Dict[Tuple[Any, Any], List[Any]]:
-        print("self.subset is ", self._subset)
         return {s: [s] for s in self._subset}
 
 
