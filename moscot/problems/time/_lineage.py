@@ -302,7 +302,7 @@ class TemporalProblem(TemporalAnalysisMixin, SingleCompoundProblem):
     @property
     def growth_rates(self) -> pd.DataFrame:
         df = None
-        for tup, problem in self._problems.items():
+        for tup, problem in self:
             if df is None:
                 cols = [f"g_{i}" for i in range(problem.growth_rates.shape[1])]
                 df = pd.DataFrame(columns=cols)
