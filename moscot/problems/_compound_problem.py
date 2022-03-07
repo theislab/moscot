@@ -170,7 +170,9 @@ class CompoundBaseProblem(BaseProblem, ABC):
 
 
 class SingleCompoundProblem(CompoundBaseProblem):
-    def _create_problems(self, init_kwargs: Dict[Any, Any] = {}, **kwargs: Any) -> Dict[Tuple[Any, Any], BaseProblem]:
+    def _create_problems(
+        self, init_kwargs: Mapping[str, Any] = MappingProxyType({}), **kwargs: Any
+    ) -> Dict[Tuple[Any, Any], BaseProblem]:
         return {
             (x, y): self._base_problem_type(
                 self._mask(x, x_mask, self._adata_src),

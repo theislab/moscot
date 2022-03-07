@@ -1,3 +1,4 @@
+from types import MappingProxyType
 from typing import Any, Dict, Tuple, Union, Literal, Mapping, Optional, Sequence
 from numbers import Number
 import logging
@@ -26,7 +27,7 @@ class TemporalBaseProblem(MultiMarginalProblem):
         start: Number,
         end: Number,
         solver: Optional[BaseSolver] = None,
-        **kwargs,
+        **kwargs: Any,
     ):
         super().__init__(adata_x, adata_y=adata_y, solver=solver, **kwargs)
         if start >= end:
@@ -58,15 +59,18 @@ class TemporalBaseProblem(MultiMarginalProblem):
         return np.full(len(self._marginal_b_adata), np.average(growth))
 
     def _add_marginals(self, sol: BaseSolverOutput) -> None:
-        self._a.append(np.asarray(sol.a))
-        self._b.append(np.full(len(self._marginal_b_adata), np.average(sol.a)))
+        _a = np.asarray(sol.a) / self._a[-1]
+        self._a.append(_a)
+        self._b.append(np.full(len(self._marginal_b_adata), np.average(_a)))
 
     @property
     def growth_rates(self) -> npt.ArrayLike:
-        return np.power(self.a, 1 / (self._t_end - self._t_start))
+        return np.transpose(np.power(self.a, 1 / (self._t_end - self._t_start)))
 
 
 class TemporalProblem(TemporalAnalysisMixin, SingleCompoundProblem):
+    _valid_policies = ["sequential", "pairwise", "triu", "tril", "explicit"]
+
     def __init__(self, adata: AnnData, solver: Optional[BaseSolver] = None):
         super().__init__(adata, solver, base_problem_type=TemporalBaseProblem)
         self._temporal_key: Optional[str] = None
@@ -81,12 +85,16 @@ class TemporalProblem(TemporalAnalysisMixin, SingleCompoundProblem):
         apoptosis_key: str = "apoptosis",
         **kwargs: Any,
     ) -> "TemporalProblem":
-        self._proliferation_key = proliferation_key
-        self._apoptosis_key = apoptosis_key
         if gene_set_proliferation is not None:
             sc.tl.score_genes(self.adata, gene_set_proliferation, score_name=proliferation_key, **kwargs)
+            self._proliferation_key = proliferation_key
         if gene_set_apoptosis is not None:
             sc.tl.score_genes(self.adata, gene_set_apoptosis, score_name=apoptosis_key, **kwargs)
+            self._apoptosis_key = apoptosis_key
+        if gene_set_proliferation is None and gene_set_apoptosis is None:
+            logging.info(
+                "At least one of `gene_set_proliferation` or `gene_set_apoptosis` must be provided to score genes."
+            )
         return self
 
     def prepare(
@@ -98,26 +106,19 @@ class TemporalProblem(TemporalAnalysisMixin, SingleCompoundProblem):
         marginal_kwargs: Dict[str, Any] = {},  # we need this to be mutable
         **kwargs: Any,
     ) -> "TemporalProblem":
-        valid_policies = ["sequential", "pairwise", "triu", "tril", "explicit"]
-        if policy not in valid_policies:
-            raise ValueError(f"The only valid policies for the {self.__str__} are {valid_policies}")
+        if policy not in self._valid_policies:
+            raise ValueError(f"The only valid policies for the {self.__str__} are {self._valid_policies}")
 
         x = {"attr": "obsm", "key": data_key}
         y = {"attr": "obsm", "key": data_key}
         self._temporal_key = key
 
-        a = kwargs.pop("a", None)
-        b = kwargs.pop("b", None)
-        if a is None:
-            a = False
-            if self._proliferation_key:
-                a = True
-                marginal_kwargs["proliferation_key"] = self._proliferation_key
-            if self._apoptosis_key:
-                a = True
-                marginal_kwargs["apoptosis_key"] = self._apoptosis_key
-        if b is None:
-            b = a
+        marginal_kwargs["proliferation_key"] = self._proliferation_key
+        marginal_kwargs["apoptosis_key"] = self._apoptosis_key
+        if "a" not in kwargs:
+            kwargs["a"] = self._proliferation_key is not None or self._apoptosis_key is not None
+        if "b" not in kwargs:
+            kwargs["b"] = self._proliferation_key is not None or self._apoptosis_key is not None
 
         return super().prepare(
             key=key,
@@ -125,14 +126,12 @@ class TemporalProblem(TemporalAnalysisMixin, SingleCompoundProblem):
             subset=subset,
             x=x,
             y=y,
-            a=a,
-            b=b,
             marginal_kwargs=marginal_kwargs,
             **kwargs,
         )
 
     def _create_problems(
-        self, init_kwargs: Dict[Any, Any] = {}, **kwargs: Any
+        self, init_kwargs: Mapping[str, Any] = MappingProxyType({}), **kwargs: Any
     ) -> Dict[Tuple[Any, Any], TemporalBaseProblem]:
         return {
             (x, y): self._base_problem_type(
@@ -199,7 +198,9 @@ class TemporalProblem(TemporalAnalysisMixin, SingleCompoundProblem):
             tmp[mask] = np.squeeze(value)
         self.adata.obs[obs_key] = tmp
 
-    def _validate_args(self, arg: Union[str, Mapping[str, Sequence[Any]]]) -> Tuple[Union[str, Sequence], Sequence]:
+    def _validate_args_cell_transition(
+        self, arg: Union[str, Mapping[str, Sequence[Any]]]
+    ) -> Tuple[Union[str, Sequence], Sequence]:
         if isinstance(arg, str):
             if not hasattr(self.adata.obs[arg], "cat"):
                 raise ValueError(f"The column `{arg}` in `adata.obs` must be of categorical dtype")
@@ -222,8 +223,8 @@ class TemporalProblem(TemporalAnalysisMixin, SingleCompoundProblem):
         forward: bool = False,  # return value will be row-stochastic if forward=True, else column-stochastic
         **kwargs: Any,
     ) -> pd.DataFrame:
-        _early_cells_key, _early_cells = self._validate_args(early_cells)
-        _late_cells_key, _late_cells = self._validate_args(late_cells)
+        _early_cells_key, _early_cells = self._validate_args_cell_transition(early_cells)
+        _late_cells_key, _late_cells = self._validate_args_cell_transition(late_cells)
 
         transition_table = pd.DataFrame(
             np.zeros((len(_early_cells), len(_late_cells))), index=_early_cells, columns=_late_cells
@@ -299,11 +300,34 @@ class TemporalProblem(TemporalAnalysisMixin, SingleCompoundProblem):
         return transition_table
 
     @property
-    def proliferation_key(self):
+    def growth_rates(self) -> pd.DataFrame:
+        df = None
+        for tup, problem in self._problems.items():
+            if df is None:
+                cols = [f"g_{i}" for i in range(problem.growth_rates.shape[1])]
+                df = pd.DataFrame(columns=cols)
+            df = df.append(
+                pd.DataFrame(problem.growth_rates, index=self._problems[tup]._adata.obs.index, columns=cols),
+                verify_integrity=True,
+            )
+        df = df.append(
+            pd.DataFrame(
+                np.full(
+                    shape=(len(self._problems[tup]._adata_y.obs), problem.growth_rates.shape[1]), fill_value=np.nan
+                ),
+                index=self._problems[tup]._adata_y.obs.index,
+                columns=cols,
+            ),
+            verify_integrity=True,
+        )
+        return df
+
+    @property
+    def proliferation_key(self) -> str:
         return self._proliferation_key
 
     @property
-    def apoptosis_key(self):
+    def apoptosis_key(self) -> str:
         return self._apoptosis_key
 
     @proliferation_key.setter
