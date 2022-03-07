@@ -49,6 +49,8 @@ class MultiMarginalProblem(GeneralProblem, ABC):
         # alt. we could just append and not reset
         self._a = [self._a]
         self._b = [self._b]
+        print(self._a[0].sum())
+        print(self._b[0].sum())
 
         return self
 
@@ -71,6 +73,7 @@ class MultiMarginalProblem(GeneralProblem, ABC):
         a, b = self._get_last_marginals()
         kwargs.setdefault("a", a)
         kwargs.setdefault("b", b)
+        print(a.sum(), b.sum())
 
         for _ in range(n_iters):
             sol = super().solve(epsilon=epsilon, alpha=alpha, tau_a=tau_a, tau_b=tau_b, **kwargs).solution
