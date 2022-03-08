@@ -37,14 +37,20 @@ class MultiMarginalProblem(GeneralProblem, ABC):
         # TODO(michalk8): some sentinel value would be nicer
         if a is True:
             a = self._estimate_marginals(self.adata, source=True, **marginal_kwargs)
+        elif a is False:
+            a = None
         if b is True:
             b = self._estimate_marginals(self._marginal_b_adata, source=False, **marginal_kwargs)
+        elif b is False:
+            b = None
 
         super().prepare(x, y, xy, a=a, b=b, **kwargs)
         # base problem prepare array-like structure, just wrap it
         # alt. we could just append and not reset
         self._a = [self._a]
         self._b = [self._b]
+        print(self._a[0].sum())
+        print(self._b[0].sum())
 
         return self
 
@@ -65,10 +71,9 @@ class MultiMarginalProblem(GeneralProblem, ABC):
         # TODO(michalk8): keep?
         # set this after the 1st run so that user can ignore the 1st marginals (for consistency with GeneralProblem)
         a, b = self._get_last_marginals()
-        a = a / float(np.sum(a))
-        b = b / float(np.sum(b))
         kwargs.setdefault("a", a)
         kwargs.setdefault("b", b)
+        print(a.sum(), b.sum())
 
         for _ in range(n_iters):
             sol = super().solve(epsilon=epsilon, alpha=alpha, tau_a=tau_a, tau_b=tau_b, **kwargs).solution

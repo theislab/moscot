@@ -9,7 +9,7 @@ import numpy.typing as npt
 
 from anndata import AnnData
 
-from moscot.backends.ott import GWSolver, FGWSolver, SinkhornSolver
+from moscot.backends.ott import SinkhornSolver
 from moscot.solvers._output import BaseSolverOutput
 from moscot.solvers._base_solver import BaseSolver
 from moscot.problems._base_problem import BaseProblem, GeneralProblem
@@ -150,27 +150,29 @@ class CompoundBaseProblem(BaseProblem, ABC):
         return self._apply(*args, forward=False, **kwargs)
 
     @property
-    def _valid_solver_types(self) -> Tuple[Type[BaseSolver], ...]:
-        return SinkhornSolver, GWSolver, FGWSolver
+    def _default_solver(self) -> BaseSolver:
+        return SinkhornSolver()
 
     @property
     def solution(self) -> Optional[Dict[Tuple[Any, Any], BaseSolverOutput]]:
         return self._solutions
 
     def __getitem__(self, item: Tuple[Any, Any]) -> BaseSolverOutput:
-        return self.solution[item]
+        return self._problems[item]
 
     def __len__(self) -> int:
-        return 0 if self.solution is None else len(self.solution)
+        return 0 if self._problems is None else len(self._problems)
 
     def __iter__(self) -> Iterator:
-        if self.solution is None:
+        if self._problems is None:
             raise StopIteration
-        return iter(self.solution.items())
+        return iter(self._problems.items())
 
 
 class SingleCompoundProblem(CompoundBaseProblem):
-    def _create_problems(self, init_kwargs: Dict[Any, Any] = {}, **kwargs: Any) -> Dict[Tuple[Any, Any], BaseProblem]:
+    def _create_problems(
+        self, init_kwargs: Mapping[str, Any] = MappingProxyType({}), **kwargs: Any
+    ) -> Dict[Tuple[Any, Any], BaseProblem]:
         return {
             (x, y): self._base_problem_type(
                 self._mask(x, x_mask, self._adata_src),
@@ -211,7 +213,7 @@ class MultiCompoundProblem(CompoundBaseProblem):
 
     def __init__(
         self,
-        *adatas: Union[AnnData, Mapping[Any, AnnData], Tuple[AnnData], List[AnnData]],
+        *adatas: Union[AnnData, Mapping[Any, AnnData], Tuple[AnnData, ...], List[AnnData]],
         solver: Optional[BaseSolver] = None,
         **kwargs: Any,
     ):
@@ -278,7 +280,7 @@ class MultiCompoundProblem(CompoundBaseProblem):
 class CompoundProblem(CompoundBaseProblem):
     def __init__(
         self,
-        *adatas: Union[AnnData, Mapping[Any, AnnData], Tuple[AnnData], List[AnnData]],
+        *adatas: Union[AnnData, Mapping[Any, AnnData], Tuple[AnnData, ...], List[AnnData]],
         solver: Optional[BaseSolver] = None,
         **kwargs: Any,
     ):
@@ -287,7 +289,7 @@ class CompoundProblem(CompoundBaseProblem):
         else:
             self._prob = MultiCompoundProblem(*adatas, solver=solver, **kwargs)
 
-        super().__init__(self._prob.adata, self._prob._solver)
+        super().__init__(self._prob.adata, solver=self._prob.solver)
 
     def _create_problems(self, **kwargs: Any) -> Dict[Tuple[Any, Any], BaseProblem]:
         return self._prob._create_problems(**kwargs)
