@@ -85,10 +85,14 @@ class TemporalProblem(TemporalAnalysisMixin, SingleCompoundProblem):
         apoptosis_key: str = "apoptosis",
         **kwargs: Any,
     ) -> "TemporalProblem":
-        if gene_set_proliferation is not None:
+        if gene_set_proliferation is None:
+            self._proliferation_key = None
+        else:
             sc.tl.score_genes(self.adata, gene_set_proliferation, score_name=proliferation_key, **kwargs)
             self._proliferation_key = proliferation_key
-        if gene_set_apoptosis is not None:
+        if gene_set_apoptosis is None:
+            self._apoptosis_key = None
+        else:
             sc.tl.score_genes(self.adata, gene_set_apoptosis, score_name=apoptosis_key, **kwargs)
             self._apoptosis_key = apoptosis_key
         if gene_set_proliferation is None and gene_set_apoptosis is None:
@@ -103,16 +107,17 @@ class TemporalProblem(TemporalAnalysisMixin, SingleCompoundProblem):
         data_key: str = "X_pca",
         policy: Literal["sequential", "pairwise", "triu", "tril", "explicit"] = "sequential",
         subset: Optional[Sequence[Tuple[Any, Any]]] = None,
-        marginal_kwargs: Dict[str, Any] = {},  # we need this to be mutable
+        marginal_kwargs: Mapping[str, Any] = MappingProxyType({}),
         **kwargs: Any,
     ) -> "TemporalProblem":
         if policy not in self._valid_policies:
-            raise ValueError(f"The only valid policies for the {self.__str__} are {self._valid_policies}")
+            raise ValueError(f"TODO: wrong policies")
 
         x = {"attr": "obsm", "key": data_key}
         y = {"attr": "obsm", "key": data_key}
         self._temporal_key = key
 
+        marginal_kwargs = dict(marginal_kwargs)
         marginal_kwargs["proliferation_key"] = self._proliferation_key
         marginal_kwargs["apoptosis_key"] = self._apoptosis_key
         if "a" not in kwargs:
@@ -208,10 +213,10 @@ class TemporalProblem(TemporalAnalysisMixin, SingleCompoundProblem):
         _key, _arg = arg.keys(), arg.values()
         if not hasattr(self.adata.obs[_key], "cat"):
             raise ValueError(f"The column `{_key}` in `adata.obs` must be of categorical dtype")
-        assert len(_key) == 1, "The data can only be filtered according to one column of `adata.obs`"
-        assert set(_arg).isin(
-            set(self.adata.obs[_key].unique())
-        ), f"Not all values {_arg} could be found in column {_key}"
+        if len(_key) != 1:
+            raise ValueError("The data can only be filtered according to one column of `adata.obs`")
+        if not set(_arg).isin(set(self.adata.obs[_key].unique())):
+            raise ValueError(f"Not all values {_arg} could be found in column {_key}")
         return _key, _arg
 
     def cell_transition(
@@ -302,14 +307,13 @@ class TemporalProblem(TemporalAnalysisMixin, SingleCompoundProblem):
     @property
     def growth_rates(self) -> pd.DataFrame:
         df = None
-        for tup, problem in self._problems.items():
-            if df is None:
-                cols = [f"g_{i}" for i in range(problem.growth_rates.shape[1])]
-                df = pd.DataFrame(columns=cols)
-            df = df.append(
-                pd.DataFrame(problem.growth_rates, index=self._problems[tup]._adata.obs.index, columns=cols),
-                verify_integrity=True,
-            )
+        cols = [f"g_{i}" for i in range(list(self)[0][1].growth_rates.shape[1])]
+        df_list = [
+            pd.DataFrame(problem.growth_rates, index=self._problems[tup]._adata.obs.index, columns=cols)
+            for tup, problem in self
+        ]
+        pd.condatenate(df_list)
+        tup, problem = list(self)[-1]
         df = df.append(
             pd.DataFrame(
                 np.full(
@@ -323,17 +327,17 @@ class TemporalProblem(TemporalAnalysisMixin, SingleCompoundProblem):
         return df
 
     @property
-    def proliferation_key(self) -> str:
+    def proliferation_key(self) -> Optional[str]:
         return self._proliferation_key
 
     @property
-    def apoptosis_key(self) -> str:
+    def apoptosis_key(self) -> Optional[str]:
         return self._apoptosis_key
 
     @proliferation_key.setter
-    def proliferation_key(self, value):
+    def proliferation_key(self, value: Optional[str] = None) -> None:
         self._proliferation_key = value
 
     @apoptosis_key.setter
-    def apoptosis_key(self, value):
+    def apoptosis_key(self, value: Optional[str] = None) -> None:
         self._apoptosis_key = value
