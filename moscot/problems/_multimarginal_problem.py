@@ -21,7 +21,7 @@ class MultiMarginalProblem(GeneralProblem, ABC):
     _b: Optional[List[np.ndarray]]
 
     @abstractmethod
-    def _estimate_marginals(self, adata: AnnData, **kwargs: Any) -> Optional[npt.ArrayLike]:
+    def _estimate_marginals(self, adata: AnnData, *, source: bool, **kwargs: Any) -> Optional[npt.ArrayLike]:
         pass
 
     def prepare(
@@ -36,15 +36,21 @@ class MultiMarginalProblem(GeneralProblem, ABC):
     ) -> "MultiMarginalProblem":
         # TODO(michalk8): some sentinel value would be nicer
         if a is True:
-            a = self._estimate_marginals(self.adata, **marginal_kwargs)
+            a = self._estimate_marginals(self.adata, source=True, **marginal_kwargs)
+        elif a is False:
+            a = None
         if b is True:
-            b = self._estimate_marginals(self._marginal_b_adata, **marginal_kwargs)
+            b = self._estimate_marginals(self._marginal_b_adata, source=False, **marginal_kwargs)
+        elif b is False:
+            b = None
 
         super().prepare(x, y, xy, a=a, b=b, **kwargs)
         # base problem prepare array-like structure, just wrap it
         # alt. we could just append and not reset
         self._a = [self._a]
         self._b = [self._b]
+        print(self._a[0].sum())
+        print(self._b[0].sum())
 
         return self
 
@@ -67,6 +73,7 @@ class MultiMarginalProblem(GeneralProblem, ABC):
         a, b = self._get_last_marginals()
         kwargs.setdefault("a", a)
         kwargs.setdefault("b", b)
+        print(a.sum(), b.sum())
 
         for _ in range(n_iters):
             sol = super().solve(epsilon=epsilon, alpha=alpha, tau_a=tau_a, tau_b=tau_b, **kwargs).solution
@@ -89,13 +96,14 @@ class MultiMarginalProblem(GeneralProblem, ABC):
         b = self._b[-1] if len(self._b) else None
         return a, b
 
-    # TODO(michalk8): better 2 properties?
-    # TODO(michalk8): use 2 large arrays? append is costlier for np.arrays
     @property
-    def marginals(self) -> Marginals_t:
-        # they should always be linked (either both empty or both of the same shape)
+    def a(self) -> Optional[np.ndarray]:
         if not len(self._a):
-            return None, None
+            return None
+        return np.asarray(self._a)
+
+    @property
+    def b(self) -> Optional[np.ndarray]:
         if not len(self._b):
-            return None, None
-        return np.asarray(self._a), np.asarray(self._b)
+            return None
+        return np.asarray(self._b)
