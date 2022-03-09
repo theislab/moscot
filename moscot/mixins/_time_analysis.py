@@ -85,7 +85,12 @@ class TemporalAnalysisMixin(AnalysisMixin):
 
         if val_random_with_growth:
             gex_randomly_interpolated_growth = self._interpolate_gex_randomly(
-                len(intermediate_data), source_data, target_data, interpolation_parameter, growth_rates=growth_rates_source, **kwargs
+                len(intermediate_data),
+                source_data,
+                target_data,
+                interpolation_parameter,
+                growth_rates=growth_rates_source,
+                **kwargs,
             )
             result["random_with_growth"] = self._compute_wasserstein_distance(
                 intermediate_data, gex_randomly_interpolated_growth, **kwargs
