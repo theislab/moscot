@@ -59,7 +59,7 @@ class TemporalBaseProblem(MultiMarginalProblem):
         return np.full(len(self._marginal_b_adata), np.average(growth))
 
     def _add_marginals(self, sol: BaseSolverOutput) -> None:
-        with np.errstate(divide='ignore', invalid='ignore'):
+        with np.errstate(divide="ignore", invalid="ignore"):
             print("sol.a.sum() ", sol.a.sum())
             _a = np.asarray(sol.a) * len(self._b[0])
             print("_a.sum() ", _a.sum())
