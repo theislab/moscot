@@ -59,9 +59,7 @@ class TemporalBaseProblem(MultiMarginalProblem):
         return np.full(len(self._marginal_b_adata), np.average(growth))
 
     def _add_marginals(self, sol: BaseSolverOutput) -> None:
-        with np.errstate(divide="ignore", invalid="ignore"):
-            _a = np.asarray(sol.a) * len(self._b[0])
-            _a = np.nan_to_num(_a)
+        _a = np.asarray(sol.a) / self._a[-1]
         self._a.append(_a)
         self._b.append(np.full(len(self._marginal_b_adata), np.average(_a)))
 
@@ -314,7 +312,7 @@ class TemporalProblem(TemporalAnalysisMixin, SingleCompoundProblem):
             pd.DataFrame(problem.growth_rates, index=self._problems[tup]._adata.obs.index, columns=cols)
             for tup, problem in self
         ]
-        pd.concatenate(df_list)
+        df = pd.concat(df_list)
         tup, problem = list(self)[-1]
         df = df.append(
             pd.DataFrame(
