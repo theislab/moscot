@@ -312,7 +312,7 @@ class TemporalProblem(TemporalAnalysisMixin, SingleCompoundProblem):
             pd.DataFrame(problem.growth_rates, index=self._problems[tup]._adata.obs.index, columns=cols)
             for tup, problem in self
         ]
-        pd.condatenate(df_list)
+        pd.concatenate(df_list)
         tup, problem = list(self)[-1]
         df = df.append(
             pd.DataFrame(

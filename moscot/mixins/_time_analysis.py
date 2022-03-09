@@ -47,7 +47,7 @@ class TemporalAnalysisMixin(AnalysisMixin):
         for (start_, end_) in self._problems.keys():
             if start_ == start:
                 source_data = self._problems[(start_, end_)]._x.data
-                growth_rates_source = self._problems[(start_, end_)].growth_rates[-1]
+                growth_rates_source = self._problems[(start_, end_)].growth_rates[:, -1]
                 break
         else:
             raise ValueError(f"No data found for time point {start}")
