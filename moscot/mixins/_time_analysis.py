@@ -1,4 +1,5 @@
-from typing import Any, Dict, Callable, Optional
+from types import MappingProxyType
+from typing import Any, Dict, Mapping, Callable, Optional
 from numbers import Number
 from functools import partial
 import logging
@@ -8,7 +9,6 @@ import ot
 
 from numpy import typing as npt
 import numpy as np
-
 
 from moscot.mixins._base_analysis import AnalysisMixin
 
@@ -26,6 +26,7 @@ class TemporalAnalysisMixin(AnalysisMixin):
         val_source_to_intermediate: bool = True,
         val_intermediate_to_target: bool = True,
         batch_key: Optional[str] = None,
+        n_interpolated_cells: Optional[int] = None,
         **kwargs: Any,
     ) -> Dict[str, Number]:
         """
@@ -46,7 +47,7 @@ class TemporalAnalysisMixin(AnalysisMixin):
         for (start_, end_) in self._problems.keys():
             if start_ == start:
                 source_data = self._problems[(start_, end_)]._x.data
-                growth_rates_source = self._problems[(start_, end_)].growth_rates[-1]
+                growth_rates_source = self._problems[(start_, end_)].growth_rates[:, -1]
                 break
         else:
             raise ValueError(f"No data found for time point {start}")
@@ -63,24 +64,28 @@ class TemporalAnalysisMixin(AnalysisMixin):
                 break
         else:
             raise ValueError(f"No data found for time point {end}")
-        transport_matrix = self._compute_transport_map(start=start, end=end)
+
+        if n_interpolated_cells is None:
+            n_interpolated_cells = len(intermediate_data)
 
         result = {}
         if val_ot:
             gex_ot_interpolated = self._interpolate_gex_with_ot(
-                len(intermediate_data), source_data, target_data, transport_matrix
+                n_interpolated_cells, source_data, target_data, start, end, interpolation_parameter
             )
             result["ot"] = self._compute_wasserstein_distance(intermediate_data, gex_ot_interpolated, **kwargs)
 
         if val_random:
-            gex_randomly_interpolated = self._interpolate_gex_randomly(len(intermediate_data), source_data, target_data)
+            gex_randomly_interpolated = self._interpolate_gex_randomly(
+                n_interpolated_cells, source_data, target_data, interpolation_parameter, **kwargs
+            )
             result["random"] = self._compute_wasserstein_distance(
                 intermediate_data, gex_randomly_interpolated, **kwargs
             )
 
         if val_random_with_growth:
             gex_randomly_interpolated_growth = self._interpolate_gex_randomly(
-                len(intermediate_data), source_data, target_data, growth_rates=growth_rates_source
+                len(intermediate_data), source_data, target_data, growth_rates=growth_rates_source, **kwargs
             )
             result["random_with_growth"] = self._compute_wasserstein_distance(
                 intermediate_data, gex_randomly_interpolated_growth, **kwargs
@@ -96,7 +101,8 @@ class TemporalAnalysisMixin(AnalysisMixin):
                 intermediate_data, target_data, **kwargs
             )
         if batch_key is not None:
-
+            if batch_key not in self.adata.obs.columns:
+                raise ValueError(f"{batch_key} not found in `adata.obs.columns`")
             result["batches"] = self._compute_distance_between_batches(
                 intermediate_adata, intermediate_data, batch_key, **kwargs
             )
@@ -110,6 +116,7 @@ class TemporalAnalysisMixin(AnalysisMixin):
         point_cloud_2: npt.ArrayLike,
         a: Optional[npt.ArrayLike] = None,
         b: Optional[npt.ArrayLike] = None,
+        numItermax: Optional[int] = 1e6,
         **kwargs: Any,
     ) -> Number:
         cost_matrix = pairwise_distances(point_cloud_1, Y=point_cloud_2, metric="sqeuclidean", n_jobs=-1)
@@ -117,7 +124,7 @@ class TemporalAnalysisMixin(AnalysisMixin):
             a = np.ones(cost_matrix.shape[0]) / cost_matrix.shape[0]
         if b is None:
             b = np.ones(cost_matrix.shape[1]) / cost_matrix.shape[1]
-        return np.sqrt(ot.emd2(a, b, cost_matrix, **kwargs))
+        return np.sqrt(ot.emd2(a, b, cost_matrix, numItermax=numItermax, **kwargs))
 
     def _interpolate_gex_with_ot(
         self,
@@ -128,23 +135,27 @@ class TemporalAnalysisMixin(AnalysisMixin):
         end: Any,
         interpolation_parameter: float = 0.5,
         adjust_by_growth: bool = True,
-        batch_size: int = 12,
+        batch_size: int = 64,
+        **kwargs: Any,
     ) -> npt.ArrayLike:
         def mappable_choice(a: int, kwargs: Mapping[str, Any] = MappingProxyType({})) -> Callable[[Any], npt.ArrayLike]:
             return partial(np.random.choice, a=a, replace=True)(**kwargs)
 
         mass = np.ones(len(target_data))
         if adjust_by_growth:
-            col_sums = np.array(
-                np.squeeze(
-                    self.push(
-                        start=start,
-                        end=end,
-                        normalize=True,
-                        scale_by_marginals=False,
-                        plans={(start, end): [(start, end)]},
+            col_sums = (
+                np.array(
+                    np.squeeze(
+                        self.push(
+                            start=start,
+                            end=end,
+                            normalize=True,
+                            scale_by_marginals=False,
+                            plans={(start, end): [(start, end)]},
+                        )
                     )
                 )
+                + 1e-9
             )
             mass = mass / np.power(col_sums, 1 - interpolation_parameter)
         row_probability = np.array(
@@ -165,7 +176,7 @@ class TemporalAnalysisMixin(AnalysisMixin):
         rows, counts = np.unique(rows_sampled, return_counts=True)
         result = np.zeros((number_cells, source_data.shape[1]))
         current_index = 0
-        for batch in range(int(np.floor(len(rows) / batch_size))):  # TODO: handle the rest of the batch
+        for batch in range(int(np.floor(len(rows) / batch_size))):
             rows_batch = rows[batch * batch_size : (batch + 1) * batch_size]
             counts_batch = counts[batch * batch_size : (batch + 1) * batch_size]
             data = np.zeros((len(source_data), batch_size))
@@ -234,6 +245,7 @@ class TemporalAnalysisMixin(AnalysisMixin):
         target_data: npt.ArrayLike,
         interpolation_parameter: int = 0.5,
         growth_rates: Optional[npt.ArrayLike] = None,
+        **kwargs: Any,
     ) -> npt.ArrayLike:
         if growth_rates is None:
             row_probability = np.ones(len(source_data)).astype("float64")
