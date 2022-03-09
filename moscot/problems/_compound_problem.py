@@ -91,7 +91,6 @@ class CompoundBaseProblem(BaseProblem, ABC):
         forward: bool = True,
         return_all: bool = False,
         scale_by_marginals: bool = False,
-        plans: Optional[Dict[Tuple, List]] = None,
         **kwargs: Any,
     ) -> Union[Dict[Tuple[Any, Any], npt.ArrayLike], Dict[Tuple[Any, Any], Dict[Tuple[Any, Any], npt.ArrayLike]]]:
         def get_data(plan: Tuple[Any, Any]) -> Optional[npt.ArrayLike]:
@@ -108,8 +107,7 @@ class CompoundBaseProblem(BaseProblem, ABC):
             return None
 
         # TODO: check if solved - decorator?
-        if plans is None:
-            plans = self._policy.plan(**kwargs)
+        plans = self._policy.plan(**kwargs)
         res: Dict[Tuple[Any, Any], npt.ArrayLike] = {}
         for plan, steps in plans.items():
             if forward:

@@ -16,9 +16,9 @@ from moscot.mixins._base_analysis import AnalysisMixin
 class TemporalAnalysisMixin(AnalysisMixin):
     def validate_by_interpolation(
         self,
-        start: Any,
-        end: Any,
-        intermediate: Any,
+        start: Number,
+        end: Number,
+        intermediate: Number,
         interpolation_parameter: Optional[int] = None,
         val_ot: bool = True,
         val_random: bool = True,
@@ -85,7 +85,7 @@ class TemporalAnalysisMixin(AnalysisMixin):
 
         if val_random_with_growth:
             gex_randomly_interpolated_growth = self._interpolate_gex_randomly(
-                len(intermediate_data), source_data, target_data, growth_rates=growth_rates_source, **kwargs
+                len(intermediate_data), source_data, target_data, interpolation_parameter, growth_rates=growth_rates_source, **kwargs
             )
             result["random_with_growth"] = self._compute_wasserstein_distance(
                 intermediate_data, gex_randomly_interpolated_growth, **kwargs
@@ -116,7 +116,7 @@ class TemporalAnalysisMixin(AnalysisMixin):
         point_cloud_2: npt.ArrayLike,
         a: Optional[npt.ArrayLike] = None,
         b: Optional[npt.ArrayLike] = None,
-        numItermax: Optional[int] = 1e6,
+        numItermax: int = 1e6,
         **kwargs: Any,
     ) -> Number:
         cost_matrix = pairwise_distances(point_cloud_1, Y=point_cloud_2, metric="sqeuclidean", n_jobs=-1)
@@ -131,8 +131,8 @@ class TemporalAnalysisMixin(AnalysisMixin):
         number_cells: int,
         source_data: npt.ArrayLike,
         target_data: npt.ArrayLike,
-        start: Any,
-        end: Any,
+        start: Number,
+        end: Number,
         interpolation_parameter: float = 0.5,
         adjust_by_growth: bool = True,
         batch_size: int = 64,
@@ -171,8 +171,7 @@ class TemporalAnalysisMixin(AnalysisMixin):
             )
         )
 
-        p = row_probability / row_probability.sum()
-        rows_sampled = np.random.choice(len(source_data), p=p, size=number_cells)
+        rows_sampled = np.random.choice(len(source_data), p=row_probability / row_probability.sum(), size=number_cells)
         rows, counts = np.unique(rows_sampled, return_counts=True)
         result = np.zeros((number_cells, source_data.shape[1]))
         current_index = 0
