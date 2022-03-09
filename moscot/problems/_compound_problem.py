@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+from types import MappingProxyType
 from typing import Any, Dict, List, Type, Tuple, Union, Literal, Mapping, Iterator, Optional, Sequence
 
 import pandas as pd
@@ -52,18 +53,18 @@ class CompoundBaseProblem(BaseProblem, ABC):
         policy: Literal["sequential", "pairwise", "triu", "tril", "explicit"] = "sequential",
         subset: Optional[Sequence[Tuple[Any, Any]]] = None,
         reference: Optional[Any] = None,
+        init_kwargs: Mapping[str, Any] = MappingProxyType({}),
         **kwargs: Any,
     ) -> "CompoundProblem":
         self._policy = self._create_policy(policy=policy, key=key)
-
         if isinstance(self._policy, ExplicitPolicy):
-            self._policy = self._policy(policy)
+            self._policy = self._policy(subset)
         elif isinstance(self._policy, StarPolicy):
             self._policy = self._policy(filter=subset, reference=reference)
         else:
             self._policy = self._policy(filter=subset)
 
-        self._problems = self._create_problems(**kwargs)
+        self._problems = self._create_problems(init_kwargs=init_kwargs, **kwargs)
         self._solutions = None
 
         return self
@@ -91,7 +92,7 @@ class CompoundBaseProblem(BaseProblem, ABC):
         return_all: bool = False,
         scale_by_marginals: bool = False,
         **kwargs: Any,
-    ) -> Dict[Tuple[Any, Any], npt.ArrayLike]:
+    ) -> Union[Dict[Tuple[Any, Any], npt.ArrayLike], Dict[Tuple[Any, Any], Dict[Tuple[Any, Any], npt.ArrayLike]]]:
         def get_data(plan: Tuple[Any, Any]) -> Optional[npt.ArrayLike]:
             if data is None or isinstance(data, (str, tuple, list)):
                 # always valid shapes, since accessing AnnData
@@ -106,30 +107,46 @@ class CompoundBaseProblem(BaseProblem, ABC):
             return None
 
         # TODO: check if solved - decorator?
-
         plans = self._policy.plan(**kwargs)
         res: Dict[Tuple[Any, Any], npt.ArrayLike] = {}
 
         for plan, steps in plans.items():
-            if not forward:
+            if forward:
+                initial_problem = self._problems[steps[0]]
+                current_mass = initial_problem._get_mass(
+                    initial_problem.adata, data=get_data(plan), subset=subset, normalize=normalize
+                )
+            else:
                 steps = steps[::-1]
+                initial_problem = self._problems[steps[0]]
+                current_mass = initial_problem._get_mass(
+                    initial_problem.adata if initial_problem._adata_y is None else initial_problem._adata_y,
+                    data=get_data(plan),
+                    subset=subset,
+                    normalize=normalize,
+                )
 
-            ds = [get_data(plan)]
+            ds = {}
+            ds[steps[0][0] if forward else steps[0][1]] = current_mass
             for step in steps:
+                if step not in self._problems.keys():
+                    raise ValueError(f"No transport map computed for {step}")
                 problem = self._problems[step]
                 fun = problem.push if forward else problem.pull
-                ds.append(fun(ds[-1], subset=subset, normalize=normalize, scale_by_marginals=scale_by_marginals))
+                current_mass = fun(
+                    current_mass, subset=subset, normalize=normalize, scale_by_marginals=scale_by_marginals
+                )
+                ds[step[1] if forward else step[0]] = current_mass
 
-            # TODO(michalk8): shall we include initial input? or add as option?
-            res[plan] = ds[1:] if return_all else ds[-1]
+            res[plan] = ds if return_all else current_mass
 
         # TODO(michalk8): return the values iff only 1 plan?
         return res
 
-    def push(self, *args: Any, **kwargs: Any) -> npt.ArrayLike:
+    def push(self, *args: Any, **kwargs: Any) -> Union[npt.ArrayLike, Dict[Any, npt.ArrayLike]]:
         return self._apply(*args, forward=True, **kwargs)
 
-    def pull(self, *args: Any, **kwargs: Any) -> npt.ArrayLike:
+    def pull(self, *args: Any, **kwargs: Any) -> Union[npt.ArrayLike, Dict[Any, npt.ArrayLike]]:
         return self._apply(*args, forward=False, **kwargs)
 
     @property
@@ -153,10 +170,15 @@ class CompoundBaseProblem(BaseProblem, ABC):
 
 
 class SingleCompoundProblem(CompoundBaseProblem):
-    def _create_problems(self, **kwargs: Any) -> Dict[Tuple[Any, Any], BaseProblem]:
+    def _create_problems(
+        self, init_kwargs: Mapping[str, Any] = MappingProxyType({}), **kwargs: Any
+    ) -> Dict[Tuple[Any, Any], BaseProblem]:
         return {
             (x, y): self._base_problem_type(
-                self._mask(x, x_mask, self._adata_src), self._mask(y, y_mask, self._adata_tgt), solver=self.solver
+                self._mask(x, x_mask, self._adata_src),
+                self._mask(y, y_mask, self._adata_tgt),
+                solver=self._solver,
+                **init_kwargs,
             ).prepare(**kwargs)
             for (x, y), (x_mask, y_mask) in self._policy.mask().items()
         }
@@ -233,9 +255,13 @@ class MultiCompoundProblem(CompoundBaseProblem):
     ) -> "MultiCompoundProblem":
         return super().prepare(None, subset=subset, policy=policy, reference=reference, **kwargs)
 
-    def _create_problems(self, **kwargs: Any) -> Dict[Tuple[Any, Any], BaseProblem]:
+    def _create_problems(
+        self, init_kwargs: Mapping[str, Any] = MappingProxyType({}), **kwargs: Any
+    ) -> Dict[Tuple[Any, Any], BaseProblem]:
         return {
-            (x, y): self._base_problem_type(self._adatas[x], self._adatas[y], solver=self.solver).prepare(**kwargs)
+            (x, y): self._base_problem_type(
+                self._adatas[x], self._adatas[y], solver=self._solver, **init_kwargs
+            ).prepare(**kwargs)
             for x, y in self._policy.mask().keys()
         }
 
