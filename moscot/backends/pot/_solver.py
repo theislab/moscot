@@ -1,8 +1,13 @@
-from typing import Any, Optional
+from typing import Any, Dict, Mapping, Optional
 import warnings
 
 from ot import sinkhorn, sinkhorn_unbalanced
+from ot.utils import dist
+from ot.gromov import fused_gromov_wasserstein, entropic_gromov_wasserstein
+from ot.backend import get_backend
+from typing_extensions import Literal
 
+import numpy as np
 import numpy.typing as npt
 
 from moscot.solvers._output import BaseSolverOutput
@@ -21,36 +26,27 @@ class SinkhornSolver(ContextlessBaseSolver):
         epsilon: Optional[float] = None,
         a: Optional[npt.ArrayLike] = None,
         b: Optional[npt.ArrayLike] = None,
-        tau_a: Optional[float] = None,
+        tau_a: float = 1.0,
         **kwargs: Any,
-    ) -> Any:
+    ) -> Dict[str, Any]:
+        M = _create_cost_matrix(x, y, **kwargs)
         a = [] if a is None else a
         b = [] if b is None else b
         epsilon = 1e-2 if epsilon is None else epsilon
 
-        # TODO(michalk8): data
-        # TODO(michalk8): tau_a in base solver none
-        print(tau_a, "T")
-        return a, b, x.data, epsilon, tau_a
+        res = {"a": a, "b": b, "M": M, "reg": epsilon}
+        if tau_a != 1.0:
+            res["reg_m"] = -(tau_a * epsilon) / (tau_a - 1)
+        return res
 
-    def _solve(self, data: Any, **kwargs: Any) -> BaseSolverOutput:
-        # TODO(michalk8): default a/b based on backend
-        kwargs["log"] = True  # TODO(michalk8): enable for loss?
-        kwargs["warn"] = True
-        a, b, M, epsilon, tau_a = data
-        with warnings.catch_warnings(record=True) as record:
-            if tau_a is None:
-                T, log = sinkhorn(a=a, b=b, M=M, reg=epsilon, **kwargs)
-            else:
-                T, log = sinkhorn_unbalanced(a=a, b=b, M=M, reg=epsilon, reg_m=tau_a, **kwargs)
-            converged = True  # TODO(michalk8)
-
-        try:
-            cost = log["err"][-1]
-        except IndexError:
-            cost = float("inf")
-
-        return POTOutput(T, cost=cost, converged=converged)
+    def _solve(self, data: Mapping[str, Any], **kwargs: Any) -> BaseSolverOutput:
+        kwargs["log"] = True  # for error
+        kwargs["warn"] = True  # for convergence
+        with warnings.catch_warnings(record=True) as records:
+            solver = sinkhorn_unbalanced if "reg_m" in data else sinkhorn
+            T, log = solver(**data, **kwargs)
+            converged = True  # TODO(michalk8): parse `records`
+        return POTOutput(T, cost=_get_error(log, key="err"), converged=converged)
 
     @property
     def problem_kind(self) -> ProblemKind:
@@ -58,12 +54,94 @@ class SinkhornSolver(ContextlessBaseSolver):
 
 
 class GWSolver(ContextlessBaseSolver):
+    def _prepare_input(
+        self,
+        x: TaggedArray,
+        y: Optional[TaggedArray] = None,
+        epsilon: Optional[float] = None,
+        a: Optional[npt.ArrayLike] = None,
+        b: Optional[npt.ArrayLike] = None,
+        loss_fun: Literal["square_loss", "kl_loss"] = "square_loss",
+        **kwargs: Any,
+    ) -> Dict[str, Any]:
+        nx = get_backend(x.data)
+
+        C1 = _create_cost_matrix(x, y=None, **kwargs)
+        C2 = _create_cost_matrix(y, y=None, **kwargs)
+        a = nx.ones((C1.shape[0],)) if a is None else a
+        b = nx.ones((C2.shape[0],)) if b is None else b
+        a /= nx.sum(a)
+        b /= nx.sum(b)
+        epsilon = 1e-2 if epsilon is None else epsilon
+
+        return {"C1": C1, "C2": C2, "p": a, "q": b, "epsilon": epsilon, "loss_fun": loss_fun}
+
+    def _solve(self, data: Mapping[str, Any], **kwargs: Any) -> BaseSolverOutput:
+        kwargs["log"] = True
+        T, log = entropic_gromov_wasserstein(**data, **kwargs)
+        cost = log["gw_dist"]
+        # TODO(michalk8): there's no convergence warning/flag in log that sets whether we converged...
+        return POTOutput(T, cost=cost, converged=np.isfinite(cost))
+
     @property
     def problem_kind(self) -> ProblemKind:
         return ProblemKind.QUAD
 
 
-class FGWSolver(ContextlessBaseSolver):
+class FGWSolver(GWSolver):
+    def _prepare_input(
+        self,
+        x: TaggedArray,
+        y: Optional[TaggedArray] = None,
+        xx: Optional[TaggedArray] = None,
+        yy: Optional[TaggedArray] = None,
+        epsilon: Optional[float] = None,
+        alpha: float = 0.5,
+        **kwargs: Any,
+    ) -> Dict[str, Any]:
+        if not 0 < alpha < 1:
+            raise ValueError(f"TODO: invalid alpha value `{alpha}`")
+        data = super()._prepare_input(x=x, y=y, epsilon=epsilon, **kwargs)
+        data["M"] = _create_cost_matrix(xx, y=yy, **kwargs)
+        data["alpha"] = alpha
+        # TODO(michalk8): reimplement with epsilon a la novosparc
+        _ = data.pop("epsilon")
+
+        return data
+
+    def _solve(self, data: Mapping[str, Any], **kwargs: Any) -> BaseSolverOutput:
+        kwargs["log"] = True
+        T, log = fused_gromov_wasserstein(**data, **kwargs)
+        cost = log["fgw_dist"]
+        # TODO(michalk8): there's no convergence warning/flag in log that sets whether we converged...
+        return POTOutput(T, cost=cost, converged=np.isfinite(cost))
+
     @property
     def problem_kind(self) -> ProblemKind:
         return ProblemKind.QUAD_FUSED
+
+
+def _create_cost_matrix(
+    x: TaggedArray,
+    y: Optional[TaggedArray] = None,
+    p: float = 2.0,
+    w: Optional[npt.ArrayLike] = None,
+    **_: Any,
+) -> npt.ArrayLike:
+    metric = "sqeuclidean" if x.loss is None else x.loss
+    if y is not None:
+        return dist(x.data, y.data, metric=metric, p=p, w=w)
+    if x.is_point_cloud:
+        return dist(x.data, metric=metric, p=p, w=w)
+    if x.is_cost_matrix:
+        return x.data
+    if x.is_kernel:
+        raise NotImplementedError("TODO: POT kernel not implemented")
+    raise NotImplementedError("TODO: invalid tag")
+
+
+def _get_error(log: Mapping[str, Any], *, key: str) -> float:
+    try:
+        return log[key][-1]
+    except IndexError:
+        return float("inf")
