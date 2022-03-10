@@ -13,6 +13,7 @@ from anndata import AnnData
 
 Item_t = Tuple[Any, Any]
 Value_t = Tuple[npt.ArrayLike, npt.ArrayLike]
+Axis_t = Literal["obs", "var"]
 
 
 __all__ = (
@@ -62,10 +63,22 @@ class SubsetPolicy:
         def __invert__(self) -> "SubsetPolicy.Category":
             return SubsetPolicy.Category(self[::-1])
 
-    def __init__(self, adata: Union[AnnData, pd.Series, pd.Categorical], key: Optional[str] = None):
-        self._data: pd.Series = pd.Series(adata.obs[key] if isinstance(adata, AnnData) else adata)
+    def __init__(
+        self, adata: Union[AnnData, pd.Series, pd.Categorical], key: Optional[str] = None, axis: Axis_t = "obs"
+    ):
+        if isinstance(adata, AnnData):
+            # TODO(michalk8): raise nicer KeyError
+            if axis == "obs":
+                self._data = pd.Series(adata.obs[key])
+            elif axis == "var":
+                self._data = pd.Series(adata.var[key])
+            else:
+                raise ValueError(f"TODO: wrong axis `{axis}`")
+        else:
+            self._data = adata
         if not hasattr(self._data, "cat"):
             self._data = self._data.astype("category")  # TODO(@MUCDK): catch conversion error
+        self._axis = axis
         self._subset: Optional[List[Item_t]] = None
         self._cat = self.Category(self._data.cat.categories)
 
@@ -93,23 +106,23 @@ class SubsetPolicy:
     def create(
         cls,
         kind: Literal["sequential", "pairwise", "star", "triu", "tril", "explicit"],
-        adata: AnnData,
-        key: Optional[str] = None,
+        adata: Union[AnnData, pd.Series, pd.Categorical],
+        **kwargs: Any,
     ) -> "SubsetPolicy":
         if kind == "sequential":
-            return SequentialPolicy(adata, key=key)
+            return SequentialPolicy(adata, **kwargs)
         if kind == "pairwise":
-            return PairwisePolicy(adata, key=key)
+            return PairwisePolicy(adata, **kwargs)
         if kind == "star":
-            return StarPolicy(adata, key=key)
+            return StarPolicy(adata, **kwargs)
         if kind == "external_star":
-            return ExternalStarPolicy(adata, key=key)
+            return ExternalStarPolicy(adata, **kwargs)
         if kind == "triu":
-            return TriangularPolicy(adata, key=key, upper=True)
+            return TriangularPolicy(adata, **kwargs, upper=True)
         if kind == "tril":
-            return TriangularPolicy(adata, key=key, upper=False)
+            return TriangularPolicy(adata, **kwargs, upper=False)
         if kind == "explicit":
-            return ExplicitPolicy(adata, key=key)
+            return ExplicitPolicy(adata, **kwargs)
 
         raise NotImplementedError(kind)
 
@@ -131,6 +144,10 @@ class SubsetPolicy:
         return res
 
     @property
+    def axis(self) -> Axis_t:
+        return self._axis
+
+    @property
     def _default_plan(self) -> Dict[Tuple[Any, Any], List[Any]]:
         return {s: [s] for s in self._subset}
 
@@ -143,8 +160,8 @@ class SimplePlanFilterMixin:
 
 
 class OrderedPolicy(SubsetPolicy, ABC):
-    def __init__(self, adata: Union[AnnData, pd.Series, pd.Categorical], key: Optional[str] = None):
-        super().__init__(adata, key=key)
+    def __init__(self, adata: Union[AnnData, pd.Series, pd.Categorical], **kwargs: Any):
+        super().__init__(adata, **kwargs)
         # TODO(michalk8): verify whether they can be ordered (only numeric?) + warn (or just raise)
 
     def plan(self, start: Optional[Any] = None, end: Optional[Any] = None, **_: Any) -> Dict[Item_t, List[Item_t]]:
@@ -202,8 +219,8 @@ class SequentialPolicy(OrderedPolicy):
 
 
 class TriangularPolicy(OrderedPolicy):
-    def __init__(self, adata: Union[AnnData, pd.Series, pd.Categorical], key: Optional[str] = None, upper: bool = True):
-        super().__init__(adata, key=key)
+    def __init__(self, adata: Union[AnnData, pd.Series, pd.Categorical], upper: bool = True, **kwargs):
+        super().__init__(adata, **kwargs)
         self._compare = lt if upper else gt
 
     def _create_subset(self, *_: Any, **__: Any) -> Sequence[Item_t]:
