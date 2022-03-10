@@ -13,7 +13,7 @@ from moscot.backends.ott import SinkhornSolver
 from moscot.solvers._output import BaseSolverOutput
 from moscot.solvers._base_solver import BaseSolver
 from moscot.problems._base_problem import BaseProblem, GeneralProblem
-from moscot.problems._subset_policy import StarPolicy, SubsetPolicy, ExplicitPolicy
+from moscot.problems._subset_policy import Axis_t, StarPolicy, SubsetPolicy, ExplicitPolicy
 
 __all__ = ("SingleCompoundProblem", "MultiCompoundProblem", "CompoundProblem")
 
@@ -52,11 +52,12 @@ class CompoundBaseProblem(BaseProblem, ABC):
         key: str,
         policy: Literal["sequential", "pairwise", "triu", "tril", "explicit"] = "sequential",
         subset: Optional[Sequence[Tuple[Any, Any]]] = None,
+        axis: Axis_t = "obs",
         reference: Optional[Any] = None,
         init_kwargs: Mapping[str, Any] = MappingProxyType({}),
         **kwargs: Any,
     ) -> "CompoundProblem":
-        self._policy = self._create_policy(policy=policy, key=key)
+        self._policy = self._create_policy(policy=policy, key=key, axis=axis)
         if isinstance(self._policy, ExplicitPolicy):
             self._policy = self._policy(subset)
         elif isinstance(self._policy, StarPolicy):
@@ -73,8 +74,8 @@ class CompoundBaseProblem(BaseProblem, ABC):
         self,
         epsilon: Optional[float] = None,
         alpha: float = 0.5,
-        tau_a: Optional[float] = 1.0,
-        tau_b: Optional[float] = 1.0,
+        tau_a: float = 1.0,
+        tau_b: float = 1.0,
         **kwargs: Any,
     ) -> "CompoundProblem":
         self._solutions = {}
@@ -187,17 +188,18 @@ class SingleCompoundProblem(CompoundBaseProblem):
         self,
         policy: Literal["sequential", "pairwise", "triu", "tril", "explicit"] = "sequential",
         key: Optional[str] = None,
+        axis: Axis_t = "obs",
         **_: Any,
     ) -> SubsetPolicy:
         return (
-            SubsetPolicy.create(policy, self.adata, key=key)
+            SubsetPolicy.create(policy, self.adata, key=key, axis=axis)
             if isinstance(policy, str)
-            else ExplicitPolicy(self.adata, key=key)
+            else ExplicitPolicy(self.adata, key=key, axis=axis)
         )
 
     def _mask(self, key: Any, mask: npt.ArrayLike, adata: AnnData) -> AnnData:
         # TODO(michalk8): can include logging/extra sanity that mask is not empty
-        return adata[mask]
+        return adata[mask] if self._policy.axis == "obs" else adata[:, mask]
 
     @property
     def _adata_src(self) -> AnnData:
@@ -253,6 +255,7 @@ class MultiCompoundProblem(CompoundBaseProblem):
         reference: Optional[Any] = None,
         **kwargs: Any,
     ) -> "MultiCompoundProblem":
+        kwargs["axis"] = "obs"
         return super().prepare(None, subset=subset, policy=policy, reference=reference, **kwargs)
 
     def _create_problems(
@@ -271,9 +274,9 @@ class MultiCompoundProblem(CompoundBaseProblem):
         **_: Any,
     ) -> SubsetPolicy:
         return (
-            SubsetPolicy.create(policy, self._policy_adata, key=self._KEY)
+            SubsetPolicy.create(policy, self._policy_adata, key=self._KEY, axis="obs")
             if isinstance(policy, str)
-            else ExplicitPolicy(self._policy_adata, key=self._KEY)
+            else ExplicitPolicy(self._policy_adata, key=self._KEY, axis="obs")
         )
 
 
