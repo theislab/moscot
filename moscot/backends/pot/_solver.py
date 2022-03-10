@@ -1,11 +1,11 @@
-from typing import Any, Dict, Mapping, Optional
+from typing import Any, Dict, List, Mapping, Optional
 import warnings
 
 from ot import sinkhorn, sinkhorn_unbalanced
-from ot.utils import dist
 from ot.gromov import fused_gromov_wasserstein, entropic_gromov_wasserstein
 from ot.backend import get_backend
 from typing_extensions import Literal
+import ot
 
 import numpy as np
 import numpy.typing as npt
@@ -42,11 +42,11 @@ class SinkhornSolver(ContextlessBaseSolver):
     def _solve(self, data: Mapping[str, Any], **kwargs: Any) -> BaseSolverOutput:
         kwargs["log"] = True  # for error
         kwargs["warn"] = True  # for convergence
-        with warnings.catch_warnings(record=True) as records:
-            solver = sinkhorn_unbalanced if "reg_m" in data else sinkhorn
+        solver = sinkhorn_unbalanced if "reg_m" in data else sinkhorn
+        with warnings.catch_warnings(record=True) as messages:
             T, log = solver(**data, **kwargs)
-            converged = True  # TODO(michalk8): parse `records`
-        return POTOutput(T, cost=_get_error(log, key="err"), converged=converged)
+        cost = log["err"][-1]
+        return POTOutput(T, cost=cost, converged=_get_convergence(messages))
 
     @property
     def problem_kind(self) -> ProblemKind:
@@ -70,6 +70,7 @@ class GWSolver(ContextlessBaseSolver):
         C2 = _create_cost_matrix(y, y=None, **kwargs)
         a = nx.ones((C1.shape[0],)) if a is None else a
         b = nx.ones((C2.shape[0],)) if b is None else b
+        # must be balanced
         a /= nx.sum(a)
         b /= nx.sum(b)
         epsilon = 1e-2 if epsilon is None else epsilon
@@ -104,7 +105,7 @@ class FGWSolver(GWSolver):
         data = super()._prepare_input(x=x, y=y, epsilon=epsilon, **kwargs)
         data["M"] = _create_cost_matrix(xx, y=yy, **kwargs)
         data["alpha"] = alpha
-        # TODO(michalk8): reimplement with epsilon a la novosparc
+        # TODO(michalk8): reimplement with epsilon a la `novosparc`
         _ = data.pop("epsilon")
 
         return data
@@ -130,9 +131,9 @@ def _create_cost_matrix(
 ) -> npt.ArrayLike:
     metric = "sqeuclidean" if x.loss is None else x.loss
     if y is not None:
-        return dist(x.data, y.data, metric=metric, p=p, w=w)
+        return ot.utils.dist(x.data, y.data, metric=metric, p=p, w=w)
     if x.is_point_cloud:
-        return dist(x.data, metric=metric, p=p, w=w)
+        return ot.utils.dist(x.data, metric=metric, p=p, w=w)
     if x.is_cost_matrix:
         return x.data
     if x.is_kernel:
@@ -140,8 +141,11 @@ def _create_cost_matrix(
     raise NotImplementedError("TODO: invalid tag")
 
 
-def _get_error(log: Mapping[str, Any], *, key: str) -> float:
-    try:
-        return log[key][-1]
-    except IndexError:
-        return float("inf")
+def _get_convergence(messages: List[warnings.WarningMessage]) -> bool:
+    for message in messages:
+        try:
+            if "Sinkhorn did not converge" in message.message.args[0]:
+                return False
+        except IndexError:
+            pass
+    return True
