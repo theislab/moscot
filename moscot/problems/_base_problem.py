@@ -237,10 +237,22 @@ class GeneralProblem(BaseProblem):
         data = self._get_mass(adata, data=data, subset=subset, normalize=normalize)
         return self.solution.pull(data, **kwargs)
 
-    def _compute_pca(self, **kwargs: Any) -> npt.ArrayLike:
-        # TODO(michalk8): depend on solver?
-        adata = self.adata if self._adata_y is None else self.adata.concatenate(self._adata_y)
-        return sc.pp.pca(adata.X, **kwargs)
+    @staticmethod
+    def _prepare_callback(
+        adata: AnnData,
+        adata_y: Optional[AnnData] = None,
+        problem_kind: ProblemKind = ProblemKind.LINEAR,
+        layer: Optional[str] = None,
+        **kwargs: Any,
+    ) -> Tuple[TaggedArray, Optional[TaggedArray]]:
+        n = adata.n_obs
+        if problem_kind not in (ProblemKind.LINEAR, ProblemKind.QUAD_FUSED):
+            raise NotImplementedError("TODO: invalid problem type")
+        adata = adata if adata_y is None else adata.concatenate(adata_y)
+        data = adata.X if layer is None else adata.layers[layer]
+        data = sc.pp.pca(data, **kwargs)
+
+        return TaggedArray(data[:n], tag=Tag.POINT_CLOUD), TaggedArray(data[n:], tag=Tag.POINT_CLOUD)
 
     @property
     def _default_solver(self) -> BaseSolver:
