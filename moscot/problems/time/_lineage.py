@@ -138,13 +138,8 @@ class TemporalProblem(TemporalAnalysisMixin, SingleCompoundProblem):
     def _create_problem(
         self, src: Any, src_mask: npt.ArrayLike, tgt: Any, tgt_mask: npt.ArrayLike, **kwargs: Any
     ) -> TemporalBaseProblem:
-        return self._base_problem_type(
-            self._mask(src_mask, adata=self._adata_src),
-            self._mask(tgt_mask, adata=self._adata_tgt),
-            solver=self._solver,
-            start=src,
-            end=tgt,
-            **kwargs,
+        return super()._create_problem(
+            src=src, src_mask=src_mask, tgt=tgt, tgt_mask=tgt_mask, start=src, end=tgt, **kwargs
         )
 
     def push(

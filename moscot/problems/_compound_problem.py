@@ -214,8 +214,8 @@ class SingleCompoundProblem(CompoundBaseProblem):
         self, src: Any, src_mask: npt.ArrayLike, tgt: Any, tgt_mask: npt.ArrayLike, **kwargs: Any
     ) -> BaseProblem:
         return self._base_problem_type(
-            self._mask(src_mask, self._adata_src),
-            self._mask(tgt_mask, self._adata_tgt),
+            self._mask(src_mask),
+            self._mask(tgt_mask),
             solver=self._solver,
             **kwargs,
         )
@@ -233,17 +233,9 @@ class SingleCompoundProblem(CompoundBaseProblem):
             else ExplicitPolicy(self.adata, key=key, axis=axis)
         )
 
-    def _mask(self, mask: npt.ArrayLike, adata: AnnData) -> AnnData:
+    def _mask(self, mask: npt.ArrayLike) -> AnnData:
         # TODO(michalk8): can include logging/extra sanity that mask is not empty
-        return adata[mask] if self._policy.axis == "obs" else adata[:, mask]
-
-    @property
-    def _adata_src(self) -> AnnData:
-        return self.adata
-
-    @property
-    def _adata_tgt(self) -> AnnData:
-        return self.adata
+        return self.adata[mask] if self._policy.axis == "obs" else self.adata[:, mask]
 
 
 class MultiCompoundProblem(CompoundBaseProblem):
