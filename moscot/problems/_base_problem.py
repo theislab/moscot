@@ -6,6 +6,7 @@ import numpy as np
 import numpy.typing as npt
 
 from anndata import AnnData
+import scanpy as sc
 
 from moscot.backends.ott import SinkhornSolver
 from moscot.solvers._output import BaseSolverOutput
@@ -232,6 +233,11 @@ class GeneralProblem(BaseProblem):
         adata = self.adata if self._adata_y is None else self._adata_y
         data = self._get_mass(adata, data=data, subset=subset, normalize=normalize)
         return self.solution.pull(data, **kwargs)
+
+    def _compute_pca(self, **kwargs: Any) -> npt.ArrayLike:
+        # TODO(michalk8): depend on solver?
+        adata = self.adata if self._adata_y is None else self.adata.concatenate(self._adata_y)
+        return sc.pp.pca(adata.X, **kwargs)
 
     @property
     def _default_solver(self) -> BaseSolver:
