@@ -2,6 +2,7 @@ from typing import Any, Optional
 from dataclasses import dataclass
 
 import numpy as np
+import scipy
 import numpy.typing as npt
 
 from anndata import AnnData
@@ -32,6 +33,7 @@ class AnnDataPointer:
                 raise ValueError("TODO: expected 2D")
             return arr
 
+        rescale = kwargs.get("rescale", None)
         if self.tag == Tag.COST_MATRIX:
             if self.loss in moscot_losses:
                 container = BaseLoss(kind=self.loss).create(**kwargs)
@@ -39,6 +41,8 @@ class AnnDataPointer:
             if not hasattr(self.adata, self.attr):
                 raise AttributeError("TODO: invalid attribute")
             container = getattr(self.adata, self.attr)
+            if scipy.sparse.issparse(container):
+                container = container.A
             if self.key is None:
                 return TaggedArray(ensure_2D(container), tag=self.tag, loss=None)
             else:
@@ -56,6 +60,10 @@ class AnnDataPointer:
         if not hasattr(self.adata, self.attr):
             raise AttributeError("TODO: invalid attribute")
         container = getattr(self.adata, self.attr)
+        if scipy.sparse.issparse(container):
+            container = container.A
+        if rescale:
+            container /= container.max() * container.shape[1]
         if self.key is None:
             # TODO(michalk8): check if array-like
             # TODO(michalk8): here we'd construct custom loss (BC/graph distances)

@@ -16,7 +16,6 @@ __all__ = ("BaseSolver", "ContextlessBaseSolver")
 ArrayLike = Union[npt.ArrayLike, TaggedArray]
 
 
-# TODO(michalk8): in the future, this would include barycenter, but needs more thought
 class ProblemKind(Enum):
     LINEAR = auto()
     QUAD = auto()
@@ -99,6 +98,7 @@ class BaseSolver(TagConverterMixin, ABC):
         tau_a: float = 1.0,
         tau_b: float = 1.0,
         epsilon: Optional[float] = None,
+        rank: int = None,
         solve_kwargs: Mapping[str, Any] = MappingProxyType({}),
         **prepare_kwargs: Any,
     ) -> BaseSolverOutput:

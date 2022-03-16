@@ -2,6 +2,7 @@ from abc import ABC, abstractmethod
 from types import MappingProxyType
 from typing import Any, Dict, List, Type, Tuple, Union, Literal, Mapping, Iterator, Optional, Sequence
 
+
 import pandas as pd
 
 import numpy as np
@@ -186,7 +187,7 @@ class SingleCompoundProblem(CompoundBaseProblem):
 
     def _create_policy(
         self,
-        policy: Literal["sequential", "pairwise", "triu", "tril", "explicit"] = "sequential",
+        policy: Literal["sequential", "pairwise", "triu", "tril", "explicit", "external_star"] = "sequential",
         key: Optional[str] = None,
         axis: Axis_t = "obs",
         **_: Any,
@@ -243,6 +244,7 @@ class MultiCompoundProblem(CompoundBaseProblem):
             adatas = {i: adata for i, adata in enumerate(adatas)}
 
         self._adatas: Mapping[Any, AnnData] = adatas
+        # TODO (ZP): raises a warning
         self._policy_adata = AnnData(
             np.empty((len(self._adatas), 1)),
             obs=pd.DataFrame({self._KEY: pd.Series(list(self._adatas.keys())).astype("category")}),
