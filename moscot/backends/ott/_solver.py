@@ -241,6 +241,7 @@ class FGWSolver(GWSolver):
         epsilon: Optional[float] = None,
         online: bool = False,
         alpha: float = 0.5,
+        rank: int = None,
         **kwargs: Any,
     ) -> QuadraticProblem:
         if xx is None:

@@ -15,6 +15,8 @@ ArrayLike = Union[npt.ArrayLike, TaggedArray]
 
 
 class BaseSolver(ABC):
+    """Base solver class."""
+
     @abstractmethod
     def _prepare_input(
         self,
@@ -40,9 +42,11 @@ class BaseSolver(ABC):
         tau_a: float = 1.0,
         tau_b: float = 1.0,
         epsilon: Optional[float] = None,
+        rank: int = None,
         solve_kwargs: Mapping[str, Any] = MappingProxyType({}),
         **prepare_kwargs: Any,
     ) -> BaseSolverOutput:
+        """Call BaseSolver class."""
         # currently we don't provide x_tag as kwarg, hence we would always convert tags here
         if not isinstance(x, TaggedArray):
             x = _to_tagged_array(x, prepare_kwargs.pop("x_tag", Tag.POINT_CLOUD))
