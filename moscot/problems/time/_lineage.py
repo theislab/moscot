@@ -4,12 +4,12 @@ from numbers import Number
 import logging
 
 import pandas as pd
-import scanpy as sc
 
 import numpy as np
 import numpy.typing as npt
 
 from anndata import AnnData
+import scanpy as sc
 
 from moscot.problems import MultiMarginalProblem
 from moscot.solvers._output import BaseSolverOutput
@@ -135,20 +135,17 @@ class TemporalProblem(TemporalAnalysisMixin, SingleCompoundProblem):
             **kwargs,
         )
 
-    def _create_problems(
-        self, init_kwargs: Mapping[str, Any] = MappingProxyType({}), **kwargs: Any
-    ) -> Dict[Tuple[Any, Any], TemporalBaseProblem]:
-        return {
-            (x, y): self._base_problem_type(
-                self._mask(x, x_mask, self._adata_src),
-                self._mask(y, y_mask, self._adata_tgt),
-                solver=self._solver,
-                start=x,
-                end=y,
-                **init_kwargs,
-            ).prepare(**kwargs)
-            for (x, y), (x_mask, y_mask) in self._policy.mask().items()
-        }
+    def _create_problem(
+        self, x: Any, x_mask: npt.ArrayLike, y: Any, y_mask: npt.ArrayLike, **kwargs: Any
+    ) -> TemporalBaseProblem:
+        return self._base_problem_type(
+            self._mask(x_mask, adata=self._adata_src),
+            self._mask(y_mask, adata=self._adata_tgt),
+            solver=self._solver,
+            start=x,
+            end=y,
+            **kwargs,
+        )
 
     def push(
         self,

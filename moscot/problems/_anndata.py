@@ -1,8 +1,10 @@
-from typing import Any, Optional
+from typing import Any, Union, Optional
 from dataclasses import dataclass
 
-import numpy as np
+from scipy.sparse import issparse
 import scipy
+
+import numpy as np
 import numpy.typing as npt
 
 from anndata import AnnData
@@ -16,7 +18,9 @@ __all__ = ("AnnDataPointer",)
 
 @dataclass(frozen=True)
 class AnnDataPointer:
-    adata: AnnData
+    # TODO(michalk8): think about refactoring
+    # alt. would be if tagged array is directly passed in the GeneralProblem, but also messy
+    adata: Union[AnnData, npt.ArrayLike]
     attr: str
     key: Optional[str] = None
     use_raw: Optional[bool] = False
@@ -38,10 +42,14 @@ class AnnDataPointer:
             if self.loss in moscot_losses:
                 container = BaseLoss(kind=self.loss).create(**kwargs)
                 return TaggedArray(container, tag=self.tag, loss=None)
+            if not isinstance(self.adata, AnnData):
+                return TaggedArray(ensure_2D(self.adata), tag=self.tag, loss=None)
+
             if not hasattr(self.adata, self.attr):
                 raise AttributeError("TODO: invalid attribute")
             container = getattr(self.adata, self.attr)
-            if scipy.sparse.issparse(container):
+
+            if issparse(container):
                 container = container.A
             if self.key is None:
                 return TaggedArray(ensure_2D(container), tag=self.tag, loss=None)

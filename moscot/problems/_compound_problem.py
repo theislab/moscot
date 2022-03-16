@@ -56,22 +56,23 @@ class CompoundBaseProblem(BaseProblem, ABC):
     def _create_problems(
         self,
         cost_cb: Callback_t = None,
-        init_kwargs: Mapping[str, Any] = MappingProxyType({}),
         cb_kwargs: Mapping[str, Any] = MappingProxyType({}),
         **kwargs: Any,
     ) -> Dict[Tuple[Any, Any], BaseProblem]:
         problems = {}
         for (x, y), (x_mask, y_mask) in self._policy.mask().items():
-            problem = self._create_problem(x_mask, y_mask, **init_kwargs)
+            problem = self._create_problem(x=x, x_mask=x_mask, y=y, y_mask=y_mask)
             if cost_cb is not None:
                 # TODO(michalk8): use GeneralProblem, not BaseProblem?
                 if cost_cb == "pca_local":
                     cost_matrix = problem._compute_pca(**cb_kwargs)
                 else:
-                    cost_matrix = cost_cb(problem.adata, problem._adata_y, **kwargs)
+                    cost_matrix = cost_cb(problem.adata, problem._adata_y, **cb_kwargs)
                 # TODO(michalk8): extend for GW
+                kwargs = dict(kwargs)
                 kind = "xy" if problem.solver.problem_kind == ProblemKind.QUAD_FUSED else "x"
-                kwargs[kind] = {"tag": Tag.COST_MATRIX, "data": cost_matrix}
+                kwargs[kind] = {"tag": Tag.COST_MATRIX, "adata": cost_matrix}
+
             problems[x, y] = problem = problem.prepare(**kwargs)
             if not isinstance(problem, BaseProblem):
                 raise TypeError("TODO: wrong type")
@@ -86,9 +87,7 @@ class CompoundBaseProblem(BaseProblem, ABC):
         axis: Axis_t = "obs",
         reference: Optional[Any] = None,
         cost_cb: Optional[Union[Literal["pca_local"], Callable[[AnnData, Any], npt.ArrayLike]]] = None,
-        init_kwargs: Mapping[str, Any] = MappingProxyType({}),
-        cost_cb_kwargs: Mapping[str, Any] = MappingProxyType({}),
-        # TODO(michalk8): use kwargs for callback kwargs
+        cb_kwargs: Mapping[str, Any] = MappingProxyType({}),
         **kwargs: Any,
     ) -> "CompoundProblem":
         self._policy = self._create_policy(policy=policy, key=key, axis=axis)
@@ -99,7 +98,7 @@ class CompoundBaseProblem(BaseProblem, ABC):
         else:
             self._policy = self._policy(filter=subset)
 
-        self._problems = self._create_problems(init_kwargs=init_kwargs, **kwargs)
+        self._problems = self._create_problems(cost_cb=cost_cb, cb_kwargs=cb_kwargs, **kwargs)
         self._solutions = None
 
         return self
@@ -205,7 +204,9 @@ class CompoundBaseProblem(BaseProblem, ABC):
 
 
 class SingleCompoundProblem(CompoundBaseProblem):
-    def _create_problem(self, x_mask: npt.ArrayLike, y_mask: npt.ArrayLike, **kwargs: Any) -> BaseProblem:
+    def _create_problem(
+        self, x: Any, x_mask: npt.ArrayLike, y: Any, y_mask: npt.ArrayLike, **kwargs: Any
+    ) -> BaseProblem:
         return self._base_problem_type(
             self._mask(x_mask, self._adata_src),
             self._mask(y_mask, self._adata_tgt),
