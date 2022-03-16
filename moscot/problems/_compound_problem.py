@@ -17,7 +17,7 @@ from moscot.problems._subset_policy import Axis_t, StarPolicy, SubsetPolicy, Exp
 
 __all__ = ("SingleCompoundProblem", "MultiCompoundProblem", "CompoundProblem")
 
-from moscot.solvers._tagged_array import Tag
+from moscot.solvers._tagged_array import Tag, TaggedArray
 
 Callback_t = Optional[Union[Literal["pca_local"], Callable[[AnnData, Optional[AnnData], Any], npt.ArrayLike]]]
 
@@ -71,7 +71,7 @@ class CompoundBaseProblem(BaseProblem, ABC):
                 # TODO(michalk8): extend for GW
                 kwargs = dict(kwargs)
                 kind = "xy" if problem.solver.problem_kind == ProblemKind.QUAD_FUSED else "x"
-                kwargs[kind] = {"tag": Tag.COST_MATRIX, "adata": cost_matrix}
+                kwargs[kind] = TaggedArray(data=cost_matrix, tag=Tag.COST_MATRIX)
 
             problems[x, y] = problem = problem.prepare(**kwargs)
             if not isinstance(problem, BaseProblem):

@@ -170,20 +170,23 @@ class GeneralProblem(BaseProblem):
 
     def prepare(
         self,
-        x: Mapping[str, Any] = MappingProxyType({}),
-        y: Optional[Mapping[str, Any]] = None,
-        xy: Optional[Mapping[str, Any]] = None,
+        x: Union[TaggedArray, Mapping[str, Any]] = MappingProxyType({}),
+        y: Optional[Union[TaggedArray, Mapping[str, Any]]] = None,
+        xy: Optional[Union[TaggedArray, Mapping[str, Any]]] = None,
         a: Optional[Union[str, npt.ArrayLike]] = None,
         b: Optional[Union[str, npt.ArrayLike]] = None,
         **kwargs: Any,
     ) -> "GeneralProblem":
-        self._x = AnnDataPointer(adata=self.adata, **x).create(**kwargs)
-        self._y = None if y is None else AnnDataPointer(adata=self._adata_y, **y).create(**kwargs)
-        self._xy = (
-            None
-            if xy is None or self.solver.problem_kind != ProblemKind.QUAD_FUSED
-            else self._handle_joint(**xy, create_kwargs=kwargs)
+        self._x = x if isinstance(x, TaggedArray) else AnnDataPointer(adata=self.adata, **x).create(**kwargs)
+        self._y = (
+            y if y is None or isinstance(y, TaggedArray) else AnnDataPointer(adata=self._adata_y, **y).create(**kwargs)
         )
+        if self.solver.problem_kind != ProblemKind.QUAD_FUSED:
+            self._xy = None
+        else:
+            self._xy = (
+                xy if xy is None or isinstance(xy, TaggedArray) else self._handle_joint(**xy, create_kwargs=kwargs)
+            )
 
         self._a = self._get_or_create_marginal(self.adata, a)
         self._b = self._get_or_create_marginal(self._marginal_b_adata, b)
