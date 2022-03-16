@@ -11,6 +11,8 @@ from moscot._utils import _get_backend_losses
 from moscot.costs._costs import __all__ as moscot_losses, BaseLoss
 from moscot.solvers._tagged_array import Tag, TaggedArray
 
+__all__ = ("AnnDataPointer",)
+
 
 @dataclass(frozen=True)
 class AnnDataPointer:
