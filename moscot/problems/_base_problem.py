@@ -172,7 +172,7 @@ class GeneralProblem(BaseProblem):
         self,
         x: Union[TaggedArray, Mapping[str, Any]] = MappingProxyType({}),
         y: Optional[Union[TaggedArray, Mapping[str, Any]]] = None,
-        xy: Optional[Union[TaggedArray, Mapping[str, Any]]] = None,
+        xy: Optional[Union[Tuple[TaggedArray, TaggedArray], Mapping[str, Any]]] = None,
         a: Optional[Union[str, npt.ArrayLike]] = None,
         b: Optional[Union[str, npt.ArrayLike]] = None,
         **kwargs: Any,
@@ -184,9 +184,7 @@ class GeneralProblem(BaseProblem):
         if self.solver.problem_kind != ProblemKind.QUAD_FUSED:
             self._xy = None
         else:
-            self._xy = (
-                xy if xy is None or isinstance(xy, TaggedArray) else self._handle_joint(**xy, create_kwargs=kwargs)
-            )
+            self._xy = xy if xy is None or isinstance(xy, tuple) else self._handle_joint(**xy, create_kwargs=kwargs)
 
         self._a = self._get_or_create_marginal(self.adata, a)
         self._b = self._get_or_create_marginal(self._marginal_b_adata, b)
