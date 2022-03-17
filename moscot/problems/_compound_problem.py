@@ -119,7 +119,9 @@ class CompoundBaseProblem(BaseProblem, ABC):
     ) -> "CompoundProblem":
         self._solutions = {}
         for subset, problem in self._problems.items():
-            self._solutions[subset] = problem.solve(epsilon=epsilon, alpha=alpha, tau_a=tau_a, tau_b=tau_b, **kwargs)
+            self._solutions[subset] = problem.solve(
+                epsilon=epsilon, alpha=alpha, tau_a=tau_a, tau_b=tau_b, **kwargs
+            ).solution
 
         return self
 
