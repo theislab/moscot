@@ -199,6 +199,10 @@ class CompoundBaseProblem(BaseProblem, ABC):
     def solution(self) -> Optional[Dict[Tuple[Any, Any], BaseSolverOutput]]:
         return self._solutions
 
+    @property
+    def problems(self) -> Optional[Dict[Tuple[Any, Any], BaseProblem]]:
+        return self._problems
+
     def __getitem__(self, item: Tuple[Any, Any]) -> BaseSolverOutput:
         return self._problems[item]
 
