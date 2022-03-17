@@ -98,7 +98,6 @@ class BaseSolver(TagConverterMixin, ABC):
         tau_a: float = 1.0,
         tau_b: float = 1.0,
         epsilon: Optional[float] = None,
-        rank: int = None,
         solve_kwargs: Mapping[str, Any] = MappingProxyType({}),
         **prepare_kwargs: Any,
     ) -> BaseSolverOutput:
