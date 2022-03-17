@@ -77,9 +77,11 @@ class CompoundBaseProblem(BaseProblem, ABC):
                     problem.solver.problem_kind,
                     **callback_kwargs,
                 )
-                x_key, y_key = ("xx", "yy") if self.solver.problem_kind == ProblemKind.QUAD_FUSED else ("x", "y")
-                kwargs_[x_key] = x if x is not None else kwargs_.get(x_key, None)
-                kwargs_[y_key] = y if y is not None else kwargs_.get(y_key, None)
+                if problem.solver.problem_kind != ProblemKind.QUAD_FUSED:
+                    kwargs_["x"] = x
+                    kwargs_["y"] = y
+                elif x is not None and y is not None:
+                    kwargs_["xy"] = (x, y)
 
             problems[src, tgt] = problem.prepare(**kwargs_)
 

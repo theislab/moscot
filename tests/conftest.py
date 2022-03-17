@@ -98,8 +98,10 @@ def adata_xy(xy_cost: jnp.ndarray) -> AnnData:
 @pytest.fixture()
 def adata_time() -> AnnData:
     rng = np.random.RandomState(42)
-    adatas = [AnnData(rng.normal(size=(96, 5))) for i in range(3)]
-    return adatas[0].concatenate(*adatas[1:], batch_key="time")
+    adatas = [AnnData(X=rng.normal(size=(96, 30))) for _ in range(3)]
+    adata = adatas[0].concatenate(*adatas[1:], batch_key="time")
+
+    return adata
 
 
 def create_marginals(n: int, m: int, *, uniform: bool = False, seed: Optional[int] = None) -> Geom_t:
