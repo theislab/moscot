@@ -12,4 +12,5 @@ numpy>=1.20.0
 ott-jax>=0.2.0
 pandas>=1.3.0
 pot>=0.8.0
+scanpy
 typing_extensions

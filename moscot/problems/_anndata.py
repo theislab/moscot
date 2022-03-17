@@ -1,8 +1,10 @@
 from typing import Any, Optional
 from dataclasses import dataclass
 
-import numpy as np
+from scipy.sparse import issparse
 import scipy
+
+import numpy as np
 import numpy.typing as npt
 
 from anndata import AnnData
@@ -41,7 +43,8 @@ class AnnDataPointer:
             if not hasattr(self.adata, self.attr):
                 raise AttributeError("TODO: invalid attribute")
             container = getattr(self.adata, self.attr)
-            if scipy.sparse.issparse(container):
+
+            if issparse(container):
                 container = container.A
             if self.key is None:
                 return TaggedArray(ensure_2D(container), tag=self.tag, loss=None)
@@ -52,6 +55,7 @@ class AnnDataPointer:
                 # TODO(michalk8): check if array-like
                 # TODO(michalk8): here we'd construct custom loss (BC/graph distances)
                 return TaggedArray(container, tag=self.tag, loss=None)
+            # TODO(michalk8): not reachable...
             raise ValueError(f"The loss `{self.loss}` is not implemented. Please provide your own cost matrix.")
 
         backend_losses = _get_backend_losses(**kwargs)  # TODO: put in registry
