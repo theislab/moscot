@@ -2,7 +2,7 @@ from typing import Any, Dict, List, Mapping, Optional
 import warnings
 
 from ot import sinkhorn, sinkhorn_unbalanced
-from ot.gromov import fused_gromov_wasserstein, entropic_gromov_wasserstein
+from ot.gromov import entropic_gromov_wasserstein
 from ot.backend import get_backend
 from typing_extensions import Literal
 import ot
@@ -14,6 +14,7 @@ from moscot.solvers._output import BaseSolverOutput
 from moscot.backends.pot._output import POTOutput
 from moscot.solvers._base_solver import ProblemKind, ContextlessBaseSolver
 from moscot.solvers._tagged_array import TaggedArray
+from moscot.backends.pot._fused_gw import fused_gromov_wasserstein
 
 __all__ = ("SinkhornSolver", "GWSolver", "FGWSolver")
 
@@ -105,8 +106,6 @@ class FGWSolver(GWSolver):
         data = super()._prepare_input(x=x, y=y, epsilon=epsilon, **kwargs)
         data["M"] = _create_cost_matrix(xx, y=yy, **kwargs)
         data["alpha"] = alpha
-        # TODO(michalk8): reimplement with epsilon a la `novosparc`
-        _ = data.pop("epsilon")
 
         return data
 
@@ -114,8 +113,7 @@ class FGWSolver(GWSolver):
         kwargs["log"] = True
         T, log = fused_gromov_wasserstein(**data, **kwargs)
         cost = log["fgw_dist"]
-        # TODO(michalk8): there's no convergence warning/flag in log that sets whether we converged...
-        return POTOutput(T, cost=cost, converged=np.isfinite(cost))
+        return POTOutput(T, cost=cost, converged=log["converged"])
 
     @property
     def problem_kind(self) -> ProblemKind:
