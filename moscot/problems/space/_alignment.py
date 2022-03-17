@@ -4,11 +4,6 @@ from typing import Any, Mapping, Optional
 
 from typing_extensions import Literal
 
-try:
-    pass
-except ImportError:
-    pass
-
 from anndata import AnnData
 
 from moscot.backends.ott import FGWSolver
@@ -16,7 +11,7 @@ from moscot.problems._base_problem import GeneralProblem
 from moscot.problems._compound_problem import SingleCompoundProblem
 
 
-class SpatialAlignmentProblem(SingleCompoundProblem):
+class AlignmentProblem(SingleCompoundProblem):
     """Spatial alignment problem."""
 
     def __init__(
@@ -29,11 +24,14 @@ class SpatialAlignmentProblem(SingleCompoundProblem):
         super().__init__(adata, solver=solver)
 
     @property
-    def adata(
-        self,
-    ) -> AnnData:
+    def adata(self) -> AnnData:
         """Return adata."""
         return self._adata
+
+    @property
+    def problems(self) -> GeneralProblem:
+        """Return problems."""
+        return self._problems
 
     def prepare(
         self,
