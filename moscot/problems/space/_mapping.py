@@ -24,14 +24,15 @@ class MappingProblem(SingleCompoundProblem, SpatialMappingAnalysisMixin):
     ):
         """Init method."""
         # keep orig adatas
-        self._adata_ref = adata_sc
+
         self._adata_sp = adata_sp
         self.use_reference = use_reference
 
         # filter genes
-        adata_sc, adata_sp = self.filter_vars(adata_sc, adata_sp, var_names, use_reference)
+        adata_sc_filter, adata_sp_filter = self.filter_vars(adata_sc, adata_sp, var_names, use_reference)
         solver = FGWSolver(rank=rank, **kwargs) if use_reference else GWSolver(rank=rank, **kwargs)
-        super().__init__(adata_sp, solver=solver)
+        super().__init__(adata_sp_filter, solver=solver)
+        self._adata_ref = adata_sc_filter
 
     @property
     def adata_sp(self) -> AnnData:
