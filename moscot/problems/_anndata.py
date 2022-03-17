@@ -1,4 +1,4 @@
-from typing import Any, Union, Optional
+from typing import Any, Optional
 from dataclasses import dataclass
 
 from scipy.sparse import issparse
@@ -18,9 +18,7 @@ __all__ = ("AnnDataPointer",)
 
 @dataclass(frozen=True)
 class AnnDataPointer:
-    # TODO(michalk8): think about refactoring
-    # alt. would be if tagged array is directly passed in the GeneralProblem, but also messy
-    adata: Union[AnnData, npt.ArrayLike]
+    adata: AnnData
     attr: str
     key: Optional[str] = None
     use_raw: Optional[bool] = False
@@ -42,9 +40,6 @@ class AnnDataPointer:
             if self.loss in moscot_losses:
                 container = BaseLoss(kind=self.loss).create(**kwargs)
                 return TaggedArray(container, tag=self.tag, loss=None)
-            if not isinstance(self.adata, AnnData):
-                return TaggedArray(ensure_2D(self.adata), tag=self.tag, loss=None)
-
             if not hasattr(self.adata, self.attr):
                 raise AttributeError("TODO: invalid attribute")
             container = getattr(self.adata, self.attr)
@@ -60,6 +55,7 @@ class AnnDataPointer:
                 # TODO(michalk8): check if array-like
                 # TODO(michalk8): here we'd construct custom loss (BC/graph distances)
                 return TaggedArray(container, tag=self.tag, loss=None)
+            # TODO(michalk8): not reachable...
             raise ValueError(f"The loss `{self.loss}` is not implemented. Please provide your own cost matrix.")
 
         backend_losses = _get_backend_losses(**kwargs)  # TODO: put in registry

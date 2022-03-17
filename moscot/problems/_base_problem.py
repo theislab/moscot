@@ -6,6 +6,7 @@ import numpy as np
 import numpy.typing as npt
 
 from anndata import AnnData
+import scanpy as sc
 
 from moscot.backends.ott import SinkhornSolver
 from moscot.solvers._output import BaseSolverOutput
@@ -242,8 +243,6 @@ class GeneralProblem(BaseProblem):
         layer: Optional[str] = None,
         **kwargs: Any,
     ) -> Tuple[TaggedArray, Optional[TaggedArray]]:
-        import scanpy as sc
-
         n = adata.n_obs
         if problem_kind not in (ProblemKind.LINEAR, ProblemKind.QUAD_FUSED):
             raise NotImplementedError("TODO: invalid problem type")
