@@ -65,7 +65,6 @@ class SpatialMappingAnalysisMixin(SpatialAnalysisMixin):
                 if not issparse(self.adata_sp.X)
                 else self.adata_sp[index_obs, var_sc].X.A
             )
-            gexp_sp = self.adata_sp[:, var_sc].X if not issparse(self.adata_sp.X) else self.adata_sp[:, var_sc].X.A
             transport_matrix = prob_val.solution.scaled_transport(forward=False)
             gexp_pred_sp = np.dot(transport_matrix, gexp_sc)
             corr_val = [cor(gexp_pred_sp[:, gi], gexp_sp[:, gi])[0] for gi, _ in enumerate(var_sc)]
@@ -80,5 +79,8 @@ class SpatialMappingAnalysisMixin(SpatialAnalysisMixin):
         for _, prob_val in self.solution.items():
             transport_matrix = prob_val.solution.scaled_transport(forward=False)
             pred_list.append(np.dot(transport_matrix, gexp_sc))
-        gexp_pred = np.nan_to_num(np.vstack(pred_list), 0, copy=False)
-        return AnnData(gexp_pred, obs_names=self.adata_sp.obs_names.copy(), var_names=self.adata_sc.var_names.copy())
+            print(pred_list[0].shape)
+        adata_pred = AnnData(np.nan_to_num(np.vstack(pred_list), nan=0.0, copy=False))
+        adata_pred.obs_names = self.adata_sp.obs_names.values.copy()
+        adata_pred.var_names = self.adata_sc.var_names.values.copy()
+        return adata_pred
