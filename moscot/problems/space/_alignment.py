@@ -38,7 +38,6 @@ class AlignmentProblem(SingleCompoundProblem):
         policy: Literal["sequential", "pairwise", "triu", "tril", "explicit", "external_star"] = "sequential",
         spatial_key: str = "spatial",
         attr_joint: Mapping[str, Any] = None,
-        rank: int = None,
         **kwargs: Any,
     ) -> GeneralProblem:
         """Prepare method."""

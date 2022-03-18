@@ -1,6 +1,9 @@
-from typing import List, Tuple, Optional
+from __future__ import annotations
+
+from typing import Set, List, Tuple, Optional
 
 from scipy.stats import pearsonr
+from scipy.sparse import issparse
 import scipy
 import pandas as pd
 
@@ -30,55 +33,47 @@ class SpatialMappingAnalysisMixin(SpatialAnalysisMixin):
         adata_sp: AnnData,
         var_names: Optional[List[str]] = None,
         use_reference: bool = False,
-    ) -> Tuple[AnnData, AnnData]:
+    ) -> Tuple[AnnData, AnnData, Set | None]:
         """Filter variables for Sinkhorn tem."""
         vars_sc = set(adata_sc.var_names)  # TODO: allow alternative gene symbol by passing var_key
         vars_sp = set(adata_sp.var_names)
         var_names = set(var_names) if var_names is not None else None
-        if var_names is None:
+        if use_reference is True and var_names is None:
             var_names = vars_sp.intersection(vars_sc)
             if len(var_names):
-                return adata_sc[:, list(var_names)], adata_sp[:, list(var_names)]
+                return adata_sc[:, list(var_names)], adata_sp[:, list(var_names)], var_names
             else:
                 raise ValueError("`adata_sc` and `adata_sp` do not share `var_names`. Input valid `var_names`.")
         else:
             if not use_reference:
-                return adata_sc, adata_sp
+                return adata_sc, adata_sp, None
             elif use_reference and var_names.issubset(vars_sc) and var_names.issubset(vars_sp):
-                return adata_sc[:, list(var_names)], adata_sp[:, list(var_names)]
+                return adata_sc[:, list(var_names)], adata_sp[:, list(var_names)], var_names
             else:
                 raise ValueError("Some `var_names` ares missing in either `adata_sc` or `adata_sp`.")
 
-    def correlate(
-        self,
-        adata_sc,
-        adata_sp,
-        transport_matrix: npt.ArrayLike,
-        var_names: Optional[List[str]] = None,
-        key_pred: str = None,
-    ):
-        """
-        Calculate correlation between the predicted gene expression and observed in tissue space.
+    def corr_map(self):
+        """Calculate correlation between true and predicted gexp in space."""
+        var_sc = list(set(self.adata_sc.var_names).intersection(self.adata_sp.var_names))
+        if not len(var_sc):
+            raise ValueError("No overlapping `var_names` between ` adata_sc` and `adata_sp`.")
 
-        Parameters
-        ----------
-        transport_matrix: learnt transport_matrix - - assumes [n_cell_sp X n_cells_sc]
-        var_names: genes to correlate, if none correlate all.
+        corr_dic = {}
+        gexp_sc = self.adata_sc[:, var_sc].X if not issparse(self.adata_sc.X) else self.adata_sc[:, var_sc].X.A
+        for prob_key, prob_val in self.solution.items():
+            index_obs = self.adata_sp.obs[self._policy._subset_key] == prob_key[0]
+            gexp_sp = (
+                self.adata_sp[index_obs, var_sc].X
+                if not issparse(self.adata_sp.X)
+                else self.adata_sp[index_obs, var_sc].X.A
+            )
+            gexp_sp = self.adata_sp[:, var_sc].X if not issparse(self.adata_sp.X) else self.adata_sp[:, var_sc].X.A
+            transport_matrix = prob_val.solution.scaled_transport(forward=False)
+            gexp_pred_sp = np.asarray(np.dot(transport_matrix, gexp_sc))
+            corr_val = [pearsonr(gexp_pred_sp[:, gi], gexp_sp[:, gi])[0] for gi, g in enumerate(var_sc)]
+            corr_dic[prob_key] = pd.Series(corr_val, index=var_sc)
 
-        Returns
-        -------
-        corr_val: the pearsonr correlation
-        """
-        adata_sc, adata_sp = self.filter_vars(adata_sc, adata_sp, var_names)
-        if scipy.sparse.issparse(adata_sc.X):
-            adata_sc.X = adata_sc.X.A
-        if scipy.sparse.issparse(adata_sp.X):
-            adata_sp.X = adata_sp.X.A
-        sp_gex_pred = np.asarray(jnp.dot(transport_matrix, adata_sc.X))
-        corr_val = np.nanmean(
-            [pearsonr(sp_gex_pred[:, gi], adata_sp.X[:, gi])[0] for gi, g in enumerate(adata_sp.var_names)]
-        )
-        return corr_val
+        return corr_dic
 
     def get_imputation(
         self,

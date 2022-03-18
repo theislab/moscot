@@ -19,20 +19,22 @@ class MappingProblem(SingleCompoundProblem, SpatialMappingAnalysisMixin):
         adata_sp: Optional[AnnData] = None,
         use_reference: bool = False,
         var_names: List[str] | bool | None = None,
-        rank: Optional[int] = None,
+        solver_jit: Optional[bool] = None,
         **kwargs: Any,
     ):
         """Init method."""
         # keep orig adatas
 
         self._adata_sp = adata_sp
+        self._adata_sc = adata_sc
         self.use_reference = use_reference
 
         # filter genes
-        adata_sc_filter, adata_sp_filter = self.filter_vars(adata_sc, adata_sp, var_names, use_reference)
-        solver = FGWSolver(rank=rank, **kwargs) if use_reference else GWSolver(rank=rank, **kwargs)
+        adata_sc_filter, adata_sp_filter, filtered_vars = self.filter_vars(adata_sc, adata_sp, var_names, use_reference)
+        solver = FGWSolver(jit=solver_jit) if use_reference else GWSolver(jit=solver_jit)
         super().__init__(adata_sp_filter, solver=solver)
         self._adata_ref = adata_sc_filter
+        self._filtered_vars = filtered_vars
 
     @property
     def adata_sp(self) -> AnnData:
@@ -42,7 +44,12 @@ class MappingProblem(SingleCompoundProblem, SpatialMappingAnalysisMixin):
     @property
     def adata_sc(self) -> AnnData:
         """Return single cell adata."""
-        return self._adata_ref
+        return self._adata_sc
+
+    @property
+    def filtered_vars(self) -> List[str]:
+        """Return filtered variables."""
+        return self._filtered_vars
 
     @property
     def problems(self) -> GeneralProblem:
@@ -70,6 +77,18 @@ class MappingProblem(SingleCompoundProblem, SpatialMappingAnalysisMixin):
             return super().prepare(x=attr_sp, y=attr_sc, xy=attr_joint, policy="external_star", **kwargs)
         else:
             return super().prepare(x=attr_sp, y=attr_sc, policy="external_star", **kwargs)
+
+    def solve(
+        self,
+        epsilon: Optional[float] = None,
+        alpha: float = 0.5,
+        tau_a: Optional[float] = 1.0,
+        tau_b: Optional[float] = 1.0,
+        rank: Optional[int] = None,
+        **kwargs: Any,
+    ) -> GeneralProblem:
+        """Solve method."""
+        return super().solve(epsilon=epsilon, alpha=alpha, tau_a=tau_a, tau_b=tau_b, rank=rank, **kwargs)
 
     def _mask(self, key: Any, mask, adata: AnnData) -> AnnData:
         if key is self._policy._SENTINEL:

@@ -37,7 +37,7 @@ __all__ = (
 class SubsetPolicy:
     class Category:
         def __init__(self, cats: Sequence[Any]):
-            #assert len(cats) > 1, "TODO: too few categories"
+            # assert len(cats) > 1, "TODO: too few categories"
             self._i2c = tuple(cats)
             self._c2i = dict(zip(cats, range(len(cats))))
             self._next_cat = dict(zip(cats[:-1], cats[1:]))
@@ -87,6 +87,7 @@ class SubsetPolicy:
         self._axis = axis
         self._subset: Optional[List[Item_t]] = None
         self._cat = self.Category(self._data.cat.categories)
+        self._subset_key: Optional[str] = key
 
     @abstractmethod
     def _create_subset(self, *args: Any, **kwargs: Any) -> Sequence[Item_t]:
