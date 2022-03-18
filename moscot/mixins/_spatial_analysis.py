@@ -5,12 +5,9 @@ from typing import Set, List, Tuple, Optional
 from scipy.stats import pearsonr, spearmanr
 from scipy.sparse import issparse
 from typing_extensions import Literal
-import scipy
 import pandas as pd
 
 import numpy as np
-import jax.numpy as jnp
-import numpy.typing as npt
 
 from anndata import AnnData
 
@@ -53,7 +50,7 @@ class SpatialMappingAnalysisMixin(SpatialAnalysisMixin):
             else:
                 raise ValueError("Some `var_names` ares missing in either `adata_sc` or `adata_sp`.")
 
-    def corr_map(self, corr_method: Literal["pearson", "spearman"] = "pearson"):
+    def correlate(self, corr_method: Literal["pearson", "spearman"] = "pearson"):
         """Calculate correlation between true and predicted gexp in space."""
         var_sc = list(set(self.adata_sc.var_names).intersection(self.adata_sp.var_names))
         if not len(var_sc):
@@ -76,28 +73,12 @@ class SpatialMappingAnalysisMixin(SpatialAnalysisMixin):
 
         return corr_dic
 
-    def get_imputation(
-        self,
-        adata_sc,
-        adata_sp,
-        transport_matrix: npt.ArrayLike,
-        var_names: Optional[List[str]] = None,
-    ) -> pd.DataFrame:
-        """
-        Return imputation of spatial expression of given genes.
-
-        Parameters
-        ----------
-        transport_matrix: learnt transport_matrix - - assumes [n_cell_sp X n_cells_sc]
-        var_names: genes to correlate, if none correlate all.
-
-        Returns
-        -------
-        genes_impute; df of spatial gex
-        """
-        adata_sc = self.filter_vars(adata_sc, var_names=var_names)
-        if scipy.sparse.issparse(adata_sc.X):
-            adata_sc.X = adata_sc.X.A
-        sp_gex_pred = np.asarray(jnp.dot(transport_matrix, self.adata_ref.X))
-        sp_gex_pred = pd.DataFrame(sp_gex_pred, index=adata_sp.obs_names, columns=adata_sc.var_names)
-        return sp_gex_pred
+    def impute(self) -> AnnData:
+        """Return imputation of spatial expression of given genes."""
+        gexp_sc = self.adata_sc.X if not issparse(self.adata_sc.X) else self.adata_sc.X.A
+        pred_list = []
+        for _, prob_val in self.solution.items():
+            transport_matrix = prob_val.solution.scaled_transport(forward=False)
+            pred_list.append(np.dot(transport_matrix, gexp_sc))
+        gexp_pred = np.nan_to_num(np.vstack(pred_list), 0, copy=False)
+        return AnnData(gexp_pred, obs_names=self.adata_sp.obs_names.copy(), var_names=self.adata_sc.var_names.copy())
