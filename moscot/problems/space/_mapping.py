@@ -23,18 +23,19 @@ class MappingProblem(SingleCompoundProblem, SpatialMappingAnalysisMixin):
         **kwargs: Any,
     ):
         """Init method."""
-        # keep orig adatas
-
         self._adata_sp = adata_sp
         self._adata_sc = adata_sc
-        self.use_reference = use_reference
+        self._use_reference = use_reference
 
         # filter genes
-        adata_sc_filter, adata_sp_filter, filtered_vars = self.filter_vars(adata_sc, adata_sp, var_names, use_reference)
-        solver = FGWSolver(jit=solver_jit) if use_reference else GWSolver(jit=solver_jit)
-        super().__init__(adata_sp_filter, solver=solver)
-        self._adata_ref = adata_sc_filter
-        self._filtered_vars = filtered_vars
+        self._filtered_vars = self._filter_vars(adata_sc, adata_sp, var_names, use_reference)
+        solver = (
+            FGWSolver(jit=solver_jit) if use_reference and self._filtered_vars is not None else GWSolver(jit=solver_jit)
+        )
+        self._adata_ref = adata_sc[:, list(self._filtered_vars)] if self._filtered_vars is not None else adata_sc
+        super().__init__(
+            adata_sp[:, list(self._filtered_vars)] if self._filtered_vars is not None else adata_sp, solver=solver
+        )
 
     @property
     def adata_sp(self) -> AnnData:
@@ -66,6 +67,7 @@ class MappingProblem(SingleCompoundProblem, SpatialMappingAnalysisMixin):
         attr_sc: str | Mapping[str, Any],
         attr_sp: str | Mapping[str, Any],
         attr_joint: str | Mapping[str, Any] | None = None,
+        key: str | None = None,
         **kwargs: Any,
     ) -> GeneralProblem:
         """Prepare method."""
@@ -73,10 +75,10 @@ class MappingProblem(SingleCompoundProblem, SpatialMappingAnalysisMixin):
         attr_sp = {"attr": "obsm", "key": f"{attr_sp}"} if isinstance(attr_sp, str) is str else attr_sp
         attr_joint = {"x_attr": "X", "y_attr": "X"} if attr_joint is None else attr_joint
 
-        if self.use_reference:
-            return super().prepare(x=attr_sp, y=attr_sc, xy=attr_joint, policy="external_star", **kwargs)
+        if self._use_reference and self.filtered_vars is not None:
+            return super().prepare(x=attr_sp, y=attr_sc, xy=attr_joint, policy="external_star", key=key, **kwargs)
         else:
-            return super().prepare(x=attr_sp, y=attr_sc, policy="external_star", **kwargs)
+            return super().prepare(x=attr_sp, y=attr_sc, policy="external_star", key=key, **kwargs)
 
     def solve(
         self,

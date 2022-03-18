@@ -73,13 +73,21 @@ class SubsetPolicy:
         self, adata: Union[AnnData, pd.Series, pd.Categorical], key: Optional[str] = None, axis: Axis_t = "obs"
     ):
         if isinstance(adata, AnnData):
-            # TODO(michalk8): raise nicer KeyError
-            if axis == "obs":
-                self._data = pd.Series(adata.obs[key])
-            elif axis == "var":
-                self._data = pd.Series(adata.var[key])
+            # TODO(michalk8): raise nicer KeyError (giovp) this way we can solve for full anndata with key=None
+            if key is not None:
+                if axis == "obs":
+                    self._data = pd.Series(adata.obs[key])
+                elif axis == "var":
+                    self._data = pd.Series(adata.var[key])
+                else:
+                    raise ValueError(f"TODO: wrong axis `{axis}`")
             else:
-                raise ValueError(f"TODO: wrong axis `{axis}`")
+                if axis == "obs":
+                    self._data = pd.Series(np.ones(adata.shape[0], dtype=str), index=adata.obs_names).astype("category")
+                elif axis == "var":
+                    self._data = pd.Series(np.ones(adata.shape[0], dtype=str), index=adata.var_names).astype("category")
+                else:
+                    raise ValueError(f"TODO: wrong axis `{axis}`")
         else:
             self._data = adata
         if not hasattr(self._data, "cat"):

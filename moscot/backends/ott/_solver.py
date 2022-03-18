@@ -67,6 +67,7 @@ class GeometryMixin:
         if y is not None:
             cost_fn = self._create_cost(x.loss if y.loss is None else y.loss)
             x, y = self._assert2d(x.data), self._assert2d(y.data)
+            print(x.shape, y.shape)
             if x.shape[1] != y.shape[1]:
                 raise ValueError("TODO: x/y dimension mismatch")
             return PointCloud(x, y=y, epsilon=epsilon, cost_fn=cost_fn, online=online)

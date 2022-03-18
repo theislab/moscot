@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Set, List, Tuple, Optional
+from typing import Set, List, Optional
 
 from scipy.stats import pearsonr, spearmanr
 from scipy.sparse import issparse
@@ -25,13 +25,13 @@ class SpatialAlignmentAnalysisMixin(AnalysisMixin):
 class SpatialMappingAnalysisMixin(SpatialAnalysisMixin):
     """Spatial mapping analysis mixin class."""
 
-    def filter_vars(
+    def _filter_vars(
         self,
         adata_sc: AnnData,
         adata_sp: AnnData,
         var_names: Optional[List[str]] = None,
         use_reference: bool = False,
-    ) -> Tuple[AnnData, AnnData, Set | None]:
+    ) -> Set | None:
         """Filter variables for Sinkhorn tem."""
         vars_sc = set(adata_sc.var_names)  # TODO: allow alternative gene symbol by passing var_key
         vars_sp = set(adata_sp.var_names)
@@ -39,16 +39,13 @@ class SpatialMappingAnalysisMixin(SpatialAnalysisMixin):
         if use_reference is True and var_names is None:
             var_names = vars_sp.intersection(vars_sc)
             if len(var_names):
-                return adata_sc[:, list(var_names)], adata_sp[:, list(var_names)], var_names
-            else:
-                raise ValueError("`adata_sc` and `adata_sp` do not share `var_names`. Input valid `var_names`.")
-        else:
-            if not use_reference:
-                return adata_sc, adata_sp, None
-            elif use_reference and var_names.issubset(vars_sc) and var_names.issubset(vars_sp):
-                return adata_sc[:, list(var_names)], adata_sp[:, list(var_names)], var_names
-            else:
-                raise ValueError("Some `var_names` ares missing in either `adata_sc` or `adata_sp`.")
+                return var_names
+            raise ValueError("`adata_sc` and `adata_sp` do not share `var_names`. Input valid `var_names`.")
+        if not use_reference:
+            return None
+        if use_reference and var_names.issubset(vars_sc) and var_names.issubset(vars_sp):
+            return var_names
+        raise ValueError("Some `var_names` ares missing in either `adata_sc` or `adata_sp`.")
 
     def correlate(self, corr_method: Literal["pearson", "spearman"] = "pearson"):
         """Calculate correlation between true and predicted gexp in space."""
@@ -79,7 +76,6 @@ class SpatialMappingAnalysisMixin(SpatialAnalysisMixin):
         for _, prob_val in self.solution.items():
             transport_matrix = prob_val.solution.scaled_transport(forward=False)
             pred_list.append(np.dot(transport_matrix, gexp_sc))
-            print(pred_list[0].shape)
         adata_pred = AnnData(np.nan_to_num(np.vstack(pred_list), nan=0.0, copy=False))
         adata_pred.obs_names = self.adata_sp.obs_names.values.copy()
         adata_pred.var_names = self.adata_sc.var_names.values.copy()
