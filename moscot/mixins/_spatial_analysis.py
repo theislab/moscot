@@ -2,8 +2,9 @@ from __future__ import annotations
 
 from typing import Set, List, Tuple, Optional
 
-from scipy.stats import pearsonr
+from scipy.stats import pearsonr, spearmanr
 from scipy.sparse import issparse
+from typing_extensions import Literal
 import scipy
 import pandas as pd
 
@@ -52,12 +53,12 @@ class SpatialMappingAnalysisMixin(SpatialAnalysisMixin):
             else:
                 raise ValueError("Some `var_names` ares missing in either `adata_sc` or `adata_sp`.")
 
-    def corr_map(self):
+    def corr_map(self, corr_method: Literal["pearson", "spearman"] = "pearson"):
         """Calculate correlation between true and predicted gexp in space."""
         var_sc = list(set(self.adata_sc.var_names).intersection(self.adata_sp.var_names))
         if not len(var_sc):
             raise ValueError("No overlapping `var_names` between ` adata_sc` and `adata_sp`.")
-
+        cor = pearsonr if corr_method == "pearson" else spearmanr
         corr_dic = {}
         gexp_sc = self.adata_sc[:, var_sc].X if not issparse(self.adata_sc.X) else self.adata_sc[:, var_sc].X.A
         for prob_key, prob_val in self.solution.items():
@@ -69,8 +70,8 @@ class SpatialMappingAnalysisMixin(SpatialAnalysisMixin):
             )
             gexp_sp = self.adata_sp[:, var_sc].X if not issparse(self.adata_sp.X) else self.adata_sp[:, var_sc].X.A
             transport_matrix = prob_val.solution.scaled_transport(forward=False)
-            gexp_pred_sp = np.asarray(np.dot(transport_matrix, gexp_sc))
-            corr_val = [pearsonr(gexp_pred_sp[:, gi], gexp_sp[:, gi])[0] for gi, g in enumerate(var_sc)]
+            gexp_pred_sp = np.dot(transport_matrix, gexp_sc)
+            corr_val = [cor(gexp_pred_sp[:, gi], gexp_sp[:, gi])[0] for gi, _ in enumerate(var_sc)]
             corr_dic[prob_key] = pd.Series(corr_val, index=var_sc)
 
         return corr_dic
