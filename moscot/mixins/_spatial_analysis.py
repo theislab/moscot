@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Set, List, Optional
+from typing import Any, List, Tuple, Mapping, Optional
 
 from scipy.stats import pearsonr, spearmanr
 from scipy.sparse import issparse
@@ -31,7 +31,7 @@ class SpatialMappingAnalysisMixin(SpatialAnalysisMixin):
         adata_sp: AnnData,
         var_names: Optional[List[str]] = None,
         use_reference: bool = False,
-    ) -> Set | None:
+    ) -> List[str] | None:
         """Filter variables for Sinkhorn tem."""
         vars_sc = set(adata_sc.var_names)  # TODO: allow alternative gene symbol by passing var_key
         vars_sp = set(adata_sp.var_names)
@@ -39,26 +39,30 @@ class SpatialMappingAnalysisMixin(SpatialAnalysisMixin):
         if use_reference is True and var_names is None:
             var_names = vars_sp.intersection(vars_sc)
             if len(var_names):
-                return var_names
+                return list(var_names)
             raise ValueError("`adata_sc` and `adata_sp` do not share `var_names`. Input valid `var_names`.")
         if not use_reference:
             return None
         if use_reference and var_names.issubset(vars_sc) and var_names.issubset(vars_sp):
-            return var_names
+            return list(var_names)
         raise ValueError("Some `var_names` ares missing in either `adata_sc` or `adata_sp`.")
 
-    def correlate(self, var_names: List[str] | None = None, corr_method: Literal["pearson", "spearman"] = "pearson"):
+    def correlate(
+        self, var_names: List[str] | None = None, corr_method: Literal["pearson", "spearman"] = "pearson"
+    ) -> Mapping[Tuple[str, Any], pd.Series]:
         """Calculate correlation between true and predicted gexp in space."""
         var_sc = self._filter_vars(self.adata_sc, self.adata_sp, var_names, True)
-
-        var_sc = list(set(self.adata_sc.var_names).intersection(self.adata_sp.var_names))
         if not len(var_sc):
             raise ValueError("No overlapping `var_names` between ` adata_sc` and `adata_sp`.")
         cor = pearsonr if corr_method == "pearson" else spearmanr
         corr_dic = {}
         gexp_sc = self.adata_sc[:, var_sc].X if not issparse(self.adata_sc.X) else self.adata_sc[:, var_sc].X.A
         for prob_key, prob_val in self.solution.items():
-            index_obs = self.adata_sp.obs[self._policy._subset_key] == prob_key[0]
+            index_obs: List[bool | int] = (
+                self.adata_sp.obs[self._policy._subset_key] == prob_key[0]
+                if self._policy._subset_key is not None
+                else np.arange(self.adata_sp.shape[0])
+            )
             gexp_sp = (
                 self.adata_sp[index_obs, var_sc].X
                 if not issparse(self.adata_sp.X)

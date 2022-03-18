@@ -18,7 +18,7 @@ class MappingProblem(SingleCompoundProblem, SpatialMappingAnalysisMixin):
         adata_sc: AnnData,
         adata_sp: Optional[AnnData] = None,
         use_reference: bool = False,
-        var_names: List[str] | bool | None = None,
+        var_names: List[str] | None = None,
         solver_jit: Optional[bool] = None,
         **kwargs: Any,
     ):
@@ -32,9 +32,9 @@ class MappingProblem(SingleCompoundProblem, SpatialMappingAnalysisMixin):
         solver = (
             FGWSolver(jit=solver_jit) if use_reference and self._filtered_vars is not None else GWSolver(jit=solver_jit)
         )
-        self._adata_ref = adata_sc[:, list(self._filtered_vars)] if self._filtered_vars is not None else adata_sc
+        self._adata_ref = adata_sc[:, self._filtered_vars] if self._filtered_vars is not None else adata_sc
         super().__init__(
-            adata_sp[:, list(self._filtered_vars)] if self._filtered_vars is not None else adata_sp, solver=solver
+            adata_sp[:, self._filtered_vars] if self._filtered_vars is not None else adata_sp, solver=solver
         )
 
     @property
