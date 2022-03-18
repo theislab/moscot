@@ -49,7 +49,7 @@ class SpatialMappingAnalysisMixin(SpatialAnalysisMixin):
 
     def correlate(self, var_names: List[str] | None = None, corr_method: Literal["pearson", "spearman"] = "pearson"):
         """Calculate correlation between true and predicted gexp in space."""
-        var_sc = self._filter_vars(self.adata_sc, self.adata_sp, var_names)
+        var_sc = self._filter_vars(self.adata_sc, self.adata_sp, var_names, True)
 
         var_sc = list(set(self.adata_sc.var_names).intersection(self.adata_sp.var_names))
         if not len(var_sc):
