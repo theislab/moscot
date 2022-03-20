@@ -18,7 +18,7 @@ class SpatialAnalysisMixin(AnalysisMixin):
     """Spatial analysis mixin class."""
 
 
-class SpatialAlignmentAnalysisMixin(AnalysisMixin):
+class SpatialAlignmentAnalysisMixin(SpatialAnalysisMixin):
     """Spatial alignment mixin class."""
 
 
@@ -68,7 +68,7 @@ class SpatialMappingAnalysisMixin(SpatialAnalysisMixin):
                 if not issparse(self.adata_sp.X)
                 else self.adata_sp[index_obs, var_sc].X.A
             )
-            transport_matrix = prob_val.solution.scaled_transport(forward=False)
+            transport_matrix = prob_val.solution._scale_transport_by_marginals(forward=False)
             gexp_pred_sp = np.dot(transport_matrix, gexp_sc)
             corr_val = [cor(gexp_pred_sp[:, gi], gexp_sp[:, gi])[0] for gi, _ in enumerate(var_sc)]
             corr_dic[prob_key] = pd.Series(corr_val, index=var_sc)
@@ -80,7 +80,7 @@ class SpatialMappingAnalysisMixin(SpatialAnalysisMixin):
         gexp_sc = self.adata_sc.X if not issparse(self.adata_sc.X) else self.adata_sc.X.A
         pred_list = []
         for _, prob_val in self.solution.items():
-            transport_matrix = prob_val.solution.scaled_transport(forward=False)
+            transport_matrix = prob_val.solution._scale_transport_by_marginals(forward=False)
             pred_list.append(np.dot(transport_matrix, gexp_sc))
         adata_pred = AnnData(np.nan_to_num(np.vstack(pred_list), nan=0.0, copy=False))
         adata_pred.obs_names = self.adata_sp.obs_names.values.copy()

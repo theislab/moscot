@@ -34,7 +34,7 @@ class MappingProblem(SingleCompoundProblem, SpatialMappingAnalysisMixin):
         )
         self._adata_ref = adata_sc[:, self._filtered_vars] if self._filtered_vars is not None else adata_sc
         super().__init__(
-            adata_sp[:, self._filtered_vars] if self._filtered_vars is not None else adata_sp, solver=solver
+            adata_sp[:, self._filtered_vars] if self._filtered_vars is not None else adata_sp, solver=solver, **kwargs
         )
 
     @property

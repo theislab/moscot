@@ -8,20 +8,22 @@ from anndata import AnnData
 
 from moscot.backends.ott import FGWSolver
 from moscot.problems._base_problem import GeneralProblem
-from moscot.problems._compound_problem import SingleCompoundProblem
+from moscot.problems._compound_problem import CompoundProblem
 
 
-class AlignmentProblem(SingleCompoundProblem):
+class AlignmentProblem(CompoundProblem):
     """Spatial alignment problem."""
 
     def __init__(
         self,
         adata: AnnData,
         solver_jit: Optional[bool] = None,
+        **kwargs: Any,
     ):
         """Init method."""
+        self._adata = adata
         solver = FGWSolver(jit=solver_jit)
-        super().__init__(adata, solver=solver)
+        super().__init__(adata, solver=solver, **kwargs)
 
     @property
     def adata(self) -> AnnData:
@@ -33,19 +35,29 @@ class AlignmentProblem(SingleCompoundProblem):
         """Return problems."""
         return self._problems
 
+    @property
+    def spatial_key(self) -> str:
+        """Return problems."""
+        return self._spatial_key
+
     def prepare(
         self,
-        policy: Literal["sequential", "pairwise", "triu", "tril", "explicit", "external_star"] = "sequential",
-        spatial_key: str = "spatial",
+        spatial_key: str | Mapping[str, Any] = "spatial",
         attr_joint: Mapping[str, Any] = None,
+        policy: Literal["sequential", "star"] = "star",
+        key: str | None = None,
+        reference: str | None = None,
         **kwargs: Any,
     ) -> GeneralProblem:
         """Prepare method."""
+        # TODO: check for spatial key
         x = {"attr": "obsm", "key": f"{spatial_key}"}
         y = {"attr": "obsm", "key": f"{spatial_key}"}
         attr_joint = {"x_attr": "X", "y_attr": "X"} if attr_joint is None else attr_joint
 
-        super().prepare(x=x, y=y, xy=attr_joint, policy=policy, **kwargs)
+        self._spatial_key = spatial_key
+
+        return super().prepare(x=x, y=y, xy=attr_joint, policy=policy, key=key, reference=reference, **kwargs)
 
     def solve(
         self,
