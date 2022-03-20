@@ -44,7 +44,7 @@ class AlignmentProblem(CompoundProblem):
         self,
         spatial_key: str | Mapping[str, Any] = "spatial",
         attr_joint: Mapping[str, Any] = None,
-        policy: Literal["sequential", "star"] = "star",
+        policy: Literal["sequential", "star"] = "sequential",
         key: str | None = None,
         reference: str | None = None,
         **kwargs: Any,

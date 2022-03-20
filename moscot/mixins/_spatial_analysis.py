@@ -8,6 +8,7 @@ from typing_extensions import Literal
 import pandas as pd
 
 import numpy as np
+import numpy.typing as npt
 
 from anndata import AnnData
 
@@ -17,9 +18,32 @@ from moscot.mixins._base_analysis import AnalysisMixin
 class SpatialAnalysisMixin(AnalysisMixin):
     """Spatial analysis mixin class."""
 
+    def _interpolate_transport(
+        self, start: int | str, end: int | str, forward: bool = True, normalize: bool = True
+    ) -> npt.ArrayLike:
+        """Interpolate transport matrix."""
+        steps = self._policy.plan(start=start, end=end)[start, end]
+        transition_matrix = self._problems[steps[0]]._scale_transport_by_sum(forward=True)
+        if len(steps) == 1:
+            return transition_matrix
+        for i, _ in range(len(steps) - 1):
+            transition_matrix @= self._problems[steps[i + 1]].solution._scale_transport_by_sum(forward=True)
+        if normalize:
+            if forward:
+                return transition_matrix / transition_matrix.sum(0)[None, :]
+            else:
+                return transition_matrix / transition_matrix.sum(1)[:, None]
+        return transition_matrix
+
 
 class SpatialAlignmentAnalysisMixin(SpatialAnalysisMixin):
     """Spatial alignment mixin class."""
+
+    def spatial_warp(self, reference: str | int):
+        """Warp alignment."""
+        subset = self._policy.plan(end="1")
+
+        return subset
 
 
 class SpatialMappingAnalysisMixin(SpatialAnalysisMixin):
