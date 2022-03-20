@@ -8,10 +8,11 @@ from anndata import AnnData
 
 from moscot.backends.ott import FGWSolver
 from moscot.problems._base_problem import GeneralProblem
+from moscot.mixins._spatial_analysis import SpatialAlignmentAnalysisMixin
 from moscot.problems._compound_problem import CompoundProblem
 
 
-class AlignmentProblem(CompoundProblem):
+class AlignmentProblem(CompoundProblem, SpatialAlignmentAnalysisMixin):
     """Spatial alignment problem."""
 
     def __init__(

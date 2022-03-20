@@ -23,10 +23,10 @@ class SpatialAnalysisMixin(AnalysisMixin):
     ) -> npt.ArrayLike:
         """Interpolate transport matrix."""
         steps = self._policy.plan(start=start, end=end)[start, end]
-        transition_matrix = self._problems[steps[0]]._scale_transport_by_sum(forward=True)
+        transition_matrix = self._problems[steps[0]].solution._scale_transport_by_sum(forward=True)
         if len(steps) == 1:
             return transition_matrix
-        for i, _ in range(len(steps) - 1):
+        for i in range(len(steps) - 1):
             transition_matrix @= self._problems[steps[i + 1]].solution._scale_transport_by_sum(forward=True)
         if normalize:
             if forward:
@@ -39,11 +39,33 @@ class SpatialAnalysisMixin(AnalysisMixin):
 class SpatialAlignmentAnalysisMixin(SpatialAnalysisMixin):
     """Spatial alignment mixin class."""
 
-    def spatial_warp(self, reference: str | int):
-        """Warp alignment."""
-        subset = self._policy.plan(end="1")
+    def _interpolate_scheme(self, reference: str | int) -> Mapping[Tuple[Any, Any] | Tuple[Any], npt.ArrayLike]:
+        """Scheme for interpolation."""
+        full_steps = self._policy._subset
+        fwd_steps = self._policy.plan(end=reference)
+        if not fwd_steps or not set(full_steps).issubset(set(fwd_steps.keys())):
+            bwd_steps = self._policy.plan(start=reference)
+        dic_transport = {}
+        if len(fwd_steps):
+            for k in fwd_steps.keys():
+                start, end = k
+                transport_matrix = self._interpolate_transport(start=start, end=end)
+                dic_transport[k] = transport_matrix
 
-        return subset
+        dic_transport[(reference)] = None
+        if len(bwd_steps):
+            for k in bwd_steps.keys():
+                start, end = k
+                transport_matrix = self._interpolate_transport(start=start, end=end, forward=False)
+                dic_transport[k] = transport_matrix
+
+        return dic_transport
+
+    def spatial_warp(self, reference: str | int):
+        """Spatial warp."""
+        dic_transport = self.interpolate_scheme(reference=reference)
+
+        return dic_transport
 
 
 class SpatialMappingAnalysisMixin(SpatialAnalysisMixin):
