@@ -6,6 +6,7 @@ import numpy as np
 import numpy.typing as npt
 
 from anndata import AnnData
+import scanpy as sc
 
 from moscot.backends.ott import SinkhornSolver
 from moscot.solvers._output import BaseSolverOutput
@@ -169,20 +170,21 @@ class GeneralProblem(BaseProblem):
 
     def prepare(
         self,
-        x: Mapping[str, Any] = MappingProxyType({}),
-        y: Optional[Mapping[str, Any]] = None,
-        xy: Optional[Mapping[str, Any]] = None,
+        x: Union[TaggedArray, Mapping[str, Any]] = MappingProxyType({}),
+        y: Optional[Union[TaggedArray, Mapping[str, Any]]] = None,
+        xy: Optional[Union[Tuple[TaggedArray, TaggedArray], Mapping[str, Any]]] = None,
         a: Optional[Union[str, npt.ArrayLike]] = None,
         b: Optional[Union[str, npt.ArrayLike]] = None,
         **kwargs: Any,
     ) -> "GeneralProblem":
-        self._x = AnnDataPointer(adata=self.adata, **x).create(**kwargs)
-        self._y = None if y is None else AnnDataPointer(adata=self._adata_y, **y).create(**kwargs)
-        self._xy = (
-            None
-            if xy is None or self.solver.problem_kind != ProblemKind.QUAD_FUSED
-            else self._handle_joint(**xy, create_kwargs=kwargs)
+        self._x = x if isinstance(x, TaggedArray) else AnnDataPointer(adata=self.adata, **x).create(**kwargs)
+        self._y = (
+            y if y is None or isinstance(y, TaggedArray) else AnnDataPointer(adata=self._adata_y, **y).create(**kwargs)
         )
+        if self.solver.problem_kind != ProblemKind.QUAD_FUSED:
+            self._xy = None
+        else:
+            self._xy = xy if xy is None or isinstance(xy, tuple) else self._handle_joint(**xy, create_kwargs=kwargs)
 
         self._a = self._get_or_create_marginal(self.adata, a)
         self._b = self._get_or_create_marginal(self._marginal_b_adata, b)
@@ -232,6 +234,23 @@ class GeneralProblem(BaseProblem):
         adata = self.adata if self._adata_y is None else self._adata_y
         data = self._get_mass(adata, data=data, subset=subset, normalize=normalize)
         return self.solution.pull(data, **kwargs)
+
+    @staticmethod
+    def _prepare_callback(
+        adata: AnnData,
+        adata_y: Optional[AnnData] = None,
+        problem_kind: ProblemKind = ProblemKind.LINEAR,
+        layer: Optional[str] = None,
+        **kwargs: Any,
+    ) -> Tuple[TaggedArray, Optional[TaggedArray]]:
+        n = adata.n_obs
+        if problem_kind not in (ProblemKind.LINEAR, ProblemKind.QUAD_FUSED):
+            raise NotImplementedError("TODO: invalid problem type")
+        adata = adata if adata_y is None else adata.concatenate(adata_y)
+        data = adata.X if layer is None else adata.layers[layer]
+        data = sc.pp.pca(data, **kwargs)
+
+        return TaggedArray(data[:n], tag=Tag.POINT_CLOUD), TaggedArray(data[n:], tag=Tag.POINT_CLOUD)
 
     @property
     def _default_solver(self) -> BaseSolver:
