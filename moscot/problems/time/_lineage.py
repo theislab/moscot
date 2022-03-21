@@ -1,6 +1,6 @@
 from multiprocessing.sharedctypes import Value
 from types import MappingProxyType
-from typing import Any, Dict, Tuple, Union, Literal, Mapping, Optional, Sequence
+from typing import Any, Dict, Tuple, Union, Literal, Mapping, Optional, Sequence, Callable
 from numbers import Number
 import logging
 
@@ -29,7 +29,14 @@ from moscot.solvers._base_solver import BaseSolver
 from moscot.mixins._time_analysis import TemporalAnalysisMixin
 from moscot.mixins._cost_mixin import CostMixin
 from moscot.problems._compound_problem import SingleCompoundProblem
-from moscot.problems._subset_policy import ExplicitPolicy
+from moscot.solvers._tagged_array import TaggedArray
+
+Callback_t = Optional[
+    Union[
+        Literal["pca_local"],
+        Callable[[AnnData, Optional[AnnData], ProblemKind, Any], Tuple[TaggedArray, Optional[TaggedArray]]],
+    ]
+]
 
 class TemporalBaseProblem(MultiMarginalProblem):
     def __init__(
@@ -365,10 +372,10 @@ class LineageProblem(TemporalProblem, CostMixin):
         y = {"attr": "obsm", "key": data_key}
         #TODO(@MUCDK) make some kwargs of moscot_losses explicit, e.g. scale
         if lineage_loss["type"] == "barcode":
-            xy = {"x_attr": "obsm", "y_attr": "obsm", "x_key": lineage_loss["key"], "y_key": lineage_loss["key"], "x_loss": "barcode", "y_loss": "barcode", "tag": "point_cloud"} 
+            xy = {"x_attr": "obsm", "y_attr": "obsm", "x_key": lineage_loss["key"], "y_key": lineage_loss["key"], "x_loss": "barcode", "y_loss": "barcode"} 
         elif lineage_loss["type"] == "tree":
             trees = [item for item in self.adata.uns if "_tree" in item]
-            xy = {"x_attr": "uns", "y_attr": "uns", "x_key": trees, "y_key": trees, "tag": "point_cloud"}
+            xy = {"x_attr": "uns", "y_attr": "uns", "x_key": trees, "y_key": trees, "x_loss": "LeafDistance", "y_loss": "LeafDistance"}
         elif lineage_loss["type"] == "cost":
             xy = {"attr": lineage_loss["attr"], "key": lineage_loss["key"], "tag": "cost"}
 
@@ -380,7 +387,7 @@ class LineageProblem(TemporalProblem, CostMixin):
         if "b" not in kwargs:
             kwargs["b"] = self._proliferation_key is not None or self._apoptosis_key is not None
 
-        return super().prepare(
+        return super(TemporalProblem, self).prepare(
             key=key,
             policy=policy,
             subset=subset,
@@ -428,12 +435,14 @@ class LineageProblem(TemporalProblem, CostMixin):
                     kwargs_["y"] = y
                 elif x is not None and y is not None:
                     kwargs_["xy"] = (x, y)
-
-            if isinstance(kwargs["x_key"], list):
-                prefixes = [item[:item.index("_tree")] for item in kwargs["x_key"]]
+            print("kwargs are ", kwargs)
+            if isinstance(kwargs["xy"]["x_key"], list):
+                prefixes = [item[:item.index("_tree")] for item in kwargs["xy"]["x_key"]]
                 if str(src) not in prefixes:
                     raise ValueError(f"TODO: no tree corresponding to {src} found.")
-                problems[src, tgt] = problem.prepare(tree_key = str(src), **kwargs_)
+                kwargs["xy"]["x_key"] = str(src)+"_tree"
+                kwargs["xy"]["y_key"] = str(tgt)+"_tree"
+                problems[src, tgt] = problem.prepare(**kwargs_)
             else:
                 problems[src, tgt] = problem.prepare(**kwargs_)
 

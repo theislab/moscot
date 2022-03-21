@@ -37,6 +37,8 @@ class AnnDataPointer:
 
         rescale = kwargs.get("rescale", None)
         if self.tag == Tag.COST_MATRIX:
+            print("self.loss in moscot_losses", self.loss in moscot_losses)
+            print("sekf,attr,  self.key", self.attr, self.key)
             if self.loss in moscot_losses:
                 container = BaseLoss(kind=self.loss).create(self.attr, self.key, **kwargs)
                 return TaggedArray(container, tag=self.tag, loss=None)
@@ -58,8 +60,9 @@ class AnnDataPointer:
             # TODO(michalk8): not reachable...
             raise ValueError(f"The loss `{self.loss}` is not implemented. Please provide your own cost matrix.")
 
+        print("self.loss is ", self.loss)
         backend_losses = _get_backend_losses(**kwargs)  # TODO: put in registry
-        if self.loss not in backend_losses.keys():
+        if self.loss not in backend_losses.keys() and self.loss not in moscot_losses:
             raise ValueError(f"The loss `{self.loss}` is not implemented. Please provide your own cost matrix.")
         if not hasattr(self.adata, self.attr):
             raise AttributeError("TODO: invalid attribute")
@@ -72,7 +75,12 @@ class AnnDataPointer:
             # TODO(michalk8): check if array-like
             # TODO(michalk8): here we'd construct custom loss (BC/graph distances)
             return TaggedArray(container, tag=self.tag, loss=backend_losses[self.loss])
+        print("self.key is ", self.key)
         if self.key not in container:
             raise KeyError(f"TODO: unable to find `adata.{self.attr}['{self.key}']`.")
         container = container[self.key]
-        return TaggedArray(container, tag=self.tag, loss=backend_losses[self.loss])
+        if self.loss in backend_losses:
+            return TaggedArray(container, tag=self.tag, loss=backend_losses[self.loss])
+        
+        container = BaseLoss()(kind=self.loss).compute(adata=self.adata, attr=self.attr, key=self.key, **kwargs)
+        return TaggedArray(container, tag=self.tag, loss=None)

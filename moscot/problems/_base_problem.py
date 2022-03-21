@@ -137,6 +137,7 @@ class GeneralProblem(BaseProblem):
     def _handle_joint(
         self, create_kwargs: Mapping[str, Any] = MappingProxyType({}), tag: Optional[Tag] = None, **kwargs: Any
     ) -> Union[TaggedArray, Tuple[TaggedArray, TaggedArray]]:
+        print("in handle joint")
         if tag is None:
             # TODO(michalk8): better/more strict condition?
             # TODO(michalk8): specify which tag is being using
@@ -145,6 +146,8 @@ class GeneralProblem(BaseProblem):
         tag = Tag(tag)
         if tag in (Tag.COST_MATRIX, Tag.KERNEL):
             attr = kwargs.get("attr", "X")
+            print("kwatgs are ", kwargs)
+            print("attr is ", attr)
             if attr == "obsm":
                 return AnnDataPointer(self.adata, tag=tag, **kwargs).create(**create_kwargs)
             if attr == "varm":
@@ -163,6 +166,10 @@ class GeneralProblem(BaseProblem):
         x_kwargs = {k[2:]: v for k, v in kwargs.items() if k.startswith("x_")}
         y_kwargs = {k[2:]: v for k, v in kwargs.items() if k.startswith("y_")}
 
+        print("x_kwargs are ", x_kwargs)
+        print("y_kwargs are ", y_kwargs)
+        print("tag is ", tag)
+
         x_array = AnnDataPointer(self.adata, tag=tag, **x_kwargs).create(**create_kwargs)
         y_array = AnnDataPointer(self._adata_y, tag=tag, **y_kwargs).create(**create_kwargs)
 
@@ -177,13 +184,17 @@ class GeneralProblem(BaseProblem):
         b: Optional[Union[str, npt.ArrayLike]] = None,
         **kwargs: Any,
     ) -> "GeneralProblem":
+        print("xy is ", xy)
         self._x = x if isinstance(x, TaggedArray) else AnnDataPointer(adata=self.adata, **x).create(**kwargs)
         self._y = (
             y if y is None or isinstance(y, TaggedArray) else AnnDataPointer(adata=self._adata_y, **y).create(**kwargs)
         )
+        print("self.solver.problem_kind", self.solver.problem_kind)
+        print("test")
         if self.solver.problem_kind != ProblemKind.QUAD_FUSED:
             self._xy = None
         else:
+            print("in else")
             self._xy = xy if xy is None or isinstance(xy, tuple) else self._handle_joint(**xy, create_kwargs=kwargs)
 
         self._a = self._get_or_create_marginal(self.adata, a)

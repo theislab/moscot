@@ -19,21 +19,24 @@ import numpy as np
 __all__ = ["LeafDistance", "BarcodeDistance"]
 
 
-class BaseLoss(ABC):
+class MoscotLoss(ABC):
     @abstractmethod
-    def _compute(self, *args: Any, **kwargs: Any) -> ArrayLike:
+    def compute(self, *args: Any, **kwargs: Any) -> ArrayLike:
         pass
+class BaseLoss(ABC):
 
-    def __call__(self, *args: Any, scale: Optional[str] = None, **kwargs):
-        cost = self._compute(*args, **kwargs)
+    def __call__(self, kind=Literal["LeafDistance", "BarcodeDistance"], *args: Any, scale: Optional[str] = None, **kwargs):
+        """if kind=="LeafDistance":
+            cost = LeafDistance()._compute(*args, **kwargs)
+        elif kind=="BarcodeDistance":
+            cost = BarcodeDistance()._compute(*args, **kwargs)
         if scale is not None:
             return self._normalize(cost, scale)
-        return cost
-
-    @classmethod
-    def create(cls, kind: Literal) -> "BaseLoss":
+        return cost"""
         if kind == "LeafDistance":
             return LeafDistance()
+        if kind == "BarcodeDistance":
+            return BarcodeDistance()
 
     @staticmethod
     def _normalize(cost_matrix: ArrayLike, scale: Union[str, int, float] = "max") -> ArrayLike:
@@ -51,9 +54,11 @@ class BaseLoss(ABC):
             raise NotImplementedError(scale)
         return cost_matrix
 
-class BarcodeDistance(BaseLoss):
-    def _compute(self, attr: str, key: str, scale: Literal, **_: Any):
-        barcodes = getattr(getattr(self.adata, attr), key)
+
+
+class BarcodeDistance(BaseLoss, MoscotLoss):
+    def compute(self, adata: AnnData, attr: str, key: str, scale: Literal="max", **_: Any):
+        barcodes = getattr(getattr(adata, attr), key)
         n_cells = barcodes.shape[0]
         distances = np.zeros((n_cells, n_cells))
         for i in range(n_cells):
@@ -78,20 +83,21 @@ class BarcodeDistance(BaseLoss):
         return (np.sum(differences) + np.sum(double_scars))/len(b1)
 
 
-class LeafDistance(BaseLoss):
-    def _compute(self, attr: str, key:str, scale: Literal, **kwargs: Any):
+class LeafDistance(BaseLoss, MoscotLoss):
+    def compute(self, adata: AnnData, attr: str, key:str, scale: Literal = "max", **kwargs: Any):
         """
         Computes the matrix of pairwise distances between leaves of the tree
         """
-        tree = getattr(getattr(self.adata, attr), key)
+        container = getattr(adata, attr)
+        tree = container[key]
         if scale is None:
-            return self._create_cost_from_tree(tree, **kwargs)
+            return self._create_cost_from_tree(tree, adata, **kwargs)
         else:
-            return self.normalize(self._create_cost_from_tree(tree, **kwargs), scale)  # Can we do this in a stateless class?
+            return self._normalize(self._create_cost_from_tree(tree, adata, **kwargs), scale)  # Can we do this in a stateless class?
 
-    def _create_cost_from_tree(self, tree: nx.DiGraph, **kwargs: Any) -> npt.ArrayLike:
+    def _create_cost_from_tree(self, tree: nx.DiGraph, adata: AnnData, **kwargs: Any) -> npt.ArrayLike:
         undirected_tree = tree.to_undirected()
-        leaves = self.get_leaves(undirected_tree)
+        leaves = self._get_leaves(undirected_tree, adata)
         n_leaves = len(leaves)
         distances = np.zeros((n_leaves, n_leaves))
         for i, leaf in enumerate(leaves):
