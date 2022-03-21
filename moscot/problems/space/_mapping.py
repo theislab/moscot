@@ -53,11 +53,6 @@ class MappingProblem(SingleCompoundProblem, SpatialMappingAnalysisMixin):
         return self._filtered_vars
 
     @property
-    def problems(self) -> GeneralProblem:
-        """Return problems."""
-        return self._problems
-
-    @property
     def _adata_tgt(self):
         """Return adata reference."""
         return self._adata_ref

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from types import MappingProxyType
 from typing import Any, Mapping, Optional
 
 from typing_extensions import Literal
@@ -19,22 +20,18 @@ class AlignmentProblem(CompoundProblem, SpatialAlignmentAnalysisMixin):
         self,
         adata: AnnData,
         solver_jit: Optional[bool] = None,
+        solver_kwargs: Mapping[str, Any] = MappingProxyType({}),
         **kwargs: Any,
     ):
         """Init method."""
         self._adata = adata
-        solver = FGWSolver(jit=solver_jit)
+        solver = FGWSolver(jit=solver_jit, **solver_kwargs)
         super().__init__(adata, solver=solver, **kwargs)
 
     @property
     def adata(self) -> AnnData:
         """Return adata."""
         return self._adata
-
-    @property
-    def problems(self) -> GeneralProblem:
-        """Return problems."""
-        return self._problems
 
     @property
     def spatial_key(self) -> str:

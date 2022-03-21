@@ -2,7 +2,6 @@ from abc import ABC, abstractmethod
 from types import MappingProxyType
 from typing import Any, Dict, List, Type, Tuple, Union, Literal, Mapping, Iterator, Optional, Sequence
 
-
 import pandas as pd
 
 import numpy as np
@@ -295,6 +294,11 @@ class CompoundProblem(CompoundBaseProblem):
             self._prob = MultiCompoundProblem(*adatas, solver=solver, **kwargs)
 
         super().__init__(self._prob.adata, solver=self._prob.solver)
+
+    @property
+    def problems(self) -> GeneralProblem:
+        """Return problems."""
+        return self._problems
 
     def _create_problems(self, **kwargs: Any) -> Dict[Tuple[Any, Any], BaseProblem]:
         return self._prob._create_problems(**kwargs)

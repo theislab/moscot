@@ -31,11 +31,13 @@ class SpatialAnalysisMixin(AnalysisMixin):
     ) -> npt.ArrayLike:
         """Interpolate transport matrix."""
         steps = self._policy.plan(start=start, end=end)[start, end]
-        transition_matrix = self._problems[steps[0]].solution._scale_transport_by_sum(forward=True)
+        transition_matrix = self._problems[steps[0]].solution._scale_transport_by_marginals(forward=True)
         if len(steps) == 1:
             return transition_matrix
         for i in range(len(steps) - 1):
-            transition_matrix @= self._problems[steps[i + 1]].solution._scale_transport_by_sum(forward=True)
+            transition_matrix = transition_matrix @ self._problems[steps[i + 1]].solution._scale_transport_by_marginals(
+                forward=True
+            )
         if normalize:
             if forward:
                 return transition_matrix / transition_matrix.sum(0)[None, :]
@@ -51,40 +53,74 @@ class SpatialAlignmentAnalysisMixin(SpatialAnalysisMixin):
         """Scheme for interpolation."""
         full_steps = self._policy._subset
         fwd_steps = self._policy.plan(end=reference)
+        bwd_steps = None
         if not fwd_steps or not set(full_steps).issubset(set(fwd_steps.keys())):
             bwd_steps = self._policy.plan(start=reference)
         dic_transport = {}
 
-        def subs_basis(k: str | int) -> npt.ArrayLike:
+        def subs_adata(k: str | int) -> npt.ArrayLike:
             return self.adata[self.adata.obs[self._policy._subset_key] == k].obsm[self.spatial_key]
 
         if len(fwd_steps):
             for k in fwd_steps.keys():
                 start, end = k
                 tmap = self._interpolate_transport(start=start, end=end, forward=False)  # fwd arg for norm
-                dic_transport[k] = AlignParams("fwd", tmap, subs_basis(end))
+                dic_transport[k] = AlignParams("fwd", tmap, subs_adata(end))
 
-        dic_transport[(reference, None)] = AlignParams(None, None, subs_basis(reference))
-        if len(bwd_steps):
+        dic_transport[(reference, None)] = AlignParams(None, None, subs_adata(reference))
+        if bwd_steps is not None and len(bwd_steps):
             for k in bwd_steps.keys():
                 start, end = k
                 tmap = self._interpolate_transport(start=start, end=end, forward=True)
-                dic_transport[k] = AlignParams("bwd", tmap, subs_basis(start))
+                dic_transport[k] = AlignParams("bwd", tmap, subs_adata(start))
         return dic_transport
 
-    def align_warp(self, reference: str | int, key: str = "spatial_warp", copy: bool = False) -> npt.ArrayLike | None:
+    def _warp(basis: npt.ArrayLike, tmap: npt.ArrayLike):
+
+        return
+
+    def align(
+        self,
+        reference: str | int,
+        key: str = "spatial_warp",
+        mode: Literal["warp", "affine"] = "warp",
+        copy: bool = False,
+    ) -> npt.ArrayLike | None:
         """Spatial warp."""
+        if reference not in self._policy._cat.categories:
+            raise ValueError(f"`reference: {reference}` not in policy categories: {self._policy._cat.categories}")
         dic_transport = self._interpolate_scheme(reference=reference)
 
         basis_list = []
-        for k, v in dic_transport.items():
-            print(k)
+        for _, v in dic_transport.items():
             if v.mode is not None:
-                print(v.basis.shape, v.tmap.shape)
                 if v.mode == "fwd":
                     basis_list.append((v.basis.T @ v.tmap.T).T)
                 elif v.mode == "bwd":
                     basis_list.append((v.basis.T @ v.tmap).T)
+            else:
+                basis_list.append(v.basis)
+
+        aligned_arr = np.vstack(basis_list)
+
+        if copy:
+            return aligned_arr
+
+        self.adata.obsm[key] = aligned_arr
+
+    def align_affine(self, reference: str | int, key: str = "spatial_warp", copy: bool = False) -> npt.ArrayLike | None:
+        """Spatial warp."""
+        if reference not in self._policy._cat.categories:
+            raise ValueError(f"`reference: {reference}` not in policy categories: {self._policy._cat.categories}")
+        dic_transport = self._interpolate_scheme(reference=reference)
+
+        basis_list = []
+        for _, v in dic_transport.items():
+            if v.mode is not None:
+                if v.mode == "fwd":
+                    basis_list.append((v.basis.T @ v.tmap).T)
+                elif v.mode == "bwd":
+                    basis_list.append((v.basis.T @ v.tmap.T).T)
             else:
                 basis_list.append(v.basis)
 
