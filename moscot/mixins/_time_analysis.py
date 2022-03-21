@@ -1,5 +1,5 @@
 from types import MappingProxyType
-from typing import Any, Dict, Mapping, Callable, Optional
+from typing import Any, Dict, Mapping, Callable, Optional, Literal
 from numbers import Number
 from functools import partial
 import logging
@@ -17,14 +17,10 @@ class TemporalAnalysisMixin(AnalysisMixin):
     def validate_by_interpolation(
         self,
         start: Number,
-        end: Number,
         intermediate: Number,
+        end: Number,
         interpolation_parameter: Optional[int] = None,
-        val_ot: bool = True,
-        val_random: bool = True,
-        val_random_with_growth: bool = True,
-        val_source_to_intermediate: bool = True,
-        val_intermediate_to_target: bool = True,
+        valid_methods: Literal["ot", "random", "random_with_growth", "source_to_intermediate", "intermediate_to_target"] = ["ot", "random"],
         batch_key: Optional[str] = None,
         n_interpolated_cells: Optional[int] = None,
         **kwargs: Any,
@@ -34,6 +30,10 @@ class TemporalAnalysisMixin(AnalysisMixin):
         the held out data was also used for the preprocessing (whereas it should follow the independent preprocessing
         step of WOT
         """
+        _validation_methods = set(["ot", "random", "random_with_growth", "source_to_intermediate", "intermediate_to_target"])
+        if not set(valid_methods).issubset(_validation_methods):
+            raise ValueError(f"TODO: the only validation methods are {_validation_methods}")
+
         if intermediate not in self.adata.obs[self._temporal_key].unique():
             raise ValueError(
                 f"No data points corresponding to {intermediate} found in `adata.obs[{self._temporal_key}]`"
@@ -69,13 +69,13 @@ class TemporalAnalysisMixin(AnalysisMixin):
             n_interpolated_cells = len(intermediate_data)
 
         result = {}
-        if val_ot:
+        if "ot" in valid_methods:
             gex_ot_interpolated = self._interpolate_gex_with_ot(
                 n_interpolated_cells, source_data, target_data, start, end, interpolation_parameter
             )
             result["ot"] = self._compute_wasserstein_distance(intermediate_data, gex_ot_interpolated, **kwargs)
 
-        if val_random:
+        if "random" in valid_methods:
             gex_randomly_interpolated = self._interpolate_gex_randomly(
                 n_interpolated_cells, source_data, target_data, interpolation_parameter, **kwargs
             )
@@ -83,7 +83,7 @@ class TemporalAnalysisMixin(AnalysisMixin):
                 intermediate_data, gex_randomly_interpolated, **kwargs
             )
 
-        if val_random_with_growth:
+        if "random_with_growth" in valid_methods:
             gex_randomly_interpolated_growth = self._interpolate_gex_randomly(
                 len(intermediate_data),
                 source_data,
@@ -96,12 +96,12 @@ class TemporalAnalysisMixin(AnalysisMixin):
                 intermediate_data, gex_randomly_interpolated_growth, **kwargs
             )
 
-        if val_source_to_intermediate:
+        if "source_to_intermediate" in valid_methods:
             result["source_to_intermediate"] = self._compute_wasserstein_distance(
                 source_data, intermediate_data, **kwargs
             )
 
-        if val_intermediate_to_target:
+        if "intermediate_to_target" in valid_methods:
             result["intermediate_to_target"] = self._compute_wasserstein_distance(
                 intermediate_data, target_data, **kwargs
             )
@@ -125,10 +125,8 @@ class TemporalAnalysisMixin(AnalysisMixin):
         **kwargs: Any,
     ) -> Number:
         cost_matrix = pairwise_distances(point_cloud_1, Y=point_cloud_2, metric="sqeuclidean", n_jobs=-1)
-        if a is None:
-            a = np.ones(cost_matrix.shape[0]) / cost_matrix.shape[0]
-        if b is None:
-            b = np.ones(cost_matrix.shape[1]) / cost_matrix.shape[1]
+        a = [] if a is None else a
+        b = [] if b is None else b
         return np.sqrt(ot.emd2(a, b, cost_matrix, numItermax=numItermax, **kwargs))
 
     def _interpolate_gex_with_ot(
@@ -140,8 +138,7 @@ class TemporalAnalysisMixin(AnalysisMixin):
         end: Number,
         interpolation_parameter: float = 0.5,
         adjust_by_growth: bool = True,
-        batch_size: int = 64,
-        **kwargs: Any,
+        batch_size: int = 64
     ) -> npt.ArrayLike:
         def mappable_choice(a: int, kwargs: Mapping[str, Any] = MappingProxyType({})) -> Callable[[Any], npt.ArrayLike]:
             return partial(np.random.choice, a=a, replace=True)(**kwargs)
