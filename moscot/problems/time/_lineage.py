@@ -5,20 +5,31 @@ from numbers import Number
 import logging
 
 import pandas as pd
-
+import networkx as nx
 import numpy as np
 import numpy.typing as npt
 
 from anndata import AnnData
 import scanpy as sc
 
+import numpy as np
+import numpy.typing as npt
+
+from anndata import AnnData
+
+from moscot.backends.ott import SinkhornSolver
+from moscot.solvers._output import BaseSolverOutput
+from moscot.solvers._base_solver import BaseSolver, ProblemKind
+from moscot.problems._base_problem import BaseProblem, GeneralProblem
+from moscot.problems._subset_policy import Axis_t, StarPolicy, SubsetPolicy, ExplicitPolicy
 from moscot.problems import MultiMarginalProblem
 from moscot.solvers._output import BaseSolverOutput
 from moscot.problems.time._utils import beta, delta
 from moscot.solvers._base_solver import BaseSolver
 from moscot.mixins._time_analysis import TemporalAnalysisMixin
+from moscot.mixins._cost_mixin import CostMixin
 from moscot.problems._compound_problem import SingleCompoundProblem
-
+from moscot.problems._subset_policy import ExplicitPolicy
 
 class TemporalBaseProblem(MultiMarginalProblem):
     def __init__(
@@ -336,23 +347,30 @@ class TemporalProblem(TemporalAnalysisMixin, SingleCompoundProblem):
         self._apoptosis_key = value
 
 
-class LineageProblem(TemporalProblem):
+class LineageProblem(TemporalProblem, CostMixin):
+
     def prepare(
         self,
         key: str,
         data_key: str = "X_pca",
-        lineage_data: Dict[str, str] = {"type": "tree", "attr": "uns", "key": "tree"}, #tree: uns, otherwise: obsm
+        lineage_loss: Dict[str, str] = {"type": "tree", "attr": "uns", "key": "tree"},
         policy: Literal["sequential", "pairwise", "triu", "tril", "explicit"] = "sequential",
         subset: Optional[Sequence[Tuple[Any, Any]]] = None,
         marginal_kwargs: Mapping[str, Any] = MappingProxyType({}),
         **kwargs: Any,
     ) -> "TemporalProblem":
-        if policy not in self._valid_policies:
-            raise ValueError(f"TODO: wrong policies")
+        self._temporal_key = key
 
         x = {"attr": "obsm", "key": data_key}
         y = {"attr": "obsm", "key": data_key}
-        self._temporal_key = key
+        #TODO(@MUCDK) make some kwargs of moscot_losses explicit, e.g. scale
+        if lineage_loss["type"] == "barcode":
+            xy = {"x_attr": "obsm", "y_attr": "obsm", "x_key": lineage_loss["key"], "y_key": lineage_loss["key"], "x_loss": "barcode", "y_loss": "barcode", "tag": "point_cloud"} 
+        elif lineage_loss["type"] == "tree":
+            trees = [item for item in self.adata.uns if "_tree" in item]
+            xy = {"x_attr": "uns", "y_attr": "uns", "x_key": trees, "y_key": trees, "tag": "point_cloud"}
+        elif lineage_loss["type"] == "cost":
+            xy = {"attr": lineage_loss["attr"], "key": lineage_loss["key"], "tag": "cost"}
 
         marginal_kwargs = dict(marginal_kwargs)
         marginal_kwargs["proliferation_key"] = self._proliferation_key
@@ -362,21 +380,19 @@ class LineageProblem(TemporalProblem):
         if "b" not in kwargs:
             kwargs["b"] = self._proliferation_key is not None or self._apoptosis_key is not None
 
-        #compute the lineage cost from barcodes/tree if not in obsm
-        self
-
         return super().prepare(
             key=key,
             policy=policy,
             subset=subset,
             x=x,
             y=y,
+            xy=xy,
             marginal_kwargs=marginal_kwargs,
             **kwargs,
         )
 
-    def _compute_lineage_cost(self, lineage_data: Dict, **kwargs:Any):
-        container = self.adata[getattr(lineage_data, "attr")]
+    """def _compute_lineage_cost(self, adata: AnnData, lineage_data: Dict[str, str], **kwargs:Any):
+        container = adata[getattr(lineage_data, "attr")]
         data = getattr(lineage_data, "key")
         if getattr(lineage_data, "type") == "cost":
             if container is not "obsm":
@@ -386,15 +402,40 @@ class LineageProblem(TemporalProblem):
         if getattr(lineage_data, "type") == "tree":
             self._create_cost_from_tree(container[data], **kwargs)
         elif getattr(lineage_data, "type") == "barcodes":
-            self._create_cost_from_barcodes(container[data], **kwargs)
+            self._create_cost_from_barcodes(container[data], **kwargs)"""
 
+    def _create_problems(
+        self,
+        callback: Callback_t = None,
+        callback_kwargs: Mapping[str, Any] = MappingProxyType({}),
+        **kwargs: Any,
+    ) -> Dict[Tuple[Any, Any], BaseProblem]:
+        problems = {}
+        for (src, tgt), (src_mask, tgt_mask) in self._policy.mask().items():
+            kwargs_ = dict(kwargs)
+            problem = self._create_problem(src=src, src_mask=src_mask, tgt=tgt, tgt_mask=tgt_mask)
+            if callback is not None:
+                # TODO(michalk8): correctly type or update BaseProblem
+                callback = problem._prepare_callback if callback == "pca_local" else callback
+                x, y = callback(
+                    problem.adata,
+                    problem._adata_y,
+                    problem.solver.problem_kind,
+                    **callback_kwargs,
+                )
+                if problem.solver.problem_kind != ProblemKind.QUAD_FUSED:
+                    kwargs_["x"] = x
+                    kwargs_["y"] = y
+                elif x is not None and y is not None:
+                    kwargs_["xy"] = (x, y)
 
+            if isinstance(kwargs["x_key"], list):
+                prefixes = [item[:item.index("_tree")] for item in kwargs["x_key"]]
+                if str(src) not in prefixes:
+                    raise ValueError(f"TODO: no tree corresponding to {src} found.")
+                problems[src, tgt] = problem.prepare(tree_key = str(src), **kwargs_)
+            else:
+                problems[src, tgt] = problem.prepare(**kwargs_)
 
-
-    def _create_cost_from_tree(self, tree: nx.DiGraph, **kwargs):
-    # saves costs in obsm
-        pass
-
-    def _create_cost_from_barcodes(self, barcodes: npt.ArrayLike, **kwargs):
-        # saves costs im obsm 
-        pass
+        return problems
+    

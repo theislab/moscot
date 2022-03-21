@@ -38,7 +38,7 @@ class AnnDataPointer:
         rescale = kwargs.get("rescale", None)
         if self.tag == Tag.COST_MATRIX:
             if self.loss in moscot_losses:
-                container = BaseLoss(kind=self.loss).create(**kwargs)
+                container = BaseLoss(kind=self.loss).create(self.attr, self.key, **kwargs)
                 return TaggedArray(container, tag=self.tag, loss=None)
             if not hasattr(self.adata, self.attr):
                 raise AttributeError("TODO: invalid attribute")

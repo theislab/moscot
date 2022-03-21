@@ -1,5 +1,9 @@
 from abc import ABC, abstractmethod
-from typing import Any, Union, Optional
+from typing import Any, Union, Optional, Dict, List
+from anndata import AnnData
+from numbers import Number
+import numpy as np
+import numpy.typing as npt
 
 try:
     from typing import Literal
@@ -12,7 +16,7 @@ import networkx as nx
 from numpy.typing import ArrayLike
 import numpy as np
 
-__all__ = ["LeafDistance"]
+__all__ = ["LeafDistance", "BarcodeDistance"]
 
 
 class BaseLoss(ABC):
@@ -47,29 +51,62 @@ class BaseLoss(ABC):
             raise NotImplementedError(scale)
         return cost_matrix
 
+class BarcodeDistance(BaseLoss):
+    def _compute(self, attr: str, key: str, scale: Literal, **_: Any):
+        barcodes = getattr(getattr(self.adata, attr), key)
+        n_cells = barcodes.shape[0]
+        distances = np.zeros((n_cells, n_cells))
+        for i in range(n_cells):
+            distances[i, i+1] = [self._scaled_Hamming_distance(barcodes[i,:], barcodes[j, :]) for j in range(i+1, n_cells)]
+        return distances + np.transpose(distances)    
+
+    @staticmethod
+    def _scaled_Hamming_distance(x: npt.ArrayLike, y: npt.ArrayLike) -> Number:
+        """adapted from https://github.com/aforr/LineageOT/blob/8c66c630d61da289daa80e29061e888b1331a05a/lineageot/inference.py#L33"""
+
+        shared_indices = (x >= 0) & (y >= 0)
+        b1 = x[shared_indices]
+
+        # There may not be any sites where both were measured
+        if len(b1) == 0:
+            return np.nan #TODO: What to do if this happens?
+        b2 = y[shared_indices]
+
+        differences = b1 != b2
+        double_scars = differences & (b1 != 0) & (b2 != 0)
+
+        return (np.sum(differences) + np.sum(double_scars))/len(b1)
+
 
 class LeafDistance(BaseLoss):
-    def _compute(self, tree: nx.DiGraph, scale: Literal, **kwargs: Any):
+    def _compute(self, attr: str, key:str, scale: Literal, **kwargs: Any):
         """
         Computes the matrix of pairwise distances between leaves of the tree
         """
-        if tree is None:
-            raise ValueError("For computing the LeafDistance a tree needs to be provided.")
+        tree = getattr(getattr(self.adata, attr), key)
         if scale is None:
-            return _compute_leaf_distances(tree)
+            return self._create_cost_from_tree(tree, **kwargs)
         else:
-            return self.normalize(_compute_leaf_distances(tree), scale)  # Can we do this in a stateless class?
+            return self.normalize(self._create_cost_from_tree(tree, **kwargs), scale)  # Can we do this in a stateless class?
+
+    def _create_cost_from_tree(self, tree: nx.DiGraph, **kwargs: Any) -> npt.ArrayLike:
+        undirected_tree = tree.to_undirected()
+        leaves = self.get_leaves(undirected_tree)
+        n_leaves = len(leaves)
+        distances = np.zeros((n_leaves, n_leaves))
+        for i, leaf in enumerate(leaves):
+            distance_dictionary = nx.multi_source_dijkstra(undirected_tree, [leaf], target=[leaves[i+1:]], **kwargs)[0]
+            distances[i,i+1:] = [distance_dictionary.get(leaf) for leaf in leaves]
+        return distances + np.transpose(distances)
 
 
-def _compute_leaf_distances(tree):  # TODO(MUCDK): this is adapted from lineageOT, we want to make it more efficient.
-    """
-    Computes the matrix of pairwise distances between leaves of the tree
-    """
-    leaves = get_leaves(tree)
-    num_leaves = len(leaves) - 1
-    distances = np.zeros([num_leaves, num_leaves])
-    for leaf_index in range(num_leaves):
-        distance_dictionary, tmp = nx.multi_source_dijkstra(tree.to_undirected(), [leaves[leaf_index]], weight="time")
-        for target_leaf_index in range(num_leaves):
-            distances[leaf_index, target_leaf_index] = distance_dictionary[leaves[target_leaf_index]]
-    return distances
+    @staticmethod
+    def _get_leaves(tree: nx.Graph, adata: AnnData, cell_to_leaf: Optional[Dict] = None) -> List:
+        leaves = [node for node in tree if tree.degree(node) == 1]
+        if leaves != list(adata.obs.index):
+            if cell_to_leaf is None:
+                raise ValueError("TODO: The node names do not correspond to the anndata obs index names. Please provide a `cell_to_lead` dict.")
+            leaves = [cell_to_leaf[cell] for cell in list(adata.obs.index)]
+        return leaves
+
+
