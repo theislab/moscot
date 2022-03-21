@@ -1,3 +1,4 @@
+from multiprocessing.sharedctypes import Value
 from types import MappingProxyType
 from typing import Any, Dict, Tuple, Union, Literal, Mapping, Optional, Sequence
 from numbers import Number
@@ -333,3 +334,67 @@ class TemporalProblem(TemporalAnalysisMixin, SingleCompoundProblem):
     @apoptosis_key.setter
     def apoptosis_key(self, value: Optional[str] = None) -> None:
         self._apoptosis_key = value
+
+
+class LineageProblem(TemporalProblem):
+    def prepare(
+        self,
+        key: str,
+        data_key: str = "X_pca",
+        lineage_data: Dict[str, str] = {"type": "tree", "attr": "uns", "key": "tree"}, #tree: uns, otherwise: obsm
+        policy: Literal["sequential", "pairwise", "triu", "tril", "explicit"] = "sequential",
+        subset: Optional[Sequence[Tuple[Any, Any]]] = None,
+        marginal_kwargs: Mapping[str, Any] = MappingProxyType({}),
+        **kwargs: Any,
+    ) -> "TemporalProblem":
+        if policy not in self._valid_policies:
+            raise ValueError(f"TODO: wrong policies")
+
+        x = {"attr": "obsm", "key": data_key}
+        y = {"attr": "obsm", "key": data_key}
+        self._temporal_key = key
+
+        marginal_kwargs = dict(marginal_kwargs)
+        marginal_kwargs["proliferation_key"] = self._proliferation_key
+        marginal_kwargs["apoptosis_key"] = self._apoptosis_key
+        if "a" not in kwargs:
+            kwargs["a"] = self._proliferation_key is not None or self._apoptosis_key is not None
+        if "b" not in kwargs:
+            kwargs["b"] = self._proliferation_key is not None or self._apoptosis_key is not None
+
+        #compute the lineage cost from barcodes/tree if not in obsm
+        self
+
+        return super().prepare(
+            key=key,
+            policy=policy,
+            subset=subset,
+            x=x,
+            y=y,
+            marginal_kwargs=marginal_kwargs,
+            **kwargs,
+        )
+
+    def _compute_lineage_cost(self, lineage_data: Dict, **kwargs:Any):
+        container = self.adata[getattr(lineage_data, "attr")]
+        data = getattr(lineage_data, "key")
+        if getattr(lineage_data, "type") == "cost":
+            if container is not "obsm":
+                raise ValueError("TODO: container must be obsm")
+            if not hasattr(container, data):
+                raise ValueError("TODO: key not found")
+        if getattr(lineage_data, "type") == "tree":
+            self._create_cost_from_tree(container[data], **kwargs)
+        elif getattr(lineage_data, "type") == "barcodes":
+            self._create_cost_from_barcodes(container[data], **kwargs)
+
+
+
+
+    def _create_cost_from_tree(self, tree: nx.DiGraph, **kwargs):
+    # saves costs in obsm
+        pass
+
+    def _create_cost_from_barcodes(self, barcodes: npt.ArrayLike, **kwargs):
+        # saves costs im obsm 
+        pass

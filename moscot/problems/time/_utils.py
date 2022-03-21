@@ -33,3 +33,5 @@ def delta(
     **kwargs: Any,
 ) -> npt.ArrayLike:
     return gen_logistic(a, delta_max, delta_min, center, width)
+
+
