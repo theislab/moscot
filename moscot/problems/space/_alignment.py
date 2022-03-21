@@ -63,7 +63,7 @@ class AlignmentProblem(CompoundProblem, SpatialAlignmentAnalysisMixin):
         alpha: float = 0.5,
         tau_a: Optional[float] = 1.0,
         tau_b: Optional[float] = 1.0,
-        rank: Optional[int] = None,
+        rank: Optional[int] = -1,
         **kwargs: Any,
     ) -> GeneralProblem:
         """Solve method."""
