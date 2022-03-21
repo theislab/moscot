@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, List, Tuple, Mapping, Optional
+from typing import Any, List, Tuple, Mapping, Optional, NamedTuple
 
 from scipy.stats import pearsonr, spearmanr
 from scipy.sparse import issparse
@@ -13,6 +13,14 @@ import numpy.typing as npt
 from anndata import AnnData
 
 from moscot.mixins._base_analysis import AnalysisMixin
+
+
+class AlignParams(NamedTuple):
+    """Class to store alignment paramss."""
+
+    mode: str | None
+    tmap: npt.ArrayLike | None
+    basis: npt.ArrayLike
 
 
 class SpatialAnalysisMixin(AnalysisMixin):
@@ -46,26 +54,46 @@ class SpatialAlignmentAnalysisMixin(SpatialAnalysisMixin):
         if not fwd_steps or not set(full_steps).issubset(set(fwd_steps.keys())):
             bwd_steps = self._policy.plan(start=reference)
         dic_transport = {}
+
+        def subs_basis(k: str | int) -> npt.ArrayLike:
+            return self.adata[self.adata.obs[self._policy._subset_key] == k].obsm[self.spatial_key]
+
         if len(fwd_steps):
             for k in fwd_steps.keys():
                 start, end = k
-                transport_matrix = self._interpolate_transport(start=start, end=end)
-                dic_transport[k] = transport_matrix
+                tmap = self._interpolate_transport(start=start, end=end, forward=False)  # fwd arg for norm
+                dic_transport[k] = AlignParams("fwd", tmap, subs_basis(end))
 
-        dic_transport[(reference)] = None
+        dic_transport[(reference, None)] = AlignParams(None, None, subs_basis(reference))
         if len(bwd_steps):
             for k in bwd_steps.keys():
                 start, end = k
-                transport_matrix = self._interpolate_transport(start=start, end=end, forward=False)
-                dic_transport[k] = transport_matrix
-
+                tmap = self._interpolate_transport(start=start, end=end, forward=True)
+                dic_transport[k] = AlignParams("bwd", tmap, subs_basis(start))
         return dic_transport
 
-    def spatial_warp(self, reference: str | int):
+    def align_warp(self, reference: str | int, key: str = "spatial_warp", copy: bool = False) -> npt.ArrayLike | None:
         """Spatial warp."""
-        dic_transport = self.interpolate_scheme(reference=reference)
+        dic_transport = self._interpolate_scheme(reference=reference)
 
-        return dic_transport
+        basis_list = []
+        for k, v in dic_transport.items():
+            print(k)
+            if v.mode is not None:
+                print(v.basis.shape, v.tmap.shape)
+                if v.mode == "fwd":
+                    basis_list.append((v.basis.T @ v.tmap.T).T)
+                elif v.mode == "bwd":
+                    basis_list.append((v.basis.T @ v.tmap).T)
+            else:
+                basis_list.append(v.basis)
+
+        aligned_arr = np.vstack(basis_list)
+
+        if copy:
+            return aligned_arr
+
+        self.adata.obsm[key] = aligned_arr
 
 
 class SpatialMappingAnalysisMixin(SpatialAnalysisMixin):
@@ -114,8 +142,8 @@ class SpatialMappingAnalysisMixin(SpatialAnalysisMixin):
                 if not issparse(self.adata_sp.X)
                 else self.adata_sp[index_obs, var_sc].X.A
             )
-            transport_matrix = prob_val.solution._scale_transport_by_marginals(forward=False)
-            gexp_pred_sp = np.dot(transport_matrix, gexp_sc)
+            tmap = prob_val.solution._scale_transport_by_marginals(forward=False)
+            gexp_pred_sp = np.dot(tmap, gexp_sc)
             corr_val = [cor(gexp_pred_sp[:, gi], gexp_sp[:, gi])[0] for gi, _ in enumerate(var_sc)]
             corr_dic[prob_key] = pd.Series(corr_val, index=var_sc)
 
@@ -126,8 +154,8 @@ class SpatialMappingAnalysisMixin(SpatialAnalysisMixin):
         gexp_sc = self.adata_sc.X if not issparse(self.adata_sc.X) else self.adata_sc.X.A
         pred_list = []
         for _, prob_val in self.solution.items():
-            transport_matrix = prob_val.solution._scale_transport_by_marginals(forward=False)
-            pred_list.append(np.dot(transport_matrix, gexp_sc))
+            tmap = prob_val.solution._scale_transport_by_marginals(forward=False)
+            pred_list.append(np.dot(tmap, gexp_sc))
         adata_pred = AnnData(np.nan_to_num(np.vstack(pred_list), nan=0.0, copy=False))
         adata_pred.obs_names = self.adata_sp.obs_names.values.copy()
         adata_pred.var_names = self.adata_sc.var_names.values.copy()
