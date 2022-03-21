@@ -31,19 +31,17 @@ class SpatialAnalysisMixin(AnalysisMixin):
     ) -> npt.ArrayLike:
         """Interpolate transport matrix."""
         steps = self._policy.plan(start=start, end=end)[start, end]
-        transition_matrix = self._problems[steps[0]].solution._scale_transport_by_marginals(forward=True)
         if len(steps) == 1:
-            return transition_matrix
+            return self._problems[steps[0]].solution._scale_transport_by_marginals(forward=forward)
+        tmap = self._problems[steps[0]].solution._scale_transport_by_marginals(forward=True)
         for i in range(len(steps) - 1):
-            transition_matrix = transition_matrix @ self._problems[steps[i + 1]].solution._scale_transport_by_marginals(
-                forward=True
-            )
+            tmap = tmap @ self._problems[steps[i + 1]].solution._scale_transport_by_marginals(forward=True)
         if normalize:
             if forward:
-                return transition_matrix / transition_matrix.sum(0)[None, :]
+                return tmap / tmap.sum(1)[:, None]
             else:
-                return transition_matrix / transition_matrix.sum(1)[:, None]
-        return transition_matrix
+                return tmap / tmap.sum(0)[None, :]
+        return tmap
 
 
 class SpatialAlignmentAnalysisMixin(SpatialAnalysisMixin):
@@ -64,14 +62,14 @@ class SpatialAlignmentAnalysisMixin(SpatialAnalysisMixin):
         if len(fwd_steps):
             for k in fwd_steps.keys():
                 start, end = k
-                tmap = self._interpolate_transport(start=start, end=end, forward=False)  # fwd arg for norm
+                tmap = self._interpolate_transport(start=start, end=end, normalize=True, forward=True)
                 dic_transport[k] = AlignParams("fwd", tmap, subs_adata(end))
 
         dic_transport[(reference, None)] = AlignParams(None, None, subs_adata(reference))
         if bwd_steps is not None and len(bwd_steps):
             for k in bwd_steps.keys():
                 start, end = k
-                tmap = self._interpolate_transport(start=start, end=end, forward=True)
+                tmap = self._interpolate_transport(start=start, end=end, normalize=True, forward=False)
                 dic_transport[k] = AlignParams("bwd", tmap, subs_adata(start))
         return dic_transport
 
@@ -92,13 +90,14 @@ class SpatialAlignmentAnalysisMixin(SpatialAnalysisMixin):
         dic_transport = self._interpolate_scheme(reference=reference)
 
         basis_list = []
-        for _, v in dic_transport.items():
+        for k, v in dic_transport.items():
             if v.mode is not None:
                 if v.mode == "fwd":
-                    basis_list.append((v.basis.T @ v.tmap.T).T)
+                    basis_list.append(v.tmap @ v.basis)
                 elif v.mode == "bwd":
-                    basis_list.append((v.basis.T @ v.tmap).T)
+                    basis_list.append(v.tmap.T @ v.basis)
             else:
+                print(k)
                 basis_list.append(v.basis)
 
         aligned_arr = np.vstack(basis_list)
