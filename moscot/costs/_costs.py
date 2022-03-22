@@ -18,15 +18,14 @@ import numpy as np
 import numpy.typing as npt
 
 __all__ = ["LeafDistance", "BarcodeDistance"]
+    
 
+class BaseLoss(ABC):
 
-class MoscotLoss(ABC):
     @abstractmethod
     def compute(self, *args: Any, **kwargs: Any) -> npt.ArrayLike:
         pass
 
-
-class BaseLoss(ABC):
     def __call__(self, kind: Literal["LeafDistance", "BarcodeDistance"], *args: Any, **kwargs: Any):
         if kind == "LeafDistance":
             return LeafDistance(*args, **kwargs)
@@ -51,7 +50,7 @@ class BaseLoss(ABC):
         return cost_matrix
 
 
-class BarcodeDistance(BaseLoss, MoscotLoss):
+class BarcodeDistance(BaseLoss):
     def compute(
         self,
         adata: AnnData,
@@ -93,7 +92,7 @@ class BarcodeDistance(BaseLoss, MoscotLoss):
         return (np.sum(differences) + np.sum(double_scars)) / len(b1)
 
 
-class LeafDistance(BaseLoss, MoscotLoss):
+class LeafDistance(BaseLoss):
     def compute(
         self,
         adata: AnnData,
