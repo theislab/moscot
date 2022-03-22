@@ -1,6 +1,7 @@
-from typing import Any, Optional, Mapping
-from dataclasses import dataclass
 from types import MappingProxyType
+from typing import Any, Mapping, Optional
+from dataclasses import dataclass
+
 from scipy.sparse import issparse
 import scipy
 
@@ -35,10 +36,13 @@ class AnnDataPointer:
             if arr.ndim != 2:
                 raise ValueError("TODO: expected 2D")
             return arr
+
         rescale = kwargs.get("rescale", None)
         if self.tag == Tag.COST_MATRIX:
             if self.loss in moscot_losses:
-                container = BaseLoss()(kind=self.loss).compute(adata=self.adata, attr=self.attr, key=self.key, **self.loss_dict)
+                container = BaseLoss()(kind=self.loss).compute(
+                    adata=self.adata, attr=self.attr, key=self.key, **self.loss_dict
+                )
                 return TaggedArray(container, tag=self.tag, loss=None)
             if not hasattr(self.adata, self.attr):
                 raise AttributeError("TODO: invalid attribute")

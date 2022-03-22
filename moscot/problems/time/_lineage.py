@@ -1,36 +1,25 @@
-from multiprocessing.sharedctypes import Value
-from tkinter import Y
 from types import MappingProxyType
-from typing import Any, Dict, Tuple, Union, Literal, Mapping, Optional, Sequence, Callable
+from typing import Any, Dict, Tuple, Union, Literal, Mapping, Callable, Optional, Sequence
 from numbers import Number
 import logging
 
 import pandas as pd
-import networkx as nx
+
 import numpy as np
 import numpy.typing as npt
 
 from anndata import AnnData
 import scanpy as sc
 
-import numpy as np
-import numpy.typing as npt
-
-from anndata import AnnData
-
-from moscot.backends.ott import SinkhornSolver
-from moscot.solvers._output import BaseSolverOutput
-from moscot.solvers._base_solver import BaseSolver, ProblemKind
-from moscot.problems._base_problem import BaseProblem, GeneralProblem
-from moscot.problems._subset_policy import Axis_t, StarPolicy, SubsetPolicy, ExplicitPolicy
 from moscot.problems import MultiMarginalProblem
 from moscot.solvers._output import BaseSolverOutput
-from moscot.problems.time._utils import beta, delta
-from moscot.solvers._base_solver import BaseSolver
-from moscot.mixins._time_analysis import TemporalAnalysisMixin
 from moscot.mixins._cost_mixin import CostMixin
-from moscot.problems._compound_problem import SingleCompoundProblem
+from moscot.problems.time._utils import beta, delta
+from moscot.solvers._base_solver import BaseSolver, ProblemKind
+from moscot.mixins._time_analysis import TemporalAnalysisMixin
 from moscot.solvers._tagged_array import TaggedArray
+from moscot.problems._base_problem import BaseProblem
+from moscot.problems._compound_problem import SingleCompoundProblem
 
 Callback_t = Optional[
     Union[
@@ -38,6 +27,7 @@ Callback_t = Optional[
         Callable[[AnnData, Optional[AnnData], ProblemKind, Any], Tuple[TaggedArray, Optional[TaggedArray]]],
     ]
 ]
+
 
 class TemporalBaseProblem(MultiMarginalProblem):
     def __init__(
@@ -356,7 +346,6 @@ class TemporalProblem(TemporalAnalysisMixin, SingleCompoundProblem):
 
 
 class LineageProblem(TemporalProblem, CostMixin):
-
     def prepare(
         self,
         key: str,
@@ -369,8 +358,18 @@ class LineageProblem(TemporalProblem, CostMixin):
     ) -> "TemporalProblem":
         self._temporal_key = key
 
-        x = {"attr": lineage_loss.get("attr", "obsp"), "key": lineage_loss.get("key", None), "loss": lineage_loss.get("loss", "cost"), "tag": lineage_loss.get("tag", "cost")}
-        y = {"attr": lineage_loss.get("attr", "obsp"), "key": lineage_loss.get("key", None), "loss": lineage_loss.get("loss", "cost"), "tag": lineage_loss.get("tag", "cost")}
+        x = {
+            "attr": lineage_loss.get("attr", "obsp"),
+            "key": lineage_loss.get("key", None),
+            "loss": lineage_loss.get("loss", "cost"),
+            "tag": lineage_loss.get("tag", "cost"),
+        }
+        y = {
+            "attr": lineage_loss.get("attr", "obsp"),
+            "key": lineage_loss.get("key", None),
+            "loss": lineage_loss.get("loss", "cost"),
+            "tag": lineage_loss.get("tag", "cost"),
+        }
         xy = {"x_attr": "obsm", "x_key": data_key, "y_attr": "obsm", "y_key": data_key, "tag": "point_cloud"}
 
         if "cost_kwargs" in lineage_loss:
@@ -421,20 +420,19 @@ class LineageProblem(TemporalProblem, CostMixin):
                 elif x is not None and y is not None:
                     kwargs_["xy"] = (x, y)
             # here we want to make sure to use the correct trees which are named after the time points
-            if kwargs["x"]["key"]=="tree" or kwargs["y"]["key"]=="tree":
+            if kwargs["x"]["key"] == "tree" or kwargs["y"]["key"] == "tree":
                 candidates = [el for el in self.adata.uns.keys() if "_tree" in el]
-                prefixes = [item[:item.index("_tree")] for item in candidates]
-                if kwargs["x"]["key"]=="tree":
+                prefixes = [item[: item.index("_tree")] for item in candidates]
+                if kwargs["x"]["key"] == "tree":
                     if str(src) not in prefixes:
                         raise ValueError(f"TODO: no tree corresponding to {src} found.")
-                    kwargs["x"]["key"] = str(src)+"_tree"
-                if kwargs["y"]["key"]=="tree":
+                    kwargs["x"]["key"] = str(src) + "_tree"
+                if kwargs["y"]["key"] == "tree":
                     if str(tgt) not in prefixes:
                         raise ValueError(f"TODO: no tree corresponding to {src} found.")
-                    kwargs["y"]["key"] = str(tgt)+"_tree"
+                    kwargs["y"]["key"] = str(tgt) + "_tree"
                 problems[src, tgt] = problem.prepare(**kwargs_)
             else:
                 problems[src, tgt] = problem.prepare(**kwargs_)
 
         return problems
-    

@@ -11,8 +11,8 @@ import scipy
 from scipy.stats import pearsonr
 
 class SpatialMappingAnalysisMixin(SpatialAnalysisMixin):
-    
-    
+
+
     def filter_vars(
         self,
         adata_sc: AnnData,
@@ -41,9 +41,9 @@ class SpatialMappingAnalysisMixin(SpatialAnalysisMixin):
                 return adata_sc[:, list(var_names)]
             else:
                 raise ValueError("Some `var_names` ares missing in `adata_sc`.")
-            
-                
-    def correlate(self, 
+
+
+    def correlate(self,
                    adata_sc,
                    adata_sp,
                    transport_matrix: npt.ArrayLike,
@@ -70,7 +70,7 @@ class SpatialMappingAnalysisMixin(SpatialAnalysisMixin):
                                for gi, g in enumerate(adata_sp.var_names)])
         return corr_val
 
-    def get_imputation(self, 
+    def get_imputation(self,
                        adata_sc,
                        adata_sp,
                        transport_matrix: npt.ArrayLike,
@@ -84,13 +84,13 @@ class SpatialMappingAnalysisMixin(SpatialAnalysisMixin):
         Returns
         -------
         genes_impute; df of spatial gex
-        """     
+        """
         adata_sc = self.filter_vars(adata_sc, var_names=var_names)
         if scipy.sparse.issparse(adata_sc.X):
-            adata_sc.X = adata_sc.X.A     
+            adata_sc.X = adata_sc.X.A
         sp_gex_pred = np.asarray(jnp.dot(transport_matrix, adata_ref.X))
         sp_gex_pred = pd.DataFrame(sp_gex_pred,
                                    index=adata_sp.obs_names,
                                    columns=adata_sc.var_names)
-        return sp_gex_pred           
-                       
+        return sp_gex_pred
+

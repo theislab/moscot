@@ -1,8 +1,8 @@
 from abc import ABC, abstractmethod
 from typing import Any, Tuple, Callable
 
-import numpy.typing as npt
 import numpy as np
+import numpy.typing as npt
 
 
 # TODO(michalk8):
