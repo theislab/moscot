@@ -1,4 +1,5 @@
 from multiprocessing.sharedctypes import Value
+from tkinter import Y
 from types import MappingProxyType
 from typing import Any, Dict, Tuple, Union, Literal, Mapping, Optional, Sequence, Callable
 from numbers import Number
@@ -360,7 +361,7 @@ class LineageProblem(TemporalProblem, CostMixin):
         self,
         key: str,
         data_key: str = "X_pca",
-        lineage_loss: Dict[str, str] = {"type": "tree", "attr": "uns", "key": "tree"},
+        lineage_loss: Mapping[str, str] = {"loss": "LeafDistance", "attr": "uns", "key": "tree"},
         policy: Literal["sequential", "pairwise", "triu", "tril", "explicit"] = "sequential",
         subset: Optional[Sequence[Tuple[Any, Any]]] = None,
         marginal_kwargs: Mapping[str, Any] = MappingProxyType({}),
@@ -368,16 +369,13 @@ class LineageProblem(TemporalProblem, CostMixin):
     ) -> "TemporalProblem":
         self._temporal_key = key
 
-        x = {"attr": "obsm", "key": data_key}
-        y = {"attr": "obsm", "key": data_key}
-        #TODO(@MUCDK) make some kwargs of moscot_losses explicit, e.g. scale
-        if lineage_loss["type"] == "barcode":
-            xy = {"x_attr": "obsm", "y_attr": "obsm", "x_key": lineage_loss["key"], "y_key": lineage_loss["key"], "x_loss": "barcode", "y_loss": "barcode"} 
-        elif lineage_loss["type"] == "tree":
-            trees = [item for item in self.adata.uns if "_tree" in item]
-            xy = {"x_attr": "uns", "y_attr": "uns", "x_key": trees, "y_key": trees, "x_loss": "LeafDistance", "y_loss": "LeafDistance"}
-        elif lineage_loss["type"] == "cost":
-            xy = {"attr": lineage_loss["attr"], "key": lineage_loss["key"], "tag": "cost"}
+        x = {"attr": lineage_loss.get("attr", "obsp"), "key": lineage_loss.get("key", None), "loss": lineage_loss.get("loss", "cost"), "tag": lineage_loss.get("tag", "cost")}
+        y = {"attr": lineage_loss.get("attr", "obsp"), "key": lineage_loss.get("key", None), "loss": lineage_loss.get("loss", "cost"), "tag": lineage_loss.get("tag", "cost")}
+        xy = {"x_attr": "obsm", "x_key": data_key, "y_attr": "obsm", "y_key": data_key, "tag": "point_cloud"}
+
+        if "cost_kwargs" in lineage_loss:
+            x["loss_dict"] = lineage_loss["cost_kwargs"]
+            y["loss_dict"] = lineage_loss["cost_kwargs"]
 
         marginal_kwargs = dict(marginal_kwargs)
         marginal_kwargs["proliferation_key"] = self._proliferation_key
@@ -397,19 +395,6 @@ class LineageProblem(TemporalProblem, CostMixin):
             marginal_kwargs=marginal_kwargs,
             **kwargs,
         )
-
-    """def _compute_lineage_cost(self, adata: AnnData, lineage_data: Dict[str, str], **kwargs:Any):
-        container = adata[getattr(lineage_data, "attr")]
-        data = getattr(lineage_data, "key")
-        if getattr(lineage_data, "type") == "cost":
-            if container is not "obsm":
-                raise ValueError("TODO: container must be obsm")
-            if not hasattr(container, data):
-                raise ValueError("TODO: key not found")
-        if getattr(lineage_data, "type") == "tree":
-            self._create_cost_from_tree(container[data], **kwargs)
-        elif getattr(lineage_data, "type") == "barcodes":
-            self._create_cost_from_barcodes(container[data], **kwargs)"""
 
     def _create_problems(
         self,
@@ -435,13 +420,18 @@ class LineageProblem(TemporalProblem, CostMixin):
                     kwargs_["y"] = y
                 elif x is not None and y is not None:
                     kwargs_["xy"] = (x, y)
-            print("kwargs are ", kwargs)
-            if isinstance(kwargs["xy"]["x_key"], list):
-                prefixes = [item[:item.index("_tree")] for item in kwargs["xy"]["x_key"]]
-                if str(src) not in prefixes:
-                    raise ValueError(f"TODO: no tree corresponding to {src} found.")
-                kwargs["xy"]["x_key"] = str(src)+"_tree"
-                kwargs["xy"]["y_key"] = str(tgt)+"_tree"
+            # here we want to make sure to use the correct trees which are named after the time points
+            if kwargs["x"]["key"]=="tree" or kwargs["y"]["key"]=="tree":
+                candidates = [el for el in self.adata.uns.keys() if "_tree" in el]
+                prefixes = [item[:item.index("_tree")] for item in candidates]
+                if kwargs["x"]["key"]=="tree":
+                    if str(src) not in prefixes:
+                        raise ValueError(f"TODO: no tree corresponding to {src} found.")
+                    kwargs["x"]["key"] = str(src)+"_tree"
+                if kwargs["y"]["key"]=="tree":
+                    if str(tgt) not in prefixes:
+                        raise ValueError(f"TODO: no tree corresponding to {src} found.")
+                    kwargs["y"]["key"] = str(tgt)+"_tree"
                 problems[src, tgt] = problem.prepare(**kwargs_)
             else:
                 problems[src, tgt] = problem.prepare(**kwargs_)

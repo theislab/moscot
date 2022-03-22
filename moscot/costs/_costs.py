@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+from multiprocessing.sharedctypes import Value
 from typing import Any, Union, Optional, Dict, List
 from anndata import AnnData
 from numbers import Number
@@ -13,7 +14,7 @@ except ImportError:
 from lineageot.inference import get_leaves
 import networkx as nx
 
-from numpy.typing import ArrayLike
+import numpy.typing as npt
 import numpy as np
 
 __all__ = ["LeafDistance", "BarcodeDistance"]
@@ -21,33 +22,27 @@ __all__ = ["LeafDistance", "BarcodeDistance"]
 
 class MoscotLoss(ABC):
     @abstractmethod
-    def compute(self, *args: Any, **kwargs: Any) -> ArrayLike:
+    def compute(self, *args: Any, **kwargs: Any) -> npt.ArrayLike:
         pass
 class BaseLoss(ABC):
 
-    def __call__(self, kind=Literal["LeafDistance", "BarcodeDistance"], *args: Any, scale: Optional[str] = None, **kwargs):
-        """if kind=="LeafDistance":
-            cost = LeafDistance()._compute(*args, **kwargs)
-        elif kind=="BarcodeDistance":
-            cost = BarcodeDistance()._compute(*args, **kwargs)
-        if scale is not None:
-            return self._normalize(cost, scale)
-        return cost"""
+    def __call__(self, kind: Literal["LeafDistance", "BarcodeDistance"], *args: Any, **kwargs: Any):
         if kind == "LeafDistance":
-            return LeafDistance()
+            return LeafDistance(*args, **kwargs)
         if kind == "BarcodeDistance":
-            return BarcodeDistance()
+            return BarcodeDistance(*args, **kwargs)
 
     @staticmethod
-    def _normalize(cost_matrix: ArrayLike, scale: Union[str, int, float] = "max") -> ArrayLike:
+    def _normalize(cost_matrix: npt.ArrayLike, scale: Union[str, int, float] = "max") -> npt.ArrayLike:
         # TODO: @MUCDK find a way to have this for non-materialized matrices (will be backend specific)
-        ...
         if scale == "max":
             cost_matrix /= cost_matrix.max()
         elif scale == "mean":
             cost_matrix /= cost_matrix.mean()
         elif scale == "median":
             cost_matrix /= np.median(cost_matrix)
+        elif isinstance(scale, float):
+            cost_matrix /= scale
         elif scale is None:
             pass
         else:
@@ -55,15 +50,17 @@ class BaseLoss(ABC):
         return cost_matrix
 
 
-
 class BarcodeDistance(BaseLoss, MoscotLoss):
-    def compute(self, adata: AnnData, attr: str, key: str, scale: Literal="max", **_: Any):
+    def compute(self, adata: AnnData, attr: str, key: str, scale: Optional[Union[Literal["max", "mean", "median"], float]] = None, **_: Any) -> npt.ArrayLike:
         barcodes = getattr(getattr(adata, attr), key)
         n_cells = barcodes.shape[0]
         distances = np.zeros((n_cells, n_cells))
         for i in range(n_cells):
             distances[i, i+1] = [self._scaled_Hamming_distance(barcodes[i,:], barcodes[j, :]) for j in range(i+1, n_cells)]
-        return distances + np.transpose(distances)    
+        if scale is None:
+            return distances + np.transpose(distances)
+        return self._normalize(distances + np.transpose(distances), scale=scale)
+            
 
     @staticmethod
     def _scaled_Hamming_distance(x: npt.ArrayLike, y: npt.ArrayLike) -> Number:
@@ -84,7 +81,7 @@ class BarcodeDistance(BaseLoss, MoscotLoss):
 
 
 class LeafDistance(BaseLoss, MoscotLoss):
-    def compute(self, adata: AnnData, attr: str, key:str, scale: Literal = "max", **kwargs: Any):
+    def compute(self, adata: AnnData, attr: str, key:str, scale: Optional[Union[Literal["max", "mean", "median"], float]] = None, **kwargs: Any) -> npt.ArrayLike:
         """
         Computes the matrix of pairwise distances between leaves of the tree
         """
@@ -92,27 +89,27 @@ class LeafDistance(BaseLoss, MoscotLoss):
         tree = container[key]
         if scale is None:
             return self._create_cost_from_tree(tree, adata, **kwargs)
-        else:
-            return self._normalize(self._create_cost_from_tree(tree, adata, **kwargs), scale)  # Can we do this in a stateless class?
+        return self._normalize(self._create_cost_from_tree(tree, adata, **kwargs), scale)  # Can we do this in a stateless class?
 
     def _create_cost_from_tree(self, tree: nx.DiGraph, adata: AnnData, **kwargs: Any) -> npt.ArrayLike:
+        #TODO(@MUCDK): make it more efficient, current problem: `target`in `multi_source_dijkstra` cannot be chosen as a subset
         undirected_tree = tree.to_undirected()
         leaves = self._get_leaves(undirected_tree, adata)
         n_leaves = len(leaves)
         distances = np.zeros((n_leaves, n_leaves))
         for i, leaf in enumerate(leaves):
-            distance_dictionary = nx.multi_source_dijkstra(undirected_tree, [leaf], target=[leaves[i+1:]], **kwargs)[0]
-            distances[i,i+1:] = [distance_dictionary.get(leaf) for leaf in leaves]
-        return distances + np.transpose(distances)
+            distance_dictionary = nx.multi_source_dijkstra(undirected_tree, [leaf], **kwargs)[0]
+            distances[i,:] = [distance_dictionary.get(leaf) for leaf in leaves]
+        return distances
 
 
     @staticmethod
     def _get_leaves(tree: nx.Graph, adata: AnnData, cell_to_leaf: Optional[Dict] = None) -> List:
         leaves = [node for node in tree if tree.degree(node) == 1]
-        if leaves != list(adata.obs.index):
+        if not set(adata.obs.index).issubset(leaves):
             if cell_to_leaf is None:
                 raise ValueError("TODO: The node names do not correspond to the anndata obs index names. Please provide a `cell_to_lead` dict.")
             leaves = [cell_to_leaf[cell] for cell in list(adata.obs.index)]
-        return leaves
+        return list(adata.obs.index)
 
 

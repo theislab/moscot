@@ -1,6 +1,6 @@
-from typing import Any, Optional
+from typing import Any, Optional, Mapping
 from dataclasses import dataclass
-
+from types import MappingProxyType
 from scipy.sparse import issparse
 import scipy
 
@@ -25,6 +25,7 @@ class AnnDataPointer:
     # TODO(michalk8): determine whether this needs to really be here or can be inferred purely from loss/attr
     tag: Tag = Tag.POINT_CLOUD
     loss: str = "Euclidean"
+    loss_dict: Mapping[str, Any] = MappingProxyType({})
     # TODO(MUCDK): handle Grid cost. this must be a sequence: https://github.com/google-research/ott/blob/b1adc2894b76b7360f639acb10181f2ce97c656a/ott/geometry/grid.py#L55
 
     def create(self, **kwargs: Any) -> TaggedArray:  # I rewrote the logic a bit as this way I find it more readable
@@ -34,18 +35,14 @@ class AnnDataPointer:
             if arr.ndim != 2:
                 raise ValueError("TODO: expected 2D")
             return arr
-
         rescale = kwargs.get("rescale", None)
         if self.tag == Tag.COST_MATRIX:
-            print("self.loss in moscot_losses", self.loss in moscot_losses)
-            print("sekf,attr,  self.key", self.attr, self.key)
             if self.loss in moscot_losses:
-                container = BaseLoss(kind=self.loss).create(self.attr, self.key, **kwargs)
+                container = BaseLoss()(kind=self.loss).compute(adata=self.adata, attr=self.attr, key=self.key, **self.loss_dict)
                 return TaggedArray(container, tag=self.tag, loss=None)
             if not hasattr(self.adata, self.attr):
                 raise AttributeError("TODO: invalid attribute")
             container = getattr(self.adata, self.attr)
-
             if issparse(container):
                 container = container.A
             if self.key is None:
@@ -53,16 +50,18 @@ class AnnDataPointer:
             else:
                 if self.key not in container:
                     raise KeyError(f"TODO: unable to find `adata.{self.attr}['{self.key}']`.")
-                container = ensure_2D(container[self.key])
+                if issparse(container[self.key]):
+                    container = ensure_2D(container[self.key].A)
+                else:
+                    container = ensure_2D(container[self.key])
                 # TODO(michalk8): check if array-like
                 # TODO(michalk8): here we'd construct custom loss (BC/graph distances)
                 return TaggedArray(container, tag=self.tag, loss=None)
             # TODO(michalk8): not reachable...
             raise ValueError(f"The loss `{self.loss}` is not implemented. Please provide your own cost matrix.")
 
-        print("self.loss is ", self.loss)
         backend_losses = _get_backend_losses(**kwargs)  # TODO: put in registry
-        if self.loss not in backend_losses.keys() and self.loss not in moscot_losses:
+        if self.loss not in backend_losses.keys():
             raise ValueError(f"The loss `{self.loss}` is not implemented. Please provide your own cost matrix.")
         if not hasattr(self.adata, self.attr):
             raise AttributeError("TODO: invalid attribute")
@@ -75,12 +74,7 @@ class AnnDataPointer:
             # TODO(michalk8): check if array-like
             # TODO(michalk8): here we'd construct custom loss (BC/graph distances)
             return TaggedArray(container, tag=self.tag, loss=backend_losses[self.loss])
-        print("self.key is ", self.key)
         if self.key not in container:
             raise KeyError(f"TODO: unable to find `adata.{self.attr}['{self.key}']`.")
         container = container[self.key]
-        if self.loss in backend_losses:
-            return TaggedArray(container, tag=self.tag, loss=backend_losses[self.loss])
-        
-        container = BaseLoss()(kind=self.loss).compute(adata=self.adata, attr=self.attr, key=self.key, **kwargs)
-        return TaggedArray(container, tag=self.tag, loss=None)
+        return TaggedArray(container, tag=self.tag, loss=backend_losses[self.loss])
