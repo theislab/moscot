@@ -60,11 +60,14 @@ class BarcodeDistance(BaseLoss, MoscotLoss):
         scale: Optional[Union[Literal["max", "mean", "median"], float]] = None,
         **_: Any,
     ) -> npt.ArrayLike:
-        barcodes = getattr(getattr(adata, attr), key)
+        container = getattr(adata, attr)
+        if key not in container:
+            raise ValueError("TODO: no valid key")
+        barcodes = container[key]
         n_cells = barcodes.shape[0]
         distances = np.zeros((n_cells, n_cells))
         for i in range(n_cells):
-            distances[i, i + 1] = [
+            distances[i, i + 1:] = [
                 self._scaled_Hamming_distance(barcodes[i, :], barcodes[j, :]) for j in range(i + 1, n_cells)
             ]
         if scale is None:
