@@ -67,6 +67,7 @@ class BarcodeDistance(BaseLoss, MoscotLoss):
         n_cells = barcodes.shape[0]
         distances = np.zeros((n_cells, n_cells))
         for i in range(n_cells):
+            print(i)
             distances[i, i + 1:] = [
                 self._scaled_Hamming_distance(barcodes[i, :], barcodes[j, :]) for j in range(i + 1, n_cells)
             ]

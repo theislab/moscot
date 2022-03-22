@@ -414,7 +414,7 @@ class LineageProblem(TemporalProblem, CostMixin):
                     problem.solver.problem_kind,
                     **callback_kwargs,
                 )
-                if problem.solver.problem_kind != ProblemKind.QUAD_FUSED:
+                if problem.solver.problem_kind != ProblemKind.QUAD_FUSED: #TODO(@MUCKD): delete this 
                     kwargs_["x"] = x
                     kwargs_["y"] = y
                 elif x is not None and y is not None:
@@ -429,7 +429,7 @@ class LineageProblem(TemporalProblem, CostMixin):
                     kwargs["x"]["key"] = str(src) + "_tree"
                 if kwargs["y"]["key"] == "tree":
                     if str(tgt) not in prefixes:
-                        raise ValueError(f"TODO: no tree corresponding to {src} found.")
+                        raise ValueError(f"TODO: no tree corresponding to {tgt} found.")
                     kwargs["y"]["key"] = str(tgt) + "_tree"
                 problems[src, tgt] = problem.prepare(**kwargs_)
             else:
