@@ -1,7 +1,5 @@
-from types import MappingProxyType
-from typing import Any, Dict, Mapping, Callable, Optional, Literal
+from typing import Any, Dict, Literal, Optional
 from numbers import Number
-from functools import partial
 import logging
 
 from sklearn.metrics.pairwise import pairwise_distances
@@ -20,7 +18,9 @@ class TemporalAnalysisMixin(AnalysisMixin):
         intermediate: Number,
         end: Number,
         interpolation_parameter: Optional[int] = None,
-        valid_methods: Literal["ot", "random", "random_with_growth", "source_to_intermediate", "intermediate_to_target"] = ["ot", "random"],
+        valid_methods: Literal[
+            "ot", "random", "random_with_growth", "source_to_intermediate", "intermediate_to_target"
+        ] = ["ot", "random"],
         batch_key: Optional[str] = None,
         n_interpolated_cells: Optional[int] = None,
         **kwargs: Any,
@@ -30,7 +30,9 @@ class TemporalAnalysisMixin(AnalysisMixin):
         the held out data was also used for the preprocessing (whereas it should follow the independent preprocessing
         step of WOT
         """
-        _validation_methods = set(["ot", "random", "random_with_growth", "source_to_intermediate", "intermediate_to_target"])
+        _validation_methods = {
+            "ot", "random", "random_with_growth", "source_to_intermediate", "intermediate_to_target"
+        }
         if not set(valid_methods).issubset(_validation_methods):
             raise ValueError(f"TODO: the only validation methods are {_validation_methods}")
 
@@ -137,103 +139,24 @@ class TemporalAnalysisMixin(AnalysisMixin):
         start: Number,
         end: Number,
         interpolation_parameter: float = 0.5,
-        adjust_by_growth: bool = True,
-        batch_size: int = 64
+        account_for_unbalancedness: bool = True,
+        batch_size: int = 64,
     ) -> npt.ArrayLike:
-        def mappable_choice(a: int, kwargs: Mapping[str, Any] = MappingProxyType({})) -> Callable[[Any], npt.ArrayLike]:
-            return partial(np.random.choice, a=a, replace=True)(**kwargs)
 
-        mass = np.ones(len(target_data))
-        if adjust_by_growth:
-            col_sums = (
-                np.array(
-                    np.squeeze(
-                        self.push(
-                            start=start,
-                            end=end,
-                            normalize=True,
-                            scale_by_marginals=False,
-                            plans={(start, end): [(start, end)]},
-                        )
-                    )
-                )
-                + 1e-9
-            )
-            mass = mass / np.power(col_sums, 1 - interpolation_parameter)
-        row_probability = np.array(
-            np.squeeze(
-                self.pull(
-                    start=start,
-                    end=end,
-                    data=mass,
-                    normalize=True,
-                    scale_by_marginals=False,
-                    plans={(start, end): [(start, end)]},
-                )
-            )
+        rows_sampled, cols_sampled = self._sample_from_tmap(
+            start,
+            end,
+            number_cells,
+            len(source_data),
+            len(target_data),
+            batch_size,
+            account_for_unbalancedness,
+            interpolation_parameter,
         )
-
-        rows_sampled = np.random.choice(len(source_data), p=row_probability / row_probability.sum(), size=number_cells)
-        rows, counts = np.unique(rows_sampled, return_counts=True)
-        result = np.zeros((number_cells, source_data.shape[1]))
-        current_index = 0
-        for batch in range(int(np.floor(len(rows) / batch_size))):
-            rows_batch = rows[batch * batch_size : (batch + 1) * batch_size]
-            counts_batch = counts[batch * batch_size : (batch + 1) * batch_size]
-            data = np.zeros((len(source_data), batch_size))
-            data[rows_batch, range(batch_size)] = 1
-            col_p_given_row = np.array(
-                np.squeeze(
-                    self.push(
-                        start=start,
-                        end=end,
-                        data=data,
-                        normalize=True,
-                        scale_by_marginals=False,
-                        plans={(start, end): [(start, end)]},
-                    )
-                )
-            )
-            if adjust_by_growth:
-                col_p_given_row = col_p_given_row / col_sums[:, None]
-            kwargs_list = [
-                dict(size=counts_batch[i], p=col_p_given_row[:, i] / col_p_given_row[:, i].sum())
-                for i in range(batch_size)
-            ]
-            cols_sampled = list(map(mappable_choice, [len(target_data)] * len(kwargs_list), kwargs_list))
-            updated_index = current_index + np.sum(counts_batch)
-            result[current_index:updated_index, :] = (
-                source_data[np.repeat(rows_batch, counts_batch), :] * (1 - interpolation_parameter)
-                + target_data[np.hstack(cols_sampled), :] * interpolation_parameter
-            )
-            current_index = updated_index
-        remaining_batch_size = len(rows) % batch_size
-        rows_batch = rows[(batch + 1) * batch_size :]
-        counts_batch = counts[(batch + 1) * batch_size :]
-        data = np.zeros((len(source_data), remaining_batch_size))
-        data[rows_batch, range(remaining_batch_size)] = 1
-        col_p_given_row = np.array(
-            np.squeeze(
-                self.push(
-                    start=start,
-                    end=end,
-                    data=data,
-                    normalize=True,
-                    scale_by_marginals=False,
-                    plans={(start, end): [(start, end)]},
-                )
-            )
-        )
-        if adjust_by_growth:
-            col_p_given_row = col_p_given_row / col_sums[:, None]
-        kwargs_list = [
-            dict(size=counts_batch[i], p=col_p_given_row[:, i] / col_p_given_row[:, i].sum())
-            for i in range(remaining_batch_size)
-        ]
-        cols_sampled = list(map(mappable_choice, [len(target_data)] * len(kwargs_list), kwargs_list))
-        updated_index = current_index + np.sum(counts_batch)
-        result[current_index:updated_index, :] = (
-            source_data[np.repeat(rows_batch, counts_batch), :] * (1 - interpolation_parameter)
+        print("len of rows_sampled are ", len(rows_sampled))
+        print("cols sampled are ", cols_sampled)
+        result = (
+            source_data[np.repeat(rows_sampled, [len(col) for col in cols_sampled]), :] * (1 - interpolation_parameter)
             + target_data[np.hstack(cols_sampled), :] * interpolation_parameter
         )
 
