@@ -129,7 +129,8 @@ class TemporalAnalysisMixin(AnalysisMixin):
         cost_matrix = pairwise_distances(point_cloud_1, Y=point_cloud_2, metric="sqeuclidean", n_jobs=-1)
         a = [] if a is None else a
         b = [] if b is None else b
-        return np.sqrt(ot.emd2(a, b, cost_matrix, numItermax=numItermax, **kwargs))
+        return np.sqrt(ot.emd2(a, b, cost_matrix, numItermax=numItermax))
+        #return np.sqrt(ot.emd2(a, b, cost_matrix, numItermax=numItermax, **kwargs)) #TODO: enable
 
     def _interpolate_gex_with_ot(
         self,
