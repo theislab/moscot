@@ -1,6 +1,7 @@
 from abc import ABC
-from typing import Optional, Tuple
+from typing import Tuple, Optional
 from numbers import Number
+
 import numpy as np
 import numpy.typing as npt
 
@@ -17,8 +18,9 @@ class AnalysisMixin(ABC):
         batch_size: int = 256,
         account_for_unbalancedness: bool = False,
         interpolation_parameter: Optional[float] = None,
-        seed: int = 42,
+        seed: Optional[int] = None,
     ) -> Tuple[npt.ArrayLike, npt.ArrayLike]:
+
         rng = np.random.RandomState(seed)
         if account_for_unbalancedness:
             if interpolation_parameter is None:
@@ -29,32 +31,33 @@ class AnalysisMixin(ABC):
         mass = np.ones(target_dim)
         if account_for_unbalancedness:
             col_sums = (
-                np.array(
-                    np.squeeze(
-                        self.push(
-                            start=start,
-                            end=end,
-                            normalize=True,
-                            scale_by_marginals=False,
-                            filter=[(start, end)],
-                        )
+                np.asarray(
+                    self.push(
+                        start=start,
+                        end=end,
+                        normalize=True,
+                        scale_by_marginals=False,
+                        filter=[(start, end)],
                     )
                 )
                 + 1e-12
             )
             mass = mass / np.power(col_sums, 1 - interpolation_parameter)
-        row_probability = np.array(
-            np.squeeze(
-                self.pull(
-                    start=start,
-                    end=end,
-                    data=mass,
-                    normalize=True,
-                    scale_by_marginals=False,
-                    filter=[(start, end)],
-                )
+        print(col_sums.shape)
+        col_sums = np.squeeze(col_sums)
+        row_probability = np.asarray(
+            self.pull(
+                start=start,
+                end=end,
+                data=mass,
+                normalize=True,
+                scale_by_marginals=False,
+                filter=[(start, end)],
             )
         )
+        print(row_probability.shape)
+        print(np.squeeze(row_probability).shape)
+        row_probability = np.squeeze(row_probability)
         rows_sampled = rng.choice(source_dim, p=row_probability / row_probability.sum(), size=n_samples)
         rows, counts = np.unique(rows_sampled, return_counts=True)
         all_cols_sampled = []
@@ -63,26 +66,24 @@ class AnalysisMixin(ABC):
             counts_batch = counts[batch : batch + batch_size]
             data = np.zeros((source_dim, len(rows_batch)))
             data[rows_batch, range(len(rows_batch))] = 1
-            
-            col_p_given_row = np.array(
-                np.squeeze(
-                    self.push(
-                        start=start,
-                        end=end,
-                        data=data,
-                        normalize=True,
-                        scale_by_marginals=False,
-                        filter=[(start, end)],
-                    )
+
+            col_p_given_row = np.asarray(
+                self.push(
+                    start=start,
+                    end=end,
+                    data=data,
+                    normalize=True,
+                    scale_by_marginals=False,
+                    filter=[(start, end)],
                 )
             )
+            print(col_p_given_row.shape)
+            print(np.squeeze(col_p_given_row.squeeze).shape)
             if account_for_unbalancedness:
                 col_p_given_row = col_p_given_row / col_sums[:, None]
 
             cols_sampled = [
-                rng.choice(
-                    a=target_dim, size=counts_batch[i], p=col_p_given_row[:, i] / col_p_given_row[:, i].sum()
-                )
+                rng.choice(a=target_dim, size=counts_batch[i], p=col_p_given_row[:, i] / col_p_given_row[:, i].sum())
                 for i in range(len(rows_batch))
             ]
             all_cols_sampled.extend(cols_sampled)

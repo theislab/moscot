@@ -1,10 +1,10 @@
-from typing import Any, Dict, Literal, Optional, Mapping, Callable
+from typing import Any, Dict, Literal, Optional
 from numbers import Number
 import logging
-from functools import partial
+
 from sklearn.metrics.pairwise import pairwise_distances
 import ot
-from types import MappingProxyType
+
 from numpy import typing as npt
 import numpy as np
 
@@ -23,7 +23,7 @@ class TemporalAnalysisMixin(AnalysisMixin):
         ] = ["ot", "random"],
         batch_key: Optional[str] = None,
         n_interpolated_cells: Optional[int] = None,
-        seed: int = 42,
+        seed: Optional[int] = None,
         **kwargs: Any,
     ) -> Dict[str, Number]:
         """
@@ -31,9 +31,7 @@ class TemporalAnalysisMixin(AnalysisMixin):
         the held out data was also used for the preprocessing (whereas it should follow the independent preprocessing
         step of WOT
         """
-        _validation_methods = {
-            "ot", "random", "random_with_growth", "source_to_intermediate", "intermediate_to_target"
-        }
+        _validation_methods = {"ot", "random", "random_with_growth", "source_to_intermediate", "intermediate_to_target"}
         if not set(valid_methods).issubset(_validation_methods):
             raise ValueError(f"TODO: the only validation methods are {_validation_methods}")
 
@@ -74,7 +72,13 @@ class TemporalAnalysisMixin(AnalysisMixin):
         result = {}
         if "ot" in valid_methods:
             gex_ot_interpolated = self._interpolate_gex_with_ot(
-                n_interpolated_cells, source_data, target_data, start, end, interpolation_parameter, seed=seed,
+                n_interpolated_cells,
+                source_data,
+                target_data,
+                start,
+                end,
+                interpolation_parameter,
+                seed=seed,
             )
             result["ot"] = self._compute_wasserstein_distance(intermediate_data, gex_ot_interpolated, **kwargs)
 
@@ -93,7 +97,7 @@ class TemporalAnalysisMixin(AnalysisMixin):
                 target_data,
                 interpolation_parameter,
                 growth_rates=growth_rates_source,
-                seed=seed, 
+                seed=seed,
                 **kwargs,
             )
             result["random_with_growth"] = self._compute_wasserstein_distance(
@@ -126,32 +130,12 @@ class TemporalAnalysisMixin(AnalysisMixin):
         a: Optional[npt.ArrayLike] = None,
         b: Optional[npt.ArrayLike] = None,
         numItermax: int = 1e6,
-        **kwargs: Any,
+        **_: Any,
     ) -> Number:
         cost_matrix = pairwise_distances(point_cloud_1, Y=point_cloud_2, metric="sqeuclidean", n_jobs=-1)
         a = [] if a is None else a
         b = [] if b is None else b
         return np.sqrt(ot.emd2(a, b, cost_matrix, numItermax=numItermax))
-        #return np.sqrt(ot.emd2(a, b, cost_matrix, numItermax=numItermax, **kwargs)) #TODO: enable
-
-    def _compute_transport_map(self, start: int, end: int, normalize: bool = False) -> npt.ArrayLike:
-        if (start, end) not in self._problems.keys():
-            steps = self._policy.plan(start=start, end=end)[start, end]
-            transition_matrix = self._problems[steps[0]].solution.transport_matrix
-            for i in range(len(steps) - 1):
-                transition_matrix @= self._problems[steps[i + 1]].solution.transport_matrix
-            if normalize:
-                transition_matrix /= np.sum(transition_matrix, axis=1)[:, None]
-            return transition_matrix
-        else:
-            transition_matrix = self.solution[
-                (start, end)
-            ].solution.transport_matrix  # TODO(@MUCDK) report bug, one "solution" too much
-            if normalize:
-                transition_matrix /= np.sum(transition_matrix, axis=1)[:, None]
-                transition_matrix = np.nan_to_num(transition_matrix, nan=0.0)
-            return transition_matrix
-
 
     def _interpolate_gex_with_ot(
         self,
@@ -163,7 +147,7 @@ class TemporalAnalysisMixin(AnalysisMixin):
         interpolation_parameter: float = 0.5,
         account_for_unbalancedness: bool = True,
         batch_size: int = 64,
-        seed: int = 42,
+        seed: Optional[int] = None,
         **_: Any,
     ) -> npt.ArrayLike:
 
@@ -176,7 +160,7 @@ class TemporalAnalysisMixin(AnalysisMixin):
             batch_size,
             account_for_unbalancedness,
             interpolation_parameter,
-            seed
+            seed,
         )
         result = (
             source_data[np.repeat(rows_sampled, [len(col) for col in cols_sampled]), :] * (1 - interpolation_parameter)
@@ -192,7 +176,7 @@ class TemporalAnalysisMixin(AnalysisMixin):
         target_data: npt.ArrayLike,
         interpolation_parameter: int = 0.5,
         growth_rates: Optional[npt.ArrayLike] = None,
-        seed: int = 42,
+        seed: Optional[int] = None,
         **_: Any,
     ) -> npt.ArrayLike:
         rng = np.random.RandomState(seed)
@@ -201,9 +185,7 @@ class TemporalAnalysisMixin(AnalysisMixin):
         else:
             row_probability = growth_rates ** (1 - interpolation_parameter)
         result = (
-            source_data[
-                rng.choice(len(source_data), size=number_cells, p=row_probability / np.sum(row_probability)), :
-            ]
+            source_data[rng.choice(len(source_data), size=number_cells, p=row_probability / np.sum(row_probability)), :]
             * (1 - interpolation_parameter)
             + target_data[rng.choice(len(target_data), size=number_cells), :] * interpolation_parameter
         )
