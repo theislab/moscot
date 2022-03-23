@@ -59,9 +59,7 @@ class AnalysisMixin(ABC):
         all_cols_sampled = []
         for batch in range(0, len(rows), batch_size):
             rows_batch = rows[batch : batch + batch_size]
-            print("rows_batch is ", rows_batch)
             counts_batch = counts[batch : batch + batch_size]
-            print("counts batch is ", counts_batch)
             data = np.zeros((source_dim, batch_size))
             data[rows_batch, range(len(rows_batch))] = 1
             col_p_given_row = np.array(

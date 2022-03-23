@@ -70,6 +70,10 @@ class TemporalAnalysisMixin(AnalysisMixin):
         if n_interpolated_cells is None:
             n_interpolated_cells = len(intermediate_data)
 
+        transport_matrix = self._compute_transport_map(start, end)
+        gex_ot_old = self._interpolate_gex_with_ot_old(n_interpolated_cells, source_data, target_data, transport_matrix, interpolation_parameter)
+        print(self._compute_wasserstein_distance(intermediate_data, gex_ot_old, **kwargs))
+
         result = {}
         if "ot" in valid_methods:
             gex_ot_interpolated = self._interpolate_gex_with_ot(
@@ -131,6 +135,64 @@ class TemporalAnalysisMixin(AnalysisMixin):
         b = [] if b is None else b
         return np.sqrt(ot.emd2(a, b, cost_matrix, numItermax=numItermax))
         #return np.sqrt(ot.emd2(a, b, cost_matrix, numItermax=numItermax, **kwargs)) #TODO: enable
+
+    def _compute_transport_map(self, start: int, end: int, normalize: bool = False) -> npt.ArrayLike:
+        if (start, end) not in self._problems.keys():
+            steps = self._policy.plan(start=start, end=end)[start, end]
+            transition_matrix = self._problems[steps[0]].solution.transport_matrix
+            for i in range(len(steps) - 1):
+                transition_matrix @= self._problems[steps[i + 1]].solution.transport_matrix
+            if normalize:
+                transition_matrix /= np.sum(transition_matrix, axis=1)[:, None]
+            return transition_matrix
+        else:
+            transition_matrix = self.solution[
+                (start, end)
+            ].solution.transport_matrix  # TODO(@MUCDK) report bug, one "solution" too much
+            if normalize:
+                transition_matrix /= np.sum(transition_matrix, axis=1)[:, None]
+                transition_matrix = np.nan_to_num(transition_matrix, nan=0.0)
+            return transition_matrix
+
+    def _interpolate_gex_with_ot_old(  # TODO: more efficient implementation
+        self,
+        number_cells: int,
+        source_data: npt.ArrayLike,
+        target_data: npt.ArrayLike,
+        transport_matrix: npt.ArrayLike,
+        interpolation_parameter: float = 0.5,
+        adjust_by_growth=True,
+    ) -> npt.ArrayLike:
+        # TODO(@MUCDK): make online available
+        # TODO(@MUCDK): check dimensions of arrays
+
+        if adjust_by_growth:
+            transport_matrix = transport_matrix / np.power(transport_matrix.sum(axis=0), 1.0 - interpolation_parameter)
+            transport_matrix = np.nan_to_num(transport_matrix, nan=0)
+        transport_matrix_flattened = transport_matrix.flatten(order="C").astype("float64")
+        transport_matrix_flattened /= transport_matrix_flattened.sum() + 1e-3
+        choices = np.random.choice(
+            (len(source_data) * len(target_data)) + 1,
+            p=np.concatenate(
+                (transport_matrix_flattened, np.array([max(0, 1 - transport_matrix_flattened.sum())])), axis=0
+            ),
+            size=number_cells,
+        )
+        res = np.asarray(
+            [
+                source_data[i // len(target_data)] * (1 - interpolation_parameter)
+                + target_data[i % len(target_data)] * interpolation_parameter
+                for i in choices
+                if i != (len(source_data) * len(target_data))
+            ],
+            dtype=np.float64,
+        )
+
+        n_to_replace = np.sum(choices == (len(source_data) * len(target_data)) + 1)
+        rows_to_add = np.random.choice(
+            len(res), replace=False, size=n_to_replace
+        )  # this creates a slightly biased estimator but needs to be done due to numerical errors
+        return np.concatenate((res, res[rows_to_add]), axis=0)
 
     def _interpolate_gex_with_ot(
         self,
