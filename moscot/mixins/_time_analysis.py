@@ -82,6 +82,7 @@ class TemporalAnalysisMixin(AnalysisMixin):
                 start,
                 end,
                 interpolation_parameter,
+                account_for_unbalancedness,
                 batch_size=batch_size,
                 seed=seed,
             )
