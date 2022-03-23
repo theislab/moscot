@@ -132,4 +132,4 @@ class LeafDistance(BaseLoss):
                     "TODO: The node names do not correspond to the anndata obs index names. Please provide a `cell_to_lead` dict."
                 )
             return [cell_to_leaf[cell] for cell in list(adata.obs.index)]
-        return [leaf for leaf in leaves if leaf in list(adata.obs.index)]
+        return [cell for cell in adata.obs.index if cell in leaves]
