@@ -26,7 +26,7 @@ class BaseLoss(ABC):
     def compute(self, *args: Any, **kwargs: Any) -> npt.ArrayLike:
         pass
 
-    def __call__(self, kind: Literal["LeafDistance", "BarcodeDistance"], *args: Any, **kwargs: Any):
+    def __call__(self, kind: Literal["LeafDistance", "BarcodeDistance"], *args: Any, **kwargs: Any) -> "BaseLoss":
         if kind == "LeafDistance":
             return LeafDistance(*args, **kwargs)
         if kind == "BarcodeDistance":
@@ -83,7 +83,7 @@ class BarcodeDistance(BaseLoss):
 
         # There may not be any sites where both were measured
         if len(b1) == 0:
-            return np.nan  # TODO: What to do if this happens?
+            return np.nan  # TODO(@MUCDK): What to do if this happens?
         b2 = y[shared_indices]
 
         differences = b1 != b2
