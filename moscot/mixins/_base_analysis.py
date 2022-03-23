@@ -39,12 +39,11 @@ class AnalysisMixin(ABC):
                         scale_by_marginals=False,
                         filter=[(start, end)],
                     )
-                )
+                ).squeeze()
                 + 1e-12
             )
             mass = mass / np.power(col_sums, 1 - interpolation_parameter)
-        print(col_sums.shape)
-        col_sums = np.squeeze(col_sums)
+
         row_probability = np.asarray(
             self.pull(
                 start=start,
@@ -54,10 +53,8 @@ class AnalysisMixin(ABC):
                 scale_by_marginals=False,
                 filter=[(start, end)],
             )
-        )
-        print(row_probability.shape)
-        print(np.squeeze(row_probability).shape)
-        row_probability = np.squeeze(row_probability)
+        ).squeeze()
+
         rows_sampled = rng.choice(source_dim, p=row_probability / row_probability.sum(), size=n_samples)
         rows, counts = np.unique(rows_sampled, return_counts=True)
         all_cols_sampled = []
@@ -76,9 +73,7 @@ class AnalysisMixin(ABC):
                     scale_by_marginals=False,
                     filter=[(start, end)],
                 )
-            )
-            print(col_p_given_row.shape)
-            print(np.squeeze(col_p_given_row.squeeze).shape)
+            ).squeeze()
             if account_for_unbalancedness:
                 col_p_given_row = col_p_given_row / col_sums[:, None]
 

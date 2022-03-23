@@ -23,6 +23,7 @@ class TemporalAnalysisMixin(AnalysisMixin):
         ] = ["ot", "random"],
         batch_key: Optional[str] = None,
         n_interpolated_cells: Optional[int] = None,
+        batch_size: int = 1024,
         seed: Optional[int] = None,
         **kwargs: Any,
     ) -> Dict[str, Number]:
@@ -78,6 +79,7 @@ class TemporalAnalysisMixin(AnalysisMixin):
                 start,
                 end,
                 interpolation_parameter,
+                batch_size=batch_size,
                 seed=seed,
             )
             result["ot"] = self._compute_wasserstein_distance(intermediate_data, gex_ot_interpolated, **kwargs)
@@ -146,7 +148,7 @@ class TemporalAnalysisMixin(AnalysisMixin):
         end: Number,
         interpolation_parameter: float = 0.5,
         account_for_unbalancedness: bool = True,
-        batch_size: int = 64,
+        batch_size: int = 1024,
         seed: Optional[int] = None,
         **_: Any,
     ) -> npt.ArrayLike:
