@@ -224,8 +224,8 @@ class SingleCompoundProblem(CompoundBaseProblem):
         return self._base_problem_type(
             self._mask(src_mask),
             self._mask(tgt_mask),
-            source = src,
-            target = tgt,
+            source=src,
+            target=tgt,
             solver=self._solver,
             **kwargs,
         )
@@ -300,7 +300,9 @@ class MultiCompoundProblem(CompoundBaseProblem):
     def _create_problem(
         self, src: Any, tgt: Any, src_mask: npt.ArrayLike, tgt_mask: npt.ArrayLike, **kwargs: Any
     ) -> BaseProblem:
-        return self._base_problem_type(self._adatas[src], self._adatas[tgt], source=src, target=tgt, solver=self._solver, **kwargs)
+        return self._base_problem_type(
+            self._adatas[src], self._adatas[tgt], source=src, target=tgt, solver=self._solver, **kwargs
+        )
 
     def _create_policy(
         self,

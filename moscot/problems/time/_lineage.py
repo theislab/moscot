@@ -4,7 +4,7 @@ from numbers import Number
 import logging
 
 import pandas as pd
-import copy
+
 import numpy as np
 import numpy.typing as npt
 
@@ -17,7 +17,6 @@ from moscot.problems.time._utils import beta, delta
 from moscot.solvers._base_solver import BaseSolver, ProblemKind
 from moscot.mixins._time_analysis import TemporalAnalysisMixin
 from moscot.solvers._tagged_array import TaggedArray
-from moscot.problems._base_problem import BaseProblem
 from moscot.problems._compound_problem import SingleCompoundProblem
 
 Callback_t = Optional[
@@ -119,7 +118,7 @@ class TemporalProblem(TemporalAnalysisMixin, SingleCompoundProblem):
     ) -> "TemporalProblem":
         if policy not in self._VALID_POLICIES:
             raise ValueError(f"TODO: wrong policies")
-            
+
         x = kwargs.get("x", {"attr": "obsm", "key": data_key})
         y = kwargs.get("y", {"attr": "obsm", "key": data_key})
         self._temporal_key = key
@@ -350,7 +349,7 @@ class LineageProblem(TemporalProblem):
             "key": lineage_loss.get("key", None),
             "loss": lineage_loss.get("loss", "barcode_distance"),
             "tag": lineage_loss.get("tag", "cost"),
-            "loss_kwargs": lineage_loss.get("loss_kwargs", {})
+            "loss_kwargs": lineage_loss.get("loss_kwargs", {}),
         }
         xy = {"x_attr": "obsm", "x_key": data_key, "y_attr": "obsm", "y_key": data_key, "tag": "point_cloud"}
 

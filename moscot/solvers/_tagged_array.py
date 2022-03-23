@@ -37,4 +37,3 @@ class TaggedArray:
     @property
     def is_grid(self) -> bool:
         return self.tag == Tag.GRID
-

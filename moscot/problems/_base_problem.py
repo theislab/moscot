@@ -139,9 +139,7 @@ class GeneralProblem(BaseProblem):
         self._source = source
         self._target = target
 
-    def _handle_joint(
-        self, tag: Optional[Tag] = None, **kwargs
-    ) -> Union[TaggedArray, Tuple[TaggedArray, TaggedArray]]:
+    def _handle_joint(self, tag: Optional[Tag] = None, **kwargs) -> Union[TaggedArray, Tuple[TaggedArray, TaggedArray]]:
         if tag is None:
             # TODO(michalk8): better/more strict condition?
             # TODO(michalk8): specify which tag is being using
@@ -187,9 +185,16 @@ class GeneralProblem(BaseProblem):
                 kwargs = dict(kwargs)
                 kwargs["key"] = self._source if is_source else self._target
             return kwargs
-        self._x = x if isinstance(x, TaggedArray) else AnnDataPointer(adata=self.adata, **update_key(x, is_source=True)).create()
+
+        self._x = (
+            x
+            if isinstance(x, TaggedArray)
+            else AnnDataPointer(adata=self.adata, **update_key(x, is_source=True)).create()
+        )
         self._y = (
-            y if y is None or isinstance(y, TaggedArray) else AnnDataPointer(adata=self._adata_y, **update_key(y, is_source=False)).create()
+            y
+            if y is None or isinstance(y, TaggedArray)
+            else AnnDataPointer(adata=self._adata_y, **update_key(y, is_source=False)).create()
         )
         if self.solver.problem_kind != ProblemKind.QUAD_FUSED:
             self._xy = None

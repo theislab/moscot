@@ -4,8 +4,10 @@ from dataclasses import dataclass
 
 from scipy.sparse import issparse
 import scipy
+
 import numpy as np
 import numpy.typing as npt
+
 from anndata import AnnData
 
 from moscot.costs._costs import BaseLoss
@@ -36,7 +38,9 @@ class AnnDataPointer:
 
         if self.tag == Tag.COST_MATRIX:
             if self.loss is not None:
-                cost_matrix = BaseLoss.create(kind=self.loss, adata=self.adata, attr=self.attr, key=self.key)(**self.loss_kwargs)
+                cost_matrix = BaseLoss.create(kind=self.loss, adata=self.adata, attr=self.attr, key=self.key)(
+                    **self.loss_kwargs
+                )
                 return TaggedArray(cost_matrix, tag=self.tag, loss=None)
             if not hasattr(self.adata, self.attr):
                 raise AttributeError("TODO: invalid attribute")
@@ -54,14 +58,13 @@ class AnnDataPointer:
             # TODO(michalk8): check if array-like
             # TODO(michalk8): here we'd construct custom loss (BC/graph distances)
             return TaggedArray(container, tag=self.tag, loss=None)
-            
-        
-        #TODO(@michalk) handle backend losses
+
+        # TODO(@michalk) handle backend losses
         if not hasattr(self.adata, self.attr):
             raise AttributeError("TODO: invalid attribute")
         container = getattr(self.adata, self.attr)
         if scipy.sparse.issparse(container):
-            return TaggedArray(container.A, tag=self.tag, loss=self.loss) #TODO(@Mmichalk8) propagate loss_kwargs
+            return TaggedArray(container.A, tag=self.tag, loss=self.loss)  # TODO(@Mmichalk8) propagate loss_kwargs
         if self.key not in container:
             raise KeyError(f"TODO: unable to find `adata.{self.attr}['{self.key}']`.")
         container = container[self.key]

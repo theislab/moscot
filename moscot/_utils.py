@@ -1,7 +1,6 @@
-from typing import Any, Optional
+from typing import Optional
 
 from numpy.typing import ArrayLike
-from ott.geometry.costs import Bures, Cosine, Euclidean, UnbalancedBures
 import numpy as np
 
 from anndata import AnnData

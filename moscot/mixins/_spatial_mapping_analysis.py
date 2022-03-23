@@ -20,7 +20,7 @@ class SpatialMappingAnalysisMixin(SpatialAnalysisMixin):
         var_names: Optional[List[str]] = None,
     ) -> Tuple[AnnData, AnnData]:
         vars_sc = set(adata_sc.var_names)  # TODO: allow alternative gene symbol by passing var_key
-        vars_sp = set(adata_sp.var_names) if adata_sp is not None
+        vars_sp = set(adata_sp.var_names) if adata_sp is not None else None
         var_names = set(var_names) if var_names is not None else None
         if var_names is None and adata_sp is not None:
             var_names = vars_sp.intersection(vars_sc)
@@ -93,4 +93,3 @@ class SpatialMappingAnalysisMixin(SpatialAnalysisMixin):
                                    index=adata_sp.obs_names,
                                    columns=adata_sc.var_names)
         return sp_gex_pred
-
