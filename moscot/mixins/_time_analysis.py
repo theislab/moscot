@@ -4,6 +4,8 @@ import logging
 
 from sklearn.metrics.pairwise import pairwise_distances
 import ot
+from anndata import AnnData
+import itertools
 
 from numpy import typing as npt
 import numpy as np
@@ -86,7 +88,7 @@ class TemporalAnalysisMixin(AnalysisMixin):
 
         if "random" in valid_methods:
             gex_randomly_interpolated = self._interpolate_gex_randomly(
-                n_interpolated_cells, source_data, target_data, interpolation_parameter, seed=seed, **kwargs
+                n_interpolated_cells, source_data, target_data, interpolation_parameter, seed=seed
             )
             result["random"] = self._compute_wasserstein_distance(
                 intermediate_data, gex_randomly_interpolated, **kwargs
@@ -99,8 +101,7 @@ class TemporalAnalysisMixin(AnalysisMixin):
                 target_data,
                 interpolation_parameter,
                 growth_rates=growth_rates_source,
-                seed=seed,
-                **kwargs,
+                seed=seed
             )
             result["random_with_growth"] = self._compute_wasserstein_distance(
                 intermediate_data, gex_randomly_interpolated_growth, **kwargs
@@ -132,12 +133,12 @@ class TemporalAnalysisMixin(AnalysisMixin):
         a: Optional[npt.ArrayLike] = None,
         b: Optional[npt.ArrayLike] = None,
         numItermax: int = 1e6,
-        **_: Any,
+        **kwargs: Any,
     ) -> Number:
         cost_matrix = pairwise_distances(point_cloud_1, Y=point_cloud_2, metric="sqeuclidean", n_jobs=-1)
         a = [] if a is None else a
         b = [] if b is None else b
-        return np.sqrt(ot.emd2(a, b, cost_matrix, numItermax=numItermax))
+        return np.sqrt(ot.emd2(a, b, cost_matrix, numItermax=numItermax, **kwargs))
 
     def _interpolate_gex_with_ot(
         self,
@@ -150,7 +151,6 @@ class TemporalAnalysisMixin(AnalysisMixin):
         account_for_unbalancedness: bool = True,
         batch_size: int = 1024,
         seed: Optional[int] = None,
-        **_: Any,
     ) -> npt.ArrayLike:
 
         rows_sampled, cols_sampled = self._sample_from_tmap(
@@ -179,7 +179,6 @@ class TemporalAnalysisMixin(AnalysisMixin):
         interpolation_parameter: int = 0.5,
         growth_rates: Optional[npt.ArrayLike] = None,
         seed: Optional[int] = None,
-        **_: Any,
     ) -> npt.ArrayLike:
         rng = np.random.RandomState(seed)
         if growth_rates is None:
@@ -192,3 +191,18 @@ class TemporalAnalysisMixin(AnalysisMixin):
             + target_data[rng.choice(len(target_data), size=number_cells), :] * interpolation_parameter
         )
         return result
+
+    def _compute_distance_between_batches(
+        self, adata: AnnData, data: npt.ArrayLike, batch_key: str, **kwargs: Any
+    ) -> Number:
+        assert len(adata) == len(data), "TODO: wrong shapes"
+        dist = []
+        for batch_1, batch_2 in itertools.combinations(adata.obs[batch_key].unique(), 2):
+            dist.append(
+                self._compute_wasserstein_distance(
+                    data[(adata.obs[batch_key] == batch_1).values, :],
+                    data[(adata.obs[batch_key] == batch_2).values, :],
+                    **kwargs,
+                )
+            )
+        return np.mean(dist)
