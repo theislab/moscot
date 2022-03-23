@@ -1,5 +1,5 @@
 from abc import ABC
-from typing import Tuple, Optional
+from typing import Tuple, Optional, List
 from numbers import Number
 
 import numpy as np
@@ -19,7 +19,7 @@ class AnalysisMixin(ABC):
         account_for_unbalancedness: bool = False,
         interpolation_parameter: Optional[float] = None,
         seed: Optional[int] = None,
-    ) -> Tuple[npt.ArrayLike, npt.ArrayLike]:
+    ) -> Tuple[npt.ArrayLike, List]:
 
         rng = np.random.RandomState(seed)
         if account_for_unbalancedness:
