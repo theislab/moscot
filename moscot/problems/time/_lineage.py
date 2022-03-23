@@ -13,7 +13,6 @@ import scanpy as sc
 
 from moscot.problems import MultiMarginalProblem
 from moscot.solvers._output import BaseSolverOutput
-from moscot.mixins._cost_mixin import CostMixin
 from moscot.problems.time._utils import beta, delta
 from moscot.solvers._base_solver import BaseSolver, ProblemKind
 from moscot.mixins._time_analysis import TemporalAnalysisMixin
@@ -345,7 +344,7 @@ class TemporalProblem(TemporalAnalysisMixin, SingleCompoundProblem):
         self._apoptosis_key = value
 
 
-class LineageProblem(TemporalProblem, CostMixin):
+class LineageProblem(TemporalProblem):
     def prepare(
         self,
         key: str,

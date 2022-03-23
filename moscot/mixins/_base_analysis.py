@@ -18,7 +18,7 @@ class AnalysisMixin(ABC):
         else:
             transition_matrix = self.solution[
                 (start, end)
-            ].solution.transport_matrix  # TODO(@MUCDK) report bug, one "solution" too much
+            ].transport_matrix  # TODO(@MUCDK) report bug, one "solution" too much
             if normalize:
                 transition_matrix /= np.sum(transition_matrix, axis=1)[:, None]
                 transition_matrix = np.nan_to_num(transition_matrix, nan=0.0)
