@@ -1,4 +1,4 @@
-from typing import Any, Dict, Literal, Optional
+from typing import Any, Dict, Literal, Optional, Sequence
 from numbers import Number
 import logging
 
@@ -20,9 +20,9 @@ class TemporalAnalysisMixin(AnalysisMixin):
         intermediate: Number,
         end: Number,
         interpolation_parameter: Optional[int] = None,
-        valid_methods: Literal[
+        valid_methods: Sequence[Literal[
             "ot", "random", "random_with_growth", "source_to_intermediate", "intermediate_to_target"
-        ] = ["ot", "random"],
+        ]] = ["ot", "random"],
         batch_key: Optional[str] = None,
         n_interpolated_cells: Optional[int] = None,
         batch_size: int = 1024,
