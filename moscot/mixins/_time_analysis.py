@@ -1,10 +1,10 @@
-from typing import Any, Dict, Literal, Optional
+from typing import Any, Dict, Literal, Optional, Mapping, Callable
 from numbers import Number
 import logging
-
+from functools import partial
 from sklearn.metrics.pairwise import pairwise_distances
 import ot
-
+from types import MappingProxyType
 from numpy import typing as npt
 import numpy as np
 
@@ -23,6 +23,7 @@ class TemporalAnalysisMixin(AnalysisMixin):
         ] = ["ot", "random"],
         batch_key: Optional[str] = None,
         n_interpolated_cells: Optional[int] = None,
+        seed: int = 42,
         **kwargs: Any,
     ) -> Dict[str, Number]:
         """
@@ -70,20 +71,16 @@ class TemporalAnalysisMixin(AnalysisMixin):
         if n_interpolated_cells is None:
             n_interpolated_cells = len(intermediate_data)
 
-        transport_matrix = self._compute_transport_map(start, end)
-        gex_ot_old = self._interpolate_gex_with_ot_old(n_interpolated_cells, source_data, target_data, transport_matrix, interpolation_parameter)
-        print(self._compute_wasserstein_distance(intermediate_data, gex_ot_old, **kwargs))
-
         result = {}
         if "ot" in valid_methods:
             gex_ot_interpolated = self._interpolate_gex_with_ot(
-                n_interpolated_cells, source_data, target_data, start, end, interpolation_parameter
+                n_interpolated_cells, source_data, target_data, start, end, interpolation_parameter, seed=seed,
             )
             result["ot"] = self._compute_wasserstein_distance(intermediate_data, gex_ot_interpolated, **kwargs)
 
         if "random" in valid_methods:
             gex_randomly_interpolated = self._interpolate_gex_randomly(
-                n_interpolated_cells, source_data, target_data, interpolation_parameter, **kwargs
+                n_interpolated_cells, source_data, target_data, interpolation_parameter, seed=seed, **kwargs
             )
             result["random"] = self._compute_wasserstein_distance(
                 intermediate_data, gex_randomly_interpolated, **kwargs
@@ -96,6 +93,7 @@ class TemporalAnalysisMixin(AnalysisMixin):
                 target_data,
                 interpolation_parameter,
                 growth_rates=growth_rates_source,
+                seed=seed, 
                 **kwargs,
             )
             result["random_with_growth"] = self._compute_wasserstein_distance(
@@ -154,45 +152,6 @@ class TemporalAnalysisMixin(AnalysisMixin):
                 transition_matrix = np.nan_to_num(transition_matrix, nan=0.0)
             return transition_matrix
 
-    def _interpolate_gex_with_ot_old(  # TODO: more efficient implementation
-        self,
-        number_cells: int,
-        source_data: npt.ArrayLike,
-        target_data: npt.ArrayLike,
-        transport_matrix: npt.ArrayLike,
-        interpolation_parameter: float = 0.5,
-        adjust_by_growth=True,
-    ) -> npt.ArrayLike:
-        # TODO(@MUCDK): make online available
-        # TODO(@MUCDK): check dimensions of arrays
-
-        if adjust_by_growth:
-            transport_matrix = transport_matrix / np.power(transport_matrix.sum(axis=0), 1.0 - interpolation_parameter)
-            transport_matrix = np.nan_to_num(transport_matrix, nan=0)
-        transport_matrix_flattened = transport_matrix.flatten(order="C").astype("float64")
-        transport_matrix_flattened /= transport_matrix_flattened.sum() + 1e-3
-        choices = np.random.choice(
-            (len(source_data) * len(target_data)) + 1,
-            p=np.concatenate(
-                (transport_matrix_flattened, np.array([max(0, 1 - transport_matrix_flattened.sum())])), axis=0
-            ),
-            size=number_cells,
-        )
-        res = np.asarray(
-            [
-                source_data[i // len(target_data)] * (1 - interpolation_parameter)
-                + target_data[i % len(target_data)] * interpolation_parameter
-                for i in choices
-                if i != (len(source_data) * len(target_data))
-            ],
-            dtype=np.float64,
-        )
-
-        n_to_replace = np.sum(choices == (len(source_data) * len(target_data)) + 1)
-        rows_to_add = np.random.choice(
-            len(res), replace=False, size=n_to_replace
-        )  # this creates a slightly biased estimator but needs to be done due to numerical errors
-        return np.concatenate((res, res[rows_to_add]), axis=0)
 
     def _interpolate_gex_with_ot(
         self,
@@ -204,6 +163,8 @@ class TemporalAnalysisMixin(AnalysisMixin):
         interpolation_parameter: float = 0.5,
         account_for_unbalancedness: bool = True,
         batch_size: int = 64,
+        seed: int = 42,
+        **_: Any,
     ) -> npt.ArrayLike:
 
         rows_sampled, cols_sampled = self._sample_from_tmap(
@@ -215,9 +176,8 @@ class TemporalAnalysisMixin(AnalysisMixin):
             batch_size,
             account_for_unbalancedness,
             interpolation_parameter,
+            seed
         )
-        print("len of rows_sampled are ", len(rows_sampled))
-        print("cols sampled are ", cols_sampled)
         result = (
             source_data[np.repeat(rows_sampled, [len(col) for col in cols_sampled]), :] * (1 - interpolation_parameter)
             + target_data[np.hstack(cols_sampled), :] * interpolation_parameter
@@ -232,17 +192,19 @@ class TemporalAnalysisMixin(AnalysisMixin):
         target_data: npt.ArrayLike,
         interpolation_parameter: int = 0.5,
         growth_rates: Optional[npt.ArrayLike] = None,
-        **kwargs: Any,
+        seed: int = 42,
+        **_: Any,
     ) -> npt.ArrayLike:
+        rng = np.random.RandomState(seed)
         if growth_rates is None:
             row_probability = np.ones(len(source_data)).astype("float64")
         else:
             row_probability = growth_rates ** (1 - interpolation_parameter)
         result = (
             source_data[
-                np.random.choice(len(source_data), size=number_cells, p=row_probability / np.sum(row_probability)), :
+                rng.choice(len(source_data), size=number_cells, p=row_probability / np.sum(row_probability)), :
             ]
             * (1 - interpolation_parameter)
-            + target_data[np.random.choice(len(target_data), size=number_cells), :] * interpolation_parameter
+            + target_data[rng.choice(len(target_data), size=number_cells), :] * interpolation_parameter
         )
         return result

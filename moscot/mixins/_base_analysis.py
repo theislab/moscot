@@ -17,8 +17,9 @@ class AnalysisMixin(ABC):
         batch_size: int = 256,
         account_for_unbalancedness: bool = False,
         interpolation_parameter: Optional[float] = None,
+        seed: int = 42,
     ) -> Tuple[npt.ArrayLike, npt.ArrayLike]:
-
+        rng = np.random.RandomState(seed)
         if account_for_unbalancedness:
             if interpolation_parameter is None:
                 raise ValueError(
@@ -35,7 +36,7 @@ class AnalysisMixin(ABC):
                             end=end,
                             normalize=True,
                             scale_by_marginals=False,
-                            plans={(start, end): [(start, end)]},
+                            filter=[(start, end)],
                         )
                     )
                 )
@@ -50,18 +51,19 @@ class AnalysisMixin(ABC):
                     data=mass,
                     normalize=True,
                     scale_by_marginals=False,
-                    plans={(start, end): [(start, end)]},
+                    filter=[(start, end)],
                 )
             )
         )
-        rows_sampled = np.random.choice(source_dim, p=row_probability / row_probability.sum(), size=n_samples)
+        rows_sampled = rng.choice(source_dim, p=row_probability / row_probability.sum(), size=n_samples)
         rows, counts = np.unique(rows_sampled, return_counts=True)
         all_cols_sampled = []
         for batch in range(0, len(rows), batch_size):
             rows_batch = rows[batch : batch + batch_size]
             counts_batch = counts[batch : batch + batch_size]
-            data = np.zeros((source_dim, batch_size))
+            data = np.zeros((source_dim, len(rows_batch)))
             data[rows_batch, range(len(rows_batch))] = 1
+            
             col_p_given_row = np.array(
                 np.squeeze(
                     self.push(
@@ -70,7 +72,7 @@ class AnalysisMixin(ABC):
                         data=data,
                         normalize=True,
                         scale_by_marginals=False,
-                        plans={(start, end): [(start, end)]},
+                        filter=[(start, end)],
                     )
                 )
             )
@@ -78,7 +80,7 @@ class AnalysisMixin(ABC):
                 col_p_given_row = col_p_given_row / col_sums[:, None]
 
             cols_sampled = [
-                np.random.choice(
+                rng.choice(
                     a=target_dim, size=counts_batch[i], p=col_p_given_row[:, i] / col_p_given_row[:, i].sum()
                 )
                 for i in range(len(rows_batch))

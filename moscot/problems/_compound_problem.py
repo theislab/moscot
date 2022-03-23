@@ -101,6 +101,8 @@ class CompoundBaseProblem(BaseProblem, ABC):
                 return data.get(plan[0], None) if isinstance(self._policy, StarPolicy) else data.get(plan, None)
             if len(plans) == 1:
                 return data
+            if isinstance(data, np.ndarray):
+                return data
             # TODO(michalk8): warn
             # would pass an array that will most likely have invalid shapes
             print("HINT: use `data={<pair>: array}`")
