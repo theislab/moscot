@@ -4,7 +4,7 @@ from numbers import Number
 import logging
 
 import pandas as pd
-
+import copy
 import numpy as np
 import numpy.typing as npt
 
@@ -402,7 +402,7 @@ class LineageProblem(TemporalProblem):
     ) -> Dict[Tuple[Any, Any], BaseProblem]:
         problems = {}
         for (src, tgt), (src_mask, tgt_mask) in self._policy.mask().items():
-            kwargs_ = dict(kwargs)
+            kwargs_ = dict(copy.deepcopy(kwargs))
             problem = self._create_problem(src=src, src_mask=src_mask, tgt=tgt, tgt_mask=tgt_mask)
             if callback is not None:
                 # TODO(michalk8): correctly type or update BaseProblem
