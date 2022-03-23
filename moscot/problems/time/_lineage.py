@@ -413,12 +413,9 @@ class LineageProblem(TemporalProblem):
                     problem.solver.problem_kind,
                     **callback_kwargs,
                 )
-                if problem.solver.problem_kind != ProblemKind.QUAD_FUSED: #TODO(@MUCKD): delete this 
-                    kwargs_["x"] = x
-                    kwargs_["y"] = y
-                elif x is not None and y is not None:
+                if x is not None and y is not None:
                     kwargs_["xy"] = (x, y)
-            # here we want to make sure to use the correct trees which are named after the time points
+            #TODO(@MUCDK) find better way to match trees to time points or introduce more tests (e.g. if multiple matches)
             if kwargs["x"]["key"] == "tree" or kwargs["y"]["key"] == "tree":
                 candidates = [el for el in self.adata.uns.keys() if "_tree" in el]
                 prefixes = [item[: item.index("_tree")] for item in candidates]
