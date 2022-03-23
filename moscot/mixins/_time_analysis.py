@@ -26,6 +26,7 @@ class TemporalAnalysisMixin(AnalysisMixin):
         batch_key: Optional[str] = None,
         n_interpolated_cells: Optional[int] = None,
         batch_size: int = 1024,
+        account_for_unbalancedness: bool = False,
         seed: Optional[int] = None,
         **kwargs: Any,
     ) -> Dict[str, Number]:
