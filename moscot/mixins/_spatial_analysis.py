@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, List, Tuple, Mapping, Optional, NamedTuple
+from typing import Any, List, Tuple, Mapping, Optional
 
 from scipy.stats import pearsonr, spearmanr
 from scipy.linalg import svd
@@ -14,14 +14,6 @@ import numpy.typing as npt
 from anndata import AnnData
 
 from moscot.mixins._base_analysis import AnalysisMixin
-
-
-class AlignParams(NamedTuple):
-    """Class to store alignment paramss."""
-
-    mode: str | None
-    tmap: npt.ArrayLike | None
-    basis: npt.ArrayLike
 
 
 class SpatialAnalysisMixin(AnalysisMixin):
@@ -95,7 +87,6 @@ class SpatialAlignmentAnalysisMixin(SpatialAnalysisMixin):
     def align(
         self,
         reference: str | int,
-        key: str = "spatial",
         mode: Literal["warp", "affine"] = "warp",
         copy: bool = False,
     ) -> npt.ArrayLike | None:
@@ -108,7 +99,7 @@ class SpatialAlignmentAnalysisMixin(SpatialAnalysisMixin):
         if copy:
             return aligned_arr
 
-        self.adata.obsm[f"{key}_{mode}"] = aligned_arr
+        self.adata.obsm[f"{self.spatial_key}_{mode}"] = aligned_arr
 
 
 class SpatialMappingAnalysisMixin(SpatialAnalysisMixin):

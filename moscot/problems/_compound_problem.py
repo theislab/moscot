@@ -245,6 +245,14 @@ class SingleCompoundProblem(CompoundBaseProblem):
         # TODO(michalk8): can include logging/extra sanity that mask is not empty
         return self.adata[mask] if self._policy.axis == "obs" else self.adata[:, mask]
 
+    def _dict_to_adata(self, d: Mapping[str, npt.ArrayLike], obs_key: str) -> None:
+        tmp = np.empty(len(self.adata))
+        tmp[:] = np.nan
+        for key, value in d.items():
+            mask = self.adata.obs[self._temporal_key] == key
+            tmp[mask] = np.squeeze(value)
+        self.adata.obs[obs_key] = tmp
+
 
 class MultiCompoundProblem(CompoundBaseProblem):
     _KEY = "subset"
