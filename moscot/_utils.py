@@ -31,17 +31,3 @@ def _normalize(arr: ArrayLike) -> ArrayLike:
     if arr.ndim != 1:
         raise ValueError("TODO: expected 1D")
     return arr / np.sum(arr)
-
-
-# TODO: use the enum in backend
-def _get_backend_losses(backend: str = "JAX", **kwargs: Any):
-    if backend == "JAX":
-        dimension = kwargs.pop("dimension", 1)
-        return {
-            "Euclidean": Euclidean(**kwargs),
-            "Cosine": Cosine(**kwargs),
-            "Bures": Bures(dimension, **kwargs),
-            "UnbalancedBures": UnbalancedBures(dimension, **kwargs),
-        }
-    else:
-        raise NotImplementedError()

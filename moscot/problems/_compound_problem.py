@@ -46,7 +46,7 @@ class CompoundBaseProblem(BaseProblem, ABC):
 
     @abstractmethod
     def _create_problem(
-        self, src: Any, src_mask: npt.ArrayLike, tgt: Any, tgt_mask: npt.ArrayLike, **kwargs: Any
+        self, src: Any, tgt: Any, src_mask: npt.ArrayLike, tgt_mask: npt.ArrayLike, **kwargs: Any
     ) -> BaseProblem:
         pass
 
@@ -67,7 +67,7 @@ class CompoundBaseProblem(BaseProblem, ABC):
         problems = {}
         for (src, tgt), (src_mask, tgt_mask) in self._policy.mask().items():
             kwargs_ = dict(kwargs)
-            problem = self._create_problem(src=src, src_mask=src_mask, tgt=tgt, tgt_mask=tgt_mask)
+            problem = self._create_problem(src=src, tgt=tgt, src_mask=src_mask, tgt_mask=tgt_mask)
             if callback is not None:
                 # TODO(michalk8): correctly type or update BaseProblem
                 callback = problem._prepare_callback if callback == "pca_local" else callback
@@ -219,11 +219,13 @@ class CompoundBaseProblem(BaseProblem, ABC):
 
 class SingleCompoundProblem(CompoundBaseProblem):
     def _create_problem(
-        self, src: Any, src_mask: npt.ArrayLike, tgt: Any, tgt_mask: npt.ArrayLike, **kwargs: Any
+        self, src: Any, tgt: Any, src_mask: npt.ArrayLike, tgt_mask: npt.ArrayLike, **kwargs: Any
     ) -> BaseProblem:
         return self._base_problem_type(
             self._mask(src_mask),
             self._mask(tgt_mask),
+            source = src,
+            target = tgt,
             solver=self._solver,
             **kwargs,
         )
@@ -296,9 +298,9 @@ class MultiCompoundProblem(CompoundBaseProblem):
         return super().prepare(None, subset=subset, policy=policy, reference=reference, **kwargs)
 
     def _create_problem(
-        self, src: Any, src_mask: npt.ArrayLike, tgt: Any, tgt_mask: npt.ArrayLike, **kwargs: Any
+        self, src: Any, tgt: Any, src_mask: npt.ArrayLike, tgt_mask: npt.ArrayLike, **kwargs: Any
     ) -> BaseProblem:
-        return self._base_problem_type(self._adatas[src], self._adatas[tgt], solver=self._solver, **kwargs)
+        return self._base_problem_type(self._adatas[src], self._adatas[tgt], source=src, target=tgt, solver=self._solver, **kwargs)
 
     def _create_policy(
         self,

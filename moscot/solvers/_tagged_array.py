@@ -10,6 +10,7 @@ class Tag(str, Enum):
     KERNEL = "kernel"
     POINT_CLOUD = "point_cloud"
     GRID = "grid"
+    COMPUTE_COST = "compute_cost"
 
 
 @dataclass(frozen=True, repr=True)
@@ -36,3 +37,4 @@ class TaggedArray:
     @property
     def is_grid(self) -> bool:
         return self.tag == Tag.GRID
+

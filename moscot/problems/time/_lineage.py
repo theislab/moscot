@@ -33,16 +33,14 @@ class TemporalBaseProblem(MultiMarginalProblem):
         self,
         adata_x: AnnData,
         adata_y: AnnData,
-        start: Number,
-        end: Number,
+        source: Number,
+        target: Number,
         solver: Optional[BaseSolver] = None,
         **kwargs: Any,
     ):
-        super().__init__(adata_x, adata_y=adata_y, solver=solver, **kwargs)
-        if start >= end:
-            raise ValueError(f"{start} is expected to be strictly smaller than {end}")
-        self._t_start = start
-        self._t_end = end
+        if source >= target:
+            raise ValueError(f"{source} is expected to be strictly smaller than {target}.")
+        super().__init__(adata_x, adata_y=adata_y, solver=solver, source=source, target=target, **kwargs)
 
     def _estimate_marginals(
         self,
@@ -62,7 +60,7 @@ class TemporalBaseProblem(MultiMarginalProblem):
             death = delta(adata.obs[apoptosis_key], **kwargs)
         else:
             death = 0
-        growth = np.exp((birth - death) * (self._t_end - self._t_start))
+        growth = np.exp((birth - death) * (self._target - self._source))
         if source:
             return growth
         return np.full(len(self._marginal_b_adata), np.average(growth))
@@ -74,11 +72,11 @@ class TemporalBaseProblem(MultiMarginalProblem):
 
     @property
     def growth_rates(self) -> npt.ArrayLike:
-        return np.transpose(np.power(self.a, 1 / (self._t_end - self._t_start)))
+        return np.transpose(np.power(self.a, 1 / (self._target - self._source)))
 
 
 class TemporalProblem(TemporalAnalysisMixin, SingleCompoundProblem):
-    _valid_policies = ["sequential", "pairwise", "triu", "tril", "explicit"]
+    _VALID_POLICIES = ["sequential", "pairwise", "triu", "tril", "explicit"]
 
     def __init__(self, adata: AnnData, solver: Optional[BaseSolver] = None):
         super().__init__(adata, solver, base_problem_type=TemporalBaseProblem)
@@ -119,11 +117,11 @@ class TemporalProblem(TemporalAnalysisMixin, SingleCompoundProblem):
         marginal_kwargs: Mapping[str, Any] = MappingProxyType({}),
         **kwargs: Any,
     ) -> "TemporalProblem":
-        if policy not in self._valid_policies:
+        if policy not in self._VALID_POLICIES:
             raise ValueError(f"TODO: wrong policies")
-
-        x = {"attr": "obsm", "key": data_key}
-        y = {"attr": "obsm", "key": data_key}
+            
+        x = kwargs.get("x", {"attr": "obsm", "key": data_key})
+        y = kwargs.get("y", {"attr": "obsm", "key": data_key})
         self._temporal_key = key
 
         marginal_kwargs = dict(marginal_kwargs)
@@ -142,13 +140,6 @@ class TemporalProblem(TemporalAnalysisMixin, SingleCompoundProblem):
             y=y,
             marginal_kwargs=marginal_kwargs,
             **kwargs,
-        )
-
-    def _create_problem(
-        self, src: Any, src_mask: npt.ArrayLike, tgt: Any, tgt_mask: npt.ArrayLike, **kwargs: Any
-    ) -> TemporalBaseProblem:
-        return super()._create_problem(
-            src=src, src_mask=src_mask, tgt=tgt, tgt_mask=tgt_mask, start=src, end=tgt, **kwargs
         )
 
     def push(
@@ -349,86 +340,26 @@ class LineageProblem(TemporalProblem):
         self,
         key: str,
         data_key: str = "X_pca",
-        lineage_loss: Mapping[str, str] = {"loss": "LeafDistance", "attr": "uns", "key": "tree"},
+        lineage_loss: Mapping[str, Any] = MappingProxyType({"loss": "LeafDistance", "attr": "uns"}),
         policy: Literal["sequential", "pairwise", "triu", "tril", "explicit"] = "sequential",
         subset: Optional[Sequence[Tuple[Any, Any]]] = None,
-        marginal_kwargs: Mapping[str, Any] = MappingProxyType({}),
         **kwargs: Any,
     ) -> "TemporalProblem":
-        self._temporal_key = key
-
-        x = {
-            "attr": lineage_loss.get("attr", "obsp"),
+        x = y = {
+            "attr": lineage_loss.get("attr", "obsm"),
             "key": lineage_loss.get("key", None),
-            "loss": lineage_loss.get("loss", "cost"),
+            "loss": lineage_loss.get("loss", "barcode_distance"),
             "tag": lineage_loss.get("tag", "cost"),
-        }
-        y = {
-            "attr": lineage_loss.get("attr", "obsp"),
-            "key": lineage_loss.get("key", None),
-            "loss": lineage_loss.get("loss", "cost"),
-            "tag": lineage_loss.get("tag", "cost"),
+            "loss_kwargs": lineage_loss.get("loss_kwargs", {})
         }
         xy = {"x_attr": "obsm", "x_key": data_key, "y_attr": "obsm", "y_key": data_key, "tag": "point_cloud"}
 
-        if "cost_kwargs" in lineage_loss:
-            x["loss_dict"] = lineage_loss["cost_kwargs"]
-            y["loss_dict"] = lineage_loss["cost_kwargs"]
-
-        marginal_kwargs = dict(marginal_kwargs)
-        marginal_kwargs["proliferation_key"] = self._proliferation_key
-        marginal_kwargs["apoptosis_key"] = self._apoptosis_key
-        if "a" not in kwargs:
-            kwargs["a"] = self._proliferation_key is not None or self._apoptosis_key is not None
-        if "b" not in kwargs:
-            kwargs["b"] = self._proliferation_key is not None or self._apoptosis_key is not None
-
-        return super(TemporalProblem, self).prepare(
+        return super().prepare(
             key=key,
             policy=policy,
             subset=subset,
             x=x,
             y=y,
             xy=xy,
-            marginal_kwargs=marginal_kwargs,
             **kwargs,
         )
-
-    def _create_problems(
-        self,
-        callback: Callback_t = None,
-        callback_kwargs: Mapping[str, Any] = MappingProxyType({}),
-        **kwargs: Any,
-    ) -> Dict[Tuple[Any, Any], BaseProblem]:
-        problems = {}
-        for (src, tgt), (src_mask, tgt_mask) in self._policy.mask().items():
-            kwargs_ = dict(copy.deepcopy(kwargs))
-            problem = self._create_problem(src=src, src_mask=src_mask, tgt=tgt, tgt_mask=tgt_mask)
-            if callback is not None:
-                # TODO(michalk8): correctly type or update BaseProblem
-                callback = problem._prepare_callback if callback == "pca_local" else callback
-                x, y = callback(
-                    problem.adata,
-                    problem._adata_y,
-                    problem.solver.problem_kind,
-                    **callback_kwargs,
-                )
-                if x is not None and y is not None:
-                    kwargs_["xy"] = (x, y)
-            #TODO(@MUCDK) find better way to match trees to time points or introduce more tests (e.g. if multiple matches)
-            if kwargs["x"]["key"] == "tree" or kwargs["y"]["key"] == "tree":
-                candidates = [el for el in self.adata.uns.keys() if "_tree" in el]
-                prefixes = [item[: item.index("_tree")] for item in candidates]
-                if kwargs["x"]["key"] == "tree":
-                    if str(src) not in prefixes:
-                        raise ValueError(f"TODO: no tree corresponding to {src} found.")
-                    kwargs["x"]["key"] = str(src) + "_tree"
-                if kwargs["y"]["key"] == "tree":
-                    if str(tgt) not in prefixes:
-                        raise ValueError(f"TODO: no tree corresponding to {tgt} found.")
-                    kwargs["y"]["key"] = str(tgt) + "_tree"
-                problems[src, tgt] = problem.prepare(**kwargs_)
-            else:
-                problems[src, tgt] = problem.prepare(**kwargs_)
-
-        return problems
