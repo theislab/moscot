@@ -1,58 +1,28 @@
-from typing import Any, Dict, Literal, Optional, Sequence
+from typing import Any, Optional, Tuple, Union
 from numbers import Number
-import logging
+import itertools
 
 from sklearn.metrics.pairwise import pairwise_distances
 import ot
-from anndata import AnnData
-import itertools
 
 from numpy import typing as npt
 import numpy as np
+
+from anndata import AnnData
 
 from moscot.mixins._base_analysis import AnalysisMixin
 
 
 class TemporalAnalysisMixin(AnalysisMixin):
-    def validate_by_interpolation(
-        self,
-        start: Number,
-        intermediate: Number,
-        end: Number,
-        interpolation_parameter: Optional[int] = None,
-        valid_methods: Sequence[Literal[
-            "ot", "random", "random_with_growth", "source_to_intermediate", "intermediate_to_target"
-        ]] = ["ot", "random"],
-        batch_key: Optional[str] = None,
-        n_interpolated_cells: Optional[int] = None,
-        batch_size: int = 1024,
-        account_for_unbalancedness: bool = False,
-        seed: Optional[int] = None,
-        **kwargs: Any,
-    ) -> Dict[str, Number]:
-        """
-        currently this assumes that we have preprocessed data which results in the questionable assumption that
-        the held out data was also used for the preprocessing (whereas it should follow the independent preprocessing
-        step of WOT
-        """
-        _validation_methods = {"ot", "random", "random_with_growth", "source_to_intermediate", "intermediate_to_target"}
-        if not set(valid_methods).issubset(_validation_methods):
-            raise ValueError(f"TODO: the only validation methods are {_validation_methods}")
-
-        if intermediate not in self.adata.obs[self._temporal_key].unique():
-            raise ValueError(
-                f"No data points corresponding to {intermediate} found in `adata.obs[{self._temporal_key}]`"
-            )
-        if (start, end) not in self._problems.keys():
-            logging.info(f"No transport map computed for {(start, end)}. Trying to compose transport maps.")
-
-        if interpolation_parameter is None:
-            interpolation_parameter = (intermediate - start) / (end - start)
-
+    def _get_data(
+        self, start: Number, intermediate: Optional[Number] = None, end: Optional[Number] = None
+    ) -> Tuple[Union[npt.ArrayLike, AnnData]]:
         for (start_, end_) in self._problems.keys():
             if start_ == start:
                 source_data = self._problems[(start_, end_)]._x.data
                 growth_rates_source = self._problems[(start_, end_)].growth_rates[:, -1]
+                if intermediate is None:
+                    return source_data, growth_rates_source
                 break
         else:
             raise ValueError(f"No data found for time point {start}")
@@ -70,62 +40,86 @@ class TemporalAnalysisMixin(AnalysisMixin):
         else:
             raise ValueError(f"No data found for time point {end}")
 
-        if n_interpolated_cells is None:
-            n_interpolated_cells = len(intermediate_data)
+        return source_data, growth_rates_source, intermediate_data, intermediate_adata, target_data
 
-        result = {}
-        if "ot" in valid_methods:
-            gex_ot_interpolated = self._interpolate_gex_with_ot(
-                n_interpolated_cells,
-                source_data,
-                target_data,
-                start,
-                end,
-                interpolation_parameter,
-                account_for_unbalancedness,
-                batch_size=batch_size,
-                seed=seed,
-            )
-            result["ot"] = self._compute_wasserstein_distance(intermediate_data, gex_ot_interpolated, **kwargs)
+    def _get_interpolation_parameter(
+        interpolation_parameter: Number, start: Number, intermediate: Number, end: Number
+    ) -> Number:
+        return (
+            interpolation_parameter if interpolation_parameter is not None else (intermediate - start) / (end - start)
+        )
 
-        if "random" in valid_methods:
-            gex_randomly_interpolated = self._interpolate_gex_randomly(
-                n_interpolated_cells, source_data, target_data, interpolation_parameter, seed=seed
-            )
-            result["random"] = self._compute_wasserstein_distance(
-                intermediate_data, gex_randomly_interpolated, **kwargs
-            )
+    def _get_n_interpolated_cells(n: Number, intermediate_data: npt.ArrayLike) -> Number:
+        return n if n is not None else len(intermediate_data)
 
-        if "random_with_growth" in valid_methods:
-            gex_randomly_interpolated_growth = self._interpolate_gex_randomly(
-                len(intermediate_data),
-                source_data,
-                target_data,
-                interpolation_parameter,
-                growth_rates=growth_rates_source,
-                seed=seed
-            )
-            result["random_with_growth"] = self._compute_wasserstein_distance(
-                intermediate_data, gex_randomly_interpolated_growth, **kwargs
-            )
+    def compute_interpolated_distance(
+        self,
+        start: Number,
+        intermediate: Number,
+        end: Number,
+        interpolation_parameter: Optional[int] = None,
+        n_interpolated_cells: Optional[int] = None,
+        account_for_unbalancedness: bool = False,
+        batch_size: int = 1024,
+        seed: Optional[int] = None,
+        **kwargs: Any,
+    ) -> Number:
 
-        if "source_to_intermediate" in valid_methods:
-            result["source_to_intermediate"] = self._compute_wasserstein_distance(
-                source_data, intermediate_data, **kwargs
-            )
+        source_data, _, intermediate_data, _, target_data = self._get_data(start, intermediate, end)
+        interpolation_parameter = self._get_interpolation_parameter(interpolation_parameter, start, intermediate, end)
+        n_interpolated_cells = self._get_n_interpolated_cells(n_interpolated_cells, intermediate_data)
+        interpolation = self._interpolate_gex_with_ot(
+            n_interpolated_cells,
+            source_data,
+            target_data,
+            start,
+            end,
+            interpolation_parameter,
+            account_for_unbalancedness,
+            batch_size=batch_size,
+            seed=seed,
+        )
+        return self._compute_wasserstein_distance(intermediate_data, interpolation, **kwargs)
 
-        if "intermediate_to_target" in valid_methods:
-            result["intermediate_to_target"] = self._compute_wasserstein_distance(
-                intermediate_data, target_data, **kwargs
-            )
-        if batch_key is not None:
-            if batch_key not in self.adata.obs.columns:
-                raise ValueError(f"{batch_key} not found in `adata.obs.columns`")
-            result["batches"] = self._compute_distance_between_batches(
-                intermediate_adata, intermediate_data, batch_key, **kwargs
-            )
+    def compute_random_distance(
+        self,
+        start: Number,
+        intermediate: Number,
+        end: Number,
+        interpolation_parameter: Optional[int] = None,
+        n_interpolated_cells: Optional[int] = None,
+        account_for_unbalancedness: bool = False,
+        seed: Optional[int] = None,
+        **kwargs: Any,
+    ) -> Number:
+        source_data, growth_rates_source, intermediate_data, _, target_data = self._get_data(start, intermediate, end)
+        interpolation_parameter = self._get_interpolation_parameter(interpolation_parameter, start, intermediate, end)
+        n_interpolated_cells = self._get_n_interpolated_cells(n_interpolated_cells, intermediate_data)
 
-        return result
+        growth_rates = growth_rates_source if account_for_unbalancedness else None
+        random_interpolation = self._interpolate_gex_randomly(
+            n_interpolated_cells,
+            source_data,
+            target_data,
+            interpolation_parameter,
+            growth_rates=growth_rates,
+            seed=seed,
+        )
+        return self._compute_wasserstein_distance(intermediate_data, random_interpolation, **kwargs)
+
+    def compute_time_point_distances(
+        self, start: Number, intermediate: Number, end: Number, **kwargs: Any
+    ) -> Tuple[Number]:
+        source_data, _, intermediate_data, _, target_data = self._get_data(start, intermediate, end)
+
+        distance_source_intermediate = self._compute_wasserstein_distance(source_data, intermediate_data, **kwargs)
+        distance_intermediate_target = self._compute_wasserstein_distance(intermediate_data, target_data, **kwargs)
+
+        return distance_source_intermediate, distance_intermediate_target
+
+    def compute_batch_distances(self, time: Number, batch_key: str, **kwargs: Any):
+        data, adata = self._get_data(time)
+        return self._compute_distance_between_batches(adata, data, batch_key, **kwargs)
 
     # TODO(@MUCDK) possibly offer two alternatives, once exact EMD with POT backend and once approximate, faster with same solver as used for original problems
     def _compute_wasserstein_distance(

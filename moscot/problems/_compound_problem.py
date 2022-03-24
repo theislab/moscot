@@ -94,14 +94,14 @@ class CompoundBaseProblem(BaseProblem, ABC):
         **kwargs: Any,
     ) -> Union[Dict[Tuple[Any, Any], npt.ArrayLike], Dict[Tuple[Any, Any], Dict[Tuple[Any, Any], npt.ArrayLike]]]:
         def get_data(plan: Tuple[Any, Any]) -> Optional[npt.ArrayLike]:
+            if isinstance(data, np.ndarray):
+                return data
             if data is None or isinstance(data, (str, tuple, list)):
                 # always valid shapes, since accessing AnnData
                 return data
             if isinstance(data, Mapping):
                 return data.get(plan[0], None) if isinstance(self._policy, StarPolicy) else data.get(plan, None)
             if len(plans) == 1:
-                return data
-            if isinstance(data, np.ndarray):
                 return data
             # TODO(michalk8): warn
             # would pass an array that will most likely have invalid shapes
