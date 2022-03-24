@@ -16,7 +16,6 @@ __all__ = ("BaseSolver", "ContextlessBaseSolver")
 ArrayLike = Union[npt.ArrayLike, TaggedArray]
 
 
-# TODO(michalk8): in the future, this would include barycenter, but needs more thought
 class ProblemKind(Enum):
     LINEAR = auto()
     QUAD = auto()
@@ -54,6 +53,8 @@ class TagConverterMixin:
 
 
 class BaseSolver(TagConverterMixin, ABC):
+    """BaseSolver class."""
+
     @abstractmethod
     def _prepare_input(
         self,
@@ -71,8 +72,8 @@ class BaseSolver(TagConverterMixin, ABC):
     @property
     @abstractmethod
     def problem_kind(self) -> ProblemKind:
+        """Problem kind."""
         # helps to check whether necessary inputs were passed
-        pass
 
     @abstractmethod
     def _set_ctx(self, data: Any, **kwargs: Any) -> Any:
@@ -102,6 +103,7 @@ class BaseSolver(TagConverterMixin, ABC):
         solve_kwargs: Mapping[str, Any] = MappingProxyType({}),
         **prepare_kwargs: Any,
     ) -> BaseSolverOutput:
+        """Call method."""
         x, y, xx, yy = self._convert(
             x,
             y,
@@ -112,7 +114,6 @@ class BaseSolver(TagConverterMixin, ABC):
         prepare_kwargs = {**prepare_kwargs, **self._verify_input(x, y, xx, yy)}
         if self.problem_kind != ProblemKind.QUAD_FUSED:
             prepare_kwargs.pop("alpha", None)
-
         data = self._prepare_input(x=x, y=y, epsilon=epsilon, a=a, b=b, tau_a=tau_a, tau_b=tau_b, **prepare_kwargs)
         with self._solve_ctx(data, epsilon=epsilon, **prepare_kwargs):
             res = self._solve(data, **solve_kwargs)
@@ -154,15 +155,23 @@ class BaseSolver(TagConverterMixin, ABC):
         if not res.converged:
             warnings.warn("Solver did not converge")
         n, m = res.shape
+        tol_source = 1 / (n * 10)  # TODO(giovp): maybe round?
+        tol_target = 1 / (m * 10)
         if tau_a == 1.0:
-            _warn_not_close((res._ones(n) / n) if a is None else a, res.a, kind="source")
+            _warn_not_close(
+                (res._ones(n) / n) if a is None else a, res.a, kind="source", rtol=tol_source, atol=tol_source
+            )
         if tau_b == 1.0:
-            _warn_not_close((res._ones(m) / m) if b is None else b, res.b, kind="target")
+            _warn_not_close(
+                (res._ones(m) / m) if b is None else b, res.b, kind="target", rtol=tol_target, atol=tol_target
+            )
 
         return res
 
 
 class ContextlessBaseSolver(BaseSolver, ABC):
+    """ContextlessBaseSolver class."""
+
     def _set_ctx(self, data: Any, **kwargs: Any) -> Any:
         pass
 

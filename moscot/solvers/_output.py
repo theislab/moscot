@@ -1,6 +1,7 @@
 from abc import ABC, abstractmethod
 from typing import Any, Tuple, Callable
 
+import numpy as np
 import numpy.typing as npt
 
 
@@ -67,6 +68,20 @@ class BaseSolverOutput(ABC):
         if x.ndim == 2:
             marginals = marginals[:, None]
         return x / (marginals + 1e-12)
+
+    def _scale_transport_by_marginals(self, forward: bool) -> npt.ArrayLike:
+        if forward:
+            scaled_transport = np.dot(np.diag(1 / self.a), self.transport_matrix)
+        else:
+            scaled_transport = np.dot(self.transport_matrix, np.diag(1 / self.b))
+        return scaled_transport
+
+    def _scale_transport_by_sum(self, forward: bool) -> npt.ArrayLike:
+        if forward:
+            scaled_transport = self.transport_matrix / self.transport_matrix.sum(1)[:, None]
+        else:
+            scaled_transport = self.transport_matrix / self.transport_matrix.sum(0)[None, :]
+        return scaled_transport
 
     def _format_params(self, fmt: Callable[[Any], str]) -> str:
         params = {"shape": self.shape, "cost": round(self.cost, 4), "converged": self.converged}

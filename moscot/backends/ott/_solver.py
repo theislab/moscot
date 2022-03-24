@@ -143,7 +143,7 @@ class RankMixin(GeometryMixin):
         kwargs = {k: v for k, v in kwargs.items() if k in actual_params}
         if new is LRSinkhorn:
             kwargs["rank"] = 42  # dummy value, updated when setting rank
-            kwargs["implicit_diff"] = False  # implicit diff. not yet implemented for LRSink (yet)
+            kwargs["implicit_diff"] = False  # implicit diff. not yet implemented for LRSink
 
         return new(threshold=threshold, **kwargs)
 
@@ -293,10 +293,10 @@ class FGWSolver(GWSolver):
         epsilon: Optional[float] = None,
         online: bool = False,
         alpha: float = 0.5,
+        rank: int = None,
         **kwargs: Any,
     ) -> QuadraticProblem:
         problem = super()._prepare_input(x, y, epsilon=epsilon, online=online)
-
         if xx.is_cost_matrix or xx.is_kernel:
             # TODO(michalk8): warn if `yy` is not None that we're ignoring it?
             geom_xy = self._create_geometry(xx, epsilon=epsilon, online=online)
