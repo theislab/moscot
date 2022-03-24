@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 from types import MappingProxyType
 from typing import Any, Union, Mapping, Optional, Sequence
 
@@ -68,7 +66,7 @@ class MappingProblem(SingleCompoundProblem, SpatialMappingAnalysisMixin):
         joint_attr: Optional[Mapping[str, Any]] = MappingProxyType({"x_attr": "X", "y_attr": "X"}),
         batch_key: Optional[str] = None,
         **kwargs: Any,
-    ) -> MappingProblem:
+    ) -> "MappingProblem":
         """Prepare method."""
         x = {"attr": "obsm", "key": spatial_key}
         y = {"attr": "obsm", "key": sc_attr} if isinstance(sc_attr, str) else sc_attr
