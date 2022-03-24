@@ -19,6 +19,8 @@ __all__ = ("AnnDataPointer",)
 
 @dataclass(frozen=True)
 class AnnDataPointer:
+    """AnnData Pointer."""
+
     adata: AnnData
     attr: str
     key: Optional[str] = None
@@ -27,9 +29,12 @@ class AnnDataPointer:
     tag: Tag = Tag.POINT_CLOUD
     loss: str = "Euclidean"
     loss_kwargs: Mapping[str, Any] = MappingProxyType({})
-    # TODO(MUCDK): handle Grid cost. this must be a sequence: https://github.com/google-research/ott/blob/b1adc2894b76b7360f639acb10181f2ce97c656a/ott/geometry/grid.py#L55
+    # TODO(MUCDK): handle Grid cost. this must be a sequence:
+    # https://github.com/google-research/ott/blob/b1adc2894b76b7360f639acb10181f2ce97c656a/ott/geometry/grid.py#L55
 
     def create(self) -> TaggedArray:  # I rewrote the logic a bit as this way I find it more readable
+        """Create."""
+
         def ensure_2D(arr: npt.ArrayLike, *, allow_reshape: bool = True) -> np.ndarray:
             arr = np.asarray(arr)
             arr = np.reshape(arr, (-1, 1)) if (allow_reshape and arr.ndim == 1) else arr
@@ -69,6 +74,8 @@ class AnnDataPointer:
             return TaggedArray(
                 container.A, tag=self.tag, loss=backend_losses[self.loss]
             )  # TODO(@Mmichalk8) propagate loss_kwargs
+        if self.key is None:
+            return TaggedArray(container, tag=self.tag, loss=backend_losses[self.loss])
         if self.key not in container:
             raise KeyError(f"TODO: unable to find `adata.{self.attr}['{self.key}']`.")
         container = container[self.key]

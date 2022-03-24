@@ -109,7 +109,7 @@ class TemporalProblem(TemporalAnalysisMixin, SingleCompoundProblem):
 
     def prepare(
         self,
-        key: str,
+        time_key: str,
         data_key: str = "X_pca",
         policy: Literal["sequential", "pairwise", "triu", "tril", "explicit"] = "sequential",
         subset: Optional[Sequence[Tuple[Any, Any]]] = None,
@@ -117,11 +117,11 @@ class TemporalProblem(TemporalAnalysisMixin, SingleCompoundProblem):
         **kwargs: Any,
     ) -> "TemporalProblem":
         if policy not in self._VALID_POLICIES:
-            raise ValueError(f"TODO: wrong policies")
+            raise ValueError("TODO: wrong policies")
 
         x = kwargs.pop("x", {"attr": "obsm", "key": data_key})
         y = kwargs.pop("y", {"attr": "obsm", "key": data_key})
-        self._temporal_key = key
+        self._temporal_key = time_key
 
         marginal_kwargs = dict(marginal_kwargs)
         marginal_kwargs["proliferation_key"] = self._proliferation_key
@@ -132,7 +132,7 @@ class TemporalProblem(TemporalAnalysisMixin, SingleCompoundProblem):
             kwargs["b"] = self._proliferation_key is not None or self._apoptosis_key is not None
 
         return super().prepare(
-            key=key,
+            key=time_key,
             policy=policy,
             subset=subset,
             x=x,
@@ -185,14 +185,6 @@ class TemporalProblem(TemporalAnalysisMixin, SingleCompoundProblem):
         if result_key is None:
             return result
         self._dict_to_adata(result, result_key)
-
-    def _dict_to_adata(self, d: Mapping[str, npt.ArrayLike], obs_key: str) -> None:
-        tmp = np.empty(len(self.adata))
-        tmp[:] = np.nan
-        for key, value in d.items():
-            mask = self.adata.obs[self._temporal_key] == key
-            tmp[mask] = np.squeeze(value)
-        self.adata.obs[obs_key] = tmp
 
     def _validate_args_cell_transition(
         self, arg: Union[str, Mapping[str, Sequence[Any]]]
@@ -337,17 +329,18 @@ class TemporalProblem(TemporalAnalysisMixin, SingleCompoundProblem):
 class LineageProblem(TemporalProblem):
     def prepare(
         self,
-        key: str,
-        data_key: Union[str, Literal["pca_local"]] = "pca_local",
+        time_key: str,
+        data_key: Optional[str] = None,
         lineage_loss: Mapping[str, Any] = MappingProxyType({}),
         policy: Literal["sequential", "pairwise", "triu", "tril", "explicit"] = "sequential",
         subset: Optional[Sequence[Tuple[Any, Any]]] = None,
         **kwargs: Any,
     ) -> "TemporalProblem":
-        if len(lineage_loss) == 0:
+        if not len(lineage_loss):
             if "cost_matrices" not in self.adata.obsp:
                 raise ValueError(
-                    "TODO: default location for quadratic loss is `adata.obsp[`cost_matrices`]` but adata has no key `cost_matrices` in `obsp`."
+                    "TODO: default location for quadratic loss is `adata.obsp[`cost_matrices`]` \
+                        but adata has no key `cost_matrices` in `obsp`."
                 )
         x = y = {
             "attr": lineage_loss.get("attr", "obsp"),
@@ -363,11 +356,11 @@ class LineageProblem(TemporalProblem):
             "y_key": data_key,
             "tag": "point_cloud",
         }  # TODO: pass loss
-        if data_key == "pca_local":
+        if data_key is None:
             kwargs["callback"] = "pca_local"
 
         return super().prepare(
-            key=key,
+            time_key=time_key,
             policy=policy,
             subset=subset,
             x=x,
