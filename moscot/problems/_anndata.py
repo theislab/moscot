@@ -12,6 +12,7 @@ from anndata import AnnData
 
 from moscot.costs._costs import BaseLoss
 from moscot.solvers._tagged_array import Tag, TaggedArray
+from moscot._utils import _get_backend_losses
 
 __all__ = ("AnnDataPointer",)
 
@@ -60,12 +61,13 @@ class AnnDataPointer:
             return TaggedArray(container, tag=self.tag, loss=None)
 
         # TODO(@michalk) handle backend losses
+        backend_losses = _get_backend_losses()  # TODO: put in registry, provide kwargs
         if not hasattr(self.adata, self.attr):
             raise AttributeError("TODO: invalid attribute")
         container = getattr(self.adata, self.attr)
         if scipy.sparse.issparse(container):
-            return TaggedArray(container.A, tag=self.tag, loss=self.loss)  # TODO(@Mmichalk8) propagate loss_kwargs
+            return TaggedArray(container.A, tag=self.tag, loss=backend_losses[self.loss])  # TODO(@Mmichalk8) propagate loss_kwargs
         if self.key not in container:
             raise KeyError(f"TODO: unable to find `adata.{self.attr}['{self.key}']`.")
         container = container[self.key]
-        return TaggedArray(container, tag=self.tag, loss=self.loss)
+        return TaggedArray(container, tag=self.tag, loss=backend_losses[self.loss])

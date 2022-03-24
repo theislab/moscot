@@ -1,8 +1,8 @@
-from typing import Optional
+from typing import Optional, Any
 
 from numpy.typing import ArrayLike
 import numpy as np
-
+from ott.geometry.costs import Bures, Cosine, Euclidean, UnbalancedBures
 from anndata import AnnData
 
 # TODO(michalk8): improve:
@@ -30,3 +30,16 @@ def _normalize(arr: ArrayLike) -> ArrayLike:
     if arr.ndim != 1:
         raise ValueError("TODO: expected 1D")
     return arr / np.sum(arr)
+
+
+def _get_backend_losses(backend: str = "JAX", **kwargs: Any): #TODO(@MUCDK, @michalk8), registry or put somewhere else.
+    if backend == "JAX":
+        dimension = kwargs.pop("dimension", 1)
+        return {
+            "Euclidean": Euclidean(**kwargs),
+            "Cosine": Cosine(**kwargs),
+            "Bures": Bures(dimension, **kwargs),
+            "UnbalancedBures": UnbalancedBures(dimension, **kwargs),
+        }
+    else:
+        raise NotImplementedError()
