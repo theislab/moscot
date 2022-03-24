@@ -82,7 +82,6 @@ class AnalysisMixin(ABC):
             ]
             all_cols_sampled.extend(cols_sampled)
         return rows, all_cols_sampled
-    """Analysis Mixin class."""
 
     def _interpolate_transport(
         self, start: Any, end: Any, forward: bool = True, normalize: bool = True
