@@ -29,7 +29,7 @@ class AlignmentProblem(CompoundProblem, SpatialAlignmentAnalysisMixin):
         batch_key: str,
         spatial_key: str = "spatial",
         joint_attr: Optional[Mapping[str, Any]] = MappingProxyType(
-            {"x_attr": "X", "y_attr": "X", "x_tag": "point_cloud", "y_tag": "point_cloud"}
+            {"x_attr": "X", "y_attr": "X", "tag": "point_cloud"}
         ),
         policy: Literal["sequential", "star"] = "sequential",
         reference: Optional[str] = None,
