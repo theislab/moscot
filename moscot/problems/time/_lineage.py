@@ -1,5 +1,5 @@
 from types import MappingProxyType
-from typing import Any, Dict, Tuple, Union, Literal, Mapping, Optional, Sequence
+from typing import Any, Dict, Tuple, Union, Literal, Mapping, Callable, Optional, Sequence
 from numbers import Number
 import logging
 
@@ -14,9 +14,17 @@ import scanpy as sc
 from moscot.problems import MultiMarginalProblem
 from moscot.solvers._output import BaseSolverOutput
 from moscot.problems.time._utils import beta, delta
-from moscot.solvers._base_solver import BaseSolver
+from moscot.solvers._base_solver import BaseSolver, ProblemKind
 from moscot.mixins._time_analysis import TemporalAnalysisMixin
+from moscot.solvers._tagged_array import TaggedArray
 from moscot.problems._compound_problem import SingleCompoundProblem
+
+Callback_t = Optional[
+    Union[
+        Literal["pca_local"],
+        Callable[[AnnData, Optional[AnnData], ProblemKind, Any], Tuple[TaggedArray, Optional[TaggedArray]]],
+    ]
+]
 
 
 class TemporalBaseProblem(MultiMarginalProblem):
@@ -24,16 +32,14 @@ class TemporalBaseProblem(MultiMarginalProblem):
         self,
         adata_x: AnnData,
         adata_y: AnnData,
-        start: Number,
-        end: Number,
+        source: Number,
+        target: Number,
         solver: Optional[BaseSolver] = None,
         **kwargs: Any,
     ):
-        super().__init__(adata_x, adata_y=adata_y, solver=solver, **kwargs)
-        if start >= end:
-            raise ValueError(f"{start} is expected to be strictly smaller than {end}")
-        self._t_start = start
-        self._t_end = end
+        if source >= target:
+            raise ValueError(f"{source} is expected to be strictly smaller than {target}.")
+        super().__init__(adata_x, adata_y=adata_y, solver=solver, source=source, target=target, **kwargs)
 
     def _estimate_marginals(
         self,
@@ -53,7 +59,7 @@ class TemporalBaseProblem(MultiMarginalProblem):
             death = delta(adata.obs[apoptosis_key], **kwargs)
         else:
             death = 0
-        growth = np.exp((birth - death) * (self._t_end - self._t_start))
+        growth = np.exp((birth - death) * (self._target - self._source))
         if source:
             return growth
         return np.full(len(self._marginal_b_adata), np.average(growth))
@@ -65,14 +71,14 @@ class TemporalBaseProblem(MultiMarginalProblem):
 
     @property
     def growth_rates(self) -> npt.ArrayLike:
-        return np.transpose(np.power(self.a, 1 / (self._t_end - self._t_start)))
+        return np.transpose(np.power(self.a, 1 / (self._target - self._source)))
 
 
 class TemporalProblem(TemporalAnalysisMixin, SingleCompoundProblem):
-    _valid_policies = ["sequential", "pairwise", "triu", "tril", "explicit"]
+    _VALID_POLICIES = ["sequential", "pairwise", "triu", "tril", "explicit"]
 
-    def __init__(self, adata: AnnData, solver: Optional[BaseSolver] = None):
-        super().__init__(adata, solver, base_problem_type=TemporalBaseProblem)
+    def __init__(self, adata: AnnData, solver: Optional[BaseSolver] = None, **kwargs: Any):
+        super().__init__(adata, solver=solver, base_problem_type=TemporalBaseProblem, **kwargs)
         self._temporal_key: Optional[str] = None
         self._proliferation_key: Optional[str] = None
         self._apoptosis_key: Optional[str] = None
@@ -103,19 +109,22 @@ class TemporalProblem(TemporalAnalysisMixin, SingleCompoundProblem):
 
     def prepare(
         self,
-        key: str,
-        data_key: str = "X_pca",
+        time_key: str,
+        joint_attr: Optional[Union[str, Mapping[str, Any]]] = None,
         policy: Literal["sequential", "pairwise", "triu", "tril", "explicit"] = "sequential",
-        subset: Optional[Sequence[Tuple[Any, Any]]] = None,
         marginal_kwargs: Mapping[str, Any] = MappingProxyType({}),
         **kwargs: Any,
     ) -> "TemporalProblem":
-        if policy not in self._valid_policies:
-            raise ValueError(f"TODO: wrong policies")
+        if policy not in self._VALID_POLICIES:
+            raise ValueError("TODO: wrong policies")
+        self._temporal_key = time_key
 
-        x = {"attr": "obsm", "key": data_key}
-        y = {"attr": "obsm", "key": data_key}
-        self._temporal_key = key
+        if joint_attr is None:
+            kwargs["callback"] = "pca_local"
+        elif isinstance(joint_attr, str):
+            kwargs["x"] = kwargs["y"] = {"attr": "obsm", "key": joint_attr, "tag": "point_cloud"}  # TODO: pass loss
+        elif not isinstance(joint_attr, dict):
+            raise TypeError("TODO")
 
         marginal_kwargs = dict(marginal_kwargs)
         marginal_kwargs["proliferation_key"] = self._proliferation_key
@@ -126,20 +135,10 @@ class TemporalProblem(TemporalAnalysisMixin, SingleCompoundProblem):
             kwargs["b"] = self._proliferation_key is not None or self._apoptosis_key is not None
 
         return super().prepare(
-            key=key,
+            key=time_key,
             policy=policy,
-            subset=subset,
-            x=x,
-            y=y,
             marginal_kwargs=marginal_kwargs,
             **kwargs,
-        )
-
-    def _create_problem(
-        self, src: Any, src_mask: npt.ArrayLike, tgt: Any, tgt_mask: npt.ArrayLike, **kwargs: Any
-    ) -> TemporalBaseProblem:
-        return super()._create_problem(
-            src=src, src_mask=src_mask, tgt=tgt, tgt_mask=tgt_mask, start=src, end=tgt, **kwargs
         )
 
     def push(
@@ -325,3 +324,42 @@ class TemporalProblem(TemporalAnalysisMixin, SingleCompoundProblem):
     @apoptosis_key.setter
     def apoptosis_key(self, value: Optional[str] = None) -> None:
         self._apoptosis_key = value
+
+
+class LineageProblem(TemporalProblem):
+    def prepare(
+        self,
+        time_key: str,
+        lineage_attr: Mapping[str, Any] = MappingProxyType({}),
+        joint_attr: Optional[Union[str, Mapping[str, Any]]] = None,
+        policy: Literal["sequential", "pairwise", "triu", "tril", "explicit"] = "sequential",
+        **kwargs: Any,
+    ) -> "LineageProblem":
+        if not len(lineage_attr):
+            if "cost_matrices" not in self.adata.obsp:
+                raise ValueError(
+                    "TODO: default location for quadratic loss is `adata.obsp[`cost_matrices`]` \
+                        but adata has no key `cost_matrices` in `obsp`."
+                )
+        lineage_attr = dict(lineage_attr)
+        lineage_attr.setdefault("attr", "obsp")
+        lineage_attr.setdefault("key", "cost_matrices")
+        lineage_attr.setdefault("loss", None)
+        lineage_attr.setdefault("tag", "cost")
+        lineage_attr.setdefault("loss_kwargs", {})
+        x = y = lineage_attr
+
+        if joint_attr is None:
+            kwargs["callback"] = "pca_local"
+        elif isinstance(joint_attr, str):
+            kwargs["joint_attr"] = {"attr": "obsm", "key": joint_attr, "tag": "point_cloud"}  # TODO: pass loss
+        elif not isinstance(joint_attr, dict):
+            raise TypeError("TODO")
+
+        return super().prepare(
+            time_key=time_key,
+            policy=policy,
+            x=x,
+            y=y,
+            **kwargs,
+        )

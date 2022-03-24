@@ -33,8 +33,9 @@ def _normalize(arr: ArrayLike) -> ArrayLike:
     return arr / np.sum(arr)
 
 
-# TODO: use the enum in backend
-def _get_backend_losses(backend: str = "JAX", **kwargs: Any):
+def _get_backend_losses(
+    backend: str = "JAX", **kwargs: Any
+):  # TODO(@MUCDK, @michalk8), registry or put somewhere else.
     if backend == "JAX":
         dimension = kwargs.pop("dimension", 1)
         return {

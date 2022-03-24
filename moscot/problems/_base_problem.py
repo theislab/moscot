@@ -99,7 +99,7 @@ class BaseProblem(ABC):
 
     @solver.setter
     def solver(self, solver: BaseSolver) -> None:
-        if not isinstance(solver, BaseSolver):
+        if not isinstance(solver, BaseSolver):  # TODO: enable
             raise TypeError("TOOD: not a solver")
         self._solver = solver
 
@@ -111,6 +111,8 @@ class GeneralProblem(BaseProblem):
         adata_y: Optional[AnnData] = None,
         adata_xy: Optional[AnnData] = None,
         solver: Optional[BaseSolver] = None,
+        source: Any = "src",
+        target: Any = "tgt",
         **kwargs: Any,
     ):
         super().__init__(adata_x, solver=solver)
@@ -134,9 +136,10 @@ class GeneralProblem(BaseProblem):
             if adata_y.n_obs != adata_xy.n_vars:
                 raise ValueError("First and joint shape mismatch")
 
-    def _handle_joint(
-        self, create_kwargs: Mapping[str, Any] = MappingProxyType({}), tag: Optional[Tag] = None, **kwargs: Any
-    ) -> Union[TaggedArray, Tuple[TaggedArray, TaggedArray]]:
+        self._source = source
+        self._target = target
+
+    def _handle_joint(self, tag: Optional[Tag] = None, **kwargs) -> Union[TaggedArray, Tuple[TaggedArray, TaggedArray]]:
         if tag is None:
             # TODO(michalk8): better/more strict condition?
             # TODO(michalk8): specify which tag is being using
@@ -146,15 +149,15 @@ class GeneralProblem(BaseProblem):
         if tag in (Tag.COST_MATRIX, Tag.KERNEL):
             attr = kwargs.get("attr", "X")
             if attr == "obsm":
-                return AnnDataPointer(self.adata, tag=tag, **kwargs).create(**create_kwargs)
+                return AnnDataPointer(self.adata, tag=tag, **kwargs).create()
             if attr == "varm":
                 kwargs["attr"] = "obsm"
-                return AnnDataPointer(self._adata_y.T, tag=tag, **kwargs).create(**create_kwargs)
+                return AnnDataPointer(self._adata_y.T, tag=tag, **kwargs).create()
             if attr not in ("X", "layers", "raw"):
                 raise AttributeError("TODO: expected obsm/varm/X/layers/raw")
             if self._adata_xy is None:
                 raise ValueError("TODO: Specifying cost/kernel requires joint adata.")
-            return AnnDataPointer(self._adata_xy, tag=tag, **kwargs).create(**create_kwargs)
+            return AnnDataPointer(self._adata_xy, tag=tag, **kwargs).create()
         if tag != Tag.POINT_CLOUD:
             # TODO(michalk8): log-warn
             tag = Tag.POINT_CLOUD
@@ -163,8 +166,8 @@ class GeneralProblem(BaseProblem):
         x_kwargs = {k[2:]: v for k, v in kwargs.items() if k.startswith("x_")}
         y_kwargs = {k[2:]: v for k, v in kwargs.items() if k.startswith("y_")}
 
-        x_array = AnnDataPointer(self.adata, tag=tag, **x_kwargs).create(**create_kwargs)
-        y_array = AnnDataPointer(self._adata_y, tag=tag, **y_kwargs).create(**create_kwargs)
+        x_array = AnnDataPointer(self.adata, tag=tag, **x_kwargs).create()
+        y_array = AnnDataPointer(self._adata_y, tag=tag, **y_kwargs).create()
 
         return x_array, y_array
 
@@ -175,16 +178,28 @@ class GeneralProblem(BaseProblem):
         xy: Optional[Union[Tuple[TaggedArray, TaggedArray], Mapping[str, Any]]] = None,
         a: Optional[Union[str, npt.ArrayLike]] = None,
         b: Optional[Union[str, npt.ArrayLike]] = None,
-        **kwargs: Any,
+        **_: Any,
     ) -> "GeneralProblem":
-        self._x = x if isinstance(x, TaggedArray) else AnnDataPointer(adata=self.adata, **x).create(**kwargs)
+        def update_key(kwargs: Mapping[str, Any], *, is_source: bool) -> Mapping[str, Any]:
+            if kwargs.get("attr", None) == "uns":
+                kwargs = dict(kwargs)
+                kwargs["key"] = self._source if is_source else self._target
+            return kwargs
+
+        self._x = (
+            x
+            if isinstance(x, TaggedArray)
+            else AnnDataPointer(adata=self.adata, **update_key(x, is_source=True)).create()
+        )
         self._y = (
-            y if y is None or isinstance(y, TaggedArray) else AnnDataPointer(adata=self._adata_y, **y).create(**kwargs)
+            y
+            if y is None or isinstance(y, TaggedArray)
+            else AnnDataPointer(adata=self._adata_y, **update_key(y, is_source=False)).create()
         )
         if self.solver.problem_kind != ProblemKind.QUAD_FUSED:
             self._xy = None
         else:
-            self._xy = xy if xy is None or isinstance(xy, tuple) else self._handle_joint(**xy, create_kwargs=kwargs)
+            self._xy = xy if xy is None or isinstance(xy, tuple) else self._handle_joint(**xy)
 
         self._a = self._get_or_create_marginal(self.adata, a)
         self._b = self._get_or_create_marginal(self._marginal_b_adata, b)

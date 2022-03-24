@@ -1,75 +1,132 @@
 from abc import ABC, abstractmethod
-from typing import Any, Union, Optional
+from typing import Any, List, Union, Mapping, Optional
+from numbers import Number
+
+import numpy as np
+import numpy.typing as npt
+
+from anndata import AnnData
 
 try:
     from typing import Literal
 except ImportError:
     from typing_extensions import Literal
 
-from lineageot.inference import get_leaves
 import networkx as nx
 
-from numpy.typing import ArrayLike
 import numpy as np
+import numpy.typing as npt
 
-__all__ = ["LeafDistance"]
+__all__ = ["LeafDistance", "BarcodeDistance"]
+Scale_t = Literal["max", "min", "median"]
 
 
 class BaseLoss(ABC):
     @abstractmethod
-    def _compute(self, *args: Any, **kwargs: Any) -> ArrayLike:
+    def _compute(self, *args: Any, **kwargs: Any) -> npt.ArrayLike:
         pass
 
-    def __call__(self, *args: Any, scale: Optional[str] = None, **kwargs):
+    def __init__(self, adata: AnnData, attr: str, key: str):
+        self._adata = adata
+        self._attr = attr
+        self._key = key
+
+    def __call__(self, *args: Any, scale: Optional[Union[Number, Scale_t]] = None, **kwargs: Any) -> npt.ArrayLike:
         cost = self._compute(*args, **kwargs)
-        if scale is not None:
-            return self._normalize(cost, scale)
-        return cost
+        return self._normalize(cost, scale=scale) if scale is not None else cost
 
     @classmethod
-    def create(cls, kind: Literal) -> "BaseLoss":
-        if kind == "LeafDistance":
-            return LeafDistance()
+    def create(cls, kind: Literal["leaf_distance", "barcode_distance"], *args: Any, **kwargs: Any) -> "BaseLoss":
+        if kind == "leaf_distance":
+            return LeafDistance(*args, **kwargs)
+        if kind == "barcode_distance":
+            return BarcodeDistance(*args, **kwargs)
+        raise NotImplementedError(kind)
 
     @staticmethod
-    def _normalize(cost_matrix: ArrayLike, scale: Union[str, int, float] = "max") -> ArrayLike:
+    def _normalize(cost_matrix: npt.ArrayLike, scale: Union[str, int, float] = "max") -> npt.ArrayLike:
         # TODO: @MUCDK find a way to have this for non-materialized matrices (will be backend specific)
-        ...
         if scale == "max":
             cost_matrix /= cost_matrix.max()
         elif scale == "mean":
             cost_matrix /= cost_matrix.mean()
         elif scale == "median":
             cost_matrix /= np.median(cost_matrix)
-        elif scale is None:
-            pass
+        elif isinstance(scale, float):
+            cost_matrix /= scale
         else:
             raise NotImplementedError(scale)
         return cost_matrix
 
 
+class BarcodeDistance(BaseLoss):
+    def _compute(
+        self,
+        *_: Any,
+        **__: Any,
+    ) -> npt.ArrayLike:
+        container = getattr(self._adata, self._attr)
+        if self._key not in container:
+            raise ValueError("TODO: no valid key")
+        barcodes = container[self._key]
+        n_cells = barcodes.shape[0]
+        distances = np.zeros((n_cells, n_cells))
+        for i in range(n_cells):
+            distances[i, i + 1 :] = [
+                self._scaled_Hamming_distance(barcodes[i, :], barcodes[j, :]) for j in range(i + 1, n_cells)
+            ]
+        return distances + np.transpose(distances)
+
+    @staticmethod
+    def _scaled_Hamming_distance(x: npt.ArrayLike, y: npt.ArrayLike) -> float:
+        """adapted from https://github.com/aforr/LineageOT/blob/8c66c630d61da289daa80e29061e888b1331a05a/lineageot/inference.py#L33"""
+
+        shared_indices = (x >= 0) & (y >= 0)
+        b1 = x[shared_indices]
+
+        # There may not be any sites where both were measured
+        if not len(b1):
+            return np.nan  # TODO(@MUCDK): What to do if this happens?
+        b2 = y[shared_indices]
+
+        differences = b1 != b2
+        double_scars = differences & (b1 != 0) & (b2 != 0)
+
+        return (np.sum(differences) + np.sum(double_scars)) / len(b1)
+
+
 class LeafDistance(BaseLoss):
-    def _compute(self, tree: nx.DiGraph, scale: Literal, **kwargs: Any):
+    def _compute(
+        self,
+        **kwargs: Any,
+    ) -> npt.ArrayLike:
         """
         Computes the matrix of pairwise distances between leaves of the tree
         """
-        if tree is None:
-            raise ValueError("For computing the LeafDistance a tree needs to be provided.")
-        if scale is None:
-            return _compute_leaf_distances(tree)
-        else:
-            return self.normalize(_compute_leaf_distances(tree), scale)  # Can we do this in a stateless class?
+        if self._attr == "uns":
+            tree = self._adata.uns["trees"][self._key]
+            if not isinstance(tree, nx.Graph):
+                raise TypeError("TODO: tree must be a nx.DiGraph.")
+            return self._create_cost_from_tree(tree, **kwargs)
+        raise NotImplementedError
 
+    def _create_cost_from_tree(self, tree: nx.Graph, **kwargs: Any) -> npt.ArrayLike:
+        # TODO(@MUCDK): make it more efficient, current problem: `target`in `multi_source_dijkstra` cannot be chosen as a subset
+        undirected_tree = tree.to_undirected()
+        leaves = self._get_leaves(undirected_tree, self._adata)
+        n_leaves = len(leaves)
+        distances = np.zeros((n_leaves, n_leaves))
+        for i, leaf in enumerate(leaves):
+            distance_dictionary = nx.multi_source_dijkstra(undirected_tree, [leaf], **kwargs)[0]
+            distances[i, :] = [distance_dictionary.get(leaf) for leaf in leaves]
+        return distances
 
-def _compute_leaf_distances(tree):  # TODO(MUCDK): this is adapted from lineageOT, we want to make it more efficient.
-    """
-    Computes the matrix of pairwise distances between leaves of the tree
-    """
-    leaves = get_leaves(tree)
-    num_leaves = len(leaves) - 1
-    distances = np.zeros([num_leaves, num_leaves])
-    for leaf_index in range(num_leaves):
-        distance_dictionary, tmp = nx.multi_source_dijkstra(tree.to_undirected(), [leaves[leaf_index]], weight="time")
-        for target_leaf_index in range(num_leaves):
-            distances[leaf_index, target_leaf_index] = distance_dictionary[leaves[target_leaf_index]]
-    return distances
+    def _get_leaves(self, tree: nx.Graph, cell_to_leaf: Optional[Mapping[str, Any]] = None) -> List[Any]:
+        leaves = [node for node in tree if tree.degree(node) == 1]
+        if not set(self._adata.obs.index).issubset(leaves):
+            if cell_to_leaf is None:
+                raise ValueError(
+                    "TODO: The node names do not correspond to the anndata obs index names. Please provide a `cell_to_leaf` dict."
+                )
+            return [cell_to_leaf[cell] for cell in self._adata.obs.index]
+        return [cell for cell in self._adata.obs.index if cell in leaves]

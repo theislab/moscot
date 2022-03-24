@@ -1,12 +1,12 @@
 from types import MappingProxyType
-from typing import Any, Union, Mapping, Optional
+from typing import Any, Mapping, Optional
 
 from typing_extensions import Literal
 
 from anndata import AnnData
 
 from moscot.backends.ott import FGWSolver
-from moscot.problems._base_problem import GeneralProblem
+from moscot.solvers._base_solver import ProblemKind
 from moscot.mixins._spatial_analysis import SpatialAlignmentAnalysisMixin
 from moscot.problems._compound_problem import CompoundProblem
 
@@ -17,52 +17,37 @@ class AlignmentProblem(CompoundProblem, SpatialAlignmentAnalysisMixin):
     def __init__(
         self,
         adata: AnnData,
-        solver_jit: Optional[bool] = None,
         solver_kwargs: Mapping[str, Any] = MappingProxyType({}),
         **kwargs: Any,
     ):
         """Init method."""
-        self._adata = adata
-        solver = FGWSolver(jit=solver_jit, **solver_kwargs)
-        super().__init__(adata, solver=solver, **kwargs)
-
-    @property
-    def adata(self) -> AnnData:
-        """Return adata."""
-        return self._adata
-
-    @property
-    def spatial_key(self) -> str:
-        """Return problems."""
-        return self._spatial_key
+        super().__init__(adata, solver=FGWSolver(**solver_kwargs), **kwargs)
+        self._spatial_key: Optional[str] = None
 
     def prepare(
         self,
-        spatial_key: Union[str, Mapping[str, Any]] = "spatial",
-        attr_joint: Mapping[str, Any] = None,
+        batch_key: str,
+        spatial_key: str = "spatial",
+        joint_attr: Optional[Mapping[str, Any]] = MappingProxyType(
+            {"x_attr": "X", "y_attr": "X", "tag": "point_cloud"}
+        ),
         policy: Literal["sequential", "star"] = "sequential",
-        key: Union[str, None] = None,
-        reference: Union[str, None] = None,
+        reference: Optional[str] = None,
         **kwargs: Any,
-    ) -> GeneralProblem:
+    ) -> "AlignmentProblem":
         """Prepare method."""
-        # TODO: check for spatial key
-        x = {"attr": "obsm", "key": f"{spatial_key}"}
-        y = {"attr": "obsm", "key": f"{spatial_key}"}
-        attr_joint = {"x_attr": "X", "y_attr": "X"} if attr_joint is None else attr_joint
-
+        if policy not in ("sequential", "star"):
+            raise ValueError("TODO: return error message")
         self._spatial_key = spatial_key
+        # TODO: check for spatial key
+        x = y = {"attr": "obsm", "key": self.spatial_key, "tag": "point_cloud"}
 
-        return super().prepare(x=x, y=y, xy=attr_joint, policy=policy, key=key, reference=reference, **kwargs)
+        if joint_attr is None and self.solver.problem_kind == ProblemKind.QUAD_FUSED:
+            kwargs["callback"] = "pca_local"
 
-    def solve(
-        self,
-        epsilon: Optional[float] = None,
-        alpha: float = 0.5,
-        tau_a: Optional[float] = 1.0,
-        tau_b: Optional[float] = 1.0,
-        rank: Optional[int] = -1,
-        **kwargs: Any,
-    ) -> GeneralProblem:
-        """Solve method."""
-        return super().solve(epsilon=epsilon, alpha=alpha, tau_a=tau_a, tau_b=tau_b, rank=rank, **kwargs)
+        return super().prepare(x=x, y=y, xy=joint_attr, policy=policy, key=batch_key, reference=reference, **kwargs)
+
+    @property
+    def spatial_key(self) -> Optional[str]:
+        """Return problems."""
+        return self._spatial_key
