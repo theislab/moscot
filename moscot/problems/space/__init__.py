@@ -1,2 +1,2 @@
-from moscot.problems.space._mapping import SpatialMappingProblem
-from moscot.problems.space._alignment import SpatialAlignmentProblem
+from moscot.problems.space._mapping import MappingProblem
+from moscot.problems.space._alignment import AlignmentProblem

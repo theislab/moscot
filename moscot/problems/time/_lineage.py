@@ -187,14 +187,6 @@ class TemporalProblem(TemporalAnalysisMixin, SingleCompoundProblem):
             return result
         self._dict_to_adata(result, result_key)
 
-    def _dict_to_adata(self, d: Mapping[str, npt.ArrayLike], obs_key: str) -> None:
-        tmp = np.empty(len(self.adata))
-        tmp[:] = np.nan
-        for key, value in d.items():
-            mask = self.adata.obs[self._temporal_key] == key
-            tmp[mask] = np.squeeze(value)
-        self.adata.obs[obs_key] = tmp
-
     def _validate_args_cell_transition(
         self, arg: Union[str, Mapping[str, Sequence[Any]]]
     ) -> Tuple[Union[str, Sequence], Sequence]:

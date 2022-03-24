@@ -13,7 +13,7 @@ from moscot.backends.ott import SinkhornSolver
 from moscot.solvers._output import BaseSolverOutput
 from moscot.solvers._base_solver import BaseSolver, ProblemKind
 from moscot.problems._base_problem import BaseProblem, GeneralProblem
-from moscot.problems._subset_policy import Axis_t, StarPolicy, SubsetPolicy, ExplicitPolicy
+from moscot.problems._subset_policy import Axis_t, StarPolicy, SubsetPolicy, ExplicitPolicy, FormatterMixin
 
 __all__ = ("SingleCompoundProblem", "MultiCompoundProblem", "CompoundProblem")
 
@@ -84,6 +84,11 @@ class CompoundBaseProblem(BaseProblem, ABC):
                     kwargs_["xy"] = (x, y)
 
             problems[src, tgt] = problem.prepare(**kwargs_)
+        if isinstance(self._policy, FormatterMixin):
+            return {
+                (self._policy._format(src, is_source=True), self._policy._format(tgt, is_source=False)): prob
+                for (src, tgt), prob in problems.items()
+            }
 
         return problems
 
@@ -244,6 +249,14 @@ class SingleCompoundProblem(CompoundBaseProblem):
     def _mask(self, mask: npt.ArrayLike) -> AnnData:
         # TODO(michalk8): can include logging/extra sanity that mask is not empty
         return self.adata[mask] if self._policy.axis == "obs" else self.adata[:, mask]
+
+    def _dict_to_adata(self, d: Mapping[str, npt.ArrayLike], obs_key: str) -> None:
+        tmp = np.empty(len(self.adata))
+        tmp[:] = np.nan
+        for key, value in d.items():
+            mask = self.adata.obs[self._temporal_key] == key
+            tmp[mask] = np.squeeze(value)
+        self.adata.obs[obs_key] = tmp
 
 
 class MultiCompoundProblem(CompoundBaseProblem):

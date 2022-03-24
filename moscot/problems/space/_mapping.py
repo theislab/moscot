@@ -1,94 +1,88 @@
 from __future__ import annotations
 
-from typing import Any, List, Tuple, Mapping, Optional
+from types import MappingProxyType
+from typing import Any, Union, Mapping, Optional, Sequence
 
-from scanpy import logging as logg
+from typing_extensions import Literal
+
+import numpy.typing as npt
+
 from anndata import AnnData
 
 from moscot.backends.ott import GWSolver, FGWSolver
 from moscot.problems._base_problem import GeneralProblem
-from moscot.problems._compound_problem import SingleCompoundProblem
+from moscot.problems._subset_policy import Axis_t, DummyPolicy, SubsetPolicy, ExternalStarPolicy
+from moscot.mixins._spatial_analysis import SpatialMappingAnalysisMixin
+from moscot.problems._compound_problem import BaseProblem, SingleCompoundProblem
 
 
-class SpatialMappingProblem(SingleCompoundProblem):
+class MappingProblem(SingleCompoundProblem, SpatialMappingAnalysisMixin):
+    """Mapping problem."""
+
     def __init__(
         self,
+        adata_sp: AnnData,
         adata_sc: AnnData,
-        adata_sp: Optional[AnnData] = None,
-        use_reference: bool = False,
-        var_names: List[str] | bool | None = None,
-        rank: Optional[int] = None,
+        var_names: Optional[Sequence[Any]] = None,
+        solver_kwargs: Mapping[str, Any] = MappingProxyType({}),
         **kwargs: Any,
     ):
-        # keep orig adatas
+        """Init method."""
+        super().__init__(adata_sp, **kwargs)
         self._adata_sc = adata_sc
-        self._adata_sp = adata_sp
+        self._filtered_vars = self._filter_vars(var_names=var_names)
 
-        # filter genes
-        adata_sc, adata_sp = self.filter_vars(adata_sc, adata_sp, var_names, use_reference)
-        solver = FGWSolver(rank=rank, **kwargs) if use_reference else GWSolver(rank=rank, **kwargs)
-        super().__init__(adata_sp, solver=solver)
+        self.solver = GWSolver(**solver_kwargs) if self._filtered_vars is None else FGWSolver(**solver_kwargs)
 
-        self._adata_ref = adata_sc
-        self.use_reference = use_reference
-
-    @property
-    def adata_sp(
+    def _create_policy(
         self,
-    ) -> AnnData:
-        return self._adata_sp
+        policy: Literal["external_star"] = "external_star",
+        key: Optional[str] = None,
+        axis: Axis_t = "obs",
+        **_: Any,
+    ) -> SubsetPolicy:
+        if key is None:
+            return DummyPolicy(self.adata, axis=axis)
+        return ExternalStarPolicy(self.adata, key=key, axis=axis)
+
+    def _create_problem(
+        self,
+        src: Any,
+        src_mask: npt.ArrayLike,
+        *_,
+        **kwargs: Any,
+    ) -> BaseProblem:
+        adata_sp = self._mask(src_mask)
+        return self._base_problem_type(
+            adata_sp[:, self.filtered_vars] if self.filtered_vars is not None else adata_sp,
+            self.adata_sc[:, self.filtered_vars] if self.filtered_vars is not None else self.adata_sc,
+            solver=self._solver,
+            **kwargs,
+        )
 
     @property
     def adata_sc(self) -> AnnData:
+        """Return single cell adata."""
         return self._adata_sc
 
     @property
-    def problems(self) -> GeneralProblem:
-        return self._problems
-
-    @property
-    def _adata_tgt(self):
-        return self._adata_ref
-
-    def filter_vars(
-        self,
-        adata_sc: AnnData,
-        adata_sp: AnnData,
-        var_names: Optional[List[str]] = None,
-        use_reference: bool = False,
-    ) -> Tuple[AnnData, AnnData]:
-        vars_sc = set(adata_sc.var_names)  # TODO: allow alternative gene symbol by passing var_key
-        vars_sp = set(adata_sp.var_names)
-        var_names = set(var_names) if var_names is not None else None
-        if var_names is None:
-            var_names = vars_sp.intersection(vars_sc)
-            if len(var_names):
-                return adata_sc[:, list(var_names)], adata_sp[:, list(var_names)]
-            else:
-                logg.warning(f"`adata_sc` and `adata_sp` do not share `var_names`. ")
-                return adata_sc, adata_sp
-        else:
-            if not use_reference:
-                return adata_sc, adata_sp
-            elif use_reference and var_names.issubset(vars_sc) and var_names.issubset(vars_sp):
-                return adata_sc[:, list(var_names)], adata_sp[:, list(var_names)]
-            else:
-                raise ValueError("Some `var_names` ares missing in either `adata_sc` or `adata_sp`.")
+    def filtered_vars(self) -> Optional[Sequence[Any]]:
+        """Return filtered variables."""
+        return self._filtered_vars
 
     def prepare(
         self,
-        attr_sc: Mapping[str, Any] = {"attr": "obsm", "key": "X_scvi"},
-        attr_sp: Optional[Mapping[str, Any]] = {"attr": "obsm", "key": "spatial"},
-        attr_joint: Optional[Mapping[str, Any]] = {"x_attr": "X", "y_attr": "X"},
+        attr_sc: Union[str, Mapping[str, Any]],
+        attr_sp: Union[str, Mapping[str, Any]],
+        attr_joint: Optional[Union[str, Mapping[str, Any]]] = None,
+        key: Optional[str] = None,
         **kwargs: Any,
     ) -> GeneralProblem:
+        """Prepare method."""
+        attr_sc = {"attr": "obsm", "key": f"{attr_sc}"} if isinstance(attr_sc, str) else attr_sc
+        attr_sp = {"attr": "obsm", "key": f"{attr_sp}"} if isinstance(attr_sp, str) is str else attr_sp
+        attr_joint = {"x_attr": "X", "y_attr": "X"} if attr_joint is None else attr_joint
 
-        if self.use_reference:
-            return super().prepare(x=attr_sp, y=attr_sc, xy=attr_joint, policy="external_star", **kwargs)
-        else:
-            return super().prepare(x=attr_sp, y=attr_sc, policy="external_star", **kwargs)
-
-    def _mask(self, key: Any, mask, adata: AnnData) -> AnnData:
-        if key is self._policy._SENTINEL:
-            return adata
-        return super()._mask(key, mask, adata)
+        if self.filtered_vars is None:
+            return super().prepare(x=attr_sp, y=attr_sc, policy="external_star", key=key, **kwargs)
+        return super().prepare(x=attr_sp, y=attr_sc, xy=attr_joint, policy="external_star", key=key, **kwargs)
