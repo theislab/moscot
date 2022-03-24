@@ -77,8 +77,8 @@ class TemporalBaseProblem(MultiMarginalProblem):
 class TemporalProblem(TemporalAnalysisMixin, SingleCompoundProblem):
     _VALID_POLICIES = ["sequential", "pairwise", "triu", "tril", "explicit"]
 
-    def __init__(self, adata: AnnData, solver: Optional[BaseSolver] = None):
-        super().__init__(adata, solver, base_problem_type=TemporalBaseProblem)
+    def __init__(self, adata: AnnData, solver: Optional[BaseSolver] = None, **kwargs: Any):
+        super().__init__(adata, solver=solver, base_problem_type=TemporalBaseProblem, **kwargs)
         self._temporal_key: Optional[str] = None
         self._proliferation_key: Optional[str] = None
         self._apoptosis_key: Optional[str] = None
@@ -110,18 +110,21 @@ class TemporalProblem(TemporalAnalysisMixin, SingleCompoundProblem):
     def prepare(
         self,
         time_key: str,
-        data_key: str = "X_pca",
+        joint_attr: Optional[Union[str, Mapping[str, Any]]] = None,
         policy: Literal["sequential", "pairwise", "triu", "tril", "explicit"] = "sequential",
-        subset: Optional[Sequence[Tuple[Any, Any]]] = None,
         marginal_kwargs: Mapping[str, Any] = MappingProxyType({}),
         **kwargs: Any,
     ) -> "TemporalProblem":
         if policy not in self._VALID_POLICIES:
             raise ValueError("TODO: wrong policies")
-
-        x = kwargs.pop("x", {"attr": "obsm", "key": data_key})
-        y = kwargs.pop("y", {"attr": "obsm", "key": data_key})
         self._temporal_key = time_key
+
+        if joint_attr is None:
+            kwargs["callback"] = "pca_local"
+        elif isinstance(joint_attr, str):
+            kwargs["x"] = kwargs["y"] = {"attr": "obsm", "key": joint_attr, "tag": "point_cloud"}  # TODO: pass loss
+        elif not isinstance(joint_attr, dict):
+            raise TypeError("TODO")
 
         marginal_kwargs = dict(marginal_kwargs)
         marginal_kwargs["proliferation_key"] = self._proliferation_key
@@ -134,9 +137,6 @@ class TemporalProblem(TemporalAnalysisMixin, SingleCompoundProblem):
         return super().prepare(
             key=time_key,
             policy=policy,
-            subset=subset,
-            x=x,
-            y=y,
             marginal_kwargs=marginal_kwargs,
             **kwargs,
         )
@@ -330,41 +330,35 @@ class LineageProblem(TemporalProblem):
     def prepare(
         self,
         time_key: str,
-        data_key: Optional[str] = None,
-        lineage_loss: Mapping[str, Any] = MappingProxyType({}),
+        lineage_attr: Mapping[str, Any] = MappingProxyType({}),
+        joint_attr: Optional[Union[str, Mapping[str, Any]]] = None,
         policy: Literal["sequential", "pairwise", "triu", "tril", "explicit"] = "sequential",
-        subset: Optional[Sequence[Tuple[Any, Any]]] = None,
         **kwargs: Any,
-    ) -> "TemporalProblem":
-        if not len(lineage_loss):
+    ) -> "LineageProblem":
+        if not len(lineage_attr):
             if "cost_matrices" not in self.adata.obsp:
                 raise ValueError(
                     "TODO: default location for quadratic loss is `adata.obsp[`cost_matrices`]` \
                         but adata has no key `cost_matrices` in `obsp`."
                 )
-        x = y = {
-            "attr": lineage_loss.get("attr", "obsp"),
-            "key": lineage_loss.get("key", "cost_matrices"),
-            "loss": lineage_loss.get("loss", None),
-            "tag": lineage_loss.get("tag", "cost"),
-            "loss_kwargs": lineage_loss.get("loss_kwargs", {}),
-        }
-        xy = {
-            "x_attr": "obsm",
-            "x_key": data_key,
-            "y_attr": "obsm",
-            "y_key": data_key,
-            "tag": "point_cloud",
-        }  # TODO: pass loss
-        if data_key is None:
+        lineage_attr.set_default("attr", "obsp")
+        lineage_attr.set_default("key", "cost_matrices")
+        lineage_attr.set_default("loss", None)
+        lineage_attr.set_default("tag", "cost")
+        lineage_attr.set_default("loss_kwargs", {})
+        x = y = lineage_attr
+
+        if joint_attr is None:
             kwargs["callback"] = "pca_local"
+        elif isinstance(joint_attr, str):
+            kwargs["joint_attr"] = {"attr": "obsm", "key": joint_attr, "tag": "point_cloud"}  # TODO: pass loss
+        elif not isinstance(joint_attr, dict):
+            raise TypeError("TODO")
 
         return super().prepare(
             time_key=time_key,
             policy=policy,
-            subset=subset,
             x=x,
             y=y,
-            xy=xy,
             **kwargs,
         )

@@ -13,7 +13,7 @@ from moscot.backends.ott import GWSolver, FGWSolver
 from moscot.solvers._base_solver import ProblemKind
 from moscot.problems._subset_policy import Axis_t, DummyPolicy, SubsetPolicy, ExternalStarPolicy
 from moscot.mixins._spatial_analysis import SpatialMappingAnalysisMixin
-from moscot.problems._compound_problem import BaseProblem, SingleCompoundProblem
+from moscot.problems._compound_problem import GeneralProblem, SingleCompoundProblem
 
 
 class MappingProblem(SingleCompoundProblem, SpatialMappingAnalysisMixin):
@@ -21,14 +21,14 @@ class MappingProblem(SingleCompoundProblem, SpatialMappingAnalysisMixin):
 
     def __init__(
         self,
-        adata_sp: AnnData,
         adata_sc: AnnData,
+        adata_spatial: AnnData,
         var_names: Optional[Sequence[Any]] = None,
         solver_kwargs: Mapping[str, Any] = MappingProxyType({}),
         **kwargs: Any,
     ):
         """Init method."""
-        super().__init__(adata_sp, **kwargs)
+        super().__init__(adata_spatial, **kwargs)
         self._adata_sc = adata_sc
 
         self.filtered_vars = var_names
@@ -52,7 +52,7 @@ class MappingProblem(SingleCompoundProblem, SpatialMappingAnalysisMixin):
         src_mask: npt.ArrayLike,
         tgt_mask: npt.ArrayLike,
         **kwargs: Any,
-    ) -> BaseProblem:
+    ) -> GeneralProblem:
         adata_sp = self._mask(src_mask)
         return self._base_problem_type(
             adata_sp[:, self.filtered_vars] if self.filtered_vars is not None else adata_sp,
@@ -63,23 +63,23 @@ class MappingProblem(SingleCompoundProblem, SpatialMappingAnalysisMixin):
 
     def prepare(
         self,
-        attr_sc: Union[str, Mapping[str, Any]],
-        attr_sp: Union[str, Mapping[str, Any]] = "spatial",
-        attr_joint: Optional[Mapping[str, Any]] = MappingProxyType({"x_attr": "X", "y_attr": "X"}),
-        key: Optional[str] = None,
+        sc_attr: Union[str, Mapping[str, Any]],
+        spatial_key: str = "spatial",
+        joint_attr: Optional[Mapping[str, Any]] = MappingProxyType({"x_attr": "X", "y_attr": "X"}),
+        batch_key: Optional[str] = None,
         **kwargs: Any,
     ) -> MappingProblem:
         """Prepare method."""
-        attr_sc = {"attr": "obsm", "key": attr_sc} if isinstance(attr_sc, str) else attr_sc
-        attr_sp = {"attr": "obsm", "key": attr_sp} if isinstance(attr_sp, str) else attr_sp
+        x = {"attr": "obsm", "key": spatial_key}
+        y = {"attr": "obsm", "key": sc_attr} if isinstance(sc_attr, str) else sc_attr
 
         if self.filtered_vars is None and self.solver.problem_kind == ProblemKind.QUAD_FUSED:
             raise ValueError("TODO: wrong problem choice.")
 
-        if attr_joint is None and self.solver.problem_kind == ProblemKind.QUAD_FUSED:
+        if joint_attr is None and self.solver.problem_kind == ProblemKind.QUAD_FUSED:
             kwargs["callback"] = "pca_local"
 
-        return super().prepare(x=attr_sp, y=attr_sc, xy=attr_joint, policy="external_star", key=key, **kwargs)
+        return super().prepare(x=x, y=y, xy=joint_attr, policy="external_star", key=batch_key, **kwargs)
 
     @property
     def adata_sc(self) -> AnnData:

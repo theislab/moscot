@@ -26,10 +26,12 @@ class AlignmentProblem(CompoundProblem, SpatialAlignmentAnalysisMixin):
 
     def prepare(
         self,
+        batch_key: str,
         spatial_key: str = "spatial",
-        attr_joint: Optional[Mapping[str, Any]] = MappingProxyType({"x_attr": "X", "y_attr": "X"}),
+        joint_attr: Optional[Mapping[str, Any]] = MappingProxyType(
+            {"x_attr": "X", "y_attr": "X", "x_tag": "point_cloud", "y_tag": "point_cloud"}
+        ),
         policy: Literal["sequential", "star"] = "sequential",
-        subset_key: Optional[str] = None,
         reference: Optional[str] = None,
         **kwargs: Any,
     ) -> "AlignmentProblem":
@@ -38,13 +40,12 @@ class AlignmentProblem(CompoundProblem, SpatialAlignmentAnalysisMixin):
             raise ValueError("TODO: return error message")
         self._spatial_key = spatial_key
         # TODO: check for spatial key
-        x = {"attr": "obsm", "key": self.spatial_key}
-        y = {"attr": "obsm", "key": self.spatial_key}
+        x = y = {"attr": "obsm", "key": self.spatial_key, "tag": "point_cloud"}
 
-        if attr_joint is None and self.solver.problem_kind == ProblemKind.QUAD_FUSED:
+        if joint_attr is None and self.solver.problem_kind == ProblemKind.QUAD_FUSED:
             kwargs["callback"] = "pca_local"
 
-        return super().prepare(x=x, y=y, xy=attr_joint, policy=policy, key=subset_key, reference=reference, **kwargs)
+        return super().prepare(x=x, y=y, xy=joint_attr, policy=policy, key=batch_key, reference=reference, **kwargs)
 
     @property
     def spatial_key(self) -> Optional[str]:
