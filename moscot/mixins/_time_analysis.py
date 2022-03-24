@@ -52,8 +52,6 @@ class TemporalAnalysisMixin(AnalysisMixin):
         else:
             raise ValueError(f"No data found for time point {start}")
         for (start_, end_) in self._problems.keys():
-            print("intermediate is ", intermediate)
-            print("start_ is ", start_)
             if start_ == intermediate:
                 intermediate_data = self._problems[(start_, end_)]._x.data
                 intermediate_adata = self._problems[(start_, end_)].adata

@@ -111,7 +111,6 @@ class BaseSolver(TagConverterMixin, ABC):
         prepare_kwargs = {**prepare_kwargs, **self._verify_input(x, y, xx, yy)}
         if self.problem_kind != ProblemKind.QUAD_FUSED:
             prepare_kwargs.pop("alpha", None)
-
         data = self._prepare_input(x=x, y=y, epsilon=epsilon, a=a, b=b, tau_a=tau_a, tau_b=tau_b, **prepare_kwargs)
         with self._solve_ctx(data, epsilon=epsilon, **prepare_kwargs):
             res = self._solve(data, **solve_kwargs)

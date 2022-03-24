@@ -297,7 +297,6 @@ class FGWSolver(GWSolver):
         **kwargs: Any,
     ) -> QuadraticProblem:
         problem = super()._prepare_input(x, y, epsilon=epsilon, online=online)
-
         if xx.is_cost_matrix or xx.is_kernel:
             # TODO(michalk8): warn if `yy` is not None that we're ignoring it?
             geom_xy = self._create_geometry(xx, epsilon=epsilon, online=online)

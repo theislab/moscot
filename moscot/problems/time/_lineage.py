@@ -1,3 +1,4 @@
+from multiprocessing.sharedctypes import Value
 from types import MappingProxyType
 from typing import Any, Dict, Tuple, Union, Literal, Mapping, Callable, Optional, Sequence
 from numbers import Number
@@ -119,8 +120,8 @@ class TemporalProblem(TemporalAnalysisMixin, SingleCompoundProblem):
         if policy not in self._VALID_POLICIES:
             raise ValueError(f"TODO: wrong policies")
 
-        x = kwargs.get("x", {"attr": "obsm", "key": data_key})
-        y = kwargs.get("y", {"attr": "obsm", "key": data_key})
+        x = kwargs.pop("x", {"attr": "obsm", "key": data_key})
+        y = kwargs.pop("y", {"attr": "obsm", "key": data_key})
         self._temporal_key = key
 
         marginal_kwargs = dict(marginal_kwargs)
@@ -339,15 +340,18 @@ class LineageProblem(TemporalProblem):
         self,
         key: str,
         data_key: str = "X_pca",
-        lineage_loss: Mapping[str, Any] = MappingProxyType({"loss": "LeafDistance", "attr": "uns"}),
+        lineage_loss: Mapping[str, Any] = MappingProxyType({}),
         policy: Literal["sequential", "pairwise", "triu", "tril", "explicit"] = "sequential",
         subset: Optional[Sequence[Tuple[Any, Any]]] = None,
         **kwargs: Any,
     ) -> "TemporalProblem":
+        if len(lineage_loss)==0:
+            if "cost_matrices" not in self.adata.obsp:
+                raise ValueError("TODO: default location for quadratic loss is `adata.obsp[`cost_matrices`]` but adata has no key `cost_matrices` in `obsp`.")
         x = y = {
-            "attr": lineage_loss.get("attr", "obsm"),
-            "key": lineage_loss.get("key", None),
-            "loss": lineage_loss.get("loss", "barcode_distance"),
+            "attr": lineage_loss.get("attr", "obsp"),
+            "key": lineage_loss.get("key", "cost_matrices"),
+            "loss": lineage_loss.get("loss", None),
             "tag": lineage_loss.get("tag", "cost"),
             "loss_kwargs": lineage_loss.get("loss_kwargs", {}),
         }
