@@ -1,4 +1,4 @@
-from typing import Any, Optional, Tuple, Union
+from typing import Any, Tuple, Union, Optional
 from numbers import Number
 import itertools
 

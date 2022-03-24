@@ -1,6 +1,7 @@
 from abc import ABC
-from typing import List, Tuple, Optional, Any
+from typing import Any, List, Tuple, Optional
 from numbers import Number
+
 import numpy as np
 import numpy.typing as npt
 
