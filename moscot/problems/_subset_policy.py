@@ -34,6 +34,19 @@ __all__ = (
 )
 
 
+class FormatterMixin(ABC):
+    @abstractmethod
+    def _format(self, value: Any, *, is_source: bool) -> Any:
+        pass
+
+
+class SimplePlanFilterMixin:
+    def plan(self, filter: Optional[Sequence[Item_t]] = None, **_: Any) -> Dict[Item_t, List[Item_t]]:
+        if filter is None:
+            return self._default_plan
+        return {s: [s] for s in self._subset if s in filter}
+
+
 class SubsetPolicy:
     class Category:
         def __init__(self, cats: Sequence[Any]):
@@ -82,12 +95,7 @@ class SubsetPolicy:
                 else:
                     raise ValueError(f"TODO: wrong axis `{axis}`")
             else:
-                if axis == "obs":
-                    self._data = pd.Series(np.ones(adata.shape[0], dtype=str), index=adata.obs_names).astype("category")
-                elif axis == "var":
-                    self._data = pd.Series(np.ones(adata.shape[0], dtype=str), index=adata.var_names).astype("category")
-                else:
-                    raise ValueError(f"TODO: wrong axis `{axis}`")
+                raise ValueError(f"TODO: wrong axis `{axis}`")
         else:
             self._data = adata
         if not hasattr(self._data, "cat"):
@@ -167,13 +175,6 @@ class SubsetPolicy:
         return {s: [s] for s in self._subset}
 
 
-class SimplePlanFilterMixin:
-    def plan(self, filter: Optional[Sequence[Item_t]] = None, **_: Any) -> Dict[Item_t, List[Item_t]]:
-        if filter is None:
-            return self._default_plan
-        return {s: [s] for s in self._subset if s in filter}
-
-
 class OrderedPolicy(SubsetPolicy, ABC):
     def __init__(self, adata: Union[AnnData, pd.Series, pd.Categorical], **kwargs: Any):
         super().__init__(adata, **kwargs)
@@ -184,7 +185,7 @@ class OrderedPolicy(SubsetPolicy, ABC):
             raise RuntimeError("TODO: init subset first")
         if start is None and end is None:
             return self._default_plan
-
+        # TODO: add Graph for undirected
         G = nx.DiGraph()
         G.add_edges_from(self._subset)
 
@@ -218,8 +219,15 @@ class StarPolicy(SubsetPolicy):
         return {s: [s] for s in self._subset if s[0] in filter}
 
 
-class ExternalStarPolicy(StarPolicy):
+class ExternalStarPolicy(FormatterMixin, StarPolicy):
     _SENTINEL = object()
+
+    def _format(self, value: Any, *, is_source: bool):
+        if is_source:
+            return value
+        if value is self._SENTINEL:
+            return "ref"
+        raise ValueError("FATAL ERROR.")  # TODO: better error message.
 
     def _create_subset(self, **kwargs: Any) -> Sequence[Item_t]:
         return [(c, self._SENTINEL) for c in self._cat if c != self._SENTINEL]
@@ -248,3 +256,24 @@ class ExplicitPolicy(SimplePlanFilterMixin, SubsetPolicy):
             raise ValueError("TODO: specify subset for explicit policy.")
         # pass-through, all checks are done by us later
         return subset
+
+
+class DummyPolicy(FormatterMixin, SimplePlanFilterMixin, SubsetPolicy):
+    _SENTINEL = object()
+
+    def __init__(
+        self,
+        adata: Union[AnnData, pd.Series, pd.Categorical],
+        src_name: Any = "src",
+        tgt_name: Any = "ref",
+        **kwargs: Any,
+    ):
+        super().__init__(pd.Series([self._SENTINEL] * len(adata)), **kwargs)
+        self._src_name = src_name
+        self._tgt_name = tgt_name
+
+    def _format(self, value: Any, *, is_source: bool):
+        return self._src_name if is_source else self._tgt_name
+
+    def _create_subset(self, _: Sequence[Item_t] = None, **__: Any) -> Sequence[Item_t]:
+        return [(self._SENTINEL, self._SENTINEL)]

@@ -13,7 +13,7 @@ from moscot.backends.ott import SinkhornSolver
 from moscot.solvers._output import BaseSolverOutput
 from moscot.solvers._base_solver import BaseSolver, ProblemKind
 from moscot.problems._base_problem import BaseProblem, GeneralProblem
-from moscot.problems._subset_policy import Axis_t, StarPolicy, SubsetPolicy, ExplicitPolicy
+from moscot.problems._subset_policy import Axis_t, StarPolicy, SubsetPolicy, ExplicitPolicy, FormatterMixin
 
 __all__ = ("SingleCompoundProblem", "MultiCompoundProblem", "CompoundProblem")
 
@@ -84,6 +84,11 @@ class CompoundBaseProblem(BaseProblem, ABC):
                     kwargs_["xy"] = (x, y)
 
             problems[src, tgt] = problem.prepare(**kwargs_)
+        if isinstance(self._policy, FormatterMixin):
+            return {
+                (self._policy._format(src, is_source=True), self._policy._format(tgt, is_source=False)): prob
+                for (src, tgt), prob in problems.items()
+            }
 
         return problems
 

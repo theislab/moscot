@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, List, Tuple, Mapping, Optional
+from typing import Any, Dict, List, Tuple, Mapping, Optional, Sequence
 
 from scipy.stats import pearsonr, spearmanr
 from scipy.linalg import svd
@@ -16,36 +16,16 @@ from anndata import AnnData
 from moscot.mixins._base_analysis import AnalysisMixin
 
 
-class SpatialAnalysisMixin(AnalysisMixin):
-    """Spatial analysis mixin class."""
-
-    def _interpolate_transport(
-        self, start: int | str, end: int | str, forward: bool = True, normalize: bool = True
-    ) -> npt.ArrayLike:
-        """Interpolate transport matrix."""
-        steps = self._policy.plan(start=start, end=end)[start, end]
-        if len(steps) == 1:
-            return self._problems[steps[0]].solution._scale_transport_by_marginals(forward=forward)
-        tmap = self._problems[steps[0]].solution._scale_transport_by_marginals(forward=True)
-        for i in range(len(steps) - 1):
-            tmap = tmap @ self._problems[steps[i + 1]].solution._scale_transport_by_marginals(forward=True)
-        if normalize:
-            if forward:
-                return tmap / tmap.sum(1)[:, None]
-            else:
-                return tmap / tmap.sum(0)[None, :]
-        return tmap
-
-
-class SpatialAlignmentAnalysisMixin(SpatialAnalysisMixin):
+class SpatialAlignmentAnalysisMixin(AnalysisMixin):
     """Spatial alignment mixin class."""
 
-    def _interpolate_scheme(self, reference: str | int, mode: Literal["warp", "affine"]) -> Mapping[str, npt.ArrayLike]:
+    def _interpolate_scheme(self, reference: Any, mode: Literal["warp", "affine"]) -> Dict[str, npt.ArrayLike]:
         """Scheme for interpolation."""
 
-        def subs_adata(k: str | int) -> npt.ArrayLike:
-            return self.adata[self.adata.obs[self._policy._subset_key] == k].obsm[self.spatial_key]
+        def subs_adata(k: Any) -> npt.ArrayLike:
+            return self.adata[self.adata.obs[self._policy._subset_key] == k].obsm[self.spatial_key].copy()
 
+        # TODO: error message for star policy
         # get reference
         src = subs_adata(reference)
         if mode == "affine":
@@ -56,7 +36,7 @@ class SpatialAlignmentAnalysisMixin(SpatialAnalysisMixin):
         fwd_steps = self._policy.plan(end=reference)
         bwd_steps = None
         # get mapping function
-        fun_transport = self._affine if mode == "affine" else lambda x, _, src: x @ src
+        fun_transport = self._affine if mode == "affine" else lambda tmap, _, src: tmap @ src
 
         if not fwd_steps or not set(full_steps).issubset(set(fwd_steps.keys())):
             bwd_steps = self._policy.plan(start=reference)
@@ -86,10 +66,10 @@ class SpatialAlignmentAnalysisMixin(SpatialAnalysisMixin):
 
     def align(
         self,
-        reference: str | int,
+        reference: Any,
         mode: Literal["warp", "affine"] = "warp",
         copy: bool = False,
-    ) -> npt.ArrayLike | None:
+    ) -> Optional[npt.ArrayLike]:
         """Spatial warp."""
         if reference not in self._policy._cat.categories:
             raise ValueError(f"`reference: {reference}` not in policy categories: {self._policy._cat.categories}")
@@ -102,36 +82,33 @@ class SpatialAlignmentAnalysisMixin(SpatialAnalysisMixin):
         self.adata.obsm[f"{self.spatial_key}_{mode}"] = aligned_arr
 
 
-class SpatialMappingAnalysisMixin(SpatialAnalysisMixin):
+class SpatialMappingAnalysisMixin(AnalysisMixin):
     """Spatial mapping analysis mixin class."""
 
     def _filter_vars(
         self,
-        adata_sc: AnnData,
-        adata_sp: AnnData,
-        var_names: Optional[List[str]] = None,
-        use_reference: bool = False,
-    ) -> List[str] | None:
+        var_names: Optional[Sequence[Any]] = None,
+    ) -> Optional[List[str]]:
         """Filter variables for Sinkhorn tem."""
-        vars_sc = set(adata_sc.var_names)  # TODO: allow alternative gene symbol by passing var_key
-        vars_sp = set(adata_sp.var_names)
+        vars_sc = set(self.adata_sc.var_names)  # TODO: allow alternative gene symbol by passing var_key
+        vars_sp = set(self.adata.var_names)
         var_names = set(var_names) if var_names is not None else None
-        if use_reference is True and var_names is None:
+        if var_names is None:
             var_names = vars_sp.intersection(vars_sc)
             if len(var_names):
                 return list(var_names)
             raise ValueError("`adata_sc` and `adata_sp` do not share `var_names`. Input valid `var_names`.")
-        if not use_reference:
+        if not len(var_names):
             return None
-        if use_reference and var_names.issubset(vars_sc) and var_names.issubset(vars_sp):
+        if var_names.issubset(vars_sc) and var_names.issubset(vars_sp):
             return list(var_names)
         raise ValueError("Some `var_names` ares missing in either `adata_sc` or `adata_sp`.")
 
     def correlate(
-        self, var_names: List[str] | None = None, corr_method: Literal["pearson", "spearman"] = "pearson"
+        self, var_names: Optional[List[str]] = None, corr_method: Literal["pearson", "spearman"] = "pearson"
     ) -> Mapping[Tuple[str, Any], pd.Series]:
         """Calculate correlation between true and predicted gexp in space."""
-        var_sc = self._filter_vars(self.adata_sc, self.adata_sp, var_names, True)
+        var_sc = self._filter_vars(var_names, True)
         if not len(var_sc):
             raise ValueError("No overlapping `var_names` between ` adata_sc` and `adata_sp`.")
         cor = pearsonr if corr_method == "pearson" else spearmanr

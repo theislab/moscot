@@ -1,13 +1,19 @@
 from __future__ import annotations
 
-from typing import Any, List, Mapping, Optional
+from types import MappingProxyType
+from typing import Any, Mapping, Optional, Sequence
+
+from typing_extensions import Literal
+
+import numpy.typing as npt
 
 from anndata import AnnData
 
 from moscot.backends.ott import GWSolver, FGWSolver
 from moscot.problems._base_problem import GeneralProblem
+from moscot.problems._subset_policy import Axis_t, DummyPolicy, SubsetPolicy, ExternalStarPolicy
 from moscot.mixins._spatial_analysis import SpatialMappingAnalysisMixin
-from moscot.problems._compound_problem import SingleCompoundProblem
+from moscot.problems._compound_problem import BaseProblem, SingleCompoundProblem
 
 
 class MappingProblem(SingleCompoundProblem, SpatialMappingAnalysisMixin):
@@ -15,32 +21,44 @@ class MappingProblem(SingleCompoundProblem, SpatialMappingAnalysisMixin):
 
     def __init__(
         self,
+        adata_sp: AnnData,
         adata_sc: AnnData,
-        adata_sp: Optional[AnnData] = None,
-        use_reference: bool = False,
-        var_names: List[str] | None = None,
-        solver_jit: Optional[bool] = None,
+        var_names: Optional[Sequence[Any]] = None,
+        solver_kwargs: Mapping[str, Any] = MappingProxyType({}),
         **kwargs: Any,
     ):
         """Init method."""
-        self._adata_sp = adata_sp
+        super().__init__(adata_sp, **kwargs)
         self._adata_sc = adata_sc
-        self._use_reference = use_reference
+        self._filtered_vars = self._filter_vars(var_names=var_names)
 
-        # filter genes
-        self._filtered_vars = self._filter_vars(adata_sc, adata_sp, var_names, use_reference)
-        solver = (
-            FGWSolver(jit=solver_jit) if use_reference and self._filtered_vars is not None else GWSolver(jit=solver_jit)
-        )
-        self._adata_ref = adata_sc[:, self._filtered_vars] if self._filtered_vars is not None else adata_sc
-        super().__init__(
-            adata_sp[:, self._filtered_vars] if self._filtered_vars is not None else adata_sp, solver=solver, **kwargs
-        )
+        self.solver = GWSolver(**solver_kwargs) if self._filtered_vars is None else FGWSolver(**solver_kwargs)
 
-    @property
-    def adata_sp(self) -> AnnData:
-        """Return spatial adata."""
-        return self._adata_sp
+    def _create_policy(
+        self,
+        policy: Literal["external_star"] = "external_star",
+        key: Optional[str] = None,
+        axis: Axis_t = "obs",
+        **_: Any,
+    ) -> SubsetPolicy:
+        if key is None:
+            return DummyPolicy(self.adata, axis=axis)
+        return ExternalStarPolicy(self.adata, key=key, axis=axis)
+
+    def _create_problem(
+        self,
+        src: Any,
+        src_mask: npt.ArrayLike,
+        *_,
+        **kwargs: Any,
+    ) -> BaseProblem:
+        adata_sp = self._mask(src_mask)
+        return self._base_problem_type(
+            adata_sp[:, self.filtered_vars] if self.filtered_vars is not None else adata_sp,
+            self.adata_sc[:, self.filtered_vars] if self.filtered_vars is not None else self.adata_sc,
+            solver=self._solver,
+            **kwargs,
+        )
 
     @property
     def adata_sc(self) -> AnnData:
@@ -48,14 +66,9 @@ class MappingProblem(SingleCompoundProblem, SpatialMappingAnalysisMixin):
         return self._adata_sc
 
     @property
-    def filtered_vars(self) -> List[str]:
+    def filtered_vars(self) -> Optional[Sequence[Any]]:
         """Return filtered variables."""
         return self._filtered_vars
-
-    @property
-    def _adata_tgt(self):
-        """Return adata reference."""
-        return self._adata_ref
 
     def prepare(
         self,
@@ -70,24 +83,6 @@ class MappingProblem(SingleCompoundProblem, SpatialMappingAnalysisMixin):
         attr_sp = {"attr": "obsm", "key": f"{attr_sp}"} if isinstance(attr_sp, str) is str else attr_sp
         attr_joint = {"x_attr": "X", "y_attr": "X"} if attr_joint is None else attr_joint
 
-        if self._use_reference and self.filtered_vars is not None:
-            return super().prepare(x=attr_sp, y=attr_sc, xy=attr_joint, policy="external_star", key=key, **kwargs)
-        else:
+        if self.filtered_vars is None:
             return super().prepare(x=attr_sp, y=attr_sc, policy="external_star", key=key, **kwargs)
-
-    def solve(
-        self,
-        epsilon: Optional[float] = None,
-        alpha: float = 0.5,
-        tau_a: Optional[float] = 1.0,
-        tau_b: Optional[float] = 1.0,
-        rank: Optional[int] = None,
-        **kwargs: Any,
-    ) -> GeneralProblem:
-        """Solve method."""
-        return super().solve(epsilon=epsilon, alpha=alpha, tau_a=tau_a, tau_b=tau_b, rank=rank, **kwargs)
-
-    def _mask(self, key: Any, mask, adata: AnnData) -> AnnData:
-        if key is self._policy._SENTINEL:
-            return adata
-        return super()._mask(key, mask, adata)
+        return super().prepare(x=attr_sp, y=attr_sc, xy=attr_joint, policy="external_star", key=key, **kwargs)
