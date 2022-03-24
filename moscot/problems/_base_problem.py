@@ -99,7 +99,7 @@ class BaseProblem(ABC):
 
     @solver.setter
     def solver(self, solver: BaseSolver) -> None:
-        if not isinstance(solver, BaseSolver): #TODO: enable
+        if not isinstance(solver, BaseSolver):  # TODO: enable
             raise TypeError("TOOD: not a solver")
         self._solver = solver
 

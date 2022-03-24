@@ -1,8 +1,9 @@
-from typing import Optional, Any
+from typing import Any, Optional
 
 from numpy.typing import ArrayLike
-import numpy as np
 from ott.geometry.costs import Bures, Cosine, Euclidean, UnbalancedBures
+import numpy as np
+
 from anndata import AnnData
 
 # TODO(michalk8): improve:
@@ -32,7 +33,9 @@ def _normalize(arr: ArrayLike) -> ArrayLike:
     return arr / np.sum(arr)
 
 
-def _get_backend_losses(backend: str = "JAX", **kwargs: Any): #TODO(@MUCDK, @michalk8), registry or put somewhere else.
+def _get_backend_losses(
+    backend: str = "JAX", **kwargs: Any
+):  # TODO(@MUCDK, @michalk8), registry or put somewhere else.
     if backend == "JAX":
         dimension = kwargs.pop("dimension", 1)
         return {

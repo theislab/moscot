@@ -1,18 +1,17 @@
-from moscot.mixins._spatial_analysis import SpatialAnalysisMixin
-from moscot.problems.spatial import SpatialMappingProblem
-from typing import Any, Dict, Tuple, Union, Optional, Iterable, Mapping
+from typing import Optional, Tuple
 
-import numpy.typing as npt
-import jax.numpy as jnp
-import numpy as np
+from scipy.stats import pearsonr
+import scipy
 import pandas as pd
 
-import scipy
-from scipy.stats import pearsonr
+import numpy as np
+import jax.numpy as jnp
+import numpy.typing as npt
+
+from moscot.mixins._spatial_analysis import SpatialAnalysisMixin
+
 
 class SpatialMappingAnalysisMixin(SpatialAnalysisMixin):
-
-
     def filter_vars(
         self,
         adata_sc: AnnData,
@@ -42,13 +41,14 @@ class SpatialMappingAnalysisMixin(SpatialAnalysisMixin):
             else:
                 raise ValueError("Some `var_names` ares missing in `adata_sc`.")
 
-
-    def correlate(self,
-                   adata_sc,
-                   adata_sp,
-                   transport_matrix: npt.ArrayLike,
-                   var_names: Optional[List[str]] = None,
-                   key_pred: str = None):
+    def correlate(
+        self,
+        adata_sc,
+        adata_sp,
+        transport_matrix: npt.ArrayLike,
+        var_names: Optional[List[str]] = None,
+        key_pred: str = None,
+    ):
         """
         calculate correlation between the predicted gene expression and observed in tissue space.
         Parameters
@@ -65,16 +65,18 @@ class SpatialMappingAnalysisMixin(SpatialAnalysisMixin):
         if scipy.sparse.issparse(adata_sp.X):
             adata_sp.X = adata_sp.X.A
         sp_gex_pred = np.asarray(jnp.dot(transport_matrix, adata_sc.X))
-        corr_val = np.nanmean([pearsonr(sp_gex_pred[:, gi],
-                                        adata_sp.X[:, gi])[0]
-                               for gi, g in enumerate(adata_sp.var_names)])
+        corr_val = np.nanmean(
+            [pearsonr(sp_gex_pred[:, gi], adata_sp.X[:, gi])[0] for gi, g in enumerate(adata_sp.var_names)]
+        )
         return corr_val
 
-    def get_imputation(self,
-                       adata_sc,
-                       adata_sp,
-                       transport_matrix: npt.ArrayLike,
-                       var_names: Optional[List[str]] = None,) -> pd.DataFrame:
+    def get_imputation(
+        self,
+        adata_sc,
+        adata_sp,
+        transport_matrix: npt.ArrayLike,
+        var_names: Optional[List[str]] = None,
+    ) -> pd.DataFrame:
         """
         return imputation of spatial expression of given genes
         Parameters
@@ -89,7 +91,5 @@ class SpatialMappingAnalysisMixin(SpatialAnalysisMixin):
         if scipy.sparse.issparse(adata_sc.X):
             adata_sc.X = adata_sc.X.A
         sp_gex_pred = np.asarray(jnp.dot(transport_matrix, adata_ref.X))
-        sp_gex_pred = pd.DataFrame(sp_gex_pred,
-                                   index=adata_sp.obs_names,
-                                   columns=adata_sc.var_names)
+        sp_gex_pred = pd.DataFrame(sp_gex_pred, index=adata_sp.obs_names, columns=adata_sc.var_names)
         return sp_gex_pred
