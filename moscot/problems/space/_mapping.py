@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from types import MappingProxyType
-from typing import Any, Mapping, Optional, Sequence
+from typing import Any, Union, Mapping, Optional, Sequence
 
 from typing_extensions import Literal
 
@@ -72,10 +72,10 @@ class MappingProblem(SingleCompoundProblem, SpatialMappingAnalysisMixin):
 
     def prepare(
         self,
-        attr_sc: str | Mapping[str, Any],
-        attr_sp: str | Mapping[str, Any],
-        attr_joint: str | Mapping[str, Any] | None = None,
-        key: str | None = None,
+        attr_sc: Union[str, Mapping[str, Any]],
+        attr_sp: Union[str, Mapping[str, Any]],
+        attr_joint: Optional[Union[str, Mapping[str, Any]]] = None,
+        key: Optional[str] = None,
         **kwargs: Any,
     ) -> GeneralProblem:
         """Prepare method."""

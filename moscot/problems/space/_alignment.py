@@ -1,7 +1,5 @@
-from __future__ import annotations
-
 from types import MappingProxyType
-from typing import Any, Mapping, Optional
+from typing import Any, Union, Mapping, Optional
 
 from typing_extensions import Literal
 
@@ -40,11 +38,11 @@ class AlignmentProblem(CompoundProblem, SpatialAlignmentAnalysisMixin):
 
     def prepare(
         self,
-        spatial_key: str | Mapping[str, Any] = "spatial",
+        spatial_key: Union[str, Mapping[str, Any]] = "spatial",
         attr_joint: Mapping[str, Any] = None,
         policy: Literal["sequential", "star"] = "sequential",
-        key: str | None = None,
-        reference: str | None = None,
+        key: Union[str, None] = None,
+        reference: Union[str, None] = None,
         **kwargs: Any,
     ) -> GeneralProblem:
         """Prepare method."""

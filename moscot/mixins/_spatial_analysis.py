@@ -1,6 +1,4 @@
-from __future__ import annotations
-
-from typing import Any, Dict, List, Tuple, Mapping, Optional, Sequence
+from typing import Any, Dict, List, Tuple, Union, Mapping, Optional, Sequence
 
 from scipy.stats import pearsonr, spearmanr
 from scipy.linalg import svd
@@ -115,7 +113,7 @@ class SpatialMappingAnalysisMixin(AnalysisMixin):
         corr_dic = {}
         gexp_sc = self.adata_sc[:, var_sc].X if not issparse(self.adata_sc.X) else self.adata_sc[:, var_sc].X.A
         for prob_key, prob_val in self.solution.items():
-            index_obs: List[bool | int] = (
+            index_obs: List[Union[bool, int]] = (
                 self.adata_sp.obs[self._policy._subset_key] == prob_key[0]
                 if self._policy._subset_key is not None
                 else np.arange(self.adata_sp.shape[0])
