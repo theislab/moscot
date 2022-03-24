@@ -339,7 +339,7 @@ class LineageProblem(TemporalProblem):
     def prepare(
         self,
         key: str,
-        data_key: str = "X_pca",
+        data_key: Union[str, Literal["pca_local"]] = "pca_local",
         lineage_loss: Mapping[str, Any] = MappingProxyType({}),
         policy: Literal["sequential", "pairwise", "triu", "tril", "explicit"] = "sequential",
         subset: Optional[Sequence[Tuple[Any, Any]]] = None,
@@ -355,7 +355,9 @@ class LineageProblem(TemporalProblem):
             "tag": lineage_loss.get("tag", "cost"),
             "loss_kwargs": lineage_loss.get("loss_kwargs", {}),
         }
-        xy = {"x_attr": "obsm", "x_key": data_key, "y_attr": "obsm", "y_key": data_key, "tag": "point_cloud"}
+        xy = {"x_attr": "obsm", "x_key": data_key, "y_attr": "obsm", "y_key": data_key, "tag": "point_cloud"} #TODO: pass loss
+        if data_key == "pca_local":
+            kwargs["callback"] = "pca_local"
 
         return super().prepare(
             key=key,
