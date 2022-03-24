@@ -341,11 +341,12 @@ class LineageProblem(TemporalProblem):
                     "TODO: default location for quadratic loss is `adata.obsp[`cost_matrices`]` \
                         but adata has no key `cost_matrices` in `obsp`."
                 )
-        lineage_attr.set_default("attr", "obsp")
-        lineage_attr.set_default("key", "cost_matrices")
-        lineage_attr.set_default("loss", None)
-        lineage_attr.set_default("tag", "cost")
-        lineage_attr.set_default("loss_kwargs", {})
+        lineage_attr = dict(lineage_attr)
+        lineage_attr.setdefault("attr", "obsp")
+        lineage_attr.setdefault("key", "cost_matrices")
+        lineage_attr.setdefault("loss", None)
+        lineage_attr.setdefault("tag", "cost")
+        lineage_attr.setdefault("loss_kwargs", {})
         x = y = lineage_attr
 
         if joint_attr is None:
