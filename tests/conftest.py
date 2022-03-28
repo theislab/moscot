@@ -103,6 +103,12 @@ def adata_time() -> AnnData:
 
     return adata
 
+@pytest.fixture()
+def adata_time_gene_names() -> AnnData:
+    adata = adata_time
+    adata.var.index = ["gene_"+el for el in adata.var.index]
+    return adata
+
 
 def create_marginals(n: int, m: int, *, uniform: bool = False, seed: Optional[int] = None) -> Geom_t:
     rng = np.random.RandomState(seed)
