@@ -289,15 +289,13 @@ class TemporalProblem(TemporalAnalysisMixin, SingleCompoundProblem):
 
     @property
     def growth_rates(self) -> pd.DataFrame:
-        df = None
         cols = [f"g_{i}" for i in range(list(self)[0][1].growth_rates.shape[1])]
         df_list = [
             pd.DataFrame(problem.growth_rates, index=self._problems[tup]._adata.obs.index, columns=cols)
             for tup, problem in self
         ]
-        df = pd.concat(df_list)
         tup, problem = list(self)[-1]
-        df = df.append(
+        df_list.append(
             pd.DataFrame(
                 np.full(
                     shape=(len(self._problems[tup]._adata_y.obs), problem.growth_rates.shape[1]), fill_value=np.nan
@@ -307,7 +305,7 @@ class TemporalProblem(TemporalAnalysisMixin, SingleCompoundProblem):
             ),
             verify_integrity=True,
         )
-        return df
+        return pd.concat(df_list)
 
     @property
     def proliferation_key(self) -> Optional[str]:

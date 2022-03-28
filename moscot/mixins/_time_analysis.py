@@ -60,7 +60,7 @@ class TemporalAnalysisMixin(AnalysisMixin):
         interpolation_parameter: Optional[int] = None,
         n_interpolated_cells: Optional[int] = None,
         account_for_unbalancedness: bool = False,
-        batch_size: int = 1024,
+        batch_size: int = 256,
         seed: Optional[int] = None,
         **kwargs: Any,
     ) -> Number:
@@ -128,13 +128,12 @@ class TemporalAnalysisMixin(AnalysisMixin):
         point_cloud_2: npt.ArrayLike,
         a: Optional[npt.ArrayLike] = None,
         b: Optional[npt.ArrayLike] = None,
-        numItermax: int = 1e6,
         **kwargs: Any,
     ) -> Number:
         cost_matrix = pairwise_distances(point_cloud_1, Y=point_cloud_2, metric="sqeuclidean", n_jobs=-1)
         a = [] if a is None else a
         b = [] if b is None else b
-        return np.sqrt(ot.emd2(a, b, cost_matrix, numItermax=numItermax, **kwargs))
+        return np.sqrt(ot.emd2(a, b, cost_matrix, **kwargs))
 
     def _interpolate_gex_with_ot(
         self,
@@ -145,27 +144,25 @@ class TemporalAnalysisMixin(AnalysisMixin):
         end: Number,
         interpolation_parameter: float = 0.5,
         account_for_unbalancedness: bool = True,
-        batch_size: int = 1024,
+        batch_size: int = 256,
         seed: Optional[int] = None,
     ) -> npt.ArrayLike:
 
         rows_sampled, cols_sampled = self._sample_from_tmap(
-            start,
-            end,
-            number_cells,
-            len(source_data),
-            len(target_data),
-            batch_size,
-            account_for_unbalancedness,
-            interpolation_parameter,
-            seed,
+            start=start,
+            end=end,
+            n_samples=number_cells,
+            source_dim=len(source_data),
+            target_dim=len(target_data),
+            batch_size=batch_size,
+            account_for_unbalancedness=account_for_unbalancedness,
+            interpolation_parameter=interpolation_parameter,
+            seed=seed,
         )
-        result = (
+        return (
             source_data[np.repeat(rows_sampled, [len(col) for col in cols_sampled]), :] * (1 - interpolation_parameter)
             + target_data[np.hstack(cols_sampled), :] * interpolation_parameter
         )
-
-        return result
 
     def _interpolate_gex_randomly(
         self,
@@ -178,11 +175,12 @@ class TemporalAnalysisMixin(AnalysisMixin):
     ) -> npt.ArrayLike:
         rng = np.random.RandomState(seed)
         if growth_rates is None:
-            row_probability = np.ones(len(source_data)).astype("float64")
+            row_probability = np.ones(len(source_data))
         else:
             row_probability = growth_rates ** (1 - interpolation_parameter)
+        row_probability /= np.sum(row_probability)
         result = (
-            source_data[rng.choice(len(source_data), size=number_cells, p=row_probability / np.sum(row_probability)), :]
+            source_data[rng.choice(len(source_data), size=number_cells, p=row_probability), :]
             * (1 - interpolation_parameter)
             + target_data[rng.choice(len(target_data), size=number_cells), :] * interpolation_parameter
         )

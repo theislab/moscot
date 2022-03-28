@@ -30,18 +30,14 @@ class AnalysisMixin(ABC):
 
         mass = np.ones(target_dim)
         if account_for_unbalancedness:
-            col_sums = (
-                np.asarray(
-                    self.push(
-                        start=start,
-                        end=end,
-                        normalize=True,
-                        scale_by_marginals=False,
-                        filter=[(start, end)],
-                    )
-                ).squeeze()
-                + 1e-12
+            col_sums = self.push(
+                start=start,
+                end=end,
+                normalize=True,
+                scale_by_marginals=False,
+                filter=[(start, end)],
             )
+            col_sums = np.asarray(col_sums).squeeze() + 1e-12
             mass = mass / np.power(col_sums, 1 - interpolation_parameter)
 
         row_probability = np.asarray(
