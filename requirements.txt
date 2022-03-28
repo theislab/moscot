@@ -4,6 +4,7 @@ ete3>=3.1.0
 jax>=0.2.19
 jaxlib>=0.1.70
 lineageot>=0.2.0
+pytest_mock>=3.7.0
 # not listed in ott's requirements
 matplotlib
 networkx>=2.6.3
