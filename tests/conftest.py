@@ -100,8 +100,21 @@ def adata_time() -> AnnData:
     rng = np.random.RandomState(42)
     adatas = [AnnData(X=rng.normal(size=(96, 30))) for _ in range(3)]
     adata = adatas[0].concatenate(*adatas[1:], batch_key="time")
-    adata.var.index = ["gene_"+el for el in adata.var.index]
+    adata.var.index = ["gene_" + el for el in adata.var.index]
     return adata
+
+
+@pytest.fixture()
+def adata_time_barcodes() -> AnnData:
+    rng = np.random.RandomState(42)
+    adata = adata_time
+    adata.obsm["barcodes"] = rng.random.normal(size=(len(adata), 30))
+    return adata
+
+
+@pytest.fixture()
+def adata_time_trees() -> AnnData:  # TODO(@MUCDK) create
+    pass
 
 
 def create_marginals(n: int, m: int, *, uniform: bool = False, seed: Optional[int] = None) -> Geom_t:
