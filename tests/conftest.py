@@ -12,6 +12,8 @@ from jax import numpy as jnp  # noqa: E402
 import numpy as np  # noqa: E402
 
 Geom_t = Union[jnp.ndarray, Tuple[jnp.ndarray, jnp.ndarray]]
+RTOL = 1e-6
+ATOL = 1e-6
 
 
 @pytest.fixture()
