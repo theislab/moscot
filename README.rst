@@ -47,5 +47,5 @@ Finally, create the png file from "classes.dot", e.g. via::
     check_call(['dot','-Tpng','classes.dot','-o','UML.png'])
 
 .. |Codecov| image:: https://codecov.io/gh/theislab/moscot/branch/dev/graph/badge.svg?token=Rgtm5Tsblo
-    :target: https://codecov.io/gh/theislab/cellrank
+    :target: https://codecov.io/gh/theislab/moscot
     :alt: Coverage
