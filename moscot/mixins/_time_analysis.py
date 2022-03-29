@@ -16,7 +16,7 @@ from moscot.mixins._base_analysis import AnalysisMixin
 class TemporalAnalysisMixin(AnalysisMixin):
     def _get_data(
         self, start: Number, intermediate: Optional[Number] = None, end: Optional[Number] = None
-    ) -> Tuple[Union[npt.ArrayLike, AnnData]]:
+    ) -> Tuple[Union[npt.ArrayLike, AnnData], ...]:
         for (start_, end_) in self._problems.keys():
             if start_ == start:
                 source_data = self._problems[(start_, end_)]._x.data
@@ -42,13 +42,6 @@ class TemporalAnalysisMixin(AnalysisMixin):
 
         return source_data, growth_rates_source, intermediate_data, intermediate_adata, target_data
 
-    def _get_interpolation_parameter(
-        interpolation_parameter: Number, start: Number, intermediate: Number, end: Number
-    ) -> Number:
-        return (
-            interpolation_parameter if interpolation_parameter is not None else (intermediate - start) / (end - start)
-        )
-
     def _get_n_interpolated_cells(n: Number, intermediate_data: npt.ArrayLike) -> Number:
         return n if n is not None else len(intermediate_data)
 
@@ -66,7 +59,7 @@ class TemporalAnalysisMixin(AnalysisMixin):
     ) -> Number:
 
         source_data, _, intermediate_data, _, target_data = self._get_data(start, intermediate, end)
-        interpolation_parameter = self._get_interpolation_parameter(interpolation_parameter, start, intermediate, end)
+        interpolation_parameter = self._get_interp_param(interpolation_parameter, start, intermediate, end)
         n_interpolated_cells = self._get_n_interpolated_cells(n_interpolated_cells, intermediate_data)
         interpolation = self._interpolate_gex_with_ot(
             n_interpolated_cells,
@@ -93,7 +86,7 @@ class TemporalAnalysisMixin(AnalysisMixin):
         **kwargs: Any,
     ) -> Number:
         source_data, growth_rates_source, intermediate_data, _, target_data = self._get_data(start, intermediate, end)
-        interpolation_parameter = self._get_interpolation_parameter(interpolation_parameter, start, intermediate, end)
+        interpolation_parameter = self._get_interp_param(interpolation_parameter, start, intermediate, end)
         n_interpolated_cells = self._get_n_interpolated_cells(n_interpolated_cells, intermediate_data)
 
         growth_rates = growth_rates_source if account_for_unbalancedness else None
@@ -109,7 +102,7 @@ class TemporalAnalysisMixin(AnalysisMixin):
 
     def compute_time_point_distances(
         self, start: Number, intermediate: Number, end: Number, **kwargs: Any
-    ) -> Tuple[Number]:
+    ) -> Tuple[Number, Number]:
         source_data, _, intermediate_data, _, target_data = self._get_data(start, intermediate, end)
 
         distance_source_intermediate = self._compute_wasserstein_distance(source_data, intermediate_data, **kwargs)
@@ -117,10 +110,20 @@ class TemporalAnalysisMixin(AnalysisMixin):
 
         return distance_source_intermediate, distance_intermediate_target
 
-    def compute_batch_distances(self, time: Number, batch_key: str, **kwargs: Any):
+    def compute_batch_distances(self, time: Number, batch_key: str, **kwargs: Any) -> float:
         data, adata = self._get_data(time)
-        return self._compute_distance_between_batches(adata, data, batch_key, **kwargs)
-
+        assert len(adata) == len(data), "TODO: wrong shapes"
+        dist = []
+        for batch_1, batch_2 in itertools.combinations(adata.obs[batch_key].unique(), 2):
+            dist.append(
+                self._compute_wasserstein_distance(
+                    data[(adata.obs[batch_key] == batch_1).values, :],
+                    data[(adata.obs[batch_key] == batch_2).values, :],
+                    **kwargs,
+                )
+            )
+        return np.mean(dist)
+        
     # TODO(@MUCDK) possibly offer two alternatives, once exact EMD with POT backend and once approximate, faster with same solver as used for original problems
     def _compute_wasserstein_distance(
         self,
@@ -186,17 +189,11 @@ class TemporalAnalysisMixin(AnalysisMixin):
         )
         return result
 
-    def _compute_distance_between_batches(
-        self, adata: AnnData, data: npt.ArrayLike, batch_key: str, **kwargs: Any
+    def _get_interp_param(
+        interpolation_parameter: Number, start: Number, intermediate: Number, end: Number
     ) -> Number:
-        assert len(adata) == len(data), "TODO: wrong shapes"
-        dist = []
-        for batch_1, batch_2 in itertools.combinations(adata.obs[batch_key].unique(), 2):
-            dist.append(
-                self._compute_wasserstein_distance(
-                    data[(adata.obs[batch_key] == batch_1).values, :],
-                    data[(adata.obs[batch_key] == batch_2).values, :],
-                    **kwargs,
-                )
-            )
-        return np.mean(dist)
+        if 0 > interpolation_parameter or interpolation_parameter > 1:
+            raise ValueError("TODO: interpolation parameter must be in [0,1].")
+        return (
+            interpolation_parameter if interpolation_parameter is not None else (intermediate - start) / (end - start)
+        )
