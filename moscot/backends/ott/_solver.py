@@ -237,7 +237,7 @@ class GWSolver(RankMixin, BaseSolver):
         y: Optional[TaggedArray] = None,
         epsilon: Optional[float] = None,
         online: Optional[int] = None,
-        scale_cost: Scale_t = "max_norm",
+        scale_cost: Scale_t = None,
         **kwargs: Any,
     ) -> QuadraticProblem:
         kwargs.pop("rank", None)  # set in context afterwards
@@ -305,7 +305,7 @@ class FGWSolver(GWSolver):
         yy: Optional[TaggedArray] = None,
         epsilon: Optional[float] = None,
         online: Optional[int] = None,
-        scale_cost: Scale_t = "max_norm",
+        scale_cost: Scale_t = None,
         alpha: float = 0.5,
         rank: int = None,
         **kwargs: Any,
