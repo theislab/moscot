@@ -4,6 +4,8 @@ from types import MappingProxyType
 from typing import Any, Dict, Type, Tuple, Union, Mapping, Optional, NamedTuple
 from inspect import signature
 
+from typing_extensions import Literal
+
 from ott.geometry import Grid, Geometry, PointCloud
 from ott.core.problems import LinearProblem
 from ott.core.sinkhorn import Sinkhorn
@@ -62,6 +64,7 @@ class GeometryMixin:
         *,
         epsilon: Optional[float] = None,
         online: bool = False,
+        scale_cost: Optional[Union[float, Literal["mean", "median", "max_cost", "max_norm", "max_bound"]]] = None,
     ) -> Geometry:
         # TODO(michalk8): maybe in the future, enable (more) kwargs for PC/Geometry
         if y is not None:
@@ -69,17 +72,23 @@ class GeometryMixin:
             x, y = self._assert2d(x.data), self._assert2d(y.data)
             if x.shape[1] != y.shape[1]:
                 raise ValueError("TODO: x/y dimension mismatch")
-            return PointCloud(x, y=y, epsilon=epsilon, cost_fn=cost_fn, online=online)
+            return PointCloud(x, y=y, epsilon=epsilon, cost_fn=cost_fn, online=online, scale_cost=scale_cost)
         if x.is_point_cloud:
             cost_fn = self._create_cost(x.loss)
-            return PointCloud(self._assert2d(x.data), epsilon=epsilon, cost_fn=cost_fn, online=online)
+            return PointCloud(
+                self._assert2d(x.data), epsilon=epsilon, cost_fn=cost_fn, online=online, scale_cost=scale_cost
+            )
         if x.is_grid:
             cost_fn = self._create_cost(x.loss)
-            return Grid(jnp.asarray(x.data), epsilon=epsilon, cost_fn=cost_fn)
+            return Grid(jnp.asarray(x.data), epsilon=epsilon, cost_fn=cost_fn, scale_cost=scale_cost)
         if x.is_cost_matrix:
-            return Geometry(cost_matrix=self._assert2d(x.data, allow_reshape=False), epsilon=epsilon)
+            return Geometry(
+                cost_matrix=self._assert2d(x.data, allow_reshape=False), epsilon=epsilon, scale_cost=scale_cost
+            )
         if x.is_kernel:
-            return Geometry(kernel_matrix=self._assert2d(x.loss, allow_reshape=False), epsilon=epsilon)
+            return Geometry(
+                kernel_matrix=self._assert2d(x.loss, allow_reshape=False), epsilon=epsilon, scale_cost=scale_cost
+            )
 
         raise NotImplementedError("TODO: invalid tag")
 
