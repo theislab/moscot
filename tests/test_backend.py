@@ -1,4 +1,4 @@
-from typing import Type, Tuple, Optional
+from typing import Type, Tuple, Union, Optional
 
 from conftest import Geom_t
 import pytest
@@ -195,6 +195,18 @@ class TestFGW:
 
         assert solver._solver.epsilon == default_eps
         assert pred.rank == -1
+        np.testing.assert_allclose(gt.matrix, pred.transport_matrix, rtol=_RTOL, atol=_ATOL)
+
+
+class TestScaleCost:
+    @pytest.mark.parametrize("scale_cost", [None, 0.5, "mean", "max_cost", "max_norm", "max_bound"])
+    def test_scale(self, x: Geom_t, scale_cost: Optional[Union[float, str]]):
+        eps = 1e-2
+        gt = sinkhorn(PointCloud(x, epsilon=eps, scale_cost=scale_cost))
+
+        solver = SinkhornSolver()
+        pred = solver(x, epsilon=eps, scale_cost=scale_cost)
+
         np.testing.assert_allclose(gt.matrix, pred.transport_matrix, rtol=_RTOL, atol=_ATOL)
 
 

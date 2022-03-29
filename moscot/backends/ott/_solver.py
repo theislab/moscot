@@ -23,6 +23,8 @@ from moscot.solvers._tagged_array import TaggedArray
 
 __all__ = ("Cost", "SinkhornSolver", "GWSolver", "FGWSolver")
 
+Scale_t = Optional[Union[float, Literal["mean", "median", "max_cost", "max_norm", "max_bound"]]]
+
 
 class Cost(str, Enum):
     SQEUCL = "sqeucl"
@@ -63,8 +65,8 @@ class GeometryMixin:
         y: Optional[TaggedArray] = None,
         *,
         epsilon: Optional[float] = None,
-        online: bool = False,
-        scale_cost: Optional[Union[float, Literal["mean", "median", "max_cost", "max_norm", "max_bound"]]] = None,
+        online: Optional[int] = None,
+        scale_cost: Scale_t = None,
     ) -> Geometry:
         # TODO(michalk8): maybe in the future, enable (more) kwargs for PC/Geometry
         if y is not None:
@@ -213,11 +215,12 @@ class SinkhornSolver(RankMixin, BaseSolver):
         x: TaggedArray,
         y: Optional[TaggedArray] = None,
         epsilon: Optional[float] = None,
-        online: bool = False,
+        online: Optional[int] = None,
+        scale_cost: Scale_t = None,
         **kwargs: Any,
     ) -> LinearProblem:
         kwargs.pop("rank", None)  # set in context afterwards
-        geom = self._create_geometry(x, y, epsilon=epsilon, online=online)
+        geom = self._create_geometry(x, y, epsilon=epsilon, online=online, scale_cost=scale_cost)
         return LinearProblem(geom, **kwargs)
 
     @property
@@ -233,12 +236,13 @@ class GWSolver(RankMixin, BaseSolver):
         x: TaggedArray,
         y: Optional[TaggedArray] = None,
         epsilon: Optional[float] = None,
-        online: bool = False,
+        online: Optional[int] = None,
+        scale_cost: Scale_t = None,
         **kwargs: Any,
     ) -> QuadraticProblem:
         kwargs.pop("rank", None)  # set in context afterwards
-        geom_x = self._create_geometry(x, epsilon=epsilon, online=online)
-        geom_y = self._create_geometry(y, epsilon=epsilon, online=online)
+        geom_x = self._create_geometry(x, epsilon=epsilon, online=online, scale_cost=scale_cost)
+        geom_y = self._create_geometry(y, epsilon=epsilon, online=online, scale_cost=scale_cost)
         return QuadraticProblem(geom_x, geom_y, geom_xy=None, fused_penalty=0.0, **kwargs)
 
     @property
@@ -300,7 +304,7 @@ class FGWSolver(GWSolver):
         xx: Optional[TaggedArray] = None,
         yy: Optional[TaggedArray] = None,
         epsilon: Optional[float] = None,
-        online: bool = False,
+        online: Optional[int] = None,
         alpha: float = 0.5,
         rank: int = None,
         **kwargs: Any,
