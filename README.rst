@@ -1,3 +1,5 @@
+|Codecov|
+
 moscot - multi-omic single-cell optimal transport tools
 =======================================================
 
@@ -43,3 +45,7 @@ Finally, create the png file from "classes.dot", e.g. via::
 
     from subprocess import check_call
     check_call(['dot','-Tpng','classes.dot','-o','UML.png'])
+
+.. |Codecov| image:: https://codecov.io/gh/theislab/moscot/branch/dev/graph/badge.svg?token=Rgtm5Tsblo
+    :target: https://codecov.io/gh/theislab/moscot
+    :alt: Coverage
