@@ -1,6 +1,6 @@
 from typing import Type, Tuple, Union, Optional
 
-from conftest import Geom_t
+from conftest import ATOL, RTOL, Geom_t
 import pytest
 
 from ott.core import LinearProblem
@@ -18,9 +18,6 @@ from moscot.backends.ott._output import GWOutput, SinkhornOutput, LRSinkhornOutp
 from moscot.solvers._base_solver import BaseSolver
 from moscot.solvers._tagged_array import Tag
 
-_RTOL = 1e-6
-_ATOL = 1e-6
-
 
 class TestSinkhorn:
     @pytest.mark.parametrize("jit", [False, True])
@@ -31,7 +28,7 @@ class TestSinkhorn:
 
         assert isinstance(pred, SinkhornOutput)
         assert pred.rank == -1
-        np.testing.assert_allclose(gt.matrix, pred.transport_matrix, rtol=_RTOL, atol=_ATOL)
+        np.testing.assert_allclose(gt.matrix, pred.transport_matrix, rtol=RTOL, atol=ATOL)
 
     @pytest.mark.parametrize("rank", [5, 10])
     def test_rank(self, y: Geom_t, rank: Optional[int]):
@@ -44,7 +41,7 @@ class TestSinkhorn:
 
         assert isinstance(pred, LRSinkhornOutput)
         assert pred.rank == rank
-        np.testing.assert_allclose(gt.matrix, pred.transport_matrix, rtol=_RTOL, atol=_ATOL)
+        np.testing.assert_allclose(gt.matrix, pred.transport_matrix, rtol=RTOL, atol=ATOL)
 
     @pytest.mark.parametrize("implicit_diff", [False])
     @pytest.mark.parametrize("inner_iterations", [1, 10])
@@ -64,7 +61,7 @@ class TestSinkhorn:
             assert isinstance(pred, LRSinkhornOutput)
             assert pred.rank == rank
             assert not solver.is_low_rank  # we keep the original rank
-            np.testing.assert_allclose(gt.matrix, pred.transport_matrix, rtol=_RTOL, atol=_ATOL)
+            np.testing.assert_allclose(gt.matrix, pred.transport_matrix, rtol=RTOL, atol=ATOL)
 
 
 class TestGW:
@@ -79,7 +76,7 @@ class TestGW:
 
         assert isinstance(pred, GWOutput)
         assert pred.rank == -1
-        np.testing.assert_allclose(gt.matrix, pred.transport_matrix, rtol=_RTOL, atol=_ATOL)
+        np.testing.assert_allclose(gt.matrix, pred.transport_matrix, rtol=RTOL, atol=ATOL)
 
     @pytest.mark.parametrize("eps", [5e-1, 1])
     def test_epsilon(self, x_cost: jnp.ndarray, y_cost: jnp.ndarray, eps: Optional[float]):
@@ -94,7 +91,7 @@ class TestGW:
 
         assert solver._solver.epsilon == default_eps
         assert pred.rank == -1
-        np.testing.assert_allclose(gt.matrix, pred.transport_matrix, rtol=_RTOL, atol=_ATOL)
+        np.testing.assert_allclose(gt.matrix, pred.transport_matrix, rtol=RTOL, atol=ATOL)
 
     @pytest.mark.parametrize("init_rank", [-1, 2])
     @pytest.mark.parametrize("call_rank", [-1, 7])
@@ -126,7 +123,7 @@ class TestGW:
             assert isinstance(solver._linear_solver, Sinkhorn)
             assert solver.rank == -1
         assert pred.rank == call_rank
-        np.testing.assert_allclose(gt.matrix, pred.transport_matrix, rtol=_RTOL, atol=_ATOL)
+        np.testing.assert_allclose(gt.matrix, pred.transport_matrix, rtol=RTOL, atol=ATOL)
 
 
 class TestFGW:
@@ -148,7 +145,7 @@ class TestFGW:
 
         assert isinstance(pred, GWOutput)
         assert pred.rank == -1
-        np.testing.assert_allclose(gt.matrix, pred.transport_matrix, rtol=_RTOL, atol=_ATOL)
+        np.testing.assert_allclose(gt.matrix, pred.transport_matrix, rtol=RTOL, atol=ATOL)
 
     def test_alpha_in_call(self, x: Geom_t, y: Geom_t, xy: Geom_t):
         thresh, eps = 5e-2, 1e-1
@@ -169,7 +166,7 @@ class TestFGW:
 
             assert isinstance(pred, GWOutput)
             assert pred.rank == -1
-            np.testing.assert_allclose(gt.matrix, pred.transport_matrix, rtol=_RTOL, atol=_ATOL)
+            np.testing.assert_allclose(gt.matrix, pred.transport_matrix, rtol=RTOL, atol=ATOL)
 
     @pytest.mark.parametrize("eps", [1e-3, 5e-2])
     def test_epsilon(self, x_cost: jnp.ndarray, y_cost: jnp.ndarray, xy_cost: jnp.ndarray, eps: Optional[float]):
@@ -195,7 +192,7 @@ class TestFGW:
 
         assert solver._solver.epsilon == default_eps
         assert pred.rank == -1
-        np.testing.assert_allclose(gt.matrix, pred.transport_matrix, rtol=_RTOL, atol=_ATOL)
+        np.testing.assert_allclose(gt.matrix, pred.transport_matrix, rtol=RTOL, atol=ATOL)
 
 
 class TestScaleCost:
@@ -207,7 +204,7 @@ class TestScaleCost:
         solver = SinkhornSolver()
         pred = solver(x, epsilon=eps, scale_cost=scale_cost)
 
-        np.testing.assert_allclose(gt.matrix, pred.transport_matrix, rtol=_RTOL, atol=_ATOL)
+        np.testing.assert_allclose(gt.matrix, pred.transport_matrix, rtol=RTOL, atol=ATOL)
 
 
 class TestSolverOutput:
