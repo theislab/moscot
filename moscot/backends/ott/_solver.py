@@ -237,7 +237,7 @@ class GWSolver(RankMixin, BaseSolver):
         y: Optional[TaggedArray] = None,
         epsilon: Optional[float] = None,
         online: Optional[int] = None,
-        scale_cost: Scale_t = None,
+        scale_cost: Scale_t = "max_norm",
         **kwargs: Any,
     ) -> QuadraticProblem:
         kwargs.pop("rank", None)  # set in context afterwards
@@ -305,16 +305,17 @@ class FGWSolver(GWSolver):
         yy: Optional[TaggedArray] = None,
         epsilon: Optional[float] = None,
         online: Optional[int] = None,
+        scale_cost: Scale_t = "max_norm",
         alpha: float = 0.5,
         rank: int = None,
         **kwargs: Any,
     ) -> QuadraticProblem:
-        problem = super()._prepare_input(x, y, epsilon=epsilon, online=online)
+        problem = super()._prepare_input(x, y, epsilon=epsilon, online=online, scale_cost=scale_cost)
         if xx.is_cost_matrix or xx.is_kernel:
             # TODO(michalk8): warn if `yy` is not None that we're ignoring it?
-            geom_xy = self._create_geometry(xx, epsilon=epsilon, online=online)
+            geom_xy = self._create_geometry(xx, epsilon=epsilon, online=online, scale_cost=scale_cost)
         elif yy is not None:
-            geom_xy = self._create_geometry(xx, yy, epsilon=epsilon, online=online)
+            geom_xy = self._create_geometry(xx, yy, epsilon=epsilon, online=online, scale_cost=scale_cost)
         else:
             raise ValueError("TODO: specify the 2nd array if this is not kernel/cost")
         self._validate_geoms(problem.geom_xx, problem.geom_yy, geom_xy)
