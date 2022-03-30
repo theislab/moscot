@@ -84,10 +84,10 @@ class TestTemporalProblem:
         problem = TemporalProblem(adata=adata_time, solver=SinkhornSolver())
         problem = problem.prepare("time")
         problem = problem.solve(n_iters=n_iters)
-
-        assert problem[0, 1].growth_rates.shape[1] == n_iters + 1
-        assert problem[0, 1].growth_rates[:, 0] == np.ones(len(problem.solution[0, 1].a[:, -1])) / len(
-            problem.solution[0, 1].a[:, -1]
+        
+        assert problem[(0, 1)].growth_rates.shape[1] == n_iters + 1
+        assert problem[(0, 1)].growth_rates[:, 0] == np.ones(len(problem.solution[(0, 1)].a[:, -1])) / len(
+            problem.solution[(0, 1)].a[:, -1]
         )
         np.testing.assert_raises(
             AssertionError,

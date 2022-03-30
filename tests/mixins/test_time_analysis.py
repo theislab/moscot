@@ -14,6 +14,7 @@ from moscot.problems.time._lineage import TemporalProblem
 
 @pytest.mark.parametrize("forward", [True, False])
 def test_cell_transition_pipeline(adata_time_cell_type: AnnData, random_transport_matrix: np.ndarray, forward: bool):
+    cell_types = list(adata_time_cell_type.obs["cell_type"])
     problem = TemporalProblem(adata_time_cell_type)
     problem.prepare("time", subset=[0, 1])
     problem._solution = TestSolverOutput(random_transport_matrix)
@@ -22,8 +23,8 @@ def test_cell_transition_pipeline(adata_time_cell_type: AnnData, random_transpor
 
     assert isinstance(result, pd.DataFrame)
     assert result.shape == (3, 3)
-    assert list(result.index) == ["cell_A", "cell_B", "cell_C"]
-    assert list(result.columns) == ["cell_A", "cell_B", "cell_C"]
+    assert list(result.index) == cell_types
+    assert list(result.columns) == cell_types
     assert np.sum(np.isnan(result)) == 0
 
     np.testing.assert_almost_equal(result.sum(axis=1 if forward else 0), 1, decimal=7)

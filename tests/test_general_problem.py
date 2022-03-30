@@ -15,6 +15,7 @@ from moscot.problems import GeneralProblem
 from moscot.backends.ott import GWSolver, FGWSolver, SinkhornSolver
 from moscot.solvers._output import BaseSolverOutput
 from moscot.solvers._base_solver import BaseSolver
+from moscot.solvers._tagged_array import Tag
 
 
 class TestGeneralProblem:

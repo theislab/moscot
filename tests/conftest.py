@@ -115,11 +115,10 @@ def adata_time_cell_type() -> AnnData:
 
 
 @pytest.fixture()
-def adata_time_barcodes() -> AnnData:
+def adata_time_barcodes(adata_time: AnnData) -> AnnData:
     rng = np.random.RandomState(42)
-    adata = adata_time
-    adata_time.obsm["barcodes"] = rng.random.normal(size=(len(adata), 30))
-    return adata
+    adata_time.obsm["barcodes"] = rng.random.normal(size=(len(adata_time), 30))
+    return adata_time
 
 
 @pytest.fixture()
@@ -128,10 +127,11 @@ def adata_time_trees() -> AnnData:  # TODO(@MUCDK) create
 
 
 @pytest.fixture()
-def random_transport_matrix() -> np.ndarray:
+def random_transport_matrix(adata_time_cell_type: AnnData) -> np.ndarray:
     rng = np.random.RandomState(42)
-    dim_0 = adata_time_cell_type[adata_time_cell_type.obs["time"] == 0].n_obs
-    dim_1 = adata_time_cell_type[adata_time_cell_type.obs["time"] == 1].n_obs
+    adata = adata_time_cell_type
+    dim_0 = adata[adata.obs["time"] == 0].n_obs
+    dim_1 = adata[adata.obs["time"] == 1].n_obs
     t_matrix = np.abs(rng.randn(dim_0, dim_1))
     return t_matrix / t_matrix.sum()
 
