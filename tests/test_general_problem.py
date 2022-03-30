@@ -1,5 +1,7 @@
 from typing import Type
 
+from _utils import TestSolverOutput
+from conftest import Geom_t
 import pytest
 
 from anndata import AnnData
@@ -8,8 +10,7 @@ from moscot.problems import GeneralProblem
 from moscot.backends.ott import GWSolver, FGWSolver, SinkhornSolver
 from moscot.solvers._output import BaseSolverOutput
 from moscot.solvers._base_solver import BaseSolver
-from conftest import Geom_t
-from ._utils import TestSolverOutput
+
 
 class TestGeneralProblem:
     @pytest.mark.parametrize("solver_t", [SinkhornSolver, GWSolver, FGWSolver])
@@ -29,8 +30,8 @@ class TestGeneralProblem:
 
     def test_output(self, adata_x: AnnData, x: Geom_t):
         problem = GeneralProblem(adata_x)
-        problem._solution = TestSolverOutput(x*x.T)
-        
+        problem._solution = TestSolverOutput(x * x.T)
+
         assert problem.solution.shape == (len(x), len(x))
 
 
