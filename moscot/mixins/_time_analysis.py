@@ -1,3 +1,4 @@
+from multiprocessing.sharedctypes import Value
 from typing import Any, Tuple, Union, Mapping, Optional, Sequence
 from numbers import Number
 import logging
@@ -118,7 +119,7 @@ class TemporalAnalysisMixin(AnalysisMixin):
         return _key, _arg
 
     def _get_data(
-        self, key: Number, intermediate: Optional[Number] = None, end: Optional[Number] = None, *, only_start: bool
+        self, key: Number, intermediate: Optional[Number] = None, end: Optional[Number] = None, *, only_start: bool = False
     ) -> Tuple[Union[npt.ArrayLike, AnnData], ...]:
         for (start_, end_) in self._problems.keys():
             if start_ == key:
@@ -292,6 +293,10 @@ class TemporalAnalysisMixin(AnalysisMixin):
     def _get_interp_param(interpolation_parameter: Number, start: Number, intermediate: Number, end: Number) -> Number:
         if 0 > interpolation_parameter or interpolation_parameter > 1:
             raise ValueError("TODO: interpolation parameter must be in [0,1].")
+        if start >= intermediate:
+            raise ValueError("TODO: expected start < intermediate")
+        if intermediate >= end:
+            raise ValueError("TODO: expected intermediate < end")
         return (
             interpolation_parameter if interpolation_parameter is not None else (intermediate - start) / (end - start)
         )

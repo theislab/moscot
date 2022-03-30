@@ -42,8 +42,8 @@ class TestTemporalProblem:
             assert isinstance(subprob, TemporalBaseProblem)
             assert key in expected_keys
 
-    @pytest.mark.parametrize("eps", [1e1, 1e-1])
-    def test_solve_balanced(self, adata_time: AnnData, eps: float):
+    def test_solve_balanced(self, adata_time: AnnData):
+        eps=0.5
         expected_keys = {("0", "1"), ("1", "2")}
         problem = TemporalProblem(adata=adata_time, solver=SinkhornSolver())
         problem = problem.prepare("time")
