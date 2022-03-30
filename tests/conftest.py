@@ -1,4 +1,3 @@
-import random
 from typing import Tuple, Union, Optional
 
 import pytest
@@ -105,6 +104,7 @@ def adata_time() -> AnnData:
     adata.var.index = ["gene_" + el for el in adata.var.index]
     return adata
 
+
 @pytest.fixture()
 def adata_time_cell_type() -> AnnData:
     rng = np.random.RandomState(42)
@@ -126,13 +126,14 @@ def adata_time_barcodes() -> AnnData:
 def adata_time_trees() -> AnnData:  # TODO(@MUCDK) create
     pass
 
+
 @pytest.fixture()
 def random_transport_matrix() -> np.ndarray:
     rng = np.random.RandomState(42)
-    dim_0 = adata_time_cell_type[adata_time_cell_type.obs["time"]==0].n_obs
-    dim_1 = adata_time_cell_type[adata_time_cell_type.obs["time"]==1].n_obs
+    dim_0 = adata_time_cell_type[adata_time_cell_type.obs["time"] == 0].n_obs
+    dim_1 = adata_time_cell_type[adata_time_cell_type.obs["time"] == 1].n_obs
     t_matrix = np.abs(rng.randn(dim_0, dim_1))
-    return t_matrix/t_matrix.sum()
+    return t_matrix / t_matrix.sum()
 
 
 def create_marginals(n: int, m: int, *, uniform: bool = False, seed: Optional[int] = None) -> Geom_t:
