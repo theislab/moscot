@@ -1,9 +1,11 @@
-from typing import Any, Tuple, Union, Optional
+from typing import Any, Tuple, Union, Mapping, Optional, Sequence
 from numbers import Number
+import logging
 import itertools
 
 from sklearn.metrics.pairwise import pairwise_distances
 import ot
+import pandas as pd
 
 from numpy import typing as npt
 import numpy as np
@@ -14,18 +16,119 @@ from moscot.mixins._base_analysis import AnalysisMixin
 
 
 class TemporalAnalysisMixin(AnalysisMixin):
+    def cell_transition(
+        self,
+        start: Any,
+        end: Any,
+        early_cells: Union[str, Mapping[str, Sequence[Any]]],
+        late_cells: Union[str, Mapping[str, Sequence[Any]]],
+        forward: bool = False,  # return value will be row-stochastic if forward=True, else column-stochastic
+        **kwargs: Any,
+    ) -> pd.DataFrame:
+        _early_cells_key, _early_cells = self._validate_args_cell_transition(early_cells)
+        _late_cells_key, _late_cells = self._validate_args_cell_transition(late_cells)
+
+        transition_table = pd.DataFrame(
+            np.zeros((len(_early_cells), len(_late_cells))), index=_early_cells, columns=_late_cells
+        )
+
+        df_late = self.adata[self.adata.obs[self._temporal_key] == end].obs[[_late_cells_key]].copy()
+        df_early = self.adata[self.adata.obs[self._temporal_key] == start].obs[[_early_cells_key]].copy()
+
+        if forward:
+            _early_cells_present = set(_early_cells).intersection(set(df_early[_early_cells_key].unique()))
+            for subset in _early_cells:
+                if subset not in _early_cells_present:
+                    transition_table.loc[subset, :] = np.nan
+                    continue
+                try:
+                    result = self.push(
+                        start=start,
+                        end=end,
+                        data=_early_cells_key,
+                        subset=subset,
+                        normalize=True,
+                        return_all=False,
+                        scale_by_marginals=True,
+                        **kwargs,
+                    )
+                except ValueError as e:
+                    if "no mass" in str(e):  # TODO: adapt
+                        logging.info(
+                            f"No data points corresponding to {subset} found in `adata.obs[groups_key]` for {start}"
+                        )
+                        result = np.nan
+                    else:
+                        raise
+                df_late.loc[:, "distribution"] = result / np.sum(result)
+                target_cell_dist = df_late[df_late[_late_cells_key].isin(_late_cells)].groupby(_late_cells_key).sum()
+                transition_table.loc[subset, :] = [
+                    target_cell_dist.loc[cell_type, "distribution"]
+                    if cell_type in target_cell_dist.distribution.index
+                    else 0
+                    for cell_type in _late_cells
+                ]
+            return transition_table
+        _late_cells_present = set(_late_cells).intersection(set(df_late[_late_cells_key].unique()))
+        for subset in _late_cells:
+            if subset not in _late_cells_present:
+                transition_table.loc[:, subset] = np.nan
+                continue
+            try:
+                result = self.pull(
+                    start=start,
+                    end=end,
+                    data=_late_cells_key,
+                    subset=subset,
+                    normalize=True,
+                    return_all=False,
+                    scale_by_marginals=True,
+                    **kwargs,
+                )
+            except ValueError as e:
+                if "no mass" in str(e):  # TODO: adapt
+                    logging.info(f"No data points corresponding to {subset} found in `adata.obs[groups_key]` for {end}")
+                    result = np.nan
+                else:
+                    raise
+            df_early.loc[:, "distribution"] = result / np.sum(result)
+            target_cell_dist = df_early[df_early[_early_cells_key].isin(_early_cells)].groupby(_early_cells_key).sum()
+            transition_table.loc[:, subset] = [
+                target_cell_dist.loc[cell_type, "distribution"]
+                if cell_type in target_cell_dist.distribution.index
+                else 0
+                for cell_type in _early_cells
+            ]
+        return transition_table
+
+    def _validate_args_cell_transition(
+        self, arg: Union[str, Mapping[str, Sequence[Any]]]
+    ) -> Tuple[Union[str, Sequence], Sequence]:
+        if isinstance(arg, str):
+            if not hasattr(self.adata.obs[arg], "cat"):
+                raise ValueError(f"The column `{arg}` in `adata.obs` must be of categorical dtype")
+            return arg, list(self.adata.obs[arg].unique())
+        _key, _arg = arg.keys(), arg.values()
+        if not hasattr(self.adata.obs[_key], "cat"):
+            raise ValueError(f"The column `{_key}` in `adata.obs` must be of categorical dtype")
+        if len(_key) != 1:
+            raise ValueError("The data can only be filtered according to one column of `adata.obs`")
+        if not set(_arg).isin(set(self.adata.obs[_key].unique())):
+            raise ValueError(f"Not all values {_arg} could be found in column {_key}")
+        return _key, _arg
+
     def _get_data(
-        self, start: Number, intermediate: Optional[Number] = None, end: Optional[Number] = None
+        self, key: Number, intermediate: Optional[Number] = None, end: Optional[Number] = None, *, only_start: bool
     ) -> Tuple[Union[npt.ArrayLike, AnnData], ...]:
         for (start_, end_) in self._problems.keys():
-            if start_ == start:
+            if start_ == key:
                 source_data = self._problems[(start_, end_)]._x.data
+                if only_start:
+                    return source_data, self._problems[(start_, end_)].adata
                 growth_rates_source = self._problems[(start_, end_)].growth_rates[:, -1]
-                if intermediate is None:
-                    return source_data, growth_rates_source
                 break
         else:
-            raise ValueError(f"No data found for time point {start}")
+            raise ValueError(f"No data found for time point {key}")
         for (start_, end_) in self._problems.keys():
             if start_ == intermediate:
                 intermediate_data = self._problems[(start_, end_)]._x.data
@@ -42,9 +145,6 @@ class TemporalAnalysisMixin(AnalysisMixin):
 
         return source_data, growth_rates_source, intermediate_data, intermediate_adata, target_data
 
-    def _get_n_interpolated_cells(n: Number, intermediate_data: npt.ArrayLike) -> Number:
-        return n if n is not None else len(intermediate_data)
-
     def compute_interpolated_distance(
         self,
         start: Number,
@@ -57,10 +157,9 @@ class TemporalAnalysisMixin(AnalysisMixin):
         seed: Optional[int] = None,
         **kwargs: Any,
     ) -> Number:
-
-        source_data, _, intermediate_data, _, target_data = self._get_data(start, intermediate, end)
+        source_data, _, intermediate_data, _, target_data = self._get_data(start, intermediate, end, only_start=False)
         interpolation_parameter = self._get_interp_param(interpolation_parameter, start, intermediate, end)
-        n_interpolated_cells = self._get_n_interpolated_cells(n_interpolated_cells, intermediate_data)
+        n_interpolated_cells = n_interpolated_cells if n_interpolated_cells is not None else len(intermediate_data)
         interpolation = self._interpolate_gex_with_ot(
             n_interpolated_cells,
             source_data,
@@ -85,9 +184,11 @@ class TemporalAnalysisMixin(AnalysisMixin):
         seed: Optional[int] = None,
         **kwargs: Any,
     ) -> Number:
-        source_data, growth_rates_source, intermediate_data, _, target_data = self._get_data(start, intermediate, end)
+        source_data, growth_rates_source, intermediate_data, _, target_data = self._get_data(
+            start, intermediate, end, only_start=False
+        )
         interpolation_parameter = self._get_interp_param(interpolation_parameter, start, intermediate, end)
-        n_interpolated_cells = self._get_n_interpolated_cells(n_interpolated_cells, intermediate_data)
+        n_interpolated_cells = n_interpolated_cells if n_interpolated_cells is not None else len(intermediate_data)
 
         growth_rates = growth_rates_source if account_for_unbalancedness else None
         random_interpolation = self._interpolate_gex_randomly(
@@ -103,7 +204,7 @@ class TemporalAnalysisMixin(AnalysisMixin):
     def compute_time_point_distances(
         self, start: Number, intermediate: Number, end: Number, **kwargs: Any
     ) -> Tuple[Number, Number]:
-        source_data, _, intermediate_data, _, target_data = self._get_data(start, intermediate, end)
+        source_data, _, intermediate_data, _, target_data = self._get_data(start, intermediate, end, only_start=False)
 
         distance_source_intermediate = self._compute_wasserstein_distance(source_data, intermediate_data, **kwargs)
         distance_intermediate_target = self._compute_wasserstein_distance(intermediate_data, target_data, **kwargs)
@@ -111,7 +212,7 @@ class TemporalAnalysisMixin(AnalysisMixin):
         return distance_source_intermediate, distance_intermediate_target
 
     def compute_batch_distances(self, time: Number, batch_key: str, **kwargs: Any) -> float:
-        data, adata = self._get_data(time)
+        data, adata = self._get_data(time, only_start=True)
         assert len(adata) == len(data), "TODO: wrong shapes"
         dist = []
         for batch_1, batch_2 in itertools.combinations(adata.obs[batch_key].unique(), 2):
@@ -123,7 +224,7 @@ class TemporalAnalysisMixin(AnalysisMixin):
                 )
             )
         return np.mean(dist)
-        
+
     # TODO(@MUCDK) possibly offer two alternatives, once exact EMD with POT backend and once approximate, faster with same solver as used for original problems
     def _compute_wasserstein_distance(
         self,
@@ -150,7 +251,6 @@ class TemporalAnalysisMixin(AnalysisMixin):
         batch_size: int = 256,
         seed: Optional[int] = None,
     ) -> npt.ArrayLike:
-
         rows_sampled, cols_sampled = self._sample_from_tmap(
             start=start,
             end=end,
@@ -189,9 +289,7 @@ class TemporalAnalysisMixin(AnalysisMixin):
         )
         return result
 
-    def _get_interp_param(
-        interpolation_parameter: Number, start: Number, intermediate: Number, end: Number
-    ) -> Number:
+    def _get_interp_param(interpolation_parameter: Number, start: Number, intermediate: Number, end: Number) -> Number:
         if 0 > interpolation_parameter or interpolation_parameter > 1:
             raise ValueError("TODO: interpolation parameter must be in [0,1].")
         return (
