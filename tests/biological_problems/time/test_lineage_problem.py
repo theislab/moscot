@@ -1,4 +1,4 @@
-from typing import List, Optional, Tuple
+from typing import List, Tuple, Optional
 
 import pytest
 
@@ -7,7 +7,6 @@ import numpy as np
 from anndata import AnnData
 
 from moscot.backends.ott import FGWSolver
-from moscot.solvers._output import BaseSolverOutput
 from moscot.problems.time._lineage import LineageProblem, TemporalBaseProblem
 
 
@@ -15,7 +14,9 @@ class TestTemporalProblem:
     @pytest.mark.paramterize(
         "growth_genes", [(["gene_1", "gene_2"], ["gene_3", "gene_4"]), (["gene_1", "gene_2"], None)]
     )
-    def test_score_genes_for_marginals(self, adata_time: AnnData, growth_genes: Tuple[Optional[List], Optional[List]]): #TODO(@MUCDK) add test once we added default genes 
+    def test_score_genes_for_marginals(
+        self, adata_time: AnnData, growth_genes: Tuple[Optional[List], Optional[List]]
+    ):  # TODO(@MUCDK) add test once we added default genes
         problem = LineageProblem(adata=adata_time, solver=FGWSolver())
         problem.score_genes_for_marginals(gene_set_proliferation=growth_genes[0], gene_set_apoptosis=growth_genes[1])
 
@@ -36,10 +37,9 @@ class TestTemporalProblem:
             assert isinstance(subprob, TemporalBaseProblem)
             assert key in expected_keys
 
-    def test_prepare_with_trees(self, adata_time_trees: AnnData): #TODO(@MUCDK) create
+    def test_prepare_with_trees(self, adata_time_trees: AnnData):  # TODO(@MUCDK) create
         pass
 
-    
     @pytest.mark.parametrize(
         "n_iters", [3]
     )  # TODO(@MUCDK) as soon as @michalk8 unified warnings/errors test for negative value

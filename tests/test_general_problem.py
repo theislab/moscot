@@ -1,6 +1,7 @@
 from typing import Type
 
-from conftest import ATOL, RTOL
+from _utils import TestSolverOutput
+from conftest import ATOL, RTOL, Geom_t
 import pytest
 
 from ott.geometry import PointCloud
@@ -14,8 +15,6 @@ from moscot.problems import GeneralProblem
 from moscot.backends.ott import GWSolver, FGWSolver, SinkhornSolver
 from moscot.solvers._output import BaseSolverOutput
 from moscot.solvers._base_solver import BaseSolver
-from conftest import Geom_t
-from _utils import TestSolverOutput
 from moscot.solvers._tagged_array import Tag
 
 
@@ -37,13 +36,12 @@ class TestGeneralProblem:
         prob.solver = FGWSolver()
         assert isinstance(prob.solver, FGWSolver)
 
-<<<<<<< HEAD
     def test_output(self, adata_x: AnnData, x: Geom_t):
         problem = GeneralProblem(adata_x)
-        problem._solution = TestSolverOutput(x*x.T)
-        
+        problem._solution = TestSolverOutput(x * x.T)
+
         assert problem.solution.shape == (len(x), len(x))
-=======
+
     @pytest.mark.parametrize("scale_cost", ["max_cost", "max_bound"])
     def test_passing_scale(self, adata_x: AnnData, scale_cost: str):
         scale_cost, online, eps = "max_cost", True, 5e-2
@@ -56,7 +54,6 @@ class TestGeneralProblem:
         sol = prob.solution
 
         np.testing.assert_allclose(gt.matrix, sol.transport_matrix, rtol=RTOL, atol=ATOL)
->>>>>>> master
 
 
 class MultiMarginalProblem:

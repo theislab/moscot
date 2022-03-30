@@ -1,4 +1,4 @@
-from typing import List, Optional, Tuple
+from typing import List, Tuple, Optional
 
 import pytest
 
@@ -15,7 +15,9 @@ class TestTemporalProblem:
     @pytest.mark.paramterize(
         "growth_genes", [(["gene_1", "gene_2"], ["gene_3", "gene_4"]), (["gene_1", "gene_2"], None)]
     )
-    def test_score_genes_for_marginals(self, adata_time: AnnData, growth_genes: Tuple[Optional[List], Optional[List]]): #TODO(@MUCDK) add test once we added default genes 
+    def test_score_genes_for_marginals(
+        self, adata_time: AnnData, growth_genes: Tuple[Optional[List], Optional[List]]
+    ):  # TODO(@MUCDK) add test once we added default genes
         problem = TemporalProblem(adata=adata_time, solver=SinkhornSolver())
         problem.score_genes_for_marginals(gene_set_proliferation=growth_genes[0], gene_set_apoptosis=growth_genes[1])
 
