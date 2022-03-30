@@ -55,6 +55,7 @@ def tet_get_interp_param(adata_time: AnnData, time_points: Tuple[Number]):
     interpolation_parameter = None if len(time_points) == 3 else 0.5
     problem = TemporalProblem(adata_time)
     problem.prepare("time")
+    problem.solve()
 
     if intermediate >= start or end >= intermediate:
         with np.testing.assert_raises(ValueError):

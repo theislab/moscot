@@ -53,8 +53,8 @@ class TestTemporalProblem:
             assert isinstance(subsol, BaseSolverOutput)
             assert key in expected_keys
 
-    @pytest.mark.parametrize("taus", [9e-1, 1e-2])
-    def test_solve_unbalanced(self, adata_time: AnnData, taus: float):
+    def test_solve_unbalanced(self, adata_time: AnnData):
+        taus = [9e-1, 1e-2]
         problem1 = TemporalProblem(adata=adata_time, solver=SinkhornSolver())
         problem2 = TemporalProblem(adata=adata_time, solver=SinkhornSolver())
         problem1 = problem1.prepare("time")
