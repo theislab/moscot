@@ -114,16 +114,14 @@ class SpatialMappingAnalysisMixin(AnalysisMixin):
         gexp_sc = self.adata_sc[:, var_sc].X if not issparse(self.adata_sc.X) else self.adata_sc[:, var_sc].X.A
         for prob_key, prob_val in self.solution.items():
             index_obs: List[Union[bool, int]] = (
-                self.adata_sp.obs[self._policy._subset_key] == prob_key[0]
+                self.adata.obs[self._policy._subset_key] == prob_key[0]
                 if self._policy._subset_key is not None
                 else np.arange(self.adata_sp.shape[0])
             )
             gexp_sp = (
-                self.adata_sp[index_obs, var_sc].X
-                if not issparse(self.adata_sp.X)
-                else self.adata_sp[index_obs, var_sc].X.A
+                self.adata[index_obs, var_sc].X if not issparse(self.adata.X) else self.adata[index_obs, var_sc].X.A
             )
-            tmap = prob_val.solution._scale_transport_by_marginals(forward=False)
+            tmap = prob_val._scale_transport_by_marginals(forward=False)
             gexp_pred_sp = np.dot(tmap, gexp_sc)
             corr_val = [cor(gexp_pred_sp[:, gi], gexp_sp[:, gi])[0] for gi, _ in enumerate(var_sc)]
             corr_dic[prob_key] = pd.Series(corr_val, index=var_sc)
@@ -135,9 +133,9 @@ class SpatialMappingAnalysisMixin(AnalysisMixin):
         gexp_sc = self.adata_sc.X if not issparse(self.adata_sc.X) else self.adata_sc.X.A
         pred_list = []
         for _, prob_val in self.solution.items():
-            tmap = prob_val.solution._scale_transport_by_marginals(forward=False)
+            tmap = prob_val._scale_transport_by_marginals(forward=False)
             pred_list.append(np.dot(tmap, gexp_sc))
         adata_pred = AnnData(np.nan_to_num(np.vstack(pred_list), nan=0.0, copy=False))
-        adata_pred.obs_names = self.adata_sp.obs_names.values.copy()
+        adata_pred.obs_names = self.adata.obs_names.values.copy()
         adata_pred.var_names = self.adata_sc.var_names.values.copy()
         return adata_pred
