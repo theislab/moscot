@@ -14,9 +14,6 @@ except ImportError:
 
 import networkx as nx
 
-import numpy as np
-import numpy.typing as npt
-
 __all__ = ["LeafDistance", "BarcodeDistance"]
 Scale_t = Literal["max", "min", "median"]
 
@@ -111,7 +108,7 @@ class LeafDistance(BaseLoss):
         raise NotImplementedError
 
     def _create_cost_from_tree(self, tree: nx.Graph, **kwargs: Any) -> npt.ArrayLike:
-        # TODO(@MUCDK): make it more efficient, current problem: `target`in `multi_source_dijkstra` cannot be chosen as a subset
+        # TODO(@MUCDK): more efficient, problem: `target`in `multi_source_dijkstra` cannot be chosen as a subset
         undirected_tree = tree.to_undirected()
         leaves = self._get_leaves(undirected_tree, self._adata)
         n_leaves = len(leaves)
@@ -126,7 +123,7 @@ class LeafDistance(BaseLoss):
         if not set(self._adata.obs.index).issubset(leaves):
             if cell_to_leaf is None:
                 raise ValueError(
-                    "TODO: The node names do not correspond to the anndata obs index names. Please provide a `cell_to_leaf` dict."
+                    "TODO: node names do not correspond to anndata obs names. Please provide a `cell_to_leaf` dict."
                 )
             return [cell_to_leaf[cell] for cell in self._adata.obs.index]
         return [cell for cell in self._adata.obs.index if cell in leaves]

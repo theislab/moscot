@@ -141,6 +141,8 @@ class CompoundBaseProblem(BaseProblem, ABC):
         **kwargs: Any,
     ) -> Union[Dict[Tuple[Any, Any], npt.ArrayLike], Dict[Tuple[Any, Any], Dict[Tuple[Any, Any], npt.ArrayLike]]]:
         def get_data(plan: Tuple[Any, Any]) -> Optional[npt.ArrayLike]:
+            if isinstance(data, np.ndarray):
+                return data
             if data is None or isinstance(data, (str, tuple, list)):
                 # always valid shapes, since accessing AnnData
                 return data
@@ -156,7 +158,6 @@ class CompoundBaseProblem(BaseProblem, ABC):
         # TODO: check if solved - decorator?
         plans = self._policy.plan(**kwargs)
         res: Dict[Tuple[Any, Any], npt.ArrayLike] = {}
-
         for plan, steps in plans.items():
             if forward:
                 initial_problem = self._problems[steps[0]]
@@ -186,7 +187,6 @@ class CompoundBaseProblem(BaseProblem, ABC):
                 ds[step[1] if forward else step[0]] = current_mass
 
             res[plan] = ds if return_all else current_mass
-
         # TODO(michalk8): return the values iff only 1 plan?
         return res
 
