@@ -127,3 +127,25 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+
+# editors
+.idea
+
+# docs
+docs/source/api
+
+# macOS
+*.DS_Store
+
+# benchmarks
+notebooks/*.pdf
+*.pickle
+*.h5ad
+*.p
+
+# UML generation
+classes.dot
+packages.dot
+
+# vscode
+.vscode
