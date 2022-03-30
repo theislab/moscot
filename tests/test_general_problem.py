@@ -9,7 +9,7 @@ from moscot.backends.ott import GWSolver, FGWSolver, SinkhornSolver
 from moscot.solvers._output import BaseSolverOutput
 from moscot.solvers._base_solver import BaseSolver
 from conftest import Geom_t
-from ._utils import TestSolverOutput
+from _utils import TestSolverOutput
 
 class TestGeneralProblem:
     @pytest.mark.parametrize("solver_t", [SinkhornSolver, GWSolver, FGWSolver])
