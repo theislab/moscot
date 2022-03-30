@@ -1,3 +1,6 @@
+import numpy as np
+import numpy.typing as npt
+
 from moscot.solvers._output import MatrixSolverOutput
 
 
@@ -9,3 +12,6 @@ class TestSolverOutput(MatrixSolverOutput):
     @property
     def converged(self) -> bool:
         return True
+
+    def _ones(self, n: int) -> npt.ArrayLike:
+        return np.ones(n)

@@ -1,7 +1,11 @@
 from typing import Type
 
 from _utils import TestSolverOutput
+<<<<<<< HEAD
 from conftest import ATOL, RTOL, Geom_t
+=======
+from conftest import Geom_t
+>>>>>>> origin/tests/time
 import pytest
 
 from ott.geometry import PointCloud
@@ -15,7 +19,10 @@ from moscot.problems import GeneralProblem
 from moscot.backends.ott import GWSolver, FGWSolver, SinkhornSolver
 from moscot.solvers._output import BaseSolverOutput
 from moscot.solvers._base_solver import BaseSolver
+<<<<<<< HEAD
 from moscot.solvers._tagged_array import Tag
+=======
+>>>>>>> origin/tests/time
 
 
 class TestGeneralProblem:
