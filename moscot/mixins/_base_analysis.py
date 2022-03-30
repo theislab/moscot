@@ -19,14 +19,13 @@ class AnalysisMixin(ABC):
         account_for_unbalancedness: bool = False,
         interpolation_parameter: Optional[float] = None,
         seed: Optional[int] = None,
-    ) -> Tuple[npt.ArrayLike, List]:
+    ) -> Tuple[npt.ArrayLike, List[npt.ArrayLike]]:
 
         rng = np.random.RandomState(seed)
-        if account_for_unbalancedness:
-            if interpolation_parameter is None:
-                raise ValueError(
-                    "TODO: if unbalancedness is to be accounted for `interpolation_parameter` must be provided"
-                )
+        if account_for_unbalancedness and interpolation_parameter is None:
+            raise ValueError(
+                "TODO: if unbalancedness is to be accounted for `interpolation_parameter` must be provided"
+            )
 
         mass = np.ones(target_dim)
         if account_for_unbalancedness:

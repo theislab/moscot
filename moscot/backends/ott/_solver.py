@@ -4,6 +4,8 @@ from types import MappingProxyType
 from typing import Any, Dict, Type, Tuple, Union, Mapping, Optional, NamedTuple
 from inspect import signature
 
+from typing_extensions import Literal
+
 from ott.geometry import Grid, Geometry, PointCloud
 from ott.core.problems import LinearProblem
 from ott.core.sinkhorn import Sinkhorn
@@ -20,6 +22,8 @@ from moscot.solvers._base_solver import BaseSolver, ProblemKind
 from moscot.solvers._tagged_array import TaggedArray
 
 __all__ = ("Cost", "SinkhornSolver", "GWSolver", "FGWSolver")
+
+Scale_t = Optional[Union[float, Literal["mean", "median", "max_cost", "max_norm", "max_bound"]]]
 
 
 class Cost(str, Enum):
@@ -61,7 +65,8 @@ class GeometryMixin:
         y: Optional[TaggedArray] = None,
         *,
         epsilon: Optional[float] = None,
-        online: bool = False,
+        online: Optional[int] = None,
+        scale_cost: Scale_t = None,
     ) -> Geometry:
         # TODO(michalk8): maybe in the future, enable (more) kwargs for PC/Geometry
         if y is not None:
@@ -69,17 +74,23 @@ class GeometryMixin:
             x, y = self._assert2d(x.data), self._assert2d(y.data)
             if x.shape[1] != y.shape[1]:
                 raise ValueError("TODO: x/y dimension mismatch")
-            return PointCloud(x, y=y, epsilon=epsilon, cost_fn=cost_fn, online=online)
+            return PointCloud(x, y=y, epsilon=epsilon, cost_fn=cost_fn, online=online, scale_cost=scale_cost)
         if x.is_point_cloud:
             cost_fn = self._create_cost(x.loss)
-            return PointCloud(self._assert2d(x.data), epsilon=epsilon, cost_fn=cost_fn, online=online)
+            return PointCloud(
+                self._assert2d(x.data), epsilon=epsilon, cost_fn=cost_fn, online=online, scale_cost=scale_cost
+            )
         if x.is_grid:
             cost_fn = self._create_cost(x.loss)
-            return Grid(jnp.asarray(x.data), epsilon=epsilon, cost_fn=cost_fn)
+            return Grid(jnp.asarray(x.data), epsilon=epsilon, cost_fn=cost_fn, scale_cost=scale_cost)
         if x.is_cost_matrix:
-            return Geometry(cost_matrix=self._assert2d(x.data, allow_reshape=False), epsilon=epsilon)
+            return Geometry(
+                cost_matrix=self._assert2d(x.data, allow_reshape=False), epsilon=epsilon, scale_cost=scale_cost
+            )
         if x.is_kernel:
-            return Geometry(kernel_matrix=self._assert2d(x.loss, allow_reshape=False), epsilon=epsilon)
+            return Geometry(
+                kernel_matrix=self._assert2d(x.loss, allow_reshape=False), epsilon=epsilon, scale_cost=scale_cost
+            )
 
         raise NotImplementedError("TODO: invalid tag")
 
@@ -204,11 +215,12 @@ class SinkhornSolver(RankMixin, BaseSolver):
         x: TaggedArray,
         y: Optional[TaggedArray] = None,
         epsilon: Optional[float] = None,
-        online: bool = False,
+        online: Optional[int] = None,
+        scale_cost: Scale_t = None,
         **kwargs: Any,
     ) -> LinearProblem:
         kwargs.pop("rank", None)  # set in context afterwards
-        geom = self._create_geometry(x, y, epsilon=epsilon, online=online)
+        geom = self._create_geometry(x, y, epsilon=epsilon, online=online, scale_cost=scale_cost)
         return LinearProblem(geom, **kwargs)
 
     @property
@@ -224,12 +236,13 @@ class GWSolver(RankMixin, BaseSolver):
         x: TaggedArray,
         y: Optional[TaggedArray] = None,
         epsilon: Optional[float] = None,
-        online: bool = False,
+        online: Optional[int] = None,
+        scale_cost: Scale_t = None,
         **kwargs: Any,
     ) -> QuadraticProblem:
         kwargs.pop("rank", None)  # set in context afterwards
-        geom_x = self._create_geometry(x, epsilon=epsilon, online=online)
-        geom_y = self._create_geometry(y, epsilon=epsilon, online=online)
+        geom_x = self._create_geometry(x, epsilon=epsilon, online=online, scale_cost=scale_cost)
+        geom_y = self._create_geometry(y, epsilon=epsilon, online=online, scale_cost=scale_cost)
         return QuadraticProblem(geom_x, geom_y, geom_xy=None, fused_penalty=0.0, **kwargs)
 
     @property
@@ -291,17 +304,18 @@ class FGWSolver(GWSolver):
         xx: Optional[TaggedArray] = None,
         yy: Optional[TaggedArray] = None,
         epsilon: Optional[float] = None,
-        online: bool = False,
+        online: Optional[int] = None,
+        scale_cost: Scale_t = None,
         alpha: float = 0.5,
         rank: int = None,
         **kwargs: Any,
     ) -> QuadraticProblem:
-        problem = super()._prepare_input(x, y, epsilon=epsilon, online=online)
+        problem = super()._prepare_input(x, y, epsilon=epsilon, online=online, scale_cost=scale_cost)
         if xx.is_cost_matrix or xx.is_kernel:
             # TODO(michalk8): warn if `yy` is not None that we're ignoring it?
-            geom_xy = self._create_geometry(xx, epsilon=epsilon, online=online)
+            geom_xy = self._create_geometry(xx, epsilon=epsilon, online=online, scale_cost=scale_cost)
         elif yy is not None:
-            geom_xy = self._create_geometry(xx, yy, epsilon=epsilon, online=online)
+            geom_xy = self._create_geometry(xx, yy, epsilon=epsilon, online=online, scale_cost=scale_cost)
         else:
             raise ValueError("TODO: specify the 2nd array if this is not kernel/cost")
         self._validate_geoms(problem.geom_xx, problem.geom_yy, geom_xy)

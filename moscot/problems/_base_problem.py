@@ -109,13 +109,14 @@ class GeneralProblem(BaseProblem):
         self,
         adata_x: AnnData,
         adata_y: Optional[AnnData] = None,
-        adata_xy: Optional[AnnData] = None,
         solver: Optional[BaseSolver] = None,
         source: Any = "src",
         target: Any = "tgt",
         **kwargs: Any,
     ):
         super().__init__(adata_x, solver=solver)
+        # TODO(michalk8): consider setting this to `adata_x` if None
+        self._adata_y = adata_y
         self._solution: Optional[BaseSolverOutput] = None
 
         self._x: Optional[TaggedArray] = None
@@ -124,17 +125,6 @@ class GeneralProblem(BaseProblem):
 
         self._a: Optional[npt.ArrayLike] = None
         self._b: Optional[npt.ArrayLike] = None
-
-        self._adata_y = adata_y
-        self._adata_xy = adata_xy
-
-        if adata_xy is not None:
-            if adata_y is None:
-                raise ValueError("TODO: adata_y must be present if adata_xy is present")
-            if adata_x.n_obs != adata_xy.n_obs:
-                raise ValueError("First and joint shape mismatch")
-            if adata_y.n_obs != adata_xy.n_vars:
-                raise ValueError("First and joint shape mismatch")
 
         self._source = source
         self._target = target
@@ -147,17 +137,13 @@ class GeneralProblem(BaseProblem):
 
         tag = Tag(tag)
         if tag in (Tag.COST_MATRIX, Tag.KERNEL):
-            attr = kwargs.get("attr", "X")
+            attr = kwargs.get("attr", "obsm")
             if attr == "obsm":
                 return AnnDataPointer(self.adata, tag=tag, **kwargs).create()
             if attr == "varm":
                 kwargs["attr"] = "obsm"
                 return AnnDataPointer(self._adata_y.T, tag=tag, **kwargs).create()
-            if attr not in ("X", "layers", "raw"):
-                raise AttributeError("TODO: expected obsm/varm/X/layers/raw")
-            if self._adata_xy is None:
-                raise ValueError("TODO: Specifying cost/kernel requires joint adata.")
-            return AnnDataPointer(self._adata_xy, tag=tag, **kwargs).create()
+            raise NotImplementedError("TODO: cost/kernel storage not implemented. Use obsm/varm")
         if tag != Tag.POINT_CLOUD:
             # TODO(michalk8): log-warn
             tag = Tag.POINT_CLOUD

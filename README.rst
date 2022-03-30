@@ -1,10 +1,7 @@
+|Codecov|
+
 moscot - multi-omic single-cell optimal transport tools
 =======================================================
-
-.. image:: https://raw.githubusercontent.com/theislab/moscot/dev/resources/images/logo.png?token=ALENVBTTXMZ2MH2RPENXLX3BT5PQI
-    :width: 600px
-    :align: center
-    :alt: Logo
 
 **moscot** is a general framework to apply tools from
 optimal transport to time-course single-cell data. It supports:
@@ -43,3 +40,7 @@ Finally, create the png file from "classes.dot", e.g. via::
 
     from subprocess import check_call
     check_call(['dot','-Tpng','classes.dot','-o','UML.png'])
+
+.. |Codecov| image:: https://codecov.io/gh/theislab/moscot/branch/master/graph/badge.svg?token=Rgtm5Tsblo
+    :target: https://codecov.io/gh/theislab/moscot
+    :alt: Coverage
