@@ -1,5 +1,3 @@
-from typing import List, Tuple, Optional
-
 import pytest
 
 import numpy as np
@@ -12,20 +10,9 @@ from moscot.problems.time._lineage import TemporalProblem, TemporalBaseProblem
 
 
 class TestTemporalProblem:
-    @pytest.mark.paramterize(
-        "growth_genes", [(["gene_1", "gene_2"], ["gene_3", "gene_4"]), (["gene_1", "gene_2"], None)]
-    )
-    def test_score_genes_for_marginals(
-        self, adata_time: AnnData, growth_genes: Tuple[Optional[List], Optional[List]]
-    ):  # TODO(@MUCDK) add test once we added default genes
-        problem = TemporalProblem(adata=adata_time, solver=SinkhornSolver())
-        problem.score_genes_for_marginals(gene_set_proliferation=growth_genes[0], gene_set_apoptosis=growth_genes[1])
-
-        assert problem._proliferation_key is not None
-        assert problem._apoptosis_key is None if growth_genes[1] is None else not None
-
+    # TODO(@MUCDK) add tests for marginals
     def test_prepare(self, adata_time: AnnData):
-        expected_keys = [(0,1), (1,2)]
+        expected_keys = [(0, 1), (1, 2)]
         problem = TemporalProblem(adata=adata_time, solver=SinkhornSolver())
 
         assert len(problem) == 0
@@ -44,7 +31,7 @@ class TestTemporalProblem:
 
     def test_solve_balanced(self, adata_time: AnnData):
         eps = 0.5
-        expected_keys = [(0,1), (1,2)]
+        expected_keys = [(0, 1), (1, 2)]
         problem = TemporalProblem(adata=adata_time, solver=SinkhornSolver())
         problem = problem.prepare("time")
         problem = problem.solve(epsilon=eps)
@@ -55,10 +42,11 @@ class TestTemporalProblem:
 
     def test_solve_unbalanced(self, adata_time: AnnData):
         taus = [9e-1, 1e-2]
+        a = b = np.ones(96)
         problem1 = TemporalProblem(adata=adata_time, solver=SinkhornSolver())
         problem2 = TemporalProblem(adata=adata_time, solver=SinkhornSolver())
-        problem1 = problem1.prepare("time")
-        problem2 = problem2.prepare("time")
+        problem1 = problem1.prepare("time", a=a, b=b)
+        problem2 = problem2.prepare("time", a=a, b=b)
         problem1 = problem1.solve(tau_a=taus[0], tau_b=taus[0])
         problem2 = problem2.solve(tau_a=taus[1], tau_b=taus[1])
 
@@ -67,14 +55,8 @@ class TestTemporalProblem:
         assert problem2[0, 1].a is not None
         assert problem2[0, 1].b is not None
 
-        div1 = np.linalg.norm(
-            problem1[0, 1].a[:, -1]
-            - np.ones(len(problem1[0, 1].a[:, -1])) / len(problem1[0, 1].a[:, -1])
-        )
-        div2 = np.linalg.norm(
-            problem2[0, 1].a[:, -1]
-            - np.ones(len(problem2[0, 1].a[:, -1])) / len(problem2[0, 1].a[:, -1])
-        )
+        div1 = np.linalg.norm(problem1[0, 1].a[:, -1] - np.ones(len(problem1[0, 1].a[:, -1])))
+        div2 = np.linalg.norm(problem2[0, 1].a[:, -1] - np.ones(len(problem2[0, 1].a[:, -1])))
         assert div1 <= div2
 
     @pytest.mark.parametrize(
@@ -84,10 +66,10 @@ class TestTemporalProblem:
         problem = TemporalProblem(adata=adata_time, solver=SinkhornSolver())
         problem = problem.prepare("time")
         problem = problem.solve(n_iters=n_iters)
-        
-        assert problem[(0, 1)].growth_rates.shape[1] == n_iters + 1
-        assert problem[(0, 1)].growth_rates[:, 0] == np.ones(len(problem[(0, 1)].a[:, -1])) / len(
-            problem[(0, 1)].a[:, -1]
+
+        assert problem[0, 1].growth_rates.shape[1] == n_iters + 1
+        assert np.all(
+            problem[0, 1].growth_rates[:, 0] == np.ones(len(problem[0, 1].a[:, -1])) / len(problem[0, 1].a[:, -1])
         )
         np.testing.assert_raises(
             AssertionError,

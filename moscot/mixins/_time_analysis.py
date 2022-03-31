@@ -34,6 +34,8 @@ class TemporalAnalysisMixin(AnalysisMixin):
 
         df_late = self.adata[self.adata.obs[self._temporal_key] == end].obs[[_late_cells_key]].copy()
         df_early = self.adata[self.adata.obs[self._temporal_key] == start].obs[[_early_cells_key]].copy()
+        df_late["distribution"] = np.nan
+        df_early["distribution"] = np.nan
 
         if forward:
             _early_cells_present = set(_early_cells).intersection(set(df_early[_early_cells_key].unique()))

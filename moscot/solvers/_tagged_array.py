@@ -10,7 +10,6 @@ class Tag(str, Enum):
     KERNEL = "kernel"
     POINT_CLOUD = "point_cloud"
     GRID = "grid"
-    COMPUTE_COST = "compute_cost"
 
 
 @dataclass(frozen=True, repr=True)

@@ -1,7 +1,9 @@
 from typing import Tuple, Union, Optional
 
-import pytest
+import scipy
 import pandas as pd
+import pytest
+
 from jax.config import config
 
 from anndata import AnnData
@@ -107,18 +109,16 @@ def adata_time() -> AnnData:
 
 
 @pytest.fixture()
-def adata_time_cell_type() -> AnnData:
+def adata_time_cell_type(adata_time: AnnData) -> AnnData:
     rng = np.random.RandomState(42)
-    adatas = [AnnData(X=rng.normal(size=(96, 30))) for _ in range(3)]
-    adata = adatas[0].concatenate(*adatas[1:], batch_key="time")
-    adata.obs["cell_type"] = rng.choice(["cell_A", "cell_B", "cell_C"], size=len(adata))
-    return adata
+    adata_time.obs["cell_type"] = rng.choice(["cell_A", "cell_B", "cell_C"], size=len(adata_time))
+    return adata_time
 
 
 @pytest.fixture()
 def adata_time_barcodes(adata_time: AnnData) -> AnnData:
     rng = np.random.RandomState(42)
-    adata_time.obsm["barcodes"] = rng.random.normal(size=(len(adata_time), 30))
+    adata_time.obsm["barcodes"] = rng.randn(len(adata_time), 30)
     return adata_time
 
 
@@ -128,7 +128,17 @@ def adata_time_trees() -> AnnData:  # TODO(@MUCDK) create
 
 
 @pytest.fixture()
-def random_transport_matrix(adata_time_cell_type: AnnData) -> np.ndarray:
+def adata_time_custom_cost_xy(adata_time: AnnData) -> AnnData:
+    rng = np.random.RandomState(42)
+    cost_m1 = np.abs(rng.randn(96, 96))
+    cost_m2 = np.abs(rng.randn(96, 96))
+    cost_m3 = np.abs(rng.randn(96, 96))
+    adata_time.obsp["cost_matrices"] = scipy.sparse.csr_matrix(scipy.linalg.block_diag(cost_m1, cost_m2, cost_m3))
+    return adata_time
+
+
+@pytest.fixture()
+def random_transport_matrix_adata_time(adata_time_cell_type: AnnData) -> np.ndarray:
     rng = np.random.RandomState(42)
     adata = adata_time_cell_type
     dim_0 = adata[adata.obs["time"] == 0].n_obs

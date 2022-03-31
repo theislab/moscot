@@ -1,7 +1,6 @@
 from typing import Tuple
 from numbers import Number
 
-from _utils import TestSolverOutput
 import pandas as pd
 import pytest
 
@@ -13,21 +12,22 @@ from moscot.problems.time._lineage import TemporalProblem
 
 
 @pytest.mark.parametrize("forward", [True, False])
-def test_cell_transition_pipeline(adata_time_cell_type: AnnData, random_transport_matrix: np.ndarray, forward: bool):
-    cell_types = list(adata_time_cell_type.obs["cell_type"])
+def test_cell_transition_pipeline(adata_time_cell_type: AnnData, forward: bool):
+    adata_time_cell_type.obs["cell_type"] = adata_time_cell_type.obs["cell_type"].astype("category")
+    cell_types = set(np.unique(adata_time_cell_type.obs["cell_type"]))
     problem = TemporalProblem(adata_time_cell_type)
-    problem.prepare("time", subset=[0, 1])
-    problem._solution = TestSolverOutput(random_transport_matrix)
+    problem = problem.prepare("time", subset=[0, 1])
+    problem = problem.solve()
 
-    result = problem.cell_transition(0, 1, forward)
+    result = problem.cell_transition(0, 1, "cell_type", "cell_type", forward=forward)
 
     assert isinstance(result, pd.DataFrame)
     assert result.shape == (3, 3)
-    assert list(result.index) == cell_types
-    assert list(result.columns) == cell_types
-    assert np.sum(np.isnan(result)) == 0
+    assert set(result.index) == cell_types
+    assert set(result.columns) == cell_types
+    assert result.isna().sum().sum() == 0
 
-    np.testing.assert_almost_equal(result.sum(axis=1 if forward else 0), 1, decimal=7)
+    np.testing.assert_almost_equal(result.sum(axis=1 if forward else 0).values, np.ones(len(cell_types)), decimal=5)
 
 
 @pytest.mark.parametrize("only_start", [True, False])

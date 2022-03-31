@@ -24,7 +24,7 @@ class TestSingleCompoundProblem:
         return TaggedArray(euclidean_distances(adata.X, adata_y.X), tag=Tag.COST_MATRIX), None
 
     def test_sc_pipeline(self, adata_time: AnnData):
-        expected_keys = {("0", "1"), ("1", "2")}
+        expected_keys = [(0, 1), (1, 2)]
         problem = SingleCompoundProblem(adata=adata_time, solver=SinkhornSolver())
 
         assert len(problem) == 0
@@ -43,8 +43,8 @@ class TestSingleCompoundProblem:
         assert len(problem) == len(expected_keys)
         assert isinstance(problem.solution, dict)
         assert isinstance(problem.problems, dict)
-        assert set(problem.solution.keys()) == expected_keys
-        assert set(problem.solution.keys()) == expected_keys
+        assert set(problem.solution.keys()) == set(expected_keys)
+        assert set(problem.solution.keys()) == set(expected_keys)
 
         for key, subprob in problem:
             assert isinstance(subprob, BaseProblem)
@@ -75,7 +75,7 @@ class TestSingleCompoundProblem:
 
     @pytest.mark.parametrize("solver_t", [SinkhornSolver, FGWSolver])
     def test_custom_callback(self, adata_time: AnnData, mocker: MockerFixture, solver_t: Type[BaseSolver]):
-        expected_keys = {("0", "1"), ("1", "2")}
+        expected_keys = [(0, 1), (1, 2)]
         callback_kwargs = {"sentinel": True}
         spy = mocker.spy(TestSingleCompoundProblem, "callback")
 

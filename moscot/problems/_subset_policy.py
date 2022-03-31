@@ -120,7 +120,7 @@ class SubsetPolicy:
         if filter is not None:
             subset = [(a, b) for a, b in subset if (a in filter and b in filter) or (a, b) in filter]
         if not len(subset):
-            raise ValueError("TODO: empty subset")
+            raise ValueError("TODO: empty subset. Make sure right dtype")
         # TODO(michalk8): make unique, but order-preserving
         self._subset = subset
         return self

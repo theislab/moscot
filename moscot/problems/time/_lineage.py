@@ -71,7 +71,7 @@ class TemporalBaseProblem(MultiMarginalProblem):
 
     @property
     def growth_rates(self) -> npt.ArrayLike:
-        return np.transpose(np.power(self.a, 1 / (self._target - self._source)))
+        return np.power(self.a, 1 / (self._target - self._source))
 
 
 class TemporalProblem(TemporalAnalysisMixin, SingleCompoundProblem):
