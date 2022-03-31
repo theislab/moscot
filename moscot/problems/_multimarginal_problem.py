@@ -97,10 +97,10 @@ class MultiMarginalProblem(GeneralProblem, ABC):
     def a(self) -> Optional[np.ndarray]:
         if not len(self._a):
             return None
-        return np.asarray(self._a)
+        return np.asarray(self._a).T
 
     @property
     def b(self) -> Optional[np.ndarray]:
         if not len(self._b):
             return None
-        return np.asarray(self._b)
+        return np.asarray(self._b).T

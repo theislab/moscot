@@ -1,7 +1,7 @@
 from typing import Tuple, Union, Optional
 
 import pytest
-
+import pandas as pd
 from jax.config import config
 
 from anndata import AnnData
@@ -101,6 +101,7 @@ def adata_time() -> AnnData:
     rng = np.random.RandomState(42)
     adatas = [AnnData(X=rng.normal(size=(96, 30))) for _ in range(3)]
     adata = adatas[0].concatenate(*adatas[1:], batch_key="time")
+    adata.obs["time"] = pd.to_numeric(adata.obs["time"])
     adata.var.index = ["gene_" + el for el in adata.var.index]
     return adata
 

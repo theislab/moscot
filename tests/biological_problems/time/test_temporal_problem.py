@@ -25,7 +25,7 @@ class TestTemporalProblem:
         assert problem._apoptosis_key is None if growth_genes[1] is None else not None
 
     def test_prepare(self, adata_time: AnnData):
-        expected_keys = {("0", "1"), ("1", "2")}
+        expected_keys = [(0,1), (1,2)]
         problem = TemporalProblem(adata=adata_time, solver=SinkhornSolver())
 
         assert len(problem) == 0
@@ -44,12 +44,12 @@ class TestTemporalProblem:
 
     def test_solve_balanced(self, adata_time: AnnData):
         eps = 0.5
-        expected_keys = {("0", "1"), ("1", "2")}
+        expected_keys = [(0,1), (1,2)]
         problem = TemporalProblem(adata=adata_time, solver=SinkhornSolver())
         problem = problem.prepare("time")
         problem = problem.solve(epsilon=eps)
 
-        for key, subsol in problem.solution:
+        for key, subsol in problem.solution.items():
             assert isinstance(subsol, BaseSolverOutput)
             assert key in expected_keys
 
@@ -68,12 +68,12 @@ class TestTemporalProblem:
         assert problem2[0, 1].b is not None
 
         div1 = np.linalg.norm(
-            problem1.solution[0, 1].a[:, -1]
-            - np.ones(len(problem1.solution[0, 1].a[:, -1])) / len(problem1.solution[0, 1].a[:, -1])
+            problem1[0, 1].a[:, -1]
+            - np.ones(len(problem1[0, 1].a[:, -1])) / len(problem1[0, 1].a[:, -1])
         )
         div2 = np.linalg.norm(
-            problem2.solution[0, 1].a[:, -1]
-            - np.ones(len(problem2.solution[0, 1].a[:, -1])) / len(problem2.solution[0, 1].a[:, -1])
+            problem2[0, 1].a[:, -1]
+            - np.ones(len(problem2[0, 1].a[:, -1])) / len(problem2[0, 1].a[:, -1])
         )
         assert div1 <= div2
 
@@ -86,8 +86,8 @@ class TestTemporalProblem:
         problem = problem.solve(n_iters=n_iters)
         
         assert problem[(0, 1)].growth_rates.shape[1] == n_iters + 1
-        assert problem[(0, 1)].growth_rates[:, 0] == np.ones(len(problem.solution[(0, 1)].a[:, -1])) / len(
-            problem.solution[(0, 1)].a[:, -1]
+        assert problem[(0, 1)].growth_rates[:, 0] == np.ones(len(problem[(0, 1)].a[:, -1])) / len(
+            problem[(0, 1)].a[:, -1]
         )
         np.testing.assert_raises(
             AssertionError,
