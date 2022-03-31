@@ -1,5 +1,7 @@
 from typing import Tuple, Union, Optional
 
+import scipy
+import pandas as pd
 import pytest
 
 from jax.config import config
@@ -101,8 +103,48 @@ def adata_time() -> AnnData:
     rng = np.random.RandomState(42)
     adatas = [AnnData(X=rng.normal(size=(96, 30))) for _ in range(3)]
     adata = adatas[0].concatenate(*adatas[1:], batch_key="time")
-
+    adata.obs["time"] = pd.to_numeric(adata.obs["time"])
+    adata.var.index = ["gene_" + el for el in adata.var.index]
     return adata
+
+
+@pytest.fixture()
+def adata_time_cell_type(adata_time: AnnData) -> AnnData:
+    rng = np.random.RandomState(42)
+    adata_time.obs["cell_type"] = rng.choice(["cell_A", "cell_B", "cell_C"], size=len(adata_time))
+    return adata_time
+
+
+@pytest.fixture()
+def adata_time_barcodes(adata_time: AnnData) -> AnnData:
+    rng = np.random.RandomState(42)
+    adata_time.obsm["barcodes"] = rng.randn(len(adata_time), 30)
+    return adata_time
+
+
+@pytest.fixture()
+def adata_time_trees() -> AnnData:  # TODO(@MUCDK) create
+    pass
+
+
+@pytest.fixture()
+def adata_time_custom_cost_xy(adata_time: AnnData) -> AnnData:
+    rng = np.random.RandomState(42)
+    cost_m1 = np.abs(rng.randn(96, 96))
+    cost_m2 = np.abs(rng.randn(96, 96))
+    cost_m3 = np.abs(rng.randn(96, 96))
+    adata_time.obsp["cost_matrices"] = scipy.sparse.csr_matrix(scipy.linalg.block_diag(cost_m1, cost_m2, cost_m3))
+    return adata_time
+
+
+@pytest.fixture()
+def random_transport_matrix_adata_time(adata_time_cell_type: AnnData) -> np.ndarray:
+    rng = np.random.RandomState(42)
+    adata = adata_time_cell_type
+    dim_0 = adata[adata.obs["time"] == 0].n_obs
+    dim_1 = adata[adata.obs["time"] == 1].n_obs
+    t_matrix = np.abs(rng.randn(dim_0, dim_1))
+    return t_matrix / t_matrix.sum()
 
 
 def create_marginals(n: int, m: int, *, uniform: bool = False, seed: Optional[int] = None) -> Geom_t:

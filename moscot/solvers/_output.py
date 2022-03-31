@@ -99,6 +99,7 @@ class BaseSolverOutput(ABC):
 
 class MatrixSolverOutput(BaseSolverOutput, ABC):
     def __init__(self, matrix: npt.ArrayLike):
+        super().__init__()
         self._matrix = matrix
 
     def _apply(self, x: npt.ArrayLike, *, forward: bool) -> npt.ArrayLike:

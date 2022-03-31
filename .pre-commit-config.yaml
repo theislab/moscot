@@ -48,8 +48,6 @@ repos:
         args: [--fix=lf]
     -   id: trailing-whitespace
         exclude: ^.bumpversion.cfg$
-    -   id: name-tests-test
-        args: [--django]
     -   id: check-case-conflict
     -   id: check-docstring-first
     -   id: check-yaml

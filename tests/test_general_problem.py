@@ -1,6 +1,7 @@
 from typing import Type
 
-from conftest import ATOL, RTOL
+from _utils import TestSolverOutput
+from conftest import ATOL, RTOL, Geom_t
 import pytest
 
 from ott.geometry import PointCloud
@@ -34,6 +35,12 @@ class TestGeneralProblem:
 
         prob.solver = FGWSolver()
         assert isinstance(prob.solver, FGWSolver)
+
+    def test_output(self, adata_x: AnnData, x: Geom_t):
+        problem = GeneralProblem(adata_x)
+        problem._solution = TestSolverOutput(x * x.T)
+
+        assert problem.solution.shape == (len(x), len(x))
 
     @pytest.mark.parametrize("scale_cost", ["max_cost", "max_bound"])
     def test_passing_scale(self, adata_x: AnnData, scale_cost: str):
