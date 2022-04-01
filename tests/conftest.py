@@ -9,6 +9,7 @@ from jax.config import config
 from anndata import AnnData
 
 config.update("jax_enable_x64", True)
+from sklearn.metrics import pairwise_distances
 
 from jax import numpy as jnp  # noqa: E402
 import numpy as np  # noqa: E402
@@ -88,14 +89,14 @@ def xy_cost(xy: Geom_t) -> jnp.ndarray:
 def adata_x(x: Geom_t) -> AnnData:
     rng = np.random.RandomState(43)
     pc = rng.normal(size=(len(x), 4))
-    return AnnData(X=np.asarray(x), obsm={"X_pc": pc})
+    return AnnData(X=np.asarray(x), obsm={"X_pca": pc})
 
 
 @pytest.fixture()
 def adata_y(y: Geom_t) -> AnnData:
     rng = np.random.RandomState(44)
     pc = rng.normal(size=(len(y), 4))
-    return AnnData(X=np.asarray(y), obsm={"X_pc": pc})
+    return AnnData(X=np.asarray(y), obsm={"X_pca": pc})
 
 
 @pytest.fixture()
@@ -145,6 +146,15 @@ def random_transport_matrix_adata_time(adata_time_cell_type: AnnData) -> np.ndar
     dim_1 = adata[adata.obs["time"] == 1].n_obs
     t_matrix = np.abs(rng.randn(dim_0, dim_1))
     return t_matrix / t_matrix.sum()
+
+
+@pytest.fixture()
+def adata_with_cost_matrix(adata_x: Geom_t, adata_y: Geom_t):
+    adata = adata_x.concatenate(adata_y, batch_key="batch")
+    C = pairwise_distances(adata_x.obsm["X_pca"], adata_y.obsm["X_pca"]) ** 2
+    adata.obs["batch"] = pd.to_numeric(adata.obs["batch"])
+    adata.uns[0] = C / C.mean()  # TODO(@MUCDK) make a callback function and replace this part
+    return adata
 
 
 def create_marginals(n: int, m: int, *, uniform: bool = False, seed: Optional[int] = None) -> Geom_t:
