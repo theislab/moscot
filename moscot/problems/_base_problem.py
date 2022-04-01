@@ -36,11 +36,6 @@ class BaseProblem(ABC):
 
     @property
     @abstractmethod
-    def solution(self) -> Optional[BaseSolverOutput]:
-        pass
-
-    @property
-    @abstractmethod
     def _default_solver(self) -> BaseSolver:
         pass
 

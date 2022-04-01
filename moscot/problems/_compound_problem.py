@@ -33,21 +33,21 @@ class CompoundBaseProblem(BaseProblem, ABC):
         adata: AnnData,
         solver: Optional[BaseSolver] = None,
         *,
-        base_problem_type: Type[BaseProblem] = GeneralProblem,
+        base_problem_type: Type[GeneralProblem] = GeneralProblem,
     ):
         super().__init__(adata, solver=solver)
 
-        self._problems: Optional[Dict[Tuple[Any, Any], BaseProblem]] = None
+        self._problems: Optional[Dict[Tuple[Any, Any], GeneralProblem]] = None
         self._solutions: Optional[Dict[Tuple[Any, Any], BaseSolverOutput]] = None
         self._policy: Optional[SubsetPolicy] = None
-        if not issubclass(base_problem_type, BaseProblem):
-            raise TypeError("TODO: `base_problem_type` must be a subtype of `BaseProblem`.")
+        if not issubclass(base_problem_type, GeneralProblem):
+            raise TypeError("TODO: `base_problem_type` must be a subtype of `GeneralProblem`.")
         self._base_problem_type = base_problem_type
 
     @abstractmethod
     def _create_problem(
         self, src: Any, tgt: Any, src_mask: npt.ArrayLike, tgt_mask: npt.ArrayLike, **kwargs: Any
-    ) -> BaseProblem:
+    ) -> GeneralProblem:
         pass
 
     @abstractmethod
@@ -63,7 +63,7 @@ class CompoundBaseProblem(BaseProblem, ABC):
         callback: Callback_t = None,
         callback_kwargs: Mapping[str, Any] = MappingProxyType({}),
         **kwargs: Any,
-    ) -> Dict[Tuple[Any, Any], BaseProblem]:
+    ) -> Dict[Tuple[Any, Any], GeneralProblem]:
         problems = {}
         for (src, tgt), (src_mask, tgt_mask) in self._policy.mask().items():
             kwargs_ = dict(kwargs)
@@ -72,7 +72,6 @@ class CompoundBaseProblem(BaseProblem, ABC):
                 tgt = self._policy._format(tgt, is_source=False)
             problem = self._create_problem(src=src, tgt=tgt, src_mask=src_mask, tgt_mask=tgt_mask)
             if callback is not None:
-                # TODO(michalk8): correctly type or update BaseProblem
                 callback = problem._prepare_callback if callback == "pca_local" else callback
                 x, y = callback(
                     problem.adata,
@@ -201,12 +200,12 @@ class CompoundBaseProblem(BaseProblem, ABC):
         return SinkhornSolver()
 
     @property
-    def solution(self) -> Optional[Dict[Tuple[Any, Any], BaseSolverOutput]]:
-        return self._solutions
+    def problems(self) -> Optional[Dict[Tuple[Any, Any], GeneralProblem]]:
+        return self._problems
 
     @property
-    def problems(self) -> Optional[Dict[Tuple[Any, Any], BaseProblem]]:
-        return self._problems
+    def solutions(self) -> Optional[Dict[Tuple[Any, Any], BaseSolverOutput]]:
+        return self._solutions
 
     def __getitem__(self, item: Tuple[Any, Any]) -> BaseSolverOutput:
         return self._problems[item]
@@ -223,7 +222,7 @@ class CompoundBaseProblem(BaseProblem, ABC):
 class SingleCompoundProblem(CompoundBaseProblem):
     def _create_problem(
         self, src: Any, tgt: Any, src_mask: npt.ArrayLike, tgt_mask: npt.ArrayLike, **kwargs: Any
-    ) -> BaseProblem:
+    ) -> GeneralProblem:
         return self._base_problem_type(
             self._mask(src_mask),
             self._mask(tgt_mask),
@@ -250,6 +249,7 @@ class SingleCompoundProblem(CompoundBaseProblem):
         # TODO(michalk8): can include logging/extra sanity that mask is not empty
         return self.adata[mask] if self._policy.axis == "obs" else self.adata[:, mask]
 
+    # TODO(MUCKD): this should not be here
     def _dict_to_adata(self, d: Mapping[str, npt.ArrayLike], obs_key: str) -> None:
         tmp = np.empty(len(self.adata))
         tmp[:] = np.nan
@@ -310,7 +310,7 @@ class MultiCompoundProblem(CompoundBaseProblem):
 
     def _create_problem(
         self, src: Any, tgt: Any, src_mask: npt.ArrayLike, tgt_mask: npt.ArrayLike, **kwargs: Any
-    ) -> BaseProblem:
+    ) -> GeneralProblem:
         return self._base_problem_type(
             self._adatas[src], self._adatas[tgt], source=src, target=tgt, solver=self._solver, **kwargs
         )
@@ -341,7 +341,7 @@ class CompoundProblem(CompoundBaseProblem):
 
         super().__init__(self._prob.adata, solver=self._prob.solver)
 
-    def _create_problem(self, *args: Any, **kwargs: Any) -> Dict[Tuple[Any, Any], BaseProblem]:
+    def _create_problem(self, *args: Any, **kwargs: Any) -> Dict[Tuple[Any, Any], GeneralProblem]:
         return self._prob._create_problem(*args, **kwargs)
 
     def _create_policy(
