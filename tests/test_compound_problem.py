@@ -1,12 +1,17 @@
 from typing import Type, Optional
 
+from conftest import ATOL, RTOL
 from pytest_mock import MockerFixture
 from sklearn.metrics.pairwise import euclidean_distances
 import pytest
 
+from ott.geometry import PointCloud
+from ott.core.sinkhorn import sinkhorn
+import numpy as np
+
 from anndata import AnnData
 
-from moscot.problems import SingleCompoundProblem
+from moscot.problems import CompoundProblem, SingleCompoundProblem
 from moscot.backends.ott import FGWSolver, SinkhornSolver
 from moscot.solvers._base_solver import BaseSolver, ProblemKind
 from moscot.solvers._tagged_array import Tag, TaggedArray
@@ -95,3 +100,39 @@ class TestSingleCompoundProblem:
 
 class TestMultiCompoundProblem:
     pass
+
+
+class TestCompoundProblem:
+    def test_different_passings_linear(self, adata_with_cost_matrix: AnnData):
+        epsilon = 5
+        x = y = {"attr": "obsm", "key": "X_pca", "tag": "point_cloud"}
+        p1 = CompoundProblem(adata_with_cost_matrix, solver=SinkhornSolver())
+        p1 = p1.prepare(key="batch", x=x, y=y)
+        p1 = p1.solve(epsilon=epsilon, scale_cost="mean")
+        p1_tmap = p1[0, 1].solution.transport_matrix
+
+        p2 = CompoundProblem(adata_with_cost_matrix, solver=SinkhornSolver())
+        p2 = p2.prepare(key="batch", x={"attr": "uns", "key": 0, "loss": None, "tag": "cost"})
+        p2 = p2.solve(epsilon=epsilon)
+        p2_tmap = p2[0, 1].solution.transport_matrix
+
+        gt = sinkhorn(
+            PointCloud(
+                adata_with_cost_matrix[adata_with_cost_matrix.obs["batch"] == 0].obsm["X_pca"],
+                adata_with_cost_matrix[adata_with_cost_matrix.obs["batch"] == 1].obsm["X_pca"],
+                epsilon=epsilon,
+                scale_cost="mean",
+            )
+        )
+
+        np.testing.assert_allclose(gt.geom.x, p1[0, 1].solution._output.geom.x, rtol=RTOL, atol=ATOL)
+        np.testing.assert_allclose(gt.geom.y, p1[0, 1].solution._output.geom.y, rtol=RTOL, atol=ATOL)
+        np.testing.assert_allclose(
+            p1[0, 1].solution._output.geom.cost_matrix, gt.geom.cost_matrix, rtol=RTOL, atol=ATOL
+        )
+        np.testing.assert_allclose(
+            p2[0, 1].solution._output.geom.cost_matrix, gt.geom.cost_matrix, rtol=RTOL, atol=ATOL
+        )
+
+        np.testing.assert_allclose(gt.matrix, p1_tmap, rtol=RTOL, atol=ATOL)
+        np.testing.assert_allclose(gt.matrix, p2_tmap, rtol=RTOL, atol=ATOL)
