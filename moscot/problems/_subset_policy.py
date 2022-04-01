@@ -1,14 +1,9 @@
 from abc import ABC, abstractmethod
 from typing import Any, Dict, List, Sized, Tuple, Union, Optional, Sequence
-
-try:
-    from typing import Literal
-except ImportError:
-    from typing_extensions import Literal
-
 from operator import gt, lt
 from itertools import product
 
+from typing_extensions import Literal
 import pandas as pd
 import networkx as nx
 
@@ -31,6 +26,7 @@ __all__ = (
     "SequentialPolicy",
     "TriangularPolicy",
     "ExplicitPolicy",
+    "DummyPolicy",
 )
 
 
@@ -258,7 +254,7 @@ class ExplicitPolicy(SimplePlanFilterMixin, SubsetPolicy):
         return subset
 
 
-class DummyPolicy(FormatterMixin, SimplePlanFilterMixin, SubsetPolicy):
+class DummyPolicy(FormatterMixin, SubsetPolicy):
     _SENTINEL = object()
 
     def __init__(
@@ -271,6 +267,9 @@ class DummyPolicy(FormatterMixin, SimplePlanFilterMixin, SubsetPolicy):
         super().__init__(pd.Series([self._SENTINEL] * len(adata)), **kwargs)
         self._src_name = src_name
         self._tgt_name = tgt_name
+
+    def plan(self, **_: Any) -> Dict[Item_t, List[Item_t]]:
+        return {(self._src_name, self._tgt_name): [(self._src_name, self._tgt_name)]}
 
     def _format(self, value: Any, *, is_source: bool):
         return self._src_name if is_source else self._tgt_name
