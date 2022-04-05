@@ -51,9 +51,9 @@ class TestSingleCompoundProblem:
         assert set(problem.solutions.keys()) == set(expected_keys)
         assert set(problem.solutions.keys()) == set(expected_keys)
 
-        for key, subprob in problem:
-            assert isinstance(subprob, GeneralProblem)
-            assert subprob.solution is problem.solutions[key]
+        for key in problem:
+            assert isinstance(problem[key], GeneralProblem)
+            assert problem[key].solution is problem.solutions[key]
 
     @pytest.mark.parametrize("solver_t", [SinkhornSolver, FGWSolver])
     def test_default_callback(self, adata_time: AnnData, solver_t: Type[BaseSolver], mocker: MockerFixture):

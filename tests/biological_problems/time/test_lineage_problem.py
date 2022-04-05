@@ -22,9 +22,9 @@ class TestTemporalProblem:
         )
         problem = problem.solve()
 
-        for key, subprob in problem:
-            assert isinstance(subprob, TemporalBaseProblem)
+        for key in problem:
             assert key in expected_keys
+            assert isinstance(problem[key], TemporalBaseProblem)
 
     def test_pipeline_with_custom_cost(self, adata_time_custom_cost_xy: AnnData):
         expected_keys = [(0, 1), (1, 2)]
@@ -32,9 +32,9 @@ class TestTemporalProblem:
         problem = problem.prepare(time_key="time")
         problem = problem.solve()
 
-        for key, subprob in problem:
-            assert isinstance(subprob, TemporalBaseProblem)
+        for key in problem:
             assert key in expected_keys
+            assert isinstance(problem[key], TemporalBaseProblem)
 
     def test_pipeline_with_trees(self, adata_time_trees: AnnData):  # TODO(@MUCDK) create
         pass

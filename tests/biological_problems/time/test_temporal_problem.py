@@ -25,9 +25,9 @@ class TestTemporalProblem:
             policy="sequential",
         )
 
-        for key, subprob in problem:
-            assert isinstance(subprob, TemporalBaseProblem)
+        for key in problem:
             assert key in expected_keys
+            assert isinstance(problem[key], TemporalBaseProblem)
 
     def test_solve_balanced(self, adata_time: AnnData):
         eps = 0.5
