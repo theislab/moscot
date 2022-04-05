@@ -55,7 +55,7 @@ class MappingProblem(SingleCompoundProblem, SpatialMappingAnalysisMixin):
         return self._base_problem_type(
             adata_sp[:, self.filtered_vars] if self.filtered_vars is not None else adata_sp,
             self.adata_sc[:, self.filtered_vars] if self.filtered_vars is not None else self.adata_sc,
-            solver=self._solver,
+            solver=self.solver,
             **kwargs,
         )
 

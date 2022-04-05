@@ -123,8 +123,8 @@ class CompoundBaseProblem(BaseProblem, ABC):
         **kwargs: Any,
     ) -> "CompoundProblem":
         self._solutions = {}
-        for subset, problem in self._problems.items():
-            self._solutions[subset] = problem.solve(
+        for subset, problem in self.problems.items():
+            self.solutions[subset] = problem.solve(
                 epsilon=epsilon, alpha=alpha, tau_a=tau_a, tau_b=tau_b, **kwargs
             ).solution
 
@@ -160,13 +160,13 @@ class CompoundBaseProblem(BaseProblem, ABC):
         res: Dict[Tuple[Any, Any], npt.ArrayLike] = {}
         for plan, steps in plans.items():
             if forward:
-                initial_problem = self._problems[steps[0]]
+                initial_problem = self.problems[steps[0]]
                 current_mass = initial_problem._get_mass(
                     initial_problem.adata, data=get_data(plan), subset=subset, normalize=normalize
                 )
             else:
                 steps = steps[::-1]
-                initial_problem = self._problems[steps[0]]
+                initial_problem = self.problems[steps[0]]
                 current_mass = initial_problem._get_mass(
                     initial_problem.adata if initial_problem._adata_y is None else initial_problem._adata_y,
                     data=get_data(plan),
@@ -177,9 +177,9 @@ class CompoundBaseProblem(BaseProblem, ABC):
             ds = {}
             ds[steps[0][0] if forward else steps[0][1]] = current_mass
             for step in steps:
-                if step not in self._problems.keys():
+                if step not in self.problems:
                     raise ValueError(f"No transport map computed for {step}")
-                problem = self._problems[step]
+                problem = self.problems[step]
                 fun = problem.push if forward else problem.pull
                 current_mass = fun(
                     current_mass, subset=subset, normalize=normalize, scale_by_marginals=scale_by_marginals
@@ -209,15 +209,15 @@ class CompoundBaseProblem(BaseProblem, ABC):
         return self._solutions
 
     def __getitem__(self, item: Tuple[Any, Any]) -> GeneralProblem:
-        return self._problems[item]
+        return self.problems[item]
 
     def __len__(self) -> int:
-        return 0 if self._problems is None else len(self._problems)
+        return 0 if self.problems is None else len(self.problems)
 
     def __iter__(self) -> Iterator:
-        if self._problems is None:
+        if self.problems is None:
             raise StopIteration
-        return iter(self._problems.items())
+        return iter(self.problems)
 
 
 class SingleCompoundProblem(CompoundBaseProblem):
@@ -229,7 +229,7 @@ class SingleCompoundProblem(CompoundBaseProblem):
             self._mask(tgt_mask),
             source=src,
             target=tgt,
-            solver=self._solver,
+            solver=self.solver,
             **kwargs,
         )
 
