@@ -92,15 +92,15 @@ class TemporalProblem(TemporalAnalysisMixin, SingleCompoundProblem):
         **kwargs: Any,
     ) -> "TemporalProblem":
         if gene_set_proliferation is None:
-            self._proliferation_key = None
+            self.proliferation_key = None
         else:
             sc.tl.score_genes(self.adata, gene_set_proliferation, score_name=proliferation_key, **kwargs)
-            self._proliferation_key = proliferation_key
+            self.proliferation_key = proliferation_key
         if gene_set_apoptosis is None:
-            self._apoptosis_key = None
+            self.apoptosis_key = None
         else:
             sc.tl.score_genes(self.adata, gene_set_apoptosis, score_name=apoptosis_key, **kwargs)
-            self._apoptosis_key = apoptosis_key
+            self.apoptosis_key = apoptosis_key
         if gene_set_proliferation is None and gene_set_apoptosis is None:
             logging.info(
                 "At least one of `gene_set_proliferation` or `gene_set_apoptosis` must be provided to score genes."
@@ -127,12 +127,12 @@ class TemporalProblem(TemporalAnalysisMixin, SingleCompoundProblem):
             raise TypeError("TODO")
 
         marginal_kwargs = dict(marginal_kwargs)
-        marginal_kwargs["proliferation_key"] = self._proliferation_key
-        marginal_kwargs["apoptosis_key"] = self._apoptosis_key
+        marginal_kwargs["proliferation_key"] = self.proliferation_key
+        marginal_kwargs["apoptosis_key"] = self.apoptosis_key
         if "a" not in kwargs:
-            kwargs["a"] = self._proliferation_key is not None or self._apoptosis_key is not None
+            kwargs["a"] = self.proliferation_key is not None or self.apoptosis_key is not None
         if "b" not in kwargs:
-            kwargs["b"] = self._proliferation_key is not None or self._apoptosis_key is not None
+            kwargs["b"] = self.proliferation_key is not None or self.apoptosis_key is not None
 
         return super().prepare(
             key=time_key,
@@ -190,16 +190,16 @@ class TemporalProblem(TemporalAnalysisMixin, SingleCompoundProblem):
     def growth_rates(self) -> pd.DataFrame:
         cols = [f"g_{i}" for i in range(list(self)[0][1].growth_rates.shape[1])]
         df_list = [
-            pd.DataFrame(problem.growth_rates, index=self._problems[tup]._adata.obs.index, columns=cols)
-            for tup, problem in self
+            pd.DataFrame(problem.growth_rates, index=problem.adata.obs.index, columns=cols)
+            for problem in self.problems.values()
         ]
+        # TODO(michalk8): test this
+        # TODO(michalk8): remove __getitem__ dependency?
         tup, problem = list(self)[-1]
         df_list.append(
             pd.DataFrame(
-                np.full(
-                    shape=(len(self._problems[tup]._adata_y.obs), problem.growth_rates.shape[1]), fill_value=np.nan
-                ),
-                index=self._problems[tup]._adata_y.obs.index,
+                np.full(shape=(len(self.problems[tup]._adata_y.obs), problem.growth_rates.shape[1]), fill_value=np.nan),
+                index=self.problems[tup]._adata_y.obs.index,
                 columns=cols,
             ),
             verify_integrity=True,
@@ -216,10 +216,12 @@ class TemporalProblem(TemporalAnalysisMixin, SingleCompoundProblem):
 
     @proliferation_key.setter
     def proliferation_key(self, value: Optional[str] = None) -> None:
+        # TODO(michalk8): add check if present in .obs (if not None)
         self._proliferation_key = value
 
     @apoptosis_key.setter
     def apoptosis_key(self, value: Optional[str] = None) -> None:
+        # TODO(michalk8): add check if present in .obs (if not None)
         self._apoptosis_key = value
 
 

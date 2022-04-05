@@ -17,7 +17,7 @@ class TestTemporalProblem:
 
         assert len(problem) == 0
         assert problem.problems is None
-        assert problem.solution is None
+        assert problem.solutions is None
 
         problem = problem.prepare(
             time_key="time",
@@ -25,9 +25,9 @@ class TestTemporalProblem:
             policy="sequential",
         )
 
-        for key, subprob in problem:
-            assert isinstance(subprob, TemporalBaseProblem)
+        for key in problem:
             assert key in expected_keys
+            assert isinstance(problem[key], TemporalBaseProblem)
 
     def test_solve_balanced(self, adata_time: AnnData):
         eps = 0.5
@@ -36,7 +36,7 @@ class TestTemporalProblem:
         problem = problem.prepare("time")
         problem = problem.solve(epsilon=eps)
 
-        for key, subsol in problem.solution.items():
+        for key, subsol in problem.solutions.items():
             assert isinstance(subsol, BaseSolverOutput)
             assert key in expected_keys
 
