@@ -15,7 +15,7 @@ from moscot.problems import CompoundProblem, SingleCompoundProblem
 from moscot.backends.ott import FGWSolver, SinkhornSolver
 from moscot.solvers._base_solver import BaseSolver, ProblemKind
 from moscot.solvers._tagged_array import Tag, TaggedArray
-from moscot.problems._base_problem import BaseProblem, GeneralProblem
+from moscot.problems._base_problem import GeneralProblem
 from moscot.problems._compound_problem import Callback_t
 
 
@@ -34,7 +34,7 @@ class TestSingleCompoundProblem:
 
         assert len(problem) == 0
         assert problem.problems is None
-        assert problem.solution is None
+        assert problem.solutions is None
 
         problem = problem.prepare(
             x={"attr": "X", "tag": Tag.POINT_CLOUD},
@@ -46,14 +46,14 @@ class TestSingleCompoundProblem:
         problem = problem.solve()
 
         assert len(problem) == len(expected_keys)
-        assert isinstance(problem.solution, dict)
+        assert isinstance(problem.solutions, dict)
         assert isinstance(problem.problems, dict)
-        assert set(problem.solution.keys()) == set(expected_keys)
-        assert set(problem.solution.keys()) == set(expected_keys)
+        assert set(problem.solutions.keys()) == set(expected_keys)
+        assert set(problem.solutions.keys()) == set(expected_keys)
 
         for key, subprob in problem:
-            assert isinstance(subprob, BaseProblem)
-            assert subprob.solution is problem.solution[key]
+            assert isinstance(subprob, GeneralProblem)
+            assert subprob.solution is problem.solutions[key]
 
     @pytest.mark.parametrize("solver_t", [SinkhornSolver, FGWSolver])
     def test_default_callback(self, adata_time: AnnData, solver_t: Type[BaseSolver], mocker: MockerFixture):

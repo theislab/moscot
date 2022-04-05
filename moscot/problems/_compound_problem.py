@@ -33,6 +33,7 @@ class CompoundBaseProblem(BaseProblem, ABC):
         adata: AnnData,
         solver: Optional[BaseSolver] = None,
         *,
+        # TODO(michalk8): properly type this
         base_problem_type: Type[GeneralProblem] = GeneralProblem,
     ):
         super().__init__(adata, solver=solver)
@@ -207,7 +208,7 @@ class CompoundBaseProblem(BaseProblem, ABC):
     def solutions(self) -> Optional[Dict[Tuple[Any, Any], BaseSolverOutput]]:
         return self._solutions
 
-    def __getitem__(self, item: Tuple[Any, Any]) -> BaseSolverOutput:
+    def __getitem__(self, item: Tuple[Any, Any]) -> GeneralProblem:
         return self._problems[item]
 
     def __len__(self) -> int:
