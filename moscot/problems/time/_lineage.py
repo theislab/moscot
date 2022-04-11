@@ -94,28 +94,28 @@ class TemporalProblem(TemporalAnalysisMixin, SingleCompoundProblem):
         if gene_set_proliferation is None:
             self.proliferation_key = None
         else:
-            if isinstance(gene_set_proliferation, list):
-                sc.tl.score_genes(self.adata, gene_set_proliferation, score_name=proliferation_key, **kwargs)
-            else:
+            if isinstance(gene_set_proliferation, str):
                 sc.tl.score_genes(
                     self.adata,
                     getattr(MarkerGenes, "proliferation_markers")(gene_set_proliferation),
                     score_name=proliferation_key,
                     **kwargs,
                 )
+            else:
+                sc.tl.score_genes(self.adata, gene_set_proliferation, score_name=proliferation_key, **kwargs)
             self.proliferation_key = proliferation_key
         if gene_set_apoptosis is None:
             self.apoptosis_key = None
         else:
-            if isinstance(gene_set_apoptosis, list):
-                sc.tl.score_genes(self.adata, gene_set_proliferation, score_name=proliferation_key, **kwargs)
-            else:
+            if isinstance(gene_set_apoptosis, str):
                 sc.tl.score_genes(
                     self.adata,
-                    getattr(MarkerGenes, "apoptosis_markers")(gene_set_proliferation),
+                    getattr(MarkerGenes, "apoptosis_markers")(gene_set_apoptosis),
                     score_name=apoptosis_key,
                     **kwargs,
                 )
+            else:
+                sc.tl.score_genes(self.adata, gene_set_apoptosis, score_name=apoptosis_key, **kwargs)
             self.apoptosis_key = apoptosis_key
         if gene_set_proliferation is None and gene_set_apoptosis is None:
             logging.info(

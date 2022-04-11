@@ -80,11 +80,12 @@ class TestTemporalProblem:
             problem[0, 1].growth_rates[:, 1],
         )
 
-    @pytest.mark.parametrize(
-        "gene_set_list",
-        [[None, None], ["human", "human"], ["mouse", "mouse"], [["ANLN", "ANP32E", "ATAD2"], ["ADD1", "AIFM3", "ANKH"]]],
-    )
-    def test_score_genes(self, adata_time: AnnData, gene_set_list: List):
+    #@pytest.mark.parametrize(
+    #    "gene_set_list",
+    #    [[None, None], ["human", "human"], ["mouse", "mouse"], [["ANLN", "ANP32E", "ATAD2"], ["ADD1", "AIFM3", "ANKH"]]],
+    #)
+    def test_score_genes(self, adata_time: AnnData):#, gene_set_list: List):
+        gene_set_list = ["human", "human"]
         gene_set_proliferation = gene_set_list[0]
         gene_set_apoptosis = gene_set_list[1]
 
