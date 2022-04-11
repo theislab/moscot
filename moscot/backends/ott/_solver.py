@@ -65,7 +65,7 @@ class GeometryMixin:
         y: Optional[TaggedArray] = None,
         *,
         epsilon: Optional[float] = None,
-        online: Optional[int] = None,
+        online: Union[int, bool] = False,
         scale_cost: Scale_t = None,
     ) -> Geometry:
         # TODO(michalk8): maybe in the future, enable (more) kwargs for PC/Geometry
@@ -215,7 +215,7 @@ class SinkhornSolver(RankMixin, BaseSolver):
         x: TaggedArray,
         y: Optional[TaggedArray] = None,
         epsilon: Optional[float] = None,
-        online: Optional[int] = None,
+        online: Union[int, bool] = False,
         scale_cost: Scale_t = None,
         **kwargs: Any,
     ) -> LinearProblem:
@@ -236,7 +236,7 @@ class GWSolver(RankMixin, BaseSolver):
         x: TaggedArray,
         y: Optional[TaggedArray] = None,
         epsilon: Optional[float] = None,
-        online: Optional[int] = None,
+        online: Union[int, bool] = False,
         scale_cost: Scale_t = None,
         **kwargs: Any,
     ) -> QuadraticProblem:
@@ -304,7 +304,7 @@ class FGWSolver(GWSolver):
         xx: Optional[TaggedArray] = None,
         yy: Optional[TaggedArray] = None,
         epsilon: Optional[float] = None,
-        online: Optional[int] = None,
+        online: Union[int, bool] = False,
         scale_cost: Scale_t = None,
         alpha: float = 0.5,
         rank: int = None,
