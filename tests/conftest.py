@@ -1,9 +1,9 @@
 from typing import Tuple, Union, Optional
 
+from scipy.sparse import csr_matrix
 import scipy
 import pandas as pd
 import pytest
-from scipy.sparse import csr_matrix
 
 from jax.config import config
 

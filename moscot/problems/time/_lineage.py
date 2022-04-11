@@ -95,8 +95,6 @@ class TemporalProblem(TemporalAnalysisMixin, SingleCompoundProblem):
             self.proliferation_key = None
         else:
             if isinstance(gene_set_proliferation, str):
-                print("genes are ", getattr(MarkerGenes, "proliferation_markers")(gene_set_proliferation))
-                print("intersection is ", set(self.adata.var.index).intersection(set(getattr(MarkerGenes, "proliferation_markers")(gene_set_proliferation))))
                 sc.tl.score_genes(
                     self.adata,
                     list(getattr(MarkerGenes, "proliferation_markers")(gene_set_proliferation)),
