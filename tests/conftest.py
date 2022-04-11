@@ -103,7 +103,7 @@ def adata_y(y: Geom_t) -> AnnData:
 @pytest.fixture()
 def adata_time() -> AnnData:
     rng = np.random.RandomState(42)
-    adatas = [AnnData(X=csr_matrix(rng.normal(size=(96, 30)))) for _ in range(3)]
+    adatas = [AnnData(X=csr_matrix(rng.normal(size=(96, 60)))) for _ in range(3)]
     adata = adatas[0].concatenate(*adatas[1:], batch_key="time")
     adata.obs["time"] = pd.to_numeric(adata.obs["time"])
     # three genes from mouse/human prliferation/apoptosis

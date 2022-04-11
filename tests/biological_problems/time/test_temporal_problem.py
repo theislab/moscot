@@ -100,11 +100,13 @@ class TestTemporalProblem:
         if gene_set_apoptosis is not None:
             assert problem.proliferation_key == "proliferation"
             assert adata_time.obs["proliferation"] is not None
+            assert np.sum(np.isnan(adata_time.obs["proliferation"])) == 0
         else:
             assert problem.proliferation_key is None
 
         if gene_set_apoptosis is not None:
             assert problem.apoptosis_key == "apoptosis"
             assert adata_time.obs["apoptosis"] is not None
+            assert np.sum(np.isnan(adata_time.obs["apoptosis"])) == 0
         else:
             assert problem.apoptosis_key is None

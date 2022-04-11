@@ -97,7 +97,7 @@ class TemporalProblem(TemporalAnalysisMixin, SingleCompoundProblem):
             if isinstance(gene_set_proliferation, str):
                 sc.tl.score_genes(
                     self.adata,
-                    list(getattr(MarkerGenes, "proliferation_markers")(gene_set_proliferation)),
+                    getattr(MarkerGenes, "proliferation_markers")(gene_set_proliferation),
                     score_name=proliferation_key,
                     **kwargs,
                 )
