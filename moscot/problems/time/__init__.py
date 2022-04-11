@@ -1,1 +1,1 @@
-from moscot.problems.time._lineage import TemporalProblem, LineageProblem
+from moscot.problems.time._lineage import LineageProblem, TemporalProblem

@@ -105,7 +105,9 @@ def adata_time() -> AnnData:
     adatas = [AnnData(X=rng.normal(size=(96, 30))) for _ in range(3)]
     adata = adatas[0].concatenate(*adatas[1:], batch_key="time")
     adata.obs["time"] = pd.to_numeric(adata.obs["time"])
-    adata.var.index = ["gene_" + el for el in adata.var.index]
+    # three genes from mouse/human prliferation/apoptosis
+    genes = ["ANLN", "ANP32E", "ATAD2", "Mcm4", "Smc4", "Gtse1", "ADD1", "AIFM3", "ANKH", "Ercc5", "Serpinb5", "Inhbb"]
+    adata.var.index = ["gene_" + el if i > 12 else genes[i] for i, el in enumerate(adata.var.index)]
     return adata
 
 

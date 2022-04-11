@@ -13,7 +13,7 @@ import scanpy as sc
 
 from moscot.problems import MultiMarginalProblem
 from moscot.solvers._output import BaseSolverOutput
-from moscot.problems.time._utils import beta, delta
+from moscot.problems.time._utils import beta, delta, MarkerGenes
 from moscot.solvers._base_solver import BaseSolver, ProblemKind
 from moscot.mixins._time_analysis import TemporalAnalysisMixin
 from moscot.solvers._tagged_array import TaggedArray
@@ -85,8 +85,8 @@ class TemporalProblem(TemporalAnalysisMixin, SingleCompoundProblem):
 
     def score_genes_for_marginals(
         self,
-        gene_set_proliferation: Optional[Sequence[str]] = None,
-        gene_set_apoptosis: Optional[Sequence[str]] = None,
+        gene_set_proliferation: Optional[Union[Literal["human", "mouse"], Sequence[str]]] = None,
+        gene_set_apoptosis: Optional[Union[Literal["human", "mouse"], Sequence[str]]] = None,
         proliferation_key: str = "proliferation",
         apoptosis_key: str = "apoptosis",
         **kwargs: Any,
@@ -94,12 +94,28 @@ class TemporalProblem(TemporalAnalysisMixin, SingleCompoundProblem):
         if gene_set_proliferation is None:
             self.proliferation_key = None
         else:
-            sc.tl.score_genes(self.adata, gene_set_proliferation, score_name=proliferation_key, **kwargs)
+            if isinstance(gene_set_proliferation, list):
+                sc.tl.score_genes(self.adata, gene_set_proliferation, score_name=proliferation_key, **kwargs)
+            else:
+                sc.tl.score_genes(
+                    self.adata,
+                    getattr(MarkerGenes, "proliferation_markers")(gene_set_proliferation),
+                    score_name=proliferation_key,
+                    **kwargs,
+                )
             self.proliferation_key = proliferation_key
         if gene_set_apoptosis is None:
             self.apoptosis_key = None
         else:
-            sc.tl.score_genes(self.adata, gene_set_apoptosis, score_name=apoptosis_key, **kwargs)
+            if isinstance(gene_set_apoptosis, list):
+                sc.tl.score_genes(self.adata, gene_set_proliferation, score_name=proliferation_key, **kwargs)
+            else:
+                sc.tl.score_genes(
+                    self.adata,
+                    getattr(MarkerGenes, "apoptosis_markers")(gene_set_proliferation),
+                    score_name=apoptosis_key,
+                    **kwargs,
+                )
             self.apoptosis_key = apoptosis_key
         if gene_set_proliferation is None and gene_set_apoptosis is None:
             logging.info(

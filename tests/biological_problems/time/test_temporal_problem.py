@@ -1,3 +1,5 @@
+from typing import List
+
 import pytest
 
 import numpy as np
@@ -77,3 +79,28 @@ class TestTemporalProblem:
             problem[0, 1].growth_rates[:, 0],
             problem[0, 1].growth_rates[:, 1],
         )
+
+    @pytest.mark.parametrize(
+        "gene_set_list",
+        [[None, None], ["human", "human"], ["mouse", "mouse"], [["ANLN", "ANP32E", "ATAD2"], ["ADD1", "AIFM3", "ANKH"]]],
+    )
+    def test_score_genes(self, adata_time: AnnData, gene_set_list: List):
+        gene_set_proliferation = gene_set_list[0]
+        gene_set_apoptosis = gene_set_list[1]
+
+        problem = TemporalProblem(adata_time)
+        problem = problem.score_genes_for_marginals(
+            gene_set_proliferation=gene_set_proliferation, gene_set_apoptosis=gene_set_apoptosis
+        )
+
+        if gene_set_apoptosis is not None:
+            assert problem.proliferation_key == "proliferation"
+            assert adata_time.obs["proliferation_key"] is not None
+        else:
+            assert problem.proliferation_key is None
+
+        if gene_set_apoptosis is not None:
+            assert problem.apoptosis_key == "apoptosis"
+            assert adata_time.obs["apoptosis_key"] is not None
+        else:
+            assert problem.apoptosis_key is None
