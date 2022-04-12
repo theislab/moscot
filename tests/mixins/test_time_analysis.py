@@ -13,22 +13,69 @@ from moscot.problems.time._lineage import TemporalProblem
 
 
 @pytest.mark.parametrize("forward", [True, False])
-def test_cell_transition_pipeline(adata_time_cell_type: AnnData, forward: bool):
-    adata_time_cell_type.obs["cell_type"] = adata_time_cell_type.obs["cell_type"].astype("category")
-    cell_types = set(np.unique(adata_time_cell_type.obs["cell_type"]))
-    problem = TemporalProblem(adata_time_cell_type)
-    problem = problem.prepare("time", subset=[0, 1])
-    problem = problem.solve()
+def test_cell_transition_full_pipeline(gt_temporal_adata: AnnData, forward: bool):
+    cell_types = set(np.unique(gt_temporal_adata.obs["cell_type"]))
+    problem = TemporalProblem(gt_temporal_adata)
+    problem = problem.prepare("day", subset=[(10, 10.5), (10.5, 11), (10, 11)], policy="explicit")
+    assert set(problem.problems.keys()) == {(10, 10.5), (10, 11), (10.5, 11)}
+    problem[10, 10.5]._solution = TestSolverOutput(gt_temporal_adata.uns["tmap_10_105"])
+    problem[10.5, 11]._solution = TestSolverOutput(gt_temporal_adata.uns["tmap_105_11"])
+    problem[10, 11]._solution = TestSolverOutput(gt_temporal_adata.uns["tmap_10_11"])
 
-    result = problem.cell_transition(0, 1, "cell_type", "cell_type", forward=forward)
+    result = problem.cell_transition(10, 10.5, "cell_type", "cell_type", forward=forward)
 
     assert isinstance(result, pd.DataFrame)
-    assert result.shape == (3, 3)
-    assert set(result.index) == cell_types
-    assert set(result.columns) == cell_types
-    assert result.isna().sum().sum() == 0
+    assert result.shape == (len(cell_types), len(cell_types))
+    assert set(result.index) == set(cell_types)
+    assert set(result.columns) == set(cell_types)
+    marginal = result.sum(axis=forward == 1).values
+    present_cell_type_marginal = marginal[marginal > 0]
+    np.testing.assert_almost_equal(present_cell_type_marginal, np.ones(len(present_cell_type_marginal)), decimal=5)
 
-    np.testing.assert_almost_equal(result.sum(axis=1 if forward else 0).values, np.ones(len(cell_types)), decimal=5)
+
+@pytest.mark.parametrize("forward", [True, False])
+def test_cell_transition_subset_pipeline(gt_temporal_adata: AnnData, forward: bool):
+    problem = TemporalProblem(gt_temporal_adata)
+    problem = problem.prepare("day", subset=[(10, 10.5), (10.5, 11), (10, 11)], policy="explicit")
+    assert set(problem.problems.keys()) == {(10, 10.5), (10, 11), (10.5, 11)}
+    problem[10, 10.5]._solution = TestSolverOutput(gt_temporal_adata.uns["tmap_10_105"])
+    problem[10.5, 11]._solution = TestSolverOutput(gt_temporal_adata.uns["tmap_105_11"])
+    problem[10, 11]._solution = TestSolverOutput(gt_temporal_adata.uns["tmap_10_11"])
+
+    early_cells = ["Stromal", "unknown"]
+    late_cells = ["Stromal", "Epithelial"]
+    result = problem.cell_transition(10, 10.5, {"cell_type": early_cells}, {"cell_type": late_cells}, forward=forward)
+    assert isinstance(result, pd.DataFrame)
+    assert result.shape == (2, 2)
+    assert set(result.index) == set(early_cells)
+    assert set(result.columns) == set(late_cells)
+    marginal = result.sum(axis=forward == 1).values
+    present_cell_type_marginal = marginal[marginal > 0]
+    np.testing.assert_almost_equal(present_cell_type_marginal, np.ones(len(present_cell_type_marginal)), decimal=5)
+
+
+@pytest.mark.parametrize("forward", [True, False])
+def test_cell_transition_regression(gt_temporal_adata: AnnData, forward: bool):
+    problem = TemporalProblem(gt_temporal_adata)
+    problem = problem.prepare("day", subset=[(10, 10.5), (10.5, 11), (10, 11)], policy="explicit")
+    assert set(problem.problems.keys()) == {(10, 10.5), (10, 11), (10.5, 11)}
+    problem[10, 10.5]._solution = TestSolverOutput(gt_temporal_adata.uns["tmap_10_105"])
+    problem[10.5, 11]._solution = TestSolverOutput(gt_temporal_adata.uns["tmap_105_11"])
+    problem[10, 11]._solution = TestSolverOutput(gt_temporal_adata.uns["tmap_10_11"])
+
+    result = problem.cell_transition(10, 10.5, early_cells="cell_type", late_cells="cell_type", forward=forward)
+    assert result.shape == (6, 6)
+    marginal = result.sum(axis=forward == 1).values
+    present_cell_type_marginal = marginal[marginal > 0]
+    np.testing.assert_almost_equal(present_cell_type_marginal, np.ones(len(present_cell_type_marginal)), decimal=5)
+
+    direction = "forward" if forward else "backward"
+    gt = pd.read_csv(f"tests/data/cell_transition_10_105_{direction}.csv")
+    # result = result[~np.isnan(result)]
+    # gt = gt[~np.isnan(gt)]
+    print(result.values)
+    print(gt.values)
+    np.testing.assert_almost_equal(result.values, gt.values, decimal=4)
 
 
 def test_compute_time_point_distances_pipeline(adata_time: AnnData):
@@ -52,7 +99,7 @@ def test_batch_distances_pipeline(adata_time: AnnData):
     assert batch_distance > 0
 
 
-def test_compute_interpolated_distance(gt_temporal_adata: AnnData):
+def test_compute_interpolated_distance_regression(gt_temporal_adata: AnnData):
     problem = TemporalProblem(gt_temporal_adata)
     problem = problem.prepare("day", subset=[(10, 10.5), (10.5, 11), (10, 11)], policy="explicit")
     assert set(problem.problems.keys()) == {(10, 10.5), (10, 11), (10.5, 11)}
@@ -66,7 +113,7 @@ def test_compute_interpolated_distance(gt_temporal_adata: AnnData):
     np.testing.assert_almost_equal(interpolation_result, 20.629795, decimal=4)  # pre-computed
 
 
-def test_compute_time_point_distances(gt_temporal_adata: AnnData):
+def test_compute_time_point_distances_regression(gt_temporal_adata: AnnData):
     problem = TemporalProblem(gt_temporal_adata)
     problem = problem.prepare("day", subset=[(10, 10.5), (10.5, 11), (10, 11)], policy="explicit")
     assert set(problem.problems.keys()) == {(10, 10.5), (10, 11), (10.5, 11)}
@@ -78,7 +125,7 @@ def test_compute_time_point_distances(gt_temporal_adata: AnnData):
     np.testing.assert_almost_equal(result[1], 22.7514, decimal=4)  # pre-computed
 
 
-def test_compute_batch_distances(gt_temporal_adata: AnnData):
+def test_compute_batch_distances_regression(gt_temporal_adata: AnnData):
     problem = TemporalProblem(gt_temporal_adata)
     problem = problem.prepare("day", subset=[(10, 10.5), (10.5, 11), (10, 11)], policy="explicit")
     assert set(problem.problems.keys()) == {(10, 10.5), (10, 11), (10.5, 11)}
@@ -88,8 +135,18 @@ def test_compute_batch_distances(gt_temporal_adata: AnnData):
     np.testing.assert_almost_equal(result, 22.9107, decimal=4)  # pre-computed
 
 
+def test_compute_random_distance_regression(gt_temporal_adata: AnnData):
+    problem = TemporalProblem(gt_temporal_adata)
+    problem = problem.prepare("day", subset=[(10, 10.5), (10.5, 11), (10, 11)], policy="explicit")
+    assert set(problem.problems.keys()) == {(10, 10.5), (10, 11), (10.5, 11)}
+
+    result = problem.compute_random_distance(10, 10.5, 11, seed=42)
+    assert isinstance(result, float)
+    np.testing.assert_almost_equal(result, 21.1825, decimal=4)  # pre-computed
+
+
 @pytest.mark.parametrize("only_start", [True, False])
-def test_get_data(adata_time: AnnData, only_start: bool):
+def test_get_data_pipeline(adata_time: AnnData, only_start: bool):
     problem = TemporalProblem(adata_time)
     problem.prepare("time")
 
@@ -109,7 +166,7 @@ def test_get_data(adata_time: AnnData, only_start: bool):
 
 
 @pytest.mark.parametrize("time_points", [(0, 1, 2), (0, 2, 1), ()])
-def test_get_interp_param(adata_time: AnnData, time_points: Tuple[Number]):
+def test_get_interp_param_pipeline(adata_time: AnnData, time_points: Tuple[Number]):
     start, intermediate, end = time_points if len(time_points) else (42, 43, 44)
     interpolation_parameter = None if len(time_points) == 3 else 0.5
     problem = TemporalProblem(adata_time)

@@ -51,7 +51,7 @@ class TemporalAnalysisMixin(AnalysisMixin):
                         subset=subset,
                         normalize=True,
                         return_all=False,
-                        scale_by_marginals=True,
+                        scale_by_marginals=False,
                         **kwargs,
                     )
                 except ValueError as e:
@@ -62,8 +62,9 @@ class TemporalAnalysisMixin(AnalysisMixin):
                         result = np.nan
                     else:
                         raise
-                df_late.loc[:, "distribution"] = result / np.sum(result)
+                df_late.loc[:, "distribution"] = result
                 target_cell_dist = df_late[df_late[_late_cells_key].isin(_late_cells)].groupby(_late_cells_key).sum()
+                target_cell_dist /= target_cell_dist.sum()
                 transition_table.loc[subset, :] = [
                     target_cell_dist.loc[cell_type, "distribution"]
                     if cell_type in target_cell_dist.distribution.index
@@ -84,7 +85,7 @@ class TemporalAnalysisMixin(AnalysisMixin):
                     subset=subset,
                     normalize=True,
                     return_all=False,
-                    scale_by_marginals=True,
+                    scale_by_marginals=False,
                     **kwargs,
                 )
             except ValueError as e:
@@ -93,8 +94,9 @@ class TemporalAnalysisMixin(AnalysisMixin):
                     result = np.nan
                 else:
                     raise
-            df_early.loc[:, "distribution"] = result / np.sum(result)
+            df_early.loc[:, "distribution"] = result
             target_cell_dist = df_early[df_early[_early_cells_key].isin(_early_cells)].groupby(_early_cells_key).sum()
+            target_cell_dist /= target_cell_dist.sum()
             transition_table.loc[:, subset] = [
                 target_cell_dist.loc[cell_type, "distribution"]
                 if cell_type in target_cell_dist.distribution.index
@@ -109,14 +111,24 @@ class TemporalAnalysisMixin(AnalysisMixin):
         if isinstance(arg, str):
             if not hasattr(self.adata.obs[arg], "cat"):
                 raise ValueError(f"The column `{arg}` in `adata.obs` must be of categorical dtype")
+            if self.adata.obs[arg].isnull().sum() > 0:
+                raise ValueError(
+                    f"The column `{arg}` in `adata.obs` contains NaN values. Please fill them with another value."
+                )
             return arg, list(self.adata.obs[arg].unique())
-        _key, _arg = arg.keys(), arg.values()
+        if len(arg) > 1:
+            raise ValueError(
+                f"The length of the dictionary is {len(arg)} but should be 1 as the data can only be filtered according to one column of `adata.obs`"
+            )
+        _key, _arg = list(arg.keys())[0], list(arg.values())[0]
         if not hasattr(self.adata.obs[_key], "cat"):
             raise ValueError(f"The column `{_key}` in `adata.obs` must be of categorical dtype")
-        if len(_key) != 1:
-            raise ValueError("The data can only be filtered according to one column of `adata.obs`")
-        if not set(_arg).isin(set(self.adata.obs[_key].unique())):
+        if not set(_arg).issubset(set(self.adata.obs[_key].unique())):
             raise ValueError(f"Not all values {_arg} could be found in column {_key}")
+        if self.adata.obs[_key].isnull().sum() > 0:
+            raise ValueError(
+                f"The column `{_key}` in `adata.obs` contains NaN values. Please fill them with another value."
+            )
         return _key, _arg
 
     def _get_data(
