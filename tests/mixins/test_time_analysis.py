@@ -1,6 +1,7 @@
 from typing import Tuple
 from numbers import Number
 
+from _utils import TestSolverOutput
 import pandas as pd
 import pytest
 
@@ -30,22 +31,61 @@ def test_cell_transition_pipeline(adata_time_cell_type: AnnData, forward: bool):
     np.testing.assert_almost_equal(result.sum(axis=1 if forward else 0).values, np.ones(len(cell_types)), decimal=5)
 
 
-def test_compute_time_point_distances(adata_time: AnnData):
+def test_compute_time_point_distances_pipeline(adata_time: AnnData):
     problem = TemporalProblem(adata_time)
     problem.prepare("time")
     distance_source_intermediate, distance_intermediate_target = problem.compute_time_point_distances(
         start=0, intermediate=1, end=2
     )
+    assert isinstance(distance_source_intermediate, float)
+    assert isinstance(distance_intermediate_target, float)
     assert distance_source_intermediate > 0
     assert distance_intermediate_target > 0
 
 
-def test_compute_time_point_distances(adata_time: AnnData):
+def test_batch_distances_pipeline(adata_time: AnnData):
     problem = TemporalProblem(adata_time)
     problem.prepare("time")
 
     batch_distance = problem.compute_batch_distances(time=1, batch_key="batch")
+    assert isinstance(batch_distance, float)
     assert batch_distance > 0
+
+
+def test_compute_interpolated_distance(gt_temporal_adata: AnnData):
+    problem = TemporalProblem(gt_temporal_adata)
+    problem = problem.prepare("day", subset=[(10, 10.5), (10.5, 11), (10, 11)], policy="explicit")
+    assert set(problem.problems.keys()) == {(10, 10.5), (10, 11), (10.5, 11)}
+    problem[10, 10.5]._solution = TestSolverOutput(gt_temporal_adata.uns["tmap_10_105"])
+    problem[10.5, 11]._solution = TestSolverOutput(gt_temporal_adata.uns["tmap_105_11"])
+    problem[10, 11]._solution = TestSolverOutput(gt_temporal_adata.uns["tmap_10_11"])
+
+    interpolation_result = problem.compute_interpolated_distance(10, 10.5, 11, seed=42)
+    isinstance(interpolation_result, float)
+    assert interpolation_result > 0
+    np.testing.assert_almost_equal(interpolation_result, 20.629795, decimal=4)  # pre-computed
+
+
+def test_compute_time_point_distances(gt_temporal_adata: AnnData):
+    problem = TemporalProblem(gt_temporal_adata)
+    problem = problem.prepare("day", subset=[(10, 10.5), (10.5, 11), (10, 11)], policy="explicit")
+    assert set(problem.problems.keys()) == {(10, 10.5), (10, 11), (10.5, 11)}
+
+    result = problem.compute_time_point_distances(10, 10.5, 11)
+    assert isinstance(result, tuple)
+    assert result[0] > 0 and result[1] > 0
+    np.testing.assert_almost_equal(result[0], 23.9996, decimal=4)  # pre-computed
+    np.testing.assert_almost_equal(result[1], 22.7514, decimal=4)  # pre-computed
+
+
+def test_compute_batch_distances(gt_temporal_adata: AnnData):
+    problem = TemporalProblem(gt_temporal_adata)
+    problem = problem.prepare("day", subset=[(10, 10.5), (10.5, 11), (10, 11)], policy="explicit")
+    assert set(problem.problems.keys()) == {(10, 10.5), (10, 11), (10.5, 11)}
+
+    result = problem.compute_batch_distances(10, "batch")
+    assert isinstance(result, float)
+    np.testing.assert_almost_equal(result, 22.9107, decimal=4)  # pre-computed
 
 
 @pytest.mark.parametrize("only_start", [True, False])
