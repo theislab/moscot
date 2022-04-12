@@ -22,8 +22,8 @@ In order to install **moscot**, run::
     cd moscot
     pip install -e.'[dev]'
     pre-commit install
-    
-If used with GPU additionally run 
+
+If used with GPU additionally run
 ``` pip install "jax[cuda]" -f https://storage.googleapis.com/jax-releases/jax_releases.html ```
 
 Development (temporary)

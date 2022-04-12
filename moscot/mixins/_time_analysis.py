@@ -296,8 +296,9 @@ class TemporalAnalysisMixin(AnalysisMixin):
         )
         return result
 
+    @staticmethod
     def _get_interp_param(interpolation_parameter: Number, start: Number, intermediate: Number, end: Number) -> Number:
-        if 0 > interpolation_parameter or interpolation_parameter > 1:
+        if interpolation_parameter is not None and (0 > interpolation_parameter or interpolation_parameter > 1):
             raise ValueError("TODO: interpolation parameter must be in [0,1].")
         if start >= intermediate:
             raise ValueError("TODO: expected start < intermediate")

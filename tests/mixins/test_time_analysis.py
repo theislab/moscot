@@ -30,6 +30,24 @@ def test_cell_transition_pipeline(adata_time_cell_type: AnnData, forward: bool):
     np.testing.assert_almost_equal(result.sum(axis=1 if forward else 0).values, np.ones(len(cell_types)), decimal=5)
 
 
+def test_compute_time_point_distances(adata_time: AnnData):
+    problem = TemporalProblem(adata_time)
+    problem.prepare("time")
+    distance_source_intermediate, distance_intermediate_target = problem.compute_time_point_distances(
+        start=0, intermediate=1, end=2
+    )
+    assert distance_source_intermediate > 0
+    assert distance_intermediate_target > 0
+
+
+def test_compute_time_point_distances(adata_time: AnnData):
+    problem = TemporalProblem(adata_time)
+    problem.prepare("time")
+
+    batch_distance = problem.compute_batch_distances(time=1, batch_key="batch")
+    assert batch_distance > 0
+
+
 @pytest.mark.parametrize("only_start", [True, False])
 def test_get_data(adata_time: AnnData, only_start: bool):
     problem = TemporalProblem(adata_time)
@@ -51,17 +69,16 @@ def test_get_data(adata_time: AnnData, only_start: bool):
 
 
 @pytest.mark.parametrize("time_points", [(0, 1, 2), (0, 2, 1), ()])
-def tet_get_interp_param(adata_time: AnnData, time_points: Tuple[Number]):
+def test_get_interp_param(adata_time: AnnData, time_points: Tuple[Number]):
     start, intermediate, end = time_points if len(time_points) else (42, 43, 44)
     interpolation_parameter = None if len(time_points) == 3 else 0.5
     problem = TemporalProblem(adata_time)
     problem.prepare("time")
     problem.solve()
 
-    if intermediate >= start or end >= intermediate:
+    if intermediate <= start or end <= intermediate:
         with np.testing.assert_raises(ValueError):
             problem._get_interp_param(interpolation_parameter, start, intermediate, end)
     else:
         inter_param = problem._get_interp_param(interpolation_parameter, start, intermediate, end)
-
-    assert inter_param == 0.5
+        assert inter_param == 0.5
