@@ -8,6 +8,7 @@ import pytest
 from jax.config import config
 
 from anndata import AnnData
+import scanpy as sc
 
 config.update("jax_enable_x64", True)
 from sklearn.metrics import pairwise_distances
@@ -18,6 +19,8 @@ import numpy as np  # noqa: E402
 Geom_t = Union[jnp.ndarray, Tuple[jnp.ndarray, jnp.ndarray]]
 RTOL = 1e-6
 ATOL = 1e-6
+
+_gt_temporal_adata = sc.read("tests/data/moscot_temporal_tests.h5ad")
 
 
 @pytest.fixture()
@@ -114,6 +117,11 @@ def adata_time() -> AnnData:
 
 
 @pytest.fixture()
+def adata_large() -> AnnData:
+    return _gt_temporal_adata.copy()
+
+
+@pytest.fixture()
 def adata_time_cell_type(adata_time: AnnData) -> AnnData:
     rng = np.random.RandomState(42)
     adata_time.obs["cell_type"] = rng.choice(["cell_A", "cell_B", "cell_C"], size=len(adata_time))
@@ -159,6 +167,11 @@ def adata_with_cost_matrix(adata_x: Geom_t, adata_y: Geom_t):
     adata.obs["batch"] = pd.to_numeric(adata.obs["batch"])
     adata.uns[0] = C / C.mean()  # TODO(@MUCDK) make a callback function and replace this part
     return adata
+
+
+@pytest.fixture()
+def gt_temporal_adata() -> AnnData:
+    return _gt_temporal_adata
 
 
 def create_marginals(n: int, m: int, *, uniform: bool = False, seed: Optional[int] = None) -> Geom_t:
