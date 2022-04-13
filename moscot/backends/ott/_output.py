@@ -22,7 +22,7 @@ class OutputRankMixin:
         return self._rank
 
 
-class OTTBaseOutput(BaseSolverOutput, ABC):
+class LinearOTTOutput(BaseSolverOutput, ABC):
     def __init__(self, output: Union[OTTSinkhornOutput, OTTLRSinkhornOutput], **_: Any):
         super().__init__()
         self._output = output
@@ -43,7 +43,7 @@ class OTTBaseOutput(BaseSolverOutput, ABC):
         return jnp.ones((n,))
 
 
-class SinkhornOutput(OTTBaseOutput):
+class SinkhornOutput(LinearOTTOutput):
     def _apply(self, x: npt.ArrayLike, *, forward: bool) -> npt.ArrayLike:
         if x.ndim == 1:
             return self._output.apply(x, axis=1 - forward)
@@ -56,8 +56,12 @@ class SinkhornOutput(OTTBaseOutput):
     def shape(self) -> Tuple[int, int]:
         return self._output.f.shape[0], self._output.g.shape[0]
 
+    @property
+    def potentials(self) -> Tuple[npt.ArrayLike, npt.ArrayLike]:
+        return self._output.f, self._output.g
 
-class LRSinkhornOutput(OutputRankMixin, OTTBaseOutput):
+
+class LRSinkhornOutput(OutputRankMixin, LinearOTTOutput):
     def _apply(self, x: npt.ArrayLike, *, forward: bool) -> npt.ArrayLike:
         axis = int(not forward)
         if x.ndim == 1:
@@ -69,6 +73,10 @@ class LRSinkhornOutput(OutputRankMixin, OTTBaseOutput):
     @property
     def shape(self) -> Tuple[int, int]:
         return self._output.geom.shape
+
+    @property
+    def potentials(self):
+        raise NotImplementedError("This solver does not allow for potentials")
 
 
 class GWOutput(OutputRankMixin, MatrixSolverOutput):
