@@ -116,7 +116,7 @@ def adata_time() -> AnnData:
     return adata
 
 
-@pytest.fixture
+@pytest.fixture()
 def adata_large() -> AnnData:
     return _gt_temporal_adata.copy()
 
