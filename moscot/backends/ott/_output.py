@@ -7,7 +7,7 @@ from ott.core.sinkhorn_lr import LRSinkhornOutput as OTTLRSinkhornOutput
 from ott.core.gromov_wasserstein import GWOutput as OTTGWOutput
 import jax.numpy as jnp
 
-from moscot.solvers._output import BaseSolverOutput, MatrixSolverOutput
+from moscot.solvers._output import BaseSolverOutput, QuadSolverOutput
 
 __all__ = ("SinkhornOutput", "LRSinkhornOutput", "GWOutput")
 
@@ -22,7 +22,7 @@ class OutputRankMixin:
         return self._rank
 
 
-class OTTBaseOutput(BaseSolverOutput, ABC):
+class LinearOTTOutput(BaseSolverOutput, ABC):
     def __init__(self, output: Union[OTTSinkhornOutput, OTTLRSinkhornOutput], **_: Any):
         super().__init__()
         self._output = output
@@ -42,8 +42,7 @@ class OTTBaseOutput(BaseSolverOutput, ABC):
     def _ones(self, n: int) -> jnp.ndarray:
         return jnp.ones((n,))
 
-
-class SinkhornOutput(OTTBaseOutput):
+class SinkhornOutput(LinearOTTOutput):
     def _apply(self, x: npt.ArrayLike, *, forward: bool) -> npt.ArrayLike:
         if x.ndim == 1:
             return self._output.apply(x, axis=1 - forward)
@@ -56,8 +55,12 @@ class SinkhornOutput(OTTBaseOutput):
     def shape(self) -> Tuple[int, int]:
         return self._output.f.shape[0], self._output.g.shape[0]
 
+    @property
+    def potentials(self) -> Tuple[npt.ArrayLike, npt.ArrayLike]:
+        return self._output.f, self._output.g
 
-class LRSinkhornOutput(OutputRankMixin, OTTBaseOutput):
+
+class LRSinkhornOutput(OutputRankMixin, LinearOTTOutput):
     def _apply(self, x: npt.ArrayLike, *, forward: bool) -> npt.ArrayLike:
         axis = int(not forward)
         if x.ndim == 1:
@@ -70,8 +73,11 @@ class LRSinkhornOutput(OutputRankMixin, OTTBaseOutput):
     def shape(self) -> Tuple[int, int]:
         return self._output.geom.shape
 
+    @property
+    def potentials(self):
+        raise NotImplementedError("This solver does not allow for potentials")
 
-class GWOutput(OutputRankMixin, MatrixSolverOutput):
+class GWOutput(OutputRankMixin, QuadSolverOutput):
     def __init__(self, output: OTTGWOutput, rank: int = -1):
         super().__init__(output.matrix, rank=rank)
         self._converged = bool(output.convergence)
@@ -87,3 +93,4 @@ class GWOutput(OutputRankMixin, MatrixSolverOutput):
 
     def _ones(self, n: int) -> jnp.ndarray:
         return jnp.ones((n,))
+

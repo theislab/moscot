@@ -34,6 +34,11 @@ class BaseSolverOutput(ABC):
         pass
 
     @property
+    @abstractmethod
+    def potentials(self) -> Tuple[npt.ArrayLike, npt.ArrayLike]:
+        pass
+
+    @property
     def rank(self) -> int:
         return -1
 
@@ -97,7 +102,7 @@ class BaseSolverOutput(ABC):
         return f"{self.__class__.__name__}[{self._format_params(str)}]"
 
 
-class MatrixSolverOutput(BaseSolverOutput, ABC):
+class QuadSolverOutput(BaseSolverOutput, ABC):
     def __init__(self, matrix: npt.ArrayLike):
         super().__init__()
         self._matrix = matrix
@@ -114,3 +119,7 @@ class MatrixSolverOutput(BaseSolverOutput, ABC):
     @property
     def shape(self) -> Tuple[int, int]:
         return self.transport_matrix.shape
+
+    @property
+    def potentials(self):
+        raise NotImplementedError("This solver does not allow for potentials")
