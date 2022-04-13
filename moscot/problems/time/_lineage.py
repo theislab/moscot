@@ -204,23 +204,23 @@ class TemporalProblem(TemporalAnalysisMixin, SingleCompoundProblem):
 
     @property
     def growth_rates(self) -> pd.DataFrame:
-        cols = [f"g_{i}" for i in range(list(self)[0][1].growth_rates.shape[1])]
+        cols = [f"g_{i}" for i in range(self.problems[list(self)[0]].growth_rates.shape[1])]
         df_list = [
             pd.DataFrame(problem.growth_rates, index=problem.adata.obs.index, columns=cols)
             for problem in self.problems.values()
         ]
-        # TODO(michalk8): test this
-        # TODO(michalk8): remove __getitem__ dependency?
-        tup, problem = list(self)[-1]
+        tup = list(self)[-1]
         df_list.append(
             pd.DataFrame(
-                np.full(shape=(len(self.problems[tup]._adata_y.obs), problem.growth_rates.shape[1]), fill_value=np.nan),
+                np.full(
+                    shape=(len(self.problems[tup]._adata_y.obs), self.problems[tup].growth_rates.shape[1]),
+                    fill_value=np.nan,
+                ),
                 index=self.problems[tup]._adata_y.obs.index,
                 columns=cols,
-            ),
-            verify_integrity=True,
+            )
         )
-        return pd.concat(df_list)
+        return pd.concat(df_list, verify_integrity=True)
 
     @property
     def proliferation_key(self) -> Optional[str]:
@@ -242,37 +242,47 @@ class TemporalProblem(TemporalAnalysisMixin, SingleCompoundProblem):
 
     @property
     def cell_costs_source(self) -> pd.DataFrame:
-        df_list = [
-            pd.DataFrame(problem.solution.potentials[0], index=problem.adata.obs.index, columns=["cell_cost_source"])
-            for problem in self.problems.values()
-        ]
-        tup, problem = list(self)[-1]
-        df_list.append(
-            pd.DataFrame(
-                np.full(shape=(len(self.problems[tup]._adata_y.obs), 1), fill_value=np.nan),
-                index=self.problems[tup]._adata_y.obs.index,
-                columns=["cell_cost_source"],
-            ),
-            verify_integrity=True,
-        )
-        return pd.concat(df_list)
+        try:
+            df_list = [
+                pd.DataFrame(
+                    problem.solution.potentials[0], index=problem.adata.obs.index, columns=["cell_cost_source"]
+                )
+                for problem in self.problems.values()
+            ]
+            tup = list(self)[-1]
+            df_list.append(
+                pd.DataFrame(
+                    np.full(shape=(len(self.problems[tup]._adata_y.obs), 1), fill_value=np.nan),
+                    index=self.problems[tup]._adata_y.obs.index,
+                    columns=["cell_cost_source"],
+                )
+            )
+            return pd.concat(df_list, verify_integrity=True)
+        except NotImplementedError:
+            raise NotImplementedError("The current solver does not allow this property")
 
     @property
     def cell_costs_target(self) -> pd.DataFrame:
-        df_list = [
-            pd.DataFrame(problem.solution.potentials[1], index=problem.adata.obs.index, columns=["cell_cost_target"])
-            for problem in self.problems.values()
-        ]
-        tup, problem = list(self)[-1]
-        df_list.append(
-            pd.DataFrame(
-                np.full(shape=(len(self.problems[tup]._adata_y.obs), 1), fill_value=np.nan),
-                index=self.problems[tup]._adata_y.obs.index,
-                columns=["cell_cost_target"],
-            ),
-            verify_integrity=True,
-        )
-        return pd.concat(df_list)
+        try:
+            tup = list(self)[-1]
+            df_list = [
+                pd.DataFrame(
+                    np.full(shape=(len(self.problems[tup].adata), 1), fill_value=np.nan),
+                    index=self.problems[tup].adata.obs.index,
+                    columns=["cell_cost_target"],
+                )
+            ]
+            df_list.extend(
+                [
+                    pd.DataFrame(
+                        problem.solution.potentials[1], index=problem._adata_y.obs.index, columns=["cell_cost_target"]
+                    )
+                    for problem in self.problems.values()
+                ]
+            )
+            return pd.concat(df_list, verify_integrity=True)
+        except NotImplementedError:
+            raise NotImplementedError("The current solver does not allow this property")
 
 
 class LineageProblem(TemporalProblem):

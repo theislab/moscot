@@ -42,6 +42,7 @@ class LinearOTTOutput(BaseSolverOutput, ABC):
     def _ones(self, n: int) -> jnp.ndarray:
         return jnp.ones((n,))
 
+
 class SinkhornOutput(LinearOTTOutput):
     def _apply(self, x: npt.ArrayLike, *, forward: bool) -> npt.ArrayLike:
         if x.ndim == 1:
@@ -77,6 +78,7 @@ class LRSinkhornOutput(OutputRankMixin, LinearOTTOutput):
     def potentials(self):
         raise NotImplementedError("This solver does not allow for potentials")
 
+
 class GWOutput(OutputRankMixin, MatrixSolverOutput):
     def __init__(self, output: OTTGWOutput, rank: int = -1):
         super().__init__(output.matrix, rank=rank)
@@ -93,4 +95,3 @@ class GWOutput(OutputRankMixin, MatrixSolverOutput):
 
     def _ones(self, n: int) -> jnp.ndarray:
         return jnp.ones((n,))
-
