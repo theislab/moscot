@@ -240,6 +240,40 @@ class TemporalProblem(TemporalAnalysisMixin, SingleCompoundProblem):
         # TODO(michalk8): add check if present in .obs (if not None)
         self._apoptosis_key = value
 
+    @property
+    def cell_costs_source(self) -> pd.DataFrame:
+        df_list = [
+            pd.DataFrame(problem.solution.potentials[0], index=problem.adata.obs.index, columns=["cell_cost_source"])
+            for problem in self.problems.values()
+        ]
+        tup, problem = list(self)[-1]
+        df_list.append(
+            pd.DataFrame(
+                np.full(shape=(len(self.problems[tup]._adata_y.obs), 1), fill_value=np.nan),
+                index=self.problems[tup]._adata_y.obs.index,
+                columns=["cell_cost_source"],
+            ),
+            verify_integrity=True,
+        )
+        return pd.concat(df_list)
+
+    @property
+    def cell_costs_target(self) -> pd.DataFrame:
+        df_list = [
+            pd.DataFrame(problem.solution.potentials[1], index=problem.adata.obs.index, columns=["cell_cost_target"])
+            for problem in self.problems.values()
+        ]
+        tup, problem = list(self)[-1]
+        df_list.append(
+            pd.DataFrame(
+                np.full(shape=(len(self.problems[tup]._adata_y.obs), 1), fill_value=np.nan),
+                index=self.problems[tup]._adata_y.obs.index,
+                columns=["cell_cost_target"],
+            ),
+            verify_integrity=True,
+        )
+        return pd.concat(df_list)
+
 
 class LineageProblem(TemporalProblem):
     def prepare(
