@@ -7,7 +7,7 @@ from ott.core.sinkhorn_lr import LRSinkhornOutput as OTTLRSinkhornOutput
 from ott.core.gromov_wasserstein import GWOutput as OTTGWOutput
 import jax.numpy as jnp
 
-from moscot.solvers._output import BaseSolverOutput, QuadSolverOutput
+from moscot.solvers._output import BaseSolverOutput, MatrixSolverOutput
 
 __all__ = ("SinkhornOutput", "LRSinkhornOutput", "GWOutput")
 
@@ -77,7 +77,7 @@ class LRSinkhornOutput(OutputRankMixin, LinearOTTOutput):
     def potentials(self):
         raise NotImplementedError("This solver does not allow for potentials")
 
-class GWOutput(OutputRankMixin, QuadSolverOutput):
+class GWOutput(OutputRankMixin, MatrixSolverOutput):
     def __init__(self, output: OTTGWOutput, rank: int = -1):
         super().__init__(output.matrix, rank=rank)
         self._converged = bool(output.convergence)

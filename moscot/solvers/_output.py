@@ -102,7 +102,7 @@ class BaseSolverOutput(ABC):
         return f"{self.__class__.__name__}[{self._format_params(str)}]"
 
 
-class QuadSolverOutput(BaseSolverOutput, ABC):
+class MatrixSolverOutput(BaseSolverOutput, ABC):
     def __init__(self, matrix: npt.ArrayLike):
         super().__init__()
         self._matrix = matrix
