@@ -12,7 +12,6 @@ from moscot.problems.time._lineage import TemporalProblem, TemporalBaseProblem
 
 
 class TestTemporalProblem:
-    # TODO(@MUCDK) add tests for marginals
     def test_prepare(self, adata_time: AnnData):
         expected_keys = [(0, 1), (1, 2)]
         problem = TemporalProblem(adata=adata_time, solver=SinkhornSolver())
