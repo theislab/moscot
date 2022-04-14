@@ -50,13 +50,17 @@ class TemporalBaseProblem(MultiMarginalProblem):
         **kwargs: Any,
     ) -> npt.ArrayLike:
         if proliferation_key is None and apoptosis_key is None:
-            raise ValueError("`proliferation_key` or `apooptosis_key` must be ")
+            raise ValueError("TODO: `proliferation_key` or `apoptosis_key` must be provided to estimate marginals")
+        if proliferation_key is not None and proliferation_key not in adata.obs.columns:
+            raise KeyError(f"TODO: {proliferation_key} not in `adata.obs`")
+        if apoptosis_key is not None and apoptosis_key not in adata.obs.columns:
+            raise KeyError(f"TODO: {apoptosis_key} not in `adata.obs`")
         if proliferation_key is not None:
-            birth = beta(adata.obs[proliferation_key], **kwargs)
+            birth = beta(adata.obs[proliferation_key].to_numpy(), **kwargs)
         else:
             birth = 0
         if apoptosis_key is not None:
-            death = delta(adata.obs[apoptosis_key], **kwargs)
+            death = delta(adata.obs[apoptosis_key].to_numpy(), **kwargs)
         else:
             death = 0
         growth = np.exp((birth - death) * (self._target - self._source))

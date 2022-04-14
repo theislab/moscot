@@ -9,8 +9,6 @@ from moscot.problems.time._lineage import LineageProblem, TemporalBaseProblem
 
 
 class TestLineageProblem:
-    # TODO(@MUCDK) add test for estimate_marginals
-
     def test_barcodes_pipeline(self, adata_time_barcodes: AnnData):
         expected_keys = [(0, 1), (1, 2)]
         problem = LineageProblem(adata=adata_time_barcodes, solver=FGWSolver())

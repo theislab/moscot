@@ -29,6 +29,13 @@ class MockMultiMarginalProblem(MultiMarginalProblem):
         pass
 
 
+class MockBaseSolverOutput:
+    def __init__(self, len_a: int, len_b: int) -> None:
+        rng = np.random.RandomState(42)
+        self.a = rng.randn(len_a)
+        self.b = rng.randn(len_b)
+
+
 def _get_random_trees(
     n_leaves: int, n_trees: int, n_initial_nodes: int = 50, leaf_names: Optional[List[List[str]]] = None, seed: int = 42
 ):

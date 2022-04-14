@@ -130,6 +130,14 @@ def adata_time_cell_type(adata_time: AnnData) -> AnnData:
 
 
 @pytest.fixture()
+def adata_time_marginal_estimations(adata_time: AnnData) -> AnnData:
+    rng = np.random.RandomState(42)
+    adata_time.obs["proliferation"] = rng.randn(len(adata_time))
+    adata_time.obs["apoptosis"] = rng.randn(len(adata_time))
+    return adata_time
+
+
+@pytest.fixture()
 def adata_time_barcodes(adata_time: AnnData) -> AnnData:
     rng = np.random.RandomState(42)
     adata_time.obsm["barcodes"] = rng.randn(len(adata_time), 30)
@@ -156,7 +164,7 @@ def adata_time_custom_cost_xy(adata_time: AnnData) -> AnnData:
 
 
 @pytest.fixture()
-def random_transport_matrix_adata_time(adata_time_cell_type: AnnData) -> np.ndarray:
+def adata_time_random_transport_matrix(adata_time_cell_type: AnnData) -> np.ndarray:
     rng = np.random.RandomState(42)
     adata = adata_time_cell_type
     dim_0 = adata[adata.obs["time"] == 0].n_obs
