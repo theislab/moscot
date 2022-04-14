@@ -36,11 +36,6 @@ class BaseProblem(ABC):
 
     @property
     @abstractmethod
-    def shape(self) -> Tuple[int, int]:
-        pass
-
-    @property
-    @abstractmethod
     def _default_solver(self) -> BaseSolver:
         pass
 
