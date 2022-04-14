@@ -42,7 +42,7 @@ def _get_random_trees(n_leaves: int, n_trees: int, n_initial_nodes: int = 50, le
             G.add_edge(rng.choice(inner_nodes, 1)[0], n_initial_nodes+i)
             leaves_updated.append(n_initial_nodes+i)
         assert len(leaves_updated) == n_leaves
-        relabel_dict = {leaves_updated[i]: leaf_names[tree_idx][i]}
+        relabel_dict = {leaves_updated[i]: leaf_names[tree_idx][i] for i in range(len(leaves_updated))}
         G = nx.relabel_nodes(G, relabel_dict)
         trees.append(G)
 
