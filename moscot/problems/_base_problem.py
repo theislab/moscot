@@ -263,3 +263,21 @@ class GeneralProblem(BaseProblem):
     @property
     def _marginal_b_adata(self) -> AnnData:
         return self.adata if self._adata_y is None else self._adata_y
+
+    @property
+    def x(self) -> Optional[npt.ArrayLike]:
+        if self._x is not None:
+            return self._x.data
+        return None
+
+    @property
+    def y(self) -> Optional[npt.ArrayLike]:
+        if self._y is not None:
+            return self._y.data
+        return None
+
+    @property
+    def xy(self) -> Optional[Tuple[npt.ArrayLike, npt.ArrayLike]]:
+        if self._xy is not None:
+            return self._xy[0].data, self._xy[1].data
+        return None
