@@ -249,6 +249,10 @@ class GeneralProblem(BaseProblem):
         return TaggedArray(data[:n], tag=Tag.POINT_CLOUD), TaggedArray(data[n:], tag=Tag.POINT_CLOUD)
 
     @property
+    def shape(self) -> Tuple[int, int]:
+        return len(self.adata), len(self._marginal_b_adata)
+
+    @property
     def _default_solver(self) -> BaseSolver:
         return SinkhornSolver()
 

@@ -8,10 +8,10 @@ from moscot.backends.ott import FGWSolver
 from moscot.problems.time._lineage import LineageProblem, TemporalBaseProblem
 
 
-class TestTemporalProblem:
+class TestLineageProblem:
     # TODO(@MUCDK) add test for estimate_marginals
 
-    def test_pipeline_with_barcodes(self, adata_time_barcodes: AnnData):
+    def test_barcodes_pipeline(self, adata_time_barcodes: AnnData):
         expected_keys = [(0, 1), (1, 2)]
         problem = LineageProblem(adata=adata_time_barcodes, solver=FGWSolver())
         problem = problem.prepare(
@@ -26,7 +26,7 @@ class TestTemporalProblem:
             assert key in expected_keys
             assert isinstance(problem[key], TemporalBaseProblem)
 
-    def test_pipeline_with_custom_cost(self, adata_time_custom_cost_xy: AnnData):
+    def test_custom_cost_pipeline(self, adata_time_custom_cost_xy: AnnData):
         expected_keys = [(0, 1), (1, 2)]
         problem = LineageProblem(adata=adata_time_custom_cost_xy, solver=FGWSolver())
         problem = problem.prepare(time_key="time")
@@ -36,13 +36,20 @@ class TestTemporalProblem:
             assert key in expected_keys
             assert isinstance(problem[key], TemporalBaseProblem)
 
-    def test_pipeline_with_trees(self, adata_time_trees: AnnData):  # TODO(@MUCDK) create
-        pass
+    def test_trees_pipeline(self, adata_time_trees: AnnData):
+        expected_keys = [(0, 1), (1, 2)]
+        problem = LineageProblem(adata=adata_time_trees, solver=FGWSolver())
+        problem = problem.prepare(time_key="time", lineage_attr={"attr": "uns", "tag": "cost", "loss": "leaf_distance"})
+        problem = problem.solve()
+
+        for key in problem:
+            assert key in expected_keys
+            assert isinstance(problem[key], TemporalBaseProblem)
 
     @pytest.mark.parametrize(
         "n_iters", [3]
     )  # TODO(@MUCDK) as soon as @michalk8 unified warnings/errors test for negative value
-    def test_multiple_iterations(self, adata_time_custom_cost_xy: AnnData, n_iters: int):
+    def test_multiple_iterations_pipeline(self, adata_time_custom_cost_xy: AnnData, n_iters: int):
         problem = LineageProblem(adata=adata_time_custom_cost_xy, solver=FGWSolver())
         problem = problem.prepare("time")
         problem = problem.solve(n_iters=n_iters)

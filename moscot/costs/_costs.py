@@ -110,7 +110,7 @@ class LeafDistance(BaseLoss):
     def _create_cost_from_tree(self, tree: nx.Graph, **kwargs: Any) -> npt.ArrayLike:
         # TODO(@MUCDK): more efficient, problem: `target`in `multi_source_dijkstra` cannot be chosen as a subset
         undirected_tree = tree.to_undirected()
-        leaves = self._get_leaves(undirected_tree, self._adata)
+        leaves = self._get_leaves(undirected_tree)
         n_leaves = len(leaves)
         distances = np.zeros((n_leaves, n_leaves))
         for i, leaf in enumerate(leaves):
