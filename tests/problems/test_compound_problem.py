@@ -1,6 +1,6 @@
 from typing import Type, Optional
 
-from conftest import ATOL, RTOL
+from _utils import ATOL, RTOL
 from pytest_mock import MockerFixture
 from sklearn.metrics.pairwise import euclidean_distances
 import pytest
