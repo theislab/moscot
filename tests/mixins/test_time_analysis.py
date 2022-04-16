@@ -113,7 +113,8 @@ class TestTemporalAnalysisMixin:
 
         result = problem.compute_time_point_distances(10, 10.5, 11)
         assert isinstance(result, tuple)
-        assert result[0] > 0 and result[1] > 0
+        assert result[0] > 0
+        assert result[1] > 0
         np.testing.assert_almost_equal(result[0], 23.9996, decimal=4)  # pre-computed
         np.testing.assert_almost_equal(result[1], 22.7514, decimal=4)  # pre-computed
 

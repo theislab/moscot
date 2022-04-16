@@ -1,22 +1,10 @@
-from typing import Tuple, Union, Optional
-
-from scipy.sparse import csr_matrix
+from _utils import _get_random_trees
 import scipy
-import pandas as pd
 import pytest
 
-from jax.config import config
+import numpy as np
 
 from anndata import AnnData
-import scanpy as sc
-
-config.update("jax_enable_x64", True)
-from _utils import _get_random_trees
-from sklearn.metrics import pairwise_distances
-
-from jax import numpy as jnp  # noqa: E402
-import numpy as np  # noqa: E402
-from _utils import Geom_t, RTOL, ATOL
 
 
 @pytest.fixture()
@@ -28,7 +16,6 @@ def adata_time_trees(adata_time: AnnData) -> AnnData:
     return adata_time
 
 
-
 @pytest.fixture()
 def adata_time_custom_cost_xy(adata_time: AnnData) -> AnnData:
     rng = np.random.RandomState(42)
@@ -37,7 +24,6 @@ def adata_time_custom_cost_xy(adata_time: AnnData) -> AnnData:
     cost_m3 = np.abs(rng.randn(96, 96))
     adata_time.obsp["cost_matrices"] = scipy.sparse.csr_matrix(scipy.linalg.block_diag(cost_m1, cost_m2, cost_m3))
     return adata_time
-
 
 
 @pytest.fixture()

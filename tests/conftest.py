@@ -1,4 +1,4 @@
-from typing import Optional, Tuple
+from typing import Tuple, Optional
 
 from scipy.sparse import csr_matrix
 import pandas as pd
