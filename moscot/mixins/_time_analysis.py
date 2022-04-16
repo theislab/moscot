@@ -141,7 +141,7 @@ class TemporalAnalysisMixin(AnalysisMixin):
     ) -> Tuple[Union[npt.ArrayLike, AnnData], ...]:
         for (start_, end_) in self._problems.keys():
             if start_ == key:
-                source_data = self._problems[(start_, end_)]._x.data
+                source_data = self._problems[(start_, end_)].x
                 if only_start:
                     return source_data, self._problems[(start_, end_)].adata
                 growth_rates_source = self._problems[(start_, end_)].growth_rates[:, -1]
@@ -150,7 +150,7 @@ class TemporalAnalysisMixin(AnalysisMixin):
             raise ValueError(f"No data found for time point {key}")
         for (start_, end_) in self._problems.keys():
             if start_ == intermediate:
-                intermediate_data = self._problems[(start_, end_)]._x.data
+                intermediate_data = self._problems[(start_, end_)].x
                 intermediate_adata = self._problems[(start_, end_)].adata
                 break
         else:
