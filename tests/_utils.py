@@ -1,14 +1,19 @@
-from typing import Any, List, Optional
+from typing import Any, List, Tuple, Union, Optional
 
 import networkx as nx
 
 import numpy as np
+import jax.numpy as jnp
 import numpy.typing as npt
 
 from anndata import AnnData
 
 from moscot.problems import MultiMarginalProblem
 from moscot.solvers._output import MatrixSolverOutput
+
+Geom_t = Union[jnp.ndarray, Tuple[jnp.ndarray, jnp.ndarray]]
+RTOL = 1e-6
+ATOL = 1e-6
 
 
 class TestSolverOutput(MatrixSolverOutput):

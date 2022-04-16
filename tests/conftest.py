@@ -1,27 +1,18 @@
-from typing import Tuple, Union, Optional
+from typing import Optional, Tuple
 
 from scipy.sparse import csr_matrix
-import scipy
 import pandas as pd
 import pytest
 
 from jax.config import config
 
 from anndata import AnnData
-import scanpy as sc
 
 config.update("jax_enable_x64", True)
-from _utils import _get_random_trees
-from sklearn.metrics import pairwise_distances
+from _utils import Geom_t
 
 from jax import numpy as jnp  # noqa: E402
 import numpy as np  # noqa: E402
-
-Geom_t = Union[jnp.ndarray, Tuple[jnp.ndarray, jnp.ndarray]]
-RTOL = 1e-6
-ATOL = 1e-6
-
-_gt_temporal_adata = sc.read("tests/data/moscot_temporal_tests.h5ad")
 
 
 @pytest.fixture()
@@ -117,74 +108,21 @@ def adata_time() -> AnnData:
     return adata
 
 
-@pytest.fixture()
-def adata_large() -> AnnData:
-    return _gt_temporal_adata.copy()
-
-
-@pytest.fixture()
+"""@pytest.fixture()
 def adata_time_cell_type(adata_time: AnnData) -> AnnData:
     rng = np.random.RandomState(42)
     adata_time.obs["cell_type"] = rng.choice(["cell_A", "cell_B", "cell_C"], size=len(adata_time))
-    return adata_time
+    return adata_time"""
 
 
-@pytest.fixture()
-def adata_time_marginal_estimations(adata_time: AnnData) -> AnnData:
-    rng = np.random.RandomState(42)
-    adata_time.obs["proliferation"] = rng.randn(len(adata_time))
-    adata_time.obs["apoptosis"] = rng.randn(len(adata_time))
-    return adata_time
-
-
-@pytest.fixture()
-def adata_time_barcodes(adata_time: AnnData) -> AnnData:
-    rng = np.random.RandomState(42)
-    adata_time.obsm["barcodes"] = rng.randn(len(adata_time), 30)
-    return adata_time
-
-
-@pytest.fixture()
-def adata_time_trees(adata_time: AnnData) -> AnnData:
-    trees = _get_random_trees(
-        n_leaves=96, n_trees=3, leaf_names=[list(adata_time[adata_time.obs.time == i].obs.index) for i in range(3)]
-    )
-    adata_time.uns["trees"] = {0: trees[0], 1: trees[1], 2: trees[2]}
-    return adata_time
-
-
-@pytest.fixture()
-def adata_time_custom_cost_xy(adata_time: AnnData) -> AnnData:
-    rng = np.random.RandomState(42)
-    cost_m1 = np.abs(rng.randn(96, 96))
-    cost_m2 = np.abs(rng.randn(96, 96))
-    cost_m3 = np.abs(rng.randn(96, 96))
-    adata_time.obsp["cost_matrices"] = scipy.sparse.csr_matrix(scipy.linalg.block_diag(cost_m1, cost_m2, cost_m3))
-    return adata_time
-
-
-@pytest.fixture()
+"""@pytest.fixture()
 def adata_time_random_transport_matrix(adata_time_cell_type: AnnData) -> np.ndarray:
     rng = np.random.RandomState(42)
     adata = adata_time_cell_type
     dim_0 = adata[adata.obs["time"] == 0].n_obs
     dim_1 = adata[adata.obs["time"] == 1].n_obs
     t_matrix = np.abs(rng.randn(dim_0, dim_1))
-    return t_matrix / t_matrix.sum()
-
-
-@pytest.fixture()
-def adata_with_cost_matrix(adata_x: Geom_t, adata_y: Geom_t):
-    adata = adata_x.concatenate(adata_y, batch_key="batch")
-    C = pairwise_distances(adata_x.obsm["X_pca"], adata_y.obsm["X_pca"]) ** 2
-    adata.obs["batch"] = pd.to_numeric(adata.obs["batch"])
-    adata.uns[0] = C / C.mean()  # TODO(@MUCDK) make a callback function and replace this part
-    return adata
-
-
-@pytest.fixture()
-def gt_temporal_adata() -> AnnData:
-    return _gt_temporal_adata
+    return t_matrix / t_matrix.sum()"""
 
 
 def create_marginals(n: int, m: int, *, uniform: bool = False, seed: Optional[int] = None) -> Geom_t:
