@@ -1,4 +1,4 @@
-from typing import Any, List, Optional
+from typing import Any, List, Tuple, Union, Optional
 
 import networkx as nx
 
@@ -9,6 +9,10 @@ from anndata import AnnData
 
 from moscot.problems import MultiMarginalProblem
 from moscot.solvers._output import MatrixSolverOutput
+
+Geom_t = Union[np.ndarray, Tuple[np.ndarray, np.ndarray]]
+RTOL = 1e-6
+ATOL = 1e-6
 
 
 class TestSolverOutput(MatrixSolverOutput):
@@ -30,7 +34,7 @@ class MockMultiMarginalProblem(MultiMarginalProblem):
 
 
 class MockBaseSolverOutput:
-    def __init__(self, len_a: int, len_b: int) -> None:
+    def __init__(self, len_a: int, len_b: int):
         rng = np.random.RandomState(42)
         self.a = rng.randn(len_a)
         self.b = rng.randn(len_b)
@@ -38,7 +42,7 @@ class MockBaseSolverOutput:
 
 def _get_random_trees(
     n_leaves: int, n_trees: int, n_initial_nodes: int = 50, leaf_names: Optional[List[List[str]]] = None, seed: int = 42
-):
+) -> Tuple[nx.DiGraph, ...]:
     rng = np.random.RandomState(42)
     if leaf_names is not None:
         assert len(leaf_names) == n_trees

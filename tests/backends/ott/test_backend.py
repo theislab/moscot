@@ -1,6 +1,6 @@
 from typing import Type, Tuple, Union, Optional
 
-from conftest import ATOL, RTOL, Geom_t
+from _utils import ATOL, RTOL, Geom_t
 import pytest
 
 from ott.core import LinearProblem

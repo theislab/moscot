@@ -1,7 +1,6 @@
 from typing import Type
 
-from _utils import TestSolverOutput
-from conftest import ATOL, RTOL, Geom_t
+from _utils import ATOL, RTOL, Geom_t, TestSolverOutput
 import pytest
 
 from ott.geometry import PointCloud
