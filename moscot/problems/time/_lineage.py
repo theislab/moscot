@@ -268,7 +268,7 @@ class TemporalProblem(TemporalAnalysisMixin, SingleCompoundProblem):
     @property
     def cell_costs_target(self) -> pd.DataFrame:
         try:
-            tup = list(self)[-1]
+            tup = list(self)[0]
             df_list = [
                 pd.DataFrame(
                     np.full(shape=(len(self.problems[tup].adata), 1), fill_value=np.nan),

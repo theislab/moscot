@@ -62,3 +62,14 @@ class TestLineageProblem:
             problem[0, 1].growth_rates[:, 0],
             problem[0, 1].growth_rates[:, 1],
         )
+
+    def test_cell_costs_pipeline(self, adata_time_custom_cost_xy: AnnData):
+        problem = LineageProblem(adata=adata_time_custom_cost_xy, solver=FGWSolver())
+        problem = problem.prepare("time")
+        problem = problem.solve()
+
+        with np.testing.assert_raises(NotImplementedError):
+            problem.cell_costs_source
+
+        with np.testing.assert_raises(NotImplementedError):
+            problem.cell_costs_target

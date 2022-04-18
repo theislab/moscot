@@ -1,5 +1,6 @@
 from typing import List
 
+import pandas as pd
 import pytest
 
 import numpy as np
@@ -109,3 +110,84 @@ class TestTemporalProblem:
             assert np.sum(np.isnan(adata_time.obs["apoptosis"])) == 0
         else:
             assert problem.apoptosis_key is None
+
+    def test_proliferation_key_pipeline(self, adata_time: AnnData):
+        problem = TemporalProblem(adata_time)
+
+        assert problem.proliferation_key is None
+
+        problem.score_genes_for_marginals(gene_set_proliferation="human", gene_set_apoptosis="human")
+
+        assert problem.proliferation_key == "proliferation"
+
+        problem.proliferation_key = "new_proliferation"
+
+        assert problem.proliferation_key == "new_proliferation"
+
+    def test_apoptosis_key_pipeline(self, adata_time: AnnData):
+        problem = TemporalProblem(adata_time)
+
+        assert problem.apoptosis_key is None
+
+        problem.score_genes_for_marginals(gene_set_proliferation="human", gene_set_apoptosis="human")
+
+        assert problem.apoptosis_key == "apoptosis"
+
+        problem.apoptosis_key = "new_apoptosis"
+
+        assert problem.apoptosis_key == "new_apoptosis"
+
+    def test_cell_costs_source_pipeline(self, adata_time: AnnData):
+        problem = TemporalProblem(adata=adata_time)
+        problem = problem.prepare("time")
+        problem = problem.solve()
+
+        cell_costs_source = problem.cell_costs_source
+
+        assert isinstance(cell_costs_source, pd.DataFrame)
+        assert len(cell_costs_source.columns) == 1
+        assert list(cell_costs_source.columns)[0] == "cell_cost_source"
+        assert set(cell_costs_source.index) == set(adata_time.obs.index)
+        assert set(cell_costs_source[cell_costs_source["cell_cost_source"].isnull()].index) == set(
+            adata_time[adata_time.obs["time"] == 2].obs.index
+        )
+        assert set(cell_costs_source[~cell_costs_source["cell_cost_source"].isnull()].index) == set(
+            adata_time[adata_time.obs["time"].isin([0, 1])].obs.index
+        )
+
+    def test_cell_costs_target_pipeline(self, adata_time: AnnData):
+        problem = TemporalProblem(adata=adata_time)
+        problem = problem.prepare("time")
+        problem = problem.solve()
+
+        cell_costs_target = problem.cell_costs_target
+
+        assert isinstance(cell_costs_target, pd.DataFrame)
+        assert len(cell_costs_target.columns) == 1
+        assert list(cell_costs_target.columns)[0] == "cell_cost_target"
+        assert set(cell_costs_target.index) == set(adata_time.obs.index)
+        assert set(cell_costs_target[cell_costs_target["cell_cost_target"].isnull()].index) == set(
+            adata_time[adata_time.obs["time"] == 0].obs.index
+        )
+        assert set(cell_costs_target[~cell_costs_target["cell_cost_target"].isnull()].index) == set(
+            adata_time[adata_time.obs["time"].isin([1, 2])].obs.index
+        )
+
+    def test_growth_rates_pipeline(self, adata_time: AnnData):
+        problem = TemporalProblem(adata=adata_time, solver=SinkhornSolver())
+        problem = problem.prepare("time")
+        problem = problem.solve()
+
+        growth_rates = problem.growth_rates
+        assert isinstance(growth_rates, pd.DataFrame)
+        assert len(growth_rates.columns) == 2
+        assert set(growth_rates.index) == set(adata_time.obs.index)
+        assert set(growth_rates[growth_rates["g_0"].isnull()].index) == set(
+            growth_rates[growth_rates["g_1"].isnull()].index
+        )
+        assert set(growth_rates[growth_rates["g_0"].isnull()].index) == set(
+            adata_time[adata_time.obs["time"] == 2].obs.index
+        )
+        assert set(growth_rates[~growth_rates["g_0"].isnull()].index) == set(
+            adata_time[adata_time.obs["time"].isin([0, 1])].obs.index
+        )
