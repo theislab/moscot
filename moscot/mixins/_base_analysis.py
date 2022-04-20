@@ -23,8 +23,13 @@ class AnalysisMixin(ABC):
 
         rng = np.random.RandomState(seed)
         if account_for_unbalancedness and interpolation_parameter is None:
+
             raise ValueError(
                 "TODO: if unbalancedness is to be accounted for `interpolation_parameter` must be provided"
+            )
+        if interpolation_parameter is not None and (0 > interpolation_parameter or interpolation_parameter > 1):
+            raise ValueError(
+                f"TODO: interpolation parameter must be between 0 and 1 but is {interpolation_parameter}."
             )
 
         mass = np.ones(target_dim)
@@ -35,7 +40,7 @@ class AnalysisMixin(ABC):
                 normalize=True,
                 scale_by_marginals=False,
                 filter=[(start, end)],
-            )
+            )[start, end]
             col_sums = np.asarray(col_sums).squeeze() + 1e-12
             mass = mass / np.power(col_sums, 1 - interpolation_parameter)
 
@@ -47,7 +52,7 @@ class AnalysisMixin(ABC):
                 normalize=True,
                 scale_by_marginals=False,
                 filter=[(start, end)],
-            )
+            )[start, end]
         ).squeeze()
 
         rows_sampled = rng.choice(source_dim, p=row_probability / row_probability.sum(), size=n_samples)
@@ -67,7 +72,7 @@ class AnalysisMixin(ABC):
                     normalize=True,
                     scale_by_marginals=False,
                     filter=[(start, end)],
-                )
+                )[start, end]
             ).squeeze()
             if account_for_unbalancedness:
                 col_p_given_row = col_p_given_row / col_sums[:, None]
