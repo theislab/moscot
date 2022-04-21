@@ -93,6 +93,21 @@ class TestTemporalAnalysisMixin:
         assert isinstance(batch_distance, float)
         assert batch_distance > 0
 
+    @pytest.mark.parametrize("account_for_unbalancedness", [True, False])
+    def test_compute_interpolated_distance_pipeline(self, gt_temporal_adata: AnnData, account_for_unbalancedness: bool):
+        problem = TemporalProblem(gt_temporal_adata)
+        problem = problem.prepare("day", subset=[(10, 10.5), (10.5, 11), (10, 11)], policy="explicit")
+        assert set(problem.problems.keys()) == {(10, 10.5), (10, 11), (10.5, 11)}
+        problem[10, 10.5]._solution = TestSolverOutput(gt_temporal_adata.uns["tmap_10_105"])
+        problem[10.5, 11]._solution = TestSolverOutput(gt_temporal_adata.uns["tmap_105_11"])
+        problem[10, 11]._solution = TestSolverOutput(gt_temporal_adata.uns["tmap_10_11"])
+
+        interpolation_result = problem.compute_interpolated_distance(
+            10, 10.5, 11, account_for_unbalancedness=account_for_unbalancedness, seed=42
+        )
+        assert isinstance(interpolation_result, float)
+        assert interpolation_result > 0
+
     def test_compute_interpolated_distance_regression(self, gt_temporal_adata: AnnData):
         problem = TemporalProblem(gt_temporal_adata)
         problem = problem.prepare("day", subset=[(10, 10.5), (10.5, 11), (10, 11)], policy="explicit")
@@ -102,7 +117,7 @@ class TestTemporalAnalysisMixin:
         problem[10, 11]._solution = TestSolverOutput(gt_temporal_adata.uns["tmap_10_11"])
 
         interpolation_result = problem.compute_interpolated_distance(10, 10.5, 11, seed=42)
-        isinstance(interpolation_result, float)
+        assert isinstance(interpolation_result, float)
         assert interpolation_result > 0
         np.testing.assert_almost_equal(interpolation_result, 20.629795, decimal=4)  # pre-computed
 

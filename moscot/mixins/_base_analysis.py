@@ -1,6 +1,5 @@
 from abc import ABC
 from typing import Any, List, Tuple, Optional
-from numbers import Number
 
 import numpy as np
 import numpy.typing as npt
@@ -10,8 +9,8 @@ import numpy.typing as npt
 class AnalysisMixin(ABC):
     def _sample_from_tmap(
         self,
-        start: Number,
-        end: Number,
+        start: Any,
+        end: Any,
         n_samples: int,
         source_dim: int,
         target_dim: int,
@@ -23,31 +22,35 @@ class AnalysisMixin(ABC):
 
         rng = np.random.RandomState(seed)
         if account_for_unbalancedness and interpolation_parameter is None:
+
             raise ValueError(
                 "TODO: if unbalancedness is to be accounted for `interpolation_parameter` must be provided"
             )
-
+        if interpolation_parameter is not None and (0 > interpolation_parameter or interpolation_parameter > 1):
+            raise ValueError(f"TODO: interpolation parameter must be between 0 and 1 but is {interpolation_parameter}.")
         mass = np.ones(target_dim)
         if account_for_unbalancedness:
-            col_sums = self.push(
+            col_sums = self._apply(
                 start=start,
                 end=end,
                 normalize=True,
+                forward=True,
                 scale_by_marginals=False,
                 filter=[(start, end)],
-            )
+            )[(start, end)]
             col_sums = np.asarray(col_sums).squeeze() + 1e-12
             mass = mass / np.power(col_sums, 1 - interpolation_parameter)
 
         row_probability = np.asarray(
-            self.pull(
+            self._apply(
                 start=start,
                 end=end,
                 data=mass,
                 normalize=True,
+                forward=False,
                 scale_by_marginals=False,
                 filter=[(start, end)],
-            )
+            )[(start, end)]
         ).squeeze()
 
         rows_sampled = rng.choice(source_dim, p=row_probability / row_probability.sum(), size=n_samples)
@@ -60,14 +63,15 @@ class AnalysisMixin(ABC):
             data[rows_batch, range(len(rows_batch))] = 1
 
             col_p_given_row = np.asarray(
-                self.push(
+                self._apply(
                     start=start,
                     end=end,
                     data=data,
                     normalize=True,
+                    forward=True,
                     scale_by_marginals=False,
                     filter=[(start, end)],
-                )
+                )[(start, end)]
             ).squeeze()
             if account_for_unbalancedness:
                 col_p_given_row = col_p_given_row / col_sums[:, None]
@@ -83,6 +87,7 @@ class AnalysisMixin(ABC):
         self, start: Any, end: Any, forward: bool = True, normalize: bool = True
     ) -> npt.ArrayLike:
         """Interpolate transport matrix."""
+        # TODO(@MUCDK, @giovp, discuss what exactly this function should do, seems like it could be more generic)
         steps = self._policy.plan(start=start, end=end)[start, end]
         if len(steps) == 1:
             return self._problems[steps[0]].solution._scale_transport_by_marginals(forward=forward)

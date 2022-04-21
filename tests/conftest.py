@@ -108,23 +108,6 @@ def adata_time() -> AnnData:
     return adata
 
 
-"""@pytest.fixture()
-def adata_time_cell_type(adata_time: AnnData) -> AnnData:
-    rng = np.random.RandomState(42)
-    adata_time.obs["cell_type"] = rng.choice(["cell_A", "cell_B", "cell_C"], size=len(adata_time))
-    return adata_time"""
-
-
-"""@pytest.fixture()
-def adata_time_random_transport_matrix(adata_time_cell_type: AnnData) -> np.ndarray:
-    rng = np.random.RandomState(42)
-    adata = adata_time_cell_type
-    dim_0 = adata[adata.obs["time"] == 0].n_obs
-    dim_1 = adata[adata.obs["time"] == 1].n_obs
-    t_matrix = np.abs(rng.randn(dim_0, dim_1))
-    return t_matrix / t_matrix.sum()"""
-
-
 def create_marginals(n: int, m: int, *, uniform: bool = False, seed: Optional[int] = None) -> Geom_t:
     rng = np.random.RandomState(seed)
     if uniform:
