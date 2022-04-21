@@ -22,7 +22,7 @@ class TestBaseAnalysisMixin:
         source_dim = len(gt_temporal_adata[gt_temporal_adata.obs["day"] == 10])
         target_dim = len(gt_temporal_adata[gt_temporal_adata.obs["day"] == 10.5])
         problem = CompoundProblemWithMixin(gt_temporal_adata)
-        problem = problem.prepare("day", subset=[(10, 10.5)], policy="explicit", callback="pca_local")
+        problem = problem.prepare("day", subset=[(10, 10.5)], policy="sequential", callback="pca_local")
         problem[10, 10.5]._solution = TestSolverOutput(gt_temporal_adata.uns["tmap_10_105"])
 
         if interpolation_parameter is not None and not 0 <= interpolation_parameter <= 1:

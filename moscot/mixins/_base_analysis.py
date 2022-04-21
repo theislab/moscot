@@ -10,8 +10,8 @@ import numpy.typing as npt
 class AnalysisMixin(ABC):
     def _sample_from_tmap(
         self,
-        start: Number,
-        end: Number,
+        start: float,
+        end: float,
         n_samples: int,
         source_dim: int,
         target_dim: int,
@@ -29,7 +29,7 @@ class AnalysisMixin(ABC):
             )
         if interpolation_parameter is not None and (0 > interpolation_parameter or interpolation_parameter > 1):
             raise ValueError(f"TODO: interpolation parameter must be between 0 and 1 but is {interpolation_parameter}.")
-
+        print("start and end are ", start, end)
         mass = np.ones(target_dim)
         if account_for_unbalancedness:
             col_sums = self.push(
@@ -37,8 +37,8 @@ class AnalysisMixin(ABC):
                 end=end,
                 normalize=True,
                 scale_by_marginals=False,
-                filter=[(start, end)],
-            )[start, end]
+                subset=[(start, end)],
+            )[(start, end)]
             col_sums = np.asarray(col_sums).squeeze() + 1e-12
             mass = mass / np.power(col_sums, 1 - interpolation_parameter)
 
@@ -49,8 +49,8 @@ class AnalysisMixin(ABC):
                 data=mass,
                 normalize=True,
                 scale_by_marginals=False,
-                filter=[(start, end)],
-            )[start, end]
+                subset=[(start, end)],
+            )[(start, end)]
         ).squeeze()
 
         rows_sampled = rng.choice(source_dim, p=row_probability / row_probability.sum(), size=n_samples)
@@ -69,8 +69,8 @@ class AnalysisMixin(ABC):
                     data=data,
                     normalize=True,
                     scale_by_marginals=False,
-                    filter=[(start, end)],
-                )[start, end]
+                    subset=[(start, end)],
+                )[(start, end)]
             ).squeeze()
             if account_for_unbalancedness:
                 col_p_given_row = col_p_given_row / col_sums[:, None]
