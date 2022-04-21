@@ -1,11 +1,11 @@
 Solvers
 =======
-
-.. currentmodule:: scott
+.. module:: moscot.backends.ott
+.. currentmodule:: moscot.backends.ott
 
 .. autosummary::
     :toctree: api
 
-    Regularized
-    GW
-    FusedGW
+    SinkhornSolver
+    GWSolver
+    FGWSolver

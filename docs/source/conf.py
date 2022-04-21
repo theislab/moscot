@@ -17,14 +17,13 @@ import sys
 
 HERE = Path(__file__).parent
 sys.path.insert(0, str(HERE.parent.parent))
-import msc
 
 # -- Project information -----------------------------------------------------
 
 project = "moscot"
 copyright = "2021, Theislab"  # noqa: A001
-author = msc.__author__
-version = msc.__version__
+author = "foo"  # moscot.__author__
+version = "0.0"  # moscot.__version__
 
 # -- General configuration ---------------------------------------------------
 
@@ -73,6 +72,19 @@ napoleon_custom_sections = [("Params", "Parameters")]
 todo_include_todos = False
 
 
+# spelling
+spelling_lang = "en_US"
+spelling_warning = True
+spelling_word_list_filename = "spelling_wordlist.txt"
+spelling_add_pypi_package_names = True
+spelling_show_suggestions = True
+spelling_exclude_patterns = ["references.rst"]
+# see: https://pyenchant.github.io/pyenchant/api/enchant.tokenize.html
+spelling_filters = [
+    "enchant.tokenize.URLFilter",
+    "enchant.tokenize.EmailFilter",
+    "enchant.tokenize.MentionFilter",
+]
 # -- Options for HTML output -------------------------------------------------
 
 # The theme to use for HTML and HTML Help pages.  See the documentation for
