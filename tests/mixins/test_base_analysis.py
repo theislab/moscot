@@ -1,15 +1,11 @@
-from typing import Tuple, Optional
-from numbers import Number
+from typing import Optional
 
 from _utils import TestSolverOutput, CompoundProblemWithMixin
-import pandas as pd
 import pytest
 
 import numpy as np
 
 from anndata import AnnData
-
-from moscot.problems import CompoundProblem
 
 
 class TestBaseAnalysisMixin:
@@ -65,10 +61,11 @@ class TestBaseAnalysisMixin:
             assert isinstance(result[0], np.ndarray)
             assert isinstance(result[1], list)
             assert isinstance(result[1][0], np.ndarray)
-            #assert len(np.array(result[1]).flatten()) == n_samples
+            assert len(np.concatenate(result[1])) == n_samples
 
     @pytest.mark.parametrize("forward", [True, False])
-    def test_interpolate_transport(self, gt_temporal_adata: AnnData, forward: bool):
+    @pytest.mark.parametrize("normalize", [True, False])
+    def test_interpolate_transport(self, gt_temporal_adata: AnnData, forward: bool, normalize: bool):
         problem = CompoundProblemWithMixin(gt_temporal_adata)
         problem = problem.prepare(
             "day", subset=[(10, 10.5), (10.5, 11), (10, 11)], policy="explicit", callback="pca_local"
@@ -77,8 +74,7 @@ class TestBaseAnalysisMixin:
         problem[10.5, 11]._solution = TestSolverOutput(gt_temporal_adata.uns["tmap_105_11"])
         problem[10, 11]._solution = TestSolverOutput(gt_temporal_adata.uns["tmap_10_11"])
 
-        tmap = problem._interpolate_transport(10, 11, forward)
+        tmap = problem._interpolate_transport(10, 11, forward=forward, normalize=normalize)
 
         assert isinstance(tmap, np.ndarray)
-        if forward:
-            assert (gt_temporal_adata.uns["tmap_10_105"] @ gt_temporal_adata.uns["tmap_105_11"] == tmap).all()
+        # TODO(@MUCDK) add regression test after discussing with @giovp what this function should be doing / it is more generic

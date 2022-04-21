@@ -28,9 +28,7 @@ class AnalysisMixin(ABC):
                 "TODO: if unbalancedness is to be accounted for `interpolation_parameter` must be provided"
             )
         if interpolation_parameter is not None and (0 > interpolation_parameter or interpolation_parameter > 1):
-            raise ValueError(
-                f"TODO: interpolation parameter must be between 0 and 1 but is {interpolation_parameter}."
-            )
+            raise ValueError(f"TODO: interpolation parameter must be between 0 and 1 but is {interpolation_parameter}.")
 
         mass = np.ones(target_dim)
         if account_for_unbalancedness:
@@ -88,6 +86,7 @@ class AnalysisMixin(ABC):
         self, start: Any, end: Any, forward: bool = True, normalize: bool = True
     ) -> npt.ArrayLike:
         """Interpolate transport matrix."""
+        # TODO(@MUCDK, @giovp, discuss what exactly this function should do, seems like it could be more generic)
         steps = self._policy.plan(start=start, end=end)[start, end]
         if len(steps) == 1:
             return self._problems[steps[0]].solution._scale_transport_by_marginals(forward=forward)

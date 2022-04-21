@@ -7,9 +7,9 @@ import numpy.typing as npt
 
 from anndata import AnnData
 
-from moscot.problems import MultiMarginalProblem, CompoundProblem
-from moscot.mixins._base_analysis import AnalysisMixin
+from moscot.problems import CompoundProblem, MultiMarginalProblem
 from moscot.solvers._output import MatrixSolverOutput
+from moscot.mixins._base_analysis import AnalysisMixin
 
 Geom_t = Union[np.ndarray, Tuple[np.ndarray, np.ndarray]]
 RTOL = 1e-6
@@ -18,6 +18,7 @@ ATOL = 1e-6
 
 class CompoundProblemWithMixin(CompoundProblem, AnalysisMixin):
     pass
+
 
 class TestSolverOutput(MatrixSolverOutput):
     @property
