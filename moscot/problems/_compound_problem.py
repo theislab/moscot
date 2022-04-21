@@ -158,7 +158,6 @@ class CompoundBaseProblem(BaseProblem, ABC):
         # TODO: check if solved - decorator?
         plans = self._policy.plan(**kwargs)
         res: Dict[Tuple[Any, Any], npt.ArrayLike] = {}
-        print("plans are ", plans)
         for plan, steps in plans.items():
             if forward:
                 initial_problem = self.problems[steps[0]]
@@ -189,13 +188,13 @@ class CompoundBaseProblem(BaseProblem, ABC):
 
             res[plan] = ds if return_all else current_mass
         # TODO(michalk8): return the values iff only 1 plan?
-        print("res is ", res)
         return res
 
     def push(self, *args: Any, **kwargs: Any) -> Union[npt.ArrayLike, Dict[Any, npt.ArrayLike]]:
         return self._apply(*args, forward=True, **kwargs)
 
     def pull(self, *args: Any, **kwargs: Any) -> Union[npt.ArrayLike, Dict[Any, npt.ArrayLike]]:
+        assert isinstance(self._apply(*args, forward=False, **kwargs), dict)
         return self._apply(*args, forward=False, **kwargs)
 
     @property

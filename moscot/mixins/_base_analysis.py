@@ -1,6 +1,5 @@
 from abc import ABC
 from typing import Any, List, Tuple, Optional
-from numbers import Number
 
 import numpy as np
 import numpy.typing as npt
@@ -10,8 +9,8 @@ import numpy.typing as npt
 class AnalysisMixin(ABC):
     def _sample_from_tmap(
         self,
-        start: float,
-        end: float,
+        start: Any,
+        end: Any,
         n_samples: int,
         source_dim: int,
         target_dim: int,
@@ -29,27 +28,28 @@ class AnalysisMixin(ABC):
             )
         if interpolation_parameter is not None and (0 > interpolation_parameter or interpolation_parameter > 1):
             raise ValueError(f"TODO: interpolation parameter must be between 0 and 1 but is {interpolation_parameter}.")
-        print("start and end are ", start, end)
         mass = np.ones(target_dim)
         if account_for_unbalancedness:
-            col_sums = self.push(
+            col_sums = self._apply(
                 start=start,
                 end=end,
                 normalize=True,
+                forward=True,
                 scale_by_marginals=False,
-                subset=[(start, end)],
+                filter=[(start, end)],
             )[(start, end)]
             col_sums = np.asarray(col_sums).squeeze() + 1e-12
             mass = mass / np.power(col_sums, 1 - interpolation_parameter)
 
         row_probability = np.asarray(
-            self.pull(
+            self._apply(
                 start=start,
                 end=end,
                 data=mass,
                 normalize=True,
+                forward=False,
                 scale_by_marginals=False,
-                subset=[(start, end)],
+                filter=[(start, end)],
             )[(start, end)]
         ).squeeze()
 
@@ -63,13 +63,14 @@ class AnalysisMixin(ABC):
             data[rows_batch, range(len(rows_batch))] = 1
 
             col_p_given_row = np.asarray(
-                self.push(
+                self._apply(
                     start=start,
                     end=end,
                     data=data,
                     normalize=True,
+                    forward=True,
                     scale_by_marginals=False,
-                    subset=[(start, end)],
+                    filter=[(start, end)],
                 )[(start, end)]
             ).squeeze()
             if account_for_unbalancedness:
