@@ -194,7 +194,6 @@ class CompoundBaseProblem(BaseProblem, ABC):
         return self._apply(*args, forward=True, **kwargs)
 
     def pull(self, *args: Any, **kwargs: Any) -> Union[npt.ArrayLike, Dict[Any, npt.ArrayLike]]:
-        assert isinstance(self._apply(*args, forward=False, **kwargs), dict)
         return self._apply(*args, forward=False, **kwargs)
 
     @property

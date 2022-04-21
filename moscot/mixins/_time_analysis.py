@@ -166,8 +166,8 @@ class TemporalAnalysisMixin(AnalysisMixin):
 
     def compute_interpolated_distance(
         self,
-        start: float,
-        intermediate: float,
+        start: Number,
+        intermediate: Number,
         end: Number,
         interpolation_parameter: Optional[int] = None,
         n_interpolated_cells: Optional[int] = None,
@@ -194,8 +194,8 @@ class TemporalAnalysisMixin(AnalysisMixin):
 
     def compute_random_distance(
         self,
-        start: float,
-        intermediate: float,
+        start: Number,
+        intermediate: Number,
         end: Number,
         interpolation_parameter: Optional[int] = None,
         n_interpolated_cells: Optional[int] = None,
@@ -263,8 +263,8 @@ class TemporalAnalysisMixin(AnalysisMixin):
         number_cells: int,
         source_data: npt.ArrayLike,
         target_data: npt.ArrayLike,
-        start: float,
-        end: float,
+        start: Number,
+        end: Number,
         interpolation_parameter: float = 0.5,
         account_for_unbalancedness: bool = True,
         batch_size: int = 256,
