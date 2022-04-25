@@ -16,7 +16,7 @@ Solvers
 
 SinkhornSolver
 --------------
-.. autoclass:: moscot.backends.ott.Solvers.SinkhornSolver
+.. autoclass:: moscot.backends.ott.SinkhornSolver
     :noindex:
     :members:
     :inherited-members:
@@ -24,7 +24,7 @@ SinkhornSolver
 
 GWSolver
 --------
-.. autoclass:: moscot.backends.ott.Solvers.GWSolver
+.. autoclass:: moscot.backends.ott.GWSolver
     :noindex:
     :members:
     :inherited-members:
@@ -32,7 +32,7 @@ GWSolver
 
 FGWSolver
 --------
-.. autoclass:: moscot.backends.ott.Solvers.FGWSolver
+.. autoclass:: moscot.backends.ott.FGWSolver
     :noindex:
     :members:
     :inherited-members:
