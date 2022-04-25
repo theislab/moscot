@@ -28,6 +28,27 @@ Callback_t = Optional[
 
 
 class CompoundBaseProblem(BaseProblem, ABC):
+    """
+    Base class for all biological problems.
+
+    Base class translating a biological problem to potentially multiple Optimal Transport problems.
+
+    Parameters
+    ----------
+    adata
+        instance of :class:`anndata.AnnData` containing the data defining the biological problem.
+    solver
+        instance of :class:`moscot.solvers` used for solving the optimal transport problem(s)
+    base_problem_type
+        subclass of :class:`moscot.problems.GeneralProblem` defining the problem type of a single optimal transport problem
+
+
+    Raises
+    ------
+    TypeError
+        If ``base_problem_type`` is not a subclass of `GeneralProblem`
+
+    """
     def __init__(
         self,
         adata: AnnData,
@@ -101,6 +122,33 @@ class CompoundBaseProblem(BaseProblem, ABC):
         callback_kwargs: Mapping[str, Any] = MappingProxyType({}),
         **kwargs: Any,
     ) -> "CompoundProblem":
+        """
+        Prepares the biological problem
+
+        Parameters
+        ----------
+        key
+            key in :attr:`anndata.AnnData.obs` allocating the cell to a certain cell distribution
+        policy
+            defines which transport maps to compute given different cell distributions
+        subset
+            subset of `anndata.AnnData.obs` [key] values of which the policy is to be applied to
+        reference
+            pass
+        axis
+            pass
+        callback
+            pass
+        callback_kwargs
+            pass
+        kwargs
+            pass
+
+        Returns
+        -------
+        Self
+
+        """
         self._policy = self._create_policy(policy=policy, key=key, axis=axis)
         if isinstance(self._policy, ExplicitPolicy):
             self._policy = self._policy(subset)

@@ -79,6 +79,23 @@ class TemporalBaseProblem(MultiMarginalProblem):
 
 
 class TemporalProblem(TemporalAnalysisMixin, SingleCompoundProblem):
+    """
+    Estimator for modelling time series single cell data based on :cite:`schiebinger:19`
+
+    Class handling the computation and downstream analysis of temporal single cell data.
+
+    Parameters
+    ----------
+    adata
+        :class:`anndata.AnnData` instance containing the single cell data and corresponding metadata
+    solver
+        :class:`moscot.solver` instance used to solve the optimal transport problem. Currently, :class:`moscot.solvers.SinkhornSolver` can be used to solve this problem.
+
+    Examples
+    --------
+    See notebook TODO(@MUCDK) LINK NOTEBOOK for how to use it
+    """
+
     _VALID_POLICIES = ["sequential", "pairwise", "triu", "tril", "explicit"]
 
     def __init__(self, adata: AnnData, solver: Optional[BaseSolver] = None, **kwargs: Any):
@@ -95,6 +112,40 @@ class TemporalProblem(TemporalAnalysisMixin, SingleCompoundProblem):
         apoptosis_key: str = "apoptosis",
         **kwargs: Any,
     ) -> "TemporalProblem":
+        """
+        Compute gene scores to obtain prior konwledge about proliferation and apoptosis.
+
+        This method computes gene scores using :func:`scanpy.tl.score_genes`. Therefore, a list of genes corresponding to proliferation and/or apoptosis must be passed.
+        ALternatively, proliferation and apoptosis genes for humans and mice are saved in :mod:`moscot`.
+        The gene scores will be used in :meth:`moscot.problems.TemporalProblem.prepare()` to estimate the initial growth rates as suggested in :cite:`schiebinger:19`
+
+        Parameters
+        ----------
+        gene_set_proliferation
+            Set of marker genes for proliferation used in the birth-death process. If marker genes from :mod:`moscot` are to be used the corresponding organism must be passed.
+        gene_set_apoptosis
+            Set of marker genes for apoptosis used in the birth-death process. If marker genes from :mod:`moscot` are to be used the corresponding organism must be passed.
+        proliferation_key
+            Key in :attr:`anndata.AnnData.obs` where to add the genes scores.
+        kwargs
+            Keyword arguments for :func:`scanpy.tl.score_genes`.
+
+        Returns
+        -------
+        Self and updates the following attributes
+
+            - :attr:`proliferation_key`
+            - :attr:`apoptosis_key`
+
+        Notes
+        -----
+        The marker genes in :mod:`moscot` are taken from the following sources:
+            - human, proliferation - :cite:`tirosh:16:science`.
+            - human, apoptosis - `Hallmark Apoptosis, MSigDB <https://www.gsea-msigdb.org/gsea/msigdb/cards/HALLMARK_APOPTOSIS>`_.
+            - mouse, proliferation - :cite:`tirosh:16:nature`.
+            - mouse, apoptosis - `Hallmark P53 Pathway, MSigDB <https://www.gsea-msigdb.org/gsea/msigdb/cards/HALLMARK_P53_PATHWAY>`_.
+
+        """
         if gene_set_proliferation is None:
             self.proliferation_key = None
         else:
@@ -135,6 +186,29 @@ class TemporalProblem(TemporalAnalysisMixin, SingleCompoundProblem):
         marginal_kwargs: Mapping[str, Any] = MappingProxyType({}),
         **kwargs: Any,
     ) -> "TemporalProblem":
+        """
+        Prepares the TemporalProblem for it being ready to be solved
+
+        This method executes multiple steps to prepare the problem for the Optimal Transport solver to be ready to solve it
+
+        Parameters
+        ----------
+        time_key
+            Key in :attr:`anndata.AnnData.obs` which defines the time point each cell belongs to. It is supposed to be of numerical data type.
+        joint_attr
+            Parameter defining how to allocate the data needed to compute the transport maps. If None, the data is read from :attr:`anndata.AnnData.X` and for each time point the corresponding PCA space is computed. If `joint_attr` is a string the data is assumed to be found in :attr:`anndata.AnnData.obsm`. If `joint_attr` is a dictionary the dictionary is supposed to contain the attribute of :attr:`anndata.AnnData` as a key and the corresponding attribute as a value.
+
+        Returns
+        -------
+        Self
+
+        Raises
+        ------
+        KeyError
+            If `time_key` is not in :attr:`anndata.AnnData.obs`
+        KeyError
+            If `joint_attr` is a string and cannot be found in :attr:`anndata.AnnData.obsm`
+        """
         if policy not in self._VALID_POLICIES:
             raise ValueError("TODO: wrong policies")
         self._temporal_key = time_key
@@ -163,13 +237,35 @@ class TemporalProblem(TemporalAnalysisMixin, SingleCompoundProblem):
 
     def push(
         self,
-        start: Any,
-        end: Any,
+        start: Number,
+        end: Number,
         result_key: Optional[str] = None,
         return_all: bool = False,
         scale_by_marginals: bool = True,
         **kwargs: Any,
     ) -> Optional[Union[npt.ArrayLike, Dict[Tuple[Any, Any], npt.ArrayLike]]]:
+        """
+        Pushes distribution of cells through time
+
+        Parameters
+        ----------
+        start
+            Time point of source distribution.
+        target
+            Time point of target distribution.
+        result_key
+            Key of where to save the result in :attr:`anndata.AnnData.obs`. If None the result will be returned.
+        return_all
+            If True returns all the intermediate masses if pushed through multiple transport plans. If True, the result is returned as a dictionary.
+
+        Returns
+        -------
+        Self
+
+        Raises
+        ------
+        TODO: inherit
+        """
         if result_key is not None:
             return_all = True
         result = super().push(
@@ -186,13 +282,35 @@ class TemporalProblem(TemporalAnalysisMixin, SingleCompoundProblem):
 
     def pull(
         self,
-        start: Any,
-        end: Any,
+        start: Number,
+        end: Number,
         result_key: Optional[str] = None,
         return_all: bool = False,
         scale_by_marginals: bool = True,
         **kwargs: Any,
     ) -> Optional[Union[npt.ArrayLike, Dict[Tuple[Any, Any], npt.ArrayLike]]]:
+        """
+        Pulls distribution of cells through time
+
+        Parameters
+        ----------
+        start
+            Time point of source distribution (later time point).
+        target
+            Time point of target distribution (earlier time point).
+        result_key
+            Key of where to save the result in :class:`anndata.AnnData.obs`. If None the result will be returned.
+        return_all
+            If True returns all the intermediate masses if pushed through multiple transport plans. If True, the result is returned as a dictionary.
+
+        Returns
+        -------
+        Self
+
+        Raises
+        ------
+        TODO: inherit
+        """
         if result_key is not None:
             return_all = True
         result = super().pull(
@@ -208,6 +326,9 @@ class TemporalProblem(TemporalAnalysisMixin, SingleCompoundProblem):
 
     @property
     def growth_rates(self) -> pd.DataFrame:
+        """
+        Growth rates of the cells
+        """
         cols = [f"g_{i}" for i in range(self.problems[list(self)[0]].growth_rates.shape[1])]
         df_list = [
             pd.DataFrame(problem.growth_rates, index=problem.adata.obs.index, columns=cols)
@@ -228,10 +349,16 @@ class TemporalProblem(TemporalAnalysisMixin, SingleCompoundProblem):
 
     @property
     def proliferation_key(self) -> Optional[str]:
+        """
+        Key in :attr:`anndata.AnnData.obs` where prior estimate of cell proliferation is saved (created by :meth:`moscot.problems.TemporalProblem.score_genes_for_marginals()`)
+        """
         return self._proliferation_key
 
     @property
     def apoptosis_key(self) -> Optional[str]:
+        """
+        Key in :attr:`anndata.AnnData.obs` where prior estimate of cell apoptosis is saved (created by :meth:`moscot.problems.TemporalProblem.score_genes_for_marginals()`)
+        """
         return self._apoptosis_key
 
     @proliferation_key.setter
@@ -246,6 +373,14 @@ class TemporalProblem(TemporalAnalysisMixin, SingleCompoundProblem):
 
     @property
     def cell_costs_source(self) -> pd.DataFrame:
+        """
+        Returns the cost of a cell (see online methods) obtained by the potentials of the optimal transport solution
+
+        Raises
+        ------
+        NotImplementedError
+            If the solver from :class:`moscot.solvers` does not use potentials
+        """
         try:
             df_list = [
                 pd.DataFrame(
@@ -267,6 +402,14 @@ class TemporalProblem(TemporalAnalysisMixin, SingleCompoundProblem):
 
     @property
     def cell_costs_target(self) -> pd.DataFrame:
+        """
+        Returns the cost of a cell (see online methods) obtained by the potentials of the optimal transport solution
+
+        Raises
+        ------
+        NotImplementedError
+            If the solver from :class:`moscot.solvers` does not use potentials
+        """
         try:
             tup = list(self)[0]
             df_list = [
@@ -290,6 +433,22 @@ class TemporalProblem(TemporalAnalysisMixin, SingleCompoundProblem):
 
 
 class LineageProblem(TemporalProblem):
+    """
+    Estimator for modelling time series single cell data based on moslin
+
+    Class handling the computation and downstream analysis of temporal single cell data with lineage prior.
+
+    Parameters
+    ----------
+    adata
+        :class:`anndata.AnnData` instance containing the single cell data and corresponding metadata
+    solver
+        :class:`moscot.solver` instance used to solve the optimal transport problem. Currently, :class:`moscot.solvers.SinkhornSolver` can be used to solve this problem.
+
+    Examples
+    --------
+    See notebook TODO(@MUCDK) LINK NOTEBOOK for how to use it
+    """
     def prepare(
         self,
         time_key: str,
@@ -298,6 +457,32 @@ class LineageProblem(TemporalProblem):
         policy: Literal["sequential", "pairwise", "triu", "tril", "explicit"] = "sequential",
         **kwargs: Any,
     ) -> "LineageProblem":
+        """
+        Prepares the LineageProblem for it being ready to be solved
+
+        This method executes multiple steps to prepare the problem for the Optimal Transport solver to be ready to solve it
+
+        Parameters
+        ----------
+        time_key
+            Key in :attr:`anndata.AnnData.obs` which defines the time point each cell belongs to. It is supposed to be of numerical data type.
+        lineage_attr
+            Specifies the way the lineage information is processed. TODO: Specify.
+        joint_attr
+            Parameter defining how to allocate the data needed to compute the transport maps. If None, the data is read from :attr:`anndata.AnnData.X` and for each time point the corresponding PCA space is computed. If `joint_attr` is a string the data is assumed to be found in :attr:`anndata.AnnData.obsm`. If `joint_attr` is a dictionary the dictionary is supposed to contain the attribute of :attr:`anndata.AnnData` as a key and the corresponding attribute as a value.
+
+        Returns
+        -------
+        Self
+
+        Raises
+        ------
+        KeyError
+            If `time_key` is not in :attr:`anndata.AnnData.obs`
+        KeyError
+            If `joint_attr` is a string and cannot be found in :attr:`anndata.AnnData.obsm`
+        """
+
         if not len(lineage_attr):
             if "cost_matrices" not in self.adata.obsp:
                 raise ValueError(

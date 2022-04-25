@@ -6,5 +6,6 @@ moscot - Multi-Omics Single-Cell Optimal Transport
     :maxdepth: 2
     :hidden:
 
-    solvers
+    problems_docs
+    solvers_docs
     references
