@@ -11,6 +11,48 @@ TemporalProblem
     :members:
     :inherited-members:
 
+LineageProblem
+--------------
+.. autoclass:: moscot.problems.time.LineageProblem
+    :noindex:
+    :members:
+    :inherited-members:
+
+MappingProblem
+--------------
+.. autoclass:: moscot.problems.space.MappingProblem
+    :noindex:
+    :members:
+    :inherited-members:
+
+AlignmentProblem
+----------------
+.. autoclass:: moscot.problems.space.AlignmentProblem
+    :noindex:
+    :members:
+    :inherited-members:
+
+SinkhornProblem
+---------------
+.. autoclass:: moscot.problems.SinkhornProblem
+    :noindex:
+    :members:
+    :inherited-members:
+
+GWProblem
+---------
+.. autoclass:: moscot.problems.GWProblem
+    :noindex:
+    :members:
+    :inherited-members:
+
+FGWProblem
+---------
+.. autoclass:: moscot.problems.FGWProblem
+    :noindex:
+    :members:
+    :inherited-members:
+
 Solvers
 ~~~~~~~
 
@@ -31,7 +73,7 @@ GWSolver
 
 
 FGWSolver
---------
+---------
 .. autoclass:: moscot.backends.ott.FGWSolver
     :noindex:
     :members:

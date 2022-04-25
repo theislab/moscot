@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Classes &mdash; moscot  documentation</title>
+      <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+      <link rel="stylesheet" href="_static/copybutton.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
+        <script src="_static/jquery.js"></script>
+        <script src="_static/underscore.js"></script>
+        <script src="_static/doctools.js"></script>
+        <script src="_static/clipboard.min.js"></script>
+        <script src="_static/copybutton.js"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="References" href="references.html" />
+    <link rel="prev" title="moscot - Multi-Omics Single-Cell Optimal Transport" href="index.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="index.html" class="icon icon-home"> moscot
+          </a>
+              <div class="version">
+                0.0
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">General</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Classes</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#problems">Problems</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#temporalproblem">TemporalProblem</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#solvers">Solvers</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#sinkhornsolver">SinkhornSolver</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#gwsolver">GWSolver</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#fgwsolver">FGWSolver</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="references.html">References</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">moscot</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home"></a> &raquo;</li>
+      <li>Classes</li>
+
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="classes">
+<h1>Classes<a class="headerlink" href="#classes" title="Permalink to this headline"></a></h1>
+<section id="problems">
+<h2>Problems<a class="headerlink" href="#problems" title="Permalink to this headline"></a></h2>
+<section id="temporalproblem">
+<h3>TemporalProblem<a class="headerlink" href="#temporalproblem" title="Permalink to this headline"></a></h3>
+<dl class="py class">
+<dt class="sig sig-object py">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">moscot.problems.time.</span></span><span class="sig-name descname"><span class="pre">TemporalProblem</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">adata</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">solver</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/moscot/problems/time/_lineage.html#TemporalProblem"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
+<dd><p>Estimator for modelling time series single cell data based on <span id="id1">[<a class="reference internal" href="references.html#id6" title="Geoffrey Schiebinger, Jian Shu, Marcin Tabaka, Brian Cleary, Vidya Subramanian, Aryeh Solomon, Joshua Gould, Siyan Liu, Stacie Lin, Peter Berube, Lia Lee, Jenny Chen, Justin Brumbaugh, Philippe Rigollet, Konrad Hochedlinger, Rudolf Jaenisch, Aviv Regev, and Eric S. Lander. Optimal-transport analysis of single-cell gene expression identifies developmental trajectories in reprogramming. Cell, 176(4):928-943.e22, Feb 2019. doi:10.1016/j.cell.2019.01.006.">Schiebinger <em>et al.</em>, 2019</a>]</span></p>
+<p>Class handling the computation and downstream analysis of temporal single cell data.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>adata</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">AnnData</span></code>) – <code class="xref py py-class docutils literal notranslate"><span class="pre">anndata.AnnData</span></code> instance containing the single cell data and corresponding metadata</p></li>
+<li><p><strong>solver</strong> (<code class="xref py py-data docutils literal notranslate"><span class="pre">Optional</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">BaseSolver</span></code>]) – <code class="xref py py-class docutils literal notranslate"><span class="pre">moscot.solver</span></code> instance used to solve the optimal transport problem. Currently, <code class="xref py py-class docutils literal notranslate"><span class="pre">moscot.solvers.SinkhornSolver</span></code> can be used to solve this problem.</p></li>
+</ul>
+</dd>
+</dl>
+<p class="rubric">Examples</p>
+<p>See notebook TODO(&#64;MUCDK) LINK NOTEBOOK for how to use it</p>
+<dl class="py method">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">score_genes_for_marginals</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">gene_set_proliferation</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">gene_set_apoptosis</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">proliferation_key</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'proliferation'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">apoptosis_key</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'apoptosis'</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/moscot/problems/time/_lineage.html#TemporalProblem.score_genes_for_marginals"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
+<dd><p>Compute gene scores to obtain prior konwledge about proliferation and apoptosis.</p>
+<p>This method computes gene scores using <code class="xref py py-func docutils literal notranslate"><span class="pre">scanpy.tl.score_genes()</span></code>. Therefore, a list of genes corresponding to proliferation and/or apoptosis must be passed.
+ALternatively, proliferation and apoptosis genes for humans and mice are saved in <code class="xref py py-mod docutils literal notranslate"><span class="pre">moscot</span></code>.
+The gene scores will be used in <code class="xref py py-meth docutils literal notranslate"><span class="pre">moscot.problems.TemporalProblem.prepare()</span></code> to estimate the initial growth rates as suggested in <span id="id2">[<a class="reference internal" href="references.html#id6" title="Geoffrey Schiebinger, Jian Shu, Marcin Tabaka, Brian Cleary, Vidya Subramanian, Aryeh Solomon, Joshua Gould, Siyan Liu, Stacie Lin, Peter Berube, Lia Lee, Jenny Chen, Justin Brumbaugh, Philippe Rigollet, Konrad Hochedlinger, Rudolf Jaenisch, Aviv Regev, and Eric S. Lander. Optimal-transport analysis of single-cell gene expression identifies developmental trajectories in reprogramming. Cell, 176(4):928-943.e22, Feb 2019. doi:10.1016/j.cell.2019.01.006.">Schiebinger <em>et al.</em>, 2019</a>]</span></p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>gene_set_proliferation</strong> (<code class="xref py py-data docutils literal notranslate"><span class="pre">Union</span></code>[<code class="xref py py-data docutils literal notranslate"><span class="pre">Literal</span></code>[‘human’, ‘mouse’], <code class="xref py py-class docutils literal notranslate"><span class="pre">Sequence</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>], <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code>]) – Set of marker genes for proliferation used in the birth-death process. If marker genes from <code class="xref py py-mod docutils literal notranslate"><span class="pre">moscot</span></code> are to be used the corresponding organism must be passed.</p></li>
+<li><p><strong>gene_set_apoptosis</strong> (<code class="xref py py-data docutils literal notranslate"><span class="pre">Union</span></code>[<code class="xref py py-data docutils literal notranslate"><span class="pre">Literal</span></code>[‘human’, ‘mouse’], <code class="xref py py-class docutils literal notranslate"><span class="pre">Sequence</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>], <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code>]) – Set of marker genes for apoptosis used in the birth-death process. If marker genes from <code class="xref py py-mod docutils literal notranslate"><span class="pre">moscot</span></code> are to be used the corresponding organism must be passed.</p></li>
+<li><p><strong>proliferation_key</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>) – Key in <code class="xref py py-attr docutils literal notranslate"><span class="pre">anndata.AnnData.obs</span></code> where to add the genes scores.</p></li>
+<li><p><strong>kwargs</strong> (<code class="xref py py-data docutils literal notranslate"><span class="pre">Any</span></code>) – Keyword arguments for <code class="xref py py-func docutils literal notranslate"><span class="pre">scanpy.tl.score_genes()</span></code>.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><ul class="simple">
+<li><p><code class="xref py py-attr docutils literal notranslate"><span class="pre">proliferation_key</span></code></p></li>
+<li><p><code class="xref py py-attr docutils literal notranslate"><span class="pre">apoptosis_key</span></code></p></li>
+</ul>
+</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>Self and updates the following attributes</p>
+</dd>
+</dl>
+<p class="rubric">Notes</p>
+<dl class="simple">
+<dt>The marker genes in <code class="xref py py-mod docutils literal notranslate"><span class="pre">moscot</span></code> are taken from the following sources:</dt><dd><ul class="simple">
+<li><p>human, proliferation - <span id="id3">[<a class="reference internal" href="references.html#id8" title="Itay Tirosh, Benjamin Izar, Sanjay M. Prakadan, Marc H. Wadsworth, Daniel Treacy, John J. Trombetta, Asaf Rotem, Christopher Rodman, Christine Lian, George Murphy, Mohammad Fallahi-Sichani, Ken Dutton-Regester, Jia-Ren Lin, Ofir Cohen, Parin Shah, Diana Lu, Alex S. Genshaft, Travis K. Hughes, Carly G. K. Ziegler, Samuel W. Kazer, Aleth Gaillard, Kellie E. Kolb, Alexandra-Chloé Villani, Cory M. Johannessen, Aleksandr Y. Andreev, Eliezer M. Van Allen, Monica Bertagnolli, Peter K. Sorger, Ryan J. Sullivan, Keith T. Flaherty, Dennie T. Frederick, Judit Jané-Valbuena, Charles H. Yoon, Orit Rozenblatt-Rosen, Alex K. Shalek, Aviv Regev, and Levi A. Garraway. Dissecting the multicellular ecosystem of metastatic melanoma by single-cell rna-seq. Science, 352(6282):189–196, 2016. doi:10.1126/science.aad0501.">Tirosh <em>et al.</em>, 2016</a>]</span>.</p></li>
+<li><p>human, apoptosis - <a class="reference external" href="https://www.gsea-msigdb.org/gsea/msigdb/cards/HALLMARK_APOPTOSIS">Hallmark Apoptosis, MSigDB</a>.</p></li>
+<li><p>mouse, proliferation - <span id="id4">[<a class="reference internal" href="references.html#id7" title="Itay Tirosh, Andrew S. Venteicher, Christine Hebert, Leah E. Escalante, Anoop P. Patel, Keren Yizhak, Jonathan M. Fisher, Christopher Rodman, Christopher Mount, Mariella G. Filbin, Cyril Neftel, Niyati Desai, Jackson Nyman, Benjamin Izar, Christina C. Luo, Joshua M. Francis, Aanand A. Patel, Maristela L. Onozato, Nicolo Riggi, Kenneth J. Livak, Dave Gennert, Rahul Satija, Brian V. Nahed, William T. Curry, Robert L. Martuza, Ravindra Mylvaganam, A. John Iafrate, Matthew P. Frosch, Todd R. Golub, Miguel N. Rivera, Gad Getz, Orit Rozenblatt-Rosen, Daniel P. Cahill, Michelle Monje, Bradley E. Bernstein, David N. Louis, Aviv Regev, and Mario L. Suvà. Single-cell rna-seq supports a developmental hierarchy in human oligodendroglioma. Nature, 539(7628):309–313, Nov 2016. doi:10.1038/nature20123.">Tirosh <em>et al.</em>, 2016</a>]</span>.</p></li>
+<li><p>mouse, apoptosis - <a class="reference external" href="https://www.gsea-msigdb.org/gsea/msigdb/cards/HALLMARK_P53_PATHWAY">Hallmark P53 Pathway, MSigDB</a>.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">prepare</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">time_key</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">joint_attr</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">policy</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'sequential'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">marginal_kwargs</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">mappingproxy({})</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/moscot/problems/time/_lineage.html#TemporalProblem.prepare"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
+<dd><p>Prepares the TemporalProblem for it being ready to be solved</p>
+<p>This method executes multiple steps to prepare the problem for the Optimal Transport solver to be ready to solve it</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>time_key</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>) – Key in <code class="xref py py-attr docutils literal notranslate"><span class="pre">anndata.AnnData.obs</span></code> which defines the time point each cell belongs to. It is supposed to be of numerical data type.</p></li>
+<li><p><strong>joint_attr</strong> (<code class="xref py py-data docutils literal notranslate"><span class="pre">Union</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">Mapping</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>, <code class="xref py py-data docutils literal notranslate"><span class="pre">Any</span></code>], <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code>]) – Parameter defining how to allocate the data needed to compute the transport maps. If None, the data is read from <code class="xref py py-attr docutils literal notranslate"><span class="pre">anndata.AnnData.X</span></code> and for each time point the corresponding PCA space is computed. If <cite>joint_attr</cite> is a string the data is assumed to be found in <code class="xref py py-attr docutils literal notranslate"><span class="pre">anndata.AnnData.obsm</span></code>. If <cite>joint_attr</cite> is a dictionary the dictionary is supposed to contain the attribute of <code class="xref py py-attr docutils literal notranslate"><span class="pre">anndata.AnnData</span></code> as a key and the corresponding attribute as a value.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type</dt>
+<dd class="field-even"><p>Self</p>
+</dd>
+<dt class="field-odd">Raises</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>KeyError</strong> – If <cite>time_key</cite> is not in <code class="xref py py-attr docutils literal notranslate"><span class="pre">anndata.AnnData.obs</span></code></p></li>
+<li><p><strong>KeyError</strong> – If <cite>joint_attr</cite> is a string and cannot be found in <code class="xref py py-attr docutils literal notranslate"><span class="pre">anndata.AnnData.obsm</span></code></p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">push</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">start</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">end</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">result_key</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">return_all</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">scale_by_marginals</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/moscot/problems/time/_lineage.html#TemporalProblem.push"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
+<dd><p>Pushes distribution of cells through time</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>start</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">Number</span></code>) – Time point of source distribution.</p></li>
+<li><p><strong>target</strong> – Time point of target distribution.</p></li>
+<li><p><strong>result_key</strong> (<code class="xref py py-data docutils literal notranslate"><span class="pre">Optional</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>]) – Key of where to save the result in <code class="xref py py-attr docutils literal notranslate"><span class="pre">anndata.AnnData.obs</span></code>. If None the result will be returned.</p></li>
+<li><p><strong>return_all</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code>) – If True returns all the intermediate masses if pushed through multiple transport plans. If True, the result is returned as a dictionary.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type</dt>
+<dd class="field-even"><p>Self</p>
+</dd>
+<dt class="field-odd">Raises</dt>
+<dd class="field-odd"><p><strong>TODO</strong> – inherit:</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">pull</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">start</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">end</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">result_key</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">return_all</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">scale_by_marginals</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/moscot/problems/time/_lineage.html#TemporalProblem.pull"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
+<dd><p>Pulls distribution of cells through time</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>start</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">Number</span></code>) – Time point of source distribution (later time point).</p></li>
+<li><p><strong>target</strong> – Time point of target distribution (earlier time point).</p></li>
+<li><p><strong>result_key</strong> (<code class="xref py py-data docutils literal notranslate"><span class="pre">Optional</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>]) – Key of where to save the result in <code class="xref py py-class docutils literal notranslate"><span class="pre">anndata.AnnData.obs</span></code>. If None the result will be returned.</p></li>
+<li><p><strong>return_all</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code>) – If True returns all the intermediate masses if pushed through multiple transport plans. If True, the result is returned as a dictionary.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type</dt>
+<dd class="field-even"><p>Self</p>
+</dd>
+<dt class="field-odd">Raises</dt>
+<dd class="field-odd"><p><strong>TODO</strong> – inherit:</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">growth_rates</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">pandas.core.frame.DataFrame</span></em></dt>
+<dd><p>Growth rates of the cells</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p><code class="xref py py-class docutils literal notranslate"><span class="pre">DataFrame</span></code></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">proliferation_key</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></em></dt>
+<dd><p>Key in <code class="xref py py-attr docutils literal notranslate"><span class="pre">anndata.AnnData.obs</span></code> where prior estimate of cell proliferation is saved (created by <code class="xref py py-meth docutils literal notranslate"><span class="pre">moscot.problems.TemporalProblem.score_genes_for_marginals()</span></code>)</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p><code class="xref py py-data docutils literal notranslate"><span class="pre">Optional</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">apoptosis_key</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></em></dt>
+<dd><p>Key in <code class="xref py py-attr docutils literal notranslate"><span class="pre">anndata.AnnData.obs</span></code> where prior estimate of cell apoptosis is saved (created by <code class="xref py py-meth docutils literal notranslate"><span class="pre">moscot.problems.TemporalProblem.score_genes_for_marginals()</span></code>)</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p><code class="xref py py-data docutils literal notranslate"><span class="pre">Optional</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">cell_costs_source</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">pandas.core.frame.DataFrame</span></em></dt>
+<dd><p>Returns the cost of a cell (see online methods) obtained by the potentials of the optimal transport solution</p>
+<dl class="field-list simple">
+<dt class="field-odd">Raises</dt>
+<dd class="field-odd"><p><strong>NotImplementedError</strong> – If the solver from <code class="xref py py-class docutils literal notranslate"><span class="pre">moscot.solvers</span></code> does not use potentials</p>
+</dd>
+<dt class="field-even">Return type</dt>
+<dd class="field-even"><p><code class="xref py py-class docutils literal notranslate"><span class="pre">DataFrame</span></code></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">cell_costs_target</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">pandas.core.frame.DataFrame</span></em></dt>
+<dd><p>Returns the cost of a cell (see online methods) obtained by the potentials of the optimal transport solution</p>
+<dl class="field-list simple">
+<dt class="field-odd">Raises</dt>
+<dd class="field-odd"><p><strong>NotImplementedError</strong> – If the solver from <code class="xref py py-class docutils literal notranslate"><span class="pre">moscot.solvers</span></code> does not use potentials</p>
+</dd>
+<dt class="field-even">Return type</dt>
+<dd class="field-even"><p><code class="xref py py-class docutils literal notranslate"><span class="pre">DataFrame</span></code></p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+</section>
+<section id="solvers">
+<h2>Solvers<a class="headerlink" href="#solvers" title="Permalink to this headline"></a></h2>
+<section id="sinkhornsolver">
+<h3>SinkhornSolver<a class="headerlink" href="#sinkhornsolver" title="Permalink to this headline"></a></h3>
+<dl class="py class">
+<dt class="sig sig-object py">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">moscot.backends.ott.</span></span><span class="sig-name descname"><span class="pre">SinkhornSolver</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">rank</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">-</span> <span class="pre">1</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/moscot/backends/ott/_solver.html#SinkhornSolver"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
+<dd><dl class="py property">
+<dt class="sig sig-object py">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">problem_kind</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">moscot.solvers._base_solver.ProblemKind</span></em></dt>
+<dd><p>Problem kind.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p><code class="xref py py-class docutils literal notranslate"><span class="pre">ProblemKind</span></code></p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+<section id="gwsolver">
+<h3>GWSolver<a class="headerlink" href="#gwsolver" title="Permalink to this headline"></a></h3>
+<dl class="py class">
+<dt class="sig sig-object py">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">moscot.backends.ott.</span></span><span class="sig-name descname"><span class="pre">GWSolver</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">rank</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">-</span> <span class="pre">1</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/moscot/backends/ott/_solver.html#GWSolver"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
+<dd><dl class="py property">
+<dt class="sig sig-object py">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">problem_kind</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">moscot.solvers._base_solver.ProblemKind</span></em></dt>
+<dd><p>Problem kind.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p><code class="xref py py-class docutils literal notranslate"><span class="pre">ProblemKind</span></code></p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+<section id="fgwsolver">
+<h3>FGWSolver<a class="headerlink" href="#fgwsolver" title="Permalink to this headline"></a></h3>
+<dl class="py class">
+<dt class="sig sig-object py">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">moscot.backends.ott.</span></span><span class="sig-name descname"><span class="pre">FGWSolver</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">rank</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">-</span> <span class="pre">1</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/moscot/backends/ott/_solver.html#FGWSolver"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
+<dd><dl class="py property">
+<dt class="sig sig-object py">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">problem_kind</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">moscot.solvers._base_solver.ProblemKind</span></em></dt>
+<dd><p>Problem kind.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p><code class="xref py py-class docutils literal notranslate"><span class="pre">ProblemKind</span></code></p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="index.html" class="btn btn-neutral float-left" title="moscot - Multi-Omics Single-Cell Optimal Transport" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="references.html" class="btn btn-neutral float-right" title="References" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2022, Theislab.</p>
+  </div>
+
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

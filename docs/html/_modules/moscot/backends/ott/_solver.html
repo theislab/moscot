@@ -1,0 +1,445 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>moscot.backends.ott._solver &mdash; moscot  documentation</title>
+      <link rel="stylesheet" href="../../../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../../../_static/css/theme.css" type="text/css" />
+      <link rel="stylesheet" href="../../../../_static/copybutton.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="../../../../" id="documentation_options" src="../../../../_static/documentation_options.js"></script>
+        <script src="../../../../_static/jquery.js"></script>
+        <script src="../../../../_static/underscore.js"></script>
+        <script src="../../../../_static/doctools.js"></script>
+        <script src="../../../../_static/clipboard.min.js"></script>
+        <script src="../../../../_static/copybutton.js"></script>
+    <script src="../../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="../../../../index.html" class="icon icon-home"> moscot
+          </a>
+              <div class="version">
+                0.0
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">General</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../classes.html">Classes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../references.html">References</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../../index.html">moscot</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../../index.html" class="icon icon-home"></a> &raquo;</li>
+          <li><a href="../../../index.html">Module code</a> &raquo;</li>
+      <li>moscot.backends.ott._solver</li>
+
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for moscot.backends.ott._solver</h1><div class="highlight"><pre>
+<span></span><span class="kn">from</span> <span class="nn">abc</span> <span class="kn">import</span> <span class="n">abstractmethod</span>
+<span class="kn">from</span> <span class="nn">enum</span> <span class="kn">import</span> <span class="n">Enum</span>
+<span class="kn">from</span> <span class="nn">types</span> <span class="kn">import</span> <span class="n">MappingProxyType</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">Type</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">,</span> <span class="n">Union</span><span class="p">,</span> <span class="n">Mapping</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">NamedTuple</span>
+<span class="kn">from</span> <span class="nn">inspect</span> <span class="kn">import</span> <span class="n">signature</span>
+
+<span class="kn">from</span> <span class="nn">typing_extensions</span> <span class="kn">import</span> <span class="n">Literal</span>
+
+<span class="kn">from</span> <span class="nn">ott.geometry</span> <span class="kn">import</span> <span class="n">Grid</span><span class="p">,</span> <span class="n">Geometry</span><span class="p">,</span> <span class="n">PointCloud</span>
+<span class="kn">from</span> <span class="nn">ott.core.problems</span> <span class="kn">import</span> <span class="n">LinearProblem</span>
+<span class="kn">from</span> <span class="nn">ott.core.sinkhorn</span> <span class="kn">import</span> <span class="n">Sinkhorn</span>
+<span class="kn">from</span> <span class="nn">ott.geometry.costs</span> <span class="kn">import</span> <span class="n">Bures</span><span class="p">,</span> <span class="n">Cosine</span><span class="p">,</span> <span class="n">CostFn</span><span class="p">,</span> <span class="n">Euclidean</span><span class="p">,</span> <span class="n">UnbalancedBures</span>
+<span class="kn">from</span> <span class="nn">ott.core.sinkhorn_lr</span> <span class="kn">import</span> <span class="n">LRSinkhorn</span>
+<span class="kn">from</span> <span class="nn">ott.core.quad_problems</span> <span class="kn">import</span> <span class="n">QuadraticProblem</span>
+<span class="kn">from</span> <span class="nn">ott.core.gromov_wasserstein</span> <span class="kn">import</span> <span class="n">GromovWasserstein</span>
+<span class="kn">import</span> <span class="nn">jax.numpy</span> <span class="k">as</span> <span class="nn">jnp</span>
+<span class="kn">import</span> <span class="nn">numpy.typing</span> <span class="k">as</span> <span class="nn">npt</span>
+
+<span class="kn">from</span> <span class="nn">moscot.solvers._output</span> <span class="kn">import</span> <span class="n">BaseSolverOutput</span>
+<span class="kn">from</span> <span class="nn">moscot.backends.ott._output</span> <span class="kn">import</span> <span class="n">GWOutput</span><span class="p">,</span> <span class="n">SinkhornOutput</span><span class="p">,</span> <span class="n">LRSinkhornOutput</span>
+<span class="kn">from</span> <span class="nn">moscot.solvers._base_solver</span> <span class="kn">import</span> <span class="n">BaseSolver</span><span class="p">,</span> <span class="n">ProblemKind</span>
+<span class="kn">from</span> <span class="nn">moscot.solvers._tagged_array</span> <span class="kn">import</span> <span class="n">TaggedArray</span>
+
+<span class="n">__all__</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;Cost&quot;</span><span class="p">,</span> <span class="s2">&quot;SinkhornSolver&quot;</span><span class="p">,</span> <span class="s2">&quot;GWSolver&quot;</span><span class="p">,</span> <span class="s2">&quot;FGWSolver&quot;</span><span class="p">)</span>
+
+<span class="n">Scale_t</span> <span class="o">=</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">&quot;mean&quot;</span><span class="p">,</span> <span class="s2">&quot;median&quot;</span><span class="p">,</span> <span class="s2">&quot;max_cost&quot;</span><span class="p">,</span> <span class="s2">&quot;max_norm&quot;</span><span class="p">,</span> <span class="s2">&quot;max_bound&quot;</span><span class="p">]]]</span>
+
+
+<span class="k">class</span> <span class="nc">Cost</span><span class="p">(</span><span class="nb">str</span><span class="p">,</span> <span class="n">Enum</span><span class="p">):</span>
+    <span class="n">SQEUCL</span> <span class="o">=</span> <span class="s2">&quot;sqeucl&quot;</span>
+    <span class="n">COSINE</span> <span class="o">=</span> <span class="s2">&quot;cosine&quot;</span>
+    <span class="n">BURES</span> <span class="o">=</span> <span class="s2">&quot;bures&quot;</span>
+    <span class="n">BUREL_UNBAL</span> <span class="o">=</span> <span class="s2">&quot;bures_unbal&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">CostFn</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">_losses</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">value</span><span class="p">](</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+
+<span class="n">_losses</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Type</span><span class="p">[</span><span class="n">CostFn</span><span class="p">]]</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="n">Cost</span><span class="o">.</span><span class="n">SQEUCL</span><span class="p">:</span> <span class="n">Euclidean</span><span class="p">,</span>
+    <span class="n">Cost</span><span class="o">.</span><span class="n">COSINE</span><span class="p">:</span> <span class="n">Cosine</span><span class="p">,</span>
+    <span class="n">Cost</span><span class="o">.</span><span class="n">BURES</span><span class="p">:</span> <span class="n">Bures</span><span class="p">,</span>
+    <span class="n">Cost</span><span class="o">.</span><span class="n">BUREL_UNBAL</span><span class="p">:</span> <span class="n">UnbalancedBures</span><span class="p">,</span>
+<span class="p">}</span>
+
+
+<span class="k">class</span> <span class="nc">SolverDescription</span><span class="p">(</span><span class="n">NamedTuple</span><span class="p">):</span>
+    <span class="n">solver</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Type</span><span class="p">[</span><span class="n">Sinkhorn</span><span class="p">],</span> <span class="n">Type</span><span class="p">[</span><span class="n">LRSinkhorn</span><span class="p">],</span> <span class="n">Type</span><span class="p">[</span><span class="n">GromovWasserstein</span><span class="p">]]</span>
+    <span class="n">output</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Type</span><span class="p">[</span><span class="n">SinkhornOutput</span><span class="p">],</span> <span class="n">Type</span><span class="p">[</span><span class="n">LRSinkhornOutput</span><span class="p">],</span> <span class="n">Type</span><span class="p">[</span><span class="n">GWOutput</span><span class="p">]]</span>
+
+
+<span class="k">class</span> <span class="nc">GeometryMixin</span><span class="p">:</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_solver</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_description</span><span class="o">.</span><span class="n">solver</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="nd">@abstractmethod</span>
+    <span class="k">def</span> <span class="nf">_description</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">SolverDescription</span><span class="p">:</span>
+        <span class="k">pass</span>
+
+    <span class="k">def</span> <span class="nf">_create_geometry</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">x</span><span class="p">:</span> <span class="n">TaggedArray</span><span class="p">,</span>
+        <span class="n">y</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">TaggedArray</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="o">*</span><span class="p">,</span>
+        <span class="n">epsilon</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">online</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">bool</span><span class="p">]</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="n">scale_cost</span><span class="p">:</span> <span class="n">Scale_t</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Geometry</span><span class="p">:</span>
+        <span class="c1"># TODO(michalk8): maybe in the future, enable (more) kwargs for PC/Geometry</span>
+        <span class="k">if</span> <span class="n">y</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">cost_fn</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_create_cost</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">loss</span> <span class="k">if</span> <span class="n">y</span><span class="o">.</span><span class="n">loss</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">y</span><span class="o">.</span><span class="n">loss</span><span class="p">)</span>
+            <span class="n">x</span><span class="p">,</span> <span class="n">y</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_assert2d</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">data</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">_assert2d</span><span class="p">(</span><span class="n">y</span><span class="o">.</span><span class="n">data</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">!=</span> <span class="n">y</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;TODO: x/y dimension mismatch&quot;</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">PointCloud</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="n">y</span><span class="p">,</span> <span class="n">epsilon</span><span class="o">=</span><span class="n">epsilon</span><span class="p">,</span> <span class="n">cost_fn</span><span class="o">=</span><span class="n">cost_fn</span><span class="p">,</span> <span class="n">online</span><span class="o">=</span><span class="n">online</span><span class="p">,</span> <span class="n">scale_cost</span><span class="o">=</span><span class="n">scale_cost</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">x</span><span class="o">.</span><span class="n">is_point_cloud</span><span class="p">:</span>
+            <span class="n">cost_fn</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_create_cost</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">loss</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">PointCloud</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_assert2d</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">data</span><span class="p">),</span> <span class="n">epsilon</span><span class="o">=</span><span class="n">epsilon</span><span class="p">,</span> <span class="n">cost_fn</span><span class="o">=</span><span class="n">cost_fn</span><span class="p">,</span> <span class="n">online</span><span class="o">=</span><span class="n">online</span><span class="p">,</span> <span class="n">scale_cost</span><span class="o">=</span><span class="n">scale_cost</span>
+            <span class="p">)</span>
+        <span class="k">if</span> <span class="n">x</span><span class="o">.</span><span class="n">is_grid</span><span class="p">:</span>
+            <span class="n">cost_fn</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_create_cost</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">loss</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">Grid</span><span class="p">(</span><span class="n">jnp</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">data</span><span class="p">),</span> <span class="n">epsilon</span><span class="o">=</span><span class="n">epsilon</span><span class="p">,</span> <span class="n">cost_fn</span><span class="o">=</span><span class="n">cost_fn</span><span class="p">,</span> <span class="n">scale_cost</span><span class="o">=</span><span class="n">scale_cost</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">x</span><span class="o">.</span><span class="n">is_cost_matrix</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">Geometry</span><span class="p">(</span>
+                <span class="n">cost_matrix</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_assert2d</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">data</span><span class="p">,</span> <span class="n">allow_reshape</span><span class="o">=</span><span class="kc">False</span><span class="p">),</span> <span class="n">epsilon</span><span class="o">=</span><span class="n">epsilon</span><span class="p">,</span> <span class="n">scale_cost</span><span class="o">=</span><span class="n">scale_cost</span>
+            <span class="p">)</span>
+        <span class="k">if</span> <span class="n">x</span><span class="o">.</span><span class="n">is_kernel</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">Geometry</span><span class="p">(</span>
+                <span class="n">kernel_matrix</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_assert2d</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">loss</span><span class="p">,</span> <span class="n">allow_reshape</span><span class="o">=</span><span class="kc">False</span><span class="p">),</span> <span class="n">epsilon</span><span class="o">=</span><span class="n">epsilon</span><span class="p">,</span> <span class="n">scale_cost</span><span class="o">=</span><span class="n">scale_cost</span>
+            <span class="p">)</span>
+
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s2">&quot;TODO: invalid tag&quot;</span><span class="p">)</span>
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">_assert2d</span><span class="p">(</span><span class="n">arr</span><span class="p">:</span> <span class="n">npt</span><span class="o">.</span><span class="n">ArrayLike</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">allow_reshape</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">jnp</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+        <span class="n">arr</span> <span class="o">=</span> <span class="n">jnp</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">arr</span><span class="p">)</span>
+        <span class="n">arr</span> <span class="o">=</span> <span class="n">jnp</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">arr</span><span class="p">,</span> <span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span> <span class="k">if</span> <span class="p">(</span><span class="n">allow_reshape</span> <span class="ow">and</span> <span class="n">arr</span><span class="o">.</span><span class="n">ndim</span> <span class="o">==</span> <span class="mi">1</span><span class="p">)</span> <span class="k">else</span> <span class="n">arr</span>
+        <span class="k">if</span> <span class="n">arr</span><span class="o">.</span><span class="n">ndim</span> <span class="o">!=</span> <span class="mi">2</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;TODO: expected 2D&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">arr</span>
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">_create_cost</span><span class="p">(</span><span class="n">cost</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">CostFn</span><span class="p">]],</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">CostFn</span><span class="p">:</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">cost</span><span class="p">,</span> <span class="n">CostFn</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">cost</span>
+        <span class="k">if</span> <span class="n">cost</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">cost</span> <span class="o">=</span> <span class="s2">&quot;sqeucl&quot;</span>
+        <span class="k">return</span> <span class="n">Cost</span><span class="p">(</span><span class="n">cost</span><span class="p">)(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_solve</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">data</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">LinearProblem</span><span class="p">,</span> <span class="n">QuadraticProblem</span><span class="p">],</span>
+        <span class="n">output_kwargs</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="n">MappingProxyType</span><span class="p">({}),</span>
+        <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">BaseSolverOutput</span><span class="p">:</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_description</span><span class="o">.</span><span class="n">output</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_solver</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">),</span> <span class="o">**</span><span class="n">output_kwargs</span><span class="p">)</span>
+
+
+<span class="k">class</span> <span class="nc">RankMixin</span><span class="p">(</span><span class="n">GeometryMixin</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">rank</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">):</span>
+        <span class="c1"># a bit ugly - must be set before calling super().__init__</span>
+        <span class="c1"># otherwise, would need to refactor how description works</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_rank</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">rank</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">rank</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;rank&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">rank</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_other_solver</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">LRSinkhorn</span><span class="p">,</span> <span class="n">Sinkhorn</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_create_other_solver</span><span class="p">()</span>
+
+    <span class="nd">@property</span>
+    <span class="nd">@abstractmethod</span>
+    <span class="k">def</span> <span class="nf">_linear_solver</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Union</span><span class="p">[</span><span class="n">Sinkhorn</span><span class="p">,</span> <span class="n">LRSinkhorn</span><span class="p">]:</span>
+        <span class="k">pass</span>
+
+    <span class="nd">@_linear_solver</span><span class="o">.</span><span class="n">setter</span>
+    <span class="nd">@abstractmethod</span>
+    <span class="k">def</span> <span class="nf">_linear_solver</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">solver</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Sinkhorn</span><span class="p">,</span> <span class="n">LRSinkhorn</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">pass</span>
+
+    <span class="k">def</span> <span class="nf">_solve</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">data</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">LinearProblem</span><span class="p">,</span> <span class="n">QuadraticProblem</span><span class="p">],</span>
+        <span class="n">output_kwargs</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="n">MappingProxyType</span><span class="p">({}),</span>
+        <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">BaseSolverOutput</span><span class="p">:</span>
+        <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">_solve</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">output_kwargs</span><span class="o">=</span><span class="p">{</span><span class="o">**</span><span class="n">output_kwargs</span><span class="p">,</span> <span class="s2">&quot;rank&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">rank</span><span class="p">},</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_create_other_solver</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Union</span><span class="p">[</span><span class="n">Sinkhorn</span><span class="p">,</span> <span class="n">LRSinkhorn</span><span class="p">]:</span>
+        <span class="n">new</span> <span class="o">=</span> <span class="n">Sinkhorn</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_linear_solver</span><span class="p">,</span> <span class="n">LRSinkhorn</span><span class="p">)</span> <span class="k">else</span> <span class="n">LRSinkhorn</span>
+        <span class="p">[</span><span class="n">threshold</span><span class="p">],</span> <span class="n">kwargs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_linear_solver</span><span class="o">.</span><span class="n">tree_flatten</span><span class="p">()</span>
+        <span class="n">actual_params</span> <span class="o">=</span> <span class="n">signature</span><span class="p">(</span><span class="n">new</span><span class="p">)</span><span class="o">.</span><span class="n">parameters</span>
+        <span class="n">kwargs</span> <span class="o">=</span> <span class="p">{</span><span class="n">k</span><span class="p">:</span> <span class="n">v</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">items</span><span class="p">()</span> <span class="k">if</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">actual_params</span><span class="p">}</span>
+        <span class="k">if</span> <span class="n">new</span> <span class="ow">is</span> <span class="n">LRSinkhorn</span><span class="p">:</span>
+            <span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;rank&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">42</span>  <span class="c1"># dummy value, updated when setting rank</span>
+            <span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;implicit_diff&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">False</span>  <span class="c1"># implicit diff. not yet implemented for LRSink</span>
+
+        <span class="k">return</span> <span class="n">new</span><span class="p">(</span><span class="n">threshold</span><span class="o">=</span><span class="n">threshold</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">rank</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_rank</span>
+
+    <span class="nd">@rank</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span> <span class="nf">rank</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">rank</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">rank</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>  <span class="c1"># TODO(michalk8): remove me once writing middle-end tests</span>
+            <span class="n">rank</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
+        <span class="n">rank</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">rank</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">rank</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">rank</span><span class="p">:</span>
+            <span class="k">return</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_low_rank</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">rank</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>  <span class="c1"># update the rank</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_linear_solver</span><span class="o">.</span><span class="n">rank</span> <span class="o">=</span> <span class="n">rank</span>
+            <span class="k">else</span><span class="p">:</span>  <span class="c1"># or just swap the solvers</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_linear_solver</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_other_solver</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_other_solver</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_linear_solver</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_rank</span> <span class="o">=</span> <span class="n">rank</span>
+            <span class="k">return</span>
+
+        <span class="c1"># we&#39;re not LR, but the other solver is</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_linear_solver</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_other_solver</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_other_solver</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_linear_solver</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_linear_solver</span><span class="o">.</span><span class="n">rank</span> <span class="o">=</span> <span class="n">rank</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_rank</span> <span class="o">=</span> <span class="n">rank</span>
+
+    <span class="k">def</span> <span class="nf">_set_ctx</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">_</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
+        <span class="k">if</span> <span class="s2">&quot;rank&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">rank</span>
+        <span class="n">old_rank</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">rank</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">rank</span><span class="p">,</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">&quot;rank&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">old_rank</span>
+
+    <span class="k">def</span> <span class="nf">_reset_ctx</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">rank</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">rank</span> <span class="o">=</span> <span class="n">rank</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">is_low_rank</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">rank</span> <span class="o">&gt;</span> <span class="mi">0</span>
+
+
+<div class="viewcode-block" id="SinkhornSolver"><a class="viewcode-back" href="../../../../classes.html#moscot.backends.ott.SinkhornSolver">[docs]</a><span class="k">class</span> <span class="nc">SinkhornSolver</span><span class="p">(</span><span class="n">RankMixin</span><span class="p">,</span> <span class="n">BaseSolver</span><span class="p">):</span>
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">problem_kind</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ProblemKind</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">ProblemKind</span><span class="o">.</span><span class="n">LINEAR</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">_linear_solver</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Union</span><span class="p">[</span><span class="n">Sinkhorn</span><span class="p">,</span> <span class="n">LRSinkhorn</span><span class="p">]:</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_solver</span>
+
+    <span class="nd">@_linear_solver</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span> <span class="nf">_linear_solver</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">solver</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Sinkhorn</span><span class="p">,</span> <span class="n">LRSinkhorn</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_solver</span> <span class="o">=</span> <span class="n">solver</span>
+
+    <span class="k">def</span> <span class="nf">_prepare_input</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">x</span><span class="p">:</span> <span class="n">TaggedArray</span><span class="p">,</span>
+        <span class="n">y</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">TaggedArray</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">epsilon</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">online</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">bool</span><span class="p">]</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="n">scale_cost</span><span class="p">:</span> <span class="n">Scale_t</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">LinearProblem</span><span class="p">:</span>
+        <span class="n">kwargs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">&quot;rank&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>  <span class="c1"># set in context afterwards</span>
+        <span class="n">geom</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_create_geometry</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">epsilon</span><span class="o">=</span><span class="n">epsilon</span><span class="p">,</span> <span class="n">online</span><span class="o">=</span><span class="n">online</span><span class="p">,</span> <span class="n">scale_cost</span><span class="o">=</span><span class="n">scale_cost</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">LinearProblem</span><span class="p">(</span><span class="n">geom</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">_description</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">SolverDescription</span><span class="p">:</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_low_rank</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">SolverDescription</span><span class="p">(</span><span class="n">LRSinkhorn</span><span class="p">,</span> <span class="n">LRSinkhornOutput</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">SolverDescription</span><span class="p">(</span><span class="n">Sinkhorn</span><span class="p">,</span> <span class="n">SinkhornOutput</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="GWSolver"><a class="viewcode-back" href="../../../../classes.html#moscot.backends.ott.GWSolver">[docs]</a><span class="k">class</span> <span class="nc">GWSolver</span><span class="p">(</span><span class="n">RankMixin</span><span class="p">,</span> <span class="n">BaseSolver</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">_prepare_input</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">x</span><span class="p">:</span> <span class="n">TaggedArray</span><span class="p">,</span>
+        <span class="n">y</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">TaggedArray</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">epsilon</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">online</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">bool</span><span class="p">]</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="n">scale_cost</span><span class="p">:</span> <span class="n">Scale_t</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">QuadraticProblem</span><span class="p">:</span>
+        <span class="n">kwargs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">&quot;rank&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>  <span class="c1"># set in context afterwards</span>
+        <span class="n">geom_x</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_create_geometry</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">epsilon</span><span class="o">=</span><span class="n">epsilon</span><span class="p">,</span> <span class="n">online</span><span class="o">=</span><span class="n">online</span><span class="p">,</span> <span class="n">scale_cost</span><span class="o">=</span><span class="n">scale_cost</span><span class="p">)</span>
+        <span class="n">geom_y</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_create_geometry</span><span class="p">(</span><span class="n">y</span><span class="p">,</span> <span class="n">epsilon</span><span class="o">=</span><span class="n">epsilon</span><span class="p">,</span> <span class="n">online</span><span class="o">=</span><span class="n">online</span><span class="p">,</span> <span class="n">scale_cost</span><span class="o">=</span><span class="n">scale_cost</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">QuadraticProblem</span><span class="p">(</span><span class="n">geom_x</span><span class="p">,</span> <span class="n">geom_y</span><span class="p">,</span> <span class="n">geom_xy</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">fused_penalty</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">problem_kind</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ProblemKind</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">ProblemKind</span><span class="o">.</span><span class="n">QUAD</span>
+
+    <span class="nd">@RankMixin</span><span class="o">.</span><span class="n">rank</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span> <span class="nf">rank</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">rank</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">RankMixin</span><span class="o">.</span><span class="n">rank</span><span class="o">.</span><span class="n">fset</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">rank</span><span class="p">)</span>  <span class="c1"># correctly sets rank for `_linear_solver`</span>
+        <span class="c1"># TODO(michalk8): make a PR to OTT that simplifies how rank is stored</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_solver</span><span class="o">.</span><span class="n">rank</span> <span class="o">=</span> <span class="n">rank</span>  <span class="c1"># sets rank of the GW solver (see above TODO)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">epsilon</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_solver</span><span class="o">.</span><span class="n">epsilon</span>
+
+    <span class="nd">@epsilon</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span> <span class="nf">epsilon</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">epsilon</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">float</span><span class="p">]):</span>
+        <span class="k">if</span> <span class="n">epsilon</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">epsilon</span> <span class="o">=</span> <span class="mf">1e-2</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_solver</span><span class="o">.</span><span class="n">epsilon</span> <span class="o">=</span> <span class="n">epsilon</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_low_rank</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_linear_solver</span><span class="o">.</span><span class="n">epsilon</span> <span class="o">=</span> <span class="n">epsilon</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">_linear_solver</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Union</span><span class="p">[</span><span class="n">Sinkhorn</span><span class="p">,</span> <span class="n">LRSinkhorn</span><span class="p">]:</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_solver</span><span class="o">.</span><span class="n">linear_ot_solver</span>
+
+    <span class="nd">@_linear_solver</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span> <span class="nf">_linear_solver</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">solver</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Sinkhorn</span><span class="p">,</span> <span class="n">LRSinkhorn</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_solver</span><span class="o">.</span><span class="n">linear_ot_solver</span> <span class="o">=</span> <span class="n">solver</span>
+
+    <span class="k">def</span> <span class="nf">_set_ctx</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">],</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]]:</span>
+        <span class="k">if</span> <span class="s2">&quot;epsilon&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="p">:</span>
+            <span class="n">old_epsilon</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">epsilon</span>
+            <span class="n">old_ctx</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">_set_ctx</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># important: to first set rank, then epsilon; the former changes the solver</span>
+            <span class="n">old_ctx</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">_set_ctx</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+            <span class="n">old_epsilon</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">epsilon</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">epsilon</span><span class="p">,</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">&quot;epsilon&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">old_ctx</span><span class="p">,</span> <span class="n">old_epsilon</span>
+
+    <span class="k">def</span> <span class="nf">_reset_ctx</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">rank_epsilon</span><span class="p">:</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">],</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">float</span><span class="p">]])</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">rank</span><span class="p">,</span> <span class="n">epsilon</span> <span class="o">=</span> <span class="n">rank_epsilon</span>
+        <span class="c1"># important: to first set rank, then epsilon; the former changes the solver</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">_reset_ctx</span><span class="p">(</span><span class="n">rank</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">epsilon</span> <span class="o">=</span> <span class="n">epsilon</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">_description</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">SolverDescription</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">SolverDescription</span><span class="p">(</span><span class="n">GromovWasserstein</span><span class="p">,</span> <span class="n">GWOutput</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="FGWSolver"><a class="viewcode-back" href="../../../../classes.html#moscot.backends.ott.FGWSolver">[docs]</a><span class="k">class</span> <span class="nc">FGWSolver</span><span class="p">(</span><span class="n">GWSolver</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">_prepare_input</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">x</span><span class="p">:</span> <span class="n">TaggedArray</span><span class="p">,</span>
+        <span class="n">y</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">TaggedArray</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">xx</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">TaggedArray</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">yy</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">TaggedArray</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">epsilon</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">online</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">bool</span><span class="p">]</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="n">scale_cost</span><span class="p">:</span> <span class="n">Scale_t</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">alpha</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.5</span><span class="p">,</span>
+        <span class="n">rank</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">QuadraticProblem</span><span class="p">:</span>
+        <span class="n">problem</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">_prepare_input</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">epsilon</span><span class="o">=</span><span class="n">epsilon</span><span class="p">,</span> <span class="n">online</span><span class="o">=</span><span class="n">online</span><span class="p">,</span> <span class="n">scale_cost</span><span class="o">=</span><span class="n">scale_cost</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">xx</span><span class="o">.</span><span class="n">is_cost_matrix</span> <span class="ow">or</span> <span class="n">xx</span><span class="o">.</span><span class="n">is_kernel</span><span class="p">:</span>
+            <span class="c1"># TODO(michalk8): warn if `yy` is not None that we&#39;re ignoring it?</span>
+            <span class="n">geom_xy</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_create_geometry</span><span class="p">(</span><span class="n">xx</span><span class="p">,</span> <span class="n">epsilon</span><span class="o">=</span><span class="n">epsilon</span><span class="p">,</span> <span class="n">online</span><span class="o">=</span><span class="n">online</span><span class="p">,</span> <span class="n">scale_cost</span><span class="o">=</span><span class="n">scale_cost</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">yy</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">geom_xy</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_create_geometry</span><span class="p">(</span><span class="n">xx</span><span class="p">,</span> <span class="n">yy</span><span class="p">,</span> <span class="n">epsilon</span><span class="o">=</span><span class="n">epsilon</span><span class="p">,</span> <span class="n">online</span><span class="o">=</span><span class="n">online</span><span class="p">,</span> <span class="n">scale_cost</span><span class="o">=</span><span class="n">scale_cost</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;TODO: specify the 2nd array if this is not kernel/cost&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_validate_geoms</span><span class="p">(</span><span class="n">problem</span><span class="o">.</span><span class="n">geom_xx</span><span class="p">,</span> <span class="n">problem</span><span class="o">.</span><span class="n">geom_yy</span><span class="p">,</span> <span class="n">geom_xy</span><span class="p">)</span>
+
+        <span class="n">kwargs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">&quot;rank&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>  <span class="c1"># set in context afterwards</span>
+        <span class="k">return</span> <span class="n">QuadraticProblem</span><span class="p">(</span>
+            <span class="n">problem</span><span class="o">.</span><span class="n">geom_xx</span><span class="p">,</span>
+            <span class="n">problem</span><span class="o">.</span><span class="n">geom_yy</span><span class="p">,</span>
+            <span class="n">geom_xy</span><span class="o">=</span><span class="n">geom_xy</span><span class="p">,</span>
+            <span class="n">fused_penalty</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_alpha_to_fused_penalty</span><span class="p">(</span><span class="n">alpha</span><span class="p">),</span>
+            <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+        <span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">problem_kind</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ProblemKind</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">ProblemKind</span><span class="o">.</span><span class="n">QUAD_FUSED</span>
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">_validate_geoms</span><span class="p">(</span><span class="n">geom_x</span><span class="p">:</span> <span class="n">Geometry</span><span class="p">,</span> <span class="n">geom_y</span><span class="p">:</span> <span class="n">Geometry</span><span class="p">,</span> <span class="n">geom_xy</span><span class="p">:</span> <span class="n">Geometry</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">geom_x</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">!=</span> <span class="n">geom_xy</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;TODO: first and joint geom mismatch&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">geom_y</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">!=</span> <span class="n">geom_xy</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;TODO: second and joint geom mismatch&quot;</span><span class="p">)</span>
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">_alpha_to_fused_penalty</span><span class="p">(</span><span class="n">alpha</span><span class="p">:</span> <span class="nb">float</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+        <span class="k">assert</span> <span class="mi">0</span> <span class="o">&lt;</span> <span class="n">alpha</span> <span class="o">&lt;</span> <span class="mi">1</span><span class="p">,</span> <span class="s2">&quot;TODO: alpha must be in (0, 1)&quot;</span>
+        <span class="k">return</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">alpha</span><span class="p">)</span> <span class="o">/</span> <span class="n">alpha</span></div>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2022, Theislab.</p>
+  </div>
+
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
