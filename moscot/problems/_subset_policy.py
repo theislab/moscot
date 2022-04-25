@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import Any, Dict, List, Sized, Tuple, Union, Optional, Sequence
+from typing import Any, Dict, List, Sized, Tuple, Union, Iterable, Optional, Sequence
 from operator import gt, lt
 from itertools import product
 
@@ -145,18 +145,26 @@ class SubsetPolicy:
 
         raise NotImplementedError(kind)
 
-    def mask(self, discard_empty: bool = True) -> Dict[Item_t, Value_t]:
+    def create_mask(self, value: Union[Any, Sequence[Any]], *, allow_empty: bool = False) -> npt.ArrayLike:
+        mask = (
+            self._data == value if isinstance(value, str) or not isinstance(value, Iterable) else self._data.isin(value)
+        )
+        if not allow_empty and not np.sum(mask):
+            raise ValueError("TODO: empty mask...")
+        return np.asarray(mask)
+
+    def create_masks(self, discard_empty: bool = True) -> Dict[Item_t, Value_t]:
         res = {}
         for a, b in self._subset:
-            mask_a = self._data == a
-            if discard_empty and not np.sum(mask_a):
-                continue
-            mask_b = self._data == b
-            if discard_empty and not np.sum(mask_b):
-                continue
-            res[a, b] = mask_a, mask_b
+            try:
+                mask_a = self.create_mask(a, allow_empty=not discard_empty)
+                mask_b = self.create_mask(b, allow_empty=not discard_empty)
+                res[a, b] = mask_a, mask_b
+            except ValueError as e:
+                if "TODO: empty mask" not in str(e):
+                    raise
 
-        if not len(res):
+        if not res:
             # can only happen when `discard_empty=True`
             raise ValueError("TODO: All masks were discarded.")
 
@@ -228,8 +236,8 @@ class ExternalStarPolicy(FormatterMixin, StarPolicy):
     def _create_subset(self, **kwargs: Any) -> Sequence[Item_t]:
         return [(c, self._SENTINEL) for c in self._cat if c != self._SENTINEL]
 
-    def mask(self, discard_empty: bool = True) -> Dict[Item_t, Value_t]:
-        return super().mask(discard_empty=False)
+    def create_masks(self, discard_empty: bool = True) -> Dict[Item_t, Value_t]:
+        return super().create_masks(discard_empty=False)
 
 
 class SequentialPolicy(OrderedPolicy):
