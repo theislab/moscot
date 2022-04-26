@@ -266,12 +266,12 @@ class GeneralProblem(BaseProblem):
 
     @property
     def x(self) -> Optional[npt.ArrayLike]:
-        return None if self._x is None else self._x
+        return self._x
 
     @property
     def y(self) -> Optional[npt.ArrayLike]:
-        return None if self._y is None else self._y
+        return self._y
 
     @property
     def xy(self) -> Optional[Tuple[npt.ArrayLike, npt.ArrayLike]]:
-        return None if self._xy is None else self._xy[0], self._xy[1]
+        return self._xy
