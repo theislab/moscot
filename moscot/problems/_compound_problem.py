@@ -82,7 +82,6 @@ class CompoundBaseProblem(BaseProblem, ABC):
     ) -> SubsetPolicy:
         pass
 
-    @d.dedent
     def _create_problems(
         self,
         callback: Callback_t = None,
@@ -176,6 +175,9 @@ class CompoundBaseProblem(BaseProblem, ABC):
         tau_b: float = 1.0,
         **kwargs: Any,
     ) -> "CompoundProblem":
+        """
+        Solves the problem
+        """
         self._solutions = {}
         for subset, problem in self.problems.items():
             self.solutions[subset] = problem.solve(
