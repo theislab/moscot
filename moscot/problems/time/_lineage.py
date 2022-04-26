@@ -197,10 +197,11 @@ class TemporalProblem(TemporalAnalysisMixin, SingleCompoundProblem):
             Key in :attr:`anndata.AnnData.obs` which defines the time point each cell belongs to. It is supposed to be of numerical data type.
         joint_attr
             Parameter defining how to allocate the data needed to compute the transport maps. If None, the data is read from :attr:`anndata.AnnData.X` and for each time point the corresponding PCA space is computed. If `joint_attr` is a string the data is assumed to be found in :attr:`anndata.AnnData.obsm`. If `joint_attr` is a dictionary the dictionary is supposed to contain the attribute of :attr:`anndata.AnnData` as a key and the corresponding attribute as a value.
+        %(CompoundBaseProblem_prepare)s
 
         Returns
         -------
-        Self
+        :class:`moscot.problems.time.LineageProblem`
 
         Raises
         ------
@@ -260,7 +261,7 @@ class TemporalProblem(TemporalAnalysisMixin, SingleCompoundProblem):
 
         Returns
         -------
-        Self
+        Depending on `result_key` updates `adata` or returns the result. In the latter case the all intermediate step results are returned if `return_all` is True, otherwise only the distribution at `end` is returned.
 
         Raises
         ------
@@ -305,7 +306,7 @@ class TemporalProblem(TemporalAnalysisMixin, SingleCompoundProblem):
 
         Returns
         -------
-        Self
+        Depending on `result_key` updates `adata` or returns the result. In the latter case the all intermediate step results are returned if `return_all` is True, otherwise only the distribution at `start` is returned.
 
         Raises
         ------

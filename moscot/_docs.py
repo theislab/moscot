@@ -1,7 +1,7 @@
 from typing import Any
+from textwrap import dedent
 
 from docrep import DocstringProcessor
-from textwrap import dedent
 
 _adata = """\
 adata : :class:`anndata.AnnData`

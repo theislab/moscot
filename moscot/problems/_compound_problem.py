@@ -9,6 +9,7 @@ import numpy.typing as npt
 
 from anndata import AnnData
 
+from moscot._docs import d
 from moscot.backends.ott import SinkhornSolver
 from moscot.solvers._output import BaseSolverOutput
 from moscot.solvers._base_solver import BaseSolver, ProblemKind
@@ -26,7 +27,8 @@ Callback_t = Optional[
     ]
 ]
 
-
+@d.get_sections(base="CompoundBaseProblem", sections=["Parameters", "Raises"])
+@d.dedent
 class CompoundBaseProblem(BaseProblem, ABC):
     """
     Base class for all biological problems.
@@ -80,6 +82,7 @@ class CompoundBaseProblem(BaseProblem, ABC):
     ) -> SubsetPolicy:
         pass
 
+    @d.dedent
     def _create_problems(
         self,
         callback: Callback_t = None,
@@ -111,6 +114,8 @@ class CompoundBaseProblem(BaseProblem, ABC):
 
         return problems
 
+    @d.get_sections(base="CompoundBaseProblem_prepare", sections=["Parameters", "Raises"])
+    @d.dedent
     def prepare(
         self,
         key: str,
@@ -162,6 +167,7 @@ class CompoundBaseProblem(BaseProblem, ABC):
 
         return self
 
+    @d.dedent
     def solve(
         self,
         epsilon: Optional[float] = None,
@@ -178,6 +184,8 @@ class CompoundBaseProblem(BaseProblem, ABC):
 
         return self
 
+    @d.get_sections(base="_apply", sections=["Parameters", "Raises"])
+    @d.dedent
     def _apply(
         self,
         data: Optional[Union[str, npt.ArrayLike, Mapping[Tuple[Any, Any], Union[str, npt.ArrayLike]]]] = None,
@@ -188,6 +196,33 @@ class CompoundBaseProblem(BaseProblem, ABC):
         scale_by_marginals: bool = False,
         **kwargs: Any,
     ) -> Union[Dict[Tuple[Any, Any], npt.ArrayLike], Dict[Tuple[Any, Any], Dict[Tuple[Any, Any], npt.ArrayLike]]]:
+        """
+        Base function to use a transport map(s) as linear operator.
+
+        Parameters
+        ----------
+
+        data
+            If `data` is of type `str` this should correspond to a column in :attr:`anndata.AnnData.obs`. The transport map is applied to the subset corresponding to the source distribution (if `forward` is `True`) or target distribution (if `forward` is `False`) of that column.
+            If `data` is of type :class:npt.ArrayLike the transport map is applied to `data`
+            If `data` is a mapping then the keys should correspond to the tuple defining a single optimal transport map and the value should be one of the two cases described above
+        subset
+            If `data` is a column in :attr:`anndata.AnnData.obs` the distribution the transport map is applied to only has mass on those cells which are in `subset` when filtering for :attr:`anndata.AnnData.obs`
+        normalize
+            Whether to normalize the result to 1 after the transport map has been applied
+        forward
+            If `True` the data is pushed from the source to the target distribution. If `False` the mass is pulled from the target distribution to the source distribution
+        return_all
+            If `True` and transport maps are applied consecutively only the final mass is returned. Otherwise, all intermediate step results are returned, too
+        scale_by_marginals
+            If `True` the transport map is scaled to be a stochastic matrix by multiplying the resulting mass by the inverse of the marginals, EXAMPLE
+
+        Raises
+        ------
+        ValueError
+            If a transport map between the corresponding source and target distribution is not computed
+        """
+
         def get_data(plan: Tuple[Any, Any]) -> Optional[npt.ArrayLike]:
             if isinstance(data, np.ndarray):
                 return data
