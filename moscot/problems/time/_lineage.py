@@ -193,13 +193,13 @@ class TemporalProblem(TemporalAnalysisMixin, SingleCompoundProblem):
 
         Parameters
         ----------
+        %(CompoundBaseProblem_prepare.parameters)s
         time_key
             Key in :attr:`anndata.AnnData.obs` which defines the time point each cell belongs to. It is supposed to be of numerical data type.
         joint_attr
             Parameter defining how to allocate the data needed to compute the transport maps. If None, the data is read from :attr:`anndata.AnnData.X` and 
             for each time point the corresponding PCA space is computed. If `joint_attr` is a string the data is assumed to be found in :attr:`anndata.AnnData.obsm`. 
             If `joint_attr` is a dictionary the dictionary is supposed to contain the attribute of :attr:`anndata.AnnData` as a key and the corresponding attribute as a value.
-        %(CompoundBaseProblem_prepare.parameters)s
 
         Returns
         -------
