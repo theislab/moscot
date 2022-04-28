@@ -11,6 +11,7 @@ import numpy.typing as npt
 from anndata import AnnData
 import scanpy as sc
 
+from moscot._docs import d
 from moscot.problems import MultiMarginalProblem
 from moscot.solvers._output import BaseSolverOutput
 from moscot.problems.time._utils import beta, delta, MarkerGenes
@@ -104,6 +105,7 @@ class TemporalProblem(TemporalAnalysisMixin, SingleCompoundProblem):
         self._proliferation_key: Optional[str] = None
         self._apoptosis_key: Optional[str] = None
 
+    @d.dedent
     def score_genes_for_marginals(
         self,
         gene_set_proliferation: Optional[Union[Literal["human", "mouse"], Sequence[str]]] = None,
@@ -178,6 +180,7 @@ class TemporalProblem(TemporalAnalysisMixin, SingleCompoundProblem):
             )
         return self
 
+    @d.dedent
     def prepare(
         self,
         time_key: str,
@@ -238,6 +241,7 @@ class TemporalProblem(TemporalAnalysisMixin, SingleCompoundProblem):
             **kwargs,
         )
 
+    @d.dedent
     def push(
         self,
         start: Number,
@@ -283,6 +287,7 @@ class TemporalProblem(TemporalAnalysisMixin, SingleCompoundProblem):
             return result
         self._dict_to_adata(result, result_key)
 
+    @d.dedent
     def pull(
         self,
         start: Number,
