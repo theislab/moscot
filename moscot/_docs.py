@@ -4,7 +4,7 @@ from textwrap import dedent
 from docrep import DocstringProcessor
 
 _adata = """\
-adata : :class:`anndata.AnnData`
+adata
     Annotated data object."""
 
 
