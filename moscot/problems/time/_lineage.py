@@ -11,6 +11,7 @@ import numpy.typing as npt
 from anndata import AnnData
 import scanpy as sc
 
+from moscot._docs import d
 from moscot.problems import MultiMarginalProblem
 from moscot.solvers._output import BaseSolverOutput
 from moscot.problems.time._utils import beta, delta, MarkerGenes
@@ -104,6 +105,7 @@ class TemporalProblem(TemporalAnalysisMixin, SingleCompoundProblem):
         self._proliferation_key: Optional[str] = None
         self._apoptosis_key: Optional[str] = None
 
+    @d.dedent
     def score_genes_for_marginals(
         self,
         gene_set_proliferation: Optional[Union[Literal["human", "mouse"], Sequence[str]]] = None,
@@ -178,6 +180,7 @@ class TemporalProblem(TemporalAnalysisMixin, SingleCompoundProblem):
             )
         return self
 
+    @d.dedent
     def prepare(
         self,
         time_key: str,
@@ -193,12 +196,12 @@ class TemporalProblem(TemporalAnalysisMixin, SingleCompoundProblem):
 
         Parameters
         ----------
-        %(CompoundBaseProblem_prepare.parameters)s
+        %(CompoundBaseProblem_prepare.parameters.no_key)s
         time_key
             Key in :attr:`anndata.AnnData.obs` which defines the time point each cell belongs to. It is supposed to be of numerical data type.
         joint_attr
-            Parameter defining how to allocate the data needed to compute the transport maps. If None, the data is read from :attr:`anndata.AnnData.X` and 
-            for each time point the corresponding PCA space is computed. If `joint_attr` is a string the data is assumed to be found in :attr:`anndata.AnnData.obsm`. 
+            Parameter defining how to allocate the data needed to compute the transport maps. If None, the data is read from :attr:`anndata.AnnData.X` and
+            for each time point the corresponding PCA space is computed. If `joint_attr` is a string the data is assumed to be found in :attr:`anndata.AnnData.obsm`.
             If `joint_attr` is a dictionary the dictionary is supposed to contain the attribute of :attr:`anndata.AnnData` as a key and the corresponding attribute as a value.
 
         Returns
@@ -238,6 +241,7 @@ class TemporalProblem(TemporalAnalysisMixin, SingleCompoundProblem):
             **kwargs,
         )
 
+    @d.dedent
     def push(
         self,
         start: Number,
@@ -283,6 +287,7 @@ class TemporalProblem(TemporalAnalysisMixin, SingleCompoundProblem):
             return result
         self._dict_to_adata(result, result_key)
 
+    @d.dedent
     def pull(
         self,
         start: Number,
