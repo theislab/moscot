@@ -128,10 +128,15 @@ class SinkhornSolver(OTTJaxSolver):
     ) -> Description:
         geom = self._create_geometry(x, y, epsilon=epsilon, online=online, scale_cost=scale_cost)
 
-        solver = Sinkhorn(**self._solver_kwargs)
         problem = LinearProblem(geom, **kwargs)
+        if self._solver_kwargs.get("rank", -1) > -1:
+            solver = LRSinkhorn(**self._solver_kwargs)
+            output = lambda *args, **kwargs: LRSinkhornOutput(*args, **kwargs, rank=solver.rank)
+        else:
+            solver = Sinkhorn(**{k: v for k, v in self._solver_kwargs.items() if k != "rank"})
+            output = SinkhornOutput
 
-        return Description(solver=solver, data=problem, output=SinkhornOutput)
+        return Description(solver=solver, data=problem, output=output)
 
     @property
     def problem_kind(self) -> ProblemKind:
