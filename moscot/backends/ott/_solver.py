@@ -1,7 +1,7 @@
 from abc import ABC
 from enum import Enum
 from types import MappingProxyType
-from typing import Any, Type, Tuple, Union, Mapping, Optional, NamedTuple
+from typing import Any, Type, Tuple, Union, Mapping, Optional, overload, NamedTuple
 
 from typing_extensions import Literal
 
@@ -149,7 +149,7 @@ class SinkhornSolver(OTTSolver):
 class GWSolver(OTTSolver):
     def _prepare_input(
         self,
-        x: TaggedArray,
+        x: Optional[TaggedArray] = None,
         y: Optional[TaggedArray] = None,
         xy: Optional[Tuple[TaggedArray, TaggedArray]] = None,
         epsilon: Optional[float] = None,
@@ -171,6 +171,7 @@ class GWSolver(OTTSolver):
 
 
 class FGWSolver(GWSolver):
+    @overload
     def _prepare_input(
         self,
         x: TaggedArray,
@@ -182,7 +183,7 @@ class FGWSolver(GWSolver):
         alpha: float = 0.5,
         **kwargs: Any,
     ) -> Description:
-        description = super()._prepare_input(None, xy=xy, epsilon=epsilon, online=online, scale_cost=scale_cost)
+        description = super()._prepare_input(xy=xy, epsilon=epsilon, online=online, scale_cost=scale_cost)
         # TODO(michalk8): re-add some checks?
         geom_xy = self._create_geometry(x, y, epsilon=epsilon, online=online, scale_cost=scale_cost)
 

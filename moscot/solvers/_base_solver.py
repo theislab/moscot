@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 from enum import auto, Enum
 from types import MappingProxyType
-from typing import Any, Tuple, Union, Literal, Mapping, Optional
+from typing import Any, Tuple, Union, Literal, Mapping, Optional, NamedTuple
 import warnings
 
 import numpy.typing as npt
@@ -21,34 +21,46 @@ class ProblemKind(Enum):
     QUAD_FUSED = auto()
 
 
+class ArrayData(NamedTuple):
+    x: TaggedArray
+    y: TaggedArray
+    xy: TaggedArray
+
+
 class TagConverterMixin:
     def _convert(
         self,
         x: ArrayLike,
         y: Optional[ArrayLike] = None,
-        xx: Optional[ArrayLike] = None,
-        yy: Optional[ArrayLike] = None,
-        tags: Mapping[Literal["x", "y", "xx", "yy"], Tag] = MappingProxyType({}),
-    ) -> Tuple[Optional[TaggedArray], Optional[TaggedArray], Optional[TaggedArray], Optional[TaggedArray]]:
+        xy: Optional[Tuple[ArrayLike, ArrayLike]] = None,
+        tags: Mapping[Literal["x", "y", "xy"], Tag] = MappingProxyType({}),
+    ) -> ArrayData:
         if not isinstance(x, TaggedArray):
             x = self._to_tagged_array(x, tags.get("x", Tag.POINT_CLOUD))
         if not isinstance(y, TaggedArray):
             y = self._to_tagged_array(y, tags.get("y", Tag.POINT_CLOUD))
-        if not isinstance(xx, TaggedArray):
-            xx = self._to_tagged_array(xx, tags.get("xx", Tag.COST_MATRIX) if yy is None else Tag.POINT_CLOUD)
-        if not isinstance(yy, TaggedArray):
-            yy = self._to_tagged_array(yy, tags.get("yy", Tag.POINT_CLOUD))
 
-        return x, y, xx, yy
+        if xy is None:
+            return x, y, None
+
+        xx, yy = xy
+        if yy is None:
+            xx = self._to_tagged_array(xx, tag=tags.get("xy", Tag.COST_MATRIX))
+            return ArrayData(x, y, (xx, None))
+
+        xx = self._to_tagged_array(xx, tag=Tag.POINT_CLOUD)
+        yy = self._to_tagged_array(yy, tag=Tag.POINT_CLOUD)
+
+        return ArrayData(x, y, (xx, yy))
 
     @staticmethod
     def _to_tagged_array(arr: Optional[ArrayLike], tag: Tag) -> Optional[TaggedArray]:
         if arr is None:
             return None
         tag = Tag(tag)
-        if not isinstance(arr, TaggedArray):
-            return TaggedArray(arr, tag=tag)
-        return TaggedArray(arr.data, tag=tag)
+        if isinstance(arr, TaggedArray):
+            return TaggedArray(arr.data, tag=tag)
+        return TaggedArray(arr, tag=tag)
 
 
 class BaseSolver(TagConverterMixin, ABC):
@@ -76,55 +88,44 @@ class BaseSolver(TagConverterMixin, ABC):
 
     def __call__(
         self,
-        x: ArrayLike,
+        x: Optional[ArrayLike] = None,
         y: Optional[ArrayLike] = None,
+        xy: Optional[Tuple[TaggedArray, TaggedArray]] = None,
         a: Optional[npt.ArrayLike] = None,
         b: Optional[npt.ArrayLike] = None,
         tau_a: float = 1.0,
         tau_b: float = 1.0,
         epsilon: Optional[float] = None,
+        tags: Mapping[Literal["x", "y", "xy"], Tag] = MappingProxyType({}),
         solve_kwargs: Mapping[str, Any] = MappingProxyType({}),
-        **prepare_kwargs: Any,
+        **kwargs: Any,
     ) -> BaseSolverOutput:
         """Call method."""
-        x, y, xx, yy = self._convert(
-            x,
-            y,
-            xx=prepare_kwargs.pop("xx", None),
-            yy=prepare_kwargs.pop("yy", None),
-            tags=prepare_kwargs.pop("tags", {}),
-        )
-        prepare_kwargs = {**prepare_kwargs, **self._verify_input(x, y, xx, yy)}
-        if self.problem_kind != ProblemKind.QUAD_FUSED:
-            prepare_kwargs.pop("alpha", None)
-        data = self._prepare_input(x=x, y=y, epsilon=epsilon, a=a, b=b, tau_a=tau_a, tau_b=tau_b, **prepare_kwargs)
+        data = self._convert(x, y, xy=xy, tags=tags)
+        kwargs = self._prepare_kwargs(data, **kwargs)
+        data = self._prepare_input(epsilon=epsilon, a=a, b=b, tau_a=tau_a, tau_b=tau_b, **kwargs)
         res = self._solve(data, **solve_kwargs)
 
         return self._verify_result(res, a=a, b=b, tau_a=tau_a, tau_b=tau_b)
 
-    def _verify_input(
+    def _prepare_kwargs(
         self,
-        x: TaggedArray,
-        y: Optional[TaggedArray] = None,
-        xx: Optional[TaggedArray] = None,
-        yy: Optional[TaggedArray] = None,
+        data: ArrayData,
+        **kwargs: Any,
     ) -> Mapping[str, Optional[TaggedArray]]:
-        if not isinstance(x, TaggedArray):
-            raise TypeError("TODO: no `x` array.")
+        if self.problem_kind == ProblemKind.LINEAR:
+            data_kwargs = {"x": data.x, "y": data.y}
+        elif self.problem_kind == ProblemKind.QUAD:
+            data_kwargs = {"xy": data.xy}
+        elif self.problem_kind == ProblemKind.QUAD_FUSED:
+            data_kwargs = {"x": data.x, "y": data.y, "xy": data.xy}
+        else:
+            raise NotImplementedError(f"TODO: {self.problem_kind}")
 
-        if self.problem_kind == ProblemKind.QUAD:
-            if y is None:
-                raise ValueError("TODO: missing 2nd data for GW")
-            return {}
+        if self.problem_kind != ProblemKind.QUAD_FUSED:
+            kwargs.pop("alpha", None)
 
-        if self.problem_kind == ProblemKind.QUAD_FUSED:
-            if y is None:
-                raise ValueError("TODO: missing 2nd data for FGW")
-            if xx is None:
-                raise ValueError("TODO: missing joint for FGW")
-            return {"xx": xx, "yy": yy}
-
-        return {}
+        return {**kwargs, **data_kwargs}
 
     @staticmethod
     def _verify_result(
