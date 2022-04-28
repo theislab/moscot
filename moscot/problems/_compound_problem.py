@@ -33,7 +33,7 @@ class CompoundBaseProblem(BaseProblem, ABC):
     """
     Base class for all biological problems.
 
-    Base class translating a biological problem to potentially multiple Optimal Transport problems.
+    This base class translates a biological problem to potentially multiple Optimal Transport problems.
 
     Parameters
     ----------
@@ -205,9 +205,9 @@ class CompoundBaseProblem(BaseProblem, ABC):
         ----------
 
         data
-            If `data` is of type `str` this should correspond to a column in :attr:`anndata.AnnData.obs`. The transport map is applied to the subset corresponding to the source distribution (if `forward` is `True`) or target distribution (if `forward` is `False`) of that column.
-            If `data` is of type :class:npt.ArrayLike the transport map is applied to `data`
-            If `data` is a mapping then the keys should correspond to the tuple defining a single optimal transport map and the value should be one of the two cases described above
+            - If `data` is a :class:`str` this should correspond to a column in :attr:`anndata.AnnData.obs`. The transport map is applied to the subset corresponding to the source distribution (if `forward` is `True`) or target distribution (if `forward` is `False`) of that column.
+            - If `data` is a :class:npt.ArrayLike the transport map is applied to `data`
+            - If `data` is a :class:`dict` then the keys should correspond to the tuple defining a single optimal transport map and the value should be one of the two cases described above
         subset
             If `data` is a column in :attr:`anndata.AnnData.obs` the distribution the transport map is applied to only has mass on those cells which are in `subset` when filtering for :attr:`anndata.AnnData.obs`
         normalize

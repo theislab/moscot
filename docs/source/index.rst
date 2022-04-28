@@ -20,5 +20,5 @@ Contributing to moscot
     :maxdepth: 2
     :hidden:
 
-    classes
+    api
     references
