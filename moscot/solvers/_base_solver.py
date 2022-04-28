@@ -12,6 +12,7 @@ from moscot.solvers._tagged_array import Tag, TaggedArray
 
 __all__ = ("BaseSolver",)
 
+# TODO(michalk8): consider making TaggedArray private (used only internally)?
 ArrayLike = Union[npt.ArrayLike, TaggedArray]
 
 
@@ -28,39 +29,48 @@ class ArrayData(NamedTuple):
 
 
 class TagConverterMixin:
-    def _convert(
+    def _get_array_data(
         self,
         x: ArrayLike,
         y: Optional[ArrayLike] = None,
-        xy: Optional[Tuple[ArrayLike, ArrayLike]] = None,
+        xy: Optional[Tuple[ArrayLike, Optional[ArrayLike]]] = None,
         tags: Mapping[Literal["x", "y", "xy"], Tag] = MappingProxyType({}),
     ) -> ArrayData:
-        if not isinstance(x, TaggedArray):
-            x = self._to_tagged_array(x, tags.get("x", Tag.POINT_CLOUD))
-        if not isinstance(y, TaggedArray):
-            y = self._to_tagged_array(y, tags.get("y", Tag.POINT_CLOUD))
+        x, y = self._convert(x, y, tags=tags, is_linear=True)
+        xx, yy = self._convert(xy[0], xy[1], tags=tags, is_linear=False)
 
-        if xy is None:
-            return x, y, None
-
-        xx, yy = xy
-        if yy is None:
-            xx = self._to_tagged_array(xx, tag=tags.get("xy", Tag.COST_MATRIX))
-            return ArrayData(x, y, (xx, None))
-
-        xx = self._to_tagged_array(xx, tag=Tag.POINT_CLOUD)
-        yy = self._to_tagged_array(yy, tag=Tag.POINT_CLOUD)
-
-        return ArrayData(x, y, (xx, yy))
+        return ArrayData(x=x, y=y, xy=(xx, yy))
 
     @staticmethod
-    def _to_tagged_array(arr: Optional[ArrayLike], tag: Tag) -> Optional[TaggedArray]:
-        if arr is None:
-            return None
-        tag = Tag(tag)
-        if isinstance(arr, TaggedArray):
-            return TaggedArray(arr.data, tag=tag)
-        return TaggedArray(arr, tag=tag)
+    def _convert(
+        x: Optional[ArrayLike],
+        y: Optional[ArrayLike],
+        tags: Mapping[Literal["x", "y", "xy"], Tag] = MappingProxyType({}),
+        *,
+        is_linear: bool,
+    ) -> Tuple[Optional[TaggedArray], Optional[TaggedArray]]:
+        def to_tagged_array(arr: Optional[ArrayLike], tag: Tag) -> Optional[TaggedArray]:
+            if arr is None:
+                return None
+            tag = Tag(tag)
+            if isinstance(arr, TaggedArray):
+                return TaggedArray(arr.data, tag=tag)
+            return TaggedArray(arr, tag=tag)
+
+        def cost_or_kernel(arr: TaggedArray, key: Literal["x", "y", "xy"]) -> TaggedArray:
+            arr = to_tagged_array(arr, tag=tags.get(key, Tag.COST_MATRIX))
+            if arr.tag not in (Tag.COST_MATRIX, Tag.KERNEL):
+                raise ValueError(f"TODO: wrong tag - expected kernel/cost, got `{arr.tag}`")
+            return arr
+
+        x_key, y_key = ("x", "y") if is_linear else ("xy", "xy")
+        if x is None and y is None:
+            return None, None  # checks are one later
+        if x is None:
+            return cost_or_kernel(y, key=y_key), None
+        if y is None:
+            return cost_or_kernel(x, key=x_key), None
+        return to_tagged_array(x, tag=Tag.POINT_CLOUD), to_tagged_array(y, tag=Tag.POINT_CLOUD)
 
 
 class BaseSolver(TagConverterMixin, ABC):
@@ -69,8 +79,9 @@ class BaseSolver(TagConverterMixin, ABC):
     @abstractmethod
     def _prepare_input(
         self,
-        x: TaggedArray,
+        x: Optional[TaggedArray] = None,
         y: Optional[TaggedArray] = None,
+        xy: Optional[Tuple[TaggedArray, Optional[TaggedArray]]] = None,
         epsilon: Optional[float] = None,
         **kwargs: Any,
     ) -> Any:
@@ -101,7 +112,7 @@ class BaseSolver(TagConverterMixin, ABC):
         **kwargs: Any,
     ) -> BaseSolverOutput:
         """Call method."""
-        data = self._convert(x, y, xy=xy, tags=tags)
+        data = self._get_array_data(x, y, xy=xy, tags=tags)
         kwargs = self._prepare_kwargs(data, **kwargs)
         data = self._prepare_input(epsilon=epsilon, a=a, b=b, tau_a=tau_a, tau_b=tau_b, **kwargs)
         res = self._solve(data, **solve_kwargs)
@@ -112,7 +123,8 @@ class BaseSolver(TagConverterMixin, ABC):
         self,
         data: ArrayData,
         **kwargs: Any,
-    ) -> Mapping[str, Optional[TaggedArray]]:
+    ) -> Mapping[str, Union[Optional[TaggedArray], Any]]:
+        # TODO(michalk8): some sanity checks
         if self.problem_kind == ProblemKind.LINEAR:
             data_kwargs = {"x": data.x, "y": data.y}
         elif self.problem_kind == ProblemKind.QUAD:

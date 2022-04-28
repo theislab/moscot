@@ -1,7 +1,7 @@
 from abc import ABC
 from enum import Enum
 from types import MappingProxyType
-from typing import Any, Type, Tuple, Union, Mapping, Optional, overload, NamedTuple
+from typing import Any, Type, Tuple, Union, Mapping, Optional, NamedTuple
 
 from typing_extensions import Literal
 
@@ -131,8 +131,9 @@ class SinkhornSolver(OTTSolver):
     # TODO(michalk8): rank
     def _prepare_input(
         self,
-        x: TaggedArray,
+        x: Optional[TaggedArray] = None,
         y: Optional[TaggedArray] = None,
+        xy: Optional[Tuple[TaggedArray, Optional[TaggedArray]]] = None,
         epsilon: Optional[float] = None,
         online: Union[int, bool] = False,
         scale_cost: Scale_t = None,
@@ -151,7 +152,7 @@ class GWSolver(OTTSolver):
         self,
         x: Optional[TaggedArray] = None,
         y: Optional[TaggedArray] = None,
-        xy: Optional[Tuple[TaggedArray, TaggedArray]] = None,
+        xy: Optional[Tuple[TaggedArray, Optional[TaggedArray]]] = None,
         epsilon: Optional[float] = None,
         online: Union[int, bool] = False,
         scale_cost: Scale_t = None,
@@ -171,12 +172,11 @@ class GWSolver(OTTSolver):
 
 
 class FGWSolver(GWSolver):
-    @overload
     def _prepare_input(
         self,
-        x: TaggedArray,
+        x: Optional[TaggedArray] = None,
         y: Optional[TaggedArray] = None,
-        xy: Optional[Tuple[TaggedArray, TaggedArray]] = None,
+        xy: Optional[Tuple[TaggedArray, Optional[TaggedArray]]] = None,
         epsilon: Optional[float] = None,
         online: Union[int, bool] = False,
         scale_cost: Scale_t = None,
@@ -185,9 +185,9 @@ class FGWSolver(GWSolver):
     ) -> Description:
         description = super()._prepare_input(xy=xy, epsilon=epsilon, online=online, scale_cost=scale_cost)
         # TODO(michalk8): re-add some checks?
-        geom_xy = self._create_geometry(x, y, epsilon=epsilon, online=online, scale_cost=scale_cost)
-
+        geom_xy = self._create_geometry(x=x, y=y, epsilon=epsilon, online=online, scale_cost=scale_cost)
         self._validate_geoms(description.data.geom_xx, description.data.geom_yy, geom_xy)
+
         problem = QuadraticProblem(
             description.data.geom_xx,
             description.data.geom_yy,
@@ -205,9 +205,9 @@ class FGWSolver(GWSolver):
     @staticmethod
     def _validate_geoms(geom_x: Geometry, geom_y: Geometry, geom_xy: Geometry) -> None:
         if geom_x.shape[0] != geom_xy.shape[0]:
-            raise ValueError("TODO: first and joint geom mismatch")
+            raise ValueError(f"TODO: first and joint geom mismatch: `{geom_x.shape}`, `{geom_xy.shape}`")
         if geom_y.shape[0] != geom_xy.shape[1]:
-            raise ValueError("TODO: second and joint geom mismatch")
+            raise ValueError(f"TODO: second and joint geom mismatch: `{geom_y.shape}`, `{geom_xy.shape}`")
 
     @staticmethod
     def _alpha_to_fused_penalty(alpha: float) -> float:
