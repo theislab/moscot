@@ -2,7 +2,6 @@ from abc import ABC, abstractmethod
 from enum import auto, Enum
 from types import MappingProxyType
 from typing import Any, Tuple, Union, Literal, Mapping, Optional
-from contextlib import contextmanager
 import warnings
 
 import numpy.typing as npt
@@ -11,7 +10,7 @@ from moscot.solvers._utils import _warn_not_close
 from moscot.solvers._output import BaseSolverOutput
 from moscot.solvers._tagged_array import Tag, TaggedArray
 
-__all__ = ("BaseSolver", "ContextlessBaseSolver")
+__all__ = ("BaseSolver",)
 
 ArrayLike = Union[npt.ArrayLike, TaggedArray]
 
@@ -75,22 +74,6 @@ class BaseSolver(TagConverterMixin, ABC):
         """Problem kind."""
         # helps to check whether necessary inputs were passed
 
-    @abstractmethod
-    def _set_ctx(self, data: Any, **kwargs: Any) -> Any:
-        pass
-
-    @abstractmethod
-    def _reset_ctx(self, old_context: Any) -> None:
-        pass
-
-    @contextmanager
-    def _solve_ctx(self, data: Any, **kwargs: Any) -> None:
-        old_context = self._set_ctx(data, **kwargs)
-        try:
-            yield
-        finally:
-            self._reset_ctx(old_context)
-
     def __call__(
         self,
         x: ArrayLike,
@@ -115,10 +98,9 @@ class BaseSolver(TagConverterMixin, ABC):
         if self.problem_kind != ProblemKind.QUAD_FUSED:
             prepare_kwargs.pop("alpha", None)
         data = self._prepare_input(x=x, y=y, epsilon=epsilon, a=a, b=b, tau_a=tau_a, tau_b=tau_b, **prepare_kwargs)
-        with self._solve_ctx(data, epsilon=epsilon, **prepare_kwargs):
-            res = self._solve(data, **solve_kwargs)
+        res = self._solve(data, **solve_kwargs)
 
-        return self._check_result(res, a=a, b=b, tau_a=tau_a, tau_b=tau_b)
+        return self._verify_result(res, a=a, b=b, tau_a=tau_a, tau_b=tau_b)
 
     def _verify_input(
         self,
@@ -144,8 +126,8 @@ class BaseSolver(TagConverterMixin, ABC):
 
         return {}
 
-    def _check_result(
-        self,
+    @staticmethod
+    def _verify_result(
         res: BaseSolverOutput,
         a: Optional[npt.ArrayLike] = None,
         b: Optional[npt.ArrayLike] = None,
@@ -167,13 +149,3 @@ class BaseSolver(TagConverterMixin, ABC):
             )
 
         return res
-
-
-class ContextlessBaseSolver(BaseSolver, ABC):
-    """ContextlessBaseSolver class."""
-
-    def _set_ctx(self, data: Any, **kwargs: Any) -> Any:
-        pass
-
-    def _reset_ctx(self, old_context: Any) -> None:
-        pass
