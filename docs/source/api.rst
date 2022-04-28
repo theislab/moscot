@@ -1,8 +1,8 @@
-Classes
-=======
+API
+===
 
-Problems
-~~~~~~~~
+Biological Problems
+~~~~~~~~~~~~~~~~~~~
 
 TemporalProblem
 ---------------
@@ -32,6 +32,9 @@ AlignmentProblem
     :members:
     :inherited-members:
 
+Generic Problems
+~~~~~~~~~~~~~~~~
+
 SinkhornProblem
 ---------------
 .. autoclass:: moscot.problems.SinkhornProblem
@@ -47,7 +50,7 @@ GWProblem
     :inherited-members:
 
 FGWProblem
----------
+----------
 .. autoclass:: moscot.problems.FGWProblem
     :noindex:
     :members:
@@ -75,6 +78,16 @@ GWSolver
 FGWSolver
 ---------
 .. autoclass:: moscot.backends.ott.FGWSolver
+    :noindex:
+    :members:
+    :inherited-members:
+
+Development
+~~~~~~~~~~~
+
+CompoundProblem
+---------------
+.. autoclass:: moscot.problems.CompoundProblem
     :noindex:
     :members:
     :inherited-members:

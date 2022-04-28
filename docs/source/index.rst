@@ -20,7 +20,5 @@ Contributing to moscot
     :maxdepth: 2
     :hidden:
 
-    biological_problems
-    generic_problems
-    solvers
-    developers
+    api
+    references
