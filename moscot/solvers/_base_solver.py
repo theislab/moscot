@@ -10,7 +10,7 @@ from moscot.solvers._utils import _warn_not_close
 from moscot.solvers._output import BaseSolverOutput
 from moscot.solvers._tagged_array import Tag, TaggedArray
 
-__all__ = ("BaseSolver",)
+__all__ = ("BaseSolver", "OTSolver")
 
 # TODO(michalk8): consider making TaggedArray private (used only internally)?
 ArrayLike = Union[npt.ArrayLike, TaggedArray]
@@ -74,17 +74,13 @@ class TagConverterMixin:
         return to_tagged_array(x, tag=Tag.POINT_CLOUD), to_tagged_array(y, tag=Tag.POINT_CLOUD)
 
 
-# TODO(michalk8): think about the abstraction needed for barycenter solvers
-class BaseSolver(TagConverterMixin, ABC):
+class BaseSolver(ABC):
     """BaseSolver class."""
 
     @abstractmethod
-    def _prepare_input(
+    def _prepare(
         self,
-        x: Optional[TaggedArray] = None,
-        y: Optional[TaggedArray] = None,
-        xy: Optional[Tuple[TaggedArray, Optional[TaggedArray]]] = None,
-        epsilon: Optional[float] = None,
+        *args: Any,
         **kwargs: Any,
     ) -> Any:
         pass
@@ -98,6 +94,20 @@ class BaseSolver(TagConverterMixin, ABC):
     def problem_kind(self) -> ProblemKind:
         """Problem kind."""
         # helps to check whether necessary inputs were passed
+
+    def __call__(
+        self,
+        *args: Any,
+        solve_kwargs: Mapping[str, Any] = MappingProxyType({}),
+        **kwargs: Any,
+    ) -> BaseSolverOutput:
+        """Call method."""
+        data = self._prepare(*args, **kwargs)
+        return self._solve(data, **solve_kwargs)
+
+
+class OTSolver(TagConverterMixin, BaseSolver, ABC):
+    """OTSolver class."""
 
     def __call__(
         self,
@@ -116,10 +126,10 @@ class BaseSolver(TagConverterMixin, ABC):
         """Call method."""
         data = self._get_array_data(x, y, xy=xy, tags=tags)
         kwargs = self._prepare_kwargs(data, **kwargs)
-        data = self._prepare_input(epsilon=epsilon, a=a, b=b, tau_a=tau_a, tau_b=tau_b, **kwargs)
-        res = self._solve(data, **solve_kwargs)
 
-        return self._verify_result(res, a=a, b=b, tau_a=tau_a, tau_b=tau_b)
+        res = super().__call__(epsilon=epsilon, a=a, b=b, tau_a=tau_a, tau_b=tau_b, **kwargs)
+
+        return self._check_marginals(res, a=a, b=b, tau_a=tau_a, tau_b=tau_b)
 
     def _prepare_kwargs(
         self,
@@ -153,7 +163,7 @@ class BaseSolver(TagConverterMixin, ABC):
         return {**kwargs, **data_kwargs}
 
     @staticmethod
-    def _verify_result(
+    def _check_marginals(
         res: BaseSolverOutput,
         a: Optional[npt.ArrayLike] = None,
         b: Optional[npt.ArrayLike] = None,

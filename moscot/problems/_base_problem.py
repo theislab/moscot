@@ -11,7 +11,7 @@ import scanpy as sc
 from moscot.backends.ott import SinkhornSolver
 from moscot.solvers._output import BaseSolverOutput
 from moscot.problems._anndata import AnnDataPointer
-from moscot.solvers._base_solver import BaseSolver, ProblemKind
+from moscot.solvers._base_solver import OTSolver, ProblemKind
 from moscot.solvers._tagged_array import Tag, TaggedArray
 
 __all__ = ("BaseProblem", "GeneralProblem")
@@ -21,7 +21,7 @@ class BaseProblem(ABC):
     def __init__(
         self,
         adata: AnnData,
-        solver: Optional[BaseSolver] = None,
+        solver: Optional[OTSolver] = None,
     ):
         self._adata = adata
         self.solver = self._default_solver if solver is None else solver
@@ -36,7 +36,7 @@ class BaseProblem(ABC):
 
     @property
     @abstractmethod
-    def _default_solver(self) -> BaseSolver:
+    def _default_solver(self) -> OTSolver:
         pass
 
     @staticmethod
@@ -89,12 +89,12 @@ class BaseProblem(ABC):
         return self._adata
 
     @property
-    def solver(self) -> BaseSolver:
+    def solver(self) -> OTSolver:
         return self._solver
 
     @solver.setter
-    def solver(self, solver: BaseSolver) -> None:
-        if not isinstance(solver, BaseSolver):  # TODO: enable
+    def solver(self, solver: OTSolver) -> None:
+        if not isinstance(solver, OTSolver):  # TODO: enable
             raise TypeError("TOOD: not a solver")
         self._solver = solver
 
@@ -104,7 +104,7 @@ class GeneralProblem(BaseProblem):
         self,
         adata_x: AnnData,
         adata_y: Optional[AnnData] = None,
-        solver: Optional[BaseSolver] = None,
+        solver: Optional[OTSolver] = None,
         source: Any = "src",
         target: Any = "tgt",
         **kwargs: Any,
@@ -253,7 +253,7 @@ class GeneralProblem(BaseProblem):
         return len(self.adata), len(self._marginal_b_adata)
 
     @property
-    def _default_solver(self) -> BaseSolver:
+    def _default_solver(self) -> OTSolver:
         return SinkhornSolver()
 
     @property

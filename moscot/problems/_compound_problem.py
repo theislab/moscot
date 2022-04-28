@@ -11,7 +11,7 @@ from anndata import AnnData
 
 from moscot.backends.ott import SinkhornSolver
 from moscot.solvers._output import BaseSolverOutput
-from moscot.solvers._base_solver import BaseSolver, ProblemKind
+from moscot.solvers._base_solver import OTSolver, ProblemKind
 from moscot.problems._base_problem import BaseProblem, GeneralProblem
 from moscot.problems._subset_policy import Axis_t, StarPolicy, SubsetPolicy, ExplicitPolicy, FormatterMixin
 
@@ -31,7 +31,7 @@ class CompoundBaseProblem(BaseProblem, ABC):
     def __init__(
         self,
         adata: AnnData,
-        solver: Optional[BaseSolver] = None,
+        solver: Optional[OTSolver] = None,
         *,
         # TODO(michalk8): properly type this
         base_problem_type: Type[GeneralProblem] = GeneralProblem,
@@ -197,7 +197,7 @@ class CompoundBaseProblem(BaseProblem, ABC):
         return self._apply(*args, forward=False, **kwargs)
 
     @property
-    def _default_solver(self) -> BaseSolver:
+    def _default_solver(self) -> OTSolver:
         return SinkhornSolver()
 
     @property
@@ -266,7 +266,7 @@ class MultiCompoundProblem(CompoundBaseProblem):
     def __init__(
         self,
         *adatas: Union[AnnData, Mapping[Any, AnnData], Tuple[AnnData, ...], List[AnnData]],
-        solver: Optional[BaseSolver] = None,
+        solver: Optional[OTSolver] = None,
         **kwargs: Any,
     ):
         if not len(adatas):
@@ -332,7 +332,7 @@ class CompoundProblem(CompoundBaseProblem):
     def __init__(
         self,
         *adatas: Union[AnnData, Mapping[Any, AnnData], Tuple[AnnData, ...], List[AnnData]],
-        solver: Optional[BaseSolver] = None,
+        solver: Optional[OTSolver] = None,
         **kwargs: Any,
     ):
         if len(adatas) == 1 and isinstance(adatas[0], AnnData):

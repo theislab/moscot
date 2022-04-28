@@ -15,7 +15,7 @@ import jax.numpy as jnp
 from moscot.backends.ott import GWSolver, FGWSolver, SinkhornSolver
 from moscot.solvers._output import BaseSolverOutput
 from moscot.backends.ott._output import GWOutput, SinkhornOutput, LRSinkhornOutput
-from moscot.solvers._base_solver import BaseSolver
+from moscot.solvers._base_solver import OTSolver
 from moscot.solvers._tagged_array import Tag
 
 
@@ -255,7 +255,7 @@ class TestSolverOutput:
         y: Geom_t,
         xy: Geom_t,
         ab: Tuple[np.ndarray, np.ndarray],
-        solver_t: Type[BaseSolver],
+        solver_t: Type[OTSolver],
         batched: bool,
     ):
         b, ndim = (ab[1], ab[1].shape[1]) if batched else (ab[1][:, 0], None)

@@ -14,7 +14,7 @@ import scanpy as sc
 from moscot.problems import MultiMarginalProblem
 from moscot.solvers._output import BaseSolverOutput
 from moscot.problems.time._utils import beta, delta, MarkerGenes
-from moscot.solvers._base_solver import BaseSolver, ProblemKind
+from moscot.solvers._base_solver import OTSolver, ProblemKind
 from moscot.mixins._time_analysis import TemporalAnalysisMixin
 from moscot.solvers._tagged_array import TaggedArray
 from moscot.problems._compound_problem import SingleCompoundProblem
@@ -34,7 +34,7 @@ class TemporalBaseProblem(MultiMarginalProblem):
         adata_y: AnnData,
         source: Number,
         target: Number,
-        solver: Optional[BaseSolver] = None,
+        solver: Optional[OTSolver] = None,
         **kwargs: Any,
     ):
         if source >= target:
@@ -81,7 +81,7 @@ class TemporalBaseProblem(MultiMarginalProblem):
 class TemporalProblem(TemporalAnalysisMixin, SingleCompoundProblem):
     _VALID_POLICIES = ["sequential", "pairwise", "triu", "tril", "explicit"]
 
-    def __init__(self, adata: AnnData, solver: Optional[BaseSolver] = None, **kwargs: Any):
+    def __init__(self, adata: AnnData, solver: Optional[OTSolver] = None, **kwargs: Any):
         super().__init__(adata, solver=solver, base_problem_type=TemporalBaseProblem, **kwargs)
         self._temporal_key: Optional[str] = None
         self._proliferation_key: Optional[str] = None

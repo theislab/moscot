@@ -17,7 +17,7 @@ import numpy.typing as npt
 
 from moscot.solvers._output import BaseSolverOutput
 from moscot.backends.ott._output import GWOutput, SinkhornOutput, LRSinkhornOutput
-from moscot.solvers._base_solver import BaseSolver, ProblemKind
+from moscot.solvers._base_solver import OTSolver, ProblemKind
 from moscot.solvers._tagged_array import TaggedArray
 
 __all__ = ("Cost", "SinkhornSolver", "GWSolver", "FGWSolver")
@@ -49,10 +49,10 @@ class Description(NamedTuple):
     output: Union[Type[SinkhornOutput], Type[LRSinkhornOutput], Type[GWOutput]]
 
 
-class OTTSolver(BaseSolver, ABC):
+class OTTJaxSolver(OTSolver, ABC):
     def __init__(self, **kwargs: Any):
         super().__init__()
-        self._solver_kwargs = kwargs.copy()
+        self._solver_kwargs = kwargs
 
     def _create_geometry(
         self,
@@ -115,21 +115,8 @@ class OTTSolver(BaseSolver, ABC):
         return desc.output(res, **output_kwargs)
 
 
-class SinkhornSolver(OTTSolver):
-    @property
-    def problem_kind(self) -> ProblemKind:
-        return ProblemKind.LINEAR
-
-    @property
-    def _linear_solver(self) -> Union[Sinkhorn, LRSinkhorn]:
-        return self._solver
-
-    @_linear_solver.setter
-    def _linear_solver(self, solver: Union[Sinkhorn, LRSinkhorn]) -> None:
-        self._solver = solver
-
-    # TODO(michalk8): rank
-    def _prepare_input(
+class SinkhornSolver(OTTJaxSolver):
+    def _prepare(
         self,
         x: Optional[TaggedArray] = None,
         y: Optional[TaggedArray] = None,
@@ -146,9 +133,13 @@ class SinkhornSolver(OTTSolver):
 
         return Description(solver=solver, data=problem, output=SinkhornOutput)
 
+    @property
+    def problem_kind(self) -> ProblemKind:
+        return ProblemKind.LINEAR
 
-class GWSolver(OTTSolver):
-    def _prepare_input(
+
+class GWSolver(OTTJaxSolver):
+    def _prepare(
         self,
         x: Optional[TaggedArray] = None,
         y: Optional[TaggedArray] = None,
@@ -172,7 +163,7 @@ class GWSolver(OTTSolver):
 
 
 class FGWSolver(GWSolver):
-    def _prepare_input(
+    def _prepare(
         self,
         x: Optional[TaggedArray] = None,
         y: Optional[TaggedArray] = None,
@@ -183,8 +174,7 @@ class FGWSolver(GWSolver):
         alpha: float = 0.5,
         **kwargs: Any,
     ) -> Description:
-        description = super()._prepare_input(xy=xy, epsilon=epsilon, online=online, scale_cost=scale_cost)
-        # TODO(michalk8): re-add some checks?
+        description = super()._prepare(xy=xy, epsilon=epsilon, online=online, scale_cost=scale_cost)
         geom_xy = self._create_geometry(x=x, y=y, epsilon=epsilon, online=online, scale_cost=scale_cost)
         self._validate_geoms(description.data.geom_xx, description.data.geom_yy, geom_xy)
 

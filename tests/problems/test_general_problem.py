@@ -13,13 +13,13 @@ from anndata import AnnData
 from moscot.problems import GeneralProblem
 from moscot.backends.ott import GWSolver, FGWSolver, SinkhornSolver
 from moscot.solvers._output import BaseSolverOutput
-from moscot.solvers._base_solver import BaseSolver
+from moscot.solvers._base_solver import OTSolver
 from moscot.solvers._tagged_array import Tag
 
 
 class TestGeneralProblem:
     @pytest.mark.parametrize("solver_t", [SinkhornSolver, GWSolver, FGWSolver])
-    def test_simple_run(self, adata_x: AnnData, adata_y: AnnData, solver_t: Type[BaseSolver]):
+    def test_simple_run(self, adata_x: AnnData, adata_y: AnnData, solver_t: Type[OTSolver]):
         prob = GeneralProblem(adata_x, adata_y, solver=solver_t())
         prob = prob.prepare(
             x={"attr": "X"},

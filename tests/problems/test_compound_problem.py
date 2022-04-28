@@ -13,7 +13,7 @@ from anndata import AnnData
 
 from moscot.problems import CompoundProblem, SingleCompoundProblem
 from moscot.backends.ott import FGWSolver, SinkhornSolver
-from moscot.solvers._base_solver import BaseSolver, ProblemKind
+from moscot.solvers._base_solver import OTSolver, ProblemKind
 from moscot.solvers._tagged_array import Tag, TaggedArray
 from moscot.problems._base_problem import GeneralProblem
 from moscot.problems._compound_problem import Callback_t
@@ -56,7 +56,7 @@ class TestSingleCompoundProblem:
             assert problem[key].solution is problem.solutions[key]
 
     @pytest.mark.parametrize("solver_t", [SinkhornSolver, FGWSolver])
-    def test_default_callback(self, adata_time: AnnData, solver_t: Type[BaseSolver], mocker: MockerFixture):
+    def test_default_callback(self, adata_time: AnnData, solver_t: Type[OTSolver], mocker: MockerFixture):
         subproblem = GeneralProblem(adata_time)  # doesn't matter that it's not a subset
         callback_kwargs = {"n_comps": 5}
         spy = mocker.spy(subproblem, "_prepare_callback")
@@ -79,7 +79,7 @@ class TestSingleCompoundProblem:
         spy.assert_called_with(subproblem.adata, subproblem._adata_y, subproblem.solver.problem_kind, **callback_kwargs)
 
     @pytest.mark.parametrize("solver_t", [SinkhornSolver, FGWSolver])
-    def test_custom_callback(self, adata_time: AnnData, mocker: MockerFixture, solver_t: Type[BaseSolver]):
+    def test_custom_callback(self, adata_time: AnnData, mocker: MockerFixture, solver_t: Type[OTSolver]):
         expected_keys = [(0, 1), (1, 2)]
         callback_kwargs = {"sentinel": True}
         spy = mocker.spy(TestSingleCompoundProblem, "callback")
