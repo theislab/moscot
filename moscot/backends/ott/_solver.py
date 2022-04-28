@@ -1,7 +1,6 @@
 from abc import ABC
 from enum import Enum
-from types import MappingProxyType
-from typing import Any, Type, Tuple, Union, Mapping, Optional, NamedTuple
+from typing import Any, Type, Tuple, Union, Optional, NamedTuple
 
 from typing_extensions import Literal
 
@@ -108,11 +107,10 @@ class OTTJaxSolver(OTSolver, ABC):
     def _solve(
         self,
         desc: Description,
-        output_kwargs: Mapping[str, Any] = MappingProxyType({}),
         **kwargs: Any,
     ) -> BaseSolverOutput:
         res = desc.solver(desc.data, **kwargs)
-        return desc.output(res, **output_kwargs)
+        return desc.output(res, rank=desc.solver.rank)
 
 
 class SinkhornSolver(OTTJaxSolver):
@@ -131,7 +129,7 @@ class SinkhornSolver(OTTJaxSolver):
         problem = LinearProblem(geom, **kwargs)
         if self._solver_kwargs.get("rank", -1) > -1:
             solver = LRSinkhorn(**self._solver_kwargs)
-            output = lambda *args, **kwargs: LRSinkhornOutput(*args, **kwargs, rank=solver.rank)
+            output = LRSinkhornOutput
         else:
             solver = Sinkhorn(**{k: v for k, v in self._solver_kwargs.items() if k != "rank"})
             output = SinkhornOutput
