@@ -23,9 +23,9 @@ class ProblemKind(Enum):
 
 
 class ArrayData(NamedTuple):
-    x: TaggedArray
-    y: TaggedArray
-    xy: TaggedArray
+    x: Optional[TaggedArray]
+    y: Optional[TaggedArray]
+    xy: Tuple[Optional[TaggedArray], Optional[TaggedArray]]
 
 
 class TagConverterMixin:
@@ -37,9 +37,10 @@ class TagConverterMixin:
         tags: Mapping[Literal["x", "y", "xy"], Tag] = MappingProxyType({}),
     ) -> ArrayData:
         x, y = self._convert(x, y, tags=tags, is_linear=True)
-        xx, yy = self._convert(xy[0], xy[1], tags=tags, is_linear=False)
-
-        return ArrayData(x=x, y=y, xy=(xx, yy))
+        if xy is None:
+            return ArrayData(x=x, y=y, xy=(None, None))
+        xy = self._convert(xy[0], xy[1], tags=tags, is_linear=False)
+        return ArrayData(x=x, y=y, xy=xy)
 
     @staticmethod
     def _convert(
@@ -73,6 +74,7 @@ class TagConverterMixin:
         return to_tagged_array(x, tag=Tag.POINT_CLOUD), to_tagged_array(y, tag=Tag.POINT_CLOUD)
 
 
+# TODO(michalk8): think about the abstraction needed for barycenter solvers
 class BaseSolver(TagConverterMixin, ABC):
     """BaseSolver class."""
 
@@ -124,12 +126,23 @@ class BaseSolver(TagConverterMixin, ABC):
         data: ArrayData,
         **kwargs: Any,
     ) -> Mapping[str, Union[Optional[TaggedArray], Any]]:
-        # TODO(michalk8): some sanity checks
+        def assert_linear() -> None:
+            if data.x is None and data.y is None:
+                raise ValueError("TODO: no linear data.")
+
+        def assert_quadratic() -> None:
+            if data.xy == (None, None):
+                raise ValueError("TODO: no quadratic data.")
+
         if self.problem_kind == ProblemKind.LINEAR:
+            assert_linear()
             data_kwargs = {"x": data.x, "y": data.y}
         elif self.problem_kind == ProblemKind.QUAD:
+            assert_quadratic()
             data_kwargs = {"xy": data.xy}
         elif self.problem_kind == ProblemKind.QUAD_FUSED:
+            assert_linear()
+            assert_quadratic()
             data_kwargs = {"x": data.x, "y": data.y, "xy": data.xy}
         else:
             raise NotImplementedError(f"TODO: {self.problem_kind}")
