@@ -27,6 +27,7 @@ Callback_t = Optional[
     ]
 ]
 
+
 @d.get_sections(base="CompoundBaseProblem", sections=["Parameters", "Raises"])
 @d.dedent
 class CompoundBaseProblem(BaseProblem, ABC):
@@ -51,6 +52,7 @@ class CompoundBaseProblem(BaseProblem, ABC):
         If ``base_problem_type`` is not a subclass of `GeneralProblem`
 
     """
+
     def __init__(
         self,
         adata: AnnData,
@@ -165,6 +167,8 @@ class CompoundBaseProblem(BaseProblem, ABC):
         self._solutions = None
 
         return self
+
+    d.delete_params("CompoundBaseProblem_prepare.parameters", "key")
 
     @d.dedent
     def solve(

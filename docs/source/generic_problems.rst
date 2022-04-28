@@ -1,4 +1,4 @@
-Problems
+Generic Problems
 ========
 
 SinkhornProblem
