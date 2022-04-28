@@ -1,3 +1,4 @@
+from abc import ABC
 from enum import Enum
 from types import MappingProxyType
 from typing import Any, Type, Tuple, Union, Mapping, Optional, NamedTuple
@@ -32,13 +33,13 @@ class Cost(str, Enum):
 
     def __call__(self, **kwargs: Any) -> CostFn:
         if self.value == Cost.SQEUCL:
-            return Euclidean
+            return Euclidean()
         if self.value == Cost.COSINE:
-            return Cosine
+            return Cosine()
         if self.value == Cost.BURES:
-            return Bures
+            return Bures(**kwargs)
         if self.value == Cost.BUREL_UNBAL:
-            return UnbalancedBures
+            return UnbalancedBures(**kwargs)
         raise NotImplementedError(self.value)
 
 
@@ -48,7 +49,7 @@ class Description(NamedTuple):
     output: Union[Type[SinkhornOutput], Type[LRSinkhornOutput], Type[GWOutput]]
 
 
-class GeometryMixin:
+class OTTSolver(BaseSolver, ABC):
     def __init__(self, **kwargs: Any):
         super().__init__()
         self._solver_kwargs = kwargs.copy()
@@ -114,7 +115,7 @@ class GeometryMixin:
         return desc.output(res, **output_kwargs)
 
 
-class SinkhornSolver(GeometryMixin, BaseSolver):
+class SinkhornSolver(OTTSolver):
     @property
     def problem_kind(self) -> ProblemKind:
         return ProblemKind.LINEAR
@@ -139,13 +140,13 @@ class SinkhornSolver(GeometryMixin, BaseSolver):
     ) -> Description:
         geom = self._create_geometry(x, y, epsilon=epsilon, online=online, scale_cost=scale_cost)
 
-        solver = SinkhornSolver(**self._solver_kwargs)
+        solver = Sinkhorn(**self._solver_kwargs)
         problem = LinearProblem(geom, **kwargs)
 
         return Description(solver=solver, data=problem, output=SinkhornOutput)
 
 
-class GWSolver(GeometryMixin, BaseSolver):
+class GWSolver(OTTSolver):
     def _prepare_input(
         self,
         x: TaggedArray,
