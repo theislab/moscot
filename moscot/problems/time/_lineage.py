@@ -88,7 +88,7 @@ class TemporalProblem(TemporalAnalysisMixin, SingleCompoundProblem):
     Parameters
     ----------
     adata
-        :class:`anndata.AnnData` instance containing the single cell data and corresponding metadata
+        %(adata)s
     solver
         :class:`moscot.solver` instance used to solve the optimal transport problem. Currently, :class:`moscot.solvers.SinkhornSolver` can be used to solve this problem.
 
