@@ -46,7 +46,7 @@ class CompoundBaseProblem(BaseProblem, ABC):
     Raises
     ------
     TypeError
-        If ``base_problem_type`` is not a subclass of `GeneralProblem`.
+        If `base_problem_type` is not a subclass of `GeneralProblem`.
 
     """
 

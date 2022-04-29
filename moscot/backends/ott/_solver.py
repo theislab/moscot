@@ -16,6 +16,7 @@ from ott.core.gromov_wasserstein import GromovWasserstein
 import jax.numpy as jnp
 import numpy.typing as npt
 
+from moscot._docs import d
 from moscot.solvers._output import BaseSolverOutput
 from moscot.backends.ott._output import GWOutput, SinkhornOutput, LRSinkhornOutput
 from moscot.solvers._base_solver import BaseSolver, ProblemKind
@@ -49,7 +50,21 @@ class SolverDescription(NamedTuple):
     output: Union[Type[SinkhornOutput], Type[LRSinkhornOutput], Type[GWOutput]]
 
 
+@d.get_sections(base="GeometryMixin", sections=["Parameters"])
+@d.dedent
 class GeometryMixin:
+    """
+    Class handling the preparation of :class:`ott.geometry.Geometry`
+
+    Parameters
+    ----------
+    kwargs
+        keyword arguments for one of the following
+        - :class:`ott.core.sinkhorn.Sinkhorn` 
+        - :class:`ott.core.sinkhorn_lr.LRSinkhorn`
+        - :class:`ott.core.gromov_wasserstein.GromovWasserstein`
+
+    """
     def __init__(self, **kwargs: Any):
         super().__init__()
         self._solver = self._description.solver(**kwargs)
@@ -119,7 +134,20 @@ class GeometryMixin:
         return self._description.output(self._solver(data, **kwargs), **output_kwargs)
 
 
+@d.get_sections(base="RankMixin", sections=["Parameters", "Raises"])
+@d.dedent 
 class RankMixin(GeometryMixin):
+    """
+    Class interfacing with the backend solvers. TODO: maybe rename?
+
+    Parameters
+    ----------
+    rank
+        If rank is larger than 0 this is the rank used for the low rank as defined 
+        in :cite:`scetbon:2021_a` or :cite:`scetbon:2021_b`
+    %(GeometryMixin.parameters)s
+
+    """
     def __init__(self, rank: int = -1, **kwargs: Any):
         # a bit ugly - must be set before calling super().__init__
         # otherwise, would need to refactor how description works
@@ -196,8 +224,27 @@ class RankMixin(GeometryMixin):
     def is_low_rank(self) -> bool:
         return self.rank > 0
 
-
+@d.dedent
 class SinkhornSolver(RankMixin, BaseSolver):
+    """
+    Class which solves regularized Optimal Transport problems with the Sinkhorn algorithm :cite:`cuturi2013`
+
+    This solver wraps :class:`ott.core.sinkhorn.Sinkhorn` (:cite:`scetbon:2021_a`) by default and 
+    :class:`ott.core.sinkhorn_lr.LRSinkhorn` (:cite:`cuturi:2013`) if `rank` is a positive integer.
+
+    TODO: link notebooks for example
+
+    Parameters
+    ----------
+    %(RankMixin.parameters)s 
+    %(BaseSolver.parameters)s
+
+    Raises
+    ------
+    %(RankMixin.raises)s
+    %(BaseSolver.parameters)s
+    
+    """
     @property
     def problem_kind(self) -> ProblemKind:
         return ProblemKind.LINEAR

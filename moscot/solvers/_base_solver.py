@@ -7,6 +7,7 @@ import warnings
 
 import numpy.typing as npt
 
+from moscot._docs import d
 from moscot.solvers._utils import _warn_not_close
 from moscot.solvers._output import BaseSolverOutput
 from moscot.solvers._tagged_array import Tag, TaggedArray
@@ -51,9 +52,20 @@ class TagConverterMixin:
             return TaggedArray(arr, tag=tag)
         return TaggedArray(arr.data, tag=tag)
 
-
+@d.get_sections(base="BaseSolver", sections=["Parameters", "Raises"])
+@d.dedent
 class BaseSolver(TagConverterMixin, ABC):
-    """BaseSolver class."""
+    """
+    BaseClass for all solvers.
+
+    Parameters
+    ----------
+    
+
+    Raises
+    ------
+    
+    """
 
     @abstractmethod
     def _prepare_input(
