@@ -83,7 +83,7 @@ class GWOutput(OutputRankMixin, MatrixSolverOutput):
     def __init__(self, output: OTTGWOutput, rank: int = -1):
         super().__init__(output.matrix, rank=rank)
         self._converged = bool(output.convergence)
-        self._cost = float(output.reg_gw_cost)
+        self._cost = float(output.costs[output.costs != -1][-1])
 
     @property
     def cost(self) -> float:

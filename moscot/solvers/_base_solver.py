@@ -31,22 +31,24 @@ class ArrayData(NamedTuple):
 class TagConverterMixin:
     def _get_array_data(
         self,
-        x: ArrayLike,
+        xy: Optional[Union[ArrayLike, Tuple[ArrayLike, Optional[ArrayLike]]]] = None,
+        x: Optional[ArrayLike] = None,
         y: Optional[ArrayLike] = None,
-        xy: Optional[Tuple[ArrayLike, Optional[ArrayLike]]] = None,
-        tags: Mapping[Literal["x", "y", "xy"], Tag] = MappingProxyType({}),
+        tags: Mapping[Literal["xy", "x", "y"], Tag] = MappingProxyType({}),
     ) -> ArrayData:
-        x, y = self._convert(x, y, tags=tags, is_linear=True)
+        x, y = self._convert(x, y, tags=tags, is_linear=False)
         if xy is None:
-            return ArrayData(x=x, y=y, xy=(None, None))
-        xy = self._convert(xy[0], xy[1], tags=tags, is_linear=False)
+            xy = (None, None)
+        elif not isinstance(xy, tuple):
+            xy = (xy, None)
+        xy = self._convert(xy[0], xy[1], tags=tags, is_linear=True)
         return ArrayData(x=x, y=y, xy=xy)
 
     @staticmethod
     def _convert(
         x: Optional[ArrayLike],
         y: Optional[ArrayLike],
-        tags: Mapping[Literal["x", "y", "xy"], Tag] = MappingProxyType({}),
+        tags: Mapping[Literal["xy", "x", "y"], Tag] = MappingProxyType({}),
         *,
         is_linear: bool,
     ) -> Tuple[Optional[TaggedArray], Optional[TaggedArray]]:
@@ -58,20 +60,24 @@ class TagConverterMixin:
                 return TaggedArray(arr.data, tag=tag)
             return TaggedArray(arr, tag=tag)
 
-        def cost_or_kernel(arr: TaggedArray, key: Literal["x", "y", "xy"]) -> TaggedArray:
+        def cost_or_kernel(arr: TaggedArray, key: Literal["xy", "x", "y"]) -> TaggedArray:
             arr = to_tagged_array(arr, tag=tags.get(key, Tag.COST_MATRIX))
             if arr.tag not in (Tag.COST_MATRIX, Tag.KERNEL):
                 raise ValueError(f"TODO: wrong tag - expected kernel/cost, got `{arr.tag}`")
             return arr
 
-        x_key, y_key = ("x", "y") if is_linear else ("xy", "xy")
+        x_key, y_key = ("xy", "xy") if is_linear else ("x", "y")
         if x is None and y is None:
-            return None, None  # checks are one later
+            return None, None  # checks are done later
         if x is None:
             return cost_or_kernel(y, key=y_key), None
         if y is None:
             return cost_or_kernel(x, key=x_key), None
-        return to_tagged_array(x, tag=Tag.POINT_CLOUD), to_tagged_array(y, tag=Tag.POINT_CLOUD)
+        if is_linear:
+            return to_tagged_array(x, tag=Tag.POINT_CLOUD), to_tagged_array(y, tag=Tag.POINT_CLOUD)
+        return to_tagged_array(x, tag=tags.get(x_key, Tag.POINT_CLOUD)), to_tagged_array(
+            y, tag=tags.get(y_key, Tag.POINT_CLOUD)
+        )
 
 
 class BaseSolver(ABC):
@@ -111,23 +117,22 @@ class OTSolver(TagConverterMixin, BaseSolver, ABC):
 
     def __call__(
         self,
+        xy: Optional[Union[ArrayLike, Tuple[ArrayLike, ArrayData]]] = None,
         x: Optional[ArrayLike] = None,
         y: Optional[ArrayLike] = None,
-        xy: Optional[Tuple[TaggedArray, TaggedArray]] = None,
         a: Optional[npt.ArrayLike] = None,
         b: Optional[npt.ArrayLike] = None,
         tau_a: float = 1.0,
         tau_b: float = 1.0,
-        epsilon: Optional[float] = None,
         tags: Mapping[Literal["x", "y", "xy"], Tag] = MappingProxyType({}),
         solve_kwargs: Mapping[str, Any] = MappingProxyType({}),
         **kwargs: Any,
     ) -> BaseSolverOutput:
         """Call method."""
-        data = self._get_array_data(x, y, xy=xy, tags=tags)
+        data = self._get_array_data(xy, x=x, y=y, tags=tags)
         kwargs = self._prepare_kwargs(data, **kwargs)
 
-        res = super().__call__(epsilon=epsilon, a=a, b=b, tau_a=tau_a, tau_b=tau_b, **kwargs)
+        res = super().__call__(a=a, b=b, tau_a=tau_a, tau_b=tau_b, solve_kwargs=solve_kwargs, **kwargs)
 
         return self._check_marginals(res, a=a, b=b, tau_a=tau_a, tau_b=tau_b)
 
@@ -137,19 +142,19 @@ class OTSolver(TagConverterMixin, BaseSolver, ABC):
         **kwargs: Any,
     ) -> Mapping[str, Union[Optional[TaggedArray], Any]]:
         def assert_linear() -> None:
-            if data.x is None and data.y is None:
+            if data.xy == (None, None):
                 raise ValueError("TODO: no linear data.")
 
         def assert_quadratic() -> None:
-            if data.xy == (None, None):
+            if data.x is None or data.y is None:
                 raise ValueError("TODO: no quadratic data.")
 
         if self.problem_kind == ProblemKind.LINEAR:
             assert_linear()
-            data_kwargs = {"x": data.x, "y": data.y}
+            data_kwargs = {"xy": data.xy}
         elif self.problem_kind == ProblemKind.QUAD:
             assert_quadratic()
-            data_kwargs = {"xy": data.xy}
+            data_kwargs = {"x": data.x, "y": data.y}
         elif self.problem_kind == ProblemKind.QUAD_FUSED:
             assert_linear()
             assert_quadratic()

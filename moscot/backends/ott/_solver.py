@@ -110,21 +110,21 @@ class OTTJaxSolver(OTSolver, ABC):
         **kwargs: Any,
     ) -> BaseSolverOutput:
         res = desc.solver(desc.data, **kwargs)
-        return desc.output(res, rank=desc.solver.rank)
+        return desc.output(res, rank=getattr(desc.solver, "rank", -1))
 
 
 class SinkhornSolver(OTTJaxSolver):
     def _prepare(
         self,
+        xy: Optional[Tuple[TaggedArray, Optional[TaggedArray]]] = None,
         x: Optional[TaggedArray] = None,
         y: Optional[TaggedArray] = None,
-        xy: Optional[Tuple[TaggedArray, Optional[TaggedArray]]] = None,
         epsilon: Optional[float] = None,
         online: Union[int, bool] = False,
         scale_cost: Scale_t = None,
         **kwargs: Any,
     ) -> Description:
-        geom = self._create_geometry(x, y, epsilon=epsilon, online=online, scale_cost=scale_cost)
+        geom = self._create_geometry(xy[0], xy[1], epsilon=epsilon, online=online, scale_cost=scale_cost)
 
         problem = LinearProblem(geom, **kwargs)
         if self._solver_kwargs.get("rank", -1) > -1:
@@ -144,18 +144,21 @@ class SinkhornSolver(OTTJaxSolver):
 class GWSolver(OTTJaxSolver):
     def _prepare(
         self,
+        xy: Optional[Tuple[TaggedArray, Optional[TaggedArray]]] = None,
         x: Optional[TaggedArray] = None,
         y: Optional[TaggedArray] = None,
-        xy: Optional[Tuple[TaggedArray, Optional[TaggedArray]]] = None,
         epsilon: Optional[float] = None,
         online: Union[int, bool] = False,
         scale_cost: Scale_t = None,
         **kwargs: Any,
     ) -> Description:
-        geom_x = self._create_geometry(xy[0], epsilon=epsilon, online=online, scale_cost=scale_cost)
-        geom_y = self._create_geometry(xy[1], epsilon=epsilon, online=online, scale_cost=scale_cost)
+        geom_x = self._create_geometry(x, epsilon=epsilon, online=online, scale_cost=scale_cost)
+        geom_y = self._create_geometry(y, epsilon=epsilon, online=online, scale_cost=scale_cost)
 
-        solver = GromovWasserstein(**self._solver_kwargs)
+        if epsilon is not None:
+            solver = GromovWasserstein(**{**self._solver_kwargs, **{"epsilon": epsilon}})
+        else:
+            solver = GromovWasserstein(**self._solver_kwargs)
         problem = QuadraticProblem(geom_x, geom_y, geom_xy=None, fused_penalty=0.0, **kwargs)
 
         return Description(solver=solver, data=problem, output=GWOutput)
@@ -168,22 +171,22 @@ class GWSolver(OTTJaxSolver):
 class FGWSolver(GWSolver):
     def _prepare(
         self,
+        xy: Optional[Tuple[TaggedArray, Optional[TaggedArray]]] = None,
         x: Optional[TaggedArray] = None,
         y: Optional[TaggedArray] = None,
-        xy: Optional[Tuple[TaggedArray, Optional[TaggedArray]]] = None,
         epsilon: Optional[float] = None,
         online: Union[int, bool] = False,
         scale_cost: Scale_t = None,
         alpha: float = 0.5,
         **kwargs: Any,
     ) -> Description:
-        description = super()._prepare(xy=xy, epsilon=epsilon, online=online, scale_cost=scale_cost)
-        geom_xy = self._create_geometry(x=x, y=y, epsilon=epsilon, online=online, scale_cost=scale_cost)
+        description = super()._prepare(x=x, y=y, epsilon=epsilon, online=online, scale_cost=scale_cost)
+        geom_xy = self._create_geometry(xy[0], xy[1], epsilon=epsilon, online=online, scale_cost=scale_cost)
         self._validate_geoms(description.data.geom_xx, description.data.geom_yy, geom_xy)
 
         problem = QuadraticProblem(
-            description.data.geom_xx,
-            description.data.geom_yy,
+            geom_xx=description.data.geom_xx,
+            geom_yy=description.data.geom_yy,
             geom_xy=geom_xy,
             fused_penalty=self._alpha_to_fused_penalty(alpha),
             **kwargs,
