@@ -159,6 +159,7 @@ class TemporalProblem(TemporalAnalysisMixin, SingleCompoundProblem):
         Notes
         -----
         The marker genes in :mod:`moscot` are taken from the following sources:
+        
             - human, proliferation - :cite:`tirosh:16:science`.
             - human, apoptosis - `Hallmark Apoptosis, MSigDB <https://www.gsea-msigdb.org/gsea/msigdb/cards/HALLMARK_APOPTOSIS>`_.
             - mouse, proliferation - :cite:`tirosh:16:nature`.
