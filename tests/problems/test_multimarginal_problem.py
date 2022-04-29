@@ -8,7 +8,7 @@ import numpy as np
 
 from anndata import AnnData
 
-from moscot.problems import GeneralProblem
+from moscot.problems import OTProblem
 from moscot.backends.ott import SinkhornSolver
 from moscot.solvers._output import BaseSolverOutput
 
@@ -16,7 +16,7 @@ from moscot.solvers._output import BaseSolverOutput
 class TestMultiMarginalProblem:
     def test_subclass_GeneralProblem(self, adata_x: AnnData):
         prob = MockMultiMarginalProblem(adata_x, solver=SinkhornSolver())
-        assert isinstance(prob, GeneralProblem)
+        assert isinstance(prob, OTProblem)
 
     def test_marginal_dtypes(self, adata_x: AnnData, adata_y: AnnData):
         prob = MockMultiMarginalProblem(adata_x, adata_y, solver=SinkhornSolver())

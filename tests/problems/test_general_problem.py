@@ -10,7 +10,7 @@ import jax.numpy as jnp
 
 from anndata import AnnData
 
-from moscot.problems import GeneralProblem
+from moscot.problems import OTProblem
 from moscot.backends.ott import GWSolver, FGWSolver, SinkhornSolver
 from moscot.solvers._output import BaseSolverOutput
 from moscot.solvers._base_solver import OTSolver
@@ -19,7 +19,7 @@ from moscot.solvers._base_solver import OTSolver
 class TestGeneralProblem:
     @pytest.mark.parametrize("solver_t", [SinkhornSolver, GWSolver, FGWSolver])
     def test_simple_run(self, adata_x: AnnData, adata_y: AnnData, solver_t: Type[OTSolver]):
-        prob = GeneralProblem(adata_x, adata_y, solver=solver_t())
+        prob = OTProblem(adata_x, adata_y, solver=solver_t())
         prob = prob.prepare(
             x={"attr": "X"},
             y={"attr": "X"},
@@ -30,14 +30,14 @@ class TestGeneralProblem:
         assert isinstance(sol, BaseSolverOutput)
 
     def test_set_solver(self, adata_x: AnnData):
-        prob = GeneralProblem(adata_x, solver=SinkhornSolver())
+        prob = OTProblem(adata_x, solver=SinkhornSolver())
         assert isinstance(prob.solver, SinkhornSolver)
 
         prob.solver = FGWSolver()
         assert isinstance(prob.solver, FGWSolver)
 
     def test_output(self, adata_x: AnnData, x: Geom_t):
-        problem = GeneralProblem(adata_x)
+        problem = OTProblem(adata_x)
         problem._solution = TestSolverOutput(x * x.T)
 
         assert problem.solution.shape == (len(x), len(x))
@@ -47,7 +47,7 @@ class TestGeneralProblem:
         scale_cost, online, eps = "max_cost", True, 5e-2
         gt = sinkhorn(PointCloud(jnp.asarray(adata_x.X), online=online, epsilon=eps, scale_cost=scale_cost))
 
-        prob = GeneralProblem(adata_x, solver=SinkhornSolver())
+        prob = OTProblem(adata_x, solver=SinkhornSolver())
         prob = prob.prepare(xy={"x_attr": "X", "y_attr": "X"}).solve(online=online, epsilon=eps, scale_cost=scale_cost)
         sol = prob.solution
 

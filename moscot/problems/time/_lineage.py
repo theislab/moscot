@@ -1,5 +1,5 @@
 from types import MappingProxyType
-from typing import Any, Dict, Tuple, Union, Literal, Mapping, Callable, Optional, Sequence
+from typing import Any, Dict, Type, Tuple, Union, Literal, Mapping, Callable, Optional, Sequence
 from numbers import Number
 import logging
 
@@ -14,10 +14,10 @@ import scanpy as sc
 from moscot.problems import MultiMarginalProblem
 from moscot.solvers._output import BaseSolverOutput
 from moscot.problems.time._utils import beta, delta, MarkerGenes
-from moscot.solvers._base_solver import OTSolver, ProblemKind
+from moscot.solvers._base_solver import ProblemKind
 from moscot.mixins._time_analysis import TemporalAnalysisMixin
 from moscot.solvers._tagged_array import TaggedArray
-from moscot.problems._compound_problem import SingleCompoundProblem
+from moscot.problems._compound_problem import B, SingleCompoundProblem
 
 Callback_t = Optional[
     Union[
@@ -34,12 +34,10 @@ class TemporalBaseProblem(MultiMarginalProblem):
         adata_y: AnnData,
         source: Number,
         target: Number,
-        solver: Optional[OTSolver] = None,
-        **kwargs: Any,
     ):
         if source >= target:
             raise ValueError(f"{source} is expected to be strictly smaller than {target}.")
-        super().__init__(adata_x, adata_y=adata_y, solver=solver, source=source, target=target, **kwargs)
+        super().__init__(adata_x, adata_y=adata_y, source=source, target=target)
 
     def _estimate_marginals(
         self,
@@ -66,12 +64,13 @@ class TemporalBaseProblem(MultiMarginalProblem):
         growth = np.exp((birth - death) * (self._target - self._source))
         if source:
             return growth
-        return np.full(len(self._marginal_b_adata), np.average(growth))
+        return np.full(len(self._adata_y), np.average(growth))
 
     def _add_marginals(self, sol: BaseSolverOutput) -> None:
         _a = np.asarray(sol.a) / self._a[-1]
         self._a.append(_a)
-        self._b.append(np.full(len(self._marginal_b_adata), np.average(_a)))
+        # TODO(michalk8): sol._ones
+        self._b.append(np.full(len(self._adata_y), np.average(_a)))
 
     @property
     def growth_rates(self) -> npt.ArrayLike:
@@ -79,10 +78,8 @@ class TemporalBaseProblem(MultiMarginalProblem):
 
 
 class TemporalProblem(TemporalAnalysisMixin, SingleCompoundProblem):
-    _VALID_POLICIES = ["sequential", "pairwise", "triu", "tril", "explicit"]
-
-    def __init__(self, adata: AnnData, solver: Optional[OTSolver] = None, **kwargs: Any):
-        super().__init__(adata, solver=solver, base_problem_type=TemporalBaseProblem, **kwargs)
+    def __init__(self, adata: AnnData):
+        super().__init__(adata)
         self._temporal_key: Optional[str] = None
         self._proliferation_key: Optional[str] = None
         self._apoptosis_key: Optional[str] = None
@@ -135,8 +132,6 @@ class TemporalProblem(TemporalAnalysisMixin, SingleCompoundProblem):
         marginal_kwargs: Mapping[str, Any] = MappingProxyType({}),
         **kwargs: Any,
     ) -> "TemporalProblem":
-        if policy not in self._VALID_POLICIES:
-            raise ValueError("TODO: wrong policies")
         self._temporal_key = time_key
 
         if joint_attr is None:
@@ -233,6 +228,14 @@ class TemporalProblem(TemporalAnalysisMixin, SingleCompoundProblem):
         )
         return pd.concat(df_list, verify_integrity=True)
 
+    def _dict_to_adata(self, d: Mapping[str, npt.ArrayLike], obs_key: str) -> None:
+        tmp = np.empty(len(self.adata))
+        tmp[:] = np.nan
+        for key, value in d.items():
+            mask = self.adata.obs[self._temporal_key] == key
+            tmp[mask] = np.squeeze(value)
+        self.adata.obs[obs_key] = tmp
+
     @property
     def proliferation_key(self) -> Optional[str]:
         return self._proliferation_key
@@ -294,6 +297,14 @@ class TemporalProblem(TemporalAnalysisMixin, SingleCompoundProblem):
             return pd.concat(df_list, verify_integrity=True)
         except NotImplementedError:
             raise NotImplementedError("The current solver does not allow this property")
+
+    @property
+    def _base_problem_type(self) -> Type[B]:
+        return TemporalBaseProblem
+
+    @property
+    def _valid_policies(self) -> Tuple[str, ...]:
+        return "sequential", "pairwise", "triu", "tril", "explicit"
 
 
 class LineageProblem(TemporalProblem):

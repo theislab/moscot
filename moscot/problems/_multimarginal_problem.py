@@ -7,16 +7,13 @@ import numpy.typing as npt
 
 from anndata import AnnData
 
-from moscot.problems import GeneralProblem
+from moscot.problems import OTProblem
+from moscot.solvers._output import BaseSolverOutput
 
 __all__ = ("MultiMarginalProblem",)
 
-from moscot.solvers._output import BaseSolverOutput
 
-Marginals_t = Tuple[Optional[np.ndarray], Optional[np.ndarray]]
-
-
-class MultiMarginalProblem(GeneralProblem, ABC):
+class MultiMarginalProblem(OTProblem, ABC):
     _a: Optional[List[np.ndarray]]
     _b: Optional[List[np.ndarray]]
 
@@ -40,7 +37,7 @@ class MultiMarginalProblem(GeneralProblem, ABC):
         elif a is False:
             a = None
         if b is True:
-            b = self._estimate_marginals(self._marginal_b_adata, source=False, **marginal_kwargs)
+            b = self._estimate_marginals(self._adata_y, source=False, **marginal_kwargs)
         elif b is False:
             b = None
 
@@ -67,7 +64,7 @@ class MultiMarginalProblem(GeneralProblem, ABC):
             self._reset_marginals()
 
         # TODO(michalk8): keep?
-        # set this after the 1st run so that user can ignore the 1st marginals (for consistency with GeneralProblem)
+        # set this after the 1st run so that user can ignore the 1st marginals (for consistency with OTProblem)
         a, b = self._get_last_marginals()
         kwargs.setdefault("a", a)
         kwargs.setdefault("b", b)
@@ -87,7 +84,7 @@ class MultiMarginalProblem(GeneralProblem, ABC):
         self._a.append(np.asarray(sol.a))
         self._b.append(np.asarray(sol.b))
 
-    def _get_last_marginals(self) -> Marginals_t:
+    def _get_last_marginals(self) -> Tuple[Optional[np.ndarray], Optional[np.ndarray]]:
         # solvers are expected to handle `None` as marginals
         a = self._a[-1] if len(self._a) else None
         b = self._b[-1] if len(self._b) else None
@@ -95,12 +92,8 @@ class MultiMarginalProblem(GeneralProblem, ABC):
 
     @property
     def a(self) -> Optional[np.ndarray]:
-        if not len(self._a):
-            return None
-        return np.asarray(self._a).T
+        return np.asarray(self._a).T if len(self._a) else None
 
     @property
     def b(self) -> Optional[np.ndarray]:
-        if not len(self._b):
-            return None
-        return np.asarray(self._b).T
+        return np.asarray(self._b).T if len(self._b) else None

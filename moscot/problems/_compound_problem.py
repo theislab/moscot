@@ -1,6 +1,21 @@
 from abc import ABC, abstractmethod
 from types import MappingProxyType
-from typing import Any, Dict, List, Type, Tuple, Union, Literal, Mapping, Callable, Iterator, Optional, Sequence
+from typing import (
+    Any,
+    Dict,
+    List,
+    Type,
+    Tuple,
+    Union,
+    Generic,
+    Literal,
+    Mapping,
+    TypeVar,
+    Callable,
+    Iterator,
+    Optional,
+    Sequence,
+)
 
 import pandas as pd
 
@@ -12,10 +27,10 @@ from anndata import AnnData
 from moscot.backends.ott import SinkhornSolver
 from moscot.solvers._output import BaseSolverOutput
 from moscot.solvers._base_solver import OTSolver, ProblemKind
-from moscot.problems._base_problem import BaseProblem, GeneralProblem
+from moscot.problems._base_problem import OTProblem, BaseProblem
 from moscot.problems._subset_policy import Axis_t, StarPolicy, SubsetPolicy, ExplicitPolicy, FormatterMixin
 
-__all__ = ("SingleCompoundProblem", "MultiCompoundProblem", "CompoundProblem")
+__all__ = ("CompoundBaseProblem", "SingleCompoundProblem", "MultiCompoundProblem", "CompoundProblem")
 
 from moscot.solvers._tagged_array import TaggedArray
 
@@ -27,28 +42,21 @@ Callback_t = Optional[
 ]
 
 
-class CompoundBaseProblem(BaseProblem, ABC):
-    def __init__(
-        self,
-        adata: AnnData,
-        solver: Optional[OTSolver] = None,
-        *,
-        # TODO(michalk8): properly type this
-        base_problem_type: Type[GeneralProblem] = GeneralProblem,
-    ):
-        super().__init__(adata, solver=solver)
+B = TypeVar("B", bound=BaseProblem)
+K = TypeVar("K")  # TODO(michalk8): finish me
 
-        self._problems: Optional[Dict[Tuple[Any, Any], GeneralProblem]] = None
-        self._solutions: Optional[Dict[Tuple[Any, Any], BaseSolverOutput]] = None
+
+class CompoundBaseProblem(BaseProblem, Generic[K, B], ABC):
+    def __init__(self, adata: AnnData):
+        super().__init__(adata)
+        self._problems: Optional[Dict[Tuple[K, K], B]] = None
+        self._solutions: Optional[Dict[Tuple[K, K], BaseSolverOutput]] = None
         self._policy: Optional[SubsetPolicy] = None
-        if not issubclass(base_problem_type, GeneralProblem):
-            raise TypeError("TODO: `base_problem_type` must be a subtype of `GeneralProblem`.")
-        self._base_problem_type = base_problem_type
 
     @abstractmethod
     def _create_problem(
-        self, src: Any, tgt: Any, src_mask: npt.ArrayLike, tgt_mask: npt.ArrayLike, **kwargs: Any
-    ) -> GeneralProblem:
+        self, src: K, tgt: K, src_mask: npt.ArrayLike, tgt_mask: npt.ArrayLike, **kwargs: Any
+    ) -> OTProblem:
         pass
 
     @abstractmethod
@@ -59,12 +67,23 @@ class CompoundBaseProblem(BaseProblem, ABC):
     ) -> SubsetPolicy:
         pass
 
+    @property
+    @abstractmethod
+    def _base_problem_type(self) -> Type[B]:
+        pass
+
+    @property
+    @abstractmethod
+    def _valid_policies(self) -> Tuple[str, ...]:
+        pass
+
+    # TODO(michalk8): refactor me
     def _create_problems(
         self,
         callback: Callback_t = None,
         callback_kwargs: Mapping[str, Any] = MappingProxyType({}),
         **kwargs: Any,
-    ) -> Dict[Tuple[Any, Any], GeneralProblem]:
+    ) -> Dict[Tuple[K, K], B]:
         problems = {}
         for (src, tgt), (src_mask, tgt_mask) in self._policy.mask().items():
             kwargs_ = dict(kwargs)
@@ -78,10 +97,10 @@ class CompoundBaseProblem(BaseProblem, ABC):
                 x, y = callback(
                     problem.adata,
                     problem._adata_y,
-                    problem.solver.problem_kind,
+                    problem._problem_kind,
                     **callback_kwargs,
                 )
-                if problem.solver.problem_kind != ProblemKind.QUAD_FUSED:
+                if problem._problem_kind != ProblemKind.QUAD_FUSED:
                     kwargs_["xy"] = (x, y)
                 elif x is not None and y is not None:
                     kwargs_["x"] = x
@@ -102,6 +121,9 @@ class CompoundBaseProblem(BaseProblem, ABC):
         callback_kwargs: Mapping[str, Any] = MappingProxyType({}),
         **kwargs: Any,
     ) -> "CompoundProblem":
+        if self._valid_policies and policy not in self._valid_policies:
+            raise ValueError(f"TODO: Invalid policy `{policy}`")
+
         self._policy = self._create_policy(policy=policy, key=key, axis=axis)
         if isinstance(self._policy, ExplicitPolicy):
             self._policy = self._policy(subset)
@@ -115,15 +137,18 @@ class CompoundBaseProblem(BaseProblem, ABC):
 
         return self
 
+    # TODO(michalk8): remove OT specific arguments
     def solve(
         self,
         epsilon: Optional[float] = None,
         alpha: float = 0.5,
         tau_a: float = 1.0,
         tau_b: float = 1.0,
+        solver_kwargs: Mapping[str, Any] = MappingProxyType({}),
         **kwargs: Any,
     ) -> "CompoundProblem":
         self._solutions = {}
+
         for subset, problem in self.problems.items():
             self.solutions[subset] = problem.solve(
                 epsilon=epsilon, alpha=alpha, tau_a=tau_a, tau_b=tau_b, **kwargs
@@ -131,6 +156,7 @@ class CompoundBaseProblem(BaseProblem, ABC):
 
         return self
 
+    # TODO(michalk8): simpliy/split
     def _apply(
         self,
         data: Optional[Union[str, npt.ArrayLike, Mapping[Tuple[Any, Any], Union[str, npt.ArrayLike]]]] = None,
@@ -175,7 +201,7 @@ class CompoundBaseProblem(BaseProblem, ABC):
                     normalize=normalize,
                 )
 
-            ds = {}
+            ds = {}  # TODO(michalk8)
             ds[steps[0][0] if forward else steps[0][1]] = current_mass
             for step in steps:
                 if step not in self.problems:
@@ -202,14 +228,14 @@ class CompoundBaseProblem(BaseProblem, ABC):
         return SinkhornSolver()
 
     @property
-    def problems(self) -> Optional[Dict[Tuple[Any, Any], GeneralProblem]]:
+    def problems(self) -> Optional[Dict[Tuple[Any, Any], B]]:
         return self._problems
 
     @property
     def solutions(self) -> Optional[Dict[Tuple[Any, Any], BaseSolverOutput]]:
         return self._solutions
 
-    def __getitem__(self, item: Tuple[Any, Any]) -> GeneralProblem:
+    def __getitem__(self, item: Tuple[Any, Any]) -> B:
         return self.problems[item]
 
     def __len__(self) -> int:
@@ -221,16 +247,13 @@ class CompoundBaseProblem(BaseProblem, ABC):
         return iter(self.problems)
 
 
-class SingleCompoundProblem(CompoundBaseProblem):
-    def _create_problem(
-        self, src: Any, tgt: Any, src_mask: npt.ArrayLike, tgt_mask: npt.ArrayLike, **kwargs: Any
-    ) -> GeneralProblem:
+class SingleCompoundProblem(CompoundBaseProblem, ABC):
+    def _create_problem(self, src: Any, tgt: Any, src_mask: npt.ArrayLike, tgt_mask: npt.ArrayLike, **kwargs: Any) -> B:
         return self._base_problem_type(
             self._mask(src_mask),
             self._mask(tgt_mask),
             source=src,
             target=tgt,
-            solver=self.solver,
             **kwargs,
         )
 
@@ -251,24 +274,13 @@ class SingleCompoundProblem(CompoundBaseProblem):
         # TODO(michalk8): can include logging/extra sanity that mask is not empty
         return self.adata[mask] if self._policy.axis == "obs" else self.adata[:, mask]
 
-    # TODO(MUCKD): this should not be here
-    def _dict_to_adata(self, d: Mapping[str, npt.ArrayLike], obs_key: str) -> None:
-        tmp = np.empty(len(self.adata))
-        tmp[:] = np.nan
-        for key, value in d.items():
-            mask = self.adata.obs[self._temporal_key] == key
-            tmp[mask] = np.squeeze(value)
-        self.adata.obs[obs_key] = tmp
 
-
-class MultiCompoundProblem(CompoundBaseProblem):
+class MultiCompoundProblem(CompoundBaseProblem, ABC):
     _KEY = "subset"
 
     def __init__(
         self,
         *adatas: Union[AnnData, Mapping[Any, AnnData], Tuple[AnnData, ...], List[AnnData]],
-        solver: Optional[OTSolver] = None,
-        **kwargs: Any,
     ):
         if not len(adatas):
             raise ValueError("TODO: no adatas passed")
@@ -288,7 +300,7 @@ class MultiCompoundProblem(CompoundBaseProblem):
             adata = adatas[0]
 
         # TODO(michalk8): can this have unintended consequences in push/pull?
-        super().__init__(adata, solver, **kwargs)
+        super().__init__(adata)
 
         if not isinstance(adatas, Mapping):
             adatas = {i: adata for i, adata in enumerate(adatas)}
@@ -310,12 +322,8 @@ class MultiCompoundProblem(CompoundBaseProblem):
         kwargs["axis"] = "obs"
         return super().prepare(None, subset=subset, policy=policy, reference=reference, **kwargs)
 
-    def _create_problem(
-        self, src: Any, tgt: Any, src_mask: npt.ArrayLike, tgt_mask: npt.ArrayLike, **kwargs: Any
-    ) -> GeneralProblem:
-        return self._base_problem_type(
-            self._adatas[src], self._adatas[tgt], source=src, target=tgt, solver=self._solver, **kwargs
-        )
+    def _create_problem(self, src: Any, tgt: Any, src_mask: npt.ArrayLike, tgt_mask: npt.ArrayLike, **kwargs: Any) -> B:
+        return self._base_problem_type(self._adatas[src], self._adatas[tgt], source=src, target=tgt, **kwargs)
 
     def _create_policy(
         self,
@@ -329,21 +337,16 @@ class MultiCompoundProblem(CompoundBaseProblem):
         )
 
 
-class CompoundProblem(CompoundBaseProblem):
-    def __init__(
-        self,
-        *adatas: Union[AnnData, Mapping[Any, AnnData], Tuple[AnnData, ...], List[AnnData]],
-        solver: Optional[OTSolver] = None,
-        **kwargs: Any,
-    ):
+class CompoundProblem(CompoundBaseProblem, ABC):
+    def __init__(self, *adatas: Union[AnnData, Mapping[Any, AnnData], Tuple[AnnData, ...], List[AnnData]]):
         if len(adatas) == 1 and isinstance(adatas[0], AnnData):
-            self._prob = SingleCompoundProblem(adatas[0], solver=solver, **kwargs)
+            self._prob = SingleCompoundProblem(adatas[0])
         else:
-            self._prob = MultiCompoundProblem(*adatas, solver=solver, **kwargs)
+            self._prob = MultiCompoundProblem(*adatas)
 
-        super().__init__(self._prob.adata, solver=self._prob.solver)
+        super().__init__(self._prob.adata)
 
-    def _create_problem(self, *args: Any, **kwargs: Any) -> Dict[Tuple[Any, Any], GeneralProblem]:
+    def _create_problem(self, *args: Any, **kwargs: Any) -> Dict[Tuple[Any, Any], B]:
         return self._prob._create_problem(*args, **kwargs)
 
     def _create_policy(

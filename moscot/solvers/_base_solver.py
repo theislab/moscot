@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 from enum import auto, Enum
 from types import MappingProxyType
-from typing import Any, Tuple, Union, Literal, Mapping, Optional, NamedTuple
+from typing import Any, Type, Tuple, Union, Literal, Mapping, Optional, NamedTuple
 import warnings
 
 import numpy.typing as npt
@@ -20,6 +20,20 @@ class ProblemKind(Enum):
     LINEAR = auto()
     QUAD = auto()
     QUAD_FUSED = auto()
+
+    def solver(self, *, backend: Literal["ott"] = "ott") -> Type["BaseSolver"]:
+        if backend == "ott":
+            from moscot.backends.ott import GWSolver, FGWSolver, SinkhornSolver
+
+            if self.value == ProblemKind.LINEAR:
+                return SinkhornSolver
+            if self.value == ProblemKind.QUAD:
+                return GWSolver
+            if self.value == ProblemKind.QUAD_FUSED:
+                return FGWSolver
+            raise NotImplementedError(self.value)
+
+        raise NotImplementedError(f"Invalid backend: `{backend}`")
 
 
 class ArrayData(NamedTuple):

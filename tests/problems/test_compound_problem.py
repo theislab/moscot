@@ -15,7 +15,7 @@ from moscot.problems import CompoundProblem, SingleCompoundProblem
 from moscot.backends.ott import FGWSolver, SinkhornSolver
 from moscot.solvers._base_solver import OTSolver, ProblemKind
 from moscot.solvers._tagged_array import Tag, TaggedArray
-from moscot.problems._base_problem import GeneralProblem
+from moscot.problems._base_problem import OTProblem
 from moscot.problems._compound_problem import Callback_t
 
 
@@ -51,16 +51,16 @@ class TestSingleCompoundProblem:
         assert set(problem.solutions.keys()) == set(expected_keys)
 
         for key in problem:
-            assert isinstance(problem[key], GeneralProblem)
+            assert isinstance(problem[key], OTProblem)
             assert problem[key].solution is problem.solutions[key]
 
     @pytest.mark.parametrize("solver_t", [SinkhornSolver, FGWSolver])
     def test_default_callback(self, adata_time: AnnData, solver_t: Type[OTSolver], mocker: MockerFixture):
-        subproblem = GeneralProblem(adata_time)  # doesn't matter that it's not a subset
+        subproblem = OTProblem(adata_time)  # doesn't matter that it's not a subset
         callback_kwargs = {"n_comps": 5}
         spy = mocker.spy(subproblem, "_prepare_callback")
 
-        problem = SingleCompoundProblem(adata=adata_time, solver=solver_t(), base_problem_type=GeneralProblem)
+        problem = SingleCompoundProblem(adata=adata_time, solver=solver_t(), base_problem_type=OTProblem)
         mocker.patch.object(problem, attribute="_create_problem", return_value=subproblem)
 
         problem = problem.prepare(
@@ -82,7 +82,7 @@ class TestSingleCompoundProblem:
         callback_kwargs = {"sentinel": True}
         spy = mocker.spy(TestSingleCompoundProblem, "callback")
 
-        problem = SingleCompoundProblem(adata=adata_time, solver=solver_t(), base_problem_type=GeneralProblem)
+        problem = SingleCompoundProblem(adata=adata_time, solver=solver_t(), base_problem_type=OTProblem)
         _ = problem.prepare(
             xy={"x_attr": "X", "y_attr": "X"},
             x={"attr": "X"},

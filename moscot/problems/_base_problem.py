@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+from types import MappingProxyType
 from typing import Any, List, Tuple, Union, Mapping, Iterable, Optional, Sequence
 
 import numpy as np
@@ -7,23 +8,18 @@ import numpy.typing as npt
 from anndata import AnnData
 import scanpy as sc
 
-from moscot.backends.ott import SinkhornSolver
 from moscot.solvers._output import BaseSolverOutput
 from moscot.problems._anndata import AnnDataPointer
-from moscot.solvers._base_solver import OTSolver, ProblemKind
+from moscot.solvers._base_solver import ProblemKind
 from moscot.solvers._tagged_array import Tag, TaggedArray
 
-__all__ = ("BaseProblem", "GeneralProblem")
+__all__ = ("BaseProblem", "OTProblem")
 
 
 class BaseProblem(ABC):
-    def __init__(
-        self,
-        adata: AnnData,
-        solver: Optional[OTSolver] = None,
-    ):
+    def __init__(self, adata: AnnData):
         self._adata = adata
-        self.solver = self._default_solver if solver is None else solver
+        self._problem_kind: Optional[ProblemKind] = None
 
     @abstractmethod
     def prepare(self, *args: Any, **kwargs: Any) -> "BaseProblem":
@@ -34,10 +30,18 @@ class BaseProblem(ABC):
         pass
 
     @property
-    @abstractmethod
-    def _default_solver(self) -> OTSolver:
-        pass
+    def _problem_kind(self) -> Optional[ProblemKind]:
+        return self._problem_kind
 
+    @_problem_kind.setter
+    def _problem_kind(self, value: ProblemKind) -> None:
+        self._problem_kind = ProblemKind(value)
+
+    @property
+    def adata(self) -> AnnData:
+        return self._adata
+
+    # TODO(michalk8): move below?
     @staticmethod
     def _get_mass(
         adata: AnnData,
@@ -83,34 +87,17 @@ class BaseProblem(ABC):
         # TODO(michalk8): check shape
         return data
 
-    @property
-    def adata(self) -> AnnData:
-        return self._adata
 
-    @property
-    def solver(self) -> OTSolver:
-        return self._solver
-
-    @solver.setter
-    def solver(self, solver: OTSolver) -> None:
-        if not isinstance(solver, OTSolver):  # TODO: enable
-            raise TypeError("TOOD: not a solver")
-        self._solver = solver
-
-
-class GeneralProblem(BaseProblem):
+class OTProblem(BaseProblem):
     def __init__(
         self,
         adata_x: AnnData,
         adata_y: Optional[AnnData] = None,
-        solver: Optional[OTSolver] = None,
         source: Any = "src",
         target: Any = "tgt",
-        **kwargs: Any,
     ):
-        super().__init__(adata_x, solver=solver)
-        # TODO(michalk8): consider setting this to `adata_x` if None
-        self._adata_y = adata_y
+        super().__init__(adata_x)
+        self._adata_y = adata_x if adata_y is None else adata_y
         self._solution: Optional[BaseSolverOutput] = None
 
         self._x: Optional[TaggedArray] = None
@@ -123,18 +110,12 @@ class GeneralProblem(BaseProblem):
         self._source = source
         self._target = target
 
-    def _handle_linear(
-        self, tag: Optional[Tag] = None, **kwargs
-    ) -> Union[TaggedArray, Tuple[TaggedArray, TaggedArray]]:
-        if tag is None:
-            # TODO(michalk8): better/more strict condition?
-            # TODO(michalk8): specify which tag is being using
-            tag = Tag.POINT_CLOUD if "x_attr" in kwargs and "y_attr" in kwargs else Tag.COST_MATRIX
+    def _handle_linear(self, **kwargs) -> Union[TaggedArray, Tuple[TaggedArray, TaggedArray]]:
+        tag = Tag.POINT_CLOUD if "x_attr" in kwargs and "y_attr" in kwargs else Tag.COST_MATRIX
 
-        tag = Tag(tag)
         if tag in (Tag.COST_MATRIX, Tag.KERNEL):
             attr = kwargs.get("attr", "obsm")
-            if attr in ("obsm", "uns"):  # TODO(michalk8): remove uns
+            if attr in ("obsm", "uns"):  # TODO(michalk8): remove uns?
                 return AnnDataPointer(self.adata, tag=tag, **kwargs).create()
             if attr == "varm":
                 kwargs["attr"] = "obsm"
@@ -150,7 +131,7 @@ class GeneralProblem(BaseProblem):
 
         x_array = AnnDataPointer(self.adata, tag=tag, **x_kwargs).create()
         # TODO(michalk8): rename that property; use here?
-        y_array = AnnDataPointer(self._marginal_b_adata, tag=tag, **y_kwargs).create()
+        y_array = AnnDataPointer(self._adata_y, tag=tag, **y_kwargs).create()
 
         return x_array, y_array
 
@@ -163,48 +144,54 @@ class GeneralProblem(BaseProblem):
         a: Optional[Union[str, npt.ArrayLike]] = None,
         b: Optional[Union[str, npt.ArrayLike]] = None,
         **_: Any,
-    ) -> "GeneralProblem":
+    ) -> "OTProblem":
         def update_key(kwargs: Mapping[str, Any], *, is_source: bool) -> Mapping[str, Any]:
             if kwargs.get("attr", None) == "uns":
                 kwargs = dict(kwargs)
                 kwargs["key"] = self._source if is_source else self._target
             return kwargs
 
-        self._x = self._y = self._xy = None
+        self._x = self._y = self._xy = self._solution = None
+        # TODO(michalk8): handle again TaggedArray?
+        # TODO(michalk8): better dispatch
 
-        if self.solver.problem_kind in (ProblemKind.LINEAR, ProblemKind.QUAD_FUSED):
+        if xy is not None and x is None and y is None:
+            self._problem_kind = ProblemKind.LINEAR
             self._xy = xy if isinstance(xy, tuple) else self._handle_linear(**xy)
-        if self.solver.problem_kind in (ProblemKind.QUAD, ProblemKind.QUAD_FUSED):
-            self._x = (
-                x
-                if isinstance(x, TaggedArray)
-                else AnnDataPointer(adata=self.adata, **update_key(x, is_source=True)).create()
-            )
-            self._y = (
-                y
-                if isinstance(y, TaggedArray)
-                else AnnDataPointer(adata=self._adata_y, **update_key(y, is_source=False)).create()
-            )
+        elif x is not None and y is not None and xy is None:
+            self._problem_kind = ProblemKind.QUAD
+            self._x = AnnDataPointer(adata=self.adata, **update_key(x, is_source=True)).create()
+            self._y = AnnDataPointer(adata=self.adata, **update_key(y, is_source=False)).create()
+        elif xy is not None and x is not None and y is not None:
+            self._problem_kind = ProblemKind.QUAD_FUSED
+            self._xy = xy if isinstance(xy, tuple) else self._handle_linear(**xy)
+            self._x = AnnDataPointer(adata=self.adata, **update_key(x, is_source=True)).create()
+            self._y = AnnDataPointer(adata=self.adata, **update_key(y, is_source=False)).create()
+        else:
+            raise NotImplementedError("TODO: Combination not implemented")
 
         self._a = self._get_or_create_marginal(self.adata, a)
-        self._b = self._get_or_create_marginal(self._marginal_b_adata, b)
-        self._solution = None
+        self._b = self._get_or_create_marginal(self._adata_y, b)
 
         return self
 
     def solve(
         self,
         epsilon: Optional[float] = None,
+        solver_kwargs: Mapping[str, Any] = MappingProxyType({}),
         **kwargs: Any,
-    ) -> "GeneralProblem":
-        # this allows for MultiMarginalProblem to pass new marginals
+    ) -> "OTProblem":
+        if self._problem_kind is None:
+            raise RuntimeError("Run .prepare() first")
+        solver = self._problem_kind.solver(backend="ott")(**solver_kwargs)
+
+        # allow `MultiMarginalProblem` to pass new marginals
         a = kwargs.pop("a", self._a)
         b = kwargs.pop("b", self._b)
+        self._solution = solver(x=self._x, y=self._y, xy=self._xy, a=a, b=b, epsilon=epsilon, **kwargs)
 
-        self._solution = self.solver(x=self._x, y=self._y, xy=self._xy, a=a, b=b, epsilon=epsilon, **kwargs)
         return self
 
-    # TODO(michalk8): require in BaseProblem?
     def push(
         self,
         data: Optional[Union[str, npt.ArrayLike]] = None,
@@ -228,6 +215,7 @@ class GeneralProblem(BaseProblem):
         data = self._get_mass(adata, data=data, subset=subset, normalize=normalize)
         return self.solution.pull(data, **kwargs)
 
+    # TODO(michalk8): refactor
     @staticmethod
     def _prepare_callback(
         adata: AnnData,
@@ -247,19 +235,11 @@ class GeneralProblem(BaseProblem):
 
     @property
     def shape(self) -> Tuple[int, int]:
-        return len(self.adata), len(self._marginal_b_adata)
-
-    @property
-    def _default_solver(self) -> OTSolver:
-        return SinkhornSolver()
+        return self.adata.n_obs, self._adata_y.n_obs
 
     @property
     def solution(self) -> Optional[BaseSolverOutput]:
         return self._solution
-
-    @property
-    def _marginal_b_adata(self) -> AnnData:
-        return self.adata if self._adata_y is None else self._adata_y
 
     @property
     def x(self) -> Optional[TaggedArray]:
