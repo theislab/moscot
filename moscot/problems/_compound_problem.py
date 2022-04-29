@@ -39,7 +39,11 @@ class CompoundBaseProblem(BaseProblem, ABC):
     Parameters
     ----------
     %(adata)s
-
+    solver
+        test123
+    base_problem_type
+        subclass of :class:`moscot.problems.GeneralProblem` defining the problem type of a single optimal 
+        transport problem
     Raises
     ------
     TypeError
