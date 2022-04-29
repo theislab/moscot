@@ -45,7 +45,7 @@ class TemporalBaseProblem(MultiMarginalProblem):
     Raises
     ------
     %(MultiMarginalProblem.raises)s
-    
+
     """
     def __init__(
         self,
