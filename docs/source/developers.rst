@@ -57,7 +57,7 @@ MultiMarginalProblem
 
 TemporalBaseProblem
 -------------------
-.. autoclass:: moscot.problems.TemporalBaseProblem
+.. autoclass:: moscot.problems.time._lineage.TemporalBaseProblem
     :noindex:
     :members:
     :inherited-members:
