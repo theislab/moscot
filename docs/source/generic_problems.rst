@@ -1,5 +1,5 @@
 Generic Problems
-========
+================
 
 SinkhornProblem
 ~~~~~~~~~~~~~~~

@@ -304,7 +304,7 @@ class CompoundBaseProblem(BaseProblem, ABC):
         return iter(self.problems)
 
 
-@d.get_sections(base="MultiCompoundProblem", sections=["Parameters", "Raises"])
+@d.get_sections(base="SingleCompoundProblem", sections=["Parameters", "Raises"])
 @d.dedent
 class SingleCompoundProblem(CompoundBaseProblem):
     """
