@@ -165,8 +165,6 @@ class CompoundBaseProblem(BaseProblem, ABC):
 
         return self
 
-    d.delete_params("CompoundBaseProblem_prepare.parameters", "key")
-
     @d.dedent
     def solve(
         self,
@@ -200,7 +198,7 @@ class CompoundBaseProblem(BaseProblem, ABC):
         **kwargs: Any,
     ) -> Union[Dict[Tuple[Any, Any], npt.ArrayLike], Dict[Tuple[Any, Any], Dict[Tuple[Any, Any], npt.ArrayLike]]]:
         """
-        Base function to use a transport map(s) as linear operator.
+        Base function to use (a) transport map(s) as linear operator.
 
         Parameters
         ----------
@@ -306,9 +304,22 @@ class CompoundBaseProblem(BaseProblem, ABC):
         return iter(self.problems)
 
 
+@d.get_sections(base="MultiCompoundProblem", sections=["Parameters", "Raises"])
+@d.dedent
 class SingleCompoundProblem(CompoundBaseProblem):
     """
-    
+    Class handling biological problems composed of exactly one :class:`anndata.AnnData` instance.
+
+    This class is needed to apply the `policy` to one :class:`anndata.AnnData` objects and hence create the 
+    Optimal Transport subproblems from the biological problem.
+
+    Parameters
+    ----------
+    %(CompoundBaseProblem.parameters)s
+
+    Raises
+    ----------
+    %(CompoundBaseProblem.raises)s
     """
     def _create_problem(
         self, src: Any, tgt: Any, src_mask: npt.ArrayLike, tgt_mask: npt.ArrayLike, **kwargs: Any
@@ -349,7 +360,27 @@ class SingleCompoundProblem(CompoundBaseProblem):
         self.adata.obs[obs_key] = tmp
 
 
+@d.get_sections(base="MultiCompoundProblem", sections=["Parameters", "Raises"])
+@d.dedent
 class MultiCompoundProblem(CompoundBaseProblem):
+    """
+    Class handling biological problems composed of more than one :class:`anndata.AnnData` instance.
+
+    This class is needed to apply the `policy` to multiple :class:`anndata.AnnData` objects and hence create the 
+    Optimal Transport subproblems from the biological problem.
+
+    Parameters
+    ----------
+    %(adatas)s
+    %(solver)s
+    kwargs
+        keyword arguments for :class:`moscot.problems.CompoundBaseProblem`
+
+    Raises
+    ----------
+    %(CompoundBaseProblem.raises)s
+    """
+
     _KEY = "subset"
 
     def __init__(
@@ -416,6 +447,7 @@ class MultiCompoundProblem(CompoundBaseProblem):
             else ExplicitPolicy(self._policy_adata, key=self._KEY, axis="obs")
         )
 
+@d.get_sections(base="CompoundProblem", sections=["Parameters", "Raises"])
 @d.dedent
 class CompoundProblem(CompoundBaseProblem):
     """
@@ -436,7 +468,9 @@ class CompoundProblem(CompoundBaseProblem):
 
     Raises
     ------
-    
+    %(CompoundBaseProblem.raises)
+    %(SingleCompoundProblem.raises)
+    %(MultiCompoundProblem.raises)
     """
     def __init__(
         self,
