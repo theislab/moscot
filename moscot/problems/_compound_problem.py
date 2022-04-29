@@ -316,13 +316,7 @@ class SingleCompoundProblem(CompoundBaseProblem):
     This class is needed to apply the `policy` to one :class:`anndata.AnnData` objects and hence create the
     Optimal Transport subproblems from the biological problem.
 
-    Parameters
-    ----------
-    %(CompoundBaseProblem.parameters)s
-
-    Raises
-    ------
-    %(CompoundBaseProblem.raises)s
+    
     """
     def _create_problem(
         self, src: Any, tgt: Any, src_mask: npt.ArrayLike, tgt_mask: npt.ArrayLike, **kwargs: Any
@@ -372,16 +366,7 @@ class MultiCompoundProblem(CompoundBaseProblem):
     This class is needed to apply the `policy` to multiple :class:`anndata.AnnData` objects and hence create the
     Optimal Transport subproblems from the biological problem.
 
-    Parameters
-    ----------
-    %(adatas)s
-    %(solver)s
-    kwargs
-        keyword arguments for :class:`moscot.problems.CompoundBaseProblem`
-
-    Raises
-    ----------
-    %(CompoundBaseProblem.raises)s
+    
     """
 
     _KEY = "subset"
@@ -462,18 +447,7 @@ class CompoundProblem(CompoundBaseProblem):
     :attr:`moscot.problems.CompoundProblem._prob` is needed to apply the `policy` and hence create the Optimal Transport
     subproblems from the biological problem.
 
-    Parameters
-    ----------
-    %(adatas)s
-    %(solver)s
-    kwargs
-        key word arguments of :class:`moscot.problems.SingleCompoundProblem` or :class:`moscot.problems.MultiCompoundProblem`
-
-    Raises
-    ------
-    %(CompoundBaseProblem.raises)s
-    %(SingleCompoundProblem.raises)s
-    %(MultiCompoundProblem.raises)s
+    
 
     """
     def __init__(
