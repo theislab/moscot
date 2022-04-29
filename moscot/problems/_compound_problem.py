@@ -453,11 +453,7 @@ class CompoundProblem(CompoundBaseProblem):
     """
     Class handling biological problems.
 
-    This class dispatches by initialising :attr:`moscot.problems.CompoundProblem._prob` to an instance of 
-    :class:`moscot.problems.SingleCompoundProblem` or :class:`moscot.problems.MultiCompoundProblem` if the number
-    of :class:`anndata.AnnData` instances is one or strictly than larger one, respectively.
-    :attr:`moscot.problems.CompoundProblem._prob` is needed to apply the `policy` and hence create the Optimal Transport 
-    subproblems from the biological problem.
+    
 
     Parameters
     ----------
@@ -469,8 +465,7 @@ class CompoundProblem(CompoundBaseProblem):
     Raises
     ------
     %(CompoundBaseProblem.raises)
-    %(SingleCompoundProblem.raises)
-    %(MultiCompoundProblem.raises)
+    
     """
     def __init__(
         self,
