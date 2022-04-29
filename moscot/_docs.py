@@ -9,19 +9,19 @@ adata
 _adatas = """\
 adata
     Annotated data objects."""
-_adata_x = """"\
+_adata_x = """\
     Instance of :class:`anndata.AnnData` containing the data of the source distribution
     """
-_adata_y = """"\
+_adata_y = """\
     Instance of :class:`anndata.AnnData` containing the data of the target distribution
     """
-_solver = """"\
+_solver = """\
     Instance from :mod:`moscot.solvers` used for solving the Optimal Transport problem
     """
-_source = """"\
+_source = """\
     Value in :attr:`anndata.AnnData.obs` defining the assignment to the source distribution
     """
-_target = """"\
+_target = """\
     Value in :attr:`anndata.AnnData.obs` defining the assignment to the target distribution
     """
 
