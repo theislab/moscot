@@ -24,7 +24,17 @@ class BaseProblem(ABC):
     """
     Problem base class handling one optimal transport subproblem.
 
-    
+    Parameters
+    ----------
+    %(adata)s
+    %(solver)s
+
+    Raises
+    ------
+    ValueError
+        If `adata` has no observations.
+    ValueError
+        If `adata` has no variables.
     """
     def __init__(
         self,
