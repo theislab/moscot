@@ -38,18 +38,15 @@ class CompoundBaseProblem(BaseProblem, ABC):
 
     Parameters
     ----------
-    adata
-        instance of :class:`anndata.AnnData` containing the data defining the biological problem.
-    solver
-        instance of :class:`moscot.solvers` used for solving the optimal transport problem(s)
+    %(adata)s
+    %(solver)s
     base_problem_type
         subclass of :class:`moscot.problems.GeneralProblem` defining the problem type of a single optimal transport problem
-
 
     Raises
     ------
     TypeError
-        If ``base_problem_type`` is not a subclass of `GeneralProblem`
+        If ``base_problem_type`` is not a subclass of `GeneralProblem`.
 
     """
 
@@ -310,6 +307,9 @@ class CompoundBaseProblem(BaseProblem, ABC):
 
 
 class SingleCompoundProblem(CompoundBaseProblem):
+    """
+    
+    """
     def _create_problem(
         self, src: Any, tgt: Any, src_mask: npt.ArrayLike, tgt_mask: npt.ArrayLike, **kwargs: Any
     ) -> GeneralProblem:
@@ -416,8 +416,28 @@ class MultiCompoundProblem(CompoundBaseProblem):
             else ExplicitPolicy(self._policy_adata, key=self._KEY, axis="obs")
         )
 
-
+@d.dedent
 class CompoundProblem(CompoundBaseProblem):
+    """
+    Class handling biological problems.
+
+    This class dispatches by initialising :attr:`moscot.problems.CompoundProblem._prob` to an instance of 
+    :class:`moscot.problems.SingleCompoundProblem` or :class:`moscot.problems.MultiCompoundProblem` if the number
+    of :class:`anndata.AnnData` instances is one or strictly than larger one, respectively.
+    :attr:`moscot.problems.CompoundProblem._prob` is needed to apply the `policy` and hence create the Optimal Transport 
+    subproblems from the biological problem.
+
+    Parameters
+    ----------
+    %(adatas)s
+    %(solver)s
+    kwargs
+        key word arguments of :class:`SingleCompoundProblem` or :class:`MultiCompoundProblem`
+
+    Raises
+    ------
+    
+    """
     def __init__(
         self,
         *adatas: Union[AnnData, Mapping[Any, AnnData], Tuple[AnnData, ...], List[AnnData]],
