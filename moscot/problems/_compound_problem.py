@@ -40,9 +40,6 @@ class CompoundBaseProblem(BaseProblem, ABC):
     ----------
     %(adata)s
     %(solver)s
-    base_problem_type
-        subclass of :class:`moscot.problems.GeneralProblem` defining the problem type of a single optimal 
-        transport problem
 
     Raises
     ------
