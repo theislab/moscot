@@ -101,7 +101,7 @@ class TemporalProblem(TemporalAnalysisMixin, SingleCompoundProblem):
             if isinstance(gene_set_proliferation, str):
                 sc.tl.score_genes(
                     self.adata,
-                    getattr(MarkerGenes, "proliferation_markers")(gene_set_proliferation),
+                    MarkerGenes.proliferation_markers(gene_set_proliferation),
                     score_name=proliferation_key,
                     **kwargs,
                 )
@@ -114,7 +114,7 @@ class TemporalProblem(TemporalAnalysisMixin, SingleCompoundProblem):
             if isinstance(gene_set_apoptosis, str):
                 sc.tl.score_genes(
                     self.adata,
-                    getattr(MarkerGenes, "apoptosis_markers")(gene_set_apoptosis),
+                    MarkerGenes.apoptosis_markers(gene_set_apoptosis),
                     score_name=apoptosis_key,
                     **kwargs,
                 )
@@ -142,8 +142,15 @@ class TemporalProblem(TemporalAnalysisMixin, SingleCompoundProblem):
         if joint_attr is None:
             kwargs["callback"] = "pca_local"
         elif isinstance(joint_attr, str):
-            kwargs["x"] = kwargs["y"] = {"attr": "obsm", "key": joint_attr, "tag": "point_cloud"}  # TODO: pass loss
-        elif not isinstance(joint_attr, dict):
+            kwargs["xy"] = {
+                "x_attr": "obsm",
+                "x_key": joint_attr,
+                "y_attr": "obsm",
+                "y_key": joint_attr,
+            }
+        elif isinstance(joint_attr, dict):
+            kwargs["xy"] = joint_attr
+        else:
             raise TypeError("TODO")
 
         marginal_kwargs = dict(marginal_kwargs)
@@ -315,9 +322,7 @@ class LineageProblem(TemporalProblem):
         if joint_attr is None:
             kwargs["callback"] = "pca_local"
         elif isinstance(joint_attr, str):
-            kwargs["joint_attr"] = {"attr": "obsm", "key": joint_attr, "tag": "point_cloud"}  # TODO: pass loss
-        elif not isinstance(joint_attr, dict):
-            raise TypeError("TODO")
+            kwargs["joint_attr"] = {"x_attr": "obsm", "x_key": joint_attr, "y_attr": "obsm", "y_key": joint_attr}
 
         return super().prepare(
             time_key=time_key,

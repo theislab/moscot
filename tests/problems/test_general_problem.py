@@ -14,7 +14,6 @@ from moscot.problems import GeneralProblem
 from moscot.backends.ott import GWSolver, FGWSolver, SinkhornSolver
 from moscot.solvers._output import BaseSolverOutput
 from moscot.solvers._base_solver import OTSolver
-from moscot.solvers._tagged_array import Tag
 
 
 class TestGeneralProblem:
@@ -49,9 +48,7 @@ class TestGeneralProblem:
         gt = sinkhorn(PointCloud(jnp.asarray(adata_x.X), online=online, epsilon=eps, scale_cost=scale_cost))
 
         prob = GeneralProblem(adata_x, solver=SinkhornSolver())
-        prob = prob.prepare(x={"attr": "X", "tag": Tag.POINT_CLOUD}).solve(
-            online=online, epsilon=eps, scale_cost=scale_cost
-        )
+        prob = prob.prepare(xy={"x_attr": "X", "y_attr": "X"}).solve(online=online, epsilon=eps, scale_cost=scale_cost)
         sol = prob.solution
 
         np.testing.assert_allclose(gt.matrix, sol.transport_matrix, rtol=RTOL, atol=ATOL)

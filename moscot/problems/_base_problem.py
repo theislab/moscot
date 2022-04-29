@@ -1,5 +1,4 @@
 from abc import ABC, abstractmethod
-from types import MappingProxyType
 from typing import Any, List, Tuple, Union, Mapping, Iterable, Optional, Sequence
 
 import numpy as np
@@ -124,7 +123,9 @@ class GeneralProblem(BaseProblem):
         self._source = source
         self._target = target
 
-    def _handle_joint(self, tag: Optional[Tag] = None, **kwargs) -> Union[TaggedArray, Tuple[TaggedArray, TaggedArray]]:
+    def _handle_linear(
+        self, tag: Optional[Tag] = None, **kwargs
+    ) -> Union[TaggedArray, Tuple[TaggedArray, TaggedArray]]:
         if tag is None:
             # TODO(michalk8): better/more strict condition?
             # TODO(michalk8): specify which tag is being using
@@ -133,7 +134,7 @@ class GeneralProblem(BaseProblem):
         tag = Tag(tag)
         if tag in (Tag.COST_MATRIX, Tag.KERNEL):
             attr = kwargs.get("attr", "obsm")
-            if attr == "obsm":
+            if attr in ("obsm", "uns"):  # TODO(michalk8): remove uns
                 return AnnDataPointer(self.adata, tag=tag, **kwargs).create()
             if attr == "varm":
                 kwargs["attr"] = "obsm"
@@ -148,15 +149,17 @@ class GeneralProblem(BaseProblem):
         y_kwargs = {k[2:]: v for k, v in kwargs.items() if k.startswith("y_")}
 
         x_array = AnnDataPointer(self.adata, tag=tag, **x_kwargs).create()
-        y_array = AnnDataPointer(self._adata_y, tag=tag, **y_kwargs).create()
+        # TODO(michalk8): rename that property; use here?
+        y_array = AnnDataPointer(self._marginal_b_adata, tag=tag, **y_kwargs).create()
 
         return x_array, y_array
 
+    # TODO(michalk8): refactor me
     def prepare(
         self,
-        x: Union[TaggedArray, Mapping[str, Any]] = MappingProxyType({}),
-        y: Optional[Union[TaggedArray, Mapping[str, Any]]] = None,
         xy: Optional[Union[Tuple[TaggedArray, TaggedArray], Mapping[str, Any]]] = None,
+        x: Optional[Union[TaggedArray, Mapping[str, Any]]] = None,
+        y: Optional[Union[TaggedArray, Mapping[str, Any]]] = None,
         a: Optional[Union[str, npt.ArrayLike]] = None,
         b: Optional[Union[str, npt.ArrayLike]] = None,
         **_: Any,
@@ -167,20 +170,21 @@ class GeneralProblem(BaseProblem):
                 kwargs["key"] = self._source if is_source else self._target
             return kwargs
 
-        self._x = (
-            x
-            if isinstance(x, TaggedArray)
-            else AnnDataPointer(adata=self.adata, **update_key(x, is_source=True)).create()
-        )
-        self._y = (
-            y
-            if y is None or isinstance(y, TaggedArray)
-            else AnnDataPointer(adata=self._adata_y, **update_key(y, is_source=False)).create()
-        )
-        if self.solver.problem_kind != ProblemKind.QUAD_FUSED:
-            self._xy = None
-        else:
-            self._xy = xy if xy is None or isinstance(xy, tuple) else self._handle_joint(**xy)
+        self._x = self._y = self._xy = None
+
+        if self.solver.problem_kind in (ProblemKind.LINEAR, ProblemKind.QUAD_FUSED):
+            self._xy = xy if isinstance(xy, tuple) else self._handle_linear(**xy)
+        if self.solver.problem_kind in (ProblemKind.QUAD, ProblemKind.QUAD_FUSED):
+            self._x = (
+                x
+                if isinstance(x, TaggedArray)
+                else AnnDataPointer(adata=self.adata, **update_key(x, is_source=True)).create()
+            )
+            self._y = (
+                y
+                if isinstance(y, TaggedArray)
+                else AnnDataPointer(adata=self._adata_y, **update_key(y, is_source=False)).create()
+            )
 
         self._a = self._get_or_create_marginal(self.adata, a)
         self._b = self._get_or_create_marginal(self._marginal_b_adata, b)
@@ -193,18 +197,11 @@ class GeneralProblem(BaseProblem):
         epsilon: Optional[float] = None,
         **kwargs: Any,
     ) -> "GeneralProblem":
-        if isinstance(self._xy, tuple):  # point cloud
-            kwargs["xx"] = self._xy[0]
-            kwargs["yy"] = self._xy[1]
-        else:  # cost/kernel
-            kwargs["xx"] = self._xy
-            kwargs["yy"] = None
-
         # this allows for MultiMarginalProblem to pass new marginals
         a = kwargs.pop("a", self._a)
         b = kwargs.pop("b", self._b)
 
-        self._solution = self.solver(self._x, self._y, a=a, b=b, epsilon=epsilon, **kwargs)
+        self._solution = self.solver(x=self._x, y=self._y, xy=self._xy, a=a, b=b, epsilon=epsilon, **kwargs)
         return self
 
     # TODO(michalk8): require in BaseProblem?
@@ -265,13 +262,14 @@ class GeneralProblem(BaseProblem):
         return self.adata if self._adata_y is None else self._adata_y
 
     @property
-    def x(self) -> Optional[npt.ArrayLike]:
+    def x(self) -> Optional[TaggedArray]:
         return self._x
 
     @property
-    def y(self) -> Optional[npt.ArrayLike]:
+    def y(self) -> Optional[TaggedArray]:
         return self._y
 
+    # TODO(michalk8): verify type
     @property
-    def xy(self) -> Optional[Tuple[npt.ArrayLike, npt.ArrayLike]]:
+    def xy(self) -> Optional[Tuple[TaggedArray, TaggedArray]]:
         return self._xy

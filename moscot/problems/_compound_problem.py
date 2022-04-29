@@ -72,6 +72,7 @@ class CompoundBaseProblem(BaseProblem, ABC):
                 src = self._policy._format(src, is_source=True)
                 tgt = self._policy._format(tgt, is_source=False)
             problem = self._create_problem(src=src, tgt=tgt, src_mask=src_mask, tgt_mask=tgt_mask)
+            # TODO(michalk8): refactor me
             if callback is not None:
                 callback = problem._prepare_callback if callback == "pca_local" else callback
                 x, y = callback(
@@ -81,10 +82,10 @@ class CompoundBaseProblem(BaseProblem, ABC):
                     **callback_kwargs,
                 )
                 if problem.solver.problem_kind != ProblemKind.QUAD_FUSED:
+                    kwargs_["xy"] = (x, y)
+                elif x is not None and y is not None:
                     kwargs_["x"] = x
                     kwargs_["y"] = y
-                elif x is not None and y is not None:
-                    kwargs_["xy"] = (x, y)
 
             problems[src, tgt] = problem.prepare(**kwargs_)
 

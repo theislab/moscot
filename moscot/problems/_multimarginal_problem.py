@@ -26,9 +26,9 @@ class MultiMarginalProblem(GeneralProblem, ABC):
 
     def prepare(
         self,
-        x: Mapping[str, Any] = MappingProxyType({}),
-        y: Optional[Mapping[str, Any]] = None,
         xy: Optional[Mapping[str, Any]] = None,
+        x: Optional[Mapping[str, Any]] = None,
+        y: Optional[Mapping[str, Any]] = None,
         a: Optional[Union[bool, str, npt.ArrayLike]] = True,
         b: Optional[Union[bool, str, npt.ArrayLike]] = True,
         marginal_kwargs: Mapping[str, Any] = MappingProxyType({}),
@@ -44,7 +44,7 @@ class MultiMarginalProblem(GeneralProblem, ABC):
         elif b is False:
             b = None
 
-        super().prepare(x, y, xy, a=a, b=b, **kwargs)
+        super().prepare(xy=xy, x=x, y=y, a=a, b=b, **kwargs)
         # base problem prepare array-like structure, just wrap it
         # alt. we could just append and not reset
         self._a = [self._a]

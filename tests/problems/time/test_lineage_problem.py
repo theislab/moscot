@@ -69,7 +69,7 @@ class TestLineageProblem:
         problem = problem.solve()
 
         with np.testing.assert_raises(NotImplementedError):
-            problem.cell_costs_source
+            _ = problem.cell_costs_source
 
         with np.testing.assert_raises(NotImplementedError):
-            problem.cell_costs_target
+            _ = problem.cell_costs_target

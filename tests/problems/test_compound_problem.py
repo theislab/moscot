@@ -37,8 +37,7 @@ class TestSingleCompoundProblem:
         assert problem.solutions is None
 
         problem = problem.prepare(
-            x={"attr": "X", "tag": Tag.POINT_CLOUD},
-            y={"attr": "X", "tag": Tag.POINT_CLOUD},
+            xy={"x_attr": "X", "y_attr": "X"},
             key="time",
             axis="obs",
             policy="sequential",
@@ -65,8 +64,7 @@ class TestSingleCompoundProblem:
         mocker.patch.object(problem, attribute="_create_problem", return_value=subproblem)
 
         problem = problem.prepare(
-            x={"attr": "X", "tag": Tag.POINT_CLOUD},
-            y={"attr": "X", "tag": Tag.POINT_CLOUD},
+            xy={"x_attr": "X", "y_attr": "X"},
             key="time",
             axis="obs",
             policy="sequential",
@@ -86,8 +84,9 @@ class TestSingleCompoundProblem:
 
         problem = SingleCompoundProblem(adata=adata_time, solver=solver_t(), base_problem_type=GeneralProblem)
         _ = problem.prepare(
-            x={"attr": "X", "tag": Tag.POINT_CLOUD},
-            y={"attr": "X", "tag": Tag.POINT_CLOUD},
+            xy={"x_attr": "X", "y_attr": "X"},
+            x={"attr": "X"},
+            y={"attr": "X"},
             key="time",
             axis="obs",
             policy="sequential",
@@ -105,14 +104,14 @@ class TestMultiCompoundProblem:
 class TestCompoundProblem:
     def test_different_passings_linear(self, adata_with_cost_matrix: AnnData):
         epsilon = 5
-        x = y = {"attr": "obsm", "key": "X_pca", "tag": "point_cloud"}
+        xy = {"x_attr": "obsm", "x_key": "X_pca", "y_attr": "obsm", "y_key": "X_pca"}
         p1 = CompoundProblem(adata_with_cost_matrix, solver=SinkhornSolver())
-        p1 = p1.prepare(key="batch", x=x, y=y)
+        p1 = p1.prepare(key="batch", xy=xy)
         p1 = p1.solve(epsilon=epsilon, scale_cost="mean")
         p1_tmap = p1[0, 1].solution.transport_matrix
 
         p2 = CompoundProblem(adata_with_cost_matrix, solver=SinkhornSolver())
-        p2 = p2.prepare(key="batch", x={"attr": "uns", "key": 0, "loss": None, "tag": "cost"})
+        p2 = p2.prepare(key="batch", xy={"attr": "uns", "key": 0, "loss": None, "tag": "cost"})
         p2 = p2.solve(epsilon=epsilon)
         p2_tmap = p2[0, 1].solution.transport_matrix
 
