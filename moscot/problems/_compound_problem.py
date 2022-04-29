@@ -463,7 +463,7 @@ class CompoundProblem(CompoundBaseProblem):
 
     Raises
     ------
-    %(CompoundBaseProblem.raises)
+    %(CompoundBaseProblem.raises)s
     
     """
     def __init__(
