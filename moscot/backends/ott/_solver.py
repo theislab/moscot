@@ -233,8 +233,8 @@ class SinkhornSolver(RankMixin, BaseSolver):
     aim is to obtain a probabilistic map from the source distribution to the target distribution such that 
     the (weighted) sum of the distances between the source and the target distribution is minimized.
 
-    This solver wraps :class:`ott.core.sinkhorn.Sinkhorn`  by default and (:cite:`cuturi:2013`)
-    :class:`ott.core.sinkhorn_lr.LRSinkhorn` (:cite:`scetbon:2021_a`) if `rank` is a positive integer.
+    This solver wraps :class:`ott.core.sinkhorn.Sinkhorn`  by default and :cite:`cuturi:2013`
+    :class:`ott.core.sinkhorn_lr.LRSinkhorn` :cite:`scetbon:2021_a` if `rank` is a positive integer.
 
     TODO: link notebooks for example
 
@@ -291,7 +291,7 @@ class GWSolver(RankMixin, BaseSolver):
     within each distribution. 
 
     This solver wraps :class:`ott.core.gromov_wasserstein.GromovWasserstein` which handles both the full rank
-    Gromov-Wasserstein algorithm (:cite:`memoli:2011`) as well as the low rank approach (:cite:`scetbon:2021_b`).
+    Gromov-Wasserstein algorithm :cite:`memoli:2011` as well as the low rank approach :cite:`scetbon:2021_b`.
 
     TODO: link notebooks for example
 
