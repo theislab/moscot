@@ -39,10 +39,7 @@ class CompoundBaseProblem(BaseProblem, ABC):
     Parameters
     ----------
     %(adata)s
-    %(solver)s
-    %\* any arguments
 
-    
     Raises
     ------
     TypeError
