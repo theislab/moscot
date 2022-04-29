@@ -38,7 +38,7 @@ CompoundBaseProblem
     :inherited-members:
 
 
-OT handling classes 
+OT handling classes
 ~~~~~~~~~~~~~~~~~~~
 
 GeneralProblem

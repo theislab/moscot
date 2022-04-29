@@ -126,7 +126,7 @@ class CompoundBaseProblem(BaseProblem, ABC):
         **kwargs: Any,
     ) -> "CompoundProblem":
         """
-        Prepares the biological problem
+        Prepares the biological problem.
 
         Parameters
         ----------
@@ -310,7 +310,7 @@ class SingleCompoundProblem(CompoundBaseProblem):
     """
     Class handling biological problems composed of exactly one :class:`anndata.AnnData` instance.
 
-    This class is needed to apply the `policy` to one :class:`anndata.AnnData` objects and hence create the 
+    This class is needed to apply the `policy` to one :class:`anndata.AnnData` objects and hence create the
     Optimal Transport subproblems from the biological problem.
 
     Parameters
@@ -366,7 +366,7 @@ class MultiCompoundProblem(CompoundBaseProblem):
     """
     Class handling biological problems composed of more than one :class:`anndata.AnnData` instance.
 
-    This class is needed to apply the `policy` to multiple :class:`anndata.AnnData` objects and hence create the 
+    This class is needed to apply the `policy` to multiple :class:`anndata.AnnData` objects and hence create the
     Optimal Transport subproblems from the biological problem.
 
     Parameters
@@ -452,11 +452,11 @@ class MultiCompoundProblem(CompoundBaseProblem):
 class CompoundProblem(CompoundBaseProblem):
     """
     Class handling biological problems.
-    
-    This class dispatches by initialising :attr:`moscot.problems.CompoundProblem._prob` to an instance of 
+
+    This class dispatches by initialising :attr:`moscot.problems.CompoundProblem._prob` to an instance of
     :class:`moscot.problems.SingleCompoundProblem` or :class:`moscot.problems.MultiCompoundProblem` if the number
     of :class:`anndata.AnnData` instances is one or strictly than larger one, respectively.
-    :attr:`moscot.problems.CompoundProblem._prob` is needed to apply the `policy` and hence create the Optimal Transport 
+    :attr:`moscot.problems.CompoundProblem._prob` is needed to apply the `policy` and hence create the Optimal Transport
     subproblems from the biological problem.
 
     Parameters
@@ -471,7 +471,7 @@ class CompoundProblem(CompoundBaseProblem):
     %(CompoundBaseProblem.raises)s
     %(SingleCompoundProblem.raises)s
     %(MultiCompoundProblem.raises)s
-    
+
     """
     def __init__(
         self,
