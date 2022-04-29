@@ -27,8 +27,26 @@ Callback_t = Optional[
     ]
 ]
 
-
+@d.dedent
 class TemporalBaseProblem(MultiMarginalProblem):
+    """
+    Problem class handling one optimal transport subproblem which allows to estimate the marginals with a birth death process.
+
+    Parameters
+    ----------
+    %(adata_x)s
+    %(adata_y)s
+    %(source)s
+    %(target)s
+    %(solver)s
+    kwargs
+        Key word arguments of :class:`moscot.problems.GeneralProblem`
+
+    Raises
+    ------
+    %(MultiMarginalProblem.raises)s
+    
+    """
     def __init__(
         self,
         adata_x: AnnData,
@@ -195,7 +213,7 @@ class TemporalProblem(TemporalAnalysisMixin, SingleCompoundProblem):
 
         Parameters
         ----------
-        %(CompoundBaseProblem_prepare.parameters.no_key)s
+        %(CompoundBaseProblem_prepare.parameters)s
         time_key
             Key in :attr:`anndata.AnnData.obs` which defines the time point each cell belongs to. It is supposed to be of numerical data type.
         joint_attr
