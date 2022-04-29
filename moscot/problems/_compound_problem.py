@@ -452,7 +452,6 @@ class MultiCompoundProblem(CompoundBaseProblem):
 class CompoundProblem(CompoundBaseProblem):
     """
     Class handling biological problems.
-
     
 
     Parameters
@@ -460,7 +459,7 @@ class CompoundProblem(CompoundBaseProblem):
     %(adatas)s
     %(solver)s
     kwargs
-        key word arguments of :class:`SingleCompoundProblem` or :class:`MultiCompoundProblem`
+        key word arguments of :class:`moscot.problems.SingleCompoundProblem` or :class:`moscot.problems.MultiCompoundProblem`
 
     Raises
     ------
