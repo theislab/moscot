@@ -16,7 +16,7 @@ CompoundProblem
 
 
 SingleCompoundProblem
--------------------
+---------------------
 .. autoclass:: moscot.problems.SingleCompoundProblem
     :noindex:
     :members:
@@ -24,7 +24,7 @@ SingleCompoundProblem
 
 
 MultiCompoundProblem
--------------------
+--------------------
 .. autoclass:: moscot.problems.MultiCompoundProblem
     :noindex:
     :members:
@@ -41,13 +41,6 @@ CompoundBaseProblem
 OT handling classes 
 ~~~~~~~~~~~~~~~~~~~
 
-GeneralBaseProblem
---------------
-.. autoclass:: moscot.problems.GeneralBaseProblem
-    :noindex:
-    :members:
-    :inherited-members:
-
 GeneralProblem
 --------------
 .. autoclass:: moscot.problems.GeneralProblem
@@ -56,15 +49,25 @@ GeneralProblem
     :inherited-members:
 
 MultiMarginalProblem
---------------
+--------------------
 .. autoclass:: moscot.problems.MultiMarginalProblem
     :noindex:
     :members:
     :inherited-members:
 
 TemporalBaseProblem
---------------
+-------------------
 .. autoclass:: moscot.problems.TemporalBaseProblem
+    :noindex:
+    :members:
+    :inherited-members:
+
+Unifying classes
+~~~~~~~~~~~~~~~~
+
+BaseProblem
+-----------
+.. autoclass:: moscot.problems.BaseProblem
     :noindex:
     :members:
     :inherited-members:
