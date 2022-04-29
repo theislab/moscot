@@ -227,10 +227,14 @@ class RankMixin(GeometryMixin):
 @d.dedent
 class SinkhornSolver(RankMixin, BaseSolver):
     """
-    Class which solves regularized Optimal Transport problems with the Sinkhorn algorithm :cite:`cuturi2013`
+    Class which solves regularized Optimal Transport problems with the Sinkhorn algorithm :cite:`cuturi:2013`
 
-    This solver wraps :class:`ott.core.sinkhorn.Sinkhorn` (:cite:`scetbon:2021_a`) by default and 
-    :class:`ott.core.sinkhorn_lr.LRSinkhorn` (:cite:`cuturi:2013`) if `rank` is a positive integer.
+    The (Kantorovich relaxed) Optimal Transport problem is defined by two distributions in the same space. The 
+    aim is to obtain a probabilistic map from the source distribution to the target distribution such that 
+    the (weighted) sum of the distances between the source and the target distribution is minimized.
+
+    This solver wraps :class:`ott.core.sinkhorn.Sinkhorn`  by default and (:cite:`cuturi:2013`)
+    :class:`ott.core.sinkhorn_lr.LRSinkhorn` (:cite:`scetbon:2021_a`) if `rank` is a positive integer.
 
     TODO: link notebooks for example
 
@@ -277,7 +281,31 @@ class SinkhornSolver(RankMixin, BaseSolver):
         return SolverDescription(Sinkhorn, SinkhornOutput)
 
 
+@d.dedent
 class GWSolver(RankMixin, BaseSolver):
+    """
+    Class which solves Gromov-Wasserstein problems with the projected gradient descent algorithm :cite:`memoli:2011`
+
+    The Gromov-Wasserstein problem involves two distribution in possibly two different spaces. Points in the source
+    distribution are matched to points in the target distribution by comparing the relative location of the datapoints
+    within each distribution. 
+
+    This solver wraps :class:`ott.core.gromov_wasserstein.GromovWasserstein` which handles both the full rank
+    Gromov-Wasserstein algorithm (:cite:`memoli:2011`) as well as the low rank approach (:cite:`scetbon:2021_b`).
+
+    TODO: link notebooks for example
+
+    Parameters
+    ----------
+    %(RankMixin.parameters)s 
+    %(BaseSolver.parameters)s
+
+    Raises
+    ------
+    %(RankMixin.raises)s
+    %(BaseSolver.parameters)s
+    
+    """
     def _prepare_input(
         self,
         x: TaggedArray,
@@ -344,6 +372,24 @@ class GWSolver(RankMixin, BaseSolver):
 
 
 class FGWSolver(GWSolver):
+    """
+    Class which solves Fused Gromov-Wasserstein problems with the projected gradient descent algorithm :cite:`vayer:2018`.
+
+    This solver wraps :class:`ott.core.gromov_wasserstein.GromovWasserstein` with non-trivial `fused_penalty`.
+
+    TODO: link notebooks for example
+
+    Parameters
+    ----------
+    %(RankMixin.parameters)s 
+    %(BaseSolver.parameters)s
+
+    Raises
+    ------
+    %(RankMixin.raises)s
+    %(BaseSolver.parameters)s
+    
+    """
     def _prepare_input(
         self,
         x: TaggedArray,
