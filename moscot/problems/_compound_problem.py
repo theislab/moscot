@@ -138,7 +138,7 @@ class CompoundBaseProblem(BaseProblem, ABC):
         subset
             subset of `anndata.AnnData.obs` [key] values of which the policy is to be applied to
         reference
-            pass
+            `reference` in `moscot.problems._subset_policy.StarPolicy`
         axis
             pass
         callback
