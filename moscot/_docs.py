@@ -64,10 +64,10 @@ data
 _subset = """\
 subset
     If `data` is a column in :attr:`anndata.AnnData.obs` the distribution the transport map is applied
-    to only puts (uniform) mass on those cells which are in `subset` when filtering for 
+    to only puts (uniform) mass on those cells which are in `subset` when filtering for
     :attr:`anndata.AnnData.obs`"""
-#_data = """\
-#data
+# _data = """\
+# data
 #    data"""
 
 
@@ -105,5 +105,5 @@ d = DocstringProcessor(
     scale_by_marginals=_scale_by_marginals,
     normalize=_normalize,
     data=_data,
-    subset=_subset
+    subset=_subset,
 )

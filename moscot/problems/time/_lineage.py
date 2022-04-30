@@ -114,7 +114,7 @@ class TemporalProblem(TemporalAnalysisMixin, SingleCompoundProblem):
     ----------
     %(adata)s
     solver
-        :class:`moscot.solver` instance used to solve the optimal transport problem. Currently, 
+        :class:`moscot.solver` instance used to solve the optimal transport problem. Currently,
         :class:`moscot.solvers.SinkhornSolver` can be used to solve this problem.
 
     Examples
@@ -142,19 +142,19 @@ class TemporalProblem(TemporalAnalysisMixin, SingleCompoundProblem):
         """
         Compute gene scores to obtain prior konwledge about proliferation and apoptosis.
 
-        This method computes gene scores using :func:`scanpy.tl.score_genes`. Therefore, a list of genes corresponding 
+        This method computes gene scores using :func:`scanpy.tl.score_genes`. Therefore, a list of genes corresponding
         to proliferation and/or apoptosis must be passed.
         Alternatively, proliferation and apoptosis genes for humans and mice are saved in :mod:`moscot`.
-        The gene scores will be used in :meth:`moscot.problems.TemporalProblem.prepare()` to estimate the initial 
+        The gene scores will be used in :meth:`moscot.problems.TemporalProblem.prepare()` to estimate the initial
         growth rates as suggested in :cite:`schiebinger:19`
 
         Parameters
         ----------
         gene_set_proliferation
-            Set of marker genes for proliferation used in the birth-death process. If marker genes from :mod:`moscot` 
+            Set of marker genes for proliferation used in the birth-death process. If marker genes from :mod:`moscot`
             are to be used the corresponding organism must be passed.
         gene_set_apoptosis
-            Set of marker genes for apoptosis used in the birth-death process. If marker genes from :mod:`moscot` are 
+            Set of marker genes for apoptosis used in the birth-death process. If marker genes from :mod:`moscot` are
             to be used the corresponding organism must be passed.
         proliferation_key
             Key in :attr:`anndata.AnnData.obs` where to add the genes scores.
@@ -222,7 +222,7 @@ class TemporalProblem(TemporalAnalysisMixin, SingleCompoundProblem):
         """
         Prepare the :class:`moscot.problems.time.TemporalProblem`.
 
-        This method executes multiple steps to prepare the optimal transport problem(s). 
+        This method executes multiple steps to prepare the optimal transport problem(s).
 
         Parameters
         ----------
@@ -301,9 +301,9 @@ class TemporalProblem(TemporalAnalysisMixin, SingleCompoundProblem):
 
         Returns
         -------
-        Depending on `result_key` updates `adata` or returns the result. In the former case all intermediate results 
-        (corresponding to intermediate time points) are saved in :attr:`anndata.AnnData.obs`. In the latter case all 
-        intermediate step results are returned if `return_all` is `True`, otherwise only the distribution at `end` 
+        Depending on `result_key` updates `adata` or returns the result. In the former case all intermediate results
+        (corresponding to intermediate time points) are saved in :attr:`anndata.AnnData.obs`. In the latter case all
+        intermediate step results are returned if `return_all` is `True`, otherwise only the distribution at `end`
         is returned.
 
         Raises
@@ -351,9 +351,9 @@ class TemporalProblem(TemporalAnalysisMixin, SingleCompoundProblem):
 
         Returns
         -------
-        Depending on `result_key` updates `adata` or returns the result. In the former case all intermediate results 
-        (corresponding to intermediate time points) are saved in :attr:`anndata.AnnData.obs`. In the latter case all 
-        intermediate step results are returned if `return_all` is `True`, otherwise only the distribution at `start` 
+        Depending on `result_key` updates `adata` or returns the result. In the former case all intermediate results
+        (corresponding to intermediate time points) are saved in :attr:`anndata.AnnData.obs`. In the latter case all
+        intermediate step results are returned if `return_all` is `True`, otherwise only the distribution at `start`
         is returned.
 
         Raises

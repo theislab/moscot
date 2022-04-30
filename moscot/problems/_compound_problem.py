@@ -217,7 +217,7 @@ class CompoundBaseProblem(BaseProblem, ABC):
         ----------
 
         %(data)s
-        %(subset)s            
+        %(subset)s
         %(normalize)s
         forward
             If `True` the data is pushed from the source to the target distribution. If `False` the mass is pulled
@@ -293,7 +293,7 @@ class CompoundBaseProblem(BaseProblem, ABC):
         Parameters
         ----------
         %(data)s
-        %(subset)s            
+        %(subset)s
         %(normalize)s
         return_all
             If `True` and transport maps are applied consecutively only the final mass is returned. Otherwise,
@@ -301,8 +301,8 @@ class CompoundBaseProblem(BaseProblem, ABC):
         %(scale_by_marginals)s
         kwargs
             keyword arguments for :meth:`moscot.problems.CompoundProblem._apply()`
-        
-        
+
+
         Raises
         ------
         %(_apply.raises)s
@@ -313,12 +313,12 @@ class CompoundBaseProblem(BaseProblem, ABC):
     @d.dedent
     def pull(self, *args: Any, **kwargs: Any) -> Union[npt.ArrayLike, Dict[Any, npt.ArrayLike]]:
         """
-        Pull mass from `end` to `start`. TODO: verify
+        Pull mass from `end` to `start`. TODO: expose kwargs
 
         Parameters
         ----------
         %(data)s
-        %(subset)s            
+        %(subset)s
         %(normalize)s
         return_all
             If `True` and transport maps are applied consecutively only the final mass is returned. Otherwise,
@@ -326,8 +326,8 @@ class CompoundBaseProblem(BaseProblem, ABC):
         %(scale_by_marginals)s
         kwargs
             keyword arguments for :meth:`moscot.problems.CompoundProblem._apply()`
-        
-        
+
+
         Raises
         ------
         %(_apply.raises)s
