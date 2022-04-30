@@ -296,8 +296,8 @@ class TemporalProblem(TemporalAnalysisMixin, SingleCompoundProblem):
         result_key
             Key of where to save the result in :attr:`anndata.AnnData.obs`. If None the result will be returned.
         return_all
-            If True returns all the intermediate masses if pushed through multiple transport plans.
-            If True, the result is returned as a dictionary.
+            If `True` returns all the intermediate masses if pushed through multiple transport plans.
+            If `True`, the result is returned as a dictionary.
 
         Returns
         -------
