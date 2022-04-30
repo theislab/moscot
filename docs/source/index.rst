@@ -21,4 +21,5 @@ Contributing to moscot
     :hidden:
 
     api
+    development
     references

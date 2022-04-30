@@ -16,6 +16,7 @@ from moscot.solvers._output import BaseSolverOutput
 
 Marginals_t = Tuple[Optional[np.ndarray], Optional[np.ndarray]]
 
+
 @d.get_sections(base="MultiMarginalProblem", sections=["Parameters", "Raises"])
 @d.dedent
 class MultiMarginalProblem(GeneralProblem, ABC):
@@ -30,6 +31,7 @@ class MultiMarginalProblem(GeneralProblem, ABC):
     ------
     %(GeneralProblem.raises)s
     """
+
     _a: Optional[List[np.ndarray]]
     _b: Optional[List[np.ndarray]]
 

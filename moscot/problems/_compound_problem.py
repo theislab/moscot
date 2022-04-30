@@ -40,10 +40,10 @@ class CompoundBaseProblem(BaseProblem, ABC):
     ----------
     %(adata)s
     %(solver)s
-        test123
     base_problem_type
-        subclass of :class:`moscot.problems.GeneralProblem` defining the problem type of a single optimal 
+        subclass of :class:`moscot.problems.GeneralProblem` defining the problem type of a single optimal
         transport problem
+
     Raises
     ------
     TypeError
@@ -127,7 +127,7 @@ class CompoundBaseProblem(BaseProblem, ABC):
         **kwargs: Any,
     ) -> "CompoundProblem":
         """
-        Prepares the biological problem.
+        Prepare the biological problem.
 
         Parameters
         ----------
@@ -137,20 +137,16 @@ class CompoundBaseProblem(BaseProblem, ABC):
             defines which transport maps to compute given different cell distributions
         subset
             subset of `anndata.AnnData.obs` [key] values of which the policy is to be applied to
-        reference
-            `reference` in `moscot.problems._subset_policy.StarPolicy`
-        axis
-            pass
-        callback
-            pass
-        callback_kwargs
-            pass
+        %(reference)s
+        %(axis)s
+        %(callback)s
+        %(callback_kwargs)s
         kwargs
-            pass
+            keyword arguments for
 
         Returns
         -------
-        Self
+        :class:moscot.problems.CompoundProblem
 
         """
         self._policy = self._create_policy(policy=policy, key=key, axis=axis)
@@ -176,7 +172,23 @@ class CompoundBaseProblem(BaseProblem, ABC):
         **kwargs: Any,
     ) -> "CompoundProblem":
         """
-        Solves the problem
+        Solve the biological problem.
+
+        Parameters
+        ----------
+
+        %(epsilon)s
+        %(alpha)s
+        %(tau_a)s
+        %(tau_b)s
+        kwargs
+            Keyword arguments for one of
+                - :attr:`moscot.problems.GeneralProblem.solve()`
+                - :attr:`moscot.problems.MultiMarginalProblem.solve()`
+                - :attr:`moscot.problems.TemporalBaseProblem.solve()`
+
+        Raises
+        ------
         """
         self._solutions = {}
         for subset, problem in self.problems.items():
@@ -199,27 +211,31 @@ class CompoundBaseProblem(BaseProblem, ABC):
         **kwargs: Any,
     ) -> Union[Dict[Tuple[Any, Any], npt.ArrayLike], Dict[Tuple[Any, Any], Dict[Tuple[Any, Any], npt.ArrayLike]]]:
         """
-        Base function to use (a) transport map(s) as linear operator.
+        Use (a) transport map(s) as a linear operator.
 
         Parameters
         ----------
 
         data
-
-            - If `data` is a :class:`str` this should correspond to a column in :attr:`anndata.AnnData.obs`. The transport map is applied to the subset corresponding to the source distribution (if `forward` is `True`) or target distribution (if `forward` is `False`) of that column.
+            - If `data` is a :class:`str` this should correspond to a column in :attr:`anndata.AnnData.obs`.
+            The transport map is applied to the subset corresponding to the source distribution (if `forward` is
+            `True`) or target distribution (if `forward` is `False`) of that column.
             - If `data` is a :class:npt.ArrayLike the transport map is applied to `data`
-            - If `data` is a :class:`dict` then the keys should correspond to the tuple defining a single optimal transport map and the value should be one of the two cases described above
-        
+            - If `data` is a :class:`dict` then the keys should correspond to the tuple defining a single
+            optimal transport map and the value should be one of the two cases described above
+
         subset
-            If `data` is a column in :attr:`anndata.AnnData.obs` the distribution the transport map is applied to only has mass on those cells which are in `subset` when filtering for :attr:`anndata.AnnData.obs`
-        normalize
-            Whether to normalize the result to 1 after the transport map has been applied
+            If `data` is a column in :attr:`anndata.AnnData.obs` the distribution the transport map is applied
+            to only has mass on those cells which are in `subset` when filtering for :attr:`anndata.AnnData.obs`
+        %(normalize)s
         forward
-            If `True` the data is pushed from the source to the target distribution. If `False` the mass is pulled from the target distribution to the source distribution
+            If `True` the data is pushed from the source to the target distribution. If `False` the mass is pulled
+            from the target distribution to the source distribution
         return_all
-            If `True` and transport maps are applied consecutively only the final mass is returned. Otherwise, all intermediate step results are returned, too
-        scale_by_marginals
-            If `True` the transport map is scaled to be a stochastic matrix by multiplying the resulting mass by the inverse of the marginals, EXAMPLE
+            If `True` and transport maps are applied consecutively only the final mass is returned. Otherwise,
+            all intermediate step results are returned, too
+        %(scale_by_marginals)s
+
 
         Raises
         ------
@@ -324,6 +340,7 @@ class SingleCompoundProblem(CompoundBaseProblem):
     ------
     %(CompoundBaseProblem.raises)s
     """
+
     def _create_problem(
         self, src: Any, tgt: Any, src_mask: npt.ArrayLike, tgt_mask: npt.ArrayLike, **kwargs: Any
     ) -> GeneralProblem:
@@ -450,6 +467,7 @@ class MultiCompoundProblem(CompoundBaseProblem):
             else ExplicitPolicy(self._policy_adata, key=self._KEY, axis="obs")
         )
 
+
 @d.get_sections(base="CompoundProblem", sections=["Parameters", "Raises"])
 @d.dedent
 class CompoundProblem(CompoundBaseProblem):
@@ -459,15 +477,16 @@ class CompoundProblem(CompoundBaseProblem):
     This class dispatches by initialising :attr:`moscot.problems.CompoundProblem._prob` to an instance of
     :class:`moscot.problems.SingleCompoundProblem` or :class:`moscot.problems.MultiCompoundProblem` if the number
     of :class:`anndata.AnnData` instances is one or strictly than larger one, respectively.
-    :attr:`moscot.problems.CompoundProblem._prob` is needed to apply the `policy` and hence create the Optimal Transport
-    subproblems from the biological problem.
+    :attr:`moscot.problems.CompoundProblem._prob` is needed to apply the `policy` and hence create the Optimal
+    Transport subproblems from the biological problem.
 
     Parameters
     ----------
     %(adatas)s
     %(solver)s
     kwargs
-        key word arguments of :class:`moscot.problems.SingleCompoundProblem` or :class:`moscot.problems.MultiCompoundProblem`
+        key word arguments of :class:`moscot.problems.SingleCompoundProblem` or
+        :class:`moscot.problems.MultiCompoundProblem`
 
     Raises
     ------
@@ -477,6 +496,7 @@ class CompoundProblem(CompoundBaseProblem):
 
 
     """
+
     def __init__(
         self,
         *adatas: Union[AnnData, Mapping[Any, AnnData], Tuple[AnnData, ...], List[AnnData]],

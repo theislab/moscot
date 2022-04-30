@@ -60,11 +60,12 @@ class GeometryMixin:
     ----------
     kwargs
         keyword arguments for one of the following
-        - :class:`ott.core.sinkhorn.Sinkhorn` 
+        - :class:`ott.core.sinkhorn.Sinkhorn`
         - :class:`ott.core.sinkhorn_lr.LRSinkhorn`
         - :class:`ott.core.gromov_wasserstein.GromovWasserstein`
 
     """
+
     def __init__(self, **kwargs: Any):
         super().__init__()
         self._solver = self._description.solver(**kwargs)
@@ -135,7 +136,7 @@ class GeometryMixin:
 
 
 @d.get_sections(base="RankMixin", sections=["Parameters", "Raises"])
-@d.dedent 
+@d.dedent
 class RankMixin(GeometryMixin):
     """
     Class interfacing with the backend solvers. TODO: maybe rename?
@@ -143,11 +144,12 @@ class RankMixin(GeometryMixin):
     Parameters
     ----------
     rank
-        If rank is larger than 0 this is the rank used for the low rank as defined 
+        If rank is larger than 0 this is the rank used for the low rank as defined
         in :cite:`scetbon:2021_a` or :cite:`scetbon:2021_b`
     %(GeometryMixin.parameters)s
 
     """
+
     def __init__(self, rank: int = -1, **kwargs: Any):
         # a bit ugly - must be set before calling super().__init__
         # otherwise, would need to refactor how description works
@@ -224,13 +226,14 @@ class RankMixin(GeometryMixin):
     def is_low_rank(self) -> bool:
         return self.rank > 0
 
+
 @d.dedent
 class SinkhornSolver(RankMixin, BaseSolver):
     """
     Class which solves regularized Optimal Transport problems with the Sinkhorn algorithm :cite:`cuturi:2013`
 
-    The (Kantorovich relaxed) Optimal Transport problem is defined by two distributions in the same space. The 
-    aim is to obtain a probabilistic map from the source distribution to the target distribution such that 
+    The (Kantorovich relaxed) Optimal Transport problem is defined by two distributions in the same space. The
+    aim is to obtain a probabilistic map from the source distribution to the target distribution such that
     the (weighted) sum of the distances between the source and the target distribution is minimized.
 
     This solver wraps :class:`ott.core.sinkhorn.Sinkhorn`  by default and :cite:`cuturi:2013`
@@ -240,15 +243,16 @@ class SinkhornSolver(RankMixin, BaseSolver):
 
     Parameters
     ----------
-    %(RankMixin.parameters)s 
+    %(RankMixin.parameters)s
     %(BaseSolver.parameters)s
 
     Raises
     ------
     %(RankMixin.raises)s
     %(BaseSolver.parameters)s
-    
+
     """
+
     @property
     def problem_kind(self) -> ProblemKind:
         return ProblemKind.LINEAR
@@ -288,7 +292,7 @@ class GWSolver(RankMixin, BaseSolver):
 
     The Gromov-Wasserstein problem involves two distribution in possibly two different spaces. Points in the source
     distribution are matched to points in the target distribution by comparing the relative location of the datapoints
-    within each distribution. 
+    within each distribution.
 
     This solver wraps :class:`ott.core.gromov_wasserstein.GromovWasserstein` which handles both the full rank
     Gromov-Wasserstein algorithm :cite:`memoli:2011` as well as the low rank approach :cite:`scetbon:2021_b`.
@@ -297,15 +301,16 @@ class GWSolver(RankMixin, BaseSolver):
 
     Parameters
     ----------
-    %(RankMixin.parameters)s 
+    %(RankMixin.parameters)s
     %(BaseSolver.parameters)s
 
     Raises
     ------
     %(RankMixin.raises)s
     %(BaseSolver.parameters)s
-    
+
     """
+
     def _prepare_input(
         self,
         x: TaggedArray,
@@ -381,15 +386,16 @@ class FGWSolver(GWSolver):
 
     Parameters
     ----------
-    %(RankMixin.parameters)s 
+    %(RankMixin.parameters)s
     %(BaseSolver.parameters)s
 
     Raises
     ------
     %(RankMixin.raises)s
     %(BaseSolver.parameters)s
-    
+
     """
+
     def _prepare_input(
         self,
         x: TaggedArray,
