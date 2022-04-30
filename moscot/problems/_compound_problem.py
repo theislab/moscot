@@ -216,24 +216,15 @@ class CompoundBaseProblem(BaseProblem, ABC):
         Parameters
         ----------
 
-        data
-            - If `data` is a :class:`str` this should correspond to a column in :attr:`anndata.AnnData.obs`.
-            The transport map is applied to the subset corresponding to the source distribution (if `forward` is
-            `True`) or target distribution (if `forward` is `False`) of that column.
-            - If `data` is a :class:npt.ArrayLike the transport map is applied to `data`
-            - If `data` is a :class:`dict` then the keys should correspond to the tuple defining a single
-            optimal transport map and the value should be one of the two cases described above
-
-        subset
-            If `data` is a column in :attr:`anndata.AnnData.obs` the distribution the transport map is applied
-            to only has mass on those cells which are in `subset` when filtering for :attr:`anndata.AnnData.obs`
+        %(data)s
+        %(subset)s            
         %(normalize)s
         forward
             If `True` the data is pushed from the source to the target distribution. If `False` the mass is pulled
-            from the target distribution to the source distribution
+            from the target distribution to the source distribution.
         return_all
             If `True` and transport maps are applied consecutively only the final mass is returned. Otherwise,
-            all intermediate step results are returned, too
+            all intermediate step results are returned, too.
         %(scale_by_marginals)s
 
 
@@ -293,10 +284,54 @@ class CompoundBaseProblem(BaseProblem, ABC):
         # TODO(michalk8): return the values iff only 1 plan?
         return res
 
+    @d.get_sections(base="CompoundBaseProblem_push", sections=["Parameters", "Raises"])
+    @d.dedent
     def push(self, *args: Any, **kwargs: Any) -> Union[npt.ArrayLike, Dict[Any, npt.ArrayLike]]:
+        """
+        Push mass from `start` to `end`. TODO: verify
+
+        Parameters
+        ----------
+        %(data)s
+        %(subset)s            
+        %(normalize)s
+        return_all
+            If `True` and transport maps are applied consecutively only the final mass is returned. Otherwise,
+            all intermediate step results are returned, too.
+        %(scale_by_marginals)s
+        kwargs
+            keyword arguments for :meth:`moscot.problems.CompoundProblem._apply()`
+        
+        
+        Raises
+        ------
+        %(_apply.raises)s
+        """
         return self._apply(*args, forward=True, **kwargs)
 
+    @d.get_sections(base="CompoundBaseProblem_pull", sections=["Parameters", "Raises"])
+    @d.dedent
     def pull(self, *args: Any, **kwargs: Any) -> Union[npt.ArrayLike, Dict[Any, npt.ArrayLike]]:
+        """
+        Pull mass from `end` to `start`. TODO: verify
+
+        Parameters
+        ----------
+        %(data)s
+        %(subset)s            
+        %(normalize)s
+        return_all
+            If `True` and transport maps are applied consecutively only the final mass is returned. Otherwise,
+            all intermediate step results are returned, too.
+        %(scale_by_marginals)s
+        kwargs
+            keyword arguments for :meth:`moscot.problems.CompoundProblem._apply()`
+        
+        
+        Raises
+        ------
+        %(_apply.raises)s
+        """
         return self._apply(*args, forward=False, **kwargs)
 
     @property

@@ -1,4 +1,4 @@
-Important Classes for Development
+Development
 =================================
 
 Translation classes serve to translate a biological problem to possibly multiple optimal transport subproblems.
