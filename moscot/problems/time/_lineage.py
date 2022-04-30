@@ -102,15 +102,20 @@ class TemporalBaseProblem(MultiMarginalProblem):
 @d.dedent
 class TemporalProblem(TemporalAnalysisMixin, SingleCompoundProblem):
     """
-    Estimator for modelling time series single cell data based on :cite:`schiebinger:19`
+    Class for analysing time series single cell data based on :cite:`schiebinger:19`.
 
-    Class handling the computation and downstream analysis of temporal single cell data.
+    The `TemporalProblem` allows to model and analyse time series single cell data by matching
+    cells from previous time points to later time points via optimal transport. Based on the
+    assumption that the considered cell modality is similar in consecutive time points probabilistic
+    couplings are computed between different time points.
+    This allows to understand cell trajectories by inferring ancestors and descendants of single cells.
 
     Parameters
     ----------
     %(adata)s
     solver
-        :class:`moscot.solver` instance used to solve the optimal transport problem. Currently, :class:`moscot.solvers.SinkhornSolver` can be used to solve this problem.
+        :class:`moscot.solver` instance used to solve the optimal transport problem. Currently, 
+        :class:`moscot.solvers.SinkhornSolver` can be used to solve this problem.
 
     Examples
     --------
@@ -137,16 +142,20 @@ class TemporalProblem(TemporalAnalysisMixin, SingleCompoundProblem):
         """
         Compute gene scores to obtain prior konwledge about proliferation and apoptosis.
 
-        This method computes gene scores using :func:`scanpy.tl.score_genes`. Therefore, a list of genes corresponding to proliferation and/or apoptosis must be passed.
-        ALternatively, proliferation and apoptosis genes for humans and mice are saved in :mod:`moscot`.
-        The gene scores will be used in :meth:`moscot.problems.TemporalProblem.prepare()` to estimate the initial growth rates as suggested in :cite:`schiebinger:19`
+        This method computes gene scores using :func:`scanpy.tl.score_genes`. Therefore, a list of genes corresponding 
+        to proliferation and/or apoptosis must be passed.
+        Alternatively, proliferation and apoptosis genes for humans and mice are saved in :mod:`moscot`.
+        The gene scores will be used in :meth:`moscot.problems.TemporalProblem.prepare()` to estimate the initial 
+        growth rates as suggested in :cite:`schiebinger:19`
 
         Parameters
         ----------
         gene_set_proliferation
-            Set of marker genes for proliferation used in the birth-death process. If marker genes from :mod:`moscot` are to be used the corresponding organism must be passed.
+            Set of marker genes for proliferation used in the birth-death process. If marker genes from :mod:`moscot` 
+            are to be used the corresponding organism must be passed.
         gene_set_apoptosis
-            Set of marker genes for apoptosis used in the birth-death process. If marker genes from :mod:`moscot` are to be used the corresponding organism must be passed.
+            Set of marker genes for apoptosis used in the birth-death process. If marker genes from :mod:`moscot` are 
+            to be used the corresponding organism must be passed.
         proliferation_key
             Key in :attr:`anndata.AnnData.obs` where to add the genes scores.
         kwargs
@@ -154,7 +163,7 @@ class TemporalProblem(TemporalAnalysisMixin, SingleCompoundProblem):
 
         Returns
         -------
-        Self and updates the following attributes
+        :class:`moscot.problems.time.TemporalProblem` and updates the following attributes
 
             - :attr:`proliferation_key`
             - :attr:`apoptosis_key`
@@ -211,9 +220,9 @@ class TemporalProblem(TemporalAnalysisMixin, SingleCompoundProblem):
         **kwargs: Any,
     ) -> "TemporalProblem":
         """
-        Prepares the TemporalProblem for it being ready to be solved
+        Prepare the :class:`moscot.problems.time.TemporalProblem`.
 
-        This method executes multiple steps to prepare the problem for the Optimal Transport solver to be ready to solve it
+        This method executes multiple steps to prepare the optimal transport problem(s). 
 
         Parameters
         ----------
@@ -230,7 +239,7 @@ class TemporalProblem(TemporalAnalysisMixin, SingleCompoundProblem):
 
         Returns
         -------
-        :class:`moscot.problems.time.LineageProblem`
+        :class:`moscot.problems.time.TemporalProblem`
 
         Raises
         ------
@@ -276,7 +285,7 @@ class TemporalProblem(TemporalAnalysisMixin, SingleCompoundProblem):
         **kwargs: Any,
     ) -> Optional[Union[npt.ArrayLike, Dict[Tuple[Any, Any], npt.ArrayLike]]]:
         """
-        Push distribution of cells through time
+        Push distribution of cells through time.
 
         Parameters
         ----------
@@ -292,12 +301,14 @@ class TemporalProblem(TemporalAnalysisMixin, SingleCompoundProblem):
 
         Returns
         -------
-        Depending on `result_key` updates `adata` or returns the result. In the latter case the all intermediate
-        step results are returned if `return_all` is True, otherwise only the distribution at `end` is returned.
+        Depending on `result_key` updates `adata` or returns the result. In the former case all intermediate results 
+        (corresponding to intermediate time points) are saved in :attr:`anndata.AnnData.obs`. In the latter case all 
+        intermediate step results are returned if `return_all` is `True`, otherwise only the distribution at `end` 
+        is returned.
 
         Raises
         ------
-        TODO: inherit
+        %(CompoundBaseProblem_push.raises)s
         """
         if result_key is not None:
             return_all = True
@@ -324,28 +335,30 @@ class TemporalProblem(TemporalAnalysisMixin, SingleCompoundProblem):
         **kwargs: Any,
     ) -> Optional[Union[npt.ArrayLike, Dict[Tuple[Any, Any], npt.ArrayLike]]]:
         """
-        Pull distribution of cells through time
+        Pull distribution of cells from time point `end` to time point `start`.
 
         Parameters
         ----------
         start
-            Time point of source distribution (later time point).
-        target
-            Time point of target distribution (earlier time point).
+            Earlier time point, the time point the mass is pulled to.
+        end
+            Later time point, the time point the mass is pulled from.
         result_key
-            Key of where to save the result in :class:`anndata.AnnData.obs`. If None the result will be returned.
+            Key of where to save the result in :class:`anndata.AnnData.obs`. If `None` the result will be returned.
         return_all
-            If True returns all the intermediate masses if pushed through multiple transport plans. If True, the result
+            If `True` return all the intermediate masses if pushed through multiple transport plans. In this case the result
             is returned as a dictionary.
 
         Returns
         -------
-        Depending on `result_key` updates `adata` or returns the result. In the latter case the all intermediate step
-        results are returned if `return_all` is True, otherwise only the distribution at `start` is returned.
+        Depending on `result_key` updates `adata` or returns the result. In the former case all intermediate results 
+        (corresponding to intermediate time points) are saved in :attr:`anndata.AnnData.obs`. In the latter case all 
+        intermediate step results are returned if `return_all` is `True`, otherwise only the distribution at `start` 
+        is returned.
 
         Raises
         ------
-        TODO: inherit
+        %(CompoundBaseProblem_pull.raises)s
         """
         if result_key is not None:
             return_all = True

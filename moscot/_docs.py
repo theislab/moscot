@@ -55,6 +55,20 @@ scale_by_marginals
 _normalize = """\
 normalize
     Whether to normalize the result to 1 after the transport map has been applied"""
+_data = """\
+data
+    - If `data` is a :class:`str` this should correspond to a column in :attr:`anndata.AnnData.obs`. The transport map is applied to the subset corresponding to the source distribution (if `forward` is `True`) or target distribution (if `forward` is `False`) of that column.
+    - If `data` is a :class:npt.ArrayLike the transport map is applied to `data`
+    - If `data` is a :class:`dict` then the keys should correspond to the tuple defining a single optimal transport map and the value should be one of the two cases described above"""
+
+_subset = """\
+subset
+    If `data` is a column in :attr:`anndata.AnnData.obs` the distribution the transport map is applied
+    to only puts (uniform) mass on those cells which are in `subset` when filtering for 
+    :attr:`anndata.AnnData.obs`"""
+#_data = """\
+#data
+#    data"""
 
 
 def inject_docs(**kwargs: Any):  # noqa
@@ -90,4 +104,6 @@ d = DocstringProcessor(
     tau_b=_tau_b,
     scale_by_marginals=_scale_by_marginals,
     normalize=_normalize,
+    data=_data,
+    subset=_subset
 )
