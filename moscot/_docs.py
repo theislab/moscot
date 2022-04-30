@@ -7,24 +7,54 @@ _adata = """\
 adata
     Annotated data object."""
 _adatas = """\
-adata
+adatas
     Annotated data objects."""
 _adata_x = """\
-    Instance of :class:`anndata.AnnData` containing the data of the source distribution
-    """
+adata_x
+    Instance of :class:`anndata.AnnData` containing the data of the source distribution"""
 _adata_y = """\
-    Instance of :class:`anndata.AnnData` containing the data of the target distribution
-    """
+adata_y
+    Instance of :class:`anndata.AnnData` containing the data of the target distribution"""
 _solver = """\
-    Instance from :mod:`moscot.solvers` used for solving the Optimal Transport problem
-    """
+solver
+    Instance from :mod:`moscot.solvers` used for solving the Optimal Transport problem"""
 _source = """\
-    Value in :attr:`anndata.AnnData.obs` defining the assignment to the source distribution
-    """
+source
+    Value in :attr:`anndata.AnnData.obs` defining the assignment to the source distribution"""
 _target = """\
-    Value in :attr:`anndata.AnnData.obs` defining the assignment to the target distribution
-    """
-
+target
+    Value in :attr:`anndata.AnnData.obs` defining the assignment to the target distribution"""
+_reference = """\
+reference
+    `reference` in :class:`moscot.problems._subset_policy.StarPolicy`"""
+_axis = """\
+axis
+    axis along which to group the data"""
+_callback = """\
+callback
+    custom callback applied to each distribution as preprocessing step. Examples are given in TODO Link Notebook"""
+_callback_kwargs = """\
+callback_kwargs
+    keyword arguments for `callback`"""
+_epsilon = """\
+epsilon
+    regularisation parameter"""
+_alpha = """\
+alpha
+    interpolation parameter between Gromov term and linear Optimal Transport term"""
+_tau_a = """\
+tau_a
+    unbalancedness parameter for left marginal between 0 and 1. `tau_a` equalling 1 means no unbalancedness in the source distribution, `tau_a` --> 0 ignores the left marginals."""
+_tau_b = """\
+tau_a
+    unbalancedness parameter for right marginal between 0 and 1. `tau_b` equalling 1 means no unbalancedness in the target distribution, `tau_b` --> 0 ignores the right marginals."""
+_scale_by_marginals = """\
+scale_by_marginals
+    If `True` the transport map is scaled to be a stochastic matrix by multiplying the resulting mass
+            by the inverse of the marginals, TODO maybe EXAMPLE"""
+_normalize = """\
+normalize
+    Whether to normalize the result to 1 after the transport map has been applied"""
 
 
 def inject_docs(**kwargs: Any):  # noqa
@@ -45,9 +75,19 @@ def inject_docs(**kwargs: Any):  # noqa
 d = DocstringProcessor(
     adata=_adata,
     adatas=_adatas,
-    adata_x = _adata_x,
-    adata_y = _adata_y,
+    adata_x=_adata_x,
+    adata_y=_adata_y,
     solver=_solver,
     source=_source,
-    target=_target
+    target=_target,
+    reference=_reference,
+    axis=_axis,
+    callback=_callback,
+    callback_kwargs=_callback_kwargs,
+    epsilon=_epsilon,
+    alpha=_alpha,
+    tau_a=_tau_a,
+    tau_b=_tau_b,
+    scale_by_marginals=_scale_by_marginals,
+    normalize=_normalize,
 )

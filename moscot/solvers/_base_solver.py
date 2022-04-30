@@ -52,19 +52,12 @@ class TagConverterMixin:
             return TaggedArray(arr, tag=tag)
         return TaggedArray(arr.data, tag=tag)
 
+
 @d.get_sections(base="BaseSolver", sections=["Parameters", "Raises"])
 @d.dedent
 class BaseSolver(TagConverterMixin, ABC):
     """
     BaseClass for all solvers.
-
-    Parameters
-    ----------
-    
-
-    Raises
-    ------
-    
     """
 
     @abstractmethod

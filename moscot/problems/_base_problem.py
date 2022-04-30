@@ -36,6 +36,7 @@ class BaseProblem(ABC):
     ValueError
         If `adata` has no variables.
     """
+
     def __init__(
         self,
         adata: AnnData,
@@ -121,6 +122,7 @@ class BaseProblem(ABC):
             raise TypeError("TOOD: not a solver")
         self._solver = solver
 
+
 @d.get_sections(base="GeneralProblem", sections=["Parameters", "Raises"])
 @d.dedent
 class GeneralProblem(BaseProblem):
@@ -141,6 +143,7 @@ class GeneralProblem(BaseProblem):
     ------
         %(BaseProblem.raises)s
     """
+
     def __init__(
         self,
         adata_x: AnnData,

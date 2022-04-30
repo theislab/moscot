@@ -81,13 +81,3 @@ FGWSolver
     :noindex:
     :members:
     :inherited-members:
-
-Development
-~~~~~~~~~~~
-
-CompoundProblem
----------------
-.. autoclass:: moscot.problems.CompoundProblem
-    :noindex:
-    :members:
-    :inherited-members:

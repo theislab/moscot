@@ -25,6 +25,12 @@ copyright = "2022, Theislab"  # noqa: A001
 author = "foo"  # moscot.__author__
 version = "0.0"  # moscot.__version__
 
+github_org = "theislab"
+github_repo = "squidpy"
+github_ref = "master"
+github_nb_repo = "squidpy_notebooks"
+# _fetch_notebooks(repo_url=f"https://github.com/{github_org}/{github_nb_repo}")
+
 # -- General configuration ---------------------------------------------------
 
 # Add any Sphinx extension module names here, as strings. They can be
@@ -44,6 +50,9 @@ intersphinx_mapping = {
     "numpy": ("https://docs.scipy.org/doc/numpy/", None),
     "jax": ("https://jax.readthedocs.io/en/latest/", None),
     "ott": ("https://ott-jax.readthedocs.io/en/latest/", None),
+    "pandas": ("https://pandas.pydata.org/pandas-docs/stable/", None),
+    "anndata": ("https://anndata.readthedocs.io/en/stable/", None),
+    "scanpy": ("https://scanpy.readthedocs.io/en/stable/", None),
 }
 master_doc = "index"
 pygments_style = "sphinx"
@@ -55,6 +64,9 @@ bibtex_default_style = "alpha"
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ["_templates"]
+source_suffix = [".rst", ".ipynb"]
+master_doc = "index"
+pygments_style = "sphinx"
 
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.

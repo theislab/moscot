@@ -76,7 +76,10 @@ class BarcodeDistance(BaseLoss):
 
     @staticmethod
     def _scaled_Hamming_distance(x: npt.ArrayLike, y: npt.ArrayLike) -> float:
-        """adapted from https://github.com/aforr/LineageOT/blob/8c66c630d61da289daa80e29061e888b1331a05a/lineageot/inference.py#L33"""
+        """
+        adapted from
+        https://github.com/aforr/LineageOT/blob/8c66c630d61da289daa80e29061e888b1331a05a/lineageot/inference.py#L33
+        """
 
         shared_indices = (x >= 0) & (y >= 0)
         b1 = x[shared_indices]

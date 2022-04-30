@@ -27,6 +27,7 @@ Callback_t = Optional[
     ]
 ]
 
+
 @d.dedent
 class TemporalBaseProblem(MultiMarginalProblem):
     """
@@ -47,6 +48,7 @@ class TemporalBaseProblem(MultiMarginalProblem):
     %(MultiMarginalProblem.raises)s
 
     """
+
     def __init__(
         self,
         adata_x: AnnData,
@@ -95,6 +97,7 @@ class TemporalBaseProblem(MultiMarginalProblem):
     @property
     def growth_rates(self) -> npt.ArrayLike:
         return np.power(self.a, 1 / (self._target - self._source))
+
 
 @d.dedent
 class TemporalProblem(TemporalAnalysisMixin, SingleCompoundProblem):
@@ -159,7 +162,7 @@ class TemporalProblem(TemporalAnalysisMixin, SingleCompoundProblem):
         Notes
         -----
         The marker genes in :mod:`moscot` are taken from the following sources:
-        
+
             - human, proliferation - :cite:`tirosh:16:science`.
             - human, apoptosis - `Hallmark Apoptosis, MSigDB <https://www.gsea-msigdb.org/gsea/msigdb/cards/HALLMARK_APOPTOSIS>`_.
             - mouse, proliferation - :cite:`tirosh:16:nature`.
@@ -216,11 +219,14 @@ class TemporalProblem(TemporalAnalysisMixin, SingleCompoundProblem):
         ----------
         %(CompoundBaseProblem_prepare.parameters)s
         time_key
-            Key in :attr:`anndata.AnnData.obs` which defines the time point each cell belongs to. It is supposed to be of numerical data type.
+            Key in :attr:`anndata.AnnData.obs` which defines the time point each cell belongs to. It is supposed
+            to be of numerical data type.
         joint_attr
-            Parameter defining how to allocate the data needed to compute the transport maps. If None, the data is read from :attr:`anndata.AnnData.X` and
-            for each time point the corresponding PCA space is computed. If `joint_attr` is a string the data is assumed to be found in :attr:`anndata.AnnData.obsm`.
-            If `joint_attr` is a dictionary the dictionary is supposed to contain the attribute of :attr:`anndata.AnnData` as a key and the corresponding attribute as a value.
+            Parameter defining how to allocate the data needed to compute the transport maps. If None, the data is read
+            from :attr:`anndata.AnnData.X` and for each time point the corresponding PCA space is computed. If
+            `joint_attr` is a string the data is assumed to be found in :attr:`anndata.AnnData.obsm`.
+            If `joint_attr` is a dictionary the dictionary is supposed to contain the attribute of
+            :attr:`anndata.AnnData` as a key and the corresponding attribute as a value.
 
         Returns
         -------
@@ -270,7 +276,7 @@ class TemporalProblem(TemporalAnalysisMixin, SingleCompoundProblem):
         **kwargs: Any,
     ) -> Optional[Union[npt.ArrayLike, Dict[Tuple[Any, Any], npt.ArrayLike]]]:
         """
-        Pushes distribution of cells through time
+        Push distribution of cells through time
 
         Parameters
         ----------
@@ -281,11 +287,13 @@ class TemporalProblem(TemporalAnalysisMixin, SingleCompoundProblem):
         result_key
             Key of where to save the result in :attr:`anndata.AnnData.obs`. If None the result will be returned.
         return_all
-            If True returns all the intermediate masses if pushed through multiple transport plans. If True, the result is returned as a dictionary.
+            If True returns all the intermediate masses if pushed through multiple transport plans.
+            If True, the result is returned as a dictionary.
 
         Returns
         -------
-        Depending on `result_key` updates `adata` or returns the result. In the latter case the all intermediate step results are returned if `return_all` is True, otherwise only the distribution at `end` is returned.
+        Depending on `result_key` updates `adata` or returns the result. In the latter case the all intermediate
+        step results are returned if `return_all` is True, otherwise only the distribution at `end` is returned.
 
         Raises
         ------
@@ -316,7 +324,7 @@ class TemporalProblem(TemporalAnalysisMixin, SingleCompoundProblem):
         **kwargs: Any,
     ) -> Optional[Union[npt.ArrayLike, Dict[Tuple[Any, Any], npt.ArrayLike]]]:
         """
-        Pulls distribution of cells through time
+        Pull distribution of cells through time
 
         Parameters
         ----------
@@ -327,11 +335,13 @@ class TemporalProblem(TemporalAnalysisMixin, SingleCompoundProblem):
         result_key
             Key of where to save the result in :class:`anndata.AnnData.obs`. If None the result will be returned.
         return_all
-            If True returns all the intermediate masses if pushed through multiple transport plans. If True, the result is returned as a dictionary.
+            If True returns all the intermediate masses if pushed through multiple transport plans. If True, the result
+            is returned as a dictionary.
 
         Returns
         -------
-        Depending on `result_key` updates `adata` or returns the result. In the latter case the all intermediate step results are returned if `return_all` is True, otherwise only the distribution at `start` is returned.
+        Depending on `result_key` updates `adata` or returns the result. In the latter case the all intermediate step
+        results are returned if `return_all` is True, otherwise only the distribution at `start` is returned.
 
         Raises
         ------
@@ -376,14 +386,16 @@ class TemporalProblem(TemporalAnalysisMixin, SingleCompoundProblem):
     @property
     def proliferation_key(self) -> Optional[str]:
         """
-        Key in :attr:`anndata.AnnData.obs` where prior estimate of cell proliferation is saved (created by :meth:`moscot.problems.TemporalProblem.score_genes_for_marginals()`)
+        Key in :attr:`anndata.AnnData.obs` where prior estimate of cell proliferation is saved (created by
+        :meth:`moscot.problems.TemporalProblem.score_genes_for_marginals()`)
         """
         return self._proliferation_key
 
     @property
     def apoptosis_key(self) -> Optional[str]:
         """
-        Key in :attr:`anndata.AnnData.obs` where prior estimate of cell apoptosis is saved (created by :meth:`moscot.problems.TemporalProblem.score_genes_for_marginals()`)
+        Key in :attr:`anndata.AnnData.obs` where prior estimate of cell apoptosis is saved (created by
+        :meth:`moscot.problems.TemporalProblem.score_genes_for_marginals()`)
         """
         return self._apoptosis_key
 
@@ -400,7 +412,7 @@ class TemporalProblem(TemporalAnalysisMixin, SingleCompoundProblem):
     @property
     def cell_costs_source(self) -> pd.DataFrame:
         """
-        Returns the cost of a cell (see online methods) obtained by the potentials of the optimal transport solution
+        Return the cost of a cell (see online methods) obtained by the potentials of the optimal transport solution
 
         Raises
         ------
@@ -429,7 +441,7 @@ class TemporalProblem(TemporalAnalysisMixin, SingleCompoundProblem):
     @property
     def cell_costs_target(self) -> pd.DataFrame:
         """
-        Returns the cost of a cell (see online methods) obtained by the potentials of the optimal transport solution
+        Return the cost of a cell (see online methods) obtained by the potentials of the optimal transport solution
 
         Raises
         ------
@@ -469,7 +481,8 @@ class LineageProblem(TemporalProblem):
     adata
         :class:`anndata.AnnData` instance containing the single cell data and corresponding metadata
     solver
-        :class:`moscot.solver` instance used to solve the optimal transport problem. Currently, :class:`moscot.solvers.SinkhornSolver` can be used to solve this problem.
+        :class:`moscot.solver` instance used to solve the optimal transport problem. Currently,
+        :class:`moscot.solvers.SinkhornSolver` can be used to solve this problem.
 
     Examples
     --------
@@ -485,18 +498,24 @@ class LineageProblem(TemporalProblem):
         **kwargs: Any,
     ) -> "LineageProblem":
         """
-        Prepares the LineageProblem for it being ready to be solved
+        Prepare the LineageProblem for it being ready to be solved
 
-        This method executes multiple steps to prepare the problem for the Optimal Transport solver to be ready to solve it
+        This method executes multiple steps to prepare the problem for the Optimal Transport solver to be ready
+        to solve it
 
         Parameters
         ----------
         time_key
-            Key in :attr:`anndata.AnnData.obs` which defines the time point each cell belongs to. It is supposed to be of numerical data type.
+            Key in :attr:`anndata.AnnData.obs` which defines the time point each cell belongs to. It is supposed to be
+            of numerical data type.
         lineage_attr
             Specifies the way the lineage information is processed. TODO: Specify.
         joint_attr
-            Parameter defining how to allocate the data needed to compute the transport maps. If None, the data is read from :attr:`anndata.AnnData.X` and for each time point the corresponding PCA space is computed. If `joint_attr` is a string the data is assumed to be found in :attr:`anndata.AnnData.obsm`. If `joint_attr` is a dictionary the dictionary is supposed to contain the attribute of :attr:`anndata.AnnData` as a key and the corresponding attribute as a value.
+            Parameter defining how to allocate the data needed to compute the transport maps. If None, the data is read
+            from :attr:`anndata.AnnData.X` and for each time point the corresponding PCA space is computed.
+            If `joint_attr` is a string the data is assumed to be found in :attr:`anndata.AnnData.obsm`.
+            If `joint_attr` is a dictionary the dictionary is supposed to contain the attribute of
+            :attr:`anndata.AnnData` as a key and the corresponding attribute as a value.
 
         Returns
         -------
