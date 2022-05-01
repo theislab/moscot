@@ -1,4 +1,4 @@
-from typing import List, Tuple, Optional
+from typing import Tuple, Optional
 
 from scipy.sparse import csr_matrix
 import pandas as pd
@@ -106,23 +106,6 @@ def adata_time() -> AnnData:
     genes = ["ANLN", "ANP32E", "ATAD2", "Mcm4", "Smc4", "Gtse1", "ADD1", "AIFM3", "ANKH", "Ercc5", "Serpinb5", "Inhbb"]
     adata.var.index = ["gene_" + el if i > 11 else genes[i] for i, el in enumerate(adata.var.index)]
     return adata
-
-
-@pytest.fixture()
-def adatas_space() -> List[AnnData]:
-    def make_grid(grid_size: int):
-        xlimits = ylimits = [0, 10]
-        x1s = np.linspace(*xlimits, num=grid_size)
-        x2s = np.linspace(*ylimits, num=grid_size)
-        X1, X2 = np.meshgrid(x1s, x2s)
-
-        X_orig_single = np.vstack([X1.ravel(), X2.ravel()]).T
-
-        return X_orig_single
-
-    rng = np.random.default_rng(42)
-    adatas = [AnnData(X=csr_matrix(rng.normal(size=(100, 60))), obsm={"spatial": make_grid(10)}) for _ in range(3)]
-    return adatas
 
 
 def create_marginals(n: int, m: int, *, uniform: bool = False, seed: Optional[int] = None) -> Geom_t:
