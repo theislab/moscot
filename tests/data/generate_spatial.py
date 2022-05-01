@@ -51,7 +51,7 @@ def generate_data(
 
     adata.obs_names_make_unique()
     logg.warning("Save warped adata.")
-    adata.write("./warped.h5ad")
+    adata.write("./adata_spatial_warped.h5ad")
     # use same dataset to create rotated version
     logg.warning("Create rotated adata.")
     adata1 = adata[adata.obs["batch"] == "0"].copy()
@@ -72,7 +72,7 @@ def generate_data(
     adata = ad.concat([adata1, adata2, adata3], label="batch_key")
     adata.obs_names_make_unique()
     logg.warning("Save rotated adata.")
-    adata.write("./rotated.h5ad")
+    adata.write("./adata_spatial_rotated.h5ad")
     return
 
 
