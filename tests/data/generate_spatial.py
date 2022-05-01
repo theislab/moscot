@@ -1,4 +1,4 @@
-"""To generate data install `pip install git+https://github.com/giovp/spatial-alignment.git`"""
+"""To generate data clone from here https://github.com/giovp/spatial-alignment.git ."""
 
 from math import cos, sin
 import sys
@@ -59,17 +59,16 @@ def generate_data(
     adata3 = adata[adata.obs["batch"] == "1"].copy()
     adata3.obs["batch"] = pd.Categorical(np.repeat("2", adata3.shape[0]))
     adata3.obsm["spatial"] = (adata3.obsm["spatial"] + 1) + 2
-    adata3.obsm["spatial"][adata3.obsm["spatial"] > 10] = adata3.obsm["spatial"][adata3.obsm["spatial"] > 10] * 1.5
+    adata3.obsm["spatial"][adata3.obsm["spatial"] > 1] = adata3.obsm["spatial"][adata3.obsm["spatial"] > 1] * 1.5
+    adatas = [adata1, adata2, adata3]
 
-    for adata, angle in zip([adata1, adata2, adata3], [0, 25, 60]):
+    for adata, angle, frac in zip(adatas, [0, 25, 60], [0.95, 0.9, 0.85]):
         theta = np.deg2rad(angle)
         rot = np.array([[cos(theta), -sin(theta)], [sin(theta), cos(theta)]])
         adata.obsm["spatial"] = np.dot(adata.obsm["spatial"], rot)
+        sc.pp.subsample(adata1, fraction=frac, random_state=seed)
 
-    sc.pp.subsample(adata1, fraction=0.95, random_state=seed)
-    sc.pp.subsample(adata2, fraction=0.9, random_state=seed)
-    sc.pp.subsample(adata3, fraction=0.85, random_state=seed)
-    adata = ad.concat([adata1, adata2, adata3], label="batch_key")
+    adata = ad.concat(adatas, label="batch_key")
     adata.obs_names_make_unique()
     logg.warning("Save rotated adata.")
     adata.write("./adata_spatial_rotated.h5ad")
