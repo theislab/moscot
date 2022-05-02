@@ -64,6 +64,13 @@ class GeometryMixin:
         - :class:`ott.core.sinkhorn_lr.LRSinkhorn`
         - :class:`ott.core.gromov_wasserstein.GromovWasserstein`
 
+    Raises
+    ------
+    ValueError
+        If the dimensions of `x` and `y` do not match
+    NotImplementedError
+        If the `tag` is not among the implemented ones
+
     """
 
     def __init__(self, **kwargs: Any):
@@ -148,6 +155,10 @@ class RankMixin(GeometryMixin):
         in :cite:`scetbon:2021_a` or :cite:`scetbon:2021_b`
     %(GeometryMixin.parameters)s
 
+    Raises
+    ------
+    %(GeoemtryMixin.raises)s
+
     """
 
     def __init__(self, rank: int = -1, **kwargs: Any):
@@ -230,14 +241,16 @@ class RankMixin(GeometryMixin):
 @d.dedent
 class SinkhornSolver(RankMixin, BaseSolver):
     """
-    Class which solves regularized Optimal Transport problems with the Sinkhorn algorithm :cite:`cuturi:2013`
+    Solver class solving linear Optimal Transport problems.
 
     The (Kantorovich relaxed) Optimal Transport problem is defined by two distributions in the same space. The
     aim is to obtain a probabilistic map from the source distribution to the target distribution such that
-    the (weighted) sum of the distances between the source and the target distribution is minimized.
+    the (weighted) sum of the distances between coupled data point in the source and the target distribution is 
+    minimized.
 
-    This solver wraps :class:`ott.core.sinkhorn.Sinkhorn`  by default and :cite:`cuturi:2013`
-    :class:`ott.core.sinkhorn_lr.LRSinkhorn` :cite:`scetbon:2021_a` if `rank` is a positive integer.
+    This solver wraps :class:`ott.core.sinkhorn.Sinkhorn` :cite:`cuturi:2013` by default and :cite:`cuturi:2013`
+    :class:`ott.core.sinkhorn_lr.LRSinkhorn` :cite:`scetbon:2021_a` if `rank` is a positive integer. In the 
+    former case, the solver makes use of the Sinkhorn algorithm, in the latter a mirror descent algorithm.
 
     TODO: link notebooks for example
 
@@ -288,14 +301,15 @@ class SinkhornSolver(RankMixin, BaseSolver):
 @d.dedent
 class GWSolver(RankMixin, BaseSolver):
     """
-    Class which solves Gromov-Wasserstein problems with the projected gradient descent algorithm :cite:`memoli:2011`
+    Solver class solving quadratic Optimal Transport problems.
 
-    The Gromov-Wasserstein problem involves two distribution in possibly two different spaces. Points in the source
+    The Gromov-Wasserstein (GW) problem involves two distribution in possibly two different spaces. Points in the source
     distribution are matched to points in the target distribution by comparing the relative location of the datapoints
     within each distribution.
 
     This solver wraps :class:`ott.core.gromov_wasserstein.GromovWasserstein` which handles both the full rank
     Gromov-Wasserstein algorithm :cite:`memoli:2011` as well as the low rank approach :cite:`scetbon:2021_b`.
+    In both cases the solver makes use of a mirror-descent algorithm :cite:`memoli:2011`.
 
     TODO: link notebooks for example
 
@@ -378,7 +392,13 @@ class GWSolver(RankMixin, BaseSolver):
 
 class FGWSolver(GWSolver):
     """
-    Class which solves Fused Gromov-Wasserstein problems with the projected gradient descent algorithm :cite:`vayer:2018`.
+    Class which solves quadratic OT problems with a linear term included.
+
+    The Fused Gromov-Wasserstein (FGW) problem involves two distributions living in two subspaces, 
+    corresponding to the linear term and the quadratic termm, respectively. The subspace corresponding
+    to the linear term is shared between the two distributions. The subspace corresponding to the quadratic
+    term is defined in possibly two different spaces. The matchings obtained from FGW are a compromise
+    between the ones obtained from the linear OT problem and the purely quadratic OT problem (GW).
 
     This solver wraps :class:`ott.core.gromov_wasserstein.GromovWasserstein` with non-trivial `fused_penalty`.
 
