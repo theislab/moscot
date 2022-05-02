@@ -21,7 +21,7 @@ sys.path.insert(0, str(HERE.parent.parent))
 # -- Project information -----------------------------------------------------
 
 project = "moscot"
-copyright = "2022, Theislab"  # noqa: A001
+copyright = "2022, Theislab"
 author = "foo"  # moscot.__author__
 version = "0.0"  # moscot.__version__
 

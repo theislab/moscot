@@ -290,7 +290,7 @@ class CompoundBaseProblem(BaseProblem, ABC):
     @d.dedent
     def push(self, *args: Any, **kwargs: Any) -> Union[npt.ArrayLike, Dict[Any, npt.ArrayLike]]:
         """
-        Push mass from `start` to `end`. TODO: verify
+        Push mass from `start` to `end`. TODO: verify.
 
         Parameters
         ----------
@@ -315,7 +315,7 @@ class CompoundBaseProblem(BaseProblem, ABC):
     @d.dedent
     def pull(self, *args: Any, **kwargs: Any) -> Union[npt.ArrayLike, Dict[Any, npt.ArrayLike]]:
         """
-        Pull mass from `end` to `start`. TODO: expose kwargs
+        Pull mass from `end` to `start`. TODO: expose kwargs.
 
         Parameters
         ----------

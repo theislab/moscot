@@ -68,7 +68,7 @@ subset
     :attr:`anndata.AnnData.obs`"""
 
 
-def inject_docs(**kwargs: Any):  # noqa
+def inject_docs(**kwargs: Any):
     def decorator(obj):
         obj.__doc__ = dedent(obj.__doc__).format(**kwargs)
         return obj
