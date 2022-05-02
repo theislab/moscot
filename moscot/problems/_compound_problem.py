@@ -32,7 +32,7 @@ from moscot.problems._subset_policy import Axis_t, StarPolicy, SubsetPolicy, Exp
 
 __all__ = ("CompoundBaseProblem", "SingleCompoundProblem", "MultiCompoundProblem", "CompoundProblem")
 
-from moscot.solvers._tagged_array import TaggedArray
+from moscot.solvers._tagged_array import Tag, TaggedArray
 
 Callback_t = Optional[
     Union[
@@ -85,7 +85,7 @@ class CompoundBaseProblem(BaseProblem, Generic[K, B], ABC):
         **kwargs: Any,
     ) -> Dict[Tuple[K, K], B]:
         problems = {}
-        for (src, tgt), (src_mask, tgt_mask) in self._policy.mask().items():
+        for (src, tgt), (src_mask, tgt_mask) in self._policy.create_masks().items():
             kwargs_ = dict(kwargs)
             if isinstance(self._policy, FormatterMixin):
                 src = self._policy._format(src, is_source=True)
@@ -216,6 +216,20 @@ class CompoundBaseProblem(BaseProblem, Generic[K, B], ABC):
             res[plan] = ds if return_all else current_mass
         # TODO(michalk8): return the values iff only 1 plan?
         return res
+
+    def _extract_cost_matrix(self, key: str, *, src: Any, tgt: Any) -> TaggedArray:
+        if self._policy is None:
+            raise ValueError("TODO: no policy initialized")
+
+        attr = f"{self._policy.axis}p"
+        try:
+            data = getattr(self.adata, attr)[key]
+        except KeyError:
+            raise KeyError(f"TODO: data not in `adata.{attr}[{key!r}]`") from None
+
+        src_mask = self._policy.create_mask(src, allow_empty=False)
+        tgt_mask = self._policy.create_mask(tgt, allow_empty=False)
+        return TaggedArray(data[src_mask, :][:, tgt_mask], tag=Tag.COST_MATRIX)
 
     def push(self, *args: Any, **kwargs: Any) -> Union[npt.ArrayLike, Dict[Any, npt.ArrayLike]]:
         return self._apply(*args, forward=True, **kwargs)
