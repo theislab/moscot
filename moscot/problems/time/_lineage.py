@@ -31,7 +31,8 @@ Callback_t = Optional[
 @d.dedent
 class TemporalBaseProblem(MultiMarginalProblem):
     """
-    Problem class handling one optimal transport subproblem which allows to estimate the marginals with a birth death process.
+    Problem class handling one optimal transport subproblem which allows to estimate the marginals with a birth-death 
+    process.
 
     Parameters
     ----------
@@ -173,9 +174,11 @@ class TemporalProblem(TemporalAnalysisMixin, SingleCompoundProblem):
         The marker genes in :mod:`moscot` are taken from the following sources:
 
             - human, proliferation - :cite:`tirosh:16:science`.
-            - human, apoptosis - `Hallmark Apoptosis, MSigDB <https://www.gsea-msigdb.org/gsea/msigdb/cards/HALLMARK_APOPTOSIS>`_.
+            - human, apoptosis - `Hallmark Apoptosis, MSigDB 
+            <https://www.gsea-msigdb.org/gsea/msigdb/cards/HALLMARK_APOPTOSIS>`_.
             - mouse, proliferation - :cite:`tirosh:16:nature`.
-            - mouse, apoptosis - `Hallmark P53 Pathway, MSigDB <https://www.gsea-msigdb.org/gsea/msigdb/cards/HALLMARK_P53_PATHWAY>`_.
+            - mouse, apoptosis - `Hallmark P53 Pathway, MSigDB 
+            <https://www.gsea-msigdb.org/gsea/msigdb/cards/HALLMARK_P53_PATHWAY>`_.
 
         """
         if gene_set_proliferation is None:
@@ -226,7 +229,6 @@ class TemporalProblem(TemporalAnalysisMixin, SingleCompoundProblem):
 
         Parameters
         ----------
-        %(CompoundBaseProblem_prepare.parameters)s
         time_key
             Key in :attr:`anndata.AnnData.obs` which defines the time point each cell belongs to. It is supposed
             to be of numerical data type.
@@ -236,6 +238,30 @@ class TemporalProblem(TemporalAnalysisMixin, SingleCompoundProblem):
             `joint_attr` is a string the data is assumed to be found in :attr:`anndata.AnnData.obsm`.
             If `joint_attr` is a dictionary the dictionary is supposed to contain the attribute of
             :attr:`anndata.AnnData` as a key and the corresponding attribute as a value.
+        policy
+            defines which transport maps to compute given different cell distributions
+        marginal_kwargs
+            keyword arguments for :class:`moscot.problems.TemporalBaseProblem._estimate_marginals()`, i.e. for modeling
+            the birth-death process. The keyword arguments
+            are either used for :func:`moscot.problems.time._utils.beta()`, i.e. one of
+                - beta_max: float
+                - beta_min: float
+                - beta_center: float
+                - beta_width: float
+            or for :func:`moscot.problems.time._utils.beta()`, i.e. one of
+                - delta_max: float
+                - delta_min: float
+                - delta_center: float
+                - delta_width: float
+
+        subset
+            subset of `anndata.AnnData.obs` [key] values of which the policy is to be applied to
+        %(reference)s
+        %(axis)s
+        %(callback)s
+        %(callback_kwargs)s
+        kwargs
+            Keyword arguments for :meth:`moscot.problems.CompoundBaseProblem._create_problems()`
 
         Returns
         -------
@@ -346,8 +372,8 @@ class TemporalProblem(TemporalAnalysisMixin, SingleCompoundProblem):
         result_key
             Key of where to save the result in :class:`anndata.AnnData.obs`. If `None` the result will be returned.
         return_all
-            If `True` return all the intermediate masses if pushed through multiple transport plans. In this case the result
-            is returned as a dictionary.
+            If `True` return all the intermediate masses if pushed through multiple transport plans. In this case the 
+            result is returned as a dictionary.
 
         Returns
         -------
@@ -376,7 +402,15 @@ class TemporalProblem(TemporalAnalysisMixin, SingleCompoundProblem):
     @property
     def growth_rates(self) -> pd.DataFrame:
         """
-        Growth rates of the cells
+        Growth rates of the cells estimated by posterior marginals. 
+        
+        If the OT problem is balanced, the posterior marginals
+        (approximately) equal the prior marginals (marginals defining the OT problem). In the unbalanced case the 
+        marginals of the OT solution usually differ from the marginals of the original OT problem. This is an 
+        indication of cell proliferation, i.e. a cell could have multiple descendents in the target distribution or 
+        cell death, i.e. the cell is unlikely to have a descendant.
+        If multiple iterations are performed in :meth:`moscot.problems.time.TemporalProblem.solve()` the number 
+        of estimates for the cell growth rates equals is strictly larger than 2.
         """
         cols = [f"g_{i}" for i in range(self.problems[list(self)[0]].growth_rates.shape[1])]
         df_list = [
@@ -414,11 +448,13 @@ class TemporalProblem(TemporalAnalysisMixin, SingleCompoundProblem):
 
     @proliferation_key.setter
     def proliferation_key(self, value: Optional[str] = None) -> None:
+        """Set the :attr:`anndata.AnnData.obs` column where initial estimates for cell proliferation are stored."""
         # TODO(michalk8): add check if present in .obs (if not None)
         self._proliferation_key = value
 
     @apoptosis_key.setter
     def apoptosis_key(self, value: Optional[str] = None) -> None:
+        """Set the :attr:`anndata.AnnData.obs` column where initial estimates for cell apoptosis are stored."""
         # TODO(michalk8): add check if present in .obs (if not None)
         self._apoptosis_key = value
 
@@ -485,7 +521,7 @@ class TemporalProblem(TemporalAnalysisMixin, SingleCompoundProblem):
 
 class LineageProblem(TemporalProblem):
     """
-    Estimator for modelling time series single cell data based on moslin
+    Estimator for modelling time series single cell data based on moslin.
 
     Class handling the computation and downstream analysis of temporal single cell data with lineage prior.
 
@@ -529,6 +565,30 @@ class LineageProblem(TemporalProblem):
             If `joint_attr` is a string the data is assumed to be found in :attr:`anndata.AnnData.obsm`.
             If `joint_attr` is a dictionary the dictionary is supposed to contain the attribute of
             :attr:`anndata.AnnData` as a key and the corresponding attribute as a value.
+        policy
+            defines which transport maps to compute given different cell distributions
+        marginal_kwargs
+            keyword arguments for :class:`moscot.problems.TemporalBaseProblem._estimate_marginals()`, i.e. for modeling
+            the birth-death process. The keyword arguments
+            are either used for :func:`moscot.problems.time._utils.beta()`, i.e. one of
+                - beta_max: float
+                - beta_min: float
+                - beta_center: float
+                - beta_width: float
+            or for :func:`moscot.problems.time._utils.beta()`, i.e. one of
+                - delta_max: float
+                - delta_min: float
+                - delta_center: float
+                - delta_width: float
+
+        subset
+            subset of `anndata.AnnData.obs` [key] values of which the policy is to be applied to
+        %(reference)s
+        %(axis)s
+        %(callback)s
+        %(callback_kwargs)s
+        kwargs
+            Keyword arguments for :meth:`moscot.problems.CompoundBaseProblem._create_problems()`
 
         Returns
         -------
@@ -537,9 +597,13 @@ class LineageProblem(TemporalProblem):
         Raises
         ------
         KeyError
-            If `time_key` is not in :attr:`anndata.AnnData.obs`
+            If `time_key` is not in :attr:`anndata.AnnData.obs`.
         KeyError
-            If `joint_attr` is a string and cannot be found in :attr:`anndata.AnnData.obsm`
+            If `joint_attr` is a string and cannot be found in :attr:`anndata.AnnData.obsm`.
+        ValueError
+            If :attr:`adata.obsp` has no attribute `cost_matrices`.
+        TypeError
+            If `joint_attr` is not None, not a :class:`str` and not a :class:`dict`
         """
 
         if not len(lineage_attr):

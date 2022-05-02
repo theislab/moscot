@@ -19,6 +19,7 @@ Scale_t = Literal["max", "min", "median"]
 
 
 class BaseLoss(ABC):
+    """Base class handling all :mod:`moscot` losses."""
     @abstractmethod
     def _compute(self, *args: Any, **kwargs: Any) -> npt.ArrayLike:
         pass
@@ -57,6 +58,7 @@ class BaseLoss(ABC):
 
 
 class BarcodeDistance(BaseLoss):
+    """Class handling Barcode distances."""
     def _compute(
         self,
         *_: Any,
@@ -96,6 +98,7 @@ class BarcodeDistance(BaseLoss):
 
 
 class LeafDistance(BaseLoss):
+    """Class handling leaf distances (from trees)."""
     def _compute(
         self,
         **kwargs: Any,

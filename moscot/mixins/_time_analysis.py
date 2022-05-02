@@ -244,7 +244,8 @@ class TemporalAnalysisMixin(AnalysisMixin):
             )
         return np.mean(dist)
 
-    # TODO(@MUCDK) possibly offer two alternatives, once exact EMD with POT backend and once approximate, faster with same solver as used for original problems
+    # TODO(@MUCDK) possibly offer two alternatives, once exact EMD with POT backend and once approximate,
+    # faster with same solver as used for original problems
     def _compute_wasserstein_distance(
         self,
         point_cloud_1: npt.ArrayLike,

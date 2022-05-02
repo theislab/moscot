@@ -11,7 +11,7 @@ from moscot.problems._compound_problem import SingleCompoundProblem
 @d.dedent
 class SinkhornProblem(SingleCompoundProblem):
     """
-    AnnData interface for generic Optimal Transport problem
+    AnnData interface for generic Optimal Transport problem.
 
     Parameters
     ----------
@@ -28,7 +28,7 @@ class SinkhornProblem(SingleCompoundProblem):
 @d.dedent
 class GWProblem(SingleCompoundProblem):
     """
-    AnnData interface for generic Gromov-Wasserstein problem
+    AnnData interface for generic Gromov-Wasserstein problem.
 
     Parameters
     ----------
@@ -45,7 +45,7 @@ class GWProblem(SingleCompoundProblem):
 @d.dedent
 class FGWProblem(SingleCompoundProblem):
     """
-    AnnData interface for generic Fused Gromov-Wasserstein problem
+    AnnData interface for generic Fused Gromov-Wasserstein problem.
 
     Parameters
     ----------

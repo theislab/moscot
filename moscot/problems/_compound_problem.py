@@ -148,6 +148,9 @@ class CompoundBaseProblem(BaseProblem, ABC):
         -------
         :class:moscot.problems.CompoundProblem
 
+        Raises
+        ------
+
         """
         self._policy = self._create_policy(policy=policy, key=key, axis=axis)
         if isinstance(self._policy, ExplicitPolicy):

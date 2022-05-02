@@ -56,7 +56,7 @@ class TagConverterMixin:
 @d.get_sections(base="BaseSolver", sections=["Parameters", "Raises"])
 @d.dedent
 class BaseSolver(TagConverterMixin, ABC):
-    """ BaseClass for all solvers. """
+    """BaseClass for all solvers."""
 
     @abstractmethod
     def _prepare_input(
