@@ -48,7 +48,6 @@ class CompoundBaseProblem(BaseProblem, ABC):
     ------
     TypeError
         If `base_problem_type` is not a subclass of `GeneralProblem`.
-
     """
 
     def __init__(
@@ -531,8 +530,6 @@ class CompoundProblem(CompoundBaseProblem):
     %(CompoundBaseProblem.raises)s
     %(SingleCompoundProblem.raises)s
     %(MultiCompoundProblem.raises)s
-
-
     """
 
     def __init__(

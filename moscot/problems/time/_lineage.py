@@ -31,7 +31,7 @@ Callback_t = Optional[
 @d.dedent
 class TemporalBaseProblem(MultiMarginalProblem):
     """
-    Problem class handling one optimal transport subproblem which allows to estimate the marginals with a birth-death 
+    Problem class handling one optimal transport subproblem which allows to estimate the marginals with a birth-death
     process.
 
     Parameters
@@ -47,7 +47,6 @@ class TemporalBaseProblem(MultiMarginalProblem):
     Raises
     ------
     %(MultiMarginalProblem.raises)s
-
     """
 
     def __init__(
@@ -249,7 +248,7 @@ class TemporalProblem(TemporalAnalysisMixin, SingleCompoundProblem):
                     - beta_width: float
 
             or for :func:`moscot.problems.time._utils.beta()`, i.e. one of
-                
+
                     - delta_max: float
                     - delta_min: float
                     - delta_center: float
@@ -373,7 +372,7 @@ class TemporalProblem(TemporalAnalysisMixin, SingleCompoundProblem):
         result_key
             Key of where to save the result in :class:`anndata.AnnData.obs`. If `None` the result will be returned.
         return_all
-            If `True` return all the intermediate masses if pushed through multiple transport plans. In this case the 
+            If `True` return all the intermediate masses if pushed through multiple transport plans. In this case the
             result is returned as a dictionary.
 
         Returns
@@ -403,14 +402,14 @@ class TemporalProblem(TemporalAnalysisMixin, SingleCompoundProblem):
     @property
     def growth_rates(self) -> pd.DataFrame:
         """
-        Growth rates of the cells estimated by posterior marginals. 
-        
+        Growth rates of the cells estimated by posterior marginals.
+
         If the OT problem is balanced, the posterior marginals
-        (approximately) equal the prior marginals (marginals defining the OT problem). In the unbalanced case the 
-        marginals of the OT solution usually differ from the marginals of the original OT problem. This is an 
-        indication of cell proliferation, i.e. a cell could have multiple descendents in the target distribution or 
+        (approximately) equal the prior marginals (marginals defining the OT problem). In the unbalanced case the
+        marginals of the OT solution usually differ from the marginals of the original OT problem. This is an
+        indication of cell proliferation, i.e. a cell could have multiple descendents in the target distribution or
         cell death, i.e. the cell is unlikely to have a descendant.
-        If multiple iterations are performed in :meth:`moscot.problems.time.TemporalProblem.solve()` the number 
+        If multiple iterations are performed in :meth:`moscot.problems.time.TemporalProblem.solve()` the number
         of estimates for the cell growth rates equals is strictly larger than 2.
         """
         cols = [f"g_{i}" for i in range(self.problems[list(self)[0]].growth_rates.shape[1])]
@@ -596,7 +595,7 @@ class LineageProblem(TemporalProblem):
 
         Returns
         -------
-        Self
+        :class:`moscot.problems.time.LineageProblem`
 
         Raises
         ------

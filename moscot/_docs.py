@@ -66,9 +66,6 @@ subset
     If `data` is a column in :attr:`anndata.AnnData.obs` the distribution the transport map is applied
     to only puts (uniform) mass on those cells which are in `subset` when filtering for
     :attr:`anndata.AnnData.obs`"""
-_marginal_kwargs = """\
-marginal_kwargs
-    Keyword arguments for marginals. This can be """
 
 
 def inject_docs(**kwargs: Any):  # noqa

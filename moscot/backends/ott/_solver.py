@@ -70,7 +70,6 @@ class GeometryMixin:
         If the dimensions of `x` and `y` do not match
     NotImplementedError
         If the `tag` is not among the implemented ones
-
     """
 
     def __init__(self, **kwargs: Any):
@@ -263,7 +262,6 @@ class SinkhornSolver(RankMixin, BaseSolver):
     ------
     %(RankMixin.raises)s
     %(BaseSolver.parameters)s
-
     """
 
     @property
@@ -322,7 +320,6 @@ class GWSolver(RankMixin, BaseSolver):
     ------
     %(RankMixin.raises)s
     %(BaseSolver.raises)s
-
     """
 
     def _prepare_input(
@@ -413,7 +410,6 @@ class FGWSolver(GWSolver):
     ------
     %(RankMixin.raises)s
     %(BaseSolver.raises)s
-
     """
 
     def _prepare_input(
