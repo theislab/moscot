@@ -1,5 +1,6 @@
 anndata>=0.7.6
 cvxopt>=1.2.0
+docrep>=0.3.1
 ete3>=3.1.0
 jax>=0.2.19
 jaxlib>=0.1.70
