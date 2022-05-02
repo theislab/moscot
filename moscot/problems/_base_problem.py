@@ -223,6 +223,7 @@ class OTProblem(BaseProblem):
         layer: Optional[str] = None,
         return_linear: bool = True,
         **kwargs: Any,
+        # TODO(michalk8): TYPEME
     ) -> Tuple[TaggedArray, Optional[TaggedArray]]:
         if adata is adata_y:
             raise ValueError("TODO")

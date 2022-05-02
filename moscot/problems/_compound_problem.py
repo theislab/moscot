@@ -34,6 +34,7 @@ __all__ = ("CompoundBaseProblem", "SingleCompoundProblem", "MultiCompoundProblem
 
 from moscot.solvers._tagged_array import Tag, TaggedArray
 
+# TODO(michalk8): TYPEME
 Callback_t = Optional[
     Union[
         Literal["pca_local"],
