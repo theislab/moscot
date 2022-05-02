@@ -26,9 +26,9 @@ author = "foo"  # moscot.__author__
 version = "0.0"  # moscot.__version__
 
 github_org = "theislab"
-github_repo = "squidpy"
+github_repo = "moscot"
 github_ref = "master"
-github_nb_repo = "squidpy_notebooks"
+github_nb_repo = "moscot_notebooks"
 # _fetch_notebooks(repo_url=f"https://github.com/{github_org}/{github_nb_repo}")
 
 # -- General configuration ---------------------------------------------------

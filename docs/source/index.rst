@@ -8,8 +8,8 @@ Manuscript
 
 Please consider reading our manuscript xxx
 
-Getting started with Squidpy
-----------------------------
+Getting started with moscot
+---------------------------
 
 Checkout the tutorials and examples
 
@@ -23,3 +23,11 @@ Contributing to moscot
     api
     development
     references
+
+.. toctree::
+    :caption: Gallery
+    :maxdepth: 2
+    :hidden:
+
+    tutorials
+    examples
