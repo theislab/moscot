@@ -77,7 +77,24 @@ class CompoundBaseProblem(BaseProblem, Generic[K, B], ABC):
     def _valid_policies(self) -> Tuple[str, ...]:
         pass
 
-    # TODO(michalk8): refactor me
+    def _callback_handler(
+        self,
+        src: K,
+        tgt: K,
+        problem: B,
+        callback: Union[Literal["local-pca"], Callable],
+        callback_kwargs: Mapping[str, Any],
+    ) -> Mapping[str, Any]:
+        if callback == "local-pca":
+            callback = problem._local_pca
+        if not callable(callback):
+            raise TypeError("TODO")
+
+        data = callback(problem.adata, problem._adata_y, problem._problem_kind, **callback_kwargs)
+        if not isinstance(data, Mapping):
+            raise TypeError("TODO")
+        return data
+
     def _create_problems(
         self,
         callback: Callback_t = None,
@@ -86,27 +103,20 @@ class CompoundBaseProblem(BaseProblem, Generic[K, B], ABC):
     ) -> Dict[Tuple[K, K], B]:
         problems = {}
         for (src, tgt), (src_mask, tgt_mask) in self._policy.create_masks().items():
-            kwargs_ = dict(kwargs)
+            kws = dict(kwargs)
             if isinstance(self._policy, FormatterMixin):
-                src = self._policy._format(src, is_source=True)
-                tgt = self._policy._format(tgt, is_source=False)
-            problem = self._create_problem(src=src, tgt=tgt, src_mask=src_mask, tgt_mask=tgt_mask)
-            # TODO(michalk8): refactor me
-            if callback is not None:
-                callback = problem._prepare_callback if callback == "pca_local" else callback
-                x, y = callback(
-                    problem.adata,
-                    problem._adata_y,
-                    problem._problem_kind,
-                    **callback_kwargs,
-                )
-                if problem._problem_kind != ProblemKind.QUAD_FUSED:
-                    kwargs_["xy"] = (x, y)
-                elif x is not None and y is not None:
-                    kwargs_["x"] = x
-                    kwargs_["y"] = y
+                src_name = self._policy._format(src, is_source=True)
+                tgt_name = self._policy._format(tgt, is_source=False)
+            else:
+                src_name = src
+                tgt_name = tgt
 
-            problems[src, tgt] = problem.prepare(**kwargs_)
+            problem = self._create_problem(src=src_name, tgt=tgt_name, src_mask=src_mask, tgt_mask=tgt_mask)
+
+            if callback is not None:
+                data = self._callback_handler(src, tgt, problem, callback, callback_kwargs=callback_kwargs)
+                kws = {**kws, **data}
+            problems[src_name, tgt_name] = problem.prepare(**kws)
 
         return problems
 
@@ -144,6 +154,7 @@ class CompoundBaseProblem(BaseProblem, Generic[K, B], ABC):
         alpha: float = 0.5,
         tau_a: float = 1.0,
         tau_b: float = 1.0,
+        # TODO(michalk8): fix passing
         solver_kwargs: Mapping[str, Any] = MappingProxyType({}),
         **kwargs: Any,
     ) -> "CompoundProblem":
@@ -217,20 +228,6 @@ class CompoundBaseProblem(BaseProblem, Generic[K, B], ABC):
         # TODO(michalk8): return the values iff only 1 plan?
         return res
 
-    def _extract_cost_matrix(self, key: str, *, src: Any, tgt: Any) -> TaggedArray:
-        if self._policy is None:
-            raise ValueError("TODO: no policy initialized")
-
-        attr = f"{self._policy.axis}p"
-        try:
-            data = getattr(self.adata, attr)[key]
-        except KeyError:
-            raise KeyError(f"TODO: data not in `adata.{attr}[{key!r}]`") from None
-
-        src_mask = self._policy.create_mask(src, allow_empty=False)
-        tgt_mask = self._policy.create_mask(tgt, allow_empty=False)
-        return TaggedArray(data[src_mask, :][:, tgt_mask], tag=Tag.COST_MATRIX)
-
     def push(self, *args: Any, **kwargs: Any) -> Union[npt.ArrayLike, Dict[Any, npt.ArrayLike]]:
         return self._apply(*args, forward=True, **kwargs)
 
@@ -287,6 +284,39 @@ class SingleCompoundProblem(CompoundBaseProblem, ABC):
     def _mask(self, mask: npt.ArrayLike) -> AnnData:
         # TODO(michalk8): can include logging/extra sanity that mask is not empty
         return self.adata[mask] if self._policy.axis == "obs" else self.adata[:, mask]
+
+    def _callback_handler(
+        self,
+        src: K,
+        tgt: K,
+        problem: B,
+        # TODO(michalk8): TYPEME
+        callback: Union[Literal["local-pca", "cost-matrix"], Callable],
+        callback_kwargs: Mapping[str, Any],
+    ) -> Mapping[str, Any]:
+        # TODO(michalk8): better name
+        if callback == "cost-matrix":
+            return self._cost_matrix_callback(src, tgt, **callback_kwargs)
+
+        return super()._callback_handler(src, tgt, problem, callback, callback_kwargs=callback_kwargs)
+
+    def _cost_matrix_callback(self, src: K, tgt: K, *, key: str, **_: Any) -> TaggedArray:
+        attr = f"{self._policy.axis}p"
+        try:
+            data = getattr(self.adata, attr)[key]
+        except KeyError:
+            raise KeyError(f"TODO: data not in `adata.{attr}[{key!r}]`") from None
+
+        src_mask = self._policy.create_mask(src, allow_empty=False)
+        tgt_mask = self._policy.create_mask(tgt, allow_empty=False)
+        if self._problem_kind == ProblemKind.QUAD:
+            return {
+                "x": TaggedArray(data[src_mask, :][:, src_mask], tag=Tag.COST_MATRIX),
+                "y": TaggedArray(data[tgt_mask, :][:, tgt_mask], tag=Tag.COST_MATRIX),
+            }
+
+        # prefer linear in case of `ProblemKind.QUAD_FUSED`
+        return {"xy": TaggedArray(data[src_mask, :][:, tgt_mask], tag=Tag.COST_MATRIX)}
 
 
 class MultiCompoundProblem(CompoundBaseProblem, ABC):
@@ -351,6 +381,7 @@ class MultiCompoundProblem(CompoundBaseProblem, ABC):
         )
 
 
+# TODO(michalk8): consider removing this
 class CompoundProblem(CompoundBaseProblem, ABC):
     def __init__(self, *adatas: Union[AnnData, Mapping[Any, AnnData], Tuple[AnnData, ...], List[AnnData]]):
         if len(adatas) == 1 and isinstance(adatas[0], AnnData):
@@ -371,3 +402,13 @@ class CompoundProblem(CompoundBaseProblem, ABC):
     ) -> SubsetPolicy:
         self._prob._policy = self._prob._create_policy(policy=policy, key=key)
         return self._prob._policy
+
+    def _callback_handler(
+        self,
+        src: K,
+        tgt: K,
+        problem: B,
+        callback: Union[Literal["local-pca"], Callable],
+        callback_kwargs: Mapping[str, Any],
+    ) -> Mapping[str, Any]:
+        return self._prob._callback_handler(src, tgt, problem, callback, callback_kwargs=callback_kwargs)

@@ -67,7 +67,6 @@ class AnnDataPointer:
 
         # TODO(@michalk) handle backend losses
         backend_losses = _get_backend_losses()  # TODO: put in registry, provide kwargs
-        print(self.adata)
         if not hasattr(self.adata, self.attr):
             raise AttributeError(f"TODO: invalid attribute: {self.attr}")
         container = getattr(self.adata, self.attr)

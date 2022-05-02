@@ -215,23 +215,34 @@ class OTProblem(BaseProblem):
         data = self._get_mass(adata, data=data, subset=subset, normalize=normalize)
         return self.solution.pull(data, **kwargs)
 
-    # TODO(michalk8): refactor
     @staticmethod
-    def _prepare_callback(
+    def _local_pca_callback(
         adata: AnnData,
-        adata_y: Optional[AnnData] = None,
-        problem_kind: ProblemKind = ProblemKind.LINEAR,
+        adata_y: AnnData,
+        problem_kind: ProblemKind,
         layer: Optional[str] = None,
+        return_linear: bool = True,
         **kwargs: Any,
     ) -> Tuple[TaggedArray, Optional[TaggedArray]]:
-        n = adata.n_obs
-        if problem_kind not in (ProblemKind.LINEAR, ProblemKind.QUAD_FUSED):
-            raise NotImplementedError("TODO: invalid problem type")
-        adata = adata if adata_y is None else adata.concatenate(adata_y)
-        data = adata.X if layer is None else adata.layers[layer]
-        data = sc.pp.pca(data, **kwargs)
+        if adata is adata_y:
+            raise ValueError("TODO")
 
-        return TaggedArray(data[:n], tag=Tag.POINT_CLOUD), TaggedArray(data[n:], tag=Tag.POINT_CLOUD)
+        x = adata.X if layer is None else adata.layers[layer]
+        y = adata_y.X if layer is None else adata_y.layers[layer]
+
+        if return_linear:
+            if problem_kind not in (ProblemKind.LINEAR, ProblemKind.QUAD_FUSED):
+                raise NotImplementedError("TODO")
+            n = x.shape[0]
+            # TODO(michalk8): handle sparse correctly
+            data = sc.pp.pca(np.hstack([x, y]), **kwargs)
+            return {"xy": (TaggedArray(data[:n], tag=Tag.POINT_CLOUD), TaggedArray(data[n:], tag=Tag.POINT_CLOUD))}
+
+        if problem_kind not in (ProblemKind.QUAD, ProblemKind.QUAD_FUSED):
+            raise NotImplementedError("TODO")
+        x = sc.pp.pca(x, **kwargs)
+        y = sc.pp.pca(y, **kwargs)
+        return {"x": TaggedArray(x, tag=Tag.POINT_CLOUD), "y": TaggedArray(y, tag=Tag.POINT_CLOUD)}
 
     @property
     def shape(self) -> Tuple[int, int]:
