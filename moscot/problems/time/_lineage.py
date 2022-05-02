@@ -164,21 +164,19 @@ class TemporalProblem(TemporalAnalysisMixin, SingleCompoundProblem):
 
         Returns
         -------
-        :class:`moscot.problems.time.TemporalProblem` and updates the following attributes
+        returns :class:`moscot.problems.time.TemporalProblem` and updates the following attributes
 
-            - :attr:`proliferation_key`
-            - :attr:`apoptosis_key`
+                - :attr:`proliferation_key`
+                - :attr:`apoptosis_key`
 
         Notes
         -----
         The marker genes in :mod:`moscot` are taken from the following sources:
 
             - human, proliferation - :cite:`tirosh:16:science`.
-            - human, apoptosis - `Hallmark Apoptosis, MSigDB 
-            <https://www.gsea-msigdb.org/gsea/msigdb/cards/HALLMARK_APOPTOSIS>`_.
+            - human, apoptosis - `Hallmark Apoptosis, MSigDB <https://www.gsea-msigdb.org/gsea/msigdb/cards/HALLMARK_APOPTOSIS>`_.
             - mouse, proliferation - :cite:`tirosh:16:nature`.
-            - mouse, apoptosis - `Hallmark P53 Pathway, MSigDB 
-            <https://www.gsea-msigdb.org/gsea/msigdb/cards/HALLMARK_P53_PATHWAY>`_.
+            - mouse, apoptosis - `Hallmark P53 Pathway, MSigDB <https://www.gsea-msigdb.org/gsea/msigdb/cards/HALLMARK_P53_PATHWAY>`_.
 
         """
         if gene_set_proliferation is None:
@@ -244,15 +242,18 @@ class TemporalProblem(TemporalAnalysisMixin, SingleCompoundProblem):
             keyword arguments for :class:`moscot.problems.TemporalBaseProblem._estimate_marginals()`, i.e. for modeling
             the birth-death process. The keyword arguments
             are either used for :func:`moscot.problems.time._utils.beta()`, i.e. one of
-                - beta_max: float
-                - beta_min: float
-                - beta_center: float
-                - beta_width: float
+
+                    - beta_max: float
+                    - beta_min: float
+                    - beta_center: float
+                    - beta_width: float
+
             or for :func:`moscot.problems.time._utils.beta()`, i.e. one of
-                - delta_max: float
-                - delta_min: float
-                - delta_center: float
-                - delta_width: float
+                
+                    - delta_max: float
+                    - delta_min: float
+                    - delta_center: float
+                    - delta_width: float
 
         subset
             subset of `anndata.AnnData.obs` [key] values of which the policy is to be applied to
@@ -571,15 +572,18 @@ class LineageProblem(TemporalProblem):
             keyword arguments for :class:`moscot.problems.TemporalBaseProblem._estimate_marginals()`, i.e. for modeling
             the birth-death process. The keyword arguments
             are either used for :func:`moscot.problems.time._utils.beta()`, i.e. one of
-                - beta_max: float
-                - beta_min: float
-                - beta_center: float
-                - beta_width: float
+
+                    - beta_max: float
+                    - beta_min: float
+                    - beta_center: float
+                    - beta_width: float
+
             or for :func:`moscot.problems.time._utils.beta()`, i.e. one of
-                - delta_max: float
-                - delta_min: float
-                - delta_center: float
-                - delta_width: float
+
+                    - delta_max: float
+                    - delta_min: float
+                    - delta_center: float
+                    - delta_width: float
 
         subset
             subset of `anndata.AnnData.obs` [key] values of which the policy is to be applied to

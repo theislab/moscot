@@ -157,7 +157,7 @@ class RankMixin(GeometryMixin):
 
     Raises
     ------
-    %(GeoemtryMixin.raises)s
+    %(GeometryMixin.raises)s
 
     """
 
@@ -321,7 +321,7 @@ class GWSolver(RankMixin, BaseSolver):
     Raises
     ------
     %(RankMixin.raises)s
-    %(BaseSolver.parameters)s
+    %(BaseSolver.raises)s
 
     """
 
@@ -412,7 +412,7 @@ class FGWSolver(GWSolver):
     Raises
     ------
     %(RankMixin.raises)s
-    %(BaseSolver.parameters)s
+    %(BaseSolver.raises)s
 
     """
 
