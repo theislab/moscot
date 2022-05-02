@@ -11,8 +11,8 @@ from anndata import AnnData
 config.update("jax_enable_x64", True)
 from _utils import Geom_t
 
-from jax import numpy as jnp  # noqa: E402
-import numpy as np  # noqa: E402
+from jax import numpy as jnp
+import numpy as np
 
 
 @pytest.fixture()

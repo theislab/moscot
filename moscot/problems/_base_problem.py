@@ -8,6 +8,7 @@ import numpy.typing as npt
 from anndata import AnnData
 import scanpy as sc
 
+from moscot._docs import d
 from moscot.backends.ott import SinkhornSolver
 from moscot.solvers._output import BaseSolverOutput
 from moscot.problems._anndata import AnnDataPointer
@@ -17,12 +18,35 @@ from moscot.solvers._tagged_array import Tag, TaggedArray
 __all__ = ("BaseProblem", "GeneralProblem")
 
 
+@d.get_sections(base="BaseProblem", sections=["Parameters", "Raises"])
+@d.dedent
 class BaseProblem(ABC):
+    """
+    Problem base class handling one optimal transport subproblem.
+
+    Parameters
+    ----------
+    %(adata)s
+    %(solver)s
+
+    Raises
+    ------
+    ValueError
+        If `adata` has no observations.
+    ValueError
+        If `adata` has no variables.
+    """
+
     def __init__(
         self,
         adata: AnnData,
         solver: Optional[BaseSolver] = None,
     ):
+        if getattr(adata, "n_obs") == 0:
+            raise ValueError("TODO: `adata` has no observations.")
+        if getattr(adata, "n_vars") == 0:
+            raise ValueError("TODO: `adata` has no variables.")
+
         self._adata = adata
         self.solver = self._default_solver if solver is None else solver
 
@@ -99,7 +123,27 @@ class BaseProblem(ABC):
         self._solver = solver
 
 
+@d.get_sections(base="GeneralProblem", sections=["Parameters", "Raises"])
+@d.dedent
 class GeneralProblem(BaseProblem):
+    """
+    Problem class handling one optimal transport subproblem.
+
+    Parameters
+    ----------
+    %(adata_x)s
+    %(adata_y)s
+    %(solver)s
+    %(source)s
+    %(target)s
+    kwargs
+        Keyword arguments of :class:`moscot.problems.BaseProblem`
+
+    Raises
+    ------
+        %(BaseProblem.raises)s
+    """
+
     def __init__(
         self,
         adata_x: AnnData,
