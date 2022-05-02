@@ -398,7 +398,7 @@ class FGWSolver(GWSolver):
     corresponding to the linear term and the quadratic termm, respectively. The subspace corresponding
     to the linear term is shared between the two distributions. The subspace corresponding to the quadratic
     term is defined in possibly two different spaces. The matchings obtained from FGW are a compromise
-    between the ones obtained from the linear OT problem and the purely quadratic OT problem (GW).
+    between the ones induced by the linear OT problem and the purely quadratic OT problem (GW) :cite:`vayer:2018`.
 
     This solver wraps :class:`ott.core.gromov_wasserstein.GromovWasserstein` with non-trivial `fused_penalty`.
 
