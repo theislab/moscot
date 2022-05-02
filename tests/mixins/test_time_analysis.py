@@ -1,7 +1,6 @@
 from typing import Tuple
 from numbers import Number
 
-from _utils import TestSolverOutput
 import pandas as pd
 import pytest
 
@@ -9,6 +8,7 @@ import numpy as np
 
 from anndata import AnnData
 
+from tests._utils import TestSolverOutput
 from moscot.problems.time._lineage import TemporalProblem
 
 

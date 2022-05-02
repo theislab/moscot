@@ -1,6 +1,5 @@
 from typing import Type
 
-from _utils import ATOL, RTOL, Geom_t, TestSolverOutput
 import pytest
 
 from ott.geometry import PointCloud
@@ -10,6 +9,7 @@ import jax.numpy as jnp
 
 from anndata import AnnData
 
+from tests._utils import ATOL, RTOL, Geom_t, TestSolverOutput
 from moscot.problems import GeneralProblem
 from moscot.backends.ott import GWSolver, FGWSolver, SinkhornSolver
 from moscot.solvers._output import BaseSolverOutput

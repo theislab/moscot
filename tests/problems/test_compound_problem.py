@@ -1,6 +1,5 @@
 from typing import Type, Optional
 
-from _utils import ATOL, RTOL
 from pytest_mock import MockerFixture
 from sklearn.metrics.pairwise import euclidean_distances
 import pytest
@@ -11,6 +10,7 @@ import numpy as np
 
 from anndata import AnnData
 
+from tests._utils import ATOL, RTOL
 from moscot.problems import CompoundProblem, SingleCompoundProblem
 from moscot.backends.ott import FGWSolver, SinkhornSolver
 from moscot.solvers._base_solver import BaseSolver, ProblemKind
