@@ -56,7 +56,7 @@ class MultiMarginalProblem(OTProblem, ABC):
         elif b is False:
             b = None
 
-        super().prepare(xy=xy, x=x, y=y, a=a, b=b, **kwargs)
+        _ = super().prepare(xy=xy, x=x, y=y, a=a, b=b, **kwargs)
         # base problem prepare array-like structure, just wrap it
         # alt. we could just append and not reset
         self._a = [self._a]
@@ -66,10 +66,7 @@ class MultiMarginalProblem(OTProblem, ABC):
 
     def solve(
         self,
-        epsilon: Optional[float] = None,
-        alpha: float = 0.5,
-        tau_a: Optional[float] = 1.0,
-        tau_b: Optional[float] = 1.0,
+        *args: Any,
         n_iters: int = 1,
         reset_marginals: bool = True,
         **kwargs: Any,
@@ -85,7 +82,7 @@ class MultiMarginalProblem(OTProblem, ABC):
         kwargs.setdefault("b", b)
 
         for _ in range(n_iters):
-            sol = super().solve(epsilon=epsilon, alpha=alpha, tau_a=tau_a, tau_b=tau_b, **kwargs).solution
+            sol = super().solve(*args, **kwargs).solution
             self._add_marginals(sol)
             kwargs["a"], kwargs["b"] = self._get_last_marginals()
 

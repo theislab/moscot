@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from enum import auto, Enum
+from enum import Enum
 from types import MappingProxyType
 from typing import Any, Type, Tuple, Union, Literal, Mapping, Optional, NamedTuple
 import warnings
@@ -11,28 +11,28 @@ from moscot.solvers._utils import _warn_not_close
 from moscot.solvers._output import BaseSolverOutput
 from moscot.solvers._tagged_array import Tag, TaggedArray
 
-__all__ = ("BaseSolver", "OTSolver")
+__all__ = ("ProblemKind", "BaseSolver", "OTSolver")
 
 # TODO(michalk8): consider making TaggedArray private (used only internally)?
 ArrayLike = Union[npt.ArrayLike, TaggedArray]
 
 
-class ProblemKind(Enum):
-    LINEAR = auto()
-    QUAD = auto()
-    QUAD_FUSED = auto()
+class ProblemKind(str, Enum):
+    LINEAR = "linear"
+    QUAD = "quadratic"
+    QUAD_FUSED = "quadratic_fused"
 
     def solver(self, *, backend: Literal["ott"] = "ott") -> Type["BaseSolver"]:
         if backend == "ott":
             from moscot.backends.ott import GWSolver, FGWSolver, SinkhornSolver
 
-            if self.value == ProblemKind.LINEAR:
+            if self == ProblemKind.LINEAR:
                 return SinkhornSolver
-            if self.value == ProblemKind.QUAD:
+            if self == ProblemKind.QUAD:
                 return GWSolver
-            if self.value == ProblemKind.QUAD_FUSED:
+            if self == ProblemKind.QUAD_FUSED:
                 return FGWSolver
-            raise NotImplementedError(self.value)
+            raise NotImplementedError(self)
 
         raise NotImplementedError(f"Invalid backend: `{backend}`")
 
