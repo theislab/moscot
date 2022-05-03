@@ -144,6 +144,7 @@ class TemporalProblem(TemporalAnalysisMixin, SingleCompoundProblem):
 
         This method computes gene scores using :func:`scanpy.tl.score_genes`. Therefore, a list of genes corresponding
         to proliferation and/or apoptosis must be passed.
+
         Alternatively, proliferation and apoptosis genes for humans and mice are saved in :mod:`moscot`.
         The gene scores will be used in :meth:`moscot.problems.TemporalProblem.prepare()` to estimate the initial
         growth rates as suggested in :cite:`schiebinger:19`
@@ -165,9 +166,8 @@ class TemporalProblem(TemporalAnalysisMixin, SingleCompoundProblem):
         -------
         returns :class:`moscot.problems.time.TemporalProblem` and updates the following attributes
 
-                - :attr:`proliferation_key`
-                - :attr:`apoptosis_key`
-
+            - :attr:`proliferation_key`
+            - :attr:`apoptosis_key`
         Notes
         -----
         The marker genes in :mod:`moscot` are taken from the following sources:

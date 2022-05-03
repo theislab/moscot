@@ -135,7 +135,7 @@ class CompoundBaseProblem(BaseProblem, ABC):
         policy
             defines which transport maps to compute given different cell distributions
         subset
-            subset of `anndata.AnnData.obs` [key] values of which the policy is to be applied to
+            subset of `anndata.AnnData.obs` ``['{key}']`` values of which the policy is to be applied to
         %(reference)s
         %(axis)s
         %(callback)s
@@ -228,7 +228,6 @@ class CompoundBaseProblem(BaseProblem, ABC):
             If `True` and transport maps are applied consecutively only the final mass is returned. Otherwise,
             all intermediate step results are returned, too.
         %(scale_by_marginals)s
-
 
         Raises
         ------

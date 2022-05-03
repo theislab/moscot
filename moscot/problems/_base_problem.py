@@ -141,7 +141,7 @@ class GeneralProblem(BaseProblem):
 
     Raises
     ------
-        %(BaseProblem.raises)s
+     %(BaseProblem.raises)s
     """
 
     def __init__(

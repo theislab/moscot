@@ -1,5 +1,5 @@
 Development
-=================================
+===========
 
 Translation classes serve to translate a biological problem to possibly multiple optimal transport subproblems.
 OT handling classes correspond to exactly one optimal transport subproblem.
@@ -7,67 +7,31 @@ OT handling classes correspond to exactly one optimal transport subproblem.
 Translation Classes
 ~~~~~~~~~~~~~~~~~~~
 
-CompoundProblem
----------------
-.. autoclass:: moscot.problems.CompoundProblem
-    :noindex:
-    :members:
-    :inherited-members:
+.. autosummary::
+    :toctree: development
 
-
-SingleCompoundProblem
----------------------
-.. autoclass:: moscot.problems.SingleCompoundProblem
-    :noindex:
-    :members:
-    :inherited-members:
-
-
-MultiCompoundProblem
---------------------
-.. autoclass:: moscot.problems.MultiCompoundProblem
-    :noindex:
-    :members:
-    :inherited-members:
-
-CompoundBaseProblem
--------------------
-.. autoclass:: moscot.problems.CompoundBaseProblem
-    :noindex:
-    :members:
-    :inherited-members:
+    moscot.problems.CompoundProblem
+    moscot.problems.SingleCompoundProblem
+    moscot.problems.MultiCompoundProblem
+    moscot.problems.CompoundBaseProblem
 
 
 OT handling classes
 ~~~~~~~~~~~~~~~~~~~
 
-GeneralProblem
---------------
-.. autoclass:: moscot.problems.GeneralProblem
-    :noindex:
-    :members:
-    :inherited-members:
+.. autosummary::
+    :toctree: development
 
-MultiMarginalProblem
---------------------
-.. autoclass:: moscot.problems.MultiMarginalProblem
-    :noindex:
-    :members:
-    :inherited-members:
+    moscot.problems.GeneralProblem
+    moscot.problems.MultiMarginalProblem
+    moscot.problems.time._lineage.TemporalBaseProblem
 
-TemporalBaseProblem
--------------------
-.. autoclass:: moscot.problems.time._lineage.TemporalBaseProblem
-    :noindex:
-    :members:
-    :inherited-members:
 
-Unifying classes
-~~~~~~~~~~~~~~~~
+Base classes
+~~~~~~~~~~~~
 
-BaseProblem
------------
-.. autoclass:: moscot.problems.BaseProblem
-    :noindex:
-    :members:
-    :inherited-members:
+.. autosummary::
+    :toctree: development
+    
+    moscot.problems.BaseProblem
+    
