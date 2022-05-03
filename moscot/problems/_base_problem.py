@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 from types import MappingProxyType
-from typing import Any, List, Tuple, Union, Mapping, Iterable, Optional, Sequence
+from typing import Any, Dict, List, Tuple, Union, Literal, Mapping, Iterable, Optional, Sequence
 
 from scipy.sparse import vstack, issparse, csr_matrix
 
@@ -220,7 +220,6 @@ class OTProblem(BaseProblem):
 
     def solve(
         self,
-        epsilon: Optional[float] = None,
         solver_kwargs: Mapping[str, Any] = MappingProxyType({}),
         **kwargs: Any,
     ) -> "OTProblem":
@@ -231,7 +230,7 @@ class OTProblem(BaseProblem):
         # allow `MultiMarginalProblem` to pass new marginals
         a = kwargs.pop("a", self._a)
         b = kwargs.pop("b", self._b)
-        self._solution = solver(x=self._x, y=self._y, xy=self._xy, a=a, b=b, epsilon=epsilon, **kwargs)
+        self._solution = solver(x=self._x, y=self._y, xy=self._xy, a=a, b=b, **kwargs)
 
         return self
 
@@ -262,12 +261,11 @@ class OTProblem(BaseProblem):
     def _local_pca_callback(
         adata: AnnData,
         adata_y: AnnData,
-        problem_kind: Optional[ProblemKind],
         layer: Optional[str] = None,
         return_linear: bool = True,
         **kwargs: Any,
         # TODO(michalk8): TYPEME
-    ) -> Tuple[TaggedArray, Optional[TaggedArray]]:
+    ) -> Dict[Literal["xy", "x", "y"], TaggedArray]:
         def concat(x: npt.ArrayLike, y: npt.ArrayLike) -> npt.ArrayLike:
             if issparse(x):
                 return vstack([x, csr_matrix(y)])
@@ -281,16 +279,10 @@ class OTProblem(BaseProblem):
         y = adata_y.X if layer is None else adata_y.layers[layer]
 
         if return_linear:
-            # allow `None` since this can define the problem
-            if problem_kind not in (ProblemKind.LINEAR, ProblemKind.QUAD_FUSED, None):
-                raise NotImplementedError(f"TODO: {problem_kind}")
             n = x.shape[0]
-            # TODO(michalk8): handle sparse correctly
             data = sc.pp.pca(concat(x, y), **kwargs)
             return {"xy": (TaggedArray(data[:n], tag=Tag.POINT_CLOUD), TaggedArray(data[n:], tag=Tag.POINT_CLOUD))}
 
-        if problem_kind not in (ProblemKind.QUAD, ProblemKind.QUAD_FUSED, None):
-            raise NotImplementedError("TODO")
         x = sc.pp.pca(x, **kwargs)
         y = sc.pp.pca(y, **kwargs)
         return {"x": TaggedArray(x, tag=Tag.POINT_CLOUD), "y": TaggedArray(y, tag=Tag.POINT_CLOUD)}

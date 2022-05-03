@@ -631,11 +631,6 @@ class LineageProblem(TemporalProblem):
         lineage_attr.setdefault("loss_kwargs", {})
         x = y = lineage_attr
 
-        if joint_attr is None:
-            kwargs["callback"] = "local-pca"
-        elif isinstance(joint_attr, str):
-            kwargs["joint_attr"] = {"x_attr": "obsm", "x_key": joint_attr, "y_attr": "obsm", "y_key": joint_attr}
-
         return super().prepare(
             time_key,
             x=x,

@@ -27,9 +27,7 @@ import numpy.typing as npt
 from anndata import AnnData
 
 from moscot._docs import d
-from moscot.backends.ott import SinkhornSolver
 from moscot.solvers._output import BaseSolverOutput
-from moscot.solvers._base_solver import OTSolver, ProblemKind
 from moscot.problems._base_problem import OTProblem, BaseProblem
 from moscot.problems._subset_policy import Axis_t, StarPolicy, SubsetPolicy, ExplicitPolicy, FormatterMixin
 
@@ -40,7 +38,7 @@ from moscot.solvers._tagged_array import Tag, TaggedArray
 B = TypeVar("B", bound=OTProblem)
 K = TypeVar("K", bound=Hashable)
 Key = Tuple[K, K]
-Callback_t = Callable[[AnnData, AnnData, Optional[ProblemKind], Any], Mapping[str, TaggedArray]]
+Callback_t = Callable[[AnnData, AnnData, Any], Mapping[str, TaggedArray]]
 
 
 @d.get_sections(base="CompoundBaseProblem", sections=["Parameters", "Raises"])
@@ -102,7 +100,7 @@ class CompoundBaseProblem(BaseProblem, Generic[K, B], ABC):
         if not callable(callback):
             raise TypeError("TODO: callback not callable")
 
-        data = callback(problem.adata, problem._adata_y, problem._problem_kind, **callback_kwargs)
+        data = callback(problem.adata, problem._adata_y, **callback_kwargs)
         if not isinstance(data, Mapping):
             raise TypeError("TODO: callback did not return a mapping.")
         return data
@@ -145,7 +143,7 @@ class CompoundBaseProblem(BaseProblem, Generic[K, B], ABC):
         callback: Optional[Union[Literal["pca_local"], Callable[[AnnData, Any], npt.ArrayLike]]] = None,
         callback_kwargs: Mapping[str, Any] = MappingProxyType({}),
         **kwargs: Any,
-    ) -> "CompoundProblem":
+    ) -> "CompoundBaseProblem":
         """
         Prepare the biological problem.
 
@@ -188,7 +186,7 @@ class CompoundBaseProblem(BaseProblem, Generic[K, B], ABC):
 
         return self
 
-    def solve(self, *args: Any, **kwargs: Any) -> "CompoundProblem":
+    def solve(self, *args: Any, **kwargs: Any) -> "CompoundBaseProblem":
         """
         Solve the biological problem.
 
@@ -357,10 +355,6 @@ class CompoundBaseProblem(BaseProblem, Generic[K, B], ABC):
         return self._apply(*args, forward=False, **kwargs)
 
     @property
-    def _default_solver(self) -> OTSolver:
-        return SinkhornSolver()
-
-    @property
     def problems(self) -> Optional[Dict[Key, B]]:
         return self._problems
 
@@ -437,7 +431,7 @@ class SingleCompoundProblem(CompoundBaseProblem, Generic[K, B], ABC):
 
         return super()._callback_handler(src, tgt, problem, callback, callback_kwargs=callback_kwargs)
 
-    def _cost_matrix_callback(self, src: K, tgt: K, *, key: str, **_: Any) -> TaggedArray:
+    def _cost_matrix_callback(self, src: K, tgt: K, *, key: str, return_linear: bool = True, **_: Any) -> TaggedArray:
         attr = f"{self._policy.axis}p"
         try:
             data = getattr(self.adata, attr)[key]
@@ -446,14 +440,14 @@ class SingleCompoundProblem(CompoundBaseProblem, Generic[K, B], ABC):
 
         src_mask = self._policy.create_mask(src, allow_empty=False)
         tgt_mask = self._policy.create_mask(tgt, allow_empty=False)
-        if self._problem_kind == ProblemKind.QUAD:
-            return {
-                "x": TaggedArray(data[src_mask, :][:, src_mask], tag=Tag.COST_MATRIX),
-                "y": TaggedArray(data[tgt_mask, :][:, tgt_mask], tag=Tag.COST_MATRIX),
-            }
 
-        # prefer linear in case of `ProblemKind.QUAD_FUSED`
-        return {"xy": TaggedArray(data[src_mask, :][:, tgt_mask], tag=Tag.COST_MATRIX)}
+        if return_linear:
+            return {"xy": TaggedArray(data[src_mask, :][:, tgt_mask], tag=Tag.COST_MATRIX)}
+
+        return {
+            "x": TaggedArray(data[src_mask, :][:, src_mask], tag=Tag.COST_MATRIX),
+            "y": TaggedArray(data[tgt_mask, :][:, tgt_mask], tag=Tag.COST_MATRIX),
+        }
 
 
 @d.get_sections(base="MultiCompoundProblem", sections=["Parameters", "Raises"])

@@ -1,6 +1,6 @@
 from abc import ABC
 from enum import Enum
-from typing import Any, Type, Tuple, Union, Optional, NamedTuple
+from typing import Any, Type, Tuple, Union, Generic, TypeVar, Optional, NamedTuple
 
 from typing_extensions import Literal
 
@@ -22,6 +22,7 @@ from moscot.solvers._tagged_array import TaggedArray
 
 __all__ = ("Cost", "SinkhornSolver", "GWSolver", "FGWSolver")
 
+O = TypeVar("O", bound=BaseSolverOutput)
 Scale_t = Optional[Union[float, Literal["mean", "median", "max_cost", "max_norm", "max_bound"]]]
 
 
@@ -46,10 +47,10 @@ class Cost(str, Enum):
 class Description(NamedTuple):
     solver: Union[Sinkhorn, LRSinkhorn, GromovWasserstein]
     data: Union[LinearProblem, QuadraticProblem]
-    output: Union[Type[SinkhornOutput], Type[LRSinkhornOutput], Type[GWOutput]]
+    output: Union[Type[O]]
 
 
-class OTTJaxSolver(OTSolver, ABC):
+class OTTJaxSolver(OTSolver, Generic[O], ABC):
     """
     Class handling the preparation of :class:`ott.geometry.Geometry`.
 
@@ -132,13 +133,13 @@ class OTTJaxSolver(OTSolver, ABC):
         self,
         desc: Description,
         **kwargs: Any,
-    ) -> BaseSolverOutput:
+    ) -> O:
         res = desc.solver(desc.data, **kwargs)
         return desc.output(res, rank=getattr(desc.solver, "rank", -1))
 
 
 @d.dedent
-class SinkhornSolver(OTTJaxSolver):
+class SinkhornSolver(OTTJaxSolver[Union[SinkhornOutput, LRSinkhornOutput]]):
     """
     Solver class solving linear Optimal Transport problems.
 
@@ -189,7 +190,7 @@ class SinkhornSolver(OTTJaxSolver):
 
 
 @d.dedent
-class GWSolver(OTTJaxSolver):
+class GWSolver(OTTJaxSolver[GWOutput]):
     """
     Solver class solving quadratic Optimal Transport problems.
 
