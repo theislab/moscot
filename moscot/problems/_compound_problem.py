@@ -33,14 +33,14 @@ from moscot.solvers._base_solver import OTSolver, ProblemKind
 from moscot.problems._base_problem import OTProblem, BaseProblem
 from moscot.problems._subset_policy import Axis_t, StarPolicy, SubsetPolicy, ExplicitPolicy, FormatterMixin
 
-__all__ = ("CompoundBaseProblem", "SingleCompoundProblem", "MultiCompoundProblem", "CompoundProblem")
+__all__ = ("CompoundBaseProblem", "SingleCompoundProblem", "MultiCompoundProblem")
 
 from moscot.solvers._tagged_array import Tag, TaggedArray
 
 B = TypeVar("B", bound=OTProblem)
 K = TypeVar("K", bound=Hashable)
 Key = Tuple[K, K]
-Callback_t = Callable[[AnnData, AnnData, ProblemKind, Any], Mapping[str, TaggedArray]]
+Callback_t = Callable[[AnnData, AnnData, Optional[ProblemKind], Any], Mapping[str, TaggedArray]]
 
 
 @d.get_sections(base="CompoundBaseProblem", sections=["Parameters", "Raises"])
@@ -98,7 +98,7 @@ class CompoundBaseProblem(BaseProblem, Generic[K, B], ABC):
         callback_kwargs: Mapping[str, Any],
     ) -> Mapping[str, Any]:
         if callback == "local-pca":
-            callback = problem._local_pca
+            callback = problem._local_pca_callback
         if not callable(callback):
             raise TypeError("TODO: callback not callable")
 
@@ -536,50 +536,3 @@ class MultiCompoundProblem(CompoundBaseProblem, Generic[K, B], ABC):
             if isinstance(policy, str)
             else ExplicitPolicy(self._policy_adata, key=self._SUBSET_KEY, axis="obs")
         )
-
-
-@d.get_sections(base="CompoundProblem", sections=["Parameters", "Raises"])
-@d.dedent
-class CompoundProblem(CompoundBaseProblem, Generic[K, B], ABC):
-    """
-    Class handling biological problems.
-
-    This class dispatches by initialising :attr:`moscot.problems.CompoundProblem._prob` to an instance of
-    :class:`moscot.problems.SingleCompoundProblem` or :class:`moscot.problems.MultiCompoundProblem` if the number
-    of :class:`anndata.AnnData` instances is one or strictly than larger one, respectively.
-    :attr:`moscot.problems.CompoundProblem._prob` is needed to apply the `policy` and hence create the Optimal
-    Transport subproblems from the biological problem.
-
-    Parameters
-    ----------
-    %(adatas)s
-    %(solver)s
-    kwargs
-        key word arguments of :class:`moscot.problems.SingleCompoundProblem` or
-        :class:`moscot.problems.MultiCompoundProblem`
-
-    Raises
-    ------
-    %(CompoundBaseProblem.raises)s
-    %(SingleCompoundProblem.raises)s
-    %(MultiCompoundProblem.raises)s
-    """
-
-    def __init__(self, *adatas: Union[AnnData, Mapping[Any, AnnData], Tuple[AnnData, ...], List[AnnData]]):
-        if len(adatas) == 1 and isinstance(adatas[0], AnnData):
-            self._prob = SingleCompoundProblem(adatas[0])
-        else:
-            self._prob = MultiCompoundProblem(*adatas)
-        super().__init__(self._prob.adata)
-
-    def _create_problem(self, *args: Any, **kwargs: Any) -> Dict[Key, B]:
-        return self._prob._create_problem(*args, **kwargs)
-
-    def _create_policy(
-        self,
-        policy: Literal["sequential", "pairwise", "triu", "tril", "explicit"] = "sequential",
-        key: Optional[str] = None,
-        **_: Any,
-    ) -> SubsetPolicy:
-        self._prob._policy = self._prob._create_policy(policy=policy, key=key)
-        return self._prob._policy

@@ -8,4 +8,4 @@ _gt_temporal_adata = sc.read("tests/data/moscot_temporal_tests.h5ad")
 
 @pytest.fixture()
 def gt_temporal_adata() -> AnnData:
-    return _gt_temporal_adata
+    return _gt_temporal_adata.copy()

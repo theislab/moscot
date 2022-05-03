@@ -2,6 +2,8 @@ from abc import ABC, abstractmethod
 from types import MappingProxyType
 from typing import Any, List, Tuple, Union, Mapping, Iterable, Optional, Sequence
 
+from scipy.sparse import vstack, issparse, csr_matrix
+
 import numpy as np
 import numpy.typing as npt
 
@@ -257,27 +259,34 @@ class OTProblem(BaseProblem):
     def _local_pca_callback(
         adata: AnnData,
         adata_y: AnnData,
-        problem_kind: ProblemKind,
+        problem_kind: Optional[ProblemKind],
         layer: Optional[str] = None,
         return_linear: bool = True,
         **kwargs: Any,
         # TODO(michalk8): TYPEME
     ) -> Tuple[TaggedArray, Optional[TaggedArray]]:
+        def concat(x: npt.ArrayLike, y: npt.ArrayLike) -> npt.ArrayLike:
+            if issparse(x):
+                return vstack([x, csr_matrix(y)])
+            if issparse(y):
+                return vstack([csr_matrix(x), y])
+            return np.vstack([x, y])
+
         if adata is adata_y:
             raise ValueError("TODO")
-
         x = adata.X if layer is None else adata.layers[layer]
         y = adata_y.X if layer is None else adata_y.layers[layer]
 
         if return_linear:
-            if problem_kind not in (ProblemKind.LINEAR, ProblemKind.QUAD_FUSED):
-                raise NotImplementedError("TODO")
+            # allow `None` since this can define the problem
+            if problem_kind not in (ProblemKind.LINEAR, ProblemKind.QUAD_FUSED, None):
+                raise NotImplementedError(f"TODO: {problem_kind}")
             n = x.shape[0]
             # TODO(michalk8): handle sparse correctly
-            data = sc.pp.pca(np.hstack([x, y]), **kwargs)
+            data = sc.pp.pca(concat(x, y), **kwargs)
             return {"xy": (TaggedArray(data[:n], tag=Tag.POINT_CLOUD), TaggedArray(data[n:], tag=Tag.POINT_CLOUD))}
 
-        if problem_kind not in (ProblemKind.QUAD, ProblemKind.QUAD_FUSED):
+        if problem_kind not in (ProblemKind.QUAD, ProblemKind.QUAD_FUSED, None):
             raise NotImplementedError("TODO")
         x = sc.pp.pca(x, **kwargs)
         y = sc.pp.pca(y, **kwargs)

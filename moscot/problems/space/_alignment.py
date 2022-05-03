@@ -7,10 +7,10 @@ from anndata import AnnData
 
 from moscot.problems._base_problem import OTProblem
 from moscot.mixins._spatial_analysis import SpatialAlignmentAnalysisMixin
-from moscot.problems._compound_problem import B, CompoundProblem
+from moscot.problems._compound_problem import B, SingleCompoundProblem
 
 
-class AlignmentProblem(CompoundProblem, SpatialAlignmentAnalysisMixin):
+class AlignmentProblem(SingleCompoundProblem, SpatialAlignmentAnalysisMixin):
     """Spatial alignment problem."""
 
     def __init__(self, adata: AnnData):
