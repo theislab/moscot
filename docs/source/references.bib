@@ -12,6 +12,69 @@
     doi = "10.1007/s10208-011-9093-5",
 }
 
+@inproceedings{cuturi:2013,
+ author = {Cuturi, Marco},
+ booktitle = {Advances in Neural Information Processing Systems},
+ editor = {C.J. Burges and L. Bottou and M. Welling and Z. Ghahramani and K.Q. Weinberger},
+ pages = {},
+ publisher = {Curran Associates, Inc.},
+ title = {Sinkhorn Distances: Lightspeed Computation of Optimal Transport},
+ url = {https://proceedings.neurips.cc/paper/2013/file/af21d0c97db2e27e13572cbf59eb343d-Paper.pdf},
+ volume = {26},
+ year = {2013}
+}
+
+
+@Article{vayer:2020,
+AUTHOR = {Vayer, Titouan and Chapel, Laetitia and Flamary, Remi and Tavenard, Romain and Courty, Nicolas},
+TITLE = {Fused Gromov-Wasserstein Distance for Structured Objects},
+JOURNAL = {Algorithms},
+VOLUME = {13},
+YEAR = {2020},
+NUMBER = {9},
+ARTICLE-NUMBER = {212},
+URL = {https://www.mdpi.com/1999-4893/13/9/212},
+ISSN = {1999-4893},
+ABSTRACT = {Optimal transport theory has recently found many applications in machine learning thanks to its capacity to meaningfully compare various machine learning objects that are viewed as distributions. The Kantorovitch formulation, leading to the Wasserstein distance, focuses on the features of the elements of the objects, but treats them independently, whereas the Gromov&ndash;Wasserstein distance focuses on the relations between the elements, depicting the structure of the object, yet discarding its features. In this paper, we study the Fused Gromov-Wasserstein distance that extends the Wasserstein and Gromov&ndash;Wasserstein distances in order to encode simultaneously both the feature and structure information. We provide the mathematical framework for this distance in the continuous setting, prove its metric and interpolation properties, and provide a concentration result for the convergence of finite samples. We also illustrate and interpret its use in various applications, where structured objects are involved.},
+DOI = {10.3390/a13090212}
+}
+
+
+@misc{vayer:2018,
+  doi = {10.48550/ARXIV.1811.02834},
+  url = {https://arxiv.org/abs/1811.02834},
+  author = {Vayer, Titouan and Chapel, Laetita and Flamary, Rémi and Tavenard, Romain and Courty, Nicolas},
+  keywords = {Machine Learning (stat.ML), Machine Learning (cs.LG), FOS: Computer and information sciences, FOS: Computer and information sciences},
+  title = {Fused Gromov-Wasserstein distance for structured objects: theoretical foundations and mathematical properties},
+  publisher = {arXiv},
+  year = {2018},
+  copyright = {arXiv.org perpetual, non-exclusive license}
+}
+
+
+@misc{scetbon:2021_a,
+  doi = {10.48550/ARXIV.2103.04737},
+  url = {https://arxiv.org/abs/2103.04737},
+  author = {Scetbon, Meyer and Cuturi, Marco and Peyré, Gabriel},
+  keywords = {Machine Learning (stat.ML), Machine Learning (cs.LG), FOS: Computer and information sciences, FOS: Computer and information sciences},
+  title = {Low-Rank Sinkhorn Factorization},
+  publisher = {arXiv},
+  year = {2021},
+  copyright = {Creative Commons Attribution 4.0 International}
+}
+
+@misc{scetbon:2021_b,
+  doi = {10.48550/ARXIV.2106.01128},
+  url = {https://arxiv.org/abs/2106.01128},
+  author = {Scetbon, Meyer and Peyré, Gabriel and Cuturi, Marco},
+  keywords = {Machine Learning (cs.LG), Machine Learning (stat.ML), FOS: Computer and information sciences, FOS: Computer and information sciences},
+  title = {Linear-Time Gromov Wasserstein Distances using Low Rank Couplings and Costs},
+  publisher = {arXiv},
+  year = {2021},
+  copyright = {Creative Commons Attribution 4.0 International}
+}
+
+
 
 @InProceedings{peyre:2016,
     title = {Gromov-Wasserstein Averaging of Kernel and Distance Matrices},
@@ -55,4 +118,67 @@
     pages = "132--137",
     issn = "1476-4687",
     doi = "10.1038/s41586-019-1773-3",
+}
+
+@article{schiebinger:19,
+    author = {Schiebinger, Geoffrey and Shu, Jian and Tabaka, Marcin and Cleary, Brian and Subramanian, Vidya and Solomon, Aryeh and Gould, Joshua and Liu, Siyan and Lin, Stacie and Berube, Peter and Lee, Lia and Chen, Jenny and Brumbaugh, Justin and Rigollet, Philippe and Hochedlinger, Konrad and Jaenisch, Rudolf and Regev, Aviv and Lander, Eric S.},
+    title = {Optimal-Transport Analysis of Single-Cell Gene Expression Identifies Developmental Trajectories in Reprogramming},
+    journal = {Cell},
+    year = {2019},
+    month = {Feb},
+    day = {07},
+    publisher = {Elsevier},
+    volume = {176},
+    number = {4},
+    pages = {928-943.e22},
+    issn = {0092-8674},
+    doi = {10.1016/j.cell.2019.01.006},
+}
+
+@article{tirosh:16:nature,
+    author="Tirosh, Itay and Venteicher, Andrew S. and Hebert, Christine and Escalante, Leah E. and Patel, Anoop P. and
+            Yizhak, Keren and Fisher, Jonathan M. and Rodman, Christopher and Mount, Christopher and Filbin, Mariella G.
+            and Neftel, Cyril and Desai, Niyati and Nyman, Jackson and Izar, Benjamin and Luo, Christina C. and Francis,
+            Joshua M. and Patel, Aanand A. and Onozato, Maristela L. and Riggi, Nicolo and Livak, Kenneth J. and
+            Gennert, Dave and Satija, Rahul and Nahed, Brian V. and Curry, William T. and Martuza, Robert L. and
+            Mylvaganam, Ravindra and Iafrate, A. John and Frosch, Matthew P. and Golub, Todd R. and Rivera, Miguel N.
+            and Getz, Gad and Rozenblatt-Rosen, Orit and Cahill, Daniel P. and Monje, Michelle and Bernstein, Bradley E.
+            and Louis, David N. and Regev, Aviv and Suv{\`a}, Mario L.",
+    title="Single-cell RNA-seq supports a developmental hierarchy in human oligodendroglioma",
+    journal="Nature",
+    year="2016",
+    month="Nov",
+    day="01",
+    volume="539",
+    number="7628",
+    pages="309--313",
+    issn="1476-4687",
+    doi="10.1038/nature20123",
+}
+
+@article{tirosh:16:science,
+	author = {Tirosh, Itay and Izar, Benjamin and Prakadan, Sanjay M. and Wadsworth, Marc H. and Treacy,
+	          Daniel and Trombetta, John J. and Rotem, Asaf and Rodman, Christopher and Lian, Christine and Murphy,
+	          George and Fallahi-Sichani, Mohammad and Dutton-Regester, Ken and Lin, Jia-Ren and Cohen, Ofir and Shah,
+	          Parin and Lu, Diana and Genshaft, Alex S. and Hughes, Travis K. and Ziegler, Carly G. K. and Kazer,
+	          Samuel W. and Gaillard, Aleth and Kolb, Kellie E. and Villani, Alexandra-Chlo{\'e} and Johannessen,
+	          Cory M. and Andreev, Aleksandr Y. and Van Allen, Eliezer M. and Bertagnolli, Monica and Sorger, Peter K.
+	          and Sullivan, Ryan J. and Flaherty, Keith T. and Frederick, Dennie T. and Jan{\'e}-Valbuena, Judit and
+	          Yoon, Charles H. and Rozenblatt-Rosen, Orit and Shalek, Alex K. and Regev, Aviv and Garraway, Levi A.},
+	title = {Dissecting the multicellular ecosystem of metastatic melanoma by single-cell RNA-seq},
+	volume = {352},
+	number = {6282},
+	pages = {189--196},
+	year = {2016},
+	doi = {10.1126/science.aad0501},
+	publisher = {American Association for the Advancement of Science},
+	issn = {0036-8075},
+	journal = {Science}
+}
+
+@article{cuturi2022optimal,
+  title={Optimal Transport Tools (OTT): A JAX Toolbox for all things Wasserstein},
+  author={Cuturi, Marco and Meng-Papaxanthos, Laetitia and Tian, Yingtao and Bunne, Charlotte and Davis, Geoff and Teboul, Olivier},
+  journal={arXiv preprint arXiv:2201.12324},
+  year={2022}
 }

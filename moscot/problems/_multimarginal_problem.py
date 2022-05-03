@@ -7,13 +7,28 @@ import numpy.typing as npt
 
 from anndata import AnnData
 
-from moscot.problems import OTProblem
+from moscot._docs import d
 from moscot.solvers._output import BaseSolverOutput
+from moscot.problems._base_problem import OTProblem
 
 __all__ = ("MultiMarginalProblem",)
 
 
+@d.get_sections(base="MultiMarginalProblem", sections=["Parameters", "Raises"])
+@d.dedent
 class MultiMarginalProblem(OTProblem, ABC):
+    """
+    Problem class handling one optimal transport subproblem which allows to iteratively solve the optimal transport map.
+
+    Parameters
+    ----------
+    %(GeneralProblem.parameters)s
+
+    Raises
+    ------
+    %(GeneralProblem.raises)s
+    """
+
     _a: Optional[List[np.ndarray]]
     _b: Optional[List[np.ndarray]]
 

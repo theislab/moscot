@@ -8,6 +8,7 @@ import numpy.typing as npt
 from anndata import AnnData
 import scanpy as sc
 
+from moscot._docs import d
 from moscot.solvers._output import BaseSolverOutput
 from moscot.problems._anndata import AnnDataPointer
 from moscot.solvers._base_solver import ProblemKind
@@ -16,8 +17,34 @@ from moscot.solvers._tagged_array import Tag, TaggedArray
 __all__ = ("BaseProblem", "OTProblem")
 
 
+@d.get_sections(base="BaseProblem", sections=["Parameters", "Raises"])
+@d.dedent
 class BaseProblem(ABC):
-    def __init__(self, adata: AnnData):
+    """
+    Problem base class handling one optimal transport subproblem.
+
+    Parameters
+    ----------
+    %(adata)s
+
+    Raises
+    ------
+    ValueError
+        If `adata` has no observations.
+    ValueError
+        If `adata` has no variables.
+    """
+
+    def __init__(
+        self,
+        adata: AnnData,
+    ):
+        # TODO(michalk8): remove this
+        if getattr(adata, "n_obs") == 0:
+            raise ValueError("TODO: `adata` has no observations.")
+        if getattr(adata, "n_vars") == 0:
+            raise ValueError("TODO: `adata` has no variables.")
+
         self._adata = adata
         self._problem_kind: Optional[ProblemKind] = None
 
@@ -28,14 +55,6 @@ class BaseProblem(ABC):
     @abstractmethod
     def solve(self, *args: Any, **kwargs: Any) -> "BaseProblem":
         pass
-
-    @property
-    def _problem_kind(self) -> Optional[ProblemKind]:
-        return self._problem_kind
-
-    @_problem_kind.setter
-    def _problem_kind(self, value: ProblemKind) -> None:
-        self._problem_kind = ProblemKind(value)
 
     @property
     def adata(self) -> AnnData:
@@ -76,6 +95,7 @@ class BaseProblem(ABC):
 
         return data / total if normalize else data
 
+    # TODO(michalk8): move to OTPRoblem
     @staticmethod
     def _get_or_create_marginal(adata: AnnData, data: Optional[Union[str, npt.ArrayLike]] = None) -> npt.ArrayLike:
         if data is None:
@@ -88,11 +108,29 @@ class BaseProblem(ABC):
         return data
 
 
+@d.get_sections(base="GeneralProblem", sections=["Parameters", "Raises"])
+@d.dedent
 class OTProblem(BaseProblem):
+    """
+    Problem class handling one optimal transport subproblem.
+
+    Parameters
+    ----------
+    %(adata_x)s
+    %(adata_y)s
+    %(source)s
+    %(target)s
+
+    Raises
+    ------
+        %(BaseProblem.raises)s
+    """
+
     def __init__(
         self,
         adata_x: AnnData,
         adata_y: Optional[AnnData] = None,
+        *,
         source: Any = "src",
         target: Any = "tgt",
     ):

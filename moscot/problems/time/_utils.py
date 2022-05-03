@@ -19,7 +19,7 @@ def beta(
     beta_min: float = 0.3,
     center: float = 0.25,
     width: float = 0.5,
-    **kwargs: Any,
+    **_: Any,
 ) -> npt.ArrayLike:
     return gen_logistic(p, beta_max, beta_min, center, width)
 

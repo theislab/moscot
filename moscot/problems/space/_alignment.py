@@ -5,7 +5,7 @@ from typing_extensions import Literal
 
 from anndata import AnnData
 
-from moscot.problems import OTProblem
+from moscot.problems._base_problem import OTProblem
 from moscot.mixins._spatial_analysis import SpatialAlignmentAnalysisMixin
 from moscot.problems._compound_problem import B, CompoundProblem
 

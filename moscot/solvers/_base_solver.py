@@ -6,6 +6,7 @@ import warnings
 
 import numpy.typing as npt
 
+from moscot._docs import d
 from moscot.solvers._utils import _warn_not_close
 from moscot.solvers._output import BaseSolverOutput
 from moscot.solvers._tagged_array import Tag, TaggedArray
@@ -126,6 +127,7 @@ class BaseSolver(ABC):
         return self._solve(data, **solve_kwargs)
 
 
+@d.get_sections(base="BaseSolver", sections=["Parameters", "Raises"])
 class OTSolver(TagConverterMixin, BaseSolver, ABC):
     """OTSolver class."""
 
