@@ -240,7 +240,7 @@ class CompoundBaseProblem(BaseProblem, Generic[K, B], ABC):
 
 
 class SingleCompoundProblem(CompoundBaseProblem, ABC):
-    def _create_problem(self, src: Any, tgt: Any, src_mask: npt.ArrayLike, tgt_mask: npt.ArrayLike, **kwargs: Any) -> B:
+    def _create_problem(self, src: K, tgt: K, src_mask: npt.ArrayLike, tgt_mask: npt.ArrayLike, **kwargs: Any) -> B:
         return self._base_problem_type(
             self._mask(src_mask),
             self._mask(tgt_mask),
@@ -303,7 +303,7 @@ class MultiCompoundProblem(CompoundBaseProblem, ABC):
 
     def __init__(
         self,
-        *adatas: Union[AnnData, Mapping[Any, AnnData], Tuple[AnnData, ...], List[AnnData]],
+        *adatas: Union[AnnData, Mapping[K, AnnData], Tuple[AnnData, ...], List[AnnData]],
     ):
         if not len(adatas):
             raise ValueError("TODO: no adatas passed")
@@ -328,7 +328,7 @@ class MultiCompoundProblem(CompoundBaseProblem, ABC):
         if not isinstance(adatas, Mapping):
             adatas = {i: adata for i, adata in enumerate(adatas)}
 
-        self._adatas: Mapping[Any, AnnData] = adatas
+        self._adatas: Mapping[K, AnnData] = adatas
         self._policy_adata = AnnData(
             csr_matrix((len(self._adatas), 1), dtype=float),
             obs=pd.Series(list(self._adatas.keys()), dtype="category").to_frame(self._SUBSET_KEY),
@@ -337,7 +337,7 @@ class MultiCompoundProblem(CompoundBaseProblem, ABC):
 
     def prepare(
         self,
-        subset: Optional[Sequence[Any]] = None,
+        subset: Optional[Sequence[K]] = None,
         policy: Literal["sequential", "pairwise", "triu", "tril", "explicit"] = "sequential",
         reference: Optional[Any] = None,
         **kwargs: Any,
@@ -345,7 +345,7 @@ class MultiCompoundProblem(CompoundBaseProblem, ABC):
         kwargs["axis"] = "obs"
         return super().prepare(None, subset=subset, policy=policy, reference=reference, **kwargs)
 
-    def _create_problem(self, src: Any, tgt: Any, src_mask: npt.ArrayLike, tgt_mask: npt.ArrayLike, **kwargs: Any) -> B:
+    def _create_problem(self, src: K, tgt: K, src_mask: npt.ArrayLike, tgt_mask: npt.ArrayLike, **kwargs: Any) -> B:
         return self._base_problem_type(self._adatas[src], self._adatas[tgt], source=src, target=tgt, **kwargs)
 
     def _create_policy(
