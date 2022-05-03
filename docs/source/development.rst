@@ -32,6 +32,5 @@ Base classes
 
 .. autosummary::
     :toctree: development
-    
+
     moscot.problems.BaseProblem
-    

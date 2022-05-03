@@ -146,7 +146,7 @@ class TemporalProblem(TemporalAnalysisMixin, SingleCompoundProblem):
         to proliferation and/or apoptosis must be passed.
 
         Alternatively, proliferation and apoptosis genes for humans and mice are saved in :mod:`moscot`.
-        The gene scores will be used in :meth:`moscot.problems.TemporalProblem.prepare()` to estimate the initial
+        The gene scores will be used in :meth:`moscot.problems.TemporalProblem.prepare` to estimate the initial
         growth rates as suggested in :cite:`schiebinger:19`
 
         Parameters
@@ -237,23 +237,7 @@ class TemporalProblem(TemporalAnalysisMixin, SingleCompoundProblem):
             :attr:`anndata.AnnData` as a key and the corresponding attribute as a value.
         policy
             defines which transport maps to compute given different cell distributions
-        marginal_kwargs
-            keyword arguments for :class:`moscot.problems.TemporalBaseProblem._estimate_marginals()`, i.e. for modeling
-            the birth-death process. The keyword arguments
-            are either used for :func:`moscot.problems.time._utils.beta()`, i.e. one of
-
-                    - beta_max: float
-                    - beta_min: float
-                    - beta_center: float
-                    - beta_width: float
-
-            or for :func:`moscot.problems.time._utils.beta()`, i.e. one of
-
-                    - delta_max: float
-                    - delta_min: float
-                    - delta_center: float
-                    - delta_width: float
-
+        %(marginal_kwargs)s
         subset
             subset of `anndata.AnnData.obs` [key] values of which the policy is to be applied to
         %(reference)s
@@ -261,7 +245,7 @@ class TemporalProblem(TemporalAnalysisMixin, SingleCompoundProblem):
         %(callback)s
         %(callback_kwargs)s
         kwargs
-            Keyword arguments for :meth:`moscot.problems.CompoundBaseProblem._create_problems()`
+            Keyword arguments for :meth:`moscot.problems.CompoundBaseProblem._create_problems`
 
         Returns
         -------
@@ -370,7 +354,7 @@ class TemporalProblem(TemporalAnalysisMixin, SingleCompoundProblem):
         end
             Later time point, the time point the mass is pulled from.
         result_key
-            Key of where to save the result in :class:`anndata.AnnData.obs`. If `None` the result will be returned.
+            Key of where to save the result in :attr:`anndata.AnnData.obs`. If `None` the result will be returned.
         return_all
             If `True` return all the intermediate masses if pushed through multiple transport plans. In this case the
             result is returned as a dictionary.
@@ -409,7 +393,7 @@ class TemporalProblem(TemporalAnalysisMixin, SingleCompoundProblem):
         marginals of the OT solution usually differ from the marginals of the original OT problem. This is an
         indication of cell proliferation, i.e. a cell could have multiple descendents in the target distribution or
         cell death, i.e. the cell is unlikely to have a descendant.
-        If multiple iterations are performed in :meth:`moscot.problems.time.TemporalProblem.solve()` the number
+        If multiple iterations are performed in :meth:`moscot.problems.time.TemporalProblem.solve` the number
         of estimates for the cell growth rates equals is strictly larger than 2.
         """
         cols = [f"g_{i}" for i in range(self.problems[list(self)[0]].growth_rates.shape[1])]
@@ -432,18 +416,12 @@ class TemporalProblem(TemporalAnalysisMixin, SingleCompoundProblem):
 
     @property
     def proliferation_key(self) -> Optional[str]:
-        """
-        Key in :attr:`anndata.AnnData.obs` where prior estimate of cell proliferation is saved (created by
-        :meth:`moscot.problems.TemporalProblem.score_genes_for_marginals()`)
-        """
+        """Key in :attr:`anndata.AnnData.obs` where prior estimate of cell proliferation is saved."""
         return self._proliferation_key
 
     @property
     def apoptosis_key(self) -> Optional[str]:
-        """
-        Key in :attr:`anndata.AnnData.obs` where prior estimate of cell apoptosis is saved (created by
-        :meth:`moscot.problems.TemporalProblem.score_genes_for_marginals()`)
-        """
+        """Key in :attr:`anndata.AnnData.obs` where prior estimate of cell apoptosis is saved."""
         return self._apoptosis_key
 
     @proliferation_key.setter
@@ -459,9 +437,9 @@ class TemporalProblem(TemporalAnalysisMixin, SingleCompoundProblem):
         self._apoptosis_key = value
 
     @property
-    def cell_costs_source(self) -> pd.DataFrame:
+    def cell_costs_source(self) -> Optional[pd.DataFrame]:
         """
-        Return the cost of a cell (see online methods) obtained by the potentials of the optimal transport solution
+        Return the cost of a cell (see online methods) obtained by the potentials of the optimal transport solution.
 
         Raises
         ------
@@ -484,19 +462,12 @@ class TemporalProblem(TemporalAnalysisMixin, SingleCompoundProblem):
                 )
             )
             return pd.concat(df_list, verify_integrity=True)
-        except NotImplementedError:
-            raise NotImplementedError("The current solver does not allow this property")
+        except NotImplementedError:  # TODO(@MUCDK) check for specific error message
+            return None
 
     @property
-    def cell_costs_target(self) -> pd.DataFrame:
-        """
-        Return the cost of a cell (see online methods) obtained by the potentials of the optimal transport solution
-
-        Raises
-        ------
-        NotImplementedError
-            If the solver from :class:`moscot.solvers` does not use potentials
-        """
+    def cell_costs_target(self) -> Optional[pd.DataFrame]:
+        """Return the cost of a cell (see online methods) obtained by the potentials of the OT solution."""
         try:
             tup = list(self)[0]
             df_list = [
@@ -515,8 +486,8 @@ class TemporalProblem(TemporalAnalysisMixin, SingleCompoundProblem):
                 ]
             )
             return pd.concat(df_list, verify_integrity=True)
-        except NotImplementedError:
-            raise NotImplementedError("The current solver does not allow this property")
+        except NotImplementedError:  # TODO(@MUCDK) check for specific error message
+            return None
 
 
 class LineageProblem(TemporalProblem):
@@ -547,7 +518,7 @@ class LineageProblem(TemporalProblem):
         **kwargs: Any,
     ) -> "LineageProblem":
         """
-        Prepare the LineageProblem for it being ready to be solved
+        Prepare the :class:`moscot.problems.time.LineageProblem`.
 
         This method executes multiple steps to prepare the problem for the Optimal Transport solver to be ready
         to solve it
@@ -567,23 +538,7 @@ class LineageProblem(TemporalProblem):
             :attr:`anndata.AnnData` as a key and the corresponding attribute as a value.
         policy
             defines which transport maps to compute given different cell distributions
-        marginal_kwargs
-            keyword arguments for :class:`moscot.problems.TemporalBaseProblem._estimate_marginals()`, i.e. for modeling
-            the birth-death process. The keyword arguments
-            are either used for :func:`moscot.problems.time._utils.beta()`, i.e. one of
-
-                    - beta_max: float
-                    - beta_min: float
-                    - beta_center: float
-                    - beta_width: float
-
-            or for :func:`moscot.problems.time._utils.beta()`, i.e. one of
-
-                    - delta_max: float
-                    - delta_min: float
-                    - delta_center: float
-                    - delta_width: float
-
+        %(marginal_kwargs)s
         subset
             subset of `anndata.AnnData.obs` [key] values of which the policy is to be applied to
         %(reference)s
@@ -591,7 +546,7 @@ class LineageProblem(TemporalProblem):
         %(callback)s
         %(callback_kwargs)s
         kwargs
-            Keyword arguments for :meth:`moscot.problems.CompoundBaseProblem._create_problems()`
+            Keyword arguments for :meth:`moscot.problems.CompoundBaseProblem._create_problems`
 
         Returns
         -------

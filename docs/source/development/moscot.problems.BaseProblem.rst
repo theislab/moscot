@@ -7,26 +7,24 @@ moscot.problems.BaseProblem
 
 .. autoclass:: BaseProblem
 
-   
-   
+
+
    .. rubric:: Attributes
 
    .. autosummary::
       :toctree: .
-   
+
       ~moscot.problems.BaseProblem.adata
       ~moscot.problems.BaseProblem.solver
-   
-   
 
-   
-   
+
+
+
+
    .. rubric:: Methods
 
    .. autosummary::
       :toctree: .
-   
+
       ~moscot.problems.BaseProblem.prepare
       ~moscot.problems.BaseProblem.solve
-   
-   

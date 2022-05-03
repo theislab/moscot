@@ -185,9 +185,9 @@ class CompoundBaseProblem(BaseProblem, ABC):
         %(tau_b)s
         kwargs
             Keyword arguments for one of
-                - :attr:`moscot.problems.GeneralProblem.solve()`
-                - :attr:`moscot.problems.MultiMarginalProblem.solve()`
-                - :attr:`moscot.problems.TemporalBaseProblem.solve()`
+                - :attr:`moscot.problems.GeneralProblem.solve`
+                - :attr:`moscot.problems.MultiMarginalProblem.solve`
+                - :attr:`moscot.problems.TemporalBaseProblem.solve`
 
         Raises
         ------
@@ -301,7 +301,7 @@ class CompoundBaseProblem(BaseProblem, ABC):
             all intermediate step results are returned, too.
         %(scale_by_marginals)s
         kwargs
-            keyword arguments for :meth:`moscot.problems.CompoundProblem._apply()`
+            keyword arguments for :meth:`moscot.problems.CompoundProblem._apply`
 
 
         Raises
@@ -326,7 +326,7 @@ class CompoundBaseProblem(BaseProblem, ABC):
             all intermediate step results are returned, too.
         %(scale_by_marginals)s
         kwargs
-            keyword arguments for :meth:`moscot.problems.CompoundProblem._apply()`
+            keyword arguments for :meth:`moscot.problems.CompoundProblem._apply`
 
 
         Raises

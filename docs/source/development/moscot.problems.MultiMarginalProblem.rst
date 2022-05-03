@@ -7,13 +7,13 @@ moscot.problems.MultiMarginalProblem
 
 .. autoclass:: MultiMarginalProblem
 
-   
-   
+
+
    .. rubric:: Attributes
 
    .. autosummary::
       :toctree: .
-   
+
       ~moscot.problems.MultiMarginalProblem.a
       ~moscot.problems.MultiMarginalProblem.adata
       ~moscot.problems.MultiMarginalProblem.b
@@ -23,19 +23,17 @@ moscot.problems.MultiMarginalProblem
       ~moscot.problems.MultiMarginalProblem.x
       ~moscot.problems.MultiMarginalProblem.xy
       ~moscot.problems.MultiMarginalProblem.y
-   
-   
 
-   
-   
+
+
+
+
    .. rubric:: Methods
 
    .. autosummary::
       :toctree: .
-   
+
       ~moscot.problems.MultiMarginalProblem.prepare
       ~moscot.problems.MultiMarginalProblem.pull
       ~moscot.problems.MultiMarginalProblem.push
       ~moscot.problems.MultiMarginalProblem.solve
-   
-   

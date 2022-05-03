@@ -10,6 +10,7 @@ import numpy.typing as npt
 
 from anndata import AnnData
 
+from moscot._docs import d
 from moscot._utils import _get_backend_losses
 from moscot.costs._costs import BaseLoss
 from moscot.solvers._tagged_array import Tag, TaggedArray
@@ -17,9 +18,35 @@ from moscot.solvers._tagged_array import Tag, TaggedArray
 __all__ = ("AnnDataPointer",)
 
 
+@d.dedent
 @dataclass(frozen=True)
 class AnnDataPointer:
-    """AnnData Pointer."""
+    """
+    Class handling the data internally.
+
+    This class handles the data needed to define the cost function in the OT problem.
+
+    Parameters
+    ----------
+    %(adata)s
+    attr
+        attribute of :class:`anndata.AnnData` where data is stored
+    key
+        key of :class:`anndata.AnnData` ``['{key}']`` where the data is stored
+    use_raw
+        TODO: remove?
+    tag
+        tag indicating which way the data is stored, valid values are
+            - `point_cloud`
+            - `cost`
+            - `kernel`
+            - `grid`
+    loss
+        loss provided by :class:`moscot.costs` or by `backend`. In the former case the `Tag` must be `cost_matrix`,
+        in the latter the `Tag` must be `point_cloud`
+    loss_kwargs
+        keyword arguments for :meth:`moscot.costs._costs.BaseLoss.create`
+    """
 
     adata: AnnData
     attr: str

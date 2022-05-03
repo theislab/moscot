@@ -44,10 +44,12 @@ alpha
     interpolation parameter between Gromov term and linear Optimal Transport term"""
 _tau_a = """\
 tau_a
-    unbalancedness parameter for left marginal between 0 and 1. `tau_a` equalling 1 means no unbalancedness in the source distribution, `tau_a` --> 0 ignores the left marginals."""
+    unbalancedness parameter for left marginal between 0 and 1. `tau_a` equalling 1 means no unbalancedness
+    in the source distribution, `tau_a` --> 0 ignores the left marginals."""
 _tau_b = """\
 tau_a
-    unbalancedness parameter for right marginal between 0 and 1. `tau_b` equalling 1 means no unbalancedness in the target distribution, `tau_b` --> 0 ignores the right marginals."""
+    unbalancedness parameter for right marginal between 0 and 1. `tau_b` equalling 1 means no unbalancedness
+    in the target distribution, `tau_b` --> 0 ignores the right marginals."""
 _scale_by_marginals = """\
 scale_by_marginals
     If `True` the transport map is scaled to be a stochastic matrix by multiplying the resulting mass
@@ -57,16 +59,32 @@ normalize
     Whether to normalize the result to 1 after the transport map has been applied"""
 _data = """\
 data
-    - If `data` is a :class:`str` this should correspond to a column in :attr:`anndata.AnnData.obs`. 
-      The transport map is applied to the subset corresponding to the source distribution (if `forward` is `True`) or target distribution (if `forward` is `False`) of that column.
+    - If `data` is a :class:`str` this should correspond to a column in :attr:`anndata.AnnData.obs`.
+      The transport map is applied to the subset corresponding to the source distribution
+      (if `forward` is `True`) or target distribution (if `forward` is `False`) of that column.
     - If `data` is a :class:npt.ArrayLike the transport map is applied to `data`
-    - If `data` is a :class:`dict` then the keys should correspond to the tuple defining a single optimal transport map and the value should be one of the two cases described above"""
+    - If `data` is a :class:`dict` then the keys should correspond to the tuple defining a single optimal
+      transport map and the value should be one of the two cases described above"""
 
 _subset = """\
 subset
     If `data` is a column in :attr:`anndata.AnnData.obs` the distribution the transport map is applied
     to only puts (uniform) mass on those cells which are in `subset` when filtering for
     :attr:`anndata.AnnData.obs`"""
+_marginal_kwargs = """\
+marginal_kwargs
+    keyword arguments for :meth:`moscot.problems.TemporalBaseProblem._estimate_marginals`, i.e. for modeling
+            the birth-death process. The keyword arguments
+            are either used for :func:`moscot.problems.time._utils.beta`, i.e. one of
+                - beta_max: float
+                - beta_min: float
+                - beta_center: float
+                - beta_width: float
+            or for :func:`moscot.problems.time._utils.beta`, i.e. one of
+                - delta_max: float
+                - delta_min: float
+                - delta_center: float
+                - delta_width: float"""
 
 
 def inject_docs(**kwargs: Any):
@@ -104,4 +122,5 @@ d = DocstringProcessor(
     normalize=_normalize,
     data=_data,
     subset=_subset,
+    marginal_kwargs=_marginal_kwargs,
 )
