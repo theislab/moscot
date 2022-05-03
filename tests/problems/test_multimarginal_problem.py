@@ -9,17 +9,16 @@ import numpy as np
 from anndata import AnnData
 
 from moscot.problems import OTProblem
-from moscot.backends.ott import SinkhornSolver
 from moscot.solvers._output import BaseSolverOutput
 
 
 class TestMultiMarginalProblem:
     def test_subclass_GeneralProblem(self, adata_x: AnnData):
-        prob = MockMultiMarginalProblem(adata_x, solver=SinkhornSolver())
+        prob = MockMultiMarginalProblem(adata_x)
         assert isinstance(prob, OTProblem)
 
     def test_marginal_dtypes(self, adata_x: AnnData, adata_y: AnnData):
-        prob = MockMultiMarginalProblem(adata_x, adata_y, solver=SinkhornSolver())
+        prob = MockMultiMarginalProblem(adata_x, adata_y)
         prob = prob.prepare(xy={"x_attr": "X", "y_attr": "X"})
 
         assert isinstance(prob._a, list)
@@ -28,7 +27,7 @@ class TestMultiMarginalProblem:
         assert isinstance(prob.b, np.ndarray)
 
     def test_multiple_iterations(self, adata_x: AnnData, adata_y: AnnData):
-        prob = MockMultiMarginalProblem(adata_x, adata_y, solver=SinkhornSolver())
+        prob = MockMultiMarginalProblem(adata_x, adata_y)
         prob = prob.prepare(xy={"x_attr": "X", "y_attr": "X"})
         prob.solve(n_iters=3)
 
@@ -44,7 +43,7 @@ class TestMultiMarginalProblem:
         assert len(last_marginals[1].shape) == 1
 
     def test_reset_marginals(self, adata_x: AnnData, adata_y: AnnData):
-        prob = MockMultiMarginalProblem(adata_x, adata_y, solver=SinkhornSolver())
+        prob = MockMultiMarginalProblem(adata_x, adata_y)
         prob = prob.prepare(xy={"x_attr": "X", "y_attr": "X"})
         prob.solve(n_iters=1)
 
