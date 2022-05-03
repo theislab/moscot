@@ -98,18 +98,6 @@ class BaseProblem(ABC):
 
         return data / total if normalize else data
 
-    # TODO(michalk8): move to OTPRoblem
-    @staticmethod
-    def _get_or_create_marginal(adata: AnnData, data: Optional[Union[str, npt.ArrayLike]] = None) -> npt.ArrayLike:
-        if data is None:
-            return np.ones((adata.n_obs,), dtype=float) / adata.n_obs
-        if isinstance(data, str):
-            # TODO(michalk8): some nice error message
-            data = adata.obs[data]
-        data = np.asarray(data)
-        # TODO(michalk8): check shape
-        return data
-
 
 @d.get_sections(base="GeneralProblem", sections=["Parameters", "Raises"])
 @d.dedent
@@ -136,9 +124,9 @@ class OTProblem(BaseProblem):
         *,
         source: Any = "src",
         target: Any = "tgt",
-        **kwargs: Any,
+        copy: bool = False,
     ):
-        super().__init__(adata_x, **kwargs)
+        super().__init__(adata_x, copy=copy)
         self._adata_y = adata_x if adata_y is None else adata_y.copy() if copy else adata_y
         self._solution: Optional[BaseSolverOutput] = None
 
@@ -152,28 +140,23 @@ class OTProblem(BaseProblem):
         self._source = source
         self._target = target
 
-    def _handle_linear(self, **kwargs) -> Union[TaggedArray, Tuple[TaggedArray, TaggedArray]]:
-        tag = Tag.POINT_CLOUD if "x_attr" in kwargs and "y_attr" in kwargs else Tag.COST_MATRIX
-
-        if tag in (Tag.COST_MATRIX, Tag.KERNEL):
-            attr = kwargs.get("attr", "obsm")
-            if attr in ("obsm", "uns"):  # TODO(michalk8): remove uns?
-                return AnnDataPointer(self.adata, tag=tag, **kwargs).create()
+    def _handle_linear(self, **kwargs: Any) -> Union[TaggedArray, Tuple[TaggedArray, TaggedArray]]:
+        if "x_attr" not in kwargs or "y_attr" not in kwargs:
+            kwargs.setdefault("tag", Tag.COST_MATRIX)
+            attr = kwargs.pop("attr", "obsm")
+            if attr in ("obsm", "uns"):
+                return AnnDataPointer(self.adata, attr=attr, **kwargs).create()
             if attr == "varm":
-                kwargs["attr"] = "obsm"
-                return AnnDataPointer(self._adata_y.T, tag=tag, **kwargs).create()
+                return AnnDataPointer(self._adata_y.T, attr="obsm", **kwargs).create()
             raise NotImplementedError("TODO: cost/kernel storage not implemented. Use obsm/varm")
-        if tag != Tag.POINT_CLOUD:
-            # TODO(michalk8): log-warn?
-            tag = Tag.POINT_CLOUD
 
-        # TODO(michalk8): mb. be less stringent and assume without the prefix x_ belong to x
         x_kwargs = {k[2:]: v for k, v in kwargs.items() if k.startswith("x_")}
         y_kwargs = {k[2:]: v for k, v in kwargs.items() if k.startswith("y_")}
+        x_kwargs["tag"] = Tag.POINT_CLOUD
+        y_kwargs["tag"] = Tag.POINT_CLOUD
 
-        x_array = AnnDataPointer(self.adata, tag=tag, **x_kwargs).create()
-        # TODO(michalk8): rename that property; use here?
-        y_array = AnnDataPointer(self._adata_y, tag=tag, **y_kwargs).create()
+        x_array = AnnDataPointer(self.adata, **x_kwargs).create()
+        y_array = AnnDataPointer(self._adata_y, **y_kwargs).create()
 
         return x_array, y_array
 
@@ -264,7 +247,6 @@ class OTProblem(BaseProblem):
         layer: Optional[str] = None,
         return_linear: bool = True,
         **kwargs: Any,
-        # TODO(michalk8): TYPEME
     ) -> Dict[Literal["xy", "x", "y"], TaggedArray]:
         def concat(x: npt.ArrayLike, y: npt.ArrayLike) -> npt.ArrayLike:
             if issparse(x):
@@ -274,7 +256,7 @@ class OTProblem(BaseProblem):
             return np.vstack([x, y])
 
         if adata is adata_y:
-            raise ValueError("TODO")
+            raise ValueError(f"TODO: `{adata}`, `{adata_y}`")
         x = adata.X if layer is None else adata.layers[layer]
         y = adata_y.X if layer is None else adata_y.layers[layer]
 
@@ -286,6 +268,15 @@ class OTProblem(BaseProblem):
         x = sc.pp.pca(x, **kwargs)
         y = sc.pp.pca(y, **kwargs)
         return {"x": TaggedArray(x, tag=Tag.POINT_CLOUD), "y": TaggedArray(y, tag=Tag.POINT_CLOUD)}
+
+    @staticmethod
+    def _get_or_create_marginal(adata: AnnData, data: Optional[Union[str, npt.ArrayLike]] = None) -> npt.ArrayLike:
+        if data is None:
+            return np.ones((adata.n_obs,), dtype=float) / adata.n_obs
+        if isinstance(data, str):
+            # TODO(michalk8): some nice error message
+            data = adata.obs[data]
+        return np.asarray(data)
 
     @property
     def shape(self) -> Tuple[int, int]:
