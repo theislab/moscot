@@ -354,9 +354,9 @@ class MultiCompoundProblem(CompoundBaseProblem, ABC):
         **_: Any,
     ) -> SubsetPolicy:
         return (
-            SubsetPolicy.create(policy, self._policy_adata, key=self._KEY, axis="obs")
+            SubsetPolicy.create(policy, self._policy_adata, key=self._SUBSET_KEY, axis="obs")
             if isinstance(policy, str)
-            else ExplicitPolicy(self._policy_adata, key=self._KEY, axis="obs")
+            else ExplicitPolicy(self._policy_adata, key=self._SUBSET_KEY, axis="obs")
         )
 
 
