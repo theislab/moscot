@@ -1,5 +1,5 @@
 from types import MappingProxyType
-from typing import Any, Dict, Type, Tuple, Union, Literal, Mapping, Callable, Optional, Sequence
+from typing import Any, Dict, Type, Tuple, Union, Literal, Mapping, Optional, Sequence
 from numbers import Number
 import logging
 
@@ -14,17 +14,8 @@ import scanpy as sc
 from moscot.problems import MultiMarginalProblem
 from moscot.solvers._output import BaseSolverOutput
 from moscot.problems.time._utils import beta, delta, MarkerGenes
-from moscot.solvers._base_solver import ProblemKind
 from moscot.mixins._time_analysis import TemporalAnalysisMixin
-from moscot.solvers._tagged_array import TaggedArray
 from moscot.problems._compound_problem import B, SingleCompoundProblem
-
-Callback_t = Optional[
-    Union[
-        Literal["pca_local"],
-        Callable[[AnnData, Optional[AnnData], ProblemKind, Any], Tuple[TaggedArray, Optional[TaggedArray]]],
-    ]
-]
 
 
 class TemporalBaseProblem(MultiMarginalProblem):
@@ -77,7 +68,7 @@ class TemporalBaseProblem(MultiMarginalProblem):
         return np.power(self.a, 1 / (self._target - self._source))
 
 
-class TemporalProblem(TemporalAnalysisMixin, SingleCompoundProblem):
+class TemporalProblem(TemporalAnalysisMixin, SingleCompoundProblem[Number, TemporalBaseProblem]):
     def __init__(self, adata: AnnData):
         super().__init__(adata)
         self._temporal_key: Optional[str] = None
@@ -92,6 +83,7 @@ class TemporalProblem(TemporalAnalysisMixin, SingleCompoundProblem):
         apoptosis_key: str = "apoptosis",
         **kwargs: Any,
     ) -> "TemporalProblem":
+        # TODO(michalk8): make slightly more compact
         if gene_set_proliferation is None:
             self.proliferation_key = None
         else:
@@ -132,10 +124,12 @@ class TemporalProblem(TemporalAnalysisMixin, SingleCompoundProblem):
         marginal_kwargs: Mapping[str, Any] = MappingProxyType({}),
         **kwargs: Any,
     ) -> "TemporalProblem":
+        # TODO(michalk8): make a property + sanity checks
         self._temporal_key = time_key
 
         if joint_attr is None:
-            kwargs["callback"] = "pca_local"
+            kwargs["callback"] = "local-pca"
+            kwargs["callback_kwargs"] = {**kwargs.get("callback_kwargs", {}), **{"return_linear": True}}
         elif isinstance(joint_attr, str):
             kwargs["xy"] = {
                 "x_attr": "obsm",
@@ -143,7 +137,7 @@ class TemporalProblem(TemporalAnalysisMixin, SingleCompoundProblem):
                 "y_attr": "obsm",
                 "y_key": joint_attr,
             }
-        elif isinstance(joint_attr, dict):
+        elif isinstance(joint_attr, Mapping):
             kwargs["xy"] = joint_attr
         else:
             raise TypeError("TODO")
@@ -277,6 +271,7 @@ class TemporalProblem(TemporalAnalysisMixin, SingleCompoundProblem):
 
     @property
     def cell_costs_target(self) -> pd.DataFrame:
+        # TODO(michalk8): do not raise NotImplementedError
         try:
             tup = list(self)[0]
             df_list = [
@@ -316,12 +311,14 @@ class LineageProblem(TemporalProblem):
         policy: Literal["sequential", "pairwise", "triu", "tril", "explicit"] = "sequential",
         **kwargs: Any,
     ) -> "LineageProblem":
+        # TODO(michalk8): use and
         if not len(lineage_attr):
             if "cost_matrices" not in self.adata.obsp:
                 raise ValueError(
                     "TODO: default location for quadratic loss is `adata.obsp[`cost_matrices`]` \
                         but adata has no key `cost_matrices` in `obsp`."
                 )
+        # TODO(michalk8): refactor more
         lineage_attr = dict(lineage_attr)
         lineage_attr.setdefault("attr", "obsp")
         lineage_attr.setdefault("key", "cost_matrices")
@@ -331,14 +328,14 @@ class LineageProblem(TemporalProblem):
         x = y = lineage_attr
 
         if joint_attr is None:
-            kwargs["callback"] = "pca_local"
+            kwargs["callback"] = "local-pca"
         elif isinstance(joint_attr, str):
             kwargs["joint_attr"] = {"x_attr": "obsm", "x_key": joint_attr, "y_attr": "obsm", "y_key": joint_attr}
 
         return super().prepare(
-            time_key=time_key,
-            policy=policy,
+            time_key,
             x=x,
             y=y,
+            policy=policy,
             **kwargs,
         )

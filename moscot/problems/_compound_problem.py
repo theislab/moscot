@@ -118,7 +118,7 @@ class CompoundBaseProblem(BaseProblem, Generic[K, B], ABC):
         self,
         key: str,
         policy: Literal["sequential", "pairwise", "triu", "tril", "explicit"] = "sequential",
-        subset: Optional[Sequence[Tuple[Any, Any]]] = None,
+        subset: Optional[Sequence[Key]] = None,
         reference: Optional[Any] = None,
         axis: Axis_t = "obs",
         callback: Optional[Union[Literal["pca_local"], Callable[[AnnData, Any], npt.ArrayLike]]] = None,
@@ -151,15 +151,15 @@ class CompoundBaseProblem(BaseProblem, Generic[K, B], ABC):
     # TODO(michalk8): simplify/split
     def _apply(
         self,
-        data: Optional[Union[str, npt.ArrayLike, Mapping[Tuple[Any, Any], Union[str, npt.ArrayLike]]]] = None,
+        data: Optional[Union[str, npt.ArrayLike, Mapping[Key, Union[str, npt.ArrayLike]]]] = None,
         subset: Optional[Sequence[Any]] = None,
         normalize: bool = True,
         forward: bool = True,
         return_all: bool = False,
         scale_by_marginals: bool = False,
         **kwargs: Any,
-    ) -> Union[Dict[Tuple[Any, Any], npt.ArrayLike], Dict[Tuple[Any, Any], Dict[Tuple[Any, Any], npt.ArrayLike]]]:
-        def get_data(plan: Tuple[Any, Any]) -> Optional[npt.ArrayLike]:
+    ) -> Union[Dict[Key, npt.ArrayLike], Dict[Key, Dict[Key, npt.ArrayLike]]]:
+        def get_data(plan: Key) -> Optional[npt.ArrayLike]:
             if isinstance(data, np.ndarray):
                 return data
             if data is None or isinstance(data, (str, tuple, list)):
@@ -176,7 +176,7 @@ class CompoundBaseProblem(BaseProblem, Generic[K, B], ABC):
 
         # TODO: check if solved - decorator?
         plans = self._policy.plan(**kwargs)
-        res: Dict[Tuple[Any, Any], npt.ArrayLike] = {}
+        res: Dict[Key, npt.ArrayLike] = {}
         for plan, steps in plans.items():
             if forward:
                 initial_problem = self.problems[steps[0]]
@@ -220,14 +220,14 @@ class CompoundBaseProblem(BaseProblem, Generic[K, B], ABC):
         return SinkhornSolver()
 
     @property
-    def problems(self) -> Optional[Dict[Tuple[Any, Any], B]]:
+    def problems(self) -> Optional[Dict[Key, B]]:
         return self._problems
 
     @property
-    def solutions(self) -> Optional[Dict[Tuple[Any, Any], BaseSolverOutput]]:
+    def solutions(self) -> Optional[Dict[Key, BaseSolverOutput]]:
         return self._solutions
 
-    def __getitem__(self, item: Tuple[Any, Any]) -> B:
+    def __getitem__(self, item: Key) -> B:
         return self.problems[item]
 
     def __len__(self) -> int:
@@ -369,7 +369,7 @@ class CompoundProblem(CompoundBaseProblem, ABC):
             self._prob = MultiCompoundProblem(*adatas)
         super().__init__(self._prob.adata)
 
-    def _create_problem(self, *args: Any, **kwargs: Any) -> Dict[Tuple[Any, Any], B]:
+    def _create_problem(self, *args: Any, **kwargs: Any) -> Dict[Key, B]:
         return self._prob._create_problem(*args, **kwargs)
 
     def _create_policy(

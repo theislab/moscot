@@ -64,10 +64,11 @@ class MappingProblem(SingleCompoundProblem, SpatialMappingAnalysisMixin):
 
         self.filtered_vars = var_names
         if self.filtered_vars is not None:
-            kwargs["joint_attr"] = joint_attr
-            # TODO(michalk8): revisit when refactoring callback
-            if joint_attr is None:
-                kwargs["callback"] = "pca_local"
+            if joint_attr is not None:
+                kwargs["xy"] = joint_attr
+            else:
+                kwargs["callback"] = "local-pca"
+                kwargs["callback_kwargs"] = {**kwargs.get("callback_kwargs", {}), **{"return_linear": True}}
 
         return super().prepare(x=x, y=y, policy="external_star", key=batch_key, **kwargs)
 
@@ -78,7 +79,7 @@ class MappingProblem(SingleCompoundProblem, SpatialMappingAnalysisMixin):
 
     @property
     def adata_sp(self) -> AnnData:
-        """Return spatial adata. Alias for :attr:`anndata.AnnData`."""
+        """Return spatial adata. Alias for :attr:`adata`."""
         return self.adata
 
     @property

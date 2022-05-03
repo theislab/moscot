@@ -22,9 +22,7 @@ class AlignmentProblem(CompoundProblem, SpatialAlignmentAnalysisMixin):
         self,
         batch_key: str,
         spatial_key: str = "spatial",
-        joint_attr: Optional[Mapping[str, Any]] = MappingProxyType(
-            {"x_attr": "X", "y_attr": "X", "tag": "point_cloud"}
-        ),
+        joint_attr: Optional[Mapping[str, Any]] = MappingProxyType({"x_attr": "X", "y_attr": "X"}),
         policy: Literal["sequential", "star"] = "sequential",
         reference: Optional[str] = None,
         **kwargs: Any,
@@ -34,9 +32,9 @@ class AlignmentProblem(CompoundProblem, SpatialAlignmentAnalysisMixin):
         # TODO(michalk8): check for spatial key
         x = y = {"attr": "obsm", "key": self.spatial_key, "tag": "point_cloud"}
 
-        # TODO(michak8): handle callback
-        # if joint_attr is None and self.solver.problem_kind == ProblemKind.QUAD_FUSED:
-        #    kwargs["callback"] = "pca_local"
+        if joint_attr is None:
+            kwargs["callback"] = "local-pca"
+            kwargs["callback_kwargs"] = {**kwargs.get("callback_kwargs", {}), **{"return_linear": True}}
 
         return super().prepare(x=x, y=y, xy=joint_attr, policy=policy, key=batch_key, reference=reference, **kwargs)
 
