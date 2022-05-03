@@ -11,7 +11,7 @@ import numpy as np
 
 from anndata import AnnData
 
-from moscot.problems import CompoundProblem, SingleCompoundProblem
+from moscot.problems import SingleCompoundProblem
 from moscot.backends.ott import FGWSolver, SinkhornSolver
 from moscot.solvers._base_solver import OTSolver, ProblemKind
 from moscot.solvers._tagged_array import Tag, TaggedArray
@@ -96,21 +96,15 @@ class TestSingleCompoundProblem:
 
         assert spy.call_count == len(expected_keys)
 
-
-class TestMultiCompoundProblem:
-    pass
-
-
-class TestCompoundProblem:
     def test_different_passings_linear(self, adata_with_cost_matrix: AnnData):
         epsilon = 5
         xy = {"x_attr": "obsm", "x_key": "X_pca", "y_attr": "obsm", "y_key": "X_pca"}
-        p1 = CompoundProblem(adata_with_cost_matrix, solver=SinkhornSolver())
+        p1 = SingleCompoundProblem(adata_with_cost_matrix, solver=SinkhornSolver())
         p1 = p1.prepare(key="batch", xy=xy)
         p1 = p1.solve(epsilon=epsilon, scale_cost="mean")
         p1_tmap = p1[0, 1].solution.transport_matrix
 
-        p2 = CompoundProblem(adata_with_cost_matrix, solver=SinkhornSolver())
+        p2 = SingleCompoundProblem(adata_with_cost_matrix, solver=SinkhornSolver())
         p2 = p2.prepare(key="batch", xy={"attr": "uns", "key": 0, "loss": None, "tag": "cost"})
         p2 = p2.solve(epsilon=epsilon)
         p2_tmap = p2[0, 1].solution.transport_matrix
@@ -135,3 +129,7 @@ class TestCompoundProblem:
 
         np.testing.assert_allclose(gt.matrix, p1_tmap, rtol=RTOL, atol=ATOL)
         np.testing.assert_allclose(gt.matrix, p2_tmap, rtol=RTOL, atol=ATOL)
+
+
+class TestMultiCompoundProblem:
+    pass

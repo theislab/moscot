@@ -85,14 +85,14 @@ def xy_cost(xy: Geom_t) -> jnp.ndarray:
 def adata_x(x: Geom_t) -> AnnData:
     rng = np.random.RandomState(43)
     pc = rng.normal(size=(len(x), 4))
-    return AnnData(X=np.asarray(x), obsm={"X_pca": pc})
+    return AnnData(X=np.asarray(x, dtype=float), obsm={"X_pca": pc}, dtype=float)
 
 
 @pytest.fixture()
 def adata_y(y: Geom_t) -> AnnData:
     rng = np.random.RandomState(44)
     pc = rng.normal(size=(len(y), 4))
-    return AnnData(X=np.asarray(y), obsm={"X_pca": pc})
+    return AnnData(X=np.asarray(y, dtype=float), obsm={"X_pca": pc}, dtype=float)
 
 
 @pytest.fixture()

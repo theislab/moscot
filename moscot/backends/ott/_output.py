@@ -13,8 +13,8 @@ __all__ = ("SinkhornOutput", "LRSinkhornOutput", "GWOutput")
 
 
 class OutputRankMixin:
-    def __init__(self, *, rank: int, **kwargs: Any):
-        super().__init__(**kwargs)
+    def __init__(self, *args, rank: int, **kwargs: Any):
+        super().__init__(*args, **kwargs)
         self._rank = max(-1, rank)
 
     @property

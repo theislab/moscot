@@ -162,7 +162,7 @@ class OTProblem(BaseProblem):
                 return AnnDataPointer(self._adata_y.T, tag=tag, **kwargs).create()
             raise NotImplementedError("TODO: cost/kernel storage not implemented. Use obsm/varm")
         if tag != Tag.POINT_CLOUD:
-            # TODO(michalk8): log-warn
+            # TODO(michalk8): log-warn?
             tag = Tag.POINT_CLOUD
 
         # TODO(michalk8): mb. be less stringent and assume without the prefix x_ belong to x
@@ -185,6 +185,7 @@ class OTProblem(BaseProblem):
         b: Optional[Union[str, npt.ArrayLike]] = None,
         **_: Any,
     ) -> "OTProblem":
+        # TODO(michalk8): necessary for?
         def update_key(kwargs: Mapping[str, Any], *, is_source: bool) -> Mapping[str, Any]:
             if kwargs.get("attr", None) == "uns":
                 kwargs = dict(kwargs)
@@ -201,12 +202,12 @@ class OTProblem(BaseProblem):
         elif x is not None and y is not None and xy is None:
             self._problem_kind = ProblemKind.QUAD
             self._x = AnnDataPointer(adata=self.adata, **update_key(x, is_source=True)).create()
-            self._y = AnnDataPointer(adata=self.adata, **update_key(y, is_source=False)).create()
+            self._y = AnnDataPointer(adata=self._adata_y, **update_key(y, is_source=False)).create()
         elif xy is not None and x is not None and y is not None:
             self._problem_kind = ProblemKind.QUAD_FUSED
             self._xy = xy if isinstance(xy, tuple) else self._handle_linear(**xy)
             self._x = AnnDataPointer(adata=self.adata, **update_key(x, is_source=True)).create()
-            self._y = AnnDataPointer(adata=self.adata, **update_key(y, is_source=False)).create()
+            self._y = AnnDataPointer(adata=self._adata_y, **update_key(y, is_source=False)).create()
         else:
             raise NotImplementedError("TODO: Combination not implemented")
 
