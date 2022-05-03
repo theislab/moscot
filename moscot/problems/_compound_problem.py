@@ -226,7 +226,6 @@ class CompoundBaseProblem(BaseProblem, Generic[K, B], ABC):
 
         Parameters
         ----------
-
         %(data)s
         %(subset)s
         %(normalize)s

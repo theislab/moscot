@@ -22,7 +22,7 @@ from moscot.solvers._tagged_array import TaggedArray
 
 __all__ = ("Cost", "SinkhornSolver", "GWSolver", "FGWSolver")
 
-O = TypeVar("O", bound=BaseSolverOutput)
+O = TypeVar("O", bound=BaseSolverOutput)  # noqa: E741
 Scale_t = Optional[Union[float, Literal["mean", "median", "max_cost", "max_norm", "max_bound"]]]
 
 
@@ -47,7 +47,7 @@ class Cost(str, Enum):
 class Description(NamedTuple):
     solver: Union[Sinkhorn, LRSinkhorn, GromovWasserstein]
     data: Union[LinearProblem, QuadraticProblem]
-    output: Union[Type[O]]
+    output: Union[Type[SinkhornOutput], Type[LRSinkhornOutput], Type[GWOutput]]
 
 
 class OTTJaxSolver(OTSolver, Generic[O], ABC):
@@ -133,7 +133,7 @@ class OTTJaxSolver(OTSolver, Generic[O], ABC):
         self,
         desc: Description,
         **kwargs: Any,
-    ) -> O:
+    ) -> O:  # noqa: E741
         res = desc.solver(desc.data, **kwargs)
         return desc.output(res, rank=getattr(desc.solver, "rank", -1))
 
