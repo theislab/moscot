@@ -40,6 +40,7 @@ class BaseProblem(ABC):
     def __init__(
         self,
         adata: AnnData,
+        copy: bool = False,
     ):
         # TODO(michalk8): remove this
         if getattr(adata, "n_obs") == 0:
@@ -47,7 +48,7 @@ class BaseProblem(ABC):
         if getattr(adata, "n_vars") == 0:
             raise ValueError("TODO: `adata` has no variables.")
 
-        self._adata = adata
+        self._adata = adata.copy() if copy else adata
         self._problem_kind: Optional[ProblemKind] = None
 
     @abstractmethod
