@@ -44,10 +44,11 @@ class TemporalBaseProblem(MultiMarginalProblem):
         *,
         source: Number,
         target: Number,
+        **kwargs: Any,
     ):
         if source >= target:
             raise ValueError(f"{source} is expected to be strictly smaller than {target}.")
-        super().__init__(adata_x, adata_y=adata_y, source=source, target=target)
+        super().__init__(adata_x, adata_y=adata_y, source=source, target=target, **kwargs)
 
     def _estimate_marginals(
         self,
@@ -106,8 +107,8 @@ class TemporalProblem(TemporalAnalysisMixin, SingleCompoundProblem[Number, Tempo
     See notebook TODO(@MUCDK) LINK NOTEBOOK for how to use it
     """
 
-    def __init__(self, adata: AnnData):
-        super().__init__(adata)
+    def __init__(self, adata: AnnData, **kwargs: Any):
+        super().__init__(adata, **kwargs)
         self._temporal_key: Optional[str] = None
         self._proliferation_key: Optional[str] = None
         self._apoptosis_key: Optional[str] = None
@@ -145,11 +146,10 @@ class TemporalProblem(TemporalAnalysisMixin, SingleCompoundProblem[Number, Tempo
 
         Returns
         -------
-        returns :class:`moscot.problems.time.TemporalProblem` and updates the following attributes
+        Returns :class:`moscot.problems.time.TemporalProblem` and updates the following attributes
 
-                - :attr:`proliferation_key`
-                - :attr:`apoptosis_key`
-
+            - :attr:`proliferation_key`
+            - :attr:`apoptosis_key`
         Notes
         -----
         The marker genes in :mod:`moscot` are taken from the following sources:

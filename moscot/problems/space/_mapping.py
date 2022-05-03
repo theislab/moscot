@@ -16,9 +16,9 @@ from moscot.problems._compound_problem import B, SingleCompoundProblem
 class MappingProblem(SingleCompoundProblem, SpatialMappingAnalysisMixin):
     """Mapping problem."""
 
-    def __init__(self, adata_sc: AnnData, adata_sp: AnnData):
+    def __init__(self, adata_sc: AnnData, adata_sp: AnnData, **kwargs: Any):
         """Init method."""
-        super().__init__(adata_sp)
+        super().__init__(adata_sp, **kwargs)
         self._adata_sc = adata_sc
         # TODO(michalk8): rename to common_vars?
         self.filtered_vars: Optional[Sequence[str]] = None

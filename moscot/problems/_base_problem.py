@@ -136,9 +136,10 @@ class OTProblem(BaseProblem):
         *,
         source: Any = "src",
         target: Any = "tgt",
+        **kwargs: Any,
     ):
-        super().__init__(adata_x)
-        self._adata_y = adata_x if adata_y is None else adata_y
+        super().__init__(adata_x, **kwargs)
+        self._adata_y = adata_x if adata_y is None else adata_y.copy() if copy else adata_y
         self._solution: Optional[BaseSolverOutput] = None
 
         self._x: Optional[TaggedArray] = None

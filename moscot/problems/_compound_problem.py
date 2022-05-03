@@ -61,8 +61,8 @@ class CompoundBaseProblem(BaseProblem, Generic[K, B], ABC):
         If `base_problem_type` is not a subclass of `GeneralProblem`.
     """
 
-    def __init__(self, adata: AnnData):
-        super().__init__(adata)
+    def __init__(self, adata: AnnData, **kwargs: Any):
+        super().__init__(adata, **kwargs)
         self._problems: Optional[Dict[Key, B]] = None
         self._solutions: Optional[Dict[Key, BaseSolverOutput]] = None
         self._policy: Optional[SubsetPolicy] = None
@@ -482,6 +482,7 @@ class MultiCompoundProblem(CompoundBaseProblem, Generic[K, B], ABC):
     def __init__(
         self,
         *adatas: Union[AnnData, Mapping[K, AnnData], Tuple[AnnData, ...], List[AnnData]],
+        **kwargs: Any,
     ):
         if not len(adatas):
             raise ValueError("TODO: no adatas passed")
@@ -501,7 +502,7 @@ class MultiCompoundProblem(CompoundBaseProblem, Generic[K, B], ABC):
             adata = adatas[0]
 
         # TODO(michalk8): can this have unintended consequences in push/pull?
-        super().__init__(adata)
+        super().__init__(adata, **kwargs)
 
         if not isinstance(adatas, Mapping):
             adatas = {i: adata for i, adata in enumerate(adatas)}

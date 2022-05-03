@@ -13,9 +13,9 @@ from moscot.problems._compound_problem import B, SingleCompoundProblem
 class AlignmentProblem(SingleCompoundProblem, SpatialAlignmentAnalysisMixin):
     """Spatial alignment problem."""
 
-    def __init__(self, adata: AnnData):
+    def __init__(self, adata: AnnData, **kwargs: Any):
         """Init method."""
-        super().__init__(adata)
+        super().__init__(adata, **kwargs)
         self._spatial_key: Optional[str] = None
 
     def prepare(
