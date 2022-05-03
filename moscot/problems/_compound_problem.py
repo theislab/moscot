@@ -100,6 +100,7 @@ class CompoundBaseProblem(BaseProblem, Generic[K, B], ABC):
         if not callable(callback):
             raise TypeError("TODO: callback not callable")
 
+        # TODO(michalk8): consider passing `adata` that only has `src`/`tgt`
         data = callback(problem.adata, problem._adata_y, **callback_kwargs)
         if not isinstance(data, Mapping):
             raise TypeError("TODO: callback did not return a mapping.")
@@ -140,7 +141,7 @@ class CompoundBaseProblem(BaseProblem, Generic[K, B], ABC):
         subset: Optional[Sequence[Key]] = None,
         reference: Optional[Any] = None,
         axis: Axis_t = "obs",
-        callback: Optional[Union[Literal["pca_local"], Callable[[AnnData, Any], npt.ArrayLike]]] = None,
+        callback: Optional[Union[Literal["local-pca"], Callback_t]] = None,
         callback_kwargs: Mapping[str, Any] = MappingProxyType({}),
         **kwargs: Any,
     ) -> "CompoundBaseProblem":
@@ -424,13 +425,15 @@ class SingleCompoundProblem(CompoundBaseProblem, Generic[K, B], ABC):
         callback: Union[Literal["local-pca", "cost-matrix"], Callback_t],
         callback_kwargs: Mapping[str, Any],
     ) -> Mapping[str, Any]:
-        # TODO(michalk8): better name
+        # TODO(michalk8): better name?
         if callback == "cost-matrix":
             return self._cost_matrix_callback(src, tgt, **callback_kwargs)
 
         return super()._callback_handler(src, tgt, problem, callback, callback_kwargs=callback_kwargs)
 
-    def _cost_matrix_callback(self, src: K, tgt: K, *, key: str, return_linear: bool = True, **_: Any) -> TaggedArray:
+    def _cost_matrix_callback(
+        self, src: K, tgt: K, *, key: str, return_linear: bool = True, **_: Any
+    ) -> Dict[Literal["xy", "x", "y"], TaggedArray]:
         attr = f"{self._policy.axis}p"
         try:
             data = getattr(self.adata, attr)[key]
@@ -441,7 +444,7 @@ class SingleCompoundProblem(CompoundBaseProblem, Generic[K, B], ABC):
         tgt_mask = self._policy.create_mask(tgt, allow_empty=False)
 
         if return_linear:
-            return {"xy": TaggedArray(data[src_mask, :][:, tgt_mask], tag=Tag.COST_MATRIX)}
+            return {"xy": (TaggedArray(data[src_mask, :][:, tgt_mask], tag=Tag.COST_MATRIX), None)}
 
         return {
             "x": TaggedArray(data[src_mask, :][:, src_mask], tag=Tag.COST_MATRIX),
