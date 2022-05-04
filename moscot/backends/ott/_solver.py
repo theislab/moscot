@@ -4,7 +4,7 @@ from typing import Any, Type, Tuple, Union, Generic, TypeVar, Optional, NamedTup
 
 from typing_extensions import Literal
 
-from ott.geometry import Grid, Geometry, PointCloud
+from ott.geometry import Grid, Epsilon, Geometry, PointCloud
 from ott.core.problems import LinearProblem
 from ott.core.sinkhorn import Sinkhorn
 from ott.geometry.costs import Bures, Cosine, CostFn, Euclidean, UnbalancedBures
@@ -24,6 +24,7 @@ __all__ = ("Cost", "SinkhornSolver", "GWSolver", "FGWSolver")
 
 O = TypeVar("O", bound=BaseSolverOutput)  # noqa: E741
 Scale_t = Optional[Union[float, Literal["mean", "median", "max_cost", "max_norm", "max_bound"]]]
+Epsilon_t = Union[float, Epsilon]
 
 
 class Cost(str, Enum):
@@ -73,7 +74,7 @@ class OTTJaxSolver(OTSolver, Generic[O], ABC):
         x: TaggedArray,
         y: Optional[TaggedArray] = None,
         *,
-        epsilon: Optional[float] = None,
+        epsilon: Optional[Epsilon_t] = None,
         online: Union[int, bool] = False,
         scale_cost: Scale_t = None,
     ) -> Geometry:
@@ -167,7 +168,7 @@ class SinkhornSolver(OTTJaxSolver[Union[SinkhornOutput, LRSinkhornOutput]]):
         xy: Optional[Tuple[TaggedArray, Optional[TaggedArray]]] = None,
         x: Optional[TaggedArray] = None,
         y: Optional[TaggedArray] = None,
-        epsilon: Optional[float] = None,
+        epsilon: Optional[Epsilon_t] = None,
         online: Union[int, bool] = False,
         scale_cost: Scale_t = None,
         **kwargs: Any,
@@ -218,7 +219,7 @@ class GWSolver(OTTJaxSolver[GWOutput]):
         xy: Optional[Tuple[TaggedArray, Optional[TaggedArray]]] = None,
         x: Optional[TaggedArray] = None,
         y: Optional[TaggedArray] = None,
-        epsilon: Optional[float] = None,
+        epsilon: Optional[Epsilon_t] = None,
         online: Union[int, bool] = False,
         scale_cost: Scale_t = None,
         **kwargs: Any,
@@ -269,7 +270,7 @@ class FGWSolver(GWSolver):
         xy: Optional[Tuple[TaggedArray, Optional[TaggedArray]]] = None,
         x: Optional[TaggedArray] = None,
         y: Optional[TaggedArray] = None,
-        epsilon: Optional[float] = None,
+        epsilon: Optional[Epsilon_t] = None,
         online: Union[int, bool] = False,
         scale_cost: Scale_t = None,
         alpha: float = 0.5,
