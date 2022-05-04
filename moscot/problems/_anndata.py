@@ -76,7 +76,7 @@ class AnnDataPointer:
                 )
                 return TaggedArray(cost_matrix, tag=self.tag, loss=None)
             if not hasattr(self.adata, self.attr):
-                raise AttributeError("TODO: invalid attribute")
+                raise AttributeError(f"TODO: invalid attribute: {self.attr}")
             container = getattr(self.adata, self.attr)
             if issparse(container):
                 container = container.A
@@ -95,7 +95,7 @@ class AnnDataPointer:
         # TODO(@michalk) handle backend losses
         backend_losses = _get_backend_losses()  # TODO: put in registry, provide kwargs
         if not hasattr(self.adata, self.attr):
-            raise AttributeError("TODO: invalid attribute")
+            raise AttributeError(f"TODO: invalid attribute: {self.attr}")
         container = getattr(self.adata, self.attr)
         if scipy.sparse.issparse(container):
             return TaggedArray(

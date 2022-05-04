@@ -139,13 +139,14 @@ class TemporalAnalysisMixin(AnalysisMixin):
         *,
         only_start: bool = False,
     ) -> Tuple[Union[npt.ArrayLike, AnnData], ...]:
+        # TODO(michalk8): refactor me
         for (start_, end_) in self._problems.keys():
-            if self._problems[(start_, end_)].x.tag != "point_cloud":
+            if self._problems[(start_, end_)].xy[0].tag != "point_cloud":
                 raise ValueError(
-                    f"TODO: This method requires the data to be stored as point_clouds. It is currently stored as {self._problems[(start_, end_)].x.tag}"
+                    f"TODO: This method requires the data to be stored as point_clouds. It is currently stored as {self._problems[(start_, end_)].xy[0].tag}"
                 )
             if start_ == key:
-                source_data = self._problems[(start_, end_)].x.data
+                source_data = self._problems[(start_, end_)].xy[0].data
                 if only_start:
                     return source_data, self._problems[(start_, end_)].adata
                 growth_rates_source = self._problems[(start_, end_)].growth_rates[:, -1]
@@ -154,14 +155,14 @@ class TemporalAnalysisMixin(AnalysisMixin):
             raise ValueError(f"No data found for time point {key}")
         for (start_, end_) in self._problems.keys():
             if start_ == intermediate:
-                intermediate_data = self._problems[(start_, end_)].x.data
+                intermediate_data = self._problems[(start_, end_)].xy[0].data
                 intermediate_adata = self._problems[(start_, end_)].adata
                 break
         else:
             raise ValueError(f"No data found for time point {intermediate}")
         for (start_, end_) in self._problems.keys():
             if end_ == end:
-                target_data = self._problems[(start_, end_)]._y.data
+                target_data = self._problems[(start_, end_)].xy[1].data
                 break
         else:
             raise ValueError(f"No data found for time point {end}")

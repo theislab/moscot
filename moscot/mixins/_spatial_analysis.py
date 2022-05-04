@@ -40,14 +40,12 @@ class SpatialAlignmentAnalysisMixin(AnalysisMixin):
             bwd_steps = self._policy.plan(start=reference)
 
         if len(fwd_steps):
-            for k in fwd_steps.keys():
-                start, end = k
+            for (start, end) in fwd_steps.keys():
                 tmap = self._interpolate_transport(start=start, end=end, normalize=True, forward=True)
                 dic_transport[start] = fun_transport(tmap, subs_adata(start), src)
 
         if bwd_steps is not None and len(bwd_steps):
-            for k in bwd_steps.keys():
-                start, end = k
+            for (start, end) in bwd_steps.keys():
                 tmap = self._interpolate_transport(start=start, end=end, normalize=True, forward=False)
                 dic_transport[end] = fun_transport(tmap.T, subs_adata(end), src)
 
