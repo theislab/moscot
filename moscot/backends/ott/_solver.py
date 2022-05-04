@@ -16,6 +16,7 @@ from ott.core.gromov_wasserstein import GromovWasserstein
 import jax.numpy as jnp
 import numpy.typing as npt
 
+from moscot._docs import d
 from moscot.solvers._output import BaseSolverOutput
 from moscot.backends.ott._output import GWOutput, SinkhornOutput, LRSinkhornOutput
 from moscot.solvers._base_solver import BaseSolver, ProblemKind
@@ -49,7 +50,28 @@ class SolverDescription(NamedTuple):
     output: Union[Type[SinkhornOutput], Type[LRSinkhornOutput], Type[GWOutput]]
 
 
+@d.get_sections(base="GeometryMixin", sections=["Parameters", "Raises"])
+@d.dedent
 class GeometryMixin:
+    """
+    Class handling the preparation of :class:`ott.geometry.Geometry`
+
+    Parameters
+    ----------
+    kwargs
+        keyword arguments for one of the following
+        - :class:`ott.core.sinkhorn.Sinkhorn`
+        - :class:`ott.core.sinkhorn_lr.LRSinkhorn`
+        - :class:`ott.core.gromov_wasserstein.GromovWasserstein`
+
+    Raises
+    ------
+    ValueError
+        If the dimensions of `x` and `y` do not match
+    NotImplementedError
+        If the `tag` is not among the implemented ones
+    """
+
     def __init__(self, **kwargs: Any):
         super().__init__()
         self._solver = self._description.solver(**kwargs)
@@ -119,7 +141,25 @@ class GeometryMixin:
         return self._description.output(self._solver(data, **kwargs), **output_kwargs)
 
 
+@d.get_sections(base="RankMixin", sections=["Parameters", "Raises"])
+@d.dedent
 class RankMixin(GeometryMixin):
+    """
+    Class interfacing with the backend solvers. TODO: maybe rename?
+
+    Parameters
+    ----------
+    rank
+        If rank is larger than 0 this is the rank used for the low rank as defined
+        in :cite:`scetbon:2021_a` or :cite:`scetbon:2021_b`
+    %(GeometryMixin.parameters)s
+
+    Raises
+    ------
+    %(GeometryMixin.raises)s
+
+    """
+
     def __init__(self, rank: int = -1, **kwargs: Any):
         # a bit ugly - must be set before calling super().__init__
         # otherwise, would need to refactor how description works
@@ -197,7 +237,33 @@ class RankMixin(GeometryMixin):
         return self.rank > 0
 
 
+@d.dedent
 class SinkhornSolver(RankMixin, BaseSolver):
+    """
+    Solver class solving linear Optimal Transport problems.
+
+    The (Kantorovich relaxed) Optimal Transport problem is defined by two distributions in the same space. The
+    aim is to obtain a probabilistic map from the source distribution to the target distribution such that
+    the (weighted) sum of the distances between coupled data point in the source and the target distribution is
+    minimized.
+
+    This solver wraps :class:`ott.core.sinkhorn.Sinkhorn` :cite:`cuturi:2013` by default and :cite:`cuturi:2013`
+    :class:`ott.core.sinkhorn_lr.LRSinkhorn` :cite:`scetbon:2021_a` if `rank` is a positive integer. In the
+    former case, the solver makes use of the Sinkhorn algorithm, in the latter a mirror descent algorithm.
+
+    TODO: link notebooks for example
+
+    Parameters
+    ----------
+    %(RankMixin.parameters)s
+    %(BaseSolver.parameters)s
+
+    Raises
+    ------
+    %(RankMixin.raises)s
+    %(BaseSolver.parameters)s
+    """
+
     @property
     def problem_kind(self) -> ProblemKind:
         return ProblemKind.LINEAR
@@ -230,7 +296,32 @@ class SinkhornSolver(RankMixin, BaseSolver):
         return SolverDescription(Sinkhorn, SinkhornOutput)
 
 
+@d.dedent
 class GWSolver(RankMixin, BaseSolver):
+    """
+    Solver class solving quadratic Optimal Transport problems.
+
+    The Gromov-Wasserstein (GW) problem involves two distribution in possibly two different spaces. Points in the source
+    distribution are matched to points in the target distribution by comparing the relative location of the datapoints
+    within each distribution.
+
+    This solver wraps :class:`ott.core.gromov_wasserstein.GromovWasserstein` which handles both the full rank
+    Gromov-Wasserstein algorithm :cite:`memoli:2011` as well as the low rank approach :cite:`scetbon:2021_b`.
+    In both cases the solver makes use of a mirror-descent algorithm :cite:`memoli:2011`.
+
+    TODO: link notebooks for example
+
+    Parameters
+    ----------
+    %(RankMixin.parameters)s
+    %(BaseSolver.parameters)s
+
+    Raises
+    ------
+    %(RankMixin.raises)s
+    %(BaseSolver.raises)s
+    """
+
     def _prepare_input(
         self,
         x: TaggedArray,
@@ -297,6 +388,30 @@ class GWSolver(RankMixin, BaseSolver):
 
 
 class FGWSolver(GWSolver):
+    """
+    Class which solves quadratic OT problems with a linear term included.
+
+    The Fused Gromov-Wasserstein (FGW) problem involves two distributions living in two subspaces,
+    corresponding to the linear term and the quadratic termm, respectively. The subspace corresponding
+    to the linear term is shared between the two distributions. The subspace corresponding to the quadratic
+    term is defined in possibly two different spaces. The matchings obtained from FGW are a compromise
+    between the ones induced by the linear OT problem and the purely quadratic OT problem (GW) :cite:`vayer:2018`.
+
+    This solver wraps :class:`ott.core.gromov_wasserstein.GromovWasserstein` with non-trivial `fused_penalty`.
+
+    TODO: link notebooks for example
+
+    Parameters
+    ----------
+    %(RankMixin.parameters)s
+    %(BaseSolver.parameters)s
+
+    Raises
+    ------
+    %(RankMixin.raises)s
+    %(BaseSolver.raises)s
+    """
+
     def _prepare_input(
         self,
         x: TaggedArray,

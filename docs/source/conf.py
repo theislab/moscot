@@ -21,9 +21,15 @@ sys.path.insert(0, str(HERE.parent.parent))
 # -- Project information -----------------------------------------------------
 
 project = "moscot"
-copyright = "2021, Theislab"  # noqa: A001
+copyright = "2022, Theislab"
 author = "foo"  # moscot.__author__
 version = "0.0"  # moscot.__version__
+
+github_org = "theislab"
+github_repo = "moscot"
+github_ref = "master"
+github_nb_repo = "moscot_notebooks"
+# _fetch_notebooks(repo_url=f"https://github.com/{github_org}/{github_nb_repo}")
 
 # -- General configuration ---------------------------------------------------
 
@@ -41,9 +47,13 @@ extensions = [
     "sphinxcontrib.bibtex",
 ]
 intersphinx_mapping = {
+    "python": ("https://docs.python.org/3", None),
     "numpy": ("https://docs.scipy.org/doc/numpy/", None),
     "jax": ("https://jax.readthedocs.io/en/latest/", None),
     "ott": ("https://ott-jax.readthedocs.io/en/latest/", None),
+    "pandas": ("https://pandas.pydata.org/pandas-docs/stable/", None),
+    "anndata": ("https://anndata.readthedocs.io/en/stable/", None),
+    "scanpy": ("https://scanpy.readthedocs.io/en/stable/", None),
 }
 master_doc = "index"
 pygments_style = "sphinx"
@@ -55,6 +65,9 @@ bibtex_default_style = "alpha"
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ["_templates"]
+source_suffix = [".rst", ".ipynb"]
+master_doc = "index"
+pygments_style = "sphinx"
 
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.

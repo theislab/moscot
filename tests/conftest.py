@@ -9,8 +9,10 @@ from jax.config import config
 from anndata import AnnData
 
 config.update("jax_enable_x64", True)
-from jax import numpy as jnp  # noqa: E402
-import numpy as np  # noqa: E402
+from _utils import Geom_t
+
+from jax import numpy as jnp
+import numpy as np
 
 from tests._utils import Geom_t  # noqa: E402
 

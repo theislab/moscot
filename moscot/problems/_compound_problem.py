@@ -9,6 +9,7 @@ import numpy.typing as npt
 
 from anndata import AnnData
 
+from moscot._docs import d
 from moscot.backends.ott import SinkhornSolver
 from moscot.solvers._output import BaseSolverOutput
 from moscot.solvers._base_solver import BaseSolver, ProblemKind
@@ -27,7 +28,28 @@ Callback_t = Optional[
 ]
 
 
+@d.get_sections(base="CompoundBaseProblem", sections=["Parameters", "Raises"])
+@d.dedent
 class CompoundBaseProblem(BaseProblem, ABC):
+    """
+    Base class for all biological problems.
+
+    This base class translates a biological problem to potentially multiple Optimal Transport problems.
+
+    Parameters
+    ----------
+    %(adata)s
+    %(solver)s
+    base_problem_type
+        subclass of :class:`moscot.problems.GeneralProblem` defining the problem type of a single optimal
+        transport problem
+
+    Raises
+    ------
+    TypeError
+        If `base_problem_type` is not a subclass of `GeneralProblem`.
+    """
+
     def __init__(
         self,
         adata: AnnData,
@@ -90,6 +112,8 @@ class CompoundBaseProblem(BaseProblem, ABC):
 
         return problems
 
+    @d.get_sections(base="CompoundBaseProblem_prepare", sections=["Parameters", "Raises"])
+    @d.dedent
     def prepare(
         self,
         key: str,
@@ -101,6 +125,32 @@ class CompoundBaseProblem(BaseProblem, ABC):
         callback_kwargs: Mapping[str, Any] = MappingProxyType({}),
         **kwargs: Any,
     ) -> "CompoundProblem":
+        """
+        Prepare the biological problem.
+
+        Parameters
+        ----------
+        key
+            key in :attr:`anndata.AnnData.obs` allocating the cell to a certain cell distribution
+        policy
+            defines which transport maps to compute given different cell distributions
+        subset
+            subset of `anndata.AnnData.obs` [key] values of which the policy is to be applied to
+        %(reference)s
+        %(axis)s
+        %(callback)s
+        %(callback_kwargs)s
+        kwargs
+            keyword arguments for
+
+        Returns
+        -------
+        :class:moscot.problems.CompoundProblem
+
+        Raises
+        ------
+
+        """
         self._policy = self._create_policy(policy=policy, key=key, axis=axis)
         if isinstance(self._policy, ExplicitPolicy):
             self._policy = self._policy(subset)
@@ -114,6 +164,7 @@ class CompoundBaseProblem(BaseProblem, ABC):
 
         return self
 
+    @d.dedent
     def solve(
         self,
         epsilon: Optional[float] = None,
@@ -122,6 +173,25 @@ class CompoundBaseProblem(BaseProblem, ABC):
         tau_b: float = 1.0,
         **kwargs: Any,
     ) -> "CompoundProblem":
+        """
+        Solve the biological problem.
+
+        Parameters
+        ----------
+
+        %(epsilon)s
+        %(alpha)s
+        %(tau_a)s
+        %(tau_b)s
+        kwargs
+            Keyword arguments for one of
+                - :attr:`moscot.problems.GeneralProblem.solve()`
+                - :attr:`moscot.problems.MultiMarginalProblem.solve()`
+                - :attr:`moscot.problems.TemporalBaseProblem.solve()`
+
+        Raises
+        ------
+        """
         self._solutions = {}
         for subset, problem in self.problems.items():
             self.solutions[subset] = problem.solve(
@@ -130,6 +200,8 @@ class CompoundBaseProblem(BaseProblem, ABC):
 
         return self
 
+    @d.get_sections(base="_apply", sections=["Parameters", "Raises"])
+    @d.dedent
     def _apply(
         self,
         data: Optional[Union[str, npt.ArrayLike, Mapping[Tuple[Any, Any], Union[str, npt.ArrayLike]]]] = None,
@@ -140,6 +212,30 @@ class CompoundBaseProblem(BaseProblem, ABC):
         scale_by_marginals: bool = False,
         **kwargs: Any,
     ) -> Union[Dict[Tuple[Any, Any], npt.ArrayLike], Dict[Tuple[Any, Any], Dict[Tuple[Any, Any], npt.ArrayLike]]]:
+        """
+        Use (a) transport map(s) as a linear operator.
+
+        Parameters
+        ----------
+
+        %(data)s
+        %(subset)s
+        %(normalize)s
+        forward
+            If `True` the data is pushed from the source to the target distribution. If `False` the mass is pulled
+            from the target distribution to the source distribution.
+        return_all
+            If `True` and transport maps are applied consecutively only the final mass is returned. Otherwise,
+            all intermediate step results are returned, too.
+        %(scale_by_marginals)s
+
+
+        Raises
+        ------
+        ValueError
+            If a transport map between the corresponding source and target distribution is not computed
+        """
+
         def get_data(plan: Tuple[Any, Any]) -> Optional[npt.ArrayLike]:
             if isinstance(data, np.ndarray):
                 return data
@@ -190,10 +286,54 @@ class CompoundBaseProblem(BaseProblem, ABC):
         # TODO(michalk8): return the values iff only 1 plan?
         return res
 
+    @d.get_sections(base="CompoundBaseProblem_push", sections=["Parameters", "Raises"])
+    @d.dedent
     def push(self, *args: Any, **kwargs: Any) -> Union[npt.ArrayLike, Dict[Any, npt.ArrayLike]]:
+        """
+        Push mass from `start` to `end`. TODO: verify.
+
+        Parameters
+        ----------
+        %(data)s
+        %(subset)s
+        %(normalize)s
+        return_all
+            If `True` and transport maps are applied consecutively only the final mass is returned. Otherwise,
+            all intermediate step results are returned, too.
+        %(scale_by_marginals)s
+        kwargs
+            keyword arguments for :meth:`moscot.problems.CompoundProblem._apply()`
+
+
+        Raises
+        ------
+        %(_apply.raises)s
+        """
         return self._apply(*args, forward=True, **kwargs)
 
+    @d.get_sections(base="CompoundBaseProblem_pull", sections=["Parameters", "Raises"])
+    @d.dedent
     def pull(self, *args: Any, **kwargs: Any) -> Union[npt.ArrayLike, Dict[Any, npt.ArrayLike]]:
+        """
+        Pull mass from `end` to `start`. TODO: expose kwargs.
+
+        Parameters
+        ----------
+        %(data)s
+        %(subset)s
+        %(normalize)s
+        return_all
+            If `True` and transport maps are applied consecutively only the final mass is returned. Otherwise,
+            all intermediate step results are returned, too.
+        %(scale_by_marginals)s
+        kwargs
+            keyword arguments for :meth:`moscot.problems.CompoundProblem._apply()`
+
+
+        Raises
+        ------
+        %(_apply.raises)s
+        """
         return self._apply(*args, forward=False, **kwargs)
 
     @property
@@ -220,7 +360,24 @@ class CompoundBaseProblem(BaseProblem, ABC):
         return iter(self.problems)
 
 
+@d.get_sections(base="SingleCompoundProblem", sections=["Parameters", "Raises"])
+@d.dedent
 class SingleCompoundProblem(CompoundBaseProblem):
+    """
+    Class handling biological problems composed of exactly one :class:`anndata.AnnData` instance.
+
+    This class is needed to apply the `policy` to one :class:`anndata.AnnData` objects and hence create the
+    Optimal Transport subproblems from the biological problem.
+
+    Parameters
+    ----------
+    %(CompoundBaseProblem.parameters)s
+
+    Raises
+    ------
+    %(CompoundBaseProblem.raises)s
+    """
+
     def _create_problem(
         self, src: Any, tgt: Any, src_mask: npt.ArrayLike, tgt_mask: npt.ArrayLike, **kwargs: Any
     ) -> GeneralProblem:
@@ -260,7 +417,27 @@ class SingleCompoundProblem(CompoundBaseProblem):
         self.adata.obs[obs_key] = tmp
 
 
+@d.get_sections(base="MultiCompoundProblem", sections=["Parameters", "Raises"])
+@d.dedent
 class MultiCompoundProblem(CompoundBaseProblem):
+    """
+    Class handling biological problems composed of more than one :class:`anndata.AnnData` instance.
+
+    This class is needed to apply the `policy` to multiple :class:`anndata.AnnData` objects and hence create the
+    Optimal Transport subproblems from the biological problem.
+
+    Parameters
+    ----------
+    %(adatas)s
+    %(solver)s
+    kwargs
+        keyword arguments for :class:`moscot.problems.CompoundBaseProblem`
+
+    Raises
+    ----------
+    %(CompoundBaseProblem.raises)s
+    """
+
     _KEY = "subset"
 
     def __init__(
@@ -328,7 +505,33 @@ class MultiCompoundProblem(CompoundBaseProblem):
         )
 
 
+@d.get_sections(base="CompoundProblem", sections=["Parameters", "Raises"])
+@d.dedent
 class CompoundProblem(CompoundBaseProblem):
+    """
+    Class handling biological problems.
+
+    This class dispatches by initialising :attr:`moscot.problems.CompoundProblem._prob` to an instance of
+    :class:`moscot.problems.SingleCompoundProblem` or :class:`moscot.problems.MultiCompoundProblem` if the number
+    of :class:`anndata.AnnData` instances is one or strictly than larger one, respectively.
+    :attr:`moscot.problems.CompoundProblem._prob` is needed to apply the `policy` and hence create the Optimal
+    Transport subproblems from the biological problem.
+
+    Parameters
+    ----------
+    %(adatas)s
+    %(solver)s
+    kwargs
+        key word arguments of :class:`moscot.problems.SingleCompoundProblem` or
+        :class:`moscot.problems.MultiCompoundProblem`
+
+    Raises
+    ------
+    %(CompoundBaseProblem.raises)s
+    %(SingleCompoundProblem.raises)s
+    %(MultiCompoundProblem.raises)s
+    """
+
     def __init__(
         self,
         *adatas: Union[AnnData, Mapping[Any, AnnData], Tuple[AnnData, ...], List[AnnData]],
