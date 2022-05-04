@@ -215,16 +215,16 @@ class OTProblem(BaseProblem):
             raise RuntimeError("Run .prepare() first")
         kwargs["epsilon"] = epsilon
         kwargs["rank"] = rank
+        # allow `MultiMarginalProblem` to pass new marginals
+        a = kwargs.pop("a", self._a)
+        b = kwargs.pop("b", self._b)
+
         prepare_kwargs = dict(prepare_kwargs)
         prepare_kwargs["epsilon"] = epsilon
         prepare_kwargs["scale_cost"] = scale_cost
         prepare_kwargs["online"] = online
 
         solver = self._problem_kind.solver(backend="ott")(**kwargs)
-
-        # allow `MultiMarginalProblem` to pass new marginals
-        a = kwargs.pop("a", self._a)
-        b = kwargs.pop("b", self._b)
         self._solution = solver(x=self._x, y=self._y, xy=self._xy, a=a, b=b, **prepare_kwargs)
 
         return self
