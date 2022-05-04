@@ -5,16 +5,15 @@ import pandas as pd
 import pytest
 
 from jax.config import config
+import numpy as np
 
 from anndata import AnnData
 
+from tests._utils import Geom_t
+
 config.update("jax_enable_x64", True)
-from _utils import Geom_t
 
-from jax import numpy as jnp
-import numpy as np
-
-from tests._utils import Geom_t  # noqa: E402
+from jax import numpy as jnp  # noqa: E402
 
 
 @pytest.fixture()
