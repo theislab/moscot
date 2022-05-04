@@ -180,7 +180,7 @@ class SinkhornSolver(OTTJaxSolver[Union[SinkhornOutput, LRSinkhornOutput]]):
             solver = LRSinkhorn(**self._solver_kwargs)
             output = LRSinkhornOutput
         else:
-            solver = Sinkhorn(**{k: v for k, v in self._solver_kwargs.items() if k != "rank"})
+            solver = Sinkhorn(**{k: v for k, v in self._solver_kwargs.items() if k not in ("rank", "epsilon")})
             output = SinkhornOutput
 
         return Description(solver=solver, data=problem, output=output)

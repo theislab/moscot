@@ -207,6 +207,9 @@ class CompoundBaseProblem(BaseProblem, Generic[K, B], ABC):
         Raises
         ------
         """
+        if self._problem_kind is None:
+            raise RuntimeError("Run .prepare() first")
+
         self._solutions = {}
         for subset, problem in self.problems.items():
             self.solutions[subset] = problem.solve(*args, **kwargs).solution

@@ -212,8 +212,8 @@ class OTProblem(BaseProblem):
         **kwargs: Any,
     ) -> "OTProblem":
         if self._problem_kind is None:
-            raise RuntimeError("Run .prepare() first")
-        kwargs["epsilon"] = epsilon
+            raise RuntimeError("Run .prepare() first.")
+        kwargs["epsilon"] = epsilon  # GW/LR-Sinkhorn
         kwargs["rank"] = rank
         # allow `MultiMarginalProblem` to pass new marginals
         a = kwargs.pop("a", self._a)
