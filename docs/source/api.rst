@@ -44,4 +44,9 @@ Solvers
 Output
 ~~~~~~
 
-TODO
+.. autosummary::
+    :toctree: api
+
+    moscot.backends.ott.SinkhornSolver
+    moscot.backends.ott.GWSolver
+    moscot.backends.ott.FGWSolver

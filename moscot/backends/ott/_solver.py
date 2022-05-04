@@ -59,7 +59,6 @@ class OTTJaxSolver(OTSolver, Generic[O], ABC):
     ----------
     kwargs
         keyword arguments for one of the following:
-
             - :class:`ott.core.sinkhorn.Sinkhorn`
             - :class:`ott.core.sinkhorn_lr.LRSinkhorn`
             - :class:`ott.core.gromov_wasserstein.GromovWasserstein`
