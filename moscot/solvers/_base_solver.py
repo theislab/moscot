@@ -37,7 +37,7 @@ class ProblemKind(str, Enum):
         raise NotImplementedError(f"Invalid backend: `{backend}`")
 
 
-class ArrayData(NamedTuple):
+class TaggedArrayData(NamedTuple):
     x: Optional[TaggedArray]
     y: Optional[TaggedArray]
     xy: Tuple[Optional[TaggedArray], Optional[TaggedArray]]
@@ -46,18 +46,18 @@ class ArrayData(NamedTuple):
 class TagConverterMixin:
     def _get_array_data(
         self,
-        xy: Optional[Union[ArrayLike, Tuple[ArrayLike, Optional[ArrayLike]]]] = None,
+        xy: Optional[Union[ArrayLike, Tuple[ArrayLike, ArrayLike]]] = None,
         x: Optional[ArrayLike] = None,
         y: Optional[ArrayLike] = None,
         tags: Mapping[Literal["xy", "x", "y"], Tag] = MappingProxyType({}),
-    ) -> ArrayData:
+    ) -> TaggedArrayData:
         x, y = self._convert(x, y, tags=tags, is_linear=False)
         if xy is None:
             xy = (None, None)
         elif not isinstance(xy, tuple):
             xy = (xy, None)
         xy = self._convert(xy[0], xy[1], tags=tags, is_linear=True)
-        return ArrayData(x=x, y=y, xy=xy)
+        return TaggedArrayData(x=x, y=y, xy=xy)
 
     @staticmethod
     def _convert(
@@ -133,7 +133,7 @@ class OTSolver(TagConverterMixin, BaseSolver, ABC):
 
     def __call__(
         self,
-        xy: Optional[Union[ArrayLike, Tuple[ArrayLike, ArrayData]]] = None,
+        xy: Optional[Union[ArrayLike, Tuple[ArrayLike, ArrayLike]]] = None,
         x: Optional[ArrayLike] = None,
         y: Optional[ArrayLike] = None,
         a: Optional[npt.ArrayLike] = None,
@@ -154,7 +154,7 @@ class OTSolver(TagConverterMixin, BaseSolver, ABC):
 
     def _prepare_kwargs(
         self,
-        data: ArrayData,
+        data: TaggedArrayData,
         **kwargs: Any,
     ) -> Mapping[str, Union[Optional[TaggedArray], Any]]:
         def assert_linear() -> None:

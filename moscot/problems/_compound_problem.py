@@ -184,6 +184,9 @@ class CompoundBaseProblem(BaseProblem, Generic[K, B], ABC):
 
         self._problems = self._create_problems(callback=callback, callback_kwargs=callback_kwargs, **kwargs)
         self._solutions = None
+        for p in self.problems.values():
+            self._problem_kind = p._problem_kind
+            break
 
         return self
 
@@ -444,7 +447,7 @@ class SingleCompoundProblem(CompoundBaseProblem, Generic[K, B], ABC):
         tgt_mask = self._policy.create_mask(tgt, allow_empty=False)
 
         if return_linear:
-            return {"xy": (TaggedArray(data[src_mask, :][:, tgt_mask], tag=Tag.COST_MATRIX), None)}
+            return {"xy": TaggedArray(data[src_mask, :][:, tgt_mask], tag=Tag.COST_MATRIX)}
 
         return {
             "x": TaggedArray(data[src_mask, :][:, src_mask], tag=Tag.COST_MATRIX),

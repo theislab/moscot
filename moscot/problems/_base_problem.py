@@ -163,7 +163,7 @@ class OTProblem(BaseProblem):
     # TODO(michalk8): refactor me
     def prepare(
         self,
-        xy: Optional[Union[Tuple[TaggedArray, TaggedArray], Mapping[str, Any]]] = None,
+        xy: Optional[Union[TaggedArray, Tuple[TaggedArray, TaggedArray], Mapping[str, Any]]] = None,
         x: Optional[Union[TaggedArray, Mapping[str, Any]]] = None,
         y: Optional[Union[TaggedArray, Mapping[str, Any]]] = None,
         a: Optional[Union[str, npt.ArrayLike]] = None,
@@ -183,7 +183,7 @@ class OTProblem(BaseProblem):
 
         if xy is not None and x is None and y is None:
             self._problem_kind = ProblemKind.LINEAR
-            self._xy = xy if isinstance(xy, tuple) else self._handle_linear(**xy)
+            self._xy = xy if isinstance(xy, (tuple, TaggedArray)) else self._handle_linear(**xy)
         elif x is not None and y is not None and xy is None:
             self._problem_kind = ProblemKind.QUAD
             self._x = AnnDataPointer(adata=self.adata, **update_key(x, is_source=True)).create()
