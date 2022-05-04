@@ -13,7 +13,7 @@ __all__ = ("SinkhornOutput", "LRSinkhornOutput", "GWOutput")
 
 
 class OutputRankMixin:
-    def __init__(self, *args: Any, rank: int, **kwargs):
+    def __init__(self, *args: Any, rank: int, **kwargs: Any):
         super().__init__(*args, **kwargs)
         self._rank = max(-1, rank)
 
@@ -76,14 +76,14 @@ class LRSinkhornOutput(OutputRankMixin, LinearOTTOutput):
 
     @property
     def potentials(self):
-        raise NotImplementedError("This solver does not allow for potentials")
+        raise NotImplementedError("This solver does not allow for potentials.")
 
 
 class GWOutput(OutputRankMixin, MatrixSolverOutput):
-    def __init__(self, output: OTTGWOutput, rank: int = -1):
+    def __init__(self, output: OTTGWOutput, *, rank: int = -1):
         super().__init__(output.matrix, rank=rank)
         self._converged = bool(output.convergence)
-        self._cost = float(output.reg_gw_cost)
+        self._cost = float(output.costs[output.costs != -1][-1])
 
     @property
     def cost(self) -> float:
@@ -95,3 +95,7 @@ class GWOutput(OutputRankMixin, MatrixSolverOutput):
 
     def _ones(self, n: int) -> jnp.ndarray:
         return jnp.ones((n,))
+
+    @property
+    def potentials(self):
+        raise NotImplementedError("This solver does not allow for potentials.")

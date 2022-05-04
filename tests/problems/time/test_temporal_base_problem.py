@@ -6,8 +6,6 @@ import numpy as np
 
 from anndata import AnnData
 
-from tests._utils import MockBaseSolverOutput
-from moscot.backends.ott import SinkhornSolver
 from moscot.problems.time._lineage import TemporalBaseProblem
 
 
@@ -15,7 +13,7 @@ class TestTemporalBaseProblem:
     def test_initialisation_pipeline(self, adata_time_marginal_estimations: AnnData):
         adata_x = adata_time_marginal_estimations[adata_time_marginal_estimations.obs["time"] == 0]
         adata_y = adata_time_marginal_estimations[adata_time_marginal_estimations.obs["time"] == 1]
-        prob = TemporalBaseProblem(adata_x, adata_y, 0, 1, solver=SinkhornSolver())
+        prob = TemporalBaseProblem(adata_x, adata_y, source=0, target=1)
         prob = prob.prepare(x={"attr": "X"}, y={"attr": "X"}, marginal_kwargs={"proliferation_key": "proliferation"})
 
         assert isinstance(prob._a, list)
@@ -39,7 +37,7 @@ class TestTemporalBaseProblem:
         proliferation_key, apoptosis_key = adata_obs_keys
         adata_x = adata_time_marginal_estimations[adata_time_marginal_estimations.obs["time"] == 0]
         adata_y = adata_time_marginal_estimations[adata_time_marginal_estimations.obs["time"] == 1]
-        prob = TemporalBaseProblem(adata_x, adata_y, 0, 1, solver=SinkhornSolver())
+        prob = TemporalBaseProblem(adata_x, adata_y, source=0, target=1)
         prob = prob.prepare(x={"attr": "X"}, y={"attr": "X"}, marginal_kwargs={"proliferation_key": "proliferation"})
 
         adata = adata_x if source else adata_y
@@ -66,7 +64,7 @@ class TestTemporalBaseProblem:
         adata_x = adata_time_marginal_estimations[adata_time_marginal_estimations.obs["time"] == 0]
         adata_y = adata_time_marginal_estimations[adata_time_marginal_estimations.obs["time"] == 1]
         sol = MockBaseSolverOutput(len(adata_x), len(adata_y))
-        prob = TemporalBaseProblem(adata_x, adata_y, 0, 1, solver=SinkhornSolver())
+        prob = TemporalBaseProblem(adata_x, adata_y, source=0, target=1)
         prob = prob.prepare(x={"attr": "X"}, y={"attr": "X"}, marginal_kwargs={"proliferation_key": "proliferation"})
 
         assert isinstance(prob._a, list)
@@ -90,7 +88,7 @@ class TestTemporalBaseProblem:
     def test_growth_rates(self, adata_time_marginal_estimations: AnnData):
         adata_x = adata_time_marginal_estimations[adata_time_marginal_estimations.obs["time"] == 0]
         adata_y = adata_time_marginal_estimations[adata_time_marginal_estimations.obs["time"] == 1]
-        prob = TemporalBaseProblem(adata_x, adata_y, 0, 1, solver=SinkhornSolver())
+        prob = TemporalBaseProblem(adata_x, adata_y, source=0, target=1)
         prob = prob.prepare(x={"attr": "X"}, y={"attr": "X"}, marginal_kwargs={"proliferation_key": "proliferation"})
 
         gr = prob.growth_rates

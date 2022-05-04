@@ -7,7 +7,6 @@ import numpy as np
 
 from anndata import AnnData
 
-from moscot.backends.ott import SinkhornSolver
 from moscot.solvers._output import BaseSolverOutput
 from moscot.problems.time._lineage import TemporalProblem, TemporalBaseProblem
 
@@ -15,7 +14,7 @@ from moscot.problems.time._lineage import TemporalProblem, TemporalBaseProblem
 class TestTemporalProblem:
     def test_prepare(self, adata_time: AnnData):
         expected_keys = [(0, 1), (1, 2)]
-        problem = TemporalProblem(adata=adata_time, solver=SinkhornSolver())
+        problem = TemporalProblem(adata=adata_time)
 
         assert len(problem) == 0
         assert problem.problems is None
@@ -34,7 +33,7 @@ class TestTemporalProblem:
     def test_solve_balanced(self, adata_time: AnnData):
         eps = 0.5
         expected_keys = [(0, 1), (1, 2)]
-        problem = TemporalProblem(adata=adata_time, solver=SinkhornSolver())
+        problem = TemporalProblem(adata=adata_time)
         problem = problem.prepare("time")
         problem = problem.solve(epsilon=eps)
 
@@ -45,8 +44,8 @@ class TestTemporalProblem:
     def test_solve_unbalanced(self, adata_time: AnnData):
         taus = [9e-1, 1e-2]
         a = b = np.ones(96)
-        problem1 = TemporalProblem(adata=adata_time, solver=SinkhornSolver())
-        problem2 = TemporalProblem(adata=adata_time, solver=SinkhornSolver())
+        problem1 = TemporalProblem(adata=adata_time)
+        problem2 = TemporalProblem(adata=adata_time)
         problem1 = problem1.prepare("time", a=a, b=b)
         problem2 = problem2.prepare("time", a=a, b=b)
         problem1 = problem1.solve(tau_a=taus[0], tau_b=taus[0])
@@ -65,7 +64,7 @@ class TestTemporalProblem:
         "n_iters", [3]
     )  # TODO(@MUCDK) as soon as @michalk8 unified warnings/errors test for negative value
     def test_multiple_iterations(self, adata_time: AnnData, n_iters: int):
-        problem = TemporalProblem(adata=adata_time, solver=SinkhornSolver())
+        problem = TemporalProblem(adata=adata_time)
         problem = problem.prepare("time")
         problem = problem.solve(n_iters=n_iters)
 
@@ -89,7 +88,7 @@ class TestTemporalProblem:
             [["ANLN", "ANP32E", "ATAD2"], ["ADD1", "AIFM3", "ANKH"]],
         ],
     )
-    def test_score_genes(self, adata_time: AnnData, gene_set_list: List):
+    def test_score_genes(self, adata_time: AnnData, gene_set_list: List[List[str]]):
         gene_set_proliferation = gene_set_list[0]
         gene_set_apoptosis = gene_set_list[1]
         problem = TemporalProblem(adata_time)
@@ -174,7 +173,7 @@ class TestTemporalProblem:
         )
 
     def test_growth_rates_pipeline(self, adata_time: AnnData):
-        problem = TemporalProblem(adata=adata_time, solver=SinkhornSolver())
+        problem = TemporalProblem(adata=adata_time)
         problem = problem.prepare("time")
         problem = problem.solve()
 

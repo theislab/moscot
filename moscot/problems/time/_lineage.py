@@ -1,5 +1,5 @@
 from types import MappingProxyType
-from typing import Any, Dict, Tuple, Union, Literal, Mapping, Callable, Optional, Sequence
+from typing import Any, Dict, Type, Tuple, Union, Literal, Mapping, Optional, Sequence
 from numbers import Number
 import logging
 
@@ -12,20 +12,11 @@ from anndata import AnnData
 import scanpy as sc
 
 from moscot._docs import d
-from moscot.problems import MultiMarginalProblem
 from moscot.solvers._output import BaseSolverOutput
 from moscot.problems.time._utils import beta, delta, MarkerGenes
-from moscot.solvers._base_solver import BaseSolver, ProblemKind
 from moscot.mixins._time_analysis import TemporalAnalysisMixin
-from moscot.solvers._tagged_array import TaggedArray
-from moscot.problems._compound_problem import SingleCompoundProblem
-
-Callback_t = Optional[
-    Union[
-        Literal["pca_local"],
-        Callable[[AnnData, Optional[AnnData], ProblemKind, Any], Tuple[TaggedArray, Optional[TaggedArray]]],
-    ]
-]
+from moscot.problems._compound_problem import B, SingleCompoundProblem
+from moscot.problems._multimarginal_problem import MultiMarginalProblem
 
 
 @d.dedent
@@ -40,9 +31,6 @@ class TemporalBaseProblem(MultiMarginalProblem):
     %(adata_y)s
     %(source)s
     %(target)s
-    %(solver)s
-    kwargs
-        Key word arguments of :class:`moscot.problems.GeneralProblem`
 
     Raises
     ------
@@ -53,14 +41,14 @@ class TemporalBaseProblem(MultiMarginalProblem):
         self,
         adata_x: AnnData,
         adata_y: AnnData,
+        *,
         source: Number,
         target: Number,
-        solver: Optional[BaseSolver] = None,
         **kwargs: Any,
     ):
         if source >= target:
             raise ValueError(f"{source} is expected to be strictly smaller than {target}.")
-        super().__init__(adata_x, adata_y=adata_y, solver=solver, source=source, target=target, **kwargs)
+        super().__init__(adata_x, adata_y=adata_y, source=source, target=target, **kwargs)
 
     def _estimate_marginals(
         self,
@@ -87,20 +75,20 @@ class TemporalBaseProblem(MultiMarginalProblem):
         growth = np.exp((birth - death) * (self._target - self._source))
         if source:
             return growth
-        return np.full(len(self._marginal_b_adata), np.average(growth))
+        return np.full(len(self._adata_y), np.average(growth))
 
     def _add_marginals(self, sol: BaseSolverOutput) -> None:
         _a = np.asarray(sol.a) / self._a[-1]
         self._a.append(_a)
-        self._b.append(np.full(len(self._marginal_b_adata), np.average(_a)))
+        # TODO(michalk8): sol._ones
+        self._b.append(np.full(len(self._adata_y), np.average(_a)))
 
     @property
     def growth_rates(self) -> npt.ArrayLike:
         return np.power(self.a, 1 / (self._target - self._source))
 
 
-@d.dedent
-class TemporalProblem(TemporalAnalysisMixin, SingleCompoundProblem):
+class TemporalProblem(TemporalAnalysisMixin, SingleCompoundProblem[Number, TemporalBaseProblem]):
     """
     Class for analysing time series single cell data based on :cite:`schiebinger:19`.
 
@@ -113,19 +101,14 @@ class TemporalProblem(TemporalAnalysisMixin, SingleCompoundProblem):
     Parameters
     ----------
     %(adata)s
-    solver
-        :class:`moscot.solver` instance used to solve the optimal transport problem. Currently,
-        :class:`moscot.solvers.SinkhornSolver` can be used to solve this problem.
 
     Examples
     --------
     See notebook TODO(@MUCDK) LINK NOTEBOOK for how to use it
     """
 
-    _VALID_POLICIES = ["sequential", "pairwise", "triu", "tril", "explicit"]
-
-    def __init__(self, adata: AnnData, solver: Optional[BaseSolver] = None, **kwargs: Any):
-        super().__init__(adata, solver=solver, base_problem_type=TemporalBaseProblem, **kwargs)
+    def __init__(self, adata: AnnData, **kwargs: Any):
+        super().__init__(adata, **kwargs)
         self._temporal_key: Optional[str] = None
         self._proliferation_key: Optional[str] = None
         self._apoptosis_key: Optional[str] = None
@@ -140,7 +123,7 @@ class TemporalProblem(TemporalAnalysisMixin, SingleCompoundProblem):
         **kwargs: Any,
     ) -> "TemporalProblem":
         """
-        Compute gene scores to obtain prior konwledge about proliferation and apoptosis.
+        Compute gene scores to obtain prior knowledge about proliferation and apoptosis.
 
         This method computes gene scores using :func:`scanpy.tl.score_genes`. Therefore, a list of genes corresponding
         to proliferation and/or apoptosis must be passed.
@@ -163,11 +146,10 @@ class TemporalProblem(TemporalAnalysisMixin, SingleCompoundProblem):
 
         Returns
         -------
-        returns :class:`moscot.problems.time.TemporalProblem` and updates the following attributes
+        Returns :class:`moscot.problems.time.TemporalProblem` and updates the following attributes
 
-                - :attr:`proliferation_key`
-                - :attr:`apoptosis_key`
-
+            - :attr:`proliferation_key`
+            - :attr:`apoptosis_key`
         Notes
         -----
         The marker genes in :mod:`moscot` are taken from the following sources:
@@ -178,13 +160,14 @@ class TemporalProblem(TemporalAnalysisMixin, SingleCompoundProblem):
             - mouse, apoptosis - `Hallmark P53 Pathway, MSigDB <https://www.gsea-msigdb.org/gsea/msigdb/cards/HALLMARK_P53_PATHWAY>`_.
 
         """
+        # TODO(michalk8): make slightly more compact
         if gene_set_proliferation is None:
             self.proliferation_key = None
         else:
             if isinstance(gene_set_proliferation, str):
                 sc.tl.score_genes(
                     self.adata,
-                    getattr(MarkerGenes, "proliferation_markers")(gene_set_proliferation),
+                    MarkerGenes.proliferation_markers(gene_set_proliferation),
                     score_name=proliferation_key,
                     **kwargs,
                 )
@@ -197,7 +180,7 @@ class TemporalProblem(TemporalAnalysisMixin, SingleCompoundProblem):
             if isinstance(gene_set_apoptosis, str):
                 sc.tl.score_genes(
                     self.adata,
-                    getattr(MarkerGenes, "apoptosis_markers")(gene_set_apoptosis),
+                    MarkerGenes.apoptosis_markers(gene_set_apoptosis),
                     score_name=apoptosis_key,
                     **kwargs,
                 )
@@ -242,17 +225,17 @@ class TemporalProblem(TemporalAnalysisMixin, SingleCompoundProblem):
             the birth-death process. The keyword arguments
             are either used for :func:`moscot.problems.time._utils.beta()`, i.e. one of
 
-                    - beta_max: float
-                    - beta_min: float
-                    - beta_center: float
-                    - beta_width: float
+                - beta_max: float
+                - beta_min: float
+                - beta_center: float
+                - beta_width: float
 
             or for :func:`moscot.problems.time._utils.beta()`, i.e. one of
 
-                    - delta_max: float
-                    - delta_min: float
-                    - delta_center: float
-                    - delta_width: float
+                - delta_max: float
+                - delta_min: float
+                - delta_center: float
+                - delta_width: float
 
         subset
             subset of `anndata.AnnData.obs` [key] values of which the policy is to be applied to
@@ -274,15 +257,22 @@ class TemporalProblem(TemporalAnalysisMixin, SingleCompoundProblem):
         KeyError
             If `joint_attr` is a string and cannot be found in :attr:`anndata.AnnData.obsm`
         """
-        if policy not in self._VALID_POLICIES:
-            raise ValueError("TODO: wrong policies")
+        # TODO(michalk8): make a property + sanity checks?
         self._temporal_key = time_key
 
         if joint_attr is None:
-            kwargs["callback"] = "pca_local"
+            kwargs["callback"] = "local-pca"
+            kwargs["callback_kwargs"] = {**kwargs.get("callback_kwargs", {}), **{"return_linear": True}}
         elif isinstance(joint_attr, str):
-            kwargs["x"] = kwargs["y"] = {"attr": "obsm", "key": joint_attr, "tag": "point_cloud"}  # TODO: pass loss
-        elif not isinstance(joint_attr, dict):
+            kwargs["xy"] = {
+                "x_attr": "obsm",
+                "x_key": joint_attr,
+                "y_attr": "obsm",
+                "y_key": joint_attr,
+            }
+        elif isinstance(joint_attr, Mapping):
+            kwargs["xy"] = joint_attr
+        else:
             raise TypeError("TODO")
 
         marginal_kwargs = dict(marginal_kwargs)
@@ -407,7 +397,7 @@ class TemporalProblem(TemporalAnalysisMixin, SingleCompoundProblem):
         If the OT problem is balanced, the posterior marginals
         (approximately) equal the prior marginals (marginals defining the OT problem). In the unbalanced case the
         marginals of the OT solution usually differ from the marginals of the original OT problem. This is an
-        indication of cell proliferation, i.e. a cell could have multiple descendents in the target distribution or
+        indication of cell proliferation, i.e. a cell could have multiple descendants in the target distribution or
         cell death, i.e. the cell is unlikely to have a descendant.
         If multiple iterations are performed in :meth:`moscot.problems.time.TemporalProblem.solve()` the number
         of estimates for the cell growth rates equals is strictly larger than 2.
@@ -430,6 +420,15 @@ class TemporalProblem(TemporalAnalysisMixin, SingleCompoundProblem):
         )
         return pd.concat(df_list, verify_integrity=True)
 
+    def _dict_to_adata(self, d: Mapping[str, npt.ArrayLike], obs_key: str) -> None:
+        # TODO: np.full
+        tmp = np.empty(len(self.adata))
+        tmp[:] = np.nan
+        for key, value in d.items():
+            mask = self.adata.obs[self._temporal_key] == key
+            tmp[mask] = np.squeeze(value)
+        self.adata.obs[obs_key] = tmp
+
     @property
     def proliferation_key(self) -> Optional[str]:
         """
@@ -446,6 +445,7 @@ class TemporalProblem(TemporalAnalysisMixin, SingleCompoundProblem):
         """
         return self._apoptosis_key
 
+    # TODO(michalk8): remove docs in setters
     @proliferation_key.setter
     def proliferation_key(self, value: Optional[str] = None) -> None:
         """Set the :attr:`anndata.AnnData.obs` column where initial estimates for cell proliferation are stored."""
@@ -497,6 +497,7 @@ class TemporalProblem(TemporalAnalysisMixin, SingleCompoundProblem):
         NotImplementedError
             If the solver from :class:`moscot.solvers` does not use potentials
         """
+        # TODO(michalk8): do not raise NotImplementedError
         try:
             tup = list(self)[0]
             df_list = [
@@ -518,6 +519,14 @@ class TemporalProblem(TemporalAnalysisMixin, SingleCompoundProblem):
         except NotImplementedError:
             raise NotImplementedError("The current solver does not allow this property")
 
+    @property
+    def _base_problem_type(self) -> Type[B]:
+        return TemporalBaseProblem
+
+    @property
+    def _valid_policies(self) -> Tuple[str, ...]:
+        return "sequential", "pairwise", "triu", "tril", "explicit"
+
 
 class LineageProblem(TemporalProblem):
     """
@@ -529,9 +538,7 @@ class LineageProblem(TemporalProblem):
     ----------
     adata
         :class:`anndata.AnnData` instance containing the single cell data and corresponding metadata
-    solver
-        :class:`moscot.solver` instance used to solve the optimal transport problem. Currently,
-        :class:`moscot.solvers.SinkhornSolver` can be used to solve this problem.
+
 
     Examples
     --------
@@ -572,17 +579,17 @@ class LineageProblem(TemporalProblem):
             the birth-death process. The keyword arguments
             are either used for :func:`moscot.problems.time._utils.beta()`, i.e. one of
 
-                    - beta_max: float
-                    - beta_min: float
-                    - beta_center: float
-                    - beta_width: float
+                - beta_max: float
+                - beta_min: float
+                - beta_center: float
+                - beta_width: float
 
             or for :func:`moscot.problems.time._utils.beta()`, i.e. one of
 
-                    - delta_max: float
-                    - delta_min: float
-                    - delta_center: float
-                    - delta_width: float
+                - delta_max: float
+                - delta_min: float
+                - delta_center: float
+                - delta_width: float
 
         subset
             subset of `anndata.AnnData.obs` [key] values of which the policy is to be applied to
@@ -608,13 +615,14 @@ class LineageProblem(TemporalProblem):
         TypeError
             If `joint_attr` is not None, not a :class:`str` and not a :class:`dict`
         """
-
+        # TODO(michalk8): use and
         if not len(lineage_attr):
             if "cost_matrices" not in self.adata.obsp:
                 raise ValueError(
                     "TODO: default location for quadratic loss is `adata.obsp[`cost_matrices`]` \
                         but adata has no key `cost_matrices` in `obsp`."
                 )
+        # TODO(michalk8): refactor me
         lineage_attr = dict(lineage_attr)
         lineage_attr.setdefault("attr", "obsp")
         lineage_attr.setdefault("key", "cost_matrices")
@@ -623,17 +631,10 @@ class LineageProblem(TemporalProblem):
         lineage_attr.setdefault("loss_kwargs", {})
         x = y = lineage_attr
 
-        if joint_attr is None:
-            kwargs["callback"] = "pca_local"
-        elif isinstance(joint_attr, str):
-            kwargs["joint_attr"] = {"attr": "obsm", "key": joint_attr, "tag": "point_cloud"}  # TODO: pass loss
-        elif not isinstance(joint_attr, dict):
-            raise TypeError("TODO")
-
         return super().prepare(
-            time_key=time_key,
-            policy=policy,
+            time_key,
             x=x,
             y=y,
+            policy=policy,
             **kwargs,
         )

@@ -6,20 +6,18 @@ import numpy as np
 
 from anndata import AnnData
 
-from tests._utils import MockMultiMarginalProblem
-from moscot.problems import GeneralProblem
-from moscot.backends.ott import SinkhornSolver
+from moscot.problems import OTProblem
 from moscot.solvers._output import BaseSolverOutput
 
 
 class TestMultiMarginalProblem:
     def test_subclass_GeneralProblem(self, adata_x: AnnData):
-        prob = MockMultiMarginalProblem(adata_x, solver=SinkhornSolver())
-        assert isinstance(prob, GeneralProblem)
+        prob = MockMultiMarginalProblem(adata_x)
+        assert isinstance(prob, OTProblem)
 
     def test_marginal_dtypes(self, adata_x: AnnData, adata_y: AnnData):
-        prob = MockMultiMarginalProblem(adata_x, adata_y, solver=SinkhornSolver())
-        prob = prob.prepare(x={"attr": "X"}, y={"attr": "X"})
+        prob = MockMultiMarginalProblem(adata_x, adata_y)
+        prob = prob.prepare(xy={"x_attr": "X", "y_attr": "X"})
 
         assert isinstance(prob._a, list)
         assert isinstance(prob._b, list)
@@ -27,8 +25,8 @@ class TestMultiMarginalProblem:
         assert isinstance(prob.b, np.ndarray)
 
     def test_multiple_iterations(self, adata_x: AnnData, adata_y: AnnData):
-        prob = MockMultiMarginalProblem(adata_x, adata_y, solver=SinkhornSolver())
-        prob = prob.prepare(x={"attr": "X"}, y={"attr": "X"})
+        prob = MockMultiMarginalProblem(adata_x, adata_y)
+        prob = prob.prepare(xy={"x_attr": "X", "y_attr": "X"})
         prob.solve(n_iters=3)
 
         assert isinstance(prob.solution, BaseSolverOutput)
@@ -43,8 +41,8 @@ class TestMultiMarginalProblem:
         assert len(last_marginals[1].shape) == 1
 
     def test_reset_marginals(self, adata_x: AnnData, adata_y: AnnData):
-        prob = MockMultiMarginalProblem(adata_x, adata_y, solver=SinkhornSolver())
-        prob = prob.prepare(x={"attr": "X"}, y={"attr": "X"})
+        prob = MockMultiMarginalProblem(adata_x, adata_y)
+        prob = prob.prepare(xy={"x_attr": "X", "y_attr": "X"})
         prob.solve(n_iters=1)
 
         assert prob.a.shape[1] == 2

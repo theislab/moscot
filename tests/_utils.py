@@ -1,4 +1,4 @@
-from typing import Any, List, Tuple, Union, Optional
+from typing import Any, List, Type, Tuple, Union, Optional
 
 import networkx as nx
 
@@ -7,17 +7,24 @@ import numpy.typing as npt
 
 from anndata import AnnData
 
-from moscot.problems import CompoundProblem, MultiMarginalProblem
+from moscot.problems import OTProblem, MultiMarginalProblem, SingleCompoundProblem
 from moscot.solvers._output import MatrixSolverOutput
 from moscot.mixins._base_analysis import AnalysisMixin
+from moscot.problems._compound_problem import B
 
 Geom_t = Union[np.ndarray, Tuple[np.ndarray, np.ndarray]]
 RTOL = 1e-6
 ATOL = 1e-6
 
 
-class CompoundProblemWithMixin(CompoundProblem, AnalysisMixin):
-    pass
+class CompoundProblemWithMixin(SingleCompoundProblem, AnalysisMixin):
+    @property
+    def _base_problem_type(self) -> Type[B]:
+        return OTProblem
+
+    @property
+    def _valid_policies(self) -> Tuple[str, ...]:
+        return ()
 
 
 class TestSolverOutput(MatrixSolverOutput):
