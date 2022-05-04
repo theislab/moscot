@@ -206,7 +206,7 @@ class OTProblem(BaseProblem):
         epsilon: Optional[float] = 1e-2,
         alpha: Optional[float] = 0.5,
         rank: int = -1,
-        scale: Optional[Union[float, str]] = None,
+        scale_cost: Optional[Union[float, str]] = None,
         online: Optional[int] = None,
         prepare_kwargs: Mapping[str, Any] = MappingProxyType({}),
         **kwargs: Any,
@@ -217,7 +217,7 @@ class OTProblem(BaseProblem):
         kwargs["rank"] = rank
         prepare_kwargs = dict(prepare_kwargs)
         prepare_kwargs["epsilon"] = epsilon
-        prepare_kwargs["scale"] = scale
+        prepare_kwargs["scale_cost"] = scale_cost
         prepare_kwargs["online"] = online
 
         solver = self._problem_kind.solver(backend="ott")(**kwargs)
