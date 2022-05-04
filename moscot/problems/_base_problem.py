@@ -1,6 +1,8 @@
 from abc import ABC, abstractmethod
 from types import MappingProxyType
-from typing import Any, List, Tuple, Union, Mapping, Iterable, Optional, Sequence
+from typing import Any, Dict, List, Tuple, Union, Literal, Mapping, Iterable, Optional, Sequence
+
+from scipy.sparse import vstack, issparse, csr_matrix
 
 import numpy as np
 import numpy.typing as npt
@@ -9,13 +11,12 @@ from anndata import AnnData
 import scanpy as sc
 
 from moscot._docs import d
-from moscot.backends.ott import SinkhornSolver
 from moscot.solvers._output import BaseSolverOutput
 from moscot.problems._anndata import AnnDataPointer
-from moscot.solvers._base_solver import BaseSolver, ProblemKind
+from moscot.solvers._base_solver import ProblemKind
 from moscot.solvers._tagged_array import Tag, TaggedArray
 
-__all__ = ("BaseProblem", "GeneralProblem")
+__all__ = ("BaseProblem", "OTProblem")
 
 
 @d.get_sections(base="BaseProblem", sections=["Parameters", "Raises"])
@@ -27,7 +28,6 @@ class BaseProblem(ABC):
     Parameters
     ----------
     %(adata)s
-    %(solver)s
 
     Raises
     ------
@@ -40,15 +40,16 @@ class BaseProblem(ABC):
     def __init__(
         self,
         adata: AnnData,
-        solver: Optional[BaseSolver] = None,
+        copy: bool = False,
     ):
+        # TODO(michalk8): remove this
         if getattr(adata, "n_obs") == 0:
             raise ValueError("TODO: `adata` has no observations.")
         if getattr(adata, "n_vars") == 0:
             raise ValueError("TODO: `adata` has no variables.")
 
-        self._adata = adata
-        self.solver = self._default_solver if solver is None else solver
+        self._adata = adata.copy() if copy else adata
+        self._problem_kind: Optional[ProblemKind] = None
 
     @abstractmethod
     def prepare(self, *args: Any, **kwargs: Any) -> "BaseProblem":
@@ -59,10 +60,10 @@ class BaseProblem(ABC):
         pass
 
     @property
-    @abstractmethod
-    def _default_solver(self) -> BaseSolver:
-        pass
+    def adata(self) -> AnnData:
+        return self._adata
 
+    # TODO(michalk8): move below?
     @staticmethod
     def _get_mass(
         adata: AnnData,
@@ -97,35 +98,10 @@ class BaseProblem(ABC):
 
         return data / total if normalize else data
 
-    @staticmethod
-    def _get_or_create_marginal(adata: AnnData, data: Optional[Union[str, npt.ArrayLike]] = None) -> npt.ArrayLike:
-        if data is None:
-            return np.ones((adata.n_obs,), dtype=float) / adata.n_obs
-        if isinstance(data, str):
-            # TODO(michalk8): some nice error message
-            data = adata.obs[data]
-        data = np.asarray(data)
-        # TODO(michalk8): check shape
-        return data
-
-    @property
-    def adata(self) -> AnnData:
-        return self._adata
-
-    @property
-    def solver(self) -> BaseSolver:
-        return self._solver
-
-    @solver.setter
-    def solver(self, solver: BaseSolver) -> None:
-        if not isinstance(solver, BaseSolver):  # TODO: enable
-            raise TypeError("TOOD: not a solver")
-        self._solver = solver
-
 
 @d.get_sections(base="GeneralProblem", sections=["Parameters", "Raises"])
 @d.dedent
-class GeneralProblem(BaseProblem):
+class OTProblem(BaseProblem):
     """
     Problem class handling one optimal transport subproblem.
 
@@ -133,11 +109,8 @@ class GeneralProblem(BaseProblem):
     ----------
     %(adata_x)s
     %(adata_y)s
-    %(solver)s
     %(source)s
     %(target)s
-    kwargs
-        Keyword arguments of :class:`moscot.problems.BaseProblem`
 
     Raises
     ------
@@ -148,14 +121,13 @@ class GeneralProblem(BaseProblem):
         self,
         adata_x: AnnData,
         adata_y: Optional[AnnData] = None,
-        solver: Optional[BaseSolver] = None,
+        *,
         source: Any = "src",
         target: Any = "tgt",
-        **kwargs: Any,
+        copy: bool = False,
     ):
-        super().__init__(adata_x, solver=solver)
-        # TODO(michalk8): consider setting this to `adata_x` if None
-        self._adata_y = adata_y
+        super().__init__(adata_x, copy=copy)
+        self._adata_y = adata_x if adata_y is None else adata_y.copy() if copy else adata_y
         self._solution: Optional[BaseSolverOutput] = None
 
         self._x: Optional[TaggedArray] = None
@@ -168,90 +140,83 @@ class GeneralProblem(BaseProblem):
         self._source = source
         self._target = target
 
-    def _handle_joint(self, tag: Optional[Tag] = None, **kwargs) -> Union[TaggedArray, Tuple[TaggedArray, TaggedArray]]:
-        if tag is None:
-            # TODO(michalk8): better/more strict condition?
-            # TODO(michalk8): specify which tag is being using
-            tag = Tag.POINT_CLOUD if "x_attr" in kwargs and "y_attr" in kwargs else Tag.COST_MATRIX
-
-        tag = Tag(tag)
-        if tag in (Tag.COST_MATRIX, Tag.KERNEL):
-            attr = kwargs.get("attr", "obsm")
-            if attr == "obsm":
-                return AnnDataPointer(self.adata, tag=tag, **kwargs).create()
+    def _handle_linear(self, **kwargs: Any) -> Union[TaggedArray, Tuple[TaggedArray, TaggedArray]]:
+        if "x_attr" not in kwargs or "y_attr" not in kwargs:
+            kwargs.setdefault("tag", Tag.COST_MATRIX)
+            attr = kwargs.pop("attr", "obsm")
+            if attr in ("obsm", "uns"):
+                return AnnDataPointer(self.adata, attr=attr, **kwargs).create()
             if attr == "varm":
-                kwargs["attr"] = "obsm"
-                return AnnDataPointer(self._adata_y.T, tag=tag, **kwargs).create()
+                return AnnDataPointer(self._adata_y.T, attr="obsm", **kwargs).create()
             raise NotImplementedError("TODO: cost/kernel storage not implemented. Use obsm/varm")
-        if tag != Tag.POINT_CLOUD:
-            # TODO(michalk8): log-warn
-            tag = Tag.POINT_CLOUD
 
-        # TODO(michalk8): mb. be less stringent and assume without the prefix x_ belong to x
         x_kwargs = {k[2:]: v for k, v in kwargs.items() if k.startswith("x_")}
         y_kwargs = {k[2:]: v for k, v in kwargs.items() if k.startswith("y_")}
+        x_kwargs["tag"] = Tag.POINT_CLOUD
+        y_kwargs["tag"] = Tag.POINT_CLOUD
 
-        x_array = AnnDataPointer(self.adata, tag=tag, **x_kwargs).create()
-        y_array = AnnDataPointer(self._adata_y, tag=tag, **y_kwargs).create()
+        x_array = AnnDataPointer(self.adata, **x_kwargs).create()
+        y_array = AnnDataPointer(self._adata_y, **y_kwargs).create()
 
         return x_array, y_array
 
+    # TODO(michalk8): refactor me
     def prepare(
         self,
-        x: Union[TaggedArray, Mapping[str, Any]] = MappingProxyType({}),
+        xy: Optional[Union[TaggedArray, Tuple[TaggedArray, TaggedArray], Mapping[str, Any]]] = None,
+        x: Optional[Union[TaggedArray, Mapping[str, Any]]] = None,
         y: Optional[Union[TaggedArray, Mapping[str, Any]]] = None,
-        xy: Optional[Union[Tuple[TaggedArray, TaggedArray], Mapping[str, Any]]] = None,
         a: Optional[Union[str, npt.ArrayLike]] = None,
         b: Optional[Union[str, npt.ArrayLike]] = None,
         **_: Any,
-    ) -> "GeneralProblem":
+    ) -> "OTProblem":
+        # TODO(michalk8): necessary for?
         def update_key(kwargs: Mapping[str, Any], *, is_source: bool) -> Mapping[str, Any]:
             if kwargs.get("attr", None) == "uns":
                 kwargs = dict(kwargs)
                 kwargs["key"] = self._source if is_source else self._target
             return kwargs
 
-        self._x = (
-            x
-            if isinstance(x, TaggedArray)
-            else AnnDataPointer(adata=self.adata, **update_key(x, is_source=True)).create()
-        )
-        self._y = (
-            y
-            if y is None or isinstance(y, TaggedArray)
-            else AnnDataPointer(adata=self._adata_y, **update_key(y, is_source=False)).create()
-        )
-        if self.solver.problem_kind != ProblemKind.QUAD_FUSED:
-            self._xy = None
+        self._x = self._y = self._xy = self._solution = None
+        # TODO(michalk8): handle again TaggedArray?
+        # TODO(michalk8): better dispatch
+
+        if xy is not None and x is None and y is None:
+            self._problem_kind = ProblemKind.LINEAR
+            self._xy = xy if isinstance(xy, (tuple, TaggedArray)) else self._handle_linear(**xy)
+        elif x is not None and y is not None and xy is None:
+            self._problem_kind = ProblemKind.QUAD
+            self._x = AnnDataPointer(adata=self.adata, **update_key(x, is_source=True)).create()
+            self._y = AnnDataPointer(adata=self._adata_y, **update_key(y, is_source=False)).create()
+        elif xy is not None and x is not None and y is not None:
+            self._problem_kind = ProblemKind.QUAD_FUSED
+            self._xy = xy if isinstance(xy, tuple) else self._handle_linear(**xy)
+            self._x = AnnDataPointer(adata=self.adata, **update_key(x, is_source=True)).create()
+            self._y = AnnDataPointer(adata=self._adata_y, **update_key(y, is_source=False)).create()
         else:
-            self._xy = xy if xy is None or isinstance(xy, tuple) else self._handle_joint(**xy)
+            raise NotImplementedError("TODO: Combination not implemented")
 
         self._a = self._get_or_create_marginal(self.adata, a)
-        self._b = self._get_or_create_marginal(self._marginal_b_adata, b)
-        self._solution = None
+        self._b = self._get_or_create_marginal(self._adata_y, b)
 
         return self
 
     def solve(
         self,
-        epsilon: Optional[float] = None,
+        solver_kwargs: Mapping[str, Any] = MappingProxyType({}),
         **kwargs: Any,
-    ) -> "GeneralProblem":
-        if isinstance(self._xy, tuple):  # point cloud
-            kwargs["xx"] = self._xy[0]
-            kwargs["yy"] = self._xy[1]
-        else:  # cost/kernel
-            kwargs["xx"] = self._xy
-            kwargs["yy"] = None
+    ) -> "OTProblem":
+        if self._problem_kind is None:
+            raise RuntimeError("Run .prepare() first")
+        solver = self._problem_kind.solver(backend="ott")(**solver_kwargs)
 
-        # this allows for MultiMarginalProblem to pass new marginals
+        # allow `MultiMarginalProblem` to pass new marginals
         a = kwargs.pop("a", self._a)
         b = kwargs.pop("b", self._b)
+        self._solution = solver(x=self._x, y=self._y, xy=self._xy, a=a, b=b, **kwargs)
 
-        self._solution = self.solver(self._x, self._y, a=a, b=b, epsilon=epsilon, **kwargs)
         return self
 
-    # TODO(michalk8): require in BaseProblem?
     def push(
         self,
         data: Optional[Union[str, npt.ArrayLike]] = None,
@@ -276,46 +241,60 @@ class GeneralProblem(BaseProblem):
         return self.solution.pull(data, **kwargs)
 
     @staticmethod
-    def _prepare_callback(
+    def _local_pca_callback(
         adata: AnnData,
-        adata_y: Optional[AnnData] = None,
-        problem_kind: ProblemKind = ProblemKind.LINEAR,
+        adata_y: AnnData,
         layer: Optional[str] = None,
+        return_linear: bool = True,
         **kwargs: Any,
-    ) -> Tuple[TaggedArray, Optional[TaggedArray]]:
-        n = adata.n_obs
-        if problem_kind not in (ProblemKind.LINEAR, ProblemKind.QUAD_FUSED):
-            raise NotImplementedError("TODO: invalid problem type")
-        adata = adata if adata_y is None else adata.concatenate(adata_y)
-        data = adata.X if layer is None else adata.layers[layer]
-        data = sc.pp.pca(data, **kwargs)
+    ) -> Dict[Literal["xy", "x", "y"], TaggedArray]:
+        def concat(x: npt.ArrayLike, y: npt.ArrayLike) -> npt.ArrayLike:
+            if issparse(x):
+                return vstack([x, csr_matrix(y)])
+            if issparse(y):
+                return vstack([csr_matrix(x), y])
+            return np.vstack([x, y])
 
-        return TaggedArray(data[:n], tag=Tag.POINT_CLOUD), TaggedArray(data[n:], tag=Tag.POINT_CLOUD)
+        if adata is adata_y:
+            raise ValueError(f"TODO: `{adata}`, `{adata_y}`")
+        x = adata.X if layer is None else adata.layers[layer]
+        y = adata_y.X if layer is None else adata_y.layers[layer]
+
+        if return_linear:
+            n = x.shape[0]
+            data = sc.pp.pca(concat(x, y), **kwargs)
+            return {"xy": (TaggedArray(data[:n], tag=Tag.POINT_CLOUD), TaggedArray(data[n:], tag=Tag.POINT_CLOUD))}
+
+        x = sc.pp.pca(x, **kwargs)
+        y = sc.pp.pca(y, **kwargs)
+        return {"x": TaggedArray(x, tag=Tag.POINT_CLOUD), "y": TaggedArray(y, tag=Tag.POINT_CLOUD)}
+
+    @staticmethod
+    def _get_or_create_marginal(adata: AnnData, data: Optional[Union[str, npt.ArrayLike]] = None) -> npt.ArrayLike:
+        if data is None:
+            return np.ones((adata.n_obs,), dtype=float) / adata.n_obs
+        if isinstance(data, str):
+            # TODO(michalk8): some nice error message
+            data = adata.obs[data]
+        return np.asarray(data)
 
     @property
     def shape(self) -> Tuple[int, int]:
-        return len(self.adata), len(self._marginal_b_adata)
-
-    @property
-    def _default_solver(self) -> BaseSolver:
-        return SinkhornSolver()
+        return self.adata.n_obs, self._adata_y.n_obs
 
     @property
     def solution(self) -> Optional[BaseSolverOutput]:
         return self._solution
 
     @property
-    def _marginal_b_adata(self) -> AnnData:
-        return self.adata if self._adata_y is None else self._adata_y
-
-    @property
-    def x(self) -> Optional[npt.ArrayLike]:
+    def x(self) -> Optional[TaggedArray]:
         return self._x
 
     @property
-    def y(self) -> Optional[npt.ArrayLike]:
+    def y(self) -> Optional[TaggedArray]:
         return self._y
 
+    # TODO(michalk8): verify type
     @property
-    def xy(self) -> Optional[Tuple[npt.ArrayLike, npt.ArrayLike]]:
+    def xy(self) -> Optional[Tuple[TaggedArray, TaggedArray]]:
         return self._xy
