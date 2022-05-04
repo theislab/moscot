@@ -22,8 +22,7 @@ from moscot.problems._multimarginal_problem import MultiMarginalProblem
 @d.dedent
 class TemporalBaseProblem(MultiMarginalProblem):
     """
-    Problem class handling one optimal transport subproblem which allows to estimate the marginals with a birth-death
-    process.
+    Class handling an optimal transport problem which allows to estimate the marginals with a birth-death process.
 
     Parameters
     ----------
@@ -151,15 +150,17 @@ class TemporalProblem(TemporalAnalysisMixin, SingleCompoundProblem[Number, Tempo
 
             - :attr:`proliferation_key`
             - :attr:`apoptosis_key`
+
         Notes
         -----
         The marker genes in :mod:`moscot` are taken from the following sources:
 
             - human, proliferation - :cite:`tirosh:16:science`.
-            - human, apoptosis - `Hallmark Apoptosis, MSigDB <https://www.gsea-msigdb.org/gsea/msigdb/cards/HALLMARK_APOPTOSIS>`_.
+            - human, apoptosis - `Hallmark Apoptosis,
+              MSigDB <https://www.gsea-msigdb.org/gsea/msigdb/cards/HALLMARK_APOPTOSIS>`_.
             - mouse, proliferation - :cite:`tirosh:16:nature`.
-            - mouse, apoptosis - `Hallmark P53 Pathway, MSigDB <https://www.gsea-msigdb.org/gsea/msigdb/cards/HALLMARK_P53_PATHWAY>`_.
-
+            - mouse, apoptosis - `Hallmark P53 Pathway, MSigDB
+              <https://www.gsea-msigdb.org/gsea/msigdb/cards/HALLMARK_P53_PATHWAY>`_.
         """
         # TODO(michalk8): make slightly more compact
         if gene_set_proliferation is None:
@@ -220,10 +221,10 @@ class TemporalProblem(TemporalAnalysisMixin, SingleCompoundProblem[Number, Tempo
             If `joint_attr` is a dictionary the dictionary is supposed to contain the attribute of
             :attr:`anndata.AnnData` as a key and the corresponding attribute as a value.
         policy
-            defines which transport maps to compute given different cell distributions
+            Defines which transport maps to compute given different cell distributions.
         %(marginal_kwargs)s
         subset
-            subset of `anndata.AnnData.obs` [key] values of which the policy is to be applied to
+            Subset of `anndata.AnnData.obs` [key] values of which the policy is to be applied to.
         %(reference)s
         %(axis)s
         %(callback)s
@@ -238,9 +239,9 @@ class TemporalProblem(TemporalAnalysisMixin, SingleCompoundProblem[Number, Tempo
         Raises
         ------
         KeyError
-            If `time_key` is not in :attr:`anndata.AnnData.obs`
+            If `time_key` is not in :attr:`anndata.AnnData.obs`.
         KeyError
-            If `joint_attr` is a string and cannot be found in :attr:`anndata.AnnData.obsm`
+            If `joint_attr` is a string and cannot be found in :attr:`anndata.AnnData.obsm`.
         """
         # TODO(michalk8): make a property + sanity checks?
         self._temporal_key = time_key

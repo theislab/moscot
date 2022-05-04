@@ -156,11 +156,11 @@ class SinkhornSolver(OTTJaxSolver[Union[SinkhornOutput, LRSinkhornOutput]]):
 
     Parameters
     ----------
-    %(BaseSolver.parameters)s
+    %(OTSolver.parameters)s
 
     Raises
     ------
-    %(BaseSolver.parameters)s
+    %(OTSolver.parameters)s
     """
 
     def _prepare(
@@ -207,11 +207,11 @@ class GWSolver(OTTJaxSolver[GWOutput]):
 
     Parameters
     ----------
-    %(BaseSolver.parameters)s
+    %(OTSolver.parameters)s
 
     Raises
     ------
-    %(BaseSolver.raises)s
+    %(OTSolver.raises)s
     """
 
     def _prepare(
@@ -257,12 +257,12 @@ class FGWSolver(GWSolver):
     Parameters
     ----------
     %(RankMixin.parameters)s
-    %(BaseSolver.parameters)s
+    %(OTSolver.parameters)s
 
     Raises
     ------
     %(RankMixin.raises)s
-    %(BaseSolver.raises)s
+    %(OTSolver.raises)s
     """
 
     def _prepare(

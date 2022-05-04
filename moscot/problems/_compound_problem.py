@@ -151,11 +151,11 @@ class CompoundBaseProblem(BaseProblem, Generic[K, B], ABC):
         Parameters
         ----------
         key
-            key in :attr:`anndata.AnnData.obs` allocating the cell to a certain cell distribution
+            Key in :attr:`anndata.AnnData.obs` allocating the cell to a certain cell distribution.
         policy
-            defines which transport maps to compute given different cell distributions
+            Defines which transport maps to compute given different cell distributions.
         subset
-            subset of `anndata.AnnData.obs` ``['{key}']`` values of which the policy is to be applied to
+            Subset of `anndata.AnnData.obs` ``['{key}']`` values of which the policy is to be applied to.
         %(reference)s
         %(axis)s
         %(callback)s

@@ -25,6 +25,39 @@ class TemporalAnalysisMixin(AnalysisMixin):
         forward: bool = False,  # return value will be row-stochastic if forward=True, else column-stochastic
         **kwargs: Any,
     ) -> pd.DataFrame:
+        """
+        Compute a grouped cell transition matrix.
+
+        This function computes a transition matrix with entries corresponding to categories, e.g. cell types.
+        The transition matrix will be row-stochastic if `forward` is `True`, otherwise column-stochastic.
+
+        Parameters
+        ----------
+        start
+            Time point corresponding to the early distribution.
+        end
+            Time point corresponding to the late distribution.
+        early_cells
+            Can be one of the following
+                - if `early_cells` is of type :class:`str` this should correspond to a key in
+                  :attr:`anndata.AnnData.obs`. In this case, the categories in the transition matrix correspond to the
+                  unique values in `anndata.AnnData.obs` ``['{early_cells}']``
+                - if `early_cells` is of type `Mapping` its `key` should correspond to a key in
+                  :attr:`anndata.AnnData.obs` and its `value` to a subset of categories present in
+                  `anndata.AnnData.obs` ``['{early_cells.keys()[0]}']``
+        late_cells
+            Can be one of the following
+                - if `late_cells` is of type :class:`str` this should correspond to a key in
+                  :attr:`anndata.AnnData.obs`. In this case, the categories in the transition matrix correspond to the
+                  unique values in `anndata.AnnData.obs` ``['{late_cells}']``
+                - if `late_cells` is of type `Mapping` its `key` should correspond to a key in
+                  :attr:`anndata.AnnData.obs` and its `value` to a subset of categories present in
+                  `anndata.AnnData.obs` ``['{late_cells.keys()[0]}']``
+
+        Returns
+        -------
+        Transition matrix of groups between time points.
+        """
         _early_cells_key, _early_cells = self._validate_args_cell_transition(early_cells)
         _late_cells_key, _late_cells = self._validate_args_cell_transition(late_cells)
 
@@ -118,7 +151,8 @@ class TemporalAnalysisMixin(AnalysisMixin):
             return arg, list(self.adata.obs[arg].unique())
         if len(arg) > 1:
             raise ValueError(
-                f"The length of the dictionary is {len(arg)} but should be 1 as the data can only be filtered according to one column of `adata.obs`"
+                f"The length of the dictionary is {len(arg)} but should be 1 as the data can only be filtered "
+                f"according to one column of `adata.obs`"
             )
         _key, _arg = list(arg.keys())[0], list(arg.values())[0]
         if not hasattr(self.adata.obs[_key], "cat"):
@@ -143,7 +177,8 @@ class TemporalAnalysisMixin(AnalysisMixin):
         for (start_, end_) in self._problems.keys():
             if self._problems[(start_, end_)].xy[0].tag != "point_cloud":
                 raise ValueError(
-                    f"TODO: This method requires the data to be stored as point_clouds. It is currently stored as {self._problems[(start_, end_)].xy[0].tag}"
+                    f"TODO: This method requires the data to be stored as point_clouds. It is currently stored "
+                    "as {self._problems[(start_, end_)].xy[0].tag}"
                 )
             if start_ == key:
                 source_data = self._problems[(start_, end_)].xy[0].data
@@ -181,6 +216,50 @@ class TemporalAnalysisMixin(AnalysisMixin):
         seed: Optional[int] = None,
         **kwargs: Any,
     ) -> Number:
+        """
+        Compute the Wasserstein distance between the OT-interpolated distribution and the true cell distribution.
+
+        This is a validation method which interpolates the cell distributions corresponding to `start` and `end`
+        leveraging the OT coupling to obtain an approximation of the cell distribution at time point `intermediate`.
+        Therefore, the Wasserstein distance between the interpolated and the real distribution is computed.
+
+        It is advisable to compare the Wasserstein distance e.g. to the ones obtained by
+        :meth:`TemporalAnalysisMixin.compute_time_point_distances`,
+        :meth:`TemporalAnalysisMixin.compute_random_distance`, and
+        :meth:`TemporalAnalysisMixin.compute_time_point_distance`.
+
+        This method does not instantiate the transport matrix if the solver output does not.
+
+        TODO: link to notebook
+
+
+        Parameters
+        ----------
+        start
+            Time point corresponding to the early distribution.
+        intermediate
+            Time point corresponding to the intermediate distribution which is to be interpolated.
+        end
+            Time point corresponding to the late distribution.
+        interpolation_parameter
+            Interpolation parameter determining the weight of the source and the target distribution. If `None`
+            it is linearly inferred from `source`, `intermediate`, and `target`.
+        n_interpolated_cells
+            Number of generated interpolated cell. If `None` the number of data points in the `intermediate`
+            distribution is taken.
+        account_for_unbalancedness
+            If `True` unbalancedness is accounted for by assuming exponential growth and death of cells.
+        batch_size
+            Number of cells simultaneously generated by interpolation.
+        seed
+            Random seed for sampling from the transport matrix.
+        kwargs
+            Keyword arguments for computing the Wasserstein distance (TODO make that function public?)
+
+        Returns
+        -------
+        Wasserstein distance between OT-based interpolated distribution and the true cell distribution.
+        """
         source_data, _, intermediate_data, _, target_data = self._get_data(start, intermediate, end, only_start=False)
         interpolation_parameter = self._get_interp_param(interpolation_parameter, start, intermediate, end)
         n_interpolated_cells = n_interpolated_cells if n_interpolated_cells is not None else len(intermediate_data)
@@ -208,6 +287,39 @@ class TemporalAnalysisMixin(AnalysisMixin):
         seed: Optional[int] = None,
         **kwargs: Any,
     ) -> Number:
+        """
+        Compute the Wasserstein distance of a randomly interpolated cell distribution and the true cell distribution.
+
+        This method interpolates the cell trajectories at the `intermediate` time point using a random coupling and
+        computes the distance to the true cell distribution.
+
+        TODO: link to notebook
+
+        Parameters
+        ----------
+        start
+            Time point corresponding to the early distribution.
+        intermediate
+            Time point corresponding to the intermediate distribution which is to be interpolated.
+        end
+            Time point corresponding to the late distribution.
+        interpolation_parameter
+            Interpolation parameter determining the weight of the source and the target distribution. If `None`
+            it is linearly inferred from `source`, `intermediate`, and `target`.
+        n_interpolated_cells
+            Number of generated interpolated cell. If `None` the number of data points in the `intermediate`
+            distribution is taken.
+        account_for_unbalancedness
+            If `True` unbalancedness is accounted for by assuming exponential growth and death of cells.
+        seed
+            Random seed for generating randomly interpolated cells.
+        kwargs
+            Keyword arguments for computing the Wasserstein distance (TODO make that function public?)
+
+        Returns
+        -------
+        The Wasserstein distance between a randomly interpolated cell distribution and the true cell distribution.
+        """
         source_data, growth_rates_source, intermediate_data, _, target_data = self._get_data(
             start, intermediate, end, only_start=False
         )
@@ -228,6 +340,25 @@ class TemporalAnalysisMixin(AnalysisMixin):
     def compute_time_point_distances(
         self, start: Number, intermediate: Number, end: Number, **kwargs: Any
     ) -> Tuple[Number, Number]:
+        """
+        Compute the Wasserstein distance of cell distributions between time points.
+
+        This method computes the Wasserstein distance between the cell distribution corresponding to `start` and `
+        intermediate` and `intermediate` and `end`, respectively.
+
+        TODO: link to notebook
+
+        Parameters
+        ----------
+        start
+            Time point corresponding to the early distribution.
+        intermediate
+            Time point corresponding to the intermediate distribution.
+        end
+            Time point corresponding to the late distribution.
+        kwargs
+            Keyword arguments for computing the Wasserstein distance (TODO make that function public?).
+        """
         source_data, _, intermediate_data, _, target_data = self._get_data(start, intermediate, end, only_start=False)
 
         distance_source_intermediate = self._compute_wasserstein_distance(source_data, intermediate_data, **kwargs)
@@ -236,6 +367,22 @@ class TemporalAnalysisMixin(AnalysisMixin):
         return distance_source_intermediate, distance_intermediate_target
 
     def compute_batch_distances(self, time: Number, batch_key: str, **kwargs: Any) -> float:
+        """
+        Compute the mean Wasserstein distance between batches of a distribution corresponding to one time point.
+
+        Parameters
+        ----------
+        time
+            Time point corresponding to the cell distribution which to compute the batch distances within.
+        batch_key
+            Key in :attr:`anndata.AnnData.obs` storing which batch each cell belongs to.
+        kwargs
+            Keyword arguments for computing the Wasserstein distance (TODO make that function public?).
+
+        Returns
+        -------
+        The mean Wasserstein distance between batches of a distribution corresponding to one time point.
+        """
         data, adata = self._get_data(time, only_start=True)
         assert len(adata) == len(data), "TODO: wrong shapes"
         dist = []
