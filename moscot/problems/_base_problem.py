@@ -203,17 +203,29 @@ class OTProblem(BaseProblem):
 
     def solve(
         self,
-        solver_kwargs: Mapping[str, Any] = MappingProxyType({}),
+        epsilon: Optional[float] = 1e-2,
+        alpha: Optional[float] = 0.5,
+        rank: int = -1,
+        scale: Optional[Union[float, str]] = None,
+        online: Optional[int] = None,
+        prepare_kwargs: Mapping[str, Any] = MappingProxyType({}),
         **kwargs: Any,
     ) -> "OTProblem":
         if self._problem_kind is None:
             raise RuntimeError("Run .prepare() first")
-        solver = self._problem_kind.solver(backend="ott")(**solver_kwargs)
+        kwargs["epsilon"] = epsilon
+        kwargs["rank"] = rank
+        prepare_kwargs = dict(prepare_kwargs)
+        prepare_kwargs["epsilon"] = epsilon
+        prepare_kwargs["scale"] = scale
+        prepare_kwargs["online"] = online
+
+        solver = self._problem_kind.solver(backend="ott")(**kwargs)
 
         # allow `MultiMarginalProblem` to pass new marginals
         a = kwargs.pop("a", self._a)
         b = kwargs.pop("b", self._b)
-        self._solution = solver(x=self._x, y=self._y, xy=self._xy, a=a, b=b, **kwargs)
+        self._solution = solver(x=self._x, y=self._y, xy=self._xy, a=a, b=b, **prepare_kwargs)
 
         return self
 
