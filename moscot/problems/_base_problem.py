@@ -196,8 +196,8 @@ class OTProblem(BaseProblem):
         else:
             raise NotImplementedError("TODO: Combination not implemented")
 
-        self._a = self._get_or_create_marginal(self.adata, a)
-        self._b = self._get_or_create_marginal(self._adata_y, b)
+        self._a = self._create_marginals(self.adata, a)
+        self._b = self._create_marginals(self._adata_y, b)
 
         return self
 
@@ -208,12 +208,13 @@ class OTProblem(BaseProblem):
         rank: int = -1,
         scale_cost: Optional[Union[float, str]] = None,
         online: Optional[int] = None,
+        tau_a: float = 1.0,
+        tau_b: float = 1.0,
         prepare_kwargs: Mapping[str, Any] = MappingProxyType({}),
         **kwargs: Any,
     ) -> "OTProblem":
         if self._problem_kind is None:
             raise RuntimeError("Run .prepare() first.")
-        kwargs["epsilon"] = epsilon  # GW/LR-Sinkhorn
         kwargs["rank"] = rank
         # allow `MultiMarginalProblem` to pass new marginals
         a = kwargs.pop("a", self._a)
@@ -225,7 +226,7 @@ class OTProblem(BaseProblem):
         prepare_kwargs["online"] = online
 
         solver = self._problem_kind.solver(backend="ott")(**kwargs)
-        self._solution = solver(x=self._x, y=self._y, xy=self._xy, a=a, b=b, **prepare_kwargs)
+        self._solution = solver(x=self._x, y=self._y, xy=self._xy, a=a, b=b, tau_a=tau_a, tau_b=tau_b, **prepare_kwargs)
 
         return self
 
@@ -282,7 +283,7 @@ class OTProblem(BaseProblem):
         return {"x": TaggedArray(x, tag=Tag.POINT_CLOUD), "y": TaggedArray(y, tag=Tag.POINT_CLOUD)}
 
     @staticmethod
-    def _get_or_create_marginal(adata: AnnData, data: Optional[Union[str, npt.ArrayLike]] = None) -> npt.ArrayLike:
+    def _create_marginals(adata: AnnData, data: Optional[Union[str, npt.ArrayLike]] = None) -> npt.ArrayLike:
         if data is None:
             return np.ones((adata.n_obs,), dtype=float) / adata.n_obs
         if isinstance(data, str):
