@@ -95,6 +95,15 @@ _transport_matrix = """\
 Computed transport matrix."""
 _converged = """\
 Whether the algorihtm converged."""
+_a = """\
+a
+    Specifies the left marginals. If :class:`np.ndarray` the length equals the number of data points in a source 
+    distribution. If :class:`str` the left marginals are taken from :attr:`anndata.AnnData.obs` ``[`{a}`]``."""
+_b = """\
+b
+    Specifies the right marginals. If :class:`np.ndarray` the length equals the number of data points in a target 
+    distribution. If :class:`str` the right marginals are taken from :attr:`anndata.AnnData.obs` ``[`{a}`]``."""
+
 
 def inject_docs(**kwargs: Any):
     def decorator(obj):
@@ -135,4 +144,6 @@ d = DocstringProcessor(
     shape=_shape,
     transport_matrix = _transport_matrix,
     converged = _converged,
+    a=_a,
+    b=_b,
 )
