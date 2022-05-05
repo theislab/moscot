@@ -56,7 +56,7 @@ class CompoundBaseProblem(BaseProblem, Generic[K, B], ABC):
     Raises
     ------
     TypeError
-        If `base_problem_type` is not a subclass of `GeneralProblem`.
+        If `base_problem_type` is not a subclass of :class:`moscot.problems.OTProblem`.
     """
 
     def __init__(self, adata: AnnData, **kwargs: Any):
@@ -200,9 +200,9 @@ class CompoundBaseProblem(BaseProblem, Generic[K, B], ABC):
             TODO.
         kwargs
             Keyword arguments for one of
-                - :attr:`moscot.problems.GeneralProblem.solve`
-                - :attr:`moscot.problems.MultiMarginalProblem.solve`
-                - :attr:`moscot.problems.TemporalBaseProblem.solve`
+                - :meth:`moscot.problems.OTProblem.solve`
+                - :meth:`moscot.problems.MultiMarginalProblem.solve`
+                - :meth:`moscot.problems.TemporalBaseProblem.solve`
 
         Raises
         ------

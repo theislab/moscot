@@ -22,7 +22,7 @@ OT handling classes
 .. autosummary::
     :toctree: development
 
-    moscot.problems.GeneralProblem
+    moscot.problems.OTProblem
     moscot.problems.MultiMarginalProblem
     moscot.problems.time._lineage.TemporalBaseProblem
 
