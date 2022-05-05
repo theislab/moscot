@@ -22,11 +22,11 @@ class MultiMarginalProblem(OTProblem, ABC):
 
     Parameters
     ----------
-    %(GeneralProblem.parameters)s
+    %(OTProblem.parameters)s
 
     Raises
     ------
-    %(GeneralProblem.raises)s
+    %(OTProblem.raises)s
     """
 
     _a: Optional[List[np.ndarray]]

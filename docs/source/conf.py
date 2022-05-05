@@ -17,6 +17,7 @@ import sys
 
 HERE = Path(__file__).parent
 sys.path.insert(0, str(HERE.parent.parent))
+sys.path.insert(0, str(HERE / "extensions"))
 
 # -- Project information -----------------------------------------------------
 
@@ -45,6 +46,7 @@ extensions = [
     "sphinx.ext.autosummary",
     "sphinx_copybutton",
     "sphinxcontrib.bibtex",
+    "typed_returns",
 ]
 intersphinx_mapping = {
     "python": ("https://docs.python.org/3", None),

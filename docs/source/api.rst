@@ -4,80 +4,33 @@ API
 Biological Problems
 ~~~~~~~~~~~~~~~~~~~
 
-TemporalProblem
----------------
-.. autoclass:: moscot.problems.time.TemporalProblem
-    :noindex:
-    :members:
-    :inherited-members:
+.. module:: moscot.problems
+.. currentmodule:: moscot.problems
 
-LineageProblem
---------------
-.. autoclass:: moscot.problems.time.LineageProblem
-    :noindex:
-    :members:
-    :inherited-members:
+.. autosummary::
+    :toctree: api
 
-MappingProblem
---------------
-.. autoclass:: moscot.problems.space.MappingProblem
-    :noindex:
-    :members:
-    :inherited-members:
+    moscot.problems.time.TemporalProblem
+    moscot.problems.time.LineageProblem
+    moscot.problems.space.AlignmentProblem
+    moscot.problems.space.MappingProblem
 
-AlignmentProblem
-----------------
-.. autoclass:: moscot.problems.space.AlignmentProblem
-    :noindex:
-    :members:
-    :inherited-members:
 
 Generic Problems
 ~~~~~~~~~~~~~~~~
 
-SinkhornProblem
----------------
-.. autoclass:: moscot.problems.SinkhornProblem
-    :noindex:
-    :members:
-    :inherited-members:
-
-GWProblem
----------
-.. autoclass:: moscot.problems.GWProblem
-    :noindex:
-    :members:
-    :inherited-members:
-
-FGWProblem
-----------
-.. autoclass:: moscot.problems.FGWProblem
-    :noindex:
-    :members:
-    :inherited-members:
+TODO
 
 Solvers
 ~~~~~~~
 
-SinkhornSolver
---------------
-.. autoclass:: moscot.backends.ott.SinkhornSolver
-    :noindex:
-    :members:
-    :inherited-members:
+.. module:: moscot.backends.ott
+.. currentmodule:: moscot.backends.ott
 
+.. autosummary::
+    :toctree: api
 
-GWSolver
---------
-.. autoclass:: moscot.backends.ott.GWSolver
-    :noindex:
-    :members:
-    :inherited-members:
+    moscot.backends.ott.SinkhornSolver
+    moscot.backends.ott.GWSolver
+    moscot.backends.ott.FGWSolver
 
-
-FGWSolver
----------
-.. autoclass:: moscot.backends.ott.FGWSolver
-    :noindex:
-    :members:
-    :inherited-members:

@@ -42,12 +42,6 @@ class BaseProblem(ABC):
         adata: AnnData,
         copy: bool = False,
     ):
-        # TODO(michalk8): remove this
-        if getattr(adata, "n_obs") == 0:
-            raise ValueError("TODO: `adata` has no observations.")
-        if getattr(adata, "n_vars") == 0:
-            raise ValueError("TODO: `adata` has no variables.")
-
         self._adata = adata.copy() if copy else adata
         self._problem_kind: Optional[ProblemKind] = None
 
@@ -61,6 +55,7 @@ class BaseProblem(ABC):
 
     @property
     def adata(self) -> AnnData:
+        """%(adata)s"""
         return self._adata
 
     # TODO(michalk8): move below?
@@ -99,7 +94,7 @@ class BaseProblem(ABC):
         return data / total if normalize else data
 
 
-@d.get_sections(base="GeneralProblem", sections=["Parameters", "Raises"])
+@d.get_sections(base="OTProblem", sections=["Parameters", "Raises"])
 @d.dedent
 class OTProblem(BaseProblem):
     """
@@ -114,7 +109,7 @@ class OTProblem(BaseProblem):
 
     Raises
     ------
-        %(BaseProblem.raises)s
+     %(BaseProblem.raises)s
     """
 
     def __init__(
