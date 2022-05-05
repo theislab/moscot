@@ -359,10 +359,12 @@ class CompoundBaseProblem(BaseProblem, Generic[K, B], ABC):
 
     @property
     def problems(self) -> Optional[Dict[Key, B]]:
+        """Dictionary of OT problems which the biological problem consists of."""
         return self._problems
 
     @property
     def solutions(self) -> Optional[Dict[Key, BaseSolverOutput]]:
+        """Dictionary of solutions of OT problems which the biological problem consists of."""
         return self._solutions
 
     def __getitem__(self, item: Key) -> B:

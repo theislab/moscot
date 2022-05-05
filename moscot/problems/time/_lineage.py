@@ -86,7 +86,7 @@ class TemporalBaseProblem(MultiMarginalProblem):
     def growth_rates(self) -> npt.ArrayLike:
         return np.power(self.a, 1 / (self._target - self._source))
 
-
+@d.dedent
 class TemporalProblem(TemporalAnalysisMixin, SingleCompoundProblem[Number, TemporalBaseProblem]):
     """
     Class for analysing time series single cell data based on :cite:`schiebinger:19`.

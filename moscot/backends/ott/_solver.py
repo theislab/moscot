@@ -255,13 +255,8 @@ class FGWSolver(GWSolver):
 
     Parameters
     ----------
-    %(RankMixin.parameters)s
-    %(OTSolver.parameters)s
-
-    Raises
-    ------
-    %(RankMixin.raises)s
-    %(OTSolver.raises)s
+    %(GWSolver.parameters)s
+    %(GWSolver.parameters)s
     """
 
     def _prepare(

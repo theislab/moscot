@@ -142,6 +142,7 @@ class BaseSolver(ABC):
 
 
 @d.get_sections(base="OTSolver", sections=["Parameters", "Raises"])
+@d.dedent
 class OTSolver(TagConverterMixin, BaseSolver, ABC):
     """OTSolver class."""
 

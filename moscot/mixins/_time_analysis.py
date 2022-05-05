@@ -223,10 +223,10 @@ class TemporalAnalysisMixin(AnalysisMixin):
         leveraging the OT coupling to obtain an approximation of the cell distribution at time point `intermediate`.
         Therefore, the Wasserstein distance between the interpolated and the real distribution is computed.
 
-        It is advisable to compare the Wasserstein distance e.g. to the ones obtained by
-        :meth:`TemporalAnalysisMixin.compute_time_point_distances`,
-        :meth:`TemporalAnalysisMixin.compute_random_distance`, and
-        :meth:`TemporalAnalysisMixin.compute_time_point_distance`.
+        It is recommended to compare the Wasserstein distance to the ones obtained by
+        :meth:`compute_time_point_distances`,
+        :meth:`compute_random_distance`, and
+        :meth:`compute_time_point_distance`.
 
         This method does not instantiate the transport matrix if the solver output does not.
 
