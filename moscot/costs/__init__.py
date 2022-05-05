@@ -1,1 +1,1 @@
-from _costs import LeafDistance, BarcodeDistance
+from moscot.costs._costs import LeafDistance, BarcodeDistance
