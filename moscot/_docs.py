@@ -74,17 +74,21 @@ subset
 _marginal_kwargs = """\
 marginal_kwargs
     keyword arguments for :meth:`moscot.problems.TemporalBaseProblem._estimate_marginals`, i.e. for modeling
-            the birth-death process. The keyword arguments
-            are either used for :func:`moscot.problems.time._utils.beta`, i.e. one of
-                - beta_max: float
-                - beta_min: float
-                - beta_center: float
-                - beta_width: float
-            or for :func:`moscot.problems.time._utils.beta`, i.e. one of
-                - delta_max: float
-                - delta_min: float
-                - delta_center: float
-                - delta_width: float"""
+    the birth-death process. The keyword arguments
+    are either used for :func:`moscot.problems.time._utils.beta`, i.e. one of
+
+        - beta_max: float
+        - beta_min: float
+        - beta_center: float
+        - beta_width: float
+
+    or for :func:`moscot.problems.time._utils.beta`, i.e. one of
+
+        - delta_max: float
+        - delta_min: float
+        - delta_center: float
+        - delta_width: float
+"""
 _shape = """\
 Number of cells in source and target distribution."""
 _transport_matrix = """\

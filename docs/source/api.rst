@@ -19,13 +19,7 @@ Biological Problems
 Generic Problems
 ~~~~~~~~~~~~~~~~
 
-
-.. autosummary::
-    :toctree: api
-
-    moscot.problems.SinkhornProblem
-    moscot.problems.GWProblem
-    moscot.problems.FGWProblem
+TODO
 
 Solvers
 ~~~~~~~
@@ -40,13 +34,3 @@ Solvers
     moscot.backends.ott.GWSolver
     moscot.backends.ott.FGWSolver
 
-
-Output
-~~~~~~
-
-.. autosummary::
-    :toctree: api
-
-    moscot.backends.ott.SinkhornSolver
-    moscot.backends.ott.GWSolver
-    moscot.backends.ott.FGWSolver

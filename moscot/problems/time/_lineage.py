@@ -207,7 +207,7 @@ class TemporalProblem(TemporalAnalysisMixin, SingleCompoundProblem[Number, Tempo
         """
         Prepare the :class:`moscot.problems.time.TemporalProblem`.
 
-        This method executes multiple steps to prepare the optimal transport problem(s).
+        This method executes multiple steps to prepare the optimal transport problems.
 
         Parameters
         ----------
@@ -230,7 +230,7 @@ class TemporalProblem(TemporalAnalysisMixin, SingleCompoundProblem[Number, Tempo
         %(callback)s
         %(callback_kwargs)s
         kwargs
-            Keyword arguments for :meth:`moscot.problems.CompoundBaseProblem._create_problems`
+            Keyword arguments for :meth:`moscot.problems.CompoundBaseProblem._create_problems`.
 
         Returns
         -------
