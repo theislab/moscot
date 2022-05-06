@@ -119,104 +119,6 @@ class TemporalProblem(SingleCompoundProblem[Number, BirthDeathBaseProblem], Temp
             **kwargs,
         )
 
-    @d.dedent
-    def push(
-        self,
-        start: Number,
-        end: Number,
-        result_key: Optional[str] = None,
-        return_all: bool = False,
-        scale_by_marginals: bool = True,
-        **kwargs: Any,
-    ) -> Optional[Union[npt.ArrayLike, Dict[Tuple[Any, Any], npt.ArrayLike]]]:
-        """
-        Push distribution of cells through time.
-
-        Parameters
-        ----------
-        start
-            Time point of source distribution.
-        target
-            Time point of target distribution.
-        result_key
-            Key of where to save the result in :attr:`anndata.AnnData.obs`. If None the result will be returned.
-        return_all
-            If `True` returns all the intermediate masses if pushed through multiple transport plans.
-            If `True`, the result is returned as a dictionary.
-
-        Returns
-        -------
-        Depending on `result_key` updates `adata` or returns the result. In the former case all intermediate results
-        (corresponding to intermediate time points) are saved in :attr:`anndata.AnnData.obs`. In the latter case all
-        intermediate step results are returned if `return_all` is `True`, otherwise only the distribution at `end`
-        is returned.
-
-        Raises
-        ------
-        %(CompoundBaseProblem_push.raises)s
-        """
-        if result_key is not None:
-            return_all = True
-        result = super().push(
-            start=start,
-            end=end,
-            return_all=return_all,
-            scale_by_marginals=scale_by_marginals,
-            **kwargs,
-        )[start, end]
-
-        if result_key is None:
-            return result
-        self._dict_to_adata(result, result_key)
-
-    @d.dedent
-    def pull(
-        self,
-        start: Number,
-        end: Number,
-        result_key: Optional[str] = None,
-        return_all: bool = False,
-        scale_by_marginals: bool = True,
-        **kwargs: Any,
-    ) -> Optional[Union[npt.ArrayLike, Dict[Tuple[Any, Any], npt.ArrayLike]]]:
-        """
-        Pull distribution of cells from time point `end` to time point `start`.
-
-        Parameters
-        ----------
-        start
-            Earlier time point, the time point the mass is pulled to.
-        end
-            Later time point, the time point the mass is pulled from.
-        result_key
-            Key of where to save the result in :attr:`anndata.AnnData.obs`. If `None` the result will be returned.
-        return_all
-            If `True` return all the intermediate masses if pushed through multiple transport plans. In this case the
-            result is returned as a dictionary.
-
-        Returns
-        -------
-        Depending on `result_key` updates `adata` or returns the result. In the former case all intermediate results
-        (corresponding to intermediate time points) are saved in :attr:`anndata.AnnData.obs`. In the latter case all
-        intermediate step results are returned if `return_all` is `True`, otherwise only the distribution at `start`
-        is returned.
-
-        Raises
-        ------
-        %(CompoundBaseProblem_pull.raises)s
-        """
-        if result_key is not None:
-            return_all = True
-        result = super().pull(
-            start=start,
-            end=end,
-            return_all=return_all,
-            scale_by_marginals=scale_by_marginals,
-            **kwargs,
-        )[start, end]
-        if result_key is None:
-            return result
-        self._dict_to_adata(result, result_key)
 
     @property
     def growth_rates(self) -> pd.DataFrame:
@@ -248,15 +150,6 @@ class TemporalProblem(SingleCompoundProblem[Number, BirthDeathBaseProblem], Temp
             )
         )
         return pd.concat(df_list, verify_integrity=True)
-
-    def _dict_to_adata(self, d: Mapping[str, npt.ArrayLike], obs_key: str) -> None:
-        # TODO: np.full
-        tmp = np.empty(len(self.adata))
-        tmp[:] = np.nan
-        for key, value in d.items():
-            mask = self.adata.obs[self.temporal_key] == key
-            tmp[mask] = np.squeeze(value)
-        self.adata.obs[obs_key] = tmp
 
     @property
     def cell_costs_source(self) -> Optional[pd.DataFrame]:
