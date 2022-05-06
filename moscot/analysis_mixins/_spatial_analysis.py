@@ -144,7 +144,3 @@ class SpatialMappingAnalysisMixin(AnalysisMixin):
         adata_pred.obs_names = self.adata.obs_names.values.copy()
         adata_pred.var_names = self.adata_sc.var_names.values.copy()
         return adata_pred
-
-
-class SpatioTemporalAnalysisMixin(AnalysisMixin):
-    pass
