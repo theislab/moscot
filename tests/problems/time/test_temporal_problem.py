@@ -8,7 +8,7 @@ import numpy as np
 from anndata import AnnData
 
 from moscot.solvers._output import BaseSolverOutput
-from moscot.problems.time._lineage import TemporalProblem, TemporalBaseProblem
+from moscot.problems.time._lineage import TemporalProblem, BirthDeathBaseProblem
 
 
 class TestTemporalProblem:
@@ -28,7 +28,7 @@ class TestTemporalProblem:
 
         for key in problem:
             assert key in expected_keys
-            assert isinstance(problem[key], TemporalBaseProblem)
+            assert isinstance(problem[key], BirthDeathBaseProblem)
 
     def test_solve_balanced(self, adata_time: AnnData):
         eps = 0.5

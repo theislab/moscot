@@ -1,28 +1,30 @@
 from types import MappingProxyType
-from typing import Any, Type, Tuple, Mapping, Optional
+from typing import Any, Mapping, Optional, Tuple
 
 from typing_extensions import Literal
 
 
-from moscot.problems._base_problem import OTProblem
-from moscot.problems._compound_problem import B, SingleCompoundProblem
+from moscot.problems.time._lineage import BirthDeathMixin
+from moscot.problems.space._alignment import AlignmentProblem
+from moscot.analysis_mixins._time_analysis import TemporalAnalysisMixin
 from moscot.analysis_mixins._spatial_analysis import SpatialAlignmentAnalysisMixin
 
 
-class AlignmentProblem(SingleCompoundProblem, SpatialAlignmentAnalysisMixin):
-    """Spatial alignment problem."""
+class SpatioTemporalProblem(BirthDeathMixin, AlignmentProblem, SpatialAlignmentAnalysisMixin, TemporalAnalysisMixin):
+    """Spatio-temporal problem."""
 
     def prepare(
         self,
-        batch_key: str,
+        time_key: str,
         spatial_key: str = "spatial",
         joint_attr: Optional[Mapping[str, Any]] = MappingProxyType({"x_attr": "X", "y_attr": "X"}),
-        policy: Literal["sequential", "star"] = "sequential",
+        policy: Literal["sequential", "pairwise", "triu", "tril", "explicit"] = "sequential",
         reference: Optional[str] = None,
         **kwargs: Any,
     ) -> "AlignmentProblem":
         """Prepare method."""
         self._SPATIAL_KEY = spatial_key
+        self._TEMPORAL_KEY = time_key
         # TODO(michalk8): check for spatial key
         x = y = {"attr": "obsm", "key": self.spatial_key, "tag": "point_cloud"}
 
@@ -30,12 +32,8 @@ class AlignmentProblem(SingleCompoundProblem, SpatialAlignmentAnalysisMixin):
             kwargs["callback"] = "local-pca"
             kwargs["callback_kwargs"] = {**kwargs.get("callback_kwargs", {}), **{"return_linear": True}}
 
-        return super().prepare(x=x, y=y, xy=joint_attr, policy=policy, key=batch_key, reference=reference, **kwargs)
-
-    @property
-    def _base_problem_type(self) -> Type[B]:
-        return OTProblem
+        return super().prepare(x=x, y=y, xy=joint_attr, policy=policy, key=time_key, reference=reference, **kwargs)
 
     @property
     def _valid_policies(self) -> Tuple[str, ...]:
-        return "sequential", "star"
+        return "sequential", "pairwise", "triu", "tril", "explicit"

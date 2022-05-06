@@ -33,4 +33,3 @@ Solvers
     moscot.backends.ott.SinkhornSolver
     moscot.backends.ott.GWSolver
     moscot.backends.ott.FGWSolver
-

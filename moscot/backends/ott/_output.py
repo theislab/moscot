@@ -48,6 +48,7 @@ class LinearOTTOutput(BaseSolverOutput, ABC):
 
 class SinkhornOutput(LinearOTTOutput):
     """Output class for linear OT problems."""
+
     def _apply(self, x: npt.ArrayLike, *, forward: bool) -> npt.ArrayLike:
         if x.ndim == 1:
             return self._output.apply(x, axis=1 - forward)
@@ -69,6 +70,7 @@ class SinkhornOutput(LinearOTTOutput):
 
 class LRSinkhornOutput(OutputRankMixin, LinearOTTOutput):
     """Output class for low-rank linear OT problems."""
+
     def _apply(self, x: npt.ArrayLike, *, forward: bool) -> npt.ArrayLike:
         axis = int(not forward)
         if x.ndim == 1:
@@ -101,6 +103,7 @@ class GWOutput(OutputRankMixin, MatrixSolverOutput):
     rank
         Rank of the solver. `-1` if full-rank was used.
     """
+
     def __init__(self, output: OTTGWOutput, *, rank: int = -1):
         super().__init__(output.matrix, rank=rank)
         self._converged = bool(output.convergence)

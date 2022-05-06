@@ -73,7 +73,7 @@ subset
     :attr:`anndata.AnnData.obs`."""
 _marginal_kwargs = """\
 marginal_kwargs
-    keyword arguments for :meth:`moscot.problems.TemporalBaseProblem._estimate_marginals`, i.e. for modeling
+    keyword arguments for :meth:`moscot.problems.BirthDeathBaseProblem._estimate_marginals`, i.e. for modeling
     the birth-death process. The keyword arguments
     are either used for :func:`moscot.problems.time._utils.beta`, i.e. one of
 
@@ -95,6 +95,7 @@ _transport_matrix = """\
 Computed transport matrix."""
 _converged = """\
 Whether the algorihtm converged."""
+
 
 def inject_docs(**kwargs: Any):
     def decorator(obj):
@@ -133,6 +134,6 @@ d = DocstringProcessor(
     subset=_subset,
     marginal_kwargs=_marginal_kwargs,
     shape=_shape,
-    transport_matrix = _transport_matrix,
-    converged = _converged,
+    transport_matrix=_transport_matrix,
+    converged=_converged,
 )

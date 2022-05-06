@@ -9,8 +9,8 @@ from anndata import AnnData
 
 from moscot.problems._base_problem import OTProblem
 from moscot.problems._subset_policy import Axis_t, DummyPolicy, ExternalStarPolicy
-from moscot.mixins._spatial_analysis import SpatialMappingAnalysisMixin
 from moscot.problems._compound_problem import B, SingleCompoundProblem
+from moscot.analysis_mixins._spatial_analysis import SpatialMappingAnalysisMixin
 
 
 class MappingProblem(SingleCompoundProblem, SpatialMappingAnalysisMixin):

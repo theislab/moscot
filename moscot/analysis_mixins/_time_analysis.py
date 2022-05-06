@@ -12,10 +12,12 @@ import numpy as np
 
 from anndata import AnnData
 
-from moscot.mixins._base_analysis import AnalysisMixin
+from moscot.analysis_mixins._base_analysis import AnalysisMixin
 
 
 class TemporalAnalysisMixin(AnalysisMixin):
+    _TEMPORAL_KEY: Optional[str] = None
+
     def cell_transition(
         self,
         start: Any,
@@ -65,8 +67,8 @@ class TemporalAnalysisMixin(AnalysisMixin):
             np.zeros((len(_early_cells), len(_late_cells))), index=_early_cells, columns=_late_cells
         )
 
-        df_late = self.adata[self.adata.obs[self._temporal_key] == end].obs[[_late_cells_key]].copy()
-        df_early = self.adata[self.adata.obs[self._temporal_key] == start].obs[[_early_cells_key]].copy()
+        df_late = self.adata[self.adata.obs[self.temporal_key] == end].obs[[_late_cells_key]].copy()
+        df_early = self.adata[self.adata.obs[self.temporal_key] == start].obs[[_early_cells_key]].copy()
         df_late["distribution"] = np.nan
         df_early["distribution"] = np.nan
 

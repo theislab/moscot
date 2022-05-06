@@ -11,11 +11,13 @@ import numpy.typing as npt
 
 from anndata import AnnData
 
-from moscot.mixins._base_analysis import AnalysisMixin
+from moscot.analysis_mixins._base_analysis import AnalysisMixin
 
 
 class SpatialAlignmentAnalysisMixin(AnalysisMixin):
     """Spatial alignment mixin class."""
+
+    _SPATIAL_KEY: Optional[str] = None
 
     def _interpolate_scheme(self, reference: Any, mode: Literal["warp", "affine"]) -> Dict[str, npt.ArrayLike]:
         """Scheme for interpolation."""
@@ -77,6 +79,11 @@ class SpatialAlignmentAnalysisMixin(AnalysisMixin):
 
         self.adata.obsm[f"{self.spatial_key}_{mode}"] = aligned_arr
 
+    @property
+    def spatial_key(self) -> Optional[str]:
+        """Return problems."""
+        return self._SPATIAL_KEY
+
 
 class SpatialMappingAnalysisMixin(AnalysisMixin):
     """Spatial mapping analysis mixin class."""
@@ -137,3 +144,7 @@ class SpatialMappingAnalysisMixin(AnalysisMixin):
         adata_pred.obs_names = self.adata.obs_names.values.copy()
         adata_pred.var_names = self.adata_sc.var_names.values.copy()
         return adata_pred
+
+
+class SpatioTemporalAnalysisMixin(AnalysisMixin):
+    pass

@@ -42,7 +42,7 @@ Optimal Transport classes
 
     moscot.problems.OTProblem
     moscot.problems.MultiMarginalProblem
-    moscot.problems.time._lineage.TemporalBaseProblem
+    moscot.problems.time._lineage.BirthDeathBaseProblem
 
 
 Base classes
