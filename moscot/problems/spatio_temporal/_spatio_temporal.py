@@ -1,8 +1,7 @@
 from types import MappingProxyType
-from typing import Any, Mapping, Optional, Tuple
+from typing import Any, Tuple, Mapping, Optional
 
 from typing_extensions import Literal
-
 
 from moscot.problems.time._lineage import BirthDeathMixin
 from moscot.problems.space._alignment import AlignmentProblem
@@ -11,7 +10,7 @@ from moscot.analysis_mixins._spatial_analysis import SpatialAlignmentAnalysisMix
 
 
 class SpatioTemporalProblem(BirthDeathMixin, AlignmentProblem, SpatialAlignmentAnalysisMixin, TemporalAnalysisMixin):
-    """Spatio-temporal problem."""
+    """Spatio-Temporal problem."""
 
     def prepare(
         self,

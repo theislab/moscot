@@ -7,8 +7,9 @@ import numpy as np
 
 from anndata import AnnData
 
+from moscot.problems.time import TemporalProblem
 from moscot.solvers._output import BaseSolverOutput
-from moscot.problems.time._lineage import TemporalProblem, BirthDeathBaseProblem
+from moscot.problems.time._lineage import BirthDeathBaseProblem
 
 
 class TestTemporalProblem:
@@ -92,7 +93,7 @@ class TestTemporalProblem:
         gene_set_proliferation = gene_set_list[0]
         gene_set_apoptosis = gene_set_list[1]
         problem = TemporalProblem(adata_time)
-        problem = problem.score_genes_for_marginals(
+        problem.score_genes_for_marginals(
             gene_set_proliferation=gene_set_proliferation, gene_set_apoptosis=gene_set_apoptosis
         )
 

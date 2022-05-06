@@ -3,7 +3,6 @@ from typing import Any, Type, Tuple, Mapping, Optional
 
 from typing_extensions import Literal
 
-
 from moscot.problems._base_problem import OTProblem
 from moscot.problems._compound_problem import B, SingleCompoundProblem
 from moscot.analysis_mixins._spatial_analysis import SpatialAlignmentAnalysisMixin

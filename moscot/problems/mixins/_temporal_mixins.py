@@ -1,8 +1,7 @@
 from abc import ABC
-from typing import Any, Literal, Optional, Sequence, Type, Union
+from typing import Any, Type, Union, Literal, Optional, Sequence
 from numbers import Number
 import logging
-
 
 import numpy as np
 import numpy.typing as npt

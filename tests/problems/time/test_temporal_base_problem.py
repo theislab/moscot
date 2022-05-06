@@ -10,6 +10,7 @@ from anndata import AnnData
 from moscot.problems.time._lineage import BirthDeathBaseProblem
 
 
+# TODO(@MUCDK) put file in different folder according to moscot.problems structure
 class TestBirthDeathBaseProblem:
     def test_initialisation_pipeline(self, adata_time_marginal_estimations: AnnData):
         adata_x = adata_time_marginal_estimations[adata_time_marginal_estimations.obs["time"] == 0]
@@ -65,7 +66,7 @@ class TestBirthDeathBaseProblem:
         adata_x = adata_time_marginal_estimations[adata_time_marginal_estimations.obs["time"] == 0]
         adata_y = adata_time_marginal_estimations[adata_time_marginal_estimations.obs["time"] == 1]
         sol = MockBaseSolverOutput(len(adata_x), len(adata_y))
-        prob = BaseProblem(adata_x, adata_y, source=0, target=1)
+        prob = BirthDeathBaseProblem(adata_x, adata_y, source=0, target=1)
         prob = prob.prepare(x={"attr": "X"}, y={"attr": "X"}, marginal_kwargs={"proliferation_key": "proliferation"})
 
         assert isinstance(prob._a, list)

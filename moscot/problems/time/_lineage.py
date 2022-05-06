@@ -1,5 +1,5 @@
 from types import MappingProxyType
-from typing import Any, Dict, Literal, Mapping, Optional, Tuple, Type, Union
+from typing import Any, Dict, Type, Tuple, Union, Literal, Mapping, Optional
 from numbers import Number
 
 import pandas as pd
@@ -254,7 +254,7 @@ class TemporalProblem(SingleCompoundProblem[Number, BirthDeathBaseProblem], Temp
         tmp = np.empty(len(self.adata))
         tmp[:] = np.nan
         for key, value in d.items():
-            mask = self.adata.obs[self._TEMPORAL_KEY] == key
+            mask = self.adata.obs[self.temporal_key] == key
             tmp[mask] = np.squeeze(value)
         self.adata.obs[obs_key] = tmp
 

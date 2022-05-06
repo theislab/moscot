@@ -474,3 +474,8 @@ class TemporalAnalysisMixin(AnalysisMixin):
         return (
             interpolation_parameter if interpolation_parameter is not None else (intermediate - start) / (end - start)
         )
+
+    @property
+    def temporal_key(self) -> Optional[str]:
+        """Return temporal key."""
+        return self._TEMPORAL_KEY
