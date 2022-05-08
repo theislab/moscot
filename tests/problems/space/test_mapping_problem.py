@@ -1,5 +1,6 @@
 from typing import Dict, List, Tuple, Optional
 
+import pandas as pd
 import pytest
 
 import numpy as np
@@ -99,3 +100,19 @@ class TestMappingProblem:
         assert np.allclose(*(sol.cost for sol in problem.solutions.values()))
         # assert np.all([sol.converged for sol in problem.solutions.values()]) ## never converges
         assert np.all([np.all(~np.isnan(sol.transport_matrix)) for sol in problem.solutions.values()])
+
+    @pytest.mark.parametrize("sc_attr", [{"attr": "X"}, {"attr": "obsm", "key": "X_pca"}])
+    @pytest.mark.parametrize("var_names", ["0", [str(i) for i in range(20)]])
+    def test_analysis(
+        self,
+        adata_mapping: AnnData,
+        sc_attr: Dict[str, str],
+        var_names: Optional[List[Optional[str]]],
+    ):
+        adataref, adatasp = TestMappingProblem._adata_split(adata_mapping)
+        problem = MappingProblem(adataref, adatasp).prepare(batch_key="batch", sc_attr=sc_attr).solve()
+
+        corr = problem.correlate(var_names)
+        imp = problem.impute()
+        pd.testing.assert_series_equal(*list(corr.values()))
+        assert imp.shape == adatasp.shape

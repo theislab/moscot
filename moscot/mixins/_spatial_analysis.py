@@ -104,13 +104,13 @@ class SpatialMappingAnalysisMixin(AnalysisMixin):
         self, var_names: Optional[List[str]] = None, corr_method: Literal["pearson", "spearman"] = "pearson"
     ) -> Mapping[Tuple[str, Any], pd.Series]:
         """Calculate correlation between true and predicted gexp in space."""
-        var_sc = self._filter_vars(var_names, True)
+        var_sc = self._filter_vars(var_names)
         if not len(var_sc):
             raise ValueError("No overlapping `var_names` between ` adata_sc` and `adata_sp`.")
         cor = pearsonr if corr_method == "pearson" else spearmanr
         corr_dic = {}
         gexp_sc = self.adata_sc[:, var_sc].X if not issparse(self.adata_sc.X) else self.adata_sc[:, var_sc].X.A
-        for prob_key, prob_val in self.solution.items():
+        for prob_key, prob_val in self.solutions.items():
             index_obs: List[Union[bool, int]] = (
                 self.adata.obs[self._policy._subset_key] == prob_key[0]
                 if self._policy._subset_key is not None
@@ -130,7 +130,7 @@ class SpatialMappingAnalysisMixin(AnalysisMixin):
         """Return imputation of spatial expression of given genes."""
         gexp_sc = self.adata_sc.X if not issparse(self.adata_sc.X) else self.adata_sc.X.A
         pred_list = []
-        for _, prob_val in self.solution.items():
+        for _, prob_val in self.solutions.items():
             tmap = prob_val._scale_transport_by_marginals(forward=False)
             pred_list.append(np.dot(tmap, gexp_sc))
         adata_pred = AnnData(np.nan_to_num(np.vstack(pred_list), nan=0.0, copy=False))
