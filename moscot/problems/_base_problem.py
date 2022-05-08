@@ -281,10 +281,11 @@ class OTProblem(BaseProblem):
     def _create_marginals(adata: AnnData, data: Optional[Union[str, npt.ArrayLike]] = None) -> npt.ArrayLike:
         if data is None:
             return np.ones((adata.n_obs,), dtype=float) / adata.n_obs
-        if isinstance(data, str):
+        elif isinstance(data, str):
             # TODO(michalk8): some nice error message
-            data = adata.obs[data]
-        return np.asarray(data)
+            return np.asarray(adata.obs[data])
+        else: # this is to prevent people from passing marginals as npt.ArrayLike
+            raise ValueError("TODO: marginals must be passed in `adata.obs`.")
 
     @property
     def shape(self) -> Tuple[int, int]:
@@ -306,3 +307,11 @@ class OTProblem(BaseProblem):
     @property
     def xy(self) -> Optional[Tuple[TaggedArray, TaggedArray]]:
         return self._xy
+
+    @property
+    def a(self) -> Optional[np.ndarray]:
+        return self._a
+
+    @property
+    def b(self) -> Optional[np.ndarray]:
+        return self._b
