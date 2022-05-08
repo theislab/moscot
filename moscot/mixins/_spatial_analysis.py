@@ -28,7 +28,7 @@ class SpatialAlignmentAnalysisMixin(AnalysisMixin):
         src = subs_adata(reference)
         if mode == "affine":
             src -= src.mean(0)
-        dic_transport = {reference: src}
+        transport_dict = {reference: src}
         # get policy
         full_steps = self._policy._subset
         fwd_steps = self._policy.plan(end=reference)
@@ -42,14 +42,14 @@ class SpatialAlignmentAnalysisMixin(AnalysisMixin):
         if len(fwd_steps):
             for (start, end) in fwd_steps.keys():
                 tmap = self._interpolate_transport(start=start, end=end, normalize=True, forward=True)
-                dic_transport[start] = fun_transport(tmap, subs_adata(start), src)
+                transport_dict[start] = fun_transport(tmap, subs_adata(start), src)
 
         if bwd_steps is not None and len(bwd_steps):
             for (start, end) in bwd_steps.keys():
                 tmap = self._interpolate_transport(start=start, end=end, normalize=True, forward=False)
-                dic_transport[end] = fun_transport(tmap.T, subs_adata(end), src)
+                transport_dict[end] = fun_transport(tmap.T, subs_adata(end), src)
 
-        return dic_transport
+        return transport_dict
 
     def _affine(self, tmap: npt.ArrayLike, tgt: npt.ArrayLike, src: npt.ArrayLike) -> npt.ArrayLike:
         """Affine transformation."""

@@ -78,3 +78,23 @@ class TestAlignmentProblem:
         assert np.all([sol.b is not None for sol in problem.solutions.values()])
         assert np.all([sol.converged for sol in problem.solutions.values()])
         # assert np.allclose(*[sol.cost for sol in problem.solutions.values()]) # nan returned
+
+    def test_analysis(self, adata_space_rotate: AnnData):
+
+        adata_ref = adata_space_rotate.copy()
+        problem = AlignmentProblem(adata=adata_ref).prepare(batch_key="batch").solve()
+        categories = adata_space_rotate.obs.batch.cat.categories
+
+        for ref in categories:
+            problem.align(reference=ref, mode="affine")
+            problem.align(reference=ref, mode="warp")
+            for c1, c2 in zip(categories, categories[1:]):
+                np.testing.assert_array_almost_equal(
+                    adata_ref[adata_ref.obs.batch == c1].obsm["spatial_warp"],
+                    adata_ref[adata_ref.obs.batch == c2].obsm["spatial_warp"],
+                )
+                np.testing.assert_array_almost_equal(
+                    adata_ref[adata_ref.obs.batch == c1].obsm["spatial_affine"],
+                    adata_ref[adata_ref.obs.batch == c2].obsm["spatial_affine"],
+                )
+            assert adata_ref.obsm["spatial_warp"].shape == adata_space_rotate.obsm["spatial"].shape

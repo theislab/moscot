@@ -40,8 +40,8 @@ class AlignmentProblem(SingleCompoundProblem, SpatialAlignmentAnalysisMixin):
 
     def solve(
         self,
-        alpha: Optional[float] = 0.5,
-        epsilon: Optional[float] = 1e-3,
+        alpha: Optional[float] = 0.4,
+        epsilon: Optional[float] = 1e-1,
         rank: Optional[int] = None,
         **kwargs: Any,
     ) -> "AlignmentProblem":
