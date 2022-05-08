@@ -72,6 +72,17 @@ class MappingProblem(SingleCompoundProblem, SpatialMappingAnalysisMixin):
 
         return super().prepare(x=x, y=y, policy="external_star", key=batch_key, **kwargs)
 
+    def solve(
+        self,
+        alpha: Optional[float] = 0.5,
+        epsilon: Optional[float] = 1e-3,
+        rank: Optional[int] = None,
+        **kwargs: Any,
+    ) -> "MappingProblem":
+        """Solve method."""
+        rank = -1 if rank is None else rank
+        return super().solve(alpha=alpha, epsilon=epsilon, rank=rank, **kwargs)
+
     @property
     def adata_sc(self) -> AnnData:
         """Return single cell adata."""
