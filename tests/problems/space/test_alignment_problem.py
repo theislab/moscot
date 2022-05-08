@@ -1,5 +1,3 @@
-from typing import Union, Optional
-
 import pytest
 
 import numpy as np
@@ -11,9 +9,9 @@ from moscot.problems._base_problem import OTProblem
 
 
 class TestAlignmentProblem:
-    @pytest.mark.parametrize(("epsilon", "rank"), [(None, None), (3, None), (1e-5, 10)])
     def test_prepare_sequential(
-        self, adata_space_rotate: AnnData, epsilon: Optional[Union[int, float]], rank: Optional[int]
+        self,
+        adata_space_rotate: AnnData,
     ):
         expected_keys = [("0", "1"), ("1", "2")]
         n_obs = adata_space_rotate.shape[0] // 3
@@ -28,7 +26,7 @@ class TestAlignmentProblem:
             assert prob_key == exp_key
             assert isinstance(problem[prob_key], OTProblem)
             assert problem[prob_key].shape == (n_obs, n_obs)
-            assert problem[prob_key].x.data.shape == problem[prob_key].x.data.shape == (n_obs, 2)
+            assert problem[prob_key].x.data.shape == problem[prob_key].y.data.shape == (n_obs, 2)
             assert problem[prob_key].xy[0].data.shape == problem[prob_key].xy[1].data.shape == (n_obs, n_var)
 
     @pytest.mark.parametrize("reference", ["0", "1", "2"])
@@ -45,7 +43,8 @@ class TestAlignmentProblem:
             assert isinstance(problem[prob_key], OTProblem)
 
     @pytest.mark.parametrize(
-        ("epsilon", "alpha", "rank"), [(1, 0.9, None), (1, 0.5, None), (0.1, 0.1, None)]
+        ("epsilon", "alpha", "rank"),
+        [(1, 0.9, None), (1, 0.5, None), (0.1, 0.1, None)],  # TODO(giovp): rank doesn't work?
     )  # can't set rank
     def test_solve_balance(self, adata_space_rotate: AnnData, epsilon: float, alpha: float, rank: int):
 
