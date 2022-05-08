@@ -4,8 +4,9 @@ import pandas as pd
 import pytest
 
 import numpy as np
-
+import scanpy as sc
 from anndata import AnnData
+from sklearn.metrics import pairwise_distances
 
 from moscot.solvers._output import BaseSolverOutput
 from moscot.problems.time._lineage import TemporalProblem, TemporalBaseProblem
@@ -190,3 +191,44 @@ class TestTemporalProblem:
         assert set(growth_rates[~growth_rates["g_0"].isnull()].index) == set(
             adata_time[adata_time.obs["time"].isin([0, 1])].obs.index
         )
+
+    def test_result_compares_to_wot(self, gt_temporal_adata: AnnData):
+        # this test assures TemporalProblem returns an equivalent solution to Waddington OT (precomputed)
+        adata = gt_temporal_adata.copy()
+        config = adata.uns["config_solution"]
+        eps = config["eps"]
+        lam1 = config["lam1"]
+        lam2 = config["lam2"]
+        key = config["key"]
+        key_1 = config["key_1"]
+        key_2 = config["key_2"]
+        local_pca = config["local_pca"]
+        adata_1 = adata[adata.obs[key] == key_1].copy()
+        adata_2 = adata[adata.obs[key] == key_2].copy()
+        sc.tl.pca(adata_1, n_comps=local_pca)
+        sc.tl.pca(adata_2, n_comps=local_pca)
+        C = pairwise_distances(adata_1.obsm["X_pca"], adata_2.obsm["X_pca"], metric="sqeuclidean")
+        C /= C.mean()
+        cdata = adata_1.concatenate(adata_2)
+
+        tp = TemporalProblem(cdata)
+        tp = tp.prepare(key, policy="sequential", joint_attr = "X_pca")
+        tp = tp.solve(epsilon=eps, scale_cost="mean", tau_a=lam1/(lam1+eps), tau_b=lam2/(lam2+eps))
+
+        np.testing.assert_array_almost_equal(
+            adata.uns["tmap_10_105"],
+            np.array(tp[key_1, key_2].solution.transport_matrix),
+        )
+        np.testing.assert_array_almost_equal(
+            adata.uns["tmap_10_11"],
+            np.array(tp[key_1, key_2].solution.transport_matrix),
+        )
+        np.testing.assert_array_almost_equal(
+            adata.uns["tmap_10_11"],
+            np.array(tp[key_1, key_2].solution.transport_matrix),
+        )
+
+        
+
+
+
