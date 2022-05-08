@@ -38,6 +38,17 @@ class AlignmentProblem(SingleCompoundProblem, SpatialAlignmentAnalysisMixin):
 
         return super().prepare(x=x, y=y, xy=joint_attr, policy=policy, key=batch_key, reference=reference, **kwargs)
 
+    def solve(
+        self,
+        alpha: Optional[float] = 0.5,
+        epsilon: Optional[float] = 1e-3,
+        rank: Optional[int] = None,
+        **kwargs: Any,
+    ) -> "AlignmentProblem":
+        """Solve method."""
+        rank = -1 if rank is None else rank
+        return super().solve(alpha=alpha, epsilon=epsilon, rank=rank, **kwargs)
+
     @property
     def spatial_key(self) -> Optional[str]:
         """Return problems."""

@@ -15,6 +15,7 @@ class TestAlignmentProblem:
     def test_prepare_sequential(
         self, adata_space_rotate: AnnData, epsilon: Optional[Union[int, float]], rank: Optional[int]
     ):
+        expected_keys = [("0", "1"), ("1", "2")]
         n_obs = adata_space_rotate.shape[0] // 3
         n_var = adata_space_rotate.shape[1]
         problem = AlignmentProblem(adata=adata_space_rotate)
@@ -28,7 +29,7 @@ class TestAlignmentProblem:
             assert isinstance(problem[prob_key], OTProblem)
             assert problem[prob_key].shape == (n_obs, n_obs)
             assert problem[prob_key].x.data.shape == problem[prob_key].x.data.shape == (n_obs, 2)
-            assert problem[prob_key].xyp[0].data.shape == problem[prob_key].xy[1].data.shape == (n_obs, n_var)
+            assert problem[prob_key].xy[0].data.shape == problem[prob_key].xy[1].data.shape == (n_obs, n_var)
 
     @pytest.mark.parametrize("reference", ["0", "1", "2"])
     def test_prepare_star(self, adata_space_rotate: AnnData, reference: str):
@@ -43,28 +44,27 @@ class TestAlignmentProblem:
             assert ref == reference
             assert isinstance(problem[prob_key], OTProblem)
 
-    @pytest.mark.parametrize(("epsilon", "alpha", "rank"), [(1, 0.9, None), (1, 0.5, None), (1e-3, 0.1, 10)])
-    def test_solve_balance(self, adata_space_rotate: AnnData, epsilon: float, alpha: float):
-        solver_kwargs = {"epsilon": epsilon}
-        solver_kwargs = {"alpha": alpha}
-        if rank is not None:
-            solver_kwargs["rank"] = rank
+    @pytest.mark.parametrize(
+        ("epsilon", "alpha", "rank"), [(1, 0.9, None), (1, 0.5, None), (0.1, 0.1, None)]
+    )  # can't set rank
+    def test_solve_balance(self, adata_space_rotate: AnnData, epsilon: float, alpha: float, rank: int):
 
         problem = (
-            AlignmentProblem(adata=adata_space_rotate).prepare(batch_key="batch").solve(epsilon=epsilon, alpha=alpha)
+            AlignmentProblem(adata=adata_space_rotate)
+            .prepare(batch_key="batch")
+            .solve(epsilon=epsilon, alpha=alpha, rank=rank)
         )
 
         epsilon = 1.0 if epsilon is None else epsilon
-        is_low_rank = False if rank is None else True
+        False if rank is None else True
         rank = -1 if rank is None else rank
         for prob_key in problem:
-            assert problem[prob_key].solver.epsilon == epsilon
-            assert problem[prob_key].solver.rank == rank
-            assert problem[prob_key].solver.is_low_rank == is_low_rank
+            assert problem[prob_key].solution.rank == rank
+            assert problem[prob_key].solution.converged
 
-        # assert np.allclose(*(sol.cost for sol in problem.solutions.values()))
-        # assert np.all([sol.converged for sol in problem.solutions.values()])
-        # assert np.all([np.all(~np.isnan(sol.transport_matrix)) for sol in problem.solutions.values()])
+        assert np.allclose(*(sol.cost for sol in problem.solutions.values()))
+        assert np.all([sol.converged for sol in problem.solutions.values()])
+        assert np.all([np.all(~np.isnan(sol.transport_matrix)) for sol in problem.solutions.values()])
 
     def test_solve_unbalance(self, adata_space_rotate: AnnData):  # unclear usage yet
         tau_a, tau_b = [1, 1.2]
