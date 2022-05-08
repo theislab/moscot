@@ -1,73 +1,54 @@
 Development
-=================================
+===========
 
-Translation classes serve to translate a biological problem to possibly multiple optimal transport subproblems.
-OT handling classes correspond to exactly one optimal transport subproblem.
+
+Output
+~~~~~~
+
+.. autosummary::
+    :toctree: development
+
+    moscot.backends.ott.SinkhornOutput
+    moscot.backends.ott.LRSinkhornOutput
+    moscot.backends.ott.GWOutput
+
+
+Costs
+~~~~~
+
+.. autosummary::
+    :toctree: development
+
+    moscot.costs.LeafDistance
+    moscot.costs.BarcodeDistance
+
 
 Translation Classes
 ~~~~~~~~~~~~~~~~~~~
 
-CompoundProblem
----------------
-.. autoclass:: moscot.problems.CompoundProblem
-    :noindex:
-    :members:
-    :inherited-members:
+.. autosummary::
+    :toctree: development
+
+    moscot.problems.SingleCompoundProblem
+    moscot.problems.MultiCompoundProblem
+    moscot.problems.CompoundBaseProblem
 
 
-SingleCompoundProblem
----------------------
-.. autoclass:: moscot.problems.SingleCompoundProblem
-    :noindex:
-    :members:
-    :inherited-members:
+Optimal Transport classes
+~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. autosummary::
+    :toctree: development
+
+    moscot.problems.OTProblem
+    moscot.problems.MultiMarginalProblem
+    moscot.problems.time._lineage.TemporalBaseProblem
 
 
-MultiCompoundProblem
---------------------
-.. autoclass:: moscot.problems.MultiCompoundProblem
-    :noindex:
-    :members:
-    :inherited-members:
+Base classes
+~~~~~~~~~~~~
 
-CompoundBaseProblem
--------------------
-.. autoclass:: moscot.problems.CompoundBaseProblem
-    :noindex:
-    :members:
-    :inherited-members:
+.. autosummary::
+    :toctree: development
 
-
-OT handling classes
-~~~~~~~~~~~~~~~~~~~
-
-GeneralProblem
---------------
-.. autoclass:: moscot.problems.GeneralProblem
-    :noindex:
-    :members:
-    :inherited-members:
-
-MultiMarginalProblem
---------------------
-.. autoclass:: moscot.problems.MultiMarginalProblem
-    :noindex:
-    :members:
-    :inherited-members:
-
-TemporalBaseProblem
--------------------
-.. autoclass:: moscot.problems.time._lineage.TemporalBaseProblem
-    :noindex:
-    :members:
-    :inherited-members:
-
-Unifying classes
-~~~~~~~~~~~~~~~~
-
-BaseProblem
------------
-.. autoclass:: moscot.problems.BaseProblem
-    :noindex:
-    :members:
-    :inherited-members:
+    moscot.problems.BaseProblem

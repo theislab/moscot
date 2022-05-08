@@ -61,10 +61,12 @@ class BaseSolverOutput(ABC):
 
     @property
     def a(self) -> npt.ArrayLike:
+        """Marginals of source distribution. If output of unbalanced OT, these are the posterior marginals."""
         return self.pull(self._ones(self.shape[1]))
 
     @property
     def b(self) -> npt.ArrayLike:
+        """Marginals of target distribution. If output of unbalanced OT, these are the posterior marginals."""
         return self.push(self._ones(self.shape[0]))
 
     def _scale_by_marginals(self, x: npt.ArrayLike, *, forward: bool) -> npt.ArrayLike:
@@ -114,10 +116,12 @@ class MatrixSolverOutput(BaseSolverOutput, ABC):
 
     @property
     def transport_matrix(self) -> npt.ArrayLike:
+        """%(transport_matrix)s"""
         return self._matrix
 
     @property
     def shape(self) -> Tuple[int, int]:
+        """%(shape)s"""
         return self.transport_matrix.shape
 
     @property

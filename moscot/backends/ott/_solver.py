@@ -59,7 +59,6 @@ class OTTJaxSolver(OTSolver, Generic[O], ABC):
     ----------
     kwargs
         keyword arguments for one of the following:
-
             - :class:`ott.core.sinkhorn.Sinkhorn`
             - :class:`ott.core.sinkhorn_lr.LRSinkhorn`
             - :class:`ott.core.gromov_wasserstein.GromovWasserstein`
@@ -156,11 +155,11 @@ class SinkhornSolver(OTTJaxSolver[Union[SinkhornOutput, LRSinkhornOutput]]):
 
     Parameters
     ----------
-    %(BaseSolver.parameters)s
+    %(OTSolver.parameters)s
 
     Raises
     ------
-    %(BaseSolver.parameters)s
+    %(OTSolver.parameters)s
     """
 
     def _prepare(
@@ -207,11 +206,11 @@ class GWSolver(OTTJaxSolver[GWOutput]):
 
     Parameters
     ----------
-    %(BaseSolver.parameters)s
+    %(OTSolver.parameters)s
 
     Raises
     ------
-    %(BaseSolver.raises)s
+    %(OTSolver.raises)s
     """
 
     def _prepare(
@@ -256,13 +255,8 @@ class FGWSolver(GWSolver):
 
     Parameters
     ----------
-    %(RankMixin.parameters)s
-    %(BaseSolver.parameters)s
-
-    Raises
-    ------
-    %(RankMixin.raises)s
-    %(BaseSolver.raises)s
+    %(GWSolver.parameters)s
+    %(GWSolver.parameters)s
     """
 
     def _prepare(

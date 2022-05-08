@@ -42,12 +42,6 @@ class BaseProblem(ABC):
         adata: AnnData,
         copy: bool = False,
     ):
-        # TODO(michalk8): remove this
-        if getattr(adata, "n_obs") == 0:
-            raise ValueError("TODO: `adata` has no observations.")
-        if getattr(adata, "n_vars") == 0:
-            raise ValueError("TODO: `adata` has no variables.")
-
         self._adata = adata.copy() if copy else adata
         self._problem_kind: Optional[ProblemKind] = None
 
@@ -61,6 +55,7 @@ class BaseProblem(ABC):
 
     @property
     def adata(self) -> AnnData:
+        """%(adata)s"""
         return self._adata
 
     # TODO(michalk8): move below?
@@ -99,7 +94,7 @@ class BaseProblem(ABC):
         return data / total if normalize else data
 
 
-@d.get_sections(base="GeneralProblem", sections=["Parameters", "Raises"])
+@d.get_sections(base="OTProblem", sections=["Parameters", "Raises"])
 @d.dedent
 class OTProblem(BaseProblem):
     """
@@ -114,7 +109,7 @@ class OTProblem(BaseProblem):
 
     Raises
     ------
-        %(BaseProblem.raises)s
+     %(BaseProblem.raises)s
     """
 
     def __init__(
@@ -196,24 +191,37 @@ class OTProblem(BaseProblem):
         else:
             raise NotImplementedError("TODO: Combination not implemented")
 
-        self._a = self._get_or_create_marginal(self.adata, a)
-        self._b = self._get_or_create_marginal(self._adata_y, b)
+        self._a = self._create_marginals(self.adata, a)
+        self._b = self._create_marginals(self._adata_y, b)
 
         return self
 
     def solve(
         self,
-        solver_kwargs: Mapping[str, Any] = MappingProxyType({}),
+        epsilon: Optional[float] = 1e-2,
+        alpha: Optional[float] = 0.5,
+        rank: int = -1,
+        scale_cost: Optional[Union[float, str]] = None,
+        online: Optional[int] = None,
+        tau_a: float = 1.0,
+        tau_b: float = 1.0,
+        prepare_kwargs: Mapping[str, Any] = MappingProxyType({}),
         **kwargs: Any,
     ) -> "OTProblem":
         if self._problem_kind is None:
-            raise RuntimeError("Run .prepare() first")
-        solver = self._problem_kind.solver(backend="ott")(**solver_kwargs)
-
+            raise RuntimeError("Run .prepare() first.")
+        kwargs["rank"] = rank
         # allow `MultiMarginalProblem` to pass new marginals
         a = kwargs.pop("a", self._a)
         b = kwargs.pop("b", self._b)
-        self._solution = solver(x=self._x, y=self._y, xy=self._xy, a=a, b=b, **kwargs)
+
+        prepare_kwargs = dict(prepare_kwargs)
+        prepare_kwargs["epsilon"] = epsilon
+        prepare_kwargs["scale_cost"] = scale_cost
+        prepare_kwargs["online"] = online
+
+        solver = self._problem_kind.solver(backend="ott")(**kwargs)
+        self._solution = solver(x=self._x, y=self._y, xy=self._xy, a=a, b=b, tau_a=tau_a, tau_b=tau_b, **prepare_kwargs)
 
         return self
 
@@ -270,7 +278,7 @@ class OTProblem(BaseProblem):
         return {"x": TaggedArray(x, tag=Tag.POINT_CLOUD), "y": TaggedArray(y, tag=Tag.POINT_CLOUD)}
 
     @staticmethod
-    def _get_or_create_marginal(adata: AnnData, data: Optional[Union[str, npt.ArrayLike]] = None) -> npt.ArrayLike:
+    def _create_marginals(adata: AnnData, data: Optional[Union[str, npt.ArrayLike]] = None) -> npt.ArrayLike:
         if data is None:
             return np.ones((adata.n_obs,), dtype=float) / adata.n_obs
         if isinstance(data, str):

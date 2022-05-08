@@ -56,7 +56,7 @@ class CompoundBaseProblem(BaseProblem, Generic[K, B], ABC):
     Raises
     ------
     TypeError
-        If `base_problem_type` is not a subclass of `GeneralProblem`.
+        If `base_problem_type` is not a subclass of :class:`moscot.problems.OTProblem`.
     """
 
     def __init__(self, adata: AnnData, **kwargs: Any):
@@ -151,11 +151,11 @@ class CompoundBaseProblem(BaseProblem, Generic[K, B], ABC):
         Parameters
         ----------
         key
-            key in :attr:`anndata.AnnData.obs` allocating the cell to a certain cell distribution
+            Key in :attr:`anndata.AnnData.obs` allocating the cell to a certain cell distribution.
         policy
-            defines which transport maps to compute given different cell distributions
+            Defines which transport maps to compute given different cell distributions.
         subset
-            subset of `anndata.AnnData.obs` [key] values of which the policy is to be applied to
+            Subset of `anndata.AnnData.obs` ``['{key}']`` values of which the policy is to be applied to.
         %(reference)s
         %(axis)s
         %(callback)s
@@ -200,13 +200,16 @@ class CompoundBaseProblem(BaseProblem, Generic[K, B], ABC):
             TODO.
         kwargs
             Keyword arguments for one of
-                - :attr:`moscot.problems.GeneralProblem.solve()`
-                - :attr:`moscot.problems.MultiMarginalProblem.solve()`
-                - :attr:`moscot.problems.TemporalBaseProblem.solve()`
+                - :meth:`moscot.problems.OTProblem.solve`
+                - :meth:`moscot.problems.MultiMarginalProblem.solve`
+                - :meth:`moscot.problems.TemporalBaseProblem.solve`
 
         Raises
         ------
         """
+        if self._problem_kind is None:
+            raise RuntimeError("Run .prepare() first.")
+
         self._solutions = {}
         for subset, problem in self.problems.items():
             self.solutions[subset] = problem.solve(*args, **kwargs).solution
@@ -317,7 +320,7 @@ class CompoundBaseProblem(BaseProblem, Generic[K, B], ABC):
             all intermediate step results are returned, too.
         %(scale_by_marginals)s
         kwargs
-            keyword arguments for :meth:`moscot.problems.CompoundProblem._apply()`
+            keyword arguments for :meth:`moscot.problems.CompoundProblem._apply`
 
         Returns
         -------
@@ -345,7 +348,7 @@ class CompoundBaseProblem(BaseProblem, Generic[K, B], ABC):
             all intermediate step results are returned, too.
         %(scale_by_marginals)s
         kwargs
-            keyword arguments for :meth:`moscot.problems.CompoundProblem._apply()`
+            keyword arguments for :meth:`moscot.problems.CompoundProblem._apply`
 
         Returns
         -------
@@ -359,10 +362,12 @@ class CompoundBaseProblem(BaseProblem, Generic[K, B], ABC):
 
     @property
     def problems(self) -> Optional[Dict[Key, B]]:
+        """Dictionary of OT problems which the biological problem consists of."""
         return self._problems
 
     @property
     def solutions(self) -> Optional[Dict[Key, BaseSolverOutput]]:
+        """Dictionary of solutions of OT problems which the biological problem consists of."""
         return self._solutions
 
     def __getitem__(self, item: Key) -> B:

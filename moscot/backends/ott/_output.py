@@ -29,14 +29,17 @@ class LinearOTTOutput(BaseSolverOutput, ABC):
 
     @property
     def transport_matrix(self) -> npt.ArrayLike:
+        """%(transport_matrix)s"""
         return self._output.matrix
 
     @property
     def cost(self) -> float:
+        """Wasserstein cost."""
         return float(self._output.reg_ot_cost)
 
     @property
     def converged(self) -> bool:
+        """%(converged)s"""
         return bool(self._output.converged)
 
     def _ones(self, n: int) -> jnp.ndarray:
@@ -44,6 +47,7 @@ class LinearOTTOutput(BaseSolverOutput, ABC):
 
 
 class SinkhornOutput(LinearOTTOutput):
+    """Output class for linear OT problems."""
     def _apply(self, x: npt.ArrayLike, *, forward: bool) -> npt.ArrayLike:
         if x.ndim == 1:
             return self._output.apply(x, axis=1 - forward)
@@ -54,14 +58,17 @@ class SinkhornOutput(LinearOTTOutput):
 
     @property
     def shape(self) -> Tuple[int, int]:
+        """%(shape)s"""
         return self._output.f.shape[0], self._output.g.shape[0]
 
     @property
     def potentials(self) -> Tuple[npt.ArrayLike, npt.ArrayLike]:
+        """Potentials obtained from Sinkhorn algorithm,"""
         return self._output.f, self._output.g
 
 
 class LRSinkhornOutput(OutputRankMixin, LinearOTTOutput):
+    """Output class for low-rank linear OT problems."""
     def _apply(self, x: npt.ArrayLike, *, forward: bool) -> npt.ArrayLike:
         axis = int(not forward)
         if x.ndim == 1:
@@ -72,14 +79,28 @@ class LRSinkhornOutput(OutputRankMixin, LinearOTTOutput):
 
     @property
     def shape(self) -> Tuple[int, int]:
+        """%(shape)s"""
         return self._output.geom.shape
 
     @property
     def potentials(self):
+        """TODO:Potentials are not obtained by Low-Rank Sinkhorn."""
         raise NotImplementedError("This solver does not allow for potentials.")
 
 
 class GWOutput(OutputRankMixin, MatrixSolverOutput):
+    """
+    Output class for Gromov-Wasserstein problems.
+
+    This class wraps :class:`ott.core.gromov_wasserstein.GWOutput`.
+
+    Parameters
+    ----------
+    output
+        Instance of :class:`ott.core.gromov_wasserstein.GWOutput`.
+    rank
+        Rank of the solver. `-1` if full-rank was used.
+    """
     def __init__(self, output: OTTGWOutput, *, rank: int = -1):
         super().__init__(output.matrix, rank=rank)
         self._converged = bool(output.convergence)
@@ -87,10 +108,12 @@ class GWOutput(OutputRankMixin, MatrixSolverOutput):
 
     @property
     def cost(self) -> float:
+        """Gromov-Wasserstein cost."""
         return self._cost
 
     @property
     def converged(self) -> bool:
+        """%(converged)s"""
         return self._converged
 
     def _ones(self, n: int) -> jnp.ndarray:
@@ -98,4 +121,5 @@ class GWOutput(OutputRankMixin, MatrixSolverOutput):
 
     @property
     def potentials(self):
+        """TODO:Potentials are not obtained by Gromov-Wasserstein."""
         raise NotImplementedError("This solver does not allow for potentials.")

@@ -44,9 +44,7 @@ class SimplePlanFilterMixin:
 
 
 class SubsetPolicy:
-    """
-    Policy class
-    """
+    """Policy class."""
 
     class Category:
         def __init__(self, cats: Sequence[Any]):

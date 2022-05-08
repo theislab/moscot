@@ -18,11 +18,25 @@ ArrayLike = Union[npt.ArrayLike, TaggedArray]
 
 
 class ProblemKind(str, Enum):
+    """Class defining the problem class and dispatching the solvers."""
     LINEAR = "linear"
     QUAD = "quadratic"
     QUAD_FUSED = "quadratic_fused"
 
     def solver(self, *, backend: Literal["ott"] = "ott") -> Type["BaseSolver"]:
+        """
+        Return the solver dependent on the backend and the problem type.
+
+        Parameters
+        ----------
+        backend
+            The backend the solver corresponds to.
+
+        Returns
+        -------
+        Solver
+            Solver corresponding to the backend and problem type.
+        """
         if backend == "ott":
             from moscot.backends.ott import GWSolver, FGWSolver, SinkhornSolver
 
@@ -127,7 +141,8 @@ class BaseSolver(ABC):
         return self._solve(data, **solve_kwargs)
 
 
-@d.get_sections(base="BaseSolver", sections=["Parameters", "Raises"])
+@d.get_sections(base="OTSolver", sections=["Parameters", "Raises"])
+@d.dedent
 class OTSolver(TagConverterMixin, BaseSolver, ABC):
     """OTSolver class."""
 

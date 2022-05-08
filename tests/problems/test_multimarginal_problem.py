@@ -11,7 +11,7 @@ from moscot.solvers._output import BaseSolverOutput
 
 
 class TestMultiMarginalProblem:
-    def test_subclass_GeneralProblem(self, adata_x: AnnData):
+    def test_subclass_OTProblem(self, adata_x: AnnData):
         prob = MockMultiMarginalProblem(adata_x)
         assert isinstance(prob, OTProblem)
 

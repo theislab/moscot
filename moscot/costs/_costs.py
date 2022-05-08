@@ -107,7 +107,7 @@ class LeafDistance(BaseLoss):
         **kwargs: Any,
     ) -> npt.ArrayLike:
         """
-        Computes the matrix of pairwise distances between leaves of the tree
+        Compute the matrix of pairwise distances between leaves of the tree
         """
         if self._attr == "uns":
             tree = self._adata.uns["trees"][self._key]

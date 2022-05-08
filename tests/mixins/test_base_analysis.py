@@ -78,4 +78,5 @@ class TestBaseAnalysisMixin:
         tmap = problem._interpolate_transport(10, 11, forward=forward, normalize=normalize)
 
         assert isinstance(tmap, np.ndarray)
-        # TODO(@MUCDK) add regression test after discussing with @giovp what this function should be doing / it is more generic
+        # TODO(@MUCDK) add regression test after discussing with @giovp what this function should be
+        # doing / it is more generic

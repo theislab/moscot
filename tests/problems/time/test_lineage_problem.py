@@ -67,8 +67,5 @@ class TestLineageProblem:
         problem = problem.prepare("time")
         problem = problem.solve()
 
-        with np.testing.assert_raises(NotImplementedError):
-            _ = problem.cell_costs_source
-
-        with np.testing.assert_raises(NotImplementedError):
-            _ = problem.cell_costs_target
+        assert problem.cell_costs_source == None
+        assert problem.cell_costs_target == None
