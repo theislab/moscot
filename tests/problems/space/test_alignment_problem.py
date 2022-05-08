@@ -35,7 +35,6 @@ class TestAlignmentProblem:
         assert len(problem) == 0
         assert problem.problems is None
         assert problem.solutions is None
-
         problem = problem.prepare(batch_key="batch", policy="star", reference=reference)
         for prob_key in problem:
             _, ref = prob_key
@@ -47,13 +46,11 @@ class TestAlignmentProblem:
         [(1, 0.9, None), (1, 0.5, None), (0.1, 0.1, None)],  # TODO(giovp): rank doesn't work?
     )  # can't set rank
     def test_solve_balance(self, adata_space_rotate: AnnData, epsilon: float, alpha: float, rank: int):
-
         problem = (
             AlignmentProblem(adata=adata_space_rotate)
             .prepare(batch_key="batch")
             .solve(epsilon=epsilon, alpha=alpha, rank=rank)
         )
-
         epsilon = 1.0 if epsilon is None else epsilon
         False if rank is None else True
         rank = -1 if rank is None else rank
@@ -73,14 +70,12 @@ class TestAlignmentProblem:
             .prepare(batch_key="batch", a=a, b=b)
             .solve(tau_a=tau_a, tau_b=tau_b)
         )
-
         assert np.all([sol.a is not None for sol in problem.solutions.values()])
         assert np.all([sol.b is not None for sol in problem.solutions.values()])
         assert np.all([sol.converged for sol in problem.solutions.values()])
         # assert np.allclose(*[sol.cost for sol in problem.solutions.values()]) # nan returned
 
     def test_analysis(self, adata_space_rotate: AnnData):
-
         adata_ref = adata_space_rotate.copy()
         problem = AlignmentProblem(adata=adata_ref).prepare(batch_key="batch").solve()
         categories = adata_space_rotate.obs.batch.cat.categories
