@@ -97,14 +97,12 @@ _converged = """\
 Whether the algorihtm converged."""
 _a = """\
 a
-    Specifies the left marginals. If :class:`np.ndarray` the length equals the number of data points in a source 
-    distribution. If :class:`str` the left marginals are taken from :attr:`anndata.AnnData.obs` ``[`{a}`]``. If
-    `a` is `None` uniform marginals are used."""
+    Specifies the left marginals. If of type :class:`str` the left marginals are taken from 
+    :attr:`anndata.AnnData.obs` ``[`{a}`]``. If `a` is `None` uniform marginals are used."""
 _b = """\
 b
-    Specifies the right marginals. If :class:`np.ndarray` the length equals the number of data points in a target 
-    distribution. If :class:`str` the right marginals are taken from :attr:`anndata.AnnData.obs` ``[`{a}`]``. If
-    `b` is `None` uniform marginals are used."""
+    Specifies the right marginals. If of type :class:`str` the right marginals are taken from 
+    :attr:`anndata.AnnData.obs` ``[`{a}`]``. If `b` is `None` uniform marginals are used."""
 
 
 def inject_docs(**kwargs: Any):
