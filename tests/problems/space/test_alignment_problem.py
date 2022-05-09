@@ -23,37 +23,37 @@ class TestAlignmentProblem:
         expected_keys = [("0", "1"), ("1", "2")]
         n_obs = adata_space_rotate.shape[0] // 3
         n_var = adata_space_rotate.shape[1]
-        problem = AlignmentProblem(adata=adata_space_rotate)
-        assert len(problem) == 0
-        assert problem.problems is None
-        assert problem.solutions is None
+        ap = AlignmentProblem(adata=adata_space_rotate)
+        assert len(ap) == 0
+        assert ap.problems is None
+        assert ap.solutions is None
 
-        problem = problem.prepare(batch_key="batch")
-        for prob_key, exp_key in zip(problem, expected_keys):
+        ap = ap.prepare(batch_key="batch")
+        for prob_key, exp_key in zip(ap, expected_keys):
             assert prob_key == exp_key
-            assert isinstance(problem[prob_key], OTProblem)
-            assert problem[prob_key].shape == (n_obs, n_obs)
-            assert problem[prob_key].x.data.shape == problem[prob_key].y.data.shape == (n_obs, 2)
-            assert problem[prob_key].xy[0].data.shape == problem[prob_key].xy[1].data.shape == (n_obs, n_var)
+            assert isinstance(ap[prob_key], OTProblem)
+            assert ap[prob_key].shape == (n_obs, n_obs)
+            assert ap[prob_key].x.data.shape == ap[prob_key].y.data.shape == (n_obs, 2)
+            assert ap[prob_key].xy[0].data.shape == ap[prob_key].xy[1].data.shape == (n_obs, n_var)
 
     @pytest.mark.parametrize("reference", ["0", "1", "2"])
     def test_prepare_star(self, adata_space_rotate: AnnData, reference: str):
-        problem = AlignmentProblem(adata=adata_space_rotate)
-        assert len(problem) == 0
-        assert problem.problems is None
-        assert problem.solutions is None
-        problem = problem.prepare(batch_key="batch", policy="star", reference=reference)
-        for prob_key in problem:
+        ap = AlignmentProblem(adata=adata_space_rotate)
+        assert len(ap) == 0
+        assert ap.problems is None
+        assert ap.solutions is None
+        ap = ap.prepare(batch_key="batch", policy="star", reference=reference)
+        for prob_key in ap:
             _, ref = prob_key
             assert ref == reference
-            assert isinstance(problem[prob_key], OTProblem)
+            assert isinstance(ap[prob_key], OTProblem)
 
     @pytest.mark.parametrize(
         ("epsilon", "alpha", "rank"),
         [(1, 0.9, None), (1, 0.5, None), (0.1, 0.1, None)],  # TODO(giovp): rank doesn't work?
     )  # can't set rank
     def test_solve_balance(self, adata_space_rotate: AnnData, epsilon: float, alpha: float, rank: int):
-        problem = (
+        ap = (
             AlignmentProblem(adata=adata_space_rotate)
             .prepare(batch_key="batch")
             .solve(epsilon=epsilon, alpha=alpha, rank=rank)
@@ -61,25 +61,25 @@ class TestAlignmentProblem:
         epsilon = 1.0 if epsilon is None else epsilon
         False if rank is None else True
         rank = -1 if rank is None else rank
-        for prob_key in problem:
-            assert problem[prob_key].solution.rank == rank
-            assert problem[prob_key].solution.converged
+        for prob_key in ap:
+            assert ap[prob_key].solution.rank == rank
+            assert ap[prob_key].solution.converged
 
-        assert np.allclose(*(sol.cost for sol in problem.solutions.values()))
-        assert np.all([sol.converged for sol in problem.solutions.values()])
-        assert np.all([np.all(~np.isnan(sol.transport_matrix)) for sol in problem.solutions.values()])
+        assert np.allclose(*(sol.cost for sol in ap.solutions.values()))
+        assert np.all([sol.converged for sol in ap.solutions.values()])
+        assert np.all([np.all(~np.isnan(sol.transport_matrix)) for sol in ap.solutions.values()])
 
     def test_solve_unbalanced(self, adata_space_rotate: AnnData):  # unclear usage yet
         tau_a, tau_b = [1, 1.2]
         a = b = np.ones(100)
-        problem = (
+        ap = (
             AlignmentProblem(adata=adata_space_rotate)
             .prepare(batch_key="batch", a=a, b=b)
             .solve(tau_a=tau_a, tau_b=tau_b, scale_cost=False)
         )
-        assert np.all([sol.a is not None for sol in problem.solutions.values()])
-        assert np.all([sol.b is not None for sol in problem.solutions.values()])
-        assert np.all([sol.converged for sol in problem.solutions.values()])
+        assert np.all([sol.a is not None for sol in ap.solutions.values()])
+        assert np.all([sol.b is not None for sol in ap.solutions.values()])
+        assert np.all([sol.converged for sol in ap.solutions.values()])
         # assert np.allclose(*[sol.cost for sol in problem.solutions.values()]) # nan returned
 
     def test_analysis(self, adata_space_rotate: AnnData):
@@ -109,18 +109,18 @@ class TestAlignmentProblem:
                 assert set(angles).issubset(ANGLES)
             assert adata_ref.obsm["spatial_warp"].shape == adata_space_rotate.obsm["spatial"].shape
 
-    def test_regression(self, adata_space_rotate: AnnData):
+    def test_regression_testing(self, adata_space_rotate: AnnData):
 
-        problem_mock = AlignmentProblem(adata=adata_space_rotate).prepare(batch_key="batch")
-        problem = AlignmentProblem(adata=adata_space_rotate).prepare(batch_key="batch").solve(alpha=0.5, epsilon=1)
+        ap_mock = AlignmentProblem(adata=adata_space_rotate).prepare(batch_key="batch")
+        ap = AlignmentProblem(adata=adata_space_rotate).prepare(batch_key="batch").solve(alpha=0.5, epsilon=1)
         assert SOLUTIONS_PATH.exists()
         with open(SOLUTIONS_PATH, "rb") as fname:
             sol = pickle.load(fname)
-        problem_mock._solutions = sol
+        ap_mock._solutions = sol
 
-        assert problem_mock.solutions.keys() == problem.solutions.keys()
-        for k in problem_mock.solutions:
-            np.testing.assert_almost_equal(problem_mock.solutions[k].cost, problem.solutions[k].cost, decimal=6)
+        assert ap_mock.solutions.keys() == ap.solutions.keys()
+        for k in ap_mock.solutions:
+            np.testing.assert_almost_equal(ap_mock.solutions[k].cost, ap.solutions[k].cost, decimal=6)
             np.testing.assert_almost_equal(
-                problem_mock.solutions[k].transport_matrix, problem.solutions[k].transport_matrix, decimal=6
+                ap_mock.solutions[k].transport_matrix, ap.solutions[k].transport_matrix, decimal=6
             )

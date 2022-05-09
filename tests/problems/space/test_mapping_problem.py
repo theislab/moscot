@@ -35,22 +35,22 @@ class TestMappingProblem:
         x_n_var = adatasp.obsm["spatial"].shape[1]
         y_n_var = adataref.shape[1] if sc_attr["attr"] == "X" else adataref.obsm["X_pca"].shape[1]
         xy_n_vars = adatasp.X.shape[1] if joint_attr == "default" else adataref.obsm["X_pca"].shape[1]
-        problem = MappingProblem(adataref, adatasp)
-        assert len(problem) == 0
-        assert problem.problems is None
-        assert problem.solutions is None
+        mp = MappingProblem(adataref, adatasp)
+        assert len(mp) == 0
+        assert mp.problems is None
+        assert mp.solutions is None
 
         if joint_attr == "default":
-            problem = problem.prepare(batch_key="batch", sc_attr=sc_attr)
+            mp = mp.prepare(batch_key="batch", sc_attr=sc_attr)
         else:
-            problem = problem.prepare(batch_key="batch", sc_attr=sc_attr, joint_attr=joint_attr)
-        for prob_key, exp_key in zip(problem, expected_keys):
+            mp = mp.prepare(batch_key="batch", sc_attr=sc_attr, joint_attr=joint_attr)
+        for prob_key, exp_key in zip(mp, expected_keys):
             assert prob_key == exp_key
-            assert isinstance(problem[prob_key], OTProblem)
-            assert problem[prob_key].shape == (n_obs, n_obs)
-            assert problem[prob_key].x.data.shape == (n_obs, x_n_var)
-            assert problem[prob_key].y.data.shape == (n_obs, y_n_var)
-            assert problem[prob_key].xy[0].data.shape == problem[prob_key].xy[1].data.shape == (n_obs, xy_n_vars)
+            assert isinstance(mp[prob_key], OTProblem)
+            assert mp[prob_key].shape == (n_obs, n_obs)
+            assert mp[prob_key].x.data.shape == (n_obs, x_n_var)
+            assert mp[prob_key].y.data.shape == (n_obs, y_n_var)
+            assert mp[prob_key].xy[0].data.shape == mp[prob_key].xy[1].data.shape == (n_obs, xy_n_vars)
 
     @pytest.mark.parametrize("var_names", ["0", [], [str(i) for i in range(20)]])
     def test_prepare_varnames(self, adata_mapping: AnnData, var_names: Optional[List[str]]):
@@ -60,10 +60,8 @@ class TestMappingProblem:
         x_n_var = adatasp.obsm["spatial"].shape[1]
         y_n_var = adataref.shape[1] if not len(var_names) else len(var_names)
 
-        problem = MappingProblem(adataref, adatasp).prepare(
-            batch_key="batch", sc_attr={"attr": "X"}, var_names=var_names
-        )
-        for prob in problem.problems.values():
+        mp = MappingProblem(adataref, adatasp).prepare(batch_key="batch", sc_attr={"attr": "X"}, var_names=var_names)
+        for prob in mp.problems.values():
             assert prob._problem_kind.value == problem_kind
             assert prob.shape == (n_obs, n_obs)
             assert prob.x.data.shape == (n_obs, x_n_var)
@@ -88,7 +86,7 @@ class TestMappingProblem:
         var_names: Optional[List[Optional[str]]],
     ):
         adataref, adatasp = TestMappingProblem._adata_split(adata_mapping)
-        problem = (
+        mp = (
             MappingProblem(adataref, adatasp)
             .prepare(batch_key="batch", sc_attr=sc_attr, var_names=var_names)
             .solve(epsilon=epsilon, alpha=alpha, rank=rank)
@@ -97,13 +95,13 @@ class TestMappingProblem:
         epsilon = 1.0 if epsilon is None else epsilon
         False if rank is None else True
         rank = -1 if rank is None else rank
-        for prob_key in problem:
-            assert problem[prob_key].solution.rank == rank
-            assert problem[prob_key].solution.converged
+        for prob_key in mp:
+            assert mp[prob_key].solution.rank == rank
+            assert mp[prob_key].solution.converged
 
-        assert np.allclose(*(sol.cost for sol in problem.solutions.values()))
-        assert np.all([sol.converged for sol in problem.solutions.values()])
-        assert np.all([np.all(~np.isnan(sol.transport_matrix)) for sol in problem.solutions.values()])
+        assert np.allclose(*(sol.cost for sol in mp.solutions.values()))
+        assert np.all([sol.converged for sol in mp.solutions.values()])
+        assert np.all([np.all(~np.isnan(sol.transport_matrix)) for sol in mp.solutions.values()])
 
     @pytest.mark.parametrize("sc_attr", [{"attr": "X"}, {"attr": "obsm", "key": "X_pca"}])
     @pytest.mark.parametrize("var_names", ["0", [str(i) for i in range(20)]])
@@ -114,22 +112,22 @@ class TestMappingProblem:
         var_names: Optional[List[Optional[str]]],
     ):
         adataref, adatasp = TestMappingProblem._adata_split(adata_mapping)
-        problem = MappingProblem(adataref, adatasp).prepare(batch_key="batch", sc_attr=sc_attr).solve()
+        mp = MappingProblem(adataref, adatasp).prepare(batch_key="batch", sc_attr=sc_attr).solve()
 
-        corr = problem.correlate(var_names)
-        imp = problem.impute()
+        corr = mp.correlate(var_names)
+        imp = mp.impute()
         pd.testing.assert_series_equal(*list(corr.values()))
         assert imp.shape == adatasp.shape
 
-    def test_regression(self, adata_mapping: AnnData):
+    def test_regression_testing(self, adata_mapping: AnnData):
         adataref, adatasp = TestMappingProblem._adata_split(adata_mapping)
-        problem_mock = MappingProblem(adataref, adatasp).prepare(
+        mp_mock = MappingProblem(adataref, adatasp).prepare(
             batch_key="batch",
             sc_attr={
                 "attr": "X",
             },
         )
-        problem = (
+        mp = (
             MappingProblem(adataref, adatasp)
             .prepare(
                 batch_key="batch",
@@ -142,11 +140,11 @@ class TestMappingProblem:
         assert SOLUTIONS_PATH.exists()
         with open(SOLUTIONS_PATH, "rb") as fname:
             sol = pickle.load(fname)
-        problem_mock._solutions = sol
+        mp_mock._solutions = sol
 
-        assert problem_mock.solutions.keys() == problem.solutions.keys()
-        for k in problem_mock.solutions:
-            np.testing.assert_almost_equal(problem_mock.solutions[k].cost, problem.solutions[k].cost, decimal=6)
+        assert mp_mock.solutions.keys() == mp.solutions.keys()
+        for k in mp_mock.solutions:
+            np.testing.assert_almost_equal(mp_mock.solutions[k].cost, mp.solutions[k].cost, decimal=6)
             np.testing.assert_almost_equal(
-                problem_mock.solutions[k].transport_matrix, problem.solutions[k].transport_matrix, decimal=6
+                mp_mock.solutions[k].transport_matrix, mp.solutions[k].transport_matrix, decimal=6
             )
