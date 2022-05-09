@@ -43,11 +43,12 @@ class AlignmentProblem(SingleCompoundProblem, SpatialAlignmentAnalysisMixin):
         alpha: Optional[float] = 0.4,
         epsilon: Optional[float] = 1e-1,
         rank: Optional[int] = None,
+        scale_costs: str = "mean",
         **kwargs: Any,
     ) -> "AlignmentProblem":
         """Solve method."""
         rank = -1 if rank is None else rank
-        return super().solve(alpha=alpha, epsilon=epsilon, rank=rank, **kwargs)
+        return super().solve(alpha=alpha, epsilon=epsilon, rank=rank, scale_cost=scale_costs, **kwargs)
 
     @property
     def spatial_key(self) -> Optional[str]:

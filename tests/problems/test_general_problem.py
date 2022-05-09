@@ -1,4 +1,3 @@
-from _utils import ATOL, RTOL, Geom_t, TestSolverOutput
 import pytest
 
 from ott.geometry import PointCloud
@@ -8,6 +7,7 @@ import jax.numpy as jnp
 
 from anndata import AnnData
 
+from tests._utils import ATOL, RTOL, Geom_t, TestSolverOutput
 from moscot.problems import OTProblem
 from moscot.solvers._output import BaseSolverOutput
 
