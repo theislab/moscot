@@ -1,5 +1,6 @@
 from typing import Dict, List, Tuple, Optional
 from pathlib import Path
+import pickle
 
 import pandas as pd
 import pytest
@@ -12,7 +13,7 @@ from moscot.problems.space import MappingProblem
 from moscot.solvers._base_solver import ProblemKind
 from moscot.problems._base_problem import OTProblem
 
-SOLUTIONS_PATH = Path("./../../data/mapping_solutions.pkl")
+SOLUTIONS_PATH = Path("./tests/data/mapping_solutions.pkl")  # base is moscot
 
 
 class TestMappingProblem:
@@ -98,10 +99,10 @@ class TestMappingProblem:
         rank = -1 if rank is None else rank
         for prob_key in problem:
             assert problem[prob_key].solution.rank == rank
-            # assert problem[prob_key].solution.converged ## never converges
+            assert problem[prob_key].solution.converged
 
         assert np.allclose(*(sol.cost for sol in problem.solutions.values()))
-        # assert np.all([sol.converged for sol in problem.solutions.values()]) ## never converges
+        assert np.all([sol.converged for sol in problem.solutions.values()])
         assert np.all([np.all(~np.isnan(sol.transport_matrix)) for sol in problem.solutions.values()])
 
     @pytest.mark.parametrize("sc_attr", [{"attr": "X"}, {"attr": "obsm", "key": "X_pca"}])
@@ -119,3 +120,33 @@ class TestMappingProblem:
         imp = problem.impute()
         pd.testing.assert_series_equal(*list(corr.values()))
         assert imp.shape == adatasp.shape
+
+    def test_regression(self, adata_mapping: AnnData):
+        adataref, adatasp = TestMappingProblem._adata_split(adata_mapping)
+        problem_mock = MappingProblem(adataref, adatasp).prepare(
+            batch_key="batch",
+            sc_attr={
+                "attr": "X",
+            },
+        )
+        problem = (
+            MappingProblem(adataref, adatasp)
+            .prepare(
+                batch_key="batch",
+                sc_attr={
+                    "attr": "X",
+                },
+            )
+            .solve()
+        )
+        assert SOLUTIONS_PATH.exists()
+        with open(SOLUTIONS_PATH, "rb") as fname:
+            sol = pickle.load(fname)
+        problem_mock._solutions = sol
+
+        assert problem_mock.solutions.keys() == problem.solutions.keys()
+        for k in problem_mock.solutions:
+            np.testing.assert_almost_equal(problem_mock.solutions[k].cost, problem.solutions[k].cost, decimal=6)
+            np.testing.assert_almost_equal(
+                problem_mock.solutions[k].transport_matrix, problem.solutions[k].transport_matrix, decimal=6
+            )

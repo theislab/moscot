@@ -1,3 +1,4 @@
+from math import acos
 from pathlib import Path
 import pickle
 
@@ -9,6 +10,7 @@ from anndata import AnnData
 
 from moscot.problems.space import AlignmentProblem
 from moscot.problems._base_problem import OTProblem
+from tests.problems.space.conftest import ANGLES
 
 SOLUTIONS_PATH = Path("./tests/data/alignment_solutions.pkl")  # base is moscot
 
@@ -82,7 +84,7 @@ class TestAlignmentProblem:
 
     def test_analysis(self, adata_space_rotate: AnnData):
         adata_ref = adata_space_rotate.copy()
-        problem = AlignmentProblem(adata=adata_ref).prepare(batch_key="batch").solve()
+        problem = AlignmentProblem(adata=adata_ref).prepare(batch_key="batch").solve(scale_cost=False)
         categories = adata_space_rotate.obs.batch.cat.categories
 
         for ref in categories:
@@ -92,11 +94,19 @@ class TestAlignmentProblem:
                 np.testing.assert_array_almost_equal(
                     adata_ref[adata_ref.obs.batch == c1].obsm["spatial_warp"],
                     adata_ref[adata_ref.obs.batch == c2].obsm["spatial_warp"],
+                    decimal=6,
                 )
                 np.testing.assert_array_almost_equal(
                     adata_ref[adata_ref.obs.batch == c1].obsm["spatial_affine"],
                     adata_ref[adata_ref.obs.batch == c2].obsm["spatial_affine"],
+                    decimal=6,
                 )
+                angles = sorted(
+                    round(np.rad2deg(acos(arr[0, 0])))
+                    for arr in adata_ref.uns["spatial"]["alignment_metadata"].values()
+                    if isinstance(arr, np.ndarray)
+                )
+                assert set(angles).issubset(ANGLES)
             assert adata_ref.obsm["spatial_warp"].shape == adata_space_rotate.obsm["spatial"].shape
 
     def test_regression(self, adata_space_rotate: AnnData):
@@ -110,7 +120,6 @@ class TestAlignmentProblem:
 
         assert problem_mock.solutions.keys() == problem.solutions.keys()
         for k in problem_mock.solutions:
-            assert isinstance(type(problem_mock.solutions[k]), type(problem.solutions[k]))
             np.testing.assert_almost_equal(problem_mock.solutions[k].cost, problem.solutions[k].cost, decimal=6)
             np.testing.assert_almost_equal(
                 problem_mock.solutions[k].transport_matrix, problem.solutions[k].transport_matrix, decimal=6

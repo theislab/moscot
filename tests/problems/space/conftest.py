@@ -24,6 +24,7 @@ def adata_space_rotate() -> AnnData:
         adata.obsm["spatial"] = np.dot(adata.obsm["spatial"], rot)
 
     adata = ad.concat(adatas, label="batch")
+    adata.uns["spatial"] = {}
     adata.obs_names_make_unique()
     return adata
 

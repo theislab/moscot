@@ -77,12 +77,12 @@ class MappingProblem(SingleCompoundProblem, SpatialMappingAnalysisMixin):
         alpha: Optional[float] = 0.5,
         epsilon: Optional[float] = 1e-3,
         rank: Optional[int] = None,
-        scale_costs: str = "mean",
+        scale_cost: str = "mean",
         **kwargs: Any,
     ) -> "MappingProblem":
         """Solve method."""
         rank = -1 if rank is None else rank
-        return super().solve(alpha=alpha, epsilon=epsilon, rank=rank, scale_costs=scale_costs, **kwargs)
+        return super().solve(alpha=alpha, epsilon=epsilon, rank=rank, scale_cost=scale_cost, **kwargs)
 
     @property
     def adata_sc(self) -> AnnData:
