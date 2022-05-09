@@ -1,4 +1,5 @@
 from typing import Dict, List, Tuple, Optional
+from pathlib import Path
 
 import pandas as pd
 import pytest
@@ -10,6 +11,8 @@ from anndata import AnnData
 from moscot.problems.space import MappingProblem
 from moscot.solvers._base_solver import ProblemKind
 from moscot.problems._base_problem import OTProblem
+
+SOLUTIONS_PATH = Path("./../../data/mapping_solutions.pkl")
 
 
 class TestMappingProblem:

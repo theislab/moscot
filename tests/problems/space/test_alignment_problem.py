@@ -1,3 +1,6 @@
+from pathlib import Path
+import pickle
+
 import pytest
 
 import numpy as np
@@ -6,6 +9,8 @@ from anndata import AnnData
 
 from moscot.problems.space import AlignmentProblem
 from moscot.problems._base_problem import OTProblem
+
+SOLUTIONS_PATH = Path("./tests/data/alignment_solutions.pkl")  # base is moscot
 
 
 class TestAlignmentProblem:
@@ -93,3 +98,20 @@ class TestAlignmentProblem:
                     adata_ref[adata_ref.obs.batch == c2].obsm["spatial_affine"],
                 )
             assert adata_ref.obsm["spatial_warp"].shape == adata_space_rotate.obsm["spatial"].shape
+
+    def test_regression(self, adata_space_rotate: AnnData):
+
+        problem_mock = AlignmentProblem(adata=adata_space_rotate).prepare(batch_key="batch")
+        problem = AlignmentProblem(adata=adata_space_rotate).prepare(batch_key="batch").solve(alpha=0.5, epsilon=1)
+        assert SOLUTIONS_PATH.exists()
+        with open(SOLUTIONS_PATH, "rb") as fname:
+            sol = pickle.load(fname)
+        problem_mock._solutions = sol
+
+        assert problem_mock.solutions.keys() == problem.solutions.keys()
+        for k in problem_mock.solutions:
+            assert isinstance(type(problem_mock.solutions[k]), type(problem.solutions[k]))
+            np.testing.assert_almost_equal(problem_mock.solutions[k].cost, problem.solutions[k].cost, decimal=6)
+            np.testing.assert_almost_equal(
+                problem_mock.solutions[k].transport_matrix, problem.solutions[k].transport_matrix, decimal=6
+            )
