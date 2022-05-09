@@ -26,15 +26,18 @@ class SpatialAlignmentAnalysisMixin(AnalysisMixin):
         # TODO: error message for star policy
         # get reference
         src = subs_adata(reference)
+        transport_maps = {reference: src}
+        transport_metadata = {}
         if mode == "affine":
             src -= src.mean(0)
-        transport_dict = {reference: src}
+            transport_metadata = {reference: 0}
+
         # get policy
         full_steps = self._policy._subset
         fwd_steps = self._policy.plan(end=reference)
         bwd_steps = None
         # get mapping function
-        fun_transport = self._affine if mode == "affine" else lambda tmap, _, src: tmap @ src
+        _transport = self._affine if mode == "affine" else lambda tmap, _, src: (tmap @ src, None)
 
         if not fwd_steps or not set(full_steps).issubset(set(fwd_steps.keys())):
             bwd_steps = self._policy.plan(start=reference)
@@ -42,40 +45,48 @@ class SpatialAlignmentAnalysisMixin(AnalysisMixin):
         if len(fwd_steps):
             for (start, end) in fwd_steps.keys():
                 tmap = self._interpolate_transport(start=start, end=end, normalize=True, forward=True)
-                transport_dict[start] = fun_transport(tmap, subs_adata(start), src)
+                transport_maps[start], transport_metadata[start] = _transport(tmap, subs_adata(start), src)
 
         if bwd_steps is not None and len(bwd_steps):
             for (start, end) in bwd_steps.keys():
                 tmap = self._interpolate_transport(start=start, end=end, normalize=True, forward=False)
-                transport_dict[end] = fun_transport(tmap.T, subs_adata(end), src)
+                transport_maps[end], transport_metadata[end] = _transport(tmap.T, subs_adata(end), src)
 
-        return transport_dict
+        if mode == "affine":
+            return transport_maps, transport_metadata
+        return transport_maps, None
 
-    def _affine(self, tmap: npt.ArrayLike, tgt: npt.ArrayLike, src: npt.ArrayLike) -> npt.ArrayLike:
+    def _affine(
+        self, tmap: npt.ArrayLike, tgt: npt.ArrayLike, src: npt.ArrayLike
+    ) -> Tuple[npt.ArrayLike, npt.ArrayLike]:
         """Affine transformation."""
         tgt -= tgt.mean(0)
         H = tgt.T.dot(tmap.dot(src))
         U, _, Vt = svd(H)
         R = Vt.T.dot(U.T)
         tgt = R.dot(tgt.T).T
-        return tgt
+        return tgt, R
 
     def align(
         self,
         reference: Any,
         mode: Literal["warp", "affine"] = "warp",
         copy: bool = False,
-    ) -> Optional[npt.ArrayLike]:
+    ) -> Optional[Union[npt.ArrayLike, Tuple[npt.ArrayLike, Dict[Any, npt.ArrayLike]]]]:
         """Spatial warp."""
         if reference not in self._policy._cat.categories:
             raise ValueError(f"`reference: {reference}` not in policy categories: {self._policy._cat.categories}")
-        aligned_dic = self._interpolate_scheme(reference=reference, mode=mode)
-        aligned_arr = np.vstack([aligned_dic[k] for k in self._policy._cat.categories])
+        aligned_maps, aligned_metadata = self._interpolate_scheme(reference=reference, mode=mode)
+        aligned_basis = np.vstack([aligned_maps[k] for k in self._policy._cat.categories])
 
+        if mode == "affine":
+            if copy:
+                return aligned_basis, aligned_metadata
+            self.adata.obsm[f"{self.spatial_key}_{mode}"] = aligned_basis
+            self.adata.uns[self.spatial_key]["alignment_metadata"] = aligned_metadata
         if copy:
-            return aligned_arr
-
-        self.adata.obsm[f"{self.spatial_key}_{mode}"] = aligned_arr
+            return aligned_basis
+        self.adata.obsm[f"{self.spatial_key}_{mode}"] = aligned_basis
 
 
 class SpatialMappingAnalysisMixin(AnalysisMixin):
