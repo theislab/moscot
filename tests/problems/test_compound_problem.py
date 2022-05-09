@@ -9,6 +9,7 @@ import numpy as np
 
 from anndata import AnnData
 
+from tests._utils import ATOL, RTOL
 from moscot.problems import SingleCompoundProblem
 from moscot.solvers._tagged_array import Tag, TaggedArray
 from moscot.problems._base_problem import OTProblem

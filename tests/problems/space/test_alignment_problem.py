@@ -69,13 +69,13 @@ class TestAlignmentProblem:
         assert np.all([sol.converged for sol in problem.solutions.values()])
         assert np.all([np.all(~np.isnan(sol.transport_matrix)) for sol in problem.solutions.values()])
 
-    def test_solve_unbalance(self, adata_space_rotate: AnnData):  # unclear usage yet
+    def test_solve_unbalanced(self, adata_space_rotate: AnnData):  # unclear usage yet
         tau_a, tau_b = [1, 1.2]
         a = b = np.ones(100)
         problem = (
             AlignmentProblem(adata=adata_space_rotate)
             .prepare(batch_key="batch", a=a, b=b)
-            .solve(tau_a=tau_a, tau_b=tau_b)
+            .solve(tau_a=tau_a, tau_b=tau_b, scale_cost=False)
         )
         assert np.all([sol.a is not None for sol in problem.solutions.values()])
         assert np.all([sol.b is not None for sol in problem.solutions.values()])
