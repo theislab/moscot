@@ -245,9 +245,11 @@ class TemporalProblem(TemporalAnalysisMixin, SingleCompoundProblem[Number, Tempo
         """
         # TODO(michalk8): make a property + sanity checks?
         self._temporal_key = time_key
-
         if joint_attr is None:
-            kwargs["callback"] = "local-pca"
+            if "callback" not in kwargs:
+                kwargs["callback"] = "local-pca"
+            else:
+                kwargs["callback"] = kwargs["callback"]
             kwargs["callback_kwargs"] = {**kwargs.get("callback_kwargs", {}), **{"return_linear": True}}
         elif isinstance(joint_attr, str):
             kwargs["xy"] = {

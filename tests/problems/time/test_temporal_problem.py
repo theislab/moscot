@@ -203,16 +203,9 @@ class TestTemporalProblem:
         key_1 = config["key_1"]
         key_2 = config["key_2"]
         local_pca = config["local_pca"]
-        adata_1 = adata[adata.obs[key] == key_1].copy()
-        adata_2 = adata[adata.obs[key] == key_2].copy()
-        sc.tl.pca(adata_1, n_comps=local_pca)
-        sc.tl.pca(adata_2, n_comps=local_pca)
-        C = pairwise_distances(adata_1.obsm["X_pca"], adata_2.obsm["X_pca"], metric="sqeuclidean")
-        C /= C.mean()
-        cdata = adata_1.concatenate(adata_2)
-
-        tp = TemporalProblem(cdata)
-        tp = tp.prepare(key, policy="sequential", joint_attr = "X_pca")
+        
+        tp = TemporalProblem(adata)
+        tp = tp.prepare(key, policy="explicit", joint_attr = "X_pca", callback_kwargs={"joint_space": False, "n_comps": local_pca})
         tp = tp.solve(epsilon=eps, scale_cost="mean", tau_a=lam1/(lam1+eps), tau_b=lam2/(lam2+eps))
 
         np.testing.assert_array_almost_equal(
