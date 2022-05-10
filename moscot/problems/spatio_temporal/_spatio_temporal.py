@@ -9,7 +9,7 @@ from moscot.analysis_mixins._time_analysis import TemporalAnalysisMixin
 from moscot.analysis_mixins._spatial_analysis import SpatialAlignmentAnalysisMixin
 
 
-class SpatioTemporalProblem(BirthDeathMixin, AlignmentProblem, SpatialAlignmentAnalysisMixin, TemporalAnalysisMixin):
+class SpatioTemporalProblem(TemporalAnalysisMixin, BirthDeathMixin, AlignmentProblem, SpatialAlignmentAnalysisMixin):
     """Spatio-Temporal problem."""
 
     def prepare(
@@ -22,8 +22,8 @@ class SpatioTemporalProblem(BirthDeathMixin, AlignmentProblem, SpatialAlignmentA
         **kwargs: Any,
     ) -> "AlignmentProblem":
         """Prepare method."""
-        self._SPATIAL_KEY = spatial_key
-        self._TEMPORAL_KEY = time_key
+        self.spatial_key = spatial_key
+        self.temporal_key = time_key
         # TODO(michalk8): check for spatial key
         x = y = {"attr": "obsm", "key": self.spatial_key, "tag": "point_cloud"}
 

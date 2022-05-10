@@ -1,11 +1,10 @@
 from types import MappingProxyType
-from typing import Any, Dict, Type, Tuple, Union, Literal, Mapping, Optional
+from typing import Any, Literal, Mapping, Optional, Tuple, Type, Union
 from numbers import Number
 
 import pandas as pd
 
 import numpy as np
-import numpy.typing as npt
 
 from anndata import AnnData
 
@@ -86,8 +85,6 @@ class TemporalProblem(SingleCompoundProblem[Number, BirthDeathBaseProblem], Temp
         KeyError
             If `joint_attr` is a string and cannot be found in :attr:`anndata.AnnData.obsm`.
         """
-        # TODO(michalk8): make a property + sanity checks?
-        self._TEMPORAL_KEY = time_key
 
         if joint_attr is None:
             kwargs["callback"] = "local-pca"

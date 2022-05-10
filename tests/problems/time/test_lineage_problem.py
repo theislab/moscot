@@ -68,5 +68,5 @@ class TestLineageProblem:
         problem = problem.prepare("time")
         problem = problem.solve()
 
-        assert problem.cell_costs_source == None
-        assert problem.cell_costs_target == None
+        assert problem.cell_costs_source is None
+        assert problem.cell_costs_target is None

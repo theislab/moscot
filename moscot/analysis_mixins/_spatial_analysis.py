@@ -17,7 +17,9 @@ from moscot.analysis_mixins._base_analysis import AnalysisMixin
 class SpatialAlignmentAnalysisMixin(AnalysisMixin):
     """Spatial alignment mixin class."""
 
-    _SPATIAL_KEY: Optional[str] = None
+    def __init__(self) -> None:
+        super().__init__()
+        self._spatial_key: Optional[str] = None
 
     def _interpolate_scheme(self, reference: Any, mode: Literal["warp", "affine"]) -> Dict[str, npt.ArrayLike]:
         """Scheme for interpolation."""
@@ -81,8 +83,15 @@ class SpatialAlignmentAnalysisMixin(AnalysisMixin):
 
     @property
     def spatial_key(self) -> Optional[str]:
-        """Return problems."""
-        return self._SPATIAL_KEY
+        """Return spatial key."""
+        return self._spatial_key
+
+    @spatial_key.setter
+    def spatial_key(self, value: Optional[str] = None) -> None:
+        if value not in self.adata.obs.columns:
+            raise KeyError(f"TODO: {value} not found in `adata.obs.columns`")
+        #TODO(@MUCDK) check data type -> which ones do we allow
+        self._spatial_key = value
 
 
 class SpatialMappingAnalysisMixin(AnalysisMixin):

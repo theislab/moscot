@@ -22,8 +22,10 @@ class MultiMarginalMixin(ABC):
 
 class BirthDeathMixin(MultiMarginalMixin):
 
-    _PROLIFERATION_KEY: Optional[str] = None
-    _APOPTOSIS_KEY: Optional[str] = None
+    def __init__(self) -> None:
+        super().__init__()
+        self._proliferation_key: Optional[str] = None
+        self._apoptosis_key: Optional[str] = None
 
     @property
     def _base_problem_type(self) -> Type[B]:
@@ -114,7 +116,7 @@ class BirthDeathMixin(MultiMarginalMixin):
     @property
     def proliferation_key(self) -> Optional[str]:
         """Key in :attr:`anndata.AnnData.obs` where prior estimate of cell proliferation is saved."""
-        return self._PROLIFERATION_KEY
+        return self._proliferation_key
 
     @property
     def apoptosis_key(self) -> Optional[str]:
@@ -125,12 +127,12 @@ class BirthDeathMixin(MultiMarginalMixin):
     @proliferation_key.setter
     def proliferation_key(self, value: Optional[str] = None) -> None:
         # TODO(michalk8): add check if present in .obs (if not None)
-        self._PROLIFERATION_KEY = value
+        self._proliferation_key = value
 
     @apoptosis_key.setter
     def apoptosis_key(self, value: Optional[str] = None) -> None:
         # TODO(michalk8): add check if present in .obs (if not None)
-        self._APOPTOSIS_KEY = value
+        self._apoptosis_key = value
 
 
 @d.dedent

@@ -21,7 +21,7 @@ class AlignmentProblem(SingleCompoundProblem, SpatialAlignmentAnalysisMixin):
         **kwargs: Any,
     ) -> "AlignmentProblem":
         """Prepare method."""
-        self._SPATIAL_KEY = spatial_key
+        self.spatial_key = spatial_key
         # TODO(michalk8): check for spatial key
         x = y = {"attr": "obsm", "key": self.spatial_key, "tag": "point_cloud"}
 

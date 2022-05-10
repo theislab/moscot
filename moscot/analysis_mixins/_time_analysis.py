@@ -1,8 +1,9 @@
-from typing import Any, Tuple, Union, Mapping, Optional, Sequence
+from typing import Any, Dict, Tuple, Union, Mapping, Optional, Sequence
 from numbers import Number
 import logging
 import itertools
 
+from pandas.api.types import is_numeric_dtype
 from sklearn.metrics.pairwise import pairwise_distances
 import ot
 import pandas as pd
@@ -12,11 +13,16 @@ import numpy as np
 
 from anndata import AnnData
 
+from moscot._docs import d
 from moscot.analysis_mixins._base_analysis import AnalysisMixin
 
 
 class TemporalAnalysisMixin(AnalysisMixin):
-    _TEMPORAL_KEY: Optional[str] = None
+    """Analysis Mixin for all problems involving a temporal dimension."""
+
+    def __init__(self) -> None:
+        super().__init__()
+        self._temporal_key: Optional[str] = None
 
     @d.dedent
     def push(
@@ -586,4 +592,12 @@ class TemporalAnalysisMixin(AnalysisMixin):
     @property
     def temporal_key(self) -> Optional[str]:
         """Return temporal key."""
-        return self._TEMPORAL_KEY
+        return self._temporal_key
+
+    @temporal_key.setter
+    def temporal_key(self, value: Optional[str] = None) -> None:
+        if value not in self.adata.obs.columns:
+            raise KeyError(f"TODO: {value} not found in `adata.obs.columns`")
+        if not is_numeric_dtype(self.adata.obs[value].dtype):
+            raise TypeError(f"TODO: column must be of numeric data type")
+        self._temporal_key = value
