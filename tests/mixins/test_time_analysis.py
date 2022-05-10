@@ -67,13 +67,18 @@ class TestTemporalAnalysisMixin:
 
     @pytest.mark.parametrize("forward", [True, False])
     def test_cell_transition_regression(self, gt_temporal_adata: AnnData, forward: bool):
+        config = gt_temporal_adata.uns["config_solution"]
+        key = config["key"]
+        key_1 = config["key_1"]
+        key_2 = config["key_2"]
+        key_3 = config["key_3"]
         problem = TemporalProblem(gt_temporal_adata)
-        problem = problem.prepare("day", subset=[(10, 10.5), (10.5, 11), (10, 11)], policy="explicit")
-        assert set(problem.problems.keys()) == {(10, 10.5), (10, 11), (10.5, 11)}
-        problem[10, 10.5]._solution = TestSolverOutput(gt_temporal_adata.uns["tmap_10_105"])
-        problem[10.5, 11]._solution = TestSolverOutput(gt_temporal_adata.uns["tmap_105_11"])
-        problem[10, 11]._solution = TestSolverOutput(gt_temporal_adata.uns["tmap_10_11"])
-
+        problem = problem.prepare(key, subset=[(key_1, key_2), (key_2, key_3), (key_1, key_3)], policy="explicit")
+        assert set(problem.problems.keys()) == {(key_1, key_2), (key_2, key_3), (key_1, key_3)}
+        problem[key_1, key_2]._solution = TestSolverOutput(gt_temporal_adata.uns["tmap_10_105"])
+        problem[key_2, key_3]._solution = TestSolverOutput(gt_temporal_adata.uns["tmap_105_11"])
+        problem[key_1, key_3]._solution = TestSolverOutput(gt_temporal_adata.uns["tmap_10_11"])
+        
         result = problem.cell_transition(10, 10.5, early_cells="cell_type", late_cells="cell_type", forward=forward)
         assert result.shape == (6, 6)
         marginal = result.sum(axis=forward == 1).values
@@ -105,61 +110,92 @@ class TestTemporalAnalysisMixin:
 
     @pytest.mark.parametrize("account_for_unbalancedness", [True, False])
     def test_compute_interpolated_distance_pipeline(self, gt_temporal_adata: AnnData, account_for_unbalancedness: bool):
+        config = gt_temporal_adata.uns["config_solution"]
+        key = config["key"]
+        key_1 = config["key_1"]
+        key_2 = config["key_2"]
+        key_3 = config["key_3"]
         problem = TemporalProblem(gt_temporal_adata)
-        problem = problem.prepare("day", subset=[(10, 10.5), (10.5, 11), (10, 11)], policy="explicit")
-        assert set(problem.problems.keys()) == {(10, 10.5), (10, 11), (10.5, 11)}
-        problem[10, 10.5]._solution = TestSolverOutput(gt_temporal_adata.uns["tmap_10_105"])
-        problem[10.5, 11]._solution = TestSolverOutput(gt_temporal_adata.uns["tmap_105_11"])
-        problem[10, 11]._solution = TestSolverOutput(gt_temporal_adata.uns["tmap_10_11"])
+        problem = problem.prepare(key, subset=[(key_1, key_2), (key_2, key_3), (key_1, key_3)], policy="explicit")
+        assert set(problem.problems.keys()) == {(key_1, key_2), (key_2, key_3), (key_1, key_3)}
+        problem[key_1, key_2]._solution = TestSolverOutput(gt_temporal_adata.uns["tmap_10_105"])
+        problem[key_2, key_3]._solution = TestSolverOutput(gt_temporal_adata.uns["tmap_105_11"])
+        problem[key_1, key_3]._solution = TestSolverOutput(gt_temporal_adata.uns["tmap_10_11"])
 
         interpolation_result = problem.compute_interpolated_distance(
-            10, 10.5, 11, account_for_unbalancedness=account_for_unbalancedness, seed=42
+            key_1, key_2, key_3, account_for_unbalancedness=account_for_unbalancedness, seed=config["seed"]
         )
         assert isinstance(interpolation_result, float)
         assert interpolation_result > 0
 
     def test_compute_interpolated_distance_regression(self, gt_temporal_adata: AnnData):
+        config = gt_temporal_adata.uns["config_solution"]
+        key = config["key"]
+        key_1 = config["key_1"]
+        key_2 = config["key_2"]
+        key_3 = config["key_3"]
         problem = TemporalProblem(gt_temporal_adata)
-        problem = problem.prepare("day", subset=[(10, 10.5), (10.5, 11), (10, 11)], policy="explicit")
-        assert set(problem.problems.keys()) == {(10, 10.5), (10, 11), (10.5, 11)}
-        problem[10, 10.5]._solution = TestSolverOutput(gt_temporal_adata.uns["tmap_10_105"])
-        problem[10.5, 11]._solution = TestSolverOutput(gt_temporal_adata.uns["tmap_105_11"])
-        problem[10, 11]._solution = TestSolverOutput(gt_temporal_adata.uns["tmap_10_11"])
+        problem = problem.prepare(key, subset=[(key_1, key_2), (key_2, key_3), (key_1, key_3)], policy="explicit")
+        assert set(problem.problems.keys()) == {(key_1, key_2), (key_2, key_3), (key_1, key_3)}
+        problem[key_1, key_2]._solution = TestSolverOutput(gt_temporal_adata.uns["tmap_10_105"])
+        problem[key_2, key_3]._solution = TestSolverOutput(gt_temporal_adata.uns["tmap_105_11"])
+        problem[key_1, key_3]._solution = TestSolverOutput(gt_temporal_adata.uns["tmap_10_11"])
 
-        interpolation_result = problem.compute_interpolated_distance(10, 10.5, 11, seed=42)
+        interpolation_result = problem.compute_interpolated_distance(key_1, key_2, key_3, seed=config["seed"])
         assert isinstance(interpolation_result, float)
         assert interpolation_result > 0
-        np.testing.assert_almost_equal(interpolation_result, 20.629795, decimal=4)  # pre-computed
+        np.testing.assert_almost_equal(interpolation_result, gt_temporal_adata.uns["interpolated_distance_10_105_11"], decimal=4)
 
     def test_compute_time_point_distances_regression(self, gt_temporal_adata: AnnData):
+        config = gt_temporal_adata.uns["config_solution"]
+        key = config["key"]
+        key_1 = config["key_1"]
+        key_2 = config["key_2"]
+        key_3 = config["key_3"]
         problem = TemporalProblem(gt_temporal_adata)
-        problem = problem.prepare("day", subset=[(10, 10.5), (10.5, 11), (10, 11)], policy="explicit")
-        assert set(problem.problems.keys()) == {(10, 10.5), (10, 11), (10.5, 11)}
+        problem = problem.prepare(key, subset=[(key_1, key_2), (key_2, key_3), (key_1, key_3)], policy="explicit")
+        assert set(problem.problems.keys()) == {(key_1, key_2), (key_2, key_3), (key_1, key_3)}
+        problem[key_1, key_2]._solution = TestSolverOutput(gt_temporal_adata.uns["tmap_10_105"])
+        problem[key_2, key_3]._solution = TestSolverOutput(gt_temporal_adata.uns["tmap_105_11"])
+        problem[key_1, key_3]._solution = TestSolverOutput(gt_temporal_adata.uns["tmap_10_11"])
 
-        result = problem.compute_time_point_distances(10, 10.5, 11)
+        result = problem.compute_time_point_distances(key_1, key_2, key_3)
         assert isinstance(result, tuple)
         assert result[0] > 0
         assert result[1] > 0
-        np.testing.assert_almost_equal(result[0], 23.9996, decimal=4)  # pre-computed
-        np.testing.assert_almost_equal(result[1], 22.7514, decimal=4)  # pre-computed
+        np.testing.assert_almost_equal(result[0], gt_temporal_adata.uns["time_point_distances_10_105_11"][0], decimal=4)
+        np.testing.assert_almost_equal(result[1], gt_temporal_adata.uns["time_point_distances_10_105_11"][1], decimal=4)
 
     def test_compute_batch_distances_regression(self, gt_temporal_adata: AnnData):
+        config = gt_temporal_adata.uns["config_solution"]
+        key = config["key"]
+        key_1 = config["key_1"]
+        key_2 = config["key_2"]
+        key_3 = config["key_3"]
         problem = TemporalProblem(gt_temporal_adata)
-        problem = problem.prepare("day", subset=[(10, 10.5), (10.5, 11), (10, 11)], policy="explicit")
-        assert set(problem.problems.keys()) == {(10, 10.5), (10, 11), (10.5, 11)}
+        problem = problem.prepare(key, subset=[(key_1, key_2), (key_2, key_3), (key_1, key_3)], policy="explicit")
+        assert set(problem.problems.keys()) == {(key_1, key_2), (key_2, key_3), (key_1, key_3)}
+        problem[key_1, key_2]._solution = TestSolverOutput(gt_temporal_adata.uns["tmap_10_105"])
+        problem[key_2, key_3]._solution = TestSolverOutput(gt_temporal_adata.uns["tmap_105_11"])
+        problem[key_1, key_3]._solution = TestSolverOutput(gt_temporal_adata.uns["tmap_10_11"])
 
-        result = problem.compute_batch_distances(10, "batch")
+        result = problem.compute_batch_distances(key_1, "batch")
         assert isinstance(result, float)
-        np.testing.assert_almost_equal(result, 22.9107, decimal=4)  # pre-computed
+        np.testing.assert_almost_equal(result, gt_temporal_adata.uns["batch_distances_10"], decimal=4)  # pre-computed
 
     def test_compute_random_distance_regression(self, gt_temporal_adata: AnnData):
+        config = gt_temporal_adata.uns["config_solution"]
+        key = config["key"]
+        key_1 = config["key_1"]
+        key_2 = config["key_2"]
+        key_3 = config["key_3"]
         problem = TemporalProblem(gt_temporal_adata)
-        problem = problem.prepare("day", subset=[(10, 10.5), (10.5, 11), (10, 11)], policy="explicit")
-        assert set(problem.problems.keys()) == {(10, 10.5), (10, 11), (10.5, 11)}
+        problem = problem.prepare(key, subset=[(key_1, key_2), (key_2, key_3), (key_1, key_3)], policy="explicit")
+        assert set(problem.problems.keys()) == {(key_1, key_2), (key_2, key_3), (key_1, key_3)}
 
-        result = problem.compute_random_distance(10, 10.5, 11, seed=42)
+        result = problem.compute_random_distance(key_1, key_2, key_3, seed=config["seed"])
         assert isinstance(result, float)
-        np.testing.assert_almost_equal(result, 21.1825, decimal=4)  # pre-computed
+        np.testing.assert_almost_equal(result, gt_temporal_adata.uns["random_distance_10_105_11"], decimal=4)  # pre-computed
 
     @pytest.mark.parametrize("only_start", [True, False])
     def test_get_data_pipeline(self, adata_time: AnnData, only_start: bool):
