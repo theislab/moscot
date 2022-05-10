@@ -121,7 +121,7 @@ class BirthDeathMixin(MultiMarginalMixin):
     @property
     def apoptosis_key(self) -> Optional[str]:
         """Key in :attr:`anndata.AnnData.obs` where prior estimate of cell apoptosis is saved."""
-        return self._APOPTOSIS_KEY
+        return self._apoptosis_key
 
     # TODO(michalk8): remove docs in setters
     @proliferation_key.setter
