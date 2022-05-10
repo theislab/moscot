@@ -223,6 +223,8 @@ class TemporalProblem(TemporalAnalysisMixin, SingleCompoundProblem[Number, Tempo
         policy
             Defines which transport maps to compute given different cell distributions.
         %(marginal_kwargs)s
+        %(a)s
+        %(b)s
         subset
             Subset of `anndata.AnnData.obs` [key] values of which the policy is to be applied to.
         %(reference)s
@@ -242,6 +244,10 @@ class TemporalProblem(TemporalAnalysisMixin, SingleCompoundProblem[Number, Tempo
             If `time_key` is not in :attr:`anndata.AnnData.obs`.
         KeyError
             If `joint_attr` is a string and cannot be found in :attr:`anndata.AnnData.obsm`.
+
+        Notes
+        -----
+        If `a` and `b` are provided `marginal_kwargs` are ignored.
         """
         # TODO(michalk8): make a property + sanity checks?
         self._temporal_key = time_key
@@ -547,6 +553,8 @@ class LineageProblem(TemporalProblem):
         policy
             defines which transport maps to compute given different cell distributions
         %(marginal_kwargs)s
+        %(a)s
+        %(b)s
         subset
             subset of `anndata.AnnData.obs` [key] values of which the policy is to be applied to
         %(reference)s
@@ -570,6 +578,10 @@ class LineageProblem(TemporalProblem):
             If :attr:`adata.obsp` has no attribute `cost_matrices`.
         TypeError
             If `joint_attr` is not None, not a :class:`str` and not a :class:`dict`
+
+        Notes
+        -----
+        If `a` and `b` are provided `marginal_kwargs` are ignored.
         """
         # TODO(michalk8): use and
         if not len(lineage_attr):
@@ -589,6 +601,7 @@ class LineageProblem(TemporalProblem):
 
         return super().prepare(
             time_key,
+            joint_attr=joint_attr,
             x=x,
             y=y,
             policy=policy,

@@ -68,7 +68,7 @@ class AnnDataPointer:
             if arr.ndim != 2:
                 raise ValueError("TODO: expected 2D")
             return arr
-
+            
         if self.tag == Tag.COST_MATRIX:
             if self.loss is not None:
                 cost_matrix = BaseLoss.create(kind=self.loss, adata=self.adata, attr=self.attr, key=self.key)(
@@ -106,4 +106,4 @@ class AnnDataPointer:
         if self.key not in container:
             raise KeyError(f"TODO: unable to find `adata.{self.attr}['{self.key}']`.")
         container = container[self.key]
-        return TaggedArray(container, tag=self.tag, loss=backend_losses[self.loss])
+        return TaggedArray(container.A if scipy.sparse.issparse(container) else container, tag=self.tag, loss=backend_losses[self.loss])
