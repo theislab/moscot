@@ -65,6 +65,8 @@ class TemporalProblem(SingleCompoundProblem[Number, BirthDeathBaseProblem], Temp
         policy
             Defines which transport maps to compute given different cell distributions.
         %(marginal_kwargs)s
+        %(a)s
+        %(b)s
         subset
             Subset of `anndata.AnnData.obs` [key] values of which the policy is to be applied to.
         %(reference)s
@@ -84,6 +86,10 @@ class TemporalProblem(SingleCompoundProblem[Number, BirthDeathBaseProblem], Temp
             If `time_key` is not in :attr:`anndata.AnnData.obs`.
         KeyError
             If `joint_attr` is a string and cannot be found in :attr:`anndata.AnnData.obsm`.
+
+        Notes
+        -----
+        If `a` and `b` are provided `marginal_kwargs` are ignored.
         """
 
         if joint_attr is None:
@@ -257,6 +263,8 @@ class LineageProblem(TemporalProblem):
         policy
             defines which transport maps to compute given different cell distributions
         %(marginal_kwargs)s
+        %(a)s
+        %(b)s
         subset
             subset of `anndata.AnnData.obs` [key] values of which the policy is to be applied to
         %(reference)s
@@ -280,6 +288,10 @@ class LineageProblem(TemporalProblem):
             If :attr:`adata.obsp` has no attribute `cost_matrices`.
         TypeError
             If `joint_attr` is not None, not a :class:`str` and not a :class:`dict`
+
+        Notes
+        -----
+        If `a` and `b` are provided `marginal_kwargs` are ignored.
         """
         # TODO(michalk8): use and
         if not len(lineage_attr):

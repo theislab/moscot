@@ -95,6 +95,15 @@ _transport_matrix = """\
 Computed transport matrix."""
 _converged = """\
 Whether the algorihtm converged."""
+_a = """\
+a
+    Specifies the left marginals. If of type :class:`str` the left marginals are taken from 
+    :attr:`anndata.AnnData.obs` ``[`{a}`]``. If `a` is `None` uniform marginals are used."""
+_b = """\
+b
+    Specifies the right marginals. If of type :class:`str` the right marginals are taken from 
+    :attr:`anndata.AnnData.obs` ``[`{a}`]``. If `b` is `None` uniform marginals are used."""
+
 
 
 def inject_docs(**kwargs: Any):
@@ -136,4 +145,8 @@ d = DocstringProcessor(
     shape=_shape,
     transport_matrix=_transport_matrix,
     converged=_converged,
+    transport_matrix = _transport_matrix,
+    converged = _converged,
+    a=_a,
+    b=_b,
 )
