@@ -18,7 +18,7 @@ from typing import (
     Sequence,
 )
 
-from scipy.sparse import csr_matrix, issparse
+from scipy.sparse import issparse, csr_matrix
 import pandas as pd
 
 import numpy as np

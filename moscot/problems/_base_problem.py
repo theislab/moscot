@@ -136,6 +136,15 @@ class OTProblem(BaseProblem):
         self._target = target
 
     def _handle_linear(self, **kwargs: Any) -> Union[TaggedArray, Tuple[TaggedArray, TaggedArray]]:
+        if "x_attr" not in kwargs or "y_attr" not in kwargs:
+            kwargs.setdefault("tag", Tag.COST_MATRIX)
+            attr = kwargs.pop("attr", "obsm")
+            if attr in ("obsm", "uns"):
+                return AnnDataPointer(self.adata, attr=attr, **kwargs).create()
+            if attr == "varm":
+                return AnnDataPointer(self._adata_y.T, attr="obsm", **kwargs).create()
+            raise NotImplementedError("TODO: cost/kernel storage not implemented. Use obsm/varm")
+            
         x_kwargs = {k[2:]: v for k, v in kwargs.items() if k.startswith("x_")}
         y_kwargs = {k[2:]: v for k, v in kwargs.items() if k.startswith("y_")}
         x_kwargs["tag"] = Tag.POINT_CLOUD

@@ -4,9 +4,8 @@ import pandas as pd
 import pytest
 
 import numpy as np
-import scanpy as sc
+
 from anndata import AnnData
-from sklearn.metrics import pairwise_distances
 
 from moscot.solvers._output import BaseSolverOutput
 from moscot.problems.time._lineage import TemporalProblem, TemporalBaseProblem
@@ -195,17 +194,18 @@ class TestTemporalProblem:
     def test_result_compares_to_wot(self, gt_temporal_adata: AnnData):
         # this test assures TemporalProblem returns an equivalent solution to Waddington OT (precomputed)
         adata = gt_temporal_adata.copy()
-        config = adata.uns["config_solution"]
+        config = gt_temporal_adata.uns
         eps = config["eps"]
         lam1 = config["lam1"]
         lam2 = config["lam2"]
         key = config["key"]
         key_1 = config["key_1"]
         key_2 = config["key_2"]
+        key_3 = config["key_3"]
         local_pca = config["local_pca"]
-        
+
         tp = TemporalProblem(adata)
-        tp = tp.prepare(key, policy="explicit", joint_attr = "X_pca", callback_kwargs={"joint_space": False, "n_comps": local_pca})
+        tp = tp.prepare(key, subset=[(key_1, key_2), (key_2, key_3), (key_1, key_3)], policy="explicit", callback_kwargs={"joint_space": False})
         tp = tp.solve(epsilon=eps, scale_cost="mean", tau_a=lam1/(lam1+eps), tau_b=lam2/(lam2+eps))
 
         np.testing.assert_array_almost_equal(
@@ -214,14 +214,11 @@ class TestTemporalProblem:
         )
         np.testing.assert_array_almost_equal(
             adata.uns["tmap_10_11"],
-            np.array(tp[key_1, key_2].solution.transport_matrix),
+            np.array(tp[key_1, key_3].solution.transport_matrix),
         )
         np.testing.assert_array_almost_equal(
             adata.uns["tmap_10_11"],
-            np.array(tp[key_1, key_2].solution.transport_matrix),
+            np.array(tp[key_2, key_3].solution.transport_matrix),
         )
-
-        
-
 
 

@@ -15,7 +15,7 @@ from moscot.problems.time._lineage import TemporalProblem
 class TestTemporalAnalysisMixin:
     @pytest.mark.parametrize("forward", [True, False])
     def test_cell_transition_full_pipeline(self, gt_temporal_adata: AnnData, forward: bool):
-        config = gt_temporal_adata.uns["config_solution"]
+        config = gt_temporal_adata.uns
         key = config["key"]
         key_1 = config["key_1"]
         key_2 = config["key_2"]
@@ -40,7 +40,7 @@ class TestTemporalAnalysisMixin:
 
     @pytest.mark.parametrize("forward", [True, False])
     def test_cell_transition_subset_pipeline(self, gt_temporal_adata: AnnData, forward: bool):
-        config = gt_temporal_adata.uns["config_solution"]
+        config = gt_temporal_adata.uns
         key = config["key"]
         key_1 = config["key_1"]
         key_2 = config["key_2"]
@@ -67,7 +67,7 @@ class TestTemporalAnalysisMixin:
 
     @pytest.mark.parametrize("forward", [True, False])
     def test_cell_transition_regression(self, gt_temporal_adata: AnnData, forward: bool):
-        config = gt_temporal_adata.uns["config_solution"]
+        config = gt_temporal_adata.uns
         key = config["key"]
         key_1 = config["key_1"]
         key_2 = config["key_2"]
@@ -78,7 +78,7 @@ class TestTemporalAnalysisMixin:
         problem[key_1, key_2]._solution = TestSolverOutput(gt_temporal_adata.uns["tmap_10_105"])
         problem[key_2, key_3]._solution = TestSolverOutput(gt_temporal_adata.uns["tmap_105_11"])
         problem[key_1, key_3]._solution = TestSolverOutput(gt_temporal_adata.uns["tmap_10_11"])
-        
+
         result = problem.cell_transition(10, 10.5, early_cells="cell_type", late_cells="cell_type", forward=forward)
         assert result.shape == (6, 6)
         marginal = result.sum(axis=forward == 1).values
@@ -110,7 +110,7 @@ class TestTemporalAnalysisMixin:
 
     @pytest.mark.parametrize("account_for_unbalancedness", [True, False])
     def test_compute_interpolated_distance_pipeline(self, gt_temporal_adata: AnnData, account_for_unbalancedness: bool):
-        config = gt_temporal_adata.uns["config_solution"]
+        config = gt_temporal_adata.uns
         key = config["key"]
         key_1 = config["key_1"]
         key_2 = config["key_2"]
@@ -129,7 +129,7 @@ class TestTemporalAnalysisMixin:
         assert interpolation_result > 0
 
     def test_compute_interpolated_distance_regression(self, gt_temporal_adata: AnnData):
-        config = gt_temporal_adata.uns["config_solution"]
+        config = gt_temporal_adata.uns
         key = config["key"]
         key_1 = config["key_1"]
         key_2 = config["key_2"]
@@ -147,7 +147,7 @@ class TestTemporalAnalysisMixin:
         np.testing.assert_almost_equal(interpolation_result, gt_temporal_adata.uns["interpolated_distance_10_105_11"], decimal=4)
 
     def test_compute_time_point_distances_regression(self, gt_temporal_adata: AnnData):
-        config = gt_temporal_adata.uns["config_solution"]
+        config = gt_temporal_adata.uns
         key = config["key"]
         key_1 = config["key_1"]
         key_2 = config["key_2"]
@@ -167,7 +167,7 @@ class TestTemporalAnalysisMixin:
         np.testing.assert_almost_equal(result[1], gt_temporal_adata.uns["time_point_distances_10_105_11"][1], decimal=4)
 
     def test_compute_batch_distances_regression(self, gt_temporal_adata: AnnData):
-        config = gt_temporal_adata.uns["config_solution"]
+        config = gt_temporal_adata.uns
         key = config["key"]
         key_1 = config["key_1"]
         key_2 = config["key_2"]
@@ -184,7 +184,7 @@ class TestTemporalAnalysisMixin:
         np.testing.assert_almost_equal(result, gt_temporal_adata.uns["batch_distances_10"], decimal=4)  # pre-computed
 
     def test_compute_random_distance_regression(self, gt_temporal_adata: AnnData):
-        config = gt_temporal_adata.uns["config_solution"]
+        config = gt_temporal_adata.uns
         key = config["key"]
         key_1 = config["key_1"]
         key_2 = config["key_2"]

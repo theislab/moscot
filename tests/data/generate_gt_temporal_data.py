@@ -1,37 +1,39 @@
+from typing import Any, Dict, Tuple
 import sys
-from typing import Dict, Any, Tuple
 
 try:
     import wot  # please install WOT from commit hash`ca5e94f05699997b01cf5ae13383f9810f0613f6`"
 except:
     ImportError("Please install WOT from commit hash`ca5e94f05699997b01cf5ae13383f9810f0613f6`")
 
-import moscot
-from anndata import AnnData
-import numpy as np
+import os
+
+from sklearn.metrics import pairwise_distances
 import pandas as pd
+
+import numpy as np
+
+from anndata import AnnData
+import scanpy as sc
+
 from moscot.problems.time import TemporalProblem
 
-import scanpy as sc
-import scipy
-import os
-from sklearn.metrics import pairwise_distances
+eps = 0.5
+lam1 = 1
+lam2 = 10
+key = "day"
+key_1 = 10
+key_2 = 10.5
+key_3 = 11
+local_pca = 50
+tau_a = lam1 / (lam1 + eps)
+tau_b = lam2 / (lam2 + eps)
+seed = 42
 
-
-def config() -> Dict[str, Any]:
-    eps = 0.5
-    lam1 = 1
-    lam2 = 10
-    key = "day"
-    key_1 = 10
-    key_2 = 10.5
-    key_3 = 11
-    local_pca = 50
-    tau_a = lam1 / (lam1 + eps)
-    tau_b = lam2 / (lam2 + eps)
-
-    return {
+config = {
         "eps": eps,
+        "lam1": lam1,
+        "lam2": lam2,
         "tau_a": tau_a,
         "tau_b": tau_b,
         "key": key,
@@ -39,8 +41,22 @@ def config() -> Dict[str, Any]:
         "key_2": key_2,
         "key_3": key_3,
         "local_pca": local_pca,
-        "seed": 42,
+        "seed": seed,
     }
+
+def _write_config(adata: AnnData) -> AnnData:
+    adata.uns["eps"]= eps
+    adata.uns["lam1"]= lam1
+    adata.uns["lam2"]= lam2
+    adata.uns["tau_a"]= tau_a
+    adata.uns["tau_b"]= tau_b
+    adata.uns["key"]= key
+    adata.uns["key_1"]= key_1
+    adata.uns["key_2"]= key_2
+    adata.uns["key_3"]= key_3
+    adata.uns["local_pca"]= local_pca
+    adata.uns["seed"]= seed  
+    return adata 
 
 
 def _create_adata(data_path: str) -> AnnData:
@@ -64,7 +80,7 @@ def _create_adata(data_path: str) -> AnnData:
     return adata
 
 
-def _write_analysis_output(cdata: AnnData, tp2: TemporalProblem, config: Dict[str, Any]) -> None:
+def _write_analysis_output(cdata: AnnData, tp2: TemporalProblem, config: Dict[str, Any]) -> AnnData:
     cdata.obs["cell_type"] = cdata.obs["cell_type"].astype("category")
     cdata.uns["cell_transition_10_105_backward"] = tp2.cell_transition(
         config["key_1"], config["key_2"], early_cells="cell_type", late_cells="cell_type", forward=False
@@ -82,6 +98,8 @@ def _write_analysis_output(cdata: AnnData, tp2: TemporalProblem, config: Dict[st
         tp2.compute_time_point_distances(config["key_1"], config["key_2"], config["key_3"])
     )
     cdata.uns["batch_distances_10"] = tp2.compute_batch_distances(config["key_1"], "batch")
+
+    return cdata
 
 
 def _prepare(adata: AnnData, config: Dict[str, Any]) -> Tuple[AnnData, np.ndarray, np.ndarray, np.ndarray]:
@@ -102,12 +120,10 @@ def _prepare(adata: AnnData, config: Dict[str, Any]) -> Tuple[AnnData, np.ndarra
 
 
 def generate_gt_temporal_data(data_path: str) -> None:
-
+    """Generate `gt_temporal_data` for tests."""
     adata = _create_adata(data_path)
-    config = config()
-    adata.uns["config_solution"] = config
 
-    cdata, C_12, C_23, C_13 = _prepare(adata)
+    cdata, C_12, C_23, C_13 = _prepare(adata, config)
     n_1, n_2, n_3 = len(C_12), len(C_23), C_23.shape[1]
     cdata.obsp["cost_matrices"] = np.block(
         [
@@ -138,8 +154,8 @@ def generate_gt_temporal_data(data_path: str) -> None:
     tp.solve(epsilon=config["eps"], tau_a=config["tau_a"], tau_b=config["tau_b"])
 
     assert (tp[config["key_1"], config["key_2"]].xy.data == C_12).all()
-    assert (tp[config["key_2"], config["key_3"]].xy.data == C_13).all()
-    assert (tp[config["key_1"], config["key_3"]].xy.data == C_23).all()
+    assert (tp[config["key_2"], config["key_3"]].xy.data == C_23).all()
+    assert (tp[config["key_1"], config["key_3"]].xy.data == C_13).all()
 
     np.testing.assert_array_almost_equal(
         np.corrcoef(
@@ -173,30 +189,22 @@ def generate_gt_temporal_data(data_path: str) -> None:
     tp2.solve(epsilon=config["eps"], tau_a=config["tau_a"], tau_b=config["tau_b"], scale_cost="mean")
 
     np.testing.assert_array_almost_equal(
-        np.corrcoef(
-            np.array(tp[config["key_1"], config["key_2"]].solution.transport_matrix).flatten(),
-            np.array(tp2[config["key_1"], config["key_2"]].solution.transport_matrix).flatten(),
-        ),
-        1,
+            np.array(tp[config["key_1"], config["key_2"]].solution.transport_matrix),
+            np.array(tp2[config["key_1"], config["key_2"]].solution.transport_matrix),
     )
     np.testing.assert_array_almost_equal(
-        np.corrcoef(
-            np.array(tp[config["key_2"], config["key_3"]].solution.transport_matrix).flatten(),
-            np.array(tp2[config["key_2"], config["key_3"]].solution.transport_matrix).flatten(),
-        ),
-        1,
+            np.array(tp[config["key_2"], config["key_3"]].solution.transport_matrix),
+            np.array(tp2[config["key_2"], config["key_3"]].solution.transport_matrix),
     )
     np.testing.assert_array_almost_equal(
-        np.corrcoef(
-            np.array(tp[config["key_1"], config["key_3"]].solution.transport_matrix).flatten(),
-            np.array(tp2[config["key_1"], config["key_3"]].solution.transport_matrix).flatten(),
-        ),
-        1,
+            np.array(tp[config["key_1"], config["key_3"]].solution.transport_matrix),
+            np.array(tp2[config["key_1"], config["key_3"]].solution.transport_matrix),
     )
 
-    _write_analysis_output(cdata, tp2, config)
-
-    cdata.write_h5ad("moscot_temporal_tests.h5ad")
+    cdata = _write_analysis_output(cdata, tp2, config)
+    cdata = _write_config(cdata)
+    
+    cdata.write_h5ad("tests/data/moscot_temporal_tests.h5ad")
 
 
 if __name__ == "__main__":
