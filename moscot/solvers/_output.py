@@ -4,10 +4,15 @@ from typing import Any, Tuple, Callable
 import numpy as np
 import numpy.typing as npt
 
-
 # TODO(michalk8):
 #  1. mb. use more contrained type hints
 #  2. consider always returning 2-dim array, even if 1-dim is passed (not sure which convenient for user)
+
+__all__ = ["BaseSolverOutput", "MatrixSolverOutput", "JointOperator", "as_linear_operator"]
+
+from scipy.sparse.linalg import LinearOperator
+
+
 class BaseSolverOutput(ABC):
     @abstractmethod
     def _apply(self, x: npt.ArrayLike, *, forward: bool) -> npt.ArrayLike:
@@ -127,3 +132,36 @@ class MatrixSolverOutput(BaseSolverOutput, ABC):
     @property
     def potentials(self):
         raise NotImplementedError("This solver does not allow for potentials")
+
+
+class JointOperator:
+    def __init__(self, outputs: Tuple[BaseSolverOutput, ...]):
+        if not len(outputs):
+            raise ValueError("TODO: no solver outputs")
+        for curr, next in zip(outputs[:-1], outputs[1:]):
+            if curr.shape[1] != next.shape[0]:
+                raise ValueError("TODO: outputs shape mismatch")
+
+        self._outputs = outputs
+
+    @property
+    def shape(self) -> Tuple[int, int]:
+        return self._outputs[0].shape[0], self._outputs[-1].shape[1]
+
+    def push(self, x: npt.ArrayLike, **kwargs: Any) -> npt.ArrayLike:
+        for op in self._outputs:
+            x = op.push(x, **kwargs)
+        return x
+
+    def pull(self, x: npt.ArrayLike, **kwargs: Any) -> npt.ArrayLike:
+        for op in reversed(self._outputs):
+            x = op.pull(x, **kwargs)
+        return x
+
+
+def as_linear_operator(outputs: Tuple[BaseSolverOutput, ...], *, forward: bool) -> LinearOperator:
+    op = JointOperator(outputs)
+    out = outputs[0]
+    dtype = out.push(out._ones(out.shape[0])).dtype
+
+    return LinearOperator(shape=op.shape, dtype=dtype, matvec=op.push if forward else op.pull)
