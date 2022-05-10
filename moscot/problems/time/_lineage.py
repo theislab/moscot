@@ -1,5 +1,5 @@
 from types import MappingProxyType
-from typing import Any, Literal, Mapping, Optional, Tuple, Type, Union
+from typing import Any, Type, Tuple, Union, Literal, Mapping, Optional
 from numbers import Number
 
 import pandas as pd
@@ -15,7 +15,7 @@ from moscot.problems.mixins._temporal_mixins import BirthDeathMixin, BirthDeathB
 
 
 @d.dedent
-class TemporalProblem(SingleCompoundProblem[Number, BirthDeathBaseProblem], TemporalAnalysisMixin, BirthDeathMixin):
+class TemporalProblem(TemporalAnalysisMixin, BirthDeathMixin, SingleCompoundProblem[Number, BirthDeathBaseProblem]):
     """
     Class for analysing time series single cell data based on :cite:`schiebinger:19`.
 
@@ -91,7 +91,7 @@ class TemporalProblem(SingleCompoundProblem[Number, BirthDeathBaseProblem], Temp
         -----
         If `a` and `b` are provided `marginal_kwargs` are ignored.
         """
-
+        self.temporal_key = time_key
         if joint_attr is None:
             kwargs["callback"] = "local-pca"
             kwargs["callback_kwargs"] = {**kwargs.get("callback_kwargs", {}), **{"return_linear": True}}

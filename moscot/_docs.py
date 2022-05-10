@@ -97,11 +97,11 @@ _converged = """\
 Whether the algorihtm converged."""
 _a = """\
 a
-    Specifies the left marginals. If of type :class:`str` the left marginals are taken from 
+    Specifies the left marginals. If of type :class:`str` the left marginals are taken from
     :attr:`anndata.AnnData.obs` ``[`{a}`]``. If `a` is `None` uniform marginals are used."""
 _b = """\
 b
-    Specifies the right marginals. If of type :class:`str` the right marginals are taken from 
+    Specifies the right marginals. If of type :class:`str` the right marginals are taken from
     :attr:`anndata.AnnData.obs` ``[`{a}`]``. If `b` is `None` uniform marginals are used."""
 
 

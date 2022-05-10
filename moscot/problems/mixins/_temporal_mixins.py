@@ -22,8 +22,8 @@ class MultiMarginalMixin(ABC):
 
 class BirthDeathMixin(MultiMarginalMixin):
 
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self, *args: Any, **kwargs: Any):
+        super().__init__(*args, **kwargs)
         self._proliferation_key: Optional[str] = None
         self._apoptosis_key: Optional[str] = None
 

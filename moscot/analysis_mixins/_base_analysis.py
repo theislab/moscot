@@ -8,6 +8,10 @@ import numpy.typing as npt
 # TODO(michalk8): need to think about this a bit more
 # TODO(MUCDK): remove ABC?
 class AnalysisMixin(ABC):
+
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
+        super().__init__(*args, **kwargs)
+
     def _sample_from_tmap(
         self,
         start: Any,
