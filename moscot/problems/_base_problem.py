@@ -281,9 +281,10 @@ class OTProblem(BaseProblem):
     def _create_marginals(adata: AnnData, data: Optional[Union[str, npt.ArrayLike]] = None) -> npt.ArrayLike:
         if data is None:
             return np.ones((adata.n_obs,), dtype=float) / adata.n_obs
-        elif isinstance(data, str):
+        if isinstance(data, str):
             # TODO(michalk8): some nice error message
             return np.asarray(adata.obs[data])
+        return np.asarray(data)
 
     @property
     def shape(self) -> Tuple[int, int]:
