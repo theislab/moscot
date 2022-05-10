@@ -15,15 +15,20 @@ from moscot.problems.time._lineage import TemporalProblem
 class TestTemporalAnalysisMixin:
     @pytest.mark.parametrize("forward", [True, False])
     def test_cell_transition_full_pipeline(self, gt_temporal_adata: AnnData, forward: bool):
+        config = gt_temporal_adata.uns["config_solution"]
+        key = config["key"]
+        key_1 = config["key_1"]
+        key_2 = config["key_2"]
+        key_3 = config["key_3"]
         cell_types = set(np.unique(gt_temporal_adata.obs["cell_type"]))
         problem = TemporalProblem(gt_temporal_adata)
-        problem = problem.prepare("day", subset=[(10, 10.5), (10.5, 11), (10, 11)], policy="explicit")
-        assert set(problem.problems.keys()) == {(10, 10.5), (10, 11), (10.5, 11)}
-        problem[10, 10.5]._solution = TestSolverOutput(gt_temporal_adata.uns["tmap_10_105"])
-        problem[10.5, 11]._solution = TestSolverOutput(gt_temporal_adata.uns["tmap_105_11"])
-        problem[10, 11]._solution = TestSolverOutput(gt_temporal_adata.uns["tmap_10_11"])
+        problem = problem.prepare(key, subset=[(key_1, key_2), (key_2, key_3), (key_1, key_3)], policy="explicit")
+        assert set(problem.problems.keys()) == {(key_1, key_2), (key_2, key_3), (key_1, key_3)}
+        problem[(key_1, key_2)]._solution = TestSolverOutput(gt_temporal_adata.uns["tmap_10_105"])
+        problem[(key_2, key_3)]._solution = TestSolverOutput(gt_temporal_adata.uns["tmap_105_11"])
+        problem[(key_1, key_3)]._solution = TestSolverOutput(gt_temporal_adata.uns["tmap_10_11"])
 
-        result = problem.cell_transition(10, 10.5, "cell_type", "cell_type", forward=forward)
+        result = problem.cell_transition(key_1, key_2, "cell_type", "cell_type", forward=forward)
 
         assert isinstance(result, pd.DataFrame)
         assert result.shape == (len(cell_types), len(cell_types))
@@ -35,17 +40,22 @@ class TestTemporalAnalysisMixin:
 
     @pytest.mark.parametrize("forward", [True, False])
     def test_cell_transition_subset_pipeline(self, gt_temporal_adata: AnnData, forward: bool):
+        config = gt_temporal_adata.uns["config_solution"]
+        key = config["key"]
+        key_1 = config["key_1"]
+        key_2 = config["key_2"]
+        key_3 = config["key_3"]
         problem = TemporalProblem(gt_temporal_adata)
-        problem = problem.prepare("day", subset=[(10, 10.5), (10.5, 11), (10, 11)], policy="explicit")
-        assert set(problem.problems.keys()) == {(10, 10.5), (10, 11), (10.5, 11)}
-        problem[10, 10.5]._solution = TestSolverOutput(gt_temporal_adata.uns["tmap_10_105"])
-        problem[10.5, 11]._solution = TestSolverOutput(gt_temporal_adata.uns["tmap_105_11"])
-        problem[10, 11]._solution = TestSolverOutput(gt_temporal_adata.uns["tmap_10_11"])
+        problem = problem.prepare(key, subset=[(key_1, key_2), (key_2, key_3), (key_1, key_3)], policy="explicit")
+        assert set(problem.problems.keys()) == {(key_1, key_2), (key_2, key_3), (key_1, key_3)}
+        problem[key_1, key_2]._solution = TestSolverOutput(gt_temporal_adata.uns["tmap_10_105"])
+        problem[key_2, key_3]._solution = TestSolverOutput(gt_temporal_adata.uns["tmap_105_11"])
+        problem[key_1, key_3]._solution = TestSolverOutput(gt_temporal_adata.uns["tmap_10_11"])
 
         early_cells = ["Stromal", "unknown"]
         late_cells = ["Stromal", "Epithelial"]
         result = problem.cell_transition(
-            10, 10.5, {"cell_type": early_cells}, {"cell_type": late_cells}, forward=forward
+            key_1, key_2, {"cell_type": early_cells}, {"cell_type": late_cells}, forward=forward
         )
         assert isinstance(result, pd.DataFrame)
         assert result.shape == (2, 2)
