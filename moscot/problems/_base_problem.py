@@ -284,8 +284,6 @@ class OTProblem(BaseProblem):
         elif isinstance(data, str):
             # TODO(michalk8): some nice error message
             return np.asarray(adata.obs[data])
-        else: # this is to prevent people from passing marginals as npt.ArrayLike
-            raise ValueError("TODO: marginals must be passed in `adata.obs`.")
 
     @property
     def shape(self) -> Tuple[int, int]:
