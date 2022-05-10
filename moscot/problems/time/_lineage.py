@@ -601,6 +601,7 @@ class LineageProblem(TemporalProblem):
 
         return super().prepare(
             time_key,
+            joint_attr=joint_attr,
             x=x,
             y=y,
             policy=policy,
