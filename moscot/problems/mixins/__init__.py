@@ -1,1 +1,1 @@
-from moscot.problems.mixins._temporal_mixins import BirthDeathMixin, BirthDeathBaseProblem
+from moscot.problems.mixins._temporal_mixins import BirthDeathMixin, MultiMarginalMixin, BirthDeathBaseProblem

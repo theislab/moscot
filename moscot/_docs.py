@@ -103,7 +103,13 @@ _b = """\
 b
     Specifies the right marginals. If of type :class:`str` the right marginals are taken from
     :attr:`anndata.AnnData.obs` ``[`{a}`]``. If `b` is `None` uniform marginals are used."""
-
+_time_key = """\
+time_key
+        Key in :attr:`anndata.AnnData.obs` which defines the time point each cell belongs to. It is supposed to be
+        of numerical data type."""
+_spatial_key = """\
+spatial_key
+        TODO."""
 
 
 def inject_docs(**kwargs: Any):
@@ -147,4 +153,6 @@ d = DocstringProcessor(
     converged = _converged,
     a=_a,
     b=_b,
+    time_key=_time_key,
+    spatial_key=_spatial_key,
 )

@@ -10,8 +10,8 @@ from anndata import AnnData
 
 from moscot._docs import d
 from moscot.problems._compound_problem import B, SingleCompoundProblem
-from moscot.analysis_mixins._time_analysis import TemporalAnalysisMixin
-from moscot.problems.mixins._temporal_mixins import BirthDeathMixin, BirthDeathBaseProblem
+from moscot.analysis_mixins import TemporalAnalysisMixin
+from moscot.problems.mixins import BirthDeathMixin, BirthDeathBaseProblem
 
 
 @d.dedent
@@ -53,9 +53,7 @@ class TemporalProblem(TemporalAnalysisMixin, BirthDeathMixin, SingleCompoundProb
 
         Parameters
         ----------
-        time_key
-            Key in :attr:`anndata.AnnData.obs` which defines the time point each cell belongs to. It is supposed
-            to be of numerical data type.
+        %(time_key)s
         joint_attr
             Parameter defining how to allocate the data needed to compute the transport maps. If None, the data is read
             from :attr:`anndata.AnnData.X` and for each time point the corresponding PCA space is computed. If
@@ -122,7 +120,7 @@ class TemporalProblem(TemporalAnalysisMixin, BirthDeathMixin, SingleCompoundProb
             **kwargs,
         )
 
-
+    @d.dedent
     @property
     def growth_rates(self) -> pd.DataFrame:
         """
@@ -154,6 +152,7 @@ class TemporalProblem(TemporalAnalysisMixin, BirthDeathMixin, SingleCompoundProb
         )
         return pd.concat(df_list, verify_integrity=True)
 
+    @d.dedent
     @property
     def cell_costs_source(self) -> Optional[pd.DataFrame]:
         """
@@ -183,6 +182,7 @@ class TemporalProblem(TemporalAnalysisMixin, BirthDeathMixin, SingleCompoundProb
         except NotImplementedError:  # TODO(@MUCDK) check for specific error message
             return None
 
+    @d.dedent
     @property
     def cell_costs_target(self) -> Optional[pd.DataFrame]:
         """Return the cost of a cell (see online methods) obtained by the potentials of the OT solution."""
@@ -216,6 +216,7 @@ class TemporalProblem(TemporalAnalysisMixin, BirthDeathMixin, SingleCompoundProb
         return "sequential", "pairwise", "triu", "tril", "explicit"
 
 
+@d.dedent
 class LineageProblem(TemporalProblem):
     """
     Estimator for modelling time series single cell data based on moslin.
@@ -232,7 +233,7 @@ class LineageProblem(TemporalProblem):
     --------
     See notebook TODO(@MUCDK) LINK NOTEBOOK for how to use it
     """
-
+    @d.dedent
     def prepare(
         self,
         time_key: str,
@@ -249,9 +250,7 @@ class LineageProblem(TemporalProblem):
 
         Parameters
         ----------
-        time_key
-            Key in :attr:`anndata.AnnData.obs` which defines the time point each cell belongs to. It is supposed to be
-            of numerical data type.
+        %(time_key)s
         lineage_attr
             Specifies the way the lineage information is processed. TODO: Specify.
         joint_attr

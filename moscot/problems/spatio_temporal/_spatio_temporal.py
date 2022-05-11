@@ -3,15 +3,17 @@ from typing import Any, Tuple, Mapping, Optional
 
 from typing_extensions import Literal
 
-from moscot.problems.time._lineage import BirthDeathMixin
+from moscot._docs import d
+from moscot.problems.mixins import BirthDeathMixin
 from moscot.problems.space._alignment import AlignmentProblem
-from moscot.analysis_mixins._time_analysis import TemporalAnalysisMixin
-from moscot.analysis_mixins._spatial_analysis import SpatialAlignmentAnalysisMixin
+from moscot.analysis_mixins import TemporalAnalysisMixin, SpatialAlignmentAnalysisMixin
 
 
+@d.dedent
 class SpatioTemporalProblem(TemporalAnalysisMixin, BirthDeathMixin, AlignmentProblem, SpatialAlignmentAnalysisMixin):
     """Spatio-Temporal problem."""
 
+    @d.dedent
     def prepare(
         self,
         time_key: str,
@@ -21,7 +23,60 @@ class SpatioTemporalProblem(TemporalAnalysisMixin, BirthDeathMixin, AlignmentPro
         reference: Optional[str] = None,
         **kwargs: Any,
     ) -> "AlignmentProblem":
-        """Prepare method."""
+        """
+        Prepare the :class:`moscot.problems.spatio_temporal.SpatioTemporalProblem`.
+
+        This method executes multiple steps to prepare the problem for the Optimal Transport solver to be ready
+        to solve it
+
+        Parameters
+        ----------
+        time_key
+            Key in :attr:`anndata.AnnData.obs` which defines the time point each cell belongs to. It is supposed to be
+            of numerical data type.
+        spatial_key
+            Specifies the way the lineage information is processed. TODO: Specify.
+        joint_attr
+            Parameter defining how to allocate the data needed to compute the transport maps. If None, the data is read
+            from :attr:`anndata.AnnData.X` and for each time point the corresponding PCA space is computed.
+            If `joint_attr` is a string the data is assumed to be found in :attr:`anndata.AnnData.obsm`.
+            If `joint_attr` is a dictionary the dictionary is supposed to contain the attribute of
+            :attr:`anndata.AnnData` as a key and the corresponding attribute as a value.
+        policy
+            defines which transport maps to compute given different cell distributions
+        %(marginal_kwargs)s
+        %(a)s
+        %(b)s
+        subset
+            subset of `anndata.AnnData.obs` [key] values of which the policy is to be applied to
+        %(reference)s
+        %(axis)s
+        %(callback)s
+        %(callback_kwargs)s
+        kwargs
+            Keyword arguments for :meth:`moscot.problems.CompoundBaseProblem._create_problems`
+
+        Returns
+        -------
+        :class:`moscot.problems.spatio_temporal.SpatioTemporalProblem`
+
+        Raises
+        ------
+        KeyError
+            If `time_key` is not in :attr:`anndata.AnnData.obs`.
+        KeyError
+            If `spatial_key` is not in :attr:`anndata.AnnData.obs`.
+        KeyError
+            If `joint_attr` is a string and cannot be found in :attr:`anndata.AnnData.obsm`.
+        ValueError
+            If :attr:`adata.obsp` has no attribute `cost_matrices`.
+        TypeError
+            If `joint_attr` is not None, not a :class:`str` and not a :class:`dict`
+
+        Notes
+        -----
+        If `a` and `b` are provided `marginal_kwargs` are ignored.
+        """
         self.spatial_key = spatial_key
         self.temporal_key = time_key
         # TODO(michalk8): check for spatial key
