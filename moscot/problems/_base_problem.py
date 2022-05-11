@@ -144,7 +144,7 @@ class OTProblem(BaseProblem):
             if attr == "varm":
                 return AnnDataPointer(self._adata_y.T, attr="obsm", **kwargs).create()
             raise NotImplementedError("TODO: cost/kernel storage not implemented. Use obsm/varm")
-            
+
         x_kwargs = {k[2:]: v for k, v in kwargs.items() if k.startswith("x_")}
         y_kwargs = {k[2:]: v for k, v in kwargs.items() if k.startswith("y_")}
         x_kwargs["tag"] = Tag.POINT_CLOUD

@@ -13,8 +13,8 @@ from _utils import Geom_t
 
 from jax import numpy as jnp
 import numpy as np
-import scanpy as sc
 
+import scanpy as sc
 
 _gt_temporal_adata = sc.read("tests/data/moscot_temporal_tests.h5ad")
 

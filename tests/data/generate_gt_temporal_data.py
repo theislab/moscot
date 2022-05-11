@@ -55,8 +55,8 @@ def _write_config(adata: AnnData) -> AnnData:
     adata.uns["key_2"]= key_2
     adata.uns["key_3"]= key_3
     adata.uns["local_pca"]= local_pca
-    adata.uns["seed"]= seed  
-    return adata 
+    adata.uns["seed"]= seed
+    return adata
 
 
 def _create_adata(data_path: str) -> AnnData:
@@ -98,7 +98,6 @@ def _write_analysis_output(cdata: AnnData, tp2: TemporalProblem, config: Dict[st
         tp2.compute_time_point_distances(config["key_1"], config["key_2"], config["key_3"])
     )
     cdata.uns["batch_distances_10"] = tp2.compute_batch_distances(config["key_1"], "batch")
-
     return cdata
 
 
@@ -203,8 +202,8 @@ def generate_gt_temporal_data(data_path: str) -> None:
 
     cdata = _write_analysis_output(cdata, tp2, config)
     cdata = _write_config(cdata)
-    
-    cdata.write_h5ad("tests/data/moscot_temporal_tests.h5ad")
+
+    cdata.write("tests/data/moscot_temporal_tests.h5ad")
 
 
 if __name__ == "__main__":

@@ -135,7 +135,7 @@ class TestTemporalAnalysisMixin:
         key_2 = config["key_2"]
         key_3 = config["key_3"]
         problem = TemporalProblem(gt_temporal_adata)
-        problem = problem.prepare(key, subset=[(key_1, key_2), (key_2, key_3), (key_1, key_3)], policy="explicit")
+        problem = problem.prepare(key, subset=[(key_1, key_2), (key_2, key_3), (key_1, key_3)], policy="explicit", scale_cost="mean", callback_kwargs={"joint_space": False})
         assert set(problem.problems.keys()) == {(key_1, key_2), (key_2, key_3), (key_1, key_3)}
         problem[key_1, key_2]._solution = MockSolverOutput(gt_temporal_adata.uns["tmap_10_105"])
         problem[key_2, key_3]._solution = MockSolverOutput(gt_temporal_adata.uns["tmap_105_11"])
@@ -153,7 +153,7 @@ class TestTemporalAnalysisMixin:
         key_2 = config["key_2"]
         key_3 = config["key_3"]
         problem = TemporalProblem(gt_temporal_adata)
-        problem = problem.prepare(key, subset=[(key_1, key_2), (key_2, key_3), (key_1, key_3)], policy="explicit")
+        problem = problem.prepare(key, subset=[(key_1, key_2), (key_2, key_3), (key_1, key_3)], policy="explicit", scale_cost="mean", callback_kwargs={"joint_space": False})
         assert set(problem.problems.keys()) == {(key_1, key_2), (key_2, key_3), (key_1, key_3)}
         problem[key_1, key_2]._solution = MockSolverOutput(gt_temporal_adata.uns["tmap_10_105"])
         problem[key_2, key_3]._solution = MockSolverOutput(gt_temporal_adata.uns["tmap_105_11"])
@@ -173,7 +173,7 @@ class TestTemporalAnalysisMixin:
         key_2 = config["key_2"]
         key_3 = config["key_3"]
         problem = TemporalProblem(gt_temporal_adata)
-        problem = problem.prepare(key, subset=[(key_1, key_2), (key_2, key_3), (key_1, key_3)], policy="explicit")
+        problem = problem.prepare(key, subset=[(key_1, key_2), (key_2, key_3), (key_1, key_3)], policy="explicit", scale_cost="mean", callback_kwargs={"joint_space": False})
         assert set(problem.problems.keys()) == {(key_1, key_2), (key_2, key_3), (key_1, key_3)}
         problem[key_1, key_2]._solution = MockSolverOutput(gt_temporal_adata.uns["tmap_10_105"])
         problem[key_2, key_3]._solution = MockSolverOutput(gt_temporal_adata.uns["tmap_105_11"])
@@ -181,7 +181,7 @@ class TestTemporalAnalysisMixin:
 
         result = problem.compute_batch_distances(key_1, "batch")
         assert isinstance(result, float)
-        np.testing.assert_almost_equal(result, gt_temporal_adata.uns["batch_distances_10"], decimal=4)  # pre-computed
+        np.testing.assert_almost_equal(result, gt_temporal_adata.uns["batch_distances_10"], decimal=4)
 
     def test_compute_random_distance_regression(self, gt_temporal_adata: AnnData):
         config = gt_temporal_adata.uns
@@ -190,12 +190,12 @@ class TestTemporalAnalysisMixin:
         key_2 = config["key_2"]
         key_3 = config["key_3"]
         problem = TemporalProblem(gt_temporal_adata)
-        problem = problem.prepare(key, subset=[(key_1, key_2), (key_2, key_3), (key_1, key_3)], policy="explicit")
+        problem = problem.prepare(key, subset=[(key_1, key_2), (key_2, key_3), (key_1, key_3)], policy="explicit", scale_cost="mean", callback_kwargs={"joint_space": False})
         assert set(problem.problems.keys()) == {(key_1, key_2), (key_2, key_3), (key_1, key_3)}
 
         result = problem.compute_random_distance(key_1, key_2, key_3, seed=config["seed"])
         assert isinstance(result, float)
-        np.testing.assert_almost_equal(result, gt_temporal_adata.uns["random_distance_10_105_11"], decimal=4)  # pre-computed
+        np.testing.assert_almost_equal(result, gt_temporal_adata.uns["random_distance_10_105_11"], decimal=4)
 
     @pytest.mark.parametrize("only_start", [True, False])
     def test_get_data_pipeline(self, adata_time: AnnData, only_start: bool):
