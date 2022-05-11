@@ -202,7 +202,6 @@ class TestTemporalProblem:
         key_1 = config["key_1"]
         key_2 = config["key_2"]
         key_3 = config["key_3"]
-        local_pca = config["local_pca"]
 
         tp = TemporalProblem(adata)
         tp = tp.prepare(key, subset=[(key_1, key_2), (key_2, key_3), (key_1, key_3)], policy="explicit", callback_kwargs={"joint_space": False})
@@ -213,12 +212,10 @@ class TestTemporalProblem:
             np.array(tp[key_1, key_2].solution.transport_matrix),
         )
         np.testing.assert_array_almost_equal(
-            adata.uns["tmap_10_11"],
-            np.array(tp[key_1, key_3].solution.transport_matrix),
+            adata.uns["tmap_105_11"],
+            np.array(tp[key_2, key_3].solution.transport_matrix),
         )
         np.testing.assert_array_almost_equal(
             adata.uns["tmap_10_11"],
-            np.array(tp[key_2, key_3].solution.transport_matrix),
+            np.array(tp[key_1, key_3].solution.transport_matrix),
         )
-
-
