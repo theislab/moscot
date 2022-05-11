@@ -210,6 +210,8 @@ class OTProblem(BaseProblem):
     ) -> "OTProblem":
         if self._problem_kind is None:
             raise RuntimeError("Run .prepare() first.")
+        if self._problem_kind in (ProblemKind.QUAD, ProblemKind.QUAD_FUSED):
+            kwargs["epsilon"] = epsilon
         kwargs["rank"] = rank
         # allow `MultiMarginalProblem` to pass new marginals
         a = kwargs.pop("a", self._a)
@@ -217,6 +219,7 @@ class OTProblem(BaseProblem):
 
         prepare_kwargs = dict(prepare_kwargs)
         prepare_kwargs["epsilon"] = epsilon
+        prepare_kwargs["alpha"] = alpha
         prepare_kwargs["scale_cost"] = scale_cost
         prepare_kwargs["online"] = online
 
