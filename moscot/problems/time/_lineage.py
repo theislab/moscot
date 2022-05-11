@@ -120,8 +120,8 @@ class TemporalProblem(TemporalAnalysisMixin, BirthDeathMixin, SingleCompoundProb
             **kwargs,
         )
 
-    @d.dedent
     @property
+    @d.dedent
     def growth_rates(self) -> pd.DataFrame:
         """
         Growth rates of the cells estimated by posterior marginals.
@@ -152,8 +152,8 @@ class TemporalProblem(TemporalAnalysisMixin, BirthDeathMixin, SingleCompoundProb
         )
         return pd.concat(df_list, verify_integrity=True)
 
-    @d.dedent
     @property
+    @d.dedent
     def cell_costs_source(self) -> Optional[pd.DataFrame]:
         """
         Return the cost of a cell (see online methods) obtained by the potentials of the optimal transport solution.
@@ -182,8 +182,8 @@ class TemporalProblem(TemporalAnalysisMixin, BirthDeathMixin, SingleCompoundProb
         except NotImplementedError:  # TODO(@MUCDK) check for specific error message
             return None
 
-    @d.dedent
     @property
+    @d.dedent
     def cell_costs_target(self) -> Optional[pd.DataFrame]:
         """Return the cost of a cell (see online methods) obtained by the potentials of the OT solution."""
         try:
