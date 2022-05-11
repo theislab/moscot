@@ -287,7 +287,7 @@ class OTProblem(BaseProblem):
             return np.ones((adata.n_obs,), dtype=float) / adata.n_obs
         if isinstance(data, str):
             # TODO(michalk8): some nice error message
-            data = adata.obs[data]
+            return np.asarray(adata.obs[data])
         return np.asarray(data)
 
     @property
@@ -310,3 +310,11 @@ class OTProblem(BaseProblem):
     @property
     def xy(self) -> Optional[Tuple[TaggedArray, TaggedArray]]:
         return self._xy
+
+    @property
+    def a(self) -> Optional[np.ndarray]:
+        return self._a
+
+    @property
+    def b(self) -> Optional[np.ndarray]:
+        return self._b

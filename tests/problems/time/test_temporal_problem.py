@@ -7,8 +7,9 @@ import numpy as np
 
 from anndata import AnnData
 
+from moscot.problems.time import TemporalProblem
 from moscot.solvers._output import BaseSolverOutput
-from moscot.problems.time._lineage import TemporalProblem, TemporalBaseProblem
+from moscot.problems.time._lineage import BirthDeathBaseProblem
 
 
 class TestTemporalProblem:
@@ -28,7 +29,7 @@ class TestTemporalProblem:
 
         for key in problem:
             assert key in expected_keys
-            assert isinstance(problem[key], TemporalBaseProblem)
+            assert isinstance(problem[key], BirthDeathBaseProblem)
 
     def test_solve_balanced(self, adata_time: AnnData):
         eps = 0.5
@@ -43,11 +44,10 @@ class TestTemporalProblem:
 
     def test_solve_unbalanced(self, adata_time: AnnData):
         taus = [9e-1, 1e-2]
-        a = b = np.ones(96)
         problem1 = TemporalProblem(adata=adata_time)
         problem2 = TemporalProblem(adata=adata_time)
-        problem1 = problem1.prepare("time", a=a, b=b)
-        problem2 = problem2.prepare("time", a=a, b=b)
+        problem1 = problem1.prepare("time", a="left_marginals", b="right_marginals")
+        problem2 = problem2.prepare("time", a="left_marginals", b="right_marginals")
         problem1 = problem1.solve(tau_a=taus[0], tau_b=taus[0])
         problem2 = problem2.solve(tau_a=taus[1], tau_b=taus[1])
 
@@ -92,7 +92,7 @@ class TestTemporalProblem:
         gene_set_proliferation = gene_set_list[0]
         gene_set_apoptosis = gene_set_list[1]
         problem = TemporalProblem(adata_time)
-        problem = problem.score_genes_for_marginals(
+        problem.score_genes_for_marginals(
             gene_set_proliferation=gene_set_proliferation, gene_set_apoptosis=gene_set_apoptosis
         )
 

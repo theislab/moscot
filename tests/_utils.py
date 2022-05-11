@@ -9,8 +9,8 @@ from anndata import AnnData
 
 from moscot.problems import OTProblem, MultiMarginalProblem, SingleCompoundProblem
 from moscot.solvers._output import MatrixSolverOutput
-from moscot.mixins._base_analysis import AnalysisMixin
 from moscot.problems._compound_problem import B
+from moscot.analysis_mixins._base_analysis import AnalysisMixin
 
 Geom_t = Union[np.ndarray, Tuple[np.ndarray, np.ndarray]]
 RTOL = 1e-6

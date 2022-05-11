@@ -160,6 +160,8 @@ class CompoundBaseProblem(BaseProblem, Generic[K, B], ABC):
         %(axis)s
         %(callback)s
         %(callback_kwargs)s
+        %(a)s
+        %(b)s
         kwargs
             keyword arguments for
 
@@ -202,7 +204,7 @@ class CompoundBaseProblem(BaseProblem, Generic[K, B], ABC):
             Keyword arguments for one of
                 - :meth:`moscot.problems.OTProblem.solve`
                 - :meth:`moscot.problems.MultiMarginalProblem.solve`
-                - :meth:`moscot.problems.TemporalBaseProblem.solve`
+                - :meth:`moscot.problems.BirthDeathBaseProblem.solve`
 
         Raises
         ------

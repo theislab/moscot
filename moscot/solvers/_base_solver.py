@@ -19,6 +19,7 @@ ArrayLike = Union[npt.ArrayLike, TaggedArray]
 
 class ProblemKind(str, Enum):
     """Class defining the problem class and dispatching the solvers."""
+
     LINEAR = "linear"
     QUAD = "quadratic"
     QUAD_FUSED = "quadratic_fused"

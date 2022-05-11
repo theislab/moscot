@@ -55,7 +55,6 @@ class MultiMarginalProblem(OTProblem, ABC):
             b = self._estimate_marginals(self._adata_y, source=False, **marginal_kwargs)
         elif b is False:
             b = None
-
         _ = super().prepare(xy=xy, x=x, y=y, a=a, b=b, **kwargs)
         # base problem prepare array-like structure, just wrap it
         # alt. we could just append and not reset
