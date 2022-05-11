@@ -160,6 +160,8 @@ class CompoundBaseProblem(BaseProblem, Generic[K, B], ABC):
         %(axis)s
         %(callback)s
         %(callback_kwargs)s
+        %(a)s
+        %(b)s
         kwargs
             keyword arguments for
 

@@ -43,11 +43,10 @@ class TestTemporalProblem:
 
     def test_solve_unbalanced(self, adata_time: AnnData):
         taus = [9e-1, 1e-2]
-        a = b = np.ones(96)
         problem1 = TemporalProblem(adata=adata_time)
         problem2 = TemporalProblem(adata=adata_time)
-        problem1 = problem1.prepare("time", a=a, b=b)
-        problem2 = problem2.prepare("time", a=a, b=b)
+        problem1 = problem1.prepare("time", a="left_marginals", b="right_marginals")
+        problem2 = problem2.prepare("time", a="left_marginals", b="right_marginals")
         problem1 = problem1.solve(tau_a=taus[0], tau_b=taus[0])
         problem2 = problem2.solve(tau_a=taus[1], tau_b=taus[1])
 
