@@ -73,7 +73,7 @@ subset
     :attr:`anndata.AnnData.obs`."""
 _marginal_kwargs = """\
 marginal_kwargs
-    keyword arguments for :meth:`moscot.problems.TemporalBaseProblem._estimate_marginals`, i.e. for modeling
+    keyword arguments for :meth:`moscot.problems.BirthDeathBaseProblem._estimate_marginals`, i.e. for modeling
     the birth-death process. The keyword arguments
     are either used for :func:`moscot.problems.time._utils.beta`, i.e. one of
 
@@ -97,12 +97,22 @@ _converged = """\
 Whether the algorihtm converged."""
 _a = """\
 a
-    Specifies the left marginals. If of type :class:`str` the left marginals are taken from 
+    Specifies the left marginals. If of type :class:`str` the left marginals are taken from
     :attr:`anndata.AnnData.obs` ``[`{a}`]``. If `a` is `None` uniform marginals are used."""
 _b = """\
 b
-    Specifies the right marginals. If of type :class:`str` the right marginals are taken from 
+    Specifies the right marginals. If of type :class:`str` the right marginals are taken from
     :attr:`anndata.AnnData.obs` ``[`{a}`]``. If `b` is `None` uniform marginals are used."""
+_time_key = """\
+time_key
+    Key in :attr:`anndata.AnnData.obs` which defines the time point each cell belongs to. It is supposed to be
+    of numerical data type."""
+_spatial_key = """\
+spatial_key
+    TODO."""
+_policy = """\
+policy
+    Defines the rule according to which pairs of distributions are selected to compute the transport map between."""
 
 
 def inject_docs(**kwargs: Any):
@@ -146,4 +156,7 @@ d = DocstringProcessor(
     converged = _converged,
     a=_a,
     b=_b,
+    time_key=_time_key,
+    spatial_key=_spatial_key,
+    policy=_policy,
 )
