@@ -52,14 +52,14 @@ class MappingProblem(SingleCompoundProblem, SpatialMappingAnalysisMixin):
     def prepare(
         self,
         sc_attr: Union[str, Mapping[str, Any]],
-        spatial_key: str = "spatial",
+        spatial_key: Union[str, Mapping[str, Any]] = "spatial",
         joint_attr: Optional[Mapping[str, Any]] = MappingProxyType({"x_attr": "X", "y_attr": "X"}),
         var_names: Optional[Sequence[Any]] = None,
         batch_key: Optional[str] = None,
         **kwargs: Any,
     ) -> "MappingProblem":
         """Prepare method."""
-        x = {"attr": "obsm", "key": spatial_key}
+        x = {"attr": "obsm", "key": spatial_key} if isinstance(spatial_key, str) else spatial_key
         y = {"attr": "obsm", "key": sc_attr} if isinstance(sc_attr, str) else sc_attr
 
         self.filtered_vars = var_names
