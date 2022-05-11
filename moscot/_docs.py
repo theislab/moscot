@@ -105,11 +105,14 @@ b
     :attr:`anndata.AnnData.obs` ``[`{a}`]``. If `b` is `None` uniform marginals are used."""
 _time_key = """\
 time_key
-        Key in :attr:`anndata.AnnData.obs` which defines the time point each cell belongs to. It is supposed to be
-        of numerical data type."""
+    Key in :attr:`anndata.AnnData.obs` which defines the time point each cell belongs to. It is supposed to be
+    of numerical data type."""
 _spatial_key = """\
 spatial_key
-        TODO."""
+    TODO."""
+_policy = """\
+policy
+    Defines the rule according to which pairs of distributions are selected to compute the transport map between."""
 
 
 def inject_docs(**kwargs: Any):
@@ -155,4 +158,5 @@ d = DocstringProcessor(
     b=_b,
     time_key=_time_key,
     spatial_key=_spatial_key,
+    policy=_policy,
 )

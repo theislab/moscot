@@ -9,9 +9,9 @@ import numpy as np
 from anndata import AnnData
 
 from moscot._docs import d
-from moscot.problems._compound_problem import B, SingleCompoundProblem
 from moscot.analysis_mixins import TemporalAnalysisMixin
 from moscot.problems.mixins import BirthDeathMixin, BirthDeathBaseProblem
+from moscot.problems._compound_problem import B, SingleCompoundProblem
 
 
 @d.dedent

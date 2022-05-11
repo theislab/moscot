@@ -4,9 +4,9 @@ from typing import Any, Tuple, Mapping, Optional
 from typing_extensions import Literal
 
 from moscot._docs import d
+from moscot.analysis_mixins import TemporalAnalysisMixin, SpatialAlignmentAnalysisMixin
 from moscot.problems.mixins import BirthDeathMixin
 from moscot.problems.space._alignment import AlignmentProblem
-from moscot.analysis_mixins import TemporalAnalysisMixin, SpatialAlignmentAnalysisMixin
 
 
 @d.dedent
@@ -42,8 +42,7 @@ class SpatioTemporalProblem(TemporalAnalysisMixin, BirthDeathMixin, AlignmentPro
             If `joint_attr` is a string the data is assumed to be found in :attr:`anndata.AnnData.obsm`.
             If `joint_attr` is a dictionary the dictionary is supposed to contain the attribute of
             :attr:`anndata.AnnData` as a key and the corresponding attribute as a value.
-        policy
-            defines which transport maps to compute given different cell distributions
+        %(policy)s
         %(marginal_kwargs)s
         %(a)s
         %(b)s

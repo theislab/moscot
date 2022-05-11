@@ -3,9 +3,9 @@ from typing import Any, Type, Tuple, Mapping, Optional
 
 from typing_extensions import Literal
 
+from moscot.analysis_mixins import SpatialAlignmentAnalysisMixin
 from moscot.problems._base_problem import OTProblem
 from moscot.problems._compound_problem import B, SingleCompoundProblem
-from moscot.analysis_mixins import SpatialAlignmentAnalysisMixin
 
 
 class AlignmentProblem(SingleCompoundProblem, SpatialAlignmentAnalysisMixin):

@@ -16,11 +16,13 @@ from moscot.problems._compound_problem import B
 from moscot.problems._multimarginal_problem import MultiMarginalProblem
 
 
+@d.dedent
 class MultiMarginalMixin(ABC):
-    pass
+    """Mixin class for biological problems based on :class:`moscot.problems.MultiMarginalProblem`."""
 
-
+@d.dedent
 class BirthDeathMixin(MultiMarginalMixin):
+    """Mixin class for biological problems based on :class:`moscot.problems.mixins.BirthDeathBaseProblem`."""
 
     def __init__(self, *args: Any, **kwargs: Any):
         super().__init__(*args, **kwargs)
