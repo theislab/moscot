@@ -3,7 +3,6 @@ from numbers import Number
 import logging
 import itertools
 
-from pandas.api.types import is_numeric_dtype
 from sklearn.metrics.pairwise import pairwise_distances
 import ot
 import pandas as pd
@@ -598,6 +597,7 @@ class TemporalAnalysisMixin(AnalysisMixin):
     def temporal_key(self, value: Optional[str] = None) -> None:
         if value not in self.adata.obs.columns:
             raise KeyError(f"TODO: {value} not found in `adata.obs.columns`")
-        if not is_numeric_dtype(self.adata.obs[value].dtype):
-            raise TypeError(f"TODO: column must be of numeric data type")
+        # TODO(MUCDK): wrong check
+        # if not is_numeric_dtype(self.adata.obs[value]):
+        #    raise TypeError(f"TODO: column must be of numeric data type")
         self._temporal_key = value
