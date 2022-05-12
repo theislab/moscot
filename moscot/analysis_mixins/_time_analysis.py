@@ -281,7 +281,11 @@ class TemporalAnalysisMixin(AnalysisMixin):
     ) -> Tuple[Union[npt.ArrayLike, AnnData], ...]:
         # TODO(michalk8): refactor me
         for (start_, end_) in self._problems.keys():
-            if self._problems[(start_, end_)].xy[0].tag != "point_cloud":
+            if isinstance(self.problems[(start_, end_)].xy, tuple):
+                tag = self.problems[(start_, end_)].xy[0].tag
+            else:
+                tag = self.problems[(start_, end_)].xy
+            if tag != "point_cloud":
                 raise ValueError(
                     f"TODO: This method requires the data to be stored as point_clouds. It is currently stored "
                     "as {self._problems[(start_, end_)].xy[0].tag}"

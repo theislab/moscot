@@ -27,7 +27,7 @@ class CompoundProblemWithMixin(SingleCompoundProblem, AnalysisMixin):
         return ()
 
 
-class TestSolverOutput(MatrixSolverOutput):
+class MockSolverOutput(MatrixSolverOutput):
     @property
     def cost(self) -> float:
         return 0.5
