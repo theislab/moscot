@@ -68,7 +68,7 @@ class AnnDataPointer:
             if arr.ndim != 2:
                 raise ValueError("TODO: expected 2D")
             return arr
-            
+
         if self.tag == Tag.COST_MATRIX:
             if self.loss is not None:
                 cost_matrix = BaseLoss.create(kind=self.loss, adata=self.adata, attr=self.attr, key=self.key)(

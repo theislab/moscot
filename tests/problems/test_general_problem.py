@@ -1,4 +1,4 @@
-from _utils import ATOL, RTOL, Geom_t, TestSolverOutput
+from _utils import ATOL, RTOL, Geom_t, MockSolverOutput
 import pytest
 
 from ott.geometry import PointCloud
@@ -25,7 +25,7 @@ class TestGeneralProblem:
 
     def test_output(self, adata_x: AnnData, x: Geom_t):
         problem = OTProblem(adata_x)
-        problem._solution = TestSolverOutput(x * x.T)
+        problem._solution = MockSolverOutput(x * x.T)
 
         assert problem.solution.shape == (len(x), len(x))
 

@@ -273,7 +273,11 @@ class OTProblem(BaseProblem):
 
         if return_linear:
             n = x.shape[0]
-            data = sc.pp.pca(concat(x, y), **kwargs)
+            joint_space = kwargs.pop("joint_space", True)
+            if joint_space:
+                data = sc.pp.pca(concat(x, y), **kwargs)
+            else:
+                data = concat(sc.pp.pca(x, **kwargs), sc.pp.pca(y, **kwargs))
             return {"xy": (TaggedArray(data[:n], tag=Tag.POINT_CLOUD), TaggedArray(data[n:], tag=Tag.POINT_CLOUD))}
 
         x = sc.pp.pca(x, **kwargs)
