@@ -113,6 +113,16 @@ spatial_key
 _policy = """\
 policy
     Defines the rule according to which pairs of distributions are selected to compute the transport map between."""
+_key = """\
+key
+    Key in :attr:`anndata.AnnData.obs` allocating the cell to a certain cell distribution."""
+_joint_attr = """\
+joint_attr
+    Parameter defining how to allocate the data needed to compute the transport maps. If None, the data is read
+    from :attr:`anndata.AnnData.X` and for each time point the corresponding PCA space is computed. If
+    `joint_attr` is a string the data is assumed to be found in :attr:`anndata.AnnData.obsm`.
+    If `joint_attr` is a dictionary the dictionary is supposed to contain the attribute of
+    :attr:`anndata.AnnData` as a key and the corresponding attribute as a value."""
 
 
 def inject_docs(**kwargs: Any):
@@ -159,4 +169,6 @@ d = DocstringProcessor(
     time_key=_time_key,
     spatial_key=_spatial_key,
     policy=_policy,
+    key = _key,
+    joint_attr = _joint_attr,
 )
