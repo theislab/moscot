@@ -75,7 +75,7 @@ def _create_adata(data_path: str) -> AnnData:
 
     adata = adata[adata.obs["day"].isin([10, 10.5, 11])]
     adata.obs["cell_type"] = adata.obs["cell_type"].fillna("unknown")
-    sc.pp.subsample(adata, n_obs=1000, random_state=0)
+    sc.pp.subsample(adata, n_obs=250, random_state=0)
 
     return adata
 
