@@ -15,6 +15,7 @@ class Tag(str, Enum):
 @dataclass(frozen=True, repr=True)
 class TaggedArray:
     """Tagged Array."""
+
     # passed to solver._prepare_input
     data: npt.ArrayLike
     tag: Tag = Tag.POINT_CLOUD  # TODO(michalk8): in post_init, do check if it's correct type

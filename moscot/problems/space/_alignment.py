@@ -3,20 +3,13 @@ from typing import Any, Type, Tuple, Mapping, Optional
 
 from typing_extensions import Literal
 
-from anndata import AnnData
-
+from moscot.analysis_mixins import SpatialAlignmentAnalysisMixin
 from moscot.problems._base_problem import OTProblem
-from moscot.mixins._spatial_analysis import SpatialAlignmentAnalysisMixin
 from moscot.problems._compound_problem import B, SingleCompoundProblem
 
 
 class AlignmentProblem(SingleCompoundProblem, SpatialAlignmentAnalysisMixin):
     """Spatial alignment problem."""
-
-    def __init__(self, adata: AnnData, **kwargs: Any):
-        """Init method."""
-        super().__init__(adata, **kwargs)
-        self._spatial_key: Optional[str] = None
 
     def prepare(
         self,
@@ -28,7 +21,7 @@ class AlignmentProblem(SingleCompoundProblem, SpatialAlignmentAnalysisMixin):
         **kwargs: Any,
     ) -> "AlignmentProblem":
         """Prepare method."""
-        self._spatial_key = spatial_key
+        self.spatial_key = spatial_key
         # TODO(michalk8): check for spatial key
         x = y = {"attr": "obsm", "key": self.spatial_key, "tag": "point_cloud"}
 
@@ -49,11 +42,6 @@ class AlignmentProblem(SingleCompoundProblem, SpatialAlignmentAnalysisMixin):
         """Solve method."""
         rank = -1 if rank is None else rank
         return super().solve(alpha=alpha, epsilon=epsilon, rank=rank, scale_cost=scale_cost, **kwargs)
-
-    @property
-    def spatial_key(self) -> Optional[str]:
-        """Return problems."""
-        return self._spatial_key
 
     @property
     def _base_problem_type(self) -> Type[B]:

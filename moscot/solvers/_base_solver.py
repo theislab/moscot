@@ -19,6 +19,7 @@ ArrayLike = Union[npt.ArrayLike, TaggedArray]
 
 class ProblemKind(str, Enum):
     """Class defining the problem class and dispatching the solvers."""
+
     LINEAR = "linear"
     QUAD = "quadratic"
     QUAD_FUSED = "quadratic_fused"
@@ -86,7 +87,7 @@ class TagConverterMixin:
                 return None
             tag = Tag(tag)
             if isinstance(arr, TaggedArray):
-                return TaggedArray(arr.data, tag=tag)
+                return arr
             return TaggedArray(arr, tag=tag)
 
         def cost_or_kernel(arr: TaggedArray, key: Literal["xy", "x", "y"]) -> TaggedArray:

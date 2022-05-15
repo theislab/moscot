@@ -7,8 +7,9 @@ import numpy as np
 
 from anndata import AnnData
 
+from moscot.problems.time import TemporalProblem
 from moscot.solvers._output import BaseSolverOutput
-from moscot.problems.time._lineage import TemporalProblem, TemporalBaseProblem
+from moscot.problems.time._lineage import BirthDeathBaseProblem
 
 
 class TestTemporalProblem:
@@ -28,7 +29,7 @@ class TestTemporalProblem:
 
         for key in problem:
             assert key in expected_keys
-            assert isinstance(problem[key], TemporalBaseProblem)
+            assert isinstance(problem[key], BirthDeathBaseProblem)
 
     def test_solve_balanced(self, adata_time: AnnData):
         eps = 0.5
@@ -91,7 +92,7 @@ class TestTemporalProblem:
         gene_set_proliferation = gene_set_list[0]
         gene_set_apoptosis = gene_set_list[1]
         problem = TemporalProblem(adata_time)
-        problem = problem.score_genes_for_marginals(
+        problem.score_genes_for_marginals(
             gene_set_proliferation=gene_set_proliferation, gene_set_apoptosis=gene_set_apoptosis
         )
 
@@ -188,4 +189,33 @@ class TestTemporalProblem:
         )
         assert set(growth_rates[~growth_rates["g_0"].isnull()].index) == set(
             adata_time[adata_time.obs["time"].isin([0, 1])].obs.index
+        )
+
+    def test_result_compares_to_wot(self, gt_temporal_adata: AnnData):
+        # this test assures TemporalProblem returns an equivalent solution to Waddington OT (precomputed)
+        adata = gt_temporal_adata.copy()
+        config = gt_temporal_adata.uns
+        eps = config["eps"]
+        lam1 = config["lam1"]
+        lam2 = config["lam2"]
+        key = config["key"]
+        key_1 = config["key_1"]
+        key_2 = config["key_2"]
+        key_3 = config["key_3"]
+
+        tp = TemporalProblem(adata)
+        tp = tp.prepare(key, subset=[(key_1, key_2), (key_2, key_3), (key_1, key_3)], policy="explicit", callback_kwargs={"joint_space": False})
+        tp = tp.solve(epsilon=eps, scale_cost="mean", tau_a=lam1/(lam1+eps), tau_b=lam2/(lam2+eps))
+
+        np.testing.assert_array_almost_equal(
+            adata.uns["tmap_10_105"],
+            np.array(tp[key_1, key_2].solution.transport_matrix),
+        )
+        np.testing.assert_array_almost_equal(
+            adata.uns["tmap_105_11"],
+            np.array(tp[key_2, key_3].solution.transport_matrix),
+        )
+        np.testing.assert_array_almost_equal(
+            adata.uns["tmap_10_11"],
+            np.array(tp[key_1, key_3].solution.transport_matrix),
         )

@@ -8,12 +8,15 @@ from jax.config import config
 import numpy as np
 
 from anndata import AnnData
+import scanpy as sc
 
 from tests._utils import Geom_t
 
 config.update("jax_enable_x64", True)
 
 from jax import numpy as jnp  # noqa: E402
+
+_gt_temporal_adata = sc.read("tests/data/moscot_temporal_tests.h5ad")
 
 
 @pytest.fixture()
@@ -122,3 +125,8 @@ def create_marginals(n: int, m: int, *, uniform: bool = False, seed: Optional[in
     b /= np.sum(b)
 
     return jnp.asarray(a), jnp.asarray(b)
+
+
+@pytest.fixture()
+def gt_temporal_adata() -> AnnData:
+    return _gt_temporal_adata.copy()

@@ -7,7 +7,7 @@ import jax.numpy as jnp
 
 from anndata import AnnData
 
-from tests._utils import ATOL, RTOL, Geom_t, TestSolverOutput
+from tests._utils import ATOL, RTOL, Geom_t, MockSolverOutput
 from moscot.problems import OTProblem
 from moscot.solvers._output import BaseSolverOutput
 
@@ -25,7 +25,7 @@ class TestGeneralProblem:
 
     def test_output(self, adata_x: AnnData, x: Geom_t):
         problem = OTProblem(adata_x)
-        problem._solution = TestSolverOutput(x * x.T)
+        problem._solution = MockSolverOutput(x * x.T)
 
         assert problem.solution.shape == (len(x), len(x))
 

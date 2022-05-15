@@ -18,7 +18,7 @@ from typing import (
     Sequence,
 )
 
-from scipy.sparse import csr_matrix
+from scipy.sparse import issparse, csr_matrix
 import pandas as pd
 
 import numpy as np
@@ -204,7 +204,7 @@ class CompoundBaseProblem(BaseProblem, Generic[K, B], ABC):
             Keyword arguments for one of
                 - :meth:`moscot.problems.OTProblem.solve`
                 - :meth:`moscot.problems.MultiMarginalProblem.solve`
-                - :meth:`moscot.problems.TemporalBaseProblem.solve`
+                - :meth:`moscot.problems.BirthDeathBaseProblem.solve`
 
         Raises
         ------
@@ -442,7 +442,7 @@ class SingleCompoundProblem(CompoundBaseProblem, Generic[K, B], ABC):
         return super()._callback_handler(src, tgt, problem, callback, callback_kwargs=callback_kwargs)
 
     def _cost_matrix_callback(
-        self, src: K, tgt: K, *, key: str, return_linear: bool = True, **_: Any
+        self, src: K, tgt: K, *, key, return_linear: bool = True, **_: Any
     ) -> Dict[Literal["xy", "x", "y"], TaggedArray]:
         attr = f"{self._policy.axis}p"
         try:
@@ -454,7 +454,8 @@ class SingleCompoundProblem(CompoundBaseProblem, Generic[K, B], ABC):
         tgt_mask = self._policy.create_mask(tgt, allow_empty=False)
 
         if return_linear:
-            return {"xy": TaggedArray(data[src_mask, :][:, tgt_mask], tag=Tag.COST_MATRIX)}
+            linear_cost_matrix = data[src_mask, :][:, tgt_mask]
+            return {"xy": TaggedArray(linear_cost_matrix.A if issparse(linear_cost_matrix) else linear_cost_matrix, tag=Tag.COST_MATRIX)}
 
         return {
             "x": TaggedArray(data[src_mask, :][:, src_mask], tag=Tag.COST_MATRIX),

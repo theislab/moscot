@@ -42,8 +42,17 @@ Optimal Transport classes
 
     moscot.problems.OTProblem
     moscot.problems.MultiMarginalProblem
-    moscot.problems.time._lineage.TemporalBaseProblem
+    moscot.problems.time.BirthDeathBaseProblem
 
+
+Mixin classes
+~~~~~~~~~~~~~
+
+.. autosummary::
+    :toctree: development
+
+    moscot.problems.mixins.MultiMarginalProblem
+    moscot.problems.mixins.BirthDeathMixin
 
 Base classes
 ~~~~~~~~~~~~

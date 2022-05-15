@@ -6,7 +6,7 @@ import numpy as np
 
 from anndata import AnnData
 
-from tests._utils import TestSolverOutput, CompoundProblemWithMixin
+from tests._utils import MockSolverOutput, CompoundProblemWithMixin
 
 
 class TestBaseAnalysisMixin:
@@ -24,7 +24,7 @@ class TestBaseAnalysisMixin:
         target_dim = len(gt_temporal_adata[gt_temporal_adata.obs["day"] == 10.5])
         problem = CompoundProblemWithMixin(gt_temporal_adata)
         problem = problem.prepare("day", subset=[(10, 10.5)], policy="sequential", callback="local-pca")
-        problem[10, 10.5]._solution = TestSolverOutput(gt_temporal_adata.uns["tmap_10_105"])
+        problem[10, 10.5]._solution = MockSolverOutput(gt_temporal_adata.uns["tmap_10_105"])
 
         if interpolation_parameter is not None and not 0 <= interpolation_parameter <= 1:
             with np.testing.assert_raises(ValueError):
@@ -71,9 +71,9 @@ class TestBaseAnalysisMixin:
         problem = problem.prepare(
             "day", subset=[(10, 10.5), (10.5, 11), (10, 11)], policy="explicit", callback="local-pca"
         )
-        problem[10, 10.5]._solution = TestSolverOutput(gt_temporal_adata.uns["tmap_10_105"])
-        problem[10.5, 11]._solution = TestSolverOutput(gt_temporal_adata.uns["tmap_105_11"])
-        problem[10, 11]._solution = TestSolverOutput(gt_temporal_adata.uns["tmap_10_11"])
+        problem[10, 10.5]._solution = MockSolverOutput(gt_temporal_adata.uns["tmap_10_105"])
+        problem[10.5, 11]._solution = MockSolverOutput(gt_temporal_adata.uns["tmap_105_11"])
+        problem[10, 11]._solution = MockSolverOutput(gt_temporal_adata.uns["tmap_10_11"])
 
         tmap = problem._interpolate_transport(10, 11, forward=forward, normalize=normalize)
 
