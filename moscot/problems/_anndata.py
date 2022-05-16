@@ -106,4 +106,6 @@ class AnnDataPointer:
         if self.key not in container:
             raise KeyError(f"TODO: unable to find `adata.{self.attr}['{self.key}']`.")
         container = container[self.key]
-        return TaggedArray(container.A if scipy.sparse.issparse(container) else container, tag=self.tag, loss=backend_losses[self.loss])
+        return TaggedArray(
+            container.A if scipy.sparse.issparse(container) else container, tag=self.tag, loss=backend_losses[self.loss]
+        )

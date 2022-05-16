@@ -20,6 +20,7 @@ from moscot.problems._multimarginal_problem import MultiMarginalProblem
 class MultiMarginalMixin(ABC):
     """Mixin class for biological problems based on :class:`moscot.problems.MultiMarginalProblem`."""
 
+
 @d.dedent
 class BirthDeathMixin(MultiMarginalMixin):
     """Mixin class for biological problems based on :class:`moscot.problems.mixins.BirthDeathBaseProblem`."""
