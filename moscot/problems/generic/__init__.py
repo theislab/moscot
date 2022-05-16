@@ -1,1 +1,1 @@
-from moscot.problems.generic._generic import SinkhornProblem, GWProblem, FGWProblem
+from moscot.problems.generic._generic import GWProblem, FGWProblem, SinkhornProblem

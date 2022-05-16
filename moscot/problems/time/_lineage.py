@@ -228,6 +228,7 @@ class LineageProblem(TemporalProblem):
     --------
     See notebook TODO(@MUCDK) LINK NOTEBOOK for how to use it
     """
+
     @d.dedent
     def prepare(
         self,
