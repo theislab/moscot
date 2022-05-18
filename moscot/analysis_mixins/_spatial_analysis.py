@@ -4,6 +4,7 @@ from scipy.stats import pearsonr, spearmanr
 from scipy.linalg import svd
 from scipy.sparse import issparse
 from typing_extensions import Literal
+from scipy.sparse.linalg import LinearOperator
 import pandas as pd
 
 import numpy as np
@@ -11,6 +12,7 @@ import numpy.typing as npt
 
 from anndata import AnnData
 
+from moscot.problems._subset_policy import StarPolicy
 from moscot.analysis_mixins._base_analysis import AnalysisMixin
 
 
@@ -41,19 +43,19 @@ class SpatialAlignmentAnalysisMixin(AnalysisMixin):
         fwd_steps = self._policy.plan(end=reference)
         bwd_steps = None
         # get mapping function
-        _transport = self._affine if mode == "affine" else lambda tmap, _, src: (tmap @ src, None)
+        _transport = self._affine if mode == "affine" else lambda tmap, _, src: (tmap.dot(src), None)
 
         if not fwd_steps or not set(full_steps).issubset(set(fwd_steps.keys())):
             bwd_steps = self._policy.plan(start=reference)
 
         if len(fwd_steps):
             for (start, end) in fwd_steps.keys():
-                tmap = self._interpolate_transport(start=start, end=end, normalize=True, forward=True)
+                tmap = self._interpolate_transport(start=start, end=end, scale_by_marginals=True, forward=True)
                 transport_maps[start], transport_metadata[start] = _transport(tmap, subs_adata(start), src)
 
         if bwd_steps is not None and len(bwd_steps):
             for (start, end) in bwd_steps.keys():
-                tmap = self._interpolate_transport(start=start, end=end, normalize=True, forward=False)
+                tmap = self._interpolate_transport(start=start, end=end, scale_by_marginals=True, forward=False)
                 transport_maps[end], transport_metadata[end] = _transport(tmap.T, subs_adata(end), src)
 
         if mode == "affine":
@@ -61,7 +63,7 @@ class SpatialAlignmentAnalysisMixin(AnalysisMixin):
         return transport_maps, None
 
     def _affine(
-        self, tmap: npt.ArrayLike, tgt: npt.ArrayLike, src: npt.ArrayLike
+        self, tmap: Union[npt.ArrayLike, LinearOperator], tgt: npt.ArrayLike, src: npt.ArrayLike
     ) -> Tuple[npt.ArrayLike, npt.ArrayLike]:
         """Affine transformation."""
         tgt -= tgt.mean(0)
@@ -77,16 +79,18 @@ class SpatialAlignmentAnalysisMixin(AnalysisMixin):
         mode: Literal["warp", "affine"] = "warp",
         copy: bool = False,
     ) -> Optional[Union[npt.ArrayLike, Tuple[npt.ArrayLike, Dict[Any, npt.ArrayLike]]]]:
-        """Spatial warp."""
+        """Alignemnt method."""
         if reference not in self._policy._cat.categories:
-            raise ValueError(f"`reference: {reference}` not in policy categories: {self._policy._cat.categories}")
+            raise ValueError(f"`reference: {reference}` not in policy categories: {self._policy._cat.categories}.")
+        if isinstance(self._policy, StarPolicy):
+            if reference != list(self._policy.plan().keys())[0][-1]:
+                raise ValueError(f"Invalid `reference: {reference}` for `policy='star'`.")
         aligned_maps, aligned_metadata = self._interpolate_scheme(reference=reference, mode=mode)
         aligned_basis = np.vstack([aligned_maps[k] for k in self._policy._cat.categories])
 
         if mode == "affine":
             if copy:
                 return aligned_basis, aligned_metadata
-            self.adata.obsm[f"{self.spatial_key}_{mode}"] = aligned_basis
             self.adata.uns[self.spatial_key]["alignment_metadata"] = aligned_metadata
         if copy:
             return aligned_basis
@@ -99,8 +103,8 @@ class SpatialAlignmentAnalysisMixin(AnalysisMixin):
 
     @spatial_key.setter
     def spatial_key(self, value: Optional[str] = None) -> None:
-        if value not in self.adata.obs.columns:
-            raise KeyError(f"TODO: {value} not found in `adata.obs.columns`")
+        if value not in self.adata.obsm:
+            raise KeyError(f"TODO: {value} not found in `adata.obsm`.")
         # TODO(@MUCDK) check data type -> which ones do we allow
         self._spatial_key = value
 
@@ -146,8 +150,7 @@ class SpatialMappingAnalysisMixin(AnalysisMixin):
             gexp_sp = (
                 self.adata[index_obs, var_sc].X if not issparse(self.adata.X) else self.adata[index_obs, var_sc].X.A
             )
-            tmap = prob_val._scale_transport_by_marginals(forward=False)
-            gexp_pred_sp = np.dot(tmap, gexp_sc)
+            gexp_pred_sp = prob_val.pull(gexp_sc, scale_by_marginals=True)
             corr_val = [cor(gexp_pred_sp[:, gi], gexp_sp[:, gi])[0] for gi, _ in enumerate(var_sc)]
             corr_dic[prob_key] = pd.Series(corr_val, index=var_sc)
 
@@ -158,8 +161,7 @@ class SpatialMappingAnalysisMixin(AnalysisMixin):
         gexp_sc = self.adata_sc.X if not issparse(self.adata_sc.X) else self.adata_sc.X.A
         pred_list = []
         for _, prob_val in self.solutions.items():
-            tmap = prob_val._scale_transport_by_marginals(forward=False)
-            pred_list.append(np.dot(tmap, gexp_sc))
+            pred_list.append(prob_val.pull(gexp_sc, scale_by_marginals=True))
         adata_pred = AnnData(np.nan_to_num(np.vstack(pred_list), nan=0.0, copy=False))
         adata_pred.obs_names = self.adata.obs_names.values.copy()
         adata_pred.var_names = self.adata_sc.var_names.values.copy()

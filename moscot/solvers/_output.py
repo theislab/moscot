@@ -8,9 +8,7 @@ import numpy.typing as npt
 #  1. mb. use more contrained type hints
 #  2. consider always returning 2-dim array, even if 1-dim is passed (not sure which convenient for user)
 
-__all__ = ["BaseSolverOutput", "MatrixSolverOutput", "JointOperator", "as_linear_operator"]
-
-from scipy.sparse.linalg import LinearOperator
+__all__ = ["BaseSolverOutput", "MatrixSolverOutput", "JointOperator"]
 
 
 class BaseSolverOutput(ABC):
@@ -121,12 +119,12 @@ class MatrixSolverOutput(BaseSolverOutput, ABC):
 
     @property
     def transport_matrix(self) -> npt.ArrayLike:
-        """%(transport_matrix)s"""
+        """%(transport_matrix)s ."""
         return self._matrix
 
     @property
     def shape(self) -> Tuple[int, int]:
-        """%(shape)s"""
+        """%(shape)s ."""
         return self.transport_matrix.shape
 
     @property
@@ -138,7 +136,7 @@ class JointOperator:
     def __init__(self, outputs: Tuple[BaseSolverOutput, ...]):
         if not len(outputs):
             raise ValueError("TODO: no solver outputs")
-        for curr, next in zip(outputs[:-1], outputs[1:]):
+        for curr, next in zip(outputs[:-1], outputs[1:]):  # noqa: A001
             if curr.shape[1] != next.shape[0]:
                 raise ValueError("TODO: outputs shape mismatch")
 
@@ -157,11 +155,3 @@ class JointOperator:
         for op in reversed(self._outputs):
             x = op.pull(x, **kwargs)
         return x
-
-
-def as_linear_operator(outputs: Tuple[BaseSolverOutput, ...], *, forward: bool) -> LinearOperator:
-    op = JointOperator(outputs)
-    out = outputs[0]
-    dtype = out.push(out._ones(out.shape[0])).dtype
-
-    return LinearOperator(shape=op.shape, dtype=dtype, matvec=op.push if forward else op.pull)

@@ -1,13 +1,20 @@
 from abc import ABC
-from typing import Any, List, Tuple, Optional
+from typing import Any, List, Tuple, Union, Optional
+from functools import partial
+
+from scipy.sparse.linalg import LinearOperator
 
 import numpy as np
 import numpy.typing as npt
+
+from moscot.solvers._output import JointOperator, BaseSolverOutput
 
 
 # TODO(michalk8): need to think about this a bit more
 # TODO(MUCDK): remove ABC?
 class AnalysisMixin(ABC):
+    """Base Analysis Mixin."""
+
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
 
@@ -28,7 +35,7 @@ class AnalysisMixin(ABC):
         if account_for_unbalancedness and interpolation_parameter is None:
 
             raise ValueError(
-                "TODO: if unbalancedness is to be accounted for `interpolation_parameter` must be provided"
+                "TODO: if unbalancedness is to be accounted for `interpolation_parameter` must be provided."
             )
         if interpolation_parameter is not None and (0 > interpolation_parameter or interpolation_parameter > 1):
             raise ValueError(f"TODO: interpolation parameter must be between 0 and 1 but is {interpolation_parameter}.")
@@ -88,22 +95,28 @@ class AnalysisMixin(ABC):
         return rows, all_cols_sampled
 
     def _interpolate_transport(
-        self, start: Any, end: Any, forward: bool = True, normalize: bool = True
-    ) -> npt.ArrayLike:
+        self, start: Any, end: Any, forward: bool = True, scale_by_marginals: bool = True
+    ) -> Union[npt.ArrayLike, LinearOperator]:
         """Interpolate transport matrix."""
         # TODO(@MUCDK, @giovp, discuss what exactly this function should do, seems like it could be more generic)
         steps = self._policy.plan(start=start, end=end)[start, end]
-        if len(steps) == 1:
-            return self._problems[steps[0]].solution._scale_transport_by_marginals(forward=forward)
-        # TODO: find way to push/pull across solutions
-        tmap = self._problems[steps[0]].solution._scale_transport_by_marginals(forward=True)
-        for i in range(len(steps) - 1):
-            tmap = tmap @ self._problems[steps[i + 1]].solution._scale_transport_by_marginals(forward=True)
-        if normalize:
-            if forward:
-                return tmap / tmap.sum(1)[:, None]
-            return tmap / tmap.sum(0)[None, :]
+        tmap = self._as_linear_operator(
+            [self.problems[i].solution for i in steps], forward=forward, scale_by_marginals=scale_by_marginals
+        )
         return tmap
+
+    def _as_linear_operator(
+        self, outputs: Tuple[BaseSolverOutput, ...], *, forward: bool, scale_by_marginals: bool
+    ) -> LinearOperator:
+        op = JointOperator(outputs)
+        out = outputs[0]
+        dtype = out.push(out._ones(out.shape[0])).dtype  # TODO(giovp): can't we set dtype as property of Output?
+        push = partial(op.push, scale_by_marginals=scale_by_marginals)
+        pull = partial(op.pull, scale_by_marginals=scale_by_marginals)
+
+        return LinearOperator(
+            shape=op.shape, dtype=dtype, matvec=push if forward else pull, rmatvec=pull if forward else push
+        )
 
 
 # TODO(michalk8): CompoundAnalysisMixin?
