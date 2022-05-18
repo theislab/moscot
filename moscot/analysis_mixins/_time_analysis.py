@@ -1,3 +1,4 @@
+from types import MappingProxyType
 from typing import Any, Dict, Tuple, Union, Mapping, Optional, Sequence, Literal
 from numbers import Number
 import logging
@@ -131,6 +132,7 @@ class TemporalAnalysisMixin(AnalysisMixin):
         forward: bool = False,  # return value will be row-stochastic if forward=True, else column-stochastic
         statistic: Literal["mean", "max"] = "mean",
         aggregation_level: Literal["group", "cell"] = "group",
+        statistic_kwargs: Mapping[str, Any] = MappingProxyType({}),
         **kwargs: Any,
     ) -> pd.DataFrame:
         """
@@ -166,6 +168,9 @@ class TemporalAnalysisMixin(AnalysisMixin):
         -------
         Transition matrix of groups between time points.
         """
+        if aggregation_level == "mean" and statistic == "mean":
+            logging.warning("TODO: The mean on the group level is the same  as the mean on the cell level. Continuing on the group level.")
+            aggregation_level = "group"
         _early_cells_key, _early_cells = self._validate_args_cell_transition(early_cells)
         _late_cells_key, _late_cells = self._validate_args_cell_transition(late_cells)
 
@@ -238,7 +243,17 @@ class TemporalAnalysisMixin(AnalysisMixin):
                 else:
                     raise
             if aggregation_level=="cell":
-                pass#TODO: Continue here, aggregate the statistics
+                if statistic == "max":
+                    k = statistic_kwargs.pop("k", 5)
+                    if len(result) <= k:
+                        raise ValueError("TODO: `k` must be smaller than number of data points in distribution.")
+                    col_idx = np.array(range(result.shape[1]))
+                    low_col_k_indices = np.argpartition(result, -k, axis=0)[:-k,:]
+                    result[(low_col_k_indices.flatten(order="F"), np.repeat(col_idx, len(result)-k))] = 0
+                else:
+                    raise NotImplementedError("TODO: not implemented.")
+                result = result.sum(axis=1)
+
             df_early.loc[:, "distribution"] = result
             target_cell_dist = df_early[df_early[_early_cells_key].isin(_early_cells)].groupby(_early_cells_key).sum() #TODO: make general aggregation stats
             target_cell_dist /= target_cell_dist.sum()

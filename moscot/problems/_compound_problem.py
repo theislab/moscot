@@ -279,7 +279,7 @@ class CompoundBaseProblem(BaseProblem, Generic[K, B], ABC):
             if forward:
                 initial_problem = self.problems[steps[0]]
                 current_mass = initial_problem._get_mass(
-                    initial_problem.adata, data=get_data(plan), subset=subset, normalize=normalize
+                    initial_problem.adata, data=get_data(plan), subset=subset, normalize=normalize, split_mass=split_mass
                 )
             else:
                 steps = steps[::-1]
@@ -289,6 +289,7 @@ class CompoundBaseProblem(BaseProblem, Generic[K, B], ABC):
                     data=get_data(plan),
                     subset=subset,
                     normalize=normalize,
+                    split_mass=split_mass
                 )
 
             ds = {}  # TODO(michalk8)
