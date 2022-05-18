@@ -123,7 +123,9 @@ joint_attr
     `joint_attr` is a string the data is assumed to be found in :attr:`anndata.AnnData.obsm`.
     If `joint_attr` is a dictionary the dictionary is supposed to contain the attribute of
     :attr:`anndata.AnnData` as a key and the corresponding attribute as a value."""
-
+_split_mass = """\
+split_mass
+    If `True` the operation is applied to each cell individually."""
 
 def inject_docs(**kwargs: Any):
     def decorator(obj):
@@ -171,4 +173,5 @@ d = DocstringProcessor(
     policy=_policy,
     key=_key,
     joint_attr=_joint_attr,
+    split_mass=_split_mass,
 )

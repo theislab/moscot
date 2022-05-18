@@ -65,7 +65,15 @@ class BaseProblem(ABC):
         data: Optional[Union[str, List[str], Tuple[str, ...], npt.ArrayLike]] = None,
         subset: Optional[Sequence[Any]] = None,
         normalize: bool = True,
+        *,
+        split_mass: bool = False,
     ) -> npt.ArrayLike:
+        def _split_mass(arr: npt.ArrayLike) -> npt.ArrayLike:
+            non_zero_idxs = np.where(arr!=0)[0]
+            data = np.zeros(len(arr), len(non_zero_idxs))
+            data[non_zero_idxs, np.array(range(len(non_zero_idxs)))] = 1
+            return data
+
         if data is None:
             data = np.ones((adata.n_obs,), dtype=float)
         elif isinstance(data, (str, list, tuple)):
@@ -78,6 +86,8 @@ class BaseProblem(ABC):
                 data = np.asarray(adata.obs[data].isin(subset), dtype=float)
             else:
                 data = np.asarray(adata.obs[data].values == subset, dtype=float)
+            if split_mass:
+                    data = _split_mass(data)
         else:
             data = np.asarray(data)
 
@@ -233,10 +243,12 @@ class OTProblem(BaseProblem):
         data: Optional[Union[str, npt.ArrayLike]] = None,
         subset: Optional[Sequence[Any]] = None,
         normalize: bool = True,
+        *,
+        split_mass: bool = False,
         **kwargs: Any,
     ) -> npt.ArrayLike:
         # TODO: check if solved - decorator?
-        data = self._get_mass(self.adata, data=data, subset=subset, normalize=normalize)
+        data = self._get_mass(self.adata, data=data, subset=subset, normalize=normalize, split_mass=split_mass)
         return self.solution.push(data, **kwargs)
 
     def pull(
@@ -244,11 +256,13 @@ class OTProblem(BaseProblem):
         data: Optional[Union[str, npt.ArrayLike]] = None,
         subset: Optional[Sequence[Any]] = None,
         normalize: bool = True,
+        *,
+        split_mass: bool = False,
         **kwargs: Any,
     ) -> npt.ArrayLike:
         # TODO: check if solved - decorator?
         adata = self.adata if self._adata_y is None else self._adata_y
-        data = self._get_mass(adata, data=data, subset=subset, normalize=normalize)
+        data = self._get_mass(adata, data=data, subset=subset, normalize=normalize, split_mass=split_mass)
         return self.solution.pull(data, **kwargs)
 
     @staticmethod

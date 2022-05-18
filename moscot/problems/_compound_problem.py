@@ -227,6 +227,7 @@ class CompoundBaseProblem(BaseProblem, Generic[K, B], ABC):
         forward: bool = True,
         return_all: bool = False,
         scale_by_marginals: bool = False,
+        split_mass: bool = False,
         **kwargs: Any,
     ) -> Union[Dict[Tuple[Any, Any], npt.ArrayLike], Dict[Tuple[Any, Any], Dict[Tuple[Any, Any], npt.ArrayLike]]]:
         """
@@ -244,6 +245,7 @@ class CompoundBaseProblem(BaseProblem, Generic[K, B], ABC):
             If `True` and transport maps are applied consecutively only the final mass is returned. Otherwise,
             all intermediate step results are returned, too.
         %(scale_by_marginals)s
+        %(split_mass)s
 
         Returns
         -------

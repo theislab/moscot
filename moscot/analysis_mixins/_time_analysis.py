@@ -1,4 +1,4 @@
-from typing import Any, Dict, Tuple, Union, Mapping, Optional, Sequence
+from typing import Any, Dict, Tuple, Union, Mapping, Optional, Sequence, Literal
 from numbers import Number
 import logging
 import itertools
@@ -129,6 +129,8 @@ class TemporalAnalysisMixin(AnalysisMixin):
         early_cells: Union[str, Mapping[str, Sequence[Any]]],
         late_cells: Union[str, Mapping[str, Sequence[Any]]],
         forward: bool = False,  # return value will be row-stochastic if forward=True, else column-stochastic
+        statistic: Literal["mean", "max"] = "mean",
+        aggregation_level: Literal["group", "cell"] = "group",
         **kwargs: Any,
     ) -> pd.DataFrame:
         """
@@ -191,6 +193,7 @@ class TemporalAnalysisMixin(AnalysisMixin):
                         normalize=True,
                         return_all=False,
                         scale_by_marginals=False,
+                        split_mass=(aggregation_level=="cell"),
                         **kwargs,
                     )
                 except ValueError as e:
@@ -225,6 +228,7 @@ class TemporalAnalysisMixin(AnalysisMixin):
                     normalize=True,
                     return_all=False,
                     scale_by_marginals=False,
+                    split_mass=(aggregation_level=="cell"),
                     **kwargs,
                 )
             except ValueError as e:
@@ -233,8 +237,10 @@ class TemporalAnalysisMixin(AnalysisMixin):
                     result = np.nan
                 else:
                     raise
+            if aggregation_level=="cell":
+                pass#TODO: Continue here, aggregate the statistics
             df_early.loc[:, "distribution"] = result
-            target_cell_dist = df_early[df_early[_early_cells_key].isin(_early_cells)].groupby(_early_cells_key).sum()
+            target_cell_dist = df_early[df_early[_early_cells_key].isin(_early_cells)].groupby(_early_cells_key).sum() #TODO: make general aggregation stats
             target_cell_dist /= target_cell_dist.sum()
             transition_table.loc[:, subset] = [
                 target_cell_dist.loc[cell_type, "distribution"]
