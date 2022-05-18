@@ -8,7 +8,7 @@ import numpy as np
 
 from anndata import AnnData
 
-from tests._utils import TestSolverOutput
+from tests._utils import MockSolverOutput
 from moscot.problems.time._lineage import TemporalProblem
 
 
@@ -19,9 +19,9 @@ class TestTemporalAnalysisMixin:
         problem = TemporalProblem(gt_temporal_adata)
         problem = problem.prepare("day", subset=[(10, 10.5), (10.5, 11), (10, 11)], policy="explicit")
         assert set(problem.problems.keys()) == {(10, 10.5), (10, 11), (10.5, 11)}
-        problem[10, 10.5]._solution = TestSolverOutput(gt_temporal_adata.uns["tmap_10_105"])
-        problem[10.5, 11]._solution = TestSolverOutput(gt_temporal_adata.uns["tmap_105_11"])
-        problem[10, 11]._solution = TestSolverOutput(gt_temporal_adata.uns["tmap_10_11"])
+        problem[10, 10.5]._solution = MockSolverOutput(gt_temporal_adata.uns["tmap_10_105"])
+        problem[10.5, 11]._solution = MockSolverOutput(gt_temporal_adata.uns["tmap_105_11"])
+        problem[10, 11]._solution = MockSolverOutput(gt_temporal_adata.uns["tmap_10_11"])
 
         result = problem.cell_transition(10, 10.5, "cell_type", "cell_type", forward=forward)
 
@@ -38,9 +38,9 @@ class TestTemporalAnalysisMixin:
         problem = TemporalProblem(gt_temporal_adata)
         problem = problem.prepare("day", subset=[(10, 10.5), (10.5, 11), (10, 11)], policy="explicit")
         assert set(problem.problems.keys()) == {(10, 10.5), (10, 11), (10.5, 11)}
-        problem[10, 10.5]._solution = TestSolverOutput(gt_temporal_adata.uns["tmap_10_105"])
-        problem[10.5, 11]._solution = TestSolverOutput(gt_temporal_adata.uns["tmap_105_11"])
-        problem[10, 11]._solution = TestSolverOutput(gt_temporal_adata.uns["tmap_10_11"])
+        problem[10, 10.5]._solution = MockSolverOutput(gt_temporal_adata.uns["tmap_10_105"])
+        problem[10.5, 11]._solution = MockSolverOutput(gt_temporal_adata.uns["tmap_105_11"])
+        problem[10, 11]._solution = MockSolverOutput(gt_temporal_adata.uns["tmap_10_11"])
 
         early_cells = ["Stromal", "unknown"]
         late_cells = ["Stromal", "Epithelial"]
@@ -60,9 +60,9 @@ class TestTemporalAnalysisMixin:
         problem = TemporalProblem(gt_temporal_adata)
         problem = problem.prepare("day", subset=[(10, 10.5), (10.5, 11), (10, 11)], policy="explicit")
         assert set(problem.problems.keys()) == {(10, 10.5), (10, 11), (10.5, 11)}
-        problem[10, 10.5]._solution = TestSolverOutput(gt_temporal_adata.uns["tmap_10_105"])
-        problem[10.5, 11]._solution = TestSolverOutput(gt_temporal_adata.uns["tmap_105_11"])
-        problem[10, 11]._solution = TestSolverOutput(gt_temporal_adata.uns["tmap_10_11"])
+        problem[10, 10.5]._solution = MockSolverOutput(gt_temporal_adata.uns["tmap_10_105"])
+        problem[10.5, 11]._solution = MockSolverOutput(gt_temporal_adata.uns["tmap_105_11"])
+        problem[10, 11]._solution = MockSolverOutput(gt_temporal_adata.uns["tmap_10_11"])
 
         result = problem.cell_transition(10, 10.5, early_cells="cell_type", late_cells="cell_type", forward=forward)
         assert result.shape == (6, 6)
@@ -98,9 +98,9 @@ class TestTemporalAnalysisMixin:
         problem = TemporalProblem(gt_temporal_adata)
         problem = problem.prepare("day", subset=[(10, 10.5), (10.5, 11), (10, 11)], policy="explicit")
         assert set(problem.problems.keys()) == {(10, 10.5), (10, 11), (10.5, 11)}
-        problem[10, 10.5]._solution = TestSolverOutput(gt_temporal_adata.uns["tmap_10_105"])
-        problem[10.5, 11]._solution = TestSolverOutput(gt_temporal_adata.uns["tmap_105_11"])
-        problem[10, 11]._solution = TestSolverOutput(gt_temporal_adata.uns["tmap_10_11"])
+        problem[10, 10.5]._solution = MockSolverOutput(gt_temporal_adata.uns["tmap_10_105"])
+        problem[10.5, 11]._solution = MockSolverOutput(gt_temporal_adata.uns["tmap_105_11"])
+        problem[10, 11]._solution = MockSolverOutput(gt_temporal_adata.uns["tmap_10_11"])
 
         interpolation_result = problem.compute_interpolated_distance(
             10, 10.5, 11, account_for_unbalancedness=account_for_unbalancedness, seed=42
@@ -112,9 +112,9 @@ class TestTemporalAnalysisMixin:
         problem = TemporalProblem(gt_temporal_adata)
         problem = problem.prepare("day", subset=[(10, 10.5), (10.5, 11), (10, 11)], policy="explicit")
         assert set(problem.problems.keys()) == {(10, 10.5), (10, 11), (10.5, 11)}
-        problem[10, 10.5]._solution = TestSolverOutput(gt_temporal_adata.uns["tmap_10_105"])
-        problem[10.5, 11]._solution = TestSolverOutput(gt_temporal_adata.uns["tmap_105_11"])
-        problem[10, 11]._solution = TestSolverOutput(gt_temporal_adata.uns["tmap_10_11"])
+        problem[10, 10.5]._solution = MockSolverOutput(gt_temporal_adata.uns["tmap_10_105"])
+        problem[10.5, 11]._solution = MockSolverOutput(gt_temporal_adata.uns["tmap_105_11"])
+        problem[10, 11]._solution = MockSolverOutput(gt_temporal_adata.uns["tmap_10_11"])
 
         interpolation_result = problem.compute_interpolated_distance(10, 10.5, 11, seed=42)
         assert isinstance(interpolation_result, float)
