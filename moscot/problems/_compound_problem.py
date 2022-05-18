@@ -150,8 +150,7 @@ class CompoundBaseProblem(BaseProblem, Generic[K, B], ABC):
 
         Parameters
         ----------
-        key
-            Key in :attr:`anndata.AnnData.obs` allocating the cell to a certain cell distribution.
+        %(key)s
         policy
             Defines which transport maps to compute given different cell distributions.
         subset

@@ -20,7 +20,16 @@ Biological Problems
 Generic Problems
 ~~~~~~~~~~~~~~~~
 
-TODO
+.. module:: moscot.problems.generic
+.. currentmodule:: moscot.problems.generic
+
+.. autosummary::
+    :toctree: api
+
+    moscot.problems.generic.SinkhornProblem
+    moscot.problems.generic.GWProblem
+    moscot.problems.generic.FGWProblem
+
 
 Solvers
 ~~~~~~~
