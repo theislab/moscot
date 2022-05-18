@@ -274,11 +274,13 @@ class FGWSolver(GWSolver):
         geom_xy = self._create_geometry(xy[0], xy[1], epsilon=epsilon, online=online, scale_cost=scale_cost)
         self._validate_geoms(description.data.geom_xx, description.data.geom_yy, geom_xy)
 
+        assert 0 < alpha <= 1, "TODO: alpha must be in (0, 1)"
+
         problem = QuadraticProblem(
             geom_xx=description.data.geom_xx,
             geom_yy=description.data.geom_yy,
             geom_xy=geom_xy,
-            fused_penalty=self._alpha_to_fused_penalty(alpha),
+            fused_penalty=alpha,
             **kwargs,
         )
 
@@ -294,8 +296,3 @@ class FGWSolver(GWSolver):
             raise ValueError(f"TODO: first and joint geom mismatch: `{geom_x.shape}`, `{geom_xy.shape}`")
         if geom_y.shape[0] != geom_xy.shape[1]:
             raise ValueError(f"TODO: second and joint geom mismatch: `{geom_y.shape}`, `{geom_xy.shape}`")
-
-    @staticmethod
-    def _alpha_to_fused_penalty(alpha: float) -> float:
-        assert 0 < alpha < 1, "TODO: alpha must be in (0, 1)"
-        return (1 - alpha) / alpha
