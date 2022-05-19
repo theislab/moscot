@@ -88,7 +88,7 @@ class SpatialAlignmentAnalysisMixin(AnalysisMixin):
 
     @spatial_key.setter
     def spatial_key(self, value: Optional[str] = None) -> None:
-        if value not in self.adata.obs.columns:
+        if value not in self.adata.obsm:
             raise KeyError(f"TODO: {value} not found in `adata.obs.columns`")
         # TODO(@MUCDK) check data type -> which ones do we allow
         self._spatial_key = value
