@@ -1,9 +1,10 @@
-from _utils import Geom_t
 from sklearn.metrics import pairwise_distances
 import pandas as pd
 import pytest
 
 from anndata import AnnData
+
+from tests._utils import Geom_t
 
 
 @pytest.fixture()

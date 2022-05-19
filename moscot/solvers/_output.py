@@ -4,10 +4,13 @@ from typing import Any, Tuple, Callable
 import numpy as np
 import numpy.typing as npt
 
-
 # TODO(michalk8):
 #  1. mb. use more contrained type hints
 #  2. consider always returning 2-dim array, even if 1-dim is passed (not sure which convenient for user)
+
+__all__ = ["BaseSolverOutput", "MatrixSolverOutput", "JointOperator"]
+
+
 class BaseSolverOutput(ABC):
     @abstractmethod
     def _apply(self, x: npt.ArrayLike, *, forward: bool) -> npt.ArrayLike:
@@ -116,14 +119,39 @@ class MatrixSolverOutput(BaseSolverOutput, ABC):
 
     @property
     def transport_matrix(self) -> npt.ArrayLike:
-        """%(transport_matrix)s"""
+        """%(transport_matrix)s ."""
         return self._matrix
 
     @property
     def shape(self) -> Tuple[int, int]:
-        """%(shape)s"""
+        """%(shape)s ."""
         return self.transport_matrix.shape
 
     @property
     def potentials(self):
         raise NotImplementedError("This solver does not allow for potentials")
+
+
+class JointOperator:
+    def __init__(self, outputs: Tuple[BaseSolverOutput, ...]):
+        if not len(outputs):
+            raise ValueError("TODO: no solver outputs")
+        for curr, next in zip(outputs[:-1], outputs[1:]):  # noqa: A001
+            if curr.shape[1] != next.shape[0]:
+                raise ValueError("TODO: outputs shape mismatch")
+
+        self._outputs = outputs
+
+    @property
+    def shape(self) -> Tuple[int, int]:
+        return self._outputs[0].shape[0], self._outputs[-1].shape[1]
+
+    def push(self, x: npt.ArrayLike, **kwargs: Any) -> npt.ArrayLike:
+        for op in self._outputs:
+            x = op.push(x, **kwargs)
+        return x
+
+    def pull(self, x: npt.ArrayLike, **kwargs: Any) -> npt.ArrayLike:
+        for op in reversed(self._outputs):
+            x = op.pull(x, **kwargs)
+        return x

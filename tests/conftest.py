@@ -5,16 +5,16 @@ import pandas as pd
 import pytest
 
 from jax.config import config
-
-from anndata import AnnData
-
-config.update("jax_enable_x64", True)
-from _utils import Geom_t
-
-from jax import numpy as jnp
 import numpy as np
 
+from anndata import AnnData
 import scanpy as sc
+
+from tests._utils import Geom_t
+
+config.update("jax_enable_x64", True)
+
+from jax import numpy as jnp  # noqa: E402
 
 _gt_temporal_adata = sc.read("tests/data/moscot_temporal_tests.h5ad")
 

@@ -1,11 +1,12 @@
 from typing import Optional
 
-from _utils import MockSolverOutput, CompoundProblemWithMixin
 import pytest
 
 import numpy as np
 
 from anndata import AnnData
+
+from tests._utils import MockSolverOutput, CompoundProblemWithMixin
 
 
 class TestBaseAnalysisMixin:

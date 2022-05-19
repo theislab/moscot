@@ -1,10 +1,11 @@
-from _utils import _get_random_trees
 import scipy
 import pytest
 
 import numpy as np
 
 from anndata import AnnData
+
+from tests._utils import _get_random_trees
 
 
 @pytest.fixture()
