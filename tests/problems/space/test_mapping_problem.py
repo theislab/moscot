@@ -1,4 +1,4 @@
-from typing import Dict, List, Tuple, Optional
+from typing import Dict, List, Optional
 from pathlib import Path
 
 import pytest
@@ -7,6 +7,7 @@ import numpy as np
 
 from anndata import AnnData
 
+from tests.conftest import _adata_spatial_split
 from moscot.problems.space import MappingProblem
 from moscot.solvers._base_solver import ProblemKind
 from moscot.problems._base_problem import OTProblem
@@ -15,19 +16,12 @@ SOLUTIONS_PATH = Path("./tests/data/mapping_solutions.pkl")  # base is moscot
 
 
 class TestMappingProblem:
-    @staticmethod
-    def _adata_split(adata: AnnData) -> Tuple[AnnData, AnnData]:
-        adataref = adata[adata.obs.batch == "0"].copy()
-        adataref.obsm.pop("spatial")
-        adatasp = adata[adata.obs.batch != "0"].copy()
-        return adataref, adatasp
-
     @pytest.mark.parametrize("sc_attr", [{"attr": "X"}, {"attr": "obsm", "key": "X_pca"}])
     @pytest.mark.parametrize(
         "joint_attr", [None, "default", {"x_attr": "obsm", "x_key": "X_pca", "y_attr": "obsm", "y_key": "X_pca"}]
     )
     def test_prepare(self, adata_mapping: AnnData, sc_attr: Dict[str, str], joint_attr: Optional[Dict[str, str]]):
-        adataref, adatasp = TestMappingProblem._adata_split(adata_mapping)
+        adataref, adatasp = _adata_spatial_split(adata_mapping)
         expected_keys = [(i, "ref") for i in adatasp.obs.batch.cat.categories]
         n_obs = adataref.shape[0]
         x_n_var = adatasp.obsm["spatial"].shape[1]
@@ -52,7 +46,7 @@ class TestMappingProblem:
 
     @pytest.mark.parametrize("var_names", ["0", [], [str(i) for i in range(20)]])
     def test_prepare_varnames(self, adata_mapping: AnnData, var_names: Optional[List[str]]):
-        adataref, adatasp = TestMappingProblem._adata_split(adata_mapping)
+        adataref, adatasp = _adata_spatial_split(adata_mapping)
         problem_kind = (ProblemKind.QUAD_FUSED if len(var_names) else ProblemKind.QUAD).value
         n_obs = adataref.shape[0]
         x_n_var = adatasp.obsm["spatial"].shape[1]
@@ -83,7 +77,7 @@ class TestMappingProblem:
         sc_attr: Dict[str, str],
         var_names: Optional[List[Optional[str]]],
     ):
-        adataref, adatasp = TestMappingProblem._adata_split(adata_mapping)
+        adataref, adatasp = _adata_spatial_split(adata_mapping)
         mp = (
             MappingProblem(adataref, adatasp)
             .prepare(batch_key="batch", sc_attr=sc_attr, var_names=var_names)

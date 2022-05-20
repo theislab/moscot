@@ -92,7 +92,6 @@ def generate_mapping_data() -> None:
         )
         .solve()
     )
-
     with open("mapping_solutions.pkl", "wb") as fname:
         pickle.dump(problem.solutions, fname)
 
