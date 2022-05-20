@@ -80,7 +80,7 @@ class TestTemporalAnalysisMixin:
         problem[key_1, key_3]._solution = MockSolverOutput(gt_temporal_adata.uns["tmap_10_11"])
 
         result = problem.cell_transition(10, 10.5, early_cells="cell_type", late_cells="cell_type", forward=forward)
-        assert result.shape == (6, 6)
+        assert result.shape == (5, 5)
         marginal = result.sum(axis=forward == 1).values
         present_cell_type_marginal = marginal[marginal > 0]
         np.testing.assert_almost_equal(present_cell_type_marginal, np.ones(len(present_cell_type_marginal)), decimal=5)
