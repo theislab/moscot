@@ -7,7 +7,6 @@ import numpy as np
 from anndata import AnnData
 
 from moscot.problems.space import AlignmentProblem
-from moscot.problems._base_problem import OTProblem
 
 SOLUTIONS_PATH = Path("./tests/data/alignment_solutions.pkl")  # base is moscot
 
@@ -28,7 +27,7 @@ class TestAlignmentProblem:
         ap = ap.prepare(batch_key="batch")
         for prob_key, exp_key in zip(ap, expected_keys):
             assert prob_key == exp_key
-            assert isinstance(ap[prob_key], OTProblem)
+            assert isinstance(ap[prob_key], ap._base_problem_type)
             assert ap[prob_key].shape == (n_obs, n_obs)
             assert ap[prob_key].x.data.shape == ap[prob_key].y.data.shape == (n_obs, 2)
             assert ap[prob_key].xy[0].data.shape == ap[prob_key].xy[1].data.shape == (n_obs, n_var)
@@ -43,7 +42,7 @@ class TestAlignmentProblem:
         for prob_key in ap:
             _, ref = prob_key
             assert ref == reference
-            assert isinstance(ap[prob_key], OTProblem)
+            assert isinstance(ap[prob_key], ap._base_problem_type)
 
     @pytest.mark.parametrize(
         ("epsilon", "alpha", "rank"),
@@ -74,4 +73,4 @@ class TestAlignmentProblem:
         assert np.all([sol.a is not None for sol in ap.solutions.values()])
         assert np.all([sol.b is not None for sol in ap.solutions.values()])
         assert np.all([sol.converged for sol in ap.solutions.values()])
-        # assert np.allclose(*[sol.cost for sol in problem.solutions.values()]) # nan returned
+        assert np.allclose(*(sol.cost for sol in ap.solutions.values()))

@@ -181,7 +181,7 @@ def _make_adata(grid: npt.ArrayLike, n: int) -> List[AnnData]:
 
 
 def _adata_spatial_split(adata: AnnData) -> Tuple[AnnData, AnnData]:
-    adataref = adata[adata.obs.batch == "0"].copy()
-    adataref.obsm.pop("spatial")
-    adatasp = adata[adata.obs.batch != "0"].copy()
-    return adataref, adatasp
+    adata_ref = adata[adata.obs.batch == "0"].copy()
+    adata_ref.obsm.pop("spatial")
+    adata_sp = adata[adata.obs.batch != "0"].copy()
+    return adata_ref, adata_sp

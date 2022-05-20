@@ -10,7 +10,6 @@ from anndata import AnnData
 from tests.conftest import _adata_spatial_split
 from moscot.problems.space import MappingProblem
 from moscot.solvers._base_solver import ProblemKind
-from moscot.problems._base_problem import OTProblem
 
 SOLUTIONS_PATH = Path("./tests/data/mapping_solutions.pkl")  # base is moscot
 
@@ -38,7 +37,7 @@ class TestMappingProblem:
             mp = mp.prepare(batch_key="batch", sc_attr=sc_attr, joint_attr=joint_attr)
         for prob_key, exp_key in zip(mp, expected_keys):
             assert prob_key == exp_key
-            assert isinstance(mp[prob_key], OTProblem)
+            assert isinstance(mp[prob_key], mp._base_problem_type)
             assert mp[prob_key].shape == (n_obs, n_obs)
             assert mp[prob_key].x.data.shape == (n_obs, x_n_var)
             assert mp[prob_key].y.data.shape == (n_obs, y_n_var)
