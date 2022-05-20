@@ -1,11 +1,12 @@
 from typing import Optional
 
+from scipy.sparse.linalg import LinearOperator
 import pytest
 
 import numpy as np
 
 from anndata import AnnData
-from scipy.sparse.linalg import LinearOperator
+
 from tests._utils import MockSolverOutput, CompoundProblemWithMixin
 
 
