@@ -95,6 +95,7 @@ class TestTemporalAnalysisMixin:
             start=0, intermediate=1, end=2
         )
         assert distance_source_intermediate > 0
+        assert distance_source_intermediate < 100
         assert distance_intermediate_target > 0
 
     def test_batch_distances_pipeline(self, adata_time: AnnData):
