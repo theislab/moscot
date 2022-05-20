@@ -26,7 +26,6 @@ def adata_space_rotate() -> AnnData:
 
     adata = ad.concat(adatas, label="batch")
     adata.uns["spatial"] = {}
-    adata.obs_names_make_unique()
     return adata
 
 
@@ -36,7 +35,6 @@ def adata_mapping() -> AnnData:
     sc.pp.pca(adataref)
 
     adata = ad.concat([adataref, adata1, adata2], label="batch", join="outer")
-    adata.obs_names_make_unique()
     return adata
 
 
@@ -65,37 +63,22 @@ def _adata_split(adata: AnnData) -> Tuple[AnnData, AnnData]:
 
 def generate_alignment_data() -> None:
     adata = adata_space_rotate()
-    problem = (
-        AlignmentProblem(adata=adata)
-        .prepare(
-            batch_key="batch",
-        )
-        .solve(alpha=0.5, epsilon=1)
-    )
+    ap = AlignmentProblem(adata=adata)
+    ap = ap.prepare(batch_key="batch")
+    ap = ap.solve(alpha=0.5, epsilon=1)
 
     with open("alignment_solutions.pkl", "wb") as fname:
-        pickle.dump(problem.solutions, fname)
-
-    return None
+        pickle.dump(ap.solutions, fname)
 
 
 def generate_mapping_data() -> None:
     adata = adata_mapping()
     adataref, adatasp = _adata_split(adata)
-    problem = (
-        MappingProblem(adataref, adatasp)
-        .prepare(
-            batch_key="batch",
-            sc_attr={
-                "attr": "X",
-            },
-        )
-        .solve()
-    )
+    mp = MappingProblem(adataref, adatasp)
+    mp = mp.prepare(batch_key="batch", sc_attr={"attr": "X"})
+    mp = mp.solve()
     with open("mapping_solutions.pkl", "wb") as fname:
-        pickle.dump(problem.solutions, fname)
-
-    return None
+        pickle.dump(mp.solutions, fname)
 
 
 if __name__ == "__main__":

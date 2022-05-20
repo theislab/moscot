@@ -20,7 +20,7 @@ class TestTemporalAnalysisMixin:
         key_1 = config["key_1"]
         key_2 = config["key_2"]
         key_3 = config["key_3"]
-        cell_types = set(np.unique(gt_temporal_adata.obs["cell_type"]))
+        cell_types = set(gt_temporal_adata.obs["cell_type"].cat.categories)
         problem = TemporalProblem(gt_temporal_adata)
         problem = problem.prepare(key, subset=[(key_1, key_2), (key_2, key_3), (key_1, key_3)], policy="explicit")
         assert set(problem.problems.keys()) == {(key_1, key_2), (key_2, key_3), (key_1, key_3)}
@@ -29,14 +29,13 @@ class TestTemporalAnalysisMixin:
         problem[(key_1, key_3)]._solution = MockSolverOutput(gt_temporal_adata.uns["tmap_10_11"])
 
         result = problem.cell_transition(key_1, key_2, "cell_type", "cell_type", forward=forward)
-
         assert isinstance(result, pd.DataFrame)
         assert result.shape == (len(cell_types), len(cell_types))
-        assert set(result.index) == set(cell_types)
-        assert set(result.columns) == set(cell_types)
+        assert set(result.index) == cell_types
+        assert set(result.columns) == cell_types
         marginal = result.sum(axis=forward == 1).values
         present_cell_type_marginal = marginal[marginal > 0]
-        np.testing.assert_almost_equal(present_cell_type_marginal, np.ones(len(present_cell_type_marginal)), decimal=5)
+        np.testing.assert_almost_equal(present_cell_type_marginal, 1, decimal=5)
 
     @pytest.mark.parametrize("forward", [True, False])
     def test_cell_transition_subset_pipeline(self, gt_temporal_adata: AnnData, forward: bool):
@@ -95,8 +94,6 @@ class TestTemporalAnalysisMixin:
         distance_source_intermediate, distance_intermediate_target = problem.compute_time_point_distances(
             start=0, intermediate=1, end=2
         )
-        assert isinstance(distance_source_intermediate, float)
-        assert isinstance(distance_intermediate_target, float)
         assert distance_source_intermediate > 0
         assert distance_intermediate_target > 0
 
@@ -105,7 +102,6 @@ class TestTemporalAnalysisMixin:
         problem.prepare("time")
 
         batch_distance = problem.compute_batch_distances(time=1, batch_key="batch")
-        assert isinstance(batch_distance, float)
         assert batch_distance > 0
 
     @pytest.mark.parametrize("account_for_unbalancedness", [True, False])
