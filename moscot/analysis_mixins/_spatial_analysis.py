@@ -43,6 +43,7 @@ class SpatialAlignmentAnalysisMixin(AnalysisMixin):
         fwd_steps = self._policy.plan(end=reference)
         bwd_steps = None
         # get mapping function
+        # transport is either affine or simply mat.dot with the source spatial coords
         _transport = self._affine if mode == "affine" else lambda tmap, _, src: (tmap.dot(src), None)
 
         if not fwd_steps or not set(full_steps).issubset(set(fwd_steps.keys())):
@@ -160,7 +161,7 @@ class SpatialMappingAnalysisMixin(AnalysisMixin):
     def impute(self) -> AnnData:
         """Return imputation of spatial expression of given genes."""
         gexp_sc = self.adata_sc.X if not issparse(self.adata_sc.X) else self.adata_sc.X.A
-        pred_list = [val.pull(gexp_sc, scale_by_marginals=True) for val in self.solutions.values]
+        pred_list = [val.pull(gexp_sc, scale_by_marginals=True) for val in self.solutions.values()]
         adata_pred = AnnData(np.nan_to_num(np.vstack(pred_list), nan=0.0, copy=False))
         adata_pred.obs_names = self.adata.obs_names.copy()
         adata_pred.var_names = self.adata_sc.var_names.copy()

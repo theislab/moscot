@@ -224,9 +224,11 @@ class TestTemporalAnalysisMixin:
         problem = TemporalProblem(adata_time)
         problem.prepare("time")
 
-        result = problem._get_data(0, only_start=only_start) if only_start else problem._get_data(0, 1, 2)
+        result = (
+            problem._get_data(0, only_start=only_start) if only_start else problem._get_data(0, 1, 2)
+        )  # TODO(MUCDK): use namedtuple
 
-        assert isinstance(result, Tuple)
+        assert isinstance(result, tuple)
         assert len(result) == 2 if only_start else len(result) == 5
         if only_start:
             assert isinstance(result[0], np.ndarray)

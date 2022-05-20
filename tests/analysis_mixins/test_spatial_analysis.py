@@ -63,7 +63,7 @@ class TestSpatialAlignmentAnalysisMixin:
 
 class TestSpatialMappingAnalysisMixin:
     @pytest.mark.parametrize("sc_attr", [{"attr": "X"}, {"attr": "obsm", "key": "X_pca"}])
-    @pytest.mark.parametrize("var_names", ["0", [], [str(i) for i in range(20)]])
+    @pytest.mark.parametrize("var_names", ["0", [str(i) for i in range(20)]])
     def test_analysis(
         self,
         adata_mapping: AnnData,
