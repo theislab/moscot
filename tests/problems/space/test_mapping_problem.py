@@ -1,8 +1,6 @@
 from typing import Dict, List, Tuple, Optional
 from pathlib import Path
-import pickle
 
-import pandas as pd
 import pytest
 
 import numpy as np
@@ -102,49 +100,3 @@ class TestMappingProblem:
         assert np.allclose(*(sol.cost for sol in mp.solutions.values()))
         assert np.all([sol.converged for sol in mp.solutions.values()])
         assert np.all([np.all(~np.isnan(sol.transport_matrix)) for sol in mp.solutions.values()])
-
-    @pytest.mark.parametrize("sc_attr", [{"attr": "X"}, {"attr": "obsm", "key": "X_pca"}])
-    @pytest.mark.parametrize("var_names", ["0", [str(i) for i in range(20)]])
-    def test_analysis(
-        self,
-        adata_mapping: AnnData,
-        sc_attr: Dict[str, str],
-        var_names: Optional[List[Optional[str]]],
-    ):
-        adataref, adatasp = TestMappingProblem._adata_split(adata_mapping)
-        mp = MappingProblem(adataref, adatasp).prepare(batch_key="batch", sc_attr=sc_attr).solve()
-
-        corr = mp.correlate(var_names)
-        imp = mp.impute()
-        pd.testing.assert_series_equal(*list(corr.values()))
-        assert imp.shape == adatasp.shape
-
-    def test_regression_testing(self, adata_mapping: AnnData):
-        adataref, adatasp = TestMappingProblem._adata_split(adata_mapping)
-        mp_mock = MappingProblem(adataref, adatasp).prepare(
-            batch_key="batch",
-            sc_attr={
-                "attr": "X",
-            },
-        )
-        mp = (
-            MappingProblem(adataref, adatasp)
-            .prepare(
-                batch_key="batch",
-                sc_attr={
-                    "attr": "X",
-                },
-            )
-            .solve()
-        )
-        assert SOLUTIONS_PATH.exists()
-        with open(SOLUTIONS_PATH, "rb") as fname:
-            sol = pickle.load(fname)
-        mp_mock._solutions = sol
-
-        assert mp_mock.solutions.keys() == mp.solutions.keys()
-        for k in mp_mock.solutions:
-            np.testing.assert_almost_equal(mp_mock.solutions[k].cost, mp.solutions[k].cost, decimal=6)
-            np.testing.assert_almost_equal(
-                mp_mock.solutions[k].transport_matrix, mp.solutions[k].transport_matrix, decimal=6
-            )

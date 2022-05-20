@@ -1,6 +1,4 @@
-from math import acos
 from pathlib import Path
-import pickle
 
 import pytest
 
@@ -10,7 +8,6 @@ from anndata import AnnData
 
 from moscot.problems.space import AlignmentProblem
 from moscot.problems._base_problem import OTProblem
-from tests.problems.space.conftest import ANGLES
 
 SOLUTIONS_PATH = Path("./tests/data/alignment_solutions.pkl")  # base is moscot
 
@@ -81,46 +78,3 @@ class TestAlignmentProblem:
         assert np.all([sol.b is not None for sol in ap.solutions.values()])
         assert np.all([sol.converged for sol in ap.solutions.values()])
         # assert np.allclose(*[sol.cost for sol in problem.solutions.values()]) # nan returned
-
-    def test_analysis(self, adata_space_rotate: AnnData):
-        adata_ref = adata_space_rotate.copy()
-        problem = AlignmentProblem(adata=adata_ref).prepare(batch_key="batch").solve(scale_cost=False)
-        categories = adata_space_rotate.obs.batch.cat.categories
-
-        for ref in categories:
-            problem.align(reference=ref, mode="affine")
-            problem.align(reference=ref, mode="warp")
-            for c1, c2 in zip(categories, categories[1:]):
-                np.testing.assert_array_almost_equal(
-                    adata_ref[adata_ref.obs.batch == c1].obsm["spatial_warp"],
-                    adata_ref[adata_ref.obs.batch == c2].obsm["spatial_warp"],
-                    decimal=6,
-                )
-                np.testing.assert_array_almost_equal(
-                    adata_ref[adata_ref.obs.batch == c1].obsm["spatial_affine"],
-                    adata_ref[adata_ref.obs.batch == c2].obsm["spatial_affine"],
-                    decimal=6,
-                )
-                angles = sorted(
-                    round(np.rad2deg(acos(arr[0, 0])))
-                    for arr in adata_ref.uns["spatial"]["alignment_metadata"].values()
-                    if isinstance(arr, np.ndarray)
-                )
-                assert set(angles).issubset(ANGLES)
-            assert adata_ref.obsm["spatial_warp"].shape == adata_space_rotate.obsm["spatial"].shape
-
-    def test_regression_testing(self, adata_space_rotate: AnnData):
-
-        ap_mock = AlignmentProblem(adata=adata_space_rotate).prepare(batch_key="batch")
-        ap = AlignmentProblem(adata=adata_space_rotate).prepare(batch_key="batch").solve(alpha=0.5, epsilon=1)
-        assert SOLUTIONS_PATH.exists()
-        with open(SOLUTIONS_PATH, "rb") as fname:
-            sol = pickle.load(fname)
-        ap_mock._solutions = sol
-
-        assert ap_mock.solutions.keys() == ap.solutions.keys()
-        for k in ap_mock.solutions:
-            np.testing.assert_almost_equal(ap_mock.solutions[k].cost, ap.solutions[k].cost, decimal=6)
-            np.testing.assert_almost_equal(
-                ap_mock.solutions[k].transport_matrix, ap.solutions[k].transport_matrix, decimal=6
-            )
