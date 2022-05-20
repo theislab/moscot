@@ -15,7 +15,7 @@ import anndata as ad
 
 from tests._utils import Geom_t
 
-ANGLES = [0, 30, 60]
+ANGLES = (0, 30, 60)
 
 
 config.update("jax_enable_x64", True)

@@ -77,7 +77,7 @@ class SpatialAlignmentAnalysisMixin(AnalysisMixin):
         self,
         reference: Any,
         mode: Literal["warp", "affine"] = "warp",
-        copy: bool = False,
+        inplace: bool = False,
     ) -> Optional[Union[npt.ArrayLike, Tuple[npt.ArrayLike, Dict[Any, npt.ArrayLike]]]]:
         """Alignemnt method."""
         if reference not in self._policy._cat.categories:
@@ -89,10 +89,10 @@ class SpatialAlignmentAnalysisMixin(AnalysisMixin):
         aligned_basis = np.vstack([aligned_maps[k] for k in self._policy._cat.categories])
 
         if mode == "affine":
-            if copy:
+            if inplace:
                 return aligned_basis, aligned_metadata
             self.adata.uns[self.spatial_key]["alignment_metadata"] = aligned_metadata
-        if copy:
+        if inplace:
             return aligned_basis
         self.adata.obsm[f"{self.spatial_key}_{mode}"] = aligned_basis
 
@@ -160,7 +160,7 @@ class SpatialMappingAnalysisMixin(AnalysisMixin):
         """Return imputation of spatial expression of given genes."""
         gexp_sc = self.adata_sc.X if not issparse(self.adata_sc.X) else self.adata_sc.X.A
         pred_list = []
-        for _, prob_val in self.solutions.items():
+        for prob_val in self.solutions.values():
             pred_list.append(prob_val.pull(gexp_sc, scale_by_marginals=True))
         adata_pred = AnnData(np.nan_to_num(np.vstack(pred_list), nan=0.0, copy=False))
         adata_pred.obs_names = self.adata.obs_names.values.copy()

@@ -35,13 +35,11 @@ class AlignmentProblem(SingleCompoundProblem, SpatialAlignmentAnalysisMixin):
         self,
         alpha: Optional[float] = 0.4,
         epsilon: Optional[float] = 1e-1,
-        rank: Optional[int] = None,
         scale_cost: str = "mean",
         **kwargs: Any,
     ) -> "AlignmentProblem":
         """Solve method."""
-        rank = -1 if rank is None else rank
-        return super().solve(alpha=alpha, epsilon=epsilon, rank=rank, scale_cost=scale_cost, **kwargs)
+        return super().solve(alpha=alpha, epsilon=epsilon, scale_cost=scale_cost, **kwargs)
 
     @property
     def _base_problem_type(self) -> Type[B]:

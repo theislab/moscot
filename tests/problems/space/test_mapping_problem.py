@@ -61,10 +61,7 @@ class TestMappingProblem:
 
     @pytest.mark.parametrize(
         ("epsilon", "alpha", "rank"),
-        [
-            (1e-2, 0.9, None),
-            (2, 0.5, None),
-        ],  # TODO(giovp): rank doesn't work?
+        [(1e-2, 0.9, -1), (2, 0.5, 10), (2, 0.1, -1)],
     )
     @pytest.mark.parametrize("sc_attr", [{"attr": "X"}, {"attr": "obsm", "key": "X_pca"}])
     @pytest.mark.parametrize("var_names", [None, [], [str(i) for i in range(20)]])
@@ -78,15 +75,11 @@ class TestMappingProblem:
         var_names: Optional[List[Optional[str]]],
     ):
         adataref, adatasp = _adata_spatial_split(adata_mapping)
-        mp = (
-            MappingProblem(adataref, adatasp)
-            .prepare(batch_key="batch", sc_attr=sc_attr, var_names=var_names)
-            .solve(epsilon=epsilon, alpha=alpha, rank=rank)
-        )
+        mp = MappingProblem(adataref, adatasp)
+        mp = mp.prepare(batch_key="batch", sc_attr=sc_attr, var_names=var_names)
+        mp = mp.solve(epsilon=epsilon, alpha=alpha, rank=rank)
 
         epsilon = 1.0 if epsilon is None else epsilon
-        False if rank is None else True
-        rank = -1 if rank is None else rank
         for prob_key in mp:
             assert mp[prob_key].solution.rank == rank
             assert mp[prob_key].solution.converged

@@ -47,17 +47,14 @@ class TestAlignmentProblem:
 
     @pytest.mark.parametrize(
         ("epsilon", "alpha", "rank"),
-        [(1, 0.9, None), (1, 0.5, None), (0.1, 0.1, None)],  # TODO(giovp): rank doesn't work?
-    )  # can't set rank
+        [(1, 0.9, -1), (1, 0.5, 10), (0.1, 0.1, -1)],
+    )
     def test_solve_balance(self, adata_space_rotate: AnnData, epsilon: float, alpha: float, rank: int):
         ap = (
             AlignmentProblem(adata=adata_space_rotate)
             .prepare(batch_key="batch")
             .solve(epsilon=epsilon, alpha=alpha, rank=rank)
         )
-        epsilon = 1.0 if epsilon is None else epsilon
-        False if rank is None else True
-        rank = -1 if rank is None else rank
         for prob_key in ap:
             assert ap[prob_key].solution.rank == rank
             assert ap[prob_key].solution.converged
@@ -67,7 +64,7 @@ class TestAlignmentProblem:
         assert np.all([np.all(~np.isnan(sol.transport_matrix)) for sol in ap.solutions.values()])
 
     def test_solve_unbalanced(self, adata_space_rotate: AnnData):  # unclear usage yet
-        tau_a, tau_b = [1, 1.2]
+        tau_a, tau_b = [0.8, 1]
         a = b = np.ones(100)
         ap = (
             AlignmentProblem(adata=adata_space_rotate)
