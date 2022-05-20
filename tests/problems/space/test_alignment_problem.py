@@ -59,7 +59,7 @@ class TestAlignmentProblem:
             assert ap[prob_key].solution.converged
 
         assert np.allclose(*(sol.cost for sol in ap.solutions.values()))
-        assert np.testing.assert_array_equal([sol.converged for sol in ap.solutions.values()])
+        assert np.all([sol.converged for sol in ap.solutions.values()])
         assert np.all([np.all(~np.isnan(sol.transport_matrix)) for sol in ap.solutions.values()])
 
     def test_solve_unbalanced(self, adata_space_rotate: AnnData):  # unclear usage yet
