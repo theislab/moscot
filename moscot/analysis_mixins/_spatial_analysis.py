@@ -141,28 +141,27 @@ class SpatialMappingAnalysisMixin(AnalysisMixin):
         cor = pearsonr if corr_method == "pearson" else spearmanr
         corr_dic = {}
         gexp_sc = self.adata_sc[:, var_sc].X if not issparse(self.adata_sc.X) else self.adata_sc[:, var_sc].X.A
-        for prob_key, prob_val in self.solutions.items():
+        for key, val in self.solutions.items():
             index_obs: List[Union[bool, int]] = (
-                self.adata.obs[self._policy._subset_key] == prob_key[0]
+                self.adata.obs[self._policy._subset_key] == key[0]
                 if self._policy._subset_key is not None
                 else np.arange(self.adata_sp.shape[0])
             )
-            gexp_sp = (
-                self.adata[index_obs, var_sc].X if not issparse(self.adata.X) else self.adata[index_obs, var_sc].X.A
-            )
-            gexp_pred_sp = prob_val.pull(gexp_sc, scale_by_marginals=True)
+            gexp_sp = self.adata[index_obs, var_sc].X
+            if issparse(gexp_sp):
+                # TODO(giovp): in future, logg if too large
+                gexp_sp = gexp_sp.A
+            gexp_pred_sp = val.pull(gexp_sc, scale_by_marginals=True)
             corr_val = [cor(gexp_pred_sp[:, gi], gexp_sp[:, gi])[0] for gi, _ in enumerate(var_sc)]
-            corr_dic[prob_key] = pd.Series(corr_val, index=var_sc)
+            corr_dic[key] = pd.Series(corr_val, index=var_sc)
 
         return corr_dic
 
     def impute(self) -> AnnData:
         """Return imputation of spatial expression of given genes."""
         gexp_sc = self.adata_sc.X if not issparse(self.adata_sc.X) else self.adata_sc.X.A
-        pred_list = []
-        for prob_val in self.solutions.values():
-            pred_list.append(prob_val.pull(gexp_sc, scale_by_marginals=True))
+        pred_list = [val.pull(gexp_sc, scale_by_marginals=True) for val in self.solutions.values]
         adata_pred = AnnData(np.nan_to_num(np.vstack(pred_list), nan=0.0, copy=False))
-        adata_pred.obs_names = self.adata.obs_names.values.copy()
-        adata_pred.var_names = self.adata_sc.var_names.values.copy()
+        adata_pred.obs_names = self.adata.obs_names.copy()
+        adata_pred.var_names = self.adata_sc.var_names.copy()
         return adata_pred

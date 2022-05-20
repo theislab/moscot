@@ -1,5 +1,6 @@
 from math import cos, sin
 from typing import List, Tuple, Optional
+import random
 
 from scipy.sparse import csr_matrix
 import pandas as pd
@@ -140,8 +141,9 @@ def gt_temporal_adata() -> AnnData:
 
 @pytest.fixture()
 def adata_space_rotate() -> AnnData:
+    seed = random.randint(0, 422)
     grid = _make_grid(10)
-    adatas = _make_adata(grid, n=3)
+    adatas = _make_adata(grid, n=len(ANGLES), seed=seed)
     for adata, angle in zip(adatas, ANGLES):
         theta = np.deg2rad(angle)
         rot = np.array([[cos(theta), -sin(theta)], [sin(theta), cos(theta)]])
@@ -155,8 +157,9 @@ def adata_space_rotate() -> AnnData:
 
 @pytest.fixture()
 def adata_mapping() -> AnnData:
+    seed = random.randint(0, 422)
     grid = _make_grid(10)
-    adataref, adata1, adata2 = _make_adata(grid, n=3)
+    adataref, adata1, adata2 = _make_adata(grid, n=3, seed=seed)
     sc.pp.pca(adataref)
 
     adata = ad.concat([adataref, adata1, adata2], label="batch", join="outer")
@@ -173,8 +176,8 @@ def _make_grid(grid_size: int) -> npt.ArrayLike:
     return X_orig_single
 
 
-def _make_adata(grid: npt.ArrayLike, n: int) -> List[AnnData]:
-    rng = np.random.default_rng(42)
+def _make_adata(grid: npt.ArrayLike, n: int, seed) -> List[AnnData]:
+    rng = np.random.default_rng(seed)
     X = rng.normal(size=(100, 60))
     adatas = [AnnData(X=csr_matrix(X), obsm={"spatial": grid.copy()}) for _ in range(n)]
     return adatas

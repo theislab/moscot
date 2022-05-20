@@ -50,14 +50,13 @@ def _make_grid(grid_size: int) -> npt.ArrayLike:
 def _make_adata(grid: npt.ArrayLike, n: int) -> List[AnnData]:
     rng = np.random.default_rng(42)
     X = rng.normal(size=(100, 60))
-    adatas = [AnnData(X=csr_matrix(X), obsm={"spatial": grid.copy()}) for _ in range(n)]
-    return adatas
+    return [AnnData(X=csr_matrix(X), obsm={"spatial": grid.copy()}, dtype=X.dtype) for _ in range(n)]
 
 
 def _adata_split(adata: AnnData) -> Tuple[AnnData, AnnData]:
-    adataref = adata[adata.obs.batch == "0"].copy()
+    adataref = adata[adata.obs["batch"] == "0"].copy()
     adataref.obsm.pop("spatial")
-    adatasp = adata[adata.obs.batch != "0"].copy()
+    adatasp = adata[adata.obs["batch"] != "0"].copy()
     return adataref, adatasp
 
 

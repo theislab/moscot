@@ -1,4 +1,4 @@
-from typing import Dict, List, Optional
+from typing import List, Mapping, Optional
 from pathlib import Path
 
 import pytest
@@ -19,7 +19,7 @@ class TestMappingProblem:
     @pytest.mark.parametrize(
         "joint_attr", [None, "default", {"x_attr": "obsm", "x_key": "X_pca", "y_attr": "obsm", "y_key": "X_pca"}]
     )
-    def test_prepare(self, adata_mapping: AnnData, sc_attr: Dict[str, str], joint_attr: Optional[Dict[str, str]]):
+    def test_prepare(self, adata_mapping: AnnData, sc_attr: Mapping[str, str], joint_attr: Optional[Mapping[str, str]]):
         adataref, adatasp = _adata_spatial_split(adata_mapping)
         expected_keys = [(i, "ref") for i in adatasp.obs.batch.cat.categories]
         n_obs = adataref.shape[0]
@@ -27,7 +27,6 @@ class TestMappingProblem:
         y_n_var = adataref.shape[1] if sc_attr["attr"] == "X" else adataref.obsm["X_pca"].shape[1]
         xy_n_vars = adatasp.X.shape[1] if joint_attr == "default" else adataref.obsm["X_pca"].shape[1]
         mp = MappingProblem(adataref, adatasp)
-        assert len(mp) == 0
         assert mp.problems is None
         assert mp.solutions is None
 
@@ -46,14 +45,14 @@ class TestMappingProblem:
     @pytest.mark.parametrize("var_names", ["0", [], [str(i) for i in range(20)]])
     def test_prepare_varnames(self, adata_mapping: AnnData, var_names: Optional[List[str]]):
         adataref, adatasp = _adata_spatial_split(adata_mapping)
-        problem_kind = (ProblemKind.QUAD_FUSED if len(var_names) else ProblemKind.QUAD).value
+        problem_kind = ProblemKind.QUAD_FUSED if len(var_names) else ProblemKind.QUAD
         n_obs = adataref.shape[0]
         x_n_var = adatasp.obsm["spatial"].shape[1]
         y_n_var = adataref.shape[1] if not len(var_names) else len(var_names)
 
         mp = MappingProblem(adataref, adatasp).prepare(batch_key="batch", sc_attr={"attr": "X"}, var_names=var_names)
         for prob in mp.problems.values():
-            assert prob._problem_kind.value == problem_kind
+            assert prob._problem_kind == problem_kind
             assert prob.shape == (n_obs, n_obs)
             assert prob.x.data.shape == (n_obs, x_n_var)
             assert prob.y.data.shape == (n_obs, y_n_var)
@@ -70,8 +69,8 @@ class TestMappingProblem:
         epsilon: float,
         alpha: float,
         rank: int,
-        sc_attr: Dict[str, str],
-        var_names: Optional[List[Optional[str]]],
+        sc_attr: Mapping[str, str],
+        var_names: Optional[List[str]],
     ):
         adataref, adatasp = _adata_spatial_split(adata_mapping)
         mp = MappingProblem(adataref, adatasp)
