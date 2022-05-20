@@ -106,15 +106,6 @@ class BaseSolverOutput(ABC):
     def __str__(self) -> str:
         return f"{self.__class__.__name__}[{self._format_params(str)}]"
 
-    def __getstate__(self):
-        state = self.__dict__.copy()
-        del state["_output"]  # remove _output from pickled object since it's large
-        return state
-
-    def __setstate__(self, state):
-        self.__dict__.update(state)
-        self._output = None  # create None _output when loading from pickle file
-
 
 class MatrixSolverOutput(BaseSolverOutput, ABC):
     def __init__(self, matrix: npt.ArrayLike):
