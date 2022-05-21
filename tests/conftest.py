@@ -1,20 +1,27 @@
-from typing import Tuple, Optional
+from math import cos, sin
+from typing import List, Tuple, Optional
+import random
 
 from scipy.sparse import csr_matrix
 import pandas as pd
 import pytest
 
 from jax.config import config
+import numpy as np
+import numpy.typing as npt
 
 from anndata import AnnData
+import scanpy as sc
+import anndata as ad
+
+from tests._utils import Geom_t
+
+ANGLES = (0, 30, 60)
+
 
 config.update("jax_enable_x64", True)
-from _utils import Geom_t
 
-from jax import numpy as jnp
-import numpy as np
-
-import scanpy as sc
+import jax.numpy as jnp  # noqa: E402
 
 _gt_temporal_adata = sc.read("tests/data/moscot_temporal_tests.h5ad")
 
@@ -130,3 +137,54 @@ def create_marginals(n: int, m: int, *, uniform: bool = False, seed: Optional[in
 @pytest.fixture()
 def gt_temporal_adata() -> AnnData:
     return _gt_temporal_adata.copy()
+
+
+@pytest.fixture()
+def adata_space_rotate() -> AnnData:
+    seed = random.randint(0, 422)
+    grid = _make_grid(10)
+    adatas = _make_adata(grid, n=len(ANGLES), seed=seed)
+    for adata, angle in zip(adatas, ANGLES):
+        theta = np.deg2rad(angle)
+        rot = np.array([[cos(theta), -sin(theta)], [sin(theta), cos(theta)]])
+        adata.obsm["spatial"] = np.dot(adata.obsm["spatial"], rot)
+
+    adata = ad.concat(adatas, label="batch")
+    adata.uns["spatial"] = {}
+    adata.obs_names_make_unique()
+    return adata
+
+
+@pytest.fixture()
+def adata_mapping() -> AnnData:
+    seed = random.randint(0, 422)
+    grid = _make_grid(10)
+    adataref, adata1, adata2 = _make_adata(grid, n=3, seed=seed)
+    sc.pp.pca(adataref)
+
+    adata = ad.concat([adataref, adata1, adata2], label="batch", join="outer")
+    adata.obs_names_make_unique()
+    return adata
+
+
+def _make_grid(grid_size: int) -> npt.ArrayLike:
+    xlimits = ylimits = [0, 10]
+    x1s = np.linspace(*xlimits, num=grid_size)
+    x2s = np.linspace(*ylimits, num=grid_size)
+    X1, X2 = np.meshgrid(x1s, x2s)
+    X_orig_single = np.vstack([X1.ravel(), X2.ravel()]).T
+    return X_orig_single
+
+
+def _make_adata(grid: npt.ArrayLike, n: int, seed) -> List[AnnData]:
+    rng = np.random.default_rng(seed)
+    X = rng.normal(size=(100, 60))
+    adatas = [AnnData(X=csr_matrix(X), obsm={"spatial": grid.copy()}) for _ in range(n)]
+    return adatas
+
+
+def _adata_spatial_split(adata: AnnData) -> Tuple[AnnData, AnnData]:
+    adata_ref = adata[adata.obs.batch == "0"].copy()
+    adata_ref.obsm.pop("spatial")
+    adata_sp = adata[adata.obs.batch != "0"].copy()
+    return adata_ref, adata_sp

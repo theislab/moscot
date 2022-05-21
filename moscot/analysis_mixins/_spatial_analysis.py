@@ -4,6 +4,7 @@ from scipy.stats import pearsonr, spearmanr
 from scipy.linalg import svd
 from scipy.sparse import issparse
 from typing_extensions import Literal
+from scipy.sparse.linalg import LinearOperator
 import pandas as pd
 
 import numpy as np
@@ -11,6 +12,7 @@ import numpy.typing as npt
 
 from anndata import AnnData
 
+from moscot.problems._subset_policy import StarPolicy
 from moscot.analysis_mixins._base_analysis import AnalysisMixin
 
 
@@ -30,56 +32,70 @@ class SpatialAlignmentAnalysisMixin(AnalysisMixin):
         # TODO: error message for star policy
         # get reference
         src = subs_adata(reference)
+        transport_maps = {reference: src}
+        transport_metadata = {}
         if mode == "affine":
             src -= src.mean(0)
-        dic_transport = {reference: src}
+            transport_metadata = {reference: 0}
+
         # get policy
         full_steps = self._policy._subset
         fwd_steps = self._policy.plan(end=reference)
         bwd_steps = None
         # get mapping function
-        fun_transport = self._affine if mode == "affine" else lambda tmap, _, src: tmap @ src
+        # transport is either affine or simply mat.dot with the source spatial coords
+        _transport = self._affine if mode == "affine" else lambda tmap, _, src: (tmap.dot(src), None)
 
         if not fwd_steps or not set(full_steps).issubset(set(fwd_steps.keys())):
             bwd_steps = self._policy.plan(start=reference)
 
         if len(fwd_steps):
             for (start, end) in fwd_steps.keys():
-                tmap = self._interpolate_transport(start=start, end=end, normalize=True, forward=True)
-                dic_transport[start] = fun_transport(tmap, subs_adata(start), src)
+                tmap = self._interpolate_transport(start=start, end=end, scale_by_marginals=True, forward=True)
+                transport_maps[start], transport_metadata[start] = _transport(tmap, subs_adata(start), src)
 
         if bwd_steps is not None and len(bwd_steps):
             for (start, end) in bwd_steps.keys():
-                tmap = self._interpolate_transport(start=start, end=end, normalize=True, forward=False)
-                dic_transport[end] = fun_transport(tmap.T, subs_adata(end), src)
+                tmap = self._interpolate_transport(start=start, end=end, scale_by_marginals=True, forward=False)
+                transport_maps[end], transport_metadata[end] = _transport(tmap.T, subs_adata(end), src)
 
-        return dic_transport
+        if mode == "affine":
+            return transport_maps, transport_metadata
+        return transport_maps, None
 
-    def _affine(self, tmap: npt.ArrayLike, tgt: npt.ArrayLike, src: npt.ArrayLike) -> npt.ArrayLike:
+    def _affine(
+        self, tmap: Union[npt.ArrayLike, LinearOperator], tgt: npt.ArrayLike, src: npt.ArrayLike
+    ) -> Tuple[npt.ArrayLike, npt.ArrayLike]:
         """Affine transformation."""
         tgt -= tgt.mean(0)
         H = tgt.T.dot(tmap.dot(src))
         U, _, Vt = svd(H)
         R = Vt.T.dot(U.T)
         tgt = R.dot(tgt.T).T
-        return tgt
+        return tgt, R
 
     def align(
         self,
         reference: Any,
         mode: Literal["warp", "affine"] = "warp",
-        copy: bool = False,
-    ) -> Optional[npt.ArrayLike]:
-        """Spatial warp."""
+        inplace: bool = False,
+    ) -> Optional[Union[npt.ArrayLike, Tuple[npt.ArrayLike, Dict[Any, npt.ArrayLike]]]]:
+        """Alignemnt method."""
         if reference not in self._policy._cat.categories:
-            raise ValueError(f"`reference: {reference}` not in policy categories: {self._policy._cat.categories}")
-        aligned_dic = self._interpolate_scheme(reference=reference, mode=mode)
-        aligned_arr = np.vstack([aligned_dic[k] for k in self._policy._cat.categories])
+            raise ValueError(f"`reference: {reference}` not in policy categories: {self._policy._cat.categories}.")
+        if isinstance(self._policy, StarPolicy):
+            if reference != list(self._policy.plan().keys())[0][-1]:
+                raise ValueError(f"Invalid `reference: {reference}` for `policy='star'`.")
+        aligned_maps, aligned_metadata = self._interpolate_scheme(reference=reference, mode=mode)
+        aligned_basis = np.vstack([aligned_maps[k] for k in self._policy._cat.categories])
 
-        if copy:
-            return aligned_arr
-
-        self.adata.obsm[f"{self.spatial_key}_{mode}"] = aligned_arr
+        if mode == "affine":
+            if inplace:
+                return aligned_basis, aligned_metadata
+            self.adata.uns[self.spatial_key]["alignment_metadata"] = aligned_metadata
+        if inplace:
+            return aligned_basis
+        self.adata.obsm[f"{self.spatial_key}_{mode}"] = aligned_basis
 
     @property
     def spatial_key(self) -> Optional[str]:
@@ -88,8 +104,8 @@ class SpatialAlignmentAnalysisMixin(AnalysisMixin):
 
     @spatial_key.setter
     def spatial_key(self, value: Optional[str] = None) -> None:
-        if value not in self.adata.obs.columns:
-            raise KeyError(f"TODO: {value} not found in `adata.obs.columns`")
+        if value not in self.adata.obsm:
+            raise KeyError(f"TODO: {value} not found in `adata.obsm`.")
         # TODO(@MUCDK) check data type -> which ones do we allow
         self._spatial_key = value
 
@@ -120,36 +136,33 @@ class SpatialMappingAnalysisMixin(AnalysisMixin):
         self, var_names: Optional[List[str]] = None, corr_method: Literal["pearson", "spearman"] = "pearson"
     ) -> Mapping[Tuple[str, Any], pd.Series]:
         """Calculate correlation between true and predicted gexp in space."""
-        var_sc = self._filter_vars(var_names, True)
+        var_sc = self._filter_vars(var_names)
         if not len(var_sc):
             raise ValueError("No overlapping `var_names` between ` adata_sc` and `adata_sp`.")
         cor = pearsonr if corr_method == "pearson" else spearmanr
         corr_dic = {}
         gexp_sc = self.adata_sc[:, var_sc].X if not issparse(self.adata_sc.X) else self.adata_sc[:, var_sc].X.A
-        for prob_key, prob_val in self.solution.items():
+        for key, val in self.solutions.items():
             index_obs: List[Union[bool, int]] = (
-                self.adata.obs[self._policy._subset_key] == prob_key[0]
+                self.adata.obs[self._policy._subset_key] == key[0]
                 if self._policy._subset_key is not None
                 else np.arange(self.adata_sp.shape[0])
             )
-            gexp_sp = (
-                self.adata[index_obs, var_sc].X if not issparse(self.adata.X) else self.adata[index_obs, var_sc].X.A
-            )
-            tmap = prob_val._scale_transport_by_marginals(forward=False)
-            gexp_pred_sp = np.dot(tmap, gexp_sc)
+            gexp_sp = self.adata[index_obs, var_sc].X
+            if issparse(gexp_sp):
+                # TODO(giovp): in future, logg if too large
+                gexp_sp = gexp_sp.A
+            gexp_pred_sp = val.pull(gexp_sc, scale_by_marginals=True)
             corr_val = [cor(gexp_pred_sp[:, gi], gexp_sp[:, gi])[0] for gi, _ in enumerate(var_sc)]
-            corr_dic[prob_key] = pd.Series(corr_val, index=var_sc)
+            corr_dic[key] = pd.Series(corr_val, index=var_sc)
 
         return corr_dic
 
     def impute(self) -> AnnData:
         """Return imputation of spatial expression of given genes."""
         gexp_sc = self.adata_sc.X if not issparse(self.adata_sc.X) else self.adata_sc.X.A
-        pred_list = []
-        for _, prob_val in self.solution.items():
-            tmap = prob_val._scale_transport_by_marginals(forward=False)
-            pred_list.append(np.dot(tmap, gexp_sc))
+        pred_list = [val.pull(gexp_sc, scale_by_marginals=True) for val in self.solutions.values()]
         adata_pred = AnnData(np.nan_to_num(np.vstack(pred_list), nan=0.0, copy=False))
-        adata_pred.obs_names = self.adata.obs_names.values.copy()
-        adata_pred.var_names = self.adata_sc.var_names.values.copy()
+        adata_pred.obs_names = self.adata.obs_names.copy()
+        adata_pred.var_names = self.adata_sc.var_names.copy()
         return adata_pred

@@ -1,12 +1,12 @@
 from typing import List, Optional
 
-from _utils import MockBaseSolverOutput
 import pytest
 
 import numpy as np
 
 from anndata import AnnData
 
+from tests._utils import MockBaseSolverOutput
 from moscot.problems.time._lineage import BirthDeathBaseProblem
 
 

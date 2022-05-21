@@ -1,11 +1,13 @@
 from typing import Optional
 
-from _utils import MockSolverOutput, CompoundProblemWithMixin
+from scipy.sparse.linalg import LinearOperator
 import pytest
 
 import numpy as np
 
 from anndata import AnnData
+
+from tests._utils import MockSolverOutput, CompoundProblemWithMixin
 
 
 class TestBaseAnalysisMixin:
@@ -64,8 +66,8 @@ class TestBaseAnalysisMixin:
             assert len(np.concatenate(result[1])) == n_samples
 
     @pytest.mark.parametrize("forward", [True, False])
-    @pytest.mark.parametrize("normalize", [True, False])
-    def test_interpolate_transport(self, gt_temporal_adata: AnnData, forward: bool, normalize: bool):
+    @pytest.mark.parametrize("scale_by_marginals", [True, False])
+    def test_interpolate_transport(self, gt_temporal_adata: AnnData, forward: bool, scale_by_marginals: bool):
         problem = CompoundProblemWithMixin(gt_temporal_adata)
         problem = problem.prepare(
             "day", subset=[(10, 10.5), (10.5, 11), (10, 11)], policy="explicit", callback="local-pca"
@@ -74,8 +76,8 @@ class TestBaseAnalysisMixin:
         problem[10.5, 11]._solution = MockSolverOutput(gt_temporal_adata.uns["tmap_105_11"])
         problem[10, 11]._solution = MockSolverOutput(gt_temporal_adata.uns["tmap_10_11"])
 
-        tmap = problem._interpolate_transport(10, 11, forward=forward, normalize=normalize)
+        tmap = problem._interpolate_transport(10, 11, forward=forward, scale_by_marginals=True)
 
-        assert isinstance(tmap, np.ndarray)
+        assert isinstance(tmap, LinearOperator)
         # TODO(@MUCDK) add regression test after discussing with @giovp what this function should be
         # doing / it is more generic

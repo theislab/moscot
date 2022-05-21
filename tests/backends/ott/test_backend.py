@@ -1,6 +1,5 @@
 from typing import Type, Tuple, Union, Optional
 
-from _utils import ATOL, RTOL, Geom_t
 import pytest
 
 from ott.core import LinearProblem
@@ -12,6 +11,7 @@ from ott.core.gromov_wasserstein import GromovWasserstein, gromov_wasserstein
 import numpy as np
 import jax.numpy as jnp
 
+from tests._utils import ATOL, RTOL, Geom_t
 from moscot.backends.ott import GWSolver, FGWSolver, SinkhornSolver
 from moscot.solvers._output import BaseSolverOutput
 from moscot.backends.ott._output import GWOutput, SinkhornOutput, LRSinkhornOutput

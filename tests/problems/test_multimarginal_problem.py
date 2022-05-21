@@ -2,12 +2,11 @@
 
 from typing import Tuple
 
-from _utils import MockMultiMarginalProblem
-
 import numpy as np
 
 from anndata import AnnData
 
+from tests._utils import MockMultiMarginalProblem
 from moscot.problems import OTProblem
 from moscot.solvers._output import BaseSolverOutput
 

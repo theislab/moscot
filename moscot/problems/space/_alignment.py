@@ -31,6 +31,16 @@ class AlignmentProblem(SingleCompoundProblem, SpatialAlignmentAnalysisMixin):
 
         return super().prepare(x=x, y=y, xy=joint_attr, policy=policy, key=batch_key, reference=reference, **kwargs)
 
+    def solve(
+        self,
+        alpha: Optional[float] = 0.4,
+        epsilon: Optional[float] = 1e-1,
+        scale_cost: str = "mean",
+        **kwargs: Any,
+    ) -> "AlignmentProblem":
+        """Solve method."""
+        return super().solve(alpha=alpha, epsilon=epsilon, scale_cost=scale_cost, **kwargs)
+
     @property
     def _base_problem_type(self) -> Type[B]:
         return OTProblem
