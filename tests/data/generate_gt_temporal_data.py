@@ -31,31 +31,32 @@ tau_b = lam2 / (lam2 + eps)
 seed = 42
 
 config = {
-        "eps": eps,
-        "lam1": lam1,
-        "lam2": lam2,
-        "tau_a": tau_a,
-        "tau_b": tau_b,
-        "key": key,
-        "key_1": key_1,
-        "key_2": key_2,
-        "key_3": key_3,
-        "local_pca": local_pca,
-        "seed": seed,
-    }
+    "eps": eps,
+    "lam1": lam1,
+    "lam2": lam2,
+    "tau_a": tau_a,
+    "tau_b": tau_b,
+    "key": key,
+    "key_1": key_1,
+    "key_2": key_2,
+    "key_3": key_3,
+    "local_pca": local_pca,
+    "seed": seed,
+}
+
 
 def _write_config(adata: AnnData) -> AnnData:
-    adata.uns["eps"]= eps
-    adata.uns["lam1"]= lam1
-    adata.uns["lam2"]= lam2
-    adata.uns["tau_a"]= tau_a
-    adata.uns["tau_b"]= tau_b
-    adata.uns["key"]= key
-    adata.uns["key_1"]= key_1
-    adata.uns["key_2"]= key_2
-    adata.uns["key_3"]= key_3
-    adata.uns["local_pca"]= local_pca
-    adata.uns["seed"]= seed
+    adata.uns["eps"] = eps
+    adata.uns["lam1"] = lam1
+    adata.uns["lam2"] = lam2
+    adata.uns["tau_a"] = tau_a
+    adata.uns["tau_b"] = tau_b
+    adata.uns["key"] = key
+    adata.uns["key_1"] = key_1
+    adata.uns["key_2"] = key_2
+    adata.uns["key_3"] = key_3
+    adata.uns["local_pca"] = local_pca
+    adata.uns["seed"] = seed
     return adata
 
 
@@ -188,16 +189,16 @@ def generate_gt_temporal_data(data_path: str) -> None:
     tp2.solve(epsilon=config["eps"], tau_a=config["tau_a"], tau_b=config["tau_b"], scale_cost="mean")
 
     np.testing.assert_array_almost_equal(
-            np.array(tp[config["key_1"], config["key_2"]].solution.transport_matrix),
-            np.array(tp2[config["key_1"], config["key_2"]].solution.transport_matrix),
+        np.array(tp[config["key_1"], config["key_2"]].solution.transport_matrix),
+        np.array(tp2[config["key_1"], config["key_2"]].solution.transport_matrix),
     )
     np.testing.assert_array_almost_equal(
-            np.array(tp[config["key_2"], config["key_3"]].solution.transport_matrix),
-            np.array(tp2[config["key_2"], config["key_3"]].solution.transport_matrix),
+        np.array(tp[config["key_2"], config["key_3"]].solution.transport_matrix),
+        np.array(tp2[config["key_2"], config["key_3"]].solution.transport_matrix),
     )
     np.testing.assert_array_almost_equal(
-            np.array(tp[config["key_1"], config["key_3"]].solution.transport_matrix),
-            np.array(tp2[config["key_1"], config["key_3"]].solution.transport_matrix),
+        np.array(tp[config["key_1"], config["key_3"]].solution.transport_matrix),
+        np.array(tp2[config["key_1"], config["key_3"]].solution.transport_matrix),
     )
 
     cdata = _write_analysis_output(cdata, tp2, config)

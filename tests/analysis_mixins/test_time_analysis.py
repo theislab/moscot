@@ -13,6 +13,7 @@ from moscot.problems.time._lineage import TemporalProblem
 
 
 class TestTemporalAnalysisMixin:
+    @pytest.mark.fast()
     @pytest.mark.parametrize("forward", [True, False])
     def test_cell_transition_full_pipeline(self, gt_temporal_adata: AnnData, forward: bool):
         config = gt_temporal_adata.uns
@@ -37,6 +38,7 @@ class TestTemporalAnalysisMixin:
         present_cell_type_marginal = marginal[marginal > 0]
         np.testing.assert_almost_equal(present_cell_type_marginal, 1, decimal=5)
 
+    @pytest.mark.fast()
     @pytest.mark.parametrize("forward", [True, False])
     def test_cell_transition_subset_pipeline(self, gt_temporal_adata: AnnData, forward: bool):
         config = gt_temporal_adata.uns
@@ -220,6 +222,7 @@ class TestTemporalAnalysisMixin:
         assert isinstance(result, float)
         np.testing.assert_almost_equal(result, gt_temporal_adata.uns["random_distance_10_105_11"], decimal=4)
 
+    @pytest.mark.fast()
     @pytest.mark.parametrize("only_start", [True, False])
     def test_get_data_pipeline(self, adata_time: AnnData, only_start: bool):
         problem = TemporalProblem(adata_time)
@@ -256,6 +259,7 @@ class TestTemporalAnalysisMixin:
             inter_param = problem._get_interp_param(interpolation_parameter, start, intermediate, end)
             assert inter_param == 0.5
 
+    @pytest.mark.fast()
     def test_cell_transition_regression_notparam(self, adata_time_with_tmap: AnnData):  # TODO(MUCDK): please check.
         problem = TemporalProblem(adata_time_with_tmap)
         problem = problem.prepare("time")

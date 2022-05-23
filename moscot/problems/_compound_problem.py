@@ -454,7 +454,11 @@ class SingleCompoundProblem(CompoundBaseProblem, Generic[K, B], ABC):
 
         if return_linear:
             linear_cost_matrix = data[src_mask, :][:, tgt_mask]
-            return {"xy": TaggedArray(linear_cost_matrix.A if issparse(linear_cost_matrix) else linear_cost_matrix, tag=Tag.COST_MATRIX)}
+            return {
+                "xy": TaggedArray(
+                    linear_cost_matrix.A if issparse(linear_cost_matrix) else linear_cost_matrix, tag=Tag.COST_MATRIX
+                )
+            }
 
         return {
             "x": TaggedArray(data[src_mask, :][:, src_mask], tag=Tag.COST_MATRIX),

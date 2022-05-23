@@ -12,6 +12,7 @@ from moscot.problems.time._lineage import BirthDeathBaseProblem
 
 # TODO(@MUCDK) put file in different folder according to moscot.problems structure
 class TestBirthDeathBaseProblem:
+    @pytest.mark.fast()
     def test_initialisation_pipeline(self, adata_time_marginal_estimations: AnnData):
         adata_x = adata_time_marginal_estimations[adata_time_marginal_estimations.obs["time"] == 0]
         adata_y = adata_time_marginal_estimations[adata_time_marginal_estimations.obs["time"] == 1]
@@ -23,6 +24,7 @@ class TestBirthDeathBaseProblem:
         assert isinstance(prob.a, np.ndarray)
         assert isinstance(prob.b, np.ndarray)
 
+    @pytest.mark.fast()
     @pytest.mark.parametrize(
         "adata_obs_keys",
         [
@@ -62,6 +64,7 @@ class TestBirthDeathBaseProblem:
             if not source:
                 assert len(np.unique(a_estimated)) == 1
 
+    @pytest.mark.fast()
     def test_add_marginals_pipeline(self, adata_time_marginal_estimations: AnnData):
         adata_x = adata_time_marginal_estimations[adata_time_marginal_estimations.obs["time"] == 0]
         adata_y = adata_time_marginal_estimations[adata_time_marginal_estimations.obs["time"] == 1]
@@ -87,6 +90,7 @@ class TestBirthDeathBaseProblem:
 
         assert len(np.unique(prob._b[-1])) == 1
 
+    @pytest.mark.fast()
     def test_growth_rates(self, adata_time_marginal_estimations: AnnData):
         adata_x = adata_time_marginal_estimations[adata_time_marginal_estimations.obs["time"] == 0]
         adata_y = adata_time_marginal_estimations[adata_time_marginal_estimations.obs["time"] == 1]

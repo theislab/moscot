@@ -23,6 +23,7 @@ class TestGeneralProblem:
 
         assert isinstance(prob.solution, BaseSolverOutput)
 
+    @pytest.mark.fast()
     def test_output(self, adata_x: AnnData, x: Geom_t):
         problem = OTProblem(adata_x)
         problem._solution = MockSolverOutput(x * x.T)
