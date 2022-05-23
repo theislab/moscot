@@ -204,8 +204,13 @@ class TestTemporalProblem:
         key_3 = config["key_3"]
 
         tp = TemporalProblem(adata)
-        tp = tp.prepare(key, subset=[(key_1, key_2), (key_2, key_3), (key_1, key_3)], policy="explicit", callback_kwargs={"joint_space": False})
-        tp = tp.solve(epsilon=eps, scale_cost="mean", tau_a=lam1/(lam1+eps), tau_b=lam2/(lam2+eps))
+        tp = tp.prepare(
+            key,
+            subset=[(key_1, key_2), (key_2, key_3), (key_1, key_3)],
+            policy="explicit",
+            callback_kwargs={"joint_space": False},
+        )
+        tp = tp.solve(epsilon=eps, scale_cost="mean", tau_a=lam1 / (lam1 + eps), tau_b=lam2 / (lam2 + eps))
 
         np.testing.assert_array_almost_equal(
             adata.uns["tmap_10_105"],
