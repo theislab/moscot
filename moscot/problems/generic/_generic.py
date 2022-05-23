@@ -1,5 +1,5 @@
 from types import MappingProxyType
-from typing import Any, Literal, Mapping, Optional, Tuple, Type, Union
+from typing import Any, Type, Tuple, Union, Literal, Mapping, Optional
 
 from anndata import AnnData
 

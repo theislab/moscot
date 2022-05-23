@@ -287,8 +287,8 @@ class TemporalAnalysisMixin(AnalysisMixin):
                 tag = self.problems[(start_, end_)].xy
             if tag != "point_cloud":
                 raise ValueError(
-                    f"TODO: This method requires the data to be stored as point_clouds. It is currently stored "
-                    "as {self._problems[(start_, end_)].xy[0].tag}"
+                    "TODO: This method requires the data to be stored as point_clouds. It is currently stored "
+                    f"as {self._problems[(start_, end_)].xy[0].tag}."
                 )
             if start_ == key:
                 source_data = self._problems[(start_, end_)].xy[0].data
