@@ -130,10 +130,9 @@ class TemporalAnalysisMixin(AnalysisMixin):
         early_cells: Union[str, Mapping[str, Sequence[Any]]],
         late_cells: Union[str, Mapping[str, Sequence[Any]]],
         forward: bool = False,  # return value will be row-stochastic if forward=True, else column-stochastic
-        statistic: Literal["mean", "max"] = "mean",
-        aggregation_level: Literal["group", "cell"] = "group",
-        statistic_kwargs: Mapping[str, Any] = MappingProxyType({}),
-        **kwargs: Any,
+        aggregation: Literal["group", "cell"] = "group",
+        statistic: Literal["mean", "top_k_mean"] = "mean",
+        top_k: int = 5,
     ) -> pd.DataFrame:
         """
         Compute a grouped cell transition matrix.
@@ -163,14 +162,24 @@ class TemporalAnalysisMixin(AnalysisMixin):
                 - if `late_cells` is of type `Mapping` its `key` should correspond to a key in
                   :attr:`anndata.AnnData.obs` and its `value` to a subset of categories present in
                   `anndata.AnnData.obs` ``['{late_cells.keys()[0]}']``
+        forward
+            If `True` computes the ancestors of the cells corresponding to time point `late`, else the descendants of 
+            the cells corresponding to time point `early`.
+        aggregation:
+            If `aggregation` is `group` the transition probabilities from the groups defined by `early_cells` are
+            returned. If `aggregation` is `cell` the transition probablities for each cell are returned.
+        statistic
+            How to aggregate the distribution a cell is mapped onto. If `top_k_mean` only the `top_k` most likely ones
+            are considered, all other probabilities are set to 0.
+        top_k
+            If `statistic` is `top_k_mean` ignore all matches of one cell in the other 
+            distributions which are not among the top k ones.
 
         Returns
         -------
         Transition matrix of groups between time points.
         """
-        if aggregation_level == "mean" and statistic == "mean":
-            logging.warning("TODO: The mean on the group level is the same  as the mean on the cell level. Continuing on the group level.")
-            aggregation_level = "group"
+        _split_mass = (statistic=="top_k_mean") or (aggregation=="cell") 
         _early_cells_key, _early_cells = self._validate_args_cell_transition(early_cells)
         _late_cells_key, _late_cells = self._validate_args_cell_transition(late_cells)
 
@@ -198,8 +207,7 @@ class TemporalAnalysisMixin(AnalysisMixin):
                         normalize=True,
                         return_all=False,
                         scale_by_marginals=False,
-                        split_mass=(aggregation_level=="cell"),
-                        **kwargs,
+                        split_mass=_split_mass,
                     )
                 except ValueError as e:
                     if "no mass" in str(e):  # TODO: adapt
@@ -209,6 +217,9 @@ class TemporalAnalysisMixin(AnalysisMixin):
                         result = np.nan
                     else:
                         raise
+                if statistic=="top_k_mean":
+                    result = self._cell_transition_aggregation(result, statistic, top_k)
+
                 df_late.loc[:, "distribution"] = result
                 target_cell_dist = df_late[df_late[_late_cells_key].isin(_late_cells)].groupby(_late_cells_key).sum()
                 target_cell_dist /= target_cell_dist.sum()
@@ -225,7 +236,7 @@ class TemporalAnalysisMixin(AnalysisMixin):
                 transition_table.loc[:, subset] = np.nan
                 continue
             try:
-                result = self.pull(
+                result = np.array(self.pull(
                     start=start,
                     end=end,
                     data=_late_cells_key,
@@ -233,37 +244,32 @@ class TemporalAnalysisMixin(AnalysisMixin):
                     normalize=True,
                     return_all=False,
                     scale_by_marginals=False,
-                    split_mass=(aggregation_level=="cell"),
-                    **kwargs,
-                )
+                    split_mass=_split_mass,
+                ))
             except ValueError as e:
                 if "no mass" in str(e):  # TODO: adapt
                     logging.info(f"No data points corresponding to {subset} found in `adata.obs[groups_key]` for {end}")
                     result = np.nan
                 else:
                     raise
-            if aggregation_level=="cell":
-                if statistic == "max":
-                    k = statistic_kwargs.pop("k", 5)
-                    if len(result) <= k:
-                        raise ValueError("TODO: `k` must be smaller than number of data points in distribution.")
-                    col_idx = np.array(range(result.shape[1]))
-                    low_col_k_indices = np.argpartition(result, -k, axis=0)[:-k,:]
-                    result[(low_col_k_indices.flatten(order="F"), np.repeat(col_idx, len(result)-k))] = 0
-                else:
-                    raise NotImplementedError("TODO: not implemented.")
-                result = result.sum(axis=1)
+            if statistic=="top_k_mean":
+                result = self._cell_transition_aggregation(result, statistic, top_k)
 
-            df_early.loc[:, "distribution"] = result
-            target_cell_dist = df_early[df_early[_early_cells_key].isin(_early_cells)].groupby(_early_cells_key).sum() #TODO: make general aggregation stats
-            target_cell_dist /= target_cell_dist.sum()
-            transition_table.loc[:, subset] = [
-                target_cell_dist.loc[cell_type, "distribution"]
-                if cell_type in target_cell_dist.distribution.index
-                else 0
-                for cell_type in _early_cells
-            ]
-        return transition_table
+            if aggregation == "group":
+                df_early.loc[:, "distribution"] = result
+                filtered_df_early = df_early[df_early[_early_cells_key].isin(_early_cells)]
+            
+                target_cell_dist = filtered_df_early.groupby(_early_cells_key).sum()
+                target_cell_dist /= target_cell_dist.sum()
+                transition_table.loc[:, subset] = [
+                    target_cell_dist.loc[cell_type, "distribution"]
+                    if cell_type in target_cell_dist.distribution.index
+                    else 0
+                    for cell_type in _early_cells
+                ]
+                return transition_table
+            elif aggregation == "cell":
+                df_early # assign multiple results to the early index and then aggregate all of them independently, i.e. df_early.loc[:,{all columns}].groupby(_early_cells_key).sum() which gives (n_cell_types_source_dist x n_data_points_target) matrix
 
     def _validate_args_cell_transition(
         self, arg: Union[str, Mapping[str, Sequence[Any]]]
@@ -603,6 +609,18 @@ class TemporalAnalysisMixin(AnalysisMixin):
         return (
             interpolation_parameter if interpolation_parameter is not None else (intermediate - start) / (end - start)
         )
+
+    @staticmethod
+    def _cell_transition_aggregation(result: np.ndarray, statistic:  Literal["mean", "top_k_mean"] = "mean", top_k: int = 5) -> np.ndarray:
+        if statistic == "top_k_mean":
+            if len(result) <= top_k:
+                raise ValueError("TODO: `k` must be smaller than number of data points in distribution.")
+            col_idx = np.array(range(result.shape[1]))
+            low_col_k_indices = np.argpartition(result, -top_k, axis=0)[:-top_k,:]
+            result[(low_col_k_indices.flatten(order="F"), np.repeat(col_idx, len(result)-top_k))] = 0
+        else:
+            raise NotImplementedError("TODO: not implemented.")
+        return result.sum(axis=1)
 
     def _dict_to_adata(self, d: Mapping[str, npt.ArrayLike], obs_key: str) -> None:
         # TODO: np.full

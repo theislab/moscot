@@ -70,7 +70,7 @@ class BaseProblem(ABC):
     ) -> npt.ArrayLike:
         def _split_mass(arr: npt.ArrayLike) -> npt.ArrayLike:
             non_zero_idxs = np.where(arr!=0)[0]
-            data = np.zeros(len(arr), len(non_zero_idxs))
+            data = np.zeros((len(arr), len(non_zero_idxs)))
             data[non_zero_idxs, np.array(range(len(non_zero_idxs)))] = 1
             return data
 
