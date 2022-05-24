@@ -6,10 +6,12 @@ import numpy.typing as npt
 
 # adapted from https://github.com/broadinstitute/wot/blob/master/notebooks/Notebook-2-compute-transport-maps.ipynb
 def logistic(x: npt.ArrayLike, L: float, k: float, center: float = 0) -> npt.ArrayLike:
+    """Logistic function."""
     return L / (1 + np.exp(-k * (x - center)))
 
 
 def gen_logistic(p: npt.ArrayLike, beta_max: float, beta_min: float, center: float, width: float) -> npt.ArrayLike:
+    """Shifted logistic function."""
     return beta_min + logistic(p, L=beta_max - beta_min, k=4 / width, center=center)
 
 
@@ -21,6 +23,7 @@ def beta(
     width: float = 0.5,
     **_: Any,
 ) -> npt.ArrayLike:
+    """Birth process."""
     return gen_logistic(p, beta_max, beta_min, center, width)
 
 
@@ -32,11 +35,12 @@ def delta(
     width: float = 0.2,
     **kwargs: Any,
 ) -> npt.ArrayLike:
+    """Death process."""
     return gen_logistic(a, delta_max, delta_min, center, width)
 
 
 class MarkerGenes:
-    """taken from https://github.com/theislab/cellrank/blob/master/cellrank/external/kernels/_utils.py"""
+    """taken from https://github.com/theislab/cellrank/blob/master/cellrank/external/kernels/_utils.py."""
 
     # fmt: off
     _proliferation_markers: Mapping[str, Sequence[str]] = {

@@ -43,6 +43,7 @@ class SpatioTemporalProblem(TemporalAnalysisMixin, BirthDeathMixin, AlignmentPro
             If `joint_attr` is a string the data is assumed to be found in :attr:`anndata.AnnData.obsm`.
             If `joint_attr` is a dictionary the dictionary is supposed to contain the attribute of
             :attr:`anndata.AnnData` as a key and the corresponding attribute as a value.
+
         %(policy)s
         %(marginal_kwargs)s
         %(a)s

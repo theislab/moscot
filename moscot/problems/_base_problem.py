@@ -55,7 +55,7 @@ class BaseProblem(ABC):
 
     @property
     def adata(self) -> AnnData:
-        """%(adata)s"""
+        """%(adata)s."""
         return self._adata
 
     # TODO(michalk8): move below?

@@ -203,4 +203,5 @@ class BirthDeathBaseProblem(MultiMarginalProblem):
 
     @property
     def growth_rates(self) -> npt.ArrayLike:
+        """Return the growth rates of the cells in the source distribution."""
         return np.power(self.a, 1 / (self._target - self._source))

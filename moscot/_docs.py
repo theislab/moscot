@@ -53,7 +53,8 @@ tau_a
 _scale_by_marginals = """\
 scale_by_marginals
     If `True` the transport map is scaled to be a stochastic matrix by multiplying the resulting mass
-            by the inverse of the marginals, TODO maybe EXAMPLE"""
+            by the inverse of the marginals, TODO maybe EXAMPLE
+"""
 _normalize = """\
 normalize
     Whether to normalize the result to 1 after the transport map has been applied."""
