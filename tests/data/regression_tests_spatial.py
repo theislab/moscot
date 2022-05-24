@@ -26,7 +26,6 @@ def adata_space_rotate() -> AnnData:
 
     adata = ad.concat(adatas, label="batch")
     adata.uns["spatial"] = {}
-    adata.obs_names_make_unique()
     return adata
 
 
@@ -36,7 +35,6 @@ def adata_mapping() -> AnnData:
     sc.pp.pca(adataref)
 
     adata = ad.concat([adataref, adata1, adata2], label="batch", join="outer")
-    adata.obs_names_make_unique()
     return adata
 
 
@@ -52,51 +50,34 @@ def _make_grid(grid_size: int) -> npt.ArrayLike:
 def _make_adata(grid: npt.ArrayLike, n: int) -> List[AnnData]:
     rng = np.random.default_rng(42)
     X = rng.normal(size=(100, 60))
-    adatas = [AnnData(X=csr_matrix(X), obsm={"spatial": grid.copy()}) for _ in range(n)]
-    return adatas
+    return [AnnData(X=csr_matrix(X), obsm={"spatial": grid.copy()}, dtype=X.dtype) for _ in range(n)]
 
 
 def _adata_split(adata: AnnData) -> Tuple[AnnData, AnnData]:
-    adataref = adata[adata.obs.batch == "0"].copy()
+    adataref = adata[adata.obs["batch"] == "0"].copy()
     adataref.obsm.pop("spatial")
-    adatasp = adata[adata.obs.batch != "0"].copy()
+    adatasp = adata[adata.obs["batch"] != "0"].copy()
     return adataref, adatasp
 
 
 def generate_alignment_data() -> None:
     adata = adata_space_rotate()
-    problem = (
-        AlignmentProblem(adata=adata)
-        .prepare(
-            batch_key="batch",
-        )
-        .solve(alpha=0.5, epsilon=1)
-    )
+    ap = AlignmentProblem(adata=adata)
+    ap = ap.prepare(batch_key="batch")
+    ap = ap.solve(alpha=0.5, epsilon=1)
 
     with open("alignment_solutions.pkl", "wb") as fname:
-        pickle.dump(problem.solutions, fname)
-
-    return None
+        pickle.dump(ap.solutions, fname)
 
 
 def generate_mapping_data() -> None:
     adata = adata_mapping()
     adataref, adatasp = _adata_split(adata)
-    problem = (
-        MappingProblem(adataref, adatasp)
-        .prepare(
-            batch_key="batch",
-            sc_attr={
-                "attr": "X",
-            },
-        )
-        .solve()
-    )
-
+    mp = MappingProblem(adataref, adatasp)
+    mp = mp.prepare(batch_key="batch", sc_attr={"attr": "X"})
+    mp = mp.solve()
     with open("mapping_solutions.pkl", "wb") as fname:
-        pickle.dump(problem.solutions, fname)
-
-    return None
+        pickle.dump(mp.solutions, fname)
 
 
 if __name__ == "__main__":

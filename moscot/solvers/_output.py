@@ -119,16 +119,16 @@ class MatrixSolverOutput(BaseSolverOutput, ABC):
 
     @property
     def transport_matrix(self) -> npt.ArrayLike:
-        """%(transport_matrix)s ."""
+        """%(transport_matrix)s"""  # noqa: D400
         return self._matrix
 
     @property
     def shape(self) -> Tuple[int, int]:
-        """%(shape)s ."""
+        """%(shape)s"""  # noqa: D400
         return self.transport_matrix.shape
 
     @property
-    def potentials(self):
+    def potentials(self):  # TODO(michalk8): refactor
         raise NotImplementedError("This solver does not allow for potentials")
 
 

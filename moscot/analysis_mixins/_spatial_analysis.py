@@ -43,6 +43,7 @@ class SpatialAlignmentAnalysisMixin(AnalysisMixin):
         fwd_steps = self._policy.plan(end=reference)
         bwd_steps = None
         # get mapping function
+        # transport is either affine or simply mat.dot with the source spatial coords
         _transport = self._affine if mode == "affine" else lambda tmap, _, src: (tmap.dot(src), None)
 
         if not fwd_steps or not set(full_steps).issubset(set(fwd_steps.keys())):
@@ -77,7 +78,7 @@ class SpatialAlignmentAnalysisMixin(AnalysisMixin):
         self,
         reference: Any,
         mode: Literal["warp", "affine"] = "warp",
-        copy: bool = False,
+        inplace: bool = False,
     ) -> Optional[Union[npt.ArrayLike, Tuple[npt.ArrayLike, Dict[Any, npt.ArrayLike]]]]:
         """Alignemnt method."""
         if reference not in self._policy._cat.categories:
@@ -89,10 +90,10 @@ class SpatialAlignmentAnalysisMixin(AnalysisMixin):
         aligned_basis = np.vstack([aligned_maps[k] for k in self._policy._cat.categories])
 
         if mode == "affine":
-            if copy:
+            if inplace:
                 return aligned_basis, aligned_metadata
             self.adata.uns[self.spatial_key]["alignment_metadata"] = aligned_metadata
-        if copy:
+        if inplace:
             return aligned_basis
         self.adata.obsm[f"{self.spatial_key}_{mode}"] = aligned_basis
 
@@ -104,7 +105,7 @@ class SpatialAlignmentAnalysisMixin(AnalysisMixin):
     @spatial_key.setter
     def spatial_key(self, value: Optional[str] = None) -> None:
         if value not in self.adata.obsm:
-            raise KeyError(f"TODO: {value} not found in `adata.obsm`")
+            raise KeyError(f"TODO: {value} not found in `adata.obsm`.")
         # TODO(@MUCDK) check data type -> which ones do we allow
         self._spatial_key = value
 
@@ -141,28 +142,27 @@ class SpatialMappingAnalysisMixin(AnalysisMixin):
         cor = pearsonr if corr_method == "pearson" else spearmanr
         corr_dic = {}
         gexp_sc = self.adata_sc[:, var_sc].X if not issparse(self.adata_sc.X) else self.adata_sc[:, var_sc].X.A
-        for prob_key, prob_val in self.solutions.items():
+        for key, val in self.solutions.items():
             index_obs: List[Union[bool, int]] = (
-                self.adata.obs[self._policy._subset_key] == prob_key[0]
+                self.adata.obs[self._policy._subset_key] == key[0]
                 if self._policy._subset_key is not None
                 else np.arange(self.adata_sp.shape[0])
             )
-            gexp_sp = (
-                self.adata[index_obs, var_sc].X if not issparse(self.adata.X) else self.adata[index_obs, var_sc].X.A
-            )
-            gexp_pred_sp = prob_val.pull(gexp_sc, scale_by_marginals=True)
+            gexp_sp = self.adata[index_obs, var_sc].X
+            if issparse(gexp_sp):
+                # TODO(giovp): in future, logg if too large
+                gexp_sp = gexp_sp.A
+            gexp_pred_sp = val.pull(gexp_sc, scale_by_marginals=True)
             corr_val = [cor(gexp_pred_sp[:, gi], gexp_sp[:, gi])[0] for gi, _ in enumerate(var_sc)]
-            corr_dic[prob_key] = pd.Series(corr_val, index=var_sc)
+            corr_dic[key] = pd.Series(corr_val, index=var_sc)
 
         return corr_dic
 
     def impute(self) -> AnnData:
         """Return imputation of spatial expression of given genes."""
         gexp_sc = self.adata_sc.X if not issparse(self.adata_sc.X) else self.adata_sc.X.A
-        pred_list = []
-        for _, prob_val in self.solutions.items():
-            pred_list.append(prob_val.pull(gexp_sc, scale_by_marginals=True))
+        pred_list = [val.pull(gexp_sc, scale_by_marginals=True) for val in self.solutions.values()]
         adata_pred = AnnData(np.nan_to_num(np.vstack(pred_list), nan=0.0, copy=False))
-        adata_pred.obs_names = self.adata.obs_names.values.copy()
-        adata_pred.var_names = self.adata_sc.var_names.values.copy()
+        adata_pred.obs_names = self.adata.obs_names.copy()
+        adata_pred.var_names = self.adata_sc.var_names.copy()
         return adata_pred

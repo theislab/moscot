@@ -94,7 +94,9 @@ class SpatioTemporalProblem(TemporalAnalysisMixin, BirthDeathMixin, AlignmentPro
         if "b" not in kwargs:
             kwargs["b"] = self.proliferation_key is not None or self.apoptosis_key is not None
 
-        return super().prepare(x=x, y=y, xy=joint_attr, policy=policy, batch_key=time_key, reference=reference, **kwargs)
+        return super().prepare(
+            x=x, y=y, xy=joint_attr, policy=policy, batch_key=time_key, reference=reference, **kwargs
+        )
 
     @property
     def _valid_policies(self) -> Tuple[str, ...]:
