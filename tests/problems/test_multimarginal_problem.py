@@ -2,6 +2,8 @@
 
 from typing import Tuple
 
+import pytest
+
 import numpy as np
 
 from anndata import AnnData
@@ -12,10 +14,12 @@ from moscot.solvers._output import BaseSolverOutput
 
 
 class TestMultiMarginalProblem:
+    @pytest.mark.fast()
     def test_subclass_OTProblem(self, adata_x: AnnData):
         prob = MockMultiMarginalProblem(adata_x)
         assert isinstance(prob, OTProblem)
 
+    @pytest.mark.fast()
     def test_marginal_dtypes(self, adata_x: AnnData, adata_y: AnnData):
         prob = MockMultiMarginalProblem(adata_x, adata_y)
         prob = prob.prepare(xy={"x_attr": "X", "y_attr": "X"})
