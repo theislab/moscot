@@ -51,7 +51,7 @@ jobs:
 
         -   name: Test
             run: |
-                tox -vv
+                tox -m fast -vv
 
         -   name: Upload coverage
             env:
