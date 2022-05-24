@@ -18,7 +18,7 @@ class TestAlignmentProblem:
     def test_prepare_sequential(self, adata_space_rotate: AnnData, joint_attr: Optional[Mapping[str, Any]]):
         expected_keys = [("0", "1"), ("1", "2")]
         n_obs = adata_space_rotate.shape[0] // 3  # adata is made of 3 datasets
-        n_var = adata_space_rotate.shape[1]
+        n_var = adata_space_rotate.shape[1] if joint_attr is not None else 50
         ap = AlignmentProblem(adata=adata_space_rotate)
         assert len(ap) == 0
         assert ap.problems is None
