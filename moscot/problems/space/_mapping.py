@@ -67,6 +67,7 @@ class MappingProblem(SingleCompoundProblem, SpatialMappingAnalysisMixin):
             **kwargs,
         )
 
+    @d.dedent
     def prepare(
         self,
         sc_attr: Union[str, Mapping[str, Any]],
@@ -79,15 +80,16 @@ class MappingProblem(SingleCompoundProblem, SpatialMappingAnalysisMixin):
         """
         Prepare the :class:`moscot.problems.space.MappingProblem`.
 
-        This method computes prepares the data to be passed to the optimal transport solver.
+        This method prepares the data to be passed to the optimal transport solver.
 
         Parameters
         ----------
         sc_attr
             Specifies the attributes of the single cell adata.
-        batch_key
-            If present, specify the batch key of ``adata_sp`` in :attr:`adata.obs`.
+
+        %(batch_key)s
         %(spatial_key)s
+
         var_names
             List of shared features to be used for the linear problem. If None, it defaults to the intersection
             between ``adata_sc`` and ``adata_sp``. If an empty list is pass, it defines a quadratic problem.

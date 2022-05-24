@@ -113,6 +113,9 @@ time_key
 _spatial_key = """\
 spatial_key
     Key in :attr:`anndata.AnnData.obsm` where spatial coordinates are stored."""
+_batch_key = """\
+batch_key
+    If present, specify the batch key of `:class:`anndata.AnnData`."""
 _policy = """\
 policy
     Defines the rule according to which pairs of distributions are selected to compute the transport map between."""
@@ -172,6 +175,7 @@ d = DocstringProcessor(
     b=_b,
     time_key=_time_key,
     spatial_key=_spatial_key,
+    batch_key=_batch_key,
     policy=_policy,
     key=_key,
     joint_attr=_joint_attr,
