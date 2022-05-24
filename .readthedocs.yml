@@ -1,20 +1,20 @@
 version: 2
 
 sphinx:
-    builder: html
-    configuration: docs/source/conf.py
-    fail_on_warning: false
+  builder: html
+  configuration: docs/source/conf.py
+  fail_on_warning: false
 
 formats:
--   htmlzip
+  - htmlzip
 
 build:
-    image: testing
+  image: testing
 
 python:
-    version: 3.9
-    install:
-    -   method: pip
-        path: .
-        extra_requirements:
-        -   docs
+  version: 3.9
+  install:
+    - method: pip
+      path: .
+      extra_requirements:
+        - docs

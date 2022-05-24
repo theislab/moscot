@@ -26,6 +26,9 @@ In order to install **moscot**, run::
 If used with GPU additionally run
 ``` pip install "jax[cuda]" -f https://storage.googleapis.com/jax-releases/jax_releases.html ```
 
+for ``pre-commit`` you might have to install ``prettier`` with conda: ``conda install -c conda-forge prettier``
+
+
 Development (temporary)
 -----------------------
 For generating the UML proceed as follows (reference: https://medium.com/@ganesh.alalasundaram/uml-diagram-using-pyreverse-for-python-repository-dd68cdf9e7e1)::

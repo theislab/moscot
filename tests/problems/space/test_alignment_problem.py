@@ -12,6 +12,7 @@ SOLUTIONS_PATH = Path("./tests/data/alignment_solutions.pkl")  # base is moscot
 
 
 class TestAlignmentProblem:
+    @pytest.mark.fast()
     def test_prepare_sequential(
         self,
         adata_space_rotate: AnnData,
@@ -32,6 +33,7 @@ class TestAlignmentProblem:
             assert ap[prob_key].x.data.shape == ap[prob_key].y.data.shape == (n_obs, 2)
             assert ap[prob_key].xy[0].data.shape == ap[prob_key].xy[1].data.shape == (n_obs, n_var)
 
+    @pytest.mark.fast()
     @pytest.mark.parametrize("reference", ["0", "1", "2"])
     def test_prepare_star(self, adata_space_rotate: AnnData, reference: str):
         ap = AlignmentProblem(adata=adata_space_rotate)
@@ -48,7 +50,7 @@ class TestAlignmentProblem:
         ("epsilon", "alpha", "rank"),
         [(1, 0.9, -1), (1, 0.5, 10), (0.1, 0.1, -1)],
     )
-    def test_solve_balance(self, adata_space_rotate: AnnData, epsilon: float, alpha: float, rank: int):
+    def test_solve_balanced(self, adata_space_rotate: AnnData, epsilon: float, alpha: float, rank: int):
         ap = (
             AlignmentProblem(adata=adata_space_rotate)
             .prepare(batch_key="batch")
