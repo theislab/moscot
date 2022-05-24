@@ -2,6 +2,7 @@ from typing import Any, Type, Tuple, Literal, Mapping
 
 from pytest_mock import MockerFixture
 from sklearn.metrics.pairwise import euclidean_distances
+import pytest
 
 from ott.geometry import PointCloud
 from ott.core.sinkhorn import sinkhorn
@@ -61,6 +62,7 @@ class TestSingleCompoundProblem:
             assert isinstance(problem[key], OTProblem)
             assert problem[key].solution is problem.solutions[key]
 
+    @pytest.mark.fast()
     def test_default_callback(self, adata_time: AnnData, mocker: MockerFixture):
         subproblem = OTProblem(adata_time, adata_y=adata_time.copy())
         callback_kwargs = {"n_comps": 5}
@@ -82,6 +84,7 @@ class TestSingleCompoundProblem:
         assert isinstance(problem.problems, dict)
         spy.assert_called_with(subproblem.adata, subproblem._adata_y, **callback_kwargs)
 
+    @pytest.mark.fast()
     def test_custom_callback(self, adata_time: AnnData, mocker: MockerFixture):
         expected_keys = [(0, 1), (1, 2)]
         spy = mocker.spy(TestSingleCompoundProblem, "callback")

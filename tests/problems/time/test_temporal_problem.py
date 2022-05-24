@@ -13,6 +13,7 @@ from moscot.problems.time._lineage import BirthDeathBaseProblem
 
 
 class TestTemporalProblem:
+    @pytest.mark.fast()
     def test_prepare(self, adata_time: AnnData):
         expected_keys = [(0, 1), (1, 2)]
         problem = TemporalProblem(adata=adata_time)
@@ -79,6 +80,7 @@ class TestTemporalProblem:
             problem[0, 1].growth_rates[:, 1],
         )
 
+    @pytest.mark.fast()
     @pytest.mark.parametrize(
         "gene_set_list",
         [
@@ -110,6 +112,7 @@ class TestTemporalProblem:
         else:
             assert problem.apoptosis_key is None
 
+    @pytest.mark.fast()
     def test_proliferation_key_pipeline(self, adata_time: AnnData):
         problem = TemporalProblem(adata_time)
 
@@ -123,6 +126,7 @@ class TestTemporalProblem:
 
         assert problem.proliferation_key == "new_proliferation"
 
+    @pytest.mark.fast()
     def test_apoptosis_key_pipeline(self, adata_time: AnnData):
         problem = TemporalProblem(adata_time)
 
