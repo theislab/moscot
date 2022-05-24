@@ -15,6 +15,7 @@ SOLUTIONS_PATH = Path("./tests/data/mapping_solutions.pkl")  # base is moscot
 
 
 class TestMappingProblem:
+    @pytest.mark.fast()
     @pytest.mark.parametrize("sc_attr", [{"attr": "X"}, {"attr": "obsm", "key": "X_pca"}])
     @pytest.mark.parametrize(
         "joint_attr", [None, "default", {"x_attr": "obsm", "x_key": "X_pca", "y_attr": "obsm", "y_key": "X_pca"}]
@@ -42,6 +43,7 @@ class TestMappingProblem:
             assert mp[prob_key].y.data.shape == (n_obs, y_n_var)
             assert mp[prob_key].xy[0].data.shape == mp[prob_key].xy[1].data.shape == (n_obs, xy_n_vars)
 
+    @pytest.mark.fast()
     @pytest.mark.parametrize("var_names", ["0", [], [str(i) for i in range(20)]])
     def test_prepare_varnames(self, adata_mapping: AnnData, var_names: Optional[List[str]]):
         adataref, adatasp = _adata_spatial_split(adata_mapping)

@@ -1,10 +1,14 @@
 name: Test
 
 on:
-    push:
-        branches: [master]
-    pull_request:
-        branches: [master]
+  push:
+    branches: [master]
+  pull_request:
+    branches: [master]
+
+concurrency:
+  group: ${{ github.head_ref || github.run_id }}
+  cancel-in-progress: true
 
 jobs:
     lint:
@@ -29,3 +33,31 @@ jobs:
         -   name: Lint
             run: |-
                 echo "LINTING DISABLED"
+
+    test:
+        runs-on: ${{ matrix.os }}
+        strategy:
+            fail-fast: false
+            matrix:
+                os: [ubuntu-latest]
+                python: [3.8]
+        steps:
+        -   uses: actions/checkout@v2
+        -   name: Set up Python ${{ matrix.python }}
+            uses: actions/setup-python@v2
+            with:
+                python-version: ${{ matrix.python }}
+
+        -   name: Install pip dependencies
+            run: |
+                python -m pip install --upgrade pip
+                pip install tox tox-gh-actions codecov
+        -   name: Test
+            run: |
+                tox -vv -- -m fast
+        -   name: Upload coverage
+            env:
+                CODECOV_NAME: ${{ matrix.python }}-${{ matrix.os }}
+                CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+            run: |-
+                codecov --no-color --required --flags unittests

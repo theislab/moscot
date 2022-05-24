@@ -9,6 +9,7 @@ from moscot.problems.mixins._temporal_mixins import BirthDeathBaseProblem
 
 
 class TestLineageProblem:
+    @pytest.mark.fast()
     def test_barcodes_pipeline(self, adata_time_barcodes: AnnData):
         expected_keys = [(0, 1), (1, 2)]
         problem = LineageProblem(adata=adata_time_barcodes)
