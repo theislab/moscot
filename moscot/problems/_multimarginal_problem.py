@@ -46,6 +46,7 @@ class MultiMarginalProblem(OTProblem, ABC):
         marginal_kwargs: Mapping[str, Any] = MappingProxyType({}),
         **kwargs: Any,
     ) -> "MultiMarginalProblem":
+        """Prepare MultiMarginalProblem."""
         # TODO(michalk8): some sentinel value would be nicer
         if a is True:
             a = self._estimate_marginals(self.adata, source=True, **marginal_kwargs)
@@ -70,6 +71,7 @@ class MultiMarginalProblem(OTProblem, ABC):
         reset_marginals: bool = True,
         **kwargs: Any,
     ) -> "MultiMarginalProblem":
+        """Solve MultiMarginalProblem."""
         assert n_iters > 0, "TODO: Number of iterations must be > 0."
         if reset_marginals:
             self._reset_marginals()
@@ -103,8 +105,10 @@ class MultiMarginalProblem(OTProblem, ABC):
 
     @property
     def a(self) -> Optional[np.ndarray]:
+        """Array of all left marginals."""
         return np.asarray(self._a).T if len(self._a) else None
 
     @property
     def b(self) -> Optional[np.ndarray]:
+        """Array of all right marginals."""
         return np.asarray(self._b).T if len(self._b) else None

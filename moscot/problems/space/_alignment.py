@@ -62,7 +62,7 @@ class AlignmentProblem(SingleCompoundProblem, SpatialAlignmentAnalysisMixin):
         :class:`moscot.problems.space.MappingProblem`
         """
         self.spatial_key = spatial_key
-        # TODO(michalk8): check for spatial key
+
         x = y = {"attr": "obsm", "key": self.spatial_key, "tag": "point_cloud"}
 
         if joint_attr is None:

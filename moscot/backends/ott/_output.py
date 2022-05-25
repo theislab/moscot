@@ -29,7 +29,7 @@ class LinearOTTOutput(BaseSolverOutput, ABC):
 
     @property
     def transport_matrix(self) -> npt.ArrayLike:
-        """%(transport_matrix)s"""
+        """%(transport_matrix)s."""
         return self._output.matrix
 
     @property
@@ -39,7 +39,7 @@ class LinearOTTOutput(BaseSolverOutput, ABC):
 
     @property
     def converged(self) -> bool:
-        """%(converged)s"""
+        """%(converged)s."""
         return bool(self._output.converged)
 
     def _ones(self, n: int) -> jnp.ndarray:
@@ -59,12 +59,12 @@ class SinkhornOutput(LinearOTTOutput):
 
     @property
     def shape(self) -> Tuple[int, int]:
-        """%(shape)s"""
+        """%(shape)s."""
         return self._output.f.shape[0], self._output.g.shape[0]
 
     @property
     def potentials(self) -> Tuple[npt.ArrayLike, npt.ArrayLike]:
-        """Potentials obtained from Sinkhorn algorithm,"""
+        """Potentials obtained from Sinkhorn algorithm."""
         return self._output.f, self._output.g
 
 
@@ -81,7 +81,7 @@ class LRSinkhornOutput(OutputRankMixin, LinearOTTOutput):
 
     @property
     def shape(self) -> Tuple[int, int]:
-        """%(shape)s"""
+        """%(shape)s."""
         return self._output.geom.shape
 
     @property

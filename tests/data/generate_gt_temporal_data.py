@@ -3,7 +3,7 @@ import sys
 
 try:
     import wot  # please install WOT from commit hash`ca5e94f05699997b01cf5ae13383f9810f0613f6`"
-except:
+except ImportError:
     ImportError("Please install WOT from commit hash`ca5e94f05699997b01cf5ae13383f9810f0613f6`")
 
 import os

@@ -204,9 +204,6 @@ class CompoundBaseProblem(BaseProblem, Generic[K, B], ABC):
                 - :meth:`moscot.problems.OTProblem.solve`
                 - :meth:`moscot.problems.MultiMarginalProblem.solve`
                 - :meth:`moscot.problems.BirthDeathBaseProblem.solve`
-
-        Raises
-        ------
         """
         if self._problem_kind is None:
             raise RuntimeError("Run .prepare() first.")
@@ -349,7 +346,7 @@ class CompoundBaseProblem(BaseProblem, Generic[K, B], ABC):
             all intermediate step results are returned, too.
         %(scale_by_marginals)s
         kwargs
-            keyword arguments for :meth:`moscot.problems.CompoundProblem._apply`
+            Keyword arguments for :meth:`moscot.problems.CompoundProblem._apply`.
 
         Returns
         -------
@@ -363,12 +360,12 @@ class CompoundBaseProblem(BaseProblem, Generic[K, B], ABC):
 
     @property
     def problems(self) -> Optional[Dict[Key, B]]:
-        """Dictionary of OT problems which the biological problem consists of."""
+        """Return dictionary of OT problems which the biological problem consists of."""
         return self._problems
 
     @property
     def solutions(self) -> Optional[Dict[Key, BaseSolverOutput]]:
-        """Dictionary of solutions of OT problems which the biological problem consists of."""
+        """Return dictionary of solutions of OT problems which the biological problem consists of."""
         return self._solutions
 
     def __getitem__(self, item: Key) -> B:
