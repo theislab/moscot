@@ -17,3 +17,4 @@ pot>=0.8.0
 pytest_mock>=3.7.0
 scanpy
 typing_extensions
+wrapt

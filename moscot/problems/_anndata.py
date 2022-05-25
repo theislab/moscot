@@ -10,6 +10,7 @@ import numpy.typing as npt
 
 from anndata import AnnData
 
+from moscot._types import ArrayLike
 from moscot._docs import d
 from moscot._utils import _get_backend_losses
 from moscot.costs._costs import BaseLoss
@@ -62,7 +63,7 @@ class AnnDataPointer:
     def create(self) -> TaggedArray:  # I rewrote the logic a bit as this way I find it more readable
         """Create."""
 
-        def ensure_2D(arr: npt.ArrayLike, *, allow_reshape: bool = True) -> np.ndarray:
+        def ensure_2D(arr: ArrayLike, *, allow_reshape: bool = True) -> ArrayLike:
             arr = np.asarray(arr)
             arr = np.reshape(arr, (-1, 1)) if (allow_reshape and arr.ndim == 1) else arr
             if arr.ndim != 2:
@@ -71,7 +72,7 @@ class AnnDataPointer:
 
         if self.tag == Tag.COST_MATRIX:
             if self.loss is not None:
-                cost_matrix = BaseLoss.create(kind=self.loss, adata=self.adata, attr=self.attr, key=self.key)(
+                cost_matrix = BaseLoss.create(kind=self.loss, adata=self.adata, attr=self.attr, key=self.key)(  # type: ignore[arg-type]
                     **self.loss_kwargs
                 )
                 return TaggedArray(cost_matrix, tag=self.tag, loss=None)
