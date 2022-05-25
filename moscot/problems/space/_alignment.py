@@ -1,26 +1,66 @@
-from types import MappingProxyType
 from typing import Any, Type, Tuple, Mapping, Optional
 
 from typing_extensions import Literal
 
+from moscot._docs import d
 from moscot.analysis_mixins import SpatialAlignmentAnalysisMixin
 from moscot.problems._base_problem import OTProblem
 from moscot.problems._compound_problem import B, SingleCompoundProblem
 
 
+@d.dedent
 class AlignmentProblem(SingleCompoundProblem, SpatialAlignmentAnalysisMixin):
-    """Spatial alignment problem."""
+    """
+    Class for aligning spatial omics data, based on :cite:`zeira2022`.
 
+    The `AlignmentProblem` allows to align spatial omics data via optimal transport.
+
+    Parameters
+    ----------
+    %(adata)s
+
+    Examples
+    --------
+    See notebook TODO(@giovp) LINK NOTEBOOK for how to use it
+    """
+
+    @d.dedent
     def prepare(
         self,
         batch_key: str,
         spatial_key: str = "spatial",
-        joint_attr: Optional[Mapping[str, Any]] = MappingProxyType({"x_attr": "X", "y_attr": "X"}),
+        joint_attr: Optional[Mapping[str, Any]] = None,
         policy: Literal["sequential", "star"] = "sequential",
         reference: Optional[str] = None,
         **kwargs: Any,
     ) -> "AlignmentProblem":
-        """Prepare method."""
+        """
+        Prepare the :class:`moscot.problems.space.AlignmentProblem`.
+
+        This method prepares the data to be passed to the optimal transport solver.
+
+        Parameters
+        ----------
+        %(spatial_key)s
+        %(batch_key)s
+
+        joint_attr
+            Parameter defining how to allocate the data needed to compute the transport maps.
+            If None, ``var_names`` is not an empty list, and ``adata_sc`` and ``adata_sp``
+            share some genes in common, the corresponding PCA space is computed.
+            If `joint_attr` is a dictionary the dictionary is supposed to contain the attribute of
+            :attr:`anndata.AnnData` as a key and the corresponding attribute as a value.
+
+        %(policy)s
+
+        reference
+            Only used if `policy="star"`, it's the value for reference stored
+            in :attr:`adata.obs```["batch_key"]``.
+
+        Returns
+        -------
+        :class:`moscot.problems.space.MappingProblem`
+        """
         self.spatial_key = spatial_key
 
         x = y = {"attr": "obsm", "key": self.spatial_key, "tag": "point_cloud"}
@@ -31,6 +71,7 @@ class AlignmentProblem(SingleCompoundProblem, SpatialAlignmentAnalysisMixin):
 
         return super().prepare(x=x, y=y, xy=joint_attr, policy=policy, key=batch_key, reference=reference, **kwargs)
 
+    @d.dedent
     def solve(
         self,
         alpha: Optional[float] = 0.4,
@@ -38,7 +79,19 @@ class AlignmentProblem(SingleCompoundProblem, SpatialAlignmentAnalysisMixin):
         scale_cost: str = "mean",
         **kwargs: Any,
     ) -> "AlignmentProblem":
-        """Solve method."""
+        """
+        Solve optimal transport problems defined in :class:`moscot.problems.space.AlignmentProblem`.
+
+        Parameters
+        ----------
+        %(alpha)s
+        %(epsilon)s
+        %(scale_cost)s
+
+        Returns
+        -------
+        :class:`moscot.problems.space.AlignmentProblem`
+        """
         return super().solve(alpha=alpha, epsilon=epsilon, scale_cost=scale_cost, **kwargs)
 
     @property

@@ -1,3 +1,4 @@
+from typing import Any, Mapping, Optional
 from pathlib import Path
 
 import pytest
@@ -13,10 +14,10 @@ SOLUTIONS_PATH = Path("./tests/data/alignment_solutions.pkl")  # base is moscot
 
 class TestAlignmentProblem:
     @pytest.mark.fast()
-    def test_prepare_sequential(
-        self,
-        adata_space_rotate: AnnData,
-    ):
+    @pytest.mark.parametrize(
+        "joint_attr", [{"x_attr": "X", "y_attr": "X"}]
+    )  # TODO(giovp): check that callback is correct
+    def test_prepare_sequential(self, adata_space_rotate: AnnData, joint_attr: Optional[Mapping[str, Any]]):
         expected_keys = [("0", "1"), ("1", "2")]
         n_obs = adata_space_rotate.shape[0] // 3  # adata is made of 3 datasets
         n_var = adata_space_rotate.shape[1]
@@ -25,7 +26,7 @@ class TestAlignmentProblem:
         assert ap.problems is None
         assert ap.solutions is None
 
-        ap = ap.prepare(batch_key="batch")
+        ap = ap.prepare(batch_key="batch", joint_attr=joint_attr)
         for prob_key, exp_key in zip(ap, expected_keys):
             assert prob_key == exp_key
             assert isinstance(ap[prob_key], ap._base_problem_type)
