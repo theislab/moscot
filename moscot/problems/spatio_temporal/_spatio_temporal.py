@@ -21,7 +21,6 @@ class SpatioTemporalProblem(TemporalAnalysisMixin, BirthDeathMixin, AlignmentPro
         joint_attr: Optional[Mapping[str, Any]] = MappingProxyType({"x_attr": "X", "y_attr": "X"}),
         policy: Literal["sequential", "pairwise", "triu", "tril", "explicit"] = "sequential",
         marginal_kwargs: Mapping[str, Any] = MappingProxyType({}),
-        reference: Optional[str] = None,
         **kwargs: Any,
     ) -> "AlignmentProblem":
         """
@@ -78,25 +77,25 @@ class SpatioTemporalProblem(TemporalAnalysisMixin, BirthDeathMixin, AlignmentPro
         -----
         If `a` and `b` are provided `marginal_kwargs` are ignored.
         """
-        self.spatial_key = spatial_key
+        # spatial key set in AlignmentProblem
         self.temporal_key = time_key
-        # TODO(michalk8): check for spatial key
-        x = y = {"attr": "obsm", "key": self.spatial_key, "tag": "point_cloud"}
-
-        if joint_attr is None:
-            kwargs["callback"] = "local-pca"
-            kwargs["callback_kwargs"] = {**kwargs.get("callback_kwargs", {}), **{"return_linear": True}}
 
         marginal_kwargs = dict(marginal_kwargs)
-        marginal_kwargs["proliferation_key"] = self.proliferation_key
-        marginal_kwargs["apoptosis_key"] = self.apoptosis_key
-        if "a" not in kwargs:
-            kwargs["a"] = self.proliferation_key is not None or self.apoptosis_key is not None
-        if "b" not in kwargs:
-            kwargs["b"] = self.proliferation_key is not None or self.apoptosis_key is not None
+        if self.proliferation_key is not None:
+            marginal_kwargs["proliferation_key"] = self.proliferation_key
+            kwargs["a"] = True
+        if self.apoptosis_key is not None:
+            marginal_kwargs["proliferation_key"] = self.apoptosis_key
+            kwargs["b"] = True
 
         return super().prepare(
-            x=x, y=y, xy=joint_attr, policy=policy, batch_key=time_key, reference=reference, **kwargs
+            spatial_key=spatial_key,
+            batch_key=time_key,
+            joint_attr=joint_attr,
+            policy=policy,
+            reference=None,
+            marginal_kwargs=marginal_kwargs,
+            **kwargs,
         )
 
     @property

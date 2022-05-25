@@ -23,10 +23,7 @@ class AlignmentProblem(SingleCompoundProblem, SpatialAlignmentAnalysisMixin):
         """Prepare method."""
         self.spatial_key = spatial_key
 
-        x = kwargs.pop("x", {"attr": "obsm", "key": self.spatial_key, "tag": "point_cloud"})
-        y = kwargs.pop("y", {"attr": "obsm", "key": self.spatial_key, "tag": "point_cloud"})
-        if "xy" in kwargs:
-            joint_attr = kwargs.pop("xy")
+        x = y = {"attr": "obsm", "key": self.spatial_key, "tag": "point_cloud"}
 
         if joint_attr is None:
             kwargs["callback"] = "local-pca"

@@ -11,53 +11,53 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-    lint:
-        runs-on: ubuntu-latest
-        steps:
-        -   uses: actions/checkout@v2
-        -   name: Set up Python 3.9
-            uses: actions/setup-python@v2
-            with:
-                python-version: 3.9
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Set up Python 3.9
+        uses: actions/setup-python@v2
+        with:
+          python-version: 3.9
 
-        -   uses: actions/cache@v2
-            with:
-                path: ~/.cache/pre-commit
-                key: precommit-${{ env.pythonLocation }}-${{ hashFiles('**/.pre-commit-config.yaml') }}
+      - uses: actions/cache@v2
+        with:
+          path: ~/.cache/pre-commit
+          key: precommit-${{ env.pythonLocation }}-${{ hashFiles('**/.pre-commit-config.yaml') }}
 
-        -   name: Install pip dependencies
-            run: |
-                python -m pip install --upgrade pip
-                pip install tox
+      - name: Install pip dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install tox
 
-        -   name: Lint
-            run: |-
-                echo "LINTING DISABLED"
+      - name: Lint
+        run: |-
+          echo "LINTING DISABLED"
 
-    test:
-        runs-on: ${{ matrix.os }}
-        strategy:
-            fail-fast: false
-            matrix:
-                os: [ubuntu-latest]
-                python: [3.8]
-        steps:
-        -   uses: actions/checkout@v2
-        -   name: Set up Python ${{ matrix.python }}
-            uses: actions/setup-python@v2
-            with:
-                python-version: ${{ matrix.python }}
+  test:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest]
+        python: [3.8]
+    steps:
+      - uses: actions/checkout@v2
+      - name: Set up Python ${{ matrix.python }}
+        uses: actions/setup-python@v2
+        with:
+          python-version: ${{ matrix.python }}
 
-        -   name: Install pip dependencies
-            run: |
-                python -m pip install --upgrade pip
-                pip install tox tox-gh-actions codecov
-        -   name: Test
-            run: |
-                tox -vv -- -m fast
-        -   name: Upload coverage
-            env:
-                CODECOV_NAME: ${{ matrix.python }}-${{ matrix.os }}
-                CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
-            run: |-
-                codecov --no-color --required --flags unittests
+      - name: Install pip dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install tox tox-gh-actions codecov
+      - name: Test
+        run: |
+          tox -vv -- -m fast
+      - name: Upload coverage
+        env:
+          CODECOV_NAME: ${{ matrix.python }}-${{ matrix.os }}
+          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+        run: |-
+          codecov --no-color --required --flags unittests
