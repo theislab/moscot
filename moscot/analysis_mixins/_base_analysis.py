@@ -1,5 +1,5 @@
 from abc import ABC
-from typing import Any, List, Tuple, Union, Optional
+from typing import Any, List, Tuple, Union, Optional, Protocol, TYPE_CHECKING
 from functools import partial
 
 from scipy.sparse.linalg import LinearOperator
@@ -8,6 +8,10 @@ import numpy as np
 import numpy.typing as npt
 
 from moscot.solvers._output import JointOperator, BaseSolverOutput
+
+
+class AnalysisMixinProtocol(Protocol):
+    def _apply(self, start=str, end=str, mass=npt.ArrayLike): ...
 
 
 # TODO(michalk8): need to think about this a bit more
@@ -19,7 +23,7 @@ class AnalysisMixin(ABC):
         super().__init__(*args, **kwargs)
 
     def _sample_from_tmap(
-        self,
+        self: AnalysisMixinProtocol,
         start: Any,
         end: Any,
         n_samples: int,
