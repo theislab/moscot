@@ -182,3 +182,74 @@ DOI = {10.3390/a13090212}
   journal={arXiv preprint arXiv:2201.12324},
   year={2022}
 }
+
+
+@article{nitzan2019,
+  title    = "Gene expression cartography",
+  author   = "Nitzan, Mor and Karaiskos, Nikos and Friedman, Nir and Rajewsky,
+              Nikolaus",
+  abstract = "Multiplexed RNA sequencing in individual cells is transforming
+              basic and clinical life sciences1-4. Often, however, tissues must
+              first be dissociated, and crucial information about spatial
+              relationships and communication between cells is thus lost.
+              Existing approaches to reconstruct tissues assign spatial
+              positions to each cell, independently of other cells, by using
+              spatial patterns of expression of marker genes5,6-which often do
+              not exist. Here we reconstruct spatial positions with little or
+              no prior knowledge, by searching for spatial arrangements of
+              sequenced cells in which nearby cells have transcriptional
+              profiles that are often (but not always) more similar than cells
+              that are farther apart. We formulate this task as a generalized
+              optimal-transport problem for probabilistic embedding and derive
+              an efficient iterative algorithm to solve it. We reconstruct the
+              spatial expression of genes in mammalian liver and intestinal
+              epithelium, fly and zebrafish embryos, sections from the
+              mammalian cerebellum and whole kidney, and use the reconstructed
+              tissues to identify genes that are spatially informative. Thus,
+              we identify an organization principle for the spatial expression
+              of genes in animal tissues, which can be exploited to infer
+              meaningful probabilities of spatial position for individual
+              cells. Our framework ('novoSpaRc') can incorporate prior spatial
+              information and is compatible with any single-cell technology.
+              Additional principles that underlie the cartography of gene
+              expression can be tested using our approach.",
+  journal  = "Nature",
+  volume   =  576,
+  number   =  7785,
+  pages    = "132--137",
+  month    =  dec,
+  year     =  2019,
+  language = "en"
+}
+
+
+@article{zeira2022,
+  title    = "Alignment and integration of spatial transcriptomics data",
+  author   = "Zeira, Ron and Land, Max and Strzalkowski, Alexander and Raphael,
+              Benjamin J",
+  abstract = "Spatial transcriptomics (ST) measures mRNA expression across
+              thousands of spots from a tissue slice while recording the
+              two-dimensional (2D) coordinates of each spot. We introduce
+              probabilistic alignment of ST experiments (PASTE), a method to
+              align and integrate ST data from multiple adjacent tissue slices.
+              PASTE computes pairwise alignments of slices using an optimal
+              transport formulation that models both transcriptional similarity
+              and physical distances between spots. PASTE further combines
+              pairwise alignments to construct a stacked 3D alignment of a
+              tissue. Alternatively, PASTE can integrate multiple ST slices
+              into a single consensus slice. We show that PASTE accurately
+              aligns spots across adjacent slices in both simulated and real ST
+              data, demonstrating the advantages of using both transcriptional
+              similarity and spatial information. We further show that the
+              PASTE integrated slice improves the identification of cell types
+              and differentially expressed genes compared with existing
+              approaches that either analyze single ST slices or ignore spatial
+              information.",
+  journal  = "Nat. Methods",
+  volume   =  19,
+  number   =  5,
+  pages    = "567--575",
+  month    =  may,
+  year     =  2022,
+  language = "en"
+}

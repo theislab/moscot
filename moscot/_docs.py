@@ -42,6 +42,9 @@ epsilon
 _alpha = """\
 alpha
     Interpolation parameter between quadratic term and linear term."""
+_scale_cost = """\
+scale_cost
+    Method to scale cost matrices."""
 _tau_a = """\
 tau_a
     Unbalancedness parameter for left marginal between 0 and 1. `tau_a` equalling 1 means no unbalancedness
@@ -109,7 +112,10 @@ time_key
     of numerical data type."""
 _spatial_key = """\
 spatial_key
-    TODO."""
+    Key in :attr:`anndata.AnnData.obsm` where spatial coordinates are stored."""
+_batch_key = """\
+batch_key
+    If present, specify the batch key of `:class:`anndata.AnnData`."""
 _policy = """\
 policy
     Defines the rule according to which pairs of distributions are selected to compute the transport map between."""
@@ -125,7 +131,7 @@ joint_attr
     :attr:`anndata.AnnData` as a key and the corresponding attribute as a value."""
 
 
-def inject_docs(**kwargs: Any):
+def inject_docs(**kwargs: Any):  # noqa: D103
     def decorator(obj):
         obj.__doc__ = dedent(obj.__doc__).format(**kwargs)
         return obj
@@ -154,6 +160,7 @@ d = DocstringProcessor(
     callback_kwargs=_callback_kwargs,
     epsilon=_epsilon,
     alpha=_alpha,
+    scale_cost=_scale_cost,
     tau_a=_tau_a,
     tau_b=_tau_b,
     scale_by_marginals=_scale_by_marginals,
@@ -168,6 +175,7 @@ d = DocstringProcessor(
     b=_b,
     time_key=_time_key,
     spatial_key=_spatial_key,
+    batch_key=_batch_key,
     policy=_policy,
     key=_key,
     joint_attr=_joint_attr,
