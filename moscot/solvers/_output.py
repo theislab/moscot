@@ -1,7 +1,9 @@
 from abc import ABC, abstractmethod
-from typing import Any, Tuple, Callable
+from functools import partial
+from typing import Any, Tuple, Callable, Iterable
 
 import numpy as np
+from scipy.sparse.linalg import LinearOperator
 
 from moscot._types import ArrayLike
 
@@ -9,7 +11,7 @@ from moscot._types import ArrayLike
 #  1. mb. use more contrained type hints
 #  2. consider always returning 2-dim array, even if 1-dim is passed (not sure which convenient for user)
 
-__all__ = ["BaseSolverOutput", "MatrixSolverOutput", "JointOperator"]
+__all__ = ["BaseSolverOutput", "MatrixSolverOutput"]
 
 
 class BaseSolverOutput(ABC):
@@ -73,6 +75,25 @@ class BaseSolverOutput(ABC):
         """Marginals of target distribution. If output of unbalanced OT, these are the posterior marginals."""
         return self.push(self._ones(self.shape[0]))
 
+    @property
+    def dtype(self) -> Any:  # TODO(michalk8): typeme
+        return self.a.dtype
+
+    def as_linear_operator(self, *, forward: bool, scale_by_marginals: bool = False) -> LinearOperator:
+        push = partial(self.push, scale_by_marginals=scale_by_marginals)
+        pull = partial(self.pull, scale_by_marginals=scale_by_marginals)
+        mv, rmv = (push, pull) if forward else (pull, push)
+        return LinearOperator(shape=self.shape, dtype=self.a.dtype, matvec=mv, rmatvec=rmv)
+
+    def chain(
+        self, outputs: Iterable["BaseSolverOutput"], forward: bool, scale_by_marginals: bool = False
+    ) -> LinearOperator:
+        op = self.as_linear_operator(forward=forward, scale_by_marginals=scale_by_marginals)
+        for out in outputs:
+            op *= out.as_linear_operator(forward=forward, scale_by_marginals=scale_by_marginals)
+
+        return op
+
     def _scale_by_marginals(self, x: ArrayLike, *, forward: bool) -> ArrayLike:
         # alt. we could use the public push/pull
         marginals = self.a if forward else self.b
@@ -80,6 +101,7 @@ class BaseSolverOutput(ABC):
             marginals = marginals[:, None]
         return x / (marginals + 1e-12)
 
+    # TODO(michalk8): the below are not efficient (+1 is redundant)
     def _scale_transport_by_marginals(self, forward: bool) -> ArrayLike:
         if forward:
             scaled_transport = np.dot(np.diag(1 / self.a), self.transport_matrix)
@@ -131,28 +153,3 @@ class MatrixSolverOutput(BaseSolverOutput, ABC):
     @property
     def potentials(self):  # TODO(michalk8): refactor
         raise NotImplementedError("This solver does not allow for potentials")
-
-
-class JointOperator:
-    def __init__(self, outputs: Tuple[BaseSolverOutput, ...]):
-        if not len(outputs):
-            raise ValueError("TODO: no solver outputs")
-        for curr, next in zip(outputs[:-1], outputs[1:]):  # noqa: A001
-            if curr.shape[1] != next.shape[0]:
-                raise ValueError("TODO: outputs shape mismatch")
-
-        self._outputs = outputs
-
-    @property
-    def shape(self) -> Tuple[int, int]:
-        return self._outputs[0].shape[0], self._outputs[-1].shape[1]
-
-    def push(self, x: ArrayLike, **kwargs: Any) -> ArrayLike:
-        for op in self._outputs:
-            x = op.push(x, **kwargs)
-        return x
-
-    def pull(self, x: ArrayLike, **kwargs: Any) -> ArrayLike:
-        for op in reversed(self._outputs):
-            x = op.pull(x, **kwargs)
-        return x

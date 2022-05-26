@@ -10,6 +10,7 @@ import numpy as np
 
 from moscot._types import ArrayLike
 
+
 def _warn_not_close(
     actual: ArrayLike,
     expected: ArrayLike,

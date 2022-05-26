@@ -195,7 +195,7 @@ class BirthDeathBaseProblem(MultiMarginalProblem):
 
     def _add_marginals(self, sol: BaseSolverOutput) -> None:
         # will be removed
-        _a = np.asarray(sol.a) / self._a[-1] # type: ignore[index]
+        _a = np.asarray(sol.a) / self._a[-1]  # type: ignore[index]
         self._a.append(_a)  # type: ignore[union-attr]
         # TODO(michalk8): sol._ones
         self._b.append(np.full(len(self._adata_y), np.average(_a)))  # type: ignore[union-attr]

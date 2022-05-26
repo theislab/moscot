@@ -16,16 +16,21 @@ from moscot.problems._anndata import AnnDataPointer
 from moscot.solvers._base_solver import ProblemKind
 from moscot.solvers._tagged_array import Tag, TaggedArray
 
-__all__ = ("BaseProblem", "OTProblem")
+__all__ = ["BaseProblem", "OTProblem"]
+
 
 @wrapt.decorator
-def require_solution(wrapped: Callable[[Any], Any], instance: "OTProblem", args: Tuple[Any, ...], kwargs: Mapping[str, Any]) -> Any:
+def require_solution(
+    wrapped: Callable[[Any], Any], instance: "OTProblem", args: Tuple[Any, ...], kwargs: Mapping[str, Any]
+) -> Any:
     from moscot.problems import CompoundBaseProblem  # type: ignore[attr-defined]
+
     if isinstance(instance, OTProblem) and instance.solution is None:
         raise RuntimeError("TODO: Run solve.")
     if isinstance(instance, CompoundBaseProblem) and instance.solutions is None:
         raise RuntimeError("TODO: Run solve.")
     return wrapped(*args, **kwargs)
+
 
 @d.get_sections(base="BaseProblem", sections=["Parameters", "Raises"])
 @d.dedent
@@ -173,7 +178,7 @@ class OTProblem(BaseProblem):
         b: Optional[Union[str, ArrayLike]] = None,
         **_: Any,
     ) -> "OTProblem":
-        
+
         self._x = self._y = self._xy = self._solution = None
         # TODO(michalk8): handle again TaggedArray?
         # TODO(michalk8): better dispatch
@@ -198,7 +203,7 @@ class OTProblem(BaseProblem):
 
         return self
 
-    def solve(  
+    def solve(
         self,
         epsilon: Optional[float] = 1e-2,
         alpha: Optional[float] = 0.5,
@@ -229,7 +234,7 @@ class OTProblem(BaseProblem):
         self._solution = solver(x=self._x, y=self._y, xy=self._xy, a=a, b=b, tau_a=tau_a, tau_b=tau_b, **prepare_kwargs)
 
         return self
-    
+
     @require_solution
     def push(
         self,

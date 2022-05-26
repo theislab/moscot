@@ -174,7 +174,7 @@ class TemporalProblem(TemporalAnalysisMixin, BirthDeathMixin, SingleCompoundProb
             df_list.append(
                 pd.DataFrame(
                     np.full(shape=(len(self.problems[tup]._adata_y.obs), 1), fill_value=np.nan),  # type: ignore[index]
-                    index=self.problems[tup]._adata_y.obs.index, # type: ignore[index]
+                    index=self.problems[tup]._adata_y.obs.index,  # type: ignore[index]
                     columns=["cell_cost_source"],
                 )
             )

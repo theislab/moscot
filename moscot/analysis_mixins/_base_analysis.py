@@ -1,49 +1,44 @@
-from abc import ABC
-from typing import Any, Dict, List, Tuple, Union, Optional, Protocol
-from functools import partial
+from typing import Any, Dict, List, Tuple, Optional, Protocol, Sequence
 
 from scipy.sparse.linalg import LinearOperator
 
 import numpy as np
 
 from moscot._types import ArrayLike
-from moscot.solvers._output import JointOperator, BaseSolverOutput
-from moscot.problems._base_problem import OTProblem
+from moscot.solvers._output import BaseSolverOutput
 from moscot.problems._subset_policy import SubsetPolicy
-from moscot.problems._compound_problem import ApplyOutput_t
+from moscot.problems._compound_problem import ApplyOutput_t, K, Key
 
 
-class AnalysisMixinProtocol(Protocol):
+class AnalysisMixinProtocol(Protocol[K]):
     """Protocol class."""
+
+    _policy: SubsetPolicy
+    solutions: Dict[Key[K], BaseSolverOutput]
 
     def _apply(
         self,
-        start: Optional[Any] = None,
-        end: Optional[Any] = None,
+        start: Optional[K] = None,
+        end: Optional[K] = None,
         normalize: bool = True,
         forward: bool = True,
         scale_by_marginals: bool = False,
-        filter: Optional[List[Tuple[str, str]]] = None,  # noqa: A002
+        filter: Optional[Sequence[Key[K]]] = None,  # noqa: A002
         data: Optional[ArrayLike] = None,
     ) -> ApplyOutput_t:
         ...
 
 
-# TODO(michalk8): need to think about this a bit more
-# TODO(MUCDK): remove ABC?
-class AnalysisMixin(ABC):
+class AnalysisMixin:
     """Base Analysis Mixin."""
 
-    problems: Dict[Tuple[Any, Any], OTProblem]
-    _policy: SubsetPolicy
-
-    def __init__(self, *args: Any, **kwargs: Any) -> None:
+    def __init__(self, *args: Any, **kwargs: Any):
         super().__init__(*args, **kwargs)
 
     def _sample_from_tmap(
-        self: AnalysisMixinProtocol,
-        start: Any,
-        end: Any,
+        self: AnalysisMixinProtocol[K],
+        start: K,
+        end: K,
         n_samples: int,
         source_dim: int,
         target_dim: int,
@@ -117,30 +112,11 @@ class AnalysisMixin(ABC):
         return rows, all_cols_sampled
 
     def _interpolate_transport(
-        self, start: Any, end: Any, forward: bool = True, scale_by_marginals: bool = True
-    ) -> Union[ArrayLike, LinearOperator]:
+        self: AnalysisMixinProtocol[K], start: K, end: K, forward: bool = True, scale_by_marginals: bool = True
+    ) -> LinearOperator:
         """Interpolate transport matrix."""
         # TODO(@MUCDK, @giovp, discuss what exactly this function should do, seems like it could be more generic)
-        steps = self._policy.plan(start=start, end=end)[start, end]
-        tmap = self._as_linear_operator(
-            [self.problems[i].solution for i in steps],  # type: ignore[arg-type]
-            forward=forward,
-            scale_by_marginals=scale_by_marginals,
+        fst, *rest = self._policy.plan(start=start, end=end)[start, end]
+        return self.solutions[fst].chain(
+            [self.solutions[r] for r in rest], forward=forward, scale_by_marginals=scale_by_marginals
         )
-        return tmap
-
-    def _as_linear_operator(
-        self, outputs: Tuple[BaseSolverOutput, ...], *, forward: bool, scale_by_marginals: bool
-    ) -> LinearOperator:
-        op = JointOperator(outputs)
-        out = outputs[0]
-        dtype = out.push(out._ones(out.shape[0])).dtype  # TODO(giovp): can't we set dtype as property of Output?
-        push = partial(op.push, scale_by_marginals=scale_by_marginals)
-        pull = partial(op.pull, scale_by_marginals=scale_by_marginals)
-
-        return LinearOperator(
-            shape=op.shape, dtype=dtype, matvec=push if forward else pull, rmatvec=pull if forward else push
-        )
-
-
-# TODO(michalk8): CompoundAnalysisMixin?
