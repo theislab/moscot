@@ -1,20 +1,19 @@
 from abc import ABC, abstractmethod
 from enum import Enum
 from types import MappingProxyType
-from typing import Any, Type, Tuple, Union, Literal, Mapping, Optional, NamedTuple
+from typing import Any, Type, Tuple, Union, Literal, Mapping, Optional, NamedTuple, Dict, Generic, TypeVar
 import warnings
-
-import numpy.typing as npt
 
 from moscot._docs import d
 from moscot.solvers._utils import _warn_not_close
 from moscot.solvers._output import BaseSolverOutput
 from moscot.solvers._tagged_array import Tag, TaggedArray
+from moscot._types import ArrayLike
 
-__all__ = ("ProblemKind", "BaseSolver", "OTSolver")
+__all__ = ["ProblemKind", "BaseSolver", "OTSolver"]
 
-# TODO(michalk8): consider making TaggedArray private (used only internally)?
-ArrayLike = Union[npt.ArrayLike, TaggedArray]
+
+O = TypeVar("O", bound=BaseSolverOutput)
 
 
 class ProblemKind(str, Enum):
@@ -24,7 +23,7 @@ class ProblemKind(str, Enum):
     QUAD = "quadratic"
     QUAD_FUSED = "quadratic_fused"
 
-    def solver(self, *, backend: Literal["ott"] = "ott") -> Type["BaseSolver"]:
+    def solver(self, *, backend: Literal["ott"] = "ott") -> Type["BaseSolver[O]"]:
         """
         Return the solver dependent on the backend and the problem type.
 
@@ -39,7 +38,7 @@ class ProblemKind(str, Enum):
             Solver corresponding to the backend and problem type.
         """
         if backend == "ott":
-            from moscot.backends.ott import GWSolver, FGWSolver, SinkhornSolver
+            from moscot.backends.ott import GWSolver, FGWSolver, SinkhornSolver  # type: ignore[attr-defined]
 
             if self == ProblemKind.LINEAR:
                 return SinkhornSolver
@@ -47,7 +46,7 @@ class ProblemKind(str, Enum):
                 return GWSolver
             if self == ProblemKind.QUAD_FUSED:
                 return FGWSolver
-            raise NotImplementedError(self)
+            raise NotImplementedError(f"TODO: {self}")
 
         raise NotImplementedError(f"Invalid backend: `{backend}`")
 
@@ -66,13 +65,14 @@ class TagConverterMixin:
         y: Optional[ArrayLike] = None,
         tags: Mapping[Literal["xy", "x", "y"], Tag] = MappingProxyType({}),
     ) -> TaggedArrayData:
-        x, y = self._convert(x, y, tags=tags, is_linear=False)
+        x_, y_ = self._convert(x, y, tags=tags, is_linear=False)
         if xy is None:
-            xy = (None, None)
+            xy_ = self._convert(None, None, tags=tags, is_linear=True)
         elif not isinstance(xy, tuple):
-            xy = (xy, None)
-        xy = self._convert(xy[0], xy[1], tags=tags, is_linear=True)
-        return TaggedArrayData(x=x, y=y, xy=xy)
+            xy_ = self._convert(xy, None, tags=tags, is_linear=True)
+        else:
+            xy_ = self._convert(xy[0], xy[1], tags=tags, is_linear=True)
+        return TaggedArrayData(x=x_, y=y_, xy=xy_)
 
     @staticmethod
     def _convert(
@@ -82,47 +82,44 @@ class TagConverterMixin:
         *,
         is_linear: bool,
     ) -> Tuple[Optional[TaggedArray], Optional[TaggedArray]]:
-        def to_tagged_array(arr: Optional[ArrayLike], tag: Tag) -> Optional[TaggedArray]:
-            if arr is None:
-                return None
+        def to_tagged_array(arr: Union[ArrayLike, TaggedArray], tag: Tag) -> TaggedArray:
             tag = Tag(tag)
             if isinstance(arr, TaggedArray):
                 return arr
             return TaggedArray(arr, tag=tag)
 
-        def cost_or_kernel(arr: TaggedArray, key: Literal["xy", "x", "y"]) -> TaggedArray:
-            arr = to_tagged_array(arr, tag=tags.get(key, Tag.COST_MATRIX))
-            if arr.tag not in (Tag.COST_MATRIX, Tag.KERNEL):
-                raise ValueError(f"TODO: wrong tag - expected kernel/cost, got `{arr.tag}`")
-            return arr
+        def cost_or_kernel(arr: ArrayLike, key: str) -> TaggedArray:
+            res = to_tagged_array(arr, tag=tags.get(key, Tag.COST_MATRIX))  # type: ignore[call-overload]
+            if res.tag not in (Tag.COST_MATRIX, Tag.KERNEL):
+                raise ValueError(f"TODO: wrong tag - expected kernel/cost, got `{res.tag}`")
+            return res
 
         x_key, y_key = ("xy", "xy") if is_linear else ("x", "y")
+        x_tag, y_tag = tags.get(x_key, Tag.POINT_CLOUD), tags.get(Tag.POINT_CLOUD)  # type: ignore[call-overload]
+
         if x is None and y is None:
             return None, None  # checks are done later
         if x is None:
-            return cost_or_kernel(y, key=y_key), None
+            return cost_or_kernel(y, key=y_key), None  # type: ignore[arg-type]
         if y is None:
             return cost_or_kernel(x, key=x_key), None
         if is_linear:
             return to_tagged_array(x, tag=Tag.POINT_CLOUD), to_tagged_array(y, tag=Tag.POINT_CLOUD)
-        return to_tagged_array(x, tag=tags.get(x_key, Tag.POINT_CLOUD)), to_tagged_array(
-            y, tag=tags.get(y_key, Tag.POINT_CLOUD)
-        )
+        return to_tagged_array(x, tag=x_tag), to_tagged_array(y, tag=y_tag)
 
 
-class BaseSolver(ABC):
+class BaseSolver(Generic[O], ABC):
     """BaseSolver class."""
 
     @abstractmethod
     def _prepare(
         self,
-        *args: Any,
         **kwargs: Any,
     ) -> Any:
         pass
 
     @abstractmethod
-    def _solve(self, data: Any, **kwargs: Any) -> BaseSolverOutput:
+    def _solve(self, data: Any, **kwargs: Any) -> O:
         pass
 
     @property
@@ -133,18 +130,16 @@ class BaseSolver(ABC):
 
     def __call__(
         self,
-        *args: Any,
-        solve_kwargs: Mapping[str, Any] = MappingProxyType({}),
         **kwargs: Any,
-    ) -> BaseSolverOutput:
+    ) -> O:
         """Call method."""
-        data = self._prepare(*args, **kwargs)
-        return self._solve(data, **solve_kwargs)
+        data = self._prepare(**kwargs)
+        return self._solve(data)
 
 
 @d.get_sections(base="OTSolver", sections=["Parameters", "Raises"])
 @d.dedent
-class OTSolver(TagConverterMixin, BaseSolver, ABC):
+class OTSolver(TagConverterMixin, BaseSolver[O], ABC):
     """OTSolver class."""
 
     def __call__(
@@ -152,19 +147,18 @@ class OTSolver(TagConverterMixin, BaseSolver, ABC):
         xy: Optional[Union[ArrayLike, Tuple[ArrayLike, ArrayLike]]] = None,
         x: Optional[ArrayLike] = None,
         y: Optional[ArrayLike] = None,
-        a: Optional[npt.ArrayLike] = None,
-        b: Optional[npt.ArrayLike] = None,
+        a: Optional[ArrayLike] = None,
+        b: Optional[ArrayLike] = None,
         tau_a: float = 1.0,
         tau_b: float = 1.0,
         tags: Mapping[Literal["x", "y", "xy"], Tag] = MappingProxyType({}),
-        solve_kwargs: Mapping[str, Any] = MappingProxyType({}),
         **kwargs: Any,
-    ) -> BaseSolverOutput:
+    ) -> O:
         """Call method."""
         data = self._get_array_data(xy, x=x, y=y, tags=tags)
         kwargs = self._prepare_kwargs(data, **kwargs)
 
-        res = super().__call__(a=a, b=b, tau_a=tau_a, tau_b=tau_b, solve_kwargs=solve_kwargs, **kwargs)
+        res = super().__call__(a=a, b=b, tau_a=tau_a, tau_b=tau_b, **kwargs)
 
         return self._check_marginals(res, a=a, b=b, tau_a=tau_a, tau_b=tau_b)
 
@@ -172,7 +166,7 @@ class OTSolver(TagConverterMixin, BaseSolver, ABC):
         self,
         data: TaggedArrayData,
         **kwargs: Any,
-    ) -> Mapping[str, Union[Optional[TaggedArray], Any]]:
+    ) -> Dict[str, Any]:
         def assert_linear() -> None:
             if data.xy == (None, None):
                 raise ValueError("TODO: no linear data.")
@@ -183,7 +177,7 @@ class OTSolver(TagConverterMixin, BaseSolver, ABC):
 
         if self.problem_kind == ProblemKind.LINEAR:
             assert_linear()
-            data_kwargs = {"xy": data.xy}
+            data_kwargs: Dict[str, Any] = {"xy": data.xy}
         elif self.problem_kind == ProblemKind.QUAD:
             assert_quadratic()
             data_kwargs = {"x": data.x, "y": data.y}
@@ -201,12 +195,12 @@ class OTSolver(TagConverterMixin, BaseSolver, ABC):
 
     @staticmethod
     def _check_marginals(
-        res: BaseSolverOutput,
-        a: Optional[npt.ArrayLike] = None,
-        b: Optional[npt.ArrayLike] = None,
+        res: O,
+        a: Optional[ArrayLike] = None,
+        b: Optional[ArrayLike] = None,
         tau_a: float = 1.0,
         tau_b: float = 1.0,
-    ) -> BaseSolverOutput:
+    ) -> O:
         if not res.converged:
             warnings.warn("Solver did not converge")
         n, m = res.shape
