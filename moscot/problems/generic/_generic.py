@@ -4,8 +4,8 @@ from typing import Any, Type, Tuple, Union, Literal, Mapping, Optional
 from anndata import AnnData
 
 from moscot._docs import d
-from moscot.problems import OTProblem, SingleCompoundProblem
-from moscot.analysis_mixins import AnalysisMixin
+from moscot.problems import OTProblem, SingleCompoundProblem  # type: ignore[attr-defined]
+from moscot.analysis_mixins import AnalysisMixin  # type: ignore[attr-defined]
 from moscot.problems._compound_problem import B
 
 
@@ -200,8 +200,10 @@ class FGWProblem(GWProblem):
     @d.dedent
     def prepare(
         self,
-        *args,
+        key: str,
         joint_attr: Mapping[str, Any] = MappingProxyType({}),
+        GW_attr: Mapping[str, Any] = MappingProxyType({}),
+        policy: Literal["sequential", "pairwise", "explicit"] = "sequential",
         **kwargs: Any,
     ) -> "FGWProblem":
         """
@@ -214,4 +216,4 @@ class FGWProblem(GWProblem):
 
         """
         kwargs["joint_attr"] = joint_attr
-        return super().prepare(*args, joint_attr=joint_attr, **kwargs)
+        return super().prepare(key=key, GW_attr=GW_attr, joint_attr=joint_attr, policy=policy, **kwargs)

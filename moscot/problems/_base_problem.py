@@ -1,15 +1,15 @@
 from abc import ABC, abstractmethod
 from types import MappingProxyType
-from typing import Any, Dict, List, Tuple, Union, Literal, Mapping, Iterable, Optional, Sequence
+from typing import Any, Dict, List, Tuple, Union, Literal, Mapping, Iterable, Optional, Sequence, Callable
 
 from scipy.sparse import vstack, issparse, csr_matrix
 
 import numpy as np
-import numpy.typing as npt
-
+import wrapt
 from anndata import AnnData
 import scanpy as sc
 
+from moscot._types import ArrayLike
 from moscot._docs import d
 from moscot.solvers._output import BaseSolverOutput
 from moscot.problems._anndata import AnnDataPointer
@@ -17,6 +17,15 @@ from moscot.solvers._base_solver import ProblemKind
 from moscot.solvers._tagged_array import Tag, TaggedArray
 
 __all__ = ("BaseProblem", "OTProblem")
+
+@wrapt.decorator
+def require_solution(wrapped: Callable[[Any], Any], instance: "OTProblem", args: Tuple[Any, ...], kwargs: Mapping[str, Any]) -> Any:
+    from moscot.problems import CompoundBaseProblem  # type: ignore[attr-defined]
+    if isinstance(instance, OTProblem) and instance.solution is None:
+        raise RuntimeError("TODO: Run solve.")
+    if isinstance(instance, CompoundBaseProblem) and instance.solutions is None:
+        raise RuntimeError("TODO: Run solve.")
+    return wrapped(*args, **kwargs)
 
 
 @d.get_sections(base="BaseProblem", sections=["Parameters", "Raises"])
@@ -46,11 +55,11 @@ class BaseProblem(ABC):
         self._problem_kind: Optional[ProblemKind] = None
 
     @abstractmethod
-    def prepare(self, *args: Any, **kwargs: Any) -> "BaseProblem":
+    def prepare(self, **kwargs: Any) -> "BaseProblem":
         pass
 
     @abstractmethod
-    def solve(self, *args: Any, **kwargs: Any) -> "BaseProblem":
+    def solve(self, **kwargs: Any) -> "BaseProblem":
         pass
 
     @property
@@ -62,10 +71,10 @@ class BaseProblem(ABC):
     @staticmethod
     def _get_mass(
         adata: AnnData,
-        data: Optional[Union[str, List[str], Tuple[str, ...], npt.ArrayLike]] = None,
+        data: Optional[Union[str, List[str], Tuple[str, ...], ArrayLike]] = None,
         subset: Optional[Sequence[Any]] = None,
         normalize: bool = True,
-    ) -> npt.ArrayLike:
+    ) -> ArrayLike:
         if data is None:
             data = np.ones((adata.n_obs,), dtype=float)
         elif isinstance(data, (str, list, tuple)):
@@ -127,10 +136,10 @@ class OTProblem(BaseProblem):
 
         self._x: Optional[TaggedArray] = None
         self._y: Optional[TaggedArray] = None
-        self._xy: Optional[Union[TaggedArray, TaggedArray]] = None
+        self._xy: Optional[Union[TaggedArray, Tuple[TaggedArray, TaggedArray]]] = None
 
-        self._a: Optional[npt.ArrayLike] = None
-        self._b: Optional[npt.ArrayLike] = None
+        self._a: Optional[ArrayLike] = None
+        self._b: Optional[ArrayLike] = None
 
         self._source = source
         self._target = target
@@ -158,20 +167,14 @@ class OTProblem(BaseProblem):
     # TODO(michalk8): refactor me
     def prepare(
         self,
-        xy: Optional[Union[TaggedArray, Tuple[TaggedArray, TaggedArray], Mapping[str, Any]]] = None,
-        x: Optional[Union[TaggedArray, Mapping[str, Any]]] = None,
-        y: Optional[Union[TaggedArray, Mapping[str, Any]]] = None,
-        a: Optional[Union[str, npt.ArrayLike]] = None,
-        b: Optional[Union[str, npt.ArrayLike]] = None,
+        xy: Optional[Mapping[str, Any]] = None,
+        x: Optional[Mapping[str, Any]] = None,
+        y: Optional[Mapping[str, Any]] = None,
+        a: Optional[Union[str, ArrayLike]] = None,
+        b: Optional[Union[str, ArrayLike]] = None,
         **_: Any,
     ) -> "OTProblem":
-        # TODO(michalk8): necessary for?
-        def update_key(kwargs: Mapping[str, Any], *, is_source: bool) -> Mapping[str, Any]:
-            if kwargs.get("attr", None) == "uns":
-                kwargs = dict(kwargs)
-                kwargs["key"] = self._source if is_source else self._target
-            return kwargs
-
+        
         self._x = self._y = self._xy = self._solution = None
         # TODO(michalk8): handle again TaggedArray?
         # TODO(michalk8): better dispatch
@@ -181,13 +184,13 @@ class OTProblem(BaseProblem):
             self._xy = xy if isinstance(xy, (tuple, TaggedArray)) else self._handle_linear(**xy)
         elif x is not None and y is not None and xy is None:
             self._problem_kind = ProblemKind.QUAD
-            self._x = AnnDataPointer(adata=self.adata, **update_key(x, is_source=True)).create()
-            self._y = AnnDataPointer(adata=self._adata_y, **update_key(y, is_source=False)).create()
+            self._x = AnnDataPointer(adata=self.adata, **x).create()
+            self._y = AnnDataPointer(adata=self._adata_y, **y).create()
         elif xy is not None and x is not None and y is not None:
             self._problem_kind = ProblemKind.QUAD_FUSED
             self._xy = xy if isinstance(xy, tuple) else self._handle_linear(**xy)
-            self._x = AnnDataPointer(adata=self.adata, **update_key(x, is_source=True)).create()
-            self._y = AnnDataPointer(adata=self._adata_y, **update_key(y, is_source=False)).create()
+            self._x = AnnDataPointer(adata=self.adata, **x).create()
+            self._y = AnnDataPointer(adata=self._adata_y, **y).create()
         else:
             raise NotImplementedError("TODO: Combination not implemented")
 
@@ -196,7 +199,7 @@ class OTProblem(BaseProblem):
 
         return self
 
-    def solve(
+    def solve(  
         self,
         epsilon: Optional[float] = 1e-2,
         alpha: Optional[float] = 0.5,
@@ -227,29 +230,31 @@ class OTProblem(BaseProblem):
         self._solution = solver(x=self._x, y=self._y, xy=self._xy, a=a, b=b, tau_a=tau_a, tau_b=tau_b, **prepare_kwargs)
 
         return self
-
+    
+    @require_solution
     def push(
         self,
-        data: Optional[Union[str, npt.ArrayLike]] = None,
+        data: Optional[Union[str, ArrayLike]] = None,
         subset: Optional[Sequence[Any]] = None,
         normalize: bool = True,
         **kwargs: Any,
-    ) -> npt.ArrayLike:
+    ) -> ArrayLike:
         # TODO: check if solved - decorator?
         data = self._get_mass(self.adata, data=data, subset=subset, normalize=normalize)
-        return self.solution.push(data, **kwargs)
+        return self.solution.push(data, **kwargs)  # type: ignore[union-attr]
 
+    @require_solution
     def pull(
         self,
-        data: Optional[Union[str, npt.ArrayLike]] = None,
+        data: Optional[Union[str, ArrayLike]] = None,
         subset: Optional[Sequence[Any]] = None,
         normalize: bool = True,
         **kwargs: Any,
-    ) -> npt.ArrayLike:
+    ) -> ArrayLike:
         # TODO: check if solved - decorator?
         adata = self.adata if self._adata_y is None else self._adata_y
         data = self._get_mass(adata, data=data, subset=subset, normalize=normalize)
-        return self.solution.pull(data, **kwargs)
+        return self.solution.pull(data, **kwargs)  # type: ignore[union-attr]
 
     @staticmethod
     def _local_pca_callback(
@@ -258,8 +263,8 @@ class OTProblem(BaseProblem):
         layer: Optional[str] = None,
         return_linear: bool = True,
         **kwargs: Any,
-    ) -> Dict[Literal["xy", "x", "y"], TaggedArray]:
-        def concat(x: npt.ArrayLike, y: npt.ArrayLike) -> npt.ArrayLike:
+    ) -> Dict[Literal["xy", "x", "y"], Union[TaggedArray, Tuple[TaggedArray, TaggedArray]]]:
+        def concat(x: ArrayLike, y: ArrayLike) -> ArrayLike:
             if issparse(x):
                 return vstack([x, csr_matrix(y)])
             if issparse(y):
@@ -285,7 +290,7 @@ class OTProblem(BaseProblem):
         return {"x": TaggedArray(x, tag=Tag.POINT_CLOUD), "y": TaggedArray(y, tag=Tag.POINT_CLOUD)}
 
     @staticmethod
-    def _create_marginals(adata: AnnData, data: Optional[Union[str, npt.ArrayLike]] = None) -> npt.ArrayLike:
+    def _create_marginals(adata: AnnData, data: Optional[Union[str, ArrayLike]] = None) -> ArrayLike:
         if data is None:
             return np.ones((adata.n_obs,), dtype=float) / adata.n_obs
         if isinstance(data, str):
@@ -311,13 +316,13 @@ class OTProblem(BaseProblem):
 
     # TODO(michalk8): verify type
     @property
-    def xy(self) -> Optional[Tuple[TaggedArray, TaggedArray]]:
+    def xy(self) -> Optional[Union[TaggedArray, Tuple[TaggedArray, TaggedArray]]]:
         return self._xy
 
     @property
-    def a(self) -> Optional[np.ndarray]:
+    def a(self) -> Optional[ArrayLike]:
         return self._a
 
     @property
-    def b(self) -> Optional[np.ndarray]:
+    def b(self) -> Optional[ArrayLike]:
         return self._b
