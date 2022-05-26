@@ -79,7 +79,7 @@ class SubsetPolicy(Generic[K]):
         pass
 
     def plan(self, forward: bool = True, **kwargs: Any) -> Sequence[Tuple[K, K]]:
-        plan = self.plan(**kwargs)
+        plan = self._plan(**kwargs)
         return plan if forward else plan[::-1]
 
     @abstractmethod

@@ -258,6 +258,7 @@ class BaseCompoundProblem(BaseProblem, Generic[K, B], ABC):
 
         # TODO(michalk8): maybe implement something for StarPolicies
         # in this case, use `plan_kwargs` (unused are ignored)
+        # TODO(michalk8): may need to be policy specific...
         (src, tgt), *rest = self._policy.plan(forward=forward, start=start, end=end)
         problem = self.problems[src, tgt]
         adata = problem.adata if forward else problem._adata_y
@@ -265,10 +266,11 @@ class BaseCompoundProblem(BaseProblem, Generic[K, B], ABC):
         current_mass = problem._get_mass(adata, data=data, **kwargs)
         res = {src if forward else tgt: current_mass}
 
-        for src, tgt in rest:
+        for src, tgt in [(src, tgt)] + rest:
             problem = self.problems[src, tgt]
             fun = problem.push if forward else problem.pull
             current_mass = fun(current_mass, scale_by_marginals=scale_by_marginals, **kwargs)
+            # TODO(michalk8): fix star policy key
             res[tgt if forward else src] = current_mass
 
         return res if return_all else current_mass
