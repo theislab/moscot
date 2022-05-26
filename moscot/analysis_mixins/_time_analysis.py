@@ -7,16 +7,29 @@ from sklearn.metrics.pairwise import pairwise_distances
 import ot
 import pandas as pd
 
-from numpy import typing as npt
 import numpy as np
 
 from anndata import AnnData
 
 from moscot._docs import d
-from moscot.analysis_mixins._base_analysis import AnalysisMixin
+from moscot._types import ArrayLike
+from moscot.problems._compound_problem import B, K
+from moscot.analysis_mixins._base_analysis import AnalysisMixin, AnalysisMixinProtocol
 
 
-class TemporalAnalysisMixin(AnalysisMixin):
+class TimeAnalysisMixinProtocol(AnalysisMixinProtocol[K, B]):
+    """Protocol class."""
+
+    adata: AnnData
+
+    def push(self, *args: Any, **kwargs: Any) -> Union[ArrayLike, Dict[Any, ArrayLike]]:  # noqa: D102
+        ...
+
+    def pull(self, *args: Any, **kwargs: Any) -> Union[ArrayLike, Dict[Any, ArrayLike]]:  # noqa: D102
+        ...
+
+
+class TemporalAnalysisMixin(AnalysisMixin, TimeAnalysisMixinProtocol[K, B]):
     """Analysis Mixin for all problems involving a temporal dimension."""
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
@@ -32,7 +45,7 @@ class TemporalAnalysisMixin(AnalysisMixin):
         return_all: bool = False,
         scale_by_marginals: bool = True,
         **kwargs: Any,
-    ) -> Optional[Union[npt.ArrayLike, Dict[Tuple[Any, Any], npt.ArrayLike]]]:
+    ) -> Optional[Union[ArrayLike, Dict[Tuple[Any, Any], ArrayLike]]]:
         """
         Push distribution of cells through time.
 
@@ -82,7 +95,7 @@ class TemporalAnalysisMixin(AnalysisMixin):
         return_all: bool = False,
         scale_by_marginals: bool = True,
         **kwargs: Any,
-    ) -> Optional[Union[npt.ArrayLike, Dict[Tuple[Any, Any], npt.ArrayLike]]]:
+    ) -> Optional[Union[ArrayLike, Dict[Tuple[Any, Any], ArrayLike]]]:
         """
         Pull distribution of cells from time point `end` to time point `start`.
 
@@ -278,9 +291,9 @@ class TemporalAnalysisMixin(AnalysisMixin):
         end: Optional[Number] = None,
         *,
         only_start: bool = False,
-    ) -> Tuple[Union[npt.ArrayLike, AnnData], ...]:
+    ) -> Tuple[Union[ArrayLike, AnnData], ...]:
         # TODO(michalk8): refactor me
-        for (start_, end_) in self._problems.keys():
+        for (start_, end_) in self.problems.keys():
             if isinstance(self.problems[(start_, end_)].xy, tuple):
                 tag = self.problems[(start_, end_)].xy[0].tag
             else:
@@ -288,26 +301,26 @@ class TemporalAnalysisMixin(AnalysisMixin):
             if tag != "point_cloud":
                 raise ValueError(
                     "TODO: This method requires the data to be stored as point_clouds. It is currently stored "
-                    f"as {self._problems[(start_, end_)].xy[0].tag}."
+                    f"as {self.problems[(start_, end_)].xy[0].tag}."
                 )
             if start_ == key:
-                source_data = self._problems[(start_, end_)].xy[0].data
+                source_data = self.problems[(start_, end_)].xy[0].data
                 if only_start:
-                    return source_data, self._problems[(start_, end_)].adata
-                growth_rates_source = self._problems[(start_, end_)].growth_rates[:, -1]
+                    return source_data, self.problems[(start_, end_)].adata
+                growth_rates_source = self.problems[(start_, end_)].growth_rates[:, -1]
                 break
         else:
             raise ValueError(f"No data found for time point {key}")
-        for (start_, end_) in self._problems.keys():
+        for (start_, end_) in self.problems.keys():
             if start_ == intermediate:
-                intermediate_data = self._problems[(start_, end_)].xy[0].data
-                intermediate_adata = self._problems[(start_, end_)].adata
+                intermediate_data = self.problems[(start_, end_)].xy[0].data
+                intermediate_adata = self.problems[(start_, end_)].adata
                 break
         else:
             raise ValueError(f"No data found for time point {intermediate}")
-        for (start_, end_) in self._problems.keys():
+        for (start_, end_) in self.problems.keys():
             if end_ == end:
-                target_data = self._problems[(start_, end_)].xy[1].data
+                target_data = self.problems[(start_, end_)].xy[1].data
                 break
         else:
             raise ValueError(f"No data found for time point {end}")
@@ -510,10 +523,10 @@ class TemporalAnalysisMixin(AnalysisMixin):
     # faster with same solver as used for original problems
     def _compute_wasserstein_distance(
         self,
-        point_cloud_1: npt.ArrayLike,
-        point_cloud_2: npt.ArrayLike,
-        a: Optional[npt.ArrayLike] = None,
-        b: Optional[npt.ArrayLike] = None,
+        point_cloud_1: ArrayLike,
+        point_cloud_2: ArrayLike,
+        a: Optional[ArrayLike] = None,
+        b: Optional[ArrayLike] = None,
         **kwargs: Any,
     ) -> Number:
         cost_matrix = pairwise_distances(point_cloud_1, Y=point_cloud_2, metric="sqeuclidean", n_jobs=-1)
@@ -524,15 +537,15 @@ class TemporalAnalysisMixin(AnalysisMixin):
     def _interpolate_gex_with_ot(
         self,
         number_cells: int,
-        source_data: npt.ArrayLike,
-        target_data: npt.ArrayLike,
+        source_data: ArrayLike,
+        target_data: ArrayLike,
         start: Number,
         end: Number,
         interpolation_parameter: float = 0.5,
         account_for_unbalancedness: bool = True,
         batch_size: int = 256,
         seed: Optional[int] = None,
-    ) -> npt.ArrayLike:
+    ) -> ArrayLike:
         rows_sampled, cols_sampled = self._sample_from_tmap(
             start=start,
             end=end,
@@ -552,12 +565,12 @@ class TemporalAnalysisMixin(AnalysisMixin):
     def _interpolate_gex_randomly(
         self,
         number_cells: int,
-        source_data: npt.ArrayLike,
-        target_data: npt.ArrayLike,
+        source_data: ArrayLike,
+        target_data: ArrayLike,
         interpolation_parameter: int = 0.5,
-        growth_rates: Optional[npt.ArrayLike] = None,
+        growth_rates: Optional[ArrayLike] = None,
         seed: Optional[int] = None,
-    ) -> npt.ArrayLike:
+    ) -> ArrayLike:
         rng = np.random.RandomState(seed)
         if growth_rates is None:
             row_probability = np.ones(len(source_data))
@@ -583,8 +596,8 @@ class TemporalAnalysisMixin(AnalysisMixin):
             interpolation_parameter if interpolation_parameter is not None else (intermediate - start) / (end - start)
         )
 
-    def _dict_to_adata(self, d: Mapping[str, npt.ArrayLike], obs_key: str) -> None:
-        # TODO: np.full
+    def _dict_to_adata(self, d: Mapping[str, ArrayLike], obs_key: str) -> None:
+        # TODO(MUCDK): np.full
         tmp = np.empty(len(self.adata))
         tmp[:] = np.nan
         for key, value in d.items():
