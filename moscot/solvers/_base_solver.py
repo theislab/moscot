@@ -5,7 +5,6 @@ from typing import Any, Type, Tuple, Union, Literal, Mapping, Optional, NamedTup
 import warnings
 
 from moscot._docs import d
-from moscot.solvers._utils import _warn_not_close
 from moscot.solvers._output import BaseSolverOutput
 from moscot.solvers._tagged_array import Tag, TaggedArray
 from moscot._types import ArrayLike
@@ -159,8 +158,11 @@ class OTSolver(TagConverterMixin, BaseSolver[O], ABC):
         kwargs = self._prepare_kwargs(data, **kwargs)
 
         res = super().__call__(a=a, b=b, tau_a=tau_a, tau_b=tau_b, **kwargs)
+        # TODO(michalk8): check for NaNs
+        if not res.converged:
+            warnings.warn("Solver did not converge")
 
-        return self._check_marginals(res, a=a, b=b, tau_a=tau_a, tau_b=tau_b)
+        return res
 
     def _prepare_kwargs(
         self,
@@ -192,27 +194,3 @@ class OTSolver(TagConverterMixin, BaseSolver[O], ABC):
             kwargs.pop("alpha", None)
 
         return {**kwargs, **data_kwargs}
-
-    @staticmethod
-    def _check_marginals(
-        res: O,
-        a: Optional[ArrayLike] = None,
-        b: Optional[ArrayLike] = None,
-        tau_a: float = 1.0,
-        tau_b: float = 1.0,
-    ) -> O:
-        if not res.converged:
-            warnings.warn("Solver did not converge")
-        n, m = res.shape
-        tol_source = 1 / (n * 10)  # TODO(giovp): maybe round?
-        tol_target = 1 / (m * 10)
-        if tau_a == 1.0:
-            _warn_not_close(
-                (res._ones(n) / n) if a is None else a, res.a, kind="source", rtol=tol_source, atol=tol_source
-            )
-        if tau_b == 1.0:
-            _warn_not_close(
-                (res._ones(m) / m) if b is None else b, res.b, kind="target", rtol=tol_target, atol=tol_target
-            )
-
-        return res
