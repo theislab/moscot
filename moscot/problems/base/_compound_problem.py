@@ -61,7 +61,7 @@ class BaseCompoundProblem(BaseProblem, Generic[K, B], ABC):
 
     def __init__(self, adata: AnnData, **kwargs: Any):
         super().__init__(adata, **kwargs)
-        self._policy: Optional[SubsetPolicy] = None
+        self._policy: Optional[SubsetPolicy[K]] = None
         self._problems: Dict[Tuple[K, K], B] = {}
         self._solutions: Dict[Tuple[K, K], BaseSolverOutput] = {}
 
@@ -74,7 +74,7 @@ class BaseCompoundProblem(BaseProblem, Generic[K, B], ABC):
         self,
         policy: Policy_t,
         **kwargs: Any,
-    ) -> SubsetPolicy:
+    ) -> SubsetPolicy[K]:
         pass
 
     @property
@@ -144,7 +144,7 @@ class BaseCompoundProblem(BaseProblem, Generic[K, B], ABC):
     def prepare(
         self,
         key: str,
-        policy: Policy_t = "sequential",  # type: ignore[assignment]
+        policy: Policy_t = "sequential",
         subset: Optional[Sequence[Tuple[K, K]]] = None,
         reference: Optional[Any] = None,
         axis: Axis_t = "obs",
@@ -184,7 +184,7 @@ class BaseCompoundProblem(BaseProblem, Generic[K, B], ABC):
 
         self._policy = self._create_policy(policy=policy, key=key, axis=axis)
         if isinstance(self._policy, ExplicitPolicy):
-            self._policy = self._policy(subset)
+            self._policy = self._policy(subset=subset)
         elif isinstance(self._policy, StarPolicy):
             self._policy = self._policy(filter=subset, reference=reference)
         else:
@@ -417,7 +417,7 @@ class CompoundProblem(BaseCompoundProblem[K, B], ABC):
         key: Optional[str] = None,
         axis: Axis_t = "obs",
         **_: Any,
-    ) -> SubsetPolicy:
+    ) -> SubsetPolicy[K]:
         if isinstance(policy, str):
             return SubsetPolicy.create(policy, self.adata, key=key, axis=axis)
         return ExplicitPolicy(self.adata, key=key, axis=axis)

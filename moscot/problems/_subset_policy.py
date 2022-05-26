@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import Any, Dict, List, Tuple, Union, Iterable, Optional, Sequence, Generic, TypeVar, Hashable
+from typing import Any, Dict, List, Tuple, Union, Iterable, Optional, Sequence, Generic, TypeVar
 from operator import gt, lt
 from itertools import product
 
@@ -44,7 +44,7 @@ K = TypeVar("K", bound=Hashable)
 
 class FormatterMixin(ABC):
     @abstractmethod
-    def _format(self, value: Any, *, is_source: bool) -> Hashable:
+    def _format(self, value: Any, *, is_source: bool) -> Any:
         pass
 
 
@@ -79,19 +79,20 @@ class SubsetPolicy(Generic[K]):
         pass
 
     @abstractmethod
-    def _plan(self, **kwargs: Any) -> Sequence[Tuple[K, K]]:
+    def plan(self, **kwargs: Any) -> Sequence[Tuple[K, K]]:
         pass
 
-    def __call__(self, **kwargs: Any) -> Sequence[Tuple[K, K]]:
-        self._graph = self._create_graph(**kwargs)
-        return self._graph
+    def __call__(self, filter: Optional[Sequence[Tuple[K, K]]] = None, **kwargs: Any) -> "SubsetPolicy":
+        graph = self._create_graph(**kwargs)
+        if filter is not None:
+            graph = self._filter_graph(graph, filter=filter)
+        if not len(graph):
+            raise ValueError("TODO: empty graph")
+        self._graph = graph
+        return self
 
-    def plan(self, filter: Sequence[Any], **kwargs: Any) -> Sequence[Tuple[K, K]]:
-        plan = self._plan(**kwargs)
-        return self._filter_plan(plan, filter=filter)
-
-    def _filter_plan(self, plan: Sequence[Tuple[K, K]], filter: Sequence[Tuple[K, K]]) -> Sequence[Tuple[K, K]]:
-        return [p for p in plan if p in filter]
+    def _filter_graph(self, graph: Sequence[Tuple[K, K]], filter: Sequence[Tuple[K, K]]) -> Sequence[Tuple[K, K]]:
+        return [i for i in graph if i in filter]
 
     @classmethod
     def create(
@@ -153,7 +154,7 @@ class OrderedPolicy(SubsetPolicy[K], ABC):
         super().__init__(adata, **kwargs)
         # TODO(michalk8): verify whether they can be ordered (only numeric?) + warn (or just raise)
 
-    def _plan(self, start: Optional[K] = None, end: Optional[K] = None, **_: Any) -> Sequence[Tuple[K, K]]:
+    def plan(self, start: Optional[K] = None, end: Optional[K] = None, **_: Any) -> Sequence[Tuple[K, K]]:
         if self._graph is None:
             raise RuntimeError("TODO: run graph creation first")
         if start is None and end is None:
@@ -172,7 +173,7 @@ class OrderedPolicy(SubsetPolicy[K], ABC):
 
 
 class SimplePlanPolicy(SubsetPolicy[K], ABC):
-    def _plan(self, **_: Any) -> Sequence[Tuple[K, K]]:
+    def plan(self, **_: Any) -> Sequence[Tuple[K, K]]:
         return self._graph
 
 
@@ -187,11 +188,11 @@ class StarPolicy(SimplePlanPolicy[K]):
             raise ValueError(f"TODO: Reference {reference} not in {self._cat}")
         return [(c, reference) for c in self._cat if c != reference]
 
-    def _filter_plan(
-        self, plan: Sequence[Tuple[K, K]], filter: Sequence[Union[K, Tuple[K, K]]]
+    def _filter_graph(
+        self, graph: Sequence[Tuple[K, K]], filter: Sequence[Union[K, Tuple[K, K]]]
     ) -> Sequence[Tuple[K, K]]:
         filter = [src[0] if isinstance(src, tuple) else src for src in filter]
-        return [(src, ref) for src, ref in plan if src in filter]
+        return [(src, ref) for src, ref in graph if src in filter]
 
 
 class ExternalStarPolicy(FormatterMixin, StarPolicy[K]):
@@ -254,7 +255,7 @@ class DummyPolicy(FormatterMixin, SubsetPolicy[str]):
     def _create_graph(self, **__: Any) -> Sequence[Tuple[object, object]]:  # type: ignore[override]
         return [(self._SENTINEL, self._SENTINEL)]
 
-    def _plan(self, **_: Any) -> List[Tuple[str, str]]:
+    def plan(self, **_: Any) -> List[Tuple[str, str]]:
         return [(self._src_name, self._tgt_name)]
 
     def _format(self, _: Any, *, is_source: bool) -> str:
