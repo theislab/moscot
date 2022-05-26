@@ -9,9 +9,9 @@ from anndata import AnnData
 
 from moscot._docs import d
 from moscot.solvers._output import BaseSolverOutput
-from moscot.problems._base_problem import OTProblem
+from moscot.problems.base._base_problem import OTProblem
 
-__all__ = ("MultiMarginalProblem",)
+__all__ = ["MultiMarginalProblem"]
 
 
 @d.get_sections(base="MultiMarginalProblem", sections=["Parameters", "Raises"])

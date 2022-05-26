@@ -8,16 +8,27 @@ import pandas as pd
 import networkx as nx
 
 import numpy as np
-import numpy.typing as npt
 
 from anndata import AnnData
 
+from moscot._types import ArrayLike
+
 Item_t = Tuple[Any, Any]
-Value_t = Tuple[npt.ArrayLike, npt.ArrayLike]
+Value_t = Tuple[ArrayLike, ArrayLike]
 Axis_t = Literal["obs", "var"]
+Policy_t = Literal[
+    "SubsetPolicy",
+    "OrderedPolicy",
+    "PairwisePolicy",
+    "StarPolicy",
+    "ExternalStarPolicy",
+    "SequentialPolicy",
+    "TriangularPolicy",
+    "ExplicitPolicy",
+]
 
 
-__all__ = (
+__all__ = [
     "SubsetPolicy",
     "OrderedPolicy",
     "PairwisePolicy",
@@ -27,7 +38,7 @@ __all__ = (
     "TriangularPolicy",
     "ExplicitPolicy",
     "DummyPolicy",
-)
+]
 
 
 class FormatterMixin(ABC):
@@ -126,7 +137,7 @@ class SubsetPolicy:
     @classmethod
     def create(
         cls,
-        kind: Literal["sequential", "pairwise", "star", "triu", "tril", "explicit"],
+        kind: Policy_t,
         adata: Union[AnnData, pd.Series, pd.Categorical],
         **kwargs: Any,
     ) -> "SubsetPolicy":
@@ -147,7 +158,7 @@ class SubsetPolicy:
 
         raise NotImplementedError(kind)
 
-    def create_mask(self, value: Union[Any, Sequence[Any]], *, allow_empty: bool = False) -> npt.ArrayLike:
+    def create_mask(self, value: Union[Any, Sequence[Any]], *, allow_empty: bool = False) -> ArrayLike:
         mask = (
             self._data == value if isinstance(value, str) or not isinstance(value, Iterable) else self._data.isin(value)
         )

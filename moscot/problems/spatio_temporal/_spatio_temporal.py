@@ -54,7 +54,7 @@ class SpatioTemporalProblem(TemporalAnalysisMixin, BirthDeathMixin, AlignmentPro
         %(callback)s
         %(callback_kwargs)s
         kwargs
-            Keyword arguments for :meth:`moscot.problems.CompoundBaseProblem._create_problems`
+            Keyword arguments for :meth:`moscot.problems.BaseCompoundProblem._create_problems`
 
         Returns
         -------

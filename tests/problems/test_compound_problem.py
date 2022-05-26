@@ -11,13 +11,13 @@ import numpy as np
 from anndata import AnnData
 
 from tests._utils import ATOL, RTOL
-from moscot.problems import SingleCompoundProblem
+from moscot.problems import CompoundProblem
 from moscot.solvers._tagged_array import Tag, TaggedArray
-from moscot.problems._base_problem import OTProblem
-from moscot.problems._compound_problem import B
+from moscot.problems.base._base_problem import OTProblem
+from moscot.problems.base._compound_problem import B
 
 
-class Problem(SingleCompoundProblem[Any, OTProblem]):
+class Problem(CompoundProblem[Any, OTProblem]):
     @property
     def _base_problem_type(self) -> Type[B]:
         return OTProblem
@@ -80,7 +80,7 @@ class TestSingleCompoundProblem:
             callback_kwargs=callback_kwargs,
         )
 
-        assert isinstance(problem, SingleCompoundProblem)
+        assert isinstance(problem, CompoundProblem)
         assert isinstance(problem.problems, dict)
         spy.assert_called_with(subproblem.adata, subproblem._adata_y, **callback_kwargs)
 

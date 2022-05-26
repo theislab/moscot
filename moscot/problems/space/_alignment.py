@@ -4,12 +4,12 @@ from typing_extensions import Literal
 
 from moscot._docs import d
 from moscot.analysis_mixins import SpatialAlignmentAnalysisMixin
-from moscot.problems._base_problem import OTProblem
-from moscot.problems._compound_problem import B, SingleCompoundProblem
+from moscot.problems.base._base_problem import OTProblem
+from moscot.problems.base._compound_problem import B, CompoundProblem
 
 
 @d.dedent
-class AlignmentProblem(SingleCompoundProblem, SpatialAlignmentAnalysisMixin):
+class AlignmentProblem(CompoundProblem, SpatialAlignmentAnalysisMixin):
     """
     Class for aligning spatial omics data, based on :cite:`zeira2022`.
 
