@@ -23,6 +23,7 @@ import pandas as pd
 
 import numpy as np
 import numpy.typing as npt
+import wrapt
 
 from anndata import AnnData
 
@@ -41,6 +42,13 @@ Key = Tuple[K, K]
 Callback_t = Callable[[AnnData, AnnData, Any], Mapping[str, TaggedArray]]
 ApplyOutput_t = Union[Dict[Tuple[Any, Any], npt.ArrayLike], Dict[Tuple[Any, Any], Dict[Tuple[Any, Any], npt.ArrayLike]]]
 
+
+@wrapt.decorator
+def require_prepare(wrapped: Callable[[Any], Any], instance: "CompoundBaseProblem", args: Tuple[Any, ...], kwargs: Mapping[str, Any]) -> Any:
+    from moscot.problems import CompoundBaseProblem  # type: ignore[attr-defined]
+    if instance._problems is None:
+        raise RuntimeError("TODO: Run prepare.")
+    return wrapped(*args, **kwargs)
 
 @d.get_sections(base="CompoundBaseProblem", sections=["Parameters", "Raises"])
 @d.dedent

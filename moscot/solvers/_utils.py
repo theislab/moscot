@@ -6,13 +6,13 @@ except ImportError:
     from typing_extensions import Literal
 import warnings
 
-from numpy import typing as npt
 import numpy as np
 
+from moscot._types import ArrayLike
 
 def _warn_not_close(
-    actual: Optional[npt.ArrayLike],
-    expected: Optional[npt.ArrayLike],
+    actual: ArrayLike,
+    expected: ArrayLike,
     *,
     kind: Literal["source", "target"],
     rtol: float = 1e-3,

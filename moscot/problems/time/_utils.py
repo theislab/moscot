@@ -3,38 +3,39 @@ from typing import Any, Literal, Mapping, Sequence
 import numpy as np
 import numpy.typing as npt
 
+from moscot._types import ArrayLike
 
 # adapted from https://github.com/broadinstitute/wot/blob/master/notebooks/Notebook-2-compute-transport-maps.ipynb
-def logistic(x: npt.ArrayLike, L: float, k: float, center: float = 0) -> npt.ArrayLike:
+def logistic(x: ArrayLike, L: float, k: float, center: float = 0) -> ArrayLike:
     """Logistic function."""
     return L / (1 + np.exp(-k * (x - center)))
 
 
-def gen_logistic(p: npt.ArrayLike, beta_max: float, beta_min: float, center: float, width: float) -> npt.ArrayLike:
+def gen_logistic(p: ArrayLike, beta_max: float, beta_min: float, center: float, width: float) -> ArrayLike:
     """Shifted logistic function."""
     return beta_min + logistic(p, L=beta_max - beta_min, k=4 / width, center=center)
 
 
 def beta(
-    p: npt.ArrayLike,
+    p: ArrayLike,
     beta_max: float = 1.7,
     beta_min: float = 0.3,
     center: float = 0.25,
     width: float = 0.5,
     **_: Any,
-) -> npt.ArrayLike:
+) -> ArrayLike:
     """Birth process."""
     return gen_logistic(p, beta_max, beta_min, center, width)
 
 
 def delta(
-    a: npt.ArrayLike,
+    a: ArrayLike,
     delta_max: float = 1.7,
     delta_min: float = 0.3,
     center: float = 0.1,
     width: float = 0.2,
     **kwargs: Any,
-) -> npt.ArrayLike:
+) -> ArrayLike:
     """Death process."""
     return gen_logistic(a, delta_max, delta_min, center, width)
 
