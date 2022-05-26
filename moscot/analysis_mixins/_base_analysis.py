@@ -1,23 +1,41 @@
 from abc import ABC
-from typing import Any, List, Tuple, Union, Optional, Protocol, TYPE_CHECKING
+from typing import Any, Dict, List, Tuple, Union, Optional, Protocol
 from functools import partial
 
 from scipy.sparse.linalg import LinearOperator
 
 import numpy as np
-import numpy.typing as npt
 
+from moscot._types import ArrayLike
 from moscot.solvers._output import JointOperator, BaseSolverOutput
+from moscot.problems._base_problem import OTProblem
+from moscot.problems._subset_policy import SubsetPolicy
+from moscot.problems._compound_problem import ApplyOutput_t
 
 
 class AnalysisMixinProtocol(Protocol):
-    def _apply(self, start=str, end=str, mass=npt.ArrayLike): ...
+    """Protocol class."""
+
+    def _apply(
+        self,
+        start: Optional[Any] = None,
+        end: Optional[Any] = None,
+        normalize: bool = True,
+        forward: bool = True,
+        scale_by_marginals: bool = False,
+        filter: Optional[List[Tuple[str, str]]] = None,  # noqa: A002
+        data: Optional[ArrayLike] = None,
+    ) -> ApplyOutput_t:
+        ...
 
 
 # TODO(michalk8): need to think about this a bit more
 # TODO(MUCDK): remove ABC?
 class AnalysisMixin(ABC):
     """Base Analysis Mixin."""
+
+    problems: Dict[Tuple[Any, Any], OTProblem]
+    _policy: SubsetPolicy
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
@@ -33,7 +51,7 @@ class AnalysisMixin(ABC):
         account_for_unbalancedness: bool = False,
         interpolation_parameter: Optional[float] = None,
         seed: Optional[int] = None,
-    ) -> Tuple[npt.ArrayLike, List[npt.ArrayLike]]:
+    ) -> Tuple[ArrayLike, List[ArrayLike]]:
 
         rng = np.random.RandomState(seed)
         if account_for_unbalancedness and interpolation_parameter is None:
@@ -44,8 +62,8 @@ class AnalysisMixin(ABC):
         if interpolation_parameter is not None and (0 > interpolation_parameter or interpolation_parameter > 1):
             raise ValueError(f"TODO: interpolation parameter must be between 0 and 1 but is {interpolation_parameter}.")
         mass = np.ones(target_dim)
-        if account_for_unbalancedness:
-            col_sums = self._apply(
+        if account_for_unbalancedness and interpolation_parameter is not None:
+            col_sums: ArrayLike = self._apply(  # type: ignore[assignment]
                 start=start,
                 end=end,
                 normalize=True,
@@ -100,12 +118,14 @@ class AnalysisMixin(ABC):
 
     def _interpolate_transport(
         self, start: Any, end: Any, forward: bool = True, scale_by_marginals: bool = True
-    ) -> Union[npt.ArrayLike, LinearOperator]:
+    ) -> Union[ArrayLike, LinearOperator]:
         """Interpolate transport matrix."""
         # TODO(@MUCDK, @giovp, discuss what exactly this function should do, seems like it could be more generic)
         steps = self._policy.plan(start=start, end=end)[start, end]
         tmap = self._as_linear_operator(
-            [self.problems[i].solution for i in steps], forward=forward, scale_by_marginals=scale_by_marginals
+            [self.problems[i].solution for i in steps],  # type: ignore[arg-type]
+            forward=forward,
+            scale_by_marginals=scale_by_marginals,
         )
         return tmap
 

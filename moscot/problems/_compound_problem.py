@@ -39,6 +39,7 @@ B = TypeVar("B", bound=OTProblem)
 K = TypeVar("K", bound=Hashable)
 Key = Tuple[K, K]
 Callback_t = Callable[[AnnData, AnnData, Any], Mapping[str, TaggedArray]]
+ApplyOutput_t = Union[Dict[Tuple[Any, Any], npt.ArrayLike], Dict[Tuple[Any, Any], Dict[Tuple[Any, Any], npt.ArrayLike]]]
 
 
 @d.get_sections(base="CompoundBaseProblem", sections=["Parameters", "Raises"])
@@ -225,7 +226,7 @@ class CompoundBaseProblem(BaseProblem, Generic[K, B], ABC):
         return_all: bool = False,
         scale_by_marginals: bool = False,
         **kwargs: Any,
-    ) -> Union[Dict[Tuple[Any, Any], npt.ArrayLike], Dict[Tuple[Any, Any], Dict[Tuple[Any, Any], npt.ArrayLike]]]:
+    ) -> ApplyOutput_t:
         """
         Use (a) transport map(s) as a linear operator.
 
