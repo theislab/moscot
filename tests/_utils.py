@@ -7,7 +7,7 @@ import numpy.typing as npt
 
 from anndata import AnnData
 
-from moscot.problems import OTProblem, CompoundProblem, MultiMarginalProblem
+from moscot.problems.base import OTProblem, CompoundProblem, MultiMarginalProblem
 from moscot.solvers._output import MatrixSolverOutput
 from moscot.analysis_mixins._base_analysis import AnalysisMixin
 from moscot.problems.base._compound_problem import B

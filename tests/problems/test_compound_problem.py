@@ -11,9 +11,8 @@ import numpy as np
 from anndata import AnnData
 
 from tests._utils import ATOL, RTOL
-from moscot.problems import CompoundProblem
+from moscot.problems.base import OTProblem, CompoundProblem
 from moscot.solvers._tagged_array import Tag, TaggedArray
-from moscot.problems.base._base_problem import OTProblem
 from moscot.problems.base._compound_problem import B
 
 
