@@ -1,6 +1,5 @@
 from abc import ABC
 from typing import Any, Type, Union, Literal, Optional, Sequence
-from numbers import Number
 import logging
 
 import numpy as np
@@ -31,7 +30,7 @@ class BirthDeathMixin(MultiMarginalMixin):
         self._apoptosis_key: Optional[str] = None
 
     @property
-    def _base_problem_type(self) -> Type[B]:
+    def _base_problem_type(self) -> "BirthDeathBaseProblem":
         return BirthDeathBaseProblem
 
     @d.dedent
@@ -91,7 +90,7 @@ class BirthDeathMixin(MultiMarginalMixin):
             if isinstance(gene_set_proliferation, str):
                 sc.tl.score_genes(
                     self.adata,
-                    MarkerGenes.proliferation_markers(gene_set_proliferation),
+                    MarkerGenes.proliferation_markers(gene_set_proliferation),  # type: ignore[arg-type]
                     score_name=proliferation_key,
                     **kwargs,
                 )
@@ -104,7 +103,7 @@ class BirthDeathMixin(MultiMarginalMixin):
             if isinstance(gene_set_apoptosis, str):
                 sc.tl.score_genes(
                     self.adata,
-                    MarkerGenes.apoptosis_markers(gene_set_apoptosis),
+                    MarkerGenes.apoptosis_markers(gene_set_apoptosis),  # type: ignore[arg-type]
                     score_name=apoptosis_key,
                     **kwargs,
                 )
@@ -126,7 +125,6 @@ class BirthDeathMixin(MultiMarginalMixin):
         """Key in :attr:`anndata.AnnData.obs` where prior estimate of cell apoptosis is saved."""
         return self._apoptosis_key
 
-    # TODO(michalk8): remove docs in setters
     @proliferation_key.setter
     def proliferation_key(self, value: Optional[str] = None) -> None:
         # TODO(michalk8): add check if present in .obs (if not None)
@@ -160,8 +158,8 @@ class BirthDeathBaseProblem(MultiMarginalProblem):
         adata_x: AnnData,
         adata_y: AnnData,
         *,
-        source: Number,
-        target: Number,
+        source: float,
+        target: float,
         **kwargs: Any,
     ):
         if source >= target:
@@ -196,10 +194,11 @@ class BirthDeathBaseProblem(MultiMarginalProblem):
         return np.full(len(self._adata_y), np.average(growth))
 
     def _add_marginals(self, sol: BaseSolverOutput) -> None:
-        _a = np.asarray(sol.a) / self._a[-1]
-        self._a.append(_a)
+        # will be removed
+        _a = np.asarray(sol.a) / self._a[-1] # type: ignore[index]
+        self._a.append(_a)  # type: ignore[union-attr]
         # TODO(michalk8): sol._ones
-        self._b.append(np.full(len(self._adata_y), np.average(_a)))
+        self._b.append(np.full(len(self._adata_y), np.average(_a)))  # type: ignore[union-attr]
 
     @property
     def growth_rates(self) -> npt.ArrayLike:

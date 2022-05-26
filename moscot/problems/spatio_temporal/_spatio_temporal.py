@@ -4,8 +4,8 @@ from typing import Any, Tuple, Mapping, Optional
 from typing_extensions import Literal
 
 from moscot._docs import d
-from moscot.analysis_mixins import TemporalAnalysisMixin, SpatialAlignmentAnalysisMixin
-from moscot.problems.mixins import BirthDeathMixin
+from moscot.analysis_mixins import TemporalAnalysisMixin, SpatialAlignmentAnalysisMixin  # type: ignore[attr-defined]
+from moscot.problems.mixins import BirthDeathMixin  # type: ignore[attr-defined]
 from moscot.problems.space._alignment import AlignmentProblem
 
 

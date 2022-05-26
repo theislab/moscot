@@ -27,7 +27,6 @@ def require_solution(wrapped: Callable[[Any], Any], instance: "OTProblem", args:
         raise RuntimeError("TODO: Run solve.")
     return wrapped(*args, **kwargs)
 
-
 @d.get_sections(base="BaseProblem", sections=["Parameters", "Raises"])
 @d.dedent
 class BaseProblem(ABC):
