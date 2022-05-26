@@ -9,10 +9,10 @@ import jax.numpy as jnp
 
 from moscot.solvers._output import BaseSolverOutput, MatrixSolverOutput, HasPotentials
 
-__all__ = ["SinkhornOutput", "LRSinkhornOutput", "GWOutput"]
+__all__ = ["LinearOutput", "LRLinearOutput", "QuadraticOutput"]
 
 
-class OutputRankMixin:
+class RankMixin:
     def __init__(self, *args: Any, rank: int, **kwargs: Any):
         super().__init__(*args, **kwargs)
         self._rank = max(-1, rank)
@@ -23,7 +23,7 @@ class OutputRankMixin:
 
 
 # TODO(michalk8): consider caching some of the properties
-class LinearOTTOutput(BaseSolverOutput, ABC):
+class OTTOutput(BaseSolverOutput, ABC):
     def __init__(self, output: Union[OTTSinkhornOutput, OTTLRSinkhornOutput], **_: Any):
         super().__init__()
         self._output = output
@@ -47,7 +47,7 @@ class LinearOTTOutput(BaseSolverOutput, ABC):
         return jnp.ones((n,))
 
 
-class SinkhornOutput(HasPotentials, LinearOTTOutput):
+class LinearOutput(HasPotentials, OTTOutput):
     """Output class for linear OT problems."""
 
     def _apply(self, x: ArrayLike, *, forward: bool) -> ArrayLike:
@@ -69,7 +69,7 @@ class SinkhornOutput(HasPotentials, LinearOTTOutput):
         return self._output.f, self._output.g
 
 
-class LRSinkhornOutput(OutputRankMixin, LinearOTTOutput):
+class LRLinearOutput(RankMixin, OTTOutput):
     """Output class for low-rank linear OT problems."""
 
     def _apply(self, x: ArrayLike, *, forward: bool) -> ArrayLike:
@@ -86,16 +86,16 @@ class LRSinkhornOutput(OutputRankMixin, LinearOTTOutput):
         return self._output.geom.shape
 
 
-class GWOutput(OutputRankMixin, MatrixSolverOutput):
+class QuadraticOutput(RankMixin, MatrixSolverOutput):
     """
     Output class for Gromov-Wasserstein problems.
 
-    This class wraps :class:`ott.core.gromov_wasserstein.GWOutput`.
+    This class wraps :class:`ott.core.gromov_wasserstein.QuadraticOutput`.
 
     Parameters
     ----------
     output
-        Instance of :class:`ott.core.gromov_wasserstein.GWOutput`.
+        Instance of :class:`ott.core.gromov_wasserstein.QuadraticOutput`.
     rank
         Rank of the solver. `-1` if full-rank was used.
     """
