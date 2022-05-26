@@ -65,20 +65,6 @@ class BaseSolverOutput(ABC):
         x = self._scale_by_marginals(x, forward=False) if scale_by_marginals else x
         return self._apply(x, forward=False)
 
-    @property
-    def a(self) -> ArrayLike:
-        """Marginals of source distribution. If output of unbalanced OT, these are the posterior marginals."""
-        return self.pull(self._ones(self.shape[1]))
-
-    @property
-    def b(self) -> ArrayLike:
-        """Marginals of target distribution. If output of unbalanced OT, these are the posterior marginals."""
-        return self.push(self._ones(self.shape[0]))
-
-    @property
-    def dtype(self) -> Any:  # TODO(michalk8): typeme
-        return self.a.dtype
-
     def as_linear_operator(self, *, forward: bool, scale_by_marginals: bool = False) -> LinearOperator:
         push = partial(self.push, scale_by_marginals=scale_by_marginals)
         pull = partial(self.pull, scale_by_marginals=scale_by_marginals)
@@ -93,6 +79,20 @@ class BaseSolverOutput(ABC):
             op *= out.as_linear_operator(forward=forward, scale_by_marginals=scale_by_marginals)
 
         return op
+
+    @property
+    def a(self) -> ArrayLike:
+        """Marginals of source distribution. If output of unbalanced OT, these are the posterior marginals."""
+        return self.pull(self._ones(self.shape[1]))
+
+    @property
+    def b(self) -> ArrayLike:
+        """Marginals of target distribution. If output of unbalanced OT, these are the posterior marginals."""
+        return self.push(self._ones(self.shape[0]))
+
+    @property
+    def dtype(self) -> Any:  # TODO(michalk8): typeme
+        return self.a.dtype
 
     def _scale_by_marginals(self, x: ArrayLike, *, forward: bool) -> ArrayLike:
         # alt. we could use the public push/pull
@@ -149,7 +149,3 @@ class MatrixSolverOutput(BaseSolverOutput, ABC):
     def shape(self) -> Tuple[int, int]:
         """%(shape)s"""  # noqa: D400
         return self.transport_matrix.shape
-
-    @property
-    def potentials(self):  # TODO(michalk8): refactor
-        raise NotImplementedError("This solver does not allow for potentials")
