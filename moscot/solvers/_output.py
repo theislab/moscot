@@ -1,9 +1,9 @@
 from abc import ABC, abstractmethod
-from functools import partial
 from typing import Any, Tuple, Callable, Iterable
+from functools import partial
 
-import numpy as np
 from scipy.sparse.linalg import LinearOperator
+
 
 from moscot._types import ArrayLike, DTypeLike
 
@@ -85,27 +85,12 @@ class BaseSolverOutput(ABC):
     def dtype(self) -> DTypeLike:
         return self.a.dtype
 
-    def _scale_by_marginals(self, x: ArrayLike, *, forward: bool) -> ArrayLike:
+    def _scale_by_marginals(self, x: ArrayLike, *, forward: bool, eps: float = 1e-12) -> ArrayLike:
         # alt. we could use the public push/pull
         marginals = self.a if forward else self.b
         if x.ndim == 2:
             marginals = marginals[:, None]
-        return x / (marginals + 1e-12)
-
-    # TODO(michalk8): the below are not efficient (+1 is redundant)
-    def _scale_transport_by_marginals(self, forward: bool) -> ArrayLike:
-        if forward:
-            scaled_transport = np.dot(np.diag(1 / self.a), self.transport_matrix)
-        else:
-            scaled_transport = np.dot(self.transport_matrix, np.diag(1 / self.b))
-        return scaled_transport
-
-    def _scale_transport_by_sum(self, forward: bool) -> ArrayLike:
-        if forward:
-            scaled_transport = self.transport_matrix / self.transport_matrix.sum(1)[:, None]
-        else:
-            scaled_transport = self.transport_matrix / self.transport_matrix.sum(0)[None, :]
-        return scaled_transport
+        return x / (marginals + eps)
 
     def _format_params(self, fmt: Callable[[Any], str]) -> str:
         params = {"shape": self.shape, "cost": round(self.cost, 4), "converged": self.converged}
