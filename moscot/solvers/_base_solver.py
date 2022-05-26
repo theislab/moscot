@@ -22,7 +22,7 @@ class ProblemKind(str, Enum):
     QUAD = "quadratic"
     QUAD_FUSED = "quadratic_fused"
 
-    def solver(self, *, backend: Literal["ott"] = "ott") -> Type["BaseSolver[O]"]:
+    def solver(self, *, backend: Literal["ott"] = "ott", **kwargs: Any) -> "BaseSolver[O]":
         """
         Return the solver dependent on the backend and the problem type.
 
@@ -33,18 +33,17 @@ class ProblemKind(str, Enum):
 
         Returns
         -------
-        Solver
-            Solver corresponding to the backend and problem type.
+        Solver corresponding to the backend and problem type.
         """
         if backend == "ott":
             from moscot.backends.ott import GWSolver, FGWSolver, SinkhornSolver  # type: ignore[attr-defined]
 
             if self == ProblemKind.LINEAR:
-                return SinkhornSolver
+                return SinkhornSolver(**kwargs)
             if self == ProblemKind.QUAD:
-                return GWSolver
+                return GWSolver(**kwargs)
             if self == ProblemKind.QUAD_FUSED:
-                return FGWSolver
+                return FGWSolver(**kwargs)
             raise NotImplementedError(f"TODO: {self}")
 
         raise NotImplementedError(f"Invalid backend: `{backend}`")

@@ -13,7 +13,7 @@ from moscot._types import ArrayLike
 from moscot._docs import d
 from moscot.solvers._output import BaseSolverOutput
 from moscot.problems._anndata import AnnDataPointer
-from moscot.solvers._base_solver import ProblemKind
+from moscot.solvers._base_solver import ProblemKind, BaseSolver
 from moscot.solvers._tagged_array import Tag, TaggedArray
 
 __all__ = ["BaseProblem", "OTProblem"]
@@ -230,7 +230,7 @@ class OTProblem(BaseProblem):
         prepare_kwargs["scale_cost"] = scale_cost
         prepare_kwargs["online"] = online
 
-        solver = self._problem_kind.solver(backend="ott")(**kwargs)
+        solver: BaseSolver[BaseSolverOutput] = self._problem_kind.solver(backend="ott", **kwargs)
         self._solution = solver(x=self._x, y=self._y, xy=self._xy, a=a, b=b, tau_a=tau_a, tau_b=tau_b, **prepare_kwargs)
 
         return self
