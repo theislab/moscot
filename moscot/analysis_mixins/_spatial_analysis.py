@@ -17,7 +17,6 @@ from moscot.problems._compound_problem import K
 from moscot.analysis_mixins._base_analysis import AnalysisMixin, AnalysisMixinProtocol
 
 
-# AnalysisMixin_t = TypeVar("AnalysisMixin_t",bound=AnalysisMixin)
 class SpatialAnalysisMixinProtocol(AnalysisMixinProtocol[K]):
     """Protocol class."""
 
