@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import Any, Dict, List, Sized, Tuple, Union, Iterable, Optional, Sequence, Generic, TypeVar, Hashable
+from typing import Any, Dict, List, Tuple, Union, Iterable, Optional, Sequence, Generic, TypeVar, Hashable
 from operator import gt, lt
 from itertools import product
 
@@ -171,22 +171,21 @@ class OrderedPolicy(SubsetPolicy[K], ABC):
         return list(zip(path[:-1], path[1:]))
 
 
-class PairwisePolicy(SubsetPolicy[K]):
-    def _create_graph(self, *_: Any, **__: Any) -> Sequence[Tuple[K, K]]:
-        return [(a, b) for a, b in product(self._cat, self._cat) if a != b]
-
+class SimplePlanPolicy(SubsetPolicy[K], ABC):
     def _plan(self, **_: Any) -> Sequence[Tuple[K, K]]:
         return self._graph
 
 
-class StarPolicy(SubsetPolicy[K]):
+class PairwisePolicy(SimplePlanPolicy[K]):
+    def _create_graph(self, *_: Any, **__: Any) -> Sequence[Tuple[K, K]]:
+        return [(a, b) for a, b in product(self._cat, self._cat) if a != b]
+
+
+class StarPolicy(SimplePlanPolicy[K]):
     def _create_graph(self, reference: K, **kwargs: Any) -> Sequence[Tuple[K, K]]:  # type: ignore[override]
         if reference not in self._cat:
             raise ValueError(f"TODO: Reference {reference} not in {self._cat}")
         return [(c, reference) for c in self._cat if c != reference]
-
-    def _plan(self, **_: Any) -> Sequence[Tuple[K, K]]:
-        return self._graph
 
     def _filter_plan(
         self, plan: Sequence[Tuple[K, K]], filter: Sequence[Union[K, Tuple[K, K]]]
@@ -230,15 +229,12 @@ class TriangularPolicy(OrderedPolicy[K]):
         return [(a, b) for a, b in product(self._cat, self._cat) if self._compare(a, b)]
 
 
-class ExplicitPolicy(SubsetPolicy[K]):
+class ExplicitPolicy(SimplePlanPolicy[K]):
     def _create_graph(self, subset: Sequence[Tuple[K, K]], **_: Any) -> Sequence[Tuple[K, K]]:  # type: ignore[override]
         if subset is None:
             raise ValueError("TODO: specify subset for explicit policy.")
         # pass-through, all checks are done by us later
         return subset
-
-    def _plan(self, **_: Any) -> Sequence[Tuple[K, K]]:
-        return self._graph
 
 
 class DummyPolicy(FormatterMixin, SubsetPolicy[str]):
