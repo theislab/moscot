@@ -52,7 +52,7 @@ class SubsetPolicy(Generic[K]):
     """Policy class."""
 
     def __init__(
-        self, adata: Union[AnnData, pd.Series[K], pd.Categorical], key: Optional[str] = None, axis: Axis_t = "obs"
+        self, adata: Union[AnnData, pd.Series, pd.Categorical], key: Optional[str] = None, axis: Axis_t = "obs"
     ):
         if isinstance(adata, AnnData):
             # TODO(michalk8): raise nicer KeyError (giovp) this way we can solve for full anndata with key=None
@@ -102,7 +102,7 @@ class SubsetPolicy(Generic[K]):
     def create(
         cls,
         kind: Policy_t,
-        adata: Union[AnnData, pd.Series[K], pd.Categorical],
+        adata: Union[AnnData, pd.Series, pd.Categorical],
         **kwargs: Any,
     ) -> "SubsetPolicy[K]":
         if kind == "sequential":
@@ -154,7 +154,7 @@ class SubsetPolicy(Generic[K]):
 
 
 class OrderedPolicy(SubsetPolicy[K], ABC):
-    def __init__(self, adata: Union[AnnData, pd.Series[K], pd.Categorical], **kwargs: Any):
+    def __init__(self, adata: Union[AnnData, pd.Series, pd.Categorical], **kwargs: Any):
         super().__init__(adata, **kwargs)
         # TODO(michalk8): verify whether they can be ordered (only numeric?) + warn (or just raise)
 
@@ -202,7 +202,7 @@ class StarPolicy(SimplePlanPolicy[K]):
 class ExternalStarPolicy(FormatterMixin, StarPolicy[K]):
     _SENTINEL = object()
 
-    def __init__(self, adata: Union[AnnData, pd.Series[K], pd.Categorical], tgt_name: str = "ref", **kwargs: Any):
+    def __init__(self, adata: Union[AnnData, pd.Series, pd.Categorical], tgt_name: str = "ref", **kwargs: Any):
         super().__init__(adata, **kwargs)
         self._tgt_name = tgt_name
 
@@ -226,7 +226,7 @@ class SequentialPolicy(OrderedPolicy[K]):
 
 
 class TriangularPolicy(OrderedPolicy[K]):
-    def __init__(self, adata: Union[AnnData, pd.Series[K], pd.Categorical], upper: bool = True, **kwargs: Any):
+    def __init__(self, adata: Union[AnnData, pd.Series, pd.Categorical], upper: bool = True, **kwargs: Any):
         super().__init__(adata, **kwargs)
         self._compare = lt if upper else gt
 
@@ -247,7 +247,7 @@ class DummyPolicy(FormatterMixin, SubsetPolicy[str]):
 
     def __init__(
         self,
-        adata: Union[AnnData, pd.Series[K], pd.Categorical],
+        adata: Union[AnnData, pd.Series, pd.Categorical],
         src_name: str = "src",
         tgt_name: str = "ref",
         **kwargs: Any,
