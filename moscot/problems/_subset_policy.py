@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import Any, Dict, List, Tuple, Union, Iterable, Optional, Sequence, Generic, TypeVar
+from typing import Any, Dict, List, Tuple, Union, Generic, TypeVar, Hashable, Iterable, Optional, Sequence
 from operator import gt, lt
 from itertools import product
 
@@ -78,11 +78,15 @@ class SubsetPolicy(Generic[K]):
     def _create_graph(self, **kwargs: Any) -> Sequence[Tuple[K, K]]:
         pass
 
+    def plan(self, forward: bool = True, **kwargs: Any) -> Sequence[Tuple[K, K]]:
+        plan = self.plan(**kwargs)
+        return plan if forward else plan[::-1]
+
     @abstractmethod
-    def plan(self, **kwargs: Any) -> Sequence[Tuple[K, K]]:
+    def _plan(self, **kwargs: Any) -> Sequence[Tuple[K, K]]:
         pass
 
-    def __call__(self, filter: Optional[Sequence[Tuple[K, K]]] = None, **kwargs: Any) -> "SubsetPolicy":
+    def __call__(self, filter: Optional[Sequence[Tuple[K, K]]] = None, **kwargs: Any) -> "SubsetPolicy[K]":
         graph = self._create_graph(**kwargs)
         if filter is not None:
             graph = self._filter_graph(graph, filter=filter)
@@ -154,7 +158,7 @@ class OrderedPolicy(SubsetPolicy[K], ABC):
         super().__init__(adata, **kwargs)
         # TODO(michalk8): verify whether they can be ordered (only numeric?) + warn (or just raise)
 
-    def plan(self, start: Optional[K] = None, end: Optional[K] = None, **_: Any) -> Sequence[Tuple[K, K]]:
+    def _plan(self, start: Optional[K] = None, end: Optional[K] = None, **_: Any) -> Sequence[Tuple[K, K]]:
         if self._graph is None:
             raise RuntimeError("TODO: run graph creation first")
         if start is None and end is None:
@@ -173,7 +177,7 @@ class OrderedPolicy(SubsetPolicy[K], ABC):
 
 
 class SimplePlanPolicy(SubsetPolicy[K], ABC):
-    def plan(self, **_: Any) -> Sequence[Tuple[K, K]]:
+    def _plan(self, **_: Any) -> Sequence[Tuple[K, K]]:
         return self._graph
 
 
@@ -255,7 +259,7 @@ class DummyPolicy(FormatterMixin, SubsetPolicy[str]):
     def _create_graph(self, **__: Any) -> Sequence[Tuple[object, object]]:  # type: ignore[override]
         return [(self._SENTINEL, self._SENTINEL)]
 
-    def plan(self, **_: Any) -> List[Tuple[str, str]]:
+    def _plan(self, **_: Any) -> List[Tuple[str, str]]:
         return [(self._src_name, self._tgt_name)]
 
     def _format(self, _: Any, *, is_source: bool) -> str:

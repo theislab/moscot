@@ -20,8 +20,6 @@ from typing import (
 
 from scipy.sparse import issparse
 
-import numpy as np
-
 from anndata import AnnData
 
 from moscot._docs import d
@@ -38,7 +36,7 @@ K = TypeVar("K", bound=Hashable)
 B = TypeVar("B", bound=OTProblem)
 Key = Tuple[K, K]
 Callback_t = Callable[[AnnData, AnnData], Mapping[str, TaggedArray]]
-ApplyOutput_t = Union[Dict[Tuple[K, K], ArrayLike], Dict[Tuple[K, K], Dict[Tuple[K, K], ArrayLike]]]
+ApplyOutput_t = Union[ArrayLike, Dict[K, ArrayLike]]
 
 
 @d.get_sections(base="BaseCompoundProblem", sections=["Parameters", "Raises"])
@@ -224,9 +222,9 @@ class BaseCompoundProblem(BaseProblem, Generic[K, B], ABC):
     @require_solution
     def _apply(
         self,
-        data: Optional[Union[str, ArrayLike, Mapping[Tuple[K, K], Union[str, ArrayLike]]]] = None,
-        subset: Optional[Sequence[Any]] = None,
-        normalize: bool = True,
+        data: Optional[Union[str, ArrayLike]] = None,
+        start: Optional[K] = None,
+        end: Optional[K] = None,
         forward: bool = True,
         return_all: bool = False,
         scale_by_marginals: bool = False,
@@ -238,8 +236,6 @@ class BaseCompoundProblem(BaseProblem, Generic[K, B], ABC):
         Parameters
         ----------
         %(data)s
-        %(subset)s
-        %(normalize)s
         forward
             If `True` the data is pushed from the source to the target distribution. If `False` the mass is pulled
             from the target distribution to the source distribution.
@@ -257,60 +253,29 @@ class BaseCompoundProblem(BaseProblem, Generic[K, B], ABC):
         ValueError
             If a transport map between the corresponding source and target distribution is not computed
         """
+        if TYPE_CHECKING:
+            assert isinstance(self._policy, SubsetPolicy)
 
-        def get_data(plan: Tuple[K, K]) -> Optional[ArrayLike]:
-            if isinstance(data, np.ndarray):
-                return data
-            if data is None or isinstance(data, (str, tuple, list)):
-                # always valid shapes, since accessing AnnData
-                return data
-            if isinstance(data, Mapping):
-                return data.get(plan[0], None) if isinstance(self._policy, StarPolicy) else data.get(plan, None)
-            if len(plans) == 1:
-                return data
-            # TODO(michalk8): warn
-            # would pass an array that will most likely have invalid shapes
-            print("HINT: use `data={<pair>: array}`")
-            return None
+        # TODO(michalk8): maybe implement something for StarPolicies
+        # in this case, use `plan_kwargs` (unused are ignored)
+        (src, tgt), *rest = self._policy.plan(forward=forward, start=start, end=end)
+        problem = self.problems[src, tgt]
+        adata = problem.adata if forward else problem._adata_y
 
-        # TODO: check if solved - decorator?
-        plans = self._policy.plan(**kwargs)  # type: ignore[union-attr]
-        res: Dict[Tuple[K, K], ArrayLike] = {}
-        for plan, steps in plans.items():
-            if forward:
-                initial_problem = self.problems[steps[0]]
-                current_mass = initial_problem._get_mass(
-                    initial_problem.adata, data=get_data(plan), subset=subset, normalize=normalize
-                )
-            else:
-                steps = steps[::-1]
-                initial_problem = self.problems[steps[0]]
-                current_mass = initial_problem._get_mass(
-                    initial_problem.adata if initial_problem._adata_y is None else initial_problem._adata_y,
-                    data=get_data(plan),
-                    subset=subset,
-                    normalize=normalize,
-                )
+        current_mass = problem._get_mass(adata, data=data, **kwargs)
+        res = {src if forward else tgt: current_mass}
 
-            ds = {}  # TODO(michalk8)
-            ds[steps[0][0] if forward else steps[0][1]] = current_mass
-            for step in steps:
-                if step not in self.problems:
-                    raise ValueError(f"No transport map computed for {step}")
-                problem = self.problems[step]
-                fun = problem.push if forward else problem.pull
-                current_mass = fun(
-                    current_mass, subset=subset, normalize=normalize, scale_by_marginals=scale_by_marginals
-                )
-                ds[step[1] if forward else step[0]] = current_mass
+        for src, tgt in rest:
+            problem = self.problems[src, tgt]
+            fun = problem.push if forward else problem.pull
+            current_mass = fun(current_mass, scale_by_marginals=scale_by_marginals, **kwargs)
+            res[tgt if forward else src] = current_mass
 
-            res[plan] = ds if return_all else current_mass
-        # TODO(michalk8): return the values iff only 1 plan?
-        return res
+        return res if return_all else current_mass
 
     @d.get_sections(base="CompoundBaseProblem_push", sections=["Parameters", "Raises"])
     @d.dedent
-    def push(self, *args: Any, **kwargs: Any) -> Union[ArrayLike, Dict[Any, ArrayLike]]:
+    def push(self, *args: Any, **kwargs: Any) -> ApplyOutput_t[K]:
         """
         Push mass from `start` to `end`. TODO: verify.
 
@@ -338,7 +303,7 @@ class BaseCompoundProblem(BaseProblem, Generic[K, B], ABC):
 
     @d.get_sections(base="CompoundBaseProblem_pull", sections=["Parameters", "Raises"])
     @d.dedent
-    def pull(self, *args: Any, **kwargs: Any) -> Union[ArrayLike, Dict[Any, ArrayLike]]:
+    def pull(self, *args: Any, **kwargs: Any) -> ApplyOutput_t[K]:
         """
         Pull mass from `end` to `start`. TODO: expose kwargs.
 
