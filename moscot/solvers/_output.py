@@ -5,13 +5,9 @@ from typing import Any, Tuple, Callable, Iterable
 import numpy as np
 from scipy.sparse.linalg import LinearOperator
 
-from moscot._types import ArrayLike
+from moscot._types import ArrayLike, DTypeLike
 
-# TODO(michalk8):
-#  1. mb. use more contrained type hints
-#  2. consider always returning 2-dim array, even if 1-dim is passed (not sure which convenient for user)
-
-__all__ = ["BaseSolverOutput", "MatrixSolverOutput"]
+__all__ = ["BaseSolverOutput", "MatrixSolverOutput", "HasPotentials"]
 
 
 class BaseSolverOutput(ABC):
@@ -37,11 +33,6 @@ class BaseSolverOutput(ABC):
     @property
     @abstractmethod
     def converged(self) -> bool:
-        pass
-
-    @property
-    @abstractmethod
-    def potentials(self) -> Tuple[ArrayLike, ArrayLike]:
         pass
 
     @property
@@ -91,7 +82,7 @@ class BaseSolverOutput(ABC):
         return self.push(self._ones(self.shape[0]))
 
     @property
-    def dtype(self) -> Any:  # TODO(michalk8): typeme
+    def dtype(self) -> DTypeLike:
         return self.a.dtype
 
     def _scale_by_marginals(self, x: ArrayLike, *, forward: bool) -> ArrayLike:
@@ -149,3 +140,10 @@ class MatrixSolverOutput(BaseSolverOutput, ABC):
     def shape(self) -> Tuple[int, int]:
         """%(shape)s"""  # noqa: D400
         return self.transport_matrix.shape
+
+
+class HasPotentials(ABC):
+    @property
+    @abstractmethod
+    def potentials(self) -> Tuple[ArrayLike, ArrayLike]:
+        pass
