@@ -40,7 +40,7 @@ K = TypeVar("K", bound=Hashable)
 B = TypeVar("B", bound=OTProblem)
 Key = Tuple[K, K]
 Callback_t = Callable[[AnnData, AnnData, Any], Mapping[str, TaggedArray]]
-ApplyOutput_t = Union[Dict[Key, npt.ArrayLike], Dict[Key, Dict[Key, npt.ArrayLike]]]
+ApplyOutput_t = Union[Dict[Any, npt.ArrayLike], Dict[Key, Dict[Any, npt.ArrayLike]]]
 
 
 @wrapt.decorator
@@ -317,7 +317,7 @@ class CompoundBaseProblem(BaseProblem, Generic[K, B], ABC):
 
     @d.get_sections(base="CompoundBaseProblem_push", sections=["Parameters", "Raises"])
     @d.dedent
-    def push(self, *args: Any, **kwargs: Any) -> Union[npt.ArrayLike, Dict[Any, npt.ArrayLike]]:
+    def push(self, *args: Any, **kwargs: Any) -> ApplyOutput_t:
         """
         Push mass from `start` to `end`. TODO: verify.
 
@@ -345,7 +345,7 @@ class CompoundBaseProblem(BaseProblem, Generic[K, B], ABC):
 
     @d.get_sections(base="CompoundBaseProblem_pull", sections=["Parameters", "Raises"])
     @d.dedent
-    def pull(self, *args: Any, **kwargs: Any) -> Union[npt.ArrayLike, Dict[Any, npt.ArrayLike]]:
+    def pull(self, *args: Any, **kwargs: Any) -> ApplyOutput_t:
         """
         Pull mass from `end` to `start`. TODO: expose kwargs.
 

@@ -596,10 +596,8 @@ class TemporalAnalysisMixin(AnalysisMixin, TimeAnalysisMixinProtocol[K, B]):
             interpolation_parameter if interpolation_parameter is not None else (intermediate - start) / (end - start)
         )
 
-    def _dict_to_adata(self, d: Mapping[str, ArrayLike], obs_key: str) -> None:
-        # TODO(MUCDK): np.full
-        tmp = np.empty(len(self.adata))
-        tmp[:] = np.nan
+    def _dict_to_adata(self, d: Dict[str, ArrayLike], obs_key: str) -> None:
+        tmp = np.full(len(self.adata), np.nan)
         for key, value in d.items():
             mask = self.adata.obs[self.temporal_key] == key
             tmp[mask] = np.squeeze(value)
