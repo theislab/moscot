@@ -220,16 +220,23 @@ class TemporalAnalysisMixin(AnalysisMixin):
                 if statistic=="top_k_mean":
                     result = self._cell_transition_aggregation(result, statistic, top_k)
 
-                df_late.loc[:, "distribution"] = result
-                target_cell_dist = df_late[df_late[_late_cells_key].isin(_late_cells)].groupby(_late_cells_key).sum()
-                target_cell_dist /= target_cell_dist.sum()
-                transition_table.loc[subset, :] = [
-                    target_cell_dist.loc[cell_type, "distribution"]
-                    if cell_type in target_cell_dist.distribution.index
-                    else 0
-                    for cell_type in _late_cells
-                ]
-            return transition_table
+                if aggregation == "group":
+                    df_late.loc[:, "distribution"] = result
+                    target_cell_dist = df_late[df_late[_late_cells_key].isin(_late_cells)].groupby(_late_cells_key).sum()
+                    target_cell_dist /= target_cell_dist.sum()
+                    transition_table.loc[subset, :] = [
+                        target_cell_dist.loc[cell_type, "distribution"]
+                        if cell_type in target_cell_dist.distribution.index
+                        else 0
+                        for cell_type in _late_cells
+                    ]
+                    return transition_table
+                elif aggregation == "cell":
+                    df_late.loc[:, "distribution"] = result
+                    target_cell_dist = df_late[df_late[_late_cells_key].isin(_late_cells)].groupby(_late_cells_key).sum(axis=1)
+                else:
+                    raise NotImplementedError("TODO: aggregation must be `group` or `cell`.")
+
         _late_cells_present = set(_late_cells).intersection(set(df_late[_late_cells_key].unique()))
         for subset in _late_cells:
             if subset not in _late_cells_present:
@@ -271,6 +278,8 @@ class TemporalAnalysisMixin(AnalysisMixin):
             elif aggregation == "cell":
                 df_early # assign multiple results to the early index and then aggregate all of them independently, i.e. df_early.loc[:,{all columns}].groupby(_early_cells_key).sum() which gives (n_cell_types_source_dist x n_data_points_target) matrix
 
+            else:
+                raise NotImplementedError("TODO: aggregation must be `group` or `cell`.")
     def _validate_args_cell_transition(
         self, arg: Union[str, Mapping[str, Sequence[Any]]]
     ) -> Tuple[Union[str, Sequence], Sequence]:
