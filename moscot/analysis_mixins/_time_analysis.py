@@ -1,8 +1,8 @@
-from typing import Any, Dict, Tuple, Union, Mapping, Optional, Sequence
-from numbers import Number
+from typing import Any, Dict, List, Tuple, Union, Mapping, Optional, Sequence, TYPE_CHECKING
 import logging
 import itertools
 
+from pandas.api.types import is_categorical_dtype
 from sklearn.metrics.pairwise import pairwise_distances
 import ot
 import pandas as pd
@@ -12,8 +12,8 @@ import numpy as np
 from anndata import AnnData
 
 from moscot._docs import d
-from moscot._types import ArrayLike
-from moscot.problems._compound_problem import B, K
+from moscot._types import ArrayLike, Numeric_t
+from moscot.problems._compound_problem import B, K, ApplyOutput_t
 from moscot.analysis_mixins._base_analysis import AnalysisMixin, AnalysisMixinProtocol
 
 
@@ -29,7 +29,7 @@ class TimeAnalysisMixinProtocol(AnalysisMixinProtocol[K, B]):
         ...
 
 
-class TemporalAnalysisMixin(AnalysisMixin, TimeAnalysisMixinProtocol[K, B]):
+class TemporalAnalysisMixin(AnalysisMixin, TimeAnalysisMixinProtocol):
     """Analysis Mixin for all problems involving a temporal dimension."""
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
@@ -39,13 +39,13 @@ class TemporalAnalysisMixin(AnalysisMixin, TimeAnalysisMixinProtocol[K, B]):
     @d.dedent
     def push(
         self,
-        start: Number,
-        end: Number,
+        start: K,
+        end: K,
         result_key: Optional[str] = None,
         return_all: bool = False,
         scale_by_marginals: bool = True,
         **kwargs: Any,
-    ) -> Optional[Union[ArrayLike, Dict[Tuple[Any, Any], ArrayLike]]]:
+    ) -> Optional[ApplyOutput_t[K]]:
         """
         Push distribution of cells through time.
 
@@ -80,22 +80,24 @@ class TemporalAnalysisMixin(AnalysisMixin, TimeAnalysisMixinProtocol[K, B]):
             return_all=return_all,
             scale_by_marginals=scale_by_marginals,
             **kwargs,
-        )[start, end]
+        )
 
         if result_key is None:
             return result
+        if TYPE_CHECKING:
+            assert isinstance(result, dict)
         self._dict_to_adata(result, result_key)
 
     @d.dedent
     def pull(
         self,
-        start: Number,
-        end: Number,
+        start: K,
+        end: K,
         result_key: Optional[str] = None,
         return_all: bool = False,
         scale_by_marginals: bool = True,
         **kwargs: Any,
-    ) -> Optional[Union[ArrayLike, Dict[Tuple[Any, Any], ArrayLike]]]:
+    ) -> Optional[ApplyOutput_t[K]]:
         """
         Pull distribution of cells from time point `end` to time point `start`.
 
@@ -124,21 +126,23 @@ class TemporalAnalysisMixin(AnalysisMixin, TimeAnalysisMixinProtocol[K, B]):
         """
         if result_key is not None:
             return_all = True
-        result = super().pull(
+        result: Dict[K, ArrayLike] = super().pull(  # type: ignore[assignment]
             start=start,
             end=end,
             return_all=return_all,
             scale_by_marginals=scale_by_marginals,
             **kwargs,
-        )[start, end]
+        )
         if result_key is None:
             return result
+        if TYPE_CHECKING:
+            assert isinstance(result, dict)
         self._dict_to_adata(result, result_key)
 
     def cell_transition(
         self,
-        start: Any,
-        end: Any,
+        start: K,
+        end: K,
         early_cells: Union[str, Mapping[str, Sequence[Any]]],
         late_cells: Union[str, Mapping[str, Sequence[Any]]],
         forward: bool = False,  # return value will be row-stochastic if forward=True, else column-stochastic
@@ -259,40 +263,42 @@ class TemporalAnalysisMixin(AnalysisMixin, TimeAnalysisMixinProtocol[K, B]):
 
     def _validate_args_cell_transition(
         self, arg: Union[str, Mapping[str, Sequence[Any]]]
-    ) -> Tuple[Union[str, Sequence], Sequence]:
+    ) -> Tuple[Union[str, Sequence[Any]], Sequence[Any]]:
         if isinstance(arg, str):
-            if not hasattr(self.adata.obs[arg], "cat"):
-                raise ValueError(f"The column `{arg}` in `adata.obs` must be of categorical dtype")
-            if self.adata.obs[arg].isnull().sum() > 0:
+            if arg not in self.adata.obs:
+                raise KeyError("TODO")
+            if not is_categorical_dtype(self.adata.obs[arg]):
+                raise TypeError(f"The column `{arg}` in `adata.obs` must be of categorical dtype.")
+            if self.adata.obs[arg].isnull().values.any():  # TODO(giovp, MUCDK): why this check? remove?
+                raise ValueError(f"The column `{arg}` in `adata.obs` contains NaN values. Please check.")
+            return arg, self.adata.obs[arg].cat.categories
+        if isinstance(arg, dict):
+            if len(arg.keys()) > 1:
                 raise ValueError(
-                    f"The column `{arg}` in `adata.obs` contains NaN values. Please fill them with another value."
+                    f"The length of the dictionary is {len(arg)} but should be 1 as the data can only be filtered "
+                    f"according to one column of `adata.obs`."
                 )
-            return arg, list(self.adata.obs[arg].unique())
-        if len(arg) > 1:
-            raise ValueError(
-                f"The length of the dictionary is {len(arg)} but should be 1 as the data can only be filtered "
-                f"according to one column of `adata.obs`"
-            )
-        _key, _arg = list(arg.keys())[0], list(arg.values())[0]
-        if not hasattr(self.adata.obs[_key], "cat"):
-            raise ValueError(f"The column `{_key}` in `adata.obs` must be of categorical dtype")
-        if not set(_arg).issubset(set(self.adata.obs[_key].unique())):
-            raise ValueError(f"Not all values {_arg} could be found in column {_key}")
-        if self.adata.obs[_key].isnull().sum() > 0:
-            raise ValueError(
-                f"The column `{_key}` in `adata.obs` contains NaN values. Please fill them with another value."
-            )
-        return _key, _arg
+            _key = list(arg.keys())[0]
+            _val = arg[_key]
+            if not is_categorical_dtype(self.adata.obs[_key]):
+                raise TypeError(f"The column `{_key}` in `adata.obs` must be of categorical dtype.")
+            if not set(_val).issubset(self.adata.obs[_key].cat.categories):
+                raise ValueError(f"Not all values {_val} could be found in `adata.obs[{_key}]`.")
+            if self.adata.obs[_key].isnull().values.any():
+                raise ValueError(f"The column `{_key}` in `adata.obs` contains NaN values. Please check.")
+            return _key, _val
 
     def _get_data(
         self,
-        key: Number,
-        intermediate: Optional[Number] = None,
-        end: Optional[Number] = None,
+        start: K,
+        intermediate: Optional[K] = None,
+        end: Optional[K] = None,
         *,
         only_start: bool = False,
-    ) -> Tuple[Union[ArrayLike, AnnData], ...]:
+    ) -> Union[Tuple[ArrayLike, AnnData], Tuple[ArrayLike, ArrayLike, ArrayLike, AnnData, ArrayLike]]:
         # TODO(michalk8): refactor me
+        if TYPE_CHECKING:
+            assert self.problems is not None
         for (start_, end_) in self.problems.keys():
             if isinstance(self.problems[(start_, end_)].xy, tuple):
                 tag = self.problems[(start_, end_)].xy[0].tag
@@ -303,14 +309,14 @@ class TemporalAnalysisMixin(AnalysisMixin, TimeAnalysisMixinProtocol[K, B]):
                     "TODO: This method requires the data to be stored as point_clouds. It is currently stored "
                     f"as {self.problems[(start_, end_)].xy[0].tag}."
                 )
-            if start_ == key:
+            if start_ == start:
                 source_data = self.problems[(start_, end_)].xy[0].data
                 if only_start:
                     return source_data, self.problems[(start_, end_)].adata
                 growth_rates_source = self.problems[(start_, end_)].growth_rates[:, -1]
                 break
         else:
-            raise ValueError(f"No data found for time point {key}")
+            raise ValueError(f"No data found for time point {start}")
         for (start_, end_) in self.problems.keys():
             if start_ == intermediate:
                 intermediate_data = self.problems[(start_, end_)].xy[0].data
@@ -329,16 +335,16 @@ class TemporalAnalysisMixin(AnalysisMixin, TimeAnalysisMixinProtocol[K, B]):
 
     def compute_interpolated_distance(
         self,
-        start: Number,
-        intermediate: Number,
-        end: Number,
-        interpolation_parameter: Optional[int] = None,
+        start: K,
+        intermediate: K,
+        end: K,
+        interpolation_parameter: Optional[Numeric_t] = None,
         n_interpolated_cells: Optional[int] = None,
         account_for_unbalancedness: bool = False,
         batch_size: int = 256,
         seed: Optional[int] = None,
         **kwargs: Any,
-    ) -> Number:
+    ) -> Numeric_t:
         """
         Compute the Wasserstein distance between the OT-interpolated distribution and the true cell distribution.
 
@@ -383,17 +389,24 @@ class TemporalAnalysisMixin(AnalysisMixin, TimeAnalysisMixinProtocol[K, B]):
         -------
         Wasserstein distance between OT-based interpolated distribution and the true cell distribution.
         """
-        source_data, _, intermediate_data, _, target_data = self._get_data(start, intermediate, end, only_start=False)
-        interpolation_parameter = self._get_interp_param(interpolation_parameter, start, intermediate, end)
+        source_data, _, intermediate_data, _, target_data = self._get_data(
+            start,
+            intermediate,
+            end,
+            only_start=False,
+        )  # type: ignore[misc]
+        interpolation_parameter = self._get_interp_param(
+            start, intermediate, end, interpolation_parameter=interpolation_parameter
+        )
         n_interpolated_cells = n_interpolated_cells if n_interpolated_cells is not None else len(intermediate_data)
         interpolation = self._interpolate_gex_with_ot(
-            n_interpolated_cells,
-            source_data,
-            target_data,
-            start,
-            end,
-            interpolation_parameter,
-            account_for_unbalancedness,
+            number_cells=n_interpolated_cells,
+            source_data=source_data,
+            target_data=target_data,
+            start=start,
+            end=end,
+            interpolation_parameter=interpolation_parameter,
+            account_for_unbalancedness=account_for_unbalancedness,
             batch_size=batch_size,
             seed=seed,
         )
@@ -401,15 +414,15 @@ class TemporalAnalysisMixin(AnalysisMixin, TimeAnalysisMixinProtocol[K, B]):
 
     def compute_random_distance(
         self,
-        start: Number,
-        intermediate: Number,
-        end: Number,
-        interpolation_parameter: Optional[int] = None,
+        start: K,
+        intermediate: K,
+        end: K,
+        interpolation_parameter: Optional[Numeric_t] = None,
         n_interpolated_cells: Optional[int] = None,
         account_for_unbalancedness: bool = False,
         seed: Optional[int] = None,
         **kwargs: Any,
-    ) -> Number:
+    ) -> Numeric_t:
         """
         Compute the Wasserstein distance of a randomly interpolated cell distribution and the true cell distribution.
 
@@ -443,10 +456,13 @@ class TemporalAnalysisMixin(AnalysisMixin, TimeAnalysisMixinProtocol[K, B]):
         -------
         The Wasserstein distance between a randomly interpolated cell distribution and the true cell distribution.
         """
-        source_data, growth_rates_source, intermediate_data, _, target_data = self._get_data(
+        source_data, growth_rates_source, intermediate_data, _, target_data = self._get_data(  # type: ignore[misc]
             start, intermediate, end, only_start=False
         )
-        interpolation_parameter = self._get_interp_param(interpolation_parameter, start, intermediate, end)
+
+        interpolation_parameter = self._get_interp_param(
+            start, intermediate, end, interpolation_parameter=interpolation_parameter
+        )
         n_interpolated_cells = n_interpolated_cells if n_interpolated_cells is not None else len(intermediate_data)
 
         growth_rates = growth_rates_source if account_for_unbalancedness else None
@@ -454,15 +470,15 @@ class TemporalAnalysisMixin(AnalysisMixin, TimeAnalysisMixinProtocol[K, B]):
             n_interpolated_cells,
             source_data,
             target_data,
-            interpolation_parameter,
+            interpolation_parameter=interpolation_parameter,
             growth_rates=growth_rates,
             seed=seed,
         )
         return self._compute_wasserstein_distance(intermediate_data, random_interpolation, **kwargs)
 
     def compute_time_point_distances(
-        self, start: Number, intermediate: Number, end: Number, **kwargs: Any
-    ) -> Tuple[Number, Number]:
+        self, start: K, intermediate: K, end: K, **kwargs: Any
+    ) -> Tuple[Numeric_t, Numeric_t]:
         """
         Compute the Wasserstein distance of cell distributions between time points.
 
@@ -482,14 +498,19 @@ class TemporalAnalysisMixin(AnalysisMixin, TimeAnalysisMixinProtocol[K, B]):
         kwargs
             Keyword arguments for computing the Wasserstein distance (TODO make that function public?).
         """
-        source_data, _, intermediate_data, _, target_data = self._get_data(start, intermediate, end, only_start=False)
+        source_data, _, intermediate_data, _, target_data = self._get_data(
+            start,
+            intermediate,
+            end,
+            only_start=False,
+        )  # type: ignore[misc]
 
         distance_source_intermediate = self._compute_wasserstein_distance(source_data, intermediate_data, **kwargs)
         distance_intermediate_target = self._compute_wasserstein_distance(intermediate_data, target_data, **kwargs)
 
         return distance_source_intermediate, distance_intermediate_target
 
-    def compute_batch_distances(self, time: Number, batch_key: str, **kwargs: Any) -> float:
+    def compute_batch_distances(self, time: Numeric_t, batch_key: str, **kwargs: Any) -> float:
         """
         Compute the mean Wasserstein distance between batches of a distribution corresponding to one time point.
 
@@ -506,9 +527,9 @@ class TemporalAnalysisMixin(AnalysisMixin, TimeAnalysisMixinProtocol[K, B]):
         -------
         The mean Wasserstein distance between batches of a distribution corresponding to one time point.
         """
-        data, adata = self._get_data(time, only_start=True)
+        data, adata = self._get_data(time, only_start=True)  # type: ignore[misc]
         assert len(adata) == len(data), "TODO: wrong shapes"
-        dist = []
+        dist: List[Numeric_t] = []
         for batch_1, batch_2 in itertools.combinations(adata.obs[batch_key].unique(), 2):
             dist.append(
                 self._compute_wasserstein_distance(
@@ -517,7 +538,7 @@ class TemporalAnalysisMixin(AnalysisMixin, TimeAnalysisMixinProtocol[K, B]):
                     **kwargs,
                 )
             )
-        return np.mean(dist)
+        return np.mean(np.array(dist))
 
     # TODO(@MUCDK) possibly offer two alternatives, once exact EMD with POT backend and once approximate,
     # faster with same solver as used for original problems
@@ -528,20 +549,22 @@ class TemporalAnalysisMixin(AnalysisMixin, TimeAnalysisMixinProtocol[K, B]):
         a: Optional[ArrayLike] = None,
         b: Optional[ArrayLike] = None,
         **kwargs: Any,
-    ) -> Number:
-        cost_matrix = pairwise_distances(point_cloud_1, Y=point_cloud_2, metric="sqeuclidean", n_jobs=-1)
-        a = [] if a is None else a
-        b = [] if b is None else b
-        return np.sqrt(ot.emd2(a, b, cost_matrix, **kwargs))
+    ) -> Numeric_t:
+        cost_matrix = pairwise_distances(
+            point_cloud_1, Y=point_cloud_2, metric="sqeuclidean", n_jobs=-1
+        )  # TODO(MUCDK): probably change n_jobs=-1, not nice to use all core available by defaults
+        _a = [] if a is None else a
+        _b = [] if b is None else b
+        return np.sqrt(ot.emd2(_a, _b, cost_matrix, **kwargs))  # TODO(MUCDK): don't use POT
 
     def _interpolate_gex_with_ot(
         self,
         number_cells: int,
         source_data: ArrayLike,
         target_data: ArrayLike,
-        start: Number,
-        end: Number,
-        interpolation_parameter: float = 0.5,
+        start: K,
+        end: K,
+        interpolation_parameter: Optional[Numeric_t] = None,
         account_for_unbalancedness: bool = True,
         batch_size: int = 256,
         seed: Optional[int] = None,
@@ -557,6 +580,8 @@ class TemporalAnalysisMixin(AnalysisMixin, TimeAnalysisMixinProtocol[K, B]):
             interpolation_parameter=interpolation_parameter,
             seed=seed,
         )
+        if TYPE_CHECKING:
+            assert interpolation_parameter is not None
         return (
             source_data[np.repeat(rows_sampled, [len(col) for col in cols_sampled]), :] * (1 - interpolation_parameter)
             + target_data[np.hstack(cols_sampled), :] * interpolation_parameter
@@ -567,11 +592,13 @@ class TemporalAnalysisMixin(AnalysisMixin, TimeAnalysisMixinProtocol[K, B]):
         number_cells: int,
         source_data: ArrayLike,
         target_data: ArrayLike,
-        interpolation_parameter: int = 0.5,
+        interpolation_parameter: Optional[Numeric_t] = None,
         growth_rates: Optional[ArrayLike] = None,
         seed: Optional[int] = None,
     ) -> ArrayLike:
         rng = np.random.RandomState(seed)
+        if TYPE_CHECKING:
+            assert interpolation_parameter is not None
         if growth_rates is None:
             row_probability = np.ones(len(source_data))
         else:
@@ -585,7 +612,9 @@ class TemporalAnalysisMixin(AnalysisMixin, TimeAnalysisMixinProtocol[K, B]):
         return result
 
     @staticmethod
-    def _get_interp_param(interpolation_parameter: Number, start: Number, intermediate: Number, end: Number) -> Number:
+    def _get_interp_param(
+        start: K, intermediate: K, end: K, interpolation_parameter: Optional[Numeric_t] = None
+    ) -> Numeric_t:
         if interpolation_parameter is not None and (0 > interpolation_parameter or interpolation_parameter > 1):
             raise ValueError("TODO: interpolation parameter must be in [0,1].")
         if start >= intermediate:
@@ -596,7 +625,7 @@ class TemporalAnalysisMixin(AnalysisMixin, TimeAnalysisMixinProtocol[K, B]):
             interpolation_parameter if interpolation_parameter is not None else (intermediate - start) / (end - start)
         )
 
-    def _dict_to_adata(self, d: Dict[str, ArrayLike], obs_key: str) -> None:
+    def _dict_to_adata(self, d: Dict[K, ArrayLike], obs_key: str) -> None:
         tmp = np.full(len(self.adata), np.nan)
         for key, value in d.items():
             mask = self.adata.obs[self.temporal_key] == key

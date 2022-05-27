@@ -4,10 +4,10 @@ from scipy.sparse.linalg import LinearOperator
 
 import numpy as np
 
-from moscot._types import ArrayLike
+from moscot._types import ArrayLike, Numeric_t
 from moscot.solvers._output import BaseSolverOutput
 from moscot.problems._subset_policy import SubsetPolicy
-from moscot.problems.base._compound_problem import K, Key, ApplyOutput_t
+from moscot.problems.base._compound_problem import B, K, Key, ApplyOutput_t
 
 
 class AnalysisMixinProtocol(Protocol[K, B]):
@@ -45,7 +45,7 @@ class AnalysisMixin:
         target_dim: int,
         batch_size: int = 256,
         account_for_unbalancedness: bool = False,
-        interpolation_parameter: Optional[float] = None,
+        interpolation_parameter: Optional[Numeric_t] = None,
         seed: Optional[int] = None,
     ) -> Tuple[ArrayLike, List[ArrayLike]]:
 
