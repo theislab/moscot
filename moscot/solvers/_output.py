@@ -1,17 +1,13 @@
 from abc import ABC, abstractmethod
-from functools import partial
 from typing import Any, Tuple, Callable, Iterable
+from functools import partial
 
-import numpy as np
 from scipy.sparse.linalg import LinearOperator
 
-from moscot._types import ArrayLike
 
-# TODO(michalk8):
-#  1. mb. use more contrained type hints
-#  2. consider always returning 2-dim array, even if 1-dim is passed (not sure which convenient for user)
+from moscot._types import ArrayLike, DTypeLike
 
-__all__ = ["BaseSolverOutput", "MatrixSolverOutput"]
+__all__ = ["BaseSolverOutput", "MatrixSolverOutput", "HasPotentials"]
 
 
 class BaseSolverOutput(ABC):
@@ -40,11 +36,6 @@ class BaseSolverOutput(ABC):
         pass
 
     @property
-    @abstractmethod
-    def potentials(self) -> Tuple[ArrayLike, ArrayLike]:
-        pass
-
-    @property
     def rank(self) -> int:
         return -1
 
@@ -65,20 +56,6 @@ class BaseSolverOutput(ABC):
         x = self._scale_by_marginals(x, forward=False) if scale_by_marginals else x
         return self._apply(x, forward=False)
 
-    @property
-    def a(self) -> ArrayLike:
-        """Marginals of source distribution. If output of unbalanced OT, these are the posterior marginals."""
-        return self.pull(self._ones(self.shape[1]))
-
-    @property
-    def b(self) -> ArrayLike:
-        """Marginals of target distribution. If output of unbalanced OT, these are the posterior marginals."""
-        return self.push(self._ones(self.shape[0]))
-
-    @property
-    def dtype(self) -> Any:  # TODO(michalk8): typeme
-        return self.a.dtype
-
     def as_linear_operator(self, *, forward: bool, scale_by_marginals: bool = False) -> LinearOperator:
         push = partial(self.push, scale_by_marginals=scale_by_marginals)
         pull = partial(self.pull, scale_by_marginals=scale_by_marginals)
@@ -94,27 +71,26 @@ class BaseSolverOutput(ABC):
 
         return op
 
-    def _scale_by_marginals(self, x: ArrayLike, *, forward: bool) -> ArrayLike:
+    @property
+    def a(self) -> ArrayLike:
+        """Marginals of source distribution. If output of unbalanced OT, these are the posterior marginals."""
+        return self.pull(self._ones(self.shape[1]))
+
+    @property
+    def b(self) -> ArrayLike:
+        """Marginals of target distribution. If output of unbalanced OT, these are the posterior marginals."""
+        return self.push(self._ones(self.shape[0]))
+
+    @property
+    def dtype(self) -> DTypeLike:
+        return self.a.dtype
+
+    def _scale_by_marginals(self, x: ArrayLike, *, forward: bool, eps: float = 1e-12) -> ArrayLike:
         # alt. we could use the public push/pull
         marginals = self.a if forward else self.b
         if x.ndim == 2:
             marginals = marginals[:, None]
-        return x / (marginals + 1e-12)
-
-    # TODO(michalk8): the below are not efficient (+1 is redundant)
-    def _scale_transport_by_marginals(self, forward: bool) -> ArrayLike:
-        if forward:
-            scaled_transport = np.dot(np.diag(1 / self.a), self.transport_matrix)
-        else:
-            scaled_transport = np.dot(self.transport_matrix, np.diag(1 / self.b))
-        return scaled_transport
-
-    def _scale_transport_by_sum(self, forward: bool) -> ArrayLike:
-        if forward:
-            scaled_transport = self.transport_matrix / self.transport_matrix.sum(1)[:, None]
-        else:
-            scaled_transport = self.transport_matrix / self.transport_matrix.sum(0)[None, :]
-        return scaled_transport
+        return x / (marginals + eps)
 
     def _format_params(self, fmt: Callable[[Any], str]) -> str:
         params = {"shape": self.shape, "cost": round(self.cost, 4), "converged": self.converged}
@@ -150,6 +126,9 @@ class MatrixSolverOutput(BaseSolverOutput, ABC):
         """%(shape)s"""  # noqa: D400
         return self.transport_matrix.shape
 
+
+class HasPotentials(ABC):
     @property
-    def potentials(self):  # TODO(michalk8): refactor
-        raise NotImplementedError("This solver does not allow for potentials")
+    @abstractmethod
+    def potentials(self) -> Tuple[ArrayLike, ArrayLike]:
+        pass

@@ -7,17 +7,17 @@ import numpy.typing as npt
 
 from anndata import AnnData
 
-from moscot.problems import OTProblem, MultiMarginalProblem, SingleCompoundProblem
+from moscot.problems.base import OTProblem, CompoundProblem, MultiMarginalProblem
 from moscot.solvers._output import MatrixSolverOutput
-from moscot.problems._compound_problem import B
 from moscot.analysis_mixins._base_analysis import AnalysisMixin
+from moscot.problems.base._compound_problem import B
 
 Geom_t = Union[np.ndarray, Tuple[np.ndarray, np.ndarray]]
 RTOL = 1e-6
 ATOL = 1e-6
 
 
-class CompoundProblemWithMixin(SingleCompoundProblem, AnalysisMixin):
+class CompoundProblemWithMixin(CompoundProblem, AnalysisMixin):
     @property
     def _base_problem_type(self) -> Type[B]:
         return OTProblem

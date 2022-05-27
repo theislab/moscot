@@ -10,12 +10,13 @@ from anndata import AnnData
 
 from moscot._docs import d
 from moscot.analysis_mixins import TemporalAnalysisMixin  # type: ignore[attr-defined]
+from moscot.problems._utils import require_prepare
 from moscot.problems.mixins import BirthDeathMixin, BirthDeathBaseProblem  # type: ignore[attr-defined]
-from moscot.problems._compound_problem import B, SingleCompoundProblem, require_prepare
+from moscot.problems.base._compound_problem import B, CompoundProblem
 
 
 @d.dedent
-class TemporalProblem(TemporalAnalysisMixin, BirthDeathMixin, SingleCompoundProblem[Number, BirthDeathBaseProblem]):
+class TemporalProblem(TemporalAnalysisMixin, BirthDeathMixin, CompoundProblem[Number, BirthDeathBaseProblem]):
     """
     Class for analysing time series single cell data based on :cite:`schiebinger:19`.
 
@@ -67,7 +68,7 @@ class TemporalProblem(TemporalAnalysisMixin, BirthDeathMixin, SingleCompoundProb
         %(callback)s
         %(callback_kwargs)s
         kwargs
-            Keyword arguments for :meth:`moscot.problems.CompoundBaseProblem._create_problems`.
+            Keyword arguments for :meth:`moscot.problems.BaseCompoundProblem._create_problems`.
 
         Returns
         -------
@@ -273,7 +274,7 @@ class LineageProblem(TemporalProblem):
         %(callback)s
         %(callback_kwargs)s
         kwargs
-            Keyword arguments for :meth:`moscot.problems.CompoundBaseProblem._create_problems`
+            Keyword arguments for :meth:`moscot.problems.BaseCompoundProblem._create_problems`
 
         Returns
         -------

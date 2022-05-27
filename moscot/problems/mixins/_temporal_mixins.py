@@ -1,5 +1,5 @@
 from abc import ABC
-from typing import Any, Type, Union, Literal, Optional, Sequence
+from typing import Any, Union, Literal, Optional, Sequence
 import logging
 
 import numpy as np
@@ -11,8 +11,7 @@ import scanpy as sc
 from moscot._docs import d
 from moscot.solvers._output import BaseSolverOutput
 from moscot.problems.time._utils import beta, delta, MarkerGenes
-from moscot.problems._compound_problem import B
-from moscot.problems._multimarginal_problem import MultiMarginalProblem
+from moscot.problems.base._multimarginal_problem import MultiMarginalProblem
 
 
 @d.dedent

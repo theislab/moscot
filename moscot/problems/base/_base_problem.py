@@ -1,35 +1,23 @@
 from abc import ABC, abstractmethod
 from types import MappingProxyType
-from typing import Any, Dict, List, Tuple, Union, Literal, Mapping, Iterable, Optional, Sequence, Callable
+from typing import Any, Dict, List, Tuple, Union, Literal, Mapping, Iterable, Optional, Sequence
 
 from scipy.sparse import vstack, issparse, csr_matrix
 
 import numpy as np
-import wrapt
+
 from anndata import AnnData
 import scanpy as sc
 
-from moscot._types import ArrayLike
 from moscot._docs import d
+from moscot._types import ArrayLike
+from moscot.problems._utils import require_solution
 from moscot.solvers._output import BaseSolverOutput
 from moscot.problems._anndata import AnnDataPointer
-from moscot.solvers._base_solver import ProblemKind
+from moscot.solvers._base_solver import BaseSolver, ProblemKind
 from moscot.solvers._tagged_array import Tag, TaggedArray
 
 __all__ = ["BaseProblem", "OTProblem"]
-
-
-@wrapt.decorator
-def require_solution(
-    wrapped: Callable[[Any], Any], instance: "OTProblem", args: Tuple[Any, ...], kwargs: Mapping[str, Any]
-) -> Any:
-    from moscot.problems import CompoundBaseProblem  # type: ignore[attr-defined]
-
-    if isinstance(instance, OTProblem) and instance.solution is None:
-        raise RuntimeError("TODO: Run solve.")
-    if isinstance(instance, CompoundBaseProblem) and instance.solutions is None:
-        raise RuntimeError("TODO: Run solve.")
-    return wrapped(*args, **kwargs)
 
 
 @d.get_sections(base="BaseProblem", sections=["Parameters", "Raises"])
@@ -50,11 +38,7 @@ class BaseProblem(ABC):
         If `adata` has no variables.
     """
 
-    def __init__(
-        self,
-        adata: AnnData,
-        copy: bool = False,
-    ):
+    def __init__(self, adata: AnnData, copy: bool = False):
         self._adata = adata.copy() if copy else adata
         self._problem_kind: Optional[ProblemKind] = None
 
@@ -178,7 +162,6 @@ class OTProblem(BaseProblem):
         b: Optional[Union[str, ArrayLike]] = None,
         **_: Any,
     ) -> "OTProblem":
-
         self._x = self._y = self._xy = self._solution = None
         # TODO(michalk8): handle again TaggedArray?
         # TODO(michalk8): better dispatch
@@ -230,7 +213,7 @@ class OTProblem(BaseProblem):
         prepare_kwargs["scale_cost"] = scale_cost
         prepare_kwargs["online"] = online
 
-        solver = self._problem_kind.solver(backend="ott")(**kwargs)
+        solver: BaseSolver[BaseSolverOutput] = self._problem_kind.solver(backend="ott", **kwargs)
         self._solution = solver(x=self._x, y=self._y, xy=self._xy, a=a, b=b, tau_a=tau_a, tau_b=tau_b, **prepare_kwargs)
 
         return self

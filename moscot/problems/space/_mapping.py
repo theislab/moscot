@@ -9,13 +9,13 @@ from anndata import AnnData
 
 from moscot._docs import d
 from moscot.analysis_mixins import SpatialMappingAnalysisMixin
-from moscot.problems._base_problem import OTProblem
 from moscot.problems._subset_policy import Axis_t, DummyPolicy, ExternalStarPolicy
-from moscot.problems._compound_problem import B, SingleCompoundProblem
+from moscot.problems.base._base_problem import OTProblem
+from moscot.problems.base._compound_problem import B, CompoundProblem
 
 
 @d.dedent
-class MappingProblem(SingleCompoundProblem, SpatialMappingAnalysisMixin):
+class MappingProblem(CompoundProblem, SpatialMappingAnalysisMixin):
     """
     Class for mapping single cell omics data onto spatial data, based on :cite:`nitzan2019`.
 

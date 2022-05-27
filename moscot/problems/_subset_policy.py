@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import Any, Dict, List, Sized, Tuple, Union, Iterable, Optional, Sequence
+from typing import Any, Dict, List, Tuple, Union, Generic, TypeVar, Hashable, Iterable, Optional, Sequence
 from operator import gt, lt
 from itertools import product
 
@@ -8,16 +8,25 @@ import pandas as pd
 import networkx as nx
 
 import numpy as np
-import numpy.typing as npt
 
 from anndata import AnnData
 
-Item_t = Tuple[Any, Any]
-Value_t = Tuple[npt.ArrayLike, npt.ArrayLike]
+from moscot._types import ArrayLike
+
+Value_t = Tuple[ArrayLike, ArrayLike]
 Axis_t = Literal["obs", "var"]
+Policy_t = Literal[
+    "sequential",
+    "pairwise",
+    "star",
+    "external_star",
+    "triu",
+    "tril",
+    "explicit",
+]
 
 
-__all__ = (
+__all__ = [
     "SubsetPolicy",
     "OrderedPolicy",
     "PairwisePolicy",
@@ -27,7 +36,10 @@ __all__ = (
     "TriangularPolicy",
     "ExplicitPolicy",
     "DummyPolicy",
-)
+]
+
+
+K = TypeVar("K", bound=Hashable)
 
 
 class FormatterMixin(ABC):
@@ -36,49 +48,8 @@ class FormatterMixin(ABC):
         pass
 
 
-class SimplePlanFilterMixin:
-    def plan(self, filter: Optional[Sequence[Item_t]] = None, **_: Any) -> Dict[Item_t, List[Item_t]]:
-        if filter is None:
-            return self._default_plan
-        return {s: [s] for s in self._subset if s in filter}
-
-
-class SubsetPolicy:
+class SubsetPolicy(Generic[K]):
     """Policy class."""
-
-    class Category:
-        def __init__(self, cats: Sequence[Any]):
-            # assert len(cats) > 1, "TODO: too few categories"
-            self._i2c = tuple(cats)
-            self._c2i = dict(zip(cats, range(len(cats))))
-            self._next_cat = dict(zip(cats[:-1], cats[1:]))
-            self._prev_cat = {v: k for k, v in self._next_cat.items()}
-
-        def _move(self, curr: Any, *, forward: bool = True):
-            direction = self._next_cat if forward else self._prev_cat
-            if curr not in direction:
-                raise IndexError("TODO: out-of-range")
-
-            return direction[curr]
-
-        def next(self, curr: Any) -> Any:
-            return self._move(curr, forward=True)
-
-        def prev(self, curr: Any) -> Any:
-            return self._move(curr, forward=False)
-
-        @property
-        def categories(self) -> Tuple[Any]:
-            return self._i2c
-
-        def __len__(self) -> int:
-            return len(self._i2c)
-
-        def __getitem__(self, ix: int) -> Any:
-            return self._i2c[ix]
-
-        def __invert__(self) -> "SubsetPolicy.Category":
-            return SubsetPolicy.Category(self[::-1])
 
     def __init__(
         self, adata: Union[AnnData, pd.Series, pd.Categorical], key: Optional[str] = None, axis: Axis_t = "obs"
@@ -99,37 +70,41 @@ class SubsetPolicy:
         if not hasattr(self._data, "cat"):
             self._data = self._data.astype("category")  # TODO(@MUCDK): catch conversion error
         self._axis = axis
-        self._subset: Optional[List[Item_t]] = None
-        self._cat = self.Category(self._data.cat.categories)
+        self._graph: Sequence[Tuple[K, K]] = []
+        self._cat = tuple(self._data.cat.categories)
         self._subset_key: Optional[str] = key
 
     @abstractmethod
-    def _create_subset(self, *args: Any, **kwargs: Any) -> Sequence[Item_t]:
+    def _create_graph(self, **kwargs: Any) -> Sequence[Tuple[K, K]]:
         pass
+
+    def plan(self, forward: bool = True, **kwargs: Any) -> Sequence[Tuple[K, K]]:
+        plan = self._plan(**kwargs)
+        return plan if forward else plan[::-1]
 
     @abstractmethod
-    def plan(self, **kwargs: Any) -> Dict[Item_t, List[Item_t]]:
+    def _plan(self, **kwargs: Any) -> Sequence[Tuple[K, K]]:
         pass
 
-    def __call__(self, *args: Any, filter: Optional[Sequence[Any]] = None, **kwargs: Any) -> "SubsetPolicy":
-        subset = self._create_subset(*args, **kwargs)
-        if not all(isinstance(s, Sized) and len(s) == 2 for s in subset):
-            raise ValueError("TODO: not all values are two-pair")
+    def __call__(self, filter: Optional[Sequence[Tuple[K, K]]] = None, **kwargs: Any) -> "SubsetPolicy[K]":
+        graph = self._create_graph(**kwargs)
         if filter is not None:
-            subset = [(a, b) for a, b in subset if (a in filter and b in filter) or (a, b) in filter]
-        if not len(subset):
-            raise ValueError("TODO: empty subset. Make sure right dtype")
-        # TODO(michalk8): make unique, but order-preserving
-        self._subset = subset
+            graph = self._filter_graph(graph, filter=filter)
+        if not len(graph):
+            raise ValueError("TODO: empty graph")
+        self._graph = graph
         return self
+
+    def _filter_graph(self, graph: Sequence[Tuple[K, K]], filter: Sequence[Tuple[K, K]]) -> Sequence[Tuple[K, K]]:
+        return [i for i in graph if i in filter]
 
     @classmethod
     def create(
         cls,
-        kind: Literal["sequential", "pairwise", "star", "triu", "tril", "explicit"],
+        kind: Policy_t,
         adata: Union[AnnData, pd.Series, pd.Categorical],
         **kwargs: Any,
-    ) -> "SubsetPolicy":
+    ) -> "SubsetPolicy[K]":
         if kind == "sequential":
             return SequentialPolicy(adata, **kwargs)
         if kind == "pairwise":
@@ -147,17 +122,18 @@ class SubsetPolicy:
 
         raise NotImplementedError(kind)
 
-    def create_mask(self, value: Union[Any, Sequence[Any]], *, allow_empty: bool = False) -> npt.ArrayLike:
-        mask = (
-            self._data == value if isinstance(value, str) or not isinstance(value, Iterable) else self._data.isin(value)
-        )
+    def create_mask(self, value: Union[K, Sequence[K]], *, allow_empty: bool = False) -> ArrayLike:
+        if isinstance(value, str) or not isinstance(value, Iterable):
+            mask = self._data == value
+        else:
+            mask = self._data.isin(value)
         if not allow_empty and not np.sum(mask):
             raise ValueError("TODO: empty mask...")
         return np.asarray(mask)
 
-    def create_masks(self, discard_empty: bool = True) -> Dict[Item_t, Value_t]:
+    def create_masks(self, discard_empty: bool = True) -> Dict[Tuple[K, K], Tuple[ArrayLike, ArrayLike]]:
         res = {}
-        for a, b in self._subset:
+        for a, b in self._graph:
             try:
                 mask_a = self.create_mask(a, allow_empty=not discard_empty)
                 mask_b = self.create_mask(b, allow_empty=not discard_empty)
@@ -176,113 +152,115 @@ class SubsetPolicy:
     def axis(self) -> Axis_t:
         return self._axis
 
-    @property
-    def _default_plan(self) -> Dict[Tuple[Any, Any], List[Any]]:
-        return {s: [s] for s in self._subset}
 
-
-class OrderedPolicy(SubsetPolicy, ABC):
+class OrderedPolicy(SubsetPolicy[K], ABC):
     def __init__(self, adata: Union[AnnData, pd.Series, pd.Categorical], **kwargs: Any):
         super().__init__(adata, **kwargs)
         # TODO(michalk8): verify whether they can be ordered (only numeric?) + warn (or just raise)
 
-    def plan(self, start: Optional[Any] = None, end: Optional[Any] = None, **_: Any) -> Dict[Item_t, List[Item_t]]:
-        if self._subset is None:
-            raise RuntimeError("TODO: init subset first")
+    def _plan(self, start: Optional[K] = None, end: Optional[K] = None, **_: Any) -> Sequence[Tuple[K, K]]:
+        if self._graph is None:
+            raise RuntimeError("TODO: run graph creation first")
         if start is None and end is None:
-            return self._default_plan
+            return self._graph
         # TODO: add Graph for undirected
         G = nx.DiGraph()
-        G.add_edges_from(self._subset)
+        G.add_edges_from(self._graph)
 
-        if start is None:
-            paths = nx.single_target_shortest_path(G, end)
-            return {(n, path[-1][-1]): list(zip(path[:-1], path[1:])) for n, path in paths.items() if n != end}
-        if end is None:
-            paths = nx.single_source_shortest_path(G, start)
-            return {(path[0][0], n): list(zip(path[:-1], path[1:])) for n, path in paths.items() if n != start}
-        if start != end:
-            path = nx.shortest_path(G, start, end)
-            return {(start, end): list(zip(path[:-1], path[1:]))}
+        if start == end:
+            raise ValueError("TODO: start is the same as end.")
+        if start is None or end is None:
+            raise ValueError("TODO: start or end is None")
 
-        raise ValueError("TODO: start is the same as end.")
+        path = nx.shortest_path(G, start, end)
+        return list(zip(path[:-1], path[1:]))
 
 
-class PairwisePolicy(SimplePlanFilterMixin, SubsetPolicy):
-    def _create_subset(self, *_: Any, **__: Any) -> Sequence[Item_t]:
+class SimplePlanPolicy(SubsetPolicy[K], ABC):
+    def _plan(self, **_: Any) -> Sequence[Tuple[K, K]]:
+        return self._graph
+
+
+class PairwisePolicy(SimplePlanPolicy[K]):
+    def _create_graph(self, *_: Any, **__: Any) -> Sequence[Tuple[K, K]]:
         return [(a, b) for a, b in product(self._cat, self._cat) if a != b]
 
 
-class StarPolicy(SubsetPolicy):
-    def _create_subset(self, reference: Any, **kwargs: Any) -> Sequence[Item_t]:
+class StarPolicy(SimplePlanPolicy[K]):
+    def _create_graph(self, reference: K, **kwargs: Any) -> Sequence[Tuple[K, K]]:  # type: ignore[override]
         if reference not in self._cat:
             raise ValueError(f"TODO: Reference {reference} not in {self._cat}")
         return [(c, reference) for c in self._cat if c != reference]
 
-    def plan(self, filter: Optional[Sequence[Any]] = None, **_: Any) -> Dict[Item_t, List[Item_t]]:
-        if filter is None:
-            return self._default_plan
-        return {s: [s] for s in self._subset if s[0] in filter}
+    def _filter_graph(
+        self, graph: Sequence[Tuple[K, K]], filter: Sequence[Union[K, Tuple[K, K]]]
+    ) -> Sequence[Tuple[K, K]]:
+        filter = [src[0] if isinstance(src, tuple) else src for src in filter]
+        return [(src, ref) for src, ref in graph if src in filter]
 
 
-class ExternalStarPolicy(FormatterMixin, StarPolicy):
+class ExternalStarPolicy(FormatterMixin, StarPolicy[K]):
     _SENTINEL = object()
 
-    def _format(self, value: Any, *, is_source: bool):
+    def __init__(self, adata: Union[AnnData, pd.Series, pd.Categorical], tgt_name: str = "ref", **kwargs: Any):
+        super().__init__(adata, **kwargs)
+        self._tgt_name = tgt_name
+
+    def _format(self, value: K, *, is_source: bool) -> Union[str, K]:
         if is_source:
             return value
         if value is self._SENTINEL:
-            return "ref"
-        raise ValueError("FATAL ERROR.")  # TODO: better error message.
+            return self._tgt_name
+        raise ValueError("TODO.")
 
-    def _create_subset(self, **kwargs: Any) -> Sequence[Item_t]:
+    def _create_graph(self, **_: Any) -> Sequence[Tuple[K, object]]:  # type: ignore[override]
         return [(c, self._SENTINEL) for c in self._cat if c != self._SENTINEL]
 
-    def create_masks(self, discard_empty: bool = True) -> Dict[Item_t, Value_t]:
+    def create_masks(self, discard_empty: bool = True) -> Dict[Tuple[K, K], Tuple[ArrayLike, ArrayLike]]:
         return super().create_masks(discard_empty=False)
 
 
-class SequentialPolicy(OrderedPolicy):
-    def _create_subset(self, *_: Any, **__: Any) -> Sequence[Item_t]:
-        return [(c, self._cat.next(c)) for c in self._cat[:-1]]
+class SequentialPolicy(OrderedPolicy[K]):
+    def _create_graph(self, *_: Any, **__: Any) -> Sequence[Tuple[K, K]]:
+        return list(zip(self._cat[:-1], self._cat[1:]))
 
 
-class TriangularPolicy(OrderedPolicy):
-    def __init__(self, adata: Union[AnnData, pd.Series, pd.Categorical], upper: bool = True, **kwargs):
+class TriangularPolicy(OrderedPolicy[K]):
+    def __init__(self, adata: Union[AnnData, pd.Series, pd.Categorical], upper: bool = True, **kwargs: Any):
         super().__init__(adata, **kwargs)
         self._compare = lt if upper else gt
 
-    def _create_subset(self, *_: Any, **__: Any) -> Sequence[Item_t]:
+    def _create_graph(self, **__: Any) -> Sequence[Tuple[K, K]]:
         return [(a, b) for a, b in product(self._cat, self._cat) if self._compare(a, b)]
 
 
-class ExplicitPolicy(SimplePlanFilterMixin, SubsetPolicy):
-    def _create_subset(self, subset: Sequence[Item_t], **_: Any) -> Sequence[Item_t]:
+class ExplicitPolicy(SimplePlanPolicy[K]):
+    def _create_graph(self, subset: Sequence[Tuple[K, K]], **_: Any) -> Sequence[Tuple[K, K]]:  # type: ignore[override]
         if subset is None:
             raise ValueError("TODO: specify subset for explicit policy.")
         # pass-through, all checks are done by us later
         return subset
 
 
-class DummyPolicy(FormatterMixin, SubsetPolicy):
+class DummyPolicy(FormatterMixin, SubsetPolicy[str]):
     _SENTINEL = object()
 
     def __init__(
         self,
         adata: Union[AnnData, pd.Series, pd.Categorical],
-        src_name: Any = "src",
-        tgt_name: Any = "ref",
+        src_name: str = "src",
+        tgt_name: str = "ref",
         **kwargs: Any,
     ):
         super().__init__(pd.Series([self._SENTINEL] * len(adata)), **kwargs)
         self._src_name = src_name
         self._tgt_name = tgt_name
 
-    def plan(self, **_: Any) -> Dict[Item_t, List[Item_t]]:
-        return {(self._src_name, self._tgt_name): [(self._src_name, self._tgt_name)]}
-
-    def _format(self, value: Any, *, is_source: bool):
-        return self._src_name if is_source else self._tgt_name
-
-    def _create_subset(self, _: Sequence[Item_t] = None, **__: Any) -> Sequence[Item_t]:
+    def _create_graph(self, **__: Any) -> Sequence[Tuple[object, object]]:  # type: ignore[override]
         return [(self._SENTINEL, self._SENTINEL)]
+
+    def _plan(self, **_: Any) -> List[Tuple[str, str]]:
+        return [(self._src_name, self._tgt_name)]
+
+    def _format(self, _: Any, *, is_source: bool) -> str:
+        return self._src_name if is_source else self._tgt_name
