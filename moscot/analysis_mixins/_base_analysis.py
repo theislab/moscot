@@ -7,14 +7,15 @@ import numpy as np
 from moscot._types import ArrayLike
 from moscot.solvers._output import BaseSolverOutput
 from moscot.problems._subset_policy import SubsetPolicy
-from moscot.problems.base._compound_problem import K, Key, ApplyOutput_t
+from moscot.problems._compound_problem import B, K, Key, ApplyOutput_t
 
 
-class AnalysisMixinProtocol(Protocol[K]):
+class AnalysisMixinProtocol(Protocol[K, B]):
     """Protocol class."""
 
     _policy: SubsetPolicy
     solutions: Dict[Key[K], BaseSolverOutput]
+    problems: Optional[Dict[Key[K], B]]
 
     def _apply(
         self,
