@@ -26,7 +26,7 @@ class AnalysisMixinProtocol(Protocol[K, B]):
         scale_by_marginals: bool = False,
         filter: Optional[Sequence[Key[K]]] = None,  # noqa: A002
         data: Optional[ArrayLike] = None,
-    ) -> ApplyOutput_t:
+    ) -> ApplyOutput_t[K]:
         ...
 
 

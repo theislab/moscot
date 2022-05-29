@@ -27,6 +27,7 @@ import wrapt
 
 from anndata import AnnData
 
+from moscot._types import ArrayLike
 from moscot._docs import d
 from moscot.solvers._output import BaseSolverOutput
 from moscot.problems.base._base_problem import OTProblem, BaseProblem
@@ -40,7 +41,7 @@ K = TypeVar("K", bound=Hashable)
 B = TypeVar("B", bound=OTProblem)
 Key = Tuple[K, K]
 Callback_t = Callable[[AnnData, AnnData, Any], Mapping[str, TaggedArray]]
-ApplyOutput_t = Union[Dict[Any, npt.ArrayLike], Dict[Key, Dict[Any, npt.ArrayLike]]]
+ApplyOutput_t = Union[Dict[K, ArrayLike], Dict[Key, Dict[K, ArrayLike]]]
 
 
 @wrapt.decorator

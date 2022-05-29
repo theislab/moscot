@@ -1,8 +1,11 @@
+from ast import Num
 from typing import Any, Dict, List, Tuple, Union, Mapping, Optional, Sequence, TYPE_CHECKING
 import logging
 import itertools
+from numbers import Number
 
 from pandas.api.types import is_categorical_dtype
+from zmq import TYPE
 from sklearn.metrics.pairwise import pairwise_distances
 import ot
 import pandas as pd
@@ -13,19 +16,20 @@ from anndata import AnnData
 
 from moscot._docs import d
 from moscot._types import ArrayLike, Numeric_t
-from moscot.problems._compound_problem import B, K, ApplyOutput_t
+from moscot.problems._compound_problem import B, K, Key, ApplyOutput_t
+from moscot.problems.mixins import BirthDeathBaseProblem  # type: ignore[attr-defined]
 from moscot.analysis_mixins._base_analysis import AnalysisMixin, AnalysisMixinProtocol
 
 
-class TimeAnalysisMixinProtocol(AnalysisMixinProtocol[K, B]):
+class TimeAnalysisMixinProtocol(AnalysisMixinProtocol[Numeric_t , BirthDeathBaseProblem]):
     """Protocol class."""
 
     adata: AnnData
 
-    def push(self, *args: Any, **kwargs: Any) -> Union[ArrayLike, Dict[Any, ArrayLike]]:  # noqa: D102
+    def push(self, *args: Any, **kwargs: Any) -> ApplyOutput_t[Numeric_t]:  # noqa: D102
         ...
 
-    def pull(self, *args: Any, **kwargs: Any) -> Union[ArrayLike, Dict[Any, ArrayLike]]:  # noqa: D102
+    def pull(self, *args: Any, **kwargs: Any) -> ApplyOutput_t[Numeric_t]:  # noqa: D102
         ...
 
 
@@ -45,7 +49,7 @@ class TemporalAnalysisMixin(AnalysisMixin, TimeAnalysisMixinProtocol):
         return_all: bool = False,
         scale_by_marginals: bool = True,
         **kwargs: Any,
-    ) -> Optional[ApplyOutput_t[K]]:
+    ) -> Optional[ApplyOutput_t[Numeric_t]]:
         """
         Push distribution of cells through time.
 
@@ -84,9 +88,7 @@ class TemporalAnalysisMixin(AnalysisMixin, TimeAnalysisMixinProtocol):
 
         if result_key is None:
             return result
-        if TYPE_CHECKING:
-            assert isinstance(result, dict)
-        self._dict_to_adata(result, result_key)
+        self._dict_to_adata(result, result_key)  # type: ignore[arg-type]
 
     @d.dedent
     def pull(
@@ -97,7 +99,7 @@ class TemporalAnalysisMixin(AnalysisMixin, TimeAnalysisMixinProtocol):
         return_all: bool = False,
         scale_by_marginals: bool = True,
         **kwargs: Any,
-    ) -> Optional[ApplyOutput_t[K]]:
+    ) -> Optional[ApplyOutput_t[Numeric_t]]:
         """
         Pull distribution of cells from time point `end` to time point `start`.
 
@@ -126,7 +128,7 @@ class TemporalAnalysisMixin(AnalysisMixin, TimeAnalysisMixinProtocol):
         """
         if result_key is not None:
             return_all = True
-        result: Dict[K, ArrayLike] = super().pull(  # type: ignore[assignment]
+        result = super().pull(
             start=start,
             end=end,
             return_all=return_all,
@@ -135,9 +137,7 @@ class TemporalAnalysisMixin(AnalysisMixin, TimeAnalysisMixinProtocol):
         )
         if result_key is None:
             return result
-        if TYPE_CHECKING:
-            assert isinstance(result, dict)
-        self._dict_to_adata(result, result_key)
+        self._dict_to_adata(result, result_key)  # type: ignore[arg-type]
 
     def cell_transition(
         self,
@@ -335,9 +335,9 @@ class TemporalAnalysisMixin(AnalysisMixin, TimeAnalysisMixinProtocol):
 
     def compute_interpolated_distance(
         self,
-        start: K,
-        intermediate: K,
-        end: K,
+        start: Numeric_t, #TODO(@MUCDK): type to K once in BaseAnalysisMixin
+        intermediate: Numeric_t, #TODO(@MUCDK): type to K once in BaseAnalysisMixin
+        end: Numeric_t, #TODO(@MUCDK): type to K once in BaseAnalysisMixin
         interpolation_parameter: Optional[Numeric_t] = None,
         n_interpolated_cells: Optional[int] = None,
         account_for_unbalancedness: bool = False,
@@ -414,9 +414,9 @@ class TemporalAnalysisMixin(AnalysisMixin, TimeAnalysisMixinProtocol):
 
     def compute_random_distance(
         self,
-        start: K,
-        intermediate: K,
-        end: K,
+        start: Numeric_t, #TODO(@MUCDK): type to K once in BaseAnalysisMixin
+        intermediate: Numeric_t, #TODO(@MUCDK): type to K once in BaseAnalysisMixin
+        end: Numeric_t, #TODO(@MUCDK): type to K once in BaseAnalysisMixin
         interpolation_parameter: Optional[Numeric_t] = None,
         n_interpolated_cells: Optional[int] = None,
         account_for_unbalancedness: bool = False,
@@ -625,7 +625,7 @@ class TemporalAnalysisMixin(AnalysisMixin, TimeAnalysisMixinProtocol):
             interpolation_parameter if interpolation_parameter is not None else (intermediate - start) / (end - start)
         )
 
-    def _dict_to_adata(self, d: Dict[K, ArrayLike], obs_key: str) -> None:
+    def _dict_to_adata(self, d: Dict[Numeric_t, ArrayLike], obs_key: str) -> None:
         tmp = np.full(len(self.adata), np.nan)
         for key, value in d.items():
             mask = self.adata.obs[self.temporal_key] == key
