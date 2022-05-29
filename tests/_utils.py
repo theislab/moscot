@@ -7,6 +7,7 @@ import numpy.typing as npt
 
 from anndata import AnnData
 
+from moscot._types import ArrayLike
 from moscot.problems.base import OTProblem, CompoundProblem, MultiMarginalProblem
 from moscot.solvers._output import MatrixSolverOutput
 from moscot.analysis_mixins._base_analysis import AnalysisMixin
@@ -36,12 +37,12 @@ class MockSolverOutput(MatrixSolverOutput):
     def converged(self) -> bool:
         return True
 
-    def _ones(self, n: int) -> npt.ArrayLike:
+    def _ones(self, n: int) -> ArrayLike:
         return np.ones(n)
 
 
 class MockMultiMarginalProblem(MultiMarginalProblem):
-    def _estimate_marginals(self, adata: AnnData, *, source: bool, **kwargs: Any) -> Optional[npt.ArrayLike]:
+    def _estimate_marginals(self, adata: AnnData, *, source: bool, **kwargs: Any) -> Optional[ArrayLike]:
         pass
 
 

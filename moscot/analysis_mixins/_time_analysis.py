@@ -39,8 +39,8 @@ class TemporalAnalysisMixin(AnalysisMixin, TimeAnalysisMixinProtocol):
     @d.dedent
     def push(
         self,
-        start: K,
-        end: K,
+        start: Numeric_t,
+        end: Numeric_t,
         result_key: Optional[str] = None,
         return_all: bool = False,
         scale_by_marginals: bool = True,
@@ -91,8 +91,8 @@ class TemporalAnalysisMixin(AnalysisMixin, TimeAnalysisMixinProtocol):
     @d.dedent
     def pull(
         self,
-        start: K,
-        end: K,
+        start: Numeric_t,
+        end: Numeric_t,
         result_key: Optional[str] = None,
         return_all: bool = False,
         scale_by_marginals: bool = True,
@@ -510,7 +510,7 @@ class TemporalAnalysisMixin(AnalysisMixin, TimeAnalysisMixinProtocol):
 
         return distance_source_intermediate, distance_intermediate_target
 
-    def compute_batch_distances(self, time: Numeric_t, batch_key: str, **kwargs: Any) -> float:
+    def compute_batch_distances(self, time: K, batch_key: str, **kwargs: Any) -> float:
         """
         Compute the mean Wasserstein distance between batches of a distribution corresponding to one time point.
 
@@ -613,7 +613,7 @@ class TemporalAnalysisMixin(AnalysisMixin, TimeAnalysisMixinProtocol):
 
     @staticmethod
     def _get_interp_param(
-        start: K, intermediate: K, end: K, interpolation_parameter: Optional[Numeric_t] = None
+        start: Numeric_t, intermediate: Numeric_t, end: Numeric_t, interpolation_parameter: Optional[Numeric_t] = None
     ) -> Numeric_t:
         if interpolation_parameter is not None and (0 > interpolation_parameter or interpolation_parameter > 1):
             raise ValueError("TODO: interpolation parameter must be in [0,1].")

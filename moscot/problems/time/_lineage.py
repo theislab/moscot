@@ -1,6 +1,5 @@
 from types import MappingProxyType
 from typing import Any, Type, Tuple, Union, Literal, Mapping, Optional
-from numbers import Number
 
 import pandas as pd
 
@@ -8,6 +7,7 @@ import numpy as np
 
 from anndata import AnnData
 
+from moscot._types import Numeric_t
 from moscot._docs import d
 from moscot.analysis_mixins import TemporalAnalysisMixin  # type: ignore[attr-defined]
 from moscot.problems._utils import require_prepare
@@ -16,7 +16,7 @@ from moscot.problems.base._compound_problem import B, CompoundProblem
 
 
 @d.dedent
-class TemporalProblem(TemporalAnalysisMixin, BirthDeathMixin, CompoundProblem[Number, BirthDeathBaseProblem]):
+class TemporalProblem(TemporalAnalysisMixin, BirthDeathMixin, CompoundProblem[Numeric_t, BirthDeathBaseProblem]):
     """
     Class for analysing time series single cell data based on :cite:`schiebinger:19`.
 

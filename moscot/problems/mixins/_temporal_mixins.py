@@ -7,7 +7,7 @@ import numpy as np
 from anndata import AnnData
 import scanpy as sc
 
-from moscot._types import ArrayLike
+from moscot._types import ArrayLike, Numeric_t
 from moscot._docs import d
 from moscot.solvers._output import BaseSolverOutput
 from moscot.problems.time._utils import beta, delta, MarkerGenes
@@ -40,8 +40,8 @@ class BirthDeathBaseProblem(MultiMarginalProblem):
         adata_x: AnnData,
         adata_y: AnnData,
         *,
-        source: float,
-        target: float,
+        source: Numeric_t,
+        target: Numeric_t,
         **kwargs: Any,
     ):
         if source >= target:

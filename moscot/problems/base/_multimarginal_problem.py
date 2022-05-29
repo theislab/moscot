@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 from types import MappingProxyType
-from typing import Any, List, Tuple, Union, Mapping, Optional
+from typing import Any, List, Tuple, Union, Mapping, Optional, TYPE_CHECKING
 
 import numpy as np
 import numpy.typing as npt
@@ -30,11 +30,11 @@ class MultiMarginalProblem(OTProblem, ABC):
     %(OTProblem.raises)s
     """
 
-    _a: Optional[List[np.ndarray]]
-    _b: Optional[List[np.ndarray]]
+    _a: Optional[List[ArrayLike]]  # type: ignore[assignment]
+    _b: Optional[List[ArrayLike]]  # type: ignore[assignment]
 
     @abstractmethod
-    def _estimate_marginals(self, adata: AnnData, *, source: bool, **kwargs: Any) -> Optional[npt.ArrayLike]:
+    def _estimate_marginals(self, adata: AnnData, *, source: bool, **kwargs: Any) -> Optional[ArrayLike]:
         pass
 
     def prepare(
@@ -42,8 +42,8 @@ class MultiMarginalProblem(OTProblem, ABC):
         xy: Optional[Mapping[str, Any]] = None,
         x: Optional[Mapping[str, Any]] = None,
         y: Optional[Mapping[str, Any]] = None,
-        a: Optional[Union[bool, str, npt.ArrayLike]] = True,
-        b: Optional[Union[bool, str, npt.ArrayLike]] = True,
+        a: Optional[Union[bool, str, ArrayLike]] = True,
+        b: Optional[Union[bool, str, ArrayLike]] = True,
         marginal_kwargs: Mapping[str, Any] = MappingProxyType({}),
         **kwargs: Any,
     ) -> "MultiMarginalProblem":
@@ -60,6 +60,9 @@ class MultiMarginalProblem(OTProblem, ABC):
         _ = super().prepare(xy=xy, x=x, y=y, a=a, b=b, **kwargs)
         # base problem prepare array-like structure, just wrap it
         # alt. we could just append and not reset
+        if TYPE_CHECKING:
+            assert isinstance(self._a, np.ndarray)
+            assert isinstance(self._b, np.ndarray)
         self._a = [self._a]
         self._b = [self._b]
 
@@ -85,6 +88,8 @@ class MultiMarginalProblem(OTProblem, ABC):
 
         for _ in range(n_iters):
             sol = super().solve(*args, **kwargs).solution
+            if TYPE_CHECKING:
+                assert isinstance(sol, BaseSolverOutput)
             self._add_marginals(sol)
             kwargs["a"], kwargs["b"] = self._get_last_marginals()
 
@@ -95,11 +100,17 @@ class MultiMarginalProblem(OTProblem, ABC):
         self._b = [] if self._b is None or not len(self._b) else [self._b[0]]
 
     def _add_marginals(self, sol: BaseSolverOutput) -> None:
+        if TYPE_CHECKING:
+            assert isinstance(self._a, list)
+            assert isinstance(self._b, list)
         self._a.append(np.asarray(sol.a))
         self._b.append(np.asarray(sol.b))
 
-    def _get_last_marginals(self) -> Tuple[Optional[np.ndarray], Optional[np.ndarray]]:
+    def _get_last_marginals(self) -> Tuple[Optional[ArrayLike], Optional[ArrayLike]]:
         # solvers are expected to handle `None` as marginals
+        if TYPE_CHECKING:
+            assert isinstance(self._a, list)
+            assert isinstance(self._b, list)
         a = self._a[-1] if len(self._a) else None
         b = self._b[-1] if len(self._b) else None
         return a, b
@@ -107,9 +118,13 @@ class MultiMarginalProblem(OTProblem, ABC):
     @property
     def a(self) -> Optional[ArrayLike]:
         """Array of all left marginals."""
+        if TYPE_CHECKING:
+            assert isinstance(self._a, list)
         return np.asarray(self._a).T if len(self._a) else None
 
     @property
     def b(self) -> Optional[ArrayLike]:
         """Array of all right marginals."""
+        if TYPE_CHECKING:
+            assert isinstance(self._b, list)
         return np.asarray(self._b).T if len(self._b) else None

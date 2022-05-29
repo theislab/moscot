@@ -12,4 +12,4 @@ except (ImportError, TypeError):
     ArrayLike = np.ndarray  # type: ignore[misc]
     DTypeLike = np.dtype
 
-Numeric_t = Union[int, float]
+Numeric_t = Union[int, float]  # type of `time_key` arguments
