@@ -1,5 +1,5 @@
 from ast import Num
-from typing import Any, Dict, List, Tuple, Union, Mapping, Optional, Sequence, TYPE_CHECKING
+from typing import Any, Dict, List, Tuple, Union, Mapping, Optional, Sequence, TYPE_CHECKING, Protocol
 import logging
 import itertools
 from numbers import Number
@@ -21,7 +21,7 @@ from moscot.problems.mixins import BirthDeathBaseProblem  # type: ignore[attr-de
 from moscot.analysis_mixins._base_analysis import AnalysisMixin, AnalysisMixinProtocol
 
 
-class TimeAnalysisMixinProtocol(AnalysisMixinProtocol[Numeric_t , BirthDeathBaseProblem]):
+class TimeAnalysisMixinProtocol(Protocol):
     """Protocol class."""
 
     adata: AnnData
@@ -33,7 +33,7 @@ class TimeAnalysisMixinProtocol(AnalysisMixinProtocol[Numeric_t , BirthDeathBase
         ...
 
 
-class TemporalAnalysisMixin(AnalysisMixin, TimeAnalysisMixinProtocol):
+class TemporalAnalysisMixin(AnalysisMixin[Numeric_t, BirthDeathBaseProblem], TimeAnalysisMixinProtocol):
     """Analysis Mixin for all problems involving a temporal dimension."""
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
@@ -88,7 +88,7 @@ class TemporalAnalysisMixin(AnalysisMixin, TimeAnalysisMixinProtocol):
 
         if result_key is None:
             return result
-        self._dict_to_adata(result, result_key)  # type: ignore[arg-type]
+        self._dict_to_adata(result, result_key)
 
     @d.dedent
     def pull(
@@ -137,7 +137,7 @@ class TemporalAnalysisMixin(AnalysisMixin, TimeAnalysisMixinProtocol):
         )
         if result_key is None:
             return result
-        self._dict_to_adata(result, result_key)  # type: ignore[arg-type]
+        self._dict_to_adata(result, result_key)
 
     def cell_transition(
         self,

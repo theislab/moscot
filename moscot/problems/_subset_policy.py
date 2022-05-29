@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import Any, Dict, List, Tuple, Union, Generic, TypeVar, Hashable, Iterable, Optional, Sequence
+from typing import TYPE_CHECKING, Any, Dict, List, Tuple, Union, Generic, TypeVar, Hashable, Iterable, Optional, Sequence
 from operator import gt, lt
 from itertools import product
 

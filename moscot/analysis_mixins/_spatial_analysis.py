@@ -1,4 +1,4 @@
-from typing import Any, Dict, List, Tuple, Union, Mapping, Callable, Optional, Sequence
+from typing import Any, Dict, List, Protocol, Tuple, Union, Mapping, Callable, Optional, Sequence
 
 from scipy.stats import pearsonr, spearmanr
 from scipy.linalg import svd
@@ -13,11 +13,12 @@ from anndata import AnnData
 
 from moscot._types import ArrayLike
 from moscot.problems._subset_policy import StarPolicy
-from moscot.problems._compound_problem import K
+from moscot.problems.base._compound_problem import K, B
+from moscot.problems.base._base_problem import OTProblem
 from moscot.analysis_mixins._base_analysis import AnalysisMixin, AnalysisMixinProtocol
 
 
-class SpatialAnalysisMixinProtocol(AnalysisMixinProtocol[K]):
+class SpatialAnalysisMixinProtocol(Protocol):
     """Protocol class."""
 
     adata: AnnData
@@ -25,7 +26,7 @@ class SpatialAnalysisMixinProtocol(AnalysisMixinProtocol[K]):
     adata_sp: AnnData
 
 
-class SpatialAlignmentAnalysisMixin(AnalysisMixin, SpatialAnalysisMixinProtocol[K]):
+class SpatialAlignmentAnalysisMixin(AnalysisMixin[K, OTProblem], SpatialAnalysisMixinProtocol):
     """Spatial alignment mixin class."""
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
@@ -64,16 +65,16 @@ class SpatialAlignmentAnalysisMixin(AnalysisMixin, SpatialAnalysisMixinProtocol[
             _transport = self._warp
 
         if full_steps is not None:
-            if not fwd_steps or not set(full_steps).issubset(set(fwd_steps.keys())):
+            if not fwd_steps or not set(full_steps).issubset(set(fwd_steps)):
                 bwd_steps = self._policy.plan(start=reference)
 
         if len(fwd_steps):
-            for (start, end) in fwd_steps.keys():
+            for (start, end) in fwd_steps:
                 tmap = self._interpolate_transport(start=start, end=end, scale_by_marginals=True, forward=True)
                 transport_maps[start], transport_metadata[start] = _transport(tmap, subs_adata(start), src)
 
         if bwd_steps is not None and len(bwd_steps):
-            for (start, end) in bwd_steps.keys():
+            for (start, end) in bwd_steps:
                 tmap = self._interpolate_transport(start=start, end=end, scale_by_marginals=True, forward=False)
                 transport_maps[end], transport_metadata[end] = _transport(tmap.T, subs_adata(end), src)
 
@@ -106,7 +107,7 @@ class SpatialAlignmentAnalysisMixin(AnalysisMixin, SpatialAnalysisMixinProtocol[
         if reference not in self._policy._cat.categories:
             raise ValueError(f"`reference: {reference}` not in policy categories: {self._policy._cat.categories}.")
         if isinstance(self._policy, StarPolicy):
-            if reference != list(self._policy.plan().keys())[0][-1]:
+            if reference != list(self._policy.plan())[0][-1]:
                 raise ValueError(f"Invalid `reference: {reference}` for `policy='star'`.")
         aligned_maps, aligned_metadata = self._interpolate_scheme(reference=reference, mode=mode)
         aligned_basis = np.vstack([aligned_maps[k] for k in self._policy._cat.categories])
@@ -132,7 +133,7 @@ class SpatialAlignmentAnalysisMixin(AnalysisMixin, SpatialAnalysisMixinProtocol[
         self._spatial_key = value
 
 
-class SpatialMappingAnalysisMixin(AnalysisMixin, SpatialAnalysisMixinProtocol[K]):
+class SpatialMappingAnalysisMixin(AnalysisMixin[K, OTProblem], SpatialAnalysisMixinProtocol):
     """Spatial mapping analysis mixin class."""
 
     def _filter_vars(

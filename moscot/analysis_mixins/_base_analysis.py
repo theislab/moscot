@@ -1,4 +1,4 @@
-from typing import Any, Dict, List, Tuple, Optional, Protocol, Sequence
+from typing import Any, Dict, List, Tuple, Optional, Protocol, Union, TYPE_CHECKING
 
 from scipy.sparse.linalg import LinearOperator
 
@@ -13,31 +13,30 @@ from moscot.problems.base._compound_problem import B, K, Key, ApplyOutput_t
 class AnalysisMixinProtocol(Protocol[K, B]):
     """Protocol class."""
 
-    _policy: SubsetPolicy
+    _policy: SubsetPolicy[K]
     solutions: Dict[Key[K], BaseSolverOutput]
     problems: Optional[Dict[Key[K], B]]
 
     def _apply(
         self,
+        data: Optional[Union[str, ArrayLike]] = None,
         start: Optional[K] = None,
         end: Optional[K] = None,
-        normalize: bool = True,
         forward: bool = True,
+        return_all: bool = False,
         scale_by_marginals: bool = False,
-        filter: Optional[Sequence[Key[K]]] = None,  # noqa: A002
-        data: Optional[ArrayLike] = None,
+        **kwargs: Any,
     ) -> ApplyOutput_t[K]:
         ...
 
-
-class AnalysisMixin:
+class AnalysisMixin(AnalysisMixinProtocol[K, B]):
     """Base Analysis Mixin."""
 
     def __init__(self, *args: Any, **kwargs: Any):
         super().__init__(*args, **kwargs)
 
     def _sample_from_tmap(
-        self: AnalysisMixinProtocol[K],
+        self,
         start: K,
         end: K,
         n_samples: int,
@@ -59,14 +58,16 @@ class AnalysisMixin:
             raise ValueError(f"TODO: interpolation parameter must be between 0 and 1 but is {interpolation_parameter}.")
         mass = np.ones(target_dim)
         if account_for_unbalancedness and interpolation_parameter is not None:
-            col_sums: ArrayLike = self._apply(  # type: ignore[assignment]
+            col_sums = self._apply(
                 start=start,
                 end=end,
                 normalize=True,
                 forward=True,
                 scale_by_marginals=False,
                 filter=[(start, end)],
-            )[(start, end)]
+            )
+            if TYPE_CHECKING:
+                assert isinstance(col_sums, np.ndarray)
             col_sums = np.asarray(col_sums).squeeze() + 1e-12
             mass = mass / np.power(col_sums, 1 - interpolation_parameter)
 
@@ -79,7 +80,7 @@ class AnalysisMixin:
                 forward=False,
                 scale_by_marginals=False,
                 filter=[(start, end)],
-            )[(start, end)]
+            )
         ).squeeze()
 
         rows_sampled = rng.choice(source_dim, p=row_probability / row_probability.sum(), size=n_samples)
@@ -100,9 +101,11 @@ class AnalysisMixin:
                     forward=True,
                     scale_by_marginals=False,
                     filter=[(start, end)],
-                )[(start, end)]
+                )
             ).squeeze()
             if account_for_unbalancedness:
+                if TYPE_CHECKING:
+                    assert isinstance(col_sums, np.ndarray)
                 col_p_given_row = col_p_given_row / col_sums[:, None]
 
             cols_sampled = [
@@ -113,7 +116,7 @@ class AnalysisMixin:
         return rows, all_cols_sampled
 
     def _interpolate_transport(
-        self: AnalysisMixinProtocol[K], start: K, end: K, forward: bool = True, scale_by_marginals: bool = True
+        self, start: K, end: K, forward: bool = True, scale_by_marginals: bool = True
     ) -> LinearOperator:
         """Interpolate transport matrix."""
         # TODO(@MUCDK, @giovp, discuss what exactly this function should do, seems like it could be more generic)

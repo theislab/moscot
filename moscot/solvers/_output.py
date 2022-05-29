@@ -4,8 +4,7 @@ from functools import partial
 
 from scipy.sparse.linalg import LinearOperator
 
-
-from moscot._types import ArrayLike, DTypeLike
+from moscot._types import ArrayLike, DTypeLike  # type: ignore[attr-defined]
 
 __all__ = ["BaseSolverOutput", "MatrixSolverOutput", "HasPotentials"]
 
