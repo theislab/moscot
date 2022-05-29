@@ -1,10 +1,10 @@
-from typing import Any, Dict, Tuple
+from typing import Any, Dict, Tuple, TYPE_CHECKING
 import sys
 
 try:
     import wot  # please install WOT from commit hash`ca5e94f05699997b01cf5ae13383f9810f0613f6`"
 except ImportError:
-    ImportError("Please install WOT from commit hash`ca5e94f05699997b01cf5ae13383f9810f0613f6`")
+    raise ImportError("Please install WOT from commit hash`ca5e94f05699997b01cf5ae13383f9810f0613f6`")
 
 import os
 
@@ -16,7 +16,8 @@ import numpy as np
 from anndata import AnnData
 import scanpy as sc
 
-from moscot.problems.time import TemporalProblem
+from moscot._types import ArrayLike
+from moscot.problems.time import TemporalProblem  # type: ignore[attr-defined]
 
 eps = 0.5
 lam1 = 1
@@ -102,7 +103,7 @@ def _write_analysis_output(cdata: AnnData, tp2: TemporalProblem, config: Dict[st
     return cdata
 
 
-def _prepare(adata: AnnData, config: Dict[str, Any]) -> Tuple[AnnData, np.ndarray, np.ndarray, np.ndarray]:
+def _prepare(adata: AnnData, config: Dict[str, Any]) -> Tuple[AnnData, ArrayLike, ArrayLike, ArrayLike]:
     adata_1 = adata[adata.obs[config["key"]] == config["key_1"]].copy()
     adata_2 = adata[adata.obs[config["key"]] == config["key_2"]].copy()
     adata_3 = adata[adata.obs[config["key"]] == config["key_3"]].copy()
@@ -133,6 +134,8 @@ def generate_gt_temporal_data(data_path: str) -> None:
         ]
     )
 
+    if TYPE_CHECKING:
+        assert isinstance(config["seed"], int)
     rng = np.random.RandomState(config["seed"])
     cdata.obs["batch"] = rng.choice((0, 1, 2), len(cdata))
 
