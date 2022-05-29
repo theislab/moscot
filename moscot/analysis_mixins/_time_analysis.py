@@ -16,7 +16,7 @@ from anndata import AnnData
 
 from moscot._docs import d
 from moscot._types import ArrayLike, Numeric_t
-from moscot.problems._compound_problem import B, K, Key, ApplyOutput_t
+from moscot.problems.base._compound_problem import B, K, Key, ApplyOutput_t
 from moscot.problems.mixins import BirthDeathBaseProblem  # type: ignore[attr-defined]
 from moscot.analysis_mixins._base_analysis import AnalysisMixin, AnalysisMixinProtocol
 
