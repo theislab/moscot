@@ -7,6 +7,7 @@ import numpy.typing as npt
 
 from anndata import AnnData
 
+from moscot._types import ArrayLike
 from moscot._docs import d
 from moscot.solvers._output import BaseSolverOutput
 from moscot.problems.base._base_problem import OTProblem
@@ -104,11 +105,11 @@ class MultiMarginalProblem(OTProblem, ABC):
         return a, b
 
     @property
-    def a(self) -> Optional[np.ndarray]:
+    def a(self) -> Optional[ArrayLike]:
         """Array of all left marginals."""
         return np.asarray(self._a).T if len(self._a) else None
 
     @property
-    def b(self) -> Optional[np.ndarray]:
+    def b(self) -> Optional[ArrayLike]:
         """Array of all right marginals."""
         return np.asarray(self._b).T if len(self._b) else None

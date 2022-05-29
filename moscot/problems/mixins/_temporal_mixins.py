@@ -1,5 +1,5 @@
 from abc import ABC
-from typing import Any, Union, Literal, Optional, Sequence, Protocol, List, Type
+from typing import Any, Union, Literal, Optional, Sequence, Protocol, List, Type, TYPE_CHECKING
 import logging
 
 import numpy as np
@@ -14,7 +14,6 @@ from moscot.problems.time._utils import beta, delta, MarkerGenes
 from moscot.problems.base._multimarginal_problem import MultiMarginalProblem
 from moscot.problems.base._compound_problem import B, K, Key
 from moscot.solvers._output import BaseSolverOutput
-from moscot.problems._subset_policy import SubsetPolicy
 from moscot.problems._utils import require_prepare
 
 
@@ -79,16 +78,21 @@ class BirthDeathBaseProblem(MultiMarginalProblem):
     @require_prepare
     def _add_marginals(self, sol: BaseSolverOutput) -> None:
         # will be removed
-        _a = np.asarray(sol.a) / self._a[-1]  # type: ignore[index]
-        self._a.append(_a)  # type: ignore[union-attr]
+        if TYPE_CHECKING:
+            assert isinstance(self._a, list)
+            assert isinstance(self._b, list)
+        _a = np.asarray(sol.a) / self._a[-1]
+        self._a.append(_a)
         # TODO(michalk8): sol._ones
-        self._b.append(np.full(len(self._adata_y), np.average(_a)))  # type: ignore[union-attr]
+        self._b.append(np.full(len(self._adata_y), np.average(_a)))
 
     @require_prepare  # type: ignore[misc]
     @property
     def growth_rates(self) -> ArrayLike:
         """Return the growth rates of the cells in the source distribution."""
-        return np.power(self.a, 1 / (self._target - self._source))  # type: ignore[arg-type]
+        if TYPE_CHECKING:
+            assert isinstance(self.a, np.ndarray)
+        return np.power(self.a, 1 / (self._target - self._source)) 
 
 @d.dedent
 class MultiMarginalMixinProtocol(Protocol):
