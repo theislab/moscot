@@ -1,16 +1,17 @@
 from types import MappingProxyType
 from typing import Any, Tuple, Mapping, Optional
+from numbers import Number
 
 from typing_extensions import Literal
 
 from moscot._docs import d
 from moscot.analysis_mixins import TemporalAnalysisMixin, SpatialAlignmentAnalysisMixin  # type: ignore[attr-defined]
-from moscot.problems.mixins import BirthDeathMixin  # type: ignore[attr-defined]
+from moscot.problems.mixins import BirthDeathMixin, BirthDeathBaseProblem  # type: ignore[attr-defined]
 from moscot.problems.space._alignment import AlignmentProblem
 
 
 @d.dedent
-class SpatioTemporalProblem(TemporalAnalysisMixin, BirthDeathMixin, AlignmentProblem, SpatialAlignmentAnalysisMixin):
+class SpatioTemporalProblem(TemporalAnalysisMixin, BirthDeathMixin, AlignmentProblem[Number, BirthDeathBaseProblem], SpatialAlignmentAnalysisMixin):
     """Spatio-Temporal problem."""
 
     @d.dedent
@@ -22,7 +23,7 @@ class SpatioTemporalProblem(TemporalAnalysisMixin, BirthDeathMixin, AlignmentPro
         policy: Literal["sequential", "pairwise", "triu", "tril", "explicit"] = "sequential",
         marginal_kwargs: Mapping[str, Any] = MappingProxyType({}),
         **kwargs: Any,
-    ) -> "AlignmentProblem":
+    ) -> "AlignmentProblem[Number, BirthDeathBaseProblem]":
         """
         Prepare the :class:`moscot.problems.spatio_temporal.SpatioTemporalProblem`.
 

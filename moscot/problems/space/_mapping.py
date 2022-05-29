@@ -7,15 +7,16 @@ import numpy.typing as npt
 
 from anndata import AnnData
 
+from moscot._types import ArrayLike
 from moscot._docs import d
-from moscot.analysis_mixins import SpatialMappingAnalysisMixin
+from moscot.analysis_mixins import SpatialMappingAnalysisMixin  # type: ignore[attr-defined]
 from moscot.problems._subset_policy import Axis_t, DummyPolicy, ExternalStarPolicy
 from moscot.problems.base._base_problem import OTProblem
-from moscot.problems.base._compound_problem import B, CompoundProblem
+from moscot.problems.base._compound_problem import K, B, CompoundProblem
 
 
 @d.dedent
-class MappingProblem(CompoundProblem, SpatialMappingAnalysisMixin):
+class MappingProblem(CompoundProblem[K, OTProblem], SpatialMappingAnalysisMixin):
     """
     Class for mapping single cell omics data onto spatial data, based on :cite:`nitzan2019`.
 
@@ -39,13 +40,13 @@ class MappingProblem(CompoundProblem, SpatialMappingAnalysisMixin):
         # TODO(michalk8): rename to common_vars?
         self.filtered_vars: Optional[Sequence[str]] = None
 
-    def _create_policy(
+    def _create_policy(  # type: ignore[override]
         self,
         policy: Literal["external_star"] = "external_star",
         key: Optional[str] = None,
         axis: Axis_t = "obs",
         **kwargs: Any,
-    ) -> Union[DummyPolicy, ExternalStarPolicy]:
+    ) -> Union[DummyPolicy, ExternalStarPolicy[K]]:
         """Private class to create DummyPolicy if no batches are present n the spatial anndata."""
         if key is None:
             return DummyPolicy(self.adata, axis=axis, **kwargs)
@@ -55,8 +56,8 @@ class MappingProblem(CompoundProblem, SpatialMappingAnalysisMixin):
         self,
         src: Any,
         tgt: Any,
-        src_mask: npt.ArrayLike,
-        tgt_mask: npt.ArrayLike,
+        src_mask: ArrayLike,
+        tgt_mask: ArrayLike,
         **kwargs: Any,
     ) -> B:
         """Private class to mask anndatas."""
@@ -76,7 +77,7 @@ class MappingProblem(CompoundProblem, SpatialMappingAnalysisMixin):
         var_names: Optional[Sequence[Any]] = None,
         joint_attr: Optional[Mapping[str, Any]] = MappingProxyType({"x_attr": "X", "y_attr": "X"}),
         **kwargs: Any,
-    ) -> "MappingProblem":
+    ) -> "MappingProblem[K]":
         """
         Prepare the :class:`moscot.problems.space.MappingProblem`.
 
@@ -124,7 +125,7 @@ class MappingProblem(CompoundProblem, SpatialMappingAnalysisMixin):
         epsilon: Optional[float] = 1e-3,
         scale_cost: str = "mean",
         **kwargs: Any,
-    ) -> "MappingProblem":
+    ) -> "MappingProblem[K]":
         """
         Solve optimal transport problems defined in :class:`moscot.problems.space.MappingProblem`.
 

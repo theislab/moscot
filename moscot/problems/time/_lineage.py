@@ -134,19 +134,19 @@ class TemporalProblem(TemporalAnalysisMixin, BirthDeathMixin, CompoundProblem[Nu
         If multiple iterations are performed in :meth:`moscot.problems.time.TemporalProblem.solve` the number
         of estimates for the cell growth rates equals is strictly larger than 2.
         """
-        cols = [f"g_{i}" for i in range(self.problems[list(self)[0]].growth_rates.shape[1])]  # type: ignore[index]
+        cols = [f"g_{i}" for i in range(self.problems[list(self)[0]].growth_rates.shape[1])]
         df_list = [
             pd.DataFrame(problem.growth_rates, index=problem.adata.obs.index, columns=cols)
-            for problem in self.problems.values()  # type: ignore[union-attr]
+            for problem in self.problems.values()
         ]
         tup = list(self)[-1]
         df_list.append(
             pd.DataFrame(
                 np.full(
-                    shape=(len(self.problems[tup]._adata_y.obs), self.problems[tup].growth_rates.shape[1]),  # type: ignore[index]
+                    shape=(len(self.problems[tup]._adata_y.obs), self.problems[tup].growth_rates.shape[1]),
                     fill_value=np.nan,
                 ),
-                index=self.problems[tup]._adata_y.obs.index,  # type: ignore[index]
+                index=self.problems[tup]._adata_y.obs.index,
                 columns=cols,
             )
         )
@@ -169,13 +169,13 @@ class TemporalProblem(TemporalAnalysisMixin, BirthDeathMixin, CompoundProblem[Nu
                 pd.DataFrame(
                     problem.solution.potentials[0], index=problem.adata.obs.index, columns=["cell_cost_source"]
                 )
-                for problem in self.problems.values()  # type: ignore[union-attr]
+                for problem in self.problems.values()
             ]
             tup = list(self)[-1]
             df_list.append(
                 pd.DataFrame(
-                    np.full(shape=(len(self.problems[tup]._adata_y.obs), 1), fill_value=np.nan),  # type: ignore[index]
-                    index=self.problems[tup]._adata_y.obs.index,  # type: ignore[index]
+                    np.full(shape=(len(self.problems[tup]._adata_y.obs), 1), fill_value=np.nan),
+                    index=self.problems[tup]._adata_y.obs.index,
                     columns=["cell_cost_source"],
                 )
             )
@@ -192,8 +192,8 @@ class TemporalProblem(TemporalAnalysisMixin, BirthDeathMixin, CompoundProblem[Nu
             tup = list(self)[0]
             df_list = [
                 pd.DataFrame(
-                    np.full(shape=(len(self.problems[tup].adata), 1), fill_value=np.nan),  # type: ignore[index]
-                    index=self.problems[tup].adata.obs.index,  # type: ignore[index]
+                    np.full(shape=(len(self.problems[tup].adata), 1), fill_value=np.nan),
+                    index=self.problems[tup].adata.obs.index,
                     columns=["cell_cost_target"],
                 )
             ]
@@ -202,7 +202,7 @@ class TemporalProblem(TemporalAnalysisMixin, BirthDeathMixin, CompoundProblem[Nu
                     pd.DataFrame(
                         problem.solution.potentials[1], index=problem._adata_y.obs.index, columns=["cell_cost_target"]
                     )
-                    for problem in self.problems.values()  # type: ignore[union-attr]
+                    for problem in self.problems.values()
                 ]
             )
             return pd.concat(df_list, verify_integrity=True)
