@@ -1,13 +1,13 @@
 from abc import ABC, abstractmethod
 from enum import Enum
 from types import MappingProxyType
-from typing import Any, Type, Tuple, Union, Literal, Mapping, Optional, NamedTuple, Dict, Generic, TypeVar
+from typing import Any, Dict, Tuple, Union, Generic, Literal, Mapping, TypeVar, Optional, NamedTuple
 import warnings
 
 from moscot._docs import d
+from moscot._types import ArrayLike
 from moscot.solvers._output import BaseSolverOutput
 from moscot.solvers._tagged_array import Tag, TaggedArray
-from moscot._types import ArrayLike
 
 __all__ = ["ProblemKind", "BaseSolver", "OTSolver"]
 
@@ -93,7 +93,7 @@ class TagConverterMixin:
             return res
 
         x_key, y_key = ("xy", "xy") if is_linear else ("x", "y")
-        x_tag, y_tag = tags.get(x_key, Tag.POINT_CLOUD), tags.get(Tag.POINT_CLOUD)  # type: ignore[call-overload]
+        x_tag, y_tag = tags.get(x_key, Tag.POINT_CLOUD), tags.get(y_key, Tag.POINT_CLOUD)  # type: ignore[call-overload]
 
         if x is None and y is None:
             return None, None  # checks are done later
