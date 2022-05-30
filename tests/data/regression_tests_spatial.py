@@ -40,11 +40,10 @@ def adata_mapping() -> AnnData:
 
 
 def _make_grid(grid_size: int) -> ArrayLike:
-    xlimits = ylimits = [0, 10]
-    x1s = np.linspace(*xlimits, num=grid_size)
-    x2s = np.linspace(*ylimits, num=grid_size)
+    x1s = np.linspace(0, 10, num=grid_size)
+    x2s = np.linspace(0, 10, num=grid_size)
     X1, X2 = np.meshgrid(x1s, x2s)
-    X_orig_single = np.vstack([X1.ravel(), X2.ravel()]).T
+    X_orig_single = np.hstack([X1.ravel(), X2.ravel()])
     return X_orig_single
 
 

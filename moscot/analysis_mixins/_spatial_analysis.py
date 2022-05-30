@@ -53,7 +53,7 @@ class SpatialAlignmentAnalysisMixin(AnalysisMixin[K, OTProblem], SpatialAnalysis
             transport_metadata = {reference: np.diag((1, 1))}  # 2d data
 
         # get policy
-        full_steps = self._policy._subset
+        full_steps = self._policy._graph
         fwd_steps = self._policy.plan(end=reference)
         bwd_steps = None
 
@@ -104,13 +104,13 @@ class SpatialAlignmentAnalysisMixin(AnalysisMixin[K, OTProblem], SpatialAnalysis
         inplace: bool = False,
     ) -> Optional[Union[ArrayLike, Tuple[ArrayLike, Optional[Dict[Any, Optional[ArrayLike]]]]]]:
         """Alignment method."""
-        if reference not in self._policy._cat.categories:
-            raise ValueError(f"`reference: {reference}` not in policy categories: {self._policy._cat.categories}.")
+        if reference not in self._policy._cat:
+            raise ValueError(f"`reference: {reference}` not in policy categories: {self._policy._cat}.")
         if isinstance(self._policy, StarPolicy):
             if reference != list(self._policy.plan())[0][-1]:
                 raise ValueError(f"Invalid `reference: {reference}` for `policy='star'`.")
         aligned_maps, aligned_metadata = self._interpolate_scheme(reference=reference, mode=mode)
-        aligned_basis = np.vstack([aligned_maps[k] for k in self._policy._cat.categories])
+        aligned_basis = np.vstack([aligned_maps[k] for k in self._policy._cat])
 
         if mode == "affine":
             if not inplace:

@@ -88,6 +88,8 @@ class TemporalAnalysisMixin(AnalysisMixin[Numeric_t, BirthDeathBaseProblem], Tim
 
         if result_key is None:
             return result
+        if TYPE_CHECKING:
+            assert isinstance(result, dict)
         self._dict_to_adata(result, result_key)
 
     @d.dedent
@@ -137,6 +139,8 @@ class TemporalAnalysisMixin(AnalysisMixin[Numeric_t, BirthDeathBaseProblem], Tim
         )
         if result_key is None:
             return result
+        if TYPE_CHECKING:
+            assert isinstance(result, dict)
         self._dict_to_adata(result, result_key)
 
     def cell_transition(
@@ -564,14 +568,14 @@ class TemporalAnalysisMixin(AnalysisMixin[Numeric_t, BirthDeathBaseProblem], Tim
         target_data: ArrayLike,
         start: K,
         end: K,
-        interpolation_parameter: Optional[Numeric_t] = None,
+        interpolation_parameter: Numeric_t,
         account_for_unbalancedness: bool = True,
         batch_size: int = 256,
         seed: Optional[int] = None,
     ) -> ArrayLike:
         rows_sampled, cols_sampled = self._sample_from_tmap(
-            start=start,
-            end=end,
+            start=start,  # type: ignore[arg-type]
+            end=end,    # type: ignore[arg-type]
             n_samples=number_cells,
             source_dim=len(source_data),
             target_dim=len(target_data),
@@ -580,8 +584,6 @@ class TemporalAnalysisMixin(AnalysisMixin[Numeric_t, BirthDeathBaseProblem], Tim
             interpolation_parameter=interpolation_parameter,
             seed=seed,
         )
-        if TYPE_CHECKING:
-            assert interpolation_parameter is not None
         return (
             source_data[np.repeat(rows_sampled, [len(col) for col in cols_sampled]), :] * (1 - interpolation_parameter)
             + target_data[np.hstack(cols_sampled), :] * interpolation_parameter

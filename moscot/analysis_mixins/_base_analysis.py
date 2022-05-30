@@ -120,7 +120,7 @@ class AnalysisMixin(AnalysisMixinProtocol[K, B]):
     ) -> LinearOperator:
         """Interpolate transport matrix."""
         # TODO(@MUCDK, @giovp, discuss what exactly this function should do, seems like it could be more generic)
-        fst, *rest = self._policy.plan(start=start, end=end)[start, end]
+        fst, *rest = self._policy.plan(start=start, end=end)
         return self.solutions[fst].chain(
             [self.solutions[r] for r in rest], forward=forward, scale_by_marginals=scale_by_marginals
         )

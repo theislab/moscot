@@ -62,7 +62,7 @@ class MappingProblem(CompoundProblem[K, OTProblem], SpatialMappingAnalysisMixin)
     ) -> B:
         """Private class to mask anndatas."""
         adata_sp = self._mask(src_mask)
-        return self._base_problem_type(
+        return self._base_problem_type(  # type: ignore[return-value]
             adata_sp[:, self.filtered_vars] if self.filtered_vars is not None else adata_sp,
             self.adata_sc[:, self.filtered_vars] if self.filtered_vars is not None else self.adata_sc,
             **kwargs,
@@ -163,7 +163,7 @@ class MappingProblem(CompoundProblem[K, OTProblem], SpatialMappingAnalysisMixin)
 
     @property
     def _base_problem_type(self) -> Type[B]:
-        return OTProblem
+        return OTProblem  # type: ignore[return-value]
 
     @property
     def _valid_policies(self) -> Tuple[str, ...]:

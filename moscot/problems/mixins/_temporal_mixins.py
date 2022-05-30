@@ -81,7 +81,7 @@ class BirthDeathBaseProblem(MultiMarginalProblem):
         if TYPE_CHECKING:
             assert isinstance(self._a, list)
             assert isinstance(self._b, list)
-        _a = np.asarray(sol.a) / self._a[-1]
+        _a = np.asarray(sol.a) / self._a[-1]  # type: ignore[var-annotated]
         self._a.append(_a)
         # TODO(michalk8): sol._ones
         self._b.append(np.full(len(self._adata_y), np.average(_a)))
@@ -101,12 +101,12 @@ class MultiMarginalMixinProtocol(Protocol):
 
 
 @d.dedent
-class MultiMarginalMixin(ABC):
+class MultiMarginalMixin(ABC, MultiMarginalMixinProtocol):
     """Mixin class for biological problems based on :class:`moscot.problems.MultiMarginalProblem`."""
 
 
 @d.dedent
-class BirthDeathMixinProtocol(MultiMarginalMixinProtocol):
+class BirthDeathMixinProtocol:
     """Protocol class."""
 
     adata: AnnData

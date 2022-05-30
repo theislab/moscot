@@ -96,7 +96,7 @@ class AlignmentProblem(CompoundProblem[K, B], SpatialAlignmentAnalysisMixin):  #
 
     @property
     def _base_problem_type(self) -> Type[B]:
-        return OTProblem
+        return OTProblem  # type: ignore[return-value]
 
     @property
     def _valid_policies(self) -> Tuple[str, ...]:

@@ -77,11 +77,6 @@ class BaseCompoundProblem(BaseProblem, Generic[K, B], ABC):
 
     @property
     @abstractmethod
-    def _base_problem_type(self) -> Type[B]:
-        pass
-
-    @property
-    @abstractmethod
     def _valid_policies(self) -> Tuple[str, ...]:
         pass
 
@@ -369,6 +364,11 @@ class CompoundProblem(BaseCompoundProblem[K, B], ABC):
     %(BaseCompoundProblem.raises)s
     """
 
+    @property
+    @abstractmethod
+    def _base_problem_type(self) -> Type[B]:
+        pass
+
     def _create_problem(self, src: K, tgt: K, src_mask: ArrayLike, tgt_mask: ArrayLike, **kwargs: Any) -> B:
         return self._base_problem_type(
             self._mask(src_mask),
@@ -433,3 +433,5 @@ class CompoundProblem(BaseCompoundProblem[K, B], ABC):
             "x": TaggedArray(data[src_mask, :][:, src_mask], tag=Tag.COST_MATRIX),
             "y": TaggedArray(data[tgt_mask, :][:, tgt_mask], tag=Tag.COST_MATRIX),
         }
+
+    
