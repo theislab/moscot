@@ -7,7 +7,7 @@ from anndata import AnnData
 
 from moscot._docs import d
 from moscot._types import ArrayLike
-from moscot.problems.space._mixins import SpatialMappingAnalysisMixin
+from moscot.problems.space._mixins import SpatialMappingMixin
 from moscot.problems._subset_policy import Axis_t, DummyPolicy, ExternalStarPolicy
 from moscot.problems.base._base_problem import OTProblem
 from moscot.problems.base._compound_problem import B, K, CompoundProblem
@@ -16,7 +16,7 @@ __all__ = ["MappingProblem"]
 
 
 @d.dedent
-class MappingProblem(CompoundProblem[K, OTProblem], SpatialMappingAnalysisMixin[K, OTProblem]):
+class MappingProblem(CompoundProblem[K, OTProblem], SpatialMappingMixin[K, OTProblem]):
     """
     Class for mapping single cell omics data onto spatial data, based on :cite:`nitzan2019`.
 

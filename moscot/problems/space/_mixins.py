@@ -1,4 +1,4 @@
-from typing import Any, Dict, List, Tuple, Union, Mapping, Callable, Optional, Protocol, Sequence
+from typing import Any, Dict, List, Tuple, Union, Mapping, Callable, Optional, Sequence
 
 from scipy.stats import pearsonr, spearmanr
 from scipy.linalg import svd
@@ -13,18 +13,26 @@ from anndata import AnnData
 
 from moscot._types import ArrayLike
 from moscot.problems.base import AnalysisMixin  # type: ignore[attr-defined]
+from moscot.problems.base._mixins import AnalysisMixinProtocol
 from moscot.problems._subset_policy import StarPolicy
 from moscot.problems.base._compound_problem import B, K
 
 
-class SpatialAnalysisMixinProtocol(Protocol):
+class SpatialAlignmentMixinProtocol(AnalysisMixinProtocol[K, B], AnalysisMixin[K, B]):
+    """Protocol class."""
+
+    adata: AnnData
+    spatial_key: Optional[str]
+
+
+class SpatialMappingMixinProtocol(AnalysisMixinProtocol[K, B], AnalysisMixin[K, B]):
     """Protocol class."""
 
     adata_sc: AnnData
     adata_sp: AnnData
 
 
-class SpatialAlignmentAnalysisMixin(AnalysisMixin[K, B], SpatialAnalysisMixinProtocol):
+class SpatialAlignmentMixin(AnalysisMixin[K, B]):
     """Spatial alignment mixin class."""
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
@@ -32,7 +40,7 @@ class SpatialAlignmentAnalysisMixin(AnalysisMixin[K, B], SpatialAnalysisMixinPro
         self._spatial_key: Optional[str] = None
 
     def _interpolate_scheme(
-        self,
+        self: SpatialAlignmentMixinProtocol[K, B],
         reference: K,
         mode: Literal["warp", "affine"],
     ) -> Tuple[Dict[K, ArrayLike], Optional[Dict[K, Optional[ArrayLike]]]]:
@@ -56,9 +64,9 @@ class SpatialAlignmentAnalysisMixin(AnalysisMixin[K, B], SpatialAnalysisMixinPro
         if mode == "affine":
             _transport: Callable[
                 [LinearOperator, ArrayLike, ArrayLike], Tuple[ArrayLike, Optional[ArrayLike]]
-            ] = self._affine
+            ] = _affine
         else:
-            _transport = self._warp
+            _transport = _warp
 
         if full_steps is not None:
             if not fwd_steps or not set(full_steps).issubset(set(fwd_steps)):
@@ -78,23 +86,8 @@ class SpatialAlignmentAnalysisMixin(AnalysisMixin[K, B], SpatialAnalysisMixinPro
             return transport_maps, transport_metadata
         return transport_maps, None
 
-    @staticmethod
-    def _affine(tmap: LinearOperator, tgt: ArrayLike, src: ArrayLike) -> Tuple[ArrayLike, ArrayLike]:
-        """Affine transformation."""
-        tgt -= tgt.mean(0)
-        H = tgt.T.dot(tmap.dot(src))
-        U, _, Vt = svd(H)
-        R = Vt.T.dot(U.T)
-        tgt = R.dot(tgt.T).T
-        return tgt, R
-
-    @staticmethod
-    def _warp(tmap: LinearOperator, _: ArrayLike, src: ArrayLike) -> Tuple[ArrayLike, None]:
-        """Warp transformation."""
-        return tmap.dot(src), None
-
     def align(
-        self,
+        self: SpatialAlignmentMixinProtocol[K, B],
         reference: K,
         mode: Literal["warp", "affine"] = "warp",
         inplace: bool = False,
@@ -116,8 +109,8 @@ class SpatialAlignmentAnalysisMixin(AnalysisMixin[K, B], SpatialAnalysisMixinPro
             return aligned_basis
         self.adata.obsm[f"{self.spatial_key}_{mode}"] = aligned_basis
 
-    def _subset_spatial(self, k: K) -> ArrayLike:
-        return self.adata_sp[self.adata_sp.obs[self._policy._subset_key] == k].obsm[self.spatial_key].copy()
+    def _subset_spatial(self: SpatialAlignmentMixinProtocol[K, B], k: K) -> ArrayLike:
+        return self.adata[self.adata.obs[self._policy._subset_key] == k].obsm[self.spatial_key].copy()
 
     @property
     def spatial_key(self) -> Optional[str]:
@@ -125,23 +118,23 @@ class SpatialAlignmentAnalysisMixin(AnalysisMixin[K, B], SpatialAnalysisMixinPro
         return self._spatial_key
 
     @spatial_key.setter
-    def spatial_key(self, value: Optional[str] = None) -> None:
+    def spatial_key(self: SpatialAlignmentMixinProtocol[K, B], value: Optional[str] = None) -> None:
         if value not in self.adata.obsm:
             raise KeyError(f"TODO: {value} not found in `adata.obsm`.")
         # TODO(@MUCDK) check data type -> which ones do we allow
         self._spatial_key = value
 
 
-class SpatialMappingAnalysisMixin(AnalysisMixin[K, B], SpatialAnalysisMixinProtocol):
+class SpatialMappingMixin(AnalysisMixin[K, B]):
     """Spatial mapping analysis mixin class."""
 
     def _filter_vars(
-        self,
+        self: SpatialMappingMixinProtocol[K, B],
         var_names: Optional[Sequence[str]] = None,
     ) -> Optional[List[str]]:
         """Filter variables for Sinkhorn term."""
         vars_sc = set(self.adata_sc.var_names)  # TODO: allow alternative gene symbol by passing var_key
-        vars_sp = set(self.adata.var_names)
+        vars_sp = set(self.adata_sp.var_names)
         _var_names = set(var_names) if var_names is not None else None
         if _var_names is None:
             _var_names = vars_sp.intersection(vars_sc)
@@ -155,7 +148,9 @@ class SpatialMappingAnalysisMixin(AnalysisMixin[K, B], SpatialAnalysisMixinProto
         raise ValueError("Some `var_names` ares missing in either `adata_sc` or `adata_sp`.")
 
     def correlate(
-        self, var_names: Optional[List[str]] = None, corr_method: Literal["pearson", "spearman"] = "pearson"
+        self: SpatialMappingMixinProtocol[K, B],
+        var_names: Optional[List[str]] = None,
+        corr_method: Literal["pearson", "spearman"] = "pearson",
     ) -> Mapping[Tuple[K, K], pd.Series]:
         """Calculate correlation between true and predicted gexp in space."""
         var_sc = self._filter_vars(var_names)
@@ -166,11 +161,11 @@ class SpatialMappingAnalysisMixin(AnalysisMixin[K, B], SpatialAnalysisMixinProto
         gexp_sc = self.adata_sc[:, var_sc].X if not issparse(self.adata_sc.X) else self.adata_sc[:, var_sc].X.A
         for key, val in self.solutions.items():
             index_obs: List[Union[bool, int]] = (
-                self.adata.obs[self._policy._subset_key] == key[0]
+                self.adata_sp.obs[self._policy._subset_key] == key[0]
                 if self._policy._subset_key is not None
                 else np.arange(self.adata_sp.shape[0])
             )
-            gexp_sp = self.adata[index_obs, var_sc].X
+            gexp_sp = self.adata_sp[index_obs, var_sc].X
             if issparse(gexp_sp):
                 # TODO(giovp): in future, logg if too large
                 gexp_sp = gexp_sp.A
@@ -180,11 +175,26 @@ class SpatialMappingAnalysisMixin(AnalysisMixin[K, B], SpatialAnalysisMixinProto
 
         return corr_dic
 
-    def impute(self) -> AnnData:
+    def impute(self: SpatialMappingMixinProtocol[K, B]) -> AnnData:
         """Return imputation of spatial expression of given genes."""
         gexp_sc = self.adata_sc.X if not issparse(self.adata_sc.X) else self.adata_sc.X.A
         pred_list = [val.pull(gexp_sc, scale_by_marginals=True) for val in self.solutions.values()]
         adata_pred = AnnData(np.nan_to_num(np.vstack(pred_list), nan=0.0, copy=False))
-        adata_pred.obs_names = self.adata.obs_names.copy()
+        adata_pred.obs_names = self.adata_sp.obs_names.copy()
         adata_pred.var_names = self.adata_sc.var_names.copy()
         return adata_pred
+
+
+def _affine(tmap: LinearOperator, tgt: ArrayLike, src: ArrayLike) -> Tuple[ArrayLike, ArrayLike]:
+    """Affine transformation."""
+    tgt -= tgt.mean(0)
+    H = tgt.T.dot(tmap.dot(src))
+    U, _, Vt = svd(H)
+    R = Vt.T.dot(U.T)
+    tgt = R.dot(tgt.T).T
+    return tgt, R
+
+
+def _warp(tmap: LinearOperator, _: ArrayLike, src: ArrayLike) -> Tuple[ArrayLike, None]:
+    """Warp transformation."""
+    return tmap.dot(src), None

@@ -13,7 +13,7 @@ from moscot.problems.base._compound_problem import B, K, ApplyOutput_t
 class AnalysisMixinProtocol(Protocol[K, B]):
     """Protocol class."""
 
-    _policy: Optional[SubsetPolicy[K]]
+    _policy: SubsetPolicy[K]
     solutions: Dict[Tuple[K, K], BaseSolverOutput]
     problems: Dict[Tuple[K, K], B]
 

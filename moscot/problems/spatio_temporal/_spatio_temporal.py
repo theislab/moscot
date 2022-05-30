@@ -6,7 +6,7 @@ from typing_extensions import Literal
 from moscot._docs import d
 from moscot._types import Numeric_t
 from moscot.problems.time._mixins import TemporalAnalysisMixin
-from moscot.problems.space._mixins import SpatialAlignmentAnalysisMixin
+from moscot.problems.space._mixins import SpatialAlignmentMixin
 from moscot.problems.space._alignment import AlignmentProblem
 from moscot.problems.base._birth_death import BirthDeathMixin, BirthDeathBaseProblem
 
@@ -16,7 +16,7 @@ class SpatioTemporalProblem(
     TemporalAnalysisMixin,
     BirthDeathMixin,
     AlignmentProblem[Numeric_t, BirthDeathBaseProblem],
-    SpatialAlignmentAnalysisMixin[Numeric_t, BirthDeathBaseProblem],
+    SpatialAlignmentMixin[Numeric_t, BirthDeathBaseProblem],
 ):
     """Spatio-Temporal problem."""
 
