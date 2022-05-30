@@ -77,13 +77,11 @@ class TemporalMixin(AnalysisMixin[K, B]):
         ------
         %(CompoundBaseProblem_push.raises)s
         """
-        if result_key is not None:
-            return_all = True
         result = self._apply(
             start=start,
             end=end,
             forward=True,
-            return_all=return_all,
+            return_all=return_all or result_key is not None,
             scale_by_marginals=scale_by_marginals,
             **kwargs,
         )
@@ -130,13 +128,11 @@ class TemporalMixin(AnalysisMixin[K, B]):
         ------
         %(CompoundBaseProblem_pull.raises)s
         """
-        if result_key is not None:
-            return_all = True
         result = self._apply(
             start=start,
             end=end,
             forward=False,
-            return_all=return_all,
+            return_all=return_all or result_key is not None,
             scale_by_marginals=scale_by_marginals,
             **kwargs,
         )
@@ -614,6 +610,10 @@ class TemporalMixin(AnalysisMixin[K, B]):
     def _get_interp_param(
         start: K, intermediate: K, end: K, interpolation_parameter: Optional[float] = None
     ) -> Numeric_t:
+        if TYPE_CHECKING:
+            assert isinstance(start, (int, float))
+            assert isinstance(intermediate, (int, float))
+            assert isinstance(end, (int, float))
         if interpolation_parameter is not None and (0 > interpolation_parameter or interpolation_parameter > 1):
             raise ValueError("TODO: interpolation parameter must be in [0,1].")
         if start >= intermediate:

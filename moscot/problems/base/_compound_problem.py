@@ -34,7 +34,6 @@ __all__ = ["BaseCompoundProblem", "CompoundProblem"]
 
 K = TypeVar("K", bound=Hashable)
 B = TypeVar("B", bound=OTProblem)
-Key = Tuple[K, K]
 Callback_t = Callable[[AnnData, AnnData], Mapping[str, TaggedArray]]
 ApplyOutput_t = Union[ArrayLike, Dict[K, ArrayLike]]
 

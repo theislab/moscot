@@ -80,12 +80,10 @@ class TagConverterMixin:
         *,
         is_linear: bool,
     ) -> Tuple[Optional[TaggedArray], Optional[TaggedArray]]:
-        def to_tagged_array(
-            x: Union[ArrayLike, TaggedArray], tag: Tag, y: Optional[Union[ArrayLike, TaggedArray]] = None
-        ) -> TaggedArray:
+        def to_tagged_array(x: ArrayLike, tag: Tag, y: Optional[ArrayLike] = None) -> TaggedArray:
             tag = Tag(tag)
-            if isinstance(x, TaggedArray):  # TODO(michalk8): disallow?
-                return x
+            if y is not None:
+                assert tag == Tag.POINT_CLOUD, tag  # TODO: nicer message
             return TaggedArray(x, data_y=y, tag=tag)
 
         def cost_or_kernel(arr: ArrayLike, key: str) -> TaggedArray:

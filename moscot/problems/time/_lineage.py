@@ -116,7 +116,6 @@ class TemporalProblem(
             **kwargs,
         )
 
-    # TODO(michalk8): require prepare + prettify
     @property
     def growth_rates(self) -> Optional[pd.DataFrame]:
         """
@@ -130,7 +129,8 @@ class TemporalProblem(
         If multiple iterations are performed in :meth:`moscot.problems.time.TemporalProblem.solve` the number
         of estimates for the cell growth rates equals is strictly larger than 2.
         """
-        cols = [f"g_{i}" for i in range(self.problems[list(self)[0]].growth_rates.shape[1])]
+        # TODO(michalk8): FIXME
+        cols = [f"g_{i}" for i in range(self.problems[list(self)[0]].growth_rates.shape[1])]  # type: ignore[union-attr]
         df_list = [
             pd.DataFrame(problem.growth_rates, index=problem.adata.obs.index, columns=cols)
             for problem in self.problems.values()
@@ -139,7 +139,7 @@ class TemporalProblem(
         df_list.append(
             pd.DataFrame(
                 np.full(
-                    shape=(len(self.problems[tup]._adata_y.obs), self.problems[tup].growth_rates.shape[1]),
+                    shape=(len(self.problems[tup]._adata_y.obs), self.problems[tup].growth_rates.shape[1]),  # type: ignore[union-attr]
                     fill_value=np.nan,
                 ),
                 index=self.problems[tup]._adata_y.obs.index,
