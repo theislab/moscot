@@ -1,5 +1,5 @@
 from abc import ABC
-from typing import Any, Union, Literal, Optional, Sequence, Protocol, List, Type, TYPE_CHECKING
+from typing import Any, List, Type, Union, Literal, Optional, Protocol, Sequence, TYPE_CHECKING
 import logging
 
 import numpy as np
@@ -7,15 +7,12 @@ import numpy as np
 from anndata import AnnData
 import scanpy as sc
 
-from moscot._types import ArrayLike, Numeric_t
 from moscot._docs import d
+from moscot._types import ArrayLike, Numeric_t
+from moscot.problems._utils import require_prepare
 from moscot.solvers._output import BaseSolverOutput
 from moscot.problems.time._utils import beta, delta, MarkerGenes
 from moscot.problems.base._multimarginal_problem import MultiMarginalProblem
-from moscot.problems.base._compound_problem import B, K, Key
-from moscot.solvers._output import BaseSolverOutput
-from moscot.problems._utils import require_prepare
-
 
 
 @d.dedent
@@ -65,11 +62,11 @@ class BirthDeathBaseProblem(MultiMarginalProblem):
         if proliferation_key is not None:
             birth = beta(adata.obs[proliferation_key].to_numpy(), **kwargs)
         else:
-            birth = np.zeros((len(adata)))
+            birth = np.zeros(len(adata))
         if apoptosis_key is not None:
             death = delta(adata.obs[apoptosis_key].to_numpy(), **kwargs)
         else:
-            death = np.zeros((len(adata)))
+            death = np.zeros(len(adata))
         growth = np.exp((birth - death) * (self._target - self._source))
         if source:
             return growth
@@ -81,7 +78,7 @@ class BirthDeathBaseProblem(MultiMarginalProblem):
         if TYPE_CHECKING:
             assert isinstance(self._a, list)
             assert isinstance(self._b, list)
-        _a = np.asarray(sol.a) / self._a[-1]  # type: ignore[var-annotated]
+        _a = np.asarray(sol.a) / self._a[-1]
         self._a.append(_a)
         # TODO(michalk8): sol._ones
         self._b.append(np.full(len(self._adata_y), np.average(_a)))
@@ -92,12 +89,12 @@ class BirthDeathBaseProblem(MultiMarginalProblem):
         """Return the growth rates of the cells in the source distribution."""
         if TYPE_CHECKING:
             assert isinstance(self.a, np.ndarray)
-        return np.power(self.a, 1 / (self._target - self._source)) 
+        return np.power(self.a, 1 / (self._target - self._source))
+
 
 @d.dedent
 class MultiMarginalMixinProtocol(Protocol):
     """Protocol class."""
-    pass
 
 
 @d.dedent
@@ -112,6 +109,7 @@ class BirthDeathMixinProtocol:
     adata: AnnData
     _a: Optional[List[ArrayLike]]
     _b: Optional[List[ArrayLike]]
+
 
 @d.dedent
 class BirthDeathMixin(MultiMarginalMixin, BirthDeathMixinProtocol):
@@ -227,4 +225,3 @@ class BirthDeathMixin(MultiMarginalMixin, BirthDeathMixinProtocol):
     def apoptosis_key(self, value: Optional[str] = None) -> None:
         # TODO(michalk8): add check if present in .obs (if not None)
         self._apoptosis_key = value
-
