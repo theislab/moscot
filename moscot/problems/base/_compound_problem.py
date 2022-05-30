@@ -41,7 +41,7 @@ ApplyOutput_t = Union[ArrayLike, Dict[K, ArrayLike]]
 
 @d.get_sections(base="BaseCompoundProblem", sections=["Parameters", "Raises"])
 @d.dedent
-class BaseCompoundProblem(BaseProblem, Generic[K, B], ABC):
+class BaseCompoundProblem(BaseProblem, ABC, Generic[K, B]):
     """
     Base class for all biological problems.
 
