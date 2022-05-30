@@ -7,13 +7,15 @@ import numpy as np
 
 from moscot._docs import d
 from moscot._types import Numeric_t
-from moscot.problems.time._mixins import TemporalAnalysisMixin
+from moscot.problems.time._mixins import TemporalMixin
 from moscot.problems.base._birth_death import BirthDeathMixin, BirthDeathBaseProblem
 from moscot.problems.base._compound_problem import B, CompoundProblem
 
 
 @d.dedent
-class TemporalProblem(TemporalAnalysisMixin, BirthDeathMixin, CompoundProblem[Numeric_t, BirthDeathBaseProblem]):
+class TemporalProblem(
+    TemporalMixin[Numeric_t, BirthDeathBaseProblem], BirthDeathMixin, CompoundProblem[Numeric_t, BirthDeathBaseProblem]
+):
     """
     Class for analysing time series single cell data based on :cite:`schiebinger:19`.
 
@@ -98,6 +100,7 @@ class TemporalProblem(TemporalAnalysisMixin, BirthDeathMixin, CompoundProblem[Nu
         else:
             raise TypeError("TODO")
 
+        # TODO(michalk8): needs to be modified
         marginal_kwargs = dict(marginal_kwargs)
         marginal_kwargs["proliferation_key"] = self.proliferation_key
         marginal_kwargs["apoptosis_key"] = self.apoptosis_key
@@ -115,7 +118,7 @@ class TemporalProblem(TemporalAnalysisMixin, BirthDeathMixin, CompoundProblem[Nu
 
     # TODO(michalk8): require prepare + prettify
     @property
-    def growth_rates(self) -> pd.DataFrame:
+    def growth_rates(self) -> Optional[pd.DataFrame]:
         """
         Growth rates of the cells estimated by posterior marginals.
 

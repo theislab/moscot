@@ -1,8 +1,10 @@
-from typing import Any, Dict, List, Tuple, Union, Optional, Protocol, TYPE_CHECKING
+from typing import Any, Dict, List, Tuple, Union, Generic, Optional, Protocol, TYPE_CHECKING
 
 from scipy.sparse.linalg import LinearOperator
 
 import numpy as np
+
+from anndata import AnnData
 
 from moscot._types import ArrayLike, Numeric_t
 from moscot.solvers._output import BaseSolverOutput
@@ -13,6 +15,7 @@ from moscot.problems.base._compound_problem import B, K, ApplyOutput_t
 class AnalysisMixinProtocol(Protocol[K, B]):
     """Protocol class."""
 
+    adata: AnnData
     _policy: SubsetPolicy[K]
     solutions: Dict[Tuple[K, K], BaseSolverOutput]
     problems: Dict[Tuple[K, K], B]
@@ -29,15 +32,23 @@ class AnalysisMixinProtocol(Protocol[K, B]):
     ) -> ApplyOutput_t[K]:
         ...
 
+    def _interpolate_transport(
+        self: "AnalysisMixinProtocol[K, B]", start: K, end: K, forward: bool = True, scale_by_marginals: bool = True
+    ) -> LinearOperator:
+        ...
 
-class AnalysisMixin(AnalysisMixinProtocol[K, B]):
+    def _flatten(self: "AnalysisMixinProtocol[K, B]", data: Dict[K, ArrayLike], *, key: Optional[str]) -> ArrayLike:
+        ...
+
+
+class AnalysisMixin(Generic[K, B]):
     """Base Analysis Mixin."""
 
     def __init__(self, *args: Any, **kwargs: Any):
         super().__init__(*args, **kwargs)
 
     def _sample_from_tmap(
-        self,
+        self: AnalysisMixinProtocol[K, B],
         start: K,
         end: K,
         n_samples: int,
@@ -115,7 +126,7 @@ class AnalysisMixin(AnalysisMixinProtocol[K, B]):
         return rows, all_cols_sampled
 
     def _interpolate_transport(
-        self, start: K, end: K, forward: bool = True, scale_by_marginals: bool = True
+        self: AnalysisMixinProtocol[K, B], start: K, end: K, forward: bool = True, scale_by_marginals: bool = True
     ) -> LinearOperator:
         """Interpolate transport matrix."""
         if TYPE_CHECKING:
@@ -125,3 +136,10 @@ class AnalysisMixin(AnalysisMixinProtocol[K, B]):
         return self.solutions[fst].chain(
             [self.solutions[r] for r in rest], forward=forward, scale_by_marginals=scale_by_marginals
         )
+
+    def _flatten(self: AnalysisMixinProtocol[K, B], data: Dict[K, ArrayLike], *, key: Optional[str]) -> ArrayLike:
+        tmp = np.full(len(self.adata), np.nan)
+        for k, v in data.items():
+            mask = self.adata.obs[key] == k
+            tmp[mask] = np.squeeze(v)
+        return tmp

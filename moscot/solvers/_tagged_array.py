@@ -2,7 +2,6 @@ from enum import Enum
 from typing import Optional
 from dataclasses import dataclass
 
-
 from moscot._types import ArrayLike
 
 __all__ = ["Tag", "TaggedArray"]
@@ -23,6 +22,7 @@ class TaggedArray:
 
     # passed to solver._prepare_input
     data: ArrayLike
+    data_y: Optional[ArrayLike] = None
     tag: Tag = Tag.POINT_CLOUD  # TODO(michalk8): in post_init, do check if it's correct type/loss provided
     loss: Optional[str] = None
 

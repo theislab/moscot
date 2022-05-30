@@ -18,18 +18,34 @@ from moscot.problems._subset_policy import StarPolicy
 from moscot.problems.base._compound_problem import B, K
 
 
-class SpatialAlignmentMixinProtocol(AnalysisMixinProtocol[K, B], AnalysisMixin[K, B]):
+class SpatialAlignmentMixinProtocol(AnalysisMixinProtocol[K, B]):
     """Protocol class."""
 
-    adata: AnnData
     spatial_key: Optional[str]
+    _spatial_key: Optional[str]
+
+    def _subset_spatial(self: "SpatialAlignmentMixinProtocol[K, B]", k: K) -> ArrayLike:
+        ...
+
+    def _interpolate_scheme(
+        self: "SpatialAlignmentMixinProtocol[K, B]",
+        reference: K,
+        mode: Literal["warp", "affine"],
+    ) -> Tuple[Dict[K, ArrayLike], Optional[Dict[K, Optional[ArrayLike]]]]:
+        ...
 
 
-class SpatialMappingMixinProtocol(AnalysisMixinProtocol[K, B], AnalysisMixin[K, B]):
+class SpatialMappingMixinProtocol(AnalysisMixinProtocol[K, B]):
     """Protocol class."""
 
     adata_sc: AnnData
     adata_sp: AnnData
+
+    def _filter_vars(
+        self: "SpatialMappingMixinProtocol[K, B]",
+        var_names: Optional[Sequence[str]] = None,
+    ) -> Optional[List[str]]:
+        ...
 
 
 class SpatialAlignmentMixin(AnalysisMixin[K, B]):

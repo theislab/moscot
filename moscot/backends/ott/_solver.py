@@ -1,6 +1,6 @@
 from abc import ABC
 from enum import Enum
-from typing import Any, Type, Tuple, Union, Optional, NamedTuple, Literal
+from typing import Any, Type, Union, Literal, Optional, NamedTuple
 
 from ott.geometry import Grid, Epsilon, Geometry, PointCloud
 from ott.core.problems import LinearProblem
@@ -11,10 +11,10 @@ from ott.core.quad_problems import QuadraticProblem
 from ott.core.gromov_wasserstein import GromovWasserstein
 import jax.numpy as jnp
 
-from moscot._types import ArrayLike
 from moscot._docs import d
-from moscot.backends.ott._output import QuadraticOutput, LinearOutput, LRLinearOutput
-from moscot.solvers._base_solver import OTSolver, ProblemKind, O
+from moscot._types import ArrayLike
+from moscot.backends.ott._output import LinearOutput, LRLinearOutput, QuadraticOutput
+from moscot.solvers._base_solver import O, OTSolver, ProblemKind
 from moscot.solvers._tagged_array import TaggedArray
 
 __all__ = ["Cost", "SinkhornSolver", "GWSolver", "FGWSolver"]
@@ -86,8 +86,8 @@ class OTTJaxSolver(OTSolver[O], ABC):
         """
         # TODO(michalk8): maybe in the future, enable (more) kwargs for PC/Geometry
         if y is not None:
-            cost_fn = self._create_cost(x.loss if y.loss is None else y.loss)
-            x, y = self._assert2d(x.data), self._assert2d(y.data)
+            cost_fn = self._create_cost(x.loss)
+            x, y = self._assert2d(x.data), self._assert2d(x.data_y)
             if x.shape[1] != y.shape[1]:  # type: ignore[attr-defined,union-attr]
                 raise ValueError("TODO: x/y dimension mismatch")
             return PointCloud(x, y=y, epsilon=epsilon, cost_fn=cost_fn, online=online, scale_cost=scale_cost)
@@ -164,7 +164,7 @@ class SinkhornSolver(OTTJaxSolver[Union[LinearOutput, LRLinearOutput]]):
 
     def _prepare(
         self,
-        xy: Optional[Tuple[TaggedArray, Optional[TaggedArray]]] = None,
+        xy: Optional[TaggedArray] = None,
         x: Optional[TaggedArray] = None,
         y: Optional[TaggedArray] = None,
         epsilon: Optional[Epsilon_t] = None,
@@ -174,7 +174,7 @@ class SinkhornSolver(OTTJaxSolver[Union[LinearOutput, LRLinearOutput]]):
     ) -> ProblemDescription:
         if xy is None:
             raise ValueError("TODO")
-        geom = self._create_geometry(xy[0], xy[1], epsilon=epsilon, online=online, scale_cost=scale_cost)
+        geom = self._create_geometry(xy, epsilon=epsilon, online=online, scale_cost=scale_cost)
 
         problem = LinearProblem(geom, **kwargs)
         if self._solver_kwargs.get("rank", -1) > -1:
@@ -217,7 +217,7 @@ class GWSolver(OTTJaxSolver[QuadraticOutput]):
 
     def _prepare(
         self,
-        xy: Optional[Tuple[TaggedArray, Optional[TaggedArray]]] = None,
+        xy: Optional[TaggedArray] = None,
         x: Optional[TaggedArray] = None,
         y: Optional[TaggedArray] = None,
         epsilon: Optional[Epsilon_t] = None,
@@ -265,7 +265,7 @@ class FGWSolver(GWSolver):
 
     def _prepare(
         self,
-        xy: Optional[Tuple[TaggedArray, Optional[TaggedArray]]] = None,
+        xy: Optional[TaggedArray] = None,
         x: Optional[TaggedArray] = None,
         y: Optional[TaggedArray] = None,
         epsilon: Optional[Epsilon_t] = None,
@@ -277,7 +277,7 @@ class FGWSolver(GWSolver):
         if xy is None:
             raise ValueError("TODO")
         description = super()._prepare(x=x, y=y, epsilon=epsilon, online=online, scale_cost=scale_cost)
-        geom_xy = self._create_geometry(xy[0], xy[1], epsilon=epsilon, online=online, scale_cost=scale_cost)
+        geom_xy = self._create_geometry(xy, epsilon=epsilon, online=online, scale_cost=scale_cost)
         self._validate_geoms(description.data.geom_xx, description.data.geom_yy, geom_xy)
 
         problem = QuadraticProblem(

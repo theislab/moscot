@@ -52,7 +52,7 @@ class ProblemKind(str, Enum):
 class TaggedArrayData(NamedTuple):
     x: Optional[TaggedArray]
     y: Optional[TaggedArray]
-    xy: Tuple[Optional[TaggedArray], Optional[TaggedArray]]
+    xy: Optional[TaggedArray]
 
 
 class TagConverterMixin:
@@ -65,11 +65,11 @@ class TagConverterMixin:
     ) -> TaggedArrayData:
         x_, y_ = self._convert(x, y, tags=tags, is_linear=False)
         if xy is None:
-            xy_ = self._convert(None, None, tags=tags, is_linear=True)
+            xy_, _ = self._convert(None, None, tags=tags, is_linear=True)
         elif not isinstance(xy, tuple):
-            xy_ = self._convert(xy, None, tags=tags, is_linear=True)
+            xy_, _ = self._convert(xy, None, tags=tags, is_linear=True)
         else:
-            xy_ = self._convert(xy[0], xy[1], tags=tags, is_linear=True)
+            xy_, _ = self._convert(xy[0], xy[1], tags=tags, is_linear=True)
         return TaggedArrayData(x=x_, y=y_, xy=xy_)
 
     @staticmethod
@@ -80,11 +80,13 @@ class TagConverterMixin:
         *,
         is_linear: bool,
     ) -> Tuple[Optional[TaggedArray], Optional[TaggedArray]]:
-        def to_tagged_array(arr: Union[ArrayLike, TaggedArray], tag: Tag) -> TaggedArray:
+        def to_tagged_array(
+            x: Union[ArrayLike, TaggedArray], tag: Tag, y: Optional[Union[ArrayLike, TaggedArray]] = None
+        ) -> TaggedArray:
             tag = Tag(tag)
-            if isinstance(arr, TaggedArray):
-                return arr
-            return TaggedArray(arr, tag=tag)
+            if isinstance(x, TaggedArray):  # TODO(michalk8): disallow?
+                return x
+            return TaggedArray(x, data_y=y, tag=tag)
 
         def cost_or_kernel(arr: ArrayLike, key: str) -> TaggedArray:
             res = to_tagged_array(arr, tag=tags.get(key, Tag.COST_MATRIX))  # type: ignore[call-overload]
@@ -102,7 +104,7 @@ class TagConverterMixin:
         if y is None:
             return cost_or_kernel(x, key=x_key), None
         if is_linear:
-            return to_tagged_array(x, tag=Tag.POINT_CLOUD), to_tagged_array(y, tag=Tag.POINT_CLOUD)
+            return to_tagged_array(x, y=y, tag=Tag.POINT_CLOUD), None  # TODO
         return to_tagged_array(x, tag=x_tag), to_tagged_array(y, tag=y_tag)
 
 
@@ -110,10 +112,7 @@ class BaseSolver(Generic[O], ABC):
     """BaseSolver class."""
 
     @abstractmethod
-    def _prepare(
-        self,
-        **kwargs: Any,
-    ) -> Any:
+    def _prepare(self, **kwargs: Any) -> Any:
         pass
 
     @abstractmethod
@@ -126,10 +125,7 @@ class BaseSolver(Generic[O], ABC):
         """Problem kind."""
         # helps to check whether necessary inputs were passed
 
-    def __call__(
-        self,
-        **kwargs: Any,
-    ) -> O:
+    def __call__(self, **kwargs: Any) -> O:
         """Call method."""
         data = self._prepare(**kwargs)
         return self._solve(data)
@@ -169,7 +165,7 @@ class OTSolver(TagConverterMixin, BaseSolver[O], ABC):
         **kwargs: Any,
     ) -> Dict[str, Any]:
         def assert_linear() -> None:
-            if data.xy == (None, None):
+            if data.xy is None:
                 raise ValueError("TODO: no linear data.")
 
         def assert_quadratic() -> None:

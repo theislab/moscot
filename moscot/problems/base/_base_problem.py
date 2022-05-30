@@ -122,12 +122,12 @@ class OTProblem(BaseProblem):
 
         self._x: Optional[TaggedArray] = None
         self._y: Optional[TaggedArray] = None
-        self._xy: Optional[Union[TaggedArray, Tuple[TaggedArray, TaggedArray]]] = None
+        self._xy: Optional[TaggedArray] = None
 
         self._a: Optional[ArrayLike] = None
         self._b: Optional[ArrayLike] = None
 
-    def _handle_linear(self, **kwargs: Any) -> Union[TaggedArray, Tuple[TaggedArray, TaggedArray]]:
+    def _handle_linear(self, **kwargs: Any) -> TaggedArray:
         if "x_attr" not in kwargs or "y_attr" not in kwargs:
             kwargs.setdefault("tag", Tag.COST_MATRIX)
             attr = kwargs.pop("attr", "obsm")
@@ -142,12 +142,13 @@ class OTProblem(BaseProblem):
         x_kwargs["tag"] = Tag.POINT_CLOUD
         y_kwargs["tag"] = Tag.POINT_CLOUD
 
+        # TODO(michalk8): this is legacy creation, adapt
         x_array = AnnDataPointer(self.adata, **x_kwargs).create()
         y_array = AnnDataPointer(self._adata_y, **y_kwargs).create()
 
-        return x_array, y_array
+        return TaggedArray(x_array.data, y_array.data, tag=Tag.POINT_CLOUD, loss=x_array.loss)
 
-    # TODO(michalk8): refactor me
+    # TODO(michalk8): refactor me(previously also handled taggedarray as input)
     def prepare(
         self,
         xy: Optional[Mapping[str, Any]] = None,
@@ -163,14 +164,14 @@ class OTProblem(BaseProblem):
 
         if xy is not None and x is None and y is None:
             self._problem_kind = ProblemKind.LINEAR
-            self._xy = xy if isinstance(xy, (tuple, TaggedArray)) else self._handle_linear(**xy)
+            self._xy = self._handle_linear(**xy)
         elif x is not None and y is not None and xy is None:
             self._problem_kind = ProblemKind.QUAD
             self._x = AnnDataPointer(adata=self.adata, **x).create()
             self._y = AnnDataPointer(adata=self._adata_y, **y).create()
         elif xy is not None and x is not None and y is not None:
             self._problem_kind = ProblemKind.QUAD_FUSED
-            self._xy = xy if isinstance(xy, tuple) else self._handle_linear(**xy)
+            self._xy = self._handle_linear(**xy)
             self._x = AnnDataPointer(adata=self.adata, **x).create()
             self._y = AnnDataPointer(adata=self._adata_y, **y).create()
         else:
@@ -245,7 +246,7 @@ class OTProblem(BaseProblem):
         layer: Optional[str] = None,
         return_linear: bool = True,
         **kwargs: Any,
-    ) -> Dict[Literal["xy", "x", "y"], Union[TaggedArray, Tuple[TaggedArray, TaggedArray]]]:
+    ) -> Dict[Literal["xy", "x", "y"], TaggedArray]:
         def concat(x: ArrayLike, y: ArrayLike) -> ArrayLike:
             if issparse(x):
                 return vstack([x, csr_matrix(y)])
@@ -265,7 +266,8 @@ class OTProblem(BaseProblem):
                 data = sc.pp.pca(concat(x, y), **kwargs)
             else:
                 data = concat(sc.pp.pca(x, **kwargs), sc.pp.pca(y, **kwargs))
-            return {"xy": (TaggedArray(data[:n], tag=Tag.POINT_CLOUD), TaggedArray(data[n:], tag=Tag.POINT_CLOUD))}
+
+            return {"xy": TaggedArray(data[:n], data[n:], tag=Tag.POINT_CLOUD)}
 
         x = sc.pp.pca(x, **kwargs)
         y = sc.pp.pca(y, **kwargs)
@@ -304,7 +306,7 @@ class OTProblem(BaseProblem):
 
     # TODO(michalk8): verify type
     @property
-    def xy(self) -> Optional[Union[TaggedArray, Tuple[TaggedArray, TaggedArray]]]:
+    def xy(self) -> Optional[TaggedArray]:
         return self._xy
 
     @property

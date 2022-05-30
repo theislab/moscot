@@ -1,4 +1,4 @@
-from typing import Any, Dict, List, Tuple, Union, Mapping, TypeVar, Optional, Protocol, Sequence, TYPE_CHECKING
+from typing import Any, Dict, List, Tuple, Union, Mapping, Optional, Protocol, Sequence, TYPE_CHECKING
 import logging
 import itertools
 
@@ -13,34 +13,37 @@ from anndata import AnnData
 
 from moscot._docs import d
 from moscot._types import ArrayLike, Numeric_t
-from moscot.problems.base._mixins import AnalysisMixin
-from moscot.problems.base._compound_problem import B, ApplyOutput_t
-
-K = TypeVar("K", bound=Numeric_t)
+from moscot.problems.base._mixins import AnalysisMixin, AnalysisMixinProtocol
+from moscot.problems.base._compound_problem import B, K, ApplyOutput_t
 
 
-class TimeAnalysisMixinProtocol(Protocol[K]):
+class TemporalMixinProtocol(Protocol[K, B], AnalysisMixinProtocol[K, B]):
     """Protocol class."""
 
-    adata: AnnData
+    problems: Dict[Tuple[K, K], B]
+    temporal_key: Optional[str]
 
-    def push(self, *args: Any, **kwargs: Any) -> ApplyOutput_t[K]:  # noqa: D102
+    def push(self, *args: Any, **kwargs: Any) -> Optional[ApplyOutput_t[K]]:
         ...
 
-    def pull(self, *args: Any, **kwargs: Any) -> ApplyOutput_t[K]:  # noqa: D102
+    def pull(self, *args: Any, **kwargs: Any) -> Optional[ApplyOutput_t[K]]:
+        ...
+
+    def _validate_args_cell_transition(
+        self: "TemporalMixinProtocol[K, B]", arg: Union[str, Mapping[str, Sequence[Any]]]
+    ) -> Tuple[Union[str, Sequence[Any]], Sequence[Any]]:
         ...
 
 
-class TemporalAnalysisMixin(AnalysisMixin[K, B], TimeAnalysisMixinProtocol[K]):
+class TemporalMixin(AnalysisMixin[K, B]):
     """Analysis Mixin for all problems involving a temporal dimension."""
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
         self._temporal_key: Optional[str] = None
 
-    @d.dedent
     def push(
-        self,
+        self: TemporalMixinProtocol[K, B],
         start: K,
         end: K,
         result_key: Optional[str] = None,
@@ -76,9 +79,10 @@ class TemporalAnalysisMixin(AnalysisMixin[K, B], TimeAnalysisMixinProtocol[K]):
         """
         if result_key is not None:
             return_all = True
-        result = super().push(
+        result = self._apply(
             start=start,
             end=end,
+            forward=True,
             return_all=return_all,
             scale_by_marginals=scale_by_marginals,
             **kwargs,
@@ -88,11 +92,11 @@ class TemporalAnalysisMixin(AnalysisMixin[K, B], TimeAnalysisMixinProtocol[K]):
             return result
         if TYPE_CHECKING:
             assert isinstance(result, dict)
-        self._dict_to_adata(result, result_key)
+        self.adata.obs[result_key] = self._flatten(result, key=self.temporal_key)
 
     @d.dedent
     def pull(
-        self,
+        self: TemporalMixinProtocol[K, B],
         start: K,
         end: K,
         result_key: Optional[str] = None,
@@ -128,9 +132,10 @@ class TemporalAnalysisMixin(AnalysisMixin[K, B], TimeAnalysisMixinProtocol[K]):
         """
         if result_key is not None:
             return_all = True
-        result = super().pull(
+        result = self._apply(
             start=start,
             end=end,
+            forward=False,
             return_all=return_all,
             scale_by_marginals=scale_by_marginals,
             **kwargs,
@@ -139,10 +144,10 @@ class TemporalAnalysisMixin(AnalysisMixin[K, B], TimeAnalysisMixinProtocol[K]):
             return result
         if TYPE_CHECKING:
             assert isinstance(result, dict)
-        self._dict_to_adata(result, result_key)
+        self.adata.obs[result_key] = self._flatten(result, key=self.temporal_key)
 
     def cell_transition(
-        self,
+        self: TemporalMixinProtocol[K, B],
         start: K,
         end: K,
         early_cells: Union[str, Mapping[str, Sequence[Any]]],
@@ -217,7 +222,7 @@ class TemporalAnalysisMixin(AnalysisMixin[K, B], TimeAnalysisMixinProtocol[K]):
                         logging.info(
                             f"No data points corresponding to {subset} found in `adata.obs[groups_key]` for {start}"
                         )
-                        result = np.nan
+                        result = np.nan  # type: ignore[assignment]
                     else:
                         raise
                 df_late.loc[:, "distribution"] = result
@@ -249,7 +254,7 @@ class TemporalAnalysisMixin(AnalysisMixin[K, B], TimeAnalysisMixinProtocol[K]):
             except ValueError as e:
                 if "no mass" in str(e):  # TODO: adapt
                     logging.info(f"No data points corresponding to {subset} found in `adata.obs[groups_key]` for {end}")
-                    result = np.nan
+                    result = np.nan  # type: ignore[assignment]
                 else:
                     raise
             df_early.loc[:, "distribution"] = result
@@ -264,7 +269,7 @@ class TemporalAnalysisMixin(AnalysisMixin[K, B], TimeAnalysisMixinProtocol[K]):
         return transition_table
 
     def _validate_args_cell_transition(
-        self, arg: Union[str, Mapping[str, Sequence[Any]]]
+        self: TemporalMixinProtocol[K, B], arg: Union[str, Mapping[str, Sequence[Any]]]
     ) -> Tuple[Union[str, Sequence[Any]], Sequence[Any]]:
         if isinstance(arg, str):
             if arg not in self.adata.obs:
@@ -290,48 +295,46 @@ class TemporalAnalysisMixin(AnalysisMixin[K, B], TimeAnalysisMixinProtocol[K]):
                 raise ValueError(f"The column `{_key}` in `adata.obs` contains NaN values. Please check.")
             return _key, _val
 
+    # TODO(michalk8): refactor me
     def _get_data(
-        self,
+        self: TemporalMixinProtocol[K, B],
         start: K,
         intermediate: Optional[K] = None,
         end: Optional[K] = None,
         *,
         only_start: bool = False,
     ) -> Union[Tuple[ArrayLike, AnnData], Tuple[ArrayLike, ArrayLike, ArrayLike, AnnData, ArrayLike]]:
-        # TODO(michalk8): refactor me
-        for (start_, end_) in self.problems.keys():
-            if isinstance(self.problems[(start_, end_)].xy, tuple):
-                tag = self.problems[(start_, end_)].xy[0].tag
-            else:
-                tag = self.problems[(start_, end_)].xy
+        for (src, tgt) in self.problems.keys():
+            tag = self.problems[src, tgt].xy.tag  # type: ignore[union-attr]
             if tag != "point_cloud":
                 raise ValueError(
-                    "TODO: This method requires the data to be stored as point_clouds. It is currently stored "
-                    f"as {self.problems[(start_, end_)].xy[0].tag}."
+                    "TODO: This method requires the data to be stored as point_clouds. It is currently stored "  # type: ignore[union-attr]
+                    f"as {self.problems[src, tgt].xy.tag}."
                 )
-            if start_ == start:
-                source_data = self.problems[(start_, end_)].xy[0].data
+            if src == start:
+                source_data = self.problems[src, tgt].xy.data  # type: ignore[union-attr]
                 if only_start:
-                    return source_data, self.problems[(start_, end_)].adata
-                growth_rates_source = self.problems[(start_, end_)].growth_rates[:, -1]
+                    return source_data, self.problems[src, tgt].adata
+                # TODO(michalk8): posterior marginals
+                growth_rates_source = self.problems[src, tgt].growth_rates  # type: ignore[attr-defined]
                 break
         else:
             raise ValueError(f"No data found for time point {start}")
-        for (start_, end_) in self.problems.keys():
-            if start_ == intermediate:
-                intermediate_data = self.problems[(start_, end_)].xy[0].data
-                intermediate_adata = self.problems[(start_, end_)].adata
+        for (src, tgt) in self.problems.keys():
+            if src == intermediate:
+                intermediate_data = self.problems[src, tgt].xy.data  # type: ignore[union-attr]
+                intermediate_adata = self.problems[src, tgt].adata
                 break
         else:
             raise ValueError(f"No data found for time point {intermediate}")
-        for (start_, end_) in self.problems.keys():
-            if end_ == end:
-                target_data = self.problems[(start_, end_)].xy[1].data
+        for (src, tgt) in self.problems.keys():
+            if tgt == end:
+                target_data = self.problems[src, tgt].xy.data_y  # type: ignore[union-attr]
                 break
         else:
             raise ValueError(f"No data found for time point {end}")
 
-        return source_data, growth_rates_source, intermediate_data, intermediate_adata, target_data
+        return source_data, growth_rates_source, intermediate_data, intermediate_adata, target_data  # type: ignore[return-value]
 
     def compute_interpolated_distance(
         self,
@@ -389,7 +392,7 @@ class TemporalAnalysisMixin(AnalysisMixin[K, B], TimeAnalysisMixinProtocol[K]):
         -------
         Wasserstein distance between OT-based interpolated distribution and the true cell distribution.
         """
-        source_data, _, intermediate_data, _, target_data = self._get_data(
+        source_data, _, intermediate_data, _, target_data = self._get_data(  # type: ignore[misc]
             start,
             intermediate,
             end,
@@ -498,7 +501,7 @@ class TemporalAnalysisMixin(AnalysisMixin[K, B], TimeAnalysisMixinProtocol[K]):
         kwargs
             Keyword arguments for computing the Wasserstein distance (TODO make that function public?).
         """
-        source_data, _, intermediate_data, _, target_data = self._get_data(
+        source_data, _, intermediate_data, _, target_data = self._get_data(  # type: ignore[misc]
             start,
             intermediate,
             end,
@@ -564,12 +567,12 @@ class TemporalAnalysisMixin(AnalysisMixin[K, B], TimeAnalysisMixinProtocol[K]):
         target_data: ArrayLike,
         start: K,
         end: K,
-        interpolation_parameter: K,
+        interpolation_parameter: float,
         account_for_unbalancedness: bool = True,
         batch_size: int = 256,
         seed: Optional[int] = None,
     ) -> ArrayLike:
-        rows_sampled, cols_sampled = self._sample_from_tmap(
+        rows_sampled, cols_sampled = self._sample_from_tmap(  # type: ignore[misc]
             start=start,
             end=end,
             n_samples=number_cells,
@@ -595,8 +598,6 @@ class TemporalAnalysisMixin(AnalysisMixin[K, B], TimeAnalysisMixinProtocol[K]):
         seed: Optional[int] = None,
     ) -> ArrayLike:
         rng = np.random.RandomState(seed)
-        if TYPE_CHECKING:
-            assert interpolation_parameter is not None
         if growth_rates is None:
             row_probability = np.ones(len(source_data))
         else:
@@ -623,13 +624,6 @@ class TemporalAnalysisMixin(AnalysisMixin[K, B], TimeAnalysisMixinProtocol[K]):
             interpolation_parameter if interpolation_parameter is not None else (intermediate - start) / (end - start)
         )
 
-    def _dict_to_adata(self, d: Dict[K, ArrayLike], obs_key: str) -> None:
-        tmp = np.full(len(self.adata), np.nan)
-        for key, value in d.items():
-            mask = self.adata.obs[self.temporal_key] == key
-            tmp[mask] = np.squeeze(value)
-        self.adata.obs[obs_key] = tmp
-
     @property
     def temporal_key(self) -> Optional[str]:
         """Return temporal key."""
@@ -637,9 +631,6 @@ class TemporalAnalysisMixin(AnalysisMixin[K, B], TimeAnalysisMixinProtocol[K]):
 
     @temporal_key.setter
     def temporal_key(self, value: Optional[str] = None) -> None:
-        if value not in self.adata.obs.columns:
-            raise KeyError(f"TODO: {value} not found in `adata.obs.columns`")
-        # TODO(MUCDK): wrong check
         # if not is_numeric_dtype(self.adata.obs[value]):
         #    raise TypeError(f"TODO: column must be of numeric data type")
         self._temporal_key = value
