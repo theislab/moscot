@@ -13,8 +13,8 @@ from anndata import AnnData
 
 from moscot._docs import d
 from moscot._types import ArrayLike, Numeric_t
-from moscot.analysis_mixins import AnalysisMixin
-from moscot.problems.mixins import BirthDeathBaseProblem
+from moscot.problems.base._mixins import AnalysisMixin
+from moscot.problems.base._birth_death import BirthDeathBaseProblem
 from moscot.problems.base._compound_problem import K, ApplyOutput_t
 
 
@@ -298,8 +298,6 @@ class TemporalAnalysisMixin(AnalysisMixin[Numeric_t, BirthDeathBaseProblem], Tim
         only_start: bool = False,
     ) -> Union[Tuple[ArrayLike, AnnData], Tuple[ArrayLike, ArrayLike, ArrayLike, AnnData, ArrayLike]]:
         # TODO(michalk8): refactor me
-        if TYPE_CHECKING:
-            assert self.problems is not None
         for (start_, end_) in self.problems.keys():
             if isinstance(self.problems[(start_, end_)].xy, tuple):
                 tag = self.problems[(start_, end_)].xy[0].tag

@@ -11,7 +11,9 @@ __all__ = ["AlignmentProblem"]
 
 
 @d.dedent
-class AlignmentProblem(CompoundProblem[K, B], SpatialAlignmentAnalysisMixin):  # need generic type B for SpatioTemporal
+class AlignmentProblem(
+    CompoundProblem[K, B], SpatialAlignmentAnalysisMixin[K]
+):  # need generic type B for SpatioTemporal
     """
     Class for aligning spatial omics data, based on :cite:`zeira2022`.
 

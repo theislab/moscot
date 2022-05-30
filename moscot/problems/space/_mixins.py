@@ -12,8 +12,7 @@ import numpy as np
 from anndata import AnnData
 
 from moscot._types import ArrayLike
-from moscot.problems.base import OTProblem
-from moscot.analysis_mixins import AnalysisMixin
+from moscot.problems.base import OTProblem, AnalysisMixin  # type: ignore[attr-defined]
 from moscot.problems._subset_policy import StarPolicy
 from moscot.problems.base._compound_problem import K
 
@@ -21,7 +20,7 @@ from moscot.problems.base._compound_problem import K
 class SpatialAnalysisMixinProtocol(Protocol):
     """Protocol class."""
 
-    adata: AnnData
+    adata: AnnData  # TODO(michalk8): should not require this
     adata_sc: AnnData
     adata_sp: AnnData
 
@@ -31,7 +30,7 @@ class SpatialAlignmentAnalysisMixin(AnalysisMixin[K, OTProblem], SpatialAnalysis
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
-        _spatial_key: str
+        _spatial_key: str  # TODO(michalk8): this seems wrong
 
     def _interpolate_scheme(
         self,

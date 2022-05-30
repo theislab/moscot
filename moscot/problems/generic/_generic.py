@@ -4,8 +4,7 @@ from typing import Any, Type, Tuple, Union, Literal, Mapping, Optional
 from anndata import AnnData
 
 from moscot._docs import d
-from moscot.problems import OTProblem, CompoundProblem  # type: ignore[attr-defined]
-from moscot.analysis_mixins import AnalysisMixin  # type: ignore[attr-defined]
+from moscot.problems.base import OTProblem, AnalysisMixin, CompoundProblem  # type: ignore[attr-defined]
 from moscot.problems.base._compound_problem import B
 
 

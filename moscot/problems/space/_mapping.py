@@ -16,7 +16,7 @@ __all__ = ["MappingProblem"]
 
 
 @d.dedent
-class MappingProblem(CompoundProblem[K, OTProblem], SpatialMappingAnalysisMixin):
+class MappingProblem(CompoundProblem[K, OTProblem], SpatialMappingAnalysisMixin[K]):
     """
     Class for mapping single cell omics data onto spatial data, based on :cite:`nitzan2019`.
 
@@ -54,8 +54,8 @@ class MappingProblem(CompoundProblem[K, OTProblem], SpatialMappingAnalysisMixin)
 
     def _create_problem(
         self,
-        src: Any,
-        tgt: Any,
+        src: K,
+        tgt: K,
         src_mask: ArrayLike,
         tgt_mask: ArrayLike,
         **kwargs: Any,
@@ -152,7 +152,7 @@ class MappingProblem(CompoundProblem[K, OTProblem], SpatialMappingAnalysisMixin)
         return self.adata
 
     @property
-    def filtered_vars(self) -> Optional[Sequence[Any]]:
+    def filtered_vars(self) -> Optional[Sequence[str]]:
         """Return filtered variables."""
         return self._filtered_vars
 

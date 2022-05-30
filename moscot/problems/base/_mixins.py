@@ -7,15 +7,15 @@ import numpy as np
 from moscot._types import ArrayLike, Numeric_t
 from moscot.solvers._output import BaseSolverOutput
 from moscot.problems._subset_policy import SubsetPolicy
-from moscot.problems.base._compound_problem import B, K, Key, ApplyOutput_t
+from moscot.problems.base._compound_problem import B, K, ApplyOutput_t
 
 
 class AnalysisMixinProtocol(Protocol[K, B]):
     """Protocol class."""
 
-    _policy: SubsetPolicy[K]
-    solutions: Dict[Key[K], BaseSolverOutput]
-    problems: Optional[Dict[Key[K], B]]
+    _policy: Optional[SubsetPolicy[K]]
+    solutions: Dict[Tuple[K, K], BaseSolverOutput]
+    problems: Dict[Tuple[K, K], B]
 
     def _apply(
         self,
@@ -48,10 +48,8 @@ class AnalysisMixin(AnalysisMixinProtocol[K, B]):
         interpolation_parameter: Optional[Numeric_t] = None,
         seed: Optional[int] = None,
     ) -> Tuple[ArrayLike, List[ArrayLike]]:
-
         rng = np.random.RandomState(seed)
         if account_for_unbalancedness and interpolation_parameter is None:
-
             raise ValueError(
                 "TODO: if unbalancedness is to be accounted for `interpolation_parameter` must be provided."
             )
@@ -120,6 +118,8 @@ class AnalysisMixin(AnalysisMixinProtocol[K, B]):
         self, start: K, end: K, forward: bool = True, scale_by_marginals: bool = True
     ) -> LinearOperator:
         """Interpolate transport matrix."""
+        if TYPE_CHECKING:
+            assert isinstance(self._policy, SubsetPolicy)
         # TODO(@MUCDK, @giovp, discuss what exactly this function should do, seems like it could be more generic)
         fst, *rest = self._policy.plan(start=start, end=end)
         return self.solutions[fst].chain(

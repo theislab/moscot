@@ -5,12 +5,10 @@ import pandas as pd
 
 import numpy as np
 
-from anndata import AnnData
-
 from moscot._docs import d
 from moscot._types import Numeric_t
 from moscot.problems._utils import require_prepare
-from moscot.problems.mixins import BirthDeathMixin, BirthDeathBaseProblem  # type: ignore[attr-defined]
+from moscot.problems.mixins import BirthDeathMixin, BirthDeathBaseProblem
 from moscot.problems.time._mixins import TemporalAnalysisMixin
 from moscot.problems.base._compound_problem import B, CompoundProblem
 
@@ -34,9 +32,6 @@ class TemporalProblem(TemporalAnalysisMixin, BirthDeathMixin, CompoundProblem[Nu
     --------
     See notebook TODO(@MUCDK) LINK NOTEBOOK for how to use it
     """
-
-    def __init__(self, adata: AnnData, **kwargs: Any):
-        super().__init__(adata, **kwargs)
 
     @d.dedent
     def prepare(
@@ -152,9 +147,8 @@ class TemporalProblem(TemporalAnalysisMixin, BirthDeathMixin, CompoundProblem[Nu
         )
         return pd.concat(df_list, verify_integrity=True)
 
-    @require_prepare  # type: ignore[misc]
+    # TODO(michalk8): refactor me
     @property
-    @d.dedent
     def cell_costs_source(self) -> Optional[pd.DataFrame]:
         """
         Return the cost of a cell (see online methods) obtained by the potentials of the optimal transport solution.
@@ -183,9 +177,7 @@ class TemporalProblem(TemporalAnalysisMixin, BirthDeathMixin, CompoundProblem[Nu
         except NotImplementedError:  # TODO(@MUCDK) check for specific error message
             return None
 
-    @require_prepare  # type: ignore[misc]
     @property
-    @d.dedent
     def cell_costs_target(self) -> Optional[pd.DataFrame]:
         """Return the cost of a cell (see online methods) obtained by the potentials of the OT solution."""
         try:
