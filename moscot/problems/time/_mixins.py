@@ -1,12 +1,9 @@
-from ast import Num
-from typing import Any, Dict, List, Tuple, Union, Mapping, Optional, Sequence, TYPE_CHECKING, Protocol
+from typing import Any, Dict, List, Tuple, Union, Mapping, Optional, Protocol, Sequence, TYPE_CHECKING
 import logging
 import itertools
-from numbers import Number
 
-from pandas.api.types import is_categorical_dtype
-from zmq import TYPE
-from sklearn.metrics.pairwise import pairwise_distances
+from sklearn.metrics import pairwise_distances
+from pandas.core.dtypes.common import is_categorical_dtype
 import ot
 import pandas as pd
 
@@ -16,9 +13,9 @@ from anndata import AnnData
 
 from moscot._docs import d
 from moscot._types import ArrayLike, Numeric_t
-from moscot.problems.base._compound_problem import B, K, Key, ApplyOutput_t
-from moscot.problems.mixins import BirthDeathBaseProblem  # type: ignore[attr-defined]
-from moscot.analysis_mixins._base_analysis import AnalysisMixin, AnalysisMixinProtocol
+from moscot.analysis_mixins import AnalysisMixin
+from moscot.problems.mixins import BirthDeathBaseProblem
+from moscot.problems.base._compound_problem import K, ApplyOutput_t
 
 
 class TimeAnalysisMixinProtocol(Protocol):
@@ -339,9 +336,9 @@ class TemporalAnalysisMixin(AnalysisMixin[Numeric_t, BirthDeathBaseProblem], Tim
 
     def compute_interpolated_distance(
         self,
-        start: Numeric_t, #TODO(@MUCDK): type to K once in BaseAnalysisMixin
-        intermediate: Numeric_t, #TODO(@MUCDK): type to K once in BaseAnalysisMixin
-        end: Numeric_t, #TODO(@MUCDK): type to K once in BaseAnalysisMixin
+        start: Numeric_t,  # TODO(@MUCDK): type to K once in BaseAnalysisMixin
+        intermediate: Numeric_t,  # TODO(@MUCDK): type to K once in BaseAnalysisMixin
+        end: Numeric_t,  # TODO(@MUCDK): type to K once in BaseAnalysisMixin
         interpolation_parameter: Optional[Numeric_t] = None,
         n_interpolated_cells: Optional[int] = None,
         account_for_unbalancedness: bool = False,
@@ -418,9 +415,9 @@ class TemporalAnalysisMixin(AnalysisMixin[Numeric_t, BirthDeathBaseProblem], Tim
 
     def compute_random_distance(
         self,
-        start: Numeric_t, #TODO(@MUCDK): type to K once in BaseAnalysisMixin
-        intermediate: Numeric_t, #TODO(@MUCDK): type to K once in BaseAnalysisMixin
-        end: Numeric_t, #TODO(@MUCDK): type to K once in BaseAnalysisMixin
+        start: Numeric_t,  # TODO(@MUCDK): type to K once in BaseAnalysisMixin
+        intermediate: Numeric_t,  # TODO(@MUCDK): type to K once in BaseAnalysisMixin
+        end: Numeric_t,  # TODO(@MUCDK): type to K once in BaseAnalysisMixin
         interpolation_parameter: Optional[Numeric_t] = None,
         n_interpolated_cells: Optional[int] = None,
         account_for_unbalancedness: bool = False,
@@ -575,7 +572,7 @@ class TemporalAnalysisMixin(AnalysisMixin[Numeric_t, BirthDeathBaseProblem], Tim
     ) -> ArrayLike:
         rows_sampled, cols_sampled = self._sample_from_tmap(
             start=start,  # type: ignore[arg-type]
-            end=end,    # type: ignore[arg-type]
+            end=end,  # type: ignore[arg-type]
             n_samples=number_cells,
             source_dim=len(source_data),
             target_dim=len(target_data),

@@ -14,7 +14,10 @@ from moscot.solvers._output import BaseSolverOutput
 from moscot.problems.time._utils import beta, delta, MarkerGenes
 from moscot.problems.base._multimarginal_problem import MultiMarginalProblem
 
+__all__ = ["BirthDeathBaseProblem", "BirthDeathMixin", "MultiMarginalMixin"]
 
+
+# TODO(michalk8): reorganize this file
 @d.dedent
 class BirthDeathBaseProblem(MultiMarginalProblem):
     """

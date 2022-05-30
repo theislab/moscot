@@ -3,9 +3,11 @@ from typing import Any, Type, Tuple, Mapping, Optional
 from typing_extensions import Literal
 
 from moscot._docs import d
-from moscot.analysis_mixins import SpatialAlignmentAnalysisMixin  # type: ignore[attr-defined]
+from moscot.problems.space._mixins import SpatialAlignmentAnalysisMixin
 from moscot.problems.base._base_problem import OTProblem
-from moscot.problems.base._compound_problem import K, B, CompoundProblem
+from moscot.problems.base._compound_problem import B, K, CompoundProblem
+
+__all__ = ["AlignmentProblem"]
 
 
 @d.dedent

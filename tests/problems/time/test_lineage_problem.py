@@ -5,7 +5,7 @@ import numpy as np
 from anndata import AnnData
 
 from moscot.problems.time import LineageProblem
-from moscot.problems.mixins._temporal_mixins import BirthDeathBaseProblem
+from moscot.problems.base._birth_death import BirthDeathBaseProblem
 
 
 class TestLineageProblem:

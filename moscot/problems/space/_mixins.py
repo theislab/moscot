@@ -1,4 +1,4 @@
-from typing import Any, Dict, List, Protocol, Tuple, Union, Mapping, Callable, Optional, Sequence
+from typing import Any, Dict, List, Tuple, Union, Mapping, Callable, Optional, Protocol, Sequence
 
 from scipy.stats import pearsonr, spearmanr
 from scipy.linalg import svd
@@ -12,10 +12,10 @@ import numpy as np
 from anndata import AnnData
 
 from moscot._types import ArrayLike
+from moscot.problems.base import OTProblem
+from moscot.analysis_mixins import AnalysisMixin
 from moscot.problems._subset_policy import StarPolicy
-from moscot.problems.base._compound_problem import K, B
-from moscot.problems.base._base_problem import OTProblem
-from moscot.analysis_mixins._base_analysis import AnalysisMixin, AnalysisMixinProtocol
+from moscot.problems.base._compound_problem import K
 
 
 class SpatialAnalysisMixinProtocol(Protocol):

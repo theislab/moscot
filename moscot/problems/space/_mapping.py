@@ -3,16 +3,16 @@ from typing import Any, Type, Tuple, Union, Mapping, Optional, Sequence
 
 from typing_extensions import Literal
 
-import numpy.typing as npt
-
 from anndata import AnnData
 
-from moscot._types import ArrayLike
 from moscot._docs import d
-from moscot.analysis_mixins import SpatialMappingAnalysisMixin  # type: ignore[attr-defined]
+from moscot._types import ArrayLike
+from moscot.problems.space._mixins import SpatialMappingAnalysisMixin
 from moscot.problems._subset_policy import Axis_t, DummyPolicy, ExternalStarPolicy
 from moscot.problems.base._base_problem import OTProblem
-from moscot.problems.base._compound_problem import K, B, CompoundProblem
+from moscot.problems.base._compound_problem import B, K, CompoundProblem
+
+__all__ = ["MappingProblem"]
 
 
 @d.dedent

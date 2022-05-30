@@ -1,4 +1,4 @@
-from typing import Any, Dict, List, Tuple, Optional, Protocol, Union, TYPE_CHECKING
+from typing import Any, Dict, List, Tuple, Union, Optional, Protocol, TYPE_CHECKING
 
 from scipy.sparse.linalg import LinearOperator
 
@@ -28,6 +28,7 @@ class AnalysisMixinProtocol(Protocol[K, B]):
         **kwargs: Any,
     ) -> ApplyOutput_t[K]:
         ...
+
 
 class AnalysisMixin(AnalysisMixinProtocol[K, B]):
     """Base Analysis Mixin."""

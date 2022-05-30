@@ -3,15 +3,21 @@ from typing import Any, Tuple, Mapping, Optional
 
 from typing_extensions import Literal
 
-from moscot._types import Numeric_t
 from moscot._docs import d
-from moscot.analysis_mixins import TemporalAnalysisMixin, SpatialAlignmentAnalysisMixin  # type: ignore[attr-defined]
+from moscot._types import Numeric_t
 from moscot.problems.mixins import BirthDeathMixin, BirthDeathBaseProblem  # type: ignore[attr-defined]
+from moscot.problems.time._mixins import TemporalAnalysisMixin
+from moscot.problems.space._mixins import SpatialAlignmentAnalysisMixin
 from moscot.problems.space._alignment import AlignmentProblem
 
 
 @d.dedent
-class SpatioTemporalProblem(TemporalAnalysisMixin, BirthDeathMixin, AlignmentProblem[Numeric_t, BirthDeathBaseProblem], SpatialAlignmentAnalysisMixin):
+class SpatioTemporalProblem(
+    TemporalAnalysisMixin,
+    BirthDeathMixin,
+    AlignmentProblem[Numeric_t, BirthDeathBaseProblem],
+    SpatialAlignmentAnalysisMixin,
+):
     """Spatio-Temporal problem."""
 
     @d.dedent

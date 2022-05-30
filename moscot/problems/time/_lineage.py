@@ -7,11 +7,11 @@ import numpy as np
 
 from anndata import AnnData
 
-from moscot._types import Numeric_t
 from moscot._docs import d
-from moscot.analysis_mixins import TemporalAnalysisMixin  # type: ignore[attr-defined]
+from moscot._types import Numeric_t
 from moscot.problems._utils import require_prepare
 from moscot.problems.mixins import BirthDeathMixin, BirthDeathBaseProblem  # type: ignore[attr-defined]
+from moscot.problems.time._mixins import TemporalAnalysisMixin
 from moscot.problems.base._compound_problem import B, CompoundProblem
 
 

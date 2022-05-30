@@ -3,14 +3,13 @@ from typing import Any, List, Type, Tuple, Union, Optional
 import networkx as nx
 
 import numpy as np
-import numpy.typing as npt
 
 from anndata import AnnData
 
 from moscot._types import ArrayLike
 from moscot.problems.base import OTProblem, CompoundProblem, MultiMarginalProblem
 from moscot.solvers._output import MatrixSolverOutput
-from moscot.analysis_mixins._base_analysis import AnalysisMixin
+from moscot.problems.base._mixins import AnalysisMixin
 from moscot.problems.base._compound_problem import B
 
 Geom_t = Union[np.ndarray, Tuple[np.ndarray, np.ndarray]]
