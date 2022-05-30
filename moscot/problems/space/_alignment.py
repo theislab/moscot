@@ -10,10 +10,9 @@ from moscot.problems.base._compound_problem import B, K, CompoundProblem
 __all__ = ["AlignmentProblem"]
 
 
+# need generic type B for SpatioTemporal
 @d.dedent
-class AlignmentProblem(
-    CompoundProblem[K, B], SpatialAlignmentAnalysisMixin[K]
-):  # need generic type B for SpatioTemporal
+class AlignmentProblem(CompoundProblem[K, B], SpatialAlignmentAnalysisMixin[K, B]):
     """
     Class for aligning spatial omics data, based on :cite:`zeira2022`.
 
@@ -37,7 +36,7 @@ class AlignmentProblem(
         policy: Literal["sequential", "star"] = "sequential",
         reference: Optional[str] = None,
         **kwargs: Any,
-    ) -> "AlignmentProblem[K, OTProblem]":
+    ) -> "AlignmentProblem[K, B]":
         """
         Prepare the :class:`moscot.problems.space.AlignmentProblem`.
 
@@ -82,7 +81,7 @@ class AlignmentProblem(
         epsilon: Optional[float] = 1e-1,
         scale_cost: str = "mean",
         **kwargs: Any,
-    ) -> "AlignmentProblem[K, OTProblem]":
+    ) -> "AlignmentProblem[K, B]":
         """
         Solve optimal transport problems defined in :class:`moscot.problems.space.AlignmentProblem`.
 

@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import TYPE_CHECKING, Any, Dict, List, Tuple, Union, Generic, TypeVar, Hashable, Iterable, Optional, Sequence
+from typing import Any, Dict, List, Tuple, Union, Generic, TypeVar, Hashable, Iterable, Optional, Sequence
 from operator import gt, lt
 from itertools import product
 
@@ -197,6 +197,10 @@ class StarPolicy(SimplePlanPolicy[K]):
     ) -> Sequence[Tuple[K, K]]:
         filter = [src[0] if isinstance(src, tuple) else src for src in filter]
         return [(src, ref) for src, ref in graph if src in filter]
+
+    @property
+    def reference(self) -> K:
+        return self._graph[0][-1]
 
 
 class ExternalStarPolicy(FormatterMixin, StarPolicy[K]):

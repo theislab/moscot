@@ -12,42 +12,39 @@ import numpy as np
 from anndata import AnnData
 
 from moscot._types import ArrayLike
-from moscot.problems.base import OTProblem, AnalysisMixin  # type: ignore[attr-defined]
+from moscot.problems.base import AnalysisMixin  # type: ignore[attr-defined]
 from moscot.problems._subset_policy import StarPolicy
-from moscot.problems.base._compound_problem import K
+from moscot.problems.base._compound_problem import B, K
 
 
 class SpatialAnalysisMixinProtocol(Protocol):
     """Protocol class."""
 
-    adata: AnnData  # TODO(michalk8): should not require this
     adata_sc: AnnData
     adata_sp: AnnData
 
 
-class SpatialAlignmentAnalysisMixin(AnalysisMixin[K, OTProblem], SpatialAnalysisMixinProtocol):
+class SpatialAlignmentAnalysisMixin(AnalysisMixin[K, B], SpatialAnalysisMixinProtocol):
     """Spatial alignment mixin class."""
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
-        _spatial_key: str  # TODO(michalk8): this seems wrong
+        self._spatial_key: Optional[str] = None
 
     def _interpolate_scheme(
         self,
-        reference: Any,
+        reference: K,
         mode: Literal["warp", "affine"],
-    ) -> Tuple[Dict[Any, ArrayLike], Optional[Dict[Any, Optional[ArrayLike]]]]:
+    ) -> Tuple[Dict[K, ArrayLike], Optional[Dict[K, Optional[ArrayLike]]]]:
         """Scheme for interpolation."""
-
-        def subs_adata(k: Any) -> ArrayLike:
-            return self.adata[self.adata.obs[self._policy._subset_key] == k].obsm[self.spatial_key].copy()
 
         # TODO(giovp): error message for star policy
         # get reference
-        src = subs_adata(reference)
-        transport_maps: Dict[Any, ArrayLike] = {reference: src}
-        transport_metadata: Dict[Any, Optional[ArrayLike]] = {}
+        src = self._subset_spatial(reference)
+        transport_maps: Dict[K, ArrayLike] = {reference: src}
+        transport_metadata: Dict[K, Optional[ArrayLike]] = {}
         if mode == "affine":
+            # TODO(michalk8): why the diag?
             src -= src.mean(0)
             transport_metadata = {reference: np.diag((1, 1))}  # 2d data
 
@@ -70,12 +67,12 @@ class SpatialAlignmentAnalysisMixin(AnalysisMixin[K, OTProblem], SpatialAnalysis
         if len(fwd_steps):
             for (start, end) in fwd_steps:
                 tmap = self._interpolate_transport(start=start, end=end, scale_by_marginals=True, forward=True)
-                transport_maps[start], transport_metadata[start] = _transport(tmap, subs_adata(start), src)
+                transport_maps[start], transport_metadata[start] = _transport(tmap, self._subset_spatial(start), src)
 
         if bwd_steps is not None and len(bwd_steps):
             for (start, end) in bwd_steps:
                 tmap = self._interpolate_transport(start=start, end=end, scale_by_marginals=True, forward=False)
-                transport_maps[end], transport_metadata[end] = _transport(tmap.T, subs_adata(end), src)
+                transport_maps[end], transport_metadata[end] = _transport(tmap.T, self._subset_spatial(end), src)
 
         if mode == "affine":
             return transport_maps, transport_metadata
@@ -92,21 +89,21 @@ class SpatialAlignmentAnalysisMixin(AnalysisMixin[K, OTProblem], SpatialAnalysis
         return tgt, R
 
     @staticmethod
-    def _warp(tmap: LinearOperator, tgt: ArrayLike, src: ArrayLike) -> Tuple[ArrayLike, None]:
+    def _warp(tmap: LinearOperator, _: ArrayLike, src: ArrayLike) -> Tuple[ArrayLike, None]:
         """Warp transformation."""
         return tmap.dot(src), None
 
     def align(
         self,
-        reference: Any,
+        reference: K,
         mode: Literal["warp", "affine"] = "warp",
         inplace: bool = False,
-    ) -> Optional[Union[ArrayLike, Tuple[ArrayLike, Optional[Dict[Any, Optional[ArrayLike]]]]]]:
+    ) -> Optional[Union[ArrayLike, Tuple[ArrayLike, Optional[Dict[K, Optional[ArrayLike]]]]]]:
         """Alignment method."""
         if reference not in self._policy._cat:
             raise ValueError(f"`reference: {reference}` not in policy categories: {self._policy._cat}.")
         if isinstance(self._policy, StarPolicy):
-            if reference != list(self._policy.plan())[0][-1]:
+            if reference != self._policy.reference:
                 raise ValueError(f"Invalid `reference: {reference}` for `policy='star'`.")
         aligned_maps, aligned_metadata = self._interpolate_scheme(reference=reference, mode=mode)
         aligned_basis = np.vstack([aligned_maps[k] for k in self._policy._cat])
@@ -118,6 +115,9 @@ class SpatialAlignmentAnalysisMixin(AnalysisMixin[K, OTProblem], SpatialAnalysis
         if not inplace:
             return aligned_basis
         self.adata.obsm[f"{self.spatial_key}_{mode}"] = aligned_basis
+
+    def _subset_spatial(self, k: K) -> ArrayLike:
+        return self.adata_sp[self.adata_sp.obs[self._policy._subset_key] == k].obsm[self.spatial_key].copy()
 
     @property
     def spatial_key(self) -> Optional[str]:
@@ -132,12 +132,12 @@ class SpatialAlignmentAnalysisMixin(AnalysisMixin[K, OTProblem], SpatialAnalysis
         self._spatial_key = value
 
 
-class SpatialMappingAnalysisMixin(AnalysisMixin[K, OTProblem], SpatialAnalysisMixinProtocol):
+class SpatialMappingAnalysisMixin(AnalysisMixin[K, B], SpatialAnalysisMixinProtocol):
     """Spatial mapping analysis mixin class."""
 
     def _filter_vars(
         self,
-        var_names: Optional[Sequence[Any]] = None,
+        var_names: Optional[Sequence[str]] = None,
     ) -> Optional[List[str]]:
         """Filter variables for Sinkhorn term."""
         vars_sc = set(self.adata_sc.var_names)  # TODO: allow alternative gene symbol by passing var_key

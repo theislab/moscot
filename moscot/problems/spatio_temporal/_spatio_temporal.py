@@ -16,7 +16,7 @@ class SpatioTemporalProblem(
     TemporalAnalysisMixin,
     BirthDeathMixin,
     AlignmentProblem[Numeric_t, BirthDeathBaseProblem],
-    SpatialAlignmentAnalysisMixin[Numeric_t],
+    SpatialAlignmentAnalysisMixin[Numeric_t, BirthDeathBaseProblem],
 ):
     """Spatio-Temporal problem."""
 
@@ -29,7 +29,7 @@ class SpatioTemporalProblem(
         policy: Literal["sequential", "pairwise", "triu", "tril", "explicit"] = "sequential",
         marginal_kwargs: Mapping[str, Any] = MappingProxyType({}),
         **kwargs: Any,
-    ) -> "AlignmentProblem[Numeric_t, BirthDeathBaseProblem]":
+    ) -> "SpatioTemporalProblem":
         """
         Prepare the :class:`moscot.problems.spatio_temporal.SpatioTemporalProblem`.
 

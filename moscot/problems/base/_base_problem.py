@@ -114,8 +114,6 @@ class OTProblem(BaseProblem):
         adata_x: AnnData,
         adata_y: Optional[AnnData] = None,
         *,
-        source: Any = "src",
-        target: Any = "tgt",
         copy: bool = False,
     ):
         super().__init__(adata_x, copy=copy)
@@ -128,9 +126,6 @@ class OTProblem(BaseProblem):
 
         self._a: Optional[ArrayLike] = None
         self._b: Optional[ArrayLike] = None
-
-        self._source = source
-        self._target = target
 
     def _handle_linear(self, **kwargs: Any) -> Union[TaggedArray, Tuple[TaggedArray, TaggedArray]]:
         if "x_attr" not in kwargs or "y_attr" not in kwargs:
@@ -158,9 +153,9 @@ class OTProblem(BaseProblem):
         xy: Optional[Mapping[str, Any]] = None,
         x: Optional[Mapping[str, Any]] = None,
         y: Optional[Mapping[str, Any]] = None,
-        a: Optional[Union[str, ArrayLike]] = None,
-        b: Optional[Union[str, ArrayLike]] = None,
-        **_: Any,
+        a: Optional[Union[bool, str, ArrayLike]] = None,
+        b: Optional[Union[bool, str, ArrayLike]] = None,
+        **kwargs: Any,
     ) -> "OTProblem":
         self._x = self._y = self._xy = self._solution = None
         # TODO(michalk8): handle again TaggedArray?
@@ -181,8 +176,8 @@ class OTProblem(BaseProblem):
         else:
             raise NotImplementedError("TODO: Combination not implemented")
 
-        self._a = self._create_marginals(self.adata, a)
-        self._b = self._create_marginals(self._adata_y, b)
+        self._a = self._create_marginals(self.adata, a=a, source=True, **kwargs)
+        self._b = self._create_marginals(self._adata_y, b=b, source=False, **kwargs)
 
         return self
 
@@ -276,14 +271,20 @@ class OTProblem(BaseProblem):
         y = sc.pp.pca(y, **kwargs)
         return {"x": TaggedArray(x, tag=Tag.POINT_CLOUD), "y": TaggedArray(y, tag=Tag.POINT_CLOUD)}
 
-    @staticmethod
-    def _create_marginals(adata: AnnData, data: Optional[Union[str, ArrayLike]] = None) -> ArrayLike:
-        if data is None:
+    def _create_marginals(
+        self, adata: AnnData, *, source: bool, data: Optional[Union[bool, str, ArrayLike]] = None, **kwargs: Any
+    ) -> ArrayLike:
+        if data is True:
+            return self._estimate_marginals(adata, source=source, **kwargs)
+        if data in (False, None):
             return np.ones((adata.n_obs,), dtype=float) / adata.n_obs
         if isinstance(data, str):
             # TODO(michalk8): some nice error message
             return np.asarray(adata.obs[data])
         return np.asarray(data)
+
+    def _estimate_marginals(self, adata: AnnData, *, source: bool, **kwargs: Any) -> ArrayLike:
+        return np.ones((adata.n_obs,), dtype=float) / adata.n_obs
 
     @property
     def shape(self) -> Tuple[int, int]:
@@ -313,3 +314,9 @@ class OTProblem(BaseProblem):
     @property
     def b(self) -> Optional[ArrayLike]:
         return self._b
+
+    def __repr__(self) -> str:
+        return f"{self.__class__.__name__}[shape={self.adata.n_obs, self._adata_y.n_obs}]"
+
+    def __str__(self) -> str:
+        return repr(self)

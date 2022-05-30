@@ -1,4 +1,4 @@
-from typing import Any, Dict, List, Tuple, Union, Mapping, Optional, Protocol, Sequence, TYPE_CHECKING
+from typing import Any, Dict, List, Tuple, Union, Mapping, TypeVar, Optional, Protocol, Sequence, TYPE_CHECKING
 import logging
 import itertools
 
@@ -14,23 +14,24 @@ from anndata import AnnData
 from moscot._docs import d
 from moscot._types import ArrayLike, Numeric_t
 from moscot.problems.base._mixins import AnalysisMixin
-from moscot.problems.base._birth_death import BirthDeathBaseProblem
-from moscot.problems.base._compound_problem import K, ApplyOutput_t
+from moscot.problems.base._compound_problem import B, ApplyOutput_t
+
+K = TypeVar("K", bound=Numeric_t)
 
 
-class TimeAnalysisMixinProtocol(Protocol):
+class TimeAnalysisMixinProtocol(Protocol[K]):
     """Protocol class."""
 
     adata: AnnData
 
-    def push(self, *args: Any, **kwargs: Any) -> ApplyOutput_t[Numeric_t]:  # noqa: D102
+    def push(self, *args: Any, **kwargs: Any) -> ApplyOutput_t[K]:  # noqa: D102
         ...
 
-    def pull(self, *args: Any, **kwargs: Any) -> ApplyOutput_t[Numeric_t]:  # noqa: D102
+    def pull(self, *args: Any, **kwargs: Any) -> ApplyOutput_t[K]:  # noqa: D102
         ...
 
 
-class TemporalAnalysisMixin(AnalysisMixin[Numeric_t, BirthDeathBaseProblem], TimeAnalysisMixinProtocol):
+class TemporalAnalysisMixin(AnalysisMixin[K, B], TimeAnalysisMixinProtocol[K]):
     """Analysis Mixin for all problems involving a temporal dimension."""
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
@@ -40,13 +41,13 @@ class TemporalAnalysisMixin(AnalysisMixin[Numeric_t, BirthDeathBaseProblem], Tim
     @d.dedent
     def push(
         self,
-        start: Numeric_t,
-        end: Numeric_t,
+        start: K,
+        end: K,
         result_key: Optional[str] = None,
         return_all: bool = False,
         scale_by_marginals: bool = True,
         **kwargs: Any,
-    ) -> Optional[ApplyOutput_t[Numeric_t]]:
+    ) -> Optional[ApplyOutput_t[K]]:
         """
         Push distribution of cells through time.
 
@@ -92,13 +93,13 @@ class TemporalAnalysisMixin(AnalysisMixin[Numeric_t, BirthDeathBaseProblem], Tim
     @d.dedent
     def pull(
         self,
-        start: Numeric_t,
-        end: Numeric_t,
+        start: K,
+        end: K,
         result_key: Optional[str] = None,
         return_all: bool = False,
         scale_by_marginals: bool = True,
         **kwargs: Any,
-    ) -> Optional[ApplyOutput_t[Numeric_t]]:
+    ) -> Optional[ApplyOutput_t[K]]:
         """
         Pull distribution of cells from time point `end` to time point `start`.
 
@@ -334,10 +335,10 @@ class TemporalAnalysisMixin(AnalysisMixin[Numeric_t, BirthDeathBaseProblem], Tim
 
     def compute_interpolated_distance(
         self,
-        start: Numeric_t,  # TODO(@MUCDK): type to K once in BaseAnalysisMixin
-        intermediate: Numeric_t,  # TODO(@MUCDK): type to K once in BaseAnalysisMixin
-        end: Numeric_t,  # TODO(@MUCDK): type to K once in BaseAnalysisMixin
-        interpolation_parameter: Optional[Numeric_t] = None,
+        start: K,
+        intermediate: K,
+        end: K,
+        interpolation_parameter: Optional[float] = None,
         n_interpolated_cells: Optional[int] = None,
         account_for_unbalancedness: bool = False,
         batch_size: int = 256,
@@ -393,7 +394,7 @@ class TemporalAnalysisMixin(AnalysisMixin[Numeric_t, BirthDeathBaseProblem], Tim
             intermediate,
             end,
             only_start=False,
-        )  # type: ignore[misc]
+        )
         interpolation_parameter = self._get_interp_param(
             start, intermediate, end, interpolation_parameter=interpolation_parameter
         )
@@ -413,10 +414,10 @@ class TemporalAnalysisMixin(AnalysisMixin[Numeric_t, BirthDeathBaseProblem], Tim
 
     def compute_random_distance(
         self,
-        start: Numeric_t,  # TODO(@MUCDK): type to K once in BaseAnalysisMixin
-        intermediate: Numeric_t,  # TODO(@MUCDK): type to K once in BaseAnalysisMixin
-        end: Numeric_t,  # TODO(@MUCDK): type to K once in BaseAnalysisMixin
-        interpolation_parameter: Optional[Numeric_t] = None,
+        start: K,
+        intermediate: K,
+        end: K,
+        interpolation_parameter: Optional[float] = None,
         n_interpolated_cells: Optional[int] = None,
         account_for_unbalancedness: bool = False,
         seed: Optional[int] = None,
@@ -502,14 +503,14 @@ class TemporalAnalysisMixin(AnalysisMixin[Numeric_t, BirthDeathBaseProblem], Tim
             intermediate,
             end,
             only_start=False,
-        )  # type: ignore[misc]
+        )
 
         distance_source_intermediate = self._compute_wasserstein_distance(source_data, intermediate_data, **kwargs)
         distance_intermediate_target = self._compute_wasserstein_distance(intermediate_data, target_data, **kwargs)
 
         return distance_source_intermediate, distance_intermediate_target
 
-    def compute_batch_distances(self, time: K, batch_key: str, **kwargs: Any) -> float:
+    def compute_batch_distances(self, time: K, batch_key: str, **kwargs: Any) -> Numeric_t:
         """
         Compute the mean Wasserstein distance between batches of a distribution corresponding to one time point.
 
@@ -537,7 +538,7 @@ class TemporalAnalysisMixin(AnalysisMixin[Numeric_t, BirthDeathBaseProblem], Tim
                     **kwargs,
                 )
             )
-        return np.mean(np.array(dist))
+        return np.mean(dist)
 
     # TODO(@MUCDK) possibly offer two alternatives, once exact EMD with POT backend and once approximate,
     # faster with same solver as used for original problems
@@ -563,14 +564,14 @@ class TemporalAnalysisMixin(AnalysisMixin[Numeric_t, BirthDeathBaseProblem], Tim
         target_data: ArrayLike,
         start: K,
         end: K,
-        interpolation_parameter: Numeric_t,
+        interpolation_parameter: K,
         account_for_unbalancedness: bool = True,
         batch_size: int = 256,
         seed: Optional[int] = None,
     ) -> ArrayLike:
         rows_sampled, cols_sampled = self._sample_from_tmap(
-            start=start,  # type: ignore[arg-type]
-            end=end,  # type: ignore[arg-type]
+            start=start,
+            end=end,
             n_samples=number_cells,
             source_dim=len(source_data),
             target_dim=len(target_data),
@@ -589,7 +590,7 @@ class TemporalAnalysisMixin(AnalysisMixin[Numeric_t, BirthDeathBaseProblem], Tim
         number_cells: int,
         source_data: ArrayLike,
         target_data: ArrayLike,
-        interpolation_parameter: Optional[Numeric_t] = None,
+        interpolation_parameter: float,
         growth_rates: Optional[ArrayLike] = None,
         seed: Optional[int] = None,
     ) -> ArrayLike:
@@ -610,7 +611,7 @@ class TemporalAnalysisMixin(AnalysisMixin[Numeric_t, BirthDeathBaseProblem], Tim
 
     @staticmethod
     def _get_interp_param(
-        start: Numeric_t, intermediate: Numeric_t, end: Numeric_t, interpolation_parameter: Optional[Numeric_t] = None
+        start: K, intermediate: K, end: K, interpolation_parameter: Optional[float] = None
     ) -> Numeric_t:
         if interpolation_parameter is not None and (0 > interpolation_parameter or interpolation_parameter > 1):
             raise ValueError("TODO: interpolation parameter must be in [0,1].")
@@ -622,7 +623,7 @@ class TemporalAnalysisMixin(AnalysisMixin[Numeric_t, BirthDeathBaseProblem], Tim
             interpolation_parameter if interpolation_parameter is not None else (intermediate - start) / (end - start)
         )
 
-    def _dict_to_adata(self, d: Dict[Numeric_t, ArrayLike], obs_key: str) -> None:
+    def _dict_to_adata(self, d: Dict[K, ArrayLike], obs_key: str) -> None:
         tmp = np.full(len(self.adata), np.nan)
         for key, value in d.items():
             mask = self.adata.obs[self.temporal_key] == key

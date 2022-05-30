@@ -64,7 +64,7 @@ class BaseCompoundProblem(BaseProblem, ABC, Generic[K, B]):
         self._solutions: Dict[Tuple[K, K], BaseSolverOutput] = {}
 
     @abstractmethod
-    def _create_problem(self, src: K, tgt: K, src_mask: ArrayLike, tgt_mask: ArrayLike, **kwargs: Any) -> B:
+    def _create_problem(self, src_mask: ArrayLike, tgt_mask: ArrayLike, **kwargs: Any) -> B:
         pass
 
     @abstractmethod
@@ -119,7 +119,7 @@ class BaseCompoundProblem(BaseProblem, ABC, Generic[K, B]):
                 src_name = src
                 tgt_name = tgt
 
-            problem = self._create_problem(src=src_name, tgt=tgt_name, src_mask=src_mask, tgt_mask=tgt_mask)
+            problem = self._create_problem(src_mask=src_mask, tgt_mask=tgt_mask)
             if callback is not None:
                 data = self._callback_handler(
                     src, tgt, problem, callback, callback_kwargs=callback_kwargs  # type: ignore[arg-type]
@@ -128,6 +128,7 @@ class BaseCompoundProblem(BaseProblem, ABC, Generic[K, B]):
             else:
                 kws = kwargs
 
+            # TODO(don't pass delta to every subproblem)
             problems[src_name, tgt_name] = problem.prepare(**kws)  # type: ignore[assignment]
 
         return problems
@@ -369,12 +370,10 @@ class CompoundProblem(BaseCompoundProblem[K, B], ABC):
     def _base_problem_type(self) -> Type[B]:
         pass
 
-    def _create_problem(self, src: K, tgt: K, src_mask: ArrayLike, tgt_mask: ArrayLike, **kwargs: Any) -> B:
+    def _create_problem(self, src_mask: ArrayLike, tgt_mask: ArrayLike, **kwargs: Any) -> B:
         return self._base_problem_type(
             self._mask(src_mask),
             self._mask(tgt_mask),
-            source=src,
-            target=tgt,
             **kwargs,
         )
 
@@ -433,5 +432,3 @@ class CompoundProblem(BaseCompoundProblem[K, B], ABC):
             "x": TaggedArray(data[src_mask, :][:, src_mask], tag=Tag.COST_MATRIX),
             "y": TaggedArray(data[tgt_mask, :][:, tgt_mask], tag=Tag.COST_MATRIX),
         }
-
-    
