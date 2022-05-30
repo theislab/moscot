@@ -8,7 +8,7 @@ import numpy as np
 from moscot._docs import d
 from moscot._types import Numeric_t
 from moscot.problems._utils import require_prepare
-from moscot.problems.mixins import BirthDeathMixin, BirthDeathBaseProblem
+from moscot.problems.base._birth_death import BirthDeathMixin, BirthDeathBaseProblem
 from moscot.problems.time._mixins import TemporalAnalysisMixin
 from moscot.problems.base._compound_problem import B, CompoundProblem
 
