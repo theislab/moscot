@@ -68,7 +68,6 @@ class OTTJaxSolver(OTSolver[O], ABC):
     def _create_geometry(
         self,
         x: TaggedArray,
-        y: Optional[TaggedArray] = None,
         *,
         epsilon: Optional[Epsilon_t] = None,
         online: Union[int, bool] = False,
@@ -85,11 +84,10 @@ class OTTJaxSolver(OTSolver[O], ABC):
             If the `tag` is not among the implemented ones
         """
         # TODO(michalk8): maybe in the future, enable (more) kwargs for PC/Geometry
-        print(type(x.data))
-        if y is not None:
+        if x.is_point_cloud:
             cost_fn = self._create_cost(x.loss)
             x, y = self._assert2d(x.data), self._assert2d(x.data_y)
-            if x.shape[1] != y.shape[1]:  # type: ignore[attr-defined,union-attr]
+            if x.shape[1] != y.shape[1]:  # type: ignore[attr-defined]
                 raise ValueError("TODO: x/y dimension mismatch")
             return PointCloud(x, y=y, epsilon=epsilon, cost_fn=cost_fn, online=online, scale_cost=scale_cost)
         if x.is_point_cloud:

@@ -94,17 +94,17 @@ class TagConverterMixin:
 
         if y is None:
             if tag is None:
-                tag = Tag.COST_MATRIX
-            if tag not in (Tag.COST_MATRIX, Tag.KERNEL):
-                print(f"TODO: specified `{tag}`, using `{Tag.COST_MATRIX}`")
-                tag = Tag.COST_MATRIX
-            return TaggedArray(x, tag=tag, **kwargs)
+                tag = Tag.POINT_CLOUD
+                print(f"TODO: unspecified tag`, using `{tag}`")
+            if tag == Tag.POINT_CLOUD:
+                y = x
+        else:  # always a point cloud
+            if tag is None:
+                tag = Tag.POINT_CLOUD
+            if tag != Tag.POINT_CLOUD:
+                print(f"TODO: specified `{tag}`, using `{Tag.POINT_CLOUD}`")
+                tag = Tag.POINT_CLOUD
 
-        if tag is None:
-            tag = Tag.POINT_CLOUD
-        if tag != Tag.POINT_CLOUD:
-            print(f"TODO: specified `{tag}`, using `{Tag.POINT_CLOUD}`")
-            tag = Tag.POINT_CLOUD
         return TaggedArray(x, y, tag=tag, **kwargs)
 
 
