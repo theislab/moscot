@@ -151,9 +151,9 @@ class OTProblem(BaseProblem):
     # TODO(michalk8): refactor me(previously also handled taggedarray as input)
     def prepare(
         self,
-        xy: Optional[Mapping[str, Any]] = None,
-        x: Optional[Mapping[str, Any]] = None,
-        y: Optional[Mapping[str, Any]] = None,
+        xy: Optional[Union[Mapping[str, Any], TaggedArray]] = None,
+        x: Optional[Union[Mapping[str, Any], TaggedArray]] = None,
+        y: Optional[Union[Mapping[str, Any], TaggedArray]] = None,
         a: Optional[Union[bool, str, ArrayLike]] = None,
         b: Optional[Union[bool, str, ArrayLike]] = None,
         **kwargs: Any,
@@ -162,20 +162,22 @@ class OTProblem(BaseProblem):
         # TODO(michalk8): handle again TaggedArray?
         # TODO(michalk8): better dispatch
 
+        # fmt: off
         if xy is not None and x is None and y is None:
             self._problem_kind = ProblemKind.LINEAR
-            self._xy = self._handle_linear(**xy)
+            self._xy = xy if isinstance(xy, TaggedArray) else self._handle_linear(**xy)
         elif x is not None and y is not None and xy is None:
             self._problem_kind = ProblemKind.QUAD
-            self._x = AnnDataPointer(adata=self.adata, **x).create()
-            self._y = AnnDataPointer(adata=self._adata_y, **y).create()
+            self._x = x if isinstance(x, TaggedArray) else AnnDataPointer(adata=self.adata, **x).create()
+            self._y = y if isinstance(y, TaggedArray) else AnnDataPointer(adata=self._adata_y, **y).create()
         elif xy is not None and x is not None and y is not None:
             self._problem_kind = ProblemKind.QUAD_FUSED
-            self._xy = self._handle_linear(**xy)
-            self._x = AnnDataPointer(adata=self.adata, **x).create()
-            self._y = AnnDataPointer(adata=self._adata_y, **y).create()
+            self._xy = xy if isinstance(xy, TaggedArray) else self._handle_linear(**xy)
+            self._x = x if isinstance(x, TaggedArray) else AnnDataPointer(adata=self.adata, **x).create()
+            self._y = y if isinstance(y, TaggedArray) else AnnDataPointer(adata=self._adata_y, **y).create()
         else:
             raise NotImplementedError("TODO: Combination not implemented")
+        # fmt: on
 
         self._a = self._create_marginals(self.adata, a=a, source=True, **kwargs)
         self._b = self._create_marginals(self._adata_y, b=b, source=False, **kwargs)
