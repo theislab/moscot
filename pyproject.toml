@@ -51,3 +51,8 @@ only_modified = true
 group_by_package = true
 force_alphabetical_sort_within_sections = true
 lexicographical = true
+
+[tool.pytest.ini_options]
+markers = [
+    "fast: marks tests as fask",
+]

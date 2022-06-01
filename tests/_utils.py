@@ -1,13 +1,11 @@
-from typing import Any, List, Type, Tuple, Union, Optional
+from typing import List, Type, Tuple, Union, Optional
 
 import networkx as nx
 
 import numpy as np
 
-from anndata import AnnData
-
 from moscot._types import ArrayLike
-from moscot.problems.base import OTProblem, CompoundProblem, MultiMarginalProblem
+from moscot.problems.base import OTProblem, CompoundProblem
 from moscot.solvers._output import MatrixSolverOutput
 from moscot.problems.base._mixins import AnalysisMixin
 from moscot.problems.base._compound_problem import B
@@ -38,11 +36,6 @@ class MockSolverOutput(MatrixSolverOutput):
 
     def _ones(self, n: int) -> ArrayLike:
         return np.ones(n)
-
-
-class MockMultiMarginalProblem(MultiMarginalProblem):
-    def _estimate_marginals(self, adata: AnnData, *, source: bool, **kwargs: Any) -> Optional[ArrayLike]:
-        pass
 
 
 class MockBaseSolverOutput:
