@@ -179,8 +179,8 @@ class OTProblem(BaseProblem):
             raise NotImplementedError("TODO: Combination not implemented")
         # fmt: on
 
-        self._a = self._create_marginals(self.adata, a=a, source=True, **kwargs)
-        self._b = self._create_marginals(self._adata_y, b=b, source=False, **kwargs)
+        self._a = self._create_marginals(self.adata, data=a, source=True, **kwargs)
+        self._b = self._create_marginals(self._adata_y, data=b, source=False, **kwargs)
 
         return self
 

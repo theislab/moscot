@@ -77,7 +77,7 @@ subset
     :attr:`anndata.AnnData.obs`."""
 _marginal_kwargs = """\
 marginal_kwargs
-    keyword arguments for :meth:`moscot.problems.BirthDeathBaseProblem._estimate_marginals`, i.e. for modeling
+    keyword arguments for :meth:`moscot.problems.BirthDeathProblem._estimate_marginals`, i.e. for modeling
     the birth-death process. The keyword arguments
     are either used for :func:`moscot.problems.time._utils.beta`, i.e. one of
 
@@ -134,6 +134,7 @@ joint_attr
 
 RT = TypeVar("RT")  # return type
 O = TypeVar("O")  # object type
+
 
 def inject_docs(**kwargs: Any) -> Callable[[Callable[..., RT]], Callable[..., RT]]:  # noqa: D103
     def decorator(obj: O) -> O:

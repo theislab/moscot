@@ -8,15 +8,15 @@ from moscot._types import Numeric_t
 from moscot.problems.time._mixins import TemporalMixin
 from moscot.problems.space._mixins import SpatialAlignmentMixin
 from moscot.problems.space._alignment import AlignmentProblem
-from moscot.problems.base._birth_death import BirthDeathMixin, BirthDeathBaseProblem
+from moscot.problems.base._birth_death import BirthDeathMixin, BirthDeathProblem
 
 
 @d.dedent
 class SpatioTemporalProblem(
-    TemporalMixin[Numeric_t, BirthDeathBaseProblem],
+    TemporalMixin[Numeric_t, BirthDeathProblem],
     BirthDeathMixin,
-    AlignmentProblem[Numeric_t, BirthDeathBaseProblem],
-    SpatialAlignmentMixin[Numeric_t, BirthDeathBaseProblem],
+    AlignmentProblem[Numeric_t, BirthDeathProblem],
+    SpatialAlignmentMixin[Numeric_t, BirthDeathProblem],
 ):
     """Spatio-Temporal problem."""
 

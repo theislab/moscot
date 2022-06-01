@@ -109,7 +109,7 @@ def adata_y(y: Geom_t) -> AnnData:
 @pytest.fixture()
 def adata_time() -> AnnData:
     rng = np.random.RandomState(42)
-    adatas = [AnnData(X=csr_matrix(rng.normal(size=(96, 60)))) for _ in range(3)]
+    adatas = [AnnData(X=csr_matrix(rng.normal(size=(96, 60))), dtype=float) for _ in range(3)]
     adata = adatas[0].concatenate(*adatas[1:], batch_key="time")
     adata.obs["time"] = pd.to_numeric(adata.obs["time"])
     adata.obs["batch"] = rng.choice((0, 1, 2), len(adata))
@@ -179,7 +179,7 @@ def _make_grid(grid_size: int) -> npt.ArrayLike:
 def _make_adata(grid: npt.ArrayLike, n: int, seed) -> List[AnnData]:
     rng = np.random.default_rng(seed)
     X = rng.normal(size=(100, 60))
-    adatas = [AnnData(X=csr_matrix(X), obsm={"spatial": grid.copy()}) for _ in range(n)]
+    adatas = [AnnData(X=csr_matrix(X), obsm={"spatial": grid.copy()}, dtype=float) for _ in range(n)]
     return adatas
 
 

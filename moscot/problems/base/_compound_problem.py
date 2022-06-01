@@ -106,6 +106,8 @@ class BaseCompoundProblem(BaseProblem, ABC, Generic[K, B]):
         callback_kwargs: Mapping[str, Any] = MappingProxyType({}),
         **kwargs: Any,
     ) -> Dict[Tuple[K, K], B]:
+        from moscot.problems.base._birth_death import BirthDeathProblem
+
         if TYPE_CHECKING:
             assert isinstance(self._policy, SubsetPolicy)
 
@@ -127,7 +129,8 @@ class BaseCompoundProblem(BaseProblem, ABC, Generic[K, B]):
             else:
                 kws = kwargs
 
-            # TODO(don't pass delta to every subproblem)
+            if isinstance(problem, BirthDeathProblem):
+                kws["delta"] = tgt - src  # type: ignore[operator]
             problems[src_name, tgt_name] = problem.prepare(**kws)  # type: ignore[assignment]
 
         return problems
@@ -204,7 +207,7 @@ class BaseCompoundProblem(BaseProblem, ABC, Generic[K, B]):
             Keyword arguments for one of
                 - :meth:`moscot.problems.OTProblem.solve`
                 - :meth:`moscot.problems.MultiMarginalProblem.solve`
-                - :meth:`moscot.problems.BirthDeathBaseProblem.solve`
+                - :meth:`moscot.problems.BirthDeathProblem.solve`
         """
         self._solutions = {}
         for subset, problem in self.problems.items():

@@ -8,13 +8,13 @@ import numpy as np
 from moscot._docs import d
 from moscot._types import Numeric_t
 from moscot.problems.time._mixins import TemporalMixin
-from moscot.problems.base._birth_death import BirthDeathMixin, BirthDeathBaseProblem
+from moscot.problems.base._birth_death import BirthDeathMixin, BirthDeathProblem
 from moscot.problems.base._compound_problem import B, CompoundProblem
 
 
 @d.dedent
 class TemporalProblem(
-    TemporalMixin[Numeric_t, BirthDeathBaseProblem], BirthDeathMixin, CompoundProblem[Numeric_t, BirthDeathBaseProblem]
+    TemporalMixin[Numeric_t, BirthDeathProblem], BirthDeathMixin, CompoundProblem[Numeric_t, BirthDeathProblem]
 ):
     """
     Class for analysing time series single cell data based on :cite:`schiebinger:19`.
@@ -204,7 +204,7 @@ class TemporalProblem(
 
     @property
     def _base_problem_type(self) -> Type[B]:
-        return BirthDeathBaseProblem
+        return BirthDeathProblem
 
     @property
     def _valid_policies(self) -> Tuple[str, ...]:

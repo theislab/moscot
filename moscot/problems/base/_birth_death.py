@@ -11,7 +11,7 @@ from moscot._types import ArrayLike
 from moscot.problems.base import OTProblem  # type: ignore[attr-defined]
 from moscot.problems.time._utils import beta, delta as _delta, MarkerGenes
 
-__all__ = ["BirthDeathBaseProblem", "BirthDeathMixin"]
+__all__ = ["BirthDeathProblem", "BirthDeathMixin"]
 
 
 class BirthDeathProtocol(Protocol):
@@ -31,7 +31,7 @@ class BirthDeathProtocol(Protocol):
 
 
 class BirthDeathMixin:
-    """Mixin class for biological problems based on :class:`moscot.problems.mixins.BirthDeathBaseProblem`."""
+    """Mixin class for biological problems based on :class:`moscot.problems.mixins.BirthDeathProblem`."""
 
     def __init__(self, *args: Any, **kwargs: Any):
         super().__init__(*args, **kwargs)
@@ -144,7 +144,7 @@ class BirthDeathMixin:
 
 
 @d.dedent
-class BirthDeathBaseProblem(BirthDeathMixin, OTProblem):
+class BirthDeathProblem(BirthDeathMixin, OTProblem):
     """
     Class handling an optimal transport problem which allows to estimate the marginals with a birth-death process.
 
@@ -160,7 +160,7 @@ class BirthDeathBaseProblem(BirthDeathMixin, OTProblem):
 
     def __init__(self, *args: Any, **kwargs: Any):
         super().__init__(*args, **kwargs)
-        self._delta = 0.0
+        self._delta: Optional[float] = None
 
     def _estimate_marginals(
         self,
@@ -192,9 +192,10 @@ class BirthDeathBaseProblem(BirthDeathMixin, OTProblem):
             return growth
         return np.full(len(self._adata_y), np.average(growth))
 
+    # TODO(michalk8): consider removing this
     @property
     def growth_rates(self) -> Optional[ArrayLike]:
         """Return the growth rates of the cells in the source distribution."""
-        if self.a is None:
+        if self.a is None or self._delta is None:
             return None
         return np.power(self.a, 1.0 / self._delta)
