@@ -17,7 +17,6 @@ Value_t = Tuple[ArrayLike, ArrayLike]
 Axis_t = Literal["obs", "var"]
 Policy_t = Literal[
     "sequential",
-    "pairwise",
     "star",
     "external_star",
     "triu",
@@ -29,7 +28,6 @@ Policy_t = Literal[
 __all__ = [
     "SubsetPolicy",
     "OrderedPolicy",
-    "PairwisePolicy",
     "StarPolicy",
     "ExternalStarPolicy",
     "SequentialPolicy",
@@ -78,9 +76,9 @@ class SubsetPolicy(Generic[K]):
     def _create_graph(self, **kwargs: Any) -> Sequence[Tuple[K, K]]:
         pass
 
-    def plan(self, forward: bool = True, **kwargs: Any) -> Sequence[Tuple[K, K]]:
-        plan = self._plan(**kwargs)
-        return plan if forward else plan[::-1]
+    # TODO(michalk8): move filter argument from graph creation?
+    def plan(self, **kwargs: Any) -> Sequence[Tuple[K, K]]:
+        return self._plan(**kwargs)
 
     @abstractmethod
     def _plan(self, **kwargs: Any) -> Sequence[Tuple[K, K]]:
@@ -107,8 +105,6 @@ class SubsetPolicy(Generic[K]):
     ) -> "SubsetPolicy[K]":
         if kind == "sequential":
             return SequentialPolicy(adata, **kwargs)
-        if kind == "pairwise":
-            return PairwisePolicy(adata, **kwargs)
         if kind == "star":
             return StarPolicy(adata, **kwargs)
         if kind == "external_star":
@@ -158,11 +154,13 @@ class OrderedPolicy(SubsetPolicy[K], ABC):
         super().__init__(adata, **kwargs)
         # TODO(michalk8): verify whether they can be ordered (only numeric?) + warn (or just raise)
 
-    def _plan(self, start: Optional[K] = None, end: Optional[K] = None, **_: Any) -> Sequence[Tuple[K, K]]:
+    def _plan(
+        self, forward: bool = True, start: Optional[K] = None, end: Optional[K] = None, **_: Any
+    ) -> Sequence[Tuple[K, K]]:
         if self._graph is None:
             raise RuntimeError("TODO: run graph creation first")
         if start is None and end is None:
-            return self._graph
+            return self._graph if forward else self._graph[::-1]
         # TODO: add Graph for undirected
         G = nx.DiGraph()
         G.add_edges_from(self._graph)
@@ -173,17 +171,14 @@ class OrderedPolicy(SubsetPolicy[K], ABC):
             raise ValueError("TODO: start or end is None")
 
         path = nx.shortest_path(G, start, end)
-        return list(zip(path[:-1], path[1:]))
+        path = list(zip(path[:-1], path[1:]))
+
+        return path if forward else path[::-1]
 
 
 class SimplePlanPolicy(SubsetPolicy[K], ABC):
     def _plan(self, **_: Any) -> Sequence[Tuple[K, K]]:
         return self._graph
-
-
-class PairwisePolicy(SimplePlanPolicy[K]):
-    def _create_graph(self, *_: Any, **__: Any) -> Sequence[Tuple[K, K]]:
-        return [(a, b) for a, b in product(self._cat, self._cat) if a != b]
 
 
 class StarPolicy(SimplePlanPolicy[K]):

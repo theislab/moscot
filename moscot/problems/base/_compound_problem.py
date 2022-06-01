@@ -17,6 +17,7 @@ from typing import (
     Sequence,
     TYPE_CHECKING,
 )
+from functools import singledispatchmethod
 
 from scipy.sparse import issparse
 
@@ -24,10 +25,19 @@ from anndata import AnnData
 
 from moscot._docs import d
 from moscot._types import ArrayLike
-from moscot.problems._utils import require_prepare, require_solution
+from moscot.problems._utils import require_prepare
 from moscot.solvers._output import BaseSolverOutput
 from moscot.solvers._tagged_array import Tag, TaggedArray
-from moscot.problems._subset_policy import Axis_t, Policy_t, StarPolicy, SubsetPolicy, ExplicitPolicy, FormatterMixin
+from moscot.problems._subset_policy import (
+    Axis_t,
+    Policy_t,
+    StarPolicy,
+    DummyPolicy,
+    SubsetPolicy,
+    OrderedPolicy,
+    ExplicitPolicy,
+    FormatterMixin,
+)
 from moscot.problems.base._base_problem import OTProblem, BaseProblem
 
 __all__ = ["BaseCompoundProblem", "CompoundProblem"]
@@ -35,7 +45,7 @@ __all__ = ["BaseCompoundProblem", "CompoundProblem"]
 K = TypeVar("K", bound=Hashable)
 B = TypeVar("B", bound=OTProblem)
 Callback_t = Callable[[AnnData, AnnData], Mapping[str, TaggedArray]]
-ApplyOutput_t = Union[ArrayLike, Dict[K, ArrayLike]]
+ApplyOutput_t = Union[ArrayLike, Dict[Tuple[K, K], ArrayLike]]
 
 
 @d.get_sections(base="BaseCompoundProblem", sections=["Parameters", "Raises"])
@@ -215,61 +225,65 @@ class BaseCompoundProblem(BaseProblem, ABC, Generic[K, B]):
 
         return self
 
-    @d.get_sections(base="_apply", sections=["Parameters", "Raises"])
-    @d.dedent
-    @require_solution
+    @singledispatchmethod
     def _apply(
         self,
+        policy: SubsetPolicy[K],
         data: Optional[Union[str, ArrayLike]] = None,
-        start: Optional[K] = None,
-        end: Optional[K] = None,
         forward: bool = True,
-        return_all: bool = False,
         scale_by_marginals: bool = False,
         **kwargs: Any,
     ) -> ApplyOutput_t[K]:
-        """
-        Use (a) transport map(s) as a linear operator.
+        raise NotImplementedError(type(policy))
 
-        Parameters
-        ----------
-        %(data)s
-        forward
-            If `True` the data is pushed from the source to the target distribution. If `False` the mass is pulled
-            from the target distribution to the source distribution.
-        return_all
-            If `True` and transport maps are applied consecutively only the final mass is returned. Otherwise,
-            all intermediate step results are returned, too.
-        %(scale_by_marginals)s
-
-        Returns
-        -------
-        TODO.
-
-        Raises
-        ------
-        ValueError
-            If a transport map between the corresponding source and target distribution is not computed
-        """
+    @_apply.register(ExplicitPolicy)
+    @_apply.register(DummyPolicy)
+    @_apply.register
+    def _(
+        self,
+        _: StarPolicy[K],
+        data: Optional[Union[str, ArrayLike]] = None,
+        forward: bool = True,
+        scale_by_marginals: bool = False,
+        **kwargs: Any,
+    ) -> ApplyOutput_t[K]:
         if TYPE_CHECKING:
-            assert isinstance(self._policy, SubsetPolicy)
+            assert isinstance(self._policy, StarPolicy)
 
-        # TODO(michalk8): maybe implement something for StarPolicies
-        # in this case, use `plan_kwargs` (unused are ignored)
-        # TODO(michalk8): may need to be policy specific...
+        res = {}
+        for src, tgt in self._policy.plan():
+            problem = self.problems[src, tgt]
+            fun = problem.push if forward else problem.pull
+            res[src, tgt] = fun(data=data, scale_by_marginals=scale_by_marginals, **kwargs)
+        return res
+
+    @_apply.register
+    def _(
+        self,
+        _: OrderedPolicy[K],
+        data: Optional[Union[str, ArrayLike]] = None,
+        forward: bool = True,
+        scale_by_marginals: bool = False,
+        start: Optional[K] = None,
+        end: Optional[K] = None,
+        return_all: bool = False,
+        **kwargs: Any,
+    ) -> ApplyOutput_t[K]:
+        if TYPE_CHECKING:
+            assert isinstance(self._policy, OrderedPolicy)
+
         (src, tgt), *rest = self._policy.plan(forward=forward, start=start, end=end)
         problem = self.problems[src, tgt]
         adata = problem.adata if forward else problem._adata_y
 
         current_mass = problem._get_mass(adata, data=data, **kwargs)
-        res = {src if forward else tgt: current_mass}
+        res = {(None, src) if forward else (tgt, None): current_mass}
 
         for src, tgt in [(src, tgt)] + rest:
             problem = self.problems[src, tgt]
             fun = problem.push if forward else problem.pull
             current_mass = fun(current_mass, scale_by_marginals=scale_by_marginals, **kwargs)
-            # TODO(michalk8): fix star policy key
-            res[tgt if forward else src] = current_mass
+            res[src, tgt] = current_mass
 
         return res if return_all else current_mass
 

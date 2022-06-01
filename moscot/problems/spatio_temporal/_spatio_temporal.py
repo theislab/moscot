@@ -26,7 +26,7 @@ class SpatioTemporalProblem(
         time_key: str,
         spatial_key: str = "spatial",
         joint_attr: Optional[Mapping[str, Any]] = MappingProxyType({"x_attr": "X", "y_attr": "X"}),
-        policy: Literal["sequential", "pairwise", "triu", "tril", "explicit"] = "sequential",
+        policy: Literal["sequential", "triu", "tril", "explicit"] = "sequential",
         marginal_kwargs: Mapping[str, Any] = MappingProxyType({}),
         **kwargs: Any,
     ) -> "SpatioTemporalProblem":
@@ -107,4 +107,4 @@ class SpatioTemporalProblem(
 
     @property
     def _valid_policies(self) -> Tuple[str, ...]:
-        return "sequential", "pairwise", "triu", "tril", "explicit"
+        return "sequential", "triu", "tril", "explicit"

@@ -39,7 +39,7 @@ class TemporalProblem(
         self,
         time_key: str,
         joint_attr: Optional[Union[str, Mapping[str, Any]]] = None,
-        policy: Literal["sequential", "pairwise", "triu", "tril", "explicit"] = "sequential",
+        policy: Literal["sequential", "triu", "tril", "explicit"] = "sequential",
         marginal_kwargs: Mapping[str, Any] = MappingProxyType({}),
         **kwargs: Any,
     ) -> "TemporalProblem":
@@ -208,7 +208,7 @@ class TemporalProblem(
 
     @property
     def _valid_policies(self) -> Tuple[str, ...]:
-        return "sequential", "pairwise", "triu", "tril", "explicit"
+        return "sequential", "triu", "tril", "explicit"
 
 
 @d.dedent
@@ -235,7 +235,7 @@ class LineageProblem(TemporalProblem):
         time_key: str,
         lineage_attr: Mapping[str, Any] = MappingProxyType({}),
         joint_attr: Optional[Union[str, Mapping[str, Any]]] = None,
-        policy: Literal["sequential", "pairwise", "triu", "tril", "explicit"] = "sequential",
+        policy: Literal["sequential", "triu", "tril", "explicit"] = "sequential",
         **kwargs: Any,
     ) -> "LineageProblem":
         """

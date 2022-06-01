@@ -12,7 +12,7 @@ from tests._utils import MockSolverOutput
 from moscot.problems.time._lineage import TemporalProblem
 
 
-class TestTemporalAnalysisMixin:
+class TestTemporalMixin:
     @pytest.mark.fast()
     @pytest.mark.parametrize("forward", [True, False])
     def test_cell_transition_full_pipeline(self, gt_temporal_adata: AnnData, forward: bool):
