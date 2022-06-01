@@ -23,7 +23,7 @@ class TestLineageProblem:
 
         for key in problem:
             assert key in expected_keys
-            assert isinstance(problem[key], BirthDeathBaseProblem)
+            assert isinstance(problem[key], problem._base_problem_type)
 
     def test_custom_cost_pipeline(self, adata_time_custom_cost_xy: AnnData):
         expected_keys = [(0, 1), (1, 2)]

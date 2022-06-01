@@ -58,52 +58,54 @@ class TaggedArrayData(NamedTuple):
 class TagConverterMixin:
     def _get_array_data(
         self,
-        xy: Optional[Union[ArrayLike, Tuple[ArrayLike, ArrayLike]]] = None,
-        x: Optional[ArrayLike] = None,
-        y: Optional[ArrayLike] = None,
+        xy: Optional[Union[TaggedArray, ArrayLike, Tuple[ArrayLike, ArrayLike]]] = None,
+        x: Optional[Union[TaggedArray, ArrayLike, Tuple[ArrayLike, ArrayLike]]] = None,
+        y: Optional[Union[TaggedArray, ArrayLike, Tuple[ArrayLike, ArrayLike]]] = None,
         tags: Mapping[Literal["xy", "x", "y"], Tag] = MappingProxyType({}),
+        **kwargs: Any,
     ) -> TaggedArrayData:
-        x_, y_ = self._convert(x, y, tags=tags, is_linear=False)
-        if xy is None:
-            xy_, _ = self._convert(None, None, tags=tags, is_linear=True)
-        elif not isinstance(xy, tuple):
-            xy_, _ = self._convert(xy, None, tags=tags, is_linear=True)
-        else:
-            xy_, _ = self._convert(xy[0], xy[1], tags=tags, is_linear=True)
-        return TaggedArrayData(x=x_, y=y_, xy=xy_)
+        def to_tuple(
+            data: Optional[Union[ArrayLike, Tuple[ArrayLike, ArrayLike]]]
+        ) -> Tuple[Optional[ArrayLike], Optional[ArrayLike]]:
+            if not isinstance(data, tuple):
+                return data, None
+            if len(data) != 2:
+                raise ValueError(f"TODO: `{data}`")
+            return data
+
+        loss_xy = {k[3:]: v for k, v in kwargs.items() if k.startswith("xy_")}
+        loss_x = {k[2:]: v for k, v in kwargs.items() if k.startswith("x_")}
+        loss_y = {k[2:]: v for k, v in kwargs.items() if k.startswith("y_")}
+
+        # fmt: off
+        xy = xy if isinstance(xy, TaggedArray) else self._convert(*to_tuple(xy), tag=tags.get("xy", None), **loss_xy)
+        x = x if isinstance(x, TaggedArray) else self._convert(*to_tuple(x), tag=tags.get("x", None), **loss_x)
+        y = y if isinstance(y, TaggedArray) else self._convert(*to_tuple(y), tag=tags.get("y", None), **loss_y)
+        # fmt: on
+
+        return TaggedArrayData(x=x, y=y, xy=xy)
 
     @staticmethod
     def _convert(
-        x: Optional[ArrayLike],
-        y: Optional[ArrayLike],
-        tags: Mapping[Literal["xy", "x", "y"], Tag] = MappingProxyType({}),
-        *,
-        is_linear: bool,
-    ) -> Tuple[Optional[TaggedArray], Optional[TaggedArray]]:
-        def to_tagged_array(x: ArrayLike, tag: Tag, y: Optional[ArrayLike] = None) -> TaggedArray:
-            tag = Tag(tag)
-            if y is not None:
-                assert tag == Tag.POINT_CLOUD, tag  # TODO: nicer message
-            return TaggedArray(x, data_y=y, tag=tag)
-
-        def cost_or_kernel(arr: ArrayLike, key: str) -> TaggedArray:
-            res = to_tagged_array(arr, tag=tags.get(key, Tag.COST_MATRIX))  # type: ignore[call-overload]
-            if res.tag not in (Tag.COST_MATRIX, Tag.KERNEL):
-                raise ValueError(f"TODO: wrong tag - expected kernel/cost, got `{res.tag}`")
-            return res
-
-        x_key, y_key = ("xy", "xy") if is_linear else ("x", "y")
-        x_tag, y_tag = tags.get(x_key, Tag.POINT_CLOUD), tags.get(y_key, Tag.POINT_CLOUD)  # type: ignore[call-overload]
-
-        if x is None and y is None:
-            return None, None  # checks are done later
+        x: Optional[ArrayLike] = None, y: Optional[ArrayLike] = None, *, tag: Optional[Tag] = None, **kwargs: Any
+    ) -> Optional[TaggedArray]:
         if x is None:
-            return cost_or_kernel(y, key=y_key), None  # type: ignore[arg-type]
+            return None  # data not needed; checks are done later
+
         if y is None:
-            return cost_or_kernel(x, key=x_key), None
-        if is_linear:
-            return to_tagged_array(x, y=y, tag=Tag.POINT_CLOUD), None  # TODO
-        return to_tagged_array(x, tag=x_tag), to_tagged_array(y, tag=y_tag)
+            if tag is None:
+                tag = Tag.COST_MATRIX
+            if tag not in (Tag.COST_MATRIX, Tag.KERNEL):
+                print(f"TODO: specified `{tag}`, using `{Tag.COST_MATRIX}`")
+                tag = Tag.COST_MATRIX
+            return TaggedArray(x, tag=tag, **kwargs)
+
+        if tag is None:
+            tag = Tag.POINT_CLOUD
+        if tag != Tag.POINT_CLOUD:
+            print(f"TODO: specified `{tag}`, using `{Tag.POINT_CLOUD}`")
+            tag = Tag.POINT_CLOUD
+        return TaggedArray(x, y, tag=tag, **kwargs)
 
 
 class BaseSolver(Generic[O], ABC):
@@ -136,9 +138,9 @@ class OTSolver(TagConverterMixin, BaseSolver[O], ABC):
 
     def __call__(
         self,
-        xy: Optional[Union[ArrayLike, Tuple[ArrayLike, ArrayLike]]] = None,
-        x: Optional[ArrayLike] = None,
-        y: Optional[ArrayLike] = None,
+        xy: Optional[Union[TaggedArray, ArrayLike, Tuple[ArrayLike, ArrayLike]]] = None,
+        x: Optional[Union[TaggedArray, ArrayLike]] = None,
+        y: Optional[Union[TaggedArray, ArrayLike]] = None,
         a: Optional[ArrayLike] = None,
         b: Optional[ArrayLike] = None,
         tau_a: float = 1.0,
@@ -157,11 +159,7 @@ class OTSolver(TagConverterMixin, BaseSolver[O], ABC):
 
         return res
 
-    def _prepare_kwargs(
-        self,
-        data: TaggedArrayData,
-        **kwargs: Any,
-    ) -> Dict[str, Any]:
+    def _prepare_kwargs(self, data: TaggedArrayData, **kwargs: Any) -> Dict[str, Any]:
         def assert_linear() -> None:
             if data.xy is None:
                 raise ValueError("TODO: no linear data.")

@@ -85,6 +85,7 @@ class OTTJaxSolver(OTSolver[O], ABC):
             If the `tag` is not among the implemented ones
         """
         # TODO(michalk8): maybe in the future, enable (more) kwargs for PC/Geometry
+        print(type(x.data))
         if y is not None:
             cost_fn = self._create_cost(x.loss)
             x, y = self._assert2d(x.data), self._assert2d(x.data_y)

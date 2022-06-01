@@ -19,8 +19,8 @@ class TestTemporalProblem:
         problem = TemporalProblem(adata=adata_time)
 
         assert len(problem) == 0
-        assert problem.problems is None
-        assert problem.solutions is None
+        assert problem.problems is {}
+        assert problem.solutions is {}
 
         problem = problem.prepare(
             time_key="time",

@@ -33,7 +33,7 @@ class TestSingleCompoundProblem:
     ) -> Mapping[Literal["xy", "x", "y"], TaggedArray]:
         assert sentinel
         assert isinstance(adata_y, AnnData)
-        return {"xy": (TaggedArray(euclidean_distances(adata.X, adata_y.X), tag=Tag.COST_MATRIX), None)}
+        return {"xy": TaggedArray(euclidean_distances(adata.X, adata_y.X), tag=Tag.COST_MATRIX)}
 
     def test_sc_pipeline(self, adata_time: AnnData):
         expected_keys = [(0, 1), (1, 2)]
