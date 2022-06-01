@@ -17,7 +17,7 @@ from moscot.problems.base._mixins import AnalysisMixin, AnalysisMixinProtocol
 from moscot.problems.base._compound_problem import B, K, ApplyOutput_t
 
 
-class TemporalMixinProtocol(Protocol[K, B], AnalysisMixinProtocol[K, B]):
+class TemporalMixinProtocol(AnalysisMixinProtocol[K, B], Protocol[K, B]):
     """Protocol class."""
 
     problems: Dict[Tuple[K, K], B]
