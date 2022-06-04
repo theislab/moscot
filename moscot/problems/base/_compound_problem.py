@@ -340,6 +340,18 @@ class BaseCompoundProblem(BaseProblem, ABC, Generic[K, B]):
         """Return dictionary of OT problems which the biological problem consists of."""
         return self._problems
 
+    def add_problem(self, key: Tuple[K, K], problem: B, *, overwrite: bool = False) -> None:
+        if not overwrite and key in self:
+            raise KeyError(f"TODO: `{key}` already present, use `overwrite=True`")
+        self.problems[key] = problem
+        # TODO(michalk8): set tag to be re-solved
+        # TODO(michalk8): verify shape consistency
+        # TODO(michalk8): modify policy's graph
+
+    def remove_problem(self, key: Tuple[K, K]) -> None:
+        del self.problems[key]
+        # TODO(michalk8): modify policy's graph
+
     @property
     def solutions(self) -> Dict[Tuple[K, K], BaseSolverOutput]:
         """Return dictionary of solutions of OT problems which the biological problem consists of."""
@@ -347,6 +359,12 @@ class BaseCompoundProblem(BaseProblem, ABC, Generic[K, B]):
 
     def __getitem__(self, item: Tuple[K, K]) -> B:
         return self.problems[item]
+
+    def __setitem__(self, key: Tuple[K, K], problem: B) -> None:
+        self.add_problem(key, problem, overwrite=False)
+
+    def __contains__(self, key: Tuple[K, K]) -> bool:
+        return key in self.problems
 
     def __len__(self) -> int:
         return len(self.problems)
