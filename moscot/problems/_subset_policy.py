@@ -65,8 +65,7 @@ class SubsetPolicy(Generic[K]):
                 raise ValueError(f"TODO: wrong axis `{axis}`")
         else:
             self._data = adata
-        if not hasattr(self._data, "cat"):
-            self._data = self._data.astype("category")  # TODO(@MUCDK): catch conversion error
+        self._data = self._data.astype("category")  # TODO(@MUCDK): catch conversion error
         self._axis = axis
         self._graph: Sequence[Tuple[K, K]] = []
         self._cat = tuple(self._data.cat.categories)

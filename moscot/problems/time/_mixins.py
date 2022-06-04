@@ -300,7 +300,8 @@ class TemporalMixin(AnalysisMixin[K, B]):
         *,
         only_start: bool = False,
     ) -> Union[Tuple[ArrayLike, AnnData], Tuple[ArrayLike, ArrayLike, ArrayLike, AnnData, ArrayLike]]:
-        for (src, tgt) in self.problems.keys():
+        # TODO: use .items()
+        for (src, tgt) in self.problems:
             tag = self.problems[src, tgt].xy.tag  # type: ignore[union-attr]
             if tag != "point_cloud":
                 raise ValueError(

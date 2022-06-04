@@ -11,7 +11,10 @@ def attributedispatch(func: Optional[Callback] = None, attr: Optional[str] = Non
     """Dispatch a function based on the first value."""
 
     def dispatch(value: Type[Any]) -> Callback:
-        return registry.get(value, func)  # type: ignore[arg-type]
+        for typ in value.mro():
+            if typ in registry:
+                return registry[typ]
+        return func  # type: ignore[return-value]
 
     def register(value: Type[Any], func: Optional[Callback] = None) -> Callback:
         if func is None:

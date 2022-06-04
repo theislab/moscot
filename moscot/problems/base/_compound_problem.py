@@ -237,6 +237,7 @@ class BaseCompoundProblem(BaseProblem, ABC, Generic[K, B]):
     ) -> ApplyOutput_t[K]:
         raise NotImplementedError(type(self._policy))
 
+    # @_apply.register(ExplicitPolicy)  # TODO(michalk8): figure out where to place tis
     @_apply.register(DummyPolicy)
     @_apply.register(StarPolicy)
     def _(
@@ -256,7 +257,6 @@ class BaseCompoundProblem(BaseProblem, ABC, Generic[K, B]):
             res[src] = fun(data=data, scale_by_marginals=scale_by_marginals, **kwargs)
         return res
 
-    @_apply.register(ExplicitPolicy)  # TODO(michalk8): figure out where to place tis
     @_apply.register(OrderedPolicy)
     def _(
         self,
@@ -283,8 +283,7 @@ class BaseCompoundProblem(BaseProblem, ABC, Generic[K, B]):
         for src, tgt in [(src, tgt)] + rest:
             problem = self.problems[src, tgt]
             fun = problem.push if forward else problem.pull
-            current_mass = fun(current_mass, scale_by_marginals=scale_by_marginals, **kwargs)
-            res[tgt] = current_mass
+            res[tgt] = current_mass = fun(current_mass, scale_by_marginals=scale_by_marginals, **kwargs)
 
         return res if return_all else current_mass
 
@@ -394,7 +393,7 @@ class CompoundProblem(BaseCompoundProblem[K, B], ABC):
         **_: Any,
     ) -> SubsetPolicy[K]:
         if isinstance(policy, str):
-            return SubsetPolicy.create(policy, self.adata, key=key, axis=axis)
+            return SubsetPolicy.create(policy, adata=self.adata, key=key, axis=axis)
         return ExplicitPolicy(self.adata, key=key, axis=axis)
 
     def _mask(self, mask: ArrayLike) -> AnnData:
