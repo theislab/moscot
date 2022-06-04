@@ -152,10 +152,6 @@ class BirthDeathProblem(BirthDeathMixin, OTProblem):
     ----------
     %(adata_x)s
     %(adata_y)s
-
-    Raises
-    ------
-    %(MultiMarginalProblem.raises)s
     """
 
     def __init__(self, *args: Any, **kwargs: Any):

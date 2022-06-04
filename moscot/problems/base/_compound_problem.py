@@ -45,7 +45,9 @@ __all__ = ["BaseCompoundProblem", "CompoundProblem"]
 K = TypeVar("K", bound=Hashable)
 B = TypeVar("B", bound=OTProblem)
 Callback_t = Callable[[AnnData, AnnData], Mapping[str, TaggedArray]]
-ApplyOutput_t = Union[ArrayLike, Dict[Tuple[K, K], ArrayLike]]
+ApplyOutput_t = Union[ArrayLike, Dict[K, ArrayLike]]
+# TODO(michalk8): future behavior
+# ApplyOutput_t = Union[ArrayLike, Dict[Tuple[K, K], ArrayLike]]
 
 
 @d.get_sections(base="BaseCompoundProblem", sections=["Parameters", "Raises"])
@@ -236,12 +238,12 @@ class BaseCompoundProblem(BaseProblem, ABC, Generic[K, B]):
     ) -> ApplyOutput_t[K]:
         raise NotImplementedError(type(policy))
 
-    @_apply.register(ExplicitPolicy)
+    # @_apply.register(ExplicitPolicy)  # TODO(michalk8): figure out where to place tis
     @_apply.register(DummyPolicy)
-    @_apply.register
+    @_apply.register(StarPolicy)
     def _(
         self,
-        _: StarPolicy[K],
+        _: Any,
         data: Optional[Union[str, ArrayLike]] = None,
         forward: bool = True,
         scale_by_marginals: bool = False,
@@ -254,13 +256,13 @@ class BaseCompoundProblem(BaseProblem, ABC, Generic[K, B]):
         for src, tgt in self._policy.plan():
             problem = self.problems[src, tgt]
             fun = problem.push if forward else problem.pull
-            res[src, tgt] = fun(data=data, scale_by_marginals=scale_by_marginals, **kwargs)
+            res[src] = fun(data=data, scale_by_marginals=scale_by_marginals, **kwargs)
         return res
 
-    @_apply.register
+    @_apply.register(OrderedPolicy)
     def _(
         self,
-        _: OrderedPolicy[K],
+        _: Any,
         data: Optional[Union[str, ArrayLike]] = None,
         forward: bool = True,
         scale_by_marginals: bool = False,
@@ -277,13 +279,15 @@ class BaseCompoundProblem(BaseProblem, ABC, Generic[K, B]):
         adata = problem.adata if forward else problem._adata_y
 
         current_mass = problem._get_mass(adata, data=data, **kwargs)
-        res = {(None, src) if forward else (tgt, None): current_mass}
+        # TODO(michlak8): future behavior
+        # res = {(None, src) if forward else (tgt, None): current_mass}
+        res = {src if forward else tgt: current_mass}
 
         for src, tgt in [(src, tgt)] + rest:
             problem = self.problems[src, tgt]
             fun = problem.push if forward else problem.pull
             current_mass = fun(current_mass, scale_by_marginals=scale_by_marginals, **kwargs)
-            res[src, tgt] = current_mass
+            res[tgt] = current_mass
 
         return res if return_all else current_mass
 
@@ -308,10 +312,6 @@ class BaseCompoundProblem(BaseProblem, ABC, Generic[K, B]):
         Returns
         -------
         TODO.
-
-        Raises
-        ------
-        %(_apply.raises)s
         """
         return self._apply(*args, forward=True, **kwargs)
 
@@ -336,10 +336,6 @@ class BaseCompoundProblem(BaseProblem, ABC, Generic[K, B]):
         Returns
         -------
         TODO.
-
-        Raises
-        ------
-        %(_apply.raises)s
         """
         return self._apply(*args, forward=False, **kwargs)
 
