@@ -9,7 +9,7 @@ from anndata import AnnData
 
 from moscot.problems.time import TemporalProblem
 from moscot.solvers._output import BaseSolverOutput
-from moscot.problems.time._lineage import BirthDeathBaseProblem
+from moscot.problems.time._lineage import BirthDeathProblem
 
 
 class TestTemporalProblem:
@@ -19,8 +19,8 @@ class TestTemporalProblem:
         problem = TemporalProblem(adata=adata_time)
 
         assert len(problem) == 0
-        assert problem.problems is None
-        assert problem.solutions is None
+        assert problem.problems == {}
+        assert problem.solutions == {}
 
         problem = problem.prepare(
             time_key="time",
@@ -30,7 +30,7 @@ class TestTemporalProblem:
 
         for key in problem:
             assert key in expected_keys
-            assert isinstance(problem[key], BirthDeathBaseProblem)
+            assert isinstance(problem[key], BirthDeathProblem)
 
     def test_solve_balanced(self, adata_time: AnnData):
         eps = 0.5

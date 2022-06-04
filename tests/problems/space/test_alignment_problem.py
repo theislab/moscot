@@ -23,8 +23,8 @@ class TestAlignmentProblem:
         n_var = adata_space_rotate.shape[1]
         ap = AlignmentProblem(adata=adata_space_rotate)
         assert len(ap) == 0
-        assert ap.problems is None
-        assert ap.solutions is None
+        assert ap.problems == {}
+        assert ap.solutions == {}
 
         ap = ap.prepare(batch_key="batch", joint_attr=joint_attr)
         for prob_key, exp_key in zip(ap, expected_keys):
@@ -32,15 +32,15 @@ class TestAlignmentProblem:
             assert isinstance(ap[prob_key], ap._base_problem_type)
             assert ap[prob_key].shape == (n_obs, n_obs)
             assert ap[prob_key].x.data.shape == ap[prob_key].y.data.shape == (n_obs, 2)
-            assert ap[prob_key].xy[0].data.shape == ap[prob_key].xy[1].data.shape == (n_obs, n_var)
+            assert ap[prob_key].xy.data.shape == ap[prob_key].xy.data_y.shape == (n_obs, n_var)
 
     @pytest.mark.fast()
     @pytest.mark.parametrize("reference", ["0", "1", "2"])
     def test_prepare_star(self, adata_space_rotate: AnnData, reference: str):
         ap = AlignmentProblem(adata=adata_space_rotate)
         assert len(ap) == 0
-        assert ap.problems is None
-        assert ap.solutions is None
+        assert ap.problems == {}
+        assert ap.solutions == {}
         ap = ap.prepare(batch_key="batch", policy="star", reference=reference)
         for prob_key in ap:
             _, ref = prob_key

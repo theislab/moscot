@@ -1,21 +1,21 @@
 from types import MappingProxyType
 from typing import Any, Type, Tuple, Union, Literal, Mapping, Optional
-from numbers import Number
 
 import pandas as pd
 
 import numpy as np
 
-from anndata import AnnData
-
 from moscot._docs import d
-from moscot.analysis_mixins import TemporalAnalysisMixin
-from moscot.problems.mixins import BirthDeathMixin, BirthDeathBaseProblem
-from moscot.problems._compound_problem import B, SingleCompoundProblem
+from moscot._types import Numeric_t
+from moscot.problems.time._mixins import TemporalMixin
+from moscot.problems.base._birth_death import BirthDeathMixin, BirthDeathProblem
+from moscot.problems.base._compound_problem import B, CompoundProblem
 
 
 @d.dedent
-class TemporalProblem(TemporalAnalysisMixin, BirthDeathMixin, SingleCompoundProblem[Number, BirthDeathBaseProblem]):
+class TemporalProblem(
+    TemporalMixin[Numeric_t, BirthDeathProblem], BirthDeathMixin, CompoundProblem[Numeric_t, BirthDeathProblem]
+):
     """
     Class for analysing time series single cell data based on :cite:`schiebinger:19`.
 
@@ -34,15 +34,12 @@ class TemporalProblem(TemporalAnalysisMixin, BirthDeathMixin, SingleCompoundProb
     See notebook TODO(@MUCDK) LINK NOTEBOOK for how to use it
     """
 
-    def __init__(self, adata: AnnData, **kwargs: Any):
-        super().__init__(adata, **kwargs)
-
     @d.dedent
     def prepare(
         self,
         time_key: str,
         joint_attr: Optional[Union[str, Mapping[str, Any]]] = None,
-        policy: Literal["sequential", "pairwise", "triu", "tril", "explicit"] = "sequential",
+        policy: Literal["sequential", "triu", "tril", "explicit"] = "sequential",
         marginal_kwargs: Mapping[str, Any] = MappingProxyType({}),
         **kwargs: Any,
     ) -> "TemporalProblem":
@@ -67,7 +64,7 @@ class TemporalProblem(TemporalAnalysisMixin, BirthDeathMixin, SingleCompoundProb
         %(callback)s
         %(callback_kwargs)s
         kwargs
-            Keyword arguments for :meth:`moscot.problems.CompoundBaseProblem._create_problems`.
+            Keyword arguments for :meth:`moscot.problems.BaseCompoundProblem._create_problems`.
 
         Returns
         -------
@@ -103,6 +100,7 @@ class TemporalProblem(TemporalAnalysisMixin, BirthDeathMixin, SingleCompoundProb
         else:
             raise TypeError("TODO")
 
+        # TODO(michalk8): needs to be modified
         marginal_kwargs = dict(marginal_kwargs)
         marginal_kwargs["proliferation_key"] = self.proliferation_key
         marginal_kwargs["apoptosis_key"] = self.apoptosis_key
@@ -119,8 +117,7 @@ class TemporalProblem(TemporalAnalysisMixin, BirthDeathMixin, SingleCompoundProb
         )
 
     @property
-    @d.dedent
-    def growth_rates(self) -> pd.DataFrame:
+    def growth_rates(self) -> Optional[pd.DataFrame]:
         """
         Growth rates of the cells estimated by posterior marginals.
 
@@ -132,7 +129,8 @@ class TemporalProblem(TemporalAnalysisMixin, BirthDeathMixin, SingleCompoundProb
         If multiple iterations are performed in :meth:`moscot.problems.time.TemporalProblem.solve` the number
         of estimates for the cell growth rates equals is strictly larger than 2.
         """
-        cols = [f"g_{i}" for i in range(self.problems[list(self)[0]].growth_rates.shape[1])]
+        # TODO(michalk8): FIXME
+        cols = [f"g_{i}" for i in range(self.problems[list(self)[0]].growth_rates.shape[1])]  # type: ignore[union-attr]
         df_list = [
             pd.DataFrame(problem.growth_rates, index=problem.adata.obs.index, columns=cols)
             for problem in self.problems.values()
@@ -141,7 +139,7 @@ class TemporalProblem(TemporalAnalysisMixin, BirthDeathMixin, SingleCompoundProb
         df_list.append(
             pd.DataFrame(
                 np.full(
-                    shape=(len(self.problems[tup]._adata_y.obs), self.problems[tup].growth_rates.shape[1]),
+                    shape=(len(self.problems[tup]._adata_y.obs), self.problems[tup].growth_rates.shape[1]),  # type: ignore[union-attr]
                     fill_value=np.nan,
                 ),
                 index=self.problems[tup]._adata_y.obs.index,
@@ -150,8 +148,8 @@ class TemporalProblem(TemporalAnalysisMixin, BirthDeathMixin, SingleCompoundProb
         )
         return pd.concat(df_list, verify_integrity=True)
 
+    # TODO(michalk8): refactor me
     @property
-    @d.dedent
     def cell_costs_source(self) -> Optional[pd.DataFrame]:
         """
         Return the cost of a cell (see online methods) obtained by the potentials of the optimal transport solution.
@@ -181,7 +179,6 @@ class TemporalProblem(TemporalAnalysisMixin, BirthDeathMixin, SingleCompoundProb
             return None
 
     @property
-    @d.dedent
     def cell_costs_target(self) -> Optional[pd.DataFrame]:
         """Return the cost of a cell (see online methods) obtained by the potentials of the OT solution."""
         try:
@@ -207,11 +204,11 @@ class TemporalProblem(TemporalAnalysisMixin, BirthDeathMixin, SingleCompoundProb
 
     @property
     def _base_problem_type(self) -> Type[B]:
-        return BirthDeathBaseProblem
+        return BirthDeathProblem
 
     @property
     def _valid_policies(self) -> Tuple[str, ...]:
-        return "sequential", "pairwise", "triu", "tril", "explicit"
+        return "sequential", "triu", "tril", "explicit"
 
 
 @d.dedent
@@ -238,7 +235,7 @@ class LineageProblem(TemporalProblem):
         time_key: str,
         lineage_attr: Mapping[str, Any] = MappingProxyType({}),
         joint_attr: Optional[Union[str, Mapping[str, Any]]] = None,
-        policy: Literal["sequential", "pairwise", "triu", "tril", "explicit"] = "sequential",
+        policy: Literal["sequential", "triu", "tril", "explicit"] = "sequential",
         **kwargs: Any,
     ) -> "LineageProblem":
         """
@@ -270,7 +267,7 @@ class LineageProblem(TemporalProblem):
         %(callback)s
         %(callback_kwargs)s
         kwargs
-            Keyword arguments for :meth:`moscot.problems.CompoundBaseProblem._create_problems`
+            Keyword arguments for :meth:`moscot.problems.BaseCompoundProblem._create_problems`
 
         Returns
         -------

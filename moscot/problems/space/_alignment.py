@@ -3,13 +3,16 @@ from typing import Any, Type, Tuple, Mapping, Optional
 from typing_extensions import Literal
 
 from moscot._docs import d
-from moscot.analysis_mixins import SpatialAlignmentAnalysisMixin
-from moscot.problems._base_problem import OTProblem
-from moscot.problems._compound_problem import B, SingleCompoundProblem
+from moscot.problems.space._mixins import SpatialAlignmentMixin
+from moscot.problems.base._base_problem import OTProblem
+from moscot.problems.base._compound_problem import B, K, CompoundProblem
+
+__all__ = ["AlignmentProblem"]
 
 
+# need generic type B for SpatioTemporal
 @d.dedent
-class AlignmentProblem(SingleCompoundProblem, SpatialAlignmentAnalysisMixin):
+class AlignmentProblem(CompoundProblem[K, B], SpatialAlignmentMixin[K, B]):
     """
     Class for aligning spatial omics data, based on :cite:`zeira2022`.
 
@@ -33,7 +36,7 @@ class AlignmentProblem(SingleCompoundProblem, SpatialAlignmentAnalysisMixin):
         policy: Literal["sequential", "star"] = "sequential",
         reference: Optional[str] = None,
         **kwargs: Any,
-    ) -> "AlignmentProblem":
+    ) -> "AlignmentProblem[K, B]":
         """
         Prepare the :class:`moscot.problems.space.AlignmentProblem`.
 
@@ -78,7 +81,7 @@ class AlignmentProblem(SingleCompoundProblem, SpatialAlignmentAnalysisMixin):
         epsilon: Optional[float] = 1e-1,
         scale_cost: str = "mean",
         **kwargs: Any,
-    ) -> "AlignmentProblem":
+    ) -> "AlignmentProblem[K, B]":
         """
         Solve optimal transport problems defined in :class:`moscot.problems.space.AlignmentProblem`.
 
@@ -96,7 +99,7 @@ class AlignmentProblem(SingleCompoundProblem, SpatialAlignmentAnalysisMixin):
 
     @property
     def _base_problem_type(self) -> Type[B]:
-        return OTProblem
+        return OTProblem  # type: ignore[return-value]
 
     @property
     def _valid_policies(self) -> Tuple[str, ...]:

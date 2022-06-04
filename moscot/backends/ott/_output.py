@@ -1,18 +1,18 @@
 from abc import ABC
 from typing import Any, Tuple, Union
 
-from numpy import typing as npt
+from moscot._types import ArrayLike
 from ott.core.sinkhorn import SinkhornOutput as OTTSinkhornOutput
 from ott.core.sinkhorn_lr import LRSinkhornOutput as OTTLRSinkhornOutput
 from ott.core.gromov_wasserstein import GWOutput as OTTGWOutput
 import jax.numpy as jnp
 
-from moscot.solvers._output import BaseSolverOutput, MatrixSolverOutput
+from moscot.solvers._output import BaseSolverOutput, MatrixSolverOutput, HasPotentials
 
-__all__ = ("SinkhornOutput", "LRSinkhornOutput", "GWOutput")
+__all__ = ["LinearOutput", "LRLinearOutput", "QuadraticOutput"]
 
 
-class OutputRankMixin:
+class RankMixin:
     def __init__(self, *args: Any, rank: int, **kwargs: Any):
         super().__init__(*args, **kwargs)
         self._rank = max(-1, rank)
@@ -22,13 +22,14 @@ class OutputRankMixin:
         return self._rank
 
 
-class LinearOTTOutput(BaseSolverOutput, ABC):
+# TODO(michalk8): consider caching some of the properties
+class OTTOutput(BaseSolverOutput, ABC):
     def __init__(self, output: Union[OTTSinkhornOutput, OTTLRSinkhornOutput], **_: Any):
         super().__init__()
         self._output = output
 
     @property
-    def transport_matrix(self) -> npt.ArrayLike:
+    def transport_matrix(self) -> ArrayLike:
         """%(transport_matrix)s."""
         return self._output.matrix
 
@@ -46,10 +47,10 @@ class LinearOTTOutput(BaseSolverOutput, ABC):
         return jnp.ones((n,))
 
 
-class SinkhornOutput(LinearOTTOutput):
+class LinearOutput(HasPotentials, OTTOutput):
     """Output class for linear OT problems."""
 
-    def _apply(self, x: npt.ArrayLike, *, forward: bool) -> npt.ArrayLike:
+    def _apply(self, x: ArrayLike, *, forward: bool) -> ArrayLike:
         if x.ndim == 1:
             return self._output.apply(x, axis=1 - forward)
         if x.ndim == 2:
@@ -63,15 +64,15 @@ class SinkhornOutput(LinearOTTOutput):
         return self._output.f.shape[0], self._output.g.shape[0]
 
     @property
-    def potentials(self) -> Tuple[npt.ArrayLike, npt.ArrayLike]:
+    def potentials(self) -> Tuple[ArrayLike, ArrayLike]:
         """Potentials obtained from Sinkhorn algorithm."""
         return self._output.f, self._output.g
 
 
-class LRSinkhornOutput(OutputRankMixin, LinearOTTOutput):
+class LRLinearOutput(RankMixin, OTTOutput):
     """Output class for low-rank linear OT problems."""
 
-    def _apply(self, x: npt.ArrayLike, *, forward: bool) -> npt.ArrayLike:
+    def _apply(self, x: ArrayLike, *, forward: bool) -> ArrayLike:
         axis = int(not forward)
         if x.ndim == 1:
             return self._output.apply(x, axis=axis)
@@ -84,22 +85,17 @@ class LRSinkhornOutput(OutputRankMixin, LinearOTTOutput):
         """%(shape)s."""
         return self._output.geom.shape
 
-    @property
-    def potentials(self):
-        """TODO:Potentials are not obtained by Low-Rank Sinkhorn."""
-        raise NotImplementedError("This solver does not allow for potentials.")
 
-
-class GWOutput(OutputRankMixin, MatrixSolverOutput):
+class QuadraticOutput(RankMixin, MatrixSolverOutput):
     """
     Output class for Gromov-Wasserstein problems.
 
-    This class wraps :class:`ott.core.gromov_wasserstein.GWOutput`.
+    This class wraps :class:`ott.core.gromov_wasserstein.QuadraticOutput`.
 
     Parameters
     ----------
     output
-        Instance of :class:`ott.core.gromov_wasserstein.GWOutput`.
+        Instance of :class:`ott.core.gromov_wasserstein.QuadraticOutput`.
     rank
         Rank of the solver. `-1` if full-rank was used.
     """
@@ -122,8 +118,3 @@ class GWOutput(OutputRankMixin, MatrixSolverOutput):
 
     def _ones(self, n: int) -> jnp.ndarray:
         return jnp.ones((n,))
-
-    @property
-    def potentials(self):
-        """TODO:Potentials are not obtained by Gromov-Wasserstein."""
-        raise NotImplementedError("This solver does not allow for potentials.")

@@ -4,13 +4,12 @@ from typing import Any, Type, Tuple, Union, Literal, Mapping, Optional
 from anndata import AnnData
 
 from moscot._docs import d
-from moscot.problems import OTProblem, SingleCompoundProblem
-from moscot.analysis_mixins import AnalysisMixin
-from moscot.problems._compound_problem import B
+from moscot.problems.base import OTProblem, AnalysisMixin, CompoundProblem  # type: ignore[attr-defined]
+from moscot.problems.base._compound_problem import B
 
 
 @d.dedent
-class SinkhornProblem(SingleCompoundProblem, AnalysisMixin):
+class SinkhornProblem(CompoundProblem, AnalysisMixin):
     """
     Class for solving linear OT problems.
 
@@ -53,7 +52,7 @@ class SinkhornProblem(SingleCompoundProblem, AnalysisMixin):
         %(callback)s
         %(callback_kwargs)s
         kwargs
-            Keyword arguments for :meth:`moscot.problems.CompoundBaseProblem._create_problems`.
+            Keyword arguments for :meth:`moscot.problems.BaseCompoundProblem._create_problems`.
 
         Returns
         -------
@@ -95,7 +94,7 @@ class SinkhornProblem(SingleCompoundProblem, AnalysisMixin):
 
 @d.get_sections(base="GWProblem", sections=["Parameters"])
 @d.dedent
-class GWProblem(SingleCompoundProblem, AnalysisMixin):
+class GWProblem(CompoundProblem, AnalysisMixin):
     """
     Class for solving Gromov-Wasserstein problems.
 
@@ -140,7 +139,7 @@ class GWProblem(SingleCompoundProblem, AnalysisMixin):
         %(callback)s
         %(callback_kwargs)s
         kwargs
-            Keyword arguments for :meth:`moscot.problems.CompoundBaseProblem._create_problems`
+            Keyword arguments for :meth:`moscot.problems.BaseCompoundProblem._create_problems`
 
         Returns
         -------
@@ -200,8 +199,10 @@ class FGWProblem(GWProblem):
     @d.dedent
     def prepare(
         self,
-        *args,
+        key: str,
         joint_attr: Mapping[str, Any] = MappingProxyType({}),
+        GW_attr: Mapping[str, Any] = MappingProxyType({}),
+        policy: Literal["sequential", "pairwise", "explicit"] = "sequential",
         **kwargs: Any,
     ) -> "FGWProblem":
         """
@@ -214,4 +215,4 @@ class FGWProblem(GWProblem):
 
         """
         kwargs["joint_attr"] = joint_attr
-        return super().prepare(*args, joint_attr=joint_attr, **kwargs)
+        return super().prepare(key=key, GW_attr=GW_attr, joint_attr=joint_attr, policy=policy, **kwargs)

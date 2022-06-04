@@ -12,10 +12,12 @@ import numpy as np
 import jax.numpy as jnp
 
 from tests._utils import ATOL, RTOL, Geom_t
-from moscot.backends.ott import GWSolver, FGWSolver, SinkhornSolver
+from moscot._types import ArrayLike
+from moscot._types import ArrayLike
+from moscot.backends.ott import GWSolver, FGWSolver, SinkhornSolver  # type: ignore[attr-defined]
 from moscot.solvers._output import BaseSolverOutput
-from moscot.backends.ott._output import GWOutput, SinkhornOutput, LRSinkhornOutput
-from moscot.solvers._base_solver import OTSolver
+from moscot.backends.ott._output import QuadraticOutput, LinearOutput, LRLinearOutput
+from moscot.solvers._base_solver import OTSolver, O 
 from moscot.solvers._tagged_array import Tag
 
 
@@ -23,16 +25,16 @@ class TestSinkhorn:
     @pytest.mark.fast()
     @pytest.mark.parametrize("jit", [False, True])
     @pytest.mark.parametrize("eps", [None, 1e-2, 1e-1])
-    def test_matches_ott(self, x: Geom_t, eps: Optional[float], jit: bool):
+    def test_matches_ott(self, x: Geom_t, eps: Optional[float], jit: bool) -> None:
         gt = sinkhorn(PointCloud(x, epsilon=eps), jit=jit)
         pred = SinkhornSolver(jit=jit)(xy=(x, x), epsilon=eps)
 
-        assert isinstance(pred, SinkhornOutput)
+        assert isinstance(pred, LinearOutput)
         assert pred.rank == -1
         np.testing.assert_allclose(gt.matrix, pred.transport_matrix, rtol=RTOL, atol=ATOL)
 
     @pytest.mark.parametrize("rank", [5, 10])
-    def test_rank(self, y: Geom_t, rank: Optional[int]):
+    def test_rank(self, y: Geom_t, rank: Optional[int]) -> None:
         eps = 1e-2
         lr_sinkhorn = LRSinkhorn(rank=rank)
         problem = LinearProblem(PointCloud(y, y, epsilon=eps))
@@ -40,7 +42,7 @@ class TestSinkhorn:
         gt = lr_sinkhorn(problem)
         pred = SinkhornSolver(rank=rank)(xy=(y, y), epsilon=eps)
 
-        assert isinstance(pred, LRSinkhornOutput)
+        assert isinstance(pred, LRLinearOutput)
         assert pred.rank == rank
         np.testing.assert_allclose(gt.matrix, pred.transport_matrix, rtol=RTOL, atol=ATOL)
 
@@ -48,19 +50,19 @@ class TestSinkhorn:
 class TestGW:
     @pytest.mark.parametrize("jit", [False, True])
     @pytest.mark.parametrize("eps", [5e-2, 1e-2, 1e-1])
-    def test_matches_ott(self, x: Geom_t, y: Geom_t, eps: Optional[float], jit: bool):
+    def test_matches_ott(self, x: Geom_t, y: Geom_t, eps: Optional[float], jit: bool) -> None:
         thresh = 1e-2
         gt = gromov_wasserstein(
             PointCloud(x, epsilon=eps), PointCloud(y, epsilon=eps), threshold=thresh, jit=jit, epsilon=eps
         )
         pred = GWSolver(threshold=thresh, jit=jit)(x=x, y=y, epsilon=eps)
 
-        assert isinstance(pred, GWOutput)
+        assert isinstance(pred, QuadraticOutput)
         assert pred.rank == -1
         np.testing.assert_allclose(gt.matrix, pred.transport_matrix, rtol=RTOL, atol=ATOL)
 
     @pytest.mark.parametrize("eps", [5e-1, 1])
-    def test_epsilon(self, x_cost: jnp.ndarray, y_cost: jnp.ndarray, eps: Optional[float]):
+    def test_epsilon(self, x_cost: jnp.ndarray, y_cost: jnp.ndarray, eps: Optional[float]) -> None:
         thresh = 1e-3
 
         problem = QuadraticProblem(
@@ -74,7 +76,7 @@ class TestGW:
         np.testing.assert_allclose(gt.matrix, pred.transport_matrix, rtol=RTOL, atol=ATOL)
 
     @pytest.mark.parametrize("rank", [-1, 7])
-    def test_rank(self, x: Geom_t, y: Geom_t, rank: int):
+    def test_rank(self, x: Geom_t, y: Geom_t, rank: int) -> None:
         thresh, eps = 1e-2, 1e-2
         gt = gromov_wasserstein(
             PointCloud(x, epsilon=eps), PointCloud(y, epsilon=eps), rank=rank, threshold=thresh, epsilon=eps
@@ -89,7 +91,7 @@ class TestGW:
 class TestFGW:
     @pytest.mark.parametrize("alpha", [0.25, 0.75])
     @pytest.mark.parametrize("eps", [1e-2, 1e-1, 5e-1])
-    def test_matches_ott(self, x: Geom_t, y: Geom_t, xy: Geom_t, eps: Optional[float], alpha: float):
+    def test_matches_ott(self, x: Geom_t, y: Geom_t, xy: Geom_t, eps: Optional[float], alpha: float) -> None:
         thresh = 1e-2
 
         gt = gromov_wasserstein(
@@ -102,13 +104,13 @@ class TestFGW:
         )
         pred = FGWSolver(threshold=thresh)(x=x, y=y, xy=xy, alpha=alpha, epsilon=eps)
 
-        assert isinstance(pred, GWOutput)
+        assert isinstance(pred, QuadraticOutput)
         assert pred.rank == -1
         np.testing.assert_allclose(gt.matrix, pred.transport_matrix, rtol=RTOL, atol=ATOL)
 
     @pytest.mark.fast()
     @pytest.mark.parametrize("alpha", [0.1, 0.9])
-    def test_alpha(self, x: Geom_t, y: Geom_t, xy: Geom_t, alpha: float):
+    def test_alpha(self, x: Geom_t, y: Geom_t, xy: Geom_t, alpha: float) -> None:
         thresh, eps = 5e-2, 1e-1
 
         gt = gromov_wasserstein(
@@ -122,12 +124,12 @@ class TestFGW:
         solver = FGWSolver(threshold=thresh)
         pred = solver(x=x, y=y, xy=xy, alpha=alpha, epsilon=eps)
 
-        assert isinstance(pred, GWOutput)
+        assert isinstance(pred, QuadraticOutput)
         assert pred.rank == -1
         np.testing.assert_allclose(gt.matrix, pred.transport_matrix, rtol=RTOL, atol=ATOL)
 
     @pytest.mark.parametrize("eps", [1e-3, 5e-2])
-    def test_epsilon(self, x_cost: jnp.ndarray, y_cost: jnp.ndarray, xy_cost: jnp.ndarray, eps: Optional[float]):
+    def test_epsilon(self, x_cost: jnp.ndarray, y_cost: jnp.ndarray, xy_cost: jnp.ndarray, eps: Optional[float]) -> None:
         thresh, alpha = 5e-1, 0.66
         solver = FGWSolver(threshold=thresh)
 
@@ -153,7 +155,7 @@ class TestFGW:
 
 class TestScaleCost:
     @pytest.mark.parametrize("scale_cost", [None, 0.5, "mean", "max_cost", "max_norm", "max_bound"])
-    def test_scale(self, x: Geom_t, scale_cost: Optional[Union[float, str]]):
+    def test_scale(self, x: Geom_t, scale_cost: Optional[Union[float, str]]) -> None:
         eps = 1e-2
         gt = sinkhorn(PointCloud(x, epsilon=eps, scale_cost=scale_cost))
 
@@ -164,7 +166,7 @@ class TestScaleCost:
 
 
 class TestSolverOutput:
-    def test_properties(self, x: Geom_t, y: Geom_t):
+    def test_properties(self, x: ArrayLike, y: ArrayLike) -> None:
         solver = SinkhornSolver()
 
         out = solver(xy=(x, y), epsilon=1e-1)
@@ -186,10 +188,10 @@ class TestSolverOutput:
         self,
         x: Geom_t,
         y: Geom_t,
-        ab: Tuple[np.ndarray, np.ndarray],
+        ab: Tuple[ArrayLike, ArrayLike],
         rank: int,
         batched: bool,
-    ):
+    ) -> None:
         a, ndim = (ab[0], ab[0].shape[1]) if batched else (ab[0][:, 0], None)
         solver = SinkhornSolver(rank=rank)
 
@@ -207,13 +209,13 @@ class TestSolverOutput:
     @pytest.mark.parametrize("solver_t", [GWSolver, FGWSolver])
     def test_pull(
         self,
-        x: Geom_t,
-        y: Geom_t,
-        xy: Geom_t,
-        ab: Tuple[np.ndarray, np.ndarray],
-        solver_t: Type[OTSolver],
+        x: ArrayLike,
+        y: ArrayLike,
+        xy: ArrayLike,
+        ab: Tuple[ArrayLike, ArrayLike],
+        solver_t: Type[OTSolver[O]],
         batched: bool,
-    ):
+    ) -> None:
         b, ndim = (ab[1], ab[1].shape[1]) if batched else (ab[1][:, 0], None)
         xx, yy = xy
         solver = solver_t()
@@ -230,7 +232,7 @@ class TestSolverOutput:
 
     @pytest.mark.parametrize("batched", [False, True])
     @pytest.mark.parametrize("forward", [False, True])
-    def test_scale_by_marginals(self, x: Geom_t, ab: Tuple[np.ndarray, np.ndarray], forward: bool, batched: bool):
+    def test_scale_by_marginals(self, x: Geom_t, ab: Tuple[ArrayLike, ArrayLike], forward: bool, batched: bool) -> None:
         solver = SinkhornSolver()
         z = ab[0] if batched else ab[0][:, 0]
 

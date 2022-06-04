@@ -11,7 +11,8 @@ from anndata import AnnData
 import scanpy as sc
 import anndata as ad
 
-from moscot.problems.space import MappingProblem, AlignmentProblem
+from moscot._types import ArrayLike
+from moscot.problems.space import MappingProblem, AlignmentProblem  # type: ignore[attr-defined]
 
 ANGLES = [0, 30, 60]
 
@@ -38,16 +39,15 @@ def adata_mapping() -> AnnData:
     return adata
 
 
-def _make_grid(grid_size: int) -> npt.ArrayLike:
-    xlimits = ylimits = [0, 10]
-    x1s = np.linspace(*xlimits, num=grid_size)
-    x2s = np.linspace(*ylimits, num=grid_size)
+def _make_grid(grid_size: int) -> ArrayLike:
+    x1s = np.linspace(0, 10, num=grid_size)
+    x2s = np.linspace(0, 10, num=grid_size)
     X1, X2 = np.meshgrid(x1s, x2s)
-    X_orig_single = np.vstack([X1.ravel(), X2.ravel()]).T
+    X_orig_single = np.hstack([X1.ravel(), X2.ravel()])
     return X_orig_single
 
 
-def _make_adata(grid: npt.ArrayLike, n: int) -> List[AnnData]:
+def _make_adata(grid: ArrayLike, n: int) -> List[AnnData]:
     rng = np.random.default_rng(42)
     X = rng.normal(size=(100, 60))
     return [AnnData(X=csr_matrix(X), obsm={"spatial": grid.copy()}, dtype=X.dtype) for _ in range(n)]

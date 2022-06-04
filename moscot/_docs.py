@@ -1,4 +1,4 @@
-from typing import Any
+from typing import Any, TypeVar, Callable, TYPE_CHECKING
 from textwrap import dedent
 
 from docrep import DocstringProcessor
@@ -77,7 +77,7 @@ subset
     :attr:`anndata.AnnData.obs`."""
 _marginal_kwargs = """\
 marginal_kwargs
-    keyword arguments for :meth:`moscot.problems.BirthDeathBaseProblem._estimate_marginals`, i.e. for modeling
+    keyword arguments for :meth:`moscot.problems.BirthDeathProblem._estimate_marginals`, i.e. for modeling
     the birth-death process. The keyword arguments
     are either used for :func:`moscot.problems.time._utils.beta`, i.e. one of
 
@@ -132,12 +132,18 @@ joint_attr
     :attr:`anndata.AnnData` as a key and the corresponding attribute as a value."""
 
 
-def inject_docs(**kwargs: Any):  # noqa: D103
-    def decorator(obj):
+RT = TypeVar("RT")  # return type
+O = TypeVar("O")  # object type
+
+
+def inject_docs(**kwargs: Any) -> Callable[[Callable[..., RT]], Callable[..., RT]]:  # noqa: D103
+    def decorator(obj: O) -> O:
+        if TYPE_CHECKING:
+            assert isinstance(obj.__doc__, str)
         obj.__doc__ = dedent(obj.__doc__).format(**kwargs)
         return obj
 
-    def decorator2(obj):
+    def decorator2(obj: O) -> O:
         obj.__doc__ = dedent(kwargs["__doc__"])
         return obj
 

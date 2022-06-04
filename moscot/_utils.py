@@ -1,10 +1,11 @@
-from typing import Any, Optional
+from typing import Any, Optional, TYPE_CHECKING, Dict
 
-from numpy.typing import ArrayLike
 from ott.geometry.costs import Bures, Cosine, Euclidean, UnbalancedBures
 import numpy as np
 
 from anndata import AnnData
+
+from moscot._types import ArrayLike
 
 # TODO(michalk8): improve:
 # 1. _get_marginal should do more, unify with BaseProblem._getMass
@@ -35,7 +36,7 @@ def _normalize(arr: ArrayLike) -> ArrayLike:
 
 def _get_backend_losses(
     backend: str = "JAX", **kwargs: Any
-):  # TODO(@MUCDK, @michalk8), registry or put somewhere else.
+) -> Dict[str, Any]:  # TODO(@MUCDK, @michalk8), registry or put somewhere else.
     if backend == "JAX":
         dimension = kwargs.pop("dimension", 1)
         return {

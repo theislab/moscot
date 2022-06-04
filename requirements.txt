@@ -1,6 +1,7 @@
 anndata>=0.8.0
 cvxopt>=1.2.0
 docrep>=0.3.1
+docrep>=0.3.2
 ete3>=3.1.0
 jax>=0.2.19
 jaxlib>=0.1.70
@@ -17,3 +18,4 @@ pot>=0.8.0
 pytest_mock>=3.7.0
 scanpy
 typing_extensions
+wrapt

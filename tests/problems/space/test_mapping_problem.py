@@ -28,20 +28,21 @@ class TestMappingProblem:
         y_n_var = adataref.shape[1] if sc_attr["attr"] == "X" else adataref.obsm["X_pca"].shape[1]
         xy_n_vars = adatasp.X.shape[1] if joint_attr == "default" else adataref.obsm["X_pca"].shape[1]
         mp = MappingProblem(adataref, adatasp)
-        assert mp.problems is None
-        assert mp.solutions is None
+        assert mp.problems == {}
+        assert mp.solutions == {}
 
         if joint_attr == "default":
             mp = mp.prepare(batch_key="batch", sc_attr=sc_attr)
         else:
             mp = mp.prepare(batch_key="batch", sc_attr=sc_attr, joint_attr=joint_attr)
+
         for prob_key, exp_key in zip(mp, expected_keys):
             assert prob_key == exp_key
             assert isinstance(mp[prob_key], mp._base_problem_type)
             assert mp[prob_key].shape == (n_obs, n_obs)
             assert mp[prob_key].x.data.shape == (n_obs, x_n_var)
             assert mp[prob_key].y.data.shape == (n_obs, y_n_var)
-            assert mp[prob_key].xy[0].data.shape == mp[prob_key].xy[1].data.shape == (n_obs, xy_n_vars)
+            assert mp[prob_key].xy.data.shape == mp[prob_key].xy.data_y.shape == (n_obs, xy_n_vars)
 
     @pytest.mark.fast()
     @pytest.mark.parametrize("var_names", ["0", [], [str(i) for i in range(20)]])
@@ -79,7 +80,6 @@ class TestMappingProblem:
         mp = mp.prepare(batch_key="batch", sc_attr=sc_attr, var_names=var_names)
         mp = mp.solve(epsilon=epsilon, alpha=alpha, rank=rank)
 
-        epsilon = 1.0 if epsilon is None else epsilon
         for prob_key in mp:
             assert mp[prob_key].solution.rank == rank
             assert mp[prob_key].solution.converged

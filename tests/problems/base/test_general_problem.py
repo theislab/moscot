@@ -8,7 +8,7 @@ import jax.numpy as jnp
 from anndata import AnnData
 
 from tests._utils import ATOL, RTOL, Geom_t, MockSolverOutput
-from moscot.problems import OTProblem
+from moscot.problems.base import OTProblem
 from moscot.solvers._output import BaseSolverOutput
 
 

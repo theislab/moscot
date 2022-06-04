@@ -4,13 +4,20 @@ from typing import Any, Tuple, Mapping, Optional
 from typing_extensions import Literal
 
 from moscot._docs import d
-from moscot.analysis_mixins import TemporalAnalysisMixin, SpatialAlignmentAnalysisMixin
-from moscot.problems.mixins import BirthDeathMixin
+from moscot._types import Numeric_t
+from moscot.problems.time._mixins import TemporalMixin
+from moscot.problems.space._mixins import SpatialAlignmentMixin
 from moscot.problems.space._alignment import AlignmentProblem
+from moscot.problems.base._birth_death import BirthDeathMixin, BirthDeathProblem
 
 
 @d.dedent
-class SpatioTemporalProblem(TemporalAnalysisMixin, BirthDeathMixin, AlignmentProblem, SpatialAlignmentAnalysisMixin):
+class SpatioTemporalProblem(
+    TemporalMixin[Numeric_t, BirthDeathProblem],
+    BirthDeathMixin,
+    AlignmentProblem[Numeric_t, BirthDeathProblem],
+    SpatialAlignmentMixin[Numeric_t, BirthDeathProblem],
+):
     """Spatio-Temporal problem."""
 
     @d.dedent
@@ -19,10 +26,10 @@ class SpatioTemporalProblem(TemporalAnalysisMixin, BirthDeathMixin, AlignmentPro
         time_key: str,
         spatial_key: str = "spatial",
         joint_attr: Optional[Mapping[str, Any]] = MappingProxyType({"x_attr": "X", "y_attr": "X"}),
-        policy: Literal["sequential", "pairwise", "triu", "tril", "explicit"] = "sequential",
+        policy: Literal["sequential", "triu", "tril", "explicit"] = "sequential",
         marginal_kwargs: Mapping[str, Any] = MappingProxyType({}),
         **kwargs: Any,
-    ) -> "AlignmentProblem":
+    ) -> "SpatioTemporalProblem":
         """
         Prepare the :class:`moscot.problems.spatio_temporal.SpatioTemporalProblem`.
 
@@ -54,7 +61,7 @@ class SpatioTemporalProblem(TemporalAnalysisMixin, BirthDeathMixin, AlignmentPro
         %(callback)s
         %(callback_kwargs)s
         kwargs
-            Keyword arguments for :meth:`moscot.problems.CompoundBaseProblem._create_problems`
+            Keyword arguments for :meth:`moscot.problems.BaseCompoundProblem._create_problems`
 
         Returns
         -------
@@ -100,4 +107,4 @@ class SpatioTemporalProblem(TemporalAnalysisMixin, BirthDeathMixin, AlignmentPro
 
     @property
     def _valid_policies(self) -> Tuple[str, ...]:
-        return "sequential", "pairwise", "triu", "tril", "explicit"
+        return "sequential", "triu", "tril", "explicit"

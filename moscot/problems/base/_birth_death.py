@@ -1,48 +1,52 @@
-from abc import ABC
-from typing import Any, Type, Union, Literal, Optional, Sequence
-from numbers import Number
+from typing import Any, Union, Literal, Optional, Protocol, Sequence
 import logging
 
 import numpy as np
-import numpy.typing as npt
 
 from anndata import AnnData
 import scanpy as sc
 
 from moscot._docs import d
-from moscot.solvers._output import BaseSolverOutput
-from moscot.problems.time._utils import beta, delta, MarkerGenes
-from moscot.problems._compound_problem import B
-from moscot.problems._multimarginal_problem import MultiMarginalProblem
+from moscot._types import ArrayLike
+from moscot.problems.base import OTProblem  # type: ignore[attr-defined]
+from moscot.problems.time._utils import beta, delta as _delta, MarkerGenes
+
+__all__ = ["BirthDeathProblem", "BirthDeathMixin"]
 
 
-@d.dedent
-class MultiMarginalMixin(ABC):
-    """Mixin class for biological problems based on :class:`moscot.problems.MultiMarginalProblem`."""
+class BirthDeathProtocol(Protocol):
+    adata: AnnData
+    proliferation_key: Optional[str]
+    apoptosis_key: Optional[str]
+
+    def score_genes_for_marginals(
+        self: "BirthDeathProtocol",
+        gene_set_proliferation: Optional[Union[Literal["human", "mouse"], Sequence[str]]] = None,
+        gene_set_apoptosis: Optional[Union[Literal["human", "mouse"], Sequence[str]]] = None,
+        proliferation_key: str = "proliferation",
+        apoptosis_key: str = "apoptosis",
+        **kwargs: Any,
+    ) -> "BirthDeathProtocol":
+        ...
 
 
-@d.dedent
-class BirthDeathMixin(MultiMarginalMixin):
-    """Mixin class for biological problems based on :class:`moscot.problems.mixins.BirthDeathBaseProblem`."""
+class BirthDeathMixin:
+    """Mixin class for biological problems based on :class:`moscot.problems.mixins.BirthDeathProblem`."""
 
     def __init__(self, *args: Any, **kwargs: Any):
         super().__init__(*args, **kwargs)
         self._proliferation_key: Optional[str] = None
         self._apoptosis_key: Optional[str] = None
 
-    @property
-    def _base_problem_type(self) -> Type[B]:
-        return BirthDeathBaseProblem
-
     @d.dedent
     def score_genes_for_marginals(
-        self,
+        self: BirthDeathProtocol,
         gene_set_proliferation: Optional[Union[Literal["human", "mouse"], Sequence[str]]] = None,
         gene_set_apoptosis: Optional[Union[Literal["human", "mouse"], Sequence[str]]] = None,
         proliferation_key: str = "proliferation",
         apoptosis_key: str = "apoptosis",
         **kwargs: Any,
-    ) -> None:
+    ) -> "BirthDeathProtocol":
         """
         Compute gene scores to obtain prior knowledge about proliferation and apoptosis.
 
@@ -91,7 +95,7 @@ class BirthDeathMixin(MultiMarginalMixin):
             if isinstance(gene_set_proliferation, str):
                 sc.tl.score_genes(
                     self.adata,
-                    MarkerGenes.proliferation_markers(gene_set_proliferation),
+                    MarkerGenes.proliferation_markers(gene_set_proliferation),  # type: ignore[arg-type]
                     score_name=proliferation_key,
                     **kwargs,
                 )
@@ -104,7 +108,7 @@ class BirthDeathMixin(MultiMarginalMixin):
             if isinstance(gene_set_apoptosis, str):
                 sc.tl.score_genes(
                     self.adata,
-                    MarkerGenes.apoptosis_markers(gene_set_apoptosis),
+                    MarkerGenes.apoptosis_markers(gene_set_apoptosis),  # type: ignore[arg-type]
                     score_name=apoptosis_key,
                     **kwargs,
                 )
@@ -116,21 +120,22 @@ class BirthDeathMixin(MultiMarginalMixin):
                 "At least one of `gene_set_proliferation` or `gene_set_apoptosis` must be provided to score genes."
             )
 
+        return self
+
     @property
     def proliferation_key(self) -> Optional[str]:
         """Key in :attr:`anndata.AnnData.obs` where prior estimate of cell proliferation is saved."""
         return self._proliferation_key
 
-    @property
-    def apoptosis_key(self) -> Optional[str]:
-        """Key in :attr:`anndata.AnnData.obs` where prior estimate of cell apoptosis is saved."""
-        return self._apoptosis_key
-
-    # TODO(michalk8): remove docs in setters
     @proliferation_key.setter
     def proliferation_key(self, value: Optional[str] = None) -> None:
         # TODO(michalk8): add check if present in .obs (if not None)
         self._proliferation_key = value
+
+    @property
+    def apoptosis_key(self) -> Optional[str]:
+        """Key in :attr:`anndata.AnnData.obs` where prior estimate of cell apoptosis is saved."""
+        return self._apoptosis_key
 
     @apoptosis_key.setter
     def apoptosis_key(self, value: Optional[str] = None) -> None:
@@ -139,7 +144,7 @@ class BirthDeathMixin(MultiMarginalMixin):
 
 
 @d.dedent
-class BirthDeathBaseProblem(MultiMarginalProblem):
+class BirthDeathProblem(BirthDeathMixin, OTProblem):
     """
     Class handling an optimal transport problem which allows to estimate the marginals with a birth-death process.
 
@@ -147,61 +152,46 @@ class BirthDeathBaseProblem(MultiMarginalProblem):
     ----------
     %(adata_x)s
     %(adata_y)s
-    %(source)s
-    %(target)s
-
-    Raises
-    ------
-    %(MultiMarginalProblem.raises)s
     """
 
-    def __init__(
-        self,
-        adata_x: AnnData,
-        adata_y: AnnData,
-        *,
-        source: Number,
-        target: Number,
-        **kwargs: Any,
-    ):
-        if source >= target:
-            raise ValueError(f"{source} is expected to be strictly smaller than {target}.")
-        super().__init__(adata_x, adata_y=adata_y, source=source, target=target, **kwargs)
+    def __init__(self, *args: Any, **kwargs: Any):
+        super().__init__(*args, **kwargs)
+        self._delta: Optional[float] = None
 
     def _estimate_marginals(
         self,
         adata: AnnData,
         source: bool,
-        proliferation_key: Optional[str] = None,
-        apoptosis_key: Optional[str] = None,
+        delta: float,
         **kwargs: Any,
-    ) -> npt.ArrayLike:
+    ) -> ArrayLike:
+        proliferation_key = self.proliferation_key
+        apoptosis_key = self.apoptosis_key
         if proliferation_key is None and apoptosis_key is None:
             raise ValueError("TODO: `proliferation_key` or `apoptosis_key` must be provided to estimate marginals")
         if proliferation_key is not None and proliferation_key not in adata.obs.columns:
             raise KeyError(f"TODO: {proliferation_key} not in `adata.obs`")
         if apoptosis_key is not None and apoptosis_key not in adata.obs.columns:
             raise KeyError(f"TODO: {apoptosis_key} not in `adata.obs`")
+
+        self._delta = delta
         if proliferation_key is not None:
             birth = beta(adata.obs[proliferation_key].to_numpy(), **kwargs)
         else:
-            birth = 0
+            birth = np.zeros(len(adata))
         if apoptosis_key is not None:
-            death = delta(adata.obs[apoptosis_key].to_numpy(), **kwargs)
+            death = _delta(adata.obs[apoptosis_key].to_numpy(), **kwargs)
         else:
-            death = 0
-        growth = np.exp((birth - death) * (self._target - self._source))
+            death = np.zeros(len(adata))
+        growth = np.exp((birth - death) * self._delta)
         if source:
             return growth
         return np.full(len(self._adata_y), np.average(growth))
 
-    def _add_marginals(self, sol: BaseSolverOutput) -> None:
-        _a = np.asarray(sol.a) / self._a[-1]
-        self._a.append(_a)
-        # TODO(michalk8): sol._ones
-        self._b.append(np.full(len(self._adata_y), np.average(_a)))
-
+    # TODO(michalk8): consider removing this
     @property
-    def growth_rates(self) -> npt.ArrayLike:
+    def growth_rates(self) -> Optional[ArrayLike]:
         """Return the growth rates of the cells in the source distribution."""
-        return np.power(self.a, 1 / (self._target - self._source))
+        if self.a is None or self._delta is None:
+            return None
+        return np.power(self.a, 1.0 / self._delta)
