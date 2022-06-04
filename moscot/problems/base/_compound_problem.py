@@ -17,7 +17,6 @@ from typing import (
     Sequence,
     TYPE_CHECKING,
 )
-from functools import singledispatchmethod
 
 from scipy.sparse import issparse
 
@@ -27,6 +26,7 @@ from moscot._docs import d
 from moscot._types import ArrayLike
 from moscot.problems._utils import require_prepare
 from moscot.solvers._output import BaseSolverOutput
+from moscot.problems.base._utils import attributedispatch
 from moscot.solvers._tagged_array import Tag, TaggedArray
 from moscot.problems._subset_policy import (
     Axis_t,
@@ -227,23 +227,20 @@ class BaseCompoundProblem(BaseProblem, ABC, Generic[K, B]):
 
         return self
 
-    @singledispatchmethod
+    @attributedispatch(attr="_policy")
     def _apply(
         self,
-        policy: SubsetPolicy[K],
         data: Optional[Union[str, ArrayLike]] = None,
         forward: bool = True,
         scale_by_marginals: bool = False,
         **kwargs: Any,
     ) -> ApplyOutput_t[K]:
-        raise NotImplementedError(type(policy))
+        raise NotImplementedError(type(self._policy))
 
-    # @_apply.register(ExplicitPolicy)  # TODO(michalk8): figure out where to place tis
     @_apply.register(DummyPolicy)
     @_apply.register(StarPolicy)
     def _(
         self,
-        _: Any,
         data: Optional[Union[str, ArrayLike]] = None,
         forward: bool = True,
         scale_by_marginals: bool = False,
@@ -259,10 +256,10 @@ class BaseCompoundProblem(BaseProblem, ABC, Generic[K, B]):
             res[src] = fun(data=data, scale_by_marginals=scale_by_marginals, **kwargs)
         return res
 
+    @_apply.register(ExplicitPolicy)  # TODO(michalk8): figure out where to place tis
     @_apply.register(OrderedPolicy)
     def _(
         self,
-        _: Any,
         data: Optional[Union[str, ArrayLike]] = None,
         forward: bool = True,
         scale_by_marginals: bool = False,
