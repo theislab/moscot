@@ -146,9 +146,14 @@ class SubsetPolicy(Generic[K]):
 
         return res
 
-    def add_node(self, node: Tuple[K, K]) -> None:
+    def add_node(self, node: Tuple[K, K], only_existing: bool = False) -> None:
         if self._graph is None:
             raise RuntimeError("TODO: construct graph first")
+        src, tgt = node
+        if src == tgt:
+            raise ValueError("TODO: cannot add self connections")
+        if only_existing and (src not in self._cat or tgt not in self._cat):
+            raise ValueError("TODO: use only_existing=False")
         self._graph.add(node)
 
     def remove_node(self, node: Tuple[K, K]) -> None:
@@ -212,6 +217,16 @@ class StarPolicy(SimplePlanPolicy[K]):
     def reference(self) -> K:
         for _, ref in self._graph:
             return ref
+
+    def add_node(self, node: Union[K, Tuple[K, K]], only_existing: bool = False) -> None:
+        if not isinstance(node, tuple):
+            node = (node, self.reference)
+        return super().add_node(node, only_existing=only_existing)  # type: ignore[arg-type]
+
+    def remove_node(self, node: Union[K, Tuple[K, K]]) -> None:
+        if not isinstance(node, tuple):
+            node = (node, self.reference)
+        return super().remove_node(node)  # type: ignore[arg-type]
 
 
 class ExternalStarPolicy(FormatterMixin, StarPolicy[K]):

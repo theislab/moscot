@@ -17,6 +17,7 @@ from typing import (
     Sequence,
     TYPE_CHECKING,
 )
+from collections import defaultdict
 
 from scipy.sparse import issparse
 
@@ -53,17 +54,18 @@ class ProblemManager(Generic[K, B]):
     def __init__(self, policy: SubsetPolicy[K], problems: Mapping[Tuple[K, K], B] = MappingProxyType({})):
         self._policy = policy
         self._problems: Dict[Tuple[K, K], B] = dict(problems)
+        self._verify_shape_integrity()
 
     def add_problem(self, key: Tuple[K, K], problem: B, overwrite: bool = True) -> None:
         if not overwrite and key in self:
             raise KeyError(f"TODO: `{key}` already present, use `overwrite=True`")
-        self._problems[key] = problem
-        # TODO(michalk8): verify shape consistency
-        # TODO(michalk8): modify policy's graph
+        self.problems[key] = problem
+        self._policy.add_node(key)
+        self._verify_shape_integrity()
 
     def remove_problem(self, key: Tuple[K, K]) -> None:
-        del self._problems[key]
-        # TODO(michalk8): modify policy's graph
+        del self.problems[key]
+        self._policy.remove_node(key)
 
     def get_problems(
         self, stage: Optional[Union[ProblemStage, Tuple[ProblemStage, ...]]] = None
@@ -72,24 +74,38 @@ class ProblemManager(Generic[K, B]):
             return self._problems
         if isinstance(stage, ProblemStage):
             stage = (stage,)
-        return {k: v for k, v in self._problems.items() if v._stage in stage}
+        return {k: v for k, v in self.problems.items() if v._stage in stage}
 
     def get_solutions(self, only_converged: bool = False) -> Dict[Tuple[K, K], BaseSolverOutput]:
         return {
             k: v.solution
-            for k, v in self._problems.items()
+            for k, v in self.problems.items()
             if v.solution is not None and (not only_converged or v.solution.converged)
         }
+
+    def _verify_shape_integrity(self) -> None:
+        dims = defaultdict(set)
+        for (src, tgt), prob in self.problems.items():
+            dims[src].add(prob.shape[0])
+            dims[tgt].add(prob.shape[1])
+
+        for key, dim in dims.items():
+            if len(dim) > 1:
+                raise ValueError(f"TODO: key `{key}` is associated with more than 1 dimensnions `{dim}`")
 
     @property
     def solutions(self) -> Dict[Tuple[K, K], BaseSolverOutput]:
         return self.get_solutions(only_converged=False)
 
+    @property
+    def problems(self) -> Dict[Tuple[K, K], B]:
+        return self._problems
+
     def __contains__(self, key: Tuple[K, K]) -> bool:
-        return key in self._problems
+        return key in self.problems
 
     def __len__(self) -> int:
-        return len(self._problems)
+        return len(self.problems)
 
 
 @d.get_sections(base="BaseCompoundProblem", sections=["Parameters", "Raises"])
