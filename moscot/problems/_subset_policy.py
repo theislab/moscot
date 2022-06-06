@@ -75,25 +75,27 @@ class SubsetPolicy(Generic[K]):
     def _create_graph(self, **kwargs: Any) -> Sequence[Tuple[K, K]]:
         pass
 
-    # TODO(michalk8): move filter argument from graph creation?
-    def plan(self, **kwargs: Any) -> Sequence[Tuple[K, K]]:
-        return self._plan(**kwargs)
+    def plan(self, filter: Optional[Sequence[Tuple[K, K]]] = None, **kwargs: Any) -> Sequence[Tuple[K, K]]:
+        plan = self._plan(**kwargs)
+        if filter is not None:
+            plan = self._filter_plan(plan, filter=filter)
+        if not len(plan):
+            raise ValueError("TODO: empty plan")
+        return plan
 
     @abstractmethod
     def _plan(self, **kwargs: Any) -> Sequence[Tuple[K, K]]:
         pass
 
-    def __call__(self, filter: Optional[Sequence[Tuple[K, K]]] = None, **kwargs: Any) -> "SubsetPolicy[K]":
+    def __call__(self, **kwargs: Any) -> "SubsetPolicy[K]":
         graph = self._create_graph(**kwargs)
-        if filter is not None:
-            graph = self._filter_graph(graph, filter=filter)
         if not len(graph):
             raise ValueError("TODO: empty graph")
         self._graph = graph
         return self
 
-    def _filter_graph(self, graph: Sequence[Tuple[K, K]], filter: Sequence[Tuple[K, K]]) -> Sequence[Tuple[K, K]]:
-        return [i for i in graph if i in filter]
+    def _filter_plan(self, plan: Sequence[Tuple[K, K]], filter: Sequence[Tuple[K, K]]) -> Sequence[Tuple[K, K]]:
+        return [step for step in plan if step in filter]
 
     @classmethod
     def create(
@@ -186,11 +188,11 @@ class StarPolicy(SimplePlanPolicy[K]):
             raise ValueError(f"TODO: Reference {reference} not in {self._cat}")
         return [(c, reference) for c in self._cat if c != reference]
 
-    def _filter_graph(
-        self, graph: Sequence[Tuple[K, K]], filter: Sequence[Union[K, Tuple[K, K]]]
+    def _filter_plan(
+        self, plan: Sequence[Tuple[K, K]], filter: Sequence[Union[K, Tuple[K, K]]]
     ) -> Sequence[Tuple[K, K]]:
         filter = [src[0] if isinstance(src, tuple) else src for src in filter]
-        return [(src, ref) for src, ref in graph if src in filter]
+        return [(src, ref) for src, ref in plan if src in filter]
 
     @property
     def reference(self) -> K:

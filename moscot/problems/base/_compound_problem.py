@@ -232,9 +232,9 @@ class BaseCompoundProblem(BaseProblem, ABC, Generic[K, B]):
         if isinstance(self._policy, ExplicitPolicy):
             policy = policy(subset=subset)
         elif isinstance(self._policy, StarPolicy):
-            policy = policy(filter=subset, reference=reference)
+            policy = policy(reference=reference)
         else:
-            policy = policy(filter=subset)
+            policy = policy()
 
         problems = self._create_problems(callback=callback, callback_kwargs=callback_kwargs, **kwargs)
         self._problem_manager = ProblemManager(policy, problems=problems)
