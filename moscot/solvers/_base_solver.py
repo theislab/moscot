@@ -18,6 +18,7 @@ O = TypeVar("O", bound=BaseSolverOutput)
 class ProblemKind(str, Enum):
     """Class defining the problem class and dispatching the solvers."""
 
+    UNKNOWN = "unknown"
     LINEAR = "linear"
     QUAD = "quadratic"
     QUAD_FUSED = "quadratic_fused"

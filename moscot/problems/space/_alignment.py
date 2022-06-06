@@ -28,7 +28,7 @@ class AlignmentProblem(CompoundProblem[K, B], SpatialAlignmentMixin[K, B]):
     """
 
     @d.dedent
-    def prepare(
+    def _prepare(
         self,
         batch_key: str,
         spatial_key: str = "spatial",
@@ -36,7 +36,7 @@ class AlignmentProblem(CompoundProblem[K, B], SpatialAlignmentMixin[K, B]):
         policy: Literal["sequential", "star"] = "sequential",
         reference: Optional[str] = None,
         **kwargs: Any,
-    ) -> "AlignmentProblem[K, B]":
+    ) -> None:
         """
         Prepare the :class:`moscot.problems.space.AlignmentProblem`.
 
@@ -72,16 +72,16 @@ class AlignmentProblem(CompoundProblem[K, B], SpatialAlignmentMixin[K, B]):
             kwargs["callback"] = "local-pca"
             kwargs["callback_kwargs"] = {**kwargs.get("callback_kwargs", {}), **{"return_linear": True}}
 
-        return super().prepare(x=x, y=y, xy=joint_attr, policy=policy, key=batch_key, reference=reference, **kwargs)
+        return super()._prepare(x=x, y=y, xy=joint_attr, policy=policy, key=batch_key, reference=reference, **kwargs)
 
     @d.dedent
-    def solve(
+    def _solve(
         self,
         alpha: Optional[float] = 0.4,
         epsilon: Optional[float] = 1e-1,
         scale_cost: str = "mean",
         **kwargs: Any,
-    ) -> "AlignmentProblem[K, B]":
+    ) -> None:
         """
         Solve optimal transport problems defined in :class:`moscot.problems.space.AlignmentProblem`.
 
@@ -95,7 +95,7 @@ class AlignmentProblem(CompoundProblem[K, B], SpatialAlignmentMixin[K, B]):
         -------
         :class:`moscot.problems.space.AlignmentProblem`
         """
-        return super().solve(alpha=alpha, epsilon=epsilon, scale_cost=scale_cost, **kwargs)
+        return super()._solve(alpha=alpha, epsilon=epsilon, scale_cost=scale_cost, **kwargs)
 
     @property
     def _base_problem_type(self) -> Type[B]:
