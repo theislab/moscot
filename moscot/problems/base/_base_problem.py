@@ -51,35 +51,26 @@ class BaseProblem(ABC):
         self._stage = ProblemStage.INITIALIZED
 
     @abstractmethod
-    def _prepare(self, **kwargs: Any) -> None:
+    def _prepare(self, *args: Any, **kwargs: Any) -> None:
         pass
 
     @abstractmethod
-    def _solve(self, **kwargs: Any) -> None:
+    def _solve(self, *args: Any, **kwargs: Any) -> None:
         pass
 
-    def prepare(self, **kwargs: Any) -> "BaseProblem":
-        self._prepare(**kwargs)
+    def prepare(self, *args: Any, **kwargs: Any) -> "BaseProblem":
+        self._prepare(*args, **kwargs)
         if self._problem_kind == ProblemKind.UNKNOWN:
             raise RuntimeError("TODO: problem kind not set after prepare")
         self._stage = ProblemStage.PREPARED
         return self
 
-    def solve(self, **kwargs: Any) -> "BaseProblem":
+    def solve(self, *args: Any, **kwargs: Any) -> "BaseProblem":
         if self._stage != ProblemStage.PREPARED:
             raise RuntimeError("TODO")
-        self._solve(**kwargs)
+        self._solve(*args, **kwargs)
         self._stage = ProblemStage.SOLVED
         return self
-
-    @property
-    def adata(self) -> AnnData:
-        """%(adata)s."""
-        return self._adata
-
-    @property
-    def stage(self) -> ProblemStage:
-        return self._stage
 
     # TODO(michalk8): move below?
     @staticmethod
@@ -115,6 +106,19 @@ class BaseProblem(ABC):
             raise ValueError("TODO: no mass.")
 
         return data / total if normalize else data
+
+    @property
+    def adata(self) -> AnnData:
+        """%(adata)s."""
+        return self._adata
+
+    @property
+    def stage(self) -> ProblemStage:
+        return self._stage
+
+    @property
+    def problem_kind(self) -> ProblemKind:
+        return self._problem_kind
 
 
 @d.get_sections(base="OTProblem", sections=["Parameters", "Raises"])
@@ -174,8 +178,7 @@ class OTProblem(BaseProblem):
 
         return TaggedArray(x_array.data, y_array.data, tag=Tag.POINT_CLOUD, loss=x_array.loss)
 
-    # TODO(michalk8): refactor me(previously also handled taggedarray as input)
-    def _prepare(
+    def _prepare(  # type: ignore[override]
         self,
         xy: Optional[Union[Mapping[str, Any], TaggedArray]] = None,
         x: Optional[Union[Mapping[str, Any], TaggedArray]] = None,
@@ -208,7 +211,7 @@ class OTProblem(BaseProblem):
         self._a = self._create_marginals(self.adata, data=a, source=True, **kwargs)
         self._b = self._create_marginals(self._adata_y, data=b, source=False, **kwargs)
 
-    def _solve(
+    def _solve(  # type: ignore[override]
         self,
         epsilon: Optional[float] = 1e-2,
         alpha: Optional[float] = 0.5,

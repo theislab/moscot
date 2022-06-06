@@ -188,9 +188,9 @@ class BaseCompoundProblem(BaseProblem, ABC, Generic[K, B]):
         policy = self._create_policy(policy=policy, key=key, axis=axis)  # type: ignore[assignment]
         if TYPE_CHECKING:
             assert isinstance(policy, SubsetPolicy)
-        if isinstance(self._policy, ExplicitPolicy):
+        if isinstance(policy, ExplicitPolicy):
             policy = policy(subset=subset)
-        elif isinstance(self._policy, StarPolicy):
+        elif isinstance(policy, StarPolicy):
             policy = policy(reference=reference)
         else:
             policy = policy()
@@ -205,7 +205,7 @@ class BaseCompoundProblem(BaseProblem, ABC, Generic[K, B]):
             self._problem_kind = p._problem_kind
             break
 
-    def _solve(self, stage: Optional[Union[ProblemStage, Tuple[ProblemStage, ...]]] = None, **kwargs: Any) -> None:
+    def _solve(self, stage: Optional[Union[ProblemStage, Tuple[ProblemStage, ...]]] = None, **kwargs: Any) -> None:  # type: ignore[override]
         """
         Solve the biological problem.
 
