@@ -77,6 +77,10 @@ class BaseProblem(ABC):
         """%(adata)s."""
         return self._adata
 
+    @property
+    def stage(self) -> ProblemStage:
+        return self._stage
+
     # TODO(michalk8): move below?
     @staticmethod
     def _get_mass(

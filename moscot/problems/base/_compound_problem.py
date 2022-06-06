@@ -17,7 +17,6 @@ from typing import (
     Sequence,
     TYPE_CHECKING,
 )
-from collections import defaultdict
 
 from scipy.sparse import issparse
 
@@ -25,6 +24,7 @@ from anndata import AnnData
 
 from moscot._docs import d
 from moscot._types import ArrayLike
+from moscot.problems._utils import require_prepare
 from moscot.solvers._output import BaseSolverOutput
 from moscot.problems.base._utils import attributedispatch
 from moscot.solvers._tagged_array import Tag, TaggedArray
@@ -39,6 +39,7 @@ from moscot.problems._subset_policy import (
     FormatterMixin,
 )
 from moscot.problems.base._base_problem import OTProblem, BaseProblem, ProblemStage
+from moscot.problems.base._problem_manager import ProblemManager
 
 __all__ = ["BaseCompoundProblem", "CompoundProblem"]
 
@@ -48,64 +49,6 @@ Callback_t = Callable[[AnnData, AnnData], Mapping[str, TaggedArray]]
 ApplyOutput_t = Union[ArrayLike, Dict[K, ArrayLike]]
 # TODO(michalk8): future behavior
 # ApplyOutput_t = Union[ArrayLike, Dict[Tuple[K, K], ArrayLike]]
-
-
-class ProblemManager(Generic[K, B]):
-    def __init__(self, policy: SubsetPolicy[K], problems: Mapping[Tuple[K, K], B] = MappingProxyType({})):
-        self._policy = policy
-        self._problems: Dict[Tuple[K, K], B] = dict(problems)
-        self._verify_shape_integrity()
-
-    def add_problem(self, key: Tuple[K, K], problem: B, overwrite: bool = True) -> None:
-        if not overwrite and key in self:
-            raise KeyError(f"TODO: `{key}` already present, use `overwrite=True`")
-        self.problems[key] = problem
-        self._policy.add_node(key)
-        self._verify_shape_integrity()
-
-    def remove_problem(self, key: Tuple[K, K]) -> None:
-        del self.problems[key]
-        self._policy.remove_node(key)
-
-    def get_problems(
-        self, stage: Optional[Union[ProblemStage, Tuple[ProblemStage, ...]]] = None
-    ) -> Dict[Tuple[K, K], B]:
-        if stage is None:
-            return self._problems
-        if isinstance(stage, ProblemStage):
-            stage = (stage,)
-        return {k: v for k, v in self.problems.items() if v._stage in stage}
-
-    def get_solutions(self, only_converged: bool = False) -> Dict[Tuple[K, K], BaseSolverOutput]:
-        return {
-            k: v.solution
-            for k, v in self.problems.items()
-            if v.solution is not None and (not only_converged or v.solution.converged)
-        }
-
-    def _verify_shape_integrity(self) -> None:
-        dims = defaultdict(set)
-        for (src, tgt), prob in self.problems.items():
-            dims[src].add(prob.shape[0])
-            dims[tgt].add(prob.shape[1])
-
-        for key, dim in dims.items():
-            if len(dim) > 1:
-                raise ValueError(f"TODO: key `{key}` is associated with more than 1 dimensnions `{dim}`")
-
-    @property
-    def solutions(self) -> Dict[Tuple[K, K], BaseSolverOutput]:
-        return self.get_solutions(only_converged=False)
-
-    @property
-    def problems(self) -> Dict[Tuple[K, K], B]:
-        return self._problems
-
-    def __contains__(self, key: Tuple[K, K]) -> bool:
-        return key in self.problems
-
-    def __len__(self) -> int:
-        return len(self.problems)
 
 
 @d.get_sections(base="BaseCompoundProblem", sections=["Parameters", "Raises"])
@@ -252,8 +195,12 @@ class BaseCompoundProblem(BaseProblem, ABC, Generic[K, B]):
         else:
             policy = policy()
 
+        # TODO(michalk8): manager must be currently instantiated first, since `_create_problems` accesses the policy
+        # when refactoring the callback, consider changing this
+        self._problem_manager = ProblemManager(policy)
         problems = self._create_problems(callback=callback, callback_kwargs=callback_kwargs, **kwargs)
-        self._problem_manager = ProblemManager(policy, problems=problems)
+        self._problem_manager.add_problems(problems)
+
         for p in self.problems.values():
             self._problem_kind = p._problem_kind
             break
@@ -272,6 +219,8 @@ class BaseCompoundProblem(BaseProblem, ABC, Generic[K, B]):
                 - :meth:`moscot.problems.MultiMarginalProblem.solve`
                 - :meth:`moscot.problems.BirthDeathProblem.solve`
         """
+        if TYPE_CHECKING:
+            assert isinstance(self._problem_manager, ProblemManager)
         problems = self._problem_manager.get_problems(stage=stage)
         # TODO(michalk8): print how many problems are being solved
         for subset, problem in problems.items():
@@ -388,26 +337,35 @@ class BaseCompoundProblem(BaseProblem, ABC, Generic[K, B]):
     @property
     def problems(self) -> Dict[Tuple[K, K], B]:
         """Return dictionary of OT problems which the biological problem consists of."""
-        return self._problem_manager._problems
+        if self._problem_manager is None:
+            return {}
+        return self._problem_manager.problems
 
+    @require_prepare
     def add_problem(self, key: Tuple[K, K], problem: B, *, overwrite: bool = False) -> "BaseCompoundProblem[K, B]":
+        if TYPE_CHECKING:
+            assert isinstance(self._problem_manager, ProblemManager)
         self._problem_manager.add_problem(key, problem, overwrite=overwrite)
         return self
 
+    @require_prepare
     def remove_problem(self, key: Tuple[K, K]) -> "BaseCompoundProblem[K, B]":
-        # TODO(michalk8): ensure manager is instantiated
+        if TYPE_CHECKING:
+            assert isinstance(self._problem_manager, ProblemManager)
         self._problem_manager.remove_problem(key)
         return self
 
     @property
     def solutions(self) -> Dict[Tuple[K, K], BaseSolverOutput]:
         """Return dictionary of solutions of OT problems which the biological problem consists of."""
-        # TODO(michalk8): ensure manager is instantiated
+        if self._problem_manager is None:
+            return {}
         return self._problem_manager.solutions
 
     @property
-    def _policy(self) -> SubsetPolicy[K]:
-        # TODO(michalk8): ensure manager is instantiated
+    def _policy(self) -> Optional[SubsetPolicy[K]]:
+        if self._problem_manager is None:
+            return None
         return self._problem_manager._policy
 
     def __getitem__(self, item: Tuple[K, K]) -> B:
@@ -417,7 +375,7 @@ class BaseCompoundProblem(BaseProblem, ABC, Generic[K, B]):
         return key in self.problems
 
     def __len__(self) -> int:
-        return len(self._problem_manager)
+        return len(self.problems)
 
     def __iter__(self) -> Iterator[Tuple[K, K]]:
         return iter(self.problems)
@@ -465,7 +423,7 @@ class CompoundProblem(BaseCompoundProblem[K, B], ABC):
         return ExplicitPolicy(self.adata, key=key, axis=axis)
 
     def _mask(self, mask: ArrayLike) -> AnnData:
-        return self.adata[mask] if self._policy.axis == "obs" else self.adata[:, mask]
+        return self.adata[mask] if self._policy.axis == "obs" else self.adata[:, mask]  # type: ignore[union-attr]
 
     def _callback_handler(
         self,
