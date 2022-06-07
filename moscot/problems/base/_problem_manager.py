@@ -1,35 +1,50 @@
 from types import MappingProxyType
-from typing import Dict, Tuple, Union, Generic, Mapping, TypeVar, Hashable, Optional
+from typing import Any, Dict, Tuple, Union, Generic, Mapping, TypeVar, Hashable, Optional, TYPE_CHECKING
 from collections import defaultdict
 
 from moscot.solvers._output import BaseSolverOutput
 from moscot.problems._subset_policy import SubsetPolicy
 from moscot.problems.base._base_problem import OTProblem, ProblemStage
 
+if TYPE_CHECKING:
+    from moscot.problems.base._compound_problem import BaseCompoundProblem
+
+
 K = TypeVar("K", bound=Hashable)
 B = TypeVar("B", bound=OTProblem)
 
 
 class ProblemManager(Generic[K, B]):
-    def __init__(self, policy: SubsetPolicy[K], problems: Mapping[Tuple[K, K], B] = MappingProxyType({})):
+    def __init__(self, compound_problem: "BaseCompoundProblem[K, B]", policy: SubsetPolicy[K]):
+        self._compound_problem = compound_problem
         self._policy = policy
-        self._problems: Dict[Tuple[K, K], B] = dict(problems)
-        self._verify_shape_integrity()
+        self._problems: Dict[Tuple[K, K], B] = {}
 
-    def add_problem(self, key: Tuple[K, K], problem: B, *, overwrite: bool = False) -> None:
+    def add_problem(self, key: Tuple[K, K], problem: Optional[B] = None, *, overwrite: bool = False) -> None:
         self._add_problem(key, problem, overwrite=overwrite, verify_integrity=True)
 
     def _add_problem(
-        self, key: Tuple[K, K], problem: B, *, overwrite: bool = False, verify_integrity: bool = True
+        self,
+        key: Tuple[K, K],
+        problem: Optional[B] = None,
+        *,
+        overwrite: bool = False,
+        verify_integrity: bool = True,
+        **kwargs: Any,
     ) -> None:
         if not overwrite and key in self.problems:
             raise KeyError(f"TODO: `{key}` already present, use `overwrite=True`")
+
+        if problem is None:
+            problem = self._create_problem(key, **kwargs)
+
         self.problems[key] = problem
         self._policy.add_node(key)
+
         if verify_integrity:
             self._verify_shape_integrity()
 
-    def add_problems(self, problems: Dict[Tuple[K, K], B], overwrite: bool = True) -> None:
+    def add_problems(self, problems: Dict[Tuple[K, K], Optional[B]], overwrite: bool = True) -> None:
         for key, prob in problems.items():
             self._add_problem(key, prob, overwrite=overwrite, verify_integrity=False)
         self._verify_shape_integrity()
@@ -53,6 +68,13 @@ class ProblemManager(Generic[K, B]):
             for k, v in self.problems.items()
             if v.solution is not None and (not only_converged or v.solution.converged)
         }
+
+    def _create_problem(
+        self, key: Tuple[K, K], init_kwargs: Mapping[str, Any] = MappingProxyType({}), **kwargs: Any
+    ) -> B:
+        src_mask = self._policy.create_mask(key[0], allow_empty=False)
+        tgt_mask = self._policy.create_mask(key[1], allow_empty=False)
+        return self._compound_problem._create_problem(src_mask, tgt_mask, **init_kwargs).prepare(**kwargs)  # type: ignore[return-value]
 
     def _verify_shape_integrity(self) -> None:
         dims = defaultdict(set)

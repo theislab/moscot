@@ -197,7 +197,7 @@ class BaseCompoundProblem(BaseProblem, ABC, Generic[K, B]):
 
         # TODO(michalk8): manager must be currently instantiated first, since `_create_problems` accesses the policy
         # when refactoring the callback, consider changing this
-        self._problem_manager = ProblemManager(policy)
+        self._problem_manager = ProblemManager(self, policy=policy)
         problems = self._create_problems(callback=callback, callback_kwargs=callback_kwargs, **kwargs)
         self._problem_manager.add_problems(problems)
 
@@ -222,7 +222,7 @@ class BaseCompoundProblem(BaseProblem, ABC, Generic[K, B]):
         if TYPE_CHECKING:
             assert isinstance(self._problem_manager, ProblemManager)
         problems = self._problem_manager.get_problems(stage=stage)
-        # TODO(michalk8): print how many problems are being solved
+        # TODO(michalk8): print how many problems are being solved?
         for subset, problem in problems.items():
             _ = problem.solve(**kwargs)
 
@@ -250,6 +250,7 @@ class BaseCompoundProblem(BaseProblem, ABC, Generic[K, B]):
             assert isinstance(self._policy, StarPolicy)
 
         res = {}
+        # TODO(michalk8): should use manager.plan (once implemented), as some problems may not be solved
         for src, tgt in self._policy.plan():
             problem = self.problems[src, tgt]
             fun = problem.push if forward else problem.pull
