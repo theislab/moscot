@@ -9,7 +9,6 @@ from moscot.problems.base._base_problem import OTProblem, ProblemStage
 if TYPE_CHECKING:
     from moscot.problems.base._compound_problem import BaseCompoundProblem
 
-
 K = TypeVar("K", bound=Hashable)
 B = TypeVar("B", bound=OTProblem)
 
@@ -32,15 +31,22 @@ class ProblemManager(Generic[K, B]):
         verify_integrity: bool = True,
         **kwargs: Any,
     ) -> None:
+        from moscot.problems.base._compound_problem import CompoundProblem
+
         if not overwrite and key in self.problems:
             raise KeyError(f"TODO: `{key}` already present, use `overwrite=True`")
 
         if problem is None:
             problem = self._create_problem(key, **kwargs)
 
+        if isinstance(self._compound_problem, CompoundProblem):
+            if not isinstance(problem, self._compound_problem._base_problem_type):
+                raise TypeError(f"TODO: expected `{self._compound_problem._base_problem_type}`, got `{type(problem)}`")
+        elif not isinstance(problem, OTProblem):
+            raise TypeError(f"TODO: expected `{OTProblem}`, got `{type(problem)}`")
+
         self.problems[key] = problem
         self._policy.add_node(key)
-
         if verify_integrity:
             self._verify_shape_integrity()
 
