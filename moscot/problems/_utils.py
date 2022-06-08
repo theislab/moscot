@@ -8,6 +8,7 @@ import wrapt
 __all__ = ["require_prepare", "require_solution"]
 
 
+# TODO(michalk8): refactor using stage
 @wrapt.decorator
 def require_solution(
     wrapped: Callable[[Any], Any], instance: "BaseProblem", args: Tuple[Any, ...], kwargs: Mapping[str, Any]

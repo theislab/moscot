@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import Any, Dict, List, Tuple, Union, Generic, TypeVar, Hashable, Iterable, Optional, Sequence
+from typing import Any, Set, Dict, List, Tuple, Union, Generic, TypeVar, Hashable, Iterable, Optional, Sequence
 from operator import gt, lt
 from itertools import product
 
@@ -67,33 +67,36 @@ class SubsetPolicy(Generic[K]):
             self._data = adata
         self._data = self._data.astype("category")  # TODO(@MUCDK): catch conversion error
         self._axis = axis
-        self._graph: Sequence[Tuple[K, K]] = []
+        self._graph: Set[Tuple[K, K]] = set()
         self._cat = tuple(self._data.cat.categories)
         self._subset_key: Optional[str] = key
 
     @abstractmethod
-    def _create_graph(self, **kwargs: Any) -> Sequence[Tuple[K, K]]:
+    def _create_graph(self, **kwargs: Any) -> Set[Tuple[K, K]]:
         pass
 
-    # TODO(michalk8): move filter argument from graph creation?
-    def plan(self, **kwargs: Any) -> Sequence[Tuple[K, K]]:
-        return self._plan(**kwargs)
+    def plan(self, filter: Optional[Sequence[Tuple[K, K]]] = None, **kwargs: Any) -> Sequence[Tuple[K, K]]:
+        plan = self._plan(**kwargs)
+        # TODO(michalk8): ensure unique
+        if filter is not None:
+            plan = self._filter_plan(plan, filter=filter)
+        if not len(plan):
+            raise ValueError("TODO: empty plan")
+        return plan
 
     @abstractmethod
     def _plan(self, **kwargs: Any) -> Sequence[Tuple[K, K]]:
         pass
 
-    def __call__(self, filter: Optional[Sequence[Tuple[K, K]]] = None, **kwargs: Any) -> "SubsetPolicy[K]":
+    def __call__(self, **kwargs: Any) -> "SubsetPolicy[K]":
         graph = self._create_graph(**kwargs)
-        if filter is not None:
-            graph = self._filter_graph(graph, filter=filter)
         if not len(graph):
             raise ValueError("TODO: empty graph")
         self._graph = graph
         return self
 
-    def _filter_graph(self, graph: Sequence[Tuple[K, K]], filter: Sequence[Tuple[K, K]]) -> Sequence[Tuple[K, K]]:
-        return [i for i in graph if i in filter]
+    def _filter_plan(self, plan: Sequence[Tuple[K, K]], filter: Sequence[Tuple[K, K]]) -> Sequence[Tuple[K, K]]:
+        return [step for step in plan if step in filter]
 
     @classmethod
     def create(
@@ -143,6 +146,24 @@ class SubsetPolicy(Generic[K]):
 
         return res
 
+    def add_node(self, node: Tuple[K, K], only_existing: bool = False) -> None:
+        if self._graph is None:
+            raise RuntimeError("TODO: construct graph first")
+        src, tgt = node
+        if src == tgt:
+            raise ValueError("TODO: cannot add self connections")
+        if only_existing and (src not in self._cat or tgt not in self._cat):
+            raise ValueError("TODO: use only_existing=False")
+        self._graph.add(node)
+
+    def remove_node(self, node: Tuple[K, K]) -> None:
+        if self._graph is None:
+            raise RuntimeError("TODO: construct graph first")
+        try:
+            self._graph.remove(node)
+        except KeyError:
+            pass
+
     @property
     def axis(self) -> Axis_t:
         return self._axis
@@ -159,7 +180,7 @@ class OrderedPolicy(SubsetPolicy[K], ABC):
         if self._graph is None:
             raise RuntimeError("TODO: run graph creation first")
         if start is None and end is None:
-            return self._graph if forward else self._graph[::-1]
+            start, end = self._cat[0], self._cat[-1]
         # TODO: add Graph for undirected
         G = nx.DiGraph()
         G.add_edges_from(self._graph)
@@ -181,20 +202,31 @@ class SimplePlanPolicy(SubsetPolicy[K], ABC):
 
 
 class StarPolicy(SimplePlanPolicy[K]):
-    def _create_graph(self, reference: K, **kwargs: Any) -> Sequence[Tuple[K, K]]:  # type: ignore[override]
+    def _create_graph(self, reference: K, **kwargs: Any) -> Set[Tuple[K, K]]:  # type: ignore[override]
         if reference not in self._cat:
             raise ValueError(f"TODO: Reference {reference} not in {self._cat}")
-        return [(c, reference) for c in self._cat if c != reference]
+        return {(c, reference) for c in self._cat if c != reference}
 
-    def _filter_graph(
-        self, graph: Sequence[Tuple[K, K]], filter: Sequence[Union[K, Tuple[K, K]]]
+    def _filter_plan(
+        self, plan: Sequence[Tuple[K, K]], filter: Sequence[Union[K, Tuple[K, K]]]
     ) -> Sequence[Tuple[K, K]]:
         filter = [src[0] if isinstance(src, tuple) else src for src in filter]
-        return [(src, ref) for src, ref in graph if src in filter]
+        return [(src, ref) for src, ref in plan if src in filter]
 
     @property
     def reference(self) -> K:
-        return self._graph[0][-1]
+        for _, ref in self._graph:
+            return ref
+
+    def add_node(self, node: Union[K, Tuple[K, K]], only_existing: bool = False) -> None:
+        if not isinstance(node, tuple):
+            node = (node, self.reference)
+        return super().add_node(node, only_existing=only_existing)  # type: ignore[arg-type]
+
+    def remove_node(self, node: Union[K, Tuple[K, K]]) -> None:
+        if not isinstance(node, tuple):
+            node = (node, self.reference)
+        return super().remove_node(node)  # type: ignore[arg-type]
 
 
 class ExternalStarPolicy(FormatterMixin, StarPolicy[K]):
@@ -211,16 +243,16 @@ class ExternalStarPolicy(FormatterMixin, StarPolicy[K]):
             return self._tgt_name
         raise ValueError("TODO.")
 
-    def _create_graph(self, **_: Any) -> Sequence[Tuple[K, object]]:  # type: ignore[override]
-        return [(c, self._SENTINEL) for c in self._cat if c != self._SENTINEL]
+    def _create_graph(self, **_: Any) -> Set[Tuple[K, object]]:  # type: ignore[override]
+        return {(c, self._SENTINEL) for c in self._cat if c != self._SENTINEL}
 
     def create_masks(self, discard_empty: bool = True) -> Dict[Tuple[K, K], Tuple[ArrayLike, ArrayLike]]:
         return super().create_masks(discard_empty=False)
 
 
 class SequentialPolicy(OrderedPolicy[K]):
-    def _create_graph(self, *_: Any, **__: Any) -> Sequence[Tuple[K, K]]:
-        return list(zip(self._cat[:-1], self._cat[1:]))
+    def _create_graph(self, *_: Any, **__: Any) -> Set[Tuple[K, K]]:
+        return set(zip(self._cat[:-1], self._cat[1:]))
 
 
 class TriangularPolicy(OrderedPolicy[K]):
@@ -228,16 +260,16 @@ class TriangularPolicy(OrderedPolicy[K]):
         super().__init__(adata, **kwargs)
         self._compare = lt if upper else gt
 
-    def _create_graph(self, **__: Any) -> Sequence[Tuple[K, K]]:
-        return [(a, b) for a, b in product(self._cat, self._cat) if self._compare(a, b)]
+    def _create_graph(self, **__: Any) -> Set[Tuple[K, K]]:
+        return {(a, b) for a, b in product(self._cat, self._cat) if self._compare(a, b)}
 
 
 class ExplicitPolicy(SimplePlanPolicy[K]):
-    def _create_graph(self, subset: Sequence[Tuple[K, K]], **_: Any) -> Sequence[Tuple[K, K]]:  # type: ignore[override]
+    def _create_graph(self, subset: Sequence[Tuple[K, K]], **_: Any) -> Set[Tuple[K, K]]:  # type: ignore[override]
         if subset is None:
             raise ValueError("TODO: specify subset for explicit policy.")
         # pass-through, all checks are done by us later
-        return subset
+        return set(subset)
 
     def _plan(  # type: ignore[override]
         self, start: K, end: K, explicit_steps: Optional[Sequence[Tuple[K, K]]] = None, **_: Any
@@ -267,8 +299,8 @@ class DummyPolicy(FormatterMixin, SubsetPolicy[str]):
         self._src_name = src_name
         self._tgt_name = tgt_name
 
-    def _create_graph(self, **__: Any) -> Sequence[Tuple[object, object]]:  # type: ignore[override]
-        return [(self._SENTINEL, self._SENTINEL)]
+    def _create_graph(self, **__: Any) -> Set[Tuple[object, object]]:  # type: ignore[override]
+        return {(self._SENTINEL, self._SENTINEL)}
 
     def _plan(self, **_: Any) -> List[Tuple[str, str]]:
         return [(self._src_name, self._tgt_name)]

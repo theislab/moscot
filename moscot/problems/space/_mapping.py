@@ -67,7 +67,7 @@ class MappingProblem(CompoundProblem[K, OTProblem], SpatialMappingMixin[K, OTPro
         )
 
     @d.dedent
-    def prepare(
+    def _prepare(
         self,
         sc_attr: Union[str, Mapping[str, Any]],
         batch_key: Optional[str] = None,
@@ -75,7 +75,7 @@ class MappingProblem(CompoundProblem[K, OTProblem], SpatialMappingMixin[K, OTPro
         var_names: Optional[Sequence[Any]] = None,
         joint_attr: Optional[Mapping[str, Any]] = MappingProxyType({"x_attr": "X", "y_attr": "X"}),
         **kwargs: Any,
-    ) -> "MappingProblem[K]":
+    ) -> None:
         """
         Prepare the :class:`moscot.problems.space.MappingProblem`.
 
@@ -114,16 +114,16 @@ class MappingProblem(CompoundProblem[K, OTProblem], SpatialMappingMixin[K, OTPro
                 kwargs["callback"] = "local-pca"
                 kwargs["callback_kwargs"] = {**kwargs.get("callback_kwargs", {}), **{"return_linear": True}}
 
-        return super().prepare(x=x, y=y, policy="external_star", key=batch_key, **kwargs)
+        return super()._prepare(x=x, y=y, policy="external_star", key=batch_key, **kwargs)
 
     @d.dedent
-    def solve(
+    def _solve(
         self,
         alpha: Optional[float] = 0.5,
         epsilon: Optional[float] = 1e-3,
         scale_cost: str = "mean",
         **kwargs: Any,
-    ) -> "MappingProblem[K]":
+    ) -> None:
         """
         Solve optimal transport problems defined in :class:`moscot.problems.space.MappingProblem`.
 
@@ -137,7 +137,7 @@ class MappingProblem(CompoundProblem[K, OTProblem], SpatialMappingMixin[K, OTPro
         -------
         :class:`moscot.problems.space.MappingProblem`
         """
-        return super().solve(alpha=alpha, epsilon=epsilon, scale_cost=scale_cost, **kwargs)
+        return super()._solve(alpha=alpha, epsilon=epsilon, scale_cost=scale_cost, **kwargs)
 
     @property
     def adata_sc(self) -> AnnData:

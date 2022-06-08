@@ -18,6 +18,7 @@ O = TypeVar("O", bound=BaseSolverOutput)  # noqa: E741
 class ProblemKind(str, Enum):
     """Class defining the problem class and dispatching the solvers."""
 
+    UNKNOWN = "unknown"
     LINEAR = "linear"
     QUAD = "quadratic"
     QUAD_FUSED = "quadratic_fused"
