@@ -87,6 +87,9 @@ class TestTemporalMixin:
 
         direction = "forward" if forward else "backward"
         gt = gt_temporal_adata.uns[f"cell_transition_10_105_{direction}"]
+        gt = gt.sort_index()
+        result = result.sort_index()
+        result = result[gt.columns]
         np.testing.assert_almost_equal(result.values, gt.values, decimal=4)
 
     def test_compute_time_point_distances_pipeline(self, adata_time: AnnData):
