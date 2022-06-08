@@ -18,17 +18,18 @@ class TestAlignmentProblem:
         "joint_attr", [{"x_attr": "X", "y_attr": "X"}]
     )  # TODO(giovp): check that callback is correct
     def test_prepare_sequential(self, adata_space_rotate: AnnData, joint_attr: Optional[Mapping[str, Any]]):
-        expected_keys = [("0", "1"), ("1", "2")]
         n_obs = adata_space_rotate.shape[0] // 3  # adata is made of 3 datasets
         n_var = adata_space_rotate.shape[1]
+        expected_keys = {("0", "1"), ("1", "2")}
         ap = AlignmentProblem(adata=adata_space_rotate)
         assert len(ap) == 0
         assert ap.problems == {}
         assert ap.solutions == {}
 
         ap = ap.prepare(batch_key="batch", joint_attr=joint_attr)
-        for prob_key, exp_key in zip(ap, expected_keys):
-            assert prob_key == exp_key
+        assert len(ap) == 2
+
+        for prob_key in expected_keys:
             assert isinstance(ap[prob_key], ap._base_problem_type)
             assert ap[prob_key].shape == (n_obs, n_obs)
             assert ap[prob_key].x.data.shape == ap[prob_key].y.data.shape == (n_obs, 2)

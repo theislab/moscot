@@ -35,14 +35,14 @@ class TemporalProblem(
     """
 
     @d.dedent
-    def prepare(
+    def _prepare(
         self,
         time_key: str,
         joint_attr: Optional[Union[str, Mapping[str, Any]]] = None,
         policy: Literal["sequential", "triu", "tril", "explicit"] = "sequential",
         marginal_kwargs: Mapping[str, Any] = MappingProxyType({}),
         **kwargs: Any,
-    ) -> "TemporalProblem":
+    ) -> None:
         """
         Prepare the :class:`moscot.problems.time.TemporalProblem`.
 
@@ -109,7 +109,7 @@ class TemporalProblem(
         if "b" not in kwargs:
             kwargs["b"] = self.proliferation_key is not None or self.apoptosis_key is not None
 
-        return super().prepare(
+        return super()._prepare(
             key=time_key,
             policy=policy,
             marginal_kwargs=marginal_kwargs,
@@ -230,14 +230,14 @@ class LineageProblem(TemporalProblem):
     """
 
     @d.dedent
-    def prepare(
+    def _prepare(
         self,
         time_key: str,
         lineage_attr: Mapping[str, Any] = MappingProxyType({}),
         joint_attr: Optional[Union[str, Mapping[str, Any]]] = None,
         policy: Literal["sequential", "triu", "tril", "explicit"] = "sequential",
         **kwargs: Any,
-    ) -> "LineageProblem":
+    ) -> None:
         """
         Prepare the :class:`moscot.problems.time.LineageProblem`.
 
@@ -304,7 +304,7 @@ class LineageProblem(TemporalProblem):
         lineage_attr.setdefault("loss_kwargs", {})
         x = y = lineage_attr
 
-        return super().prepare(
+        return super()._prepare(
             time_key,
             joint_attr=joint_attr,
             x=x,

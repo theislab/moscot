@@ -22,7 +22,7 @@ class TestMappingProblem:
     )
     def test_prepare(self, adata_mapping: AnnData, sc_attr: Mapping[str, str], joint_attr: Optional[Mapping[str, str]]):
         adataref, adatasp = _adata_spatial_split(adata_mapping)
-        expected_keys = [(i, "ref") for i in adatasp.obs.batch.cat.categories]
+        expected_keys = {(i, "ref") for i in adatasp.obs.batch.cat.categories}
         n_obs = adataref.shape[0]
         x_n_var = adatasp.obsm["spatial"].shape[1]
         y_n_var = adataref.shape[1] if sc_attr["attr"] == "X" else adataref.obsm["X_pca"].shape[1]
@@ -36,8 +36,8 @@ class TestMappingProblem:
         else:
             mp = mp.prepare(batch_key="batch", sc_attr=sc_attr, joint_attr=joint_attr)
 
-        for prob_key, exp_key in zip(mp, expected_keys):
-            assert prob_key == exp_key
+        assert len(mp) == len(expected_keys)
+        for prob_key in expected_keys:
             assert isinstance(mp[prob_key], mp._base_problem_type)
             assert mp[prob_key].shape == (n_obs, n_obs)
             assert mp[prob_key].x.data.shape == (n_obs, x_n_var)
