@@ -1,6 +1,6 @@
 from types import MappingProxyType
 from numbers import Number
-from typing import Any, Dict, List, Tuple, Union, Mapping, Optional, Protocol, Sequence, TYPE_CHECKING
+from typing import Any, Dict, List, Tuple, Union, Mapping, Optional, Protocol, Sequence, TYPE_CHECKING, Literal
 import logging
 import itertools
 
@@ -664,15 +664,6 @@ class TemporalMixin(AnalysisMixin[K, B]):
         else:
             raise NotImplementedError("TODO: not implemented.")
         return result.sum(axis=1)
-
-    def _dict_to_adata(self, d: Mapping[str, npt.ArrayLike], obs_key: str) -> None:
-        # TODO: np.full
-        tmp = np.empty(len(self.adata))
-        tmp[:] = np.nan
-        for key, value in d.items():
-            mask = self.adata.obs[self.temporal_key] == key
-            tmp[mask] = np.squeeze(value)
-        self.adata.obs[obs_key] = tmp
 
     @property
     def temporal_key(self) -> Optional[str]:

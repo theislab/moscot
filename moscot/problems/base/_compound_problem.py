@@ -236,7 +236,6 @@ class BaseCompoundProblem(BaseProblem, ABC, Generic[K, B]):
     ) -> ApplyOutput_t[K]:
         raise NotImplementedError(type(self._policy))
 
-    # @_apply.register(ExplicitPolicy)  # TODO(michalk8): figure out where to place tis
     @_apply.register(DummyPolicy)
     @_apply.register(StarPolicy)
     def _(
@@ -257,6 +256,7 @@ class BaseCompoundProblem(BaseProblem, ABC, Generic[K, B]):
             res[src] = fun(data=data, scale_by_marginals=scale_by_marginals, **kwargs)
         return res
 
+    @_apply.register(ExplicitPolicy)
     @_apply.register(OrderedPolicy)
     def _(
         self,

@@ -74,12 +74,11 @@ class TestTemporalMixin:
         key_2 = config["key_2"]
         key_3 = config["key_3"]
         problem = TemporalProblem(gt_temporal_adata)
-        problem = problem.prepare(key, subset=[(key_1, key_2), (key_2, key_3), (key_1, key_3)], policy="explicit")
-        assert set(problem.problems.keys()) == {(key_1, key_2), (key_2, key_3), (key_1, key_3)}
+        problem = problem.prepare(key)
+        assert set(problem.problems.keys()) == {(key_1, key_2), (key_2, key_3)}
         problem[key_1, key_2]._solution = MockSolverOutput(gt_temporal_adata.uns["tmap_10_105"])
         problem[key_2, key_3]._solution = MockSolverOutput(gt_temporal_adata.uns["tmap_105_11"])
-        problem[key_1, key_3]._solution = MockSolverOutput(gt_temporal_adata.uns["tmap_10_11"])
-
+        
         result = problem.cell_transition(10, 10.5, early_cells="cell_type", late_cells="cell_type", forward=forward)
         assert result.shape == (5, 5)
         marginal = result.sum(axis=forward == 1).values

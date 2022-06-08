@@ -81,8 +81,8 @@ class BaseProblem(ABC):
         normalize: bool = True,
         *,
         split_mass: bool = False,
-    ) -> npt.ArrayLike:
-        def _split_mass(arr: npt.ArrayLike) -> npt.ArrayLike:
+    ) -> ArrayLike:
+        def _split_mass(arr: ArrayLike) -> ArrayLike:
             non_zero_idxs = np.where(arr!=0)[0]
             data = np.zeros((len(arr), len(non_zero_idxs)))
             data[non_zero_idxs, np.array(range(len(non_zero_idxs)))] = 1
