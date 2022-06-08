@@ -12,7 +12,7 @@ from moscot.solvers._tagged_array import Tag, TaggedArray
 __all__ = ["ProblemKind", "BaseSolver", "OTSolver"]
 
 
-O = TypeVar("O", bound=BaseSolverOutput)
+O = TypeVar("O", bound=BaseSolverOutput)  # noqa: E741
 
 
 class ProblemKind(str, Enum):
@@ -116,7 +116,7 @@ class BaseSolver(Generic[O], ABC):
         pass
 
     @abstractmethod
-    def _solve(self, data: Any, **kwargs: Any) -> O:
+    def _solve(self, data: Any, **kwargs: Any) -> O:  # noqa: E741
         pass
 
     @property
@@ -125,7 +125,7 @@ class BaseSolver(Generic[O], ABC):
         """Problem kind."""
         # helps to check whether necessary inputs were passed
 
-    def __call__(self, **kwargs: Any) -> O:
+    def __call__(self, **kwargs: Any) -> O:  # noqa: E741
         """Call method."""
         data = self._prepare(**kwargs)
         return self._solve(data)

@@ -6,12 +6,11 @@ from scipy.sparse import issparse
 import scipy
 
 import numpy as np
-import numpy.typing as npt
 
 from anndata import AnnData
 
-from moscot._types import ArrayLike
 from moscot._docs import d
+from moscot._types import ArrayLike
 from moscot._utils import _get_backend_losses
 from moscot.costs._costs import BaseLoss
 from moscot.solvers._tagged_array import Tag, TaggedArray

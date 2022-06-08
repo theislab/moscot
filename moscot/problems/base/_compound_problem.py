@@ -39,6 +39,7 @@ from moscot.problems._subset_policy import (
     FormatterMixin,
 )
 from moscot.problems.base._base_problem import OTProblem, BaseProblem
+from moscot.problems.mixins import BirthDeathMixin
 
 __all__ = ["BaseCompoundProblem", "CompoundProblem"]
 
@@ -143,6 +144,10 @@ class BaseCompoundProblem(BaseProblem, ABC, Generic[K, B]):
 
             if isinstance(problem, BirthDeathProblem):
                 kws["delta"] = tgt - src  # type: ignore[operator]
+                if TYPE_CHECKING:
+                    assert isinstance(self, BirthDeathMixin)
+                kws["proliferation_key"] = self.proliferation_key
+                kws["apoptosis_key"] = self.apoptosis_key
             problems[src_name, tgt_name] = problem.prepare(**kws)  # type: ignore[assignment]
 
         return problems
@@ -237,7 +242,6 @@ class BaseCompoundProblem(BaseProblem, ABC, Generic[K, B]):
     ) -> ApplyOutput_t[K]:
         raise NotImplementedError(type(self._policy))
 
-    # @_apply.register(ExplicitPolicy)  # TODO(michalk8): figure out where to place tis
     @_apply.register(DummyPolicy)
     @_apply.register(StarPolicy)
     def _(
@@ -257,6 +261,7 @@ class BaseCompoundProblem(BaseProblem, ABC, Generic[K, B]):
             res[src] = fun(data=data, scale_by_marginals=scale_by_marginals, **kwargs)
         return res
 
+    @_apply.register(ExplicitPolicy)
     @_apply.register(OrderedPolicy)
     def _(
         self,
@@ -271,15 +276,15 @@ class BaseCompoundProblem(BaseProblem, ABC, Generic[K, B]):
         if TYPE_CHECKING:
             assert isinstance(self._policy, OrderedPolicy)
 
-        (src, tgt), *rest = self._policy.plan(forward=forward, start=start, end=end)
+        (src, tgt), *rest = self._policy.plan(
+            forward=forward, start=start, end=end, explicit_steps=kwargs.pop("explicit_steps", None)
+        )
         problem = self.problems[src, tgt]
         adata = problem.adata if forward else problem._adata_y
-
         current_mass = problem._get_mass(adata, data=data, **kwargs)
         # TODO(michlak8): future behavior
         # res = {(None, src) if forward else (tgt, None): current_mass}
         res = {src if forward else tgt: current_mass}
-
         for src, tgt in [(src, tgt)] + rest:
             problem = self.problems[src, tgt]
             fun = problem.push if forward else problem.pull

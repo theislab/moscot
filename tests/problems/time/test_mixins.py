@@ -1,5 +1,4 @@
 from typing import Tuple
-from numbers import Number
 
 import pandas as pd
 import pytest
@@ -245,7 +244,7 @@ class TestTemporalMixin:
             assert isinstance(result[4], np.ndarray)
 
     @pytest.mark.parametrize("time_points", [(0, 1, 2), (0, 2, 1), ()])
-    def test_get_interp_param_pipeline(self, adata_time: AnnData, time_points: Tuple[Number]):
+    def test_get_interp_param_pipeline(self, adata_time: AnnData, time_points: Tuple[float]):
         start, intermediate, end = time_points if len(time_points) else (42, 43, 44)
         interpolation_parameter = None if len(time_points) == 3 else 0.5
         problem = TemporalProblem(adata_time)
@@ -254,9 +253,9 @@ class TestTemporalMixin:
 
         if intermediate <= start or end <= intermediate:
             with np.testing.assert_raises(ValueError):
-                problem._get_interp_param(interpolation_parameter, start, intermediate, end)
+                problem._get_interp_param(start, intermediate, end, interpolation_parameter)
         else:
-            inter_param = problem._get_interp_param(interpolation_parameter, start, intermediate, end)
+            inter_param = problem._get_interp_param(start, intermediate, end, interpolation_parameter)
             assert inter_param == 0.5
 
     @pytest.mark.fast()

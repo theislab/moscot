@@ -163,10 +163,12 @@ class BirthDeathProblem(BirthDeathMixin, OTProblem):
         adata: AnnData,
         source: bool,
         delta: float,
+        proliferation_key: Optional[str] = None,
+        apoptosis_key: Optional[str] = None,
         **kwargs: Any,
     ) -> ArrayLike:
-        proliferation_key = self.proliferation_key
-        apoptosis_key = self.apoptosis_key
+        self.proliferation_key = proliferation_key
+        self.apoptosis_key = apoptosis_key
         if proliferation_key is None and apoptosis_key is None:
             raise ValueError("TODO: `proliferation_key` or `apoptosis_key` must be provided to estimate marginals")
         if proliferation_key is not None and proliferation_key not in adata.obs.columns:

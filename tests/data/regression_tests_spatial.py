@@ -5,7 +5,6 @@ import pickle
 from scipy.sparse import csr_matrix
 
 import numpy as np
-import numpy.typing as npt
 
 from anndata import AnnData
 import scanpy as sc

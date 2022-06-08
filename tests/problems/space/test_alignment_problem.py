@@ -67,10 +67,12 @@ class TestAlignmentProblem:
 
     def test_solve_unbalanced(self, adata_space_rotate: AnnData):  # unclear usage yet
         tau_a, tau_b = [0.8, 1]
-        a = b = np.ones(100)
+        marg_a = "a"
+        marg_b = "b"
+        adata_space_rotate.obs[marg_a] = adata_space_rotate.obs[marg_b] = np.ones(300)
         ap = (
             AlignmentProblem(adata=adata_space_rotate)
-            .prepare(batch_key="batch", a=a, b=b)
+            .prepare(batch_key="batch", a=marg_a, b=marg_b)
             .solve(tau_a=tau_a, tau_b=tau_b, scale_cost=False)
         )
         assert np.all([sol.a is not None for sol in ap.solutions.values()])

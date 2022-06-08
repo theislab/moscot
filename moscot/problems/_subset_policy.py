@@ -177,7 +177,7 @@ class OrderedPolicy(SubsetPolicy[K], ABC):
 
 class SimplePlanPolicy(SubsetPolicy[K], ABC):
     def _plan(self, **_: Any) -> Sequence[Tuple[K, K]]:
-        return self._graph
+        return list(self._graph)
 
 
 class StarPolicy(SimplePlanPolicy[K]):
@@ -238,6 +238,19 @@ class ExplicitPolicy(SimplePlanPolicy[K]):
             raise ValueError("TODO: specify subset for explicit policy.")
         # pass-through, all checks are done by us later
         return subset
+
+    def _plan(  # type: ignore[override]
+        self, start: K, end: K, explicit_steps: Optional[Sequence[Tuple[K, K]]] = None, **_: Any
+    ) -> Sequence[Tuple[K, K]]:
+        if explicit_steps is None:
+            return [(start, end)]
+        G = nx.DiGraph()
+        G.add_edges_from(explicit_steps)
+        if not set(G.nodes).issubset(set(self._cat)):
+            raise ValueError("TODO: all values of `explicit_steps` must correspond to a cell distribution.")
+        if not nx.has_path(G, explicit_steps[0][0], explicit_steps[-1][1]):
+            raise ValueError("TODO: `explicit_steps` must be a connected path.")
+        return explicit_steps
 
 
 class DummyPolicy(FormatterMixin, SubsetPolicy[str]):

@@ -72,11 +72,12 @@ class TestBaseAnalysisMixin:
         problem = problem.prepare(
             "day", subset=[(10, 10.5), (10.5, 11), (10, 11)], policy="explicit", callback="local-pca"
         )
-        problem[10, 10.5]._solution = MockSolverOutput(gt_temporal_adata.uns["tmap_10_105"])
-        problem[10.5, 11]._solution = MockSolverOutput(gt_temporal_adata.uns["tmap_105_11"])
-        problem[10, 11]._solution = MockSolverOutput(gt_temporal_adata.uns["tmap_10_11"])
-
-        tmap = problem._interpolate_transport(10, 11, forward=forward, scale_by_marginals=True)
+        problem.solutions[10, 10.5] = MockSolverOutput(gt_temporal_adata.uns["tmap_10_105"])
+        problem.solutions[10.5, 11] = MockSolverOutput(gt_temporal_adata.uns["tmap_105_11"])
+        problem.solutions[10, 11] = MockSolverOutput(gt_temporal_adata.uns["tmap_10_11"])
+        tmap = problem._interpolate_transport(
+            10, 11, forward=forward, scale_by_marginals=True, explicit_steps=[(10.0, 11.0)]
+        )
 
         assert isinstance(tmap, LinearOperator)
         # TODO(@MUCDK) add regression test after discussing with @giovp what this function should be

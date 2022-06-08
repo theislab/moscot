@@ -1,4 +1,4 @@
-from typing import Any, Optional, TYPE_CHECKING, Dict
+from typing import Any, Dict, Optional
 
 from ott.geometry.costs import Bures, Cosine, Euclidean, UnbalancedBures
 import numpy as np
