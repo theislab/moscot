@@ -48,7 +48,7 @@ Mixin classes
 .. autosummary::
     :toctree: development
 
-    moscot.problems.mixins.BirthDeathMixin
+    moscot.problems.base._birth_death.BirthDeathMixin
 
 Base classes
 ~~~~~~~~~~~~
