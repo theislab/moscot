@@ -1,4 +1,4 @@
-from typing import Any
+from typing import Any, TypeVar, Callable, TYPE_CHECKING
 from textwrap import dedent
 
 from docrep import DocstringProcessor
@@ -42,6 +42,9 @@ epsilon
 _alpha = """\
 alpha
     Interpolation parameter between quadratic term and linear term."""
+_scale_cost = """\
+scale_cost
+    Method to scale cost matrices."""
 _tau_a = """\
 tau_a
     Unbalancedness parameter for left marginal between 0 and 1. `tau_a` equalling 1 means no unbalancedness
@@ -53,7 +56,8 @@ tau_a
 _scale_by_marginals = """\
 scale_by_marginals
     If `True` the transport map is scaled to be a stochastic matrix by multiplying the resulting mass
-            by the inverse of the marginals, TODO maybe EXAMPLE"""
+            by the inverse of the marginals, TODO maybe EXAMPLE
+"""
 _normalize = """\
 normalize
     Whether to normalize the result to 1 after the transport map has been applied."""
@@ -73,7 +77,7 @@ subset
     :attr:`anndata.AnnData.obs`."""
 _marginal_kwargs = """\
 marginal_kwargs
-    keyword arguments for :meth:`moscot.problems.BirthDeathBaseProblem._estimate_marginals`, i.e. for modeling
+    keyword arguments for :meth:`moscot.problems.BirthDeathProblem._estimate_marginals`, i.e. for modeling
     the birth-death process. The keyword arguments
     are either used for :func:`moscot.problems.time._utils.beta`, i.e. one of
 
@@ -109,7 +113,10 @@ time_key
     of numerical data type."""
 _spatial_key = """\
 spatial_key
-    TODO."""
+    Key in :attr:`anndata.AnnData.obsm` where spatial coordinates are stored."""
+_batch_key = """\
+batch_key
+    If present, specify the batch key of `:class:`anndata.AnnData`."""
 _policy = """\
 policy
     Defines the rule according to which pairs of distributions are selected to compute the transport map between."""
@@ -127,12 +134,18 @@ _split_mass = """\
 split_mass
     If `True` the operation is applied to each cell individually."""
 
-def inject_docs(**kwargs: Any):
-    def decorator(obj):
+RT = TypeVar("RT")  # return type
+O = TypeVar("O")  # object type
+
+
+def inject_docs(**kwargs: Any) -> Callable[[Callable[..., RT]], Callable[..., RT]]:  # noqa: D103
+    def decorator(obj: O) -> O:
+        if TYPE_CHECKING:
+            assert isinstance(obj.__doc__, str)
         obj.__doc__ = dedent(obj.__doc__).format(**kwargs)
         return obj
 
-    def decorator2(obj):
+    def decorator2(obj: O) -> O:
         obj.__doc__ = dedent(kwargs["__doc__"])
         return obj
 
@@ -156,6 +169,7 @@ d = DocstringProcessor(
     callback_kwargs=_callback_kwargs,
     epsilon=_epsilon,
     alpha=_alpha,
+    scale_cost=_scale_cost,
     tau_a=_tau_a,
     tau_b=_tau_b,
     scale_by_marginals=_scale_by_marginals,
@@ -170,6 +184,7 @@ d = DocstringProcessor(
     b=_b,
     time_key=_time_key,
     spatial_key=_spatial_key,
+    batch_key=_batch_key,
     policy=_policy,
     key=_key,
     joint_attr=_joint_attr,

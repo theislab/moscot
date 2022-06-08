@@ -5,10 +5,11 @@ import numpy as np
 from anndata import AnnData
 
 from moscot.problems.time import LineageProblem
-from moscot.problems.mixins._temporal_mixins import BirthDeathBaseProblem
+from moscot.problems.base._birth_death import BirthDeathProblem
 
 
 class TestLineageProblem:
+    @pytest.mark.fast()
     def test_barcodes_pipeline(self, adata_time_barcodes: AnnData):
         expected_keys = [(0, 1), (1, 2)]
         problem = LineageProblem(adata=adata_time_barcodes)
@@ -22,7 +23,7 @@ class TestLineageProblem:
 
         for key in problem:
             assert key in expected_keys
-            assert isinstance(problem[key], BirthDeathBaseProblem)
+            assert isinstance(problem[key], problem._base_problem_type)
 
     def test_custom_cost_pipeline(self, adata_time_custom_cost_xy: AnnData):
         expected_keys = [(0, 1), (1, 2)]
@@ -32,7 +33,7 @@ class TestLineageProblem:
 
         for key in problem:
             assert key in expected_keys
-            assert isinstance(problem[key], BirthDeathBaseProblem)
+            assert isinstance(problem[key], BirthDeathProblem)
 
     def test_trees_pipeline(self, adata_time_trees: AnnData):
         expected_keys = [(0, 1), (1, 2)]
@@ -42,7 +43,7 @@ class TestLineageProblem:
 
         for key in problem:
             assert key in expected_keys
-            assert isinstance(problem[key], BirthDeathBaseProblem)
+            assert isinstance(problem[key], BirthDeathProblem)
 
     @pytest.mark.parametrize(
         "n_iters", [3]

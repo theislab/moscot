@@ -1,10 +1,10 @@
-from typing import Any, Dict, Tuple
+from typing import Any, Dict, Tuple, TYPE_CHECKING
 import sys
 
 try:
     import wot  # please install WOT from commit hash`ca5e94f05699997b01cf5ae13383f9810f0613f6`"
-except:
-    ImportError("Please install WOT from commit hash`ca5e94f05699997b01cf5ae13383f9810f0613f6`")
+except ImportError:
+    raise ImportError("Please install WOT from commit hash`ca5e94f05699997b01cf5ae13383f9810f0613f6`")
 
 import os
 
@@ -16,7 +16,8 @@ import numpy as np
 from anndata import AnnData
 import scanpy as sc
 
-from moscot.problems.time import TemporalProblem
+from moscot._types import ArrayLike
+from moscot.problems.time import TemporalProblem  # type: ignore[attr-defined]
 
 eps = 0.5
 lam1 = 1
@@ -31,31 +32,32 @@ tau_b = lam2 / (lam2 + eps)
 seed = 42
 
 config = {
-        "eps": eps,
-        "lam1": lam1,
-        "lam2": lam2,
-        "tau_a": tau_a,
-        "tau_b": tau_b,
-        "key": key,
-        "key_1": key_1,
-        "key_2": key_2,
-        "key_3": key_3,
-        "local_pca": local_pca,
-        "seed": seed,
-    }
+    "eps": eps,
+    "lam1": lam1,
+    "lam2": lam2,
+    "tau_a": tau_a,
+    "tau_b": tau_b,
+    "key": key,
+    "key_1": key_1,
+    "key_2": key_2,
+    "key_3": key_3,
+    "local_pca": local_pca,
+    "seed": seed,
+}
+
 
 def _write_config(adata: AnnData) -> AnnData:
-    adata.uns["eps"]= eps
-    adata.uns["lam1"]= lam1
-    adata.uns["lam2"]= lam2
-    adata.uns["tau_a"]= tau_a
-    adata.uns["tau_b"]= tau_b
-    adata.uns["key"]= key
-    adata.uns["key_1"]= key_1
-    adata.uns["key_2"]= key_2
-    adata.uns["key_3"]= key_3
-    adata.uns["local_pca"]= local_pca
-    adata.uns["seed"]= seed
+    adata.uns["eps"] = eps
+    adata.uns["lam1"] = lam1
+    adata.uns["lam2"] = lam2
+    adata.uns["tau_a"] = tau_a
+    adata.uns["tau_b"] = tau_b
+    adata.uns["key"] = key
+    adata.uns["key_1"] = key_1
+    adata.uns["key_2"] = key_2
+    adata.uns["key_3"] = key_3
+    adata.uns["local_pca"] = local_pca
+    adata.uns["seed"] = seed
     return adata
 
 
@@ -101,7 +103,7 @@ def _write_analysis_output(cdata: AnnData, tp2: TemporalProblem, config: Dict[st
     return cdata
 
 
-def _prepare(adata: AnnData, config: Dict[str, Any]) -> Tuple[AnnData, np.ndarray, np.ndarray, np.ndarray]:
+def _prepare(adata: AnnData, config: Dict[str, Any]) -> Tuple[AnnData, ArrayLike, ArrayLike, ArrayLike]:
     adata_1 = adata[adata.obs[config["key"]] == config["key_1"]].copy()
     adata_2 = adata[adata.obs[config["key"]] == config["key_2"]].copy()
     adata_3 = adata[adata.obs[config["key"]] == config["key_3"]].copy()
@@ -132,6 +134,8 @@ def generate_gt_temporal_data(data_path: str) -> None:
         ]
     )
 
+    if TYPE_CHECKING:
+        assert isinstance(config["seed"], int)
     rng = np.random.RandomState(config["seed"])
     cdata.obs["batch"] = rng.choice((0, 1, 2), len(cdata))
 
@@ -188,16 +192,16 @@ def generate_gt_temporal_data(data_path: str) -> None:
     tp2.solve(epsilon=config["eps"], tau_a=config["tau_a"], tau_b=config["tau_b"], scale_cost="mean")
 
     np.testing.assert_array_almost_equal(
-            np.array(tp[config["key_1"], config["key_2"]].solution.transport_matrix),
-            np.array(tp2[config["key_1"], config["key_2"]].solution.transport_matrix),
+        np.array(tp[config["key_1"], config["key_2"]].solution.transport_matrix),
+        np.array(tp2[config["key_1"], config["key_2"]].solution.transport_matrix),
     )
     np.testing.assert_array_almost_equal(
-            np.array(tp[config["key_2"], config["key_3"]].solution.transport_matrix),
-            np.array(tp2[config["key_2"], config["key_3"]].solution.transport_matrix),
+        np.array(tp[config["key_2"], config["key_3"]].solution.transport_matrix),
+        np.array(tp2[config["key_2"], config["key_3"]].solution.transport_matrix),
     )
     np.testing.assert_array_almost_equal(
-            np.array(tp[config["key_1"], config["key_3"]].solution.transport_matrix),
-            np.array(tp2[config["key_1"], config["key_3"]].solution.transport_matrix),
+        np.array(tp[config["key_1"], config["key_3"]].solution.transport_matrix),
+        np.array(tp2[config["key_1"], config["key_3"]].solution.transport_matrix),
     )
 
     cdata = _write_analysis_output(cdata, tp2, config)

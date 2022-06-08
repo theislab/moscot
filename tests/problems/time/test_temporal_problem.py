@@ -9,17 +9,18 @@ from anndata import AnnData
 
 from moscot.problems.time import TemporalProblem
 from moscot.solvers._output import BaseSolverOutput
-from moscot.problems.time._lineage import BirthDeathBaseProblem
+from moscot.problems.time._lineage import BirthDeathProblem
 
 
 class TestTemporalProblem:
+    @pytest.mark.fast()
     def test_prepare(self, adata_time: AnnData):
         expected_keys = [(0, 1), (1, 2)]
         problem = TemporalProblem(adata=adata_time)
 
         assert len(problem) == 0
-        assert problem.problems is None
-        assert problem.solutions is None
+        assert problem.problems == {}
+        assert problem.solutions == {}
 
         problem = problem.prepare(
             time_key="time",
@@ -29,7 +30,7 @@ class TestTemporalProblem:
 
         for key in problem:
             assert key in expected_keys
-            assert isinstance(problem[key], BirthDeathBaseProblem)
+            assert isinstance(problem[key], BirthDeathProblem)
 
     def test_solve_balanced(self, adata_time: AnnData):
         eps = 0.5
@@ -79,6 +80,7 @@ class TestTemporalProblem:
             problem[0, 1].growth_rates[:, 1],
         )
 
+    @pytest.mark.fast()
     @pytest.mark.parametrize(
         "gene_set_list",
         [
@@ -110,6 +112,7 @@ class TestTemporalProblem:
         else:
             assert problem.apoptosis_key is None
 
+    @pytest.mark.fast()
     def test_proliferation_key_pipeline(self, adata_time: AnnData):
         problem = TemporalProblem(adata_time)
 
@@ -123,6 +126,7 @@ class TestTemporalProblem:
 
         assert problem.proliferation_key == "new_proliferation"
 
+    @pytest.mark.fast()
     def test_apoptosis_key_pipeline(self, adata_time: AnnData):
         problem = TemporalProblem(adata_time)
 
@@ -204,8 +208,13 @@ class TestTemporalProblem:
         key_3 = config["key_3"]
 
         tp = TemporalProblem(adata)
-        tp = tp.prepare(key, subset=[(key_1, key_2), (key_2, key_3), (key_1, key_3)], policy="explicit", callback_kwargs={"joint_space": False})
-        tp = tp.solve(epsilon=eps, scale_cost="mean", tau_a=lam1/(lam1+eps), tau_b=lam2/(lam2+eps))
+        tp = tp.prepare(
+            key,
+            subset=[(key_1, key_2), (key_2, key_3), (key_1, key_3)],
+            policy="explicit",
+            callback_kwargs={"joint_space": False},
+        )
+        tp = tp.solve(epsilon=eps, scale_cost="mean", tau_a=lam1 / (lam1 + eps), tau_b=lam2 / (lam2 + eps))
 
         np.testing.assert_array_almost_equal(
             adata.uns["tmap_10_105"],

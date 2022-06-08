@@ -4,25 +4,32 @@ from typing import Any, Tuple, Mapping, Optional
 from typing_extensions import Literal
 
 from moscot._docs import d
-from moscot.analysis_mixins import TemporalAnalysisMixin, SpatialAlignmentAnalysisMixin
-from moscot.problems.mixins import BirthDeathMixin
+from moscot._types import Numeric_t
+from moscot.problems.time._mixins import TemporalMixin
+from moscot.problems.space._mixins import SpatialAlignmentMixin
 from moscot.problems.space._alignment import AlignmentProblem
+from moscot.problems.base._birth_death import BirthDeathMixin, BirthDeathProblem
 
 
 @d.dedent
-class SpatioTemporalProblem(TemporalAnalysisMixin, BirthDeathMixin, AlignmentProblem, SpatialAlignmentAnalysisMixin):
+class SpatioTemporalProblem(
+    TemporalMixin[Numeric_t, BirthDeathProblem],
+    BirthDeathMixin,
+    AlignmentProblem[Numeric_t, BirthDeathProblem],
+    SpatialAlignmentMixin[Numeric_t, BirthDeathProblem],
+):
     """Spatio-Temporal problem."""
 
     @d.dedent
-    def prepare(
+    def _prepare(
         self,
         time_key: str,
         spatial_key: str = "spatial",
         joint_attr: Optional[Mapping[str, Any]] = MappingProxyType({"x_attr": "X", "y_attr": "X"}),
-        policy: Literal["sequential", "pairwise", "triu", "tril", "explicit"] = "sequential",
-        reference: Optional[str] = None,
+        policy: Literal["sequential", "triu", "tril", "explicit"] = "sequential",
+        marginal_kwargs: Mapping[str, Any] = MappingProxyType({}),
         **kwargs: Any,
-    ) -> "AlignmentProblem":
+    ) -> None:
         """
         Prepare the :class:`moscot.problems.spatio_temporal.SpatioTemporalProblem`.
 
@@ -42,6 +49,7 @@ class SpatioTemporalProblem(TemporalAnalysisMixin, BirthDeathMixin, AlignmentPro
             If `joint_attr` is a string the data is assumed to be found in :attr:`anndata.AnnData.obsm`.
             If `joint_attr` is a dictionary the dictionary is supposed to contain the attribute of
             :attr:`anndata.AnnData` as a key and the corresponding attribute as a value.
+
         %(policy)s
         %(marginal_kwargs)s
         %(a)s
@@ -53,7 +61,7 @@ class SpatioTemporalProblem(TemporalAnalysisMixin, BirthDeathMixin, AlignmentPro
         %(callback)s
         %(callback_kwargs)s
         kwargs
-            Keyword arguments for :meth:`moscot.problems.CompoundBaseProblem._create_problems`
+            Keyword arguments for :meth:`moscot.problems.BaseCompoundProblem._create_problems`
 
         Returns
         -------
@@ -76,17 +84,27 @@ class SpatioTemporalProblem(TemporalAnalysisMixin, BirthDeathMixin, AlignmentPro
         -----
         If `a` and `b` are provided `marginal_kwargs` are ignored.
         """
-        self.spatial_key = spatial_key
+        # spatial key set in AlignmentProblem
         self.temporal_key = time_key
-        # TODO(michalk8): check for spatial key
-        x = y = {"attr": "obsm", "key": self.spatial_key, "tag": "point_cloud"}
 
-        if joint_attr is None:
-            kwargs["callback"] = "local-pca"
-            kwargs["callback_kwargs"] = {**kwargs.get("callback_kwargs", {}), **{"return_linear": True}}
+        marginal_kwargs = dict(marginal_kwargs)
+        if self.proliferation_key is not None:
+            marginal_kwargs["proliferation_key"] = self.proliferation_key
+            kwargs["a"] = True
+        if self.apoptosis_key is not None:
+            marginal_kwargs["proliferation_key"] = self.apoptosis_key
+            kwargs["b"] = True
 
-        return super().prepare(x=x, y=y, xy=joint_attr, policy=policy, key=time_key, reference=reference, **kwargs)
+        return super()._prepare(
+            spatial_key=spatial_key,
+            batch_key=time_key,
+            joint_attr=joint_attr,
+            policy=policy,
+            reference=None,
+            marginal_kwargs=marginal_kwargs,
+            **kwargs,
+        )
 
     @property
     def _valid_policies(self) -> Tuple[str, ...]:
-        return "sequential", "pairwise", "triu", "tril", "explicit"
+        return "sequential", "triu", "tril", "explicit"

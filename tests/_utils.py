@@ -1,23 +1,21 @@
-from typing import Any, List, Type, Tuple, Union, Optional
+from typing import List, Type, Tuple, Union, Optional
 
 import networkx as nx
 
 import numpy as np
-import numpy.typing as npt
 
-from anndata import AnnData
-
-from moscot.problems import OTProblem, MultiMarginalProblem, SingleCompoundProblem
+from moscot._types import ArrayLike
+from moscot.problems.base import OTProblem, CompoundProblem
 from moscot.solvers._output import MatrixSolverOutput
-from moscot.problems._compound_problem import B
-from moscot.analysis_mixins._base_analysis import AnalysisMixin
+from moscot.problems.base._mixins import AnalysisMixin
+from moscot.problems.base._compound_problem import B
 
 Geom_t = Union[np.ndarray, Tuple[np.ndarray, np.ndarray]]
 RTOL = 1e-6
 ATOL = 1e-6
 
 
-class CompoundProblemWithMixin(SingleCompoundProblem, AnalysisMixin):
+class CompoundProblemWithMixin(CompoundProblem, AnalysisMixin):
     @property
     def _base_problem_type(self) -> Type[B]:
         return OTProblem
@@ -36,13 +34,8 @@ class MockSolverOutput(MatrixSolverOutput):
     def converged(self) -> bool:
         return True
 
-    def _ones(self, n: int) -> npt.ArrayLike:
+    def _ones(self, n: int) -> ArrayLike:
         return np.ones(n)
-
-
-class MockMultiMarginalProblem(MultiMarginalProblem):
-    def _estimate_marginals(self, adata: AnnData, *, source: bool, **kwargs: Any) -> Optional[npt.ArrayLike]:
-        pass
 
 
 class MockBaseSolverOutput:

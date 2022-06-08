@@ -3,63 +3,107 @@ from typing import Any, Type, Tuple, Union, Mapping, Optional, Sequence
 
 from typing_extensions import Literal
 
-import numpy.typing as npt
-
 from anndata import AnnData
 
-from moscot.analysis_mixins import SpatialMappingAnalysisMixin
-from moscot.problems._base_problem import OTProblem
+from moscot._docs import d
+from moscot._types import ArrayLike
+from moscot.problems.space._mixins import SpatialMappingMixin
 from moscot.problems._subset_policy import Axis_t, DummyPolicy, ExternalStarPolicy
-from moscot.problems._compound_problem import B, SingleCompoundProblem
+from moscot.problems.base._base_problem import OTProblem
+from moscot.problems.base._compound_problem import B, K, CompoundProblem
+
+__all__ = ["MappingProblem"]
 
 
-class MappingProblem(SingleCompoundProblem, SpatialMappingAnalysisMixin):
-    """Mapping problem."""
+@d.dedent
+class MappingProblem(CompoundProblem[K, OTProblem], SpatialMappingMixin[K, OTProblem]):
+    """
+    Class for mapping single cell omics data onto spatial data, based on :cite:`nitzan2019`.
+
+    The `MappingProblem` allows to match single cell and spatial omics data via optimal transport.
+
+    Parameters
+    ----------
+    adata_sc
+        Instance of :class:`anndata.AnnData` containing the single cell data.
+    adata_sp
+        Instance of :class:`anndata.AnnData` containing the spatial data.
+
+    Examples
+    --------
+    See notebook TODO(@giovp) LINK NOTEBOOK for how to use it
+    """
 
     def __init__(self, adata_sc: AnnData, adata_sp: AnnData, **kwargs: Any):
-        """Init method."""
         super().__init__(adata_sp, **kwargs)
         self._adata_sc = adata_sc
         # TODO(michalk8): rename to common_vars?
         self.filtered_vars: Optional[Sequence[str]] = None
 
-    def _create_policy(
+    def _create_policy(  # type: ignore[override]
         self,
         policy: Literal["external_star"] = "external_star",
         key: Optional[str] = None,
         axis: Axis_t = "obs",
         **kwargs: Any,
-    ) -> Union[DummyPolicy, ExternalStarPolicy]:
+    ) -> Union[DummyPolicy, ExternalStarPolicy[K]]:
+        """Private class to create DummyPolicy if no batches are present n the spatial anndata."""
         if key is None:
             return DummyPolicy(self.adata, axis=axis, **kwargs)
         return ExternalStarPolicy(self.adata, key=key, axis=axis, **kwargs)
 
     def _create_problem(
         self,
-        src: Any,
-        tgt: Any,
-        src_mask: npt.ArrayLike,
-        tgt_mask: npt.ArrayLike,
+        src_mask: ArrayLike,
+        tgt_mask: ArrayLike,
         **kwargs: Any,
     ) -> B:
+        """Private class to mask anndatas."""
         adata_sp = self._mask(src_mask)
-        return self._base_problem_type(
+        return self._base_problem_type(  # type: ignore[return-value]
             adata_sp[:, self.filtered_vars] if self.filtered_vars is not None else adata_sp,
             self.adata_sc[:, self.filtered_vars] if self.filtered_vars is not None else self.adata_sc,
             **kwargs,
         )
 
-    def prepare(
+    @d.dedent
+    def _prepare(
         self,
         sc_attr: Union[str, Mapping[str, Any]],
-        spatial_key: str = "spatial",
-        joint_attr: Optional[Mapping[str, Any]] = MappingProxyType({"x_attr": "X", "y_attr": "X"}),
-        var_names: Optional[Sequence[Any]] = None,
         batch_key: Optional[str] = None,
+        spatial_key: Union[str, Mapping[str, Any]] = "spatial",
+        var_names: Optional[Sequence[Any]] = None,
+        joint_attr: Optional[Mapping[str, Any]] = MappingProxyType({"x_attr": "X", "y_attr": "X"}),
         **kwargs: Any,
-    ) -> "MappingProblem":
-        """Prepare method."""
-        x = {"attr": "obsm", "key": spatial_key}
+    ) -> None:
+        """
+        Prepare the :class:`moscot.problems.space.MappingProblem`.
+
+        This method prepares the data to be passed to the optimal transport solver.
+
+        Parameters
+        ----------
+        sc_attr
+            Specifies the attributes of the single cell adata.
+
+        %(batch_key)s
+        %(spatial_key)s
+
+        var_names
+            List of shared features to be used for the linear problem. If None, it defaults to the intersection
+            between ``adata_sc`` and ``adata_sp``. If an empty list is pass, it defines a quadratic problem.
+        joint_attr
+            Parameter defining how to allocate the data needed to compute the transport maps.
+            If None, ``var_names`` is not an empty list, and ``adata_sc`` and ``adata_sp``
+            share some genes in common, the corresponding PCA space is computed.
+            If `joint_attr` is a dictionary the dictionary is supposed to contain the attribute of
+            :attr:`anndata.AnnData` as a key and the corresponding attribute as a value.
+
+        Returns
+        -------
+        :class:`moscot.problems.space.MappingProblem`
+        """
+        x = {"attr": "obsm", "key": spatial_key} if isinstance(spatial_key, str) else spatial_key
         y = {"attr": "obsm", "key": sc_attr} if isinstance(sc_attr, str) else sc_attr
 
         self.filtered_vars = var_names
@@ -70,7 +114,30 @@ class MappingProblem(SingleCompoundProblem, SpatialMappingAnalysisMixin):
                 kwargs["callback"] = "local-pca"
                 kwargs["callback_kwargs"] = {**kwargs.get("callback_kwargs", {}), **{"return_linear": True}}
 
-        return super().prepare(x=x, y=y, policy="external_star", key=batch_key, **kwargs)
+        return super()._prepare(x=x, y=y, policy="external_star", key=batch_key, **kwargs)
+
+    @d.dedent
+    def _solve(
+        self,
+        alpha: Optional[float] = 0.5,
+        epsilon: Optional[float] = 1e-3,
+        scale_cost: str = "mean",
+        **kwargs: Any,
+    ) -> None:
+        """
+        Solve optimal transport problems defined in :class:`moscot.problems.space.MappingProblem`.
+
+        Parameters
+        ----------
+        %(alpha)s
+        %(epsilon)s
+        %(scale_cost)s
+
+        Returns
+        -------
+        :class:`moscot.problems.space.MappingProblem`
+        """
+        return super()._solve(alpha=alpha, epsilon=epsilon, scale_cost=scale_cost, **kwargs)
 
     @property
     def adata_sc(self) -> AnnData:
@@ -83,7 +150,7 @@ class MappingProblem(SingleCompoundProblem, SpatialMappingAnalysisMixin):
         return self.adata
 
     @property
-    def filtered_vars(self) -> Optional[Sequence[Any]]:
+    def filtered_vars(self) -> Optional[Sequence[str]]:
         """Return filtered variables."""
         return self._filtered_vars
 
@@ -94,7 +161,7 @@ class MappingProblem(SingleCompoundProblem, SpatialMappingAnalysisMixin):
 
     @property
     def _base_problem_type(self) -> Type[B]:
-        return OTProblem
+        return OTProblem  # type: ignore[return-value]
 
     @property
     def _valid_policies(self) -> Tuple[str, ...]:

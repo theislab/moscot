@@ -1,21 +1,22 @@
 from abc import ABC, abstractmethod
-from typing import Any, Tuple, Callable
+from typing import Any, Tuple, Callable, Iterable
+from functools import partial
 
-import numpy as np
-import numpy.typing as npt
+from scipy.sparse.linalg import LinearOperator
+
+from moscot._types import ArrayLike, DTypeLike  # type: ignore[attr-defined]
+
+__all__ = ["BaseSolverOutput", "MatrixSolverOutput", "HasPotentials"]
 
 
-# TODO(michalk8):
-#  1. mb. use more contrained type hints
-#  2. consider always returning 2-dim array, even if 1-dim is passed (not sure which convenient for user)
 class BaseSolverOutput(ABC):
     @abstractmethod
-    def _apply(self, x: npt.ArrayLike, *, forward: bool) -> npt.ArrayLike:
+    def _apply(self, x: ArrayLike, *, forward: bool) -> ArrayLike:
         pass
 
     @property
     @abstractmethod
-    def transport_matrix(self) -> npt.ArrayLike:
+    def transport_matrix(self) -> ArrayLike:
         pass
 
     @property
@@ -34,61 +35,61 @@ class BaseSolverOutput(ABC):
         pass
 
     @property
-    @abstractmethod
-    def potentials(self) -> Tuple[npt.ArrayLike, npt.ArrayLike]:
-        pass
-
-    @property
     def rank(self) -> int:
         return -1
 
     # TODO(michalk8): mention in docs it needs to be broadcastable
     @abstractmethod
-    def _ones(self, n: int) -> npt.ArrayLike:
+    def _ones(self, n: int) -> ArrayLike:
         pass
 
-    def push(self, x: npt.ArrayLike, scale_by_marginals: bool = False) -> npt.ArrayLike:
+    def push(self, x: ArrayLike, scale_by_marginals: bool = False) -> ArrayLike:
         if x.shape[0] != self.shape[0]:
             raise ValueError("TODO: wrong shape")
         x = self._scale_by_marginals(x, forward=True) if scale_by_marginals else x
         return self._apply(x, forward=True)
 
-    def pull(self, x: npt.ArrayLike, scale_by_marginals: bool = False) -> npt.ArrayLike:
+    def pull(self, x: ArrayLike, scale_by_marginals: bool = False) -> ArrayLike:
         if x.shape[0] != self.shape[1]:
             raise ValueError("TODO: wrong shape")
         x = self._scale_by_marginals(x, forward=False) if scale_by_marginals else x
         return self._apply(x, forward=False)
 
+    def as_linear_operator(self, *, forward: bool, scale_by_marginals: bool = False) -> LinearOperator:
+        push = partial(self.push, scale_by_marginals=scale_by_marginals)
+        pull = partial(self.pull, scale_by_marginals=scale_by_marginals)
+        mv, rmv = (push, pull) if forward else (pull, push)
+        return LinearOperator(shape=self.shape, dtype=self.a.dtype, matvec=mv, rmatvec=rmv)
+
+    def chain(
+        self, outputs: Iterable["BaseSolverOutput"], forward: bool, scale_by_marginals: bool = False
+    ) -> LinearOperator:
+        op = self.as_linear_operator(forward=forward, scale_by_marginals=scale_by_marginals)
+        for out in outputs:
+            op *= out.as_linear_operator(forward=forward, scale_by_marginals=scale_by_marginals)
+
+        return op
+
     @property
-    def a(self) -> npt.ArrayLike:
+    def a(self) -> ArrayLike:
         """Marginals of source distribution. If output of unbalanced OT, these are the posterior marginals."""
         return self.pull(self._ones(self.shape[1]))
 
     @property
-    def b(self) -> npt.ArrayLike:
+    def b(self) -> ArrayLike:
         """Marginals of target distribution. If output of unbalanced OT, these are the posterior marginals."""
         return self.push(self._ones(self.shape[0]))
 
-    def _scale_by_marginals(self, x: npt.ArrayLike, *, forward: bool) -> npt.ArrayLike:
+    @property
+    def dtype(self) -> DTypeLike:
+        return self.a.dtype
+
+    def _scale_by_marginals(self, x: ArrayLike, *, forward: bool, eps: float = 1e-12) -> ArrayLike:
         # alt. we could use the public push/pull
         marginals = self.a if forward else self.b
         if x.ndim == 2:
             marginals = marginals[:, None]
-        return x / (marginals + 1e-12)
-
-    def _scale_transport_by_marginals(self, forward: bool) -> npt.ArrayLike:
-        if forward:
-            scaled_transport = np.dot(np.diag(1 / self.a), self.transport_matrix)
-        else:
-            scaled_transport = np.dot(self.transport_matrix, np.diag(1 / self.b))
-        return scaled_transport
-
-    def _scale_transport_by_sum(self, forward: bool) -> npt.ArrayLike:
-        if forward:
-            scaled_transport = self.transport_matrix / self.transport_matrix.sum(1)[:, None]
-        else:
-            scaled_transport = self.transport_matrix / self.transport_matrix.sum(0)[None, :]
-        return scaled_transport
+        return x / (marginals + eps)
 
     def _format_params(self, fmt: Callable[[Any], str]) -> str:
         params = {"shape": self.shape, "cost": round(self.cost, 4), "converged": self.converged}
@@ -105,25 +106,28 @@ class BaseSolverOutput(ABC):
 
 
 class MatrixSolverOutput(BaseSolverOutput, ABC):
-    def __init__(self, matrix: npt.ArrayLike):
+    def __init__(self, matrix: ArrayLike):
         super().__init__()
         self._matrix = matrix
 
-    def _apply(self, x: npt.ArrayLike, *, forward: bool) -> npt.ArrayLike:
+    def _apply(self, x: ArrayLike, *, forward: bool) -> ArrayLike:
         if forward:
             return self.transport_matrix.T @ x
         return self.transport_matrix @ x
 
     @property
-    def transport_matrix(self) -> npt.ArrayLike:
-        """%(transport_matrix)s"""
+    def transport_matrix(self) -> ArrayLike:
+        """%(transport_matrix)s"""  # noqa: D400
         return self._matrix
 
     @property
     def shape(self) -> Tuple[int, int]:
-        """%(shape)s"""
-        return self.transport_matrix.shape
+        """%(shape)s"""  # noqa: D400
+        return self.transport_matrix.shape  # type: ignore[return-value]
 
+
+class HasPotentials(ABC):
     @property
-    def potentials(self):
-        raise NotImplementedError("This solver does not allow for potentials")
+    @abstractmethod
+    def potentials(self) -> Tuple[ArrayLike, ArrayLike]:
+        pass

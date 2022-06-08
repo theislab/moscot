@@ -3,26 +3,27 @@ from typing import Any, List, Union, Mapping, Optional
 from numbers import Number
 
 import numpy as np
-import numpy.typing as npt
 
 from anndata import AnnData
+
+from moscot._types import ArrayLike
 
 try:
     from typing import Literal
 except ImportError:
-    from typing_extensions import Literal
+    from typing_extensions import Literal  # type: ignore[misc]
 
 import networkx as nx
 
 __all__ = ["LeafDistance", "BarcodeDistance"]
-Scale_t = Literal["max", "min", "median"]
+Scale_t = Literal["max", "min", "median", "mean"]
 
 
 class BaseLoss(ABC):
     """Base class handling all :mod:`moscot` losses."""
 
     @abstractmethod
-    def _compute(self, *args: Any, **kwargs: Any) -> npt.ArrayLike:
+    def _compute(self, *args: Any, **kwargs: Any) -> ArrayLike:
         pass
 
     def __init__(self, adata: AnnData, attr: str, key: str):
@@ -30,7 +31,7 @@ class BaseLoss(ABC):
         self._attr = attr
         self._key = key
 
-    def __call__(self, *args: Any, scale: Optional[Union[Number, Scale_t]] = None, **kwargs: Any) -> npt.ArrayLike:
+    def __call__(self, *args: Any, scale: Optional[Union[Number, Scale_t]] = None, **kwargs: Any) -> ArrayLike:
         cost = self._compute(*args, **kwargs)
         return self._normalize(cost, scale=scale) if scale is not None else cost
 
@@ -43,7 +44,7 @@ class BaseLoss(ABC):
         raise NotImplementedError(kind)
 
     @staticmethod
-    def _normalize(cost_matrix: npt.ArrayLike, scale: Union[str, int, float] = "max") -> npt.ArrayLike:
+    def _normalize(cost_matrix: ArrayLike, scale: Union[Number, Scale_t] = "max") -> ArrayLike:
         # TODO: @MUCDK find a way to have this for non-materialized matrices (will be backend specific)
         if scale == "max":
             cost_matrix /= cost_matrix.max()
@@ -65,7 +66,7 @@ class BarcodeDistance(BaseLoss):
         self,
         *_: Any,
         **__: Any,
-    ) -> npt.ArrayLike:
+    ) -> ArrayLike:
         container = getattr(self._adata, self._attr)
         if self._key not in container:
             raise ValueError("TODO: no valid key")
@@ -79,10 +80,9 @@ class BarcodeDistance(BaseLoss):
         return distances + np.transpose(distances)
 
     @staticmethod
-    def _scaled_Hamming_distance(x: npt.ArrayLike, y: npt.ArrayLike) -> float:
+    def _scaled_Hamming_distance(x: ArrayLike, y: ArrayLike) -> float:
         """
-        adapted from
-        https://github.com/aforr/LineageOT/blob/8c66c630d61da289daa80e29061e888b1331a05a/lineageot/inference.py#L33
+        adapted from https://github.com/aforr/LineageOT/blob/8c66c630d61da289daa80e29061e888b1331a05a/lineageot/inference.py#L33.  # noqa: E501
         """
 
         shared_indices = (x >= 0) & (y >= 0)
@@ -102,10 +102,10 @@ class BarcodeDistance(BaseLoss):
 class LeafDistance(BaseLoss):
     """Class handling leaf distances (from trees)."""
 
-    def _compute(
+    def _compute(  # type: ignore[override]
         self,
         **kwargs: Any,
-    ) -> npt.ArrayLike:
+    ) -> ArrayLike:
         """
         Compute the matrix of pairwise distances between leaves of the tree
         """
@@ -116,7 +116,7 @@ class LeafDistance(BaseLoss):
             return self._create_cost_from_tree(tree, **kwargs)
         raise NotImplementedError
 
-    def _create_cost_from_tree(self, tree: nx.Graph, **kwargs: Any) -> npt.ArrayLike:
+    def _create_cost_from_tree(self, tree: nx.Graph, **kwargs: Any) -> ArrayLike:
         # TODO(@MUCDK): more efficient, problem: `target`in `multi_source_dijkstra` cannot be chosen as a subset
         undirected_tree = tree.to_undirected()
         leaves = self._get_leaves(undirected_tree)
