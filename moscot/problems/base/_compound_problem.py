@@ -39,7 +39,6 @@ from moscot.problems._subset_policy import (
     FormatterMixin,
 )
 from moscot.problems.base._base_problem import OTProblem, BaseProblem, ProblemStage
-from moscot.problems.mixins import BirthDeathMixin
 from moscot.problems.base._problem_manager import ProblemManager
 
 __all__ = ["BaseCompoundProblem", "CompoundProblem"]
@@ -143,10 +142,8 @@ class BaseCompoundProblem(BaseProblem, ABC, Generic[K, B]):
 
             if isinstance(problem, BirthDeathProblem):
                 kws["delta"] = tgt - src  # type: ignore[operator]
-                if TYPE_CHECKING:
-                    assert isinstance(self, BirthDeathMixin)
-                kws["proliferation_key"] = self.proliferation_key
-                kws["apoptosis_key"] = self.apoptosis_key
+                kws["proliferation_key"] = self.proliferation_key  # type: ignore[attr-defined]
+                kws["apoptosis_key"] = self.apoptosis_key  # type: ignore[attr-defined]
             problems[src_name, tgt_name] = problem.prepare(**kws)  # type: ignore[assignment]
 
         return problems
