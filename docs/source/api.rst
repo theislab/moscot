@@ -19,7 +19,6 @@ Biological Problems
 
 Generic Problems
 ~~~~~~~~~~~~~~~~
-
 .. module:: moscot.problems.generic
 .. currentmodule:: moscot.problems.generic
 
