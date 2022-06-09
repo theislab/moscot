@@ -1,4 +1,4 @@
-from typing import Any, Dict, List, Tuple, Union, Generic, Optional, Protocol, TYPE_CHECKING
+from typing import Any, Dict, List, Tuple, Union, Generic, Optional, Protocol, Sequence, TYPE_CHECKING
 
 from scipy.sparse.linalg import LinearOperator
 
@@ -33,7 +33,10 @@ class AnalysisMixinProtocol(Protocol[K, B]):
         ...
 
     def _interpolate_transport(
-        self: "AnalysisMixinProtocol[K, B]", start: K, end: K, forward: bool = True, scale_by_marginals: bool = True
+        self: "AnalysisMixinProtocol[K, B]",
+        path: Sequence[Tuple[K, K]],
+        forward: bool = True,
+        scale_by_marginals: bool = True,
     ) -> LinearOperator:
         ...
 
@@ -127,8 +130,7 @@ class AnalysisMixin(Generic[K, B]):
 
     def _interpolate_transport(
         self: AnalysisMixinProtocol[K, B],
-        start: K,
-        end: K,
+        path: Sequence[Tuple[K, K]],
         forward: bool = True,
         scale_by_marginals: bool = True,
         **kwargs: Any,
@@ -137,7 +139,7 @@ class AnalysisMixin(Generic[K, B]):
         if TYPE_CHECKING:
             assert isinstance(self._policy, SubsetPolicy)
         # TODO(@MUCDK, @giovp, discuss what exactly this function should do, seems like it could be more generic)
-        fst, *rest = self._policy.plan(start=start, end=end, **kwargs)
+        fst, *rest = path
         return self.solutions[fst].chain(
             [self.solutions[r] for r in rest], forward=forward, scale_by_marginals=scale_by_marginals
         )

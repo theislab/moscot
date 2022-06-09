@@ -194,16 +194,16 @@ class OrderedPolicy(SubsetPolicy[K], ABC):
             raise RuntimeError("TODO: run graph creation first")
         if start is None and end is None:
             start, end = self._cat[0], self._cat[-1]
+        if start is None:
+            start = self._cat[0]
+        if end is None:
+            end = self._cat[-1]
         # TODO: add Graph for undirected
         G = nx.DiGraph()
         G.add_edges_from(self._graph)
 
         if start == end:
             raise ValueError("TODO: start is the same as end.")
-        if start is None:
-            start = self._cat[0]
-        if end is None:
-            end = self._cat[-1]
         if start is None or end is None:
             raise ValueError("TODO: start or end is None")
 
