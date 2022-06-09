@@ -128,8 +128,6 @@ class TemporalMixin(AnalysisMixin[K, B]):
         ------
         %(CompoundBaseProblem_pull.raises)s
         """
-        print("kwargs are ", kwargs)
-        print("start and end are ", start, end)
         result = self._apply(
             start=start,
             end=end,
