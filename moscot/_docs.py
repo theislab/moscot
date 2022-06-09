@@ -139,13 +139,13 @@ O = TypeVar("O")  # object type
 
 
 def inject_docs(**kwargs: Any) -> Callable[[Callable[..., RT]], Callable[..., RT]]:  # noqa: D103
-    def decorator(obj: O) -> O:
+    def decorator(obj: O) -> O:  # noqa: E741
         if TYPE_CHECKING:
             assert isinstance(obj.__doc__, str)
         obj.__doc__ = dedent(obj.__doc__).format(**kwargs)
         return obj
 
-    def decorator2(obj: O) -> O:
+    def decorator2(obj: O) -> O:  # noqa: E741
         obj.__doc__ = dedent(kwargs["__doc__"])
         return obj
 

@@ -74,7 +74,7 @@ class AnalysisMixin(Generic[K, B]):
                 normalize=True,
                 forward=True,
                 scale_by_marginals=False,
-                filter=[(start, end)],
+                explicit_steps=[(start, end)],
             )
             if TYPE_CHECKING:
                 assert isinstance(col_sums, np.ndarray)
@@ -89,7 +89,7 @@ class AnalysisMixin(Generic[K, B]):
                 normalize=True,
                 forward=False,
                 scale_by_marginals=False,
-                filter=[(start, end)],
+                explicit_steps=[(start, end)],
             )
         ).squeeze()
 
@@ -110,7 +110,7 @@ class AnalysisMixin(Generic[K, B]):
                     normalize=True,
                     forward=True,
                     scale_by_marginals=False,
-                    filter=[(start, end)],
+                    explicit_steps=[(start, end)],
                 )
             ).squeeze()
             if account_for_unbalancedness:
@@ -126,13 +126,18 @@ class AnalysisMixin(Generic[K, B]):
         return rows, all_cols_sampled
 
     def _interpolate_transport(
-        self: AnalysisMixinProtocol[K, B], start: K, end: K, forward: bool = True, scale_by_marginals: bool = True
+        self: AnalysisMixinProtocol[K, B],
+        start: K,
+        end: K,
+        forward: bool = True,
+        scale_by_marginals: bool = True,
+        **kwargs: Any,
     ) -> LinearOperator:
         """Interpolate transport matrix."""
         if TYPE_CHECKING:
             assert isinstance(self._policy, SubsetPolicy)
         # TODO(@MUCDK, @giovp, discuss what exactly this function should do, seems like it could be more generic)
-        fst, *rest = self._policy.plan(start=start, end=end)
+        fst, *rest = self._policy.plan(start=start, end=end, **kwargs)
         return self.solutions[fst].chain(
             [self.solutions[r] for r in rest], forward=forward, scale_by_marginals=scale_by_marginals
         )

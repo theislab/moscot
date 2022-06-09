@@ -142,6 +142,8 @@ class BaseCompoundProblem(BaseProblem, ABC, Generic[K, B]):
 
             if isinstance(problem, BirthDeathProblem):
                 kws["delta"] = tgt - src  # type: ignore[operator]
+                kws["proliferation_key"] = self.proliferation_key  # type: ignore[attr-defined]
+                kws["apoptosis_key"] = self.apoptosis_key  # type: ignore[attr-defined]
             problems[src_name, tgt_name] = problem.prepare(**kws)  # type: ignore[assignment]
 
         return problems
@@ -250,7 +252,7 @@ class BaseCompoundProblem(BaseProblem, ABC, Generic[K, B]):
 
         res = {}
         # TODO(michalk8): should use manager.plan (once implemented), as some problems may not be solved
-        for src, tgt in self._policy.plan():
+        for src, tgt in self._policy.plan(explicit_steps=kwargs.pop("explicit_steps", None)):
             problem = self.problems[src, tgt]
             fun = problem.push if forward else problem.pull
             res[src] = fun(data=data, scale_by_marginals=scale_by_marginals, **kwargs)
@@ -271,15 +273,15 @@ class BaseCompoundProblem(BaseProblem, ABC, Generic[K, B]):
         if TYPE_CHECKING:
             assert isinstance(self._policy, OrderedPolicy)
 
-        (src, tgt), *rest = self._policy.plan(forward=forward, start=start, end=end)
+        (src, tgt), *rest = self._policy.plan(
+            forward=forward, start=start, end=end, explicit_steps=kwargs.pop("explicit_steps", None)
+        )
         problem = self.problems[src, tgt]
         adata = problem.adata if forward else problem._adata_y
-
         current_mass = problem._get_mass(adata, data=data, **kwargs)
         # TODO(michlak8): future behavior
         # res = {(None, src) if forward else (tgt, None): current_mass}
         res = {src if forward else tgt: current_mass}
-
         for src, tgt in [(src, tgt)] + rest:
             problem = self.problems[src, tgt]
             fun = problem.push if forward else problem.pull

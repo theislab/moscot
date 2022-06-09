@@ -19,8 +19,15 @@ class TestBirthDeathProblem:
         adata_y = adata_time_marginal_estimations[adata_time_marginal_estimations.obs["time"] == t2]
 
         prob = BirthDeathProblem(adata_x, adata_y)
-        prob.proliferation_key = "proliferation"
-        prob = prob.prepare(x={"attr": "X"}, y={"attr": "X"}, a=True, b=True, delta=delta)
+        prob = prob.prepare(
+            x={"attr": "X"},
+            y={"attr": "X"},
+            a=True,
+            b=True,
+            delta=delta,
+            proliferation_key="proliferation",
+            apoptosis_key="apoptosis",
+        )
 
         assert prob._delta == delta
         assert isinstance(prob.a, np.ndarray)
@@ -48,23 +55,24 @@ class TestBirthDeathProblem:
         adata_x = adata_time_marginal_estimations[adata_time_marginal_estimations.obs["time"] == t1]
         adata_y = adata_time_marginal_estimations[adata_time_marginal_estimations.obs["time"] == t2]
         prob = BirthDeathProblem(adata_x, adata_y)
-        prob.proliferation_key = "proliferation"
-        prob = prob.prepare(x={"attr": "X"}, y={"attr": "X"}, a=True, b=True, delta=delta)
-        assert prob._delta == delta
-
         adata = adata_x if source else adata_y
-        prob.proliferation_key = proliferation_key
-        prob.apoptosis_key = apoptosis_key
 
         if proliferation_key is not None and "error" in proliferation_key:
-            # TODO(MUCDK): match
+            # TODO(MUCDK): match error messages
             with pytest.raises(KeyError):
-                prob._estimate_marginals(adata, delta=delta, source=source)
+                _ = prob._estimate_marginals(
+                    adata, source=source, delta=delta, proliferation_key=proliferation_key, apoptosis_key=apoptosis_key
+                )
         elif proliferation_key is None and apoptosis_key is None:
+            # TODO(MUCDK): match error messages
             with pytest.raises(ValueError):
-                prob._estimate_marginals(adata, delta=delta, source=source)
+                _ = prob._estimate_marginals(
+                    adata, source=source, delta=delta, proliferation_key=proliferation_key, apoptosis_key=apoptosis_key
+                )
         else:
-            a_estimated = prob._estimate_marginals(adata, delta=delta, source=source)
+            a_estimated = prob._estimate_marginals(
+                adata, source=source, delta=delta, proliferation_key=proliferation_key, apoptosis_key=apoptosis_key
+            )
             assert isinstance(a_estimated, np.ndarray)
             if not source:
                 assert len(np.unique(a_estimated)) == 1
@@ -77,8 +85,9 @@ class TestBirthDeathProblem:
         adata_x = adata_time_marginal_estimations[adata_time_marginal_estimations.obs["time"] == t1]
         adata_y = adata_time_marginal_estimations[adata_time_marginal_estimations.obs["time"] == t2]
         prob = BirthDeathProblem(adata_x, adata_y)
-        prob.proliferation_key = "proliferation"
-        prob = prob.prepare(x={"attr": "X"}, y={"attr": "X"}, a=True, b=True, delta=delta)
+        prob = prob.prepare(
+            x={"attr": "X"}, y={"attr": "X"}, a=True, b=True, delta=delta, proliferation_key="proliferation"
+        )
         assert prob._delta == delta
 
         gr = prob.growth_rates

@@ -75,7 +75,20 @@ class SubsetPolicy(Generic[K]):
     def _create_graph(self, **kwargs: Any) -> Set[Tuple[K, K]]:
         pass
 
-    def plan(self, filter: Optional[Sequence[Tuple[K, K]]] = None, **kwargs: Any) -> Sequence[Tuple[K, K]]:
+    def plan(
+        self,
+        filter: Optional[Sequence[Tuple[K, K]]] = None,
+        explicit_steps: Optional[Sequence[Tuple[K, K]]] = None,
+        **kwargs: Any,
+    ) -> Sequence[Tuple[K, K]]:
+        if explicit_steps is not None:
+            G = nx.DiGraph()
+            G.add_edges_from(explicit_steps)
+            if not set(G.nodes).issubset(set(self._cat)):
+                raise ValueError("TODO: all values of `explicit_steps` must correspond to a cell distribution.")
+            if not nx.has_path(G, explicit_steps[0][0], explicit_steps[-1][1]):
+                raise ValueError("TODO: `explicit_steps` must form a connected path.")
+            return explicit_steps
         plan = self._plan(**kwargs)
         # TODO(michalk8): ensure unique
         if filter is not None:
