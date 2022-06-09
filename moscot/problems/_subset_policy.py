@@ -200,6 +200,10 @@ class OrderedPolicy(SubsetPolicy[K], ABC):
 
         if start == end:
             raise ValueError("TODO: start is the same as end.")
+        if start is None:
+            start = self._cat[0]
+        if end is None:
+            end = self._cat[-1]
         if start is None or end is None:
             raise ValueError("TODO: start or end is None")
 
@@ -223,7 +227,7 @@ class StarPolicy(SimplePlanPolicy[K]):
     def _filter_plan(
         self, plan: Sequence[Tuple[K, K]], filter: Sequence[Union[K, Tuple[K, K]]]
     ) -> Sequence[Tuple[K, K]]:
-        filter = [src[0] if isinstance(src, tuple) else src for src in filter]
+        filter = [src[0] if isinstance(src, tuple) else src for src in filter]  # noqa: A001
         return [(src, ref) for src, ref in plan if src in filter]
 
     @property
