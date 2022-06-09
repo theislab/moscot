@@ -75,7 +75,12 @@ class SubsetPolicy(Generic[K]):
     def _create_graph(self, **kwargs: Any) -> Set[Tuple[K, K]]:
         pass
 
-    def plan(self, filter: Optional[Sequence[Tuple[K, K]]] = None, explicit_steps: Optional[Sequence[Tuple[K, K]]] = None, **kwargs: Any) -> Sequence[Tuple[K, K]]:
+    def plan(
+        self,
+        filter: Optional[Sequence[Tuple[K, K]]] = None,
+        explicit_steps: Optional[Sequence[Tuple[K, K]]] = None,
+        **kwargs: Any,
+    ) -> Sequence[Tuple[K, K]]:
         if explicit_steps is not None:
             G = nx.DiGraph()
             G.add_edges_from(explicit_steps)

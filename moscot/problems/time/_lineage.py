@@ -130,7 +130,7 @@ class TemporalProblem(
         of estimates for the cell growth rates equals is strictly larger than 2.
         """
         # TODO(michalk8): FIXME
-        cols = ["growth_rates"]  # type: ignore[union-attr]
+        cols = ["growth_rates"]
         df_list = [
             pd.DataFrame(problem.growth_rates, index=problem.adata.obs.index, columns=cols)
             for problem in self.problems.values()
@@ -139,7 +139,7 @@ class TemporalProblem(
         df_list.append(
             pd.DataFrame(
                 np.full(
-                    shape=(len(self.problems[tup]._adata_y.obs), 1),  # type: ignore[union-attr]
+                    shape=(len(self.problems[tup]._adata_y.obs), 1),
                     fill_value=np.nan,
                 ),
                 index=self.problems[tup]._adata_y.obs.index,
