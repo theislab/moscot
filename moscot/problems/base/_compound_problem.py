@@ -252,7 +252,7 @@ class BaseCompoundProblem(BaseProblem, ABC, Generic[K, B]):
 
         res = {}
         # TODO(michalk8): should use manager.plan (once implemented), as some problems may not be solved
-        for src, tgt in self._policy.plan():
+        for src, tgt in self._policy.plan(explicit_steps=kwargs.pop("explicit_steps", None)):
             problem = self.problems[src, tgt]
             fun = problem.push if forward else problem.pull
             res[src] = fun(data=data, scale_by_marginals=scale_by_marginals, **kwargs)

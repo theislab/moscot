@@ -39,7 +39,7 @@ Optimal Transport classes
     :toctree: development
 
     moscot.problems.base.OTProblem
-    moscot.problems.base._birth_death.BirthDeathProblem
+    moscot.problems.base.BirthDeathProblem
 
 
 Mixin classes
