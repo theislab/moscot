@@ -1,1 +1,1 @@
-from moscot.datasets._datasets import tedsim_1024
+from moscot.datasets._datasets import simulation
