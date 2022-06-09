@@ -13,11 +13,10 @@ import jax.numpy as jnp
 
 from tests._utils import ATOL, RTOL, Geom_t
 from moscot._types import ArrayLike
-from moscot._types import ArrayLike
 from moscot.backends.ott import GWSolver, FGWSolver, SinkhornSolver  # type: ignore[attr-defined]
 from moscot.solvers._output import BaseSolverOutput
-from moscot.backends.ott._output import QuadraticOutput, LinearOutput, LRLinearOutput
-from moscot.solvers._base_solver import OTSolver, O 
+from moscot.backends.ott._output import LinearOutput, LRLinearOutput, QuadraticOutput
+from moscot.solvers._base_solver import O, OTSolver
 from moscot.solvers._tagged_array import Tag
 
 
@@ -129,7 +128,9 @@ class TestFGW:
         np.testing.assert_allclose(gt.matrix, pred.transport_matrix, rtol=RTOL, atol=ATOL)
 
     @pytest.mark.parametrize("eps", [1e-3, 5e-2])
-    def test_epsilon(self, x_cost: jnp.ndarray, y_cost: jnp.ndarray, xy_cost: jnp.ndarray, eps: Optional[float]) -> None:
+    def test_epsilon(
+        self, x_cost: jnp.ndarray, y_cost: jnp.ndarray, xy_cost: jnp.ndarray, eps: Optional[float]
+    ) -> None:
         thresh, alpha = 5e-1, 0.66
         solver = FGWSolver(threshold=thresh)
 

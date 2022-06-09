@@ -1,13 +1,13 @@
 from abc import ABC
 from typing import Any, Tuple, Union
 
-from moscot._types import ArrayLike
 from ott.core.sinkhorn import SinkhornOutput as OTTSinkhornOutput
 from ott.core.sinkhorn_lr import LRSinkhornOutput as OTTLRSinkhornOutput
 from ott.core.gromov_wasserstein import GWOutput as OTTGWOutput
 import jax.numpy as jnp
 
-from moscot.solvers._output import BaseSolverOutput, MatrixSolverOutput, HasPotentials
+from moscot._types import ArrayLike
+from moscot.solvers._output import HasPotentials, BaseSolverOutput, MatrixSolverOutput
 
 __all__ = ["LinearOutput", "LRLinearOutput", "QuadraticOutput"]
 

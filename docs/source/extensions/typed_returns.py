@@ -1,5 +1,5 @@
+from typing import Any, List, Iterable, Iterator
 import re
-from typing import Iterator, Iterable, List, Any
 
 from sphinx.application import Sphinx
 from sphinx.ext.napoleon import NumpyDocstring
