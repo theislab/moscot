@@ -121,10 +121,10 @@ class SpatialAlignmentMixin(AnalysisMixin[K, B]):
         aligned_basis = np.vstack([aligned_maps[k] for k in self._policy._cat])
 
         if mode == "affine":
-            if self.spatial_key not in self.adata.uns:
-                self.adata.uns[self.spatial_key] = {}
             if not inplace:
                 return aligned_basis, aligned_metadata
+            if self.spatial_key not in self.adata.uns:
+                self.adata.uns[self.spatial_key] = {}
             self.adata.uns[self.spatial_key]["alignment_metadata"] = aligned_metadata
         if not inplace:
             return aligned_basis

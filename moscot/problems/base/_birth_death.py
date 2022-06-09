@@ -8,8 +8,8 @@ import scanpy as sc
 
 from moscot._docs import d
 from moscot._types import ArrayLike
-from moscot.problems.base._base_problem import OTProblem  # type: ignore[attr-defined]
 from moscot.problems.time._utils import beta, delta as _delta, MarkerGenes
+from moscot.problems.base._base_problem import OTProblem  # type: ignore[attr-defined]
 
 __all__ = ["BirthDeathProblem", "BirthDeathMixin"]
 
