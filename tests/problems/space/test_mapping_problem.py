@@ -66,7 +66,7 @@ class TestMappingProblem:
     )
     @pytest.mark.parametrize("sc_attr", [{"attr": "X"}, {"attr": "obsm", "key": "X_pca"}])
     @pytest.mark.parametrize("var_names", [None, [], [str(i) for i in range(20)]])
-    def test_solve_balance(
+    def test_solve_balanced(
         self,
         adata_mapping: AnnData,
         epsilon: float,

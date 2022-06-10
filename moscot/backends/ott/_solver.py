@@ -89,7 +89,7 @@ class OTTJaxSolver(OTSolver[O], ABC):
         if x.is_point_cloud:
             cost_fn = self._create_cost(x.loss)
             x, y = self._assert2d(x.data), self._assert2d(x.data_y)
-            if x.shape[1] != y.shape[1]:  # type: ignore[attr-defined]
+            if y is not None and x.shape[1] != y.shape[1]:  # type: ignore[attr-defined]
                 raise ValueError("TODO: x/y dimension mismatch")
             return PointCloud(x, y=y, epsilon=epsilon, cost_fn=cost_fn, online=online, scale_cost=scale_cost)
         if x.is_point_cloud:
@@ -122,7 +122,7 @@ class OTTJaxSolver(OTSolver[O], ABC):
     @staticmethod
     def _assert2d(arr: Optional[ArrayLike], *, allow_reshape: bool = True) -> jnp.ndarray:
         if arr is None:
-            raise ValueError("TODO: no data passed.")
+            return None
         arr: jnp.ndarray = jnp.asarray(arr)  # type: ignore[no-redef]
         if allow_reshape and arr.ndim == 1:
             return jnp.reshape(arr, (-1, 1))

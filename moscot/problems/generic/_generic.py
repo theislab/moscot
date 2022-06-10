@@ -121,35 +121,7 @@ class GWProblem(CompoundProblem, AnalysisMixin):
         **kwargs: Any,
     ) -> "GWProblem":
         """
-        Prepare the :class:`moscot.problems.generic.GWProblem`.
-
-        This method executes multiple steps to prepare the problem for the Optimal Transport solver to be ready
-        to solve it
-
-        Parameters
-        ----------
-        %(key)s
-        GW_attr
-            Specifies the way the GW information is processed. TODO: Specify.
-        %(joint_attr)
-        %(policy)s
-        %(marginal_kwargs)s
-        %(a)s
-        %(b)s
-        %(subset)s
-        %(reference)s
-        %(callback)s
-        %(callback_kwargs)s
-        kwargs
-            Keyword arguments for :meth:`moscot.problems.BaseCompoundProblem._create_problems`
-
-        Returns
-        -------
-        :class:`moscot.problems.generic.GWProblem`
-
-        Notes
-        -----
-        If `a` and `b` are provided `marginal_kwargs` are ignored.
+        GWProblem.
         """
         # TODO(michalk8): use and
         if not len(GW_attr):
