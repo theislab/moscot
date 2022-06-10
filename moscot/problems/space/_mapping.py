@@ -8,6 +8,7 @@ from anndata import AnnData
 from moscot._docs import d
 from moscot._types import ArrayLike
 from moscot._constants._key import Key
+from moscot._constants._constants import ScaleCost
 from moscot.problems.space._mixins import SpatialMappingMixin
 from moscot.problems._subset_policy import Axis_t, DummyPolicy, ExternalStarPolicy
 from moscot.problems.base._base_problem import OTProblem
@@ -122,7 +123,7 @@ class MappingProblem(CompoundProblem[K, OTProblem], SpatialMappingMixin[K, OTPro
         self,
         alpha: Optional[float] = 0.5,
         epsilon: Optional[float] = 1e-3,
-        scale_cost: str = "mean",
+        scale_cost: str = ScaleCost.MEAN,
         **kwargs: Any,
     ) -> None:
         """

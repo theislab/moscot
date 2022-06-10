@@ -77,10 +77,10 @@ class AlignmentProblem(CompoundProblem[K, B], SpatialAlignmentMixin[K, B]):
         return super()._prepare(x=x, y=y, xy=joint_attr, policy=policy, key=batch_key, reference=reference, **kwargs)
 
     @d.dedent
-    def _solve(
+    def solve(
         self,
-        alpha: Optional[float] = 0.4,
-        epsilon: Optional[float] = 1e-1,
+        alpha: Optional[float] = 0.5,
+        epsilon: Optional[float] = 1e-3,
         scale_cost: str = ScaleCost.MEAN,
         **kwargs: Any,
     ) -> None:
