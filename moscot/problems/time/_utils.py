@@ -1,9 +1,11 @@
-from typing import Any, Literal, Mapping, Sequence
+from typing import Any, Mapping, Sequence
+
+from typing_extensions import Literal
 
 import numpy as np
-import numpy.typing as npt
 
 from moscot._types import ArrayLike
+
 
 # adapted from https://github.com/broadinstitute/wot/blob/master/notebooks/Notebook-2-compute-transport-maps.ipynb
 def logistic(x: ArrayLike, L: float, k: float, center: float = 0) -> ArrayLike:
