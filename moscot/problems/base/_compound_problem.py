@@ -150,7 +150,7 @@ class BaseCompoundProblem(BaseProblem, ABC, Generic[K, B]):
 
     @d.get_sections(base="CompoundBaseProblem_prepare", sections=["Parameters", "Raises"])
     @d.dedent
-    def _prepare(
+    def prepare(
         self,
         key: str,
         policy: Policy_t = "sequential",
@@ -160,7 +160,7 @@ class BaseCompoundProblem(BaseProblem, ABC, Generic[K, B]):
         callback: Optional[Union[Literal["local-pca"], Callback_t]] = None,
         callback_kwargs: Mapping[str, Any] = MappingProxyType({}),
         **kwargs: Any,
-    ) -> None:
+    ) -> "CompoundBaseProblem":
         """
         Prepare the biological problem.
 
@@ -206,8 +206,9 @@ class BaseCompoundProblem(BaseProblem, ABC, Generic[K, B]):
         for p in self.problems.values():
             self._problem_kind = p._problem_kind
             break
+        return self
 
-    def _solve(self, stage: Optional[Union[ProblemStage, Tuple[ProblemStage, ...]]] = None, **kwargs: Any) -> None:  # type: ignore[override]
+    def solve(self, stage: Optional[Union[ProblemStage, Tuple[ProblemStage, ...]]] = None, **kwargs: Any) -> "CompoundBaseProblem":  # type: ignore[override]
         """
         Solve the biological problem.
 
@@ -227,6 +228,8 @@ class BaseCompoundProblem(BaseProblem, ABC, Generic[K, B]):
         # TODO(michalk8): print how many problems are being solved?
         for subset, problem in problems.items():
             _ = problem.solve(**kwargs)
+
+        return self
 
     @attributedispatch(attr="_policy")
     def _apply(

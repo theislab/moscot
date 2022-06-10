@@ -4,39 +4,53 @@ moscot - Multi-Omics Single-Cell Optimal Transport
 `moscot` is a framework for optimal transport problems in single cell genomics.
 
 
-```{eval-rst}
-.. card:: Installation :octicon:`plug;1em;`
+.. card:: Installation
     :link: installation
     :link-type: doc
 
-    New to *moscot*? Check out the installation guide.
-```
+    Learn how to install `moscot`.
 
-Manuscript
-----------
 
-Please consider reading our manuscript xxx
+.. card:: API
+    :link: api/index
+    :link-type: doc
 
-Getting started with moscot
----------------------------
+    Find a detailed documentation of `moscot`.
 
-Checkout the tutorials and examples
 
-Contributing to moscot
-----------------------
+.. card:: Examples
+    :link: examples
+    :link-type: doc
+
+    Find brief and concise examples of certain functionalities of `moscot`.
+
+.. card:: Tutorials
+    :link: tutorials
+    :link-type: doc
+
+    Check out how to use `moscot` for data analysis.
+
+.. card:: Contributing
+    :link: contributing
+    :link-type: doc
+
+    Add a functionality or report a bug.
+
+.. card:: Github
+    :link: https://github.com/theislab/moscot
+    :link-type: url
+
+    Click here to see the Github repository.
+
+.. card:: Manuscript
+
+    Check out our manuscript xxx
+
 .. toctree::
-    :caption: General
-    :maxdepth: 2
     :hidden:
 
-    api
-    development
-    references
-
-.. toctree::
-    :caption: Gallery
-    :maxdepth: 2
-    :hidden:
-
-    tutorials
+    installation
+    api/index
     examples
+    tutorials
+    contributing

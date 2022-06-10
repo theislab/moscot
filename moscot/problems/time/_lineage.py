@@ -6,6 +6,8 @@ import pandas as pd
 
 import numpy as np
 
+from anndata import AnnData
+
 from moscot._docs import d
 from moscot._types import Numeric_t
 from moscot.problems.time._mixins import TemporalMixin
@@ -35,15 +37,18 @@ class TemporalProblem(
     See notebook TODO(@MUCDK) LINK NOTEBOOK for how to use it
     """
 
+    def __init__(self, adata: AnnData):
+        super().__init__(adata)
+
     @d.dedent
-    def _prepare(
+    def prepare(
         self,
         time_key: str,
         joint_attr: Optional[Union[str, Mapping[str, Any]]] = None,
         policy: Literal["sequential", "triu", "tril", "explicit"] = "sequential",
         marginal_kwargs: Mapping[str, Any] = MappingProxyType({}),
         **kwargs: Any,
-    ) -> None:
+    ) -> "TemporalProblem":
         """
         Prepare the :class:`moscot.problems.time.TemporalProblem`.
 
@@ -110,7 +115,7 @@ class TemporalProblem(
         if "b" not in kwargs:
             kwargs["b"] = self.proliferation_key is not None or self.apoptosis_key is not None
 
-        return super()._prepare(
+        return super().prepare(
             key=time_key,
             policy=policy,
             marginal_kwargs=marginal_kwargs,
@@ -233,14 +238,14 @@ class LineageProblem(TemporalProblem):
     """
 
     @d.dedent
-    def _prepare(
+    def prepare(
         self,
         time_key: str,
         lineage_attr: Mapping[str, Any] = MappingProxyType({}),
         joint_attr: Optional[Union[str, Mapping[str, Any]]] = None,
         policy: Literal["sequential", "triu", "tril", "explicit"] = "sequential",
         **kwargs: Any,
-    ) -> None:
+    ) -> "LineageProblem":
         """
         Prepare the :class:`moscot.problems.time.LineageProblem`.
 
@@ -307,7 +312,7 @@ class LineageProblem(TemporalProblem):
         lineage_attr.setdefault("loss_kwargs", {})
         x = y = lineage_attr
 
-        return super()._prepare(
+        return super().prepare(
             time_key,
             joint_attr=joint_attr,
             x=x,

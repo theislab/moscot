@@ -13,7 +13,7 @@ import scanpy as sc
 
 from moscot._docs import d
 from moscot._types import ArrayLike
-from moscot.problems._utils import require_solution
+from moscot.problems._utils import wrap_solve, wrap_prepare, require_solution
 from moscot.solvers._output import BaseSolverOutput
 from moscot.problems._anndata import AnnDataPointer
 from moscot.solvers._base_solver import BaseSolver, ProblemKind
@@ -52,26 +52,12 @@ class BaseProblem(ABC):
         self._stage = ProblemStage.INITIALIZED
 
     @abstractmethod
-    def _prepare(self, *args: Any, **kwargs: Any) -> None:
+    def prepare(self, *args: Any, **kwargs: Any) -> "BaseProblem":
         pass
 
     @abstractmethod
-    def _solve(self, *args: Any, **kwargs: Any) -> None:
-        pass
-
-    def prepare(self, *args: Any, **kwargs: Any) -> "BaseProblem":
-        self._prepare(*args, **kwargs)
-        if self._problem_kind == ProblemKind.UNKNOWN:
-            raise RuntimeError("TODO: problem kind not set after prepare")
-        self._stage = ProblemStage.PREPARED
-        return self
-
     def solve(self, *args: Any, **kwargs: Any) -> "BaseProblem":
-        if self._stage != ProblemStage.PREPARED:
-            raise RuntimeError("TODO")
-        self._solve(*args, **kwargs)
-        self._stage = ProblemStage.SOLVED
-        return self
+        pass
 
     # TODO(michalk8): move below?
     @staticmethod
@@ -109,8 +95,9 @@ class BaseProblem(ABC):
         return data / total if normalize else data
 
     @property
+    @d.dedent
     def adata(self) -> AnnData:
-        """%(adata)s."""
+        """%(adata)s""" # noqa
         return self._adata
 
     @property
@@ -179,7 +166,8 @@ class OTProblem(BaseProblem):
 
         return TaggedArray(x_array.data, y_array.data, tag=Tag.POINT_CLOUD, loss=x_array.loss)
 
-    def _prepare(  # type: ignore[override]
+    @wrap_prepare
+    def prepare(  # type: ignore[override]
         self,
         xy: Optional[Union[Mapping[str, Any], TaggedArray]] = None,
         x: Optional[Union[Mapping[str, Any], TaggedArray]] = None,
@@ -187,7 +175,7 @@ class OTProblem(BaseProblem):
         a: Optional[Union[bool, str, ArrayLike]] = None,
         b: Optional[Union[bool, str, ArrayLike]] = None,
         **kwargs: Any,
-    ) -> None:
+    ) -> "OTProblem":
         self._x = self._y = self._xy = self._solution = None
         # TODO(michalk8): handle again TaggedArray?
         # TODO(michalk8): better dispatch
@@ -211,8 +199,10 @@ class OTProblem(BaseProblem):
 
         self._a = self._create_marginals(self.adata, data=a, source=True, **kwargs)
         self._b = self._create_marginals(self._adata_y, data=b, source=False, **kwargs)
+        return self
 
-    def _solve(  # type: ignore[override]
+    @wrap_solve
+    def solve(  # type: ignore[override]
         self,
         epsilon: Optional[float] = 1e-2,
         alpha: Optional[float] = 0.5,
@@ -223,7 +213,7 @@ class OTProblem(BaseProblem):
         tau_b: float = 1.0,
         prepare_kwargs: Mapping[str, Any] = MappingProxyType({}),
         **kwargs: Any,
-    ) -> None:
+    ) -> "OTProblem":
         if self._problem_kind is None:
             raise RuntimeError("Run .prepare() first.")
         if self._problem_kind in (ProblemKind.QUAD, ProblemKind.QUAD_FUSED):
@@ -241,6 +231,7 @@ class OTProblem(BaseProblem):
 
         solver: BaseSolver[BaseSolverOutput] = self._problem_kind.solver(backend="ott", **kwargs)
         self._solution = solver(x=self._x, y=self._y, xy=self._xy, a=a, b=b, tau_a=tau_a, tau_b=tau_b, **prepare_kwargs)
+        return self
 
     @require_solution
     def push(
