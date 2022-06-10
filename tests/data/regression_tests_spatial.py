@@ -39,17 +39,18 @@ def adata_mapping() -> AnnData:
 
 
 def _make_grid(grid_size: int) -> ArrayLike:
-    x1s = np.linspace(0, 10, num=grid_size)
-    x2s = np.linspace(0, 10, num=grid_size)
+    xlimits = ylimits = [0, 10]
+    x1s = np.linspace(*xlimits, num=grid_size)  # type: ignore [call-overload]
+    x2s = np.linspace(*ylimits, num=grid_size)  # type: ignore [call-overload]
     X1, X2 = np.meshgrid(x1s, x2s)
-    X_orig_single = np.hstack([X1.ravel(), X2.ravel()])
+    X_orig_single = np.vstack([X1.ravel(), X2.ravel()]).T
     return X_orig_single
 
 
 def _make_adata(grid: ArrayLike, n: int) -> List[AnnData]:
     rng = np.random.default_rng(42)
     X = rng.normal(size=(100, 60))
-    return [AnnData(X=csr_matrix(X), obsm={"spatial": grid.copy()}, dtype=X.dtype) for _ in range(n)]
+    return [AnnData(X=csr_matrix(X), dtype=X.dtype, obsm={"spatial": grid.copy()}) for _ in range(3)]
 
 
 def _adata_split(adata: AnnData) -> Tuple[AnnData, AnnData]:
