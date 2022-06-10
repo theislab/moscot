@@ -179,7 +179,7 @@ def _make_grid(grid_size: int) -> npt.ArrayLike:
 def _make_adata(grid: npt.ArrayLike, n: int, seed) -> List[AnnData]:
     rng = np.random.default_rng(seed)
     X = rng.normal(size=(100, 60))
-    adatas = [AnnData(X=csr_matrix(X), obsm={"spatial": grid.copy()}, dtype=float) for _ in range(n)]
+    adatas = [AnnData(X=csr_matrix(X), obsm={"spatial": grid.copy()}, dtype=X.dtype) for _ in range(n)]
     return adatas
 
 
