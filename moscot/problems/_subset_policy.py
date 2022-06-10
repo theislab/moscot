@@ -75,7 +75,20 @@ class SubsetPolicy(Generic[K]):
     def _create_graph(self, **kwargs: Any) -> Set[Tuple[K, K]]:
         pass
 
-    def plan(self, filter: Optional[Sequence[Tuple[K, K]]] = None, **kwargs: Any) -> Sequence[Tuple[K, K]]:
+    def plan(
+        self,
+        filter: Optional[Sequence[Tuple[K, K]]] = None,
+        explicit_steps: Optional[Sequence[Tuple[K, K]]] = None,
+        **kwargs: Any,
+    ) -> Sequence[Tuple[K, K]]:
+        if explicit_steps is not None:
+            G = nx.DiGraph()
+            G.add_edges_from(explicit_steps)
+            if not set(G.nodes).issubset(set(self._cat)):
+                raise ValueError("TODO: all values of `explicit_steps` must correspond to a cell distribution.")
+            if not nx.has_path(G, explicit_steps[0][0], explicit_steps[-1][1]):
+                raise ValueError("TODO: `explicit_steps` must form a connected path.")
+            return explicit_steps
         plan = self._plan(**kwargs)
         # TODO(michalk8): ensure unique
         if filter is not None:
@@ -181,6 +194,10 @@ class OrderedPolicy(SubsetPolicy[K], ABC):
             raise RuntimeError("TODO: run graph creation first")
         if start is None and end is None:
             start, end = self._cat[0], self._cat[-1]
+        if start is None:
+            start = self._cat[0]
+        if end is None:
+            end = self._cat[-1]
         # TODO: add Graph for undirected
         G = nx.DiGraph()
         G.add_edges_from(self._graph)
@@ -210,7 +227,7 @@ class StarPolicy(SimplePlanPolicy[K]):
     def _filter_plan(
         self, plan: Sequence[Tuple[K, K]], filter: Sequence[Union[K, Tuple[K, K]]]
     ) -> Sequence[Tuple[K, K]]:
-        filter = [src[0] if isinstance(src, tuple) else src for src in filter]
+        filter = [src[0] if isinstance(src, tuple) else src for src in filter]  # noqa: A001
         return [(src, ref) for src, ref in plan if src in filter]
 
     @property

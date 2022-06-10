@@ -1,5 +1,7 @@
-from typing import Any, Union, Literal, Optional, Protocol, Sequence
+from typing import Any, Union, Optional, Sequence
 import logging
+
+from typing_extensions import Literal, Protocol
 
 import numpy as np
 
@@ -8,8 +10,8 @@ import scanpy as sc
 
 from moscot._docs import d
 from moscot._types import ArrayLike
-from moscot.problems.base import OTProblem  # type: ignore[attr-defined]
 from moscot.problems.time._utils import beta, delta as _delta, MarkerGenes
+from moscot.problems.base._base_problem import OTProblem  # type: ignore[attr-defined]
 
 __all__ = ["BirthDeathProblem", "BirthDeathMixin"]
 
@@ -163,10 +165,12 @@ class BirthDeathProblem(BirthDeathMixin, OTProblem):
         adata: AnnData,
         source: bool,
         delta: float,
+        proliferation_key: Optional[str] = None,
+        apoptosis_key: Optional[str] = None,
         **kwargs: Any,
     ) -> ArrayLike:
-        proliferation_key = self.proliferation_key
-        apoptosis_key = self.apoptosis_key
+        self.proliferation_key = proliferation_key
+        self.apoptosis_key = apoptosis_key
         if proliferation_key is None and apoptosis_key is None:
             raise ValueError("TODO: `proliferation_key` or `apoptosis_key` must be provided to estimate marginals")
         if proliferation_key is not None and proliferation_key not in adata.obs.columns:

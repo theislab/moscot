@@ -43,6 +43,7 @@ class TestTemporalProblem:
             assert isinstance(subsol, BaseSolverOutput)
             assert key in expected_keys
 
+    @pytest.mark.skip(reason="Revisit this once prior and posterior marginals are implemented.")
     def test_solve_unbalanced(self, adata_time: AnnData):
         taus = [9e-1, 1e-2]
         problem1 = TemporalProblem(adata=adata_time)
@@ -60,25 +61,6 @@ class TestTemporalProblem:
         div1 = np.linalg.norm(problem1[0, 1].a[:, -1] - np.ones(len(problem1[0, 1].a[:, -1])))
         div2 = np.linalg.norm(problem2[0, 1].a[:, -1] - np.ones(len(problem2[0, 1].a[:, -1])))
         assert div1 <= div2
-
-    @pytest.mark.parametrize(
-        "n_iters", [3]
-    )  # TODO(@MUCDK) as soon as @michalk8 unified warnings/errors test for negative value
-    def test_multiple_iterations(self, adata_time: AnnData, n_iters: int):
-        problem = TemporalProblem(adata=adata_time)
-        problem = problem.prepare("time")
-        problem = problem.solve(n_iters=n_iters)
-
-        assert problem[0, 1].growth_rates.shape[1] == n_iters + 1
-        assert np.all(
-            problem[0, 1].growth_rates[:, 0] == np.ones(len(problem[0, 1].a[:, -1])) / len(problem[0, 1].a[:, -1])
-        )
-        np.testing.assert_raises(
-            AssertionError,
-            np.testing.assert_array_almost_equal,
-            problem[0, 1].growth_rates[:, 0],
-            problem[0, 1].growth_rates[:, 1],
-        )
 
     @pytest.mark.fast()
     @pytest.mark.parametrize(
@@ -178,20 +160,18 @@ class TestTemporalProblem:
 
     def test_growth_rates_pipeline(self, adata_time: AnnData):
         problem = TemporalProblem(adata=adata_time)
-        problem = problem.prepare("time")
+        problem = problem.score_genes_for_marginals(gene_set_proliferation="mouse", gene_set_apoptosis="mouse")
+        problem = problem.prepare("time", a=True, b=True)
         problem = problem.solve()
 
         growth_rates = problem.growth_rates
         assert isinstance(growth_rates, pd.DataFrame)
-        assert len(growth_rates.columns) == 2
+        assert len(growth_rates.columns) == 1
         assert set(growth_rates.index) == set(adata_time.obs.index)
-        assert set(growth_rates[growth_rates["g_0"].isnull()].index) == set(
-            growth_rates[growth_rates["g_1"].isnull()].index
-        )
-        assert set(growth_rates[growth_rates["g_0"].isnull()].index) == set(
+        assert set(growth_rates[growth_rates["growth_rates"].isnull()].index) == set(
             adata_time[adata_time.obs["time"] == 2].obs.index
         )
-        assert set(growth_rates[~growth_rates["g_0"].isnull()].index) == set(
+        assert set(growth_rates[~growth_rates["growth_rates"].isnull()].index) == set(
             adata_time[adata_time.obs["time"].isin([0, 1])].obs.index
         )
 

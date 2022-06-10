@@ -40,8 +40,8 @@ class TestSingleCompoundProblem:
         problem = Problem(adata_time)
 
         assert len(problem) == 0
-        assert problem.problems is None
-        assert problem.solutions is None
+        assert problem.problems == {}
+        assert problem.solutions == {}
 
         problem = problem.prepare(
             xy={"x_attr": "X", "y_attr": "X"},

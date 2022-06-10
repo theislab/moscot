@@ -1,6 +1,7 @@
 from types import MappingProxyType
-from typing import Any, Type, Tuple, Union, Literal, Mapping, Optional
+from typing import Any, Type, Tuple, Union, Mapping, Optional
 
+from typing_extensions import Literal
 import pandas as pd
 
 import numpy as np
@@ -130,7 +131,7 @@ class TemporalProblem(
         of estimates for the cell growth rates equals is strictly larger than 2.
         """
         # TODO(michalk8): FIXME
-        cols = [f"g_{i}" for i in range(self.problems[list(self)[0]].growth_rates.shape[1])]  # type: ignore[union-attr]
+        cols = ["growth_rates"]
         df_list = [
             pd.DataFrame(problem.growth_rates, index=problem.adata.obs.index, columns=cols)
             for problem in self.problems.values()
@@ -139,7 +140,7 @@ class TemporalProblem(
         df_list.append(
             pd.DataFrame(
                 np.full(
-                    shape=(len(self.problems[tup]._adata_y.obs), self.problems[tup].growth_rates.shape[1]),  # type: ignore[union-attr]
+                    shape=(len(self.problems[tup]._adata_y.obs), 1),
                     fill_value=np.nan,
                 ),
                 index=self.problems[tup]._adata_y.obs.index,
@@ -175,7 +176,8 @@ class TemporalProblem(
                 )
             )
             return pd.concat(df_list, verify_integrity=True)
-        except NotImplementedError:  # TODO(@MUCDK) check for specific error message
+        except AttributeError:  # TODO(@MUCDK) check for specific error message
+            print("TODO: no potentials for quadratic problem.")
             return None
 
     @property
@@ -199,7 +201,8 @@ class TemporalProblem(
                 ]
             )
             return pd.concat(df_list, verify_integrity=True)
-        except NotImplementedError:  # TODO(@MUCDK) check for specific error message
+        except AttributeError:  # TODO(@MUCDK) check for specific error message
+            print("TODO: no potentials for quadratic problem.")
             return None
 
     @property
