@@ -1,6 +1,8 @@
 from abc import ABC
 from enum import Enum
-from typing import Any, Type, Union, Literal, Optional, NamedTuple
+from typing import Any, Type, Union, Optional, NamedTuple
+
+from typing_extensions import Literal
 
 from ott.geometry import Grid, Epsilon, Geometry, PointCloud
 from ott.core.problems import LinearProblem

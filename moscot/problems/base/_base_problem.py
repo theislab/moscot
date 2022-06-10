@@ -1,9 +1,10 @@
 from abc import ABC, abstractmethod
 from enum import Enum
 from types import MappingProxyType
-from typing import Any, Dict, List, Tuple, Union, Literal, Mapping, Iterable, Optional, Sequence
+from typing import Any, Dict, List, Tuple, Union, Mapping, Iterable, Optional, Sequence
 
 from scipy.sparse import vstack, issparse, csr_matrix
+from typing_extensions import Literal
 
 import numpy as np
 

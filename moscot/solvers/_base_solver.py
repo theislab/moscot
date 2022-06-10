@@ -1,8 +1,10 @@
 from abc import ABC, abstractmethod
 from enum import Enum
 from types import MappingProxyType
-from typing import Any, Dict, Tuple, Union, Generic, Literal, Mapping, TypeVar, Optional, NamedTuple
+from typing import Any, Dict, Tuple, Union, Generic, Mapping, TypeVar, Optional, NamedTuple
 import warnings
+
+from typing_extensions import Literal
 
 from moscot._docs import d
 from moscot._types import ArrayLike

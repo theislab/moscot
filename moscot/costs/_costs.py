@@ -2,18 +2,14 @@ from abc import ABC, abstractmethod
 from typing import Any, List, Union, Mapping, Optional
 from numbers import Number
 
+from typing_extensions import Literal
+import networkx as nx
+
 import numpy as np
 
 from anndata import AnnData
 
 from moscot._types import ArrayLike
-
-try:
-    from typing import Literal
-except ImportError:
-    from typing_extensions import Literal  # type: ignore[misc]
-
-import networkx as nx
 
 __all__ = ["LeafDistance", "BarcodeDistance"]
 Scale_t = Literal["max", "min", "median", "mean"]
