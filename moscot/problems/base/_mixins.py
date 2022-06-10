@@ -130,7 +130,9 @@ class AnalysisMixin(Generic[K, B]):
 
     def _interpolate_transport(
         self: AnalysisMixinProtocol[K, B],
-        path: Sequence[Tuple[K, K]],
+        path: Sequence[
+            Tuple[K, K]
+        ],  # TODO(@giovp): rename this to 'explicit_steps', pass to policy.plan() and reintroduce (start, end) args
         forward: bool = True,
         scale_by_marginals: bool = True,
         **kwargs: Any,
