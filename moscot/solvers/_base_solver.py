@@ -150,7 +150,7 @@ class OTSolver(TagConverterMixin, BaseSolver[O], ABC):
         tau_b: float = 1.0,
         tags: Mapping[Literal["x", "y", "xy"], Tag] = MappingProxyType({}),
         **kwargs: Any,
-    ) -> O:
+    ) -> O:  # noqa: E741
         """Call method."""
         data = self._get_array_data(xy, x=x, y=y, tags=tags)
         kwargs = self._prepare_kwargs(data, **kwargs)

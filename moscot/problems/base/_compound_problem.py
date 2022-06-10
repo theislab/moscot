@@ -207,7 +207,7 @@ class BaseCompoundProblem(BaseProblem, ABC, Generic[K, B]):
             self._problem_kind = p._problem_kind
             break
 
-    def _solve(self, stage: Optional[Union[ProblemStage, Tuple[ProblemStage, ...]]] = None, **kwargs: Any) -> None:  # type: ignore[override]
+    def _solve(self, stage: Optional[Union[ProblemStage, Tuple[ProblemStage, ...]]] = None, **kwargs: Any) -> None:  # type: ignore[override] # noqa: E501
         """
         Solve the biological problem.
 
@@ -225,7 +225,7 @@ class BaseCompoundProblem(BaseProblem, ABC, Generic[K, B]):
             assert isinstance(self._problem_manager, ProblemManager)
         problems = self._problem_manager.get_problems(stage=stage)
         # TODO(michalk8): print how many problems are being solved?
-        for subset, problem in problems.items():
+        for _, problem in problems.items():
             _ = problem.solve(**kwargs)
 
     @attributedispatch(attr="_policy")
@@ -282,10 +282,10 @@ class BaseCompoundProblem(BaseProblem, ABC, Generic[K, B]):
         # TODO(michlak8): future behavior
         # res = {(None, src) if forward else (tgt, None): current_mass}
         res = {src if forward else tgt: current_mass}
-        for src, tgt in [(src, tgt)] + rest:
-            problem = self.problems[src, tgt]
+        for _src, _tgt in [(src, tgt)] + rest:
+            problem = self.problems[_src, _tgt]
             fun = problem.push if forward else problem.pull
-            res[tgt] = current_mass = fun(current_mass, scale_by_marginals=scale_by_marginals, **kwargs)
+            res[_tgt] = current_mass = fun(current_mass, scale_by_marginals=scale_by_marginals, **kwargs)
 
         return res if return_all else current_mass
 
@@ -346,6 +346,7 @@ class BaseCompoundProblem(BaseProblem, ABC, Generic[K, B]):
 
     @require_prepare
     def add_problem(self, key: Tuple[K, K], problem: B, *, overwrite: bool = False) -> "BaseCompoundProblem[K, B]":
+        """Add problem."""
         if TYPE_CHECKING:
             assert isinstance(self._problem_manager, ProblemManager)
         self._problem_manager.add_problem(key, problem, overwrite=overwrite)
@@ -353,6 +354,7 @@ class BaseCompoundProblem(BaseProblem, ABC, Generic[K, B]):
 
     @require_prepare
     def remove_problem(self, key: Tuple[K, K]) -> "BaseCompoundProblem[K, B]":
+        """Remove problem."""
         if TYPE_CHECKING:
             assert isinstance(self._problem_manager, ProblemManager)
         self._problem_manager.remove_problem(key)

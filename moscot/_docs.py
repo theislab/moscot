@@ -133,7 +133,7 @@ joint_attr
 
 
 RT = TypeVar("RT")  # return type
-O = TypeVar("O")  # object type
+O = TypeVar("O")  # noqa: E741, object type
 
 
 def inject_docs(**kwargs: Any) -> Callable[[Callable[..., RT]], Callable[..., RT]]:  # noqa: D103
