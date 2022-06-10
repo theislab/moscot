@@ -7,7 +7,6 @@ from typing import (
     Tuple,
     Union,
     Generic,
-    Literal,
     Mapping,
     TypeVar,
     Callable,
@@ -19,6 +18,7 @@ from typing import (
 )
 
 from scipy.sparse import issparse
+from typing_extensions import Literal
 
 from anndata import AnnData
 
