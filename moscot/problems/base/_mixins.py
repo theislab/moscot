@@ -1,5 +1,6 @@
-from typing import Any, Dict, List, Tuple, Union, Generic, Optional, Protocol, TYPE_CHECKING
+from typing import Any, Dict, List, Tuple, Union, Generic, Optional, TYPE_CHECKING
 
+from typing_extensions import Protocol
 from scipy.sparse.linalg import LinearOperator
 
 import numpy as np

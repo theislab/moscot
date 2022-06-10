@@ -1,8 +1,9 @@
-from typing import Any, Dict, List, Tuple, Union, Mapping, Optional, Protocol, Sequence, TYPE_CHECKING
+from typing import Any, Dict, List, Tuple, Union, Mapping, Optional, Sequence, TYPE_CHECKING
 import logging
 import itertools
 
 from sklearn.metrics import pairwise_distances
+from typing_extensions import Protocol
 from pandas.core.dtypes.common import is_categorical_dtype
 import ot
 import pandas as pd
