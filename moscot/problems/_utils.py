@@ -13,6 +13,7 @@ __all__ = ["require_prepare", "require_solution"]
 def require_solution(
     wrapped: Callable[[Any], Any], instance: "BaseProblem", args: Tuple[Any, ...], kwargs: Mapping[str, Any]
 ) -> Any:
+    """Check whether problem has been solved."""
     from moscot.problems.base import OTProblem, BaseCompoundProblem  # type: ignore[attr-defined]
 
     if isinstance(instance, OTProblem) and instance.solution is None:
@@ -26,6 +27,7 @@ def require_solution(
 def require_prepare(
     wrapped: Callable[[Any], Any], instance: "BaseCompoundProblem", args: Tuple[Any, ...], kwargs: Mapping[str, Any]
 ) -> Any:
+    """Check whether problem has been prepared."""
     if instance._problems is None:
         raise RuntimeError("TODO: Run prepare.")
     return wrapped(*args, **kwargs)

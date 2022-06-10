@@ -214,7 +214,7 @@ class TestSolverOutput:
         y: ArrayLike,
         xy: ArrayLike,
         ab: Tuple[ArrayLike, ArrayLike],
-        solver_t: Type[OTSolver[O]],
+        solver_t: Type[OTSolver[O]],  # noqa: E741
         batched: bool,
     ) -> None:
         b, ndim = (ab[1], ab[1].shape[1]) if batched else (ab[1][:, 0], None)
