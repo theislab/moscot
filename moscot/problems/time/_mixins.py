@@ -24,10 +24,10 @@ class TemporalMixinProtocol(AnalysisMixinProtocol[K, B], Protocol[K, B]):
     problems: Dict[Tuple[K, K], B]
     temporal_key: Optional[str]
 
-    def push(self, *args: Any, **kwargs: Any) -> Optional[ApplyOutput_t[K]]:
+    def push(self, *args: Any, **kwargs: Any) -> Optional[ApplyOutput_t[K]]:  # noqa: D102
         ...
 
-    def pull(self, *args: Any, **kwargs: Any) -> Optional[ApplyOutput_t[K]]:
+    def pull(self, *args: Any, **kwargs: Any) -> Optional[ApplyOutput_t[K]]:  # noqa: D102
         ...
 
     def _validate_args_cell_transition(
@@ -306,7 +306,7 @@ class TemporalMixin(AnalysisMixin[K, B]):
             tag = self.problems[src, tgt].xy.tag  # type: ignore[union-attr]
             if tag != "point_cloud":
                 raise ValueError(
-                    "TODO: This method requires the data to be stored as point_clouds. It is currently stored "  # type: ignore[union-attr]
+                    "TODO: This method requires the data to be stored as point_clouds. It is currently stored "  # type: ignore[union-attr] # noqa: E501
                     f"as {self.problems[src, tgt].xy.tag}."
                 )
             if src == start:
@@ -332,7 +332,7 @@ class TemporalMixin(AnalysisMixin[K, B]):
         else:
             raise ValueError(f"No data found for time point {end}")
 
-        return source_data, growth_rates_source, intermediate_data, intermediate_adata, target_data  # type: ignore[return-value]
+        return source_data, growth_rates_source, intermediate_data, intermediate_adata, target_data  # type: ignore[return-value] # noqa: E501
 
     def compute_interpolated_distance(
         self,

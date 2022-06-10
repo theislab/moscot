@@ -97,15 +97,15 @@ class BaseProblem(ABC):
     @property
     @d.dedent
     def adata(self) -> AnnData:
-        """%(adata)s""" # noqa
+        """%(adata)s"""  # noqa
         return self._adata
 
     @property
-    def stage(self) -> ProblemStage:
+    def stage(self) -> ProblemStage:  # noqa: D102
         return self._stage
 
     @property
-    def problem_kind(self) -> ProblemKind:
+    def problem_kind(self) -> ProblemKind:  # noqa: D102
         return self._problem_kind
 
 
@@ -241,7 +241,7 @@ class OTProblem(BaseProblem):
         normalize: bool = True,
         **kwargs: Any,
     ) -> ArrayLike:
-        # TODO: check if solved - decorator?
+        """Push mass."""
         data = self._get_mass(self.adata, data=data, subset=subset, normalize=normalize)
         return self.solution.push(data, **kwargs)  # type: ignore[union-attr]
 
@@ -253,7 +253,7 @@ class OTProblem(BaseProblem):
         normalize: bool = True,
         **kwargs: Any,
     ) -> ArrayLike:
-        # TODO: check if solved - decorator?
+        """Pull mass."""
         adata = self.adata if self._adata_y is None else self._adata_y
         data = self._get_mass(adata, data=data, subset=subset, normalize=normalize)
         return self.solution.pull(data, **kwargs)  # type: ignore[union-attr]
@@ -308,32 +308,32 @@ class OTProblem(BaseProblem):
         return np.ones((adata.n_obs,), dtype=float) / adata.n_obs
 
     @property
-    def shape(self) -> Tuple[int, int]:
+    def shape(self) -> Tuple[int, int]:  # noqa: D102
         return self.adata.n_obs, self._adata_y.n_obs
 
     @property
-    def solution(self) -> Optional[BaseSolverOutput]:
+    def solution(self) -> Optional[BaseSolverOutput]:  # noqa: D102
         return self._solution
 
     @property
-    def x(self) -> Optional[TaggedArray]:
+    def x(self) -> Optional[TaggedArray]:  # noqa: D102
         return self._x
 
     @property
-    def y(self) -> Optional[TaggedArray]:
+    def y(self) -> Optional[TaggedArray]:  # noqa: D102
         return self._y
 
     # TODO(michalk8): verify type
     @property
-    def xy(self) -> Optional[TaggedArray]:
+    def xy(self) -> Optional[TaggedArray]:  # noqa: D102
         return self._xy
 
     @property
-    def a(self) -> Optional[ArrayLike]:
+    def a(self) -> Optional[ArrayLike]:  # noqa: D102
         return self._a
 
     @property
-    def b(self) -> Optional[ArrayLike]:
+    def b(self) -> Optional[ArrayLike]:  # noqa: D102
         return self._b
 
     def __repr__(self) -> str:
