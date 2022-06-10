@@ -1,7 +1,16 @@
 moscot - Multi-Omics Single-Cell Optimal Transport
 ==================================================
 
-**moscot** is a tool for various optimal transport problems in single cell genomics.
+`moscot` is a framework for optimal transport problems in single cell genomics.
+
+
+```{eval-rst}
+.. card:: Installation :octicon:`plug;1em;`
+    :link: installation
+    :link-type: doc
+
+    New to *moscot*? Check out the installation guide.
+```
 
 Manuscript
 ----------
