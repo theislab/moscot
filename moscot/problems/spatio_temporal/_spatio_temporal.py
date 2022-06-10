@@ -5,6 +5,7 @@ from typing_extensions import Literal
 
 from moscot._docs import d
 from moscot._types import Numeric_t
+from moscot._constants._key import Key
 from moscot.problems.time._mixins import TemporalMixin
 from moscot.problems.space._mixins import SpatialAlignmentMixin
 from moscot.problems.space._alignment import AlignmentProblem
@@ -24,7 +25,7 @@ class SpatioTemporalProblem(
     def _prepare(
         self,
         time_key: str,
-        spatial_key: str = "spatial",
+        spatial_key: str = Key.obsm.spatial,
         joint_attr: Optional[Mapping[str, Any]] = MappingProxyType({"x_attr": "X", "y_attr": "X"}),
         policy: Literal["sequential", "triu", "tril", "explicit"] = "sequential",
         marginal_kwargs: Mapping[str, Any] = MappingProxyType({}),

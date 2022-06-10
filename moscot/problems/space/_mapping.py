@@ -7,6 +7,7 @@ from anndata import AnnData
 
 from moscot._docs import d
 from moscot._types import ArrayLike
+from moscot._constants._key import Key
 from moscot.problems.space._mixins import SpatialMappingMixin
 from moscot.problems._subset_policy import Axis_t, DummyPolicy, ExternalStarPolicy
 from moscot.problems.base._base_problem import OTProblem
@@ -71,7 +72,7 @@ class MappingProblem(CompoundProblem[K, OTProblem], SpatialMappingMixin[K, OTPro
         self,
         sc_attr: Union[str, Mapping[str, Any]],
         batch_key: Optional[str] = None,
-        spatial_key: Union[str, Mapping[str, Any]] = "spatial",
+        spatial_key: Union[str, Mapping[str, Any]] = Key.obsm.spatial,
         var_names: Optional[Sequence[Any]] = None,
         joint_attr: Optional[Mapping[str, Any]] = MappingProxyType({"x_attr": "X", "y_attr": "X"}),
         **kwargs: Any,
