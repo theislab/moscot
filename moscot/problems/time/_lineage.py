@@ -1,6 +1,7 @@
 from types import MappingProxyType
-from typing import Any, Type, Tuple, Union, Literal, Mapping, Optional
+from typing import Any, Type, Tuple, Union, Mapping, Optional
 
+from typing_extensions import Literal
 import pandas as pd
 
 import numpy as np
