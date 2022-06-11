@@ -2,7 +2,6 @@ from abc import ABC
 from typing import Any, Tuple, Union, Optional
 
 from matplotlib.figure import Figure
-from typing_extensions import Literal
 import matplotlib.pyplot as plt
 
 from ott.core.sinkhorn import SinkhornOutput as OTTSinkhornOutput
@@ -41,7 +40,6 @@ class CostMixin:
 
     def plot_convergence(
         self,
-        kind: Literal["error", "cost"] = "cost",
         title: Optional[str] = None,
         figsize: Optional[Tuple[float, float]] = None,
         dpi: Optional[int] = None,
@@ -49,16 +47,14 @@ class CostMixin:
         return_fig: bool = False,
         **kwargs: Any,
     ) -> Optional[Figure]:
-        fig, ax = plt.subplots(figsize=figsize, dpi=dpi)
+        def select_values() -> Tuple[str, jnp.ndarray]:
+            # `> 1` because of pure Sinkhorn
+            if len(self._costs) > 1 or self._errors is None:
+                return "cost", self._costs
+            return "error", self._errors
 
-        if kind == "error":
-            values = self._errors
-        elif kind == "cost":
-            values = self._costs
-        else:
-            raise ValueError(f"TODO: invalid `kind={kind}`")
-        if values is None:
-            raise ValueError(f"TODO: no data for `kind={kind}`")
+        fig, ax = plt.subplots(figsize=figsize, dpi=dpi)
+        kind, values = select_values()
 
         ax.plot(values, **kwargs)
         ax.set_xlabel("iteration")
@@ -106,9 +102,6 @@ class LinearOutput(HasPotentials, OTTOutput):
             # convert to batch first
             return self._output.apply(x.T, axis=1 - forward).T
         raise ValueError("TODO - dim error")
-
-    def plot_convergence(self, *args: Any, **kwargs: Any) -> Optional[Figure]:
-        return super().plot_convergence("error", *args[1:], **kwargs)
 
     @property
     def shape(self) -> Tuple[int, int]:
