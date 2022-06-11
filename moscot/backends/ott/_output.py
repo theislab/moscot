@@ -25,7 +25,7 @@ class RankMixin:
         return self._rank
 
 
-class CostMixin:
+class ConvergecePlotterMixin:
     NOT_COMPUTED = -1.0
 
     def __init__(self, costs: jnp.ndarray, errors: Optional[jnp.ndarray], *args: Any, **kwargs: Any):
@@ -69,7 +69,7 @@ class CostMixin:
             return fig
 
 
-class OTTOutput(CostMixin, BaseSolverOutput, ABC):
+class OTTOutput(ConvergecePlotterMixin, BaseSolverOutput, ABC):
     def __init__(self, output: Union[OTTSinkhornOutput, OTTLRSinkhornOutput], **_: Any):
         if isinstance(output, OTTSinkhornOutput):
             costs, errors = jnp.asarray([output.reg_ot_cost]), output.errors
@@ -131,7 +131,7 @@ class LRLinearOutput(RankMixin, OTTOutput):
         return self._output.geom.shape
 
 
-class QuadraticOutput(CostMixin, RankMixin, MatrixSolverOutput):
+class QuadraticOutput(ConvergecePlotterMixin, RankMixin, MatrixSolverOutput):
     """
     Output class for Gromov-Wasserstein problems.
 
