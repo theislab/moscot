@@ -22,21 +22,29 @@ class RankMixin:
         return self._rank
 
 
-# TODO(michalk8): consider caching some of the properties
-class OTTOutput(BaseSolverOutput, ABC):
+class CostMixin:
+    NOT_COMPUTED = -1.0
+
+    def __init__(self, costs: jnp.ndarray, *args: Any, **kwargs: Any):
+        super().__init__(*args, **kwargs)
+        self._costs = costs[costs != self.NOT_COMPUTED]
+
+    @property
+    def cost(self) -> float:
+        """TODO."""
+        return float(self._costs[-1])
+
+
+class OTTOutput(CostMixin, BaseSolverOutput, ABC):
     def __init__(self, output: Union[OTTSinkhornOutput, OTTLRSinkhornOutput], **_: Any):
-        super().__init__()
+        costs = jnp.asarray([output.reg_ot_cost]) if isinstance(output, OTTSinkhornOutput) else output.costs
+        super().__init__(costs)
         self._output = output
 
     @property
     def transport_matrix(self) -> ArrayLike:
         """%(transport_matrix)s."""
         return self._output.matrix
-
-    @property
-    def cost(self) -> float:
-        """Wasserstein cost."""
-        return float(self._output.reg_ot_cost)
 
     @property
     def converged(self) -> bool:
@@ -86,7 +94,7 @@ class LRLinearOutput(RankMixin, OTTOutput):
         return self._output.geom.shape
 
 
-class QuadraticOutput(RankMixin, MatrixSolverOutput):
+class QuadraticOutput(CostMixin, RankMixin, MatrixSolverOutput):
     """
     Output class for Gromov-Wasserstein problems.
 
@@ -101,15 +109,8 @@ class QuadraticOutput(RankMixin, MatrixSolverOutput):
     """
 
     def __init__(self, output: OTTGWOutput, *, rank: int = -1):
-        super().__init__(output.matrix, rank=rank)
+        super().__init__(output.costs, output.matrix, rank=rank)
         self._converged = bool(output.convergence)
-        self._cost = float(output.costs[output.costs != -1][-1])
-        self._output = output
-
-    @property
-    def cost(self) -> float:
-        """Gromov-Wasserstein cost."""
-        return self._cost
 
     @property
     def converged(self) -> bool:
