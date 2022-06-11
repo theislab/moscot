@@ -1,5 +1,9 @@
 from abc import ABC
-from typing import Any, Tuple, Union
+from typing import Any, Tuple, Union, Optional
+
+from matplotlib.figure import Figure
+from typing_extensions import Literal
+import matplotlib.pyplot as plt
 
 from ott.core.sinkhorn import SinkhornOutput as OTTSinkhornOutput
 from ott.core.sinkhorn_lr import LRSinkhornOutput as OTTLRSinkhornOutput
@@ -25,20 +29,57 @@ class RankMixin:
 class CostMixin:
     NOT_COMPUTED = -1.0
 
-    def __init__(self, costs: jnp.ndarray, *args: Any, **kwargs: Any):
+    def __init__(self, costs: jnp.ndarray, errors: Optional[jnp.ndarray], *args: Any, **kwargs: Any):
         super().__init__(*args, **kwargs)
         self._costs = costs[costs != self.NOT_COMPUTED]
+        self._errors = None if errors is None else errors[errors != self.NOT_COMPUTED]
 
     @property
     def cost(self) -> float:
         """TODO."""
         return float(self._costs[-1])
 
+    def plot_convergence(
+        self,
+        kind: Literal["error", "cost"] = "cost",
+        title: Optional[str] = None,
+        figsize: Optional[Tuple[float, float]] = None,
+        dpi: Optional[int] = None,
+        save: Optional[str] = None,
+        return_fig: bool = False,
+        **kwargs: Any,
+    ) -> Optional[Figure]:
+        fig, ax = plt.subplots(figsize=figsize, dpi=dpi)
+
+        if kind == "error":
+            values = self._errors
+        elif kind == "cost":
+            values = self._costs
+        else:
+            raise ValueError(f"TODO: invalid `kind={kind}`")
+        if values is None:
+            raise ValueError(f"TODO: no data for `kind={kind}`")
+
+        ax.plot(values, **kwargs)
+        ax.set_xlabel("iteration")
+        ax.set_ylabel(kind)
+        if title is None:
+            title = "converged" if self.converged else "not converged"  # type: ignore[attr-defined]
+        ax.set_title(title)
+
+        if save is not None:
+            fig.savefig(save)
+        if return_fig:
+            return fig
+
 
 class OTTOutput(CostMixin, BaseSolverOutput, ABC):
     def __init__(self, output: Union[OTTSinkhornOutput, OTTLRSinkhornOutput], **_: Any):
-        costs = jnp.asarray([output.reg_ot_cost]) if isinstance(output, OTTSinkhornOutput) else output.costs
-        super().__init__(costs)
+        if isinstance(output, OTTSinkhornOutput):
+            costs, errors = jnp.asarray([output.reg_ot_cost]), output.errors
+        else:
+            costs, errors = output.costs, None
+        super().__init__(costs=costs, errors=errors)
         self._output = output
 
     @property
@@ -65,6 +106,9 @@ class LinearOutput(HasPotentials, OTTOutput):
             # convert to batch first
             return self._output.apply(x.T, axis=1 - forward).T
         raise ValueError("TODO - dim error")
+
+    def plot_convergence(self, *args: Any, **kwargs: Any) -> Optional[Figure]:
+        return super().plot_convergence("error", *args[1:], **kwargs)
 
     @property
     def shape(self) -> Tuple[int, int]:
@@ -109,7 +153,7 @@ class QuadraticOutput(CostMixin, RankMixin, MatrixSolverOutput):
     """
 
     def __init__(self, output: OTTGWOutput, *, rank: int = -1):
-        super().__init__(output.costs, output.matrix, rank=rank)
+        super().__init__(output.costs, output.errors, output.matrix, rank=rank)
         self._converged = bool(output.convergence)
 
     @property
