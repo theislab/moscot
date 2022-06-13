@@ -194,6 +194,10 @@ class OrderedPolicy(SubsetPolicy[K], ABC):
             raise RuntimeError("TODO: run graph creation first")
         if start is None and end is None:
             start, end = self._cat[0], self._cat[-1]
+        if start is None:
+            start = self._cat[0]
+        if end is None:
+            end = self._cat[-1]
         # TODO: add Graph for undirected
         G = nx.DiGraph()
         G.add_edges_from(self._graph)
@@ -223,7 +227,7 @@ class StarPolicy(SimplePlanPolicy[K]):
     def _filter_plan(
         self, plan: Sequence[Tuple[K, K]], filter: Sequence[Union[K, Tuple[K, K]]]
     ) -> Sequence[Tuple[K, K]]:
-        filter = [src[0] if isinstance(src, tuple) else src for src in filter]
+        filter = [src[0] if isinstance(src, tuple) else src for src in filter]  # noqa: A001
         return [(src, ref) for src, ref in plan if src in filter]
 
     @property

@@ -1,9 +1,12 @@
 from types import MappingProxyType
-from typing import Any, Type, Tuple, Union, Literal, Mapping, Optional
+from typing import Any, Type, Tuple, Union, Mapping, Optional
 
+from typing_extensions import Literal
 import pandas as pd
 
 import numpy as np
+
+from anndata import AnnData
 
 from moscot._docs import d
 from moscot._types import Numeric_t
@@ -34,15 +37,18 @@ class TemporalProblem(
     See notebook TODO(@MUCDK) LINK NOTEBOOK for how to use it
     """
 
+    def __init__(self, adata: AnnData):
+        super().__init__(adata)
+
     @d.dedent
-    def _prepare(
+    def prepare(
         self,
         time_key: str,
         joint_attr: Optional[Union[str, Mapping[str, Any]]] = None,
         policy: Literal["sequential", "triu", "tril", "explicit"] = "sequential",
         marginal_kwargs: Mapping[str, Any] = MappingProxyType({}),
         **kwargs: Any,
-    ) -> None:
+    ) -> "TemporalProblem":
         """
         Prepare the :class:`moscot.problems.time.TemporalProblem`.
 
@@ -109,7 +115,7 @@ class TemporalProblem(
         if "b" not in kwargs:
             kwargs["b"] = self.proliferation_key is not None or self.apoptosis_key is not None
 
-        return super()._prepare(
+        return super().prepare(
             key=time_key,
             policy=policy,
             marginal_kwargs=marginal_kwargs,
@@ -162,7 +168,7 @@ class TemporalProblem(
         try:
             df_list = [
                 pd.DataFrame(
-                    problem.solution.potentials[0], index=problem.adata.obs.index, columns=["cell_cost_source"]
+                    problem.solution.potentials[0], index=problem.adata.obs.index, columns=["cell_cost_source"]  # type: ignore[union-attr] # noqa: E501
                 )
                 for problem in self.problems.values()
             ]
@@ -194,7 +200,7 @@ class TemporalProblem(
             df_list.extend(
                 [
                     pd.DataFrame(
-                        problem.solution.potentials[1], index=problem._adata_y.obs.index, columns=["cell_cost_target"]
+                        problem.solution.potentials[1], index=problem._adata_y.obs.index, columns=["cell_cost_target"]  # type: ignore[union-attr] # noqa: E501
                     )
                     for problem in self.problems.values()
                 ]
@@ -206,7 +212,7 @@ class TemporalProblem(
 
     @property
     def _base_problem_type(self) -> Type[B]:
-        return BirthDeathProblem
+        return BirthDeathProblem  # type: ignore[return-value]
 
     @property
     def _valid_policies(self) -> Tuple[str, ...]:
@@ -232,14 +238,14 @@ class LineageProblem(TemporalProblem):
     """
 
     @d.dedent
-    def _prepare(
+    def prepare(
         self,
         time_key: str,
         lineage_attr: Mapping[str, Any] = MappingProxyType({}),
         joint_attr: Optional[Union[str, Mapping[str, Any]]] = None,
         policy: Literal["sequential", "triu", "tril", "explicit"] = "sequential",
         **kwargs: Any,
-    ) -> None:
+    ) -> "LineageProblem":
         """
         Prepare the :class:`moscot.problems.time.LineageProblem`.
 
@@ -306,7 +312,7 @@ class LineageProblem(TemporalProblem):
         lineage_attr.setdefault("loss_kwargs", {})
         x = y = lineage_attr
 
-        return super()._prepare(
+        return super().prepare(
             time_key,
             joint_attr=joint_attr,
             x=x,

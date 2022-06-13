@@ -1,5 +1,7 @@
 from typing import Any, Dict, List, Tuple, Union, Mapping, Callable, Optional, Sequence
+from itertools import chain
 
+from networkx import NetworkXNoPath
 from scipy.stats import pearsonr, spearmanr
 from scipy.linalg import svd
 from scipy.sparse import issparse
@@ -74,8 +76,13 @@ class SpatialAlignmentMixin(AnalysisMixin[K, B]):
 
         # get policy
         full_steps = self._policy._graph
-        fwd_steps = self._policy.plan(end=reference)
-        bwd_steps = None
+        starts = set(chain.from_iterable(full_steps)) - set(reference)  # type: ignore[arg-type]
+        fwd_steps, bwd_steps = {}, {}
+        for start in starts:
+            try:
+                fwd_steps[(start, reference)] = self._policy.plan(start=start, end=reference)
+            except NetworkXNoPath:
+                bwd_steps[(reference, start)] = self._policy.plan(start=reference, end=start)
 
         if mode == "affine":
             _transport: Callable[
@@ -84,18 +91,14 @@ class SpatialAlignmentMixin(AnalysisMixin[K, B]):
         else:
             _transport = _warp
 
-        if full_steps is not None:
-            if not fwd_steps or not set(full_steps).issubset(set(fwd_steps)):
-                bwd_steps = self._policy.plan(start=reference)
-
         if len(fwd_steps):
-            for (start, end) in fwd_steps:
-                tmap = self._interpolate_transport(start=start, end=end, scale_by_marginals=True, forward=True)
+            for (start, _), path in fwd_steps.items():
+                tmap = self._interpolate_transport(path=path, scale_by_marginals=True, forward=True)
                 transport_maps[start], transport_metadata[start] = _transport(tmap, self._subset_spatial(start), src)
 
-        if bwd_steps is not None and len(bwd_steps):
-            for (start, end) in bwd_steps:
-                tmap = self._interpolate_transport(start=start, end=end, scale_by_marginals=True, forward=False)
+        if len(bwd_steps):
+            for (_, end), path in bwd_steps.items():
+                tmap = self._interpolate_transport(path=path, scale_by_marginals=True, forward=False)
                 transport_maps[end], transport_metadata[end] = _transport(tmap.T, self._subset_spatial(end), src)
 
         if mode == "affine":
@@ -106,7 +109,7 @@ class SpatialAlignmentMixin(AnalysisMixin[K, B]):
         self: SpatialAlignmentMixinProtocol[K, B],
         reference: K,
         mode: Literal["warp", "affine"] = "warp",
-        inplace: bool = False,
+        inplace: bool = True,
     ) -> Optional[Union[ArrayLike, Tuple[ArrayLike, Optional[Dict[K, Optional[ArrayLike]]]]]]:
         """Alignment method."""
         if reference not in self._policy._cat:
@@ -120,6 +123,8 @@ class SpatialAlignmentMixin(AnalysisMixin[K, B]):
         if mode == "affine":
             if not inplace:
                 return aligned_basis, aligned_metadata
+            if self.spatial_key not in self.adata.uns:
+                self.adata.uns[self.spatial_key] = {}
             self.adata.uns[self.spatial_key]["alignment_metadata"] = aligned_metadata
         if not inplace:
             return aligned_basis

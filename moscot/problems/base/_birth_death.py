@@ -1,5 +1,7 @@
-from typing import Any, Union, Literal, Optional, Protocol, Sequence
+from typing import Any, Union, Optional, Sequence
 import logging
+
+from typing_extensions import Literal, Protocol
 
 import numpy as np
 
@@ -8,8 +10,8 @@ import scanpy as sc
 
 from moscot._docs import d
 from moscot._types import ArrayLike
-from moscot.problems.base._base_problem import OTProblem  # type: ignore[attr-defined]
 from moscot.problems.time._utils import beta, delta as _delta, MarkerGenes
+from moscot.problems.base._base_problem import OTProblem
 
 __all__ = ["BirthDeathProblem", "BirthDeathMixin"]
 
@@ -158,7 +160,7 @@ class BirthDeathProblem(BirthDeathMixin, OTProblem):
         super().__init__(*args, **kwargs)
         self._delta: Optional[float] = None
 
-    def _estimate_marginals(
+    def _estimate_marginals(  # type: ignore[override]
         self,
         adata: AnnData,
         source: bool,

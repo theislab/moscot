@@ -21,7 +21,7 @@ class SpatioTemporalProblem(
     """Spatio-Temporal problem."""
 
     @d.dedent
-    def _prepare(
+    def prepare(
         self,
         time_key: str,
         spatial_key: str = "spatial",
@@ -29,7 +29,7 @@ class SpatioTemporalProblem(
         policy: Literal["sequential", "triu", "tril", "explicit"] = "sequential",
         marginal_kwargs: Mapping[str, Any] = MappingProxyType({}),
         **kwargs: Any,
-    ) -> None:
+    ) -> "SpatioTemporalProblem":
         """
         Prepare the :class:`moscot.problems.spatio_temporal.SpatioTemporalProblem`.
 
@@ -95,7 +95,7 @@ class SpatioTemporalProblem(
             marginal_kwargs["proliferation_key"] = self.apoptosis_key
             kwargs["b"] = True
 
-        return super()._prepare(
+        return super().prepare(
             spatial_key=spatial_key,
             batch_key=time_key,
             joint_attr=joint_attr,

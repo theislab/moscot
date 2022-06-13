@@ -13,8 +13,8 @@ from anndata import AnnData
 from tests.conftest import ANGLES, _adata_spatial_split
 from moscot.problems.space import MappingProblem, AlignmentProblem
 
-SOLUTIONS_PATH_ALIGNMENT = Path(__file__).parent.parent / "data/alignment_solutions.pkl"  # base is moscot
-SOLUTIONS_PATH_MAPPING = Path(__file__).parent.parent / "data/mapping_solutions.pkl"
+SOLUTIONS_PATH_ALIGNMENT = Path(__file__).parent.parent.parent / "data/alignment_solutions.pkl"  # base is moscot
+SOLUTIONS_PATH_MAPPING = Path(__file__).parent.parent.parent / "data/mapping_solutions.pkl"
 
 
 class TestSpatialAlignmentAnalysisMixin:
@@ -46,19 +46,15 @@ class TestSpatialAlignmentAnalysisMixin:
             assert adata_ref.obsm["spatial_warp"].shape == adata_space_rotate.obsm["spatial"].shape
 
     def test_regression_testing(self, adata_space_rotate: AnnData):
-        ap_mock = AlignmentProblem(adata=adata_space_rotate).prepare(batch_key="batch")
         ap = AlignmentProblem(adata=adata_space_rotate).prepare(batch_key="batch").solve(alpha=0.5, epsilon=1)
         assert SOLUTIONS_PATH_ALIGNMENT.exists()
         with open(SOLUTIONS_PATH_ALIGNMENT, "rb") as fname:
             sol = pickle.load(fname)
-        ap_mock._solutions = sol
 
-        assert ap_mock.solutions.keys() == ap.solutions.keys()
-        for k in ap_mock.solutions:
-            np.testing.assert_almost_equal(ap_mock.solutions[k].cost, ap.solutions[k].cost, decimal=1)
-            np.testing.assert_almost_equal(
-                ap_mock.solutions[k].transport_matrix, ap.solutions[k].transport_matrix, decimal=3
-            )
+        assert sol.keys() == ap.solutions.keys()
+        for k in sol:
+            np.testing.assert_almost_equal(sol[k].cost, ap.solutions[k].cost, decimal=1)
+            np.testing.assert_almost_equal(sol[k].transport_matrix, ap.solutions[k].transport_matrix, decimal=3)
 
 
 class TestSpatialMappingAnalysisMixin:
@@ -80,19 +76,14 @@ class TestSpatialMappingAnalysisMixin:
 
     def test_regression_testing(self, adata_mapping: AnnData):
         adataref, adatasp = _adata_spatial_split(adata_mapping)
-        mp_mock = MappingProblem(adataref, adatasp)
-        mp_mock = mp_mock.prepare(batch_key="batch", sc_attr={"attr": "X"})
         mp = MappingProblem(adataref, adatasp)
         mp = mp.prepare(batch_key="batch", sc_attr={"attr": "X"})
         mp = mp.solve()
         assert SOLUTIONS_PATH_MAPPING.exists()
         with open(SOLUTIONS_PATH_MAPPING, "rb") as fname:
             sol = pickle.load(fname)
-        mp_mock._solutions = sol
 
-        assert mp_mock.solutions.keys() == mp.solutions.keys()
-        for k in mp_mock.solutions:
-            np.testing.assert_almost_equal(mp_mock.solutions[k].cost, mp.solutions[k].cost, decimal=1)
-            np.testing.assert_almost_equal(
-                mp_mock.solutions[k].transport_matrix, mp.solutions[k].transport_matrix, decimal=3
-            )
+        assert sol.keys() == mp.solutions.keys()
+        for k in sol:
+            np.testing.assert_almost_equal(sol[k].cost, mp.solutions[k].cost, decimal=1)
+            np.testing.assert_almost_equal(sol[k].transport_matrix, mp.solutions[k].transport_matrix, decimal=3)

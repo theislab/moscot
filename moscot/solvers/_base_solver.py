@@ -1,8 +1,10 @@
 from abc import ABC, abstractmethod
 from enum import Enum
 from types import MappingProxyType
-from typing import Any, Dict, Tuple, Union, Generic, Literal, Mapping, TypeVar, Optional, NamedTuple
+from typing import Any, Dict, Tuple, Union, Generic, Mapping, TypeVar, Optional, NamedTuple
 import warnings
+
+from typing_extensions import Literal
 
 from moscot._docs import d
 from moscot._types import ArrayLike
@@ -148,7 +150,7 @@ class OTSolver(TagConverterMixin, BaseSolver[O], ABC):
         tau_b: float = 1.0,
         tags: Mapping[Literal["x", "y", "xy"], Tag] = MappingProxyType({}),
         **kwargs: Any,
-    ) -> O:
+    ) -> O:  # noqa: E741
         """Call method."""
         data = self._get_array_data(xy, x=x, y=y, tags=tags)
         kwargs = self._prepare_kwargs(data, **kwargs)

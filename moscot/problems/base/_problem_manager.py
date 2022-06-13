@@ -14,12 +14,15 @@ B = TypeVar("B", bound=OTProblem)
 
 
 class ProblemManager(Generic[K, B]):
+    """Class handling problem policies."""
+
     def __init__(self, compound_problem: "BaseCompoundProblem[K, B]", policy: SubsetPolicy[K]):
         self._compound_problem = compound_problem
         self._policy = policy
         self._problems: Dict[Tuple[K, K], B] = {}
 
     def add_problem(self, key: Tuple[K, K], problem: Optional[B] = None, *, overwrite: bool = False) -> None:
+        """Add problem."""
         self._add_problem(key, problem, overwrite=overwrite, verify_integrity=True)
 
     def _add_problem(
@@ -51,17 +54,20 @@ class ProblemManager(Generic[K, B]):
             self._verify_shape_integrity()
 
     def add_problems(self, problems: Dict[Tuple[K, K], Optional[B]], overwrite: bool = True) -> None:
+        """Add problems."""
         for key, prob in problems.items():
             self._add_problem(key, prob, overwrite=overwrite, verify_integrity=False)
         self._verify_shape_integrity()
 
     def remove_problem(self, key: Tuple[K, K]) -> None:
+        """Remove a problem."""
         del self.problems[key]
         self._policy.remove_node(key)
 
     def get_problems(
         self, stage: Optional[Union[ProblemStage, Tuple[ProblemStage, ...]]] = None
     ) -> Dict[Tuple[K, K], B]:
+        """Get problems."""
         if stage is None:
             return self._problems
         if isinstance(stage, ProblemStage):
@@ -69,6 +75,7 @@ class ProblemManager(Generic[K, B]):
         return {k: v for k, v in self.problems.items() if v.stage in stage}
 
     def get_solutions(self, only_converged: bool = False) -> Dict[Tuple[K, K], BaseSolverOutput]:
+        """Return solutions."""
         return {
             k: v.solution
             for k, v in self.problems.items()
@@ -80,7 +87,7 @@ class ProblemManager(Generic[K, B]):
     ) -> B:
         src_mask = self._policy.create_mask(key[0], allow_empty=False)
         tgt_mask = self._policy.create_mask(key[1], allow_empty=False)
-        return self._compound_problem._create_problem(src_mask, tgt_mask, **init_kwargs).prepare(**kwargs)  # type: ignore[return-value]
+        return self._compound_problem._create_problem(src_mask, tgt_mask, **init_kwargs).prepare(**kwargs)
 
     def _verify_shape_integrity(self) -> None:
         dims = defaultdict(set)
@@ -93,9 +100,9 @@ class ProblemManager(Generic[K, B]):
                 raise ValueError(f"TODO: key `{key}` is associated with more than 1 dimensnions `{dim}`")
 
     @property
-    def solutions(self) -> Dict[Tuple[K, K], BaseSolverOutput]:
+    def solutions(self) -> Dict[Tuple[K, K], BaseSolverOutput]:  # noqa: D102
         return self.get_solutions(only_converged=False)
 
     @property
-    def problems(self) -> Dict[Tuple[K, K], B]:
+    def problems(self) -> Dict[Tuple[K, K], B]:  # noqa: D102
         return self._problems

@@ -135,7 +135,7 @@ split_mass
     If `True` the operation is applied to each cell individually."""
 
 RT = TypeVar("RT")  # return type
-O = TypeVar("O")  # object type
+O = TypeVar("O")  # noqa: E741, object type
 
 
 def inject_docs(**kwargs: Any) -> Callable[[Callable[..., RT]], Callable[..., RT]]:  # noqa: D103

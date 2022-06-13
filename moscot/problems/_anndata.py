@@ -57,7 +57,7 @@ class AnnDataPointer:
     loss: str = "Euclidean"
     loss_kwargs: Mapping[str, Any] = MappingProxyType({})
     # TODO(MUCDK): handle Grid cost. this must be a sequence:
-    # https://github.com/google-research/ott/blob/b1adc2894b76b7360f639acb10181f2ce97c656a/ott/geometry/grid.py#L55
+    # https://github.com/google-research/ott/blob/b1adc2894b76b7360f639acb10181f2ce97c656a/ott/geometry/grid.py#L55  # noqa: E501
 
     def create(self) -> TaggedArray:  # I rewrote the logic a bit as this way I find it more readable
         """Create."""
@@ -71,7 +71,7 @@ class AnnDataPointer:
 
         if self.tag == Tag.COST_MATRIX:
             if self.loss is not None:
-                cost_matrix = BaseLoss.create(kind=self.loss, adata=self.adata, attr=self.attr, key=self.key)(  # type: ignore[arg-type]
+                cost_matrix = BaseLoss.create(kind=self.loss, adata=self.adata, attr=self.attr, key=self.key)(  # type: ignore[arg-type] # noqa: E501
                     **self.loss_kwargs
                 )
                 return TaggedArray(cost_matrix, tag=self.tag, loss=None)
