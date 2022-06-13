@@ -37,9 +37,6 @@ class TemporalProblem(
     See notebook TODO(@MUCDK) LINK NOTEBOOK for how to use it
     """
 
-    def __init__(self, adata: AnnData):
-        super().__init__(adata)
-
     @d.dedent
     def prepare(
         self,
