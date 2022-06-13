@@ -144,13 +144,13 @@ class BaseCompoundProblem(BaseProblem, ABC, Generic[K, B]):
                 kws["delta"] = tgt - src  # type: ignore[operator]
                 kws["proliferation_key"] = self.proliferation_key  # type: ignore[attr-defined]
                 kws["apoptosis_key"] = self.apoptosis_key  # type: ignore[attr-defined]
-            problems[src_name, tgt_name] = problem.prepare(**kws)  # type: ignore[assignment]
+            problems[src_name, tgt_name] = problem.prepare(**kws)
 
         return problems
 
-    @d.get_sections(base="CompoundBaseProblem_prepare", sections=["Parameters", "Raises"])
+    @d.get_sections(base="BaseCompoundProblem_prepare", sections=["Parameters", "Raises"])
     @d.dedent
-    def _prepare(
+    def prepare(
         self,
         key: str,
         policy: Policy_t = "sequential",
@@ -160,7 +160,7 @@ class BaseCompoundProblem(BaseProblem, ABC, Generic[K, B]):
         callback: Optional[Union[Literal["local-pca"], Callback_t]] = None,
         callback_kwargs: Mapping[str, Any] = MappingProxyType({}),
         **kwargs: Any,
-    ) -> None:
+    ) -> "BaseCompoundProblem[K,B]":
         """
         Prepare the biological problem.
 
@@ -206,8 +206,9 @@ class BaseCompoundProblem(BaseProblem, ABC, Generic[K, B]):
         for p in self.problems.values():
             self._problem_kind = p._problem_kind
             break
+        return self
 
-    def _solve(self, stage: Optional[Union[ProblemStage, Tuple[ProblemStage, ...]]] = None, **kwargs: Any) -> None:  # type: ignore[override] # noqa: E501
+    def solve(self, stage: Optional[Union[ProblemStage, Tuple[ProblemStage, ...]]] = None, **kwargs: Any) -> "BaseCompoundProblem[K,B]":  # type: ignore[override] # noqa: E501
         """
         Solve the biological problem.
 
@@ -227,6 +228,8 @@ class BaseCompoundProblem(BaseProblem, ABC, Generic[K, B]):
         # TODO(michalk8): print how many problems are being solved?
         for _, problem in problems.items():
             _ = problem.solve(**kwargs)
+
+        return self
 
     @attributedispatch(attr="_policy")
     def _apply(
@@ -289,7 +292,7 @@ class BaseCompoundProblem(BaseProblem, ABC, Generic[K, B]):
 
         return res if return_all else current_mass
 
-    @d.get_sections(base="CompoundBaseProblem_push", sections=["Parameters", "Raises"])
+    @d.get_sections(base="BaseCompoundProblem_push", sections=["Parameters", "Raises"])
     @d.dedent
     def push(self, *args: Any, **kwargs: Any) -> ApplyOutput_t[K]:
         """
@@ -313,7 +316,7 @@ class BaseCompoundProblem(BaseProblem, ABC, Generic[K, B]):
         """
         return self._apply(*args, forward=True, **kwargs)
 
-    @d.get_sections(base="CompoundBaseProblem_pull", sections=["Parameters", "Raises"])
+    @d.get_sections(base="BaseCompoundProblem_pull", sections=["Parameters", "Raises"])
     @d.dedent
     def pull(self, *args: Any, **kwargs: Any) -> ApplyOutput_t[K]:
         """

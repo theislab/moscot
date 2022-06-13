@@ -87,7 +87,7 @@ class ProblemManager(Generic[K, B]):
     ) -> B:
         src_mask = self._policy.create_mask(key[0], allow_empty=False)
         tgt_mask = self._policy.create_mask(key[1], allow_empty=False)
-        return self._compound_problem._create_problem(src_mask, tgt_mask, **init_kwargs).prepare(**kwargs)  # type: ignore[return-value]  # noqa: E501
+        return self._compound_problem._create_problem(src_mask, tgt_mask, **init_kwargs).prepare(**kwargs)
 
     def _verify_shape_integrity(self) -> None:
         dims = defaultdict(set)
