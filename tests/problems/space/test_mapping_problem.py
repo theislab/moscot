@@ -11,6 +11,7 @@ from tests.conftest import _adata_spatial_split
 from moscot.problems.space import MappingProblem
 from moscot.solvers._base_solver import ProblemKind
 
+# TODO(giovp): refactor as fixture
 SOLUTIONS_PATH = Path("./tests/data/mapping_solutions.pkl")  # base is moscot
 
 

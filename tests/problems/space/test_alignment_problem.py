@@ -9,6 +9,7 @@ from anndata import AnnData
 
 from moscot.problems.space import AlignmentProblem
 
+# TODO(giovp): refactor as fixture
 SOLUTIONS_PATH = Path("./tests/data/alignment_solutions.pkl")  # base is moscot
 
 
