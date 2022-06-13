@@ -144,11 +144,7 @@ class BaseCompoundProblem(BaseProblem, ABC, Generic[K, B]):
                 kws["delta"] = tgt - src  # type: ignore[operator]
                 kws["proliferation_key"] = self.proliferation_key  # type: ignore[attr-defined]
                 kws["apoptosis_key"] = self.apoptosis_key  # type: ignore[attr-defined]
-<<<<<<< HEAD
-            problems[src_name, tgt_name] = problem.prepare(**kws)  # type: ignore[assignment]
-=======
             problems[src_name, tgt_name] = problem.prepare(**kws)
->>>>>>> master
 
         return problems
 

@@ -70,7 +70,7 @@ class BaseProblem(ABC):
         split_mass: bool = False,
     ) -> ArrayLike:
         def _split_mass(arr: ArrayLike) -> ArrayLike:
-            non_zero_idxs = np.where(arr!=0)[0]
+            non_zero_idxs = np.where(arr != 0)[0]
             data = np.zeros((len(arr), len(non_zero_idxs)))
             data[non_zero_idxs, np.array(range(len(non_zero_idxs)))] = 1
             return data
@@ -88,7 +88,7 @@ class BaseProblem(ABC):
             else:
                 data = np.asarray(adata.obs[data].values == subset, dtype=float)
             if split_mass:
-                    data = _split_mass(data)
+                data = _split_mass(data)
         else:
             data = np.asarray(data)
 
