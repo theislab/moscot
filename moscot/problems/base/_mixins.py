@@ -134,7 +134,8 @@ class AnalysisMixin(Generic[K, B]):
             _early_cells_present = set(_early_cells).intersection(set(df_early[_early_cells_key].unique()))
             for subset in _early_cells:
                 if subset not in _early_cells_present:
-                    transition_table.loc[subset, :] = np.nan
+                    if aggregation == "group":
+                        transition_table.loc[subset, :] = np.nan
                     continue
                 try:
                     result = self.push(
@@ -186,8 +187,9 @@ class AnalysisMixin(Generic[K, B]):
         _late_cells_present = set(_late_cells).intersection(set(df_late[_late_cells_key].unique()))
         for subset in _late_cells:
             if subset not in _late_cells_present:
-                transition_table.loc[:, subset] = np.nan
-                continue
+                    if aggregation == "group":
+                        transition_table.loc[:, subset] = np.nan
+                    continue
             try:
                 result = np.array(
                     self.pull(
@@ -226,9 +228,7 @@ class AnalysisMixin(Generic[K, B]):
                 current_late_cells = list(df_late[df_late[_late_cells_key] == subset].index)
                 df_early.loc[:, current_late_cells] = result
                 to_append = df_early[df_early[_early_cells_key].isin(_early_cells)].groupby(_early_cells_key).sum()
-                transition_table = transition_table.append(
-                    to_append.drop(labels="distribution", axis=1), verify_integrity=True
-                )
+                transition_table = pd.concat([transition_table.drop(labels="distribution", axis=1, errors="ignore"), to_append], axis=1)
                 df_early = df_early.drop(current_late_cells, axis=1)
             else:
                 raise NotImplementedError
@@ -274,7 +274,7 @@ class AnalysisMixin(Generic[K, B]):
             result[(low_col_k_indices.flatten(order="F"), np.repeat(col_idx, len(result) - top_k))] = 0
         else:
             raise NotImplementedError("TODO: not implemented.")
-        return result.sum(axis=1)
+        return result.sum(axis=0)
 
     def _sample_from_tmap(
         self: AnalysisMixinProtocol[K, B],
