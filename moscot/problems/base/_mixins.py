@@ -130,32 +130,20 @@ class AnalysisMixin(Generic[K, B]):
         else:
             raise NotImplementedError
 
+        #result = self._cell_transition_helper(cells_to_iterate = _early_cells if forward else _late_cells, source_cells_df = df_early if forward else df_late, target_cells_df = df_late if forward else df_late, aggregation=aggregation, _source_cells_key=_early_cells_key if forward else _late_cells_key, forward=forward, split_mass=_split_mass, cell_dist_id=start if forward else end)
+
+
+        #new
+        
+        #new_end
+
+
         if forward:
             _early_cells_present = set(_early_cells).intersection(set(df_early[_early_cells_key].unique()))
             for subset in _early_cells:
-                if subset not in _early_cells_present:
-                    if aggregation == "group":
+                result = self._cell_transition_helper(subset=subset, cells_present=_early_cells_present, source_cells_df = df_early, target_cells_df = df_late, aggregation=aggregation, _source_cells_key=_early_cells_key, forward=True, split_mass=split_mass, cell_dist_id=start)
+                if result is None and aggregation == "group":
                         transition_table.loc[subset, :] = np.nan
-                    continue
-                try:
-                    result = self.push(
-                        start=start,
-                        end=end,
-                        data=_early_cells_key,
-                        subset=subset,
-                        normalize=True,
-                        return_all=False,
-                        scale_by_marginals=False,
-                        split_mass=_split_mass,
-                    )
-                except ValueError as e:
-                    if "no mass" in str(e):  # TODO: adapt
-                        logging.info(
-                            f"No data points corresponding to {subset} found in `adata.obs[groups_key]` for {start}"
-                        )
-                        result = np.nan  # type: ignore[assignment]
-                    else:
-                        raise
                 if statistic == "top_k_mean":
                     result = self._cell_transition_aggregation(result, statistic, top_k)
 
@@ -184,31 +172,13 @@ class AnalysisMixin(Generic[K, B]):
                 else:
                     raise NotImplementedError("TODO: aggregation must be `group` or `cell`.")
             return transition_table
+        
         _late_cells_present = set(_late_cells).intersection(set(df_late[_late_cells_key].unique()))
         for subset in _late_cells:
-            if subset not in _late_cells_present:
-                    if aggregation == "group":
-                        transition_table.loc[:, subset] = np.nan
-                    continue
-            try:
-                result = np.array(
-                    self.pull(
-                        start=start,
-                        end=end,
-                        data=_late_cells_key,
-                        subset=subset,
-                        normalize=True,
-                        return_all=False,
-                        scale_by_marginals=False,
-                        split_mass=_split_mass,
-                    )
-                )
-            except ValueError as e:
-                if "no mass" in str(e):  # TODO: adapt
-                    logging.info(f"No data points corresponding to {subset} found in `adata.obs[groups_key]` for {end}")
-                    result = np.nan  # type: ignore[assignment]
-                else:
-                    raise
+            result = self._cell_transition_helper(subset=subset, cells_present=_late_cells_present, source_cells_df = df_late, target_cells_df = df_early, aggregation=aggregation, _source_cells_key=_late_cells_key, forward=False, split_mass=_split_mass, cell_dist_id=end)
+            if result is None and aggregation == "group":
+                transition_table.loc[:, subset] = np.nan
+            
             if statistic == "top_k_mean":
                 result = self._cell_transition_aggregation(result, statistic, top_k)
 
@@ -233,6 +203,32 @@ class AnalysisMixin(Generic[K, B]):
             else:
                 raise NotImplementedError
         return transition_table
+
+    def _cell_transition_helper(self, subset: str, cells_present: Sequence, source_cells_df: pd.DataFrame, target_cells_df: pd.DataFrame, aggregation: Union[Literal["group", "cell"]], _source_cells_key: str, forward: bool, split_mass: bool, cell_dist_id: K):
+            
+                if subset not in cells_present:
+                    return None
+                func = self.push if forward else self.pull
+                try:
+                    result = func(
+                        start=start,
+                        end=end,
+                        data=_source_cells_key,
+                        subset=subset,
+                        normalize=True,
+                        return_all=False,
+                        scale_by_marginals=False,
+                        split_mass=split_mass,
+                    )
+                except ValueError as e:
+                    if "no mass" in str(e):  # TODO: adapt
+                        logging.info(
+                            f"No data points corresponding to {subset} found in `adata.obs[groups_key]` for {cell_dist_id}"
+                        )
+                        result = np.nan  # type: ignore[assignment]
+                    else:
+                        raise
+                return result
 
 
     def _validate_args_cell_transition(
