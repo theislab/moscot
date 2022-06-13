@@ -1,9 +1,11 @@
-from typing import Any, Dict, List, Tuple, Union, Generic, Optional, Sequence, TYPE_CHECKING
+from typing import Any, Dict, List, Tuple, Union, Generic, Optional, Sequence, TYPE_CHECKING, Mapping, Literal
 
 from typing_extensions import Protocol
 from scipy.sparse.linalg import LinearOperator
 
 import numpy as np
+import pandas as pd
+from pandas.core.dtypes.common import is_categorical_dtype
 
 from anndata import AnnData
 
@@ -52,7 +54,7 @@ class AnalysisMixin(Generic[K, B]):
         super().__init__(*args, **kwargs)
 
     def cell_transition(
-        self: TemporalMixinProtocol[K, B],
+        self: AnalysisMixinProtocol[K, B],
         start: K,
         end: K,
         early_cells: Union[str, Mapping[str, Sequence[Any]]],
@@ -220,7 +222,6 @@ class AnalysisMixin(Generic[K, B]):
                     else 0
                     for cell_type in _early_cells
                 ]
-                return transition_table
             elif aggregation == "cell":
                 current_late_cells = list(df_late[df_late[_late_cells_key] == subset].index)
                 df_early.loc[:, current_late_cells] = result
@@ -229,9 +230,13 @@ class AnalysisMixin(Generic[K, B]):
                     to_append.drop(labels="distribution", axis=1), verify_integrity=True
                 )
                 df_early = df_early.drop(current_late_cells, axis=1)
+            else:
+                raise NotImplementedError
+        return transition_table
+
 
     def _validate_args_cell_transition(
-        self: TemporalMixinProtocol[K, B], arg: Union[str, Mapping[str, Sequence[Any]]]
+        self: AnalysisMixinProtocol[K, B], arg: Union[str, Mapping[str, Sequence[Any]]]
     ) -> Tuple[Union[str, Sequence[Any]], Sequence[Any]]:
         if isinstance(arg, str):
             if arg not in self.adata.obs:

@@ -179,7 +179,6 @@ class TemporalProblem(
             )
             return pd.concat(df_list, verify_integrity=True)
         except AttributeError:  # TODO(@MUCDK) check for specific error message
-            print("TODO: no potentials for quadratic problem.")
             return None
 
     @property
@@ -204,7 +203,6 @@ class TemporalProblem(
             )
             return pd.concat(df_list, verify_integrity=True)
         except AttributeError:  # TODO(@MUCDK) check for specific error message
-            print("TODO: no potentials for quadratic problem.")
             return None
 
     @property
