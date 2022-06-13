@@ -75,7 +75,7 @@ class MappingProblem(CompoundProblem[K, OTProblem], SpatialMappingMixin[K, OTPro
         var_names: Optional[Sequence[Any]] = None,
         joint_attr: Optional[Mapping[str, Any]] = MappingProxyType({"x_attr": "X", "y_attr": "X"}),
         **kwargs: Any,
-    ) -> "MappingProblem":
+    ) -> "MappingProblem[K]":
         """
         Prepare the :class:`moscot.problems.space.MappingProblem`.
 
@@ -123,7 +123,7 @@ class MappingProblem(CompoundProblem[K, OTProblem], SpatialMappingMixin[K, OTPro
         epsilon: Optional[float] = 1e-3,
         scale_cost: str = "mean",
         **kwargs: Any,
-    ) -> "MappingProblem":
+    ) -> "MappingProblem[K]":
         """
         Solve optimal transport problems defined in :class:`moscot.problems.space.MappingProblem`.
 
@@ -137,7 +137,7 @@ class MappingProblem(CompoundProblem[K, OTProblem], SpatialMappingMixin[K, OTPro
         -------
         :class:`moscot.problems.space.MappingProblem`
         """
-        return super().solve(alpha=alpha, epsilon=epsilon, scale_cost=scale_cost, **kwargs)
+        return super().solve(alpha=alpha, epsilon=epsilon, scale_cost=scale_cost, **kwargs)  # type:ignore[return-value]
 
     @property
     def adata_sc(self) -> AnnData:

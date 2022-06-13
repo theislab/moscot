@@ -37,6 +37,7 @@ def require_prepare(
 def wrap_prepare(
     wrapped: Callable[[Any], Any], instance: "BaseProblem", args: Tuple[Any, ...], kwargs: Mapping[str, Any]
 ) -> Any:
+    """Check and update the state when preparing :class:`moscot.problems.base.OTProblem`."""
     from moscot.problems.base._base_problem import ProblemKind, ProblemStage  # TODO: move ENUMs to this file
 
     _ = wrapped(*args, **kwargs)
@@ -50,6 +51,7 @@ def wrap_prepare(
 def wrap_solve(
     wrapped: Callable[[Any], Any], instance: "BaseProblem", args: Tuple[Any, ...], kwargs: Mapping[str, Any]
 ) -> Any:
+    """Check and update the state when solving :class:`moscot.problems.base.OTProblem`."""
     from moscot.problems.base._base_problem import ProblemStage
 
     if instance._stage != ProblemStage.PREPARED:

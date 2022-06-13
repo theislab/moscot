@@ -76,7 +76,7 @@ class TemporalMixin(AnalysisMixin[K, B]):
 
         Raises
         ------
-        %(CompoundBaseProblem_push.raises)s
+        %(BaseCompoundProblem_push.raises)s
         """
         result = self._apply(
             start=start,
@@ -127,7 +127,7 @@ class TemporalMixin(AnalysisMixin[K, B]):
 
         Raises
         ------
-        %(CompoundBaseProblem_pull.raises)s
+        %(BaseCompoundProblem_pull.raises)s
         """
         result = self._apply(
             start=start,

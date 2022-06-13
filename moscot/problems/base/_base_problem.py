@@ -19,7 +19,7 @@ from moscot.problems._anndata import AnnDataPointer
 from moscot.solvers._base_solver import BaseSolver, ProblemKind
 from moscot.solvers._tagged_array import Tag, TaggedArray
 
-__all__ = ["BaseProblem", "OTProblem"]
+__all__ = ["BaseProblem", "OTProblem", "ProblemKind"]
 
 
 class ProblemStage(str, Enum):
@@ -53,11 +53,11 @@ class BaseProblem(ABC):
 
     @abstractmethod
     def prepare(self, *args: Any, **kwargs: Any) -> "BaseProblem":
-        pass
+        """Abstract prepare method."""
 
     @abstractmethod
     def solve(self, *args: Any, **kwargs: Any) -> "BaseProblem":
-        pass
+        """Abstract solve method."""
 
     # TODO(michalk8): move below?
     @staticmethod
@@ -95,9 +95,7 @@ class BaseProblem(ABC):
         return data / total if normalize else data
 
     @property
-    @d.dedent
     def adata(self) -> AnnData:
-        """%(adata)s"""  # noqa
         return self._adata
 
     @property
@@ -167,7 +165,7 @@ class OTProblem(BaseProblem):
         return TaggedArray(x_array.data, y_array.data, tag=Tag.POINT_CLOUD, loss=x_array.loss)
 
     @wrap_prepare
-    def prepare(  # type: ignore[override]
+    def prepare(
         self,
         xy: Optional[Union[Mapping[str, Any], TaggedArray]] = None,
         x: Optional[Union[Mapping[str, Any], TaggedArray]] = None,
@@ -202,7 +200,7 @@ class OTProblem(BaseProblem):
         return self
 
     @wrap_solve
-    def solve(  # type: ignore[override]
+    def solve(
         self,
         epsilon: Optional[float] = 1e-2,
         alpha: Optional[float] = 0.5,

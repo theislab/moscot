@@ -36,7 +36,7 @@ class AlignmentProblem(CompoundProblem[K, B], SpatialAlignmentMixin[K, B]):
         policy: Literal["sequential", "star"] = "sequential",
         reference: Optional[str] = None,
         **kwargs: Any,
-    ) -> "AlignmentProblem":
+    ) -> "AlignmentProblem[K, B]":
         """
         Prepare the :class:`moscot.problems.space.AlignmentProblem`.
 
@@ -81,7 +81,7 @@ class AlignmentProblem(CompoundProblem[K, B], SpatialAlignmentMixin[K, B]):
         epsilon: Optional[float] = 1e-1,
         scale_cost: str = "mean",
         **kwargs: Any,
-    ) -> "AlignmentProblem":
+    ) -> "AlignmentProblem[K, B]":
         """
         Solve optimal transport problems defined in :class:`moscot.problems.space.AlignmentProblem`.
 
@@ -95,7 +95,7 @@ class AlignmentProblem(CompoundProblem[K, B], SpatialAlignmentMixin[K, B]):
         -------
         :class:`moscot.problems.space.AlignmentProblem`
         """
-        return super().solve(alpha=alpha, epsilon=epsilon, scale_cost=scale_cost, **kwargs)
+        return super().solve(alpha=alpha, epsilon=epsilon, scale_cost=scale_cost, **kwargs)  # type:ignore[return-value]
 
     @property
     def _base_problem_type(self) -> Type[B]:

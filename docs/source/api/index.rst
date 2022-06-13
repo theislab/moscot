@@ -1,7 +1,7 @@
 API
 ###
 
-Import `moscot` as::
+Import ``moscot`` as::
 
     import moscot
 
