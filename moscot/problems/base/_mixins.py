@@ -26,8 +26,8 @@ class AnalysisMixinProtocol(Protocol[K, B]):
     def _apply(
         self,
         data: Optional[Union[str, ArrayLike]] = None,
-        key_source: Optional[K] = None,
-        key_target: Optional[K] = None,
+        start: Optional[K] = None,
+        end: Optional[K] = None,
         forward: bool = True,
         return_all: bool = False,
         scale_by_marginals: bool = False,
@@ -243,8 +243,8 @@ class AnalysisMixin(Generic[K, B]):
         func = self.push if forward else self.pull  # type: ignore[attr-defined]
         try:
             result = func(
-                key_source,
-                key_target,
+                start=key_source,
+                end=key_target,
                 data=source_cells_key,
                 subset=subset,
                 normalize=True,
@@ -298,7 +298,7 @@ class AnalysisMixin(Generic[K, B]):
         account_for_unbalancedness: bool = False,
         interpolation_parameter: Optional[Numeric_t] = None,
         seed: Optional[int] = None,
-    ) -> Tuple[ArrayLike, List[ArrayLike]]:
+    ) -> Tuple[List[Any], List[ArrayLike]]:
         rng = np.random.RandomState(seed)
         if account_for_unbalancedness and interpolation_parameter is None:
             raise ValueError(
@@ -309,8 +309,8 @@ class AnalysisMixin(Generic[K, B]):
         mass = np.ones(target_dim)
         if account_for_unbalancedness and interpolation_parameter is not None:
             col_sums = self._apply(
-                key_source=key_source,
-                key_target=key_target,
+                start=key_source,
+                end=key_target,
                 normalize=True,
                 forward=True,
                 scale_by_marginals=False,
@@ -323,8 +323,8 @@ class AnalysisMixin(Generic[K, B]):
 
         row_probability = np.asarray(
             self._apply(
-                key_source=key_source,
-                key_target=key_target,
+                start=key_source,
+                end=key_target,
                 data=mass,
                 normalize=True,
                 forward=False,
@@ -344,8 +344,8 @@ class AnalysisMixin(Generic[K, B]):
 
             col_p_given_row = np.asarray(
                 self._apply(
-                    key_source=key_source,
-                    key_target=key_target,
+                    start=key_source,
+                    end=key_target,
                     data=data,
                     normalize=True,
                     forward=True,
@@ -363,6 +363,9 @@ class AnalysisMixin(Generic[K, B]):
                 for i in range(len(rows_batch))
             ]
             all_cols_sampled.extend(cols_sampled)
+        if TYPE_CHECKING:
+            assert isinstance(rows, list)
+            assert isinstance(all_cols_sampled, list)
         return rows, all_cols_sampled
 
     def _interpolate_transport(

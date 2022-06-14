@@ -47,7 +47,7 @@ class TemporalMixin(AnalysisMixin[K, B]):
     ) -> pd.DataFrame:
         """
         Compute a grouped cell transition matrix.
-        
+
         This function computes a transition matrix with entries corresponding to categories, e.g. cell types.
         The transition matrix will be row-stochastic if `forward` is `True`, otherwise column-stochastic.
         Parameters
@@ -83,7 +83,13 @@ class TemporalMixin(AnalysisMixin[K, B]):
         Transition matrix of cells or groups of cells.
         """
         return super().cell_transition(
-            key=self.temporal_key, key_source=start, key_target=end, source_cells=early_cells, target_cells=late_cells
+            key=self.temporal_key,
+            key_source=start,
+            key_target=end,
+            source_cells=early_cells,
+            target_cells=late_cells,
+            forward=forward,
+            aggregation=aggregation,
         )
 
     def push(

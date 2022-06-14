@@ -2,7 +2,7 @@ from typing import Any, List, Iterable, Iterator
 import re
 
 from sphinx.application import Sphinx
-from sphinx.ext.napoleon import NumpyDocstring  # type: ignore[attr-defined]
+from sphinx.ext.napoleon import NumpyDocstring
 
 
 def process_return(lines: Iterable[str]) -> Iterator[str]:
