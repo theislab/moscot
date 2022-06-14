@@ -71,7 +71,7 @@ class AnalysisMixin(Generic[K, B]):
     def __init__(self, *args: Any, **kwargs: Any):
         super().__init__(*args, **kwargs)
 
-    def cell_transition(
+    def _cell_transition(
         self: AnalysisMixinProtocol[K, B],
         key: str,
         key_source: K,
