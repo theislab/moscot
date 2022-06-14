@@ -173,7 +173,7 @@ class AnalysisMixin(Generic[K, B]):
                     ]
                 elif aggregation == "cell":
                     current_source_cells = list(df_source[df_source[_source_cells_key] == subset].index)
-                    df_target.loc[:, current_source_cells] = 0 if result is None else result 
+                    df_target.loc[:, current_source_cells] = 0 if result is None else result
                     to_appkey_target = (
                         df_target[df_target[_target_cells_key].isin(_target_cells)]
                         .groupby(_target_cells_key)
