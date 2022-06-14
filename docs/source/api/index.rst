@@ -7,7 +7,8 @@ Import ``moscot`` as::
 
 
 .. toctree::
-
+    :maxdepth: 2
+    
     user
     developer
     datasets

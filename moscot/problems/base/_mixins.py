@@ -129,8 +129,8 @@ class AnalysisMixin(Generic[K, B]):
         df_source = self.adata[self.adata.obs[key] == key_source].obs[[_source_cells_key]].copy()
 
         if aggregation == "group":
-            df_target["distribution"] = np.nan
-            df_source["distribution"] = np.nan
+            df_target["distribution"] = 0
+            df_source["distribution"] = 0
             transition_table = pd.DataFrame(
                 np.zeros((len(_source_cells), len(_target_cells))), index=_source_cells, columns=_target_cells
             )
@@ -173,7 +173,7 @@ class AnalysisMixin(Generic[K, B]):
                     ]
                 elif aggregation == "cell":
                     current_source_cells = list(df_source[df_source[_source_cells_key] == subset].index)
-                    df_target.loc[:, current_source_cells] = result
+                    df_target.loc[:, current_source_cells] = 0 if result is None else result 
                     to_appkey_target = (
                         df_target[df_target[_target_cells_key].isin(_target_cells)]
                         .groupby(_target_cells_key)
@@ -216,7 +216,7 @@ class AnalysisMixin(Generic[K, B]):
                 ]
             elif aggregation == "cell":
                 current_target_cells = list(df_target[df_target[_target_cells_key] == subset].index)
-                df_source.loc[:, current_target_cells] = result
+                df_source.loc[:, current_target_cells] = 0 if result is None else result
                 to_appkey_target = (
                     df_source[df_source[_source_cells_key].isin(_source_cells)].groupby(_source_cells_key).sum()
                 )

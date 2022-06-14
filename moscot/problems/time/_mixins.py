@@ -50,6 +50,7 @@ class TemporalMixin(AnalysisMixin[K, B]):
 
         This function computes a transition matrix with entries corresponding to categories, e.g. cell types.
         The transition matrix will be row-stochastic if `forward` is `True`, otherwise column-stochastic.
+        
         Parameters
         ----------
         start
