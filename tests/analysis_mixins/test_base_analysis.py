@@ -96,7 +96,7 @@ class TestBaseAnalysisMixin:
         assert set(problem.problems.keys()) == {(key_1, key_2)}
         problem[key_1, key_2]._solution = MockSolverOutput(gt_temporal_adata.uns["tmap_10_105"])
 
-        ctr = problem.cell_transition(
+        ctr = problem._cell_transition(
             key="day",
             key_source=10,
             key_target=10.5,
