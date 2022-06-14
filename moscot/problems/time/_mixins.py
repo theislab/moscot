@@ -1,10 +1,8 @@
-from typing import Any, Dict, List, Tuple, Union, Mapping, Optional, Sequence, TYPE_CHECKING, Literal
-import logging
+from typing import Any, Dict, List, Tuple, Union, Literal, Mapping, Optional, Sequence, TYPE_CHECKING
 import itertools
 
 from sklearn.metrics import pairwise_distances
 from typing_extensions import Protocol
-from pandas.core.dtypes.common import is_categorical_dtype
 import ot
 import pandas as pd
 
@@ -30,11 +28,6 @@ class TemporalMixinProtocol(AnalysisMixinProtocol[K, B], Protocol[K, B]):
     def pull(self, *args: Any, **kwargs: Any) -> Optional[ApplyOutput_t[K]]:  # noqa: D102
         ...
 
-    def _validate_args_cell_transition(
-        self: "TemporalMixinProtocol[K, B]", arg: Union[str, Mapping[str, Sequence[Any]]]
-    ) -> Tuple[Union[str, Sequence[Any]], Sequence[Any]]:
-        ...
-
 
 class TemporalMixin(AnalysisMixin[K, B]):
     """Analysis Mixin for all problems involving a temporal dimension."""
@@ -42,6 +35,56 @@ class TemporalMixin(AnalysisMixin[K, B]):
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
         self._temporal_key: Optional[str] = None
+
+    def cell_transition(  # type: ignore[override]
+        self: TemporalMixinProtocol[K, B],
+        start: K,
+        end: K,
+        early_cells: Union[str, Mapping[str, Sequence[Any]]],
+        late_cells: Union[str, Mapping[str, Sequence[Any]]],
+        forward: bool = False,  # return value will be row-stochastic if forward=True, else column-stochastic
+        aggregation: Literal["group", "cell"] = "group",
+    ) -> pd.DataFrame:
+        """
+        Compute a grouped cell transition matrix.
+        
+        This function computes a transition matrix with entries corresponding to categories, e.g. cell types.
+        The transition matrix will be row-stochastic if `forward` is `True`, otherwise column-stochastic.
+        Parameters
+        ----------
+        start
+            Time point corresponding to the early distribution.
+        end
+            Time point corresponding to the late distribution.
+        early_cells
+            Can be one of the following
+                - if `early_cells` is of type :class:`str` this should correspond to a key in
+                  :attr:`anndata.AnnData.obs`. In this case, the categories in the transition matrix correspond to the
+                  unique values in `anndata.AnnData.obs` ``['{early_cells}']``
+                - if `early_cells` is of type `Mapping` its `key` should correspond to a key in
+                  :attr:`anndata.AnnData.obs` and its `value` to a subset of categories present in
+                  `anndata.AnnData.obs` ``['{early_cells.keys()[0]}']``
+        late_cells
+            Can be one of the following
+                - if `late_cells` is of type :class:`str` this should correspond to a key in
+                  :attr:`anndata.AnnData.obs`. In this case, the categories in the transition matrix correspond to the
+                  unique values in `anndata.AnnData.obs` ``['{late_cells}']``
+                - if `late_cells` is of type `Mapping` its `key` should correspond to a key in
+                  :attr:`anndata.AnnData.obs` and its `value` to a subset of categories present in
+                  `anndata.AnnData.obs` ``['{late_cells.keys()[0]}']``
+        forward
+            If `True` computes transition from cells belonging to `source_cells` to cells belonging to `target_cells`.
+        aggregation:
+            If `aggregation` is `group` the transition probabilities from the groups defined by `source_cells` are
+            returned. If `aggregation` is `cell` the transition probablities for each cell are returned.
+
+        Returns
+        -------
+        Transition matrix of cells or groups of cells.
+        """
+        return super().cell_transition(
+            key=self.temporal_key, key_source=start, key_target=end, source_cells=early_cells, target_cells=late_cells
+        )
 
     def push(
         self: TemporalMixinProtocol[K, B],
@@ -142,7 +185,6 @@ class TemporalMixin(AnalysisMixin[K, B]):
         if TYPE_CHECKING:
             assert isinstance(result, dict)
         self.adata.obs[result_key] = self._flatten(result, key=self.temporal_key)
-
 
     # TODO(michalk8): refactor me
     def _get_data(
@@ -423,8 +465,8 @@ class TemporalMixin(AnalysisMixin[K, B]):
         seed: Optional[int] = None,
     ) -> ArrayLike:
         rows_sampled, cols_sampled = self._sample_from_tmap(  # type: ignore[misc]
-            start=start,
-            end=end,
+            key_source=start,
+            key_target=end,
             n_samples=number_cells,
             source_dim=len(source_data),
             target_dim=len(target_data),

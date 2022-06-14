@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 from enum import Enum
 from types import MappingProxyType
-from typing import Any, Dict, List, Tuple, Union, Mapping, Iterable, Optional, Sequence
+from typing import Any, Dict, List, Tuple, Union, Mapping, Iterable, Optional, Sequence, TYPE_CHECKING
 
 from scipy.sparse import vstack, issparse, csr_matrix
 from typing_extensions import Literal
@@ -268,6 +268,8 @@ class OTProblem(BaseProblem):
         """Pull mass."""
         adata = self.adata if self._adata_y is None else self._adata_y
         data = self._get_mass(adata, data=data, subset=subset, normalize=normalize, split_mass=split_mass)
+        if TYPE_CHECKING:
+            assert isinstance(self.solution, BaseSolverOutput)
         return self.solution.pull(data, **kwargs)
 
     @staticmethod

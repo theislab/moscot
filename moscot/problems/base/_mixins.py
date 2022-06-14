@@ -1,11 +1,11 @@
-from typing import Any, Dict, List, Tuple, Union, Generic, Optional, Sequence, TYPE_CHECKING, Mapping, Literal
+from typing import Any, Set, Dict, List, Tuple, Union, Generic, Literal, Mapping, Optional, Sequence, TYPE_CHECKING
 
 from typing_extensions import Protocol
 from scipy.sparse.linalg import LinearOperator
+from pandas.core.dtypes.common import is_categorical_dtype
+import pandas as pd
 
 import numpy as np
-import pandas as pd
-from pandas.core.dtypes.common import is_categorical_dtype
 
 from anndata import AnnData
 
@@ -26,8 +26,8 @@ class AnalysisMixinProtocol(Protocol[K, B]):
     def _apply(
         self,
         data: Optional[Union[str, ArrayLike]] = None,
-        start: Optional[K] = None,
-        end: Optional[K] = None,
+        key_source: Optional[K] = None,
+        key_target: Optional[K] = None,
         forward: bool = True,
         return_all: bool = False,
         scale_by_marginals: bool = False,
@@ -46,6 +46,24 @@ class AnalysisMixinProtocol(Protocol[K, B]):
     def _flatten(self: "AnalysisMixinProtocol[K, B]", data: Dict[K, ArrayLike], *, key: Optional[str]) -> ArrayLike:
         ...
 
+    def _validate_args_cell_transition(
+        self: "AnalysisMixinProtocol[K, B]", arg: Union[str, Mapping[str, Sequence[Any]]]
+    ) -> Tuple[str, Sequence[Any]]:
+        ...
+
+    def _cell_transition_helper(
+        self: "AnalysisMixinProtocol[K, B]",
+        key_source: K,
+        key_target: K,
+        subset: str,
+        cells_present: Set[Any],
+        source_cells_key: str,
+        forward: bool,
+        split_mass: bool,
+        cell_dist_id: K,
+    ) -> Optional[ArrayLike]:
+        ...
+
 
 class AnalysisMixin(Generic[K, B]):
     """Base Analysis Mixin."""
@@ -55,14 +73,13 @@ class AnalysisMixin(Generic[K, B]):
 
     def cell_transition(
         self: AnalysisMixinProtocol[K, B],
-        start: K,
-        end: K,
-        early_cells: Union[str, Mapping[str, Sequence[Any]]],
-        late_cells: Union[str, Mapping[str, Sequence[Any]]],
+        key: str,
+        key_source: K,
+        key_target: K,
+        source_cells: Union[str, Mapping[str, Sequence[Any]]],
+        target_cells: Union[str, Mapping[str, Sequence[Any]]],
         forward: bool = False,  # return value will be row-stochastic if forward=True, else column-stochastic
         aggregation: Literal["group", "cell"] = "group",
-        statistic: Literal["mean", "top_k_mean"] = "mean",
-        top_k: int = 5,
     ) -> pd.DataFrame:
         """
         Compute a grouped cell transition matrix.
@@ -72,168 +89,180 @@ class AnalysisMixin(Generic[K, B]):
 
         Parameters
         ----------
-        start
+        key
+            Key according to which cells are allocated to distributions.
+        key_source
             Time point corresponding to the early distribution.
-        end
+        key_target
             Time point corresponding to the late distribution.
-        early_cells
+        source_cells
             Can be one of the following
-                - if `early_cells` is of type :class:`str` this should correspond to a key in
+                - if `source_cells` is of type :class:`str` this should correspond to a key in
                   :attr:`anndata.AnnData.obs`. In this case, the categories in the transition matrix correspond to the
-                  unique values in `anndata.AnnData.obs` ``['{early_cells}']``
-                - if `early_cells` is of type `Mapping` its `key` should correspond to a key in
+                  unique values in `anndata.AnnData.obs` ``['{source_cells}']``
+                - if `source_cells` is of type `Mapping` its `key` should correspond to a key in
                   :attr:`anndata.AnnData.obs` and its `value` to a subset of categories present in
-                  `anndata.AnnData.obs` ``['{early_cells.keys()[0]}']``
-        late_cells
+                  `anndata.AnnData.obs` ``['{source_cells.keys()[0]}']``
+        target_cells
             Can be one of the following
-                - if `late_cells` is of type :class:`str` this should correspond to a key in
+                - if `target_cells` is of type :class:`str` this should correspond to a key in
                   :attr:`anndata.AnnData.obs`. In this case, the categories in the transition matrix correspond to the
-                  unique values in `anndata.AnnData.obs` ``['{late_cells}']``
-                - if `late_cells` is of type `Mapping` its `key` should correspond to a key in
+                  unique values in `anndata.AnnData.obs` ``['{target_cells}']``
+                - if `target_cells` is of type `Mapping` its `key` should correspond to a key in
                   :attr:`anndata.AnnData.obs` and its `value` to a subset of categories present in
-                  `anndata.AnnData.obs` ``['{late_cells.keys()[0]}']``
+                  `anndata.AnnData.obs` ``['{target_cells.keys()[0]}']``
         forward
-            If `True` computes the ancestors of the cells corresponding to time point `late`, else the descendants of
-            the cells corresponding to time point `early`.
+            If `True` computes transition from cells belonging to `source_cells` to cells belonging to `target_cells`.
         aggregation:
-            If `aggregation` is `group` the transition probabilities from the groups defined by `early_cells` are
+            If `aggregation` is `group` the transition probabilities from the groups defined by `source_cells` are
             returned. If `aggregation` is `cell` the transition probablities for each cell are returned.
-        statistic
-            How to aggregate the distribution a cell is mapped onto. If `top_k_mean` only the `top_k` most likely ones
-            are considered, all other probabilities are set to 0.
-        top_k
-            If `statistic` is `top_k_mean` ignore all matches of one cell in the other
-            distributions which are not among the top k ones.
 
         Returns
         -------
-        Transition matrix of groups between time points.
+        Transition matrix of cells or groups of cells.
         """
-        _split_mass = (statistic == "top_k_mean") or (aggregation == "cell")
-        _early_cells_key, _early_cells = self._validate_args_cell_transition(early_cells)
-        _late_cells_key, _late_cells = self._validate_args_cell_transition(late_cells)
+        _split_mass = aggregation == "cell"
+        _source_cells_key, _source_cells = self._validate_args_cell_transition(source_cells)
+        _target_cells_key, _target_cells = self._validate_args_cell_transition(target_cells)
 
-        df_late = self.adata[self.adata.obs[self.temporal_key] == end].obs[[_late_cells_key]].copy()
-        df_early = self.adata[self.adata.obs[self.temporal_key] == start].obs[[_early_cells_key]].copy()
-        df_late["distribution"] = np.nan
-        df_early["distribution"] = np.nan
+        df_target = self.adata[self.adata.obs[key] == key_target].obs[[_target_cells_key]].copy()
+        df_source = self.adata[self.adata.obs[key] == key_source].obs[[_source_cells_key]].copy()
 
         if aggregation == "group":
+            df_target["distribution"] = np.nan
+            df_source["distribution"] = np.nan
             transition_table = pd.DataFrame(
-                np.zeros((len(_early_cells), len(_late_cells))), index=_early_cells, columns=_late_cells
+                np.zeros((len(_source_cells), len(_target_cells))), index=_source_cells, columns=_target_cells
             )
         elif aggregation == "cell":
             if forward:
-                transition_table = pd.DataFrame(columns=_late_cells)
+                transition_table = pd.DataFrame(columns=_target_cells)
             else:
-                transition_table = pd.DataFrame(index=_early_cells)
+                transition_table = pd.DataFrame(index=_source_cells)
         else:
             raise NotImplementedError
 
-        #result = self._cell_transition_helper(cells_to_iterate = _early_cells if forward else _late_cells, source_cells_df = df_early if forward else df_late, target_cells_df = df_late if forward else df_late, aggregation=aggregation, _source_cells_key=_early_cells_key if forward else _late_cells_key, forward=forward, split_mass=_split_mass, cell_dist_id=start if forward else end)
-
-
-        #new
-        
-        #new_end
-
-
+        error = NotImplementedError("TODO: aggregation must be `group` or `cell`.")
         if forward:
-            _early_cells_present = set(_early_cells).intersection(set(df_early[_early_cells_key].unique()))
-            for subset in _early_cells:
-                result = self._cell_transition_helper(subset=subset, cells_present=_early_cells_present, source_cells_df = df_early, target_cells_df = df_late, aggregation=aggregation, _source_cells_key=_early_cells_key, forward=True, split_mass=split_mass, cell_dist_id=start)
-                if result is None and aggregation == "group":
-                        transition_table.loc[subset, :] = np.nan
-                if statistic == "top_k_mean":
-                    result = self._cell_transition_aggregation(result, statistic, top_k)
+            _source_cells_present = set(_source_cells).intersection(set(df_source[_source_cells_key].cat.categories))
+            for subset in _source_cells:
+                result = self._cell_transition_helper(
+                    key_source=key_source,
+                    key_target=key_target,
+                    subset=subset,
+                    cells_present=_source_cells_present,
+                    source_cells_key=_source_cells_key,
+                    forward=True,
+                    split_mass=_split_mass,
+                    cell_dist_id=key_source,
+                )
+                if result is None:
+                    continue
 
                 if aggregation == "group":
-                    df_late.loc[:, "distribution"] = result
+                    df_target.loc[:, "distribution"] = result
                     target_cell_dist = (
-                        df_late[df_late[_late_cells_key].isin(_late_cells)].groupby(_late_cells_key).sum()
+                        df_target[df_target[_target_cells_key].isin(_target_cells)].groupby(_target_cells_key).sum()
                     )
                     target_cell_dist /= target_cell_dist.sum()
                     transition_table.loc[subset, :] = [
                         target_cell_dist.loc[cell_type, "distribution"]
                         if cell_type in target_cell_dist.distribution.index
                         else 0
-                        for cell_type in _late_cells
+                        for cell_type in _target_cells
                     ]
                 elif aggregation == "cell":
-                    current_early_cells = list(df_early[df_early[_early_cells_key] == subset].index)
-                    df_late.loc[:, current_early_cells] = result
-                    to_append = (
-                        df_late[df_late[_late_cells_key].isin(_late_cells)].groupby(_late_cells_key).sum().transpose()
+                    current_source_cells = list(df_source[df_source[_source_cells_key] == subset].index)
+                    df_target.loc[:, current_source_cells] = result
+                    to_appkey_target = (
+                        df_target[df_target[_target_cells_key].isin(_target_cells)]
+                        .groupby(_target_cells_key)
+                        .sum()
+                        .transpose()
                     )
-                    transition_table = transition_table.append(
-                        to_append.drop(labels="distribution", axis=0), verify_integrity=True
-                    )
-                    df_late = df_late.drop(current_early_cells, axis=1)
+                    transition_table = pd.concat([transition_table, to_appkey_target], verify_integrity=True, axis=0)
+                    df_target = df_target.drop(current_source_cells, axis=1)
                 else:
-                    raise NotImplementedError("TODO: aggregation must be `group` or `cell`.")
+                    raise error
             return transition_table
-        
-        _late_cells_present = set(_late_cells).intersection(set(df_late[_late_cells_key].unique()))
-        for subset in _late_cells:
-            result = self._cell_transition_helper(subset=subset, cells_present=_late_cells_present, source_cells_df = df_late, target_cells_df = df_early, aggregation=aggregation, _source_cells_key=_late_cells_key, forward=False, split_mass=_split_mass, cell_dist_id=end)
-            if result is None and aggregation == "group":
-                transition_table.loc[:, subset] = np.nan
-            
-            if statistic == "top_k_mean":
-                result = self._cell_transition_aggregation(result, statistic, top_k)
+
+        _target_cells_present = set(_target_cells).intersection(set(df_target[_target_cells_key].cat.categories))
+        for subset in _target_cells:
+            result = self._cell_transition_helper(
+                key_source=key_source,
+                key_target=key_target,
+                subset=subset,
+                cells_present=_target_cells_present,
+                source_cells_key=_target_cells_key,
+                forward=False,
+                split_mass=_split_mass,
+                cell_dist_id=key_target,
+            )
+
+            if result is None:
+                continue
 
             if aggregation == "group":
-                df_early.loc[:, "distribution"] = result
-                filtered_df_early = df_early[df_early[_early_cells_key].isin(_early_cells)]
+                df_source.loc[:, "distribution"] = result
+                filtered_df_source = df_source[df_source[_source_cells_key].isin(_source_cells)]
 
-                target_cell_dist = filtered_df_early.groupby(_early_cells_key).sum()
+                target_cell_dist = filtered_df_source.groupby(_source_cells_key).sum()
                 target_cell_dist /= target_cell_dist.sum()
                 transition_table.loc[:, subset] = [
                     target_cell_dist.loc[cell_type, "distribution"]
                     if cell_type in target_cell_dist.distribution.index
                     else 0
-                    for cell_type in _early_cells
+                    for cell_type in _source_cells
                 ]
             elif aggregation == "cell":
-                current_late_cells = list(df_late[df_late[_late_cells_key] == subset].index)
-                df_early.loc[:, current_late_cells] = result
-                to_append = df_early[df_early[_early_cells_key].isin(_early_cells)].groupby(_early_cells_key).sum()
-                transition_table = pd.concat([transition_table.drop(labels="distribution", axis=1, errors="ignore"), to_append], axis=1)
-                df_early = df_early.drop(current_late_cells, axis=1)
+                current_target_cells = list(df_target[df_target[_target_cells_key] == subset].index)
+                df_source.loc[:, current_target_cells] = result
+                to_appkey_target = (
+                    df_source[df_source[_source_cells_key].isin(_source_cells)].groupby(_source_cells_key).sum()
+                )
+                transition_table = pd.concat([transition_table, to_appkey_target], axis=1)
+                df_source = df_source.drop(current_target_cells, axis=1)
             else:
-                raise NotImplementedError
+                raise error
         return transition_table
 
-    def _cell_transition_helper(self, subset: str, cells_present: Sequence, source_cells_df: pd.DataFrame, target_cells_df: pd.DataFrame, aggregation: Union[Literal["group", "cell"]], _source_cells_key: str, forward: bool, split_mass: bool, cell_dist_id: K):
-            
-                if subset not in cells_present:
-                    return None
-                func = self.push if forward else self.pull
-                try:
-                    result = func(
-                        start=start,
-                        end=end,
-                        data=_source_cells_key,
-                        subset=subset,
-                        normalize=True,
-                        return_all=False,
-                        scale_by_marginals=False,
-                        split_mass=split_mass,
-                    )
-                except ValueError as e:
-                    if "no mass" in str(e):  # TODO: adapt
-                        logging.info(
-                            f"No data points corresponding to {subset} found in `adata.obs[groups_key]` for {cell_dist_id}"
-                        )
-                        result = np.nan  # type: ignore[assignment]
-                    else:
-                        raise
-                return result
+    def _cell_transition_helper(
+        self,
+        key_source: K,
+        key_target: K,
+        subset: str,
+        cells_present: Set[Any],
+        source_cells_key: str,
+        forward: bool,
+        split_mass: bool,
+        cell_dist_id: K,
+    ) -> Optional[ArrayLike]:
 
+        if subset not in cells_present:
+            return None
+        func = self.push if forward else self.pull  # type: ignore[attr-defined]
+        try:
+            result = func(
+                key_source,
+                key_target,
+                data=source_cells_key,
+                subset=subset,
+                normalize=True,
+                return_all=False,
+                scale_by_marginals=False,
+                split_mass=split_mass,
+            )
+        except ValueError as e:
+            if "no mass" in str(e):  # TODO: adapt
+                print(f"No data points corresponding to {subset} found in `adata.obs[groups_key]` for {cell_dist_id}")
+                result = None
+            else:
+                raise
+        return result
 
     def _validate_args_cell_transition(
         self: AnalysisMixinProtocol[K, B], arg: Union[str, Mapping[str, Sequence[Any]]]
-    ) -> Tuple[Union[str, Sequence[Any]], Sequence[Any]]:
+    ) -> Tuple[str, Sequence[Any]]:
         if isinstance(arg, str):
             if arg not in self.adata.obs:
                 raise KeyError("TODO")
@@ -258,24 +287,10 @@ class AnalysisMixin(Generic[K, B]):
                 raise ValueError(f"The column `{_key}` in `adata.obs` contains NaN values. Please check.")
             return _key, _val
 
-    @staticmethod
-    def _cell_transition_aggregation(
-        result: np.ndarray, statistic: Literal["mean", "top_k_mean"] = "mean", top_k: int = 5
-    ) -> np.ndarray:
-        if statistic == "top_k_mean":
-            if len(result) <= top_k:
-                raise ValueError("TODO: `k` must be smaller than number of data points in distribution.")
-            col_idx = np.array(range(result.shape[1]))
-            low_col_k_indices = np.argpartition(result, -top_k, axis=0)[:-top_k, :]
-            result[(low_col_k_indices.flatten(order="F"), np.repeat(col_idx, len(result) - top_k))] = 0
-        else:
-            raise NotImplementedError("TODO: not implemented.")
-        return result.sum(axis=0)
-
     def _sample_from_tmap(
         self: AnalysisMixinProtocol[K, B],
-        start: K,
-        end: K,
+        key_source: K,
+        key_target: K,
         n_samples: int,
         source_dim: int,
         target_dim: int,
@@ -294,12 +309,12 @@ class AnalysisMixin(Generic[K, B]):
         mass = np.ones(target_dim)
         if account_for_unbalancedness and interpolation_parameter is not None:
             col_sums = self._apply(
-                start=start,
-                end=end,
+                key_source=key_source,
+                key_target=key_target,
                 normalize=True,
                 forward=True,
                 scale_by_marginals=False,
-                explicit_steps=[(start, end)],
+                explicit_steps=[(key_source, key_target)],
             )
             if TYPE_CHECKING:
                 assert isinstance(col_sums, np.ndarray)
@@ -308,19 +323,19 @@ class AnalysisMixin(Generic[K, B]):
 
         row_probability = np.asarray(
             self._apply(
-                start=start,
-                end=end,
+                key_source=key_source,
+                key_target=key_target,
                 data=mass,
                 normalize=True,
                 forward=False,
                 scale_by_marginals=False,
-                explicit_steps=[(start, end)],
+                explicit_steps=[(key_source, key_target)],
             )
         ).squeeze()
 
         rows_sampled = rng.choice(source_dim, p=row_probability / row_probability.sum(), size=n_samples)
         rows, counts = np.unique(rows_sampled, return_counts=True)
-        all_cols_sampled = []
+        all_cols_sampled: List[str] = []
         for batch in range(0, len(rows), batch_size):
             rows_batch = rows[batch : batch + batch_size]
             counts_batch = counts[batch : batch + batch_size]
@@ -329,13 +344,13 @@ class AnalysisMixin(Generic[K, B]):
 
             col_p_given_row = np.asarray(
                 self._apply(
-                    start=start,
-                    end=end,
+                    key_source=key_source,
+                    key_target=key_target,
                     data=data,
                     normalize=True,
                     forward=True,
                     scale_by_marginals=False,
-                    explicit_steps=[(start, end)],
+                    explicit_steps=[(key_source, key_target)],
                 )
             ).squeeze()
             if account_for_unbalancedness:
@@ -354,7 +369,7 @@ class AnalysisMixin(Generic[K, B]):
         self: AnalysisMixinProtocol[K, B],
         path: Sequence[
             Tuple[K, K]
-        ],  # TODO(@giovp): rename this to 'explicit_steps', pass to policy.plan() and reintroduce (start, end) args
+        ],  # TODO(@giovp): rename this to 'explicit_steps', pass to policy.plan() and reintroduce (key_source, key_target) args
         forward: bool = True,
         scale_by_marginals: bool = True,
         **kwargs: Any,

@@ -123,7 +123,7 @@ class MatrixSolverOutput(BaseSolverOutput, ABC):
     @property
     def shape(self) -> Tuple[int, int]:
         """%(shape)s"""  # noqa: D400
-        return self.transport_matrix.shape  # type: ignore[return-value]
+        return self.transport_matrix.shape
 
 
 class HasPotentials(ABC):

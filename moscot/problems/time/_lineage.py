@@ -6,8 +6,6 @@ import pandas as pd
 
 import numpy as np
 
-from anndata import AnnData
-
 from moscot._docs import d
 from moscot._types import Numeric_t
 from moscot.problems.time._mixins import TemporalMixin
