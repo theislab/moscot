@@ -6,6 +6,7 @@ from typing_extensions import Literal
 from moscot._docs import d
 from moscot._types import Numeric_t
 from moscot._constants._key import Key
+from moscot._constants._constants import Policy, ScaleCost
 from moscot.problems.time._mixins import TemporalMixin
 from moscot.problems.space._mixins import SpatialAlignmentMixin
 from moscot.problems.space._alignment import AlignmentProblem
@@ -27,7 +28,7 @@ class SpatioTemporalProblem(
         time_key: str,
         spatial_key: str = Key.obsm.spatial,
         joint_attr: Optional[Mapping[str, Any]] = MappingProxyType({"x_attr": "X", "y_attr": "X"}),
-        policy: Literal["sequential", "triu", "tril", "explicit"] = "sequential",
+        policy: Literal[Policy.SEQUENTIAL, Policy.TRIL, Policy.TRIU, Policy.EXPLICIT] = Policy.SEQUENTIAL,
         marginal_kwargs: Mapping[str, Any] = MappingProxyType({}),
         **kwargs: Any,
     ) -> "SpatioTemporalProblem":
@@ -105,6 +106,30 @@ class SpatioTemporalProblem(
             marginal_kwargs=marginal_kwargs,
             **kwargs,
         )
+
+    @d.dedent
+    def solve(
+        self,
+        alpha: Optional[float] = 0.5,
+        epsilon: Optional[float] = 1e-3,
+        scale_cost: str = ScaleCost.MEAN,
+        **kwargs: Any,
+    ) -> "SpatioTemporalProblem":
+        """
+        Solve optimal transport problems defined in :class:`moscot.problems.space.SpatioTemporalProblem`.
+
+        Parameters
+        ----------
+        %(alpha)s
+        %(epsilon)s
+        %(scale_cost)s
+
+        Returns
+        -------
+        :class:`moscot.problems.space.SpatioTemporalProblem`
+        """
+        scale_cost = ScaleCost(scale_cost)
+        return super().solve(alpha=alpha, epsilon=epsilon, scale_cost=scale_cost, **kwargs)
 
     @property
     def _valid_policies(self) -> Tuple[str, ...]:
