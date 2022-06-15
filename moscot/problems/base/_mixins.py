@@ -268,8 +268,6 @@ class AnalysisMixin(Generic[K, B]):
                 raise KeyError("TODO")
             if not is_categorical_dtype(self.adata.obs[arg]):
                 raise TypeError(f"The column `{arg}` in `adata.obs` must be of categorical dtype.")
-            if self.adata.obs[arg].isnull().values.any():  # TODO(giovp, MUCDK): why this check? remove?
-                raise ValueError(f"The column `{arg}` in `adata.obs` contains NaN values. Please check.")
             return arg, self.adata.obs[arg].cat.categories
         if isinstance(arg, dict):
             if len(arg.keys()) > 1:
@@ -283,8 +281,6 @@ class AnalysisMixin(Generic[K, B]):
                 raise TypeError(f"The column `{_key}` in `adata.obs` must be of categorical dtype.")
             if not set(_val).issubset(self.adata.obs[_key].cat.categories):
                 raise ValueError(f"Not all values {_val} could be found in `adata.obs[{_key}]`.")
-            if self.adata.obs[_key].isnull().values.any():
-                raise ValueError(f"The column `{_key}` in `adata.obs` contains NaN values. Please check.")
             return _key, _val
 
     def _sample_from_tmap(
