@@ -132,7 +132,7 @@ dmypy.json
 .idea
 
 # docs
-docs/source/api
+docs/source/**/genapi
 docs/source/development
 
 # macOS

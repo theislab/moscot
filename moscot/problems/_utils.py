@@ -5,7 +5,7 @@ if TYPE_CHECKING:
 
 import wrapt
 
-__all__ = ["require_prepare", "require_solution"]
+__all__ = ["require_prepare", "require_solution", "wrap_prepare", "wrap_solve"]
 
 
 # TODO(michalk8): refactor using stage
@@ -31,3 +31,31 @@ def require_prepare(
     if instance._problems is None:
         raise RuntimeError("TODO: Run prepare.")
     return wrapped(*args, **kwargs)
+
+
+@wrapt.decorator
+def wrap_prepare(
+    wrapped: Callable[[Any], Any], instance: "BaseProblem", args: Tuple[Any, ...], kwargs: Mapping[str, Any]
+) -> Any:
+    """Check and update the state when preparing :class:`moscot.problems.base.OTProblem`."""
+    from moscot.problems.base._base_problem import ProblemKind, ProblemStage  # TODO: move ENUMs to this file
+
+    _ = wrapped(*args, **kwargs)
+    if instance._problem_kind == ProblemKind.UNKNOWN:
+        raise RuntimeError("TODO: problem kind not set after prepare")
+    instance._stage = ProblemStage.PREPARED
+    return instance
+
+
+@wrapt.decorator
+def wrap_solve(
+    wrapped: Callable[[Any], Any], instance: "BaseProblem", args: Tuple[Any, ...], kwargs: Mapping[str, Any]
+) -> Any:
+    """Check and update the state when solving :class:`moscot.problems.base.OTProblem`."""
+    from moscot.problems.base._base_problem import ProblemStage
+
+    if instance._stage != ProblemStage.PREPARED:
+        raise RuntimeError("TODO")
+    _ = wrapped(*args, **kwargs)
+    instance._stage = ProblemStage.SOLVED
+    return instance
