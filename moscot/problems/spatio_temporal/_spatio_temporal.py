@@ -132,5 +132,5 @@ class SpatioTemporalProblem(
         return super().solve(alpha=alpha, epsilon=epsilon, scale_cost=scale_cost, **kwargs)
 
     @property
-    def _valid_policies(self) -> Tuple[str, ...]:
-        return "sequential", "triu", "tril", "explicit"
+    def _valid_policies(self) -> Tuple[Policy, ...]:
+        return Policy.SEQUENTIAL, Policy.TRIL, Policy.TRIU, Policy.EXPLICIT
