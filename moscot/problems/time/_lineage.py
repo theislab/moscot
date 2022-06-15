@@ -10,6 +10,7 @@ from anndata import AnnData
 
 from moscot._docs import d
 from moscot._types import Numeric_t
+from moscot._constants._constants import Policy
 from moscot.problems.time._mixins import TemporalMixin
 from moscot.problems.base._birth_death import BirthDeathMixin, BirthDeathProblem
 from moscot.problems.base._compound_problem import B, CompoundProblem
@@ -45,7 +46,7 @@ class TemporalProblem(
         self,
         time_key: str,
         joint_attr: Optional[Union[str, Mapping[str, Any]]] = None,
-        policy: Literal["sequential", "triu", "tril", "explicit"] = "sequential",
+        policy: Literal[Policy.SEQUENTIAL, Policy.TRIL, Policy.TRIU, Policy.EXPLICIT] = Policy.SEQUENTIAL,
         marginal_kwargs: Mapping[str, Any] = MappingProxyType({}),
         **kwargs: Any,
     ) -> "TemporalProblem":
@@ -88,6 +89,7 @@ class TemporalProblem(
         If `a` and `b` are provided `marginal_kwargs` are ignored.
         """
         self.temporal_key = time_key
+        policy = Policy(policy)  # type: ignore[assignment]
         if joint_attr is None:
             if "callback" not in kwargs:
                 kwargs["callback"] = "local-pca"
@@ -243,7 +245,7 @@ class LineageProblem(TemporalProblem):
         time_key: str,
         lineage_attr: Mapping[str, Any] = MappingProxyType({}),
         joint_attr: Optional[Union[str, Mapping[str, Any]]] = None,
-        policy: Literal["sequential", "triu", "tril", "explicit"] = "sequential",
+        policy: Literal[Policy.SEQUENTIAL, Policy.TRIL, Policy.TRIU, Policy.EXPLICIT] = Policy.SEQUENTIAL,
         **kwargs: Any,
     ) -> "LineageProblem":
         """
@@ -296,6 +298,7 @@ class LineageProblem(TemporalProblem):
         -----
         If `a` and `b` are provided `marginal_kwargs` are ignored.
         """
+        policy = Policy(policy)  # type: ignore[assignment]
         # TODO(michalk8): use and
         if not len(lineage_attr):
             if "cost_matrices" not in self.adata.obsp:

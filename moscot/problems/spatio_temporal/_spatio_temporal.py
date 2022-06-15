@@ -88,7 +88,7 @@ class SpatioTemporalProblem(
         """
         # spatial key set in AlignmentProblem
         self.temporal_key = time_key
-
+        policy = Policy(policy)  # type: ignore[assignment]
         marginal_kwargs = dict(marginal_kwargs)
         if self.proliferation_key is not None:
             marginal_kwargs["proliferation_key"] = self.proliferation_key
