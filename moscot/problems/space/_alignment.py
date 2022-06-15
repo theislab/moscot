@@ -4,7 +4,7 @@ from typing_extensions import Literal
 
 from moscot._docs import d
 from moscot._constants._key import Key
-from moscot._constants._constants import ScaleCost
+from moscot._constants._constants import Policy, ScaleCost
 from moscot.problems.space._mixins import SpatialAlignmentMixin
 from moscot.problems.base._base_problem import OTProblem
 from moscot.problems.base._compound_problem import B, K, CompoundProblem
@@ -35,7 +35,7 @@ class AlignmentProblem(CompoundProblem[K, B], SpatialAlignmentMixin[K, B]):
         batch_key: str,
         spatial_key: str = Key.obsm.spatial,
         joint_attr: Optional[Mapping[str, Any]] = None,
-        policy: Literal["sequential", "star"] = "sequential",
+        policy: Literal[Policy.SEQUENTIAL, Policy.STAR] = Policy.SEQUENTIAL,
         reference: Optional[str] = None,
         **kwargs: Any,
     ) -> "AlignmentProblem[K, B]":
@@ -67,6 +67,7 @@ class AlignmentProblem(CompoundProblem[K, B], SpatialAlignmentMixin[K, B]):
         :class:`moscot.problems.space.MappingProblem`
         """
         self.spatial_key = spatial_key
+        policy = Policy(policy)  # type: ignore[assignment]
 
         x = y = {"attr": "obsm", "key": self.spatial_key, "tag": "point_cloud"}
 
@@ -97,6 +98,7 @@ class AlignmentProblem(CompoundProblem[K, B], SpatialAlignmentMixin[K, B]):
         -------
         :class:`moscot.problems.space.AlignmentProblem`
         """
+        scale_cost = ScaleCost(scale_cost)
         return super().solve(alpha=alpha, epsilon=epsilon, scale_cost=scale_cost, **kwargs)  # type:ignore[return-value]
 
     @property

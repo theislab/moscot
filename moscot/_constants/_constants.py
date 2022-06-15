@@ -14,6 +14,16 @@ class ScaleCost(ModeEnum):
 
 
 @unique
+class Policy(ModeEnum):
+    SEQUENTIAL = "sequential"
+    STAR = "star"
+    EXTERNAL_STAR = "external_star"
+    TRIU = "triu"
+    TRIL = "tril"
+    EXPLICIT = "explicit"
+
+
+@unique
 class AlignmentMode(ModeEnum):
     AFFINE = "affine"
     WARP = "warp"

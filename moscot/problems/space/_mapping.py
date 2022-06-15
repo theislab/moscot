@@ -8,7 +8,7 @@ from anndata import AnnData
 from moscot._docs import d
 from moscot._types import ArrayLike
 from moscot._constants._key import Key
-from moscot._constants._constants import ScaleCost
+from moscot._constants._constants import Policy, ScaleCost
 from moscot.problems.space._mixins import SpatialMappingMixin
 from moscot.problems._subset_policy import Axis_t, DummyPolicy, ExternalStarPolicy
 from moscot.problems.base._base_problem import OTProblem
@@ -44,7 +44,7 @@ class MappingProblem(CompoundProblem[K, OTProblem], SpatialMappingMixin[K, OTPro
 
     def _create_policy(  # type: ignore[override]
         self,
-        policy: Literal["external_star"] = "external_star",
+        policy: Literal[Policy.EXTERNAL_STAR] = Policy.EXTERNAL_STAR,
         key: Optional[str] = None,
         axis: Axis_t = "obs",
         **kwargs: Any,
@@ -139,6 +139,7 @@ class MappingProblem(CompoundProblem[K, OTProblem], SpatialMappingMixin[K, OTPro
         -------
         :class:`moscot.problems.space.MappingProblem`
         """
+        scale_cost = ScaleCost(scale_cost)
         return super().solve(alpha=alpha, epsilon=epsilon, scale_cost=scale_cost, **kwargs)  # type:ignore[return-value]
 
     @property
@@ -167,4 +168,4 @@ class MappingProblem(CompoundProblem[K, OTProblem], SpatialMappingMixin[K, OTPro
 
     @property
     def _valid_policies(self) -> Tuple[str, ...]:
-        return ("external_star",)
+        return (Policy.EXTERNAL_STAR,)

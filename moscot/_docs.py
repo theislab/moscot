@@ -68,7 +68,8 @@ data
       (if `forward` is `True`) or target distribution (if `forward` is `False`) of that column.
     - If `data` is a :class:npt.ArrayLike the transport map is applied to `data`.
     - If `data` is a :class:`dict` then the keys should correspond to the tuple defining a single optimal
-      transport map and the value should be one of the two cases described above."""
+      transport map and the value should be one of the two cases described above.
+"""
 
 _subset = """\
 subset

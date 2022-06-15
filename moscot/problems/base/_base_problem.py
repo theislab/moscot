@@ -95,7 +95,7 @@ class BaseProblem(ABC):
         return data / total if normalize else data
 
     @property
-    def adata(self) -> AnnData:
+    def adata(self) -> AnnData:  # noqa: D102
         return self._adata
 
     @property
@@ -122,7 +122,7 @@ class OTProblem(BaseProblem):
 
     Raises
     ------
-     %(BaseProblem.raises)s
+    %(BaseProblem.raises)s
     """
 
     def __init__(
@@ -174,6 +174,7 @@ class OTProblem(BaseProblem):
         b: Optional[Union[bool, str, ArrayLike]] = None,
         **kwargs: Any,
     ) -> "OTProblem":
+        """Prepare method."""
         self._x = self._y = self._xy = self._solution = None
         # TODO(michalk8): handle again TaggedArray?
         # TODO(michalk8): better dispatch
@@ -212,6 +213,7 @@ class OTProblem(BaseProblem):
         prepare_kwargs: Mapping[str, Any] = MappingProxyType({}),
         **kwargs: Any,
     ) -> "OTProblem":
+        """Solve method."""
         if self._problem_kind is None:
             raise RuntimeError("Run .prepare() first.")
         if self._problem_kind in (ProblemKind.QUAD, ProblemKind.QUAD_FUSED):
