@@ -15,6 +15,7 @@ from anndata import AnnData
 
 from moscot._types import ArrayLike
 from moscot.problems.base import AnalysisMixin  # type: ignore[attr-defined]
+from moscot._constants._constants import CorrMethod, AlignmentMode
 from moscot.problems.base._mixins import AnalysisMixinProtocol
 from moscot.problems._subset_policy import StarPolicy
 from moscot.problems.base._compound_problem import B, K
@@ -108,7 +109,7 @@ class SpatialAlignmentMixin(AnalysisMixin[K, B]):
     def align(
         self: SpatialAlignmentMixinProtocol[K, B],
         reference: K,
-        mode: Literal["warp", "affine"] = "warp",
+        mode: Literal["warp", "affine"] = AlignmentMode.WARP,  # type: ignore[assignment]
         inplace: bool = True,
     ) -> Optional[Union[ArrayLike, Tuple[ArrayLike, Optional[Dict[K, Optional[ArrayLike]]]]]]:
         """Alignment method."""
@@ -119,7 +120,7 @@ class SpatialAlignmentMixin(AnalysisMixin[K, B]):
                 raise ValueError(f"Invalid `reference: {reference}` for `policy='star'`.")
         aligned_maps, aligned_metadata = self._interpolate_scheme(reference=reference, mode=mode)
         aligned_basis = np.vstack([aligned_maps[k] for k in self._policy._cat])
-
+        mode = AlignmentMode(mode)  # type: ignore[assignment]
         if mode == "affine":
             if not inplace:
                 return aligned_basis, aligned_metadata
@@ -171,12 +172,13 @@ class SpatialMappingMixin(AnalysisMixin[K, B]):
     def correlate(
         self: SpatialMappingMixinProtocol[K, B],
         var_names: Optional[List[str]] = None,
-        corr_method: Literal["pearson", "spearman"] = "pearson",
+        corr_method: Literal["pearson", "spearman"] = CorrMethod.PEARSON,  # type: ignore[assignment]
     ) -> Mapping[Tuple[K, K], pd.Series]:
         """Calculate correlation between true and predicted gexp in space."""
         var_sc = self._filter_vars(var_names)
         if var_sc is None or not len(var_sc):
             raise ValueError("No overlapping `var_names` between ` adata_sc` and `adata_sp`.")
+        corr_method = CorrMethod(corr_method)  # type: ignore[assignment]
         cor = pearsonr if corr_method == "pearson" else spearmanr
         corr_dic = {}
         gexp_sc = self.adata_sc[:, var_sc].X if not issparse(self.adata_sc.X) else self.adata_sc[:, var_sc].X.A

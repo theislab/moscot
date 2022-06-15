@@ -11,3 +11,15 @@ class ScaleCost(ModeEnum):
     MAX_COST = "max_cost"
     MAX_BOUND = "max_bound"
     MAX_NORM = "max_norm"
+
+
+@unique
+class AlignmentMode(ModeEnum):
+    AFFINE = "affine"
+    WARP = "warp"
+
+
+@unique
+class CorrMethod(ModeEnum):
+    PEARSON = "pearson"
+    SPEARMAN = "spearman"
