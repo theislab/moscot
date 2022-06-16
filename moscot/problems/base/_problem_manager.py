@@ -65,7 +65,7 @@ class ProblemManager(Generic[K, B]):
         self._policy.remove_node(key)
 
     def get_problems(
-        self, stage: Optional[Union[ProblemStage, Tuple[ProblemStage, ...]]] = None
+        self, stage: Union[ProblemStage, Tuple[ProblemStage, ...]] = (ProblemStage.PREPARED, ProblemStage.SOLVED)
     ) -> Dict[Tuple[K, K], B]:
         """Get problems."""
         if stage is None:

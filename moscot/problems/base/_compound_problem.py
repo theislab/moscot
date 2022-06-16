@@ -208,7 +208,7 @@ class BaseCompoundProblem(BaseProblem, ABC, Generic[K, B]):
             break
         return self
 
-    def solve(self, stage: Optional[Union[ProblemStage, Tuple[ProblemStage, ...]]] = None, **kwargs: Any) -> "BaseCompoundProblem[K,B]":  # type: ignore[override] # noqa: E501
+    def solve(self, stage: Union[ProblemStage, Tuple[ProblemStage, ...]] = (ProblemStage.PREPARED, ProblemStage.SOLVED), **kwargs: Any) -> "BaseCompoundProblem[K,B]":  # type: ignore[override] # noqa: E501
         """
         Solve the biological problem.
 
