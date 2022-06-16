@@ -1,4 +1,4 @@
-from typing import Any, Type, Tuple, Mapping, Optional
+from typing import Any, Type, Tuple, Union, Mapping, Optional
 
 from typing_extensions import Literal
 
@@ -82,7 +82,7 @@ class AlignmentProblem(CompoundProblem[K, B], SpatialAlignmentMixin[K, B]):
         self,
         alpha: Optional[float] = 0.5,
         epsilon: Optional[float] = 1e-3,
-        scale_cost: str = ScaleCost.MEAN,
+        scale_cost: Optional[Union[ScaleCost, float]] = ScaleCost.MEAN,
         **kwargs: Any,
     ) -> "AlignmentProblem[K, B]":
         """
@@ -98,7 +98,7 @@ class AlignmentProblem(CompoundProblem[K, B], SpatialAlignmentMixin[K, B]):
         -------
         :class:`moscot.problems.space.AlignmentProblem`
         """
-        scale_cost = ScaleCost(scale_cost)
+        scale_cost = ScaleCost(scale_cost) if isinstance(scale_cost, ScaleCost) else scale_cost
         return super().solve(alpha=alpha, epsilon=epsilon, scale_cost=scale_cost, **kwargs)  # type:ignore[return-value]
 
     @property
@@ -107,4 +107,4 @@ class AlignmentProblem(CompoundProblem[K, B], SpatialAlignmentMixin[K, B]):
 
     @property
     def _valid_policies(self) -> Tuple[str, ...]:
-        return "sequential", "star"
+        return Policy.SEQUENTIAL, Policy.STAR
