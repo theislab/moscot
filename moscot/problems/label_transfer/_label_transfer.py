@@ -1,30 +1,19 @@
-from multiprocessing.sharedctypes import Value
 from types import MappingProxyType
-from typing import Any, Type, Tuple, Union, Mapping, Optional
+from typing import Any, Type, Union, Mapping, Optional
 
-from typing_extensions import Literal
-import pandas as pd
-
-import numpy as np
-
-from moscot._docs import d
 from moscot._types import Numeric_t
-from moscot.problems.time._mixins import TemporalMixin
-from moscot.problems.base._birth_death import BirthDeathMixin, BirthDeathProblem
-from moscot.problems.base._compound_problem import B, CompoundProblem
+from moscot.problems.base._birth_death import BirthDeathProblem
 from moscot.problems.base._base_problem import OTProblem
 from moscot.problems.base._compound_problem import B, K, CompoundProblem
 from moscot.problems.label_transfer._mixins import LabelMixin
 
-class LabelProblem(
-    LabelMixin[K, OTProblem], CompoundProblem[Numeric_t, BirthDeathProblem]
-):
 
+class LabelProblem(LabelMixin[K, OTProblem], CompoundProblem[Numeric_t, BirthDeathProblem]):
     def prepare(
         self,
         batch_key: str,
-        labelled_batch: Any, #TODO: specify
-        batch_to_label: Any, #TODO: specify
+        labelled_batch: Any,  # TODO: specify
+        batch_to_label: Any,  # TODO: specify
         joint_attr: Optional[Union[str, Mapping[str, Any]]] = None,
         GW_attr: Optional[Union[str, Mapping[str, Any]]] = None,
         marginal_kwargs: Mapping[str, Any] = MappingProxyType({}),
@@ -38,7 +27,7 @@ class LabelProblem(
             raise ValueError(f"TODO: {batch_to_label} not in `adata.obs`")
         self.labelled_batch = labelled_batch
         self.batch_to_label = batch_to_label
-        
+
         self.batch_key = batch_key
         if joint_attr is None:
             if "callback" not in kwargs:
@@ -58,6 +47,17 @@ class LabelProblem(
         else:
             raise TypeError("TODO")
 
+        if GW_attr is not None:
+            if isinstance(joint_attr, str):
+                gw_attr = {
+                    "attr": "obsm",
+                    "key": GW_attr,
+                }
+            elif isinstance(GW_attr, Mapping):
+                gw_attr = GW_attr
+            else:
+                raise TypeError("TODO")
+            kwargs["x"] = kwargs["y"] = gw_attr
 
         return super().prepare(
             key=batch_key,
