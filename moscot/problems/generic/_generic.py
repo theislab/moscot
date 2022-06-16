@@ -134,7 +134,7 @@ class GWProblem(CompoundProblem, AnalysisMixin):
         GW_attr = dict(GW_attr)
         GW_attr.setdefault("attr", "obsp")
         GW_attr.setdefault("key", "cost_matrices")
-        GW_attr.setdefault("loss", None)
+        GW_attr.setdefault("loss", "Euclidean")
         GW_attr.setdefault("tag", "cost")
         GW_attr.setdefault("loss_kwargs", {})
         x = y = GW_attr
@@ -188,5 +188,4 @@ class FGWProblem(GWProblem):
         %(joint_attr)s
 
         """
-        kwargs["joint_attr"] = joint_attr
         return super().prepare(key=key, GW_attr=GW_attr, joint_attr=joint_attr, policy=policy, **kwargs)
