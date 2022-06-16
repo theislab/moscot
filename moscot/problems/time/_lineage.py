@@ -299,13 +299,11 @@ class LineageProblem(TemporalProblem):
         If `a` and `b` are provided `marginal_kwargs` are ignored.
         """
         policy = Policy(policy)  # type: ignore[assignment]
-        # TODO(michalk8): use and
-        if not len(lineage_attr):
-            if "cost_matrices" not in self.adata.obsp:
-                raise ValueError(
-                    "TODO: default location for quadratic loss is `adata.obsp[`cost_matrices`]` \
+        if not len(lineage_attr) and ("cost_matrices" not in self.adata.obsp):
+            raise ValueError(
+                "TODO: default location for quadratic loss is `adata.obsp[`cost_matrices`]` \
                         but adata has no key `cost_matrices` in `obsp`."
-                )
+            )
         # TODO(michalk8): refactor me
         lineage_attr = dict(lineage_attr)
         lineage_attr.setdefault("attr", "obsp")
