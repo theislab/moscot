@@ -11,6 +11,7 @@ from moscot.problems.time._mixins import TemporalMixin
 from moscot.problems.space._mixins import SpatialAlignmentMixin
 from moscot.problems.space._alignment import AlignmentProblem
 from moscot.problems.base._birth_death import BirthDeathMixin, BirthDeathProblem
+from moscot.problems.base._base_problem import ScaleCost_t
 
 
 @d.dedent
@@ -112,7 +113,7 @@ class SpatioTemporalProblem(
         self,
         alpha: Optional[float] = 0.5,
         epsilon: Optional[float] = 1e-3,
-        scale_cost: str = ScaleCost.MEAN,
+        scale_cost: ScaleCost_t = ScaleCost.MEAN,
         **kwargs: Any,
     ) -> "SpatioTemporalProblem":
         """
@@ -128,7 +129,7 @@ class SpatioTemporalProblem(
         -------
         :class:`moscot.problems.space.SpatioTemporalProblem`
         """
-        scale_cost = ScaleCost(scale_cost)
+        scale_cost = ScaleCost(scale_cost) if isinstance(scale_cost, ScaleCost) else scale_cost
         return super().solve(alpha=alpha, epsilon=epsilon, scale_cost=scale_cost, **kwargs)
 
     @property

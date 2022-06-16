@@ -11,7 +11,7 @@ from moscot._constants._key import Key
 from moscot._constants._constants import Policy, ScaleCost
 from moscot.problems.space._mixins import SpatialMappingMixin
 from moscot.problems._subset_policy import Axis_t, DummyPolicy, ExternalStarPolicy
-from moscot.problems.base._base_problem import OTProblem
+from moscot.problems.base._base_problem import OTProblem, ScaleCost_t
 from moscot.problems.base._compound_problem import B, K, CompoundProblem
 
 __all__ = ["MappingProblem"]
@@ -123,7 +123,7 @@ class MappingProblem(CompoundProblem[K, OTProblem], SpatialMappingMixin[K, OTPro
         self,
         alpha: Optional[float] = 0.5,
         epsilon: Optional[float] = 1e-3,
-        scale_cost: str = ScaleCost.MEAN,
+        scale_cost: ScaleCost_t = ScaleCost.MEAN,
         **kwargs: Any,
     ) -> "MappingProblem[K]":
         """
@@ -139,7 +139,7 @@ class MappingProblem(CompoundProblem[K, OTProblem], SpatialMappingMixin[K, OTPro
         -------
         :class:`moscot.problems.space.MappingProblem`
         """
-        scale_cost = ScaleCost(scale_cost)
+        scale_cost = ScaleCost(scale_cost) if isinstance(scale_cost, ScaleCost) else scale_cost
         return super().solve(alpha=alpha, epsilon=epsilon, scale_cost=scale_cost, **kwargs)  # type:ignore[return-value]
 
     @property

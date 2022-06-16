@@ -1,4 +1,4 @@
-from typing import Any, Type, Tuple, Union, Mapping, Optional
+from typing import Any, Type, Tuple, Mapping, Optional
 
 from typing_extensions import Literal
 
@@ -6,7 +6,7 @@ from moscot._docs import d
 from moscot._constants._key import Key
 from moscot._constants._constants import Policy, ScaleCost
 from moscot.problems.space._mixins import SpatialAlignmentMixin
-from moscot.problems.base._base_problem import OTProblem
+from moscot.problems.base._base_problem import OTProblem, ScaleCost_t
 from moscot.problems.base._compound_problem import B, K, CompoundProblem
 
 __all__ = ["AlignmentProblem"]
@@ -82,7 +82,7 @@ class AlignmentProblem(CompoundProblem[K, B], SpatialAlignmentMixin[K, B]):
         self,
         alpha: Optional[float] = 0.5,
         epsilon: Optional[float] = 1e-3,
-        scale_cost: Optional[Union[ScaleCost, float]] = ScaleCost.MEAN,
+        scale_cost: ScaleCost_t = ScaleCost.MEAN,
         **kwargs: Any,
     ) -> "AlignmentProblem[K, B]":
         """
