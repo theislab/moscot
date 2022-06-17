@@ -10,9 +10,10 @@ from anndata import AnnData
 
 from moscot._docs import d
 from moscot._types import Numeric_t
-from moscot._constants._constants import Policy
+from moscot._constants._constants import Policy, ScaleCost
 from moscot.problems.time._mixins import TemporalMixin
 from moscot.problems.base._birth_death import BirthDeathMixin, BirthDeathProblem
+from moscot.problems.base._base_problem import ScaleCost_t
 from moscot.problems.base._compound_problem import B, CompoundProblem
 
 
@@ -321,3 +322,27 @@ class LineageProblem(TemporalProblem):
             policy=policy,
             **kwargs,
         )
+
+    @d.dedent
+    def solve(
+        self,
+        alpha: Optional[float] = 0.5,
+        epsilon: Optional[float] = 1e-3,
+        scale_cost: ScaleCost_t = ScaleCost.MEAN,
+        **kwargs: Any,
+    ) -> "LineageProblem":
+        """
+        Solve optimal transport problems defined in :class:`moscot.problems.time.LineageProblem`.
+
+        Parameters
+        ----------
+        %(alpha)s
+        %(epsilon)s
+        %(scale_cost)s
+
+        Returns
+        -------
+        :class:`moscot.problems.space.AlignmentProblem`
+        """
+        scale_cost = ScaleCost(scale_cost) if isinstance(scale_cost, ScaleCost) else scale_cost
+        return super().solve(alpha=alpha, epsilon=epsilon, scale_cost=scale_cost, **kwargs)  # type:ignore[return-value]
