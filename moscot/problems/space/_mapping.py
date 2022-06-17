@@ -33,7 +33,7 @@ class MappingProblem(CompoundProblem[K, OTProblem], SpatialMappingMixin[K, OTPro
 
     Examples
     --------
-    See notebook TODO(@giovp) LINK NOTEBOOK for how to use it
+    See notebook TODO(@giovp) LINK NOTEBOOK for how to use it.
     """
 
     def __init__(self, adata_sc: AnnData, adata_sp: AnnData, **kwargs: Any):
@@ -95,15 +95,15 @@ class MappingProblem(CompoundProblem[K, OTProblem], SpatialMappingMixin[K, OTPro
             List of shared features to be used for the linear problem. If None, it defaults to the intersection
             between ``adata_sc`` and ``adata_sp``. If an empty list is pass, it defines a quadratic problem.
         joint_attr
-            Parameter defining how to allocate the data needed to compute the transport maps.
-            If None, ``var_names`` is not an empty list, and ``adata_sc`` and ``adata_sp``
+            Parameter defining how to allocate the data needed to compute the transport maps:
+            - If None, ``var_names`` is not an empty list, and ``adata_sc`` and ``adata_sp``
             share some genes in common, the corresponding PCA space is computed.
-            If `joint_attr` is a dictionary the dictionary is supposed to contain the attribute of
-            :attr:`anndata.AnnData` as a key and the corresponding attribute as a value.
+            - If `joint_attr` is a dictionary the dictionary is supposed to contain the attribute of
+            :class:`anndata.AnnData` as a key and the corresponding attribute as a value.
 
         Returns
         -------
-        :class:`moscot.problems.space.MappingProblem`
+        :class:`moscot.problems.space.MappingProblem`.
         """
         x = {"attr": "obsm", "key": spatial_key} if isinstance(spatial_key, str) else spatial_key
         y = {"attr": "obsm", "key": sc_attr} if isinstance(sc_attr, str) else sc_attr
@@ -137,7 +137,7 @@ class MappingProblem(CompoundProblem[K, OTProblem], SpatialMappingMixin[K, OTPro
 
         Returns
         -------
-        :class:`moscot.problems.space.MappingProblem`
+        :class:`moscot.problems.space.MappingProblem`.
         """
         scale_cost = ScaleCost(scale_cost) if isinstance(scale_cost, ScaleCost) else scale_cost
         return super().solve(alpha=alpha, epsilon=epsilon, scale_cost=scale_cost, **kwargs)  # type:ignore[return-value]

@@ -46,25 +46,24 @@ class AlignmentProblem(CompoundProblem[K, B], SpatialAlignmentMixin[K, B]):
 
         Parameters
         ----------
-        %(spatial_key)s
         %(batch_key)s
+        %(spatial_key)s
 
         joint_attr
             Parameter defining how to allocate the data needed to compute the transport maps.
-            If None, ``var_names`` is not an empty list, and ``adata_sc`` and ``adata_sp``
-            share some genes in common, the corresponding PCA space is computed.
-            If `joint_attr` is a dictionary the dictionary is supposed to contain the attribute of
-            :attr:`anndata.AnnData` as a key and the corresponding attribute as a value.
+            - If None, the corresponding PCA space is computed.
+            - If `joint_attr` is a dictionary the dictionary is supposed to contain the attribute of
+            :class:`anndata.AnnData` as a key and the corresponding attribute as a value.
 
         %(policy)s
 
         reference
             Only used if `policy="star"`, it's the value for reference stored
-            in :attr:`adata.obs```["batch_key"]``.
+            in :attr:`adata.obs` ``["batch_key"]``.
 
         Returns
         -------
-        :class:`moscot.problems.space.MappingProblem`
+        :class:`moscot.problems.space.MappingProblem`.
         """
         self.spatial_key = spatial_key
         policy = Policy(policy)  # type: ignore[assignment]
@@ -96,7 +95,7 @@ class AlignmentProblem(CompoundProblem[K, B], SpatialAlignmentMixin[K, B]):
 
         Returns
         -------
-        :class:`moscot.problems.space.AlignmentProblem`
+        :class:`moscot.problems.space.AlignmentProblem`.
         """
         scale_cost = ScaleCost(scale_cost) if isinstance(scale_cost, ScaleCost) else scale_cost
         return super().solve(alpha=alpha, epsilon=epsilon, scale_cost=scale_cost, **kwargs)  # type:ignore[return-value]

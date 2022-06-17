@@ -44,31 +44,31 @@ class SpatioTemporalProblem(
         time_key
             Key in :attr:`anndata.AnnData.obs` which defines the time point each cell belongs to. It is supposed to be
             of numerical data type.
-        spatial_key
-            Specifies the way the lineage information is processed. TODO: Specify.
+        %(spatial_key)s
         joint_attr
-            Parameter defining how to allocate the data needed to compute the transport maps. If None, the data is read
-            from :attr:`anndata.AnnData.X` and for each time point the corresponding PCA space is computed.
-            If `joint_attr` is a string the data is assumed to be found in :attr:`anndata.AnnData.obsm`.
-            If `joint_attr` is a dictionary the dictionary is supposed to contain the attribute of
-            :attr:`anndata.AnnData` as a key and the corresponding attribute as a value.
+            Parameter defining how to allocate the data needed to compute the transport maps:
+            - If None, the data is read from :attr:`anndata.AnnData.X` and
+            for each time point the corresponding PCA space is computed.
+            - If `joint_attr` is a string the data is assumed to be found in :attr:`anndata.AnnData.obsm`.
+            - If `joint_attr` is a dictionary the dictionary is supposed to contain the attribute of
+            :class:`anndata.AnnData` as a key and the corresponding attribute as a value.
 
         %(policy)s
         %(marginal_kwargs)s
         %(a)s
         %(b)s
         subset
-            subset of `anndata.AnnData.obs` [key] values of which the policy is to be applied to
+            subset of :attr:`anndata.AnnData.obs` ``[{key}]`` values of which the policy is to be applied to.
         %(reference)s
         %(axis)s
         %(callback)s
         %(callback_kwargs)s
         kwargs
-            Keyword arguments for :meth:`moscot.problems.BaseCompoundProblem._create_problems`
+            Keyword arguments for :meth:`moscot.problems.BaseCompoundProblem._create_problems`.
 
         Returns
         -------
-        :class:`moscot.problems.spatio_temporal.SpatioTemporalProblem`
+        :class:`moscot.problems.spatio_temporal.SpatioTemporalProblem`.
 
         Raises
         ------
@@ -81,7 +81,7 @@ class SpatioTemporalProblem(
         ValueError
             If :attr:`adata.obsp` has no attribute `cost_matrices`.
         TypeError
-            If `joint_attr` is not None, not a :class:`str` and not a :class:`dict`
+            If `joint_attr` is not None, not a :class:`str` and not a :class:`dict`.
 
         Notes
         -----
@@ -127,7 +127,7 @@ class SpatioTemporalProblem(
 
         Returns
         -------
-        :class:`moscot.problems.space.SpatioTemporalProblem`
+        :class:`moscot.problems.space.SpatioTemporalProblem`.
         """
         scale_cost = ScaleCost(scale_cost) if isinstance(scale_cost, ScaleCost) else scale_cost
         return super().solve(alpha=alpha, epsilon=epsilon, scale_cost=scale_cost, **kwargs)
