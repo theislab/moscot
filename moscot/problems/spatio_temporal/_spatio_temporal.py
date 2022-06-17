@@ -5,10 +5,13 @@ from typing_extensions import Literal
 
 from moscot._docs import d
 from moscot._types import Numeric_t
+from moscot._constants._key import Key
+from moscot._constants._constants import Policy, ScaleCost
 from moscot.problems.time._mixins import TemporalMixin
 from moscot.problems.space._mixins import SpatialAlignmentMixin
 from moscot.problems.space._alignment import AlignmentProblem
 from moscot.problems.base._birth_death import BirthDeathMixin, BirthDeathProblem
+from moscot.problems.base._base_problem import ScaleCost_t
 
 
 @d.dedent
@@ -24,9 +27,9 @@ class SpatioTemporalProblem(
     def prepare(
         self,
         time_key: str,
-        spatial_key: str = "spatial",
+        spatial_key: str = Key.obsm.spatial,
         joint_attr: Optional[Mapping[str, Any]] = MappingProxyType({"x_attr": "X", "y_attr": "X"}),
-        policy: Literal["sequential", "triu", "tril", "explicit"] = "sequential",
+        policy: Literal[Policy.SEQUENTIAL, Policy.TRIL, Policy.TRIU, Policy.EXPLICIT] = Policy.SEQUENTIAL,
         marginal_kwargs: Mapping[str, Any] = MappingProxyType({}),
         **kwargs: Any,
     ) -> "SpatioTemporalProblem":
@@ -86,7 +89,7 @@ class SpatioTemporalProblem(
         """
         # spatial key set in AlignmentProblem
         self.temporal_key = time_key
-
+        policy = Policy(policy)  # type: ignore[assignment]
         marginal_kwargs = dict(marginal_kwargs)
         if self.proliferation_key is not None:
             marginal_kwargs["proliferation_key"] = self.proliferation_key
@@ -105,6 +108,30 @@ class SpatioTemporalProblem(
             **kwargs,
         )
 
+    @d.dedent
+    def solve(
+        self,
+        alpha: Optional[float] = 0.5,
+        epsilon: Optional[float] = 1e-3,
+        scale_cost: ScaleCost_t = ScaleCost.MEAN,
+        **kwargs: Any,
+    ) -> "SpatioTemporalProblem":
+        """
+        Solve optimal transport problems defined in :class:`moscot.problems.space.SpatioTemporalProblem`.
+
+        Parameters
+        ----------
+        %(alpha)s
+        %(epsilon)s
+        %(scale_cost)s
+
+        Returns
+        -------
+        :class:`moscot.problems.space.SpatioTemporalProblem`
+        """
+        scale_cost = ScaleCost(scale_cost) if isinstance(scale_cost, ScaleCost) else scale_cost
+        return super().solve(alpha=alpha, epsilon=epsilon, scale_cost=scale_cost, **kwargs)
+
     @property
-    def _valid_policies(self) -> Tuple[str, ...]:
-        return "sequential", "triu", "tril", "explicit"
+    def _valid_policies(self) -> Tuple[Policy, ...]:
+        return Policy.SEQUENTIAL, Policy.TRIL, Policy.TRIU, Policy.EXPLICIT

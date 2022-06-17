@@ -17,6 +17,7 @@ from moscot.problems._utils import wrap_solve, wrap_prepare, require_solution
 from moscot.solvers._output import BaseSolverOutput
 from moscot.problems._anndata import AnnDataPointer
 from moscot.solvers._base_solver import BaseSolver, ProblemKind
+from moscot._constants._constants import ScaleCost
 from moscot.solvers._tagged_array import Tag, TaggedArray
 
 __all__ = ["BaseProblem", "OTProblem", "ProblemKind"]
@@ -26,6 +27,16 @@ class ProblemStage(str, Enum):
     INITIALIZED = "initialized"
     PREPARED = "prepared"
     SOLVED = "solved"
+
+
+ScaleCost_t = Optional[
+    Union[
+        float,
+        Literal[
+            ScaleCost.MAX_COST, ScaleCost.MAX_BOUND, ScaleCost.MAX_NORM, ScaleCost.MEAN, ScaleCost.MAX, ScaleCost.MEDIAN
+        ],
+    ]
+]
 
 
 @d.get_sections(base="BaseProblem", sections=["Parameters", "Raises"])
@@ -95,7 +106,7 @@ class BaseProblem(ABC):
         return data / total if normalize else data
 
     @property
-    def adata(self) -> AnnData:
+    def adata(self) -> AnnData:  # noqa: D102
         return self._adata
 
     @property
@@ -122,7 +133,7 @@ class OTProblem(BaseProblem):
 
     Raises
     ------
-     %(BaseProblem.raises)s
+    %(BaseProblem.raises)s
     """
 
     def __init__(
@@ -174,6 +185,7 @@ class OTProblem(BaseProblem):
         b: Optional[Union[bool, str, ArrayLike]] = None,
         **kwargs: Any,
     ) -> "OTProblem":
+        """Prepare method."""
         self._x = self._y = self._xy = self._solution = None
         # TODO(michalk8): handle again TaggedArray?
         # TODO(michalk8): better dispatch
@@ -205,13 +217,14 @@ class OTProblem(BaseProblem):
         epsilon: Optional[float] = 1e-2,
         alpha: Optional[float] = 0.5,
         rank: int = -1,
-        scale_cost: Optional[Union[float, str]] = None,
+        scale_cost: ScaleCost_t = None,
         online: Optional[int] = None,
         tau_a: float = 1.0,
         tau_b: float = 1.0,
         prepare_kwargs: Mapping[str, Any] = MappingProxyType({}),
         **kwargs: Any,
     ) -> "OTProblem":
+        """Solve method."""
         if self._problem_kind is None:
             raise RuntimeError("Run .prepare() first.")
         if self._problem_kind in (ProblemKind.QUAD, ProblemKind.QUAD_FUSED):

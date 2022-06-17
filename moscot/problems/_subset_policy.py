@@ -12,6 +12,7 @@ import numpy as np
 from anndata import AnnData
 
 from moscot._types import ArrayLike
+from moscot._constants._constants import Policy
 
 Value_t = Tuple[ArrayLike, ArrayLike]
 Axis_t = Literal["obs", "var"]
@@ -114,21 +115,21 @@ class SubsetPolicy(Generic[K]):
     @classmethod
     def create(
         cls,
-        kind: Policy_t,
+        kind: Policy,
         adata: Union[AnnData, pd.Series, pd.Categorical],
         **kwargs: Any,
     ) -> "SubsetPolicy[K]":
-        if kind == "sequential":
+        if kind == Policy.SEQUENTIAL:
             return SequentialPolicy(adata, **kwargs)
-        if kind == "star":
+        if kind == Policy.STAR:
             return StarPolicy(adata, **kwargs)
-        if kind == "external_star":
+        if kind == Policy.EXTERNAL_STAR:
             return ExternalStarPolicy(adata, **kwargs)
-        if kind == "triu":
+        if kind == Policy.TRIU:
             return TriangularPolicy(adata, **kwargs, upper=True)
-        if kind == "tril":
+        if kind == Policy.TRIL:
             return TriangularPolicy(adata, **kwargs, upper=False)
-        if kind == "explicit":
+        if kind == Policy.EXPLICIT:
             return ExplicitPolicy(adata, **kwargs)
 
         raise NotImplementedError(kind)

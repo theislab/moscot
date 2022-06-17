@@ -27,10 +27,10 @@ from moscot._types import ArrayLike
 from moscot.problems._utils import require_prepare
 from moscot.solvers._output import BaseSolverOutput
 from moscot.problems.base._utils import attributedispatch
+from moscot._constants._constants import Policy
 from moscot.solvers._tagged_array import Tag, TaggedArray
 from moscot.problems._subset_policy import (
     Axis_t,
-    Policy_t,
     StarPolicy,
     DummyPolicy,
     SubsetPolicy,
@@ -80,7 +80,7 @@ class BaseCompoundProblem(BaseProblem, ABC, Generic[K, B]):
     @abstractmethod
     def _create_policy(
         self,
-        policy: Policy_t,
+        policy: Policy,
         **kwargs: Any,
     ) -> SubsetPolicy[K]:
         pass
@@ -153,7 +153,7 @@ class BaseCompoundProblem(BaseProblem, ABC, Generic[K, B]):
     def prepare(
         self,
         key: str,
-        policy: Policy_t = "sequential",
+        policy: Policy = Policy.SEQUENTIAL,
         subset: Optional[Sequence[Tuple[K, K]]] = None,
         reference: Optional[Any] = None,
         axis: Axis_t = "obs",
@@ -170,7 +170,7 @@ class BaseCompoundProblem(BaseProblem, ABC, Generic[K, B]):
         policy
             Defines which transport maps to compute given different cell distributions.
         subset
-            Subset of `anndata.AnnData.obs` ``['{key}']`` values of which the policy is to be applied to.
+            Subset of :attr:`anndata.AnnData.obs` ``['{key}']`` values of which the policy is to be applied to.
         %(reference)s
         %(axis)s
         %(callback)s
@@ -178,11 +178,11 @@ class BaseCompoundProblem(BaseProblem, ABC, Generic[K, B]):
         %(a)s
         %(b)s
         kwargs
-            keyword arguments for
+            keyword arguments for something.
 
         Returns
         -------
-        :class:moscot.problems.CompoundProblem
+        :class:`moscot.problems.CompoundProblem`.
         """
         if self._valid_policies and policy not in self._valid_policies:
             raise ValueError(f"TODO: Invalid policy `{policy}`")
@@ -195,7 +195,7 @@ class BaseCompoundProblem(BaseProblem, ABC, Generic[K, B]):
         elif isinstance(policy, StarPolicy):
             policy = policy(reference=reference)
         else:
-            policy = policy()
+            policy = policy()  # type: ignore[assignment]
 
         # TODO(michalk8): manager must be currently instantiated first, since `_create_problems` accesses the policy
         # when refactoring the callback, consider changing this
@@ -215,12 +215,16 @@ class BaseCompoundProblem(BaseProblem, ABC, Generic[K, B]):
         Parameters
         ----------
         stage
-            TODO.
+            Some stage TODO.
         kwargs
-            Keyword arguments for one of
-                - :meth:`moscot.problems.OTProblem.solve`
-                - :meth:`moscot.problems.MultiMarginalProblem.solve`
-                - :meth:`moscot.problems.BirthDeathProblem.solve`
+            Keyword arguments for one of:
+                - :meth:`moscot.problems.OTProblem.solve`.
+                - :meth:`moscot.problems.MultiMarginalProblem.solve`.
+                - :meth:`moscot.problems.BirthDeathProblem.solve`.
+
+        Returns
+        -------
+        :class:`moscot.problems.CompoundProblem`.
         """
         if TYPE_CHECKING:
             assert isinstance(self._problem_manager, ProblemManager)
@@ -296,7 +300,9 @@ class BaseCompoundProblem(BaseProblem, ABC, Generic[K, B]):
     @d.dedent
     def push(self, *args: Any, **kwargs: Any) -> ApplyOutput_t[K]:
         """
-        Push mass from `start` to `end`. TODO: verify.
+        Push mass from `start` to `end`.
+
+        TODO: verify.
 
         Parameters
         ----------
@@ -308,7 +314,7 @@ class BaseCompoundProblem(BaseProblem, ABC, Generic[K, B]):
             all intermediate step results are returned, too.
         %(scale_by_marginals)s
         kwargs
-            keyword arguments for :meth:`moscot.problems.CompoundProblem._apply`
+            keyword arguments for :meth:`moscot.problems.CompoundProblem._apply`.
 
         Returns
         -------
@@ -320,7 +326,9 @@ class BaseCompoundProblem(BaseProblem, ABC, Generic[K, B]):
     @d.dedent
     def pull(self, *args: Any, **kwargs: Any) -> ApplyOutput_t[K]:
         """
-        Pull mass from `end` to `start`. TODO: expose kwargs.
+        Pull mass from `end` to `start`.
+
+        TODO: expose kwargs.
 
         Parameters
         ----------
@@ -421,7 +429,7 @@ class CompoundProblem(BaseCompoundProblem[K, B], ABC):
 
     def _create_policy(
         self,
-        policy: Policy_t,
+        policy: Policy,
         key: Optional[str] = None,
         axis: Axis_t = "obs",
         **_: Any,
