@@ -59,3 +59,5 @@ def wrap_solve(
     _ = wrapped(*args, **kwargs)
     instance._stage = ProblemStage.SOLVED
     return instance
+
+)
