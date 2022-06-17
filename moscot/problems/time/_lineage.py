@@ -125,6 +125,28 @@ class TemporalProblem(
             **kwargs,
         )
 
+    @d.dedent
+    def solve(
+        self,
+        epsilon: Optional[float] = 1e-3,
+        scale_cost: ScaleCost_t = ScaleCost.MEAN,
+        **kwargs: Any,
+    ) -> "TemporalProblem":
+        """
+        Solve optimal transport problems defined in :class:`moscot.problems.time.TemporalProblem`.
+
+        Parameters
+        ----------
+        %(epsilon)s
+        %(scale_cost)s
+
+        Returns
+        -------
+        :class:`moscot.problems.time.TemporalProblem`
+        """
+        scale_cost = ScaleCost(scale_cost) if isinstance(scale_cost, ScaleCost) else scale_cost
+        return super().solve(epsilon=epsilon, scale_cost=scale_cost, **kwargs)  # type:ignore[return-value]
+
     @property
     def growth_rates(self) -> Optional[pd.DataFrame]:
         """
@@ -342,7 +364,7 @@ class LineageProblem(TemporalProblem):
 
         Returns
         -------
-        :class:`moscot.problems.space.AlignmentProblem`
+        :class:`moscot.problems.time.TemporalProblem`
         """
         scale_cost = ScaleCost(scale_cost) if isinstance(scale_cost, ScaleCost) else scale_cost
-        return super().solve(alpha=alpha, epsilon=epsilon, scale_cost=scale_cost, **kwargs)  # type:ignore[return-value]
+        return super().solve(alpha=alpha, epsilon=epsilon, scale_cost=scale_cost, **kwargs)
