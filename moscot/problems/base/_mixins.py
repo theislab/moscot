@@ -71,7 +71,61 @@ class AnalysisMixin(Generic[K, B]):
     def __init__(self, *args: Any, **kwargs: Any):
         super().__init__(*args, **kwargs)
 
-    def _cell_transition(
+    def _cell_transition_not_online(
+        self: AnalysisMixinProtocol[K, B],
+        key: str,
+        key_source: K,
+        key_target: K,
+        source_cells: Union[str, Mapping[str, Sequence[Any]]],
+        target_cells: Union[str, Mapping[str, Sequence[Any]]],
+        forward: bool = False,  # return value will be row-stochastic if forward=True, else column-stochastic
+        aggregation: Literal["group", "cell"] = "group",
+    ) -> pd.DataFrame:
+        _split_mass = aggregation == "cell"
+        _source_cells_key, _source_cells_categories = self._validate_args_cell_transition(source_cells)
+        _target_cells_key, _target_cells_categories = self._validate_args_cell_transition(target_cells)
+        _source_cell_indices = self.adata[self.adata.obs[key]==key_source].obs.index
+        _target_cell_indices = self.adata[self.adata.obs[key]==key_target].obs.index
+
+        transition_matrix_indexed = pd.DataFrame(
+            index=_source_cell_indices, columns=_target_cell_indices, data=self.solutions[key_source, key_target].transport_matrix
+        )
+        if forward:
+            df_res = pd.DataFrame(index=_source_cell_indices)
+            for ct in _target_cells_categories:
+                df_res[ct] = transition_matrix_indexed[_target_cells_categories].sum(axis=1)
+            if aggregation=="cell":
+                return df_res.div(df_res.sum(axis=1), axis=0)
+            df_res["source_cells_categories"] = self.adata[self.adata.obs[key]==key_source].obs[_source_cells_key]
+            unnormalized_tm = df_res.groupby("source_cells_categories").sum()
+            return unnormalized_tm.div(unnormalized_tm.sum(axis=1), axis=0)
+
+        df_res = pd.DataFrame(index=_source_cells)
+        for ct in _source_cells:
+            df_res.loc[ct, :] = transition_matrix_indexed[_target_cells_categories].sum(axis=0)
+        if aggregation=="cell":
+            return df_res.div(df_res.sum(axis=0), axis=1)
+        df_res["target_cells_categories"] = self.adata[self.adata.obs[key]==key_target].obs[_target_cells_key]
+        unnormalized_tm = df_res.groupby("target_cells_categories", axis=1).sum()
+        return unnormalized_tm.div(unnormalized_tm.sum(axis=0), axis=1)
+        
+        def _cell_transition(
+            self: AnalysisMixinProtocol[K, B],
+            key: str,
+            key_source: K,
+            key_target: K,
+            source_cells: Union[str, Mapping[str, Sequence[Any]]],
+            target_cells: Union[str, Mapping[str, Sequence[Any]]],
+            forward: bool = False,  # return value will be row-stochastic if forward=True, else column-stochastic
+            aggregation: Literal["group", "cell"] = "group",
+            online: bool = False,
+        ) -> pd.DataFrame:
+            if online:
+                return self._cell_transition_online(key, key_source, key_target, source_cells, target_cells, forward, aggregation)
+            return self._cell_transition_not_online(key, key_source, key_target, source_cells, target_cells, forward, aggregation)
+            
+
+    def _cell_transition_online(
         self: AnalysisMixinProtocol[K, B],
         key: str,
         key_source: K,

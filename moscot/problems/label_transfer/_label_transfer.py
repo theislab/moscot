@@ -8,8 +8,8 @@ from moscot.problems.base._compound_problem import B, K, CompoundProblem
 from moscot.problems.label_transfer._mixins import LabelMixin
 
 
-class LabelProblem(LabelMixin[K, OTProblem], CompoundProblem[Numeric_t, BirthDeathProblem]):
-    def prepare(
+class LabelProblem(LabelMixin[K, OTProblem], CompoundProblem[K, OTProblem]):
+    def prepare(  # type: ignore[override]
         self,
         batch_key: str,
         labelled_batch: Any,  # TODO: specify
@@ -18,7 +18,7 @@ class LabelProblem(LabelMixin[K, OTProblem], CompoundProblem[Numeric_t, BirthDea
         GW_attr: Optional[Union[str, Mapping[str, Any]]] = None,
         marginal_kwargs: Mapping[str, Any] = MappingProxyType({}),
         **kwargs: Any,
-    ) -> "LabelProblem":
+    ) -> "LabelProblem[K]":
         if self.adata.obs[batch_key].nunique() != 2:
             raise ValueError("TODO: Samples must correspond exactly to 2 batches")
         if labelled_batch not in self.adata.obs[batch_key].cat.categories:
