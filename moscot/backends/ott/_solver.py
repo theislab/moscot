@@ -235,7 +235,7 @@ class GWSolver(OTTJaxSolver[QuadraticOutput]):
             solver = GromovWasserstein(**{**self._solver_kwargs, **{"epsilon": epsilon}})
         else:
             solver = GromovWasserstein(**self._solver_kwargs)
-        problem = QuadraticProblem(geom_x, geom_y, geom_xy=None, fused_penalty=0.0, **kwargs)
+        problem = QuadraticProblem(geom_x, geom_y, geom_xy=None, **kwargs)
 
         return ProblemDescription(solver=solver, data=problem, output_type=QuadraticOutput)
 
