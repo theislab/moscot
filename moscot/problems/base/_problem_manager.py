@@ -53,7 +53,7 @@ class ProblemManager(Generic[K, B]):
         if verify_integrity:
             self._verify_shape_integrity()
 
-    def add_problems(self, problems: Dict[Tuple[K, K], Optional[B]], overwrite: bool = True) -> None:
+    def add_problems(self, problems: Dict[Tuple[K, K], B], overwrite: bool = True) -> None:
         """Add problems."""
         for key, prob in problems.items():
             self._add_problem(key, prob, overwrite=overwrite, verify_integrity=False)
@@ -65,7 +65,7 @@ class ProblemManager(Generic[K, B]):
         self._policy.remove_node(key)
 
     def get_problems(
-        self, stage: Optional[Union[ProblemStage, Tuple[ProblemStage, ...]]] = None
+        self, stage: Union[ProblemStage, Tuple[ProblemStage, ...]] = (ProblemStage.PREPARED, ProblemStage.SOLVED)
     ) -> Dict[Tuple[K, K], B]:
         """Get problems."""
         if stage is None:
@@ -87,7 +87,7 @@ class ProblemManager(Generic[K, B]):
     ) -> B:
         src_mask = self._policy.create_mask(key[0], allow_empty=False)
         tgt_mask = self._policy.create_mask(key[1], allow_empty=False)
-        return self._compound_problem._create_problem(src_mask, tgt_mask, **init_kwargs).prepare(**kwargs)  # type: ignore[return-value]  # noqa: E501
+        return self._compound_problem._create_problem(src_mask, tgt_mask, **init_kwargs).prepare(**kwargs)
 
     def _verify_shape_integrity(self) -> None:
         dims = defaultdict(set)

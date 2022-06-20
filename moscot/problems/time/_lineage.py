@@ -6,10 +6,14 @@ import pandas as pd
 
 import numpy as np
 
+from anndata import AnnData
+
 from moscot._docs import d
 from moscot._types import Numeric_t
+from moscot._constants._constants import Policy, ScaleCost
 from moscot.problems.time._mixins import TemporalMixin
 from moscot.problems.base._birth_death import BirthDeathMixin, BirthDeathProblem
+from moscot.problems.base._base_problem import ScaleCost_t
 from moscot.problems.base._compound_problem import B, CompoundProblem
 
 
@@ -35,15 +39,18 @@ class TemporalProblem(
     See notebook TODO(@MUCDK) LINK NOTEBOOK for how to use it
     """
 
+    def __init__(self, adata: AnnData):
+        super().__init__(adata)
+
     @d.dedent
-    def _prepare(
+    def prepare(
         self,
         time_key: str,
         joint_attr: Optional[Union[str, Mapping[str, Any]]] = None,
-        policy: Literal["sequential", "triu", "tril", "explicit"] = "sequential",
+        policy: Literal[Policy.SEQUENTIAL, Policy.TRIL, Policy.TRIU, Policy.EXPLICIT] = Policy.SEQUENTIAL,
         marginal_kwargs: Mapping[str, Any] = MappingProxyType({}),
         **kwargs: Any,
-    ) -> None:
+    ) -> "TemporalProblem":
         """
         Prepare the :class:`moscot.problems.time.TemporalProblem`.
 
@@ -83,6 +90,7 @@ class TemporalProblem(
         If `a` and `b` are provided `marginal_kwargs` are ignored.
         """
         self.temporal_key = time_key
+        policy = Policy(policy)  # type: ignore[assignment]
         if joint_attr is None:
             if "callback" not in kwargs:
                 kwargs["callback"] = "local-pca"
@@ -110,12 +118,34 @@ class TemporalProblem(
         if "b" not in kwargs:
             kwargs["b"] = self.proliferation_key is not None or self.apoptosis_key is not None
 
-        return super()._prepare(
+        return super().prepare(
             key=time_key,
             policy=policy,
             marginal_kwargs=marginal_kwargs,
             **kwargs,
         )
+
+    @d.dedent
+    def solve(
+        self,
+        epsilon: Optional[float] = 1e-3,
+        scale_cost: ScaleCost_t = ScaleCost.MEAN,
+        **kwargs: Any,
+    ) -> "TemporalProblem":
+        """
+        Solve optimal transport problems defined in :class:`moscot.problems.time.TemporalProblem`.
+
+        Parameters
+        ----------
+        %(epsilon)s
+        %(scale_cost)s
+
+        Returns
+        -------
+        :class:`moscot.problems.time.TemporalProblem`
+        """
+        scale_cost = ScaleCost(scale_cost) if isinstance(scale_cost, ScaleCost) else scale_cost
+        return super().solve(epsilon=epsilon, scale_cost=scale_cost, **kwargs)  # type:ignore[return-value]
 
     @property
     def growth_rates(self) -> Optional[pd.DataFrame]:
@@ -211,7 +241,7 @@ class TemporalProblem(
 
     @property
     def _valid_policies(self) -> Tuple[str, ...]:
-        return "sequential", "triu", "tril", "explicit"
+        return Policy.SEQUENTIAL, Policy.TRIL, Policy.TRIU, Policy.EXPLICIT
 
 
 @d.dedent
@@ -233,14 +263,14 @@ class LineageProblem(TemporalProblem):
     """
 
     @d.dedent
-    def _prepare(
+    def prepare(
         self,
         time_key: str,
         lineage_attr: Mapping[str, Any] = MappingProxyType({}),
         joint_attr: Optional[Union[str, Mapping[str, Any]]] = None,
-        policy: Literal["sequential", "triu", "tril", "explicit"] = "sequential",
+        policy: Literal[Policy.SEQUENTIAL, Policy.TRIL, Policy.TRIU, Policy.EXPLICIT] = Policy.SEQUENTIAL,
         **kwargs: Any,
-    ) -> None:
+    ) -> "LineageProblem":
         """
         Prepare the :class:`moscot.problems.time.LineageProblem`.
 
@@ -291,13 +321,12 @@ class LineageProblem(TemporalProblem):
         -----
         If `a` and `b` are provided `marginal_kwargs` are ignored.
         """
-        # TODO(michalk8): use and
-        if not len(lineage_attr):
-            if "cost_matrices" not in self.adata.obsp:
-                raise ValueError(
-                    "TODO: default location for quadratic loss is `adata.obsp[`cost_matrices`]` \
+        policy = Policy(policy)  # type: ignore[assignment]
+        if not len(lineage_attr) and ("cost_matrices" not in self.adata.obsp):
+            raise ValueError(
+                "TODO: default location for quadratic loss is `adata.obsp[`cost_matrices`]` \
                         but adata has no key `cost_matrices` in `obsp`."
-                )
+            )
         # TODO(michalk8): refactor me
         lineage_attr = dict(lineage_attr)
         lineage_attr.setdefault("attr", "obsp")
@@ -307,7 +336,7 @@ class LineageProblem(TemporalProblem):
         lineage_attr.setdefault("loss_kwargs", {})
         x = y = lineage_attr
 
-        return super()._prepare(
+        return super().prepare(
             time_key,
             joint_attr=joint_attr,
             x=x,
@@ -315,3 +344,27 @@ class LineageProblem(TemporalProblem):
             policy=policy,
             **kwargs,
         )
+
+    @d.dedent
+    def solve(
+        self,
+        alpha: Optional[float] = 0.5,
+        epsilon: Optional[float] = 1e-3,
+        scale_cost: ScaleCost_t = ScaleCost.MEAN,
+        **kwargs: Any,
+    ) -> "LineageProblem":
+        """
+        Solve optimal transport problems defined in :class:`moscot.problems.time.LineageProblem`.
+
+        Parameters
+        ----------
+        %(alpha)s
+        %(epsilon)s
+        %(scale_cost)s
+
+        Returns
+        -------
+        :class:`moscot.problems.time.TemporalProblem`
+        """
+        scale_cost = ScaleCost(scale_cost) if isinstance(scale_cost, ScaleCost) else scale_cost
+        return super().solve(alpha=alpha, epsilon=epsilon, scale_cost=scale_cost, **kwargs)

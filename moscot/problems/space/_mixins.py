@@ -13,8 +13,10 @@ import numpy as np
 
 from anndata import AnnData
 
+from moscot._docs import d
 from moscot._types import ArrayLike
 from moscot.problems.base import AnalysisMixin  # type: ignore[attr-defined]
+from moscot._constants._constants import CorrMethod, AlignmentMode
 from moscot.problems.base._mixins import AnalysisMixinProtocol
 from moscot.problems._subset_policy import StarPolicy
 from moscot.problems.base._compound_problem import B, K
@@ -105,13 +107,31 @@ class SpatialAlignmentMixin(AnalysisMixin[K, B]):
             return transport_maps, transport_metadata
         return transport_maps, None
 
+    @d.dedent
     def align(
         self: SpatialAlignmentMixinProtocol[K, B],
         reference: K,
-        mode: Literal["warp", "affine"] = "warp",
+        mode: Literal["warp", "affine"] = AlignmentMode.WARP,  # type: ignore[assignment]
         inplace: bool = True,
     ) -> Optional[Union[ArrayLike, Tuple[ArrayLike, Optional[Dict[K, Optional[ArrayLike]]]]]]:
-        """Alignment method."""
+        """
+        Align spatial data.
+
+        Parameters
+        ----------
+        reference
+            Reference key.
+        mode
+            Alignment mode:
+            - "warp": warp the data to the reference.
+            - "affine": align the data to the reference using affine transformation.
+
+        %(inplace)s
+
+        Returns
+        -------
+        %(alignment_mixin_returns)s
+        """
         if reference not in self._policy._cat:
             raise ValueError(f"`reference: {reference}` not in policy categories: {self._policy._cat}.")
         if isinstance(self._policy, StarPolicy):
@@ -119,7 +139,7 @@ class SpatialAlignmentMixin(AnalysisMixin[K, B]):
                 raise ValueError(f"Invalid `reference: {reference}` for `policy='star'`.")
         aligned_maps, aligned_metadata = self._interpolate_scheme(reference=reference, mode=mode)
         aligned_basis = np.vstack([aligned_maps[k] for k in self._policy._cat])
-
+        mode = AlignmentMode(mode)  # type: ignore[assignment]
         if mode == "affine":
             if not inplace:
                 return aligned_basis, aligned_metadata
@@ -171,12 +191,28 @@ class SpatialMappingMixin(AnalysisMixin[K, B]):
     def correlate(
         self: SpatialMappingMixinProtocol[K, B],
         var_names: Optional[List[str]] = None,
-        corr_method: Literal["pearson", "spearman"] = "pearson",
+        corr_method: Literal["pearson", "spearman"] = CorrMethod.PEARSON,  # type: ignore[assignment]
     ) -> Mapping[Tuple[K, K], pd.Series]:
-        """Calculate correlation between true and predicted gexp in space."""
+        """
+        Calculate correlation between true and predicted gene expression.
+
+        Parameters
+        ----------
+        var_names
+            List of variable names.
+        corr_method
+            Correlation method:
+            - "pearson": Pearson correlation.
+            - "spearman": Spearman correlation
+
+        Returns
+        -------
+        :class:`pandas.DataFrame` with correlation results.
+        """
         var_sc = self._filter_vars(var_names)
         if var_sc is None or not len(var_sc):
             raise ValueError("No overlapping `var_names` between ` adata_sc` and `adata_sp`.")
+        corr_method = CorrMethod(corr_method)  # type: ignore[assignment]
         cor = pearsonr if corr_method == "pearson" else spearmanr
         corr_dic = {}
         gexp_sc = self.adata_sc[:, var_sc].X if not issparse(self.adata_sc.X) else self.adata_sc[:, var_sc].X.A
@@ -197,7 +233,17 @@ class SpatialMappingMixin(AnalysisMixin[K, B]):
         return corr_dic
 
     def impute(self: SpatialMappingMixinProtocol[K, B]) -> AnnData:
-        """Return imputation of spatial expression of given genes."""
+        """
+        Impute expression of specific genes.
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        :class:`anndata.AnnData` with imputed gene expression values.
+        """
         gexp_sc = self.adata_sc.X if not issparse(self.adata_sc.X) else self.adata_sc.X.A
         pred_list = [val.pull(gexp_sc, scale_by_marginals=True) for val in self.solutions.values()]
         adata_pred = AnnData(np.nan_to_num(np.vstack(pred_list), nan=0.0, copy=False))

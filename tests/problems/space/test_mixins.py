@@ -21,7 +21,7 @@ SOLUTIONS_PATH_MAPPING = Path(__file__).parent.parent.parent / "data/mapping_sol
 class TestSpatialAlignmentAnalysisMixin:
     def test_analysis(self, adata_space_rotate: AnnData):
         adata_ref = adata_space_rotate.copy()
-        problem = AlignmentProblem(adata=adata_ref).prepare(batch_key="batch").solve(scale_cost=False)
+        problem = AlignmentProblem(adata=adata_ref).prepare(batch_key="batch").solve(epsilon=1e-2)
         categories = adata_space_rotate.obs.batch.cat.categories
 
         for ref in categories:

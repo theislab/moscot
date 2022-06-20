@@ -7,9 +7,11 @@ from anndata import AnnData
 
 from moscot._docs import d
 from moscot._types import ArrayLike
+from moscot._constants._key import Key
+from moscot._constants._constants import Policy, ScaleCost
 from moscot.problems.space._mixins import SpatialMappingMixin
 from moscot.problems._subset_policy import Axis_t, DummyPolicy, ExternalStarPolicy
-from moscot.problems.base._base_problem import OTProblem
+from moscot.problems.base._base_problem import OTProblem, ScaleCost_t
 from moscot.problems.base._compound_problem import B, K, CompoundProblem
 
 __all__ = ["MappingProblem"]
@@ -31,7 +33,7 @@ class MappingProblem(CompoundProblem[K, OTProblem], SpatialMappingMixin[K, OTPro
 
     Examples
     --------
-    See notebook TODO(@giovp) LINK NOTEBOOK for how to use it
+    See notebook TODO(@giovp) LINK NOTEBOOK for how to use it.
     """
 
     def __init__(self, adata_sc: AnnData, adata_sp: AnnData, **kwargs: Any):
@@ -42,7 +44,7 @@ class MappingProblem(CompoundProblem[K, OTProblem], SpatialMappingMixin[K, OTPro
 
     def _create_policy(  # type: ignore[override]
         self,
-        policy: Literal["external_star"] = "external_star",
+        policy: Literal[Policy.EXTERNAL_STAR] = Policy.EXTERNAL_STAR,
         key: Optional[str] = None,
         axis: Axis_t = "obs",
         **kwargs: Any,
@@ -67,15 +69,15 @@ class MappingProblem(CompoundProblem[K, OTProblem], SpatialMappingMixin[K, OTPro
         )
 
     @d.dedent
-    def _prepare(
+    def prepare(
         self,
         sc_attr: Union[str, Mapping[str, Any]],
         batch_key: Optional[str] = None,
-        spatial_key: Union[str, Mapping[str, Any]] = "spatial",
+        spatial_key: Union[str, Mapping[str, Any]] = Key.obsm.spatial,
         var_names: Optional[Sequence[Any]] = None,
         joint_attr: Optional[Mapping[str, Any]] = MappingProxyType({"x_attr": "X", "y_attr": "X"}),
         **kwargs: Any,
-    ) -> None:
+    ) -> "MappingProblem[K]":
         """
         Prepare the :class:`moscot.problems.space.MappingProblem`.
 
@@ -93,15 +95,15 @@ class MappingProblem(CompoundProblem[K, OTProblem], SpatialMappingMixin[K, OTPro
             List of shared features to be used for the linear problem. If None, it defaults to the intersection
             between ``adata_sc`` and ``adata_sp``. If an empty list is pass, it defines a quadratic problem.
         joint_attr
-            Parameter defining how to allocate the data needed to compute the transport maps.
-            If None, ``var_names`` is not an empty list, and ``adata_sc`` and ``adata_sp``
+            Parameter defining how to allocate the data needed to compute the transport maps:
+            - If None, ``var_names`` is not an empty list, and ``adata_sc`` and ``adata_sp``
             share some genes in common, the corresponding PCA space is computed.
-            If `joint_attr` is a dictionary the dictionary is supposed to contain the attribute of
-            :attr:`anndata.AnnData` as a key and the corresponding attribute as a value.
+            - If `joint_attr` is a dictionary the dictionary is supposed to contain the attribute of
+            :class:`anndata.AnnData` as a key and the corresponding attribute as a value.
 
         Returns
         -------
-        :class:`moscot.problems.space.MappingProblem`
+        :class:`moscot.problems.space.MappingProblem`.
         """
         x = {"attr": "obsm", "key": spatial_key} if isinstance(spatial_key, str) else spatial_key
         y = {"attr": "obsm", "key": sc_attr} if isinstance(sc_attr, str) else sc_attr
@@ -114,16 +116,16 @@ class MappingProblem(CompoundProblem[K, OTProblem], SpatialMappingMixin[K, OTPro
                 kwargs["callback"] = "local-pca"
                 kwargs["callback_kwargs"] = {**kwargs.get("callback_kwargs", {}), **{"return_linear": True}}
 
-        return super()._prepare(x=x, y=y, policy="external_star", key=batch_key, **kwargs)
+        return super().prepare(x=x, y=y, policy="external_star", key=batch_key, **kwargs)
 
     @d.dedent
-    def _solve(
+    def solve(
         self,
         alpha: Optional[float] = 0.5,
         epsilon: Optional[float] = 1e-3,
-        scale_cost: str = "mean",
+        scale_cost: ScaleCost_t = ScaleCost.MEAN,
         **kwargs: Any,
-    ) -> None:
+    ) -> "MappingProblem[K]":
         """
         Solve optimal transport problems defined in :class:`moscot.problems.space.MappingProblem`.
 
@@ -135,9 +137,10 @@ class MappingProblem(CompoundProblem[K, OTProblem], SpatialMappingMixin[K, OTPro
 
         Returns
         -------
-        :class:`moscot.problems.space.MappingProblem`
+        :class:`moscot.problems.space.MappingProblem`.
         """
-        return super()._solve(alpha=alpha, epsilon=epsilon, scale_cost=scale_cost, **kwargs)
+        scale_cost = ScaleCost(scale_cost) if isinstance(scale_cost, ScaleCost) else scale_cost
+        return super().solve(alpha=alpha, epsilon=epsilon, scale_cost=scale_cost, **kwargs)  # type:ignore[return-value]
 
     @property
     def adata_sc(self) -> AnnData:
@@ -165,4 +168,4 @@ class MappingProblem(CompoundProblem[K, OTProblem], SpatialMappingMixin[K, OTPro
 
     @property
     def _valid_policies(self) -> Tuple[str, ...]:
-        return ("external_star",)
+        return (Policy.EXTERNAL_STAR,)

@@ -78,7 +78,7 @@ class TestAlignmentProblem:
         ap = (
             AlignmentProblem(adata=adata_space_rotate)
             .prepare(batch_key="batch", a=marg_a, b=marg_b)
-            .solve(tau_a=tau_a, tau_b=tau_b, scale_cost=False)
+            .solve(tau_a=tau_a, tau_b=tau_b)
         )
         assert np.all([sol.a is not None for sol in ap.solutions.values()])
         assert np.all([sol.b is not None for sol in ap.solutions.values()])
