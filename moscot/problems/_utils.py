@@ -55,7 +55,7 @@ def wrap_solve(
     from moscot.problems.base._base_problem import ProblemStage
 
     print(instance._stage)
-    if self._stage != ProblemStage.PREPARED or self._stage != ProblemStage.SOLVED:
+    if instance._stage != ProblemStage.PREPARED or instance._stage != ProblemStage.SOLVED:
         raise RuntimeError("TODO")
     _ = wrapped(*args, **kwargs)
     instance._stage = ProblemStage.SOLVED
