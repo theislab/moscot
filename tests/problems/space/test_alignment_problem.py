@@ -57,7 +57,7 @@ class TestAlignmentProblem:
         ap = (
             AlignmentProblem(adata=adata_space_rotate)
             .prepare(batch_key="batch")
-            .solve(epsilon=epsilon, alpha=alpha, rank=rank)
+            .solve(epsilon=epsilon, alpha=alpha, rank=rank, rng_key=42)
         )
         for prob_key in ap:
             assert ap[prob_key].solution.rank == rank

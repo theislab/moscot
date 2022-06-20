@@ -79,7 +79,7 @@ class TestMappingProblem:
         adataref, adatasp = _adata_spatial_split(adata_mapping)
         mp = MappingProblem(adataref, adatasp)
         mp = mp.prepare(batch_key="batch", sc_attr=sc_attr, var_names=var_names)
-        mp = mp.solve(epsilon=epsilon, alpha=alpha, rank=rank)
+        mp = mp.solve(epsilon=epsilon, alpha=alpha, rank=rank, rng_key=42)
 
         for prob_key in mp:
             assert mp[prob_key].solution.rank == rank
