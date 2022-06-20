@@ -68,7 +68,8 @@ data
       (if `forward` is `True`) or target distribution (if `forward` is `False`) of that column.
     - If `data` is a :class:npt.ArrayLike the transport map is applied to `data`.
     - If `data` is a :class:`dict` then the keys should correspond to the tuple defining a single optimal
-      transport map and the value should be one of the two cases described above."""
+      transport map and the value should be one of the two cases described above.
+"""
 
 _subset = """\
 subset
@@ -133,6 +134,18 @@ joint_attr
 _split_mass = """\
 split_mass
     If `True` the operation is applied to each cell individually."""
+_inplace = """\
+inplace
+    Whether to modify :class:`anndata.AnnData` in place or return the result."""
+
+# returns
+_alignment_mixin_returns = """\
+If ``inplace = False``, returns a :class:`numpy.ndarray` with aligned coordinates.
+
+Otherwise, modifies the ``adata`` object with the following key:
+
+    - :attr:`anndata.AnnData.obsm` ``['{key_added}']`` - the above mentioned :class:`numpy.ndarray`.
+"""
 
 RT = TypeVar("RT")  # return type
 O = TypeVar("O")  # noqa: E741, object type
@@ -189,4 +202,6 @@ d = DocstringProcessor(
     key=_key,
     joint_attr=_joint_attr,
     split_mass=_split_mass,
+    inplace=_inplace,
+    alignment_mixin_returns=_alignment_mixin_returns,
 )
