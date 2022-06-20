@@ -1,14 +1,17 @@
-from typing import Any, Dict, Tuple, Union, Optional, Callable, Mapping
+from typing import Any, Dict, Tuple, Union, Mapping, Callable, Optional
 
 from matplotlib.figure import Figure
-import pandas as pd
 import wrapt
+import pandas as pd
+import matplotlib
+
 import numpy as np
 
 import scanpy as sc
-import matplotlib
+
 from moscot.problems.base._mixins import AnalysisMixin
 from moscot.problems.base._compound_problem import B, K
+
 
 @wrapt.decorator
 def check_plot_categories(
@@ -18,7 +21,7 @@ def check_plot_categories(
     clusters_labelled = args[0]
     if "palette" not in kwargs:
         if clusters_labelled in self._palette_dict.keys():
-            palette = self._palette_dict[clusters_labelled]
+            self._palette_dict[clusters_labelled]
         else:
             new_palette = {}
             for cat in self.adata.obs[clusters_labelled].cat.categories:
@@ -33,7 +36,9 @@ def check_plot_categories(
 class LabelMixin(AnalysisMixin[K, B]):
     """Analysis Mixin for all problems involving a temporal dimension."""
 
-    def __init__(self, *args: Any, cmap: matplotlib.colors.ListedColormap = matplotlib.cm.viridis, **kwargs: Any) -> None:
+    def __init__(
+        self, *args: Any, cmap: matplotlib.colors.ListedColormap = matplotlib.cm.viridis, **kwargs: Any
+    ) -> None:
         super().__init__(*args, **kwargs)
         self._batch_key: Optional[str] = None
         self._labelled_batch: Optional[str] = None
@@ -128,14 +133,14 @@ class LabelMixin(AnalysisMixin[K, B]):
                 self.adata.obs[f"{scores_key_added}_{i+1}"] = 0
                 self.adata.obs[f"{scores_key_added}_{i+1}"] = _scores
 
-    #@check_plot_categories
+    # @check_plot_categories
     def plot_predictions(
         self,
         clusters_labelled: str,
         clusters_unlabelled: str,
         top_k: int,
-        labels_key_added: str ="label_prediction",
-        scores_key_added: str ="score_prediction",
+        labels_key_added: str = "label_prediction",
+        scores_key_added: str = "score_prediction",
         label_umap_key: Optional[str] = "X_umap",
         **kwargs: Any,
     ) -> Optional[Figure]:
@@ -157,8 +162,8 @@ class LabelMixin(AnalysisMixin[K, B]):
         scores_pred_keys = [f"{scores_key_added}_{i+1}" for i in range(top_k)]
         self.adata.obs[scores_pred_keys] = self.adata.obs[scores_pred_keys].fillna(0)
         for i in range(top_k):
-            #sc.pl.scatter(self.adata, color=labels_pred_keys[i], basis=label_umap_key, palette=clusters_unlabelled, **kwargs)
-            #sc.pl.scatter(self.adata, color=scores_pred_keys[i], basis=label_umap_key, palette=clusters_unlabelled, **kwargs)
+            # sc.pl.scatter(self.adata, color=labels_pred_keys[i], basis=label_umap_key, palette=clusters_unlabelled, **kwargs)
+            # sc.pl.scatter(self.adata, color=scores_pred_keys[i], basis=label_umap_key, palette=clusters_unlabelled, **kwargs)
             sc.pl.scatter(self.adata, color=labels_pred_keys[i], basis=label_umap_key, **kwargs)
             sc.pl.scatter(self.adata, color=scores_pred_keys[i], basis=label_umap_key, **kwargs)
 
