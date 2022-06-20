@@ -12,9 +12,10 @@ from moscot.problems.base._compound_problem import B, K
 
 @wrapt.decorator
 def check_plot_categories(
-    wrapped: Callable[[Any], Any], instance: "LabelMixin", clusters_labelled: str, args: Tuple[Any, ...], kwargs: Mapping[str, Any]
+    wrapped: Callable[[Any], Any], instance: "LabelMixin", args: Tuple[Any, ...], kwargs: Mapping[str, Any]
 ) -> Any:
     """Check plotting categories."""
+    clusters_labelled = args[0]
     if "palette" not in kwargs:
         if clusters_labelled in self._palette_dict.keys():
             palette = self._palette_dict[clusters_labelled]
@@ -26,7 +27,7 @@ def check_plot_categories(
                 else:
                     new_palette[cat] = np.random.uniform()
             self._palette_dict[clusters_labelled] = new_palette
-    _ = wrapped(*args, clusters_labelled=clusters_labelled, palette=self._palette_dict[clusters_labelled], **kwargs)
+    _ = wrapped(*args[1:], clusters_labelled=clusters_labelled, palette=self._palette_dict[clusters_labelled], **kwargs)
 
 
 class LabelMixin(AnalysisMixin[K, B]):
@@ -127,7 +128,7 @@ class LabelMixin(AnalysisMixin[K, B]):
                 self.adata.obs[f"{scores_key_added}_{i+1}"] = 0
                 self.adata.obs[f"{scores_key_added}_{i+1}"] = _scores
 
-    @check_plot_categories
+    #@check_plot_categories
     def plot_predictions(
         self,
         clusters_labelled: str,
@@ -156,8 +157,10 @@ class LabelMixin(AnalysisMixin[K, B]):
         scores_pred_keys = [f"{scores_key_added}_{i+1}" for i in range(top_k)]
         self.adata.obs[scores_pred_keys] = self.adata.obs[scores_pred_keys].fillna(0)
         for i in range(top_k):
-            sc.pl.scatter(self.adata, color=labels_pred_keys[i], basis=label_umap_key, palette=clusters_unlabelled, **kwargs)
-            sc.pl.scatter(self.adata, color=scores_pred_keys[i], basis=label_umap_key, palette=clusters_unlabelled, **kwargs)
+            #sc.pl.scatter(self.adata, color=labels_pred_keys[i], basis=label_umap_key, palette=clusters_unlabelled, **kwargs)
+            #sc.pl.scatter(self.adata, color=scores_pred_keys[i], basis=label_umap_key, palette=clusters_unlabelled, **kwargs)
+            sc.pl.scatter(self.adata, color=labels_pred_keys[i], basis=label_umap_key, **kwargs)
+            sc.pl.scatter(self.adata, color=scores_pred_keys[i], basis=label_umap_key, **kwargs)
 
     @property
     def batch_key(self) -> Optional[str]:
