@@ -1,5 +1,8 @@
 from abc import ABC
-from typing import Any, Tuple, Union
+from typing import Any, Tuple, Union, Optional
+
+from matplotlib.figure import Figure
+import matplotlib.pyplot as plt
 
 from ott.core.sinkhorn import SinkhornOutput as OTTSinkhornOutput
 from ott.core.sinkhorn_lr import LRSinkhornOutput as OTTLRSinkhornOutput
@@ -22,21 +25,63 @@ class RankMixin:
         return self._rank
 
 
-# TODO(michalk8): consider caching some of the properties
-class OTTOutput(BaseSolverOutput, ABC):
+class ConvergencePlotterMixin:
+    NOT_COMPUTED = -1.0
+
+    def __init__(self, costs: jnp.ndarray, errors: Optional[jnp.ndarray], *args: Any, **kwargs: Any):
+        super().__init__(*args, **kwargs)
+        self._costs = costs[costs != self.NOT_COMPUTED]
+        self._errors = None if errors is None else errors[errors != self.NOT_COMPUTED]
+
+    @property
+    def cost(self) -> float:
+        """TODO."""
+        return float(self._costs[-1])
+
+    def plot_convergence(
+        self,
+        title: Optional[str] = None,
+        figsize: Optional[Tuple[float, float]] = None,
+        dpi: Optional[int] = None,
+        save: Optional[str] = None,
+        return_fig: bool = False,
+        **kwargs: Any,
+    ) -> Optional[Figure]:
+        def select_values() -> Tuple[str, jnp.ndarray]:
+            # `> 1` because of pure Sinkhorn
+            if len(self._costs) > 1 or self._errors is None:
+                return "cost", self._costs
+            return "error", self._errors
+
+        fig, ax = plt.subplots(figsize=figsize, dpi=dpi)
+        kind, values = select_values()
+
+        ax.plot(values, **kwargs)
+        ax.set_xlabel("iteration")
+        ax.set_ylabel(kind)
+        if title is None:
+            title = "converged" if self.converged else "not converged"  # type: ignore[attr-defined]
+        ax.set_title(title)
+
+        if save is not None:
+            fig.savefig(save)
+        if return_fig:
+            return fig
+
+
+class OTTOutput(ConvergencePlotterMixin, BaseSolverOutput, ABC):
     def __init__(self, output: Union[OTTSinkhornOutput, OTTLRSinkhornOutput], **_: Any):
-        super().__init__()
+        if isinstance(output, OTTSinkhornOutput):
+            costs, errors = jnp.asarray([output.reg_ot_cost]), output.errors
+        else:
+            costs, errors = output.costs, None
+        super().__init__(costs=costs, errors=errors)
         self._output = output
 
     @property
     def transport_matrix(self) -> ArrayLike:
         """%(transport_matrix)s."""
         return self._output.matrix
-
-    @property
-    def cost(self) -> float:
-        """Wasserstein cost."""
-        return float(self._output.reg_ot_cost)
 
     @property
     def converged(self) -> bool:
@@ -86,7 +131,7 @@ class LRLinearOutput(RankMixin, OTTOutput):
         return self._output.geom.shape
 
 
-class QuadraticOutput(RankMixin, MatrixSolverOutput):
+class QuadraticOutput(ConvergencePlotterMixin, RankMixin, MatrixSolverOutput):
     """
     Output class for Gromov-Wasserstein problems.
 
@@ -101,15 +146,8 @@ class QuadraticOutput(RankMixin, MatrixSolverOutput):
     """
 
     def __init__(self, output: OTTGWOutput, *, rank: int = -1):
-        super().__init__(output.matrix, rank=rank)
+        super().__init__(output.costs, output.errors, output.matrix, rank=rank)
         self._converged = bool(output.convergence)
-        self._cost = float(output.costs[output.costs != -1][-1])
-        self._output = output
-
-    @property
-    def cost(self) -> float:
-        """Gromov-Wasserstein cost."""
-        return self._cost
 
     @property
     def converged(self) -> bool:

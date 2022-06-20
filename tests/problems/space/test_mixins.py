@@ -13,6 +13,7 @@ from anndata import AnnData
 from tests.conftest import ANGLES, _adata_spatial_split
 from moscot.problems.space import MappingProblem, AlignmentProblem
 
+# TODO(giovp): refactor as fixture
 SOLUTIONS_PATH_ALIGNMENT = Path(__file__).parent.parent.parent / "data/alignment_solutions.pkl"  # base is moscot
 SOLUTIONS_PATH_MAPPING = Path(__file__).parent.parent.parent / "data/mapping_solutions.pkl"
 
@@ -47,6 +48,7 @@ class TestSpatialAlignmentAnalysisMixin:
 
     def test_regression_testing(self, adata_space_rotate: AnnData):
         ap = AlignmentProblem(adata=adata_space_rotate).prepare(batch_key="batch").solve(alpha=0.5, epsilon=1)
+        # TODO(giovp): unnecessary assert
         assert SOLUTIONS_PATH_ALIGNMENT.exists()
         with open(SOLUTIONS_PATH_ALIGNMENT, "rb") as fname:
             sol = pickle.load(fname)
