@@ -44,6 +44,7 @@ class TemporalMixin(AnalysisMixin[K, B]):
         late_cells: Union[str, Mapping[str, Sequence[Any]]],
         forward: bool = False,  # return value will be row-stochastic if forward=True, else column-stochastic
         aggregation: Literal["group", "cell"] = "group",
+        online: bool = False,
     ) -> pd.DataFrame:
         """
         Compute a grouped cell transition matrix.
@@ -78,6 +79,9 @@ class TemporalMixin(AnalysisMixin[K, B]):
         aggregation:
             If `aggregation` is `group` the transition probabilities from the groups defined by `source_cells` are
             returned. If `aggregation` is `cell` the transition probablities for each cell are returned.
+        online
+            Whether to run this function in online mode. This reduces the amount of memory needed but requires more
+            time. This is only available for ceratain solvers. TODO: @MUCDK prevent from being used in (F)GW?
 
         Returns
         -------
@@ -85,12 +89,14 @@ class TemporalMixin(AnalysisMixin[K, B]):
         """
         return self._cell_transition(
             key=self.temporal_key,
+            other_key=self.temporal_key,
             key_source=start,
             key_target=end,
             source_cells=early_cells,
             target_cells=late_cells,
             forward=forward,
             aggregation=aggregation,
+            online=online,
         )
 
     def push(

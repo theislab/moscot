@@ -71,35 +71,23 @@ class AnalysisMixin(Generic[K, B]):
     def __init__(self, *args: Any, **kwargs: Any):
         super().__init__(*args, **kwargs)
 
-    def _get_categories(self, key: str, key_value: Any, return_key: str, *, is_source: bool) -> pd.Series:
-        if hasattr(self, "_other_adata"):
-            if is_source:
-                self.adata
-            else:
-                self._other_adata
-        else:
-            self.adata
-        return self.adata[self.adata.obs[key] == key_value].obs[return_key]
-
     def _cell_transition_not_online(
         self: AnalysisMixinProtocol[K, B],
         key: str,
+        other_key: str,
         key_source: K,
         key_target: K,
         source_cells: Union[str, Mapping[str, Sequence[Any]]],
         target_cells: Union[str, Mapping[str, Sequence[Any]]],
-        other_key: Optional[str] = None,
         forward: bool = False,  # return value will be row-stochastic if forward=True, else column-stochastic
         aggregation: Literal["group", "cell"] = "group",
     ) -> pd.DataFrame:
-        print("in offline cell transition")
 
-        _split_mass = aggregation == "cell"
         _source_cells_key, _source_cells = self._validate_args_cell_transition(source_cells, is_source=True)
         _target_cells_key, _target_cells = self._validate_args_cell_transition(target_cells, is_source=False)
 
         df_source, df_target = self._get_dfs_cell_transition(
-            key, key_source, key_target, _source_cells_key, _target_cells_key
+            key, other_key, key_source, key_target, _source_cells_key, _target_cells_key
         )
         _source_cell_indices, _target_cell_indices = self._get_cell_indices(key, other_key, key_source, key_target)
 
@@ -110,102 +98,63 @@ class AnalysisMixin(Generic[K, B]):
         )
         if forward:
             df_res = pd.DataFrame(index=_source_cell_indices)
-            for ct in _target_cells_categories:
-                df_res[ct] = transition_matrix_indexed[_target_cells_categories].sum(axis=1)
+            for ct in _target_cells:
+                df_res[ct] = transition_matrix_indexed.loc[:, df_target[df_target[_target_cells_key] == ct].index].sum(
+                    axis=1
+                )
             if aggregation == "cell":
                 return df_res.div(df_res.sum(axis=1), axis=0)
-            df_res["source_cells_categories"] = self._get_categories(key, key_source, _source_cells_key, is_source=True)
+            df_res["source_cells_categories"] = self._get_categories_from_adatas(
+                key, key_source, _source_cells_key, is_source=True
+            )
             unnormalized_tm = df_res.groupby("source_cells_categories").sum()
             return unnormalized_tm.div(unnormalized_tm.sum(axis=1), axis=0)
 
-        df_res = pd.DataFrame(index=_source_cells)
+        df_res = pd.DataFrame(index=_source_cells, columns=_target_cell_indices)
         for ct in _source_cells:
-            df_res.loc[ct, :] = transition_matrix_indexed[_target_cells_categories].sum(axis=0)
+            df_res.loc[ct, :] = (
+                transition_matrix_indexed.iloc[(df_source[_source_cells_key] == ct).values, :].sum(axis=0).squeeze()
+            )
         if aggregation == "cell":
             return df_res.div(df_res.sum(axis=0), axis=1)
-        df_res["target_cells_categories"] = self._get_categories(
+        df_res.loc["target_cells_categories", :] = self._get_categories_from_adatas(
             other_key, key_target, _target_cells_key, is_source=False
         )
-        unnormalized_tm = df_res.groupby("target_cells_categories", axis=1).sum()
+        unnormalized_tm = df_res.T.groupby("target_cells_categories").sum().T
         return unnormalized_tm.div(unnormalized_tm.sum(axis=0), axis=1)
 
-        def _get_cell_indices(
-            self,
-            key: Optional[str] = None,
-            other_key: Optional[str] = None,
-            key_source: Optional[Any] = None,
-            key_target: Optional[Any] = None,
-        ) -> Tuple[pd.Index, pd.Index]:
-            if hasattr(self, "_other_adata"):
-                if key is None:
-                    _source_cell_indices = self.adata.obs.index
-                else:
-                    _source_cell_indices = self.adata[self.adata.obs[key] == key_source].obs.index
-                if other_key is not None:
-                    _target_cell_indices = self._other_adata.obs.index
-                else:
-                    _target_cell_indices = self.adata[self._other_adata.obs[other_key] == key_target].obs.index
+    def _get_cell_indices(
+        self,
+        key: Optional[str] = None,
+        other_key: Optional[str] = None,
+        key_source: Optional[Any] = None,
+        key_target: Optional[Any] = None,
+    ) -> Tuple[pd.Index, pd.Index]:
+        if hasattr(self, "_other_adata"):
+            if key is None:
+                _source_cell_indices = self.adata.obs.index
             else:
                 _source_cell_indices = self.adata[self.adata.obs[key] == key_source].obs.index
-                _target_cell_indices = self.adata[self.adata.obs[key] == key_target].obs.index
-            return _source_cell_indices, _target_cell_indices
-
-        def _cell_transition(
-            self: AnalysisMixinProtocol[K, B],
-            key: str,
-            key_source: K,
-            key_target: K,
-            source_cells: Union[str, Mapping[str, Sequence[Any]]],
-            target_cells: Union[str, Mapping[str, Sequence[Any]]],
-            other_key: Optional[str] = None,
-            forward: bool = False,  # return value will be row-stochastic if forward=True, else column-stochastic
-            aggregation: Literal["group", "cell"] = "group",
-            online: bool = False,
-        ) -> pd.DataFrame:
-            if online:
-                return self._cell_transition_online(
-                    key, key_source, key_target, source_cells, target_cells, other_key, forward, aggregation
-                )
-            return self._cell_transition_not_online(
-                key, key_source, key_target, source_cells, target_cells, other_key, forward, aggregation
-            )
-
-    def _get_dfs_cell_transition(
-        self,
-        key: str,
-        key_source: str,
-        key_target: str,
-        _source_cells_key: Any,
-        _target_cells_key: Any,
-        other_key: Optional[str] = None,
-    ) -> Tuple[pd.DataFrame, pd.DataFrame]:
-        if hasattr(self, "_other_adata"):
-            if key is not None:
-                df_source = self.adata[self.adata.obs[key] == key_source].obs[[_source_cells_key]].copy()
-            else:
-                df_source = self.adata.obs[[_source_cells_key]].copy()
             if other_key is not None:
-                df_target = (
-                    self._other_adata[self._other_adata.obs[other_key] == key_target].obs[[_target_cells_key]].copy()
-                )
+                _target_cell_indices = self._other_adata.obs.index
             else:
-                df_target = self._other_adata.obs[[_target_cells_key]].copy()
-            return df_source, df_target
+                _target_cell_indices = self.adata[self._other_adata.obs[other_key] == key_target].obs.index
         else:
-            df_source = self.adata[self.adata.obs[key] == key_source].obs[[_source_cells_key]].copy()
-            df_target = self.adata[self.adata.obs[key] == key_target].obs[[_target_cells_key]].copy()
-            return df_source, df_target
+            _source_cell_indices = self.adata[self.adata.obs[key] == key_source].obs.index
+            _target_cell_indices = self.adata[self.adata.obs[key] == key_target].obs.index
+        return _source_cell_indices, _target_cell_indices
 
-    def _cell_transition_online(
+    def _cell_transition(
         self: AnalysisMixinProtocol[K, B],
         key: str,
+        other_key: str,
         key_source: K,
         key_target: K,
         source_cells: Union[str, Mapping[str, Sequence[Any]]],
         target_cells: Union[str, Mapping[str, Sequence[Any]]],
-        other_key: Optional[str] = None,
         forward: bool = False,  # return value will be row-stochastic if forward=True, else column-stochastic
         aggregation: Literal["group", "cell"] = "group",
+        online: bool = False,
     ) -> pd.DataFrame:
         """
         Compute a grouped cell transition matrix.
@@ -242,17 +191,70 @@ class AnalysisMixin(Generic[K, B]):
         aggregation:
             If `aggregation` is `group` the transition probabilities from the groups defined by `source_cells` are
             returned. If `aggregation` is `cell` the transition probablities for each cell are returned.
+        online
+            Whether to run this function in online mode. This reduces the amount of memory needed but requires more
+            time. This is only available for ceratain solvers. TODO: @MUCDK prevent from being used in (F)GW?
 
         Returns
         -------
         Transition matrix of cells or groups of cells.
         """
+        if online:
+            return self._cell_transition_online(
+                key, other_key, key_source, key_target, source_cells, target_cells, forward, aggregation
+            )
+        return self._cell_transition_not_online(
+            key, other_key, key_source, key_target, source_cells, target_cells, forward, aggregation
+        )
+
+    def _get_dfs_cell_transition(
+        self,
+        key: str,
+        other_key: str,
+        key_source: str,
+        key_target: str,
+        _source_cells_key: Any,
+        _target_cells_key: Any,
+    ) -> Tuple[pd.DataFrame, pd.DataFrame]:
+        if hasattr(self, "_other_adata"):
+            if key is not None:
+                df_source = self.adata[self.adata.obs[key] == key_source].obs[[_source_cells_key]].copy()
+            else:
+                df_source = self.adata.obs[[_source_cells_key]].copy()
+            if hasattr(self, "_other_adata"):
+                df_target = (
+                    self._other_adata[self._other_adata.obs[other_key] == key_target].obs[[_target_cells_key]].copy()
+                )
+            else:
+                df_target = self._other_adata.obs[[_target_cells_key]].copy()
+            return df_source, df_target
+        else:
+            df_source = self.adata[self.adata.obs[key] == key_source].obs[[_source_cells_key]].copy()
+            df_target = self.adata[self.adata.obs[key] == key_target].obs[[_target_cells_key]].copy()
+            return df_source, df_target
+
+    def _cell_transition_online(
+        self: AnalysisMixinProtocol[K, B],
+        key: str,
+        other_key: str,
+        key_source: K,
+        key_target: K,
+        source_cells: Union[str, Mapping[str, Sequence[Any]]],
+        target_cells: Union[str, Mapping[str, Sequence[Any]]],
+        forward: bool = False,  # return value will be row-stochastic if forward=True, else column-stochastic
+        aggregation: Literal["group", "cell"] = "group",
+    ) -> pd.DataFrame:
         _split_mass = aggregation == "cell"
         _source_cells_key, _source_cells = self._validate_args_cell_transition(source_cells, is_source=True)
         _target_cells_key, _target_cells = self._validate_args_cell_transition(target_cells, is_source=False)
 
         df_source, df_target = self._get_dfs_cell_transition(
-            key, key_source, key_target, _source_cells_key, _target_cells_key, other_key
+            key,
+            other_key,
+            key_source,
+            key_target,
+            _source_cells_key,
+            _target_cells_key,
         )
 
         if aggregation == "group":
@@ -311,7 +313,7 @@ class AnalysisMixin(Generic[K, B]):
                     df_target = df_target.drop(current_source_cells, axis=1)
                 else:
                     raise error
-            return transition_table
+            return transition_table.div(transition_table.sum(axis=1), axis=0)
 
         _target_cells_present = set(_target_cells).intersection(set(df_target[_target_cells_key].cat.categories))
         for subset in _target_cells:
@@ -351,7 +353,7 @@ class AnalysisMixin(Generic[K, B]):
                 df_source = df_source.drop(current_target_cells, axis=1)
             else:
                 raise error
-        return transition_table
+        return transition_table.div(transition_table.sum(axis=0), axis=1)
 
     def _cell_transition_helper(
         self,
@@ -416,6 +418,16 @@ class AnalysisMixin(Generic[K, B]):
             if not set(_val).issubset(adata.obs[_key].cat.categories):
                 raise ValueError(f"Not all values {_val} could be found in `adata.obs[{_key}]`.")
             return _key, _val
+
+    def _get_categories_from_adatas(self, key: str, key_value: Any, return_key: str, *, is_source: bool) -> pd.Series:
+        if hasattr(self, "_other_adata"):
+            if is_source:
+                self.adata
+            else:
+                self._other_adata
+        else:
+            self.adata
+        return self.adata[self.adata.obs[key] == key_value].obs[return_key]
 
     def _sample_from_tmap(
         self: AnalysisMixinProtocol[K, B],

@@ -84,7 +84,8 @@ class TestBaseAnalysisMixin:
         # TODO(@MUCDK) add regression test after discussing with @giovp what this function should be
         # doing / it is more generic
 
-    def test_cell_transition_aggregation_cell(self, gt_temporal_adata: AnnData):
+    @pytest.mark.parametrize("online", [True, False])
+    def test_cell_transition_aggregation_cell(self, gt_temporal_adata: AnnData, online: bool):
         # the method used in this test does the same but has to instantiate the transport matrix
         config = gt_temporal_adata.uns
         config["key"]
@@ -98,12 +99,14 @@ class TestBaseAnalysisMixin:
 
         ctr = problem._cell_transition(
             key="day",
+            other_key="day",
             key_source=10,
             key_target=10.5,
             source_cells="cell_type",
             target_cells="cell_type",
             forward=True,
             aggregation="cell",
+            online=online,
         )
 
         adata_early = gt_temporal_adata[gt_temporal_adata.obs["day"] == 10]
@@ -117,6 +120,8 @@ class TestBaseAnalysisMixin:
         for ct in unique_cell_types_late:
             cols_cell_type = adata_late[adata_late.obs["cell_type"] == ct].obs.index
             df_res[ct] = transition_matrix_indexed[cols_cell_type].sum(axis=1)
+
+        df_res = df_res.div(df_res.sum(axis=1), axis=0)
 
         ctr_ordered = ctr.sort_index()
         df_res_ordered = df_res.sort_index()
