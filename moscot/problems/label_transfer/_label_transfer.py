@@ -36,7 +36,7 @@ class LabelProblem(LabelMixin[K, OTProblem], CompoundProblem[K, OTProblem]):
 
     def _create_policy(  # type: ignore[override]
         self,
-        policy: Literal[Policy.EXTERNAL_STAR] = Policy.EXTERNAL_STAR,
+        policy: Literal[Policy.SEQUENTIAL] = Policy.SEQUENTIAL,
         key: Optional[str] = None,
         axis: Axis_t = "obs",
         **kwargs: Any,
@@ -121,3 +121,7 @@ class LabelProblem(LabelMixin[K, OTProblem], CompoundProblem[K, OTProblem]):
     def filtered_vars(self, value: Optional[Sequence[str]]) -> None:
         """Return filtered variables."""
         self._filtered_vars = value
+
+    @property
+    def _other_adata(self) -> Optional[AnnData]:
+        return self._adata_unlabelled
