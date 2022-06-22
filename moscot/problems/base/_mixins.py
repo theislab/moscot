@@ -4,7 +4,6 @@ from typing_extensions import Protocol
 from scipy.sparse.linalg import LinearOperator
 from pandas.core.dtypes.common import is_categorical_dtype
 import pandas as pd
-from collections import Sequence
 import numpy as np
 
 from anndata import AnnData
@@ -90,7 +89,7 @@ class AnalysisMixin(Generic[K, B]):
             key, other_key, key_source, key_target, _source_cells_key, _target_cells_key
         )
         _source_cell_indices, _target_cell_indices = self._get_cell_indices(key, other_key, key_source, key_target)
-
+        print("source_cell indices are ", _source_cell_indices)
         transition_matrix_indexed = pd.DataFrame(
             index=_source_cell_indices,
             columns=_target_cell_indices,
@@ -213,16 +212,12 @@ class AnalysisMixin(Generic[K, B]):
         self,
         key: str,
         other_key: str,
-        key_source: Union[Sequence[Any], Any],
-        key_target: Union[Sequence[Any], Any],
-        _source_cells_key: Any,
-        _target_cells_key: Any,
+        key_source: K,
+        key_target: K,
+        _source_cells_key: str,
+        _target_cells_key: str,
     ) -> Tuple[pd.DataFrame, pd.DataFrame]:
-        if not isinstance(key_source, Sequence):
-            key_source = (key_source,)
-        if not isinstance(key_target, Sequence):
-            key_target = (key_target,)
-        df_source = self.adata[self.adata.obs[key].isin(key_source)].obs[[_source_cells_key]].copy()
+        df_source = self.adata[self.adata.obs[key] ==key_source].obs[[_source_cells_key]].copy()
         if hasattr(self, "_other_adata"):
             #if key is not None:
             #print("key is ", key)
@@ -239,10 +234,10 @@ class AnalysisMixin(Generic[K, B]):
             #else:
             #    df_target = self._other_adata.obs[[_target_cells_key]].copy()
             #return df_source, df_target
-            df_target = self._other_adata[self._other_adata.obs[other_key].isin(key_target)].obs[[_target_cells_key]].copy()
+            df_target = self._other_adata[self._other_adata.obs[other_key]==key_target].obs[[_target_cells_key]].copy()
         else:
             #df_source = self.adata[self.adata.obs[key] == key_source].obs[[_source_cells_key]].copy()
-            df_target = self.adata[self.adata.obs[key].isin(key_target)].obs[[_target_cells_key]].copy()
+            df_target = self.adata[self.adata.obs[key]==key_target].obs[[_target_cells_key]].copy()
         return df_source, df_target
 
     def _cell_transition_online(

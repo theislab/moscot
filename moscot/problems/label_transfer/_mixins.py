@@ -8,6 +8,7 @@ import pandas as pd
 import matplotlib
 
 import numpy as np
+from unittest.mock import ANY
 
 from anndata import AnnData
 import scanpy as sc
@@ -48,6 +49,10 @@ class LabelMixin(AnalysisMixin[K, OTProblem]):
         self._palette: matplotlib.colors.ListedColormap = None
         self._key_labelled: Optional[str] = None
         self._key_unlabelled: Optional[str] = None
+        self._dummy_key_labelled: Optional[str] = None # needed for filtering in Mixins
+        self._dummy_key_unlabelled: Optional[str] = None # needed for filtering in Mixins
+        self._dummy_value_labelled: Optional[str] = None # needed for filtering in Mixins
+        self._dummy_value_unlabelled: Optional[str] = None # needed for filtering in Mixins
 
     def set_marginals(
         self: LabelMixinProtocol[K, OTProblem],
@@ -83,7 +88,7 @@ class LabelMixin(AnalysisMixin[K, OTProblem]):
     def transition_matrix(self: LabelMixinProtocol[K, B], clusters_labelled: Union[str, Mapping[str, Sequence[Any]]], clusters_unlabelled: Union[str, Mapping[str, Sequence[Any]]], online: bool=False) -> pd.DataFrame:
         """Compute transition matrix."""
         return self._cell_transition(
-            self.key_labelled, self.key_unlabelled, self.subset_labelled, self.subset_unlabelled, clusters_labelled, clusters_unlabelled, forward=False, online=online
+            self._dummy_key_labelled, self._dummy_key_unlabelled, self._dummy_value_labelled, self._dummy_value_unlabelled, clusters_labelled, clusters_unlabelled, forward=False, online=online
         )
 
     def get_labels(
@@ -91,10 +96,7 @@ class LabelMixin(AnalysisMixin[K, OTProblem]):
     ) -> Union[pd.DataFrame, Tuple[pd.DataFrame, pd.DataFrame]]:
         """Get most likely labels, optionally with top_k."""
         tm = self._cell_transition(
-            key=self.key_labelled,
-            other_key=self.key_unlabelled,
-            key_source=self.subset_labelled,
-            key_target=self.subset_unlabelled,
+            self._dummy_key_labelled, self._dummy_key_unlabelled, self._dummy_value_labelled, self._dummy_value_unlabelled,
             source_cells=clusters_labelled,
             target_cells=clusters_unlabelled,
             forward=False,

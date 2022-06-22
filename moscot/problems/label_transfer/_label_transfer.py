@@ -13,7 +13,7 @@ from moscot.problems.label_transfer._mixins import LabelMixin
 __all__ = "LabelProblem"
 
 
-class LabelProblem(LabelMixin[K, OTProblem], CompoundProblem[K, OTProblem]):
+class LabelProblem(LabelMixin[K], CompoundProblem[K, OTProblem]):
     def __init__(self, adata_labelled: AnnData, adata_unlabelled: AnnData, **kwargs: Any):
         super().__init__(adata_labelled, **kwargs)
         self._adata_unlabelled = adata_unlabelled
@@ -101,12 +101,21 @@ class LabelProblem(LabelMixin[K, OTProblem], CompoundProblem[K, OTProblem]):
                 raise TypeError("TODO")
             kwargs["x"] = kwargs["y"] = gw_attr
 
-        return super().prepare(
+        problem = super().prepare(
             key=None,
             policy="sequential",
             marginal_kwargs=marginal_kwargs,
             **kwargs,
         )
+        self._dummy_key_labelled = "source"
+        self._dummy_key_unlabelled = "target"
+        self._dummy_value_labelled = list(self.problems.keys())[0][0]
+        self._dummy_value_unlabelled = list(self.problems.keys())[0][1]
+        
+        self.adata_labelled.obs[self._dummy_key_labelled] = self._dummy_key_labelled
+        self.adata_unlabelled.obs[self._dummy_key_unlabelled] = self._dummy_key_unlabelled
+        return problem
+
 
     def _handle_keys(
         self,
@@ -126,7 +135,7 @@ class LabelProblem(LabelMixin[K, OTProblem], CompoundProblem[K, OTProblem]):
             elif len(key_labelled) > 1:
                 raise ValueError("TODO: dict must be of length 1")
             _key_labelled = list(key_labelled.keys())[0]
-            if _key_labelled not in self.adata.obs.columns:
+            if _key_labelled not in self._adata.obs.columns:
                 raise KeyError("TODO: key not in adata.obs.")
             self.key_labelled = _key_labelled
             self.subset_labelled = list(*key_labelled.values())
@@ -159,7 +168,7 @@ class LabelProblem(LabelMixin[K, OTProblem], CompoundProblem[K, OTProblem]):
 
     @property
     def adata_labelled(self) -> AnnData:
-        return self.adata
+        return self._adata
 
     @property
     def adata_unlabelled(self) -> AnnData:
@@ -176,5 +185,9 @@ class LabelProblem(LabelMixin[K, OTProblem], CompoundProblem[K, OTProblem]):
         self._filtered_vars = value
 
     @property
+    def adata(self) -> Optional[AnnData]:
+        return self.adata_labelled[self.adata_labelled.obs[self.key_labelled].isin(self.subset_labelled)]
+
+    @property
     def _other_adata(self) -> Optional[AnnData]:
-        return self._adata_unlabelled
+        return self.adata_unlabelled[self.adata_unlabelled.obs[self.key_unlabelled].isin(self.subset_unlabelled)]
