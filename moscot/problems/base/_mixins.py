@@ -4,7 +4,7 @@ from typing_extensions import Protocol
 from scipy.sparse.linalg import LinearOperator
 from pandas.core.dtypes.common import is_categorical_dtype
 import pandas as pd
-
+from collections import Sequence
 import numpy as np
 
 from anndata import AnnData
@@ -213,27 +213,37 @@ class AnalysisMixin(Generic[K, B]):
         self,
         key: str,
         other_key: str,
-        key_source: str,
-        key_target: str,
+        key_source: Union[Sequence[Any], Any],
+        key_target: Union[Sequence[Any], Any],
         _source_cells_key: Any,
         _target_cells_key: Any,
     ) -> Tuple[pd.DataFrame, pd.DataFrame]:
+        if not isinstance(key_source, Sequence):
+            key_source = (key_source,)
+        if not isinstance(key_target, Sequence):
+            key_target = (key_target,)
+        df_source = self.adata[self.adata.obs[key].isin(key_source)].obs[[_source_cells_key]].copy()
         if hasattr(self, "_other_adata"):
-            if key is not None:
-                df_source = self.adata[self.adata.obs[key] == key_source].obs[[_source_cells_key]].copy()
-            else:
-                df_source = self.adata.obs[[_source_cells_key]].copy()
-            if hasattr(self, "_other_adata"):
-                df_target = (
-                    self._other_adata[self._other_adata.obs[other_key] == key_target].obs[[_target_cells_key]].copy()
-                )
-            else:
-                df_target = self._other_adata.obs[[_target_cells_key]].copy()
-            return df_source, df_target
+            #if key is not None:
+            #print("key is ", key)
+            #print("key_source is ", key_source)
+            #print("source_cells_key is ", _source_cells_key)
+            #df_source = self.adata[self.adata.obs[key].isin(key_source)].obs[[_source_cells_key]].copy()
+            #print("df_source.shape", df_source.shape)
+            #else:
+            #    df_source = self.adata.obs[[_source_cells_key]].copy()
+            #if hasattr(self, "_other_adata"):
+            #    df_target = (
+            #        self._other_adata[self._other_adata.obs[other_key].isin(key_target)].obs[[_target_cells_key]].copy()
+            #    )
+            #else:
+            #    df_target = self._other_adata.obs[[_target_cells_key]].copy()
+            #return df_source, df_target
+            df_target = self._other_adata[self._other_adata.obs[other_key].isin(key_target)].obs[[_target_cells_key]].copy()
         else:
-            df_source = self.adata[self.adata.obs[key] == key_source].obs[[_source_cells_key]].copy()
-            df_target = self.adata[self.adata.obs[key] == key_target].obs[[_target_cells_key]].copy()
-            return df_source, df_target
+            #df_source = self.adata[self.adata.obs[key] == key_source].obs[[_source_cells_key]].copy()
+            df_target = self.adata[self.adata.obs[key].isin(key_target)].obs[[_target_cells_key]].copy()
+        return df_source, df_target
 
     def _cell_transition_online(
         self: AnalysisMixinProtocol[K, B],
@@ -394,6 +404,8 @@ class AnalysisMixin(Generic[K, B]):
     def _validate_args_cell_transition(
         self: AnalysisMixinProtocol[K, B], arg: Union[str, Mapping[str, Sequence[Any]]], *, is_source: bool
     ) -> Tuple[str, Sequence[Any]]:
+        print(hasattr(self, "_other_adata"))
+        print("arg is ", arg)
         if hasattr(self, "_other_adata"):
             if is_source:
                 adata = self.adata
@@ -402,8 +414,9 @@ class AnalysisMixin(Generic[K, B]):
         else:
             adata = self.adata
         if isinstance(arg, str):
-            if arg not in self.adata.obs:
-                raise KeyError("TODO")
+            if arg not in adata.obs:
+                print(adata.obs.columns)
+                raise KeyError(f"TODO. {arg} not in adata.obs.columns")
             if not is_categorical_dtype(adata.obs[arg]):
                 raise TypeError(f"The column `{arg}` in `adata.obs` must be of categorical dtype.")
             return arg, adata.obs[arg].cat.categories
