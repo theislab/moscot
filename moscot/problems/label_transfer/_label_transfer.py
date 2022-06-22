@@ -29,8 +29,8 @@ class LabelProblem(LabelMixin[K, OTProblem], CompoundProblem[K, OTProblem]):
         """Private class to mask anndatas."""
         adata_labelled = self._mask(src_mask)
         return self._base_problem_type(  # type: ignore[return-value]
-            adata_labelled[:, self.filtered_vars] if self.filtered_vars is not None else adata_labelled,
-            self.adata_unlabelled[:, self.filtered_vars] if self.filtered_vars is not None else self.adata_unlabelled,
+            adata_labelled[self.adata_labelled.obs[self.key_labelled.isin(self.subset_labelled)], self.filtered_vars] if self.filtered_vars is not None else adata_labelled,
+            self.adata_unlabelled[self.key_unlabelled.isin(self.subset_unlabelled), self.filtered_vars] if self.filtered_vars is not None else self.adata_unlabelled,
             **kwargs,
         )
 
@@ -48,12 +48,16 @@ class LabelProblem(LabelMixin[K, OTProblem], CompoundProblem[K, OTProblem]):
 
     def prepare(  # type: ignore[override]
         self,
+        key_labelled: Union[str, Mapping[str, Sequence[Any]]] = "labelled",
+        key_unlabelled: Union[str, Mapping[str, Sequence[Any]]] = "unlabelled",
         joint_attr: Optional[Union[str, Mapping[str, Any]]] = None,
         GW_attr: Optional[Union[str, Mapping[str, Any]]] = None,
         filtered_vars: Optional[Sequence] = None,
         marginal_kwargs: Mapping[str, Any] = MappingProxyType({}),
         **kwargs: Any,
     ) -> "LabelProblem[K]":
+        self._handle_keys(key_labelled, key_unlabelled)
+
         self.filtered_vars = (
             filtered_vars
             if filtered_vars is not None
@@ -95,6 +99,39 @@ class LabelProblem(LabelMixin[K, OTProblem], CompoundProblem[K, OTProblem]):
             marginal_kwargs=marginal_kwargs,
             **kwargs,
         )
+
+    def _handle_keys(self, key_labelled: Union[str, Mapping[str, Sequence[Any]]] = "labelled", key_unlabelled: Union[str, Mapping[str, Sequence[Any]]] = "labelled") -> None:
+        if isinstance(key_labelled, str):
+            if key_labelled not in self.adata.obs.columns:
+                self.adata.obs[key_labelled] = 0
+                self.key_labelled = key_labelled
+                self.subset_labelled = (0,)
+        elif isinstance(key_labelled, dict):
+            if len(key_labelled) == 0:
+                raise ValueError("TODO: EMPTY dict")
+            elif len(key_labelled) > 1:
+                raise ValueError("TODO: dict must be of length 1")
+            _key_labelled = key_labelled.keys()[0]
+            if _key_labelled not in self.adata.obs.columns:
+                raise KeyError("TODO: key not in adata.obs.")
+            self.key_labelled = _key_labelled
+            self.subset_labelled = list(key_labelled.values())
+
+        if isinstance(key_unlabelled, str):
+            if key_unlabelled not in self.adata_unlabelled.obs.columns:
+                self.adata_unlabelled.obs[key_unlabelled] = 0
+                self.key_unlabelled = key_unlabelled
+                self.subset_unlabelled = (1,)
+        elif isinstance(key_unlabelled, dict):
+            if len(key_unlabelled) == 0:
+                raise ValueError("TODO: EMPTY dict")
+            elif len(key_unlabelled) > 1:
+                raise ValueError("TODO: dict must be of length 1")
+            _key_unlabelled = key_unlabelled.keys()[0]
+            if _key_unlabelled not in self.adata_unlabelled.obs.columns:
+                raise KeyError("TODO: key not in adata.obs.")
+            self.key_unlabelled = _key_unlabelled
+            self.subset_unlabelled = list(key_unlabelled.values())
 
     @property
     def _base_problem_type(self) -> Type[B]:
