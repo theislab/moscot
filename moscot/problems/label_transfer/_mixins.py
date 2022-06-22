@@ -76,7 +76,7 @@ class LabelMixin(AnalysisMixin[K, OTProblem]):
         #    axis=1,
         #)
         
-        result = self.adata_labelled.apply(
+        result = self.adata_labelled.obs.apply(
             lambda x: adapted_weights[x[clusters_labelled]] if x[clusters_labelled] in adapted_weights.keys() else 1,
             axis=1,
         )
@@ -147,12 +147,12 @@ class LabelMixin(AnalysisMixin[K, OTProblem]):
 
     def plot_predictions(
         self: LabelMixinProtocol[K, B],
-        clusters_labelled: str,
-        clusters_unlabelled: str,
+        clusters_labelled: Union[str, Mapping[str, Sequence[Any]]],
+        clusters_unlabelled: Union[str, Mapping[str, Sequence[Any]]],
         top_k: int,
         labels_key_added: str = "label_prediction",
         scores_key_added: str = "score_prediction",
-        label_umap_key: Optional[str] = "X_umap",
+        label_umap_key: Optional[str] = "umap",
         online: bool = False,
         **kwargs: Any,
     ) -> Optional[Figure]:
@@ -174,23 +174,28 @@ class LabelMixin(AnalysisMixin[K, OTProblem]):
         labels_pred_keys = [f"{labels_key_added}_{i+1}" for i in range(top_k)]
         scores_pred_keys = [f"{scores_key_added}_{i+1}" for i in range(top_k)]
         self.adata_unlabelled.obs[scores_pred_keys] = self.adata_unlabelled.obs[scores_pred_keys].fillna(0)
-        self.set_palette(self.adata_labelled, clusters_labelled, kwargs.pop("palette"), kwargs.pop("force_update_colors"))
+        self.set_palette(clusters_labelled, kwargs.pop("palette", None), kwargs.pop("force_update_colors", None))
         for i in range(top_k):
             # sc.pl.scatter(self.adata, color=labels_pred_keys[i], basis=label_umap_key, palette=clusters_unlabelled, **kwargs)
             # sc.pl.scatter(self.adata, color=scores_pred_keys[i], basis=label_umap_key, palette=clusters_unlabelled, **kwargs)
-            sc.pl.scatter(self.adata, color=labels_pred_keys[i], basis=label_umap_key, **kwargs)
-            sc.pl.scatter(self.adata, color=scores_pred_keys[i], basis=label_umap_key, **kwargs)
+            sc.pl.scatter(self._other_adata, color=labels_pred_keys[i], basis=label_umap_key, palette=self.adata.uns[f"{clusters_labelled}_colors"], **kwargs)
+            sc.pl.scatter(self._other_adata, color=scores_pred_keys[i], basis=label_umap_key, **kwargs)
 
-    @staticmethod
     def set_palette(
-        adata: AnnData,
-        key: str,
+        self,
+        key: Union[str, Mapping[str, Sequence[Any]]],
         palette: Union[str, matplotlib.colors.ListedColormap],
         force_update_colors: bool=False
     ) -> None:
-        if key not in adata.obs.columns:
+        if isinstance(key, dict):
+            key = list(key.keys())[0]
+        if key not in self.adata.obs.columns:
             raise KeyError("TODO: invalid key.")
-        add_color_palette(adata, key=key, palette=palette, force_update_colors=force_update_colors)
+        uns_key = f"{key}_colors"
+        if uns_key not in self._other_adata.uns:
+            if uns_key not in self.adata.uns:
+                add_color_palette(self.adata, key=key, palette=palette, force_update_colors=force_update_colors)
+            self._other_adata.uns[uns_key] = self.adata.uns[uns_key]
 
     @property
     def key_labelled(self) -> Optional[str]:

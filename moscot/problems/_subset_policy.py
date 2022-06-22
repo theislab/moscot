@@ -255,11 +255,12 @@ class ExternalStarPolicy(FormatterMixin, StarPolicy[K]):
         self._tgt_name = tgt_name
 
     def _format(self, value: K, *, is_source: bool) -> Union[str, K]:
-        if is_source:
+        if value is not self._SENTINEL:
             return value
-        if value is self._SENTINEL:
+        if is_source:
+            return self._src_name
+        else:
             return self._tgt_name
-        raise ValueError("TODO.")
 
     def _create_graph(self, **_: Any) -> Set[Tuple[K, object]]:  # type: ignore[override]
         return {(c, self._SENTINEL) for c in self._cat if c != self._SENTINEL}
@@ -296,8 +297,8 @@ class DummyPolicy(FormatterMixin, SubsetPolicy[str]):
     def __init__(
         self,
         adata: Union[AnnData, pd.Series, pd.Categorical],
-        src_name: str = "src",
-        tgt_name: str = "ref",
+        src_name: str = "src", # TODO(@MUCDK) make package constant?
+        tgt_name: str = "ref", # TODO(@MUCDK) make package constant?
         **kwargs: Any,
     ):
         super().__init__(pd.Series([self._SENTINEL] * len(adata)), **kwargs)

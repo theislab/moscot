@@ -5,7 +5,7 @@ from anndata import AnnData
 
 from moscot._types import ArrayLike
 from moscot._constants._constants import Policy
-from moscot.problems._subset_policy import Axis_t, DummyPolicy, SequentialPolicy
+from moscot.problems._subset_policy import Axis_t, DummyPolicy, ExternalStarPolicy
 from moscot.problems.base._base_problem import OTProblem
 from moscot.problems.base._compound_problem import B, K, CompoundProblem
 from moscot.problems.label_transfer._mixins import LabelMixin
@@ -27,13 +27,12 @@ class LabelProblem(LabelMixin[K], CompoundProblem[K, OTProblem]):
         **kwargs: Any,
     ) -> B:
         """Private class to mask anndatas."""
-        adata_labelled = self._mask(src_mask)
         return self._base_problem_type(  # type: ignore[return-value]
             self.adata_labelled[
                 self.adata_labelled.obs[self.key_labelled].isin(self.subset_labelled), self.filtered_vars
             ]
             if self.filtered_vars is not None
-            else adata_labelled[self.adata_labelled.obs[self.key_labelled].isin(self.subset_labelled), :],
+            else self.adata_labelled[self.adata_labelled.obs[self.key_labelled].isin(self.subset_labelled), :],
             self.adata_unlabelled[
                 self.adata_unlabelled.obs[self.key_unlabelled].isin(self.subset_unlabelled), self.filtered_vars
             ]
@@ -48,11 +47,11 @@ class LabelProblem(LabelMixin[K], CompoundProblem[K, OTProblem]):
         key: Optional[str] = None,
         axis: Axis_t = "obs",
         **kwargs: Any,
-    ) -> Union[DummyPolicy, SequentialPolicy[K]]:
+    ) -> Union[DummyPolicy, ExternalStarPolicy[K]]:
         """Private class to create DummyPolicy if no batches are present n the spatial anndata."""
         if key is None:
             return DummyPolicy(self.adata, axis=axis, **kwargs)
-        return SequentialPolicy(self.adata, key=key, axis=axis, **kwargs)
+        return ExternalStarPolicy(self.adata, key=key, axis=axis, **kwargs)
 
     def prepare(  # type: ignore[override]
         self,
@@ -65,6 +64,14 @@ class LabelProblem(LabelMixin[K], CompoundProblem[K, OTProblem]):
         **kwargs: Any,
     ) -> "LabelProblem[K]":
         self._handle_keys(key_labelled, key_unlabelled)
+        self._dummy_key_labelled = "source"
+        self._dummy_key_unlabelled = "target"
+        self._dummy_value_labelled = "src"
+        self._dummy_value_unlabelled = "ref"
+        
+        self.adata_labelled.obs[self._dummy_key_labelled] = self.adata_labelled.obs.apply(lambda x: self._dummy_value_labelled if x[self.key_labelled] in (self.subset_labelled) else None, axis=1)
+        self.adata_unlabelled.obs[self._dummy_key_unlabelled] = self.adata_unlabelled.obs.apply(lambda x: self._dummy_value_unlabelled if x[self.key_unlabelled] in (self.subset_unlabelled) else None, axis=1)
+        
 
         self.filtered_vars = (
             filtered_vars
@@ -102,25 +109,19 @@ class LabelProblem(LabelMixin[K], CompoundProblem[K, OTProblem]):
             kwargs["x"] = kwargs["y"] = gw_attr
 
         problem = super().prepare(
-            key=None,
-            policy="sequential",
+            key=self._dummy_key_labelled,
+            policy="external_star",
             marginal_kwargs=marginal_kwargs,
             **kwargs,
         )
-        self._dummy_key_labelled = "source"
-        self._dummy_key_unlabelled = "target"
-        self._dummy_value_labelled = list(self.problems.keys())[0][0]
-        self._dummy_value_unlabelled = list(self.problems.keys())[0][1]
-        
-        self.adata_labelled.obs[self._dummy_key_labelled] = self._dummy_key_labelled
-        self.adata_unlabelled.obs[self._dummy_key_unlabelled] = self._dummy_key_unlabelled
+    
         return problem
 
 
     def _handle_keys(
         self,
         key_labelled: Union[str, Mapping[str, Sequence[Any]]] = "labelled",
-        key_unlabelled: Union[str, Mapping[str, Sequence[Any]]] = "labelled",
+        key_unlabelled: Union[str, Mapping[str, Sequence[Any]]] = "unlabelled",
     ) -> None:
         if isinstance(key_labelled, str):
             if key_labelled not in self.adata.obs.columns:
@@ -164,11 +165,11 @@ class LabelProblem(LabelMixin[K], CompoundProblem[K, OTProblem]):
 
     @property
     def _valid_policies(self) -> str:
-        return "sequential"
+        return "external_star"
 
     @property
     def adata_labelled(self) -> AnnData:
-        return self._adata
+        return self.adata
 
     @property
     def adata_unlabelled(self) -> AnnData:
@@ -185,9 +186,5 @@ class LabelProblem(LabelMixin[K], CompoundProblem[K, OTProblem]):
         self._filtered_vars = value
 
     @property
-    def adata(self) -> Optional[AnnData]:
-        return self.adata_labelled[self.adata_labelled.obs[self.key_labelled].isin(self.subset_labelled)]
-
-    @property
     def _other_adata(self) -> Optional[AnnData]:
-        return self.adata_unlabelled[self.adata_unlabelled.obs[self.key_unlabelled].isin(self.subset_unlabelled)]
+        return self.adata_unlabelled

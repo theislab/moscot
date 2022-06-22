@@ -89,11 +89,10 @@ class AnalysisMixin(Generic[K, B]):
             key, other_key, key_source, key_target, _source_cells_key, _target_cells_key
         )
         _source_cell_indices, _target_cell_indices = self._get_cell_indices(key, other_key, key_source, key_target)
-        print("source_cell indices are ", _source_cell_indices)
         transition_matrix_indexed = pd.DataFrame(
             index=_source_cell_indices,
             columns=_target_cell_indices,
-            data=self.solutions[key_source, key_target].transport_matrix,
+            data=np.array(self.solutions[key_source, key_target].transport_matrix),
         )
         if forward:
             df_res = pd.DataFrame(index=_source_cell_indices)
@@ -219,21 +218,6 @@ class AnalysisMixin(Generic[K, B]):
     ) -> Tuple[pd.DataFrame, pd.DataFrame]:
         df_source = self.adata[self.adata.obs[key] ==key_source].obs[[_source_cells_key]].copy()
         if hasattr(self, "_other_adata"):
-            #if key is not None:
-            #print("key is ", key)
-            #print("key_source is ", key_source)
-            #print("source_cells_key is ", _source_cells_key)
-            #df_source = self.adata[self.adata.obs[key].isin(key_source)].obs[[_source_cells_key]].copy()
-            #print("df_source.shape", df_source.shape)
-            #else:
-            #    df_source = self.adata.obs[[_source_cells_key]].copy()
-            #if hasattr(self, "_other_adata"):
-            #    df_target = (
-            #        self._other_adata[self._other_adata.obs[other_key].isin(key_target)].obs[[_target_cells_key]].copy()
-            #    )
-            #else:
-            #    df_target = self._other_adata.obs[[_target_cells_key]].copy()
-            #return df_source, df_target
             df_target = self._other_adata[self._other_adata.obs[other_key]==key_target].obs[[_target_cells_key]].copy()
         else:
             #df_source = self.adata[self.adata.obs[key] == key_source].obs[[_source_cells_key]].copy()
@@ -399,8 +383,6 @@ class AnalysisMixin(Generic[K, B]):
     def _validate_args_cell_transition(
         self: AnalysisMixinProtocol[K, B], arg: Union[str, Mapping[str, Sequence[Any]]], *, is_source: bool
     ) -> Tuple[str, Sequence[Any]]:
-        print(hasattr(self, "_other_adata"))
-        print("arg is ", arg)
         if hasattr(self, "_other_adata"):
             if is_source:
                 adata = self.adata
@@ -432,12 +414,12 @@ class AnalysisMixin(Generic[K, B]):
     def _get_categories_from_adatas(self, key: str, key_value: Any, return_key: str, *, is_source: bool) -> pd.Series:
         if hasattr(self, "_other_adata"):
             if is_source:
-                self.adata
+                adata = self.adata
             else:
-                self._other_adata
+                adata = self._other_adata
         else:
-            self.adata
-        return self.adata[self.adata.obs[key] == key_value].obs[return_key]
+            adata = self.adata
+        return adata[adata.obs[key] == key_value].obs[return_key]
 
     def _sample_from_tmap(
         self: AnalysisMixinProtocol[K, B],
