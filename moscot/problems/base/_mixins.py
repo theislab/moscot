@@ -153,7 +153,9 @@ class AnalysisMixin(Generic[K, B]):
         source_cells: Union[str, Mapping[str, Sequence[Any]]],
         target_cells: Union[str, Mapping[str, Sequence[Any]]],
         forward: bool = False,  # return value will be row-stochastic if forward=True, else column-stochastic
-        aggregation: Literal["group", "cell"] = "group", #TODO(@MUCKD): maybe replace by source_cells or target_cells = index.
+        aggregation: Literal[
+            "group", "cell"
+        ] = "group",  # TODO(@MUCKD): maybe replace by source_cells or target_cells = index.
         online: bool = False,
     ) -> pd.DataFrame:
         """
