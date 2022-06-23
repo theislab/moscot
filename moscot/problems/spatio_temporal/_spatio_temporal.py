@@ -1,5 +1,5 @@
 from types import MappingProxyType
-from typing import Any, Tuple, Mapping, Optional
+from typing import Any, Type, Tuple, Mapping, Optional
 
 from typing_extensions import Literal
 
@@ -12,6 +12,7 @@ from moscot.problems.space._mixins import SpatialAlignmentMixin
 from moscot.problems.space._alignment import AlignmentProblem
 from moscot.problems.base._birth_death import BirthDeathMixin, BirthDeathProblem
 from moscot.problems.base._base_problem import ScaleCost_t
+from moscot.problems.base._compound_problem import B
 
 
 @d.dedent
@@ -95,7 +96,7 @@ class SpatioTemporalProblem(
             marginal_kwargs["proliferation_key"] = self.proliferation_key
             kwargs["a"] = True
         if self.apoptosis_key is not None:
-            marginal_kwargs["proliferation_key"] = self.apoptosis_key
+            marginal_kwargs["apoptosis_key"] = self.apoptosis_key
             kwargs["b"] = True
 
         return super().prepare(
@@ -135,3 +136,7 @@ class SpatioTemporalProblem(
     @property
     def _valid_policies(self) -> Tuple[Policy, ...]:
         return Policy.SEQUENTIAL, Policy.TRIL, Policy.TRIU, Policy.EXPLICIT
+
+    @property
+    def _base_problem_type(self) -> Type[B]:
+        return BirthDeathProblem  # type: ignore[return-value]
