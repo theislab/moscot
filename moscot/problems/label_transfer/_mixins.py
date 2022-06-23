@@ -175,10 +175,14 @@ class LabelMixin(AnalysisMixin[K, OTProblem]):
         scores_pred_keys = [f"{scores_key_added}_{i+1}" for i in range(top_k)]
         self.adata_unlabelled.obs[scores_pred_keys] = self.adata_unlabelled.obs[scores_pred_keys].fillna(0)
         self.set_palette(clusters_labelled, kwargs.pop("palette", None), kwargs.pop("force_update_colors", None))
+        if isinstance(clusters_labelled, dict):
+            _clusters_labelled = list(clusters_labelled.keys())[0]
+        else:
+            _clusters_labelled = clusters_labelled
         for i in range(top_k):
             # sc.pl.scatter(self.adata, color=labels_pred_keys[i], basis=label_umap_key, palette=clusters_unlabelled, **kwargs)
             # sc.pl.scatter(self.adata, color=scores_pred_keys[i], basis=label_umap_key, palette=clusters_unlabelled, **kwargs)
-            sc.pl.scatter(self._other_adata, color=labels_pred_keys[i], basis=label_umap_key, palette=self.adata.uns[f"{clusters_labelled}_colors"], **kwargs)
+            sc.pl.scatter(self._other_adata, color=labels_pred_keys[i], basis=label_umap_key, palette=self._other_adata.uns[f"{_clusters_labelled}_colors"], **kwargs)
             sc.pl.scatter(self._other_adata, color=scores_pred_keys[i], basis=label_umap_key, **kwargs)
 
     def set_palette(
