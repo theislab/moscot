@@ -2,6 +2,7 @@ from abc import ABC, abstractmethod
 from enum import Enum
 from types import MappingProxyType
 from typing import Any, Dict, List, Tuple, Union, Mapping, Iterable, Optional, Sequence
+import logging
 
 from scipy.sparse import vstack, issparse, csr_matrix
 from typing_extensions import Literal
@@ -289,18 +290,22 @@ class OTProblem(BaseProblem):
         x = adata.X if layer is None else adata.layers[layer]
         y = adata_y.X if layer is None else adata_y.layers[layer]
 
+        n_comps = kwargs.get("n_comps", 30)  # set n_comps=30 as default
+
+        logging.info("Computing pca with `n_comps = {n_comps}` and `joint_space = {joint_space}`.")
+
         if return_linear:
             n = x.shape[0]
             joint_space = kwargs.pop("joint_space", True)
             if joint_space:
-                data = sc.pp.pca(concat(x, y), **kwargs)
+                data = sc.pp.pca(concat(x, y), n_comps=n_comps, **kwargs)
             else:
-                data = concat(sc.pp.pca(x, **kwargs), sc.pp.pca(y, **kwargs))
+                data = concat(sc.pp.pca(x, n_comps=n_comps, **kwargs), sc.pp.pca(y, n_comps=n_comps, **kwargs))
 
             return {"xy": TaggedArray(data[:n], data[n:], tag=Tag.POINT_CLOUD)}
 
-        x = sc.pp.pca(x, **kwargs)
-        y = sc.pp.pca(y, **kwargs)
+        x = sc.pp.pca(x, n_comps=n_comps, **kwargs)
+        y = sc.pp.pca(y, n_comps=n_comps, **kwargs)
         return {"x": TaggedArray(x, tag=Tag.POINT_CLOUD), "y": TaggedArray(y, tag=Tag.POINT_CLOUD)}
 
     def _create_marginals(
