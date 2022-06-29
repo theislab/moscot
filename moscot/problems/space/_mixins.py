@@ -1,4 +1,4 @@
-from typing import Any, Dict, List, Tuple, Union, Mapping, Callable, Optional, Sequence
+from typing import Any, Dict, List, Tuple, Union, Mapping, Callable, Optional, Sequence, TYPE_CHECKING
 from itertools import chain
 
 from networkx import NetworkXNoPath
@@ -164,6 +164,30 @@ class SpatialAlignmentMixin(AnalysisMixin[K, B]):
             raise KeyError(f"TODO: {value} not found in `adata.obsm`.")
         # TODO(@MUCDK) check data type -> which ones do we allow
         self._spatial_key = value
+
+    def cell_transition(
+        self: SpatialAlignmentMixinProtocol[K, B],
+        slice: K,
+        reference: K,
+        slice_cells: Union[str, Mapping[str, Sequence[Any]]],
+        reference_cells: Union[str, Mapping[str, Sequence[Any]]],
+        forward: bool = False,  # return value will be row-stochastic if forward=True, else column-stochastic
+        aggregation: Literal["group", "cell"] = "group",
+    ) -> pd.DataFrame:
+        """Partly copy from other cell_transitions."""
+        if TYPE_CHECKING:
+            assert isinstance(self.spatial_key, str)
+        return self._cell_transition(
+            key=self.spatial_key,
+            other_key=self.spatial_key,
+            key_source=slice,
+            key_target=reference,
+            source_cells=slice_cells,
+            target_cells=reference_cells,
+            forward=forward,
+            aggregation=aggregation,
+            online=False,
+        )
 
 
 class SpatialMappingMixin(AnalysisMixin[K, B]):
