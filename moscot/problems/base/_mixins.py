@@ -44,20 +44,6 @@ class AnalysisMixinProtocol(Protocol[K, B]):
     ) -> LinearOperator:
         ...
 
-    def _cell_transition(
-        self: "AnalysisMixinProtocol[K, B]",
-        key: str,
-        other_key: str,
-        key_source: K,
-        key_target: K,
-        source_cells: Union[str, Mapping[str, Sequence[Any]]],
-        target_cells: Union[str, Mapping[str, Sequence[Any]]],
-        forward: bool = False,
-        aggregation: Literal["group", "cell"] = "group",
-        online: bool = False,
-    ) -> pd.DataFrame:
-        ...
-
     def _flatten(self: "AnalysisMixinProtocol[K, B]", data: Dict[K, ArrayLike], *, key: Optional[str]) -> ArrayLike:
         ...
 

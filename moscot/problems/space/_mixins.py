@@ -27,6 +27,7 @@ class SpatialAlignmentMixinProtocol(AnalysisMixinProtocol[K, B]):
 
     spatial_key: Optional[str]
     _spatial_key: Optional[str]
+    batch_key: Optional[str]
 
     def _subset_spatial(self: "SpatialAlignmentMixinProtocol[K, B]", k: K) -> ArrayLike:
         ...
@@ -38,12 +39,22 @@ class SpatialAlignmentMixinProtocol(AnalysisMixinProtocol[K, B]):
     ) -> Tuple[Dict[K, ArrayLike], Optional[Dict[K, Optional[ArrayLike]]]]:
         ...
 
+    def _affine(tmap: LinearOperator, tgt: ArrayLike, src: ArrayLike) -> Tuple[ArrayLike, ArrayLike]:
+        ...
+
+    @staticmethod
+    def _warp(tmap: LinearOperator, _: ArrayLike, src: ArrayLike) -> Tuple[ArrayLike, None]:
+        ...
+
 
 class SpatialMappingMixinProtocol(AnalysisMixinProtocol[K, B]):
     """Protocol class."""
 
     adata_sc: AnnData
     adata_sp: AnnData
+    batch_key: Optional[str]
+    _adata_sc_batch_key: Optional[str]
+    _adata_sc_batch_key_value: K
 
     def _filter_vars(
         self: "SpatialMappingMixinProtocol[K, B]",
@@ -58,6 +69,7 @@ class SpatialAlignmentMixin(AnalysisMixin[K, B]):
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
         self._spatial_key: Optional[str] = None
+        self._batch_key: Optional[str] = None
 
     def _interpolate_scheme(
         self: SpatialAlignmentMixinProtocol[K, B],
@@ -89,9 +101,9 @@ class SpatialAlignmentMixin(AnalysisMixin[K, B]):
         if mode == "affine":
             _transport: Callable[
                 [LinearOperator, ArrayLike, ArrayLike], Tuple[ArrayLike, Optional[ArrayLike]]
-            ] = _affine
+            ] = self._affine  # type: ignore[assignment]
         else:
-            _transport = _warp
+            _transport = self._warp
 
         if len(fwd_steps):
             for (start, _), path in fwd_steps.items():
@@ -153,6 +165,30 @@ class SpatialAlignmentMixin(AnalysisMixin[K, B]):
     def _subset_spatial(self: SpatialAlignmentMixinProtocol[K, B], k: K) -> ArrayLike:
         return self.adata[self.adata.obs[self._policy._subset_key] == k].obsm[self.spatial_key].copy()
 
+    def cell_transition(
+        self: SpatialAlignmentMixinProtocol[K, B],
+        slice: K,
+        reference: K,
+        slice_cells: Union[str, Mapping[str, Sequence[Any]]],
+        reference_cells: Union[str, Mapping[str, Sequence[Any]]],
+        forward: bool = False,  # return value will be row-stochastic if forward=True, else column-stochastic
+        aggregation: Literal["group", "cell"] = "group",
+    ) -> pd.DataFrame:
+        """Partly copy from other cell_transitions."""
+        if TYPE_CHECKING:
+            assert isinstance(self.batch_key, str)
+        return self._cell_transition(
+            key=self.batch_key,
+            other_key=self.batch_key,
+            key_source=slice,
+            key_target=reference,
+            source_cells=slice_cells,
+            target_cells=reference_cells,
+            forward=forward,
+            aggregation=aggregation,
+            online=False,
+        )
+
     @property
     def spatial_key(self) -> Optional[str]:
         """Return spatial key."""
@@ -165,33 +201,24 @@ class SpatialAlignmentMixin(AnalysisMixin[K, B]):
         # TODO(@MUCDK) check data type -> which ones do we allow
         self._spatial_key = value
 
-    def cell_transition(
-        self: SpatialAlignmentMixinProtocol[K, B],
-        slice: K,
-        reference: K,
-        slice_cells: Union[str, Mapping[str, Sequence[Any]]],
-        reference_cells: Union[str, Mapping[str, Sequence[Any]]],
-        forward: bool = False,  # return value will be row-stochastic if forward=True, else column-stochastic
-        aggregation: Literal["group", "cell"] = "group",
-    ) -> pd.DataFrame:
-        """Partly copy from other cell_transitions."""
-        if TYPE_CHECKING:
-            assert isinstance(self.spatial_key, str)
-        return self._cell_transition(
-            key=self.spatial_key,
-            other_key=self.spatial_key,
-            key_source=slice,
-            key_target=reference,
-            source_cells=slice_cells,
-            target_cells=reference_cells,
-            forward=forward,
-            aggregation=aggregation,
-            online=False,
-        )
+    @property
+    def batch_key(self) -> Optional[str]:
+        """Return batch key."""
+        return self._batch_key
+
+    @batch_key.setter
+    def batch_key(self, value: Optional[str] = None) -> None:
+        self._batch_key = value
 
 
 class SpatialMappingMixin(AnalysisMixin[K, B]):
     """Spatial mapping analysis mixin class."""
+
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
+        super().__init__(*args, **kwargs)
+        self._batch_key: Optional[str] = None
+        self._adata_sc_batch_key: Optional[str] = None
+        self._adata_sc_batch_key_value: Optional[B] = None
 
     def _filter_vars(
         self: SpatialMappingMixinProtocol[K, B],
@@ -275,17 +302,50 @@ class SpatialMappingMixin(AnalysisMixin[K, B]):
         adata_pred.var_names = self.adata_sc.var_names.copy()
         return adata_pred
 
+    def cell_transition(
+        self: SpatialMappingMixinProtocol[K, B],
+        slice: K,
+        slice_cells: Union[str, Mapping[str, Sequence[Any]]],
+        reference_cells: Union[str, Mapping[str, Sequence[Any]]],
+        forward: bool = False,  # return value will be row-stochastic if forward=True, else column-stochastic
+        aggregation: Literal["group", "cell"] = "group",
+    ) -> pd.DataFrame:
+        """Partly copy from other cell_transitions."""
+        if TYPE_CHECKING:
+            assert isinstance(self.batch_key, str)
+            assert isinstance(self._adata_sc_batch_key, str)
+        return self._cell_transition(
+            key=self.batch_key,
+            other_key=self._adata_sc_batch_key,
+            key_source=slice,
+            key_target=self._adata_sc_batch_key_value,
+            source_cells=slice_cells,
+            target_cells=reference_cells,
+            forward=forward,
+            aggregation=aggregation,
+            online=False,
+        )
 
-def _affine(tmap: LinearOperator, tgt: ArrayLike, src: ArrayLike) -> Tuple[ArrayLike, ArrayLike]:
-    """Affine transformation."""
-    tgt -= tgt.mean(0)
-    H = tgt.T.dot(tmap.dot(src))
-    U, _, Vt = svd(H)
-    R = Vt.T.dot(U.T)
-    tgt = R.dot(tgt.T).T
-    return tgt, R
+    @property
+    def batch_key(self) -> Optional[str]:
+        """Return batch key."""
+        return self._batch_key
 
+    @batch_key.setter
+    def batch_key(self, value: Optional[str] = None) -> None:
+        self._batch_key = value
 
-def _warp(tmap: LinearOperator, _: ArrayLike, src: ArrayLike) -> Tuple[ArrayLike, None]:
-    """Warp transformation."""
-    return tmap.dot(src), None
+    @staticmethod
+    def _affine(tmap: LinearOperator, tgt: ArrayLike, src: ArrayLike) -> Tuple[ArrayLike, ArrayLike]:
+        """Affine transformation."""
+        tgt -= tgt.mean(0)
+        H = tgt.T.dot(tmap.dot(src))
+        U, _, Vt = svd(H)
+        R = Vt.T.dot(U.T)
+        tgt = R.dot(tgt.T).T
+        return tgt, R
+
+    @staticmethod
+    def _warp(tmap: LinearOperator, _: ArrayLike, src: ArrayLike) -> Tuple[ArrayLike, None]:
+        """Warp transformation."""
+        return tmap.dot(src), None

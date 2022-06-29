@@ -66,6 +66,7 @@ class AlignmentProblem(CompoundProblem[K, B], SpatialAlignmentMixin[K, B]):
         :class:`moscot.problems.space.MappingProblem`.
         """
         self.spatial_key = spatial_key
+        self.batch_key = batch_key
         policy = Policy(policy)  # type: ignore[assignment]
 
         x = y = {"attr": "obsm", "key": self.spatial_key, "tag": "point_cloud"}
