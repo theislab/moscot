@@ -28,6 +28,20 @@ class TemporalMixinProtocol(AnalysisMixinProtocol[K, B], Protocol[K, B]):
     def pull(self, *args: Any, **kwargs: Any) -> Optional[ApplyOutput_t[K]]:  # noqa: D102
         ...
 
+    def _cell_transition(
+        self: "AnalysisMixinProtocol[K, B]",
+        key: str,
+        other_key: str,
+        key_source: K,
+        key_target: K,
+        source_cells: Union[str, Mapping[str, Sequence[Any]]],
+        target_cells: Union[str, Mapping[str, Sequence[Any]]],
+        forward: bool = False,
+        aggregation: Literal["group", "cell"] = "group",
+        online: bool = False,
+    ) -> pd.DataFrame:
+        ...
+
 
 class TemporalMixin(AnalysisMixin[K, B]):
     """Analysis Mixin for all problems involving a temporal dimension."""

@@ -299,4 +299,6 @@ class TestTemporalMixin:
         result = problem.cell_transition(
             0, 1, early_cells="cell_type", late_cells="cell_type", forward=True, online=online
         )
-        np.testing.assert_almost_equal(result.values, adata_time_with_tmap.uns["cell_transition_gt"].values, decimal=8)
+        res = result.sort_index()
+        df_expected = adata_time_with_tmap.uns["cell_transition_gt"].sort_index()
+        np.testing.assert_almost_equal(res.values, df_expected.values, decimal=8)

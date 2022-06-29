@@ -4,8 +4,8 @@ from typing import Any, Type, Union, Optional, NamedTuple
 
 from typing_extensions import Literal
 
-from ott.geometry import Grid, Epsilon, Geometry, PointCloud
 from ott.core import LinearProblem
+from ott.geometry import Grid, Epsilon, Geometry, PointCloud
 from ott.core.sinkhorn import Sinkhorn
 from ott.geometry.costs import Bures, Cosine, CostFn, Euclidean, UnbalancedBures
 from ott.core.sinkhorn_lr import LRSinkhorn
