@@ -42,8 +42,21 @@ class SpatialAlignmentMixinProtocol(AnalysisMixinProtocol[K, B]):
     def _affine(tmap: LinearOperator, tgt: ArrayLike, src: ArrayLike) -> Tuple[ArrayLike, ArrayLike]:
         ...
 
-    @staticmethod
     def _warp(tmap: LinearOperator, _: ArrayLike, src: ArrayLike) -> Tuple[ArrayLike, None]:
+        ...
+
+    def _cell_transition(
+        self: AnalysisMixinProtocol[K, B],
+        key: str,
+        other_key: str,
+        key_source: K,
+        key_target: K,
+        source_cells: Union[str, Mapping[str, Sequence[Any]]],
+        target_cells: Union[str, Mapping[str, Sequence[Any]]],
+        forward: bool = False,  # return value will be row-stochastic if forward=True, else column-stochastic
+        aggregation: Literal["group", "cell"] = "group",
+        online: bool = False,
+    ) -> pd.DataFrame:
         ...
 
 
@@ -60,6 +73,20 @@ class SpatialMappingMixinProtocol(AnalysisMixinProtocol[K, B]):
         self: "SpatialMappingMixinProtocol[K, B]",
         var_names: Optional[Sequence[str]] = None,
     ) -> Optional[List[str]]:
+        ...
+
+    def _cell_transition(
+        self: AnalysisMixinProtocol[K, B],
+        key: str,
+        other_key: str,
+        key_source: K,
+        key_target: K,
+        source_cells: Union[str, Mapping[str, Sequence[Any]]],
+        target_cells: Union[str, Mapping[str, Sequence[Any]]],
+        forward: bool = False,  # return value will be row-stochastic if forward=True, else column-stochastic
+        aggregation: Literal["group", "cell"] = "group",
+        online: bool = False,
+    ) -> pd.DataFrame:
         ...
 
 
@@ -103,7 +130,7 @@ class SpatialAlignmentMixin(AnalysisMixin[K, B]):
                 [LinearOperator, ArrayLike, ArrayLike], Tuple[ArrayLike, Optional[ArrayLike]]
             ] = self._affine  # type: ignore[assignment]
         else:
-            _transport = self._warp
+            _transport = self._warp  # type: ignore[assignment]
 
         if len(fwd_steps):
             for (start, _), path in fwd_steps.items():
@@ -173,6 +200,7 @@ class SpatialAlignmentMixin(AnalysisMixin[K, B]):
         reference_cells: Union[str, Mapping[str, Sequence[Any]]],
         forward: bool = False,  # return value will be row-stochastic if forward=True, else column-stochastic
         aggregation: Literal["group", "cell"] = "group",
+        online: bool = False,
     ) -> pd.DataFrame:
         """Partly copy from other cell_transitions."""
         if TYPE_CHECKING:
@@ -186,7 +214,7 @@ class SpatialAlignmentMixin(AnalysisMixin[K, B]):
             target_cells=reference_cells,
             forward=forward,
             aggregation=aggregation,
-            online=False,
+            online=online,
         )
 
     @property
@@ -209,6 +237,21 @@ class SpatialAlignmentMixin(AnalysisMixin[K, B]):
     @batch_key.setter
     def batch_key(self, value: Optional[str] = None) -> None:
         self._batch_key = value
+
+    @staticmethod
+    def _affine(tmap: LinearOperator, tgt: ArrayLike, src: ArrayLike) -> Tuple[ArrayLike, ArrayLike]:
+        """Affine transformation."""
+        tgt -= tgt.mean(0)
+        H = tgt.T.dot(tmap.dot(src))
+        U, _, Vt = svd(H)
+        R = Vt.T.dot(U.T)
+        tgt = R.dot(tgt.T).T
+        return tgt, R
+
+    @staticmethod
+    def _warp(tmap: LinearOperator, _: ArrayLike, src: ArrayLike) -> Tuple[ArrayLike, None]:
+        """Warp transformation."""
+        return tmap.dot(src), None
 
 
 class SpatialMappingMixin(AnalysisMixin[K, B]):
@@ -309,8 +352,8 @@ class SpatialMappingMixin(AnalysisMixin[K, B]):
         reference_cells: Union[str, Mapping[str, Sequence[Any]]],
         forward: bool = False,  # return value will be row-stochastic if forward=True, else column-stochastic
         aggregation: Literal["group", "cell"] = "group",
+        online: bool = False,
     ) -> pd.DataFrame:
-        """Partly copy from other cell_transitions."""
         if TYPE_CHECKING:
             assert isinstance(self.batch_key, str)
             assert isinstance(self._adata_sc_batch_key, str)
@@ -323,7 +366,7 @@ class SpatialMappingMixin(AnalysisMixin[K, B]):
             target_cells=reference_cells,
             forward=forward,
             aggregation=aggregation,
-            online=False,
+            online=online,
         )
 
     @property
@@ -334,18 +377,3 @@ class SpatialMappingMixin(AnalysisMixin[K, B]):
     @batch_key.setter
     def batch_key(self, value: Optional[str] = None) -> None:
         self._batch_key = value
-
-    @staticmethod
-    def _affine(tmap: LinearOperator, tgt: ArrayLike, src: ArrayLike) -> Tuple[ArrayLike, ArrayLike]:
-        """Affine transformation."""
-        tgt -= tgt.mean(0)
-        H = tgt.T.dot(tmap.dot(src))
-        U, _, Vt = svd(H)
-        R = Vt.T.dot(U.T)
-        tgt = R.dot(tgt.T).T
-        return tgt, R
-
-    @staticmethod
-    def _warp(tmap: LinearOperator, _: ArrayLike, src: ArrayLike) -> Tuple[ArrayLike, None]:
-        """Warp transformation."""
-        return tmap.dot(src), None

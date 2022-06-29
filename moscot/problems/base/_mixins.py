@@ -149,7 +149,7 @@ class AnalysisMixin(Generic[K, B]):
         )
         if forward:
             df_res = pd.DataFrame(index=_source_cell_indices)
-            for ct in _target_cells:
+            for ct in _target_cells:  # TODO(@MUCKD) make more efficient?
                 df_res[ct] = transition_matrix_indexed.loc[:, df_target[df_target[_target_cells_key] == ct].index].sum(
                     axis=1
                 )
@@ -159,10 +159,11 @@ class AnalysisMixin(Generic[K, B]):
                 key, key_source, _source_cells_key, is_source=True
             )
             unnormalized_tm = df_res.groupby("source_cells_categories").sum()
-            return unnormalized_tm.div(unnormalized_tm.sum(axis=1), axis=0)
+            normalized_tm = unnormalized_tm.div(unnormalized_tm.sum(axis=1), axis=0)
+            return normalized_tm[normalized_tm.index.isin(_source_cells)]
 
         df_res = pd.DataFrame(index=_source_cells, columns=_target_cell_indices)
-        for ct in _source_cells:
+        for ct in _source_cells:  # TODO(@MUCKD) make more efficient?
             df_res.loc[ct, :] = (
                 transition_matrix_indexed.iloc[(df_source[_source_cells_key] == ct).values, :].sum(axis=0).squeeze()
             )
@@ -172,7 +173,9 @@ class AnalysisMixin(Generic[K, B]):
             other_key, key_target, _target_cells_key, is_source=False
         )
         unnormalized_tm = df_res.T.groupby("target_cells_categories").sum().T
-        return unnormalized_tm.div(unnormalized_tm.sum(axis=0), axis=1)
+
+        normalized_tm = unnormalized_tm.div(unnormalized_tm.sum(axis=0), axis=1)
+        return normalized_tm[_target_cells]
 
     def _get_cell_indices(
         self: AnalysisMixinProtocol[K, B],
@@ -301,12 +304,24 @@ class AnalysisMixin(Generic[K, B]):
             _target_cells_key,
         )
 
+        _source_cells_present = set(_source_cells).intersection(set(df_source[_source_cells_key].cat.categories))
+        _target_cells_present = set(_target_cells).intersection(set(df_target[_target_cells_key].cat.categories))
+
         if aggregation == "group":
             df_target["distribution"] = 0
             df_source["distribution"] = 0
-            transition_table = pd.DataFrame(
-                np.zeros((len(_source_cells), len(_target_cells))), index=_source_cells, columns=_target_cells
-            )
+            if forward:
+                transition_table = pd.DataFrame(
+                    np.zeros((len(_source_cells_present), len(_target_cells))),
+                    index=_source_cells_present,
+                    columns=_target_cells,
+                )
+            else:
+                transition_table = pd.DataFrame(
+                    np.zeros((len(_source_cells), len(_target_cells_present))),
+                    index=_source_cells,
+                    columns=_target_cells_present,
+                )
         elif aggregation == "cell":
             if forward:
                 transition_table = pd.DataFrame(columns=_target_cells)
@@ -317,8 +332,7 @@ class AnalysisMixin(Generic[K, B]):
 
         error = NotImplementedError("TODO: aggregation must be `group` or `cell`.")
         if forward:
-            _source_cells_present = set(_source_cells).intersection(set(df_source[_source_cells_key].cat.categories))
-            for subset in _source_cells:
+            for subset in _source_cells_present:
                 result = self._cell_transition_helper(
                     key_source=key_source,
                     key_target=key_target,
@@ -329,9 +343,6 @@ class AnalysisMixin(Generic[K, B]):
                     split_mass=_split_mass,
                     cell_dist_id=key_source,
                 )
-                if result is None:
-                    continue
-
                 if aggregation == "group":
                     df_target.loc[:, "distribution"] = result
                     target_cell_dist = (
@@ -359,8 +370,7 @@ class AnalysisMixin(Generic[K, B]):
                     raise error
             return transition_table.div(transition_table.sum(axis=1), axis=0)
 
-        _target_cells_present = set(_target_cells).intersection(set(df_target[_target_cells_key].cat.categories))
-        for subset in _target_cells:
+        for subset in _target_cells_present:
             result = self._cell_transition_helper(
                 key_source=key_source,
                 key_target=key_target,
@@ -371,9 +381,6 @@ class AnalysisMixin(Generic[K, B]):
                 split_mass=_split_mass,
                 cell_dist_id=key_target,
             )
-
-            if result is None:
-                continue
 
             if aggregation == "group":
                 df_source.loc[:, "distribution"] = result
@@ -445,7 +452,6 @@ class AnalysisMixin(Generic[K, B]):
             adata = self.adata
         if isinstance(arg, str):
             if arg not in adata.obs:
-                print(adata.obs.columns)
                 raise KeyError(f"TODO. {arg} not in adata.obs.columns")
             if not is_categorical_dtype(adata.obs[arg]):
                 raise TypeError(f"The column `{arg}` in `adata.obs` must be of categorical dtype.")
