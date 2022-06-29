@@ -36,7 +36,7 @@ class TemporalMixin(AnalysisMixin[K, B]):
         super().__init__(*args, **kwargs)
         self._temporal_key: Optional[str] = None
 
-    def cell_transition(  # type: ignore[override]
+    def cell_transition(
         self: TemporalMixinProtocol[K, B],
         start: K,
         end: K,
@@ -87,6 +87,8 @@ class TemporalMixin(AnalysisMixin[K, B]):
         -------
         Transition matrix of cells or groups of cells.
         """
+        if TYPE_CHECKING:
+            assert isinstance(self.temporal_key, str)
         return self._cell_transition(
             key=self.temporal_key,
             other_key=self.temporal_key,

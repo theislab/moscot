@@ -4,6 +4,7 @@ from typing_extensions import Protocol
 from scipy.sparse.linalg import LinearOperator
 from pandas.core.dtypes.common import is_categorical_dtype
 import pandas as pd
+
 import numpy as np
 
 from anndata import AnnData
@@ -18,6 +19,7 @@ class AnalysisMixinProtocol(Protocol[K, B]):
     """Protocol class."""
 
     adata: AnnData
+    _other_adata: AnnData
     _policy: SubsetPolicy[K]
     solutions: Dict[Tuple[K, K], BaseSolverOutput]
     problems: Dict[Tuple[K, K], B]
@@ -42,11 +44,25 @@ class AnalysisMixinProtocol(Protocol[K, B]):
     ) -> LinearOperator:
         ...
 
+    def _cell_transition(
+        self: "AnalysisMixinProtocol[K, B]",
+        key: str,
+        other_key: str,
+        key_source: K,
+        key_target: K,
+        source_cells: Union[str, Mapping[str, Sequence[Any]]],
+        target_cells: Union[str, Mapping[str, Sequence[Any]]],
+        forward: bool = False,
+        aggregation: Literal["group", "cell"] = "group",
+        online: bool = False,
+    ) -> pd.DataFrame:
+        ...
+
     def _flatten(self: "AnalysisMixinProtocol[K, B]", data: Dict[K, ArrayLike], *, key: Optional[str]) -> ArrayLike:
         ...
 
     def _validate_args_cell_transition(
-        self: "AnalysisMixinProtocol[K, B]", arg: Union[str, Mapping[str, Sequence[Any]]]
+        self: "AnalysisMixinProtocol[K, B]", arg: Union[str, Mapping[str, Sequence[Any]]], *, is_source: bool
     ) -> Tuple[str, Sequence[Any]]:
         ...
 
@@ -61,6 +77,57 @@ class AnalysisMixinProtocol(Protocol[K, B]):
         split_mass: bool,
         cell_dist_id: K,
     ) -> Optional[ArrayLike]:
+        ...
+
+    def _get_dfs_cell_transition(
+        self: "AnalysisMixinProtocol[K, B]",
+        key: str,
+        other_key: str,
+        key_source: K,
+        key_target: K,
+        source_cells_key: str,
+        target_cells_key: str,
+    ) -> Tuple[pd.DataFrame, pd.DataFrame]:
+        ...
+
+    def _get_cell_indices(
+        self: "AnalysisMixinProtocol[K, B]",
+        key: Optional[str] = None,
+        other_key: Optional[str] = None,
+        key_source: Optional[Any] = None,
+        key_target: Optional[Any] = None,
+    ) -> Tuple[pd.Index, pd.Index]:
+        ...
+
+    def _get_categories_from_adatas(
+        self: "AnalysisMixinProtocol[K, B]", key: str, key_value: Any, return_key: str, *, is_source: bool
+    ) -> pd.Series:
+        ...
+
+    def _cell_transition_online(
+        self: "AnalysisMixinProtocol[K, B]",
+        key: str,
+        other_key: str,
+        key_source: K,
+        key_target: K,
+        source_cells: Union[str, Mapping[str, Sequence[Any]]],
+        target_cells: Union[str, Mapping[str, Sequence[Any]]],
+        forward: bool = False,
+        aggregation: Literal["group", "cell"] = "group",
+    ) -> pd.DataFrame:
+        ...
+
+    def _cell_transition_not_online(
+        self: "AnalysisMixinProtocol[K, B]",
+        key: str,
+        other_key: str,
+        key_source: K,
+        key_target: K,
+        source_cells: Union[str, Mapping[str, Sequence[Any]]],
+        target_cells: Union[str, Mapping[str, Sequence[Any]]],
+        forward: bool = False,
+        aggregation: Literal["group", "cell"] = "group",
+    ) -> pd.DataFrame:
         ...
 
 
@@ -122,7 +189,7 @@ class AnalysisMixin(Generic[K, B]):
         return unnormalized_tm.div(unnormalized_tm.sum(axis=0), axis=1)
 
     def _get_cell_indices(
-        self,
+        self: AnalysisMixinProtocol[K, B],
         key: Optional[str] = None,
         other_key: Optional[str] = None,
         key_source: Optional[Any] = None,
@@ -208,20 +275,20 @@ class AnalysisMixin(Generic[K, B]):
         )
 
     def _get_dfs_cell_transition(
-        self,
+        self: AnalysisMixinProtocol[K, B],
         key: str,
         other_key: str,
         key_source: K,
         key_target: K,
-        _source_cells_key: str,
-        _target_cells_key: str,
+        source_cells_key: str,
+        target_cells_key: str,
     ) -> Tuple[pd.DataFrame, pd.DataFrame]:
-        df_source = self.adata[self.adata.obs[key] ==key_source].obs[[_source_cells_key]].copy()
+        df_source = self.adata[self.adata.obs[key] == key_source].obs[[source_cells_key]].copy()
         if hasattr(self, "_other_adata"):
-            df_target = self._other_adata[self._other_adata.obs[other_key]==key_target].obs[[_target_cells_key]].copy()
+            df_target = self._other_adata[self._other_adata.obs[other_key] == key_target].obs[[target_cells_key]].copy()
         else:
-            #df_source = self.adata[self.adata.obs[key] == key_source].obs[[_source_cells_key]].copy()
-            df_target = self.adata[self.adata.obs[key]==key_target].obs[[_target_cells_key]].copy()
+            # df_source = self.adata[self.adata.obs[key] == key_source].obs[[_source_cells_key]].copy()
+            df_target = self.adata[self.adata.obs[key] == key_target].obs[[target_cells_key]].copy()
         return df_source, df_target
 
     def _cell_transition_online(
@@ -347,7 +414,7 @@ class AnalysisMixin(Generic[K, B]):
         return transition_table.div(transition_table.sum(axis=0), axis=1)
 
     def _cell_transition_helper(
-        self,
+        self: AnalysisMixinProtocol[K, B],
         key_source: K,
         key_target: K,
         subset: str,
@@ -411,7 +478,9 @@ class AnalysisMixin(Generic[K, B]):
                 raise ValueError(f"Not all values {_val} could be found in `adata.obs[{_key}]`.")
             return _key, _val
 
-    def _get_categories_from_adatas(self, key: str, key_value: Any, return_key: str, *, is_source: bool) -> pd.Series:
+    def _get_categories_from_adatas(
+        self: AnalysisMixinProtocol[K, B], key: str, key_value: Any, return_key: str, *, is_source: bool
+    ) -> pd.Series:
         if hasattr(self, "_other_adata"):
             if is_source:
                 adata = self.adata
@@ -497,10 +566,7 @@ class AnalysisMixin(Generic[K, B]):
                 for i in range(len(rows_batch))
             ]
             all_cols_sampled.extend(cols_sampled)
-        if TYPE_CHECKING:
-            assert isinstance(rows, list)
-            assert isinstance(all_cols_sampled, list)
-        return rows, all_cols_sampled
+        return rows, all_cols_sampled  # type: ignore[return-value]
 
     def _interpolate_transport(
         self: AnalysisMixinProtocol[K, B],
@@ -509,7 +575,7 @@ class AnalysisMixin(Generic[K, B]):
         ],  # TODO(@giovp): rename this to 'explicit_steps', pass to policy.plan() and reintroduce (key_source, key_target) args
         forward: bool = True,
         scale_by_marginals: bool = True,
-        **kwargs: Any,
+        **_: Any,
     ) -> LinearOperator:
         """Interpolate transport matrix."""
         if TYPE_CHECKING:
