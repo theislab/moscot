@@ -84,7 +84,7 @@ class TemporalMixin(AnalysisMixin[K, B]):
             Can be one of the following
                 - if `late_cells` is of type :class:`str` this should correspond to a key in
                   :attr:`anndata.AnnData.obs`. In this case, the categories in the transition matrix correspond to the
-                  unique values in `anndata.AnnData.obs` ``['{late_cells}']``
+                  unique values in :attr:`anndata.AnnData.obs` ``['{late_cells}']``
                 - if `late_cells` is of type `Mapping` its `key` should correspond to a key in
                   :attr:`anndata.AnnData.obs` and its `value` to a subset of categories present in
                   :attr:`anndata.AnnData.obs` ``['{late_cells.keys()[0]}']``
