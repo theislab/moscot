@@ -73,21 +73,21 @@ class TemporalMixin(AnalysisMixin[K, B]):
         end
             Time point corresponding to the late distribution.
         early_cells
-            Can be one of the following
+            Can be one of the following:
                 - if `early_cells` is of type :class:`str` this should correspond to a key in
                   :attr:`anndata.AnnData.obs`. In this case, the categories in the transition matrix correspond to the
-                  unique values in `anndata.AnnData.obs` ``['{early_cells}']``
+                  unique values in :attr:`anndata.AnnData.obs` ``['{early_cells}']``
                 - if `early_cells` is of type `Mapping` its `key` should correspond to a key in
                   :attr:`anndata.AnnData.obs` and its `value` to a subset of categories present in
-                  `anndata.AnnData.obs` ``['{early_cells.keys()[0]}']``
+                  :attr:`anndata.AnnData.obs` ``['{early_cells.keys()[0]}']``
         late_cells
             Can be one of the following
                 - if `late_cells` is of type :class:`str` this should correspond to a key in
                   :attr:`anndata.AnnData.obs`. In this case, the categories in the transition matrix correspond to the
-                  unique values in `anndata.AnnData.obs` ``['{late_cells}']``
+                  unique values in :attr:`anndata.AnnData.obs` ``['{late_cells}']``
                 - if `late_cells` is of type `Mapping` its `key` should correspond to a key in
                   :attr:`anndata.AnnData.obs` and its `value` to a subset of categories present in
-                  `anndata.AnnData.obs` ``['{late_cells.keys()[0]}']``
+                  :attr:`anndata.AnnData.obs` ``['{late_cells.keys()[0]}']``
         forward
             If `True` computes transition from cells belonging to `source_cells` to cells belonging to `target_cells`.
         aggregation:
