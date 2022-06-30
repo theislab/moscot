@@ -73,7 +73,7 @@ class TemporalMixin(AnalysisMixin[K, B]):
         end
             Time point corresponding to the late distribution.
         early_cells
-            Can be one of the following
+            Can be one of the following:
                 - if `early_cells` is of type :class:`str` this should correspond to a key in
                   :attr:`anndata.AnnData.obs`. In this case, the categories in the transition matrix correspond to the
                   unique values in `anndata.AnnData.obs` ``['{early_cells}']``
