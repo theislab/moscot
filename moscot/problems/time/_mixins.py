@@ -79,7 +79,7 @@ class TemporalMixin(AnalysisMixin[K, B]):
                   unique values in :attr:`anndata.AnnData.obs` ``['{early_cells}']``
                 - if `early_cells` is of type `Mapping` its `key` should correspond to a key in
                   :attr:`anndata.AnnData.obs` and its `value` to a subset of categories present in
-                  `anndata.AnnData.obs` ``['{early_cells.keys()[0]}']``
+                  :attr:`anndata.AnnData.obs` ``['{early_cells.keys()[0]}']``
         late_cells
             Can be one of the following
                 - if `late_cells` is of type :class:`str` this should correspond to a key in
