@@ -355,8 +355,8 @@ class SpatialMappingMixin(AnalysisMixin[K, B]):
         online: bool = False,
     ) -> pd.DataFrame:
         if TYPE_CHECKING:
-            assert isinstance(self.batch_key, str)
-            assert isinstance(self._adata_sc_batch_key, str)
+            assert self.batch_key is not None
+            assert self._adata_sc_batch_key is not None
         return self._cell_transition(
             key=self.batch_key,
             other_key=self._adata_sc_batch_key,

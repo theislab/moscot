@@ -252,7 +252,7 @@ class ExternalStarPolicy(FormatterMixin, StarPolicy[K]):
 
     def __init__(self, adata: Union[AnnData, pd.Series, pd.Categorical], tgt_name: str = "ref", **kwargs: Any):
         super().__init__(adata, **kwargs)
-        self._tgt_name: str = tgt_name
+        self._tgt_name = tgt_name
 
     def _format(self, value: K, *, is_source: bool) -> Union[str, K]:
         if is_source:
