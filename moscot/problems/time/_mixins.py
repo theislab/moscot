@@ -87,7 +87,7 @@ class TemporalMixin(AnalysisMixin[K, B]):
                   unique values in `anndata.AnnData.obs` ``['{late_cells}']``
                 - if `late_cells` is of type `Mapping` its `key` should correspond to a key in
                   :attr:`anndata.AnnData.obs` and its `value` to a subset of categories present in
-                  `anndata.AnnData.obs` ``['{late_cells.keys()[0]}']``
+                  :attr:`anndata.AnnData.obs` ``['{late_cells.keys()[0]}']``
         forward
             If `True` computes transition from cells belonging to `source_cells` to cells belonging to `target_cells`.
         aggregation:
