@@ -9,6 +9,7 @@ import ot
 import pandas as pd
 
 import numpy as np
+import scanpy as sc
 
 from anndata import AnnData
 
@@ -540,6 +541,57 @@ class TemporalMixin(AnalysisMixin[K, B]):
                 )
             )
         return np.mean(dist)
+
+    def plot_ancestors(self: TemporalMixinProtocol[K, B],
+        start: K,
+        end: K,
+        plot_intermediate: bool = False,
+        basis: str = "umap",
+        result_key: Optional[str] = None, fill_value: float = 0.0, **kwargs: Any) -> None:
+        result = self._apply(
+            start=start,
+            end=end,
+            forward=False,
+            return_all=True,
+            scale_by_marginals=True,
+            **kwargs,
+        )
+
+        if TYPE_CHECKING:
+            assert isinstance(result, dict)
+        self._plot_temporal(data=result, start=start, end=end, plot_intermediate=plot_intermediate, basis=basis, result_key=result_key, **kwargs)
+
+    def plot_descendants(self: TemporalMixinProtocol[K, B], # TODO(@MUCDK) work on how to display transition probablities and save
+        start: K,
+        end: K,
+        plot_intermediate: bool = False,
+        basis: str = "umap",
+        result_key: Optional[str] = None, 
+        fill_value: float = 0.0, **kwargs: Any) -> None:
+        result = self._apply(
+            start=start,
+            end=end,
+            forward=True,
+            return_all=True,
+            scale_by_marginals=True,
+            **kwargs,
+        )
+
+        if TYPE_CHECKING:
+            assert isinstance(result, dict)
+        self._plot_temporal(data=result, start=start, end=end, plot_intermediate=plot_intermediate, basis=basis, result_key=result_key, fill_value=fill_value, **kwargs)
+        
+    def _plot_temporal(self: TemporalMixinProtocol[K, B], data: Dict[K, ArrayLike], start: K, end: K, plot_intermediate: bool=False, basis: str = "umap", result_key: Optional[str] = None, fill_value: float = 0.0, **kwargs: Any) -> None:
+        
+        if plot_intermediate:
+            fill_keys = []
+        else:
+            fill_keys = set(data.keys()) - set(start, end)
+        data = self._flatten(data, key=self.temporal_key, fill_keys=fill_keys, fill_value=fill_value)
+        if result_key is not None:
+            self.adata.obs[result_key] = data
+        
+        sc.pl.scatter(self.adata, color=data, basis=basis, **kwargs)
 
     # TODO(@MUCDK) possibly offer two alternatives, once exact EMD with POT backend and once approximate,
     # faster with same solver as used for original problems

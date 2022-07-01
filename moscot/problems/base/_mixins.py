@@ -147,9 +147,12 @@ class AnalysisMixin(Generic[K, B]):
             [self.solutions[r] for r in rest], forward=forward, scale_by_marginals=scale_by_marginals
         )
 
-    def _flatten(self: AnalysisMixinProtocol[K, B], data: Dict[K, ArrayLike], *, key: Optional[str]) -> ArrayLike:
+    def _flatten(self: AnalysisMixinProtocol[K, B], data: Dict[K, ArrayLike], *, key: Optional[str], fill_keys: List[K] = [], fill_value: float = 0.0) -> ArrayLike:
         tmp = np.full(len(self.adata), np.nan)
         for k, v in data.items():
             mask = self.adata.obs[key] == k
-            tmp[mask] = np.squeeze(v)
+            if k in fill_keys:
+                tmp[mask] = fill_value
+            else:
+                tmp[mask] = np.squeeze(v)
         return tmp
