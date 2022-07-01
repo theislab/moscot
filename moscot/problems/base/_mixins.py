@@ -453,8 +453,6 @@ class AnalysisMixin(Generic[K, B]):
         if isinstance(arg, str):
             if arg not in adata.obs:
                 raise KeyError(f"TODO. {arg} not in adata.obs.columns")
-            if not is_categorical_dtype(adata.obs[arg]):
-                raise TypeError(f"The column `{arg}` in `adata.obs` must be of categorical dtype.")
             return arg, adata.obs[arg].cat.categories
         if isinstance(arg, dict):
             if len(arg.keys()) > 1:
@@ -464,8 +462,6 @@ class AnalysisMixin(Generic[K, B]):
                 )
             _key = list(arg.keys())[0]
             _val = arg[_key]
-            if not is_categorical_dtype(adata.obs[_key]):
-                raise TypeError(f"The column `{_key}` in `adata.obs` must be of categorical dtype.")
             if not set(_val).issubset(adata.obs[_key].cat.categories):
                 raise ValueError(f"Not all values {_val} could be found in `adata.obs[{_key}]`.")
             return _key, _val
