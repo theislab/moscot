@@ -7,6 +7,7 @@ from typing_extensions import Protocol
 from pandas.core.dtypes.common import is_categorical_dtype
 import ot
 import pandas as pd
+from pathlib import Path
 
 import numpy as np
 import scanpy as sc
@@ -17,6 +18,7 @@ from moscot._docs import d
 from moscot._types import ArrayLike, Numeric_t
 from moscot.problems.base._mixins import AnalysisMixin, AnalysisMixinProtocol
 from moscot.problems.base._compound_problem import B, K, ApplyOutput_t
+from moscot.problems._plotting import save_fig
 
 
 class TemporalMixinProtocol(AnalysisMixinProtocol[K, B], Protocol[K, B]):
@@ -547,7 +549,8 @@ class TemporalMixin(AnalysisMixin[K, B]):
         end: K,
         plot_intermediate: bool = False,
         basis: str = "umap",
-        result_key: Optional[str] = None, fill_value: float = 0.0, **kwargs: Any) -> None:
+        result_key: Optional[str] = None, fill_value: float = 0.0, 
+        save: Optional[Union[str, Path]] = None, **kwargs: Any) -> None:
         result = self._apply(
             start=start,
             end=end,
@@ -559,15 +562,16 @@ class TemporalMixin(AnalysisMixin[K, B]):
 
         if TYPE_CHECKING:
             assert isinstance(result, dict)
-        self._plot_temporal(data=result, start=start, end=end, plot_intermediate=plot_intermediate, basis=basis, result_key=result_key, **kwargs)
+        self._plot_temporal(data=result, start=start, end=end, plot_intermediate=plot_intermediate, basis=basis, result_key=result_key, save=save, **kwargs)
 
-    def plot_descendants(self: TemporalMixinProtocol[K, B], # TODO(@MUCDK) work on how to display transition probablities and save
+    def plot_descendants(self: TemporalMixinProtocol[K, B], 
         start: K,
         end: K,
         plot_intermediate: bool = False,
         basis: str = "umap",
         result_key: Optional[str] = None, 
-        fill_value: float = 0.0, **kwargs: Any) -> None:
+        fill_value: float = 0.0, 
+        save: Optional[Union[str, Path]] = None, **kwargs: Any) -> None:
         result = self._apply(
             start=start,
             end=end,
@@ -579,9 +583,10 @@ class TemporalMixin(AnalysisMixin[K, B]):
 
         if TYPE_CHECKING:
             assert isinstance(result, dict)
-        self._plot_temporal(data=result, start=start, end=end, plot_intermediate=plot_intermediate, basis=basis, result_key=result_key, fill_value=fill_value, **kwargs)
-        
-    def _plot_temporal(self: TemporalMixinProtocol[K, B], data: Dict[K, ArrayLike], start: K, end: K, plot_intermediate: bool=False, basis: str = "umap", result_key: Optional[str] = None, fill_value: float = 0.0, **kwargs: Any) -> None:
+        self._plot_temporal(data=result, start=start, end=end, plot_intermediate=plot_intermediate, basis=basis, result_key=result_key, fill_value=fill_value, save=save, **kwargs)
+
+
+    def _plot_temporal(self: TemporalMixinProtocol[K, B], data: Dict[K, ArrayLike], start: K, end: K, plot_intermediate: bool=False, basis: str = "umap", result_key: Optional[str] = None, fill_value: float = 0.0, save: Optional[Union[str, Path]] = None, **kwargs: Any) -> None:
         
         if plot_intermediate:
             fill_keys = []
@@ -591,7 +596,7 @@ class TemporalMixin(AnalysisMixin[K, B]):
         if result_key is not None:
             self.adata.obs[result_key] = data
         
-        sc.pl.scatter(self.adata, color=data, basis=basis, **kwargs)
+        sc.pl.scatter(self.adata, color=data, basis=basis, save=save, **kwargs)
 
     # TODO(@MUCDK) possibly offer two alternatives, once exact EMD with POT backend and once approximate,
     # faster with same solver as used for original problems
