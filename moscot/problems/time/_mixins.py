@@ -105,7 +105,6 @@ class TemporalMixin(AnalysisMixin[K, B]):
             assert isinstance(self.temporal_key, str)
         return self._cell_transition(
             key=self.temporal_key,
-            other_key=self.temporal_key,
             key_source=start,
             key_target=end,
             source_cells=early_cells,
@@ -113,6 +112,7 @@ class TemporalMixin(AnalysisMixin[K, B]):
             forward=forward,
             aggregation=aggregation,
             online=online,
+            other_key=None,
         )
 
     def push(

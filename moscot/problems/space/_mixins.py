@@ -207,7 +207,6 @@ class SpatialAlignmentMixin(AnalysisMixin[K, B]):
             assert isinstance(self.batch_key, str)
         return self._cell_transition(
             key=self.batch_key,
-            other_key=self.batch_key,
             key_source=slice,
             key_target=reference,
             source_cells=slice_cells,
@@ -215,6 +214,7 @@ class SpatialAlignmentMixin(AnalysisMixin[K, B]):
             forward=forward,
             aggregation=aggregation,
             online=online,
+            other_key=self.batch_key,
         )
 
     @property
@@ -359,7 +359,6 @@ class SpatialMappingMixin(AnalysisMixin[K, B]):
             assert self._adata_sc_batch_key is not None
         return self._cell_transition(
             key=self.batch_key,
-            other_key=self._adata_sc_batch_key,
             key_source=slice,
             key_target=self._adata_sc_batch_key_value,
             source_cells=slice_cells,
@@ -367,6 +366,7 @@ class SpatialMappingMixin(AnalysisMixin[K, B]):
             forward=forward,
             aggregation=aggregation,
             online=online,
+            other_key=self._adata_sc_batch_key,
         )
 
     @property
