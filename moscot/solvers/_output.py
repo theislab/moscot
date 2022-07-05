@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import Any, Tuple, Callable, Iterable
+from typing import Any, Tuple, Callable, Iterable, Optional
 from functools import partial
 
 from scipy.sparse.linalg import LinearOperator
@@ -32,6 +32,11 @@ class BaseSolverOutput(ABC):
     @property
     @abstractmethod
     def converged(self) -> bool:
+        pass
+
+    @property
+    @abstractmethod
+    def potentials(self) -> Tuple[Optional[ArrayLike], Optional[ArrayLike]]:
         pass
 
     @property
