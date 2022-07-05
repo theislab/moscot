@@ -2,7 +2,6 @@ from typing import Any, Set, Dict, List, Tuple, Union, Generic, Literal, Mapping
 
 from typing_extensions import Protocol
 from scipy.sparse.linalg import LinearOperator
-from pandas.core.dtypes.common import is_categorical_dtype
 import pandas as pd
 
 import numpy as np
@@ -62,6 +61,7 @@ class AnalysisMixinProtocol(Protocol[K, B]):
         forward: bool,
         split_mass: bool,
         cell_dist_id: K,
+        batch_size: Optional[int],
     ) -> Optional[ArrayLike]:
         ...
 
@@ -210,7 +210,7 @@ class AnalysisMixin(Generic[K, B]):
         aggregation: Literal[
             "group", "cell"
         ] = "group",  # TODO(@MUCKD): maybe replace by source_cells or target_cells = index.
-        online: bool = False,
+        batch_size: Optional[int] = None,
     ) -> pd.DataFrame:
         """
         Compute a grouped cell transition matrix.
@@ -247,15 +247,14 @@ class AnalysisMixin(Generic[K, B]):
         aggregation:
             If `aggregation` is `group` the transition probabilities from the groups defined by `source_cells` are
             returned. If `aggregation` is `cell` the transition probablities for each cell are returned.
-        online
-            Whether to run this function in online mode. This reduces the amount of memory needed but requires more
-            time. This is only available for ceratain solvers. TODO: @MUCDK prevent from being used in (F)GW?
+        batch_size
+            TODO
 
         Returns
         -------
         Transition matrix of cells or groups of cells.
         """
-        if online:
+        if batch_size:
             return self._cell_transition_online(
                 key, other_key, key_source, key_target, source_cells, target_cells, forward, aggregation
             )
@@ -290,6 +289,7 @@ class AnalysisMixin(Generic[K, B]):
         target_cells: Union[str, Mapping[str, Sequence[Any]]],
         forward: bool = False,  # return value will be row-stochastic if forward=True, else column-stochastic
         aggregation: Literal["group", "cell"] = "group",
+        batch_size: Optional[int] = None,
     ) -> pd.DataFrame:
         _split_mass = aggregation == "cell"
         _source_cells_key, _source_cells = self._validate_args_cell_transition(source_cells, is_source=True)
@@ -342,6 +342,7 @@ class AnalysisMixin(Generic[K, B]):
                     forward=True,
                     split_mass=_split_mass,
                     cell_dist_id=key_source,
+                    batch_size=batch_size,
                 )
                 if aggregation == "group":
                     df_target.loc[:, "distribution"] = result
@@ -380,6 +381,7 @@ class AnalysisMixin(Generic[K, B]):
                 forward=False,
                 split_mass=_split_mass,
                 cell_dist_id=key_target,
+                batch_size=batch_size,
             )
 
             if aggregation == "group":
@@ -416,21 +418,23 @@ class AnalysisMixin(Generic[K, B]):
         forward: bool,
         split_mass: bool,
         cell_dist_id: K,
+        batch_size: Optional[int] = None,
     ) -> ArrayLike:
 
         if subset not in cells_present:
             raise ValueError(f"TODO. Category {subset} not found")
         func = self.push if forward else self.pull  # type: ignore[attr-defined]
         return func(
-                start=key_source,
-                end=key_target,
-                data=source_cells_key,
-                subset=subset,
-                normalize=True,
-                return_all=False,
-                scale_by_marginals=False,
-                split_mass=split_mass,
-            )
+            start=key_source,
+            end=key_target,
+            data=source_cells_key,
+            subset=subset,
+            normalize=True,
+            return_all=False,
+            scale_by_marginals=False,
+            split_mass=split_mass,
+            batch_size=batch_size,
+        )
 
     def _validate_args_cell_transition(
         self: AnalysisMixinProtocol[K, B], arg: Union[str, Mapping[str, Sequence[Any]]], *, is_source: bool

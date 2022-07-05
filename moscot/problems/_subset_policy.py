@@ -296,8 +296,8 @@ class DummyPolicy(FormatterMixin, SubsetPolicy[str]):
     def __init__(
         self,
         adata: Union[AnnData, pd.Series, pd.Categorical],
-        src_name: Literal["src"] = ReferenceNaming.SRC_NAME,
-        tgt_name: Literal["tgt"] = ReferenceNaming.TGT_NAME,
+        src_name: Literal["src"] = ReferenceNaming.SRC_NAME,  # type: ignore[assignment]
+        tgt_name: Literal["tgt"] = ReferenceNaming.TGT_NAME,  # type: ignore[assignment]
         **kwargs: Any,
     ):
         super().__init__(pd.Series([self._SENTINEL] * len(adata)), **kwargs)

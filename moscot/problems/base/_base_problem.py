@@ -75,7 +75,7 @@ class BaseProblem(ABC):
     def _get_mass(
         adata: AnnData,
         data: Optional[Union[str, List[str], Tuple[str, ...], ArrayLike]] = None,
-        subset: Optional[Tuple[Sequence[Any], Dict[str, Any]]] = None,
+        subset: Optional[Union[Sequence[Any], Dict[str, Any]]] = None,
         normalize: bool = True,
         *,
         split_mass: bool = False,
@@ -271,16 +271,24 @@ class OTProblem(BaseProblem):
     ) -> ArrayLike:
         """Push mass."""
         if batch_size is not None:
-            if not split_mass:
-                print("TODO: `batch_size` does not have any effect.")
-            else:
-                for inds in range(0, len(self.adata), batch_size):
-                    data = self._get_mass(self.adata, data=data, subset={"index": self.adata.obs.index[inds]}, normalize=normalize, split_mass=split_mass)
-                    result_list = self.solution.push(data, **kwargs)
-
-        else:
-            data = self._get_mass(self.adata, data=data, subset=subset, normalize=normalize, split_mass=split_mass)
-            return self.solution.push(data, **kwargs)  # type: ignore[union-attr]
+            if split_mass:
+                n_obs = len(self.adata)
+                result_list = []
+                for inds in range(0, n_obs, batch_size):
+                    data = self._get_mass(
+                        self.adata,
+                        data=data,
+                        subset={"index": self.adata.obs.index[inds : min(inds + batch_size, n_obs)]},
+                        normalize=normalize,
+                        split_mass=split_mass,
+                    )
+                    if TYPE_CHECKING:
+                        assert isinstance(self.solution, BaseSolverOutput)
+                    result_list.append(self.solution.push(data, **kwargs))
+                return np.vstack(result_list)
+            print("TODO: `batch_size` does not have any effect. Ignoring `batch_size`.")
+        data = self._get_mass(self.adata, data=data, subset=subset, normalize=normalize, split_mass=split_mass)
+        return self.solution.push(data, **kwargs)  # type: ignore[union-attr]
 
     @require_solution
     def pull(
@@ -290,14 +298,30 @@ class OTProblem(BaseProblem):
         normalize: bool = True,
         *,
         split_mass: bool = False,
+        batch_size: Optional[int] = None,
         **kwargs: Any,
     ) -> ArrayLike:
         """Pull mass."""
         adata = self.adata if self._adata_y is None else self._adata_y
+        if batch_size is not None:
+            if split_mass:
+                n_obs = len(adata)
+                result_list = []
+                for inds in range(0, n_obs, batch_size):
+                    data = self._get_mass(
+                        adata,
+                        data=data,
+                        subset={"index": adata.obs.index[inds : min(inds + batch_size, n_obs)]},
+                        normalize=normalize,
+                        split_mass=split_mass,
+                    )
+                    if TYPE_CHECKING:
+                        assert isinstance(self.solution, BaseSolverOutput)
+                    result_list.append(self.solution.push(data, **kwargs))
+                return np.vstack(result_list)
+            print("TODO: `batch_size` does not have any effect. Ignoring `batch_size`.")
         data = self._get_mass(adata, data=data, subset=subset, normalize=normalize, split_mass=split_mass)
-        if TYPE_CHECKING:
-            assert isinstance(self.solution, BaseSolverOutput)
-        return self.solution.pull(data, **kwargs)
+        return self.solution.pull(data, **kwargs)  # type: ignore[union-attr]
 
     @staticmethod
     def _local_pca_callback(
