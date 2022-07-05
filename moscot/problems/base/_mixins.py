@@ -416,13 +416,12 @@ class AnalysisMixin(Generic[K, B]):
         forward: bool,
         split_mass: bool,
         cell_dist_id: K,
-    ) -> Optional[ArrayLike]:
+    ) -> ArrayLike:
 
         if subset not in cells_present:
-            return None
+            raise ValueError(f"TODO. Category {subset} not found")
         func = self.push if forward else self.pull  # type: ignore[attr-defined]
-        try:
-            result = func(
+        return func(
                 start=key_source,
                 end=key_target,
                 data=source_cells_key,
@@ -432,13 +431,6 @@ class AnalysisMixin(Generic[K, B]):
                 scale_by_marginals=False,
                 split_mass=split_mass,
             )
-        except ValueError as e:
-            if "no mass" in str(e):  # TODO: adapt
-                print(f"No data points corresponding to {subset} found in `adata.obs[groups_key]` for {cell_dist_id}")
-                result = None
-            else:
-                raise
-        return result
 
     def _validate_args_cell_transition(
         self: AnalysisMixinProtocol[K, B], arg: Union[str, Mapping[str, Sequence[Any]]], *, is_source: bool
