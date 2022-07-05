@@ -33,3 +33,9 @@ class AlignmentMode(ModeEnum):
 class CorrMethod(ModeEnum):
     PEARSON = "pearson"
     SPEARMAN = "spearman"
+
+
+@unique
+class ReferenceNaming(ModeEnum):
+    SRC_NAME = "src"
+    TGT_NAME = "ref"

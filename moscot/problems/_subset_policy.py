@@ -12,7 +12,7 @@ import numpy as np
 from anndata import AnnData
 
 from moscot._types import ArrayLike
-from moscot._constants._constants import Policy
+from moscot._constants._constants import Policy, ReferenceNaming
 
 Value_t = Tuple[ArrayLike, ArrayLike]
 Axis_t = Literal["obs", "var"]
@@ -296,13 +296,13 @@ class DummyPolicy(FormatterMixin, SubsetPolicy[str]):
     def __init__(
         self,
         adata: Union[AnnData, pd.Series, pd.Categorical],
-        src_name: str = "src",  # TODO(@MUCDK) make package constant?
-        tgt_name: str = "ref",  # TODO(@MUCDK) make package constant?
+        src_name: Literal["src"] = ReferenceNaming.SRC_NAME,
+        tgt_name: Literal["tgt"] = ReferenceNaming.TGT_NAME,
         **kwargs: Any,
     ):
         super().__init__(pd.Series([self._SENTINEL] * len(adata)), **kwargs)
-        self._src_name = src_name
-        self._tgt_name = tgt_name
+        self._src_name = ReferenceNaming(src_name)
+        self._tgt_name = ReferenceNaming(tgt_name)
 
     def _create_graph(self, **__: Any) -> Set[Tuple[object, object]]:  # type: ignore[override]
         return {(self._SENTINEL, self._SENTINEL)}
