@@ -75,7 +75,7 @@ class BaseProblem(ABC):
     def _get_mass(
         adata: AnnData,
         data: Optional[Union[str, List[str], Tuple[str, ...], ArrayLike]] = None,
-        subset: Optional[Sequence[Any]] = None,
+        subset: Optional[Tuple[Sequence[Any], Dict[str, Any]]] = None,
         normalize: bool = True,
         *,
         split_mass: bool = False,
@@ -94,6 +94,10 @@ class BaseProblem(ABC):
             # TODO: allow mix numeric/categorical keys (how to handle multiple subsets then?)
             if subset is None:  # allow for numeric values
                 data = np.asarray(adata.obs[data], dtype=float)
+            elif isinstance(subset, dict):
+                if list(subset.keys())[0] != "index":
+                    raise KeyError("TODO: Only valid if `key` of `subset` is `index`.")
+                data = np.asarray(adata.obs.index.isin(subset), dtype=float)
             elif isinstance(subset, Iterable) and not isinstance(subset, str):
                 data = np.asarray(adata.obs[data].isin(subset), dtype=float)
             else:
@@ -262,11 +266,21 @@ class OTProblem(BaseProblem):
         normalize: bool = True,
         *,
         split_mass: bool = False,
+        batch_size: Optional[int] = None,
         **kwargs: Any,
     ) -> ArrayLike:
         """Push mass."""
-        data = self._get_mass(self.adata, data=data, subset=subset, normalize=normalize, split_mass=split_mass)
-        return self.solution.push(data, **kwargs)  # type: ignore[union-attr]
+        if batch_size is not None:
+            if not split_mass:
+                print("TODO: `batch_size` does not have any effect.")
+            else:
+                for inds in range(0, len(self.adata), batch_size):
+                    data = self._get_mass(self.adata, data=data, subset={"index": self.adata.obs.index[inds]}, normalize=normalize, split_mass=split_mass)
+                    result_list = self.solution.push(data, **kwargs)
+
+        else:
+            data = self._get_mass(self.adata, data=data, subset=subset, normalize=normalize, split_mass=split_mass)
+            return self.solution.push(data, **kwargs)  # type: ignore[union-attr]
 
     @require_solution
     def pull(
