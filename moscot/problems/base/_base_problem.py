@@ -219,7 +219,7 @@ class OTProblem(BaseProblem):
         alpha: Optional[float] = 0.5,
         rank: int = -1,
         scale_cost: ScaleCost_t = None,
-        online: Optional[int] = None,
+        batch_size: Optional[int] = None,
         tau_a: float = 1.0,
         tau_b: float = 1.0,
         prepare_kwargs: Mapping[str, Any] = MappingProxyType({}),
@@ -239,7 +239,7 @@ class OTProblem(BaseProblem):
         prepare_kwargs["epsilon"] = epsilon
         prepare_kwargs["alpha"] = alpha
         prepare_kwargs["scale_cost"] = scale_cost
-        prepare_kwargs["online"] = online
+        prepare_kwargs["batch_size"] = batch_size
 
         solver: BaseSolver[BaseSolverOutput] = self._problem_kind.solver(backend="ott", **kwargs)
         self._solution = solver(x=self._x, y=self._y, xy=self._xy, a=a, b=b, tau_a=tau_a, tau_b=tau_b, **prepare_kwargs)
