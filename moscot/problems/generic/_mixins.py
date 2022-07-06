@@ -1,29 +1,18 @@
-from typing import Any, Dict, List, Tuple, Union, Mapping, Callable, Optional, Sequence, TYPE_CHECKING, Protocol
-from itertools import chain
+from typing import Any, Mapping, Optional, Protocol, Sequence, TYPE_CHECKING, Union
 
-from networkx import NetworkXNoPath
-from scipy.stats import pearsonr, spearmanr
-from scipy.linalg import svd
-from scipy.sparse import issparse
 from typing_extensions import Literal
-from scipy.sparse.linalg import LinearOperator
 import pandas as pd
 
-import numpy as np
 
-from anndata import AnnData
 
-from moscot._docs import d
-from moscot._types import ArrayLike
 from moscot.problems.base import AnalysisMixin  # type: ignore[attr-defined]
-from moscot._constants._constants import CorrMethod, AlignmentMode
 from moscot.problems.base._mixins import AnalysisMixinProtocol
-from moscot.problems._subset_policy import StarPolicy
 from moscot.problems.base._compound_problem import B, K
 
 
 class GenericAnalysisMixinProtocol(AnalysisMixinProtocol[K, B], Protocol[K, B]):
     """Protocol class."""
+
     batch_key: Optional[str]
 
     def _cell_transition(

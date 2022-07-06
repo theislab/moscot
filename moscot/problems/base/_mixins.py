@@ -304,8 +304,13 @@ class AnalysisMixin(Generic[K, B]):
         )
 
         _source_cells_present = set(_source_cells).intersection(set(df_source[_source_cells_key].cat.categories))
+        if not len(_source_cells_present):
+            raise ValueError(f"TODO: None of {_source_cells} found in distribution corresponding to {key_source}.")
         _target_cells_present = set(_target_cells).intersection(set(df_target[_target_cells_key].cat.categories))
+        if not len(_target_cells_present):
+            raise ValueError(f"TODO: None of {_target_cells} found in distribution corresponding to {key_target}.")
 
+        error = NotImplementedError("TODO: aggregation must be `group` or `cell`.")
         if aggregation == "group":
             df_target["distribution"] = 0
             df_source["distribution"] = 0
@@ -322,14 +327,10 @@ class AnalysisMixin(Generic[K, B]):
                     columns=_target_cells_present,
                 )
         elif aggregation == "cell":
-            if forward:
-                transition_table = pd.DataFrame(columns=_target_cells)
-            else:
-                transition_table = pd.DataFrame(index=_source_cells)
+            transition_table = pd.DataFrame(columns=_target_cells) if forward else pd.DataFrame(index=_source_cells)
         else:
-            raise NotImplementedError
+            raise error
 
-        error = NotImplementedError("TODO: aggregation must be `group` or `cell`.")
         if forward:
             for subset in _source_cells_present:  # TODO(@MUCDK) introduce batch-wise application
                 result = self._cell_transition_helper(
@@ -448,13 +449,9 @@ class AnalysisMixin(Generic[K, B]):
                 raise KeyError(f"TODO. {arg} not in adata.obs.columns")
             return arg, adata.obs[arg].cat.categories
         if isinstance(arg, dict):
-            if len(arg.keys()) > 1:
-                raise ValueError(
-                    f"The length of the dictionary is {len(arg)} but should be 1 as the data can only be filtered "
-                    f"according to one column of `adata.obs`."
-                )
-            _key = list(arg.keys())[0]
-            _val = arg[_key]
+            if len(arg) > 1:
+                raise ValueError(f"Invalid dictionary length: `{len(arg)}` expected 1. ")
+            _key, _val = next(iter(arg.items()))
             if not set(_val).issubset(adata.obs[_key].cat.categories):
                 raise ValueError(f"Not all values {_val} could be found in `adata.obs[{_key}]`.")
             return _key, _val
