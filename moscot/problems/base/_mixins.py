@@ -225,9 +225,9 @@ class AnalysisMixin(Generic[K, B]):
         key
             Key according to which cells are allocated to distributions.
         key_source
-            Time point corresponding to the early distribution.
+            Key identifying the source distribution.
         key_target
-            Time point corresponding to the late distribution.
+            Key identifying the target distribution.
         source_cells
             Can be one of the following
                 - if `source_cells` is of type :class:`str` this should correspond to a key in

@@ -6,12 +6,13 @@ from typing_extensions import Literal
 from anndata import AnnData
 
 from moscot._docs import d
-from moscot.problems.base import OTProblem, AnalysisMixin, CompoundProblem  # type: ignore[attr-defined]
-from moscot.problems.base._compound_problem import B
+from moscot.problems.base import OTProblem, CompoundProblem  # type: ignore[attr-defined]
+from moscot.problems.generic._mixins import GenericAnalysisMixin
+from moscot.problems.base._compound_problem import B, K
 
 
 @d.dedent
-class SinkhornProblem(CompoundProblem, AnalysisMixin):
+class SinkhornProblem(CompoundProblem[K, B], GenericAnalysisMixin[K, B]):
     """
     Class for solving linear OT problems.
 
@@ -26,6 +27,7 @@ class SinkhornProblem(CompoundProblem, AnalysisMixin):
 
     def __init__(self, adata: AnnData, **kwargs: Any):
         super().__init__(adata, **kwargs)
+        self._batch_key: Optional[str] = None
 
     @d.dedent
     def prepare(
@@ -34,7 +36,7 @@ class SinkhornProblem(CompoundProblem, AnalysisMixin):
         joint_attr: Optional[Union[str, Mapping[str, Any]]] = None,
         policy: Literal["sequential", "pairwise", "explicit"] = "sequential",
         **kwargs: Any,
-    ) -> "SinkhornProblem":
+    ) -> "SinkhornProblem[K, B]":
         """
         Prepare the :class:`moscot.problems.generic.SinkhornProblem`.
 
@@ -64,6 +66,7 @@ class SinkhornProblem(CompoundProblem, AnalysisMixin):
         -----
         If `a` and `b` are provided `marginal_kwargs` are ignored.
         """
+        self.batch_key = key
         if joint_attr is None:
             kwargs["callback"] = "local-pca"
             kwargs["callback_kwargs"] = {**kwargs.get("callback_kwargs", {}), **{"return_linear": True}}
@@ -96,7 +99,7 @@ class SinkhornProblem(CompoundProblem, AnalysisMixin):
 
 @d.get_sections(base="GWProblem", sections=["Parameters"])
 @d.dedent
-class GWProblem(CompoundProblem, AnalysisMixin):
+class GWProblem(CompoundProblem[K, B], GenericAnalysisMixin[K, B]):
     """
     Class for solving Gromov-Wasserstein problems.
 
@@ -111,6 +114,7 @@ class GWProblem(CompoundProblem, AnalysisMixin):
 
     def __init__(self, adata: AnnData, **kwargs: Any):
         super().__init__(adata, **kwargs)
+        self._batch_key: Optional[str] = None
 
     @d.dedent
     def prepare(
@@ -119,10 +123,11 @@ class GWProblem(CompoundProblem, AnalysisMixin):
         GW_attr: Mapping[str, Any] = MappingProxyType({}),
         policy: Literal["sequential", "pairwise", "explicit"] = "sequential",
         **kwargs: Any,
-    ) -> "GWProblem":
+    ) -> "GWProblem[K, B]":
         """
         GWProblem.
         """
+        self.batch_key = key
         # TODO(michalk8): use and
         if not len(GW_attr):
             if "cost_matrices" not in self.adata.obsp:
@@ -157,7 +162,7 @@ class GWProblem(CompoundProblem, AnalysisMixin):
 
 
 @d.dedent
-class FGWProblem(GWProblem):
+class FGWProblem(GWProblem[K, B]):
     """
     Class for solving Fused Gromov-Wasserstein problems.
 
@@ -178,7 +183,7 @@ class FGWProblem(GWProblem):
         GW_attr: Mapping[str, Any] = MappingProxyType({}),
         policy: Literal["sequential", "pairwise", "explicit"] = "sequential",
         **kwargs: Any,
-    ) -> "FGWProblem":
+    ) -> "FGWProblem[K, B]":
         """
         Prepare the :class:`moscot.problems.generic.GWProblem`.
 
