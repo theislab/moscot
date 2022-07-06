@@ -1,5 +1,5 @@
 from types import MappingProxyType
-from typing import Any, Type, Tuple, Union, Mapping, Optional
+from typing import Any, Type, Tuple, Union, Mapping, Optional, TYPE_CHECKING
 
 from typing_extensions import Literal
 import pandas as pd
@@ -8,6 +8,7 @@ import numpy as np
 
 from moscot._docs import d
 from moscot._types import Numeric_t
+from moscot.solvers._output import BaseSolverOutput
 from moscot._constants._constants import Policy, ScaleCost
 from moscot.problems.time._mixins import TemporalMixin
 from moscot.problems.base._birth_death import BirthDeathMixin, BirthDeathProblem
@@ -185,48 +186,53 @@ class TemporalProblem(
         NotImplementedError
             If the solver from :class:`moscot.solvers` does not use potentials
         """
-        try:
-            df_list = [
-                pd.DataFrame(
-                    problem.solution.potentials[0], index=problem.adata.obs.index, columns=["cell_cost_source"]  # type: ignore[union-attr] # noqa: E501
-                )
-                for problem in self.problems.values()
-            ]
-            tup = list(self)[-1]
-            df_list.append(
-                pd.DataFrame(
-                    np.full(shape=(len(self.problems[tup]._adata_y.obs), 1), fill_value=np.nan),
-                    index=self.problems[tup]._adata_y.obs.index,
-                    columns=["cell_cost_source"],
-                )
-            )
-            return pd.concat(df_list, verify_integrity=True)
-        except AttributeError:  # TODO(@MUCDK) check for specific error message
+        sol = list(self.problems.values())[0].solution
+        if TYPE_CHECKING:
+            assert isinstance(sol, BaseSolverOutput)
+        if sol.potentials[0] is None:
             return None
+        df_list = [
+            pd.DataFrame(
+                problem.solution.potentials[0], index=problem.adata.obs.index, columns=["cell_cost_source"]  # type: ignore[union-attr] # noqa: E501
+            )
+            for problem in self.problems.values()
+        ]
+        tup = list(self)[-1]
+        df_list.append(
+            pd.DataFrame(
+                np.full(shape=(len(self.problems[tup]._adata_y.obs), 1), fill_value=np.nan),
+                index=self.problems[tup]._adata_y.obs.index,
+                columns=["cell_cost_source"],
+            )
+        )
+        return pd.concat(df_list, verify_integrity=True)
 
     @property
     def cell_costs_target(self) -> Optional[pd.DataFrame]:
         """Return the cost of a cell (see online methods) obtained by the potentials of the OT solution."""
-        try:
-            tup = list(self)[0]
-            df_list = [
-                pd.DataFrame(
-                    np.full(shape=(len(self.problems[tup].adata), 1), fill_value=np.nan),
-                    index=self.problems[tup].adata.obs.index,
-                    columns=["cell_cost_target"],
-                )
-            ]
-            df_list.extend(
-                [
-                    pd.DataFrame(
-                        problem.solution.potentials[1], index=problem._adata_y.obs.index, columns=["cell_cost_target"]  # type: ignore[union-attr] # noqa: E501
-                    )
-                    for problem in self.problems.values()
-                ]
-            )
-            return pd.concat(df_list, verify_integrity=True)
-        except AttributeError:  # TODO(@MUCDK) check for specific error message
+        sol = list(self.problems.values())[0].solution
+        if TYPE_CHECKING:
+            assert isinstance(sol, BaseSolverOutput)
+        if sol.potentials[0] is None:
             return None
+
+        tup = list(self)[0]
+        df_list = [
+            pd.DataFrame(
+                np.full(shape=(len(self.problems[tup].adata), 1), fill_value=np.nan),
+                index=self.problems[tup].adata.obs.index,
+                columns=["cell_cost_target"],
+            )
+        ]
+        df_list.extend(
+            [
+                pd.DataFrame(
+                    problem.solution.potentials[1], index=problem._adata_y.obs.index, columns=["cell_cost_target"]  # type: ignore[union-attr] # noqa: E501
+                )
+                for problem in self.problems.values()
+            ]
+        )
+        return pd.concat(df_list, verify_integrity=True)
 
     @property
     def _base_problem_type(self) -> Type[B]:

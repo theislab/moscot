@@ -10,12 +10,13 @@ from ott.core.sinkhorn import Sinkhorn
 from ott.geometry.costs import Bures, Cosine, CostFn, Euclidean, UnbalancedBures
 from ott.core.sinkhorn_lr import LRSinkhorn
 from ott.core.quad_problems import QuadraticProblem
+from ott.core.linear_problems import LinearProblem
 from ott.core.gromov_wasserstein import GromovWasserstein
 import jax.numpy as jnp
 
 from moscot._docs import d
 from moscot._types import ArrayLike
-from moscot.backends.ott._output import LinearOutput, LRLinearOutput, QuadraticOutput
+from moscot.backends.ott._output import OTTOutput
 from moscot.solvers._base_solver import O, OTSolver, ProblemKind
 from moscot.solvers._tagged_array import TaggedArray
 
@@ -46,7 +47,7 @@ class Cost(str, Enum):
 class ProblemDescription(NamedTuple):
     solver: Union[Sinkhorn, LRSinkhorn, GromovWasserstein]
     data: Union[LinearProblem, QuadraticProblem]
-    output_type: Type[Union[LinearOutput, LRLinearOutput, QuadraticOutput]]
+    output_type: Type[OTTOutput]
 
 
 class OTTJaxSolver(OTSolver[O], ABC):
@@ -140,7 +141,7 @@ class OTTJaxSolver(OTSolver[O], ABC):
 
 
 @d.dedent
-class SinkhornSolver(OTTJaxSolver[Union[LinearOutput, LRLinearOutput]]):
+class SinkhornSolver(OTTJaxSolver[OTTOutput]):
     """
     Solver class solving linear Optimal Transport problems.
 
@@ -180,12 +181,10 @@ class SinkhornSolver(OTTJaxSolver[Union[LinearOutput, LRLinearOutput]]):
         problem = LinearProblem(geom, **kwargs)
         if self._solver_kwargs.get("rank", -1) > -1:
             solver = LRSinkhorn(**self._solver_kwargs)
-            output_type = LRLinearOutput
         else:
             solver = Sinkhorn(**{k: v for k, v in self._solver_kwargs.items() if k != "rank"})
-            output_type = LinearOutput  # type: ignore[assignment]
 
-        return ProblemDescription(solver=solver, data=problem, output_type=output_type)
+        return ProblemDescription(solver=solver, data=problem, output_type=OTTOutput)
 
     @property
     def problem_kind(self) -> ProblemKind:
@@ -193,7 +192,7 @@ class SinkhornSolver(OTTJaxSolver[Union[LinearOutput, LRLinearOutput]]):
 
 
 @d.dedent
-class GWSolver(OTTJaxSolver[QuadraticOutput]):
+class GWSolver(OTTJaxSolver[OTTOutput]):
     """
     Solver class solving quadratic Optimal Transport problems.
 
@@ -237,7 +236,7 @@ class GWSolver(OTTJaxSolver[QuadraticOutput]):
             solver = GromovWasserstein(**self._solver_kwargs)
         problem = QuadraticProblem(geom_x, geom_y, geom_xy=None, **kwargs)
 
-        return ProblemDescription(solver=solver, data=problem, output_type=QuadraticOutput)
+        return ProblemDescription(solver=solver, data=problem, output_type=OTTOutput)
 
     @property
     def problem_kind(self) -> ProblemKind:

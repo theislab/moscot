@@ -11,6 +11,7 @@ from tests.conftest import _adata_spatial_split
 from moscot.problems.space import MappingProblem
 from moscot.solvers._base_solver import ProblemKind
 
+# TODO(giovp): refactor as fixture
 SOLUTIONS_PATH = Path("./tests/data/mapping_solutions.pkl")  # base is moscot
 
 
@@ -75,10 +76,13 @@ class TestMappingProblem:
         sc_attr: Mapping[str, str],
         var_names: Optional[List[str]],
     ):
+        kwargs = {}
+        if rank > 0:
+            kwargs["rng_key"] = 42
         adataref, adatasp = _adata_spatial_split(adata_mapping)
         mp = MappingProblem(adataref, adatasp)
         mp = mp.prepare(batch_key="batch", sc_attr=sc_attr, var_names=var_names)
-        mp = mp.solve(epsilon=epsilon, alpha=alpha, rank=rank)
+        mp = mp.solve(epsilon=epsilon, alpha=alpha, rank=rank, **kwargs)
 
         for prob_key in mp:
             assert mp[prob_key].solution.rank == rank
