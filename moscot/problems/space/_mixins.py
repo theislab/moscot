@@ -16,7 +16,7 @@ from anndata import AnnData
 from moscot._docs import d
 from moscot._types import ArrayLike
 from moscot.problems.base import AnalysisMixin  # type: ignore[attr-defined]
-from moscot._constants._constants import CorrMethod, AlignmentMode
+from moscot._constants._constants import CorrMethod, AlignmentMode, AggregationMode
 from moscot.problems.base._mixins import AnalysisMixinProtocol
 from moscot.problems._subset_policy import StarPolicy
 from moscot.problems.base._compound_problem import B, K
@@ -53,9 +53,10 @@ class SpatialAlignmentMixinProtocol(AnalysisMixinProtocol[K, B]):
         source_cells: Union[str, Mapping[str, Sequence[Any]]],
         target_cells: Union[str, Mapping[str, Sequence[Any]]],
         forward: bool = False,  # return value will be row-stochastic if forward=True, else column-stochastic
-        aggregation: Literal["group", "cell"] = "group",
+        aggregation_mode: Literal["group", "cell"] = AggregationMode.GROUP,  # type: ignore[assignment]
         online: bool = False,
         other_key: Optional[str] = None,
+        other_adata: Optional[str] = None,
     ) -> pd.DataFrame:
         ...
 
@@ -83,9 +84,10 @@ class SpatialMappingMixinProtocol(AnalysisMixinProtocol[K, B]):
         source_cells: Union[str, Mapping[str, Sequence[Any]]],
         target_cells: Union[str, Mapping[str, Sequence[Any]]],
         forward: bool = False,  # return value will be row-stochastic if forward=True, else column-stochastic
-        aggregation: Literal["group", "cell"] = "group",
+        aggregation_mode: Literal["group", "cell"] = AggregationMode.GROUP,  # type: ignore[assignment]
         online: bool = False,
         other_key: Optional[str] = None,
+        other_adata: Optional[AnnData] = None,
     ) -> pd.DataFrame:
         ...
 
@@ -199,7 +201,7 @@ class SpatialAlignmentMixin(AnalysisMixin[K, B]):
         slice_cells: Union[str, Mapping[str, Sequence[Any]]],
         reference_cells: Union[str, Mapping[str, Sequence[Any]]],
         forward: bool = False,  # return value will be row-stochastic if forward=True, else column-stochastic
-        aggregation: Literal["group", "cell"] = "group",
+        aggregation_mode: Literal["group", "cell"] = AggregationMode.GROUP,  # type: ignore[assignment]
         online: bool = False,
     ) -> pd.DataFrame:
         """Partly copy from other cell_transitions."""
@@ -212,7 +214,7 @@ class SpatialAlignmentMixin(AnalysisMixin[K, B]):
             source_cells=slice_cells,
             target_cells=reference_cells,
             forward=forward,
-            aggregation=aggregation,
+            aggregation_mode=AggregationMode(aggregation_mode),  # type: ignore[arg-type]
             online=online,
             other_key=self.batch_key,
         )
@@ -351,7 +353,7 @@ class SpatialMappingMixin(AnalysisMixin[K, B]):
         slice_cells: Union[str, Mapping[str, Sequence[Any]]],
         reference_cells: Union[str, Mapping[str, Sequence[Any]]],
         forward: bool = False,  # return value will be row-stochastic if forward=True, else column-stochastic
-        aggregation: Literal["group", "cell"] = "group",
+        aggregation_mode: Literal["group", "cell"] = AggregationMode.GROUP,  # type: ignore[assignment]
         online: bool = False,
     ) -> pd.DataFrame:
         if TYPE_CHECKING:
@@ -364,9 +366,10 @@ class SpatialMappingMixin(AnalysisMixin[K, B]):
             source_cells=slice_cells,
             target_cells=reference_cells,
             forward=forward,
-            aggregation=aggregation,
+            aggregation_mode=AggregationMode(aggregation_mode),  # type: ignore[arg-type]
             online=online,
             other_key=self._adata_sc_batch_key,
+            other_adata=self.adata_sc,
         )
 
     @property

@@ -1,11 +1,10 @@
-from typing import Any, Mapping, Optional, Protocol, Sequence, TYPE_CHECKING, Union
+from typing import Any, Union, Mapping, Optional, Protocol, Sequence, TYPE_CHECKING
 
 from typing_extensions import Literal
 import pandas as pd
 
-
-
 from moscot.problems.base import AnalysisMixin  # type: ignore[attr-defined]
+from moscot._constants._constants import AggregationMode
 from moscot.problems.base._mixins import AnalysisMixinProtocol
 from moscot.problems.base._compound_problem import B, K
 
@@ -23,7 +22,7 @@ class GenericAnalysisMixinProtocol(AnalysisMixinProtocol[K, B], Protocol[K, B]):
         source_cells: Union[str, Mapping[str, Sequence[Any]]],
         target_cells: Union[str, Mapping[str, Sequence[Any]]],
         forward: bool = False,
-        aggregation: Literal["group", "cell"] = "group",
+        aggregation_mode: Literal["group", "cell"] = AggregationMode.GROUP,  # type: ignore[assignment]
         online: bool = False,
         other_key: Optional[str] = None,
     ) -> pd.DataFrame:
@@ -44,7 +43,7 @@ class GenericAnalysisMixin(AnalysisMixin[K, B]):
         source_cells: Union[str, Mapping[str, Sequence[Any]]],
         target_cells: Union[str, Mapping[str, Sequence[Any]]],
         forward: bool = False,  # return value will be row-stochastic if forward=True, else column-stochastic
-        aggregation: Literal["group", "cell"] = "group",
+        aggregation_mode: Literal["group", "cell"] = AggregationMode.GROUP,  # type: ignore[assignment]
         online: bool = False,
     ) -> pd.DataFrame:
         """
@@ -77,9 +76,9 @@ class GenericAnalysisMixin(AnalysisMixin[K, B]):
                   :attr:`anndata.AnnData.obs` ``['{target_cells.keys()[0]}']``
         forward
             If `True` computes transition from cells belonging to `source_cells` to cells belonging to `target_cells`.
-        aggregation:
-            If `aggregation` is `group` the transition probabilities from the groups defined by `source_cells` are
-            returned. If `aggregation` is `cell` the transition probablities for each cell are returned.
+        aggregation_mode:
+            If `aggregation_mode` is `group` the transition probabilities from the groups defined by `source_cells` are
+            returned. If `aggregation_mode` is `cell` the transition probablities for each cell are returned.
         online
             TODO
 
@@ -96,7 +95,7 @@ class GenericAnalysisMixin(AnalysisMixin[K, B]):
             source_cells=source_cells,
             target_cells=target_cells,
             forward=forward,
-            aggregation=aggregation,
+            aggregation_mode=AggregationMode(aggregation_mode),  # type: ignore[arg-type]
             online=online,
             other_key=None,
         )

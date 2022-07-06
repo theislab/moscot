@@ -39,3 +39,9 @@ class CorrMethod(ModeEnum):
 class ReferenceNaming(ModeEnum):
     SRC_NAME = "src"
     TGT_NAME = "ref"
+
+
+@unique
+class AggregationMode(ModeEnum):
+    GROUP = "group"
+    CELL = "cell"
