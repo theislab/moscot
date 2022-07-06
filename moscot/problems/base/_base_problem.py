@@ -75,7 +75,7 @@ class BaseProblem(ABC):
     def _get_mass(
         adata: AnnData,
         data: Optional[Union[str, List[str], Tuple[str, ...], ArrayLike]] = None,
-        subset: Optional[Union[Sequence[Any], Dict[str, Any]]] = None,
+        subset: Optional[Sequence[Any]] = None,
         normalize: bool = True,
         *,
         split_mass: bool = False,
@@ -94,9 +94,6 @@ class BaseProblem(ABC):
             # TODO: allow mix numeric/categorical keys (how to handle multiple subsets then?)
             if subset is None:  # allow for numeric values
                 data = np.asarray(adata.obs[data], dtype=float)
-            elif isinstance(subset, dict):
-                if list(subset.keys())[0] != "index":
-                    raise KeyError("TODO: Only valid if `key` of `subset` is `index`.")
                 data = np.asarray(adata.obs.index.isin(subset), dtype=float)
             elif isinstance(subset, Iterable) and not isinstance(subset, str):
                 data = np.asarray(adata.obs[data].isin(subset), dtype=float)
@@ -232,7 +229,7 @@ class OTProblem(BaseProblem):
         alpha: Optional[float] = 0.5,
         rank: int = -1,
         scale_cost: ScaleCost_t = None,
-        online: Optional[int] = None,
+        batch_size: Optional[int] = None,
         tau_a: float = 1.0,
         tau_b: float = 1.0,
         prepare_kwargs: Mapping[str, Any] = MappingProxyType({}),
@@ -252,7 +249,7 @@ class OTProblem(BaseProblem):
         prepare_kwargs["epsilon"] = epsilon
         prepare_kwargs["alpha"] = alpha
         prepare_kwargs["scale_cost"] = scale_cost
-        prepare_kwargs["online"] = online
+        prepare_kwargs["batch_size"] = batch_size
 
         solver: BaseSolver[BaseSolverOutput] = self._problem_kind.solver(backend="ott", **kwargs)
         self._solution = solver(x=self._x, y=self._y, xy=self._xy, a=a, b=b, tau_a=tau_a, tau_b=tau_b, **prepare_kwargs)
@@ -266,29 +263,13 @@ class OTProblem(BaseProblem):
         normalize: bool = True,
         *,
         split_mass: bool = False,
-        batch_size: Optional[int] = None,
         **kwargs: Any,
     ) -> ArrayLike:
         """Push mass."""
-        if batch_size is not None:
-            if split_mass:
-                n_obs = len(self.adata)
-                result_list = []
-                for inds in range(0, n_obs, batch_size):
-                    data = self._get_mass(
-                        self.adata,
-                        data=data,
-                        subset={"index": self.adata.obs.index[inds : min(inds + batch_size, n_obs)]},
-                        normalize=normalize,
-                        split_mass=split_mass,
-                    )
-                    if TYPE_CHECKING:
-                        assert isinstance(self.solution, BaseSolverOutput)
-                    result_list.append(self.solution.push(data, **kwargs))
-                return np.vstack(result_list)
-            print("TODO: `batch_size` does not have any effect. Ignoring `batch_size`.")
+        if TYPE_CHECKING:
+            assert isinstance(self.solution, BaseSolverOutput)
         data = self._get_mass(self.adata, data=data, subset=subset, normalize=normalize, split_mass=split_mass)
-        return self.solution.push(data, **kwargs)  # type: ignore[union-attr]
+        return self.solution.push(data, **kwargs)
 
     @require_solution
     def pull(
@@ -298,30 +279,14 @@ class OTProblem(BaseProblem):
         normalize: bool = True,
         *,
         split_mass: bool = False,
-        batch_size: Optional[int] = None,
         **kwargs: Any,
     ) -> ArrayLike:
         """Pull mass."""
         adata = self.adata if self._adata_y is None else self._adata_y
-        if batch_size is not None:
-            if split_mass:
-                n_obs = len(adata)
-                result_list = []
-                for inds in range(0, n_obs, batch_size):
-                    data = self._get_mass(
-                        adata,
-                        data=data,
-                        subset={"index": adata.obs.index[inds : min(inds + batch_size, n_obs)]},
-                        normalize=normalize,
-                        split_mass=split_mass,
-                    )
-                    if TYPE_CHECKING:
-                        assert isinstance(self.solution, BaseSolverOutput)
-                    result_list.append(self.solution.push(data, **kwargs))
-                return np.vstack(result_list)
-            print("TODO: `batch_size` does not have any effect. Ignoring `batch_size`.")
+        if TYPE_CHECKING:
+            assert isinstance(self.solution, BaseSolverOutput)
         data = self._get_mass(adata, data=data, subset=subset, normalize=normalize, split_mass=split_mass)
-        return self.solution.pull(data, **kwargs)  # type: ignore[union-attr]
+        return self.solution.pull(data, **kwargs)
 
     @staticmethod
     def _local_pca_callback(

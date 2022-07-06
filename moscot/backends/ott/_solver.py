@@ -72,7 +72,7 @@ class OTTJaxSolver(OTSolver[O], ABC):
         x: TaggedArray,
         *,
         epsilon: Optional[Epsilon_t] = None,
-        online: Union[int, bool] = False,
+        batch_size: Optional[int] = None,
         scale_cost: Scale_t = None,
     ) -> Geometry:
         """
@@ -91,11 +91,11 @@ class OTTJaxSolver(OTSolver[O], ABC):
             x, y = self._assert2d(x.data), self._assert2d(x.data_y)
             if y is not None and x.shape[1] != y.shape[1]:  # type: ignore[attr-defined]
                 raise ValueError("TODO: x/y dimension mismatch")
-            return PointCloud(x, y=y, epsilon=epsilon, cost_fn=cost_fn, online=online, scale_cost=scale_cost)
+            return PointCloud(x, y=y, epsilon=epsilon, cost_fn=cost_fn, batch_size=batch_size, scale_cost=scale_cost)
         if x.is_point_cloud:
             cost_fn = self._create_cost(x.loss)
             return PointCloud(
-                self._assert2d(x.data), epsilon=epsilon, cost_fn=cost_fn, online=online, scale_cost=scale_cost
+                self._assert2d(x.data), epsilon=epsilon, cost_fn=cost_fn, batch_size=batch_size, scale_cost=scale_cost
             )
         if x.is_grid:
             cost_fn = self._create_cost(x.loss)
@@ -169,13 +169,13 @@ class SinkhornSolver(OTTJaxSolver[Union[LinearOutput, LRLinearOutput]]):
         x: Optional[TaggedArray] = None,
         y: Optional[TaggedArray] = None,
         epsilon: Optional[Epsilon_t] = None,
-        online: Union[int, bool] = False,
+        batch_size: Optional[int] = None,
         scale_cost: Scale_t = None,
         **kwargs: Any,
     ) -> ProblemDescription:
         if xy is None:
             raise ValueError("TODO")
-        geom = self._create_geometry(xy, epsilon=epsilon, online=online, scale_cost=scale_cost)
+        geom = self._create_geometry(xy, epsilon=epsilon, batch_size=batch_size, scale_cost=scale_cost)
 
         problem = LinearProblem(geom, **kwargs)
         if self._solver_kwargs.get("rank", -1) > -1:
@@ -222,20 +222,20 @@ class GWSolver(OTTJaxSolver[QuadraticOutput]):
         x: Optional[TaggedArray] = None,
         y: Optional[TaggedArray] = None,
         epsilon: Optional[Epsilon_t] = None,
-        online: Union[int, bool] = False,
+        batch_size: Optional[int] = None,
         scale_cost: Scale_t = None,
         **kwargs: Any,
     ) -> ProblemDescription:
         if x is None or y is None:
             raise ValueError("TODO")
-        geom_x = self._create_geometry(x, epsilon=epsilon, online=online, scale_cost=scale_cost)
-        geom_y = self._create_geometry(y, epsilon=epsilon, online=online, scale_cost=scale_cost)
+        geom_x = self._create_geometry(x, epsilon=epsilon, batch_size=batch_size, scale_cost=scale_cost)
+        geom_y = self._create_geometry(y, epsilon=epsilon, batch_size=batch_size, scale_cost=scale_cost)
 
         if epsilon is not None:
             solver = GromovWasserstein(**{**self._solver_kwargs, **{"epsilon": epsilon}})
         else:
             solver = GromovWasserstein(**self._solver_kwargs)
-        problem = QuadraticProblem(geom_x, geom_y, geom_xy=None, fused_penalty=0.0, **kwargs)
+        problem = QuadraticProblem(geom_x, geom_y, geom_xy=None, **kwargs)
 
         return ProblemDescription(solver=solver, data=problem, output_type=QuadraticOutput)
 
@@ -270,17 +270,16 @@ class FGWSolver(GWSolver):
         x: Optional[TaggedArray] = None,
         y: Optional[TaggedArray] = None,
         epsilon: Optional[Epsilon_t] = None,
-        online: Union[int, bool] = False,
+        batch_size: Optional[int] = None,
         scale_cost: Scale_t = None,
         alpha: float = 0.5,
         **kwargs: Any,
     ) -> ProblemDescription:
         if xy is None:
             raise ValueError("TODO")
-        description = super()._prepare(x=x, y=y, epsilon=epsilon, online=online, scale_cost=scale_cost)
-        geom_xy = self._create_geometry(xy, epsilon=epsilon, online=online, scale_cost=scale_cost)
+        description = super()._prepare(x=x, y=y, epsilon=epsilon, batch_size=batch_size, scale_cost=scale_cost)
+        geom_xy = self._create_geometry(xy, epsilon=epsilon, batch_size=batch_size, scale_cost=scale_cost)
         self._validate_geoms(description.data.geom_xx, description.data.geom_yy, geom_xy)
-
         problem = QuadraticProblem(
             geom_xx=description.data.geom_xx,
             geom_yy=description.data.geom_yy,

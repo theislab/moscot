@@ -48,7 +48,6 @@ class SpatialAlignmentMixinProtocol(AnalysisMixinProtocol[K, B]):
     def _cell_transition(
         self: AnalysisMixinProtocol[K, B],
         key: str,
-        other_key: str,
         key_source: K,
         key_target: K,
         source_cells: Union[str, Mapping[str, Sequence[Any]]],
@@ -56,6 +55,7 @@ class SpatialAlignmentMixinProtocol(AnalysisMixinProtocol[K, B]):
         forward: bool = False,  # return value will be row-stochastic if forward=True, else column-stochastic
         aggregation: Literal["group", "cell"] = "group",
         online: bool = False,
+        other_key: Optional[str] = None,
     ) -> pd.DataFrame:
         ...
 
@@ -78,7 +78,6 @@ class SpatialMappingMixinProtocol(AnalysisMixinProtocol[K, B]):
     def _cell_transition(
         self: AnalysisMixinProtocol[K, B],
         key: str,
-        other_key: str,
         key_source: K,
         key_target: K,
         source_cells: Union[str, Mapping[str, Sequence[Any]]],
@@ -86,6 +85,7 @@ class SpatialMappingMixinProtocol(AnalysisMixinProtocol[K, B]):
         forward: bool = False,  # return value will be row-stochastic if forward=True, else column-stochastic
         aggregation: Literal["group", "cell"] = "group",
         online: bool = False,
+        other_key: Optional[str] = None,
     ) -> pd.DataFrame:
         ...
 

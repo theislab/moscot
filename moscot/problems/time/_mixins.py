@@ -31,7 +31,6 @@ class TemporalMixinProtocol(AnalysisMixinProtocol[K, B], Protocol[K, B]):
     def _cell_transition(
         self: "AnalysisMixinProtocol[K, B]",
         key: str,
-        other_key: str,
         key_source: K,
         key_target: K,
         source_cells: Union[str, Mapping[str, Sequence[Any]]],
@@ -39,6 +38,7 @@ class TemporalMixinProtocol(AnalysisMixinProtocol[K, B], Protocol[K, B]):
         forward: bool = False,
         aggregation: Literal["group", "cell"] = "group",
         online: bool = False,
+        other_key: Optional[str] = None,
     ) -> pd.DataFrame:
         ...
 
@@ -77,7 +77,7 @@ class TemporalMixin(AnalysisMixin[K, B]):
                 - if `early_cells` is of type :class:`str` this should correspond to a key in
                   :attr:`anndata.AnnData.obs`. In this case, the categories in the transition matrix correspond to the
                   unique values in :attr:`anndata.AnnData.obs` ``['{early_cells}']``
-                - if `early_cells` is of type `Mapping` its `key` should correspond to a key in
+                - if `early_cells` is of :class:`dict`, `key` should correspond to a key in
                   :attr:`anndata.AnnData.obs` and its `value` to a subset of categories present in
                   :attr:`anndata.AnnData.obs` ``['{early_cells.keys()[0]}']``
         late_cells
@@ -85,7 +85,7 @@ class TemporalMixin(AnalysisMixin[K, B]):
                 - if `late_cells` is of type :class:`str` this should correspond to a key in
                   :attr:`anndata.AnnData.obs`. In this case, the categories in the transition matrix correspond to the
                   unique values in :attr:`anndata.AnnData.obs` ``['{late_cells}']``
-                - if `late_cells` is of type `Mapping` its `key` should correspond to a key in
+                - if `late_cells` is of :class:`dict`, its `key` should correspond to a key in
                   :attr:`anndata.AnnData.obs` and its `value` to a subset of categories present in
                   :attr:`anndata.AnnData.obs` ``['{late_cells.keys()[0]}']``
         forward
@@ -94,8 +94,7 @@ class TemporalMixin(AnalysisMixin[K, B]):
             If `aggregation` is `group` the transition probabilities from the groups defined by `source_cells` are
             returned. If `aggregation` is `cell` the transition probablities for each cell are returned.
         online
-            Whether to run this function in online mode. This reduces the amount of memory needed but requires more
-            time. This is only available for ceratain solvers. TODO: @MUCDK prevent from being used in (F)GW?
+            TODO
 
         Returns
         -------

@@ -61,7 +61,6 @@ class AnalysisMixinProtocol(Protocol[K, B]):
         forward: bool,
         split_mass: bool,
         cell_dist_id: K,
-        batch_size: Optional[int],
     ) -> Optional[ArrayLike]:
         ...
 
@@ -99,7 +98,7 @@ class AnalysisMixinProtocol(Protocol[K, B]):
         target_cells: Union[str, Mapping[str, Sequence[Any]]],
         forward: bool = False,
         aggregation: Literal["group", "cell"] = "group",
-        other_key: Optional[str]=None,
+        other_key: Optional[str] = None,
     ) -> pd.DataFrame:
         ...
 
@@ -112,7 +111,7 @@ class AnalysisMixinProtocol(Protocol[K, B]):
         target_cells: Union[str, Mapping[str, Sequence[Any]]],
         forward: bool = False,
         aggregation: Literal["group", "cell"] = "group",
-        other_key: Optional[str]=None,
+        other_key: Optional[str] = None,
     ) -> pd.DataFrame:
         ...
 
@@ -132,7 +131,7 @@ class AnalysisMixin(Generic[K, B]):
         target_cells: Union[str, Mapping[str, Sequence[Any]]],
         forward: bool = False,  # return value will be row-stochastic if forward=True, else column-stochastic
         aggregation: Literal["group", "cell"] = "group",
-        other_key: Optional[str]=None,
+        other_key: Optional[str] = None,
     ) -> pd.DataFrame:
 
         _source_cells_key, _source_cells = self._validate_args_cell_transition(source_cells, is_source=True)
@@ -169,8 +168,11 @@ class AnalysisMixin(Generic[K, B]):
             )
         if aggregation == "cell":
             return df_res.div(df_res.sum(axis=0), axis=1)
+        _key = key if other_key is None else other_key
+        if TYPE_CHECKING:
+            assert isinstance(_key, str)
         df_res.loc["target_cells_categories", :] = self._get_categories_from_adatas(
-            other_key, key_target, _target_cells_key, is_source=False
+            _key, key_target, _target_cells_key, is_source=False
         )
         unnormalized_tm = df_res.T.groupby("target_cells_categories").sum().T
 
@@ -209,8 +211,8 @@ class AnalysisMixin(Generic[K, B]):
         aggregation: Literal[
             "group", "cell"
         ] = "group",  # TODO(@MUCKD): maybe replace by source_cells or target_cells = index.
-        batch_size: Optional[int] = None,
-        other_key: Optional[str]=None,
+        online: bool = False,
+        other_key: Optional[str] = None,
     ) -> pd.DataFrame:
         """
         Compute a grouped cell transition matrix.
@@ -247,14 +249,12 @@ class AnalysisMixin(Generic[K, B]):
         aggregation:
             If `aggregation` is `group` the transition probabilities from the groups defined by `source_cells` are
             returned. If `aggregation` is `cell` the transition probablities for each cell are returned.
-        batch_size
-            TODO
 
         Returns
         -------
         Transition matrix of cells or groups of cells.
         """
-        if batch_size:
+        if online:
             return self._cell_transition_online(
                 key, key_source, key_target, source_cells, target_cells, forward, aggregation, other_key
             )
@@ -288,7 +288,7 @@ class AnalysisMixin(Generic[K, B]):
         forward: bool = False,  # return value will be row-stochastic if forward=True, else column-stochastic
         aggregation: Literal["group", "cell"] = "group",
         batch_size: Optional[int] = None,
-        other_key: Optional[str]=None,
+        other_key: Optional[str] = None,
     ) -> pd.DataFrame:
         _split_mass = aggregation == "cell"
         _source_cells_key, _source_cells = self._validate_args_cell_transition(source_cells, is_source=True)
@@ -331,7 +331,7 @@ class AnalysisMixin(Generic[K, B]):
 
         error = NotImplementedError("TODO: aggregation must be `group` or `cell`.")
         if forward:
-            for subset in _source_cells_present:
+            for subset in _source_cells_present:  # TODO(@MUCDK) introduce batch-wise application
                 result = self._cell_transition_helper(
                     key_source=key_source,
                     key_target=key_target,
@@ -341,7 +341,6 @@ class AnalysisMixin(Generic[K, B]):
                     forward=True,
                     split_mass=_split_mass,
                     cell_dist_id=key_source,
-                    batch_size=batch_size,
                 )
                 if aggregation == "group":
                     df_target.loc[:, "distribution"] = result
@@ -370,7 +369,7 @@ class AnalysisMixin(Generic[K, B]):
                     raise error
             return transition_table.div(transition_table.sum(axis=1), axis=0)
 
-        for subset in _target_cells_present:
+        for subset in _target_cells_present:  # TODO(@MUCDK) introduce batch-wise application
             result = self._cell_transition_helper(
                 key_source=key_source,
                 key_target=key_target,
@@ -380,7 +379,6 @@ class AnalysisMixin(Generic[K, B]):
                 forward=False,
                 split_mass=_split_mass,
                 cell_dist_id=key_target,
-                batch_size=batch_size,
             )
 
             if aggregation == "group":
@@ -417,7 +415,6 @@ class AnalysisMixin(Generic[K, B]):
         forward: bool,
         split_mass: bool,
         cell_dist_id: K,
-        batch_size: Optional[int] = None,
     ) -> ArrayLike:
 
         if subset not in cells_present:
@@ -432,13 +429,14 @@ class AnalysisMixin(Generic[K, B]):
             return_all=False,
             scale_by_marginals=False,
             split_mass=split_mass,
-            batch_size=batch_size,
         )
 
     def _validate_args_cell_transition(
         self: AnalysisMixinProtocol[K, B], arg: Union[str, Mapping[str, Sequence[Any]]], *, is_source: bool
     ) -> Tuple[str, Sequence[Any]]:
-        if hasattr(self, "_other_adata"): #TODO(@MUCDK) try to translate this information to whether other_key is None or not
+        if hasattr(
+            self, "_other_adata"
+        ):  # TODO(@MUCDK) try to translate this information to whether other_key is None or not
             if is_source:
                 adata = self.adata
             else:
