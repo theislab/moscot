@@ -15,7 +15,7 @@ from tests._utils import ATOL, RTOL, Geom_t
 from moscot._types import ArrayLike
 from moscot.backends.ott import GWSolver, FGWSolver, SinkhornSolver  # type: ignore[attr-defined]
 from moscot.solvers._output import BaseSolverOutput
-from moscot.backends.ott._output import LinearOutput, LRLinearOutput, QuadraticOutput
+from moscot.backends.ott._output import OTTOutput
 from moscot.solvers._base_solver import O, OTSolver
 from moscot.solvers._tagged_array import Tag
 
@@ -28,7 +28,7 @@ class TestSinkhorn:
         gt = sinkhorn(PointCloud(x, epsilon=eps), jit=jit)
         pred = SinkhornSolver(jit=jit)(xy=(x, x), epsilon=eps)
 
-        assert isinstance(pred, LinearOutput)
+        assert isinstance(pred, OTTOutput)
         assert pred.rank == -1
         np.testing.assert_allclose(gt.matrix, pred.transport_matrix, rtol=RTOL, atol=ATOL)
 
@@ -41,7 +41,7 @@ class TestSinkhorn:
         gt = lr_sinkhorn(problem)
         pred = SinkhornSolver(rank=rank)(xy=(y, y), epsilon=eps)
 
-        assert isinstance(pred, LRLinearOutput)
+        assert isinstance(pred, OTTOutput)
         assert pred.rank == rank
         np.testing.assert_allclose(gt.matrix, pred.transport_matrix, rtol=RTOL, atol=ATOL)
 
@@ -56,7 +56,7 @@ class TestGW:
         )
         pred = GWSolver(threshold=thresh, jit=jit)(x=x, y=y, epsilon=eps)
 
-        assert isinstance(pred, QuadraticOutput)
+        assert isinstance(pred, OTTOutput)
         assert pred.rank == -1
         np.testing.assert_allclose(gt.matrix, pred.transport_matrix, rtol=RTOL, atol=ATOL)
 
@@ -103,7 +103,7 @@ class TestFGW:
         )
         pred = FGWSolver(threshold=thresh)(x=x, y=y, xy=xy, alpha=alpha, epsilon=eps)
 
-        assert isinstance(pred, QuadraticOutput)
+        assert isinstance(pred, OTTOutput)
         assert pred.rank == -1
         np.testing.assert_allclose(gt.matrix, pred.transport_matrix, rtol=RTOL, atol=ATOL)
 
@@ -123,7 +123,7 @@ class TestFGW:
         solver = FGWSolver(threshold=thresh)
         pred = solver(x=x, y=y, xy=xy, alpha=alpha, epsilon=eps)
 
-        assert isinstance(pred, QuadraticOutput)
+        assert isinstance(pred, OTTOutput)
         assert pred.rank == -1
         np.testing.assert_allclose(gt.matrix, pred.transport_matrix, rtol=RTOL, atol=ATOL)
 
