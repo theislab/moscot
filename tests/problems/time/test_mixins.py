@@ -36,12 +36,15 @@ class TestTemporalMixin:
         )
 
         result = problem.cell_transition(key_1, key_2, "cell_type", "cell_type", forward=forward, online=online)
+        print("result is ", result)
+        print("celltypes present key 1", cell_types_present_key_1)
+        print("online is ", online)
+        print("forward is ", forward)
         assert isinstance(result, pd.DataFrame)
-        expected_shape = (
-            (len(cell_types_present_key_1), len(cell_types))
-            if forward
-            else (len(cell_types), len(cell_types_present_key_2))
-        )
+        expected_shape = (len(cell_types_present_key_1), len(cell_types_present_key_2))
+        # if forward
+        # else (len(cell_types), len(cell_types_present_key_2))
+        # )
         assert result.shape == expected_shape
         assert set(result.index) == set(cell_types_present_key_1) if forward else set(cell_types)
         assert set(result.columns) == set(cell_types_present_key_2) if not forward else set(cell_types)
@@ -299,6 +302,6 @@ class TestTemporalMixin:
         result = problem.cell_transition(
             0, 1, early_cells="cell_type", late_cells="cell_type", forward=True, online=online
         )
-        res = result.sort_index()
-        df_expected = adata_time_with_tmap.uns["cell_transition_gt"].sort_index()
+        res = result.sort_index().sort_index(1)
+        df_expected = adata_time_with_tmap.uns["cell_transition_gt"].sort_index().sort_index(1)
         np.testing.assert_almost_equal(res.values, df_expected.values, decimal=8)
