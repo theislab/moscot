@@ -47,11 +47,11 @@ class SpatialAlignmentMixinProtocol(AnalysisMixinProtocol[K, B]):
 
     def _cell_transition(
         self: AnalysisMixinProtocol[K, B],
-        key: str,
-        key_source: K,
-        key_target: K,
-        source_cells: Union[str, Mapping[str, Sequence[Any]]],
-        target_cells: Union[str, Mapping[str, Sequence[Any]]],
+        key: Optional[str] = None,
+        key_source: Optional[K] = None,
+        key_target: Optional[K] = None,
+        source_cells: Optional[Union[str, Mapping[str, Sequence[Any]]]] = None,
+        target_cells: Optional[Union[str, Mapping[str, Sequence[Any]]]] = None,
         forward: bool = False,  # return value will be row-stochastic if forward=True, else column-stochastic
         aggregation_mode: Literal["annotation", "cell"] = AggregationMode.ANNOTATION,  # type: ignore[assignment]
         online: bool = False,
@@ -67,8 +67,6 @@ class SpatialMappingMixinProtocol(AnalysisMixinProtocol[K, B]):
     adata_sc: AnnData
     adata_sp: AnnData
     batch_key: Optional[str]
-    _adata_sc_batch_key: Optional[str]
-    _adata_sc_batch_key_value: K
 
     def _filter_vars(
         self: "SpatialMappingMixinProtocol[K, B]",
@@ -78,11 +76,11 @@ class SpatialMappingMixinProtocol(AnalysisMixinProtocol[K, B]):
 
     def _cell_transition(
         self: AnalysisMixinProtocol[K, B],
-        key: str,
-        key_source: K,
-        key_target: K,
-        source_cells: Union[str, Mapping[str, Sequence[Any]]],
-        target_cells: Union[str, Mapping[str, Sequence[Any]]],
+        key: Optional[str],
+        key_source: Optional[K],
+        key_target: Optional[K],
+        source_cells: Optional[Union[str, Mapping[str, Sequence[Any]]]],
+        target_cells: Optional[Union[str, Mapping[str, Sequence[Any]]]],
         forward: bool = False,  # return value will be row-stochastic if forward=True, else column-stochastic
         aggregation_mode: Literal["annotation", "cell"] = AggregationMode.ANNOTATION,  # type: ignore[assignment]
         online: bool = False,
@@ -262,8 +260,6 @@ class SpatialMappingMixin(AnalysisMixin[K, B]):
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
         self._batch_key: Optional[str] = None
-        self._adata_sc_batch_key: Optional[str] = None
-        self._adata_sc_batch_key_value: Optional[B] = None
 
     def _filter_vars(
         self: SpatialMappingMixinProtocol[K, B],
@@ -349,26 +345,25 @@ class SpatialMappingMixin(AnalysisMixin[K, B]):
 
     def cell_transition(
         self: SpatialMappingMixinProtocol[K, B],
-        slice: K,
-        slice_cells: Union[str, Mapping[str, Sequence[Any]]],
-        reference_cells: Union[str, Mapping[str, Sequence[Any]]],
+        batch: K,
+        spatial_cells: Union[str, Mapping[str, Sequence[Any]]],
+        sc_cells: Union[str, Mapping[str, Sequence[Any]]],
         forward: bool = False,  # return value will be row-stochastic if forward=True, else column-stochastic
         aggregation_mode: Literal["annotation", "cell"] = AggregationMode.ANNOTATION,  # type: ignore[assignment]
         online: bool = False,
     ) -> pd.DataFrame:
         if TYPE_CHECKING:
             assert self.batch_key is not None
-            assert self._adata_sc_batch_key is not None
         return self._cell_transition(
             key=self.batch_key,
-            key_source=slice,
-            key_target=self._adata_sc_batch_key_value,
-            source_cells=slice_cells,
-            target_cells=reference_cells,
+            key_source=None,
+            key_target=batch,
+            source_cells=sc_cells,
+            target_cells=spatial_cells,
             forward=forward,
             aggregation_mode=AggregationMode(aggregation_mode),  # type: ignore[arg-type]
             online=online,
-            other_key=self._adata_sc_batch_key,
+            other_key=None,
             other_adata=self.adata_sc,
         )
 

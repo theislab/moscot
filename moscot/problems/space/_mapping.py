@@ -108,10 +108,6 @@ class MappingProblem(CompoundProblem[K, OTProblem], SpatialMappingMixin[K, OTPro
         x = {"attr": "obsm", "key": spatial_key} if isinstance(spatial_key, str) else spatial_key
         y = {"attr": "obsm", "key": sc_attr} if isinstance(sc_attr, str) else sc_attr
 
-        self._adata_sc_batch_key = kwargs.pop("adata_sc_batch_key", "dummy_key")  # needed for AnalysisMixin
-        self._adata_sc_batch_key_value = kwargs.pop("constant_obs_value", "c")
-        self.adata_sc.obs[self._adata_sc_batch_key] = self._adata_sc_batch_key_value
-
         self.filtered_vars = var_names
         if self.filtered_vars is not None:
             if joint_attr is not None:
