@@ -37,7 +37,7 @@ class TemporalMixinProtocol(AnalysisMixinProtocol[K, B], Protocol[K, B]):
         source_cells: Union[str, Mapping[str, Sequence[Any]]],
         target_cells: Union[str, Mapping[str, Sequence[Any]]],
         forward: bool = False,
-        aggregation_mode: Literal["group", "cell"] = AggregationMode.GROUP,  # type: ignore[assignment]
+        aggregation_mode: Literal["annotation", "cell"] = AggregationMode.ANNOTATION,  # type: ignore[assignment]
         online: bool = False,
         other_key: Optional[str] = None,
     ) -> pd.DataFrame:
@@ -58,7 +58,7 @@ class TemporalMixin(AnalysisMixin[K, B]):
         early_cells: Union[str, Mapping[str, Sequence[Any]]],
         late_cells: Union[str, Mapping[str, Sequence[Any]]],
         forward: bool = False,  # return value will be row-stochastic if forward=True, else column-stochastic
-        aggregation_mode: Literal["group", "cell"] = AggregationMode.GROUP,  # type: ignore[assignment]
+        aggregation_mode: Literal["annotation", "cell"] = AggregationMode.ANNOTATION,  # type: ignore[assignment]
         online: bool = False,
     ) -> pd.DataFrame:
         """
@@ -94,8 +94,7 @@ class TemporalMixin(AnalysisMixin[K, B]):
         aggregation_mode:
             If `aggregation_mode` is `group` the transition probabilities from the groups defined by `source_cells` are
             returned. If `aggregation_mode` is `cell` the transition probablities for each cell are returned.
-        online
-            TODO
+        %(online)s
 
         Returns
         -------

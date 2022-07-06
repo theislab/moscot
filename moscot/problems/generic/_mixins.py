@@ -22,7 +22,7 @@ class GenericAnalysisMixinProtocol(AnalysisMixinProtocol[K, B], Protocol[K, B]):
         source_cells: Union[str, Mapping[str, Sequence[Any]]],
         target_cells: Union[str, Mapping[str, Sequence[Any]]],
         forward: bool = False,
-        aggregation_mode: Literal["group", "cell"] = AggregationMode.GROUP,  # type: ignore[assignment]
+        aggregation_mode: Literal["annotation", "cell"] = AggregationMode.ANNOTATION,  # type: ignore[assignment]
         online: bool = False,
         other_key: Optional[str] = None,
     ) -> pd.DataFrame:
@@ -43,7 +43,7 @@ class GenericAnalysisMixin(AnalysisMixin[K, B]):
         source_cells: Union[str, Mapping[str, Sequence[Any]]],
         target_cells: Union[str, Mapping[str, Sequence[Any]]],
         forward: bool = False,  # return value will be row-stochastic if forward=True, else column-stochastic
-        aggregation_mode: Literal["group", "cell"] = AggregationMode.GROUP,  # type: ignore[assignment]
+        aggregation_mode: Literal["annotation", "cell"] = AggregationMode.ANNOTATION,  # type: ignore[assignment]
         online: bool = False,
     ) -> pd.DataFrame:
         """
@@ -74,13 +74,9 @@ class GenericAnalysisMixin(AnalysisMixin[K, B]):
                 - if `late_cells` is of :class:`dict`, its key should correspond to a key in
                   :attr:`anndata.AnnData.obs` and its value to a subset of categories present in
                   :attr:`anndata.AnnData.obs` ``['{target_cells.keys()[0]}']``
-        forward
-            If `True` computes transition from cells belonging to `source_cells` to cells belonging to `target_cells`.
-        aggregation_mode:
-            If `aggregation_mode` is `group` the transition probabilities from the groups defined by `source_cells` are
-            returned. If `aggregation_mode` is `cell` the transition probablities for each cell are returned.
-        online
-            TODO
+        %(forward_cell_transition)s
+        %(aggregation_mode)s
+        %(online)s
 
         Returns
         -------

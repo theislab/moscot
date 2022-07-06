@@ -53,7 +53,7 @@ class SpatialAlignmentMixinProtocol(AnalysisMixinProtocol[K, B]):
         source_cells: Union[str, Mapping[str, Sequence[Any]]],
         target_cells: Union[str, Mapping[str, Sequence[Any]]],
         forward: bool = False,  # return value will be row-stochastic if forward=True, else column-stochastic
-        aggregation_mode: Literal["group", "cell"] = AggregationMode.GROUP,  # type: ignore[assignment]
+        aggregation_mode: Literal["annotation", "cell"] = AggregationMode.ANNOTATION,  # type: ignore[assignment]
         online: bool = False,
         other_key: Optional[str] = None,
         other_adata: Optional[str] = None,
@@ -84,7 +84,7 @@ class SpatialMappingMixinProtocol(AnalysisMixinProtocol[K, B]):
         source_cells: Union[str, Mapping[str, Sequence[Any]]],
         target_cells: Union[str, Mapping[str, Sequence[Any]]],
         forward: bool = False,  # return value will be row-stochastic if forward=True, else column-stochastic
-        aggregation_mode: Literal["group", "cell"] = AggregationMode.GROUP,  # type: ignore[assignment]
+        aggregation_mode: Literal["annotation", "cell"] = AggregationMode.ANNOTATION,  # type: ignore[assignment]
         online: bool = False,
         other_key: Optional[str] = None,
         other_adata: Optional[AnnData] = None,
@@ -201,7 +201,7 @@ class SpatialAlignmentMixin(AnalysisMixin[K, B]):
         slice_cells: Union[str, Mapping[str, Sequence[Any]]],
         reference_cells: Union[str, Mapping[str, Sequence[Any]]],
         forward: bool = False,  # return value will be row-stochastic if forward=True, else column-stochastic
-        aggregation_mode: Literal["group", "cell"] = AggregationMode.GROUP,  # type: ignore[assignment]
+        aggregation_mode: Literal["annotation", "cell"] = AggregationMode.ANNOTATION,  # type: ignore[assignment]
         online: bool = False,
     ) -> pd.DataFrame:
         """Partly copy from other cell_transitions."""
@@ -309,7 +309,7 @@ class SpatialMappingMixin(AnalysisMixin[K, B]):
         if var_sc is None or not len(var_sc):
             raise ValueError("No overlapping `var_names` between ` adata_sc` and `adata_sp`.")
         corr_method = CorrMethod(corr_method)  # type: ignore[assignment]
-        cor = pearsonr if corr_method == "pearson" else spearmanr
+        cor = pearsonr if corr_method == CorrMethod.PEARSON else spearmanr  # type: ignore[comparison-overlap]
         corr_dic = {}
         gexp_sc = self.adata_sc[:, var_sc].X if not issparse(self.adata_sc.X) else self.adata_sc[:, var_sc].X.A
         for key, val in self.solutions.items():
@@ -353,7 +353,7 @@ class SpatialMappingMixin(AnalysisMixin[K, B]):
         slice_cells: Union[str, Mapping[str, Sequence[Any]]],
         reference_cells: Union[str, Mapping[str, Sequence[Any]]],
         forward: bool = False,  # return value will be row-stochastic if forward=True, else column-stochastic
-        aggregation_mode: Literal["group", "cell"] = AggregationMode.GROUP,  # type: ignore[assignment]
+        aggregation_mode: Literal["annotation", "cell"] = AggregationMode.ANNOTATION,  # type: ignore[assignment]
         online: bool = False,
     ) -> pd.DataFrame:
         if TYPE_CHECKING:

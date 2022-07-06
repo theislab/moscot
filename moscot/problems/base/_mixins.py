@@ -74,7 +74,7 @@ class AnalysisMixinProtocol(Protocol[K, B]):
         source_cells: Union[str, Mapping[str, Sequence[Any]]],
         target_cells: Union[str, Mapping[str, Sequence[Any]]],
         forward: bool = False,
-        aggregation_mode: Literal["group", "cell"] = AggregationMode.GROUP,  # type: ignore[assignment]
+        aggregation_mode: Literal["annotation", "cell"] = AggregationMode.ANNOTATION,  # type: ignore[assignment]
         other_key: Optional[str] = None,
         other_adata: Optional[AnnData] = None,
     ) -> pd.DataFrame:
@@ -88,7 +88,7 @@ class AnalysisMixinProtocol(Protocol[K, B]):
         source_cells: Union[str, Mapping[str, Sequence[Any]]],
         target_cells: Union[str, Mapping[str, Sequence[Any]]],
         forward: bool = False,
-        aggregation_mode: Literal["group", "cell"] = AggregationMode.GROUP,  # type: ignore[assignment]
+        aggregation_mode: Literal["annotation", "cell"] = AggregationMode.ANNOTATION,  # type: ignore[assignment]
         other_key: Optional[str] = None,
         other_adata: Optional[AnnData] = None,
     ) -> pd.DataFrame:
@@ -135,7 +135,7 @@ class AnalysisMixin(Generic[K, B]):
         source_cells: Union[str, Mapping[str, Sequence[Any]]],
         target_cells: Union[str, Mapping[str, Sequence[Any]]],
         forward: bool = False,  # return value will be row-stochastic if forward=True, else column-stochastic
-        aggregation_mode: Literal["group", "cell"] = AggregationMode.GROUP,  # type: ignore[assignment]
+        aggregation_mode: Literal["annotation", "cell"] = AggregationMode.ANNOTATION,  # type: ignore[assignment]
         other_key: Optional[str] = None,
         other_adata: Optional[AnnData] = None,
     ) -> pd.DataFrame:
@@ -208,7 +208,7 @@ class AnalysisMixin(Generic[K, B]):
         source_cells: Union[str, Mapping[str, Sequence[Any]]],
         target_cells: Union[str, Mapping[str, Sequence[Any]]],
         forward: bool = False,  # return value will be row-stochastic if forward=True, else column-stochastic
-        aggregation_mode: Literal["group", "cell"] = AggregationMode.GROUP,  # type: ignore[assignment]
+        aggregation_mode: Literal["annotation", "cell"] = AggregationMode.ANNOTATION,  # type: ignore[assignment]
         online: bool = False,
         other_key: Optional[str] = None,
         other_adata: Optional[str] = None,
@@ -269,7 +269,7 @@ class AnalysisMixin(Generic[K, B]):
         source_cells: Union[str, Mapping[str, Sequence[Any]]],
         target_cells: Union[str, Mapping[str, Sequence[Any]]],
         forward: bool = False,  # return value will be row-stochastic if forward=True, else column-stochastic
-        aggregation_mode: Literal["group", "cell"] = AggregationMode.GROUP,  # type: ignore[assignment]
+        aggregation_mode: Literal["annotation", "cell"] = AggregationMode.ANNOTATION,  # type: ignore[assignment]
         batch_size: Optional[int] = None,
         other_key: Optional[str] = None,
         other_adata: Optional[str] = None,
@@ -297,7 +297,7 @@ class AnalysisMixin(Generic[K, B]):
             raise ValueError(f"TODO: None of {_target_cells} found in distribution corresponding to {key_target}.")
 
         error = NotImplementedError("TODO: aggregation_mode must be `group` or `cell`.")
-        if aggregation_mode == "group":
+        if aggregation_mode == AggregationMode.ANNOTATION:  # type: ignore[comparison-overlap]
             df_target["distribution"] = 0
             df_source["distribution"] = 0
             if forward:
@@ -312,7 +312,7 @@ class AnalysisMixin(Generic[K, B]):
                     index=_source_cells,
                     columns=_target_cells_present,
                 )
-        elif aggregation_mode == "cell":
+        elif aggregation_mode == AggregationMode.CELL:  # type: ignore[comparison-overlap]
             transition_table = pd.DataFrame(columns=_target_cells) if forward else pd.DataFrame(index=_source_cells)
         else:
             raise error
@@ -329,7 +329,7 @@ class AnalysisMixin(Generic[K, B]):
                     split_mass=_split_mass,
                     cell_dist_id=key_source,
                 )
-                if aggregation_mode == "group":
+                if aggregation_mode == AggregationMode.ANNOTATION:
                     df_target.loc[:, "distribution"] = result
                     target_cell_dist = (
                         df_target[df_target[_target_cells_key].isin(_target_cells)].groupby(_target_cells_key).sum()
@@ -341,7 +341,7 @@ class AnalysisMixin(Generic[K, B]):
                         else 0
                         for cell_type in _target_cells
                     ]
-                elif aggregation_mode == "cell":
+                elif aggregation_mode == AggregationMode.CELL:
                     current_source_cells = list(df_source[df_source[_source_cells_key] == subset].index)
                     df_target.loc[:, current_source_cells] = 0 if result is None else result
                     to_appkey_target = (
@@ -368,7 +368,7 @@ class AnalysisMixin(Generic[K, B]):
                 cell_dist_id=key_target,
             )
 
-            if aggregation_mode == "group":
+            if aggregation_mode == AggregationMode.ANNOTATION:
                 df_source.loc[:, "distribution"] = result
                 filtered_df_source = df_source[df_source[_source_cells_key].isin(_source_cells)]
 
@@ -380,7 +380,7 @@ class AnalysisMixin(Generic[K, B]):
                     else 0
                     for cell_type in _source_cells
                 ]
-            elif aggregation_mode == "cell":
+            elif aggregation_mode == AggregationMode.CELL:
                 current_target_cells = list(df_target[df_target[_target_cells_key] == subset].index)
                 df_source.loc[:, current_target_cells] = 0 if result is None else result
                 to_appkey_target = (

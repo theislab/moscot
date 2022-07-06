@@ -43,5 +43,5 @@ class ReferenceNaming(ModeEnum):
 
 @unique
 class AggregationMode(ModeEnum):
-    GROUP = "group"
+    ANNOTATION = "annotation"
     CELL = "cell"

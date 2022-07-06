@@ -104,7 +104,7 @@ class TestBaseAnalysisMixin:
             source_cells="cell_type",
             target_cells="cell_type",
             forward=True,
-            aggregation="cell",
+            aggregation_mode="cell",
             online=online,
         )
 
