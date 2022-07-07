@@ -82,7 +82,7 @@ class TestTemporalMixin:
         key_1 = config["key_1"]
         key_2 = config["key_2"]
         key_3 = config["key_3"]
-        cell_types = set(gt_temporal_adata.obs["cell_type"].cat.categories)
+        set(gt_temporal_adata.obs["cell_type"].cat.categories)
         problem = TemporalProblem(gt_temporal_adata)
         problem = problem.prepare(key)
         assert set(problem.problems.keys()) == {(key_1, key_2), (key_2, key_3)}

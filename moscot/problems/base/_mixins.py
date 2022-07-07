@@ -660,5 +660,5 @@ class AnalysisMixin(Generic[K, B]):
                 set(df_target[target_annotation_key].cat.categories)
             )
         else:
-            target_annotations_verified = [None]  # type: ignore[assignment
+            target_annotations_verified = [None]  # type: ignore[assignment]
         return source_annotations_verified, target_annotations_verified
