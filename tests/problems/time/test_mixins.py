@@ -36,15 +36,8 @@ class TestTemporalMixin:
         )
 
         result = problem.cell_transition(key_1, key_2, "cell_type", "cell_type", forward=forward, online=online)
-        print("result is ", result)
-        print("celltypes present key 1", cell_types_present_key_1)
-        print("online is ", online)
-        print("forward is ", forward)
         assert isinstance(result, pd.DataFrame)
         expected_shape = (len(cell_types_present_key_1), len(cell_types_present_key_2))
-        # if forward
-        # else (len(cell_types), len(cell_types_present_key_2))
-        # )
         assert result.shape == expected_shape
         assert set(result.index) == set(cell_types_present_key_1) if forward else set(cell_types)
         assert set(result.columns) == set(cell_types_present_key_2) if not forward else set(cell_types)
@@ -105,9 +98,9 @@ class TestTemporalMixin:
             gt_temporal_adata[gt_temporal_adata.obs[key] == key_2].obs["cell_type"].cat.categories
         )
         expected_shape = (
-            (len(cell_types_present_key_1), len(cell_types))
+            (len(cell_types_present_key_1), len(cell_types_present_key_2))
             if forward
-            else (len(cell_types), len(cell_types_present_key_2))
+            else (len(cell_types_present_key_1), len(cell_types_present_key_2))
         )
         assert result.shape == expected_shape
         marginal = result.sum(axis=forward == 1).values

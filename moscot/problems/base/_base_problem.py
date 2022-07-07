@@ -75,7 +75,7 @@ class BaseProblem(ABC):
     def _get_mass(
         adata: AnnData,
         data: Optional[Union[str, List[str], Tuple[str, ...], ArrayLike]] = None,
-        subset: Optional[Sequence[Any]] = None,
+        subset: Optional[Union[Sequence[Any], Dict[str, List[int]]]] = None,
         normalize: bool = True,
         *,
         split_mass: bool = False,
@@ -101,14 +101,12 @@ class BaseProblem(ABC):
                     if val[0] >= adata.n_obs:
                         raise IndexError(f"TODO: index {val[0]} larger than length of `adata` ({adata.n_obs}).")
                     data = np.zeros((adata.n_obs,), dtype=float)
-                    data[range(val[0], max(val[0]+val[1], adata.n_obs))] = 1.0
+                    data[range(val[0], min(val[0] + val[1], adata.n_obs))] = 1.0
                 else:
                     raise KeyError("TODO: `key` must be `index` or `iloc`.")
             else:
                 raise ValueError("TODO: If `data` is `None`, `subset` needs to be `None` or a `dict`.")
         elif isinstance(data, (str, list, tuple)):
-            print("data is ", data)
-            print("subset is ", subset)
             if isinstance(data, (list, tuple)) and not len(data):
                 raise ValueError("TODO: no subset keys specified.")
             # TODO: allow mix numeric/categorical keys (how to handle multiple subsets then?)
@@ -132,7 +130,6 @@ class BaseProblem(ABC):
         total = np.sum(data, axis=0)[None, :]
         if not np.all(total > 0):
             raise ValueError("TODO: no mass.")
-
         return data / total if normalize else data
 
     @property

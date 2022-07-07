@@ -1,18 +1,4 @@
-from typing import (
-    Any,
-    Set,
-    Dict,
-    List,
-    Tuple,
-    Union,
-    Generic,
-    Literal,
-    Mapping,
-    Iterable,
-    Optional,
-    Sequence,
-    TYPE_CHECKING,
-)
+from typing import Any, Dict, List, Tuple, Union, Generic, Literal, Mapping, Iterable, Optional, Sequence, TYPE_CHECKING
 
 from typing_extensions import Protocol
 from scipy.sparse.linalg import LinearOperator
@@ -64,20 +50,7 @@ class AnalysisMixinProtocol(Protocol[K, B]):
     def _validate_args_cell_transition(
         adata: AnnData,
         arg: Optional[Union[str, Mapping[str, Sequence[Any]]]] = None,
-    ) -> Tuple[Optional[str], Optional[Sequence[Any]]]:
-        ...
-
-    def _cell_transition_helper(
-        self: "AnalysisMixinProtocol[K, B]",
-        key_source: K,
-        key_target: K,
-        subset: str,
-        cells_present: Set[Any],
-        source_cells_key: str,
-        forward: bool,
-        split_mass: bool,
-        cell_dist_id: K,
-    ) -> Optional[ArrayLike]:
+    ) -> Tuple[Optional[str], Optional[Iterable[Any]]]:
         ...
 
     def _cell_transition_online(
@@ -150,13 +123,13 @@ class AnalysisMixinProtocol(Protocol[K, B]):
     def _validate_annotations(
         df_source: pd.DataFrame,
         df_target: pd.DataFrame,
-        source_annotation_key: str,
-        target_annotation_key: str,
-        source_annotations: Iterable,
-        target_annotations: Iterable,
+        source_annotation_key: Optional[str],
+        target_annotation_key: Optional[str],
+        source_annotations: Optional[Iterable[Any]],
+        target_annotations: Optional[Iterable[Any]],
         aggregation_mode: Literal["annotation", "cell"],
         forward: bool,
-    ) -> Tuple[Iterable, Iterable]:
+    ) -> Tuple[Iterable[Any], Iterable[Any]]:
         ...
 
 
@@ -304,9 +277,9 @@ class AnalysisMixin(Generic[K, B]):
         target_cells: Optional[Union[str, Mapping[str, Sequence[Any]]]],
         forward: bool = False,  # return value will be row-stochastic if forward=True, else column-stochastic
         aggregation_mode: Literal["annotation", "cell"] = AggregationMode.ANNOTATION,  # type: ignore[assignment]
-        batch_size: Optional[int] = None,
         other_key: Optional[str] = None,
         other_adata: Optional[str] = None,
+        batch_size: Optional[int] = None,
     ) -> pd.DataFrame:
         aggregation_mode = AggregationMode(aggregation_mode)  # type: ignore[assignment]
         source_annotation_key, source_annotations = self._validate_args_cell_transition(self.adata, source_cells)
@@ -361,12 +334,14 @@ class AnalysisMixin(Generic[K, B]):
         if forward:
             if aggregation_mode == AggregationMode.ANNOTATION:
                 for subset in source_annotations_verified:
-                    result = self._cell_transition_helper(
-                        key_source=key_source,
-                        key_target=key_target,
+                    result = self.push(  # TODO(@MUCDK) check how to make compatible with all policies
+                        start=key_source,
+                        end=key_target,
+                        data=source_annotation_key,
                         subset=subset,
-                        source_cells_key=source_annotation_key,
-                        forward=True,
+                        normalize=True,
+                        return_all=False,
+                        scale_by_marginals=False,
                         split_mass=False,
                     )
 
@@ -384,7 +359,8 @@ class AnalysisMixin(Generic[K, B]):
                         for cell_type in target_annotations_verified
                     ]
             elif aggregation_mode == AggregationMode.CELL:
-                batch_size=64
+                if batch_size is None:
+                    batch_size = len(df_source)
                 for batch in range(0, len(df_source), batch_size):
                     result = self.push(  # TODO(@MUCDK) check how to make compatible with all policies
                         start=key_source,
@@ -396,8 +372,9 @@ class AnalysisMixin(Generic[K, B]):
                         scale_by_marginals=False,
                         split_mass=True,
                     )
-                    #TODO: continue here
-                    current_source_cells = list(df_source[df_source[source_annotation_key] == subset].index)
+                    current_source_cells = list(
+                        df_source.iloc[range(batch, min(batch + batch_size, len(df_source)))].index
+                    )
                     df_target.loc[:, current_source_cells] = result
                     to_appkey_target = (
                         df_target[df_target[target_annotation_key].isin(target_annotations_verified)]
@@ -411,17 +388,19 @@ class AnalysisMixin(Generic[K, B]):
                 raise error
             return transition_table.div(transition_table.sum(axis=1), axis=0)
 
-        for subset in target_annotations_verified:  # TODO(@MUCDK) introduce batch-wise application
-            result = self._cell_transition_helper(
-                key_source=key_source,
-                key_target=key_target,
-                subset=subset,
-                source_cells_key=target_annotation_key,
-                forward=False,
-                split_mass=_split_mass,
-            )
+        if aggregation_mode == AggregationMode.ANNOTATION:
+            for subset in target_annotations_verified:
+                result = self.pull(  # TODO(@MUCDK) check how to make compatible with all policies
+                    start=key_source,
+                    end=key_target,
+                    data=target_annotation_key,
+                    subset=subset,
+                    normalize=True,
+                    return_all=False,
+                    scale_by_marginals=False,
+                    split_mass=False,
+                )
 
-            if aggregation_mode == AggregationMode.ANNOTATION:
                 df_source.loc[:, "distribution"] = result
                 filtered_df_source = df_source[df_source[source_annotation_key].isin(source_annotations_verified)]
 
@@ -433,40 +412,33 @@ class AnalysisMixin(Generic[K, B]):
                     else 0
                     for cell_type in source_annotations_verified
                 ]
-            elif aggregation_mode == AggregationMode.CELL:
-                current_target_cells = list(df_target[df_target[target_annotation_key] == subset].index)
-                df_source.loc[:, current_target_cells] = 0 if result is None else result
-                to_appkey_target = (
-                    df_source[df_source[source_annotation_key].isin(source_annotations_verified)]
-                    .groupby(source_annotation_key)
-                    .sum()
+        elif aggregation_mode == AggregationMode.CELL:
+            if batch_size is None:
+                batch_size = len(df_source)
+            for batch in range(0, len(df_source), batch_size):
+                result = self.pull(  # TODO(@MUCDK) check how to make compatible with all policies
+                    start=key_source,
+                    end=key_target,
+                    data=None,
+                    subset={"iloc": [batch, batch_size]},
+                    normalize=True,
+                    return_all=False,
+                    scale_by_marginals=False,
+                    split_mass=True,
                 )
-                transition_table = pd.concat([transition_table, to_appkey_target], axis=1)
-                df_source = df_source.drop(current_target_cells, axis=1)
-            else:
-                raise error
-        return transition_table.div(transition_table.sum(axis=0), axis=1)
 
-    def _cell_transition_helper(
-        self: AnalysisMixinProtocol[K, B],
-        key_source: K,
-        key_target: K,
-        subset: str,
-        source_cells_key: str,
-        forward: bool,
-        split_mass: bool,
-    ) -> ArrayLike:
-        func = self.push if forward else self.pull  # type: ignore[attr-defined]
-        return func(  # TODO(@MUCDK) check how to make compatible with all policies
-            start=key_source,
-            end=key_target,
-            data=source_cells_key,
-            subset=subset,
-            normalize=True,
-            return_all=False,
-            scale_by_marginals=False,
-            split_mass=split_mass,
-        )
+            current_target_cells = list(df_target.iloc[range(batch, min(batch + batch_size, len(df_source)))].index)
+            df_source.loc[:, current_target_cells] = result
+            to_appkey_target = (
+                df_source[df_source[source_annotation_key].isin(source_annotations_verified)]
+                .groupby(source_annotation_key)
+                .sum()
+            )
+            transition_table = pd.concat([transition_table, to_appkey_target], axis=1)
+            df_source = df_source.drop(current_target_cells, axis=1)
+        else:
+            raise error
+        return transition_table.div(transition_table.sum(axis=0), axis=1)
 
     def _sample_from_tmap(
         self: AnalysisMixinProtocol[K, B],
@@ -575,7 +547,7 @@ class AnalysisMixin(Generic[K, B]):
     def _validate_args_cell_transition(
         adata: AnnData,
         arg: Optional[Union[str, Mapping[str, Sequence[Any]]]],
-    ) -> Tuple[Optional[str], Optional[Sequence[Any]]]:
+    ) -> Tuple[Optional[str], Optional[Iterable[Any]]]:
         if arg is None:
             return None, None
         if isinstance(arg, str):
@@ -645,13 +617,13 @@ class AnalysisMixin(Generic[K, B]):
     def _validate_annotations(
         df_source: pd.DataFrame,
         df_target: pd.DataFrame,
-        source_annotation_key: str,
-        target_annotation_key: str,
-        source_annotations: Iterable,
-        target_annotations: Iterable,
+        source_annotation_key: Optional[str],
+        target_annotation_key: Optional[str],
+        source_annotations: Optional[Iterable[Any]],
+        target_annotations: Optional[Iterable[Any]],
         aggregation_mode: Literal["annotation", "cell"],
         forward: bool,
-    ) -> Tuple[Iterable, Iterable]:
+    ) -> Tuple[Iterable[Any], Iterable[Any]]:
         if forward:
             if TYPE_CHECKING:  # checked in _check_argument_compatibility_cell_transition(
                 assert target_annotations is not None
@@ -662,8 +634,8 @@ class AnalysisMixin(Generic[K, B]):
                 raise ValueError(
                     f"TODO: None of {target_annotations} found in distribution corresponding to {target_annotation_key}."
                 )
-            if aggregation_mode == AggregationMode.ANNOTATION:
-                if TYPE_CHECKING:  # checked in _check_argument_compatibility_cell_transition(
+            if aggregation_mode == AggregationMode.ANNOTATION:  # type: ignore[comparison-overlap]
+                if TYPE_CHECKING:  # checked in _check_argument_compatibility_cell_transition()
                     assert source_annotations is not None
                 source_annotations_verified = set(source_annotations).intersection(
                     set(df_source[source_annotation_key].cat.categories)
@@ -674,19 +646,19 @@ class AnalysisMixin(Generic[K, B]):
 
         if TYPE_CHECKING:  # checked in _check_argument_compatibility_cell_transition(
             assert source_annotations is not None
-        source_annotations_verified = set(source_annotations).intersection(
+        source_annotations_verified = set(source_annotations).intersection(  # type: ignore[assignment]
             set(df_source[source_annotation_key].cat.categories)
         )
         if not len(source_annotations_verified):
             raise ValueError(
                 f"TODO: None of {source_annotations} found in distribution corresponding to {source_annotation_key}."
             )
-        if aggregation_mode == AggregationMode.ANNOTATION:
-            if TYPE_CHECKING:  # checked in _check_argument_compatibility_cell_transition(
+        if aggregation_mode == AggregationMode.ANNOTATION:  # type: ignore[comparison-overlap]
+            if TYPE_CHECKING:  # checked in _check_argument_compatibility_cell_transition()
                 assert target_annotations is not None
             target_annotations_verified = set(target_annotations).intersection(
                 set(df_target[target_annotation_key].cat.categories)
             )
         else:
-            target_annotations_verified = [None]
+            target_annotations_verified = [None]  # type: ignore[assignment
         return source_annotations_verified, target_annotations_verified
