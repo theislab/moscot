@@ -309,7 +309,6 @@ class AnalysisMixin(Generic[K, B]):
         other_adata: Optional[str] = None,
     ) -> pd.DataFrame:
         aggregation_mode = AggregationMode(aggregation_mode)  # type: ignore[assignment]
-        _split_mass = aggregation_mode == "cell"
         source_annotation_key, source_annotations = self._validate_args_cell_transition(self.adata, source_cells)
         target_annotation_key, target_annotations = self._validate_args_cell_transition(
             other_adata if other_adata is not None else self.adata, target_cells
@@ -360,18 +359,17 @@ class AnalysisMixin(Generic[K, B]):
             raise error
 
         if forward:
-            for subset in source_annotations_verified:  # TODO(@MUCDK) introduce batch-wise application
-                result = self._cell_transition_helper(
-                    key_source=key_source,
-                    key_target=key_target,
-                    subset=subset,
-                    cells_present=source_annotations_verified,
-                    source_cells_key=source_annotation_key,
-                    forward=True,
-                    split_mass=_split_mass,
-                    cell_dist_id=key_source,
-                )
-                if aggregation_mode == AggregationMode.ANNOTATION:
+            if aggregation_mode == AggregationMode.ANNOTATION:
+                for subset in source_annotations_verified:
+                    result = self._cell_transition_helper(
+                        key_source=key_source,
+                        key_target=key_target,
+                        subset=subset,
+                        source_cells_key=source_annotation_key,
+                        forward=True,
+                        split_mass=False,
+                    )
+
                     df_target.loc[:, "distribution"] = result
                     target_cell_dist = (
                         df_target[df_target[target_annotation_key].isin(target_annotations_verified)]
@@ -385,9 +383,22 @@ class AnalysisMixin(Generic[K, B]):
                         else 0
                         for cell_type in target_annotations_verified
                     ]
-                elif aggregation_mode == AggregationMode.CELL:
+            elif aggregation_mode == AggregationMode.CELL:
+                batch_size=64
+                for batch in range(0, len(df_source), batch_size):
+                    result = self.push(  # TODO(@MUCDK) check how to make compatible with all policies
+                        start=key_source,
+                        end=key_target,
+                        data=None,
+                        subset={"iloc": [batch, batch_size]},
+                        normalize=True,
+                        return_all=False,
+                        scale_by_marginals=False,
+                        split_mass=True,
+                    )
+                    #TODO: continue here
                     current_source_cells = list(df_source[df_source[source_annotation_key] == subset].index)
-                    df_target.loc[:, current_source_cells] = 0 if result is None else result
+                    df_target.loc[:, current_source_cells] = result
                     to_appkey_target = (
                         df_target[df_target[target_annotation_key].isin(target_annotations_verified)]
                         .groupby(target_annotation_key)
@@ -396,8 +407,8 @@ class AnalysisMixin(Generic[K, B]):
                     )
                     transition_table = pd.concat([transition_table, to_appkey_target], verify_integrity=True, axis=0)
                     df_target = df_target.drop(current_source_cells, axis=1)
-                else:
-                    raise error
+            else:
+                raise error
             return transition_table.div(transition_table.sum(axis=1), axis=0)
 
         for subset in target_annotations_verified:  # TODO(@MUCDK) introduce batch-wise application
@@ -405,11 +416,9 @@ class AnalysisMixin(Generic[K, B]):
                 key_source=key_source,
                 key_target=key_target,
                 subset=subset,
-                cells_present=target_annotations_verified,
                 source_cells_key=target_annotation_key,
                 forward=False,
                 split_mass=_split_mass,
-                cell_dist_id=key_target,
             )
 
             if aggregation_mode == AggregationMode.ANNOTATION:
@@ -443,15 +452,10 @@ class AnalysisMixin(Generic[K, B]):
         key_source: K,
         key_target: K,
         subset: str,
-        cells_present: Set[Any],
         source_cells_key: str,
         forward: bool,
         split_mass: bool,
-        cell_dist_id: K,
     ) -> ArrayLike:
-
-        if subset not in cells_present:
-            raise ValueError(f"TODO. Category {subset} not found")
         func = self.push if forward else self.pull  # type: ignore[attr-defined]
         return func(  # TODO(@MUCDK) check how to make compatible with all policies
             start=key_source,

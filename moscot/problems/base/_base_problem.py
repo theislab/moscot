@@ -87,22 +87,41 @@ class BaseProblem(ABC):
             return data
 
         if data is None:
-            data = np.ones((adata.n_obs,), dtype=float)
+            if subset is None:
+                data = np.ones((adata.n_obs,), dtype=float)
+            elif isinstance(subset, dict):
+                if len(subset) != 1:
+                    raise ValueError("TODO: if `subset` is a dict is must be of lenght 1")
+                key, val = next(iter(subset.items()))
+                if key == "index":
+                    data = np.asarray(adata.obs.index.isin(val), dtype=float)
+                elif key == "iloc":
+                    if len(val) != 2:
+                        raise ValueError("TODO: length of dictionary must be 2")
+                    if val[0] >= adata.n_obs:
+                        raise IndexError(f"TODO: index {val[0]} larger than length of `adata` ({adata.n_obs}).")
+                    data = np.zeros((adata.n_obs,), dtype=float)
+                    data[range(val[0], max(val[0]+val[1], adata.n_obs))] = 1.0
+                else:
+                    raise KeyError("TODO: `key` must be `index` or `iloc`.")
+            else:
+                raise ValueError("TODO: If `data` is `None`, `subset` needs to be `None` or a `dict`.")
         elif isinstance(data, (str, list, tuple)):
+            print("data is ", data)
+            print("subset is ", subset)
             if isinstance(data, (list, tuple)) and not len(data):
                 raise ValueError("TODO: no subset keys specified.")
             # TODO: allow mix numeric/categorical keys (how to handle multiple subsets then?)
             if subset is None:  # allow for numeric values
                 data = np.asarray(adata.obs[data], dtype=float)
-                data = np.asarray(adata.obs.index.isin(subset), dtype=float)
             elif isinstance(subset, Iterable) and not isinstance(subset, str):
                 data = np.asarray(adata.obs[data].isin(subset), dtype=float)
             else:
                 data = np.asarray(adata.obs[data].values == subset, dtype=float)
-            if split_mass:
-                data = _split_mass(data)
         else:
             data = np.asarray(data)
+        if split_mass:
+            data = _split_mass(data)
 
         if data.ndim != 2:
             data = np.reshape(data, (-1, 1))
