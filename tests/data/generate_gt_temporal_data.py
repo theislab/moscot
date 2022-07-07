@@ -63,6 +63,7 @@ def _write_config(adata: AnnData) -> AnnData:
 
 def _create_adata(data_path: str) -> AnnData:
     # follow instructions on https://broadinstitute.github.io/wot/ to download the data
+    # icb path: /lustre/groups/ml01/workspace/moscot_paper/wot_data/data
     VAR_GENE_DS_PATH = os.path.join(data_path, "ExprMatrix.var.genes.h5ad")
     CELL_DAYS_PATH = os.path.join(data_path, "cell_days.txt")
     SERUM_CELL_IDS_PATH = os.path.join(data_path, "serum_cell_ids.txt")
