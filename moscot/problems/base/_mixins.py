@@ -84,38 +84,38 @@ class AnalysisMixinProtocol(Protocol[K, B]):
     @staticmethod
     def _get_df_cell_transition(
         adata: AnnData,
-        key: Optional[str],
-        key_value: Optional[Any],
-        annotation_key: Optional[str],
+        key: Optional[str] = None,
+        key_value: Optional[Any] = None,
+        annotation_key: Optional[str] = None,
     ) -> pd.DataFrame:
         ...
 
     @staticmethod
     def _get_cell_indices(
         adata: AnnData,
-        key: Optional[str],
-        key_value: Optional[Any],
+        key: Optional[str] = None,
+        key_value: Optional[Any] = None,
     ) -> pd.Index:
         ...
 
     @staticmethod
     def _get_categories_from_adata(
         adata: AnnData,
-        key: Optional[str],
-        key_value: Optional[Any],
-        annotation_key: Optional[str],
+        key: Optional[str] = None,
+        key_value: Optional[Any] = None,
+        annotation_key: Optional[str] = None,
     ) -> pd.Series:
         ...
 
     @staticmethod
     def _check_argument_compatibility_cell_transition(
-        key: Optional[str],
-        other_key: Optional[str],
-        other_adata: Optional[str],
+        key: Optional[str] = None,
+        other_key: Optional[str] = None,
+        other_adata: Optional[str] = None,
         source_cells: Filter_t = None,
         target_cells: Filter_t = None,
-        aggregation_mode: Literal["annotation", "cell"],
-        forward: bool,
+        aggregation_mode: Literal["annotation", "cell"] = AggregationMode.ANNOTATION,  # type: ignore[assignment]
+        forward: bool = False,
     ) -> None:
         ...
 
@@ -123,12 +123,12 @@ class AnalysisMixinProtocol(Protocol[K, B]):
     def _validate_annotations(
         df_source: pd.DataFrame,
         df_target: pd.DataFrame,
-        source_annotation_key: Optional[str],
-        target_annotation_key: Optional[str],
-        source_annotations: Optional[Iterable[Any]],
-        target_annotations: Optional[Iterable[Any]],
-        aggregation_mode: Literal["annotation", "cell"],
-        forward: bool,
+        source_annotation_key: Optional[str] = None,
+        target_annotation_key: Optional[str] = None,
+        source_annotations: Optional[Iterable[Any]] = None,
+        target_annotations: Optional[Iterable[Any]] = None,
+        aggregation_mode: Literal["annotation", "cell"] = AggregationMode.ANNOTATION,  # type: ignore[assignment]
+        forward: bool = False,
     ) -> Tuple[Iterable[Any], Iterable[Any]]:
         ...
 
@@ -584,9 +584,9 @@ class AnalysisMixin(Generic[K, B]):
     @staticmethod
     def _get_df_cell_transition(
         adata: AnnData,
-        key: Optional[str],
-        key_value: Optional[Any],
-        annotation_key: Optional[str],
+        key: Optional[str] = None,
+        key_value: Optional[Any] = None,
+        annotation_key: Optional[str] = None,
     ) -> pd.DataFrame:
         if key is None:
             return adata.obs.copy()
@@ -594,13 +594,13 @@ class AnalysisMixin(Generic[K, B]):
 
     @staticmethod
     def _check_argument_compatibility_cell_transition(
-        key: Optional[str],
+        key: Optional[str] = None,
         other_key: Optional[str] = None,
-        other_adata: Optional[AnnData] = None,
+        other_adata: Optional[str] = None,
         source_cells: Filter_t = None,
         target_cells: Filter_t = None,
-        aggregation_mode: Literal["annotation", "cell"],
-        forward: bool,
+        aggregation_mode: Literal["annotation", "cell"] = AggregationMode.ANNOTATION,  # type: ignore[assignment]
+        forward: bool = False,
     ) -> None:
         if key is None and other_adata is None:
             raise ValueError("TODO: distributions cannot be inferred from `adata` due to missing obs keys.")
@@ -615,12 +615,12 @@ class AnalysisMixin(Generic[K, B]):
     def _validate_annotations(
         df_source: pd.DataFrame,
         df_target: pd.DataFrame,
-        source_annotation_key: Optional[str],
-        target_annotation_key: Optional[str],
-        source_annotations: Optional[Iterable[Any]],
-        target_annotations: Optional[Iterable[Any]],
-        aggregation_mode: Literal["annotation", "cell"],
-        forward: bool,
+        source_annotation_key: Optional[str] = None,
+        target_annotation_key: Optional[str] = None,
+        source_annotations: Optional[Iterable[Any]] = None,
+        target_annotations: Optional[Iterable[Any]] = None,
+        aggregation_mode: Literal["annotation", "cell"] = AggregationMode.ANNOTATION,  # type: ignore[assignment]
+        forward: bool = False,
     ) -> Tuple[Iterable[Any], Iterable[Any]]:
         if forward:
             if TYPE_CHECKING:  # checked in _check_argument_compatibility_cell_transition(
