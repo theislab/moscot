@@ -85,7 +85,7 @@ class TestBaseAnalysisMixin:
         # doing / it is more generic
 
     @pytest.mark.parametrize("online", [True, False])
-    def test_cell_transition_aggregation_cell(self, gt_temporal_adata: AnnData, online: bool):
+    def test_cell_transition_aggregation_cell_forward(self, gt_temporal_adata: AnnData, online: bool):
         # the method used in this test does the same but has to instantiate the transport matrix
         config = gt_temporal_adata.uns
         config["key"]
@@ -121,6 +121,50 @@ class TestBaseAnalysisMixin:
             df_res[ct] = transition_matrix_indexed[cols_cell_type].sum(axis=1)
 
         df_res = df_res.div(df_res.sum(axis=1), axis=0)
+
+        ctr_ordered = ctr.sort_index().sort_index(1)
+        df_res_ordered = df_res.sort_index().sort_index(1)
+        np.testing.assert_allclose(
+            ctr_ordered.values.astype(float), df_res_ordered.values.astype(float), rtol=RTOL, atol=ATOL
+        )
+
+    @pytest.mark.parametrize("online", [True, False])
+    def test_cell_transition_aggregation_cell_backward(self, gt_temporal_adata: AnnData, online: bool):
+        # the method used in this test does the same but has to instantiate the transport matrix
+        config = gt_temporal_adata.uns
+        config["key"]
+        key_1 = config["key_1"]
+        key_2 = config["key_2"]
+        config["key_3"]
+        problem = CompoundProblemWithMixin(gt_temporal_adata)
+        problem = problem.prepare("day", subset=[(10, 10.5)], policy="explicit", callback="local-pca")
+        assert set(problem.problems.keys()) == {(key_1, key_2)}
+        problem[key_1, key_2]._solution = MockSolverOutput(gt_temporal_adata.uns["tmap_10_105"])
+
+        ctr = problem._cell_transition(
+            key="day",
+            source_key=10,
+            target_key=10.5,
+            source_cells="cell_type",
+            target_cells="cell_type",
+            forward=False,
+            aggregation_mode="cell",
+            online=online,
+        )
+
+        adata_early = gt_temporal_adata[gt_temporal_adata.obs["day"] == 10]
+        adata_late = gt_temporal_adata[gt_temporal_adata.obs["day"] == 10.5]
+
+        transition_matrix_indexed = pd.DataFrame(
+            index=adata_early.obs.index, columns=adata_late.obs.index, data=gt_temporal_adata.uns["tmap_10_105"]
+        )
+        unique_cell_types_early = adata_early.obs["cell_type"].cat.categories
+        df_res = pd.DataFrame(columns=adata_late.obs.index)
+        for ct in unique_cell_types_early:
+            rows_cell_type = adata_early[adata_early.obs["cell_type"] == ct].obs.index
+            df_res.loc[ct] = transition_matrix_indexed.loc[rows_cell_type].sum(axis=0)
+
+        df_res = df_res.div(df_res.sum(axis=0), axis=1)
 
         ctr_ordered = ctr.sort_index().sort_index(1)
         df_res_ordered = df_res.sort_index().sort_index(1)

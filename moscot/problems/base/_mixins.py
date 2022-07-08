@@ -160,6 +160,7 @@ class AnalysisMixin(Generic[K, B]):
         online: bool = False,
         other_key: Optional[str] = None,
         other_adata: Optional[str] = None,
+        batch_size: Optional[int] = None,
     ) -> pd.DataFrame:
         self._check_argument_compatibility_cell_transition(
             key=key,
@@ -181,6 +182,7 @@ class AnalysisMixin(Generic[K, B]):
                 aggregation_mode,
                 other_key,
                 other_adata,
+                batch_size
             )
         return self._cell_transition_not_online(
             source_key, target_key, key, source_cells, target_cells, forward, aggregation_mode, other_key, other_adata
@@ -318,132 +320,31 @@ class AnalysisMixin(Generic[K, B]):
         if aggregation_mode == AggregationMode.ANNOTATION:  # type: ignore[comparison-overlap]
             df_target["distribution"] = 0
             df_source["distribution"] = 0
-            if forward:
-                transition_table = pd.DataFrame(
-                    np.zeros((len(source_annotations_verified), len(target_annotations_verified))),
-                    index=source_annotations_verified,
-                    columns=target_annotations_verified,
-                )
-            else:
-                transition_table = pd.DataFrame(
-                    np.zeros((len(source_annotations_verified), len(target_annotations_verified))),
-                    index=source_annotations_verified,
-                    columns=target_annotations_verified,
-                )
-        elif aggregation_mode == AggregationMode.CELL:  # type: ignore[comparison-overlap]
-            transition_table = (
-                pd.DataFrame(columns=target_annotations_verified)
-                if forward
-                else pd.DataFrame(index=source_annotations_verified)
+            transition_table = pd.DataFrame(
+                np.zeros((len(source_annotations_verified), len(target_annotations_verified))),
+                index=source_annotations_verified,
+                columns=target_annotations_verified,
             )
+        elif aggregation_mode == AggregationMode.CELL:  # type: ignore[comparison-overlap]
+            transition_table = pd.DataFrame(columns=target_annotations_verified)
         else:
             raise NotImplementedError("TODO: aggregation_mode must be `group` or `cell`.")
 
         if forward:
             if aggregation_mode == AggregationMode.ANNOTATION:
-                for subset in source_annotations_verified:
-                    result = self.push(  # TODO(@MUCDK) check how to make compatible with all policies
-                        start=source_key,
-                        end=target_key,
-                        data=source_annotation_key,
-                        subset=subset,
-                        normalize=True,
-                        return_all=False,
-                        scale_by_marginals=False,
-                        split_mass=False,
-                    )
-
-                    df_target.loc[:, "distribution"] = result
-                    target_cell_dist = (
-                        df_target[df_target[target_annotation_key].isin(target_annotations_verified)]
-                        .groupby(target_annotation_key)
-                        .sum()
-                    )
-                    target_cell_dist /= target_cell_dist.sum()
-                    transition_table.loc[subset, :] = [
-                        target_cell_dist.loc[cell_type, "distribution"]
-                        if cell_type in target_cell_dist.distribution.index
-                        else 0
-                        for cell_type in target_annotations_verified
-                    ]
+                transition_table = self._annotation_aggregation_transition(source_key=source_key, target_key=target_key, annotation_key=source_annotation_key, annotations_1=source_annotations_verified, annotations_2=target_annotations_verified, df=df_target, transition_table=transition_table, forward=True)
+                
             elif aggregation_mode == AggregationMode.CELL:
-                if batch_size is None:
-                    batch_size = len(df_source)
-                for batch in range(0, len(df_source), batch_size):
-                    result = self.push(  # TODO(@MUCDK) check how to make compatible with all policies
-                        start=source_key,
-                        end=target_key,
-                        data=None,
-                        subset=(batch, batch_size),
-                        normalize=True,
-                        return_all=False,
-                        scale_by_marginals=False,
-                        split_mass=True,
-                    )
-                    current_source_cells = list(
-                        df_source.iloc[range(batch, min(batch + batch_size, len(df_source)))].index
-                    )
-                    df_target.loc[:, current_source_cells] = result
-                    to_appkey_target = (
-                        df_target[df_target[target_annotation_key].isin(target_annotations_verified)]
-                        .groupby(target_annotation_key)
-                        .sum()
-                        .transpose()
-                    )
-                    transition_table = pd.concat([transition_table, to_appkey_target], verify_integrity=True, axis=0)
-                    df_target = df_target.drop(current_source_cells, axis=1)
+                transition_table = self._cell_aggregation_transition(source_key=source_key, target_key=target_key, annotation_key=target_annotation_key, annotations_1 = source_annotations_verified, annotations_2=target_annotations_verified, df_1 = df_target, df_2=df_source, transition_table=transition_table, batch_size=batch_size, forward=True)
             else:
                 NotImplementedError("TODO: aggregation_mode must be `group` or `cell`.")
             return transition_table.div(transition_table.sum(axis=1), axis=0)
 
         if aggregation_mode == AggregationMode.ANNOTATION:
-            for subset in target_annotations_verified:
-                result = self.pull(  # TODO(@MUCDK) check how to make compatible with all policies
-                    start=source_key,
-                    end=target_key,
-                    data=target_annotation_key,
-                    subset=subset,
-                    normalize=True,
-                    return_all=False,
-                    scale_by_marginals=False,
-                    split_mass=False,
-                )
-
-                df_source.loc[:, "distribution"] = result
-                filtered_df_source = df_source[df_source[source_annotation_key].isin(source_annotations_verified)]
-
-                target_cell_dist = filtered_df_source.groupby(source_annotation_key).sum()
-                target_cell_dist /= target_cell_dist.sum()
-                transition_table.loc[:, subset] = [
-                    target_cell_dist.loc[cell_type, "distribution"]
-                    if cell_type in target_cell_dist.distribution.index
-                    else 0
-                    for cell_type in source_annotations_verified
-                ]
+            transition_table = self._annotation_aggregation_transition(source_key=source_key, target_key=target_key, annotation_key=target_annotation_key, annotations_1=target_annotations_verified, annotations_2=source_annotations_verified, df=df_source, transition_table=transition_table, forward=False)
+            
         elif aggregation_mode == AggregationMode.CELL:
-            if batch_size is None:
-                batch_size = len(df_source)
-            for batch in range(0, len(df_source), batch_size):
-                result = self.pull(  # TODO(@MUCDK) check how to make compatible with all policies
-                    start=source_key,
-                    end=target_key,
-                    data=None,
-                    subset=(batch, batch_size),
-                    normalize=True,
-                    return_all=False,
-                    scale_by_marginals=False,
-                    split_mass=True,
-                )
-
-            current_target_cells = list(df_target.iloc[range(batch, min(batch + batch_size, len(df_source)))].index)
-            df_source.loc[:, current_target_cells] = result
-            to_appkey_target = (
-                df_source[df_source[source_annotation_key].isin(source_annotations_verified)]
-                .groupby(source_annotation_key)
-                .sum()
-            )
-            transition_table = pd.concat([transition_table, to_appkey_target], axis=1)
-            df_source = df_source.drop(current_target_cells, axis=1)
+            transition_table = self._cell_aggregation_transition(source_key=source_key, target_key=target_key, annotation_key=source_annotation_key, annotations_1 = target_annotations_verified, annotations_2=source_annotations_verified, df_1 = df_source, df_2=df_target, transition_table=transition_table, batch_size=batch_size, forward=False)
         else:
             raise NotImplementedError("TODO: aggregation_mode must be `group` or `cell`.")
         return transition_table.div(transition_table.sum(axis=0), axis=1)
@@ -620,56 +521,6 @@ class AnalysisMixin(Generic[K, B]):
         ):
             raise ValueError("TODO: If `aggregation_mode` is `annotation` an `adata.obs` column must be provided.")
 
-    """@staticmethod
-    def _validate_annotations(
-        df_source: pd.DataFrame,
-        df_target: pd.DataFrame,
-        source_annotation_key: Optional[str] = None,
-        target_annotation_key: Optional[str] = None,
-        source_annotations: Optional[Iterable[Any]] = None,
-        target_annotations: Optional[Iterable[Any]] = None,
-        aggregation_mode: Literal["annotation", "cell"] = AggregationMode.ANNOTATION,  # type: ignore[assignment]
-        forward: bool = False,
-    ) -> Tuple[Iterable[Any], Iterable[Any]]:
-        if forward:
-            if TYPE_CHECKING:  # checked in _check_argument_compatibility_cell_transition(
-                assert target_annotations is not None
-            target_annotations_verified = set(target_annotations).intersection(
-                set(df_target[target_annotation_key].cat.categories)
-            )
-            if not len(target_annotations_verified):
-                raise ValueError(
-                    f"TODO: None of {target_annotations} found in distribution corresponding to {target_annotation_key}."
-                )
-            if aggregation_mode == AggregationMode.ANNOTATION:  # type: ignore[comparison-overlap]
-                if TYPE_CHECKING:  # checked in _check_argument_compatibility_cell_transition()
-                    assert source_annotations is not None
-                source_annotations_verified = set(source_annotations).intersection(
-                    set(df_source[source_annotation_key].cat.categories)
-                )
-            else:
-                source_annotations_verified = [None]
-            return source_annotations_verified, target_annotations_verified
-
-        if TYPE_CHECKING:  # checked in _check_argument_compatibility_cell_transition(
-            assert source_annotations is not None
-        source_annotations_verified = set(source_annotations).intersection(  # type: ignore[assignment]
-            set(df_source[source_annotation_key].cat.categories)
-        )
-        if not len(source_annotations_verified):
-            raise ValueError(
-                f"TODO: None of {source_annotations} found in distribution corresponding to {source_annotation_key}."
-            )
-        if aggregation_mode == AggregationMode.ANNOTATION:  # type: ignore[comparison-overlap]
-            if TYPE_CHECKING:  # checked in _check_argument_compatibility_cell_transition()
-                assert target_annotations is not None
-            target_annotations_verified = set(target_annotations).intersection(
-                set(df_target[target_annotation_key].cat.categories)
-            )
-        else:
-            target_annotations_verified = [None]  # type: ignore[assignment]
-        return source_annotations_verified, target_annotations_verified"""
-
     def _validate_annotations(
         self: AnalysisMixinProtocol[K, B],
         df_source: pd.DataFrame,
@@ -727,3 +578,67 @@ class AnalysisMixin(Generic[K, B]):
                 )
             return annotations_verified
         return [None]
+
+    def _annotation_aggregation_transition(self, source_key, target_key, annotation_key, annotations_1,annotations_2, df, transition_table, forward) -> pd.DataFrame:
+        if not forward:
+            transition_table = transition_table.T
+        func = self.push if forward else self.pull
+        for subset in annotations_1:
+            result = func(  # TODO(@MUCDK) check how to make compatible with all policies
+                start=source_key,
+                end=target_key,
+                data=annotation_key,
+                subset=subset,
+                normalize=True,
+                return_all=False,
+                scale_by_marginals=False,
+                split_mass=False,
+            )
+            df["distribution"] = result
+            cell_dist = (
+                df[df[annotation_key].isin(annotations_2)]
+                .groupby(annotation_key)
+                .sum()
+            )
+            cell_dist /= cell_dist.sum()
+            cell_dist=cell_dist if forward else cell_dist
+            transition_table.loc[subset,:] = [
+                    cell_dist.loc[cell_type, "distribution"]
+                    if cell_type in cell_dist.distribution.index
+                    else 0
+                    for cell_type in annotations_2
+                ]
+        return transition_table if forward else transition_table.T
+
+        
+    def _cell_aggregation_transition(self, source_key, target_key, annotation_key, annotations_1, annotations_2, df_1, df_2, transition_table, batch_size, forward):
+        if not forward:
+            transition_table = transition_table.T
+        func = self.push if forward else self.pull
+        print("shape of transition_table is ", transition_table.shape, transition_table)
+        if batch_size is None:
+            batch_size = len(df_2)
+        for batch in range(0, len(df_2), batch_size):
+            result = func(  # TODO(@MUCDK) check how to make compatible with all policies
+                start=source_key,
+                end=target_key,
+                data=None,
+                subset=(batch, batch_size),
+                normalize=True,
+                return_all=False,
+                scale_by_marginals=False,
+                split_mass=True,
+            )
+            current_cells = list(
+                df_2.iloc[range(batch, min(batch + batch_size, len(df_2)))].index
+            )
+            df_1.loc[:, current_cells] = result
+            to_app = (
+                df_1[df_1[annotation_key].isin(annotations_2)]
+                .groupby(annotation_key)
+                .sum()
+                .transpose()
+            )
+            transition_table = pd.concat([transition_table, to_app], verify_integrity=True, axis=0)
+            df_2 = df_2.drop(current_cells, axis=0)
+        return transition_table if forward else transition_table.T
