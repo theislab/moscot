@@ -54,7 +54,7 @@ def wrap_solve(
     """Check and update the state when solving :class:`moscot.problems.base.OTProblem`."""
     from moscot.problems.base._base_problem import ProblemStage
 
-    if instance._stage != ProblemStage.PREPARED and instance._stage != ProblemStage.SOLVED:
+    if instance._stage not in (ProblemStage.PREPARED, ProblemStage.SOLVED):
         raise RuntimeError("TODO")
     _ = wrapped(*args, **kwargs)
     instance._stage = ProblemStage.SOLVED

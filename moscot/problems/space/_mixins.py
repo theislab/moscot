@@ -14,7 +14,7 @@ import numpy as np
 from anndata import AnnData
 
 from moscot._docs import d
-from moscot._types import ArrayLike
+from moscot._types import Filter_t, ArrayLike
 from moscot.problems.base import AnalysisMixin  # type: ignore[attr-defined]
 from moscot._constants._constants import CorrMethod, AlignmentMode, AggregationMode
 from moscot.problems.base._mixins import AnalysisMixinProtocol
@@ -48,10 +48,10 @@ class SpatialAlignmentMixinProtocol(AnalysisMixinProtocol[K, B]):
     def _cell_transition(
         self: AnalysisMixinProtocol[K, B],
         key: Optional[str] = None,
-        key_source: Optional[K] = None,
-        key_target: Optional[K] = None,
-        source_cells: Optional[Union[str, Mapping[str, Sequence[Any]]]] = None,
-        target_cells: Optional[Union[str, Mapping[str, Sequence[Any]]]] = None,
+        source_key: Optional[K] = None,
+        target_key: Optional[K] = None,
+        source_cells: Filter_t = None,
+        target_cells: Filter_t = None,
         forward: bool = False,  # return value will be row-stochastic if forward=True, else column-stochastic
         aggregation_mode: Literal["annotation", "cell"] = AggregationMode.ANNOTATION,  # type: ignore[assignment]
         online: bool = False,
@@ -77,10 +77,10 @@ class SpatialMappingMixinProtocol(AnalysisMixinProtocol[K, B]):
     def _cell_transition(
         self: AnalysisMixinProtocol[K, B],
         key: Optional[str],
-        key_source: Optional[K],
-        key_target: Optional[K],
-        source_cells: Optional[Union[str, Mapping[str, Sequence[Any]]]],
-        target_cells: Optional[Union[str, Mapping[str, Sequence[Any]]]],
+        source_key: Optional[K],
+        target_key: Optional[K],
+        source_cells: Filter_t,
+        target_cells: Filter_t,
         forward: bool = False,  # return value will be row-stochastic if forward=True, else column-stochastic
         aggregation_mode: Literal["annotation", "cell"] = AggregationMode.ANNOTATION,  # type: ignore[assignment]
         online: bool = False,
@@ -207,8 +207,8 @@ class SpatialAlignmentMixin(AnalysisMixin[K, B]):
             assert isinstance(self.batch_key, str)
         return self._cell_transition(
             key=self.batch_key,
-            key_source=slice,
-            key_target=reference,
+            source_key=slice,
+            target_key=reference,
             source_cells=slice_cells,
             target_cells=reference_cells,
             forward=forward,
@@ -356,8 +356,8 @@ class SpatialMappingMixin(AnalysisMixin[K, B]):
             assert self.batch_key is not None
         return self._cell_transition(
             key=self.batch_key,
-            key_source=None,
-            key_target=batch,
+            source_key=None,
+            target_key=batch,
             source_cells=sc_cells,
             target_cells=spatial_cells,
             forward=forward,

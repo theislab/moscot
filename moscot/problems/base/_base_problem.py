@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 from enum import Enum
 from types import MappingProxyType
-from typing import Any, Dict, List, Tuple, Union, Mapping, Iterable, Optional, Sequence, TYPE_CHECKING
+from typing import Any, Dict, List, Mapping, Optional, TYPE_CHECKING, Tuple, Union
 
 from scipy.sparse import vstack, issparse, csr_matrix
 from typing_extensions import Literal
@@ -74,8 +74,8 @@ class BaseProblem(ABC):
     @staticmethod
     def _get_mass(
         adata: AnnData,
-        data: Optional[Union[str, List[str], Tuple[str, ...], ArrayLike]] = None,
-        subset: Optional[Union[Sequence[Any], Dict[str, List[int]]]] = None,
+        data: Optional[Union[str, ArrayLike]] = None,
+        subset: Optional[Union[str, List[str], Tuple[int, int]]] = None,
         normalize: bool = True,
         *,
         split_mass: bool = False,
@@ -89,35 +89,25 @@ class BaseProblem(ABC):
         if data is None:
             if subset is None:
                 data = np.ones((adata.n_obs,), dtype=float)
-            elif isinstance(subset, dict):
-                if len(subset) != 1:
-                    raise ValueError("TODO: if `subset` is a dict is must be of lenght 1")
-                key, val = next(iter(subset.items()))
-                if key == "index":
-                    data = np.asarray(adata.obs.index.isin(val), dtype=float)
-                elif key == "iloc":
-                    if len(val) != 2:
-                        raise ValueError("TODO: length of dictionary must be 2")
-                    if val[0] >= adata.n_obs:
-                        raise IndexError(f"TODO: index {val[0]} larger than length of `adata` ({adata.n_obs}).")
-                    data = np.zeros((adata.n_obs,), dtype=float)
-                    data[range(val[0], min(val[0] + val[1], adata.n_obs))] = 1.0
-                else:
-                    raise KeyError("TODO: `key` must be `index` or `iloc`.")
+            elif isinstance(subset, List):
+                data = np.asarray(adata.obs.index.isin(subset), dtype=float)
+            elif isinstance(subset, tuple):
+                if subset[0] >= adata.n_obs:
+                    raise IndexError(f"TODO: index {subset[0]} larger than length of `adata` ({adata.n_obs}).")
+                data = np.zeros((adata.n_obs,), dtype=float)
+                data[range(subset[0], min(subset[0] + subset[1], adata.n_obs))] = 1.0
             else:
-                raise ValueError("TODO: If `data` is `None`, `subset` needs to be `None` or a `dict`.")
-        elif isinstance(data, (str, list, tuple)):
-            if isinstance(data, (list, tuple)) and not len(data):
-                raise ValueError("TODO: no subset keys specified.")
-            # TODO: allow mix numeric/categorical keys (how to handle multiple subsets then?)
+                raise ValueError("TODO: If `data` is `None`, `subset` needs to be `None` or a list with obs indices.")
+        elif isinstance(data, str):
             if subset is None:  # allow for numeric values
                 data = np.asarray(adata.obs[data], dtype=float)
-            elif isinstance(subset, Iterable) and not isinstance(subset, str):
+            elif isinstance(subset, List) and not isinstance(subset, str):
                 data = np.asarray(adata.obs[data].isin(subset), dtype=float)
             else:
                 data = np.asarray(adata.obs[data].values == subset, dtype=float)
         else:
             data = np.asarray(data)
+
         if split_mass:
             data = _split_mass(data)
 
@@ -275,7 +265,7 @@ class OTProblem(BaseProblem):
     def push(
         self,
         data: Optional[Union[str, ArrayLike]] = None,
-        subset: Optional[Sequence[Any]] = None,
+        subset: Optional[Union[str, List[str], Tuple[int, int]]] = None,
         normalize: bool = True,
         *,
         split_mass: bool = False,
@@ -291,7 +281,7 @@ class OTProblem(BaseProblem):
     def pull(
         self,
         data: Optional[Union[str, ArrayLike]] = None,
-        subset: Optional[Sequence[Any]] = None,
+        subset: Optional[Union[str, List[str], Tuple[int, int]]] = None,
         normalize: bool = True,
         *,
         split_mass: bool = False,

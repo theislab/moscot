@@ -17,8 +17,8 @@ class GenericAnalysisMixinProtocol(AnalysisMixinProtocol[K, B], Protocol[K, B]):
     def _cell_transition(
         self: "GenericAnalysisMixinProtocol[K, B]",
         key: str,
-        key_source: K,
-        key_target: K,
+        source_key: K,
+        target_key: K,
         source_cells: Union[str, Mapping[str, Sequence[Any]]],
         target_cells: Union[str, Mapping[str, Sequence[Any]]],
         forward: bool = False,
@@ -38,8 +38,8 @@ class GenericAnalysisMixin(AnalysisMixin[K, B]):
 
     def cell_transition(
         self: GenericAnalysisMixinProtocol[K, B],
-        key_source: K,
-        key_target: K,
+        source_key: K,
+        target_key: K,
         source_cells: Union[str, Mapping[str, Sequence[Any]]],
         target_cells: Union[str, Mapping[str, Sequence[Any]]],
         forward: bool = False,  # return value will be row-stochastic if forward=True, else column-stochastic
@@ -54,9 +54,9 @@ class GenericAnalysisMixin(AnalysisMixin[K, B]):
 
         Parameters
         ----------
-        key_source
+        source_key
             Key identifying the source distribution.
-        key_target
+        target_key
             Key identifying the target distribution.
         source_cells
             Can be one of the following:
@@ -86,8 +86,8 @@ class GenericAnalysisMixin(AnalysisMixin[K, B]):
             assert isinstance(self.batch_key, str)
         return self._cell_transition(
             key=self.batch_key,
-            key_source=key_source,
-            key_target=key_target,
+            source_key=source_key,
+            target_key=target_key,
             source_cells=source_cells,
             target_cells=target_cells,
             forward=forward,

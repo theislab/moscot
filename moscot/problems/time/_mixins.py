@@ -32,8 +32,8 @@ class TemporalMixinProtocol(AnalysisMixinProtocol[K, B], Protocol[K, B]):
     def _cell_transition(
         self: "AnalysisMixinProtocol[K, B]",
         key: str,
-        key_source: K,
-        key_target: K,
+        source_key: K,
+        target_key: K,
         source_cells: Union[str, Mapping[str, Sequence[Any]]],
         target_cells: Union[str, Mapping[str, Sequence[Any]]],
         forward: bool = False,
@@ -104,8 +104,8 @@ class TemporalMixin(AnalysisMixin[K, B]):
             assert isinstance(self.temporal_key, str)
         return self._cell_transition(
             key=self.temporal_key,
-            key_source=start,
-            key_target=end,
+            source_key=start,
+            target_key=end,
             source_cells=early_cells,
             target_cells=late_cells,
             forward=forward,
@@ -493,8 +493,8 @@ class TemporalMixin(AnalysisMixin[K, B]):
         seed: Optional[int] = None,
     ) -> ArrayLike:
         rows_sampled, cols_sampled = self._sample_from_tmap(  # type: ignore[misc]
-            key_source=start,
-            key_target=end,
+            source_key=start,
+            target_key=end,
             n_samples=number_cells,
             source_dim=len(source_data),
             target_dim=len(target_data),

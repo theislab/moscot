@@ -27,7 +27,6 @@ class SinkhornProblem(CompoundProblem[K, B], GenericAnalysisMixin[K, B]):
 
     def __init__(self, adata: AnnData, **kwargs: Any):
         super().__init__(adata, **kwargs)
-        self._batch_key: Optional[str] = None
 
     @d.dedent
     def prepare(
@@ -114,7 +113,6 @@ class GWProblem(CompoundProblem[K, B], GenericAnalysisMixin[K, B]):
 
     def __init__(self, adata: AnnData, **kwargs: Any):
         super().__init__(adata, **kwargs)
-        self._batch_key: Optional[str] = None
 
     @d.dedent
     def prepare(

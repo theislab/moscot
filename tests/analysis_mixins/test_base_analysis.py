@@ -99,8 +99,8 @@ class TestBaseAnalysisMixin:
 
         ctr = problem._cell_transition(
             key="day",
-            key_source=10,
-            key_target=10.5,
+            source_key=10,
+            target_key=10.5,
             source_cells="cell_type",
             target_cells="cell_type",
             forward=True,

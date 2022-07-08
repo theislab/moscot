@@ -36,12 +36,6 @@ class CorrMethod(ModeEnum):
 
 
 @unique
-class ReferenceNaming(ModeEnum):
-    SRC_NAME = "src"
-    TGT_NAME = "ref"
-
-
-@unique
 class AggregationMode(ModeEnum):
     ANNOTATION = "annotation"
     CELL = "cell"
