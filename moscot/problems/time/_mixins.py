@@ -623,5 +623,5 @@ class TemporalMixin(AnalysisMixin[K, B]):
     @temporal_key.setter
     def temporal_key(self: TemporalMixinProtocol[K, B], value: Optional[str]) -> None:
         if value is not None and value not in self.adata.obs:
-            raise KeyError("`batch_key` must be in `adata.obs`.")
+            raise KeyError(f"{value} not in `adata.obs`.")
         self._temporal_key = value

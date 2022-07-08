@@ -97,29 +97,25 @@ class TestTemporalProblem:
     @pytest.mark.fast()
     def test_proliferation_key_pipeline(self, adata_time: AnnData):
         problem = TemporalProblem(adata_time)
-
         assert problem.proliferation_key is None
 
         problem.score_genes_for_marginals(gene_set_proliferation="human", gene_set_apoptosis="human")
-
         assert problem.proliferation_key == "proliferation"
 
+        adata_time.obs["new_proliferation"] = np.ones(adata_time.n_obs)
         problem.proliferation_key = "new_proliferation"
-
         assert problem.proliferation_key == "new_proliferation"
 
     @pytest.mark.fast()
     def test_apoptosis_key_pipeline(self, adata_time: AnnData):
         problem = TemporalProblem(adata_time)
-
         assert problem.apoptosis_key is None
 
         problem.score_genes_for_marginals(gene_set_proliferation="human", gene_set_apoptosis="human")
-
         assert problem.apoptosis_key == "apoptosis"
-
+        
+        adata_time.obs["new_apoptosis"] = np.ones(adata_time.n_obs)
         problem.apoptosis_key = "new_apoptosis"
-
         assert problem.apoptosis_key == "new_apoptosis"
 
     def test_cell_costs_source_pipeline(self, adata_time: AnnData):

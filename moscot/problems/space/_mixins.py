@@ -237,7 +237,7 @@ class SpatialAlignmentMixin(AnalysisMixin[K, B]):
     @batch_key.setter
     def batch_key(self, value: Optional[str]) -> None:
         if value is not None and value not in self.adata.obs:
-            raise KeyError("`batch_key` must be in `adata.obs`.")
+            raise KeyError(f"{value} not in `adata.obs`.")
         self._batch_key = value
 
     @staticmethod
@@ -377,5 +377,5 @@ class SpatialMappingMixin(AnalysisMixin[K, B]):
     @batch_key.setter
     def batch_key(self, value: Optional[str]) -> None:
         if value is not None and value not in self.adata.obs:
-            raise KeyError("`batch_key` must be in `adata.obs`.")
+            raise KeyError(f"{value} not in `adata.obs`.")
         self._batch_key = value

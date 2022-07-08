@@ -119,8 +119,8 @@ class AnalysisMixinProtocol(Protocol[K, B]):
     ) -> None:
         ...
 
-    @staticmethod
     def _validate_annotations(
+        self: "AnalysisMixinProtocol[K, B]",
         df_source: pd.DataFrame,
         df_target: pd.DataFrame,
         source_annotation_key: Optional[str] = None,
@@ -130,6 +130,15 @@ class AnalysisMixinProtocol(Protocol[K, B]):
         aggregation_mode: Literal["annotation", "cell"] = AggregationMode.ANNOTATION,  # type: ignore[assignment]
         forward: bool = False,
     ) -> Tuple[Iterable[Any], Iterable[Any]]:
+        ...
+
+    @staticmethod
+    def _validate_annotations_helper(
+        df: pd.DataFrame,
+        annotation_key: Optional[str] = None,
+        annotations: Optional[Iterable[Any]] = None,
+        aggregation_mode: Literal["annotation", "cell"] = AggregationMode.ANNOTATION,  # type: ignore[assignment]
+    ) -> Iterable[Any]:
         ...
 
 
@@ -611,7 +620,7 @@ class AnalysisMixin(Generic[K, B]):
         ):
             raise ValueError("TODO: If `aggregation_mode` is `annotation` an `adata.obs` column must be provided.")
 
-    @staticmethod
+    """@staticmethod
     def _validate_annotations(
         df_source: pd.DataFrame,
         df_target: pd.DataFrame,
@@ -659,4 +668,62 @@ class AnalysisMixin(Generic[K, B]):
             )
         else:
             target_annotations_verified = [None]  # type: ignore[assignment]
+        return source_annotations_verified, target_annotations_verified"""
+
+    def _validate_annotations(
+        self: AnalysisMixinProtocol[K, B],
+        df_source: pd.DataFrame,
+        df_target: pd.DataFrame,
+        source_annotation_key: Optional[str] = None,
+        target_annotation_key: Optional[str] = None,
+        source_annotations: Optional[Iterable[Any]] = None,
+        target_annotations: Optional[Iterable[Any]] = None,
+        aggregation_mode: Literal["annotation", "cell"] = AggregationMode.ANNOTATION,  # type: ignore[assignment]
+        forward: bool = False,
+    ) -> Tuple[Iterable[Any], Iterable[Any]]:
+        if forward:
+            if TYPE_CHECKING:  # checked in _check_argument_compatibility_cell_transition(
+                assert target_annotations is not None
+            target_annotations_verified = set(target_annotations).intersection(
+                set(df_target[target_annotation_key].cat.categories)
+            )
+            if not len(target_annotations_verified):
+                raise ValueError(
+                    f"TODO: None of {target_annotations} found in distribution corresponding to {target_annotation_key}."
+                )
+            source_annotations_verified = self._validate_annotations_helper(
+                df_source, source_annotation_key, source_annotations, aggregation_mode
+            )
+            return source_annotations_verified, target_annotations_verified
+
+        if TYPE_CHECKING:  # checked in _check_argument_compatibility_cell_transition(
+            assert source_annotations is not None
+        source_annotations_verified = set(source_annotations).intersection(
+            set(df_source[source_annotation_key].cat.categories)
+        )
+        if not len(source_annotations_verified):
+            raise ValueError(
+                f"TODO: None of {source_annotations} found in distribution corresponding to {source_annotation_key}."
+            )
+        target_annotations_verified = self._validate_annotations_helper(  # type: ignore[assignment]
+            df_target, target_annotation_key, target_annotations, aggregation_mode
+        )
         return source_annotations_verified, target_annotations_verified
+
+    @staticmethod
+    def _validate_annotations_helper(
+        df: pd.DataFrame,
+        annotation_key: Optional[str] = None,
+        annotations: Optional[Iterable[Any]] = None,
+        aggregation_mode: Literal["annotation", "cell"] = AggregationMode.ANNOTATION,  # type: ignore[assignment]
+    ) -> Iterable[Any]:
+        if aggregation_mode == AggregationMode.ANNOTATION:  # type: ignore[comparison-overlap]
+            if TYPE_CHECKING:  # checked in _check_argument_compatibility_cell_transition(
+                assert annotations is not None
+            annotations_verified = set(annotations).intersection(set(df[annotation_key].cat.categories))
+            if not len(annotations_verified):
+                raise ValueError(
+                    f"TODO: None of {annotations} found in distribution corresponding to {annotation_key}."
+                )
+            return annotations_verified
+        return [None]

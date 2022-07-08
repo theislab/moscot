@@ -141,7 +141,7 @@ class BirthDeathMixin:
     @proliferation_key.setter
     def proliferation_key(self: BirthDeathProtocol, value: Optional[str]) -> None:
         if value is not None and value not in self.adata.obs:
-            raise KeyError("`batch_key` must be in `adata.obs`.")
+            raise KeyError(f"{value} not in `adata.obs`.")
         self._proliferation_key = value
 
     @property
@@ -152,7 +152,7 @@ class BirthDeathMixin:
     @apoptosis_key.setter
     def apoptosis_key(self: BirthDeathProtocol, value: Optional[str]) -> None:
         if value is not None and value not in self.adata.obs:
-            raise KeyError("`batch_key` must be in `adata.obs`.")
+            raise KeyError(f"{value} not in `adata.obs`.")
         self._apoptosis_key = value
 
 
