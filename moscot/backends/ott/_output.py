@@ -132,6 +132,21 @@ class OTTOutput(RankMixin, ConvergencePlotterMixin, BaseSolverOutput, ABC):
         device: Optional[Union[str, xla_ext.Device, Literal["cpu", "gpu", "tpu"]]] = None,
         dtype: Optional[DTypeLike] = None,
     ) -> "OTTOutput":
+        """
+        Transfer the output to another device or change its data type.
+
+        Parameters
+        ----------
+        device
+            Device where to transfer the solver output.
+        dtype
+            Data type of underlying arrays.
+
+        Returns
+        -------
+        Self with possibly modified device and dtypes.
+        """
+        # TODO(michalk8): when polishing docs, move the definition to the base class + use docrep
         def convert_dtype(val: Any) -> Any:
             return val.astype(dtype) if isinstance(val, jnp.ndarray) else val
 
@@ -143,10 +158,8 @@ class OTTOutput(RankMixin, ConvergencePlotterMixin, BaseSolverOutput, ABC):
         if not isinstance(device, xla_ext.Device):
             try:
                 device = jax.devices(device)[ix]
-            except IndexError as e:
-                raise RuntimeError("TODO: indexing error when fetching device") from e
-            except RuntimeError as e:
-                raise RuntimeError("TODO: Unable to get device") from e
+            except IndexError:
+                raise IndexError("TODO: indexing error when fetching device") from None
 
         out = jax.device_put(self._output, device)
         with enable_x64():
