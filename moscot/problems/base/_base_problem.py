@@ -12,7 +12,7 @@ from anndata import AnnData
 import scanpy as sc
 
 from moscot._docs import d
-from moscot._types import ArrayLike
+from moscot._types import ArrayLike, DTypeLike
 from moscot.problems._utils import wrap_solve, wrap_prepare, require_solution
 from moscot.solvers._output import BaseSolverOutput
 from moscot.problems._anndata import AnnDataPointer
@@ -222,6 +222,8 @@ class OTProblem(BaseProblem):
         tau_a: float = 1.0,
         tau_b: float = 1.0,
         prepare_kwargs: Mapping[str, Any] = MappingProxyType({}),
+        device: Optional[Any] = None,
+        dtype: Optional[DTypeLike] = None,
         **kwargs: Any,
     ) -> "OTProblem":
         """Solve method."""
@@ -241,7 +243,18 @@ class OTProblem(BaseProblem):
         prepare_kwargs["batch_size"] = batch_size
 
         solver: BaseSolver[BaseSolverOutput] = self._problem_kind.solver(backend="ott", **kwargs)
-        self._solution = solver(x=self._x, y=self._y, xy=self._xy, a=a, b=b, tau_a=tau_a, tau_b=tau_b, **prepare_kwargs)
+        self._solution = solver(
+            x=self._x,
+            y=self._y,
+            xy=self._xy,
+            a=a,
+            b=b,
+            tau_a=tau_a,
+            tau_b=tau_b,
+            device=device,
+            dtype=dtype,
+            **prepare_kwargs,
+        )
         return self
 
     @require_solution

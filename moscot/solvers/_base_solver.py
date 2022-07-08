@@ -7,7 +7,7 @@ import warnings
 from typing_extensions import Literal
 
 from moscot._docs import d
-from moscot._types import ArrayLike
+from moscot._types import ArrayLike, DTypeLike
 from moscot.solvers._output import BaseSolverOutput
 from moscot.solvers._tagged_array import Tag, TaggedArray
 
@@ -149,6 +149,8 @@ class OTSolver(TagConverterMixin, BaseSolver[O], ABC):
         tau_a: float = 1.0,
         tau_b: float = 1.0,
         tags: Mapping[Literal["x", "y", "xy"], Tag] = MappingProxyType({}),
+        device: Optional[Any] = None,
+        dtype: Optional[DTypeLike] = None,
         **kwargs: Any,
     ) -> O:  # noqa: E741
         """Call method."""
@@ -160,7 +162,7 @@ class OTSolver(TagConverterMixin, BaseSolver[O], ABC):
         if not res.converged:
             warnings.warn("Solver did not converge")
 
-        return res
+        return res.to(device=device, dtype=dtype)  # type: ignore[return-value]
 
     def _prepare_kwargs(self, data: TaggedArrayData, **kwargs: Any) -> Dict[str, Any]:
         def assert_linear() -> None:

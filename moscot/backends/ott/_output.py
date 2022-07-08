@@ -9,7 +9,6 @@ from ott.core.sinkhorn import SinkhornOutput as OTTSinkhornOutput
 from ott.core.sinkhorn_lr import LRSinkhornOutput as OTTLRSinkhornOutput
 from ott.core.gromov_wasserstein import GWOutput as OTTGWOutput
 import jax
-import numpy as np
 import jax.numpy as jnp
 import jaxlib.xla_extension as xla_ext
 
@@ -26,7 +25,7 @@ def enable_x64() -> Iterator[None]:
     try:
         yield
     finally:
-        jax.config.update("jax_enable_64", old_value)
+        jax.config.update("jax_enable_x64", old_value)
 
 
 class RankMixin:
@@ -132,17 +131,13 @@ class OTTOutput(RankMixin, ConvergencePlotterMixin, BaseSolverOutput, ABC):
         self,
         device: Optional[Union[str, xla_ext.Device, Literal["cpu", "gpu", "tpu"]]] = None,
         dtype: Optional[DTypeLike] = None,
-        as_numpy: bool = False,
     ) -> "OTTOutput":
-        def convert_array_type(val: Any) -> Any:
-            return np.asarray(val) if isinstance(val, jnp.ndarray) else val
-
         def convert_dtype(val: Any) -> Any:
             return val.astype(dtype) if isinstance(val, jnp.ndarray) else val
 
         ix = 0
         if isinstance(device, str) and ":" in device:
-            device, ix = device.split("")  # type: ignore[assignment]
+            device, ix = device.split(":")  # type: ignore[assignment]
             ix = int(ix)
 
         if not isinstance(device, xla_ext.Device):
@@ -156,8 +151,6 @@ class OTTOutput(RankMixin, ConvergencePlotterMixin, BaseSolverOutput, ABC):
         out = jax.device_put(self._output, device)
         with enable_x64():
             out = jax.tree_map(convert_dtype, out)  # type: ignore[attr-defined]
-        if as_numpy:
-            out = jax.tree_map(convert_array_type, out)  # type: ignore[attr-defined]
         return OTTOutput(out, rank=self.rank)
 
     @property
