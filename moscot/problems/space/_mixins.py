@@ -223,8 +223,8 @@ class SpatialAlignmentMixin(AnalysisMixin[K, B]):
         return self._spatial_key
 
     @spatial_key.setter
-    def spatial_key(self: SpatialAlignmentMixinProtocol[K, B], value: Optional[str] = None) -> None:
-        if value not in self.adata.obsm:
+    def spatial_key(self: SpatialAlignmentMixinProtocol[K, B], value: Optional[str]) -> None:
+        if value is not None and value not in self.adata.obsm:
             raise KeyError(f"TODO: {value} not found in `adata.obsm`.")
         # TODO(@MUCDK) check data type -> which ones do we allow
         self._spatial_key = value
@@ -235,7 +235,9 @@ class SpatialAlignmentMixin(AnalysisMixin[K, B]):
         return self._batch_key
 
     @batch_key.setter
-    def batch_key(self, value: Optional[str] = None) -> None:
+    def batch_key(self, value: Optional[str]) -> None:
+        if value is not None and value not in self.adata.obs:
+            raise KeyError("`batch_key` must be in `adata.obs`.")
         self._batch_key = value
 
     @staticmethod
@@ -373,5 +375,7 @@ class SpatialMappingMixin(AnalysisMixin[K, B]):
         return self._batch_key
 
     @batch_key.setter
-    def batch_key(self, value: Optional[str] = None) -> None:
+    def batch_key(self, value: Optional[str]) -> None:
+        if value is not None and value not in self.adata.obs:
+            raise KeyError("`batch_key` must be in `adata.obs`.")
         self._batch_key = value

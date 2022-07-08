@@ -20,8 +20,10 @@ from moscot.problems.base._compound_problem import B, K, ApplyOutput_t
 class TemporalMixinProtocol(AnalysisMixinProtocol[K, B], Protocol[K, B]):
     """Protocol class."""
 
+    adata: AnnData
     problems: Dict[Tuple[K, K], B]
     temporal_key: Optional[str]
+    _temporal_key: Optional[str]
 
     def push(self, *args: Any, **kwargs: Any) -> Optional[ApplyOutput_t[K]]:  # noqa: D102
         ...
@@ -41,6 +43,71 @@ class TemporalMixinProtocol(AnalysisMixinProtocol[K, B], Protocol[K, B]):
         online: bool = False,
         other_key: Optional[str] = None,
     ) -> pd.DataFrame:
+        ...
+
+    def _sample_from_tmap(
+        self: AnalysisMixinProtocol[K, B],
+        source_key: K,
+        target_key: K,
+        n_samples: int,
+        source_dim: int,
+        target_dim: int,
+        batch_size: int = 256,
+        account_for_unbalancedness: bool = False,
+        interpolation_parameter: Optional[Numeric_t] = None,
+        seed: Optional[int] = None,
+    ) -> Tuple[List[Any], List[ArrayLike]]:
+        ...
+
+    def _compute_wasserstein_distance(
+        self: TemporalMixinProtocol[K, B],
+        point_cloud_1: ArrayLike,
+        point_cloud_2: ArrayLike,
+        a: Optional[ArrayLike] = None,
+        b: Optional[ArrayLike] = None,
+        **kwargs: Any,
+    ) -> Numeric_t:
+        ...
+
+    def _interpolate_gex_with_ot(
+        self: TemporalMixinProtocol[K, B],
+        number_cells: int,
+        source_data: ArrayLike,
+        target_data: ArrayLike,
+        start: K,
+        end: K,
+        interpolation_parameter: float,
+        account_for_unbalancedness: bool = True,
+        batch_size: int = 256,
+        seed: Optional[int] = None,
+    ) -> ArrayLike:
+        ...
+
+    def _get_data(
+        self: TemporalMixinProtocol[K, B],
+        start: K,
+        intermediate: Optional[K] = None,
+        end: Optional[K] = None,
+        *,
+        only_start: bool = False,
+    ) -> Union[Tuple[ArrayLike, AnnData], Tuple[ArrayLike, ArrayLike, ArrayLike, AnnData, ArrayLike]]:
+        ...
+
+    def _interpolate_gex_randomly(
+        self: TemporalMixinProtocol[K, B],
+        number_cells: int,
+        source_data: ArrayLike,
+        target_data: ArrayLike,
+        interpolation_parameter: float,
+        growth_rates: Optional[ArrayLike] = None,
+        seed: Optional[int] = None,
+    ) -> ArrayLike:
+        ...
+
+    @staticmethod
+    def _get_interp_param(
+        start: K, intermediate: K, end: K, interpolation_parameter: Optional[float] = None
+    ) -> Numeric_t:
         ...
 
 
@@ -257,7 +324,7 @@ class TemporalMixin(AnalysisMixin[K, B]):
         return source_data, growth_rates_source, intermediate_data, intermediate_adata, target_data  # type: ignore[return-value] # noqa: E501
 
     def compute_interpolated_distance(
-        self,
+        self: TemporalMixinProtocol[K, B],
         start: K,
         intermediate: K,
         end: K,
@@ -336,7 +403,7 @@ class TemporalMixin(AnalysisMixin[K, B]):
         return self._compute_wasserstein_distance(intermediate_data, interpolation, **kwargs)
 
     def compute_random_distance(
-        self,
+        self: TemporalMixinProtocol[K, B],
         start: K,
         intermediate: K,
         end: K,
@@ -400,7 +467,7 @@ class TemporalMixin(AnalysisMixin[K, B]):
         return self._compute_wasserstein_distance(intermediate_data, random_interpolation, **kwargs)
 
     def compute_time_point_distances(
-        self, start: K, intermediate: K, end: K, **kwargs: Any
+        self: TemporalMixinProtocol[K, B], start: K, intermediate: K, end: K, **kwargs: Any
     ) -> Tuple[Numeric_t, Numeric_t]:
         """
         Compute the Wasserstein distance of cell distributions between time points.
@@ -433,7 +500,7 @@ class TemporalMixin(AnalysisMixin[K, B]):
 
         return distance_source_intermediate, distance_intermediate_target
 
-    def compute_batch_distances(self, time: K, batch_key: str, **kwargs: Any) -> Numeric_t:
+    def compute_batch_distances(self: TemporalMixinProtocol[K, B], time: K, batch_key: str, **kwargs: Any) -> Numeric_t:
         """
         Compute the mean Wasserstein distance between batches of a distribution corresponding to one time point.
 
@@ -466,7 +533,7 @@ class TemporalMixin(AnalysisMixin[K, B]):
     # TODO(@MUCDK) possibly offer two alternatives, once exact EMD with POT backend and once approximate,
     # faster with same solver as used for original problems
     def _compute_wasserstein_distance(
-        self,
+        self: TemporalMixinProtocol[K, B],
         point_cloud_1: ArrayLike,
         point_cloud_2: ArrayLike,
         a: Optional[ArrayLike] = None,
@@ -481,7 +548,7 @@ class TemporalMixin(AnalysisMixin[K, B]):
         return np.sqrt(ot.emd2(_a, _b, cost_matrix, **kwargs))  # TODO(MUCDK): don't use POT
 
     def _interpolate_gex_with_ot(
-        self,
+        self: TemporalMixinProtocol[K, B],
         number_cells: int,
         source_data: ArrayLike,
         target_data: ArrayLike,
@@ -492,7 +559,7 @@ class TemporalMixin(AnalysisMixin[K, B]):
         batch_size: int = 256,
         seed: Optional[int] = None,
     ) -> ArrayLike:
-        rows_sampled, cols_sampled = self._sample_from_tmap(  # type: ignore[misc]
+        rows_sampled, cols_sampled = self._sample_from_tmap(
             source_key=start,
             target_key=end,
             n_samples=number_cells,
@@ -509,7 +576,7 @@ class TemporalMixin(AnalysisMixin[K, B]):
         )
 
     def _interpolate_gex_randomly(
-        self,
+        self: TemporalMixinProtocol[K, B],
         number_cells: int,
         source_data: ArrayLike,
         target_data: ArrayLike,
@@ -554,7 +621,7 @@ class TemporalMixin(AnalysisMixin[K, B]):
         return self._temporal_key
 
     @temporal_key.setter
-    def temporal_key(self, value: Optional[str] = None) -> None:
-        # if not is_numeric_dtype(self.adata.obs[value]):
-        #    raise TypeError(f"TODO: column must be of numeric data type")
+    def temporal_key(self: TemporalMixinProtocol[K, B], value: Optional[str]) -> None:
+        if value is not None and value not in self.adata.obs:
+            raise KeyError("`batch_key` must be in `adata.obs`.")
         self._temporal_key = value
