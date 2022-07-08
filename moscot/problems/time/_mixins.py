@@ -32,7 +32,7 @@ class TemporalMixinProtocol(AnalysisMixinProtocol[K, B], Protocol[K, B]):
         ...
 
     def _cell_transition(
-        self: "AnalysisMixinProtocol[K, B]",
+        self: "TemporalMixinProtocol[K, B]",
         key: str,
         source_key: K,
         target_key: K,
@@ -46,7 +46,7 @@ class TemporalMixinProtocol(AnalysisMixinProtocol[K, B], Protocol[K, B]):
         ...
 
     def _sample_from_tmap(
-        self: AnalysisMixinProtocol[K, B],
+        self: "TemporalMixinProtocol[K, B]",
         source_key: K,
         target_key: K,
         n_samples: int,
@@ -60,7 +60,7 @@ class TemporalMixinProtocol(AnalysisMixinProtocol[K, B], Protocol[K, B]):
         ...
 
     def _compute_wasserstein_distance(
-        self: TemporalMixinProtocol[K, B],
+        self: "TemporalMixinProtocol[K, B]",
         point_cloud_1: ArrayLike,
         point_cloud_2: ArrayLike,
         a: Optional[ArrayLike] = None,
@@ -70,7 +70,7 @@ class TemporalMixinProtocol(AnalysisMixinProtocol[K, B], Protocol[K, B]):
         ...
 
     def _interpolate_gex_with_ot(
-        self: TemporalMixinProtocol[K, B],
+        self: "TemporalMixinProtocol[K, B]",
         number_cells: int,
         source_data: ArrayLike,
         target_data: ArrayLike,
@@ -84,7 +84,7 @@ class TemporalMixinProtocol(AnalysisMixinProtocol[K, B], Protocol[K, B]):
         ...
 
     def _get_data(
-        self: TemporalMixinProtocol[K, B],
+        self: "TemporalMixinProtocol[K, B]",
         start: K,
         intermediate: Optional[K] = None,
         end: Optional[K] = None,
@@ -94,7 +94,7 @@ class TemporalMixinProtocol(AnalysisMixinProtocol[K, B], Protocol[K, B]):
         ...
 
     def _interpolate_gex_randomly(
-        self: TemporalMixinProtocol[K, B],
+        self: "TemporalMixinProtocol[K, B]",
         number_cells: int,
         source_data: ArrayLike,
         target_data: ArrayLike,

@@ -125,7 +125,7 @@ class SpatialAlignmentMixin(AnalysisMixin[K, B]):
             except NetworkXNoPath:
                 bwd_steps[(reference, start)] = self._policy.plan(start=reference, end=start)
 
-        if mode == "affine":
+        if mode == "affine":  # TODO(@MUCDK): infer correct types
             _transport: Callable[
                 [LinearOperator, ArrayLike, ArrayLike], Tuple[ArrayLike, Optional[ArrayLike]]
             ] = self._affine  # type: ignore[assignment]

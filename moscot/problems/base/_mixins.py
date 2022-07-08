@@ -58,8 +58,8 @@ class AnalysisMixinProtocol(Protocol[K, B]):
         source_key: K,
         target_key: K,
         key: Optional[str],
-        source_cells: Filter_t,
-        target_cells: Filter_t,
+        source_cells: Filter_t = None,
+        target_cells: Filter_t = None,
         forward: bool = False,
         aggregation_mode: Literal["annotation", "cell"] = AggregationMode.ANNOTATION,  # type: ignore[assignment]
         other_key: Optional[str] = None,
@@ -72,8 +72,8 @@ class AnalysisMixinProtocol(Protocol[K, B]):
         source_key: K,
         target_key: K,
         key: Optional[str],
-        source_cells: Filter_t,
-        target_cells: Filter_t,
+        source_cells: Filter_t = None,
+        target_cells: Filter_t = None,
         forward: bool = False,
         aggregation_mode: Literal["annotation", "cell"] = AggregationMode.ANNOTATION,  # type: ignore[assignment]
         other_key: Optional[str] = None,
@@ -112,8 +112,8 @@ class AnalysisMixinProtocol(Protocol[K, B]):
         key: Optional[str],
         other_key: Optional[str],
         other_adata: Optional[str],
-        source_cells: Filter_t,
-        target_cells: Filter_t,
+        source_cells: Filter_t = None,
+        target_cells: Filter_t = None,
         aggregation_mode: Literal["annotation", "cell"],
         forward: bool,
     ) -> None:
@@ -273,8 +273,8 @@ class AnalysisMixin(Generic[K, B]):
         source_key: K,
         target_key: K,
         key: Optional[str],
-        source_cells: Filter_t,
-        target_cells: Filter_t,
+        source_cells: Filter_t = None,
+        target_cells: Filter_t = None,
         forward: bool = False,  # return value will be row-stochastic if forward=True, else column-stochastic
         aggregation_mode: Literal["annotation", "cell"] = AggregationMode.ANNOTATION,  # type: ignore[assignment]
         other_key: Optional[str] = None,
@@ -544,7 +544,7 @@ class AnalysisMixin(Generic[K, B]):
     @staticmethod
     def _validate_args_cell_transition(
         adata: AnnData,
-        arg: Filter_t,
+        arg: Filter_t = None,
     ) -> Tuple[Optional[str], Optional[Iterable[Any]]]:
         if arg is None:
             return None, None
@@ -595,10 +595,10 @@ class AnalysisMixin(Generic[K, B]):
     @staticmethod
     def _check_argument_compatibility_cell_transition(
         key: Optional[str],
-        other_key: Optional[str],
-        other_adata: Optional[AnnData],
-        source_cells: Filter_t,
-        target_cells: Filter_t,
+        other_key: Optional[str] = None,
+        other_adata: Optional[AnnData] = None,
+        source_cells: Filter_t = None,
+        target_cells: Filter_t = None,
         aggregation_mode: Literal["annotation", "cell"],
         forward: bool,
     ) -> None:
