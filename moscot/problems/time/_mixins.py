@@ -539,7 +539,7 @@ class TemporalMixin(AnalysisMixin[K, B]):
                     **kwargs,
                 )
             )
-        return np.mean(dist)  # type: ignore[return-value]
+        return np.mean(dist)
 
     # TODO(@MUCDK) possibly offer two alternatives, once exact EMD with POT backend and once approximate,
     # faster with same solver as used for original problems
