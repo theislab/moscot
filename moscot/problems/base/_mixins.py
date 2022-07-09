@@ -325,17 +325,19 @@ class AnalysisMixin(Generic[K, B]):
                 index=source_annotations_verified,
                 columns=target_annotations_verified,
             )
+        
         elif aggregation_mode == AggregationMode.CELL:  # type: ignore[comparison-overlap]
-            transition_table = pd.DataFrame(columns=target_annotations_verified)
+            transition_table = pd.DataFrame(columns=target_annotations_verified if forward else source_annotations_verified)
         else:
             raise NotImplementedError("TODO: aggregation_mode must be `group` or `cell`.")
-
+        
         if forward:
             if aggregation_mode == AggregationMode.ANNOTATION:
                 transition_table = self._annotation_aggregation_transition(source_key=source_key, target_key=target_key, annotation_key=source_annotation_key, annotations_1=source_annotations_verified, annotations_2=target_annotations_verified, df=df_target, transition_table=transition_table, forward=True)
                 
             elif aggregation_mode == AggregationMode.CELL:
                 transition_table = self._cell_aggregation_transition(source_key=source_key, target_key=target_key, annotation_key=target_annotation_key, annotations_1 = source_annotations_verified, annotations_2=target_annotations_verified, df_1 = df_target, df_2=df_source, transition_table=transition_table, batch_size=batch_size, forward=True)
+                
             else:
                 NotImplementedError("TODO: aggregation_mode must be `group` or `cell`.")
             return transition_table.div(transition_table.sum(axis=1), axis=0)
@@ -615,7 +617,6 @@ class AnalysisMixin(Generic[K, B]):
         if not forward:
             transition_table = transition_table.T
         func = self.push if forward else self.pull
-        print("shape of transition_table is ", transition_table.shape, transition_table)
         if batch_size is None:
             batch_size = len(df_2)
         for batch in range(0, len(df_2), batch_size):
@@ -639,6 +640,6 @@ class AnalysisMixin(Generic[K, B]):
                 .sum()
                 .transpose()
             )
-            transition_table = pd.concat([transition_table, to_app], verify_integrity=True, axis=0)
+            transition_table = pd.concat([transition_table, to_app if forward else to_app.T], verify_integrity=True, axis=0 if forward else 1)
             df_2 = df_2.drop(current_cells, axis=0)
-        return transition_table if forward else transition_table.T
+        return transition_table
