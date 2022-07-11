@@ -72,63 +72,32 @@ def save_fig(fig: Figure, path: Union[str, Path], make_dir: bool = True, ext: st
 
 
 def set_palette(
-        self,
+        adata: AnnData,
         key: str,
-        palette: Union[str, ListedColormap],
+        palette: Union[str, ListedColormap] = "viridis",
         force_update_colors: bool=False
     ) -> None:
-        if key not in self.adata.obs.columns:
+        if key not in adata.obs.columns:
             raise KeyError("TODO: invalid key.")
         uns_key = f"{key}_colors"
-        if uns_key not in self.adata.uns:
+        if uns_key not in adata.uns:
             add_color_palette(self.adata, key=key, palette=palette, force_update_colors=force_update_colors)
 
-class PySankeyException(Exception):
-    pass
-
-
-class NullsInFrame(PySankeyException):
-    pass
-
-
-class LabelMismatch(PySankeyException):
-    pass
-
-
-def check_data_matches_labels(labels, data, side):
-    if len(labels > 0):
-        if isinstance(data, list):
-            data = set(data)
-        if isinstance(data, pd.Series):
-            data = set(data.unique().tolist())
-        if isinstance(labels, list):
-            labels = set(labels)
-        if labels != data:
-            msg = "\n"
-            if len(labels) <= 20:
-                msg = "Labels: " + ",".join(labels) + "\n"
-            if len(data) < 20:
-                msg += "Data: " + ",".join(data)
-            raise LabelMismatch("{0} labels and data do not match.{1}".format(side, msg))
-
-
-def sankey(transition_matrices: List[pd.DataFrame], captions: Optional[List[str]] = None, colorDict = Optional[Union[Dict, ListedColormap]]):
+def _sankey(adata: AnnData, key: str, transition_matrices: List[pd.DataFrame], captions: Optional[List[str]] = None, colorDict: Optional[Union[Dict, ListedColormap]] = None, title: str = "Cell Annotation Maps", **kwargs: Any):
     if captions is not None and len(captions) != len(transition_matrices):
         raise ValueError("TODO: If `captions` are specified length has to be same as of `transition_matrices`.")
     if colorDict is None:
         #TODO: adapt for unique categories
         set_palette(
-            self,
-            key: str,
-            palette: Union[str, ListedColormap],
-            force_update_colors: bool=False)
+            adata=adata,
+            key=key,
+            **kwargs)
         
-        palette = "hls"
         colorPalette = sns.color_palette(palette, len(allLabels))
-        for i, label in enumerate(allLabels):
+        for i, label in enumerate(f"{key}_colors"):
             colorDict[label] = colorPalette[i]
     else:
-        missing = [label for label in allLabels if label not in colorDict.keys()]
+        missing = [label for label in adata.obs[key].cat.categories if label not in colorDict.keys()]
         if missing:
             msg = "The colorDict parameter is missing values for the following labels : "
             msg += "{}".format(", ".join(missing))
@@ -246,4 +215,4 @@ def sankey(transition_matrices: List[pd.DataFrame], captions: Optional[List[str]
         
         plt.gca().axis("off")
         plt.gcf().set_size_inches(6, 6)
-        plt.title("Transition")
+        plt.title(title)
