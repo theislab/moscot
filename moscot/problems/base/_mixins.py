@@ -46,6 +46,12 @@ class AnalysisMixinProtocol(Protocol[K, B]):
     def _flatten(self: "AnalysisMixinProtocol[K, B]", data: Dict[K, ArrayLike], *, key: Optional[str]) -> ArrayLike:
         ...
 
+    def push(self, *args: Any, **kwargs: Any) -> Optional[ApplyOutput_t[K]]:
+        ...
+
+    def pull(self, *args: Any, **kwargs: Any) -> Optional[ApplyOutput_t[K]]:
+        ...
+
     @staticmethod
     def _validate_args_cell_transition(
         adata: AnnData,
@@ -60,10 +66,11 @@ class AnalysisMixinProtocol(Protocol[K, B]):
         key: Optional[str],
         source_cells: Filter_t = None,
         target_cells: Filter_t = None,
-        forward: bool = False,
+        forward: bool = False,  # return value will be row-stochastic if forward=True, else column-stochastic
         aggregation_mode: Literal["annotation", "cell"] = AggregationMode.ANNOTATION,  # type: ignore[assignment]
         other_key: Optional[str] = None,
-        other_adata: Optional[AnnData] = None,
+        other_adata: Optional[str] = None,
+        batch_size: Optional[int] = None,
     ) -> pd.DataFrame:
         ...
 
@@ -173,19 +180,27 @@ class AnalysisMixin(Generic[K, B]):
         )
         if online:
             return self._cell_transition_online(
-                source_key,
-                target_key,
-                key,
-                source_cells,
-                target_cells,
-                forward,
-                aggregation_mode,
-                other_key,
-                other_adata,
-                batch_size
+                source_key=source_key,
+                target_key=target_key,
+                key=key,
+                source_cells=source_cells,
+                target_cells=target_cells,
+                forward=forward,
+                aggregation_mode=aggregation_mode,
+                other_key=other_key,
+                other_adata=other_adata,
+                batch_size=batch_size,
             )
         return self._cell_transition_not_online(
-            source_key, target_key, key, source_cells, target_cells, forward, aggregation_mode, other_key, other_adata
+            source_key=source_key,
+            target_key=target_key,
+            key=key,
+            source_cells=source_cells,
+            target_cells=target_cells,
+            forward=forward,
+            aggregation_mode=aggregation_mode,
+            other_key=other_key,
+            other_adata=other_adata,
         )
 
     def _cell_transition_not_online(
@@ -325,31 +340,63 @@ class AnalysisMixin(Generic[K, B]):
                 index=source_annotations_verified,
                 columns=target_annotations_verified,
             )
-        
-        elif aggregation_mode == AggregationMode.CELL:  # type: ignore[comparison-overlap]
-            transition_table = pd.DataFrame(columns=target_annotations_verified if forward else source_annotations_verified)
-        else:
-            raise NotImplementedError("TODO: aggregation_mode must be `group` or `cell`.")
-        
-        if forward:
-            if aggregation_mode == AggregationMode.ANNOTATION:
-                transition_table = self._annotation_aggregation_transition(source_key=source_key, target_key=target_key, annotation_key=source_annotation_key, annotations_1=source_annotations_verified, annotations_2=target_annotations_verified, df=df_target, transition_table=transition_table, forward=True)
-                
-            elif aggregation_mode == AggregationMode.CELL:
-                transition_table = self._cell_aggregation_transition(source_key=source_key, target_key=target_key, annotation_key=target_annotation_key, annotations_1 = source_annotations_verified, annotations_2=target_annotations_verified, df_1 = df_target, df_2=df_source, transition_table=transition_table, batch_size=batch_size, forward=True)
-                
+            if forward:
+                transition_table = self._annotation_aggregation_transition(
+                    source_key=source_key,
+                    target_key=target_key,
+                    annotation_key=source_annotation_key,
+                    annotations_1=source_annotations_verified,
+                    annotations_2=target_annotations_verified,
+                    df=df_target,
+                    transition_table=transition_table,
+                    forward=True,
+                )
             else:
-                NotImplementedError("TODO: aggregation_mode must be `group` or `cell`.")
-            return transition_table.div(transition_table.sum(axis=1), axis=0)
+                transition_table = self._annotation_aggregation_transition(
+                    source_key=source_key,
+                    target_key=target_key,
+                    annotation_key=target_annotation_key,
+                    annotations_1=target_annotations_verified,
+                    annotations_2=source_annotations_verified,
+                    df=df_source,
+                    transition_table=transition_table,
+                    forward=False,
+                )
 
-        if aggregation_mode == AggregationMode.ANNOTATION:
-            transition_table = self._annotation_aggregation_transition(source_key=source_key, target_key=target_key, annotation_key=target_annotation_key, annotations_1=target_annotations_verified, annotations_2=source_annotations_verified, df=df_source, transition_table=transition_table, forward=False)
-            
-        elif aggregation_mode == AggregationMode.CELL:
-            transition_table = self._cell_aggregation_transition(source_key=source_key, target_key=target_key, annotation_key=source_annotation_key, annotations_1 = target_annotations_verified, annotations_2=source_annotations_verified, df_1 = df_source, df_2=df_target, transition_table=transition_table, batch_size=batch_size, forward=False)
+        elif aggregation_mode == AggregationMode.CELL:  # type: ignore[comparison-overlap]
+            transition_table = pd.DataFrame(
+                columns=target_annotations_verified if forward else source_annotations_verified
+            )
+            if forward:
+                transition_table = self._cell_aggregation_transition(
+                    source_key=source_key,
+                    target_key=target_key,
+                    annotation_key=target_annotation_key,
+                    annotations_1=source_annotations_verified,
+                    annotations_2=target_annotations_verified,
+                    df_1=df_target,
+                    df_2=df_source,
+                    transition_table=transition_table,
+                    batch_size=batch_size,
+                    forward=True,
+                )
+            else:
+                transition_table = self._cell_aggregation_transition(
+                    source_key=source_key,
+                    target_key=target_key,
+                    annotation_key=source_annotation_key,
+                    annotations_1=target_annotations_verified,
+                    annotations_2=source_annotations_verified,
+                    df_1=df_source,
+                    df_2=df_target,
+                    transition_table=transition_table,
+                    batch_size=batch_size,
+                    forward=False,
+                )
+
         else:
             raise NotImplementedError("TODO: aggregation_mode must be `group` or `cell`.")
-        return transition_table.div(transition_table.sum(axis=0), axis=1)
+        return transition_table.div(transition_table.sum(axis=forward), axis=1 - forward)
 
     def _sample_from_tmap(
         self: AnalysisMixinProtocol[K, B],
@@ -581,7 +628,17 @@ class AnalysisMixin(Generic[K, B]):
             return annotations_verified
         return [None]
 
-    def _annotation_aggregation_transition(self, source_key, target_key, annotation_key, annotations_1,annotations_2, df, transition_table, forward) -> pd.DataFrame:
+    def _annotation_aggregation_transition(
+        self: AnalysisMixinProtocol[K, B],
+        source_key: str,
+        target_key: str,
+        annotation_key: str,
+        annotations_1: Iterable[Any],
+        annotations_2: Iterable[Any],
+        df: pd.DataFrame,
+        transition_table: pd.DataFrame,
+        forward: bool,
+    ) -> pd.DataFrame:
         if not forward:
             transition_table = transition_table.T
         func = self.push if forward else self.pull
@@ -597,23 +654,28 @@ class AnalysisMixin(Generic[K, B]):
                 split_mass=False,
             )
             df["distribution"] = result
-            cell_dist = (
-                df[df[annotation_key].isin(annotations_2)]
-                .groupby(annotation_key)
-                .sum()
-            )
+            cell_dist = df[df[annotation_key].isin(annotations_2)].groupby(annotation_key).sum()
             cell_dist /= cell_dist.sum()
-            cell_dist=cell_dist if forward else cell_dist
-            transition_table.loc[subset,:] = [
-                    cell_dist.loc[cell_type, "distribution"]
-                    if cell_type in cell_dist.distribution.index
-                    else 0
-                    for cell_type in annotations_2
-                ]
+            cell_dist = cell_dist if forward else cell_dist
+            transition_table.loc[subset, :] = [
+                cell_dist.loc[cell_type, "distribution"] if cell_type in cell_dist.distribution.index else 0
+                for cell_type in annotations_2
+            ]
         return transition_table if forward else transition_table.T
 
-        
-    def _cell_aggregation_transition(self, source_key, target_key, annotation_key, annotations_1, annotations_2, df_1, df_2, transition_table, batch_size, forward):
+    def _cell_aggregation_transition(
+        self: AnalysisMixinProtocol[K, B],
+        source_key: str,
+        target_key: str,
+        annotation_key: str,
+        annotations_1: Iterable[Any],
+        annotations_2: Iterable[Any],
+        df_1: pd.DataFrame,
+        df_2: pd.DataFrame,
+        transition_table: pd.DataFrame,
+        batch_size: Optional[int],
+        forward: bool,
+    ) -> pd.DataFrame:
         if not forward:
             transition_table = transition_table.T
         func = self.push if forward else self.pull
@@ -630,16 +692,11 @@ class AnalysisMixin(Generic[K, B]):
                 scale_by_marginals=False,
                 split_mass=True,
             )
-            current_cells = list(
-                df_2.iloc[range(batch, min(batch + batch_size, len(df_2)))].index
-            )
+            current_cells = list(df_2.iloc[range(batch, min(batch + batch_size, len(df_2)))].index)
             df_1.loc[:, current_cells] = result
-            to_app = (
-                df_1[df_1[annotation_key].isin(annotations_2)]
-                .groupby(annotation_key)
-                .sum()
-                .transpose()
+            to_app = df_1[df_1[annotation_key].isin(annotations_2)].groupby(annotation_key).sum().transpose()
+            transition_table = pd.concat(
+                [transition_table, to_app if forward else to_app.T], verify_integrity=True, axis=0 if forward else 1
             )
-            transition_table = pd.concat([transition_table, to_app if forward else to_app.T], verify_integrity=True, axis=0 if forward else 1)
             df_2 = df_2.drop(current_cells, axis=0)
         return transition_table

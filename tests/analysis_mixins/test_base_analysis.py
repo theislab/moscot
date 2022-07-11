@@ -135,7 +135,6 @@ class TestBaseAnalysisMixin:
         config["key"]
         key_1 = config["key_1"]
         key_2 = config["key_2"]
-        config["key_3"]
         problem = CompoundProblemWithMixin(gt_temporal_adata)
         problem = problem.prepare("day", subset=[(10, 10.5)], policy="explicit", callback="local-pca")
         assert set(problem.problems.keys()) == {(key_1, key_2)}

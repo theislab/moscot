@@ -113,7 +113,7 @@ class TestTemporalProblem:
 
         problem.score_genes_for_marginals(gene_set_proliferation="human", gene_set_apoptosis="human")
         assert problem.apoptosis_key == "apoptosis"
-        
+
         adata_time.obs["new_apoptosis"] = np.ones(adata_time.n_obs)
         problem.apoptosis_key = "new_apoptosis"
         assert problem.apoptosis_key == "new_apoptosis"
