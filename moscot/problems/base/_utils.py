@@ -11,12 +11,6 @@ from moscot._constants._constants import AggregationMode
 
 __all__ = [
     "attributedispatch",
-    "_validate_annotations_helper",
-    "_check_argument_compatibility_cell_transition",
-    "_get_df_cell_transition",
-    "_validate_args_cell_transition",
-    "_get_cell_indices",
-    "_get_categories_from_adata",
 ]
 
 Callback = Callable[..., Any]

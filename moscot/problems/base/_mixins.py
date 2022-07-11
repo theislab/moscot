@@ -10,8 +10,7 @@ from anndata import AnnData
 
 from moscot._types import Filter_t, ArrayLike, Numeric_t
 from moscot.solvers._output import BaseSolverOutput
-from moscot._constants._constants import AggregationMode
-from moscot.problems.base._mixins import (  # type: ignore[attr-defined]
+from moscot.problems.base._utils import (
     _get_cell_indices,
     _get_df_cell_transition,
     _get_categories_from_adata,
@@ -19,6 +18,7 @@ from moscot.problems.base._mixins import (  # type: ignore[attr-defined]
     _validate_args_cell_transition,
     _check_argument_compatibility_cell_transition,
 )
+from moscot._constants._constants import AggregationMode
 from moscot.problems._subset_policy import SubsetPolicy
 from moscot.problems.base._compound_problem import B, K, ApplyOutput_t
 
@@ -87,6 +87,7 @@ class AnalysisMixinProtocol(Protocol[K, B]):
         aggregation_mode: Literal["annotation", "cell"] = AggregationMode.ANNOTATION,  # type: ignore[assignment]
         other_key: Optional[str] = None,
         other_adata: Optional[AnnData] = None,
+        normalize: bool = True,
     ) -> pd.DataFrame:
         ...
 
@@ -128,7 +129,7 @@ class AnalysisMixin(Generic[K, B]):
     def __init__(self, *args: Any, **kwargs: Any):
         super().__init__(*args, **kwargs)
 
-    def _cell_transition(
+    def _cell_transition(  # TODO(@MUCDK) think about removing _cell_transition_non_online
         self: AnalysisMixinProtocol[K, B],
         source_key: K,
         target_key: K,
@@ -141,6 +142,7 @@ class AnalysisMixin(Generic[K, B]):
         other_key: Optional[str] = None,
         other_adata: Optional[str] = None,
         batch_size: Optional[int] = None,
+        normalize: bool = True,
     ) -> pd.DataFrame:
         _check_argument_compatibility_cell_transition(
             key=key,
@@ -163,6 +165,7 @@ class AnalysisMixin(Generic[K, B]):
                 other_key=other_key,
                 other_adata=other_adata,
                 batch_size=batch_size,
+                normalize=normalize,
             )
         return self._cell_transition_not_online(
             source_key=source_key,
@@ -174,6 +177,7 @@ class AnalysisMixin(Generic[K, B]):
             aggregation_mode=aggregation_mode,
             other_key=other_key,
             other_adata=other_adata,
+            normalize=normalize,
         )
 
     def _cell_transition_not_online(
@@ -506,7 +510,7 @@ class AnalysisMixin(Generic[K, B]):
             raise ValueError(
                 f"TODO: None of {source_annotations} found in distribution corresponding to {source_annotation_key}."
             )
-        target_annotations_verified = _validate_annotations_helper(
+        target_annotations_verified = _validate_annotations_helper(  # type: ignore[assignment]
             df_target, target_annotation_key, target_annotations, aggregation_mode
         )
         return source_annotations_verified, target_annotations_verified
@@ -539,10 +543,9 @@ class AnalysisMixin(Generic[K, B]):
             df["distribution"] = result
             cell_dist = df[df[annotation_key].isin(annotations_2)].groupby(annotation_key).sum()
             cell_dist /= cell_dist.sum()
-            cell_dist = cell_dist if forward else cell_dist
             transition_table.loc[subset, :] = [
-                cell_dist.loc[cell_type, "distribution"] if cell_type in cell_dist.distribution.index else 0
-                for cell_type in annotations_2
+                cell_dist.loc[annotation, "distribution"] if annotation in cell_dist.distribution.index else 0
+                for annotation in annotations_2
             ]
         return transition_table
 
@@ -559,8 +562,6 @@ class AnalysisMixin(Generic[K, B]):
         batch_size: Optional[int],
         forward: bool,
     ) -> pd.DataFrame:
-        # if not forward:
-        #    transition_table = transition_table.T
         func = self.push if forward else self.pull
         if batch_size is None:
             batch_size = len(df_2)
@@ -598,6 +599,7 @@ class AnalysisMixin(Generic[K, B]):
         aggregation_mode: Literal["annotation", "cell"],
         forward: bool,
     ) -> pd.DataFrame:
+        key_added = "cell_annotations"
         tmap = np.array(
             self.solutions[
                 filter_key_1 if forward else filter_key_2, filter_key_2 if forward else filter_key_1
@@ -616,11 +618,11 @@ class AnalysisMixin(Generic[K, B]):
             )
         if aggregation_mode == AggregationMode.CELL:  # type: ignore[comparison-overlap]
             return df_res
-        df_res["cell_annotations"] = _get_categories_from_adata(
-            adata,
-            key,
-            filter_key_1,
-            annotation_key_1,
+        df_res[key_added] = _get_categories_from_adata(
+            adata=adata,
+            key=key,
+            key_value=filter_key_1,
+            annotation_key=annotation_key_1,
         )
-        transition_matrix = df_res.groupby("cell_annotations").sum()
+        transition_matrix = df_res.groupby(key_added).sum()
         return transition_matrix[transition_matrix.index.isin(annotations_to_keep)]

@@ -81,9 +81,11 @@ class BaseProblem(ABC):
         split_mass: bool = False,
     ) -> ArrayLike:
         def _split_mass(arr: ArrayLike) -> ArrayLike:
+            if arr.ndim == 2:
+                return arr
             non_zero_idxs = arr.nonzero()[0]
             data = np.zeros((len(arr), len(non_zero_idxs)))
-            data[non_zero_idxs, np.arange(len(non_zero_idxs))] = 1
+            data[non_zero_idxs, np.arange(len(non_zero_idxs))] = arr[non_zero_idxs]
             return data
 
         if data is None:
