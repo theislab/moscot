@@ -277,11 +277,16 @@ class BaseCompoundProblem(BaseProblem, ABC, Generic[K, B]):
         return_all: bool = False,
         **kwargs: Any,
     ) -> ApplyOutput_t[K]:
+        explicit_steps = kwargs.pop(
+            "explicit_steps", [[start, end]] if isinstance(self._policy, ExplicitPolicy) else None
+        )
         if TYPE_CHECKING:
             assert isinstance(self._policy, OrderedPolicy)
-
         (src, tgt), *rest = self._policy.plan(
-            forward=forward, start=start, end=end, explicit_steps=kwargs.pop("explicit_steps", None)
+            forward=forward,
+            start=start,
+            end=end,
+            explicit_steps=explicit_steps,
         )
         problem = self.problems[src, tgt]
         adata = problem.adata if forward else problem._adata_y

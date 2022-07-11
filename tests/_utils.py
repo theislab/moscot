@@ -34,6 +34,10 @@ class MockSolverOutput(MatrixSolverOutput):
     def converged(self) -> bool:
         return True
 
+    @property
+    def potentials(self) -> Tuple[Optional[ArrayLike], Optional[ArrayLike]]:
+        return None, None
+
     def _ones(self, n: int) -> ArrayLike:
         return np.ones(n)
 

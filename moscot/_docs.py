@@ -131,9 +131,23 @@ joint_attr
     `joint_attr` is a string the data is assumed to be found in :attr:`anndata.AnnData.obsm`.
     If `joint_attr` is a dictionary the dictionary is supposed to contain the attribute of
     :attr:`anndata.AnnData` as a key and the corresponding attribute as a value."""
+_split_mass = """\
+split_mass
+    If `True` the operation is applied to each cell individually."""
 _inplace = """\
 inplace
     Whether to modify :class:`anndata.AnnData` in place or return the result."""
+_online = """\
+online
+    If `True` the transport matrix is not materialised if it was solved in low-rank mode or with `batch_size` not `None`.
+    This reduces memory complexity but increases run time."""
+_aggregation_mode = """\
+aggregation_mode
+    If `aggregation_mode` is `group` the transition probabilities from the groups defined by `source_cells` are
+    returned. If `aggregation_mode` is `cell` the transition probablities for each cell are returned."""
+_forward_cell_transition = """\
+forward
+    If `True` computes transition from `source_cells` to `target_cells`."""
 
 # returns
 _alignment_mixin_returns = """\
@@ -198,6 +212,10 @@ d = DocstringProcessor(
     policy=_policy,
     key=_key,
     joint_attr=_joint_attr,
+    split_mass=_split_mass,
     inplace=_inplace,
     alignment_mixin_returns=_alignment_mixin_returns,
+    online=_online,
+    aggregation_mode=_aggregation_mode,
+    forward_cell_transition=_forward_cell_transition,
 )

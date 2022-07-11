@@ -1,12 +1,12 @@
 from abc import ABC, abstractmethod
-from typing import Any, Tuple, Callable, Iterable
+from typing import Any, Tuple, Callable, Iterable, Optional
 from functools import partial
 
 from scipy.sparse.linalg import LinearOperator
 
 from moscot._types import ArrayLike, DTypeLike  # type: ignore[attr-defined]
 
-__all__ = ["BaseSolverOutput", "MatrixSolverOutput", "HasPotentials"]
+__all__ = ["BaseSolverOutput", "MatrixSolverOutput"]
 
 
 class BaseSolverOutput(ABC):
@@ -32,6 +32,11 @@ class BaseSolverOutput(ABC):
     @property
     @abstractmethod
     def converged(self) -> bool:
+        pass
+
+    @property
+    @abstractmethod
+    def potentials(self) -> Tuple[Optional[ArrayLike], Optional[ArrayLike]]:
         pass
 
     @property
@@ -124,10 +129,3 @@ class MatrixSolverOutput(BaseSolverOutput, ABC):
     def shape(self) -> Tuple[int, int]:
         """%(shape)s"""  # noqa: D400
         return self.transport_matrix.shape  # type: ignore[return-value]
-
-
-class HasPotentials(ABC):
-    @property
-    @abstractmethod
-    def potentials(self) -> Tuple[ArrayLike, ArrayLike]:
-        pass

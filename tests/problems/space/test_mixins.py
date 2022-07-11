@@ -56,7 +56,9 @@ class TestSpatialAlignmentAnalysisMixin:
         assert sol.keys() == ap.solutions.keys()
         for k in sol:
             np.testing.assert_almost_equal(sol[k].cost, ap.solutions[k].cost, decimal=1)
-            np.testing.assert_almost_equal(sol[k].transport_matrix, ap.solutions[k].transport_matrix, decimal=3)
+            np.testing.assert_almost_equal(
+                np.array(sol[k].transport_matrix), np.array(ap.solutions[k].transport_matrix), decimal=3
+            )
 
 
 class TestSpatialMappingAnalysisMixin:
@@ -88,4 +90,6 @@ class TestSpatialMappingAnalysisMixin:
         assert sol.keys() == mp.solutions.keys()
         for k in sol:
             np.testing.assert_almost_equal(sol[k].cost, mp.solutions[k].cost, decimal=1)
-            np.testing.assert_almost_equal(sol[k].transport_matrix, mp.solutions[k].transport_matrix, decimal=3)
+            np.testing.assert_almost_equal(
+                np.array(sol[k].transport_matrix), np.array(mp.solutions[k].transport_matrix), decimal=3
+            )
