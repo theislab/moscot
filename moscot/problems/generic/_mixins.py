@@ -3,6 +3,7 @@ from typing import Any, Union, Mapping, Optional, Protocol, Sequence, TYPE_CHECK
 from typing_extensions import Literal
 import pandas as pd
 
+from moscot._types import Filter_t
 from moscot.problems.base import AnalysisMixin  # type: ignore[attr-defined]
 from moscot._constants._constants import AggregationMode
 from moscot.problems.base._mixins import AnalysisMixinProtocol
@@ -15,7 +16,7 @@ class GenericAnalysisMixinProtocol(AnalysisMixinProtocol[K, B], Protocol[K, B]):
     batch_key: Optional[str]
 
     def _cell_transition(  # TODO(@MUCDK) think about removing _cell_transition_non_online
-        self: AnalysisMixinProtocol[K, B],
+        self: "GenericAnalysisMixinProtocol[K, B]",
         source_key: K,
         target_key: K,
         key: Optional[str] = None,
@@ -39,7 +40,8 @@ class GenericAnalysisMixin(AnalysisMixin[K, B]):
         super().__init__(*args, **kwargs)
         self._batch_key: Optional[str] = None
 
-    self: AnalysisMixinProtocol[K, B],
+    def cell_transition(
+        self: GenericAnalysisMixinProtocol[K, B],
         source_key: K,
         target_key: K,
         key: Optional[str] = None,

@@ -46,7 +46,7 @@ class SpatialAlignmentMixinProtocol(AnalysisMixinProtocol[K, B]):
         ...
 
     def _cell_transition(  # TODO(@MUCDK) think about removing _cell_transition_non_online
-        self: AnalysisMixinProtocol[K, B],
+        self: "SpatialAlignmentMixinProtocol[K, B]",
         source_key: K,
         target_key: K,
         key: Optional[str] = None,
@@ -77,7 +77,7 @@ class SpatialMappingMixinProtocol(AnalysisMixinProtocol[K, B]):
         ...
 
     def _cell_transition(  # TODO(@MUCDK) think about removing _cell_transition_non_online
-        self: AnalysisMixinProtocol[K, B],
+        self: "SpatialMappingMixinProtocol[K, B]",
         source_key: K,
         target_key: K,
         key: Optional[str] = None,

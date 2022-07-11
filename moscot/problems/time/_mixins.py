@@ -11,7 +11,7 @@ import numpy as np
 from anndata import AnnData
 
 from moscot._docs import d
-from moscot._types import ArrayLike, Numeric_t
+from moscot._types import ArrayLike, Numeric_t, Filter_t
 from moscot._constants._constants import AggregationMode
 from moscot.problems.base._mixins import AnalysisMixin, AnalysisMixinProtocol
 from moscot.problems.base._compound_problem import B, K, ApplyOutput_t
@@ -32,7 +32,7 @@ class TemporalMixinProtocol(AnalysisMixinProtocol[K, B], Protocol[K, B]):
         ...
 
     def _cell_transition(  # TODO(@MUCDK) think about removing _cell_transition_non_online
-        self: AnalysisMixinProtocol[K, B],
+        self: "TemporalMixinProtocol[K, B]",
         source_key: K,
         target_key: K,
         key: Optional[str] = None,
@@ -183,8 +183,8 @@ class TemporalMixin(AnalysisMixin[K, B]):
             forward=forward,
             aggregation_mode=AggregationMode(aggregation_mode),  # type: ignore[arg-type]
             online=online,
-            batch_size: Optional[int] = None,
-            normalize: bool = True,
+            batch_size=batch_size,
+            normalize= normalize,
         )
 
     def push(
