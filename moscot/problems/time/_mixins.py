@@ -1,23 +1,22 @@
-from typing import Any, Dict, List, Tuple, Union, Literal, Mapping, Optional, Sequence, TYPE_CHECKING
+from typing import Any, Set, Dict, List, Tuple, Union, Literal, Mapping, Optional, Sequence, TYPE_CHECKING
+from pathlib import Path
 import itertools
 
 from sklearn.metrics import pairwise_distances
 from typing_extensions import Protocol
 import ot
 import pandas as pd
-from pathlib import Path
 
 import numpy as np
-import scanpy as sc
 
 from anndata import AnnData
+import scanpy as sc
 
 from moscot._docs import d
 from moscot._types import ArrayLike, Numeric_t
 from moscot._constants._constants import AggregationMode
 from moscot.problems.base._mixins import AnalysisMixin, AnalysisMixinProtocol
 from moscot.problems.base._compound_problem import B, K, ApplyOutput_t
-from moscot.problems._plotting import save_fig
 
 
 class TemporalMixinProtocol(AnalysisMixinProtocol[K, B], Protocol[K, B]):
@@ -99,6 +98,20 @@ class TemporalMixinProtocol(AnalysisMixinProtocol[K, B], Protocol[K, B]):
         growth_rates: Optional[ArrayLike] = None,
         seed: Optional[int] = None,
     ) -> ArrayLike:
+        ...
+
+    def _plot_temporal(
+        self: TemporalMixinProtocol[K, B],
+        data: Dict[K, ArrayLike],
+        start: K,
+        end: K,
+        plot_intermediate: bool = False,
+        basis: str = "umap",
+        result_key: Optional[str] = None,
+        fill_value: float = 0.0,
+        save: Optional[Union[str, Path]] = None,
+        **kwargs: Any,
+    ) -> None:
         ...
 
     @staticmethod
@@ -530,13 +543,17 @@ class TemporalMixin(AnalysisMixin[K, B]):
             )
         return np.mean(dist)
 
-    def plot_ancestors(self: TemporalMixinProtocol[K, B],
+    def plot_ancestors(
+        self: TemporalMixinProtocol[K, B],
         start: K,
         end: K,
         plot_intermediate: bool = False,
         basis: str = "umap",
-        result_key: Optional[str] = None, fill_value: float = 0.0, 
-        save: Optional[Union[str, Path]] = None, **kwargs: Any) -> None:
+        result_key: Optional[str] = None,
+        fill_value: float = 0.0,
+        save: Optional[Union[str, Path]] = None,
+        **kwargs: Any,
+    ) -> None:
         result = self._apply(
             start=start,
             end=end,
@@ -548,16 +565,28 @@ class TemporalMixin(AnalysisMixin[K, B]):
 
         if TYPE_CHECKING:
             assert isinstance(result, dict)
-        self._plot_temporal(data=result, start=start, end=end, plot_intermediate=plot_intermediate, basis=basis, result_key=result_key, save=save, **kwargs)
+        self._plot_temporal(
+            data=result,
+            start=start,
+            end=end,
+            plot_intermediate=plot_intermediate,
+            basis=basis,
+            result_key=result_key,
+            save=save,
+            **kwargs,
+        )
 
-    def plot_descendants(self: TemporalMixinProtocol[K, B], 
+    def plot_descendants(
+        self: TemporalMixinProtocol[K, B],
         start: K,
         end: K,
         plot_intermediate: bool = False,
         basis: str = "umap",
-        result_key: Optional[str] = None, 
-        fill_value: float = 0.0, 
-        save: Optional[Union[str, Path]] = None, **kwargs: Any) -> None:
+        result_key: Optional[str] = None,
+        fill_value: float = 0.0,
+        save: Optional[Union[str, Path]] = None,
+        **kwargs: Any,
+    ) -> None:
         result = self._apply(
             start=start,
             end=end,
@@ -569,19 +598,39 @@ class TemporalMixin(AnalysisMixin[K, B]):
 
         if TYPE_CHECKING:
             assert isinstance(result, dict)
-        self._plot_temporal(data=result, start=start, end=end, plot_intermediate=plot_intermediate, basis=basis, result_key=result_key, fill_value=fill_value, save=save, **kwargs)
+        self._plot_temporal(
+            data=result,
+            start=start,
+            end=end,
+            plot_intermediate=plot_intermediate,
+            basis=basis,
+            result_key=result_key,
+            fill_value=fill_value,
+            save=save,
+            **kwargs,
+        )
 
+    def _plot_temporal(
+        self: TemporalMixinProtocol[K, B],
+        data: Dict[K, ArrayLike],
+        start: K,
+        end: K,
+        plot_intermediate: bool = False,
+        basis: str = "umap",
+        result_key: Optional[str] = None,
+        fill_value: float = 0.0,
+        save: Optional[Union[str, Path]] = None,
+        **kwargs: Any,
+    ) -> None:
 
-    def _plot_temporal(self: TemporalMixinProtocol[K, B], data: Dict[K, ArrayLike], start: K, end: K, plot_intermediate: bool=False, basis: str = "umap", result_key: Optional[str] = None, fill_value: float = 0.0, save: Optional[Union[str, Path]] = None, **kwargs: Any) -> None:
-        
         if plot_intermediate:
-            fill_keys = []
+            fill_keys: Set = set()
         else:
             fill_keys = set(data.keys()) - set(start, end)
         data = self._flatten(data, key=self.temporal_key, fill_keys=fill_keys, fill_value=fill_value)
         if result_key is not None:
             self.adata.obs[result_key] = data
-        
+
         sc.pl.scatter(self.adata, color=data, basis=basis, save=save, **kwargs)
 
     # TODO(@MUCDK) possibly offer two alternatives, once exact EMD with POT backend and once approximate,
