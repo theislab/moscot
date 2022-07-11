@@ -31,17 +31,20 @@ class TemporalMixinProtocol(AnalysisMixinProtocol[K, B], Protocol[K, B]):
     def pull(self, *args: Any, **kwargs: Any) -> Optional[ApplyOutput_t[K]]:  # noqa: D102
         ...
 
-    def _cell_transition(
-        self: "TemporalMixinProtocol[K, B]",
-        key: str,
+    def _cell_transition(  # TODO(@MUCDK) think about removing _cell_transition_non_online
+        self: AnalysisMixinProtocol[K, B],
         source_key: K,
         target_key: K,
-        source_cells: Union[str, Mapping[str, Sequence[Any]]],
-        target_cells: Union[str, Mapping[str, Sequence[Any]]],
-        forward: bool = False,
+        key: Optional[str] = None,
+        source_cells: Filter_t = None,
+        target_cells: Filter_t = None,
+        forward: bool = False,  # return value will be row-stochastic if forward=True, else column-stochastic
         aggregation_mode: Literal["annotation", "cell"] = AggregationMode.ANNOTATION,  # type: ignore[assignment]
         online: bool = False,
         other_key: Optional[str] = None,
+        other_adata: Optional[str] = None,
+        batch_size: Optional[int] = None,
+        normalize: bool = True,
     ) -> pd.DataFrame:
         ...
 
@@ -127,6 +130,8 @@ class TemporalMixin(AnalysisMixin[K, B]):
         forward: bool = False,  # return value will be row-stochastic if forward=True, else column-stochastic
         aggregation_mode: Literal["annotation", "cell"] = AggregationMode.ANNOTATION,  # type: ignore[assignment]
         online: bool = False,
+        batch_size: Optional[int] = None,
+        normalize: bool = True,
     ) -> pd.DataFrame:
         """
         Compute a grouped cell transition matrix.
@@ -170,15 +175,16 @@ class TemporalMixin(AnalysisMixin[K, B]):
         if TYPE_CHECKING:
             assert isinstance(self.temporal_key, str)
         return self._cell_transition(
-            key=self.temporal_key,
             source_key=start,
             target_key=end,
+            key=self.temporal_key,
             source_cells=early_cells,
             target_cells=late_cells,
             forward=forward,
             aggregation_mode=AggregationMode(aggregation_mode),  # type: ignore[arg-type]
             online=online,
-            other_key=None,
+            batch_size: Optional[int] = None,
+            normalize: bool = True,
         )
 
     def push(

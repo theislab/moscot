@@ -14,17 +14,20 @@ class GenericAnalysisMixinProtocol(AnalysisMixinProtocol[K, B], Protocol[K, B]):
 
     batch_key: Optional[str]
 
-    def _cell_transition(
-        self: "GenericAnalysisMixinProtocol[K, B]",
-        key: str,
+    def _cell_transition(  # TODO(@MUCDK) think about removing _cell_transition_non_online
+        self: AnalysisMixinProtocol[K, B],
         source_key: K,
         target_key: K,
-        source_cells: Union[str, Mapping[str, Sequence[Any]]],
-        target_cells: Union[str, Mapping[str, Sequence[Any]]],
-        forward: bool = False,
+        key: Optional[str] = None,
+        source_cells: Filter_t = None,
+        target_cells: Filter_t = None,
+        forward: bool = False,  # return value will be row-stochastic if forward=True, else column-stochastic
         aggregation_mode: Literal["annotation", "cell"] = AggregationMode.ANNOTATION,  # type: ignore[assignment]
         online: bool = False,
         other_key: Optional[str] = None,
+        other_adata: Optional[str] = None,
+        batch_size: Optional[int] = None,
+        normalize: bool = True,
     ) -> pd.DataFrame:
         ...
 
@@ -36,15 +39,19 @@ class GenericAnalysisMixin(AnalysisMixin[K, B]):
         super().__init__(*args, **kwargs)
         self._batch_key: Optional[str] = None
 
-    def cell_transition(
-        self: GenericAnalysisMixinProtocol[K, B],
+    self: AnalysisMixinProtocol[K, B],
         source_key: K,
         target_key: K,
-        source_cells: Union[str, Mapping[str, Sequence[Any]]],
-        target_cells: Union[str, Mapping[str, Sequence[Any]]],
+        key: Optional[str] = None,
+        source_cells: Filter_t = None,
+        target_cells: Filter_t = None,
         forward: bool = False,  # return value will be row-stochastic if forward=True, else column-stochastic
         aggregation_mode: Literal["annotation", "cell"] = AggregationMode.ANNOTATION,  # type: ignore[assignment]
         online: bool = False,
+        other_key: Optional[str] = None,
+        other_adata: Optional[str] = None,
+        batch_size: Optional[int] = None,
+        normalize: bool = True,
     ) -> pd.DataFrame:
         """
         Compute a grouped cell transition matrix.

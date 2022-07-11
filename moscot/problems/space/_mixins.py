@@ -45,11 +45,11 @@ class SpatialAlignmentMixinProtocol(AnalysisMixinProtocol[K, B]):
     def _warp(tmap: LinearOperator, _: ArrayLike, src: ArrayLike) -> Tuple[ArrayLike, None]:
         ...
 
-    def _cell_transition(
+    def _cell_transition(  # TODO(@MUCDK) think about removing _cell_transition_non_online
         self: AnalysisMixinProtocol[K, B],
+        source_key: K,
+        target_key: K,
         key: Optional[str] = None,
-        source_key: Optional[K] = None,
-        target_key: Optional[K] = None,
         source_cells: Filter_t = None,
         target_cells: Filter_t = None,
         forward: bool = False,  # return value will be row-stochastic if forward=True, else column-stochastic
@@ -57,6 +57,8 @@ class SpatialAlignmentMixinProtocol(AnalysisMixinProtocol[K, B]):
         online: bool = False,
         other_key: Optional[str] = None,
         other_adata: Optional[str] = None,
+        batch_size: Optional[int] = None,
+        normalize: bool = True,
     ) -> pd.DataFrame:
         ...
 
@@ -74,18 +76,20 @@ class SpatialMappingMixinProtocol(AnalysisMixinProtocol[K, B]):
     ) -> Optional[List[str]]:
         ...
 
-    def _cell_transition(
+    def _cell_transition(  # TODO(@MUCDK) think about removing _cell_transition_non_online
         self: AnalysisMixinProtocol[K, B],
-        key: Optional[str],
-        source_key: Optional[K],
-        target_key: Optional[K],
-        source_cells: Filter_t,
-        target_cells: Filter_t,
+        source_key: K,
+        target_key: K,
+        key: Optional[str] = None,
+        source_cells: Filter_t = None,
+        target_cells: Filter_t = None,
         forward: bool = False,  # return value will be row-stochastic if forward=True, else column-stochastic
         aggregation_mode: Literal["annotation", "cell"] = AggregationMode.ANNOTATION,  # type: ignore[assignment]
         online: bool = False,
         other_key: Optional[str] = None,
-        other_adata: Optional[AnnData] = None,
+        other_adata: Optional[str] = None,
+        batch_size: Optional[int] = None,
+        normalize: bool = True,
     ) -> pd.DataFrame:
         ...
 
@@ -201,6 +205,8 @@ class SpatialAlignmentMixin(AnalysisMixin[K, B]):
         forward: bool = False,  # return value will be row-stochastic if forward=True, else column-stochastic
         aggregation_mode: Literal["annotation", "cell"] = AggregationMode.ANNOTATION,  # type: ignore[assignment]
         online: bool = False,
+        batch_size: Optional[int] = None,
+        normalize: bool = True,
     ) -> pd.DataFrame:
         """Partly copy from other cell_transitions."""
         if TYPE_CHECKING:
@@ -215,6 +221,8 @@ class SpatialAlignmentMixin(AnalysisMixin[K, B]):
             aggregation_mode=AggregationMode(aggregation_mode),  # type: ignore[arg-type]
             online=online,
             other_key=self.batch_key,
+            batch_size=batch_size,
+            normalize=normalize,
         )
 
     @property
@@ -353,13 +361,15 @@ class SpatialMappingMixin(AnalysisMixin[K, B]):
         forward: bool = False,  # return value will be row-stochastic if forward=True, else column-stochastic
         aggregation_mode: Literal["annotation", "cell"] = AggregationMode.ANNOTATION,  # type: ignore[assignment]
         online: bool = False,
+        batch_size: Optional[int] = None,
+        normalize: bool = True,
     ) -> pd.DataFrame:
         if TYPE_CHECKING:
             assert self.batch_key is not None
         return self._cell_transition(
-            key=self.batch_key,
             source_key=None,
             target_key=batch,
+            key=self.batch_key,
             source_cells=sc_cells,
             target_cells=spatial_cells,
             forward=forward,
@@ -367,6 +377,8 @@ class SpatialMappingMixin(AnalysisMixin[K, B]):
             online=online,
             other_key=None,
             other_adata=self.adata_sc,
+            batch_size=batch_size,
+            normalize=normalize,
         )
 
     @property

@@ -517,8 +517,8 @@ class AnalysisMixin(Generic[K, B]):
 
     def _annotation_aggregation_transition(
         self: AnalysisMixinProtocol[K, B],
-        source_key: str,
-        target_key: str,
+        source_key: K,
+        target_key: K,
         annotation_key: str,
         annotations_1: Iterable[Any],
         annotations_2: Iterable[Any],
