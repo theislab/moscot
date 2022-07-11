@@ -14,7 +14,7 @@ import numpy as np
 from anndata import AnnData
 
 from moscot._docs import d
-from moscot._types import Filter_t, ArrayLike
+from moscot._types import ArrayLike
 from moscot.problems.base import AnalysisMixin  # type: ignore[attr-defined]
 from moscot._constants._constants import CorrMethod, AlignmentMode, AggregationMode
 from moscot.problems.base._mixins import AnalysisMixinProtocol
@@ -46,19 +46,10 @@ class SpatialAlignmentMixinProtocol(AnalysisMixinProtocol[K, B]):
         ...
 
     def _cell_transition(  # TODO(@MUCDK) think about removing _cell_transition_non_online
-        self: "SpatialAlignmentMixinProtocol[K, B]",
-        source_key: K,
-        target_key: K,
-        key: Optional[str] = None,
-        source_cells: Filter_t = None,
-        target_cells: Filter_t = None,
-        forward: bool = False,  # return value will be row-stochastic if forward=True, else column-stochastic
-        aggregation_mode: Literal["annotation", "cell"] = AggregationMode.ANNOTATION,  # type: ignore[assignment]
-        online: bool = False,
-        other_key: Optional[str] = None,
-        other_adata: Optional[str] = None,
-        batch_size: Optional[int] = None,
-        normalize: bool = True,
+        self: AnalysisMixinProtocol[K, B],
+        online: bool,
+        *args: Any,
+        **kwargs: Any,
     ) -> pd.DataFrame:
         ...
 
@@ -77,19 +68,10 @@ class SpatialMappingMixinProtocol(AnalysisMixinProtocol[K, B]):
         ...
 
     def _cell_transition(  # TODO(@MUCDK) think about removing _cell_transition_non_online
-        self: "SpatialMappingMixinProtocol[K, B]",
-        source_key: K,
-        target_key: K,
-        key: Optional[str] = None,
-        source_cells: Filter_t = None,
-        target_cells: Filter_t = None,
-        forward: bool = False,  # return value will be row-stochastic if forward=True, else column-stochastic
-        aggregation_mode: Literal["annotation", "cell"] = AggregationMode.ANNOTATION,  # type: ignore[assignment]
-        online: bool = False,
-        other_key: Optional[str] = None,
-        other_adata: Optional[str] = None,
-        batch_size: Optional[int] = None,
-        normalize: bool = True,
+        self: AnalysisMixinProtocol[K, B],
+        online: bool,
+        *args: Any,
+        **kwargs: Any,
     ) -> pd.DataFrame:
         ...
 
@@ -218,7 +200,7 @@ class SpatialAlignmentMixin(AnalysisMixin[K, B]):
             source_cells=slice_cells,
             target_cells=reference_cells,
             forward=forward,
-            aggregation_mode=AggregationMode(aggregation_mode),  # type: ignore[arg-type]
+            aggregation_mode=AggregationMode(aggregation_mode),
             online=online,
             other_key=self.batch_key,
             batch_size=batch_size,
@@ -315,10 +297,9 @@ class SpatialMappingMixin(AnalysisMixin[K, B]):
         if var_sc is None or not len(var_sc):
             raise ValueError("No overlapping `var_names` between ` adata_sc` and `adata_sp`.")
         corr_method = CorrMethod(corr_method)  # type: ignore[assignment]
-        cor = pearsonr if corr_method == CorrMethod.PEARSON else spearmanr  # type: ignore[comparison-overlap]
-        if corr_method == CorrMethod.PEARSON:
+        if corr_method == CorrMethod.PEARSON:  # type: ignore[comparison-overlap]
             cor = pearsonr
-        elif corr_method == CorrMethod.SPEARMAN:
+        elif corr_method == CorrMethod.SPEARMAN:  # type: ignore[comparison-overlap]
             cor = spearmanr
         else:
             raise NotImplementedError("TODO: `corr_method` must be `pearson` or `spearman`.")
@@ -379,7 +360,7 @@ class SpatialMappingMixin(AnalysisMixin[K, B]):
             source_cells=sc_cells,
             target_cells=spatial_cells,
             forward=forward,
-            aggregation_mode=AggregationMode(aggregation_mode),  # type: ignore[arg-type]
+            aggregation_mode=AggregationMode(aggregation_mode),
             online=online,
             other_key=None,
             other_adata=self.adata_sc,

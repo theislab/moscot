@@ -1,4 +1,4 @@
-from typing import Any, Union, Mapping, Optional, Protocol, Sequence, TYPE_CHECKING
+from typing import Any, Optional, Protocol, TYPE_CHECKING
 
 from typing_extensions import Literal
 import pandas as pd
@@ -16,19 +16,10 @@ class GenericAnalysisMixinProtocol(AnalysisMixinProtocol[K, B], Protocol[K, B]):
     batch_key: Optional[str]
 
     def _cell_transition(  # TODO(@MUCDK) think about removing _cell_transition_non_online
-        self: "GenericAnalysisMixinProtocol[K, B]",
-        source_key: K,
-        target_key: K,
-        key: Optional[str] = None,
-        source_cells: Filter_t = None,
-        target_cells: Filter_t = None,
-        forward: bool = False,  # return value will be row-stochastic if forward=True, else column-stochastic
-        aggregation_mode: Literal["annotation", "cell"] = AggregationMode.ANNOTATION,  # type: ignore[assignment]
-        online: bool = False,
-        other_key: Optional[str] = None,
-        other_adata: Optional[str] = None,
-        batch_size: Optional[int] = None,
-        normalize: bool = True,
+        self: AnalysisMixinProtocol[K, B],
+        online: bool,
+        *args: Any,
+        **kwargs: Any,
     ) -> pd.DataFrame:
         ...
 
@@ -100,7 +91,7 @@ class GenericAnalysisMixin(AnalysisMixin[K, B]):
             source_cells=source_cells,
             target_cells=target_cells,
             forward=forward,
-            aggregation_mode=AggregationMode(aggregation_mode),  # type: ignore[arg-type]
+            aggregation_mode=AggregationMode(aggregation_mode),
             online=online,
             other_key=None,
         )

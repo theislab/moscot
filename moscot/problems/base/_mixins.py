@@ -131,54 +131,14 @@ class AnalysisMixin(Generic[K, B]):
 
     def _cell_transition(  # TODO(@MUCDK) think about removing _cell_transition_non_online
         self: AnalysisMixinProtocol[K, B],
-        source_key: K,
-        target_key: K,
-        key: Optional[str] = None,
-        source_cells: Filter_t = None,
-        target_cells: Filter_t = None,
-        forward: bool = False,  # return value will be row-stochastic if forward=True, else column-stochastic
-        aggregation_mode: Literal["annotation", "cell"] = AggregationMode.ANNOTATION,  # type: ignore[assignment]
-        online: bool = False,
-        other_key: Optional[str] = None,
-        other_adata: Optional[str] = None,
-        batch_size: Optional[int] = None,
-        normalize: bool = True,
+        online: bool,
+        *args: Any,
+        **kwargs: Any,
     ) -> pd.DataFrame:
-        _check_argument_compatibility_cell_transition(
-            key=key,
-            other_key=other_key,
-            other_adata=other_adata,
-            source_cells=source_cells,
-            target_cells=target_cells,
-            aggregation_mode=aggregation_mode,
-            forward=forward,
-        )
+        _check_argument_compatibility_cell_transition(*args, **kwargs)
         if online:
-            return self._cell_transition_online(
-                source_key=source_key,
-                target_key=target_key,
-                key=key,
-                source_cells=source_cells,
-                target_cells=target_cells,
-                forward=forward,
-                aggregation_mode=aggregation_mode,
-                other_key=other_key,
-                other_adata=other_adata,
-                batch_size=batch_size,
-                normalize=normalize,
-            )
-        return self._cell_transition_not_online(
-            source_key=source_key,
-            target_key=target_key,
-            key=key,
-            source_cells=source_cells,
-            target_cells=target_cells,
-            forward=forward,
-            aggregation_mode=aggregation_mode,
-            other_key=other_key,
-            other_adata=other_adata,
-            normalize=normalize,
-        )
+            return self._cell_transition_online(*args, **kwargs)
+        return self._cell_transition_not_online(*args, **kwargs)
 
     def _cell_transition_not_online(
         self: AnalysisMixinProtocol[K, B],
@@ -192,6 +152,7 @@ class AnalysisMixin(Generic[K, B]):
         other_key: Optional[str] = None,
         other_adata: Optional[AnnData] = None,
         normalize: bool = True,
+        **_: Any,
     ) -> pd.DataFrame:
 
         source_annotation_key, source_annotations = _validate_args_cell_transition(self.adata, source_cells)
@@ -279,6 +240,7 @@ class AnalysisMixin(Generic[K, B]):
         other_adata: Optional[str] = None,
         batch_size: Optional[int] = None,
         normalize: bool = True,
+        **_: Any,
     ) -> pd.DataFrame:
         aggregation_mode = AggregationMode(aggregation_mode)  # type: ignore[assignment]
         source_annotation_key, source_annotations = _validate_args_cell_transition(self.adata, source_cells)
@@ -453,7 +415,7 @@ class AnalysisMixin(Generic[K, B]):
 
     def _interpolate_transport(
         self: AnalysisMixinProtocol[K, B],
-        # TODO(@giovp): rename this to 'explicit_steps', pass to policy.plan() and reintroduce (source_key, target_key) args
+        # TODO(@giovp): rename this to 'explicit_steps', pass to policy.plan() and reintroduce (source_key, target_key)
         path: Sequence[Tuple[K, K]],
         forward: bool = True,
         scale_by_marginals: bool = True,

@@ -11,7 +11,7 @@ import numpy as np
 from anndata import AnnData
 
 from moscot._docs import d
-from moscot._types import ArrayLike, Numeric_t, Filter_t
+from moscot._types import ArrayLike, Numeric_t
 from moscot._constants._constants import AggregationMode
 from moscot.problems.base._mixins import AnalysisMixin, AnalysisMixinProtocol
 from moscot.problems.base._compound_problem import B, K, ApplyOutput_t
@@ -32,19 +32,10 @@ class TemporalMixinProtocol(AnalysisMixinProtocol[K, B], Protocol[K, B]):
         ...
 
     def _cell_transition(  # TODO(@MUCDK) think about removing _cell_transition_non_online
-        self: "TemporalMixinProtocol[K, B]",
-        source_key: K,
-        target_key: K,
-        key: Optional[str] = None,
-        source_cells: Filter_t = None,
-        target_cells: Filter_t = None,
-        forward: bool = False,  # return value will be row-stochastic if forward=True, else column-stochastic
-        aggregation_mode: Literal["annotation", "cell"] = AggregationMode.ANNOTATION,  # type: ignore[assignment]
-        online: bool = False,
-        other_key: Optional[str] = None,
-        other_adata: Optional[str] = None,
-        batch_size: Optional[int] = None,
-        normalize: bool = True,
+        self: AnalysisMixinProtocol[K, B],
+        online: bool,
+        *args: Any,
+        **kwargs: Any,
     ) -> pd.DataFrame:
         ...
 
@@ -181,10 +172,10 @@ class TemporalMixin(AnalysisMixin[K, B]):
             source_cells=early_cells,
             target_cells=late_cells,
             forward=forward,
-            aggregation_mode=AggregationMode(aggregation_mode),  # type: ignore[arg-type]
+            aggregation_mode=AggregationMode(aggregation_mode),
             online=online,
             batch_size=batch_size,
-            normalize= normalize,
+            normalize=normalize,
         )
 
     def push(
