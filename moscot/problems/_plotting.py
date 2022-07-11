@@ -109,14 +109,12 @@ def check_data_matches_labels(labels, data, side):
                 msg = "Labels: " + ",".join(labels) + "\n"
             if len(data) < 20:
                 msg += "Data: " + ",".join(data)
-            raise LabelMismatch('{0} labels and data do not match.{1}'.format(side, msg))
+            raise LabelMismatch("{0} labels and data do not match.{1}".format(side, msg))
 
 
-def sankey(transition_matrices: List[pd.DataFrame], titles: Optional[List[str]] = None, colorDict = Optional[Union[Dict, ListedColormap]]):
-
-
-    titles = ["t0,t1", "t1, t2"]
-
+def sankey(transition_matrices: List[pd.DataFrame], captions: Optional[List[str]] = None, colorDict = Optional[Union[Dict, ListedColormap]]):
+    if captions is not None and len(captions) != len(transition_matrices):
+        raise ValueError("TODO: If `captions` are specified length has to be same as of `transition_matrices`.")
     if colorDict is None:
         #TODO: adapt for unique categories
         set_palette(
@@ -133,7 +131,7 @@ def sankey(transition_matrices: List[pd.DataFrame], titles: Optional[List[str]] 
         missing = [label for label in allLabels if label not in colorDict.keys()]
         if missing:
             msg = "The colorDict parameter is missing values for the following labels : "
-            msg += '{}'.format(', '.join(missing))
+            msg += "{}".format(", ".join(missing))
             raise ValueError(msg)
 
     left_pos = [0]
@@ -147,68 +145,68 @@ def sankey(transition_matrices: List[pd.DataFrame], titles: Optional[List[str]] 
         leftWidths = defaultdict()
         for i, leftLabel in enumerate(leftLabels):
             myD = {}
-            myD['left'] = dataFrame.loc[leftLabel,:].sum()
+            myD["left"] = dataFrame.loc[leftLabel,:].sum()
             if i == 0:
-                myD['bottom'] = 0
-                myD['top'] = myD['left']
+                myD["bottom"] = 0
+                myD["top"] = myD["left"]
             else:
-                myD['bottom'] = leftWidths[leftLabels[i - 1]]['top'] + 0.02 * dataFrame.sum().sum()
-                myD['top'] = myD['bottom'] + myD['left']
-                topEdge = myD['top']
+                myD["bottom"] = leftWidths[leftLabels[i - 1]]["top"] + 0.02 * dataFrame.sum().sum()
+                myD["top"] = myD["bottom"] + myD["left"]
+                topEdge = myD["top"]
             leftWidths[leftLabel] = myD
 
         # Determine positions of right label patches and total widths
         rightWidths = defaultdict()
         for i, rightLabel in enumerate(rightLabels):
             myD = {}
-            myD['right'] = dataFrame.loc[:, rightLabel].sum()
+            myD["right"] = dataFrame.loc[:, rightLabel].sum()
             if i == 0:
-                myD['bottom'] = 0
-                myD['top'] = myD['right']
+                myD["bottom"] = 0
+                myD["top"] = myD["right"]
             else:
-                myD['bottom'] = rightWidths[rightLabels[i - 1]]['top'] + 0.02 * dataFrame.sum().sum()
-                myD['top'] = myD['bottom'] + myD['right']
-                topEdge = myD['top']
+                myD["bottom"] = rightWidths[rightLabels[i - 1]]["top"] + 0.02 * dataFrame.sum().sum()
+                myD["top"] = myD["bottom"] + myD["right"]
+                topEdge = myD["top"]
             rightWidths[rightLabel] = myD
 
         # Total vertical extent of diagram
         xMax = topEdge / aspect
 
-        # Draw vertical bars on left and right of each  label's section & print label
+        # Draw vertical bars on left and right of each label"s section & print label
         for leftLabel in leftLabels:
             if ind==0:
                 plt.fill_between(
                     [-0.02 * xMax, 0],
-                    2 * [leftWidths[leftLabel]['bottom']],
-                    2 * [leftWidths[leftLabel]['bottom'] + leftWidths[leftLabel]['left']],
+                    2 * [leftWidths[leftLabel]["bottom"]],
+                    2 * [leftWidths[leftLabel]["bottom"] + leftWidths[leftLabel]["left"]],
                     color=colorDict[leftLabel],
                     alpha=0.99
                 )
                 plt.text(
                     -0.05 * xMax,
-                    leftWidths[leftLabel]['bottom'] + 0.5 * leftWidths[leftLabel]['left'],
+                    leftWidths[leftLabel]["bottom"] + 0.5 * leftWidths[leftLabel]["left"],
                     leftLabel,
-                    {'ha': 'right', 'va': 'center'},
+                    {"ha": "right", "va": "center"},
                     fontsize=fontsize
                 )
         for rightLabel in rightLabels:
             plt.fill_between(
-                [xMax+ left_pos[ind] , 1.02 * xMax+ left_pos[ind] ], 2 * [rightWidths[rightLabel]['bottom']],
-                2 * [rightWidths[rightLabel]['bottom'] + rightWidths[rightLabel]['right']],
+                [xMax+ left_pos[ind] , 1.02 * xMax+ left_pos[ind] ], 2 * [rightWidths[rightLabel]["bottom"]],
+                2 * [rightWidths[rightLabel]["bottom"] + rightWidths[rightLabel]["right"]],
                 color=colorDict[rightLabel],
                 alpha=0.99
             )
             plt.text(
                 1.05 * xMax + left_pos[ind],
-                rightWidths[rightLabel]['bottom'] + 0.5 * rightWidths[rightLabel]['right'],
+                rightWidths[rightLabel]["bottom"] + 0.5 * rightWidths[rightLabel]["right"],
                 rightLabel,
-                {'ha': 'left', 'va': 'center'},
+                {"ha": "left", "va": "center"},
                 fontsize=fontsize
             )
-        print(leftWidths)
         y_max = np.min([leftWidths[cat]["bottom"] for cat in leftWidths.keys()])
 
-        plt.text(left_pos[ind]+ 0.3*xMax, -1, titles[ind])
+        if captions is not None:
+            plt.text(left_pos[ind]+ 0.3*xMax, -1, captions[ind])
             
         left_pos += [1.5*xMax]
 
@@ -224,16 +222,16 @@ def sankey(transition_matrices: List[pd.DataFrame], titles: Optional[List[str]] 
                 if dataFrame.loc[leftLabel, rightLabel] > 0:
                     # Create array of y values for each strip, half at left value,
                     # half at right, convolve
-                    ys_d = np.array(50 * [leftWidths[leftLabel]['bottom']] + 50 * [rightWidths[rightLabel]['bottom']])
-                    ys_d = np.convolve(ys_d, 0.05 * np.ones(20), mode='valid')
-                    ys_d = np.convolve(ys_d, 0.05 * np.ones(20), mode='valid')
-                    ys_u = np.array(50 * [leftWidths[leftLabel]['bottom'] + dataFrame.loc[leftLabel, rightLabel]] + 50 * [rightWidths[rightLabel]['bottom'] + dataFrame.loc[leftLabel, rightLabel]])
-                    ys_u = np.convolve(ys_u, 0.05 * np.ones(20), mode='valid')
-                    ys_u = np.convolve(ys_u, 0.05 * np.ones(20), mode='valid')
+                    ys_d = np.array(50 * [leftWidths[leftLabel]["bottom"]] + 50 * [rightWidths[rightLabel]["bottom"]])
+                    ys_d = np.convolve(ys_d, 0.05 * np.ones(20), mode="valid")
+                    ys_d = np.convolve(ys_d, 0.05 * np.ones(20), mode="valid")
+                    ys_u = np.array(50 * [leftWidths[leftLabel]["bottom"] + dataFrame.loc[leftLabel, rightLabel]] + 50 * [rightWidths[rightLabel]["bottom"] + dataFrame.loc[leftLabel, rightLabel]])
+                    ys_u = np.convolve(ys_u, 0.05 * np.ones(20), mode="valid")
+                    ys_u = np.convolve(ys_u, 0.05 * np.ones(20), mode="valid")
 
                     # Update bottom edges at each label so next strip starts at the right place
-                    leftWidths[leftLabel]['bottom'] += dataFrame.loc[leftLabel, rightLabel]
-                    rightWidths[rightLabel]['bottom'] += dataFrame.loc[leftLabel, rightLabel]
+                    leftWidths[leftLabel]["bottom"] += dataFrame.loc[leftLabel, rightLabel]
+                    rightWidths[rightLabel]["bottom"] += dataFrame.loc[leftLabel, rightLabel]
 
                     if ind==0:
                         plt.fill_between(
@@ -246,6 +244,6 @@ def sankey(transition_matrices: List[pd.DataFrame], titles: Optional[List[str]] 
                         color=colorDict[labelColor]
                     )
         
-        plt.gca().axis('off')
+        plt.gca().axis("off")
         plt.gcf().set_size_inches(6, 6)
         plt.title("Transition")
