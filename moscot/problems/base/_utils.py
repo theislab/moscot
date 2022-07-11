@@ -71,6 +71,7 @@ def _check_argument_compatibility_cell_transition(
     target_cells: Filter_t = None,
     aggregation_mode: Literal["annotation", "cell"] = AggregationMode.ANNOTATION,  # type: ignore[assignment]
     forward: bool = False,
+    **_: Any,
 ) -> None:
     if key is None and other_adata is None:
         raise ValueError("TODO: distributions cannot be inferred from `adata` due to missing obs keys.")
