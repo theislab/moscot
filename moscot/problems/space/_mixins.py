@@ -316,6 +316,12 @@ class SpatialMappingMixin(AnalysisMixin[K, B]):
             raise ValueError("No overlapping `var_names` between ` adata_sc` and `adata_sp`.")
         corr_method = CorrMethod(corr_method)  # type: ignore[assignment]
         cor = pearsonr if corr_method == CorrMethod.PEARSON else spearmanr  # type: ignore[comparison-overlap]
+        if corr_method == CorrMethod.PEARSON:
+            cor = pearsonr
+        elif corr_method == CorrMethod.SPEARMAN:
+            cor = spearmanr
+        else:
+            raise NotImplementedError("TODO: `corr_method` must be `pearson` or `spearman`.")
         corr_dic = {}
         gexp_sc = self.adata_sc[:, var_sc].X if not issparse(self.adata_sc.X) else self.adata_sc[:, var_sc].X.A
         for key, val in self.solutions.items():
