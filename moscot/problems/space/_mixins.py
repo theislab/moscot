@@ -202,7 +202,8 @@ class SpatialAlignmentMixin(AnalysisMixin[K, B]):
             forward=forward,
             aggregation_mode=AggregationMode(aggregation_mode),
             online=online,
-            other_key=self.batch_key,
+            other_key=None,
+            other_adata=None,
             batch_size=batch_size,
             normalize=normalize,
         )
@@ -354,9 +355,9 @@ class SpatialMappingMixin(AnalysisMixin[K, B]):
         if TYPE_CHECKING:
             assert self.batch_key is not None
         return self._cell_transition(
+            key=self.batch_key,
             source_key=None,
             target_key=batch,
-            key=self.batch_key,
             source_annotation=sc_cells,  # change it to source_groups
             target_annotation=spatial_cells,  # change it to target_groups
             forward=forward,

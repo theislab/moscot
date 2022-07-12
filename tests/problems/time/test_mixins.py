@@ -63,7 +63,7 @@ class TestTemporalMixin:
         early_annotation = ["Stromal", "unknown"]
         late_annotation = ["Stromal", "Epithelial"]
         result = problem.cell_transition(
-            key_1, key_2, {"cell_type": early_annotation}, {"cell_type": late_cells}, forward=forward, online=online
+            key_1, key_2, {"cell_type": early_annotation}, {"cell_type": late_annotation}, forward=forward, online=online
         )
         assert isinstance(result, pd.DataFrame)
         assert result.shape == (len(early_annotation), len(late_annotation))
@@ -89,7 +89,7 @@ class TestTemporalMixin:
         problem[key_1, key_2]._solution = MockSolverOutput(gt_temporal_adata.uns["tmap_10_105"])
         problem[key_2, key_3]._solution = MockSolverOutput(gt_temporal_adata.uns["tmap_105_11"])
         result = problem.cell_transition(
-            10, 10.5, early_annotation="cell_type", late_cells="cell_type", forward=forward, online=online
+            10, 10.5, early_annotation="cell_type", late_annotation="cell_type", forward=forward, online=online
         )
         cell_types_present_key_1 = (
             gt_temporal_adata[gt_temporal_adata.obs[key] == key_1].obs["cell_type"].cat.categories
@@ -293,7 +293,7 @@ class TestTemporalMixin:
         problem[0, 1]._solution = MockSolverOutput(adata_time_with_tmap.uns["transport_matrix"])
 
         result = problem.cell_transition(
-            0, 1, early_annotation="cell_type", late_cells="cell_type", forward=True, online=online
+            0, 1, early_annotation="cell_type", late_annotation="cell_type", forward=True, online=online
         )
         res = result.sort_index().sort_index(1)
         df_expected = adata_time_with_tmap.uns["cell_transition_gt"].sort_index().sort_index(1)

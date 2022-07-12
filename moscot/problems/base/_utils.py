@@ -99,7 +99,7 @@ def _validate_args_cell_transition(
     arg: Filter_t = None,
 ) -> Tuple[Optional[str], Optional[Iterable[Any]]]:
     if arg is None:
-        return None, None
+        return (None, None)
     if isinstance(arg, str):
         if arg not in adata.obs:
             raise KeyError(f"TODO. {arg} not in adata.obs.columns")
@@ -111,6 +111,7 @@ def _validate_args_cell_transition(
         if not set(val).issubset(adata.obs[key].cat.categories):
             raise ValueError(f"Not all values {val} could be found in `adata.obs[{key}]`.")
         return key, val
+    raise TypeError("TODO: `arg` must be of type `str` or `dict`")
 
 
 def _get_cell_indices(

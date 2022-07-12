@@ -144,14 +144,14 @@ class TemporalMixin(AnalysisMixin[K, B]):
                 - if `early_annotation` is of :class:`dict`, `key` should correspond to a key in
                   :attr:`anndata.AnnData.obs` and its `value` to a subset of categories present in
                   :attr:`anndata.AnnData.obs` ``['{early_annotation.keys()[0]}']``
-        late_cells
+        late_annotation
             Can be one of the following
-                - if `late_cells` is of type :class:`str` this should correspond to a key in
+                - if `late_annotation` is of type :class:`str` this should correspond to a key in
                   :attr:`anndata.AnnData.obs`. In this case, the categories in the transition matrix correspond to the
-                  unique values in :attr:`anndata.AnnData.obs` ``['{late_cells}']``
-                - if `late_cells` is of :class:`dict`, its `key` should correspond to a key in
+                  unique values in :attr:`anndata.AnnData.obs` ``['{late_annotation}']``
+                - if `late_annotation` is of :class:`dict`, its `key` should correspond to a key in
                   :attr:`anndata.AnnData.obs` and its `value` to a subset of categories present in
-                  :attr:`anndata.AnnData.obs` ``['{late_cells.keys()[0]}']``
+                  :attr:`anndata.AnnData.obs` ``['{late_annotation.keys()[0]}']``
         forward
             If `True` computes transition from cells belonging to `source_annotation` to cells belonging to `target_annotation`.
         aggregation_mode:
@@ -166,9 +166,9 @@ class TemporalMixin(AnalysisMixin[K, B]):
         if TYPE_CHECKING:
             assert isinstance(self.temporal_key, str)
         return self._cell_transition(
+            key=self.temporal_key,
             source_key=start,
             target_key=end,
-            key=self.temporal_key,
             source_annotation=early_annotation,
             target_annotation=late_annotation,
             forward=forward,

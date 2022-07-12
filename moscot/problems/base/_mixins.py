@@ -62,9 +62,9 @@ class AnalysisMixinProtocol(Protocol[K, B]):
 
     def _cell_transition_online(
         self: "AnalysisMixinProtocol[K, B]",
+        key: Optional[str],
         source_key: K,
         target_key: K,
-        key: Optional[str],
         source_annotation: Filter_t = None,
         target_annotation: Filter_t = None,
         forward: bool = False,  # return value will be row-stochastic if forward=True, else column-stochastic
@@ -78,9 +78,9 @@ class AnalysisMixinProtocol(Protocol[K, B]):
 
     def _cell_transition_not_online(
         self: "AnalysisMixinProtocol[K, B]",
+        key: Optional[str],
         source_key: K,
         target_key: K,
-        key: Optional[str],
         source_annotation: Filter_t = None,
         target_annotation: Filter_t = None,
         forward: bool = False,
@@ -131,8 +131,8 @@ class AnalysisMixin(Generic[K, B]):
 
     def _cell_transition(  # TODO(@MUCDK) think about removing _cell_transition_non_online
         self: AnalysisMixinProtocol[K, B],
-        online: bool,
         *args: Any,
+        online: bool,
         **kwargs: Any,
     ) -> pd.DataFrame:
         _check_argument_compatibility_cell_transition(*args, **kwargs)
@@ -142,9 +142,9 @@ class AnalysisMixin(Generic[K, B]):
 
     def _cell_transition_not_online(
         self: AnalysisMixinProtocol[K, B],
+        key: Optional[str],
         source_key: K,
         target_key: K,
-        key: Optional[str] = None,
         source_annotation: Filter_t = None,
         target_annotation: Filter_t = None,
         forward: bool = False,  # return value will be row-stochastic if forward=True, else column-stochastic
@@ -154,7 +154,6 @@ class AnalysisMixin(Generic[K, B]):
         normalize: bool = True,
         **_: Any,
     ) -> pd.DataFrame:
-
         source_annotation_key, source_annotations = _validate_args_cell_transition(self.adata, source_annotation)
         target_annotation_key, target_annotations = _validate_args_cell_transition(
             self.adata if other_adata is None else other_adata, target_annotation
@@ -167,6 +166,12 @@ class AnalysisMixin(Generic[K, B]):
             target_key,
             target_annotation_key,
         )
+        print("selfadata is ", self.adata)
+        print("key is ", key)
+        print("source key is ", source_key)
+        print("source annotation key is ", source_annotation_key)
+        print("df_source is ", df_source)
+        print("df_target is ", df_target)
         source_annotations_verified, target_annotations_verified = self._validate_annotations(
             df_source=df_source,
             df_target=df_target,
@@ -229,9 +234,9 @@ class AnalysisMixin(Generic[K, B]):
 
     def _cell_transition_online(
         self: AnalysisMixinProtocol[K, B],
+        key: Optional[str],
         source_key: K,
         target_key: K,
-        key: Optional[str],
         source_annotation: Filter_t = None,
         target_annotation: Filter_t = None,
         forward: bool = False,  # return value will be row-stochastic if forward=True, else column-stochastic
@@ -448,6 +453,8 @@ class AnalysisMixin(Generic[K, B]):
         aggregation_mode: Literal["annotation", "cell"] = AggregationMode.ANNOTATION,  # type: ignore[assignment]
         forward: bool = False,
     ) -> Tuple[Iterable[Any], Iterable[Any]]:
+        print(df_source)
+        print(df_target)
         if forward:
             if TYPE_CHECKING:  # checked in _check_argument_compatibility_cell_transition(
                 assert target_annotations is not None
@@ -468,6 +475,8 @@ class AnalysisMixin(Generic[K, B]):
         source_annotations_verified = set(source_annotations).intersection(
             set(df_source[source_annotation_key].cat.categories)
         )
+        print(set(source_annotations))
+        print(df_source[source_annotation_key])
         if not len(source_annotations_verified):
             raise ValueError(
                 f"TODO: None of {source_annotations} found in distribution corresponding to {source_annotation_key}."
