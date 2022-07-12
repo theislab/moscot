@@ -63,12 +63,11 @@ class TestSpatialAlignmentAnalysisMixin:
     @pytest.mark.parametrize("online", [True, False])
     @pytest.mark.parametrize("forward", [True, False])
     @pytest.mark.parametrize("normalize", [True, False])
-    def test_cell_transition_pipeline(
-        self, adata_space_rotate: AnnData, online: bool, forward: bool, normalize: bool
-    ):
+    def test_cell_transition_pipeline(self, adata_space_rotate: AnnData, online: bool, forward: bool, normalize: bool):
         rng = np.random.RandomState(0)
         adata_space_rotate.obs["celltype"] = rng.choice(["a", "b", "c"], len(adata_space_rotate))
         adata_space_rotate.obs["celltype"] = adata_space_rotate.obs["celltype"].astype("category")
+        # TODO(@MUCDK) use MockSolverOutput if no regression test
         ap = AlignmentProblem(adata=adata_space_rotate).prepare(batch_key="batch").solve(alpha=0.5, epsilon=1)
         result = ap.cell_transition(
             "1", "2", "celltype", "celltype", online=online, forward=forward, normalize=normalize
@@ -115,14 +114,14 @@ class TestSpatialMappingAnalysisMixin:
     @pytest.mark.parametrize("normalize", [True, False])
     def test_cell_transition_pipeline(self, adata_mapping: AnnData, online: bool, forward: bool, normalize: bool):
         rng = np.random.RandomState(0)
-        adataref, adatasp = _adata_spatial_split(adata)
+        adataref, adatasp = _adata_spatial_split(adata_mapping)
         adatasp.obs["celltype"] = rng.choice(["a", "b", "c"], len(adatasp))
         adatasp.obs["celltype"] = adatasp.obs["celltype"].astype("category")
         adataref.obs["celltype"] = rng.choice(["d", "e", "f", "g"], len(adataref))
         adataref.obs["celltype"] = adataref.obs["celltype"].astype("category")
-
+        # TODO(@MUCDK) use MockSolverOutput if no regression test
         mp = MappingProblem(adataref, adatasp)
-        mp = mp.prepare(batch_key="batch", sc_attr=sc_attr)
+        mp = mp.prepare(batch_key="batch", sc_attr={"attr": "obsm", "key": "X_pca"})
         mp = mp.solve()
         result = mp.cell_transition("1", "celltype", "celltype", online=online, forward=forward, normalize=normalize)
 
