@@ -1,4 +1,4 @@
-from typing import Any, Dict, List, Tuple, Union, Literal, Mapping, Optional, Sequence, TYPE_CHECKING
+from typing import Any, Dict, List, Tuple, Union, Literal, Optional, TYPE_CHECKING
 import itertools
 
 from sklearn.metrics import pairwise_distances
@@ -11,7 +11,7 @@ import numpy as np
 from anndata import AnnData
 
 from moscot._docs import d
-from moscot._types import ArrayLike, Numeric_t
+from moscot._types import Filter_t, ArrayLike, Numeric_t
 from moscot._constants._constants import AggregationMode
 from moscot.problems.base._mixins import AnalysisMixin, AnalysisMixinProtocol
 from moscot.problems.base._compound_problem import B, K, ApplyOutput_t
@@ -116,8 +116,8 @@ class TemporalMixin(AnalysisMixin[K, B]):
         self: TemporalMixinProtocol[K, B],
         start: K,
         end: K,
-        early_annotation: Union[str, Mapping[str, Sequence[Any]]],
-        late_annotation: Union[str, Mapping[str, Sequence[Any]]],
+        early_annotation: Filter_t,
+        late_annotation: Filter_t,
         forward: bool = False,  # return value will be row-stochastic if forward=True, else column-stochastic
         aggregation_mode: Literal["annotation", "cell"] = AggregationMode.ANNOTATION,  # type: ignore[assignment]
         online: bool = False,
