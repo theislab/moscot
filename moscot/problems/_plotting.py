@@ -61,7 +61,11 @@ def save_fig(fig: Figure, path: Union[str, Path], make_dir: bool = True, ext: st
 
 
 def set_palette(
-    adata: AnnData, key: str, palette: Union[str, ListedColormap] = "viridis", force_update_colors: bool = False
+    adata: AnnData,
+    key: str,
+    palette: Union[str, ListedColormap] = "viridis",
+    force_update_colors: bool = False,
+    **_: Any,
 ) -> None:
     if key not in adata.obs.columns:
         raise KeyError("TODO: invalid key.")
@@ -85,18 +89,18 @@ def _sankey(
         # TODO: adapt for unique categories
         set_palette(adata=adata, key=key, **kwargs)
 
-        colorDict = adata.uns[f"{key}_colors"]
+        colorDict = {cat: adata.uns[f"{key}_colors"][i] for i, cat in enumerate(adata.obs[key].cat.categories)}
     else:
         missing = [label for label in adata.obs[key].cat.categories if label not in colorDict.keys()]
         if missing:
             msg = "The colorDict parameter is missing values for the following labels : "
             msg += "{}".format(", ".join(missing))
             raise ValueError(msg)
-
     fontsize = kwargs.pop("fontsize", 12)
+    horizontal_space = kwargs.pop("horizontal_space", 1.5)
     left_pos = [0]
     for ind, dataFrame in enumerate(transition_matrices):
-
+        dataFrame /= dataFrame.sum().sum()
         leftLabels = list(dataFrame.index)
         rightLabels = list(dataFrame.columns)
         set(leftLabels).union(set(rightLabels))
@@ -110,7 +114,7 @@ def _sankey(
                 myD["bottom"] = 0
                 myD["top"] = myD["left"]
             else:
-                myD["bottom"] = leftWidths[leftLabels[i - 1]]["top"] + 0.02 * dataFrame.sum().sum()
+                myD["bottom"] = leftWidths[leftLabels[i - 1]]["top"]
                 myD["top"] = myD["bottom"] + myD["left"]
                 topEdge = myD["top"]
             leftWidths[leftLabel] = myD
@@ -124,7 +128,7 @@ def _sankey(
                 myD["bottom"] = 0
                 myD["top"] = myD["right"]
             else:
-                myD["bottom"] = rightWidths[rightLabels[i - 1]]["top"] + 0.02 * dataFrame.sum().sum()
+                myD["bottom"] = rightWidths[rightLabels[i - 1]]["top"]
                 myD["top"] = myD["bottom"] + myD["right"]
                 topEdge = myD["top"]
             rightWidths[rightLabel] = myD
@@ -167,9 +171,9 @@ def _sankey(
         np.min([leftWidths[cat]["bottom"] for cat in leftWidths.keys()])
 
         if captions is not None:
-            plt.text(left_pos[ind] + 0.3 * xMax, -1, captions[ind])
+            plt.text(left_pos[ind] + 0.3 * xMax, -0.1, captions[ind])
 
-        left_pos += [1.5 * xMax]
+        left_pos += [horizontal_space * xMax]
 
         # Plot strips
         for leftLabel in leftLabels:

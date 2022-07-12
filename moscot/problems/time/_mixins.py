@@ -101,7 +101,7 @@ class TemporalMixinProtocol(AnalysisMixinProtocol[K, B], Protocol[K, B]):
         ...
 
     def _plot_temporal(
-        self: TemporalMixinProtocol[K, B],
+        self: "TemporalMixinProtocol[K, B]",
         data: Dict[K, ArrayLike],
         start: K,
         end: K,
@@ -624,9 +624,9 @@ class TemporalMixin(AnalysisMixin[K, B]):
     ) -> None:
 
         if plot_intermediate:
-            fill_keys: Set = set()
+            fill_keys: Set[K] = set()
         else:
-            fill_keys = set(data.keys()) - set(start, end)
+            fill_keys = set(data.keys()) - {start, end}
         data = self._flatten(data, key=self.temporal_key, fill_keys=fill_keys, fill_value=fill_value)
         if result_key is not None:
             self.adata.obs[result_key] = data
