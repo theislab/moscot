@@ -65,8 +65,8 @@ class AnalysisMixinProtocol(Protocol[K, B]):
         source_key: K,
         target_key: K,
         key: Optional[str],
-        source_cells: Filter_t = None,
-        target_cells: Filter_t = None,
+        source_annotation: Filter_t = None,
+        target_annotation: Filter_t = None,
         forward: bool = False,  # return value will be row-stochastic if forward=True, else column-stochastic
         aggregation_mode: Literal["annotation", "cell"] = AggregationMode.ANNOTATION,  # type: ignore[assignment]
         other_key: Optional[str] = None,
@@ -81,8 +81,8 @@ class AnalysisMixinProtocol(Protocol[K, B]):
         source_key: K,
         target_key: K,
         key: Optional[str],
-        source_cells: Filter_t = None,
-        target_cells: Filter_t = None,
+        source_annotation: Filter_t = None,
+        target_annotation: Filter_t = None,
         forward: bool = False,
         aggregation_mode: Literal["annotation", "cell"] = AggregationMode.ANNOTATION,  # type: ignore[assignment]
         other_key: Optional[str] = None,
@@ -145,8 +145,8 @@ class AnalysisMixin(Generic[K, B]):
         source_key: K,
         target_key: K,
         key: Optional[str] = None,
-        source_cells: Filter_t = None,
-        target_cells: Filter_t = None,
+        source_annotation: Filter_t = None,
+        target_annotation: Filter_t = None,
         forward: bool = False,  # return value will be row-stochastic if forward=True, else column-stochastic
         aggregation_mode: Literal["annotation", "cell"] = AggregationMode.ANNOTATION,  # type: ignore[assignment]
         other_key: Optional[str] = None,
@@ -155,9 +155,9 @@ class AnalysisMixin(Generic[K, B]):
         **_: Any,
     ) -> pd.DataFrame:
 
-        source_annotation_key, source_annotations = _validate_args_cell_transition(self.adata, source_cells)
+        source_annotation_key, source_annotations = _validate_args_cell_transition(self.adata, source_annotation)
         target_annotation_key, target_annotations = _validate_args_cell_transition(
-            self.adata if other_adata is None else other_adata, target_cells
+            self.adata if other_adata is None else other_adata, target_annotation
         )
 
         df_source = _get_df_cell_transition(self.adata, key, source_key, source_annotation_key)
@@ -232,8 +232,8 @@ class AnalysisMixin(Generic[K, B]):
         source_key: K,
         target_key: K,
         key: Optional[str],
-        source_cells: Filter_t = None,
-        target_cells: Filter_t = None,
+        source_annotation: Filter_t = None,
+        target_annotation: Filter_t = None,
         forward: bool = False,  # return value will be row-stochastic if forward=True, else column-stochastic
         aggregation_mode: Literal["annotation", "cell"] = AggregationMode.ANNOTATION,  # type: ignore[assignment]
         other_key: Optional[str] = None,
@@ -243,9 +243,9 @@ class AnalysisMixin(Generic[K, B]):
         **_: Any,
     ) -> pd.DataFrame:
         aggregation_mode = AggregationMode(aggregation_mode)  # type: ignore[assignment]
-        source_annotation_key, source_annotations = _validate_args_cell_transition(self.adata, source_cells)
+        source_annotation_key, source_annotations = _validate_args_cell_transition(self.adata, source_annotation)
         target_annotation_key, target_annotations = _validate_args_cell_transition(
-            other_adata if other_adata is not None else self.adata, target_cells
+            other_adata if other_adata is not None else self.adata, target_annotation
         )
 
         df_source = _get_df_cell_transition(self.adata, key, source_key, source_annotation_key)

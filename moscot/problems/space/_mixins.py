@@ -197,8 +197,8 @@ class SpatialAlignmentMixin(AnalysisMixin[K, B]):
             key=self.batch_key,
             source_key=slice,
             target_key=reference,
-            source_cells=slice_cells,
-            target_cells=reference_cells,
+            source_annotation=slice_cells,
+            target_annotation=reference_cells,
             forward=forward,
             aggregation_mode=AggregationMode(aggregation_mode),
             online=online,
@@ -357,8 +357,8 @@ class SpatialMappingMixin(AnalysisMixin[K, B]):
             source_key=None,
             target_key=batch,
             key=self.batch_key,
-            source_cells=sc_cells,
-            target_cells=spatial_cells,
+            source_annotation=sc_cells,  # change it to source_groups
+            target_annotation=spatial_cells,  # change it to target_groups
             forward=forward,
             aggregation_mode=AggregationMode(aggregation_mode),
             online=online,

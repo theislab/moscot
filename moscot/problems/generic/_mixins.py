@@ -36,8 +36,8 @@ class GenericAnalysisMixin(AnalysisMixin[K, B]):
         source_key: K,
         target_key: K,
         key: Optional[str] = None,
-        source_cells: Filter_t = None,
-        target_cells: Filter_t = None,
+        source_annotation: Filter_t = None,
+        target_annotation: Filter_t = None,
         forward: bool = False,  # return value will be row-stochastic if forward=True, else column-stochastic
         aggregation_mode: Literal["annotation", "cell"] = AggregationMode.ANNOTATION,  # type: ignore[assignment]
         online: bool = False,
@@ -58,22 +58,22 @@ class GenericAnalysisMixin(AnalysisMixin[K, B]):
             Key identifying the source distribution.
         target_key
             Key identifying the target distribution.
-        source_cells
+        source_annotation
             Can be one of the following:
-                - if `source_cells` is of type :class:`str` this should correspond to a key in
+                - if `source_annotation` is of type :class:`str` this should correspond to a key in
                   :attr:`anndata.AnnData.obs`. In this case, the categories in the transition matrix correspond to the
-                  unique values in :attr:`anndata.AnnData.obs` ``['{source_cells}']``
-                - if `target_cells` is of type :class:`dict`, its key should correspond to a key in
+                  unique values in :attr:`anndata.AnnData.obs` ``['{source_annotation}']``
+                - if `target_annotation` is of type :class:`dict`, its key should correspond to a key in
                   :attr:`anndata.AnnData.obs` and its value to a subset of categories present in
-                  :attr:`anndata.AnnData.obs` ``['{source_cells.keys()[0]}']``
-        target_cells
+                  :attr:`anndata.AnnData.obs` ``['{source_annotation.keys()[0]}']``
+        target_annotation
             Can be one of the following
-                - if `target_cells` is of type :class:`str` this should correspond to a key in
+                - if `target_annotation` is of type :class:`str` this should correspond to a key in
                   :attr:`anndata.AnnData.obs`. In this case, the categories in the transition matrix correspond to the
-                  unique values in :attr:`anndata.AnnData.obs` ``['{target_cells}']``
-                - if `late_cells` is of :class:`dict`, its key should correspond to a key in
+                  unique values in :attr:`anndata.AnnData.obs` ``['{target_annotation}']``
+                - if `late_annotation` is of :class:`dict`, its key should correspond to a key in
                   :attr:`anndata.AnnData.obs` and its value to a subset of categories present in
-                  :attr:`anndata.AnnData.obs` ``['{target_cells.keys()[0]}']``
+                  :attr:`anndata.AnnData.obs` ``['{target_annotation.keys()[0]}']``
         %(forward_cell_transition)s
         %(aggregation_mode)s
         %(online)s
@@ -88,8 +88,8 @@ class GenericAnalysisMixin(AnalysisMixin[K, B]):
             key=self.batch_key,
             source_key=source_key,
             target_key=target_key,
-            source_cells=source_cells,
-            target_cells=target_cells,
+            source_annotation=source_annotation,
+            target_annotation=target_annotation,
             forward=forward,
             aggregation_mode=AggregationMode(aggregation_mode),
             online=online,

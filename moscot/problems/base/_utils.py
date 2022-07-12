@@ -67,18 +67,18 @@ def _check_argument_compatibility_cell_transition(
     key: Optional[str] = None,
     other_key: Optional[str] = None,
     other_adata: Optional[str] = None,
-    source_cells: Filter_t = None,
-    target_cells: Filter_t = None,
+    source_annotation: Filter_t = None,
+    target_annotation: Filter_t = None,
     aggregation_mode: Literal["annotation", "cell"] = AggregationMode.ANNOTATION,  # type: ignore[assignment]
     forward: bool = False,
     **_: Any,
 ) -> None:
     if key is None and other_adata is None:
         raise ValueError("TODO: distributions cannot be inferred from `adata` due to missing obs keys.")
-    if (forward and target_cells is None) or (not forward and source_cells is None):
+    if (forward and target_annotation is None) or (not forward and source_annotation is None):
         raise ValueError("TODO: obs column according to which is grouped is required.")
     if (AggregationMode(aggregation_mode) == AggregationMode.ANNOTATION) and (
-        source_cells is None or target_cells is None
+        source_annotation is None or target_annotation is None
     ):
         raise ValueError("TODO: If `aggregation_mode` is `annotation` an `adata.obs` column must be provided.")
 
