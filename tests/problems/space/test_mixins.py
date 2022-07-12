@@ -64,7 +64,7 @@ class TestSpatialAlignmentAnalysisMixin:
     @pytest.mark.parametrize("forward", [True, False])
     @pytest.mark.parametrize("normalize", [True, False])
     def test_cell_transition_pipeline(
-        self, adata_space_rotate: AnnData, online: bool, forward: bool, normalize: normalize
+        self, adata_space_rotate: AnnData, online: bool, forward: bool, normalize: bool
     ):
         rng = np.random.RandomState(0)
         adata_space_rotate.obs["celltype"] = rng.choice(["a", "b", "c"], len(adata_space_rotate))
@@ -113,7 +113,7 @@ class TestSpatialMappingAnalysisMixin:
     @pytest.mark.parametrize("online", [True, False])
     @pytest.mark.parametrize("forward", [True, False])
     @pytest.mark.parametrize("normalize", [True, False])
-    def test_cell_transition_pipeline(self, adata_mapping: AnnData, online: bool, forward: bool, normalize: normalize):
+    def test_cell_transition_pipeline(self, adata_mapping: AnnData, online: bool, forward: bool, normalize: bool):
         rng = np.random.RandomState(0)
         adataref, adatasp = _adata_spatial_split(adata)
         adatasp.obs["celltype"] = rng.choice(["a", "b", "c"], len(adatasp))
