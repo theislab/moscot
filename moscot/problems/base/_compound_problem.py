@@ -256,7 +256,6 @@ class BaseCompoundProblem(BaseProblem, ABC, Generic[K, B]):
     ) -> ApplyOutput_t[K]:
         if TYPE_CHECKING:
             assert isinstance(self._policy, StarPolicy)
-
         res = {}
         # TODO(michalk8): should use manager.plan (once implemented), as some problems may not be solved
         for src, tgt in self._policy.plan(explicit_steps=kwargs.pop("explicit_steps", None)):

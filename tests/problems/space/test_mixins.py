@@ -60,6 +60,22 @@ class TestSpatialAlignmentAnalysisMixin:
                 np.array(sol[k].transport_matrix), np.array(ap.solutions[k].transport_matrix), decimal=3
             )
 
+    @pytest.mark.parametrize("online", [True, False])
+    @pytest.mark.parametrize("forward", [True, False])
+    @pytest.mark.parametrize("normalize", [True, False])
+    def test_cell_transition_pipeline(
+        self, adata_space_rotate: AnnData, online: bool, forward: bool, normalize: normalize
+    ):
+        rng = np.random.RandomState(0)
+        adata_space_rotate.obs["celltype"] = rng.choice(["a", "b", "c"], len(adata_space_rotate))
+        adata_space_rotate.obs["celltype"] = adata_space_rotate.obs["celltype"].astype("category")
+        ap = AlignmentProblem(adata=adata_space_rotate).prepare(batch_key="batch").solve(alpha=0.5, epsilon=1)
+        result = ap.cell_transition(
+            "1", "2", "celltype", "celltype", online=online, forward=forward, normalize=normalize
+        )
+        assert isinstance(result, pd.DataFrame)
+        assert result.shape == (3, 3)
+
 
 class TestSpatialMappingAnalysisMixin:
     @pytest.mark.parametrize("sc_attr", [{"attr": "X"}, {"attr": "obsm", "key": "X_pca"}])
@@ -93,3 +109,22 @@ class TestSpatialMappingAnalysisMixin:
             np.testing.assert_almost_equal(
                 np.array(sol[k].transport_matrix), np.array(mp.solutions[k].transport_matrix), decimal=3
             )
+
+    @pytest.mark.parametrize("online", [True, False])
+    @pytest.mark.parametrize("forward", [True, False])
+    @pytest.mark.parametrize("normalize", [True, False])
+    def test_cell_transition_pipeline(self, adata_mapping: AnnData, online: bool, forward: bool, normalize: normalize):
+        rng = np.random.RandomState(0)
+        adataref, adatasp = _adata_spatial_split(adata)
+        adatasp.obs["celltype"] = rng.choice(["a", "b", "c"], len(adatasp))
+        adatasp.obs["celltype"] = adatasp.obs["celltype"].astype("category")
+        adataref.obs["celltype"] = rng.choice(["d", "e", "f", "g"], len(adataref))
+        adataref.obs["celltype"] = adataref.obs["celltype"].astype("category")
+
+        mp = MappingProblem(adataref, adatasp)
+        mp = mp.prepare(batch_key="batch", sc_attr=sc_attr)
+        mp = mp.solve()
+        result = mp.cell_transition("1", "celltype", "celltype", online=online, forward=forward, normalize=normalize)
+
+        assert isinstance(result, pd.DataFrame)
+        assert result.shape == (3, 4)

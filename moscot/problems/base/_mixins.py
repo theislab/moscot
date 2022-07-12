@@ -11,6 +11,7 @@ from anndata import AnnData
 from moscot._types import Filter_t, ArrayLike, Numeric_t
 from moscot.solvers._output import BaseSolverOutput
 from moscot.problems.base._utils import (
+    _get_problem_key,
     _get_cell_indices,
     _get_df_cell_transition,
     _get_categories_from_adata,
@@ -154,24 +155,23 @@ class AnalysisMixin(Generic[K, B]):
         normalize: bool = True,
         **_: Any,
     ) -> pd.DataFrame:
-        source_annotation_key, source_annotations = _validate_args_cell_transition(self.adata, source_annotation)
-        target_annotation_key, target_annotations = _validate_args_cell_transition(
-            self.adata if other_adata is None else other_adata, target_annotation
+        source_annotation_key, source_annotations = _validate_args_cell_transition(
+            self.adata if other_adata is None else other_adata, source_annotation
         )
+        target_annotation_key, target_annotations = _validate_args_cell_transition(self.adata, target_annotation)
 
-        df_source = _get_df_cell_transition(self.adata, key, source_key, source_annotation_key)
-        df_target = _get_df_cell_transition(
+        df_source = _get_df_cell_transition(
             self.adata if other_adata is None else other_adata,
             key if other_adata is None else other_key,
+            source_key,
+            source_annotation_key,
+        )
+        df_target = _get_df_cell_transition(
+            self.adata,
+            key,
             target_key,
             target_annotation_key,
         )
-        print("selfadata is ", self.adata)
-        print("key is ", key)
-        print("source key is ", source_key)
-        print("source annotation key is ", source_annotation_key)
-        print("df_source is ", df_source)
-        print("df_target is ", df_target)
         source_annotations_verified, target_annotations_verified = self._validate_annotations(
             df_source=df_source,
             df_target=df_target,
@@ -183,22 +183,24 @@ class AnalysisMixin(Generic[K, B]):
             forward=forward,
         )
 
-        source_cell_indices = _get_cell_indices(self.adata, key, source_key)
-        target_cell_indices = _get_cell_indices(
-            self.adata if other_adata is None else other_adata, key if other_adata is None else other_key, target_key
+        source_cell_indices = _get_cell_indices(
+            self.adata if other_adata is None else other_adata, key if other_adata is None else other_key, source_key
         )
+        target_cell_indices = _get_cell_indices(self.adata, key, target_key)
+
+        problem_key = _get_problem_key(source_key, target_key)
 
         transition_matrix_indexed = pd.DataFrame(
             index=source_cell_indices,
             columns=target_cell_indices,
-            data=np.array(self.solutions[source_key, target_key].transport_matrix),
+            data=np.array(self.solutions[problem_key].transport_matrix),
         )
         aggregation_mode = AggregationMode(aggregation_mode)  # type: ignore[assignment]
 
         if forward:
             transition_matrix = self.cell_aggregation_offline_helper(
-                adata=self.adata,
-                key=key,
+                adata=self.adata if other_adata is None else other_adata,
+                key=key if other_key is None else other_key,
                 df=df_target,
                 cell_indices_1=source_cell_indices,
                 cell_indices_2=target_cell_indices,
@@ -213,8 +215,8 @@ class AnalysisMixin(Generic[K, B]):
             )
         else:
             transition_matrix = self.cell_aggregation_offline_helper(
-                adata=self.adata if other_adata is None else other_adata,
-                key=key if other_key is None else other_key,
+                adata=self.adata,
+                key=key,
                 df=df_source,
                 cell_indices_1=target_cell_indices,
                 cell_indices_2=source_cell_indices,
@@ -248,15 +250,20 @@ class AnalysisMixin(Generic[K, B]):
         **_: Any,
     ) -> pd.DataFrame:
         aggregation_mode = AggregationMode(aggregation_mode)  # type: ignore[assignment]
-        source_annotation_key, source_annotations = _validate_args_cell_transition(self.adata, source_annotation)
-        target_annotation_key, target_annotations = _validate_args_cell_transition(
-            other_adata if other_adata is not None else self.adata, target_annotation
+        source_annotation_key, source_annotations = _validate_args_cell_transition(
+            other_adata if other_adata is not None else self.adata, source_annotation
         )
+        target_annotation_key, target_annotations = _validate_args_cell_transition(self.adata, target_annotation)
 
-        df_source = _get_df_cell_transition(self.adata, key, source_key, source_annotation_key)
-        df_target = _get_df_cell_transition(
+        df_source = _get_df_cell_transition(
             self.adata if other_adata is None else other_adata,
             key if other_adata is None else other_key,
+            source_key,
+            source_annotation_key,
+        )
+        df_target = _get_df_cell_transition(
+            self.adata,
+            key,
             target_key,
             target_annotation_key,
         )
@@ -453,8 +460,6 @@ class AnalysisMixin(Generic[K, B]):
         aggregation_mode: Literal["annotation", "cell"] = AggregationMode.ANNOTATION,  # type: ignore[assignment]
         forward: bool = False,
     ) -> Tuple[Iterable[Any], Iterable[Any]]:
-        print(df_source)
-        print(df_target)
         if forward:
             if TYPE_CHECKING:  # checked in _check_argument_compatibility_cell_transition(
                 assert target_annotations is not None
@@ -475,8 +480,6 @@ class AnalysisMixin(Generic[K, B]):
         source_annotations_verified = set(source_annotations).intersection(
             set(df_source[source_annotation_key].cat.categories)
         )
-        print(set(source_annotations))
-        print(df_source[source_annotation_key])
         if not len(source_annotations_verified):
             raise ValueError(
                 f"TODO: None of {source_annotations} found in distribution corresponding to {source_annotation_key}."
@@ -571,11 +574,10 @@ class AnalysisMixin(Generic[K, B]):
         forward: bool,
     ) -> pd.DataFrame:
         key_added = "cell_annotations"
-        tmap = np.array(
-            self.solutions[
-                filter_key_1 if forward else filter_key_2, filter_key_2 if forward else filter_key_1
-            ].transport_matrix
+        solution_key = _get_problem_key(
+            filter_key_1 if forward else filter_key_2, filter_key_2 if forward else filter_key_1
         )
+        tmap = np.array(self.solutions[solution_key].transport_matrix)
         transition_matrix_indexed = pd.DataFrame(
             index=cell_indices_1,
             columns=cell_indices_2,

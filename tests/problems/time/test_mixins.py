@@ -63,7 +63,12 @@ class TestTemporalMixin:
         early_annotation = ["Stromal", "unknown"]
         late_annotation = ["Stromal", "Epithelial"]
         result = problem.cell_transition(
-            key_1, key_2, {"cell_type": early_annotation}, {"cell_type": late_annotation}, forward=forward, online=online
+            key_1,
+            key_2,
+            {"cell_type": early_annotation},
+            {"cell_type": late_annotation},
+            forward=forward,
+            online=online,
         )
         assert isinstance(result, pd.DataFrame)
         assert result.shape == (len(early_annotation), len(late_annotation))

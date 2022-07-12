@@ -133,3 +133,16 @@ def _get_categories_from_adata(
     if key is None:
         return adata.obs[annotation_key]
     return adata[adata.obs[key] == key_value].obs[annotation_key]
+
+
+def _get_problem_key(
+    source_key: Optional[Any] = None,  # TODO(@MUCDK) using `K` induces circular import, resolve
+    target_key: Optional[Any] = None,  # TODO(@MUCDK) using `K` induces circular import, resolve
+) -> Tuple[Any, Any]:  # TODO(@MUCDK) using `K` induces circular import, resolve
+    if source_key is not None and target_key is not None:
+        return (source_key, target_key)
+    elif source_key is None and target_key is not None:
+        return (target_key, "ref")  # TODO(@MUCDK) make package constant
+    elif source_key is not None and target_key is None:
+        return ("src", source_key)  # TODO(@MUCDK) make package constant
+    return ("src", "ref")
