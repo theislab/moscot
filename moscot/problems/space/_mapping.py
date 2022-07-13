@@ -115,7 +115,6 @@ class MappingProblem(CompoundProblem[K, OTProblem], SpatialMappingMixin[K, OTPro
             else:
                 kwargs["callback"] = "local-pca"
                 kwargs["callback_kwargs"] = {**kwargs.get("callback_kwargs", {}), **{"return_linear": True}}
-
         return super().prepare(x=x, y=y, policy="external_star", key=batch_key, **kwargs)
 
     @d.dedent

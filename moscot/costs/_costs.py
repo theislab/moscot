@@ -81,7 +81,7 @@ class BarcodeDistance(BaseLoss):
         adapted from https://github.com/aforr/LineageOT/blob/8c66c630d61da289daa80e29061e888b1331a05a/lineageot/inference.py#L33.  # noqa: E501
         """
 
-        shared_indices = (x >= 0) & (y >= 0)  # type: ignore[operator]
+        shared_indices = (x >= 0) & (y >= 0)
         b1 = x[shared_indices]
 
         # There may not be any sites where both were measured
