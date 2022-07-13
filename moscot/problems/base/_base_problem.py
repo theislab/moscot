@@ -290,7 +290,7 @@ class OTProblem(BaseProblem):
         x = adata.X if layer is None else adata.layers[layer]
         y = adata_y.X if layer is None else adata_y.layers[layer]
 
-        n_comps = kwargs.get("n_comps", 30)  # set n_comps=30 as default
+        n_comps = kwargs.pop("n_comps", 30)  # set n_comps=30 as default
 
         logging.info("Computing pca with `n_comps = {n_comps}` and `joint_space = {joint_space}`.")
 

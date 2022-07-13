@@ -4,7 +4,10 @@ import sys
 try:
     import wot  # please install WOT from commit hash`ca5e94f05699997b01cf5ae13383f9810f0613f6`"
 except ImportError:
-    raise ImportError("Please install WOT from commit hash`ca5e94f05699997b01cf5ae13383f9810f0613f6`")
+    raise ImportError(
+        "Please install WOT from commit hash`ca5e94f05699997b01cf5ae13383f9810f0613f6`"
+        + "with `pip install git+https://github.com/broadinstitute/wot.git@ca5e94f05699997b01cf5ae13383f9810f0613f6`"
+    )
 
 import os
 
@@ -153,7 +156,7 @@ def generate_gt_temporal_data(data_path: str) -> None:
         callback="cost-matrix",
         subset=[(10, 10.5), (10.5, 11), (10, 11)],
         policy="explicit",
-        callback_kwargs={"key": "cost_matrices"},
+        callback_kwargs={"key": "cost_matrices", "n_comps": 50},
     )
     tp.solve(epsilon=config["eps"], tau_a=config["tau_a"], tau_b=config["tau_b"])
 
@@ -188,7 +191,10 @@ def generate_gt_temporal_data(data_path: str) -> None:
 
     tp2 = TemporalProblem(cdata)
     tp2.prepare(
-        "day", subset=[(10, 10.5), (10.5, 11), (10, 11)], policy="explicit", callback_kwargs={"joint_space": False}
+        "day",
+        subset=[(10, 10.5), (10.5, 11), (10, 11)],
+        policy="explicit",
+        callback_kwargs={"joint_space": False, "n_comps": 50},
     )
     tp2.solve(epsilon=config["eps"], tau_a=config["tau_a"], tau_b=config["tau_b"], scale_cost="mean")
 
