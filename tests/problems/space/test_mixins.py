@@ -68,7 +68,11 @@ class TestSpatialAlignmentAnalysisMixin:
         adata_space_rotate.obs["celltype"] = rng.choice(["a", "b", "c"], len(adata_space_rotate))
         adata_space_rotate.obs["celltype"] = adata_space_rotate.obs["celltype"].astype("category")
         # TODO(@MUCDK) use MockSolverOutput if no regression test
-        ap = AlignmentProblem(adata=adata_space_rotate).prepare(batch_key="batch").solve(alpha=0.5, epsilon=1)
+        ap = (
+            AlignmentProblem(adata=adata_space_rotate)
+            .prepare(batch_key="batch")
+            .solve(alpha=0.5, epsilon=10, scale_cost="mean")
+        )  # fast convergence
         result = ap.cell_transition(
             "1", "2", "celltype", "celltype", online=online, forward=forward, normalize=normalize
         )

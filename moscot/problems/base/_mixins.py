@@ -188,7 +188,7 @@ class AnalysisMixin(Generic[K, B]):
             self.adata if other_adata is None else other_adata, key if other_adata is None else other_key, target_key
         )
 
-        problem_key = _get_problem_key(source_key, target_key)
+        _get_problem_key(source_key, target_key)
         aggregation_mode = AggregationMode(aggregation_mode)  # type: ignore[assignment]
 
         if forward:
@@ -244,13 +244,14 @@ class AnalysisMixin(Generic[K, B]):
         **_: Any,
     ) -> pd.DataFrame:
         aggregation_mode = AggregationMode(aggregation_mode)  # type: ignore[assignment]
-        source_annotation_key, source_annotations = _validate_args_cell_transition(
-            self.adata, source_annotation
+        source_annotation_key, source_annotations = _validate_args_cell_transition(self.adata, source_annotation)
+        target_annotation_key, target_annotations = _validate_args_cell_transition(
+            self.adata if other_adata is None else other_adata, target_annotation
         )
-        target_annotation_key, target_annotations = _validate_args_cell_transition(self.adata if other_adata is None else other_adata, target_annotation)
 
         df_source = _get_df_cell_transition(
-            self.adata, key,
+            self.adata,
+            key,
             source_key,
             source_annotation_key,
         )
