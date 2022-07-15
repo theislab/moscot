@@ -1,4 +1,4 @@
-from typing import Any, Union, Optional, Sequence
+from typing import Any, Union, Optional, Sequence, TYPE_CHECKING
 import logging
 
 from typing_extensions import Literal, Protocol
@@ -20,6 +20,8 @@ class BirthDeathProtocol(Protocol):
     adata: AnnData
     proliferation_key: Optional[str]
     apoptosis_key: Optional[str]
+    _proliferation_key: Optional[str] = None
+    _apoptosis_key: Optional[str] = None
 
     def score_genes_for_marginals(
         self: "BirthDeathProtocol",
@@ -30,6 +32,13 @@ class BirthDeathProtocol(Protocol):
         **kwargs: Any,
     ) -> "BirthDeathProtocol":
         ...
+
+
+class BirthDeathProblemProtocol(BirthDeathProtocol, Protocol):
+    _delta: Optional[float] = None
+    _adata_y: Optional[AnnData] = None
+    a: Optional[ArrayLike] = None
+    b: Optional[ArrayLike] = None
 
 
 class BirthDeathMixin:
@@ -130,8 +139,9 @@ class BirthDeathMixin:
         return self._proliferation_key
 
     @proliferation_key.setter
-    def proliferation_key(self, value: Optional[str] = None) -> None:
-        # TODO(michalk8): add check if present in .obs (if not None)
+    def proliferation_key(self: BirthDeathProtocol, value: Optional[str]) -> None:
+        if value is not None and value not in self.adata.obs:
+            raise KeyError(f"{value} not in `adata.obs`.")
         self._proliferation_key = value
 
     @property
@@ -140,8 +150,9 @@ class BirthDeathMixin:
         return self._apoptosis_key
 
     @apoptosis_key.setter
-    def apoptosis_key(self, value: Optional[str] = None) -> None:
-        # TODO(michalk8): add check if present in .obs (if not None)
+    def apoptosis_key(self: BirthDeathProtocol, value: Optional[str]) -> None:
+        if value is not None and value not in self.adata.obs:
+            raise KeyError(f"{value} not in `adata.obs`.")
         self._apoptosis_key = value
 
 
@@ -161,7 +172,7 @@ class BirthDeathProblem(BirthDeathMixin, OTProblem):
         self._delta: Optional[float] = None
 
     def _estimate_marginals(  # type: ignore[override]
-        self,
+        self: BirthDeathProblemProtocol,
         adata: AnnData,
         source: bool,
         delta: float,
@@ -190,6 +201,8 @@ class BirthDeathProblem(BirthDeathMixin, OTProblem):
         growth = np.exp((birth - death) * self._delta)
         if source:
             return growth
+        if TYPE_CHECKING:
+            assert isinstance(self._adata_y, AnnData)
         return np.full(len(self._adata_y), np.average(growth))
 
     # TODO(michalk8): consider removing this

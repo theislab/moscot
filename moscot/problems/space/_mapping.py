@@ -6,7 +6,7 @@ from typing_extensions import Literal
 from anndata import AnnData
 
 from moscot._docs import d
-from moscot._types import ArrayLike
+from moscot._types import Filter_t, ArrayLike
 from moscot._constants._key import Key
 from moscot._constants._constants import Policy, ScaleCost
 from moscot.problems.space._mixins import SpatialMappingMixin
@@ -71,7 +71,7 @@ class MappingProblem(CompoundProblem[K, OTProblem], SpatialMappingMixin[K, OTPro
     @d.dedent
     def prepare(
         self,
-        sc_attr: Union[str, Mapping[str, Any]],
+        sc_attr: Filter_t,
         batch_key: Optional[str] = None,
         spatial_key: Union[str, Mapping[str, Any]] = Key.obsm.spatial,
         var_names: Optional[Sequence[Any]] = None,
@@ -107,7 +107,7 @@ class MappingProblem(CompoundProblem[K, OTProblem], SpatialMappingMixin[K, OTPro
         """
         x = {"attr": "obsm", "key": spatial_key} if isinstance(spatial_key, str) else spatial_key
         y = {"attr": "obsm", "key": sc_attr} if isinstance(sc_attr, str) else sc_attr
-
+        self.batch_key = batch_key
         self.filtered_vars = var_names
         if self.filtered_vars is not None:
             if joint_attr is not None:
@@ -115,7 +115,6 @@ class MappingProblem(CompoundProblem[K, OTProblem], SpatialMappingMixin[K, OTPro
             else:
                 kwargs["callback"] = "local-pca"
                 kwargs["callback_kwargs"] = {**kwargs.get("callback_kwargs", {}), **{"return_linear": True}}
-
         return super().prepare(x=x, y=y, policy="external_star", key=batch_key, **kwargs)
 
     @d.dedent

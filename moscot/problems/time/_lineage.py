@@ -6,8 +6,6 @@ import pandas as pd
 
 import numpy as np
 
-from anndata import AnnData
-
 from moscot._docs import d
 from moscot._types import Numeric_t
 from moscot.solvers._output import BaseSolverOutput
@@ -39,9 +37,6 @@ class TemporalProblem(
     --------
     See notebook TODO(@MUCDK) LINK NOTEBOOK for how to use it
     """
-
-    def __init__(self, adata: AnnData):
-        super().__init__(adata)
 
     @d.dedent
     def prepare(
