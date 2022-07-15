@@ -189,11 +189,6 @@ class AnalysisMixin(Generic[K, B]):
         )
 
         problem_key = _get_problem_key(source_key, target_key)
-        transition_matrix_indexed = pd.DataFrame(
-            index=source_cell_indices,
-            columns=target_cell_indices,
-            data=np.array(self.solutions[problem_key].transport_matrix),
-        )
         aggregation_mode = AggregationMode(aggregation_mode)  # type: ignore[assignment]
 
         if forward:
@@ -250,19 +245,18 @@ class AnalysisMixin(Generic[K, B]):
     ) -> pd.DataFrame:
         aggregation_mode = AggregationMode(aggregation_mode)  # type: ignore[assignment]
         source_annotation_key, source_annotations = _validate_args_cell_transition(
-            other_adata if other_adata is not None else self.adata, source_annotation
+            self.adata, source_annotation
         )
-        target_annotation_key, target_annotations = _validate_args_cell_transition(self.adata, target_annotation)
+        target_annotation_key, target_annotations = _validate_args_cell_transition(self.adata if other_adata is None else other_adata, target_annotation)
 
         df_source = _get_df_cell_transition(
-            self.adata if other_adata is None else other_adata,
-            key if other_adata is None else other_key,
+            self.adata, key,
             source_key,
             source_annotation_key,
         )
         df_target = _get_df_cell_transition(
-            self.adata,
-            key,
+            self.adata if other_adata is None else other_adata,
+            key if other_adata is None else other_key,
             target_key,
             target_annotation_key,
         )
