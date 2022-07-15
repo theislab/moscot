@@ -143,11 +143,11 @@ online
     This reduces memory complexity but increases run time."""
 _aggregation_mode = """\
 aggregation_mode
-    If `aggregation_mode` is `group` the transition probabilities from the groups defined by `annotation_cells` are
+    If `aggregation_mode` is `group` the transition probabilities from the groups defined by `source_annotation` are
     returned. If `aggregation_mode` is `cell` the transition probablities for each cell are returned."""
 _forward_cell_transition = """\
 forward
-    If `True` computes transition from `annotation_cells` to `annotation_cells`."""
+    If `True` computes transition from `source_annotations` to `target_annotations`, otherwise backward."""
 
 # returns
 _alignment_mixin_returns = """\
