@@ -14,7 +14,7 @@ import numpy as np
 from anndata import AnnData
 
 from moscot._docs import d
-from moscot._types import ArrayLike
+from moscot._types import Filter_t, ArrayLike
 from moscot.problems.base import AnalysisMixin  # type: ignore[attr-defined]
 from moscot._constants._constants import CorrMethod, AlignmentMode, AggregationMode
 from moscot.problems.base._mixins import AnalysisMixinProtocol
@@ -182,8 +182,8 @@ class SpatialAlignmentMixin(AnalysisMixin[K, B]):
         self: SpatialAlignmentMixinProtocol[K, B],
         slice: K,
         reference: K,
-        slice_cells: Union[str, Mapping[str, Sequence[Any]]],
-        reference_cells: Union[str, Mapping[str, Sequence[Any]]],
+        slice_cells: Filter_t,
+        reference_cells: Filter_t,
         forward: bool = False,  # return value will be row-stochastic if forward=True, else column-stochastic
         aggregation_mode: Literal["annotation", "cell"] = AggregationMode.ANNOTATION,  # type: ignore[assignment]
         online: bool = False,
@@ -197,12 +197,13 @@ class SpatialAlignmentMixin(AnalysisMixin[K, B]):
             key=self.batch_key,
             source_key=slice,
             target_key=reference,
-            source_cells=slice_cells,
-            target_cells=reference_cells,
+            source_annotation=slice_cells,
+            target_annotation=reference_cells,
             forward=forward,
             aggregation_mode=AggregationMode(aggregation_mode),
             online=online,
-            other_key=self.batch_key,
+            other_key=None,
+            other_adata=None,
             batch_size=batch_size,
             normalize=normalize,
         )
@@ -343,22 +344,23 @@ class SpatialMappingMixin(AnalysisMixin[K, B]):
     def cell_transition(
         self: SpatialMappingMixinProtocol[K, B],
         batch: K,
-        spatial_cells: Union[str, Mapping[str, Sequence[Any]]],
-        sc_cells: Union[str, Mapping[str, Sequence[Any]]],
+        spatial_cells: Filter_t,
+        sc_cells: Filter_t,
         forward: bool = False,  # return value will be row-stochastic if forward=True, else column-stochastic
         aggregation_mode: Literal["annotation", "cell"] = AggregationMode.ANNOTATION,  # type: ignore[assignment]
         online: bool = False,
         batch_size: Optional[int] = None,
         normalize: bool = True,
     ) -> pd.DataFrame:
+        """Compute cell transition."""
         if TYPE_CHECKING:
             assert self.batch_key is not None
         return self._cell_transition(
-            source_key=None,
-            target_key=batch,
             key=self.batch_key,
-            source_cells=sc_cells,
-            target_cells=spatial_cells,
+            source_key=batch,
+            target_key=None,
+            source_annotation=spatial_cells,  # change it to source_groups
+            target_annotation=sc_cells,  # change it to target_groups
             forward=forward,
             aggregation_mode=AggregationMode(aggregation_mode),
             online=online,

@@ -1,5 +1,4 @@
-from typing import Any, Set, Dict, List, Tuple, Union, Literal, Mapping, Optional, Sequence, TYPE_CHECKING
-from pathlib import Path
+from typing import Any, Dict, List, Tuple, Union, Literal, Optional, TYPE_CHECKING
 import itertools
 
 from sklearn.metrics import pairwise_distances
@@ -148,8 +147,8 @@ class TemporalMixin(AnalysisMixin[K, B]):
         self: TemporalMixinProtocol[K, B],
         start: K,
         end: K,
-        early_cells: Union[str, Mapping[str, Sequence[Any]]],
-        late_cells: Union[str, Mapping[str, Sequence[Any]]],
+        early_annotation: Filter_t,
+        late_annotation: Filter_t,
         forward: bool = False,  # return value will be row-stochastic if forward=True, else column-stochastic
         aggregation_mode: Literal["annotation", "cell"] = AggregationMode.ANNOTATION,  # type: ignore[assignment]
         online: bool = False,
@@ -168,27 +167,29 @@ class TemporalMixin(AnalysisMixin[K, B]):
             Time point corresponding to the early distribution.
         end
             Time point corresponding to the late distribution.
-        early_cells
+        early_annotation
             Can be one of the following:
-                - if `early_cells` is of type :class:`str` this should correspond to a key in
+                - if `early_annotation` is of type :class:`str` this should correspond to a key in
                   :attr:`anndata.AnnData.obs`. In this case, the categories in the transition matrix correspond to the
-                  unique values in :attr:`anndata.AnnData.obs` ``['{early_cells}']``
-                - if `early_cells` is of :class:`dict`, `key` should correspond to a key in
+                  unique values in :attr:`anndata.AnnData.obs` ``['{early_annotation}']``
+                - if `early_annotation` is of :class:`dict`, `key` should correspond to a key in
                   :attr:`anndata.AnnData.obs` and its `value` to a subset of categories present in
-                  :attr:`anndata.AnnData.obs` ``['{early_cells.keys()[0]}']``
-        late_cells
+                  :attr:`anndata.AnnData.obs` ``['{early_annotation.keys()[0]}']``
+        late_annotation
             Can be one of the following
-                - if `late_cells` is of type :class:`str` this should correspond to a key in
+                - if `late_annotation` is of type :class:`str` this should correspond to a key in
                   :attr:`anndata.AnnData.obs`. In this case, the categories in the transition matrix correspond to the
-                  unique values in :attr:`anndata.AnnData.obs` ``['{late_cells}']``
-                - if `late_cells` is of :class:`dict`, its `key` should correspond to a key in
+                  unique values in :attr:`anndata.AnnData.obs` ``['{late_annotation}']``
+                - if `late_annotation` is of :class:`dict`, its `key` should correspond to a key in
                   :attr:`anndata.AnnData.obs` and its `value` to a subset of categories present in
-                  :attr:`anndata.AnnData.obs` ``['{late_cells.keys()[0]}']``
+                  :attr:`anndata.AnnData.obs` ``['{late_annotation.keys()[0]}']``
         forward
-            If `True` computes transition from cells belonging to `source_cells` to cells belonging to `target_cells`.
+            If `True` computes transition from cells belonging to `source_annotation` to cells belonging
+            to `target_annotation`.
         aggregation_mode:
-            If `aggregation_mode` is `group` the transition probabilities from the groups defined by `source_cells` are
-            returned. If `aggregation_mode` is `cell` the transition probablities for each cell are returned.
+            If `aggregation_mode` is `group` the transition probabilities from the groups defined by
+            `source_annotation` are returned. If `aggregation_mode` is `cell` the transition probablities
+            for each cell are returned.
         %(online)s
 
         Returns
@@ -198,11 +199,11 @@ class TemporalMixin(AnalysisMixin[K, B]):
         if TYPE_CHECKING:
             assert isinstance(self.temporal_key, str)
         return self._cell_transition(
+            key=self.temporal_key,
             source_key=start,
             target_key=end,
-            key=self.temporal_key,
-            source_cells=early_cells,
-            target_cells=late_cells,
+            source_annotation=early_annotation,
+            target_annotation=late_annotation,
             forward=forward,
             aggregation_mode=AggregationMode(aggregation_mode),
             online=online,
@@ -620,7 +621,7 @@ class TemporalMixin(AnalysisMixin[K, B]):
                     **kwargs,
                 )
             )
-        return np.mean(dist)
+        return np.mean(dist)  # type: ignore[return-value]
 
     def plot_ancestors(
         self: TemporalMixinProtocol[K, B],

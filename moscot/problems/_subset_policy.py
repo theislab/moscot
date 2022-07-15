@@ -252,9 +252,9 @@ class ExternalStarPolicy(FormatterMixin, StarPolicy[K]):
 
     def __init__(self, adata: Union[AnnData, pd.Series, pd.Categorical], tgt_name: str = "ref", **kwargs: Any):
         super().__init__(adata, **kwargs)
-        self._tgt_name = tgt_name
+        self._tgt_name: K = tgt_name  # type: ignore [assignment]
 
-    def _format(self, value: K, *, is_source: bool) -> Union[str, K]:
+    def _format(self, value: K, *, is_source: bool) -> K:
         if is_source:
             return value
         if value is self._SENTINEL:
@@ -263,6 +263,16 @@ class ExternalStarPolicy(FormatterMixin, StarPolicy[K]):
 
     def _create_graph(self, **_: Any) -> Set[Tuple[K, object]]:  # type: ignore[override]
         return {(c, self._SENTINEL) for c in self._cat if c != self._SENTINEL}
+
+    def _plan(self, **_: Any) -> Sequence[Tuple[K, K]]:
+        return [(src, self._format(tgt, is_source=False)) for (src, tgt) in self._graph]
+
+    def add_node(self, node: Union[K, Tuple[K, K]], only_existing: bool = False) -> None:
+        if isinstance(node, tuple):
+            _, tgt = node
+        if tgt is self._tgt_name:
+            return None
+        return super().add_node(node, only_existing=only_existing)  # type: ignore[arg-type]
 
     def create_masks(self, discard_empty: bool = True) -> Dict[Tuple[K, K], Tuple[ArrayLike, ArrayLike]]:
         return super().create_masks(discard_empty=False)
