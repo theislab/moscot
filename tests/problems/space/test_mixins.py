@@ -60,9 +60,9 @@ class TestSpatialAlignmentAnalysisMixin:
                 np.array(sol[k].transport_matrix), np.array(ap.solutions[k].transport_matrix), decimal=3
             )
 
-    @pytest.mark.parametrize("online", [True])
+    @pytest.mark.parametrize("online", [True, False])
     @pytest.mark.parametrize("forward", [True, False])
-    @pytest.mark.parametrize("normalize", [True])
+    @pytest.mark.parametrize("normalize", [True, False])
     def test_cell_transition_pipeline(self, adata_space_rotate: AnnData, online: bool, forward: bool, normalize: bool):
         rng = np.random.RandomState(0)
         adata_space_rotate.obs["celltype"] = rng.choice(["a", "b", "c"], len(adata_space_rotate))
