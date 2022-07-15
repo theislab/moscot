@@ -3,6 +3,7 @@ from pathlib import Path
 import itertools
 
 from sklearn.metrics import pairwise_distances
+from matplotlib.colors import ListedColormap
 from typing_extensions import Protocol
 import ot
 import pandas as pd
@@ -13,7 +14,8 @@ from anndata import AnnData
 import scanpy as sc
 
 from moscot._docs import d
-from moscot._types import ArrayLike, Numeric_t
+from moscot._types import Filter_t, ArrayLike, Numeric_t
+from moscot.problems._plotting import _sankey
 from moscot._constants._constants import AggregationMode
 from moscot.problems.base._mixins import AnalysisMixin, AnalysisMixinProtocol
 from moscot.problems.base._compound_problem import B, K, ApplyOutput_t
@@ -26,6 +28,20 @@ class TemporalMixinProtocol(AnalysisMixinProtocol[K, B], Protocol[K, B]):
     problems: Dict[Tuple[K, K], B]
     temporal_key: Optional[str]
     _temporal_key: Optional[str]
+
+    def cell_transition(
+        self: "TemporalMixinProtocol[K, B]",
+        start: K,
+        end: K,
+        early_cells: Filter_t,
+        late_cells: Filter_t,
+        forward: bool = False,  # return value will be row-stochastic if forward=True, else column-stochastic
+        aggregation_mode: Literal["annotation", "cell"] = AggregationMode.ANNOTATION,  # type: ignore[assignment]
+        online: bool = False,
+        batch_size: Optional[int] = None,
+        normalize: bool = True,
+    ) -> pd.DataFrame:
+        ...
 
     def push(self, *args: Any, **kwargs: Any) -> Optional[ApplyOutput_t[K]]:  # noqa: D102
         ...
@@ -192,6 +208,69 @@ class TemporalMixin(AnalysisMixin[K, B]):
             online=online,
             batch_size=batch_size,
             normalize=normalize,
+        )
+
+    def plot_cell_transition(  # TODO(@MUCDK) adapt to generic plan
+        self: "TemporalMixinProtocol[K, B]",
+        start: K,
+        end: K,
+        early_cells: Filter_t,
+        late_cells: Filter_t,
+        normalize: bool = False,
+        forward: bool = True,
+        restrict_to_existing: bool = True,
+        order_annotations: Optional[List[Any]] = None,
+        captions: Optional[List[str]] = None,
+        colorDict: Optional[Union[Dict[Any, str], ListedColormap]] = None,
+        title: str = "Cell Annotation Maps",
+        **kwargs: Any,
+    ) -> None:
+        """
+        Draw a Sankey diagram visualising transitions of cells across time points.
+
+        """
+        tuples = self._policy.plan(start=start, end=end)
+        cell_transitions = []
+        for (src, tgt) in tuples:
+            cell_transitions.append(
+                self.cell_transition(
+                    src, tgt, early_cells=early_cells, late_cells=late_cells, forward=forward, normalize=normalize
+                )
+            )
+        if captions is None:
+            captions = [str(t) for t in tuples]
+
+        if len(cell_transitions) > 1 and restrict_to_existing:
+            for i, ct in enumerate(cell_transitions[:-1]):
+                present_annotations = list(cell_transitions[i + 1].index)
+                print(present_annotations)
+                cell_transitions[i] = cell_transitions[i][present_annotations]
+
+        if order_annotations is not None:
+            cell_transitions_updated = []
+            for i, ct in enumerate(cell_transitions):
+                order_annotations_present_index = [ann for ann in order_annotations if ann in ct.index]
+                ct = ct.loc[order_annotations_present_index[::-1]]
+                order_annotations_present_columns = [ann for ann in order_annotations if ann in ct.columns]
+                ct = ct[order_annotations_present_columns[::-1]]
+            cell_transitions_updated.append(ct)
+        else:
+            cell_transitions_updated = cell_transitions
+
+        if isinstance(early_cells, str):
+            key = early_cells
+        elif isinstance(early_cells, dict):
+            key = list(early_cells.keys())[0]
+        else:
+            raise TypeError("TODO: `early_cells must be of type `str` or `dict`.")
+        _sankey(
+            adata=self.adata,
+            key=key,
+            transition_matrices=cell_transitions_updated,
+            captions=captions,
+            colorDict=colorDict,
+            title=title,
+            **kwargs,
         )
 
     def push(

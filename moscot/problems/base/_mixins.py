@@ -1,6 +1,5 @@
 from typing import Any, Dict, List, Tuple, Union, Generic, Literal, Iterable, Optional, Sequence, TYPE_CHECKING
 
-from matplotlib.colors import ListedColormap
 from typing_extensions import Protocol
 from scipy.sparse.linalg import LinearOperator
 import pandas as pd
@@ -11,7 +10,6 @@ from anndata import AnnData
 
 from moscot._types import Filter_t, ArrayLike, Numeric_t
 from moscot.solvers._output import BaseSolverOutput
-from moscot.problems._plotting import _sankey
 from moscot.problems.base._utils import (
     _get_cell_indices,
     _get_df_cell_transition,
@@ -607,58 +605,3 @@ class AnalysisMixin(Generic[K, B]):
         )
         transition_matrix = df_res.groupby(key_added).sum()
         return transition_matrix[transition_matrix.index.isin(annotations_to_keep)]
-
-    def plot_cell_transition(  # TODO(@MUCDK) adapt to generic plan
-        self: "AnalysisMixinProtocol[K, B]",
-        path: List[Tuple[K, K]],
-        key: str,
-        early_cells: Filter_t,
-        late_cells: Filter_t,
-        normalize: bool = False,
-        forward: bool = True,
-        restrict_to_existing: bool = True,
-        order_annotations: Optional[List[Any]] = None,
-        captions: Optional[Union[List[str], bool]] = None,
-        colorDict: Optional[Union[Dict[Any, str], ListedColormap]] = None,
-        title: str = "Cell Annotation Maps",
-        **kwargs: Any,
-    ) -> None:
-        for tup in path:
-            if tup not in self.problems:
-                raise KeyError(f"TODO: No transport map computed for {tup}.")
-        cell_transitions = []
-        for (src, tgt) in path:
-            cell_transitions.append(
-                self.cell_transition(
-                    src, tgt, early_cells=early_cells, late_cells=late_cells, forward=forward, normalize=normalize
-                )
-            )
-        if captions is None:
-            captions = path
-
-        if len(cell_transitions) > 1 and restrict_to_existing:
-            for i, ct in enumerate(cell_transitions[:-1]):
-                present_annotations = list(cell_transitions[i + 1].index)
-                print(present_annotations)
-                cell_transitions[i] = cell_transitions[i][present_annotations]
-
-        if order_annotations is not None:
-            cell_transitions_updated = []
-            for i, ct in enumerate(cell_transitions):
-                order_annotations_present_index = [ann for ann in order_annotations if ann in ct.index]
-                ct = ct.loc[order_annotations_present_index[::-1]]
-                order_annotations_present_columns = [ann for ann in order_annotations if ann in ct.columns]
-                ct = ct[order_annotations_present_columns[::-1]]
-            cell_transitions_updated.append(ct)
-        else:
-            pass
-
-        _sankey(
-            adata=self.adata,
-            key=early_cells,
-            transition_matrices=cell_transitions_updated,
-            captions=captions,
-            colorDict=colorDict,
-            title=title,
-            **kwargs,
-        )
