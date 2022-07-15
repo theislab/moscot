@@ -1,4 +1,5 @@
-from typing import Any, Dict, List, Tuple, Union, Literal, Optional, TYPE_CHECKING
+from typing import Any, Set, Dict, List, Tuple, Union, Literal, Optional, TYPE_CHECKING
+from pathlib import Path
 import itertools
 
 from sklearn.metrics import pairwise_distances
@@ -211,7 +212,7 @@ class TemporalMixin(AnalysisMixin[K, B]):
             normalize=normalize,
         )
 
-    def plot_cell_transition(  # TODO(@MUCDK) adapt to generic plan
+    def plot_cell_transition(
         self: "TemporalMixinProtocol[K, B]",
         start: K,
         end: K,
@@ -223,7 +224,7 @@ class TemporalMixin(AnalysisMixin[K, B]):
         order_annotations: Optional[List[Any]] = None,
         captions: Optional[List[str]] = None,
         colorDict: Optional[Union[Dict[Any, str], ListedColormap]] = None,
-        title: str = "Cell Annotation Maps",
+        title: Optional[str] = None,
         **kwargs: Any,
     ) -> None:
         """
@@ -707,9 +708,9 @@ class TemporalMixin(AnalysisMixin[K, B]):
             fill_keys: Set[K] = set()
         else:
             fill_keys = set(data.keys()) - {start, end}
-        data = self._flatten(data, key=self.temporal_key, fill_keys=fill_keys, fill_value=fill_value)
+        flattened_data = self._flatten(data, key=self.temporal_key, fill_keys=fill_keys, fill_value=fill_value)
         if result_key is not None:
-            self.adata.obs[result_key] = data
+            self.adata.obs[result_key] = flattened_data
 
         sc.pl.scatter(self.adata, color=data, basis=basis, save=save, **kwargs)
 

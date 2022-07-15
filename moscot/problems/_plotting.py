@@ -80,7 +80,7 @@ def _sankey(
     transition_matrices: List[pd.DataFrame],
     captions: Optional[List[str]] = None,
     colorDict: Optional[Union[Dict[Any, str], ListedColormap]] = None,
-    title: str = "Cell Annotation Maps",
+    title: Optional[str] = None,
     **kwargs: Any,
 ) -> None:
     if captions is not None and len(captions) != len(transition_matrices):
@@ -215,4 +215,5 @@ def _sankey(
 
         plt.gca().axis("off")
         plt.gcf().set_size_inches(6, 6)
-        plt.title(title)
+        if title is not None:
+            plt.title(title)
