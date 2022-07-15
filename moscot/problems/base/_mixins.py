@@ -56,9 +56,11 @@ class AnalysisMixinProtocol(Protocol[K, B]):
         ...
 
     def push(self, *args: Any, **kwargs: Any) -> Optional[ApplyOutput_t[K]]:
+        """Push distribution."""
         ...
 
     def pull(self, *args: Any, **kwargs: Any) -> Optional[ApplyOutput_t[K]]:
+        """Pull distribution."""
         ...
 
     def _cell_transition_online(

@@ -153,10 +153,12 @@ class TemporalMixin(AnalysisMixin[K, B]):
                   :attr:`anndata.AnnData.obs` and its `value` to a subset of categories present in
                   :attr:`anndata.AnnData.obs` ``['{late_annotation.keys()[0]}']``
         forward
-            If `True` computes transition from cells belonging to `source_annotation` to cells belonging to `target_annotation`.
+            If `True` computes transition from cells belonging to `source_annotation` to cells belonging
+            to `target_annotation`.
         aggregation_mode:
-            If `aggregation_mode` is `group` the transition probabilities from the groups defined by `source_annotation` are
-            returned. If `aggregation_mode` is `cell` the transition probablities for each cell are returned.
+            If `aggregation_mode` is `group` the transition probabilities from the groups defined by
+            `source_annotation` are returned. If `aggregation_mode` is `cell` the transition probablities
+            for each cell are returned.
         %(online)s
 
         Returns

@@ -352,6 +352,7 @@ class SpatialMappingMixin(AnalysisMixin[K, B]):
         batch_size: Optional[int] = None,
         normalize: bool = True,
     ) -> pd.DataFrame:
+        """Compute cell transition."""
         if TYPE_CHECKING:
             assert self.batch_key is not None
         return self._cell_transition(
