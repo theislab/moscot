@@ -356,10 +356,10 @@ class SpatialMappingMixin(AnalysisMixin[K, B]):
             assert self.batch_key is not None
         return self._cell_transition(
             key=self.batch_key,
-            source_key=None,
-            target_key=batch,
-            source_annotation=sc_cells,  # change it to source_groups
-            target_annotation=spatial_cells,  # change it to target_groups
+            source_key=batch,
+            target_key=None,
+            source_annotation=spatial_cells,  # change it to source_groups
+            target_annotation=sc_cells,  # change it to target_groups
             forward=forward,
             aggregation_mode=AggregationMode(aggregation_mode),
             online=online,

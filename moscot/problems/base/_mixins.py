@@ -155,20 +155,20 @@ class AnalysisMixin(Generic[K, B]):
         normalize: bool = True,
         **_: Any,
     ) -> pd.DataFrame:
-        source_annotation_key, source_annotations = _validate_args_cell_transition(
-            self.adata if other_adata is None else other_adata, source_annotation
+        source_annotation_key, source_annotations = _validate_args_cell_transition(self.adata, source_annotation)
+        target_annotation_key, target_annotations = _validate_args_cell_transition(
+            self.adata if other_adata is None else other_adata, target_annotation
         )
-        target_annotation_key, target_annotations = _validate_args_cell_transition(self.adata, target_annotation)
 
         df_source = _get_df_cell_transition(
-            self.adata if other_adata is None else other_adata,
-            key if other_adata is None else other_key,
+            self.adata,
+            key,
             source_key,
             source_annotation_key,
         )
         df_target = _get_df_cell_transition(
-            self.adata,
-            key,
+            self.adata if other_adata is None else other_adata,
+            key if other_adata is None else other_key,
             target_key,
             target_annotation_key,
         )
@@ -183,13 +183,12 @@ class AnalysisMixin(Generic[K, B]):
             forward=forward,
         )
 
-        source_cell_indices = _get_cell_indices(
-            self.adata if other_adata is None else other_adata, key if other_adata is None else other_key, source_key
+        source_cell_indices = _get_cell_indices(self.adata, key, source_key)
+        target_cell_indices = _get_cell_indices(
+            self.adata if other_adata is None else other_adata, key if other_adata is None else other_key, target_key
         )
-        target_cell_indices = _get_cell_indices(self.adata, key, target_key)
 
         problem_key = _get_problem_key(source_key, target_key)
-
         transition_matrix_indexed = pd.DataFrame(
             index=source_cell_indices,
             columns=target_cell_indices,
@@ -199,8 +198,8 @@ class AnalysisMixin(Generic[K, B]):
 
         if forward:
             transition_matrix = self.cell_aggregation_offline_helper(
-                adata=self.adata if other_adata is None else other_adata,
-                key=key if other_key is None else other_key,
+                adata=self.adata,
+                key=key,
                 df=df_target,
                 cell_indices_1=source_cell_indices,
                 cell_indices_2=target_cell_indices,
@@ -215,8 +214,8 @@ class AnalysisMixin(Generic[K, B]):
             )
         else:
             transition_matrix = self.cell_aggregation_offline_helper(
-                adata=self.adata,
-                key=key,
+                adata=self.adata if other_adata is None else other_adata,
+                key=key if other_adata is None else other_key,
                 df=df_source,
                 cell_indices_1=target_cell_indices,
                 cell_indices_2=source_cell_indices,
@@ -573,7 +572,7 @@ class AnalysisMixin(Generic[K, B]):
         aggregation_mode: Literal["annotation", "cell"],
         forward: bool,
     ) -> pd.DataFrame:
-        key_added = "cell_annotations"
+        key_added = "cell_annotations"  # TODO(giovp): use constants, expose.
         solution_key = _get_problem_key(
             filter_key_1 if forward else filter_key_2, filter_key_2 if forward else filter_key_1
         )

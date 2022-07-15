@@ -90,7 +90,7 @@ def _get_df_cell_transition(
     annotation_key: Optional[str] = None,
 ) -> pd.DataFrame:
     if key is None:
-        return adata.obs.copy()
+        return adata.obs[[annotation_key]].copy()
     return adata[adata.obs[key] == key_value].obs[[annotation_key]].copy()
 
 
@@ -142,7 +142,7 @@ def _get_problem_key(
     if source_key is not None and target_key is not None:
         return (source_key, target_key)
     elif source_key is None and target_key is not None:
-        return (target_key, "ref")  # TODO(@MUCDK) make package constant
+        return ("src", target_key)  # TODO(@MUCDK) make package constant
     elif source_key is not None and target_key is None:
-        return ("src", source_key)  # TODO(@MUCDK) make package constant
+        return (source_key, "ref")  # TODO(@MUCDK) make package constant
     return ("src", "ref")
