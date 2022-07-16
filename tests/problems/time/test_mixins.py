@@ -14,7 +14,8 @@ from moscot.problems.time._lineage import TemporalProblem
 class TestTemporalMixin:
     @pytest.mark.fast()
     @pytest.mark.parametrize("forward", [True, False])
-    def test_cell_transition_full_pipeline(self, gt_temporal_adata: AnnData, forward: bool):
+    @pytest.mark.parametrize("online", [True, False])
+    def test_cell_transition_full_pipeline(self, gt_temporal_adata: AnnData, forward: bool, online: bool):
         config = gt_temporal_adata.uns
         key = config["key"]
         key_1 = config["key_1"]
@@ -27,18 +28,27 @@ class TestTemporalMixin:
         problem[(key_1, key_2)]._solution = MockSolverOutput(gt_temporal_adata.uns["tmap_10_105"])
         problem[(key_2, key_3)]._solution = MockSolverOutput(gt_temporal_adata.uns["tmap_105_11"])
 
-        result = problem.cell_transition(key_1, key_2, "cell_type", "cell_type", forward=forward)
+        cell_types_present_key_1 = (
+            gt_temporal_adata[gt_temporal_adata.obs[key] == key_1].obs["cell_type"].cat.categories
+        )
+        cell_types_present_key_2 = (
+            gt_temporal_adata[gt_temporal_adata.obs[key] == key_2].obs["cell_type"].cat.categories
+        )
+
+        result = problem.cell_transition(key_1, key_2, "cell_type", "cell_type", forward=forward, online=online)
         assert isinstance(result, pd.DataFrame)
-        assert result.shape == (len(cell_types), len(cell_types))
-        assert set(result.index) == cell_types
-        assert set(result.columns) == cell_types
+        expected_shape = (len(cell_types_present_key_1), len(cell_types_present_key_2))
+        assert result.shape == expected_shape
+        assert set(result.index) == set(cell_types_present_key_1) if forward else set(cell_types)
+        assert set(result.columns) == set(cell_types_present_key_2) if not forward else set(cell_types)
         marginal = result.sum(axis=forward == 1).values
         present_cell_type_marginal = marginal[marginal > 0]
         np.testing.assert_almost_equal(present_cell_type_marginal, 1, decimal=5)
 
     @pytest.mark.fast()
     @pytest.mark.parametrize("forward", [True, False])
-    def test_cell_transition_subset_pipeline(self, gt_temporal_adata: AnnData, forward: bool):
+    @pytest.mark.parametrize("online", [True, False])
+    def test_cell_transition_subset_pipeline(self, gt_temporal_adata: AnnData, forward: bool, online: bool):
         config = gt_temporal_adata.uns
         key = config["key"]
         key_1 = config["key_1"]
@@ -50,33 +60,54 @@ class TestTemporalMixin:
         problem[key_1, key_2]._solution = MockSolverOutput(gt_temporal_adata.uns["tmap_10_105"])
         problem[key_2, key_3]._solution = MockSolverOutput(gt_temporal_adata.uns["tmap_105_11"])
 
-        early_cells = ["Stromal", "unknown"]
-        late_cells = ["Stromal", "Epithelial"]
+        early_annotation = ["Stromal", "unknown"]
+        late_annotation = ["Stromal", "Epithelial"]
         result = problem.cell_transition(
-            key_1, key_2, {"cell_type": early_cells}, {"cell_type": late_cells}, forward=forward
+            key_1,
+            key_2,
+            {"cell_type": early_annotation},
+            {"cell_type": late_annotation},
+            forward=forward,
+            online=online,
         )
         assert isinstance(result, pd.DataFrame)
-        assert result.shape == (2, 2)
-        assert set(result.index) == set(early_cells)
-        assert set(result.columns) == set(late_cells)
+        assert result.shape == (len(early_annotation), len(late_annotation))
+        assert set(result.index) == set(early_annotation)
+        assert set(result.columns) == set(late_annotation)
+
         marginal = result.sum(axis=forward == 1).values
         present_cell_type_marginal = marginal[marginal > 0]
         np.testing.assert_almost_equal(present_cell_type_marginal, np.ones(len(present_cell_type_marginal)), decimal=5)
 
     @pytest.mark.parametrize("forward", [True, False])
-    def test_cell_transition_regression(self, gt_temporal_adata: AnnData, forward: bool):
+    @pytest.mark.parametrize("online", [True, False])
+    def test_cell_transition_regression(self, gt_temporal_adata: AnnData, forward: bool, online: bool):
         config = gt_temporal_adata.uns
         key = config["key"]
         key_1 = config["key_1"]
         key_2 = config["key_2"]
         key_3 = config["key_3"]
+        set(gt_temporal_adata.obs["cell_type"].cat.categories)
         problem = TemporalProblem(gt_temporal_adata)
         problem = problem.prepare(key)
         assert set(problem.problems.keys()) == {(key_1, key_2), (key_2, key_3)}
         problem[key_1, key_2]._solution = MockSolverOutput(gt_temporal_adata.uns["tmap_10_105"])
         problem[key_2, key_3]._solution = MockSolverOutput(gt_temporal_adata.uns["tmap_105_11"])
-        result = problem.cell_transition(10, 10.5, early_cells="cell_type", late_cells="cell_type", forward=forward)
-        assert result.shape == (5, 5)
+        result = problem.cell_transition(
+            10, 10.5, early_annotation="cell_type", late_annotation="cell_type", forward=forward, online=online
+        )
+        cell_types_present_key_1 = (
+            gt_temporal_adata[gt_temporal_adata.obs[key] == key_1].obs["cell_type"].cat.categories
+        )
+        cell_types_present_key_2 = (
+            gt_temporal_adata[gt_temporal_adata.obs[key] == key_2].obs["cell_type"].cat.categories
+        )
+        expected_shape = (
+            (len(cell_types_present_key_1), len(cell_types_present_key_2))
+            if forward
+            else (len(cell_types_present_key_1), len(cell_types_present_key_2))
+        )
+        assert result.shape == expected_shape
         marginal = result.sum(axis=forward == 1).values
         present_cell_type_marginal = marginal[marginal > 0]
         np.testing.assert_almost_equal(present_cell_type_marginal, np.ones(len(present_cell_type_marginal)), decimal=5)
@@ -258,10 +289,17 @@ class TestTemporalMixin:
             assert inter_param == 0.5
 
     @pytest.mark.fast()
-    def test_cell_transition_regression_notparam(self, adata_time_with_tmap: AnnData):  # TODO(MUCDK): please check.
+    @pytest.mark.parametrize("online", [True, False])
+    def test_cell_transition_regression_notparam(
+        self, adata_time_with_tmap: AnnData, online: bool
+    ):  # TODO(MUCDK): please check.
         problem = TemporalProblem(adata_time_with_tmap)
         problem = problem.prepare("time")
         problem[0, 1]._solution = MockSolverOutput(adata_time_with_tmap.uns["transport_matrix"])
 
-        result = problem.cell_transition(0, 1, early_cells="cell_type", late_cells="cell_type", forward=True)
-        np.testing.assert_almost_equal(result.values, adata_time_with_tmap.uns["cell_transition_gt"].values, decimal=8)
+        result = problem.cell_transition(
+            0, 1, early_annotation="cell_type", late_annotation="cell_type", forward=True, online=online
+        )
+        res = result.sort_index().sort_index(1)
+        df_expected = adata_time_with_tmap.uns["cell_transition_gt"].sort_index().sort_index(1)
+        np.testing.assert_almost_equal(res.values, df_expected.values, decimal=8)

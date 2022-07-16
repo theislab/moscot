@@ -33,3 +33,9 @@ class AlignmentMode(ModeEnum):
 class CorrMethod(ModeEnum):
     PEARSON = "pearson"
     SPEARMAN = "spearman"
+
+
+@unique
+class AggregationMode(ModeEnum):
+    ANNOTATION = "annotation"
+    CELL = "cell"

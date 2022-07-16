@@ -89,10 +89,10 @@ def _create_adata(data_path: str) -> AnnData:
 def _write_analysis_output(cdata: AnnData, tp2: TemporalProblem, config: Dict[str, Any]) -> AnnData:
     cdata.obs["cell_type"] = cdata.obs["cell_type"].astype("category")
     cdata.uns["cell_transition_10_105_backward"] = tp2.cell_transition(
-        config["key_1"], config["key_2"], early_cells="cell_type", late_cells="cell_type", forward=False
+        config["key_1"], config["key_2"], early_annotation="cell_type", late_annotation="cell_type", forward=False
     )
     cdata.uns["cell_transition_10_105_forward"] = tp2.cell_transition(
-        config["key_1"], config["key_2"], early_cells="cell_type", late_cells="cell_type", forward=True
+        config["key_1"], config["key_2"], early_annotation="cell_type", late_annotation="cell_type", forward=True
     )
     cdata.uns["interpolated_distance_10_105_11"] = tp2.compute_interpolated_distance(
         config["key_1"], config["key_2"], config["key_3"], seed=config["seed"]
