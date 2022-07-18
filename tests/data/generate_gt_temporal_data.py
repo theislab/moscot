@@ -4,7 +4,10 @@ import sys
 try:
     import wot  # please install WOT from commit hash`ca5e94f05699997b01cf5ae13383f9810f0613f6`"
 except ImportError:
-    raise ImportError("Please install WOT from commit hash`ca5e94f05699997b01cf5ae13383f9810f0613f6`")
+    raise ImportError(
+        "Please install WOT from commit hash`ca5e94f05699997b01cf5ae13383f9810f0613f6`"
+        + "with `pip install git+https://github.com/broadinstitute/wot.git@ca5e94f05699997b01cf5ae13383f9810f0613f6`"
+    )
 
 import os
 
@@ -63,6 +66,7 @@ def _write_config(adata: AnnData) -> AnnData:
 
 def _create_adata(data_path: str) -> AnnData:
     # follow instructions on https://broadinstitute.github.io/wot/ to download the data
+    # icb path: /lustre/groups/ml01/workspace/moscot_paper/wot_data/data
     VAR_GENE_DS_PATH = os.path.join(data_path, "ExprMatrix.var.genes.h5ad")
     CELL_DAYS_PATH = os.path.join(data_path, "cell_days.txt")
     SERUM_CELL_IDS_PATH = os.path.join(data_path, "serum_cell_ids.txt")
@@ -85,10 +89,10 @@ def _create_adata(data_path: str) -> AnnData:
 def _write_analysis_output(cdata: AnnData, tp2: TemporalProblem, config: Dict[str, Any]) -> AnnData:
     cdata.obs["cell_type"] = cdata.obs["cell_type"].astype("category")
     cdata.uns["cell_transition_10_105_backward"] = tp2.cell_transition(
-        config["key_1"], config["key_2"], early_cells="cell_type", late_cells="cell_type", forward=False
+        config["key_1"], config["key_2"], early_annotation="cell_type", late_annotation="cell_type", forward=False
     )
     cdata.uns["cell_transition_10_105_forward"] = tp2.cell_transition(
-        config["key_1"], config["key_2"], early_cells="cell_type", late_cells="cell_type", forward=True
+        config["key_1"], config["key_2"], early_annotation="cell_type", late_annotation="cell_type", forward=True
     )
     cdata.uns["interpolated_distance_10_105_11"] = tp2.compute_interpolated_distance(
         config["key_1"], config["key_2"], config["key_3"], seed=config["seed"]
@@ -147,14 +151,14 @@ def generate_gt_temporal_data(data_path: str) -> None:
     tmap_wot_10_11 = ot_model.compute_transport_map(config["key_1"], config["key_3"], cost_matrix=C_13).X
 
     tp = TemporalProblem(cdata)
-    tp.prepare(
+    tp = tp.prepare(
         "day",
         callback="cost-matrix",
         subset=[(10, 10.5), (10.5, 11), (10, 11)],
         policy="explicit",
-        callback_kwargs={"key": "cost_matrices"},
+        callback_kwargs={"key": "cost_matrices", "n_comps": 50},
     )
-    tp.solve(epsilon=config["eps"], tau_a=config["tau_a"], tau_b=config["tau_b"])
+    tp = tp.solve(epsilon=config["eps"], tau_a=config["tau_a"], tau_b=config["tau_b"])
 
     assert (tp[config["key_1"], config["key_2"]].xy.data == C_12).all()
     assert (tp[config["key_2"], config["key_3"]].xy.data == C_23).all()
@@ -186,10 +190,13 @@ def generate_gt_temporal_data(data_path: str) -> None:
     cdata.uns["tmap_10_11"] = np.array(tp[config["key_1"], config["key_3"]].solution.transport_matrix)
 
     tp2 = TemporalProblem(cdata)
-    tp2.prepare(
-        "day", subset=[(10, 10.5), (10.5, 11), (10, 11)], policy="explicit", callback_kwargs={"joint_space": False}
+    tp2 = tp2.prepare(
+        "day",
+        subset=[(10, 10.5), (10.5, 11), (10, 11)],
+        policy="explicit",
+        callback_kwargs={"joint_space": False, "n_comps": 50},
     )
-    tp2.solve(epsilon=config["eps"], tau_a=config["tau_a"], tau_b=config["tau_b"], scale_cost="mean")
+    tp2 = tp2.solve(epsilon=config["eps"], tau_a=config["tau_a"], tau_b=config["tau_b"], scale_cost="mean")
 
     np.testing.assert_array_almost_equal(
         np.array(tp[config["key_1"], config["key_2"]].solution.transport_matrix),
@@ -208,7 +215,6 @@ def generate_gt_temporal_data(data_path: str) -> None:
     cdata = _write_config(cdata)
 
     cdata.write("tests/data/moscot_temporal_tests.h5ad")
-
 
 if __name__ == "__main__":
     generate_gt_temporal_data(sys.argv[1])

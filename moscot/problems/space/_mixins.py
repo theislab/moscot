@@ -1,4 +1,4 @@
-from typing import Any, Dict, List, Tuple, Union, Mapping, Callable, Optional, Sequence
+from typing import Any, Dict, List, Tuple, Union, Mapping, Callable, Optional, Sequence, TYPE_CHECKING
 from itertools import chain
 
 from networkx import NetworkXNoPath
@@ -14,9 +14,9 @@ import numpy as np
 from anndata import AnnData
 
 from moscot._docs import d
-from moscot._types import ArrayLike
+from moscot._types import Filter_t, ArrayLike
 from moscot.problems.base import AnalysisMixin  # type: ignore[attr-defined]
-from moscot._constants._constants import CorrMethod, AlignmentMode
+from moscot._constants._constants import CorrMethod, AlignmentMode, AggregationMode
 from moscot.problems.base._mixins import AnalysisMixinProtocol
 from moscot.problems._subset_policy import StarPolicy
 from moscot.problems.base._compound_problem import B, K
@@ -27,6 +27,7 @@ class SpatialAlignmentMixinProtocol(AnalysisMixinProtocol[K, B]):
 
     spatial_key: Optional[str]
     _spatial_key: Optional[str]
+    batch_key: Optional[str]
 
     def _subset_spatial(self: "SpatialAlignmentMixinProtocol[K, B]", k: K) -> ArrayLike:
         ...
@@ -38,17 +39,40 @@ class SpatialAlignmentMixinProtocol(AnalysisMixinProtocol[K, B]):
     ) -> Tuple[Dict[K, ArrayLike], Optional[Dict[K, Optional[ArrayLike]]]]:
         ...
 
+    def _affine(tmap: LinearOperator, tgt: ArrayLike, src: ArrayLike) -> Tuple[ArrayLike, ArrayLike]:
+        ...
+
+    def _warp(tmap: LinearOperator, _: ArrayLike, src: ArrayLike) -> Tuple[ArrayLike, None]:
+        ...
+
+    def _cell_transition(  # TODO(@MUCDK) think about removing _cell_transition_non_online
+        self: AnalysisMixinProtocol[K, B],
+        online: bool,
+        *args: Any,
+        **kwargs: Any,
+    ) -> pd.DataFrame:
+        ...
+
 
 class SpatialMappingMixinProtocol(AnalysisMixinProtocol[K, B]):
     """Protocol class."""
 
     adata_sc: AnnData
     adata_sp: AnnData
+    batch_key: Optional[str]
 
     def _filter_vars(
         self: "SpatialMappingMixinProtocol[K, B]",
         var_names: Optional[Sequence[str]] = None,
     ) -> Optional[List[str]]:
+        ...
+
+    def _cell_transition(  # TODO(@MUCDK) think about removing _cell_transition_non_online
+        self: AnalysisMixinProtocol[K, B],
+        online: bool,
+        *args: Any,
+        **kwargs: Any,
+    ) -> pd.DataFrame:
         ...
 
 
@@ -58,6 +82,7 @@ class SpatialAlignmentMixin(AnalysisMixin[K, B]):
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
         self._spatial_key: Optional[str] = None
+        self._batch_key: Optional[str] = None
 
     def _interpolate_scheme(
         self: SpatialAlignmentMixinProtocol[K, B],
@@ -86,12 +111,12 @@ class SpatialAlignmentMixin(AnalysisMixin[K, B]):
             except NetworkXNoPath:
                 bwd_steps[(reference, start)] = self._policy.plan(start=reference, end=start)
 
-        if mode == "affine":
+        if mode == "affine":  # TODO(@MUCDK): infer correct types
             _transport: Callable[
                 [LinearOperator, ArrayLike, ArrayLike], Tuple[ArrayLike, Optional[ArrayLike]]
-            ] = _affine
+            ] = self._affine  # type: ignore[assignment]
         else:
-            _transport = _warp
+            _transport = self._warp  # type: ignore[assignment]
 
         if len(fwd_steps):
             for (start, _), path in fwd_steps.items():
@@ -153,21 +178,81 @@ class SpatialAlignmentMixin(AnalysisMixin[K, B]):
     def _subset_spatial(self: SpatialAlignmentMixinProtocol[K, B], k: K) -> ArrayLike:
         return self.adata[self.adata.obs[self._policy._subset_key] == k].obsm[self.spatial_key].copy()
 
+    def cell_transition(
+        self: SpatialAlignmentMixinProtocol[K, B],
+        slice: K,
+        reference: K,
+        slice_cells: Filter_t,
+        reference_cells: Filter_t,
+        forward: bool = False,  # return value will be row-stochastic if forward=True, else column-stochastic
+        aggregation_mode: Literal["annotation", "cell"] = AggregationMode.ANNOTATION,  # type: ignore[assignment]
+        online: bool = False,
+        batch_size: Optional[int] = None,
+        normalize: bool = True,
+    ) -> pd.DataFrame:
+        """Partly copy from other cell_transitions."""
+        if TYPE_CHECKING:
+            assert isinstance(self.batch_key, str)
+        return self._cell_transition(
+            key=self.batch_key,
+            source_key=slice,
+            target_key=reference,
+            source_annotation=slice_cells,
+            target_annotation=reference_cells,
+            forward=forward,
+            aggregation_mode=AggregationMode(aggregation_mode),
+            online=online,
+            other_key=None,
+            other_adata=None,
+            batch_size=batch_size,
+            normalize=normalize,
+        )
+
     @property
     def spatial_key(self) -> Optional[str]:
         """Return spatial key."""
         return self._spatial_key
 
     @spatial_key.setter
-    def spatial_key(self: SpatialAlignmentMixinProtocol[K, B], value: Optional[str] = None) -> None:
-        if value not in self.adata.obsm:
+    def spatial_key(self: SpatialAlignmentMixinProtocol[K, B], value: Optional[str]) -> None:
+        if value is not None and value not in self.adata.obsm:
             raise KeyError(f"TODO: {value} not found in `adata.obsm`.")
         # TODO(@MUCDK) check data type -> which ones do we allow
         self._spatial_key = value
 
+    @property
+    def batch_key(self) -> Optional[str]:
+        """Return batch key."""
+        return self._batch_key
+
+    @batch_key.setter
+    def batch_key(self, value: Optional[str]) -> None:
+        if value is not None and value not in self.adata.obs:
+            raise KeyError(f"{value} not in `adata.obs`.")
+        self._batch_key = value
+
+    @staticmethod
+    def _affine(tmap: LinearOperator, tgt: ArrayLike, src: ArrayLike) -> Tuple[ArrayLike, ArrayLike]:
+        """Affine transformation."""
+        tgt -= tgt.mean(0)
+        H = tgt.T.dot(tmap.dot(src))
+        U, _, Vt = svd(H)
+        R = Vt.T.dot(U.T)
+        tgt = R.dot(tgt.T).T
+        return tgt, R
+
+    @staticmethod
+    def _warp(tmap: LinearOperator, _: ArrayLike, src: ArrayLike) -> Tuple[ArrayLike, None]:
+        """Warp transformation."""
+        return tmap.dot(src), None
+
 
 class SpatialMappingMixin(AnalysisMixin[K, B]):
     """Spatial mapping analysis mixin class."""
+
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
+        super().__init__(*args, **kwargs)
+        self._batch_key: Optional[str] = None
 
     def _filter_vars(
         self: SpatialMappingMixinProtocol[K, B],
@@ -213,7 +298,12 @@ class SpatialMappingMixin(AnalysisMixin[K, B]):
         if var_sc is None or not len(var_sc):
             raise ValueError("No overlapping `var_names` between ` adata_sc` and `adata_sp`.")
         corr_method = CorrMethod(corr_method)  # type: ignore[assignment]
-        cor = pearsonr if corr_method == "pearson" else spearmanr
+        if corr_method == CorrMethod.PEARSON:  # type: ignore[comparison-overlap]
+            cor = pearsonr
+        elif corr_method == CorrMethod.SPEARMAN:  # type: ignore[comparison-overlap]
+            cor = spearmanr
+        else:
+            raise NotImplementedError("TODO: `corr_method` must be `pearson` or `spearman`.")
         corr_dic = {}
         gexp_sc = self.adata_sc[:, var_sc].X if not issparse(self.adata_sc.X) else self.adata_sc[:, var_sc].X.A
         for key, val in self.solutions.items():
@@ -251,17 +341,42 @@ class SpatialMappingMixin(AnalysisMixin[K, B]):
         adata_pred.var_names = self.adata_sc.var_names.copy()
         return adata_pred
 
+    def cell_transition(
+        self: SpatialMappingMixinProtocol[K, B],
+        batch: K,
+        spatial_cells: Filter_t,
+        sc_cells: Filter_t,
+        forward: bool = False,  # return value will be row-stochastic if forward=True, else column-stochastic
+        aggregation_mode: Literal["annotation", "cell"] = AggregationMode.ANNOTATION,  # type: ignore[assignment]
+        online: bool = False,
+        batch_size: Optional[int] = None,
+        normalize: bool = True,
+    ) -> pd.DataFrame:
+        """Compute cell transition."""
+        if TYPE_CHECKING:
+            assert self.batch_key is not None
+        return self._cell_transition(
+            key=self.batch_key,
+            source_key=batch,
+            target_key=None,
+            source_annotation=spatial_cells,  # change it to source_groups
+            target_annotation=sc_cells,  # change it to target_groups
+            forward=forward,
+            aggregation_mode=AggregationMode(aggregation_mode),
+            online=online,
+            other_key=None,
+            other_adata=self.adata_sc,
+            batch_size=batch_size,
+            normalize=normalize,
+        )
 
-def _affine(tmap: LinearOperator, tgt: ArrayLike, src: ArrayLike) -> Tuple[ArrayLike, ArrayLike]:
-    """Affine transformation."""
-    tgt -= tgt.mean(0)
-    H = tgt.T.dot(tmap.dot(src))
-    U, _, Vt = svd(H)
-    R = Vt.T.dot(U.T)
-    tgt = R.dot(tgt.T).T
-    return tgt, R
+    @property
+    def batch_key(self) -> Optional[str]:
+        """Return batch key."""
+        return self._batch_key
 
-
-def _warp(tmap: LinearOperator, _: ArrayLike, src: ArrayLike) -> Tuple[ArrayLike, None]:
-    """Warp transformation."""
-    return tmap.dot(src), None
+    @batch_key.setter
+    def batch_key(self, value: Optional[str]) -> None:
+        if value is not None and value not in self.adata.obs:
+            raise KeyError(f"{value} not in `adata.obs`.")
+        self._batch_key = value

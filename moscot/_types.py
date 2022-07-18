@@ -1,4 +1,4 @@
-from typing import Union
+from typing import Any, Union, Mapping, Optional, Sequence
 
 import numpy as np
 
@@ -12,4 +12,5 @@ except (ImportError, TypeError):
     ArrayLike = np.ndarray  # type: ignore[misc]
     DTypeLike = np.dtype  # type: ignore[misc]
 
-Numeric_t = Union[int, float]  # for `time_key` arguments
+Numeric_t = Union[int, float]  # type of `time_key` arguments
+Filter_t = Optional[Union[str, Mapping[str, Sequence[Any]]]]  # type how to filter adata

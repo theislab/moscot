@@ -278,7 +278,6 @@ class FGWSolver(GWSolver):
         description = super()._prepare(x=x, y=y, epsilon=epsilon, batch_size=batch_size, scale_cost=scale_cost)
         geom_xy = self._create_geometry(xy, epsilon=epsilon, batch_size=batch_size, scale_cost=scale_cost)
         self._validate_geoms(description.data.geom_xx, description.data.geom_yy, geom_xy)
-
         problem = QuadraticProblem(
             geom_xx=description.data.geom_xx,
             geom_yy=description.data.geom_yy,

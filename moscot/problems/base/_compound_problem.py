@@ -186,7 +186,6 @@ class BaseCompoundProblem(BaseProblem, ABC, Generic[K, B]):
         """
         if self._valid_policies and policy not in self._valid_policies:
             raise ValueError(f"TODO: Invalid policy `{policy}`")
-
         policy = self._create_policy(policy=policy, key=key, axis=axis)  # type: ignore[assignment]
         if TYPE_CHECKING:
             assert isinstance(policy, SubsetPolicy)
@@ -252,18 +251,21 @@ class BaseCompoundProblem(BaseProblem, ABC, Generic[K, B]):
         data: Optional[Union[str, ArrayLike]] = None,
         forward: bool = True,
         scale_by_marginals: bool = False,
+        start: Optional[K] = None,
+        return_all: bool = True,
         **kwargs: Any,
     ) -> ApplyOutput_t[K]:
         if TYPE_CHECKING:
             assert isinstance(self._policy, StarPolicy)
-
         res = {}
         # TODO(michalk8): should use manager.plan (once implemented), as some problems may not be solved
-        for src, tgt in self._policy.plan(explicit_steps=kwargs.pop("explicit_steps", None)):
+        start = start if isinstance(start, list) else [start]  # type: ignore[assignment]
+        _ = kwargs.pop("end", None)
+        for src, tgt in self._policy.plan(explicit_steps=kwargs.pop("explicit_steps", None), filter=start):  # type: ignore [arg-type]
             problem = self.problems[src, tgt]
             fun = problem.push if forward else problem.pull
             res[src] = fun(data=data, scale_by_marginals=scale_by_marginals, **kwargs)
-        return res
+        return res if return_all else res[src]
 
     @_apply.register(ExplicitPolicy)
     @_apply.register(OrderedPolicy)
@@ -277,11 +279,16 @@ class BaseCompoundProblem(BaseProblem, ABC, Generic[K, B]):
         return_all: bool = False,
         **kwargs: Any,
     ) -> ApplyOutput_t[K]:
+        explicit_steps = kwargs.pop(
+            "explicit_steps", [[start, end]] if isinstance(self._policy, ExplicitPolicy) else None
+        )
         if TYPE_CHECKING:
             assert isinstance(self._policy, OrderedPolicy)
-
         (src, tgt), *rest = self._policy.plan(
-            forward=forward, start=start, end=end, explicit_steps=kwargs.pop("explicit_steps", None)
+            forward=forward,
+            start=start,
+            end=end,
+            explicit_steps=explicit_steps,
         )
         problem = self.problems[src, tgt]
         adata = problem.adata if forward else problem._adata_y

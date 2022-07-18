@@ -1,7 +1,8 @@
 from abc import ABC, abstractmethod
 from enum import Enum
 from types import MappingProxyType
-from typing import Any, Dict, List, Tuple, Union, Mapping, Iterable, Optional, Sequence
+from typing import Any, Dict, List, Tuple, Union, Mapping, Iterable, Optional, Sequence, TYPE_CHECKING
+import logging
 
 from scipy.sparse import vstack, issparse, csr_matrix
 from typing_extensions import Literal
@@ -74,24 +75,44 @@ class BaseProblem(ABC):
     @staticmethod
     def _get_mass(
         adata: AnnData,
-        data: Optional[Union[str, List[str], Tuple[str, ...], ArrayLike]] = None,
-        subset: Optional[Sequence[Any]] = None,
+        data: Optional[Union[str, ArrayLike]] = None,
+        subset: Optional[Union[str, List[str], Tuple[int, int]]] = None,
         normalize: bool = True,
+        *,
+        split_mass: bool = False,
     ) -> ArrayLike:
+        def _split_mass(arr: ArrayLike) -> ArrayLike:
+            if arr.ndim == 2:
+                return arr
+            non_zero_idxs = arr.nonzero()[0]
+            data = np.zeros((len(arr), len(non_zero_idxs)))
+            data[non_zero_idxs, np.arange(len(non_zero_idxs))] = arr[non_zero_idxs]
+            return data
+
         if data is None:
-            data = np.ones((adata.n_obs,), dtype=float)
-        elif isinstance(data, (str, list, tuple)):
-            if isinstance(data, (list, tuple)) and not len(data):
-                raise ValueError("TODO: no subset keys specified.")
-            # TODO: allow mix numeric/categorical keys (how to handle multiple subsets then?)
+            if subset is None:
+                data = np.ones((adata.n_obs,), dtype=float)
+            elif isinstance(subset, List):
+                data = np.asarray(adata.obs.index.isin(subset), dtype=float)
+            elif isinstance(subset, tuple):
+                if subset[0] >= adata.n_obs:
+                    raise IndexError(f"TODO: index {subset[0]} larger than length of `adata` ({adata.n_obs}).")
+                data = np.zeros((adata.n_obs,), dtype=float)
+                data[range(subset[0], min(subset[0] + subset[1], adata.n_obs))] = 1.0
+            else:
+                raise ValueError("TODO: If `data` is `None`, `subset` needs to be `None` or a list with obs indices.")
+        elif isinstance(data, str):
             if subset is None:  # allow for numeric values
                 data = np.asarray(adata.obs[data], dtype=float)
-            elif isinstance(subset, Iterable) and not isinstance(subset, str):
+            elif isinstance(subset, List) and not isinstance(subset, str):
                 data = np.asarray(adata.obs[data].isin(subset), dtype=float)
             else:
                 data = np.asarray(adata.obs[data].values == subset, dtype=float)
         else:
             data = np.asarray(data)
+
+        if split_mass:
+            data = _split_mass(data)
 
         if data.ndim != 2:
             data = np.reshape(data, (-1, 1))
@@ -102,7 +123,6 @@ class BaseProblem(ABC):
         total = np.sum(data, axis=0)[None, :]
         if not np.all(total > 0):
             raise ValueError("TODO: no mass.")
-
         return data / total if normalize else data
 
     @property
@@ -261,26 +281,34 @@ class OTProblem(BaseProblem):
     def push(
         self,
         data: Optional[Union[str, ArrayLike]] = None,
-        subset: Optional[Sequence[Any]] = None,
+        subset: Optional[Union[str, List[str], Tuple[int, int]]] = None,
         normalize: bool = True,
+        *,
+        split_mass: bool = False,
         **kwargs: Any,
     ) -> ArrayLike:
         """Push mass."""
-        data = self._get_mass(self.adata, data=data, subset=subset, normalize=normalize)
-        return self.solution.push(data, **kwargs)  # type: ignore[union-attr]
+        if TYPE_CHECKING:
+            assert isinstance(self.solution, BaseSolverOutput)
+        data = self._get_mass(self.adata, data=data, subset=subset, normalize=normalize, split_mass=split_mass)
+        return self.solution.push(data, **kwargs)
 
     @require_solution
     def pull(
         self,
         data: Optional[Union[str, ArrayLike]] = None,
-        subset: Optional[Sequence[Any]] = None,
+        subset: Optional[Union[str, List[str], Tuple[int, int]]] = None,
         normalize: bool = True,
+        *,
+        split_mass: bool = False,
         **kwargs: Any,
     ) -> ArrayLike:
         """Pull mass."""
         adata = self.adata if self._adata_y is None else self._adata_y
-        data = self._get_mass(adata, data=data, subset=subset, normalize=normalize)
-        return self.solution.pull(data, **kwargs)  # type: ignore[union-attr]
+        if TYPE_CHECKING:
+            assert isinstance(self.solution, BaseSolverOutput)
+        data = self._get_mass(adata, data=data, subset=subset, normalize=normalize, split_mass=split_mass)
+        return self.solution.pull(data, **kwargs)
 
     @staticmethod
     def _local_pca_callback(
@@ -302,18 +330,22 @@ class OTProblem(BaseProblem):
         x = adata.X if layer is None else adata.layers[layer]
         y = adata_y.X if layer is None else adata_y.layers[layer]
 
+        n_comps = kwargs.pop("n_comps", 30)  # set n_comps=30 as default
+
+        logging.info("Computing pca with `n_comps = {n_comps}` and `joint_space = {joint_space}`.")
+
         if return_linear:
             n = x.shape[0]
             joint_space = kwargs.pop("joint_space", True)
             if joint_space:
-                data = sc.pp.pca(concat(x, y), **kwargs)
+                data = sc.pp.pca(concat(x, y), n_comps=n_comps, **kwargs)
             else:
-                data = concat(sc.pp.pca(x, **kwargs), sc.pp.pca(y, **kwargs))
+                data = concat(sc.pp.pca(x, n_comps=n_comps, **kwargs), sc.pp.pca(y, n_comps=n_comps, **kwargs))
 
             return {"xy": TaggedArray(data[:n], data[n:], tag=Tag.POINT_CLOUD)}
 
-        x = sc.pp.pca(x, **kwargs)
-        y = sc.pp.pca(y, **kwargs)
+        x = sc.pp.pca(x, n_comps=n_comps, **kwargs)
+        y = sc.pp.pca(y, n_comps=n_comps, **kwargs)
         return {"x": TaggedArray(x, tag=Tag.POINT_CLOUD), "y": TaggedArray(y, tag=Tag.POINT_CLOUD)}
 
     def _create_marginals(
