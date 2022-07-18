@@ -8,11 +8,12 @@ from ott.core.sinkhorn import sinkhorn
 from ott.core.sinkhorn_lr import LRSinkhorn
 from ott.core.quad_problems import QuadraticProblem
 from ott.core.gromov_wasserstein import GromovWasserstein, gromov_wasserstein
+import jax
 import numpy as np
 import jax.numpy as jnp
 
 from tests._utils import ATOL, RTOL, Geom_t
-from moscot._types import ArrayLike
+from moscot._types import ArrayLike, DTypeLike
 from moscot.backends.ott import GWSolver, FGWSolver, SinkhornSolver  # type: ignore[attr-defined]
 from moscot.solvers._output import BaseSolverOutput
 from moscot.backends.ott._output import OTTOutput
@@ -244,3 +245,29 @@ class TestSolverOutput:
             np.testing.assert_allclose(p.sum(axis=0), z.sum(axis=0))
         else:
             np.testing.assert_allclose(p.sum(), z.sum())
+
+    @pytest.mark.parametrize("device", [None, "cpu", "cpu:0", "cpu:1", "explicit"])
+    def test_to_device(self, x: Geom_t, device: Optional[str]):
+        # simple integration test
+        solver = SinkhornSolver()
+        if device == "explicit":
+            device = jax.devices()[0]
+            _ = solver(xy=(x, x), device=device)
+        elif device == "cpu:1":
+            with pytest.raises(IndexError, match=r"TODO"):
+                _ = solver(xy=(x, x), device=device)
+        else:
+            _ = solver(xy=(x, x), device=device)
+
+    @pytest.mark.parametrize("dtype", [None, jnp.float16, jnp.float32, jnp.float64, float, np.float32])
+    def test_to_dtype(self, x: Geom_t, dtype: Optional[DTypeLike]):
+        solver = SinkhornSolver()
+
+        out = solver(xy=(x, x), dtype=dtype)
+
+        if dtype is None:
+            dtype = out.transport_matrix.dtype
+        leaves = [leaf.dtype == dtype for leaf in jax.tree_leaves(out._output) if isinstance(leaf, jnp.ndarray)]
+        assert leaves
+        assert out.transport_matrix.dtype == dtype
+        np.testing.assert_array_equal(leaves, True)

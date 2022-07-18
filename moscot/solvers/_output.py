@@ -1,10 +1,11 @@
 from abc import ABC, abstractmethod
+from copy import copy
 from typing import Any, Tuple, Callable, Iterable, Optional
 from functools import partial
 
 from scipy.sparse.linalg import LinearOperator
 
-from moscot._types import ArrayLike, DTypeLike  # type: ignore[attr-defined]
+from moscot._types import ArrayLike, DTypeLike
 
 __all__ = ["BaseSolverOutput", "MatrixSolverOutput"]
 
@@ -37,6 +38,10 @@ class BaseSolverOutput(ABC):
     @property
     @abstractmethod
     def potentials(self) -> Tuple[Optional[ArrayLike], Optional[ArrayLike]]:
+        pass
+
+    @abstractmethod
+    def to(self, device: Optional[Any] = None, dtype: Optional[DTypeLike] = None) -> "BaseSolverOutput":
         pass
 
     @property
@@ -129,3 +134,13 @@ class MatrixSolverOutput(BaseSolverOutput, ABC):
     def shape(self) -> Tuple[int, int]:
         """%(shape)s"""  # noqa: D400
         return self.transport_matrix.shape  # type: ignore[return-value]
+
+    def to(self, device: Optional[Any] = None, dtype: Optional[DTypeLike] = None) -> "BaseSolverOutput":
+        if device is not None:
+            raise RuntimeError("TODO")
+        if dtype is None:
+            return self
+
+        obj = copy(self)
+        obj._matrix = obj.transport_matrix.astype(dtype)
+        return obj

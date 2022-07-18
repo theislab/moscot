@@ -2,7 +2,7 @@ from typing import Any, Union, Mapping, Optional, Sequence
 
 import numpy as np
 
-__all__ = ["ArrayLike", "Numeric_t"]
+__all__ = ["ArrayLike", "DTypeLike", "Numeric_t"]
 
 try:
     from numpy.typing import NDArray, DTypeLike

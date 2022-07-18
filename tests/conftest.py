@@ -160,7 +160,7 @@ def adata_mapping() -> AnnData:
     seed = random.randint(0, 422)
     grid = _make_grid(10)
     adataref, adata1, adata2 = _make_adata(grid, n=3, seed=seed)
-    sc.pp.pca(adataref)
+    sc.pp.pca(adataref, n_comps=30)
 
     adata = ad.concat([adataref, adata1, adata2], label="batch", join="outer")
     adata.obs_names_make_unique()

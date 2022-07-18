@@ -83,4 +83,4 @@ class TestAlignmentProblem:
         assert np.all([sol.a is not None for sol in ap.solutions.values()])
         assert np.all([sol.b is not None for sol in ap.solutions.values()])
         assert np.all([sol.converged for sol in ap.solutions.values()])
-        assert np.allclose(*(sol.cost for sol in ap.solutions.values()))
+        assert np.allclose(*(sol.cost for sol in ap.solutions.values()), rtol=1e-5, atol=1e-5)

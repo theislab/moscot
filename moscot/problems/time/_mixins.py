@@ -622,7 +622,7 @@ class TemporalMixin(AnalysisMixin[K, B]):
                     **kwargs,
                 )
             )
-        return np.mean(dist)  # type: ignore[return-value]
+        return np.mean(dist)
 
     def plot_ancestors(
         self: TemporalMixinProtocol[K, B],
