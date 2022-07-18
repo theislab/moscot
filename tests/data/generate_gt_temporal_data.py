@@ -214,7 +214,7 @@ def generate_gt_temporal_data(data_path: str) -> None:
     cdata = _write_analysis_output(cdata, tp2, config)
     cdata = _write_config(cdata)
 
-    cdata.write("tests/data/moscot_temporal_tests.h5ad")
+    cdata.write("./moscot_temporal_tests.h5ad")
 
 
 if __name__ == "__main__":
