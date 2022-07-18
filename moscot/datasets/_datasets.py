@@ -44,7 +44,7 @@ def simulation(
 
     Parameters
     ----------
-    %(dataset.parameters)s
+    TODO.
 
     Returns
     -------

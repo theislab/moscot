@@ -1,5 +1,6 @@
 from abc import ABC
-from typing import Any, Tuple, Union, Optional
+from typing import Any, Tuple, Union, Literal, Iterator, Optional
+import contextlib
 
 from matplotlib.figure import Figure
 import matplotlib.pyplot as plt
@@ -7,12 +8,24 @@ import matplotlib.pyplot as plt
 from ott.core.sinkhorn import SinkhornOutput as OTTSinkhornOutput
 from ott.core.sinkhorn_lr import LRSinkhornOutput as OTTLRSinkhornOutput
 from ott.core.gromov_wasserstein import GWOutput as OTTGWOutput
+import jax
 import jax.numpy as jnp
+import jaxlib.xla_extension as xla_ext
 
-from moscot._types import ArrayLike
+from moscot._types import ArrayLike, DTypeLike
 from moscot.solvers._output import BaseSolverOutput
 
 __all__ = ["OTTOutput"]
+
+
+@contextlib.contextmanager
+def enable_x64() -> Iterator[None]:
+    old_value = jax.config.jax_enable_x64  # type: ignore[attr-defined]
+    jax.config.update("jax_enable_x64", True)
+    try:
+        yield
+    finally:
+        jax.config.update("jax_enable_x64", old_value)
 
 
 class RankMixin:
@@ -113,6 +126,45 @@ class OTTOutput(RankMixin, ConvergencePlotterMixin, BaseSolverOutput, ABC):
     def transport_matrix(self) -> ArrayLike:
         """%(transport_matrix)s."""
         return self._output.matrix
+
+    def to(
+        self,
+        device: Optional[Union[str, xla_ext.Device, Literal["cpu", "gpu", "tpu"]]] = None,
+        dtype: Optional[DTypeLike] = None,
+    ) -> "OTTOutput":
+        """
+        Transfer the output to another device or change its data type.
+
+        Parameters
+        ----------
+        device
+            Device where to transfer the solver output.
+        dtype
+            Data type of underlying arrays.
+
+        Returns
+        -------
+        Self with possibly modified device and dtypes.
+        """
+        # TODO(michalk8): when polishing docs, move the definition to the base class + use docrep
+        def convert_dtype(val: Any) -> Any:
+            return val.astype(dtype) if isinstance(val, jnp.ndarray) else val
+
+        ix = 0
+        if isinstance(device, str) and ":" in device:
+            device, ix = device.split(":")  # type: ignore[assignment]
+            ix = int(ix)
+
+        if not isinstance(device, xla_ext.Device):
+            try:
+                device = jax.devices(device)[ix]
+            except IndexError:
+                raise IndexError("TODO: indexing error when fetching device") from None
+
+        out = jax.device_put(self._output, device)
+        with enable_x64():
+            out = jax.tree_map(convert_dtype, out)  # type: ignore[attr-defined]
+        return OTTOutput(out, rank=self.rank)
 
     @property
     def converged(self) -> bool:
