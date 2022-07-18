@@ -151,14 +151,14 @@ def generate_gt_temporal_data(data_path: str) -> None:
     tmap_wot_10_11 = ot_model.compute_transport_map(config["key_1"], config["key_3"], cost_matrix=C_13).X
 
     tp = TemporalProblem(cdata)
-    tp.prepare(
+    tp = tp.prepare(
         "day",
         callback="cost-matrix",
         subset=[(10, 10.5), (10.5, 11), (10, 11)],
         policy="explicit",
         callback_kwargs={"key": "cost_matrices", "n_comps": 50},
     )
-    tp.solve(epsilon=config["eps"], tau_a=config["tau_a"], tau_b=config["tau_b"])
+    tp = tp.solve(epsilon=config["eps"], tau_a=config["tau_a"], tau_b=config["tau_b"])
 
     assert (tp[config["key_1"], config["key_2"]].xy.data == C_12).all()
     assert (tp[config["key_2"], config["key_3"]].xy.data == C_23).all()
@@ -190,13 +190,13 @@ def generate_gt_temporal_data(data_path: str) -> None:
     cdata.uns["tmap_10_11"] = np.array(tp[config["key_1"], config["key_3"]].solution.transport_matrix)
 
     tp2 = TemporalProblem(cdata)
-    tp2.prepare(
+    tp2 = tp2.prepare(
         "day",
         subset=[(10, 10.5), (10.5, 11), (10, 11)],
         policy="explicit",
         callback_kwargs={"joint_space": False, "n_comps": 50},
     )
-    tp2.solve(epsilon=config["eps"], tau_a=config["tau_a"], tau_b=config["tau_b"], scale_cost="mean")
+    tp2 = tp2.solve(epsilon=config["eps"], tau_a=config["tau_a"], tau_b=config["tau_b"], scale_cost="mean")
 
     np.testing.assert_array_almost_equal(
         np.array(tp[config["key_1"], config["key_2"]].solution.transport_matrix),
