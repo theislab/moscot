@@ -8,9 +8,7 @@ Output
 .. autosummary::
     :toctree: genapi
 
-    moscot.backends.ott.LinearOutput
-    moscot.backends.ott.LRLinearOutput
-    moscot.backends.ott.QuadraticOutput
+    moscot.backends.ott.OTTOutput
 
 
 Costs
