@@ -188,7 +188,7 @@ class TestTemporalProblem:
             key,
             subset=[(key_1, key_2), (key_2, key_3), (key_1, key_3)],
             policy="explicit",
-            callback_kwargs={"joint_space": False},
+            callback_kwargs={"joint_space": False, "n_comps": 50},
         )
         tp = tp.solve(epsilon=eps, scale_cost="mean", tau_a=lam1 / (lam1 + eps), tau_b=lam2 / (lam2 + eps))
 
