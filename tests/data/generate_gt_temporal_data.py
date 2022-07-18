@@ -216,5 +216,6 @@ def generate_gt_temporal_data(data_path: str) -> None:
 
     cdata.write("tests/data/moscot_temporal_tests.h5ad")
 
+
 if __name__ == "__main__":
     generate_gt_temporal_data(sys.argv[1])

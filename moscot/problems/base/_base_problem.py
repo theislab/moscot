@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 from enum import Enum
 from types import MappingProxyType
-from typing import Any, Dict, List, Tuple, Union, Mapping, Iterable, Optional, Sequence, TYPE_CHECKING
+from typing import Any, Dict, List, Tuple, Union, Mapping, Optional, TYPE_CHECKING
 import logging
 
 from scipy.sparse import vstack, issparse, csr_matrix
