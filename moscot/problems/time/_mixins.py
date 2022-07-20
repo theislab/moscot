@@ -112,6 +112,7 @@ class TemporalMixin(AnalysisMixin[K, B]):
         super().__init__(*args, **kwargs)
         self._temporal_key: Optional[str] = None
 
+    @d.dedent
     def cell_transition(
         self: TemporalMixinProtocol[K, B],
         start: K,
@@ -160,6 +161,7 @@ class TemporalMixin(AnalysisMixin[K, B]):
             `source_annotation` are returned. If `aggregation_mode` is `cell` the transition probablities
             for each cell are returned.
         %(online)s
+        %(normalize_cell_transition)s
 
         Returns
         -------

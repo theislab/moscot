@@ -247,7 +247,7 @@ class TestSolverOutput:
             np.testing.assert_allclose(p.sum(), z.sum())
 
     @pytest.mark.parametrize("device", [None, "cpu", "cpu:0", "cpu:1", "explicit"])
-    def test_to_device(self, x: Geom_t, device: Optional[str]):
+    def test_to_device(self, x: Geom_t, device: Optional[str]) -> None:
         # simple integration test
         solver = SinkhornSolver()
         if device == "explicit":
@@ -260,7 +260,7 @@ class TestSolverOutput:
             _ = solver(xy=(x, x), device=device)
 
     @pytest.mark.parametrize("dtype", [None, jnp.float16, jnp.float32, jnp.float64, float, np.float32])
-    def test_to_dtype(self, x: Geom_t, dtype: Optional[DTypeLike]):
+    def test_to_dtype(self, x: Geom_t, dtype: Optional[DTypeLike]) -> None:
         solver = SinkhornSolver()
 
         out = solver(xy=(x, x), dtype=dtype)

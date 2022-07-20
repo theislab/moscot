@@ -6,13 +6,15 @@ import pandas as pd
 
 import numpy as np
 
+from anndata import AnnData
+
 from moscot._docs import d
 from moscot._types import Numeric_t
 from moscot.solvers._output import BaseSolverOutput
 from moscot._constants._constants import Policy, ScaleCost
 from moscot.problems.time._mixins import TemporalMixin
 from moscot.problems.base._birth_death import BirthDeathMixin, BirthDeathProblem
-from moscot.problems.base._base_problem import ScaleCost_t
+from moscot.problems.base._base_problem import ScaleCost_t, ProblemStage
 from moscot.problems.base._compound_problem import B, CompoundProblem
 
 
@@ -38,6 +40,9 @@ class TemporalProblem(
     See notebook TODO(@MUCDK) LINK NOTEBOOK for how to use it
     """
 
+    def __init__(self, adata: AnnData, **kwargs: Any):
+        super().__init__(adata, **kwargs)
+
     @d.dedent
     def prepare(
         self,
@@ -58,9 +63,9 @@ class TemporalProblem(
         %(joint_attr)s
         policy
             Defines which transport maps to compute given different cell distributions.
-        %(marginal_kwargs)s
         %(a)s
         %(b)s
+        %(marginal_kwargs)s
         subset
             Subset of `anndata.AnnData.obs` [key] values of which the policy is to be applied to.
         %(reference)s
@@ -125,7 +130,12 @@ class TemporalProblem(
     def solve(
         self,
         epsilon: Optional[float] = 1e-3,
+        tau_a: float = 1.0,
+        tau_b: float = 1.0,
         scale_cost: ScaleCost_t = ScaleCost.MEAN,
+        rank: int = -1,
+        batch_size: Optional[int] = None,
+        stage: Union[ProblemStage, Tuple[ProblemStage, ...]] = (ProblemStage.PREPARED, ProblemStage.SOLVED),
         **kwargs: Any,
     ) -> "TemporalProblem":
         """
@@ -134,14 +144,30 @@ class TemporalProblem(
         Parameters
         ----------
         %(epsilon)s
+        %(tau_a)s
+        %(tau_b)s
         %(scale_cost)s
+        %(rank)s
+        %(batch_size)s
+        %(stage)s
+        %(solve_kwargs)s
+
 
         Returns
         -------
         :class:`moscot.problems.time.TemporalProblem`
         """
         scale_cost = ScaleCost(scale_cost) if isinstance(scale_cost, ScaleCost) else scale_cost
-        return super().solve(epsilon=epsilon, scale_cost=scale_cost, **kwargs)  # type:ignore[return-value]
+        return super().solve(
+            epsilon=epsilon,
+            tau_a=tau_a,
+            tau_b=tau_b,
+            scale_cost=scale_cost,
+            rank=rank,
+            batch_size=batch_size,
+            stage=stage,
+            **kwargs,
+        )  # type:ignore[return-value]
 
     @property
     def growth_rates(self) -> Optional[pd.DataFrame]:
@@ -180,11 +206,6 @@ class TemporalProblem(
     def cell_costs_source(self) -> Optional[pd.DataFrame]:
         """
         Return the cost of a cell (see online methods) obtained by the potentials of the optimal transport solution.
-
-        Raises
-        ------
-        NotImplementedError
-            If the solver from :class:`moscot.solvers` does not use potentials
         """
         sol = list(self.problems.values())[0].solution
         if TYPE_CHECKING:
@@ -349,7 +370,12 @@ class LineageProblem(TemporalProblem):
         self,
         alpha: Optional[float] = 0.5,
         epsilon: Optional[float] = 1e-3,
+        tau_a: float = 1.0,
+        tau_b: float = 1.0,
         scale_cost: ScaleCost_t = ScaleCost.MEAN,
+        rank: int = -1,
+        batch_size: Optional[int] = None,
+        stage: Union[ProblemStage, Tuple[ProblemStage, ...]] = (ProblemStage.PREPARED, ProblemStage.SOLVED),
         **kwargs: Any,
     ) -> "LineageProblem":
         """
@@ -359,11 +385,27 @@ class LineageProblem(TemporalProblem):
         ----------
         %(alpha)s
         %(epsilon)s
+        %(tau_a)
+        %(tau_b)
         %(scale_cost)s
+        %(rank)s
+        %(batch_size)s
+        %(stage)s
+        %(solve_kwargs)s
 
         Returns
         -------
         :class:`moscot.problems.time.TemporalProblem`
         """
         scale_cost = ScaleCost(scale_cost) if isinstance(scale_cost, ScaleCost) else scale_cost
-        return super().solve(alpha=alpha, epsilon=epsilon, scale_cost=scale_cost, **kwargs)
+        return super().solve(
+            alpha=alpha,
+            epsilon=epsilon,
+            tau_a=tau_a,
+            tau_b=tau_b,
+            scale_cost=scale_cost,
+            rank=rank,
+            batch_size=batch_size,
+            stage=stage,
+            **kwargs,
+        )

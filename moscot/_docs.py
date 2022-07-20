@@ -44,7 +44,7 @@ alpha
     Interpolation parameter between quadratic term and linear term."""
 _scale_cost = """\
 scale_cost
-    Method to scale cost matrices."""
+    Method to scale cost matrices. If `None` no scaling is applied."""
 _tau_a = """\
 tau_a
     Unbalancedness parameter for left marginal between 0 and 1. `tau_a` equalling 1 means no unbalancedness
@@ -148,7 +148,19 @@ aggregation_mode
 _forward_cell_transition = """\
 forward
     If `True` computes transition from `source_annotations` to `target_annotations`, otherwise backward."""
-
+_rank = """\
+rank
+    Rank of solver. If `-1` standard / full-rank optimal transport is applied."""
+_stage = """\
+stage
+    Stages of subproblems which are to be solved."""
+_normalize_cell_transition = """\
+normalize
+    If `True` the transition matrix is normalized such that it is stochastic. If `forward` is `True`, the transition
+    matrix is row-stochastic, otherwise column-stochastic."""
+_solve_kwargs = """\
+kwargs
+    keyword arguments for the backend-specific solver, see NOTEBOOK"""
 # returns
 _alignment_mixin_returns = """\
 If ``inplace = False``, returns a :class:`numpy.ndarray` with aligned coordinates.
@@ -218,4 +230,8 @@ d = DocstringProcessor(
     online=_online,
     aggregation_mode=_aggregation_mode,
     forward_cell_transition=_forward_cell_transition,
+    rank=_rank,
+    stage=_stage,
+    normalize_cell_transition=_normalize_cell_transition,
+    solve_kwargs=_solve_kwargs,
 )

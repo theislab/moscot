@@ -178,6 +178,7 @@ class SpatialAlignmentMixin(AnalysisMixin[K, B]):
     def _subset_spatial(self: SpatialAlignmentMixinProtocol[K, B], k: K) -> ArrayLike:
         return self.adata[self.adata.obs[self._policy._subset_key] == k].obsm[self.spatial_key].copy()
 
+    @d.dedent
     def cell_transition(
         self: SpatialAlignmentMixinProtocol[K, B],
         slice: K,
@@ -341,6 +342,7 @@ class SpatialMappingMixin(AnalysisMixin[K, B]):
         adata_pred.var_names = self.adata_sc.var_names.copy()
         return adata_pred
 
+    @d.dedent
     def cell_transition(
         self: SpatialMappingMixinProtocol[K, B],
         batch: K,
