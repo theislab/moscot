@@ -385,8 +385,8 @@ class LineageProblem(TemporalProblem):
         ----------
         %(alpha)s
         %(epsilon)s
-        %(tau_a)
-        %(tau_b)
+        %(tau_a)s
+        %(tau_b)s
         %(scale_cost)s
         %(rank)s
         %(batch_size)s
