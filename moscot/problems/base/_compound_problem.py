@@ -362,17 +362,50 @@ class BaseCompoundProblem(BaseProblem, ABC, Generic[K, B]):
             return {}
         return self._problem_manager.problems
 
+    @d.dedent
     @require_prepare
-    def add_problem(self, key: Tuple[K, K], problem: B, *, overwrite: bool = False) -> "BaseCompoundProblem[K, B]":
-        """Add problem."""
+    def add_problem(
+        self, key: Tuple[K, K], problem: Optional[B] = None, *, overwrite: bool = False
+    ) -> "BaseCompoundProblem[K, B]":
+        """
+        Add a problem.
+
+        This function adds and prepares a problem, e.g. if it is not included by the initial
+        :class:`moscot.problems._subset_policy.SubsetPolicy`.
+
+        Parameters
+        ----------
+        %(key)s
+        problem
+            Instance of :class:`moscot.problems.base.OTProblem`. If `None` the problems will be constructed from the
+            subset :class:`anndata.AnnData` defined by `key`.
+        overwrite
+            If `True` the problem will be reinitialized and prepared even if a problem with `key` exists.
+
+        Returns
+        -------
+        :class:`moscot.problems.base.BaseCompoundProblem`
+        """
         if TYPE_CHECKING:
             assert isinstance(self._problem_manager, ProblemManager)
         self._problem_manager.add_problem(key, problem, overwrite=overwrite)
         return self
 
+    @d.dedent
     @require_prepare
     def remove_problem(self, key: Tuple[K, K]) -> "BaseCompoundProblem[K, B]":
-        """Remove problem."""
+        """
+        Remove a (sub)problem.
+
+        Parameters
+        ----------
+
+        %(key)s
+
+        Returns
+        -------
+        :class:`moscot.problems.base.BaseCompoundProblem`
+        """
         if TYPE_CHECKING:
             assert isinstance(self._problem_manager, ProblemManager)
         self._problem_manager.remove_problem(key)
