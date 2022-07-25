@@ -1,5 +1,6 @@
 from types import MappingProxyType
-from typing import Any, Dict, Type, Tuple, Literal, Callable, Iterable, Optional, TYPE_CHECKING
+from typing import Any, Dict, Type, Tuple, Callable, Iterable, Optional, TYPE_CHECKING
+from typing_extensions import Literal
 from functools import partial, update_wrapper
 
 import pandas as pd
