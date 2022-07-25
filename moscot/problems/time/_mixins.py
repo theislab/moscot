@@ -1,4 +1,5 @@
-from typing import Any, Dict, List, Tuple, Union, Literal, Optional, TYPE_CHECKING
+from typing import Any, Dict, List, Tuple, Union, Optional, TYPE_CHECKING
+from typing_extensions import Literal
 import itertools
 
 from sklearn.metrics import pairwise_distances

@@ -1,5 +1,6 @@
 from abc import ABC
-from typing import Any, Tuple, Union, Literal, Iterator, Optional
+from typing import Any, Tuple, Union, Iterator, Optional
+from typing_extensions import Literal
 import contextlib
 
 from matplotlib.figure import Figure
