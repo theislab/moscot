@@ -1,6 +1,6 @@
-from typing import Any, Optional, Protocol, TYPE_CHECKING
+from typing import Any, Optional, TYPE_CHECKING
 
-from typing_extensions import Literal
+from typing_extensions import Literal, Protocol
 import pandas as pd
 
 from moscot._docs import d
