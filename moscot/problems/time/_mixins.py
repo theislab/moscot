@@ -1,9 +1,8 @@
 from typing import Any, Dict, List, Tuple, Union, Optional, TYPE_CHECKING
-from typing_extensions import Literal
 import itertools
 
 from sklearn.metrics import pairwise_distances
-from typing_extensions import Protocol
+from typing_extensions import Literal, Protocol
 import ot
 import pandas as pd
 

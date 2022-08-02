@@ -47,10 +47,20 @@ moscot - Multi-Omics Single-Cell Optimal Transport
     Check out our manuscript xxx
 
 .. toctree::
+    :caption: Gallery
+    :maxdepth: 2
     :hidden:
 
     installation
     api/index
-    examples
-    tutorials
     contributing
+    references
+    GitHub <https://github.com/theislab/moscot>
+
+.. toctree::
+    :caption: Gallery
+    :maxdepth: 2
+    :hidden:
+
+    tutorials
+    examples
