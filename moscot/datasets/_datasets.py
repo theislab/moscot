@@ -15,6 +15,10 @@ _datasets = {
         "https://figshare.com/ndownloader/files/35786069",
         (1536, 500),
     ),
+    "mosta": (
+        "https://figshare.com/ndownloader/files/36498630",
+        (24321, 23761),
+    ),
 }
 
 
@@ -40,11 +44,14 @@ def simulation(
     **kwargs: Any,
 ) -> AnnData:
     """
-    Dataset simulated with TedSim `cite:Pan2021` with parameters TODO.
+    Dataset simulated with TedSim :cite:`Pan2021` with parameters TODO.
 
     Parameters
     ----------
-    TODO.
+    path_prefix
+        Location where file is saved to with the filename completed by the `size`.
+    size
+        Number of cells corresponding to the latter of the two time points.
 
     Returns
     -------
@@ -56,3 +63,27 @@ def simulation(
     if size not in _sizes:
         raise NotImplementedError(f"Available sizes are {_sizes}.")
     return _load_dataset_from_url(path, *_datasets[f"tedsim_{size}"], **kwargs)
+
+
+@d.dedent
+def mosta(
+    path: PathLike = "datasets/mosta",
+    **kwargs: Any,
+) -> AnnData:
+    """
+    Preprocessed and extracted data as provided in :cite:`CHEN20221777`.
+
+    The anndata object include embryo sections E9.5 E2S1, E10.5 E2S1. The :attr:`anndata.AnnData.X` entry is
+    based on reprocessing of the counts data consisting of :meth:`scanpy.pp.normalize_total` and
+    :meth:`scanpy.pp.log1p`.
+
+    Parameters
+    ----------
+    path
+        Location where the file is saved to.
+
+    Returns
+    -------
+    %(adata)s
+    """
+    return _load_dataset_from_url(path, *_datasets[f"mosta"], **kwargs)
