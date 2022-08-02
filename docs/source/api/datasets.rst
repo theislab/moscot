@@ -8,3 +8,6 @@ Datasets
 
 .. autosummary::
     :toctree: genapi
+
+    moscot.datasets.simulation
+    moscot.datasets.mosta
