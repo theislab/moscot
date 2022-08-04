@@ -48,6 +48,9 @@ extensions = [
     "sphinxcontrib.bibtex",
     "typed_returns",
     "sphinx_design",
+    "sphinx_gallery.load_style",
+    "nbsphinx",
+    "edit_on_github",
 ]
 intersphinx_mapping = {
     "python": ("https://docs.python.org/3", None),
