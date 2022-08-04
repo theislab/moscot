@@ -261,7 +261,7 @@ class TemporalProblem(
 
     @property
     def _valid_policies(self) -> Tuple[str, ...]:
-        return Policy.SEQUENTIAL, Policy.TRIL, Policy.TRIU, Policy.EXPLICIT
+        return Policy.SEQUENTIAL, Policy.TRIU, Policy.EXPLICIT
 
 
 @d.dedent
