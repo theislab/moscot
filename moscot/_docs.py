@@ -163,7 +163,7 @@ kwargs
     keyword arguments for the backend-specific solver, see NOTEBOOK"""
 _ott_jax_batch_size = """\
 batch_size
-    number of data points the matrix-vector products are applied to at the same time. The larger, the more memory 
+    number of data points the matrix-vector products are applied to at the same time. The larger, the more memory
     is required."""
 # returns
 _alignment_mixin_returns = """\
@@ -238,5 +238,5 @@ d = DocstringProcessor(
     stage=_stage,
     normalize_cell_transition=_normalize_cell_transition,
     solve_kwargs=_solve_kwargs,
-    ott_jax_batch_size=_ott_jax_batch_size
+    ott_jax_batch_size=_ott_jax_batch_size,
 )
