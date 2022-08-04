@@ -148,7 +148,7 @@ class TemporalProblem(
         %(tau_b)s
         %(scale_cost)s
         %(rank)s
-        %(batch_size)s
+        %(ott_jax_batch_size)s
         %(stage)s
         %(solve_kwargs)s
 
@@ -389,7 +389,7 @@ class LineageProblem(TemporalProblem):
         %(tau_b)s
         %(scale_cost)s
         %(rank)s
-        %(batch_size)s
+        %(ott_jax_batch_size)s
         %(stage)s
         %(solve_kwargs)s
 
