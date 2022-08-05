@@ -30,7 +30,7 @@ class TestTemporalProblem:
 
         assert isinstance(problem.problems, dict)
         assert len(problem.problems) == len(expected_keys)
-        
+
         for key in problem:
             assert key in expected_keys
             assert isinstance(problem[key], BirthDeathProblem)

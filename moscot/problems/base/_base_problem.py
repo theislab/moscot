@@ -210,7 +210,9 @@ class OTProblem(BaseProblem):
         self._x = self._y = self._xy = self._solution = None
         # TODO(michalk8): handle again TaggedArray?
         # TODO(michalk8): better dispatch
-
+        print("x is ", x)
+        print("y is ", y)
+        print("xy is ", xy)
         # fmt: off
         if xy is not None and x is None and y is None:
             self._problem_kind = ProblemKind.LINEAR

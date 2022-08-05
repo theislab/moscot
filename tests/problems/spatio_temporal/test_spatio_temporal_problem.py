@@ -11,7 +11,7 @@ from moscot.problems.time._lineage import BirthDeathProblem
 from moscot.problems.spatio_temporal import SpatioTemporalProblem
 
 
-class TestTemporalProblem:
+class TestSpatioTemporalProblem:
     @pytest.mark.fast()
     def test_prepare(self, adata_spatio_temporal: AnnData):
         expected_keys = [(0, 1), (1, 2)]

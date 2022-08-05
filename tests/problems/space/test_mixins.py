@@ -10,8 +10,8 @@ import numpy as np
 
 from anndata import AnnData
 
-from tests._utils import MockSolverOutput
-from tests.conftest import ANGLES, _adata_spatial_split
+from tests._utils import MockSolverOutput, _adata_spatial_split
+from tests.conftest import ANGLES
 from moscot.problems.space import MappingProblem, AlignmentProblem
 
 # TODO(giovp): refactor as fixture
