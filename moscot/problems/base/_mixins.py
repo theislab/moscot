@@ -1,6 +1,6 @@
-from typing import Any, Dict, List, Tuple, Union, Generic, Literal, Iterable, Optional, Sequence, TYPE_CHECKING
+from typing import Any, Dict, List, Tuple, Union, Generic, Iterable, Optional, Sequence, TYPE_CHECKING
 
-from typing_extensions import Protocol
+from typing_extensions import Literal, Protocol
 from scipy.sparse.linalg import LinearOperator
 import pandas as pd
 

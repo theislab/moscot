@@ -1,8 +1,9 @@
 from abc import ABC
-from typing import Any, Tuple, Union, Literal, Iterator, Optional
+from typing import Any, Tuple, Union, Iterator, Optional
 import contextlib
 
 from matplotlib.figure import Figure
+from typing_extensions import Literal
 import matplotlib.pyplot as plt
 
 from ott.core.sinkhorn import SinkhornOutput as OTTSinkhornOutput

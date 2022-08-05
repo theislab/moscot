@@ -1,8 +1,8 @@
-from typing import Any, Dict, List, Tuple, Union, Literal, Optional, TYPE_CHECKING
+from typing import Any, Dict, List, Tuple, Union, Optional, TYPE_CHECKING
 import itertools
 
 from sklearn.metrics import pairwise_distances
-from typing_extensions import Protocol
+from typing_extensions import Literal, Protocol
 import ot
 import pandas as pd
 
@@ -186,6 +186,8 @@ class TemporalMixin(AnalysisMixin[K, B]):
         self: TemporalMixinProtocol[K, B],
         start: K,
         end: K,
+        data: Optional[Union[str, ArrayLike]] = None,
+        subset: Optional[Union[str, List[str], Tuple[int, int]]] = None,
         result_key: Optional[str] = None,
         return_all: bool = False,
         scale_by_marginals: bool = True,
@@ -200,6 +202,8 @@ class TemporalMixin(AnalysisMixin[K, B]):
             Time point of source distribution.
         target
             Time point of target distribution.
+        %(data)s
+        %(subset)s
         result_key
             Key of where to save the result in :attr:`anndata.AnnData.obs`. If None the result will be returned.
         return_all
@@ -220,6 +224,8 @@ class TemporalMixin(AnalysisMixin[K, B]):
         result = self._apply(
             start=start,
             end=end,
+            data=data,
+            subset=subset,
             forward=True,
             return_all=return_all or result_key is not None,
             scale_by_marginals=scale_by_marginals,
@@ -237,6 +243,8 @@ class TemporalMixin(AnalysisMixin[K, B]):
         self: TemporalMixinProtocol[K, B],
         start: K,
         end: K,
+        data: Optional[Union[str, ArrayLike]] = None,
+        subset: Optional[Union[str, List[str], Tuple[int, int]]] = None,
         result_key: Optional[str] = None,
         return_all: bool = False,
         scale_by_marginals: bool = True,
@@ -251,6 +259,8 @@ class TemporalMixin(AnalysisMixin[K, B]):
             Earlier time point, the time point the mass is pulled to.
         end
             Later time point, the time point the mass is pulled from.
+        %(data)s
+        %(subset)s
         result_key
             Key of where to save the result in :attr:`anndata.AnnData.obs`. If `None` the result will be returned.
         return_all
@@ -271,6 +281,8 @@ class TemporalMixin(AnalysisMixin[K, B]):
         result = self._apply(
             start=start,
             end=end,
+            data=data,
+            subset=subset,
             forward=False,
             return_all=return_all or result_key is not None,
             scale_by_marginals=scale_by_marginals,
