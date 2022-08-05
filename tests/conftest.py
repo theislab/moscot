@@ -1,5 +1,5 @@
 from math import cos, sin
-from typing import List, Tuple, Optional
+from typing import Tuple, Optional
 import random
 
 from scipy.sparse import csr_matrix
@@ -8,13 +8,12 @@ import pytest
 
 from jax.config import config
 import numpy as np
-import numpy.typing as npt
 
 from anndata import AnnData
 import scanpy as sc
 import anndata as ad
 
-from tests._utils import Geom_t
+from tests._utils import Geom_t, _make_grid, _make_adata
 
 ANGLES = (0, 30, 60)
 
@@ -165,26 +164,3 @@ def adata_mapping() -> AnnData:
     adata = ad.concat([adataref, adata1, adata2], label="batch", join="outer")
     adata.obs_names_make_unique()
     return adata
-
-
-def _make_grid(grid_size: int) -> npt.ArrayLike:
-    xlimits = ylimits = [0, 10]
-    x1s = np.linspace(*xlimits, num=grid_size)
-    x2s = np.linspace(*ylimits, num=grid_size)
-    X1, X2 = np.meshgrid(x1s, x2s)
-    X_orig_single = np.vstack([X1.ravel(), X2.ravel()]).T
-    return X_orig_single
-
-
-def _make_adata(grid: npt.ArrayLike, n: int, seed) -> List[AnnData]:
-    rng = np.random.default_rng(seed)
-    X = rng.normal(size=(100, 60))
-    adatas = [AnnData(X=csr_matrix(X), obsm={"spatial": grid.copy()}, dtype=X.dtype) for _ in range(n)]
-    return adatas
-
-
-def _adata_spatial_split(adata: AnnData) -> Tuple[AnnData, AnnData]:
-    adata_ref = adata[adata.obs.batch == "0"].copy()
-    adata_ref.obsm.pop("spatial")
-    adata_sp = adata[adata.obs.batch != "0"].copy()
-    return adata_ref, adata_sp
