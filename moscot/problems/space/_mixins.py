@@ -181,10 +181,10 @@ class SpatialAlignmentMixin(AnalysisMixin[K, B]):
     @d.dedent
     def cell_transition(
         self: SpatialAlignmentMixinProtocol[K, B],
-        slice: K,
-        reference: K,
-        slice_cells: Filter_t,
-        reference_cells: Filter_t,
+        source: K,
+        target: K,
+        source_annotation: Filter_t,
+        target_annotation: Filter_t,
         forward: bool = False,  # return value will be row-stochastic if forward=True, else column-stochastic
         aggregation_mode: Literal["annotation", "cell"] = AggregationMode.ANNOTATION,  # type: ignore[assignment]
         online: bool = False,
@@ -196,10 +196,10 @@ class SpatialAlignmentMixin(AnalysisMixin[K, B]):
             assert isinstance(self.batch_key, str)
         return self._cell_transition(
             key=self.batch_key,
-            source_key=slice,
-            target_key=reference,
-            source_annotation=slice_cells,
-            target_annotation=reference_cells,
+            source_key=source,
+            target_key=target,
+            source_annotation=source_annotation,
+            target_annotation=target_annotation,
             forward=forward,
             aggregation_mode=AggregationMode(aggregation_mode),
             online=online,
@@ -341,15 +341,15 @@ class SpatialMappingMixin(AnalysisMixin[K, B]):
         pred_list = [val.pull(gexp_sc, scale_by_marginals=True) for val in self.solutions.values()]
         adata_pred = AnnData(np.nan_to_num(np.vstack(pred_list), nan=0.0, copy=False))
         adata_pred.obs_names = self.adata_sp.obs_names.copy()
-        adata_pred.var_names = self.adata_sc.var_names.copy()
+        adata_pred.var_names = var_names
         return adata_pred
 
     @d.dedent
     def cell_transition(
         self: SpatialMappingMixinProtocol[K, B],
-        batch: K,
-        spatial_cells: Filter_t,
-        sc_cells: Filter_t,
+        source: K,
+        spatial_annotation: Filter_t,
+        sc_annotation: Filter_t,
         forward: bool = False,  # return value will be row-stochastic if forward=True, else column-stochastic
         aggregation_mode: Literal["annotation", "cell"] = AggregationMode.ANNOTATION,  # type: ignore[assignment]
         online: bool = False,
@@ -361,10 +361,10 @@ class SpatialMappingMixin(AnalysisMixin[K, B]):
             assert self.batch_key is not None
         return self._cell_transition(
             key=self.batch_key,
-            source_key=batch,
+            source_key=source,
             target_key=None,
-            source_annotation=spatial_cells,  # change it to source_groups
-            target_annotation=sc_cells,  # change it to target_groups
+            source_annotation=spatial_annotation,
+            target_annotation=sc_annotation,
             forward=forward,
             aggregation_mode=AggregationMode(aggregation_mode),
             online=online,
