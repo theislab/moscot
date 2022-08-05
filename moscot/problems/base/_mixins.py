@@ -551,7 +551,7 @@ class AnalysisMixin(Generic[K, B]):
             to_app = df_1[df_1[annotation_key].isin(annotations_2)].groupby(annotation_key).sum().transpose()
             transition_table = pd.concat([transition_table, to_app], verify_integrity=True, axis=0)
             df_1 = df_1.drop(current_cells, axis=1)
-        return transition_table if forward else transition_table.T
+        return transition_table
 
     def _cell_aggregation_offline_helper(
         self: AnalysisMixinProtocol[K, B],
