@@ -323,7 +323,7 @@ class SpatialMappingMixin(AnalysisMixin[K, B]):
 
         return corr_dic
 
-    def impute(self: SpatialMappingMixinProtocol[K, B]) -> AnnData:
+    def impute(self: SpatialMappingMixinProtocol[K, B], var_names: Optional[Sequence[Any]] = None) -> AnnData:
         """
         Impute expression of specific genes.
 
@@ -335,7 +335,9 @@ class SpatialMappingMixin(AnalysisMixin[K, B]):
         -------
         :class:`anndata.AnnData` with imputed gene expression values.
         """
-        gexp_sc = self.adata_sc.X if not issparse(self.adata_sc.X) else self.adata_sc.X.A
+        if var_names is None:
+            var_names = self.adata_sc.var_names
+        gexp_sc = self.adata_sc[:, var_names].X if not issparse(self.adata_sc.X) else self.adata_sc[:, var_names].X.A
         pred_list = [val.pull(gexp_sc, scale_by_marginals=True) for val in self.solutions.values()]
         adata_pred = AnnData(np.nan_to_num(np.vstack(pred_list), nan=0.0, copy=False))
         adata_pred.obs_names = self.adata_sp.obs_names.copy()
