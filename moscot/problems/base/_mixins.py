@@ -1,6 +1,6 @@
-from typing import Any, Dict, List, Tuple, Union, Generic, Literal, Iterable, Optional, Sequence, TYPE_CHECKING
+from typing import Any, Dict, List, Tuple, Union, Generic, Iterable, Optional, Sequence, TYPE_CHECKING
 
-from typing_extensions import Protocol
+from typing_extensions import Literal, Protocol
 from scipy.sparse.linalg import LinearOperator
 import pandas as pd
 
@@ -101,7 +101,7 @@ class AnalysisMixinProtocol(Protocol[K, B]):
     ) -> pd.DataFrame:
         ...
 
-    def cell_aggregation_offline_helper(
+    def _cell_aggregation_offline_helper(
         self: "AnalysisMixinProtocol[K, B]",
         adata: AnnData,
         key: Optional[str],
@@ -201,7 +201,7 @@ class AnalysisMixin(Generic[K, B]):
         aggregation_mode = AggregationMode(aggregation_mode)  # type: ignore[assignment]
 
         if forward:
-            transition_matrix = self.cell_aggregation_offline_helper(
+            transition_matrix = self._cell_aggregation_offline_helper(
                 adata=self.adata,
                 key=key,
                 df=df_target,
@@ -217,7 +217,7 @@ class AnalysisMixin(Generic[K, B]):
                 forward=True,
             )
         else:
-            transition_matrix = self.cell_aggregation_offline_helper(
+            transition_matrix = self._cell_aggregation_offline_helper(
                 adata=self.adata if other_adata is None else other_adata,
                 key=key if other_adata is None else other_key,
                 df=df_source,
@@ -570,7 +570,7 @@ class AnalysisMixin(Generic[K, B]):
             df_2 = df_2.drop(current_cells, axis=0)
         return transition_table
 
-    def cell_aggregation_offline_helper(
+    def _cell_aggregation_offline_helper(
         self: AnalysisMixinProtocol[K, B],
         adata: AnnData,
         key: Optional[str],

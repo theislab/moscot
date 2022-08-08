@@ -134,7 +134,8 @@ class BaseProblem(ABC):
         return self._stage
 
     @property
-    def problem_kind(self) -> ProblemKind:  # noqa: D102
+    def problem_kind(self) -> ProblemKind:
+        """The kind of the underlying OT problem, an instance of `moscot.solvers._base_solver.ProblemKind`"""
         return self._problem_kind
 
 
@@ -231,6 +232,7 @@ class OTProblem(BaseProblem):
         self._b = self._create_marginals(self._adata_y, data=b, source=False, **kwargs)
         return self
 
+    @d.get_sections(base="OTProblem_solve", sections=["Parameters", "Raises"])
     @wrap_solve
     def solve(
         self,

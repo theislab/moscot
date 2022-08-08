@@ -1,8 +1,9 @@
 from abc import ABC
-from typing import Any, Tuple, Union, Literal, Iterator, Optional
+from typing import Any, Tuple, Union, Iterator, Optional
 import contextlib
 
 from matplotlib.figure import Figure
+from typing_extensions import Literal
 import matplotlib.pyplot as plt
 
 from ott.core.sinkhorn import SinkhornOutput as OTTSinkhornOutput
@@ -64,11 +65,9 @@ class ConvergencePlotterMixin:
         def select_values(last_k: Optional[int] = None) -> Tuple[str, jnp.ndarray, jnp.ndarray]:
             # `> 1` because of pure Sinkhorn
             if len(self._costs) > 1 or self._errors is None:
-                if last_k is not None:
-                    last_k = min(last_k, len(self._costs)) if last_k is not None else len(self._costs)
-                return "cost", cost[-last_k:], range(len(self._costs))[-last_k:]
-            if last_k is not None:
-                last_k = min(last_k, len(self._errors)) if last_k is not None else len(self._errors)
+                last_k = min(last_k, len(self._costs)) if last_k is not None else len(self._costs)
+                return "cost", self._costs[-last_k:], range(len(self._costs))[-last_k:]
+            last_k = min(last_k, len(self._errors)) if last_k is not None else len(self._errors)
             return "error", self._errors[-last_k:], range(len(self._errors))[-last_k:]
 
         fig, ax = plt.subplots(figsize=figsize, dpi=dpi)

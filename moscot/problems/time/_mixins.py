@@ -1,4 +1,4 @@
-from typing import Any, Set, Dict, List, Tuple, Union, Literal, Optional, TYPE_CHECKING, Iterable
+from typing import Any, Set, Dict, List, Tuple, Union, Literal, Iterable, Optional, TYPE_CHECKING
 from pathlib import Path
 import itertools
 
@@ -144,6 +144,7 @@ class TemporalMixin(AnalysisMixin[K, B]):
         super().__init__(*args, **kwargs)
         self._temporal_key: Optional[str] = None
 
+    @d.dedent
     def cell_transition(
         self: TemporalMixinProtocol[K, B],
         start: K,
@@ -192,6 +193,7 @@ class TemporalMixin(AnalysisMixin[K, B]):
             `source_annotation` are returned. If `aggregation_mode` is `cell` the transition probablities
             for each cell are returned.
         %(online)s
+        %(normalize_cell_transition)s
 
         Returns
         -------
@@ -278,6 +280,8 @@ class TemporalMixin(AnalysisMixin[K, B]):
         self: TemporalMixinProtocol[K, B],
         start: K,
         end: K,
+        data: Optional[Union[str, ArrayLike]] = None,
+        subset: Optional[Union[str, List[str], Tuple[int, int]]] = None,
         result_key: Optional[str] = None,
         return_all: bool = False,
         scale_by_marginals: bool = True,
@@ -292,6 +296,8 @@ class TemporalMixin(AnalysisMixin[K, B]):
             Time point of source distribution.
         target
             Time point of target distribution.
+        %(data)s
+        %(subset)s
         result_key
             Key of where to save the result in :attr:`anndata.AnnData.obs`. If None the result will be returned.
         return_all
@@ -312,6 +318,8 @@ class TemporalMixin(AnalysisMixin[K, B]):
         result = self._apply(
             start=start,
             end=end,
+            data=data,
+            subset=subset,
             forward=True,
             return_all=return_all or result_key is not None,
             scale_by_marginals=scale_by_marginals,
@@ -329,6 +337,8 @@ class TemporalMixin(AnalysisMixin[K, B]):
         self: TemporalMixinProtocol[K, B],
         start: K,
         end: K,
+        data: Optional[Union[str, ArrayLike]] = None,
+        subset: Optional[Union[str, List[str], Tuple[int, int]]] = None,
         result_key: Optional[str] = None,
         return_all: bool = False,
         scale_by_marginals: bool = True,
@@ -343,6 +353,8 @@ class TemporalMixin(AnalysisMixin[K, B]):
             Earlier time point, the time point the mass is pulled to.
         end
             Later time point, the time point the mass is pulled from.
+        %(data)s
+        %(subset)s
         result_key
             Key of where to save the result in :attr:`anndata.AnnData.obs`. If `None` the result will be returned.
         return_all
@@ -363,6 +375,8 @@ class TemporalMixin(AnalysisMixin[K, B]):
         result = self._apply(
             start=start,
             end=end,
+            data=data,
+            subset=subset,
             forward=False,
             return_all=return_all or result_key is not None,
             scale_by_marginals=scale_by_marginals,
@@ -623,7 +637,7 @@ class TemporalMixin(AnalysisMixin[K, B]):
             )
         return np.mean(dist)
 
-    def plot_ancestors( #TODO)@MUCDK) include subset in data by allowing data to be dict
+    def plot_ancestors(  # TODO)@MUCDK) include subset in data by allowing data to be dict
         self: TemporalMixinProtocol[K, B],
         start: K,
         end: K,
@@ -663,7 +677,7 @@ class TemporalMixin(AnalysisMixin[K, B]):
             **kwargs,
         )
 
-    def plot_descendants( #TODO)@MUCDK) include subset in data by allowing data to be dict
+    def plot_descendants(  # TODO)@MUCDK) include subset in data by allowing data to be dict
         self: TemporalMixinProtocol[K, B],
         start: K,
         end: K,
