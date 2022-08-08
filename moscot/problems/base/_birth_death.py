@@ -210,8 +210,22 @@ class BirthDeathProblem(BirthDeathMixin, OTProblem):
 
     # TODO(michalk8): consider removing this
     @property
-    def growth_rates(self) -> Optional[ArrayLike]:
+    def prior_growth_rates(self) -> Optional[ArrayLike]:
         """Return the growth rates of the cells in the source distribution."""
         if self.a is None or self._delta is None:
             return None
-        return np.power(self.a, 1.0 / self._delta)
+        return np.power(self.a * self._scaling, 1.0 / self._delta)
+
+    # TODO(michalk8): consider removing this
+    @property
+    def posterior_growth_rates(self) -> Optional[ArrayLike]:
+        """
+        Return the growth rates of the cells in the source distribution. 
+        
+        If marginals were estimated by
+        a birth-death process the growth rates are adapted by the time scale, otherwise not."""
+        if self.solution.a is None:
+            return None
+        if self._delta is None:
+            return self.solution.a * self.adata.n_obs
+        return np.power(self.solution.a * self._scaling, 1.0 / self._delta)
