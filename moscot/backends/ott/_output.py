@@ -53,6 +53,7 @@ class ConvergencePlotterMixin:
 
     def plot_convergence(
         self,
+        last_k: Optional[int] = None,
         title: Optional[str] = None,
         figsize: Optional[Tuple[float, float]] = None,
         dpi: Optional[int] = None,
@@ -60,16 +61,20 @@ class ConvergencePlotterMixin:
         return_fig: bool = False,
         **kwargs: Any,
     ) -> Optional[Figure]:
-        def select_values() -> Tuple[str, jnp.ndarray]:
+        def select_values(last_k: Optional[int] = None) -> Tuple[str, jnp.ndarray, jnp.ndarray]:
             # `> 1` because of pure Sinkhorn
             if len(self._costs) > 1 or self._errors is None:
-                return "cost", self._costs
-            return "error", self._errors
+                if last_k is not None:
+                    last_k = min(last_k, len(self._costs)) if last_k is not None else len(self._costs)
+                return "cost", cost[-last_k:], range(len(self._costs))[-last_k:]
+            if last_k is not None:
+                last_k = min(last_k, len(self._errors)) if last_k is not None else len(self._errors)
+            return "error", self._errors[-last_k:], range(len(self._errors))[-last_k:]
 
         fig, ax = plt.subplots(figsize=figsize, dpi=dpi)
-        kind, values = select_values()
+        kind, values, xs = select_values(last_k)
 
-        ax.plot(values, **kwargs)
+        ax.plot(xs, values, **kwargs)
         ax.set_xlabel("iteration")
         ax.set_ylabel(kind)
         if title is None:
