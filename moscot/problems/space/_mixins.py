@@ -16,6 +16,7 @@ from anndata import AnnData
 from moscot._docs import d
 from moscot._types import Filter_t, ArrayLike
 from moscot.problems.base import AnalysisMixin  # type: ignore[attr-defined]
+from moscot.backends.ott._output import Device_t
 from moscot._constants._constants import CorrMethod, AlignmentMode, AggregationMode
 from moscot.problems.base._mixins import AnalysisMixinProtocol
 from moscot.problems._subset_policy import StarPolicy
@@ -323,7 +324,11 @@ class SpatialMappingMixin(AnalysisMixin[K, B]):
 
         return corr_dic
 
-    def impute(self: SpatialMappingMixinProtocol[K, B], var_names: Optional[Sequence[Any]] = None) -> AnnData:
+    def impute(
+        self: SpatialMappingMixinProtocol[K, B],
+        var_names: Optional[Sequence[Any]] = None,
+        device: Optional[Device_t] = None,
+    ) -> AnnData:
         """
         Impute expression of specific genes.
 
@@ -338,7 +343,12 @@ class SpatialMappingMixin(AnalysisMixin[K, B]):
         if var_names is None:
             var_names = self.adata_sc.var_names
         gexp_sc = self.adata_sc[:, var_names].X if not issparse(self.adata_sc.X) else self.adata_sc[:, var_names].X.A
-        pred_list = [val.pull(gexp_sc, scale_by_marginals=True) for val in self.solutions.values()]
+        pred_list = [
+            val.to(device=device).pull(gexp_sc, scale_by_marginals=True)
+            if device is not None
+            else val.pull(gexp_sc, scale_by_marginals=True)
+            for val in self.solutions.values()
+        ]
         adata_pred = AnnData(np.nan_to_num(np.vstack(pred_list), nan=0.0, copy=False))
         adata_pred.obs_names = self.adata_sp.obs_names.copy()
         adata_pred.var_names = var_names
