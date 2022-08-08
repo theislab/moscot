@@ -156,8 +156,8 @@ class TestFGW:
 
 
 class TestScaleCost:
-    @pytest.mark.parametrize("scale_cost", [None, 0.5, "mean", "max_cost", "max_norm", "max_bound"])
-    def test_scale(self, x: Geom_t, scale_cost: Optional[Union[float, str]]) -> None:
+    @pytest.mark.parametrize("scale_cost", [1.0, 0.5, "mean", "max_cost", "max_norm", "max_bound"])
+    def test_scale(self, x: Geom_t, scale_cost: Union[float, str]) -> None:
         eps = 1e-2
         gt = sinkhorn(PointCloud(x, epsilon=eps, scale_cost=scale_cost))
 
