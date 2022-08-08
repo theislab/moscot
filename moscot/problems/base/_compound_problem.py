@@ -299,7 +299,7 @@ class BaseCompoundProblem(BaseProblem, ABC, Generic[K, B]):
         for _src, _tgt in [(src, tgt)] + rest:
             problem = self.problems[_src, _tgt]
             fun = problem.push if forward else problem.pull
-            res[_tgt] = current_mass = fun(current_mass, scale_by_marginals=scale_by_marginals, **kwargs)
+            res[_tgt if forward else _src] = current_mass = fun(current_mass, scale_by_marginals=scale_by_marginals, **kwargs)
 
         return res if return_all else current_mass
 

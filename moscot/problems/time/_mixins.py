@@ -1,4 +1,4 @@
-from typing import Any, Set, Dict, List, Tuple, Union, Literal, Optional, TYPE_CHECKING
+from typing import Any, Set, Dict, List, Tuple, Union, Literal, Optional, TYPE_CHECKING, Iterable
 from pathlib import Path
 import itertools
 
@@ -121,7 +121,7 @@ class TemporalMixinProtocol(AnalysisMixinProtocol[K, B], Protocol[K, B]):
         data: Dict[K, ArrayLike],
         start: K,
         end: K,
-        plot_intermediate: bool = False,
+        plot_time_points: Optional[Iterable[K]] = None,
         basis: str = "umap",
         result_key: Optional[str] = None,
         fill_value: float = 0.0,
@@ -245,7 +245,6 @@ class TemporalMixin(AnalysisMixin[K, B]):
         if len(cell_transitions) > 1 and restrict_to_existing:
             for i, ct in enumerate(cell_transitions[:-1]):
                 present_annotations = list(cell_transitions[i + 1].index)
-                print(present_annotations)
                 cell_transitions[i] = cell_transitions[i][present_annotations]
 
         if order_annotations is not None:
@@ -624,25 +623,31 @@ class TemporalMixin(AnalysisMixin[K, B]):
             )
         return np.mean(dist)
 
-    def plot_ancestors(
+    def plot_ancestors( #TODO)@MUCDK) include subset in data by allowing data to be dict
         self: TemporalMixinProtocol[K, B],
         start: K,
         end: K,
-        plot_intermediate: bool = False,
+        data: Optional[Union[str, ArrayLike]] = None,
+        subset: Optional[Union[str, List[str], Tuple[int, int]]] = None,
+        plot_time_points: Optional[Iterable[K]] = None,
         basis: str = "umap",
         result_key: Optional[str] = None,
-        fill_value: float = 0.0,
+        fill_value: float = np.nan,
         save: Optional[Union[str, Path]] = None,
         **kwargs: Any,
     ) -> None:
         result = self._apply(
             start=start,
             end=end,
+            data=data,
+            subset=subset,
             forward=False,
             return_all=True,
             scale_by_marginals=True,
             **kwargs,
         )
+        if result_key is None:
+            result_key = f"plot_ancestors_{start}_{end}"
 
         if TYPE_CHECKING:
             assert isinstance(result, dict)
@@ -650,32 +655,39 @@ class TemporalMixin(AnalysisMixin[K, B]):
             data=result,
             start=start,
             end=end,
-            plot_intermediate=plot_intermediate,
+            plot_time_points=plot_time_points,
             basis=basis,
             result_key=result_key,
+            fill_value=fill_value,
             save=save,
             **kwargs,
         )
 
-    def plot_descendants(
+    def plot_descendants( #TODO)@MUCDK) include subset in data by allowing data to be dict
         self: TemporalMixinProtocol[K, B],
         start: K,
         end: K,
-        plot_intermediate: bool = False,
+        data: Optional[Union[str, ArrayLike]] = None,
+        subset: Optional[Union[str, List[str], Tuple[int, int]]] = None,
+        plot_time_points: Optional[Iterable[K]] = None,
         basis: str = "umap",
         result_key: Optional[str] = None,
-        fill_value: float = 0.0,
+        fill_value: float = np.nan,
         save: Optional[Union[str, Path]] = None,
         **kwargs: Any,
     ) -> None:
         result = self._apply(
             start=start,
             end=end,
+            data=data,
+            subset=subset,
             forward=True,
             return_all=True,
             scale_by_marginals=True,
             **kwargs,
         )
+        if result_key is None:
+            result_key = f"plot_descendants_{start}_{end}"
 
         if TYPE_CHECKING:
             assert isinstance(result, dict)
@@ -683,7 +695,7 @@ class TemporalMixin(AnalysisMixin[K, B]):
             data=result,
             start=start,
             end=end,
-            plot_intermediate=plot_intermediate,
+            plot_time_points=plot_time_points,
             basis=basis,
             result_key=result_key,
             fill_value=fill_value,
@@ -696,23 +708,22 @@ class TemporalMixin(AnalysisMixin[K, B]):
         data: Dict[K, ArrayLike],
         start: K,
         end: K,
-        plot_intermediate: bool = False,
+        plot_time_points: Optional[Iterable[K]] = None,
         basis: str = "umap",
-        result_key: Optional[str] = None,
+        result_key: str = "plot",
         fill_value: float = 0.0,
         save: Optional[Union[str, Path]] = None,
         **kwargs: Any,
     ) -> None:
 
-        if plot_intermediate:
+        if plot_time_points is None:
             fill_keys: Set[K] = set()
         else:
-            fill_keys = set(data.keys()) - {start, end}
+            fill_keys = set(data.keys()) - set(plot_time_points)
         flattened_data = self._flatten(data, key=self.temporal_key, fill_keys=fill_keys, fill_value=fill_value)
-        if result_key is not None:
-            self.adata.obs[result_key] = flattened_data
+        self.adata.obs[result_key] = flattened_data
 
-        sc.pl.scatter(self.adata, color=data, basis=basis, save=save, **kwargs)
+        sc.pl.embedding(self.adata, color=result_key, basis=basis, save=save, **kwargs)
 
     # TODO(@MUCDK) possibly offer two alternatives, once exact EMD with POT backend and once approximate,
     # faster with same solver as used for original problems
