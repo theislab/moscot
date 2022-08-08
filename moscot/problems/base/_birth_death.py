@@ -170,6 +170,7 @@ class BirthDeathProblem(BirthDeathMixin, OTProblem):
     def __init__(self, *args: Any, **kwargs: Any):
         super().__init__(*args, **kwargs)
         self._delta: Optional[float] = None
+        self._scaling: Optional[float] = None
 
     def _estimate_marginals(  # type: ignore[override]
         self: BirthDeathProblemProtocol,
@@ -199,6 +200,8 @@ class BirthDeathProblem(BirthDeathMixin, OTProblem):
         else:
             death = np.zeros(len(adata))
         growth = np.exp((birth - death) * self._delta)
+        self._scaling = np.sum(growth)
+        growth /= self._scale
         if source:
             return growth
         if TYPE_CHECKING:
