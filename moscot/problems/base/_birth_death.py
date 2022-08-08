@@ -201,7 +201,7 @@ class BirthDeathProblem(BirthDeathMixin, OTProblem):
             death = np.zeros(len(adata))
         growth = np.exp((birth - death) * self._delta)
         self._scaling = np.sum(growth)
-        growth /= self._scale
+        growth /= self._scaling
         if source:
             return growth
         if TYPE_CHECKING:
