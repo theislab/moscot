@@ -7,6 +7,7 @@ from matplotlib.colors import ListedColormap
 from matplotlib.figure import Figure
 import pandas as pd
 import matplotlib.pyplot as plt
+from scipy.cluster import hierarchy as sch
 
 import numpy as np
 
@@ -217,3 +218,163 @@ def _sankey(
         plt.gcf().set_size_inches(6, 6)
         if title is not None:
             plt.title(title)
+
+def _heatmap(
+    adata: AnnData,
+    key: str,
+    title: str = "",
+    method: Optional[str] = None,
+    cont_cmap: Union[str, mcolors.Colormap] = "viridis",
+    annotate: bool = True,
+    figsize: Optional[Tuple[float, float]] = None,
+    dpi: Optional[int] = None,
+    cbar_kwargs: Mapping[str, Any] = MappingProxyType({}),
+    ax: Optional[Axes] = None,
+    **kwargs: Any,
+) -> mpl.figure.Figure:
+    _assert_categorical_obs(adata, key=key)
+
+    cbar_kwargs = dict(cbar_kwargs)
+
+    if ax is None:
+        fig, ax = plt.subplots(constrained_layout=True, dpi=dpi, figsize=figsize)
+    else:
+        fig = ax.figure
+
+    if method is not None:
+        row_order, col_order, _, col_link = _dendrogram(adata.X, method, optimal_ordering=adata.n_obs <= 1500)
+    else:
+        row_order = col_order = np.arange(len(adata.uns[Key.uns.colors(key)]))
+
+    row_order = row_order[::-1]
+    row_labels = adata.obs[key][row_order]
+    data = adata[row_order, col_order].X
+
+    row_cmap, col_cmap, row_norm, col_norm, n_cls = _get_cmap_norm(adata, key, order=(row_order, col_order))
+
+    row_sm = mpl.cm.ScalarMappable(cmap=row_cmap, norm=row_norm)
+    col_sm = mpl.cm.ScalarMappable(cmap=col_cmap, norm=col_norm)
+
+    norm = mpl.colors.Normalize(vmin=kwargs.pop("vmin", np.nanmin(data)), vmax=kwargs.pop("vmax", np.nanmax(data)))
+    cont_cmap = copy(plt.get_cmap(cont_cmap))
+    cont_cmap.set_bad(color="grey")
+
+    im = ax.imshow(data[::-1], cmap=cont_cmap, norm=norm)
+
+    ax.grid(False)
+    ax.tick_params(top=False, bottom=False, labeltop=False, labelbottom=False)
+    ax.set_xticks([])
+    ax.set_yticks([])
+
+    if annotate:
+        _annotate_heatmap(im, cmap=cont_cmap, **kwargs)
+
+    divider = make_axes_locatable(ax)
+    row_cats = divider.append_axes("left", size="2%", pad=0)
+    col_cats = divider.append_axes("top", size="2%", pad=0)
+    cax = divider.append_axes("right", size="1%", pad=0.1)
+    if method is not None:  # cluster rows but don't plot dendrogram
+        col_ax = divider.append_axes("top", size="5%")
+        sch.dendrogram(col_link, no_labels=True, ax=col_ax, color_threshold=0, above_threshold_color="black")
+        col_ax.axis("off")
+
+    _ = fig.colorbar(
+        im,
+        cax=cax,
+        ticks=np.linspace(norm.vmin, norm.vmax, 10),
+        orientation="vertical",
+        format="%0.2f",
+        **cbar_kwargs,
+    )
+
+    # column labels colorbar
+    c = fig.colorbar(col_sm, cax=col_cats, orientation="horizontal")
+    c.set_ticks([])
+    (col_cats if method is None else col_ax).set_title(title)
+
+    # row labels colorbar
+    c = fig.colorbar(row_sm, cax=row_cats, orientation="vertical", ticklocation="left")
+    c.set_ticks(np.arange(n_cls) + 0.5)
+    c.set_ticklabels(row_labels)
+    c.set_label(key)
+
+    return fig
+
+
+def _filter_kwargs(func: Callable[..., Any], kwargs: Mapping[str, Any]) -> dict[str, Any]:
+    style_args = {k for k in signature(func).parameters.keys()}  # noqa: C416
+    return {k: v for k, v in kwargs.items() if k in style_args}
+
+
+def _dendrogram(data: ArrayLike, method: str, **kwargs: Any) -> Tuple[List[int], List[int], List[int], List[int]]:
+    link_kwargs = _filter_kwargs(sch.linkage, kwargs)
+    dendro_kwargs = _filter_kwargs(sch.dendrogram, kwargs)
+
+    # Row-cluster
+    row_link = sch.linkage(data, method=method, **link_kwargs)
+    row_dendro = sch.dendrogram(row_link, no_plot=True, **dendro_kwargs)
+    row_order = row_dendro["leaves"]
+
+    # Column-cluster
+    col_link = sch.linkage(data.T, method=method, **link_kwargs)
+    col_dendro = sch.dendrogram(col_link, no_plot=True, **dendro_kwargs)
+    col_order = col_dendro["leaves"]
+
+    return row_order, col_order, row_link, col_link
+
+
+def _get_black_or_white(value: float, cmap: mcolors.Colormap) -> str:
+    if not (0.0 <= value <= 1.0):
+        raise ValueError(f"Value must be in range `[0, 1]`, found `{value}`.")
+
+    r, g, b, *_ = (int(c * 255) for c in cmap(value))
+    return _contrasting_color(r, g, b)
+
+
+def _annotate_heatmap(
+    im: mpl.image.AxesImage, valfmt: str = "{x:.2f}", cmap: mpl.colors.Colormap | str = "viridis", **kwargs: Any
+) -> None:
+    # modified from matplotlib's site
+    if isinstance(cmap, str):
+        cmap = plt.get_cmap(cmap)
+
+    data = im.get_array()
+    kw = {"ha": "center", "va": "center"}
+    kw.update(**kwargs)
+
+    if isinstance(valfmt, str):
+        valfmt = mpl.ticker.StrMethodFormatter(valfmt)
+    if TYPE_CHECKING:
+        assert callable(valfmt)
+
+    for i in range(data.shape[0]):
+        for j in range(data.shape[1]):
+            val = im.norm(data[i, j])
+            if np.isnan(val):
+                continue
+            kw.update(color=_get_black_or_white(val, cmap))
+            im.axes.text(j, i, valfmt(data[i, j], None), **kw)
+
+
+def _get_cmap_norm(
+    adata: AnnData,
+    key: str,
+    order: Tuple[List[int], List[int]] | None | None = None,
+) -> Tuple[mcolors.ListedColormap, mcolors.ListedColormap, mcolors.BoundaryNorm, mcolors.BoundaryNorm, int]:
+    n_cls = adata.obs[key].nunique()
+
+    colors = adata.uns[Key.uns.colors(key)]
+
+    if order is not None:
+        row_order, col_order = order
+        row_colors = [colors[i] for i in row_order]
+        col_colors = [colors[i] for i in col_order]
+    else:
+        row_colors = col_colors = colors
+
+    row_cmap = mcolors.ListedColormap(row_colors)
+    col_cmap = mcolors.ListedColormap(col_colors)
+    row_norm = mcolors.BoundaryNorm(np.arange(n_cls + 1), row_cmap.N)
+    col_norm = mcolors.BoundaryNorm(np.arange(n_cls + 1), col_cmap.N)
+
+    return row_cmap, col_cmap, row_norm, col_norm, n_cls
