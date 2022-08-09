@@ -150,3 +150,47 @@ class TestSingleCompoundProblem:
             assert leaves
             assert out.transport_matrix.dtype == dtype
             np.testing.assert_array_equal(leaves, True)
+
+    def test_add_problem(self, adata_time: AnnData):
+        expected_keys = [(0, 1), (1, 2)]
+        problem = Problem(adata=adata_time)
+        problem = problem.prepare(
+            xy={"x_attr": "X", "y_attr": "X"},
+            x={"attr": "X"},
+            y={"attr": "X"},
+            key="time",
+            axis="obs",
+            policy="sequential",
+        )
+
+        assert list(problem.problems.keys()) == expected_keys
+
+        problem = problem.add_problem((0, 2), xy={"x_attr": "X", "y_attr": "X"}, x={"attr": "X"}, y={"attr": "X"})
+        assert list(problem.problems.keys()) == expected_keys + [(0, 2)]
+
+    def test_add_created_problem(self, adata_time: AnnData):
+        expected_keys = [(0, 1), (1, 2)]
+        problem = Problem(adata=adata_time)
+        problem = problem.prepare(
+            xy={"x_attr": "X", "y_attr": "X"},
+            x={"attr": "X"},
+            y={"attr": "X"},
+            key="time",
+            axis="obs",
+            policy="sequential",
+        )
+
+        assert list(problem.problems.keys()) == expected_keys
+
+        problem_2 = Problem(adata=adata_time)
+        problem_2 = problem_2.prepare(
+            xy={"x_attr": "X", "y_attr": "X"},
+            x={"attr": "X"},
+            y={"attr": "X"},
+            key="time",
+            subset=[(0,2)],
+            axis="obs",
+            policy="explicit",
+        )
+        problem = problem.add_problem((0,2), problem_2[0,2])
+        assert list(problem.problems.keys()) == expected_keys + [(0, 2)]

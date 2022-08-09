@@ -1,8 +1,11 @@
 from typing import List, Type, Tuple, Union, Optional
 
+from scipy.sparse import csr_matrix
 import networkx as nx
 
 import numpy as np
+
+from anndata import AnnData
 
 from moscot._types import ArrayLike
 from moscot.problems.base import OTProblem, CompoundProblem
@@ -71,3 +74,26 @@ def _get_random_trees(
         trees.append(G)
 
     return trees
+
+
+def _make_adata(grid: ArrayLike, n: int, seed) -> List[AnnData]:
+    rng = np.random.default_rng(seed)
+    X = rng.normal(size=(100, 60))
+    adatas = [AnnData(X=csr_matrix(X), obsm={"spatial": grid.copy()}, dtype=X.dtype) for _ in range(n)]
+    return adatas
+
+
+def _adata_spatial_split(adata: AnnData) -> Tuple[AnnData, AnnData]:
+    adata_ref = adata[adata.obs.batch == "0"].copy()
+    adata_ref.obsm.pop("spatial")
+    adata_sp = adata[adata.obs.batch != "0"].copy()
+    return adata_ref, adata_sp
+
+
+def _make_grid(grid_size: int) -> ArrayLike:
+    xlimits = ylimits = [0, 10]
+    x1s = np.linspace(*xlimits, num=grid_size)
+    x2s = np.linspace(*ylimits, num=grid_size)
+    X1, X2 = np.meshgrid(x1s, x2s)
+    X_orig_single = np.vstack([X1.ravel(), X2.ravel()]).T
+    return X_orig_single
