@@ -259,7 +259,7 @@ class TestSolverOutput:
         else:
             _ = solver(xy=(x, x), device=device)
 
-    @pytest.mark.parametrize("dtype", [None, jnp.float16, jnp.float32, jnp.float64, float, np.float32])
+    @pytest.mark.parametrize("dtype", [None, jnp.float64, float])
     def test_to_dtype(self, x: Geom_t, dtype: Optional[DTypeLike]) -> None:
         solver = SinkhornSolver()
 
