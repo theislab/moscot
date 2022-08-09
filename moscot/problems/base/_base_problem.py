@@ -238,7 +238,7 @@ class OTProblem(BaseProblem):
         epsilon: Optional[float] = 1e-2,
         alpha: Optional[float] = 0.5,
         rank: int = -1,
-        scale_cost: ScaleCost_t = None,
+        scale_cost: ScaleCost_t = 1.0,
         batch_size: Optional[int] = None,
         tau_a: float = 1.0,
         tau_b: float = 1.0,
