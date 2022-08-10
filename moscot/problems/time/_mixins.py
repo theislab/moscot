@@ -232,7 +232,7 @@ class TemporalMixin(AnalysisMixin[K, B]):
             )
         return tm
 
-    def plot_cell_transition(
+    def sankey(
         self: "TemporalMixinProtocol[K, B]",
         start: K,
         end: K,
@@ -256,7 +256,13 @@ class TemporalMixin(AnalysisMixin[K, B]):
         for (src, tgt) in tuples:
             cell_transitions.append(
                 self.cell_transition(
-                    src, tgt, early_cells=early_cells, late_cells=late_cells, forward=forward, normalize=normalize
+                    src,
+                    tgt,
+                    early_cells=early_cells,
+                    late_cells=late_cells,
+                    forward=forward,
+                    normalize=normalize,
+                    plot=False,
                 )
             )
         if captions is None:
