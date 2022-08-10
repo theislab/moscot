@@ -367,7 +367,12 @@ class BaseCompoundProblem(BaseProblem, ABC, Generic[K, B]):
     @d.dedent
     @require_prepare
     def add_problem(
-        self, key: Tuple[K, K], problem: Optional[B] = None, *, overwrite: bool = False
+        self,
+        key: Tuple[K, K],
+        problem: Optional[B] = None,
+        *,
+        overwrite: bool = False,
+        **kwargs: Any,
     ) -> "BaseCompoundProblem[K, B]":
         """
         Add a problem.
@@ -390,7 +395,7 @@ class BaseCompoundProblem(BaseProblem, ABC, Generic[K, B]):
         """
         if TYPE_CHECKING:
             assert isinstance(self._problem_manager, ProblemManager)
-        self._problem_manager.add_problem(key, problem, overwrite=overwrite)
+        self._problem_manager.add_problem(key, problem, overwrite=overwrite, **kwargs)
         return self
 
     @d.dedent

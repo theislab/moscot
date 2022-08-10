@@ -21,7 +21,7 @@ from moscot.solvers._tagged_array import TaggedArray
 
 __all__ = ["Cost", "SinkhornSolver", "GWSolver", "FGWSolver"]
 
-Scale_t = Optional[Union[float, Literal["mean", "median", "max_cost", "max_norm", "max_bound"]]]
+Scale_t = Union[float, Literal["mean", "median", "max_cost", "max_norm", "max_bound"]]
 Epsilon_t = Union[float, Epsilon]
 
 
@@ -73,7 +73,7 @@ class OTTJaxSolver(OTSolver[O], ABC):
         *,
         epsilon: Optional[Epsilon_t] = None,
         batch_size: Optional[int] = None,
-        scale_cost: Scale_t = None,
+        scale_cost: Scale_t = 1.0,
     ) -> Geometry:
         """
         TODO.
@@ -170,7 +170,7 @@ class SinkhornSolver(OTTJaxSolver[OTTOutput]):
         y: Optional[TaggedArray] = None,
         epsilon: Optional[Epsilon_t] = None,
         batch_size: Optional[int] = None,
-        scale_cost: Scale_t = None,
+        scale_cost: Scale_t = 1.0,
         **kwargs: Any,
     ) -> ProblemDescription:
         if xy is None:
@@ -221,7 +221,7 @@ class GWSolver(OTTJaxSolver[OTTOutput]):
         y: Optional[TaggedArray] = None,
         epsilon: Optional[Epsilon_t] = None,
         batch_size: Optional[int] = None,
-        scale_cost: Scale_t = None,
+        scale_cost: Scale_t = 1.0,
         **kwargs: Any,
     ) -> ProblemDescription:
         if x is None or y is None:
@@ -269,7 +269,7 @@ class FGWSolver(GWSolver):
         y: Optional[TaggedArray] = None,
         epsilon: Optional[Epsilon_t] = None,
         batch_size: Optional[int] = None,
-        scale_cost: Scale_t = None,
+        scale_cost: Scale_t = 1.0,
         alpha: float = 0.5,
         **kwargs: Any,
     ) -> ProblemDescription:

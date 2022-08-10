@@ -21,9 +21,11 @@ class ProblemManager(Generic[K, B]):
         self._policy = policy
         self._problems: Dict[Tuple[K, K], B] = {}
 
-    def add_problem(self, key: Tuple[K, K], problem: Optional[B] = None, *, overwrite: bool = False) -> None:
+    def add_problem(
+        self, key: Tuple[K, K], problem: Optional[B] = None, *, overwrite: bool = False, **kwargs: Any
+    ) -> None:
         """Add problem."""
-        self._add_problem(key, problem, overwrite=overwrite, verify_integrity=True)
+        self._add_problem(key, problem, overwrite=overwrite, verify_integrity=True, **kwargs)
 
     def _add_problem(
         self,

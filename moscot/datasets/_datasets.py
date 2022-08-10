@@ -15,6 +15,10 @@ _datasets = {
         "https://figshare.com/ndownloader/files/35786069",
         (1536, 500),
     ),
+    "tedsim_15360": (
+        "https://figshare.com/ndownloader/files/36556515",
+        (15360, 500),
+    ),
     "mosta": (
         "https://figshare.com/ndownloader/files/36498630",
         (24321, 23761),
@@ -57,7 +61,7 @@ def simulation(
     -------
     %(adata)s
     """
-    _sizes = [1024]
+    _sizes = [1024, 15360]
 
     path = path_prefix + str(size)  # type: ignore[operator]
     if size not in _sizes:

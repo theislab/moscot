@@ -167,6 +167,10 @@ kwargs
 _heatmap_plot = """\
 plot
     TODO: plots the transition matrix."""
+_ott_jax_batch_size = """\
+batch_size
+    number of data points the matrix-vector products are applied to at the same time. The larger, the more memory
+    is required."""
 # returns
 _alignment_mixin_returns = """\
 If ``inplace = False``, returns a :class:`numpy.ndarray` with aligned coordinates.
@@ -242,4 +246,5 @@ d = DocstringProcessor(
     solve_kwargs=_solve_kwargs,
     heatmap_kwargs=_heatmap_kwargs,
     heatmap_plot=_heatmap_plot,
+    ott_jax_batch_size=_ott_jax_batch_size,
 )

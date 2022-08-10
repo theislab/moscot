@@ -28,7 +28,7 @@ def require_prepare(
     wrapped: Callable[[Any], Any], instance: "BaseCompoundProblem", args: Tuple[Any, ...], kwargs: Mapping[str, Any]
 ) -> Any:
     """Check whether problem has been prepared."""
-    if instance._problems is None:
+    if instance.problems is None:
         raise RuntimeError("TODO: Run prepare.")
     return wrapped(*args, **kwargs)
 

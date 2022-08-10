@@ -40,6 +40,8 @@ class TemporalMixinProtocol(AnalysisMixinProtocol[K, B], Protocol[K, B]):
         online: bool = False,
         batch_size: Optional[int] = None,
         normalize: bool = True,
+        plot: bool = False,
+        **kwargs: Any,
     ) -> pd.DataFrame:
         ...
 
