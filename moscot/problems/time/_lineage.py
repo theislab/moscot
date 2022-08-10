@@ -148,7 +148,7 @@ class TemporalProblem(
         %(tau_b)s
         %(scale_cost)s
         %(rank)s
-        %(batch_size)s
+        %(ott_jax_batch_size)s
         %(stage)s
         %(solve_kwargs)s
 
@@ -261,7 +261,7 @@ class TemporalProblem(
 
     @property
     def _valid_policies(self) -> Tuple[str, ...]:
-        return Policy.SEQUENTIAL, Policy.TRIL, Policy.TRIU, Policy.EXPLICIT
+        return Policy.SEQUENTIAL, Policy.TRIU, Policy.EXPLICIT
 
 
 @d.dedent
@@ -389,7 +389,7 @@ class LineageProblem(TemporalProblem):
         %(tau_b)s
         %(scale_cost)s
         %(rank)s
-        %(batch_size)s
+        %(ott_jax_batch_size)s
         %(stage)s
         %(solve_kwargs)s
 
