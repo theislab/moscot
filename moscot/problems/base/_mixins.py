@@ -8,7 +8,7 @@ import numpy as np
 
 from anndata import AnnData
 
-from moscot._types import Filter_t, ArrayLike, Numeric_t
+from moscot._types import ArrayLike, Numeric_t, Str_Dict_t
 from moscot.solvers._output import BaseSolverOutput
 from moscot.problems.base._utils import (
     _get_problem_key,
@@ -75,8 +75,8 @@ class AnalysisMixinProtocol(Protocol[K, B]):
         key: Optional[str],
         source_key: K,
         target_key: K,
-        source_annotation: Filter_t = None,
-        target_annotation: Filter_t = None,
+        source_annotation: Str_Dict_t,
+        target_annotation: Str_Dict_t,
         forward: bool = False,  # return value will be row-stochastic if forward=True, else column-stochastic
         aggregation_mode: Literal["annotation", "cell"] = AggregationMode.ANNOTATION,  # type: ignore[assignment]
         other_key: Optional[str] = None,
@@ -91,8 +91,8 @@ class AnalysisMixinProtocol(Protocol[K, B]):
         key: Optional[str],
         source_key: K,
         target_key: K,
-        source_annotation: Filter_t = None,
-        target_annotation: Filter_t = None,
+        source_annotation: Str_Dict_t,
+        target_annotation: Str_Dict_t,
         forward: bool = False,
         aggregation_mode: Literal["annotation", "cell"] = AggregationMode.ANNOTATION,  # type: ignore[assignment]
         other_key: Optional[str] = None,
@@ -155,8 +155,8 @@ class AnalysisMixin(Generic[K, B]):
         key: Optional[str],
         source_key: K,
         target_key: K,
-        source_annotation: Filter_t = None,
-        target_annotation: Filter_t = None,
+        source_annotation: Str_Dict_t,
+        target_annotation: Str_Dict_t,
         forward: bool = False,  # return value will be row-stochastic if forward=True, else column-stochastic
         aggregation_mode: Literal["annotation", "cell"] = AggregationMode.ANNOTATION,  # type: ignore[assignment]
         other_key: Optional[str] = None,
@@ -242,8 +242,8 @@ class AnalysisMixin(Generic[K, B]):
         key: Optional[str],
         source_key: K,
         target_key: K,
-        source_annotation: Filter_t = None,
-        target_annotation: Filter_t = None,
+        source_annotation: Str_Dict_t,
+        target_annotation: Str_Dict_t,
         forward: bool = False,  # return value will be row-stochastic if forward=True, else column-stochastic
         aggregation_mode: Literal["annotation", "cell"] = AggregationMode.ANNOTATION,  # type: ignore[assignment]
         other_key: Optional[str] = None,

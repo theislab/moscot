@@ -240,6 +240,6 @@ d = DocstringProcessor(
     stage=_stage,
     normalize_cell_transition=_normalize_cell_transition,
     solve_kwargs=_solve_kwargs,
-    heatmap_kwargs = _heatmap_kwargs,
-    heatmap_plot = _heatmap_plot,
+    heatmap_kwargs=_heatmap_kwargs,
+    heatmap_plot=_heatmap_plot,
 )

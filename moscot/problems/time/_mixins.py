@@ -14,12 +14,11 @@ from anndata import AnnData
 import scanpy as sc
 
 from moscot._docs import d
-from moscot._types import Filter_t, ArrayLike, Numeric_t
-from moscot.problems._plotting import _sankey
+from moscot._types import ArrayLike, Numeric_t, Str_Dict_t
+from moscot.problems._plotting import _sankey, _heatmap
 from moscot._constants._constants import AggregationMode
 from moscot.problems.base._mixins import AnalysisMixin, AnalysisMixinProtocol
 from moscot.problems.base._compound_problem import B, K, ApplyOutput_t
-from moscot.problems._plotting import _heatmap
 
 
 class TemporalMixinProtocol(AnalysisMixinProtocol[K, B], Protocol[K, B]):
@@ -34,8 +33,8 @@ class TemporalMixinProtocol(AnalysisMixinProtocol[K, B], Protocol[K, B]):
         self: "TemporalMixinProtocol[K, B]",
         start: K,
         end: K,
-        early_cells: Filter_t,
-        late_cells: Filter_t,
+        early_cells: Str_Dict_t,
+        late_cells: Str_Dict_t,
         forward: bool = False,  # return value will be row-stochastic if forward=True, else column-stochastic
         aggregation_mode: Literal["annotation", "cell"] = AggregationMode.ANNOTATION,  # type: ignore[assignment]
         online: bool = False,
@@ -150,8 +149,8 @@ class TemporalMixin(AnalysisMixin[K, B]):
         self: TemporalMixinProtocol[K, B],
         start: K,
         end: K,
-        early_annotation: Filter_t,
-        late_annotation: Filter_t,
+        early_annotation: Str_Dict_t,
+        late_annotation: Str_Dict_t,
         forward: bool = False,  # return value will be row-stochastic if forward=True, else column-stochastic
         aggregation_mode: Literal["annotation", "cell"] = AggregationMode.ANNOTATION,  # type: ignore[assignment]
         online: bool = False,
@@ -219,13 +218,17 @@ class TemporalMixin(AnalysisMixin[K, B]):
             normalize=normalize,
         )
         if plot:
-            return _heatmap(row_adata = self.adata, col_adata=self.adata,
-            transition_matrix=tm,
-            row_annotation=early_annotation,
-            col_annotation=late_annotation,
-            row_annotation_suffix = f" {start}",
-            col_annotation_suffix = f" {end}",
-            **kwargs
+            return _heatmap(
+                row_adata=self.adata,
+                col_adata=self.adata,
+                transition_matrix=tm,
+                row_annotation=early_annotation
+                if isinstance(early_annotation, str)
+                else list(early_annotation.keys())[0],
+                col_annotation=late_annotation if isinstance(late_annotation, str) else list(late_annotation.keys())[0],
+                row_annotation_suffix=f" {start}",
+                col_annotation_suffix=f" {end}",
+                **kwargs,
             )
         return tm
 
@@ -233,8 +236,8 @@ class TemporalMixin(AnalysisMixin[K, B]):
         self: "TemporalMixinProtocol[K, B]",
         start: K,
         end: K,
-        early_cells: Filter_t,
-        late_cells: Filter_t,
+        early_cells: Str_Dict_t,
+        late_cells: Str_Dict_t,
         normalize: bool = False,
         forward: bool = True,
         restrict_to_existing: bool = True,
@@ -260,13 +263,13 @@ class TemporalMixin(AnalysisMixin[K, B]):
             captions = [str(t) for t in tuples]
 
         if len(cell_transitions) > 1 and restrict_to_existing:
-            for i, ct in enumerate(cell_transitions[:-1]):
+            for i in range(len(cell_transitions[:-1])):
                 present_annotations = list(cell_transitions[i + 1].index)
                 cell_transitions[i] = cell_transitions[i][present_annotations]
 
         if order_annotations is not None:
             cell_transitions_updated = []
-            for i, ct in enumerate(cell_transitions):
+            for ct in cell_transitions:
                 order_annotations_present_index = [ann for ann in order_annotations if ann in ct.index]
                 ct = ct.loc[order_annotations_present_index[::-1]]
                 order_annotations_present_columns = [ann for ann in order_annotations if ann in ct.columns]

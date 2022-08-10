@@ -4,12 +4,12 @@ from typing_extensions import Literal, Protocol
 import pandas as pd
 
 from moscot._docs import d
-from moscot._types import Filter_t
+from moscot._types import Str_Dict_t
 from moscot.problems.base import AnalysisMixin  # type: ignore[attr-defined]
+from moscot.problems._plotting import _heatmap
 from moscot._constants._constants import AggregationMode
 from moscot.problems.base._mixins import AnalysisMixinProtocol
 from moscot.problems.base._compound_problem import B, K
-from moscot.problems._plotting import _heatmap
 
 
 class GenericAnalysisMixinProtocol(AnalysisMixinProtocol[K, B], Protocol[K, B]):
@@ -38,9 +38,8 @@ class GenericAnalysisMixin(AnalysisMixin[K, B]):
         self: GenericAnalysisMixinProtocol[K, B],
         source_key: K,
         target_key: K,
-        key: Optional[str] = None,
-        source_annotation: Filter_t = None,
-        target_annotation: Filter_t = None,
+        source_annotation: Str_Dict_t,
+        target_annotation: Str_Dict_t,
         forward: bool = False,  # return value will be row-stochastic if forward=True, else column-stochastic
         aggregation_mode: Literal["annotation", "cell"] = AggregationMode.ANNOTATION,  # type: ignore[assignment]
         online: bool = False,
@@ -105,13 +104,19 @@ class GenericAnalysisMixin(AnalysisMixin[K, B]):
         )
 
         if plot:
-            return _heatmap(row_adata = self.adata, col_adata=self.adata,
-            transition_matrix=tm,
-            row_annotation=source_annotation,
-            col_annotation=target_annotation,
-            row_annotation_suffix = f" {source_key}",
-            col_annotation_suffix = f" {target_key}",
-            **kwargs
+            return _heatmap(
+                row_adata=self.adata,
+                col_adata=self.adata,
+                transition_matrix=tm,
+                row_annotation=source_annotation
+                if isinstance(source_annotation, str)
+                else list(source_annotation.keys())[0],
+                col_annotation=target_annotation
+                if isinstance(target_annotation, str)
+                else list(target_annotation.keys())[0],
+                row_annotation_suffix=f" {source_key}",
+                col_annotation_suffix=f" {target_key}",
+                **kwargs,
             )
         return tm
 

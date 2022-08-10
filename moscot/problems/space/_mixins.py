@@ -14,13 +14,13 @@ import numpy as np
 from anndata import AnnData
 
 from moscot._docs import d
-from moscot._types import Filter_t, ArrayLike
+from moscot._types import ArrayLike, Str_Dict_t
 from moscot.problems.base import AnalysisMixin  # type: ignore[attr-defined]
+from moscot.problems._plotting import _heatmap
 from moscot._constants._constants import CorrMethod, AlignmentMode, AggregationMode
 from moscot.problems.base._mixins import AnalysisMixinProtocol
 from moscot.problems._subset_policy import StarPolicy
 from moscot.problems.base._compound_problem import B, K
-from moscot.problems._plotting import _heatmap
 
 
 class SpatialAlignmentMixinProtocol(AnalysisMixinProtocol[K, B]):
@@ -184,15 +184,15 @@ class SpatialAlignmentMixin(AnalysisMixin[K, B]):
         self: SpatialAlignmentMixinProtocol[K, B],
         slice: K,
         reference: K,
-        slice_cells: Filter_t,
-        reference_cells: Filter_t,
+        slice_cells: Str_Dict_t,
+        reference_cells: Str_Dict_t,
         forward: bool = False,  # return value will be row-stochastic if forward=True, else column-stochastic
         aggregation_mode: Literal["annotation", "cell"] = AggregationMode.ANNOTATION,  # type: ignore[assignment]
         online: bool = False,
         batch_size: Optional[int] = None,
         normalize: bool = True,
         plot: bool = True,
-        **kwargs: Any
+        **kwargs: Any,
     ) -> pd.DataFrame:
         """Partly copy from other cell_transitions."""
         if TYPE_CHECKING:
@@ -213,13 +213,15 @@ class SpatialAlignmentMixin(AnalysisMixin[K, B]):
             normalize=normalize,
         )
         if plot:
-            return _heatmap(row_adata = self.adata, col_adata=self.adata,
-            transition_matrix=tm,
-            row_annotation=slice_cells,
-            col_annotation=reference_cells,
-            row_annotation_suffix = f" {slice}",
-            col_annotation_suffix = f" {reference}",
-            **kwargs
+            return _heatmap(
+                row_adata=self.adata,
+                col_adata=self.adata,
+                transition_matrix=tm,
+                row_annotation=slice_cells if isinstance(slice_cells, str) else list(slice_cells.keys())[0],
+                col_annotation=reference_cells if isinstance(reference_cells, str) else list(reference_cells.keys())[0],
+                row_annotation_suffix=f" {slice}",
+                col_annotation_suffix=f" {reference}",
+                **kwargs,
             )
         return tm
 
@@ -360,15 +362,15 @@ class SpatialMappingMixin(AnalysisMixin[K, B]):
     def cell_transition(
         self: SpatialMappingMixinProtocol[K, B],
         batch: K,
-        spatial_cells: Filter_t,
-        sc_cells: Filter_t,
+        spatial_cells: Str_Dict_t,
+        sc_cells: Str_Dict_t,
         forward: bool = False,  # return value will be row-stochastic if forward=True, else column-stochastic
         aggregation_mode: Literal["annotation", "cell"] = AggregationMode.ANNOTATION,  # type: ignore[assignment]
         online: bool = False,
         batch_size: Optional[int] = None,
         normalize: bool = True,
         plot: bool = True,
-        **kwargs: Any
+        **kwargs: Any,
     ) -> pd.DataFrame:
         """Compute cell transition."""
         if TYPE_CHECKING:
@@ -388,13 +390,15 @@ class SpatialMappingMixin(AnalysisMixin[K, B]):
             normalize=normalize,
         )
         if plot:
-            return _heatmap(row_adata = self.adata, col_adata =self.adata_sc,
-            transition_matrix=tm,
-            row_annotation=spatial_cells,
-            col_annotation=sc_cells,
-            row_annotation_suffix = f" {batch}",
-            col_annotation_suffix = "",
-            **kwargs
+            return _heatmap(
+                row_adata=self.adata,
+                col_adata=self.adata_sc,
+                transition_matrix=tm,
+                row_annotation=spatial_cells if isinstance(spatial_cells, str) else list(spatial_cells.keys())[0],
+                col_annotation=sc_cells if isinstance(sc_cells, str) else list(sc_cells.keys())[0],
+                row_annotation_suffix=f" {batch}",
+                col_annotation_suffix="",
+                **kwargs,
             )
         return tm
 
