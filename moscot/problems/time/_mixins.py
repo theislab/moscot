@@ -633,7 +633,7 @@ class TemporalMixin(AnalysisMixin[K, B]):
 
         return distance_source_intermediate, distance_intermediate_target
 
-    def compute_batch_distances(self: TemporalMixinProtocol[K, B], time: K, batch_key: str, **kwargs: Any) -> Numeric_t:
+    def compute_batch_distances(self: TemporalMixinProtocol[K, B], time: K, batch_key: str, **kwargs: Any) -> np.float_:
         """
         Compute the mean Wasserstein distance between batches of a distribution corresponding to one time point.
 
@@ -661,7 +661,7 @@ class TemporalMixin(AnalysisMixin[K, B]):
                     **kwargs,
                 )
             )
-        return np.mean(dist)
+        return np.mean(dist)  # type: ignore[return-value]
 
     def plot_ancestors(  # TODO)@MUCDK) include subset in data by allowing data to be dict
         self: TemporalMixinProtocol[K, B],

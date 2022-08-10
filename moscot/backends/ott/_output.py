@@ -18,6 +18,8 @@ from moscot.solvers._output import BaseSolverOutput
 
 __all__ = ["OTTOutput"]
 
+Device_t = Union[str, xla_ext.Device, Literal["cpu", "gpu", "tpu"]]
+
 
 @contextlib.contextmanager
 def enable_x64() -> Iterator[None]:
@@ -133,7 +135,7 @@ class OTTOutput(RankMixin, ConvergencePlotterMixin, BaseSolverOutput, ABC):
 
     def to(
         self,
-        device: Optional[Union[str, xla_ext.Device, Literal["cpu", "gpu", "tpu"]]] = None,
+        device: Optional[Device_t] = None,
         dtype: Optional[DTypeLike] = None,
     ) -> "OTTOutput":
         """
