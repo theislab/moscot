@@ -106,6 +106,7 @@ class TestBaseAnalysisMixin:
             forward=True,
             aggregation_mode="cell",
             online=online,
+            plot=False,
         )
 
         adata_early = gt_temporal_adata[gt_temporal_adata.obs["day"] == 10]
@@ -149,6 +150,7 @@ class TestBaseAnalysisMixin:
             forward=False,
             aggregation_mode="cell",
             online=online,
+            plot=False,
         )
 
         adata_early = gt_temporal_adata[gt_temporal_adata.obs["day"] == 10]

@@ -80,7 +80,7 @@ class TestSpatialAlignmentAnalysisMixin:
         )
         ap[("1", "2")]._solution = MockSolverOutput(mock_tmap / mock_tmap.sum().sum())
         result = ap.cell_transition(
-            "1", "2", "celltype", "celltype", online=online, forward=forward, normalize=normalize
+            "1", "2", "celltype", "celltype", online=online, forward=forward, normalize=normalize, plot=False
         )
         assert isinstance(result, pd.DataFrame)
         assert result.shape == (3, 3)
@@ -137,7 +137,9 @@ class TestSpatialMappingAnalysisMixin:
         mock_tmap = np.abs(rng.randn(len(adatasp[adatasp.obs["batch"] == "1"]), len(adataref)))
         mp[("1", "ref")]._solution = MockSolverOutput(mock_tmap / mock_tmap.sum().sum())
 
-        result = mp.cell_transition("1", "celltype", "celltype", online=online, forward=forward, normalize=normalize)
+        result = mp.cell_transition(
+            "1", "celltype", "celltype", online=online, forward=forward, normalize=normalize, plot=False
+        )
 
         assert isinstance(result, pd.DataFrame)
         assert result.shape == (3, 4)
