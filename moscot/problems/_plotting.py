@@ -1,7 +1,13 @@
-from typing import Any, Dict, List, Union, Optional
+from typing import Any, Dict, List, Union, Optional, Tuple, Mapping, Callable, TYPE_CHECKING
 from pathlib import Path
 from collections import defaultdict
 import os
+from types import MappingProxyType
+from matplotlib import colors as mcolors, pyplot as plt
+from matplotlib.axes import Axes
+from matplotlib.figure import Figure
+import matplotlib as mpl
+from copy import copy
 
 from matplotlib.colors import ListedColormap
 from matplotlib.figure import Figure
@@ -10,12 +16,14 @@ import matplotlib.pyplot as plt
 from scipy.cluster import hierarchy as sch
 
 import numpy as np
+from mpl_toolkits.axes_grid1 import make_axes_locatable
 
 from scanpy import logging as logg, settings
 from anndata import AnnData
 from scanpy.plotting._utils import add_colors_for_categorical_sample_annotation as add_color_palette
 
 from moscot._docs import d
+from moscot._types import ArrayLike
 
 
 @d.dedent
@@ -220,14 +228,17 @@ def _sankey(
             plt.title(title)
 
 def _heatmap(
+    row_adata: AnnData,
+    col_adata: AnnData,
     transition_matrix: pd.DataFrame,
     row_annotation: str,
     col_annotation: str,
-    title: str = "",
-    row_order: Optional[List[str]] = None,
-    row_order: Optional[List[str]] = None,
+    row_annotation_suffix: str = "",
+    col_annotation_suffix: str = "",
     cont_cmap: Union[str, mcolors.Colormap] = "viridis",
-    annotate: bool = True,
+    annotate_rows: bool = True,
+    annotate_cols: bool = True,
+    annotate_values: bool = True,
     figsize: Optional[Tuple[float, float]] = None,
     dpi: Optional[int] = None,
     cbar_kwargs: Mapping[str, Any] = MappingProxyType({}),
@@ -242,7 +253,7 @@ def _heatmap(
     else:
         fig = ax.figure
 
-    row_cmap, col_cmap, row_norm, col_norm = _get_cmap_norm(transition_matrix, row_annotation, col_annotation, order=(row_order, col_order))
+    row_cmap, col_cmap, row_norm, col_norm = _get_cmap_norm(row_adata, col_adata, transition_matrix, row_annotation, col_annotation)
 
     row_sm = mpl.cm.ScalarMappable(cmap=row_cmap, norm=row_norm)
     col_sm = mpl.cm.ScalarMappable(cmap=col_cmap, norm=col_norm)
@@ -251,19 +262,16 @@ def _heatmap(
     cont_cmap = copy(plt.get_cmap(cont_cmap))
     cont_cmap.set_bad(color="grey")
 
-    im = ax.imshow(data[::-1], cmap=cont_cmap, norm=norm)
-
+    im = ax.imshow(transition_matrix[::-1], cmap=cont_cmap, norm=norm)
     ax.grid(False)
     ax.tick_params(top=False, bottom=False, labeltop=False, labelbottom=False)
     ax.set_xticks([])
     ax.set_yticks([])
-
-    if annotate:
+    
+    if annotate_values: 
         _annotate_heatmap(transition_matrix, im, cmap=cont_cmap, **kwargs)
 
     divider = make_axes_locatable(ax)
-    row_cats = divider.append_axes("left", size="2%", pad=0)
-    col_cats = divider.append_axes("top", size="2%", pad=0)
     cax = divider.append_axes("right", size="1%", pad=0.1)
 
     _ = fig.colorbar(
@@ -275,42 +283,26 @@ def _heatmap(
         **cbar_kwargs,
     )
 
-    # column labels colorbar
-    c = fig.colorbar(col_sm, cax=col_cats, orientation="horizontal")
-    #c.set_ticks([])
-    c.set_ticks(np.arange(transition_matrix.shape[1]) + 0.5)
-    c.set_ticklabels(transition_matrix.columns)
-    c.set_label(col_annotation)
-    
-    # row labels colorbar
-    c = fig.colorbar(row_sm, cax=row_cats, orientation="vertical", ticklocation="left")
-    c.set_ticks(np.arange(transition_matrix.shape[0]) + 0.5)
-    c.set_ticklabels(transition_matrix.index)
-    c.set_label(row_annotation)
+    col_cats = divider.append_axes("top", size="2%", pad=0)
+    c = fig.colorbar(col_sm, cax=col_cats, orientation="horizontal", ticklocation="top" if annotate_cols else "auto")
+    if annotate_cols:
+        c.set_ticks(np.arange(transition_matrix.shape[1]) + 0.5)
+        c.ax.set_xticklabels(transition_matrix.columns, rotation=90)
+        c.set_label(col_annotation + col_annotation_suffix)
 
+    row_cats = divider.append_axes("left", size="2%", pad=0)
+    c = fig.colorbar(row_sm, cax=row_cats, orientation="vertical", ticklocation="left" if annotate_rows else "auto")
+    if annotate_rows:
+        c.set_ticks(np.arange(transition_matrix.shape[0]) + 0.5)
+        c.ax.set_yticklabels(transition_matrix.index)
+        c.set_label(row_annotation + row_annotation_suffix)
+    
     return fig
 
 
 def _filter_kwargs(func: Callable[..., Any], kwargs: Mapping[str, Any]) -> dict[str, Any]:
     style_args = {k for k in signature(func).parameters.keys()}  # noqa: C416
     return {k: v for k, v in kwargs.items() if k in style_args}
-
-
-def _dendrogram(data: ArrayLike, method: str, **kwargs: Any) -> Tuple[List[int], List[int], List[int], List[int]]:
-    link_kwargs = _filter_kwargs(sch.linkage, kwargs)
-    dendro_kwargs = _filter_kwargs(sch.dendrogram, kwargs)
-
-    # Row-cluster
-    row_link = sch.linkage(data, method=method, **link_kwargs)
-    row_dendro = sch.dendrogram(row_link, no_plot=True, **dendro_kwargs)
-    row_order = row_dendro["leaves"]
-
-    # Column-cluster
-    col_link = sch.linkage(data.T, method=method, **link_kwargs)
-    col_dendro = sch.dendrogram(col_link, no_plot=True, **dendro_kwargs)
-    col_order = col_dendro["leaves"]
-
-    return row_order, col_order, row_link, col_link
 
 
 def _get_black_or_white(value: float, cmap: mcolors.Colormap) -> str:
@@ -322,7 +314,7 @@ def _get_black_or_white(value: float, cmap: mcolors.Colormap) -> str:
 
 
 def _annotate_heatmap(
-    transition_matrix: pd.DataFrame, im: mpl.image.AxesImage, valfmt: str = "{x:.2f}", cmap: mpl.colors.Colormap | str = "viridis", **kwargs: Any
+    transition_matrix: pd.DataFrame, im: mpl.image.AxesImage, valfmt: str = "{x:.2f}", cmap: Union[mpl.colors.Colormap, str] = "viridis", **kwargs: Any
 ) -> None:
     # modified from matplotlib's site
     if isinstance(cmap, str):
@@ -338,31 +330,42 @@ def _annotate_heatmap(
 
     for i in range(transition_matrix.shape[0]):
         for j in range(transition_matrix.shape[1]):
-            val = im.norm(data[i, j])
+            val = im.norm(transition_matrix.iloc[transition_matrix.shape[0]-(i+1), j])
             if np.isnan(val):
                 continue
             kw.update(color=_get_black_or_white(val, cmap))
-            im.axes.text(j, i, valfmt(data[i, j], None), **kw)
+            im.axes.text(j, i, valfmt(transition_matrix.iloc[transition_matrix.shape[0]-(i+1), j], None), **kw)
 
 
 def _get_cmap_norm(
+    row_adata: AnnData,
+    col_adata: AnnData,
     transition_matrix: pd.DataFrame,
     row_annotation: str,
     col_annotation: str,
-    order: Optional[Tuple[List[str], List[str]]] = None,
 ) -> Tuple[mcolors.ListedColormap, mcolors.ListedColormap, mcolors.BoundaryNorm, mcolors.BoundaryNorm]:
-    
-    colors_row = adata.uns[f"{row_annotation}_colors"]
-    colors_col = adata.uns[f"{col_annotation}_colors"]
+    row_color_dict = {row_adata.obs[row_annotation].cat.categories[i]: col for i, col in enumerate(row_adata.uns[f"{row_annotation}_colors"])}
+    col_color_dict = {col_adata.obs[col_annotation].cat.categories[i]: col for i, col in enumerate(col_adata.uns[f"{col_annotation}_colors"])}
 
-    if order is not None:
-        row_order, col_order = order
-        row_colors = [colors_row[i] for i in row_order]
-        col_colors = [colors_col[i] for i in col_order]
+    row_colors = [row_color_dict[cat] for cat in transition_matrix.index]#[::-1]
+    col_colors = [col_color_dict[cat] for cat in transition_matrix.columns]
 
     row_cmap = mcolors.ListedColormap(row_colors)
     col_cmap = mcolors.ListedColormap(col_colors)
-    row_norm = mcolors.BoundaryNorm(np.arange(n_cls + 1), transition_matrix.shape[0])
-    col_norm = mcolors.BoundaryNorm(np.arange(n_cls + 1), transition_matrix.shape[1])
+    row_norm = mcolors.BoundaryNorm(np.arange(transition_matrix.shape[0] + 1), transition_matrix.shape[0])
+    col_norm = mcolors.BoundaryNorm(np.arange(transition_matrix.shape[1]+ 1), transition_matrix.shape[1])
 
     return row_cmap, col_cmap, row_norm, col_norm
+
+def _get_black_or_white(value: float, cmap: mcolors.Colormap) -> str:
+    if not (0.0 <= value <= 1.0):
+        raise ValueError(f"Value must be in range `[0, 1]`, found `{value}`.")
+
+    r, g, b, *_ = (int(c * 255) for c in cmap(value))
+    return _contrasting_color(r, g, b)
+
+def _contrasting_color(r: int, g: int, b: int) -> str:
+    for val in [r, g, b]:
+        assert 0 <= val <= 255, f"Color value `{val}` is not in `[0, 255]`."
+
+    return "#000000" if r * 0.299 + g * 0.587 + b * 0.114 > 186 else "#ffffff"

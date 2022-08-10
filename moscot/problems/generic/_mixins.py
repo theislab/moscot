@@ -9,6 +9,7 @@ from moscot.problems.base import AnalysisMixin  # type: ignore[attr-defined]
 from moscot._constants._constants import AggregationMode
 from moscot.problems.base._mixins import AnalysisMixinProtocol
 from moscot.problems.base._compound_problem import B, K
+from moscot.problems._plotting import _heatmap
 
 
 class GenericAnalysisMixinProtocol(AnalysisMixinProtocol[K, B], Protocol[K, B]):
@@ -47,6 +48,8 @@ class GenericAnalysisMixin(AnalysisMixin[K, B]):
         other_adata: Optional[str] = None,
         batch_size: Optional[int] = None,
         normalize: bool = True,
+        plot: bool = True,
+        **kwargs: Any,
     ) -> pd.DataFrame:
         """
         Compute a grouped cell transition matrix.
@@ -80,6 +83,8 @@ class GenericAnalysisMixin(AnalysisMixin[K, B]):
         %(aggregation_mode)s
         %(online)s
         %(normalize_cell_transition)s
+        %(heatmap_plot)s
+        %(heatmap_kwargs)s
 
         Returns
         -------
@@ -87,7 +92,7 @@ class GenericAnalysisMixin(AnalysisMixin[K, B]):
         """
         if TYPE_CHECKING:
             assert isinstance(self.batch_key, str)
-        return self._cell_transition(
+        tm = self._cell_transition(
             key=self.batch_key,
             source_key=source_key,
             target_key=target_key,
@@ -98,6 +103,17 @@ class GenericAnalysisMixin(AnalysisMixin[K, B]):
             online=online,
             other_key=None,
         )
+
+        if plot:
+            return _heatmap(row_adata = self.adata, col_adata=self.adata,
+            transition_matrix=tm,
+            row_annotation=source_annotation,
+            col_annotation=target_annotation,
+            row_annotation_suffix = f" {source_key}",
+            col_annotation_suffix = f" {target_key}",
+            **kwargs
+            )
+        return tm
 
     @property
     def batch_key(self) -> Optional[str]:

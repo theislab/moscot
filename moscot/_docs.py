@@ -160,7 +160,13 @@ normalize
     matrix is row-stochastic, otherwise column-stochastic."""
 _solve_kwargs = """\
 kwargs
-    keyword arguments for the backend-specific solver, see NOTEBOOK"""
+    keyword arguments for the backend-specific solver, see NOTEBOOK."""
+_heatmap_kwargs = """\
+kwargs
+    keyword arguments for visualising the transition matrix. Only used if `plot` is `True`."""
+_heatmap_plot = """\
+plot
+    TODO: plots the transition matrix."""
 # returns
 _alignment_mixin_returns = """\
 If ``inplace = False``, returns a :class:`numpy.ndarray` with aligned coordinates.
@@ -234,4 +240,6 @@ d = DocstringProcessor(
     stage=_stage,
     normalize_cell_transition=_normalize_cell_transition,
     solve_kwargs=_solve_kwargs,
+    heatmap_kwargs = _heatmap_kwargs,
+    heatmap_plot = _heatmap_plot,
 )

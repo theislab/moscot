@@ -57,7 +57,7 @@ def _validate_annotations_helper(
     if aggregation_mode == AggregationMode.ANNOTATION:  # type: ignore[comparison-overlap]
         if TYPE_CHECKING:  # checked in _check_argument_compatibility_cell_transition(
             assert annotations is not None
-        annotations_verified = set(annotations).intersection(set(df[annotation_key].cat.categories))
+        annotations_verified = set(df[annotation_key].cat.categories).intersection(set(annotations))
         if not len(annotations_verified):
             raise ValueError(f"TODO: None of {annotations} found in distribution corresponding to {annotation_key}.")
         return annotations_verified

@@ -19,6 +19,7 @@ from moscot.problems._plotting import _sankey
 from moscot._constants._constants import AggregationMode
 from moscot.problems.base._mixins import AnalysisMixin, AnalysisMixinProtocol
 from moscot.problems.base._compound_problem import B, K, ApplyOutput_t
+from moscot.problems._plotting import _heatmap
 
 
 class TemporalMixinProtocol(AnalysisMixinProtocol[K, B], Protocol[K, B]):
@@ -156,6 +157,8 @@ class TemporalMixin(AnalysisMixin[K, B]):
         online: bool = False,
         batch_size: Optional[int] = None,
         normalize: bool = True,
+        plot: bool = True,
+        **kwargs: Any,
     ) -> pd.DataFrame:
         """
         Compute a grouped cell transition matrix.
@@ -194,6 +197,8 @@ class TemporalMixin(AnalysisMixin[K, B]):
             for each cell are returned.
         %(online)s
         %(normalize_cell_transition)s
+        %(heatmap_plot)s
+        %(heatmap_kwargs)s
 
         Returns
         -------
@@ -201,7 +206,7 @@ class TemporalMixin(AnalysisMixin[K, B]):
         """
         if TYPE_CHECKING:
             assert isinstance(self.temporal_key, str)
-        return self._cell_transition(
+        tm = self._cell_transition(
             key=self.temporal_key,
             source_key=start,
             target_key=end,
@@ -213,6 +218,16 @@ class TemporalMixin(AnalysisMixin[K, B]):
             batch_size=batch_size,
             normalize=normalize,
         )
+        if plot:
+            return _heatmap(row_adata = self.adata, col_adata=self.adata,
+            transition_matrix=tm,
+            row_annotation=early_annotation,
+            col_annotation=late_annotation,
+            row_annotation_suffix = f" {start}",
+            col_annotation_suffix = f" {end}",
+            **kwargs
+            )
+        return tm
 
     def plot_cell_transition(
         self: "TemporalMixinProtocol[K, B]",
