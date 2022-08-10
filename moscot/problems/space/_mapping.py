@@ -137,7 +137,7 @@ class MappingProblem(CompoundProblem[K, OTProblem], SpatialMappingMixin[K, OTPro
         %(epsilon)s
         %(scale_cost)s
         %(rank)s
-        %(batch_size)s
+        %(ott_jax_batch_size)s
         %(stage)s
         %(solve_kwargs)s
 

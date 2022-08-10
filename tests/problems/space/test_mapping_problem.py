@@ -7,7 +7,7 @@ import numpy as np
 
 from anndata import AnnData
 
-from tests.conftest import _adata_spatial_split
+from tests._utils import _adata_spatial_split
 from moscot.problems.space import MappingProblem
 from moscot.solvers._base_solver import ProblemKind
 

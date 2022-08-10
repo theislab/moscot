@@ -96,7 +96,7 @@ class AlignmentProblem(CompoundProblem[K, B], SpatialAlignmentMixin[K, B]):
         %(epsilon)s
         %(scale_cost)s
         %(rank)s
-        %(batch_size)s
+        %(ott_jax_batch_size)s
         %(stage)s
         %(solve_kwargs)s
 
