@@ -464,7 +464,7 @@ class AnalysisMixin(Generic[K, B]):
             )
             if not len(target_annotations_verified):
                 raise ValueError(
-                    f"TODO: None of {target_annotations} found in distribution corresponding to {target_annotation_key}."
+                    f"TODO:None of {target_annotations} found in distribution corresponding to {target_annotation_key}."
                 )
             source_annotations_verified = _validate_annotations_helper(
                 df_source, source_annotation_key, source_annotations, aggregation_mode
@@ -546,11 +546,11 @@ class AnalysisMixin(Generic[K, B]):
                 scale_by_marginals=False,
                 split_mass=True,
             )
-            current_cells = list(df_2.iloc[range(batch, min(batch + batch_size, len(df_2)))].index)
+            current_cells = df_2.iloc[range(batch, min(batch + batch_size, len(df_2)))].index.tolist()
             df_1.loc[:, current_cells] = result
             to_app = df_1[df_1[annotation_key].isin(annotations_2)].groupby(annotation_key).sum().transpose()
             transition_table = pd.concat([transition_table, to_app], verify_integrity=True, axis=0)
-            df_2 = df_2.drop(current_cells, axis=0)
+            df_1 = df_1.drop(current_cells, axis=1)
         return transition_table
 
     def _cell_aggregation_offline_helper(
