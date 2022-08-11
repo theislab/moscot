@@ -14,9 +14,8 @@ import numpy as np
 from anndata import AnnData
 
 from moscot._docs import d
-from moscot._types import ArrayLike, Str_Dict_t, Filter_t
+from moscot._types import ArrayLike, Str_Dict_t
 from moscot.problems.base import AnalysisMixin  # type: ignore[attr-defined]
-
 from moscot.problems._plotting import _heatmap
 from moscot.backends.ott._output import Device_t
 from moscot._constants._constants import CorrMethod, AlignmentMode, AggregationMode

@@ -6,7 +6,7 @@ from typing_extensions import Literal
 from anndata import AnnData
 
 from moscot._docs import d
-from moscot._types import Filter_t, ArrayLike, Str_Dict_t
+from moscot._types import ArrayLike, Str_Dict_t
 from moscot._constants._key import Key
 from moscot._constants._constants import Policy, ScaleCost
 from moscot.problems.space._mixins import SpatialMappingMixin
