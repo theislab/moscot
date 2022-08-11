@@ -14,7 +14,7 @@ import numpy as np
 from anndata import AnnData
 
 from moscot._docs import d
-from moscot._types import ArrayLike, Str_Dict_t
+from moscot._types import ArrayLike, Str_Dict_t, Filter_t
 from moscot.problems.base import AnalysisMixin  # type: ignore[attr-defined]
 
 from moscot.problems._plotting import _heatmap
@@ -186,8 +186,8 @@ class SpatialAlignmentMixin(AnalysisMixin[K, B]):
         self: SpatialAlignmentMixinProtocol[K, B],
         source: K,
         target: K,
-        source_annotation: Filter_t,
-        target_annotation: Filter_t,
+        source_annotation: Str_Dict_t,
+        target_annotation: Str_Dict_t,
         forward: bool = False,  # return value will be row-stochastic if forward=True, else column-stochastic
         aggregation_mode: Literal["annotation", "cell"] = AggregationMode.ANNOTATION,  # type: ignore[assignment]
         online: bool = False,
@@ -375,8 +375,8 @@ class SpatialMappingMixin(AnalysisMixin[K, B]):
     def cell_transition(
         self: SpatialMappingMixinProtocol[K, B],
         source: K,
-        spatial_annotation: Filter_t,
-        sc_annotation: Filter_t,
+        spatial_annotation: Str_Dict_t,
+        sc_annotation: Str_Dict_t,
         forward: bool = False,  # return value will be row-stochastic if forward=True, else column-stochastic
         aggregation_mode: Literal["annotation", "cell"] = AggregationMode.ANNOTATION,  # type: ignore[assignment]
         online: bool = False,
