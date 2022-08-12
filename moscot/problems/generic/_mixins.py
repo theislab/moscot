@@ -77,13 +77,17 @@ class GenericAnalysisMixin(AnalysisMixin[K, B]):
         %(forward_cell_transition)s
         %(aggregation_mode)s
         %(online)s
-        %(batch_size)s
+        %(ott_jax_batch_size)s
         %(normalize_cell_transition)s
-        %(key_added_cell_transition)
+        %(key_added_plotting)s
 
         Returns
         -------
         Transition matrix of cells or groups of cells.
+
+        Notes
+        -----
+        To visualise the results, see :func:`moscot.pl.cell_transition`.
         """
         if TYPE_CHECKING:
             assert isinstance(self.batch_key, str)

@@ -64,6 +64,17 @@ class ConvergencePlotterMixin:
         return_fig: bool = False,
         **kwargs: Any,
     ) -> Optional[Figure]:
+        """
+        Plot the convergence curve.
+
+        Parameters
+        ----------
+        last_k
+            How many of the last k steps of the algorithm to plot. If `None`, the full curve is plotted
+        %(plotting_title)
+        %(plotting)s
+        """
+
         def select_values(last_k: Optional[int] = None) -> Tuple[str, jnp.ndarray, jnp.ndarray]:
             # `> 1` because of pure Sinkhorn
             if len(self._costs) > 1 or self._errors is None:

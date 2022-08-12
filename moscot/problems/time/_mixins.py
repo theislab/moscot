@@ -197,11 +197,15 @@ class TemporalMixin(AnalysisMixin[K, B]):
         %(normalize_cell_transition)s
         %(heatmap_plot)s
         %(heatmap_kwargs)s
-        %(key_added_cell_transition)s
+        %(key_added_plotting)s
 
         Returns
         -------
         Transition matrix of cells or groups of cells.
+
+        Notes
+        -----
+        To visualise the results, see :func:`moscot.pl.cell_transition`.
         """
 
         if TYPE_CHECKING:
@@ -235,6 +239,43 @@ class TemporalMixin(AnalysisMixin[K, B]):
         """
         Draw a Sankey diagram visualising transitions of cells across time points.
 
+        Parameters
+        ----------
+        start
+            First time point of the Sankey diagram
+        end
+            Last time point of the Sankey diagram
+        early_cells
+            Can be one of the following:
+                - if `early_cells` is of type :class:`str` this should correspond to a key in
+                  :attr:`anndata.AnnData.obs`. In this case, the categories in the transition matrix correspond to the
+                  unique values in :attr:`anndata.AnnData.obs` ``['{early_cells}']``
+                - if `early_cells` is of :class:`dict`, `key` should correspond to a key in
+                  :attr:`anndata.AnnData.obs` and its `value` to a subset of categories present in
+                  :attr:`anndata.AnnData.obs` ``['{early_cells.keys()[0]}']``
+        late_cells
+            Can be one of the following
+                - if `late_cells` is of type :class:`str` this should correspond to a key in
+                  :attr:`anndata.AnnData.obs`. In this case, the categories in the transition matrix correspond to the
+                  unique values in :attr:`anndata.AnnData.obs` ``['{late_cells}']``
+                - if `late_cells` is of :class:`dict`, its `key` should correspond to a key in
+                  :attr:`anndata.AnnData.obs` and its `value` to a subset of categories present in
+                  :attr:`anndata.AnnData.obs` ``['{late_cells.keys()[0]}']``
+        %(online)s
+        %(forward)s
+        restrict_to_existing
+            TODO
+        order_annotations
+            Order of the annotations in the final plot, from top to bottom
+        %(key_added_plotting)s
+
+        Returns
+        -------
+        Transition matrices of cells or groups of cells, as needed for a sankey diagram.
+
+        Notes
+        -----
+        To visualise the results, see :func:`moscot.pl.sankey`.
         """
         tuples = self._policy.plan(start=start, end=end)
         cell_transitions = []

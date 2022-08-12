@@ -193,7 +193,14 @@ class SpatialAlignmentMixin(AnalysisMixin[K, B]):
         normalize: bool = True,
         key_added: Optional[str] = PlottingDefaults.CELL_TRANSITION,
     ) -> pd.DataFrame:
-        """Partly copy from other cell_transitions."""
+        """Partly copy from other cell_transitions.
+
+        TODO
+
+        Notes
+        -----
+        To visualise the results, see :func:`moscot.pl.cell_transition`.
+        """
         if TYPE_CHECKING:
             assert isinstance(self.batch_key, str)
 
@@ -370,7 +377,14 @@ class SpatialMappingMixin(AnalysisMixin[K, B]):
         normalize: bool = True,
         key_added: Optional[str] = PlottingDefaults.CELL_TRANSITION,
     ) -> pd.DataFrame:
-        """Compute cell transition."""
+        """Compute cell transition.
+
+        TODO
+
+        Notes
+        -----
+        To visualise the results, see :func:`moscot.pl.cell_transition`.
+        """
         if TYPE_CHECKING:
             assert self.batch_key is not None
         return self._cell_transition(

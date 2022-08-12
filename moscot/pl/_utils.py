@@ -71,7 +71,7 @@ def save_fig(fig: Figure, path: Union[str, Path], make_dir: bool = True, ext: st
 def set_palette(
     adata: AnnData,
     key: str,
-    palette: Union[str, ListedColormap] = "viridis",
+    cont_cmap: Union[str, mcolors.Colormap] = "viridis",
     force_update_colors: bool = False,
     **_: Any,
 ) -> None:
@@ -80,7 +80,7 @@ def set_palette(
         raise KeyError("TODO: invalid key.")
     uns_key = f"{key}_colors"
     if uns_key not in adata.uns:
-        add_color_palette(adata, key=key, palette=palette, force_update_colors=force_update_colors)
+        add_color_palette(adata, key=key, palette=cont_cmap, force_update_colors=force_update_colors)
 
 
 def _sankey(
@@ -93,8 +93,12 @@ def _sankey(
     figsize: Optional[Tuple[float, float]] = None,
     dpi: Optional[int] = None,
     ax: Optional[Axes] = None,
+    cont_cmap: Union[str, mcolors.Colormap] = "viridis",
+    fontsize: float = 12.0,
+    horizontal_space: float = 1.5,
+    force_update_colors: bool = False,
     **kwargs: Any,
-) -> None:
+) -> mpl.figure.Figure:
     if ax is None:
         fig, ax = plt.subplots(constrained_layout=True, dpi=dpi, figsize=figsize)
     else:
@@ -103,7 +107,7 @@ def _sankey(
         raise ValueError("TODO: If `captions` are specified length has to be same as of `transition_matrices`.")
     if colorDict is None:
         # TODO: adapt for unique categories
-        set_palette(adata=adata, key=key, **kwargs)
+        set_palette(adata=adata, key=key, cont_cmap=cont_cmap, force_update_colors=force_update_colors)
 
         colorDict = {cat: adata.uns[f"{key}_colors"][i] for i, cat in enumerate(adata.obs[key].cat.categories)}
     else:
@@ -112,8 +116,6 @@ def _sankey(
             msg = "The colorDict parameter is missing values for the following labels : "
             msg += "{}".format(", ".join(missing))
             raise ValueError(msg)
-    fontsize = kwargs.pop("fontsize", 12)
-    horizontal_space = kwargs.pop("horizontal_space", 1.5)
     left_pos = [0]
     for ind, dataFrame in enumerate(transition_matrices):
         dataFrame /= dataFrame.sum().sum()

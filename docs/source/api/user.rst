@@ -1,6 +1,8 @@
 User
 ####
 
+.. currentmodule:: moscot.problems
+
 Biological Problems
 ~~~~~~~~~~~~~~~~~~~
 

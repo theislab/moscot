@@ -36,7 +36,12 @@ class TestTemporalMixin:
         )
 
         result = problem.cell_transition(
-            key_1, key_2, "cell_type", "cell_type", forward=forward, online=online, plot=False
+            key_1,
+            key_2,
+            "cell_type",
+            "cell_type",
+            forward=forward,
+            online=online,
         )
         assert isinstance(result, pd.DataFrame)
         expected_shape = (len(cell_types_present_key_1), len(cell_types_present_key_2))
@@ -71,7 +76,6 @@ class TestTemporalMixin:
             {"cell_type": late_annotation},
             forward=forward,
             online=online,
-            plot=False,
         )
         assert isinstance(result, pd.DataFrame)
         assert result.shape == (len(early_annotation), len(late_annotation))
@@ -103,7 +107,6 @@ class TestTemporalMixin:
             late_annotation="cell_type",
             forward=forward,
             online=online,
-            plot=False,
         )
         cell_types_present_key_1 = (
             gt_temporal_adata[gt_temporal_adata.obs[key] == key_1].obs["cell_type"].cat.categories
@@ -312,7 +315,7 @@ class TestTemporalMixin:
         problem[0, 1]._solution = MockSolverOutput(adata_time_with_tmap.uns["transport_matrix"])
 
         result = problem.cell_transition(
-            0, 1, early_annotation="cell_type", late_annotation="cell_type", forward=True, online=online, plot=False
+            0, 1, early_annotation="cell_type", late_annotation="cell_type", forward=True, online=online
         )
         res = result.sort_index().sort_index(1)
         df_expected = adata_time_with_tmap.uns["cell_transition_gt"].sort_index().sort_index(1)
