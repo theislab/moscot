@@ -9,6 +9,7 @@ import numpy as np
 from anndata import AnnData
 
 from moscot._types import ArrayLike, Numeric_t, Str_Dict_t
+from moscot._utils import _check_uns_keys
 from moscot.solvers._output import BaseSolverOutput
 from moscot.problems.base._utils import (
     _get_problem_key,
@@ -19,7 +20,7 @@ from moscot.problems.base._utils import (
     _validate_args_cell_transition,
     _check_argument_compatibility_cell_transition,
 )
-from moscot._constants._constants import AggregationMode
+from moscot._constants._constants import AdataKeys, PlottingKeys, AggregationMode, PlottingDefaults
 from moscot.problems._subset_policy import SubsetPolicy
 from moscot.problems.base._compound_problem import B, K, ApplyOutput_t
 
@@ -141,14 +142,50 @@ class AnalysisMixin(Generic[K, B]):
 
     def _cell_transition(  # TODO(@MUCDK) think about removing _cell_transition_non_online
         self: AnalysisMixinProtocol[K, B],
-        *args: Any,
+        source_key: K,
+        target_key: K,
+        source_annotation: Str_Dict_t,
+        target_annotation: Str_Dict_t,
         online: bool,
+        key_added: Optional[str] = PlottingDefaults.CELL_TRANSITION,
         **kwargs: Any,
     ) -> pd.DataFrame:
-        _check_argument_compatibility_cell_transition(*args, **kwargs)
+        _check_argument_compatibility_cell_transition(
+            source_key=source_key,
+            target_key=target_key,
+            source_annotation=source_annotation,
+            target_annotation=target_annotation,
+            **kwargs,
+        )
         if online:
-            return self._cell_transition_online(*args, **kwargs)
-        return self._cell_transition_not_online(*args, **kwargs)
+            tm = self._cell_transition_online(
+                source_key=source_key,
+                target_key=target_key,
+                source_annotation=source_annotation,
+                target_annotation=target_annotation,
+                **kwargs,
+            )
+        else:
+            tm = self._cell_transition_not_online(
+                source_key=source_key,
+                target_key=target_key,
+                source_annotation=source_annotation,
+                target_annotation=target_annotation,
+                **kwargs,
+            )
+        if key_added is not None:
+            level_1 = AdataKeys.UNS
+            level_2 = PlottingKeys.CELL_TRANSITION
+            _check_uns_keys(self.adata, level_1=level_1, level_2=level_2)
+            plot_vars = {
+                "transition_matrix": tm,
+                "source_key": source_key,
+                "target_key": target_key,
+                "source_annotation": source_annotation,
+                "target_annotation": target_annotation,
+            }
+            self.adata.uns[level_1][level_2][key_added] = plot_vars
+        return tm
 
     def _cell_transition_not_online(
         self: AnalysisMixinProtocol[K, B],

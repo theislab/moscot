@@ -16,9 +16,8 @@ from anndata import AnnData
 from moscot._docs import d
 from moscot._types import ArrayLike, Str_Dict_t
 from moscot.problems.base import AnalysisMixin  # type: ignore[attr-defined]
-from moscot.problems._plotting import _heatmap
 from moscot.backends.ott._output import Device_t
-from moscot._constants._constants import CorrMethod, AlignmentMode, AggregationMode
+from moscot._constants._constants import CorrMethod, AlignmentMode, AggregationMode, PlottingDefaults
 from moscot.problems.base._mixins import AnalysisMixinProtocol
 from moscot.problems._subset_policy import StarPolicy
 from moscot.problems.base._compound_problem import B, K
@@ -192,14 +191,13 @@ class SpatialAlignmentMixin(AnalysisMixin[K, B]):
         online: bool = False,
         batch_size: Optional[int] = None,
         normalize: bool = True,
-        plot: bool = True,
-        **kwargs: Any,
+        key_added: Optional[str] = PlottingDefaults.CELL_TRANSITION,
     ) -> pd.DataFrame:
         """Partly copy from other cell_transitions."""
         if TYPE_CHECKING:
             assert isinstance(self.batch_key, str)
 
-        tm = self._cell_transition(
+        return self._cell_transition(
             key=self.batch_key,
             source_key=source,
             target_key=target,
@@ -212,19 +210,8 @@ class SpatialAlignmentMixin(AnalysisMixin[K, B]):
             other_adata=None,
             batch_size=batch_size,
             normalize=normalize,
+            key_added=key_added,
         )
-        if plot:
-            return _heatmap(
-                row_adata=self.adata,
-                col_adata=self.adata,
-                transition_matrix=tm,
-                row_annotation=slice_cells if isinstance(slice_cells, str) else list(slice_cells.keys())[0],
-                col_annotation=reference_cells if isinstance(reference_cells, str) else list(reference_cells.keys())[0],
-                row_annotation_suffix=f" {slice}",
-                col_annotation_suffix=f" {reference}",
-                **kwargs,
-            )
-        return tm
 
     @property
     def spatial_key(self) -> Optional[str]:
@@ -381,13 +368,12 @@ class SpatialMappingMixin(AnalysisMixin[K, B]):
         online: bool = False,
         batch_size: Optional[int] = None,
         normalize: bool = True,
-        plot: bool = True,
-        **kwargs: Any,
+        key_added: Optional[str] = PlottingDefaults.CELL_TRANSITION,
     ) -> pd.DataFrame:
         """Compute cell transition."""
         if TYPE_CHECKING:
             assert self.batch_key is not None
-        tm = self._cell_transition(
+        return self._cell_transition(
             key=self.batch_key,
             source_key=source,
             target_key=None,
@@ -400,19 +386,8 @@ class SpatialMappingMixin(AnalysisMixin[K, B]):
             other_adata=self.adata_sc,
             batch_size=batch_size,
             normalize=normalize,
+            key_added=key_added,
         )
-        if plot:
-            return _heatmap(
-                row_adata=self.adata,
-                col_adata=self.adata_sc,
-                transition_matrix=tm,
-                row_annotation=spatial_cells if isinstance(spatial_cells, str) else list(spatial_cells.keys())[0],
-                col_annotation=sc_cells if isinstance(sc_cells, str) else list(sc_cells.keys())[0],
-                row_annotation_suffix=f" {batch}",
-                col_annotation_suffix="",
-                **kwargs,
-            )
-        return tm
 
     @property
     def batch_key(self) -> Optional[str]:

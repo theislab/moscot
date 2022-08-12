@@ -39,3 +39,20 @@ class CorrMethod(ModeEnum):
 class AggregationMode(ModeEnum):
     ANNOTATION = "annotation"
     CELL = "cell"
+
+
+@unique
+class AdataKeys(ModeEnum):  # sets default keys for adata attributes
+    UNS = "moscot_results"
+
+
+@unique
+class PlottingKeys(ModeEnum):  # sets the adata.uns[AdataKeys.UNS][value] values
+    CELL_TRANSITION = "cell_transition"
+    SANKEY = "sankey"
+
+
+@unique
+class PlottingDefaults(ModeEnum):  # sets the adata.uns[AdataKeys.UNS][value] values
+    CELL_TRANSITION = "cell_transition"
+    SANKEY = "sankey"

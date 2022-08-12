@@ -3,7 +3,6 @@ from pathlib import Path
 import itertools
 
 from sklearn.metrics import pairwise_distances
-from matplotlib.colors import ListedColormap
 from typing_extensions import Protocol
 import ot
 import pandas as pd
@@ -15,8 +14,8 @@ import scanpy as sc
 
 from moscot._docs import d
 from moscot._types import ArrayLike, Numeric_t, Str_Dict_t
-from moscot.problems._plotting import _sankey, _heatmap
-from moscot._constants._constants import AggregationMode
+from moscot._utils import _check_uns_keys
+from moscot._constants._constants import AdataKeys, PlottingKeys, AggregationMode, PlottingDefaults
 from moscot.problems.base._mixins import AnalysisMixin, AnalysisMixinProtocol
 from moscot.problems.base._compound_problem import B, K, ApplyOutput_t
 
@@ -40,8 +39,7 @@ class TemporalMixinProtocol(AnalysisMixinProtocol[K, B], Protocol[K, B]):
         online: bool = False,
         batch_size: Optional[int] = None,
         normalize: bool = True,
-        plot: bool = False,
-        **kwargs: Any,
+        key_added: Optional[str] = PlottingDefaults.CELL_TRANSITION,
     ) -> pd.DataFrame:
         ...
 
@@ -158,8 +156,7 @@ class TemporalMixin(AnalysisMixin[K, B]):
         online: bool = False,
         batch_size: Optional[int] = None,
         normalize: bool = True,
-        plot: bool = True,
-        **kwargs: Any,
+        key_added: Optional[str] = PlottingDefaults.CELL_TRANSITION,
     ) -> pd.DataFrame:
         """
         Compute a grouped cell transition matrix.
@@ -200,14 +197,16 @@ class TemporalMixin(AnalysisMixin[K, B]):
         %(normalize_cell_transition)s
         %(heatmap_plot)s
         %(heatmap_kwargs)s
+        %(key_added_cell_transition)s
 
         Returns
         -------
         Transition matrix of cells or groups of cells.
         """
+
         if TYPE_CHECKING:
             assert isinstance(self.temporal_key, str)
-        tm = self._cell_transition(
+        return self._cell_transition(
             key=self.temporal_key,
             source_key=start,
             target_key=end,
@@ -218,21 +217,8 @@ class TemporalMixin(AnalysisMixin[K, B]):
             online=online,
             batch_size=batch_size,
             normalize=normalize,
+            key_added=key_added,
         )
-        if plot:
-            return _heatmap(
-                row_adata=self.adata,
-                col_adata=self.adata,
-                transition_matrix=tm,
-                row_annotation=early_annotation
-                if isinstance(early_annotation, str)
-                else list(early_annotation.keys())[0],
-                col_annotation=late_annotation if isinstance(late_annotation, str) else list(late_annotation.keys())[0],
-                row_annotation_suffix=f" {start}",
-                col_annotation_suffix=f" {end}",
-                **kwargs,
-            )
-        return tm
 
     def sankey(
         self: "TemporalMixinProtocol[K, B]",
@@ -244,11 +230,8 @@ class TemporalMixin(AnalysisMixin[K, B]):
         forward: bool = True,
         restrict_to_existing: bool = True,
         order_annotations: Optional[List[Any]] = None,
-        captions: Optional[List[str]] = None,
-        colorDict: Optional[Union[Dict[Any, str], ListedColormap]] = None,
-        title: Optional[str] = None,
-        **kwargs: Any,
-    ) -> None:
+        key_added: Optional[str] = PlottingDefaults.SANKEY,
+    ) -> List[pd.DataFrame]:
         """
         Draw a Sankey diagram visualising transitions of cells across time points.
 
@@ -264,11 +247,8 @@ class TemporalMixin(AnalysisMixin[K, B]):
                     late_cells=late_cells,
                     forward=forward,
                     normalize=normalize,
-                    plot=False,
                 )
             )
-        if captions is None:
-            captions = [str(t) for t in tuples]
 
         if len(cell_transitions) > 1 and restrict_to_existing:
             for i in range(len(cell_transitions[:-1])):
@@ -292,15 +272,22 @@ class TemporalMixin(AnalysisMixin[K, B]):
             key = list(early_cells.keys())[0]
         else:
             raise TypeError("TODO: `early_cells must be of type `str` or `dict`.")
-        _sankey(
-            adata=self.adata,
-            key=key,
-            transition_matrices=cell_transitions_updated,
-            captions=captions,
-            colorDict=colorDict,
-            title=title,
-            **kwargs,
-        )
+
+        if key_added is not None:
+            level_1 = AdataKeys.UNS
+            level_2 = PlottingKeys.SANKEY
+            _check_uns_keys(self.adata, level_1=level_1, level_2=level_2)
+            plot_vars = {
+                "transition_matrices": cell_transitions_updated,
+                "key": key,
+                "start": start,
+                "end": end,
+                "early_cells": early_cells,
+                "late_cells": late_cells,
+                "captions": [str(t) for t in tuples],
+            }
+            self.adata.uns[level_1][level_2][key_added] = plot_vars
+        return cell_transitions_updated
 
     def push(
         self: TemporalMixinProtocol[K, B],

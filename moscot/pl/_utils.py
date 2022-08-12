@@ -20,6 +20,7 @@ from anndata import AnnData
 from scanpy.plotting._utils import add_colors_for_categorical_sample_annotation as add_color_palette
 
 from moscot._docs import d
+from moscot.problems.base import CompoundProblem  # type: ignore[attr-defined]
 
 
 @d.dedent
@@ -89,8 +90,15 @@ def _sankey(
     captions: Optional[List[str]] = None,
     colorDict: Optional[Union[Dict[Any, str], ListedColormap]] = None,
     title: Optional[str] = None,
+    figsize: Optional[Tuple[float, float]] = None,
+    dpi: Optional[int] = None,
+    ax: Optional[Axes] = None,
     **kwargs: Any,
 ) -> None:
+    if ax is None:
+        fig, ax = plt.subplots(constrained_layout=True, dpi=dpi, figsize=figsize)
+    else:
+        ax.figure
     if captions is not None and len(captions) != len(transition_matrices):
         raise ValueError("TODO: If `captions` are specified length has to be same as of `transition_matrices`.")
     if colorDict is None:
@@ -372,3 +380,19 @@ def _contrasting_color(r: int, g: int, b: int) -> str:
         assert 0 <= val <= 255, f"Color value `{val}` is not in `[0, 255]`."
 
     return "#000000" if r * 0.299 + g * 0.587 + b * 0.114 > 186 else "#ffffff"
+
+
+def _input_to_adatas(input: Union[AnnData, Tuple[AnnData, AnnData]]) -> Tuple[AnnData, AnnData]:
+    if isinstance(input, CompoundProblem):
+        return input.adata, input._other_adata if hasattr(input, "_other_adata") else input.adata
+    else:
+        if isinstance(input, AnnData):
+            return input, input
+        elif isinstance(input, tuple):
+            if not isinstance(input[0], AnnData):
+                raise TypeError("TODO: input must be `AnnData`.")
+            if not isinstance(input[1], AnnData):
+                raise TypeError("TODO: input must be `AnnData`.")
+            return input  # type: ignore[return-value]
+        else:
+            raise NotImplementedError("TODO.")

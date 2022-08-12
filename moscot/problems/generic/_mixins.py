@@ -6,8 +6,7 @@ import pandas as pd
 from moscot._docs import d
 from moscot._types import Str_Dict_t
 from moscot.problems.base import AnalysisMixin  # type: ignore[attr-defined]
-from moscot.problems._plotting import _heatmap
-from moscot._constants._constants import AggregationMode
+from moscot._constants._constants import AggregationMode, PlottingDefaults
 from moscot.problems.base._mixins import AnalysisMixinProtocol
 from moscot.problems.base._compound_problem import B, K
 
@@ -43,12 +42,9 @@ class GenericAnalysisMixin(AnalysisMixin[K, B]):
         forward: bool = False,  # return value will be row-stochastic if forward=True, else column-stochastic
         aggregation_mode: Literal["annotation", "cell"] = AggregationMode.ANNOTATION,  # type: ignore[assignment]
         online: bool = False,
-        other_key: Optional[str] = None,
-        other_adata: Optional[str] = None,
         batch_size: Optional[int] = None,
         normalize: bool = True,
-        plot: bool = True,
-        **kwargs: Any,
+        key_added: Optional[str] = PlottingDefaults.CELL_TRANSITION,
     ) -> pd.DataFrame:
         """
         Compute a grouped cell transition matrix.
@@ -81,9 +77,9 @@ class GenericAnalysisMixin(AnalysisMixin[K, B]):
         %(forward_cell_transition)s
         %(aggregation_mode)s
         %(online)s
+        %(batch_size)s
         %(normalize_cell_transition)s
-        %(heatmap_plot)s
-        %(heatmap_kwargs)s
+        %(key_added_cell_transition)
 
         Returns
         -------
@@ -91,7 +87,7 @@ class GenericAnalysisMixin(AnalysisMixin[K, B]):
         """
         if TYPE_CHECKING:
             assert isinstance(self.batch_key, str)
-        tm = self._cell_transition(
+        return self._cell_transition(
             key=self.batch_key,
             source_key=source_key,
             target_key=target_key,
@@ -100,25 +96,11 @@ class GenericAnalysisMixin(AnalysisMixin[K, B]):
             forward=forward,
             aggregation_mode=AggregationMode(aggregation_mode),
             online=online,
+            batch_size=batch_size,
+            normalize=normalize,
             other_key=None,
+            key_added=key_added,
         )
-
-        if plot:
-            return _heatmap(
-                row_adata=self.adata,
-                col_adata=self.adata,
-                transition_matrix=tm,
-                row_annotation=source_annotation
-                if isinstance(source_annotation, str)
-                else list(source_annotation.keys())[0],
-                col_annotation=target_annotation
-                if isinstance(target_annotation, str)
-                else list(target_annotation.keys())[0],
-                row_annotation_suffix=f" {source_key}",
-                col_annotation_suffix=f" {target_key}",
-                **kwargs,
-            )
-        return tm
 
     @property
     def batch_key(self) -> Optional[str]:
