@@ -12,7 +12,6 @@ from moscot.problems.base._compound_problem import B, K, CompoundProblem
 __all__ = ["AlignmentProblem"]
 
 
-# need generic type B for SpatioTemporal
 @d.dedent
 class AlignmentProblem(CompoundProblem[K, B], SpatialAlignmentMixin[K, B]):
     """

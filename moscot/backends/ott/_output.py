@@ -166,7 +166,7 @@ class OTTOutput(RankMixin, ConvergencePlotterMixin, BaseSolverOutput, ABC):
 
         out = jax.device_put(self._output, device)
         with enable_x64():
-            out = jax.tree_map(convert_dtype, out)  # type: ignore[attr-defined]
+            out = jax.tree_map(convert_dtype, out)
         return OTTOutput(out, rank=self.rank)
 
     @property

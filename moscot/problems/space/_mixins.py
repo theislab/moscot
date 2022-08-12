@@ -92,13 +92,11 @@ class SpatialAlignmentMixin(AnalysisMixin[K, B]):
     ) -> Tuple[Dict[K, ArrayLike], Optional[Dict[K, Optional[ArrayLike]]]]:
         """Scheme for interpolation."""
 
-        # TODO(giovp): error message for star policy
         # get reference
         src = self._subset_spatial(reference)
         transport_maps: Dict[K, ArrayLike] = {reference: src}
         transport_metadata: Dict[K, Optional[ArrayLike]] = {}
         if mode == "affine":
-            # TODO(michalk8): why the diag?
             src -= src.mean(0)
             transport_metadata = {reference: np.diag((1, 1))}  # 2d data
 
@@ -176,9 +174,6 @@ class SpatialAlignmentMixin(AnalysisMixin[K, B]):
             return aligned_basis
         self.adata.obsm[f"{self.spatial_key}_{mode}"] = aligned_basis
 
-    def _subset_spatial(self: SpatialAlignmentMixinProtocol[K, B], k: K) -> ArrayLike:
-        return self.adata[self.adata.obs[self._policy._subset_key] == k].obsm[self.spatial_key].copy()
-
     @d.dedent
     def cell_transition(
         self: SpatialAlignmentMixinProtocol[K, B],
@@ -192,7 +187,48 @@ class SpatialAlignmentMixin(AnalysisMixin[K, B]):
         batch_size: Optional[int] = None,
         normalize: bool = True,
     ) -> pd.DataFrame:
-        """Partly copy from other cell_transitions."""
+        """
+        Compute a cell transition matrix.
+
+        This function computes a transition matrix with entries corresponding to categories, e.g. cell types.
+        The transition matrix will be row-stochastic if `forward` is `True`, otherwise column-stochastic.
+
+        Parameters
+        ----------
+        source
+            Source spatial dataset.
+        target
+            Target spatial dataset.
+        source_annotation
+            Can be one of the following:
+                - if `source_annotation` is of type :class:`str` this should correspond to a key in
+                  :attr:`anndata.AnnData.obs`. In this case, the categories in the transition matrix correspond to the
+                  unique values in :attr:`anndata.AnnData.obs` ``['{source_annotation}']``
+                - if `source_annotation` is of :class:`dict`, `key` should correspond to a key in
+                  :attr:`anndata.AnnData.obs` and its `value` to a subset of categories present in
+                  :attr:`anndata.AnnData.obs` ``['{source_annotation.keys()[0]}']``
+        target_annotation
+            Can be one of the following
+                - if `target_annotation` is of type :class:`str` this should correspond to a key in
+                  :attr:`anndata.AnnData.obs`. In this case, the categories in the transition matrix correspond to the
+                  unique values in :attr:`anndata.AnnData.obs` ``['{target_annotation}']``
+                - if `target_annotation` is of :class:`dict`, its `key` should correspond to a key in
+                  :attr:`anndata.AnnData.obs` and its `value` to a subset of categories present in
+                  :attr:`anndata.AnnData.obs` ``['{target_annotation.keys()[0]}']``
+        forward
+            If `True` computes transition from cells belonging to `source_annotation` to cells belonging
+            to `target_annotation`.
+        aggregation_mode:
+            If `aggregation_mode` is `group` the transition probabilities from the groups defined by
+            `source_annotation` are returned. If `aggregation_mode` is `cell` the transition probablities
+            for each cell are returned.
+        %(online)s
+        %(normalize_cell_transition)s
+
+        Returns
+        -------
+        Transition matrix of cells or groups of cells.
+        """
         if TYPE_CHECKING:
             assert isinstance(self.batch_key, str)
         return self._cell_transition(
@@ -219,7 +255,6 @@ class SpatialAlignmentMixin(AnalysisMixin[K, B]):
     def spatial_key(self: SpatialAlignmentMixinProtocol[K, B], value: Optional[str]) -> None:
         if value is not None and value not in self.adata.obsm:
             raise KeyError(f"TODO: {value} not found in `adata.obsm`.")
-        # TODO(@MUCDK) check data type -> which ones do we allow
         self._spatial_key = value
 
     @property
@@ -232,6 +267,14 @@ class SpatialAlignmentMixin(AnalysisMixin[K, B]):
         if value is not None and value not in self.adata.obs:
             raise KeyError(f"{value} not in `adata.obs`.")
         self._batch_key = value
+
+    @staticmethod
+    def _subset_spatial(self: SpatialAlignmentMixinProtocol[K, B], k: K) -> ArrayLike:
+        return (
+            self.adata[self.adata.obs[self._policy._subset_key] == k]
+            .obsm[self.spatial_key]
+            .astype(np.float_, copy=True)
+        )
 
     @staticmethod
     def _affine(tmap: LinearOperator, tgt: ArrayLike, src: ArrayLike) -> Tuple[ArrayLike, ArrayLike]:
