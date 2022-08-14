@@ -12,7 +12,7 @@ from moscot.pl._utils import _sankey, _heatmap, _plot_temporal, _input_to_adatas
 from moscot.problems.base import CompoundProblem  # type: ignore[attr-defined]
 from moscot.problems.time import LineageProblem, TemporalProblem  # type: ignore[attr-defined]
 from moscot._constants._constants import AdataKeys, PlottingKeys, PlottingDefaults
-from moscot.problems.base._base_problem import K
+from moscot.problems.base._compound_problem import K
 
 
 @d.dedent
@@ -92,6 +92,7 @@ def cell_transition(
         dpi=dpi,
         cbar_kwargs=cbar_kwargs,
         ax=ax,
+        save=save,
         **kwargs,
     )
 
@@ -173,8 +174,7 @@ def push(
     plot_time_points: Optional[Iterable[K]] = None,
     basis: str = "umap",
     result_key: str = "plot_tmp",
-    fill_keys: Iterable[K] = [],
-    fill_value: float = 0.0,
+    constant_fill_value: float = 0.0,
     cont_cmap: Union[str, mcolors.Colormap] = "viridis",
     title: Optional[str] = None,
     figsize: Optional[Tuple[float, float]] = None,
@@ -218,12 +218,11 @@ def push(
     _plot_temporal(
         adata=adata,
         temporal_key=data["temporal_key"],
-        key_stored=key_stored,
+        key_stored=key,
         plot_time_points=plot_time_points,
         basis=basis,
         result_key=result_key,
-        fill_keys=fill_keys,
-        fill_value=fill_value,
+        constant_fill_value=constant_fill_value,
         save=save,
         cont_cmap=cont_cmap,
         title=title,
@@ -286,7 +285,7 @@ def pull(
     _plot_temporal(
         adata=adata,
         temporal_key=data["temporal_key"],
-        key_stored=key_stored,
+        key_stored=key,
         plot_time_points=plot_time_points,
         basis=basis,
         result_key=result_key,

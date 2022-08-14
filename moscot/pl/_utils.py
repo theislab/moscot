@@ -409,8 +409,7 @@ def _plot_temporal(
     plot_time_points: Optional[Iterable[K]] = None,
     basis: str = "umap",
     result_key: str = "plot_tmp",
-    fill_keys: Iterable[K] = [],
-    fill_value: float = 0.0,
+    constant_fill_value: float = 0.0,
     cont_cmap: Union[str, mcolors.Colormap] = "viridis",
     title: Optional[str] = None,
     figsize: Optional[Tuple[float, float]] = None,
@@ -421,14 +420,14 @@ def _plot_temporal(
 ) -> None:
     all_keys = adata.obs[temporal_key].unique()
     if plot_time_points is None:
-        fill_keys: Set[K] = set()
+        constant_fill_keys: Set[K] = set()
     else:
-        fill_keys = set(all_keys) - set(plot_time_points)
+        constant_fill_keys = set(all_keys) - set(plot_time_points)
     tmp = np.full(len(adata), np.nan)
     for t in adata.obs[temporal_key].unique():
         mask = adata.obs[temporal_key] == t
-        if t in fill_keys:
-            tmp[mask] = fill_value
+        if t in constant_fill_keys:
+            tmp[mask] = constant_fill_value
         else:
             tmp[mask] = adata[adata.obs[temporal_key] == t].obs[key_stored]
 
