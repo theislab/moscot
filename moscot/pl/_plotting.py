@@ -192,8 +192,13 @@ def push(
         An instance of :class:`anndata.AnnData` where the corresponding information obtained by the `sankey` method
         of the :mod:`moscot.problems` instance is saved. Alternatively, the problem instance can be passed directly, i.e. an
         instance of :class:`moscot.problems.time.TemporalProblem` or :class:`moscot.problems.time.LineageProblem`.
-    plot_time_points
-        TODO
+    %(key_stored)s
+    %(plot_time_points)s
+    basis
+        basis of the embedding, saved in `adata.obsm[x_{[basis]}]`.
+    result_key
+        column of :attr:`anndata.AnnData.obs` where the result is stored
+    %(constant_fill_value)s
     %(cont_cmap)s
     %(plotting)
     %(ax)s
@@ -240,8 +245,7 @@ def pull(
     plot_time_points: Optional[Iterable[K]] = None,
     basis: str = "umap",
     result_key: str = "plot_tmp",
-    fill_keys: Iterable[K] = [],
-    fill_value: float = 0.0,
+    constant_fill_value: float = 0.0,
     cont_cmap: Union[str, mcolors.Colormap] = "viridis",
     title: Optional[str] = None,
     figsize: Optional[Tuple[float, float]] = None,
@@ -259,8 +263,11 @@ def pull(
         An instance of :class:`anndata.AnnData` where the corresponding information obtained by the `sankey` method
         of the :mod:`moscot.problems` instance is saved. Alternatively, the problem instance can be passed directly, i.e. an
         instance of :class:`moscot.problems.time.TemporalProblem` or :class:`moscot.problems.time.LineageProblem`.
-    plot_time_points
-        TODO
+    %(key_stored)s
+    %(plot_time_points)s
+    result_key
+        column of :attr:`anndata.AnnData.obs` where the result is stored
+    %(constant_fill_value)s
     %(cont_cmap)s
     %(plotting)
     %(ax)s
@@ -289,8 +296,7 @@ def pull(
         plot_time_points=plot_time_points,
         basis=basis,
         result_key=result_key,
-        fill_keys=fill_keys,
-        fill_value=fill_value,
+        constant_fill_value=constant_fill_value,
         save=save,
         cont_cmap=cont_cmap,
         title=title,

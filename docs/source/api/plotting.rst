@@ -4,8 +4,6 @@ Plotting
 Plotting
 ~~~~~~~~
 
-.. currentmodule:: moscot.pl
-
 .. autosummary::
     :toctree: genapi
 

@@ -199,6 +199,12 @@ ax
 _key_added_plotting = """\
 key_added
     Key where the results for the corresponding plotting functions are stored."""
+_constant_fill_value = """\
+constant_fill_value
+    Value for cells which do not belong to the distributions which are to be colorized."""
+_plot_time_points = """\
+plot_time_points
+    Time points which are colorised in the embedding plot."""
 # returns
 _alignment_mixin_returns = """\
 If ``inplace = False``, returns a :class:`numpy.ndarray` with aligned coordinates.
@@ -282,4 +288,5 @@ d = DocstringProcessor(
     key_stored=_key_stored,
     ax=_ax,
     key_added_plotting=_key_added_plotting,
+    constant_fill_value=_constant_fill_value,
 )
