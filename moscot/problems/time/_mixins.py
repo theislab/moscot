@@ -1,4 +1,4 @@
-from typing import Any, Set, Dict, List, Tuple, Union, Literal, Iterable, Optional, TYPE_CHECKING
+from typing import Any, Dict, List, Tuple, Union, Literal, Iterable, Optional, TYPE_CHECKING
 from pathlib import Path
 import itertools
 
@@ -10,7 +10,6 @@ import pandas as pd
 import numpy as np
 
 from anndata import AnnData
-import scanpy as sc
 
 from moscot._docs import d
 from moscot._types import ArrayLike, Numeric_t, Str_Dict_t
@@ -271,7 +270,7 @@ class TemporalMixin(AnalysisMixin[K, B]):
 
         Returns
         -------
-        Transition matrices of cells or groups of cells, as needed for a sankey diagram.
+        Transition matrices of cells or groups of cells, as needed for a sankey.
 
         Notes
         -----
@@ -336,9 +335,9 @@ class TemporalMixin(AnalysisMixin[K, B]):
         end: K,
         data: Optional[Union[str, ArrayLike]] = None,
         subset: Optional[Union[str, List[str], Tuple[int, int]]] = None,
-        result_key: Optional[str] = None,
         return_all: bool = False,
         scale_by_marginals: bool = True,
+        key_added: Optional[str] = PlottingDefaults.PUSH,
         **kwargs: Any,
     ) -> Optional[ApplyOutput_t[K]]:
         """
@@ -352,11 +351,10 @@ class TemporalMixin(AnalysisMixin[K, B]):
             Time point of target distribution.
         %(data)s
         %(subset)s
-        result_key
-            Key of where to save the result in :attr:`anndata.AnnData.obs`. If None the result will be returned.
         return_all
             If `True` returns all the intermediate masses if pushed through multiple transport plans.
             If `True`, the result is returned as a dictionary.
+        %(key_added)s
 
         Returns
         -------
@@ -375,16 +373,24 @@ class TemporalMixin(AnalysisMixin[K, B]):
             data=data,
             subset=subset,
             forward=True,
-            return_all=return_all or result_key is not None,
+            return_all=return_all or key_added is not None,
             scale_by_marginals=scale_by_marginals,
             **kwargs,
         )
 
-        if result_key is None:
-            return result
         if TYPE_CHECKING:
             assert isinstance(result, dict)
-        self.adata.obs[result_key] = self._flatten(result, key=self.temporal_key)
+
+        if key_added is not None:
+            level_1 = AdataKeys.UNS
+            level_2 = PlottingKeys.PUSH
+            _check_uns_keys(self.adata, level_1=level_1, level_2=level_2)
+            plot_vars = {
+                "temporal_key": self.adata.temporal_key,
+            }
+            self.adata.uns[level_1][level_2][key_added] = plot_vars
+            self.adata.obs[key_added] = self._flatten(result, key=self.temporal_key)
+        return result
 
     @d.dedent
     def pull(
@@ -393,9 +399,9 @@ class TemporalMixin(AnalysisMixin[K, B]):
         end: K,
         data: Optional[Union[str, ArrayLike]] = None,
         subset: Optional[Union[str, List[str], Tuple[int, int]]] = None,
-        result_key: Optional[str] = None,
         return_all: bool = False,
         scale_by_marginals: bool = True,
+        key_added: Optional[str] = PlottingDefaults.PULL,
         **kwargs: Any,
     ) -> Optional[ApplyOutput_t[K]]:
         """
@@ -432,15 +438,23 @@ class TemporalMixin(AnalysisMixin[K, B]):
             data=data,
             subset=subset,
             forward=False,
-            return_all=return_all or result_key is not None,
+            return_all=return_all or key_added is not None,
             scale_by_marginals=scale_by_marginals,
             **kwargs,
         )
-        if result_key is None:
-            return result
         if TYPE_CHECKING:
             assert isinstance(result, dict)
-        self.adata.obs[result_key] = self._flatten(result, key=self.temporal_key)
+
+        if key_added is not None:
+            level_1 = AdataKeys.UNS
+            level_2 = PlottingKeys.PULL
+            _check_uns_keys(self.adata, level_1=level_1, level_2=level_2)
+            plot_vars = {
+                "temporal_key": self.adata.temporal_key,
+            }
+            self.adata.uns[level_1][level_2][key_added] = plot_vars
+            self.adata.obs[key_added] = self._flatten(result, key=self.temporal_key)
+        return result
 
     # TODO(michalk8): refactor me
     def _get_data(
@@ -699,7 +713,7 @@ class TemporalMixin(AnalysisMixin[K, B]):
         subset: Optional[Union[str, List[str], Tuple[int, int]]] = None,
         plot_time_points: Optional[Iterable[K]] = None,
         basis: str = "umap",
-        result_key: Optional[str] = None,
+        key_added: Optional[str] = "pull",
         fill_value: float = np.nan,
         save: Optional[Union[str, Path]] = None,
         **kwargs: Any,
@@ -714,8 +728,10 @@ class TemporalMixin(AnalysisMixin[K, B]):
             scale_by_marginals=True,
             **kwargs,
         )
-        if result_key is None:
-            result_key = f"plot_ancestors_{start}_{end}"
+
+        if key_added is not None:
+            AdataKeys.UNS
+            PlottingKeys.PULL
 
         if TYPE_CHECKING:
             assert isinstance(result, dict)
@@ -725,7 +741,7 @@ class TemporalMixin(AnalysisMixin[K, B]):
             end=end,
             plot_time_points=plot_time_points,
             basis=basis,
-            result_key=result_key,
+            result_key=key_added,
             fill_value=fill_value,
             save=save,
             **kwargs,
@@ -770,28 +786,6 @@ class TemporalMixin(AnalysisMixin[K, B]):
             save=save,
             **kwargs,
         )
-
-    def _plot_temporal(
-        self: TemporalMixinProtocol[K, B],
-        data: Dict[K, ArrayLike],
-        start: K,
-        end: K,
-        plot_time_points: Optional[Iterable[K]] = None,
-        basis: str = "umap",
-        result_key: str = "plot",
-        fill_value: float = 0.0,
-        save: Optional[Union[str, Path]] = None,
-        **kwargs: Any,
-    ) -> None:
-
-        if plot_time_points is None:
-            fill_keys: Set[K] = set()
-        else:
-            fill_keys = set(data.keys()) - set(plot_time_points)
-        flattened_data = self._flatten(data, key=self.temporal_key, fill_keys=fill_keys, fill_value=fill_value)
-        self.adata.obs[result_key] = flattened_data
-
-        sc.pl.embedding(self.adata, color=result_key, basis=basis, save=save, **kwargs)
 
     # TODO(@MUCDK) possibly offer two alternatives, once exact EMD with POT backend and once approximate,
     # faster with same solver as used for original problems

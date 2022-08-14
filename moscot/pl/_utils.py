@@ -1,6 +1,6 @@
 from copy import copy
 from types import MappingProxyType
-from typing import Any, Dict, List, Tuple, Union, Mapping, Optional, TYPE_CHECKING
+from typing import Any, Set, Dict, List, Tuple, Union, Mapping, Iterable, Optional, TYPE_CHECKING
 from pathlib import Path
 from collections import defaultdict
 import os
@@ -18,9 +18,11 @@ import numpy as np
 from scanpy import logging as logg, settings
 from anndata import AnnData
 from scanpy.plotting._utils import add_colors_for_categorical_sample_annotation as add_color_palette
+import scanpy as sc
 
 from moscot._docs import d
 from moscot.problems.base import CompoundProblem  # type: ignore[attr-defined]
+from moscot.problems.base._compound_problem import K
 
 
 @d.dedent
@@ -398,3 +400,41 @@ def _input_to_adatas(input: Union[AnnData, Tuple[AnnData, AnnData]]) -> Tuple[An
             return input  # type: ignore[return-value]
         else:
             raise NotImplementedError("TODO.")
+
+
+def _plot_temporal(
+    adata: AnnData,
+    temporal_key: str,
+    key_stored: str,
+    plot_time_points: Optional[Iterable[K]] = None,
+    basis: str = "umap",
+    result_key: str = "plot_tmp",
+    fill_keys: Iterable[K] = [],
+    fill_value: float = 0.0,
+    cont_cmap: Union[str, mcolors.Colormap] = "viridis",
+    title: Optional[str] = None,
+    figsize: Optional[Tuple[float, float]] = None,
+    dpi: Optional[int] = None,
+    save: Optional[bool] = False,
+    ax: Optional[Axes] = None,
+    **kwargs: Any,
+) -> None:
+    all_keys = adata.obs[temporal_key].unique()
+    if plot_time_points is None:
+        fill_keys: Set[K] = set()
+    else:
+        fill_keys = set(all_keys) - set(plot_time_points)
+    tmp = np.full(len(adata), np.nan)
+    for t in adata.obs[temporal_key].unique():
+        mask = adata.obs[temporal_key] == t
+        if t in fill_keys:
+            tmp[mask] = fill_value
+        else:
+            tmp[mask] = adata[adata.obs[temporal_key] == t].obs[key_stored]
+
+    adata.obs[result_key] = tmp
+
+    sc.set_figure_params(figsize=figsize, dpi=dpi)  # TODO(@MUCDK, michalk8): necessary? want to make it uniform
+    sc.pl.embedding(
+        adata=adata, basis=basis, color=result_key, color_map=cont_cmap, title=title, save=save, ax=ax, **kwargs
+    )

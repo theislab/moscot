@@ -50,9 +50,13 @@ class AdataKeys(ModeEnum):  # sets default keys for adata attributes
 class PlottingKeys(ModeEnum):  # sets the adata.uns[AdataKeys.UNS][value] values
     CELL_TRANSITION = "cell_transition"
     SANKEY = "sankey"
+    PUSH = "push"
+    PULL = "pull"
 
 
 @unique
 class PlottingDefaults(ModeEnum):  # sets the adata.uns[AdataKeys.UNS][value] values
     CELL_TRANSITION = "cell_transition"
     SANKEY = "sankey"
+    PUSH = "push"
+    PULL = "pull"

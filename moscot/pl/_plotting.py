@@ -1,5 +1,5 @@
 from types import MappingProxyType
-from typing import Any, List, Type, Tuple, Union, Mapping, Optional
+from typing import Any, List, Type, Tuple, Union, Mapping, Iterable, Optional
 
 from matplotlib import colors as mcolors
 from matplotlib.axes import Axes
@@ -8,10 +8,11 @@ import matplotlib as mpl
 from anndata import AnnData
 
 from moscot._docs import d
-from moscot.pl._utils import _sankey, _heatmap, _input_to_adatas
+from moscot.pl._utils import _sankey, _heatmap, _plot_temporal, _input_to_adatas
 from moscot.problems.base import CompoundProblem  # type: ignore[attr-defined]
 from moscot.problems.time import LineageProblem, TemporalProblem  # type: ignore[attr-defined]
 from moscot._constants._constants import AdataKeys, PlottingKeys, PlottingDefaults
+from moscot.problems.base._base_problem import K
 
 
 @d.dedent
@@ -130,7 +131,7 @@ def sankey(
 
     Returns
     -------
-    A cell transition figure, an instance of :class:`matplotlib.figure.Figure`.
+    A sankey figure, an instance of :class:`matplotlib.figure.Figure`.
 
     Notes
     -----
@@ -163,3 +164,139 @@ def sankey(
     if save:
         fig.save(save)
     return fig
+
+
+@d.dedent
+def push(
+    input: Union[AnnData, TemporalProblem, LineageProblem],
+    key_stored: Optional[str] = None,
+    plot_time_points: Optional[Iterable[K]] = None,
+    basis: str = "umap",
+    result_key: str = "plot_tmp",
+    fill_keys: Iterable[K] = [],
+    fill_value: float = 0.0,
+    cont_cmap: Union[str, mcolors.Colormap] = "viridis",
+    title: Optional[str] = None,
+    figsize: Optional[Tuple[float, float]] = None,
+    dpi: Optional[int] = None,
+    save: Optional[bool] = False,
+    ax: Optional[Axes] = None,
+    **kwargs: Any,
+) -> mpl.figure.Figure:
+    """
+    Visualise the push result in an embedding.
+
+    Parameters
+    ----------
+    input
+        An instance of :class:`anndata.AnnData` where the corresponding information obtained by the `sankey` method
+        of the :mod:`moscot.problems` instance is saved. Alternatively, the problem instance can be passed directly, i.e. an
+        instance of :class:`moscot.problems.time.TemporalProblem` or :class:`moscot.problems.time.LineageProblem`.
+    plot_time_points
+        TODO
+    %(cont_cmap)s
+    %(plotting)
+    %(ax)s
+
+    kwargs
+        keyword arguments for :func:`scanpy.pl.scatter`.
+
+
+    Returns
+    -------
+    A figure visualising a push distribution, an instance of :class:`matplotlib.figure.Figure`.
+
+    Notes
+
+    """
+    adata = _input_to_adatas(input)
+
+    key = PlottingDefaults.PUSH if key_stored is None else key_stored
+    if key not in adata.obs:  # type: ignore[attr-defined]
+        raise KeyError("TODO.")
+    data = adata.uns[AdataKeys.UNS][PlottingKeys.PUSH][key]  # type: ignore[attr-defined]
+    _plot_temporal(
+        adata=adata,
+        temporal_key=data["temporal_key"],
+        key_stored=key_stored,
+        plot_time_points=plot_time_points,
+        basis=basis,
+        result_key=result_key,
+        fill_keys=fill_keys,
+        fill_value=fill_value,
+        save=save,
+        cont_cmap=cont_cmap,
+        title=title,
+        figsize=figsize,
+        dpi=dpi,
+        ax=ax,
+        **kwargs,
+    )
+
+
+@d.dedent
+def pull(
+    input: Union[AnnData, TemporalProblem, LineageProblem],
+    key_stored: Optional[str] = None,
+    plot_time_points: Optional[Iterable[K]] = None,
+    basis: str = "umap",
+    result_key: str = "plot_tmp",
+    fill_keys: Iterable[K] = [],
+    fill_value: float = 0.0,
+    cont_cmap: Union[str, mcolors.Colormap] = "viridis",
+    title: Optional[str] = None,
+    figsize: Optional[Tuple[float, float]] = None,
+    dpi: Optional[int] = None,
+    save: Optional[bool] = False,
+    ax: Optional[Axes] = None,
+    **kwargs: Any,
+) -> mpl.figure.Figure:
+    """
+    Visualise the push result in an embedding.
+
+    Parameters
+    ----------
+    input
+        An instance of :class:`anndata.AnnData` where the corresponding information obtained by the `sankey` method
+        of the :mod:`moscot.problems` instance is saved. Alternatively, the problem instance can be passed directly, i.e. an
+        instance of :class:`moscot.problems.time.TemporalProblem` or :class:`moscot.problems.time.LineageProblem`.
+    plot_time_points
+        TODO
+    %(cont_cmap)s
+    %(plotting)
+    %(ax)s
+
+    kwargs
+        keyword arguments for :func:`scanpy.pl.scatter`.
+
+
+    Returns
+    -------
+    A figure visualising a push distribution, an instance of :class:`matplotlib.figure.Figure`.
+
+    Notes
+
+    """
+    adata = _input_to_adatas(input)
+
+    key = PlottingDefaults.PULL if key_stored is None else key_stored
+    if key not in adata.obs:  # type: ignore[attr-defined]
+        raise KeyError("TODO.")
+    data = adata.uns[AdataKeys.UNS][PlottingKeys.PULL][key]  # type: ignore[attr-defined]
+    _plot_temporal(
+        adata=adata,
+        temporal_key=data["temporal_key"],
+        key_stored=key_stored,
+        plot_time_points=plot_time_points,
+        basis=basis,
+        result_key=result_key,
+        fill_keys=fill_keys,
+        fill_value=fill_value,
+        save=save,
+        cont_cmap=cont_cmap,
+        title=title,
+        figsize=figsize,
+        dpi=dpi,
+        ax=ax,
+        **kwargs,
+    )
