@@ -220,7 +220,7 @@ class SpatialAlignmentMixin(AnalysisMixin[K, B]):
             to `target_annotation`.
         aggregation_mode:
             If `aggregation_mode` is `group` the transition probabilities from the groups defined by
-            `source_annotation` are returned. If `aggregation_mode` is `cell` the transition probablities
+            `source_annotation` are returned. If `aggregation_mode` is `cell` the transition probabilities
             for each cell are returned.
         %(online)s
         %(normalize_cell_transition)s
@@ -268,7 +268,6 @@ class SpatialAlignmentMixin(AnalysisMixin[K, B]):
             raise KeyError(f"{value} not in `adata.obs`.")
         self._batch_key = value
 
-    @staticmethod
     def _subset_spatial(self: SpatialAlignmentMixinProtocol[K, B], k: K) -> ArrayLike:
         return (
             self.adata[self.adata.obs[self._policy._subset_key] == k]
