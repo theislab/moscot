@@ -253,6 +253,7 @@ def _heatmap(
     annotate_values: bool = True,
     figsize: Optional[Tuple[float, float]] = None,
     dpi: Optional[int] = None,
+    save: Optional[bool] = False,
     cbar_kwargs: Mapping[str, Any] = MappingProxyType({}),
     ax: Optional[Axes] = None,
     **kwargs: Any,
@@ -304,15 +305,17 @@ def _heatmap(
     if annotate_cols:
         c.set_ticks(np.arange(transition_matrix.shape[1]) + 0.5)
         c.ax.set_xticklabels(transition_matrix.columns, rotation=90)
-        c.set_label(col_annotation + col_annotation_suffix)
+        c.set_label(col_annotation + str(col_annotation_suffix))
 
     row_cats = divider.append_axes("left", size="2%", pad=0)
     c = fig.colorbar(row_sm, cax=row_cats, orientation="vertical", ticklocation="left" if annotate_rows else "auto")
     if annotate_rows:
         c.set_ticks(np.arange(transition_matrix.shape[0]) + 0.5)
         c.ax.set_yticklabels(transition_matrix.index)
-        c.set_label(row_annotation + row_annotation_suffix)
+        c.set_label(row_annotation + str(row_annotation_suffix))
 
+    if save:
+        fig.save()
     return fig
 
 

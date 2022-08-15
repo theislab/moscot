@@ -83,7 +83,7 @@ def cell_transition(
         row_annotation=data["source_annotation"],
         col_annotation=data["target_annotation"],
         row_annotation_suffix=data["source_key"],
-        col_annotation_suffix=data["source_target"],
+        col_annotation_suffix=data["target_key"],
         cont_cmap=cont_cmap,
         annotate_rows=annotate_rows,
         annotate_cols=annotate_cols,
@@ -200,7 +200,7 @@ def push(
         column of :attr:`anndata.AnnData.obs` where the result is stored
     %(constant_fill_value)s
     %(cont_cmap)s
-    %(plotting)
+    %(plotting)s
     %(ax)s
 
     kwargs
@@ -214,7 +214,7 @@ def push(
     Notes
 
     """
-    adata = _input_to_adatas(input)
+    adata, _ = _input_to_adatas(input)
 
     key = PlottingDefaults.PUSH if key_stored is None else key_stored
     if key not in adata.obs:  # type: ignore[attr-defined]
@@ -269,7 +269,7 @@ def pull(
         column of :attr:`anndata.AnnData.obs` where the result is stored
     %(constant_fill_value)s
     %(cont_cmap)s
-    %(plotting)
+    %(plotting)s
     %(ax)s
 
     kwargs

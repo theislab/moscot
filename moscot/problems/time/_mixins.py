@@ -31,8 +31,8 @@ class TemporalMixinProtocol(AnalysisMixinProtocol[K, B], Protocol[K, B]):
         self: "TemporalMixinProtocol[K, B]",
         start: K,
         end: K,
-        early_cells: Str_Dict_t,
-        late_cells: Str_Dict_t,
+        early_annotation: Str_Dict_t,
+        late_annotation: Str_Dict_t,
         forward: bool = False,  # return value will be row-stochastic if forward=True, else column-stochastic
         aggregation_mode: Literal["annotation", "cell"] = AggregationMode.ANNOTATION,  # type: ignore[assignment]
         online: bool = False,
@@ -227,8 +227,8 @@ class TemporalMixin(AnalysisMixin[K, B]):
         self: "TemporalMixinProtocol[K, B]",
         start: K,
         end: K,
-        early_cells: Str_Dict_t,
-        late_cells: Str_Dict_t,
+        early_annotation: Str_Dict_t,
+        late_annotation: Str_Dict_t,
         normalize: bool = False,
         forward: bool = True,
         restrict_to_existing: bool = True,
@@ -244,7 +244,7 @@ class TemporalMixin(AnalysisMixin[K, B]):
             First time point of the Sankey diagram
         end
             Last time point of the Sankey diagram
-        early_cells
+        early_annotation
             Can be one of the following:
                 - if `early_cells` is of type :class:`str` this should correspond to a key in
                   :attr:`anndata.AnnData.obs`. In this case, the categories in the transition matrix correspond to the
@@ -252,7 +252,7 @@ class TemporalMixin(AnalysisMixin[K, B]):
                 - if `early_cells` is of :class:`dict`, `key` should correspond to a key in
                   :attr:`anndata.AnnData.obs` and its `value` to a subset of categories present in
                   :attr:`anndata.AnnData.obs` ``['{early_cells.keys()[0]}']``
-        late_cells
+        late_annotation
             Can be one of the following
                 - if `late_cells` is of type :class:`str` this should correspond to a key in
                   :attr:`anndata.AnnData.obs`. In this case, the categories in the transition matrix correspond to the
@@ -283,8 +283,8 @@ class TemporalMixin(AnalysisMixin[K, B]):
                 self.cell_transition(
                     src,
                     tgt,
-                    early_cells=early_cells,
-                    late_cells=late_cells,
+                    early_annotation=early_annotation,
+                    late_annotation=late_annotation,
                     forward=forward,
                     normalize=normalize,
                 )
@@ -306,10 +306,10 @@ class TemporalMixin(AnalysisMixin[K, B]):
         else:
             cell_transitions_updated = cell_transitions
 
-        if isinstance(early_cells, str):
-            key = early_cells
-        elif isinstance(early_cells, dict):
-            key = list(early_cells.keys())[0]
+        if isinstance(early_annotation, str):
+            key = early_annotation
+        elif isinstance(early_annotation, dict):
+            key = list(early_annotation.keys())[0]
         else:
             raise TypeError("TODO: `early_cells must be of type `str` or `dict`.")
 
@@ -322,8 +322,8 @@ class TemporalMixin(AnalysisMixin[K, B]):
                 "key": key,
                 "start": start,
                 "end": end,
-                "early_cells": early_cells,
-                "late_cells": late_cells,
+                "early_cells": early_annotation,
+                "late_cells": late_annotation,
                 "captions": [str(t) for t in tuples],
             }
             self.adata.uns[level_1][level_2][key_added] = plot_vars
@@ -386,7 +386,7 @@ class TemporalMixin(AnalysisMixin[K, B]):
             level_2 = PlottingKeys.PUSH
             _check_uns_keys(self.adata, level_1=level_1, level_2=level_2)
             plot_vars = {
-                "temporal_key": self.adata.temporal_key,
+                "temporal_key": self.temporal_key,
             }
             self.adata.uns[level_1][level_2][key_added] = plot_vars
             self.adata.obs[key_added] = self._flatten(result, key=self.temporal_key)
@@ -450,7 +450,7 @@ class TemporalMixin(AnalysisMixin[K, B]):
             level_2 = PlottingKeys.PULL
             _check_uns_keys(self.adata, level_1=level_1, level_2=level_2)
             plot_vars = {
-                "temporal_key": self.adata.temporal_key,
+                "temporal_key": self.temporal_key,
             }
             self.adata.uns[level_1][level_2][key_added] = plot_vars
             self.adata.obs[key_added] = self._flatten(result, key=self.temporal_key)
