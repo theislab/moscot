@@ -203,7 +203,7 @@ _constant_fill_value = """\
 constant_fill_value
     Value for cells which do not belong to the distributions which are to be colorized."""
 _plot_time_points = """\
-plot_time_points
+time_points
     Time points which are colorised in the embedding plot."""
 # returns
 _alignment_mixin_returns = """\

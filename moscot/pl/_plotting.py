@@ -28,6 +28,7 @@ def cell_transition(
     save: Optional[bool] = False,
     cbar_kwargs: Mapping[str, Any] = MappingProxyType({}),
     ax: Optional[Axes] = None,
+    return_fig: Optional[bool] = None,
     **kwargs: Any,
 ) -> mpl.figure.Figure:
     """
@@ -50,6 +51,7 @@ def cell_transition(
     %(plotting)s
     %(cbar_kwargs)s
     %(ax)s
+    %(return_fig)s
     kwargs
         key word arguments for TODO
 
@@ -93,6 +95,7 @@ def cell_transition(
         cbar_kwargs=cbar_kwargs,
         ax=ax,
         save=save,
+        return_fig=return_fig,
         **kwargs,
     )
 
@@ -108,6 +111,7 @@ def sankey(
     dpi: Optional[int] = None,
     save: Optional[bool] = False,
     ax: Optional[Axes] = None,
+    return_fig: Optional[bool] = None,
     **kwargs: Any,
 ) -> mpl.figure.Figure:
     """
@@ -127,6 +131,7 @@ def sankey(
     %(plotting)s
     %(cbar_kwargs)s
     %(ax)s
+    %(return_fig)s
     kwargs
         key word arguments for TODO
 
@@ -160,6 +165,7 @@ def sankey(
         figsize=figsize,
         dpi=dpi,
         ax=ax,
+        return_fig=return_fig,
         **kwargs,
     )
     if save:
@@ -171,7 +177,7 @@ def sankey(
 def push(
     input: Union[AnnData, TemporalProblem, LineageProblem],
     key_stored: Optional[str] = None,
-    plot_time_points: Optional[Iterable[K]] = None,
+    time_points: Optional[Iterable[K]] = None,
     basis: str = "umap",
     result_key: str = "plot_tmp",
     constant_fill_value: float = 0.0,
@@ -181,6 +187,7 @@ def push(
     dpi: Optional[int] = None,
     save: Optional[bool] = False,
     ax: Optional[Axes] = None,
+    return_fig: Optional[bool] = None,
     **kwargs: Any,
 ) -> mpl.figure.Figure:
     """
@@ -202,6 +209,7 @@ def push(
     %(cont_cmap)s
     %(plotting)s
     %(ax)s
+    %(return_fig)s
 
     kwargs
         keyword arguments for :func:`scanpy.pl.scatter`.
@@ -224,7 +232,7 @@ def push(
         adata=adata,
         temporal_key=data["temporal_key"],
         key_stored=key,
-        plot_time_points=plot_time_points,
+        time_points=time_points,
         basis=basis,
         result_key=result_key,
         constant_fill_value=constant_fill_value,
@@ -234,6 +242,7 @@ def push(
         figsize=figsize,
         dpi=dpi,
         ax=ax,
+        return_fig=return_fig,
         **kwargs,
     )
 
@@ -242,7 +251,7 @@ def push(
 def pull(
     input: Union[AnnData, TemporalProblem, LineageProblem],
     key_stored: Optional[str] = None,
-    plot_time_points: Optional[Iterable[K]] = None,
+    time_points: Optional[Iterable[K]] = None,
     basis: str = "umap",
     result_key: str = "plot_tmp",
     constant_fill_value: float = 0.0,
@@ -252,6 +261,7 @@ def pull(
     dpi: Optional[int] = None,
     save: Optional[bool] = False,
     ax: Optional[Axes] = None,
+    return_fig: Optional[bool] = None,
     **kwargs: Any,
 ) -> mpl.figure.Figure:
     """
@@ -271,6 +281,7 @@ def pull(
     %(cont_cmap)s
     %(plotting)s
     %(ax)s
+    %(return_fig)s
 
     kwargs
         keyword arguments for :func:`scanpy.pl.scatter`.
@@ -293,7 +304,7 @@ def pull(
         adata=adata,
         temporal_key=data["temporal_key"],
         key_stored=key,
-        plot_time_points=plot_time_points,
+        time_points=time_points,
         basis=basis,
         result_key=result_key,
         constant_fill_value=constant_fill_value,
@@ -303,5 +314,6 @@ def pull(
         figsize=figsize,
         dpi=dpi,
         ax=ax,
+        return_fig=return_fig,
         **kwargs,
     )

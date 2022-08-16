@@ -120,7 +120,7 @@ class TemporalMixinProtocol(AnalysisMixinProtocol[K, B], Protocol[K, B]):
         data: Dict[K, ArrayLike],
         start: K,
         end: K,
-        plot_time_points: Optional[Iterable[K]] = None,
+        time_points: Optional[Iterable[K]] = None,
         basis: str = "umap",
         result_key: Optional[str] = None,
         fill_value: float = 0.0,
@@ -704,88 +704,6 @@ class TemporalMixin(AnalysisMixin[K, B]):
                 )
             )
         return np.mean(dist)  # type: ignore[return-value]
-
-    def plot_ancestors(  # TODO)@MUCDK) include subset in data by allowing data to be dict
-        self: TemporalMixinProtocol[K, B],
-        start: K,
-        end: K,
-        data: Optional[Union[str, ArrayLike]] = None,
-        subset: Optional[Union[str, List[str], Tuple[int, int]]] = None,
-        plot_time_points: Optional[Iterable[K]] = None,
-        basis: str = "umap",
-        key_added: Optional[str] = "pull",
-        fill_value: float = np.nan,
-        save: Optional[Union[str, Path]] = None,
-        **kwargs: Any,
-    ) -> None:
-        result = self._apply(
-            start=start,
-            end=end,
-            data=data,
-            subset=subset,
-            forward=False,
-            return_all=True,
-            scale_by_marginals=True,
-            **kwargs,
-        )
-
-        if key_added is not None:
-            AdataKeys.UNS
-            PlottingKeys.PULL
-
-        if TYPE_CHECKING:
-            assert isinstance(result, dict)
-        self._plot_temporal(
-            data=result,
-            start=start,
-            end=end,
-            plot_time_points=plot_time_points,
-            basis=basis,
-            result_key=key_added,
-            fill_value=fill_value,
-            save=save,
-            **kwargs,
-        )
-
-    def plot_descendants(  # TODO)@MUCDK) include subset in data by allowing data to be dict
-        self: TemporalMixinProtocol[K, B],
-        start: K,
-        end: K,
-        data: Optional[Union[str, ArrayLike]] = None,
-        subset: Optional[Union[str, List[str], Tuple[int, int]]] = None,
-        plot_time_points: Optional[Iterable[K]] = None,
-        basis: str = "umap",
-        result_key: Optional[str] = None,
-        fill_value: float = np.nan,
-        save: Optional[Union[str, Path]] = None,
-        **kwargs: Any,
-    ) -> None:
-        result = self._apply(
-            start=start,
-            end=end,
-            data=data,
-            subset=subset,
-            forward=True,
-            return_all=True,
-            scale_by_marginals=True,
-            **kwargs,
-        )
-        if result_key is None:
-            result_key = f"plot_descendants_{start}_{end}"
-
-        if TYPE_CHECKING:
-            assert isinstance(result, dict)
-        self._plot_temporal(
-            data=result,
-            start=start,
-            end=end,
-            plot_time_points=plot_time_points,
-            basis=basis,
-            result_key=result_key,
-            fill_value=fill_value,
-            save=save,
-            **kwargs,
-        )
 
     # TODO(@MUCDK) possibly offer two alternatives, once exact EMD with POT backend and once approximate,
     # faster with same solver as used for original problems

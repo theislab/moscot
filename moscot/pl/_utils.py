@@ -256,8 +256,9 @@ def _heatmap(
     save: Optional[bool] = False,
     cbar_kwargs: Mapping[str, Any] = MappingProxyType({}),
     ax: Optional[Axes] = None,
+    return_fig: Optional[bool] = None,
     **kwargs: Any,
-) -> mpl.figure.Figure:
+) -> Optional[mpl.figure.Figure]:
 
     cbar_kwargs = dict(cbar_kwargs)
 
@@ -316,7 +317,8 @@ def _heatmap(
 
     if save:
         fig.save()
-    return fig
+    if return_fig:
+        return fig
 
 
 def _get_black_or_white(value: float, cmap: mcolors.Colormap) -> str:
@@ -409,7 +411,7 @@ def _plot_temporal(
     adata: AnnData,
     temporal_key: str,
     key_stored: str,
-    plot_time_points: Optional[Iterable[K]] = None,
+    time_points: Optional[Iterable[K]] = None,
     basis: str = "umap",
     result_key: str = "plot_tmp",
     constant_fill_value: float = 0.0,
@@ -419,13 +421,15 @@ def _plot_temporal(
     dpi: Optional[int] = None,
     save: Optional[bool] = False,
     ax: Optional[Axes] = None,
+    show: Optional[bool] = None,
+    return_fig: Optional[bool] = None,
     **kwargs: Any,
-) -> None:
+) -> Optional[mpl.figure.Figure]:
     all_keys = adata.obs[temporal_key].unique()
-    if plot_time_points is None:
+    if time_points is None:
         constant_fill_keys: Set[K] = set()
     else:
-        constant_fill_keys = set(all_keys) - set(plot_time_points)
+        constant_fill_keys = set(all_keys) - set(time_points)
     tmp = np.full(len(adata), np.nan)
     for t in adata.obs[temporal_key].unique():
         mask = adata.obs[temporal_key] == t
@@ -437,6 +441,16 @@ def _plot_temporal(
     adata.obs[result_key] = tmp
 
     sc.set_figure_params(figsize=figsize, dpi=dpi)  # TODO(@MUCDK, michalk8): necessary? want to make it uniform
-    sc.pl.embedding(
-        adata=adata, basis=basis, color=result_key, color_map=cont_cmap, title=title, save=save, ax=ax, **kwargs
+    fig = sc.pl.embedding(
+        adata=adata,
+        basis=basis,
+        color=result_key,
+        color_map=cont_cmap,
+        title=title,
+        save=save,
+        ax=ax,
+        show=show,
+        **kwargs,
     )
+    if return_fig:
+        return fig

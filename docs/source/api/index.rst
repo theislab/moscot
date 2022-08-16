@@ -12,4 +12,4 @@ Import ``moscot`` as::
     user
     developer
     datasets
-    plotting
+    pl
