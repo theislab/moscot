@@ -18,7 +18,6 @@ class GenericAnalysisMixinProtocol(AnalysisMixinProtocol[K, B], Protocol[K, B]):
 
     def _cell_transition(  # TODO(@MUCDK) think about removing _cell_transition_non_online
         self: AnalysisMixinProtocol[K, B],
-        online: bool,
         *args: Any,
         **kwargs: Any,
     ) -> pd.DataFrame:

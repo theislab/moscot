@@ -106,6 +106,7 @@ class TestBaseAnalysisMixin:
             forward=True,
             aggregation_mode="cell",
             online=online,
+            key_added+None,
         )
 
         adata_early = gt_temporal_adata[gt_temporal_adata.obs["day"] == 10]

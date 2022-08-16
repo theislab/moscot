@@ -144,9 +144,9 @@ def sankey(
     This function looks for the following data in the :class:`anndata.AnnData` object which is passed or saved
     as an attribute of the :mod:`moscot.problems` instance.
 
-    - transition_matrices
-    - captions
-    - key
+    - `transition_matrices`
+    - `captions``
+    - `key`
 
     """
     adata = _input_to_adatas(input)
