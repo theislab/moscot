@@ -20,8 +20,8 @@ _datasets = {
         (15360, 500),
     ),
     "mosta": (
-        "https://figshare.com/ndownloader/files/36498630",
-        (24321, 23761),
+        "https://figshare.com/ndownloader/files/36703611",
+        (54134, 2000),
     ),
 }
 
