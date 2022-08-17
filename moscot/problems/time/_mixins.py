@@ -116,10 +116,10 @@ class TemporalMixin(AnalysisMixin[K, B]):
     @d.dedent
     def cell_transition(
         self: TemporalMixinProtocol[K, B],
-        start: K,
-        end: K,
-        early_annotation: Filter_t,
-        late_annotation: Filter_t,
+        source: K,
+        target: K,
+        source_groups: Filter_t,
+        target_groups: Filter_t,
         forward: bool = False,  # return value will be row-stochastic if forward=True, else column-stochastic
         aggregation_mode: Literal["annotation", "cell"] = AggregationMode.ANNOTATION,  # type: ignore[assignment]
         online: bool = False,
@@ -149,10 +149,10 @@ class TemporalMixin(AnalysisMixin[K, B]):
             assert isinstance(self.temporal_key, str)
         return self._cell_transition(
             key=self.temporal_key,
-            source_key=start,
-            target_key=end,
-            source_annotation=early_annotation,
-            target_annotation=late_annotation,
+            source_key=source,
+            target_key=target,
+            source_annotation=source_groups,
+            target_annotation=target_groups,
             forward=forward,
             aggregation_mode=AggregationMode(aggregation_mode),
             online=online,

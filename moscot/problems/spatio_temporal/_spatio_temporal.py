@@ -48,7 +48,6 @@ class SpatioTemporalProblem(
         %(time_key)s
         %(spatial_key)s
         %(joint_attr)s
-
         %(policy)s
         %(marginal_kwargs)s
         %(a)s

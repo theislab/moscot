@@ -178,8 +178,8 @@ class SpatialAlignmentMixin(AnalysisMixin[K, B]):
         self: SpatialAlignmentMixinProtocol[K, B],
         source: K,
         target: K,
-        source_annotation: Filter_t,
-        target_annotation: Filter_t,
+        source_groups: Filter_t,
+        target_groups: Filter_t,
         forward: bool = False,  # return value will be row-stochastic if forward=True, else column-stochastic
         aggregation_mode: Literal["annotation", "cell"] = AggregationMode.ANNOTATION,  # type: ignore[assignment]
         online: bool = False,
@@ -211,8 +211,8 @@ class SpatialAlignmentMixin(AnalysisMixin[K, B]):
             key=self.batch_key,
             source_key=source,
             target_key=target,
-            source_annotation=source_annotation,
-            target_annotation=target_annotation,
+            source_annotation=source_groups,
+            target_annotation=target_groups,
             forward=forward,
             aggregation_mode=AggregationMode(aggregation_mode),
             online=online,
@@ -376,23 +376,42 @@ class SpatialMappingMixin(AnalysisMixin[K, B]):
     def cell_transition(
         self: SpatialMappingMixinProtocol[K, B],
         source: K,
-        spatial_annotation: Filter_t,
-        sc_annotation: Filter_t,
+        target: Optional[K] = None,
+        source_groups: Filter_t = None,
+        target_groups: Filter_t = None,
         forward: bool = False,  # return value will be row-stochastic if forward=True, else column-stochastic
         aggregation_mode: Literal["annotation", "cell"] = AggregationMode.ANNOTATION,  # type: ignore[assignment]
         online: bool = False,
         batch_size: Optional[int] = None,
         normalize: bool = True,
     ) -> pd.DataFrame:
-        """Compute cell transition."""
+        """
+        Compute a grouped cell transition matrix.
+
+        This function computes a transition matrix with entries corresponding to categories, e.g. cell types.
+        The transition matrix will be row-stochastic if `forward` is `True`, otherwise column-stochastic.
+
+        Parameters
+        ----------
+        %(cell_trans_params)s
+        %(forward_cell_transition)s
+        %(aggregation_mode)s
+        %(online)s
+        %(ott_jax_batch_size)s
+        %(normalize_cell_transition)s
+
+        Returns
+        -------
+        %(return_cell_transition)s
+        """
         if TYPE_CHECKING:
             assert self.batch_key is not None
         return self._cell_transition(
             key=self.batch_key,
             source_key=source,
-            target_key=None,
-            source_annotation=spatial_annotation,
-            target_annotation=sc_annotation,
+            target_key=target,
+            source_annotation=source_groups,
+            target_annotation=target_groups,
             forward=forward,
             aggregation_mode=AggregationMode(aggregation_mode),
             online=online,
