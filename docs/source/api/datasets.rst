@@ -11,3 +11,4 @@ Datasets
 
     moscot.datasets.simulation
     moscot.datasets.mosta
+    moscot.datasets.hspc
