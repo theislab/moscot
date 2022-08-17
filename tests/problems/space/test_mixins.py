@@ -140,7 +140,7 @@ class TestSpatialMappingAnalysisMixin:
         result = mp.cell_transition(
             source="1",
             source_groups="celltype",
-            target__groups="celltype",
+            target_groups="celltype",
             online=online,
             forward=forward,
             normalize=normalize,
