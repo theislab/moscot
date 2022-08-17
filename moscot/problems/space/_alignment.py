@@ -1,6 +1,4 @@
-from typing import Any, Type, Tuple, Union, Mapping, Optional
-
-from typing_extensions import Literal
+from typing import Any, Type, Tuple, Union, Literal, Mapping, Optional
 
 from moscot._docs import d
 from moscot._constants._key import Key

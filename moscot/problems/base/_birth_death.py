@@ -1,7 +1,5 @@
-from typing import Any, Union, Optional, Sequence, TYPE_CHECKING
+from typing import Any, Union, Literal, Optional, Protocol, Sequence, TYPE_CHECKING
 import logging
-
-from typing_extensions import Literal, Protocol
 
 import numpy as np
 

@@ -65,7 +65,7 @@ class TestBirthDeathProblem:
                 )
         elif proliferation_key is None and apoptosis_key is None:
             # TODO(MUCDK): match error messages
-            with pytest.raises(ValueError):
+            with pytest.raises(ValueError):  # noqa: PT011
                 _ = prob._estimate_marginals(
                     adata, source=source, delta=delta, proliferation_key=proliferation_key, apoptosis_key=apoptosis_key
                 )

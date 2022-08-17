@@ -188,9 +188,9 @@ class TestSingleCompoundProblem:
             x={"attr": "X"},
             y={"attr": "X"},
             key="time",
-            subset=[(0,2)],
+            subset=[(0, 2)],
             axis="obs",
             policy="explicit",
         )
-        problem = problem.add_problem((0,2), problem_2[0,2])
+        problem = problem.add_problem((0, 2), problem_2[0, 2])
         assert list(problem.problems.keys()) == expected_keys + [(0, 2)]

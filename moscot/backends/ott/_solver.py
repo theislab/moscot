@@ -1,8 +1,6 @@
 from abc import ABC
 from enum import Enum
-from typing import Any, Type, Union, Optional, NamedTuple
-
-from typing_extensions import Literal
+from typing import Any, Type, Union, Literal, Optional, NamedTuple
 
 from ott.geometry import Grid, Epsilon, Geometry, PointCloud
 from ott.core.sinkhorn import Sinkhorn
@@ -115,7 +113,7 @@ class OTTJaxSolver(OTSolver[O], ABC):
         self,
         desc: ProblemDescription,
         **kwargs: Any,
-    ) -> O:  # noqa: E741
+    ) -> O:
         res = desc.solver(desc.data, **kwargs)
         return desc.output_type(res, rank=getattr(desc.solver, "rank", -1))  # type: ignore[return-value]
 

@@ -90,4 +90,4 @@ def mosta(
     -------
     %(adata)s
     """
-    return _load_dataset_from_url(path, *_datasets[f"mosta"], **kwargs)
+    return _load_dataset_from_url(path, *_datasets["mosta"], **kwargs)

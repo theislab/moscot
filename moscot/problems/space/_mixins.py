@@ -1,11 +1,10 @@
-from typing import Any, Dict, List, Tuple, Union, Mapping, Callable, Optional, Sequence, TYPE_CHECKING
+from typing import Any, Dict, List, Tuple, Union, Literal, Mapping, Callable, Optional, Sequence, TYPE_CHECKING
 from itertools import chain
 
 from networkx import NetworkXNoPath
 from scipy.stats import pearsonr, spearmanr
 from scipy.linalg import svd
 from scipy.sparse import issparse
-from typing_extensions import Literal
 from scipy.sparse.linalg import LinearOperator
 import pandas as pd
 
@@ -102,7 +101,7 @@ class SpatialAlignmentMixin(AnalysisMixin[K, B]):
 
         # get policy
         full_steps = self._policy._graph
-        starts = set(chain.from_iterable(full_steps)) - set(reference)  # type: ignore[arg-type]
+        starts = set(chain.from_iterable(full_steps)) - set(reference)  # type: ignore[call-overload]
         fwd_steps, bwd_steps = {}, {}
         for start in starts:
             try:
@@ -188,46 +187,23 @@ class SpatialAlignmentMixin(AnalysisMixin[K, B]):
         normalize: bool = True,
     ) -> pd.DataFrame:
         """
-        Compute a cell transition matrix.
+        Compute a grouped cell transition matrix.
 
         This function computes a transition matrix with entries corresponding to categories, e.g. cell types.
         The transition matrix will be row-stochastic if `forward` is `True`, otherwise column-stochastic.
 
         Parameters
         ----------
-        source
-            Source spatial dataset.
-        target
-            Target spatial dataset.
-        source_annotation
-            Can be one of the following:
-                - if `source_annotation` is of type :class:`str` this should correspond to a key in
-                  :attr:`anndata.AnnData.obs`. In this case, the categories in the transition matrix correspond to the
-                  unique values in :attr:`anndata.AnnData.obs` ``['{source_annotation}']``
-                - if `source_annotation` is of :class:`dict`, `key` should correspond to a key in
-                  :attr:`anndata.AnnData.obs` and its `value` to a subset of categories present in
-                  :attr:`anndata.AnnData.obs` ``['{source_annotation.keys()[0]}']``
-        target_annotation
-            Can be one of the following
-                - if `target_annotation` is of type :class:`str` this should correspond to a key in
-                  :attr:`anndata.AnnData.obs`. In this case, the categories in the transition matrix correspond to the
-                  unique values in :attr:`anndata.AnnData.obs` ``['{target_annotation}']``
-                - if `target_annotation` is of :class:`dict`, its `key` should correspond to a key in
-                  :attr:`anndata.AnnData.obs` and its `value` to a subset of categories present in
-                  :attr:`anndata.AnnData.obs` ``['{target_annotation.keys()[0]}']``
-        forward
-            If `True` computes transition from cells belonging to `source_annotation` to cells belonging
-            to `target_annotation`.
-        aggregation_mode:
-            If `aggregation_mode` is `group` the transition probabilities from the groups defined by
-            `source_annotation` are returned. If `aggregation_mode` is `cell` the transition probabilities
-            for each cell are returned.
+        %(cell_trans_params)s
+        %(forward_cell_transition)s
+        %(aggregation_mode)s
         %(online)s
+        %(ott_jax_batch_size)s
         %(normalize_cell_transition)s
 
         Returns
         -------
-        Transition matrix of cells or groups of cells.
+        %(return_cell_transition)s
         """
         if TYPE_CHECKING:
             assert isinstance(self.batch_key, str)

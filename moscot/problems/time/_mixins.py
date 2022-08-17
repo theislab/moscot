@@ -1,8 +1,7 @@
-from typing import Any, Dict, List, Tuple, Union, Optional, TYPE_CHECKING
+from typing import Any, Dict, List, Tuple, Union, Literal, Optional, Protocol, TYPE_CHECKING
 import itertools
 
 from sklearn.metrics import pairwise_distances
-from typing_extensions import Literal, Protocol
 import ot
 import pandas as pd
 
@@ -26,9 +25,11 @@ class TemporalMixinProtocol(AnalysisMixinProtocol[K, B], Protocol[K, B]):
     _temporal_key: Optional[str]
 
     def push(self, *args: Any, **kwargs: Any) -> Optional[ApplyOutput_t[K]]:
+        """Push."""
         ...
 
     def pull(self, *args: Any, **kwargs: Any) -> Optional[ApplyOutput_t[K]]:
+        """Pull."""
         ...
 
     def _cell_transition(  # TODO(@MUCDK) think about removing _cell_transition_non_online
@@ -133,39 +134,16 @@ class TemporalMixin(AnalysisMixin[K, B]):
 
         Parameters
         ----------
-        start
-            Time point corresponding to the early distribution.
-        end
-            Time point corresponding to the late distribution.
-        early_annotation
-            Can be one of the following:
-                - if `early_annotation` is of type :class:`str` this should correspond to a key in
-                  :attr:`anndata.AnnData.obs`. In this case, the categories in the transition matrix correspond to the
-                  unique values in :attr:`anndata.AnnData.obs` ``['{early_annotation}']``
-                - if `early_annotation` is of :class:`dict`, `key` should correspond to a key in
-                  :attr:`anndata.AnnData.obs` and its `value` to a subset of categories present in
-                  :attr:`anndata.AnnData.obs` ``['{early_annotation.keys()[0]}']``
-        late_annotation
-            Can be one of the following
-                - if `late_annotation` is of type :class:`str` this should correspond to a key in
-                  :attr:`anndata.AnnData.obs`. In this case, the categories in the transition matrix correspond to the
-                  unique values in :attr:`anndata.AnnData.obs` ``['{late_annotation}']``
-                - if `late_annotation` is of :class:`dict`, its `key` should correspond to a key in
-                  :attr:`anndata.AnnData.obs` and its `value` to a subset of categories present in
-                  :attr:`anndata.AnnData.obs` ``['{late_annotation.keys()[0]}']``
-        forward
-            If `True` computes transition from cells belonging to `source_annotation` to cells belonging
-            to `target_annotation`.
-        aggregation_mode:
-            If `aggregation_mode` is `group` the transition probabilities from the groups defined by
-            `source_annotation` are returned. If `aggregation_mode` is `cell` the transition probablities
-            for each cell are returned.
+        %(cell_trans_params)s
+        %(forward_cell_transition)s
+        %(aggregation_mode)s
         %(online)s
+        %(ott_jax_batch_size)s
         %(normalize_cell_transition)s
 
         Returns
         -------
-        Transition matrix of cells or groups of cells.
+        %(return_cell_transition)s
         """
         if TYPE_CHECKING:
             assert isinstance(self.temporal_key, str)
@@ -202,13 +180,14 @@ class TemporalMixin(AnalysisMixin[K, B]):
             Time point of source distribution.
         target
             Time point of target distribution.
+
         %(data)s
         %(subset)s
+
         result_key
             Key of where to save the result in :attr:`anndata.AnnData.obs`. If None the result will be returned.
         return_all
-            If `True` returns all the intermediate masses if pushed through multiple transport plans.
-            If `True`, the result is returned as a dictionary.
+            If `True` returns all the intermediate masses if pushed through multiple transport plans as a dictionary.
 
         Returns
         -------
@@ -259,8 +238,10 @@ class TemporalMixin(AnalysisMixin[K, B]):
             Earlier time point, the time point the mass is pulled to.
         end
             Later time point, the time point the mass is pulled from.
+
         %(data)s
         %(subset)s
+
         result_key
             Key of where to save the result in :attr:`anndata.AnnData.obs`. If `None` the result will be returned.
         return_all

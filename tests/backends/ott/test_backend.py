@@ -4,6 +4,7 @@ import pytest
 
 from ott.core import LinearProblem
 from ott.geometry import Geometry, PointCloud
+from jax.tree_util import tree_leaves
 from ott.core.sinkhorn import sinkhorn
 from ott.core.sinkhorn_lr import LRSinkhorn
 from ott.core.quad_problems import QuadraticProblem
@@ -215,7 +216,7 @@ class TestSolverOutput:
         y: ArrayLike,
         xy: ArrayLike,
         ab: Tuple[ArrayLike, ArrayLike],
-        solver_t: Type[OTSolver[O]],  # noqa: E741
+        solver_t: Type[OTSolver[O]],
         batched: bool,
     ) -> None:
         b, ndim = (ab[1], ab[1].shape[1]) if batched else (ab[1][:, 0], None)
@@ -267,7 +268,7 @@ class TestSolverOutput:
 
         if dtype is None:
             dtype = out.transport_matrix.dtype
-        leaves = [leaf.dtype == dtype for leaf in jax.tree_leaves(out._output) if isinstance(leaf, jnp.ndarray)]
+        leaves = [leaf.dtype == dtype for leaf in tree_leaves(out._output) if isinstance(leaf, jnp.ndarray)]
         assert leaves
         assert out.transport_matrix.dtype == dtype
         np.testing.assert_array_equal(leaves, True)

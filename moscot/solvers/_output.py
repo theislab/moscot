@@ -68,7 +68,7 @@ class BaseSolverOutput(ABC):
     def as_linear_operator(self, *, forward: bool, scale_by_marginals: bool = False) -> LinearOperator:
         push = partial(self.push, scale_by_marginals=scale_by_marginals)
         pull = partial(self.pull, scale_by_marginals=scale_by_marginals)
-        mv, rmv = (pull, push) if forward else (push, pull)
+        mv, rmv = (pull, push) if forward else (push, pull)  # please do not change this line
         return LinearOperator(shape=self.shape, dtype=self.a.dtype, matvec=mv, rmatvec=rmv)
 
     def chain(
@@ -127,12 +127,12 @@ class MatrixSolverOutput(BaseSolverOutput, ABC):
 
     @property
     def transport_matrix(self) -> ArrayLike:
-        """%(transport_matrix)s"""
+        """Return computed transport matrix."""
         return self._matrix
 
     @property
     def shape(self) -> Tuple[int, int]:
-        """%(shape)s"""
+        """Return shape of computed transport matrix."""
         return self.transport_matrix.shape  # type: ignore[return-value]
 
     def to(self, device: Optional[Any] = None, dtype: Optional[DTypeLike] = None) -> "BaseSolverOutput":

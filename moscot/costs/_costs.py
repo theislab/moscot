@@ -1,8 +1,7 @@
 from abc import ABC, abstractmethod
-from typing import Any, List, Union, Mapping, Optional
+from typing import Any, List, Union, Literal, Mapping, Optional
 from numbers import Number
 
-from typing_extensions import Literal
 import networkx as nx
 
 import numpy as np

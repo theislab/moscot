@@ -1,7 +1,5 @@
 from types import MappingProxyType
-from typing import Any, Type, Tuple, Union, Mapping, Optional
-
-from typing_extensions import Literal
+from typing import Any, Type, Tuple, Union, Literal, Mapping, Optional
 
 from anndata import AnnData
 
@@ -54,8 +52,6 @@ class SinkhornProblem(CompoundProblem[K, B], GenericAnalysisMixin[K, B]):
         %(axis)s
         %(callback)s
         %(callback_kwargs)s
-        kwargs
-            Keyword arguments for :meth:`moscot.problems.BaseCompoundProblem._create_problems`.
 
         Returns
         -------
@@ -122,9 +118,7 @@ class GWProblem(CompoundProblem[K, B], GenericAnalysisMixin[K, B]):
         policy: Literal["sequential", "pairwise", "explicit"] = "sequential",
         **kwargs: Any,
     ) -> "GWProblem[K, B]":
-        """
-        GWProblem.
-        """
+        """Prepare Generic GWProblem."""
         self.batch_key = key
         # TODO(michalk8): use and
         if not len(GW_attr):

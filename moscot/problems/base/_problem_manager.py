@@ -102,9 +102,9 @@ class ProblemManager(Generic[K, B]):
                 raise ValueError(f"TODO: key `{key}` is associated with more than 1 dimensnions `{dim}`")
 
     @property
-    def solutions(self) -> Dict[Tuple[K, K], BaseSolverOutput]:  # noqa: D102
+    def solutions(self) -> Dict[Tuple[K, K], BaseSolverOutput]:
         return self.get_solutions(only_converged=False)
 
     @property
-    def problems(self) -> Dict[Tuple[K, K], B]:  # noqa: D102
+    def problems(self) -> Dict[Tuple[K, K], B]:
         return self._problems
