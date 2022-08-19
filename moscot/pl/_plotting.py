@@ -220,7 +220,11 @@ def push(
     A figure visualising a push distribution, an instance of :class:`matplotlib.figure.Figure`.
 
     Notes
+    -----
+    This function looks for the following data in the :class:`anndata.AnnData` object which is passed or saved
+    as an attribute of the :mod:`moscot.problems` instance.
 
+    - `temporal_key`
     """
     adata, _ = _input_to_adatas(input)
 
@@ -292,6 +296,11 @@ def pull(
     A figure visualising a push distribution, an instance of :class:`matplotlib.figure.Figure`.
 
     Notes
+    -----
+    This function looks for the following data in the :class:`anndata.AnnData` object which is passed or saved
+    as an attribute of the :mod:`moscot.problems` instance.
+
+    - `temporal_key`
 
     """
     adata = _input_to_adatas(input)

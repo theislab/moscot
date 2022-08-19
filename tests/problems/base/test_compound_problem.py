@@ -1,4 +1,4 @@
-from typing import Any, Type, Tuple, Literal, Mapping
+from typing import Literal, Mapping
 
 from pytest_mock import MockerFixture
 from sklearn.metrics.pairwise import euclidean_distances
@@ -12,20 +12,9 @@ import jax.numpy as jnp
 
 from anndata import AnnData
 
-from tests._utils import ATOL, RTOL
+from tests._utils import ATOL, RTOL, Problem
 from moscot.problems.base import OTProblem, CompoundProblem
 from moscot.solvers._tagged_array import Tag, TaggedArray
-from moscot.problems.base._compound_problem import B
-
-
-class Problem(CompoundProblem[Any, OTProblem]):
-    @property
-    def _base_problem_type(self) -> Type[B]:
-        return OTProblem
-
-    @property
-    def _valid_policies(self) -> Tuple[str, ...]:
-        return ()
 
 
 class TestSingleCompoundProblem:

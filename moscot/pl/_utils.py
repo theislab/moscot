@@ -1,6 +1,6 @@
 from copy import copy
 from types import MappingProxyType
-from typing import Any, Set, Dict, List, Tuple, Union, Mapping, Iterable, Optional, TYPE_CHECKING
+from typing import Any, Set, Dict, List, Type, Tuple, Union, Mapping, Iterable, Optional, TYPE_CHECKING
 from pathlib import Path
 from collections import defaultdict
 import os
@@ -391,7 +391,7 @@ def _contrasting_color(r: int, g: int, b: int) -> str:
     return "#000000" if r * 0.299 + g * 0.587 + b * 0.114 > 186 else "#ffffff"
 
 
-def _input_to_adatas(input: Union[AnnData, Tuple[AnnData, AnnData]]) -> Tuple[AnnData, AnnData]:
+def _input_to_adatas(input: Union[AnnData, Tuple[AnnData, AnnData], Type[CompoundProblem]]) -> Tuple[AnnData, AnnData]:
     if isinstance(input, CompoundProblem):
         return input.adata, input._other_adata if hasattr(input, "_other_adata") else input.adata
     else:
