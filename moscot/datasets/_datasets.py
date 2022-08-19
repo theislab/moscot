@@ -7,7 +7,7 @@ from anndata import AnnData
 
 from moscot._docs import d
 
-__all__ = ["simulation"]
+__all__ = ["simulation", "mosta", "hspc"]
 PathLike = Union[os.PathLike, str]
 
 _datasets = {
@@ -20,8 +20,12 @@ _datasets = {
         (15360, 500),
     ),
     "mosta": (
-        "https://figshare.com/ndownloader/files/36498630",
-        (24321, 23761),
+        "https://figshare.com/ndownloader/files/36703611",
+        (54134, 2000),
+    ),
+    "hspc": (
+        "https://figshare.com/ndownloader/files/36704517",
+        (2000, 2000),
     ),
 }
 
@@ -77,8 +81,8 @@ def mosta(
     """
     Preprocessed and extracted data as provided in :cite:`CHEN20221777`.
 
-    The anndata object include embryo sections E9.5 E2S1, E10.5 E2S1. The :attr:`anndata.AnnData.X` entry is
-    based on reprocessing of the counts data consisting of :meth:`scanpy.pp.normalize_total` and
+    The anndata object includes embryo sections E9.5 E2S1, E10.5 E2S1, E11.5, E1S2. The :attr:`anndata.AnnData.X`
+    entry is based on reprocessing of the counts data consisting of :meth:`scanpy.pp.normalize_total` and
     :meth:`scanpy.pp.log1p`.
 
     Parameters
@@ -91,3 +95,28 @@ def mosta(
     %(adata)s
     """
     return _load_dataset_from_url(path, *_datasets[f"mosta"], **kwargs)
+
+
+@d.dedent
+def hspc(
+    path: PathLike = "datasets/hspc",
+    **kwargs: Any,
+) -> AnnData:
+    """
+    Subsampled and processed data of the `NeurIPS Multimodal Single-Cell Integration Challenge
+     <https://www.kaggle.com/competitions/open-problems-multimodal/data>`.
+
+    2000 cells were randomly selected after filtering the training data of the NeurIPS Multimodal Single-Cell Integration Challenge
+    for multiome data and donor `31800`. Subsequently, the 2000 most highly variable genes were selected as well as all peaks
+    appearing in less than 5% of the cells were filtered out, resulting in 11,607 peaks.
+
+    Parameters
+    ----------
+    path
+        Location where the file is saved to.
+
+    Returns
+    -------
+    %(adata)s
+    """
+    return _load_dataset_from_url(path, *_datasets[f"hspc"], **kwargs)
