@@ -431,10 +431,6 @@ class TemporalMixin(AnalysisMixin[K, B]):
         (corresponding to intermediate time points) are saved in :attr:`anndata.AnnData.obs`. In the latter case all
         intermediate step results are returned if `return_all` is `True`, otherwise only the distribution at `start`
         is returned.
-
-        Raises
-        ------
-        %(BaseCompoundProblem_pull.raises)s
         """
         result = self._apply(
             start=start,
