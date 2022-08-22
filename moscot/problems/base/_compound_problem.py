@@ -333,6 +333,7 @@ class BaseCompoundProblem(BaseProblem, ABC, Generic[K, B]):
         -------
         TODO.
         """
+        _ = kwargs.pop("return_data", None)
         return self._apply(*args, forward=True, **kwargs)
 
     @d.get_sections(base="BaseCompoundProblem_pull", sections=["Parameters", "Raises"])
@@ -359,6 +360,7 @@ class BaseCompoundProblem(BaseProblem, ABC, Generic[K, B]):
         -------
         TODO.
         """
+        _ = kwargs.pop("return_data", None)
         return self._apply(*args, forward=False, **kwargs)
 
     @property
