@@ -12,7 +12,7 @@ from moscot.problems.base import OTProblem
 from moscot.solvers._output import BaseSolverOutput
 
 
-class TestGeneralProblem:
+class TestOTProblem:
     def test_simple_run(self, adata_x: AnnData, adata_y: AnnData):
         prob = OTProblem(adata_x, adata_y)
         prob = prob.prepare(
