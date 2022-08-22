@@ -16,6 +16,8 @@ from typing import (
     Sequence,
     TYPE_CHECKING,
 )
+import os
+import pickle
 
 from scipy.sparse import issparse
 from typing_extensions import Literal
@@ -415,6 +417,69 @@ class BaseCompoundProblem(BaseProblem, ABC, Generic[K, B]):
             assert isinstance(self._problem_manager, ProblemManager)
         self._problem_manager.remove_problem(key)
         return self
+
+    def save(
+        self,
+        dir_path: str,
+        prefix: Optional[str] = None,
+        overwrite: bool = False,
+        protocol: Literal["highest", "default"] = "highest",
+    ) -> None:
+        """
+        Save the model.
+
+        As of now this method pickled the problem class instance. Modifications depend on the I/O of the backend.
+
+        Parameters
+        ----------
+
+        dir_path
+            Path to a directory
+        prefix
+            Prefix to prepend to the file name.
+        overwrite
+            Overwrite existing data or not.
+        protocol
+            Pickle protocol to use.
+
+        Returns
+        -------
+        None
+        """
+        prot = pickle.HIGHEST_PROTOCOL if protocol == "highest" else pickle.DEFAULT_PROTOCOL
+        filename = os.path.join(dir_path, f"{prefix}_{self.__str__}")
+        if os.path.exists(filename) and not overwrite:
+            raise ValueError("f{filename} already exists. Please provide an unexisting filename for saving.")
+        with open(filename, "wb") as f:
+            pickle.dump(self, f, protocol=prot)
+
+    @classmethod
+    def load(
+        cls,
+        filename: str,
+    ) -> Type["BaseCompoundProblem[K, B]"]:
+        """
+        Instantiate a moscot problem from a saved output.
+
+        Parameters
+        ----------
+        filename
+            filename of the model to load
+
+        Returns
+        -------
+            Loaded instance of the model.
+
+        Examples
+        --------
+        >>> problem = ProblemClass.load(filename) # use the name of the model class used to save
+        >>> problem.push....
+        """
+        if not os.path.exists(filename):
+            raise FileNotFoundError("TODO.")
+        with open(filename, "rb") as f:
+            instance = pickle.load(f)
+        return instance
 
     @property
     def solutions(self) -> Dict[Tuple[K, K], BaseSolverOutput]:
