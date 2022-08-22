@@ -5,6 +5,8 @@ from matplotlib import colors as mcolors
 from matplotlib.axes import Axes
 import matplotlib as mpl
 
+import numpy as np
+
 from anndata import AnnData
 
 from moscot._docs import d
@@ -20,8 +22,8 @@ def cell_transition(
     input: Union[AnnData, Tuple[AnnData, AnnData], Type[CompoundProblem]],
     key_stored: Optional[str] = None,
     cont_cmap: Union[str, mcolors.Colormap] = "viridis",
-    annotate_rows: bool = True,
-    annotate_cols: bool = True,
+    row_annotation_label: Optional[str] = None,
+    col_annotation_label: Optional[str] = None,
     annotate_values: bool = True,
     figsize: Optional[Tuple[float, float]] = None,
     dpi: Optional[int] = None,
@@ -42,9 +44,9 @@ def cell_transition(
     %(input_plotting)s
     %(key_stored)s
     %(cont_cmap)s
-    annotate_rows
+    row_annotation_label
         Whether to add annotations to the rows of the transition matrix
-    annotate_cols
+    col_annotation_label
         Whether to add annotations to the columns of the transition matrix
     annotate_values
         Whether to add the values to the entries of the transition matrix
@@ -84,11 +86,9 @@ def cell_transition(
         transition_matrix=data["transition_matrix"],
         row_annotation=data["source_annotation"],
         col_annotation=data["target_annotation"],
-        row_annotation_suffix=data["source_key"],
-        col_annotation_suffix=data["target_key"],
+        row_annotation_label=data["source_key"] if row_annotation_label is None else row_annotation_label,
+        col_annotation_label=data["target_key"] if col_annotation_label is None else col_annotation_label,
         cont_cmap=cont_cmap,
-        annotate_rows=annotate_rows,
-        annotate_cols=annotate_cols,
         annotate_values=annotate_values,
         figsize=figsize,
         dpi=dpi,
@@ -182,7 +182,7 @@ def push(
     time_points: Optional[Iterable[K]] = None,
     basis: str = "umap",
     result_key: str = "plot_tmp",
-    constant_fill_value: float = 0.0,
+    constant_fill_value: float = np.nan,
     cont_cmap: Union[str, mcolors.Colormap] = "viridis",
     title: Optional[str] = None,
     figsize: Optional[Tuple[float, float]] = None,
@@ -260,7 +260,7 @@ def pull(
     time_points: Optional[Iterable[K]] = None,
     basis: str = "umap",
     result_key: str = "plot_tmp",
-    constant_fill_value: float = 0.0,
+    constant_fill_value: float = np.nan,
     cont_cmap: Union[str, mcolors.Colormap] = "viridis",
     title: Optional[str] = None,
     figsize: Optional[Tuple[float, float]] = None,

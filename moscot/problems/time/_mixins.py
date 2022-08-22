@@ -155,7 +155,7 @@ class TemporalMixin(AnalysisMixin[K, B]):
         batch_size: Optional[int] = None,
         normalize: bool = True,
         key_added: Optional[str] = PlottingDefaults.CELL_TRANSITION,
-    ) -> pd.DataFrame:
+    ) -> Optional[pd.DataFrame]:
         """
         Compute a grouped cell transition matrix.
 
@@ -233,7 +233,8 @@ class TemporalMixin(AnalysisMixin[K, B]):
         restrict_to_existing: bool = True,
         order_annotations: Optional[List[Any]] = None,
         key_added: Optional[str] = PlottingDefaults.SANKEY,
-    ) -> List[pd.DataFrame]:
+        return_data: bool = False,
+    ) -> Optional[List[pd.DataFrame]]:
         """
         Draw a Sankey diagram visualising transitions of cells across time points.
 
@@ -266,6 +267,8 @@ class TemporalMixin(AnalysisMixin[K, B]):
         order_annotations
             Order of the annotations in the final plot, from top to bottom
         %(key_added_plotting)s
+        return_data
+            Whether to return the computed data.
 
         Returns
         -------
@@ -326,7 +329,8 @@ class TemporalMixin(AnalysisMixin[K, B]):
                 "captions": [str(t) for t in tuples],
             }
             self.adata.uns[level_1][level_2][key_added] = plot_vars
-        return cell_transitions_updated
+        if return_data:
+            return cell_transitions_updated
 
     def push(
         self: TemporalMixinProtocol[K, B],
@@ -334,9 +338,10 @@ class TemporalMixin(AnalysisMixin[K, B]):
         end: K,
         data: Optional[Union[str, ArrayLike]] = None,
         subset: Optional[Union[str, List[str], Tuple[int, int]]] = None,
-        return_all: bool = False,
         scale_by_marginals: bool = True,
         key_added: Optional[str] = PlottingDefaults.PUSH,
+        return_all: bool = False,
+        return_data: bool = False,
         **kwargs: Any,
     ) -> Optional[ApplyOutput_t[K]]:
         """
@@ -350,10 +355,9 @@ class TemporalMixin(AnalysisMixin[K, B]):
             Time point of target distribution.
         %(data)s
         %(subset)s
-        return_all
-            If `True` returns all the intermediate masses if pushed through multiple transport plans.
-            If `True`, the result is returned as a dictionary.
         %(key_added)s
+        %(return_all)s
+        %(return_data)s
 
         Returns
         -------
@@ -389,7 +393,8 @@ class TemporalMixin(AnalysisMixin[K, B]):
             }
             self.adata.uns[level_1][level_2][key_added] = plot_vars
             self.adata.obs[key_added] = self._flatten(result, key=self.temporal_key)
-        return result
+        if return_data:
+            return result
 
     @d.dedent
     def pull(
@@ -398,9 +403,10 @@ class TemporalMixin(AnalysisMixin[K, B]):
         end: K,
         data: Optional[Union[str, ArrayLike]] = None,
         subset: Optional[Union[str, List[str], Tuple[int, int]]] = None,
-        return_all: bool = False,
         scale_by_marginals: bool = True,
         key_added: Optional[str] = PlottingDefaults.PULL,
+        return_all: bool = False,
+        return_data: bool = False,
         **kwargs: Any,
     ) -> Optional[ApplyOutput_t[K]]:
         """
@@ -416,9 +422,8 @@ class TemporalMixin(AnalysisMixin[K, B]):
         %(subset)s
         result_key
             Key of where to save the result in :attr:`anndata.AnnData.obs`. If `None` the result will be returned.
-        return_all
-            If `True` return all the intermediate masses if pushed through multiple transport plans. In this case the
-            result is returned as a dictionary.
+        %(return_all)s
+        %(return_data)s
 
         Returns
         -------
@@ -453,7 +458,8 @@ class TemporalMixin(AnalysisMixin[K, B]):
             }
             self.adata.uns[level_1][level_2][key_added] = plot_vars
             self.adata.obs[key_added] = self._flatten(result, key=self.temporal_key)
-        return result
+        if return_data:
+            return result
 
     # TODO(michalk8): refactor me
     def _get_data(

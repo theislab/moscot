@@ -245,11 +245,9 @@ def _heatmap(
     transition_matrix: pd.DataFrame,
     row_annotation: str,
     col_annotation: str,
-    row_annotation_suffix: str = "",
-    col_annotation_suffix: str = "",
+    row_annotation_label: Optional[str] = None,
+    col_annotation_label: Optional[str] = None,
     cont_cmap: Union[str, mcolors.Colormap] = "viridis",
-    annotate_rows: bool = True,
-    annotate_cols: bool = True,
     annotate_values: bool = True,
     figsize: Optional[Tuple[float, float]] = None,
     dpi: Optional[int] = None,
@@ -304,18 +302,18 @@ def _heatmap(
     )
 
     col_cats = divider.append_axes("top", size="2%", pad=0)
-    c = fig.colorbar(col_sm, cax=col_cats, orientation="horizontal", ticklocation="top" if annotate_cols else "auto")
-    if annotate_cols:
-        c.set_ticks(np.arange(transition_matrix.shape[1]) + 0.5)
-        c.ax.set_xticklabels(transition_matrix.columns, rotation=90)
-        c.set_label(col_annotation + str(col_annotation_suffix))
+    c = fig.colorbar(col_sm, cax=col_cats, orientation="horizontal", ticklocation="top")
+
+    c.set_ticks(np.arange(transition_matrix.shape[1]) + 0.5)
+    c.ax.set_xticklabels(transition_matrix.columns, rotation=90)
+    c.set_label(col_annotation if col_annotation_label is None else col_annotation_label)
 
     row_cats = divider.append_axes("left", size="2%", pad=0)
-    c = fig.colorbar(row_sm, cax=row_cats, orientation="vertical", ticklocation="left" if annotate_rows else "auto")
-    if annotate_rows:
-        c.set_ticks(np.arange(transition_matrix.shape[0]) + 0.5)
-        c.ax.set_yticklabels(transition_matrix.index)
-        c.set_label(row_annotation + str(row_annotation_suffix))
+    c = fig.colorbar(row_sm, cax=row_cats, orientation="vertical", ticklocation="left")
+
+    c.set_ticks(np.arange(transition_matrix.shape[0]) + 0.5)
+    c.ax.set_yticklabels(transition_matrix.index)
+    c.set_label(row_annotation if row_annotation_label is None else row_annotation_label)
 
     if save:
         fig.save()

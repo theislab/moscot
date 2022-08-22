@@ -205,6 +205,16 @@ constant_fill_value
 _plot_time_points = """\
 time_points
     Time points which are colorised in the embedding plot."""
+_return_fig = """\
+return_fig
+    Whether to return the figure."""
+_return_all = """\
+return_all
+    If `True` returns all the intermediate masses if pushed through multiple transport plans.
+    If `True`, the result is returned as a dictionary."""
+_return_data = """\
+return_data
+    Whether to return the data."""
 # returns
 _alignment_mixin_returns = """\
 If ``inplace = False``, returns a :class:`numpy.ndarray` with aligned coordinates.
@@ -289,4 +299,8 @@ d = DocstringProcessor(
     ax=_ax,
     key_added_plotting=_key_added_plotting,
     constant_fill_value=_constant_fill_value,
+    plot_time_points=_plot_time_points,
+    return_fig=_return_fig,
+    return_all=_return_all,
+    return_data=_return_data,
 )

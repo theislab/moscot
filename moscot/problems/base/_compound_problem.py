@@ -537,10 +537,6 @@ class CompoundProblem(BaseCompoundProblem[K, B], ABC):
     Parameters
     ----------
     %(BaseCompoundProblem.parameters)s
-
-    Raises
-    ------
-    %(BaseCompoundProblem.raises)s
     """
 
     @property
