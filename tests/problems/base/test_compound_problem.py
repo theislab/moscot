@@ -188,7 +188,6 @@ class TestCompoundProblem:
     def test_save_load(self, adata_time: AnnData):
         dir_path = "tests/data"
         file_prefix = "test_save_load"
-        print(os.getcwd())
         problem = Problem(adata=adata_time)
         problem = problem.prepare(xy={"x_attr": "X", "y_attr": "X"}, key="time")
         problem.save(dir_path=dir_path, file_prefix=file_prefix)

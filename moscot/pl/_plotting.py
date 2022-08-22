@@ -1,5 +1,5 @@
 from types import MappingProxyType
-from typing import Any, List, Type, Tuple, Union, Mapping, Iterable, Optional
+from typing import Any, Dict, List, Type, Tuple, Union, Mapping, Iterable, Optional
 
 from matplotlib import colors as mcolors
 from matplotlib.axes import Axes
@@ -106,6 +106,7 @@ def sankey(
     key_stored: Optional[str] = None,
     captions: Optional[List[str]] = None,
     cont_cmap: Union[str, mcolors.Colormap] = "viridis",
+    colorDict: Optional[Dict[str, float]] = None,
     title: Optional[str] = None,
     figsize: Optional[Tuple[float, float]] = None,
     dpi: Optional[int] = None,
@@ -149,18 +150,19 @@ def sankey(
     - `key`
 
     """
-    adata = _input_to_adatas(input)
+    adata, _ = _input_to_adatas(input)
 
-    key = PlottingDefaults.CELL_TRANSITION if key_stored is None else key_stored
-    if key not in adata.uns[AdataKeys.UNS][PlottingKeys.SANKEY]:  # type: ignore[attr-defined]
+    key = PlottingDefaults.SANKEY if key_stored is None else key_stored
+    if key not in adata.uns[AdataKeys.UNS][PlottingKeys.SANKEY]:
         raise KeyError("TODO.")
-    data = adata.uns[AdataKeys.UNS][PlottingKeys.SANKEY][key]  # type: ignore[attr-defined]
+    data = adata.uns[AdataKeys.UNS][PlottingKeys.SANKEY][key]
     fig = _sankey(
         adata=adata,
         key=data["key"],
         transition_matrices=data["transition_matrices"],
         captions=data["captions"] if captions is None else captions,
-        colorDict=cont_cmap,
+        colorDict=colorDict,
+        cont_cmap=cont_cmap,
         title=title,
         figsize=figsize,
         dpi=dpi,
@@ -229,9 +231,9 @@ def push(
     adata, _ = _input_to_adatas(input)
 
     key = PlottingDefaults.PUSH if key_stored is None else key_stored
-    if key not in adata.obs:  # type: ignore[attr-defined]
+    if key not in adata.obs:
         raise KeyError("TODO.")
-    data = adata.uns[AdataKeys.UNS][PlottingKeys.PUSH][key]  # type: ignore[attr-defined]
+    data = adata.uns[AdataKeys.UNS][PlottingKeys.PUSH][key]
     _plot_temporal(
         adata=adata,
         temporal_key=data["temporal_key"],
@@ -303,12 +305,12 @@ def pull(
     - `temporal_key`
 
     """
-    adata = _input_to_adatas(input)
+    adata, _ = _input_to_adatas(input)
 
     key = PlottingDefaults.PULL if key_stored is None else key_stored
-    if key not in adata.obs:  # type: ignore[attr-defined]
+    if key not in adata.obs:
         raise KeyError("TODO.")
-    data = adata.uns[AdataKeys.UNS][PlottingKeys.PULL][key]  # type: ignore[attr-defined]
+    data = adata.uns[AdataKeys.UNS][PlottingKeys.PULL][key]
     _plot_temporal(
         adata=adata,
         temporal_key=data["temporal_key"],

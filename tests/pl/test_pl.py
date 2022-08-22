@@ -2,6 +2,8 @@ from typing import List, Optional
 
 import pytest
 
+import numpy as np
+
 from anndata import AnnData
 
 from tests._utils import Problem
@@ -10,27 +12,32 @@ import moscot.pl as mpl
 
 
 class TestMoscotPl:
-    def test_input_to_adatas_problem(adata_time: AnnData):
+    def test_input_to_adatas_problem(self, adata_time: AnnData):
         p = Problem(adata_time)
-        adata = _input_to_adatas(p)
-        assert isinstance(adata, AnnData)
+        adata1, adata2 = _input_to_adatas(p)
+        assert isinstance(adata1, AnnData)
+        assert isinstance(adata2, AnnData)
+        assert np.all(adata1.X.A == adata_time.X.A)
+        assert np.all(adata2.X.A == adata_time.X.A)
 
-    def test_input_to_adatas_adata(adata_time: AnnData):
-        adata = _input_to_adatas(adata_time)
-        assert isinstance(adata, AnnData)
-        assert adata == adata_time
+    def test_input_to_adatas_adata(self, adata_time: AnnData):
+        adata1, adata2 = _input_to_adatas(adata_time)
+        assert isinstance(adata1, AnnData)
+        assert isinstance(adata2, AnnData)
+        assert np.all(adata1.X.A == adata_time.X.A)
+        assert np.all(adata2.X.A == adata_time.X.A)
 
-    def test_cell_transition(adata_pl_cell_transition: AnnData):
+    def test_cell_transition(self, adata_pl_cell_transition: AnnData):
         mpl.cell_transition(adata_pl_cell_transition)
-        plot_2 = mpl.cell_transition(adata_pl_cell_transition, key_stored="cell_transition_backward")
+        mpl.cell_transition(adata_pl_cell_transition)
 
-    @pytest.mark.parametrize("time_points", [None, 0])
-    def test_push(adata_pl_push: AnnData, time_points: Optional[List[int]]):
+    @pytest.mark.parametrize("time_points", [None, [0]])
+    def test_push(self, adata_pl_push: AnnData, time_points: Optional[List[int]]):
         plot = mpl.push(adata_pl_push, time_points=time_points)
 
-    @pytest.mark.parametrize("time_points", [None, 0])
-    def test_pull(adata_pl_pull: AnnData, time_points: Optional[List[int]]):
+    @pytest.mark.parametrize("time_points", [None, [0]])
+    def test_pull(self, adata_pl_pull: AnnData, time_points: Optional[List[int]]):
         plot = mpl.pull(adata_pl_pull, time_points=time_points)
 
-    def test_sankey(adata_pl_sankey: AnnData):
+    def test_sankey(self, adata_pl_sankey: AnnData):
         mpl.sankey(adata_pl_sankey)

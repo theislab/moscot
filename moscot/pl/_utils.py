@@ -266,6 +266,8 @@ def _heatmap(
         fig, ax = plt.subplots(constrained_layout=True, dpi=dpi, figsize=figsize)
     else:
         fig = ax.figure
+    set_palette(adata=row_adata, key=row_annotation, cont_cmap=cont_cmap)
+    set_palette(adata=col_adata, key=col_annotation, cont_cmap=cont_cmap)
 
     row_cmap, col_cmap, row_norm, col_norm = _get_cmap_norm(
         row_adata, col_adata, transition_matrix, row_annotation, col_annotation
