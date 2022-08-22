@@ -420,8 +420,8 @@ class BaseCompoundProblem(BaseProblem, ABC, Generic[K, B]):
 
     def save(
         self,
-        dir_path: str,
-        prefix: Optional[str] = None,
+        dir_path: Optional[str] = None,
+        file_prefix: Optional[str] = None,
         overwrite: bool = False,
         protocol: Literal["highest", "default"] = "highest",
     ) -> None:
@@ -434,8 +434,8 @@ class BaseCompoundProblem(BaseProblem, ABC, Generic[K, B]):
         ----------
 
         dir_path
-            Path to a directory
-        prefix
+            Path to a directory, defaults to current directory
+        file_prefix
             Prefix to prepend to the file name.
         overwrite
             Overwrite existing data or not.
@@ -447,17 +447,20 @@ class BaseCompoundProblem(BaseProblem, ABC, Generic[K, B]):
         None
         """
         prot = pickle.HIGHEST_PROTOCOL if protocol == "highest" else pickle.DEFAULT_PROTOCOL
-        filename = os.path.join(dir_path, f"{prefix}_{self.__str__}")
-        if os.path.exists(filename) and not overwrite:
-            raise ValueError("f{filename} already exists. Please provide an unexisting filename for saving.")
-        with open(filename, "wb") as f:
+        file_name = (
+            f"{file_prefix}_{self.__class__.__name__}" if file_prefix is not None else f"{self.__class__.__name__}"
+        )
+        file_dir = os.path.join(dir_path, file_name) if dir_path is not None else file_name
+        if os.path.exists(file_dir) and not overwrite:
+            raise ValueError("f{file_dir} already exists. Please provide an unexisting filename for saving.")
+        with open(file_dir, "wb") as f:
             pickle.dump(self, f, protocol=prot)
 
     @classmethod
     def load(
         cls,
         filename: str,
-    ) -> Type["BaseCompoundProblem[K, B]"]:
+    ) -> "BaseCompoundProblem[K, B]":
         """
         Instantiate a moscot problem from a saved output.
 
@@ -479,6 +482,8 @@ class BaseCompoundProblem(BaseProblem, ABC, Generic[K, B]):
             raise FileNotFoundError("TODO.")
         with open(filename, "rb") as f:
             instance = pickle.load(f)
+        if type(instance) is not cls:
+            raise TypeError(f"The saved model is an instance of {instance.__class__.__name__}.")
         return instance
 
     @property
@@ -505,6 +510,12 @@ class BaseCompoundProblem(BaseProblem, ABC, Generic[K, B]):
 
     def __iter__(self) -> Iterator[Tuple[K, K]]:
         return iter(self.problems)
+
+    def __repr__(self) -> str:
+        return f"{self.__class__.__name__}{list(self.problems.keys())}"
+
+    def __str__(self) -> str:
+        return repr(self)
 
 
 @d.get_sections(base="CompoundProblem", sections=["Parameters", "Raises"])
