@@ -1,4 +1,5 @@
 from typing import Any, Type, Tuple, Literal, Mapping
+import os
 
 from pytest_mock import MockerFixture
 from sklearn.metrics.pairwise import euclidean_distances
@@ -28,7 +29,7 @@ class Problem(CompoundProblem[Any, OTProblem]):
         return ()
 
 
-class TestSingleCompoundProblem:
+class TestCompoundProblem:
     @staticmethod
     def callback(
         adata: AnnData, adata_y: AnnData, sentinel: bool = False
@@ -88,7 +89,7 @@ class TestSingleCompoundProblem:
     @pytest.mark.fast()
     def test_custom_callback(self, adata_time: AnnData, mocker: MockerFixture):
         expected_keys = [(0, 1), (1, 2)]
-        spy = mocker.spy(TestSingleCompoundProblem, "callback")
+        spy = mocker.spy(TestCompoundProblem, "callback")
 
         problem = Problem(adata=adata_time)
         _ = problem.prepare(
@@ -98,7 +99,7 @@ class TestSingleCompoundProblem:
             key="time",
             axis="obs",
             policy="sequential",
-            callback=TestSingleCompoundProblem.callback,
+            callback=TestCompoundProblem.callback,
             callback_kwargs={"sentinel": True},
         )
 
@@ -194,3 +195,14 @@ class TestSingleCompoundProblem:
         )
         problem = problem.add_problem((0, 2), problem_2[0, 2])
         assert list(problem.problems.keys()) == expected_keys + [(0, 2)]
+
+    def test_save_load(self, adata_time: AnnData):
+        dir_path = "tests/data"
+        file_prefix = "test_save_load"
+        print(os.getcwd())
+        problem = Problem(adata=adata_time)
+        problem = problem.prepare(xy={"x_attr": "X", "y_attr": "X"}, key="time")
+        problem.save(dir_path=dir_path, file_prefix=file_prefix)
+
+        p = Problem.load(os.path.join(dir_path, f"{file_prefix}_Problem.pkl"))
+        assert isinstance(p, Problem)

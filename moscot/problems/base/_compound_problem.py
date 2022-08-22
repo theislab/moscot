@@ -448,13 +448,16 @@ class BaseCompoundProblem(BaseProblem, ABC, Generic[K, B]):
         """
         prot = pickle.HIGHEST_PROTOCOL if protocol == "highest" else pickle.DEFAULT_PROTOCOL
         file_name = (
-            f"{file_prefix}_{self.__class__.__name__}" if file_prefix is not None else f"{self.__class__.__name__}"
+            f"{file_prefix}_{self.__class__.__name__}.pkl"
+            if file_prefix is not None
+            else f"{self.__class__.__name__}.pkl"
         )
         file_dir = os.path.join(dir_path, file_name) if dir_path is not None else file_name
         if os.path.exists(file_dir) and not overwrite:
             raise ValueError("f{file_dir} already exists. Please provide an unexisting filename for saving.")
         with open(file_dir, "wb") as f:
             pickle.dump(self, f, protocol=prot)
+        print(f"TODO: problem saved as {file_dir}")
 
     @classmethod
     def load(
