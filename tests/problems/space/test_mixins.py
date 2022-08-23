@@ -78,7 +78,7 @@ class TestSpatialAlignmentAnalysisMixin:
                 len(adata_space_rotate[adata_space_rotate.obs["batch"] == "2"]),
             )
         )
-        ap[("1", "2")]._solution = MockSolverOutput(mock_tmap / mock_tmap.values.sum())
+        ap[("1", "2")]._solution = MockSolverOutput(mock_tmap / mock_tmap.sum().sum())
         result = ap.cell_transition(
             "1", "2", "celltype", "celltype", online=online, forward=forward, normalize=normalize
         )
@@ -135,7 +135,7 @@ class TestSpatialMappingAnalysisMixin:
         mp = mp.prepare(batch_key="batch", sc_attr={"attr": "obsm", "key": "X_pca"})
         # mp = mp.solve()
         mock_tmap = np.abs(rng.randn(len(adatasp[adatasp.obs["batch"] == "1"]), len(adataref)))
-        mp[("1", "ref")]._solution = MockSolverOutput(mock_tmap / mock_tmap.values.sum())
+        mp[("1", "ref")]._solution = MockSolverOutput(mock_tmap / np.sum(mock_tmap))
 
         result = mp.cell_transition(
             "1",

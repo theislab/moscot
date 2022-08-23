@@ -1,26 +1,21 @@
 from copy import copy
 from types import MappingProxyType
 from typing import Any, Set, Dict, List, Type, Tuple, Union, Mapping, Iterable, Optional, TYPE_CHECKING
-from pathlib import Path
 from collections import defaultdict
-import os
 
 from matplotlib import colors as mcolors, pyplot as plt
 from matplotlib.axes import Axes
 from matplotlib.colors import ListedColormap
-from matplotlib.figure import Figure
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 import pandas as pd
 import matplotlib as mpl
 
 import numpy as np
 
-from scanpy import logging as logg, settings
 from anndata import AnnData
 from scanpy.plotting._utils import add_colors_for_categorical_sample_annotation as add_color_palette
 import scanpy as sc
 
-from moscot._docs import d
 from moscot.problems.base import CompoundProblem  # type: ignore[attr-defined]
 from moscot.problems.base._compound_problem import K
 
@@ -185,9 +180,8 @@ def _sankey(
                             color=colorDict[labelColor],
                         )
 
-        ax.gca().axis("off")
-        ax.gcf().set_size_inches(6, 6)
-        ax.title(title)
+        ax.axis("off")
+        ax.set_title(title)
 
 
 def _heatmap(

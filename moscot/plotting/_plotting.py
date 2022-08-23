@@ -1,5 +1,5 @@
 from types import MappingProxyType
-from typing import Any, Dict, List, Type, Tuple, Union, Mapping, Iterable, Optional
+from typing import Any, Dict, Iterable, List, Mapping, Optional, Tuple, Union
 
 from matplotlib import colors as mcolors
 from matplotlib.axes import Axes
@@ -10,16 +10,16 @@ import numpy as np
 from anndata import AnnData
 
 from moscot._docs import d
-from moscot.plotting._utils import _sankey, _heatmap, _plot_temporal, _input_to_adatas
 from moscot.problems.base import CompoundProblem  # type: ignore[attr-defined]
 from moscot.problems.time import LineageProblem, TemporalProblem  # type: ignore[attr-defined]
+from moscot.plotting._utils import _sankey, _heatmap, _plot_temporal, _input_to_adatas
 from moscot._constants._constants import AdataKeys, PlottingKeys, PlottingDefaults
 from moscot.problems.base._compound_problem import K
 
 
 @d.dedent
 def cell_transition(
-    input: Union[AnnData, Tuple[AnnData, AnnData], Type[CompoundProblem]],
+    input: Union[AnnData, Tuple[AnnData, AnnData], CompoundProblem],
     key_stored: Optional[str] = None,
     cont_cmap: Union[str, mcolors.Colormap] = "viridis",
     row_annotation_label: Optional[str] = None,

@@ -501,8 +501,8 @@ class AnalysisMixin(Generic[K, B]):
         if forward:
             if TYPE_CHECKING:  # checked in _check_argument_compatibility_cell_transition(
                 assert target_annotations is not None
-            target_annotations_verified = set(
-                set(df_target[target_annotation_key].cat.categories).intersection(target_annotations)
+            target_annotations_verified = set(df_target[target_annotation_key].cat.categories).intersection(
+                target_annotations
             )
             if not len(target_annotations_verified):
                 raise ValueError(
