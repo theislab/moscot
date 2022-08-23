@@ -70,7 +70,7 @@ class TestAlignmentProblem:
         assert np.all([sol.converged for sol in ap.solutions.values()])
         assert np.all([np.all(~np.isnan(sol.transport_matrix)) for sol in ap.solutions.values()])
 
-    def test_solve_unbalanced(self, adata_space_rotate: AnnData):  # unclear usage yet
+    def test_solve_unbalanced(self, adata_space_rotate: AnnData):  #  unclear usage yet
         tau_a, tau_b = [0.8, 1]
         marg_a = "a"
         marg_b = "b"
