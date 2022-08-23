@@ -160,11 +160,62 @@ normalize
     matrix is row-stochastic, otherwise column-stochastic."""
 _solve_kwargs = """\
 kwargs
-    keyword arguments for the backend-specific solver, see NOTEBOOK"""
+    keyword arguments for the backend-specific solver, TODO see NOTEBOOK."""
+_heatmap_kwargs = """\
+kwargs
+    keyword arguments for the heatmap visualisation."""
+_heatmap_plot = """\
+plot
+    TODO: plots the transition matrix."""
 _ott_jax_batch_size = """\
 batch_size
     number of data points the matrix-vector products are applied to at the same time. The larger, the more memory
     is required."""
+_plotting = """\
+figsize
+    Size of the figure in inches.
+dpi
+    Dots per inch.
+save
+    Path where to save the plot. If `None` the plot is not saved."""
+_input_plotting = """\
+input
+    The :class:`anndata.AnnData` instance(s) where the results of the corresponding method of the moscot problem
+    instance is saved. Alternatively, the instance of the moscot problem can be passed, too.
+    """
+_key_stored = """\
+key_stored
+    A key of :class:`anndata.AnnData` where the results of the corresponding method of the moscot problem instance
+    is saved."""
+_cont_cmap = """\
+cont_cmap
+    Colormap for continuous annotations, see :class:`matplotlib.colors.Colormap`."""
+_cbar_kwargs = """\
+cbar_kwargs
+    Keyword arguments for :meth:`matplotlib.figure.Figure.colorbar`."""
+_ax = """\
+ax
+    Axes, :class:`matplotlib.axes.Axes`."""
+_key_added_plotting = """\
+key_added
+    Key in :attr:`anndata.AnnData.uns` and/or :attr:`anndata.AnnData.obs` where the results for the corresponding
+    plotting functions are stored. See TODO Notebook for how :mod:`moscot.plotting` works."""
+_constant_fill_value = """\
+constant_fill_value
+    Color fill value for cells in the UMAP not belonging to source or target distribution."""
+_plot_time_points = """\
+time_points
+    Time points which are colorised in the embedding plot."""
+_return_fig = """\
+return_fig
+    Whether to return the figure."""
+_return_all = """\
+return_all
+    If `True` returns all the intermediate masses if pushed through multiple transport plans, returned as a
+    dictionary."""
+_return_data = """\
+return_data
+    Whether to return the data."""
 # returns
 _alignment_mixin_returns = """\
 If ``inplace = False``, returns a :class:`numpy.ndarray` with aligned coordinates.
@@ -238,5 +289,19 @@ d = DocstringProcessor(
     stage=_stage,
     normalize_cell_transition=_normalize_cell_transition,
     solve_kwargs=_solve_kwargs,
+    heatmap_kwargs=_heatmap_kwargs,
+    heatmap_plot=_heatmap_plot,
     ott_jax_batch_size=_ott_jax_batch_size,
+    plotting=_plotting,
+    input_plotting=_input_plotting,
+    cont_cmap=_cont_cmap,
+    cbar_kwargs=_cbar_kwargs,
+    key_stored=_key_stored,
+    ax=_ax,
+    key_added_plotting=_key_added_plotting,
+    constant_fill_value=_constant_fill_value,
+    plot_time_points=_plot_time_points,
+    return_fig=_return_fig,
+    return_all=_return_all,
+    return_data=_return_data,
 )

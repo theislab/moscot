@@ -56,6 +56,7 @@ class ConvergencePlotterMixin:
 
     def plot_convergence(
         self,
+        last_k: Optional[int] = None,
         title: Optional[str] = None,
         figsize: Optional[Tuple[float, float]] = None,
         dpi: Optional[int] = None,
@@ -63,16 +64,32 @@ class ConvergencePlotterMixin:
         return_fig: bool = False,
         **kwargs: Any,
     ) -> Optional[Figure]:
-        def select_values() -> Tuple[str, jnp.ndarray]:
+        """
+        Plot the convergence curve.
+
+        Parameters
+        ----------
+        last_k
+            How many of the last k steps of the algorithm to plot. If `None`, the full curve is plotted.
+        %(plotting_title)
+        %(plotting)s
+        """
+
+        def select_values(last_k: Optional[int] = None) -> Tuple[str, jnp.ndarray, jnp.ndarray]:
             # `> 1` because of pure Sinkhorn
             if len(self._costs) > 1 or self._errors is None:
-                return "cost", self._costs
-            return "error", self._errors
+                metric = self._costs
+                metric_str = "cost"
+            else:
+                metric = self._errors
+                metric_str = "error"
+            last_k = min(last_k, len(metric)) if last_k is not None else len(metric)
+            return metric_str, metric[-last_k:], range(len(metric))[-last_k:]
 
         fig, ax = plt.subplots(figsize=figsize, dpi=dpi)
-        kind, values = select_values()
+        kind, values, xs = select_values(last_k)
 
-        ax.plot(values, **kwargs)
+        ax.plot(xs, values, **kwargs)
         ax.set_xlabel("iteration")
         ax.set_ylabel(kind)
         if title is None:

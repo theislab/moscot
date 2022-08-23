@@ -1,8 +1,9 @@
-from typing import Any, Dict, List, Tuple, Union, Optional, TYPE_CHECKING
+from typing import Any, Dict, List, Tuple, Union, Literal, Iterable, Optional, TYPE_CHECKING
+from pathlib import Path
 import itertools
 
 from sklearn.metrics import pairwise_distances
-from typing_extensions import Literal, Protocol
+from typing_extensions import Protocol
 import ot
 import pandas as pd
 
@@ -11,8 +12,8 @@ import numpy as np
 from anndata import AnnData
 
 from moscot._docs import d
-from moscot._types import Filter_t, ArrayLike, Numeric_t
-from moscot._constants._constants import AggregationMode
+from moscot._types import ArrayLike, Numeric_t, Str_Dict_t
+from moscot._constants._constants import Key, AdataKeys, PlottingKeys, AggregationMode, PlottingDefaults
 from moscot.problems.base._mixins import AnalysisMixin, AnalysisMixinProtocol
 from moscot.problems.base._compound_problem import B, K, ApplyOutput_t
 
@@ -25,6 +26,21 @@ class TemporalMixinProtocol(AnalysisMixinProtocol[K, B], Protocol[K, B]):
     temporal_key: Optional[str]
     _temporal_key: Optional[str]
 
+    def cell_transition(
+        self: "TemporalMixinProtocol[K, B]",
+        start: K,
+        end: K,
+        early_annotation: Str_Dict_t,
+        late_annotation: Str_Dict_t,
+        forward: bool = False,  # return value will be row-stochastic if forward=True, else column-stochastic
+        aggregation_mode: Literal["annotation", "cell"] = AggregationMode.ANNOTATION,  # type: ignore[assignment]
+        online: bool = False,
+        batch_size: Optional[int] = None,
+        normalize: bool = True,
+        key_added: Optional[str] = PlottingDefaults.CELL_TRANSITION,
+    ) -> pd.DataFrame:
+        ...
+
     def push(self, *args: Any, **kwargs: Any) -> Optional[ApplyOutput_t[K]]:  # noqa: D102
         ...
 
@@ -33,7 +49,6 @@ class TemporalMixinProtocol(AnalysisMixinProtocol[K, B], Protocol[K, B]):
 
     def _cell_transition(  # TODO(@MUCDK) think about removing _cell_transition_non_online
         self: AnalysisMixinProtocol[K, B],
-        online: bool,
         *args: Any,
         **kwargs: Any,
     ) -> pd.DataFrame:
@@ -98,6 +113,20 @@ class TemporalMixinProtocol(AnalysisMixinProtocol[K, B], Protocol[K, B]):
     ) -> ArrayLike:
         ...
 
+    def _plot_temporal(
+        self: "TemporalMixinProtocol[K, B]",
+        data: Dict[K, ArrayLike],
+        start: K,
+        end: K,
+        time_points: Optional[Iterable[K]] = None,
+        basis: str = "umap",
+        result_key: Optional[str] = None,
+        fill_value: float = 0.0,
+        save: Optional[Union[str, Path]] = None,
+        **kwargs: Any,
+    ) -> None:
+        ...
+
     @staticmethod
     def _get_interp_param(
         start: K, intermediate: K, end: K, interpolation_parameter: Optional[float] = None
@@ -117,14 +146,15 @@ class TemporalMixin(AnalysisMixin[K, B]):
         self: TemporalMixinProtocol[K, B],
         start: K,
         end: K,
-        early_annotation: Filter_t,
-        late_annotation: Filter_t,
+        early_annotation: Str_Dict_t,
+        late_annotation: Str_Dict_t,
         forward: bool = False,  # return value will be row-stochastic if forward=True, else column-stochastic
         aggregation_mode: Literal["annotation", "cell"] = AggregationMode.ANNOTATION,  # type: ignore[assignment]
         online: bool = False,
         batch_size: Optional[int] = None,
         normalize: bool = True,
-    ) -> pd.DataFrame:
+        key_added: Optional[str] = PlottingDefaults.CELL_TRANSITION,
+    ) -> Optional[pd.DataFrame]:
         """
         Compute a grouped cell transition matrix.
 
@@ -139,6 +169,7 @@ class TemporalMixin(AnalysisMixin[K, B]):
             Time point corresponding to the late distribution.
         early_annotation
             Can be one of the following:
+
                 - if `early_annotation` is of type :class:`str` this should correspond to a key in
                   :attr:`anndata.AnnData.obs`. In this case, the categories in the transition matrix correspond to the
                   unique values in :attr:`anndata.AnnData.obs` ``['{early_annotation}']``
@@ -147,6 +178,7 @@ class TemporalMixin(AnalysisMixin[K, B]):
                   :attr:`anndata.AnnData.obs` ``['{early_annotation.keys()[0]}']``
         late_annotation
             Can be one of the following
+
                 - if `late_annotation` is of type :class:`str` this should correspond to a key in
                   :attr:`anndata.AnnData.obs`. In this case, the categories in the transition matrix correspond to the
                   unique values in :attr:`anndata.AnnData.obs` ``['{late_annotation}']``
@@ -162,11 +194,17 @@ class TemporalMixin(AnalysisMixin[K, B]):
             for each cell are returned.
         %(online)s
         %(normalize_cell_transition)s
+        %(key_added_plotting)s
 
         Returns
         -------
         Transition matrix of cells or groups of cells.
+
+        Notes
+        -----
+        To visualise the results, see :func:`moscot.pl.cell_transition`.
         """
+
         if TYPE_CHECKING:
             assert isinstance(self.temporal_key, str)
         return self._cell_transition(
@@ -180,7 +218,117 @@ class TemporalMixin(AnalysisMixin[K, B]):
             online=online,
             batch_size=batch_size,
             normalize=normalize,
+            key_added=key_added,
         )
+
+    def sankey(
+        self: "TemporalMixinProtocol[K, B]",
+        start: K,
+        end: K,
+        early_annotation: Str_Dict_t,
+        late_annotation: Str_Dict_t,
+        normalize: bool = False,
+        forward: bool = True,
+        restrict_to_existing: bool = True,
+        order_annotations: Optional[List[Any]] = None,
+        key_added: Optional[str] = PlottingDefaults.SANKEY,
+        return_data: bool = False,
+    ) -> Optional[List[pd.DataFrame]]:
+        """
+        Draw a Sankey diagram visualising transitions of cells across time points.
+
+        Parameters
+        ----------
+        start
+            First time point of the Sankey diagram
+        end
+            Last time point of the Sankey diagram
+        early_annotation
+            Can be one of the following:
+                - if `early_cells` is of type :class:`str` this should correspond to a key in
+                  :attr:`anndata.AnnData.obs`. In this case, the categories in the transition matrix correspond to the
+                  unique values in :attr:`anndata.AnnData.obs` ``['{early_cells}']``
+                - if `early_cells` is of :class:`dict`, `key` should correspond to a key in
+                  :attr:`anndata.AnnData.obs` and its `value` to a subset of categories present in
+                  :attr:`anndata.AnnData.obs` ``['{early_cells.keys()[0]}']``
+        late_annotation
+            Can be one of the following
+                - if `late_cells` is of type :class:`str` this should correspond to a key in
+                  :attr:`anndata.AnnData.obs`. In this case, the categories in the transition matrix correspond to the
+                  unique values in :attr:`anndata.AnnData.obs` ``['{late_cells}']``
+                - if `late_cells` is of :class:`dict`, its `key` should correspond to a key in
+                  :attr:`anndata.AnnData.obs` and its `value` to a subset of categories present in
+                  :attr:`anndata.AnnData.obs` ``['{late_cells.keys()[0]}']``
+        %(online)s
+        %(forward)s
+        restrict_to_existing
+            TODO
+        order_annotations
+            Order of the annotations in the final plot, from top to bottom
+        %(key_added_plotting)s
+        return_data
+            Whether to return the computed data.
+
+        Returns
+        -------
+        Transition matrices of cells or groups of cells, as needed for a sankey.
+
+        Notes
+        -----
+        To visualise the results, see :func:`moscot.pl.sankey`.
+        """
+        tuples = self._policy.plan(start=start, end=end)
+        cell_transitions = []
+        for (src, tgt) in tuples:
+            cell_transitions.append(
+                self.cell_transition(
+                    src,
+                    tgt,
+                    early_annotation=early_annotation,
+                    late_annotation=late_annotation,
+                    forward=forward,
+                    normalize=normalize,
+                )
+            )
+
+        if len(cell_transitions) > 1 and restrict_to_existing:
+            for i in range(len(cell_transitions[:-1])):
+                present_annotations = list(cell_transitions[i + 1].index)
+                cell_transitions[i] = cell_transitions[i][present_annotations]
+
+        if order_annotations is not None:
+            cell_transitions_updated = []
+            for ct in cell_transitions:
+                order_annotations_present_index = [ann for ann in order_annotations if ann in ct.index]
+                ct = ct.loc[order_annotations_present_index[::-1]]
+                order_annotations_present_columns = [ann for ann in order_annotations if ann in ct.columns]
+                ct = ct[order_annotations_present_columns[::-1]]
+            cell_transitions_updated.append(ct)
+        else:
+            cell_transitions_updated = cell_transitions
+
+        if isinstance(early_annotation, str):
+            key = early_annotation
+        elif isinstance(early_annotation, dict):
+            key = list(early_annotation.keys())[0]
+        else:
+            raise TypeError("TODO: `early_cells must be of type `str` or `dict`.")
+
+        if key_added is not None:
+            AdataKeys.UNS
+            PlottingKeys.SANKEY
+            plot_vars = {
+                "transition_matrices": cell_transitions_updated,
+                "key": key,
+                "start": start,
+                "end": end,
+                "early_cells": early_annotation,
+                "late_cells": late_annotation,
+                "captions": [str(t) for t in tuples],
+            }
+            Key.uns.set_plotting_vars(self.adata, AdataKeys.UNS, PlottingKeys.SANKEY, key, plot_vars)
+        if return_data:
+            return cell_transitions_updated
 
     def push(
         self: TemporalMixinProtocol[K, B],
@@ -188,9 +336,10 @@ class TemporalMixin(AnalysisMixin[K, B]):
         end: K,
         data: Optional[Union[str, ArrayLike]] = None,
         subset: Optional[Union[str, List[str], Tuple[int, int]]] = None,
-        result_key: Optional[str] = None,
-        return_all: bool = False,
         scale_by_marginals: bool = True,
+        key_added: Optional[str] = PlottingDefaults.PUSH,
+        return_all: bool = False,
+        return_data: bool = False,
         **kwargs: Any,
     ) -> Optional[ApplyOutput_t[K]]:
         """
@@ -204,11 +353,9 @@ class TemporalMixin(AnalysisMixin[K, B]):
             Time point of target distribution.
         %(data)s
         %(subset)s
-        result_key
-            Key of where to save the result in :attr:`anndata.AnnData.obs`. If None the result will be returned.
-        return_all
-            If `True` returns all the intermediate masses if pushed through multiple transport plans.
-            If `True`, the result is returned as a dictionary.
+        %(key_added)s
+        %(return_all)s
+        %(return_data)s
 
         Returns
         -------
@@ -227,16 +374,22 @@ class TemporalMixin(AnalysisMixin[K, B]):
             data=data,
             subset=subset,
             forward=True,
-            return_all=return_all or result_key is not None,
+            return_all=return_all or key_added is not None,
             scale_by_marginals=scale_by_marginals,
             **kwargs,
         )
 
-        if result_key is None:
-            return result
         if TYPE_CHECKING:
             assert isinstance(result, dict)
-        self.adata.obs[result_key] = self._flatten(result, key=self.temporal_key)
+
+        if key_added is not None:
+            plot_vars = {
+                "temporal_key": self.temporal_key,
+            }
+            self.adata.obs[key_added] = self._flatten(result, key=self.temporal_key)
+            Key.uns.set_plotting_vars(self.adata, AdataKeys.UNS, PlottingKeys.PUSH, key_added, plot_vars)
+        if return_data:
+            return result
 
     @d.dedent
     def pull(
@@ -245,9 +398,10 @@ class TemporalMixin(AnalysisMixin[K, B]):
         end: K,
         data: Optional[Union[str, ArrayLike]] = None,
         subset: Optional[Union[str, List[str], Tuple[int, int]]] = None,
-        result_key: Optional[str] = None,
-        return_all: bool = False,
         scale_by_marginals: bool = True,
+        key_added: Optional[str] = PlottingDefaults.PULL,
+        return_all: bool = False,
+        return_data: bool = False,
         **kwargs: Any,
     ) -> Optional[ApplyOutput_t[K]]:
         """
@@ -263,9 +417,8 @@ class TemporalMixin(AnalysisMixin[K, B]):
         %(subset)s
         result_key
             Key of where to save the result in :attr:`anndata.AnnData.obs`. If `None` the result will be returned.
-        return_all
-            If `True` return all the intermediate masses if pushed through multiple transport plans. In this case the
-            result is returned as a dictionary.
+        %(return_all)s
+        %(return_data)s
 
         Returns
         -------
@@ -273,10 +426,6 @@ class TemporalMixin(AnalysisMixin[K, B]):
         (corresponding to intermediate time points) are saved in :attr:`anndata.AnnData.obs`. In the latter case all
         intermediate step results are returned if `return_all` is `True`, otherwise only the distribution at `start`
         is returned.
-
-        Raises
-        ------
-        %(BaseCompoundProblem_pull.raises)s
         """
         result = self._apply(
             start=start,
@@ -284,15 +433,21 @@ class TemporalMixin(AnalysisMixin[K, B]):
             data=data,
             subset=subset,
             forward=False,
-            return_all=return_all or result_key is not None,
+            return_all=return_all or key_added is not None,
             scale_by_marginals=scale_by_marginals,
             **kwargs,
         )
-        if result_key is None:
-            return result
         if TYPE_CHECKING:
             assert isinstance(result, dict)
-        self.adata.obs[result_key] = self._flatten(result, key=self.temporal_key)
+
+        if key_added is not None:
+            plot_vars = {
+                "temporal_key": self.temporal_key,
+            }
+            self.adata.obs[key_added] = self._flatten(result, key=self.temporal_key)
+            Key.uns.set_plotting_vars(self.adata, AdataKeys.UNS, PlottingKeys.SANKEY, key_added, plot_vars)
+        if return_data:
+            return result
 
     # TODO(michalk8): refactor me
     def _get_data(

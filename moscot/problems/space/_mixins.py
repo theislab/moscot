@@ -14,10 +14,10 @@ import numpy as np
 from anndata import AnnData
 
 from moscot._docs import d
-from moscot._types import Filter_t, ArrayLike
+from moscot._types import ArrayLike, Str_Dict_t
 from moscot.problems.base import AnalysisMixin  # type: ignore[attr-defined]
 from moscot.backends.ott._output import Device_t
-from moscot._constants._constants import CorrMethod, AlignmentMode, AggregationMode
+from moscot._constants._constants import CorrMethod, AlignmentMode, AggregationMode, PlottingDefaults
 from moscot.problems.base._mixins import AnalysisMixinProtocol
 from moscot.problems._subset_policy import StarPolicy
 from moscot.problems.base._compound_problem import B, K
@@ -48,7 +48,6 @@ class SpatialAlignmentMixinProtocol(AnalysisMixinProtocol[K, B]):
 
     def _cell_transition(  # TODO(@MUCDK) think about removing _cell_transition_non_online
         self: AnalysisMixinProtocol[K, B],
-        online: bool,
         *args: Any,
         **kwargs: Any,
     ) -> pd.DataFrame:
@@ -70,7 +69,6 @@ class SpatialMappingMixinProtocol(AnalysisMixinProtocol[K, B]):
 
     def _cell_transition(  # TODO(@MUCDK) think about removing _cell_transition_non_online
         self: AnalysisMixinProtocol[K, B],
-        online: bool,
         *args: Any,
         **kwargs: Any,
     ) -> pd.DataFrame:
@@ -184,17 +182,26 @@ class SpatialAlignmentMixin(AnalysisMixin[K, B]):
         self: SpatialAlignmentMixinProtocol[K, B],
         source: K,
         target: K,
-        source_annotation: Filter_t,
-        target_annotation: Filter_t,
+        source_annotation: Str_Dict_t,
+        target_annotation: Str_Dict_t,
         forward: bool = False,  # return value will be row-stochastic if forward=True, else column-stochastic
         aggregation_mode: Literal["annotation", "cell"] = AggregationMode.ANNOTATION,  # type: ignore[assignment]
         online: bool = False,
         batch_size: Optional[int] = None,
         normalize: bool = True,
+        key_added: Optional[str] = PlottingDefaults.CELL_TRANSITION,
     ) -> pd.DataFrame:
-        """Partly copy from other cell_transitions."""
+        """Partly copy from other cell_transitions.
+
+        TODO
+
+        Notes
+        -----
+        To visualise the results, see :func:`moscot.pl.cell_transition`.
+        """
         if TYPE_CHECKING:
             assert isinstance(self.batch_key, str)
+
         return self._cell_transition(
             key=self.batch_key,
             source_key=source,
@@ -208,6 +215,7 @@ class SpatialAlignmentMixin(AnalysisMixin[K, B]):
             other_adata=None,
             batch_size=batch_size,
             normalize=normalize,
+            key_added=key_added,
         )
 
     @property
@@ -358,15 +366,23 @@ class SpatialMappingMixin(AnalysisMixin[K, B]):
     def cell_transition(
         self: SpatialMappingMixinProtocol[K, B],
         source: K,
-        spatial_annotation: Filter_t,
-        sc_annotation: Filter_t,
+        spatial_annotation: Str_Dict_t,
+        sc_annotation: Str_Dict_t,
         forward: bool = False,  # return value will be row-stochastic if forward=True, else column-stochastic
         aggregation_mode: Literal["annotation", "cell"] = AggregationMode.ANNOTATION,  # type: ignore[assignment]
         online: bool = False,
         batch_size: Optional[int] = None,
         normalize: bool = True,
+        key_added: Optional[str] = PlottingDefaults.CELL_TRANSITION,
     ) -> pd.DataFrame:
-        """Compute cell transition."""
+        """Compute cell transition.
+
+        TODO
+
+        Notes
+        -----
+        To visualise the results, see :func:`moscot.pl.cell_transition`.
+        """
         if TYPE_CHECKING:
             assert self.batch_key is not None
         return self._cell_transition(
@@ -382,6 +398,7 @@ class SpatialMappingMixin(AnalysisMixin[K, B]):
             other_adata=self.adata_sc,
             batch_size=batch_size,
             normalize=normalize,
+            key_added=key_added,
         )
 
     @property

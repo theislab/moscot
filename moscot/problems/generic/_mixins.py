@@ -4,9 +4,9 @@ from typing_extensions import Literal, Protocol
 import pandas as pd
 
 from moscot._docs import d
-from moscot._types import Filter_t
+from moscot._types import Str_Dict_t
 from moscot.problems.base import AnalysisMixin  # type: ignore[attr-defined]
-from moscot._constants._constants import AggregationMode
+from moscot._constants._constants import AggregationMode, PlottingDefaults
 from moscot.problems.base._mixins import AnalysisMixinProtocol
 from moscot.problems.base._compound_problem import B, K
 
@@ -18,7 +18,6 @@ class GenericAnalysisMixinProtocol(AnalysisMixinProtocol[K, B], Protocol[K, B]):
 
     def _cell_transition(  # TODO(@MUCDK) think about removing _cell_transition_non_online
         self: AnalysisMixinProtocol[K, B],
-        online: bool,
         *args: Any,
         **kwargs: Any,
     ) -> pd.DataFrame:
@@ -37,16 +36,14 @@ class GenericAnalysisMixin(AnalysisMixin[K, B]):
         self: GenericAnalysisMixinProtocol[K, B],
         source_key: K,
         target_key: K,
-        key: Optional[str] = None,
-        source_annotation: Filter_t = None,
-        target_annotation: Filter_t = None,
+        source_annotation: Str_Dict_t,
+        target_annotation: Str_Dict_t,
         forward: bool = False,  # return value will be row-stochastic if forward=True, else column-stochastic
         aggregation_mode: Literal["annotation", "cell"] = AggregationMode.ANNOTATION,  # type: ignore[assignment]
         online: bool = False,
-        other_key: Optional[str] = None,
-        other_adata: Optional[str] = None,
         batch_size: Optional[int] = None,
         normalize: bool = True,
+        key_added: Optional[str] = PlottingDefaults.CELL_TRANSITION,
     ) -> pd.DataFrame:
         """
         Compute a grouped cell transition matrix.
@@ -79,11 +76,17 @@ class GenericAnalysisMixin(AnalysisMixin[K, B]):
         %(forward_cell_transition)s
         %(aggregation_mode)s
         %(online)s
+        %(ott_jax_batch_size)s
         %(normalize_cell_transition)s
+        %(key_added_plotting)s
 
         Returns
         -------
         Transition matrix of cells or groups of cells.
+
+        Notes
+        -----
+        To visualise the results, see :func:`moscot.pl.cell_transition`.
         """
         if TYPE_CHECKING:
             assert isinstance(self.batch_key, str)
@@ -96,7 +99,10 @@ class GenericAnalysisMixin(AnalysisMixin[K, B]):
             forward=forward,
             aggregation_mode=AggregationMode(aggregation_mode),
             online=online,
+            batch_size=batch_size,
+            normalize=normalize,
             other_key=None,
+            key_added=key_added,
         )
 
     @property

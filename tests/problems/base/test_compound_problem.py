@@ -1,4 +1,4 @@
-from typing import Any, Type, Tuple, Literal, Mapping
+from typing import Literal, Mapping
 import os
 
 from pytest_mock import MockerFixture
@@ -13,20 +13,9 @@ import jax.numpy as jnp
 
 from anndata import AnnData
 
-from tests._utils import ATOL, RTOL
+from tests._utils import ATOL, RTOL, Problem
 from moscot.problems.base import OTProblem, CompoundProblem
 from moscot.solvers._tagged_array import Tag, TaggedArray
-from moscot.problems.base._compound_problem import B
-
-
-class Problem(CompoundProblem[Any, OTProblem]):
-    @property
-    def _base_problem_type(self) -> Type[B]:
-        return OTProblem
-
-    @property
-    def _valid_policies(self) -> Tuple[str, ...]:
-        return ()
 
 
 class TestCompoundProblem:
@@ -199,10 +188,12 @@ class TestCompoundProblem:
     def test_save_load(self, adata_time: AnnData):
         dir_path = "tests/data"
         file_prefix = "test_save_load"
-        print(os.getcwd())
+        file = os.path.join(dir_path, f"{file_prefix}_Problem.pkl")
+        if os.path.exists(file):
+            os.remove(file)
         problem = Problem(adata=adata_time)
         problem = problem.prepare(xy={"x_attr": "X", "y_attr": "X"}, key="time")
         problem.save(dir_path=dir_path, file_prefix=file_prefix)
 
-        p = Problem.load(os.path.join(dir_path, f"{file_prefix}_Problem.pkl"))
+        p = Problem.load(file)
         assert isinstance(p, Problem)

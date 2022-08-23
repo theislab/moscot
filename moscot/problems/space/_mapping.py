@@ -6,7 +6,7 @@ from typing_extensions import Literal
 from anndata import AnnData
 
 from moscot._docs import d
-from moscot._types import Filter_t, ArrayLike
+from moscot._types import ArrayLike, Str_Dict_t
 from moscot._constants._key import Key
 from moscot._constants._constants import Policy, ScaleCost
 from moscot.problems.space._mixins import SpatialMappingMixin
@@ -71,7 +71,7 @@ class MappingProblem(CompoundProblem[K, OTProblem], SpatialMappingMixin[K, OTPro
     @d.dedent
     def prepare(
         self,
-        sc_attr: Filter_t,
+        sc_attr: Str_Dict_t,
         batch_key: Optional[str] = None,
         spatial_key: Union[str, Mapping[str, Any]] = Key.obsm.spatial,
         var_names: Optional[Sequence[Any]] = None,
@@ -177,3 +177,7 @@ class MappingProblem(CompoundProblem[K, OTProblem], SpatialMappingMixin[K, OTPro
     @property
     def _valid_policies(self) -> Tuple[str, ...]:
         return (Policy.EXTERNAL_STAR,)
+
+    @property
+    def _secondary_adata(self) -> Optional[AnnData]:
+        return self._adata_sc

@@ -1,4 +1,4 @@
-from typing import List, Type, Tuple, Union, Optional
+from typing import Any, List, Type, Tuple, Union, Optional
 
 from scipy.sparse import csr_matrix
 import networkx as nx
@@ -97,3 +97,13 @@ def _make_grid(grid_size: int) -> ArrayLike:
     X1, X2 = np.meshgrid(x1s, x2s)
     X_orig_single = np.vstack([X1.ravel(), X2.ravel()]).T
     return X_orig_single
+
+
+class Problem(CompoundProblem[Any, OTProblem]):
+    @property
+    def _base_problem_type(self) -> Type[B]:
+        return OTProblem
+
+    @property
+    def _valid_policies(self) -> Tuple[str, ...]:
+        return ()

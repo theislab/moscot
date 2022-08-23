@@ -7,7 +7,7 @@ import pandas as pd
 
 from anndata import AnnData
 
-from moscot._types import Filter_t
+from moscot._types import Str_Dict_t
 from moscot._constants._constants import AggregationMode
 
 __all__ = [
@@ -57,7 +57,7 @@ def _validate_annotations_helper(
     if aggregation_mode == AggregationMode.ANNOTATION:  # type: ignore[comparison-overlap]
         if TYPE_CHECKING:  # checked in _check_argument_compatibility_cell_transition(
             assert annotations is not None
-        annotations_verified = set(annotations).intersection(set(df[annotation_key].cat.categories))
+        annotations_verified = set(df[annotation_key].cat.categories).intersection(set(annotations))
         if not len(annotations_verified):
             raise ValueError(f"TODO: None of {annotations} found in distribution corresponding to {annotation_key}.")
         return annotations_verified
@@ -65,11 +65,11 @@ def _validate_annotations_helper(
 
 
 def _check_argument_compatibility_cell_transition(
+    source_annotation: Str_Dict_t,
+    target_annotation: Str_Dict_t,
     key: Optional[str] = None,
     other_key: Optional[str] = None,
     other_adata: Optional[str] = None,
-    source_annotation: Filter_t = None,
-    target_annotation: Filter_t = None,
     aggregation_mode: Literal["annotation", "cell"] = AggregationMode.ANNOTATION,  # type: ignore[assignment]
     forward: bool = False,
     **_: Any,
@@ -97,10 +97,8 @@ def _get_df_cell_transition(
 
 def _validate_args_cell_transition(
     adata: AnnData,
-    arg: Filter_t = None,
-) -> Tuple[Optional[str], Optional[Iterable[Any]]]:
-    if arg is None:
-        return (None, None)
+    arg: Str_Dict_t,
+) -> Tuple[str, Iterable[Any]]:
     if isinstance(arg, str):
         if arg not in adata.obs:
             raise KeyError(f"TODO. {arg} not in adata.obs.columns")

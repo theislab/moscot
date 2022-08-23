@@ -135,9 +135,16 @@ class TestSpatialMappingAnalysisMixin:
         mp = mp.prepare(batch_key="batch", sc_attr={"attr": "obsm", "key": "X_pca"})
         # mp = mp.solve()
         mock_tmap = np.abs(rng.randn(len(adatasp[adatasp.obs["batch"] == "1"]), len(adataref)))
-        mp[("1", "ref")]._solution = MockSolverOutput(mock_tmap / mock_tmap.sum().sum())
+        mp[("1", "ref")]._solution = MockSolverOutput(mock_tmap / np.sum(mock_tmap))
 
-        result = mp.cell_transition("1", "celltype", "celltype", online=online, forward=forward, normalize=normalize)
+        result = mp.cell_transition(
+            "1",
+            "celltype",
+            "celltype",
+            online=online,
+            forward=forward,
+            normalize=normalize,
+        )
 
         assert isinstance(result, pd.DataFrame)
         assert result.shape == (3, 4)

@@ -1,4 +1,7 @@
 from enum import unique
+from typing import Any, Optional
+
+from anndata import AnnData
 
 from moscot._constants._enum import ModeEnum
 
@@ -39,3 +42,45 @@ class CorrMethod(ModeEnum):
 class AggregationMode(ModeEnum):
     ANNOTATION = "annotation"
     CELL = "cell"
+
+
+@unique
+class AdataKeys(ModeEnum):  # sets default keys for adata attributes
+    UNS = "moscot_results"
+
+
+@unique
+class PlottingKeys(ModeEnum):  # sets the adata.uns[AdataKeys.UNS][value] values
+    CELL_TRANSITION = "cell_transition"
+    SANKEY = "sankey"
+    PUSH = "push"
+    PULL = "pull"
+
+
+@unique
+class PlottingDefaults(ModeEnum):  # sets the adata.uns[AdataKeys.UNS][value] values
+    CELL_TRANSITION = "cell_transition"
+    SANKEY = "sankey"
+    PUSH = "push"
+    PULL = "pull"
+
+
+class Key:
+    class uns:
+        @classmethod
+        def set_plotting_vars(
+            cls,
+            adata: AnnData,
+            uns_key: str,
+            pl_func_key: Optional[str] = None,
+            key: Optional[str] = None,
+            value: Optional[Any] = None,
+            override: bool = True,
+        ) -> None:
+            adata.uns.setdefault(uns_key, {})
+            if pl_func_key is not None:
+                adata.uns[uns_key].setdefault(pl_func_key, {})
+            if key is not None:
+                if not override and key in adata.uns[uns_key][pl_func_key]:
+                    raise KeyError("TODO: Key exists.")
+                adata.uns[uns_key][pl_func_key][key] = value
