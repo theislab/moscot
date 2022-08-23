@@ -54,7 +54,7 @@ def cell_transition(
     %(cbar_kwargs)s
     %(ax)s
     %(return_fig)s
-    %(heatmap_kwargs)
+    %(heatmap_kwargs)s
 
     Returns
     -------
