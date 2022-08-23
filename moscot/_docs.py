@@ -160,10 +160,10 @@ normalize
     matrix is row-stochastic, otherwise column-stochastic."""
 _solve_kwargs = """\
 kwargs
-    keyword arguments for the backend-specific solver, see NOTEBOOK."""
+    keyword arguments for the backend-specific solver, TODO see NOTEBOOK."""
 _heatmap_kwargs = """\
 kwargs
-    keyword arguments for visualising the transition matrix. Only used if `plot` is `True`."""
+    keyword arguments for the heatmap visualisation."""
 _heatmap_plot = """\
 plot
     TODO: plots the transition matrix."""
@@ -177,7 +177,7 @@ figsize
 dpi
     Dots per inch.
 save
-    Whether to save the plot."""
+    Path where to save the plot. If `None` the plot is not saved."""
 _input_plotting = """\
 input
     The :class:`anndata.AnnData` instance(s) where the results of the corresponding method of the moscot problem
@@ -201,7 +201,7 @@ key_added
     Key where the results for the corresponding plotting functions are stored."""
 _constant_fill_value = """\
 constant_fill_value
-    Value for cells which do not belong to the distributions which are to be colorized."""
+    Color fill value for cells in the UMAP not belonging to source or target distribution."""
 _plot_time_points = """\
 time_points
     Time points which are colorised in the embedding plot."""
@@ -210,8 +210,8 @@ return_fig
     Whether to return the figure."""
 _return_all = """\
 return_all
-    If `True` returns all the intermediate masses if pushed through multiple transport plans.
-    If `True`, the result is returned as a dictionary."""
+    If `True` returns all the intermediate masses if pushed through multiple transport plans, returned as a
+    dictionary."""
 _return_data = """\
 return_data
     Whether to return the data."""

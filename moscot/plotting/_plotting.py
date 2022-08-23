@@ -10,7 +10,7 @@ import numpy as np
 from anndata import AnnData
 
 from moscot._docs import d
-from moscot.pl._utils import _sankey, _heatmap, _plot_temporal, _input_to_adatas
+from moscot.plotting._utils import _sankey, _heatmap, _plot_temporal, _input_to_adatas
 from moscot.problems.base import CompoundProblem  # type: ignore[attr-defined]
 from moscot.problems.time import LineageProblem, TemporalProblem  # type: ignore[attr-defined]
 from moscot._constants._constants import AdataKeys, PlottingKeys, PlottingDefaults
@@ -27,7 +27,7 @@ def cell_transition(
     annotate_values: bool = True,
     figsize: Optional[Tuple[float, float]] = None,
     dpi: Optional[int] = None,
-    save: Optional[bool] = False,
+    save: Optional[str] = None,
     cbar_kwargs: Mapping[str, Any] = MappingProxyType({}),
     ax: Optional[Axes] = None,
     return_fig: Optional[bool] = None,
@@ -37,7 +37,7 @@ def cell_transition(
     Plot a cell transition matrix.
 
     In order to run this function the corresponding method `cell_transition` of the :class:`moscot.problems` instance
-    must have been run, see `NOTES` for requirements.
+    must have been run, see :ref:`NOTES` for requirements.
 
     Parameters
     ----------
@@ -45,17 +45,16 @@ def cell_transition(
     %(key_stored)s
     %(cont_cmap)s
     row_annotation_label
-        Whether to add annotations to the rows of the transition matrix
+        Whether to add annotations to the rows of the transition matrix.
     col_annotation_label
-        Whether to add annotations to the columns of the transition matrix
+        Whether to add annotations to the columns of the transition matrix.
     annotate_values
-        Whether to add the values to the entries of the transition matrix
+        Whether to add the values to the entries of the transition matrix.
     %(plotting)s
     %(cbar_kwargs)s
     %(ax)s
     %(return_fig)s
-    kwargs
-        key word arguments for TODO
+    %(heatmap_kwargs)
 
     Returns
     -------
@@ -64,13 +63,13 @@ def cell_transition(
     Notes
     -----
     This function looks for the following data in the :class:`anndata.AnnData` object which is passed or saved
-    as an attribute of the :mod:`moscot.problems` instance.
+    as an attribute of the instance of type :mod:`moscot.problems.base.CompoundProblem`.
 
-    - transition_matrix
-    - source_annotation
-    - target_annotation
-    - source_key
-    - source_target
+        - transition_matrix
+        - source_annotation
+        - target_annotation
+        - source_key
+        - source_target
 
     """
     adata1, adata2 = _input_to_adatas(input)
@@ -110,7 +109,7 @@ def sankey(
     title: Optional[str] = None,
     figsize: Optional[Tuple[float, float]] = None,
     dpi: Optional[int] = None,
-    save: Optional[bool] = False,
+    save: Optional[str] = None,
     ax: Optional[Axes] = None,
     return_fig: Optional[bool] = None,
     **kwargs: Any,
@@ -119,7 +118,7 @@ def sankey(
     Plot a sankey diagram.
 
     In order to run this function the corresponding method `sankey` of the :mod:`moscot.problems` instance
-    must have been run, see `NOTES` for requirements.
+    must have been run, see :ref:`NOTES` for requirements.
 
     Parameters
     ----------
@@ -143,11 +142,11 @@ def sankey(
     Notes
     -----
     This function looks for the following data in the :class:`anndata.AnnData` object which is passed or saved
-    as an attribute of the :mod:`moscot.problems` instance.
+    as an attribute of the instance of type :mod:`moscot.problems.base.CompoundProblem`.
 
-    - `transition_matrices`
-    - `captions``
-    - `key`
+        - `transition_matrices`
+        - `captions`
+        - `key`
 
     """
     adata, _ = _input_to_adatas(input)
@@ -187,13 +186,16 @@ def push(
     title: Optional[str] = None,
     figsize: Optional[Tuple[float, float]] = None,
     dpi: Optional[int] = None,
-    save: Optional[bool] = False,
+    save: Optional[str] = None,
     ax: Optional[Axes] = None,
     return_fig: Optional[bool] = None,
     **kwargs: Any,
 ) -> mpl.figure.Figure:
     """
     Visualise the push result in an embedding.
+
+    In order to run this function the corresponding method `sankey` of the :mod:`moscot.problems` instance
+    must have been run, see :ref:`NOTES` for requirements.
 
     Parameters
     ----------
@@ -224,9 +226,9 @@ def push(
     Notes
     -----
     This function looks for the following data in the :class:`anndata.AnnData` object which is passed or saved
-    as an attribute of the :mod:`moscot.problems` instance.
+    as an attribute of the instance of type :mod:`moscot.problems.base.CompoundProblem`.
 
-    - `temporal_key`
+        - `temporal_key`
     """
     adata, _ = _input_to_adatas(input)
 
@@ -265,13 +267,16 @@ def pull(
     title: Optional[str] = None,
     figsize: Optional[Tuple[float, float]] = None,
     dpi: Optional[int] = None,
-    save: Optional[bool] = False,
+    save: Optional[str] = None,
     ax: Optional[Axes] = None,
     return_fig: Optional[bool] = None,
     **kwargs: Any,
 ) -> mpl.figure.Figure:
     """
     Visualise the push result in an embedding.
+
+    In order to run this function the corresponding method `sankey` of the :mod:`moscot.problems` instance
+    must have been run, see :ref:`NOTES` for requirements.
 
     Parameters
     ----------
@@ -300,9 +305,9 @@ def pull(
     Notes
     -----
     This function looks for the following data in the :class:`anndata.AnnData` object which is passed or saved
-    as an attribute of the :mod:`moscot.problems` instance.
+    as an attribute of the instance of type :mod:`moscot.problems.base.CompoundProblem`.
 
-    - `temporal_key`
+        - `temporal_key`
 
     """
     adata, _ = _input_to_adatas(input)

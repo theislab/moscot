@@ -179,5 +179,5 @@ class MappingProblem(CompoundProblem[K, OTProblem], SpatialMappingMixin[K, OTPro
         return (Policy.EXTERNAL_STAR,)
 
     @property
-    def _other_adata(self) -> Optional[AnnData]:
+    def _secondary_adata(self) -> Optional[AnnData]:
         return self._adata_sc

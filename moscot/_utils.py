@@ -50,11 +50,8 @@ def _get_backend_losses(
 
 
 def _check_uns_keys(adata: AnnData, level_1: str, level_2: Optional[str] = None, level_3: Optional[str] = None) -> None:
-    if not hasattr(adata.uns, level_1):
-        adata.uns[level_1] = {}
+    adata.uns.setdefault(level_1, {})
     if level_2 is not None:
-        if not hasattr(adata.uns[level_1], level_2):
-            adata.uns[level_1][level_2] = {}
+        adata.uns[level_1].setdefault(level_2, {})
     if level_3 is not None:
-        if not hasattr(adata.uns[level_1][level_2], level_3):
-            adata.uns[level_1][level_2][level_3] = {}
+        adata.uns[level_1][level_2].setdefault(level_3, {})

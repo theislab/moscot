@@ -25,51 +25,6 @@ from moscot.problems.base import CompoundProblem  # type: ignore[attr-defined]
 from moscot.problems.base._compound_problem import K
 
 
-@d.dedent
-def save_fig(fig: Figure, path: Union[str, Path], make_dir: bool = True, ext: str = "png", **kwargs: Any) -> None:
-    """
-    Save a figure.
-
-    Parameters
-    ----------
-    fig
-        Figure to save.
-    path
-        Path where to save the figure. If path is relative, save it under :attr:`scanpy.settings.figdir`.
-    make_dir
-        Whether to try making the directory if it does not exist.
-    ext
-        Extension to use if none is provided.
-    kwargs
-        Keyword arguments for :meth:`matplotlib.figure.Figure.savefig`.
-
-    Returns
-    -------
-    None
-        Just saves the plot.
-    """
-    if os.path.splitext(path)[1] == "":
-        path = f"{path}.{ext}"
-
-    path = Path(path)
-
-    if not path.is_absolute():
-        path = Path(settings.figdir) / path
-
-    if make_dir:
-        try:
-            path.parent.mkdir(parents=True, exist_ok=True)
-        except OSError as e:
-            logg.debug(f"Unable to create directory `{path.parent}`. Reason: `{e}`")
-
-    logg.debug(f"Saving figure to `{path!r}`")
-
-    kwargs.setdefault("bbox_inches", "tight")
-    kwargs.setdefault("transparent", True)
-
-    fig.savefig(path, **kwargs)
-
-
 def set_palette(
     adata: AnnData,
     key: str,
@@ -85,6 +40,7 @@ def set_palette(
         add_color_palette(adata, key=key, palette=cont_cmap, force_update_colors=force_update_colors)
 
 
+# adapted from https://github.com/anazalea/pySankey/blob/master/pysankey/sankey.py
 def _sankey(
     adata: AnnData,
     key: str,
@@ -99,12 +55,10 @@ def _sankey(
     fontsize: float = 12.0,
     horizontal_space: float = 1.5,
     force_update_colors: bool = False,
-    **kwargs: Any,
+    **_: Any,
 ) -> mpl.figure.Figure:
     if ax is None:
         fig, ax = plt.subplots(constrained_layout=True, dpi=dpi, figsize=figsize)
-    else:
-        ax.figure
     if captions is not None and len(captions) != len(transition_matrices):
         raise ValueError("TODO: If `captions` are specified length has to be same as of `transition_matrices`.")
     if colorDict is None:
@@ -113,17 +67,16 @@ def _sankey(
 
         colorDict = {cat: adata.uns[f"{key}_colors"][i] for i, cat in enumerate(adata.obs[key].cat.categories)}
     else:
-        missing = [label for label in adata.obs[key].cat.categories if label not in colorDict.keys()]
+        missing = [label for label in adata.obs[key].cat.categories if label not in colorDict]
         if missing:
             msg = "The colorDict parameter is missing values for the following labels : "
             msg += "{}".format(", ".join(missing))
             raise ValueError(msg)
     left_pos = [0]
     for ind, dataFrame in enumerate(transition_matrices):
-        dataFrame /= dataFrame.sum().sum()
+        dataFrame /= dataFrame.values.sum()
         leftLabels = list(dataFrame.index)
         rightLabels = list(dataFrame.columns)
-        set(leftLabels).union(set(rightLabels))
 
         # Determine positions of left label patches and total widths
         leftWidths: Dict[Any, Dict[Any, float]] = defaultdict()
@@ -159,14 +112,14 @@ def _sankey(
         # Draw vertical bars on left and right of each label"s section & print label
         for leftLabel in leftLabels:
             if ind == 0:
-                plt.fill_between(
+                ax.fill_between(
                     [-0.02 * xMax, 0],
                     2 * [leftWidths[leftLabel]["bottom"]],
                     2 * [leftWidths[leftLabel]["bottom"] + leftWidths[leftLabel]["left"]],
                     color=colorDict[leftLabel],
                     alpha=0.99,
                 )
-                plt.text(
+                ax.text(
                     -0.05 * xMax,
                     leftWidths[leftLabel]["bottom"] + 0.5 * leftWidths[leftLabel]["left"],
                     leftLabel,
@@ -174,24 +127,23 @@ def _sankey(
                     fontsize=fontsize,
                 )
         for rightLabel in rightLabels:
-            plt.fill_between(
+            ax.fill_between(
                 [xMax + left_pos[ind], 1.02 * xMax + left_pos[ind]],
                 2 * [rightWidths[rightLabel]["bottom"]],
                 2 * [rightWidths[rightLabel]["bottom"] + rightWidths[rightLabel]["right"]],
                 color=colorDict[rightLabel],
                 alpha=0.99,
             )
-            plt.text(
+            ax.text(
                 1.05 * xMax + left_pos[ind],
                 rightWidths[rightLabel]["bottom"] + 0.5 * rightWidths[rightLabel]["right"],
                 rightLabel,
                 {"ha": "left", "va": "center"},
                 fontsize=fontsize,
             )
-        np.min([leftWidths[cat]["bottom"] for cat in leftWidths.keys()])
 
         if captions is not None:
-            plt.text(left_pos[ind] + 0.3 * xMax, -0.1, captions[ind])
+            ax.text(left_pos[ind] + 0.3 * xMax, -0.1, captions[ind])
 
         left_pos += [horizontal_space * xMax]
 
@@ -217,7 +169,7 @@ def _sankey(
                     rightWidths[rightLabel]["bottom"] += dataFrame.loc[leftLabel, rightLabel]
 
                     if ind == 0:
-                        plt.fill_between(
+                        ax.fill_between(
                             np.linspace(0 + left_pos[ind], xMax + left_pos[ind], len(ys_d)),
                             ys_d,
                             ys_u,
@@ -225,7 +177,7 @@ def _sankey(
                             color=colorDict[labelColor],
                         )
                     else:
-                        plt.fill_between(
+                        ax.fill_between(
                             np.linspace(0 + left_pos[ind], xMax + left_pos[ind], len(ys_d)),
                             ys_d,
                             ys_u,
@@ -233,10 +185,9 @@ def _sankey(
                             color=colorDict[labelColor],
                         )
 
-        plt.gca().axis("off")
-        plt.gcf().set_size_inches(6, 6)
-        if title is not None:
-            plt.title(title)
+        ax.gca().axis("off")
+        ax.gcf().set_size_inches(6, 6)
+        ax.title(title)
 
 
 def _heatmap(
@@ -251,7 +202,7 @@ def _heatmap(
     annotate_values: bool = True,
     figsize: Optional[Tuple[float, float]] = None,
     dpi: Optional[int] = None,
-    save: Optional[bool] = False,
+    save: Optional[str] = None,
     cbar_kwargs: Mapping[str, Any] = MappingProxyType({}),
     ax: Optional[Axes] = None,
     return_fig: Optional[bool] = None,
@@ -262,8 +213,6 @@ def _heatmap(
 
     if ax is None:
         fig, ax = plt.subplots(constrained_layout=True, dpi=dpi, figsize=figsize)
-    else:
-        fig = ax.figure
     set_palette(adata=row_adata, key=row_annotation, cont_cmap=cont_cmap)
     set_palette(adata=col_adata, key=col_annotation, cont_cmap=cont_cmap)
 
@@ -316,7 +265,7 @@ def _heatmap(
     c.set_label(row_annotation if row_annotation_label is None else row_annotation_label)
 
     if save:
-        fig.save()
+        fig.save(save)
     if return_fig:
         return fig
 
@@ -393,18 +342,17 @@ def _contrasting_color(r: int, g: int, b: int) -> str:
 
 def _input_to_adatas(input: Union[AnnData, Tuple[AnnData, AnnData], Type[CompoundProblem]]) -> Tuple[AnnData, AnnData]:
     if isinstance(input, CompoundProblem):
-        return input.adata, input._other_adata if hasattr(input, "_other_adata") else input.adata
+        return input.adata, input._secondary_adata if hasattr(input, "_secondary_adata") else input.adata
+    if isinstance(input, AnnData):
+        return input, input
+    elif isinstance(input, tuple):
+        if not isinstance(input[0], AnnData):
+            raise TypeError("TODO: input must be `AnnData`.")
+        if not isinstance(input[1], AnnData):
+            raise TypeError("TODO: input must be `AnnData`.")
+        return input  # type: ignore[return-value]
     else:
-        if isinstance(input, AnnData):
-            return input, input
-        elif isinstance(input, tuple):
-            if not isinstance(input[0], AnnData):
-                raise TypeError("TODO: input must be `AnnData`.")
-            if not isinstance(input[1], AnnData):
-                raise TypeError("TODO: input must be `AnnData`.")
-            return input  # type: ignore[return-value]
-        else:
-            raise NotImplementedError("TODO.")
+        raise NotImplementedError("TODO.")
 
 
 def _plot_temporal(
@@ -419,7 +367,7 @@ def _plot_temporal(
     title: Optional[str] = None,
     figsize: Optional[Tuple[float, float]] = None,
     dpi: Optional[int] = None,
-    save: Optional[bool] = False,
+    save: Optional[str] = None,
     ax: Optional[Axes] = None,
     show: Optional[bool] = None,
     return_fig: Optional[bool] = None,
@@ -447,10 +395,11 @@ def _plot_temporal(
         color=result_key,
         color_map=cont_cmap,
         title=title,
-        save=save,
         ax=ax,
         show=show,
         **kwargs,
     )
+    if save:
+        fig.save(save)
     if return_fig:
         return fig

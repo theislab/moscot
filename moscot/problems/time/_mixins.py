@@ -170,6 +170,7 @@ class TemporalMixin(AnalysisMixin[K, B]):
             Time point corresponding to the late distribution.
         early_annotation
             Can be one of the following:
+
                 - if `early_annotation` is of type :class:`str` this should correspond to a key in
                   :attr:`anndata.AnnData.obs`. In this case, the categories in the transition matrix correspond to the
                   unique values in :attr:`anndata.AnnData.obs` ``['{early_annotation}']``
@@ -178,6 +179,7 @@ class TemporalMixin(AnalysisMixin[K, B]):
                   :attr:`anndata.AnnData.obs` ``['{early_annotation.keys()[0]}']``
         late_annotation
             Can be one of the following
+
                 - if `late_annotation` is of type :class:`str` this should correspond to a key in
                   :attr:`anndata.AnnData.obs`. In this case, the categories in the transition matrix correspond to the
                   unique values in :attr:`anndata.AnnData.obs` ``['{late_annotation}']``
@@ -193,8 +195,6 @@ class TemporalMixin(AnalysisMixin[K, B]):
             for each cell are returned.
         %(online)s
         %(normalize_cell_transition)s
-        %(heatmap_plot)s
-        %(heatmap_kwargs)s
         %(key_added_plotting)s
 
         Returns

@@ -262,8 +262,7 @@ class BaseCompoundProblem(BaseProblem, ABC, Generic[K, B]):
         res = {}
         # TODO(michalk8): should use manager.plan (once implemented), as some problems may not be solved
         start = start if isinstance(start, list) else [start]  # type: ignore[assignment]
-        _ = kwargs.pop("end", None)
-        _ = kwargs.pop("key_added", None)
+        _ = kwargs.pop("end", None)  # make compatible with Explicit/Ordered policy
         for src, tgt in self._policy.plan(explicit_steps=kwargs.pop("explicit_steps", None), filter=start):  # type: ignore [arg-type]
             problem = self.problems[src, tgt]
             fun = problem.push if forward else problem.pull
@@ -282,7 +281,6 @@ class BaseCompoundProblem(BaseProblem, ABC, Generic[K, B]):
         return_all: bool = False,
         **kwargs: Any,
     ) -> ApplyOutput_t[K]:
-        _ = kwargs.pop("key_added", None)
         explicit_steps = kwargs.pop(
             "explicit_steps", [[start, end]] if isinstance(self._policy, ExplicitPolicy) else None
         )
@@ -334,6 +332,7 @@ class BaseCompoundProblem(BaseProblem, ABC, Generic[K, B]):
         TODO.
         """
         _ = kwargs.pop("return_data", None)
+        _ = kwargs.pop("key_added", None)  # this should be handled by overriding method
         return self._apply(*args, forward=True, **kwargs)
 
     @d.get_sections(base="BaseCompoundProblem_pull", sections=["Parameters", "Raises"])
@@ -361,6 +360,7 @@ class BaseCompoundProblem(BaseProblem, ABC, Generic[K, B]):
         TODO.
         """
         _ = kwargs.pop("return_data", None)
+        _ = kwargs.pop("key_added", None)  # this should be handled by overriding method
         return self._apply(*args, forward=False, **kwargs)
 
     @property

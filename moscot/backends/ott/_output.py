@@ -70,7 +70,7 @@ class ConvergencePlotterMixin:
         Parameters
         ----------
         last_k
-            How many of the last k steps of the algorithm to plot. If `None`, the full curve is plotted
+            How many of the last k steps of the algorithm to plot. If `None`, the full curve is plotted.
         %(plotting_title)
         %(plotting)s
         """
@@ -78,10 +78,13 @@ class ConvergencePlotterMixin:
         def select_values(last_k: Optional[int] = None) -> Tuple[str, jnp.ndarray, jnp.ndarray]:
             # `> 1` because of pure Sinkhorn
             if len(self._costs) > 1 or self._errors is None:
-                last_k = min(last_k, len(self._costs)) if last_k is not None else len(self._costs)
-                return "cost", self._costs[-last_k:], range(len(self._costs))[-last_k:]
-            last_k = min(last_k, len(self._errors)) if last_k is not None else len(self._errors)
-            return "error", self._errors[-last_k:], range(len(self._errors))[-last_k:]
+                metric = self._costs
+                metric_str = "cost"
+            else:
+                metric = self._errors
+                metric_str = "error"
+            last_k = min(last_k, len(metric)) if last_k is not None else len(metric)
+            return metric_str, metric[-last_k:], range(len(metric))[-last_k:]
 
         fig, ax = plt.subplots(figsize=figsize, dpi=dpi)
         kind, values, xs = select_values(last_k)

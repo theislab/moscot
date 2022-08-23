@@ -7,8 +7,8 @@ import numpy as np
 from anndata import AnnData
 
 from tests._utils import Problem
-from moscot.pl._utils import _input_to_adatas
-import moscot.pl as mpl
+from moscot.plotting._utils import _input_to_adatas
+import moscot.plotting as mpl
 
 
 class TestMoscotPl:
@@ -17,15 +17,15 @@ class TestMoscotPl:
         adata1, adata2 = _input_to_adatas(p)
         assert isinstance(adata1, AnnData)
         assert isinstance(adata2, AnnData)
-        assert np.all(adata1.X.A == adata_time.X.A)
-        assert np.all(adata2.X.A == adata_time.X.A)
+        np.testing.assert_array_equal(adata1.X.A, adata_time.X.A)
+        np.testing.assert_array_equal(adata2.X.A, adata_time.X.A)
 
     def test_input_to_adatas_adata(self, adata_time: AnnData):
         adata1, adata2 = _input_to_adatas(adata_time)
         assert isinstance(adata1, AnnData)
         assert isinstance(adata2, AnnData)
-        assert np.all(adata1.X.A == adata_time.X.A)
-        assert np.all(adata2.X.A == adata_time.X.A)
+        np.testing.assert_array_equal(adata1.X.A, adata_time.X.A)
+        np.testing.assert_array_equal(adata2.X.A, adata_time.X.A)
 
     def test_cell_transition(self, adata_pl_cell_transition: AnnData):
         mpl.cell_transition(adata_pl_cell_transition)
