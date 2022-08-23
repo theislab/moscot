@@ -1,5 +1,5 @@
 from types import MappingProxyType
-from typing import Any, Dict, Iterable, List, Mapping, Optional, Tuple, Union
+from typing import Any, Dict, List, Tuple, Union, Mapping, Iterable, Optional
 
 from matplotlib import colors as mcolors
 from matplotlib.axes import Axes
@@ -37,7 +37,7 @@ def cell_transition(
     Plot a cell transition matrix.
 
     In order to run this function the corresponding method `cell_transition` of the :class:`moscot.problems` instance
-    must have been run, see :ref:`NOTES` for requirements.
+    must have been run, see `NOTES` for requirements.
 
     Parameters
     ----------
@@ -118,7 +118,7 @@ def sankey(
     Plot a sankey diagram.
 
     In order to run this function the corresponding method `sankey` of the :mod:`moscot.problems` instance
-    must have been run, see :ref:`NOTES` for requirements.
+    must have been run, see `NOTES` for requirements.
 
     Parameters
     ----------
@@ -195,7 +195,7 @@ def push(
     Visualise the push result in an embedding.
 
     In order to run this function the corresponding method `sankey` of the :mod:`moscot.problems` instance
-    must have been run, see :ref:`NOTES` for requirements.
+    must have been run, see `NOTES` for requirements.
 
     Parameters
     ----------
@@ -276,7 +276,7 @@ def pull(
     Visualise the push result in an embedding.
 
     In order to run this function the corresponding method `sankey` of the :mod:`moscot.problems` instance
-    must have been run, see :ref:`NOTES` for requirements.
+    must have been run, see `NOTES` for requirements.
 
     Parameters
     ----------

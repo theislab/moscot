@@ -13,8 +13,7 @@ from anndata import AnnData
 
 from moscot._docs import d
 from moscot._types import ArrayLike, Numeric_t, Str_Dict_t
-from moscot._utils import _check_uns_keys
-from moscot._constants._constants import AdataKeys, PlottingKeys, AggregationMode, PlottingDefaults
+from moscot._constants._constants import Key, AdataKeys, PlottingKeys, AggregationMode, PlottingDefaults
 from moscot.problems.base._mixins import AnalysisMixin, AnalysisMixinProtocol
 from moscot.problems.base._compound_problem import B, K, ApplyOutput_t
 
@@ -316,9 +315,8 @@ class TemporalMixin(AnalysisMixin[K, B]):
             raise TypeError("TODO: `early_cells must be of type `str` or `dict`.")
 
         if key_added is not None:
-            level_1 = AdataKeys.UNS
-            level_2 = PlottingKeys.SANKEY
-            _check_uns_keys(self.adata, level_1=level_1, level_2=level_2)
+            AdataKeys.UNS
+            PlottingKeys.SANKEY
             plot_vars = {
                 "transition_matrices": cell_transitions_updated,
                 "key": key,
@@ -328,7 +326,7 @@ class TemporalMixin(AnalysisMixin[K, B]):
                 "late_cells": late_annotation,
                 "captions": [str(t) for t in tuples],
             }
-            self.adata.uns[level_1][level_2][key_added] = plot_vars
+            Key.uns.set_plotting_vars(self.adata, AdataKeys.UNS, PlottingKeys.SANKEY, key, plot_vars)
         if return_data:
             return cell_transitions_updated
 
@@ -385,14 +383,11 @@ class TemporalMixin(AnalysisMixin[K, B]):
             assert isinstance(result, dict)
 
         if key_added is not None:
-            level_1 = AdataKeys.UNS
-            level_2 = PlottingKeys.PUSH
-            _check_uns_keys(self.adata, level_1=level_1, level_2=level_2)
             plot_vars = {
                 "temporal_key": self.temporal_key,
             }
-            self.adata.uns[level_1][level_2][key_added] = plot_vars
             self.adata.obs[key_added] = self._flatten(result, key=self.temporal_key)
+            Key.uns.set_plotting_vars(self.adata, AdataKeys.UNS, PlottingKeys.PUSH, key_added, plot_vars)
         if return_data:
             return result
 
@@ -446,14 +441,11 @@ class TemporalMixin(AnalysisMixin[K, B]):
             assert isinstance(result, dict)
 
         if key_added is not None:
-            level_1 = AdataKeys.UNS
-            level_2 = PlottingKeys.PULL
-            _check_uns_keys(self.adata, level_1=level_1, level_2=level_2)
             plot_vars = {
                 "temporal_key": self.temporal_key,
             }
-            self.adata.uns[level_1][level_2][key_added] = plot_vars
             self.adata.obs[key_added] = self._flatten(result, key=self.temporal_key)
+            Key.uns.set_plotting_vars(self.adata, AdataKeys.UNS, PlottingKeys.SANKEY, key_added, plot_vars)
         if return_data:
             return result
 

@@ -9,7 +9,6 @@ import numpy as np
 from anndata import AnnData
 
 from moscot._types import ArrayLike, Numeric_t, Str_Dict_t
-from moscot._utils import _check_uns_keys
 from moscot.solvers._output import BaseSolverOutput
 from moscot.problems.base._utils import (
     _get_problem_key,
@@ -20,7 +19,7 @@ from moscot.problems.base._utils import (
     _validate_args_cell_transition,
     _check_argument_compatibility_cell_transition,
 )
-from moscot._constants._constants import AdataKeys, PlottingKeys, AggregationMode, PlottingDefaults
+from moscot._constants._constants import Key, AdataKeys, PlottingKeys, AggregationMode, PlottingDefaults
 from moscot.problems._subset_policy import SubsetPolicy
 from moscot.problems.base._compound_problem import B, K, ApplyOutput_t
 
@@ -172,9 +171,6 @@ class AnalysisMixin(Generic[K, B]):
                 **kwargs,
             )
         if key_added is not None:
-            level_1 = AdataKeys.UNS
-            level_2 = PlottingKeys.CELL_TRANSITION
-            _check_uns_keys(self.adata, level_1=level_1, level_2=level_2)
             plot_vars = {
                 "transition_matrix": tm,
                 "source_key": source_key,
@@ -182,7 +178,13 @@ class AnalysisMixin(Generic[K, B]):
                 "source_annotation": source_annotation,
                 "target_annotation": target_annotation,
             }
-            self.adata.uns[level_1][level_2][key_added] = plot_vars
+            Key.uns.set_plotting_vars(
+                adata=self.adata,
+                uns_key=AdataKeys.UNS,
+                pl_func_key=PlottingKeys.CELL_TRANSITION,
+                key=key_added,
+                value=plot_vars,
+            )
         return tm
 
     def _cell_transition_not_online(

@@ -198,7 +198,8 @@ ax
     Axes, :class:`matplotlib.axes.Axes`."""
 _key_added_plotting = """\
 key_added
-    Key where the results for the corresponding plotting functions are stored."""
+    Key in :attr:`anndata.AnnData.uns` and/or :attr:`anndata.AnnData.obs` where the results for the corresponding
+    plotting functions are stored. See TODO Notebook for how :mod:`moscot.plotting` works."""
 _constant_fill_value = """\
 constant_fill_value
     Color fill value for cells in the UMAP not belonging to source or target distribution."""
