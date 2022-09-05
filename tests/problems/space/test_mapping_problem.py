@@ -84,7 +84,7 @@ class TestMappingProblem:
             kwargs["initializer"] = initializer
             if initializer == "random":
                 kwargs["kwargs_init"] = {"key": 0}
-        mp = MappingProblem(adataref, adatasp)
+        mp = MappingProblem(adataref, adatasp) 
         mp = mp.prepare(batch_key="batch", sc_attr=sc_attr, var_names=var_names)
         mp = mp.solve(epsilon=epsilon, alpha=alpha, rank=rank, **kwargs)
 
