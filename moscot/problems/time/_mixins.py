@@ -445,7 +445,7 @@ class TemporalMixin(AnalysisMixin[K, B]):
                 "temporal_key": self.temporal_key,
             }
             self.adata.obs[key_added] = self._flatten(result, key=self.temporal_key)
-            Key.uns.set_plotting_vars(self.adata, AdataKeys.UNS, PlottingKeys.SANKEY, key_added, plot_vars)
+            Key.uns.set_plotting_vars(self.adata, AdataKeys.UNS, PlottingKeys.PULL, key_added, plot_vars)
         if return_data:
             return result
 
