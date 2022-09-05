@@ -76,13 +76,15 @@ class TestMappingProblem:
         sc_attr: Mapping[str, str],
         var_names: Optional[List[str]],
     ):
-        kwargs_init = {}
+        kwargs = {}
         if rank > 0:
-            kwargs_init["key"] = 420
+            kwargs_init = {}
+            kwargs_init["key"] = 42
+            kwargs["kwargs_init"] = kwargs_init
         adataref, adatasp = _adata_spatial_split(adata_mapping)
         mp = MappingProblem(adataref, adatasp)
         mp = mp.prepare(batch_key="batch", sc_attr=sc_attr, var_names=var_names)
-        mp = mp.solve(epsilon=epsilon, alpha=alpha, rank=rank, kwargs_init=kwargs_init)
+        mp = mp.solve(epsilon=epsilon, alpha=alpha, rank=rank, **kwargs)
 
         for prob_key in mp:
             assert mp[prob_key].solution.rank == rank
