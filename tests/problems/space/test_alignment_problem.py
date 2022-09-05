@@ -1,4 +1,5 @@
 from typing import Any, Mapping, Optional
+from typing_extensions import Literal
 from pathlib import Path
 
 import pytest
@@ -50,14 +51,19 @@ class TestAlignmentProblem:
             assert isinstance(ap[prob_key], ap._base_problem_type)
 
     @pytest.mark.parametrize(
-        ("epsilon", "alpha", "rank"),
+        ("epsilon", "alpha", "rank", "initializer"),
         [(1, 0.9, -1), (1, 0.5, 10), (0.1, 0.1, -1)],
     )
-    def test_solve_balanced(self, adata_space_rotate: AnnData, epsilon: float, alpha: float, rank: int):
+    def test_solve_balanced(self, adata_space_rotate: AnnData, epsilon: float, alpha: float, rank: int, initializer: Optional[Literal["random", "rank2"]]):
+        kwargs = {}
+        if rank > -1:
+            kwargs["initializer"] = initializer
+            if initializer == "random":
+                kwargs["kwargs_init"] = {"key": 0}
         ap = (
             AlignmentProblem(adata=adata_space_rotate)
             .prepare(batch_key="batch")
-            .solve(epsilon=epsilon, alpha=alpha, rank=rank)
+            .solve(epsilon=epsilon, alpha=alpha, rank=rank, **kwargs)
         )
         for prob_key in ap:
             assert ap[prob_key].solution.rank == rank

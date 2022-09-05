@@ -1,4 +1,5 @@
 from typing import List, Mapping, Optional
+from typing_extensions import Literal
 from pathlib import Path
 
 import pytest
@@ -62,8 +63,8 @@ class TestMappingProblem:
             assert prob.y.data.shape == (n_obs, y_n_var)
 
     @pytest.mark.parametrize(
-        ("epsilon", "alpha", "rank"),
-        [(1e-2, 0.9, -1), (2, 0.5, 10), (2, 0.1, -1)],
+        ("epsilon", "alpha", "rank", "initializer"),
+        [(1e-2, 0.9, -1, None), (2, 0.5, 10, "random"), (2, 0.5, 10, "rank2"), (2, 0.1, -1, None)],
     )
     @pytest.mark.parametrize("sc_attr", [{"attr": "X"}, {"attr": "obsm", "key": "X_pca"}])
     @pytest.mark.parametrize("var_names", [None, [], [str(i) for i in range(20)]])
@@ -75,11 +76,17 @@ class TestMappingProblem:
         rank: int,
         sc_attr: Mapping[str, str],
         var_names: Optional[List[str]],
+        initializer: Optional[Literal["random", "rank2"]],
     ):
         adataref, adatasp = _adata_spatial_split(adata_mapping)
+        kwargs = {}
+        if rank > -1:
+            kwargs["initializer"] = initializer
+            if initializer == "random":
+                kwargs["kwargs_init"] = {"key": 0}
         mp = MappingProblem(adataref, adatasp)
         mp = mp.prepare(batch_key="batch", sc_attr=sc_attr, var_names=var_names)
-        mp = mp.solve(epsilon=epsilon, alpha=alpha, rank=rank)
+        mp = mp.solve(epsilon=epsilon, alpha=alpha, rank=rank, **kwargs)
 
         for prob_key in mp:
             assert mp[prob_key].solution.rank == rank
