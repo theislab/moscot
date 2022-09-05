@@ -54,13 +54,13 @@ class TestAlignmentProblem:
         [(1, 0.9, -1), (1, 0.5, 10), (0.1, 0.1, -1)],
     )
     def test_solve_balanced(self, adata_space_rotate: AnnData, epsilon: float, alpha: float, rank: int):
-        kwargs = {}
+        kwargs_init = {}
         if rank > 0:
-            kwargs["key"] = 42
+            kwargs_init["key"] = 42
         ap = (
             AlignmentProblem(adata=adata_space_rotate)
             .prepare(batch_key="batch")
-            .solve(epsilon=epsilon, alpha=alpha, rank=rank, **kwargs)
+            .solve(epsilon=epsilon, alpha=alpha, rank=rank,  kwargs_init=kwargs_init)
         )
         for prob_key in ap:
             assert ap[prob_key].solution.rank == rank
