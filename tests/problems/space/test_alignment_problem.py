@@ -56,7 +56,7 @@ class TestAlignmentProblem:
     def test_solve_balanced(self, adata_space_rotate: AnnData, epsilon: float, alpha: float, rank: int):
         kwargs = {}
         if rank > 0:
-            kwargs["rng_key"] = 42
+            kwargs["key"] = 42
         ap = (
             AlignmentProblem(adata=adata_space_rotate)
             .prepare(batch_key="batch")

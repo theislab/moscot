@@ -78,7 +78,7 @@ class TestMappingProblem:
     ):
         kwargs = {}
         if rank > 0:
-            kwargs["rng_key"] = 420
+            kwargs["key"] = 420
         adataref, adatasp = _adata_spatial_split(adata_mapping)
         mp = MappingProblem(adataref, adatasp)
         mp = mp.prepare(batch_key="batch", sc_attr=sc_attr, var_names=var_names)
