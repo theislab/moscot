@@ -79,10 +79,10 @@ class TestGW:
     def test_rank(self, x: Geom_t, y: Geom_t, rank: int) -> None:
         thresh, eps = 1e-2, 1e-2
         gt = gromov_wasserstein(
-            PointCloud(x, epsilon=eps), PointCloud(y, epsilon=eps), rank=rank, threshold=thresh, epsilon=eps
+            PointCloud(x, epsilon=eps), PointCloud(y, epsilon=eps), ranks=rank, threshold=thresh
         )
-        solver = GWSolver(threshold=thresh, rank=rank)
-        pred = solver(x=x, y=y, epsilon=eps)
+        solver = GWSolver(threshold=thresh, rank=rank, epsilon=eps)
+        pred = solver(x=x, y=y)
 
         assert pred.rank == rank
         np.testing.assert_allclose(gt.matrix, pred.transport_matrix, rtol=RTOL, atol=ATOL)
