@@ -1,7 +1,7 @@
 from typing import Any, Mapping, Optional
-from typing_extensions import Literal
 from pathlib import Path
 
+from typing_extensions import Literal
 import pytest
 
 import numpy as np
@@ -52,9 +52,16 @@ class TestAlignmentProblem:
 
     @pytest.mark.parametrize(
         ("epsilon", "alpha", "rank", "initializer"),
-        [(1, 0.9, -1), (1, 0.5, 10), (0.1, 0.1, -1)],
+        [(1, 0.9, -1, None), (1, 0.5, 10, "random"), (1, 0.5, 10, "rank2"), (0.1, 0.1, -1, None)],
     )
-    def test_solve_balanced(self, adata_space_rotate: AnnData, epsilon: float, alpha: float, rank: int, initializer: Optional[Literal["random", "rank2"]]):
+    def test_solve_balanced(
+        self,
+        adata_space_rotate: AnnData,
+        epsilon: float,
+        alpha: float,
+        rank: int,
+        initializer: Optional[Literal["random", "rank2"]],
+    ):
         kwargs = {}
         if rank > -1:
             kwargs["initializer"] = initializer
@@ -73,9 +80,7 @@ class TestAlignmentProblem:
         assert np.all([sol.converged for sol in ap.solutions.values()])
         assert np.all([np.all(~np.isnan(sol.transport_matrix)) for sol in ap.solutions.values()])
 
-    @pytest.mark.skip(
-        reason="Does not converge, enable when unbalanced FGW is fixed."  # noqa: E501
-    )
+    @pytest.mark.skip(reason="Does not converge, enable when unbalanced FGW is fixed.")
     def test_solve_unbalanced(self, adata_space_rotate: AnnData):  # unclear usage yet
         tau_a, tau_b = [0.8, 1]
         marg_a = "a"
