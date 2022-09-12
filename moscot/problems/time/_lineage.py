@@ -214,7 +214,7 @@ class TemporalProblem(
             return None
         df_list = [
             pd.DataFrame(
-                problem.solution.potentials[0], index=problem.adata.obs.index, columns=["cell_cost_source"]  # type: ignore[union-attr] # noqa: E501
+                np.array(problem.solution.potentials[0]), index=problem.adata.obs.index, columns=["cell_cost_source"]  # type: ignore[union-attr] # noqa: E501
             )
             for problem in self.problems.values()
         ]
@@ -248,7 +248,7 @@ class TemporalProblem(
         df_list.extend(
             [
                 pd.DataFrame(
-                    problem.solution.potentials[1], index=problem._adata_y.obs.index, columns=["cell_cost_target"]  # type: ignore[union-attr] # noqa: E501
+                    np.array(problem.solution.potentials[1]), index=problem._adata_y.obs.index, columns=["cell_cost_target"]  # type: ignore[union-attr] # noqa: E501
                 )
                 for problem in self.problems.values()
             ]
