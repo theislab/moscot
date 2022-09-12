@@ -79,9 +79,7 @@ class TestGW:
     @pytest.mark.parametrize("rank", [-1, 7])
     def test_rank(self, x: Geom_t, y: Geom_t, rank: int) -> None:
         thresh, eps = 1e-2, 1e-2
-        gt = gromov_wasserstein(
-            PointCloud(x, epsilon=eps), PointCloud(y, epsilon=eps), ranks=rank, threshold=thresh
-        )
+        gt = gromov_wasserstein(PointCloud(x, epsilon=eps), PointCloud(y, epsilon=eps), ranks=rank, threshold=thresh)
         solver = GWSolver(threshold=thresh, rank=rank, epsilon=eps)
         pred = solver(x=x, y=y)
 
