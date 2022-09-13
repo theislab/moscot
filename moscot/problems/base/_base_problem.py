@@ -13,7 +13,7 @@ from anndata import AnnData
 import scanpy as sc
 
 from moscot._docs import d
-from moscot._types import ArrayLike, DTypeLike
+from moscot._types import ArrayLike
 from moscot.problems._utils import wrap_solve, wrap_prepare, require_solution
 from moscot.solvers._output import BaseSolverOutput
 from moscot.problems._anndata import AnnDataPointer
@@ -126,11 +126,11 @@ class BaseProblem(ABC):
         return data / total if normalize else data
 
     @property
-    def adata(self) -> AnnData:  # noqa: D102
+    def adata(self) -> AnnData:
         return self._adata
 
     @property
-    def stage(self) -> ProblemStage:  # noqa: D102
+    def stage(self) -> ProblemStage:
         return self._stage
 
     @property
@@ -244,7 +244,6 @@ class OTProblem(BaseProblem):
         tau_b: float = 1.0,
         prepare_kwargs: Mapping[str, Any] = MappingProxyType({}),
         device: Optional[Any] = None,
-        dtype: Optional[DTypeLike] = None,
         **kwargs: Any,
     ) -> "OTProblem":
         """Solve method."""
@@ -273,7 +272,6 @@ class OTProblem(BaseProblem):
             tau_a=tau_a,
             tau_b=tau_b,
             device=device,
-            dtype=dtype,
             **prepare_kwargs,
         )
         return self
@@ -365,32 +363,32 @@ class OTProblem(BaseProblem):
         return np.ones((adata.n_obs,), dtype=float) / adata.n_obs
 
     @property
-    def shape(self) -> Tuple[int, int]:  # noqa: D102
+    def shape(self) -> Tuple[int, int]:
         return self.adata.n_obs, self._adata_y.n_obs
 
     @property
-    def solution(self) -> Optional[BaseSolverOutput]:  # noqa: D102
+    def solution(self) -> Optional[BaseSolverOutput]:
         return self._solution
 
     @property
-    def x(self) -> Optional[TaggedArray]:  # noqa: D102
+    def x(self) -> Optional[TaggedArray]:
         return self._x
 
     @property
-    def y(self) -> Optional[TaggedArray]:  # noqa: D102
+    def y(self) -> Optional[TaggedArray]:
         return self._y
 
     # TODO(michalk8): verify type
     @property
-    def xy(self) -> Optional[TaggedArray]:  # noqa: D102
+    def xy(self) -> Optional[TaggedArray]:
         return self._xy
 
     @property
-    def a(self) -> Optional[ArrayLike]:  # noqa: D102
+    def a(self) -> Optional[ArrayLike]:
         return self._a
 
     @property
-    def b(self) -> Optional[ArrayLike]:  # noqa: D102
+    def b(self) -> Optional[ArrayLike]:
         return self._b
 
     def __repr__(self) -> str:
