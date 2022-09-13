@@ -178,8 +178,9 @@ class OTTOutput(ConvergencePlotterMixin, BaseSolverOutput):
 
     @property
     def rank(self) -> int:
-        """TODO."""
-        return len(self._output.g) if isinstance(self._output, OTTLRSinkhornOutput) else -1
+        """Rank of the transport matrix."""
+        lin_output = self._output.linear_state if isinstance(self._output, OTTGWOutput) else self._output
+        return len(lin_output.g) if isinstance(lin_output, OTTLRSinkhornOutput) else -1
 
     def _ones(self, n: int) -> jnp.ndarray:
         return jnp.ones((n,))
