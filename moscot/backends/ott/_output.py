@@ -164,9 +164,6 @@ class OTTOutput(ConvergencePlotterMixin, BaseSolverOutput):
     @property
     def converged(self) -> bool:
         """%(converged)s."""
-        # TODO(michalk8): change after https://github.com/ott-jax/ott/pull/135
-        if isinstance(self._output, OTTGWOutput):
-            return bool(self._output.convergence)
         return bool(self._output.converged)
 
     @property
