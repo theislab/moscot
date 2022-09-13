@@ -1,6 +1,4 @@
-from abc import ABC
-from typing import Any, Tuple, Union, Iterator, Optional
-import contextlib
+from typing import Any, Tuple, Union, Optional
 
 from matplotlib.figure import Figure
 from typing_extensions import Literal
@@ -13,7 +11,7 @@ import jax
 import jax.numpy as jnp
 import jaxlib.xla_extension as xla_ext
 
-from moscot._types import ArrayLike, DTypeLike
+from moscot._types import ArrayLike
 from moscot.solvers._output import BaseSolverOutput
 
 __all__ = ["OTTOutput"]
@@ -21,26 +19,7 @@ __all__ = ["OTTOutput"]
 Device_t = Union[str, xla_ext.Device, Literal["cpu", "gpu", "tpu"]]
 
 
-@contextlib.contextmanager
-def enable_x64() -> Iterator[None]:
-    old_value = jax.config.jax_enable_x64  # type: ignore[attr-defined]
-    jax.config.update("jax_enable_x64", True)
-    try:
-        yield
-    finally:
-        jax.config.update("jax_enable_x64", old_value)
-
-
-class RankMixin:
-    def __init__(self, *args: Any, rank: int, **kwargs: Any):
-        super().__init__(*args, **kwargs)
-        self._rank = max(-1, rank)
-
-    @property
-    def rank(self) -> int:
-        return self._rank
-
-
+# TODO(michalk8): merge to OTTOutput
 class ConvergencePlotterMixin:
     NOT_COMPUTED = -1.0
 
@@ -48,11 +27,6 @@ class ConvergencePlotterMixin:
         super().__init__(*args, **kwargs)
         self._costs = costs[costs != self.NOT_COMPUTED]
         self._errors = None if errors is None else errors[errors != self.NOT_COMPUTED]
-
-    @property
-    def cost(self) -> float:
-        """TODO."""
-        return float(self._costs[-1])
 
     def plot_convergence(
         self,
@@ -71,8 +45,11 @@ class ConvergencePlotterMixin:
         ----------
         last_k
             How many of the last k steps of the algorithm to plot. If `None`, the full curve is plotted.
-        %(plotting_title)
         %(plotting)s
+
+        Returns
+        -------
+        TODO.
         """
 
         def select_values(last_k: Optional[int] = None) -> Tuple[str, jnp.ndarray, jnp.ndarray]:
@@ -102,7 +79,7 @@ class ConvergencePlotterMixin:
             return fig
 
 
-class OTTOutput(RankMixin, ConvergencePlotterMixin, BaseSolverOutput, ABC):
+class OTTOutput(ConvergencePlotterMixin, BaseSolverOutput):
     """
     Output representation of various OT problems.
 
@@ -114,17 +91,15 @@ class OTTOutput(RankMixin, ConvergencePlotterMixin, BaseSolverOutput, ABC):
             - :class:`ott.core.sinkhorn.SinkhornOutput`.
             - :class:`ott.core.sinkhorn_lr.LRSinkhornOutput`.
             - :class:`ott.core.gromov_wasserstein.QuadraticOutput`.
-    rank
-        Rank of the solver. `-1` if full-rank was used.
     """
 
-    def __init__(self, output: Union[OTTSinkhornOutput, OTTLRSinkhornOutput, OTTGWOutput], rank: int = -1):
+    def __init__(self, output: Union[OTTSinkhornOutput, OTTLRSinkhornOutput, OTTGWOutput]):
         # TODO(michalk8): think about whether we want to plot the error in inner Sinkhorn in GW
         if isinstance(output, OTTSinkhornOutput):
             costs, errors = jnp.asarray([output.reg_ot_cost]), output.errors
         else:
             costs, errors = output.costs, None
-        super().__init__(rank=rank, costs=costs, errors=errors)
+        super().__init__(costs=costs, errors=errors)
         self._output = output
 
     def _apply(self, x: ArrayLike, *, forward: bool) -> ArrayLike:
@@ -136,7 +111,7 @@ class OTTOutput(RankMixin, ConvergencePlotterMixin, BaseSolverOutput, ABC):
 
     @property
     def shape(self) -> Tuple[int, int]:
-        """%(shape)s."""
+        """%(shape)s"""
         # TODO(michalk8): add to OTT
         if isinstance(self._output, OTTSinkhornOutput):
             return self._output.f.shape[0], self._output.g.shape[0]
@@ -144,13 +119,12 @@ class OTTOutput(RankMixin, ConvergencePlotterMixin, BaseSolverOutput, ABC):
 
     @property
     def transport_matrix(self) -> ArrayLike:
-        """%(transport_matrix)s."""
+        """%(transport_matrix)s"""
         return self._output.matrix
 
     def to(
         self,
         device: Optional[Device_t] = None,
-        dtype: Optional[DTypeLike] = None,
     ) -> "OTTOutput":
         """
         Transfer the output to another device or change its data type.
@@ -159,21 +133,17 @@ class OTTOutput(RankMixin, ConvergencePlotterMixin, BaseSolverOutput, ABC):
         ----------
         device
             Device where to transfer the solver output.
-        dtype
-            Data type of underlying arrays.
 
         Returns
         -------
         Self with possibly modified device and dtypes.
         """
         # TODO(michalk8): when polishing docs, move the definition to the base class + use docrep
-        def convert_dtype(val: Any) -> Any:
-            return val.astype(dtype) if isinstance(val, jnp.ndarray) else val
-
-        ix = 0
         if isinstance(device, str) and ":" in device:
             device, ix = device.split(":")  # type: ignore[assignment]
             ix = int(ix)
+        else:
+            ix = 0
 
         if not isinstance(device, xla_ext.Device):
             try:
@@ -182,14 +152,19 @@ class OTTOutput(RankMixin, ConvergencePlotterMixin, BaseSolverOutput, ABC):
                 raise IndexError("TODO: indexing error when fetching device") from None
 
         out = jax.device_put(self._output, device)
-        with enable_x64():
-            out = jax.tree_map(convert_dtype, out)  # type: ignore[attr-defined]
-        return OTTOutput(out, rank=self.rank)
+        return OTTOutput(out)
+
+    @property
+    def cost(self) -> float:
+        """TODO."""
+        if isinstance(self._output, (OTTSinkhornOutput, OTTLRSinkhornOutput)):
+            return float(self._output.reg_ot_cost)
+        return float(self._output.reg_gw_cost)
 
     @property
     def converged(self) -> bool:
         """%(converged)s."""
-        # TODO(michalk8): unify in OTT
+        # TODO(michalk8): change after https://github.com/ott-jax/ott/pull/135
         if isinstance(self._output, OTTGWOutput):
             return bool(self._output.convergence)
         return bool(self._output.converged)
@@ -200,6 +175,11 @@ class OTTOutput(RankMixin, ConvergencePlotterMixin, BaseSolverOutput, ABC):
         if isinstance(self._output, OTTSinkhornOutput):
             return self._output.f, self._output.g
         return None, None
+
+    @property
+    def rank(self) -> int:
+        """TODO."""
+        return len(self._output.g) if isinstance(self._output, OTTLRSinkhornOutput) else -1
 
     def _ones(self, n: int) -> jnp.ndarray:
         return jnp.ones((n,))
