@@ -41,12 +41,16 @@ class BaseSolverOutput(ABC):
         pass
 
     @abstractmethod
-    def to(self, device: Optional[Any] = None, dtype: Optional[DTypeLike] = None) -> "BaseSolverOutput":
+    def to(self, device: Optional[Any] = None) -> "BaseSolverOutput":
         pass
 
     @property
     def rank(self) -> int:
         return -1
+
+    @property
+    def is_low_rank(self) -> bool:
+        return self.rank > -1
 
     # TODO(michalk8): mention in docs it needs to be broadcastable
     @abstractmethod
@@ -127,12 +131,12 @@ class MatrixSolverOutput(BaseSolverOutput, ABC):
 
     @property
     def transport_matrix(self) -> ArrayLike:
-        """%(transport_matrix)s"""  # noqa: D400
+        """%(transport_matrix)s"""
         return self._matrix
 
     @property
     def shape(self) -> Tuple[int, int]:
-        """%(shape)s"""  # noqa: D400
+        """%(shape)s"""
         return self.transport_matrix.shape  # type: ignore[return-value]
 
     def to(self, device: Optional[Any] = None, dtype: Optional[DTypeLike] = None) -> "BaseSolverOutput":

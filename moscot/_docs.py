@@ -1,4 +1,4 @@
-from typing import Any, TypeVar, Callable, TYPE_CHECKING
+from typing import Any, Callable, TYPE_CHECKING
 from textwrap import dedent
 
 from docrep import DocstringProcessor
@@ -139,7 +139,7 @@ inplace
     Whether to modify :class:`anndata.AnnData` in place or return the result."""
 _online = """\
 online
-    If `True` the transport matrix is not materialised if it was solved in low-rank mode or with `batch_size` not `None`.
+    If `True` the transport matrix is not materialised if it was solved in low-rank mode or with `batch_size != None`.
     This reduces memory complexity but increases run time."""
 _aggregation_mode = """\
 aggregation_mode
@@ -177,7 +177,7 @@ figsize
 dpi
     Dots per inch.
 save
-    Path where to save the plot. If `None` the plot is not saved."""
+    Path where to save the plot. If `None`, the plot is not saved."""
 _input_plotting = """\
 input
     The :class:`anndata.AnnData` instance(s) where the results of the corresponding method of the moscot problem
@@ -225,18 +225,15 @@ Otherwise, modifies the ``adata`` object with the following key:
     - :attr:`anndata.AnnData.obsm` ``['{key_added}']`` - the above mentioned :class:`numpy.ndarray`.
 """
 
-RT = TypeVar("RT")  # return type
-O = TypeVar("O")  # noqa: E741, object type
 
-
-def inject_docs(**kwargs: Any) -> Callable[[Callable[..., RT]], Callable[..., RT]]:  # noqa: D103
-    def decorator(obj: O) -> O:  # noqa: E741
+def inject_docs(**kwargs: Any) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
+    def decorator(obj: Any) -> Any:
         if TYPE_CHECKING:
             assert isinstance(obj.__doc__, str)
         obj.__doc__ = dedent(obj.__doc__).format(**kwargs)
         return obj
 
-    def decorator2(obj: O) -> O:  # noqa: E741
+    def decorator2(obj: Any) -> Any:
         obj.__doc__ = dedent(kwargs["__doc__"])
         return obj
 

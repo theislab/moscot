@@ -7,9 +7,7 @@ import pytest
 
 from ott.geometry import PointCloud
 from ott.core.sinkhorn import sinkhorn
-import jax
 import numpy as np
-import jax.numpy as jnp
 
 from anndata import AnnData
 
@@ -127,19 +125,6 @@ class TestCompoundProblem:
 
         np.testing.assert_allclose(gt.matrix, p1_tmap, rtol=RTOL, atol=ATOL)
         np.testing.assert_allclose(gt.matrix, p2_tmap, rtol=RTOL, atol=ATOL)
-
-    def test_to_dtype(self, adata_with_cost_matrix: AnnData):
-        dtype, epsilon = np.float32, 5
-        xy = {"x_attr": "obsm", "x_key": "X_pca", "y_attr": "obsm", "y_key": "X_pca"}
-        p = Problem(adata_with_cost_matrix)
-        p = p.prepare(key="batch", xy=xy)
-        p = p.solve(epsilon=epsilon, scale_cost="mean", dtype=dtype)
-
-        for out in p.solutions.values():
-            leaves = [leaf.dtype == dtype for leaf in jax.tree_leaves(out._output) if isinstance(leaf, jnp.ndarray)]
-            assert leaves
-            assert out.transport_matrix.dtype == dtype
-            np.testing.assert_array_equal(leaves, True)
 
     def test_add_problem(self, adata_time: AnnData):
         expected_keys = [(0, 1), (1, 2)]
