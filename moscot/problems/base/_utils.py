@@ -1,5 +1,5 @@
 from types import MappingProxyType
-from typing import Any, Dict, Type, Tuple, Callable, Iterable, Optional, TYPE_CHECKING
+from typing import Any, Dict, List, Type, Tuple, Callable, Iterable, Optional, TYPE_CHECKING
 from functools import partial, update_wrapper
 
 from typing_extensions import Literal
@@ -53,14 +53,14 @@ def _validate_annotations_helper(
     annotation_key: Optional[str] = None,
     annotations: Optional[Iterable[Any]] = None,
     aggregation_mode: Literal["annotation", "cell"] = AggregationMode.ANNOTATION,  # type: ignore[assignment]
-) -> Iterable[Any]:
+) -> List[Any]:
     if aggregation_mode == AggregationMode.ANNOTATION:  # type: ignore[comparison-overlap]
         if TYPE_CHECKING:  # checked in _check_argument_compatibility_cell_transition(
             assert annotations is not None
         annotations_verified = set(df[annotation_key].cat.categories).intersection(set(annotations))
         if not len(annotations_verified):
             raise ValueError(f"TODO: None of {annotations} found in distribution corresponding to {annotation_key}.")
-        return annotations_verified
+        return list(annotations_verified)
     return [None]
 
 
