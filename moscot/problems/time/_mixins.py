@@ -326,7 +326,7 @@ class TemporalMixin(AnalysisMixin[K, B]):
                 "late_cells": late_annotation,
                 "captions": [str(t) for t in tuples],
             }
-            Key.uns.set_plotting_vars(self.adata, AdataKeys.UNS, PlottingKeys.SANKEY, key, plot_vars)
+            Key.uns.set_plotting_vars(self.adata, AdataKeys.UNS, PlottingKeys.SANKEY, key_added, plot_vars)
         if return_data:
             return cell_transitions_updated
 
