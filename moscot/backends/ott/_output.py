@@ -141,13 +141,13 @@ class OTTOutput(ConvergencePlotterMixin, BaseSolverOutput):
         # TODO(michalk8): when polishing docs, move the definition to the base class + use docrep
         if isinstance(device, str) and ":" in device:
             device, ix = device.split(":")  # type: ignore[assignment]
-            ix = int(ix)
+            idx = int(ix)
         else:
-            ix = 0
+            idx = 0
 
         if not isinstance(device, xla_ext.Device):
             try:
-                device = jax.devices(device)[ix]
+                device = jax.devices(device)[idx]
             except IndexError:
                 raise IndexError("TODO: indexing error when fetching device") from None
 

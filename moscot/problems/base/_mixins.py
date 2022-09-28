@@ -127,7 +127,7 @@ class AnalysisMixinProtocol(Protocol[K, B]):
         target_annotations: Optional[Iterable[Any]] = None,
         aggregation_mode: Literal["annotation", "cell"] = AggregationMode.ANNOTATION,  # type: ignore[assignment]
         forward: bool = False,
-    ) -> Tuple[Iterable[Any], Iterable[Any]]:
+    ) -> Tuple[List[Any], List[Any]]:
         ...
 
 
@@ -499,12 +499,12 @@ class AnalysisMixin(Generic[K, B]):
         target_annotations: Optional[Iterable[Any]] = None,
         aggregation_mode: Literal["annotation", "cell"] = AggregationMode.ANNOTATION,  # type: ignore[assignment]
         forward: bool = False,
-    ) -> Tuple[Iterable[Any], Iterable[Any]]:
+    ) -> Tuple[List[Any], List[Any]]:
         if forward:
             if TYPE_CHECKING:  # checked in _check_argument_compatibility_cell_transition(
                 assert target_annotations is not None
-            target_annotations_verified = set(df_target[target_annotation_key].cat.categories).intersection(
-                target_annotations
+            target_annotations_verified = list(
+                set(df_target[target_annotation_key].cat.categories).intersection(target_annotations)
             )
             if not len(target_annotations_verified):
                 raise ValueError(
@@ -517,8 +517,8 @@ class AnalysisMixin(Generic[K, B]):
 
         if TYPE_CHECKING:  # checked in _check_argument_compatibility_cell_transition(
             assert source_annotations is not None
-        source_annotations_verified = set(df_source[source_annotation_key].cat.categories).intersection(
-            set(source_annotations)
+        source_annotations_verified = list(
+            set(df_source[source_annotation_key].cat.categories).intersection(set(source_annotations))
         )
         if not len(source_annotations_verified):
             raise ValueError(
