@@ -118,7 +118,8 @@ class GWProblem(CompoundProblem[K, B], GenericAnalysisMixin[K, B]):
     def prepare(
         self,
         key: str,
-        GW_attr: Mapping[str, Any] = MappingProxyType({}),
+        x: Mapping[str, Any] = MappingProxyType({}),
+        y: Mapping[str, Any] = MappingProxyType({}),
         policy: Literal["sequential", "pairwise", "explicit"] = "sequential",
         **kwargs: Any,
     ) -> "GWProblem[K, B]":
@@ -127,20 +128,22 @@ class GWProblem(CompoundProblem[K, B], GenericAnalysisMixin[K, B]):
         """
         self.batch_key = key
         # TODO(michalk8): use and
-        if not len(GW_attr):
+        if not (len(x) and len(y)):
             if "cost_matrices" not in self.adata.obsp:
                 raise ValueError(
                     "TODO: default location for quadratic loss is `adata.obsp[`cost_matrices`]` \
                         but adata has no key `cost_matrices` in `obsp`."
                 )
-        # TODO(michalk8): refactor me
-        GW_attr = dict(GW_attr)
-        GW_attr.setdefault("attr", "obsp")
-        GW_attr.setdefault("key", "cost_matrices")
-        GW_attr.setdefault("loss", "Euclidean")
-        GW_attr.setdefault("tag", "cost")
-        GW_attr.setdefault("loss_kwargs", {})
-        x = y = GW_attr
+
+        for z in [x, y]:
+            if not len(z):
+                # TODO(michalk8): refactor me
+                z = dict(z)
+                z.setdefault("attr", "obsp")
+                z.setdefault("key", "cost_matrices")
+                z.setdefault("loss", "Euclidean")
+                z.setdefault("tag", "cost")
+                z.setdefault("loss_kwargs", {})
 
         return super().prepare(
             key,
