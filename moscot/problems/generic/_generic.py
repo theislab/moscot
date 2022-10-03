@@ -118,7 +118,7 @@ class GWProblem(CompoundProblem[K, B], GenericAnalysisMixin[K, B]):
         policy: Literal["sequential", "pairwise", "explicit"] = "sequential",
         **kwargs: Any,
     ) -> "GWProblem[K, B]":
-        """Prepare Generic GWProblem."""
+        """Prepare a generic GWProblem."""
         self.batch_key = key
         # TODO(michalk8): use and
         if not len(GW_attr):

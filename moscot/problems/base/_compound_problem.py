@@ -326,7 +326,7 @@ class BaseCompoundProblem(BaseProblem, ABC, Generic[K, B]):
 
         return_all
             If `True` and transport maps are applied consecutively only the final mass is returned.
-            Otherwise,all intermediate step results are returned, too.
+            Otherwise, all intermediate step results are returned, too.
 
         %(scale_by_marginals)s
 

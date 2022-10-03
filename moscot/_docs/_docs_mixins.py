@@ -30,8 +30,8 @@ forward
     If `True` computes transition from `source_annotations` to `target_annotations`, otherwise backward."""
 _aggregation_mode = """\
 aggregation_mode
-    - `group` transition probabilities from the groups defined by `source_annotation` are returned.
-    - `cell` the transition probabilities for each cell are returned."""
+    - `group`: transition probabilities from the groups defined by `source_annotation` are returned.
+    - `cell`: the transition probabilities for each cell are returned."""
 _online = """\
 online
     If `True` the transport matrix is not materialised if it was solved in low-rank mode or with `batch_size != None`.
