@@ -12,8 +12,8 @@ import numpy as np
 
 from anndata import AnnData
 
-from moscot._docs import d
 from moscot._types import ArrayLike, Str_Dict_t
+from moscot._docs._docs import d
 from moscot.problems.base import AnalysisMixin  # type: ignore[attr-defined]
 from moscot._docs._docs_mixins import d_mixins
 from moscot.backends.ott._output import Device_t
@@ -199,7 +199,7 @@ class SpatialAlignmentMixin(AnalysisMixin[K, B]):
         %(aggregation_mode)s
         %(online)s
         %(ott_jax_batch_size)s
-        %(normalize_cell_transition)s
+        %(normalize)s
         %(key_added_plotting)s
 
         Returns
@@ -406,7 +406,7 @@ class SpatialMappingMixin(AnalysisMixin[K, B]):
         %(aggregation_mode)s
         %(online)s
         %(ott_jax_batch_size)s
-        %(normalize_cell_transition)s
+        %(normalize)s
         %(key_added_plotting)s
 
         Returns

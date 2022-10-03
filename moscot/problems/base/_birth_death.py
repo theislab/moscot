@@ -6,8 +6,8 @@ import numpy as np
 from anndata import AnnData
 import scanpy as sc
 
-from moscot._docs import d
 from moscot._types import ArrayLike
+from moscot._docs._docs import d
 from moscot.problems.time._utils import beta, delta as _delta, MarkerGenes
 from moscot.problems.base._base_problem import OTProblem
 

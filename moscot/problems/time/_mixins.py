@@ -168,7 +168,7 @@ class TemporalMixin(AnalysisMixin[K, B]):
         %(aggregation_mode)s
         %(online)s
         %(ott_jax_batch_size)s
-        %(normalize_cell_transition)s
+        %(normalize)s
         %(key_added_plotting)s
 
         Returns

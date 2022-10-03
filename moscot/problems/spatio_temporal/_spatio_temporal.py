@@ -3,8 +3,8 @@ from typing import Any, Type, Tuple, Union, Literal, Mapping, Optional
 
 from anndata import AnnData
 
-from moscot._docs import d
 from moscot._types import Numeric_t
+from moscot._docs._docs import d
 from moscot._constants._key import Key
 from moscot._constants._constants import Policy, ScaleCost
 from moscot.problems.time._mixins import TemporalMixin

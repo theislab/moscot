@@ -9,9 +9,9 @@ import numpy as np
 
 from anndata import AnnData
 
-from moscot._docs import d
 from moscot._types import ArrayLike
 from moscot._utils import _get_backend_losses
+from moscot._docs._docs import d
 from moscot.costs._costs import BaseLoss
 from moscot.solvers._tagged_array import Tag, TaggedArray
 

@@ -1,6 +1,3 @@
-from typing import Any, Callable, TYPE_CHECKING
-from textwrap import dedent
-
 from docrep import DocstringProcessor
 
 _cell_trans_params = """\
@@ -61,7 +58,8 @@ To visualise the results, see :func:`moscot.pl.cell_transition`.
 """
 _normalize = """\
 normalize
-    Whether to normalize the result to 1 after the transport map has been applied."""
+    If `True` the transition matrix is normalized such that it is stochastic. If `forward` is `True`, the transition
+    matrix is row-stochastic, otherwise column-stochastic."""
 _forward_cell_transition = """\
 forward
     If `True` computes transition from `source_annotations` to `target_annotations`, otherwise backward."""
@@ -108,23 +106,6 @@ _order_annotations = """\
 order_annotations
     Order of the annotations in the final plot, from top to bottom.
 """
-
-
-def inject_docs(**kwargs: Any) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
-    def decorator(obj: Any) -> Any:
-        if TYPE_CHECKING:
-            assert isinstance(obj.__doc__, str)
-        obj.__doc__ = dedent(obj.__doc__).format(**kwargs)
-        return obj
-
-    def decorator2(obj: Any) -> Any:
-        obj.__doc__ = dedent(kwargs["__doc__"])
-        return obj
-
-    if isinstance(kwargs.get("__doc__", None), str) and len(kwargs) == 1:
-        return decorator2
-
-    return decorator
 
 
 d_mixins = DocstringProcessor(

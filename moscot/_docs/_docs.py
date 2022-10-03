@@ -1,12 +1,6 @@
-from typing import Any, Callable, TYPE_CHECKING
-from textwrap import dedent
-
 from docrep import DocstringProcessor
 
 _adata = """\
-adata
-    Annotated data object."""
-_other_adata = """\
 adata
     Annotated data object."""
 _adatas = """\
@@ -123,9 +117,6 @@ policy
 _key = """\
 key
     Key in :attr:`anndata.AnnData.obs` allocating the cell to a certain cell distribution (e.g. batch)."""
-_other_key = """\
-other_key
-    Key in :attr:`anndata.AnnData.obs` allocating the cell to a certain cell distribution (e.g. batch)."""
 _joint_attr = """\
 joint_attr
     - If `None`, PCA on :attr:`anndata.AnnData.X` is computed.
@@ -142,107 +133,19 @@ _online = """\
 online
     If `True` the transport matrix is not materialised if it was solved in low-rank mode or with `batch_size != None`.
     This reduces memory complexity but increases run time."""
-_cell_trans_params = """\
-source
-    Key identifying the source distribution.
-target
-    Key identifying the target distribution.
-source_groups
-    Can be one of the following:
-        - if `source_groups` is of type :class:`str` this should correspond to a key in
-        :attr:`anndata.AnnData.obs`. In this case, the categories in the transition matrix correspond to the
-        unique values in :attr:`anndata.AnnData.obs` ``['{source_groups}']``.
-        - if `target_groups` is of type :class:`dict`, its key should correspond to a key in
-        :attr:`anndata.AnnData.obs` and its value to a subset of categories present in
-        :attr:`anndata.AnnData.obs` ``['{source_groups.keys()[0]}']``.
-target_groups
-    Can be one of the following
-        - if `target_groups` is of type :class:`str` this should correspond to a key in
-        :attr:`anndata.AnnData.obs`. In this case, the categories in the transition matrix correspond to the
-        unique values in :attr:`anndata.AnnData.obs` ``['{target_groups}']``.
-        - if `target_groups` is of :class:`dict`, its key should correspond to a key in
-        :attr:`anndata.AnnData.obs` and its value to a subset of categories present in
-        :attr:`anndata.AnnData.obs` ``['{target_groups.keys()[0]}']``.
-"""
-_aggregation_mode = """\
-aggregation_mode
-    - `group` transition probabilities from the groups defined by `source_annotation` are returned.
-    - `cell` the transition probabilities for each cell are returned."""
-_forward_cell_transition = """\
-forward
-    If `True` computes transition from `source_annotations` to `target_annotations`, otherwise backward."""
 _rank = """\
 rank
     Rank of solver. If `-1` standard / full-rank optimal transport is applied."""
 _stage = """\
 stage
     Stages of subproblems which are to be solved."""
-_normalize_cell_transition = """\
-normalize
-    If `True` the transition matrix is normalized such that it is stochastic. If `forward` is `True`, the transition
-    matrix is row-stochastic, otherwise column-stochastic."""
 _solve_kwargs = """\
 kwargs
     keyword arguments for the backend-specific solver, TODO see NOTEBOOK."""
-_heatmap_kwargs = """\
-kwargs
-    keyword arguments for the heatmap visualisation."""
-_heatmap_plot = """\
-plot
-    TODO: plots the transition matrix."""
 _ott_jax_batch_size = """\
 batch_size
     number of data points the matrix-vector products are applied to at the same time. The larger, the more memory
     is required."""
-_plotting = """\
-figsize
-    Size of the figure in inches.
-dpi
-    Dots per inch.
-save
-    Path where to save the plot. If `None`, the plot is not saved."""
-_input_plotting = """\
-input
-    The :class:`anndata.AnnData` instance(s) where the results of the corresponding method of the moscot problem
-    instance is saved. Alternatively, the instance of the moscot problem can be passed, too.
-    """
-_key_stored = """\
-key_stored
-    A key of :class:`anndata.AnnData` where the results of the corresponding method of the moscot problem instance
-    is saved."""
-_cont_cmap = """\
-cont_cmap
-    Colormap for continuous annotations, see :class:`matplotlib.colors.Colormap`."""
-_cbar_kwargs = """\
-cbar_kwargs
-    Keyword arguments for :meth:`matplotlib.figure.Figure.colorbar`."""
-_ax = """\
-ax
-    Axes, :class:`matplotlib.axes.Axes`."""
-_key_added_plotting = """\
-key_added
-    Key in :attr:`anndata.AnnData.uns` and/or :attr:`anndata.AnnData.obs` where the results for the corresponding
-    plotting functions are stored. See TODO Notebook for how :mod:`moscot.plotting` works."""
-_constant_fill_value = """\
-constant_fill_value
-    Color fill value for cells in the UMAP not belonging to source or target distribution."""
-_plot_time_points = """\
-time_points
-    Time points which are colorised in the embedding plot."""
-_return_fig = """\
-return_fig
-    Whether to return the figure."""
-_return_all = """\
-return_all
-    If `True` returns all the intermediate masses if pushed through multiple transport plans, returned as a
-    dictionary."""
-_return_data = """\
-return_data
-    Whether to return the data."""
-# returns
-_return_cell_transition = """\
-Transition matrix of cells or groups of cells."""
-
 _alignment_mixin_returns = """\
 If ``inplace = False``, returns a :class:`numpy.ndarray` with aligned coordinates.
 
@@ -250,23 +153,6 @@ Otherwise, modifies the ``adata`` object with the following key:
 
     - :attr:`anndata.AnnData.obsm` ``['{key_added}']`` - the above mentioned :class:`numpy.ndarray`.
 """
-
-
-def inject_docs(**kwargs: Any) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
-    def decorator(obj: Any) -> Any:
-        if TYPE_CHECKING:
-            assert isinstance(obj.__doc__, str)
-        obj.__doc__ = dedent(obj.__doc__).format(**kwargs)
-        return obj
-
-    def decorator2(obj: Any) -> Any:
-        obj.__doc__ = dedent(kwargs["__doc__"])
-        return obj
-
-    if isinstance(kwargs.get("__doc__", None), str) and len(kwargs) == 1:
-        return decorator2
-
-    return decorator
 
 
 d = DocstringProcessor(
@@ -306,29 +192,8 @@ d = DocstringProcessor(
     inplace=_inplace,
     alignment_mixin_returns=_alignment_mixin_returns,
     online=_online,
-    cell_trans_param=_cell_trans_params,
-    aggregation_mode=_aggregation_mode,
-    forward_cell_transition=_forward_cell_transition,
     rank=_rank,
     stage=_stage,
-    normalize_cell_transition=_normalize_cell_transition,
     solve_kwargs=_solve_kwargs,
-    heatmap_kwargs=_heatmap_kwargs,
-    heatmap_plot=_heatmap_plot,
     ott_jax_batch_size=_ott_jax_batch_size,
-    other_key=_other_key,
-    other_adata=_other_adata,
-    return_cell_transition=_return_cell_transition,
-    plotting=_plotting,
-    input_plotting=_input_plotting,
-    cont_cmap=_cont_cmap,
-    cbar_kwargs=_cbar_kwargs,
-    key_stored=_key_stored,
-    ax=_ax,
-    key_added_plotting=_key_added_plotting,
-    constant_fill_value=_constant_fill_value,
-    plot_time_points=_plot_time_points,
-    return_fig=_return_fig,
-    return_all=_return_all,
-    return_data=_return_data,
 )

@@ -24,8 +24,8 @@ from scipy.sparse import issparse
 
 from anndata import AnnData
 
-from moscot._docs import d
 from moscot._types import ArrayLike
+from moscot._docs._docs import d
 from moscot.problems._utils import require_prepare
 from moscot.solvers._output import BaseSolverOutput
 from moscot.problems.base._utils import attributedispatch

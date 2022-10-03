@@ -5,7 +5,7 @@ import os
 from scanpy import read
 from anndata import AnnData
 
-from moscot._docs import d
+from moscot._docs._docs import d
 
 __all__ = ["simulation", "mosta", "hspc"]
 PathLike = Union[os.PathLike, str]

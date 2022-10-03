@@ -61,7 +61,7 @@ class GenericAnalysisMixin(AnalysisMixin[K, B]):
         %(other_key)s
         %(other_adata)s
         %(ott_jax_batch_size)s
-        %(normalize_cell_transition)s
+        %(normalize)s
         %(key_added_plotting)s
 
         Returns
