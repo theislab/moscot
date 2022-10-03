@@ -555,8 +555,8 @@ class AnalysisMixin(Generic[K, B]):
         func = self.push if forward else self.pull
         for subset in annotations_1:
             result = func(  # TODO(@MUCDK) check how to make compatible with all policies
-                start=source,
-                end=target,
+                source=source,
+                target=target,
                 data=annotation_key,
                 subset=subset,
                 normalize=True,
