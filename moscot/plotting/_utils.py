@@ -65,7 +65,7 @@ def _sankey(
         missing = [label for label in adata.obs[key].cat.categories if label not in colorDict]
         if missing:
             msg = "The colorDict parameter is missing values for the following labels : "
-            msg += "{}".format(", ".join(missing))
+            msg += f", {missing}"
             raise ValueError(msg)
     left_pos = [0]
     for ind, dataFrame in enumerate(transition_matrices):
@@ -334,17 +334,17 @@ def _contrasting_color(r: int, g: int, b: int) -> str:
     return "#000000" if r * 0.299 + g * 0.587 + b * 0.114 > 186 else "#ffffff"
 
 
-def _input_to_adatas(input: Union[AnnData, Tuple[AnnData, AnnData], Type[CompoundProblem]]) -> Tuple[AnnData, AnnData]:
-    if isinstance(input, CompoundProblem):
-        return input.adata, input._secondary_adata if hasattr(input, "_secondary_adata") else input.adata
-    if isinstance(input, AnnData):
-        return input, input
-    elif isinstance(input, tuple):
-        if not isinstance(input[0], AnnData):
+def _input_to_adatas(inputs: Union[AnnData, Tuple[AnnData, AnnData], Type[CompoundProblem]]) -> Tuple[AnnData, AnnData]:
+    if isinstance(inputs, CompoundProblem):
+        return inputs.adata, inputs._secondary_adata if hasattr(inputs, "_secondary_adata") else inputs.adata
+    if isinstance(inputs, AnnData):
+        return inputs, inputs
+    elif isinstance(inputs, tuple):
+        if not isinstance(inputs[0], AnnData):
             raise TypeError("TODO: input must be `AnnData`.")
-        if not isinstance(input[1], AnnData):
+        if not isinstance(inputs[1], AnnData):
             raise TypeError("TODO: input must be `AnnData`.")
-        return input  # type: ignore[return-value]
+        return inputs  # type: ignore[return-value]
     else:
         raise NotImplementedError("TODO.")
 

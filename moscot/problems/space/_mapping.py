@@ -57,7 +57,7 @@ class MappingProblem(CompoundProblem[K, OTProblem], SpatialMappingMixin[K, OTPro
         src_mask: ArrayLike,
         tgt_mask: ArrayLike,
         **kwargs: Any,
-    ) -> B:
+    ) -> B:  # type: ignore[type-var]
         """Private class to mask anndatas."""
         adata_sp = self._mask(src_mask)
         return self._base_problem_type(  # type: ignore[return-value]

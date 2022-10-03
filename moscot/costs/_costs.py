@@ -97,7 +97,7 @@ class BarcodeDistance(BaseLoss):
 class LeafDistance(BaseLoss):
     """Class handling leaf distances (from trees)."""
 
-    def _compute(  # type: ignore[override]
+    def _compute(
         self,
         **kwargs: Any,
     ) -> ArrayLike:

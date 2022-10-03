@@ -33,11 +33,11 @@ class TestMoscotPl:
 
     @pytest.mark.parametrize("time_points", [None, [0]])
     def test_push(self, adata_pl_push: AnnData, time_points: Optional[List[int]]):
-        plot = mpl.push(adata_pl_push, time_points=time_points)
+        _ = mpl.push(adata_pl_push, time_points=time_points)
 
     @pytest.mark.parametrize("time_points", [None, [0]])
     def test_pull(self, adata_pl_pull: AnnData, time_points: Optional[List[int]]):
-        plot = mpl.pull(adata_pl_pull, time_points=time_points)
+        _ = mpl.pull(adata_pl_pull, time_points=time_points)
 
     def test_sankey(self, adata_pl_sankey: AnnData):
         mpl.sankey(adata_pl_sankey)

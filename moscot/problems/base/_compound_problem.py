@@ -205,7 +205,7 @@ class BaseCompoundProblem(BaseProblem, ABC, Generic[K, B]):
             break
         return self
 
-    def solve(  # type: ignore[override]
+    def solve(
         self,
         stage: Union[ProblemStage, Tuple[ProblemStage, ...]] = (ProblemStage.PREPARED, ProblemStage.SOLVED),
         **kwargs: Any,
