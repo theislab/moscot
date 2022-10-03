@@ -74,9 +74,9 @@ result_key
 _fill_value_push_pull = """\
 fill_value_push_pull
     Fill value for observations not present in selected batches."""
-_batches_push_pull = """\
-batches
-    Batches colored in the embedding plot."""
+_time_points_push_pull = """\
+time_points
+    Time points colored in the embedding plot."""
 _basis_push_pull = """\
 basis
     Basis of the embedding, saved in :attr:`anndata.AnnData.obsm`.
@@ -143,7 +143,7 @@ d_plotting = DocstringProcessor(
     desc_push_pull=_desc_push_pull,
     result_key_push_pull=_result_key_push_pull,
     fill_value_push_pull=_fill_value_push_pull,
-    batches_push_pull=_batches_push_pull,
+    time_points_push_pull=_time_points_push_pull,
     basis_push_pull=_basis_push_pull,
     return_push_pull=_return_push_pull,
     notes_push_pull=_notes_push_pull,

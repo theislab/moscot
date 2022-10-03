@@ -149,7 +149,7 @@ def sankey(
 def push(
     inputs: Union[AnnData, TemporalProblem, LineageProblem, CompoundProblem],
     uns_key: Optional[str] = None,
-    batches: Optional[Iterable[K]] = None,
+    time_points: Optional[Iterable[K]] = None,
     basis: str = "umap",
     result_key: str = "plot_push",
     fill_value: float = np.nan,
@@ -171,7 +171,7 @@ def push(
     ----------
     %(input_plotting)s
     %(uns_key)s
-    %(batches_push_pull)s
+    %(time_points_push_pull)s
     %(basis_push_pull)s
     %(result_key_push_pull)s
     %(fill_value_push_pull)s
@@ -197,7 +197,7 @@ def push(
         adata=adata,
         temporal_key=data["temporal_key"],
         key_stored=key,
-        time_points=batches,
+        time_points=time_points,
         basis=basis,
         result_key=result_key,
         constant_fill_value=fill_value,
@@ -216,7 +216,7 @@ def push(
 def pull(
     inputs: Union[AnnData, TemporalProblem, LineageProblem, CompoundProblem],
     uns_key: Optional[str] = None,
-    batches: Optional[Iterable[K]] = None,
+    time_points: Optional[Iterable[K]] = None,
     basis: str = "umap",
     result_key: str = "plot_pull",
     fill_value: float = np.nan,
@@ -238,7 +238,7 @@ def pull(
     ----------
     %(input_plotting)s
     %(uns_key)s
-    %(batches_push_pull)s
+    %(time_points_push_pull)s
     %(basis_push_pull)s
     %(result_key_push_pull)s
     %(fill_value_push_pull)s
@@ -264,7 +264,7 @@ def pull(
         adata=adata,
         temporal_key=data["temporal_key"],
         key_stored=key,
-        time_points=batches,
+        time_points=time_points,
         basis=basis,
         result_key=result_key,
         constant_fill_value=fill_value,
