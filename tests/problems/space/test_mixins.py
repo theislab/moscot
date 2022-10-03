@@ -80,7 +80,13 @@ class TestSpatialAlignmentAnalysisMixin:
         )
         ap[("1", "2")]._solution = MockSolverOutput(mock_tmap / mock_tmap.sum().sum())
         result = ap.cell_transition(
-            "1", "2", "celltype", "celltype", online=online, forward=forward, normalize=normalize
+            source="1",
+            target="2",
+            source_groups="celltype",
+            target_groups="celltype",
+            online=online,
+            forward=forward,
+            normalize=normalize,
         )
         assert isinstance(result, pd.DataFrame)
         assert result.shape == (3, 3)
