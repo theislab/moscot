@@ -35,7 +35,14 @@ class TestTemporalMixin:
             gt_temporal_adata[gt_temporal_adata.obs[key] == key_2].obs["cell_type"].cat.categories
         )
 
-        result = problem.cell_transition(key_1, key_2, "cell_type", "cell_type", forward=forward, online=online)
+        result = problem.cell_transition(
+            key_1,
+            key_2,
+            "cell_type",
+            "cell_type",
+            forward=forward,
+            online=online,
+        )
         assert isinstance(result, pd.DataFrame)
         expected_shape = (len(cell_types_present_key_1), len(cell_types_present_key_2))
         assert result.shape == expected_shape

@@ -13,10 +13,11 @@ import numpy as np
 from anndata import AnnData
 
 from moscot._docs import d
-from moscot._types import Filter_t, ArrayLike
+from moscot._types import ArrayLike, Str_Dict_t
 from moscot.problems.base import AnalysisMixin  # type: ignore[attr-defined]
+from moscot._docs._docs_mixins import d_mixins
 from moscot.backends.ott._output import Device_t
-from moscot._constants._constants import CorrMethod, AlignmentMode, AggregationMode
+from moscot._constants._constants import CorrMethod, AlignmentMode, AggregationMode, PlottingDefaults
 from moscot.problems.base._mixins import AnalysisMixinProtocol
 from moscot.problems._subset_policy import StarPolicy
 from moscot.problems.base._compound_problem import B, K
@@ -47,7 +48,6 @@ class SpatialAlignmentMixinProtocol(AnalysisMixinProtocol[K, B]):
 
     def _cell_transition(  # TODO(@MUCDK) think about removing _cell_transition_non_online
         self: AnalysisMixinProtocol[K, B],
-        online: bool,
         *args: Any,
         **kwargs: Any,
     ) -> pd.DataFrame:
@@ -69,7 +69,6 @@ class SpatialMappingMixinProtocol(AnalysisMixinProtocol[K, B]):
 
     def _cell_transition(  # TODO(@MUCDK) think about removing _cell_transition_non_online
         self: AnalysisMixinProtocol[K, B],
-        online: bool,
         *args: Any,
         **kwargs: Any,
     ) -> pd.DataFrame:
@@ -173,18 +172,19 @@ class SpatialAlignmentMixin(AnalysisMixin[K, B]):
             return aligned_basis
         self.adata.obsm[f"{self.spatial_key}_{mode}"] = aligned_basis
 
-    @d.dedent
+    @d_mixins.dedent
     def cell_transition(
         self: SpatialAlignmentMixinProtocol[K, B],
         source: K,
         target: K,
-        source_groups: Filter_t,
-        target_groups: Filter_t,
+        source_groups: Optional[Str_Dict_t] = None,
+        target_groups: Optional[Str_Dict_t] = None,
         forward: bool = False,  # return value will be row-stochastic if forward=True, else column-stochastic
         aggregation_mode: Literal["annotation", "cell"] = AggregationMode.ANNOTATION,  # type: ignore[assignment]
         online: bool = False,
         batch_size: Optional[int] = None,
         normalize: bool = True,
+        key_added: Optional[str] = PlottingDefaults.CELL_TRANSITION,
     ) -> pd.DataFrame:
         """
         Compute a grouped cell transition matrix.
@@ -200,19 +200,25 @@ class SpatialAlignmentMixin(AnalysisMixin[K, B]):
         %(online)s
         %(ott_jax_batch_size)s
         %(normalize_cell_transition)s
+        %(key_added_plotting)s
 
         Returns
         -------
         %(return_cell_transition)s
+
+        Notes
+        -----
+        %(notes_cell_transition)s
         """
         if TYPE_CHECKING:
             assert isinstance(self.batch_key, str)
+
         return self._cell_transition(
             key=self.batch_key,
-            source_key=source,
-            target_key=target,
-            source_annotation=source_groups,
-            target_annotation=target_groups,
+            source=source,
+            target=target,
+            source_groups=source_groups,
+            target_groups=target_groups,
             forward=forward,
             aggregation_mode=AggregationMode(aggregation_mode),
             online=online,
@@ -220,6 +226,7 @@ class SpatialAlignmentMixin(AnalysisMixin[K, B]):
             other_adata=None,
             batch_size=batch_size,
             normalize=normalize,
+            key_added=key_added,
         )
 
     @property
@@ -372,18 +379,19 @@ class SpatialMappingMixin(AnalysisMixin[K, B]):
         adata_pred.var_names = var_names
         return adata_pred
 
-    @d.dedent
+    @d_mixins.dedent
     def cell_transition(
         self: SpatialMappingMixinProtocol[K, B],
         source: K,
         target: Optional[K] = None,
-        source_groups: Filter_t = None,
-        target_groups: Filter_t = None,
+        source_groups: Optional[Str_Dict_t] = None,
+        target_groups: Optional[Str_Dict_t] = None,
         forward: bool = False,  # return value will be row-stochastic if forward=True, else column-stochastic
         aggregation_mode: Literal["annotation", "cell"] = AggregationMode.ANNOTATION,  # type: ignore[assignment]
         online: bool = False,
         batch_size: Optional[int] = None,
         normalize: bool = True,
+        key_added: Optional[str] = PlottingDefaults.CELL_TRANSITION,
     ) -> pd.DataFrame:
         """
         Compute a grouped cell transition matrix.
@@ -399,19 +407,24 @@ class SpatialMappingMixin(AnalysisMixin[K, B]):
         %(online)s
         %(ott_jax_batch_size)s
         %(normalize_cell_transition)s
+        %(key_added_plotting)s
 
         Returns
         -------
         %(return_cell_transition)s
+
+        Notes
+        -----
+        %(notes_cell_transition)s
         """
         if TYPE_CHECKING:
             assert self.batch_key is not None
         return self._cell_transition(
             key=self.batch_key,
-            source_key=source,
-            target_key=target,
-            source_annotation=source_groups,
-            target_annotation=target_groups,
+            source=source,
+            target=target,
+            source_groups=source_groups,
+            target_groups=target_groups,
             forward=forward,
             aggregation_mode=AggregationMode(aggregation_mode),
             online=online,
@@ -419,6 +432,7 @@ class SpatialMappingMixin(AnalysisMixin[K, B]):
             other_adata=self.adata_sc,
             batch_size=batch_size,
             normalize=normalize,
+            key_added=key_added,
         )
 
     @property

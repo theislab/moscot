@@ -99,10 +99,10 @@ class TestBaseAnalysisMixin:
 
         ctr = problem._cell_transition(
             key="day",
-            source_key=10,
-            target_key=10.5,
-            source_annotation="cell_type",
-            target_annotation="cell_type",
+            source=10,
+            target=10.5,
+            source_groups="cell_type",
+            target_groups="cell_type",
             forward=True,
             aggregation_mode="cell",
             online=online,
@@ -142,10 +142,10 @@ class TestBaseAnalysisMixin:
 
         ctr = problem._cell_transition(
             key="day",
-            source_key=10,
-            target_key=10.5,
-            source_annotation="cell_type",
-            target_annotation="cell_type",
+            source=10,
+            target=10.5,
+            source_groups="cell_type",
+            target_groups="cell_type",
             forward=False,
             aggregation_mode="cell",
             online=online,

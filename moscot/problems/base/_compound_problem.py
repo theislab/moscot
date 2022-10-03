@@ -17,6 +17,8 @@ from typing import (
     Sequence,
     TYPE_CHECKING,
 )
+import os
+import pickle
 
 from scipy.sparse import issparse
 
@@ -260,7 +262,7 @@ class BaseCompoundProblem(BaseProblem, ABC, Generic[K, B]):
         res = {}
         # TODO(michalk8): should use manager.plan (once implemented), as some problems may not be solved
         start = start if isinstance(start, list) else [start]  # type: ignore[assignment]
-        _ = kwargs.pop("end", None)
+        _ = kwargs.pop("end", None)  # make compatible with Explicit/Ordered policy
         for src, tgt in self._policy.plan(
             explicit_steps=kwargs.pop("explicit_steps", None),
             filter=start,  # type: ignore [arg-type]
@@ -302,7 +304,9 @@ class BaseCompoundProblem(BaseProblem, ABC, Generic[K, B]):
         for _src, _tgt in [(src, tgt)] + rest:
             problem = self.problems[_src, _tgt]
             fun = problem.push if forward else problem.pull
-            res[_tgt] = current_mass = fun(current_mass, scale_by_marginals=scale_by_marginals, **kwargs)
+            res[_tgt if forward else _src] = current_mass = fun(
+                current_mass, scale_by_marginals=scale_by_marginals, **kwargs
+            )
 
         return res if return_all else current_mass
 
@@ -333,6 +337,8 @@ class BaseCompoundProblem(BaseProblem, ABC, Generic[K, B]):
         -------
         TODO.
         """
+        _ = kwargs.pop("return_data", None)
+        _ = kwargs.pop("key_added", None)  # this should be handled by overriding method
         return self._apply(*args, forward=True, **kwargs)
 
     @d.get_sections(base="BaseCompoundProblem_pull", sections=["Parameters", "Raises"])
@@ -362,6 +368,8 @@ class BaseCompoundProblem(BaseProblem, ABC, Generic[K, B]):
         -------
         TODO.
         """
+        _ = kwargs.pop("return_data", None)
+        _ = kwargs.pop("key_added", None)  # this should be handled by overriding method
         return self._apply(*args, forward=False, **kwargs)
 
     @property
@@ -425,6 +433,76 @@ class BaseCompoundProblem(BaseProblem, ABC, Generic[K, B]):
         self._problem_manager.remove_problem(key)
         return self
 
+    def save(
+        self,
+        dir_path: Optional[str] = None,
+        file_prefix: Optional[str] = None,
+        overwrite: bool = False,
+        protocol: Literal["highest", "default"] = "highest",
+    ) -> None:
+        """
+        Save the model.
+
+        As of now this method pickled the problem class instance. Modifications depend on the I/O of the backend.
+
+        Parameters
+        ----------
+        dir_path
+            Path to a directory, defaults to current directory
+        file_prefix
+            Prefix to prepend to the file name.
+        overwrite
+            Overwrite existing data or not.
+        protocol
+            Pickle protocol to use.
+
+        Returns
+        -------
+        None
+        """
+        prot = pickle.HIGHEST_PROTOCOL if protocol == "highest" else pickle.DEFAULT_PROTOCOL
+        file_name = (
+            f"{file_prefix}_{self.__class__.__name__}.pkl"
+            if file_prefix is not None
+            else f"{self.__class__.__name__}.pkl"
+        )
+        file_dir = os.path.join(dir_path, file_name) if dir_path is not None else file_name
+        if os.path.exists(file_dir) and not overwrite:
+            raise ValueError("f{file_dir} already exists. Please provide an unexisting filename for saving.")
+        with open(file_dir, "wb") as f:
+            pickle.dump(self, f, protocol=prot)
+        print(f"TODO: problem saved as {file_dir}")
+
+    @classmethod
+    def load(
+        cls,
+        filename: str,
+    ) -> "BaseCompoundProblem[K, B]":
+        """
+        Instantiate a moscot problem from a saved output.
+
+        Parameters
+        ----------
+        filename
+            filename of the model to load
+
+        Returns
+        -------
+            Loaded instance of the model.
+
+        Examples
+        --------
+        >>> problem = ProblemClass.load(filename) # use the name of the model class used to save
+        >>> problem.push....
+        """
+        if not os.path.exists(filename):
+            raise FileNotFoundError("TODO.")
+        with open(filename, "rb") as f:
+            instance = pickle.load(f)
+        if type(instance) is not cls:
+            raise TypeError(f"The saved model is an instance of {instance.__class__.__name__}.")
+        return instance
+
     @property
     def solutions(self) -> Dict[Tuple[K, K], BaseSolverOutput]:
         """Return dictionary of solutions of OT problems which the biological problem consists of."""
@@ -450,6 +528,12 @@ class BaseCompoundProblem(BaseProblem, ABC, Generic[K, B]):
     def __iter__(self) -> Iterator[Tuple[K, K]]:
         return iter(self.problems)
 
+    def __repr__(self) -> str:
+        return f"{self.__class__.__name__}{list(self.problems.keys())}"
+
+    def __str__(self) -> str:
+        return repr(self)
+
 
 @d.get_sections(base="CompoundProblem", sections=["Parameters", "Raises"])
 @d.dedent
@@ -463,10 +547,6 @@ class CompoundProblem(BaseCompoundProblem[K, B], ABC):
     Parameters
     ----------
     %(BaseCompoundProblem.parameters)s
-
-    Raises
-    ------
-    %(BaseCompoundProblem.raises)s
     """
 
     @property

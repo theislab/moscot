@@ -1,4 +1,4 @@
-from typing import Any, TypeVar, Callable, TYPE_CHECKING
+from typing import Any, Callable, TYPE_CHECKING
 from textwrap import dedent
 
 from docrep import DocstringProcessor
@@ -140,7 +140,7 @@ inplace
     Whether to modify :class:`anndata.AnnData` in place or return the result."""
 _online = """\
 online
-    If `True` the transport matrix is not materialised if in low-rank mode or with `batch_size` not `None`.
+    If `True` the transport matrix is not materialised if it was solved in low-rank mode or with `batch_size != None`.
     This reduces memory complexity but increases run time."""
 _cell_trans_params = """\
 source
@@ -183,15 +183,66 @@ normalize
     matrix is row-stochastic, otherwise column-stochastic."""
 _solve_kwargs = """\
 kwargs
-    keyword arguments for the backend-specific solver, see NOTEBOOK."""
+    keyword arguments for the backend-specific solver, TODO see NOTEBOOK."""
+_heatmap_kwargs = """\
+kwargs
+    keyword arguments for the heatmap visualisation."""
+_heatmap_plot = """\
+plot
+    TODO: plots the transition matrix."""
 _ott_jax_batch_size = """\
 batch_size
     number of data points the matrix-vector products are applied to at the same time. The larger, the more memory
     is required."""
-
-# RETURNS
+_plotting = """\
+figsize
+    Size of the figure in inches.
+dpi
+    Dots per inch.
+save
+    Path where to save the plot. If `None`, the plot is not saved."""
+_input_plotting = """\
+input
+    The :class:`anndata.AnnData` instance(s) where the results of the corresponding method of the moscot problem
+    instance is saved. Alternatively, the instance of the moscot problem can be passed, too.
+    """
+_key_stored = """\
+key_stored
+    A key of :class:`anndata.AnnData` where the results of the corresponding method of the moscot problem instance
+    is saved."""
+_cont_cmap = """\
+cont_cmap
+    Colormap for continuous annotations, see :class:`matplotlib.colors.Colormap`."""
+_cbar_kwargs = """\
+cbar_kwargs
+    Keyword arguments for :meth:`matplotlib.figure.Figure.colorbar`."""
+_ax = """\
+ax
+    Axes, :class:`matplotlib.axes.Axes`."""
+_key_added_plotting = """\
+key_added
+    Key in :attr:`anndata.AnnData.uns` and/or :attr:`anndata.AnnData.obs` where the results for the corresponding
+    plotting functions are stored. See TODO Notebook for how :mod:`moscot.plotting` works."""
+_constant_fill_value = """\
+constant_fill_value
+    Color fill value for cells in the UMAP not belonging to source or target distribution."""
+_plot_time_points = """\
+time_points
+    Time points which are colorised in the embedding plot."""
+_return_fig = """\
+return_fig
+    Whether to return the figure."""
+_return_all = """\
+return_all
+    If `True` returns all the intermediate masses if pushed through multiple transport plans, returned as a
+    dictionary."""
+_return_data = """\
+return_data
+    Whether to return the data."""
+# returns
 _return_cell_transition = """\
 Transition matrix of cells or groups of cells."""
+
 _alignment_mixin_returns = """\
 If ``inplace = False``, returns a :class:`numpy.ndarray` with aligned coordinates.
 
@@ -200,18 +251,15 @@ Otherwise, modifies the ``adata`` object with the following key:
     - :attr:`anndata.AnnData.obsm` ``['{key_added}']`` - the above mentioned :class:`numpy.ndarray`.
 """
 
-RT = TypeVar("RT")  # return type
-O = TypeVar("O")  # object type
 
-
-def inject_docs(**kwargs: Any) -> Callable[[Callable[..., RT]], Callable[..., RT]]:
-    def decorator(obj: O) -> O:
+def inject_docs(**kwargs: Any) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
+    def decorator(obj: Any) -> Any:
         if TYPE_CHECKING:
             assert isinstance(obj.__doc__, str)
         obj.__doc__ = dedent(obj.__doc__).format(**kwargs)
         return obj
 
-    def decorator2(obj: O) -> O:
+    def decorator2(obj: Any) -> Any:
         obj.__doc__ = dedent(kwargs["__doc__"])
         return obj
 
@@ -265,8 +313,22 @@ d = DocstringProcessor(
     stage=_stage,
     normalize_cell_transition=_normalize_cell_transition,
     solve_kwargs=_solve_kwargs,
+    heatmap_kwargs=_heatmap_kwargs,
+    heatmap_plot=_heatmap_plot,
     ott_jax_batch_size=_ott_jax_batch_size,
     other_key=_other_key,
     other_adata=_other_adata,
     return_cell_transition=_return_cell_transition,
+    plotting=_plotting,
+    input_plotting=_input_plotting,
+    cont_cmap=_cont_cmap,
+    cbar_kwargs=_cbar_kwargs,
+    key_stored=_key_stored,
+    ax=_ax,
+    key_added_plotting=_key_added_plotting,
+    constant_fill_value=_constant_fill_value,
+    plot_time_points=_plot_time_points,
+    return_fig=_return_fig,
+    return_all=_return_all,
+    return_data=_return_data,
 )

@@ -70,7 +70,7 @@ bibtex_default_style = "alpha"
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ["_templates"]
-source_suffix = [".rst", ".ipynb"]
+source_suffix = [".rst"]  # , ".ipynb"]
 master_doc = "index"
 pygments_style = "sphinx"
 

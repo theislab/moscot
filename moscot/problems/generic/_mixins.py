@@ -2,10 +2,10 @@ from typing import Any, Literal, Optional, Protocol, TYPE_CHECKING
 
 import pandas as pd
 
-from moscot._docs import d
-from moscot._types import Filter_t
+from moscot._types import Str_Dict_t
 from moscot.problems.base import AnalysisMixin  # type: ignore[attr-defined]
-from moscot._constants._constants import AggregationMode
+from moscot._docs._docs_mixins import d_mixins
+from moscot._constants._constants import AggregationMode, PlottingDefaults
 from moscot.problems.base._mixins import AnalysisMixinProtocol
 from moscot.problems.base._compound_problem import B, K
 
@@ -17,7 +17,6 @@ class GenericAnalysisMixinProtocol(AnalysisMixinProtocol[K, B], Protocol[K, B]):
 
     def _cell_transition(  # TODO(@MUCDK) think about removing _cell_transition_non_online
         self: AnalysisMixinProtocol[K, B],
-        online: bool,
         *args: Any,
         **kwargs: Any,
     ) -> pd.DataFrame:
@@ -31,21 +30,20 @@ class GenericAnalysisMixin(AnalysisMixin[K, B]):
         super().__init__(*args, **kwargs)
         self._batch_key: Optional[str] = None
 
-    @d.dedent
+    @d_mixins.dedent
     def cell_transition(
         self: GenericAnalysisMixinProtocol[K, B],
-        source_key: K,
-        target_key: K,
-        source_annotation: Filter_t = None,
-        target_annotation: Filter_t = None,
+        source: K,
+        target: K,
+        source_groups: Optional[Str_Dict_t] = None,
+        target_groups: Optional[Str_Dict_t] = None,
         key: Optional[str] = None,
         forward: bool = False,  # return value will be row-stochastic if forward=True, else column-stochastic
         aggregation_mode: Literal["annotation", "cell"] = AggregationMode.ANNOTATION,  # type: ignore[assignment]
         online: bool = False,
-        other_key: Optional[str] = None,
-        other_adata: Optional[str] = None,
         batch_size: Optional[int] = None,
         normalize: bool = True,
+        key_added: Optional[str] = PlottingDefaults.CELL_TRANSITION,
     ) -> pd.DataFrame:
         """
         Compute a grouped cell transition matrix.
@@ -64,23 +62,31 @@ class GenericAnalysisMixin(AnalysisMixin[K, B]):
         %(other_adata)s
         %(ott_jax_batch_size)s
         %(normalize_cell_transition)s
+        %(key_added_plotting)s
 
         Returns
         -------
         %(return_cell_transition)s
+
+        Notes
+        -----
+        %(notes_cell_transition)s
         """
         if TYPE_CHECKING:
             assert isinstance(self.batch_key, str)
         return self._cell_transition(
             key=self.batch_key,
-            source_key=source_key,
-            target_key=target_key,
-            source_annotation=source_annotation,
-            target_annotation=target_annotation,
+            source=source,
+            target=target,
+            source_groups=source_groups,
+            target_groups=target_groups,
             forward=forward,
             aggregation_mode=AggregationMode(aggregation_mode),
             online=online,
+            batch_size=batch_size,
+            normalize=normalize,
             other_key=None,
+            key_added=key_added,
         )
 
     @property

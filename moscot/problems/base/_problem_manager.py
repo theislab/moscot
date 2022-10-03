@@ -99,7 +99,7 @@ class ProblemManager(Generic[K, B]):
 
         for key, dim in dims.items():
             if len(dim) > 1:
-                raise ValueError(f"TODO: key `{key}` is associated with more than 1 dimensnions `{dim}`")
+                raise ValueError(f"TODO: key `{key}` is associated with more than 1 dimensions `{dim}`")
 
     @property
     def solutions(self) -> Dict[Tuple[K, K], BaseSolverOutput]:

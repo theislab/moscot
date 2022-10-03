@@ -5,7 +5,7 @@ from typing import Any, Dict, Tuple, Union, Generic, Literal, Mapping, TypeVar, 
 import warnings
 
 from moscot._docs import d
-from moscot._types import ArrayLike, DTypeLike
+from moscot._types import ArrayLike
 from moscot.solvers._output import BaseSolverOutput
 from moscot.solvers._tagged_array import Tag, TaggedArray
 
@@ -134,7 +134,7 @@ class BaseSolver(Generic[O], ABC):
 
 @d.get_sections(base="OTSolver", sections=["Parameters", "Raises"])
 @d.dedent
-class OTSolver(TagConverterMixin, BaseSolver[O], ABC):
+class OTSolver(TagConverterMixin, BaseSolver[O], ABC):  # noqa: B024
     """OTSolver class."""
 
     def __call__(
@@ -148,7 +148,6 @@ class OTSolver(TagConverterMixin, BaseSolver[O], ABC):
         tau_b: float = 1.0,
         tags: Mapping[Literal["x", "y", "xy"], Tag] = MappingProxyType({}),
         device: Optional[Any] = None,
-        dtype: Optional[DTypeLike] = None,
         **kwargs: Any,
     ) -> O:
         """Call method."""
@@ -160,7 +159,7 @@ class OTSolver(TagConverterMixin, BaseSolver[O], ABC):
         if not res.converged:
             warnings.warn("Solver did not converge")
 
-        return res.to(device=device, dtype=dtype)  # type: ignore[return-value]
+        return res.to(device=device)  # type: ignore[return-value]
 
     def _prepare_kwargs(self, data: TaggedArrayData, **kwargs: Any) -> Dict[str, Any]:
         def assert_linear() -> None:
@@ -185,6 +184,6 @@ class OTSolver(TagConverterMixin, BaseSolver[O], ABC):
             raise NotImplementedError(f"TODO: {self.problem_kind}")
 
         if self.problem_kind != ProblemKind.QUAD_FUSED:
-            kwargs.pop("alpha", None)
+            _ = kwargs.pop("alpha", None)
 
         return {**kwargs, **data_kwargs}

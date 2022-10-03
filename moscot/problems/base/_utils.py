@@ -1,12 +1,12 @@
 from types import MappingProxyType
-from typing import Any, Dict, Type, Tuple, Literal, Callable, Iterable, Optional, TYPE_CHECKING
+from typing import Any, Dict, List, Type, Tuple, Literal, Callable, Iterable, Optional, TYPE_CHECKING
 from functools import partial, update_wrapper
 
 import pandas as pd
 
 from anndata import AnnData
 
-from moscot._types import Filter_t
+from moscot._types import Str_Dict_t
 from moscot._constants._constants import AggregationMode
 
 __all__ = [
@@ -52,23 +52,23 @@ def _validate_annotations_helper(
     annotation_key: Optional[str] = None,
     annotations: Optional[Iterable[Any]] = None,
     aggregation_mode: Literal["annotation", "cell"] = AggregationMode.ANNOTATION,  # type: ignore[assignment]
-) -> Iterable[Any]:
+) -> List[Any]:
     if aggregation_mode == AggregationMode.ANNOTATION:  # type: ignore[comparison-overlap]
         if TYPE_CHECKING:  # checked in _check_argument_compatibility_cell_transition(
             assert annotations is not None
-        annotations_verified = set(annotations).intersection(set(df[annotation_key].cat.categories))
+        annotations_verified = set(df[annotation_key].cat.categories).intersection(set(annotations))
         if not len(annotations_verified):
             raise ValueError(f"TODO: None of {annotations} found in distribution corresponding to {annotation_key}.")
-        return annotations_verified
+        return list(annotations_verified)
     return [None]
 
 
 def _check_argument_compatibility_cell_transition(
+    source_annotation: Str_Dict_t,
+    target_annotation: Str_Dict_t,
     key: Optional[str] = None,
     other_key: Optional[str] = None,
     other_adata: Optional[str] = None,
-    source_annotation: Filter_t = None,
-    target_annotation: Filter_t = None,
     aggregation_mode: Literal["annotation", "cell"] = AggregationMode.ANNOTATION,  # type: ignore[assignment]
     forward: bool = False,
     **_: Any,
@@ -96,10 +96,8 @@ def _get_df_cell_transition(
 
 def _validate_args_cell_transition(
     adata: AnnData,
-    arg: Filter_t = None,
-) -> Tuple[Optional[str], Optional[Iterable[Any]]]:
-    if arg is None:
-        return (None, None)
+    arg: Str_Dict_t,
+) -> Tuple[str, Iterable[Any]]:
     if isinstance(arg, str):
         if arg not in adata.obs:
             raise KeyError(f"TODO. {arg} not in adata.obs.columns")
@@ -136,13 +134,13 @@ def _get_categories_from_adata(
 
 
 def _get_problem_key(
-    source_key: Optional[Any] = None,  # TODO(@MUCDK) using `K` induces circular import, resolve
-    target_key: Optional[Any] = None,  # TODO(@MUCDK) using `K` induces circular import, resolve
+    source: Optional[Any] = None,  # TODO(@MUCDK) using `K` induces circular import, resolve
+    target: Optional[Any] = None,  # TODO(@MUCDK) using `K` induces circular import, resolve
 ) -> Tuple[Any, Any]:  # TODO(@MUCDK) using `K` induces circular import, resolve
-    if source_key is not None and target_key is not None:
-        return (source_key, target_key)
-    elif source_key is None and target_key is not None:
-        return ("src", target_key)  # TODO(@MUCDK) make package constant
-    elif source_key is not None and target_key is None:
-        return (source_key, "ref")  # TODO(@MUCDK) make package constant
+    if source is not None and target is not None:
+        return (source, target)
+    elif source is None and target is not None:
+        return ("src", target)  # TODO(@MUCDK) make package constant
+    elif source is not None and target is None:
+        return (source, "ref")  # TODO(@MUCDK) make package constant
     return ("src", "ref")
