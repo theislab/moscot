@@ -287,8 +287,8 @@ class TemporalMixin(AnalysisMixin[K, B]):
     @d_mixins.dedent
     def push(
         self: TemporalMixinProtocol[K, B],
-        source: K,
-        target: K,
+        start: K,
+        end: K,
         data: Optional[Union[str, ArrayLike]] = None,
         subset: Optional[Union[str, List[str], Tuple[int, int]]] = None,
         scale_by_marginals: bool = True,
@@ -320,8 +320,8 @@ class TemporalMixin(AnalysisMixin[K, B]):
         %(BaseCompoundProblem_push.raises)s
         """
         result = self._apply(
-            start=source,
-            end=target,
+            start=start,
+            end=end,
             data=data,
             subset=subset,
             forward=True,
@@ -345,8 +345,8 @@ class TemporalMixin(AnalysisMixin[K, B]):
     @d_mixins.dedent
     def pull(
         self: TemporalMixinProtocol[K, B],
-        source: K,
-        target: K,
+        start: K,
+        end: K,
         data: Optional[Union[str, ArrayLike]] = None,
         subset: Optional[Union[str, List[str], Tuple[int, int]]] = None,
         scale_by_marginals: bool = True,
@@ -378,8 +378,8 @@ class TemporalMixin(AnalysisMixin[K, B]):
         %(BaseCompoundProblem_pull.raises)s
         """
         result = self._apply(
-            start=source,
-            end=target,
+            start=start,
+            end=end,
             data=data,
             subset=subset,
             forward=False,
