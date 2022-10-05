@@ -23,10 +23,11 @@ In order to install **moscot**, run::
     pip install -e.'[dev]'
     pre-commit install
 
-If used with GPU additionally run
-``` pip install "jax[cuda]" -f https://storage.googleapis.com/jax-releases/jax_releases.html ```
+for ``pre-commit`` you might have to install ``prettier`` with conda: ``conda install -c conda-forge prettier``.
 
-for ``pre-commit`` you might have to install ``prettier`` with conda: ``conda install -c conda-forge prettier``
+If used with GPU, additionally run::
+
+    pip install --upgrade "jax[cuda]" -f https://storage.googleapis.com/jax-releases/jax_cuda_releases.html
 
 
 Development (temporary)
