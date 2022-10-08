@@ -96,7 +96,7 @@ which is passed or saved as an attribute of :mod:`moscot.problems.base.CompoundP
 ###############################################################################
 # general input
 _input_plotting = """\
-inputs
+inp
     An instance of :class:`anndata.AnnData` where the results of the corresponding method
     of the :mod:`moscot.problems` instance is saved.
     Alternatively, the instance of the moscot problem can be passed, too."""

@@ -19,7 +19,7 @@ from moscot.problems.base._compound_problem import K
 
 @d_plotting.dedent
 def cell_transition(
-    inputs: Union[AnnData, Tuple[AnnData, AnnData], CompoundProblem],
+    inp: Union[AnnData, Tuple[AnnData, AnnData], CompoundProblem],
     uns_key: str = PlottingKeys.CELL_TRANSITION,
     row_labels: Optional[str] = None,
     col_labels: Optional[str] = None,
@@ -55,7 +55,7 @@ def cell_transition(
     -----
     %(notes_cell_transition)s
     """
-    adata1, adata2 = _input_to_adatas(inputs)
+    adata1, adata2 = _input_to_adatas(inp)
 
     key = PlottingDefaults.CELL_TRANSITION if uns_key is None else uns_key
     if key not in adata1.uns[AdataKeys.UNS][PlottingKeys.CELL_TRANSITION]:
@@ -84,7 +84,7 @@ def cell_transition(
 
 @d_plotting.dedent
 def sankey(
-    inputs: Union[AnnData, TemporalProblem, LineageProblem],
+    inp: Union[AnnData, TemporalProblem, LineageProblem],
     uns_key: Optional[str] = None,
     captions: Optional[List[str]] = None,
     title: Optional[str] = None,
@@ -120,7 +120,7 @@ def sankey(
     -----
     %(notes_sankey)s
     """
-    adata, _ = _input_to_adatas(inputs)
+    adata, _ = _input_to_adatas(inp)
 
     key = PlottingDefaults.SANKEY if uns_key is None else uns_key
     if key not in adata.uns[AdataKeys.UNS][PlottingKeys.SANKEY]:
@@ -147,7 +147,7 @@ def sankey(
 
 @d_plotting.dedent
 def push(
-    inputs: Union[AnnData, TemporalProblem, LineageProblem, CompoundProblem],
+    inp: Union[AnnData, TemporalProblem, LineageProblem, CompoundProblem],
     uns_key: Optional[str] = None,
     time_points: Optional[Iterable[K]] = None,
     basis: str = "umap",
@@ -187,7 +187,7 @@ def push(
     -----
     %(return_push_pull)s
     """
-    adata, _ = _input_to_adatas(inputs)
+    adata, _ = _input_to_adatas(inp)
 
     key = PlottingDefaults.PUSH if uns_key is None else uns_key
     if key not in adata.obs:
@@ -214,7 +214,7 @@ def push(
 
 @d_plotting.dedent
 def pull(
-    inputs: Union[AnnData, TemporalProblem, LineageProblem, CompoundProblem],
+    inp: Union[AnnData, TemporalProblem, LineageProblem, CompoundProblem],
     uns_key: Optional[str] = None,
     time_points: Optional[Iterable[K]] = None,
     basis: str = "umap",
@@ -254,7 +254,7 @@ def pull(
     -----
     %(return_push_pull)s
     """
-    adata, _ = _input_to_adatas(inputs)
+    adata, _ = _input_to_adatas(inp)
 
     key = PlottingDefaults.PULL if uns_key is None else uns_key
     if key not in adata.obs:

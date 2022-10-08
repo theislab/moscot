@@ -334,17 +334,17 @@ def _contrasting_color(r: int, g: int, b: int) -> str:
     return "#000000" if r * 0.299 + g * 0.587 + b * 0.114 > 186 else "#ffffff"
 
 
-def _input_to_adatas(inputs: Union[AnnData, Tuple[AnnData, AnnData], Type[CompoundProblem]]) -> Tuple[AnnData, AnnData]:
-    if isinstance(inputs, CompoundProblem):
-        return inputs.adata, inputs._secondary_adata if hasattr(inputs, "_secondary_adata") else inputs.adata
-    if isinstance(inputs, AnnData):
-        return inputs, inputs
-    elif isinstance(inputs, tuple):
-        if not isinstance(inputs[0], AnnData):
+def _input_to_adatas(inp: Union[AnnData, Tuple[AnnData, AnnData], Type[CompoundProblem]]) -> Tuple[AnnData, AnnData]:
+    if isinstance(inp, CompoundProblem):
+        return inp.adata, inp._secondary_adata if hasattr(inp, "_secondary_adata") else inp.adata
+    if isinstance(inp, AnnData):
+        return inp, inp
+    elif isinstance(inp, tuple):
+        if not isinstance(inp[0], AnnData):
             raise TypeError("TODO: input must be `AnnData`.")
-        if not isinstance(inputs[1], AnnData):
+        if not isinstance(inp[1], AnnData):
             raise TypeError("TODO: input must be `AnnData`.")
-        return inputs  # type: ignore[return-value]
+        return inp  # type: ignore[return-value]
     else:
         raise NotImplementedError("TODO.")
 
