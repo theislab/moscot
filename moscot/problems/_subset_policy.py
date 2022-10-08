@@ -1,9 +1,8 @@
 from abc import ABC, abstractmethod
-from typing import Any, Set, Dict, List, Tuple, Union, Generic, TypeVar, Hashable, Iterable, Optional, Sequence
+from typing import Any, Set, Dict, List, Tuple, Union, Generic, Literal, TypeVar, Hashable, Iterable, Optional, Sequence
 from operator import gt, lt
 from itertools import product
 
-from typing_extensions import Literal
 import pandas as pd
 import networkx as nx
 
@@ -183,7 +182,7 @@ class SubsetPolicy(Generic[K]):
         return self._axis
 
 
-class OrderedPolicy(SubsetPolicy[K], ABC):
+class OrderedPolicy(SubsetPolicy[K], ABC):  # noqa: B024
     def __init__(self, adata: Union[AnnData, pd.Series, pd.Categorical], **kwargs: Any):
         super().__init__(adata, **kwargs)
         # TODO(michalk8): verify whether they can be ordered (only numeric?) + warn (or just raise)
@@ -214,7 +213,7 @@ class OrderedPolicy(SubsetPolicy[K], ABC):
         return path if forward else path[::-1]
 
 
-class SimplePlanPolicy(SubsetPolicy[K], ABC):
+class SimplePlanPolicy(SubsetPolicy[K], ABC):  # noqa: B024
     def _plan(self, **_: Any) -> Sequence[Tuple[K, K]]:
         return list(self._graph)
 
@@ -232,7 +231,7 @@ class StarPolicy(SimplePlanPolicy[K]):
         return [(src, ref) for src, ref in plan if src in filter]
 
     @property
-    def reference(self) -> K:
+    def reference(self) -> K:  # type: ignore[return-value]
         for _, ref in self._graph:
             return ref
 

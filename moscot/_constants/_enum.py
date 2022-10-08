@@ -38,21 +38,19 @@ def _pretty_raise_enum(cls: Type["ErrorFormatterABC"], func: Callable[..., Any])
     return wrapper
 
 
-class ABCEnumMeta(EnumMeta, ABCMeta):  # noqa: D101
-    def __call__(cls, *args: Any, **kwargs: Any) -> Any:  # noqa: D102
+class ABCEnumMeta(EnumMeta, ABCMeta):  # noqa: B024
+    def __call__(cls, *args: Any, **kwargs: Any) -> Any:
         if getattr(cls, "__error_format__", None) is None:
             raise TypeError(f"Can't instantiate class `{cls.__name__}` " f"without `__error_format__` class attribute.")
         return super().__call__(*args, **kwargs)
 
-    def __new__(  # noqa: D102
-        cls, clsname: str, superclasses: Tuple[type], attributedict: Dict[str, Any]
-    ) -> "ABCEnumMeta":
+    def __new__(cls, clsname: str, superclasses: Tuple[type], attributedict: Dict[str, Any]) -> "ABCEnumMeta":
         res = super().__new__(cls, clsname, superclasses, attributedict)  # type: ignore[arg-type]
         res.__new__ = _pretty_raise_enum(res, res.__new__)  # type: ignore[assignment,arg-type]
         return res
 
 
-class ErrorFormatterABC(ABC):
+class ErrorFormatterABC(ABC):  # noqa: B024
     """Mixin class that formats invalid value when constructing an enum."""
 
     __error_format__ = "Invalid option `{0}` for `{1}`. Valid options are: `{2}`."

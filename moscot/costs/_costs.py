@@ -1,8 +1,7 @@
 from abc import ABC, abstractmethod
-from typing import Any, List, Union, Mapping, Optional
+from typing import Any, List, Union, Literal, Mapping, Optional
 from numbers import Number
 
-from typing_extensions import Literal
 import networkx as nx
 
 import numpy as np
@@ -98,7 +97,7 @@ class BarcodeDistance(BaseLoss):
 class LeafDistance(BaseLoss):
     """Class handling leaf distances (from trees)."""
 
-    def _compute(  # type: ignore[override]
+    def _compute(
         self,
         **kwargs: Any,
     ) -> ArrayLike:

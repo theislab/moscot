@@ -1,7 +1,6 @@
-from typing import Any, Mapping, Optional
+from typing import Any, Literal, Mapping, Optional
 from pathlib import Path
 
-from typing_extensions import Literal
 import pytest
 
 import numpy as np

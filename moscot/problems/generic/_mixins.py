@@ -1,11 +1,10 @@
-from typing import Any, Optional, TYPE_CHECKING
+from typing import Any, Literal, Optional, Protocol, TYPE_CHECKING
 
-from typing_extensions import Literal, Protocol
 import pandas as pd
 
-from moscot._docs import d
 from moscot._types import Str_Dict_t
 from moscot.problems.base import AnalysisMixin  # type: ignore[attr-defined]
+from moscot._docs._docs_mixins import d_mixins
 from moscot._constants._constants import AggregationMode, PlottingDefaults
 from moscot.problems.base._mixins import AnalysisMixinProtocol
 from moscot.problems.base._compound_problem import B, K
@@ -31,13 +30,14 @@ class GenericAnalysisMixin(AnalysisMixin[K, B]):
         super().__init__(*args, **kwargs)
         self._batch_key: Optional[str] = None
 
-    @d.dedent
+    @d_mixins.dedent
     def cell_transition(
         self: GenericAnalysisMixinProtocol[K, B],
-        source_key: K,
-        target_key: K,
-        source_annotation: Str_Dict_t,
-        target_annotation: Str_Dict_t,
+        source: K,
+        target: K,
+        source_groups: Optional[Str_Dict_t] = None,
+        target_groups: Optional[Str_Dict_t] = None,
+        key: Optional[str] = None,
         forward: bool = False,  # return value will be row-stochastic if forward=True, else column-stochastic
         aggregation_mode: Literal["annotation", "cell"] = AggregationMode.ANNOTATION,  # type: ignore[assignment]
         online: bool = False,
@@ -53,49 +53,33 @@ class GenericAnalysisMixin(AnalysisMixin[K, B]):
 
         Parameters
         ----------
-        source_key
-            Key identifying the source distribution.
-        target_key
-            Key identifying the target distribution.
-        source_annotation
-            Can be one of the following:
-                - if `source_annotation` is of type :class:`str` this should correspond to a key in
-                  :attr:`anndata.AnnData.obs`. In this case, the categories in the transition matrix correspond to the
-                  unique values in :attr:`anndata.AnnData.obs` ``['{source_annotation}']``
-                - if `target_annotation` is of type :class:`dict`, its key should correspond to a key in
-                  :attr:`anndata.AnnData.obs` and its value to a subset of categories present in
-                  :attr:`anndata.AnnData.obs` ``['{source_annotation.keys()[0]}']``
-        target_annotation
-            Can be one of the following
-                - if `target_annotation` is of type :class:`str` this should correspond to a key in
-                  :attr:`anndata.AnnData.obs`. In this case, the categories in the transition matrix correspond to the
-                  unique values in :attr:`anndata.AnnData.obs` ``['{target_annotation}']``
-                - if `late_annotation` is of :class:`dict`, its key should correspond to a key in
-                  :attr:`anndata.AnnData.obs` and its value to a subset of categories present in
-                  :attr:`anndata.AnnData.obs` ``['{target_annotation.keys()[0]}']``
+        %(cell_trans_params)s
+        %(key)s
         %(forward_cell_transition)s
         %(aggregation_mode)s
         %(online)s
+        %(other_key)s
+        %(other_adata)s
         %(ott_jax_batch_size)s
-        %(normalize_cell_transition)s
+        %(normalize)s
         %(key_added_plotting)s
 
         Returns
         -------
-        Transition matrix of cells or groups of cells.
+        %(return_cell_transition)s
 
         Notes
         -----
-        To visualise the results, see :func:`moscot.pl.cell_transition`.
+        %(notes_cell_transition)s
         """
         if TYPE_CHECKING:
             assert isinstance(self.batch_key, str)
         return self._cell_transition(
             key=self.batch_key,
-            source_key=source_key,
-            target_key=target_key,
-            source_annotation=source_annotation,
-            target_annotation=target_annotation,
+            source=source,
+            target=target,
+            source_groups=source_groups,
+            target_groups=target_groups,
             forward=forward,
             aggregation_mode=AggregationMode(aggregation_mode),
             online=online,

@@ -1,8 +1,6 @@
 from abc import ABC
 from enum import Enum
-from typing import Any, Union, Optional
-
-from typing_extensions import Literal
+from typing import Any, Union, Literal, Optional
 
 from ott.geometry import Grid, Epsilon, Geometry, PointCloud
 from ott.core.sinkhorn import Sinkhorn
@@ -13,8 +11,8 @@ from ott.core.linear_problems import LinearProblem
 from ott.core.gromov_wasserstein import GromovWasserstein
 import jax.numpy as jnp
 
-from moscot._docs import d
 from moscot._types import ArrayLike
+from moscot._docs._docs import d
 from moscot.backends.ott._output import OTTOutput
 from moscot.solvers._base_solver import OTSolver, ProblemKind
 from moscot.solvers._tagged_array import TaggedArray
@@ -44,7 +42,7 @@ class Cost(str, Enum):
 
 
 # TODO(michalk8): consider removing the variadic parametrization in the future
-class OTTJaxSolver(OTSolver[OTTOutput], ABC):
+class OTTJaxSolver(OTSolver[OTTOutput], ABC):  # noqa: B024
     """
     Class handling the preparation of :class:`ott.geometry.Geometry`.
 
@@ -58,7 +56,7 @@ class OTTJaxSolver(OTSolver[OTTOutput], ABC):
             - :class:`ott.core.gromov_wasserstein.GromovWasserstein`
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
         self._solver: Optional[Union[Sinkhorn, LRSinkhorn, GromovWasserstein]] = None
         self._problem: Optional[Union[LinearProblem, QuadraticProblem]] = None

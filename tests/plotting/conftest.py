@@ -8,14 +8,14 @@ from anndata import AnnData
 from moscot._constants._constants import Key, AdataKeys, PlottingKeys, PlottingDefaults
 
 
-@pytest.fixture
+@pytest.fixture()
 def adata_pl_cell_transition(gt_temporal_adata: AnnData) -> AnnData:
     plot_vars = {
-        "transition_matrix": gt_temporal_adata.uns[f"cell_transition_10_105_forward"],
-        "source_annotation": "cell_type",
-        "target_annotation": "cell_type",
-        "source_key": 0,
-        "target_key": 1,
+        "transition_matrix": gt_temporal_adata.uns["cell_transition_10_105_forward"],
+        "source_groups": "cell_type",
+        "target_groups": "cell_type",
+        "source": 0,
+        "target": 1,
     }
     Key.uns.set_plotting_vars(
         gt_temporal_adata, AdataKeys.UNS, PlottingKeys.CELL_TRANSITION, PlottingDefaults.CELL_TRANSITION, plot_vars
@@ -24,7 +24,7 @@ def adata_pl_cell_transition(gt_temporal_adata: AnnData) -> AnnData:
     return gt_temporal_adata
 
 
-@pytest.fixture
+@pytest.fixture()
 def adata_pl_push(adata_time: AnnData) -> AnnData:
     rng = np.random.RandomState(0)
     plot_vars = {"temporal_key": "time"}
@@ -33,7 +33,7 @@ def adata_pl_push(adata_time: AnnData) -> AnnData:
     return adata_time
 
 
-@pytest.fixture
+@pytest.fixture()
 def adata_pl_pull(adata_time: AnnData) -> AnnData:
     rng = np.random.RandomState(0)
     plot_vars = {"temporal_key": "time"}
@@ -42,7 +42,7 @@ def adata_pl_pull(adata_time: AnnData) -> AnnData:
     return adata_time
 
 
-@pytest.fixture
+@pytest.fixture()
 def adata_pl_sankey(adata_time: AnnData) -> AnnData:
     rng = np.random.RandomState(0)
     celltypes = ["A", "B", "C", "D", "E"]

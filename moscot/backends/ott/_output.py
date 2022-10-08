@@ -1,7 +1,6 @@
-from typing import Any, Tuple, Union, Optional
+from typing import Any, Tuple, Union, Literal, Optional
 
 from matplotlib.figure import Figure
-from typing_extensions import Literal
 import matplotlib.pyplot as plt
 
 from ott.core.sinkhorn import SinkhornOutput as OTTSinkhornOutput
@@ -45,7 +44,6 @@ class ConvergencePlotterMixin:
         ----------
         last_k
             How many of the last k steps of the algorithm to plot. If `None`, the full curve is plotted.
-        %(plotting)s
 
         Returns
         -------
@@ -140,7 +138,7 @@ class OTTOutput(ConvergencePlotterMixin, BaseSolverOutput):
         """
         # TODO(michalk8): when polishing docs, move the definition to the base class + use docrep
         if isinstance(device, str) and ":" in device:
-            device, ix = device.split(":")  # type: ignore[assignment]
+            device, ix = device.split(":")
             idx = int(ix)
         else:
             idx = 0

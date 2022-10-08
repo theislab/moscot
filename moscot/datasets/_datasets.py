@@ -5,7 +5,7 @@ import os
 from scanpy import read
 from anndata import AnnData
 
-from moscot._docs import d
+from moscot._docs._docs import d
 
 __all__ = ["simulation", "mosta", "hspc"]
 PathLike = Union[os.PathLike, str]
@@ -94,7 +94,7 @@ def mosta(
     -------
     %(adata)s
     """
-    return _load_dataset_from_url(path, *_datasets[f"mosta"], **kwargs)
+    return _load_dataset_from_url(path, *_datasets["mosta"], **kwargs)
 
 
 @d.dedent
@@ -103,11 +103,12 @@ def hspc(
     **kwargs: Any,
 ) -> AnnData:
     """
-    Subsampled and processed data of the `NeurIPS Multimodal Single-Cell Integration Challenge
-     <https://www.kaggle.com/competitions/open-problems-multimodal/data>`.
+    Subsampled and processed data of the `NeurIPS Multimodal Single-Cell Integration Challenge \
+    <https://www.kaggle.com/competitions/open-problems-multimodal/data>`.
 
-    2000 cells were randomly selected after filtering the training data of the NeurIPS Multimodal Single-Cell Integration Challenge
-    for multiome data and donor `31800`. Subsequently, the 2000 most highly variable genes were selected as well as all peaks
+    2000 cells were randomly selected after filtering the training data of the
+    NeurIPS Multimodal Single-Cell Integration Challenge for multiome data and donor `31800`.
+    Subsequently, the 2000 most highly variable genes were selected as well as all peaks
     appearing in less than 5% of the cells were filtered out, resulting in 11,607 peaks.
 
     Parameters
@@ -119,4 +120,4 @@ def hspc(
     -------
     %(adata)s
     """
-    return _load_dataset_from_url(path, *_datasets[f"hspc"], **kwargs)
+    return _load_dataset_from_url(path, *_datasets["hspc"], **kwargs)

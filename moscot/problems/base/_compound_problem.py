@@ -7,6 +7,7 @@ from typing import (
     Tuple,
     Union,
     Generic,
+    Literal,
     Mapping,
     TypeVar,
     Callable,
@@ -20,12 +21,11 @@ import os
 import pickle
 
 from scipy.sparse import issparse
-from typing_extensions import Literal
 
 from anndata import AnnData
 
-from moscot._docs import d
 from moscot._types import ArrayLike
+from moscot._docs._docs import d
 from moscot.problems._utils import require_prepare
 from moscot.solvers._output import BaseSolverOutput
 from moscot.problems.base._utils import attributedispatch
@@ -169,18 +169,14 @@ class BaseCompoundProblem(BaseProblem, ABC, Generic[K, B]):
         Parameters
         ----------
         %(key)s
-        policy
-            Defines which transport maps to compute given different cell distributions.
-        subset
-            Subset of :attr:`anndata.AnnData.obs` ``['{key}']`` values of which the policy is to be applied to.
+        %(policy)s
+        %(subset)s
         %(reference)s
         %(axis)s
         %(callback)s
         %(callback_kwargs)s
         %(a)s
         %(b)s
-        kwargs
-            keyword arguments for something.
 
         Returns
         -------
@@ -209,7 +205,11 @@ class BaseCompoundProblem(BaseProblem, ABC, Generic[K, B]):
             break
         return self
 
-    def solve(self, stage: Union[ProblemStage, Tuple[ProblemStage, ...]] = (ProblemStage.PREPARED, ProblemStage.SOLVED), **kwargs: Any) -> "BaseCompoundProblem[K,B]":  # type: ignore[override] # noqa: E501
+    def solve(
+        self,
+        stage: Union[ProblemStage, Tuple[ProblemStage, ...]] = (ProblemStage.PREPARED, ProblemStage.SOLVED),
+        **kwargs: Any,
+    ) -> "BaseCompoundProblem[K,B]":
         """
         Solve the biological problem.
 
@@ -263,7 +263,10 @@ class BaseCompoundProblem(BaseProblem, ABC, Generic[K, B]):
         # TODO(michalk8): should use manager.plan (once implemented), as some problems may not be solved
         start = start if isinstance(start, list) else [start]  # type: ignore[assignment]
         _ = kwargs.pop("end", None)  # make compatible with Explicit/Ordered policy
-        for src, tgt in self._policy.plan(explicit_steps=kwargs.pop("explicit_steps", None), filter=start):  # type: ignore [arg-type]
+        for src, tgt in self._policy.plan(
+            explicit_steps=kwargs.pop("explicit_steps", None),
+            filter=start,  # type: ignore [arg-type]
+        ):
             problem = self.problems[src, tgt]
             fun = problem.push if forward else problem.pull
             res[src] = fun(data=data, scale_by_marginals=scale_by_marginals, **kwargs)
@@ -320,10 +323,13 @@ class BaseCompoundProblem(BaseProblem, ABC, Generic[K, B]):
         %(data)s
         %(subset)s
         %(normalize)s
+
         return_all
-            If `True` and transport maps are applied consecutively only the final mass is returned. Otherwise,
-            all intermediate step results are returned, too.
+            If `True` and transport maps are applied consecutively only the final mass is returned.
+            Otherwise, all intermediate step results are returned, too.
+
         %(scale_by_marginals)s
+
         kwargs
             keyword arguments for :meth:`moscot.problems.CompoundProblem._apply`.
 
@@ -348,10 +354,13 @@ class BaseCompoundProblem(BaseProblem, ABC, Generic[K, B]):
         %(data)s
         %(subset)s
         %(normalize)s
+
         return_all
             If `True` and transport maps are applied consecutively only the final mass is returned. Otherwise,
             all intermediate step results are returned, too.
+
         %(scale_by_marginals)s
+
         kwargs
             Keyword arguments for :meth:`moscot.problems.CompoundProblem._apply`.
 
@@ -389,6 +398,7 @@ class BaseCompoundProblem(BaseProblem, ABC, Generic[K, B]):
         Parameters
         ----------
         %(key)s
+
         problem
             Instance of :class:`moscot.problems.base.OTProblem`. If `None` the problems will be constructed from the
             subset :class:`anndata.AnnData` defined by `key`.
@@ -397,7 +407,7 @@ class BaseCompoundProblem(BaseProblem, ABC, Generic[K, B]):
 
         Returns
         -------
-        :class:`moscot.problems.base.BaseCompoundProblem`
+        :class:`moscot.problems.base.BaseCompoundProblem`.
         """
         if TYPE_CHECKING:
             assert isinstance(self._problem_manager, ProblemManager)
@@ -412,7 +422,6 @@ class BaseCompoundProblem(BaseProblem, ABC, Generic[K, B]):
 
         Parameters
         ----------
-
         %(key)s
 
         Returns
@@ -438,7 +447,6 @@ class BaseCompoundProblem(BaseProblem, ABC, Generic[K, B]):
 
         Parameters
         ----------
-
         dir_path
             Path to a directory, defaults to current directory
         file_prefix

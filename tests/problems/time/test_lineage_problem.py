@@ -34,7 +34,7 @@ class TestLineageProblem:
             assert isinstance(problem[key], BirthDeathProblem)
 
     @pytest.mark.skip(
-        reason="Disabled passing of information which cell distribution OTProblem belongs to. Hence, cannot pass trees in `uns` atm."  # noqa: E501
+        reason="Disabled passing info which cell distribution OTProblem belongs to. Hence, cannot pass trees in `uns`."
     )
     def test_trees_pipeline(self, adata_time_trees: AnnData):
         expected_keys = [(0, 1), (1, 2)]

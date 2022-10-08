@@ -9,72 +9,55 @@ import numpy as np
 
 from anndata import AnnData
 
-from moscot._docs import d
 from moscot.problems.base import CompoundProblem  # type: ignore[attr-defined]
 from moscot.problems.time import LineageProblem, TemporalProblem  # type: ignore[attr-defined]
 from moscot.plotting._utils import _sankey, _heatmap, _plot_temporal, _input_to_adatas
+from moscot._docs._docs_plot import d_plotting
 from moscot._constants._constants import AdataKeys, PlottingKeys, PlottingDefaults
 from moscot.problems.base._compound_problem import K
 
 
-@d.dedent
+@d_plotting.dedent
 def cell_transition(
-    input: Union[AnnData, Tuple[AnnData, AnnData], CompoundProblem],
-    key_stored: Optional[str] = None,
-    cont_cmap: Union[str, mcolors.Colormap] = "viridis",
-    row_annotation_label: Optional[str] = None,
-    col_annotation_label: Optional[str] = None,
-    annotate_values: bool = True,
+    inp: Union[AnnData, Tuple[AnnData, AnnData], CompoundProblem],
+    uns_key: str = PlottingKeys.CELL_TRANSITION,
+    row_labels: Optional[str] = None,
+    col_labels: Optional[str] = None,
+    annotate: bool = True,
+    cmap: Union[str, mcolors.Colormap] = "viridis",
     figsize: Optional[Tuple[float, float]] = None,
     dpi: Optional[int] = None,
     save: Optional[str] = None,
-    cbar_kwargs: Mapping[str, Any] = MappingProxyType({}),
     ax: Optional[Axes] = None,
     return_fig: Optional[bool] = None,
+    cbar_kwargs: Mapping[str, Any] = MappingProxyType({}),
     **kwargs: Any,
 ) -> mpl.figure.Figure:
     """
     Plot a cell transition matrix.
 
-    In order to run this function the corresponding method `cell_transition` of the :class:`moscot.problems` instance
-    must have been run, see `NOTES` for requirements.
+    {desc_cell_transition}
 
     Parameters
     ----------
     %(input_plotting)s
-    %(key_stored)s
-    %(cont_cmap)s
-    row_annotation_label
-        Whether to add annotations to the rows of the transition matrix.
-    col_annotation_label
-        Whether to add annotations to the columns of the transition matrix.
-    annotate_values
-        Whether to add the values to the entries of the transition matrix.
-    %(plotting)s
+    %(uns_key)s
+    %(transition_labels)s
+    %(cmap)s
+    %(figsize_dpi_save)s
     %(cbar_kwargs)s
-    %(ax)s
-    %(return_fig)s
-    %(heatmap_kwargs)s
 
     Returns
     -------
-    A cell transition figure, an instance of :class:`matplotlib.figure.Figure`.
+    %(return_cell_transition)s
 
     Notes
     -----
-    This function looks for the following data in the :class:`anndata.AnnData` object which is passed or saved
-    as an attribute of the instance of type :mod:`moscot.problems.base.CompoundProblem`.
-
-        - transition_matrix
-        - source_annotation
-        - target_annotation
-        - source_key
-        - source_target
-
+    %(notes_cell_transition)s
     """
-    adata1, adata2 = _input_to_adatas(input)
+    adata1, adata2 = _input_to_adatas(inp)
 
-    key = PlottingDefaults.CELL_TRANSITION if key_stored is None else key_stored
+    key = PlottingDefaults.CELL_TRANSITION if uns_key is None else uns_key
     if key not in adata1.uns[AdataKeys.UNS][PlottingKeys.CELL_TRANSITION]:
         raise KeyError("TODO.")
     data = adata1.uns[AdataKeys.UNS][PlottingKeys.CELL_TRANSITION][key]
@@ -83,30 +66,30 @@ def cell_transition(
         row_adata=adata1,
         col_adata=adata2,
         transition_matrix=data["transition_matrix"],
-        row_annotation=data["source_annotation"],
-        col_annotation=data["target_annotation"],
-        row_annotation_label=data["source_key"] if row_annotation_label is None else row_annotation_label,
-        col_annotation_label=data["target_key"] if col_annotation_label is None else col_annotation_label,
-        cont_cmap=cont_cmap,
-        annotate_values=annotate_values,
+        row_annotation=data["source_groups"],
+        col_annotation=data["target_groups"],
+        row_annotation_label=data["source"] if row_labels is None else row_labels,
+        col_annotation_label=data["target"] if col_labels is None else col_labels,
+        cont_cmap=cmap,
+        annotate_values=annotate,
         figsize=figsize,
         dpi=dpi,
-        cbar_kwargs=cbar_kwargs,
         ax=ax,
         save=save,
         return_fig=return_fig,
+        cbar_kwargs=cbar_kwargs,
         **kwargs,
     )
 
 
-@d.dedent
+@d_plotting.dedent
 def sankey(
-    input: Union[AnnData, TemporalProblem, LineageProblem],
-    key_stored: Optional[str] = None,
+    inp: Union[AnnData, TemporalProblem, LineageProblem],
+    uns_key: Optional[str] = None,
     captions: Optional[List[str]] = None,
-    cont_cmap: Union[str, mcolors.Colormap] = "viridis",
-    colorDict: Optional[Dict[str, float]] = None,
     title: Optional[str] = None,
+    colors_dict: Optional[Dict[str, float]] = None,
+    cmap: Union[str, mcolors.Colormap] = "viridis",
     figsize: Optional[Tuple[float, float]] = None,
     dpi: Optional[int] = None,
     save: Optional[str] = None,
@@ -115,43 +98,31 @@ def sankey(
     **kwargs: Any,
 ) -> mpl.figure.Figure:
     """
-    Plot a sankey diagram.
+    Plot a Sankey diagram.
 
-    In order to run this function the corresponding method `sankey` of the :mod:`moscot.problems` instance
-    must have been run, see `NOTES` for requirements.
+    {desc_sankey}
 
     Parameters
     ----------
-    input
-        An instance of :class:`anndata.AnnData` where the corresponding information obtained by the `sankey` method
-        of the :mod:`moscot.problems` instance is saved. Alternatively, the problem instance can be passed directly, i.e. an
-        instance of :class:`moscot.problems.time.TemporalProblem` or :class:`moscot.problems.time.LineageProblem`.
-    %(key_stored)s
-    %(cont_cmap)s
-    %(plotting)s
-    %(cbar_kwargs)s
-    %(ax)s
-    %(return_fig)s
-    kwargs
-        key word arguments for TODO
+    %(input_plotting)s
+    %(uns_key)s
+    %(captions_sankey)s
+    %(title)s
+    %(colors_dict_sankey)s
+    %(cmap)s
+    %(figsize_dpi_save)s
 
     Returns
     -------
-    A sankey figure, an instance of :class:`matplotlib.figure.Figure`.
+    %(return_sankey)s
 
     Notes
     -----
-    This function looks for the following data in the :class:`anndata.AnnData` object which is passed or saved
-    as an attribute of the instance of type :mod:`moscot.problems.base.CompoundProblem`.
-
-        - `transition_matrices`
-        - `captions`
-        - `key`
-
+    %(notes_sankey)s
     """
-    adata, _ = _input_to_adatas(input)
+    adata, _ = _input_to_adatas(inp)
 
-    key = PlottingDefaults.SANKEY if key_stored is None else key_stored
+    key = PlottingDefaults.SANKEY if uns_key is None else uns_key
     if key not in adata.uns[AdataKeys.UNS][PlottingKeys.SANKEY]:
         raise KeyError("TODO.")
     data = adata.uns[AdataKeys.UNS][PlottingKeys.SANKEY][key]
@@ -160,8 +131,8 @@ def sankey(
         key=data["key"],
         transition_matrices=data["transition_matrices"],
         captions=data["captions"] if captions is None else captions,
-        colorDict=colorDict,
-        cont_cmap=cont_cmap,
+        colorDict=colors_dict,
+        cont_cmap=cmap,
         title=title,
         figsize=figsize,
         dpi=dpi,
@@ -174,16 +145,16 @@ def sankey(
     return fig
 
 
-@d.dedent
+@d_plotting.dedent
 def push(
-    input: Union[AnnData, TemporalProblem, LineageProblem],
-    key_stored: Optional[str] = None,
+    inp: Union[AnnData, TemporalProblem, LineageProblem, CompoundProblem],
+    uns_key: Optional[str] = None,
     time_points: Optional[Iterable[K]] = None,
     basis: str = "umap",
-    result_key: str = "plot_tmp",
-    constant_fill_value: float = np.nan,
-    cont_cmap: Union[str, mcolors.Colormap] = "viridis",
+    result_key: str = "plot_push",
+    fill_value: float = np.nan,
     title: Optional[str] = None,
+    cmap: Union[str, mcolors.Colormap] = "viridis",
     figsize: Optional[Tuple[float, float]] = None,
     dpi: Optional[int] = None,
     save: Optional[str] = None,
@@ -194,45 +165,31 @@ def push(
     """
     Visualise the push result in an embedding.
 
-    In order to run this function the corresponding method `sankey` of the :mod:`moscot.problems` instance
-    must have been run, see `NOTES` for requirements.
+    %(desc_sankey)s
 
     Parameters
     ----------
-    input
-        An instance of :class:`anndata.AnnData` where the corresponding information obtained by the `sankey` method
-        of the :mod:`moscot.problems` instance is saved. Alternatively, the problem instance can be passed directly, i.e. an
-        instance of :class:`moscot.problems.time.TemporalProblem` or :class:`moscot.problems.time.LineageProblem`.
-    %(key_stored)s
-    %(plot_time_points)s
-    basis
-        basis of the embedding, saved in `adata.obsm[x_{[basis]}]`.
-    result_key
-        column of :attr:`anndata.AnnData.obs` where the result is stored
-    %(constant_fill_value)s
-    %(cont_cmap)s
-    %(plotting)s
-    %(ax)s
-    %(return_fig)s
-
-    kwargs
-        keyword arguments for :func:`scanpy.pl.scatter`.
-
+    %(input_plotting)s
+    %(uns_key)s
+    %(time_points_push_pull)s
+    %(basis_push_pull)s
+    %(result_key_push_pull)s
+    %(fill_value_push_pull)s
+    %(title)s
+    %(cmap)s
+    %(figsize_dpi_save)s
 
     Returns
     -------
-    A figure visualising a push distribution, an instance of :class:`matplotlib.figure.Figure`.
+    %(return_push_pull)s
 
     Notes
     -----
-    This function looks for the following data in the :class:`anndata.AnnData` object which is passed or saved
-    as an attribute of the instance of type :mod:`moscot.problems.base.CompoundProblem`.
-
-        - `temporal_key`
+    %(return_push_pull)s
     """
-    adata, _ = _input_to_adatas(input)
+    adata, _ = _input_to_adatas(inp)
 
-    key = PlottingDefaults.PUSH if key_stored is None else key_stored
+    key = PlottingDefaults.PUSH if uns_key is None else uns_key
     if key not in adata.obs:
         raise KeyError("TODO.")
     data = adata.uns[AdataKeys.UNS][PlottingKeys.PUSH][key]
@@ -243,9 +200,9 @@ def push(
         time_points=time_points,
         basis=basis,
         result_key=result_key,
-        constant_fill_value=constant_fill_value,
+        constant_fill_value=fill_value,
         save=save,
-        cont_cmap=cont_cmap,
+        cont_cmap=cmap,
         title=title,
         figsize=figsize,
         dpi=dpi,
@@ -255,16 +212,16 @@ def push(
     )
 
 
-@d.dedent
+@d_plotting.dedent
 def pull(
-    input: Union[AnnData, TemporalProblem, LineageProblem],
-    key_stored: Optional[str] = None,
+    inp: Union[AnnData, TemporalProblem, LineageProblem, CompoundProblem],
+    uns_key: Optional[str] = None,
     time_points: Optional[Iterable[K]] = None,
     basis: str = "umap",
-    result_key: str = "plot_tmp",
-    constant_fill_value: float = np.nan,
-    cont_cmap: Union[str, mcolors.Colormap] = "viridis",
+    result_key: str = "plot_pull",
+    fill_value: float = np.nan,
     title: Optional[str] = None,
+    cmap: Union[str, mcolors.Colormap] = "viridis",
     figsize: Optional[Tuple[float, float]] = None,
     dpi: Optional[int] = None,
     save: Optional[str] = None,
@@ -273,46 +230,33 @@ def pull(
     **kwargs: Any,
 ) -> mpl.figure.Figure:
     """
-    Visualise the push result in an embedding.
+    Visualise the pull result in an embedding.
 
-    In order to run this function the corresponding method `sankey` of the :mod:`moscot.problems` instance
-    must have been run, see `NOTES` for requirements.
+    %(desc_sankey)s
 
     Parameters
     ----------
-    input
-        An instance of :class:`anndata.AnnData` where the corresponding information obtained by the `sankey` method
-        of the :mod:`moscot.problems` instance is saved. Alternatively, the problem instance can be passed directly, i.e. an
-        instance of :class:`moscot.problems.time.TemporalProblem` or :class:`moscot.problems.time.LineageProblem`.
-    %(key_stored)s
-    %(plot_time_points)s
-    result_key
-        column of :attr:`anndata.AnnData.obs` where the result is stored
-    %(constant_fill_value)s
-    %(cont_cmap)s
-    %(plotting)s
-    %(ax)s
-    %(return_fig)s
-
-    kwargs
-        keyword arguments for :func:`scanpy.pl.scatter`.
-
+    %(input_plotting)s
+    %(uns_key)s
+    %(time_points_push_pull)s
+    %(basis_push_pull)s
+    %(result_key_push_pull)s
+    %(fill_value_push_pull)s
+    %(title)s
+    %(cmap)s
+    %(figsize_dpi_save)s
 
     Returns
     -------
-    A figure visualising a push distribution, an instance of :class:`matplotlib.figure.Figure`.
+    %(return_push_pull)s
 
     Notes
     -----
-    This function looks for the following data in the :class:`anndata.AnnData` object which is passed or saved
-    as an attribute of the instance of type :mod:`moscot.problems.base.CompoundProblem`.
-
-        - `temporal_key`
-
+    %(return_push_pull)s
     """
-    adata, _ = _input_to_adatas(input)
+    adata, _ = _input_to_adatas(inp)
 
-    key = PlottingDefaults.PULL if key_stored is None else key_stored
+    key = PlottingDefaults.PULL if uns_key is None else uns_key
     if key not in adata.obs:
         raise KeyError("TODO.")
     data = adata.uns[AdataKeys.UNS][PlottingKeys.PULL][key]
@@ -323,9 +267,9 @@ def pull(
         time_points=time_points,
         basis=basis,
         result_key=result_key,
-        constant_fill_value=constant_fill_value,
+        constant_fill_value=fill_value,
         save=save,
-        cont_cmap=cont_cmap,
+        cont_cmap=cmap,
         title=title,
         figsize=figsize,
         dpi=dpi,

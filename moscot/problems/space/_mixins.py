@@ -1,11 +1,10 @@
-from typing import Any, Dict, List, Tuple, Union, Mapping, Callable, Optional, Sequence, TYPE_CHECKING
+from typing import Any, Dict, List, Tuple, Union, Literal, Mapping, Callable, Optional, Sequence, TYPE_CHECKING
 from itertools import chain
 
 from networkx import NetworkXNoPath
 from scipy.stats import pearsonr, spearmanr
 from scipy.linalg import svd
 from scipy.sparse import issparse
-from typing_extensions import Literal
 from scipy.sparse.linalg import LinearOperator
 import pandas as pd
 
@@ -13,9 +12,10 @@ import numpy as np
 
 from anndata import AnnData
 
-from moscot._docs import d
 from moscot._types import ArrayLike, Str_Dict_t
+from moscot._docs._docs import d
 from moscot.problems.base import AnalysisMixin  # type: ignore[attr-defined]
+from moscot._docs._docs_mixins import d_mixins
 from moscot.backends.ott._output import Device_t
 from moscot._constants._constants import CorrMethod, AlignmentMode, AggregationMode, PlottingDefaults
 from moscot.problems.base._mixins import AnalysisMixinProtocol
@@ -90,19 +90,17 @@ class SpatialAlignmentMixin(AnalysisMixin[K, B]):
     ) -> Tuple[Dict[K, ArrayLike], Optional[Dict[K, Optional[ArrayLike]]]]:
         """Scheme for interpolation."""
 
-        # TODO(giovp): error message for star policy
         # get reference
         src = self._subset_spatial(reference)
         transport_maps: Dict[K, ArrayLike] = {reference: src}
         transport_metadata: Dict[K, Optional[ArrayLike]] = {}
         if mode == "affine":
-            # TODO(michalk8): why the diag?
             src -= src.mean(0)
             transport_metadata = {reference: np.diag((1, 1))}  # 2d data
 
         # get policy
         full_steps = self._policy._graph
-        starts = set(chain.from_iterable(full_steps)) - set(reference)  # type: ignore[arg-type]
+        starts = set(chain.from_iterable(full_steps)) - set(reference)  # type: ignore[call-overload]
         fwd_steps, bwd_steps = {}, {}
         for start in starts:
             try:
@@ -174,16 +172,13 @@ class SpatialAlignmentMixin(AnalysisMixin[K, B]):
             return aligned_basis
         self.adata.obsm[f"{self.spatial_key}_{mode}"] = aligned_basis
 
-    def _subset_spatial(self: SpatialAlignmentMixinProtocol[K, B], k: K) -> ArrayLike:
-        return self.adata[self.adata.obs[self._policy._subset_key] == k].obsm[self.spatial_key].copy()
-
-    @d.dedent
+    @d_mixins.dedent
     def cell_transition(
         self: SpatialAlignmentMixinProtocol[K, B],
         source: K,
         target: K,
-        source_annotation: Str_Dict_t,
-        target_annotation: Str_Dict_t,
+        source_groups: Optional[Str_Dict_t] = None,
+        target_groups: Optional[Str_Dict_t] = None,
         forward: bool = False,  # return value will be row-stochastic if forward=True, else column-stochastic
         aggregation_mode: Literal["annotation", "cell"] = AggregationMode.ANNOTATION,  # type: ignore[assignment]
         online: bool = False,
@@ -191,23 +186,39 @@ class SpatialAlignmentMixin(AnalysisMixin[K, B]):
         normalize: bool = True,
         key_added: Optional[str] = PlottingDefaults.CELL_TRANSITION,
     ) -> pd.DataFrame:
-        """Partly copy from other cell_transitions.
+        """
+        Compute a grouped cell transition matrix.
 
-        TODO
+        This function computes a transition matrix with entries corresponding to categories, e.g. cell types.
+        The transition matrix will be row-stochastic if `forward` is `True`, otherwise column-stochastic.
+
+        Parameters
+        ----------
+        %(cell_trans_params)s
+        %(forward_cell_transition)s
+        %(aggregation_mode)s
+        %(online)s
+        %(ott_jax_batch_size)s
+        %(normalize)s
+        %(key_added_plotting)s
+
+        Returns
+        -------
+        %(return_cell_transition)s
 
         Notes
         -----
-        To visualise the results, see :func:`moscot.pl.cell_transition`.
+        %(notes_cell_transition)s
         """
         if TYPE_CHECKING:
             assert isinstance(self.batch_key, str)
 
         return self._cell_transition(
             key=self.batch_key,
-            source_key=source,
-            target_key=target,
-            source_annotation=source_annotation,
-            target_annotation=target_annotation,
+            source=source,
+            target=target,
+            source_groups=source_groups,
+            target_groups=target_groups,
             forward=forward,
             aggregation_mode=AggregationMode(aggregation_mode),
             online=online,
@@ -227,7 +238,6 @@ class SpatialAlignmentMixin(AnalysisMixin[K, B]):
     def spatial_key(self: SpatialAlignmentMixinProtocol[K, B], value: Optional[str]) -> None:
         if value is not None and value not in self.adata.obsm:
             raise KeyError(f"TODO: {value} not found in `adata.obsm`.")
-        # TODO(@MUCDK) check data type -> which ones do we allow
         self._spatial_key = value
 
     @property
@@ -240,6 +250,13 @@ class SpatialAlignmentMixin(AnalysisMixin[K, B]):
         if value is not None and value not in self.adata.obs:
             raise KeyError(f"{value} not in `adata.obs`.")
         self._batch_key = value
+
+    def _subset_spatial(self: SpatialAlignmentMixinProtocol[K, B], k: K) -> ArrayLike:
+        return (
+            self.adata[self.adata.obs[self._policy._subset_key] == k]
+            .obsm[self.spatial_key]
+            .astype(np.float_, copy=True)
+        )
 
     @staticmethod
     def _affine(tmap: LinearOperator, tgt: ArrayLike, src: ArrayLike) -> Tuple[ArrayLike, ArrayLike]:
@@ -362,12 +379,13 @@ class SpatialMappingMixin(AnalysisMixin[K, B]):
         adata_pred.var_names = var_names
         return adata_pred
 
-    @d.dedent
+    @d_mixins.dedent
     def cell_transition(
         self: SpatialMappingMixinProtocol[K, B],
         source: K,
-        spatial_annotation: Str_Dict_t,
-        sc_annotation: Str_Dict_t,
+        target: Optional[K] = None,
+        source_groups: Optional[Str_Dict_t] = None,
+        target_groups: Optional[Str_Dict_t] = None,
         forward: bool = False,  # return value will be row-stochastic if forward=True, else column-stochastic
         aggregation_mode: Literal["annotation", "cell"] = AggregationMode.ANNOTATION,  # type: ignore[assignment]
         online: bool = False,
@@ -375,22 +393,38 @@ class SpatialMappingMixin(AnalysisMixin[K, B]):
         normalize: bool = True,
         key_added: Optional[str] = PlottingDefaults.CELL_TRANSITION,
     ) -> pd.DataFrame:
-        """Compute cell transition.
+        """
+        Compute a grouped cell transition matrix.
 
-        TODO
+        This function computes a transition matrix with entries corresponding to categories, e.g. cell types.
+        The transition matrix will be row-stochastic if `forward` is `True`, otherwise column-stochastic.
+
+        Parameters
+        ----------
+        %(cell_trans_params)s
+        %(forward_cell_transition)s
+        %(aggregation_mode)s
+        %(online)s
+        %(ott_jax_batch_size)s
+        %(normalize)s
+        %(key_added_plotting)s
+
+        Returns
+        -------
+        %(return_cell_transition)s
 
         Notes
         -----
-        To visualise the results, see :func:`moscot.pl.cell_transition`.
+        %(notes_cell_transition)s
         """
         if TYPE_CHECKING:
             assert self.batch_key is not None
         return self._cell_transition(
             key=self.batch_key,
-            source_key=source,
-            target_key=None,
-            source_annotation=spatial_annotation,
-            target_annotation=sc_annotation,
+            source=source,
+            target=target,
+            source_groups=source_groups,
+            target_groups=target_groups,
             forward=forward,
             aggregation_mode=AggregationMode(aggregation_mode),
             online=online,

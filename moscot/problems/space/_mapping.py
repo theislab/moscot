@@ -1,12 +1,10 @@
 from types import MappingProxyType
-from typing import Any, Type, Tuple, Union, Mapping, Optional, Sequence
-
-from typing_extensions import Literal
+from typing import Any, Type, Tuple, Union, Literal, Mapping, Optional, Sequence
 
 from anndata import AnnData
 
-from moscot._docs import d
 from moscot._types import ArrayLike, Str_Dict_t
+from moscot._docs._docs import d
 from moscot._constants._key import Key
 from moscot._constants._constants import Policy, ScaleCost
 from moscot.problems.space._mixins import SpatialMappingMixin
@@ -59,7 +57,7 @@ class MappingProblem(CompoundProblem[K, OTProblem], SpatialMappingMixin[K, OTPro
         src_mask: ArrayLike,
         tgt_mask: ArrayLike,
         **kwargs: Any,
-    ) -> B:
+    ) -> B:  # type: ignore[type-var]
         """Private class to mask anndatas."""
         adata_sp = self._mask(src_mask)
         return self._base_problem_type(  # type: ignore[return-value]

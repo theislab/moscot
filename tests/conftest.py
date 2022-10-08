@@ -8,6 +8,7 @@ import pytest
 
 from jax.config import config
 import numpy as np
+import jax.numpy as jnp
 
 from anndata import AnnData
 import scanpy as sc
@@ -20,7 +21,6 @@ ANGLES = (0, 30, 60)
 
 config.update("jax_enable_x64", True)
 
-import jax.numpy as jnp  # noqa: E402
 
 _gt_temporal_adata = sc.read("tests/data/moscot_temporal_tests.h5ad")
 

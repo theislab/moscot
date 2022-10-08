@@ -1,15 +1,14 @@
 from types import MappingProxyType
-from typing import Any, Type, Tuple, Union, Mapping, Optional, TYPE_CHECKING
+from typing import Any, Type, Tuple, Union, Literal, Mapping, Optional, TYPE_CHECKING
 
-from typing_extensions import Literal
 import pandas as pd
 
 import numpy as np
 
 from anndata import AnnData
 
-from moscot._docs import d
 from moscot._types import Numeric_t
+from moscot._docs._docs import d
 from moscot.solvers._output import BaseSolverOutput
 from moscot._constants._constants import Policy, ScaleCost
 from moscot.problems.time._mixins import TemporalMixin
@@ -26,9 +25,9 @@ class TemporalProblem(
     Class for analysing time series single cell data based on :cite:`schiebinger:19`.
 
     The `TemporalProblem` allows to model and analyse time series single cell data by matching
-    cells from previous time points to later time points via optimal transport. Based on the
-    assumption that the considered cell modality is similar in consecutive time points probabilistic
-    couplings are computed between different time points.
+    cells from previous time points to later time points via optimal transport.
+    Based on the assumption that the considered cell modality is similar in consecutive time points
+    probabilistic couplings are computed between different time points.
     This allows to understand cell trajectories by inferring ancestors and descendants of single cells.
 
     Parameters
@@ -37,7 +36,7 @@ class TemporalProblem(
 
     Examples
     --------
-    See notebook TODO(@MUCDK) LINK NOTEBOOK for how to use it
+    See notebook TODO(@MUCDK) LINK NOTEBOOK for how to use it.
     """
 
     def __init__(self, adata: AnnData, **kwargs: Any):
@@ -61,23 +60,20 @@ class TemporalProblem(
         ----------
         %(time_key)s
         %(joint_attr)s
-        policy
-            Defines which transport maps to compute given different cell distributions.
+        %(joint_attr)s
         %(a)s
         %(b)s
         %(marginal_kwargs)s
-        subset
-            Subset of `anndata.AnnData.obs` [key] values of which the policy is to be applied to.
+        %(subset)s
         %(reference)s
         %(axis)s
         %(callback)s
         %(callback_kwargs)s
-        kwargs
-            Keyword arguments for :meth:`moscot.problems.BaseCompoundProblem._create_problems`.
+
 
         Returns
         -------
-        :class:`moscot.problems.time.TemporalProblem`
+        :class:`moscot.problems.time.TemporalProblem`.
 
         Raises
         ------
@@ -155,7 +151,7 @@ class TemporalProblem(
 
         Returns
         -------
-        :class:`moscot.problems.time.TemporalProblem`
+        :class:`moscot.problems.time.TemporalProblem`.
         """
         scale_cost = ScaleCost(scale_cost) if isinstance(scale_cost, ScaleCost) else scale_cost
         return super().solve(
@@ -171,17 +167,16 @@ class TemporalProblem(
 
     @property
     def growth_rates(self) -> Optional[pd.DataFrame]:
-        """
-        Growth rates of the cells estimated by posterior marginals.
-
-        If the OT problem is balanced, the posterior marginals
-        (approximately) equal the prior marginals (marginals defining the OT problem). In the unbalanced case the
-        marginals of the OT solution usually differ from the marginals of the original OT problem. This is an
-        indication of cell proliferation, i.e. a cell could have multiple descendants in the target distribution or
-        cell death, i.e. the cell is unlikely to have a descendant.
-        If multiple iterations are performed in :meth:`moscot.problems.time.TemporalProblem.solve` the number
-        of estimates for the cell growth rates equals is strictly larger than 2.
-        """
+        """Growth rates of the cells estimated by posterior marginals."""
+        # TODO: do we want to put this description above? (giovp) no, too long. Text for tutorial
+        # If the OT problem is balanced, the posterior marginals
+        # (approximately) equal the prior marginals (marginals defining the OT problem). In the unbalanced case the
+        # marginals of the OT solution usually differ from the marginals of the original OT problem. This is an
+        # indication of cell proliferation, i.e. a cell could have multiple descendants in the target distribution or
+        # cell death, i.e. the cell is unlikely to have a descendant.
+        # If multiple iterations are performed in :meth:`moscot.problems.time.TemporalProblem.solve` the number
+        # of estimates for the cell growth rates equals is strictly larger than 2.
+        # returns
         # TODO(michalk8): FIXME
         cols = ["growth_rates"]
         df_list = [
@@ -204,9 +199,7 @@ class TemporalProblem(
     # TODO(michalk8): refactor me
     @property
     def cell_costs_source(self) -> Optional[pd.DataFrame]:
-        """
-        Return the cost of a cell (see online methods) obtained by the potentials of the optimal transport solution.
-        """
+        """Return the cost of a cell obtained by the potentials of the optimal transport solution."""
         sol = list(self.problems.values())[0].solution
         if TYPE_CHECKING:
             assert isinstance(sol, BaseSolverOutput)
@@ -273,13 +266,11 @@ class LineageProblem(TemporalProblem):
 
     Parameters
     ----------
-    adata
-        :class:`anndata.AnnData` instance containing the single cell data and corresponding metadata
-
+    %(adata)s
 
     Examples
     --------
-    See notebook TODO(@MUCDK) LINK NOTEBOOK for how to use it
+    See notebook TODO(@MUCDK) LINK NOTEBOOK for how to use it.
     """
 
     @d.dedent
@@ -294,33 +285,23 @@ class LineageProblem(TemporalProblem):
         """
         Prepare the :class:`moscot.problems.time.LineageProblem`.
 
-        This method executes multiple steps to prepare the problem for the Optimal Transport solver to be ready
-        to solve it
-
         Parameters
         ----------
         %(time_key)s
+
         lineage_attr
             Specifies the way the lineage information is processed. TODO: Specify.
-        joint_attr
-            Parameter defining how to allocate the data needed to compute the transport maps. If None, the data is read
-            from :attr:`anndata.AnnData.X` and for each time point the corresponding PCA space is computed.
-            If `joint_attr` is a string the data is assumed to be found in :attr:`anndata.AnnData.obsm`.
-            If `joint_attr` is a dictionary the dictionary is supposed to contain the attribute of
-            :attr:`anndata.AnnData` as a key and the corresponding attribute as a value.
-        policy
-            defines which transport maps to compute given different cell distributions
+
+        %(joint_attr)s
+        %(policy)s
         %(marginal_kwargs)s
         %(a)s
         %(b)s
-        subset
-            subset of `anndata.AnnData.obs` [key] values of which the policy is to be applied to
+        %(subset)s
         %(reference)s
         %(axis)s
         %(callback)s
         %(callback_kwargs)s
-        kwargs
-            Keyword arguments for :meth:`moscot.problems.BaseCompoundProblem._create_problems`
 
         Returns
         -------

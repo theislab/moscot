@@ -1,15 +1,13 @@
-from typing import Any, Union, Optional, Sequence, TYPE_CHECKING
+from typing import Any, Union, Literal, Optional, Protocol, Sequence, TYPE_CHECKING
 import logging
-
-from typing_extensions import Literal, Protocol
 
 import numpy as np
 
 from anndata import AnnData
 import scanpy as sc
 
-from moscot._docs import d
 from moscot._types import ArrayLike
+from moscot._docs._docs import d
 from moscot.problems.time._utils import beta, delta as _delta, MarkerGenes
 from moscot.problems.base._base_problem import OTProblem
 

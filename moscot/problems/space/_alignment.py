@@ -1,8 +1,6 @@
-from typing import Any, Type, Tuple, Union, Mapping, Optional
+from typing import Any, Type, Tuple, Union, Literal, Mapping, Optional
 
-from typing_extensions import Literal
-
-from moscot._docs import d
+from moscot._docs._docs import d
 from moscot._constants._key import Key
 from moscot._constants._constants import Policy, ScaleCost
 from moscot.problems.space._mixins import SpatialAlignmentMixin
@@ -12,7 +10,6 @@ from moscot.problems.base._compound_problem import B, K, CompoundProblem
 __all__ = ["AlignmentProblem"]
 
 
-# need generic type B for SpatioTemporal
 @d.dedent
 class AlignmentProblem(CompoundProblem[K, B], SpatialAlignmentMixin[K, B]):
     """

@@ -1,6 +1,4 @@
-from typing import Any, Mapping, Sequence
-
-from typing_extensions import Literal
+from typing import Any, Literal, Mapping, Sequence
 
 import numpy as np
 

@@ -1,13 +1,11 @@
 from abc import ABC, abstractmethod
 from enum import Enum
 from types import MappingProxyType
-from typing import Any, Dict, Tuple, Union, Generic, Mapping, TypeVar, Optional, NamedTuple
+from typing import Any, Dict, Tuple, Union, Generic, Literal, Mapping, TypeVar, Optional, NamedTuple
 import warnings
 
-from typing_extensions import Literal
-
-from moscot._docs import d
 from moscot._types import ArrayLike
+from moscot._docs._docs import d
 from moscot.solvers._output import BaseSolverOutput
 from moscot.solvers._tagged_array import Tag, TaggedArray
 
@@ -136,7 +134,7 @@ class BaseSolver(Generic[O], ABC):
 
 @d.get_sections(base="OTSolver", sections=["Parameters", "Raises"])
 @d.dedent
-class OTSolver(TagConverterMixin, BaseSolver[O], ABC):
+class OTSolver(TagConverterMixin, BaseSolver[O], ABC):  # noqa: B024
     """OTSolver class."""
 
     def __call__(

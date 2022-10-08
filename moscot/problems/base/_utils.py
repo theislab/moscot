@@ -1,8 +1,7 @@
 from types import MappingProxyType
-from typing import Any, Dict, List, Type, Tuple, Callable, Iterable, Optional, TYPE_CHECKING
+from typing import Any, Dict, List, Type, Tuple, Literal, Callable, Iterable, Optional, TYPE_CHECKING
 from functools import partial, update_wrapper
 
-from typing_extensions import Literal
 import pandas as pd
 
 from anndata import AnnData
@@ -135,13 +134,13 @@ def _get_categories_from_adata(
 
 
 def _get_problem_key(
-    source_key: Optional[Any] = None,  # TODO(@MUCDK) using `K` induces circular import, resolve
-    target_key: Optional[Any] = None,  # TODO(@MUCDK) using `K` induces circular import, resolve
+    source: Optional[Any] = None,  # TODO(@MUCDK) using `K` induces circular import, resolve
+    target: Optional[Any] = None,  # TODO(@MUCDK) using `K` induces circular import, resolve
 ) -> Tuple[Any, Any]:  # TODO(@MUCDK) using `K` induces circular import, resolve
-    if source_key is not None and target_key is not None:
-        return (source_key, target_key)
-    elif source_key is None and target_key is not None:
-        return ("src", target_key)  # TODO(@MUCDK) make package constant
-    elif source_key is not None and target_key is None:
-        return (source_key, "ref")  # TODO(@MUCDK) make package constant
+    if source is not None and target is not None:
+        return (source, target)
+    elif source is None and target is not None:
+        return ("src", target)  # TODO(@MUCDK) make package constant
+    elif source is not None and target is None:
+        return (source, "ref")  # TODO(@MUCDK) make package constant
     return ("src", "ref")

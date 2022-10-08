@@ -1,12 +1,10 @@
 from types import MappingProxyType
-from typing import Any, Type, Tuple, Union, Mapping, Optional
-
-from typing_extensions import Literal
+from typing import Any, Type, Tuple, Union, Literal, Mapping, Optional
 
 from anndata import AnnData
 
-from moscot._docs import d
 from moscot._types import Numeric_t
+from moscot._docs._docs import d
 from moscot._constants._key import Key
 from moscot._constants._constants import Policy, ScaleCost
 from moscot.problems.time._mixins import TemporalMixin
@@ -47,30 +45,18 @@ class SpatioTemporalProblem(
 
         Parameters
         ----------
-        time_key
-            Key in :attr:`anndata.AnnData.obs` which defines the time point each cell belongs to. It is supposed to be
-            of numerical data type.
+        %(time_key)s
         %(spatial_key)s
-        joint_attr
-            Parameter defining how to allocate the data needed to compute the transport maps:
-            - If None, the data is read from :attr:`anndata.AnnData.X` and
-            for each time point the corresponding PCA space is computed.
-            - If `joint_attr` is a string the data is assumed to be found in :attr:`anndata.AnnData.obsm`.
-            - If `joint_attr` is a dictionary the dictionary is supposed to contain the attribute of
-            :class:`anndata.AnnData` as a key and the corresponding attribute as a value.
-
+        %(joint_attr)s
         %(policy)s
         %(marginal_kwargs)s
         %(a)s
         %(b)s
-        subset
-            subset of :attr:`anndata.AnnData.obs` ``[{key}]`` values of which the policy is to be applied to.
+        %(subset)s
         %(reference)s
         %(axis)s
         %(callback)s
         %(callback_kwargs)s
-        kwargs
-            Keyword arguments for :meth:`moscot.problems.BaseCompoundProblem._create_problems`.
 
         Returns
         -------

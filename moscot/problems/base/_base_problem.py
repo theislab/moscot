@@ -1,19 +1,18 @@
 from abc import ABC, abstractmethod
 from enum import Enum
 from types import MappingProxyType
-from typing import Any, Dict, List, Tuple, Union, Mapping, Optional, TYPE_CHECKING
+from typing import Any, Dict, List, Tuple, Union, Literal, Mapping, Optional, TYPE_CHECKING
 import logging
 
 from scipy.sparse import vstack, issparse, csr_matrix
-from typing_extensions import Literal
 
 import numpy as np
 
 from anndata import AnnData
 import scanpy as sc
 
-from moscot._docs import d
 from moscot._types import ArrayLike
+from moscot._docs._docs import d
 from moscot.problems._utils import wrap_solve, wrap_prepare, require_solution
 from moscot.solvers._output import BaseSolverOutput
 from moscot.problems._anndata import AnnDataPointer

@@ -1,9 +1,8 @@
-from typing import Any, Dict, List, Tuple, Union, Literal, Iterable, Optional, TYPE_CHECKING
+from typing import Any, Dict, List, Tuple, Union, Literal, Iterable, Optional, Protocol, TYPE_CHECKING
 from pathlib import Path
 import itertools
 
 from sklearn.metrics import pairwise_distances
-from typing_extensions import Protocol
 import ot
 import pandas as pd
 
@@ -11,8 +10,8 @@ import numpy as np
 
 from anndata import AnnData
 
-from moscot._docs import d
 from moscot._types import ArrayLike, Numeric_t, Str_Dict_t
+from moscot._docs._docs_mixins import d_mixins
 from moscot._constants._constants import Key, AdataKeys, PlottingKeys, AggregationMode, PlottingDefaults
 from moscot.problems.base._mixins import AnalysisMixin, AnalysisMixinProtocol
 from moscot.problems.base._compound_problem import B, K, ApplyOutput_t
@@ -26,12 +25,12 @@ class TemporalMixinProtocol(AnalysisMixinProtocol[K, B], Protocol[K, B]):
     temporal_key: Optional[str]
     _temporal_key: Optional[str]
 
-    def cell_transition(
+    def cell_transition(  # noqa: D102
         self: "TemporalMixinProtocol[K, B]",
-        start: K,
-        end: K,
-        early_annotation: Str_Dict_t,
-        late_annotation: Str_Dict_t,
+        source: K,
+        target: K,
+        source_groups: Str_Dict_t,
+        target_groups: Str_Dict_t,
         forward: bool = False,  # return value will be row-stochastic if forward=True, else column-stochastic
         aggregation_mode: Literal["annotation", "cell"] = AggregationMode.ANNOTATION,  # type: ignore[assignment]
         online: bool = False,
@@ -44,7 +43,8 @@ class TemporalMixinProtocol(AnalysisMixinProtocol[K, B], Protocol[K, B]):
     def push(self, *args: Any, **kwargs: Any) -> Optional[ApplyOutput_t[K]]:  # noqa: D102
         ...
 
-    def pull(self, *args: Any, **kwargs: Any) -> Optional[ApplyOutput_t[K]]:  # noqa: D102
+    def pull(self, *args: Any, **kwargs: Any) -> Optional[ApplyOutput_t[K]]:
+        """Pull."""
         ...
 
     def _cell_transition(  # TODO(@MUCDK) think about removing _cell_transition_non_online
@@ -56,8 +56,8 @@ class TemporalMixinProtocol(AnalysisMixinProtocol[K, B], Protocol[K, B]):
 
     def _sample_from_tmap(
         self: "TemporalMixinProtocol[K, B]",
-        source_key: K,
-        target_key: K,
+        source: K,
+        target: K,
         n_samples: int,
         source_dim: int,
         target_dim: int,
@@ -141,13 +141,13 @@ class TemporalMixin(AnalysisMixin[K, B]):
         super().__init__(*args, **kwargs)
         self._temporal_key: Optional[str] = None
 
-    @d.dedent
+    @d_mixins.dedent
     def cell_transition(
         self: TemporalMixinProtocol[K, B],
-        start: K,
-        end: K,
-        early_annotation: Str_Dict_t,
-        late_annotation: Str_Dict_t,
+        source: K,
+        target: K,
+        source_groups: Str_Dict_t,
+        target_groups: Str_Dict_t,
         forward: bool = False,  # return value will be row-stochastic if forward=True, else column-stochastic
         aggregation_mode: Literal["annotation", "cell"] = AggregationMode.ANNOTATION,  # type: ignore[assignment]
         online: bool = False,
@@ -163,56 +163,31 @@ class TemporalMixin(AnalysisMixin[K, B]):
 
         Parameters
         ----------
-        start
-            Time point corresponding to the early distribution.
-        end
-            Time point corresponding to the late distribution.
-        early_annotation
-            Can be one of the following:
-
-                - if `early_annotation` is of type :class:`str` this should correspond to a key in
-                  :attr:`anndata.AnnData.obs`. In this case, the categories in the transition matrix correspond to the
-                  unique values in :attr:`anndata.AnnData.obs` ``['{early_annotation}']``
-                - if `early_annotation` is of :class:`dict`, `key` should correspond to a key in
-                  :attr:`anndata.AnnData.obs` and its `value` to a subset of categories present in
-                  :attr:`anndata.AnnData.obs` ``['{early_annotation.keys()[0]}']``
-        late_annotation
-            Can be one of the following
-
-                - if `late_annotation` is of type :class:`str` this should correspond to a key in
-                  :attr:`anndata.AnnData.obs`. In this case, the categories in the transition matrix correspond to the
-                  unique values in :attr:`anndata.AnnData.obs` ``['{late_annotation}']``
-                - if `late_annotation` is of :class:`dict`, its `key` should correspond to a key in
-                  :attr:`anndata.AnnData.obs` and its `value` to a subset of categories present in
-                  :attr:`anndata.AnnData.obs` ``['{late_annotation.keys()[0]}']``
-        forward
-            If `True` computes transition from cells belonging to `source_annotation` to cells belonging
-            to `target_annotation`.
-        aggregation_mode:
-            If `aggregation_mode` is `group` the transition probabilities from the groups defined by
-            `source_annotation` are returned. If `aggregation_mode` is `cell` the transition probablities
-            for each cell are returned.
+        %(cell_trans_params)s
+        %(forward_cell_transition)s
+        %(aggregation_mode)s
         %(online)s
-        %(normalize_cell_transition)s
+        %(ott_jax_batch_size)s
+        %(normalize)s
         %(key_added_plotting)s
 
         Returns
         -------
-        Transition matrix of cells or groups of cells.
+        %(return_cell_transition)s
 
         Notes
         -----
-        To visualise the results, see :func:`moscot.pl.cell_transition`.
+        %(notes_cell_transition)s
         """
 
         if TYPE_CHECKING:
             assert isinstance(self.temporal_key, str)
         return self._cell_transition(
             key=self.temporal_key,
-            source_key=start,
-            target_key=end,
-            source_annotation=early_annotation,
-            target_annotation=late_annotation,
+            source=source,
+            target=target,
+            source_groups=source_groups,
+            target_groups=target_groups,
             forward=forward,
             aggregation_mode=AggregationMode(aggregation_mode),
             online=online,
@@ -221,12 +196,13 @@ class TemporalMixin(AnalysisMixin[K, B]):
             key_added=key_added,
         )
 
+    @d_mixins.dedent
     def sankey(
         self: "TemporalMixinProtocol[K, B]",
-        start: K,
-        end: K,
-        early_annotation: Str_Dict_t,
-        late_annotation: Str_Dict_t,
+        source: K,
+        target: K,
+        source_groups: Str_Dict_t,
+        target_groups: Str_Dict_t,
         normalize: bool = False,
         forward: bool = True,
         restrict_to_existing: bool = True,
@@ -239,35 +215,13 @@ class TemporalMixin(AnalysisMixin[K, B]):
 
         Parameters
         ----------
-        start
-            First time point of the Sankey diagram
-        end
-            Last time point of the Sankey diagram
-        early_annotation
-            Can be one of the following:
-                - if `early_cells` is of type :class:`str` this should correspond to a key in
-                  :attr:`anndata.AnnData.obs`. In this case, the categories in the transition matrix correspond to the
-                  unique values in :attr:`anndata.AnnData.obs` ``['{early_cells}']``
-                - if `early_cells` is of :class:`dict`, `key` should correspond to a key in
-                  :attr:`anndata.AnnData.obs` and its `value` to a subset of categories present in
-                  :attr:`anndata.AnnData.obs` ``['{early_cells.keys()[0]}']``
-        late_annotation
-            Can be one of the following
-                - if `late_cells` is of type :class:`str` this should correspond to a key in
-                  :attr:`anndata.AnnData.obs`. In this case, the categories in the transition matrix correspond to the
-                  unique values in :attr:`anndata.AnnData.obs` ``['{late_cells}']``
-                - if `late_cells` is of :class:`dict`, its `key` should correspond to a key in
-                  :attr:`anndata.AnnData.obs` and its `value` to a subset of categories present in
-                  :attr:`anndata.AnnData.obs` ``['{late_cells.keys()[0]}']``
-        %(online)s
+        %(cell_trans_params)s
+        %(normalize)s
         %(forward)s
-        restrict_to_existing
-            TODO
-        order_annotations
-            Order of the annotations in the final plot, from top to bottom
+        %(restrict_to_existing)s
+        %(order_annotations)s
         %(key_added_plotting)s
-        return_data
-            Whether to return the computed data.
+        %(return_data)s
 
         Returns
         -------
@@ -277,15 +231,15 @@ class TemporalMixin(AnalysisMixin[K, B]):
         -----
         To visualise the results, see :func:`moscot.pl.sankey`.
         """
-        tuples = self._policy.plan(start=start, end=end)
+        tuples = self._policy.plan(start=source, end=target)
         cell_transitions = []
         for (src, tgt) in tuples:
             cell_transitions.append(
                 self.cell_transition(
                     src,
                     tgt,
-                    early_annotation=early_annotation,
-                    late_annotation=late_annotation,
+                    source_groups=source_groups,
+                    target_groups=target_groups,
                     forward=forward,
                     normalize=normalize,
                 )
@@ -307,10 +261,10 @@ class TemporalMixin(AnalysisMixin[K, B]):
         else:
             cell_transitions_updated = cell_transitions
 
-        if isinstance(early_annotation, str):
-            key = early_annotation
-        elif isinstance(early_annotation, dict):
-            key = list(early_annotation.keys())[0]
+        if isinstance(source_groups, str):
+            key = source_groups
+        elif isinstance(target_groups, dict):
+            key = list(target_groups.keys())[0]
         else:
             raise TypeError("TODO: `early_cells must be of type `str` or `dict`.")
 
@@ -320,16 +274,17 @@ class TemporalMixin(AnalysisMixin[K, B]):
             plot_vars = {
                 "transition_matrices": cell_transitions_updated,
                 "key": key,
-                "start": start,
-                "end": end,
-                "early_cells": early_annotation,
-                "late_cells": late_annotation,
+                "source": source,
+                "target": target,
+                "source_groups": source_groups,
+                "target_groups": target_groups,
                 "captions": [str(t) for t in tuples],
             }
             Key.uns.set_plotting_vars(self.adata, AdataKeys.UNS, PlottingKeys.SANKEY, key_added, plot_vars)
         if return_data:
             return cell_transitions_updated
 
+    @d_mixins.dedent
     def push(
         self: TemporalMixinProtocol[K, B],
         start: K,
@@ -347,22 +302,18 @@ class TemporalMixin(AnalysisMixin[K, B]):
 
         Parameters
         ----------
-        start
-            Time point of source distribution.
-        target
-            Time point of target distribution.
+        %(source)s
+        %(target)s
         %(data)s
         %(subset)s
+        %(scale_by_marginals)s
         %(key_added)s
         %(return_all)s
         %(return_data)s
 
-        Returns
-        -------
-        Depending on `result_key` updates `adata` or returns the result. In the former case all intermediate results
-        (corresponding to intermediate time points) are saved in :attr:`anndata.AnnData.obs`. In the latter case all
-        intermediate step results are returned if `return_all` is `True`, otherwise only the distribution at `end`
-        is returned.
+        Return
+        ------
+        %(return_push_pull)s
 
         Raises
         ------
@@ -391,7 +342,7 @@ class TemporalMixin(AnalysisMixin[K, B]):
         if return_data:
             return result
 
-    @d.dedent
+    @d_mixins.dedent
     def pull(
         self: TemporalMixinProtocol[K, B],
         start: K,
@@ -405,27 +356,26 @@ class TemporalMixin(AnalysisMixin[K, B]):
         **kwargs: Any,
     ) -> Optional[ApplyOutput_t[K]]:
         """
-        Pull distribution of cells from time point `end` to time point `start`.
+        Pull distribution of cells through time.
 
         Parameters
         ----------
-        start
-            Earlier time point, the time point the mass is pulled to.
-        end
-            Later time point, the time point the mass is pulled from.
+        %(source)s
+        %(target)s
         %(data)s
         %(subset)s
-        result_key
-            Key of where to save the result in :attr:`anndata.AnnData.obs`. If `None` the result will be returned.
+        %(scale_by_marginals)s
+        %(key_added)s
         %(return_all)s
         %(return_data)s
 
-        Returns
-        -------
-        Depending on `result_key` updates `adata` or returns the result. In the former case all intermediate results
-        (corresponding to intermediate time points) are saved in :attr:`anndata.AnnData.obs`. In the latter case all
-        intermediate step results are returned if `return_all` is `True`, otherwise only the distribution at `start`
-        is returned.
+        Return
+        ------
+        %(return_push_pull)s
+
+        Raises
+        ------
+        %(BaseCompoundProblem_pull.raises)s
         """
         result = self._apply(
             start=start,
@@ -463,8 +413,8 @@ class TemporalMixin(AnalysisMixin[K, B]):
             tag = self.problems[src, tgt].xy.tag  # type: ignore[union-attr]
             if tag != "point_cloud":
                 raise ValueError(
-                    "TODO: This method requires the data to be stored as point_clouds. It is currently stored "  # type: ignore[union-attr] # noqa: E501
-                    f"as {self.problems[src, tgt].xy.tag}."
+                    "TODO: This method requires the data to be stored as point_clouds."  # type: ignore[union-attr]
+                    f"It is currently stored as {self.problems[src, tgt].xy.tag}."
                 )
             if src == start:
                 source_data = self.problems[src, tgt].xy.data  # type: ignore[union-attr]
@@ -489,7 +439,13 @@ class TemporalMixin(AnalysisMixin[K, B]):
         else:
             raise ValueError(f"No data found for time point {end}")
 
-        return source_data, growth_rates_source, intermediate_data, intermediate_adata, target_data  # type: ignore[return-value] # noqa: E501
+        return (
+            source_data,
+            growth_rates_source,
+            intermediate_data,
+            intermediate_adata,
+            target_data,
+        )  # type: ignore[return-value]
 
     def compute_interpolated_distance(
         self: TemporalMixinProtocol[K, B],
@@ -696,7 +652,7 @@ class TemporalMixin(AnalysisMixin[K, B]):
                     **kwargs,
                 )
             )
-        return np.mean(dist)  # type: ignore[return-value]
+        return np.mean(dist)
 
     # TODO(@MUCDK) possibly offer two alternatives, once exact EMD with POT backend and once approximate,
     # faster with same solver as used for original problems
@@ -728,8 +684,8 @@ class TemporalMixin(AnalysisMixin[K, B]):
         seed: Optional[int] = None,
     ) -> ArrayLike:
         rows_sampled, cols_sampled = self._sample_from_tmap(
-            source_key=start,
-            target_key=end,
+            source=start,
+            target=end,
             n_samples=number_cells,
             source_dim=len(source_data),
             target_dim=len(target_data),
