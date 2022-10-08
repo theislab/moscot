@@ -37,8 +37,6 @@ class SinkhornProblem(CompoundProblem[K, B], GenericAnalysisMixin[K, B]):
         """
         Prepare the :class:`moscot.problems.generic.SinkhornProblem`.
 
-        This method executes multiple steps to prepare the optimal transport problems.
-
         Parameters
         ----------
         %(key)s
@@ -114,22 +112,48 @@ class GWProblem(CompoundProblem[K, B], GenericAnalysisMixin[K, B]):
     def prepare(
         self,
         key: str,
-        x: Mapping[str, Any] = MappingProxyType({}),
-        y: Mapping[str, Any] = MappingProxyType({}),
+        GW_x: Mapping[str, Any] = MappingProxyType({}),
+        GW_y: Mapping[str, Any] = MappingProxyType({}),
         policy: Literal["sequential", "pairwise", "explicit"] = "sequential",
         **kwargs: Any,
     ) -> "GWProblem[K, B]":
-        """Prepare a generic GWProblem."""
+        """
+        Prepare the :class:`moscot.problems.generic.GWProblem`.
+
+        Parameters
+        ----------
+        %(key)s
+        %(GW_x)s
+        %(GW_y)s
+        %(policy)s
+        %(marginal_kwargs)s
+        %(a)s
+        %(b)s
+        %(subset)s
+        %(reference)s
+        %(axis)s
+        %(callback)s
+        %(callback_kwargs)s
+
+        Returns
+        -------
+        :class:`moscot.problems.generic.GWProblem`
+
+        Notes
+        -----
+        If `a` and `b` are provided `marginal_kwargs` are ignored.
+        """
+
         self.batch_key = key
         # TODO(michalk8): use and
-        if not (len(x) and len(y)):
+        if not (len(GW_x) and len(GW_y)):
             if "cost_matrices" not in self.adata.obsp:
                 raise ValueError(
                     "TODO: default location for quadratic loss is `adata.obsp[`cost_matrices`]` \
                         but adata has no key `cost_matrices` in `obsp`."
                 )
 
-        for z in [x, y]:
+        for z in [GW_x, GW_y]:
             if not len(z):
                 # TODO(michalk8): refactor me
                 z = dict(z)
@@ -141,8 +165,8 @@ class GWProblem(CompoundProblem[K, B], GenericAnalysisMixin[K, B]):
 
         return super().prepare(
             key,
-            x=x,
-            y=y,
+            x=GW_x,
+            y=GW_y,
             policy=policy,
             **kwargs,
         )
@@ -175,17 +199,36 @@ class FGWProblem(GWProblem[K, B]):
         self,
         key: str,
         joint_attr: Mapping[str, Any] = MappingProxyType({}),
-        GW_attr: Mapping[str, Any] = MappingProxyType({}),
+        GW_x: Mapping[str, Any] = MappingProxyType({}),
+        GW_y: Mapping[str, Any] = MappingProxyType({}),
         policy: Literal["sequential", "pairwise", "explicit"] = "sequential",
         **kwargs: Any,
     ) -> "FGWProblem[K, B]":
         """
-        Prepare the :class:`moscot.problems.generic.GWProblem`.
+        Prepare the :class:`moscot.problems.generic.FGWProblem`.
 
         Parameters
         ----------
-        %(GWProblem.parameters)s
+        %(key)s
         %(joint_attr)s
+        %(GW_x)s
+        %(GW_y)s
+        %(policy)s
+        %(marginal_kwargs)s
+        %(a)s
+        %(b)s
+        %(subset)s
+        %(reference)s
+        %(axis)s
+        %(callback)s
+        %(callback_kwargs)s
 
+        Returns
+        -------
+        :class:`moscot.problems.generic.FGWProblem`
+
+        Notes
+        -----
+        If `a` and `b` are provided `marginal_kwargs` are ignored.
         """
-        return super().prepare(key=key, GW_attr=GW_attr, joint_attr=joint_attr, policy=policy, **kwargs)
+        return super().prepare(key=key, GW_x=GW_x, GW_y=GW_y, joint_attr=joint_attr, policy=policy, **kwargs)
