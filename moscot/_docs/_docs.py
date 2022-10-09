@@ -120,8 +120,23 @@ key
 _joint_attr = """\
 joint_attr
     - If `None`, PCA on :attr:`anndata.AnnData.X` is computed.
-    - If `str`, it must refers to :attr:`anndata.AnnData.obsm`.
-    - If `dict`, it must contain `attr` and `key` :class:`anndata.AnnData`.
+    - If `str`, it must refer to a key in :attr:`anndata.AnnData.obsm`.
+    - If `dict`, the dictionary stores `attr` (attribute of :class:`anndata.AnnData`) and `key`
+    (key of :class:`anndata.AnnData` ``['{attr}']``).
+"""
+_GW_x = """\
+GW_x
+    - If empty , cost matrix must be provided in :attr:`anndata.AnnData.obsp`.
+    - If `str`, it must refer to a key in :attr:`anndata.AnnData.obsm`.
+    - If `dict`, the dictionary stores `attr` (attribute of :class:`anndata.AnnData`) and `key`
+    (key of :class:`anndata.AnnData` ``['{attr}']``).
+"""
+_GW_y = """\
+GW_y
+    - If empty, cost matrix must be provided in :attr:`anndata.AnnData.obsp`.
+    - If `str`, it must refer to a key in :attr:`anndata.AnnData.obsm`.
+    - If `dict`, the dictionary stores `attr` (attribute of :class:`anndata.AnnData`) and `key`
+    (key of :class:`anndata.AnnData` ``['{attr}']``).
 """
 _split_mass = """\
 split_mass
@@ -149,7 +164,7 @@ batch_size
 _alignment_mixin_returns = """\
 If ``inplace = False``, returns a :class:`numpy.ndarray` with aligned coordinates.
 
-Otherwise, modifies the ``adata`` object with the following key:
+Otherwise, modifies the :class:`anndata.AnnData` instance with the following key:
 
     - :attr:`anndata.AnnData.obsm` ``['{key_added}']`` - the above mentioned :class:`numpy.ndarray`.
 """
@@ -188,6 +203,8 @@ d = DocstringProcessor(
     policy=_policy,
     key=_key,
     joint_attr=_joint_attr,
+    GW_x=_GW_x,
+    GW_y=_GW_y,
     split_mass=_split_mass,
     inplace=_inplace,
     alignment_mixin_returns=_alignment_mixin_returns,
