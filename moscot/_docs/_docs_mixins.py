@@ -106,6 +106,10 @@ _order_annotations = """\
 order_annotations
     Order of the annotations in the final plot, from top to bottom.
 """
+_threshold = """\
+threshold
+    If not `None`, set all entries below `threshold` to 0.
+"""
 
 
 d_mixins = DocstringProcessor(
@@ -132,4 +136,5 @@ d_mixins = DocstringProcessor(
     scale_by_marginals=_scale_by_marginals,
     restrict_to_existing=_restrict_to_existing,
     order_annotations=_order_annotations,
+    threshold=_threshold,
 )
