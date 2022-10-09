@@ -7,7 +7,7 @@ import numpy as np
 
 from anndata import AnnData
 
-from moscot._types import Numeric_t
+from moscot._types import Numeric_t, QuadInitializer_t, SinkhornInitializer_t
 from moscot._docs._docs import d
 from moscot.solvers._output import BaseSolverOutput
 from moscot._constants._constants import Policy, ScaleCost
@@ -132,6 +132,8 @@ class TemporalProblem(
         rank: int = -1,
         batch_size: Optional[int] = None,
         stage: Union[ProblemStage, Tuple[ProblemStage, ...]] = (ProblemStage.PREPARED, ProblemStage.SOLVED),
+        initializer: SinkhornInitializer_t = None,
+        initializer_kwargs: Mapping[str, Any] = MappingProxyType({}),
         **kwargs: Any,
     ) -> "TemporalProblem":
         """
@@ -146,6 +148,8 @@ class TemporalProblem(
         %(rank)s
         %(ott_jax_batch_size)s
         %(stage)s
+        %(initializer)s
+        %(initializer_kwargs)s
         %(solve_kwargs)s
 
 
@@ -162,6 +166,8 @@ class TemporalProblem(
             rank=rank,
             batch_size=batch_size,
             stage=stage,
+            initializer=initializer,
+            initializer_kwargs=initializer_kwargs,
             **kwargs,
         )  # type:ignore[return-value]
 
@@ -357,6 +363,8 @@ class LineageProblem(TemporalProblem):
         rank: int = -1,
         batch_size: Optional[int] = None,
         stage: Union[ProblemStage, Tuple[ProblemStage, ...]] = (ProblemStage.PREPARED, ProblemStage.SOLVED),
+        initializer: QuadInitializer_t = None,
+        initializer_kwargs: Mapping[str, Any] = MappingProxyType({}),
         **kwargs: Any,
     ) -> "LineageProblem":
         """
@@ -372,6 +380,8 @@ class LineageProblem(TemporalProblem):
         %(rank)s
         %(ott_jax_batch_size)s
         %(stage)s
+        %(initializer_quad)s
+        %(initializer_kwargs)s
         %(solve_kwargs)s
 
         Returns
@@ -388,5 +398,7 @@ class LineageProblem(TemporalProblem):
             rank=rank,
             batch_size=batch_size,
             stage=stage,
+            initializer=initializer,
+            initializer_kwargs=initializer_kwargs,
             **kwargs,
         )

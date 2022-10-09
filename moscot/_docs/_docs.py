@@ -168,6 +168,18 @@ Otherwise, modifies the :class:`anndata.AnnData` instance with the following key
 
     - :attr:`anndata.AnnData.obsm` ``['{key_added}']`` - the above mentioned :class:`numpy.ndarray`.
 """
+_initializer_lin = """\
+initializer
+    Initializer to use for the problem, see notebook TODO.
+"""
+_initializer_quad = """\
+initializer
+    Initializer to use for the problem, see notebook TODO.
+"""
+_initializer_kwargs = """\
+initializer kwargs
+    keyword arguments for the initializer.
+"""
 
 
 d = DocstringProcessor(
@@ -213,4 +225,7 @@ d = DocstringProcessor(
     stage=_stage,
     solve_kwargs=_solve_kwargs,
     ott_jax_batch_size=_ott_jax_batch_size,
+    initializer_lin=_initializer_lin,
+    initializer_quad=_initializer_quad,
+    initializer_kwargs=_initializer_kwargs,
 )

@@ -1,4 +1,4 @@
-from typing import Any, Union, Mapping, Optional, Sequence
+from typing import Any, Union, Literal, Mapping, Optional, Sequence
 
 import numpy as np
 
@@ -15,3 +15,6 @@ except (ImportError, TypeError):
 Numeric_t = Union[int, float]  # type of `time_key` arguments
 Filter_t = Optional[Union[str, Mapping[str, Sequence[Any]]]]  # type how to filter adata
 Str_Dict_t = Union[str, Mapping[str, Sequence[Any]]]  # type for `cell_transition`
+SinkhornInitializer_t = Optional[Literal["GaussianInitializer", "SortingInitializer"]]
+QuadInitializer_t = Optional[Literal["random", "rank2", "k-means", "generalized-k-means"]]
+Initializer_t = Union[SinkhornInitializer_t, QuadInitializer_t]
