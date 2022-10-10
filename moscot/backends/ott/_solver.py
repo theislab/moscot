@@ -2,6 +2,7 @@ from abc import ABC
 from enum import Enum
 from typing import Any, Union, Literal, Optional
 
+from ott.core import initializers as init_lib
 from ott.geometry import Grid, Epsilon, Geometry, PointCloud
 from ott.core.sinkhorn import Sinkhorn
 from ott.geometry.costs import Bures, Cosine, CostFn, Euclidean, UnbalancedBures
@@ -110,6 +111,7 @@ class OTTJaxSolver(OTSolver[OTTOutput], ABC):  # noqa: B024
         prob: Union[LinearProblem, QuadraticProblem],
         **kwargs: Any,
     ) -> OTTOutput:
+        print("kwargs 2 are ", kwargs)
         out = self.solver(prob, **kwargs)
         return OTTOutput(out)
 
@@ -170,7 +172,15 @@ class SinkhornSolver(OTTJaxSolver):
 
     def __init__(self, rank: int = -1, **kwargs: Any):
         super().__init__()
-        self._solver = LRSinkhorn(rank=rank, **kwargs) if rank > -1 else Sinkhorn(**kwargs)
+        initializer = kwargs.pop("initializer", None)
+        if rank > -1:
+            if initializer is None:
+                initializer = "random"
+            self._solver = LRSinkhorn(rank=rank, initializer=initializer, **kwargs)
+        else:
+            if initializer is None:
+                initializer = init_lib.DefaultInitializer()
+            self._solver = Sinkhorn(initializer=initializer, **kwargs)
 
     def _prepare(
         self,
@@ -221,7 +231,9 @@ class GWSolver(OTTJaxSolver):
 
     def __init__(self, **kwargs: Any):
         super().__init__()
-        self._solver = GromovWasserstein(**kwargs)
+        quad_initializer = kwargs.pop("initializer", None)  # OTT-JAX allows for "None" as initializer
+        kwargs_init = kwargs.pop("initializer", None)
+        self._solver = GromovWasserstein(quad_initializer=quad_initializer, kwargs_init=kwargs_init, **kwargs)
 
     def _prepare(
         self,

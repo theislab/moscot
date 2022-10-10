@@ -168,6 +168,34 @@ Otherwise, modifies the :class:`anndata.AnnData` instance with the following key
 
     - :attr:`anndata.AnnData.obsm` ``['{key_added}']`` - the above mentioned :class:`numpy.ndarray`.
 """
+_initializer_lin = """\
+initializer
+    Initializer to use for the problem. TODO: adapt full rank after OTT-JAX changes.
+    If not low rank, an instance of `ott.core.initialization.SinkhornInitializer must be passed.
+    If low rank, available options are
+        - `random`
+        - `rank2`
+        - `k-means`
+        - `generalized-k-means`
+    The default for full rank is constant scalings, for low rank it is "random".
+"""
+_initializer_quad = """\
+initializer
+    Initializer to use for the problem.
+    If not low rank, the standard initializer is used (outer product of marginals).
+    If low rank, available options are
+        - `random`
+        - `rank2`
+        - `k-means`
+        - `generalized-k-means`
+    If `None`, the low-rank initializer will be selected based on how the data is passed.
+    If the cost matrix is passed (instead of the data), the random initializer is used,
+    otherwise the K-means initializer.
+"""
+_initializer_kwargs = """\
+initializer kwargs
+    keyword arguments for the initializer.
+"""
 
 
 d = DocstringProcessor(
@@ -213,4 +241,7 @@ d = DocstringProcessor(
     stage=_stage,
     solve_kwargs=_solve_kwargs,
     ott_jax_batch_size=_ott_jax_batch_size,
+    initializer_lin=_initializer_lin,
+    initializer_quad=_initializer_quad,
+    initializer_kwargs=_initializer_kwargs,
 )

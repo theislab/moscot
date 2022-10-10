@@ -3,7 +3,7 @@ from typing import Any, Type, Tuple, Union, Literal, Mapping, Optional
 
 from anndata import AnnData
 
-from moscot._types import Numeric_t
+from moscot._types import Numeric_t, QuadInitializer_t
 from moscot._docs._docs import d
 from moscot._constants._key import Key
 from moscot._constants._constants import Policy, ScaleCost
@@ -107,6 +107,8 @@ class SpatioTemporalProblem(
         epsilon: Optional[float] = 1e-3,
         scale_cost: ScaleCost_t = ScaleCost.MEAN,
         stage: Union[ProblemStage, Tuple[ProblemStage, ...]] = (ProblemStage.PREPARED, ProblemStage.SOLVED),
+        initializer: QuadInitializer_t = None,
+        initializer_kwargs: Mapping[str, Any] = MappingProxyType({}),
         **kwargs: Any,
     ) -> "SpatioTemporalProblem":
         """
@@ -119,13 +121,24 @@ class SpatioTemporalProblem(
         %(scale_cost)s
         %(rank)s
         %(stage)s
+        %(initializer_quad)s
+        %(initializer_kwargs)s
+        %(solve_kwargs)s
 
         Returns
         -------
         :class:`moscot.problems.space.SpatioTemporalProblem`.
         """
         scale_cost = ScaleCost(scale_cost) if isinstance(scale_cost, ScaleCost) else scale_cost
-        return super().solve(alpha=alpha, epsilon=epsilon, scale_cost=scale_cost, stage=stage, **kwargs)
+        return super().solve(
+            alpha=alpha,
+            epsilon=epsilon,
+            scale_cost=scale_cost,
+            stage=stage,
+            initializer=initializer,
+            initializer_kwargs=initializer_kwargs,
+            **kwargs,
+        )
 
     @property
     def _valid_policies(self) -> Tuple[Policy, ...]:
