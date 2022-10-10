@@ -188,9 +188,9 @@ initializer
     If not low rank, the standard initializer is used (outer product of marginals).
     If low rank, available options are
         - `random`
-        - `rank2`
-        - `k-means`
-        - `generalized-k-means`
+        - `rank2` (:cite:`scetbon:21`)
+        - `k-means` (:cite:`scetbon:22b`)
+        - `generalized-k-means` (:cite:`scetbon:22b`)
     If `None`, the low-rank initializer will be selected based on how the data is passed.
     If the cost matrix is passed (instead of the data), the random initializer is used,
     otherwise the K-means initializer.
