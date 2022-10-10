@@ -148,7 +148,7 @@ class TemporalProblem(
         %(rank)s
         %(ott_jax_batch_size)s
         %(stage)s
-        %(initializer)s
+        %(initializer_lin)s
         %(initializer_kwargs)s
         %(solve_kwargs)s
 

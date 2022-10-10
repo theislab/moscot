@@ -99,8 +99,8 @@ class AlignmentProblem(CompoundProblem[K, B], SpatialAlignmentMixin[K, B]):
         %(rank)s
         %(ott_jax_batch_size)s
         %(stage)s
-        %(initializer_quad)
-        %(initializer_kwargs)
+        %(initializer_quad)s
+        %(initializer_kwargs)s
         %(solve_kwargs)s
 
         Returns
