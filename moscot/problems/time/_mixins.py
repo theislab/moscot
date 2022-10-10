@@ -203,6 +203,7 @@ class TemporalMixin(AnalysisMixin[K, B]):
         target: K,
         source_groups: Str_Dict_t,
         target_groups: Str_Dict_t,
+        threshold: Optional[float] = None,
         normalize: bool = False,
         forward: bool = True,
         restrict_to_existing: bool = True,
@@ -216,6 +217,7 @@ class TemporalMixin(AnalysisMixin[K, B]):
         Parameters
         ----------
         %(cell_trans_params)s
+        %(threshold)s
         %(normalize)s
         %(forward)s
         %(restrict_to_existing)s
@@ -260,6 +262,12 @@ class TemporalMixin(AnalysisMixin[K, B]):
             cell_transitions_updated.append(ct)
         else:
             cell_transitions_updated = cell_transitions
+
+        if threshold is not None:
+            if threshold < 0:
+                raise ValueError("`threshold` must be non-negative.")
+            for ct in cell_transitions:
+                ct[ct < threshold] = 0.0
 
         if isinstance(source_groups, str):
             key = source_groups
