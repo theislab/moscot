@@ -42,10 +42,10 @@ def cell_transition(
     ----------
     %(input_plotting)s
     %(uns_key)s
-    %(transition_labels)s
+    %(transition_labels_cell_transition)s
     %(cmap)s
     %(figsize_dpi_save)s
-    %(cbar_kwargs)s
+    %(cbar_kwargs_cell_transition)s
 
     Returns
     -------

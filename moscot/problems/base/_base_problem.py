@@ -11,7 +11,7 @@ import numpy as np
 from anndata import AnnData
 import scanpy as sc
 
-from moscot._types import ArrayLike
+from moscot._types import ArrayLike, Initializer_t
 from moscot._docs._docs import d
 from moscot.problems._utils import wrap_solve, wrap_prepare, require_solution
 from moscot.solvers._output import BaseSolverOutput
@@ -241,7 +241,9 @@ class OTProblem(BaseProblem):
         batch_size: Optional[int] = None,
         tau_a: float = 1.0,
         tau_b: float = 1.0,
+        initializer: Initializer_t = None,
         prepare_kwargs: Mapping[str, Any] = MappingProxyType({}),
+        initializer_kwargs: Mapping[str, Any] = MappingProxyType({}),
         device: Optional[Any] = None,
         **kwargs: Any,
     ) -> "OTProblem":
@@ -251,7 +253,7 @@ class OTProblem(BaseProblem):
         if self._problem_kind in (ProblemKind.QUAD, ProblemKind.QUAD_FUSED):
             kwargs["epsilon"] = epsilon
         kwargs["rank"] = rank
-        # allow `MultiMarginalProblem` to pass new marginals
+        kwargs["initializer"] = initializer
         a = kwargs.pop("a", self._a)
         b = kwargs.pop("b", self._b)
 
@@ -261,7 +263,7 @@ class OTProblem(BaseProblem):
         prepare_kwargs["scale_cost"] = scale_cost
         prepare_kwargs["batch_size"] = batch_size
 
-        solver: BaseSolver[BaseSolverOutput] = self._problem_kind.solver(backend="ott", **kwargs)
+        solver: BaseSolver[BaseSolverOutput] = self._problem_kind.solver(backend="ott", **kwargs, **initializer_kwargs)
         self._solution = solver(
             x=self._x,
             y=self._y,

@@ -1,5 +1,7 @@
+from types import MappingProxyType
 from typing import Any, Type, Tuple, Union, Literal, Mapping, Optional
 
+from moscot._types import QuadInitializer_t
 from moscot._docs._docs import d
 from moscot._constants._key import Key
 from moscot._constants._constants import Policy, ScaleCost
@@ -82,6 +84,8 @@ class AlignmentProblem(CompoundProblem[K, B], SpatialAlignmentMixin[K, B]):
         rank: int = -1,
         batch_size: Optional[int] = None,
         stage: Union[ProblemStage, Tuple[ProblemStage, ...]] = (ProblemStage.PREPARED, ProblemStage.SOLVED),
+        initializer: QuadInitializer_t = None,
+        initializer_kwargs: Mapping[str, Any] = MappingProxyType({}),
         **kwargs: Any,
     ) -> "AlignmentProblem[K, B]":
         """
@@ -95,6 +99,8 @@ class AlignmentProblem(CompoundProblem[K, B], SpatialAlignmentMixin[K, B]):
         %(rank)s
         %(ott_jax_batch_size)s
         %(stage)s
+        %(initializer_quad)s
+        %(initializer_kwargs)s
         %(solve_kwargs)s
 
         Returns
@@ -103,7 +109,15 @@ class AlignmentProblem(CompoundProblem[K, B], SpatialAlignmentMixin[K, B]):
         """
         scale_cost = ScaleCost(scale_cost) if isinstance(scale_cost, ScaleCost) else scale_cost
         return super().solve(
-            alpha=alpha, epsilon=epsilon, scale_cost=scale_cost, rank=rank, batch_size=batch_size, stage=stage, **kwargs
+            alpha=alpha,
+            epsilon=epsilon,
+            scale_cost=scale_cost,
+            rank=rank,
+            batch_size=batch_size,
+            stage=stage,
+            initializer=initializer,
+            initializer_kwargs=initializer_kwargs,
+            **kwargs,
         )  # type:ignore[return-value]
 
     @property

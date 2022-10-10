@@ -153,7 +153,7 @@ class OTSolver(TagConverterMixin, BaseSolver[O], ABC):  # noqa: B024
         """Call method."""
         data = self._get_array_data(xy, x=x, y=y, tags=tags)
         kwargs = self._prepare_kwargs(data, **kwargs)
-
+        print("kwargs are ", kwargs)
         res = super().__call__(a=a, b=b, tau_a=tau_a, tau_b=tau_b, **kwargs)
         # TODO(michalk8): check for NaNs
         if not res.converged:

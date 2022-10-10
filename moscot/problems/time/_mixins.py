@@ -307,7 +307,7 @@ class TemporalMixin(AnalysisMixin[K, B]):
         %(data)s
         %(subset)s
         %(scale_by_marginals)s
-        %(key_added)s
+        %(key_added_plotting)s
         %(return_all)s
         %(return_data)s
 
@@ -315,9 +315,6 @@ class TemporalMixin(AnalysisMixin[K, B]):
         ------
         %(return_push_pull)s
 
-        Raises
-        ------
-        %(BaseCompoundProblem_push.raises)s
         """
         result = self._apply(
             start=start,
@@ -365,7 +362,7 @@ class TemporalMixin(AnalysisMixin[K, B]):
         %(data)s
         %(subset)s
         %(scale_by_marginals)s
-        %(key_added)s
+        %(key_added_plotting)s
         %(return_all)s
         %(return_data)s
 
@@ -373,9 +370,6 @@ class TemporalMixin(AnalysisMixin[K, B]):
         ------
         %(return_push_pull)s
 
-        Raises
-        ------
-        %(BaseCompoundProblem_pull.raises)s
         """
         result = self._apply(
             start=start,
