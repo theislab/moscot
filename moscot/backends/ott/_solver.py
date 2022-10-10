@@ -111,7 +111,6 @@ class OTTJaxSolver(OTSolver[OTTOutput], ABC):  # noqa: B024
         prob: Union[LinearProblem, QuadraticProblem],
         **kwargs: Any,
     ) -> OTTOutput:
-        print("kwargs 2 are ", kwargs)
         out = self.solver(prob, **kwargs)
         return OTTOutput(out)
 
