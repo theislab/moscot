@@ -131,7 +131,7 @@ class SinkhornProblem(CompoundProblem[K, B], GenericAnalysisMixin[K, B]):
             initializer=initializer,
             initializer_kwargs=initializer_kwargs,
             **kwargs,
-        )  # type:ignore[return-value]
+        )
 
     @property
     def _base_problem_type(self) -> Type[B]:

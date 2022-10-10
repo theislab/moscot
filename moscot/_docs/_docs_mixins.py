@@ -7,21 +7,23 @@ target
     Key identifying the target distribution.
 source_groups
     Can be one of the following:
+
         - if `source_groups` is of type :class:`str` this should correspond to a key in
         :attr:`anndata.AnnData.obs`. In this case, the categories in the transition matrix correspond to the
         unique values in :attr:`anndata.AnnData.obs` ``['{source_groups}']``.
         - if `target_groups` is of type :class:`dict`, its key should correspond to a key in
         :attr:`anndata.AnnData.obs` and its value to a subset of categories present in
         :attr:`anndata.AnnData.obs` ``['{source_groups.keys()[0]}']``.
+
 target_groups
     Can be one of the following
+
         - if `target_groups` is of type :class:`str` this should correspond to a key in
         :attr:`anndata.AnnData.obs`. In this case, the categories in the transition matrix correspond to the
         unique values in :attr:`anndata.AnnData.obs` ``['{target_groups}']``.
         - if `target_groups` is of :class:`dict`, its key should correspond to a key in
         :attr:`anndata.AnnData.obs` and its value to a subset of categories present in
-        :attr:`anndata.AnnData.obs` ``['{target_groups.keys()[0]}']``.
-"""
+        :attr:`anndata.AnnData.obs` ``['{target_groups.keys()[0]}']``."""
 _key = """\
 key
     Key in :attr:`anndata.AnnData.obs` allocating the cell to a certain cell distribution (e.g. batch)."""
@@ -96,7 +98,7 @@ Depending on `key_added` updates `adata` or returns the result:
 
     - In the former case all intermediate results are saved in :attr:`anndata.AnnData.obs`.
     - In the latter case all intermediate step results are returned if `return_all` is `True`,
-    otherwise only the distribution at `source` is returned.
+      otherwise only the distribution at `source` is returned.
 """
 _restrict_to_existing = """\
 restrict_to_existing
