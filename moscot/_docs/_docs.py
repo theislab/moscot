@@ -170,14 +170,17 @@ Otherwise, modifies the :class:`anndata.AnnData` instance with the following key
 """
 _initializer_lin = """\
 initializer
-    Initializer to use for the problem. TODO: adapt full rank after OTT-JAX changes.
-    If not low rank, an instance of `ott.core.initialization.SinkhornInitializer must be passed.
+    Initializer to use for the problem.
+    If not low rank, available options are
+        - `default` (constant scalings)
+        - `gaussian` (:cite:`thornton2022rethinking:22`)
+        - `sorting` (:cite:`thornton2022rethinking:22`)
     If low rank, available options are
         - `random`
-        - `rank2`
-        - `k-means`
-        - `generalized-k-means`
-    The default for full rank is constant scalings, for low rank it is "random".
+        - `rank2` (:cite:`scetbon:21`)
+        - `k-means` (:cite:`scetbon:22b`)
+        - `generalized-k-means` (:cite:`scetbon:22b`)
+    If `None`, the default for not low rank is `default`, for low rank it is `random`.
 """
 _initializer_quad = """\
 initializer
