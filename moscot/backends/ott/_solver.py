@@ -173,13 +173,14 @@ class SinkhornSolver(OTTJaxSolver):
     def __init__(self, rank: int = -1, **kwargs: Any):
         super().__init__()
         initializer = kwargs.pop("initializer", None)
-        if initializer is None:
-            initializer = init_lib.DefaultInitializer()
-        self._solver = (
-            LRSinkhorn(rank=rank, initializer=initializer, **kwargs)
-            if rank > -1
-            else Sinkhorn(initializer=initializer, **kwargs)
-        )
+        if rank > -1:
+            if initializer is None:
+                initializer = "random"
+            self._solver = LRSinkhorn(rank=rank, initializer=initializer, **kwargs)
+        else:
+            if initializer is None:
+                initializer = init_lib.DefaultInitializer()
+            self._solver = Sinkhorn(initializer=initializer, **kwargs)
 
     def _prepare(
         self,
