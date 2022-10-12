@@ -374,9 +374,10 @@ class SpatialMappingMixin(AnalysisMixin[K, B]):
             else val.pull(gexp_sc, scale_by_marginals=True)
             for val in self.solutions.values()
         ]
-        adata_pred = AnnData(np.nan_to_num(np.vstack(pred_list), nan=0.0, copy=False))
-        adata_pred.obs_names = self.adata_sp.obs_names.copy()
-        adata_pred.var_names = var_names
+        gexp_pred = np.nan_to_num(np.vstack(pred_list), nan=0.0, copy=False)
+        adata_pred = AnnData(gexp_pred, dtype=np.float_)
+        adata_pred.obs.index = self.adata_sp.obs_names
+        adata_pred.var.index = var_names
         return adata_pred
 
     @d_mixins.dedent
