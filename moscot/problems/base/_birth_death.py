@@ -1,5 +1,4 @@
 from typing import Any, Union, Literal, Optional, Protocol, Sequence, TYPE_CHECKING
-import logging
 
 import numpy as np
 
@@ -7,6 +6,7 @@ from anndata import AnnData
 import scanpy as sc
 
 from moscot._types import ArrayLike
+from moscot._logging import logger
 from moscot._docs._docs import d
 from moscot.problems.time._utils import beta, delta as _delta, MarkerGenes
 from moscot.problems.base._base_problem import OTProblem
@@ -125,7 +125,7 @@ class BirthDeathMixin:
                 sc.tl.score_genes(self.adata, gene_set_apoptosis, score_name=apoptosis_key, **kwargs)
             self.apoptosis_key = apoptosis_key
         if gene_set_proliferation is None and gene_set_apoptosis is None:
-            logging.info(
+            logger.info(
                 "At least one of `gene_set_proliferation` or `gene_set_apoptosis` must be provided to score genes."
             )
 
