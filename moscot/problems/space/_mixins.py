@@ -30,13 +30,18 @@ class SpatialAlignmentMixinProtocol(AnalysisMixinProtocol[K, B]):
     _spatial_key: Optional[str]
     batch_key: Optional[str]
 
-    def _subset_spatial(self: "SpatialAlignmentMixinProtocol[K, B]", k: K) -> ArrayLike:
+    def _subset_spatial(
+        self: "SpatialAlignmentMixinProtocol[K, B]",
+        k: K,
+        spatial_key: Optional[str] = None,
+    ) -> ArrayLike:
         ...
 
     def _interpolate_scheme(
         self: "SpatialAlignmentMixinProtocol[K, B]",
         reference: K,
         mode: Literal["warp", "affine"],
+        spatial_key: Optional[str] = None,
     ) -> Tuple[Dict[K, ArrayLike], Optional[Dict[K, Optional[ArrayLike]]]]:
         ...
 
@@ -87,6 +92,7 @@ class SpatialAlignmentMixin(AnalysisMixin[K, B]):
         self: SpatialAlignmentMixinProtocol[K, B],
         reference: K,
         mode: Literal["warp", "affine"],
+        spatial_key: Optional[str] = None,
     ) -> Tuple[Dict[K, ArrayLike], Optional[Dict[K, Optional[ArrayLike]]]]:
         """Scheme for interpolation."""
 
@@ -118,12 +124,16 @@ class SpatialAlignmentMixin(AnalysisMixin[K, B]):
         if len(fwd_steps):
             for (start, _), path in fwd_steps.items():
                 tmap = self._interpolate_transport(path=path, scale_by_marginals=True, forward=True)
-                transport_maps[start], transport_metadata[start] = _transport(tmap, self._subset_spatial(start), src)
+                transport_maps[start], transport_metadata[start] = _transport(
+                    tmap, self._subset_spatial(start, spatial_key=spatial_key), src
+                )
 
         if len(bwd_steps):
             for (_, end), path in bwd_steps.items():
                 tmap = self._interpolate_transport(path=path, scale_by_marginals=True, forward=False)
-                transport_maps[end], transport_metadata[end] = _transport(tmap.T, self._subset_spatial(end), src)
+                transport_maps[end], transport_metadata[end] = _transport(
+                    tmap.T, self._subset_spatial(end, spatial_key=spatial_key), src
+                )
 
         if mode == "affine":
             return transport_maps, transport_metadata
@@ -134,6 +144,7 @@ class SpatialAlignmentMixin(AnalysisMixin[K, B]):
         self: SpatialAlignmentMixinProtocol[K, B],
         reference: K,
         mode: Literal["warp", "affine"] = AlignmentMode.WARP,  # type: ignore[assignment]
+        spatial_key: Optional[str] = None,
         inplace: bool = True,
     ) -> Optional[Union[ArrayLike, Tuple[ArrayLike, Optional[Dict[K, Optional[ArrayLike]]]]]]:
         """
@@ -159,7 +170,9 @@ class SpatialAlignmentMixin(AnalysisMixin[K, B]):
         if isinstance(self._policy, StarPolicy):
             if reference != self._policy.reference:
                 raise ValueError(f"Invalid `reference: {reference}` for `policy='star'`.")
-        aligned_maps, aligned_metadata = self._interpolate_scheme(reference=reference, mode=mode)
+        aligned_maps, aligned_metadata = self._interpolate_scheme(
+            reference=reference, mode=mode, spatial_key=spatial_key
+        )
         aligned_basis = np.vstack([aligned_maps[k] for k in self._policy._cat])
         mode = AlignmentMode(mode)  # type: ignore[assignment]
         if mode == "affine":
@@ -251,12 +264,12 @@ class SpatialAlignmentMixin(AnalysisMixin[K, B]):
             raise KeyError(f"{value} not in `adata.obs`.")
         self._batch_key = value
 
-    def _subset_spatial(self: SpatialAlignmentMixinProtocol[K, B], k: K) -> ArrayLike:
-        return (
-            self.adata[self.adata.obs[self._policy._subset_key] == k]
-            .obsm[self.spatial_key]
-            .astype(np.float_, copy=True)
-        )
+    def _subset_spatial(
+        self: SpatialAlignmentMixinProtocol[K, B], k: K, spatial_key: Optional[str] = None
+    ) -> ArrayLike:
+        if spatial_key is None:
+            spatial_key = self.spatial_key
+        return self.adata[self.adata.obs[self._policy._subset_key] == k].obsm[spatial_key].astype(np.float_, copy=True)
 
     @staticmethod
     def _affine(tmap: LinearOperator, tgt: ArrayLike, src: ArrayLike) -> Tuple[ArrayLike, ArrayLike]:
