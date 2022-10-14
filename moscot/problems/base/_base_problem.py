@@ -2,7 +2,6 @@ from abc import ABC, abstractmethod
 from enum import Enum
 from types import MappingProxyType
 from typing import Any, Dict, List, Tuple, Union, Literal, Mapping, Optional, TYPE_CHECKING
-import logging
 
 from scipy.sparse import vstack, issparse, csr_matrix
 
@@ -12,6 +11,7 @@ from anndata import AnnData
 import scanpy as sc
 
 from moscot._types import ArrayLike, Initializer_t
+from moscot._logging import logger
 from moscot._docs._docs import d
 from moscot.problems._utils import wrap_solve, wrap_prepare, require_solution
 from moscot.solvers._output import BaseSolverOutput
@@ -332,7 +332,7 @@ class OTProblem(BaseProblem):
 
         n_comps = kwargs.pop("n_comps", 30)  # set n_comps=30 as default
 
-        logging.info("Computing pca with `n_comps = {n_comps}` and `joint_space = {joint_space}`.")
+        logger.info("Computing pca with `n_comps = {n_comps}` and `joint_space = {joint_space}`.")
 
         if return_linear:
             n = x.shape[0]

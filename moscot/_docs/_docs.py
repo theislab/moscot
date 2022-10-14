@@ -47,7 +47,7 @@ tau_a
     Unbalancedness parameter for left marginal between 0 and 1. `tau_a` equalling 1 means no unbalancedness
     in the source distribution. The limit of `tau_a` going to 0 ignores the left marginals."""
 _tau_b = """\
-tau_a
+tau_b
     unbalancedness parameter for right marginal between 0 and 1. `tau_b` equalling 1 means no unbalancedness
     in the target distribution. The limit of `tau_b` going to 0 ignores the right marginals."""
 _scale_by_marginals = """\
@@ -196,7 +196,7 @@ initializer
     otherwise the K-means initializer.
 """
 _initializer_kwargs = """\
-initializer kwargs
+initializer_kwargs
     keyword arguments for the initializer.
 """
 
