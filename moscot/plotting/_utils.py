@@ -260,7 +260,7 @@ def _heatmap(
     c.set_label(row_annotation if row_annotation_label is None else row_annotation_label)
 
     if save:
-        fig.savefig(save)
+        fig.savefig(save, bbox_inches="tight")
     if return_fig:
         return fig
 
@@ -395,7 +395,8 @@ def _plot_temporal(
         show=show,
         **kwargs,
     )
+
     if save:
-        fig.save(save)
+        fig.savefig(save, bbox_inches="tight")
     if return_fig:
         return fig
