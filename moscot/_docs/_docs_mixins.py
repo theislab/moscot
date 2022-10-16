@@ -13,7 +13,7 @@ source_groups
         unique values in :attr:`anndata.AnnData.obs` ``['{source_groups}']``.
         - if `target_groups` is of type :class:`dict`, its key should correspond to a key in
         :attr:`anndata.AnnData.obs` and its value to a list containing a subset of categories present in
-        :attr:`anndata.AnnData.obs` ``['{source_groups.keys()[0]}']``. The order of list determines the order
+        :attr:`anndata.AnnData.obs` ``['{source_groups.keys()[0]}']``. The order of the list determines the order
         in the transition matrix.
 
 target_groups
@@ -24,7 +24,7 @@ target_groups
         unique values in :attr:`anndata.AnnData.obs` ``['{target_groups}']``.
         - if `target_groups` is of :class:`dict`, its key should correspond to a key in
         :attr:`anndata.AnnData.obs` and its value to a list containing a subset of categories present in
-        :attr:`anndata.AnnData.obs` ``['{target_groups.keys()[0]}']``. The order of list determines the order
+        :attr:`anndata.AnnData.obs` ``['{target_groups.keys()[0]}']``. The order of the list determines the order
         in the transition matrix."""
 _key = """\
 key
