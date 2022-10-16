@@ -260,7 +260,7 @@ def _heatmap(
     c.set_label(row_annotation if row_annotation_label is None else row_annotation_label)
 
     if save:
-        fig.save(save)
+        fig.savefig(save)
     if return_fig:
         return fig
 
@@ -295,7 +295,7 @@ def _annotate_heatmap(
 
     for i in range(transition_matrix.shape[0]):
         for j in range(transition_matrix.shape[1]):
-            val = im.norm(transition_matrix.iloc[j, i])
+            val = im.norm(transition_matrix.iloc[i, j])
             if np.isnan(val):
                 continue
             kw.update(color=_get_black_or_white(val, cmap))

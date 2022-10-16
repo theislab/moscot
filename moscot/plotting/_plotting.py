@@ -63,13 +63,16 @@ def cell_transition(
     if key not in adata1.uns[AdataKeys.UNS][PlottingKeys.CELL_TRANSITION]:
         raise KeyError("TODO.")
     data = adata1.uns[AdataKeys.UNS][PlottingKeys.CELL_TRANSITION][key]
-
     return _heatmap(
         row_adata=adata1,
         col_adata=adata2,
         transition_matrix=data["transition_matrix"],
-        row_annotation=data["source_groups"],
-        col_annotation=data["target_groups"],
+        row_annotation=data["source_groups"]
+        if isinstance(data["source_groups"], str)
+        else next(iter(data["source_groups"])),
+        col_annotation=data["target_groups"]
+        if isinstance(data["target_groups"], str)
+        else next(iter(data["target_groups"])),
         row_annotation_label=data["source"] if row_labels is None else row_labels,
         col_annotation_label=data["target"] if col_labels is None else col_labels,
         cont_cmap=cmap,
