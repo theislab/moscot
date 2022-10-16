@@ -36,7 +36,7 @@ which is passed or saved as an attribute of :mod:`moscot.problems.base.CompoundP
 """
 _fontsize = """\
 fontsize
-    fontsize of annotation"""
+    Fontsize of annotation."""
 
 ###############################################################################
 # plotting.sankey
@@ -158,4 +158,5 @@ d_plotting = DocstringProcessor(
     return_fig=_return_fig,
     ax=_ax,
     figsize_dpi_save=_figsize_dpi_save,
+    fontsize=_fontsize,
 )
