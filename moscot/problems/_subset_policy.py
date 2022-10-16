@@ -71,6 +71,9 @@ class SubsetPolicy(Generic[K]):
         self._cat = tuple(self._data.cat.categories)
         self._subset_key: Optional[str] = key
 
+        if len(self._cat) < 2:
+            raise ValueError(f"`adata.obs[{key}]` must contain at least two different values.")
+
     @abstractmethod
     def _create_graph(self, **kwargs: Any) -> Set[Tuple[K, K]]:
         pass

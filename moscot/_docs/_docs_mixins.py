@@ -12,8 +12,9 @@ source_groups
         :attr:`anndata.AnnData.obs`. In this case, the categories in the transition matrix correspond to the
         unique values in :attr:`anndata.AnnData.obs` ``['{source_groups}']``.
         - if `target_groups` is of type :class:`dict`, its key should correspond to a key in
-        :attr:`anndata.AnnData.obs` and its value to a subset of categories present in
-        :attr:`anndata.AnnData.obs` ``['{source_groups.keys()[0]}']``.
+        :attr:`anndata.AnnData.obs` and its value to a list containing a subset of categories present in
+        :attr:`anndata.AnnData.obs` ``['{source_groups.keys()[0]}']``. The order of list determines the order
+        in the transition matrix.
 
 target_groups
     Can be one of the following
@@ -22,8 +23,9 @@ target_groups
         :attr:`anndata.AnnData.obs`. In this case, the categories in the transition matrix correspond to the
         unique values in :attr:`anndata.AnnData.obs` ``['{target_groups}']``.
         - if `target_groups` is of :class:`dict`, its key should correspond to a key in
-        :attr:`anndata.AnnData.obs` and its value to a subset of categories present in
-        :attr:`anndata.AnnData.obs` ``['{target_groups.keys()[0]}']``."""
+        :attr:`anndata.AnnData.obs` and its value to a list containing a subset of categories present in
+        :attr:`anndata.AnnData.obs` ``['{target_groups.keys()[0]}']``. The order of list determines the order
+        in the transition matrix."""
 _key = """\
 key
     Key in :attr:`anndata.AnnData.obs` allocating the cell to a certain cell distribution (e.g. batch)."""
