@@ -13,7 +13,8 @@ row_labels
 col_labels
     If present, used labels to annotate the columns of the transition matrix.
 annotate
-    Whether to annotate heatmap with the entries of the transition matrix.
+    If `None`, the heatmap does not show the values of the transition matrix. Otherwise,
+    expects formatting value.
 """
 _cbar_kwargs_cell_transition = """\
 cbar_kwargs
@@ -33,6 +34,9 @@ which is passed or saved as an attribute of :mod:`moscot.problems.base.CompoundP
     - `source_groups`
     - `target_groups`
 """
+_fontsize = """\
+fontsize
+    fontsize of annotation"""
 
 ###############################################################################
 # plotting.sankey

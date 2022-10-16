@@ -23,7 +23,8 @@ def cell_transition(
     uns_key: str = PlottingKeys.CELL_TRANSITION,
     row_labels: Optional[str] = None,
     col_labels: Optional[str] = None,
-    annotate: bool = True,
+    annotate: Optional[str] = "{x:.2f}",
+    fontsize: float = 7.0,
     cmap: Union[str, mcolors.Colormap] = "viridis",
     figsize: Optional[Tuple[float, float]] = None,
     dpi: Optional[int] = None,
@@ -43,6 +44,7 @@ def cell_transition(
     %(input_plotting)s
     %(uns_key)s
     %(transition_labels_cell_transition)s
+    %(fontsize)s
     %(cmap)s
     %(figsize_dpi_save)s
     %(cbar_kwargs_cell_transition)s
@@ -72,6 +74,7 @@ def cell_transition(
         col_annotation_label=data["target"] if col_labels is None else col_labels,
         cont_cmap=cmap,
         annotate_values=annotate,
+        fontsize=fontsize,
         figsize=figsize,
         dpi=dpi,
         ax=ax,
