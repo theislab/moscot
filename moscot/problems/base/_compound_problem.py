@@ -32,7 +32,6 @@ from moscot.problems.base._utils import attributedispatch
 from moscot._constants._constants import Policy
 from moscot.solvers._tagged_array import Tag, TaggedArray
 from moscot.problems._subset_policy import (
-    Axis_t,
     StarPolicy,
     DummyPolicy,
     SubsetPolicy,
@@ -158,7 +157,6 @@ class BaseCompoundProblem(BaseProblem, ABC, Generic[K, B]):
         policy: Policy = Policy.SEQUENTIAL,
         subset: Optional[Sequence[Tuple[K, K]]] = None,
         reference: Optional[Any] = None,
-        axis: Axis_t = "obs",
         callback: Optional[Union[Literal["local-pca"], Callback_t]] = None,
         callback_kwargs: Mapping[str, Any] = MappingProxyType({}),
         **kwargs: Any,
@@ -172,7 +170,6 @@ class BaseCompoundProblem(BaseProblem, ABC, Generic[K, B]):
         %(policy)s
         %(subset)s
         %(reference)s
-        %(axis)s
         %(callback)s
         %(callback_kwargs)s
         %(a)s
@@ -184,7 +181,7 @@ class BaseCompoundProblem(BaseProblem, ABC, Generic[K, B]):
         """
         if self._valid_policies and policy not in self._valid_policies:
             raise ValueError(f"TODO: Invalid policy `{policy}`")
-        policy = self._create_policy(policy=policy, key=key, axis=axis)  # type: ignore[assignment]
+        policy = self._create_policy(policy=policy, key=key)  # type: ignore[assignment]
         if TYPE_CHECKING:
             assert isinstance(policy, SubsetPolicy)
         if isinstance(policy, ExplicitPolicy):
@@ -565,15 +562,14 @@ class CompoundProblem(BaseCompoundProblem[K, B], ABC):
         self,
         policy: Policy,
         key: Optional[str] = None,
-        axis: Axis_t = "obs",
         **_: Any,
     ) -> SubsetPolicy[K]:
         if isinstance(policy, str):
-            return SubsetPolicy.create(policy, adata=self.adata, key=key, axis=axis)
-        return ExplicitPolicy(self.adata, key=key, axis=axis)
+            return SubsetPolicy.create(policy, adata=self.adata, key=key)
+        return ExplicitPolicy(self.adata, key=key)
 
     def _mask(self, mask: ArrayLike) -> AnnData:
-        return self.adata[mask] if self._policy.axis == "obs" else self.adata[:, mask]  # type: ignore[union-attr]
+        return self.adata[mask]
 
     def _callback_handler(
         self,
@@ -595,11 +591,10 @@ class CompoundProblem(BaseCompoundProblem[K, B], ABC):
         if TYPE_CHECKING:
             assert isinstance(self._policy, SubsetPolicy)
 
-        attr = f"{self._policy.axis}p"
         try:
-            data = getattr(self.adata, attr)[key]
+            data = self.adata.obsp[key]
         except KeyError:
-            raise KeyError(f"TODO: data not in `adata.{attr}[{key!r}]`") from None
+            raise KeyError(f"TODO: data not in `adata.obsp[{key!r}]`") from None
 
         src_mask = self._policy.create_mask(src, allow_empty=False)
         tgt_mask = self._policy.create_mask(tgt, allow_empty=False)
