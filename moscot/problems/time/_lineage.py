@@ -66,7 +66,6 @@ class TemporalProblem(
         %(marginal_kwargs)s
         %(subset)s
         %(reference)s
-        %(axis)s
         %(callback)s
         %(callback_kwargs)s
 
@@ -305,7 +304,6 @@ class LineageProblem(TemporalProblem):
         %(b)s
         %(subset)s
         %(reference)s
-        %(axis)s
         %(callback)s
         %(callback_kwargs)s
 

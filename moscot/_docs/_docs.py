@@ -24,9 +24,6 @@ target
 _reference = """\
 reference
     `reference` in :class:`moscot.problems._subset_policy.StarPolicy`."""
-_axis = """\
-axis
-    Axis along which to group the data."""
 _callback = """\
 callback
     Custom callback applied to each distribution as preprocessing step. Examples are given in TODO Link Notebook."""
@@ -210,7 +207,6 @@ d = DocstringProcessor(
     source=_source,
     target=_target,
     reference=_reference,
-    axis=_axis,
     callback=_callback,
     callback_kwargs=_callback_kwargs,
     epsilon=_epsilon,
