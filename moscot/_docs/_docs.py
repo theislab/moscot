@@ -26,13 +26,13 @@ reference
     `reference` in :class:`moscot.problems._subset_policy.StarPolicy`."""
 _callback = """\
 callback
-    Custom callback applied to each distribution as preprocessing step. Examples are given in TODO Link Notebook."""
+    Custom callback applied to each distribution as pre-processing step. Examples are given in TODO Link Notebook."""
 _callback_kwargs = """\
 callback_kwargs
     Keyword arguments for `callback`."""
 _epsilon = """\
 epsilon
-    Enropic regularisation parameter."""
+    Entropic regularisation parameter."""
 _alpha = """\
 alpha
     Interpolation parameter between quadratic term and linear term."""
@@ -61,7 +61,8 @@ data
       (if `forward` is `True`) or target distribution (if `forward` is `False`) of that column.
     - If `data` is a :class:npt.ArrayLike the transport map is applied to `data`.
     - If `data` is a :class:`dict` then the keys should correspond to the tuple defining a single optimal
-      transport map and the value should be one of the two cases described above."""
+      transport map and the value should be one of the two cases described above.
+"""
 _subset = """\
 subset
     Subset of :attr:`anndata.AnnData.obs` ``['{key}']`` values of which the policy is to be applied to."""
@@ -81,7 +82,8 @@ marginal_kwargs
         - delta_max: float
         - delta_min: float
         - delta_center: float
-        - delta_width: float"""
+        - delta_width: float
+"""
 _shape = """\
 shape
     Number of cells in source and target distribution."""
@@ -94,11 +96,11 @@ converged
 _a = """\
 a
     Specifies the left marginals. If of type :class:`str` the left marginals are taken from
-    :attr:`anndata.AnnData.obs` ``[`{a}`]``. If `a` is `None` uniform marginals are used."""
+    :attr:`anndata.AnnData.obs` ``['{a}']``. If `a` is `None` uniform marginals are used."""
 _b = """\
 b
     Specifies the right marginals. If of type :class:`str` the right marginals are taken from
-    :attr:`anndata.AnnData.obs` ``[`{a}`]``. If `b` is `None` uniform marginals are used."""
+    :attr:`anndata.AnnData.obs` ``['{b}']``. If `b` is `None` uniform marginals are used."""
 _time_key = """\
 time_key
     Time point key in :attr:`anndata.AnnData.obs`."""
@@ -116,24 +118,27 @@ key
     Key in :attr:`anndata.AnnData.obs` allocating the cell to a certain cell distribution (e.g. batch)."""
 _joint_attr = """\
 joint_attr
+
     - If `None`, PCA on :attr:`anndata.AnnData.X` is computed.
     - If `str`, it must refer to a key in :attr:`anndata.AnnData.obsm`.
     - If `dict`, the dictionary stores `attr` (attribute of :class:`anndata.AnnData`) and `key`
-    (key of :class:`anndata.AnnData` ``['{attr}']``).
+      (key of :class:`anndata.AnnData` ``['{attr}']``).
 """
 _GW_x = """\
 GW_x
+
     - If empty , cost matrix must be provided in :attr:`anndata.AnnData.obsp`.
     - If `str`, it must refer to a key in :attr:`anndata.AnnData.obsm`.
     - If `dict`, the dictionary stores `attr` (attribute of :class:`anndata.AnnData`) and `key`
-    (key of :class:`anndata.AnnData` ``['{attr}']``).
+      (key of :class:`anndata.AnnData` ``['{attr}']``).
 """
 _GW_y = """\
 GW_y
+
     - If empty, cost matrix must be provided in :attr:`anndata.AnnData.obsp`.
     - If `str`, it must refer to a key in :attr:`anndata.AnnData.obsm`.
     - If `dict`, the dictionary stores `attr` (attribute of :class:`anndata.AnnData`) and `key`
-    (key of :class:`anndata.AnnData` ``['{attr}']``).
+      (key of :class:`anndata.AnnData` ``['{attr}']``).
 """
 _split_mass = """\
 split_mass
@@ -169,25 +174,31 @@ _initializer_lin = """\
 initializer
     Initializer to use for the problem.
     If not low rank, available options are
+
         - `default` (constant scalings)
-        - `gaussian` (:cite:`thornton2022rethinking:22`)
-        - `sorting` (:cite:`thornton2022rethinking:22`)
-    If low rank, available options are
+        - `gaussian` :cite:`thornton2022rethinking:22`
+        - `sorting` :cite:`thornton2022rethinking:22`
+
+    If low rank, available options are:
+
         - `random`
-        - `rank2` (:cite:`scetbon:21`)
-        - `k-means` (:cite:`scetbon:22b`)
-        - `generalized-k-means` (:cite:`scetbon:22b`)
+        - `rank2` :cite:`scetbon:21`
+        - `k-means` :cite:`scetbon:22b`
+        - `generalized-k-means` :cite:`scetbon:22b`
+
     If `None`, the default for not low rank is `default`, for low rank it is `random`.
 """
 _initializer_quad = """\
 initializer
     Initializer to use for the problem.
     If not low rank, the standard initializer is used (outer product of marginals).
-    If low rank, available options are
+    If low rank, available options are:
+
         - `random`
-        - `rank2` (:cite:`scetbon:21`)
-        - `k-means` (:cite:`scetbon:22b`)
-        - `generalized-k-means` (:cite:`scetbon:22b`)
+        - `rank2` :cite:`scetbon:21`
+        - `k-means` :cite:`scetbon:22b`
+        - `generalized-k-means` :cite:`scetbon:22b`:
+
     If `None`, the low-rank initializer will be selected based on how the data is passed.
     If the cost matrix is passed (instead of the data), the random initializer is used,
     otherwise the K-means initializer.
