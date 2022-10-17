@@ -160,7 +160,7 @@ class SinkhornSolver(OTTJaxSolver):
     minimized.
 
     This solver wraps :class:`ott.core.sinkhorn.Sinkhorn` :cite:`cuturi:2013` by default and :cite:`cuturi:2013`
-    :class:`ott.core.sinkhorn_lr.LRSinkhorn` :cite:`scetbon:2021_a` if `rank` is a positive integer. In the
+    :class:`ott.core.sinkhorn_lr.LRSinkhorn` :cite:`scetbon:21` if `rank` is a positive integer. In the
     former case, the solver makes use of the Sinkhorn algorithm, in the latter a mirror descent algorithm.
     TODO: link notebooks for example
 
@@ -218,7 +218,7 @@ class GWSolver(OTTJaxSolver):
     within each distribution.
 
     This solver wraps :class:`ott.core.gromov_wasserstein.GromovWasserstein` which handles both the full rank
-    Gromov-Wasserstein algorithm :cite:`memoli:2011` as well as the low rank approach :cite:`scetbon:2021_b`.
+    Gromov-Wasserstein algorithm :cite:`memoli:2011` as well as the low rank approach :cite:`scetbon:21b`.
     In both cases the solver makes use of a mirror-descent algorithm :cite:`memoli:2011`.
 
     TODO: link notebooks for example

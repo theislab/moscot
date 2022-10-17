@@ -176,13 +176,13 @@ initializer
     If not low rank, available options are
 
         - `default` (constant scalings)
-        - `gaussian` :cite:`thornton2022rethinking:22`
-        - `sorting` :cite:`thornton2022rethinking:22`
+        - `gaussian` :cite:`thornton:22`
+        - `sorting` :cite:`thornton:22`
 
     If low rank, available options are:
 
         - `random`
-        - `rank2` :cite:`scetbon:21`
+        - `rank2` :cite:`scetbon:21a`
         - `k-means` :cite:`scetbon:22b`
         - `generalized-k-means` :cite:`scetbon:22b`
 
@@ -195,7 +195,7 @@ initializer
     If low rank, available options are:
 
         - `random`
-        - `rank2` :cite:`scetbon:21`
+        - `rank2` :cite:`scetbon:21a`
         - `k-means` :cite:`scetbon:22b`
         - `generalized-k-means` :cite:`scetbon:22b`:
 

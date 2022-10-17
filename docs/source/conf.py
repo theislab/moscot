@@ -71,8 +71,6 @@ bibtex_default_style = "alpha"
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ["_templates"]
 source_suffix = [".rst"]  # , ".ipynb"]
-master_doc = "index"
-pygments_style = "sphinx"
 
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.
