@@ -8,7 +8,6 @@ Install ``moscot`` by running::
 
     pip install moscot
 
-
 Conda
 -----
 Install ``moscot`` via Conda as::

@@ -18,7 +18,7 @@ __all__ = ["MappingProblem"]
 @d.dedent
 class MappingProblem(CompoundProblem[K, OTProblem], SpatialMappingMixin[K, OTProblem]):
     """
-    Class for mapping single cell omics data onto spatial data, based on :cite:`nitzan2019`.
+    Class for mapping single cell omics data onto spatial data, based on :cite:`nitzan:19`.
 
     The `MappingProblem` allows to match single cell and spatial omics data via optimal transport.
 

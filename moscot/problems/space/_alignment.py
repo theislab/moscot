@@ -15,7 +15,7 @@ __all__ = ["AlignmentProblem"]
 @d.dedent
 class AlignmentProblem(CompoundProblem[K, B], SpatialAlignmentMixin[K, B]):
     """
-    Class for aligning spatial omics data, based on :cite:`zeira2022`.
+    Class for aligning spatial omics data, based on :cite:`zeira:22`.
 
     The `AlignmentProblem` allows to align spatial omics data via optimal transport.
 
