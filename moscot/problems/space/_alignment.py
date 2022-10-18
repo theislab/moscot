@@ -15,7 +15,7 @@ __all__ = ["AlignmentProblem"]
 @d.dedent
 class AlignmentProblem(CompoundProblem[K, B], SpatialAlignmentMixin[K, B]):
     """
-    Class for aligning spatial omics data, based on :cite:`zeira2022`.
+    Class for aligning spatial omics data, based on :cite:`zeira:22`.
 
     The `AlignmentProblem` allows to align spatial omics data via optimal transport.
 
@@ -33,7 +33,7 @@ class AlignmentProblem(CompoundProblem[K, B], SpatialAlignmentMixin[K, B]):
         self,
         batch_key: str,
         spatial_key: str = Key.obsm.spatial,
-        joint_attr: Optional[Mapping[str, Any]] = None,
+        joint_attr: Optional[Union[str, Mapping[str, Any]]] = None,
         policy: Literal[Policy.SEQUENTIAL, Policy.STAR] = Policy.SEQUENTIAL,
         reference: Optional[str] = None,
         **kwargs: Any,
@@ -71,9 +71,24 @@ class AlignmentProblem(CompoundProblem[K, B], SpatialAlignmentMixin[K, B]):
         x = y = {"attr": "obsm", "key": self.spatial_key, "tag": "point_cloud"}
 
         if joint_attr is None:
-            kwargs["callback"] = "local-pca"
+            xy = None
+            if "callback" not in kwargs:
+                kwargs["callback"] = "local-pca"
+            else:
+                kwargs["callback"] = kwargs["callback"]
             kwargs["callback_kwargs"] = {**kwargs.get("callback_kwargs", {}), **{"return_linear": True}}
-        return super().prepare(x=x, y=y, xy=joint_attr, policy=policy, key=batch_key, reference=reference, **kwargs)
+        elif isinstance(joint_attr, str):
+            xy = {
+                "x_attr": "obsm",
+                "x_key": joint_attr,
+                "y_attr": "obsm",
+                "y_key": joint_attr,
+            }
+        elif isinstance(joint_attr, Mapping):
+            xy = joint_attr
+        else:
+            raise TypeError("TODO")
+        return super().prepare(x=x, y=y, xy=xy, policy=policy, key=batch_key, reference=reference, **kwargs)
 
     @d.dedent
     def solve(

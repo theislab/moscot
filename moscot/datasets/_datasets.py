@@ -1,5 +1,5 @@
 # this file was adapted from https://github.com/theislab/cellrank/blob/master/cellrank/datasets/_datasets.py
-from typing import Any, Tuple, Union
+from typing import Any, Tuple, Union, Literal
 import os
 
 from scanpy import read
@@ -47,12 +47,12 @@ def _load_dataset_from_url(fpath: PathLike, backup_url: str, expected_shape: Tup
 
 @d.dedent
 def simulation(
-    path_prefix: PathLike = "datasets/simulated_",
-    size: int = 1024,
+    path: PathLike = "datasets/simulated",
+    size: Literal[1024, 15360] = 1024,
     **kwargs: Any,
 ) -> AnnData:
     """
-    Dataset simulated with TedSim :cite:`Pan2021` with parameters TODO.
+    Dataset simulated with TedSim :cite:`pan:21` with parameters TODO.
 
     Parameters
     ----------
@@ -60,17 +60,16 @@ def simulation(
         Location where file is saved to with the filename completed by the `size`.
     size
         Number of cells corresponding to the latter of the two time points.
+    kwarg
+        TODO.
 
     Returns
     -------
     %(adata)s
     """
-    _sizes = [1024, 15360]
-
-    path = path_prefix + str(size)  # type: ignore[operator]
-    if size not in _sizes:
-        raise NotImplementedError(f"Available sizes are {_sizes}.")
-    return _load_dataset_from_url(path, *_datasets[f"tedsim_{size}"], **kwargs)
+    if size not in (1024, 15360):
+        raise NotImplementedError(f"Available sizes are {(1024, 15360)}.")
+    return _load_dataset_from_url(f"{path}_{size}", *_datasets[f"tedsim_{size}"], **kwargs)
 
 
 @d.dedent
@@ -79,7 +78,7 @@ def mosta(
     **kwargs: Any,
 ) -> AnnData:
     """
-    Preprocessed and extracted data as provided in :cite:`CHEN20221777`.
+    Preprocessed and extracted data as provided in :cite:`chen:22`.
 
     The anndata object includes embryo sections E9.5 E2S1, E10.5 E2S1, E11.5, E1S2. The :attr:`anndata.AnnData.X`
     entry is based on reprocessing of the counts data consisting of :meth:`scanpy.pp.normalize_total` and
@@ -89,6 +88,8 @@ def mosta(
     ----------
     path
         Location where the file is saved to.
+    kwargs:
+        TODO.
 
     Returns
     -------
@@ -115,6 +116,8 @@ def hspc(
     ----------
     path
         Location where the file is saved to.
+    kwargs
+        TODO.
 
     Returns
     -------
