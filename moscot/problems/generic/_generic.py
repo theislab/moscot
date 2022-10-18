@@ -296,7 +296,7 @@ class FGWProblem(GWProblem[K, B]):
     def prepare(
         self,
         key: str,
-        joint_attr: Mapping[str, Any] = MappingProxyType({}),
+        joint_attr: Optional[Union[str, Mapping[str, Any]]] = None,
         GW_x: Mapping[str, Any] = MappingProxyType({}),
         GW_y: Mapping[str, Any] = MappingProxyType({}),
         policy: Literal["sequential", "pairwise", "explicit"] = "sequential",

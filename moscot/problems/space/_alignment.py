@@ -4,6 +4,7 @@ from typing import Any, Type, Tuple, Union, Literal, Mapping, Optional
 from moscot._types import QuadInitializer_t
 from moscot._docs._docs import d
 from moscot._constants._key import Key
+from moscot.problems._utils import handle_joint_attr
 from moscot._constants._constants import Policy, ScaleCost
 from moscot.problems.space._mixins import SpatialAlignmentMixin
 from moscot.problems.base._base_problem import OTProblem, ScaleCost_t, ProblemStage
@@ -47,13 +48,7 @@ class AlignmentProblem(CompoundProblem[K, B], SpatialAlignmentMixin[K, B]):
         ----------
         %(batch_key)s
         %(spatial_key)s
-
-        joint_attr
-            Parameter defining how to allocate the data needed to compute the transport maps.
-            - If None, the corresponding PCA space is computed.
-            - If `joint_attr` is a dictionary the dictionary is supposed to contain the attribute of
-            :class:`anndata.AnnData` as a key and the corresponding attribute as a value.
-
+        %(joint_attr)s
         %(policy)s
 
         reference
@@ -70,24 +65,7 @@ class AlignmentProblem(CompoundProblem[K, B], SpatialAlignmentMixin[K, B]):
 
         x = y = {"attr": "obsm", "key": self.spatial_key, "tag": "point_cloud"}
 
-        if joint_attr is None:
-            xy = None
-            if "callback" not in kwargs:
-                kwargs["callback"] = "local-pca"
-            else:
-                kwargs["callback"] = kwargs["callback"]
-            kwargs["callback_kwargs"] = {**kwargs.get("callback_kwargs", {}), **{"return_linear": True}}
-        elif isinstance(joint_attr, str):
-            xy = {
-                "x_attr": "obsm",
-                "x_key": joint_attr,
-                "y_attr": "obsm",
-                "y_key": joint_attr,
-            }
-        elif isinstance(joint_attr, Mapping):
-            xy = joint_attr
-        else:
-            raise TypeError("TODO")
+        xy, kwargs = handle_joint_attr(joint_attr, kwargs)
         return super().prepare(x=x, y=y, xy=xy, policy=policy, key=batch_key, reference=reference, **kwargs)
 
     @d.dedent
