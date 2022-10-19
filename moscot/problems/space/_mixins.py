@@ -107,6 +107,8 @@ class SpatialAlignmentMixin(AnalysisMixin[K, B]):
         # get policy
         if not isinstance(reference, str):
             reference_ = [reference]
+        else:
+            reference_ = reference  # type: ignore[assignment]
         full_steps = self._policy._graph
         starts = set(chain.from_iterable(full_steps)) - set(reference_)
         fwd_steps, bwd_steps = {}, {}
