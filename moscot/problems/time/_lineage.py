@@ -142,6 +142,7 @@ class TemporalProblem(
         max_iterations: int = 2000,
         gamma: float = 10.0,
         gamma_rescale: bool = True,
+        **kwargs: Any,
     ) -> "TemporalProblem":
         """
         Solve optimal transport problems defined in :class:`moscot.problems.time.TemporalProblem`.
@@ -401,7 +402,7 @@ class LineageProblem(TemporalProblem):
 
         Returns
         -------
-        :class:`moscot.problems.time.TemporalProblem`
+        :class:`moscot.problems.time.LineageProblem`
         """
         scale_cost = ScaleCost(scale_cost) if isinstance(scale_cost, ScaleCost) else scale_cost
         return super().solve(

@@ -220,7 +220,7 @@ class TestTemporalProblem:
             "epsilon": 0.7,
             "tau_a": 1.0,
             "tau_b": 1.0,
-            "scale_cost": "max",
+            "scale_cost": "max_cost",
             "rank": 7,
             "batch_size": 123,
             "initializer": "rank_2",

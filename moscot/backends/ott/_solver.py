@@ -177,8 +177,8 @@ class SinkhornSolver(OTTJaxSolver):
                 initializer = "random"
             self._solver = LRSinkhorn(rank=rank, initializer=initializer, **kwargs)
         else:
-            _ = kwargs.pop("gamma")
-            _ = kwargs.pop("gamma_rescale")
+            _ = kwargs.pop("gamma", None)
+            _ = kwargs.pop("gamma_rescale", None)
             if initializer is None:
                 initializer = init_lib.DefaultInitializer()
             self._solver = Sinkhorn(initializer=initializer, **kwargs)
