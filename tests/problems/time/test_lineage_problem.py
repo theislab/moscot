@@ -85,9 +85,12 @@ class TestLineageProblem:
             "gw_unbalanced_correction": False,
             "ranks": 3,
             "tolerances": 3e-2,
+            "warm_start": True,
         }
 
         solver_args = {
+            "epsilon": "epsilon",
+            "rank": "rank",
             "lse_mode": "lse_mode",
             "threshold": "threshold",
             "norm_error": "norm_error",
@@ -98,6 +101,7 @@ class TestLineageProblem:
             "initializer_kwargs": "kwargs_init",
             "jit": "jit",
             "warm_start": "_warm_start",
+            "quad_initializer": "quad_initializer",
         }
         quad_prob_args = {
             "tau_a": "_tau_a",
@@ -112,7 +116,7 @@ class TestLineageProblem:
             "cost": "cost_fn",
             "power": "power",
             "batch_size": "_batch_size",
-            "_scale_cost": "scale_cost",
+            "scale_cost": "_scale_cost",
         }
 
         problem = problem.solve(**args_to_check)

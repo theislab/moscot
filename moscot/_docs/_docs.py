@@ -239,11 +239,11 @@ gamma_rescale
 """
 _gw_kwargs = """\
 min_iterations
-    Minimal number of iterations.
+    Minimal number of outer Gromov-Wasserstein iterations.
 max_iterations
-    Maximal number of iterations.
+    Maximal number of outer Gromov-Wasserstein iterations.
 threshold
-    Threshold used as convergence criterion.
+    Threshold used as convergence criterion for the outer Gromov-Wasserstein loop.
 warm_start
     Whether to initialize (low-rank) Sinkhorn calls using values
     from the previous iteration. If `None`, warm starts are not used for
