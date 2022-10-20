@@ -193,7 +193,8 @@ def _heatmap(
     row_annotation_label: Optional[str] = None,
     col_annotation_label: Optional[str] = None,
     cont_cmap: Union[str, mcolors.Colormap] = "viridis",
-    annotate_values: bool = True,
+    annotate_values: Optional[str] = "{x:.2f}",
+    fontsize: float = 7.0,
     figsize: Optional[Tuple[float, float]] = None,
     dpi: Optional[int] = None,
     save: Optional[str] = None,
@@ -223,14 +224,14 @@ def _heatmap(
     cont_cmap = copy(plt.get_cmap(cont_cmap))
     cont_cmap.set_bad(color="grey")
 
-    im = ax.imshow(transition_matrix[::-1], cmap=cont_cmap, norm=norm)
+    im = ax.imshow(transition_matrix, cmap=cont_cmap, norm=norm)
     ax.grid(False)
     ax.tick_params(top=False, bottom=False, labeltop=False, labelbottom=False)
     ax.set_xticks([])
     ax.set_yticks([])
 
-    if annotate_values:
-        _annotate_heatmap(transition_matrix, im, cmap=cont_cmap, **kwargs)
+    if annotate_values is not None:
+        _annotate_heatmap(transition_matrix, im, valfmt=annotate_values, cmap=cont_cmap, fontsize=fontsize, **kwargs)
 
     divider = make_axes_locatable(ax)
     cax = divider.append_axes("right", size="1%", pad=0.1)
@@ -255,11 +256,11 @@ def _heatmap(
     c = fig.colorbar(row_sm, cax=row_cats, orientation="vertical", ticklocation="left")
 
     c.set_ticks(np.arange(transition_matrix.shape[0]) + 0.5)
-    c.ax.set_yticklabels(transition_matrix.index)
+    c.ax.set_yticklabels(transition_matrix.index[::-1])
     c.set_label(row_annotation if row_annotation_label is None else row_annotation_label)
 
     if save:
-        fig.save(save)
+        fig.savefig(save, bbox_inches="tight")
     if return_fig:
         return fig
 
@@ -277,6 +278,7 @@ def _annotate_heatmap(
     im: mpl.image.AxesImage,
     valfmt: str = "{x:.2f}",
     cmap: Union[mpl.colors.Colormap, str] = "viridis",
+    fontsize: float = 5,
     **kwargs: Any,
 ) -> None:
     # modified from matplotlib's site
@@ -293,11 +295,11 @@ def _annotate_heatmap(
 
     for i in range(transition_matrix.shape[0]):
         for j in range(transition_matrix.shape[1]):
-            val = im.norm(transition_matrix.iloc[transition_matrix.shape[0] - (i + 1), j])
+            val = im.norm(transition_matrix.iloc[i, j])
             if np.isnan(val):
                 continue
             kw.update(color=_get_black_or_white(val, cmap))
-            im.axes.text(j, i, valfmt(transition_matrix.iloc[transition_matrix.shape[0] - (i + 1), j], None), **kw)
+            im.axes.text(j, i, valfmt(transition_matrix.iloc[i, j], None), fontsize=fontsize, **kw)
 
 
 def _get_cmap_norm(
@@ -316,7 +318,7 @@ def _get_cmap_norm(
         for i, col in enumerate(col_adata.uns[f"{col_annotation}_colors"])
     }
 
-    row_colors = [row_color_dict[cat] for cat in transition_matrix.index]  # [::-1]
+    row_colors = [row_color_dict[cat] for cat in transition_matrix.index][::-1]
     col_colors = [col_color_dict[cat] for cat in transition_matrix.columns]
 
     row_cmap = mcolors.ListedColormap(row_colors)
@@ -393,7 +395,8 @@ def _plot_temporal(
         show=show,
         **kwargs,
     )
+
     if save:
-        fig.save(save)
+        fig.savefig(save, bbox_inches="tight")
     if return_fig:
         return fig

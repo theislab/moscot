@@ -3,7 +3,7 @@ moscot - Multiomics Single-Cell Optimal Transport
 
 ``moscot`` is a framework for optimal transport applications in single cell genomics.
 
-.. image:: _static/moscot_logo.png
+.. image:: _static/img/logo.png
    :width: 600px
    :align: center
 
@@ -14,27 +14,25 @@ the publication describing the model, which can be found in the corresponding do
     :link: installation
     :link-type: doc
 
-    Learn how to install `moscot`.
-
+    Learn how to install ``moscot``.
 
 .. card:: API
     :link: api/index
     :link-type: doc
 
-    Find a detailed documentation of `moscot`.
-
+    Find a detailed documentation of ``moscot``.
 
 .. card:: Examples
-    :link: examples
+    :link: notebooks/docs/source/examples
     :link-type: doc
 
-    Find brief and concise examples of certain functionalities of `moscot`.
+    Find brief and concise examples of certain functionalities of ``moscot``.
 
 .. card:: Tutorials
-    :link: tutorials
+    :link: notebooks/docs/source/tutorials
     :link-type: doc
 
-    Check out how to use `moscot` for data analysis.
+    Check out how to use ``moscot`` for data analysis.
 
 .. card:: Contributing
     :link: contributing
@@ -53,7 +51,7 @@ the publication describing the model, which can be found in the corresponding do
     Check out our manuscript xxx
 
 .. toctree::
-    :caption: Gallery
+    :caption: General
     :maxdepth: 2
     :hidden:
 

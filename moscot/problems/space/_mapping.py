@@ -8,7 +8,7 @@ from moscot._docs._docs import d
 from moscot._constants._key import Key
 from moscot._constants._constants import Policy, ScaleCost
 from moscot.problems.space._mixins import SpatialMappingMixin
-from moscot.problems._subset_policy import Axis_t, DummyPolicy, ExternalStarPolicy
+from moscot.problems._subset_policy import DummyPolicy, ExternalStarPolicy
 from moscot.problems.base._base_problem import OTProblem, ScaleCost_t, ProblemStage
 from moscot.problems.base._compound_problem import B, K, CompoundProblem
 
@@ -18,7 +18,7 @@ __all__ = ["MappingProblem"]
 @d.dedent
 class MappingProblem(CompoundProblem[K, OTProblem], SpatialMappingMixin[K, OTProblem]):
     """
-    Class for mapping single cell omics data onto spatial data, based on :cite:`nitzan2019`.
+    Class for mapping single cell omics data onto spatial data, based on :cite:`nitzan:19`.
 
     The `MappingProblem` allows to match single cell and spatial omics data via optimal transport.
 
@@ -44,13 +44,12 @@ class MappingProblem(CompoundProblem[K, OTProblem], SpatialMappingMixin[K, OTPro
         self,
         policy: Literal[Policy.EXTERNAL_STAR] = Policy.EXTERNAL_STAR,
         key: Optional[str] = None,
-        axis: Axis_t = "obs",
         **kwargs: Any,
     ) -> Union[DummyPolicy, ExternalStarPolicy[K]]:
         """Private class to create DummyPolicy if no batches are present n the spatial anndata."""
         if key is None:
-            return DummyPolicy(self.adata, axis=axis, **kwargs)
-        return ExternalStarPolicy(self.adata, key=key, axis=axis, **kwargs)
+            return DummyPolicy(self.adata, **kwargs)
+        return ExternalStarPolicy(self.adata, key=key, **kwargs)
 
     def _create_problem(
         self,

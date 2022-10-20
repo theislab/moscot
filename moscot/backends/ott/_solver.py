@@ -5,7 +5,7 @@ from typing import Any, Union, Literal, Optional
 from ott.core import initializers as init_lib
 from ott.geometry import Grid, Epsilon, Geometry, PointCloud
 from ott.core.sinkhorn import Sinkhorn
-from ott.geometry.costs import Bures, Cosine, CostFn, Euclidean, UnbalancedBures
+from ott.geometry.costs import Bures, Cosine, CostFn, SqEuclidean, UnbalancedBures
 from ott.core.sinkhorn_lr import LRSinkhorn
 from ott.core.quad_problems import QuadraticProblem
 from ott.core.linear_problems import LinearProblem
@@ -32,7 +32,7 @@ class Cost(str, Enum):
 
     def __call__(self, **kwargs: Any) -> CostFn:
         if self.value == Cost.SQEUCL:
-            return Euclidean()
+            return SqEuclidean()
         if self.value == Cost.COSINE:
             return Cosine()
         if self.value == Cost.BURES:
@@ -160,7 +160,7 @@ class SinkhornSolver(OTTJaxSolver):
     minimized.
 
     This solver wraps :class:`ott.core.sinkhorn.Sinkhorn` :cite:`cuturi:2013` by default and :cite:`cuturi:2013`
-    :class:`ott.core.sinkhorn_lr.LRSinkhorn` :cite:`scetbon:2021_a` if `rank` is a positive integer. In the
+    :class:`ott.core.sinkhorn_lr.LRSinkhorn` :cite:`scetbon:21` if `rank` is a positive integer. In the
     former case, the solver makes use of the Sinkhorn algorithm, in the latter a mirror descent algorithm.
     TODO: link notebooks for example
 
@@ -218,7 +218,7 @@ class GWSolver(OTTJaxSolver):
     within each distribution.
 
     This solver wraps :class:`ott.core.gromov_wasserstein.GromovWasserstein` which handles both the full rank
-    Gromov-Wasserstein algorithm :cite:`memoli:2011` as well as the low rank approach :cite:`scetbon:2021_b`.
+    Gromov-Wasserstein algorithm :cite:`memoli:2011` as well as the low rank approach :cite:`scetbon:21b`.
     In both cases the solver makes use of a mirror-descent algorithm :cite:`memoli:2011`.
 
     TODO: link notebooks for example
