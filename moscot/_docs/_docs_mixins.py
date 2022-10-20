@@ -9,33 +9,33 @@ source_groups
     Can be one of the following:
 
         - if `source_groups` is of type :class:`str` this should correspond to a key in
-        :attr:`anndata.AnnData.obs`. In this case, the categories in the transition matrix correspond to the
-        unique values in :attr:`anndata.AnnData.obs` ``['{source_groups}']``.
+          :attr:`anndata.AnnData.obs`. In this case, the categories in the transition matrix correspond to the
+          unique values in :attr:`anndata.AnnData.obs` ``['{source_groups}']``.
         - if `target_groups` is of type :class:`dict`, its key should correspond to a key in
-        :attr:`anndata.AnnData.obs` and its value to a list containing a subset of categories present in
-        :attr:`anndata.AnnData.obs` ``['{source_groups.keys()[0]}']``. The order of list determines the order
-        in the transition matrix.
+          :attr:`anndata.AnnData.obs` and its value to a list containing a subset of categories present in
+          :attr:`anndata.AnnData.obs` ``['{source_groups.keys()[0]}']``. The order of the list determines the order
+          in the transition matrix.
 
 target_groups
-    Can be one of the following
+    Can be one of the following:
 
         - if `target_groups` is of type :class:`str` this should correspond to a key in
-        :attr:`anndata.AnnData.obs`. In this case, the categories in the transition matrix correspond to the
-        unique values in :attr:`anndata.AnnData.obs` ``['{target_groups}']``.
+          :attr:`anndata.AnnData.obs`. In this case, the categories in the transition matrix correspond to the
+          unique values in :attr:`anndata.AnnData.obs` ``['{target_groups}']``.
         - if `target_groups` is of :class:`dict`, its key should correspond to a key in
-        :attr:`anndata.AnnData.obs` and its value to a list containing a subset of categories present in
-        :attr:`anndata.AnnData.obs` ``['{target_groups.keys()[0]}']``. The order of list determines the order
-        in the transition matrix."""
+          :attr:`anndata.AnnData.obs` and its value to a list containing a subset of categories present in
+          :attr:`anndata.AnnData.obs` ``['{target_groups.keys()[0]}']``. The order of the list determines the order
+          in the transition matrix.
+"""
 _key = """\
 key
     Key in :attr:`anndata.AnnData.obs` allocating the cell to a certain cell distribution (e.g. batch)."""
-_forward_cell_transition = """\
-forward
-    If `True` computes transition from `source_annotations` to `target_annotations`, otherwise backward."""
 _aggregation_mode = """\
 aggregation_mode
+
     - `group`: transition probabilities from the groups defined by `source_annotation` are returned.
-    - `cell`: the transition probabilities for each cell are returned."""
+    - `cell`: the transition probabilities for each cell are returned.
+"""
 _online = """\
 online
     If `True` the transport matrix is not materialised if it was solved in low-rank mode or with `batch_size != None`.
@@ -81,7 +81,8 @@ data
       (if `forward` is `True`) or target distribution (if `forward` is `False`) of that column.
     - If `data` is a :class:npt.ArrayLike the transport map is applied to `data`.
     - If `data` is a :class:`dict` then the keys should correspond to the tuple defining a single optimal
-      transport map and the value should be one of the two cases described above."""
+      transport map and the value should be one of the two cases described above.
+"""
 _subset = """\
 subset
     Subset of :attr:`anndata.AnnData.obs` ``['{key}']`` values of which the policy is to be applied to."""
@@ -129,6 +130,7 @@ d_mixins = DocstringProcessor(
     return_cell_transition=_return_cell_transition,
     notes_cell_transition=_notes_cell_transition,
     normalize=_normalize,
+    # TODO(MUCDK): duplicate
     forward=_forward_cell_transition,
     return_data=_return_data,
     return_all=_return_all,

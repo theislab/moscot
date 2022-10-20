@@ -24,7 +24,6 @@ class TestTemporalProblem:
 
         problem = problem.prepare(
             time_key="time",
-            axis="obs",
             policy="sequential",
         )
 

@@ -50,7 +50,6 @@ class SinkhornProblem(CompoundProblem[K, B], GenericAnalysisMixin[K, B]):
         %(b)s
         %(subset)s
         %(reference)s
-        %(axis)s
         %(callback)s
         %(callback_kwargs)s
 
@@ -201,7 +200,6 @@ class GWProblem(CompoundProblem[K, B], GenericAnalysisMixin[K, B]):
         %(b)s
         %(subset)s
         %(reference)s
-        %(axis)s
         %(callback)s
         %(callback_kwargs)s
 
@@ -229,7 +227,7 @@ class GWProblem(CompoundProblem[K, B], GenericAnalysisMixin[K, B]):
                 z = dict(z)
                 z.setdefault("attr", "obsp")
                 z.setdefault("key", "cost_matrices")
-                z.setdefault("loss", "Euclidean")
+                z.setdefault("loss", "SqEuclidean")
                 z.setdefault("tag", "cost")
                 z.setdefault("loss_kwargs", {})
 
@@ -337,7 +335,6 @@ class FGWProblem(GWProblem[K, B]):
         %(b)s
         %(subset)s
         %(reference)s
-        %(axis)s
         %(callback)s
         %(callback_kwargs)s
 
