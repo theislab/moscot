@@ -126,10 +126,10 @@ class BaseSolver(Generic[O], ABC):
         """Problem kind."""
         # helps to check whether necessary inputs were passed
 
-    def __call__(self, **kwargs: Any) -> O:
+    def __call__(self, prepare_kwargs: Dict[str, Any], solve_kwargs: Dict[str, Any]) -> O:
         """Call method."""
-        data = self._prepare(**kwargs)
-        return self._solve(data)
+        data = self._prepare(**prepare_kwargs)
+        return self._solve(data, **solve_kwargs)
 
 
 @d.get_sections(base="OTSolver", sections=["Parameters", "Raises"])
@@ -137,15 +137,11 @@ class BaseSolver(Generic[O], ABC):
 class OTSolver(TagConverterMixin, BaseSolver[O], ABC):  # noqa: B024
     """OTSolver class."""
 
-    def __call__(
+    def __call__(  # type: ignore[override]
         self,
         xy: Optional[Union[TaggedArray, ArrayLike, Tuple[ArrayLike, ArrayLike]]] = None,
         x: Optional[Union[TaggedArray, ArrayLike]] = None,
         y: Optional[Union[TaggedArray, ArrayLike]] = None,
-        a: Optional[ArrayLike] = None,
-        b: Optional[ArrayLike] = None,
-        tau_a: float = 1.0,
-        tau_b: float = 1.0,
         tags: Mapping[Literal["x", "y", "xy"], Tag] = MappingProxyType({}),
         device: Optional[Any] = None,
         **kwargs: Any,
@@ -153,7 +149,7 @@ class OTSolver(TagConverterMixin, BaseSolver[O], ABC):  # noqa: B024
         """Call method."""
         data = self._get_array_data(xy, x=x, y=y, tags=tags)
         kwargs = self._prepare_kwargs(data, **kwargs)
-        res = super().__call__(a=a, b=b, tau_a=tau_a, tau_b=tau_b, **kwargs)
+        res = super().__call__(**kwargs)
         # TODO(michalk8): check for NaNs
         if not res.converged:
             warnings.warn("Solver did not converge")

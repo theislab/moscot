@@ -131,7 +131,7 @@ class TestLineageProblem:
             assert hasattr(quad_prob, quad_prob_args[arg])
             assert getattr(quad_prob, arg) == args_to_check[quad_prob_args[arg]]
         assert hasattr(quad_prob, "alpha")
-        assert getattr(quad_prob, "alpha") == solver._alpha_to_fused_penalty(args_to_check["alpha"])
+        assert quad_prob.alpha == solver._alpha_to_fused_penalty(args_to_check["alpha"])
 
         geom = quad_prob.geom
         for arg in geometry_args:
@@ -142,4 +142,3 @@ class TestLineageProblem:
         for arg in pointcloud_args:
             assert hasattr(geom, geometry_args[arg])
             assert getattr(geom, arg) == args_to_check[geometry_args[arg]]
-

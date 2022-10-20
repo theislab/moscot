@@ -262,7 +262,7 @@ ranks
     to low-rank. If :class:`tuple`, it specifies the ranks of ``geom_xx``,
     ``geom_yy`` and ``geom_xy``, respectively. If :class:`int`, rank is shared
     across all geometries.
-tolerances 
+tolerances
     Tolerances used when converting geometries to low-rank. Used
     when geometries are not :class:`~ott.geometry.pointcloud.PointCloud` with
     `'sqeucl'` cost. If :class:`float`, it is shared across all geometries.

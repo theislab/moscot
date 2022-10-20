@@ -1,5 +1,4 @@
 from abc import ABC, abstractmethod
-from types import MappingProxyType
 from typing import Any, Dict, List, Tuple, Union, Literal, Mapping, Optional, TYPE_CHECKING
 
 from scipy.sparse import vstack, issparse, csr_matrix
@@ -9,14 +8,15 @@ import numpy as np
 from anndata import AnnData
 import scanpy as sc
 
-from moscot._types import ArrayLike, ScaleCost_t, Initializer_t
+from moscot._types import ArrayLike
 from moscot._logging import logger
 from moscot._docs._docs import d
 from moscot.problems._utils import wrap_solve, wrap_prepare, require_solution
 from moscot.solvers._output import BaseSolverOutput
 from moscot.problems._anndata import AnnDataPointer
 from moscot.solvers._base_solver import BaseSolver, ProblemKind
-from moscot._constants._constants import ScaleCost, ProblemStage
+from moscot._constants._constants import ProblemStage
+from moscot.problems._base._utils import filter_kwargs
 from moscot.solvers._tagged_array import Tag, TaggedArray
 
 __all__ = ["BaseProblem", "OTProblem", "ProblemKind"]
@@ -220,47 +220,32 @@ class OTProblem(BaseProblem):
     @wrap_solve
     def solve(
         self,
-        epsilon: Optional[float] = 1e-2,
-        alpha: Optional[float] = 0.5,
-        rank: int = -1,
-        scale_cost: ScaleCost_t = "mean",
-        batch_size: Optional[int] = None,
         tau_a: float = 1.0,
         tau_b: float = 1.0,
-        initializer: Initializer_t = None,
-        prepare_kwargs: Mapping[str, Any] = MappingProxyType({}),
-        initializer_kwargs: Mapping[str, Any] = MappingProxyType({}),
         device: Optional[Any] = None,
         **kwargs: Any,
     ) -> "OTProblem":
         """Solve method."""
+        kwargs = dict(kwargs)
         if self._problem_kind is None:
             raise RuntimeError("Run .prepare() first.")
-        if self._problem_kind in (ProblemKind.QUAD, ProblemKind.QUAD_FUSED):
-            kwargs["epsilon"] = epsilon
-        kwargs["rank"] = rank
-        kwargs["initializer"] = initializer
+
         a = kwargs.pop("a", self._a)
         b = kwargs.pop("b", self._b)
 
-        prepare_kwargs = dict(prepare_kwargs)
-        prepare_kwargs["epsilon"] = epsilon
-        prepare_kwargs["alpha"] = alpha
-        prepare_kwargs["scale_cost"] = ScaleCost(scale_cost) if isinstance(scale_cost, str) else scale_cost
-        prepare_kwargs["batch_size"] = batch_size
+        init_kwargs, prepare_kwargs, solve_kwargs = filter_kwargs(kwargs, problem_kind=self._problem_kind)
 
-        self._solver = self._problem_kind.solver(backend="ott", **kwargs, **initializer_kwargs)
-        self._solution = self._solver(
-            x=self._x,
-            y=self._y,
-            xy=self._xy,
-            a=a,
-            b=b,
-            tau_a=tau_a,
-            tau_b=tau_b,
-            device=device,
-            **prepare_kwargs,
-        )
+        prepare_kwargs["x"] = self._x
+        prepare_kwargs["y"] = self._y
+        prepare_kwargs["xy"] = self._xy
+        prepare_kwargs["a"] = a
+        prepare_kwargs["b"] = b
+        prepare_kwargs["tau_a"] = tau_a
+        prepare_kwargs["tau_b"] = tau_b
+        prepare_kwargs["device"] = device
+
+        self._solver = self._problem_kind.solver(backend="ott", **init_kwargs)
+        self._solution = self._solver(prepare_kwargs=prepare_kwargs, solve_kwargs=solve_kwargs)
         return self
 
     @require_solution
