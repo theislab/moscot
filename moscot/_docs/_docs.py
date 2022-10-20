@@ -199,6 +199,36 @@ _initializer_kwargs = """\
 initializer_kwargs
     keyword arguments for the initializer.
 """
+_jit = """\
+jit
+    if True, automatically jits (just-in-time compiles) the function upon first call.
+"""
+_sinkhorn_kwargs = """\
+threshold
+    Tolerance used to stop the Sinkhorn iterations. This is
+    typically the deviation between a target marginal and the marginal of the
+    current primal solution when either or both tau_a and tau_b are 1.0
+    (balanced or semi-balanced problem), or the relative change between two
+    successive solutions in the unbalanced case.
+lse_mode
+    ``True`` for log-sum-exp computations, ``False`` for kernel
+      multiplication.
+norm_error
+    Power used to define p-norm of error for stopping criterion, see ``threshold``.
+inner_iterations
+    The Sinkhorn error is not recomputed at each iteration but every ``inner_iterations`` instead.
+min_iterations
+    The minimum number of Sinkhorn iterations carried out before the error is computed and monitored.
+max_iterations
+    The maximum number of Sinkhorn iterations.
+"""
+_sinkhorn_lr_kwargs = """\
+gamma
+    Only in low-rank setting: the (inverse of the) gradient step size used by the mirror descent algorithm
+    (:cite:`scetbon:22b`).
+gamma_rescale
+    Only in low-rank setting: whether to rescale :math:`\\gamma` every iteration as described in :cite:`scetbon:22b`.
+"""
 
 
 d = DocstringProcessor(
@@ -247,4 +277,7 @@ d = DocstringProcessor(
     initializer_lin=_initializer_lin,
     initializer_quad=_initializer_quad,
     initializer_kwargs=_initializer_kwargs,
+    jit=_jit,
+    sinkhorn_kwargs=_sinkhorn_kwargs,
+    sinkhorn_lr_kwargs=_sinkhorn_lr_kwargs,
 )

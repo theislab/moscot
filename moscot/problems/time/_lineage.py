@@ -134,7 +134,15 @@ class TemporalProblem(
         stage: Union[ProblemStage, Tuple[ProblemStage, ...]] = (ProblemStage.PREPARED, ProblemStage.SOLVED),
         initializer: SinkhornInitializer_t = None,
         initializer_kwargs: Mapping[str, Any] = MappingProxyType({}),
-        **kwargs: Any,
+        jit: bool = True,
+        threshold: float = 1e-3,
+        lse_mode: bool = True,
+        norm_error: int = 1,
+        inner_iterations: int = 10,
+        min_iterations: int = 0,
+        max_iterations: int = 2000,
+        gamma: float = 10.0,
+        gamma_rescale: bool = True,
     ) -> "TemporalProblem":
         """
         Solve optimal transport problems defined in :class:`moscot.problems.time.TemporalProblem`.
@@ -150,8 +158,9 @@ class TemporalProblem(
         %(stage)s
         %(initializer_lin)s
         %(initializer_kwargs)s
-        %(solve_kwargs)s
-
+        %(jit)s
+        %(sinkhorn_kwargs)s
+        %(sinkhorn_lr_kwargs)s
 
         Returns
         -------
@@ -168,7 +177,15 @@ class TemporalProblem(
             stage=stage,
             initializer=initializer,
             initializer_kwargs=initializer_kwargs,
-            **kwargs,
+            jit=jit,
+            threshold=threshold,
+            lse_mode=lse_mode,
+            norm_error=norm_error,
+            inner_iterations=inner_iterations,
+            min_iterations=min_iterations,
+            max_iterations=max_iterations,
+            gamma=gamma,
+            gamma_rescale=gamma_rescale,
         )  # type:ignore[return-value]
 
     @property
