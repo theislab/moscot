@@ -267,19 +267,22 @@ class TestTemporalProblem:
         solver = problem[(0, 1)]._solver._solver
         for arg in solver_args:
             assert hasattr(solver, solver_args[arg])
-            assert getattr(solver, arg) == args_to_check[solver_args[arg]]
+            el = getattr(solver, arg)[0] if isinstance(getattr(solver, arg), tuple) else getattr(solver, arg)
+            assert el == args_to_check[solver_args[arg]]
 
         lin_prob = problem[(0, 1)]._solver._problem
         for arg in lin_prob_args:
             assert hasattr(lin_prob, lin_prob_args[arg])
-            assert getattr(lin_prob, arg) == args_to_check[lin_prob_args[arg]]
+            el = getattr(lin_prob, arg)[0] if isinstance(getattr(lin_prob, arg), tuple) else getattr(lin_prob, arg)
+            assert el == args_to_check[lin_prob_args[arg]]
 
         geom = lin_prob.geom
         for arg in geometry_args:
             assert hasattr(geom, geometry_args[arg])
-            assert getattr(geom, arg) == args_to_check[geometry_args[arg]]
+            el = getattr(geom, arg)[0] if isinstance(getattr(geom, arg), tuple) else getattr(geom, arg)
+            assert el == args_to_check[geometry_args[arg]]
 
-        lin_prob.geom
         for arg in pointcloud_args:
-            assert hasattr(geom, geometry_args[arg])
-            assert getattr(geom, arg) == args_to_check[geometry_args[arg]]
+            assert hasattr(geom, pointcloud_args[arg])
+            el = getattr(geom, arg)[0] if isinstance(getattr(geom, arg), tuple) else getattr(geom, arg)
+            assert el == args_to_check[pointcloud_args[arg]]

@@ -234,11 +234,13 @@ class GWSolver(OTTJaxSolver):
         super().__init__()
         quad_initializer = kwargs.pop("initializer", None)  # OTT-JAX allows for "None" as initializer
         kwargs_init = kwargs.pop("initializer", None)
-        rank = kwargs.pop("rank")
+        rank = kwargs.pop("rank", None)
         if not rank > -1:
             _ = kwargs.pop("gamma", None)
             _ = kwargs.pop("gamma_rescale", None)
-        self._solver = GromovWasserstein(quad_initializer=quad_initializer, kwargs_init=kwargs_init, **kwargs)
+        self._solver = GromovWasserstein(
+            quad_initializer=quad_initializer, kwargs_init=kwargs_init, rank=rank, **kwargs
+        )
 
     def _prepare(
         self,
