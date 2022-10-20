@@ -232,7 +232,8 @@ def _get_kwargs_lists(
             return quad_init_kwargs_list, quad_prepare_kwargs_list, quad_solve_kwargs_list
         if type == ProblemKind.QUAD_FUSED:
             return quad_f_init_kwargs_list, quad_f_prepare_kwargs_list, quad_f_solve_kwargs_list
-    raise NotImplementedError("TODO. Only ott-jax as backend available.")
+    else:
+        raise NotImplementedError("TODO. Only ott-jax as backend available.")
 
 
 def filter_kwargs(
