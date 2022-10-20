@@ -256,7 +256,7 @@ class TestTemporalProblem:
             "cost": "cost_fn",
             "power": "power",
             "batch_size": "_batch_size",
-            "_scale_cost": "scale_cost",
+            "scale_cost": "_scale_cost",
         }
 
         problem = problem.solve(**args_to_check)
