@@ -223,9 +223,9 @@ def _order_transition_matrix(
 
 
 def _get_kwargs_lists(
-    problem_kind: Literal["linear", "quadratic", "quadratic_fused"], backend: Literal["ott-jax"] = "ott-jax"
+    problem_kind: Literal["linear", "quadratic", "quadratic_fused"], backend: Literal["ott"] = "ott"
 ) -> Tuple[List[str], List[str], List[str]]:
-    if backend == "ott-jax":
+    if backend == "ott":
         if type == ProblemKind.LINEAR:
             return linear_init_kwargs_list, linear_prepare_kwargs_list, linear_solve_kwargs_list
         if type == ProblemKind.QUAD:
@@ -238,7 +238,7 @@ def _get_kwargs_lists(
 def filter_kwargs(
     kwargs: Dict[str, Any],
     problem_kind: Literal["linear", "quadratic", "quadratic_fused"],
-    backend: Literal["ott-jax"] = "ott-jax",
+    backend: Literal["ott"] = "ott",
 ) -> Tuple[Dict[str, Any], Dict[str, Any], Dict[str, Any]]:
     init_kwargs = {}
     prepare_kwargs = {}
