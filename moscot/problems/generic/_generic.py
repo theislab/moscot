@@ -211,7 +211,7 @@ class GWProblem(CompoundProblem[K, B], GenericAnalysisMixin[K, B]):
                 z = dict(z)
                 z.setdefault("attr", "obsp")
                 z.setdefault("key", "cost_matrices")
-                z.setdefault("loss", "Euclidean")
+                z.setdefault("loss", "SqEuclidean")
                 z.setdefault("tag", "cost")
                 z.setdefault("loss_kwargs", {})
 
