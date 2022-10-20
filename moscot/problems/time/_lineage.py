@@ -183,6 +183,7 @@ class TemporalProblem(
             max_iterations=max_iterations,
             gamma=gamma,
             gamma_rescale=gamma_rescale,
+            **kwargs,
         )  # type:ignore[return-value]
 
     @property
@@ -381,6 +382,8 @@ class LineageProblem(TemporalProblem):
         min_iterations: int = 5,
         max_iterations: int = 50,
         threshold: float = 1e-3,
+        gamma: float = 10.0,
+        gamma_rescale: bool = True,
     ) -> "LineageProblem":
         """
         Solve optimal transport problems defined in :class:`moscot.problems.time.LineageProblem`.
@@ -398,6 +401,7 @@ class LineageProblem(TemporalProblem):
         %(initializer_quad)s
         %(initializer_kwargs)s
         %(gw_kwargs)s
+        %(sinkhorn_lr_kwargs)s
 
         Returns
         -------
