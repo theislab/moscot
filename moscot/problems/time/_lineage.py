@@ -186,6 +186,7 @@ class TemporalProblem(
             max_iterations=max_iterations,
             gamma=gamma,
             gamma_rescale=gamma_rescale,
+            **kwargs,
         )  # type:ignore[return-value]
 
     @property
