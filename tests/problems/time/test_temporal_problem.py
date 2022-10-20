@@ -223,7 +223,7 @@ class TestTemporalProblem:
             "scale_cost": "max_cost",
             "rank": 7,
             "batch_size": 123,
-            "initializer": "rank_2",
+            "initializer": "rank2",
             "initializer_kwargs": {},
             "jit": False,
             "threshold": 2e-3,
