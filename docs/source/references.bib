@@ -16,14 +16,12 @@
  author = {Cuturi, Marco},
  booktitle = {Advances in Neural Information Processing Systems},
  editor = {C.J. Burges and L. Bottou and M. Welling and Z. Ghahramani and K.Q. Weinberger},
- pages = {},
  publisher = {Curran Associates, Inc.},
  title = {Sinkhorn Distances: Lightspeed Computation of Optimal Transport},
  url = {https://proceedings.neurips.cc/paper/2013/file/af21d0c97db2e27e13572cbf59eb343d-Paper.pdf},
  volume = {26},
  year = {2013}
 }
-
 
 @Article{vayer:2020,
 AUTHOR = {Vayer, Titouan and Chapel, Laetitia and Flamary, Remi and Tavenard, Romain and Courty, Nicolas},
@@ -35,46 +33,60 @@ NUMBER = {9},
 ARTICLE-NUMBER = {212},
 URL = {https://www.mdpi.com/1999-4893/13/9/212},
 ISSN = {1999-4893},
-ABSTRACT = {Optimal transport theory has recently found many applications in machine learning thanks to its capacity to meaningfully compare various machine learning objects that are viewed as distributions. The Kantorovitch formulation, leading to the Wasserstein distance, focuses on the features of the elements of the objects, but treats them independently, whereas the Gromov&ndash;Wasserstein distance focuses on the relations between the elements, depicting the structure of the object, yet discarding its features. In this paper, we study the Fused Gromov-Wasserstein distance that extends the Wasserstein and Gromov&ndash;Wasserstein distances in order to encode simultaneously both the feature and structure information. We provide the mathematical framework for this distance in the continuous setting, prove its metric and interpolation properties, and provide a concentration result for the convergence of finite samples. We also illustrate and interpret its use in various applications, where structured objects are involved.},
 DOI = {10.3390/a13090212}
 }
-
 
 @misc{vayer:2018,
   doi = {10.48550/ARXIV.1811.02834},
   url = {https://arxiv.org/abs/1811.02834},
   author = {Vayer, Titouan and Chapel, Laetita and Flamary, Rémi and Tavenard, Romain and Courty, Nicolas},
-  keywords = {Machine Learning (stat.ML), Machine Learning (cs.LG), FOS: Computer and information sciences, FOS: Computer and information sciences},
-  title = {Fused Gromov-Wasserstein distance for structured objects: theoretical foundations and mathematical properties},
+  keywords = {Machine Learning (stat.ML), Machine Learning (cs.LG), FOS: Computer and information sciences,
+              FOS: Computer and information sciences},
+  title = {Fused Gromov-Wasserstein distance for structured objects: theoretical foundations and
+           mathematical properties},
   publisher = {arXiv},
   year = {2018},
   copyright = {arXiv.org perpetual, non-exclusive license}
 }
 
-
-@misc{scetbon:2021_a,
-  doi = {10.48550/ARXIV.2103.04737},
-  url = {https://arxiv.org/abs/2103.04737},
-  author = {Scetbon, Meyer and Cuturi, Marco and Peyré, Gabriel},
-  keywords = {Machine Learning (stat.ML), Machine Learning (cs.LG), FOS: Computer and information sciences, FOS: Computer and information sciences},
-  title = {Low-Rank Sinkhorn Factorization},
-  publisher = {arXiv},
-  year = {2021},
-  copyright = {Creative Commons Attribution 4.0 International}
+@InProceedings{scetbon:21a,
+    title = {Low-Rank Sinkhorn Factorization},
+    author = {Scetbon, Meyer and Cuturi, Marco and Peyr{\'e}, Gabriel},
+    booktitle = {Proceedings of the 38th International Conference on Machine Learning},
+    pages = {9344--9354},
+    year = {2021},
+    editor = {Meila, Marina and Zhang, Tong},
+    volume = {139},
+    series = {Proceedings of Machine Learning Research},
+    month = {18--24 Jul},
+    publisher = {PMLR},
+    pdf = {http://proceedings.mlr.press/v139/scetbon21a/scetbon21a.pdf},
+    url = {https://proceedings.mlr.press/v139/scetbon21a.html},
 }
 
-@misc{scetbon:2021_b,
+@misc{scetbon:21b,
   doi = {10.48550/ARXIV.2106.01128},
   url = {https://arxiv.org/abs/2106.01128},
   author = {Scetbon, Meyer and Peyré, Gabriel and Cuturi, Marco},
-  keywords = {Machine Learning (cs.LG), Machine Learning (stat.ML), FOS: Computer and information sciences, FOS: Computer and information sciences},
+  keywords = {Machine Learning (cs.LG), Machine Learning (stat.ML), FOS: Computer and information sciences,
+              FOS: Computer and information sciences},
   title = {Linear-Time Gromov Wasserstein Distances using Low Rank Couplings and Costs},
   publisher = {arXiv},
   year = {2021},
   copyright = {Creative Commons Attribution 4.0 International}
 }
 
-
+@misc{scetbon:22b,
+    doi = {10.48550/ARXIV.2205.12365},
+    url = {https://arxiv.org/abs/2205.12365},
+    author = {Scetbon, Meyer and Cuturi, Marco},
+    keywords = {Machine Learning (stat.ML), Machine Learning (cs.LG), FOS: Computer and information sciences,
+    FOS: Computer and information sciences},
+    title = {Low-rank Optimal Transport: Approximation, Statistics and Debiasing},
+    publisher = {arXiv},
+    year = {2022},
+    copyright = {Creative Commons Attribution 4.0 International}
+}
 
 @InProceedings{peyre:2016,
     title = {Gromov-Wasserstein Averaging of Kernel and Distance Matrices},
@@ -91,7 +103,6 @@ DOI = {10.3390/a13090212}
     url = {http://proceedings.mlr.press/v48/peyre16.html},
 }
 
-
 @InProceedings{vayer:2019,
     title = {Optimal Transport for structured data with application on graphs},
     author = {Titouan, Vayer and Courty, Nicolas and Tavenard, Romain and Laetitia, Chapel and Flamary, R{\'e}mi},
@@ -106,7 +117,7 @@ DOI = {10.3390/a13090212}
     url = {https://proceedings.mlr.press/v97/titouan19a.html},
 }
 
-@Article{nitzan:2019,
+@Article{nitzan:19,
     author = "Nitzan, Mor and Karaiskos, Nikos and Friedman, Nir and Rajewsky, Nikolaus",
     title = "Gene expression cartography",
     journal = "Nature",
@@ -188,68 +199,10 @@ DOI = {10.3390/a13090212}
   year={2022}
 }
 
-
-@article{nitzan2019,
-  title    = "Gene expression cartography",
-  author   = "Nitzan, Mor and Karaiskos, Nikos and Friedman, Nir and Rajewsky,
-              Nikolaus",
-  abstract = "Multiplexed RNA sequencing in individual cells is transforming
-              basic and clinical life sciences1-4. Often, however, tissues must
-              first be dissociated, and crucial information about spatial
-              relationships and communication between cells is thus lost.
-              Existing approaches to reconstruct tissues assign spatial
-              positions to each cell, independently of other cells, by using
-              spatial patterns of expression of marker genes5,6-which often do
-              not exist. Here we reconstruct spatial positions with little or
-              no prior knowledge, by searching for spatial arrangements of
-              sequenced cells in which nearby cells have transcriptional
-              profiles that are often (but not always) more similar than cells
-              that are farther apart. We formulate this task as a generalized
-              optimal-transport problem for probabilistic embedding and derive
-              an efficient iterative algorithm to solve it. We reconstruct the
-              spatial expression of genes in mammalian liver and intestinal
-              epithelium, fly and zebrafish embryos, sections from the
-              mammalian cerebellum and whole kidney, and use the reconstructed
-              tissues to identify genes that are spatially informative. Thus,
-              we identify an organization principle for the spatial expression
-              of genes in animal tissues, which can be exploited to infer
-              meaningful probabilities of spatial position for individual
-              cells. Our framework ('novoSpaRc') can incorporate prior spatial
-              information and is compatible with any single-cell technology.
-              Additional principles that underlie the cartography of gene
-              expression can be tested using our approach.",
-  journal  = "Nature",
-  volume   =  576,
-  number   =  7785,
-  pages    = "132--137",
-  month    =  dec,
-  year     =  2019,
-  language = "en"
-}
-
-
-@article{zeira2022,
+@article{zeira:22,
   title    = "Alignment and integration of spatial transcriptomics data",
   author   = "Zeira, Ron and Land, Max and Strzalkowski, Alexander and Raphael,
               Benjamin J",
-  abstract = "Spatial transcriptomics (ST) measures mRNA expression across
-              thousands of spots from a tissue slice while recording the
-              two-dimensional (2D) coordinates of each spot. We introduce
-              probabilistic alignment of ST experiments (PASTE), a method to
-              align and integrate ST data from multiple adjacent tissue slices.
-              PASTE computes pairwise alignments of slices using an optimal
-              transport formulation that models both transcriptional similarity
-              and physical distances between spots. PASTE further combines
-              pairwise alignments to construct a stacked 3D alignment of a
-              tissue. Alternatively, PASTE can integrate multiple ST slices
-              into a single consensus slice. We show that PASTE accurately
-              aligns spots across adjacent slices in both simulated and real ST
-              data, demonstrating the advantages of using both transcriptional
-              similarity and spatial information. We further show that the
-              PASTE integrated slice improves the identification of cell types
-              and differentially expressed genes compared with existing
-              approaches that either analyze single ST slices or ignore spatial
-              information.",
   journal  = "Nat. Methods",
   volume   =  19,
   number   =  5,
@@ -259,76 +212,46 @@ DOI = {10.3390/a13090212}
   language = "en"
 }
 
-@article {Pan2021,
+@article {pan:21,
 	author = {Pan, Xinhai and Li, Hechen and Zhang, Xiuwei},
 	title = {TedSim: temporal dynamics simulation of single cell RNA-sequencing data and cell division history},
 	elocation-id = {2021.06.21.449283},
 	year = {2021},
 	doi = {10.1101/2021.06.21.449283},
 	publisher = {Cold Spring Harbor Laboratory},
-	abstract = {Recently, the combined scRNA-seq and CRISPR/Cas9 genome editing technologies
-  have enabled simultaneous readouts of gene expressions and lineage barcodes, which allows
-  for the reconstruction of the cell division tree, and makes it possible to trace the origin
-  of each cell type. Computational methods are emerging to take advantage of the jointly profiled scRNA-seq and
-  lineage barcode data to better reconstruct the cell division history or to infer the cell state trajectories.
-  Here, we present TedSim (single cell Temporal dynamics Simulator), a simulator that simulates the cell division
-  events from the root cell to present-day cells, simultaneously generating the CRISPR/Cas9 genome editing lineage
-  barcodes and scRNA-seq data. In particular, TedSim generates cells from multiple cell types through cell division
-  events. TedSim can be used to benchmark and investigate computational methods which use either or both of the
-  two types of data, scRNA-seq and lineage barcodes, to study cell lineages or trajectories. TedSim is
-  available at: https://github.com/Galaxeee/TedSim.Competing Interest StatementThe authors have declared no competing
-  interest.},
 	URL = {https://www.biorxiv.org/content/early/2021/06/22/2021.06.21.449283},
 	eprint = {https://www.biorxiv.org/content/early/2021/06/22/2021.06.21.449283.full.pdf},
 	journal = {bioRxiv}
 }
 
-@article{CHEN20221777,
-title = {Spatiotemporal transcriptomic atlas of mouse organogenesis using DNA nanoball-patterned arrays},
-journal = {Cell},
-volume = {185},
-number = {10},
-pages = {1777-1792.e21},
-year = {2022},
-issn = {0092-8674},
-doi = {https://doi.org/10.1016/j.cell.2022.04.003},
-url = {https://www.sciencedirect.com/science/article/pii/S0092867422003993},
-author = {Ao Chen and Sha Liao and Mengnan Cheng and Kailong Ma and Liang Wu and Yiwei Lai and Xiaojie Qiu and Jin Yang and Jiangshan Xu and Shijie Hao and Xin Wang and Huifang Lu and Xi Chen and Xing Liu and Xin Huang and Zhao Li and Yan Hong and Yujia Jiang and Jian Peng and Shuai Liu and Mengzhe Shen and Chuanyu Liu and Quanshui Li and Yue Yuan and Xiaoyu Wei and Huiwen Zheng and Weimin Feng and Zhifeng Wang and Yang Liu and Zhaohui Wang and Yunzhi Yang and Haitao Xiang and Lei Han and Baoming Qin and Pengcheng Guo and Guangyao Lai and Pura Muñoz-Cánoves and Patrick H. Maxwell and Jean Paul Thiery and Qing-Feng Wu and Fuxiang Zhao and Bichao Chen and Mei Li and Xi Dai and Shuai Wang and Haoyan Kuang and Junhou Hui and Liqun Wang and Ji-Feng Fei and Ou Wang and Xiaofeng Wei and Haorong Lu and Bo Wang and Shiping Liu and Ying Gu and Ming Ni and Wenwei Zhang and Feng Mu and Ye Yin and Huanming Yang and Michael Lisby and Richard J. Cornall and Jan Mulder and Mathias Uhlén and Miguel A. Esteban and Yuxiang Li and Longqi Liu and Xun Xu and Jian Wang},
-keywords = {spatial transcriptomics, single-cell, cell atlas, mouse organogenesis, development, cell lineages, progenitors, cell differentiation, brain, developmental diseases},
-abstract = {Summary
-Spatially resolved transcriptomic technologies are promising tools to study complex biological processes such as mammalian embryogenesis. However, the imbalance between resolution, gene capture, and field of view of current methodologies precludes their systematic application to analyze relatively large and three-dimensional mid- and late-gestation embryos. Here, we combined DNA nanoball (DNB)-patterned arrays and in situ RNA capture to create spatial enhanced resolution omics-sequencing (Stereo-seq). We applied Stereo-seq to generate the mouse organogenesis spatiotemporal transcriptomic atlas (MOSTA), which maps with single-cell resolution and high sensitivity the kinetics and directionality of transcriptional variation during mouse organogenesis. We used this information to gain insight into the molecular basis of spatial cell heterogeneity and cell fate specification in developing tissues such as the dorsal midbrain. Our panoramic atlas will facilitate in-depth investigation of longstanding questions concerning normal and abnormal mammalian development.}
+@article{chen:22,
+    title = {Spatiotemporal transcriptomic atlas of mouse organogenesis using DNA nanoball-patterned arrays},
+    journal = {Cell},
+    volume = {185},
+    number = {10},
+    pages = {1777-1792.e21},
+    year = {2022},
+    issn = {0092-8674},
+    doi = {https://doi.org/10.1016/j.cell.2022.04.003},
+    url = {https://www.sciencedirect.com/science/article/pii/S0092867422003993},
+    author = {Ao Chen and Sha Liao and Mengnan Cheng and Kailong Ma and Liang Wu and Yiwei Lai and Xiaojie Qiu and
+              Jin Yang and Jiangshan Xu and Shijie Hao and Xin Wang and Huifang Lu and Xi Chen and Xing Liu and
+              Xin Huang and Zhao Li and Yan Hong and Yujia Jiang and Jian Peng and Shuai Liu and Mengzhe Shen and
+              Chuanyu Liu and Quanshui Li and Yue Yuan and Xiaoyu Wei and Huiwen Zheng and Weimin Feng and
+              Zhifeng Wang and Yang Liu and Zhaohui Wang and Yunzhi Yang and Haitao Xiang and Lei Han and
+              Baoming Qin and Pengcheng Guo and Guangyao Lai and Pura Muñoz-Cánoves and Patrick H. Maxwell and
+              Jean Paul Thiery and Qing-Feng Wu and Fuxiang Zhao and Bichao Chen and Mei Li and Xi Dai and
+              Shuai Wang and Haoyan Kuang and Junhou Hui and Liqun Wang and Ji-Feng Fei and Ou Wang and
+              Xiaofeng Wei and Haorong Lu and Bo Wang and Shiping Liu and Ying Gu and Ming Ni and  Wenwei Zhang and
+              Feng Mu and Ye Yin and Huanming Yang and Michael Lisby and Richard J. Cornall and Jan Mulder and
+              Mathias Uhlén and Miguel A. Esteban and Yuxiang Li and Longqi Liu and Xun Xu and Jian Wang},
+    keywords = {spatial transcriptomics, single-cell, cell atlas, mouse organogenesis, development, cell lineages,
+                progenitors, cell differentiation, brain, developmental diseases},
 }
 
-@InProceedings{scetbon:21,
- title = {Low-Rank Sinkhorn Factorization},
- author = {Scetbon, Meyer and Cuturi, Marco and Peyr{\'e}, Gabriel},
- booktitle = {Proceedings of the 38th International Conference on Machine Learning},
- pages = {9344--9354},
- year = {2021},
- editor = {Meila, Marina and Zhang, Tong},
- volume = {139},
- series = {Proceedings of Machine Learning Research},
- month = {18--24 Jul},
- publisher = {PMLR},
- pdf = {http://proceedings.mlr.press/v139/scetbon21a/scetbon21a.pdf},
- url = {https://proceedings.mlr.press/v139/scetbon21a.html},
-}
-
-@article{thornton2022rethinking:22,
-  title = {Rethinking Initialization of the Sinkhorn Algorithm},
-  author = {Thornton, James and Cuturi, Marco},
-  journal = {arXiv preprint arXiv:2206.07630},
-  year = {2022}
-}
-
-@misc{scetbon:22b,
-  doi = {10.48550/ARXIV.2205.12365},
-  url = {https://arxiv.org/abs/2205.12365},
-  author = {Scetbon, Meyer and Cuturi, Marco},
-  keywords = {Machine Learning (stat.ML), Machine Learning (cs.LG), FOS: Computer and information sciences,
-   FOS: Computer and information sciences},
-  title = {Low-rank Optimal Transport: Approximation, Statistics and Debiasing},
-  publisher = {arXiv},
-  year = {2022},
-  copyright = {Creative Commons Attribution 4.0 International}
+@article{thornton:22,
+    title = {Rethinking Initialization of the Sinkhorn Algorithm},
+    author = {Thornton, James and Cuturi, Marco},
+    journal = {arXiv preprint arXiv:2206.07630},
+    year = {2022}
 }

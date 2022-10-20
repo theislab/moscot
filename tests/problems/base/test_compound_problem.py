@@ -36,7 +36,6 @@ class TestCompoundProblem:
         problem = problem.prepare(
             xy={"x_attr": "X", "y_attr": "X"},
             key="time",
-            axis="obs",
             policy="sequential",
         )
         problem = problem.solve()
@@ -63,7 +62,6 @@ class TestCompoundProblem:
         problem = problem.prepare(
             xy={"x_attr": "X", "y_attr": "X"},
             key="time",
-            axis="obs",
             policy="sequential",
             callback="local-pca",
             callback_kwargs=callback_kwargs,
@@ -84,7 +82,6 @@ class TestCompoundProblem:
             x={"attr": "X"},
             y={"attr": "X"},
             key="time",
-            axis="obs",
             policy="sequential",
             callback=TestCompoundProblem.callback,
             callback_kwargs={"sentinel": True},
@@ -134,7 +131,6 @@ class TestCompoundProblem:
             x={"attr": "X"},
             y={"attr": "X"},
             key="time",
-            axis="obs",
             policy="sequential",
         )
 
@@ -151,7 +147,6 @@ class TestCompoundProblem:
             x={"attr": "X"},
             y={"attr": "X"},
             key="time",
-            axis="obs",
             policy="sequential",
         )
 
@@ -164,7 +159,6 @@ class TestCompoundProblem:
             y={"attr": "X"},
             key="time",
             subset=[(0, 2)],
-            axis="obs",
             policy="explicit",
         )
         problem = problem.add_problem((0, 2), problem_2[0, 2])

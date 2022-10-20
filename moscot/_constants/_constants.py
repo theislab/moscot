@@ -7,9 +7,15 @@ from moscot._constants._enum import ModeEnum
 
 
 @unique
+class ProblemStage(ModeEnum):
+    INITIALIZED = "initialized"
+    PREPARED = "prepared"
+    SOLVED = "solved"
+
+
+@unique
 class ScaleCost(ModeEnum):
     MEAN = "mean"
-    MAX = "max"
     MEDIAN = "median"
     MAX_COST = "max_cost"
     MAX_BOUND = "max_bound"
@@ -44,6 +50,7 @@ class AggregationMode(ModeEnum):
     CELL = "cell"
 
 
+# TODO(MUCKD): refactor, no need for enum
 @unique
 class AdataKeys(ModeEnum):  # sets default keys for adata attributes
     UNS = "moscot_results"

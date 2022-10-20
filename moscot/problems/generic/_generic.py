@@ -3,12 +3,10 @@ from typing import Any, Type, Tuple, Union, Literal, Mapping, Optional
 
 from anndata import AnnData
 
-from moscot._types import QuadInitializer_t, SinkhornInitializer_t
+from moscot._types import ScaleCost_t, ProblemStage_t, QuadInitializer_t, SinkhornInitializer_t
 from moscot._docs._docs import d
 from moscot.problems.base import OTProblem, CompoundProblem  # type: ignore[attr-defined]
-from moscot._constants._constants import ScaleCost
 from moscot.problems.generic._mixins import GenericAnalysisMixin
-from moscot.problems.base._base_problem import ScaleCost_t, ProblemStage
 from moscot.problems.base._compound_problem import B, K
 
 
@@ -50,7 +48,6 @@ class SinkhornProblem(CompoundProblem[K, B], GenericAnalysisMixin[K, B]):
         %(b)s
         %(subset)s
         %(reference)s
-        %(axis)s
         %(callback)s
         %(callback_kwargs)s
 
@@ -90,10 +87,10 @@ class SinkhornProblem(CompoundProblem[K, B], GenericAnalysisMixin[K, B]):
         epsilon: Optional[float] = 1e-3,
         tau_a: float = 1.0,
         tau_b: float = 1.0,
-        scale_cost: ScaleCost_t = ScaleCost.MEAN,
+        scale_cost: ScaleCost_t = "mean",
         rank: int = -1,
         batch_size: Optional[int] = None,
-        stage: Union[ProblemStage, Tuple[ProblemStage, ...]] = (ProblemStage.PREPARED, ProblemStage.SOLVED),
+        stage: Union[ProblemStage_t, Tuple[ProblemStage_t, ...]] = ("prepared", "solved"),
         initializer: SinkhornInitializer_t = None,
         initializer_kwargs: Mapping[str, Any] = MappingProxyType({}),
         **kwargs: Any,
@@ -119,7 +116,6 @@ class SinkhornProblem(CompoundProblem[K, B], GenericAnalysisMixin[K, B]):
         -------
         :class:`moscot.problems.generic.SinkhornProblem`.
         """
-        scale_cost = ScaleCost(scale_cost) if isinstance(scale_cost, ScaleCost) else scale_cost
         return super().solve(
             epsilon=epsilon,
             tau_a=tau_a,
@@ -183,7 +179,6 @@ class GWProblem(CompoundProblem[K, B], GenericAnalysisMixin[K, B]):
         %(b)s
         %(subset)s
         %(reference)s
-        %(axis)s
         %(callback)s
         %(callback_kwargs)s
 
@@ -211,7 +206,7 @@ class GWProblem(CompoundProblem[K, B], GenericAnalysisMixin[K, B]):
                 z = dict(z)
                 z.setdefault("attr", "obsp")
                 z.setdefault("key", "cost_matrices")
-                z.setdefault("loss", "Euclidean")
+                z.setdefault("loss", "SqEuclidean")
                 z.setdefault("tag", "cost")
                 z.setdefault("loss_kwargs", {})
 
@@ -229,10 +224,10 @@ class GWProblem(CompoundProblem[K, B], GenericAnalysisMixin[K, B]):
         epsilon: Optional[float] = 1e-3,
         tau_a: float = 1.0,
         tau_b: float = 1.0,
-        scale_cost: ScaleCost_t = ScaleCost.MEAN,
+        scale_cost: ScaleCost_t = "mean",
         rank: int = -1,
         batch_size: Optional[int] = None,
-        stage: Union[ProblemStage, Tuple[ProblemStage, ...]] = (ProblemStage.PREPARED, ProblemStage.SOLVED),
+        stage: Union[ProblemStage_t, Tuple[ProblemStage_t, ...]] = ("prepared", "solved"),
         initializer: QuadInitializer_t = None,
         initializer_kwargs: Mapping[str, Any] = MappingProxyType({}),
         **kwargs: Any,
@@ -257,7 +252,6 @@ class GWProblem(CompoundProblem[K, B], GenericAnalysisMixin[K, B]):
         -------
         :class:`moscot.problems.generic.GWProblem`
         """
-        scale_cost = ScaleCost(scale_cost) if isinstance(scale_cost, ScaleCost) else scale_cost
         return super().solve(
             epsilon=epsilon,
             tau_a=tau_a,
@@ -319,7 +313,6 @@ class FGWProblem(GWProblem[K, B]):
         %(b)s
         %(subset)s
         %(reference)s
-        %(axis)s
         %(callback)s
         %(callback_kwargs)s
 
@@ -340,10 +333,10 @@ class FGWProblem(GWProblem[K, B]):
         epsilon: Optional[float] = 1e-3,
         tau_a: float = 1.0,
         tau_b: float = 1.0,
-        scale_cost: ScaleCost_t = ScaleCost.MEAN,
+        scale_cost: ScaleCost_t = "mean",
         rank: int = -1,
         batch_size: Optional[int] = None,
-        stage: Union[ProblemStage, Tuple[ProblemStage, ...]] = (ProblemStage.PREPARED, ProblemStage.SOLVED),
+        stage: Union[ProblemStage_t, Tuple[ProblemStage_t, ...]] = ("prepared", "solved"),
         initializer: QuadInitializer_t = None,
         initializer_kwargs: Mapping[str, Any] = MappingProxyType({}),
         **kwargs: Any,
@@ -369,7 +362,6 @@ class FGWProblem(GWProblem[K, B]):
         -------
         :class:`moscot.problems.generic.FGWProblem`
         """
-        scale_cost = ScaleCost(scale_cost) if isinstance(scale_cost, ScaleCost) else scale_cost
         return super().solve(
             alpha=alpha,
             epsilon=epsilon,

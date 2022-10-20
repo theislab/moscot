@@ -23,7 +23,8 @@ def cell_transition(
     uns_key: str = PlottingKeys.CELL_TRANSITION,
     row_labels: Optional[str] = None,
     col_labels: Optional[str] = None,
-    annotate: bool = True,
+    annotate: Optional[str] = "{x:.2f}",
+    fontsize: float = 7.0,
     cmap: Union[str, mcolors.Colormap] = "viridis",
     figsize: Optional[Tuple[float, float]] = None,
     dpi: Optional[int] = None,
@@ -43,6 +44,7 @@ def cell_transition(
     %(input_plotting)s
     %(uns_key)s
     %(transition_labels_cell_transition)s
+    %(fontsize)s
     %(cmap)s
     %(figsize_dpi_save)s
     %(cbar_kwargs_cell_transition)s
@@ -61,17 +63,21 @@ def cell_transition(
     if key not in adata1.uns[AdataKeys.UNS][PlottingKeys.CELL_TRANSITION]:
         raise KeyError("TODO.")
     data = adata1.uns[AdataKeys.UNS][PlottingKeys.CELL_TRANSITION][key]
-
     return _heatmap(
         row_adata=adata1,
         col_adata=adata2,
         transition_matrix=data["transition_matrix"],
-        row_annotation=data["source_groups"],
-        col_annotation=data["target_groups"],
+        row_annotation=data["source_groups"]
+        if isinstance(data["source_groups"], str)
+        else next(iter(data["source_groups"])),
+        col_annotation=data["target_groups"]
+        if isinstance(data["target_groups"], str)
+        else next(iter(data["target_groups"])),
         row_annotation_label=data["source"] if row_labels is None else row_labels,
         col_annotation_label=data["target"] if col_labels is None else col_labels,
         cont_cmap=cmap,
         annotate_values=annotate,
+        fontsize=fontsize,
         figsize=figsize,
         dpi=dpi,
         ax=ax,

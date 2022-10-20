@@ -55,7 +55,7 @@ class AnnDataPointer:
     use_raw: Optional[bool] = False
     # TODO(michalk8): determine whether this needs to really be here or can be inferred purely from loss/attr
     tag: Tag = Tag.POINT_CLOUD
-    loss: str = "Euclidean"
+    loss: str = "SqEuclidean"
     loss_kwargs: Mapping[str, Any] = MappingProxyType({})
     # TODO(MUCDK): handle Grid cost. this must be a sequence:
     # https://github.com/google-research/ott/blob/b1adc2894b76b7360f639acb10181f2ce97c656a/ott/geometry/grid.py#L55

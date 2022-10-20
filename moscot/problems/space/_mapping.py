@@ -3,13 +3,13 @@ from typing import Any, Type, Tuple, Union, Literal, Mapping, Optional, Sequence
 
 from anndata import AnnData
 
-from moscot._types import ArrayLike, Str_Dict_t, QuadInitializer_t
+from moscot._types import ArrayLike, Str_Dict_t, ScaleCost_t, ProblemStage_t, QuadInitializer_t
 from moscot._docs._docs import d
 from moscot._constants._key import Key
-from moscot._constants._constants import Policy, ScaleCost
+from moscot._constants._constants import Policy
 from moscot.problems.space._mixins import SpatialMappingMixin
-from moscot.problems._subset_policy import Axis_t, DummyPolicy, ExternalStarPolicy
-from moscot.problems.base._base_problem import OTProblem, ScaleCost_t, ProblemStage
+from moscot.problems._subset_policy import DummyPolicy, ExternalStarPolicy
+from moscot.problems.base._base_problem import OTProblem
 from moscot.problems.base._compound_problem import B, K, CompoundProblem
 
 __all__ = ["MappingProblem"]
@@ -18,7 +18,7 @@ __all__ = ["MappingProblem"]
 @d.dedent
 class MappingProblem(CompoundProblem[K, OTProblem], SpatialMappingMixin[K, OTProblem]):
     """
-    Class for mapping single cell omics data onto spatial data, based on :cite:`nitzan2019`.
+    Class for mapping single cell omics data onto spatial data, based on :cite:`nitzan:19`.
 
     The `MappingProblem` allows to match single cell and spatial omics data via optimal transport.
 
@@ -42,15 +42,15 @@ class MappingProblem(CompoundProblem[K, OTProblem], SpatialMappingMixin[K, OTPro
 
     def _create_policy(  # type: ignore[override]
         self,
-        policy: Literal[Policy.EXTERNAL_STAR] = Policy.EXTERNAL_STAR,
+        policy: Literal["external_star"] = "external_star",
         key: Optional[str] = None,
-        axis: Axis_t = "obs",
         **kwargs: Any,
     ) -> Union[DummyPolicy, ExternalStarPolicy[K]]:
-        """Private class to create DummyPolicy if no batches are present n the spatial anndata."""
+        """Private class to create DummyPolicy if no batches are present in the spatial anndata."""
+        del policy
         if key is None:
-            return DummyPolicy(self.adata, axis=axis, **kwargs)
-        return ExternalStarPolicy(self.adata, key=key, axis=axis, **kwargs)
+            return DummyPolicy(self.adata, **kwargs)
+        return ExternalStarPolicy(self.adata, key=key, **kwargs)
 
     def _create_problem(
         self,
@@ -120,10 +120,10 @@ class MappingProblem(CompoundProblem[K, OTProblem], SpatialMappingMixin[K, OTPro
         self,
         alpha: Optional[float] = 0.5,
         epsilon: Optional[float] = 1e-3,
-        scale_cost: ScaleCost_t = ScaleCost.MEAN,
+        scale_cost: ScaleCost_t = "mean",
         rank: int = -1,
         batch_size: Optional[int] = None,
-        stage: Union[ProblemStage, Tuple[ProblemStage, ...]] = (ProblemStage.PREPARED, ProblemStage.SOLVED),
+        stage: Union[ProblemStage_t, Tuple[ProblemStage_t, ...]] = ("prepared", "solved"),
         initializer: QuadInitializer_t = None,
         initializer_kwargs: Mapping[str, Any] = MappingProxyType({}),
         **kwargs: Any,
@@ -147,7 +147,6 @@ class MappingProblem(CompoundProblem[K, OTProblem], SpatialMappingMixin[K, OTPro
         -------
         :class:`moscot.problems.space.MappingProblem`.
         """
-        scale_cost = ScaleCost(scale_cost) if isinstance(scale_cost, ScaleCost) else scale_cost
         return super().solve(
             alpha=alpha,
             epsilon=epsilon,
