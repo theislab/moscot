@@ -1,5 +1,4 @@
 from abc import ABC
-from enum import Enum
 from typing import Any, Union, Literal, Optional
 
 from ott.core import initializers as init_lib
@@ -14,6 +13,7 @@ import jax.numpy as jnp
 
 from moscot._types import ArrayLike
 from moscot._docs._docs import d
+from moscot._constants._enum import ModeEnum
 from moscot.backends.ott._output import OTTOutput
 from moscot.solvers._base_solver import OTSolver, ProblemKind
 from moscot.solvers._tagged_array import TaggedArray
@@ -24,7 +24,7 @@ Scale_t = Union[float, Literal["mean", "median", "max_cost", "max_norm", "max_bo
 Epsilon_t = Union[float, Epsilon]
 
 
-class Cost(str, Enum):
+class Cost(ModeEnum):
     SQEUCL = "sqeucl"
     COSINE = "cosine"
     BURES = "bures"

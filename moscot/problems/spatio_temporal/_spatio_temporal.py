@@ -3,7 +3,7 @@ from typing import Any, Type, Tuple, Union, Literal, Mapping, Optional
 
 from anndata import AnnData
 
-from moscot._types import Numeric_t, QuadInitializer_t
+from moscot._types import Numeric_t, ScaleCost_t, QuadInitializer_t
 from moscot._docs._docs import d
 from moscot._constants._key import Key
 from moscot._constants._constants import Policy, ScaleCost
@@ -11,7 +11,7 @@ from moscot.problems.time._mixins import TemporalMixin
 from moscot.problems.space._mixins import SpatialAlignmentMixin
 from moscot.problems.space._alignment import AlignmentProblem
 from moscot.problems.base._birth_death import BirthDeathMixin, BirthDeathProblem
-from moscot.problems.base._base_problem import ScaleCost_t, ProblemStage
+from moscot.problems.base._base_problem import ProblemStage
 from moscot.problems.base._compound_problem import B
 
 

@@ -1,5 +1,4 @@
 from abc import ABC, abstractmethod
-from enum import Enum
 from types import MappingProxyType
 from typing import Any, Dict, List, Tuple, Union, Literal, Mapping, Optional, TYPE_CHECKING
 
@@ -10,33 +9,23 @@ import numpy as np
 from anndata import AnnData
 import scanpy as sc
 
-from moscot._types import ArrayLike, Initializer_t
+from moscot._types import ArrayLike, ScaleCost_t, Initializer_t
 from moscot._logging import logger
 from moscot._docs._docs import d
 from moscot.problems._utils import wrap_solve, wrap_prepare, require_solution
 from moscot.solvers._output import BaseSolverOutput
+from moscot._constants._enum import ModeEnum
 from moscot.problems._anndata import AnnDataPointer
 from moscot.solvers._base_solver import BaseSolver, ProblemKind
-from moscot._constants._constants import ScaleCost
 from moscot.solvers._tagged_array import Tag, TaggedArray
 
 __all__ = ["BaseProblem", "OTProblem", "ProblemKind"]
 
 
-class ProblemStage(str, Enum):
+class ProblemStage(ModeEnum):
     INITIALIZED = "initialized"
     PREPARED = "prepared"
     SOLVED = "solved"
-
-
-ScaleCost_t = Optional[
-    Union[
-        float,
-        Literal[
-            ScaleCost.MAX_COST, ScaleCost.MAX_BOUND, ScaleCost.MAX_NORM, ScaleCost.MEAN, ScaleCost.MAX, ScaleCost.MEDIAN
-        ],
-    ]
-]
 
 
 @d.get_sections(base="BaseProblem", sections=["Parameters", "Raises"])

@@ -3,12 +3,12 @@ from typing import Any, Type, Tuple, Union, Literal, Mapping, Optional
 
 from anndata import AnnData
 
-from moscot._types import QuadInitializer_t, SinkhornInitializer_t
+from moscot._types import ScaleCost_t, QuadInitializer_t, SinkhornInitializer_t
 from moscot._docs._docs import d
 from moscot.problems.base import OTProblem, CompoundProblem  # type: ignore[attr-defined]
 from moscot._constants._constants import ScaleCost
 from moscot.problems.generic._mixins import GenericAnalysisMixin
-from moscot.problems.base._base_problem import ScaleCost_t, ProblemStage
+from moscot.problems.base._base_problem import ProblemStage
 from moscot.problems.base._compound_problem import B, K
 
 

@@ -1,5 +1,4 @@
 from abc import ABC, abstractmethod
-from enum import Enum
 from types import MappingProxyType
 from typing import Any, Dict, Tuple, Union, Generic, Literal, Mapping, TypeVar, Optional, NamedTuple
 import warnings
@@ -7,6 +6,7 @@ import warnings
 from moscot._types import ArrayLike
 from moscot._docs._docs import d
 from moscot.solvers._output import BaseSolverOutput
+from moscot._constants._enum import ModeEnum
 from moscot.solvers._tagged_array import Tag, TaggedArray
 
 __all__ = ["ProblemKind", "BaseSolver", "OTSolver"]
@@ -15,7 +15,7 @@ __all__ = ["ProblemKind", "BaseSolver", "OTSolver"]
 O = TypeVar("O", bound=BaseSolverOutput)
 
 
-class ProblemKind(str, Enum):
+class ProblemKind(ModeEnum):
     """Class defining the problem class and dispatching the solvers."""
 
     UNKNOWN = "unknown"
