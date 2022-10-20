@@ -5,7 +5,7 @@ from typing import Any, Union, Literal, Optional
 from ott.core import initializers as init_lib
 from ott.geometry import Grid, Epsilon, Geometry, PointCloud
 from ott.core.sinkhorn import Sinkhorn
-from ott.geometry.costs import Bures, Cosine, CostFn, Euclidean, UnbalancedBures
+from ott.geometry.costs import Bures, Cosine, CostFn, SqEuclidean, UnbalancedBures
 from ott.core.sinkhorn_lr import LRSinkhorn
 from ott.core.quad_problems import QuadraticProblem
 from ott.core.linear_problems import LinearProblem
@@ -32,7 +32,7 @@ class Cost(str, Enum):
 
     def __call__(self, **kwargs: Any) -> CostFn:
         if self.value == Cost.SQEUCL:
-            return Euclidean()
+            return SqEuclidean()
         if self.value == Cost.COSINE:
             return Cosine()
         if self.value == Cost.BURES:
