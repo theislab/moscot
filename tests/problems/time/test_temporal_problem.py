@@ -251,7 +251,7 @@ class TestTemporalProblem:
             "tau_a": "tau_a",
             "tau_b": "tau_b",
         }
-        geometry_args = {"epsilon": "_epsilon_init", "scale_cost": "scale_cost"}
+        geometry_args = {"epsilon": "_epsilon_init", "scale_cost": "_scale_cost"}
         pointcloud_args = {
             "cost": "cost_fn",
             "power": "power",
