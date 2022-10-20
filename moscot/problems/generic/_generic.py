@@ -50,7 +50,6 @@ class SinkhornProblem(CompoundProblem[K, B], GenericAnalysisMixin[K, B]):
         %(b)s
         %(subset)s
         %(reference)s
-        %(axis)s
         %(callback)s
         %(callback_kwargs)s
 
@@ -183,7 +182,6 @@ class GWProblem(CompoundProblem[K, B], GenericAnalysisMixin[K, B]):
         %(b)s
         %(subset)s
         %(reference)s
-        %(axis)s
         %(callback)s
         %(callback_kwargs)s
 
@@ -319,7 +317,6 @@ class FGWProblem(GWProblem[K, B]):
         %(b)s
         %(subset)s
         %(reference)s
-        %(axis)s
         %(callback)s
         %(callback_kwargs)s
 

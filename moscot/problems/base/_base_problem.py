@@ -126,10 +126,12 @@ class BaseProblem(ABC):
 
     @property
     def adata(self) -> AnnData:
+        """Annotated data object."""
         return self._adata
 
     @property
     def stage(self) -> ProblemStage:
+        """Problem stage."""
         return self._stage
 
     @property

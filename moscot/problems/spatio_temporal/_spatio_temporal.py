@@ -54,7 +54,6 @@ class SpatioTemporalProblem(
         %(b)s
         %(subset)s
         %(reference)s
-        %(axis)s
         %(callback)s
         %(callback_kwargs)s
 
