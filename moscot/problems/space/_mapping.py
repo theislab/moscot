@@ -6,6 +6,7 @@ from anndata import AnnData
 from moscot._types import ArrayLike, Str_Dict_t, QuadInitializer_t
 from moscot._docs._docs import d
 from moscot._constants._key import Key
+from moscot.problems._utils import handle_joint_attr
 from moscot._constants._constants import Policy, ScaleCost
 from moscot.problems.space._mixins import SpatialMappingMixin
 from moscot.problems._subset_policy import DummyPolicy, ExternalStarPolicy
@@ -103,11 +104,13 @@ class MappingProblem(CompoundProblem[K, OTProblem], SpatialMappingMixin[K, OTPro
         self.batch_key = batch_key
         self.filtered_vars = var_names
         if self.filtered_vars is not None:
-            if joint_attr is not None:
-                kwargs["xy"] = joint_attr
-            else:
-                kwargs["callback"] = "local-pca"
-                kwargs["callback_kwargs"] = {**kwargs.get("callback_kwargs", {}), **{"return_linear": True}}
+            xy, kwargs = handle_joint_attr(joint_attr, kwargs)
+            kwargs["xy"] = xy
+            # if joint_attr is not None:
+            #    kwargs["xy"] = joint_attr
+            # else:
+            #    kwargs["callback"] = "local-pca"
+            #    kwargs["callback_kwargs"] = {**kwargs.get("callback_kwargs", {}), **{"return_linear": True}}
         return super().prepare(x=x, y=y, policy="external_star", key=batch_key, **kwargs)
 
     @d.dedent
