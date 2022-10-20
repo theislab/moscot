@@ -228,7 +228,7 @@ class TestTemporalProblem:
             "initializer_kwargs": {},
             "jit": False,
             "threshold": 2e-3,
-            "lse_mode": False,
+            "lse_mode": True,
             "norm_error": 2,
             "inner_iterations": 3,
             "min_iterations": 4,
