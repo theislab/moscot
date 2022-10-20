@@ -150,6 +150,7 @@ class OTProblem(BaseProblem):
     ):
         super().__init__(adata_x, copy=copy)
         self._adata_y = adata_x if adata_y is None else adata_y.copy() if copy else adata_y
+        self._solver: Optional[BaseSolver[BaseSolverOutput]] = None
         self._solution: Optional[BaseSolverOutput] = None
 
         self._x: Optional[TaggedArray] = None
@@ -248,8 +249,8 @@ class OTProblem(BaseProblem):
         prepare_kwargs["scale_cost"] = ScaleCost(scale_cost) if isinstance(scale_cost, str) else scale_cost
         prepare_kwargs["batch_size"] = batch_size
 
-        solver: BaseSolver[BaseSolverOutput] = self._problem_kind.solver(backend="ott", **kwargs, **initializer_kwargs)
-        self._solution = solver(
+        self._solver = self._problem_kind.solver(backend="ott", **kwargs, **initializer_kwargs)
+        self._solution = self._solver(
             x=self._x,
             y=self._y,
             xy=self._xy,
