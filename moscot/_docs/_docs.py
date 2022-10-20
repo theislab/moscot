@@ -249,6 +249,24 @@ warm_start
     from the previous iteration. If `None`, warm starts are not used for
     standard Sinkhorn, but used for low-rank Sinkhorn.
 """
+_gw_lr_kwargs = """\
+gw_unbalanced_correction
+    Whether the unbalanced version of
+    :cite:`sejourne:21` is used. Otherwise ``tau_a`` and ``tau_b`` only affect
+    the inner Sinkhorn loop.
+ranks
+    Ranks of the cost matrices, see
+    :meth:`~ott.geometry.geometry.Geometry.to_LRCGeometry`. Used when
+    geometries are *not* :class:`~ott.geometry.pointcloud.PointCloud` with
+    `'sqeucl'` cost function. If `-1`, the geometries will not be converted
+    to low-rank. If :class:`tuple`, it specifies the ranks of ``geom_xx``,
+    ``geom_yy`` and ``geom_xy``, respectively. If :class:`int`, rank is shared
+    across all geometries.
+tolerances 
+    Tolerances used when converting geometries to low-rank. Used
+    when geometries are not :class:`~ott.geometry.pointcloud.PointCloud` with
+    `'sqeucl'` cost. If :class:`float`, it is shared across all geometries.
+"""
 
 
 d = DocstringProcessor(
@@ -300,4 +318,5 @@ d = DocstringProcessor(
     sinkhorn_kwargs=_sinkhorn_kwargs,
     sinkhorn_lr_kwargs=_sinkhorn_lr_kwargs,
     gw_kwargs=_gw_kwargs,
+    gw_lr_kwargs=_gw_lr_kwargs,
 )

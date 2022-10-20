@@ -385,6 +385,9 @@ class LineageProblem(TemporalProblem):
         warm_start: Optional[bool] = None,
         gamma: float = 10.0,
         gamma_rescale: bool = True,
+        gw_unbalanced_correction: bool = True,
+        ranks: Union[int, Tuple[int, ...]] = -1,
+        tolerances: Union[float, Tuple[float, ...]] = 1e-2,
     ) -> "LineageProblem":
         """
         Solve optimal transport problems defined in :class:`moscot.problems.time.LineageProblem`.
@@ -403,6 +406,7 @@ class LineageProblem(TemporalProblem):
         %(initializer_kwargs)s
         %(gw_kwargs)s
         %(sinkhorn_lr_kwargs)s
+        %(gw_lr_kwargs)s
 
         Returns
         -------
@@ -426,4 +430,7 @@ class LineageProblem(TemporalProblem):
             warm_start=warm_start,
             gamma=gamma,
             gamma_rescale=gamma_rescale,
+            gw_unbalanced_correction=gw_unbalanced_correction,
+            ranks=ranks,
+            tolerances=tolerances,
         )

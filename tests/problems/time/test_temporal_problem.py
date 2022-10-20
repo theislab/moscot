@@ -248,11 +248,8 @@ class TestTemporalProblem:
             "jit": "jit",
         }
         lin_prob_args = {
-            "epsilon": "epsilon",
-            "scale_cost": "scale_cost",
-            "batch_size": "batch_size",
-            "tau_a": "_tau_a",
-            "tau_b": "_tau_b",
+            "tau_a": "tau_a",
+            "tau_b": "tau_b",
         }
         geometry_args = {"epsilon": "_epsilon_init", "scale_cost": "scale_cost"}
         pointcloud_args = {

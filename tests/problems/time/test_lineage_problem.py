@@ -82,6 +82,9 @@ class TestLineageProblem:
             "max_iterations": 9,
             "gamma": 9.4,
             "gamma_rescale": False,
+            "gw_unbalanced_correction": False,
+            "ranks": 3,
+            "tolerances": 3e-2,
         }
 
         solver_args = {
@@ -97,12 +100,13 @@ class TestLineageProblem:
             "warm_start": "_warm_start",
         }
         quad_prob_args = {
-            "epsilon": "epsilon",
-            "scale_cost": "scale_cost",
-            "batch_size": "batch_size",
             "tau_a": "_tau_a",
             "tau_b": "_tau_b",
+            "gw_unbalanced_correction": "gw_unbalanced_correction",
+            "ranks": "ranks",
+            "tolerances": "tolerances",
         }
+
         geometry_args = {"epsilon": "_epsilon_init", "scale_cost": "scale_cost"}
         pointcloud_args = {
             "cost": "cost_fn",
