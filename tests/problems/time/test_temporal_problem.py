@@ -248,9 +248,6 @@ class TestTemporalProblem:
             "jit": "jit",
         }
         lin_prob_args = {
-            "epsilon": "epsilon",
-            "scale_cost": "scale_cost",
-            "batch_size": "batch_size",
             "tau_a": "_tau_a",
             "tau_b": "_tau_b",
         }
