@@ -16,7 +16,7 @@ from moscot.solvers._output import BaseSolverOutput
 from moscot.problems._anndata import AnnDataPointer
 from moscot.solvers._base_solver import BaseSolver, ProblemKind
 from moscot._constants._constants import ProblemStage
-from moscot.problems._base._utils import filter_kwargs
+from moscot.problems.base._utils import filter_kwargs
 from moscot.solvers._tagged_array import Tag, TaggedArray
 
 __all__ = ["BaseProblem", "OTProblem", "ProblemKind"]
