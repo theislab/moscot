@@ -157,7 +157,7 @@ class SpatialAlignmentMixin(AnalysisMixin[K, B]):
         -------
         %(alignment_mixin_returns)s
         """
-        mode = AlignmentMode(mode)  # type: ignore[assignment]
+        mode = AlignmentMode(mode)
         if reference not in self._policy._cat:
             raise ValueError(f"`reference: {reference}` not in policy categories: {self._policy._cat}.")
         if isinstance(self._policy, StarPolicy) and reference != self._policy.reference:
@@ -329,10 +329,10 @@ class SpatialMappingMixin(AnalysisMixin[K, B]):
         if var_sc is None or not len(var_sc):
             raise ValueError("No overlapping `var_names` between ` adata_sc` and `adata_sp`.")
 
-        corr_method = CorrMethod(corr_method)  # type: ignore[assignment]
-        if corr_method == CorrMethod.PEARSON:  # type: ignore[comparison-overlap]
+        corr_method = CorrMethod(corr_method)
+        if corr_method == CorrMethod.PEARSON:
             cor = pearsonr
-        elif corr_method == CorrMethod.SPEARMAN:  # type: ignore[comparison-overlap]
+        elif corr_method == CorrMethod.SPEARMAN:
             cor = spearmanr
         else:
             raise NotImplementedError("TODO: `corr_method` must be `pearson` or `spearman`.")

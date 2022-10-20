@@ -102,7 +102,7 @@ class BaseCompoundProblem(BaseProblem, ABC, Generic[K, B]):
         callback_kwargs: Mapping[str, Any],
     ) -> Mapping[str, Any]:
         if callback == "local-pca":
-            callback = problem._local_pca_callback  # type: ignore[assignment]
+            callback = problem._local_pca_callback
         if not callable(callback):
             raise TypeError("TODO: callback not callable")
 
@@ -259,7 +259,8 @@ class BaseCompoundProblem(BaseProblem, ABC, Generic[K, B]):
             assert isinstance(self._policy, StarPolicy)
         res = {}
         # TODO(michalk8): should use manager.plan (once implemented), as some problems may not be solved
-        start = start if isinstance(start, list) else [start]  # type: ignore[assignment]
+        # TODO: better check
+        start = start if isinstance(start, list) else [start]
         _ = kwargs.pop("end", None)  # make compatible with Explicit/Ordered policy
         for src, tgt in self._policy.plan(
             explicit_steps=kwargs.pop("explicit_steps", None),
