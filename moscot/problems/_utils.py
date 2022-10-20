@@ -38,7 +38,8 @@ def wrap_prepare(
     wrapped: Callable[[Any], Any], instance: "BaseProblem", args: Tuple[Any, ...], kwargs: Mapping[str, Any]
 ) -> Any:
     """Check and update the state when preparing :class:`moscot.problems.base.OTProblem`."""
-    from moscot.problems.base._base_problem import ProblemKind, ProblemStage  # TODO: move ENUMs to this file
+    from moscot._constants._constants import ProblemStage
+    from moscot.problems.base._base_problem import ProblemKind  # TODO: move ENUMs to this file
 
     _ = wrapped(*args, **kwargs)
     if instance._problem_kind == ProblemKind.UNKNOWN:
@@ -52,7 +53,7 @@ def wrap_solve(
     wrapped: Callable[[Any], Any], instance: "BaseProblem", args: Tuple[Any, ...], kwargs: Mapping[str, Any]
 ) -> Any:
     """Check and update the state when solving :class:`moscot.problems.base.OTProblem`."""
-    from moscot.problems.base._base_problem import ProblemStage
+    from moscot._constants._constants import ProblemStage
 
     if instance._stage not in (ProblemStage.PREPARED, ProblemStage.SOLVED):
         raise RuntimeError("TODO")
