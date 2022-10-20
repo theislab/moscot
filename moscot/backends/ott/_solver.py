@@ -341,5 +341,5 @@ class FGWSolver(GWSolver):
 
     @staticmethod
     def _alpha_to_fused_penalty(alpha: float) -> float:
-        assert 0 < alpha < 1, "TODO: alpha must be in (0, 1)"
+        assert 0 < alpha <= 1, "TODO: alpha must be in (0, 1]"
         return (1 - alpha) / alpha
