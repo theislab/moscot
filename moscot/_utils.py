@@ -1,6 +1,6 @@
 from typing import Any, Dict, Optional
 
-from ott.geometry.costs import Bures, Cosine, Euclidean, UnbalancedBures
+from ott.geometry.costs import Bures, Cosine, SqEuclidean, UnbalancedBures
 import numpy as np
 
 from anndata import AnnData
@@ -40,7 +40,7 @@ def _get_backend_losses(
     if backend == "JAX":
         dimension = kwargs.pop("dimension", 1)
         return {
-            "Euclidean": Euclidean(**kwargs),
+            "SqEuclidean": SqEuclidean(**kwargs),
             "Cosine": Cosine(**kwargs),
             "Bures": Bures(dimension, **kwargs),
             "UnbalancedBures": UnbalancedBures(dimension, **kwargs),
