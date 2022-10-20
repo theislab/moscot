@@ -359,7 +359,10 @@ class LineageProblem(TemporalProblem):
         stage: Union[ProblemStage_t, Tuple[ProblemStage_t, ...]] = ("prepared", "solved"),
         initializer: QuadInitializer_t = None,
         initializer_kwargs: Mapping[str, Any] = MappingProxyType({}),
-        **kwargs: Any,
+        jit: bool = True,
+        min_iterations: int = 5,
+        max_iterations: int = 50,
+        threshold: float = 1e-3,
     ) -> "LineageProblem":
         """
         Solve optimal transport problems defined in :class:`moscot.problems.time.LineageProblem`.
@@ -376,7 +379,7 @@ class LineageProblem(TemporalProblem):
         %(stage)s
         %(initializer_quad)s
         %(initializer_kwargs)s
-        %(solve_kwargs)s
+        %(quad_solve_kwargs)s
 
         Returns
         -------
@@ -393,5 +396,8 @@ class LineageProblem(TemporalProblem):
             stage=stage,
             initializer=initializer,
             initializer_kwargs=initializer_kwargs,
-            **kwargs,
+            jit=jit,
+            min_iterations=min_iterations,
+            max_iterations=max_iterations,
+            threshold=threshold,
         )

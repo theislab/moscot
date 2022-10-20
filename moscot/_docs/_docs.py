@@ -207,6 +207,14 @@ _initializer_kwargs = """\
 initializer_kwargs
     keyword arguments for the initializer.
 """
+_quad_solve_kwargs = """\
+min_iterations
+    Minimal number of iterations.
+max_iterations
+    Maximal number of iterations.
+threshold
+    Threshold used as convergence criterion.
+"""
 
 
 d = DocstringProcessor(
@@ -254,4 +262,5 @@ d = DocstringProcessor(
     initializer_lin=_initializer_lin,
     initializer_quad=_initializer_quad,
     initializer_kwargs=_initializer_kwargs,
+    quad_solve_kwargs=_quad_solve_kwargs
 )
