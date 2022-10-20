@@ -244,6 +244,10 @@ max_iterations
     Maximal number of iterations.
 threshold
     Threshold used as convergence criterion.
+warm_start
+    Whether to initialize (low-rank) Sinkhorn calls using values
+    from the previous iteration. If `None`, warm starts are not used for
+    standard Sinkhorn, but used for low-rank Sinkhorn.
 """
 
 

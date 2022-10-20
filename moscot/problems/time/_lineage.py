@@ -382,6 +382,7 @@ class LineageProblem(TemporalProblem):
         min_iterations: int = 5,
         max_iterations: int = 50,
         threshold: float = 1e-3,
+        warm_start: Optional[bool] = None,
         gamma: float = 10.0,
         gamma_rescale: bool = True,
     ) -> "LineageProblem":
@@ -422,4 +423,7 @@ class LineageProblem(TemporalProblem):
             min_iterations=min_iterations,
             max_iterations=max_iterations,
             threshold=threshold,
+            warm_start=warm_start,
+            gamma=gamma,
+            gamma_rescale=gamma_rescale,
         )

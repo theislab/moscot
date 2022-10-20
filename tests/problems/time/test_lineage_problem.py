@@ -91,9 +91,10 @@ class TestLineageProblem:
             "inner_iterations": "inner_iterations",
             "min_iterations": "min_iterations",
             "max_iterations": "max_iterations",
-            "initializer": "initializer",
+            "initializer": "quad_initializer",
             "initializer_kwargs": "kwargs_init",
             "jit": "jit",
+            "warm_start": "_warm_start",
         }
         quad_prob_args = {
             "epsilon": "epsilon",
