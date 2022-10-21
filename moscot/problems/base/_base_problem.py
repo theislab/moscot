@@ -16,7 +16,6 @@ from moscot.solvers._output import BaseSolverOutput
 from moscot.problems._anndata import AnnDataPointer
 from moscot.solvers._base_solver import BaseSolver, ProblemKind
 from moscot._constants._constants import ProblemStage
-from moscot.problems.base._utils import filter_kwargs
 from moscot.solvers._tagged_array import Tag, TaggedArray
 
 __all__ = ["BaseProblem", "OTProblem", "ProblemKind"]
@@ -220,32 +219,30 @@ class OTProblem(BaseProblem):
     @wrap_solve
     def solve(
         self,
-        tau_a: float = 1.0,
-        tau_b: float = 1.0,
+        backend: Literal["ott"] = "ott",
         device: Optional[Any] = None,
         **kwargs: Any,
     ) -> "OTProblem":
         """Solve method."""
-        kwargs = dict(kwargs)
         if self._problem_kind is None:
             raise RuntimeError("Run .prepare() first.")
+
+        self._solver = self._problem_kind.solver(backend=backend, **kwargs)
 
         a = kwargs.pop("a", self._a)
         b = kwargs.pop("b", self._b)
 
-        init_kwargs, prepare_kwargs, solve_kwargs = filter_kwargs(kwargs, problem_kind=self._problem_kind)
+        # TODO: add ScaleCost(scale_cost)
 
-        prepare_kwargs["x"] = self._x
-        prepare_kwargs["y"] = self._y
-        prepare_kwargs["xy"] = self._xy
-        prepare_kwargs["a"] = a
-        prepare_kwargs["b"] = b
-        prepare_kwargs["tau_a"] = tau_a
-        prepare_kwargs["tau_b"] = tau_b
-        prepare_kwargs["device"] = device
-
-        self._solver = self._problem_kind.solver(backend="ott", **init_kwargs)
-        self._solution = self._solver(prepare_kwargs=prepare_kwargs, solve_kwargs=solve_kwargs)
+        self._solution = self._solver(
+            xy=self._xy,
+            x=self._x,
+            y=self._y,
+            a=a,
+            b=b,
+            device=device,
+            **kwargs,
+        )
         return self
 
     @require_solution

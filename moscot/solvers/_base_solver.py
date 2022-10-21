@@ -126,10 +126,10 @@ class BaseSolver(Generic[O], ABC):
         """Problem kind."""
         # helps to check whether necessary inputs were passed
 
-    def __call__(self, prepare_kwargs: Dict[str, Any], solve_kwargs: Dict[str, Any]) -> O:
+    def __call__(self, **kwargs: Any) -> O:
         """Call method."""
-        data = self._prepare(**prepare_kwargs)
-        return self._solve(data, **solve_kwargs)
+        data = self._prepare(**kwargs)
+        return self._solve(data)
 
 
 @d.get_sections(base="OTSolver", sections=["Parameters", "Raises"])
@@ -137,7 +137,7 @@ class BaseSolver(Generic[O], ABC):
 class OTSolver(TagConverterMixin, BaseSolver[O], ABC):  # noqa: B024
     """OTSolver class."""
 
-    def __call__(  # type: ignore[override]
+    def __call__(
         self,
         xy: Optional[Union[TaggedArray, ArrayLike, Tuple[ArrayLike, ArrayLike]]] = None,
         x: Optional[Union[TaggedArray, ArrayLike]] = None,
@@ -147,11 +147,10 @@ class OTSolver(TagConverterMixin, BaseSolver[O], ABC):  # noqa: B024
         **kwargs: Any,
     ) -> O:
         """Call method."""
-        data = self._get_array_data(xy, x=x, y=y, tags=tags)
+        data = self._get_array_data(xy=xy, x=x, y=y, tags=tags)
         kwargs = self._prepare_kwargs(data, **kwargs)
-        res = super().__call__(kwargs)
-        # TODO(michalk8): check for NaNs
-        if not res.converged:
+        res = super().__call__(**kwargs)
+        if not res.converged:  # TODO use logging, not warnings
             warnings.warn("Solver did not converge")
 
         return res.to(device=device)  # type: ignore[return-value]
@@ -177,8 +176,5 @@ class OTSolver(TagConverterMixin, BaseSolver[O], ABC):  # noqa: B024
             data_kwargs = {"x": data.x, "y": data.y, "xy": data.xy}
         else:
             raise NotImplementedError(f"TODO: {self.problem_kind}")
-
-        if self.problem_kind != ProblemKind.QUAD_FUSED:
-            _ = kwargs.pop("alpha", None)
 
         return {**kwargs, **data_kwargs}

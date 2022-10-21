@@ -1,24 +1,13 @@
 from types import MappingProxyType
 from typing import Any, Dict, List, Type, Tuple, Literal, Callable, Optional, TYPE_CHECKING
 from functools import partial, update_wrapper
+import inspect
 
 import pandas as pd
 
 from anndata import AnnData
 
 from moscot._types import Str_Dict_t
-from moscot._constants._args import (
-    quad_init_kwargs_list,
-    quad_solve_kwargs_list,
-    linear_init_kwargs_list,
-    quad_f_init_kwargs_list,
-    linear_solve_kwargs_list,
-    quad_f_solve_kwargs_list,
-    quad_prepare_kwargs_list,
-    linear_prepare_kwargs_list,
-    quad_f_prepare_kwargs_list,
-)
-from moscot.solvers._base_solver import ProblemKind
 from moscot._constants._constants import AggregationMode
 
 __all__ = [
@@ -222,36 +211,9 @@ def _order_transition_matrix(
     return tm if forward else tm.T
 
 
-def _get_kwargs_lists(
-    problem_kind: Literal["linear", "quadratic", "quadratic_fused"], backend: Literal["ott"] = "ott"
-) -> Tuple[List[str], List[str], List[str]]:
-    if backend == "ott":
-        if type == ProblemKind.LINEAR:
-            return linear_init_kwargs_list, linear_prepare_kwargs_list, linear_solve_kwargs_list
-        if type == ProblemKind.QUAD:
-            return quad_init_kwargs_list, quad_prepare_kwargs_list, quad_solve_kwargs_list
-        if type == ProblemKind.QUAD_FUSED:
-            return quad_f_init_kwargs_list, quad_f_prepare_kwargs_list, quad_f_solve_kwargs_list
-    else:
-        raise NotImplementedError("TODO. Only ott-jax as backend available.")
-
-
-def filter_kwargs(
-    kwargs: Dict[str, Any],
-    problem_kind: Literal["linear", "quadratic", "quadratic_fused"],
-    backend: Literal["ott"] = "ott",
-) -> Tuple[Dict[str, Any], Dict[str, Any], Dict[str, Any]]:
-    init_kwargs = {}
-    prepare_kwargs = {}
-    solve_kwargs = {}
-    init_kwargs_list, prepare_kwargs_list, solve_kwargs_list = _get_kwargs_lists(problem_kind, backend=backend)
-    for k, v in kwargs.items():
-        if k in init_kwargs_list:
-            init_kwargs[k] = v
-        elif k in prepare_kwargs_list:
-            prepare_kwargs[k] = v
-        elif k in solve_kwargs_list:
-            solve_kwargs[k] = v
-        else:
-            raise ValueError(f"{k} is not a valid parameter.")
-    return init_kwargs, prepare_kwargs, solve_kwargs
+def _filter_kwargs(*funcs: Callable[..., Any], **kwargs: Any) -> Dict[str, Any]:
+    res = {}
+    for func in funcs:
+        params = inspect.signature(func).parameters
+        res.update({k: v for k, v in kwargs.items() if k in params})
+    return res
