@@ -421,7 +421,7 @@ class TemporalMixin(AnalysisMixin[K, B]):
             if src == start:
                 source_data = self.problems[src, tgt].xy.data  # type: ignore[union-attr]
                 if only_start:
-                    return source_data, self.problems[src, tgt].adata
+                    return source_data, self.problems[src, tgt].adata_src
                 # TODO(michalk8): posterior marginals
                 growth_rates_source = self.problems[src, tgt].growth_rates  # type: ignore[attr-defined]
                 break
@@ -430,7 +430,7 @@ class TemporalMixin(AnalysisMixin[K, B]):
         for (src, tgt) in self.problems.keys():
             if src == intermediate:
                 intermediate_data = self.problems[src, tgt].xy.data  # type: ignore[union-attr]
-                intermediate_adata = self.problems[src, tgt].adata
+                intermediate_adata = self.problems[src, tgt].adata_src
                 break
         else:
             raise ValueError(f"No data found for time point {intermediate}")

@@ -1,4 +1,4 @@
-from typing import Any, Union, Literal, Optional, Protocol, Sequence, TYPE_CHECKING
+from typing import Any, Union, Literal, Optional, Protocol, Sequence
 
 import numpy as np
 
@@ -34,7 +34,7 @@ class BirthDeathProtocol(Protocol):
 
 class BirthDeathProblemProtocol(BirthDeathProtocol, Protocol):
     _delta: Optional[float] = None
-    _adata_y: Optional[AnnData] = None
+    adata_tgt: AnnData
     a: Optional[ArrayLike] = None
     b: Optional[ArrayLike] = None
 
@@ -199,9 +199,7 @@ class BirthDeathProblem(BirthDeathMixin, OTProblem):
         growth = np.exp((birth - death) * self._delta)
         if source:
             return growth
-        if TYPE_CHECKING:
-            assert isinstance(self._adata_y, AnnData)
-        return np.full(len(self._adata_y), np.average(growth))
+        return np.full(len(self.adata_tgt), np.average(growth))
 
     # TODO(michalk8): consider removing this
     @property

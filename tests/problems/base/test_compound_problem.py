@@ -52,7 +52,7 @@ class TestCompoundProblem:
 
     @pytest.mark.fast()
     def test_default_callback(self, adata_time: AnnData, mocker: MockerFixture):
-        subproblem = OTProblem(adata_time, adata_y=adata_time.copy())
+        subproblem = OTProblem(adata_time, adata_tgt=adata_time.copy())
         callback_kwargs = {"n_comps": 5}
         spy = mocker.spy(subproblem, "_local_pca_callback")
 

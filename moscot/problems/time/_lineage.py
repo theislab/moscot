@@ -209,7 +209,7 @@ class TemporalProblem(
             return None
         df_list = [
             pd.DataFrame(
-                np.array(problem.solution.potentials[0]), index=problem.adata_src.obs.index, columns=["cell_cost_source"]  # type: ignore[union-attr] # noqa: E501
+                np.array(problem.solution.potentials[0]), index=problem.adata_src.obs_names, columns=["cell_cost_source"]  # type: ignore[union-attr] # noqa: E501
             )
             for problem in self.problems.values()
         ]
@@ -217,7 +217,7 @@ class TemporalProblem(
         df_list.append(
             pd.DataFrame(
                 np.full(shape=(len(self.problems[tup].adata_tgt.obs), 1), fill_value=np.nan),
-                index=self.problems[tup].adata_tgt.obs.index,
+                index=self.problems[tup].adata_tgt.obs_names,
                 columns=["cell_cost_source"],
             )
         )
@@ -235,15 +235,15 @@ class TemporalProblem(
         tup = list(self)[0]
         df_list = [
             pd.DataFrame(
-                np.full(shape=(len(self.problems[tup].adata_tgt), 1), fill_value=np.nan),
-                index=self.problems[tup].adata_tgt.obs.index,
+                np.full(shape=(len(self.problems[tup].adata_src), 1), fill_value=np.nan),
+                index=self.problems[tup].adata_src.obs_names,
                 columns=["cell_cost_target"],
             )
         ]
         df_list.extend(
             [
                 pd.DataFrame(
-                    np.array(problem.solution.potentials[1]), index=problem.adata_tgt.obs.index, columns=["cell_cost_target"]  # type: ignore[union-attr] # noqa: E501
+                    np.array(problem.solution.potentials[1]), index=problem.adata_tgt.obs_names, columns=["cell_cost_target"]  # type: ignore[union-attr] # noqa: E501
                 )
                 for problem in self.problems.values()
             ]

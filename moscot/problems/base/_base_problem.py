@@ -293,6 +293,7 @@ class OTProblem(BaseProblem):
         adata_y: AnnData,
         layer: Optional[str] = None,
         return_linear: bool = True,
+        joint_space: bool = True,
         **kwargs: Any,
     ) -> Dict[Literal["xy", "x", "y"], TaggedArray]:
         def concat(x: ArrayLike, y: ArrayLike) -> ArrayLike:
@@ -309,11 +310,10 @@ class OTProblem(BaseProblem):
 
         n_comps = kwargs.pop("n_comps", 30)  # set n_comps=30 as default
 
-        logger.info("Computing pca with `n_comps = {n_comps}` and `joint_space = {joint_space}`.")
+        logger.info(f"Computing PCA with `n_comps={n_comps}` and `joint_space={joint_space}`.")
 
         if return_linear:
             n = x.shape[0]
-            joint_space = kwargs.pop("joint_space", True)
             if joint_space:
                 data = sc.pp.pca(concat(x, y), n_comps=n_comps, **kwargs)
             else:
