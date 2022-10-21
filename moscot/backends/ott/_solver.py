@@ -4,7 +4,7 @@ from typing import Any, Union, Literal, Optional
 from ott.core import initializers as init_lib
 from ott.geometry import Grid, Epsilon, Geometry, PointCloud
 from ott.core.sinkhorn import Sinkhorn
-from ott.geometry.costs import Bures, Cosine, CostFn, SqEuclidean, UnbalancedBures
+from ott.geometry.costs import Bures, Cosine, CostFn, Euclidean, SqEuclidean, UnbalancedBures
 from ott.core.sinkhorn_lr import LRSinkhorn
 from ott.core.quad_problems import QuadraticProblem
 from ott.core.linear_problems import LinearProblem
@@ -25,12 +25,15 @@ Epsilon_t = Union[float, Epsilon]
 
 
 class Cost(ModeEnum):
+    EUCL = "eucl"
     SQEUCL = "sqeucl"
     COSINE = "cosine"
     BURES = "bures"
     BUREL_UNBAL = "bures_unbal"
 
     def __call__(self, **kwargs: Any) -> CostFn:
+        if self.value == Cost.EUCL:
+            return Euclidean()
         if self.value == Cost.SQEUCL:
             return SqEuclidean()
         if self.value == Cost.COSINE:
