@@ -192,9 +192,9 @@ class GWProblem(CompoundProblem[K, B], GenericAnalysisMixin[K, B]):
         """
 
         self.batch_key = key
-        # TODO(michalk8): use and
+        # TODO(michalk8): refactor
         if not (len(GW_x) and len(GW_y)):
-            if "cost_matrices" not in self.adata.obsp:
+            if "cost_matrices" not in self.obsp:
                 raise ValueError(
                     "TODO: default location for quadratic loss is `adata.obsp[`cost_matrices`]` \
                         but adata has no key `cost_matrices` in `obsp`."

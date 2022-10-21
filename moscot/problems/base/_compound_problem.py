@@ -72,7 +72,8 @@ class BaseCompoundProblem(BaseProblem, ABC, Generic[K, B]):
     """
 
     def __init__(self, adata: AnnData, **kwargs: Any):
-        super().__init__(adata, **kwargs)
+        super().__init__(**kwargs)
+        self._adata = adata
         self._problem_manager: Optional[ProblemManager[K, B]] = None
 
     @abstractmethod
@@ -508,6 +509,11 @@ class BaseCompoundProblem(BaseProblem, ABC, Generic[K, B]):
         if self._problem_manager is None:
             return {}
         return self._problem_manager.solutions
+
+    @property
+    def adata(self) -> AnnData:
+        """Annotated data object."""
+        return self._adata
 
     @property
     def _policy(self) -> Optional[SubsetPolicy[K]]:

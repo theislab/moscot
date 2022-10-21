@@ -338,6 +338,7 @@ def _contrasting_color(r: int, g: int, b: int) -> str:
 
 def _input_to_adatas(inp: Union[AnnData, Tuple[AnnData, AnnData], Type[CompoundProblem]]) -> Tuple[AnnData, AnnData]:
     if isinstance(inp, CompoundProblem):
+        # TODO(MUCKD): this is wrong; else branch always executed
         return inp.adata, inp._secondary_adata if hasattr(inp, "_secondary_adata") else inp.adata
     if isinstance(inp, AnnData):
         return inp, inp

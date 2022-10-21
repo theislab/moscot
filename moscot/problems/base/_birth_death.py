@@ -50,6 +50,7 @@ class BirthDeathMixin:
     @d.dedent
     def score_genes_for_marginals(
         self: BirthDeathProtocol,
+        # TODO(michalk8): disallow `None`?
         gene_set_proliferation: Optional[Union[Literal["human", "mouse"], Sequence[str]]] = None,
         gene_set_apoptosis: Optional[Union[Literal["human", "mouse"], Sequence[str]]] = None,
         proliferation_key: str = "proliferation",
@@ -173,7 +174,7 @@ class BirthDeathProblem(BirthDeathMixin, OTProblem):
         self: BirthDeathProblemProtocol,
         adata: AnnData,
         source: bool,
-        delta: float,
+        delta: float,  # TODO(michalk8): pass in init
         proliferation_key: Optional[str] = None,
         apoptosis_key: Optional[str] = None,
         **kwargs: Any,
@@ -199,7 +200,14 @@ class BirthDeathProblem(BirthDeathMixin, OTProblem):
         growth = np.exp((birth - death) * self._delta)
         if source:
             return growth
+        # TODO(michalk8): re-order computation
         return np.full(len(self.adata_tgt), np.average(growth))
+
+    # TODO(michalk8): temporary fix to satisfy the mixin, consider removing the mixin
+    @property
+    def adata(self) -> AnnData:
+        """Annotated data object."""
+        return self.adata_src
 
     # TODO(michalk8): consider removing this
     @property

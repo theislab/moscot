@@ -25,16 +25,9 @@ __all__ = ["BaseProblem", "OTProblem", "ProblemKind"]
 @d.get_sections(base="BaseProblem", sections=["Parameters", "Raises"])
 @d.dedent
 class BaseProblem(ABC):
-    """
-    Problem base class handling one optimal transport problem.
+    """Problem interface handling one optimal transport problem."""
 
-    Parameters
-    ----------
-    %(adata)s
-    """
-
-    def __init__(self, adata: AnnData, copy: bool = False):
-        self._adata = adata.copy() if copy else adata
+    def __init__(self):
         self._problem_kind: ProblemKind = ProblemKind.UNKNOWN
         self._stage = ProblemStage.INITIALIZED
 
@@ -101,11 +94,6 @@ class BaseProblem(ABC):
         return data / total if normalize else data
 
     @property
-    def adata(self) -> AnnData:
-        """Annotated data object."""
-        return self._adata
-
-    @property
     def stage(self) -> ProblemStage:
         """Problem stage."""
         return self._stage
@@ -137,8 +125,9 @@ class OTProblem(BaseProblem):
         src_var_mask: Optional[ArrayLike] = None,
         tgt_var_mask: Optional[ArrayLike] = None,
     ):
-        super().__init__(adata, copy=False)
-        self._adata_tgt = self.adata if adata_tgt is None else adata_tgt
+        super().__init__()
+        self._adata_src = adata
+        self._adata_tgt = adata if adata_tgt is None else adata_tgt
         self._src_obs_mask = src_obs_mask
         self._tgt_obs_mask = tgt_obs_mask
         self._src_var_mask = src_var_mask
@@ -342,7 +331,7 @@ class OTProblem(BaseProblem):
 
     @property
     def adata_src(self) -> AnnData:
-        adata = self.adata if self._src_obs_mask is None else self.adata[self._src_obs_mask]
+        adata = self._adata_src if self._src_obs_mask is None else self._adata_src[self._src_obs_mask]
         if not adata.n_obs:
             raise ValueError("No observations in the source `AnnData`.")
         adata = adata if self._src_var_mask is None else adata[:, self._src_var_mask]
