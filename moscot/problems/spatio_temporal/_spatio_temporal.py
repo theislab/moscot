@@ -3,15 +3,14 @@ from typing import Any, Type, Tuple, Union, Literal, Mapping, Optional
 
 from anndata import AnnData
 
-from moscot._types import Numeric_t, QuadInitializer_t
+from moscot._types import Numeric_t, ScaleCost_t, ProblemStage_t, QuadInitializer_t
 from moscot._docs._docs import d
 from moscot._constants._key import Key
-from moscot._constants._constants import Policy, ScaleCost
+from moscot._constants._constants import Policy
 from moscot.problems.time._mixins import TemporalMixin
 from moscot.problems.space._mixins import SpatialAlignmentMixin
 from moscot.problems.space._alignment import AlignmentProblem
 from moscot.problems.base._birth_death import BirthDeathMixin, BirthDeathProblem
-from moscot.problems.base._base_problem import ScaleCost_t, ProblemStage
 from moscot.problems.base._compound_problem import B
 
 
@@ -33,7 +32,7 @@ class SpatioTemporalProblem(
         time_key: str,
         spatial_key: str = Key.obsm.spatial,
         joint_attr: Optional[Mapping[str, Any]] = MappingProxyType({"x_attr": "X", "y_attr": "X"}),
-        policy: Literal[Policy.SEQUENTIAL, Policy.TRIL, Policy.TRIU, Policy.EXPLICIT] = Policy.SEQUENTIAL,
+        policy: Literal["sequential", "tril", "triu", "explicit"] = "sequential",
         marginal_kwargs: Mapping[str, Any] = MappingProxyType({}),
         **kwargs: Any,
     ) -> "SpatioTemporalProblem":
@@ -80,7 +79,7 @@ class SpatioTemporalProblem(
         """
         # spatial key set in AlignmentProblem
         self.temporal_key = time_key
-        policy = Policy(policy)  # type: ignore[assignment]
+
         marginal_kwargs = dict(marginal_kwargs)
         if self.proliferation_key is not None:
             marginal_kwargs["proliferation_key"] = self.proliferation_key
@@ -104,8 +103,8 @@ class SpatioTemporalProblem(
         self,
         alpha: Optional[float] = 0.5,
         epsilon: Optional[float] = 1e-3,
-        scale_cost: ScaleCost_t = ScaleCost.MEAN,
-        stage: Union[ProblemStage, Tuple[ProblemStage, ...]] = (ProblemStage.PREPARED, ProblemStage.SOLVED),
+        scale_cost: ScaleCost_t = "mean",
+        stage: Union[ProblemStage_t, Tuple[ProblemStage_t, ...]] = ("prepared", "solved"),
         initializer: QuadInitializer_t = None,
         initializer_kwargs: Mapping[str, Any] = MappingProxyType({}),
         **kwargs: Any,
@@ -128,7 +127,6 @@ class SpatioTemporalProblem(
         -------
         :class:`moscot.problems.space.SpatioTemporalProblem`.
         """
-        scale_cost = ScaleCost(scale_cost) if isinstance(scale_cost, ScaleCost) else scale_cost
         return super().solve(
             alpha=alpha,
             epsilon=epsilon,

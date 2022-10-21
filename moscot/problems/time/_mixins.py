@@ -12,7 +12,7 @@ from anndata import AnnData
 
 from moscot._types import ArrayLike, Numeric_t, Str_Dict_t
 from moscot._docs._docs_mixins import d_mixins
-from moscot._constants._constants import Key, AdataKeys, PlottingKeys, AggregationMode, PlottingDefaults
+from moscot._constants._constants import Key, AdataKeys, PlottingKeys, PlottingDefaults
 from moscot.problems.base._mixins import AnalysisMixin, AnalysisMixinProtocol
 from moscot.problems.base._compound_problem import B, K, ApplyOutput_t
 
@@ -32,7 +32,7 @@ class TemporalMixinProtocol(AnalysisMixinProtocol[K, B], Protocol[K, B]):
         source_groups: Str_Dict_t,
         target_groups: Str_Dict_t,
         forward: bool = False,  # return value will be row-stochastic if forward=True, else column-stochastic
-        aggregation_mode: Literal["annotation", "cell"] = AggregationMode.ANNOTATION,  # type: ignore[assignment]
+        aggregation_mode: Literal["annotation", "cell"] = "annotation",
         online: bool = False,
         batch_size: Optional[int] = None,
         normalize: bool = True,
@@ -149,7 +149,7 @@ class TemporalMixin(AnalysisMixin[K, B]):
         source_groups: Str_Dict_t,
         target_groups: Str_Dict_t,
         forward: bool = False,  # return value will be row-stochastic if forward=True, else column-stochastic
-        aggregation_mode: Literal["annotation", "cell"] = AggregationMode.ANNOTATION,  # type: ignore[assignment]
+        aggregation_mode: Literal["annotation", "cell"] = "annotation",
         online: bool = False,
         batch_size: Optional[int] = None,
         normalize: bool = True,
@@ -189,7 +189,7 @@ class TemporalMixin(AnalysisMixin[K, B]):
             source_groups=source_groups,
             target_groups=target_groups,
             forward=forward,
-            aggregation_mode=AggregationMode(aggregation_mode),
+            aggregation_mode=aggregation_mode,
             online=online,
             batch_size=batch_size,
             normalize=normalize,
