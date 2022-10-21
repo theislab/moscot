@@ -559,7 +559,7 @@ class CompoundProblem(BaseCompoundProblem[K, B], ABC):
         pass
 
     def _create_problem(self, src_mask: ArrayLike, tgt_mask: ArrayLike, **kwargs: Any) -> B:
-        return self._base_problem_type(self.adata, src_mask=src_mask, tgt_mask=tgt_mask, **kwargs)
+        return self._base_problem_type(self.adata, src_obs_mask=src_mask, tgt_obs_mask=tgt_mask, **kwargs)
 
     def _create_policy(
         self,

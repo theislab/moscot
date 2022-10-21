@@ -132,14 +132,17 @@ class OTProblem(BaseProblem):
         self,
         adata: AnnData,
         adata_tgt: Optional[AnnData] = None,
-        src_mask: Optional[ArrayLike] = None,
-        tgt_mask: Optional[ArrayLike] = None,
-        var_mask: Optional[ArrayLike] = None,
+        src_obs_mask: Optional[ArrayLike] = None,
+        tgt_obs_mask: Optional[ArrayLike] = None,
+        src_var_mask: Optional[ArrayLike] = None,
+        tgt_var_mask: Optional[ArrayLike] = None,
     ):
         super().__init__(adata, copy=False)
         self._adata_tgt = self.adata if adata_tgt is None else adata_tgt
-        self._src_mask = src_mask
-        self._tgt_mask = tgt_mask
+        self._src_obs_mask = src_obs_mask
+        self._tgt_obs_mask = tgt_obs_mask
+        self._src_var_mask = src_var_mask
+        self._tgt_var_mask = tgt_var_mask
 
         self._solution: Optional[BaseSolverOutput] = None
 
@@ -339,11 +342,23 @@ class OTProblem(BaseProblem):
 
     @property
     def adata_src(self) -> AnnData:
-        return self.adata if self._src_mask is None else self.adata[self._src_mask]
+        adata = self.adata if self._src_obs_mask is None else self.adata[self._src_obs_mask]
+        if not adata.n_obs:
+            raise ValueError("No observations in the source `AnnData`.")
+        adata = adata if self._src_var_mask is None else adata[:, self._src_obs_mask]
+        if not adata.n_vars:
+            raise ValueError("No variables in the source `AnnData`.")
+        return adata
 
     @property
     def adata_tgt(self) -> AnnData:
-        return self._adata_tgt if self._tgt_mask is None else self._adata_tgt[self._tgt_mask]
+        adata = self._adata_tgt if self._tgt_obs_mask is None else self._adata_tgt[self._tgt_obs_mask]
+        if not adata.n_obs:
+            raise ValueError("No observations in the target `AnnData`.")
+        adata = adata if self._tgt_var_mask is None else adata[:, self._tgt_var_mask]
+        if not adata.n_vars:
+            raise ValueError("No variables in the target `AnnData`.")
+        return adata
 
     @property
     def shape(self) -> Tuple[int, int]:

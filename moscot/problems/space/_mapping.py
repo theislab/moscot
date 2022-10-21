@@ -59,17 +59,13 @@ class MappingProblem(CompoundProblem[K, OTProblem], SpatialMappingMixin[K, OTPro
         **kwargs: Any,
     ) -> OTProblem:
         """Private class to mask anndatas."""
-        adata_src, adata_tgt = self.adata_sp, self.adata_sc
-        # TODO(src/tgt_var_mask)
-        if self.filtered_vars is not None:
-            adata_src = adata_src[:, self.filtered_vars]
-            adata_tgt = adata_tgt[:, self.filtered_vars]
-
         return self._base_problem_type(
-            adata=adata_src,
-            adata_tgt=adata_tgt,
-            src_mask=src_mask,
-            tgt_mask=None,
+            adata=self.adata_sp,
+            adata_tgt=self.adata_sc,
+            src_obs_mask=src_mask,
+            tgt_obs_mask=None,
+            src_var_mask=self.filtered_vars,  # type: ignore[arg-type]
+            tgt_var_mask=self.filtered_vars,  # type: ignore[arg-type]
             **kwargs,
         )
 
