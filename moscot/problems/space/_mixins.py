@@ -7,6 +7,7 @@ from scipy.linalg import svd
 from scipy.sparse import issparse
 from scipy.spatial import ConvexHull
 from sklearn.metrics import pairwise_distances
+from pandas.api.types import is_categorical_dtype
 from sklearn.neighbors import NearestNeighbors
 from scipy.sparse.linalg import LinearOperator
 import pandas as pd
@@ -16,6 +17,7 @@ import numpy as np
 from anndata import AnnData
 
 from moscot._types import ArrayLike, Str_Dict_t
+from moscot._logging import logger
 from moscot._docs._docs import d
 from moscot.problems.base import AnalysisMixin  # type: ignore[attr-defined]
 from moscot._constants._key import Key
@@ -386,9 +388,9 @@ class SpatialMappingMixin(AnalysisMixin[K, B]):
         adata_pred.var_names = var_names
         return adata_pred
 
-    def compute_spatial_correspondence(
+    def compute_correspondence(
         self: SpatialMappingMixinProtocol[K, B],
-        interval: Union[ArrayLike, int] = 10,
+        interval: Union[ArrayLike, int] = 5,
         max_dist: Optional[int] = None,
         spatial_key: Union[str, Mapping[str, Any]] = Key.obsm.spatial,
     ) -> pd.DataFrame:
@@ -413,7 +415,11 @@ class SpatialMappingMixin(AnalysisMixin[K, B]):
         """
         if self.batch_key is not None:
             out_list = []
-            categ = self.adata.obs[self.batch_key].cat.categories
+            if is_categorical_dtype(self.adata.obs[self.batch_key]):
+                categ = self.adata.obs[self.batch_key].cat.categories
+            else:
+                logger.info(f"adata_sp.obs[`{self.batch_key}`] is not `categorical`, using `unique()` method.")
+                categ = self.adata.obs[self.batch_key].unique()
             if len(categ) > 1:
                 for c in categ:
                     adata_subset = self.adata[self.adata.obs[self.batch_key] == c]
@@ -428,7 +434,9 @@ class SpatialMappingMixin(AnalysisMixin[K, B]):
                 out = _compute_correspondence(spatial, gexp, interval, max_dist)
                 out[self.batch_key] = categ[0]
                 out_list.append(out)
-            return pd.concat(out_list, axis=0)
+            out = pd.concat(out_list, axis=0)
+            out[self.batch_key] = pd.Categorical(out[self.batch_key])
+            return out
         else:
             spatial = self.adata.obsm[self.spatial_key]
             gexp = self.adata.obsm[self.spatial_key]
@@ -517,7 +525,7 @@ class SpatialMappingMixin(AnalysisMixin[K, B]):
 def _compute_correspondence(
     spatial: ArrayLike,
     gexp: ArrayLike,
-    interval: Union[ArrayLike, int] = 10,
+    interval: Union[ArrayLike, int] = 5,
     max_dist: Optional[int] = None,
 ) -> pd.DataFrame:
     if isinstance(interval, int):
@@ -543,13 +551,11 @@ def _compute_correspondence(
     index_arr = []
 
     for ind, i in enumerate(support):
-        tree = NearestNeighbors(radius=i, metric="euclidean")
-        tree.fit(spatial)
+        tree = NearestNeighbors(radius=i).fit(spatial)
         dist, idx = tree.radius_neighbors()
 
         spatial_dist = vmean(dist)
         spatial_dist = spatial_dist[~np.isnan(spatial_dist)]
-
         gexp_dist = vpdist(row_idx=idx, col_idx=np.arange(len(idx)), gexp=gexp)
         gexp_dist = gexp_dist[~np.isnan(gexp_dist)]
         assert spatial_dist.shape == gexp_dist.shape, "Distances array should be equal."

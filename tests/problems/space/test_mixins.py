@@ -109,6 +109,17 @@ class TestSpatialMappingAnalysisMixin:
         pd.testing.assert_series_equal(*list(corr.values()))
         assert imp.shape == adatasp.shape
 
+    def test_correspondence(
+        self,
+        adata_mapping: AnnData,
+    ):
+        adataref, adatasp = _adata_spatial_split(adata_mapping)
+        mp = MappingProblem(adataref, adatasp).prepare(batch_key="batch", sc_attr={"attr": "X"})
+        print(adatasp.X.dtype)
+        df = mp.compute_correspondence()
+        assert "batch" in df.columns
+        np.testing.assert_array_equal(df["batch"].cat.categories, adatasp.obs["batch"].cat.categories)
+
     def test_regression_testing(self, adata_mapping: AnnData):
         adataref, adatasp = _adata_spatial_split(adata_mapping)
         mp = MappingProblem(adataref, adatasp)
