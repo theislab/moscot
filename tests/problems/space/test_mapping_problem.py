@@ -11,7 +11,6 @@ from tests._utils import _adata_spatial_split
 from moscot.problems.space import MappingProblem
 from moscot.solvers._base_solver import ProblemKind
 
-# TODO(giovp): refactor as fixture
 SOLUTIONS_PATH = Path("./tests/data/mapping_solutions.pkl")  # base is moscot
 
 
@@ -44,6 +43,10 @@ class TestMappingProblem:
             assert mp[prob_key].x.data.shape == (n_obs, x_n_var)
             assert mp[prob_key].y.data.shape == (n_obs, y_n_var)
             assert mp[prob_key].xy.data.shape == mp[prob_key].xy.data_y.shape == (n_obs, xy_n_vars)
+
+        mp = mp.prepare(sc_attr=sc_attr, joint_attr=joint_attr)
+        assert len(mp) == 1
+        assert isinstance(mp[("src", "tgt")], mp._base_problem_type)
 
     @pytest.mark.fast()
     @pytest.mark.parametrize("var_names", ["0", [], [str(i) for i in range(20)]])

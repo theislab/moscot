@@ -21,6 +21,7 @@ class Policy(ModeEnum):
     SEQUENTIAL = "sequential"
     STAR = "star"
     EXTERNAL_STAR = "external_star"
+    DUMMY = "dummy"
     TRIU = "triu"
     TRIL = "tril"
     EXPLICIT = "explicit"
