@@ -129,7 +129,7 @@ class TemporalProblem(
         rank: int = -1,
         batch_size: Optional[int] = None,
         stage: Union[ProblemStage_t, Tuple[ProblemStage_t, ...]] = ("prepared", "solved"),
-        initializer: SinkhornInitializer_t = None,
+        initializer: SinkhornInitializer_t = "default",
         initializer_kwargs: Mapping[str, Any] = MappingProxyType({}),
         jit: bool = True,
         threshold: float = 1e-3,
