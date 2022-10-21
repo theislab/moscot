@@ -48,7 +48,12 @@ class FormatterMixin(ABC):
 class SubsetPolicy(Generic[K]):
     """Policy class."""
 
-    def __init__(self, adata: Union[AnnData, pd.Series, pd.Categorical], key: Optional[str] = None):
+    def __init__(
+        self,
+        adata: Union[AnnData, pd.Series, pd.Categorical],
+        key: Optional[str] = None,
+        cat: Optional[Sequence[str]] = None,
+    ):
         if isinstance(adata, AnnData):
             # TODO(michalk8): raise nicer KeyError (giovp) this way we can solve for full anndata with key=None
             self._data = pd.Series(adata.obs[key])
@@ -56,7 +61,7 @@ class SubsetPolicy(Generic[K]):
             self._data = adata
         self._data = self._data.astype("category")  # TODO(@MUCDK): catch conversion error
         self._graph: Set[Tuple[K, K]] = set()
-        self._cat = tuple(self._data.cat.categories)
+        self._cat = tuple(self._data.cat.categories) if cat is None else tuple(cat)
         self._subset_key: Optional[str] = key
 
         if len(self._cat) < 2:
@@ -169,7 +174,7 @@ class SubsetPolicy(Generic[K]):
             pass
 
 
-class OrderedPolicy(SubsetPolicy[K], ABC):  # noqa: B024
+class OrderedPolicy(SubsetPolicy[K], ABC):
     def __init__(self, adata: Union[AnnData, pd.Series, pd.Categorical], **kwargs: Any):
         super().__init__(adata, **kwargs)
         # TODO(michalk8): verify whether they can be ordered (only numeric?) + warn (or just raise)
@@ -200,7 +205,7 @@ class OrderedPolicy(SubsetPolicy[K], ABC):  # noqa: B024
         return path if forward else path[::-1]
 
 
-class SimplePlanPolicy(SubsetPolicy[K], ABC):  # noqa: B024
+class SimplePlanPolicy(SubsetPolicy[K], ABC):
     def _plan(self, **_: Any) -> Sequence[Tuple[K, K]]:
         return list(self._graph)
 
@@ -296,7 +301,8 @@ class DummyPolicy(FormatterMixin, SubsetPolicy[str]):
         tgt_name: Literal["tgt"] = "tgt",
         **kwargs: Any,
     ):
-        super().__init__(pd.Series([self._SENTINEL] * len(adata)), **kwargs)
+
+        super().__init__(pd.Series([self._SENTINEL] * len(adata)), cat=[src_name, tgt_name], **kwargs)
         self._src_name = src_name
         self._tgt_name = tgt_name
 

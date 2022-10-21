@@ -127,7 +127,7 @@ class TestSpatialMappingAnalysisMixin:
         np.testing.assert_array_equal(df.index_interval.cat.categories, df2.index_interval.cat.categories)
         df3 = (
             MappingProblem(adataref, adatasp)
-            .prepare(batch_key="batch", sc_attr={"attr": "X"})
+            .prepare(sc_attr={"attr": "X"})
             .compute_correspondence(interval=[2, 3], spatial_key="spatial")
         )
         np.testing.assert_array_equal(df3.value_interval.unique(), (2, 3))
