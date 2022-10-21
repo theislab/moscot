@@ -6,6 +6,7 @@ import pytest
 import numpy as np
 
 from anndata import AnnData
+from ott.geometry.costs import Euclidean, SqEuclidean
 
 from moscot.problems.time import TemporalProblem
 from moscot.solvers._output import BaseSolverOutput
@@ -220,7 +221,6 @@ class TestTemporalProblem:
             "epsilon": 0.7,
             "tau_a": 1.0,
             "tau_b": 1.0,
-            "scale_cost": "max_cost",
             "rank": 7,
             "batch_size": 123,
             "initializer": "rank2",
@@ -234,6 +234,10 @@ class TestTemporalProblem:
             "max_iterations": 9,
             "gamma": 9.4,
             "gamma_rescale": False,
+            "cost": SqEuclidean(),
+            "power": 3,
+            "batch_size": 1023,
+            "scale_cost": "max_cost",
         }
 
         solver_args = {
@@ -292,10 +296,13 @@ class TestTemporalProblem:
             assert el == args_to_check[arg]
 
         for arg in pointcloud_args:
-            assert hasattr(geom, pointcloud_args[arg])
             el = (
-                getattr(geom, pointcloud_args[arg])[0]
-                if isinstance(getattr(geom, pointcloud_args[arg]), tuple)
-                else getattr(geom, pointcloud_args[arg])
-            )
-            assert el == args_to_check[arg]
+                    getattr(geom, pointcloud_args[arg])[0]
+                    if isinstance(getattr(geom, pointcloud_args[arg]), tuple)
+                    else getattr(geom, pointcloud_args[arg])
+                )
+            assert hasattr(geom, pointcloud_args[arg])
+            if arg == "cost":
+                assert type(el) == type(args_to_check[arg])
+            else:
+                assert el == args_to_check[arg]

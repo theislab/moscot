@@ -53,8 +53,8 @@ class TestLineageProblem:
         assert problem.cell_costs_source is None
         assert problem.cell_costs_target is None
 
-    def test_pass_arguments(self, adata_time: AnnData):
-        problem = LineageProblem(adata=adata_time)
+    def test_pass_arguments(self, adata_time_barcodes: AnnData):
+        problem = LineageProblem(adata=adata_time_barcodes)
 
         problem = problem.prepare(
             time_key="time",
@@ -75,11 +75,10 @@ class TestLineageProblem:
             "initializer_kwargs": {},
             "jit": False,
             "threshold": 2e-3,
-            "lse_mode": True,
             "norm_error": 2,
             "inner_iterations": 3,
-            "min_iterations": 4,
-            "max_iterations": 9,
+            "min_iterations": 2,
+            "max_iterations": 3,
             "gamma": 9.4,
             "gamma_rescale": False,
             "gw_unbalanced_correction": False,
@@ -91,18 +90,22 @@ class TestLineageProblem:
         solver_args = {
             "epsilon": "epsilon",
             "rank": "rank",
-            "lse_mode": "lse_mode",
             "threshold": "threshold",
-            "norm_error": "norm_error",
-            "inner_iterations": "inner_iterations",
             "min_iterations": "min_iterations",
             "max_iterations": "max_iterations",
             "initializer": "quad_initializer",
             "initializer_kwargs": "kwargs_init",
             "jit": "jit",
             "warm_start": "_warm_start",
-            "quad_initializer": "quad_initializer",
+            "initializer": "quad_initializer",
         }
+
+        sinkhorn_solver_args = {
+            "lse_mode": "lse_mode",
+            "norm_error": "norm_error",
+            "inner_iterations": "inner_iterations",
+        }
+
         quad_prob_args = {
             "tau_a": "_tau_a",
             "tau_b": "_tau_b",
@@ -113,7 +116,6 @@ class TestLineageProblem:
 
         geometry_args = {"epsilon": "_epsilon_init", "scale_cost": "scale_cost"}
         pointcloud_args = {
-            "cost": "cost_fn",
             "power": "power",
             "batch_size": "_batch_size",
             "scale_cost": "_scale_cost",
@@ -124,7 +126,12 @@ class TestLineageProblem:
         solver = problem[(0, 1)]._solver._solver
         for arg in solver_args:
             assert hasattr(solver, solver_args[arg])
-            assert getattr(solver, arg) == args_to_check[solver_args[arg]]
+            assert getattr(solver, solver_args[arg]) == args_to_check[solver_args[arg]]
+
+        sinkhorn_solver = solver.linear_ot_solver
+        for arg in solver_args:
+            assert hasattr(sinkhorn_solver, sinkhorn_solver_args[arg])
+            assert getattr(sinkhorn_solver, arg) == args_to_check[sinkhorn_solver_args[arg]]
 
         quad_prob = problem[(0, 1)]._solver._problem
         for arg in quad_prob_args:
