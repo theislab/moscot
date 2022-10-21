@@ -1,11 +1,10 @@
 from abc import ABC
-from enum import Enum
 from typing import Any, Union, Literal, Optional
 
 from ott.core import initializers as init_lib
 from ott.geometry import Grid, Epsilon, Geometry, PointCloud
 from ott.core.sinkhorn import Sinkhorn
-from ott.geometry.costs import Bures, Cosine, CostFn, Euclidean, UnbalancedBures
+from ott.geometry.costs import Bures, Cosine, CostFn, Euclidean, SqEuclidean, UnbalancedBures
 from ott.core.sinkhorn_lr import LRSinkhorn
 from ott.core.quad_problems import QuadraticProblem
 from ott.core.linear_problems import LinearProblem
@@ -14,6 +13,7 @@ import jax.numpy as jnp
 
 from moscot._types import ArrayLike
 from moscot._docs._docs import d
+from moscot._constants._enum import ModeEnum
 from moscot.backends.ott._output import OTTOutput
 from moscot.solvers._base_solver import OTSolver, ProblemKind
 from moscot.solvers._tagged_array import TaggedArray
@@ -24,15 +24,18 @@ Scale_t = Union[float, Literal["mean", "median", "max_cost", "max_norm", "max_bo
 Epsilon_t = Union[float, Epsilon]
 
 
-class Cost(str, Enum):
+class Cost(ModeEnum):
+    EUCL = "eucl"
     SQEUCL = "sqeucl"
     COSINE = "cosine"
     BURES = "bures"
     BUREL_UNBAL = "bures_unbal"
 
     def __call__(self, **kwargs: Any) -> CostFn:
-        if self.value == Cost.SQEUCL:
+        if self.value == Cost.EUCL:
             return Euclidean()
+        if self.value == Cost.SQEUCL:
+            return SqEuclidean()
         if self.value == Cost.COSINE:
             return Cosine()
         if self.value == Cost.BURES:
