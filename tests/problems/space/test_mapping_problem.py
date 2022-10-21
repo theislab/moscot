@@ -47,6 +47,8 @@ class TestMappingProblem:
         mp = mp.prepare(sc_attr=sc_attr, joint_attr=joint_attr)
         assert len(mp) == 1
         assert isinstance(mp[("src", "tgt")], mp._base_problem_type)
+        assert mp[prob_key].shape == (n_obs, 2 * n_obs)
+        assert mp[prob_key].xy.data.shape == mp[prob_key].xy.data_y.shape == (n_obs, xy_n_vars)
 
     @pytest.mark.fast()
     @pytest.mark.parametrize("var_names", ["0", [], [str(i) for i in range(20)]])
