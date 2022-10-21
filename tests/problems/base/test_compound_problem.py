@@ -69,7 +69,7 @@ class TestCompoundProblem:
 
         assert isinstance(problem, CompoundProblem)
         assert isinstance(problem.problems, dict)
-        spy.assert_called_with(subproblem.adata, subproblem._adata_y, **callback_kwargs)
+        spy.assert_called_with(subproblem.adata_src, subproblem.adata_tgt, **callback_kwargs)
 
     @pytest.mark.fast()
     def test_custom_callback(self, adata_time: AnnData, mocker: MockerFixture):

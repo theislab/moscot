@@ -107,7 +107,7 @@ class BaseCompoundProblem(BaseProblem, ABC, Generic[K, B]):
             raise TypeError("TODO: callback not callable")
 
         # TODO(michalk8): consider passing `adata` that only has `src`/`tgt`
-        data = callback(problem.adata, problem._adata_y, **callback_kwargs)
+        data = callback(problem.adata_src, problem.adata_tgt, **callback_kwargs)
         if not isinstance(data, Mapping):
             raise TypeError("TODO: callback did not return a mapping.")
         return data
@@ -295,7 +295,7 @@ class BaseCompoundProblem(BaseProblem, ABC, Generic[K, B]):
             explicit_steps=explicit_steps,
         )
         problem = self.problems[src, tgt]
-        adata = problem.adata if forward else problem._adata_y
+        adata = problem.adata_src if forward else problem.adata_tgt
         current_mass = problem._get_mass(adata, data=data, **kwargs)
         # TODO(michlak8): future behavior
         # res = {(None, src) if forward else (tgt, None): current_mass}
@@ -559,11 +559,7 @@ class CompoundProblem(BaseCompoundProblem[K, B], ABC):
         pass
 
     def _create_problem(self, src_mask: ArrayLike, tgt_mask: ArrayLike, **kwargs: Any) -> B:
-        return self._base_problem_type(
-            self._mask(src_mask),
-            self._mask(tgt_mask),
-            **kwargs,
-        )
+        return self._base_problem_type(self.adata, src_mask=src_mask, tgt_mask=tgt_mask, **kwargs)
 
     def _create_policy(
         self,
@@ -574,9 +570,6 @@ class CompoundProblem(BaseCompoundProblem[K, B], ABC):
         if isinstance(policy, str):
             return SubsetPolicy.create(policy, adata=self.adata, key=key)
         return ExplicitPolicy(self.adata, key=key)
-
-    def _mask(self, mask: ArrayLike) -> AnnData:
-        return self.adata[mask]
 
     def _callback_handler(
         self,
@@ -601,7 +594,7 @@ class CompoundProblem(BaseCompoundProblem[K, B], ABC):
         try:
             data = self.adata.obsp[key]
         except KeyError:
-            raise KeyError(f"TODO: data not in `adata.obsp[{key!r}]`") from None
+            raise KeyError(f"TODO: data not in `adata.obsp[{key!r}]`.") from None
 
         src_mask = self._policy.create_mask(src, allow_empty=False)
         tgt_mask = self._policy.create_mask(tgt, allow_empty=False)

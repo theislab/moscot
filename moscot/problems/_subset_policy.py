@@ -48,12 +48,12 @@ class FormatterMixin(ABC):
 class SubsetPolicy(Generic[K]):
     """Policy class."""
 
-    def __init__(self, adata: Union[AnnData, pd.Series, pd.Categorical], key: Optional[str] = None):
-        if isinstance(adata, AnnData):
-            # TODO(michalk8): raise nicer KeyError (giovp) this way we can solve for full anndata with key=None
-            self._data = pd.Series(adata.obs[key])
-        else:
-            self._data = adata
+    def __init__(
+        self,
+        adata: Union[AnnData, pd.Series, pd.Categorical],
+        key: Optional[str] = None,
+    ):
+        self._data = pd.Series(adata.obs[key]) if isinstance(adata, AnnData) else adata
         self._data = self._data.astype("category")  # TODO(@MUCDK): catch conversion error
         self._graph: Set[Tuple[K, K]] = set()
         self._cat = tuple(self._data.cat.categories)

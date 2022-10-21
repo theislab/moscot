@@ -182,17 +182,17 @@ class TemporalProblem(
         # TODO(michalk8): FIXME
         cols = ["growth_rates"]
         df_list = [
-            pd.DataFrame(problem.growth_rates, index=problem.adata.obs.index, columns=cols)
+            pd.DataFrame(problem.growth_rates, index=problem.adata_src.obs.index, columns=cols)
             for problem in self.problems.values()
         ]
         tup = list(self)[-1]
         df_list.append(
             pd.DataFrame(
                 np.full(
-                    shape=(len(self.problems[tup]._adata_y.obs), 1),
+                    shape=(len(self.problems[tup].adata_tgt.obs), 1),
                     fill_value=np.nan,
                 ),
-                index=self.problems[tup]._adata_y.obs.index,
+                index=self.problems[tup].adata_tgt.obs.index,
                 columns=cols,
             )
         )
@@ -209,15 +209,15 @@ class TemporalProblem(
             return None
         df_list = [
             pd.DataFrame(
-                np.array(problem.solution.potentials[0]), index=problem.adata.obs.index, columns=["cell_cost_source"]  # type: ignore[union-attr] # noqa: E501
+                np.array(problem.solution.potentials[0]), index=problem.adata_src.obs.index, columns=["cell_cost_source"]  # type: ignore[union-attr] # noqa: E501
             )
             for problem in self.problems.values()
         ]
         tup = list(self)[-1]
         df_list.append(
             pd.DataFrame(
-                np.full(shape=(len(self.problems[tup]._adata_y.obs), 1), fill_value=np.nan),
-                index=self.problems[tup]._adata_y.obs.index,
+                np.full(shape=(len(self.problems[tup].adata_tgt.obs), 1), fill_value=np.nan),
+                index=self.problems[tup].adata_tgt.obs.index,
                 columns=["cell_cost_source"],
             )
         )
@@ -235,15 +235,15 @@ class TemporalProblem(
         tup = list(self)[0]
         df_list = [
             pd.DataFrame(
-                np.full(shape=(len(self.problems[tup].adata), 1), fill_value=np.nan),
-                index=self.problems[tup].adata.obs.index,
+                np.full(shape=(len(self.problems[tup].adata_tgt), 1), fill_value=np.nan),
+                index=self.problems[tup].adata_tgt.obs.index,
                 columns=["cell_cost_target"],
             )
         ]
         df_list.extend(
             [
                 pd.DataFrame(
-                    np.array(problem.solution.potentials[1]), index=problem._adata_y.obs.index, columns=["cell_cost_target"]  # type: ignore[union-attr] # noqa: E501
+                    np.array(problem.solution.potentials[1]), index=problem.adata_tgt.obs.index, columns=["cell_cost_target"]  # type: ignore[union-attr] # noqa: E501
                 )
                 for problem in self.problems.values()
             ]
