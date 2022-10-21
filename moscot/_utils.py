@@ -34,6 +34,7 @@ def _normalize(arr: ArrayLike) -> ArrayLike:
     return arr / np.sum(arr)
 
 
+# TODO(michalk8): unify with `moscot.backends.ott._solver.Cost`
 def _get_backend_losses(
     backend: str = "JAX", **kwargs: Any
 ) -> Dict[str, Any]:  # TODO(@MUCDK, @michalk8), registry or put somewhere else.

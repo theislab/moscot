@@ -27,12 +27,15 @@ Epsilon_t = Union[float, Epsilon]
 
 
 class Cost(ModeEnum):
+    EUCL = "eucl"
     SQEUCL = "sqeucl"
     COSINE = "cosine"
     BURES = "bures"
     BUREL_UNBAL = "bures_unbal"
 
     def __call__(self, **kwargs: Any) -> CostFn:
+        if self.value == Cost.EUCL:
+            return Euclidean()
         if self.value == Cost.SQEUCL:
             return SqEuclidean()
         if self.value == Cost.COSINE:
