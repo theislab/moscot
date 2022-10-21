@@ -114,11 +114,23 @@ class TestSpatialMappingAnalysisMixin:
         adata_mapping: AnnData,
     ):
         adataref, adatasp = _adata_spatial_split(adata_mapping)
-        mp = MappingProblem(adataref, adatasp).prepare(batch_key="batch", sc_attr={"attr": "X"})
-        print(adatasp.X.dtype)
-        df = mp.compute_correspondence()
+        df = (
+            MappingProblem(adataref, adatasp).prepare(batch_key="batch", sc_attr={"attr": "X"}).compute_correspondence()
+        )
         assert "batch" in df.columns
         np.testing.assert_array_equal(df["batch"].cat.categories, adatasp.obs["batch"].cat.categories)
+        df2 = (
+            MappingProblem(adataref, adatasp)
+            .prepare(batch_key="batch", sc_attr={"attr": "X"})
+            .compute_correspondence(spatial_key="spatial")
+        )
+        np.testing.assert_array_equal(df.index_interval.cat.categories, df2.index_interval.cat.categories)
+        df3 = (
+            MappingProblem(adataref, adatasp)
+            .prepare(batch_key="batch", sc_attr={"attr": "X"})
+            .compute_correspondence(interval=[2, 3], spatial_key="spatial")
+        )
+        np.testing.assert_array_equal(df3.value_interval.unique(), (2, 3))
 
     def test_regression_testing(self, adata_mapping: AnnData):
         adataref, adatasp = _adata_spatial_split(adata_mapping)

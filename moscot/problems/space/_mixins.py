@@ -549,6 +549,7 @@ def _compute_correspondence(
     spatial_arr = []
     gexp_arr = []
     index_arr = []
+    support_arr = []
 
     for ind, i in enumerate(support):
         tree = NearestNeighbors(radius=i).fit(spatial)
@@ -563,12 +564,17 @@ def _compute_correspondence(
         spatial_arr.append(spatial_dist)
         gexp_arr.append(gexp_dist)
         index_arr.append(np.repeat(ind, gexp_dist.shape[0]))
+        support_arr.append(np.repeat(i, gexp_dist.shape[0]))
 
     spatial_arr = np.concatenate(spatial_arr)
     gexp_arr = np.concatenate(gexp_arr)
     index_arr = np.concatenate(index_arr)
+    support_arr = np.concatenate(support_arr)
 
-    df = pd.DataFrame(np.vstack([spatial_arr, gexp_arr, index_arr]).T, columns=["spatial", "expression", "index"])
+    df = pd.DataFrame(
+        np.vstack([spatial_arr, gexp_arr, index_arr, support_arr]).T,
+        columns=["spatial", "expression", "index_interval", "value_interval"],
+    )
 
-    df["index"] = pd.Categorical(df["index"].astype(np.int_))
+    df["index_interval"] = pd.Categorical(df["index_interval"].astype(np.int_))
     return df
