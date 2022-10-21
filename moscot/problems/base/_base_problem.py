@@ -345,7 +345,7 @@ class OTProblem(BaseProblem):
         adata = self.adata if self._src_obs_mask is None else self.adata[self._src_obs_mask]
         if not adata.n_obs:
             raise ValueError("No observations in the source `AnnData`.")
-        adata = adata if self._src_var_mask is None else adata[:, self._src_obs_mask]
+        adata = adata if self._src_var_mask is None else adata[:, self._src_var_mask]
         if not adata.n_vars:
             raise ValueError("No variables in the source `AnnData`.")
         return adata
