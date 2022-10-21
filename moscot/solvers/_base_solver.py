@@ -3,7 +3,7 @@ from types import MappingProxyType
 from typing import Any, Dict, Tuple, Union, Generic, Literal, Mapping, TypeVar, Optional, NamedTuple
 import warnings
 
-from moscot._types import ArrayLike
+from moscot._types import Device_t, ArrayLike
 from moscot._docs._docs import d
 from moscot.solvers._output import BaseSolverOutput
 from moscot._constants._enum import ModeEnum
@@ -143,7 +143,7 @@ class OTSolver(TagConverterMixin, BaseSolver[O], ABC):  # noqa: B024
         x: Optional[Union[TaggedArray, ArrayLike]] = None,
         y: Optional[Union[TaggedArray, ArrayLike]] = None,
         tags: Mapping[Literal["x", "y", "xy"], Tag] = MappingProxyType({}),
-        device: Optional[Any] = None,
+        device: Optional[Device_t] = None,
         **kwargs: Any,
     ) -> O:
         """Call method."""

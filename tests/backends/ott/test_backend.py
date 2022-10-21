@@ -13,7 +13,7 @@ import numpy as np
 import jax.numpy as jnp
 
 from tests._utils import ATOL, RTOL, Geom_t
-from moscot._types import ArrayLike
+from moscot._types import Device_t, ArrayLike
 from moscot.backends.ott import GWSolver, FGWSolver, SinkhornSolver  # type: ignore[attr-defined]
 from moscot.solvers._output import BaseSolverOutput
 from moscot.solvers._base_solver import O, OTSolver
@@ -68,7 +68,8 @@ class TestGW:
         gt = gromov_wasserstein(
             PointCloud(x, epsilon=eps), PointCloud(y, epsilon=eps), threshold=thresh, jit=jit, epsilon=eps
         )
-        solver = GWSolver(threshold=thresh, jit=jit)
+
+        solver = GWSolver(**kwargs)
         assert isinstance(solver.solver, GromovWasserstein)
         assert solver.x is None
         assert solver.y is None
@@ -92,7 +93,7 @@ class TestGW:
             geom_xx=Geometry(cost_matrix=x_cost, epsilon=eps), geom_yy=Geometry(cost_matrix=y_cost, epsilon=eps)
         )
         gt = GromovWasserstein(epsilon=eps, threshold=thresh)(problem)
-        solver = GWSolver(threshold=thresh)
+        solver = GWSolver(**kwargs)
 
         pred = solver(x=x_cost, y=y_cost, **kwargs)
 
@@ -295,7 +296,7 @@ class TestSolverOutput:
             np.testing.assert_allclose(p.sum(), z.sum())
 
     @pytest.mark.parametrize("device", [None, "cpu", "cpu:0", "cpu:1", "explicit"])
-    def test_to_device(self, x: Geom_t, device: Optional[str]) -> None:
+    def test_to_device(self, x: Geom_t, device: Optional[Device_t]) -> None:
         # simple integration test
         solver = SinkhornSolver()
         if device == "explicit":

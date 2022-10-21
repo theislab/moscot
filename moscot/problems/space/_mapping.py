@@ -118,6 +118,7 @@ class MappingProblem(CompoundProblem[K, OTProblem], SpatialMappingMixin[K, OTPro
     @d.dedent
     def solve(
         self,
+        alpha: float = 0.5,
         epsilon: Optional[float] = 1e-3,
         tau_a: float = 1.0,
         tau_b: float = 1.0,
@@ -143,6 +144,7 @@ class MappingProblem(CompoundProblem[K, OTProblem], SpatialMappingMixin[K, OTPro
 
         Parameters
         ----------
+        %(alpha)s
         %(epsilon)s
         %(tau_a)s
         %(tau_b)s
@@ -161,6 +163,7 @@ class MappingProblem(CompoundProblem[K, OTProblem], SpatialMappingMixin[K, OTPro
         :class:`moscot.problems.space.MappingProblem`.
         """
         return super().solve(
+            alpha=alpha,
             epsilon=epsilon,
             tau_a=tau_a,
             tau_b=tau_b,

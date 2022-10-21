@@ -35,7 +35,7 @@ class Cost(ModeEnum):
 
     def __call__(self, **kwargs: Any) -> CostFn:
         if self.value == Cost.EUCL:
-            return Euclidean()
+            return SqEuclidean()
         if self.value == Cost.SQEUCL:
             return SqEuclidean()
         if self.value == Cost.COSINE:

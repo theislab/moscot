@@ -8,7 +8,7 @@ import numpy as np
 from anndata import AnnData
 import scanpy as sc
 
-from moscot._types import ArrayLike
+from moscot._types import Device_t, ArrayLike
 from moscot._logging import logger
 from moscot._docs._docs import d
 from moscot.problems._utils import wrap_solve, wrap_prepare, require_solution
@@ -220,7 +220,7 @@ class OTProblem(BaseProblem):
     def solve(
         self,
         backend: Literal["ott"] = "ott",
-        device: Optional[Any] = None,
+        device: Optional[Device_t] = None,
         **kwargs: Any,
     ) -> "OTProblem":
         """Solve method."""
