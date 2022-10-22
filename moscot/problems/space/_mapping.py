@@ -125,7 +125,7 @@ class MappingProblem(CompoundProblem[K, OTProblem], SpatialMappingMixin[K, OTPro
         rank: int = -1,
         scale_cost: ScaleCost_t = "mean",
         cost: Literal["Euclidean"] = "Euclidean",
-        power: int = 2,
+        power: int = 1,
         batch_size: Optional[int] = None,
         stage: Union[ProblemStage_t, Tuple[ProblemStage_t, ...]] = ("prepared", "solved"),
         initializer: QuadInitializer_t = None,
