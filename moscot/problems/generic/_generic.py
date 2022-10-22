@@ -81,14 +81,15 @@ class SinkhornProblem(CompoundProblem[K, B], GenericAnalysisMixin[K, B]):
             **kwargs,
         )
 
-    @d.dedent
     def solve(
         self,
         epsilon: Optional[float] = 1e-3,
         tau_a: float = 1.0,
         tau_b: float = 1.0,
-        scale_cost: ScaleCost_t = "mean",
         rank: int = -1,
+        scale_cost: ScaleCost_t = "mean",
+        cost: Literal["Euclidean"] = "Euclidean",
+        power: int = 2,
         batch_size: Optional[int] = None,
         stage: Union[ProblemStage_t, Tuple[ProblemStage_t, ...]] = ("prepared", "solved"),
         initializer: SinkhornInitializer_t = "default",
@@ -102,25 +103,25 @@ class SinkhornProblem(CompoundProblem[K, B], GenericAnalysisMixin[K, B]):
         max_iterations: int = 2000,
         gamma: float = 10.0,
         gamma_rescale: bool = True,
-    ) -> "SinkhornProblem[K, B]":
+        **kwargs: Any,
+    ) -> "SinkhornProblem[K,B]":
         """
-        Solve the :class:`moscot.problems.generic.SinkhornProblem`.
+        Solve optimal transport problems defined in :class:`moscot.problems.generic.SinkhornProblem`.
 
         Parameters
         ----------
         %(epsilon)s
         %(tau_a)s
         %(tau_b)s
-        %(scale_cost)s
         %(rank)s
-        %(ott_jax_batch_size)s
+        %(scale_cost)s
+        %(pointcloud_kwargs)s
         %(stage)s
         %(initializer_lin)s
         %(initializer_kwargs)s
         %(jit)s
         %(sinkhorn_kwargs)s
         %(sinkhorn_lr_kwargs)s
-
 
         Returns
         -------
@@ -130,8 +131,10 @@ class SinkhornProblem(CompoundProblem[K, B], GenericAnalysisMixin[K, B]):
             epsilon=epsilon,
             tau_a=tau_a,
             tau_b=tau_b,
-            scale_cost=scale_cost,
             rank=rank,
+            scale_cost=scale_cost,
+            cost=cost,
+            power=power,
             batch_size=batch_size,
             stage=stage,
             initializer=initializer,
@@ -145,6 +148,7 @@ class SinkhornProblem(CompoundProblem[K, B], GenericAnalysisMixin[K, B]):
             max_iterations=max_iterations,
             gamma=gamma,
             gamma_rescale=gamma_rescale,
+            **kwargs,
         )
 
     @property
@@ -242,13 +246,18 @@ class GWProblem(CompoundProblem[K, B], GenericAnalysisMixin[K, B]):
         epsilon: Optional[float] = 1e-3,
         tau_a: float = 1.0,
         tau_b: float = 1.0,
-        scale_cost: ScaleCost_t = "mean",
         rank: int = -1,
+        scale_cost: ScaleCost_t = "mean",
+        cost: Literal["Euclidean"] = "Euclidean",
+        power: int = 2,
         batch_size: Optional[int] = None,
         stage: Union[ProblemStage_t, Tuple[ProblemStage_t, ...]] = ("prepared", "solved"),
         initializer: QuadInitializer_t = None,
         initializer_kwargs: Mapping[str, Any] = MappingProxyType({}),
         jit: bool = True,
+        lse_mode: bool = True,
+        norm_error: int = 1,
+        inner_iterations: int = 10,
         min_iterations: int = 5,
         max_iterations: int = 50,
         threshold: float = 1e-3,
@@ -258,19 +267,18 @@ class GWProblem(CompoundProblem[K, B], GenericAnalysisMixin[K, B]):
         gw_unbalanced_correction: bool = True,
         ranks: Union[int, Tuple[int, ...]] = -1,
         tolerances: Union[float, Tuple[float, ...]] = 1e-2,
-    ) -> "GWProblem[K, B]":
+    ) -> "GWProblem[K,B]":
         """
-        Solve the :class:`moscot.problems.generic.GWProblem`.
+        Solve optimal transport problems defined in :class:`moscot.problems.time.LineageProblem`.
 
         Parameters
         ----------
-        %(alpha)s
         %(epsilon)s
         %(tau_a)s
         %(tau_b)s
-        %(scale_cost)s
         %(rank)s
-        %(ott_jax_batch_size)s
+        %(scale_cost)s
+        %(pointcloud_kwargs)s
         %(stage)s
         %(initializer_quad)s
         %(initializer_kwargs)s
@@ -286,13 +294,18 @@ class GWProblem(CompoundProblem[K, B], GenericAnalysisMixin[K, B]):
             epsilon=epsilon,
             tau_a=tau_a,
             tau_b=tau_b,
-            scale_cost=scale_cost,
             rank=rank,
+            scale_cost=scale_cost,
+            cost=cost,
+            power=power,
             batch_size=batch_size,
             stage=stage,
             initializer=initializer,
             initializer_kwargs=initializer_kwargs,
             jit=jit,
+            lse_mode=lse_mode,
+            norm_error=norm_error,
+            inner_iterations=inner_iterations,
             min_iterations=min_iterations,
             max_iterations=max_iterations,
             threshold=threshold,
@@ -372,13 +385,18 @@ class FGWProblem(GWProblem[K, B]):
         epsilon: Optional[float] = 1e-3,
         tau_a: float = 1.0,
         tau_b: float = 1.0,
-        scale_cost: ScaleCost_t = "mean",
         rank: int = -1,
+        scale_cost: ScaleCost_t = "mean",
+        cost: Literal["Euclidean"] = "Euclidean",
+        power: int = 2,
         batch_size: Optional[int] = None,
         stage: Union[ProblemStage_t, Tuple[ProblemStage_t, ...]] = ("prepared", "solved"),
         initializer: QuadInitializer_t = None,
         initializer_kwargs: Mapping[str, Any] = MappingProxyType({}),
         jit: bool = True,
+        lse_mode: bool = True,
+        norm_error: int = 1,
+        inner_iterations: int = 10,
         min_iterations: int = 5,
         max_iterations: int = 50,
         threshold: float = 1e-3,
@@ -388,9 +406,9 @@ class FGWProblem(GWProblem[K, B]):
         gw_unbalanced_correction: bool = True,
         ranks: Union[int, Tuple[int, ...]] = -1,
         tolerances: Union[float, Tuple[float, ...]] = 1e-2,
-    ) -> "FGWProblem[K, B]":
+    ) -> "FGWProblem[K,B]":
         """
-        Solve the :class:`moscot.problems.generic.FGWProblem`.
+        Solve optimal transport problems defined in :class:`moscot.problems.time.LineageProblem`.
 
         Parameters
         ----------
@@ -398,9 +416,9 @@ class FGWProblem(GWProblem[K, B]):
         %(epsilon)s
         %(tau_a)s
         %(tau_b)s
-        %(scale_cost)s
         %(rank)s
-        %(ott_jax_batch_size)s
+        %(scale_cost)s
+        %(pointcloud_kwargs)s
         %(stage)s
         %(initializer_quad)s
         %(initializer_kwargs)s
@@ -417,13 +435,18 @@ class FGWProblem(GWProblem[K, B]):
             epsilon=epsilon,
             tau_a=tau_a,
             tau_b=tau_b,
-            scale_cost=scale_cost,
             rank=rank,
+            scale_cost=scale_cost,
+            cost=cost,
+            power=power,
             batch_size=batch_size,
             stage=stage,
             initializer=initializer,
             initializer_kwargs=initializer_kwargs,
             jit=jit,
+            lse_mode=lse_mode,
+            norm_error=norm_error,
+            inner_iterations=inner_iterations,
             min_iterations=min_iterations,
             max_iterations=max_iterations,
             threshold=threshold,
