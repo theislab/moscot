@@ -1,12 +1,12 @@
 from types import MappingProxyType
 from typing import Any, Type, Tuple, Union, Literal, Mapping, Optional
 
-from moscot._types import QuadInitializer_t
+from moscot._types import ScaleCost_t, ProblemStage_t, QuadInitializer_t
 from moscot._docs._docs import d
 from moscot._constants._key import Key
-from moscot._constants._constants import Policy, ScaleCost
+from moscot._constants._constants import Policy
 from moscot.problems.space._mixins import SpatialAlignmentMixin
-from moscot.problems.base._base_problem import OTProblem, ScaleCost_t, ProblemStage
+from moscot.problems.base._base_problem import OTProblem
 from moscot.problems.base._compound_problem import B, K, CompoundProblem
 
 __all__ = ["AlignmentProblem"]
@@ -15,7 +15,7 @@ __all__ = ["AlignmentProblem"]
 @d.dedent
 class AlignmentProblem(CompoundProblem[K, B], SpatialAlignmentMixin[K, B]):
     """
-    Class for aligning spatial omics data, based on :cite:`zeira2022`.
+    Class for aligning spatial omics data, based on :cite:`zeira:22`.
 
     The `AlignmentProblem` allows to align spatial omics data via optimal transport.
 
@@ -34,7 +34,7 @@ class AlignmentProblem(CompoundProblem[K, B], SpatialAlignmentMixin[K, B]):
         batch_key: str,
         spatial_key: str = Key.obsm.spatial,
         joint_attr: Optional[Mapping[str, Any]] = None,
-        policy: Literal[Policy.SEQUENTIAL, Policy.STAR] = Policy.SEQUENTIAL,
+        policy: Literal["sequential", "star"] = "sequential",
         reference: Optional[str] = None,
         **kwargs: Any,
     ) -> "AlignmentProblem[K, B]":
@@ -66,13 +66,12 @@ class AlignmentProblem(CompoundProblem[K, B], SpatialAlignmentMixin[K, B]):
         """
         self.spatial_key = spatial_key
         self.batch_key = batch_key
-        policy = Policy(policy)  # type: ignore[assignment]
 
         x = y = {"attr": "obsm", "key": self.spatial_key, "tag": "point_cloud"}
-
         if joint_attr is None:
             kwargs["callback"] = "local-pca"
             kwargs["callback_kwargs"] = {**kwargs.get("callback_kwargs", {}), **{"return_linear": True}}
+
         return super().prepare(x=x, y=y, xy=joint_attr, policy=policy, key=batch_key, reference=reference, **kwargs)
 
     @d.dedent
@@ -80,10 +79,10 @@ class AlignmentProblem(CompoundProblem[K, B], SpatialAlignmentMixin[K, B]):
         self,
         alpha: Optional[float] = 0.5,
         epsilon: Optional[float] = 1e-3,
-        scale_cost: ScaleCost_t = ScaleCost.MEAN,
+        scale_cost: ScaleCost_t = "mean",
         rank: int = -1,
         batch_size: Optional[int] = None,
-        stage: Union[ProblemStage, Tuple[ProblemStage, ...]] = (ProblemStage.PREPARED, ProblemStage.SOLVED),
+        stage: Union[ProblemStage_t, Tuple[ProblemStage_t, ...]] = ("prepared", "solved"),
         initializer: QuadInitializer_t = None,
         initializer_kwargs: Mapping[str, Any] = MappingProxyType({}),
         **kwargs: Any,
@@ -107,7 +106,6 @@ class AlignmentProblem(CompoundProblem[K, B], SpatialAlignmentMixin[K, B]):
         -------
         :class:`moscot.problems.space.AlignmentProblem`.
         """
-        scale_cost = ScaleCost(scale_cost) if isinstance(scale_cost, ScaleCost) else scale_cost
         return super().solve(
             alpha=alpha,
             epsilon=epsilon,

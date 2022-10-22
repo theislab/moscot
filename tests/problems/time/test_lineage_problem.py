@@ -14,7 +14,6 @@ class TestLineageProblem:
         problem = problem.prepare(
             time_key="time",
             lineage_attr={"attr": "obsm", "key": "barcodes", "tag": "cost", "loss": "barcode_distance"},
-            axis="obs",
             policy="sequential",
         )
         problem = problem.solve()
