@@ -1,6 +1,4 @@
 from abc import ABC, abstractmethod
-from enum import Enum
-from types import MappingProxyType
 from typing import Any, Dict, List, Tuple, Union, Literal, Mapping, Optional, TYPE_CHECKING
 
 from scipy.sparse import vstack, issparse, csr_matrix
@@ -10,33 +8,17 @@ import numpy as np
 from anndata import AnnData
 import scanpy as sc
 
-from moscot._types import ArrayLike, Initializer_t
+from moscot._types import Device_t, ArrayLike
 from moscot._logging import logger
 from moscot._docs._docs import d
 from moscot.problems._utils import wrap_solve, wrap_prepare, require_solution
 from moscot.solvers._output import BaseSolverOutput
 from moscot.problems._anndata import AnnDataPointer
 from moscot.solvers._base_solver import BaseSolver, ProblemKind
-from moscot._constants._constants import ScaleCost
+from moscot._constants._constants import ProblemStage
 from moscot.solvers._tagged_array import Tag, TaggedArray
 
 __all__ = ["BaseProblem", "OTProblem", "ProblemKind"]
-
-
-class ProblemStage(str, Enum):
-    INITIALIZED = "initialized"
-    PREPARED = "prepared"
-    SOLVED = "solved"
-
-
-ScaleCost_t = Optional[
-    Union[
-        float,
-        Literal[
-            ScaleCost.MAX_COST, ScaleCost.MAX_BOUND, ScaleCost.MAX_NORM, ScaleCost.MEAN, ScaleCost.MAX, ScaleCost.MEDIAN
-        ],
-    ]
-]
 
 
 @d.get_sections(base="BaseProblem", sections=["Parameters", "Raises"])
@@ -167,6 +149,7 @@ class OTProblem(BaseProblem):
     ):
         super().__init__(adata_x, copy=copy)
         self._adata_y = adata_x if adata_y is None else adata_y.copy() if copy else adata_y
+        self._solver: Optional[BaseSolver[BaseSolverOutput]] = None
         self._solution: Optional[BaseSolverOutput] = None
 
         self._x: Optional[TaggedArray] = None
@@ -236,46 +219,29 @@ class OTProblem(BaseProblem):
     @wrap_solve
     def solve(
         self,
-        epsilon: Optional[float] = 1e-2,
-        alpha: Optional[float] = 0.5,
-        rank: int = -1,
-        scale_cost: ScaleCost_t = 1.0,
-        batch_size: Optional[int] = None,
-        tau_a: float = 1.0,
-        tau_b: float = 1.0,
-        initializer: Initializer_t = None,
-        prepare_kwargs: Mapping[str, Any] = MappingProxyType({}),
-        initializer_kwargs: Mapping[str, Any] = MappingProxyType({}),
-        device: Optional[Any] = None,
+        backend: Literal["ott"] = "ott",
+        device: Optional[Device_t] = None,
         **kwargs: Any,
     ) -> "OTProblem":
         """Solve method."""
         if self._problem_kind is None:
             raise RuntimeError("Run .prepare() first.")
-        if self._problem_kind in (ProblemKind.QUAD, ProblemKind.QUAD_FUSED):
-            kwargs["epsilon"] = epsilon
-        kwargs["rank"] = rank
-        kwargs["initializer"] = initializer
+
+        self._solver = self._problem_kind.solver(backend=backend, **kwargs)
+
         a = kwargs.pop("a", self._a)
         b = kwargs.pop("b", self._b)
 
-        prepare_kwargs = dict(prepare_kwargs)
-        prepare_kwargs["epsilon"] = epsilon
-        prepare_kwargs["alpha"] = alpha
-        prepare_kwargs["scale_cost"] = scale_cost
-        prepare_kwargs["batch_size"] = batch_size
+        # TODO: add ScaleCost(scale_cost)
 
-        solver: BaseSolver[BaseSolverOutput] = self._problem_kind.solver(backend="ott", **kwargs, **initializer_kwargs)
-        self._solution = solver(
+        self._solution = self._solver(
+            xy=self._xy,
             x=self._x,
             y=self._y,
-            xy=self._xy,
             a=a,
             b=b,
-            tau_a=tau_a,
-            tau_b=tau_b,
             device=device,
-            **prepare_kwargs,
+            **kwargs,
         )
         return self
 

@@ -4,6 +4,7 @@ import numpy as np
 
 __all__ = ["ArrayLike", "DTypeLike", "Numeric_t"]
 
+
 try:
     from numpy.typing import NDArray, DTypeLike
 
@@ -18,3 +19,8 @@ Str_Dict_t = Union[str, Mapping[str, Sequence[Any]]]  # type for `cell_transitio
 SinkhornInitializer_t = Optional[Literal["default", "gaussian", "sorting"]]
 QuadInitializer_t = Optional[Literal["random", "rank2", "k-means", "generalized-k-means"]]
 Initializer_t = Union[SinkhornInitializer_t, QuadInitializer_t]
+ProblemStage_t = Literal["initialized", "prepared", "solved"]
+Device_t = Literal["cpu", "gpu", "tpu"]
+
+# TODO(michalk8): autogenerate from the enums
+ScaleCost_t = Optional[Union[float, Literal["mean", "max_cost", "max_bound", "max_norm", "median"]]]

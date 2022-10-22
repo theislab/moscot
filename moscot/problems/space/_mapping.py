@@ -3,14 +3,14 @@ from typing import Any, Type, Tuple, Union, Literal, Mapping, Optional, Sequence
 
 from anndata import AnnData
 
-from moscot._types import ArrayLike, Str_Dict_t, QuadInitializer_t
+from moscot._types import ArrayLike, Str_Dict_t, ScaleCost_t, ProblemStage_t, QuadInitializer_t
 from moscot._docs._docs import d
 from moscot._constants._key import Key
 from moscot.problems._utils import handle_joint_attr
-from moscot._constants._constants import Policy, ScaleCost
+from moscot._constants._constants import Policy
 from moscot.problems.space._mixins import SpatialMappingMixin
 from moscot.problems._subset_policy import DummyPolicy, ExternalStarPolicy
-from moscot.problems.base._base_problem import OTProblem, ScaleCost_t, ProblemStage
+from moscot.problems.base._base_problem import OTProblem
 from moscot.problems.base._compound_problem import B, K, CompoundProblem
 
 __all__ = ["MappingProblem"]
@@ -43,11 +43,12 @@ class MappingProblem(CompoundProblem[K, OTProblem], SpatialMappingMixin[K, OTPro
 
     def _create_policy(  # type: ignore[override]
         self,
-        policy: Literal[Policy.EXTERNAL_STAR] = Policy.EXTERNAL_STAR,
+        policy: Literal["external_star"] = "external_star",
         key: Optional[str] = None,
         **kwargs: Any,
     ) -> Union[DummyPolicy, ExternalStarPolicy[K]]:
-        """Private class to create DummyPolicy if no batches are present n the spatial anndata."""
+        """Private class to create DummyPolicy if no batches are present in the spatial anndata."""
+        del policy
         if key is None:
             return DummyPolicy(self.adata, **kwargs)
         return ExternalStarPolicy(self.adata, key=key, **kwargs)
@@ -118,13 +119,29 @@ class MappingProblem(CompoundProblem[K, OTProblem], SpatialMappingMixin[K, OTPro
         self,
         alpha: Optional[float] = 0.5,
         epsilon: Optional[float] = 1e-3,
-        scale_cost: ScaleCost_t = ScaleCost.MEAN,
+        tau_a: float = 1.0,
+        tau_b: float = 1.0,
         rank: int = -1,
+        scale_cost: ScaleCost_t = "mean",
+        cost: Literal["Euclidean"] = "Euclidean",
+        power: int = 1,
         batch_size: Optional[int] = None,
-        stage: Union[ProblemStage, Tuple[ProblemStage, ...]] = (ProblemStage.PREPARED, ProblemStage.SOLVED),
+        stage: Union[ProblemStage_t, Tuple[ProblemStage_t, ...]] = ("prepared", "solved"),
         initializer: QuadInitializer_t = None,
         initializer_kwargs: Mapping[str, Any] = MappingProxyType({}),
-        **kwargs: Any,
+        jit: bool = True,
+        lse_mode: bool = True,
+        norm_error: int = 1,
+        inner_iterations: int = 10,
+        min_iterations: int = 5,
+        max_iterations: int = 50,
+        threshold: float = 1e-3,
+        warm_start: Optional[bool] = None,
+        gamma: float = 10.0,
+        gamma_rescale: bool = True,
+        gw_unbalanced_correction: bool = True,
+        ranks: Union[int, Tuple[int, ...]] = -1,
+        tolerances: Union[float, Tuple[float, ...]] = 1e-2,
     ) -> "MappingProblem[K]":
         """
         Solve optimal transport problems defined in :class:`moscot.problems.space.MappingProblem`.
@@ -133,30 +150,49 @@ class MappingProblem(CompoundProblem[K, OTProblem], SpatialMappingMixin[K, OTPro
         ----------
         %(alpha)s
         %(epsilon)s
-        %(scale_cost)s
+        %(tau_a)s
+        %(tau_b)s
         %(rank)s
-        %(ott_jax_batch_size)s
+        %(scale_cost)s
+        %(pointcloud_kwargs)s
         %(stage)s
         %(initializer_quad)s
         %(initializer_kwargs)s
-        %(solve_kwargs)s
+        %(gw_kwargs)s
+        %(sinkhorn_lr_kwargs)s
+        %(gw_lr_kwargs)s
 
         Returns
         -------
         :class:`moscot.problems.space.MappingProblem`.
         """
-        scale_cost = ScaleCost(scale_cost) if isinstance(scale_cost, ScaleCost) else scale_cost
         return super().solve(
             alpha=alpha,
             epsilon=epsilon,
-            scale_cost=scale_cost,
+            tau_a=tau_a,
+            tau_b=tau_b,
             rank=rank,
+            scale_cost=scale_cost,
+            cost=cost,
+            power=power,
             batch_size=batch_size,
             stage=stage,
             initializer=initializer,
             initializer_kwargs=initializer_kwargs,
-            **kwargs,
-        )  # type:ignore[return-value]
+            jit=jit,
+            lse_mode=lse_mode,
+            norm_error=norm_error,
+            inner_iterations=inner_iterations,
+            min_iterations=min_iterations,
+            max_iterations=max_iterations,
+            threshold=threshold,
+            warm_start=warm_start,
+            gamma=gamma,
+            gamma_rescale=gamma_rescale,
+            gw_unbalanced_correction=gw_unbalanced_correction,
+            ranks=ranks,
+            tolerances=tolerances,
+        )  # type: ignore[return-value]
 
     @property
     def adata_sc(self) -> AnnData:

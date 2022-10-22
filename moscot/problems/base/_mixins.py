@@ -76,7 +76,7 @@ class AnalysisMixinProtocol(Protocol[K, B]):
         source_groups: Str_Dict_t,
         target_groups: Str_Dict_t,
         forward: bool = False,  # return value will be row-stochastic if forward=True, else column-stochastic
-        aggregation_mode: Literal["annotation", "cell"] = AggregationMode.ANNOTATION,  # type: ignore[assignment]
+        aggregation_mode: Literal["annotation", "cell"] = "annotation",
         other_key: Optional[str] = None,
         other_adata: Optional[str] = None,
         batch_size: Optional[int] = None,
@@ -92,7 +92,7 @@ class AnalysisMixinProtocol(Protocol[K, B]):
         source_groups: Str_Dict_t,
         target_groups: Str_Dict_t,
         forward: bool = False,
-        aggregation_mode: Literal["annotation", "cell"] = AggregationMode.ANNOTATION,  # type: ignore[assignment]
+        aggregation_mode: Literal["annotation", "cell"] = "annotation",
         other_key: Optional[str] = None,
         other_adata: Optional[AnnData] = None,
         normalize: bool = True,
@@ -125,7 +125,7 @@ class AnalysisMixinProtocol(Protocol[K, B]):
         target_annotation_key: Optional[str] = None,
         source_annotations: Optional[List[Any]] = None,
         target_annotations: Optional[List[Any]] = None,
-        aggregation_mode: Literal["annotation", "cell"] = AggregationMode.ANNOTATION,  # type: ignore[assignment]
+        aggregation_mode: Literal["annotation", "cell"] = "annotation",
         forward: bool = False,
     ) -> Tuple[List[Any], List[Any]]:
         ...
@@ -201,12 +201,14 @@ class AnalysisMixin(Generic[K, B]):
         source_groups: Str_Dict_t,
         target_groups: Str_Dict_t,
         forward: bool = False,  # return value will be row-stochastic if forward=True, else column-stochastic
-        aggregation_mode: Literal["annotation", "cell"] = AggregationMode.ANNOTATION,  # type: ignore[assignment]
+        aggregation_mode: Literal["annotation", "cell"] = "annotation",
         other_key: Optional[str] = None,
         other_adata: Optional[AnnData] = None,
         normalize: bool = True,
         **_: Any,
     ) -> pd.DataFrame:
+        aggregation_mode = AggregationMode(aggregation_mode)
+
         source_annotation_key, source_annotations, source_annotations_ordered = _validate_args_cell_transition(
             self.adata, source_groups
         )
@@ -243,7 +245,6 @@ class AnalysisMixin(Generic[K, B]):
         )
 
         _get_problem_key(source, target)
-        aggregation_mode = AggregationMode(aggregation_mode)  # type: ignore[assignment]
 
         if forward:
             tm = self._cell_aggregation_offline_helper(
@@ -297,14 +298,14 @@ class AnalysisMixin(Generic[K, B]):
         source_groups: Str_Dict_t,
         target_groups: Str_Dict_t,
         forward: bool = False,  # return value will be row-stochastic if forward=True, else column-stochastic
-        aggregation_mode: Literal["annotation", "cell"] = AggregationMode.ANNOTATION,  # type: ignore[assignment]
+        aggregation_mode: Literal["annotation", "cell"] = "annotation",
         other_key: Optional[str] = None,
         other_adata: Optional[str] = None,
         batch_size: Optional[int] = None,
         normalize: bool = True,
         **_: Any,
     ) -> pd.DataFrame:
-        aggregation_mode = AggregationMode(aggregation_mode)  # type: ignore[assignment]
+        aggregation_mode = AggregationMode(aggregation_mode)
         source_annotation_key, source_annotations, source_annotations_ordered = _validate_args_cell_transition(
             self.adata, source_groups
         )
@@ -335,7 +336,7 @@ class AnalysisMixin(Generic[K, B]):
             forward=forward,
         )
 
-        if aggregation_mode == AggregationMode.ANNOTATION:  # type: ignore[comparison-overlap]
+        if aggregation_mode == AggregationMode.ANNOTATION:
             df_target["distribution"] = 0
             df_source["distribution"] = 0
             tm = pd.DataFrame(
@@ -365,8 +366,7 @@ class AnalysisMixin(Generic[K, B]):
                     tm=tm,
                     forward=False,
                 )
-
-        elif aggregation_mode == AggregationMode.CELL:  # type: ignore[comparison-overlap]
+        elif aggregation_mode == AggregationMode.CELL:
             tm = pd.DataFrame(columns=target_annotations_verified if forward else source_annotations_verified)
             if forward:
                 tm = self._cell_aggregation_transition(
@@ -518,7 +518,7 @@ class AnalysisMixin(Generic[K, B]):
         target_annotation_key: Optional[str] = None,
         source_annotations: Optional[List[Any]] = None,
         target_annotations: Optional[List[Any]] = None,
-        aggregation_mode: Literal["annotation", "cell"] = AggregationMode.ANNOTATION,  # type: ignore[assignment]
+        aggregation_mode: Literal["annotation", "cell"] = "annotation",
         forward: bool = False,
     ) -> Tuple[List[Any], List[Any]]:
         if forward:
@@ -638,6 +638,7 @@ class AnalysisMixin(Generic[K, B]):
         aggregation_mode: Literal["annotation", "cell"],
         forward: bool,
     ) -> pd.DataFrame:
+        aggregation_mode = AggregationMode(aggregation_mode)
         key_added = "cell_annotations"  # TODO(giovp): use constants, expose.
         solution_key = _get_problem_key(
             filter_key_1 if forward else filter_key_2, filter_key_2 if forward else filter_key_1
@@ -648,12 +649,12 @@ class AnalysisMixin(Generic[K, B]):
             columns=cell_indices_2,
             data=tmap if forward else tmap.T,
         )
-        aggregation_mode = AggregationMode(aggregation_mode)  # type: ignore[assignment]
         df_res = pd.DataFrame(index=cell_indices_1)
         for annotation in annotations:
             df_res[annotation] = tm_indexed.loc[:, df[df[annotation_key_2] == annotation].index].sum(axis=1)
-        if aggregation_mode == AggregationMode.CELL:  # type: ignore[comparison-overlap]
+        if aggregation_mode == AggregationMode.CELL:
             return df_res
+
         df_res[key_added] = _get_categories_from_adata(
             adata=adata,
             key=key,

@@ -5,18 +5,13 @@ from functools import wraps
 
 
 class PrettyEnum(Enum):
-    """Enum with a pretty :meth:`__str__` and :meth:`__repr__`."""
-
-    @property
-    def v(self) -> Any:
-        """Alias for :attr`value`."""
-        return self.value
+    """Enum with a modified :meth:`__str__` and :meth:`__repr__`."""
 
     def __repr__(self) -> str:
-        return f"{self.value!r}"
+        return repr(self.value)
 
     def __str__(self) -> str:
-        return f"{self.value!s}"
+        return str(self.value)
 
 
 def _pretty_raise_enum(cls: Type["ErrorFormatterABC"], func: Callable[..., Any]) -> Callable[..., Any]:
@@ -41,7 +36,7 @@ def _pretty_raise_enum(cls: Type["ErrorFormatterABC"], func: Callable[..., Any])
 class ABCEnumMeta(EnumMeta, ABCMeta):  # noqa: B024
     def __call__(cls, *args: Any, **kwargs: Any) -> Any:
         if getattr(cls, "__error_format__", None) is None:
-            raise TypeError(f"Can't instantiate class `{cls.__name__}` " f"without `__error_format__` class attribute.")
+            raise TypeError(f"Can't instantiate class `{cls.__name__}` without `__error_format__` class attribute.")
         return super().__call__(*args, **kwargs)
 
     def __new__(cls, clsname: str, superclasses: Tuple[type], attributedict: Dict[str, Any]) -> "ABCEnumMeta":

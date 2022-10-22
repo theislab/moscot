@@ -1,8 +1,19 @@
+from typing import Any, Mapping
+
 import pytest
 
 from anndata import AnnData
 
 from moscot.problems.time import LineageProblem
+from tests.problems.conftest import (
+    fgw_args_1,
+    fgw_args_2,
+    geometry_args,
+    quad_prob_args,
+    fgw_solver_args,
+    pointcloud_args,
+    fgw_sinkhorn_solver_args,
+)
 from moscot.problems.base._birth_death import BirthDeathProblem
 
 
@@ -52,3 +63,43 @@ class TestLineageProblem:
 
         assert problem.cell_costs_source is None
         assert problem.cell_costs_target is None
+
+    @pytest.mark.parametrize("args_to_check", [fgw_args_1, fgw_args_2])
+    def test_pass_arguments(self, adata_time_barcodes: AnnData, args_to_check: Mapping[str, Any]):
+        problem = LineageProblem(adata=adata_time_barcodes)
+
+        problem = problem.prepare(
+            time_key="time",
+            policy="sequential",
+            filter=[(0, 1)],
+            lineage_attr={"attr": "obsm", "key": "barcodes", "tag": "cost", "loss": "barcode_distance"},
+        )
+
+        problem = problem.solve(**args_to_check)
+
+        solver = problem[(0, 1)]._solver._solver
+        for arg in fgw_solver_args:
+            assert hasattr(solver, fgw_solver_args[arg])
+            assert getattr(solver, fgw_solver_args[arg]) == args_to_check[arg]
+
+        sinkhorn_solver = solver.linear_ot_solver
+        for arg in fgw_sinkhorn_solver_args:
+            assert hasattr(sinkhorn_solver, fgw_sinkhorn_solver_args[arg])
+            assert getattr(sinkhorn_solver, fgw_sinkhorn_solver_args[arg]) == args_to_check[arg]
+
+        quad_prob = problem[(0, 1)]._solver._problem
+        for arg in quad_prob_args:
+            assert hasattr(quad_prob, quad_prob_args[arg])
+            assert getattr(quad_prob, quad_prob_args[arg]) == args_to_check[arg]
+        assert hasattr(quad_prob, "fused_penalty")
+        assert quad_prob.fused_penalty == problem[(0, 1)]._solver._alpha_to_fused_penalty(args_to_check["alpha"])
+
+        geom = quad_prob.geom_xx
+        for arg in geometry_args:
+            assert hasattr(geom, geometry_args[arg])
+            assert getattr(geom, geometry_args[arg]) == args_to_check[arg]
+
+        geom = quad_prob.geom_xy
+        for arg in pointcloud_args:
+            assert hasattr(geom, pointcloud_args[arg])
+            assert getattr(geom, pointcloud_args[arg]) == args_to_check[arg]

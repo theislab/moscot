@@ -1,12 +1,12 @@
 from abc import ABC, abstractmethod
-from enum import Enum
 from types import MappingProxyType
 from typing import Any, Dict, Tuple, Union, Generic, Literal, Mapping, TypeVar, Optional, NamedTuple
 import warnings
 
-from moscot._types import ArrayLike
+from moscot._types import Device_t, ArrayLike
 from moscot._docs._docs import d
 from moscot.solvers._output import BaseSolverOutput
+from moscot._constants._enum import ModeEnum
 from moscot.solvers._tagged_array import Tag, TaggedArray
 
 __all__ = ["ProblemKind", "BaseSolver", "OTSolver"]
@@ -15,7 +15,7 @@ __all__ = ["ProblemKind", "BaseSolver", "OTSolver"]
 O = TypeVar("O", bound=BaseSolverOutput)
 
 
-class ProblemKind(str, Enum):
+class ProblemKind(ModeEnum):
     """Class defining the problem class and dispatching the solvers."""
 
     UNKNOWN = "unknown"
@@ -142,20 +142,15 @@ class OTSolver(TagConverterMixin, BaseSolver[O], ABC):  # noqa: B024
         xy: Optional[Union[TaggedArray, ArrayLike, Tuple[ArrayLike, ArrayLike]]] = None,
         x: Optional[Union[TaggedArray, ArrayLike]] = None,
         y: Optional[Union[TaggedArray, ArrayLike]] = None,
-        a: Optional[ArrayLike] = None,
-        b: Optional[ArrayLike] = None,
-        tau_a: float = 1.0,
-        tau_b: float = 1.0,
         tags: Mapping[Literal["x", "y", "xy"], Tag] = MappingProxyType({}),
-        device: Optional[Any] = None,
+        device: Optional[Device_t] = None,
         **kwargs: Any,
     ) -> O:
         """Call method."""
-        data = self._get_array_data(xy, x=x, y=y, tags=tags)
+        data = self._get_array_data(xy=xy, x=x, y=y, tags=tags)
         kwargs = self._prepare_kwargs(data, **kwargs)
-        res = super().__call__(a=a, b=b, tau_a=tau_a, tau_b=tau_b, **kwargs)
-        # TODO(michalk8): check for NaNs
-        if not res.converged:
+        res = super().__call__(**kwargs)
+        if not res.converged:  # TODO use logging, not warnings
             warnings.warn("Solver did not converge")
 
         return res.to(device=device)  # type: ignore[return-value]
@@ -181,8 +176,5 @@ class OTSolver(TagConverterMixin, BaseSolver[O], ABC):  # noqa: B024
             data_kwargs = {"x": data.x, "y": data.y, "xy": data.xy}
         else:
             raise NotImplementedError(f"TODO: {self.problem_kind}")
-
-        if self.problem_kind != ProblemKind.QUAD_FUSED:
-            _ = kwargs.pop("alpha", None)
 
         return {**kwargs, **data_kwargs}
