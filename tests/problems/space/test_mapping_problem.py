@@ -44,9 +44,11 @@ class TestMappingProblem:
             assert mp[prob_key].y.data.shape == (n_obs, y_n_var)
             assert mp[prob_key].xy.data.shape == mp[prob_key].xy.data_y.shape == (n_obs, xy_n_vars)
 
+        # test dummy
+        prob_key = ("src", "tgt")
         mp = mp.prepare(sc_attr=sc_attr, joint_attr=joint_attr)
         assert len(mp) == 1
-        assert isinstance(mp[("src", "tgt")], mp._base_problem_type)
+        assert isinstance(mp[prob_key], mp._base_problem_type)
         assert mp[prob_key].shape == (n_obs, 2 * n_obs)
         assert mp[prob_key].xy.data.shape == mp[prob_key].xy.data_y.shape == (n_obs, xy_n_vars)
 
