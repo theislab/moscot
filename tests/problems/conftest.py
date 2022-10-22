@@ -1,3 +1,4 @@
+from typing import Any, Mapping
 from sklearn.metrics import pairwise_distances
 import pandas as pd
 import pytest
@@ -5,7 +6,7 @@ import pytest
 import numpy as np
 
 from anndata import AnnData
-
+from ott.geometry.costs import Euclidean, SqEuclidean
 from tests._utils import Geom_t
 
 
@@ -55,3 +56,52 @@ def adata_time_with_tmap(adata_time: AnnData) -> AnnData:
     adata.uns["cell_transition_gt"] = cell_transition_gt
 
     return adata
+
+@pytest.fixture()
+def sinkhorn_args_1() -> Mapping[str, Any]:
+    args_to_check = {
+            "epsilon": 0.7,
+            "tau_a": 1.0,
+            "tau_b": 1.0,
+            "rank": 7,
+            "batch_size": 123,
+            "initializer": "rank2",
+            "initializer_kwargs": {},
+            "jit": False,
+            "threshold": 2e-3,
+            "lse_mode": True,
+            "norm_error": 2,
+            "inner_iterations": 3,
+            "min_iterations": 4,
+            "max_iterations": 9,
+            "gamma": 9.4,
+            "gamma_rescale": False,
+            "cost": SqEuclidean(),
+            "power": 3,
+            "batch_size": 1023,
+            "scale_cost": "max_cost",
+        }
+    return args_to_check
+
+@pytest.fixture()
+def sinkhorn_args_2() -> Mapping[str, Any]:
+    args_to_check = {
+            "epsilon": 0.8,
+            "tau_a": 0.9,
+            "tau_b": 0.8,
+            "rank": -1,
+            "batch_size": 125,
+            "initializer": "Gaussian",
+            "initializer_kwargs": {},
+            "jit": True,
+            "threshold": 3e-3,
+            "lse_mode": False,
+            "norm_error": 3,
+            "inner_iterations": 4,
+            "min_iterations": 1,
+            "max_iterations": 2,
+            "cost": Euclidean(),
+            "power": 4,
+            "scale_cost": "median",
+        }
+    return args_to_check

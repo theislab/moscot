@@ -126,7 +126,7 @@ class TestLineageProblem:
         solver = problem[(0, 1)]._solver._solver
         for arg in solver_args:
             assert hasattr(solver, solver_args[arg])
-            assert getattr(solver, solver_args[arg]) == args_to_check[solver_args[arg]]
+            assert getattr(solver, solver_args[arg]) == args_to_check[arg]
 
         sinkhorn_solver = solver.linear_ot_solver
         for arg in solver_args:

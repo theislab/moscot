@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Mapping, Any
 
 import pandas as pd
 import pytest
@@ -11,6 +11,7 @@ from ott.geometry.costs import Euclidean, SqEuclidean
 from moscot.problems.time import TemporalProblem
 from moscot.solvers._output import BaseSolverOutput
 from moscot.problems.time._lineage import BirthDeathProblem
+from tests.problems.conftest import sinkhorn_args_1
 
 
 class TestTemporalProblem:
@@ -208,7 +209,9 @@ class TestTemporalProblem:
             np.array(tp[key_1, key_3].solution.transport_matrix),
         )
 
-    def test_pass_arguments(self, adata_time: AnnData):
+    @pytest.mark.parametrize(
+        "args_to_check", [sinkhorn_args_1, sinkhorn_args_2])
+    def test_pass_arguments(self, adata_time: AnnData, args_to_check: Mapping[str, Any]):
         problem = TemporalProblem(adata=adata_time)
 
         problem = problem.prepare(
