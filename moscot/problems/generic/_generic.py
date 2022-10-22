@@ -269,7 +269,7 @@ class GWProblem(CompoundProblem[K, B], GenericAnalysisMixin[K, B]):
         tolerances: Union[float, Tuple[float, ...]] = 1e-2,
     ) -> "GWProblem[K,B]":
         """
-        Solve optimal transport problems defined in :class:`moscot.problems.time.LineageProblem`.
+        Solve optimal transport problems defined in :class:`moscot.problems.generic.GWProblem`.
 
         Parameters
         ----------
@@ -288,7 +288,7 @@ class GWProblem(CompoundProblem[K, B], GenericAnalysisMixin[K, B]):
 
         Returns
         -------
-        :class:`moscot.problems.generic.GWProblem`
+        :class:`moscot.problems.generic.GWProblem`.
         """
         return super().solve(
             epsilon=epsilon,
@@ -408,7 +408,7 @@ class FGWProblem(GWProblem[K, B]):
         tolerances: Union[float, Tuple[float, ...]] = 1e-2,
     ) -> "FGWProblem[K,B]":
         """
-        Solve optimal transport problems defined in :class:`moscot.problems.time.LineageProblem`.
+        Solve optimal transport problems defined in :class:`moscot.problems.generic.FGWProblem`.
 
         Parameters
         ----------
@@ -428,7 +428,7 @@ class FGWProblem(GWProblem[K, B]):
 
         Returns
         -------
-        :class:`moscot.problems.generic.FGWProblem`
+        :class:`moscot.problems.generic.FGWProblem`.
         """
         return super().solve(
             alpha=alpha,

@@ -124,7 +124,7 @@ class AlignmentProblem(CompoundProblem[K, B], SpatialAlignmentMixin[K, B]):
 
         Returns
         -------
-        :class:`moscot.problems.space.AlignmentProblem`
+        :class:`moscot.problems.space.AlignmentProblem`.
         """
         return super().solve(
             alpha=alpha,

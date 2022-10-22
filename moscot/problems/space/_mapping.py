@@ -145,7 +145,7 @@ class MappingProblem(CompoundProblem[K, OTProblem], SpatialMappingMixin[K, OTPro
         tolerances: Union[float, Tuple[float, ...]] = 1e-2,
     ) -> "MappingProblem[K]":
         """
-        Solve optimal transport problems defined in :class:`moscot.problems.time.LineageProblem`.
+        Solve optimal transport problems defined in :class:`moscot.problems.space.MappingProblem`.
 
         Parameters
         ----------
@@ -165,7 +165,7 @@ class MappingProblem(CompoundProblem[K, OTProblem], SpatialMappingMixin[K, OTPro
 
         Returns
         -------
-        :class:`moscot.problems.space.MappingProblem`
+        :class:`moscot.problems.space.MappingProblem`.
         """
         return super().solve(
             alpha=alpha,
