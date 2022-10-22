@@ -1,4 +1,4 @@
-from typing import List, Mapping, Any
+from typing import Any, List, Mapping
 
 import pandas as pd
 import pytest
@@ -6,12 +6,18 @@ import pytest
 import numpy as np
 
 from anndata import AnnData
-from ott.geometry.costs import Euclidean, SqEuclidean
 
 from moscot.problems.time import TemporalProblem
 from moscot.solvers._output import BaseSolverOutput
+from tests.problems.conftest import (
+    geometry_args,
+    lin_prob_args,
+    pointcloud_args,
+    sinkhorn_args_1,
+    sinkhorn_args_2,
+    sinkhorn_solver_args,
+)
 from moscot.problems.time._lineage import BirthDeathProblem
-from tests.problems.conftest import sinkhorn_args_1
 
 
 class TestTemporalProblem:
@@ -209,8 +215,7 @@ class TestTemporalProblem:
             np.array(tp[key_1, key_3].solution.transport_matrix),
         )
 
-    @pytest.mark.parametrize(
-        "args_to_check", [sinkhorn_args_1, sinkhorn_args_2])
+    @pytest.mark.parametrize("args_to_check", [sinkhorn_args_1, sinkhorn_args_2])
     def test_pass_arguments(self, adata_time: AnnData, args_to_check: Mapping[str, Any]):
         problem = TemporalProblem(adata=adata_time)
 
@@ -220,61 +225,15 @@ class TestTemporalProblem:
             filter=[(0, 1)],
         )
 
-        args_to_check = {
-            "epsilon": 0.7,
-            "tau_a": 1.0,
-            "tau_b": 1.0,
-            "rank": 7,
-            "batch_size": 123,
-            "initializer": "rank2",
-            "initializer_kwargs": {},
-            "jit": False,
-            "threshold": 2e-3,
-            "lse_mode": True,
-            "norm_error": 2,
-            "inner_iterations": 3,
-            "min_iterations": 4,
-            "max_iterations": 9,
-            "gamma": 9.4,
-            "gamma_rescale": False,
-            "cost": SqEuclidean(),
-            "power": 3,
-            "batch_size": 1023,
-            "scale_cost": "max_cost",
-        }
-
-        solver_args = {
-            "lse_mode": "lse_mode",
-            "threshold": "threshold",
-            "norm_error": "norm_error",
-            "inner_iterations": "inner_iterations",
-            "min_iterations": "min_iterations",
-            "max_iterations": "max_iterations",
-            "initializer": "initializer",
-            "initializer_kwargs": "kwargs_init",
-            "jit": "jit",
-        }
-        lin_prob_args = {
-            "tau_a": "tau_a",
-            "tau_b": "tau_b",
-        }
-        geometry_args = {"epsilon": "_epsilon_init", "scale_cost": "_scale_cost"}
-        pointcloud_args = {
-            "cost": "cost_fn",
-            "power": "power",
-            "batch_size": "_batch_size",
-            "scale_cost": "_scale_cost",
-        }
-
         problem = problem.solve(**args_to_check)
 
         solver = problem[(0, 1)]._solver._solver
-        for arg in solver_args:
-            assert hasattr(solver, solver_args[arg])
+        for arg in sinkhorn_solver_args:
+            assert hasattr(solver, sinkhorn_solver_args[arg])
             el = (
-                getattr(solver, solver_args[arg])[0]
-                if isinstance(getattr(solver, solver_args[arg]), tuple)
-                else getattr(solver, solver_args[arg])
+                getattr(solver, sinkhorn_solver_args[arg])[0]
+                if isinstance(getattr(solver, sinkhorn_solver_args[arg]), tuple)
+                else getattr(solver, sinkhorn_solver_args[arg])
             )
             assert el == args_to_check[arg]
 
@@ -300,12 +259,12 @@ class TestTemporalProblem:
 
         for arg in pointcloud_args:
             el = (
-                    getattr(geom, pointcloud_args[arg])[0]
-                    if isinstance(getattr(geom, pointcloud_args[arg]), tuple)
-                    else getattr(geom, pointcloud_args[arg])
-                )
+                getattr(geom, pointcloud_args[arg])[0]
+                if isinstance(getattr(geom, pointcloud_args[arg]), tuple)
+                else getattr(geom, pointcloud_args[arg])
+            )
             assert hasattr(geom, pointcloud_args[arg])
             if arg == "cost":
-                assert type(el) == type(args_to_check[arg])
+                assert type(el) == type(args_to_check[arg])  # noqa: E721
             else:
                 assert el == args_to_check[arg]

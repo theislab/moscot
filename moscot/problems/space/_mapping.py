@@ -118,17 +118,22 @@ class MappingProblem(CompoundProblem[K, OTProblem], SpatialMappingMixin[K, OTPro
     @d.dedent
     def solve(
         self,
-        alpha: float = 0.5,
+        alpha: Optional[float] = 0.5,
         epsilon: Optional[float] = 1e-3,
         tau_a: float = 1.0,
         tau_b: float = 1.0,
-        scale_cost: ScaleCost_t = "mean",
         rank: int = -1,
+        scale_cost: ScaleCost_t = "mean",
+        cost: Literal["Euclidean"] = "Euclidean",
+        power: int = 2,
         batch_size: Optional[int] = None,
         stage: Union[ProblemStage_t, Tuple[ProblemStage_t, ...]] = ("prepared", "solved"),
         initializer: QuadInitializer_t = None,
         initializer_kwargs: Mapping[str, Any] = MappingProxyType({}),
         jit: bool = True,
+        lse_mode: bool = True,
+        norm_error: int = 1,
+        inner_iterations: int = 10,
         min_iterations: int = 5,
         max_iterations: int = 50,
         threshold: float = 1e-3,
@@ -140,7 +145,7 @@ class MappingProblem(CompoundProblem[K, OTProblem], SpatialMappingMixin[K, OTPro
         tolerances: Union[float, Tuple[float, ...]] = 1e-2,
     ) -> "MappingProblem[K]":
         """
-        Solve optimal transport problems defined in :class:`moscot.problems.space.MappingProblem`.
+        Solve optimal transport problems defined in :class:`moscot.problems.time.LineageProblem`.
 
         Parameters
         ----------
@@ -148,9 +153,9 @@ class MappingProblem(CompoundProblem[K, OTProblem], SpatialMappingMixin[K, OTPro
         %(epsilon)s
         %(tau_a)s
         %(tau_b)s
-        %(scale_cost)s
         %(rank)s
-        %(ott_jax_batch_size)s
+        %(scale_cost)s
+        %(pointcloud_kwargs)s
         %(stage)s
         %(initializer_quad)s
         %(initializer_kwargs)s
@@ -160,20 +165,25 @@ class MappingProblem(CompoundProblem[K, OTProblem], SpatialMappingMixin[K, OTPro
 
         Returns
         -------
-        :class:`moscot.problems.space.MappingProblem`.
+        :class:`moscot.problems.space.MappingProblem`
         """
         return super().solve(
             alpha=alpha,
             epsilon=epsilon,
             tau_a=tau_a,
             tau_b=tau_b,
-            scale_cost=scale_cost,
             rank=rank,
+            scale_cost=scale_cost,
+            cost=cost,
+            power=power,
             batch_size=batch_size,
             stage=stage,
             initializer=initializer,
             initializer_kwargs=initializer_kwargs,
             jit=jit,
+            lse_mode=lse_mode,
+            norm_error=norm_error,
+            inner_iterations=inner_iterations,
             min_iterations=min_iterations,
             max_iterations=max_iterations,
             threshold=threshold,
@@ -183,7 +193,7 @@ class MappingProblem(CompoundProblem[K, OTProblem], SpatialMappingMixin[K, OTPro
             gw_unbalanced_correction=gw_unbalanced_correction,
             ranks=ranks,
             tolerances=tolerances,
-        )  # type:ignore[return-value]
+        )  # type: ignore[return-value]
 
     @property
     def adata_sc(self) -> AnnData:

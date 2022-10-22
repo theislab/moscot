@@ -125,8 +125,10 @@ class TemporalProblem(
         epsilon: Optional[float] = 1e-3,
         tau_a: float = 1.0,
         tau_b: float = 1.0,
-        scale_cost: ScaleCost_t = "mean",
         rank: int = -1,
+        scale_cost: ScaleCost_t = "mean",
+        cost: Literal["Euclidean"] = "Euclidean",
+        power: int = 2,
         batch_size: Optional[int] = None,
         stage: Union[ProblemStage_t, Tuple[ProblemStage_t, ...]] = ("prepared", "solved"),
         initializer: SinkhornInitializer_t = "default",
@@ -150,9 +152,9 @@ class TemporalProblem(
         %(epsilon)s
         %(tau_a)s
         %(tau_b)s
-        %(scale_cost)s
         %(rank)s
-        %(ott_jax_batch_size)s
+        %(scale_cost)s
+        %(pointcloud_kwargs)s
         %(stage)s
         %(initializer_lin)s
         %(initializer_kwargs)s
@@ -168,8 +170,10 @@ class TemporalProblem(
             epsilon=epsilon,
             tau_a=tau_a,
             tau_b=tau_b,
-            scale_cost=scale_cost,
             rank=rank,
+            scale_cost=scale_cost,
+            cost=cost,
+            power=power,
             batch_size=batch_size,
             stage=stage,
             initializer=initializer,
@@ -372,8 +376,10 @@ class LineageProblem(TemporalProblem):
         epsilon: Optional[float] = 1e-3,
         tau_a: float = 1.0,
         tau_b: float = 1.0,
-        scale_cost: ScaleCost_t = "mean",
         rank: int = -1,
+        scale_cost: ScaleCost_t = "mean",
+        cost: Literal["Euclidean"] = "Euclidean",
+        power: int = 2,
         batch_size: Optional[int] = None,
         stage: Union[ProblemStage_t, Tuple[ProblemStage_t, ...]] = ("prepared", "solved"),
         initializer: QuadInitializer_t = None,
@@ -401,9 +407,9 @@ class LineageProblem(TemporalProblem):
         %(epsilon)s
         %(tau_a)s
         %(tau_b)s
-        %(scale_cost)s
         %(rank)s
-        %(ott_jax_batch_size)s
+        %(scale_cost)s
+        %(pointcloud_kwargs)s
         %(stage)s
         %(initializer_quad)s
         %(initializer_kwargs)s
@@ -420,13 +426,18 @@ class LineageProblem(TemporalProblem):
             epsilon=epsilon,
             tau_a=tau_a,
             tau_b=tau_b,
-            scale_cost=scale_cost,
             rank=rank,
+            scale_cost=scale_cost,
+            cost=cost,
+            power=power,
             batch_size=batch_size,
             stage=stage,
             initializer=initializer,
             initializer_kwargs=initializer_kwargs,
             jit=jit,
+            lse_mode=lse_mode,
+            norm_error=norm_error,
+            inner_iterations=inner_iterations,
             min_iterations=min_iterations,
             max_iterations=max_iterations,
             threshold=threshold,

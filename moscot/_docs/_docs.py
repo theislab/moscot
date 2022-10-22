@@ -36,9 +36,6 @@ epsilon
 _alpha = """\
 alpha
     Interpolation parameter between quadratic term and linear term."""
-_scale_cost = """\
-scale_cost
-    Method to scale cost matrices. If `None` no scaling is applied."""
 _tau_a = """\
 tau_a
     Unbalancedness parameter for left marginal between 0 and 1. `tau_a` equalling 1 means no unbalancedness
@@ -159,10 +156,6 @@ stage
 _solve_kwargs = """\
 kwargs
     keyword arguments for the backend-specific solver, TODO see NOTEBOOK."""
-_ott_jax_batch_size = """\
-batch_size
-    number of data points the matrix-vector products are applied to at the same time. The larger, the more memory
-    is required."""
 _alignment_mixin_returns = """\
 If ``inplace = False``, returns a :class:`numpy.ndarray` with aligned coordinates.
 
@@ -267,6 +260,23 @@ tolerances
     when geometries are not :class:`~ott.geometry.pointcloud.PointCloud` with
     `'sqeucl'` cost. If :class:`float`, it is shared across all geometries.
 """
+_scale_cost = """\
+scale_cost
+    Method to scale cost matrices. If `None` no scaling is applied.
+"""
+_cost = """\
+cost
+    Cost between two points in dimension d. Only used if no precomputed cost matrix is passed.
+"""
+_pointcloud_kwargs = """\
+power
+    a power to raise `(cost_fn(x,y)) ** . / 2.0`. As a result,
+    `power`=2.0 is the default and means no change is applied to the output of
+    `cost_fn`. Only used if no precomputed cost matrix is passed.
+batch_size
+    Number of data points the matrix-vector products are applied to at the same time. The larger, the more memory
+    is required. Only used if no precomputed cost matrix is used.
+"""
 
 
 d = DocstringProcessor(
@@ -282,7 +292,6 @@ d = DocstringProcessor(
     callback_kwargs=_callback_kwargs,
     epsilon=_epsilon,
     alpha=_alpha,
-    scale_cost=_scale_cost,
     tau_a=_tau_a,
     tau_b=_tau_b,
     scale_by_marginals=_scale_by_marginals,
@@ -310,7 +319,6 @@ d = DocstringProcessor(
     rank=_rank,
     stage=_stage,
     solve_kwargs=_solve_kwargs,
-    ott_jax_batch_size=_ott_jax_batch_size,
     initializer_lin=_initializer_lin,
     initializer_quad=_initializer_quad,
     initializer_kwargs=_initializer_kwargs,
@@ -319,4 +327,7 @@ d = DocstringProcessor(
     sinkhorn_lr_kwargs=_sinkhorn_lr_kwargs,
     gw_kwargs=_gw_kwargs,
     gw_lr_kwargs=_gw_lr_kwargs,
+    scale_cost=_scale_cost,
+    cost=_cost,
+    pointcloud_kwargs=_pointcloud_kwargs,
 )
