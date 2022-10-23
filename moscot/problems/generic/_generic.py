@@ -82,6 +82,7 @@ class SinkhornProblem(CompoundProblem[K, B], GenericAnalysisMixin[K, B]):
         return super().prepare(
             key=key,
             policy=policy,
+            xy=xy,
             **kwargs,
         )
 
