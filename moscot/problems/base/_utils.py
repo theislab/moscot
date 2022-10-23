@@ -1,6 +1,7 @@
 from types import MappingProxyType
 from typing import Any, Dict, List, Type, Tuple, Literal, Callable, Optional, TYPE_CHECKING
 from functools import partial, update_wrapper
+import inspect
 
 import pandas as pd
 
@@ -208,3 +209,11 @@ def _order_transition_matrix(
             )
         return tm.T if forward else tm
     return tm if forward else tm.T
+
+
+def _filter_kwargs(*funcs: Callable[..., Any], **kwargs: Any) -> Dict[str, Any]:
+    res = {}
+    for func in funcs:
+        params = inspect.signature(func).parameters
+        res.update({k: v for k, v in kwargs.items() if k in params})
+    return res

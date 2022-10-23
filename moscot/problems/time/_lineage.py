@@ -125,12 +125,23 @@ class TemporalProblem(
         epsilon: Optional[float] = 1e-3,
         tau_a: float = 1.0,
         tau_b: float = 1.0,
-        scale_cost: ScaleCost_t = "mean",
         rank: int = -1,
+        scale_cost: ScaleCost_t = "mean",
+        cost: Literal["SqEuclidean"] = "SqEuclidean",
+        power: int = 1,
         batch_size: Optional[int] = None,
         stage: Union[ProblemStage_t, Tuple[ProblemStage_t, ...]] = ("prepared", "solved"),
-        initializer: SinkhornInitializer_t = None,
+        initializer: SinkhornInitializer_t = "default",
         initializer_kwargs: Mapping[str, Any] = MappingProxyType({}),
+        jit: bool = True,
+        threshold: float = 1e-3,
+        lse_mode: bool = True,
+        norm_error: int = 1,
+        inner_iterations: int = 10,
+        min_iterations: int = 0,
+        max_iterations: int = 2000,
+        gamma: float = 10.0,
+        gamma_rescale: bool = True,
         **kwargs: Any,
     ) -> "TemporalProblem":
         """
@@ -141,14 +152,15 @@ class TemporalProblem(
         %(epsilon)s
         %(tau_a)s
         %(tau_b)s
-        %(scale_cost)s
         %(rank)s
-        %(ott_jax_batch_size)s
+        %(scale_cost)s
+        %(pointcloud_kwargs)s
         %(stage)s
         %(initializer_lin)s
         %(initializer_kwargs)s
-        %(solve_kwargs)s
-
+        %(jit)s
+        %(sinkhorn_kwargs)s
+        %(sinkhorn_lr_kwargs)s
 
         Returns
         -------
@@ -158,12 +170,23 @@ class TemporalProblem(
             epsilon=epsilon,
             tau_a=tau_a,
             tau_b=tau_b,
-            scale_cost=scale_cost,
             rank=rank,
+            scale_cost=scale_cost,
+            cost=cost,
+            power=power,
             batch_size=batch_size,
             stage=stage,
             initializer=initializer,
             initializer_kwargs=initializer_kwargs,
+            jit=jit,
+            threshold=threshold,
+            lse_mode=lse_mode,
+            norm_error=norm_error,
+            inner_iterations=inner_iterations,
+            min_iterations=min_iterations,
+            max_iterations=max_iterations,
+            gamma=gamma,
+            gamma_rescale=gamma_rescale,
             **kwargs,
         )  # type:ignore[return-value]
 
@@ -353,13 +376,27 @@ class LineageProblem(TemporalProblem):
         epsilon: Optional[float] = 1e-3,
         tau_a: float = 1.0,
         tau_b: float = 1.0,
-        scale_cost: ScaleCost_t = "mean",
         rank: int = -1,
+        scale_cost: ScaleCost_t = "mean",
+        cost: Literal["SqEuclidean"] = "SqEuclidean",
+        power: int = 1,
         batch_size: Optional[int] = None,
         stage: Union[ProblemStage_t, Tuple[ProblemStage_t, ...]] = ("prepared", "solved"),
         initializer: QuadInitializer_t = None,
         initializer_kwargs: Mapping[str, Any] = MappingProxyType({}),
-        **kwargs: Any,
+        jit: bool = True,
+        lse_mode: bool = True,
+        norm_error: int = 1,
+        inner_iterations: int = 10,
+        min_iterations: int = 5,
+        max_iterations: int = 50,
+        threshold: float = 1e-3,
+        warm_start: Optional[bool] = None,
+        gamma: float = 10.0,
+        gamma_rescale: bool = True,
+        gw_unbalanced_correction: bool = True,
+        ranks: Union[int, Tuple[int, ...]] = -1,
+        tolerances: Union[float, Tuple[float, ...]] = 1e-2,
     ) -> "LineageProblem":
         """
         Solve optimal transport problems defined in :class:`moscot.problems.time.LineageProblem`.
@@ -370,28 +407,44 @@ class LineageProblem(TemporalProblem):
         %(epsilon)s
         %(tau_a)s
         %(tau_b)s
-        %(scale_cost)s
         %(rank)s
-        %(ott_jax_batch_size)s
+        %(scale_cost)s
+        %(pointcloud_kwargs)s
         %(stage)s
         %(initializer_quad)s
         %(initializer_kwargs)s
-        %(solve_kwargs)s
+        %(gw_kwargs)s
+        %(sinkhorn_lr_kwargs)s
+        %(gw_lr_kwargs)s
 
         Returns
         -------
-        :class:`moscot.problems.time.TemporalProblem`
+        :class:`moscot.problems.time.LineageProblem`
         """
         return super().solve(
             alpha=alpha,
             epsilon=epsilon,
             tau_a=tau_a,
             tau_b=tau_b,
-            scale_cost=scale_cost,
             rank=rank,
+            scale_cost=scale_cost,
+            cost=cost,
+            power=power,
             batch_size=batch_size,
             stage=stage,
             initializer=initializer,
             initializer_kwargs=initializer_kwargs,
-            **kwargs,
+            jit=jit,
+            lse_mode=lse_mode,
+            norm_error=norm_error,
+            inner_iterations=inner_iterations,
+            min_iterations=min_iterations,
+            max_iterations=max_iterations,
+            threshold=threshold,
+            warm_start=warm_start,
+            gamma=gamma,
+            gamma_rescale=gamma_rescale,
+            gw_unbalanced_correction=gw_unbalanced_correction,
+            ranks=ranks,
+            tolerances=tolerances,
         )

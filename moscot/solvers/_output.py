@@ -5,7 +5,7 @@ from functools import partial
 
 from scipy.sparse.linalg import LinearOperator
 
-from moscot._types import ArrayLike, DTypeLike
+from moscot._types import Device_t, ArrayLike, DTypeLike
 
 __all__ = ["BaseSolverOutput", "MatrixSolverOutput"]
 
@@ -41,7 +41,7 @@ class BaseSolverOutput(ABC):
         pass
 
     @abstractmethod
-    def to(self, device: Optional[Any] = None) -> "BaseSolverOutput":
+    def to(self, device: Optional[Device_t] = None) -> "BaseSolverOutput":
         pass
 
     @property
@@ -139,7 +139,7 @@ class MatrixSolverOutput(BaseSolverOutput, ABC):  # noqa: B024
         """%(shape)s"""  # noqa: D400
         return self.transport_matrix.shape  # type: ignore[return-value]
 
-    def to(self, device: Optional[Any] = None, dtype: Optional[DTypeLike] = None) -> "BaseSolverOutput":
+    def to(self, device: Optional[Device_t] = None, dtype: Optional[DTypeLike] = None) -> "BaseSolverOutput":
         if device is not None:
             raise RuntimeError("TODO")
         if dtype is None:

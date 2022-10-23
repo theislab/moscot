@@ -13,7 +13,7 @@ import numpy as np
 import jax.numpy as jnp
 
 from tests._utils import ATOL, RTOL, Geom_t
-from moscot._types import ArrayLike
+from moscot._types import Device_t, ArrayLike
 from moscot.backends.ott import GWSolver, FGWSolver, SinkhornSolver  # type: ignore[attr-defined]
 from moscot.solvers._output import BaseSolverOutput
 from moscot.solvers._base_solver import O, OTSolver
@@ -63,15 +63,18 @@ class TestGW:
     @pytest.mark.parametrize("eps", [5e-2, 1e-2, 1e-1])
     def test_matches_ott(self, x: Geom_t, y: Geom_t, eps: Optional[float], jit: bool) -> None:
         thresh = 1e-2
+        kwargs = {"epsilon": eps, "threshold": thresh, "jit": jit}
+        kwargs["tags"] = {"x": "point_cloud", "y": "point_cloud"}
         gt = gromov_wasserstein(
             PointCloud(x, epsilon=eps), PointCloud(y, epsilon=eps), threshold=thresh, jit=jit, epsilon=eps
         )
-        solver = GWSolver(threshold=thresh, jit=jit)
+
+        solver = GWSolver(**kwargs)
         assert isinstance(solver.solver, GromovWasserstein)
         assert solver.x is None
         assert solver.y is None
 
-        pred = solver(x=x, y=y, epsilon=eps)
+        pred = solver(x=x, y=y, **kwargs)
 
         assert solver.rank == -1
         assert not solver.is_low_rank
@@ -83,14 +86,16 @@ class TestGW:
     @pytest.mark.parametrize("eps", [5e-1, 1])
     def test_epsilon(self, x_cost: jnp.ndarray, y_cost: jnp.ndarray, eps: Optional[float]) -> None:
         thresh = 1e-3
+        kwargs = {"epsilon": eps, "threshold": thresh}
+        kwargs["tags"] = {"x": Tag.COST_MATRIX, "y": Tag.COST_MATRIX}
 
         problem = QuadraticProblem(
             geom_xx=Geometry(cost_matrix=x_cost, epsilon=eps), geom_yy=Geometry(cost_matrix=y_cost, epsilon=eps)
         )
         gt = GromovWasserstein(epsilon=eps, threshold=thresh)(problem)
-        solver = GWSolver(threshold=thresh)
+        solver = GWSolver(**kwargs)
 
-        pred = solver(x=x_cost, y=y_cost, epsilon=eps, tags={"x": Tag.COST_MATRIX, "y": Tag.COST_MATRIX})
+        pred = solver(x=x_cost, y=y_cost, **kwargs)
 
         assert pred.rank == -1
         assert solver.rank == -1
@@ -102,9 +107,12 @@ class TestGW:
     @pytest.mark.parametrize("rank", [-1, 7])
     def test_rank(self, x: Geom_t, y: Geom_t, rank: int) -> None:
         thresh, eps = 1e-2, 1e-2
+        kwargs = {"epsilon": eps, "threshold": thresh, "rank": rank}
+        kwargs["tags"] = {"x": "point_cloud", "y": "point_cloud"}
+
         gt = gromov_wasserstein(PointCloud(x, epsilon=eps), PointCloud(y, epsilon=eps), ranks=rank, threshold=thresh)
-        solver = GWSolver(threshold=thresh, rank=rank, epsilon=eps)
-        pred = solver(x=x, y=y)
+        solver = GWSolver(**kwargs)
+        pred = solver(**kwargs)
 
         assert solver.rank == rank
         assert solver.is_low_rank
@@ -117,6 +125,9 @@ class TestFGW:
     @pytest.mark.parametrize("eps", [1e-2, 1e-1, 5e-1])
     def test_matches_ott(self, x: Geom_t, y: Geom_t, xy: Geom_t, eps: Optional[float], alpha: float) -> None:
         thresh = 1e-2
+        kwargs = {"epsilon": eps, "threshold": thresh, "alpha": alpha}
+        kwargs["tags"] = {"x": "point_cloud", "y": "point_cloud", "xy": "point_cloud"}
+
         gt = gromov_wasserstein(
             geom_xx=PointCloud(x, epsilon=eps),
             geom_yy=PointCloud(y, epsilon=eps),
@@ -125,11 +136,12 @@ class TestFGW:
             epsilon=eps,
             threshold=thresh,
         )
-        solver = FGWSolver(threshold=thresh)
+
+        solver = FGWSolver(**kwargs)
         assert isinstance(solver.solver, GromovWasserstein)
         assert solver.xy is None
 
-        pred = solver(x=x, y=y, xy=xy, alpha=alpha, epsilon=eps)
+        pred = solver(x=x, y=y, xy=xy, **kwargs)
 
         assert solver.rank == -1
         assert pred.rank == -1
@@ -142,6 +154,9 @@ class TestFGW:
         thresh, eps = 5e-2, 1e-1
         xx, yy = xy
 
+        kwargs = {"epsilon": eps, "threshold": thresh, "alpha": alpha}
+        kwargs["tags"] = {"x": "point_cloud", "y": "point_cloud", "xy": "point_cloud"}
+
         gt = gromov_wasserstein(
             geom_xx=PointCloud(x, epsilon=eps),
             geom_yy=PointCloud(y, epsilon=eps),
@@ -150,8 +165,8 @@ class TestFGW:
             epsilon=eps,
             threshold=thresh,
         )
-        solver = FGWSolver(threshold=thresh)
-        pred = solver(x=x, y=y, xy=xy, alpha=alpha, epsilon=eps)
+        solver = FGWSolver(**kwargs)
+        pred = solver(x=x, y=y, xy=xy, **kwargs)
 
         assert not solver.is_low_rank
         assert pred.rank == -1
@@ -163,7 +178,7 @@ class TestFGW:
         self, x_cost: jnp.ndarray, y_cost: jnp.ndarray, xy_cost: jnp.ndarray, eps: Optional[float]
     ) -> None:
         thresh, alpha = 5e-1, 0.66
-        solver = FGWSolver(threshold=thresh)
+        kwargs = {"epsilon": eps, "threshold": thresh, "alpha": alpha}
 
         problem = QuadraticProblem(
             geom_xx=Geometry(cost_matrix=x_cost, epsilon=eps),
@@ -172,13 +187,14 @@ class TestFGW:
             fused_penalty=FGWSolver._alpha_to_fused_penalty(alpha),
         )
         gt = GromovWasserstein(epsilon=eps, threshold=thresh)(problem)
+
+        solver = FGWSolver(**kwargs)
         pred = solver(
             x=x_cost,
             y=y_cost,
             xy=xy_cost,
-            alpha=alpha,
-            epsilon=eps,
             tags={"x": Tag.COST_MATRIX, "y": Tag.COST_MATRIX, "xy": Tag.COST_MATRIX},
+            **kwargs,
         )
 
         assert pred.rank == -1
@@ -280,7 +296,7 @@ class TestSolverOutput:
             np.testing.assert_allclose(p.sum(), z.sum())
 
     @pytest.mark.parametrize("device", [None, "cpu", "cpu:0", "cpu:1", "explicit"])
-    def test_to_device(self, x: Geom_t, device: Optional[str]) -> None:
+    def test_to_device(self, x: Geom_t, device: Optional[Device_t]) -> None:
         # simple integration test
         solver = SinkhornSolver()
         if device == "explicit":

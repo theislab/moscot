@@ -79,14 +79,30 @@ class AlignmentProblem(CompoundProblem[K, B], SpatialAlignmentMixin[K, B]):
         self,
         alpha: Optional[float] = 0.5,
         epsilon: Optional[float] = 1e-3,
-        scale_cost: ScaleCost_t = "mean",
+        tau_a: float = 1.0,
+        tau_b: float = 1.0,
         rank: int = -1,
+        scale_cost: ScaleCost_t = "mean",
+        cost: Literal["SqEuclidean"] = "SqEuclidean",
+        power: int = 1,
         batch_size: Optional[int] = None,
         stage: Union[ProblemStage_t, Tuple[ProblemStage_t, ...]] = ("prepared", "solved"),
         initializer: QuadInitializer_t = None,
         initializer_kwargs: Mapping[str, Any] = MappingProxyType({}),
-        **kwargs: Any,
-    ) -> "AlignmentProblem[K, B]":
+        jit: bool = True,
+        lse_mode: bool = True,
+        norm_error: int = 1,
+        inner_iterations: int = 10,
+        min_iterations: int = 5,
+        max_iterations: int = 50,
+        threshold: float = 1e-3,
+        warm_start: Optional[bool] = None,
+        gamma: float = 10.0,
+        gamma_rescale: bool = True,
+        gw_unbalanced_correction: bool = True,
+        ranks: Union[int, Tuple[int, ...]] = -1,
+        tolerances: Union[float, Tuple[float, ...]] = 1e-2,
+    ) -> "AlignmentProblem[K,B]":
         """
         Solve optimal transport problems defined in :class:`moscot.problems.space.AlignmentProblem`.
 
@@ -94,13 +110,17 @@ class AlignmentProblem(CompoundProblem[K, B], SpatialAlignmentMixin[K, B]):
         ----------
         %(alpha)s
         %(epsilon)s
-        %(scale_cost)s
+        %(tau_a)s
+        %(tau_b)s
         %(rank)s
-        %(ott_jax_batch_size)s
+        %(scale_cost)s
+        %(pointcloud_kwargs)s
         %(stage)s
         %(initializer_quad)s
         %(initializer_kwargs)s
-        %(solve_kwargs)s
+        %(gw_kwargs)s
+        %(sinkhorn_lr_kwargs)s
+        %(gw_lr_kwargs)s
 
         Returns
         -------
@@ -109,14 +129,30 @@ class AlignmentProblem(CompoundProblem[K, B], SpatialAlignmentMixin[K, B]):
         return super().solve(
             alpha=alpha,
             epsilon=epsilon,
-            scale_cost=scale_cost,
+            tau_a=tau_a,
+            tau_b=tau_b,
             rank=rank,
+            scale_cost=scale_cost,
+            cost=cost,
+            power=power,
             batch_size=batch_size,
             stage=stage,
             initializer=initializer,
             initializer_kwargs=initializer_kwargs,
-            **kwargs,
-        )  # type:ignore[return-value]
+            jit=jit,
+            lse_mode=lse_mode,
+            norm_error=norm_error,
+            inner_iterations=inner_iterations,
+            min_iterations=min_iterations,
+            max_iterations=max_iterations,
+            threshold=threshold,
+            warm_start=warm_start,
+            gamma=gamma,
+            gamma_rescale=gamma_rescale,
+            gw_unbalanced_correction=gw_unbalanced_correction,
+            ranks=ranks,
+            tolerances=tolerances,
+        )  # type: ignore[return-value]
 
     @property
     def _base_problem_type(self) -> Type[B]:
