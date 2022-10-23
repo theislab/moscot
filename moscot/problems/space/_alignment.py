@@ -104,7 +104,7 @@ class AlignmentProblem(CompoundProblem[K, B], SpatialAlignmentMixin[K, B]):
         tolerances: Union[float, Tuple[float, ...]] = 1e-2,
     ) -> "AlignmentProblem[K,B]":
         """
-        Solve optimal transport problems defined in :class:`moscot.problems.time.AlignmentProblem`.
+        Solve optimal transport problems defined in :class:`moscot.problems.space.AlignmentProblem`.
 
         Parameters
         ----------
