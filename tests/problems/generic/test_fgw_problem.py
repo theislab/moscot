@@ -53,7 +53,7 @@ class TestSinkhornProblem:
             joint_attr={"x_attr": "X", "y_attr": "X"},
             GW_x="spatial",
             GW_y="spatial",
-            filter=[(0,1)],
+            filter=[(0, 1)],
         )
         problem = problem.solve(epsilon=eps)
 
@@ -71,11 +71,11 @@ class TestSinkhornProblem:
             joint_attr={"x_attr": "X", "y_attr": "X"},
             GW_x="spatial",
             GW_y="spatial",
-            filter=[(0,1)],
+            filter=[(0, 1)],
         )
 
         problem = problem.solve(**args_to_check)
-        key=("0","1")
+        key = ("0", "1")
 
         solver = problem[key]._solver._solver
         for arg in gw_solver_args:

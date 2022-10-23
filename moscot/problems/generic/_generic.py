@@ -215,7 +215,7 @@ class GWProblem(CompoundProblem[K, B], GenericAnalysisMixin[K, B]):
 
         self.batch_key = key
         # TODO(michalk8): use and
-        if len(GW_x)==0 or len(GW_y)==0:
+        if len(GW_x) == 0 or len(GW_y) == 0:
             if "cost_matrices" not in self.adata.obsp:
                 raise ValueError(
                     "TODO: default location for quadratic loss is `adata.obsp[`cost_matrices`]` \
@@ -231,7 +231,7 @@ class GWProblem(CompoundProblem[K, B], GenericAnalysisMixin[K, B]):
                 z.setdefault("loss", "SqEuclidean")
                 z.setdefault("tag", "cost")
                 z.setdefault("loss_kwargs", {})
-            
+
         print(kwargs["xy"])
 
         return super().prepare(

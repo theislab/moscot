@@ -4,7 +4,7 @@ import pytest
 
 from anndata import AnnData
 
-from moscot.problems.base import OTProblem # type: ignore[attr-defined]
+from moscot.problems.base import OTProblem  # type: ignore[attr-defined]
 from moscot.solvers._output import BaseSolverOutput
 from moscot.problems.generic import GWProblem
 from tests.problems.conftest import (
@@ -13,7 +13,6 @@ from tests.problems.conftest import (
     geometry_args,
     gw_solver_args,
     quad_prob_args,
-    pointcloud_args,
     gw_sinkhorn_solver_args,
 )
 
@@ -46,9 +45,12 @@ class TestSinkhornProblem:
         eps = 0.5
         expected_keys = [("0", "1"), ("1", "2")]
         problem = GWProblem(adata=adata_space_rotate)
-        problem = problem.prepare(key="batch", policy="sequential",
+        problem = problem.prepare(
+            key="batch",
+            policy="sequential",
             GW_x={"attr": "obsm", "key": "spatial"},
-            GW_y={"attr": "obsm", "key": "spatial"})
+            GW_y={"attr": "obsm", "key": "spatial"},
+        )
         problem = problem.solve(epsilon=eps)
 
         for key, subsol in problem.solutions.items():
