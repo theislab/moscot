@@ -12,10 +12,10 @@ from tests.problems.conftest import (
     fgw_args_1,
     fgw_args_2,
     geometry_args,
+    gw_solver_args,
     quad_prob_args,
-    fgw_solver_args,
     pointcloud_args,
-    fgw_sinkhorn_solver_args,
+    gw_sinkhorn_solver_args,
 )
 
 # TODO(giovp): refactor as fixture
@@ -115,12 +115,12 @@ class TestAlignmentProblem:
         problem = problem.solve(**args_to_check)
 
         solver = problem[key]._solver._solver
-        for arg, val in fgw_solver_args.items():
+        for arg, val in gw_solver_args.items():
             assert hasattr(solver, val)
             assert getattr(solver, val) == args_to_check[arg]
 
         sinkhorn_solver = solver.linear_ot_solver
-        for arg, val in fgw_sinkhorn_solver_args.items():
+        for arg, val in gw_sinkhorn_solver_args.items():
             assert hasattr(sinkhorn_solver, val)
             assert getattr(sinkhorn_solver, val) == args_to_check[arg]
 
@@ -132,7 +132,6 @@ class TestAlignmentProblem:
         assert quad_prob.fused_penalty == problem[key]._solver._alpha_to_fused_penalty(args_to_check["alpha"])
 
         geom = quad_prob.geom_xx
-
         for arg, val in geometry_args.items():
             assert hasattr(geom, val)
             assert getattr(geom, val) == args_to_check[arg]

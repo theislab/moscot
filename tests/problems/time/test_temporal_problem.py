@@ -226,7 +226,6 @@ class TestTemporalProblem:
         )
 
         problem = problem.solve(**args_to_check)
-
         key = (0, 1)
         solver = problem[key]._solver._solver
         for arg, val in sinkhorn_solver_args.items():

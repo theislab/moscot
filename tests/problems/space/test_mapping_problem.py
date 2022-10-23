@@ -13,10 +13,10 @@ from tests.problems.conftest import (
     fgw_args_1,
     fgw_args_2,
     geometry_args,
+    gw_solver_args,
     quad_prob_args,
-    fgw_solver_args,
     pointcloud_args,
-    fgw_sinkhorn_solver_args,
+    gw_sinkhorn_solver_args,
 )
 from moscot.solvers._base_solver import ProblemKind
 
@@ -115,12 +115,12 @@ class TestMappingProblem:
 
         solver = problem[key]._solver._solver
 
-        for arg, val in fgw_solver_args.items():
+        for arg, val in gw_solver_args.items():
             assert hasattr(solver, val)
             assert getattr(solver, val) == args_to_check[arg]
 
         sinkhorn_solver = solver.linear_ot_solver
-        for arg, val in fgw_sinkhorn_solver_args.items():
+        for arg, val in gw_sinkhorn_solver_args.items():
             assert hasattr(sinkhorn_solver, val)
             assert getattr(sinkhorn_solver, val) == args_to_check[arg]
 

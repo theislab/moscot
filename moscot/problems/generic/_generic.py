@@ -6,8 +6,11 @@ from anndata import AnnData
 from moscot._types import ScaleCost_t, ProblemStage_t, QuadInitializer_t, SinkhornInitializer_t
 from moscot._docs._docs import d
 from moscot.problems.base import OTProblem, CompoundProblem  # type: ignore[attr-defined]
+from moscot.problems._utils import handle_joint_attr
 from moscot.problems.generic._mixins import GenericAnalysisMixin
 from moscot.problems.base._compound_problem import B, K
+
+__all__ = ["SinkhornProblem", "GWProblem", "FGWProblem"]
 
 
 @d.dedent
@@ -75,6 +78,7 @@ class SinkhornProblem(CompoundProblem[K, B], GenericAnalysisMixin[K, B]):
         else:
             raise TypeError("TODO")
 
+        xy, kwargs = handle_joint_attr(joint_attr, kwargs)
         return super().prepare(
             key=key,
             policy=policy,
@@ -215,7 +219,7 @@ class GWProblem(CompoundProblem[K, B], GenericAnalysisMixin[K, B]):
 
         self.batch_key = key
         # TODO(michalk8): use and
-        if not (len(GW_x) and len(GW_y)):
+        if len(GW_x) == 0 or len(GW_y) == 0:
             if "cost_matrices" not in self.adata.obsp:
                 raise ValueError(
                     "TODO: default location for quadratic loss is `adata.obsp[`cost_matrices`]` \
@@ -233,7 +237,7 @@ class GWProblem(CompoundProblem[K, B], GenericAnalysisMixin[K, B]):
                 z.setdefault("loss_kwargs", {})
 
         return super().prepare(
-            key,
+            key=key,
             x=GW_x,
             y=GW_y,
             policy=policy,
@@ -267,6 +271,7 @@ class GWProblem(CompoundProblem[K, B], GenericAnalysisMixin[K, B]):
         gw_unbalanced_correction: bool = True,
         ranks: Union[int, Tuple[int, ...]] = -1,
         tolerances: Union[float, Tuple[float, ...]] = 1e-2,
+        **kwargs: Any,
     ) -> "GWProblem[K,B]":
         """
         Solve optimal transport problems defined in :class:`moscot.problems.generic.GWProblem`.
@@ -315,6 +320,7 @@ class GWProblem(CompoundProblem[K, B], GenericAnalysisMixin[K, B]):
             gw_unbalanced_correction=gw_unbalanced_correction,
             ranks=ranks,
             tolerances=tolerances,
+            **kwargs,
         )
 
     @property
@@ -376,7 +382,8 @@ class FGWProblem(GWProblem[K, B]):
         -----
         If `a` and `b` are provided `marginal_kwargs` are ignored.
         """
-        return super().prepare(key=key, GW_x=GW_x, GW_y=GW_y, joint_attr=joint_attr, policy=policy, **kwargs)
+        xy, kwargs = handle_joint_attr(joint_attr, kwargs)
+        return super().prepare(key=key, GW_x=GW_x, GW_y=GW_y, xy=xy, policy=policy, **kwargs)
 
     @d.dedent
     def solve(

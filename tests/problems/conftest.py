@@ -100,8 +100,7 @@ sinkhorn_args_2 = {
     "scale_cost": "mean",
 }
 
-fgw_args_1 = {
-    "alpha": 0.6,
+gw_args_1 = {
     "epsilon": 0.5,
     "tau_a": 0.7,
     "tau_b": 0.8,
@@ -127,7 +126,7 @@ fgw_args_1 = {
     # "cost": "SqEuclidean", #TODO handle
 }
 
-fgw_args_2 = {
+gw_args_2 = {
     "alpha": 0.4,
     "epsilon": 0.7,
     "tau_a": 1.0,
@@ -154,7 +153,13 @@ fgw_args_2 = {
     # "cost": "SqEuclidean", TODO: handle
 }
 
-fgw_solver_args = {
+fgw_args_1 = gw_args_1.copy()
+fgw_args_1["alpha"] = 0.6
+
+fgw_args_2 = gw_args_2.copy()
+fgw_args_2["alpha"] = 0.4
+
+gw_solver_args = {
     "epsilon": "epsilon",
     "rank": "rank",
     "threshold": "threshold",
@@ -167,7 +172,7 @@ fgw_solver_args = {
     "initializer": "quad_initializer",
 }
 
-fgw_sinkhorn_solver_args = {
+gw_sinkhorn_solver_args = {
     "lse_mode": "lse_mode",
     # "norm_error": "norm_error", # TODO: check once linear_ot_solver kwargs allowed
     "inner_iterations": "inner_iterations",
