@@ -129,6 +129,7 @@ class TemporalProblem(
         max_iterations: int = 2000,
         gamma: float = 10.0,
         gamma_rescale: bool = True,
+        device: Optional[Literal["cpu", "gpu", "tpu"]] = None,
         **kwargs: Any,
     ) -> "TemporalProblem":
         """
@@ -148,6 +149,7 @@ class TemporalProblem(
         %(jit)s
         %(sinkhorn_kwargs)s
         %(sinkhorn_lr_kwargs)s
+        %(device)s
 
         Returns
         -------
@@ -174,6 +176,7 @@ class TemporalProblem(
             max_iterations=max_iterations,
             gamma=gamma,
             gamma_rescale=gamma_rescale,
+            device=device,
             **kwargs,
         )  # type:ignore[return-value]
 
@@ -385,6 +388,7 @@ class LineageProblem(TemporalProblem):
         gw_unbalanced_correction: bool = True,
         ranks: Union[int, Tuple[int, ...]] = -1,
         tolerances: Union[float, Tuple[float, ...]] = 1e-2,
+        device: Optional[Literal["cpu", "gpu", "tpu"]] = None,
     ) -> "LineageProblem":
         """
         Solve optimal transport problems defined in :class:`moscot.problems.time.LineageProblem`.
@@ -404,6 +408,7 @@ class LineageProblem(TemporalProblem):
         %(gw_kwargs)s
         %(sinkhorn_lr_kwargs)s
         %(gw_lr_kwargs)s
+        %(device)s
 
         Returns
         -------
@@ -435,4 +440,5 @@ class LineageProblem(TemporalProblem):
             gw_unbalanced_correction=gw_unbalanced_correction,
             ranks=ranks,
             tolerances=tolerances,
+            device=device,
         )

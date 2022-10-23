@@ -82,6 +82,7 @@ class SinkhornProblem(CompoundProblem[K, B], GenericAnalysisMixin[K, B]):
         return super().prepare(
             key=key,
             policy=policy,
+            xy=xy,
             **kwargs,
         )
 
@@ -107,6 +108,7 @@ class SinkhornProblem(CompoundProblem[K, B], GenericAnalysisMixin[K, B]):
         max_iterations: int = 2000,
         gamma: float = 10.0,
         gamma_rescale: bool = True,
+        device: Optional[Literal["cpu", "gpu", "tpu"]] = None,
         **kwargs: Any,
     ) -> "SinkhornProblem[K,B]":
         """
@@ -126,6 +128,7 @@ class SinkhornProblem(CompoundProblem[K, B], GenericAnalysisMixin[K, B]):
         %(jit)s
         %(sinkhorn_kwargs)s
         %(sinkhorn_lr_kwargs)s
+        %(device_solve)
 
         Returns
         -------
@@ -152,6 +155,7 @@ class SinkhornProblem(CompoundProblem[K, B], GenericAnalysisMixin[K, B]):
             max_iterations=max_iterations,
             gamma=gamma,
             gamma_rescale=gamma_rescale,
+            device=device,
             **kwargs,
         )
 
@@ -271,6 +275,7 @@ class GWProblem(CompoundProblem[K, B], GenericAnalysisMixin[K, B]):
         gw_unbalanced_correction: bool = True,
         ranks: Union[int, Tuple[int, ...]] = -1,
         tolerances: Union[float, Tuple[float, ...]] = 1e-2,
+        device: Optional[Literal["cpu", "gpu", "tpu"]] = None,
         **kwargs: Any,
     ) -> "GWProblem[K,B]":
         """
@@ -290,6 +295,7 @@ class GWProblem(CompoundProblem[K, B], GenericAnalysisMixin[K, B]):
         %(gw_kwargs)s
         %(sinkhorn_lr_kwargs)s
         %(gw_lr_kwargs)s
+        %(device_solve)s
 
         Returns
         -------
@@ -320,6 +326,7 @@ class GWProblem(CompoundProblem[K, B], GenericAnalysisMixin[K, B]):
             gw_unbalanced_correction=gw_unbalanced_correction,
             ranks=ranks,
             tolerances=tolerances,
+            device=device,
             **kwargs,
         )
 
@@ -413,6 +420,7 @@ class FGWProblem(GWProblem[K, B]):
         gw_unbalanced_correction: bool = True,
         ranks: Union[int, Tuple[int, ...]] = -1,
         tolerances: Union[float, Tuple[float, ...]] = 1e-2,
+        device: Optional[Literal["cpu", "gpu", "tpu"]] = None,
     ) -> "FGWProblem[K,B]":
         """
         Solve optimal transport problems defined in :class:`moscot.problems.generic.FGWProblem`.
@@ -432,6 +440,7 @@ class FGWProblem(GWProblem[K, B]):
         %(gw_kwargs)s
         %(sinkhorn_lr_kwargs)s
         %(gw_lr_kwargs)s
+        %(device)s
 
         Returns
         -------
@@ -463,4 +472,5 @@ class FGWProblem(GWProblem[K, B]):
             gw_unbalanced_correction=gw_unbalanced_correction,
             ranks=ranks,
             tolerances=tolerances,
+            device=device,
         )

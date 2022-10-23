@@ -137,6 +137,7 @@ class MappingProblem(CompoundProblem[K, OTProblem], SpatialMappingMixin[K, OTPro
         gw_unbalanced_correction: bool = True,
         ranks: Union[int, Tuple[int, ...]] = -1,
         tolerances: Union[float, Tuple[float, ...]] = 1e-2,
+        device: Optional[Literal["cpu", "gpu", "tpu"]] = None,
     ) -> "MappingProblem[K]":
         """
         Solve optimal transport problems defined in :class:`moscot.problems.space.MappingProblem`.
@@ -156,6 +157,7 @@ class MappingProblem(CompoundProblem[K, OTProblem], SpatialMappingMixin[K, OTPro
         %(gw_kwargs)s
         %(sinkhorn_lr_kwargs)s
         %(gw_lr_kwargs)s
+        %(device)s
 
         Returns
         -------
@@ -187,6 +189,7 @@ class MappingProblem(CompoundProblem[K, OTProblem], SpatialMappingMixin[K, OTPro
             gw_unbalanced_correction=gw_unbalanced_correction,
             ranks=ranks,
             tolerances=tolerances,
+            device=device,
         )  # type: ignore[return-value]
 
     @property

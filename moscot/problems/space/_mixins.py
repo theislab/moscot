@@ -364,7 +364,7 @@ class SpatialMappingMixin(AnalysisMixin[K, B]):
 
         Parameters
         ----------
-        None
+        TODO: don't use device from docstrings here, as different use
 
         Returns
         -------

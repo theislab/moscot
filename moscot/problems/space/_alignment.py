@@ -95,6 +95,7 @@ class AlignmentProblem(CompoundProblem[K, B], SpatialAlignmentMixin[K, B]):
         gw_unbalanced_correction: bool = True,
         ranks: Union[int, Tuple[int, ...]] = -1,
         tolerances: Union[float, Tuple[float, ...]] = 1e-2,
+        device: Optional[Literal["cpu", "gpu", "tpu"]] = None,
     ) -> "AlignmentProblem[K,B]":
         """
         Solve optimal transport problems defined in :class:`moscot.problems.space.AlignmentProblem`.
@@ -114,6 +115,7 @@ class AlignmentProblem(CompoundProblem[K, B], SpatialAlignmentMixin[K, B]):
         %(gw_kwargs)s
         %(sinkhorn_lr_kwargs)s
         %(gw_lr_kwargs)s
+        %(device)s
 
         Returns
         -------
@@ -145,6 +147,7 @@ class AlignmentProblem(CompoundProblem[K, B], SpatialAlignmentMixin[K, B]):
             gw_unbalanced_correction=gw_unbalanced_correction,
             ranks=ranks,
             tolerances=tolerances,
+            device=device,
         )  # type: ignore[return-value]
 
     @property
