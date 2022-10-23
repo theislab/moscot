@@ -240,7 +240,7 @@ class GWProblem(CompoundProblem[K, B], GenericAnalysisMixin[K, B]):
                 z.setdefault("loss_kwargs", {})
 
         return super().prepare(
-            key,
+            key=key,
             x=GW_x,
             y=GW_y,
             policy=policy,
@@ -329,6 +329,7 @@ class GWProblem(CompoundProblem[K, B], GenericAnalysisMixin[K, B]):
             **kwargs,
         )
 
+    @property
     def _base_problem_type(self) -> Type[B]:
         return OTProblem
 

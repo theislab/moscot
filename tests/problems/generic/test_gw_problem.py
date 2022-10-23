@@ -6,7 +6,7 @@ from anndata import AnnData
 
 from moscot.problems.base import OTProblem  # type: ignore[attr-defined]
 from moscot.solvers._output import BaseSolverOutput
-from moscot.problems.generic import GWProblem
+from moscot.problems.generic import GWProblem  # type: ignore[attr-defined]
 from tests.problems.conftest import (
     gw_args_1,
     gw_args_2,
@@ -17,9 +17,9 @@ from tests.problems.conftest import (
 )
 
 
-class TestSinkhornProblem:
+class TestGWProblem:
     @pytest.mark.fast()
-    def test_prepare(self, adata_space_rotate: AnnData):
+    def test_prepare(self, adata_space_rotate: AnnData):  # type: ignore[no-untyped-def]
         expected_keys = [("0", "1"), ("1", "2")]
         problem = GWProblem(adata=adata_space_rotate)
 
@@ -41,7 +41,7 @@ class TestSinkhornProblem:
             assert key in expected_keys
             assert isinstance(problem[key], OTProblem)
 
-    def test_solve_balanced(self, adata_space_rotate: AnnData):
+    def test_solve_balanced(self, adata_space_rotate: AnnData):  # type: ignore[no-untyped-def]
         eps = 0.5
         expected_keys = [("0", "1"), ("1", "2")]
         problem = GWProblem(adata=adata_space_rotate)
@@ -58,7 +58,7 @@ class TestSinkhornProblem:
             assert key in expected_keys
 
     @pytest.mark.parametrize("args_to_check", [gw_args_1, gw_args_2])
-    def test_pass_arguments(self, adata_space_rotate: AnnData, args_to_check: Mapping[str, Any]):
+    def test_pass_arguments(self, adata_space_rotate: AnnData, args_to_check: Mapping[str, Any]):  # type: ignore
         problem = GWProblem(adata=adata_space_rotate)
 
         problem = problem.prepare(
