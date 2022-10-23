@@ -350,7 +350,7 @@ class LineageProblem(TemporalProblem):
         xy, kwargs = handle_joint_attr(joint_attr, kwargs)
         return super().prepare(
             time_key,
-            joint_attr=joint_attr,
+            joint_attr=xy,
             x=x,
             y=y,
             policy=policy,
