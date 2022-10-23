@@ -9,10 +9,10 @@ from tests.problems.conftest import (
     fgw_args_1,
     fgw_args_2,
     geometry_args,
+    gw_solver_args,
     quad_prob_args,
-    fgw_solver_args,
     pointcloud_args,
-    fgw_sinkhorn_solver_args,
+    gw_sinkhorn_solver_args,
 )
 from moscot.problems.base._birth_death import BirthDeathProblem
 
@@ -78,14 +78,14 @@ class TestLineageProblem:
         problem = problem.solve(**args_to_check)
 
         solver = problem[(0, 1)]._solver._solver
-        for arg in fgw_solver_args:
-            assert hasattr(solver, fgw_solver_args[arg])
-            assert getattr(solver, fgw_solver_args[arg]) == args_to_check[arg]
+        for arg in gw_solver_args:
+            assert hasattr(solver, gw_solver_args[arg])
+            assert getattr(solver, gw_solver_args[arg]) == args_to_check[arg]
 
         sinkhorn_solver = solver.linear_ot_solver
-        for arg in fgw_sinkhorn_solver_args:
-            assert hasattr(sinkhorn_solver, fgw_sinkhorn_solver_args[arg])
-            assert getattr(sinkhorn_solver, fgw_sinkhorn_solver_args[arg]) == args_to_check[arg]
+        for arg in gw_sinkhorn_solver_args:
+            assert hasattr(sinkhorn_solver, gw_sinkhorn_solver_args[arg])
+            assert getattr(sinkhorn_solver, gw_sinkhorn_solver_args[arg]) == args_to_check[arg]
 
         quad_prob = problem[(0, 1)]._solver._problem
         for arg in quad_prob_args:
