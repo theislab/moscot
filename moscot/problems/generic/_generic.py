@@ -6,9 +6,11 @@ from anndata import AnnData
 from moscot._types import ScaleCost_t, ProblemStage_t, QuadInitializer_t, SinkhornInitializer_t
 from moscot._docs._docs import d
 from moscot.problems.base import OTProblem, CompoundProblem  # type: ignore[attr-defined]
+from moscot.problems._utils import handle_joint_attr
 from moscot.problems.generic._mixins import GenericAnalysisMixin
 from moscot.problems.base._compound_problem import B, K
-from moscot.problems._utils import handle_joint_attr
+
+__all__ = ["SinkhornProblem", "GWProblem", "FGWProblem"]
 
 
 @d.dedent
@@ -269,7 +271,7 @@ class GWProblem(CompoundProblem[K, B], GenericAnalysisMixin[K, B]):
         gw_unbalanced_correction: bool = True,
         ranks: Union[int, Tuple[int, ...]] = -1,
         tolerances: Union[float, Tuple[float, ...]] = 1e-2,
-        **kwargs,
+        **kwargs: Any,
     ) -> "GWProblem[K,B]":
         """
         Solve optimal transport problems defined in :class:`moscot.problems.generic.GWProblem`.
