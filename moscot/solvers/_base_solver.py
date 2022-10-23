@@ -4,6 +4,7 @@ from typing import Any, Dict, Tuple, Union, Generic, Literal, Mapping, TypeVar, 
 import warnings
 
 from moscot._types import ArrayLike
+from moscot._logging import logger
 from moscot._docs._docs import d
 from moscot.solvers._output import BaseSolverOutput
 from moscot._constants._enum import ModeEnum
@@ -96,14 +97,14 @@ class TagConverterMixin:
         if y is None:
             if tag is None:
                 tag = Tag.POINT_CLOUD
-                print(f"TODO: unspecified tag`, using `{tag}`")
+                logger.info(f"TODO: unspecified tag`, using `{tag}`")
             if tag == Tag.POINT_CLOUD:
                 y = x
         else:  # always a point cloud
             if tag is None:
                 tag = Tag.POINT_CLOUD
             if tag != Tag.POINT_CLOUD:
-                print(f"TODO: specified `{tag}`, using `{Tag.POINT_CLOUD}`")
+                logger.info(f"TODO: specified `{tag}`, using `{Tag.POINT_CLOUD}`")
                 tag = Tag.POINT_CLOUD
 
         return TaggedArray(x, y, tag=tag, **kwargs)
