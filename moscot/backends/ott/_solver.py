@@ -2,6 +2,8 @@ from abc import ABC
 from types import MappingProxyType
 from typing import Any, Union, Literal, Mapping, Optional
 
+from scipy.sparse import issparse
+
 from ott.geometry import Epsilon, Geometry, PointCloud
 from ott.core.sinkhorn import Sinkhorn
 from ott.geometry.costs import Bures, Cosine, CostFn, SqEuclidean, UnbalancedBures
@@ -111,7 +113,7 @@ class OTTJaxSolver(OTSolver[OTTOutput], ABC):  # noqa: B024
     def _assert2d(arr: Optional[ArrayLike], *, allow_reshape: bool = True) -> Optional[jnp.ndarray]:
         if arr is None:
             return None
-        arr: jnp.ndarray = jnp.asarray(arr)  # type: ignore[no-redef]
+        arr: jnp.ndarray = jnp.asarray(arr.A if issparse(arr) else arr)  # type: ignore[attr-defined, no-redef]
         if allow_reshape and arr.ndim == 1:
             return jnp.reshape(arr, (-1, 1))
         if arr.ndim != 2:

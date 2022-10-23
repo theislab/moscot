@@ -31,8 +31,8 @@ class SpatioTemporalProblem(
         self,
         time_key: str,
         spatial_key: str = Key.obsm.spatial,
-        joint_attr: Optional[Mapping[str, Any]] = MappingProxyType({"x_attr": "X", "y_attr": "X"}),
-        policy: Literal["sequential", "tril", "triu", "explicit"] = "sequential",
+        joint_attr: Optional[Union[str, Mapping[str, Any]]] = None,
+        policy: Literal[Policy.SEQUENTIAL, Policy.TRIL, Policy.TRIU, Policy.EXPLICIT] = Policy.SEQUENTIAL,
         marginal_kwargs: Mapping[str, Any] = MappingProxyType({}),
         **kwargs: Any,
     ) -> "SpatioTemporalProblem":
