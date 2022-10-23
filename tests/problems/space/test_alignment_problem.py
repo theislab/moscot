@@ -115,7 +115,6 @@ class TestAlignmentProblem:
         problem = problem.solve(**args_to_check)
 
         solver = problem[key]._solver._solver
-
         for arg, val in fgw_solver_args.items():
             assert hasattr(solver, val)
             assert getattr(solver, val) == args_to_check[arg]

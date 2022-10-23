@@ -126,7 +126,6 @@ class TestSpatioTemporalProblem:
         for arg, val in quad_prob_args.items():
             assert hasattr(quad_prob, val)
             assert getattr(quad_prob, val) == args_to_check[arg]
-
         assert hasattr(quad_prob, "fused_penalty")
         assert quad_prob.fused_penalty == problem[key]._solver._alpha_to_fused_penalty(args_to_check["alpha"])
 

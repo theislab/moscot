@@ -127,11 +127,8 @@ gw_args_1 = {
 }
 
 gw_args_2 = {
+    "alpha": 0.4,
     "epsilon": 0.7,
-    "tau_a": 1.0,
-    "tau_b": 1.0,
-    "scale_cost": "max_cost",
-    "rank": 7,
     "batch_size": 123,
     "initializer": "rank2",
     "initializer_kwargs": {},

@@ -323,7 +323,6 @@ class GWProblem(CompoundProblem[K, B], GenericAnalysisMixin[K, B]):
             **kwargs,
         )
 
-    @property
     def _base_problem_type(self) -> Type[B]:
         return OTProblem
 

@@ -35,7 +35,7 @@ class AlignmentProblem(CompoundProblem[K, B], SpatialAlignmentMixin[K, B]):
         batch_key: str,
         spatial_key: str = Key.obsm.spatial,
         joint_attr: Optional[Union[str, Mapping[str, Any]]] = None,
-        policy: Literal[Policy.SEQUENTIAL, Policy.STAR] = Policy.SEQUENTIAL,
+        policy: Literal["sequential", "star"] = "sequential",
         reference: Optional[str] = None,
         **kwargs: Any,
     ) -> "AlignmentProblem[K, B]":
