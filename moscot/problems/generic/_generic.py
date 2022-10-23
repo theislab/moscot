@@ -8,6 +8,7 @@ from moscot._docs._docs import d
 from moscot.problems.base import OTProblem, CompoundProblem  # type: ignore[attr-defined]
 from moscot.problems.generic._mixins import GenericAnalysisMixin
 from moscot.problems.base._compound_problem import B, K
+from moscot.problems._utils import handle_joint_attr
 
 
 @d.dedent
@@ -75,6 +76,7 @@ class SinkhornProblem(CompoundProblem[K, B], GenericAnalysisMixin[K, B]):
         else:
             raise TypeError("TODO")
 
+        xy, kwargs = handle_joint_attr(joint_attr, kwargs)
         return super().prepare(
             key=key,
             policy=policy,
@@ -232,8 +234,6 @@ class GWProblem(CompoundProblem[K, B], GenericAnalysisMixin[K, B]):
                 z.setdefault("tag", "cost")
                 z.setdefault("loss_kwargs", {})
 
-        print(kwargs["xy"])
-
         return super().prepare(
             key,
             x=GW_x,
@@ -269,6 +269,7 @@ class GWProblem(CompoundProblem[K, B], GenericAnalysisMixin[K, B]):
         gw_unbalanced_correction: bool = True,
         ranks: Union[int, Tuple[int, ...]] = -1,
         tolerances: Union[float, Tuple[float, ...]] = 1e-2,
+        **kwargs,
     ) -> "GWProblem[K,B]":
         """
         Solve optimal transport problems defined in :class:`moscot.problems.generic.GWProblem`.
@@ -317,6 +318,7 @@ class GWProblem(CompoundProblem[K, B], GenericAnalysisMixin[K, B]):
             gw_unbalanced_correction=gw_unbalanced_correction,
             ranks=ranks,
             tolerances=tolerances,
+            **kwargs,
         )
 
     @property
@@ -378,7 +380,8 @@ class FGWProblem(GWProblem[K, B]):
         -----
         If `a` and `b` are provided `marginal_kwargs` are ignored.
         """
-        return super().prepare(key=key, GW_x=GW_x, GW_y=GW_y, xy=joint_attr, policy=policy, **kwargs)
+        xy, kwargs = handle_joint_attr(joint_attr, kwargs)
+        return super().prepare(key=key, GW_x=GW_x, GW_y=GW_y, xy=xy, policy=policy, **kwargs)
 
     @d.dedent
     def solve(

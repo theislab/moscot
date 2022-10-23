@@ -347,6 +347,7 @@ class LineageProblem(TemporalProblem):
         lineage_attr.setdefault("loss_kwargs", {})
         x = y = lineage_attr
 
+        xy, kwargs = handle_joint_attr(joint_attr, kwargs)
         return super().prepare(
             time_key,
             joint_attr=joint_attr,

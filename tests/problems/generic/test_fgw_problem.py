@@ -31,9 +31,9 @@ class TestSinkhornProblem:
         problem = problem.prepare(
             key="batch",
             policy="sequential",
-            joint_attr={"x_attr": "X", "y_attr": "X"},
-            GW_x="spatial",
-            GW_y="spatial",
+            joint_attr="X_pca",
+            GW_x={"attr": "obsm", "key": "spatial"},
+            GW_y={"attr": "obsm", "key": "spatial"},
         )
 
         assert isinstance(problem.problems, dict)
@@ -50,9 +50,9 @@ class TestSinkhornProblem:
         problem = problem.prepare(
             key="batch",
             policy="sequential",
-            joint_attr={"x_attr": "X", "y_attr": "X"},
-            GW_x="spatial",
-            GW_y="spatial",
+            joint_attr="X_pca",
+            GW_x={"attr": "obsm", "key": "spatial"},
+            GW_y={"attr": "obsm", "key": "spatial"},
             filter=[(0, 1)],
         )
         problem = problem.solve(epsilon=eps)
@@ -68,9 +68,9 @@ class TestSinkhornProblem:
         problem = problem.prepare(
             key="batch",
             policy="sequential",
-            joint_attr={"x_attr": "X", "y_attr": "X"},
-            GW_x="spatial",
-            GW_y="spatial",
+            joint_attr="X_pca",
+            GW_x={"attr": "obsm", "key": "spatial"},
+            GW_y={"attr": "obsm", "key": "spatial"},
             filter=[(0, 1)],
         )
 
@@ -92,7 +92,7 @@ class TestSinkhornProblem:
             assert hasattr(quad_prob, quad_prob_args[arg])
             assert getattr(quad_prob, quad_prob_args[arg]) == args_to_check[arg]
         assert hasattr(quad_prob, "fused_penalty")
-        assert quad_prob.fused_penalty == problem[(0, 1)]._solver._alpha_to_fused_penalty(args_to_check["alpha"])
+        assert quad_prob.fused_penalty == problem[key]._solver._alpha_to_fused_penalty(args_to_check["alpha"])
 
         geom = quad_prob.geom_xx
         for arg in geometry_args:
