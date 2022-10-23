@@ -25,6 +25,7 @@ from scipy.sparse import issparse
 from anndata import AnnData
 
 from moscot._types import ArrayLike, ProblemStage_t
+from moscot._logging import logger
 from moscot._docs._docs import d
 from moscot.problems._utils import require_prepare
 from moscot.solvers._output import BaseSolverOutput
@@ -470,7 +471,7 @@ class BaseCompoundProblem(BaseProblem, ABC, Generic[K, B]):
             raise ValueError("f{file_dir} already exists. Please provide an unexisting filename for saving.")
         with open(file_dir, "wb") as f:
             pickle.dump(self, f, protocol=prot)
-        print(f"TODO: problem saved as {file_dir}")
+        logger.info(f"TODO: problem saved as {file_dir}")
 
     @classmethod
     def load(

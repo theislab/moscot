@@ -6,7 +6,7 @@ from scipy.sparse import issparse
 
 from ott.geometry import Epsilon, Geometry, PointCloud
 from ott.core.sinkhorn import Sinkhorn
-from ott.geometry.costs import Bures, Cosine, CostFn, SqEuclidean, UnbalancedBures
+from ott.geometry.costs import Bures, Cosine, CostFn, Euclidean, SqEuclidean, UnbalancedBures
 from ott.core.was_solver import WassersteinSolver
 from ott.core.sinkhorn_lr import LRSinkhorn
 from ott.core.quad_problems import QuadraticProblem
@@ -37,7 +37,7 @@ class Cost(ModeEnum):
 
     def __call__(self, **kwargs: Any) -> CostFn:
         if self.value == Cost.EUCL:
-            return SqEuclidean()
+            return Euclidean()
         if self.value == Cost.SQEUCL:
             return SqEuclidean()
         if self.value == Cost.COSINE:

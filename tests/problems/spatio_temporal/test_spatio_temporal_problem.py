@@ -11,10 +11,10 @@ from tests.problems.conftest import (
     fgw_args_1,
     fgw_args_2,
     geometry_args,
-    gw_solver_args,
     quad_prob_args,
+    fgw_solver_args,
     pointcloud_args,
-    gw_sinkhorn_solver_args,
+    fgw_sinkhorn_solver_args,
 )
 from moscot.problems.time._lineage import BirthDeathProblem
 from moscot.problems.spatio_temporal import SpatioTemporalProblem
@@ -111,29 +111,31 @@ class TestSpatioTemporalProblem:
         problem = problem.prepare("time", spatial_key="spatial")
         problem = problem.solve(**args_to_check)
 
-        solver = problem[(0, 1)]._solver._solver
-        for arg in gw_solver_args:
-            assert hasattr(solver, gw_solver_args[arg])
-            assert getattr(solver, gw_solver_args[arg]) == args_to_check[arg]
+        key = (0, 1)
+        solver = problem[key]._solver._solver
+        for arg, val in fgw_solver_args.items():
+            assert hasattr(solver, val)
+            assert getattr(solver, val) == args_to_check[arg]
 
         sinkhorn_solver = solver.linear_ot_solver
-        for arg in gw_sinkhorn_solver_args:
-            assert hasattr(sinkhorn_solver, gw_sinkhorn_solver_args[arg])
-            assert getattr(sinkhorn_solver, gw_sinkhorn_solver_args[arg]) == args_to_check[arg]
+        for arg, val in fgw_sinkhorn_solver_args.items():
+            assert hasattr(sinkhorn_solver, val)
+            assert getattr(sinkhorn_solver, val) == args_to_check[arg]
 
-        quad_prob = problem[(0, 1)]._solver._problem
-        for arg in quad_prob_args:
-            assert hasattr(quad_prob, quad_prob_args[arg])
-            assert getattr(quad_prob, quad_prob_args[arg]) == args_to_check[arg]
+        quad_prob = problem[key]._solver._problem
+        for arg, val in quad_prob_args.items():
+            assert hasattr(quad_prob, val)
+            assert getattr(quad_prob, val) == args_to_check[arg]
+
         assert hasattr(quad_prob, "fused_penalty")
-        assert quad_prob.fused_penalty == problem[(0, 1)]._solver._alpha_to_fused_penalty(args_to_check["alpha"])
+        assert quad_prob.fused_penalty == problem[key]._solver._alpha_to_fused_penalty(args_to_check["alpha"])
 
         geom = quad_prob.geom_xx
-        for arg in geometry_args:
-            assert hasattr(geom, geometry_args[arg])
-            assert getattr(geom, geometry_args[arg]) == args_to_check[arg]
+        for arg, val in geometry_args.items():
+            assert hasattr(geom, val)
+            assert getattr(geom, val) == args_to_check[arg]
 
         geom = quad_prob.geom_xy
-        for arg in pointcloud_args:
-            assert hasattr(geom, pointcloud_args[arg])
-            assert getattr(geom, pointcloud_args[arg]) == args_to_check[arg]
+        for arg, val in pointcloud_args.items():
+            assert hasattr(geom, val)
+            assert getattr(geom, val) == args_to_check[arg]

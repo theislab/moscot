@@ -20,7 +20,7 @@ _datasets = {
         (15360, 500),
     ),
     "mosta": (
-        "https://figshare.com/ndownloader/files/36703611",
+        "https://figshare.com/ndownloader/files/37953852",
         (54134, 2000),
     ),
     "hspc": (
