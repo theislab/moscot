@@ -9,6 +9,7 @@ from anndata import AnnData
 
 from moscot._types import Numeric_t, ScaleCost_t, ProblemStage_t, QuadInitializer_t, SinkhornInitializer_t
 from moscot._docs._docs import d
+from moscot.problems._utils import handle_joint_attr
 from moscot.solvers._output import BaseSolverOutput
 from moscot._constants._constants import Policy
 from moscot.problems.time._mixins import TemporalMixin
@@ -85,23 +86,8 @@ class TemporalProblem(
         If `a` and `b` are provided `marginal_kwargs` are ignored.
         """
         self.temporal_key = time_key
-        if joint_attr is None:
-            if "callback" not in kwargs:
-                kwargs["callback"] = "local-pca"
-            else:
-                kwargs["callback"] = kwargs["callback"]
-            kwargs["callback_kwargs"] = {**kwargs.get("callback_kwargs", {}), **{"return_linear": True}}
-        elif isinstance(joint_attr, str):
-            kwargs["xy"] = {
-                "x_attr": "obsm",
-                "x_key": joint_attr,
-                "y_attr": "obsm",
-                "y_key": joint_attr,
-            }
-        elif isinstance(joint_attr, Mapping):
-            kwargs["xy"] = joint_attr
-        else:
-            raise TypeError("TODO")
+        policy = Policy(policy)  # type: ignore[assignment]
+        xy, kwargs = handle_joint_attr(joint_attr, kwargs)
 
         # TODO(michalk8): needs to be modified
         marginal_kwargs = dict(marginal_kwargs)
@@ -114,6 +100,7 @@ class TemporalProblem(
 
         return super().prepare(
             key=time_key,
+            xy=xy,
             policy=policy,
             marginal_kwargs=marginal_kwargs,
             **kwargs,

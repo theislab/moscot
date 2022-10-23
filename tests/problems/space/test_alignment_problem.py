@@ -132,6 +132,7 @@ class TestAlignmentProblem:
         assert quad_prob.fused_penalty == problem[key]._solver._alpha_to_fused_penalty(args_to_check["alpha"])
 
         geom = quad_prob.geom_xx
+
         for arg, val in geometry_args.items():
             assert hasattr(geom, val)
             assert getattr(geom, val) == args_to_check[arg]

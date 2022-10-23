@@ -4,6 +4,7 @@ from typing import Any, Type, Tuple, Union, Literal, Mapping, Optional
 from moscot._types import ScaleCost_t, ProblemStage_t, QuadInitializer_t
 from moscot._docs._docs import d
 from moscot._constants._key import Key
+from moscot.problems._utils import handle_joint_attr
 from moscot._constants._constants import Policy
 from moscot.problems.space._mixins import SpatialAlignmentMixin
 from moscot.problems.base._base_problem import OTProblem
@@ -33,7 +34,7 @@ class AlignmentProblem(CompoundProblem[K, B], SpatialAlignmentMixin[K, B]):
         self,
         batch_key: str,
         spatial_key: str = Key.obsm.spatial,
-        joint_attr: Optional[Mapping[str, Any]] = None,
+        joint_attr: Optional[Union[str, Mapping[str, Any]]] = None,
         policy: Literal["sequential", "star"] = "sequential",
         reference: Optional[str] = None,
         **kwargs: Any,
@@ -47,13 +48,7 @@ class AlignmentProblem(CompoundProblem[K, B], SpatialAlignmentMixin[K, B]):
         ----------
         %(batch_key)s
         %(spatial_key)s
-
-        joint_attr
-            Parameter defining how to allocate the data needed to compute the transport maps.
-            - If None, the corresponding PCA space is computed.
-            - If `joint_attr` is a dictionary the dictionary is supposed to contain the attribute of
-            :class:`anndata.AnnData` as a key and the corresponding attribute as a value.
-
+        %(joint_attr)s
         %(policy)s
 
         reference
@@ -68,11 +63,9 @@ class AlignmentProblem(CompoundProblem[K, B], SpatialAlignmentMixin[K, B]):
         self.batch_key = batch_key
 
         x = y = {"attr": "obsm", "key": self.spatial_key, "tag": "point_cloud"}
-        if joint_attr is None:
-            kwargs["callback"] = "local-pca"
-            kwargs["callback_kwargs"] = {**kwargs.get("callback_kwargs", {}), **{"return_linear": True}}
 
-        return super().prepare(x=x, y=y, xy=joint_attr, policy=policy, key=batch_key, reference=reference, **kwargs)
+        xy, kwargs = handle_joint_attr(joint_attr, kwargs)
+        return super().prepare(x=x, y=y, xy=xy, policy=policy, key=batch_key, reference=reference, **kwargs)
 
     @d.dedent
     def solve(

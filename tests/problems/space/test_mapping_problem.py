@@ -28,7 +28,7 @@ class TestMappingProblem:
     @pytest.mark.fast()
     @pytest.mark.parametrize("sc_attr", [{"attr": "X"}, {"attr": "obsm", "key": "X_pca"}])
     @pytest.mark.parametrize(
-        "joint_attr", [None, "default", {"x_attr": "obsm", "x_key": "X_pca", "y_attr": "obsm", "y_key": "X_pca"}]
+        "joint_attr", [None, "X_pca", {"x_attr": "obsm", "x_key": "X_pca", "y_attr": "obsm", "y_key": "X_pca"}]
     )
     def test_prepare(self, adata_mapping: AnnData, sc_attr: Mapping[str, str], joint_attr: Optional[Mapping[str, str]]):
         adataref, adatasp = _adata_spatial_split(adata_mapping)
@@ -41,10 +41,7 @@ class TestMappingProblem:
         assert mp.problems == {}
         assert mp.solutions == {}
 
-        if joint_attr == "default":
-            mp = mp.prepare(batch_key="batch", sc_attr=sc_attr)
-        else:
-            mp = mp.prepare(batch_key="batch", sc_attr=sc_attr, joint_attr=joint_attr)
+        mp = mp.prepare(batch_key="batch", sc_attr=sc_attr, joint_attr=joint_attr)
 
         assert len(mp) == len(expected_keys)
         for prob_key in expected_keys:
@@ -117,6 +114,7 @@ class TestMappingProblem:
         problem = problem.solve(**args_to_check)
 
         solver = problem[key]._solver._solver
+
         for arg, val in fgw_solver_args.items():
             assert hasattr(solver, val)
             assert getattr(solver, val) == args_to_check[arg]

@@ -304,11 +304,14 @@ class OTProblem(BaseProblem):
         if return_linear:
             n = x.shape[0]
             joint_space = kwargs.pop("joint_space", True)
-            logger.info(f"Computing pca with `n_comps = {n_comps}` and `joint_space = {joint_space}`.")
+            data = concat(x, y) if joint_space else x
+            if data.shape[1] <= n_comps:
+                return {"xy": TaggedArray(data[:n], data[n:], tag=Tag.POINT_CLOUD)}
+            logger.info(f"Computing pca with `n_comps = {n_comps}` and on {pca_space}.")
             if joint_space:
-                data = sc.pp.pca(concat(x, y), n_comps=n_comps, **kwargs)
+                data = sc.pp.pca(data, n_comps=n_comps, **kwargs)
             else:
-                data = concat(sc.pp.pca(x, n_comps=n_comps, **kwargs), sc.pp.pca(y, n_comps=n_comps, **kwargs))
+                data = concat(sc.pp.pca(data, n_comps=n_comps, **kwargs), sc.pp.pca(y, n_comps=n_comps, **kwargs))
 
             return {"xy": TaggedArray(data[:n], data[n:], tag=Tag.POINT_CLOUD)}
 
