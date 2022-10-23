@@ -126,6 +126,7 @@ class SpatioTemporalProblem(
         gw_unbalanced_correction: bool = True,
         ranks: Union[int, Tuple[int, ...]] = -1,
         tolerances: Union[float, Tuple[float, ...]] = 1e-2,
+        device: Optional[Literal["cpu", "gpu", "tpu"]] = None,
     ) -> "SpatioTemporalProblem":
         """
         Solve optimal transport problems defined in :class:`moscot.problems.space.SpatioTemporalProblem`.
@@ -145,6 +146,7 @@ class SpatioTemporalProblem(
         %(gw_kwargs)s
         %(sinkhorn_lr_kwargs)s
         %(gw_lr_kwargs)s
+        %(device)s
 
         Returns
         -------
@@ -176,6 +178,7 @@ class SpatioTemporalProblem(
             gw_unbalanced_correction=gw_unbalanced_correction,
             ranks=ranks,
             tolerances=tolerances,
+            device=device,
         )
 
     @property

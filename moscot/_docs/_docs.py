@@ -277,7 +277,9 @@ batch_size
     Number of data points the matrix-vector products are applied to at the same time. The larger, the more memory
     is required. Only used if no precomputed cost matrix is used.
 """
-
+_device_solve = """\
+device
+    If not `None`, the output will be transferred to `device`."""
 
 d = DocstringProcessor(
     adata=_adata,
@@ -330,4 +332,5 @@ d = DocstringProcessor(
     scale_cost=_scale_cost,
     cost=_cost,
     pointcloud_kwargs=_pointcloud_kwargs,
+    device_solve=_device_solve,
 )
