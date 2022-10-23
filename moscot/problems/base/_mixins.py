@@ -199,11 +199,6 @@ class AnalysisMixin(Generic[K, B]):
         normalize: bool = True,
         **_: Any,
     ) -> pd.DataFrame:
-<<<<<<< HEAD
-        aggregation_mode = AggregationMode(aggregation_mode)
-
-=======
->>>>>>> b586f1e (adapt typing)
         source_annotation_key, source_annotations, source_annotations_ordered = _validate_args_cell_transition(
             self.adata, source_groups
         )
@@ -300,11 +295,7 @@ class AnalysisMixin(Generic[K, B]):
         normalize: bool = True,
         **_: Any,
     ) -> pd.DataFrame:
-<<<<<<< HEAD
         aggregation_mode = AggregationMode(aggregation_mode)
-=======
-        aggregation_mode = AggregationMode(aggregation_mode)  # type: ignore[assignment]
->>>>>>> b586f1e (adapt typing)
         source_annotation_key, source_annotations, source_annotations_ordered = _validate_args_cell_transition(
             self.adata, source_groups
         )
@@ -365,12 +356,7 @@ class AnalysisMixin(Generic[K, B]):
                     tm=tm,
                     forward=False,
                 )
-<<<<<<< HEAD
-        elif aggregation_mode == AggregationMode.CELL:
-=======
-
         elif aggregation_mode == AggregationMode.CELL:  # type: ignore[comparison-overlap]
->>>>>>> b586f1e (adapt typing)
             tm = pd.DataFrame(columns=target_annotations_verified if forward else source_annotations_verified)
             if forward:
                 tm = self._cell_aggregation_transition(
@@ -522,11 +508,7 @@ class AnalysisMixin(Generic[K, B]):
         target_annotation_key: Optional[str] = None,
         source_annotations: Optional[List[Any]] = None,
         target_annotations: Optional[List[Any]] = None,
-<<<<<<< HEAD
         aggregation_mode: Literal["annotation", "cell"] = "annotation",
-=======
-        aggregation_mode: Literal["annotation", "cell"] = AggregationMode.ANNOTATION,  # type: ignore[assignment]
->>>>>>> b586f1e (adapt typing)
         forward: bool = False,
     ) -> Tuple[List[Any], List[Any]]:
         if forward:
@@ -660,11 +642,7 @@ class AnalysisMixin(Generic[K, B]):
         df_res = pd.DataFrame(index=cell_indices_1)
         for annotation in annotations:
             df_res[annotation] = tm_indexed.loc[:, df[df[annotation_key_2] == annotation].index].sum(axis=1)
-<<<<<<< HEAD
         if aggregation_mode == AggregationMode.CELL:
-=======
-        if aggregation_mode == AggregationMode.CELL:  # type: ignore[comparison-overlap]
->>>>>>> b586f1e (adapt typing)
             return df_res
 
         df_res[key_added] = _get_categories_from_adata(

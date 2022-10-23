@@ -69,9 +69,11 @@ class AlignmentProblem(CompoundProblem[K, B], SpatialAlignmentMixin[K, B]):
 
         x = y = {"attr": "obsm", "key": self.spatial_key, "tag": "point_cloud"}
         if joint_attr is None:
-            kwargs["callback"] = "local-pca"
+            if "callback" not in kwargs:
+                kwargs["callback"] = "local-pca"
+            else:
+                kwargs["callback"] = kwargs["callback"]
             kwargs["callback_kwargs"] = {**kwargs.get("callback_kwargs", {}), **{"return_linear": True}}
-
         return super().prepare(x=x, y=y, xy=joint_attr, policy=policy, key=batch_key, reference=reference, **kwargs)
 
     @d.dedent
