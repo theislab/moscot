@@ -169,12 +169,20 @@ class AnalysisMixin(Generic[K, B]):
                 **kwargs,
             )
         if key_added is not None:
+            aggregation_mode = kwargs.pop("aggregation_mode")
+            forward = kwargs.pop("forward")
+            if aggregation_mode == AggregationMode.CELL and AggregationMode.CELL in self.adata.obs.columns:
+                raise ValueError(f"TODO: {AggregationMode.CELL} in `adata.obs`, please rename.")
             plot_vars = {
                 "transition_matrix": tm,
                 "source": source,
                 "target": target,
-                "source_groups": source_groups,
-                "target_groups": target_groups,
+                "source_groups": source_groups
+                if (not forward or aggregation_mode == AggregationMode.ANNOTATION)
+                else AggregationMode.CELL,
+                "target_groups": target_groups
+                if (forward or aggregation_mode == AggregationMode.ANNOTATION)
+                else AggregationMode.CELL,
             }
             Key.uns.set_plotting_vars(
                 adata=self.adata,
