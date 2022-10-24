@@ -6,6 +6,7 @@ from functools import partial
 from scipy.sparse.linalg import LinearOperator
 
 from moscot._types import Device_t, ArrayLike, DTypeLike
+from moscot._logging import logger
 
 __all__ = ["BaseSolverOutput", "MatrixSolverOutput"]
 
@@ -58,15 +59,21 @@ class BaseSolverOutput(ABC):
         pass
 
     def push(self, x: ArrayLike, scale_by_marginals: bool = False) -> ArrayLike:
+        if x.ndim not in (1, 2):
+            raise ValueError(f"Expected 1D or 2D array, found `{x.ndim}`.")
         if x.shape[0] != self.shape[0]:
-            raise ValueError("TODO: wrong shape")
-        x = self._scale_by_marginals(x, forward=True) if scale_by_marginals else x
+            raise ValueError(f"Expected array to have shape `({self.shape[0]}, ...)`, found `{x.shape}`.")
+        if scale_by_marginals:
+            x = self._scale_by_marginals(x, forward=True)
         return self._apply(x, forward=True)
 
     def pull(self, x: ArrayLike, scale_by_marginals: bool = False) -> ArrayLike:
+        if x.ndim not in (1, 2):
+            raise ValueError(f"Expected 1D or 2D array, found `{x.ndim}`.")
         if x.shape[0] != self.shape[1]:
-            raise ValueError("TODO: wrong shape")
-        x = self._scale_by_marginals(x, forward=False) if scale_by_marginals else x
+            raise ValueError(f"Expected array to have shape `({self.shape[1]}, ...)`, found `{x.shape}`.")
+        if scale_by_marginals:
+            x = self._scale_by_marginals(x, forward=False)
         return self._apply(x, forward=False)
 
     def as_linear_operator(self, *, forward: bool, scale_by_marginals: bool = False) -> LinearOperator:
@@ -86,12 +93,20 @@ class BaseSolverOutput(ABC):
 
     @property
     def a(self) -> ArrayLike:
-        """Marginals of source distribution. If output of unbalanced OT, these are the posterior marginals."""
+        """
+        Marginals of the source distribution.
+
+        If output of an unbalanced OT problem, these are the posterior marginals.
+        """
         return self.pull(self._ones(self.shape[1]))
 
     @property
     def b(self) -> ArrayLike:
-        """Marginals of target distribution. If output of unbalanced OT, these are the posterior marginals."""
+        """
+        Marginals of the target distribution.
+
+        If output of an unbalanced OT problem, these are the posterior marginals.
+        """
         return self.push(self._ones(self.shape[0]))
 
     @property
@@ -141,7 +156,8 @@ class MatrixSolverOutput(BaseSolverOutput, ABC):  # noqa: B024
 
     def to(self, device: Optional[Device_t] = None, dtype: Optional[DTypeLike] = None) -> "BaseSolverOutput":
         if device is not None:
-            raise RuntimeError("TODO")
+            logger.info(f"`{self.__class__.__name__}` doesn't support `device` argument. Ignoring")
+            return self
         if dtype is None:
             return self
 
