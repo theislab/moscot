@@ -20,7 +20,6 @@ from tests.problems.conftest import (
 )
 from moscot.solvers._base_solver import ProblemKind
 
-# TODO(giovp): refactor as fixture
 SOLUTIONS_PATH = Path("./tests/data/mapping_solutions.pkl")  # base is moscot
 
 
@@ -50,6 +49,14 @@ class TestMappingProblem:
             assert mp[prob_key].x.data.shape == (n_obs, x_n_var)
             assert mp[prob_key].y.data.shape == (n_obs, y_n_var)
             assert mp[prob_key].xy.data.shape == mp[prob_key].xy.data_y.shape == (n_obs, xy_n_vars)
+
+        # test dummy
+        prob_key = ("src", "tgt")
+        mp = mp.prepare(sc_attr=sc_attr)
+        assert len(mp) == 1
+        assert isinstance(mp[prob_key], mp._base_problem_type)
+        assert mp[prob_key].shape == (2 * n_obs, n_obs)
+        np.testing.assert_array_equal(mp._policy._cat, prob_key)
 
     @pytest.mark.fast()
     @pytest.mark.parametrize("var_names", ["0", [], [str(i) for i in range(20)]])

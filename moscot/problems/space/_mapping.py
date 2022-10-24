@@ -103,6 +103,10 @@ class MappingProblem(CompoundProblem[K, OTProblem], SpatialMappingMixin[K, OTPro
         x = {"attr": "obsm", "key": spatial_key} if isinstance(spatial_key, str) else spatial_key
         y = {"attr": "obsm", "key": sc_attr} if isinstance(sc_attr, str) else sc_attr
         self.batch_key = batch_key
+        if isinstance(spatial_key, str):
+            self.spatial_key = spatial_key
+        else:
+            self.spatial_key = spatial_key["key"]
         self.filtered_vars = var_names
         if self.filtered_vars is not None:
             xy, kwargs = handle_joint_attr(joint_attr, kwargs)
@@ -218,7 +222,7 @@ class MappingProblem(CompoundProblem[K, OTProblem], SpatialMappingMixin[K, OTPro
 
     @property
     def _valid_policies(self) -> Tuple[str, ...]:
-        return (Policy.EXTERNAL_STAR,)
+        return (Policy.EXTERNAL_STAR, Policy.DUMMY)
 
     @property
     def _secondary_adata(self) -> Optional[AnnData]:
