@@ -47,6 +47,14 @@ class TestSpatialAlignmentAnalysisMixin:
                 assert set(angles).issubset(ANGLES)
             assert adata_ref.obsm["spatial_warp"].shape == adata_space_rotate.obsm["spatial"].shape
 
+            problem.align(reference=ref, mode="affine", spatial_key="spatial")
+            for c1, c2 in zip(categories, categories[1:]):
+                np.testing.assert_array_almost_equal(
+                    adata_ref[adata_ref.obs.batch == c1].obsm["spatial_affine"],
+                    adata_ref[adata_ref.obs.batch == c2].obsm["spatial_affine"],
+                    decimal=6,
+                )
+
     def test_regression_testing(self, adata_space_rotate: AnnData):
         ap = AlignmentProblem(adata=adata_space_rotate).prepare(batch_key="batch").solve(alpha=0.5, epsilon=1)
         # TODO(giovp): unnecessary assert

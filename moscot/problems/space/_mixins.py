@@ -35,13 +35,18 @@ class SpatialAlignmentMixinProtocol(AnalysisMixinProtocol[K, B]):
     _spatial_key: Optional[str]
     batch_key: Optional[str]
 
-    def _subset_spatial(self: "SpatialAlignmentMixinProtocol[K, B]", k: K) -> ArrayLike:
+    def _subset_spatial(
+        self: "SpatialAlignmentMixinProtocol[K, B]",
+        k: K,
+        spatial_key: Optional[str] = None,
+    ) -> ArrayLike:
         ...
 
     def _interpolate_scheme(
         self: "SpatialAlignmentMixinProtocol[K, B]",
         reference: K,
         mode: Literal["warp", "affine"],
+        spatial_key: Optional[str] = None,
     ) -> Tuple[Dict[K, ArrayLike], Optional[Dict[K, Optional[ArrayLike]]]]:
         ...
 
@@ -96,11 +101,12 @@ class SpatialAlignmentMixin(AnalysisMixin[K, B]):
         self: SpatialAlignmentMixinProtocol[K, B],
         reference: K,
         mode: Literal["warp", "affine"],
+        spatial_key: Optional[str] = None,
     ) -> Tuple[Dict[K, ArrayLike], Optional[Dict[K, Optional[ArrayLike]]]]:
         """Scheme for interpolation."""
 
         # get reference
-        src = self._subset_spatial(reference)
+        src = self._subset_spatial(reference, spatial_key=spatial_key)
         transport_maps: Dict[K, ArrayLike] = {reference: src}
         transport_metadata: Dict[K, Optional[ArrayLike]] = {}
         if mode == "affine":
@@ -108,8 +114,12 @@ class SpatialAlignmentMixin(AnalysisMixin[K, B]):
             transport_metadata = {reference: np.diag((1, 1))}  # 2d data
 
         # get policy
+        if not isinstance(reference, str):
+            reference_ = [reference]
+        else:
+            reference_ = reference  # type: ignore[assignment]
         full_steps = self._policy._graph
-        starts = set(chain.from_iterable(full_steps)) - set(reference)  # type: ignore[call-overload]
+        starts = set(chain.from_iterable(full_steps)) - set(reference_)
         fwd_steps, bwd_steps = {}, {}
         for start in starts:
             try:
@@ -118,21 +128,25 @@ class SpatialAlignmentMixin(AnalysisMixin[K, B]):
                 bwd_steps[(reference, start)] = self._policy.plan(start=reference, end=start)
 
         if mode == AlignmentMode.AFFINE:
-            transport = self._affine
+            _transport = self._affine
         elif mode == AlignmentMode.WARP:
-            transport = self._warp
+            _transport = self._warp
         else:
             raise NotImplementedError("TODO")
 
         if len(fwd_steps):
             for (start, _), path in fwd_steps.items():
                 tmap = self._interpolate_transport(path=path, scale_by_marginals=True, forward=True)
-                transport_maps[start], transport_metadata[start] = transport(tmap, self._subset_spatial(start), src)
+                transport_maps[start], transport_metadata[start] = _transport(
+                    tmap, self._subset_spatial(start, spatial_key=spatial_key), src
+                )
 
         if len(bwd_steps):
             for (_, end), path in bwd_steps.items():
                 tmap = self._interpolate_transport(path=path, scale_by_marginals=True, forward=False)
-                transport_maps[end], transport_metadata[end] = transport(tmap.T, self._subset_spatial(end), src)
+                transport_maps[end], transport_metadata[end] = _transport(
+                    tmap.T, self._subset_spatial(end, spatial_key=spatial_key), src
+                )
 
         if mode == "affine":
             return transport_maps, transport_metadata
@@ -143,6 +157,7 @@ class SpatialAlignmentMixin(AnalysisMixin[K, B]):
         self: SpatialAlignmentMixinProtocol[K, B],
         reference: K,
         mode: Literal["warp", "affine"] = "warp",
+        spatial_key: Optional[str] = None,
         inplace: bool = True,
     ) -> Optional[Union[ArrayLike, Tuple[ArrayLike, Optional[Dict[K, Optional[ArrayLike]]]]]]:
         """
@@ -167,10 +182,12 @@ class SpatialAlignmentMixin(AnalysisMixin[K, B]):
         mode = AlignmentMode(mode)
         if reference not in self._policy._cat:
             raise ValueError(f"`reference: {reference}` not in policy categories: {self._policy._cat}.")
-        if isinstance(self._policy, StarPolicy) and reference != self._policy.reference:
-            raise ValueError(f"Invalid `reference: {reference}` for `policy='star'`.")
-
-        aligned_maps, aligned_metadata = self._interpolate_scheme(reference=reference, mode=mode)
+        if isinstance(self._policy, StarPolicy):
+            if reference != self._policy.reference:
+                raise ValueError(f"Invalid `reference: {reference}` for `policy='star'`.")
+        aligned_maps, aligned_metadata = self._interpolate_scheme(
+            reference=reference, mode=mode, spatial_key=spatial_key
+        )
         aligned_basis = np.vstack([aligned_maps[k] for k in self._policy._cat])
         if mode == "affine":
             if not inplace:
@@ -261,12 +278,12 @@ class SpatialAlignmentMixin(AnalysisMixin[K, B]):
             raise KeyError(f"{value} not in `adata.obs`.")
         self._batch_key = value
 
-    def _subset_spatial(self: SpatialAlignmentMixinProtocol[K, B], k: K) -> ArrayLike:
-        return (
-            self.adata[self.adata.obs[self._policy._subset_key] == k]
-            .obsm[self.spatial_key]
-            .astype(np.float_, copy=True)
-        )
+    def _subset_spatial(
+        self: SpatialAlignmentMixinProtocol[K, B], k: K, spatial_key: Optional[str] = None
+    ) -> ArrayLike:
+        if spatial_key is None:
+            spatial_key = self.spatial_key
+        return self.adata[self.adata.obs[self._policy._subset_key] == k].obsm[spatial_key].astype(np.float_, copy=True)
 
     @staticmethod
     def _affine(tmap: LinearOperator, tgt: ArrayLike, src: ArrayLike) -> Tuple[ArrayLike, ArrayLike]:
