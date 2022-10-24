@@ -149,7 +149,7 @@ class TemporalProblem(
         %(jit)s
         %(sinkhorn_kwargs)s
         %(sinkhorn_lr_kwargs)s
-        %(device)s
+        %(device_solve)s
 
         Returns
         -------
@@ -408,7 +408,7 @@ class LineageProblem(TemporalProblem):
         %(gw_kwargs)s
         %(sinkhorn_lr_kwargs)s
         %(gw_lr_kwargs)s
-        %(device)s
+        %(device_solve)s
 
         Returns
         -------
