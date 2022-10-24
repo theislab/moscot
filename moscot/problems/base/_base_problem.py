@@ -259,6 +259,7 @@ class OTProblem(BaseProblem):
         data = self._get_mass(self.adata_tgt, data=data, subset=subset, normalize=normalize, split_mass=split_mass)
         return self.solution.pull(data, **kwargs)
 
+    # TODO(michalk8): don't make a static method + rename to have more generic name
     @staticmethod
     def _local_pca_callback(
         adata: AnnData,
@@ -266,6 +267,7 @@ class OTProblem(BaseProblem):
         layer: Optional[str] = None,
         return_linear: bool = True,
         joint_space: bool = True,
+        n_comps: int = 30,
         **kwargs: Any,
     ) -> Dict[Literal["xy", "x", "y"], TaggedArray]:
         def concat(x: ArrayLike, y: ArrayLike) -> ArrayLike:
@@ -279,13 +281,10 @@ class OTProblem(BaseProblem):
             raise ValueError(f"TODO: `{adata}`, `{adata_y}`")
         x = adata.X if layer is None else adata.layers[layer]
         y = adata_y.X if layer is None else adata_y.layers[layer]
-        pca_space = "adata.X" if layer is None else f"adata.layers[{layer}]"
-
-        n_comps = kwargs.pop("n_comps", 30)  # set n_comps=30 as default
+        pca_space = "adata.X" if layer is None else f"adata.layers[{layer!r}]"
 
         if return_linear:
             n = x.shape[0]
-            joint_space = kwargs.pop("joint_space", True)
             data = concat(x, y) if joint_space else x
             if data.shape[1] <= n_comps:
                 return {"xy": TaggedArray(data[:n], data[n:], tag=Tag.POINT_CLOUD)}
