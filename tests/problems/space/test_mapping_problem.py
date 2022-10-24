@@ -52,7 +52,7 @@ class TestMappingProblem:
 
         # test dummy
         prob_key = ("src", "tgt")
-        mp = mp.prepare(sc_attr=sc_attr, joint_attr=joint_attr)
+        mp = mp.prepare(sc_attr=sc_attr)
         assert len(mp) == 1
         assert isinstance(mp[prob_key], mp._base_problem_type)
         assert mp[prob_key].shape == (2 * n_obs, n_obs)
