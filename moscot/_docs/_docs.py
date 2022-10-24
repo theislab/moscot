@@ -280,6 +280,11 @@ batch_size
 _device_solve = """\
 device
     If not `None`, the output will be transferred to `device`."""
+_linear_solver_kwargs = """\
+linear_solver_kwargs
+    Keyword arguments for the linear solver used in quadratic problems.
+    See notebook TODO.
+"""
 
 d = DocstringProcessor(
     adata=_adata,
@@ -333,4 +338,5 @@ d = DocstringProcessor(
     cost=_cost,
     pointcloud_kwargs=_pointcloud_kwargs,
     device_solve=_device_solve,
+    linear_solver_kwargs=_linear_solver_kwargs
 )

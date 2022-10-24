@@ -2,6 +2,7 @@ from types import MappingProxyType
 from typing import Any, Type, Tuple, Union, Literal, Mapping, Optional
 
 from anndata import AnnData
+from pyparsing import line
 
 from moscot._types import Numeric_t, ScaleCost_t, ProblemStage_t, QuadInitializer_t
 from moscot._docs._docs import d
@@ -114,9 +115,6 @@ class SpatioTemporalProblem(
         initializer: QuadInitializer_t = None,
         initializer_kwargs: Mapping[str, Any] = MappingProxyType({}),
         jit: bool = True,
-        lse_mode: bool = True,
-        norm_error: int = 1,
-        inner_iterations: int = 10,
         min_iterations: int = 5,
         max_iterations: int = 50,
         threshold: float = 1e-3,
@@ -126,6 +124,7 @@ class SpatioTemporalProblem(
         gw_unbalanced_correction: bool = True,
         ranks: Union[int, Tuple[int, ...]] = -1,
         tolerances: Union[float, Tuple[float, ...]] = 1e-2,
+        linear_solver_kwargs: Mapping[str, Any] = MappingProxyType({}),
         device: Optional[Literal["cpu", "gpu", "tpu"]] = None,
     ) -> "SpatioTemporalProblem":
         """
@@ -146,6 +145,7 @@ class SpatioTemporalProblem(
         %(gw_kwargs)s
         %(sinkhorn_lr_kwargs)s
         %(gw_lr_kwargs)s
+        %(linear_solver_kwargs)s
         %(device_solve)s
 
         Returns
@@ -178,6 +178,7 @@ class SpatioTemporalProblem(
             gw_unbalanced_correction=gw_unbalanced_correction,
             ranks=ranks,
             tolerances=tolerances,
+            linear_solver_kwargs=linear_solver_kwargs,
             device=device,
         )
 

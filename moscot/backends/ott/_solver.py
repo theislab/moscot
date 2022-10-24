@@ -1,6 +1,7 @@
 from abc import ABC
 from types import MappingProxyType
 from typing import Any, Union, Literal, Mapping, Optional
+from pyparsing import line
 
 from scipy.sparse import issparse
 
@@ -222,15 +223,16 @@ class GWSolver(OTTJaxSolver):
     %(OTSolver.parameters)s
     """
 
-    def __init__(self, rank: int = -1, initializer_kwargs: Mapping[str, Any] = MappingProxyType({}), **kwargs: Any):
+    def __init__(self, rank: int = -1, initializer_kwargs: Mapping[str, Any] = MappingProxyType({}), linear_solver_kwargs: Mapping[str, Any] = MappingProxyType({}), **kwargs: Any):
         super().__init__()
         if "initializer" in kwargs:  # rename arguments
             kwargs["quad_initializer"] = kwargs.pop("initializer")
         if rank > -1:
-            kwargs = _filter_kwargs(LRSinkhorn, WassersteinSolver, GromovWasserstein, **kwargs)
+            linear_ot_solver = LRSinkhorn(rank=rank, **linear_solver_kwargs) # initialization handled by quad_initializer
         else:
-            kwargs = _filter_kwargs(Sinkhorn, WassersteinSolver, GromovWasserstein, **kwargs)
-        self._solver = GromovWasserstein(rank=rank, kwargs_init=initializer_kwargs, **kwargs)
+            linear_ot_solver = Sinkhorn(**linear_solver_kwargs) # initialization handled by quad_initializer
+        kwargs = _filter_kwargs(GromovWasserstein, WassersteinSolver, **kwargs)
+        self._solver = GromovWasserstein(rank=rank, linear_ot_solver=linear_ot_solver, kwargs_init=initializer_kwargs, **kwargs)
 
     def _prepare(
         self,
