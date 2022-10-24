@@ -1,7 +1,6 @@
 from abc import ABC, abstractmethod
 from types import MappingProxyType
 from typing import Any, Dict, Tuple, Union, Generic, Literal, Mapping, TypeVar, Optional, NamedTuple
-import warnings
 
 from moscot._types import Device_t, ArrayLike
 from moscot._logging import logger
@@ -26,12 +25,14 @@ class ProblemKind(ModeEnum):
 
     def solver(self, *, backend: Literal["ott"] = "ott", **kwargs: Any) -> "BaseSolver[O]":
         """
-        Return the solver dependent on the backend and the problem type.
+        Return the solver dependent on the backend and the problem.
 
         Parameters
         ----------
         backend
             The backend the solver corresponds to.
+        kwargs
+            Keyword arguments for to the solver.
 
         Returns
         -------
@@ -46,9 +47,9 @@ class ProblemKind(ModeEnum):
                 return GWSolver(**kwargs)
             if self == ProblemKind.QUAD_FUSED:
                 return FGWSolver(**kwargs)
-            raise NotImplementedError(f"TODO: {self}")
+            raise NotImplementedError(f"Unable to create solver for `{self}` problem.")
 
-        raise NotImplementedError(f"Invalid backend: `{backend}`")
+        raise NotImplementedError(f"Backend `{backend}` is not yet implemented.")
 
 
 class TaggedArrayData(NamedTuple):
@@ -72,7 +73,7 @@ class TagConverterMixin:
             if not isinstance(data, tuple):
                 return data, None
             if len(data) != 2:
-                raise ValueError(f"TODO: `{data}`")
+                raise ValueError(f"Expected data to be of length `2`, found `{len(data)}`.")
             return data
 
         loss_xy = {k[3:]: v for k, v in kwargs.items() if k.startswith("xy_")}
@@ -97,14 +98,14 @@ class TagConverterMixin:
         if y is None:
             if tag is None:
                 tag = Tag.POINT_CLOUD
-                logger.info(f"TODO: unspecified tag`, using `{tag}`")
+                logger.info(f"Unspecified tag for `x`. Using `tag={tag!r}`")
             if tag == Tag.POINT_CLOUD:
                 y = x
         else:  # always a point cloud
             if tag is None:
                 tag = Tag.POINT_CLOUD
             if tag != Tag.POINT_CLOUD:
-                logger.info(f"TODO: specified `{tag}`, using `{Tag.POINT_CLOUD}`")
+                logger.warning(f"Unable to handle `tag={tag!r}` for `y`. Using `tag={Tag.POINT_CLOUD!r}`")
                 tag = Tag.POINT_CLOUD
 
         return TaggedArray(x, y, tag=tag, **kwargs)
@@ -151,19 +152,19 @@ class OTSolver(TagConverterMixin, BaseSolver[O], ABC):  # noqa: B024
         data = self._get_array_data(xy=xy, x=x, y=y, tags=tags)
         kwargs = self._prepare_kwargs(data, **kwargs)
         res = super().__call__(**kwargs)
-        if not res.converged:  # TODO use logging, not warnings
-            warnings.warn("Solver did not converge")
+        if not res.converged:
+            logger.warning("Solver did not converge")
 
         return res.to(device=device)  # type: ignore[return-value]
 
     def _prepare_kwargs(self, data: TaggedArrayData, **kwargs: Any) -> Dict[str, Any]:
         def assert_linear() -> None:
             if data.xy is None:
-                raise ValueError("TODO: no linear data.")
+                raise ValueError("No data specified for the linear term.")
 
         def assert_quadratic() -> None:
             if data.x is None or data.y is None:
-                raise ValueError("TODO: no quadratic data.")
+                raise ValueError("No data specified for the quadratic term.")
 
         if self.problem_kind == ProblemKind.LINEAR:
             assert_linear()
@@ -176,6 +177,6 @@ class OTSolver(TagConverterMixin, BaseSolver[O], ABC):  # noqa: B024
             assert_quadratic()
             data_kwargs = {"x": data.x, "y": data.y, "xy": data.xy}
         else:
-            raise NotImplementedError(f"TODO: {self.problem_kind}")
+            raise NotImplementedError(f"Unable to prepare data for problem `{self.problem_kind}`.")
 
         return {**kwargs, **data_kwargs}
