@@ -5,6 +5,10 @@ from networkx import NetworkXNoPath
 from scipy.stats import pearsonr, spearmanr
 from scipy.linalg import svd
 from scipy.sparse import issparse
+from scipy.spatial import ConvexHull
+from sklearn.metrics import pairwise_distances
+from pandas.api.types import is_categorical_dtype
+from sklearn.neighbors import NearestNeighbors
 from scipy.sparse.linalg import LinearOperator
 import pandas as pd
 
@@ -12,9 +16,11 @@ import numpy as np
 
 from anndata import AnnData
 
-from moscot._types import Device_t, ArrayLike, Str_Dict_t
+from moscot._types import ArrayLike, Str_Dict_t, Device_t
+from moscot._logging import logger
 from moscot._docs._docs import d
 from moscot.problems.base import AnalysisMixin  # type: ignore[attr-defined]
+from moscot._constants._key import Key
 from moscot._docs._docs_mixins import d_mixins
 from moscot._constants._constants import CorrMethod, AlignmentMode, PlottingDefaults
 from moscot.problems.base._mixins import AnalysisMixinProtocol
@@ -29,13 +35,18 @@ class SpatialAlignmentMixinProtocol(AnalysisMixinProtocol[K, B]):
     _spatial_key: Optional[str]
     batch_key: Optional[str]
 
-    def _subset_spatial(self: "SpatialAlignmentMixinProtocol[K, B]", k: K) -> ArrayLike:
+    def _subset_spatial(
+        self: "SpatialAlignmentMixinProtocol[K, B]",
+        k: K,
+        spatial_key: Optional[str] = None,
+    ) -> ArrayLike:
         ...
 
     def _interpolate_scheme(
         self: "SpatialAlignmentMixinProtocol[K, B]",
         reference: K,
         mode: Literal["warp", "affine"],
+        spatial_key: Optional[str] = None,
     ) -> Tuple[Dict[K, ArrayLike], Optional[Dict[K, Optional[ArrayLike]]]]:
         ...
 
@@ -61,6 +72,8 @@ class SpatialMappingMixinProtocol(AnalysisMixinProtocol[K, B]):
     adata_sc: AnnData
     adata_sp: AnnData
     batch_key: Optional[str]
+    spatial_key: Optional[str]
+    _spatial_key: Optional[str]
 
     def _filter_vars(
         self: "SpatialMappingMixinProtocol[K, B]",
@@ -88,11 +101,12 @@ class SpatialAlignmentMixin(AnalysisMixin[K, B]):
         self: SpatialAlignmentMixinProtocol[K, B],
         reference: K,
         mode: Literal["warp", "affine"],
+        spatial_key: Optional[str] = None,
     ) -> Tuple[Dict[K, ArrayLike], Optional[Dict[K, Optional[ArrayLike]]]]:
         """Scheme for interpolation."""
 
         # get reference
-        src = self._subset_spatial(reference)
+        src = self._subset_spatial(reference, spatial_key=spatial_key)
         transport_maps: Dict[K, ArrayLike] = {reference: src}
         transport_metadata: Dict[K, Optional[ArrayLike]] = {}
         if mode == "affine":
@@ -100,8 +114,12 @@ class SpatialAlignmentMixin(AnalysisMixin[K, B]):
             transport_metadata = {reference: np.diag((1, 1))}  # 2d data
 
         # get policy
+        if not isinstance(reference, str):
+            reference_ = [reference]
+        else:
+            reference_ = reference  # type: ignore[assignment]
         full_steps = self._policy._graph
-        starts = set(chain.from_iterable(full_steps)) - set(reference)  # type: ignore[call-overload]
+        starts = set(chain.from_iterable(full_steps)) - set(reference_)
         fwd_steps, bwd_steps = {}, {}
         for start in starts:
             try:
@@ -110,21 +128,25 @@ class SpatialAlignmentMixin(AnalysisMixin[K, B]):
                 bwd_steps[(reference, start)] = self._policy.plan(start=reference, end=start)
 
         if mode == AlignmentMode.AFFINE:
-            transport = self._affine
+            _transport = self._affine
         elif mode == AlignmentMode.WARP:
-            transport = self._warp
+            _transport = self._warp
         else:
             raise NotImplementedError("TODO")
 
         if len(fwd_steps):
             for (start, _), path in fwd_steps.items():
                 tmap = self._interpolate_transport(path=path, scale_by_marginals=True, forward=True)
-                transport_maps[start], transport_metadata[start] = transport(tmap, self._subset_spatial(start), src)
+                transport_maps[start], transport_metadata[start] = _transport(
+                    tmap, self._subset_spatial(start, spatial_key=spatial_key), src
+                )
 
         if len(bwd_steps):
             for (_, end), path in bwd_steps.items():
                 tmap = self._interpolate_transport(path=path, scale_by_marginals=True, forward=False)
-                transport_maps[end], transport_metadata[end] = transport(tmap.T, self._subset_spatial(end), src)
+                transport_maps[end], transport_metadata[end] = _transport(
+                    tmap.T, self._subset_spatial(end, spatial_key=spatial_key), src
+                )
 
         if mode == "affine":
             return transport_maps, transport_metadata
@@ -135,6 +157,7 @@ class SpatialAlignmentMixin(AnalysisMixin[K, B]):
         self: SpatialAlignmentMixinProtocol[K, B],
         reference: K,
         mode: Literal["warp", "affine"] = "warp",
+        spatial_key: Optional[str] = None,
         inplace: bool = True,
     ) -> Optional[Union[ArrayLike, Tuple[ArrayLike, Optional[Dict[K, Optional[ArrayLike]]]]]]:
         """
@@ -159,10 +182,12 @@ class SpatialAlignmentMixin(AnalysisMixin[K, B]):
         mode = AlignmentMode(mode)
         if reference not in self._policy._cat:
             raise ValueError(f"`reference: {reference}` not in policy categories: {self._policy._cat}.")
-        if isinstance(self._policy, StarPolicy) and reference != self._policy.reference:
-            raise ValueError(f"Invalid `reference: {reference}` for `policy='star'`.")
-
-        aligned_maps, aligned_metadata = self._interpolate_scheme(reference=reference, mode=mode)
+        if isinstance(self._policy, StarPolicy):
+            if reference != self._policy.reference:
+                raise ValueError(f"Invalid `reference: {reference}` for `policy='star'`.")
+        aligned_maps, aligned_metadata = self._interpolate_scheme(
+            reference=reference, mode=mode, spatial_key=spatial_key
+        )
         aligned_basis = np.vstack([aligned_maps[k] for k in self._policy._cat])
         if mode == "affine":
             if not inplace:
@@ -253,12 +278,12 @@ class SpatialAlignmentMixin(AnalysisMixin[K, B]):
             raise KeyError(f"{value} not in `adata.obs`.")
         self._batch_key = value
 
-    def _subset_spatial(self: SpatialAlignmentMixinProtocol[K, B], k: K) -> ArrayLike:
-        return (
-            self.adata[self.adata.obs[self._policy._subset_key] == k]
-            .obsm[self.spatial_key]
-            .astype(np.float_, copy=True)
-        )
+    def _subset_spatial(
+        self: SpatialAlignmentMixinProtocol[K, B], k: K, spatial_key: Optional[str] = None
+    ) -> ArrayLike:
+        if spatial_key is None:
+            spatial_key = self.spatial_key
+        return self.adata[self.adata.obs[self._policy._subset_key] == k].obsm[spatial_key].astype(np.float_, copy=True)
 
     @staticmethod
     def _affine(tmap: LinearOperator, tgt: ArrayLike, src: ArrayLike) -> Tuple[ArrayLike, ArrayLike]:
@@ -282,6 +307,7 @@ class SpatialMappingMixin(AnalysisMixin[K, B]):
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
         self._batch_key: Optional[str] = None
+        self._spatial_key: Optional[str] = None
 
     def _filter_vars(
         self: SpatialMappingMixinProtocol[K, B],
@@ -384,6 +410,61 @@ class SpatialMappingMixin(AnalysisMixin[K, B]):
         adata_pred.var_names = var_names
         return adata_pred
 
+    def compute_correspondence(
+        self: SpatialMappingMixinProtocol[K, B],
+        interval: Union[ArrayLike, int] = 5,
+        max_dist: Optional[int] = None,
+        spatial_key: Union[str, Mapping[str, Any]] = Key.obsm.spatial,
+    ) -> pd.DataFrame:
+        """
+        Compute structural correspondence between spatial and molecular distances.
+
+        Parameters
+        ----------
+        interval
+            Interval for the spatial distance.
+        max_dist
+            Maximum distance for the interval, if `None` it is set from data.
+
+        Returns
+        -------
+        :class:`pandas.DataFrame` with columns:
+
+            - `spatial`: average spatial distance.
+            - `expression`: average expression distance.
+            - `index`: index of the interval.
+            - `{batch_key}`: key of the batch (slide).
+        """
+        if self.batch_key is not None:
+            out_list = []
+            if is_categorical_dtype(self.adata.obs[self.batch_key]):
+                categ = self.adata.obs[self.batch_key].cat.categories
+            else:
+                logger.info(f"adata_sp.obs[`{self.batch_key}`] is not `categorical`, using `unique()` method.")
+                categ = self.adata.obs[self.batch_key].unique()
+            if len(categ) > 1:
+                for c in categ:
+                    adata_subset = self.adata[self.adata.obs[self.batch_key] == c]
+                    spatial = adata_subset.obsm[self.spatial_key]
+                    gexp = adata_subset.obsm[self.spatial_key]
+                    out = _compute_correspondence(spatial, gexp, interval, max_dist)
+                    out[self.batch_key] = c
+                    out_list.append(out)
+            else:
+                spatial = self.adata.obsm[self.spatial_key]
+                gexp = self.adata.obsm[self.spatial_key]
+                out = _compute_correspondence(spatial, gexp, interval, max_dist)
+                out[self.batch_key] = categ[0]
+                out_list.append(out)
+            out = pd.concat(out_list, axis=0)
+            out[self.batch_key] = pd.Categorical(out[self.batch_key])
+            return out
+        else:
+            spatial = self.adata.obsm[self.spatial_key]
+            gexp = self.adata.obsm[self.spatial_key]
+            out = _compute_correspondence(spatial, gexp, interval, max_dist)
+            return out
+
     @d_mixins.dedent
     def cell_transition(
         self: SpatialMappingMixinProtocol[K, B],
@@ -450,3 +531,72 @@ class SpatialMappingMixin(AnalysisMixin[K, B]):
         if value is not None and value not in self.adata.obs:
             raise KeyError(f"{value} not in `adata.obs`.")
         self._batch_key = value
+
+    @property
+    def spatial_key(self) -> Optional[str]:
+        """Return spatial key."""
+        return self._spatial_key
+
+    @spatial_key.setter
+    def spatial_key(self: SpatialAlignmentMixinProtocol[K, B], value: Optional[str]) -> None:
+        if value is not None and value not in self.adata.obsm:
+            raise KeyError(f"TODO: {value} not found in `adata.obsm`.")
+        self._spatial_key = value
+
+
+def _compute_correspondence(
+    spatial: ArrayLike,
+    gexp: ArrayLike,
+    interval: Union[ArrayLike, int] = 5,
+    max_dist: Optional[int] = None,
+) -> pd.DataFrame:
+    if isinstance(interval, int):
+        # prepare support
+        spatial.shape[0]
+        hull = ConvexHull(spatial)
+        area = hull.volume
+        if max_dist is None:
+            max_dist = (area / 2) ** 0.5
+        support = np.linspace(max_dist / interval, max_dist, interval)
+    else:
+        support = np.array(sorted(interval), dtype=np.float_, copy=True)
+
+    def pdist(row_idx: ArrayLike, col_idx: float, gexp: ArrayLike) -> Any:
+        if len(row_idx) > 0:
+            return pairwise_distances(gexp[row_idx, :], gexp[[col_idx], :]).mean()  # type: ignore[index]
+
+    vmean = np.vectorize(lambda x: x.mean())
+    vpdist = np.vectorize(pdist, excluded=["gexp"])
+
+    spatial_arr = []
+    gexp_arr = []
+    index_arr = []
+    support_arr = []
+
+    for ind, i in enumerate(support):
+        tree = NearestNeighbors(radius=i).fit(spatial)
+        dist, idx = tree.radius_neighbors()
+
+        spatial_dist = vmean(dist)
+        spatial_dist = spatial_dist[~np.isnan(spatial_dist)]
+        gexp_dist = vpdist(row_idx=idx, col_idx=np.arange(len(idx)), gexp=gexp)
+        gexp_dist = gexp_dist[~np.isnan(gexp_dist)]
+        assert spatial_dist.shape == gexp_dist.shape, "Distances array should be equal."
+
+        spatial_arr.append(spatial_dist)
+        gexp_arr.append(gexp_dist)
+        index_arr.append(np.repeat(ind, gexp_dist.shape[0]))
+        support_arr.append(np.repeat(i, gexp_dist.shape[0]))
+
+    spatial_arr = np.concatenate(spatial_arr)
+    gexp_arr = np.concatenate(gexp_arr)
+    index_arr = np.concatenate(index_arr)
+    support_arr = np.concatenate(support_arr)
+
+    df = pd.DataFrame(
+        np.vstack([spatial_arr, gexp_arr, index_arr, support_arr]).T,
+        columns=["spatial", "expression", "index_interval", "value_interval"],
+    )
+
+    df["index_interval"] = pd.Categorical(df["index_interval"].astype(np.int_))
+    return df
