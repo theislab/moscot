@@ -24,23 +24,9 @@ __all__ = ["BaseProblem", "OTProblem", "ProblemKind"]
 @d.get_sections(base="BaseProblem", sections=["Parameters", "Raises"])
 @d.dedent
 class BaseProblem(ABC):
-    """
-    Problem base class handling one optimal transport subproblem.
+    """Problem interface handling one optimal transport problem."""
 
-    Parameters
-    ----------
-    %(adata)s
-
-    Raises
-    ------
-    ValueError
-        If `adata` has no observations.
-    ValueError
-        If `adata` has no variables.
-    """
-
-    def __init__(self, adata: AnnData, copy: bool = False):
-        self._adata = adata.copy() if copy else adata
+    def __init__(self):
         self._problem_kind: ProblemKind = ProblemKind.UNKNOWN
         self._stage = ProblemStage.INITIALIZED
 
@@ -107,11 +93,6 @@ class BaseProblem(ABC):
         return data / total if normalize else data
 
     @property
-    def adata(self) -> AnnData:
-        """Annotated data object."""
-        return self._adata
-
-    @property
     def stage(self) -> ProblemStage:
         """Problem stage."""
         return self._stage
@@ -126,29 +107,31 @@ class BaseProblem(ABC):
 @d.dedent
 class OTProblem(BaseProblem):
     """
-    Problem class handling one optimal transport subproblem.
+    Problem class handling one optimal transport problem.
 
     Parameters
     ----------
-    %(adata_x)s
-    %(adata_y)s
-    %(source)s
-    %(target)s
-
-    Raises
-    ------
-    %(BaseProblem.raises)s
+    %(adata)s
+    TODO.
     """
 
     def __init__(
         self,
-        adata_x: AnnData,
-        adata_y: Optional[AnnData] = None,
-        *,
-        copy: bool = False,
+        adata: AnnData,
+        adata_tgt: Optional[AnnData] = None,
+        src_obs_mask: Optional[ArrayLike] = None,
+        tgt_obs_mask: Optional[ArrayLike] = None,
+        src_var_mask: Optional[ArrayLike] = None,
+        tgt_var_mask: Optional[ArrayLike] = None,
     ):
-        super().__init__(adata_x, copy=copy)
-        self._adata_y = adata_x if adata_y is None else adata_y.copy() if copy else adata_y
+        super().__init__()
+        self._adata_src = adata
+        self._adata_tgt = adata if adata_tgt is None else adata_tgt
+        self._src_obs_mask = src_obs_mask
+        self._tgt_obs_mask = tgt_obs_mask
+        self._src_var_mask = src_var_mask
+        self._tgt_var_mask = tgt_var_mask
+
         self._solver: Optional[BaseSolver[BaseSolverOutput]] = None
         self._solution: Optional[BaseSolverOutput] = None
 
@@ -164,9 +147,9 @@ class OTProblem(BaseProblem):
             kwargs.setdefault("tag", Tag.COST_MATRIX)
             attr = kwargs.pop("attr", "obsm")
             if attr in ("obsm", "uns"):
-                return AnnDataPointer(self.adata, attr=attr, **kwargs).create()
+                return AnnDataPointer(self.adata_src, attr=attr, **kwargs).create()
             if attr == "varm":
-                return AnnDataPointer(self._adata_y.T, attr="obsm", **kwargs).create()
+                return AnnDataPointer(self.adata_tgt.T, attr="obsm", **kwargs).create()
             raise NotImplementedError("TODO: cost/kernel storage not implemented. Use obsm/varm")
 
         x_kwargs = {k[2:]: v for k, v in kwargs.items() if k.startswith("x_")}
@@ -175,8 +158,8 @@ class OTProblem(BaseProblem):
         y_kwargs["tag"] = Tag.POINT_CLOUD
 
         # TODO(michalk8): this is legacy creation, adapt
-        x_array = AnnDataPointer(self.adata, **x_kwargs).create()
-        y_array = AnnDataPointer(self._adata_y, **y_kwargs).create()
+        x_array = AnnDataPointer(self.adata_src, **x_kwargs).create()
+        y_array = AnnDataPointer(self.adata_tgt, **y_kwargs).create()
 
         return TaggedArray(x_array.data, y_array.data, tag=Tag.POINT_CLOUD, loss=x_array.loss)
 
@@ -192,7 +175,6 @@ class OTProblem(BaseProblem):
     ) -> "OTProblem":
         """Prepare method."""
         self._x = self._y = self._xy = self._solution = None
-        # TODO(michalk8): handle again TaggedArray?
         # TODO(michalk8): better dispatch
         # fmt: off
         if xy is not None and x is None and y is None:
@@ -200,19 +182,19 @@ class OTProblem(BaseProblem):
             self._xy = xy if isinstance(xy, TaggedArray) else self._handle_linear(**xy)
         elif x is not None and y is not None and xy is None:
             self._problem_kind = ProblemKind.QUAD
-            self._x = x if isinstance(x, TaggedArray) else AnnDataPointer(adata=self.adata, **x).create()
-            self._y = y if isinstance(y, TaggedArray) else AnnDataPointer(adata=self._adata_y, **y).create()
+            self._x = x if isinstance(x, TaggedArray) else AnnDataPointer(adata=self.adata_src, **x).create()
+            self._y = y if isinstance(y, TaggedArray) else AnnDataPointer(adata=self.adata_tgt, **y).create()
         elif xy is not None and x is not None and y is not None:
             self._problem_kind = ProblemKind.QUAD_FUSED
             self._xy = xy if isinstance(xy, TaggedArray) else self._handle_linear(**xy)
-            self._x = x if isinstance(x, TaggedArray) else AnnDataPointer(adata=self.adata, **x).create()
-            self._y = y if isinstance(y, TaggedArray) else AnnDataPointer(adata=self._adata_y, **y).create()
+            self._x = x if isinstance(x, TaggedArray) else AnnDataPointer(adata=self.adata_src, **x).create()
+            self._y = y if isinstance(y, TaggedArray) else AnnDataPointer(adata=self.adata_tgt, **y).create()
         else:
             raise NotImplementedError("TODO: Combination not implemented")
         # fmt: on
 
-        self._a = self._create_marginals(self.adata, data=a, source=True, **kwargs)
-        self._b = self._create_marginals(self._adata_y, data=b, source=False, **kwargs)
+        self._a = self._create_marginals(self.adata_src, data=a, source=True, **kwargs)
+        self._b = self._create_marginals(self.adata_tgt, data=b, source=False, **kwargs)
         return self
 
     @d.get_sections(base="OTProblem_solve", sections=["Parameters", "Raises"])
@@ -258,7 +240,7 @@ class OTProblem(BaseProblem):
         """Push mass."""
         if TYPE_CHECKING:
             assert isinstance(self.solution, BaseSolverOutput)
-        data = self._get_mass(self.adata, data=data, subset=subset, normalize=normalize, split_mass=split_mass)
+        data = self._get_mass(self.adata_src, data=data, subset=subset, normalize=normalize, split_mass=split_mass)
         return self.solution.push(data, **kwargs)
 
     @require_solution
@@ -272,18 +254,20 @@ class OTProblem(BaseProblem):
         **kwargs: Any,
     ) -> ArrayLike:
         """Pull mass."""
-        adata = self.adata if self._adata_y is None else self._adata_y
         if TYPE_CHECKING:
             assert isinstance(self.solution, BaseSolverOutput)
-        data = self._get_mass(adata, data=data, subset=subset, normalize=normalize, split_mass=split_mass)
+        data = self._get_mass(self.adata_tgt, data=data, subset=subset, normalize=normalize, split_mass=split_mass)
         return self.solution.pull(data, **kwargs)
 
+    # TODO(michalk8): don't make a static method + rename to have more generic name
     @staticmethod
     def _local_pca_callback(
         adata: AnnData,
         adata_y: AnnData,
         layer: Optional[str] = None,
         return_linear: bool = True,
+        joint_space: bool = True,
+        n_comps: int = 30,
         **kwargs: Any,
     ) -> Dict[Literal["xy", "x", "y"], TaggedArray]:
         def concat(x: ArrayLike, y: ArrayLike) -> ArrayLike:
@@ -297,13 +281,10 @@ class OTProblem(BaseProblem):
             raise ValueError(f"TODO: `{adata}`, `{adata_y}`")
         x = adata.X if layer is None else adata.layers[layer]
         y = adata_y.X if layer is None else adata_y.layers[layer]
-        pca_space = "adata.X" if layer is None else f"adata.layers[{layer}]"
-
-        n_comps = kwargs.pop("n_comps", 30)  # set n_comps=30 as default
+        pca_space = "adata.X" if layer is None else f"adata.layers[{layer!r}]"
 
         if return_linear:
             n = x.shape[0]
-            joint_space = kwargs.pop("joint_space", True)
             data = concat(x, y) if joint_space else x
             if data.shape[1] <= n_comps:
                 return {"xy": TaggedArray(data[:n], data[n:], tag=Tag.POINT_CLOUD)}
@@ -336,8 +317,28 @@ class OTProblem(BaseProblem):
         return np.ones((adata.n_obs,), dtype=float) / adata.n_obs
 
     @property
+    def adata_src(self) -> AnnData:
+        adata = self._adata_src if self._src_obs_mask is None else self._adata_src[self._src_obs_mask]
+        if not adata.n_obs:
+            raise ValueError("No observations in the source `AnnData`.")
+        adata = adata if self._src_var_mask is None else adata[:, self._src_var_mask]
+        if not adata.n_vars:
+            raise ValueError("No variables in the source `AnnData`.")
+        return adata
+
+    @property
+    def adata_tgt(self) -> AnnData:
+        adata = self._adata_tgt if self._tgt_obs_mask is None else self._adata_tgt[self._tgt_obs_mask]
+        if not adata.n_obs:
+            raise ValueError("No observations in the target `AnnData`.")
+        adata = adata if self._tgt_var_mask is None else adata[:, self._tgt_var_mask]
+        if not adata.n_vars:
+            raise ValueError("No variables in the target `AnnData`.")
+        return adata
+
+    @property
     def shape(self) -> Tuple[int, int]:
-        return self.adata.n_obs, self._adata_y.n_obs
+        return self.adata_src.n_obs, self.adata_tgt.n_obs
 
     @property
     def solution(self) -> Optional[BaseSolverOutput]:
@@ -365,7 +366,7 @@ class OTProblem(BaseProblem):
         return self._b
 
     def __repr__(self) -> str:
-        return f"{self.__class__.__name__}[shape={self.adata.n_obs, self._adata_y.n_obs}]"
+        return f"{self.__class__.__name__}[shape={self.shape}]"
 
     def __str__(self) -> str:
         return repr(self)

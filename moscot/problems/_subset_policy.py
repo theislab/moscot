@@ -54,11 +54,8 @@ class SubsetPolicy(Generic[K]):
         key: Optional[str] = None,
         cat: Optional[Sequence[str]] = None,
     ):
-        if isinstance(adata, AnnData):
-            # TODO(michalk8): raise nicer KeyError (giovp) this way we can solve for full anndata with key=None
-            self._data = pd.Series(adata.obs[key])
-        else:
-            self._data = adata
+        # TODO(michalk8): raise nicer KeyError (giovp) this way we can solve for full anndata with key=None
+        self._data = pd.Series(adata.obs[key]) if isinstance(adata, AnnData) else adata
         self._data = self._data.astype("category")  # TODO(@MUCDK): catch conversion error
         self._graph: Set[Tuple[K, K]] = set()
         self._cat = tuple(self._data.cat.categories) if cat is None else tuple(cat)

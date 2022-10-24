@@ -58,12 +58,14 @@ class MappingProblem(CompoundProblem[K, OTProblem], SpatialMappingMixin[K, OTPro
         src_mask: ArrayLike,
         tgt_mask: ArrayLike,
         **kwargs: Any,
-    ) -> B:  # type: ignore[type-var]
-        """Private class to mask anndatas."""
-        adata_sp = self._mask(src_mask)
-        return self._base_problem_type(  # type: ignore[return-value]
-            adata_sp[:, self.filtered_vars] if self.filtered_vars is not None else adata_sp,
-            self.adata_sc[:, self.filtered_vars] if self.filtered_vars is not None else self.adata_sc,
+    ) -> OTProblem:
+        return self._base_problem_type(
+            adata=self.adata_sp,
+            adata_tgt=self.adata_sc,
+            src_obs_mask=src_mask,
+            tgt_obs_mask=None,
+            src_var_mask=self.filtered_vars,  # type: ignore[arg-type]
+            tgt_var_mask=self.filtered_vars,  # type: ignore[arg-type]
             **kwargs,
         )
 
@@ -198,22 +200,21 @@ class MappingProblem(CompoundProblem[K, OTProblem], SpatialMappingMixin[K, OTPro
 
     @property
     def adata_sc(self) -> AnnData:
-        """Return single cell adata."""
+        """Single-cell data."""
         return self._adata_sc
 
     @property
     def adata_sp(self) -> AnnData:
-        """Return spatial adata. Alias for :attr:`adata`."""
+        """Spatial data, alias for :attr:`adata`."""
         return self.adata
 
     @property
     def filtered_vars(self) -> Optional[Sequence[str]]:
-        """Return filtered variables."""
+        """Filtered variables."""  # noqa: D401
         return self._filtered_vars
 
     @filtered_vars.setter
     def filtered_vars(self, value: Optional[Sequence[str]]) -> None:
-        """Return filtered variables."""
         self._filtered_vars = self._filter_vars(var_names=value)
 
     @property
