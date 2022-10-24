@@ -1,6 +1,6 @@
 from typing import Any, Dict, Optional
 
-from ott.geometry.costs import Bures, Cosine, Euclidean, UnbalancedBures
+from ott.geometry.costs import Bures, Cosine, SqEuclidean, UnbalancedBures
 import numpy as np
 
 from anndata import AnnData
@@ -34,13 +34,14 @@ def _normalize(arr: ArrayLike) -> ArrayLike:
     return arr / np.sum(arr)
 
 
+# TODO(michalk8): unify with `moscot.backends.ott._solver.Cost`
 def _get_backend_losses(
     backend: str = "JAX", **kwargs: Any
 ) -> Dict[str, Any]:  # TODO(@MUCDK, @michalk8), registry or put somewhere else.
     if backend == "JAX":
         dimension = kwargs.pop("dimension", 1)
         return {
-            "Euclidean": Euclidean(**kwargs),
+            "SqEuclidean": SqEuclidean(**kwargs),
             "Cosine": Cosine(**kwargs),
             "Bures": Bures(dimension, **kwargs),
             "UnbalancedBures": UnbalancedBures(dimension, **kwargs),

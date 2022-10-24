@@ -110,10 +110,11 @@ class SubsetPolicy(Generic[K]):
     @classmethod
     def create(
         cls,
-        kind: Policy,
+        kind: Policy_t,
         adata: Union[AnnData, pd.Series, pd.Categorical],
         **kwargs: Any,
     ) -> "SubsetPolicy[K]":
+        kind = Policy(kind)
         if kind == Policy.SEQUENTIAL:
             return SequentialPolicy(adata, **kwargs)
         if kind == Policy.STAR:

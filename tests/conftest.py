@@ -152,6 +152,7 @@ def adata_space_rotate() -> AnnData:
     adata = ad.concat(adatas, label="batch")
     adata.uns["spatial"] = {}
     adata.obs_names_make_unique()
+    sc.pp.pca(adata)
     return adata
 
 

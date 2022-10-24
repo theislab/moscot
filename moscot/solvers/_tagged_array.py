@@ -1,13 +1,13 @@
-from enum import Enum
 from typing import Optional
 from dataclasses import dataclass
 
 from moscot._types import ArrayLike
+from moscot._constants._enum import ModeEnum
 
 __all__ = ["Tag", "TaggedArray"]
 
 
-class Tag(str, Enum):
+class Tag(ModeEnum):
     """Tag of :class:`moscot.solvers._tagged_array.TaggedArray`."""
 
     COST_MATRIX = "cost"

@@ -24,7 +24,8 @@ from scipy.sparse import issparse
 
 from anndata import AnnData
 
-from moscot._types import ArrayLike
+from moscot._types import ArrayLike, ProblemStage_t
+from moscot._logging import logger
 from moscot._docs._docs import d
 from moscot.problems._utils import require_prepare
 from moscot.solvers._output import BaseSolverOutput
@@ -32,6 +33,7 @@ from moscot.problems.base._utils import attributedispatch
 from moscot._constants._constants import Policy
 from moscot.solvers._tagged_array import Tag, TaggedArray
 from moscot.problems._subset_policy import (
+    Policy_t,
     StarPolicy,
     DummyPolicy,
     SubsetPolicy,
@@ -39,7 +41,7 @@ from moscot.problems._subset_policy import (
     ExplicitPolicy,
     FormatterMixin,
 )
-from moscot.problems.base._base_problem import OTProblem, BaseProblem, ProblemStage
+from moscot.problems.base._base_problem import OTProblem, BaseProblem
 from moscot.problems.base._problem_manager import ProblemManager
 
 __all__ = ["BaseCompoundProblem", "CompoundProblem"]
@@ -81,7 +83,7 @@ class BaseCompoundProblem(BaseProblem, ABC, Generic[K, B]):
     @abstractmethod
     def _create_policy(
         self,
-        policy: Policy,
+        policy: Policy_t,
         **kwargs: Any,
     ) -> SubsetPolicy[K]:
         pass
@@ -101,7 +103,7 @@ class BaseCompoundProblem(BaseProblem, ABC, Generic[K, B]):
         callback_kwargs: Mapping[str, Any],
     ) -> Mapping[str, Any]:
         if callback == "local-pca":
-            callback = problem._local_pca_callback  # type: ignore[assignment]
+            callback = problem._local_pca_callback
         if not callable(callback):
             raise TypeError("TODO: callback not callable")
 
@@ -154,7 +156,7 @@ class BaseCompoundProblem(BaseProblem, ABC, Generic[K, B]):
     def prepare(
         self,
         key: str,
-        policy: Policy = Policy.SEQUENTIAL,
+        policy: Policy_t = "sequential",
         subset: Optional[Sequence[Tuple[K, K]]] = None,
         reference: Optional[Any] = None,
         callback: Optional[Union[Literal["local-pca"], Callback_t]] = None,
@@ -179,17 +181,17 @@ class BaseCompoundProblem(BaseProblem, ABC, Generic[K, B]):
         -------
         :class:`moscot.problems.CompoundProblem`.
         """
-        if self._valid_policies and policy not in self._valid_policies:
-            raise ValueError(f"TODO: Invalid policy `{policy}`")
-        policy = self._create_policy(policy=policy, key=key)  # type: ignore[assignment]
+        self._ensure_valid_policy(policy)
+        policy = self._create_policy(policy=policy, key=key)
         if TYPE_CHECKING:
             assert isinstance(policy, SubsetPolicy)
+
         if isinstance(policy, ExplicitPolicy):
             policy = policy(subset=subset)
         elif isinstance(policy, StarPolicy):
             policy = policy(reference=reference)
         else:
-            policy = policy()  # type: ignore[assignment]
+            policy = policy()
 
         # TODO(michalk8): manager must be currently instantiated first, since `_create_problems` accesses the policy
         # when refactoring the callback, consider changing this
@@ -204,7 +206,7 @@ class BaseCompoundProblem(BaseProblem, ABC, Generic[K, B]):
 
     def solve(
         self,
-        stage: Union[ProblemStage, Tuple[ProblemStage, ...]] = (ProblemStage.PREPARED, ProblemStage.SOLVED),
+        stage: Union[ProblemStage_t, Tuple[ProblemStage_t, ...]] = ("prepared", "solved"),
         **kwargs: Any,
     ) -> "BaseCompoundProblem[K,B]":
         """
@@ -258,7 +260,8 @@ class BaseCompoundProblem(BaseProblem, ABC, Generic[K, B]):
             assert isinstance(self._policy, StarPolicy)
         res = {}
         # TODO(michalk8): should use manager.plan (once implemented), as some problems may not be solved
-        start = start if isinstance(start, list) else [start]  # type: ignore[assignment]
+        # TODO: better check
+        start = start if isinstance(start, list) else [start]
         _ = kwargs.pop("end", None)  # make compatible with Explicit/Ordered policy
         for src, tgt in self._policy.plan(
             explicit_steps=kwargs.pop("explicit_steps", None),
@@ -468,7 +471,7 @@ class BaseCompoundProblem(BaseProblem, ABC, Generic[K, B]):
             raise ValueError("f{file_dir} already exists. Please provide an unexisting filename for saving.")
         with open(file_dir, "wb") as f:
             pickle.dump(self, f, protocol=prot)
-        print(f"TODO: problem saved as {file_dir}")
+        logger.info(f"TODO: problem saved as {file_dir}")
 
     @classmethod
     def load(
@@ -512,6 +515,11 @@ class BaseCompoundProblem(BaseProblem, ABC, Generic[K, B]):
         if self._problem_manager is None:
             return None
         return self._problem_manager._policy
+
+    def _ensure_valid_policy(self, policy: Policy_t) -> None:
+        policy = Policy(policy)
+        if self._valid_policies and policy not in self._valid_policies:
+            raise ValueError(f"TODO: Invalid policy `{policy}`")
 
     def __getitem__(self, item: Tuple[K, K]) -> B:
         return self.problems[item]
@@ -560,7 +568,7 @@ class CompoundProblem(BaseCompoundProblem[K, B], ABC):
 
     def _create_policy(
         self,
-        policy: Policy,
+        policy: Policy_t,
         key: Optional[str] = None,
         **_: Any,
     ) -> SubsetPolicy[K]:

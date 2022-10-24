@@ -1,6 +1,7 @@
 from types import MappingProxyType
 from typing import Any, Dict, List, Type, Tuple, Literal, Callable, Optional, TYPE_CHECKING
 from functools import partial, update_wrapper
+import inspect
 
 import pandas as pd
 
@@ -51,9 +52,9 @@ def _validate_annotations_helper(
     df: pd.DataFrame,
     annotation_key: Optional[str] = None,
     annotations: Optional[List[Any]] = None,
-    aggregation_mode: Literal["annotation", "cell"] = AggregationMode.ANNOTATION,  # type: ignore[assignment]
+    aggregation_mode: Literal["annotation", "cell"] = "annotation",
 ) -> List[Any]:
-    if aggregation_mode == AggregationMode.ANNOTATION:  # type: ignore[comparison-overlap]
+    if aggregation_mode == AggregationMode.ANNOTATION:
         if TYPE_CHECKING:  # checked in _check_argument_compatibility_cell_transition(
             assert annotations is not None
         annotations_verified = set(df[annotation_key].cat.categories).intersection(set(annotations))
@@ -69,7 +70,7 @@ def _check_argument_compatibility_cell_transition(
     key: Optional[str] = None,
     other_key: Optional[str] = None,
     other_adata: Optional[str] = None,
-    aggregation_mode: Literal["annotation", "cell"] = AggregationMode.ANNOTATION,  # type: ignore[assignment]
+    aggregation_mode: Literal["annotation", "cell"] = "annotation",
     forward: bool = False,
     **_: Any,
 ) -> None:
@@ -208,3 +209,11 @@ def _order_transition_matrix(
             )
         return tm.T if forward else tm
     return tm if forward else tm.T
+
+
+def _filter_kwargs(*funcs: Callable[..., Any], **kwargs: Any) -> Dict[str, Any]:
+    res = {}
+    for func in funcs:
+        params = inspect.signature(func).parameters
+        res.update({k: v for k, v in kwargs.items() if k in params})
+    return res
