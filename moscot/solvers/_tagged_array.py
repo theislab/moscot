@@ -28,20 +28,15 @@ class TaggedArray:
 
     @property
     def is_cost_matrix(self) -> bool:
-        """Return `True` if :class:`moscot.solvers._tagged_array.TaggedArray` contains a cost matrix."""
+        """Whether :attr:`data` is a cost matrix."""
         return self.tag == Tag.COST_MATRIX
 
     @property
     def is_kernel(self) -> bool:
-        """Return `True` if :class:`moscot.solvers._tagged_array.TaggedArray` contains a kernel."""
+        """Whether :attr:`data` is a kernel matrix."""
         return self.tag == Tag.KERNEL
 
     @property
     def is_point_cloud(self) -> bool:
-        """Return `True` if :class:`moscot.solvers._tagged_array.TaggedArray` contains a point cloud."""
+        """Whether :attr:`data` is a point cloud."""
         return self.tag == Tag.POINT_CLOUD
-
-    @property
-    def is_grid(self) -> bool:
-        """Return `True` if :class:`moscot.solvers._tagged_array.TaggedArray` contains a grid."""
-        return self.tag == Tag.GRID
