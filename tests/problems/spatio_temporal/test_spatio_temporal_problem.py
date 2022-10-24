@@ -1,4 +1,4 @@
-from typing import List
+from typing import Any, List, Mapping
 
 import pytest
 
@@ -7,6 +7,15 @@ import numpy as np
 from anndata import AnnData
 
 from moscot.solvers._output import BaseSolverOutput
+from tests.problems.conftest import (
+    fgw_args_1,
+    fgw_args_2,
+    geometry_args,
+    gw_solver_args,
+    quad_prob_args,
+    pointcloud_args,
+    gw_sinkhorn_solver_args,
+)
 from moscot.problems.time._lineage import BirthDeathProblem
 from moscot.problems.spatio_temporal import SpatioTemporalProblem
 
@@ -95,3 +104,37 @@ class TestSpatioTemporalProblem:
             assert np.sum(np.isnan(adata_spatio_temporal.obs["apoptosis"])) == 0
         else:
             assert problem.apoptosis_key is None
+
+    @pytest.mark.parametrize("args_to_check", [fgw_args_1, fgw_args_2])
+    def test_pass_arguments(self, adata_spatio_temporal: AnnData, args_to_check: Mapping[str, Any]):
+        problem = SpatioTemporalProblem(adata=adata_spatio_temporal)
+        problem = problem.prepare("time", spatial_key="spatial")
+        problem = problem.solve(**args_to_check)
+
+        key = (0, 1)
+        solver = problem[key]._solver._solver
+        for arg, val in gw_solver_args.items():
+            assert hasattr(solver, val)
+            assert getattr(solver, val) == args_to_check[arg]
+
+        sinkhorn_solver = solver.linear_ot_solver
+        for arg, val in gw_sinkhorn_solver_args.items():
+            assert hasattr(sinkhorn_solver, val)
+            assert getattr(sinkhorn_solver, val) == args_to_check[arg]
+
+        quad_prob = problem[key]._solver._problem
+        for arg, val in quad_prob_args.items():
+            assert hasattr(quad_prob, val)
+            assert getattr(quad_prob, val) == args_to_check[arg]
+        assert hasattr(quad_prob, "fused_penalty")
+        assert quad_prob.fused_penalty == problem[key]._solver._alpha_to_fused_penalty(args_to_check["alpha"])
+
+        geom = quad_prob.geom_xx
+        for arg, val in geometry_args.items():
+            assert hasattr(geom, val)
+            assert getattr(geom, val) == args_to_check[arg]
+
+        geom = quad_prob.geom_xy
+        for arg, val in pointcloud_args.items():
+            assert hasattr(geom, val)
+            assert getattr(geom, val) == args_to_check[arg]

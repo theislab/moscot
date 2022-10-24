@@ -1,4 +1,4 @@
-from typing import List, Literal, Mapping, Optional
+from typing import Any, List, Literal, Mapping, Optional
 from pathlib import Path
 
 import pytest
@@ -9,6 +9,15 @@ from anndata import AnnData
 
 from tests._utils import _adata_spatial_split
 from moscot.problems.space import MappingProblem
+from tests.problems.conftest import (
+    fgw_args_1,
+    fgw_args_2,
+    geometry_args,
+    gw_solver_args,
+    quad_prob_args,
+    pointcloud_args,
+    gw_sinkhorn_solver_args,
+)
 from moscot.solvers._base_solver import ProblemKind
 
 # TODO(giovp): refactor as fixture
@@ -19,7 +28,7 @@ class TestMappingProblem:
     @pytest.mark.fast()
     @pytest.mark.parametrize("sc_attr", [{"attr": "X"}, {"attr": "obsm", "key": "X_pca"}])
     @pytest.mark.parametrize(
-        "joint_attr", [None, "default", {"x_attr": "obsm", "x_key": "X_pca", "y_attr": "obsm", "y_key": "X_pca"}]
+        "joint_attr", [None, "X_pca", {"x_attr": "obsm", "x_key": "X_pca", "y_attr": "obsm", "y_key": "X_pca"}]
     )
     def test_prepare(self, adata_mapping: AnnData, sc_attr: Mapping[str, str], joint_attr: Optional[Mapping[str, str]]):
         adataref, adatasp = _adata_spatial_split(adata_mapping)
@@ -32,10 +41,7 @@ class TestMappingProblem:
         assert mp.problems == {}
         assert mp.solutions == {}
 
-        if joint_attr == "default":
-            mp = mp.prepare(batch_key="batch", sc_attr=sc_attr)
-        else:
-            mp = mp.prepare(batch_key="batch", sc_attr=sc_attr, joint_attr=joint_attr)
+        mp = mp.prepare(batch_key="batch", sc_attr=sc_attr, joint_attr=joint_attr)
 
         assert len(mp) == len(expected_keys)
         for prob_key in expected_keys:
@@ -97,3 +103,40 @@ class TestMappingProblem:
         assert np.allclose(*(sol.cost for sol in mp.solutions.values()))
         assert np.all([sol.converged for sol in mp.solutions.values()])
         assert np.all([np.all(~np.isnan(sol.transport_matrix)) for sol in mp.solutions.values()])
+
+    @pytest.mark.parametrize("args_to_check", [fgw_args_1, fgw_args_2])
+    def test_pass_arguments(self, adata_mapping: AnnData, args_to_check: Mapping[str, Any]):
+        adataref, adatasp = _adata_spatial_split(adata_mapping)
+        problem = MappingProblem(adataref, adatasp)
+
+        key = ("1", "ref")
+        problem = problem.prepare(batch_key="batch", sc_attr={"attr": "obsm", "key": "X_pca"}, filter=[key])
+        problem = problem.solve(**args_to_check)
+
+        solver = problem[key]._solver._solver
+
+        for arg, val in gw_solver_args.items():
+            assert hasattr(solver, val)
+            assert getattr(solver, val) == args_to_check[arg]
+
+        sinkhorn_solver = solver.linear_ot_solver
+        for arg, val in gw_sinkhorn_solver_args.items():
+            assert hasattr(sinkhorn_solver, val)
+            assert getattr(sinkhorn_solver, val) == args_to_check[arg]
+
+        quad_prob = problem[key]._solver._problem
+        for arg, val in quad_prob_args.items():
+            assert hasattr(quad_prob, val)
+            assert getattr(quad_prob, val) == args_to_check[arg]
+        assert hasattr(quad_prob, "fused_penalty")
+        assert quad_prob.fused_penalty == problem[key]._solver._alpha_to_fused_penalty(args_to_check["alpha"])
+
+        geom = quad_prob.geom_xx
+        for arg, val in geometry_args.items():
+            assert hasattr(geom, val)
+            assert getattr(geom, val) == args_to_check[arg]
+
+        geom = quad_prob.geom_xy
+        for arg, val in pointcloud_args.items():
+            assert hasattr(geom, val)
+            assert getattr(geom, val) == args_to_check[arg]

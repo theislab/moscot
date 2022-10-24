@@ -5,7 +5,7 @@ import pandas as pd
 from moscot._types import Str_Dict_t
 from moscot.problems.base import AnalysisMixin  # type: ignore[attr-defined]
 from moscot._docs._docs_mixins import d_mixins
-from moscot._constants._constants import AggregationMode, PlottingDefaults
+from moscot._constants._constants import PlottingDefaults
 from moscot.problems.base._mixins import AnalysisMixinProtocol
 from moscot.problems.base._compound_problem import B, K
 
@@ -39,7 +39,7 @@ class GenericAnalysisMixin(AnalysisMixin[K, B]):
         target_groups: Optional[Str_Dict_t] = None,
         key: Optional[str] = None,
         forward: bool = False,  # return value will be row-stochastic if forward=True, else column-stochastic
-        aggregation_mode: Literal["annotation", "cell"] = AggregationMode.ANNOTATION,  # type: ignore[assignment]
+        aggregation_mode: Literal["annotation", "cell"] = "annotation",
         online: bool = False,
         batch_size: Optional[int] = None,
         normalize: bool = True,
@@ -81,7 +81,7 @@ class GenericAnalysisMixin(AnalysisMixin[K, B]):
             source_groups=source_groups,
             target_groups=target_groups,
             forward=forward,
-            aggregation_mode=AggregationMode(aggregation_mode),
+            aggregation_mode=aggregation_mode,
             online=online,
             batch_size=batch_size,
             normalize=normalize,

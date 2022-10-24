@@ -2,9 +2,11 @@ from types import MappingProxyType
 from typing import Any, Dict, Tuple, Union, Generic, Mapping, TypeVar, Hashable, Optional, TYPE_CHECKING
 from collections import defaultdict
 
+from moscot._types import ProblemStage_t
 from moscot.solvers._output import BaseSolverOutput
+from moscot._constants._constants import ProblemStage
 from moscot.problems._subset_policy import SubsetPolicy
-from moscot.problems.base._base_problem import OTProblem, ProblemStage
+from moscot.problems.base._base_problem import OTProblem
 
 if TYPE_CHECKING:
     from moscot.problems.base._compound_problem import BaseCompoundProblem
@@ -56,24 +58,26 @@ class ProblemManager(Generic[K, B]):
             self._verify_shape_integrity()
 
     def add_problems(self, problems: Dict[Tuple[K, K], B], overwrite: bool = True) -> None:
-        """Add problems."""
+        """TODO: Add problems."""
         for key, prob in problems.items():
             self._add_problem(key, prob, overwrite=overwrite, verify_integrity=False)
         self._verify_shape_integrity()
 
     def remove_problem(self, key: Tuple[K, K]) -> None:
-        """Remove a problem."""
+        """TODO: Remove a problem."""
         del self.problems[key]
         self._policy.remove_node(key)
 
     def get_problems(
-        self, stage: Union[ProblemStage, Tuple[ProblemStage, ...]] = (ProblemStage.PREPARED, ProblemStage.SOLVED)
+        self,
+        stage: Union[ProblemStage_t, Tuple[ProblemStage_t, ...]] = ("prepared", "solved"),
     ) -> Dict[Tuple[K, K], B]:
-        """Get problems."""
+        """TODO: Get problems."""
         if stage is None:
             return self._problems
-        if isinstance(stage, ProblemStage):
-            stage = (stage,)
+        stage = (stage,) if isinstance(stage, str) else stage
+        stage = {ProblemStage(s) for s in stage}
+
         return {k: v for k, v in self.problems.items() if v.stage in stage}
 
     def get_solutions(self, only_converged: bool = False) -> Dict[Tuple[K, K], BaseSolverOutput]:

@@ -1,4 +1,4 @@
-from typing import List
+from typing import Any, List, Mapping
 
 import pandas as pd
 import pytest
@@ -9,6 +9,14 @@ from anndata import AnnData
 
 from moscot.problems.time import TemporalProblem
 from moscot.solvers._output import BaseSolverOutput
+from tests.problems.conftest import (
+    geometry_args,
+    lin_prob_args,
+    pointcloud_args,
+    sinkhorn_args_1,
+    sinkhorn_args_2,
+    sinkhorn_solver_args,
+)
 from moscot.problems.time._lineage import BirthDeathProblem
 
 
@@ -24,7 +32,6 @@ class TestTemporalProblem:
 
         problem = problem.prepare(
             time_key="time",
-            axis="obs",
             policy="sequential",
         )
 
@@ -207,3 +214,41 @@ class TestTemporalProblem:
             adata.uns["tmap_10_11"],
             np.array(tp[key_1, key_3].solution.transport_matrix),
         )
+
+    @pytest.mark.parametrize("args_to_check", [sinkhorn_args_1, sinkhorn_args_2])
+    def test_pass_arguments(self, adata_time: AnnData, args_to_check: Mapping[str, Any]):
+        problem = TemporalProblem(adata=adata_time)
+
+        problem = problem.prepare(
+            time_key="time",
+            policy="sequential",
+            filter=[(0, 1)],
+        )
+
+        problem = problem.solve(**args_to_check)
+        key = (0, 1)
+        solver = problem[key]._solver._solver
+        for arg, val in sinkhorn_solver_args.items():
+            assert hasattr(solver, val)
+            el = getattr(solver, val)[0] if isinstance(getattr(solver, val), tuple) else getattr(solver, val)
+            assert el == args_to_check[arg]
+
+        lin_prob = problem[key]._solver._problem
+        for arg, val in lin_prob_args.items():
+            assert hasattr(lin_prob, val)
+            el = getattr(lin_prob, val)[0] if isinstance(getattr(lin_prob, val), tuple) else getattr(lin_prob, val)
+            assert el == args_to_check[arg]
+
+        geom = lin_prob.geom
+        for arg, val in geometry_args.items():
+            assert hasattr(geom, val)
+            el = getattr(geom, val)[0] if isinstance(getattr(geom, val), tuple) else getattr(geom, val)
+            assert el == args_to_check[arg]
+
+        for arg, val in pointcloud_args.items():
+            el = getattr(geom, val)[0] if isinstance(getattr(geom, val), tuple) else getattr(geom, val)
+            assert hasattr(geom, val)
+            if arg == "cost":
+                assert type(el) == type(args_to_check[arg])  # noqa: E721
+            else:
+                assert el == args_to_check[arg]

@@ -1,10 +1,9 @@
 -r ../requirements.txt
 furo
-sphinx>=4
-sphinx-autodoc-annotation
+nbsphinx
+sphinx>=5
 sphinx-autodoc-typehints>=1.10.3
+sphinx-gallery
 sphinx_copybutton
-sphinx_design
-sphinx_rtd_theme
 sphinxcontrib-bibtex>=2.3.0
 sphinxcontrib-spelling

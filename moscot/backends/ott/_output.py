@@ -1,4 +1,4 @@
-from typing import Any, Tuple, Union, Literal, Optional
+from typing import Any, Tuple, Union, Optional
 
 from matplotlib.figure import Figure
 import matplotlib.pyplot as plt
@@ -10,12 +10,10 @@ import jax
 import jax.numpy as jnp
 import jaxlib.xla_extension as xla_ext
 
-from moscot._types import ArrayLike
+from moscot._types import Device_t, ArrayLike
 from moscot.solvers._output import BaseSolverOutput
 
 __all__ = ["OTTOutput"]
-
-Device_t = Union[str, xla_ext.Device, Literal["cpu", "gpu", "tpu"]]
 
 
 # TODO(michalk8): merge to OTTOutput

@@ -14,7 +14,6 @@ from moscot._types import ArrayLike
 from moscot._constants._constants import Policy
 
 Value_t = Tuple[ArrayLike, ArrayLike]
-Axis_t = Literal["obs", "var"]
 Policy_t = Literal[
     "sequential",
     "star",
@@ -49,27 +48,19 @@ class FormatterMixin(ABC):
 class SubsetPolicy(Generic[K]):
     """Policy class."""
 
-    def __init__(
-        self, adata: Union[AnnData, pd.Series, pd.Categorical], key: Optional[str] = None, axis: Axis_t = "obs"
-    ):
+    def __init__(self, adata: Union[AnnData, pd.Series, pd.Categorical], key: Optional[str] = None):
         if isinstance(adata, AnnData):
             # TODO(michalk8): raise nicer KeyError (giovp) this way we can solve for full anndata with key=None
-            if key is not None:
-                if axis == "obs":
-                    self._data = pd.Series(adata.obs[key])
-                elif axis == "var":
-                    self._data = pd.Series(adata.var[key])
-                else:
-                    raise ValueError(f"TODO: wrong axis `{axis}`")
-            else:
-                raise ValueError(f"TODO: wrong axis `{axis}`")
+            self._data = pd.Series(adata.obs[key])
         else:
             self._data = adata
         self._data = self._data.astype("category")  # TODO(@MUCDK): catch conversion error
-        self._axis = axis
         self._graph: Set[Tuple[K, K]] = set()
         self._cat = tuple(self._data.cat.categories)
         self._subset_key: Optional[str] = key
+
+        if len(self._cat) < 2:
+            raise ValueError(f"`adata.obs[{key}]` must contain at least two different values.")
 
     @abstractmethod
     def _create_graph(self, **kwargs: Any) -> Set[Tuple[K, K]]:
@@ -114,10 +105,11 @@ class SubsetPolicy(Generic[K]):
     @classmethod
     def create(
         cls,
-        kind: Policy,
+        kind: Policy_t,
         adata: Union[AnnData, pd.Series, pd.Categorical],
         **kwargs: Any,
     ) -> "SubsetPolicy[K]":
+        kind = Policy(kind)
         if kind == Policy.SEQUENTIAL:
             return SequentialPolicy(adata, **kwargs)
         if kind == Policy.STAR:
@@ -176,10 +168,6 @@ class SubsetPolicy(Generic[K]):
             self._graph.remove(node)
         except KeyError:
             pass
-
-    @property
-    def axis(self) -> Axis_t:
-        return self._axis
 
 
 class OrderedPolicy(SubsetPolicy[K], ABC):  # noqa: B024

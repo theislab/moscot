@@ -7,13 +7,13 @@ import numpy as np
 
 from anndata import AnnData
 
-from moscot._types import Numeric_t, QuadInitializer_t, SinkhornInitializer_t
+from moscot._types import Numeric_t, ScaleCost_t, ProblemStage_t, QuadInitializer_t, SinkhornInitializer_t
 from moscot._docs._docs import d
+from moscot.problems._utils import handle_joint_attr
 from moscot.solvers._output import BaseSolverOutput
-from moscot._constants._constants import Policy, ScaleCost
+from moscot._constants._constants import Policy
 from moscot.problems.time._mixins import TemporalMixin
 from moscot.problems.base._birth_death import BirthDeathMixin, BirthDeathProblem
-from moscot.problems.base._base_problem import ScaleCost_t, ProblemStage
 from moscot.problems.base._compound_problem import B, CompoundProblem
 
 
@@ -47,7 +47,7 @@ class TemporalProblem(
         self,
         time_key: str,
         joint_attr: Optional[Union[str, Mapping[str, Any]]] = None,
-        policy: Literal[Policy.SEQUENTIAL, Policy.TRIL, Policy.TRIU, Policy.EXPLICIT] = Policy.SEQUENTIAL,
+        policy: Literal["sequential", "tril", "triu", "explicit"] = "sequential",
         marginal_kwargs: Mapping[str, Any] = MappingProxyType({}),
         **kwargs: Any,
     ) -> "TemporalProblem":
@@ -66,7 +66,6 @@ class TemporalProblem(
         %(marginal_kwargs)s
         %(subset)s
         %(reference)s
-        %(axis)s
         %(callback)s
         %(callback_kwargs)s
 
@@ -88,23 +87,7 @@ class TemporalProblem(
         """
         self.temporal_key = time_key
         policy = Policy(policy)  # type: ignore[assignment]
-        if joint_attr is None:
-            if "callback" not in kwargs:
-                kwargs["callback"] = "local-pca"
-            else:
-                kwargs["callback"] = kwargs["callback"]
-            kwargs["callback_kwargs"] = {**kwargs.get("callback_kwargs", {}), **{"return_linear": True}}
-        elif isinstance(joint_attr, str):
-            kwargs["xy"] = {
-                "x_attr": "obsm",
-                "x_key": joint_attr,
-                "y_attr": "obsm",
-                "y_key": joint_attr,
-            }
-        elif isinstance(joint_attr, Mapping):
-            kwargs["xy"] = joint_attr
-        else:
-            raise TypeError("TODO")
+        xy, kwargs = handle_joint_attr(joint_attr, kwargs)
 
         # TODO(michalk8): needs to be modified
         marginal_kwargs = dict(marginal_kwargs)
@@ -117,6 +100,7 @@ class TemporalProblem(
 
         return super().prepare(
             key=time_key,
+            xy=xy,
             policy=policy,
             marginal_kwargs=marginal_kwargs,
             **kwargs,
@@ -128,12 +112,24 @@ class TemporalProblem(
         epsilon: Optional[float] = 1e-3,
         tau_a: float = 1.0,
         tau_b: float = 1.0,
-        scale_cost: ScaleCost_t = ScaleCost.MEAN,
         rank: int = -1,
+        scale_cost: ScaleCost_t = "mean",
+        cost: Literal["SqEuclidean"] = "SqEuclidean",
+        power: int = 1,
         batch_size: Optional[int] = None,
-        stage: Union[ProblemStage, Tuple[ProblemStage, ...]] = (ProblemStage.PREPARED, ProblemStage.SOLVED),
-        initializer: SinkhornInitializer_t = None,
+        stage: Union[ProblemStage_t, Tuple[ProblemStage_t, ...]] = ("prepared", "solved"),
+        initializer: SinkhornInitializer_t = "default",
         initializer_kwargs: Mapping[str, Any] = MappingProxyType({}),
+        jit: bool = True,
+        threshold: float = 1e-3,
+        lse_mode: bool = True,
+        norm_error: int = 1,
+        inner_iterations: int = 10,
+        min_iterations: int = 0,
+        max_iterations: int = 2000,
+        gamma: float = 10.0,
+        gamma_rescale: bool = True,
+        device: Optional[Literal["cpu", "gpu", "tpu"]] = None,
         **kwargs: Any,
     ) -> "TemporalProblem":
         """
@@ -144,30 +140,43 @@ class TemporalProblem(
         %(epsilon)s
         %(tau_a)s
         %(tau_b)s
-        %(scale_cost)s
         %(rank)s
-        %(ott_jax_batch_size)s
+        %(scale_cost)s
+        %(pointcloud_kwargs)s
         %(stage)s
         %(initializer_lin)s
         %(initializer_kwargs)s
-        %(solve_kwargs)s
-
+        %(jit)s
+        %(sinkhorn_kwargs)s
+        %(sinkhorn_lr_kwargs)s
+        %(device)s
 
         Returns
         -------
         :class:`moscot.problems.time.TemporalProblem`.
         """
-        scale_cost = ScaleCost(scale_cost) if isinstance(scale_cost, ScaleCost) else scale_cost
         return super().solve(
             epsilon=epsilon,
             tau_a=tau_a,
             tau_b=tau_b,
-            scale_cost=scale_cost,
             rank=rank,
+            scale_cost=scale_cost,
+            cost=cost,
+            power=power,
             batch_size=batch_size,
             stage=stage,
             initializer=initializer,
             initializer_kwargs=initializer_kwargs,
+            jit=jit,
+            threshold=threshold,
+            lse_mode=lse_mode,
+            norm_error=norm_error,
+            inner_iterations=inner_iterations,
+            min_iterations=min_iterations,
+            max_iterations=max_iterations,
+            gamma=gamma,
+            gamma_rescale=gamma_rescale,
+            device=device,
             **kwargs,
         )  # type:ignore[return-value]
 
@@ -285,7 +294,7 @@ class LineageProblem(TemporalProblem):
         time_key: str,
         lineage_attr: Mapping[str, Any] = MappingProxyType({}),
         joint_attr: Optional[Union[str, Mapping[str, Any]]] = None,
-        policy: Literal[Policy.SEQUENTIAL, Policy.TRIL, Policy.TRIU, Policy.EXPLICIT] = Policy.SEQUENTIAL,
+        policy: Literal["sequential", "tril", "triu", "sequential"] = "sequential",
         **kwargs: Any,
     ) -> "LineageProblem":
         """
@@ -305,7 +314,6 @@ class LineageProblem(TemporalProblem):
         %(b)s
         %(subset)s
         %(reference)s
-        %(axis)s
         %(callback)s
         %(callback_kwargs)s
 
@@ -328,7 +336,6 @@ class LineageProblem(TemporalProblem):
         -----
         If `a` and `b` are provided `marginal_kwargs` are ignored.
         """
-        policy = Policy(policy)  # type: ignore[assignment]
         if not len(lineage_attr) and ("cost_matrices" not in self.adata.obsp):
             raise ValueError(
                 "TODO: default location for quadratic loss is `adata.obsp[`cost_matrices`]` \
@@ -343,9 +350,10 @@ class LineageProblem(TemporalProblem):
         lineage_attr.setdefault("loss_kwargs", {})
         x = y = lineage_attr
 
+        xy, kwargs = handle_joint_attr(joint_attr, kwargs)
         return super().prepare(
             time_key,
-            joint_attr=joint_attr,
+            joint_attr=xy,
             x=x,
             y=y,
             policy=policy,
@@ -359,13 +367,28 @@ class LineageProblem(TemporalProblem):
         epsilon: Optional[float] = 1e-3,
         tau_a: float = 1.0,
         tau_b: float = 1.0,
-        scale_cost: ScaleCost_t = ScaleCost.MEAN,
         rank: int = -1,
+        scale_cost: ScaleCost_t = "mean",
+        cost: Literal["SqEuclidean"] = "SqEuclidean",
+        power: int = 1,
         batch_size: Optional[int] = None,
-        stage: Union[ProblemStage, Tuple[ProblemStage, ...]] = (ProblemStage.PREPARED, ProblemStage.SOLVED),
+        stage: Union[ProblemStage_t, Tuple[ProblemStage_t, ...]] = ("prepared", "solved"),
         initializer: QuadInitializer_t = None,
         initializer_kwargs: Mapping[str, Any] = MappingProxyType({}),
-        **kwargs: Any,
+        jit: bool = True,
+        lse_mode: bool = True,
+        norm_error: int = 1,
+        inner_iterations: int = 10,
+        min_iterations: int = 5,
+        max_iterations: int = 50,
+        threshold: float = 1e-3,
+        warm_start: Optional[bool] = None,
+        gamma: float = 10.0,
+        gamma_rescale: bool = True,
+        gw_unbalanced_correction: bool = True,
+        ranks: Union[int, Tuple[int, ...]] = -1,
+        tolerances: Union[float, Tuple[float, ...]] = 1e-2,
+        device: Optional[Literal["cpu", "gpu", "tpu"]] = None,
     ) -> "LineageProblem":
         """
         Solve optimal transport problems defined in :class:`moscot.problems.time.LineageProblem`.
@@ -376,29 +399,46 @@ class LineageProblem(TemporalProblem):
         %(epsilon)s
         %(tau_a)s
         %(tau_b)s
-        %(scale_cost)s
         %(rank)s
-        %(ott_jax_batch_size)s
+        %(scale_cost)s
+        %(pointcloud_kwargs)s
         %(stage)s
         %(initializer_quad)s
         %(initializer_kwargs)s
-        %(solve_kwargs)s
+        %(gw_kwargs)s
+        %(sinkhorn_lr_kwargs)s
+        %(gw_lr_kwargs)s
+        %(device)s
 
         Returns
         -------
-        :class:`moscot.problems.time.TemporalProblem`
+        :class:`moscot.problems.time.LineageProblem`
         """
-        scale_cost = ScaleCost(scale_cost) if isinstance(scale_cost, ScaleCost) else scale_cost
         return super().solve(
             alpha=alpha,
             epsilon=epsilon,
             tau_a=tau_a,
             tau_b=tau_b,
-            scale_cost=scale_cost,
             rank=rank,
+            scale_cost=scale_cost,
+            cost=cost,
+            power=power,
             batch_size=batch_size,
             stage=stage,
             initializer=initializer,
             initializer_kwargs=initializer_kwargs,
-            **kwargs,
+            jit=jit,
+            lse_mode=lse_mode,
+            norm_error=norm_error,
+            inner_iterations=inner_iterations,
+            min_iterations=min_iterations,
+            max_iterations=max_iterations,
+            threshold=threshold,
+            warm_start=warm_start,
+            gamma=gamma,
+            gamma_rescale=gamma_rescale,
+            gw_unbalanced_correction=gw_unbalanced_correction,
+            ranks=ranks,
+            tolerances=tolerances,
+            device=device,
         )

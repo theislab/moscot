@@ -1,6 +1,7 @@
 from types import MappingProxyType
-from typing import Any, Dict, List, Type, Tuple, Literal, Callable, Iterable, Optional, TYPE_CHECKING
+from typing import Any, Dict, List, Type, Tuple, Literal, Callable, Optional, TYPE_CHECKING
 from functools import partial, update_wrapper
+import inspect
 
 import pandas as pd
 
@@ -50,10 +51,10 @@ def attributedispatch(func: Optional[Callback] = None, attr: Optional[str] = Non
 def _validate_annotations_helper(
     df: pd.DataFrame,
     annotation_key: Optional[str] = None,
-    annotations: Optional[Iterable[Any]] = None,
-    aggregation_mode: Literal["annotation", "cell"] = AggregationMode.ANNOTATION,  # type: ignore[assignment]
+    annotations: Optional[List[Any]] = None,
+    aggregation_mode: Literal["annotation", "cell"] = "annotation",
 ) -> List[Any]:
-    if aggregation_mode == AggregationMode.ANNOTATION:  # type: ignore[comparison-overlap]
+    if aggregation_mode == AggregationMode.ANNOTATION:
         if TYPE_CHECKING:  # checked in _check_argument_compatibility_cell_transition(
             assert annotations is not None
         annotations_verified = set(df[annotation_key].cat.categories).intersection(set(annotations))
@@ -69,7 +70,7 @@ def _check_argument_compatibility_cell_transition(
     key: Optional[str] = None,
     other_key: Optional[str] = None,
     other_adata: Optional[str] = None,
-    aggregation_mode: Literal["annotation", "cell"] = AggregationMode.ANNOTATION,  # type: ignore[assignment]
+    aggregation_mode: Literal["annotation", "cell"] = "annotation",
     forward: bool = False,
     **_: Any,
 ) -> None:
@@ -97,18 +98,18 @@ def _get_df_cell_transition(
 def _validate_args_cell_transition(
     adata: AnnData,
     arg: Str_Dict_t,
-) -> Tuple[str, Iterable[Any]]:
+) -> Tuple[str, List[Any], Optional[List[str]]]:
     if isinstance(arg, str):
         if arg not in adata.obs:
             raise KeyError(f"TODO. {arg} not in adata.obs.columns")
-        return arg, adata.obs[arg].cat.categories
+        return arg, adata.obs[arg].cat.categories, None
     if isinstance(arg, dict):
         if len(arg) > 1:
             raise ValueError(f"Invalid dictionary length: `{len(arg)}` expected 1. ")
         key, val = next(iter(arg.items()))
         if not set(val).issubset(adata.obs[key].cat.categories):
             raise ValueError(f"Not all values {val} could be found in `adata.obs[{key}]`.")
-        return key, val
+        return key, val, val
     raise TypeError("TODO: `arg` must be of type `str` or `dict`")
 
 
@@ -144,3 +145,75 @@ def _get_problem_key(
     elif source is not None and target is None:
         return (source, "ref")  # TODO(@MUCDK) make package constant
     return ("src", "ref")
+
+
+def _order_transition_matrix_helper(
+    tm: pd.DataFrame,
+    rows_verified: List[str],
+    cols_verified: List[str],
+    row_order: Optional[List[str]],
+    col_order: Optional[List[str]],
+) -> pd.DataFrame:
+    if col_order is not None:
+        tm = tm[[col for col in col_order if col in cols_verified]]
+    tm = tm.T
+    if row_order is not None:
+        return tm[[row for row in row_order if row in rows_verified]]
+    return tm
+
+
+def _order_transition_matrix(
+    tm: pd.DataFrame,
+    source_annotations_verified: List[str],
+    target_annotations_verified: List[str],
+    source_annotations_ordered: Optional[List[str]],
+    target_annotations_ordered: Optional[List[str]],
+    forward: bool,
+) -> pd.DataFrame:
+
+    if target_annotations_ordered is not None or source_annotations_ordered is not None:
+        if forward:
+            tm = _order_transition_matrix_helper(
+                tm=tm,
+                rows_verified=source_annotations_verified,
+                cols_verified=target_annotations_verified,
+                row_order=source_annotations_ordered,
+                col_order=target_annotations_ordered,
+            )
+        else:
+            tm = _order_transition_matrix_helper(
+                tm=tm,
+                rows_verified=target_annotations_verified,
+                cols_verified=source_annotations_verified,
+                row_order=target_annotations_ordered,
+                col_order=source_annotations_ordered,
+            )
+        return tm.T if forward else tm
+    elif target_annotations_verified == source_annotations_verified:
+        annotations_ordered = tm.columns.sort_values()
+        if forward:
+            tm = _order_transition_matrix_helper(
+                tm=tm,
+                rows_verified=source_annotations_verified,
+                cols_verified=target_annotations_verified,
+                row_order=annotations_ordered,
+                col_order=annotations_ordered,
+            )
+        else:
+            tm = _order_transition_matrix_helper(
+                tm=tm,
+                rows_verified=target_annotations_verified,
+                cols_verified=source_annotations_verified,
+                row_order=annotations_ordered,
+                col_order=annotations_ordered,
+            )
+        return tm.T if forward else tm
+    return tm if forward else tm.T
+
+
+def _filter_kwargs(*funcs: Callable[..., Any], **kwargs: Any) -> Dict[str, Any]:
+    res = {}
+    for func in funcs:
+        params = inspect.signature(func).parameters
+        res.update({k: v for k, v in kwargs.items() if k in params})
+    return res
