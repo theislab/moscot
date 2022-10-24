@@ -56,6 +56,7 @@ class TestMappingProblem:
         assert len(mp) == 1
         assert isinstance(mp[prob_key], mp._base_problem_type)
         assert mp[prob_key].shape == (2 * n_obs, n_obs)
+        np.testing.assert_array_equal(mp._policy._cat, prob_key)
 
     @pytest.mark.fast()
     @pytest.mark.parametrize("var_names", ["0", [], [str(i) for i in range(20)]])
