@@ -143,14 +143,14 @@ class OTTOutput(ConvergencePlotterMixin, BaseSolverOutput):
             try:
                 device = jax.devices(device)[idx]
             except IndexError:
-                raise IndexError("TODO: indexing error when fetching device") from None
+                raise IndexError(f"Unable to fetch the device with `id={idx}`.")
 
         out = jax.device_put(self._output, device)
         return OTTOutput(out)
 
     @property
     def cost(self) -> float:
-        """TODO."""
+        """Regularized optimal transport cost."""
         if isinstance(self._output, (OTTSinkhornOutput, OTTLRSinkhornOutput)):
             return float(self._output.reg_ot_cost)
         return float(self._output.reg_gw_cost)
