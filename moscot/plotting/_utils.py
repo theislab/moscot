@@ -17,6 +17,7 @@ from scanpy.plotting._utils import add_colors_for_categorical_sample_annotation 
 import scanpy as sc
 
 from moscot.problems.base import CompoundProblem  # type: ignore[attr-defined]
+from moscot._constants._constants import AggregationMode
 from moscot.problems.base._compound_problem import K
 
 
@@ -203,13 +204,14 @@ def _heatmap(
     return_fig: Optional[bool] = None,
     **kwargs: Any,
 ) -> Optional[mpl.figure.Figure]:
-
     cbar_kwargs = dict(cbar_kwargs)
 
     if ax is None:
         fig, ax = plt.subplots(constrained_layout=True, dpi=dpi, figsize=figsize)
-    set_palette(adata=row_adata, key=row_annotation, cont_cmap=cont_cmap)
-    set_palette(adata=col_adata, key=col_annotation, cont_cmap=cont_cmap)
+    if row_annotation != AggregationMode.CELL:
+        set_palette(adata=row_adata, key=row_annotation, cont_cmap=cont_cmap)
+    if col_annotation != AggregationMode.CELL:
+        set_palette(adata=col_adata, key=col_annotation, cont_cmap=cont_cmap)
 
     row_cmap, col_cmap, row_norm, col_norm = _get_cmap_norm(
         row_adata, col_adata, transition_matrix, row_annotation, col_annotation
@@ -245,19 +247,20 @@ def _heatmap(
         **cbar_kwargs,
     )
 
-    col_cats = divider.append_axes("top", size="2%", pad=0)
-    c = fig.colorbar(col_sm, cax=col_cats, orientation="horizontal", ticklocation="top")
+    if col_annotation != AggregationMode.CELL:
+        col_cats = divider.append_axes("top", size="2%", pad=0)
+        c = fig.colorbar(col_sm, cax=col_cats, orientation="horizontal", ticklocation="top")
 
-    c.set_ticks(np.arange(transition_matrix.shape[1]) + 0.5)
-    c.ax.set_xticklabels(transition_matrix.columns, rotation=90)
-    c.set_label(col_annotation if col_annotation_label is None else col_annotation_label)
+        c.set_ticks(np.arange(transition_matrix.shape[1]) + 0.5)
+        c.ax.set_xticklabels(transition_matrix.columns, rotation=90)
+        c.set_label(col_annotation if col_annotation_label is None else col_annotation_label)
+    if row_annotation != AggregationMode.CELL:
+        row_cats = divider.append_axes("left", size="2%", pad=0)
+        c = fig.colorbar(row_sm, cax=row_cats, orientation="vertical", ticklocation="left")
 
-    row_cats = divider.append_axes("left", size="2%", pad=0)
-    c = fig.colorbar(row_sm, cax=row_cats, orientation="vertical", ticklocation="left")
-
-    c.set_ticks(np.arange(transition_matrix.shape[0]) + 0.5)
-    c.ax.set_yticklabels(transition_matrix.index[::-1])
-    c.set_label(row_annotation if row_annotation_label is None else row_annotation_label)
+        c.set_ticks(np.arange(transition_matrix.shape[0]) + 0.5)
+        c.ax.set_yticklabels(transition_matrix.index[::-1])
+        c.set_label(row_annotation if row_annotation_label is None else row_annotation_label)
 
     if save:
         fig.savefig(save, bbox_inches="tight")
@@ -309,17 +312,23 @@ def _get_cmap_norm(
     row_annotation: str,
     col_annotation: str,
 ) -> Tuple[mcolors.ListedColormap, mcolors.ListedColormap, mcolors.BoundaryNorm, mcolors.BoundaryNorm]:
-    row_color_dict = {
-        row_adata.obs[row_annotation].cat.categories[i]: col
-        for i, col in enumerate(row_adata.uns[f"{row_annotation}_colors"])
-    }
-    col_color_dict = {
-        col_adata.obs[col_annotation].cat.categories[i]: col
-        for i, col in enumerate(col_adata.uns[f"{col_annotation}_colors"])
-    }
 
-    row_colors = [row_color_dict[cat] for cat in transition_matrix.index][::-1]
-    col_colors = [col_color_dict[cat] for cat in transition_matrix.columns]
+    if row_annotation != AggregationMode.CELL:
+        row_color_dict = {
+            row_adata.obs[row_annotation].cat.categories[i]: col
+            for i, col in enumerate(row_adata.uns[f"{row_annotation}_colors"])
+        }
+        row_colors = [row_color_dict[cat] for cat in transition_matrix.index][::-1]
+    else:
+        row_colors = [0, 0, 0]
+    if col_annotation != AggregationMode.CELL:
+        col_color_dict = {
+            col_adata.obs[col_annotation].cat.categories[i]: col
+            for i, col in enumerate(col_adata.uns[f"{col_annotation}_colors"])
+        }
+        col_colors = [col_color_dict[cat] for cat in transition_matrix.columns]
+    else:
+        col_colors = [0, 0, 0]
 
     row_cmap = mcolors.ListedColormap(row_colors)
     col_cmap = mcolors.ListedColormap(col_colors)

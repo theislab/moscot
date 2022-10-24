@@ -55,3 +55,158 @@ def adata_time_with_tmap(adata_time: AnnData) -> AnnData:
     adata.uns["cell_transition_gt"] = cell_transition_gt
 
     return adata
+
+
+sinkhorn_args_1 = {
+    "epsilon": 0.7,
+    "tau_a": 1.0,
+    "tau_b": 1.0,
+    "rank": 7,
+    "initializer": "rank2",
+    "initializer_kwargs": {},
+    "jit": False,
+    "threshold": 2e-3,
+    "lse_mode": True,
+    "norm_error": 2,
+    "inner_iterations": 3,
+    "min_iterations": 4,
+    "max_iterations": 9,
+    "gamma": 9.4,
+    "gamma_rescale": False,
+    # "cost": "SqEuclidean", #TODO handle
+    "power": 3,
+    "batch_size": 1023,
+    "scale_cost": "max_cost",
+}
+
+
+sinkhorn_args_2 = {
+    "epsilon": 0.8,
+    "tau_a": 0.9,
+    "tau_b": 0.8,
+    "rank": -1,
+    "batch_size": 125,
+    "initializer": "gaussian",
+    "initializer_kwargs": {},
+    "jit": True,
+    "threshold": 3e-3,
+    "lse_mode": False,
+    "norm_error": 3,
+    "inner_iterations": 4,
+    "min_iterations": 1,
+    "max_iterations": 2,
+    # "cost": "SqEuclidean", TODO: handle
+    "power": 4,
+    "scale_cost": "mean",
+}
+
+gw_args_1 = {
+    "epsilon": 0.5,
+    "tau_a": 0.7,
+    "tau_b": 0.8,
+    "scale_cost": "max_cost",
+    "rank": -1,
+    "batch_size": 122,
+    "initializer": "quad_initializer",
+    "initializer_kwargs": {},
+    "jit": True,
+    "threshold": 3e-2,
+    # "norm_error": 2, TODO: check once linear_ot_solver kwargs allowed
+    "inner_iterations": 2,
+    "min_iterations": 3,
+    "max_iterations": 4,
+    "gamma": 9.3,
+    "gamma_rescale": True,
+    "gw_unbalanced_correction": True,
+    "ranks": 4,
+    "tolerances": 2e-2,
+    "warm_start": False,
+    "lse_mode": False,
+    "power": 4,
+    # "cost": "SqEuclidean", #TODO handle
+}
+
+gw_args_2 = {
+    "alpha": 0.4,
+    "epsilon": 0.7,
+    "tau_a": 1.0,
+    "tau_b": 1.0,
+    "scale_cost": "max_cost",
+    "rank": 7,
+    "batch_size": 123,
+    "initializer": "rank2",
+    "initializer_kwargs": {},
+    "jit": False,
+    "threshold": 2e-3,
+    # "norm_error": 2, TODO: check once linear_ot_solver kwargs allowed
+    "inner_iterations": 3,
+    "min_iterations": 2,
+    "max_iterations": 3,
+    "gamma": 9.4,
+    "gamma_rescale": False,
+    "gw_unbalanced_correction": False,
+    "ranks": 3,
+    "tolerances": 3e-2,
+    "warm_start": True,
+    "lse_mode": True,
+    "power": 3,
+    # "cost": "SqEuclidean", TODO: handle
+}
+
+fgw_args_1 = gw_args_1.copy()
+fgw_args_1["alpha"] = 0.6
+
+fgw_args_2 = gw_args_2.copy()
+fgw_args_2["alpha"] = 0.4
+
+gw_solver_args = {
+    "epsilon": "epsilon",
+    "rank": "rank",
+    "threshold": "threshold",
+    "min_iterations": "min_iterations",
+    "max_iterations": "max_iterations",
+    "initializer": "quad_initializer",
+    "initializer_kwargs": "kwargs_init",
+    "jit": "jit",
+    "warm_start": "_warm_start",
+    "initializer": "quad_initializer",
+}
+
+gw_sinkhorn_solver_args = {
+    "lse_mode": "lse_mode",
+    # "norm_error": "norm_error", # TODO: check once linear_ot_solver kwargs allowed
+    "inner_iterations": "inner_iterations",
+}
+
+quad_prob_args = {
+    "tau_a": "tau_a",
+    "tau_b": "tau_b",
+    "gw_unbalanced_correction": "gw_unbalanced_correction",
+    "ranks": "ranks",
+    "tolerances": "tolerances",
+}
+
+geometry_args = {"epsilon": "_epsilon_init", "scale_cost": "_scale_cost"}
+
+pointcloud_args = {
+    # "cost": "cost_fn", TODO: handle
+    "power": "power",
+    "batch_size": "_batch_size",
+    "scale_cost": "_scale_cost",
+}
+
+sinkhorn_solver_args = {
+    "lse_mode": "lse_mode",
+    "threshold": "threshold",
+    "norm_error": "norm_error",
+    "inner_iterations": "inner_iterations",
+    "min_iterations": "min_iterations",
+    "max_iterations": "max_iterations",
+    "initializer": "initializer",
+    "initializer_kwargs": "kwargs_init",
+    "jit": "jit",
+}
+lin_prob_args = {
+    "tau_a": "tau_a",
+    "tau_b": "tau_b",
+}
