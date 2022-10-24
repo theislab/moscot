@@ -290,6 +290,12 @@ class OTProblem(BaseProblem):
             if data.shape[1] <= n_comps:
                 return {"xy": TaggedArray(data[:n], data[n:], tag=Tag.POINT_CLOUD)}
             logger.info(f"Computing pca with `n_comps = {n_comps}` on `{pca_space}`.")
+            if joint_space:
+                data = sc.pp.pca(data, n_comps=n_comps, **kwargs)
+            else:
+                data = concat(sc.pp.pca(data, n_comps=n_comps, **kwargs), sc.pp.pca(y, n_comps=n_comps, **kwargs))
+
+            return {"xy": TaggedArray(data[:n], data[n:], tag=Tag.POINT_CLOUD)}
 
         logger.info(f"Computing pca with `n_comps = {n_comps}` on `{pca_space}`.")
         x = sc.pp.pca(x, n_comps=n_comps, **kwargs)
