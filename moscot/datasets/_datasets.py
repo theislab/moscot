@@ -27,6 +27,18 @@ _datasets = {
         "https://figshare.com/ndownloader/files/36704517",
         (2000, 2000),
     ),
+    "drosophila_sc": (
+        "https://figshare.com/s/7be442d6876ba34352e3",
+        (1297, 2000),
+    ),
+    "drosophila_sp": (
+        "https://figshare.com/s/99ec7d09b532323a8179",
+        (3039, 82),
+    ),
+    "sim_align": (
+        "https://figshare.com/s/9f392b5ebf04a137f846",
+        (1200, 500),
+    ),
 }
 
 
@@ -124,3 +136,79 @@ def hspc(
     %(adata)s
     """
     return _load_dataset_from_url(path, *_datasets["hspc"], **kwargs)
+
+
+@d.dedent
+def drosophila_sc(
+    path: PathLike = "datasets/drosophila_sc",
+    **kwargs: Any,
+) -> AnnData:
+    """
+    Single-cell transcriptomics of embryo of drosophila melanogaster \
+    as described in :cite:`Li-spatial:22`.
+
+    Minimal pre-processing was performed, such as gene and cell filtering
+    as well as normalization. Processing steps at
+    https://github.com/theislab/moscot-framework_reproducibility.
+
+    Parameters
+    ----------
+    path
+        Location where the file is saved to.
+    kwargs
+        TODO.
+
+    Returns
+    -------
+    %(adata)s
+    """
+    return _load_dataset_from_url(path, *_datasets["drosophila_sc"], **kwargs)
+
+
+@d.dedent
+def drosophila_sp(
+    path: PathLike = "datasets/drosophila_sp",
+    **kwargs: Any,
+) -> AnnData:
+    """
+    Spatial transcriptomics of embryo of drosophila melanogaster \
+    as described in :cite:`Li-spatial:22`.
+
+    Minimal pre-processing was performed, such as gene and cell filtering
+    as well as normalization. Processing steps at
+    https://github.com/theislab/moscot-framework_reproducibility.
+
+    Parameters
+    ----------
+    path
+        Location where the file is saved to.
+    kwargs
+        TODO.
+
+    Returns
+    -------
+    %(adata)s
+    """
+    return _load_dataset_from_url(path, *_datasets["drosophila_sp"], **kwargs)
+
+
+@d.dedent
+def sim_align(
+    path: PathLike = "datasets/sim_align",
+    **kwargs: Any,
+) -> AnnData:
+    """
+    Spatial transcriptomics dataset simulation described in :cite:`Jones-spatial:22`.
+
+    Parameters
+    ----------
+    path
+        Location where the file is saved to.
+    kwargs
+        TODO.
+
+    Returns
+    -------
+    %(adata)s
+    """
+    return _load_dataset_from_url(path, *_datasets["sim_align"], **kwargs)

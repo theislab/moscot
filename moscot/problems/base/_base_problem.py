@@ -26,7 +26,7 @@ __all__ = ["BaseProblem", "OTProblem", "ProblemKind"]
 class BaseProblem(ABC):
     """Problem interface handling one optimal transport problem."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         self._problem_kind: ProblemKind = ProblemKind.UNKNOWN
         self._stage = ProblemStage.INITIALIZED
 
