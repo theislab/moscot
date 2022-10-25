@@ -439,6 +439,7 @@ class BaseCompoundProblem(BaseProblem, ABC, Generic[K, B]):
         self._problem_manager.remove_problem(key)
         return self
 
+    # TODO(MUCKD): should be on the OT problem level as well
     def save(
         self,
         # TODO(michalk8): rename arg, no optional
@@ -477,12 +478,13 @@ class BaseCompoundProblem(BaseProblem, ABC, Generic[K, B]):
         file_dir = os.path.join(dir_path, file_name) if dir_path is not None else file_name
 
         if not overwrite and os.path.exists(file_dir):
-            raise RuntimeError(f"Unable to overwrite existing file `{file_dir}`, please specify `overwrite=True`.")
+            raise RuntimeError(f"Unable to save to an existing file `{file_dir}` use `overwrite=True` to overwrite it.")
         with open(file_dir, "wb") as f:
             pickle.dump(self, f, protocol=prot)
 
         logger.info(f"Successfully saved the problem as `{file_dir}`")
 
+    # TODO(MUCKD): should be on the OT problem level as well
     @classmethod
     def load(
         cls,
