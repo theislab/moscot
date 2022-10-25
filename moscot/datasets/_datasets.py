@@ -27,16 +27,16 @@ _datasets = {
         "https://figshare.com/ndownloader/files/36704517",
         (2000, 2000),
     ),
-    "drosophila_sc": (
-        "https://figshare.com/s/7be442d6876ba34352e3",
+    "adata_dm_sc": (
+        "https://figshare.com/ndownloader/files/37984938",
         (1297, 2000),
     ),
-    "drosophila_sp": (
-        "https://figshare.com/s/99ec7d09b532323a8179",
+    "adata_dm_sp": (
+        "https://figshare.com/ndownloader/files/37984935",
         (3039, 82),
     ),
     "sim_align": (
-        "https://figshare.com/s/9f392b5ebf04a137f846",
+        "https://figshare.com/ndownloader/files/37984926",
         (1200, 500),
     ),
 }
@@ -48,6 +48,7 @@ def _load_dataset_from_url(fpath: PathLike, backup_url: str, expected_shape: Tup
         fpath += ".h5ad"
     kwargs.setdefault("sparse", True)
     kwargs.setdefault("cache", True)
+    print(fpath, backup_url)
 
     adata = read(filename=fpath, backup_url=backup_url, **kwargs)
 
@@ -140,7 +141,7 @@ def hspc(
 
 @d.dedent
 def drosophila_sc(
-    path: PathLike = "datasets/drosophila_sc",
+    path: PathLike = "datasets/adata_dm_sc",
     **kwargs: Any,
 ) -> AnnData:
     """
@@ -162,12 +163,12 @@ def drosophila_sc(
     -------
     %(adata)s
     """
-    return _load_dataset_from_url(path, *_datasets["drosophila_sc"], **kwargs)
+    return _load_dataset_from_url(path, *_datasets["adata_dm_sc"], **kwargs)
 
 
 @d.dedent
 def drosophila_sp(
-    path: PathLike = "datasets/drosophila_sp",
+    path: PathLike = "datasets/adata_dm_sp",
     **kwargs: Any,
 ) -> AnnData:
     """
@@ -189,7 +190,7 @@ def drosophila_sp(
     -------
     %(adata)s
     """
-    return _load_dataset_from_url(path, *_datasets["drosophila_sp"], **kwargs)
+    return _load_dataset_from_url(path, *_datasets["adata_dm_sp"], **kwargs)
 
 
 @d.dedent
