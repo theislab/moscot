@@ -2,7 +2,6 @@ from types import MappingProxyType
 from typing import Any, Type, Tuple, Union, Literal, Mapping, Optional
 
 from anndata import AnnData
-from pyparsing import line
 
 from moscot._types import Numeric_t, ScaleCost_t, ProblemStage_t, QuadInitializer_t
 from moscot._docs._docs import d
@@ -166,9 +165,6 @@ class SpatioTemporalProblem(
             initializer=initializer,
             initializer_kwargs=initializer_kwargs,
             jit=jit,
-            lse_mode=lse_mode,
-            norm_error=norm_error,
-            inner_iterations=inner_iterations,
             min_iterations=min_iterations,
             max_iterations=max_iterations,
             threshold=threshold,
