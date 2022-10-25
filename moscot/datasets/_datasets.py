@@ -7,7 +7,7 @@ from anndata import AnnData
 
 from moscot._docs._docs import d
 
-__all__ = ["simulation", "mosta", "hspc"]
+__all__ = ["simulation", "mosta", "hspc", "drosophila_sc", "drosophila_sp", "sim_align"]
 PathLike = Union[os.PathLike, str]
 
 _datasets = {
