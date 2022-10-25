@@ -100,6 +100,15 @@ sinkhorn_args_2 = {
     "scale_cost": "mean",
 }
 
+linear_solver_kwargs1 = {
+    "inner_iterations": 1,
+    "min_iterations": 5,
+    "max_iterations": 7,
+    "lse_mode": False,
+    "threshold": 5e-2,
+    # "norm_error": 4, TODO
+}
+
 gw_args_1 = {
     "epsilon": 0.5,
     "tau_a": 0.7,
@@ -112,7 +121,6 @@ gw_args_1 = {
     "jit": True,
     "threshold": 3e-2,
     # "norm_error": 2, TODO: check once linear_ot_solver kwargs allowed
-    "inner_iterations": 2,
     "min_iterations": 3,
     "max_iterations": 4,
     "gamma": 9.3,
@@ -121,9 +129,18 @@ gw_args_1 = {
     "ranks": 4,
     "tolerances": 2e-2,
     "warm_start": False,
-    "lse_mode": False,
     "power": 4,
     # "cost": "SqEuclidean", #TODO handle
+    "linear_solver_kwargs": linear_solver_kwargs1,
+}
+
+linear_solver_kwargs2 = {
+    "inner_iterations": 3,
+    "min_iterations": 7,
+    "max_iterations": 8,
+    "lse_mode": True,
+    "threshold": 4e-2,
+    # "norm_error": 3, TODO
 }
 
 gw_args_2 = {
@@ -139,7 +156,6 @@ gw_args_2 = {
     "jit": False,
     "threshold": 2e-3,
     # "norm_error": 2, TODO: check once linear_ot_solver kwargs allowed
-    "inner_iterations": 3,
     "min_iterations": 2,
     "max_iterations": 3,
     "gamma": 9.4,
@@ -148,9 +164,9 @@ gw_args_2 = {
     "ranks": 3,
     "tolerances": 3e-2,
     "warm_start": True,
-    "lse_mode": True,
     "power": 3,
     # "cost": "SqEuclidean", TODO: handle
+    "linear_solver_kwargs": linear_solver_kwargs2,
 }
 
 fgw_args_1 = gw_args_1.copy()
@@ -172,10 +188,13 @@ gw_solver_args = {
     "initializer": "quad_initializer",
 }
 
-gw_sinkhorn_solver_args = {
+gw_linear_solver_args = {
     "lse_mode": "lse_mode",
-    # "norm_error": "norm_error", # TODO: check once linear_ot_solver kwargs allowed
     "inner_iterations": "inner_iterations",
+    "threshold": "threshold",
+    # "norm_error": "norm_error", TODO
+    "max_iterations": "max_iterations",
+    "min_iterations": "min_iterations",
 }
 
 quad_prob_args = {

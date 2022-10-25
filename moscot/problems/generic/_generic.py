@@ -263,9 +263,6 @@ class GWProblem(CompoundProblem[K, B], GenericAnalysisMixin[K, B]):
         initializer: QuadInitializer_t = None,
         initializer_kwargs: Mapping[str, Any] = MappingProxyType({}),
         jit: bool = True,
-        lse_mode: bool = True,
-        norm_error: int = 1,
-        inner_iterations: int = 10,
         min_iterations: int = 5,
         max_iterations: int = 50,
         threshold: float = 1e-3,
@@ -275,6 +272,7 @@ class GWProblem(CompoundProblem[K, B], GenericAnalysisMixin[K, B]):
         gw_unbalanced_correction: bool = True,
         ranks: Union[int, Tuple[int, ...]] = -1,
         tolerances: Union[float, Tuple[float, ...]] = 1e-2,
+        linear_solver_kwargs: Mapping[str, Any] = MappingProxyType({}),
         device: Optional[Literal["cpu", "gpu", "tpu"]] = None,
         **kwargs: Any,
     ) -> "GWProblem[K,B]":
@@ -295,6 +293,7 @@ class GWProblem(CompoundProblem[K, B], GenericAnalysisMixin[K, B]):
         %(gw_kwargs)s
         %(sinkhorn_lr_kwargs)s
         %(gw_lr_kwargs)s
+        %(linear_solver_kwargs)s
         %(device_solve)s
 
         Returns
@@ -314,9 +313,6 @@ class GWProblem(CompoundProblem[K, B], GenericAnalysisMixin[K, B]):
             initializer=initializer,
             initializer_kwargs=initializer_kwargs,
             jit=jit,
-            lse_mode=lse_mode,
-            norm_error=norm_error,
-            inner_iterations=inner_iterations,
             min_iterations=min_iterations,
             max_iterations=max_iterations,
             threshold=threshold,
@@ -326,6 +322,7 @@ class GWProblem(CompoundProblem[K, B], GenericAnalysisMixin[K, B]):
             gw_unbalanced_correction=gw_unbalanced_correction,
             ranks=ranks,
             tolerances=tolerances,
+            linear_solver_kwargs=linear_solver_kwargs,
             device=device,
             **kwargs,
         )
@@ -408,9 +405,6 @@ class FGWProblem(GWProblem[K, B]):
         initializer: QuadInitializer_t = None,
         initializer_kwargs: Mapping[str, Any] = MappingProxyType({}),
         jit: bool = True,
-        lse_mode: bool = True,
-        norm_error: int = 1,
-        inner_iterations: int = 10,
         min_iterations: int = 5,
         max_iterations: int = 50,
         threshold: float = 1e-3,
@@ -420,6 +414,7 @@ class FGWProblem(GWProblem[K, B]):
         gw_unbalanced_correction: bool = True,
         ranks: Union[int, Tuple[int, ...]] = -1,
         tolerances: Union[float, Tuple[float, ...]] = 1e-2,
+        linear_solver_kwargs: Mapping[str, Any] = MappingProxyType({}),
         device: Optional[Literal["cpu", "gpu", "tpu"]] = None,
     ) -> "FGWProblem[K,B]":
         """
@@ -440,6 +435,7 @@ class FGWProblem(GWProblem[K, B]):
         %(gw_kwargs)s
         %(sinkhorn_lr_kwargs)s
         %(gw_lr_kwargs)s
+        %(linear_solver_kwargs)s
         %(device_solve)s
 
         Returns
@@ -460,9 +456,6 @@ class FGWProblem(GWProblem[K, B]):
             initializer=initializer,
             initializer_kwargs=initializer_kwargs,
             jit=jit,
-            lse_mode=lse_mode,
-            norm_error=norm_error,
-            inner_iterations=inner_iterations,
             min_iterations=min_iterations,
             max_iterations=max_iterations,
             threshold=threshold,
@@ -472,5 +465,6 @@ class FGWProblem(GWProblem[K, B]):
             gw_unbalanced_correction=gw_unbalanced_correction,
             ranks=ranks,
             tolerances=tolerances,
+            linear_solver_kwargs=linear_solver_kwargs,
             device=device,
         )

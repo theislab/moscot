@@ -12,7 +12,7 @@ from tests.problems.conftest import (
     gw_solver_args,
     quad_prob_args,
     pointcloud_args,
-    gw_sinkhorn_solver_args,
+    gw_linear_solver_args,
 )
 from moscot.problems.base._birth_death import BirthDeathProblem
 
@@ -83,9 +83,9 @@ class TestLineageProblem:
             assert getattr(solver, val) == args_to_check[arg]
 
         sinkhorn_solver = solver.linear_ot_solver
-        for arg, val in gw_sinkhorn_solver_args.items():
+        for arg, val in gw_linear_solver_args.items():
             assert hasattr(sinkhorn_solver, val)
-            assert getattr(sinkhorn_solver, val) == args_to_check[arg]
+            assert getattr(sinkhorn_solver, val) == args_to_check["linear_solver_kwargs"][arg]
 
         quad_prob = problem[key]._solver._problem
         for arg, val in quad_prob_args.items():
