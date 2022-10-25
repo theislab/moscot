@@ -48,7 +48,7 @@ __all__ = ["BaseCompoundProblem", "CompoundProblem"]
 
 K = TypeVar("K", bound=Hashable)
 B = TypeVar("B", bound=OTProblem)
-Callback_t = Callable[[AnnData, AnnData], Mapping[str, TaggedArray]]
+Callback_t = Callable[[AnnData, AnnData], Mapping[Literal["xy", "x", "y"], TaggedArray]]
 ApplyOutput_t = Union[ArrayLike, Dict[K, ArrayLike]]
 # TODO(michalk8): future behavior
 # ApplyOutput_t = Union[ArrayLike, Dict[Tuple[K, K], ArrayLike]]
@@ -100,24 +100,31 @@ class BaseCompoundProblem(BaseProblem, ABC, Generic[K, B]):
         src: K,
         tgt: K,
         problem: B,
+        *,
         callback: Union[Literal["local-pca"], Callback_t],
-        callback_kwargs: Mapping[str, Any],
-    ) -> Mapping[str, Any]:
+        **kwargs: Any,
+    ) -> Mapping[Literal["xy", "x", "y"], TaggedArray]:
+        def verify_data(data: Mapping[Literal["xy", "x", "y"], TaggedArray]) -> None:
+            keys = ("xy", "x", "y")
+            for key, val in data.items():
+                if key not in keys:
+                    raise ValueError(f"Expected key to be one of `{keys}`, found `{key!r}`.")
+                if not isinstance(val, TaggedArray):
+                    raise TypeError(f"Expected value for `{key}` to be a `TaggedArray`, found `{type(val)}`.")
+
         if callback == "local-pca":
             callback = problem._local_pca_callback
-        if not callable(callback):
-            raise TypeError("TODO: callback not callable")
 
-        # TODO(michalk8): consider passing `adata` that only has `src`/`tgt`
-        data = callback(problem.adata_src, problem.adata_tgt, **callback_kwargs)
-        if not isinstance(data, Mapping):
-            raise TypeError("TODO: callback did not return a mapping.")
+        if not callable(callback):
+            raise TypeError("Callback is not a function.")
+        data = callback(problem.adata_src, problem.adata_tgt, **kwargs)
+        verify_data(data)
         return data
 
     # TODO(michalk8): refactor me
     def _create_problems(
         self,
-        callback: Optional[Union[str, Callback_t]] = None,
+        callback: Optional[Union[Literal["local-pca"], Callback_t]] = None,
         callback_kwargs: Mapping[str, Any] = MappingProxyType({}),
         **kwargs: Any,
     ) -> Dict[Tuple[K, K], B]:
@@ -137,10 +144,8 @@ class BaseCompoundProblem(BaseProblem, ABC, Generic[K, B]):
 
             problem = self._create_problem(src_mask=src_mask, tgt_mask=tgt_mask)
             if callback is not None:
-                data = self._callback_handler(
-                    src, tgt, problem, callback, callback_kwargs=callback_kwargs  # type: ignore[arg-type]
-                )
-                kws = {**kwargs, **data}
+                data = self._callback_handler(src, tgt, problem, callback=callback, **callback_kwargs)
+                kws = {**kwargs, **data}  # type: ignore[arg-type]
             else:
                 kws = kwargs
 
@@ -436,9 +441,11 @@ class BaseCompoundProblem(BaseProblem, ABC, Generic[K, B]):
 
     def save(
         self,
+        # TODO(michalk8): rename arg, no optional
         dir_path: Optional[str] = None,
         file_prefix: Optional[str] = None,
         overwrite: bool = False,
+        # TODO(michalk8): pass as kwargs
         protocol: Literal["highest", "default"] = "highest",
     ) -> None:
         """
@@ -468,11 +475,13 @@ class BaseCompoundProblem(BaseProblem, ABC, Generic[K, B]):
             else f"{self.__class__.__name__}.pkl"
         )
         file_dir = os.path.join(dir_path, file_name) if dir_path is not None else file_name
-        if os.path.exists(file_dir) and not overwrite:
-            raise ValueError("f{file_dir} already exists. Please provide an unexisting filename for saving.")
+
+        if not overwrite and os.path.exists(file_dir):
+            raise RuntimeError(f"Unable to overwrite existing file `{file_dir}`, please specify `overwrite=True`.")
         with open(file_dir, "wb") as f:
             pickle.dump(self, f, protocol=prot)
-        logger.info(f"TODO: problem saved as {file_dir}")
+
+        logger.info(f"Successfully saved the problem as `{file_dir}`")
 
     @classmethod
     def load(
@@ -496,13 +505,11 @@ class BaseCompoundProblem(BaseProblem, ABC, Generic[K, B]):
         >>> problem = ProblemClass.load(filename) # use the name of the model class used to save
         >>> problem.push....
         """
-        if not os.path.exists(filename):
-            raise FileNotFoundError("TODO.")
         with open(filename, "rb") as f:
-            instance = pickle.load(f)
-        if type(instance) is not cls:
-            raise TypeError(f"The saved model is an instance of {instance.__class__.__name__}.")
-        return instance
+            problem = pickle.load(f)
+        if type(problem) is not cls:
+            raise TypeError(f"Expected the problem to be type of `{cls}`, found `{type(problem)}`.")
+        return problem
 
     @property
     def solutions(self) -> Dict[Tuple[K, K], BaseSolverOutput]:
@@ -525,7 +532,7 @@ class BaseCompoundProblem(BaseProblem, ABC, Generic[K, B]):
     def _ensure_valid_policy(self, policy: Policy_t) -> None:
         policy = Policy(policy)
         if self._valid_policies and policy not in self._valid_policies:
-            raise ValueError(f"TODO: Invalid policy `{policy}`")
+            raise ValueError(f"Invalid policy `{policy!r}`. Valid policies are: `{self._valid_policies}`.")
 
     def __getitem__(self, item: Tuple[K, K]) -> B:
         return self.problems[item]
@@ -583,36 +590,35 @@ class CompoundProblem(BaseCompoundProblem[K, B], ABC):
         src: K,
         tgt: K,
         problem: B,
+        *,
         callback: Union[Literal["local-pca", "cost-matrix"], Callback_t],
-        callback_kwargs: Mapping[str, Any],
-    ) -> Mapping[str, Any]:
+        **kwargs: Any,
+    ) -> Mapping[Literal["xy", "x", "y"], TaggedArray]:
         # TODO(michalk8): better name?
         if callback == "cost-matrix":
-            return self._cost_matrix_callback(src, tgt, **callback_kwargs)
+            return self._cost_matrix_callback(src, tgt, **kwargs)
 
-        return super()._callback_handler(src, tgt, problem, callback, callback_kwargs=callback_kwargs)
+        return super()._callback_handler(src, tgt, problem, callback=callback, **kwargs)
 
     def _cost_matrix_callback(
         self, src: K, tgt: K, *, key: str, return_linear: bool = True, **_: Any
-    ) -> Mapping[str, Any]:
+    ) -> Mapping[Literal["xy", "x", "y"], TaggedArray]:
         if TYPE_CHECKING:
             assert isinstance(self._policy, SubsetPolicy)
 
         try:
             data = self.adata.obsp[key]
         except KeyError:
-            raise KeyError(f"TODO: data not in `adata.obsp[{key!r}]`.") from None
+            raise KeyError(f"Unable to fetch data from `adata.obsp[{key!r}]`.") from None
 
         src_mask = self._policy.create_mask(src, allow_empty=False)
         tgt_mask = self._policy.create_mask(tgt, allow_empty=False)
 
         if return_linear:
             linear_cost_matrix = data[src_mask, :][:, tgt_mask]
-            return {
-                "xy": TaggedArray(
-                    linear_cost_matrix.A if issparse(linear_cost_matrix) else linear_cost_matrix, tag=Tag.COST_MATRIX
-                )
-            }
+            if issparse(linear_cost_matrix):
+                linear_cost_matrix = linear_cost_matrix.A
+            return {"xy": TaggedArray(linear_cost_matrix, tag=Tag.COST_MATRIX)}
 
         return {
             "x": TaggedArray(data[src_mask, :][:, src_mask], tag=Tag.COST_MATRIX),
