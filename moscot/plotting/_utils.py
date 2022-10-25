@@ -1,6 +1,6 @@
 from copy import copy
 from types import MappingProxyType
-from typing import Any, Set, Dict, List, Type, Tuple, Union, Mapping, Iterable, Optional, TYPE_CHECKING
+from typing import Any, Set, Dict, List, Tuple, Union, Mapping, Iterable, Optional, TYPE_CHECKING
 from collections import defaultdict
 
 from matplotlib import colors as mcolors, pyplot as plt
@@ -29,8 +29,8 @@ def set_palette(
     **_: Any,
 ) -> None:
     """Set palette."""
-    if key not in adata.obs.columns:
-        raise KeyError("TODO: invalid key.")
+    if key not in adata.obs:
+        raise KeyError(f"Unable to find data in `adata.obs[{key!r}]`.")
     uns_key = f"{key}_colors"
     if uns_key not in adata.uns:
         add_color_palette(adata, key=key, palette=cont_cmap, force_update_colors=force_update_colors)
@@ -56,18 +56,16 @@ def _sankey(
     if ax is None:
         fig, ax = plt.subplots(constrained_layout=True, dpi=dpi, figsize=figsize)
     if captions is not None and len(captions) != len(transition_matrices):
-        raise ValueError("TODO: If `captions` are specified length has to be same as of `transition_matrices`.")
+        raise ValueError(f"Expected captions to be of length `{len(transition_matrices)}`, found `{len(captions)}`.")
     if colorDict is None:
         # TODO: adapt for unique categories
         set_palette(adata=adata, key=key, cont_cmap=cont_cmap, force_update_colors=force_update_colors)
 
         colorDict = {cat: adata.uns[f"{key}_colors"][i] for i, cat in enumerate(adata.obs[key].cat.categories)}
     else:
-        missing = [label for label in adata.obs[key].cat.categories if label not in colorDict]
+        missing = sorted(label for label in adata.obs[key].cat.categories if label not in colorDict)
         if missing:
-            msg = "The colorDict parameter is missing values for the following labels : "
-            msg += f", {missing}"
-            raise ValueError(msg)
+            raise ValueError(f"The following labels have missing colors: `{missing}`.")
     left_pos = [0]
     for ind, dataFrame in enumerate(transition_matrices):
         dataFrame /= dataFrame.values.sum()
@@ -270,7 +268,7 @@ def _heatmap(
 
 def _get_black_or_white(value: float, cmap: mcolors.Colormap) -> str:
     if not (0.0 <= value <= 1.0):
-        raise ValueError(f"Value must be in range `[0, 1]`, found `{value}`.")
+        raise ValueError(f"Expected value to be in interval `[0, 1]`, found `{value}`.")
 
     r, g, b, *_ = (int(c * 255) for c in cmap(value))
     return _contrasting_color(r, g, b)
@@ -345,20 +343,18 @@ def _contrasting_color(r: int, g: int, b: int) -> str:
     return "#000000" if r * 0.299 + g * 0.587 + b * 0.114 > 186 else "#ffffff"
 
 
-def _input_to_adatas(inp: Union[AnnData, Tuple[AnnData, AnnData], Type[CompoundProblem]]) -> Tuple[AnnData, AnnData]:
+def _input_to_adatas(inp: Union[AnnData, Tuple[AnnData, AnnData], CompoundProblem]) -> Tuple[AnnData, AnnData]:
     if isinstance(inp, CompoundProblem):
-        # TODO(MUCKD): this is wrong; else branch always executed
-        return inp.adata, inp._secondary_adata if hasattr(inp, "_secondary_adata") else inp.adata
+        return inp.adata, inp.adata
     if isinstance(inp, AnnData):
         return inp, inp
-    elif isinstance(inp, tuple):
+    if isinstance(inp, tuple):
         if not isinstance(inp[0], AnnData):
-            raise TypeError("TODO: input must be `AnnData`.")
+            raise TypeError(f"Expected object to be of type `AnnData`, found `{type(inp[0])}`.")
         if not isinstance(inp[1], AnnData):
-            raise TypeError("TODO: input must be `AnnData`.")
+            raise TypeError(f"Expected object to be of type `AnnData`, found `{type(inp[1])}`.")
         return inp  # type: ignore[return-value]
-    else:
-        raise NotImplementedError("TODO.")
+    raise ValueError(f"Unable to interpret input of type `{type(inp)}`.")
 
 
 def _plot_temporal(
