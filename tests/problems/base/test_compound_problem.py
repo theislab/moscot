@@ -144,7 +144,7 @@ class TestCompoundProblem:
             policy="explicit",
             subset=[(0, 2)],
         )
-        problem = problem.add_problem(problem2[(0, 2)])
+        problem = problem.add_problem((0, 2), problem2[(0, 2)])
         assert list(problem.problems.keys()) == expected_keys + [(0, 2)]
 
     def test_add_created_problem(self, adata_time: AnnData):

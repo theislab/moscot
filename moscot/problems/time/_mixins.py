@@ -660,7 +660,6 @@ class TemporalMixin(AnalysisMixin[K, B]):
         if backend == "ott":
             from moscot.backends.ott._utils import _compute_sinkhorn_divergence
 
-            print("point cloud 1 is ", point_cloud_1)
             distance = _compute_sinkhorn_divergence(point_cloud_1, point_cloud_2, a, b, **kwargs)
         else:
             raise NotImplementedError("Only `ott` available as backend.")

@@ -12,18 +12,17 @@ def _compute_sinkhorn_divergence(
     point_cloud_2: ArrayLike,
     a: Optional[ArrayLike] = None,
     b: Optional[ArrayLike] = None,
-    epsilon: float = 1e-1,
+    epsilon: float = 10,
     scale_cost: ScaleCost_t = 1,
     **kwargs: Any,
 ) -> float:
     output = sinkhorn_divergence(
         PointCloud, x=point_cloud_1, y=point_cloud_2, a=a, b=b, epsilon=epsilon, scale_cost=scale_cost, **kwargs
     )
-    if not all(output.converged):
-        if not output.converged[0]:
-            logger.warning("TODO: Solver not converged in x to y term.")
-        if not output.converged[1]:
-            logger.warning("TODO: Solver not converged in x to x term.")
-        if len(output.converged) > 1 and not output.converged[2]:
-            logger.warning("TODO: Solver not converged in y to y term.")
+    if not output.converged[0]:
+        logger.warning("TODO: Solver not converged in x to y term.")
+    if not output.converged[1]:
+        logger.warning("TODO: Solver not converged in x to x term.")
+    if len(output.converged) > 1 and not output.converged[2]:
+        logger.warning("TODO: Solver not converged in y to y term.")
     return float(output.divergence)
