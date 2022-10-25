@@ -217,8 +217,8 @@ class TestTemporalMixin:
         assert isinstance(result, tuple)
         assert result[0] > 0
         assert result[1] > 0
-        np.testing.assert_almost_equal(result[0], gt_temporal_adata.uns["time_point_distances_10_105_11"][0], decimal=4)
-        np.testing.assert_almost_equal(result[1], gt_temporal_adata.uns["time_point_distances_10_105_11"][1], decimal=4)
+        np.testing.assert_almost_equal(result[0], gt_temporal_adata.uns["time_point_distances_10_105_11"][0], decimal=2)
+        np.testing.assert_almost_equal(result[1], gt_temporal_adata.uns["time_point_distances_10_105_11"][1], decimal=2)
 
     def test_compute_batch_distances_regression(self, gt_temporal_adata: AnnData):
         config = gt_temporal_adata.uns
@@ -261,7 +261,7 @@ class TestTemporalMixin:
 
         result = problem.compute_random_distance(key_1, key_2, key_3, seed=config["seed"])
         assert isinstance(result, float)
-        np.testing.assert_almost_equal(result, gt_temporal_adata.uns["random_distance_10_105_11"], decimal=4)
+        np.testing.assert_almost_equal(result, gt_temporal_adata.uns["random_distance_10_105_11"], decimal=2)
 
     # TODO(MUCDK): split into 2 tests
     @pytest.mark.fast()
