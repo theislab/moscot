@@ -59,7 +59,7 @@ def _validate_annotations_helper(
             assert annotations is not None
         annotations_verified = set(df[annotation_key].cat.categories).intersection(set(annotations))
         if not len(annotations_verified):
-            raise ValueError(f"TODO: None of {annotations} found in distribution corresponding to {annotation_key}.")
+            raise ValueError(f"None of `{annotations}` found in the distribution corresponding to `{annotation_key}`.")
         return list(annotations_verified)
     return [None]
 
@@ -68,20 +68,26 @@ def _check_argument_compatibility_cell_transition(
     source_annotation: Str_Dict_t,
     target_annotation: Str_Dict_t,
     key: Optional[str] = None,
+    # TODO(MUCDK): unused variable
     other_key: Optional[str] = None,
-    other_adata: Optional[str] = None,
+    other_adata: Optional[AnnData] = None,
     aggregation_mode: Literal["annotation", "cell"] = "annotation",
     forward: bool = False,
     **_: Any,
 ) -> None:
     if key is None and other_adata is None:
-        raise ValueError("TODO: distributions cannot be inferred from `adata` due to missing obs keys.")
-    if (forward and target_annotation is None) or (not forward and source_annotation is None):
-        raise ValueError("TODO: obs column according to which is grouped is required.")
+        raise ValueError("Unable to infer distributions, missing `adata` and `key`.")
+    if forward and target_annotation is None:
+        raise ValueError("No target annotation provided.")
+    if not forward and source_annotation is None:
+        raise ValueError("No source annotation provided.")
     if (AggregationMode(aggregation_mode) == AggregationMode.ANNOTATION) and (
         source_annotation is None or target_annotation is None
     ):
-        raise ValueError("TODO: If `aggregation_mode` is `annotation` an `adata.obs` column must be provided.")
+        raise ValueError(
+            f"If aggregation mode is `{AggregationMode.ANNOTATION!r}`, "
+            f"source or target annotation in `adata.obs` must be provided."
+        )
 
 
 def _get_df_cell_transition(
@@ -100,17 +106,22 @@ def _validate_args_cell_transition(
     arg: Str_Dict_t,
 ) -> Tuple[str, List[Any], Optional[List[str]]]:
     if isinstance(arg, str):
-        if arg not in adata.obs:
-            raise KeyError(f"TODO. {arg} not in adata.obs.columns")
-        return arg, adata.obs[arg].cat.categories, None
+        try:
+            return arg, adata.obs[arg].cat.categories, None
+        except KeyError:
+            raise KeyError(f"Unable to fetch data from `adata.obs[{arg!r}]`.") from None
+        except AttributeError:
+            raise AttributeError(f"Data in `adata.obs[{arg!r}]` is not categorical.") from None
+
     if isinstance(arg, dict):
-        if len(arg) > 1:
-            raise ValueError(f"Invalid dictionary length: `{len(arg)}` expected 1. ")
+        if len(arg) != 1:
+            raise ValueError(f"Expected dictionary of length `1`, found `{len(arg)}`.")
         key, val = next(iter(arg.items()))
         if not set(val).issubset(adata.obs[key].cat.categories):
-            raise ValueError(f"Not all values {val} could be found in `adata.obs[{key}]`.")
+            raise ValueError(f"Not all values `{val}` are present in `adata.obs[{key!r}]`.")
         return key, val, val
-    raise TypeError("TODO: `arg` must be of type `str` or `dict`")
+
+    raise TypeError(f"Expected argument to be either `str` or `dict`, found `{type(arg)}`.")
 
 
 def _get_cell_indices(
