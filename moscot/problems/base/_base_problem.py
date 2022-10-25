@@ -38,7 +38,6 @@ class BaseProblem(ABC):
     def solve(self, *args: Any, **kwargs: Any) -> "BaseProblem":
         """Abstract solve method."""
 
-    # TODO(michalk8): move below?
     @staticmethod
     def _get_mass(
         adata: AnnData,
@@ -59,24 +58,25 @@ class BaseProblem(ABC):
         if data is None:
             if subset is None:
                 data = np.ones((adata.n_obs,), dtype=float)
-            elif isinstance(subset, List):
-                data = np.asarray(adata.obs.index.isin(subset), dtype=float)
+            elif isinstance(subset, list):
+                data = np.asarray(adata.obs_names.isin(subset), dtype=float)
             elif isinstance(subset, tuple):
-                if subset[0] >= adata.n_obs:
-                    raise IndexError(f"TODO: index {subset[0]} larger than length of `adata` ({adata.n_obs}).")
+                # TODO(michalk8): handle negative indices
+                start, offset = subset
+                if start >= adata.n_obs:
+                    raise IndexError(f"Expected starting index to be smaller than `{adata.n_obs}`, found `{start}`.")
                 data = np.zeros((adata.n_obs,), dtype=float)
-                data[range(subset[0], min(subset[0] + subset[1], adata.n_obs))] = 1.0
+                data[range(start, min(start + offset, adata.n_obs))] = 1.0
             else:
-                raise ValueError("TODO: If `data` is `None`, `subset` needs to be `None` or a list with obs indices.")
+                raise TypeError(f"Unable to interpret subset of type `{type(subset)}`.")
         elif isinstance(data, str):
             if subset is None:  # allow for numeric values
                 data = np.asarray(adata.obs[data], dtype=float)
-            elif isinstance(subset, List) and not isinstance(subset, str):
-                data = np.asarray(adata.obs[data].isin(subset), dtype=float)
-            else:
-                data = np.asarray(adata.obs[data].values == subset, dtype=float)
+            if isinstance(subset, str):
+                subset = [subset]
+            data = np.asarray(adata.obs[data].isin(subset), dtype=float)
         else:
-            data = np.asarray(data)
+            data = np.asarray(data, dtype=float)
 
         if split_mass:
             data = _split_mass(data)
@@ -84,13 +84,13 @@ class BaseProblem(ABC):
         if data.ndim != 2:
             data = np.reshape(data, (-1, 1))
         if data.shape[0] != adata.n_obs:
-            raise ValueError(f"TODO: expected shape `{adata.n_obs,}`, found `{data.shape[0],}`")
-        if not np.all(data >= 0):
-            raise ValueError("Not all entries of the mass are non-negative")
-        total = np.sum(data, axis=0)[None, :]
-        if not np.all(total > 0):
-            raise ValueError("TODO: no mass.")
-        return data / total if normalize else data
+            raise ValueError(f"Expected array of shape `({adata.n_obs,}, ...)`, found `{data.shape}`.")
+        if np.any(data < 0.0):
+            raise ValueError("Some entries have negative mass.")
+        total = np.sum(data, axis=0, keepdims=True)
+        if np.any(total <= 0.0):
+            raise ValueError("Some measures have no mass.")
+        return (data / total) if normalize else data
 
     @property
     def stage(self) -> ProblemStage:
@@ -146,11 +146,12 @@ class OTProblem(BaseProblem):
         if "x_attr" not in kwargs or "y_attr" not in kwargs:
             kwargs.setdefault("tag", Tag.COST_MATRIX)
             attr = kwargs.pop("attr", "obsm")
+
             if attr in ("obsm", "uns"):
                 return AnnDataPointer(self.adata_src, attr=attr, **kwargs).create()
             if attr == "varm":
                 return AnnDataPointer(self.adata_tgt.T, attr="obsm", **kwargs).create()
-            raise NotImplementedError("TODO: cost/kernel storage not implemented. Use obsm/varm")
+            raise ValueError(f"Storing `{kwargs['tag']!r}` in `adata.{attr}` is disallowed.")
 
         x_kwargs = {k[2:]: v for k, v in kwargs.items() if k.startswith("x_")}
         y_kwargs = {k[2:]: v for k, v in kwargs.items() if k.startswith("y_")}
@@ -175,7 +176,7 @@ class OTProblem(BaseProblem):
     ) -> "OTProblem":
         """Prepare method."""
         self._x = self._y = self._xy = self._solution = None
-        # TODO(michalk8): better dispatch
+        # TODO(michalk8): in the future, have a better dispatch
         # fmt: off
         if xy is not None and x is None and y is None:
             self._problem_kind = ProblemKind.LINEAR
@@ -190,7 +191,7 @@ class OTProblem(BaseProblem):
             self._x = x if isinstance(x, TaggedArray) else AnnDataPointer(adata=self.adata_src, **x).create()
             self._y = y if isinstance(y, TaggedArray) else AnnDataPointer(adata=self.adata_tgt, **y).create()
         else:
-            raise NotImplementedError("TODO: Combination not implemented")
+            raise ValueError("Unable to prepare the data. Either only supply `xy=...`, or `x=..., y=...`, or both.")
         # fmt: on
 
         self._a = self._create_marginals(self.adata_src, data=a, source=True, **kwargs)
@@ -277,18 +278,17 @@ class OTProblem(BaseProblem):
                 return vstack([csr_matrix(x), y])
             return np.vstack([x, y])
 
-        if adata is adata_y:
-            raise ValueError(f"TODO: `{adata}`, `{adata_y}`")
-        x = adata.X if layer is None else adata.layers[layer]
-        y = adata_y.X if layer is None else adata_y.layers[layer]
-        pca_space = "adata.X" if layer is None else f"adata.layers[{layer!r}]"
+        if layer is None:
+            x, y, msg = adata.X, adata_y.X, "adata.X"
+        else:
+            x, y, msg = adata.layers[layer], adata_y.layers[layer], f"adata.layers[{layer!r}]"
 
         if return_linear:
             n = x.shape[0]
             data = concat(x, y) if joint_space else x
             if data.shape[1] <= n_comps:
                 return {"xy": TaggedArray(data[:n], data[n:], tag=Tag.POINT_CLOUD)}
-            logger.info(f"Computing pca with `n_comps = {n_comps}` on `{pca_space}`.")
+            logger.info(f"Computing pca with `n_comps = {n_comps}` on `{msg}`.")
             if joint_space:
                 data = sc.pp.pca(data, n_comps=n_comps, **kwargs)
             else:
@@ -296,7 +296,7 @@ class OTProblem(BaseProblem):
 
             return {"xy": TaggedArray(data[:n], data[n:], tag=Tag.POINT_CLOUD)}
 
-        logger.info(f"Computing pca with `n_comps = {n_comps}` on `{pca_space}`.")
+        logger.info(f"Computing pca with `n_comps = {n_comps}` on `{msg}`.")
         x = sc.pp.pca(x, n_comps=n_comps, **kwargs)
         y = sc.pp.pca(y, n_comps=n_comps, **kwargs)
         return {"x": TaggedArray(x, tag=Tag.POINT_CLOUD), "y": TaggedArray(y, tag=Tag.POINT_CLOUD)}
@@ -309,8 +309,10 @@ class OTProblem(BaseProblem):
         if data in (False, None):
             return np.ones((adata.n_obs,), dtype=float) / adata.n_obs
         if isinstance(data, str):
-            # TODO(michalk8): some nice error message
-            return np.asarray(adata.obs[data])
+            try:
+                return np.asarray(adata.obs[data])
+            except KeyError:
+                raise KeyError(f"Unable to find data in `adata.obs[{data!r}]`.") from None
         return np.asarray(data)
 
     def _estimate_marginals(self, adata: AnnData, *, source: bool, **kwargs: Any) -> ArrayLike:
@@ -352,7 +354,6 @@ class OTProblem(BaseProblem):
     def y(self) -> Optional[TaggedArray]:
         return self._y
 
-    # TODO(michalk8): verify type
     @property
     def xy(self) -> Optional[TaggedArray]:
         return self._xy
@@ -366,7 +367,7 @@ class OTProblem(BaseProblem):
         return self._b
 
     def __repr__(self) -> str:
-        return f"{self.__class__.__name__}[shape={self.shape}]"
+        return f"{self.__class__.__name__}[stage={self.stage!r}, shape={self.shape!r}]"
 
     def __str__(self) -> str:
         return repr(self)
