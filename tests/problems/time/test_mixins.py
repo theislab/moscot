@@ -191,7 +191,7 @@ class TestTemporalMixin:
         assert isinstance(interpolation_result, float)
         assert interpolation_result > 0
         np.testing.assert_almost_equal(
-            interpolation_result, gt_temporal_adata.uns["interpolated_distance_10_105_11"], decimal=4
+            interpolation_result, gt_temporal_adata.uns["interpolated_distance_10_105_11"], decimal=2
         )
 
     def test_compute_time_point_distances_regression(self, gt_temporal_adata: AnnData):
