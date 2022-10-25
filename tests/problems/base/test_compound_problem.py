@@ -135,8 +135,16 @@ class TestCompoundProblem:
         )
 
         assert list(problem.problems.keys()) == expected_keys
-
-        problem = problem.add_problem((0, 2), xy={"x_attr": "X", "y_attr": "X"}, x={"attr": "X"}, y={"attr": "X"})
+        problem2 = Problem(adata=adata_time)
+        problem2 = problem2.prepare(
+            xy={"x_attr": "X", "y_attr": "X"},
+            x={"attr": "X"},
+            y={"attr": "X"},
+            key="time",
+            policy="explicit",
+            subset=[(0, 2)],
+        )
+        problem = problem.add_problem(problem2[(0, 2)])
         assert list(problem.problems.keys()) == expected_keys + [(0, 2)]
 
     def test_add_created_problem(self, adata_time: AnnData):

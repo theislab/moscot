@@ -26,4 +26,4 @@ def _compute_sinkhorn_divergence(
             logger.warning("TODO: Solver not converged in x to x term.")
         if len(output.converged) > 1 and not output.converged[2]:
             logger.warning("TODO: Solver not converged in y to y term.")
-    return output.divergence
+    return float(output.divergence)
