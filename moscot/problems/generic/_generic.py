@@ -76,7 +76,7 @@ class SinkhornProblem(CompoundProblem[K, B], GenericAnalysisMixin[K, B]):
         elif isinstance(joint_attr, Mapping):
             kwargs["xy"] = joint_attr
         else:
-            raise TypeError("TODO")
+            raise TypeError(f"Unable to interpret `joint_attr` of type `{type(joint_attr)}`.")
 
         xy, kwargs = handle_joint_attr(joint_attr, kwargs)
         return super().prepare(
@@ -220,15 +220,9 @@ class GWProblem(CompoundProblem[K, B], GenericAnalysisMixin[K, B]):
         -----
         If `a` and `b` are provided `marginal_kwargs` are ignored.
         """
-
         self.batch_key = key
-        # TODO(michalk8): use and
-        if len(GW_x) == 0 or len(GW_y) == 0:
-            if "cost_matrices" not in self.adata.obsp:
-                raise ValueError(
-                    "TODO: default location for quadratic loss is `adata.obsp[`cost_matrices`]` \
-                        but adata has no key `cost_matrices` in `obsp`."
-                )
+        if not (len(GW_x) and len(GW_y)) and "cost_matrices" not in self.adata.obsp:
+            raise KeyError("Unable to find cost matrices in `adata.obsp['cost_matrices']`.")
 
         for z in [GW_x, GW_y]:
             if not len(z):
