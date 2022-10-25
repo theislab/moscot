@@ -95,7 +95,7 @@ class GenericAnalysisMixin(AnalysisMixin[K, B]):
         return self._batch_key
 
     @batch_key.setter
-    def batch_key(self, value: Optional[str]) -> None:
-        if value is not None and value not in self.adata.obs:
-            raise KeyError(f"{value} not in `adata.obs`.")
-        self._batch_key = value
+    def batch_key(self, key: Optional[str]) -> None:
+        if key is not None and key not in self.adata.obs:
+            raise KeyError(f"Unable to find batch key in `adata.obs[{key!r}]`.")
+        self._batch_key = key
