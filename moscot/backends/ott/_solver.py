@@ -88,10 +88,9 @@ class OTTJaxSolver(OTSolver[OTTOutput], ABC):  # noqa: B024
             kwargs = _filter_kwargs(PointCloud, Geometry, **kwargs)
             cost_fn = self._create_cost(x.loss)
             x, y = self._assert2d(x.data), self._assert2d(x.data_y)
-            if y is not None and x.shape[1] != y.shape[1]:  # type: ignore[attr-defined]
-                raise ValueError(
-                    f"Expected `x/y` to have the same number of dimensions, found `{x.shape[1]}/{y.shape[1]}`."
-                )
+            n, m = x.shape[1], (None if y is None else y.shape[1])  # type: ignore[attr-defined]
+            if m is not None and n != m:
+                raise ValueError(f"Expected `x/y` to have the same number of dimensions, found `{n}/{m}`.")
             return PointCloud(x, y=y, cost_fn=cost_fn, **kwargs)  # TODO: add ScaleCost
 
         kwargs = _filter_kwargs(Geometry, **kwargs)
