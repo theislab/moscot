@@ -11,7 +11,7 @@ import moscot as mt
 
 
 class TestDatasetsImports:
-    @pytest.mark.parametrize("func", mt.datasets._dataset.__all__)
+    @pytest.mark.parametrize("func", mt.datasets._datasets.__all__)
     def test_import(self, func):
         assert hasattr(mt.datasets, func), dir(mt.datasets)
         fn = getattr(mt.datasets, func)
@@ -26,7 +26,7 @@ class TestDatasetsDownload:
         with warnings.catch_warnings():
             warnings.simplefilter("ignore", category=OldFormatWarning)
             try:
-                adata = mt.datasets.test_sim_align(tmp_path / "foo")
+                adata = mt.datasets.sim_align(tmp_path / "foo")
 
                 assert isinstance(adata, AnnData)
                 assert adata.shape == (1200, 500)
@@ -38,7 +38,7 @@ class TestDatasetsDownload:
         with warnings.catch_warnings():
             warnings.simplefilter("ignore", category=OldFormatWarning)
             try:
-                adata = mt.datasets.tedsim_1024(tmp_path / "foo")
+                adata = mt.datasets.simulation(tmp_path / "foo")
 
                 assert isinstance(adata, AnnData)
                 assert adata.shape == (1536, 500)
