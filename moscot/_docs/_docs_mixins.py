@@ -115,7 +115,60 @@ _threshold = """\
 threshold
     If not `None`, set all entries below `threshold` to 0.
 """
-
+_backend = """\
+backend
+    Which backend to use for solving Optimal Transport problems.
+"""
+_kwargs_divergence = """\
+kwargs
+    Keyword arguments to solve the underlying Optimal Transport problem, see example TODO.
+"""
+_start = """\
+start
+    Time point corresponding to the early distribution.
+"""
+_end = """\
+end
+    Time point corresponding to the late distribution.
+"""
+_intermediate = """\
+intermediate
+    Time point corresponding to the intermediate distribution.
+"""
+_intermediate_interpolation = """\
+intermediate
+    Time point corresponding to the intermediate distribution which is to be interpolated.
+"""
+_seed_sampling = """\
+seed
+    Random seed for sampling from the transport matrix.
+"""
+_interpolation_parameter = """\
+interpolation_parameter
+    Interpolation parameter determining the weight of the source and the target distribution. If `None`
+    it is linearly inferred from `source`, `intermediate`, and `target`.
+"""
+_account_for_unbalancedness = """\
+account_for_unbalancedness
+    If `True` unbalancedness is accounted for by assuming exponential growth and death of cells.
+"""
+_n_interpolated_cells = """\
+n_interpolated_cells
+    Number of generated interpolated cell. If `None` the number of data points in the `intermediate`
+    distribution is taken.
+"""
+_seed_interpolation = """\
+seed
+    Random seed for generating randomly interpolated cells.
+"""
+_time_batch_distance = """\
+time
+    Time point corresponding to the cell distribution which to compute the batch distances within.
+"""
+_batch_key_batch_distance = """\
+batch_key
+    Key in :attr:`anndata.AnnData.obs` storing which batch each cell belongs to.
+"""
 
 d_mixins = DocstringProcessor(
     cell_trans_params=_cell_trans_params,
@@ -143,4 +196,16 @@ d_mixins = DocstringProcessor(
     restrict_to_existing=_restrict_to_existing,
     order_annotations=_order_annotations,
     threshold=_threshold,
+    backend=_backend,
+    kwargs_divergence=_kwargs_divergence,
+    start=_start,
+    end=_end,
+    intermediate=_intermediate,
+    intermediate_interpolation=_intermediate_interpolation,
+    seed_sampling=_seed_sampling,
+    interpolation_parameter=_interpolation_parameter,
+    n_interpolated_cells=_n_interpolated_cells,
+    seed_interpolatiob=_seed_interpolation,
+    time_batch_distance=_time_batch_distance,
+    batch_key_batch_distance=_batch_key_batch_distance,
 )
