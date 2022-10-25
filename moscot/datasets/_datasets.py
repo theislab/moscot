@@ -48,7 +48,6 @@ def _load_dataset_from_url(fpath: PathLike, backup_url: str, expected_shape: Tup
         fpath += ".h5ad"
     kwargs.setdefault("sparse", True)
     kwargs.setdefault("cache", True)
-    print(fpath, backup_url)
 
     adata = read(filename=fpath, backup_url=backup_url, **kwargs)
 
