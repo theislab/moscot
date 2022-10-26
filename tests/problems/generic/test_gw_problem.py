@@ -79,7 +79,12 @@ class TestGWProblem:
         sinkhorn_solver = solver.linear_ot_solver
         for arg, val in gw_linear_solver_args.items():
             assert hasattr(sinkhorn_solver, val)
-            assert getattr(sinkhorn_solver, val) == args_to_check["linear_solver_kwargs"][arg]
+            el = (
+                getattr(sinkhorn_solver, val)[0]
+                if isinstance(getattr(sinkhorn_solver, val), tuple)
+                else getattr(sinkhorn_solver, val)
+            )
+            assert el == args_to_check["linear_solver_kwargs"][arg]
 
         quad_prob = problem[key]._solver._problem
         for arg, val in quad_prob_args.items():
