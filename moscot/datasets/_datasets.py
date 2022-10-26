@@ -24,7 +24,7 @@ _datasets = {
         (54134, 2000),
     ),
     "hspc": (
-        "https://figshare.com/ndownloader/files/37993050",
+        "https://figshare.com/ndownloader/files/37993503",
         (4000, 2000),
     ),
     "adata_dm_sc": (
