@@ -177,6 +177,6 @@ class OTSolver(TagConverterMixin, BaseSolver[O], ABC):  # noqa: B024
             assert_quadratic()
             data_kwargs = {"x": data.x, "y": data.y, "xy": data.xy}
         else:
-            raise NotImplementedError(f"Unable to prepare data for problem `{self.problem_kind}`.")
+            raise NotImplementedError(f"Unable to prepare data for `{self.problem_kind}` problem.")
 
         return {**kwargs, **data_kwargs}
