@@ -155,7 +155,7 @@ class TestTemporalMixin:
             key,
             subset=[(key_1, key_2), (key_2, key_3), (key_1, key_3)],
             policy="explicit",
-            callback_kwargs={"joint_space": False, "n_comps": 50},
+            callback_kwargs={"n_comps": 50},
         )
         assert set(problem.problems.keys()) == {(key_1, key_2), (key_2, key_3), (key_1, key_3)}
         problem[key_1, key_2]._solution = MockSolverOutput(gt_temporal_adata.uns["tmap_10_105"])
@@ -180,7 +180,7 @@ class TestTemporalMixin:
             subset=[(key_1, key_2), (key_2, key_3), (key_1, key_3)],
             policy="explicit",
             scale_cost="mean",
-            callback_kwargs={"joint_space": False, "n_comps": 50},
+            callback_kwargs={"n_comps": 50},
         )
         assert set(problem.problems.keys()) == {(key_1, key_2), (key_2, key_3), (key_1, key_3)}
         problem[key_1, key_2]._solution = MockSolverOutput(gt_temporal_adata.uns["tmap_10_105"])
@@ -206,7 +206,7 @@ class TestTemporalMixin:
             subset=[(key_1, key_2), (key_2, key_3), (key_1, key_3)],
             policy="explicit",
             scale_cost="mean",
-            callback_kwargs={"joint_space": False, "n_comps": 50},
+            callback_kwargs={"n_comps": 50},
         )
         assert set(problem.problems.keys()) == {(key_1, key_2), (key_2, key_3), (key_1, key_3)}
         problem[key_1, key_2]._solution = MockSolverOutput(gt_temporal_adata.uns["tmap_10_105"])
@@ -232,7 +232,7 @@ class TestTemporalMixin:
             subset=[(key_1, key_2), (key_2, key_3), (key_1, key_3)],
             policy="explicit",
             scale_cost="mean",
-            callback_kwargs={"joint_space": False, "n_comps": 50},
+            callback_kwargs={"n_comps": 50},
         )
         assert set(problem.problems.keys()) == {(key_1, key_2), (key_2, key_3), (key_1, key_3)}
         problem[key_1, key_2]._solution = MockSolverOutput(gt_temporal_adata.uns["tmap_10_105"])
@@ -255,7 +255,7 @@ class TestTemporalMixin:
             subset=[(key_1, key_2), (key_2, key_3), (key_1, key_3)],
             policy="explicit",
             scale_cost="mean",
-            callback_kwargs={"joint_space": False, "n_comps": 50},
+            callback_kwargs={"n_comps": 50},
         )
         assert set(problem.problems.keys()) == {(key_1, key_2), (key_2, key_3), (key_1, key_3)}
 

@@ -266,7 +266,6 @@ class OTProblem(BaseProblem):
         adata_y: AnnData,
         layer: Optional[str] = None,
         return_linear: bool = True,
-        joint_space: bool = True,
         n_comps: int = 30,
         **kwargs: Any,
     ) -> Dict[Literal["xy", "x", "y"], TaggedArray]:
@@ -285,14 +284,11 @@ class OTProblem(BaseProblem):
 
         if return_linear:
             n = x.shape[0]
-            data = concat(x, y) if joint_space else x
+            data = concat(x, y)
             if data.shape[1] <= n_comps:
                 return {"xy": TaggedArray(data[:n], data[n:], tag=Tag.POINT_CLOUD)}
             logger.info(f"Computing pca with `n_comps = {n_comps}` on `{pca_space}`.")
-            if joint_space:
-                data = sc.pp.pca(data, n_comps=n_comps, **kwargs)
-            else:
-                data = concat(sc.pp.pca(data, n_comps=n_comps, **kwargs), sc.pp.pca(y, n_comps=n_comps, **kwargs))
+            data = sc.pp.pca(data, n_comps=n_comps, **kwargs)
 
             return {"xy": TaggedArray(data[:n], data[n:], tag=Tag.POINT_CLOUD)}
 
