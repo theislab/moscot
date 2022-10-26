@@ -99,7 +99,7 @@ class BaseProblem(ABC):
 
     @property
     def problem_kind(self) -> ProblemKind:
-        """The kind of the underlying OT problem, an instance of `moscot.solvers._base_solver.ProblemKind`"""
+        """The kind of the underlying optimal transport problem."""
         return self._problem_kind
 
 
