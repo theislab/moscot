@@ -91,7 +91,7 @@ class GenericAnalysisMixin(AnalysisMixin[K, B]):
 
     @property
     def batch_key(self) -> Optional[str]:
-        """Return temporal key."""
+        """Batch key in :attr:`anndata.AnnData.obs`."""
         return self._batch_key
 
     @batch_key.setter
