@@ -16,7 +16,7 @@ import numpy as np
 
 from anndata import AnnData
 
-from moscot._types import ArrayLike, Str_Dict_t, Device_t
+from moscot._types import Device_t, ArrayLike, Str_Dict_t
 from moscot._logging import logger
 from moscot._docs._docs import d
 from moscot.problems.base import AnalysisMixin  # type: ignore[attr-defined]

@@ -1,8 +1,6 @@
 from types import MappingProxyType
 from typing import Any, Type, Tuple, Union, Literal, Mapping, Optional
 
-from pyparsing import line
-
 from moscot._types import ScaleCost_t, ProblemStage_t, QuadInitializer_t
 from moscot._docs._docs import d
 from moscot._constants._key import Key
