@@ -27,6 +27,7 @@ class BaseProblem(ABC):
     """Problem interface handling one optimal transport problem."""
 
     def __init__(self):  # type: ignore[no-untyped-def]
+
         self._problem_kind: ProblemKind = ProblemKind.UNKNOWN
         self._stage = ProblemStage.INITIALIZED
 
