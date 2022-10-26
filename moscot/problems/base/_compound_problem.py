@@ -385,7 +385,7 @@ class BaseCompoundProblem(BaseProblem, ABC, Generic[K, B]):
     def add_problem(
         self,
         key: Tuple[K, K],
-        problem: Optional[B] = None,
+        problem: B,
         *,
         overwrite: bool = False,
         **kwargs: Any,
@@ -401,8 +401,7 @@ class BaseCompoundProblem(BaseProblem, ABC, Generic[K, B]):
         %(key)s
 
         problem
-            Instance of :class:`moscot.problems.base.OTProblem`. If `None` the problems will be constructed from the
-            subset :class:`anndata.AnnData` defined by `key`.
+            Instance of :class:`moscot.problems.base.OTProblem`.
         overwrite
             If `True` the problem will be reinitialized and prepared even if a problem with `key` exists.
 

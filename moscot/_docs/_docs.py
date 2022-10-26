@@ -338,5 +338,5 @@ d = DocstringProcessor(
     cost=_cost,
     pointcloud_kwargs=_pointcloud_kwargs,
     device_solve=_device_solve,
-    linear_solver_kwargs=_linear_solver_kwargs
+    linear_solver_kwargs=_linear_solver_kwargs,
 )
