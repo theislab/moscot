@@ -24,8 +24,8 @@ _datasets = {
         (54134, 2000),
     ),
     "hspc": (
-        "https://figshare.com/ndownloader/files/36704517",
-        (2000, 2000),
+        "https://figshare.com/ndownloader/files/37993050",
+        (4000, 2000),
     ),
     "adata_dm_sc": (
         "https://figshare.com/ndownloader/files/37984938",
@@ -119,10 +119,10 @@ def hspc(
     Subsampled and processed data of the `NeurIPS Multimodal Single-Cell Integration Challenge \
     <https://www.kaggle.com/competitions/open-problems-multimodal/data>`.
 
-    2000 cells were randomly selected after filtering the training data of the
+    4000 cells were randomly selected after filtering the training data of the
     NeurIPS Multimodal Single-Cell Integration Challenge for multiome data and donor `31800`.
     Subsequently, the 2000 most highly variable genes were selected as well as all peaks
-    appearing in less than 5% of the cells were filtered out, resulting in 11,607 peaks.
+    appearing in less than 5% of the cells were filtered out, resulting in 11,595 peaks.
 
     Parameters
     ----------
