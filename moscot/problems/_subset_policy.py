@@ -54,15 +54,17 @@ class SubsetPolicy(Generic[K]):
         key: Optional[str] = None,
         cat: Optional[Sequence[str]] = None,
     ):
-        # TODO(michalk8): raise nicer KeyError (giovp) this way we can solve for full anndata with key=None
-        self._data = pd.Series(adata.obs[key]) if isinstance(adata, AnnData) else adata
+        try:
+            self._data = pd.Series(adata.obs[key]) if isinstance(adata, AnnData) else adata
+        except KeyError:
+            raise KeyError(f"Unable to find data in `adata.obs[{key!r}]`.") from None
         self._data = self._data.astype("category")  # TODO(@MUCDK): catch conversion error
         self._graph: Set[Tuple[K, K]] = set()
-        self._cat = tuple(self._data.cat.categories) if cat is None else tuple(cat)
+        self._cat = tuple(self._data.cat.categories) if cat is None else tuple(set(cat))
         self._subset_key: Optional[str] = key
 
         if len(self._cat) < 2:
-            raise ValueError(f"`adata.obs[{key}]` must contain at least two different values.")
+            raise ValueError(f"Policy must contain at least `2` different values, found `{len(self._cat)}`.")
 
     @abstractmethod
     def _create_graph(self, **kwargs: Any) -> Set[Tuple[K, K]]:
@@ -77,17 +79,19 @@ class SubsetPolicy(Generic[K]):
         if explicit_steps is not None:
             G = nx.DiGraph()
             G.add_edges_from(explicit_steps)
-            if not set(G.nodes).issubset(set(self._cat)):
-                raise ValueError("TODO: all values of `explicit_steps` must correspond to a cell distribution.")
+            if not set(G.nodes).issubset(self._cat):
+                raise ValueError(
+                    f"Explicitly specified steps `{set(explicit_steps)}` must be a subset of `{self._cat}`."
+                )
             if not nx.has_path(G, explicit_steps[0][0], explicit_steps[-1][1]):
-                raise ValueError("TODO: `explicit_steps` must form a connected path.")
+                raise ValueError("Explicitly specified steps do not form a connected path.")
             return explicit_steps
         plan = self._plan(**kwargs)
         # TODO(michalk8): ensure unique
         if filter is not None:
             plan = self._filter_plan(plan, filter=filter)
         if not len(plan):
-            raise ValueError("TODO: empty plan")
+            raise ValueError("Unable to create a plan, no steps were selected after filtering.")
         return plan
 
     @abstractmethod
@@ -97,7 +101,7 @@ class SubsetPolicy(Generic[K]):
     def __call__(self, **kwargs: Any) -> "SubsetPolicy[K]":
         graph = self._create_graph(**kwargs)
         if not len(graph):
-            raise ValueError("TODO: empty graph")
+            raise ValueError("The policy graph is empty.")
         self._graph = graph
         return self
 
@@ -133,7 +137,7 @@ class SubsetPolicy(Generic[K]):
         else:
             mask = self._data.isin(value)
         if not allow_empty and not np.sum(mask):
-            raise ValueError("TODO: empty mask...")
+            raise ValueError("Unable to construct an empty mask, use `allow_empty=True` to override.")
         return np.asarray(mask)
 
     def create_masks(self, discard_empty: bool = True) -> Dict[Tuple[K, K], Tuple[ArrayLike, ArrayLike]]:
@@ -144,28 +148,31 @@ class SubsetPolicy(Generic[K]):
                 mask_b = self.create_mask(b, allow_empty=not discard_empty)
                 res[a, b] = mask_a, mask_b
             except ValueError as e:
-                if "TODO: empty mask" not in str(e):
+                if "Unable to construct an empty mask" not in str(e):
                     raise
 
         if not res:
             # can only happen when `discard_empty=True`
-            raise ValueError("TODO: All masks were discarded.")
+            raise ValueError("All empty masks were discarded.")
 
         return res
 
     def add_node(self, node: Tuple[K, K], only_existing: bool = False) -> None:
         if self._graph is None:
-            raise RuntimeError("TODO: construct graph first")
+            raise RuntimeError("Construct the policy graph first.")
         src, tgt = node
         if src == tgt:
-            raise ValueError("TODO: cannot add self connections")
+            raise ValueError(f"Unable to add `{src, tgt}` node, self connections are disallowed.")
         if only_existing and (src not in self._cat or tgt not in self._cat):
-            raise ValueError("TODO: use only_existing=False")
+            raise ValueError(
+                f"Unable to add `{src}` or `{tgt}` node(s) that are not already present "
+                f"in the policy graph, use `only_existing=False` to override."
+            )
         self._graph.add(node)
 
     def remove_node(self, node: Tuple[K, K]) -> None:
         if self._graph is None:
-            raise RuntimeError("TODO: construct graph first")
+            raise RuntimeError("Construct the policy graph first.")
         try:
             self._graph.remove(node)
         except KeyError:
@@ -181,7 +188,7 @@ class OrderedPolicy(SubsetPolicy[K], ABC):
         self, forward: bool = True, start: Optional[K] = None, end: Optional[K] = None, **_: Any
     ) -> Sequence[Tuple[K, K]]:
         if self._graph is None:
-            raise RuntimeError("TODO: run graph creation first")
+            raise RuntimeError("Construct the policy graph first.")
         if start is None and end is None:
             start, end = self._cat[0], self._cat[-1]
         if start is None:
@@ -193,9 +200,9 @@ class OrderedPolicy(SubsetPolicy[K], ABC):
         G.add_edges_from(self._graph)
 
         if start == end:
-            raise ValueError("TODO: start is the same as end.")
+            raise ValueError(f"Start node `{start}` is the same as the end node `{end}`.")
         if start is None or end is None:
-            raise ValueError("TODO: start or end is None")
+            raise ValueError("Both start and end node are `None`.")
 
         path = nx.shortest_path(G, start, end)
         path = list(zip(path[:-1], path[1:]))
@@ -211,7 +218,7 @@ class SimplePlanPolicy(SubsetPolicy[K], ABC):
 class StarPolicy(SimplePlanPolicy[K]):
     def _create_graph(self, reference: K, **kwargs: Any) -> Set[Tuple[K, K]]:  # type: ignore[override]
         if reference not in self._cat:
-            raise ValueError(f"TODO: Reference {reference} not in {self._cat}")
+            raise ValueError(f"Reference `{reference}` is not in valid nodes: `{self._cat}`.")
         return {(c, reference) for c in self._cat if c != reference}
 
     def _filter_plan(
@@ -248,7 +255,7 @@ class ExternalStarPolicy(FormatterMixin, StarPolicy[K]):
             return value
         if value is self._SENTINEL:
             return self._tgt_name
-        raise ValueError("TODO.")
+        raise ValueError(f"Expected value to be `{self._SENTINEL}`, found `{value}`.")
 
     def _create_graph(self, **_: Any) -> Set[Tuple[K, object]]:  # type: ignore[override]
         return {(c, self._SENTINEL) for c in self._cat if c != self._SENTINEL}
@@ -284,9 +291,8 @@ class TriangularPolicy(OrderedPolicy[K]):
 class ExplicitPolicy(SimplePlanPolicy[K]):
     def _create_graph(self, subset: Sequence[Tuple[K, K]], **_: Any) -> Set[Tuple[K, K]]:  # type: ignore[override]
         if subset is None:
-            raise ValueError("TODO: specify subset for explicit policy.")
-        # pass-through, all checks are done by us later
-        return set(subset)
+            raise ValueError("No steps specifying the explicit policy.")
+        return set(subset)  # pass-through, all checks are done later
 
 
 class DummyPolicy(FormatterMixin, SubsetPolicy[str]):
