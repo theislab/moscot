@@ -8,7 +8,7 @@ from moscot._docs._docs import d
 from moscot._constants._constants import Policy
 from moscot.problems.base._base_problem import OTProblem
 from moscot.problems.base._compound_problem import B, K, CompoundProblem
-from moscot.problems.cross_modality._integration import IntegrationMixin  # type: ignore[attr-defined]
+from moscot.problems.cross_modality._mixins import IntegrationMixin
 
 __all__ = ["IntegrationProblem"]
 
