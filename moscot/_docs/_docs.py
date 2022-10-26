@@ -285,6 +285,16 @@ linear_solver_kwargs
     Keyword arguments for the linear solver used in quadratic problems.
     See notebook TODO.
 """
+_kwargs_linear = """\
+kwargs
+    Backend-specific keyword arguments for the linear solver.
+"""
+_kwargs_quad = """\
+    Backend-specific keyword arguments for the quadratic solver.
+"""
+_kwargs_quad_fused = """\
+    Backend-specific keyword arguments for the fused quadratic solver.
+"""
 
 d = DocstringProcessor(
     adata=_adata,
@@ -339,4 +349,7 @@ d = DocstringProcessor(
     pointcloud_kwargs=_pointcloud_kwargs,
     device_solve=_device_solve,
     linear_solver_kwargs=_linear_solver_kwargs,
+    kwargs_linear=_kwargs_linear,
+    kwargs_quad=_kwargs_quad,
+    kwargs_quad_fused=_kwargs_quad_fused,
 )

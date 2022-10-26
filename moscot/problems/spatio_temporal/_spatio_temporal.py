@@ -125,6 +125,7 @@ class SpatioTemporalProblem(
         tolerances: Union[float, Tuple[float, ...]] = 1e-2,
         linear_solver_kwargs: Mapping[str, Any] = MappingProxyType({}),
         device: Optional[Literal["cpu", "gpu", "tpu"]] = None,
+        **kwargs: Any,
     ) -> "SpatioTemporalProblem":
         """
         Solve optimal transport problems defined in :class:`moscot.problems.space.SpatioTemporalProblem`.
@@ -146,6 +147,7 @@ class SpatioTemporalProblem(
         %(gw_lr_kwargs)s
         %(linear_solver_kwargs)s
         %(device_solve)s
+        %(kwargs_quad_fused)s
 
         Returns
         -------
@@ -176,6 +178,7 @@ class SpatioTemporalProblem(
             tolerances=tolerances,
             linear_solver_kwargs=linear_solver_kwargs,
             device=device,
+            **kwargs,
         )
 
     @property

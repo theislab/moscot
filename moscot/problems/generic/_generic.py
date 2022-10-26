@@ -129,6 +129,7 @@ class SinkhornProblem(CompoundProblem[K, B], GenericAnalysisMixin[K, B]):
         %(sinkhorn_kwargs)s
         %(sinkhorn_lr_kwargs)s
         %(device_solve)
+        %(kwargs_linear)s
 
         Returns
         -------
@@ -295,6 +296,7 @@ class GWProblem(CompoundProblem[K, B], GenericAnalysisMixin[K, B]):
         %(gw_lr_kwargs)s
         %(linear_solver_kwargs)s
         %(device_solve)s
+        %(kwargs_quad)s
 
         Returns
         -------
@@ -416,6 +418,7 @@ class FGWProblem(GWProblem[K, B]):
         tolerances: Union[float, Tuple[float, ...]] = 1e-2,
         linear_solver_kwargs: Mapping[str, Any] = MappingProxyType({}),
         device: Optional[Literal["cpu", "gpu", "tpu"]] = None,
+        **kwargs: Any,
     ) -> "FGWProblem[K,B]":
         """
         Solve optimal transport problems defined in :class:`moscot.problems.generic.FGWProblem`.
@@ -437,6 +440,7 @@ class FGWProblem(GWProblem[K, B]):
         %(gw_lr_kwargs)s
         %(linear_solver_kwargs)s
         %(device_solve)s
+        %(kwargs_quad_fused)s
 
         Returns
         -------

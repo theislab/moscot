@@ -150,6 +150,7 @@ class TemporalProblem(
         %(sinkhorn_kwargs)s
         %(sinkhorn_lr_kwargs)s
         %(device_solve)s
+        %(kwargs_linear)s
 
         Returns
         -------
@@ -387,6 +388,7 @@ class LineageProblem(TemporalProblem):
         tolerances: Union[float, Tuple[float, ...]] = 1e-2,
         linear_solver_kwargs: Mapping[str, Any] = MappingProxyType({}),
         device: Optional[Literal["cpu", "gpu", "tpu"]] = None,
+        **kwargs: Any,
     ) -> "LineageProblem":
         """
         Solve optimal transport problems defined in :class:`moscot.problems.time.LineageProblem`.
@@ -408,6 +410,7 @@ class LineageProblem(TemporalProblem):
         %(gw_lr_kwargs)s
         %(linear_solver_kwargs)s
         %(device_solve)s
+        %(kwargs_quad_fused)s
 
         Returns
         -------
