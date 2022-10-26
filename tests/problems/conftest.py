@@ -106,7 +106,7 @@ linear_solver_kwargs1 = {
     "max_iterations": 7,
     "lse_mode": False,
     "threshold": 5e-2,
-    # "norm_error": 4, TODO
+    "norm_error": 4,
 }
 
 gw_args_1 = {
@@ -120,7 +120,6 @@ gw_args_1 = {
     "initializer_kwargs": {},
     "jit": True,
     "threshold": 3e-2,
-    # "norm_error": 2, TODO: check once linear_ot_solver kwargs allowed
     "min_iterations": 3,
     "max_iterations": 4,
     "gamma": 9.3,
@@ -140,7 +139,7 @@ linear_solver_kwargs2 = {
     "max_iterations": 8,
     "lse_mode": True,
     "threshold": 4e-2,
-    # "norm_error": 3, TODO
+    "norm_error": 3,
 }
 
 gw_args_2 = {
@@ -155,7 +154,6 @@ gw_args_2 = {
     "initializer_kwargs": {},
     "jit": False,
     "threshold": 2e-3,
-    # "norm_error": 2, TODO: check once linear_ot_solver kwargs allowed
     "min_iterations": 2,
     "max_iterations": 3,
     "gamma": 9.4,
@@ -192,7 +190,7 @@ gw_linear_solver_args = {
     "lse_mode": "lse_mode",
     "inner_iterations": "inner_iterations",
     "threshold": "threshold",
-    # "norm_error": "norm_error", TODO
+    "norm_error": "norm_error",
     "max_iterations": "max_iterations",
     "min_iterations": "min_iterations",
 }
