@@ -337,10 +337,7 @@ class LineageProblem(TemporalProblem):
         If `a` and `b` are provided `marginal_kwargs` are ignored.
         """
         if not len(lineage_attr) and ("cost_matrices" not in self.adata.obsp):
-            raise ValueError(
-                "TODO: default location for quadratic loss is `adata.obsp[`cost_matrices`]` \
-                        but adata has no key `cost_matrices` in `obsp`."
-            )
+            raise KeyError("Unable to find cost matrices in `adata.obsp['cost_matrices']`.")
         # TODO(michalk8): refactor me
         lineage_attr = dict(lineage_attr)
         lineage_attr.setdefault("attr", "obsp")
