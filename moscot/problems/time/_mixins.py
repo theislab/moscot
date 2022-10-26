@@ -14,6 +14,7 @@ from moscot._types import ArrayLike, Numeric_t, Str_Dict_t
 from moscot._docs._docs_mixins import d_mixins
 from moscot._constants._constants import Key, AdataKeys, PlottingKeys, PlottingDefaults
 from moscot.problems.base._mixins import AnalysisMixin, AnalysisMixinProtocol
+from moscot.solvers._tagged_array import Tag
 from moscot.problems.base._compound_problem import B, K, ApplyOutput_t
 
 
@@ -265,20 +266,19 @@ class TemporalMixin(AnalysisMixin[K, B]):
 
         if threshold is not None:
             if threshold < 0:
-                raise ValueError("`threshold` must be non-negative.")
+                raise ValueError(f"Expected threshold to be non-negative, found `{threshold}`.")
             for ct in cell_transitions:
                 ct[ct < threshold] = 0.0
 
         if isinstance(source_groups, str):
             key = source_groups
+        # TODO(MUCDK): should this be really `target_groups`?
         elif isinstance(target_groups, dict):
             key = list(target_groups.keys())[0]
         else:
-            raise TypeError("TODO: `early_cells must be of type `str` or `dict`.")
+            raise TypeError(f"Expected early cells to be either `str` or `dict`, found `{type(source_groups)}`.")
 
         if key_added is not None:
-            AdataKeys.UNS
-            PlottingKeys.SANKEY
             plot_vars = {
                 "transition_matrices": cell_transitions_updated,
                 "key": key,
@@ -413,10 +413,10 @@ class TemporalMixin(AnalysisMixin[K, B]):
         # TODO: use .items()
         for (src, tgt) in self.problems:
             tag = self.problems[src, tgt].xy.tag  # type: ignore[union-attr]
-            if tag != "point_cloud":
+            if tag != Tag.POINT_CLOUD:
                 raise ValueError(
-                    "TODO: This method requires the data to be stored as point_clouds."  # type: ignore[union-attr]
-                    f"It is currently stored as {self.problems[src, tgt].xy.tag}."
+                    f"Expected `tag={Tag.POINT_CLOUD}`, "
+                    f"found `tag={self.problems[src, tgt].xy.tag}`."  # type: ignore[union-attr]
                 )
             if src == start:
                 source_data = self.problems[src, tgt].xy.data  # type: ignore[union-attr]
@@ -426,20 +426,20 @@ class TemporalMixin(AnalysisMixin[K, B]):
                 growth_rates_source = self.problems[src, tgt].growth_rates  # type: ignore[attr-defined]
                 break
         else:
-            raise ValueError(f"No data found for time point {start}")
+            raise ValueError(f"No data found for `{start}` time point.")
         for (src, tgt) in self.problems.keys():
             if src == intermediate:
                 intermediate_data = self.problems[src, tgt].xy.data  # type: ignore[union-attr]
                 intermediate_adata = self.problems[src, tgt].adata_src
                 break
         else:
-            raise ValueError(f"No data found for time point {intermediate}")
+            raise ValueError(f"No data found for `{intermediate}` time point.")
         for (src, tgt) in self.problems.keys():
             if tgt == end:
                 target_data = self.problems[src, tgt].xy.data_y  # type: ignore[union-attr]
                 break
         else:
-            raise ValueError(f"No data found for time point {end}")
+            raise ValueError(f"No data found for `{end}` time point.")
 
         return (
             source_data,
@@ -728,26 +728,29 @@ class TemporalMixin(AnalysisMixin[K, B]):
         start: K, intermediate: K, end: K, interpolation_parameter: Optional[float] = None
     ) -> Numeric_t:
         if TYPE_CHECKING:
-            assert isinstance(start, (int, float))
-            assert isinstance(intermediate, (int, float))
-            assert isinstance(end, (int, float))
-        if interpolation_parameter is not None and (0 > interpolation_parameter or interpolation_parameter > 1):
-            raise ValueError("TODO: interpolation parameter must be in [0,1].")
-        if start >= intermediate:
-            raise ValueError("TODO: expected start < intermediate")
-        if intermediate >= end:
-            raise ValueError("TODO: expected intermediate < end")
-        return (
-            interpolation_parameter if interpolation_parameter is not None else (intermediate - start) / (end - start)
+            assert isinstance(start, float)
+            assert isinstance(intermediate, float)
+            assert isinstance(end, float)
+        if interpolation_parameter is not None:
+            if 0 < interpolation_parameter < 1:
+                return interpolation_parameter
+            raise ValueError(
+                f"Expected interpolation parameter to be in interval `(0, 1)`, found `{interpolation_parameter}`."
+            )
+
+        if start < intermediate < end:
+            return (intermediate - start) / (end - start)
+        raise ValueError(
+            f"Expected intermediate time point to be in interval `({start}, {end})`, found `{intermediate}`."
         )
 
     @property
     def temporal_key(self) -> Optional[str]:
-        """Return temporal key."""
+        """Temporal key in :attr:`anndata.AnnData.obs`."""
         return self._temporal_key
 
     @temporal_key.setter
-    def temporal_key(self: TemporalMixinProtocol[K, B], value: Optional[str]) -> None:
-        if value is not None and value not in self.adata.obs:
-            raise KeyError(f"{value} not in `adata.obs`.")
-        self._temporal_key = value
+    def temporal_key(self: TemporalMixinProtocol[K, B], key: Optional[str]) -> None:
+        if key is not None and key not in self.adata.obs:
+            raise KeyError(f"Unable to find temporal key in `adata.obs[{key!r}]`.")
+        self._temporal_key = key
