@@ -303,7 +303,7 @@ class TestSolverOutput:
             device = jax.devices()[0]
             _ = solver(xy=(x, x), device=device)
         elif device == "cpu:1":
-            with pytest.raises(IndexError, match=r"TODO"):
+            with pytest.raises(IndexError, match=r"Unable to fetch the device with `id=1`."):
                 _ = solver(xy=(x, x), device=device)
         else:
             _ = solver(xy=(x, x), device=device)
