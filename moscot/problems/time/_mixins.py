@@ -31,7 +31,6 @@ class TemporalMixinProtocol(AnalysisMixinProtocol[K, B], Protocol[K, B]):
         target_groups: Str_Dict_t,
         forward: bool = False,  # return value will be row-stochastic if forward=True, else column-stochastic
         aggregation_mode: Literal["annotation", "cell"] = "annotation",
-        online: bool = False,
         batch_size: Optional[int] = None,
         normalize: bool = True,
         key_added: Optional[str] = PlottingDefaults.CELL_TRANSITION,
@@ -45,7 +44,7 @@ class TemporalMixinProtocol(AnalysisMixinProtocol[K, B], Protocol[K, B]):
         """Pull."""
         ...
 
-    def _cell_transition(  # TODO(@MUCDK) think about removing _cell_transition_non_online
+    def _cell_transition(
         self: AnalysisMixinProtocol[K, B],
         *args: Any,
         **kwargs: Any,
@@ -149,7 +148,6 @@ class TemporalMixin(AnalysisMixin[K, B]):
         target_groups: Str_Dict_t,
         forward: bool = False,  # return value will be row-stochastic if forward=True, else column-stochastic
         aggregation_mode: Literal["annotation", "cell"] = "annotation",
-        online: bool = False,
         batch_size: Optional[int] = None,
         normalize: bool = True,
         key_added: Optional[str] = PlottingDefaults.CELL_TRANSITION,
@@ -165,7 +163,6 @@ class TemporalMixin(AnalysisMixin[K, B]):
         %(cell_trans_params)s
         %(forward_cell_transition)s
         %(aggregation_mode)s
-        %(online)s
         %(ott_jax_batch_size)s
         %(normalize)s
         %(key_added_plotting)s
@@ -189,8 +186,7 @@ class TemporalMixin(AnalysisMixin[K, B]):
             target_groups=target_groups,
             forward=forward,
             aggregation_mode=aggregation_mode,
-            online=online,
-            batch_size=batch_size,
+            size=batch_size,
             normalize=normalize,
             key_added=key_added,
         )
