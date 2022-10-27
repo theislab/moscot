@@ -2,44 +2,56 @@ from docrep import DocstringProcessor
 
 _adata = """\
 adata
-    Annotated data object."""
+    Annotated data object.
+"""
 _adatas = """\
 adatas
-    Annotated data objects."""
+    Annotated data objects.
+"""
 _adata_x = """\
 adata_x
-    Instance of :class:`anndata.AnnData` containing the data of the source distribution."""
+    Instance of :class:`anndata.AnnData` containing the data of the source distribution.
+"""
 _adata_y = """\
 adata_y
-    Instance of :class:`anndata.AnnData` containing the data of the target distribution."""
+    Instance of :class:`anndata.AnnData` containing the data of the target distribution.
+"""
 _solver = """\
 solver
-    Instance from :mod:`moscot.solvers` used for solving the Optimal Transport problem."""
+    Instance from :mod:`moscot.solvers` used for solving the Optimal Transport problem.
+"""
 _source = """\
 source
     Value in :attr:`anndata.AnnData.obs` defining the assignment to the source distribution."""
 _target = """\
 target
-    Value in :attr:`anndata.AnnData.obs` defining the assignment to the target distribution."""
+    Value in :attr:`anndata.AnnData.obs` defining the assignment to the target distribution.
+"""
 _reference = """\
 reference
-    `reference` in :class:`moscot.problems._subset_policy.StarPolicy`."""
+    `reference` in :class:`moscot.problems._subset_policy.StarPolicy`.
+"""
 _callback = """\
 callback
-    Custom callback applied to each distribution as pre-processing step. Examples are given in TODO Link Notebook."""
+    Custom callback applied to each distribution as pre-processing step. Examples are given in TODO Link Notebook.
+"""
 _callback_kwargs = """\
 callback_kwargs
-    Keyword arguments for `callback`."""
+    Keyword arguments for `callback`.
+"""
 _epsilon = """\
 epsilon
-    Entropic regularisation parameter."""
+    Entropic regularisation parameter.
+"""
 _alpha = """\
 alpha
-    Interpolation parameter between quadratic term and linear term."""
+    Interpolation parameter between quadratic term and linear term.
+"""
 _tau_a = """\
 tau_a
     Unbalancedness parameter for left marginal between 0 and 1. `tau_a` equalling 1 means no unbalancedness
-    in the source distribution. The limit of `tau_a` going to 0 ignores the left marginals."""
+    in the source distribution. The limit of `tau_a` going to 0 ignores the left marginals.
+"""
 _tau_b = """\
 tau_b
     unbalancedness parameter for right marginal between 0 and 1. `tau_b` equalling 1 means no unbalancedness
@@ -62,7 +74,8 @@ data
 """
 _subset = """\
 subset
-    Subset of :attr:`anndata.AnnData.obs` ``['{key}']`` values of which the policy is to be applied to."""
+    Subset of :attr:`anndata.AnnData.obs` ``['{key}']`` values of which the policy is to be applied to.
+"""
 _marginal_kwargs = """\
 marginal_kwargs
     keyword arguments for :meth:`moscot.problems.BirthDeathProblem._estimate_marginals`, i.e.
@@ -83,36 +96,46 @@ marginal_kwargs
 """
 _shape = """\
 shape
-    Number of cells in source and target distribution."""
+    Number of cells in source and target distribution.
+"""
 _transport_matrix = """\
 transport_matrix
-    Computed transport matrix."""
+    Computed transport matrix.
+"""
 _converged = """\
 converged
-    Whether the algorithm converged."""
+    Whether the algorithm converged.
+"""
 _a = """\
 a
     Specifies the left marginals. If of type :class:`str` the left marginals are taken from
-    :attr:`anndata.AnnData.obs` ``['{a}']``. If `a` is `None` uniform marginals are used."""
+    :attr:`anndata.AnnData.obs` ``['{a}']``. If `a` is `None` uniform marginals are used.
+"""
 _b = """\
 b
     Specifies the right marginals. If of type :class:`str` the right marginals are taken from
-    :attr:`anndata.AnnData.obs` ``['{b}']``. If `b` is `None` uniform marginals are used."""
+    :attr:`anndata.AnnData.obs` ``['{b}']``. If `b` is `None` uniform marginals are used.
+"""
 _time_key = """\
 time_key
-    Time point key in :attr:`anndata.AnnData.obs`."""
+    Time point key in :attr:`anndata.AnnData.obs`.
+"""
 _spatial_key = """\
 spatial_key
-    Key in :attr:`anndata.AnnData.obsm` where spatial coordinates are stored."""
+    Key in :attr:`anndata.AnnData.obsm` where spatial coordinates are stored.
+"""
 _batch_key = """\
 batch_key
-    If present, specify the batch key of `:class:`anndata.AnnData`."""
+    If present, specify the batch key of `:class:`anndata.AnnData`.
+"""
 _policy = """\
 policy
-    Defines the rule according to which pairs of distributions are selected to compute the transport map between."""
+    Defines the rule according to which pairs of distributions are selected to compute the transport map between.
+"""
 _key = """\
 key
-    Key in :attr:`anndata.AnnData.obs` allocating the cell to a certain cell distribution (e.g. batch)."""
+    Key in :attr:`anndata.AnnData.obs` allocating the cell to a certain cell distribution (e.g. batch).
+"""
 _joint_attr = """\
 joint_attr
 
@@ -139,23 +162,24 @@ GW_y
 """
 _split_mass = """\
 split_mass
-    If `True` the operation is applied to each cell individually."""
+    If `True` the operation is applied to each cell individually.
+"""
 _inplace = """\
 inplace
-    Whether to modify :class:`anndata.AnnData` in place or return the result."""
-_online = """\
-online
-    If `True` the transport matrix is not materialised if it was solved in low-rank mode or with `batch_size != None`.
-    This reduces memory complexity but increases run time."""
+    Whether to modify :class:`anndata.AnnData` in place or return the result.
+"""
 _rank = """\
 rank
-    Rank of solver. If `-1` standard / full-rank optimal transport is applied."""
+    Rank of solver. If `-1` standard / full-rank optimal transport is applied.
+"""
 _stage = """\
 stage
-    Stages of subproblems which are to be solved."""
+    Stages of subproblems which are to be solved.
+"""
 _solve_kwargs = """\
 kwargs
-    keyword arguments for the backend-specific solver, TODO see NOTEBOOK."""
+    keyword arguments for the backend-specific solver, TODO see NOTEBOOK.
+"""
 _alignment_mixin_returns = """\
 If ``inplace = False``, returns a :class:`numpy.ndarray` with aligned coordinates.
 
@@ -280,6 +304,21 @@ batch_size
 _device_solve = """\
 device
     If not `None`, the output will be transferred to `device`."""
+_linear_solver_kwargs = """\
+linear_solver_kwargs
+    Keyword arguments for the linear solver used in quadratic problems.
+    See notebook TODO.
+"""
+_kwargs_linear = """\
+kwargs
+    Backend-specific keyword arguments for the linear solver.
+"""
+_kwargs_quad = """\
+    Backend-specific keyword arguments for the quadratic solver.
+"""
+_kwargs_quad_fused = """\
+    Backend-specific keyword arguments for the fused quadratic solver.
+"""
 
 d = DocstringProcessor(
     adata=_adata,
@@ -317,7 +356,6 @@ d = DocstringProcessor(
     split_mass=_split_mass,
     inplace=_inplace,
     alignment_mixin_returns=_alignment_mixin_returns,
-    online=_online,
     rank=_rank,
     stage=_stage,
     solve_kwargs=_solve_kwargs,
@@ -333,4 +371,8 @@ d = DocstringProcessor(
     cost=_cost,
     pointcloud_kwargs=_pointcloud_kwargs,
     device_solve=_device_solve,
+    linear_solver_kwargs=_linear_solver_kwargs,
+    kwargs_linear=_kwargs_linear,
+    kwargs_quad=_kwargs_quad,
+    kwargs_quad_fused=_kwargs_quad_fused,
 )

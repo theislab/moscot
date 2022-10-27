@@ -26,7 +26,8 @@ __all__ = ["BaseProblem", "OTProblem", "ProblemKind"]
 class BaseProblem(ABC):
     """Problem interface handling one optimal transport problem."""
 
-    def __init__(self):
+    def __init__(self):  # type: ignore[no-untyped-def]
+
         self._problem_kind: ProblemKind = ProblemKind.UNKNOWN
         self._stage = ProblemStage.INITIALIZED
 
@@ -267,7 +268,6 @@ class OTProblem(BaseProblem):
         adata_y: AnnData,
         layer: Optional[str] = None,
         return_linear: bool = True,
-        joint_space: bool = True,
         n_comps: int = 30,
         **kwargs: Any,
     ) -> Dict[Literal["xy", "x", "y"], TaggedArray]:
@@ -285,18 +285,16 @@ class OTProblem(BaseProblem):
 
         if return_linear:
             n = x.shape[0]
-            data = concat(x, y) if joint_space else x
+            data = concat(x, y)
             if data.shape[1] <= n_comps:
+                # TODO(michalk8): log
                 return {"xy": TaggedArray(data[:n], data[n:], tag=Tag.POINT_CLOUD)}
-            logger.info(f"Computing pca with `n_comps = {n_comps}` on `{msg}`.")
-            if joint_space:
-                data = sc.pp.pca(data, n_comps=n_comps, **kwargs)
-            else:
-                data = concat(sc.pp.pca(data, n_comps=n_comps, **kwargs), sc.pp.pca(y, n_comps=n_comps, **kwargs))
 
+            logger.info(f"Computing pca with `n_comps={n_comps}` using `{msg}`")
+            data = sc.pp.pca(data, n_comps=n_comps, **kwargs)
             return {"xy": TaggedArray(data[:n], data[n:], tag=Tag.POINT_CLOUD)}
 
-        logger.info(f"Computing pca with `n_comps = {n_comps}` on `{msg}`.")
+        logger.info(f"Computing pca with `n_comps={n_comps}` using `{msg}`")
         x = sc.pp.pca(x, n_comps=n_comps, **kwargs)
         y = sc.pp.pca(y, n_comps=n_comps, **kwargs)
         return {"x": TaggedArray(x, tag=Tag.POINT_CLOUD), "y": TaggedArray(y, tag=Tag.POINT_CLOUD)}

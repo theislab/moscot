@@ -8,8 +8,8 @@ from anndata import AnnData
 
 from moscot._docs._docs import d
 
-__all__ = ["simulation", "mosta", "hspc"]
-
+# TODO(michalk8): expose all
+__all__ = ["simulation", "mosta", "hspc", "drosophila_sc", "drosophila_sp", "sim_align"]
 PathLike = Union[os.PathLike, str]
 
 _datasets = MappingProxyType(
@@ -27,8 +27,20 @@ _datasets = MappingProxyType(
             (54134, 2000),
         ),
         "hspc": (
-            "https://figshare.com/ndownloader/files/36704517",
-            (2000, 2000),
+            "https://figshare.com/ndownloader/files/37993503",
+            (4000, 2000),
+        ),
+        "adata_dm_sc": (
+            "https://figshare.com/ndownloader/files/37984938",
+            (1297, 2000),
+        ),
+        "adata_dm_sp": (
+            "https://figshare.com/ndownloader/files/37984935",
+            (3039, 82),
+        ),
+        "sim_align": (
+            "https://figshare.com/ndownloader/files/37984926",
+            (1200, 500),
         ),
     }
 )
@@ -111,10 +123,10 @@ def hspc(
     Subsampled and processed data of the `NeurIPS Multimodal Single-Cell Integration Challenge \
     <https://www.kaggle.com/competitions/open-problems-multimodal/data>`.
 
-    2000 cells were randomly selected after filtering the training data of the
+    4000 cells were randomly selected after filtering the training data of the
     NeurIPS Multimodal Single-Cell Integration Challenge for multiome data and donor `31800`.
     Subsequently, the 2000 most highly variable genes were selected as well as all peaks
-    appearing in less than 5% of the cells were filtered out, resulting in 11,607 peaks.
+    appearing in less than 5% of the cells were filtered out, resulting in 11,595 peaks.
 
     Parameters
     ----------
@@ -128,3 +140,79 @@ def hspc(
     %(adata)s
     """
     return _load_dataset_from_url(path, *_datasets["hspc"], **kwargs)
+
+
+@d.dedent
+def drosophila_sc(
+    path: PathLike = "datasets/adata_dm_sc",
+    **kwargs: Any,
+) -> AnnData:
+    """
+    Single-cell transcriptomics of embryo of drosophila melanogaster \
+    as described in :cite:`Li-spatial:22`.
+
+    Minimal pre-processing was performed, such as gene and cell filtering
+    as well as normalization. Processing steps at
+    https://github.com/theislab/moscot-framework_reproducibility.
+
+    Parameters
+    ----------
+    path
+        Location where the file is saved to.
+    kwargs
+        TODO.
+
+    Returns
+    -------
+    %(adata)s
+    """
+    return _load_dataset_from_url(path, *_datasets["adata_dm_sc"], **kwargs)
+
+
+@d.dedent
+def drosophila_sp(
+    path: PathLike = "datasets/adata_dm_sp",
+    **kwargs: Any,
+) -> AnnData:
+    """
+    Spatial transcriptomics of embryo of drosophila melanogaster \
+    as described in :cite:`Li-spatial:22`.
+
+    Minimal pre-processing was performed, such as gene and cell filtering
+    as well as normalization. Processing steps at
+    https://github.com/theislab/moscot-framework_reproducibility.
+
+    Parameters
+    ----------
+    path
+        Location where the file is saved to.
+    kwargs
+        TODO.
+
+    Returns
+    -------
+    %(adata)s
+    """
+    return _load_dataset_from_url(path, *_datasets["adata_dm_sp"], **kwargs)
+
+
+@d.dedent
+def sim_align(
+    path: PathLike = "datasets/sim_align",
+    **kwargs: Any,
+) -> AnnData:
+    """
+    Spatial transcriptomics dataset simulation described in :cite:`Jones-spatial:22`.
+
+    Parameters
+    ----------
+    path
+        Location where the file is saved to.
+    kwargs
+        TODO.
+
+    Returns
+    -------
+    %(adata)s
+    """
+    return _load_dataset_from_url(path, *_datasets["sim_align"], **kwargs)

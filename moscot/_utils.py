@@ -36,9 +36,9 @@ def _normalize(arr: ArrayLike) -> ArrayLike:
 
 # TODO(michalk8): unify with `moscot.backends.ott._solver.Cost`
 def _get_backend_losses(
-    backend: str = "JAX", **kwargs: Any
+    backend: str = "ott", **kwargs: Any
 ) -> Dict[str, Any]:  # TODO(@MUCDK, @michalk8), registry or put somewhere else.
-    if backend == "JAX":
+    if backend == "ott":
         dimension = kwargs.pop("dimension", 1)
         return {
             "SqEuclidean": SqEuclidean(**kwargs),

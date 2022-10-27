@@ -83,9 +83,6 @@ class AlignmentProblem(CompoundProblem[K, B], SpatialAlignmentMixin[K, B]):
         initializer: QuadInitializer_t = None,
         initializer_kwargs: Mapping[str, Any] = MappingProxyType({}),
         jit: bool = True,
-        lse_mode: bool = True,
-        norm_error: int = 1,
-        inner_iterations: int = 10,
         min_iterations: int = 5,
         max_iterations: int = 50,
         threshold: float = 1e-3,
@@ -95,7 +92,9 @@ class AlignmentProblem(CompoundProblem[K, B], SpatialAlignmentMixin[K, B]):
         gw_unbalanced_correction: bool = True,
         ranks: Union[int, Tuple[int, ...]] = -1,
         tolerances: Union[float, Tuple[float, ...]] = 1e-2,
+        linear_solver_kwargs: Mapping[str, Any] = MappingProxyType({}),
         device: Optional[Literal["cpu", "gpu", "tpu"]] = None,
+        **kwargs: Any,
     ) -> "AlignmentProblem[K,B]":
         """
         Solve optimal transport problems defined in :class:`moscot.problems.space.AlignmentProblem`.
@@ -115,7 +114,9 @@ class AlignmentProblem(CompoundProblem[K, B], SpatialAlignmentMixin[K, B]):
         %(gw_kwargs)s
         %(sinkhorn_lr_kwargs)s
         %(gw_lr_kwargs)s
+        %(linear_solver_kwargs)s
         %(device_solve)s
+        %(kwargs_quad_fused)s
 
         Returns
         -------
@@ -135,9 +136,6 @@ class AlignmentProblem(CompoundProblem[K, B], SpatialAlignmentMixin[K, B]):
             initializer=initializer,
             initializer_kwargs=initializer_kwargs,
             jit=jit,
-            lse_mode=lse_mode,
-            norm_error=norm_error,
-            inner_iterations=inner_iterations,
             min_iterations=min_iterations,
             max_iterations=max_iterations,
             threshold=threshold,
@@ -147,7 +145,9 @@ class AlignmentProblem(CompoundProblem[K, B], SpatialAlignmentMixin[K, B]):
             gw_unbalanced_correction=gw_unbalanced_correction,
             ranks=ranks,
             tolerances=tolerances,
+            linear_solver_kwargs=linear_solver_kwargs,
             device=device,
+            **kwargs,
         )  # type: ignore[return-value]
 
     @property

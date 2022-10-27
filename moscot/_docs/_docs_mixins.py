@@ -36,44 +36,50 @@ aggregation_mode
     - `group`: transition probabilities from the groups defined by `source_annotation` are returned.
     - `cell`: the transition probabilities for each cell are returned.
 """
-_online = """\
-online
-    If `True` the transport matrix is not materialised if it was solved in low-rank mode or with `batch_size != None`.
-    This reduces memory complexity but increases run time."""
 _other_key = """\
 other_key
-    Key in :attr:`anndata.AnnData.obs` allocating the cell to a certain cell distribution (e.g. batch)."""
+    Key in :attr:`anndata.AnnData.obs` allocating the cell to a certain cell distribution (e.g. batch).
+"""
 _other_adata = """\
 adata
-    Annotated data object."""
+    Annotated data object.
+"""
 _ott_jax_batch_size = """\
 batch_size
     number of data points the matrix-vector products are applied to at the same time. The larger, the more memory
-    is required."""
+    is required.
+"""
 _key_added_plotting = """\
 key_added
     Key in :attr:`anndata.AnnData.uns` and/or :attr:`anndata.AnnData.obs` where the results
     for the corresponding plotting functions are stored.
-    See TODO Notebook for how :mod:`moscot.plotting` works."""
+    See TODO Notebook for how :mod:`moscot.plotting` works.
+"""
 _return_cell_transition = """\
-Transition matrix of cells or groups of cells."""
+retun_cell_transition
+    Transition matrix of cells or groups of cells.
+"""
 _notes_cell_transition = """\
 To visualise the results, see :func:`moscot.pl.cell_transition`.
 """
 _normalize = """\
 normalize
     If `True` the transition matrix is normalized such that it is stochastic. If `forward` is `True`, the transition
-    matrix is row-stochastic, otherwise column-stochastic."""
+    matrix is row-stochastic, otherwise column-stochastic.
+"""
 _forward_cell_transition = """\
 forward
-    If `True` computes transition from `source_annotations` to `target_annotations`, otherwise backward."""
+    If `True` computes transition from `source_annotations` to `target_annotations`, otherwise backward.
+"""
 _return_data = """\
 return_data
-    Whether to return the data."""
+    Whether to return the data.
+"""
 _return_all = """\
 return_all
     If `True` returns all the intermediate masses if pushed through multiple transport plans, returned as a
-    dictionary."""
+    dictionary.
+"""
 _data = """\
 data
     - If `data` is a :class:`str` this should correspond to a column in :attr:`anndata.AnnData.obs`.
@@ -85,17 +91,21 @@ data
 """
 _subset = """\
 subset
-    Subset of :attr:`anndata.AnnData.obs` ``['{key}']`` values of which the policy is to be applied to."""
+    Subset of :attr:`anndata.AnnData.obs` ``['{key}']`` values of which the policy is to be applied to.
+"""
 _source = """\
 source
-    Value in :attr:`anndata.AnnData.obs` defining the assignment to the source distribution."""
+    Value in :attr:`anndata.AnnData.obs` defining the assignment to the source distribution.
+"""
 _target = """\
 target
-    Value in :attr:`anndata.AnnData.obs` defining the assignment to the target distribution."""
+    Value in :attr:`anndata.AnnData.obs` defining the assignment to the target distribution.
+"""
 _scale_by_marginals = """\
 scale_by_marginals
     If `True` the transport map is scaled to be a stochastic matrix by multiplying the resulting mass
-    by the inverse of the marginals, TODO maybe EXAMPLE."""
+    by the inverse of the marginals, TODO maybe EXAMPLE.
+"""
 _return_push_pull = """
 Depending on `key_added` updates `adata` or returns the result:
 
@@ -115,14 +125,66 @@ _threshold = """\
 threshold
     If not `None`, set all entries below `threshold` to 0.
 """
-
+_backend = """\
+backend
+    Which backend to use for solving Optimal Transport problems.
+"""
+_kwargs_divergence = """\
+kwargs
+    Keyword arguments to solve the underlying Optimal Transport problem, see example TODO.
+"""
+_start = """\
+start
+    Time point corresponding to the early distribution.
+"""
+_end = """\
+end
+    Time point corresponding to the late distribution.
+"""
+_intermediate = """\
+intermediate
+    Time point corresponding to the intermediate distribution.
+"""
+_intermediate_interpolation = """\
+intermediate
+    Time point corresponding to the intermediate distribution which is to be interpolated.
+"""
+_seed_sampling = """\
+seed
+    Random seed for sampling from the transport matrix.
+"""
+_interpolation_parameter = """\
+interpolation_parameter
+    Interpolation parameter determining the weight of the source and the target distribution. If `None`
+    it is linearly inferred from `source`, `intermediate`, and `target`.
+"""
+_account_for_unbalancedness = """\
+account_for_unbalancedness
+    If `True` unbalancedness is accounted for by assuming exponential growth and death of cells.
+"""
+_n_interpolated_cells = """\
+n_interpolated_cells
+    Number of generated interpolated cell. If `None` the number of data points in the `intermediate`
+    distribution is taken.
+"""
+_seed_interpolation = """\
+seed
+    Random seed for generating randomly interpolated cells.
+"""
+_time_batch_distance = """\
+time
+    Time point corresponding to the cell distribution which to compute the batch distances within.
+"""
+_batch_key_batch_distance = """\
+batch_key
+    Key in :attr:`anndata.AnnData.obs` storing which batch each cell belongs to.
+"""
 
 d_mixins = DocstringProcessor(
     cell_trans_params=_cell_trans_params,
     key=_key,
     forward_cell_transition=_forward_cell_transition,
     aggregation_mode=_aggregation_mode,
-    online=_online,
     other_key=_other_key,
     other_adata=_other_adata,
     ott_jax_batch_size=_ott_jax_batch_size,
@@ -143,4 +205,16 @@ d_mixins = DocstringProcessor(
     restrict_to_existing=_restrict_to_existing,
     order_annotations=_order_annotations,
     threshold=_threshold,
+    backend=_backend,
+    kwargs_divergence=_kwargs_divergence,
+    start=_start,
+    end=_end,
+    intermediate=_intermediate,
+    intermediate_interpolation=_intermediate_interpolation,
+    seed_sampling=_seed_sampling,
+    interpolation_parameter=_interpolation_parameter,
+    n_interpolated_cells=_n_interpolated_cells,
+    seed_interpolatiob=_seed_interpolation,
+    time_batch_distance=_time_batch_distance,
+    batch_key_batch_distance=_batch_key_batch_distance,
 )

@@ -58,7 +58,7 @@ class SpatialAlignmentMixinProtocol(AnalysisMixinProtocol[K, B]):
     def _warp(tmap: LinearOperator, _: ArrayLike, src: ArrayLike) -> Tuple[ArrayLike, None]:
         ...
 
-    def _cell_transition(  # TODO(@MUCDK) think about removing _cell_transition_non_online
+    def _cell_transition(
         self: AnalysisMixinProtocol[K, B],
         *args: Any,
         **kwargs: Any,
@@ -81,7 +81,7 @@ class SpatialMappingMixinProtocol(AnalysisMixinProtocol[K, B]):
     ) -> Optional[List[str]]:
         ...
 
-    def _cell_transition(  # TODO(@MUCDK) think about removing _cell_transition_non_online
+    def _cell_transition(
         self: AnalysisMixinProtocol[K, B],
         *args: Any,
         **kwargs: Any,
@@ -208,7 +208,6 @@ class SpatialAlignmentMixin(AnalysisMixin[K, B]):
         target_groups: Optional[Str_Dict_t] = None,
         forward: bool = False,  # return value will be row-stochastic if forward=True, else column-stochastic
         aggregation_mode: Literal["annotation", "cell"] = "annotation",
-        online: bool = False,
         batch_size: Optional[int] = None,
         normalize: bool = True,
         key_added: Optional[str] = PlottingDefaults.CELL_TRANSITION,
@@ -224,7 +223,6 @@ class SpatialAlignmentMixin(AnalysisMixin[K, B]):
         %(cell_trans_params)s
         %(forward_cell_transition)s
         %(aggregation_mode)s
-        %(online)s
         %(ott_jax_batch_size)s
         %(normalize)s
         %(key_added_plotting)s
@@ -248,7 +246,6 @@ class SpatialAlignmentMixin(AnalysisMixin[K, B]):
             target_groups=target_groups,
             forward=forward,
             aggregation_mode=aggregation_mode,
-            online=online,
             other_key=None,
             other_adata=None,
             batch_size=batch_size,
@@ -477,7 +474,6 @@ class SpatialMappingMixin(AnalysisMixin[K, B]):
         target_groups: Optional[Str_Dict_t] = None,
         forward: bool = False,  # return value will be row-stochastic if forward=True, else column-stochastic
         aggregation_mode: Literal["annotation", "cell"] = "annotation",
-        online: bool = False,
         batch_size: Optional[int] = None,
         normalize: bool = True,
         key_added: Optional[str] = PlottingDefaults.CELL_TRANSITION,
@@ -493,7 +489,6 @@ class SpatialMappingMixin(AnalysisMixin[K, B]):
         %(cell_trans_params)s
         %(forward_cell_transition)s
         %(aggregation_mode)s
-        %(online)s
         %(ott_jax_batch_size)s
         %(normalize)s
         %(key_added_plotting)s
@@ -516,7 +511,6 @@ class SpatialMappingMixin(AnalysisMixin[K, B]):
             target_groups=target_groups,
             forward=forward,
             aggregation_mode=aggregation_mode,
-            online=online,
             other_key=None,
             other_adata=self.adata_sc,
             batch_size=batch_size,

@@ -15,7 +15,7 @@ class GenericAnalysisMixinProtocol(AnalysisMixinProtocol[K, B], Protocol[K, B]):
 
     batch_key: Optional[str]
 
-    def _cell_transition(  # TODO(@MUCDK) think about removing _cell_transition_non_online
+    def _cell_transition(
         self: AnalysisMixinProtocol[K, B],
         *args: Any,
         **kwargs: Any,
@@ -40,7 +40,6 @@ class GenericAnalysisMixin(AnalysisMixin[K, B]):
         key: Optional[str] = None,
         forward: bool = False,  # return value will be row-stochastic if forward=True, else column-stochastic
         aggregation_mode: Literal["annotation", "cell"] = "annotation",
-        online: bool = False,
         batch_size: Optional[int] = None,
         normalize: bool = True,
         key_added: Optional[str] = PlottingDefaults.CELL_TRANSITION,
@@ -57,7 +56,6 @@ class GenericAnalysisMixin(AnalysisMixin[K, B]):
         %(key)s
         %(forward_cell_transition)s
         %(aggregation_mode)s
-        %(online)s
         %(other_key)s
         %(other_adata)s
         %(ott_jax_batch_size)s
@@ -82,7 +80,6 @@ class GenericAnalysisMixin(AnalysisMixin[K, B]):
             target_groups=target_groups,
             forward=forward,
             aggregation_mode=aggregation_mode,
-            online=online,
             batch_size=batch_size,
             normalize=normalize,
             other_key=None,
