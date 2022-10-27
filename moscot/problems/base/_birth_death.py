@@ -1,4 +1,4 @@
-from typing import Any, Union, Literal, Optional, Protocol, Sequence
+from typing import Any, Union, Literal, Callable, Optional, Protocol, Sequence
 
 import numpy as np
 
@@ -50,7 +50,6 @@ class BirthDeathMixin:
     @d.dedent
     def score_genes_for_marginals(
         self: BirthDeathProtocol,
-        # TODO(michalk8): disallow `None`?
         gene_set_proliferation: Optional[Union[Literal["human", "mouse"], Sequence[str]]] = None,
         gene_set_apoptosis: Optional[Union[Literal["human", "mouse"], Sequence[str]]] = None,
         proliferation_key: str = "proliferation",
@@ -179,29 +178,25 @@ class BirthDeathProblem(BirthDeathMixin, OTProblem):
         apoptosis_key: Optional[str] = None,
         **kwargs: Any,
     ) -> ArrayLike:
+        def estimate(key: Optional[str], *, fn: Callable[..., ArrayLike]) -> ArrayLike:
+            if key is None:
+                return np.zeros(adata.n_obs, dtype=float)
+            try:
+                return fn(adata.obs[key].values.astype(float), **kwargs)
+            except KeyError:
+                raise KeyError(f"Unable to fetch data from `adata.obs[{key}!r]`.") from None
+
+        if proliferation_key is None and apoptosis_key is None:
+            raise ValueError("Either `proliferation_key` or `apoptosis_key` must be specified.")
         self.proliferation_key = proliferation_key
         self.apoptosis_key = apoptosis_key
-        if proliferation_key is None and apoptosis_key is None:
-            raise ValueError("TODO: `proliferation_key` or `apoptosis_key` must be provided to estimate marginals")
-        if proliferation_key is not None and proliferation_key not in adata.obs.columns:
-            raise KeyError(f"TODO: {proliferation_key} not in `adata.obs`")
-        if apoptosis_key is not None and apoptosis_key not in adata.obs.columns:
-            raise KeyError(f"TODO: {apoptosis_key} not in `adata.obs`")
 
-        self._delta = delta
-        if proliferation_key is not None:
-            birth = beta(adata.obs[proliferation_key].to_numpy(), **kwargs)
-        else:
-            birth = np.zeros(len(adata))
-        if apoptosis_key is not None:
-            death = _delta(adata.obs[apoptosis_key].to_numpy(), **kwargs)
-        else:
-            death = np.zeros(len(adata))
-        growth = np.exp((birth - death) * self._delta)
-        if source:
-            return growth
-        # TODO(michalk8): re-order computation
-        return np.full(len(self.adata_tgt), np.average(growth))
+        self._delta = delta  # TODO: refactor me
+        birth = estimate(proliferation_key, fn=beta)
+        death = estimate(apoptosis_key, fn=_delta)
+        growth = np.exp((birth - death) * delta)
+
+        return growth if source else np.full(self.adata_tgt.n_obs, fill_value=np.mean(growth))
 
     # TODO(michalk8): temporary fix to satisfy the mixin, consider removing the mixin
     @property

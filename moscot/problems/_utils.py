@@ -17,9 +17,9 @@ def require_solution(
     from moscot.problems.base import OTProblem, BaseCompoundProblem  # type: ignore[attr-defined]
 
     if isinstance(instance, OTProblem) and instance.solution is None:
-        raise RuntimeError("TODO: Run solve.")
+        raise RuntimeError("Run `.solve()` first.")
     if isinstance(instance, BaseCompoundProblem) and instance.solutions is None:
-        raise RuntimeError("TODO: Run solve.")
+        raise RuntimeError("Run `.solve()` first.")
     return wrapped(*args, **kwargs)
 
 
@@ -29,7 +29,7 @@ def require_prepare(
 ) -> Any:
     """Check whether problem has been prepared."""
     if instance.problems is None:
-        raise RuntimeError("TODO: Run prepare.")
+        raise RuntimeError("Run `.prepare()` first.")
     return wrapped(*args, **kwargs)
 
 
@@ -41,9 +41,9 @@ def wrap_prepare(
     from moscot._constants._constants import ProblemStage
     from moscot.problems.base._base_problem import ProblemKind  # TODO: move ENUMs to this file
 
-    _ = wrapped(*args, **kwargs)
-    if instance._problem_kind == ProblemKind.UNKNOWN:
-        raise RuntimeError("TODO: problem kind not set after prepare")
+    instance = wrapped(*args, **kwargs)
+    if instance.problem_kind == ProblemKind.UNKNOWN:
+        raise RuntimeError("Problem kind was not set after running `.prepare()`.")
     instance._stage = ProblemStage.PREPARED
     return instance
 
@@ -55,9 +55,11 @@ def wrap_solve(
     """Check and update the state when solving :class:`moscot.problems.base.OTProblem`."""
     from moscot._constants._constants import ProblemStage
 
-    if instance._stage not in (ProblemStage.PREPARED, ProblemStage.SOLVED):
-        raise RuntimeError("TODO")
-    _ = wrapped(*args, **kwargs)
+    if instance.stage not in (ProblemStage.PREPARED, ProblemStage.SOLVED):
+        raise RuntimeError(
+            f"Expected problem's stage to be either `'prepared'` or `'solved'`, found `{instance.stage!r}`."
+        )
+    instance = wrapped(*args, **kwargs)
     instance._stage = ProblemStage.SOLVED
     return instance
 
@@ -66,7 +68,6 @@ def handle_joint_attr(
     joint_attr: Optional[Union[str, Mapping[str, Any]]], kwargs: Any
 ) -> Tuple[Optional[Union[str, Mapping[str, Any]]], Dict[str, Any]]:
     if joint_attr is None:
-        xy = None
         if "callback" not in kwargs:
             kwargs["callback"] = "local-pca"
         else:
@@ -83,5 +84,4 @@ def handle_joint_attr(
         return xy, kwargs
     if isinstance(joint_attr, Mapping):
         return joint_attr, kwargs
-    else:
-        raise TypeError("TODO")
+    raise TypeError(f"Expected `joint_attr` to be either `str` or `dict`, found `{type(joint_attr)}`.")

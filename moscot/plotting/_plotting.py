@@ -60,8 +60,11 @@ def cell_transition(
     adata1, adata2 = _input_to_adatas(inp)
 
     key = PlottingDefaults.CELL_TRANSITION if uns_key is None else uns_key
-    if key not in adata1.uns[AdataKeys.UNS][PlottingKeys.CELL_TRANSITION]:
-        raise KeyError("TODO.")
+    try:
+        _ = adata1.uns[AdataKeys.UNS][PlottingKeys.CELL_TRANSITION][key]
+    except KeyError:
+        raise KeyError(f"No data found in `adata.uns[{AdataKeys.UNS!r}][{PlottingKeys.CELL_TRANSITION!r}][{key!r}]`.")
+
     data = adata1.uns[AdataKeys.UNS][PlottingKeys.CELL_TRANSITION][key]
     return _heatmap(
         row_adata=adata1,
@@ -129,8 +132,11 @@ def sankey(
     adata, _ = _input_to_adatas(inp)
 
     key = PlottingDefaults.SANKEY if uns_key is None else uns_key
-    if key not in adata.uns[AdataKeys.UNS][PlottingKeys.SANKEY]:
-        raise KeyError("TODO.")
+    try:
+        _ = adata.uns[AdataKeys.UNS][PlottingKeys.SANKEY][key]
+    except KeyError:
+        raise KeyError(f"No data found in `adata.uns[{AdataKeys.UNS!r}][{PlottingKeys.SANKEY!r}][{key!r}]`.")
+
     data = adata.uns[AdataKeys.UNS][PlottingKeys.SANKEY][key]
     fig = _sankey(
         adata=adata,
@@ -197,7 +203,7 @@ def push(
 
     key = PlottingDefaults.PUSH if uns_key is None else uns_key
     if key not in adata.obs:
-        raise KeyError("TODO.")
+        raise KeyError(f"No data found in `adata.obs[{key!r}]`.")
     data = adata.uns[AdataKeys.UNS][PlottingKeys.PUSH][key]
     _plot_temporal(
         adata=adata,
@@ -264,7 +270,7 @@ def pull(
 
     key = PlottingDefaults.PULL if uns_key is None else uns_key
     if key not in adata.obs:
-        raise KeyError("TODO.")
+        raise KeyError(f"No data found in `adata.obs[{key!r}]`.")
     data = adata.uns[AdataKeys.UNS][PlottingKeys.PULL][key]
     _plot_temporal(
         adata=adata,

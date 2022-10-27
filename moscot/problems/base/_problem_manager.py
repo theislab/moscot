@@ -41,16 +41,17 @@ class ProblemManager(Generic[K, B]):
         from moscot.problems.base._compound_problem import CompoundProblem
 
         if not overwrite and key in self.problems:
-            raise KeyError(f"TODO: `{key}` already present, use `overwrite=True`")
+            raise KeyError(f"Problem `{key}` is already present, use `overwrite=True` to add it.")
 
         if problem is None:
             problem = self._create_problem(key, **kwargs)
 
         if isinstance(self._compound_problem, CompoundProblem):
-            if not isinstance(problem, self._compound_problem._base_problem_type):
-                raise TypeError(f"TODO: expected `{self._compound_problem._base_problem_type}`, got `{type(problem)}`")
+            exp_type = self._compound_problem._base_problem_type
+            if not isinstance(problem, exp_type):
+                raise TypeError(f"Expected problem of type `{exp_type}`, found `{type(problem)}`.")
         elif not isinstance(problem, OTProblem):
-            raise TypeError(f"TODO: expected `{OTProblem}`, got `{type(problem)}`")
+            raise TypeError(f"Expected problem of type `{OTProblem}`, found `{type(problem)}`.")
 
         self.problems[key] = problem
         self._policy.add_node(key)
@@ -103,7 +104,7 @@ class ProblemManager(Generic[K, B]):
 
         for key, dim in dims.items():
             if len(dim) > 1:
-                raise ValueError(f"TODO: key `{key}` is associated with more than 1 dimensions `{dim}`")
+                raise ValueError(f"Problem `{key}` is associated with different dimensions: `{dim}`.")
 
     @property
     def solutions(self) -> Dict[Tuple[K, K], BaseSolverOutput]:

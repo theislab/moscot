@@ -84,13 +84,13 @@ class OTTJaxSolver(OTSolver[OTTOutput], ABC):  # noqa: B024
         NotImplementedError
             If the `tag` is not among the implemented ones
         """
-        # TODO(michalk8): maybe in the future, enable (more) kwargs for PC/Geometry
         if x.is_point_cloud:
             kwargs = _filter_kwargs(PointCloud, Geometry, **kwargs)
             cost_fn = self._create_cost(x.loss)
             x, y = self._assert2d(x.data), self._assert2d(x.data_y)
-            if y is not None and x.shape[1] != y.shape[1]:  # type: ignore[attr-defined]
-                raise ValueError("TODO: x/y dimension mismatch")
+            n, m = x.shape[1], (None if y is None else y.shape[1])  # type: ignore[attr-defined]
+            if m is not None and n != m:
+                raise ValueError(f"Expected `x/y` to have the same number of dimensions, found `{n}/{m}`.")
             return PointCloud(x, y=y, cost_fn=cost_fn, **kwargs)  # TODO: add ScaleCost
 
         kwargs = _filter_kwargs(Geometry, **kwargs)
@@ -99,7 +99,7 @@ class OTTJaxSolver(OTSolver[OTTOutput], ABC):  # noqa: B024
             return Geometry(cost_matrix=arr, **kwargs)
         if x.is_cost_matrix:
             return Geometry(kernel_matrix=arr, **kwargs)
-        raise NotImplementedError("TODO: invalid tag")
+        raise NotImplementedError(f"Creating geometry from `tag={x.tag!r}` is not yet implemeted.")
 
     def _solve(  # type: ignore[override]
         self,
@@ -117,7 +117,7 @@ class OTTJaxSolver(OTSolver[OTTOutput], ABC):  # noqa: B024
         if allow_reshape and arr.ndim == 1:
             return jnp.reshape(arr, (-1, 1))
         if arr.ndim != 2:
-            raise ValueError("TODO: expected 2D")
+            raise ValueError(f"Expected array to have 2 dimensions, found `{arr.ndim}`.")
         return arr
 
     @staticmethod
@@ -185,7 +185,7 @@ class SinkhornSolver(OTTJaxSolver):
     ) -> LinearProblem:
         del x, y
         if xy is None:
-            raise ValueError("TODO")
+            raise ValueError(f"Unable to create geometry from `xy={xy}`.")
 
         geom = self._create_geometry(xy, epsilon=epsilon, batch_size=batch_size, scale_cost=scale_cost, **kwargs)
         kwargs = _filter_kwargs(LinearProblem, **kwargs)
@@ -252,7 +252,7 @@ class GWSolver(OTTJaxSolver):
     ) -> QuadraticProblem:
         del xy
         if x is None or y is None:
-            raise ValueError("TODO")
+            raise ValueError(f"Unable to create geometry from `x={x}`, `y={y}`.")
 
         geom_x = self._create_geometry(x, **kwargs)
         geom_y = self._create_geometry(y, **kwargs)
@@ -304,7 +304,7 @@ class FGWSolver(GWSolver):
         **kwargs: Any,
     ) -> QuadraticProblem:
         if xy is None:
-            raise ValueError("TODO")
+            raise ValueError(f"Unable to create geometry from `xy={xy}`.")
 
         prob = super()._prepare(x=x, y=y, **kwargs)
         geom_xy = self._create_geometry(xy, **kwargs)
@@ -331,12 +331,15 @@ class FGWSolver(GWSolver):
 
     @staticmethod
     def _validate_geoms(geom_x: Geometry, geom_y: Geometry, geom_xy: Geometry) -> None:
-        if geom_x.shape[0] != geom_xy.shape[0]:
-            raise ValueError(f"TODO: first and joint geom mismatch: `{geom_x.shape}`, `{geom_xy.shape}`")
-        if geom_y.shape[0] != geom_xy.shape[1]:
-            raise ValueError(f"TODO: second and joint geom mismatch: `{geom_y.shape}`, `{geom_xy.shape}`")
+        n, m = geom_xy.shape
+        n_, m_ = geom_x.shape[0], geom_y.shape[0]
+        if n != n_:
+            raise ValueError(f"Expected the first geometry to have `{n}` points, found `{n_}`.")
+        if m != m_:
+            raise ValueError(f"Expected the second geometry to have `{m}` points, found `{m_}`.")
 
     @staticmethod
     def _alpha_to_fused_penalty(alpha: float) -> float:
-        assert 0 < alpha <= 1, "TODO: alpha must be in (0, 1]"
+        if not (0 < alpha <= 1):
+            raise ValueError(f"Expected `alpha` to be in interval `(0, 1]`, found `{alpha}`.")
         return (1 - alpha) / alpha

@@ -1,4 +1,5 @@
 # this file was adapted from https://github.com/theislab/cellrank/blob/master/cellrank/datasets/_datasets.py
+from types import MappingProxyType
 from typing import Any, Tuple, Union, Literal
 import os
 
@@ -7,39 +8,42 @@ from anndata import AnnData
 
 from moscot._docs._docs import d
 
+# TODO(michalk8): expose all
 __all__ = ["simulation", "mosta", "hspc", "drosophila_sc", "drosophila_sp", "sim_align"]
 PathLike = Union[os.PathLike, str]
 
-_datasets = {
-    "tedsim_1024": (
-        "https://figshare.com/ndownloader/files/35786069",
-        (1536, 500),
-    ),
-    "tedsim_15360": (
-        "https://figshare.com/ndownloader/files/36556515",
-        (15360, 500),
-    ),
-    "mosta": (
-        "https://figshare.com/ndownloader/files/37953852",
-        (54134, 2000),
-    ),
-    "hspc": (
-        "https://figshare.com/ndownloader/files/37993503",
-        (4000, 2000),
-    ),
-    "adata_dm_sc": (
-        "https://figshare.com/ndownloader/files/37984938",
-        (1297, 2000),
-    ),
-    "adata_dm_sp": (
-        "https://figshare.com/ndownloader/files/37984935",
-        (3039, 82),
-    ),
-    "sim_align": (
-        "https://figshare.com/ndownloader/files/37984926",
-        (1200, 500),
-    ),
-}
+_datasets = MappingProxyType(
+    {
+        "tedsim_1024": (
+            "https://figshare.com/ndownloader/files/35786069",
+            (1536, 500),
+        ),
+        "tedsim_15360": (
+            "https://figshare.com/ndownloader/files/36556515",
+            (15360, 500),
+        ),
+        "mosta": (
+            "https://figshare.com/ndownloader/files/37953852",
+            (54134, 2000),
+        ),
+        "hspc": (
+            "https://figshare.com/ndownloader/files/37993503",
+            (4000, 2000),
+        ),
+        "adata_dm_sc": (
+            "https://figshare.com/ndownloader/files/37984938",
+            (1297, 2000),
+        ),
+        "adata_dm_sp": (
+            "https://figshare.com/ndownloader/files/37984935",
+            (3039, 82),
+        ),
+        "sim_align": (
+            "https://figshare.com/ndownloader/files/37984926",
+            (1200, 500),
+        ),
+    }
+)
 
 
 def _load_dataset_from_url(fpath: PathLike, backup_url: str, expected_shape: Tuple[int, int], **kwargs: Any) -> AnnData:
@@ -52,7 +56,7 @@ def _load_dataset_from_url(fpath: PathLike, backup_url: str, expected_shape: Tup
     adata = read(filename=fpath, backup_url=backup_url, **kwargs)
 
     if adata.shape != expected_shape:
-        raise ValueError(f"Expected `anndata.AnnData` object to have shape `{expected_shape}`, found `{adata.shape}`.")
+        raise ValueError(f"Expected `AnnData` object to have shape `{expected_shape}`, found `{adata.shape}`.")
 
     return adata
 
@@ -72,7 +76,7 @@ def simulation(
         Location where file is saved to with the filename completed by the `size`.
     size
         Number of cells corresponding to the latter of the two time points.
-    kwarg
+    kwargs
         TODO.
 
     Returns
@@ -80,7 +84,7 @@ def simulation(
     %(adata)s
     """
     if size not in (1024, 15360):
-        raise NotImplementedError(f"Available sizes are {(1024, 15360)}.")
+        raise ValueError(f"Invalid size `{size}`, available values are: `{(1024, 15360)}`.")
     return _load_dataset_from_url(f"{path}_{size}", *_datasets[f"tedsim_{size}"], **kwargs)
 
 
@@ -100,7 +104,7 @@ def mosta(
     ----------
     path
         Location where the file is saved to.
-    kwargs:
+    kwargs
         TODO.
 
     Returns

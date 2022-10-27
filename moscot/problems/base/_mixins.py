@@ -125,8 +125,8 @@ class AnalysisMixin(Generic[K, B]):
         if key_added is not None:
             aggregation_mode = kwargs.pop("aggregation_mode")
             forward = kwargs.pop("forward")
-            if aggregation_mode == AggregationMode.CELL and AggregationMode.CELL in self.adata.obs.columns:
-                raise ValueError(f"TODO: {AggregationMode.CELL} in `adata.obs`, please rename.")
+            if aggregation_mode == AggregationMode.CELL and AggregationMode.CELL in self.adata.obs:
+                raise KeyError(f"Aggregation is already present in `adata.obs[{aggregation_mode!r}]`.")
             plot_vars = {
                 "transition_matrix": tm,
                 "source": source,
@@ -251,9 +251,9 @@ class AnalysisMixin(Generic[K, B]):
                     batch_size=batch_size,
                     forward=False,
                 )
-
         else:
-            raise NotImplementedError("TODO: aggregation_mode must be `group` or `cell`.")
+            raise NotImplementedError(f"Aggregation mode `{aggregation_mode!r}` is not yet implemented.")
+
         if normalize:
             tm = tm.div(tm.sum(axis=1), axis=0)
         return _order_transition_matrix(
@@ -278,12 +278,13 @@ class AnalysisMixin(Generic[K, B]):
         seed: Optional[int] = None,
     ) -> Tuple[List[Any], List[ArrayLike]]:
         rng = np.random.RandomState(seed)
+        _ = "accounting"
         if account_for_unbalancedness and interpolation_parameter is None:
+            raise ValueError("When accounting for unbalancedness, interpolation parameter must be provided.")
+        if interpolation_parameter is not None and not (0 < interpolation_parameter < 1):
             raise ValueError(
-                "TODO: if unbalancedness is to be accounted for `interpolation_parameter` must be provided."
+                f"Expected interpolation parameter to be in interval `(0, 1)`, found `{interpolation_parameter}`."
             )
-        if interpolation_parameter is not None and (0 > interpolation_parameter or interpolation_parameter > 1):
-            raise ValueError(f"TODO: interpolation parameter must be between 0 and 1 but is {interpolation_parameter}.")
         mass = np.ones(target_dim)
         if account_for_unbalancedness and interpolation_parameter is not None:
             col_sums = self._apply(
@@ -385,9 +386,7 @@ class AnalysisMixin(Generic[K, B]):
                 set(df_target[target_annotation_key].cat.categories).intersection(target_annotations)
             )
             if not len(target_annotations_verified):
-                raise ValueError(
-                    f"TODO:None of {target_annotations} found in distribution corresponding to {target_annotation_key}."
-                )
+                raise ValueError(f"None of `{target_annotations}`, found in the target annotations.")
             source_annotations_verified = _validate_annotations_helper(
                 df_source, source_annotation_key, source_annotations, aggregation_mode
             )
@@ -399,9 +398,7 @@ class AnalysisMixin(Generic[K, B]):
             set(df_source[source_annotation_key].cat.categories).intersection(set(source_annotations))
         )
         if not len(source_annotations_verified):
-            raise ValueError(
-                f"TODO: None of {source_annotations} found in distribution corresponding to {source_annotation_key}."
-            )
+            raise ValueError(f"None of `{source_annotations}`, found in the source annotations.")
         target_annotations_verified = _validate_annotations_helper(
             df_target, target_annotation_key, target_annotations, aggregation_mode
         )
@@ -448,6 +445,7 @@ class AnalysisMixin(Generic[K, B]):
         source: str,
         target: str,
         annotation_key: str,
+        # TODO(MUCDK): unused variables, del below
         annotations_1: List[Any],
         annotations_2: List[Any],
         df_1: pd.DataFrame,
