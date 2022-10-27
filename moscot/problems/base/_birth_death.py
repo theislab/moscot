@@ -191,6 +191,7 @@ class BirthDeathProblem(BirthDeathMixin, OTProblem):
         self.proliferation_key = proliferation_key
         self.apoptosis_key = apoptosis_key
 
+        self._delta = delta  # TODO: refactor me
         birth = estimate(proliferation_key, fn=beta)
         death = estimate(apoptosis_key, fn=_delta)
         growth = np.exp((birth - death) * delta)

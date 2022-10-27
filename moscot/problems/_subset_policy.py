@@ -52,7 +52,7 @@ class SubsetPolicy(Generic[K]):
         self,
         adata: Union[AnnData, pd.Series, pd.Categorical],
         key: Optional[str] = None,
-        cat: Optional[Sequence[str]] = None,
+        verify_integrity: bool = True,
     ):
         try:
             self._data = pd.Series(adata.obs[key]) if isinstance(adata, AnnData) else adata
@@ -60,10 +60,10 @@ class SubsetPolicy(Generic[K]):
             raise KeyError(f"Unable to find data in `adata.obs[{key!r}]`.") from None
         self._data = self._data.astype("category")  # TODO(@MUCDK): catch conversion error
         self._graph: Set[Tuple[K, K]] = set()
-        self._cat = tuple(self._data.cat.categories) if cat is None else tuple(set(cat))
+        self._cat = tuple(self._data.cat.categories)
         self._subset_key: Optional[str] = key
 
-        if len(self._cat) < 2:
+        if verify_integrity and len(self._cat) < 2:
             raise ValueError(f"Policy must contain at least `2` different values, found `{len(self._cat)}`.")
 
     @abstractmethod
@@ -306,7 +306,8 @@ class DummyPolicy(FormatterMixin, SubsetPolicy[str]):
         **kwargs: Any,
     ):
 
-        super().__init__(pd.Series([self._SENTINEL] * len(adata)), cat=[src_name, tgt_name], **kwargs)
+        super().__init__(pd.Series([self._SENTINEL] * len(adata)), verify_integrity=False, **kwargs)
+        self._cat = (src_name, tgt_name)
         self._src_name = src_name
         self._tgt_name = tgt_name
 
