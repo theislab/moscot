@@ -13,7 +13,6 @@ from moscot._logging import logger
 from moscot._docs._docs import d
 from moscot.problems._utils import wrap_solve, wrap_prepare, require_solution
 from moscot.solvers._output import BaseSolverOutput
-from moscot.problems._anndata import AnnDataPointer
 from moscot.solvers._base_solver import BaseSolver, ProblemKind
 from moscot._constants._constants import ProblemStage
 from moscot.solvers._tagged_array import Tag, TaggedArray
@@ -149,9 +148,7 @@ class OTProblem(BaseProblem):
             attr = kwargs.pop("attr", "obsm")
 
             if attr in ("obsm", "uns"):
-                return AnnDataPointer(self.adata_src, attr=attr, **kwargs).create()
-            if attr == "varm":
-                return AnnDataPointer(self.adata_tgt.T, attr="obsm", **kwargs).create()
+                return TaggedArray.from_adata(self.adata_src, attr=attr, **kwargs)
             raise ValueError(f"Storing `{kwargs['tag']!r}` in `adata.{attr}` is disallowed.")
 
         x_kwargs = {k[2:]: v for k, v in kwargs.items() if k.startswith("x_")}
@@ -159,11 +156,11 @@ class OTProblem(BaseProblem):
         x_kwargs["tag"] = Tag.POINT_CLOUD
         y_kwargs["tag"] = Tag.POINT_CLOUD
 
-        # TODO(michalk8): this is legacy creation, adapt
-        x_array = AnnDataPointer(self.adata_src, **x_kwargs).create()
-        y_array = AnnDataPointer(self.adata_tgt, **y_kwargs).create()
+        x_array = TaggedArray.from_adata(self.adata_src, **x_kwargs)
+        y_array = TaggedArray.from_adata(self.adata_tgt, **y_kwargs)
 
-        return TaggedArray(x_array.data, y_array.data, tag=Tag.POINT_CLOUD, loss=x_array.loss)
+        # re-stich together
+        return TaggedArray(x_array.data, y_array.data, tag=Tag.POINT_CLOUD, cost=x_array.cost)
 
     @wrap_prepare
     def prepare(
@@ -184,13 +181,13 @@ class OTProblem(BaseProblem):
             self._xy = xy if isinstance(xy, TaggedArray) else self._handle_linear(**xy)
         elif x is not None and y is not None and xy is None:
             self._problem_kind = ProblemKind.QUAD
-            self._x = x if isinstance(x, TaggedArray) else AnnDataPointer(adata=self.adata_src, **x).create()
-            self._y = y if isinstance(y, TaggedArray) else AnnDataPointer(adata=self.adata_tgt, **y).create()
+            self._x = x if isinstance(x, TaggedArray) else TaggedArray.from_adata(self.adata_src, **x)
+            self._y = y if isinstance(y, TaggedArray) else TaggedArray.from_adata(self.adata_tgt, **y)
         elif xy is not None and x is not None and y is not None:
             self._problem_kind = ProblemKind.QUAD_FUSED
             self._xy = xy if isinstance(xy, TaggedArray) else self._handle_linear(**xy)
-            self._x = x if isinstance(x, TaggedArray) else AnnDataPointer(adata=self.adata_src, **x).create()
-            self._y = y if isinstance(y, TaggedArray) else AnnDataPointer(adata=self.adata_tgt, **y).create()
+            self._x = x if isinstance(x, TaggedArray) else TaggedArray.from_adata(self.adata_src, **x)
+            self._y = y if isinstance(y, TaggedArray) else TaggedArray.from_adata(self.adata_tgt, **y)
         else:
             raise ValueError("Unable to prepare the data. Either only supply `xy=...`, or `x=..., y=...`, or both.")
         # fmt: on

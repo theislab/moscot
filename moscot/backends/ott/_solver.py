@@ -86,7 +86,7 @@ class OTTJaxSolver(OTSolver[OTTOutput], ABC):  # noqa: B024
         """
         if x.is_point_cloud:
             kwargs = _filter_kwargs(PointCloud, Geometry, **kwargs)
-            cost_fn = self._create_cost(x.loss)
+            cost_fn = self._create_cost(x.cost)
             x, y = self._assert2d(x.data), self._assert2d(x.data_y)
             n, m = x.shape[1], (None if y is None else y.shape[1])  # type: ignore[attr-defined]
             if m is not None and n != m:
