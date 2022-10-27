@@ -93,7 +93,6 @@ class SinkhornProblem(CompoundProblem[K, B], GenericAnalysisMixin[K, B]):
         tau_b: float = 1.0,
         rank: int = -1,
         scale_cost: ScaleCost_t = "mean",
-        cost: Literal["SqEuclidean"] = "SqEuclidean",
         power: int = 1,
         batch_size: Optional[int] = None,
         stage: Union[ProblemStage_t, Tuple[ProblemStage_t, ...]] = ("prepared", "solved"),
@@ -141,7 +140,6 @@ class SinkhornProblem(CompoundProblem[K, B], GenericAnalysisMixin[K, B]):
             tau_b=tau_b,
             rank=rank,
             scale_cost=scale_cost,
-            cost=cost,
             power=power,
             batch_size=batch_size,
             stage=stage,
@@ -227,13 +225,11 @@ class GWProblem(CompoundProblem[K, B], GenericAnalysisMixin[K, B]):
 
         for z in [GW_x, GW_y]:
             if not len(z):
-                # TODO(michalk8): refactor me
-                z = dict(z)
+                z = dict(z)  # FIXME: this is a copy
                 z.setdefault("attr", "obsp")
                 z.setdefault("key", "cost_matrices")
-                z.setdefault("loss", "SqEuclidean")
+                z.setdefault("cost", "sq_euclidean")
                 z.setdefault("tag", "cost")
-                z.setdefault("loss_kwargs", {})
 
         return super().prepare(
             key=key,
@@ -251,7 +247,6 @@ class GWProblem(CompoundProblem[K, B], GenericAnalysisMixin[K, B]):
         tau_b: float = 1.0,
         rank: int = -1,
         scale_cost: ScaleCost_t = "mean",
-        cost: Literal["SqEuclidean"] = "SqEuclidean",
         power: int = 1,
         batch_size: Optional[int] = None,
         stage: Union[ProblemStage_t, Tuple[ProblemStage_t, ...]] = ("prepared", "solved"),
@@ -302,7 +297,6 @@ class GWProblem(CompoundProblem[K, B], GenericAnalysisMixin[K, B]):
             tau_b=tau_b,
             rank=rank,
             scale_cost=scale_cost,
-            cost=cost,
             power=power,
             batch_size=batch_size,
             stage=stage,
@@ -394,7 +388,6 @@ class FGWProblem(GWProblem[K, B]):
         tau_b: float = 1.0,
         rank: int = -1,
         scale_cost: ScaleCost_t = "mean",
-        cost: Literal["SqEuclidean"] = "SqEuclidean",
         power: int = 1,
         batch_size: Optional[int] = None,
         stage: Union[ProblemStage_t, Tuple[ProblemStage_t, ...]] = ("prepared", "solved"),
@@ -447,7 +440,6 @@ class FGWProblem(GWProblem[K, B]):
             tau_b=tau_b,
             rank=rank,
             scale_cost=scale_cost,
-            cost=cost,
             power=power,
             batch_size=batch_size,
             stage=stage,

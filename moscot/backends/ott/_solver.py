@@ -29,11 +29,11 @@ Epsilon_t = Union[float, Epsilon]
 
 
 class Cost(ModeEnum):
-    EUCL = "eucl"
-    SQEUCL = "sqeucl"
+    EUCL = "euclidean"
+    SQEUCL = "sq_euclidean"
     COSINE = "cosine"
     BURES = "bures"
-    BUREL_UNBAL = "bures_unbal"
+    BUREL_UNBAL = "unbalanced_bures"
 
     def __call__(self, **kwargs: Any) -> CostFn:
         if self.value == Cost.EUCL:
@@ -86,7 +86,7 @@ class OTTJaxSolver(OTSolver[OTTOutput], ABC):  # noqa: B024
         """
         if x.is_point_cloud:
             kwargs = _filter_kwargs(PointCloud, Geometry, **kwargs)
-            cost_fn = self._create_cost(x.loss)
+            cost_fn = self._create_cost(x.cost)
             x, y = self._assert2d(x.data), self._assert2d(x.data_y)
             n, m = x.shape[1], (None if y is None else y.shape[1])  # type: ignore[attr-defined]
             if m is not None and n != m:
@@ -125,7 +125,7 @@ class OTTJaxSolver(OTSolver[OTTOutput], ABC):  # noqa: B024
         if isinstance(cost, CostFn):
             return cost
         if cost is None:
-            cost = "sqeucl"
+            cost = "sq_euclidean"
         return Cost(cost)(**kwargs)
 
     @property
