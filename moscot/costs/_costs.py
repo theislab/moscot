@@ -64,7 +64,7 @@ class BarcodeDistance(BaseLoss):
     ) -> ArrayLike:
         container = getattr(self._adata, self._attr)
         if self._key not in container:
-            raise ValueError("TODO: no valid key")
+            raise KeyError(f"Unable to find data in `adata.{self._attr}[{self._key!r}]`.")
         barcodes = container[self._key]
         n_cells = barcodes.shape[0]
         distances = np.zeros((n_cells, n_cells))
@@ -85,7 +85,8 @@ class BarcodeDistance(BaseLoss):
 
         # There may not be any sites where both were measured
         if not len(b1):
-            return np.nan  # TODO(@MUCDK): What to do if this happens?
+            # TODO(@MUCDK): What to do if this happens? set to maximum or raise, depending on what user wants
+            return np.nan
         b2 = y[shared_indices]
 
         differences = b1 != b2
@@ -107,9 +108,12 @@ class LeafDistance(BaseLoss):
         if self._attr == "uns":
             tree = self._adata.uns["trees"][self._key]
             if not isinstance(tree, nx.Graph):
-                raise TypeError("TODO: tree must be a nx.DiGraph.")
+                raise TypeError(
+                    f"Expected the tree in `adata.uns['trees'][{self._key!r}]` "
+                    f"to be a `networkx.DiGraph`, found `{type(tree)}`."
+                )
             return self._create_cost_from_tree(tree, **kwargs)
-        raise NotImplementedError
+        raise NotImplementedError(f"Extracting trees from `adata.{self._attr}` is not implemented.")
 
     def _create_cost_from_tree(self, tree: nx.Graph, **kwargs: Any) -> ArrayLike:
         # TODO(@MUCDK): more efficient, problem: `target`in `multi_source_dijkstra` cannot be chosen as a subset
@@ -124,10 +128,8 @@ class LeafDistance(BaseLoss):
 
     def _get_leaves(self, tree: nx.Graph, cell_to_leaf: Optional[Mapping[str, Any]] = None) -> List[Any]:
         leaves = [node for node in tree if tree.degree(node) == 1]
-        if not set(self._adata.obs.index).issubset(leaves):
+        if not set(self._adata.obs_names).issubset(leaves):
             if cell_to_leaf is None:
-                raise ValueError(
-                    "TODO: node names do not correspond to anndata obs names. Please provide a `cell_to_leaf` dict."
-                )
+                raise ValueError("Leaves do not match `AnnData`'s observation names, please specify `cell_to_leaf`.")
             return [cell_to_leaf[cell] for cell in self._adata.obs.index]
-        return [cell for cell in self._adata.obs.index if cell in leaves]
+        return [cell for cell in self._adata.obs_names if cell in leaves]

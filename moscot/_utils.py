@@ -7,7 +7,7 @@ from anndata import AnnData
 
 from moscot._types import ArrayLike
 
-# TODO(michalk8): improve:
+# TODO(michalk8): remove this file
 # 1. _get_marginal should do more, unify with BaseProblem._getMass
 # 2. normalize doesn't need a specific function
 # 3. backend losses shouln't exist here (already does in backend)

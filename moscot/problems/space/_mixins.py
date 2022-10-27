@@ -132,7 +132,7 @@ class SpatialAlignmentMixin(AnalysisMixin[K, B]):
         elif mode == AlignmentMode.WARP:
             _transport = self._warp
         else:
-            raise NotImplementedError("TODO")
+            raise NotImplementedError(f"Alignment mode `{mode!r}` is not yet implemented.")
 
         if len(fwd_steps):
             for (start, _), path in fwd_steps.items():
@@ -275,7 +275,7 @@ class SpatialAlignmentMixin(AnalysisMixin[K, B]):
     @batch_key.setter
     def batch_key(self, key: Optional[str]) -> None:
         if key is not None and key not in self.adata.obs:
-            raise KeyError(f"Unable to find batch key in `adata.obs[{key!r}]`.")
+            raise KeyError(f"Unable to find batch data in `adata.obs[{key!r}]`.")
         self._batch_key = key
 
     def _subset_spatial(
@@ -363,7 +363,7 @@ class SpatialMappingMixin(AnalysisMixin[K, B]):
         elif corr_method == CorrMethod.SPEARMAN:
             cor = spearmanr
         else:
-            raise NotImplementedError("TODO: `corr_method` must be `pearson` or `spearman`.")
+            raise NotImplementedError(f"Correlation method `{corr_method!r}` is not yet implemented.")
 
         corrs = {}
         gexp_sc = self.adata_sc[:, var_sc].X if not issparse(self.adata_sc.X) else self.adata_sc[:, var_sc].X.A
@@ -526,25 +526,25 @@ class SpatialMappingMixin(AnalysisMixin[K, B]):
 
     @property
     def batch_key(self) -> Optional[str]:
-        """Return batch key."""
+        """Batch key in :attr:`anndata.AnnData.obs`."""
         return self._batch_key
 
     @batch_key.setter
-    def batch_key(self, value: Optional[str]) -> None:
-        if value is not None and value not in self.adata.obs:
-            raise KeyError(f"{value} not in `adata.obs`.")
-        self._batch_key = value
+    def batch_key(self, key: Optional[str]) -> None:
+        if key is not None and key not in self.adata.obs:
+            raise KeyError(f"Unable to find batch data in `adata.obs[{key!r}]`.")
+        self._batch_key = key
 
     @property
     def spatial_key(self) -> Optional[str]:
-        """Return spatial key."""
+        """Spatial key in :attr:`anndata.AnnData.obsm`."""
         return self._spatial_key
 
     @spatial_key.setter
-    def spatial_key(self: SpatialAlignmentMixinProtocol[K, B], value: Optional[str]) -> None:
-        if value is not None and value not in self.adata.obsm:
-            raise KeyError(f"TODO: {value} not found in `adata.obsm`.")
-        self._spatial_key = value
+    def spatial_key(self: SpatialAlignmentMixinProtocol[K, B], key: Optional[str]) -> None:
+        if key is not None and key not in self.adata.obsm:
+            raise KeyError(f"Unable to find spatial data in `adata.obsm[{key!r}]`.")
+        self._spatial_key = key
 
 
 def _compute_correspondence(

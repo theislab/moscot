@@ -90,5 +90,8 @@ class Key:
                 adata.uns[uns_key].setdefault(pl_func_key, {})
             if key is not None:
                 if not override and key in adata.uns[uns_key][pl_func_key]:
-                    raise KeyError("TODO: Key exists.")
+                    raise KeyError(
+                        f"Data in `adata.uns[{uns_key!r}][{pl_func_key!r}][{key!r}]` "
+                        f"already exists, use `override=True`."
+                    )
                 adata.uns[uns_key][pl_func_key][key] = value
