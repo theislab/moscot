@@ -340,6 +340,6 @@ class FGWSolver(GWSolver):
 
     @staticmethod
     def _alpha_to_fused_penalty(alpha: float) -> float:
-        if not (0 < alpha < 1):
-            raise ValueError(f"Expected `alpha` to be in interval `(0, 1)`, found `{alpha}`.")
+        if not (0 < alpha <= 1):
+            raise ValueError(f"Expected `alpha` to be in interval `(0, 1]`, found `{alpha}`.")
         return (1 - alpha) / alpha
