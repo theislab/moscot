@@ -36,7 +36,7 @@ class BaseLoss(ABC):
             return LeafDistance(*args, **kwargs)
         if kind == "barcode_distance":
             return BarcodeDistance(*args, **kwargs)
-        raise NotImplementedError(kind)
+        raise NotImplementedError(f"Cost function `{kind}` is not yet implemented.")
 
     @staticmethod
     def _normalize(cost_matrix: ArrayLike, scale: Union[Number, Scale_t] = "max") -> ArrayLike:

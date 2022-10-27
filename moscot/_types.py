@@ -25,5 +25,5 @@ Device_t = Literal["cpu", "gpu", "tpu"]
 # TODO(michalk8): autogenerate from the enums
 ScaleCost_t = Optional[Union[float, Literal["mean", "max_cost", "max_bound", "max_norm", "median"]]]
 OttCostFn_t = Literal["euclidean", "sq_euclidean", "cosine", "bures", "unbalanced_bures"]
-GenericCostFn_t = Literal["barcode_distance", "leaf_distance"]
+GenericCostFn_t = Literal["barcode_distance", "leaf_distance", "custom"]
 CostFn_t = Union[str, GenericCostFn_t, OttCostFn_t]

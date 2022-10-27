@@ -64,8 +64,7 @@ class TaggedArray:
         attr: Literal["X", "obsp", "obsm", "layers", "uns"],
         key: Optional[str] = None,
     ) -> ArrayLike:
-        key_specified = key is not None
-        modifier = f"adata.{attr}[{key!r}]" if key_specified else f"adata.{attr}"
+        modifier = f"adata.{attr}" if key is None else f"adata.{attr}[{key!r}]"
 
         try:
             data = getattr(adata, attr)
@@ -73,13 +72,12 @@ class TaggedArray:
             raise AttributeError(f"Annotated data object has no attribute `{attr}`.") from None
 
         try:
-            data = data[key]
+            if key is not None:
+                data = data[key]
         except KeyError:
-            if key_specified:
-                raise KeyError(f"Unable to fetch data from `{modifier}`.")
+            raise KeyError(f"Unable to fetch data from `{modifier}`.")
         except IndexError:
-            if key_specified:
-                raise IndexError(f"Unable to fetch data from `{modifier}`.")
+            raise IndexError(f"Unable to fetch data from `{modifier}`.")
 
         if sp.issparse(data):
             logger.warning(f"Densifying data in `{modifier}`")

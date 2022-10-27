@@ -159,7 +159,7 @@ class OTProblem(BaseProblem):
         x_array = TaggedArray.from_adata(self.adata_src, **x_kwargs)
         y_array = TaggedArray.from_adata(self.adata_tgt, **y_kwargs)
 
-        # re-stich together
+        # restich together
         return TaggedArray(x_array.data, y_array.data, tag=Tag.POINT_CLOUD, cost=x_array.cost)
 
     @wrap_prepare
