@@ -232,6 +232,7 @@ class BaseCompoundProblem(BaseProblem, ABC, Generic[K, B]):
         problems = self._problem_manager.get_problems(stage=stage)
         # TODO(michalk8): print how many problems are being solved?
         for _, problem in problems.items():
+            logger.info(f"Solving problem {problem}.")
             _ = problem.solve(**kwargs)
 
         return self
