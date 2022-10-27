@@ -5,7 +5,7 @@ import scipy.sparse as sp
 
 from anndata import AnnData
 
-from moscot._types import ArrayLike
+from moscot._types import CostFn_t, ArrayLike
 from moscot._logging import logger
 from moscot._constants._enum import ModeEnum
 
@@ -39,7 +39,7 @@ class TaggedArray:
     # passed to solver._prepare_input
     data: ArrayLike
     data_y: Optional[ArrayLike] = None
-    tag: Tag = Tag.POINT_CLOUD  # TODO(michalk8): in post_init, do check if it's correct type/loss provided
+    tag: Tag = Tag.POINT_CLOUD
     cost: Optional[Union[str, Callable[..., Any]]] = None
 
     @property
@@ -93,10 +93,10 @@ class TaggedArray:
     def from_adata(
         cls,
         adata: AnnData,
-        tag: Tag,
         attr: Literal["X", "obsp", "obsm", "layers", "uns"],
+        tag: Tag = Tag.POINT_CLOUD,
         key: Optional[str] = None,
-        cost: Union[str, Literal["barcode_distance", "leaf_distance", "custom"]] = "SqEuclidean",
+        cost: CostFn_t = "sq_euclidean",
         backend: Literal["ott"] = "ott",
         **kwargs: Any,
     ) -> "TaggedArray":

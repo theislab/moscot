@@ -114,7 +114,6 @@ class TemporalProblem(
         tau_b: float = 1.0,
         rank: int = -1,
         scale_cost: ScaleCost_t = "mean",
-        cost: Literal["SqEuclidean"] = "SqEuclidean",
         power: int = 1,
         batch_size: Optional[int] = None,
         stage: Union[ProblemStage_t, Tuple[ProblemStage_t, ...]] = ("prepared", "solved"),
@@ -162,7 +161,6 @@ class TemporalProblem(
             tau_b=tau_b,
             rank=rank,
             scale_cost=scale_cost,
-            cost=cost,
             power=power,
             batch_size=batch_size,
             stage=stage,
@@ -339,13 +337,13 @@ class LineageProblem(TemporalProblem):
         """
         if not len(lineage_attr) and ("cost_matrices" not in self.adata.obsp):
             raise KeyError("Unable to find cost matrices in `adata.obsp['cost_matrices']`.")
-        # TODO(michalk8): refactor me
+
         lineage_attr = dict(lineage_attr)
         lineage_attr.setdefault("attr", "obsp")
         lineage_attr.setdefault("key", "cost_matrices")
-        lineage_attr.setdefault("loss", None)
+        lineage_attr.setdefault("cost", "custom")
         lineage_attr.setdefault("tag", "cost")
-        lineage_attr.setdefault("loss_kwargs", {})
+
         x = y = lineage_attr
 
         xy, kwargs = handle_joint_attr(joint_attr, kwargs)
@@ -367,7 +365,6 @@ class LineageProblem(TemporalProblem):
         tau_b: float = 1.0,
         rank: int = -1,
         scale_cost: ScaleCost_t = "mean",
-        cost: Literal["SqEuclidean"] = "SqEuclidean",
         power: int = 1,
         batch_size: Optional[int] = None,
         stage: Union[ProblemStage_t, Tuple[ProblemStage_t, ...]] = ("prepared", "solved"),
@@ -420,7 +417,6 @@ class LineageProblem(TemporalProblem):
             tau_b=tau_b,
             rank=rank,
             scale_cost=scale_cost,
-            cost=cost,
             power=power,
             batch_size=batch_size,
             stage=stage,

@@ -29,11 +29,11 @@ Epsilon_t = Union[float, Epsilon]
 
 
 class Cost(ModeEnum):
-    EUCL = "eucl"
-    SQEUCL = "sqeucl"
+    EUCL = "euclidean"
+    SQEUCL = "sq_euclidean"
     COSINE = "cosine"
     BURES = "bures"
-    BUREL_UNBAL = "bures_unbal"
+    BUREL_UNBAL = "unbalanced_bures"
 
     def __call__(self, **kwargs: Any) -> CostFn:
         if self.value == Cost.EUCL:
@@ -125,7 +125,7 @@ class OTTJaxSolver(OTSolver[OTTOutput], ABC):  # noqa: B024
         if isinstance(cost, CostFn):
             return cost
         if cost is None:
-            cost = "sqeucl"
+            cost = "sq_euclidean"
         return Cost(cost)(**kwargs)
 
     @property
