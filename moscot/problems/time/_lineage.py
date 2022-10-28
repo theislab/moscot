@@ -217,11 +217,13 @@ class TemporalProblem(
         sol = list(self.problems.values())[0].solution
         if TYPE_CHECKING:
             assert isinstance(sol, BaseSolverOutput)
-        if sol.potentials[0] is None:
+        if sol.potentials is None:
             return None
         df_list = [
             pd.DataFrame(
-                np.array(np.abs(problem.solution.potentials[0])), index=problem.adata_src.obs_names, columns=["cell_cost_source"]  # type: ignore[union-attr, arg-type] # noqa: E501
+                np.array(np.abs(problem.solution.potentials[0])),  # type: ignore[union-attr,index]
+                index=problem.adata_src.obs_names,
+                columns=["cell_cost_source"],
             )
             for problem in self.problems.values()
         ]
@@ -241,7 +243,7 @@ class TemporalProblem(
         sol = list(self.problems.values())[0].solution
         if TYPE_CHECKING:
             assert isinstance(sol, BaseSolverOutput)
-        if sol.potentials[0] is None:
+        if sol.potentials is None:
             return None
 
         tup = list(self)[0]
@@ -255,7 +257,9 @@ class TemporalProblem(
         df_list.extend(
             [
                 pd.DataFrame(
-                    np.array(np.abs(problem.solution.potentials[1])), index=problem.adata_tgt.obs_names, columns=["cell_cost_target"]  # type: ignore[union-attr, arg-type] # noqa: E501
+                    np.array(np.abs(problem.solution.potentials[1])),  # type: ignore[union-attr,index]
+                    index=problem.adata_tgt.obs_names,
+                    columns=["cell_cost_target"],
                 )
                 for problem in self.problems.values()
             ]

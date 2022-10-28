@@ -7,6 +7,7 @@ from scipy.sparse.linalg import LinearOperator
 
 from moscot._types import Device_t, ArrayLike, DTypeLike
 from moscot._logging import logger
+from moscot._docs._docs import d
 
 __all__ = ["BaseSolverOutput", "MatrixSolverOutput"]
 
@@ -38,7 +39,7 @@ class BaseSolverOutput(ABC):
 
     @property
     @abstractmethod
-    def potentials(self) -> Tuple[Optional[ArrayLike], Optional[ArrayLike]]:
+    def potentials(self) -> Optional[Tuple[ArrayLike, ArrayLike]]:
         pass
 
     @abstractmethod
@@ -51,6 +52,7 @@ class BaseSolverOutput(ABC):
 
     @property
     def is_low_rank(self) -> bool:
+        """Whether the :attr:`transport_matrix` is low-rank."""
         return self.rank > -1
 
     # TODO(michalk8): mention in docs it needs to be broadcastable
@@ -59,6 +61,21 @@ class BaseSolverOutput(ABC):
         pass
 
     def push(self, x: ArrayLike, scale_by_marginals: bool = False) -> ArrayLike:
+        """Push an array through the :attr:`transport_matrix`.
+
+        It is equivalent to :math:`T^T x` but without instantiating the transport matrix :math:`T`, if possible.
+
+        Parameters
+        ----------
+        x
+            Array of shape ``[n,]`` or ``[n, d]`` to push.
+        scale_by_marginals
+            Whether to scale by the source marginals :attr:`a`.
+
+        Returns
+        -------
+        Array of shape ``[m,]`` or ``[m, d]``, depending on ``x``.
+        """
         if x.ndim not in (1, 2):
             raise ValueError(f"Expected 1D or 2D array, found `{x.ndim}`.")
         if x.shape[0] != self.shape[0]:
@@ -68,6 +85,21 @@ class BaseSolverOutput(ABC):
         return self._apply(x, forward=True)
 
     def pull(self, x: ArrayLike, scale_by_marginals: bool = False) -> ArrayLike:
+        """Pull an array through the :attr:`transport_matrix`.
+
+        It is equivalent to :math:`T x` but without instantiating the transport matrix :math:`T`, if possible.
+
+        Parameters
+        ----------
+        x
+            Array of shape ``[m,]`` or ``[m, d]`` to pull.
+        scale_by_marginals
+            Whether to scale by the target marginals :attr:`b`.
+
+        Returns
+        -------
+        Array of shape ``[n,]`` or ``[n, d]``, depending on ``x``.
+        """
         if x.ndim not in (1, 2):
             raise ValueError(f"Expected 1D or 2D array, found `{x.ndim}`.")
         if x.shape[0] != self.shape[1]:
@@ -77,6 +109,19 @@ class BaseSolverOutput(ABC):
         return self._apply(x, forward=False)
 
     def as_linear_operator(self, *, forward: bool, scale_by_marginals: bool = False) -> LinearOperator:
+        """Transform :attr:`transport_matrix` into a linear operator.
+
+        Parameters
+        ----------
+        forward
+            If `True`, convert the :meth:`push` operator, else the :meth:`pull` operator.
+        scale_by_marginals
+            Whether to scale by marginals.
+
+        Returns
+        -------
+        The :attr:`transport_matrix` as a linear operator.
+        """
         push = partial(self.push, scale_by_marginals=scale_by_marginals)
         pull = partial(self.pull, scale_by_marginals=scale_by_marginals)
         mv, rmv = (pull, push) if forward else (push, pull)  # please do not change this line
@@ -85,6 +130,21 @@ class BaseSolverOutput(ABC):
     def chain(
         self, outputs: Iterable["BaseSolverOutput"], forward: bool, scale_by_marginals: bool = False
     ) -> LinearOperator:
+        """Chain subsequent applications of :attr:`transport_matrix`.
+
+        Parameters
+        ----------
+        outputs
+            Sequence of transport matrices to chain.
+        forward
+            If `True`, chain the :meth:`push` operator, else the :meth:`pull` operator.
+        scale_by_marginals
+            Whether to scale by marginals.
+
+        Returns
+        -------
+        The chained transport matrices as a linear operator.
+        """
         op = self.as_linear_operator(forward=forward, scale_by_marginals=scale_by_marginals)
         for out in outputs:
             op *= out.as_linear_operator(forward=forward, scale_by_marginals=scale_by_marginals)
@@ -93,24 +153,23 @@ class BaseSolverOutput(ABC):
 
     @property
     def a(self) -> ArrayLike:
-        """
-        Marginals of the source distribution.
+        """Marginals of the source distribution.
 
-        If output of an unbalanced OT problem, these are the posterior marginals.
+        If the output of an unbalanced OT problem, these are the posterior marginals.
         """
         return self.pull(self._ones(self.shape[1]))
 
     @property
     def b(self) -> ArrayLike:
-        """
-        Marginals of the target distribution.
+        """Marginals of the target distribution.
 
-        If output of an unbalanced OT problem, these are the posterior marginals.
+        If the output of an unbalanced OT problem, these are the posterior marginals.
         """
         return self.push(self._ones(self.shape[0]))
 
     @property
     def dtype(self) -> DTypeLike:
+        """Underlying data type."""
         return self.a.dtype
 
     def _scale_by_marginals(self, x: ArrayLike, *, forward: bool, eps: float = 1e-12) -> ArrayLike:
@@ -145,19 +204,19 @@ class MatrixSolverOutput(BaseSolverOutput, ABC):  # noqa: B024
         return self.transport_matrix @ x
 
     @property
+    @d.dedent
     def transport_matrix(self) -> ArrayLike:
-        """%(transport_matrix)s"""  # noqa: D400
+        """Transport matrix."""
         return self._matrix
 
     @property
     def shape(self) -> Tuple[int, int]:
-        """%(shape)s"""  # noqa: D400
-        return self.transport_matrix.shape  # type: ignore[return-value]
+        """Shape of the :attr:`transport_matrix`."""
+        return self.transport_matrix.shape
 
     def to(self, device: Optional[Device_t] = None, dtype: Optional[DTypeLike] = None) -> "BaseSolverOutput":
         if device is not None:
-            logger.info(f"`{self.__class__.__name__}` doesn't support `device` argument. Ignoring")
-            return self
+            logger.info(f"`{self!r}` doesn't support `device` argument. Ignoring")
         if dtype is None:
             return self
 
