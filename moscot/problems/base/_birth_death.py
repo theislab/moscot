@@ -1,4 +1,4 @@
-from typing import Any, Union, Literal, Callable, Optional, Protocol, Sequence
+from typing import Any, Union, Literal, Callable, Optional, Protocol, Sequence, TYPE_CHECKING
 
 import numpy as np
 
@@ -8,7 +8,7 @@ import scanpy as sc
 from moscot._types import ArrayLike
 from moscot._logging import logger
 from moscot._docs._docs import d
-from moscot.problems.time._utils import beta, delta as _delta, MarkerGenes
+from moscot.problems.time._utils import beta, delta, MarkerGenes
 from moscot.problems.base._base_problem import OTProblem
 
 __all__ = ["BirthDeathProblem", "BirthDeathMixin"]
@@ -33,10 +33,10 @@ class BirthDeathProtocol(Protocol):
 
 
 class BirthDeathProblemProtocol(BirthDeathProtocol, Protocol):
-    _delta: Optional[float] = None
+    delta: float
     adata_tgt: AnnData
-    a: Optional[ArrayLike] = None
-    b: Optional[ArrayLike] = None
+    a: Optional[ArrayLike]
+    b: Optional[ArrayLike]
 
 
 class BirthDeathMixin:
@@ -133,25 +133,25 @@ class BirthDeathMixin:
 
     @property
     def proliferation_key(self) -> Optional[str]:
-        """Key in :attr:`anndata.AnnData.obs` where prior estimate of cell proliferation is saved."""
+        """Key in :attr:`anndata.AnnData.obs` where cell proliferation is stored."""
         return self._proliferation_key
 
     @proliferation_key.setter
-    def proliferation_key(self: BirthDeathProtocol, value: Optional[str]) -> None:
-        if value is not None and value not in self.adata.obs:
-            raise KeyError(f"{value} not in `adata.obs`.")
-        self._proliferation_key = value
+    def proliferation_key(self: BirthDeathProtocol, key: Optional[str]) -> None:
+        if key is not None and key not in self.adata.obs:
+            raise KeyError(f"Unable to find proliferation data in `adata.obs[{key!r}]`.")
+        self._proliferation_key = key
 
     @property
     def apoptosis_key(self) -> Optional[str]:
-        """Key in :attr:`anndata.AnnData.obs` where prior estimate of cell apoptosis is saved."""
+        """Key in :attr:`anndata.AnnData.obs` where cell apoptosis is stored."""
         return self._apoptosis_key
 
     @apoptosis_key.setter
-    def apoptosis_key(self: BirthDeathProtocol, value: Optional[str]) -> None:
-        if value is not None and value not in self.adata.obs:
-            raise KeyError(f"{value} not in `adata.obs`.")
-        self._apoptosis_key = value
+    def apoptosis_key(self: BirthDeathProtocol, key: Optional[str]) -> None:
+        if key is not None and key not in self.adata.obs:
+            raise KeyError(f"Unable to find apoptosis data in `adata.obs[{key!r}]`.")
+        self._apoptosis_key = key
 
 
 @d.dedent
@@ -162,18 +162,12 @@ class BirthDeathProblem(BirthDeathMixin, OTProblem):
     Parameters
     ----------
     %(adata_x)s
-    %(adata_y)s
     """
 
-    def __init__(self, *args: Any, **kwargs: Any):
-        super().__init__(*args, **kwargs)
-        self._delta: Optional[float] = None
-
-    def _estimate_marginals(  # type: ignore[override]
+    def _estimate_marginals(
         self: BirthDeathProblemProtocol,
         adata: AnnData,
         source: bool,
-        delta: float,  # TODO(michalk8): pass in init
         proliferation_key: Optional[str] = None,
         apoptosis_key: Optional[str] = None,
         **kwargs: Any,
@@ -191,10 +185,9 @@ class BirthDeathProblem(BirthDeathMixin, OTProblem):
         self.proliferation_key = proliferation_key
         self.apoptosis_key = apoptosis_key
 
-        self._delta = delta  # TODO: refactor me
         birth = estimate(proliferation_key, fn=beta)
-        death = estimate(apoptosis_key, fn=_delta)
-        growth = np.exp((birth - death) * delta)
+        death = estimate(apoptosis_key, fn=delta)
+        growth = np.exp((birth - death) * self.delta)
 
         return growth if source else np.full(self.adata_tgt.n_obs, fill_value=np.mean(growth))
 
@@ -204,10 +197,17 @@ class BirthDeathProblem(BirthDeathMixin, OTProblem):
         """Annotated data object."""
         return self.adata_src
 
-    # TODO(michalk8): consider removing this
     @property
     def growth_rates(self) -> Optional[ArrayLike]:
         """Return the growth rates of the cells in the source distribution."""
-        if self.a is None or self._delta is None:
+        if self.a is None:
             return None
-        return np.power(self.a, 1.0 / self._delta)
+        return np.power(self.a, 1.0 / self.delta)
+
+    @property
+    def delta(self) -> float:
+        """TODO."""
+        if TYPE_CHECKING:
+            assert isinstance(self._src_key, float)
+            assert isinstance(self._tgt_key, float)
+        return self._tgt_key - self._src_key
