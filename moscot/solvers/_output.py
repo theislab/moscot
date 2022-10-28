@@ -7,7 +7,6 @@ from scipy.sparse.linalg import LinearOperator
 
 from moscot._types import Device_t, ArrayLike, DTypeLike
 from moscot._logging import logger
-from moscot._docs._docs import d
 
 __all__ = ["BaseSolverOutput", "MatrixSolverOutput"]
 
@@ -211,9 +210,17 @@ class BaseSolverOutput(ABC):
 
 
 class MatrixSolverOutput(BaseSolverOutput, ABC):  # noqa: B024
-    def __init__(self, matrix: ArrayLike):
+    """Optimal transport output with materialized :attr:`transport_matrix`.
+
+    Parameters
+    ----------
+    transport_matrix
+        Transport matrix of shape ``[n, m]``.
+    """
+
+    def __init__(self, transport_matrix: ArrayLike):
         super().__init__()
-        self._matrix = matrix
+        self._transport_matrix = transport_matrix
 
     def _apply(self, x: ArrayLike, *, forward: bool) -> ArrayLike:
         if forward:
@@ -221,22 +228,19 @@ class MatrixSolverOutput(BaseSolverOutput, ABC):  # noqa: B024
         return self.transport_matrix @ x
 
     @property
-    @d.dedent
     def transport_matrix(self) -> ArrayLike:
-        """Transport matrix."""
-        return self._matrix
+        return self._transport_matrix
 
     @property
     def shape(self) -> Tuple[int, int]:
-        """Shape of the :attr:`transport_matrix`."""
-        return self.transport_matrix.shape
+        return self.transport_matrix.shape  # type: ignore[return-value]
 
     def to(self, device: Optional[Device_t] = None, dtype: Optional[DTypeLike] = None) -> "BaseSolverOutput":
         if device is not None:
-            logger.info(f"`{self!r}` doesn't support `device` argument. Ignoring")
+            logger.warning(f"`{self!r}` doesn't support `device` argument. Ignoring")
         if dtype is None:
             return self
 
         obj = copy(self)
-        obj._matrix = obj.transport_matrix.astype(dtype)
+        obj._transport_matrix = obj.transport_matrix.astype(dtype)
         return obj

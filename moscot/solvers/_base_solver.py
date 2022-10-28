@@ -16,7 +16,7 @@ O = TypeVar("O", bound=BaseSolverOutput)
 
 
 class ProblemKind(ModeEnum):
-    """Class defining the problem class and dispatching the solvers."""
+    """Type of optimal transport problems."""
 
     UNKNOWN = "unknown"
     LINEAR = "linear"
@@ -30,9 +30,9 @@ class ProblemKind(ModeEnum):
         Parameters
         ----------
         backend
-            The backend the solver corresponds to.
+            The backend to use.
         kwargs
-            Keyword arguments for to the solver.
+            Keyword arguments for the solver.
 
         Returns
         -------
@@ -112,7 +112,7 @@ class TagConverterMixin:
 
 
 class BaseSolver(Generic[O], ABC):
-    """BaseSolver class."""
+    """Base class for all solvers."""
 
     @abstractmethod
     def _prepare(self, **kwargs: Any) -> Any:
@@ -125,11 +125,21 @@ class BaseSolver(Generic[O], ABC):
     @property
     @abstractmethod
     def problem_kind(self) -> ProblemKind:
-        """Problem kind."""
-        # helps to check whether necessary inputs were passed
+        """Problem kind this solver handles."""
+        # to check whether necessary inputs were passed
 
     def __call__(self, **kwargs: Any) -> O:
-        """Call method."""
+        """Solve a problem.
+
+        Parameters
+        ----------
+        kwargs
+            Keyword arguments for :meth:`_prepare`.
+
+        Returns
+        -------
+        The solver output.
+        """
         data = self._prepare(**kwargs)
         return self._solve(data)
 
@@ -137,7 +147,7 @@ class BaseSolver(Generic[O], ABC):
 @d.get_sections(base="OTSolver", sections=["Parameters", "Raises"])
 @d.dedent
 class OTSolver(TagConverterMixin, BaseSolver[O], ABC):  # noqa: B024
-    """OTSolver class."""
+    """Base class for optimal transport solvers."""
 
     def __call__(
         self,
@@ -148,16 +158,36 @@ class OTSolver(TagConverterMixin, BaseSolver[O], ABC):  # noqa: B024
         device: Optional[Device_t] = None,
         **kwargs: Any,
     ) -> O:
-        """Call method."""
+        """Solve an optimal transport problem.
+
+        Parameters
+        ----------
+        xy
+            Data that defines the linear term.
+        x
+            Data of the 1st geometry that defines the quadratic term.
+        y
+            Data of the 2nd geometry that defines the quadratic term.
+        tags
+            How to interpret the data in ``xy``, ``x`` and ``y``.
+        device
+            Device to transfer the output to, see :meth:`moscot.solvers.BaseSolverOutput.to`.
+        kwargs
+            Keyword arguments to parent's :meth:`__call__`.
+
+        Returns
+        -------
+        The optimal transport solution.
+        """
         data = self._get_array_data(xy=xy, x=x, y=y, tags=tags)
-        kwargs = self._prepare_kwargs(data, **kwargs)
+        kwargs = {**kwargs, **self._prepare_kwargs(data)}
         res = super().__call__(**kwargs)
         if not res.converged:
             logger.warning("Solver did not converge")
 
         return res.to(device=device)  # type: ignore[return-value]
 
-    def _prepare_kwargs(self, data: TaggedArrayData, **kwargs: Any) -> Dict[str, Any]:
+    def _prepare_kwargs(self, data: TaggedArrayData) -> Dict[str, Any]:
         def assert_linear() -> None:
             if data.xy is None:
                 raise ValueError("No data specified for the linear term.")
@@ -179,4 +209,4 @@ class OTSolver(TagConverterMixin, BaseSolver[O], ABC):  # noqa: B024
         else:
             raise NotImplementedError(f"Unable to prepare data for `{self.problem_kind}` problem.")
 
-        return {**kwargs, **data_kwargs}
+        return data_kwargs
