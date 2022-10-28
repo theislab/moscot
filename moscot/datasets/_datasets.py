@@ -1,15 +1,21 @@
 # this file was adapted from https://github.com/theislab/cellrank/blob/master/cellrank/datasets/_datasets.py
 from types import MappingProxyType
-from typing import Any, Tuple, Union, Literal
+from typing import Any, Tuple, Union, Literal, Mapping, Optional
 import os
+
+from scipy.sparse import csr_matrix
+import pandas as pd
+
+import numpy as np
 
 from scanpy import read
 from anndata import AnnData
 
 from moscot._docs._docs import d
+from moscot.datasets._utils import _get_random_trees
 
 # TODO(michalk8): expose all
-__all__ = ["simulation", "mosta", "hspc", "drosophila_sc", "drosophila_sp", "sim_align"]
+__all__ = ["simulation", "mosta", "hspc", "drosophila_sc", "drosophila_sp", "sim_align", "simulate_data"]
 PathLike = Union[os.PathLike, str]
 
 _datasets = MappingProxyType(
@@ -216,3 +222,54 @@ def sim_align(
     %(adata)s
     """
     return _load_dataset_from_url(path, *_datasets["sim_align"], **kwargs)
+
+
+def simulate_data(
+    n_distributions: int = 2,
+    cells_per_distribution: int = 20,
+    n_genes: int = 60,
+    key: Literal["day", "batch"] = "batch",
+    var: float = 1,
+    obs_to_add: Mapping[str, Any] = MappingProxyType({"celltype": 3}),
+    marginals: Optional[Tuple[str, str]] = None,
+    seed: int = 0,
+    quad_term: Optional[Literal["tree", "barcode", "spatial"]] = None,
+    lin_cost_matrix: Optional[str] = None,
+    quad_cost_matrix: Optional[str] = None,
+    **kwargs: Any,
+) -> AnnData:
+    """TODO Simulate data."""
+    rng = np.random.RandomState(42)
+    adatas = [
+        AnnData(
+            X=csr_matrix(
+                rng.multivariate_normal(
+                    mean=kwargs.pop("mean", np.arange(n_genes)),
+                    cov=kwargs.pop("cov", var * np.diag(np.ones(n_genes))),
+                    size=cells_per_distribution,
+                )
+            )
+        )
+        for _ in range(n_distributions)
+    ]
+    adata = adatas[0].concatenate(*adatas[1:], batch_key=key)
+    if key == "day":
+        adata.obs["day"] = pd.to_numeric(adata.obs["day"])
+    for k, val in obs_to_add.items():
+        adata.obs[k] = rng.choice(range(val), len(adata))
+    if marginals:
+        adata.obs[marginals[0]] = rng.uniform(1e-5, 1, len(adata))
+        adata.obs[marginals[1]] = rng.uniform(1e-5, 1, len(adata))
+    if quad_term == "tree":
+        adata.uns["trees"] = {}
+        for i in range(n_distributions):
+            adata.uns["trees"][i] = _get_random_trees(
+                n_leaves=cells_per_distribution,
+                n_trees=1,
+                n_initial_nodes=kwargs.pop("n_initial_nodes", 5),
+                leaf_names=[adata[adata.obs[key] == i].obs_names],
+                seed=seed,
+            )[0]
+    if quad_term == "barcode":
+        pass  # TODO
+    return adata
