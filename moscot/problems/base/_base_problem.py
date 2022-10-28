@@ -153,7 +153,9 @@ class OTProblem(BaseProblem):
             attr = kwargs.pop("attr", "obsm")
 
             if attr in ("obsm", "uns"):
-                return TaggedArray.from_adata(self.adata_src, attr=attr, **kwargs)
+                return TaggedArray.from_adata(
+                    self.adata_src, dist_key=(self._src_key, self._tgt_key), attr=attr, **kwargs
+                )
             raise ValueError(f"Storing `{kwargs['tag']!r}` in `adata.{attr}` is disallowed.")
 
         x_kwargs = {k[2:]: v for k, v in kwargs.items() if k.startswith("x_")}
@@ -161,8 +163,8 @@ class OTProblem(BaseProblem):
         x_kwargs["tag"] = Tag.POINT_CLOUD
         y_kwargs["tag"] = Tag.POINT_CLOUD
 
-        x_array = TaggedArray.from_adata(self.adata_src, **x_kwargs)
-        y_array = TaggedArray.from_adata(self.adata_tgt, **y_kwargs)
+        x_array = TaggedArray.from_adata(self.adata_src, dist_key=self._src_key, **x_kwargs)
+        y_array = TaggedArray.from_adata(self.adata_tgt, dist_key=self._tgt_key, **y_kwargs)
 
         # restich together
         return TaggedArray(x_array.data, y_array.data, tag=Tag.POINT_CLOUD, cost=x_array.cost)

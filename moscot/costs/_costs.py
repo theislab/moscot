@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import Any, List, Union, Literal, Mapping, Optional
+from typing import Any, List, Tuple, Union, Literal, Mapping, Optional
 from numbers import Number
 
 import networkx as nx
@@ -21,10 +21,11 @@ class BaseLoss(ABC):
     def _compute(self, *args: Any, **kwargs: Any) -> ArrayLike:
         pass
 
-    def __init__(self, adata: AnnData, attr: str, key: str):
+    def __init__(self, adata: AnnData, attr: str, key: str, dist_key: Union[Any, Tuple[Any, Any]]):
         self._adata = adata
         self._attr = attr
         self._key = key
+        self._dist_key = dist_key
 
     def __call__(self, *args: Any, scale: Optional[Union[Number, Scale_t]] = None, **kwargs: Any) -> ArrayLike:
         cost = self._compute(*args, **kwargs)
@@ -106,7 +107,7 @@ class LeafDistance(BaseLoss):
         Compute the matrix of pairwise distances between leaves of the tree
         """
         if self._attr == "uns":
-            tree = self._adata.uns["trees"][self._key]
+            tree = self._adata.uns["trees"][self._dist_key]
             if not isinstance(tree, nx.Graph):
                 raise TypeError(
                     f"Expected the tree in `adata.uns['trees'][{self._key!r}]` "
