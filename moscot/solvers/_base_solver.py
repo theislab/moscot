@@ -165,9 +165,9 @@ class OTSolver(TagConverterMixin, BaseSolver[O], ABC):  # noqa: B024
         xy
             Data that defines the linear term.
         x
-            Data of the 1st geometry that defines the quadratic term.
+            Data of the first geometry that defines the quadratic term.
         y
-            Data of the 2nd geometry that defines the quadratic term.
+            Data of the second geometry that defines the quadratic term.
         tags
             How to interpret the data in ``xy``, ``x`` and ``y``.
         device

@@ -2,12 +2,15 @@ Developer
 #########
 
 
-Output
-~~~~~~
+OTT Backend
+~~~~~~~~~~~~
 
 .. autosummary::
     :toctree: genapi
 
+    moscot.backends.ott.SinkhornSolver
+    moscot.backends.ott.GWSolver
+    moscot.backends.ott.FGWSolver
     moscot.backends.ott.OTTOutput
 
 Costs
