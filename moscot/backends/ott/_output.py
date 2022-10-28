@@ -16,13 +16,14 @@ from moscot.solvers._output import BaseSolverOutput
 __all__ = ["OTTOutput"]
 
 
-# TODO(michalk8): merge to OTTOutput
 class ConvergencePlotterMixin:
     _NOT_COMPUTED = -1.0
 
     def __init__(self, costs: jnp.ndarray, errors: Optional[jnp.ndarray], *args: Any, **kwargs: Any):
         super().__init__(*args, **kwargs)
+        # TODO(michalk8): don't plot costs?
         self._costs = costs[costs != self._NOT_COMPUTED]
+        # TODO(michalk8): always compute errors?
         self._errors = None if errors is None else errors[errors != self._NOT_COMPUTED]
 
     def plot_convergence(
@@ -113,29 +114,15 @@ class OTTOutput(ConvergencePlotterMixin, BaseSolverOutput):
 
     @property
     def shape(self) -> Tuple[int, int]:
-        """Shape of the :attr:`transport_matrix`."""
         if isinstance(self._output, OTTSinkhornOutput):
             return self._output.f.shape[0], self._output.g.shape[0]
         return self._output.geom.shape
 
     @property
     def transport_matrix(self) -> ArrayLike:
-        """Transport matrix of shape ``[n, m]``."""
         return self._output.matrix
 
     def to(self, device: Optional[Device_t] = None) -> "OTTOutput":
-        """Transfer self to another device using :func:`jax.device_put`.
-
-        Parameters
-        ----------
-        device
-            Device where to transfer the solver output.
-            If `None`, use the default device.
-
-        Returns
-        -------
-        Self transferred to the ``device``.
-        """
         if isinstance(device, str) and ":" in device:
             device, ix = device.split(":")
             idx = int(ix)
@@ -152,29 +139,23 @@ class OTTOutput(ConvergencePlotterMixin, BaseSolverOutput):
 
     @property
     def cost(self) -> float:
-        """Regularized optimal transport cost."""
         if isinstance(self._output, (OTTSinkhornOutput, OTTLRSinkhornOutput)):
             return float(self._output.reg_ot_cost)
         return float(self._output.reg_gw_cost)
 
     @property
     def converged(self) -> bool:
-        """Whether the algorithm converged."""
         return bool(self._output.converged)
 
     @property
     def potentials(self) -> Optional[Tuple[ArrayLike, ArrayLike]]:
-        """The dual potentials :math:`f` and :math:`g`.
 
-        Only valid for the Sinkhorn's algorithm.
-        """
         if isinstance(self._output, OTTSinkhornOutput):
             return self._output.f, self._output.g
         return None
 
     @property
     def rank(self) -> int:
-        """Rank of the :attr:`transport_matrix`."""
         lin_output = self._output.linear_state if isinstance(self._output, OTTGWOutput) else self._output
         return len(lin_output.g) if isinstance(lin_output, OTTLRSinkhornOutput) else -1
 

@@ -10,7 +10,6 @@ Output
 
     moscot.backends.ott.OTTOutput
 
-
 Costs
 ~~~~~
 
@@ -23,7 +22,6 @@ Costs
 
 Translation Classes
 ~~~~~~~~~~~~~~~~~~~
-
 .. autosummary::
     :toctree: genapi
 
@@ -32,7 +30,6 @@ Translation Classes
 
 Optimal Transport classes
 ~~~~~~~~~~~~~~~~~~~~~~~~~
-
 .. autosummary::
     :toctree: genapi
 
@@ -42,7 +39,6 @@ Optimal Transport classes
 
 Mixin classes
 ~~~~~~~~~~~~~
-
 .. autosummary::
     :toctree: genapi
 
@@ -50,8 +46,11 @@ Mixin classes
 
 Base classes
 ~~~~~~~~~~~~
-
 .. autosummary::
     :toctree: genapi
 
     moscot.problems.base.BaseProblem
+    moscot.solvers.BaseSolver
+    moscot.solvers.OTSolver
+    moscot.solvers.BaseSolverOutput
+    moscot.solvers.MatrixSolverOutput

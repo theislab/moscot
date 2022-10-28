@@ -13,6 +13,8 @@ __all__ = ["BaseSolverOutput", "MatrixSolverOutput"]
 
 
 class BaseSolverOutput(ABC):
+    """Base class for all solver outputs."""
+
     @abstractmethod
     def _apply(self, x: ArrayLike, *, forward: bool) -> ArrayLike:
         pass
@@ -20,34 +22,49 @@ class BaseSolverOutput(ABC):
     @property
     @abstractmethod
     def transport_matrix(self) -> ArrayLike:
-        pass
+        """Transport matrix of shape ``[n, m]``."""
 
     @property
     @abstractmethod
     def shape(self) -> Tuple[int, int]:
-        pass
+        """Shape of the :attr:`transport_matrix`."""
 
     @property
     @abstractmethod
     def cost(self) -> float:
-        pass
+        """Regularized optimal transport cost."""
 
     @property
     @abstractmethod
     def converged(self) -> bool:
-        pass
+        """Whether the algorithm converged."""
 
     @property
     @abstractmethod
     def potentials(self) -> Optional[Tuple[ArrayLike, ArrayLike]]:
-        pass
+        """Dual potentials :math:`f` and :math:`g`.
+
+        Only valid for the Sinkhorn's algorithm.
+        """
 
     @abstractmethod
     def to(self, device: Optional[Device_t] = None) -> "BaseSolverOutput":
-        pass
+        """Transfer self to another device using :func:`jax.device_put`.
+
+        Parameters
+        ----------
+        device
+            Device where to transfer the solver output.
+            If `None`, use the default device.
+
+        Returns
+        -------
+        Self transferred to the ``device``.
+        """
 
     @property
     def rank(self) -> int:
+        """Rank of the :attr:`transport_matrix`."""
         return -1
 
     @property
