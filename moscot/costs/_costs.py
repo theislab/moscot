@@ -1,6 +1,5 @@
 from abc import ABC, abstractmethod
 from typing import Any, List, Tuple, Union, Literal, Mapping, Optional
-from numbers import Number
 
 import networkx as nx
 
@@ -27,9 +26,8 @@ class BaseLoss(ABC):
         self._key = key
         self._dist_key = dist_key
 
-    def __call__(self, *args: Any, scale: Optional[Union[Number, Scale_t]] = None, **kwargs: Any) -> ArrayLike:
-        cost = self._compute(*args, **kwargs)
-        return self._normalize(cost, scale=scale) if scale is not None else cost
+    def __call__(self, *args: Any, **kwargs: Any) -> ArrayLike:
+        return self._compute(*args, **kwargs)
 
     @classmethod
     def create(cls, kind: Literal["leaf_distance", "barcode_distance"], *args: Any, **kwargs: Any) -> "BaseLoss":
@@ -38,21 +36,6 @@ class BaseLoss(ABC):
         if kind == "barcode_distance":
             return BarcodeDistance(*args, **kwargs)
         raise NotImplementedError(f"Cost function `{kind}` is not yet implemented.")
-
-    @staticmethod
-    def _normalize(cost_matrix: ArrayLike, scale: Union[Number, Scale_t] = "max") -> ArrayLike:
-        # TODO: @MUCDK find a way to have this for non-materialized matrices (will be backend specific)
-        if scale == "max":
-            cost_matrix /= cost_matrix.max()
-        elif scale == "mean":
-            cost_matrix /= cost_matrix.mean()
-        elif scale == "median":
-            cost_matrix /= np.median(cost_matrix)
-        elif isinstance(scale, float):
-            cost_matrix /= scale
-        else:
-            raise NotImplementedError(scale)
-        return cost_matrix
 
 
 class BarcodeDistance(BaseLoss):

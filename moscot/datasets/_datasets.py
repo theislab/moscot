@@ -270,4 +270,6 @@ def simulate_data(
                 leaf_names=[adata[adata.obs[key] == i].obs_names],
                 seed=seed,
             )[0]
+    if quad_term == "barcode":
+        pass  # TODO
     return adata
