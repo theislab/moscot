@@ -25,10 +25,10 @@ __all__ = ["BaseProblem", "OTProblem", "ProblemKind"]
 class BaseProblem(ABC):
     """Problem interface handling one optimal transport problem."""
 
-    def __init__(self):  # type: ignore[no-untyped-def]
-
+    def __init__(self, **kwargs: Any):
         self._problem_kind: ProblemKind = ProblemKind.UNKNOWN
         self._stage = ProblemStage.INITIALIZED
+        self._metadata = dict(kwargs)
 
     @abstractmethod
     def prepare(self, *args: Any, **kwargs: Any) -> "BaseProblem":
@@ -123,14 +123,19 @@ class OTProblem(BaseProblem):
         tgt_obs_mask: Optional[ArrayLike] = None,
         src_var_mask: Optional[ArrayLike] = None,
         tgt_var_mask: Optional[ArrayLike] = None,
+        src_key: Optional[Any] = None,
+        tgt_key: Optional[Any] = None,
+        **kwargs: Any,
     ):
-        super().__init__()
+        super().__init__(**kwargs)
         self._adata_src = adata
         self._adata_tgt = adata if adata_tgt is None else adata_tgt
         self._src_obs_mask = src_obs_mask
         self._tgt_obs_mask = tgt_obs_mask
         self._src_var_mask = src_var_mask
         self._tgt_var_mask = tgt_var_mask
+        self._src_key = src_key
+        self._tgt_key = tgt_key
 
         self._solver: Optional[BaseSolver[BaseSolverOutput]] = None
         self._solution: Optional[BaseSolverOutput] = None

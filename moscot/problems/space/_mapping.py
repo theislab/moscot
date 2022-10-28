@@ -55,6 +55,8 @@ class MappingProblem(CompoundProblem[K, OTProblem], SpatialMappingMixin[K, OTPro
 
     def _create_problem(
         self,
+        src: K,
+        tgt: K,
         src_mask: ArrayLike,
         tgt_mask: ArrayLike,
         **kwargs: Any,
@@ -66,6 +68,8 @@ class MappingProblem(CompoundProblem[K, OTProblem], SpatialMappingMixin[K, OTPro
             tgt_obs_mask=None,
             src_var_mask=self.filtered_vars,  # type: ignore[arg-type]
             tgt_var_mask=self.filtered_vars,  # type: ignore[arg-type]
+            src_key=src,
+            tgt_key=tgt,
             **kwargs,
         )
 

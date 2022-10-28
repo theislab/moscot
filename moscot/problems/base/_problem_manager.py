@@ -92,9 +92,12 @@ class ProblemManager(Generic[K, B]):
     def _create_problem(
         self, key: Tuple[K, K], init_kwargs: Mapping[str, Any] = MappingProxyType({}), **kwargs: Any
     ) -> B:
-        src_mask = self._policy.create_mask(key[0], allow_empty=False)
-        tgt_mask = self._policy.create_mask(key[1], allow_empty=False)
-        return self._compound_problem._create_problem(src_mask, tgt_mask, **init_kwargs).prepare(**kwargs)
+        src, tgt = key
+        src_mask = self._policy.create_mask(src, allow_empty=False)
+        tgt_mask = self._policy.create_mask(tgt, allow_empty=False)
+        return self._compound_problem._create_problem(
+            src, tgt, src_mask=src_mask, tgt_mask=tgt_mask, **init_kwargs
+        ).prepare(**kwargs)
 
     def _verify_shape_integrity(self) -> None:
         dims = defaultdict(set)

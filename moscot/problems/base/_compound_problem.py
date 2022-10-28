@@ -78,7 +78,7 @@ class BaseCompoundProblem(BaseProblem, ABC, Generic[K, B]):
         self._problem_manager: Optional[ProblemManager[K, B]] = None
 
     @abstractmethod
-    def _create_problem(self, src_mask: ArrayLike, tgt_mask: ArrayLike, **kwargs: Any) -> B:
+    def _create_problem(self, src: K, tgt: K, src_mask: ArrayLike, tgt_mask: ArrayLike, **kwargs: Any) -> B:
         pass
 
     @abstractmethod
@@ -142,7 +142,7 @@ class BaseCompoundProblem(BaseProblem, ABC, Generic[K, B]):
                 src_name = src
                 tgt_name = tgt
 
-            problem = self._create_problem(src_mask=src_mask, tgt_mask=tgt_mask)
+            problem = self._create_problem(src, tgt, src_mask=src_mask, tgt_mask=tgt_mask)
             if callback is not None:
                 data = self._callback_handler(src, tgt, problem, callback=callback, **callback_kwargs)
                 kws = {**kwargs, **data}  # type: ignore[arg-type]
@@ -150,7 +150,6 @@ class BaseCompoundProblem(BaseProblem, ABC, Generic[K, B]):
                 kws = kwargs
 
             if isinstance(problem, BirthDeathProblem):
-                kws["delta"] = tgt - src  # type: ignore[operator]
                 kws["proliferation_key"] = self.proliferation_key  # type: ignore[attr-defined]
                 kws["apoptosis_key"] = self.apoptosis_key  # type: ignore[attr-defined]
             problems[src_name, tgt_name] = problem.prepare(**kws)
@@ -574,8 +573,10 @@ class CompoundProblem(BaseCompoundProblem[K, B], ABC):
     def _base_problem_type(self) -> Type[B]:
         pass
 
-    def _create_problem(self, src_mask: ArrayLike, tgt_mask: ArrayLike, **kwargs: Any) -> B:
-        return self._base_problem_type(self.adata, src_obs_mask=src_mask, tgt_obs_mask=tgt_mask, **kwargs)
+    def _create_problem(self, src: K, tgt: K, src_mask: ArrayLike, tgt_mask: ArrayLike, **kwargs: Any) -> B:
+        return self._base_problem_type(
+            self.adata, src_obs_mask=src_mask, tgt_obs_mask=tgt_mask, src_key=src, tgt_key=tgt, **kwargs
+        )
 
     def _create_policy(
         self,
