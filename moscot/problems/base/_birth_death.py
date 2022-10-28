@@ -133,25 +133,25 @@ class BirthDeathMixin:
 
     @property
     def proliferation_key(self) -> Optional[str]:
-        """Key in :attr:`anndata.AnnData.obs` where prior estimate of cell proliferation is saved."""
+        """Key in :attr:`anndata.AnnData.obs` where cell proliferation is stored."""
         return self._proliferation_key
 
     @proliferation_key.setter
-    def proliferation_key(self: BirthDeathProtocol, value: Optional[str]) -> None:
-        if value is not None and value not in self.adata.obs:
-            raise KeyError(f"{value} not in `adata.obs`.")
-        self._proliferation_key = value
+    def proliferation_key(self: BirthDeathProtocol, key: Optional[str]) -> None:
+        if key is not None and key not in self.adata.obs:
+            raise KeyError(f"Unable to find proliferation data in `adata.obs[{key!r}]`.")
+        self._proliferation_key = key
 
     @property
     def apoptosis_key(self) -> Optional[str]:
-        """Key in :attr:`anndata.AnnData.obs` where prior estimate of cell apoptosis is saved."""
+        """Key in :attr:`anndata.AnnData.obs` where cell apoptosis is stored."""
         return self._apoptosis_key
 
     @apoptosis_key.setter
-    def apoptosis_key(self: BirthDeathProtocol, value: Optional[str]) -> None:
-        if value is not None and value not in self.adata.obs:
-            raise KeyError(f"{value} not in `adata.obs`.")
-        self._apoptosis_key = value
+    def apoptosis_key(self: BirthDeathProtocol, key: Optional[str]) -> None:
+        if key is not None and key not in self.adata.obs:
+            raise KeyError(f"Unable to find apoptosis data in `adata.obs[{key!r}]`.")
+        self._apoptosis_key = key
 
 
 @d.dedent
