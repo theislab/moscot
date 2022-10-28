@@ -269,5 +269,5 @@ def simulate_data(
                 n_initial_nodes=kwargs.pop("n_initial_nodes", 5),
                 leaf_names=[adata[adata.obs[key] == i].obs_names],
                 seed=seed,
-            )
+            )[0]
     return adata

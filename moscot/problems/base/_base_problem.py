@@ -188,13 +188,25 @@ class OTProblem(BaseProblem):
             self._xy = xy if isinstance(xy, TaggedArray) else self._handle_linear(**xy)
         elif x is not None and y is not None and xy is None:
             self._problem_kind = ProblemKind.QUAD
-            self._x = x if isinstance(x, TaggedArray) else TaggedArray.from_adata(self.adata_src, **x)
-            self._y = y if isinstance(y, TaggedArray) else TaggedArray.from_adata(self.adata_tgt, **y)
+            if isinstance(x, TaggedArray):
+                self._x = x
+            else:
+                self._x = TaggedArray.from_adata(self.adata_src, dist_key=self._src_key, **x)
+            if isinstance(y, TaggedArray):
+                self._y = y
+            else:
+                self._y = TaggedArray.from_adata(self.adata_tgt, dist_key=self._tgt_key, **y)
         elif xy is not None and x is not None and y is not None:
             self._problem_kind = ProblemKind.QUAD_FUSED
             self._xy = xy if isinstance(xy, TaggedArray) else self._handle_linear(**xy)
-            self._x = x if isinstance(x, TaggedArray) else TaggedArray.from_adata(self.adata_src, **x)
-            self._y = y if isinstance(y, TaggedArray) else TaggedArray.from_adata(self.adata_tgt, **y)
+            if isinstance(x, TaggedArray):
+                self._x = x
+            else:
+                self._x = TaggedArray.from_adata(self.adata_src, dist_key=self._src_key, **x)
+            if isinstance(y, TaggedArray):
+                self._y = y
+            else:
+                self._y = TaggedArray.from_adata(self.adata_tgt, dist_key=self._tgt_key, **y)
         else:
             raise ValueError("Unable to prepare the data. Either only supply `xy=...`, or `x=..., y=...`, or both.")
         # fmt: on

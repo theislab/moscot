@@ -107,16 +107,16 @@ class LeafDistance(BaseLoss):
         Compute the matrix of pairwise distances between leaves of the tree
         """
         if self._attr == "uns":
-            tree = self._adata.uns["trees"][self._dist_key]
-            if not isinstance(tree, nx.Graph):
+            tree = self._adata.uns[self._key][self._dist_key]
+            if not isinstance(tree, nx.DiGraph):
                 raise TypeError(
-                    f"Expected the tree in `adata.uns['trees'][{self._key!r}]` "
+                    f"Expected the tree in `adata.uns['trees'][{self._dist_key!r}]` "
                     f"to be a `networkx.DiGraph`, found `{type(tree)}`."
                 )
             return self._create_cost_from_tree(tree, **kwargs)
         raise NotImplementedError(f"Extracting trees from `adata.{self._attr}` is not implemented.")
 
-    def _create_cost_from_tree(self, tree: nx.Graph, **kwargs: Any) -> ArrayLike:
+    def _create_cost_from_tree(self, tree: nx.DiGraph, **kwargs: Any) -> ArrayLike:
         # TODO(@MUCDK): more efficient, problem: `target`in `multi_source_dijkstra` cannot be chosen as a subset
         undirected_tree = tree.to_undirected()
         leaves = self._get_leaves(undirected_tree)
@@ -127,7 +127,7 @@ class LeafDistance(BaseLoss):
             distances[i, :] = [distance_dictionary.get(leaf) for leaf in leaves]
         return distances
 
-    def _get_leaves(self, tree: nx.Graph, cell_to_leaf: Optional[Mapping[str, Any]] = None) -> List[Any]:
+    def _get_leaves(self, tree: nx.DiGraph, cell_to_leaf: Optional[Mapping[str, Any]] = None) -> List[Any]:
         leaves = [node for node in tree if tree.degree(node) == 1]
         if not set(self._adata.obs_names).issubset(leaves):
             if cell_to_leaf is None:
