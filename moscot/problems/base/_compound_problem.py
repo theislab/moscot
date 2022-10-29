@@ -3,6 +3,7 @@ from types import MappingProxyType
 from typing import (
     Any,
     Dict,
+    List,
     Type,
     Tuple,
     Union,
@@ -162,6 +163,7 @@ class BaseCompoundProblem(BaseProblem, ABC, Generic[K, B]):
         self,
         key: str,
         policy: Policy_t = "sequential",
+        filter: Optional[List[K]] = None,
         subset: Optional[Sequence[Tuple[K, K]]] = None,
         reference: Optional[Any] = None,
         callback: Optional[Union[Literal["local-pca"], Callback_t]] = None,
@@ -175,6 +177,7 @@ class BaseCompoundProblem(BaseProblem, ABC, Generic[K, B]):
         ----------
         %(key)s
         %(policy)s
+        %(filter)s
         %(subset)s
         %(reference)s
         %(callback)s
@@ -192,11 +195,11 @@ class BaseCompoundProblem(BaseProblem, ABC, Generic[K, B]):
             assert isinstance(policy, SubsetPolicy)
 
         if isinstance(policy, ExplicitPolicy):
-            policy = policy(subset=subset)
+            policy = policy(subset=subset, filter=filter)
         elif isinstance(policy, StarPolicy):
-            policy = policy(reference=reference)
+            policy = policy(reference=reference, filter=filter)
         else:
-            policy = policy()
+            policy = policy(filter=filter)
 
         # TODO(michalk8): manager must be currently instantiated first, since `_create_problems` accesses the policy
         # when refactoring the callback, consider changing this

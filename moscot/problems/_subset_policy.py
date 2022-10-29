@@ -54,6 +54,7 @@ class SubsetPolicy(Generic[K]):
         key: Optional[str] = None,
         verify_integrity: bool = True,
     ):
+        print("now in init of subsetpolicy")
         try:
             self._data = pd.Series(adata.obs[key]) if isinstance(adata, AnnData) else adata
         except KeyError:
@@ -76,6 +77,7 @@ class SubsetPolicy(Generic[K]):
         explicit_steps: Optional[Sequence[Tuple[K, K]]] = None,
         **kwargs: Any,
     ) -> Sequence[Tuple[K, K]]:
+        print("now in plan")
         if explicit_steps is not None:
             G = nx.DiGraph()
             G.add_edges_from(explicit_steps)
@@ -88,8 +90,11 @@ class SubsetPolicy(Generic[K]):
             return explicit_steps
         plan = self._plan(**kwargs)
         # TODO(michalk8): ensure unique
+        print("now before filter is None")
         if filter is not None:
+            print("plan before fitlering is ", plan)
             plan = self._filter_plan(plan, filter=filter)
+            print("plan after filtering is ", plan)
         if not len(plan):
             raise ValueError("Unable to create a plan, no steps were selected after filtering.")
         return plan
@@ -98,7 +103,9 @@ class SubsetPolicy(Generic[K]):
     def _plan(self, **kwargs: Any) -> Sequence[Tuple[K, K]]:
         pass
 
-    def __call__(self, **kwargs: Any) -> "SubsetPolicy[K]":
+    def __call__(self, filter: Optional[Any] = None, **kwargs: Any) -> "SubsetPolicy[K]":
+        if filter is not None:
+            self._cat = [c for c in self._cat if c in filter]
         graph = self._create_graph(**kwargs)
         if not len(graph):
             raise ValueError("The policy graph is empty.")
@@ -179,7 +186,7 @@ class SubsetPolicy(Generic[K]):
             pass
 
 
-class OrderedPolicy(SubsetPolicy[K], ABC):
+class OrderedPolicy(SubsetPolicy[K]):
     def __init__(self, adata: Union[AnnData, pd.Series, pd.Categorical], **kwargs: Any):
         super().__init__(adata, **kwargs)
         # TODO(michalk8): verify whether they can be ordered (only numeric?) + warn (or just raise)

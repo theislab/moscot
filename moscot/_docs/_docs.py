@@ -72,9 +72,13 @@ data
     - If `data` is a :class:`dict` then the keys should correspond to the tuple defining a single optimal
       transport map and the value should be one of the two cases described above.
 """
+_filter = """\
+filter
+    Subset of values of :attr:`anndata.AnnData.obs` ``['{key}']`` which the `policy` is applied to.
+"""
 _subset = """\
 subset
-    Subset of :attr:`anndata.AnnData.obs` ``['{key}']`` values of which the policy is to be applied to.
+    Tuples of :attr:`anndata.AnnData.obs` ``['{key}']`` values for .
 """
 _marginal_kwargs = """\
 marginal_kwargs
