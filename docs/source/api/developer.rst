@@ -57,3 +57,4 @@ Base classes
     moscot.solvers.OTSolver
     moscot.solvers.BaseSolverOutput
     moscot.solvers.MatrixSolverOutput
+    moscot.costs.BaseCost

@@ -1,6 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import Any, List, Union, Literal, Mapping, Optional
-from numbers import Number
+from typing import Any, List, Literal, Mapping, Optional
 
 import networkx as nx
 
@@ -9,83 +8,124 @@ import numpy as np
 from anndata import AnnData
 
 from moscot._types import ArrayLike
+from moscot._logging import logger
+from moscot._docs._docs import d
 
-__all__ = ["LeafDistance", "BarcodeDistance"]
-Scale_t = Literal["max", "min", "median", "mean"]
+__all__ = ["BaseCost", "LeafDistance", "BarcodeDistance"]
 
 
-class BaseLoss(ABC):
-    """Base class handling all :mod:`moscot` losses."""
+@d.dedent
+class BaseCost(ABC):
+    """Base class for all :mod:`moscot` losses.
+
+    Parameters
+    ----------
+    %(adata)s
+    attr
+        Attribute of :attr:`adata` to access when computing the cost.
+    key
+        Key in in the ``attr`` of :attr:`adata` to access when computing the cost.
+    """
+
+    def __init__(self, adata: AnnData, attr: str, key: Optional[str] = None):
+        self._adata = adata
+        self._attr = attr
+        self._key = key
 
     @abstractmethod
     def _compute(self, *args: Any, **kwargs: Any) -> ArrayLike:
         pass
 
-    def __init__(self, adata: AnnData, attr: str, key: str):
-        self._adata = adata
-        self._attr = attr
-        self._key = key
+    def __call__(self, *args: Any, **kwargs: Any) -> ArrayLike:
+        """Compute a cost matrix from :attr:`adata`.
 
-    def __call__(self, *args: Any, scale: Optional[Union[Number, Scale_t]] = None, **kwargs: Any) -> ArrayLike:
+        Parameters
+        ----------
+        args
+            Positional arguments for :meth:`_compute`.
+        kwargs
+            Keyword arguments for :meth:`_compute`.
+
+        Returns
+        -------
+        The computed cost matrix.
+        """
         cost = self._compute(*args, **kwargs)
-        return self._normalize(cost, scale=scale) if scale is not None else cost
+        if not np.all(np.isnan(cost)):
+            maxx = np.nanmax(cost)
+            logger.warning(f"Cost matrix contains `NaN` values, setting them to the maximum value `{maxx}`.")
+            cost = np.nan_to_num(cost, nan=maxx)  # type: ignore[call-overload]
+        return cost
 
     @classmethod
-    def create(cls, kind: Literal["leaf_distance", "barcode_distance"], *args: Any, **kwargs: Any) -> "BaseLoss":
+    def create(cls, kind: Literal["leaf_distance", "barcode_distance"], *args: Any, **kwargs: Any) -> "BaseCost":
+        """Create :mod:`moscot` cost instance.
+
+        Parameters
+        ----------
+        kind
+            Kind of the cost matrix to create.
+        args
+            Positional arguments for :class:`moscot.costs.BaseCost`.
+        kwargs
+            Keyword arguments for :class:`moscot.costs.BaseCost`.
+
+        Returns
+        -------
+        The base cost instance.
+        """
         if kind == "leaf_distance":
             return LeafDistance(*args, **kwargs)
         if kind == "barcode_distance":
             return BarcodeDistance(*args, **kwargs)
         raise NotImplementedError(f"Cost function `{kind}` is not yet implemented.")
 
-    @staticmethod
-    def _normalize(cost_matrix: ArrayLike, scale: Union[Number, Scale_t] = "max") -> ArrayLike:
-        # TODO: @MUCDK find a way to have this for non-materialized matrices (will be backend specific)
-        if scale == "max":
-            cost_matrix /= cost_matrix.max()
-        elif scale == "mean":
-            cost_matrix /= cost_matrix.mean()
-        elif scale == "median":
-            cost_matrix /= np.median(cost_matrix)
-        elif isinstance(scale, float):
-            cost_matrix /= scale
-        else:
-            raise NotImplementedError(scale)
-        return cost_matrix
+    @property
+    def adata(self) -> AnnData:
+        """Annotated data object."""
+        return self._adata
+
+    @property
+    @abstractmethod
+    def data(self) -> Any:
+        """Container containing the data."""
 
 
-class BarcodeDistance(BaseLoss):
-    """Class handling Barcode distances."""
+class BarcodeDistance(BaseCost):
+    """Barcode distances."""
+
+    @property
+    def data(self) -> ArrayLike:
+        try:
+            container = getattr(self.adata, self._attr)
+            return container[self._key]
+        except AttributeError:
+            raise AttributeError(f"`Anndata` has no attribute `{self._attr}`.") from None
+        except KeyError:
+            raise KeyError(f"Unable to find data in `adata.{self._attr}[{self._key!r}]`.") from None
 
     def _compute(
         self,
         *_: Any,
         **__: Any,
     ) -> ArrayLike:
-        container = getattr(self._adata, self._attr)
-        if self._key not in container:
-            raise KeyError(f"Unable to find data in `adata.{self._attr}[{self._key!r}]`.")
-        barcodes = container[self._key]
+        barcodes = self.data
         n_cells = barcodes.shape[0]
         distances = np.zeros((n_cells, n_cells))
         for i in range(n_cells):
             distances[i, i + 1 :] = [
-                self._scaled_Hamming_distance(barcodes[i, :], barcodes[j, :]) for j in range(i + 1, n_cells)
+                self._scaled_hamming_dist(barcodes[i, :], barcodes[j, :]) for j in range(i + 1, n_cells)
             ]
         return distances + np.transpose(distances)
 
     @staticmethod
-    def _scaled_Hamming_distance(x: ArrayLike, y: ArrayLike) -> float:
-        """
-        adapted from https://github.com/aforr/LineageOT/blob/8c66c630d61da289daa80e29061e888b1331a05a/lineageot/inference.py#L33.  # noqa: E501
-        """
-
+    def _scaled_hamming_dist(x: ArrayLike, y: ArrayLike) -> float:
+        """Adapted from `LineageOT <https://github.com/aforr/LineageOT/>`_."""
         shared_indices = (x >= 0) & (y >= 0)
         b1 = x[shared_indices]
 
-        # There may not be any sites where both were measured
+        # there may not be any sites where both were measured
         if not len(b1):
-            # TODO(@MUCDK): What to do if this happens? set to maximum or raise, depending on what user wants
             return np.nan
         b2 = y[shared_indices]
 
@@ -95,41 +135,46 @@ class BarcodeDistance(BaseLoss):
         return (np.sum(differences) + np.sum(double_scars)) / len(b1)
 
 
-class LeafDistance(BaseLoss):
-    """Class handling leaf distances (from trees)."""
+class LeafDistance(BaseCost):
+    """Tree leaf distances."""
 
-    def _compute(
-        self,
-        **kwargs: Any,
-    ) -> ArrayLike:
-        """
-        Compute the matrix of pairwise distances between leaves of the tree
-        """
-        if self._attr == "uns":
-            tree = self._adata.uns["trees"][self._key]
+    @property
+    def data(self) -> nx.Graph:
+        try:
+            if self._attr != "uns":
+                raise NotImplementedError(f"Extracting trees from `adata.{self._attr}` is not yet implemented.")
+
+            tree = self.adata.uns["trees"][self._key]
             if not isinstance(tree, nx.Graph):
                 raise TypeError(
                     f"Expected the tree in `adata.uns['trees'][{self._key!r}]` "
                     f"to be a `networkx.DiGraph`, found `{type(tree)}`."
                 )
-            return self._create_cost_from_tree(tree, **kwargs)
-        raise NotImplementedError(f"Extracting trees from `adata.{self._attr}` is not implemented.")
+            return tree
+        except KeyError:
+            raise KeyError(f"Unable to find tree in `adata.{self._attr}['trees'][{self._key!r}]`.") from None
 
-    def _create_cost_from_tree(self, tree: nx.Graph, **kwargs: Any) -> ArrayLike:
-        # TODO(@MUCDK): more efficient, problem: `target`in `multi_source_dijkstra` cannot be chosen as a subset
+    def _compute(
+        self,
+        **kwargs: Any,
+    ) -> ArrayLike:
+        tree = self.data
         undirected_tree = tree.to_undirected()
         leaves = self._get_leaves(undirected_tree)
         n_leaves = len(leaves)
-        distances = np.zeros((n_leaves, n_leaves))
+
+        distances = np.zeros((n_leaves, n_leaves), dtype=np.float_)
         for i, leaf in enumerate(leaves):
+            # TODO(@MUCDK): more efficient, problem: `target`in `multi_source_dijkstra` cannot be chosen as a subset
             distance_dictionary = nx.multi_source_dijkstra(undirected_tree, [leaf], **kwargs)[0]
             distances[i, :] = [distance_dictionary.get(leaf) for leaf in leaves]
+
         return distances
 
     def _get_leaves(self, tree: nx.Graph, cell_to_leaf: Optional[Mapping[str, Any]] = None) -> List[Any]:
         leaves = [node for node in tree if tree.degree(node) == 1]
-        if not set(self._adata.obs_names).issubset(leaves):
+        if not set(self.adata.obs_names).issubset(leaves):
             if cell_to_leaf is None:
                 raise ValueError("Leaves do not match `AnnData`'s observation names, please specify `cell_to_leaf`.")
-            return [cell_to_leaf[cell] for cell in self._adata.obs.index]
-        return [cell for cell in self._adata.obs_names if cell in leaves]
+            return [cell_to_leaf[cell] for cell in self.adata.obs.index]
+        return [cell for cell in self.adata.obs_names if cell in leaves]

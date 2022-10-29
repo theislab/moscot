@@ -11,7 +11,7 @@ from moscot._constants._enum import ModeEnum
 
 __all__ = ["Tag", "TaggedArray", "get_cost_function"]
 
-from moscot.costs._costs import BaseLoss
+from moscot.costs._costs import BaseCost
 
 
 def get_cost_function(cost: str, *, backend: Literal["ott"] = "ott", **kwargs: Any) -> Callable[..., Any]:
@@ -103,7 +103,7 @@ class TaggedArray:
                 data = cls._extract_data(adata, attr=attr, key=key)
                 return cls(data=data, tag=Tag.COST_MATRIX, cost=None)
 
-            cost_matrix = BaseLoss.create(
+            cost_matrix = BaseCost.create(
                 kind=cost,  # type: ignore[arg-type]
                 adata=adata,
                 attr=attr,
