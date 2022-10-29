@@ -218,11 +218,11 @@ class TestTemporalProblem:
     @pytest.mark.parametrize("args_to_check", [sinkhorn_args_1, sinkhorn_args_2])
     def test_pass_arguments(self, adata_time: AnnData, args_to_check: Mapping[str, Any]):
         problem = TemporalProblem(adata=adata_time)
+        adata_time = adata_time[adata_time.obs["time"].isin((0, 1))]
 
         problem = problem.prepare(
             time_key="time",
             policy="sequential",
-            filter=[(0, 1)],
         )
 
         problem = problem.solve(**args_to_check)

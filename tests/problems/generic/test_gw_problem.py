@@ -60,13 +60,12 @@ class TestGWProblem:
     @pytest.mark.parametrize("args_to_check", [gw_args_1, gw_args_2])
     def test_pass_arguments(self, adata_space_rotate: AnnData, args_to_check: Mapping[str, Any]):  # type: ignore
         problem = GWProblem(adata=adata_space_rotate)
-
+        adata_space_rotate = adata_space_rotate[adata_space_rotate.obs["batch"].isin((0, 1))].copy()
         problem = problem.prepare(
             key="batch",
             GW_x={"attr": "obsm", "key": "spatial"},
             GW_y={"attr": "obsm", "key": "spatial"},
             policy="sequential",
-            filter=[(0, 1)],
         )
 
         problem = problem.solve(**args_to_check)

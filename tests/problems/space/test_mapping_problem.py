@@ -116,8 +116,10 @@ class TestMappingProblem:
         adataref, adatasp = _adata_spatial_split(adata_mapping)
         problem = MappingProblem(adataref, adatasp)
 
+        adatasp = adatasp[adatasp.obs["batch"] == 1]
+
         key = ("1", "ref")
-        problem = problem.prepare(batch_key="batch", sc_attr={"attr": "obsm", "key": "X_pca"}, filter=[key])
+        problem = problem.prepare(batch_key="batch", sc_attr={"attr": "obsm", "key": "X_pca"})
         problem = problem.solve(**args_to_check)
 
         solver = problem[key]._solver._solver

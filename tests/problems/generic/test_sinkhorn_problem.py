@@ -4,10 +4,10 @@ import pytest
 
 from anndata import AnnData
 
-from moscot.problems.base import OTProblem
+from moscot.problems.base import OTProblem  # type: ignore[attr-defined]
 from moscot.solvers._output import BaseSolverOutput
-from moscot.problems.generic import SinkhornProblem
-from tests.problems.conftest import (  # type: ignore[attr-defined]
+from moscot.problems.generic import SinkhornProblem  # type: ignore[attr-defined]
+from tests.problems.conftest import (
     geometry_args,
     lin_prob_args,
     pointcloud_args,
@@ -19,7 +19,7 @@ from tests.problems.conftest import (  # type: ignore[attr-defined]
 
 class TestSinkhornProblem:
     @pytest.mark.fast()
-    def test_prepare(self, adata_time: AnnData):
+    def test_prepare(self, adata_time: AnnData):  # type: ignore[no-untyped-def]
         expected_keys = [(0, 1), (1, 2)]
         problem = SinkhornProblem(adata=adata_time)
 
@@ -39,7 +39,7 @@ class TestSinkhornProblem:
             assert key in expected_keys
             assert isinstance(problem[key], OTProblem)
 
-    def test_solve_balanced(self, adata_time: AnnData):
+    def test_solve_balanced(self, adata_time: AnnData):  # type: ignore[no-untyped-def]
         eps = 0.5
         expected_keys = [(0, 1), (1, 2)]
         problem = SinkhornProblem(adata=adata_time)
@@ -51,13 +51,12 @@ class TestSinkhornProblem:
             assert key in expected_keys
 
     @pytest.mark.parametrize("args_to_check", [sinkhorn_args_1, sinkhorn_args_2])
-    def test_pass_arguments(self, adata_time: AnnData, args_to_check: Mapping[str, Any]):
+    def test_pass_arguments(self, adata_time: AnnData, args_to_check: Mapping[str, Any]):  # type: ignore[no-untyped-def]  # noqa: E501
         problem = SinkhornProblem(adata=adata_time)
-
+        adata_time = adata_time[adata_time.obs["time"].isin((0, 1))].copy()
         problem = problem.prepare(
             key="time",
             policy="sequential",
-            filter=[(0, 1)],
         )
 
         problem = problem.solve(**args_to_check)
