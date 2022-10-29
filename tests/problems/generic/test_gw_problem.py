@@ -66,7 +66,7 @@ class TestGWProblem:
             GW_x={"attr": "obsm", "key": "spatial"},
             GW_y={"attr": "obsm", "key": "spatial"},
             policy="sequential",
-            filter_policy=[(0, 1)],
+            filter_policy=[0, 1],
         )
 
         problem = problem.solve(**args_to_check)

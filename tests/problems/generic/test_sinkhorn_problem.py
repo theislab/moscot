@@ -57,7 +57,7 @@ class TestSinkhornProblem:
         problem = problem.prepare(
             key="time",
             policy="sequential",
-            filter_policy=[(0, 1)],
+            filter_policy=[0, 1],
         )
 
         problem = problem.solve(**args_to_check)
