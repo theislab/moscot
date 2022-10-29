@@ -21,13 +21,13 @@ from moscot.problems.base._utils import _filter_kwargs
 from moscot.solvers._base_solver import OTSolver, ProblemKind
 from moscot.solvers._tagged_array import TaggedArray
 
-__all__ = ["Cost", "SinkhornSolver", "GWSolver", "FGWSolver"]
+__all__ = ["OTTCost", "SinkhornSolver", "GWSolver", "FGWSolver"]
 
 Scale_t = Union[float, Literal["mean", "median", "max_cost", "max_norm", "max_bound"]]
 Epsilon_t = Union[float, Epsilon]
 
 
-class Cost(ModeEnum):
+class OTTCost(ModeEnum):
     EUCL = "euclidean"
     SQEUCL = "sq_euclidean"
     COSINE = "cosine"
@@ -35,15 +35,15 @@ class Cost(ModeEnum):
     BUREL_UNBAL = "unbalanced_bures"
 
     def __call__(self, **kwargs: Any) -> CostFn:
-        if self.value == Cost.EUCL:
+        if self.value == OTTCost.EUCL:
             return Euclidean()
-        if self.value == Cost.SQEUCL:
+        if self.value == OTTCost.SQEUCL:
             return SqEuclidean()
-        if self.value == Cost.COSINE:
+        if self.value == OTTCost.COSINE:
             return Cosine()
-        if self.value == Cost.BURES:
+        if self.value == OTTCost.BURES:
             return Bures(**kwargs)
-        if self.value == Cost.BUREL_UNBAL:
+        if self.value == OTTCost.BUREL_UNBAL:
             return UnbalancedBures(**kwargs)
         raise NotImplementedError(self.value)
 
@@ -64,14 +64,14 @@ class OTTJaxSolver(OTSolver[OTTOutput], ABC):  # noqa: B024
         if x.is_point_cloud:
             kwargs = _filter_kwargs(PointCloud, Geometry, **kwargs)
             cost_fn = self._create_cost(x.cost)
-            x, y = self._assert2d(x.data), self._assert2d(x.data_y)
+            x, y = self._assert2d(x.data_src), self._assert2d(x.data_tgt)
             n, m = x.shape[1], (None if y is None else y.shape[1])  # type: ignore[attr-defined]
             if m is not None and n != m:
                 raise ValueError(f"Expected `x/y` to have the same number of dimensions, found `{n}/{m}`.")
             return PointCloud(x, y=y, cost_fn=cost_fn, **kwargs)  # TODO: add ScaleCost
 
         kwargs = _filter_kwargs(Geometry, **kwargs)
-        arr = self._assert2d(x.data, allow_reshape=False)
+        arr = self._assert2d(x.data_src, allow_reshape=False)
         if x.is_cost_matrix:
             return Geometry(cost_matrix=arr, **kwargs)
         if x.is_cost_matrix:
@@ -103,7 +103,7 @@ class OTTJaxSolver(OTSolver[OTTOutput], ABC):  # noqa: B024
             return cost
         if cost is None:
             cost = "sq_euclidean"
-        return Cost(cost)(**kwargs)
+        return OTTCost(cost)(**kwargs)
 
     @property
     def solver(self) -> Union[Sinkhorn, LRSinkhorn, GromovWasserstein]:

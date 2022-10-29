@@ -442,7 +442,7 @@ class TemporalMixin(AnalysisMixin[K, B]):
             intermediate_data,
             intermediate_adata,
             target_data,
-        )  # type: ignore[return-value]
+        )
 
     def compute_interpolated_distance(
         self: TemporalMixinProtocol[K, B],

@@ -3,58 +3,58 @@ from dataclasses import dataclass
 
 import scipy.sparse as sp
 
+import numpy as np
+
 from anndata import AnnData
 
 from moscot._types import CostFn_t, ArrayLike
 from moscot._logging import logger
+from moscot._docs._docs import d
+from moscot.costs._costs import BaseCost
 from moscot._constants._enum import ModeEnum
 
 __all__ = ["Tag", "TaggedArray", "get_cost_function"]
 
-from moscot.costs._costs import BaseCost
-
 
 def get_cost_function(cost: str, *, backend: Literal["ott"] = "ott", **kwargs: Any) -> Callable[..., Any]:
     if backend == "ott":
-        from moscot.backends.ott._solver import Cost
+        from moscot.backends.ott._solver import OTTCost
 
-        return Cost(cost)(**kwargs)
+        return OTTCost(cost)(**kwargs)
 
     raise NotImplementedError(f"Backend `{backend}` is not yet implemented.")
 
 
 class Tag(ModeEnum):
-    """Tag of :class:`moscot.solvers._tagged_array.TaggedArray`."""
+    """Tag used to interpret array-like data in :class:`moscot.solvers.TaggedArray`."""
 
-    COST_MATRIX = "cost"
-    KERNEL = "kernel"
-    POINT_CLOUD = "point_cloud"
-    GRID = "grid"
+    COST_MATRIX = "cost"  #: Cost matrix.
+    KERNEL = "kernel"  #: Kernel matrix.
+    POINT_CLOUD = "point_cloud"  #: Point cloud.
 
 
 @dataclass(frozen=True, repr=True)
 class TaggedArray:
-    """Tagged Array."""
+    """Tagged array."""
 
-    # passed to solver._prepare_input
-    data: ArrayLike
-    data_y: Optional[ArrayLike] = None
-    tag: Tag = Tag.POINT_CLOUD
-    cost: Optional[Union[str, Callable[..., Any]]] = None
+    data_src: ArrayLike  #: Source data.
+    data_tgt: Optional[ArrayLike] = None  #: Target data.
+    tag: Tag = Tag.POINT_CLOUD  #: How to interpret :attr:`data_src` and :attr:`data_tgt`.
+    cost: Optional[Union[str, Callable[..., Any]]] = None  #: Cost function when ``tag`` = 'point_cloud'``.
 
     @property
     def is_cost_matrix(self) -> bool:
-        """Whether :attr:`data` is a cost matrix."""
+        """Whether :attr:`data_src` is a cost matrix."""
         return self.tag == Tag.COST_MATRIX
 
     @property
     def is_kernel(self) -> bool:
-        """Whether :attr:`data` is a kernel matrix."""
+        """Whether :attr:`data_src` is a kernel matrix."""
         return self.tag == Tag.KERNEL
 
     @property
     def is_point_cloud(self) -> bool:
-        """Whether :attr:`data` is a point cloud."""
+        """Whether :attr:`data_src` and :attr:`data_tgt` is a point cloud."""
         return self.tag == Tag.POINT_CLOUD
 
     @staticmethod
@@ -88,6 +88,7 @@ class TaggedArray:
         return data
 
     @classmethod
+    @d.dedent
     def from_adata(
         cls,
         adata: AnnData,
@@ -99,11 +100,47 @@ class TaggedArray:
         backend: Literal["ott"] = "ott",
         **kwargs: Any,
     ) -> "TaggedArray":
+        """Create a tagged array from :class:`anndata.AnnData`.
+
+        Parameters
+        ----------
+        %(adata)s
+        dist_key
+            Helper key which determines into which subset ``adata`` belongs.
+        attr
+            Attribute of :class:`anndata.AnnData` used when extracting/computing the cost.
+        tag
+            Tag used to interpret the extracted data.
+        key
+            Key in the ``attr`` of :class:`anndata.AnnData` used when extracting/computing the cost.
+        cost
+            Cost function to apply to the extracted array, depending on ``tag``:
+
+                - if ``tag = 'point_cloud'``, it is extract from the ``backend``.
+                - if ``tag = 'cost'`` or ``tag = 'kernel'``, and ``cost = 'custom'``,
+                  the extracted array is already assumed to be a cost/kernel matrix.
+                  Otherwise, :class:`moscot.costs.BaseCost` is used to compute the cost matrix.
+        backend
+            Which backend to use when getting the cost function.
+        kwargs
+            Keyword arguments for :class:`moscot.costs.BaseCost`.
+
+        Returns
+        -------
+        The tagged array.
+
+        Notes
+        -----
+        Sparse arrays will be always densified.
+        """
         if tag == Tag.COST_MATRIX:
             if cost == "custom":  # our custom cost functions
                 data = cls._extract_data(adata, attr=attr, key=key)
-                return cls(data=data, tag=Tag.COST_MATRIX, cost=None)
+                if np.any(data < 0):
+                    raise ValueError("Cost matrix contains negative values.")
+                return cls(data_src=data, tag=Tag.COST_MATRIX, cost=None)
 
+            # TOOD(michalk8): consider determining if the backend supports this cost as a point cloud
             cost_matrix = BaseCost.create(
                 kind=cost,  # type: ignore[arg-type]
                 adata=adata,
@@ -111,9 +148,9 @@ class TaggedArray:
                 key=key,
                 dist_key=dist_key,
             )(**kwargs)
-            return cls(data=cost_matrix, tag=Tag.COST_MATRIX, cost=None)
+            return cls(data_src=cost_matrix, tag=Tag.COST_MATRIX, cost=None)
 
         # tag is either a point cloud or a kernel
         data = cls._extract_data(adata, attr=attr, key=key)
         cost_fn = get_cost_function(cost, backend=backend, **kwargs)
-        return cls(data=data, tag=tag, cost=cost_fn)
+        return cls(data_src=data, tag=tag, cost=cost_fn)

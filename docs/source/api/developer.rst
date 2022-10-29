@@ -12,6 +12,7 @@ OTT Backend
     moscot.backends.ott.GWSolver
     moscot.backends.ott.FGWSolver
     moscot.backends.ott.OTTOutput
+    moscot.backends.ott.OTTCost
 
 Costs
 ~~~~~
@@ -58,3 +59,5 @@ Base classes
     moscot.solvers.BaseSolverOutput
     moscot.solvers.MatrixSolverOutput
     moscot.costs.BaseCost
+    moscot.solvers.TaggedArray
+    moscot.solvers.Tag

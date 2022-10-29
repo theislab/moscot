@@ -42,8 +42,8 @@ class TestAlignmentProblem:
         for prob_key in expected_keys:
             assert isinstance(ap[prob_key], ap._base_problem_type)
             assert ap[prob_key].shape == (n_obs, n_obs)
-            assert ap[prob_key].x.data.shape == ap[prob_key].y.data.shape == (n_obs, 2)
-            assert ap[prob_key].xy.data.shape == ap[prob_key].xy.data_y.shape == (n_obs, n_var)
+            assert ap[prob_key].x.data_src.shape == ap[prob_key].y.data_src.shape == (n_obs, 2)
+            assert ap[prob_key].xy.data_src.shape == ap[prob_key].xy.data_tgt.shape == (n_obs, n_var)
 
     @pytest.mark.fast()
     @pytest.mark.parametrize("reference", ["0", "1", "2"])

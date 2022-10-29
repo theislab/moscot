@@ -46,9 +46,9 @@ class TestMappingProblem:
         for prob_key in expected_keys:
             assert isinstance(mp[prob_key], mp._base_problem_type)
             assert mp[prob_key].shape == (n_obs, n_obs)
-            assert mp[prob_key].x.data.shape == (n_obs, x_n_var)
-            assert mp[prob_key].y.data.shape == (n_obs, y_n_var)
-            assert mp[prob_key].xy.data.shape == mp[prob_key].xy.data_y.shape == (n_obs, xy_n_vars)
+            assert mp[prob_key].x.data_src.shape == (n_obs, x_n_var)
+            assert mp[prob_key].y.data_src.shape == (n_obs, y_n_var)
+            assert mp[prob_key].xy.data_src.shape == mp[prob_key].xy.data_tgt.shape == (n_obs, xy_n_vars)
 
         # test dummy
         prob_key = ("src", "tgt")
@@ -71,8 +71,8 @@ class TestMappingProblem:
         for prob in mp.problems.values():
             assert prob._problem_kind == problem_kind
             assert prob.shape == (n_obs, n_obs)
-            assert prob.x.data.shape == (n_obs, x_n_var)
-            assert prob.y.data.shape == (n_obs, y_n_var)
+            assert prob.x.data_src.shape == (n_obs, x_n_var)
+            assert prob.y.data_src.shape == (n_obs, y_n_var)
 
     @pytest.mark.parametrize(
         ("epsilon", "alpha", "rank", "initializer"),

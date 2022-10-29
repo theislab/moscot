@@ -22,11 +22,11 @@ class BaseCost(ABC):
     ----------
     %(adata)s
     attr
-        Attribute of :attr:`adata` to access when computing the cost.
+        Attribute of :class:`anndata.AnnData` used when computing the cost.
     key
-        Key in in the ``attr`` of :attr:`adata` to access when computing the cost.
+        Key in the ``attr`` of :class:`anndata.AnnData` used when computing the cost.
     dist_key
-        Key which determines into which subset :attr:`adata` belongs.
+        Helper key which determines into which subset ``adata`` belongs.
     """
 
     def __init__(self, adata: AnnData, attr: str, key: str, dist_key: Union[Any, Tuple[Any, Any]]):
@@ -58,6 +58,8 @@ class BaseCost(ABC):
             maxx = np.nanmax(cost)
             logger.warning(f"Cost matrix contains `NaN` values, setting them to the maximum value `{maxx}`.")
             cost = np.nan_to_num(cost, nan=maxx)  # type: ignore[call-overload]
+        if np.any(cost < 0):
+            raise ValueError("Cost matrix contains negative values.")
         return cost
 
     @classmethod
@@ -81,7 +83,7 @@ class BaseCost(ABC):
             return LeafDistance(*args, **kwargs)
         if kind == "barcode_distance":
             return BarcodeDistance(*args, **kwargs)
-        raise NotImplementedError(f"Cost function `{kind}` is not yet implemented.")
+        raise NotImplementedError(f"OTTCost function `{kind}` is not yet implemented.")
 
     @property
     def adata(self) -> AnnData:

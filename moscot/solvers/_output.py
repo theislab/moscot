@@ -237,7 +237,7 @@ class MatrixSolverOutput(BaseSolverOutput, ABC):  # noqa: B024
 
     def to(self, device: Optional[Device_t] = None, dtype: Optional[DTypeLike] = None) -> "BaseSolverOutput":
         if device is not None:
-            logger.warning(f"`{self!r}` doesn't support `device` argument. Ignoring")
+            logger.warning(f"`{self!r}` does not support the `device` argument, ignoring.")
         if dtype is None:
             return self
 

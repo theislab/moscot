@@ -30,7 +30,7 @@ class ProblemKind(ModeEnum):
         Parameters
         ----------
         backend
-            The backend to use.
+            Which backend to use.
         kwargs
             Keyword arguments for the solver.
 
@@ -108,7 +108,7 @@ class TagConverterMixin:
                 logger.warning(f"Unable to handle `tag={tag!r}` for `y`. Using `tag={Tag.POINT_CLOUD!r}`")
                 tag = Tag.POINT_CLOUD
 
-        return TaggedArray(x, y, tag=tag, **kwargs)
+        return TaggedArray(data_src=x, data_tgt=y, tag=tag, **kwargs)
 
 
 class BaseSolver(Generic[O], ABC):
@@ -173,7 +173,7 @@ class OTSolver(TagConverterMixin, BaseSolver[O], ABC):  # noqa: B024
         device
             Device to transfer the output to, see :meth:`moscot.solvers.BaseSolverOutput.to`.
         kwargs
-            Keyword arguments to parent's :meth:`__call__`.
+            Keyword arguments for parent's :meth:`__call__`.
 
         Returns
         -------

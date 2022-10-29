@@ -167,7 +167,7 @@ class OTProblem(BaseProblem):
         y_array = TaggedArray.from_adata(self.adata_tgt, dist_key=self._tgt_key, **y_kwargs)
 
         # restich together
-        return TaggedArray(x_array.data, y_array.data, tag=Tag.POINT_CLOUD, cost=x_array.cost)
+        return TaggedArray(data_src=x_array.data_src, data_tgt=y_array.data_src, tag=Tag.POINT_CLOUD, cost=x_array.cost)
 
     @wrap_prepare
     def prepare(
