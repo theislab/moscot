@@ -45,7 +45,7 @@ class TestFGWProblem:
 
     def test_solve_balanced(self, adata_space_rotate: AnnData):  # type: ignore[no-untyped-def]
         eps = 0.5
-        adata_space_rotate = adata_space_rotate[adata_space_rotate.obs["batch"].isin((0, 1))].copy()
+        adata_space_rotate = adata_space_rotate[adata_space_rotate.obs["batch"].isin(("0", "1"))].copy()
         expected_keys = [("0", "1"), ("1", "2")]
         problem = FGWProblem(adata=adata_space_rotate)
         problem = problem.prepare(
