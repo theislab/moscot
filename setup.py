@@ -28,6 +28,7 @@ if __name__ == "__main__":
         install_requires=Path("requirements.txt").read_text("utf-8").split("\n"),
         extras_require={
             "dev": ["pre-commit>=2.14.0", "tox>=3.24.0"],
+            "spatial": ["squidpy>=1.2.3"],
         },
         zip_safe=False,
         packages=find_packages(),

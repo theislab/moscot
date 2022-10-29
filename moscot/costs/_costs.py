@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import Any, List, Literal, Mapping, Optional
+from typing import Any, List, Tuple, Union, Literal, Mapping, Optional
 
 import networkx as nx
 
@@ -25,12 +25,15 @@ class BaseCost(ABC):
         Attribute of :attr:`adata` to access when computing the cost.
     key
         Key in in the ``attr`` of :attr:`adata` to access when computing the cost.
+    dist_key
+        Key which determines into which subset :attr:`adata` belongs.
     """
 
-    def __init__(self, adata: AnnData, attr: str, key: Optional[str] = None):
+    def __init__(self, adata: AnnData, attr: str, key: str, dist_key: Union[Any, Tuple[Any, Any]]):
         self._adata = adata
         self._attr = attr
         self._key = key
+        self._dist_key = dist_key
 
     @abstractmethod
     def _compute(self, *args: Any, **kwargs: Any) -> ArrayLike:
@@ -144,15 +147,16 @@ class LeafDistance(BaseCost):
             if self._attr != "uns":
                 raise NotImplementedError(f"Extracting trees from `adata.{self._attr}` is not yet implemented.")
 
-            tree = self.adata.uns["trees"][self._key]
+            tree = self.adata.uns[self._key][self._dist_key]
             if not isinstance(tree, nx.Graph):
                 raise TypeError(
-                    f"Expected the tree in `adata.uns['trees'][{self._key!r}]` "
+                    f"Expected the tree in `adata.uns[{self._key!r}][{self._dist_key!r}]` "
                     f"to be a `networkx.DiGraph`, found `{type(tree)}`."
                 )
+
             return tree
         except KeyError:
-            raise KeyError(f"Unable to find tree in `adata.{self._attr}['trees'][{self._key!r}]`.") from None
+            raise KeyError(f"Unable to find tree in `adata.{self._attr}[{self._key!r}][{self._dist_key!r}]`.") from None
 
     def _compute(
         self,

@@ -1,4 +1,4 @@
-from typing import Any, Union, Literal, Callable, Optional
+from typing import Any, Tuple, Union, Literal, Callable, Optional
 from dataclasses import dataclass
 
 import scipy.sparse as sp
@@ -91,6 +91,7 @@ class TaggedArray:
     def from_adata(
         cls,
         adata: AnnData,
+        dist_key: Union[Any, Tuple[Any, Any]],
         attr: Literal["X", "obsp", "obsm", "layers", "uns"],
         tag: Tag = Tag.POINT_CLOUD,
         key: Optional[str] = None,
@@ -108,6 +109,7 @@ class TaggedArray:
                 adata=adata,
                 attr=attr,
                 key=key,
+                dist_key=dist_key,
             )(**kwargs)
             return cls(data=cost_matrix, tag=Tag.COST_MATRIX, cost=None)
 

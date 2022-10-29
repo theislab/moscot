@@ -5,7 +5,7 @@ import numpy as np
 
 from anndata import AnnData
 
-from tests._utils import _get_random_trees
+from moscot.datasets._utils import _get_random_trees
 
 
 @pytest.fixture()

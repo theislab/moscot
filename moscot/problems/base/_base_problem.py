@@ -153,7 +153,9 @@ class OTProblem(BaseProblem):
             attr = kwargs.pop("attr", "obsm")
 
             if attr in ("obsm", "uns"):
-                return TaggedArray.from_adata(self.adata_src, attr=attr, **kwargs)
+                return TaggedArray.from_adata(
+                    self.adata_src, dist_key=(self._src_key, self._tgt_key), attr=attr, **kwargs
+                )
             raise ValueError(f"Storing `{kwargs['tag']!r}` in `adata.{attr}` is disallowed.")
 
         x_kwargs = {k[2:]: v for k, v in kwargs.items() if k.startswith("x_")}
@@ -161,8 +163,8 @@ class OTProblem(BaseProblem):
         x_kwargs["tag"] = Tag.POINT_CLOUD
         y_kwargs["tag"] = Tag.POINT_CLOUD
 
-        x_array = TaggedArray.from_adata(self.adata_src, **x_kwargs)
-        y_array = TaggedArray.from_adata(self.adata_tgt, **y_kwargs)
+        x_array = TaggedArray.from_adata(self.adata_src, dist_key=self._src_key, **x_kwargs)
+        y_array = TaggedArray.from_adata(self.adata_tgt, dist_key=self._tgt_key, **y_kwargs)
 
         # restich together
         return TaggedArray(x_array.data, y_array.data, tag=Tag.POINT_CLOUD, cost=x_array.cost)
@@ -186,13 +188,25 @@ class OTProblem(BaseProblem):
             self._xy = xy if isinstance(xy, TaggedArray) else self._handle_linear(**xy)
         elif x is not None and y is not None and xy is None:
             self._problem_kind = ProblemKind.QUAD
-            self._x = x if isinstance(x, TaggedArray) else TaggedArray.from_adata(self.adata_src, **x)
-            self._y = y if isinstance(y, TaggedArray) else TaggedArray.from_adata(self.adata_tgt, **y)
+            if isinstance(x, TaggedArray):
+                self._x = x
+            else:
+                self._x = TaggedArray.from_adata(self.adata_src, dist_key=self._src_key, **x)
+            if isinstance(y, TaggedArray):
+                self._y = y
+            else:
+                self._y = TaggedArray.from_adata(self.adata_tgt, dist_key=self._tgt_key, **y)
         elif xy is not None and x is not None and y is not None:
             self._problem_kind = ProblemKind.QUAD_FUSED
             self._xy = xy if isinstance(xy, TaggedArray) else self._handle_linear(**xy)
-            self._x = x if isinstance(x, TaggedArray) else TaggedArray.from_adata(self.adata_src, **x)
-            self._y = y if isinstance(y, TaggedArray) else TaggedArray.from_adata(self.adata_tgt, **y)
+            if isinstance(x, TaggedArray):
+                self._x = x
+            else:
+                self._x = TaggedArray.from_adata(self.adata_src, dist_key=self._src_key, **x)
+            if isinstance(y, TaggedArray):
+                self._y = y
+            else:
+                self._y = TaggedArray.from_adata(self.adata_tgt, dist_key=self._tgt_key, **y)
         else:
             raise ValueError("Unable to prepare the data. Either only supply `xy=...`, or `x=..., y=...`, or both.")
         # fmt: on
