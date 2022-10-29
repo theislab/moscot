@@ -34,13 +34,13 @@ class TestDatasetsDownload:
                 pytest.xfail(str(e))
 
     @pytest.mark.timeout(120)
-    def test_tedsim_1024(self, tmp_path: Path):
+    def test_TedSim(self, tmp_path: Path):
         with warnings.catch_warnings():
             warnings.simplefilter("ignore", category=OldFormatWarning)
             try:
-                adata = mt.datasets.simulation(tmp_path / "foo")
+                adata = mt.datasets.TedSim(tmp_path / "foo")
 
                 assert isinstance(adata, AnnData)
-                assert adata.shape == (1536, 500)
+                assert adata.shape == (16382, 500)
             except RemoteDisconnected as e:
                 pytest.xfail(str(e))
