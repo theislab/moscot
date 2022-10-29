@@ -100,7 +100,7 @@ class SubsetPolicy(Generic[K]):
 
     def __call__(self, filter_policy: Optional[Any] = None, **kwargs: Any) -> "SubsetPolicy[K]":
         if filter_policy is not None:
-            self._cat = [c for c in self._cat if c in [str(el) for el in filter_policy]]
+            self._cat = [c for c in self._cat if str(c) in [str(el) for el in filter_policy]]
         graph = self._create_graph(**kwargs)
         if not len(graph):
             raise ValueError("The policy graph is empty.")
