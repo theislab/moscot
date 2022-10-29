@@ -58,8 +58,7 @@ class SubsetPolicy(Generic[K]):
             self._data = pd.Series(adata.obs[key]) if isinstance(adata, AnnData) else adata
         except KeyError:
             raise KeyError(f"Unable to find data in `adata.obs[{key!r}]`.") from None
-        self._raw_data = np.unique(self._data)
-        self._data = self._data.astype("str").astype("category")  # TODO(@MUCDK): catch conversion error
+        self._data = self._data.astype("category")
         self._graph: Set[Tuple[K, K]] = set()
         self._cat = tuple(self._data.cat.categories)
         self._subset_key: Optional[str] = key
@@ -101,7 +100,7 @@ class SubsetPolicy(Generic[K]):
 
     def __call__(self, filter_policy: Optional[Any] = None, **kwargs: Any) -> "SubsetPolicy[K]":
         if filter_policy is not None:
-            self._cat = [c for c in self._raw_data if c in [str(el) for el in filter_policy]]
+            self._cat = [c for c in self._cat if c in [str(el) for el in filter_policy]]
         graph = self._create_graph(**kwargs)
         if not len(graph):
             raise ValueError("The policy graph is empty.")
