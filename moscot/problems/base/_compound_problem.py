@@ -163,7 +163,7 @@ class BaseCompoundProblem(BaseProblem, ABC, Generic[K, B]):
         self,
         key: str,
         policy: Policy_t = "sequential",
-        filter: Optional[List[K]] = None,
+        filter_policy: Optional[List[K]] = None,
         subset: Optional[Sequence[Tuple[K, K]]] = None,
         reference: Optional[Any] = None,
         callback: Optional[Union[Literal["local-pca"], Callback_t]] = None,
@@ -177,7 +177,7 @@ class BaseCompoundProblem(BaseProblem, ABC, Generic[K, B]):
         ----------
         %(key)s
         %(policy)s
-        %(filter)s
+        %(filter_policy)s
         %(subset)s
         %(reference)s
         %(callback)s
@@ -195,11 +195,11 @@ class BaseCompoundProblem(BaseProblem, ABC, Generic[K, B]):
             assert isinstance(policy, SubsetPolicy)
 
         if isinstance(policy, ExplicitPolicy):
-            policy = policy(subset=subset, filter=filter)
+            policy = policy(subset=subset, filter_policy=filter_policy)
         elif isinstance(policy, StarPolicy):
-            policy = policy(reference=reference, filter=filter)
+            policy = policy(reference=reference, filter_policy=filter_policy)
         else:
-            policy = policy(filter=filter)
+            policy = policy(filter_policy=filter_policy)
 
         # TODO(michalk8): manager must be currently instantiated first, since `_create_problems` accesses the policy
         # when refactoring the callback, consider changing this

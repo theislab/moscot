@@ -53,7 +53,7 @@ class TestFGWProblem:
             joint_attr="X_pca",
             GW_x={"attr": "obsm", "key": "spatial"},
             GW_y={"attr": "obsm", "key": "spatial"},
-            filter=[(0, 1)],
+            filter_policy=[(0, 1)],
         )
         problem = problem.solve(epsilon=eps)
 
@@ -71,7 +71,7 @@ class TestFGWProblem:
             joint_attr="X_pca",
             GW_x={"attr": "obsm", "key": "spatial"},
             GW_y={"attr": "obsm", "key": "spatial"},
-            filter=[(0, 1)],
+            filter_policy=[(0, 1)],
         )
 
         problem = problem.solve(**args_to_check)

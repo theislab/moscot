@@ -72,8 +72,8 @@ data
     - If `data` is a :class:`dict` then the keys should correspond to the tuple defining a single optimal
       transport map and the value should be one of the two cases described above.
 """
-_filter = """\
-filter
+_filter_policy = """\
+filter_policy
     Subset of values of :attr:`anndata.AnnData.obs` ``['{key}']`` which the `policy` is applied to.
 """
 _subset = """\
@@ -342,6 +342,7 @@ d = DocstringProcessor(
     scale_by_marginals=_scale_by_marginals,
     normalize=_normalize,
     data=_data,
+    filter_policy=_filter_policy,
     subset=_subset,
     marginal_kwargs=_marginal_kwargs,
     shape=_shape,

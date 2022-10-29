@@ -222,7 +222,7 @@ class TestTemporalProblem:
         problem = problem.prepare(
             time_key="time",
             policy="sequential",
-            filter=[(0, 1)],
+            filter_policy=[(0, 1)],
         )
 
         problem = problem.solve(**args_to_check)

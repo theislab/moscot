@@ -71,7 +71,7 @@ class TestLineageProblem:
         problem = problem.prepare(
             time_key="time",
             policy="sequential",
-            filter=[(0, 1)],
+            filter_policy=[(0, 1)],
             lineage_attr={"attr": "obsm", "key": "barcodes", "tag": "cost", "cost": "barcode_distance"},
         )
 

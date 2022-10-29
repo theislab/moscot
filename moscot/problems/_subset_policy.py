@@ -90,11 +90,8 @@ class SubsetPolicy(Generic[K]):
             return explicit_steps
         plan = self._plan(**kwargs)
         # TODO(michalk8): ensure unique
-        print("now before filter is None")
         if filter is not None:
-            print("plan before fitlering is ", plan)
             plan = self._filter_plan(plan, filter=filter)
-            print("plan after filtering is ", plan)
         if not len(plan):
             raise ValueError("Unable to create a plan, no steps were selected after filtering.")
         return plan
@@ -103,9 +100,9 @@ class SubsetPolicy(Generic[K]):
     def _plan(self, **kwargs: Any) -> Sequence[Tuple[K, K]]:
         pass
 
-    def __call__(self, filter: Optional[Any] = None, **kwargs: Any) -> "SubsetPolicy[K]":
-        if filter is not None:
-            self._cat = [c for c in self._cat if c in filter]
+    def __call__(self, filter_policy: Optional[Any] = None, **kwargs: Any) -> "SubsetPolicy[K]":
+        if filter_policy is not None:
+            self._cat = [c for c in self._cat if c in filter_policy]
         graph = self._create_graph(**kwargs)
         if not len(graph):
             raise ValueError("The policy graph is empty.")
@@ -217,7 +214,7 @@ class OrderedPolicy(SubsetPolicy[K]):
         return path if forward else path[::-1]
 
 
-class SimplePlanPolicy(SubsetPolicy[K], ABC):
+class SimplePlanPolicy(SubsetPolicy[K]):
     def _plan(self, **_: Any) -> Sequence[Tuple[K, K]]:
         return list(self._graph)
 
