@@ -122,7 +122,7 @@ class TestMappingProblem:
         problem = problem.prepare(batch_key="batch", sc_attr={"attr": "obsm", "key": "X_pca"})
         problem = problem.solve(**args_to_check)
 
-        solver = problem[key]._solver._solver
+        solver = problem[key].solver.solver
 
         for arg, val in gw_solver_args.items():
             assert hasattr(solver, val)

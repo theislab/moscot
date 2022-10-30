@@ -227,7 +227,7 @@ class TestTemporalProblem:
 
         problem = problem.solve(**args_to_check)
         key = (0, 1)
-        solver = problem[key]._solver._solver
+        solver = problem[key].solver.solver
         for arg, val in sinkhorn_solver_args.items():
             assert hasattr(solver, val)
             el = getattr(solver, val)[0] if isinstance(getattr(solver, val), tuple) else getattr(solver, val)

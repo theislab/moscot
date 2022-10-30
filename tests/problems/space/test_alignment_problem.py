@@ -115,7 +115,7 @@ class TestAlignmentProblem:
         problem = problem.prepare(batch_key="batch", joint_attr={"x_attr": "X", "y_attr": "X"})
         problem = problem.solve(**args_to_check)
 
-        solver = problem[key]._solver._solver
+        solver = problem[key].solver.solver
         for arg, val in gw_solver_args.items():
             assert hasattr(solver, val)
             assert getattr(solver, val) == args_to_check[arg]
