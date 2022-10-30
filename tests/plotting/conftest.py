@@ -18,7 +18,7 @@ HERE: Path = Path(__file__).parent
 
 EXPECTED = HERE / "_images"
 ACTUAL = HERE / "figures"
-TOL = 50
+TOL = 60
 DPI = 40
 
 
