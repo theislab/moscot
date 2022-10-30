@@ -110,9 +110,7 @@ class PlotTester(ABC):  # noqa: B024
         plt.savefig(out_path, dpi=DPI)
         plt.close()
 
-        if tolerance is None:
-            # see https://github.com/scverse/squidpy/pull/302
-            tolerance = 2 * TOL if "Napari" in str(basename) else TOL
+        tolerance = TOL if tolerance is None else tolerance
 
         res = compare_images(str(EXPECTED / f"{basename}.png"), str(out_path), tolerance)
 

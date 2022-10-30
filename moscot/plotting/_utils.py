@@ -371,7 +371,7 @@ def _plot_temporal(
     dpi: Optional[int] = None,
     save: Optional[str] = None,
     ax: Optional[Axes] = None,
-    show: Optional[bool] = None,
+    show: bool = False,
     return_fig: Optional[bool] = None,
     **kwargs: Any,
 ) -> Optional[mpl.figure.Figure]:
@@ -399,6 +399,7 @@ def _plot_temporal(
         title=title,
         ax=ax,
         show=show,
+        return_fig=return_fig,
         **kwargs,
     )
 
