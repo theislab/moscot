@@ -193,7 +193,7 @@ class TemporalProblem(
         of estimates for the cell growth rates equals is strictly larger than 2.
         """
         # TODO(michalk8): FIXME
-        cols = ["growth_rates"]
+        cols = ["prior_growth_rates"]
         df_list = [
             pd.DataFrame(problem.prior_growth_rates, index=problem.adata.obs.index, columns=cols)
             for problem in self.problems.values()
@@ -225,7 +225,7 @@ class TemporalProblem(
         of estimates for the cell growth rates equals is strictly larger than 2.
         """
         # TODO(michalk8): FIXME
-        cols = ["growth_rates"]
+        cols = ["posterior_growth_rates"]
         df_list = [
             pd.DataFrame(problem.posterior_growth_rates, index=problem.adata.obs.index, columns=cols)
             for problem in self.problems.values()

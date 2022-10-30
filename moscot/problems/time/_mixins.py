@@ -418,7 +418,7 @@ class TemporalMixin(AnalysisMixin[K, B]):
                 if only_start:
                     return source_data, self.problems[src, tgt].adata_src
                 # TODO(michalk8): posterior marginals
-                growth_rates_source = self.problems[src, tgt].growth_rates  # type: ignore[attr-defined]
+                growth_rates_source = self.problems[src, tgt].posterior_growth_rates  # type: ignore[attr-defined]
                 break
         else:
             raise ValueError(f"No data found for `{start}` time point.")

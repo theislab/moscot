@@ -81,5 +81,5 @@ class TestBirthDeathProblem:
         prob = prob.prepare(x={"attr": "X"}, y={"attr": "X"}, a=True, b=True, proliferation_key="proliferation")
         assert prob.delta == (t2 - t1)
 
-        gr = prob.growth_rates
+        gr = prob.posterior_growth_rates
         assert isinstance(gr, np.ndarray)
