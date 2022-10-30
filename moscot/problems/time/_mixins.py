@@ -245,7 +245,9 @@ class TemporalMixin(AnalysisMixin[K, B]):
 
         if len(cell_transitions) > 1 and restrict_to_existing:
             for i in range(len(cell_transitions[:-1])):
-                present_annotations = list(cell_transitions[i + 1].index)
+                present_annotations = list(
+                    set(cell_transitions[i + 1].index).intersection(set(cell_transitions[i].columns))
+                )
                 cell_transitions[i] = cell_transitions[i][present_annotations]
 
         if order_annotations is not None:
