@@ -222,7 +222,7 @@ class TestTemporalMixin:
         problem[key_2, key_3]._solution = MockSolverOutput(gt_temporal_adata.uns["tmap_105_11"])
         problem[key_1, key_3]._solution = MockSolverOutput(gt_temporal_adata.uns["tmap_10_11"])
 
-        result = problem.compute_time_point_distances(key_1, key_2, key_3)
+        result = problem.compute_time_point_distances(key_1, key_2, key_3, posterior_marginals=False)
         assert isinstance(result, tuple)
         assert result[0] > 0
         assert result[1] > 0
