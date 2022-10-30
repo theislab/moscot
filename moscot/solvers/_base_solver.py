@@ -30,14 +30,15 @@ class ProblemKind(ModeEnum):
         Parameters
         ----------
         backend
-            Which backend to use.
+            Which backend to use, see :func:`moscot.backends.get_available_backends`.
         kwargs
-            Keyword arguments for the solver.
+            Keyword arguments when instantiating the solver.
 
         Returns
         -------
-        Solver corresponding to the backend and problem type.
+        Solver corresponding to the backend and the of the the problem.
         """
+        # TODO(michalk8): refactor using backend utils
         if backend == "ott":
             from moscot.backends.ott import GWSolver, FGWSolver, SinkhornSolver  # type: ignore[attr-defined]
 

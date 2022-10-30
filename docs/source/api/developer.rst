@@ -54,6 +54,7 @@ Base classes
     :toctree: genapi
 
     moscot.problems.base.BaseProblem
+    moscot.problems.base.OTProblem
     moscot.solvers.BaseSolver
     moscot.solvers.OTSolver
     moscot.solvers.BaseSolverOutput

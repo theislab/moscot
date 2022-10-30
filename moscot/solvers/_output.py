@@ -77,7 +77,7 @@ class BaseSolverOutput(ABC):
         pass
 
     def push(self, x: ArrayLike, scale_by_marginals: bool = False) -> ArrayLike:
-        """Push an array through the :attr:`transport_matrix`.
+        """Push mass through the :attr:`transport_matrix`.
 
         It is equivalent to :math:`T^T x` but without instantiating the transport matrix :math:`T`, if possible.
 
@@ -101,7 +101,7 @@ class BaseSolverOutput(ABC):
         return self._apply(x, forward=True)
 
     def pull(self, x: ArrayLike, scale_by_marginals: bool = False) -> ArrayLike:
-        """Pull an array through the :attr:`transport_matrix`.
+        """Pull mass through the :attr:`transport_matrix`.
 
         It is equivalent to :math:`T x` but without instantiating the transport matrix :math:`T`, if possible.
 

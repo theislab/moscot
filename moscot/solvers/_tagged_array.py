@@ -42,21 +42,6 @@ class TaggedArray:
     tag: Tag = Tag.POINT_CLOUD  #: How to interpret :attr:`data_src` and :attr:`data_tgt`.
     cost: Optional[Union[str, Callable[..., Any]]] = None  #: Cost function when ``tag`` = 'point_cloud'``.
 
-    @property
-    def is_cost_matrix(self) -> bool:
-        """Whether :attr:`data_src` is a cost matrix."""
-        return self.tag == Tag.COST_MATRIX
-
-    @property
-    def is_kernel(self) -> bool:
-        """Whether :attr:`data_src` is a kernel matrix."""
-        return self.tag == Tag.KERNEL
-
-    @property
-    def is_point_cloud(self) -> bool:
-        """Whether :attr:`data_src` and :attr:`data_tgt` is a point cloud."""
-        return self.tag == Tag.POINT_CLOUD
-
     @staticmethod
     def _extract_data(
         adata: AnnData,
@@ -121,7 +106,7 @@ class TaggedArray:
                   the extracted array is already assumed to be a cost/kernel matrix.
                   Otherwise, :class:`moscot.costs.BaseCost` is used to compute the cost matrix.
         backend
-            Which backend to use when getting the cost function.
+            Which backend to use, see :func:`moscot.backends.get_available_backends`.
         kwargs
             Keyword arguments for :class:`moscot.costs.BaseCost`.
 
@@ -154,3 +139,27 @@ class TaggedArray:
         data = cls._extract_data(adata, attr=attr, key=key)
         cost_fn = get_cost_function(cost, backend=backend, **kwargs)
         return cls(data_src=data, tag=tag, cost=cost_fn)
+
+    @property
+    def shape(self) -> Tuple[int, int]:
+        """Shape of the cost matrix."""
+        if self.tag == Tag.POINT_CLOUD:
+            x, y = self.data_src, (self.data_src if self.data_tgt is None else self.data_tgt)
+            return x.shape[0], y.shape[0]
+
+        return self.data_src.shape  # type: ignore[return-value]
+
+    @property
+    def is_cost_matrix(self) -> bool:
+        """Whether :attr:`data_src` is a cost matrix."""
+        return self.tag == Tag.COST_MATRIX
+
+    @property
+    def is_kernel(self) -> bool:
+        """Whether :attr:`data_src` is a kernel matrix."""
+        return self.tag == Tag.KERNEL
+
+    @property
+    def is_point_cloud(self) -> bool:
+        """Whether :attr:`data_src` and :attr:`data_tgt` is a point cloud."""
+        return self.tag == Tag.POINT_CLOUD
