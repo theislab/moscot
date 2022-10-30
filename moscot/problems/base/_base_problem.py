@@ -69,7 +69,7 @@ class BaseProblem(ABC):
                 data[range(start, min(start + offset, adata.n_obs))] = 1.0
             else:
                 raise TypeError(f"Unable to interpret subset of type `{type(subset)}`.")
-        elif isinstance(data, str):
+        elif not hasattr(data, "shape"):
             if subset is None:  # allow for numeric values
                 data = np.asarray(adata.obs[data], dtype=float)
             if isinstance(subset, str):
