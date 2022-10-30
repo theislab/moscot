@@ -15,18 +15,14 @@ from moscot._docs._docs import d
 from moscot.datasets._utils import _get_random_trees
 
 # TODO(michalk8): expose all
-__all__ = ["simulation", "mosta", "hspc", "drosophila_sc", "drosophila_sp", "sim_align", "simulate_data"]
+__all__ = ["TedSim", "mosta", "hspc", "drosophila_sc", "drosophila_sp", "sim_align", "simulate_data"]
 PathLike = Union[os.PathLike, str]
 
 _datasets = MappingProxyType(
     {
-        "tedsim_1024": (
-            "https://figshare.com/ndownloader/files/35786069",
-            (1536, 500),
-        ),
-        "tedsim_15360": (
-            "https://figshare.com/ndownloader/files/36556515",
-            (15360, 500),
+        "TedSim": (
+            "https://figshare.com/ndownloader/files/38031258",
+            (16382, 500),
         ),
         "mosta": (
             "https://figshare.com/ndownloader/files/37953852",
@@ -70,13 +66,18 @@ def _load_dataset_from_url(fpath: PathLike, backup_url: str, expected_shape: Tup
 
 
 @d.dedent
-def simulation(
-    path: PathLike = "datasets/simulated",
-    size: Literal[1024, 15360] = 1024,
+def TedSim(
+    path: PathLike = "datasets/TedSim",
     **kwargs: Any,
 ) -> AnnData:
     """
-    Dataset simulated with TedSim :cite:`pan:21` with parameters TODO.
+    Dataset simulated with TedSim :cite:`pan:21`.
+
+    The data was simulated with asymmetric division rate of 0.2 and intermediate state stepsize of 0.2.
+    :attr:`anndata.AnnData.X` entry was preprocessed using
+    :meth:`scanpy.pp.normalize_total` and :meth:`scanpy.pp.log1p`. :attr:`anndata.AnnData.obsm` contains the barcodes
+    and :attr:`anndata.AnnData.obs` contains the metadata fields parent, cluster, depth, time and cellID.
+    Similarly :attr:'anndata.AnnData.obsp' contains pre-computed barcodes distance cost matrices in "barcodes_cost".
 
     Parameters
     ----------
@@ -91,9 +92,7 @@ def simulation(
     -------
     %(adata)s
     """
-    if size not in (1024, 15360):
-        raise ValueError(f"Invalid size `{size}`, available values are: `{(1024, 15360)}`.")
-    return _load_dataset_from_url(f"{path}_{size}", *_datasets[f"tedsim_{size}"], **kwargs)
+    return _load_dataset_from_url(path, *_datasets["TedSim"], **kwargs)
 
 
 @d.dedent
