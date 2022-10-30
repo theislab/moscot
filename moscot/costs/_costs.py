@@ -1,8 +1,6 @@
 from abc import ABC, abstractmethod
-from typing import Any, List, Union, Mapping, Optional
-from numbers import Number
+from typing import Any, List, Tuple, Union, Literal, Mapping, Optional
 
-from typing_extensions import Literal
 import networkx as nx
 
 import numpy as np
@@ -22,14 +20,14 @@ class BaseLoss(ABC):
     def _compute(self, *args: Any, **kwargs: Any) -> ArrayLike:
         pass
 
-    def __init__(self, adata: AnnData, attr: str, key: str):
+    def __init__(self, adata: AnnData, attr: str, key: str, dist_key: Union[Any, Tuple[Any, Any]]):
         self._adata = adata
         self._attr = attr
         self._key = key
+        self._dist_key = dist_key
 
-    def __call__(self, *args: Any, scale: Optional[Union[Number, Scale_t]] = None, **kwargs: Any) -> ArrayLike:
-        cost = self._compute(*args, **kwargs)
-        return self._normalize(cost, scale=scale) if scale is not None else cost
+    def __call__(self, *args: Any, **kwargs: Any) -> ArrayLike:
+        return self._compute(*args, **kwargs)
 
     @classmethod
     def create(cls, kind: Literal["leaf_distance", "barcode_distance"], *args: Any, **kwargs: Any) -> "BaseLoss":
@@ -37,22 +35,7 @@ class BaseLoss(ABC):
             return LeafDistance(*args, **kwargs)
         if kind == "barcode_distance":
             return BarcodeDistance(*args, **kwargs)
-        raise NotImplementedError(kind)
-
-    @staticmethod
-    def _normalize(cost_matrix: ArrayLike, scale: Union[Number, Scale_t] = "max") -> ArrayLike:
-        # TODO: @MUCDK find a way to have this for non-materialized matrices (will be backend specific)
-        if scale == "max":
-            cost_matrix /= cost_matrix.max()
-        elif scale == "mean":
-            cost_matrix /= cost_matrix.mean()
-        elif scale == "median":
-            cost_matrix /= np.median(cost_matrix)
-        elif isinstance(scale, float):
-            cost_matrix /= scale
-        else:
-            raise NotImplementedError(scale)
-        return cost_matrix
+        raise NotImplementedError(f"Cost function `{kind}` is not yet implemented.")
 
 
 class BarcodeDistance(BaseLoss):
@@ -65,7 +48,7 @@ class BarcodeDistance(BaseLoss):
     ) -> ArrayLike:
         container = getattr(self._adata, self._attr)
         if self._key not in container:
-            raise ValueError("TODO: no valid key")
+            raise KeyError(f"Unable to find data in `adata.{self._attr}[{self._key!r}]`.")
         barcodes = container[self._key]
         n_cells = barcodes.shape[0]
         distances = np.zeros((n_cells, n_cells))
@@ -86,7 +69,8 @@ class BarcodeDistance(BaseLoss):
 
         # There may not be any sites where both were measured
         if not len(b1):
-            return np.nan  # TODO(@MUCDK): What to do if this happens?
+            # TODO(@MUCDK): What to do if this happens? set to maximum or raise, depending on what user wants
+            return np.nan
         b2 = y[shared_indices]
 
         differences = b1 != b2
@@ -98,7 +82,7 @@ class BarcodeDistance(BaseLoss):
 class LeafDistance(BaseLoss):
     """Class handling leaf distances (from trees)."""
 
-    def _compute(  # type: ignore[override]
+    def _compute(
         self,
         **kwargs: Any,
     ) -> ArrayLike:
@@ -106,13 +90,16 @@ class LeafDistance(BaseLoss):
         Compute the matrix of pairwise distances between leaves of the tree
         """
         if self._attr == "uns":
-            tree = self._adata.uns["trees"][self._key]
-            if not isinstance(tree, nx.Graph):
-                raise TypeError("TODO: tree must be a nx.DiGraph.")
+            tree = self._adata.uns[self._key][self._dist_key]
+            if not isinstance(tree, nx.DiGraph):
+                raise TypeError(
+                    f"Expected the tree in `adata.uns['trees'][{self._dist_key!r}]` "
+                    f"to be a `networkx.DiGraph`, found `{type(tree)}`."
+                )
             return self._create_cost_from_tree(tree, **kwargs)
-        raise NotImplementedError
+        raise NotImplementedError(f"Extracting trees from `adata.{self._attr}` is not implemented.")
 
-    def _create_cost_from_tree(self, tree: nx.Graph, **kwargs: Any) -> ArrayLike:
+    def _create_cost_from_tree(self, tree: nx.DiGraph, **kwargs: Any) -> ArrayLike:
         # TODO(@MUCDK): more efficient, problem: `target`in `multi_source_dijkstra` cannot be chosen as a subset
         undirected_tree = tree.to_undirected()
         leaves = self._get_leaves(undirected_tree)
@@ -123,12 +110,10 @@ class LeafDistance(BaseLoss):
             distances[i, :] = [distance_dictionary.get(leaf) for leaf in leaves]
         return distances
 
-    def _get_leaves(self, tree: nx.Graph, cell_to_leaf: Optional[Mapping[str, Any]] = None) -> List[Any]:
+    def _get_leaves(self, tree: nx.DiGraph, cell_to_leaf: Optional[Mapping[str, Any]] = None) -> List[Any]:
         leaves = [node for node in tree if tree.degree(node) == 1]
-        if not set(self._adata.obs.index).issubset(leaves):
+        if not set(self._adata.obs_names).issubset(leaves):
             if cell_to_leaf is None:
-                raise ValueError(
-                    "TODO: node names do not correspond to anndata obs names. Please provide a `cell_to_leaf` dict."
-                )
+                raise ValueError("Leaves do not match `AnnData`'s observation names, please specify `cell_to_leaf`.")
             return [cell_to_leaf[cell] for cell in self._adata.obs.index]
-        return [cell for cell in self._adata.obs.index if cell in leaves]
+        return [cell for cell in self._adata.obs_names if cell in leaves]

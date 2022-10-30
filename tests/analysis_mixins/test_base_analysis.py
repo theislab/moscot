@@ -84,8 +84,7 @@ class TestBaseAnalysisMixin:
         # TODO(@MUCDK) add regression test after discussing with @giovp what this function should be
         # doing / it is more generic
 
-    @pytest.mark.parametrize("online", [True, False])
-    def test_cell_transition_aggregation_cell_forward(self, gt_temporal_adata: AnnData, online: bool):
+    def test_cell_transition_aggregation_cell_forward(self, gt_temporal_adata: AnnData):
         # the method used in this test does the same but has to instantiate the transport matrix
         config = gt_temporal_adata.uns
         config["key"]
@@ -99,13 +98,12 @@ class TestBaseAnalysisMixin:
 
         ctr = problem._cell_transition(
             key="day",
-            source_key=10,
-            target_key=10.5,
-            source_annotation="cell_type",
-            target_annotation="cell_type",
+            source=10,
+            target=10.5,
+            source_groups="cell_type",
+            target_groups="cell_type",
             forward=True,
             aggregation_mode="cell",
-            online=online,
         )
 
         adata_early = gt_temporal_adata[gt_temporal_adata.obs["day"] == 10]
@@ -128,8 +126,7 @@ class TestBaseAnalysisMixin:
             ctr_ordered.values.astype(float), df_res_ordered.values.astype(float), rtol=RTOL, atol=ATOL
         )
 
-    @pytest.mark.parametrize("online", [True, False])
-    def test_cell_transition_aggregation_cell_backward(self, gt_temporal_adata: AnnData, online: bool):
+    def test_cell_transition_aggregation_cell_backward(self, gt_temporal_adata: AnnData):
         # the method used in this test does the same but has to instantiate the transport matrix
         config = gt_temporal_adata.uns
         config["key"]
@@ -142,13 +139,12 @@ class TestBaseAnalysisMixin:
 
         ctr = problem._cell_transition(
             key="day",
-            source_key=10,
-            target_key=10.5,
-            source_annotation="cell_type",
-            target_annotation="cell_type",
+            source=10,
+            target=10.5,
+            source_groups="cell_type",
+            target_groups="cell_type",
             forward=False,
             aggregation_mode="cell",
-            online=online,
         )
 
         adata_early = gt_temporal_adata[gt_temporal_adata.obs["day"] == 10]

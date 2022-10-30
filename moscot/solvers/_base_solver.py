@@ -1,23 +1,21 @@
 from abc import ABC, abstractmethod
-from enum import Enum
 from types import MappingProxyType
-from typing import Any, Dict, Tuple, Union, Generic, Mapping, TypeVar, Optional, NamedTuple
-import warnings
+from typing import Any, Dict, Tuple, Union, Generic, Literal, Mapping, TypeVar, Optional, NamedTuple
 
-from typing_extensions import Literal
-
-from moscot._docs import d
-from moscot._types import ArrayLike, DTypeLike
+from moscot._types import Device_t, ArrayLike
+from moscot._logging import logger
+from moscot._docs._docs import d
 from moscot.solvers._output import BaseSolverOutput
+from moscot._constants._enum import ModeEnum
 from moscot.solvers._tagged_array import Tag, TaggedArray
 
 __all__ = ["ProblemKind", "BaseSolver", "OTSolver"]
 
 
-O = TypeVar("O", bound=BaseSolverOutput)  # noqa: E741
+O = TypeVar("O", bound=BaseSolverOutput)
 
 
-class ProblemKind(str, Enum):
+class ProblemKind(ModeEnum):
     """Class defining the problem class and dispatching the solvers."""
 
     UNKNOWN = "unknown"
@@ -27,12 +25,14 @@ class ProblemKind(str, Enum):
 
     def solver(self, *, backend: Literal["ott"] = "ott", **kwargs: Any) -> "BaseSolver[O]":
         """
-        Return the solver dependent on the backend and the problem type.
+        Return the solver dependent on the backend and the problem.
 
         Parameters
         ----------
         backend
             The backend the solver corresponds to.
+        kwargs
+            Keyword arguments for to the solver.
 
         Returns
         -------
@@ -47,9 +47,9 @@ class ProblemKind(str, Enum):
                 return GWSolver(**kwargs)
             if self == ProblemKind.QUAD_FUSED:
                 return FGWSolver(**kwargs)
-            raise NotImplementedError(f"TODO: {self}")
+            raise NotImplementedError(f"Unable to create solver for `{self}` problem.")
 
-        raise NotImplementedError(f"Invalid backend: `{backend}`")
+        raise NotImplementedError(f"Backend `{backend}` is not yet implemented.")
 
 
 class TaggedArrayData(NamedTuple):
@@ -73,7 +73,7 @@ class TagConverterMixin:
             if not isinstance(data, tuple):
                 return data, None
             if len(data) != 2:
-                raise ValueError(f"TODO: `{data}`")
+                raise ValueError(f"Expected data to be of length `2`, found `{len(data)}`.")
             return data
 
         loss_xy = {k[3:]: v for k, v in kwargs.items() if k.startswith("xy_")}
@@ -98,14 +98,14 @@ class TagConverterMixin:
         if y is None:
             if tag is None:
                 tag = Tag.POINT_CLOUD
-                print(f"TODO: unspecified tag`, using `{tag}`")
+                logger.info(f"Unspecified tag for `x`. Using `tag={tag!r}`")
             if tag == Tag.POINT_CLOUD:
                 y = x
         else:  # always a point cloud
             if tag is None:
                 tag = Tag.POINT_CLOUD
             if tag != Tag.POINT_CLOUD:
-                print(f"TODO: specified `{tag}`, using `{Tag.POINT_CLOUD}`")
+                logger.warning(f"Unable to handle `tag={tag!r}` for `y`. Using `tag={Tag.POINT_CLOUD!r}`")
                 tag = Tag.POINT_CLOUD
 
         return TaggedArray(x, y, tag=tag, **kwargs)
@@ -119,7 +119,7 @@ class BaseSolver(Generic[O], ABC):
         pass
 
     @abstractmethod
-    def _solve(self, data: Any, **kwargs: Any) -> O:  # noqa: E741
+    def _solve(self, data: Any, **kwargs: Any) -> O:
         pass
 
     @property
@@ -128,7 +128,7 @@ class BaseSolver(Generic[O], ABC):
         """Problem kind."""
         # helps to check whether necessary inputs were passed
 
-    def __call__(self, **kwargs: Any) -> O:  # noqa: E741
+    def __call__(self, **kwargs: Any) -> O:
         """Call method."""
         data = self._prepare(**kwargs)
         return self._solve(data)
@@ -136,7 +136,7 @@ class BaseSolver(Generic[O], ABC):
 
 @d.get_sections(base="OTSolver", sections=["Parameters", "Raises"])
 @d.dedent
-class OTSolver(TagConverterMixin, BaseSolver[O], ABC):
+class OTSolver(TagConverterMixin, BaseSolver[O], ABC):  # noqa: B024
     """OTSolver class."""
 
     def __call__(
@@ -144,34 +144,27 @@ class OTSolver(TagConverterMixin, BaseSolver[O], ABC):
         xy: Optional[Union[TaggedArray, ArrayLike, Tuple[ArrayLike, ArrayLike]]] = None,
         x: Optional[Union[TaggedArray, ArrayLike]] = None,
         y: Optional[Union[TaggedArray, ArrayLike]] = None,
-        a: Optional[ArrayLike] = None,
-        b: Optional[ArrayLike] = None,
-        tau_a: float = 1.0,
-        tau_b: float = 1.0,
         tags: Mapping[Literal["x", "y", "xy"], Tag] = MappingProxyType({}),
-        device: Optional[Any] = None,
-        dtype: Optional[DTypeLike] = None,
+        device: Optional[Device_t] = None,
         **kwargs: Any,
-    ) -> O:  # noqa: E741
+    ) -> O:
         """Call method."""
-        data = self._get_array_data(xy, x=x, y=y, tags=tags)
+        data = self._get_array_data(xy=xy, x=x, y=y, tags=tags)
         kwargs = self._prepare_kwargs(data, **kwargs)
-
-        res = super().__call__(a=a, b=b, tau_a=tau_a, tau_b=tau_b, **kwargs)
-        # TODO(michalk8): check for NaNs
+        res = super().__call__(**kwargs)
         if not res.converged:
-            warnings.warn("Solver did not converge")
+            logger.warning("Solver did not converge")
 
-        return res.to(device=device, dtype=dtype)  # type: ignore[return-value]
+        return res.to(device=device)  # type: ignore[return-value]
 
     def _prepare_kwargs(self, data: TaggedArrayData, **kwargs: Any) -> Dict[str, Any]:
         def assert_linear() -> None:
             if data.xy is None:
-                raise ValueError("TODO: no linear data.")
+                raise ValueError("No data specified for the linear term.")
 
         def assert_quadratic() -> None:
             if data.x is None or data.y is None:
-                raise ValueError("TODO: no quadratic data.")
+                raise ValueError("No data specified for the quadratic term.")
 
         if self.problem_kind == ProblemKind.LINEAR:
             assert_linear()
@@ -184,9 +177,6 @@ class OTSolver(TagConverterMixin, BaseSolver[O], ABC):
             assert_quadratic()
             data_kwargs = {"x": data.x, "y": data.y, "xy": data.xy}
         else:
-            raise NotImplementedError(f"TODO: {self.problem_kind}")
-
-        if self.problem_kind != ProblemKind.QUAD_FUSED:
-            kwargs.pop("alpha", None)
+            raise NotImplementedError(f"Unable to prepare data for `{self.problem_kind}` problem.")
 
         return {**kwargs, **data_kwargs}

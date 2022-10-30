@@ -1,20 +1,19 @@
 from types import MappingProxyType
-from typing import Any, Type, Tuple, Union, Mapping, Optional, TYPE_CHECKING
+from typing import Any, Type, Tuple, Union, Literal, Mapping, Optional, TYPE_CHECKING
 
-from typing_extensions import Literal
 import pandas as pd
 
 import numpy as np
 
 from anndata import AnnData
 
-from moscot._docs import d
-from moscot._types import Numeric_t
+from moscot._types import Numeric_t, ScaleCost_t, ProblemStage_t, QuadInitializer_t, SinkhornInitializer_t
+from moscot._docs._docs import d
+from moscot.problems._utils import handle_joint_attr
 from moscot.solvers._output import BaseSolverOutput
-from moscot._constants._constants import Policy, ScaleCost
+from moscot._constants._constants import Policy
 from moscot.problems.time._mixins import TemporalMixin
 from moscot.problems.base._birth_death import BirthDeathMixin, BirthDeathProblem
-from moscot.problems.base._base_problem import ScaleCost_t, ProblemStage
 from moscot.problems.base._compound_problem import B, CompoundProblem
 
 
@@ -26,9 +25,9 @@ class TemporalProblem(
     Class for analysing time series single cell data based on :cite:`schiebinger:19`.
 
     The `TemporalProblem` allows to model and analyse time series single cell data by matching
-    cells from previous time points to later time points via optimal transport. Based on the
-    assumption that the considered cell modality is similar in consecutive time points probabilistic
-    couplings are computed between different time points.
+    cells from previous time points to later time points via optimal transport.
+    Based on the assumption that the considered cell modality is similar in consecutive time points
+    probabilistic couplings are computed between different time points.
     This allows to understand cell trajectories by inferring ancestors and descendants of single cells.
 
     Parameters
@@ -37,7 +36,7 @@ class TemporalProblem(
 
     Examples
     --------
-    See notebook TODO(@MUCDK) LINK NOTEBOOK for how to use it
+    See notebook TODO(@MUCDK) LINK NOTEBOOK for how to use it.
     """
 
     def __init__(self, adata: AnnData, **kwargs: Any):
@@ -48,7 +47,7 @@ class TemporalProblem(
         self,
         time_key: str,
         joint_attr: Optional[Union[str, Mapping[str, Any]]] = None,
-        policy: Literal[Policy.SEQUENTIAL, Policy.TRIL, Policy.TRIU, Policy.EXPLICIT] = Policy.SEQUENTIAL,
+        policy: Literal["sequential", "tril", "triu", "explicit"] = "sequential",
         marginal_kwargs: Mapping[str, Any] = MappingProxyType({}),
         **kwargs: Any,
     ) -> "TemporalProblem":
@@ -61,23 +60,19 @@ class TemporalProblem(
         ----------
         %(time_key)s
         %(joint_attr)s
-        policy
-            Defines which transport maps to compute given different cell distributions.
+        %(joint_attr)s
         %(a)s
         %(b)s
         %(marginal_kwargs)s
-        subset
-            Subset of `anndata.AnnData.obs` [key] values of which the policy is to be applied to.
+        %(subset)s
         %(reference)s
-        %(axis)s
         %(callback)s
         %(callback_kwargs)s
-        kwargs
-            Keyword arguments for :meth:`moscot.problems.BaseCompoundProblem._create_problems`.
+
 
         Returns
         -------
-        :class:`moscot.problems.time.TemporalProblem`
+        :class:`moscot.problems.time.TemporalProblem`.
 
         Raises
         ------
@@ -92,23 +87,7 @@ class TemporalProblem(
         """
         self.temporal_key = time_key
         policy = Policy(policy)  # type: ignore[assignment]
-        if joint_attr is None:
-            if "callback" not in kwargs:
-                kwargs["callback"] = "local-pca"
-            else:
-                kwargs["callback"] = kwargs["callback"]
-            kwargs["callback_kwargs"] = {**kwargs.get("callback_kwargs", {}), **{"return_linear": True}}
-        elif isinstance(joint_attr, str):
-            kwargs["xy"] = {
-                "x_attr": "obsm",
-                "x_key": joint_attr,
-                "y_attr": "obsm",
-                "y_key": joint_attr,
-            }
-        elif isinstance(joint_attr, Mapping):
-            kwargs["xy"] = joint_attr
-        else:
-            raise TypeError("TODO")
+        xy, kwargs = handle_joint_attr(joint_attr, kwargs)
 
         # TODO(michalk8): needs to be modified
         marginal_kwargs = dict(marginal_kwargs)
@@ -121,6 +100,7 @@ class TemporalProblem(
 
         return super().prepare(
             key=time_key,
+            xy=xy,
             policy=policy,
             marginal_kwargs=marginal_kwargs,
             **kwargs,
@@ -132,10 +112,23 @@ class TemporalProblem(
         epsilon: Optional[float] = 1e-3,
         tau_a: float = 1.0,
         tau_b: float = 1.0,
-        scale_cost: ScaleCost_t = ScaleCost.MEAN,
         rank: int = -1,
+        scale_cost: ScaleCost_t = "mean",
+        power: int = 1,
         batch_size: Optional[int] = None,
-        stage: Union[ProblemStage, Tuple[ProblemStage, ...]] = (ProblemStage.PREPARED, ProblemStage.SOLVED),
+        stage: Union[ProblemStage_t, Tuple[ProblemStage_t, ...]] = ("prepared", "solved"),
+        initializer: SinkhornInitializer_t = "default",
+        initializer_kwargs: Mapping[str, Any] = MappingProxyType({}),
+        jit: bool = True,
+        threshold: float = 1e-3,
+        lse_mode: bool = True,
+        norm_error: int = 1,
+        inner_iterations: int = 10,
+        min_iterations: int = 0,
+        max_iterations: int = 2000,
+        gamma: float = 10.0,
+        gamma_rescale: bool = True,
+        device: Optional[Literal["cpu", "gpu", "tpu"]] = None,
         **kwargs: Any,
     ) -> "TemporalProblem":
         """
@@ -146,26 +139,43 @@ class TemporalProblem(
         %(epsilon)s
         %(tau_a)s
         %(tau_b)s
-        %(scale_cost)s
         %(rank)s
-        %(batch_size)s
+        %(scale_cost)s
+        %(pointcloud_kwargs)s
         %(stage)s
-        %(solve_kwargs)s
-
+        %(initializer_lin)s
+        %(initializer_kwargs)s
+        %(jit)s
+        %(sinkhorn_kwargs)s
+        %(sinkhorn_lr_kwargs)s
+        %(device_solve)s
+        %(kwargs_linear)s
 
         Returns
         -------
-        :class:`moscot.problems.time.TemporalProblem`
+        :class:`moscot.problems.time.TemporalProblem`.
         """
-        scale_cost = ScaleCost(scale_cost) if isinstance(scale_cost, ScaleCost) else scale_cost
         return super().solve(
             epsilon=epsilon,
             tau_a=tau_a,
             tau_b=tau_b,
-            scale_cost=scale_cost,
             rank=rank,
+            scale_cost=scale_cost,
+            power=power,
             batch_size=batch_size,
             stage=stage,
+            initializer=initializer,
+            initializer_kwargs=initializer_kwargs,
+            jit=jit,
+            threshold=threshold,
+            lse_mode=lse_mode,
+            norm_error=norm_error,
+            inner_iterations=inner_iterations,
+            min_iterations=min_iterations,
+            max_iterations=max_iterations,
+            gamma=gamma,
+            gamma_rescale=gamma_rescale,
+            device=device,
             **kwargs,
         )  # type:ignore[return-value]
 
@@ -192,10 +202,10 @@ class TemporalProblem(
         df_list.append(
             pd.DataFrame(
                 np.full(
-                    shape=(len(self.problems[tup]._adata_y.obs), 1),
+                    shape=(len(self.problems[tup].adata_tgt.obs), 1),
                     fill_value=np.nan,
                 ),
-                index=self.problems[tup]._adata_y.obs.index,
+                index=self.problems[tup].adata_tgt.obs.index,
                 columns=cols,
             )
         )
@@ -224,10 +234,10 @@ class TemporalProblem(
         df_list.append(
             pd.DataFrame(
                 np.full(
-                    shape=(len(self.problems[tup]._adata_y.obs), 1),
+                    shape=(len(self.problems[tup].adata_tgt.obs), 1),
                     fill_value=np.nan,
                 ),
-                index=self.problems[tup]._adata_y.obs.index,
+                index=self.problems[tup].adata_tgt.obs.index,
                 columns=cols,
             )
         )
@@ -236,9 +246,7 @@ class TemporalProblem(
     # TODO(michalk8): refactor me
     @property
     def cell_costs_source(self) -> Optional[pd.DataFrame]:
-        """
-        Return the cost of a cell (see online methods) obtained by the potentials of the optimal transport solution.
-        """
+        """Return the cost of a cell obtained by the potentials of the optimal transport solution."""
         sol = list(self.problems.values())[0].solution
         if TYPE_CHECKING:
             assert isinstance(sol, BaseSolverOutput)
@@ -246,15 +254,15 @@ class TemporalProblem(
             return None
         df_list = [
             pd.DataFrame(
-                problem.solution.potentials[0], index=problem.adata.obs.index, columns=["cell_cost_source"]  # type: ignore[union-attr] # noqa: E501
+                np.array(np.abs(problem.solution.potentials[0])), index=problem.adata_src.obs_names, columns=["cell_cost_source"]  # type: ignore[union-attr, arg-type] # noqa: E501
             )
             for problem in self.problems.values()
         ]
         tup = list(self)[-1]
         df_list.append(
             pd.DataFrame(
-                np.full(shape=(len(self.problems[tup]._adata_y.obs), 1), fill_value=np.nan),
-                index=self.problems[tup]._adata_y.obs.index,
+                np.full(shape=(len(self.problems[tup].adata_tgt.obs), 1), fill_value=np.nan),
+                index=self.problems[tup].adata_tgt.obs_names,
                 columns=["cell_cost_source"],
             )
         )
@@ -272,15 +280,15 @@ class TemporalProblem(
         tup = list(self)[0]
         df_list = [
             pd.DataFrame(
-                np.full(shape=(len(self.problems[tup].adata), 1), fill_value=np.nan),
-                index=self.problems[tup].adata.obs.index,
+                np.full(shape=(len(self.problems[tup].adata_src), 1), fill_value=np.nan),
+                index=self.problems[tup].adata_src.obs_names,
                 columns=["cell_cost_target"],
             )
         ]
         df_list.extend(
             [
                 pd.DataFrame(
-                    problem.solution.potentials[1], index=problem._adata_y.obs.index, columns=["cell_cost_target"]  # type: ignore[union-attr] # noqa: E501
+                    np.array(np.abs(problem.solution.potentials[1])), index=problem.adata_tgt.obs_names, columns=["cell_cost_target"]  # type: ignore[union-attr, arg-type] # noqa: E501
                 )
                 for problem in self.problems.values()
             ]
@@ -293,7 +301,7 @@ class TemporalProblem(
 
     @property
     def _valid_policies(self) -> Tuple[str, ...]:
-        return Policy.SEQUENTIAL, Policy.TRIL, Policy.TRIU, Policy.EXPLICIT
+        return Policy.SEQUENTIAL, Policy.TRIU, Policy.EXPLICIT
 
 
 @d.dedent
@@ -305,13 +313,11 @@ class LineageProblem(TemporalProblem):
 
     Parameters
     ----------
-    adata
-        :class:`anndata.AnnData` instance containing the single cell data and corresponding metadata
-
+    %(adata)s
 
     Examples
     --------
-    See notebook TODO(@MUCDK) LINK NOTEBOOK for how to use it
+    See notebook TODO(@MUCDK) LINK NOTEBOOK for how to use it.
     """
 
     @d.dedent
@@ -320,39 +326,28 @@ class LineageProblem(TemporalProblem):
         time_key: str,
         lineage_attr: Mapping[str, Any] = MappingProxyType({}),
         joint_attr: Optional[Union[str, Mapping[str, Any]]] = None,
-        policy: Literal[Policy.SEQUENTIAL, Policy.TRIL, Policy.TRIU, Policy.EXPLICIT] = Policy.SEQUENTIAL,
+        policy: Literal["sequential", "tril", "triu", "sequential"] = "sequential",
         **kwargs: Any,
     ) -> "LineageProblem":
         """
         Prepare the :class:`moscot.problems.time.LineageProblem`.
 
-        This method executes multiple steps to prepare the problem for the Optimal Transport solver to be ready
-        to solve it
-
         Parameters
         ----------
         %(time_key)s
+
         lineage_attr
             Specifies the way the lineage information is processed. TODO: Specify.
-        joint_attr
-            Parameter defining how to allocate the data needed to compute the transport maps. If None, the data is read
-            from :attr:`anndata.AnnData.X` and for each time point the corresponding PCA space is computed.
-            If `joint_attr` is a string the data is assumed to be found in :attr:`anndata.AnnData.obsm`.
-            If `joint_attr` is a dictionary the dictionary is supposed to contain the attribute of
-            :attr:`anndata.AnnData` as a key and the corresponding attribute as a value.
-        policy
-            defines which transport maps to compute given different cell distributions
+
+        %(joint_attr)s
+        %(policy)s
         %(marginal_kwargs)s
         %(a)s
         %(b)s
-        subset
-            subset of `anndata.AnnData.obs` [key] values of which the policy is to be applied to
+        %(subset)s
         %(reference)s
-        %(axis)s
         %(callback)s
         %(callback_kwargs)s
-        kwargs
-            Keyword arguments for :meth:`moscot.problems.BaseCompoundProblem._create_problems`
 
         Returns
         -------
@@ -373,24 +368,21 @@ class LineageProblem(TemporalProblem):
         -----
         If `a` and `b` are provided `marginal_kwargs` are ignored.
         """
-        policy = Policy(policy)  # type: ignore[assignment]
         if not len(lineage_attr) and ("cost_matrices" not in self.adata.obsp):
-            raise ValueError(
-                "TODO: default location for quadratic loss is `adata.obsp[`cost_matrices`]` \
-                        but adata has no key `cost_matrices` in `obsp`."
-            )
-        # TODO(michalk8): refactor me
+            raise KeyError("Unable to find cost matrices in `adata.obsp['cost_matrices']`.")
+
         lineage_attr = dict(lineage_attr)
         lineage_attr.setdefault("attr", "obsp")
         lineage_attr.setdefault("key", "cost_matrices")
-        lineage_attr.setdefault("loss", None)
+        lineage_attr.setdefault("cost", "custom")
         lineage_attr.setdefault("tag", "cost")
-        lineage_attr.setdefault("loss_kwargs", {})
+
         x = y = lineage_attr
 
+        xy, kwargs = handle_joint_attr(joint_attr, kwargs)
         return super().prepare(
             time_key,
-            joint_attr=joint_attr,
+            joint_attr=xy,
             x=x,
             y=y,
             policy=policy,
@@ -404,10 +396,25 @@ class LineageProblem(TemporalProblem):
         epsilon: Optional[float] = 1e-3,
         tau_a: float = 1.0,
         tau_b: float = 1.0,
-        scale_cost: ScaleCost_t = ScaleCost.MEAN,
         rank: int = -1,
+        scale_cost: ScaleCost_t = "mean",
+        power: int = 1,
         batch_size: Optional[int] = None,
-        stage: Union[ProblemStage, Tuple[ProblemStage, ...]] = (ProblemStage.PREPARED, ProblemStage.SOLVED),
+        stage: Union[ProblemStage_t, Tuple[ProblemStage_t, ...]] = ("prepared", "solved"),
+        initializer: QuadInitializer_t = None,
+        initializer_kwargs: Mapping[str, Any] = MappingProxyType({}),
+        jit: bool = True,
+        min_iterations: int = 5,
+        max_iterations: int = 50,
+        threshold: float = 1e-3,
+        warm_start: Optional[bool] = None,
+        gamma: float = 10.0,
+        gamma_rescale: bool = True,
+        gw_unbalanced_correction: bool = True,
+        ranks: Union[int, Tuple[int, ...]] = -1,
+        tolerances: Union[float, Tuple[float, ...]] = 1e-2,
+        linear_solver_kwargs: Mapping[str, Any] = MappingProxyType({}),
+        device: Optional[Literal["cpu", "gpu", "tpu"]] = None,
         **kwargs: Any,
     ) -> "LineageProblem":
         """
@@ -419,25 +426,45 @@ class LineageProblem(TemporalProblem):
         %(epsilon)s
         %(tau_a)s
         %(tau_b)s
-        %(scale_cost)s
         %(rank)s
-        %(batch_size)s
+        %(scale_cost)s
+        %(pointcloud_kwargs)s
         %(stage)s
-        %(solve_kwargs)s
+        %(initializer_quad)s
+        %(initializer_kwargs)s
+        %(gw_kwargs)s
+        %(sinkhorn_lr_kwargs)s
+        %(gw_lr_kwargs)s
+        %(linear_solver_kwargs)s
+        %(device_solve)s
+        %(kwargs_quad_fused)s
 
         Returns
         -------
-        :class:`moscot.problems.time.TemporalProblem`
+        :class:`moscot.problems.time.LineageProblem`
         """
-        scale_cost = ScaleCost(scale_cost) if isinstance(scale_cost, ScaleCost) else scale_cost
         return super().solve(
             alpha=alpha,
             epsilon=epsilon,
             tau_a=tau_a,
             tau_b=tau_b,
-            scale_cost=scale_cost,
             rank=rank,
+            scale_cost=scale_cost,
+            power=power,
             batch_size=batch_size,
             stage=stage,
-            **kwargs,
+            initializer=initializer,
+            initializer_kwargs=initializer_kwargs,
+            jit=jit,
+            min_iterations=min_iterations,
+            max_iterations=max_iterations,
+            threshold=threshold,
+            warm_start=warm_start,
+            gamma=gamma,
+            gamma_rescale=gamma_rescale,
+            gw_unbalanced_correction=gw_unbalanced_correction,
+            ranks=ranks,
+            tolerances=tolerances,
+            linear_solver_kwargs=linear_solver_kwargs,
+            device=device,
         )

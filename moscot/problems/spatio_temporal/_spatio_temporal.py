@@ -1,19 +1,16 @@
 from types import MappingProxyType
-from typing import Any, Type, Tuple, Union, Mapping, Optional
-
-from typing_extensions import Literal
+from typing import Any, Type, Tuple, Union, Literal, Mapping, Optional
 
 from anndata import AnnData
 
-from moscot._docs import d
-from moscot._types import Numeric_t
+from moscot._types import Numeric_t, ScaleCost_t, ProblemStage_t, QuadInitializer_t
+from moscot._docs._docs import d
 from moscot._constants._key import Key
-from moscot._constants._constants import Policy, ScaleCost
+from moscot._constants._constants import Policy
 from moscot.problems.time._mixins import TemporalMixin
 from moscot.problems.space._mixins import SpatialAlignmentMixin
 from moscot.problems.space._alignment import AlignmentProblem
 from moscot.problems.base._birth_death import BirthDeathMixin, BirthDeathProblem
-from moscot.problems.base._base_problem import ScaleCost_t, ProblemStage
 from moscot.problems.base._compound_problem import B
 
 
@@ -34,8 +31,8 @@ class SpatioTemporalProblem(
         self,
         time_key: str,
         spatial_key: str = Key.obsm.spatial,
-        joint_attr: Optional[Mapping[str, Any]] = MappingProxyType({"x_attr": "X", "y_attr": "X"}),
-        policy: Literal[Policy.SEQUENTIAL, Policy.TRIL, Policy.TRIU, Policy.EXPLICIT] = Policy.SEQUENTIAL,
+        joint_attr: Optional[Union[str, Mapping[str, Any]]] = None,
+        policy: Literal["sequential", "tril", "triu", "explicit"] = "sequential",
         marginal_kwargs: Mapping[str, Any] = MappingProxyType({}),
         **kwargs: Any,
     ) -> "SpatioTemporalProblem":
@@ -47,30 +44,17 @@ class SpatioTemporalProblem(
 
         Parameters
         ----------
-        time_key
-            Key in :attr:`anndata.AnnData.obs` which defines the time point each cell belongs to. It is supposed to be
-            of numerical data type.
+        %(time_key)s
         %(spatial_key)s
-        joint_attr
-            Parameter defining how to allocate the data needed to compute the transport maps:
-            - If None, the data is read from :attr:`anndata.AnnData.X` and
-            for each time point the corresponding PCA space is computed.
-            - If `joint_attr` is a string the data is assumed to be found in :attr:`anndata.AnnData.obsm`.
-            - If `joint_attr` is a dictionary the dictionary is supposed to contain the attribute of
-            :class:`anndata.AnnData` as a key and the corresponding attribute as a value.
-
+        %(joint_attr)s
         %(policy)s
         %(marginal_kwargs)s
         %(a)s
         %(b)s
-        subset
-            subset of :attr:`anndata.AnnData.obs` ``[{key}]`` values of which the policy is to be applied to.
+        %(subset)s
         %(reference)s
-        %(axis)s
         %(callback)s
         %(callback_kwargs)s
-        kwargs
-            Keyword arguments for :meth:`moscot.problems.BaseCompoundProblem._create_problems`.
 
         Returns
         -------
@@ -95,7 +79,7 @@ class SpatioTemporalProblem(
         """
         # spatial key set in AlignmentProblem
         self.temporal_key = time_key
-        policy = Policy(policy)  # type: ignore[assignment]
+
         marginal_kwargs = dict(marginal_kwargs)
         if self.proliferation_key is not None:
             marginal_kwargs["proliferation_key"] = self.proliferation_key
@@ -119,8 +103,27 @@ class SpatioTemporalProblem(
         self,
         alpha: Optional[float] = 0.5,
         epsilon: Optional[float] = 1e-3,
-        scale_cost: ScaleCost_t = ScaleCost.MEAN,
-        stage: Union[ProblemStage, Tuple[ProblemStage, ...]] = (ProblemStage.PREPARED, ProblemStage.SOLVED),
+        tau_a: float = 1.0,
+        tau_b: float = 1.0,
+        rank: int = -1,
+        scale_cost: ScaleCost_t = "mean",
+        power: int = 1,
+        batch_size: Optional[int] = None,
+        stage: Union[ProblemStage_t, Tuple[ProblemStage_t, ...]] = ("prepared", "solved"),
+        initializer: QuadInitializer_t = None,
+        initializer_kwargs: Mapping[str, Any] = MappingProxyType({}),
+        jit: bool = True,
+        min_iterations: int = 5,
+        max_iterations: int = 50,
+        threshold: float = 1e-3,
+        warm_start: Optional[bool] = None,
+        gamma: float = 10.0,
+        gamma_rescale: bool = True,
+        gw_unbalanced_correction: bool = True,
+        ranks: Union[int, Tuple[int, ...]] = -1,
+        tolerances: Union[float, Tuple[float, ...]] = 1e-2,
+        linear_solver_kwargs: Mapping[str, Any] = MappingProxyType({}),
+        device: Optional[Literal["cpu", "gpu", "tpu"]] = None,
         **kwargs: Any,
     ) -> "SpatioTemporalProblem":
         """
@@ -130,16 +133,51 @@ class SpatioTemporalProblem(
         ----------
         %(alpha)s
         %(epsilon)s
-        %(scale_cost)s
+        %(tau_a)s
+        %(tau_b)s
         %(rank)s
+        %(scale_cost)s
+        %(pointcloud_kwargs)s
         %(stage)s
+        %(initializer_quad)s
+        %(initializer_kwargs)s
+        %(gw_kwargs)s
+        %(sinkhorn_lr_kwargs)s
+        %(gw_lr_kwargs)s
+        %(linear_solver_kwargs)s
+        %(device_solve)s
+        %(kwargs_quad_fused)s
 
         Returns
         -------
         :class:`moscot.problems.space.SpatioTemporalProblem`.
         """
-        scale_cost = ScaleCost(scale_cost) if isinstance(scale_cost, ScaleCost) else scale_cost
-        return super().solve(alpha=alpha, epsilon=epsilon, scale_cost=scale_cost, stage=stage, **kwargs)
+        return super().solve(
+            alpha=alpha,
+            epsilon=epsilon,
+            tau_a=tau_a,
+            tau_b=tau_b,
+            rank=rank,
+            scale_cost=scale_cost,
+            power=power,
+            batch_size=batch_size,
+            stage=stage,
+            initializer=initializer,
+            initializer_kwargs=initializer_kwargs,
+            jit=jit,
+            min_iterations=min_iterations,
+            max_iterations=max_iterations,
+            threshold=threshold,
+            warm_start=warm_start,
+            gamma=gamma,
+            gamma_rescale=gamma_rescale,
+            gw_unbalanced_correction=gw_unbalanced_correction,
+            ranks=ranks,
+            tolerances=tolerances,
+            linear_solver_kwargs=linear_solver_kwargs,
+            device=device,
+            **kwargs,
+        )
 
     @property
     def _valid_policies(self) -> Tuple[Policy, ...]:

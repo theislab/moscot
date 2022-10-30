@@ -10,8 +10,8 @@ import numpy as np
 
 from anndata import AnnData
 
-from tests._utils import MockSolverOutput
-from tests.conftest import ANGLES, _adata_spatial_split
+from tests._utils import MockSolverOutput, _adata_spatial_split
+from tests.conftest import ANGLES
 from moscot.problems.space import MappingProblem, AlignmentProblem
 
 # TODO(giovp): refactor as fixture
@@ -47,6 +47,14 @@ class TestSpatialAlignmentAnalysisMixin:
                 assert set(angles).issubset(ANGLES)
             assert adata_ref.obsm["spatial_warp"].shape == adata_space_rotate.obsm["spatial"].shape
 
+            problem.align(reference=ref, mode="affine", spatial_key="spatial")
+            for c1, c2 in zip(categories, categories[1:]):
+                np.testing.assert_array_almost_equal(
+                    adata_ref[adata_ref.obs.batch == c1].obsm["spatial_affine"],
+                    adata_ref[adata_ref.obs.batch == c2].obsm["spatial_affine"],
+                    decimal=6,
+                )
+
     def test_regression_testing(self, adata_space_rotate: AnnData):
         ap = AlignmentProblem(adata=adata_space_rotate).prepare(batch_key="batch").solve(alpha=0.5, epsilon=1)
         # TODO(giovp): unnecessary assert
@@ -62,10 +70,9 @@ class TestSpatialAlignmentAnalysisMixin:
             )
 
     @pytest.mark.fast()
-    @pytest.mark.parametrize("online", [True, False])
     @pytest.mark.parametrize("forward", [True, False])
     @pytest.mark.parametrize("normalize", [True, False])
-    def test_cell_transition_pipeline(self, adata_space_rotate: AnnData, online: bool, forward: bool, normalize: bool):
+    def test_cell_transition_pipeline(self, adata_space_rotate: AnnData, forward: bool, normalize: bool):
         rng = np.random.RandomState(0)
         adata_space_rotate.obs["celltype"] = rng.choice(["a", "b", "c"], len(adata_space_rotate))
         adata_space_rotate.obs["celltype"] = adata_space_rotate.obs["celltype"].astype("category")
@@ -80,7 +87,12 @@ class TestSpatialAlignmentAnalysisMixin:
         )
         ap[("1", "2")]._solution = MockSolverOutput(mock_tmap / mock_tmap.sum().sum())
         result = ap.cell_transition(
-            "1", "2", "celltype", "celltype", online=online, forward=forward, normalize=normalize
+            source="1",
+            target="2",
+            source_groups="celltype",
+            target_groups="celltype",
+            forward=forward,
+            normalize=normalize,
         )
         assert isinstance(result, pd.DataFrame)
         assert result.shape == (3, 3)
@@ -103,6 +115,29 @@ class TestSpatialMappingAnalysisMixin:
         pd.testing.assert_series_equal(*list(corr.values()))
         assert imp.shape == adatasp.shape
 
+    def test_correspondence(
+        self,
+        adata_mapping: AnnData,
+    ):
+        adataref, adatasp = _adata_spatial_split(adata_mapping)
+        df = (
+            MappingProblem(adataref, adatasp).prepare(batch_key="batch", sc_attr={"attr": "X"}).compute_correspondence()
+        )
+        assert "batch" in df.columns
+        np.testing.assert_array_equal(df["batch"].cat.categories, adatasp.obs["batch"].cat.categories)
+        df2 = (
+            MappingProblem(adataref, adatasp)
+            .prepare(batch_key="batch", sc_attr={"attr": "X"})
+            .compute_correspondence(spatial_key="spatial")
+        )
+        np.testing.assert_array_equal(df.index_interval.cat.categories, df2.index_interval.cat.categories)
+        df3 = (
+            MappingProblem(adataref, adatasp)
+            .prepare(sc_attr={"attr": "X"})
+            .compute_correspondence(interval=[2, 3], spatial_key="spatial")
+        )
+        np.testing.assert_array_equal(df3.value_interval.unique(), (2, 3))
+
     def test_regression_testing(self, adata_mapping: AnnData):
         adataref, adatasp = _adata_spatial_split(adata_mapping)
         mp = MappingProblem(adataref, adatasp)
@@ -120,10 +155,9 @@ class TestSpatialMappingAnalysisMixin:
             )
 
     @pytest.mark.fast()
-    @pytest.mark.parametrize("online", [True, False])
     @pytest.mark.parametrize("forward", [True, False])
     @pytest.mark.parametrize("normalize", [True, False])
-    def test_cell_transition_pipeline(self, adata_mapping: AnnData, online: bool, forward: bool, normalize: bool):
+    def test_cell_transition_pipeline(self, adata_mapping: AnnData, forward: bool, normalize: bool):
         rng = np.random.RandomState(0)
         adataref, adatasp = _adata_spatial_split(adata_mapping)
         adatasp.obs["celltype"] = rng.choice(["a", "b", "c"], len(adatasp))
@@ -133,12 +167,17 @@ class TestSpatialMappingAnalysisMixin:
         # TODO(@MUCDK) use MockSolverOutput if no regression test
         mp = MappingProblem(adataref, adatasp)
         mp = mp.prepare(batch_key="batch", sc_attr={"attr": "obsm", "key": "X_pca"})
-        print(mp.problems)
         # mp = mp.solve()
         mock_tmap = np.abs(rng.randn(len(adatasp[adatasp.obs["batch"] == "1"]), len(adataref)))
-        mp[("1", "ref")]._solution = MockSolverOutput(mock_tmap / mock_tmap.sum().sum())
+        mp[("1", "ref")]._solution = MockSolverOutput(mock_tmap / np.sum(mock_tmap))
 
-        result = mp.cell_transition("1", "celltype", "celltype", online=online, forward=forward, normalize=normalize)
+        result = mp.cell_transition(
+            source="1",
+            source_groups="celltype",
+            target_groups="celltype",
+            forward=forward,
+            normalize=normalize,
+        )
 
         assert isinstance(result, pd.DataFrame)
         assert result.shape == (3, 4)

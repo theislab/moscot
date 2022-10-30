@@ -1,14 +1,16 @@
 from types import MappingProxyType
-from typing import Any, Type, Tuple, Union, Mapping, Optional
-
-from typing_extensions import Literal
+from typing import Any, Type, Tuple, Union, Literal, Mapping, Optional
 
 from anndata import AnnData
 
-from moscot._docs import d
+from moscot._types import ScaleCost_t, ProblemStage_t, QuadInitializer_t, SinkhornInitializer_t
+from moscot._docs._docs import d
 from moscot.problems.base import OTProblem, CompoundProblem  # type: ignore[attr-defined]
+from moscot.problems._utils import handle_joint_attr
 from moscot.problems.generic._mixins import GenericAnalysisMixin
 from moscot.problems.base._compound_problem import B, K
+
+__all__ = ["SinkhornProblem", "GWProblem", "FGWProblem"]
 
 
 @d.dedent
@@ -39,8 +41,6 @@ class SinkhornProblem(CompoundProblem[K, B], GenericAnalysisMixin[K, B]):
         """
         Prepare the :class:`moscot.problems.generic.SinkhornProblem`.
 
-        This method executes multiple steps to prepare the optimal transport problems.
-
         Parameters
         ----------
         %(key)s
@@ -51,11 +51,8 @@ class SinkhornProblem(CompoundProblem[K, B], GenericAnalysisMixin[K, B]):
         %(b)s
         %(subset)s
         %(reference)s
-        %(axis)s
         %(callback)s
         %(callback_kwargs)s
-        kwargs
-            Keyword arguments for :meth:`moscot.problems.BaseCompoundProblem._create_problems`.
 
         Returns
         -------
@@ -79,11 +76,85 @@ class SinkhornProblem(CompoundProblem[K, B], GenericAnalysisMixin[K, B]):
         elif isinstance(joint_attr, Mapping):
             kwargs["xy"] = joint_attr
         else:
-            raise TypeError("TODO")
+            raise TypeError(f"Unable to interpret `joint_attr` of type `{type(joint_attr)}`.")
 
+        xy, kwargs = handle_joint_attr(joint_attr, kwargs)
         return super().prepare(
             key=key,
             policy=policy,
+            xy=xy,
+            **kwargs,
+        )
+
+    def solve(
+        self,
+        epsilon: Optional[float] = 1e-3,
+        tau_a: float = 1.0,
+        tau_b: float = 1.0,
+        rank: int = -1,
+        scale_cost: ScaleCost_t = "mean",
+        power: int = 1,
+        batch_size: Optional[int] = None,
+        stage: Union[ProblemStage_t, Tuple[ProblemStage_t, ...]] = ("prepared", "solved"),
+        initializer: SinkhornInitializer_t = "default",
+        initializer_kwargs: Mapping[str, Any] = MappingProxyType({}),
+        jit: bool = True,
+        threshold: float = 1e-3,
+        lse_mode: bool = True,
+        norm_error: int = 1,
+        inner_iterations: int = 10,
+        min_iterations: int = 0,
+        max_iterations: int = 2000,
+        gamma: float = 10.0,
+        gamma_rescale: bool = True,
+        device: Optional[Literal["cpu", "gpu", "tpu"]] = None,
+        **kwargs: Any,
+    ) -> "SinkhornProblem[K,B]":
+        """
+        Solve optimal transport problems defined in :class:`moscot.problems.generic.SinkhornProblem`.
+
+        Parameters
+        ----------
+        %(epsilon)s
+        %(tau_a)s
+        %(tau_b)s
+        %(rank)s
+        %(scale_cost)s
+        %(pointcloud_kwargs)s
+        %(stage)s
+        %(initializer_lin)s
+        %(initializer_kwargs)s
+        %(jit)s
+        %(sinkhorn_kwargs)s
+        %(sinkhorn_lr_kwargs)s
+        %(device_solve)
+        %(kwargs_linear)s
+
+        Returns
+        -------
+        :class:`moscot.problems.generic.SinkhornProblem`.
+        """
+        return super().solve(
+            epsilon=epsilon,
+            tau_a=tau_a,
+            tau_b=tau_b,
+            rank=rank,
+            scale_cost=scale_cost,
+            power=power,
+            batch_size=batch_size,
+            stage=stage,
+            initializer=initializer,
+            initializer_kwargs=initializer_kwargs,
+            jit=jit,
+            threshold=threshold,
+            lse_mode=lse_mode,
+            norm_error=norm_error,
+            inner_iterations=inner_iterations,
+            min_iterations=min_iterations,
+            max_iterations=max_iterations,
+            gamma=gamma,
+            gamma_rescale=gamma_rescale,
+            device=device,
             **kwargs,
         )
 
@@ -118,35 +189,131 @@ class GWProblem(CompoundProblem[K, B], GenericAnalysisMixin[K, B]):
     def prepare(
         self,
         key: str,
-        GW_attr: Mapping[str, Any] = MappingProxyType({}),
+        GW_x: Mapping[str, Any] = MappingProxyType({}),
+        GW_y: Mapping[str, Any] = MappingProxyType({}),
         policy: Literal["sequential", "pairwise", "explicit"] = "sequential",
         **kwargs: Any,
     ) -> "GWProblem[K, B]":
         """
-        GWProblem.
+        Prepare the :class:`moscot.problems.generic.GWProblem`.
+
+        Parameters
+        ----------
+        %(key)s
+        %(GW_x)s
+        %(GW_y)s
+        %(policy)s
+        %(marginal_kwargs)s
+        %(a)s
+        %(b)s
+        %(subset)s
+        %(reference)s
+        %(callback)s
+        %(callback_kwargs)s
+
+        Returns
+        -------
+        :class:`moscot.problems.generic.GWProblem`
+
+        Notes
+        -----
+        If `a` and `b` are provided `marginal_kwargs` are ignored.
         """
         self.batch_key = key
-        # TODO(michalk8): use and
-        if not len(GW_attr):
-            if "cost_matrices" not in self.adata.obsp:
-                raise ValueError(
-                    "TODO: default location for quadratic loss is `adata.obsp[`cost_matrices`]` \
-                        but adata has no key `cost_matrices` in `obsp`."
-                )
-        # TODO(michalk8): refactor me
-        GW_attr = dict(GW_attr)
-        GW_attr.setdefault("attr", "obsp")
-        GW_attr.setdefault("key", "cost_matrices")
-        GW_attr.setdefault("loss", "Euclidean")
-        GW_attr.setdefault("tag", "cost")
-        GW_attr.setdefault("loss_kwargs", {})
-        x = y = GW_attr
+        if not (len(GW_x) and len(GW_y)) and "cost_matrices" not in self.adata.obsp:
+            raise KeyError("Unable to find cost matrices in `adata.obsp['cost_matrices']`.")
+
+        for z in [GW_x, GW_y]:
+            if not len(z):
+                z = dict(z)  # FIXME: this is a copy
+                z.setdefault("attr", "obsp")
+                z.setdefault("key", "cost_matrices")
+                z.setdefault("cost", "sq_euclidean")
+                z.setdefault("tag", "cost")
 
         return super().prepare(
-            key,
-            x=x,
-            y=y,
+            key=key,
+            x=GW_x,
+            y=GW_y,
             policy=policy,
+            **kwargs,
+        )
+
+    @d.dedent
+    def solve(
+        self,
+        epsilon: Optional[float] = 1e-3,
+        tau_a: float = 1.0,
+        tau_b: float = 1.0,
+        rank: int = -1,
+        scale_cost: ScaleCost_t = "mean",
+        power: int = 1,
+        batch_size: Optional[int] = None,
+        stage: Union[ProblemStage_t, Tuple[ProblemStage_t, ...]] = ("prepared", "solved"),
+        initializer: QuadInitializer_t = None,
+        initializer_kwargs: Mapping[str, Any] = MappingProxyType({}),
+        jit: bool = True,
+        min_iterations: int = 5,
+        max_iterations: int = 50,
+        threshold: float = 1e-3,
+        warm_start: Optional[bool] = None,
+        gamma: float = 10.0,
+        gamma_rescale: bool = True,
+        gw_unbalanced_correction: bool = True,
+        ranks: Union[int, Tuple[int, ...]] = -1,
+        tolerances: Union[float, Tuple[float, ...]] = 1e-2,
+        linear_solver_kwargs: Mapping[str, Any] = MappingProxyType({}),
+        device: Optional[Literal["cpu", "gpu", "tpu"]] = None,
+        **kwargs: Any,
+    ) -> "GWProblem[K,B]":
+        """
+        Solve optimal transport problems defined in :class:`moscot.problems.generic.GWProblem`.
+
+        Parameters
+        ----------
+        %(epsilon)s
+        %(tau_a)s
+        %(tau_b)s
+        %(rank)s
+        %(scale_cost)s
+        %(pointcloud_kwargs)s
+        %(stage)s
+        %(initializer_quad)s
+        %(initializer_kwargs)s
+        %(gw_kwargs)s
+        %(sinkhorn_lr_kwargs)s
+        %(gw_lr_kwargs)s
+        %(linear_solver_kwargs)s
+        %(device_solve)s
+        %(kwargs_quad)s
+
+        Returns
+        -------
+        :class:`moscot.problems.generic.GWProblem`.
+        """
+        return super().solve(
+            epsilon=epsilon,
+            tau_a=tau_a,
+            tau_b=tau_b,
+            rank=rank,
+            scale_cost=scale_cost,
+            power=power,
+            batch_size=batch_size,
+            stage=stage,
+            initializer=initializer,
+            initializer_kwargs=initializer_kwargs,
+            jit=jit,
+            min_iterations=min_iterations,
+            max_iterations=max_iterations,
+            threshold=threshold,
+            warm_start=warm_start,
+            gamma=gamma,
+            gamma_rescale=gamma_rescale,
+            gw_unbalanced_correction=gw_unbalanced_correction,
+            ranks=ranks,
+            tolerances=tolerances,
+            linear_solver_kwargs=linear_solver_kwargs,
+            device=device,
             **kwargs,
         )
 
@@ -177,18 +344,117 @@ class FGWProblem(GWProblem[K, B]):
     def prepare(
         self,
         key: str,
-        joint_attr: Mapping[str, Any] = MappingProxyType({}),
-        GW_attr: Mapping[str, Any] = MappingProxyType({}),
+        joint_attr: Optional[Union[str, Mapping[str, Any]]] = None,
+        GW_x: Mapping[str, Any] = MappingProxyType({}),
+        GW_y: Mapping[str, Any] = MappingProxyType({}),
         policy: Literal["sequential", "pairwise", "explicit"] = "sequential",
         **kwargs: Any,
     ) -> "FGWProblem[K, B]":
         """
-        Prepare the :class:`moscot.problems.generic.GWProblem`.
+        Prepare the :class:`moscot.problems.generic.FGWProblem`.
 
         Parameters
         ----------
-        %(GWProblem.parameters)s
+        %(key)s
         %(joint_attr)s
+        %(GW_x)s
+        %(GW_y)s
+        %(policy)s
+        %(marginal_kwargs)s
+        %(a)s
+        %(b)s
+        %(subset)s
+        %(reference)s
+        %(callback)s
+        %(callback_kwargs)s
 
+        Returns
+        -------
+        :class:`moscot.problems.generic.FGWProblem`
+
+        Notes
+        -----
+        If `a` and `b` are provided `marginal_kwargs` are ignored.
         """
-        return super().prepare(key=key, GW_attr=GW_attr, joint_attr=joint_attr, policy=policy, **kwargs)
+        xy, kwargs = handle_joint_attr(joint_attr, kwargs)
+        return super().prepare(key=key, GW_x=GW_x, GW_y=GW_y, xy=xy, policy=policy, **kwargs)
+
+    @d.dedent
+    def solve(
+        self,
+        alpha: Optional[float] = 0.5,
+        epsilon: Optional[float] = 1e-3,
+        tau_a: float = 1.0,
+        tau_b: float = 1.0,
+        rank: int = -1,
+        scale_cost: ScaleCost_t = "mean",
+        power: int = 1,
+        batch_size: Optional[int] = None,
+        stage: Union[ProblemStage_t, Tuple[ProblemStage_t, ...]] = ("prepared", "solved"),
+        initializer: QuadInitializer_t = None,
+        initializer_kwargs: Mapping[str, Any] = MappingProxyType({}),
+        jit: bool = True,
+        min_iterations: int = 5,
+        max_iterations: int = 50,
+        threshold: float = 1e-3,
+        warm_start: Optional[bool] = None,
+        gamma: float = 10.0,
+        gamma_rescale: bool = True,
+        gw_unbalanced_correction: bool = True,
+        ranks: Union[int, Tuple[int, ...]] = -1,
+        tolerances: Union[float, Tuple[float, ...]] = 1e-2,
+        linear_solver_kwargs: Mapping[str, Any] = MappingProxyType({}),
+        device: Optional[Literal["cpu", "gpu", "tpu"]] = None,
+        **kwargs: Any,
+    ) -> "FGWProblem[K,B]":
+        """
+        Solve optimal transport problems defined in :class:`moscot.problems.generic.FGWProblem`.
+
+        Parameters
+        ----------
+        %(alpha)s
+        %(epsilon)s
+        %(tau_a)s
+        %(tau_b)s
+        %(rank)s
+        %(scale_cost)s
+        %(pointcloud_kwargs)s
+        %(stage)s
+        %(initializer_quad)s
+        %(initializer_kwargs)s
+        %(gw_kwargs)s
+        %(sinkhorn_lr_kwargs)s
+        %(gw_lr_kwargs)s
+        %(linear_solver_kwargs)s
+        %(device_solve)s
+        %(kwargs_quad_fused)s
+
+        Returns
+        -------
+        :class:`moscot.problems.generic.FGWProblem`.
+        """
+        return super().solve(
+            alpha=alpha,
+            epsilon=epsilon,
+            tau_a=tau_a,
+            tau_b=tau_b,
+            rank=rank,
+            scale_cost=scale_cost,
+            power=power,
+            batch_size=batch_size,
+            stage=stage,
+            initializer=initializer,
+            initializer_kwargs=initializer_kwargs,
+            jit=jit,
+            min_iterations=min_iterations,
+            max_iterations=max_iterations,
+            threshold=threshold,
+            warm_start=warm_start,
+            gamma=gamma,
+            gamma_rescale=gamma_rescale,
+            gw_unbalanced_correction=gw_unbalanced_correction,
+            ranks=ranks,
+            tolerances=tolerances,
+            linear_solver_kwargs=linear_solver_kwargs,
+            device=device,
+        )

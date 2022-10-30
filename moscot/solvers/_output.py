@@ -5,7 +5,8 @@ from functools import partial
 
 from scipy.sparse.linalg import LinearOperator
 
-from moscot._types import ArrayLike, DTypeLike
+from moscot._types import Device_t, ArrayLike, DTypeLike
+from moscot._logging import logger
 
 __all__ = ["BaseSolverOutput", "MatrixSolverOutput"]
 
@@ -41,12 +42,16 @@ class BaseSolverOutput(ABC):
         pass
 
     @abstractmethod
-    def to(self, device: Optional[Any] = None, dtype: Optional[DTypeLike] = None) -> "BaseSolverOutput":
+    def to(self, device: Optional[Device_t] = None) -> "BaseSolverOutput":
         pass
 
     @property
     def rank(self) -> int:
         return -1
+
+    @property
+    def is_low_rank(self) -> bool:
+        return self.rank > -1
 
     # TODO(michalk8): mention in docs it needs to be broadcastable
     @abstractmethod
@@ -54,21 +59,27 @@ class BaseSolverOutput(ABC):
         pass
 
     def push(self, x: ArrayLike, scale_by_marginals: bool = False) -> ArrayLike:
+        if x.ndim not in (1, 2):
+            raise ValueError(f"Expected 1D or 2D array, found `{x.ndim}`.")
         if x.shape[0] != self.shape[0]:
-            raise ValueError("TODO: wrong shape")
-        x = self._scale_by_marginals(x, forward=True) if scale_by_marginals else x
+            raise ValueError(f"Expected array to have shape `({self.shape[0]}, ...)`, found `{x.shape}`.")
+        if scale_by_marginals:
+            x = self._scale_by_marginals(x, forward=True)
         return self._apply(x, forward=True)
 
     def pull(self, x: ArrayLike, scale_by_marginals: bool = False) -> ArrayLike:
+        if x.ndim not in (1, 2):
+            raise ValueError(f"Expected 1D or 2D array, found `{x.ndim}`.")
         if x.shape[0] != self.shape[1]:
-            raise ValueError("TODO: wrong shape")
-        x = self._scale_by_marginals(x, forward=False) if scale_by_marginals else x
+            raise ValueError(f"Expected array to have shape `({self.shape[1]}, ...)`, found `{x.shape}`.")
+        if scale_by_marginals:
+            x = self._scale_by_marginals(x, forward=False)
         return self._apply(x, forward=False)
 
     def as_linear_operator(self, *, forward: bool, scale_by_marginals: bool = False) -> LinearOperator:
         push = partial(self.push, scale_by_marginals=scale_by_marginals)
         pull = partial(self.pull, scale_by_marginals=scale_by_marginals)
-        mv, rmv = (push, pull) if forward else (pull, push)
+        mv, rmv = (pull, push) if forward else (push, pull)  # please do not change this line
         return LinearOperator(shape=self.shape, dtype=self.a.dtype, matvec=mv, rmatvec=rmv)
 
     def chain(
@@ -82,12 +93,20 @@ class BaseSolverOutput(ABC):
 
     @property
     def a(self) -> ArrayLike:
-        """Marginals of source distribution. If output of unbalanced OT, these are the posterior marginals."""
+        """
+        Marginals of the source distribution.
+
+        If output of an unbalanced OT problem, these are the posterior marginals.
+        """
         return self.pull(self._ones(self.shape[1]))
 
     @property
     def b(self) -> ArrayLike:
-        """Marginals of target distribution. If output of unbalanced OT, these are the posterior marginals."""
+        """
+        Marginals of the target distribution.
+
+        If output of an unbalanced OT problem, these are the posterior marginals.
+        """
         return self.push(self._ones(self.shape[0]))
 
     @property
@@ -115,7 +134,7 @@ class BaseSolverOutput(ABC):
         return f"{self.__class__.__name__}[{self._format_params(str)}]"
 
 
-class MatrixSolverOutput(BaseSolverOutput, ABC):
+class MatrixSolverOutput(BaseSolverOutput, ABC):  # noqa: B024
     def __init__(self, matrix: ArrayLike):
         super().__init__()
         self._matrix = matrix
@@ -135,9 +154,10 @@ class MatrixSolverOutput(BaseSolverOutput, ABC):
         """%(shape)s"""  # noqa: D400
         return self.transport_matrix.shape  # type: ignore[return-value]
 
-    def to(self, device: Optional[Any] = None, dtype: Optional[DTypeLike] = None) -> "BaseSolverOutput":
+    def to(self, device: Optional[Device_t] = None, dtype: Optional[DTypeLike] = None) -> "BaseSolverOutput":
         if device is not None:
-            raise RuntimeError("TODO")
+            logger.info(f"`{self.__class__.__name__}` doesn't support `device` argument. Ignoring")
+            return self
         if dtype is None:
             return self
 

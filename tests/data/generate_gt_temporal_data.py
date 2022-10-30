@@ -89,10 +89,10 @@ def _create_adata(data_path: str) -> AnnData:
 def _write_analysis_output(cdata: AnnData, tp2: TemporalProblem, config: Dict[str, Any]) -> AnnData:
     cdata.obs["cell_type"] = cdata.obs["cell_type"].astype("category")
     cdata.uns["cell_transition_10_105_backward"] = tp2.cell_transition(
-        config["key_1"], config["key_2"], early_annotation="cell_type", late_annotation="cell_type", forward=False
+        config["key_1"], config["key_2"], source_groups="cell_type", target_groups="cell_type", forward=False
     )
     cdata.uns["cell_transition_10_105_forward"] = tp2.cell_transition(
-        config["key_1"], config["key_2"], early_annotation="cell_type", late_annotation="cell_type", forward=True
+        config["key_1"], config["key_2"], source_groups="cell_type", target_groups="cell_type", forward=True
     )
     cdata.uns["interpolated_distance_10_105_11"] = tp2.compute_interpolated_distance(
         config["key_1"], config["key_2"], config["key_3"], seed=config["seed"]
@@ -108,20 +108,42 @@ def _write_analysis_output(cdata: AnnData, tp2: TemporalProblem, config: Dict[st
 
 
 def _prepare(adata: AnnData, config: Dict[str, Any]) -> Tuple[AnnData, ArrayLike, ArrayLike, ArrayLike]:
-    adata_1 = adata[adata.obs[config["key"]] == config["key_1"]].copy()
-    adata_2 = adata[adata.obs[config["key"]] == config["key_2"]].copy()
-    adata_3 = adata[adata.obs[config["key"]] == config["key_3"]].copy()
-    sc.tl.pca(adata_1, n_comps=config["local_pca"])
-    sc.tl.pca(adata_2, n_comps=config["local_pca"])
-    sc.tl.pca(adata_3, n_comps=config["local_pca"])
-    C_12 = pairwise_distances(adata_1.obsm["X_pca"], adata_2.obsm["X_pca"], metric="sqeuclidean")
+    adata_12 = adata[adata.obs[config["key"]].isin([config["key_1"], config["key_2"]])].copy()
+    adata_23 = adata[adata.obs[config["key"]].isin([config["key_2"], config["key_3"]])].copy()
+    adata_13 = adata[adata.obs[config["key"]].isin([config["key_1"], config["key_3"]])].copy()
+
+    sc.tl.pca(adata_12, n_comps=config["local_pca"])
+    sc.tl.pca(adata_23, n_comps=config["local_pca"])
+    sc.tl.pca(adata_13, n_comps=config["local_pca"])
+
+    C_12 = pairwise_distances(
+        adata_12[adata_12.obs[config["key"]] == config["key_1"]].obsm["X_pca"],
+        adata_12[adata_12.obs[config["key"]] == config["key_2"]].obsm["X_pca"],
+        metric="sqeuclidean",
+    )
     C_12 /= C_12.mean()
-    C_23 = pairwise_distances(adata_2.obsm["X_pca"], adata_3.obsm["X_pca"], metric="sqeuclidean")
+    C_23 = pairwise_distances(
+        adata_23[adata_23.obs[config["key"]] == config["key_2"]].obsm["X_pca"],
+        adata_23[adata_23.obs[config["key"]] == config["key_3"]].obsm["X_pca"],
+        metric="sqeuclidean",
+    )
     C_23 /= C_23.mean()
-    C_13 = pairwise_distances(adata_1.obsm["X_pca"], adata_3.obsm["X_pca"], metric="sqeuclidean")
+    C_13 = pairwise_distances(
+        adata_13[adata_13.obs[config["key"]] == config["key_1"]].obsm["X_pca"],
+        adata_13[adata_13.obs[config["key"]] == config["key_3"]].obsm["X_pca"],
+        metric="sqeuclidean",
+    )
     C_13 /= C_13.mean()
 
-    return adata_1.concatenate(adata_2, adata_3), C_12, C_23, C_13
+    return (
+        adata_12[adata_12.obs[config["key"]] == config["key_1"]].concatenate(
+            adata_12[adata_12.obs[config["key"]] == config["key_2"]],
+            adata_13[adata_13.obs[config["key"]] == config["key_3"]],
+        ),
+        C_12,
+        C_23,
+        C_13,
+    )
 
 
 def generate_gt_temporal_data(data_path: str) -> None:
@@ -156,7 +178,7 @@ def generate_gt_temporal_data(data_path: str) -> None:
         callback="cost-matrix",
         subset=[(10, 10.5), (10.5, 11), (10, 11)],
         policy="explicit",
-        callback_kwargs={"key": "cost_matrices", "n_comps": 50},
+        callback_kwargs={"key": "cost_matrices"},
     )
     tp = tp.solve(epsilon=config["eps"], tau_a=config["tau_a"], tau_b=config["tau_b"])
 
@@ -194,7 +216,7 @@ def generate_gt_temporal_data(data_path: str) -> None:
         "day",
         subset=[(10, 10.5), (10.5, 11), (10, 11)],
         policy="explicit",
-        callback_kwargs={"joint_space": False, "n_comps": 50},
+        callback_kwargs={"n_comps": 50},
     )
     tp2 = tp2.solve(epsilon=config["eps"], tau_a=config["tau_a"], tau_b=config["tau_b"], scale_cost="mean")
 

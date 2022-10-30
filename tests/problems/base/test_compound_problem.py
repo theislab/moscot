@@ -1,4 +1,5 @@
-from typing import Any, Type, Tuple, Literal, Mapping
+from typing import Literal, Mapping
+import os
 
 from pytest_mock import MockerFixture
 from sklearn.metrics.pairwise import euclidean_distances
@@ -6,29 +7,16 @@ import pytest
 
 from ott.geometry import PointCloud
 from ott.core.sinkhorn import sinkhorn
-import jax
 import numpy as np
-import jax.numpy as jnp
 
 from anndata import AnnData
 
-from tests._utils import ATOL, RTOL
+from tests._utils import ATOL, RTOL, Problem
 from moscot.problems.base import OTProblem, CompoundProblem
 from moscot.solvers._tagged_array import Tag, TaggedArray
-from moscot.problems.base._compound_problem import B
 
 
-class Problem(CompoundProblem[Any, OTProblem]):
-    @property
-    def _base_problem_type(self) -> Type[B]:
-        return OTProblem
-
-    @property
-    def _valid_policies(self) -> Tuple[str, ...]:
-        return ()
-
-
-class TestSingleCompoundProblem:
+class TestCompoundProblem:
     @staticmethod
     def callback(
         adata: AnnData, adata_y: AnnData, sentinel: bool = False
@@ -48,7 +36,6 @@ class TestSingleCompoundProblem:
         problem = problem.prepare(
             xy={"x_attr": "X", "y_attr": "X"},
             key="time",
-            axis="obs",
             policy="sequential",
         )
         problem = problem.solve()
@@ -65,7 +52,7 @@ class TestSingleCompoundProblem:
 
     @pytest.mark.fast()
     def test_default_callback(self, adata_time: AnnData, mocker: MockerFixture):
-        subproblem = OTProblem(adata_time, adata_y=adata_time.copy())
+        subproblem = OTProblem(adata_time, adata_tgt=adata_time.copy())
         callback_kwargs = {"n_comps": 5}
         spy = mocker.spy(subproblem, "_local_pca_callback")
 
@@ -75,7 +62,6 @@ class TestSingleCompoundProblem:
         problem = problem.prepare(
             xy={"x_attr": "X", "y_attr": "X"},
             key="time",
-            axis="obs",
             policy="sequential",
             callback="local-pca",
             callback_kwargs=callback_kwargs,
@@ -83,12 +69,12 @@ class TestSingleCompoundProblem:
 
         assert isinstance(problem, CompoundProblem)
         assert isinstance(problem.problems, dict)
-        spy.assert_called_with(subproblem.adata, subproblem._adata_y, **callback_kwargs)
+        spy.assert_called_with(subproblem.adata_src, subproblem.adata_tgt, **callback_kwargs)
 
     @pytest.mark.fast()
     def test_custom_callback(self, adata_time: AnnData, mocker: MockerFixture):
         expected_keys = [(0, 1), (1, 2)]
-        spy = mocker.spy(TestSingleCompoundProblem, "callback")
+        spy = mocker.spy(TestCompoundProblem, "callback")
 
         problem = Problem(adata=adata_time)
         _ = problem.prepare(
@@ -96,9 +82,8 @@ class TestSingleCompoundProblem:
             x={"attr": "X"},
             y={"attr": "X"},
             key="time",
-            axis="obs",
             policy="sequential",
-            callback=TestSingleCompoundProblem.callback,
+            callback=TestCompoundProblem.callback,
             callback_kwargs={"sentinel": True},
         )
 
@@ -113,7 +98,7 @@ class TestSingleCompoundProblem:
         p1_tmap = p1[0, 1].solution.transport_matrix
 
         p2 = Problem(adata_with_cost_matrix)
-        p2 = p2.prepare(key="batch", xy={"attr": "uns", "key": 0, "loss": None, "tag": "cost"})
+        p2 = p2.prepare(key="batch", xy={"attr": "uns", "key": 0, "cost": "custom", "tag": "cost"})
         p2 = p2.solve(epsilon=epsilon)
         p2_tmap = p2[0, 1].solution.transport_matrix
 
@@ -138,15 +123,64 @@ class TestSingleCompoundProblem:
         np.testing.assert_allclose(gt.matrix, p1_tmap, rtol=RTOL, atol=ATOL)
         np.testing.assert_allclose(gt.matrix, p2_tmap, rtol=RTOL, atol=ATOL)
 
-    def test_to_dtype(self, adata_with_cost_matrix: AnnData):
-        dtype, epsilon = np.float32, 5
-        xy = {"x_attr": "obsm", "x_key": "X_pca", "y_attr": "obsm", "y_key": "X_pca"}
-        p = Problem(adata_with_cost_matrix)
-        p = p.prepare(key="batch", xy=xy)
-        p = p.solve(epsilon=epsilon, scale_cost="mean", dtype=dtype)
+    def test_add_problem(self, adata_time: AnnData):
+        expected_keys = [(0, 1), (1, 2)]
+        problem = Problem(adata=adata_time)
+        problem = problem.prepare(
+            xy={"x_attr": "X", "y_attr": "X"},
+            x={"attr": "X"},
+            y={"attr": "X"},
+            key="time",
+            policy="sequential",
+        )
 
-        for out in p.solutions.values():
-            leaves = [leaf.dtype == dtype for leaf in jax.tree_leaves(out._output) if isinstance(leaf, jnp.ndarray)]
-            assert leaves
-            assert out.transport_matrix.dtype == dtype
-            np.testing.assert_array_equal(leaves, True)
+        assert list(problem.problems.keys()) == expected_keys
+        problem2 = Problem(adata=adata_time)
+        problem2 = problem2.prepare(
+            xy={"x_attr": "X", "y_attr": "X"},
+            x={"attr": "X"},
+            y={"attr": "X"},
+            key="time",
+            policy="explicit",
+            subset=[(0, 2)],
+        )
+        problem = problem.add_problem((0, 2), problem2[(0, 2)])
+        assert list(problem.problems.keys()) == expected_keys + [(0, 2)]
+
+    def test_add_created_problem(self, adata_time: AnnData):
+        expected_keys = [(0, 1), (1, 2)]
+        problem = Problem(adata=adata_time)
+        problem = problem.prepare(
+            xy={"x_attr": "X", "y_attr": "X"},
+            x={"attr": "X"},
+            y={"attr": "X"},
+            key="time",
+            policy="sequential",
+        )
+
+        assert list(problem.problems.keys()) == expected_keys
+
+        problem_2 = Problem(adata=adata_time)
+        problem_2 = problem_2.prepare(
+            xy={"x_attr": "X", "y_attr": "X"},
+            x={"attr": "X"},
+            y={"attr": "X"},
+            key="time",
+            subset=[(0, 2)],
+            policy="explicit",
+        )
+        problem = problem.add_problem((0, 2), problem_2[0, 2])
+        assert list(problem.problems.keys()) == expected_keys + [(0, 2)]
+
+    def test_save_load(self, adata_time: AnnData):
+        dir_path = "tests/data"
+        file_prefix = "test_save_load"
+        file = os.path.join(dir_path, f"{file_prefix}_Problem.pkl")
+        if os.path.exists(file):
+            os.remove(file)
+        problem = Problem(adata=adata_time)
+        problem = problem.prepare(xy={"x_attr": "X", "y_attr": "X"}, key="time")
+        problem.save(dir_path=dir_path, file_prefix=file_prefix)
+
+        p = Problem.load(file)
+        assert isinstance(p, Problem)
