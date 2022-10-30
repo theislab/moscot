@@ -22,7 +22,7 @@ TOL = 50
 DPI = 40
 
 
-# @pytest.fixture()
+@pytest.fixture()
 def adata_pl_cell_transition(gt_temporal_adata: AnnData) -> AnnData:
     plot_vars = {
         "transition_matrix": gt_temporal_adata.uns["cell_transition_10_105_forward"],
