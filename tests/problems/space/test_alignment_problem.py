@@ -109,12 +109,13 @@ class TestAlignmentProblem:
 
     @pytest.mark.parametrize("args_to_check", [fgw_args_1, fgw_args_2])
     def test_pass_arguments(self, adata_space_rotate: AnnData, args_to_check: Mapping[str, Any]):
+        adata_space_rotate = adata_space_rotate[adata_space_rotate.obs["batch"].isin(("0", "1"))]
         key = ("0", "1")
         problem = AlignmentProblem(adata=adata_space_rotate)
-        problem = problem.prepare(batch_key="batch", joint_attr={"x_attr": "X", "y_attr": "X"}, filter=[key])
+        problem = problem.prepare(batch_key="batch", joint_attr={"x_attr": "X", "y_attr": "X"})
         problem = problem.solve(**args_to_check)
 
-        solver = problem[key]._solver._solver
+        solver = problem[key].solver.solver
         for arg, val in gw_solver_args.items():
             assert hasattr(solver, val)
             assert getattr(solver, val) == args_to_check[arg]

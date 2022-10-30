@@ -9,7 +9,7 @@ from anndata import AnnData
 
 from moscot._types import ArrayLike
 
-__all__ = ["LeafDistance", "BarcodeDistance"]
+__all__ = ["LeafDistance", "BarcodeDistance", "BaseLoss"]
 Scale_t = Literal["max", "min", "median", "mean"]
 
 

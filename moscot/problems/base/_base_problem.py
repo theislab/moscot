@@ -361,6 +361,10 @@ class OTProblem(BaseProblem):
         return self._solution
 
     @property
+    def solver(self) -> Optional[BaseSolver[BaseSolverOutput]]:
+        return self._solver
+
+    @property
     def x(self) -> Optional[TaggedArray]:
         return self._x
 
