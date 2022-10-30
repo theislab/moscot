@@ -8,7 +8,7 @@ import moscot.problems
 __author__ = __maintainer__ = "Theislab"
 __email__ = ", ".join(
     [
-        "dominik.klein@helmholtz-muenchen",
+        "dominik.klein@helmholtz-muenchen.de",
         "michal.klein@protonmail.com",
         "giovanni.palla@helmholtz-muenchen.de",
     ]

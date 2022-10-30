@@ -409,6 +409,7 @@ class SpatialMappingMixin(AnalysisMixin[K, B]):
         adata_pred = AnnData(gexp_pred, dtype=np.float_)
         adata_pred.obs_names = self.adata_sp.obs_names
         adata_pred.var_names = var_names
+        adata_pred.obsm = self.adata_sp.obsm.copy()
         return adata_pred
 
     def compute_correspondence(
