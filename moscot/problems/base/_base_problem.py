@@ -13,7 +13,7 @@ from moscot._logging import logger
 from moscot._docs._docs import d
 from moscot.problems._utils import wrap_solve, wrap_prepare, require_solution
 from moscot.solvers._output import BaseSolverOutput
-from moscot.solvers._base_solver import OTSolver, BaseSolver, ProblemKind
+from moscot.solvers._base_solver import OTSolver, ProblemKind
 from moscot._constants._constants import ProblemStage
 from moscot.solvers._tagged_array import Tag, TaggedArray
 
@@ -43,11 +43,6 @@ class BaseProblem(ABC):
     @abstractmethod
     def solve(self, *args: Any, **kwargs: Any) -> "BaseProblem":
         """Abstract solve method."""
-
-    @property
-    @abstractmethod
-    def solver(self) -> Optional[BaseSolver[BaseSolverOutput]]:
-        """Problem solver."""
 
     @staticmethod
     def _get_mass(
@@ -514,6 +509,7 @@ class OTProblem(BaseProblem):
         """Solution of the optimal transport problem."""
         return self._solution
 
+    @property
     def solver(self) -> Optional[OTSolver[BaseSolverOutput]]:
         """Optimal transport solver."""
         return self._solver
