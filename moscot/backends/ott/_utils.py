@@ -31,7 +31,7 @@ def _compute_sinkhorn_divergence(
         logger.warning("Solver did not converge in the `x/y` term.")
     if not xx_conv:
         logger.warning("Solver did not converge in the `x/x` term.")
-    if len(yy_conv) and not yy_conv[0].converged:
+    if len(yy_conv) and not yy_conv[0]:
         logger.warning("Solver did not converge in the `y/y` term.")
 
     return float(output.divergence)
