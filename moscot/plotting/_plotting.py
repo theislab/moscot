@@ -30,7 +30,6 @@ def cell_transition(
     dpi: Optional[int] = None,
     save: Optional[str] = None,
     ax: Optional[Axes] = None,
-    return_fig: Optional[bool] = None,
     cbar_kwargs: Mapping[str, Any] = MappingProxyType({}),
     **kwargs: Any,
 ) -> mpl.figure.Figure:
@@ -66,7 +65,7 @@ def cell_transition(
         raise KeyError(f"No data found in `adata.uns[{AdataKeys.UNS!r}][{PlottingKeys.CELL_TRANSITION!r}][{key!r}]`.")
 
     data = adata1.uns[AdataKeys.UNS][PlottingKeys.CELL_TRANSITION][key]
-    return _heatmap(
+    fig = _heatmap(
         row_adata=adata1,
         col_adata=adata2,
         transition_matrix=data["transition_matrix"],
@@ -85,7 +84,6 @@ def cell_transition(
         dpi=dpi,
         ax=ax,
         save=save,
-        return_fig=return_fig,
         cbar_kwargs=cbar_kwargs,
         **kwargs,
     )

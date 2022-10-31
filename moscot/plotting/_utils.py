@@ -198,7 +198,6 @@ def _heatmap(
     save: Optional[str] = None,
     cbar_kwargs: Mapping[str, Any] = MappingProxyType({}),
     ax: Optional[Axes] = None,
-    return_fig: Optional[bool] = None,
     **kwargs: Any,
 ) -> Optional[mpl.figure.Figure]:
     cbar_kwargs = dict(cbar_kwargs)
@@ -261,8 +260,7 @@ def _heatmap(
 
     if save:
         fig.savefig(save, bbox_inches="tight")
-    if return_fig:
-        return fig
+    return fig
 
 
 def _get_black_or_white(value: float, cmap: mcolors.Colormap) -> str:
