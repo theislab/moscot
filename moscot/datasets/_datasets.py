@@ -149,20 +149,21 @@ def tedsim(
     path: PathLike = "~/.cache/moscot/tedsim.h5ad",
     **kwargs: Any,
 ) -> AnnData:  # pragma: no cover
-    """Dataset simulated with TedSim :cite:`pan:21`.
+    """Dataset simulated with TedSim :cite:`pan:22`.
 
     The data was simulated with asymmetric division rate of `0.2` and intermediate state step size of `0.2`.
     :attr:`anndata.AnnData.X` was preprocessed using :func:`scanpy.pp.normalize_total` and :func:`scanpy.pp.log1p`.
 
     The annotated data object contains the following fields:
 
-    - :attr:`anndata.AnnData.obsm` ``['barcodes']``: the barcodes.
-    - :attr:'anndata.AnnData.obsp' ``['barcodes_cost']``: contains pre-computed barcodes distance cost matrices.
+    - :attr:`anndata.AnnData.obsm` ``['barcodes']``: barcodes.
+    - :attr:`anndata.AnnData.obsp` ``['barcodes_cost']``: pre-computed barcode distances.
+    - :attr:`anndata.AnnData.uns` ``['tree']``: lineage tree in the Newick format.
 
     Parameters
     ----------
     path
-        Location where the file is saved to.
+        Path where to save the file.
     kwargs
         Keyword arguments for :func:`scanpy.read`.
 
