@@ -13,7 +13,7 @@ from moscot._logging import logger
 from moscot._docs._docs import d
 from moscot.problems._utils import wrap_solve, wrap_prepare, require_solution
 from moscot.solvers._output import BaseSolverOutput
-from moscot.solvers._base_solver import BaseSolver, ProblemKind
+from moscot.solvers._base_solver import OTSolver, BaseSolver, ProblemKind
 from moscot._constants._constants import ProblemStage
 from moscot.solvers._tagged_array import Tag, TaggedArray
 
@@ -43,6 +43,11 @@ class BaseProblem(ABC):
     @abstractmethod
     def solve(self, *args: Any, **kwargs: Any) -> "BaseProblem":
         """Abstract solve method."""
+
+    @property
+    @abstractmethod
+    def solver(self) -> Optional[BaseSolver[BaseSolverOutput]]:
+        """Problem solver."""
 
     @staticmethod
     def _get_mass(
@@ -164,7 +169,7 @@ class OTProblem(BaseProblem):
         self._src_key = src_key
         self._tgt_key = tgt_key
 
-        self._solver: Optional[BaseSolver[BaseSolverOutput]] = None
+        self._solver: Optional[OTSolver[BaseSolverOutput]] = None
         self._solution: Optional[BaseSolverOutput] = None
 
         self._x: Optional[TaggedArray] = None
@@ -324,7 +329,7 @@ class OTProblem(BaseProblem):
 
         # TODO: add ScaleCost(scale_cost)
 
-        self._solution = self._solver(
+        self._solution = self.solver(  # type: ignore[misc]
             xy=self._xy,
             x=self._x,
             y=self._y,
@@ -350,14 +355,21 @@ class OTProblem(BaseProblem):
         Parameters
         ----------
         data
-            Array or shape ``[n,]`` to push through the transport matrix.
-            If :class:`str`, it is interpreted as a key in :attr:`adata_src` :attr:`~anndata.AnnData.obs`.
+            Data to push through the transport matrix. Valid options are:
+
+            - :class:`str`: key in :attr:`adata_src` :attr:`~anndata.AnnData.obs`.
+            - :class:`~numpy.ndarray`: array of shape ``[n,]``.
+            - :obj:`None`: depending on the ``subset``:
+
+              - :class:`list`: observation names to push in :attr:`adata_src` :attr:`~anndata.AnnData.obs_names`.
+              - :class:`tuple`: start and offset indices defining the mask.
+              - :obj:`None`: uniform array of 1s.
         subset
-            TODO
+            Push values contained only within the subset.
         normalize
-            Whether to normalize the ``data`` to sum to 1.
+            Whether to normalize the columns of ``data`` to sum to 1.
         split_mass
-            TODO.
+            Whether to split non-zero values in ``data`` into separate columns.
 
         Returns
         -------
@@ -383,14 +395,21 @@ class OTProblem(BaseProblem):
         Parameters
         ----------
         data
-            Array or shape ``[m,]`` to pull through the transport matrix.
-            If :class:`str`, it is interpreted as a key in :attr:`adata_tgt` :attr:`~anndata.AnnData.obs`.
+            Data to pull through the transport matrix. Valid options are:
+
+            - :class:`str`: key in :attr:`adata_tgt` :attr:`~anndata.AnnData.obs`.
+            - :class:`~numpy.ndarray`: array of shape ``[m,]``.
+            - :obj:`None`: depending on the ``subset``:
+
+              - :class:`list`: observation names to pull in :attr:`adata_tgt` :attr:`~anndata.AnnData.obs_names`.
+              - :class:`tuple`: start and offset indices defining the mask.
+              - :obj:`None`: uniform array of 1s.
         subset
-            TODO
+            Pull values contained only within the subset.
         normalize
-            Whether to normalize the ``data`` to sum to 1.
+            Whether to normalize the columns of ``data`` to sum to 1.
         split_mass
-            TODO.
+            Whether to split non-zero values in ``data`` into separate columns.
 
         Returns
         -------
@@ -494,6 +513,11 @@ class OTProblem(BaseProblem):
     def solution(self) -> Optional[BaseSolverOutput]:
         """Solution of the optimal transort problem."""
         return self._solution
+
+    @property
+    def solver(self) -> Optional[OTSolver[BaseSolverOutput]]:
+        """Optimal transport solver."""
+        return self._solver
 
     @property
     def xy(self) -> Optional[TaggedArray]:
