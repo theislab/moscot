@@ -9,13 +9,14 @@
 
 from pathlib import Path
 from datetime import datetime
-import moscot
 
 # If extensions (or modules to document with autodoc) are in another directory,
 # add these directories to sys.path here. If the directory is relative to the
 # documentation root, use os.path.abspath to make it absolute, like shown here.
 #
 import sys
+
+import moscot
 
 HERE = Path(__file__).parent
 sys.path.insert(0, str(HERE / "extensions"))
@@ -29,7 +30,7 @@ copyright = f"{datetime.now():%Y}, Theislab"
 
 github_org = "theislab"
 github_repo = "moscot"
-github_ref = "master"
+github_ref = "main"
 github_nb_repo = "moscot_notebooks"
 # _fetch_notebooks(repo_url=f"https://github.com/{github_org}/{github_nb_repo}")
 
