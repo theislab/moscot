@@ -181,17 +181,7 @@ class TemporalProblem(
 
     @property
     def prior_growth_rates(self) -> Optional[pd.DataFrame]:
-        """
-        Growth rates of the cells estimated by posterior marginals.
-
-        If the OT problem is balanced, the posterior marginals
-        (approximately) equal the prior marginals (marginals defining the OT problem). In the unbalanced case the
-        marginals of the OT solution usually differ from the marginals of the original OT problem. This is an
-        indication of cell proliferation, i.e. a cell could have multiple descendants in the target distribution or
-        cell death, i.e. the cell is unlikely to have a descendant.
-        If multiple iterations are performed in :meth:`moscot.problems.time.TemporalProblem.solve` the number
-        of estimates for the cell growth rates equals is strictly larger than 2.
-        """
+        """Return the prior estimate of growth rates of the cells in the source distribution."""
         # TODO(michalk8): FIXME
         cols = ["prior_growth_rates"]
         df_list = [
@@ -213,17 +203,7 @@ class TemporalProblem(
 
     @property
     def posterior_growth_rates(self) -> Optional[pd.DataFrame]:
-        """
-        Growth rates of the cells estimated by posterior marginals.
-
-        If the OT problem is balanced, the posterior marginals
-        (approximately) equal the prior marginals (marginals defining the OT problem). In the unbalanced case the
-        marginals of the OT solution usually differ from the marginals of the original OT problem. This is an
-        indication of cell proliferation, i.e. a cell could have multiple descendants in the target distribution or
-        cell death, i.e. the cell is unlikely to have a descendant.
-        If multiple iterations are performed in :meth:`moscot.problems.time.TemporalProblem.solve` the number
-        of estimates for the cell growth rates equals is strictly larger than 2.
-        """
+        """Return the posterior estimate of growth rates of the cells in the source distribution."""
         # TODO(michalk8): FIXME
         cols = ["posterior_growth_rates"]
         df_list = [

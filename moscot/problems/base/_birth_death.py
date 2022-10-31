@@ -215,7 +215,7 @@ class BirthDeathProblem(BirthDeathMixin, OTProblem):
 
     @property
     def posterior_growth_rates(self) -> Optional[ArrayLike]:
-        """Return the growth rates of the cells in the source distribution."""
+        """Return the posterior estimate of growth rates of the cells in the source distribution."""
         if self.solution.a is None:  # type: ignore[union-attr]
             return None
         if self.delta is None:
