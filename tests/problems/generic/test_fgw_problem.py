@@ -45,6 +45,7 @@ class TestFGWProblem:
 
     def test_solve_balanced(self, adata_space_rotate: AnnData):  # type: ignore[no-untyped-def]
         eps = 0.5
+        adata_space_rotate = adata_space_rotate[adata_space_rotate.obs["batch"].isin(("0", "1"))].copy()
         expected_keys = [("0", "1"), ("1", "2")]
         problem = FGWProblem(adata=adata_space_rotate)
         problem = problem.prepare(
@@ -53,7 +54,6 @@ class TestFGWProblem:
             joint_attr="X_pca",
             GW_x={"attr": "obsm", "key": "spatial"},
             GW_y={"attr": "obsm", "key": "spatial"},
-            filter=[(0, 1)],
         )
         problem = problem.solve(epsilon=eps)
 
@@ -64,20 +64,19 @@ class TestFGWProblem:
     @pytest.mark.parametrize("args_to_check", [fgw_args_1, fgw_args_2])
     def test_pass_arguments(self, adata_space_rotate: AnnData, args_to_check: Mapping[str, Any]):  # type: ignore
         problem = FGWProblem(adata=adata_space_rotate)
-
+        adata_space_rotate = adata_space_rotate[adata_space_rotate.obs["batch"].isin((0, 1))].copy()
         problem = problem.prepare(
             key="batch",
             policy="sequential",
             joint_attr="X_pca",
             GW_x={"attr": "obsm", "key": "spatial"},
             GW_y={"attr": "obsm", "key": "spatial"},
-            filter=[(0, 1)],
         )
 
         problem = problem.solve(**args_to_check)
         key = ("0", "1")
 
-        solver = problem[key]._solver._solver
+        solver = problem[key].solver.solver
         for arg, val in gw_solver_args.items():
             assert hasattr(solver, val)
             assert getattr(solver, val) == args_to_check[arg]

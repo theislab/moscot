@@ -80,7 +80,7 @@ class BaseProblem(ABC):
                 data[range(start, min(start + offset, adata.n_obs))] = 1.0
             else:
                 raise TypeError(f"Unable to interpret subset of type `{type(subset)}`.")
-        elif isinstance(data, str):
+        elif not hasattr(data, "shape"):
             if subset is None:  # allow for numeric values
                 data = np.asarray(adata.obs[data], dtype=float)
             else:
@@ -329,7 +329,7 @@ class OTProblem(BaseProblem):
 
         # TODO: add ScaleCost(scale_cost)
 
-        self._solution = self.solver(  # type: ignore[misc]
+        self._solution = self._solver(  # type: ignore[misc]
             xy=self._xy,
             x=self._x,
             y=self._y,
@@ -511,10 +511,9 @@ class OTProblem(BaseProblem):
 
     @property
     def solution(self) -> Optional[BaseSolverOutput]:
-        """Solution of the optimal transort problem."""
+        """Solution of the optimal transport problem."""
         return self._solution
 
-    @property
     def solver(self) -> Optional[OTSolver[BaseSolverOutput]]:
         """Optimal transport solver."""
         return self._solver

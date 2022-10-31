@@ -102,7 +102,6 @@ def _sankey(
 
         # Total vertical extent of diagram
         xMax = topEdge
-
         # Draw vertical bars on left and right of each label"s section & print label
         for leftLabel in leftLabels:
             if ind == 0:
@@ -139,7 +138,7 @@ def _sankey(
         if captions is not None:
             ax.text(left_pos[ind] + 0.3 * xMax, -0.1, captions[ind])
 
-        left_pos += [horizontal_space * xMax]
+        left_pos += [left_pos[-1] + horizontal_space * xMax]
 
         # Plot strips
         for leftLabel in leftLabels:
@@ -371,7 +370,7 @@ def _plot_temporal(
     dpi: Optional[int] = None,
     save: Optional[str] = None,
     ax: Optional[Axes] = None,
-    show: Optional[bool] = None,
+    show: bool = False,
     return_fig: Optional[bool] = None,
     **kwargs: Any,
 ) -> Optional[mpl.figure.Figure]:
@@ -399,6 +398,7 @@ def _plot_temporal(
         title=title,
         ax=ax,
         show=show,
+        return_fig=return_fig,
         **kwargs,
     )
 

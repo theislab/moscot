@@ -9,18 +9,17 @@ from anndata import AnnData
 
 from moscot._types import ArrayLike
 from moscot._logging import logger
-from moscot._docs._docs import d
 
 __all__ = ["BaseCost", "LeafDistance", "BarcodeDistance"]
 
 
-@d.dedent
 class BaseCost(ABC):
     """Base class for all :mod:`moscot` losses.
 
     Parameters
     ----------
-    %(adata)s
+    adata
+        Annotated data object.
     attr
         Attribute of :class:`anndata.AnnData` used when computing the cost.
     key
@@ -97,7 +96,7 @@ class BaseCost(ABC):
 
 
 class BarcodeDistance(BaseCost):
-    """Barcode distances."""
+    """Barcode distance."""
 
     @property
     def data(self) -> ArrayLike:
@@ -141,7 +140,7 @@ class BarcodeDistance(BaseCost):
 
 
 class LeafDistance(BaseCost):
-    """Tree leaf distances."""
+    """Tree leaf distance."""
 
     @property
     def data(self) -> nx.Graph:

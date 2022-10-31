@@ -11,21 +11,16 @@ import numpy as np
 from scanpy import read
 from anndata import AnnData
 
-from moscot._docs._docs import d
 from moscot.datasets._utils import _get_random_trees
 
-__all__ = ["mosta", "hspc", "drosophila", "simulation", "sim_align", "simulate_data"]
+__all__ = ["mosta", "hspc", "drosophila", "tedsim", "sim_align", "simulate_data"]
 PathLike = Union[os.PathLike, str]
 
 _datasets = MappingProxyType(
     {
-        "tedsim_1024": (
-            "https://figshare.com/ndownloader/files/35786069",
-            (1536, 500),
-        ),
-        "tedsim_15360": (
-            "https://figshare.com/ndownloader/files/36556515",
-            (15360, 500),
+        "TedSim": (
+            "https://figshare.com/ndownloader/files/38031258",
+            (16382, 500),
         ),
         "mosta": (
             "https://figshare.com/ndownloader/files/37953852",
@@ -71,11 +66,10 @@ def _load_dataset_from_url(
     return adata
 
 
-@d.dedent
 def mosta(
     path: PathLike = "~/.cache/moscot/mosta.h5ad",
     **kwargs: Any,
-) -> AnnData:
+) -> AnnData:  # pragma: no cover
     """Preprocessed and extracted data as provided in :cite:`chen:22`.
 
     Includes embryo sections `E9.5`, `E2S1`, `E10.5`, `E2S1`, `E11.5`, `E1S2`.
@@ -97,11 +91,10 @@ def mosta(
     return _load_dataset_from_url(path, *_datasets["mosta"], **kwargs)
 
 
-@d.dedent
 def hspc(
     path: PathLike = "~./cache/moscot/hspc.h5ad",
     **kwargs: Any,
-) -> AnnData:
+) -> AnnData:  # pragma: no cover
     """Subsampled and processed data from the `NeurIPS Multimodal Single-Cell Integration Challenge \
     <https://www.kaggle.com/competitions/open-problems-multimodal/data>`_.
 
@@ -123,7 +116,6 @@ def hspc(
     return _load_dataset_from_url(path, *_datasets["hspc"], **kwargs)
 
 
-@d.dedent
 def drosophila(
     path: PathLike = "~/.cache/moscot/drosophila.h5ad",
     spatial: bool = False,
@@ -153,20 +145,24 @@ def drosophila(
     return _load_dataset_from_url(path + "_sc.h5ad", *_datasets["adata_dm_sc"], **kwargs)
 
 
-@d.dedent
-def simulation(
-    path: PathLike = "~/.cache/moscot/simulated.h5ad",
-    size: Literal[1024, 15360] = 1024,
+def tedsim(
+    path: PathLike = "~/.cache/moscot/tedsim.h5ad",
     **kwargs: Any,
-) -> AnnData:
-    """`TedSim` :cite:`pan:21` simulated dataset.
+) -> AnnData:  # pragma: no cover
+    """Dataset simulated with TedSim :cite:`pan:21`.
+
+    The data was simulated with asymmetric division rate of `0.2` and intermediate state step size of `0.2`.
+    :attr:`anndata.AnnData.X` was preprocessed using :func:`scanpy.pp.normalize_total` and :func:`scanpy.pp.log1p`.
+
+    The annotated data object contains the following fields:
+
+    - :attr:`anndata.AnnData.obsm` ``['barcodes']``: the barcodes.
+    - :attr:'anndata.AnnData.obsp' ``['barcodes_cost']``: contains pre-computed barcodes distance cost matrices.
 
     Parameters
     ----------
     path
-        Path where to save the file.
-    size
-        Number of cells corresponding to the latter of the two time points.
+        Location where the file is saved to.
     kwargs
         Keyword arguments for :func:`scanpy.read`.
 
@@ -174,16 +170,13 @@ def simulation(
     -------
     Annotated data object.
     """
-    if size not in (1024, 15360):
-        raise ValueError(f"Invalid size `{size}`, available values are: `{(1024, 15360)}`.")
-    return _load_dataset_from_url(f"{path}_{size}", *_datasets[f"tedsim_{size}"], **kwargs)
+    return _load_dataset_from_url(path, *_datasets["TedSim"], **kwargs)
 
 
-@d.dedent
 def sim_align(
     path: PathLike = "~/.cache/moscot/sim_align.h5ad",
     **kwargs: Any,
-) -> AnnData:
+) -> AnnData:  # pragma: no cover
     """Spatial transcriptomics simulated dataset as described in :cite:`Jones-spatial:22`.
 
     Parameters

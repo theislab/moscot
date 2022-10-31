@@ -11,6 +11,7 @@ from pandas.api.types import is_categorical_dtype
 from sklearn.neighbors import NearestNeighbors
 from scipy.sparse.linalg import LinearOperator
 import pandas as pd
+import scipy.sparse as sp
 
 import numpy as np
 
@@ -20,7 +21,6 @@ from moscot._types import Device_t, ArrayLike, Str_Dict_t
 from moscot._logging import logger
 from moscot._docs._docs import d
 from moscot.problems.base import AnalysisMixin  # type: ignore[attr-defined]
-from moscot._constants._key import Key
 from moscot._docs._docs_mixins import d_mixins
 from moscot._constants._constants import CorrMethod, AlignmentMode, PlottingDefaults
 from moscot.problems.base._mixins import AnalysisMixinProtocol
@@ -409,13 +409,15 @@ class SpatialMappingMixin(AnalysisMixin[K, B]):
         adata_pred = AnnData(gexp_pred, dtype=np.float_)
         adata_pred.obs_names = self.adata_sp.obs_names
         adata_pred.var_names = var_names
+        adata_pred.obsm = self.adata_sp.obsm.copy()
         return adata_pred
 
-    def compute_correspondence(
+    @d.dedent
+    def spatial_correspondence(
         self: SpatialMappingMixinProtocol[K, B],
-        interval: Union[ArrayLike, int] = 5,
+        interval: Union[ArrayLike, int] = 10,
         max_dist: Optional[int] = None,
-        spatial_key: Union[str, Mapping[str, Any]] = Key.obsm.spatial,
+        attr: Optional[Dict[str, Any]] = None,
     ) -> pd.DataFrame:
         """
         Compute structural correspondence between spatial and molecular distances.
@@ -426,6 +428,8 @@ class SpatialMappingMixin(AnalysisMixin[K, B]):
             Interval for the spatial distance.
         max_dist
             Maximum distance for the interval, if `None` it is set from data.
+        attr
+            Specify the attributes from which to compute the correspondence.
 
         Returns
         -------
@@ -434,8 +438,22 @@ class SpatialMappingMixin(AnalysisMixin[K, B]):
             - `spatial`: average spatial distance.
             - `expression`: average expression distance.
             - `index`: index of the interval.
-            - `{batch_key}`: key of the batch (slide).
+            - `batch_key`: key of the batch (slide).
         """
+
+        def _get_features(
+            adata: AnnData,
+            attr: Optional[Dict[str, Any]] = None,
+        ) -> ArrayLike:
+            attr = {"attr": "X"} if attr is None else attr
+            att = attr.get("attr", None)
+            key = attr.get("key", None)
+
+            if key is not None:
+                return getattr(adata, att)[key]
+            else:
+                return getattr(adata, att)
+
         if self.batch_key is not None:
             out_list = []
             if is_categorical_dtype(self.adata.obs[self.batch_key]):
@@ -447,14 +465,14 @@ class SpatialMappingMixin(AnalysisMixin[K, B]):
                 for c in categ:
                     adata_subset = self.adata[self.adata.obs[self.batch_key] == c]
                     spatial = adata_subset.obsm[self.spatial_key]
-                    gexp = adata_subset.obsm[self.spatial_key]
-                    out = _compute_correspondence(spatial, gexp, interval, max_dist)
+                    features = _get_features(adata_subset, attr)
+                    out = _compute_correspondence(spatial, features, interval, max_dist)
                     out[self.batch_key] = c
                     out_list.append(out)
             else:
                 spatial = self.adata.obsm[self.spatial_key]
-                gexp = self.adata.obsm[self.spatial_key]
-                out = _compute_correspondence(spatial, gexp, interval, max_dist)
+                features = _get_features(self.adata, attr)
+                out = _compute_correspondence(spatial, features, interval, max_dist)
                 out[self.batch_key] = categ[0]
                 out_list.append(out)
             out = pd.concat(out_list, axis=0)
@@ -462,8 +480,8 @@ class SpatialMappingMixin(AnalysisMixin[K, B]):
             return out
         else:
             spatial = self.adata.obsm[self.spatial_key]
-            gexp = self.adata.obsm[self.spatial_key]
-            out = _compute_correspondence(spatial, gexp, interval, max_dist)
+            features = _get_features(self.adata, attr)
+            out = _compute_correspondence(spatial, features, interval, max_dist)
             return out
 
     @d_mixins.dedent
@@ -544,8 +562,8 @@ class SpatialMappingMixin(AnalysisMixin[K, B]):
 
 def _compute_correspondence(
     spatial: ArrayLike,
-    gexp: ArrayLike,
-    interval: Union[ArrayLike, int] = 5,
+    features: ArrayLike,
+    interval: Union[ArrayLike, int] = 10,
     max_dist: Optional[int] = None,
 ) -> pd.DataFrame:
     if isinstance(interval, int):
@@ -554,46 +572,40 @@ def _compute_correspondence(
         hull = ConvexHull(spatial)
         area = hull.volume
         if max_dist is None:
-            max_dist = (area / 2) ** 0.5
+            max_dist = round(((area / 2) ** 0.5) / 2)
         support = np.linspace(max_dist / interval, max_dist, interval)
     else:
         support = np.array(sorted(interval), dtype=np.float_, copy=True)
 
-    def pdist(row_idx: ArrayLike, col_idx: float, gexp: ArrayLike) -> Any:
+    def pdist(row_idx: ArrayLike, col_idx: float, feat: ArrayLike) -> Any:
         if len(row_idx) > 0:
-            return pairwise_distances(gexp[row_idx, :], gexp[[col_idx], :]).mean()  # type: ignore[index]
+            return pairwise_distances(feat[row_idx, :], feat[[col_idx], :]).mean()  # type: ignore[index]
 
-    vmean = np.vectorize(lambda x: x.mean())
-    vpdist = np.vectorize(pdist, excluded=["gexp"])
+    vpdist = np.vectorize(pdist, excluded=["feat"])
+    features = features.A if sp.issparse(features) else features  # type: ignore[attr-defined]
 
-    spatial_arr = []
-    gexp_arr = []
+    feat_arr = []
     index_arr = []
     support_arr = []
 
     for ind, i in enumerate(support):
         tree = NearestNeighbors(radius=i).fit(spatial)
-        dist, idx = tree.radius_neighbors()
+        _, idx = tree.radius_neighbors()
 
-        spatial_dist = vmean(dist)
-        spatial_dist = spatial_dist[~np.isnan(spatial_dist)]
-        gexp_dist = vpdist(row_idx=idx, col_idx=np.arange(len(idx)), gexp=gexp)
-        gexp_dist = gexp_dist[~np.isnan(gexp_dist)]
-        assert spatial_dist.shape == gexp_dist.shape, "Distances array should be equal."
+        feat_dist = vpdist(row_idx=idx, col_idx=np.arange(len(idx)), feat=features)
+        feat_dist = feat_dist[~np.isnan(feat_dist)]
 
-        spatial_arr.append(spatial_dist)
-        gexp_arr.append(gexp_dist)
-        index_arr.append(np.repeat(ind, gexp_dist.shape[0]))
-        support_arr.append(np.repeat(i, gexp_dist.shape[0]))
+        feat_arr.append(feat_dist)
+        index_arr.append(np.repeat(ind, feat_dist.shape[0]))
+        support_arr.append(np.repeat(i, feat_dist.shape[0]))
 
-    spatial_arr = np.concatenate(spatial_arr)
-    gexp_arr = np.concatenate(gexp_arr)
+    feat_arr = np.concatenate(feat_arr)
     index_arr = np.concatenate(index_arr)
     support_arr = np.concatenate(support_arr)
 
     df = pd.DataFrame(
-        np.vstack([spatial_arr, gexp_arr, index_arr, support_arr]).T,
-        columns=["spatial", "expression", "index_interval", "value_interval"],
+        np.vstack([feat_arr, index_arr, support_arr]).T,
+        columns=["features_distance", "index_interval", "value_interval"],
     )
 
     df["index_interval"] = pd.Categorical(df["index_interval"].astype(np.int_))

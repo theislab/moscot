@@ -12,6 +12,6 @@ Datasets
     moscot.datasets.mosta
     moscot.datasets.hspc
     moscot.datasets.drosophila
-    moscot.datasets.simulation
+    moscot.datasets.tedsim
     moscot.datasets.sim_align
     moscot.datasets.simulate_data

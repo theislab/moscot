@@ -73,7 +73,7 @@ class TestBirthDeathProblem:
                 assert len(np.unique(a_estimated)) == 1
 
     @pytest.mark.fast()
-    def test_growth_rates(self, adata_time_marginal_estimations: AnnData):
+    def test_prior_growth_rates(self, adata_time_marginal_estimations: AnnData):
         t1, t2 = 0, 1
         adata_x = adata_time_marginal_estimations[adata_time_marginal_estimations.obs["time"] == t1]
         adata_y = adata_time_marginal_estimations[adata_time_marginal_estimations.obs["time"] == t2]
@@ -81,5 +81,17 @@ class TestBirthDeathProblem:
         prob = prob.prepare(x={"attr": "X"}, y={"attr": "X"}, a=True, b=True, proliferation_key="proliferation")
         assert prob.delta == (t2 - t1)
 
-        gr = prob.growth_rates
+        gr = prob.prior_growth_rates
+        assert isinstance(gr, np.ndarray)
+
+    def test_posterior_growth_rates(self, adata_time_marginal_estimations: AnnData):
+        t1, t2 = 0, 1
+        adata_x = adata_time_marginal_estimations[adata_time_marginal_estimations.obs["time"] == t1]
+        adata_y = adata_time_marginal_estimations[adata_time_marginal_estimations.obs["time"] == t2]
+        prob = BirthDeathProblem(adata_x, adata_y, src_key=t1, tgt_key=t2)
+        prob = prob.prepare(x={"attr": "X"}, y={"attr": "X"}, a=True, b=True, proliferation_key="proliferation")
+        prob = prob.solve(max_iterations=10)
+        assert prob.delta == (t2 - t1)
+
+        gr = prob.posterior_growth_rates
         assert isinstance(gr, np.ndarray)

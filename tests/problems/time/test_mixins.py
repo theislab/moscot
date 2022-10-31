@@ -129,7 +129,10 @@ class TestTemporalMixin:
         problem = TemporalProblem(adata_time)
         problem.prepare("time")
         distance_source_intermediate, distance_intermediate_target = problem.compute_time_point_distances(
-            start=0, intermediate=1, end=2
+            start=0,
+            intermediate=1,
+            end=2,
+            posterior_marginals=False,
         )
         assert distance_source_intermediate > 0
         assert distance_source_intermediate < 100
@@ -162,7 +165,12 @@ class TestTemporalMixin:
         problem[key_1, key_3]._solution = MockSolverOutput(gt_temporal_adata.uns["tmap_10_11"])
 
         interpolation_result = problem.compute_interpolated_distance(
-            key_1, key_2, key_3, account_for_unbalancedness=account_for_unbalancedness, seed=config["seed"]
+            key_1,
+            key_2,
+            key_3,
+            account_for_unbalancedness=account_for_unbalancedness,
+            posterior_marginals=False,
+            seed=config["seed"],
         )
         assert isinstance(interpolation_result, float)
         assert interpolation_result > 0
@@ -186,7 +194,9 @@ class TestTemporalMixin:
         problem[key_2, key_3]._solution = MockSolverOutput(gt_temporal_adata.uns["tmap_105_11"])
         problem[key_1, key_3]._solution = MockSolverOutput(gt_temporal_adata.uns["tmap_10_11"])
 
-        interpolation_result = problem.compute_interpolated_distance(key_1, key_2, key_3, seed=config["seed"])
+        interpolation_result = problem.compute_interpolated_distance(
+            key_1, key_2, key_3, posterior_marginals=False, seed=config["seed"]
+        )
         assert isinstance(interpolation_result, float)
         assert interpolation_result > 0
         np.testing.assert_almost_equal(
@@ -212,7 +222,7 @@ class TestTemporalMixin:
         problem[key_2, key_3]._solution = MockSolverOutput(gt_temporal_adata.uns["tmap_105_11"])
         problem[key_1, key_3]._solution = MockSolverOutput(gt_temporal_adata.uns["tmap_10_11"])
 
-        result = problem.compute_time_point_distances(key_1, key_2, key_3)
+        result = problem.compute_time_point_distances(key_1, key_2, key_3, posterior_marginals=False)
         assert isinstance(result, tuple)
         assert result[0] > 0
         assert result[1] > 0
@@ -258,7 +268,7 @@ class TestTemporalMixin:
         )
         assert set(problem.problems.keys()) == {(key_1, key_2), (key_2, key_3), (key_1, key_3)}
 
-        result = problem.compute_random_distance(key_1, key_2, key_3, seed=config["seed"])
+        result = problem.compute_random_distance(key_1, key_2, key_3, posterior_marginals=False, seed=config["seed"])
         assert isinstance(result, float)
         np.testing.assert_almost_equal(result, gt_temporal_adata.uns["random_distance_10_105_11"], decimal=2)
 
@@ -270,7 +280,11 @@ class TestTemporalMixin:
         problem.prepare("time")
 
         # TODO(MUCDK): use namedtuple
-        result = problem._get_data(0, only_start=only_start) if only_start else problem._get_data(0, 1, 2)
+        result = (
+            problem._get_data(0, only_start=only_start, posterior_marginals=False)
+            if only_start
+            else problem._get_data(0, 1, 2, posterior_marginals=False)
+        )
 
         assert isinstance(result, tuple)
         assert len(result) == 2 if only_start else len(result) == 5

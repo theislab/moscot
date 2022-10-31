@@ -121,21 +121,19 @@ class TestSpatialMappingAnalysisMixin:
     ):
         adataref, adatasp = _adata_spatial_split(adata_mapping)
         df = (
-            MappingProblem(adataref, adatasp).prepare(batch_key="batch", sc_attr={"attr": "X"}).compute_correspondence()
+            MappingProblem(adataref, adatasp)
+            .prepare(batch_key="batch", sc_attr={"attr": "X"})
+            .spatial_correspondence(interval=[3, 4])
         )
         assert "batch" in df.columns
         np.testing.assert_array_equal(df["batch"].cat.categories, adatasp.obs["batch"].cat.categories)
         df2 = (
             MappingProblem(adataref, adatasp)
             .prepare(batch_key="batch", sc_attr={"attr": "X"})
-            .compute_correspondence(spatial_key="spatial")
+            .spatial_correspondence(attr={"attr": "obsm", "key": "spatial"}, interval=[3, 4])
         )
         np.testing.assert_array_equal(df.index_interval.cat.categories, df2.index_interval.cat.categories)
-        df3 = (
-            MappingProblem(adataref, adatasp)
-            .prepare(sc_attr={"attr": "X"})
-            .compute_correspondence(interval=[2, 3], spatial_key="spatial")
-        )
+        df3 = MappingProblem(adataref, adatasp).prepare(sc_attr={"attr": "X"}).spatial_correspondence(interval=[2, 3])
         np.testing.assert_array_equal(df3.value_interval.unique(), (2, 3))
 
     def test_regression_testing(self, adata_mapping: AnnData):

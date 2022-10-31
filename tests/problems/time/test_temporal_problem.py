@@ -170,14 +170,14 @@ class TestTemporalProblem:
         problem = problem.prepare("time", a=True, b=True)
         problem = problem.solve()
 
-        growth_rates = problem.growth_rates
+        growth_rates = problem.posterior_growth_rates
         assert isinstance(growth_rates, pd.DataFrame)
         assert len(growth_rates.columns) == 1
         assert set(growth_rates.index) == set(adata_time.obs.index)
-        assert set(growth_rates[growth_rates["growth_rates"].isnull()].index) == set(
+        assert set(growth_rates[growth_rates["posterior_growth_rates"].isnull()].index) == set(
             adata_time[adata_time.obs["time"] == 2].obs.index
         )
-        assert set(growth_rates[~growth_rates["growth_rates"].isnull()].index) == set(
+        assert set(growth_rates[~growth_rates["posterior_growth_rates"].isnull()].index) == set(
             adata_time[adata_time.obs["time"].isin([0, 1])].obs.index
         )
 
@@ -218,16 +218,16 @@ class TestTemporalProblem:
     @pytest.mark.parametrize("args_to_check", [sinkhorn_args_1, sinkhorn_args_2])
     def test_pass_arguments(self, adata_time: AnnData, args_to_check: Mapping[str, Any]):
         problem = TemporalProblem(adata=adata_time)
+        adata_time = adata_time[adata_time.obs["time"].isin((0, 1))]
 
         problem = problem.prepare(
             time_key="time",
             policy="sequential",
-            filter=[(0, 1)],
         )
 
         problem = problem.solve(**args_to_check)
         key = (0, 1)
-        solver = problem[key]._solver._solver
+        solver = problem[key].solver.solver
         for arg, val in sinkhorn_solver_args.items():
             assert hasattr(solver, val)
             el = getattr(solver, val)[0] if isinstance(getattr(solver, val), tuple) else getattr(solver, val)

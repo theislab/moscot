@@ -67,17 +67,16 @@ class TestLineageProblem:
     @pytest.mark.parametrize("args_to_check", [fgw_args_1, fgw_args_2])
     def test_pass_arguments(self, adata_time_barcodes: AnnData, args_to_check: Mapping[str, Any]):
         problem = LineageProblem(adata=adata_time_barcodes)
-
+        adata_time_barcodes = adata_time_barcodes[adata_time_barcodes.obs["time"].isin((0, 1))]
         problem = problem.prepare(
             time_key="time",
             policy="sequential",
-            filter=[(0, 1)],
             lineage_attr={"attr": "obsm", "key": "barcodes", "tag": "cost", "cost": "barcode_distance"},
         )
 
         problem = problem.solve(**args_to_check)
         key = (0, 1)
-        solver = problem[key]._solver._solver
+        solver = problem[key].solver.solver
         for arg, val in gw_solver_args.items():
             assert hasattr(solver, val)
             assert getattr(solver, val) == args_to_check[arg]

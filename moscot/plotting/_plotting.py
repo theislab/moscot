@@ -171,7 +171,7 @@ def push(
     dpi: Optional[int] = None,
     save: Optional[str] = None,
     ax: Optional[Axes] = None,
-    return_fig: Optional[bool] = None,
+    return_fig: bool = True,
     **kwargs: Any,
 ) -> mpl.figure.Figure:
     """
@@ -238,7 +238,7 @@ def pull(
     dpi: Optional[int] = None,
     save: Optional[str] = None,
     ax: Optional[Axes] = None,
-    return_fig: Optional[bool] = None,
+    return_fig: bool = True,
     **kwargs: Any,
 ) -> mpl.figure.Figure:
     """
