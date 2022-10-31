@@ -191,11 +191,14 @@ class BirthDeathProblem(BirthDeathMixin, OTProblem):
 
         birth = estimate(proliferation_key, fn=beta)
         death = estimate(apoptosis_key, fn=delta)
-        self._prior_growth = np.exp((birth - death) * self.delta)
-        self._scaling = np.sum(self._prior_growth)  # type: ignore[arg-type]
-        normalized_growth = self._prior_growth / self._scaling  # type: ignore[operator]
+        prior_growth = np.exp((birth - death) * self.delta)
+        scaling = np.sum(prior_growth)
+        normalized_growth = prior_growth / scaling
+        if source:
+            self._scaling = scaling
+            self._prior_growth = prior_growth
 
-        return normalized_growth if source else np.full(self.adata_tgt.n_obs, fill_value=np.mean(normalized_growth))  # type: ignore[return-value]  # noqa: E501
+        return normalized_growth if source else np.full(self.adata_tgt.n_obs, fill_value=np.mean(normalized_growth))
 
     # TODO(michalk8): temporary fix to satisfy the mixin, consider removing the mixin
     @property
