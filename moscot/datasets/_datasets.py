@@ -55,7 +55,6 @@ def _load_dataset_from_url(fpath: PathLike, backup_url: str, expected_shape: Tup
     kwargs.setdefault("sparse", True)
     kwargs.setdefault("cache", True)
     fpath = os.path.expanduser(f"~/.cache/moscot/{fpath}")
-    print(fpath)
 
     adata = read(filename=fpath, backup_url=backup_url, **kwargs)
 
