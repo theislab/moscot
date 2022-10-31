@@ -418,7 +418,7 @@ class TemporalMixin(AnalysisMixin[K, B]):
                     f"found `tag={self.problems[src, tgt].xy.tag}`."
                 )
             if src == start:
-                source_data = self.problems[src, tgt].xy.data  # type: ignore[union-attr]
+                source_data = self.problems[src, tgt].xy.data_src  # type: ignore[union-attr]
                 if only_start:
                     return source_data, self.problems[src, tgt].adata_src
                 # TODO(michalk8): posterior marginals
@@ -429,25 +429,25 @@ class TemporalMixin(AnalysisMixin[K, B]):
             raise ValueError(f"No data found for `{start}` time point.")
         for (src, tgt) in self.problems.keys():
             if src == intermediate:
-                intermediate_data = self.problems[src, tgt].xy.data  # type: ignore[union-attr]
+                intermediate_data = self.problems[src, tgt].xy.data_src  # type: ignore[union-attr]
                 intermediate_adata = self.problems[src, tgt].adata_src
                 break
         else:
             raise ValueError(f"No data found for `{intermediate}` time point.")
         for (src, tgt) in self.problems.keys():
             if tgt == end:
-                target_data = self.problems[src, tgt].xy.data_y  # type: ignore[union-attr]
+                target_data = self.problems[src, tgt].xy.data_tgt  # type: ignore[union-attr]
                 break
         else:
             raise ValueError(f"No data found for `{end}` time point.")
 
-        return (
+        return (  # type: ignore[return-value]
             source_data,
             growth_rates_source,
             intermediate_data,
             intermediate_adata,
             target_data,
-        )  # type: ignore[return-value]
+        )
 
     def compute_interpolated_distance(
         self: TemporalMixinProtocol[K, B],

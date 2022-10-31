@@ -11,11 +11,9 @@ import numpy as np
 from scanpy import read
 from anndata import AnnData
 
-from moscot._docs._docs import d
 from moscot.datasets._utils import _get_random_trees
 
-# TODO(michalk8): expose all
-__all__ = ["TedSim", "mosta", "hspc", "drosophila_sc", "drosophila_sp", "sim_align", "simulate_data"]
+__all__ = ["mosta", "hspc", "drosophila", "tedsim", "sim_align", "simulate_data"]
 PathLike = Union[os.PathLike, str]
 
 _datasets = MappingProxyType(
@@ -48,178 +46,150 @@ _datasets = MappingProxyType(
 )
 
 
-def _load_dataset_from_url(fpath: PathLike, backup_url: str, expected_shape: Tuple[int, int], **kwargs: Any) -> AnnData:
+def _load_dataset_from_url(
+    fpath: PathLike,
+    backup_url: str,
+    expected_shape: Tuple[int, int],
+    sparse: bool = True,
+    cache: bool = True,
+    **kwargs: Any,
+) -> AnnData:
     fpath = str(fpath)
     if not fpath.endswith(".h5ad"):
         fpath += ".h5ad"
-    kwargs.setdefault("sparse", True)
-    kwargs.setdefault("cache", True)
-    fpath = os.path.expanduser(f"~/.cache/moscot/{fpath}")
+    fpath = os.path.expanduser(fpath)
 
-    adata = read(filename=fpath, backup_url=backup_url, **kwargs)
-
+    adata = read(filename=fpath, backup_url=backup_url, sparse=sparse, cache=cache, **kwargs)
     if adata.shape != expected_shape:
         raise ValueError(f"Expected `AnnData` object to have shape `{expected_shape}`, found `{adata.shape}`.")
 
     return adata
 
 
-@d.dedent
-def TedSim(
-    path: PathLike = "datasets/TedSim",
-    **kwargs: Any,
-) -> AnnData:
-    """
-    Dataset simulated with TedSim :cite:`pan:21`.
-
-    The data was simulated with asymmetric division rate of 0.2 and intermediate state stepsize of 0.2.
-    :attr:`anndata.AnnData.X` entry was preprocessed using
-    :meth:`scanpy.pp.normalize_total` and :meth:`scanpy.pp.log1p`. :attr:`anndata.AnnData.obsm` contains the barcodes
-    and :attr:`anndata.AnnData.obs` contains the metadata fields parent, cluster, depth, time and cellID.
-    Similarly :attr:'anndata.AnnData.obsp' contains pre-computed barcodes distance cost matrices in "barcodes_cost".
-
-    Parameters
-    ----------
-    path_prefix
-        Location where file is saved to with the filename completed by the `size`.
-    size
-        Number of cells corresponding to the latter of the two time points.
-    kwargs
-        TODO.
-
-    Returns
-    -------
-    %(adata)s
-    """
-    return _load_dataset_from_url(path, *_datasets["TedSim"], **kwargs)
-
-
-@d.dedent
 def mosta(
-    path: PathLike = "datasets/mosta",
+    path: PathLike = "~/.cache/moscot/mosta.h5ad",
     **kwargs: Any,
 ) -> AnnData:  # pragma: no cover
-    """
-    Preprocessed and extracted data as provided in :cite:`chen:22`.
+    """Preprocessed and extracted data as provided in :cite:`chen:22`.
 
-    The anndata object includes embryo sections E9.5 E2S1, E10.5 E2S1, E11.5, E1S2. The :attr:`anndata.AnnData.X`
-    entry is based on reprocessing of the counts data consisting of :meth:`scanpy.pp.normalize_total` and
-    :meth:`scanpy.pp.log1p`.
+    Includes embryo sections `E9.5`, `E2S1`, `E10.5`, `E2S1`, `E11.5`, `E1S2`.
+
+    The :attr:`anndata.AnnData.X` is based on reprocessing of the counts data using
+    :func:`scanpy.pp.normalize_total` and :func:`scanpy.pp.log1p`.
 
     Parameters
     ----------
     path
-        Location where the file is saved to.
+        Path where to save the file.
     kwargs
-        TODO.
+        Keyword arguments for :func:`scanpy.read`.
 
     Returns
     -------
-    %(adata)s
+    Annotated data object.
     """
     return _load_dataset_from_url(path, *_datasets["mosta"], **kwargs)
 
 
-@d.dedent
 def hspc(
-    path: PathLike = "datasets/hspc",
+    path: PathLike = "~./cache/moscot/hspc.h5ad",
     **kwargs: Any,
 ) -> AnnData:  # pragma: no cover
-    """
-    Subsampled and processed data of the `NeurIPS Multimodal Single-Cell Integration Challenge \
-    <https://www.kaggle.com/competitions/open-problems-multimodal/data>`.
+    """Subsampled and processed data from the `NeurIPS Multimodal Single-Cell Integration Challenge \
+    <https://www.kaggle.com/competitions/open-problems-multimodal/data>`_.
 
-    4000 cells were randomly selected after filtering the training data of the
-    NeurIPS Multimodal Single-Cell Integration Challenge for multiome data and donor `31800`.
-    Subsequently, the 2000 most highly variable genes were selected as well as all peaks
-    appearing in less than 5% of the cells were filtered out, resulting in 11,595 peaks.
+    4000 cells were randomly selected after filtering the multiome training data of the donor `31800`.
+    Subsequently, the top 2000 highly variable genes were selected. Peaks appearing in less than 5%
+    of the cells were filtered out, resulting in 11595 peaks.
 
     Parameters
     ----------
     path
-        Location where the file is saved to.
+        Path where to save the file.
     kwargs
-        TODO.
+        Keyword arguments for :func:`scanpy.read`.
 
     Returns
     -------
-    %(adata)s
+    Annotated data object.
     """
     return _load_dataset_from_url(path, *_datasets["hspc"], **kwargs)
 
 
-@d.dedent
-def drosophila_sc(
-    path: PathLike = "datasets/adata_dm_sc",
-    **kwargs: Any,
-) -> AnnData:  # pragma: no cover
-    """
-    Single-cell transcriptomics of embryo of drosophila melanogaster \
-    as described in :cite:`Li-spatial:22`.
-
-    Minimal pre-processing was performed, such as gene and cell filtering
-    as well as normalization. Processing steps at
-    https://github.com/theislab/moscot-framework_reproducibility.
-
-    Parameters
-    ----------
-    path
-        Location where the file is saved to.
-    kwargs
-        TODO.
-
-    Returns
-    -------
-    %(adata)s
-    """
-    return _load_dataset_from_url(path, *_datasets["adata_dm_sc"], **kwargs)
-
-
-@d.dedent
-def drosophila_sp(
-    path: PathLike = "datasets/adata_dm_sp",
-    **kwargs: Any,
-) -> AnnData:  # pragma: no cover
-    """
-    Spatial transcriptomics of embryo of drosophila melanogaster \
-    as described in :cite:`Li-spatial:22`.
-
-    Minimal pre-processing was performed, such as gene and cell filtering
-    as well as normalization. Processing steps at
-    https://github.com/theislab/moscot-framework_reproducibility.
-
-    Parameters
-    ----------
-    path
-        Location where the file is saved to.
-    kwargs
-        TODO.
-
-    Returns
-    -------
-    %(adata)s
-    """
-    return _load_dataset_from_url(path, *_datasets["adata_dm_sp"], **kwargs)
-
-
-@d.dedent
-def sim_align(
-    path: PathLike = "datasets/sim_align",
+def drosophila(
+    path: PathLike = "~/.cache/moscot/drosophila.h5ad",
+    spatial: bool = False,
     **kwargs: Any,
 ) -> AnnData:
+    """Embryo of Drosophila melanogaster described in :cite:`Li-spatial:22`.
+
+    Minimal pre-processing was performed, such as gene and cell filtering, as well as normalization,
+    see the `processing steps <https://github.com/theislab/moscot-framework_reproducibility>`_.
+
+    Parameters
+    ----------
+    path
+        Path where to save the file.
+    spatial
+        Whether to return the spatial or the scRNA-seq dataset.
+    kwargs
+        Keyword arguments for :func:`scanpy.read`.
+
+    Returns
+    -------
+    Annotated data object.
     """
-    Spatial transcriptomics dataset simulation described in :cite:`Jones-spatial:22`.
+    path, _ = os.path.splitext(path)
+    if spatial:
+        return _load_dataset_from_url(path + "_sp.h5ad", *_datasets["adata_dm_sp"], **kwargs)
+    return _load_dataset_from_url(path + "_sc.h5ad", *_datasets["adata_dm_sc"], **kwargs)
+
+
+def tedsim(
+    path: PathLike = "~/.cache/moscot/tedsim.h5ad",
+    **kwargs: Any,
+) -> AnnData:  # pragma: no cover
+    """Dataset simulated with TedSim :cite:`pan:22`.
+
+    The data was simulated with asymmetric division rate of `0.2` and intermediate state step size of `0.2`.
+    :attr:`anndata.AnnData.X` was preprocessed using :func:`scanpy.pp.normalize_total` and :func:`scanpy.pp.log1p`.
+
+    The annotated data object contains the following fields:
+
+    - :attr:`anndata.AnnData.obsm` ``['barcodes']``: barcodes.
+    - :attr:`anndata.AnnData.obsp` ``['barcodes_cost']``: pre-computed barcode distances.
+    - :attr:`anndata.AnnData.uns` ``['tree']``: lineage tree in the Newick format.
+
+    Parameters
+    ----------
+    path
+        Path where to save the file.
+    kwargs
+        Keyword arguments for :func:`scanpy.read`.
+
+    Returns
+    -------
+    Annotated data object.
+    """
+    return _load_dataset_from_url(path, *_datasets["TedSim"], **kwargs)
+
+
+def sim_align(
+    path: PathLike = "~/.cache/moscot/sim_align.h5ad",
+    **kwargs: Any,
+) -> AnnData:  # pragma: no cover
+    """Spatial transcriptomics simulated dataset as described in :cite:`Jones-spatial:22`.
 
     Parameters
     ----------
     path
         Location where the file is saved to.
     kwargs
-        TODO.
+        Keyword arguments for :func:`scanpy.read`.
 
     Returns
     -------
-    %(adata)s
+    Annotated data object.
     """
     return _load_dataset_from_url(path, *_datasets["sim_align"], **kwargs)
 

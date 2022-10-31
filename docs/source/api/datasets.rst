@@ -9,9 +9,9 @@ Datasets
 .. autosummary::
     :toctree: genapi
 
-    moscot.datasets.TedSim
     moscot.datasets.mosta
     moscot.datasets.hspc
-    moscot.datasets.drosophila_sp
-    moscot.datasets.drosophila_sc
+    moscot.datasets.drosophila
+    moscot.datasets.tedsim
     moscot.datasets.sim_align
+    moscot.datasets.simulate_data

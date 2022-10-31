@@ -12,6 +12,8 @@ __all__ = ["BaseSolverOutput", "MatrixSolverOutput"]
 
 
 class BaseSolverOutput(ABC):
+    """Base class for all solver outputs."""
+
     @abstractmethod
     def _apply(self, x: ArrayLike, *, forward: bool) -> ArrayLike:
         pass
@@ -19,38 +21,54 @@ class BaseSolverOutput(ABC):
     @property
     @abstractmethod
     def transport_matrix(self) -> ArrayLike:
-        pass
+        """Transport matrix of shape ``[n, m]``."""
 
     @property
     @abstractmethod
     def shape(self) -> Tuple[int, int]:
-        pass
+        """Shape of the :attr:`transport_matrix`."""
 
     @property
     @abstractmethod
     def cost(self) -> float:
-        pass
+        """Regularized optimal transport cost."""
 
     @property
     @abstractmethod
     def converged(self) -> bool:
-        pass
+        """Whether the algorithm converged."""
 
     @property
     @abstractmethod
-    def potentials(self) -> Tuple[Optional[ArrayLike], Optional[ArrayLike]]:
-        pass
+    def potentials(self) -> Optional[Tuple[ArrayLike, ArrayLike]]:
+        """Dual potentials :math:`f` and :math:`g`.
+
+        Only valid for the Sinkhorn's algorithm.
+        """
 
     @abstractmethod
     def to(self, device: Optional[Device_t] = None) -> "BaseSolverOutput":
-        pass
+        """Transfer self to another device using :func:`jax.device_put`.
+
+        Parameters
+        ----------
+        device
+            Device where to transfer the solver output.
+            If `None`, use the default device.
+
+        Returns
+        -------
+        Self transferred to the ``device``.
+        """
 
     @property
     def rank(self) -> int:
+        """Rank of the :attr:`transport_matrix`."""
         return -1
 
     @property
     def is_low_rank(self) -> bool:
+        """Whether the :attr:`transport_matrix` is low-rank."""
         return self.rank > -1
 
     # TODO(michalk8): mention in docs it needs to be broadcastable
@@ -59,6 +77,21 @@ class BaseSolverOutput(ABC):
         pass
 
     def push(self, x: ArrayLike, scale_by_marginals: bool = False) -> ArrayLike:
+        """Push mass through the :attr:`transport_matrix`.
+
+        It is equivalent to :math:`T^T x` but without instantiating the transport matrix :math:`T`, if possible.
+
+        Parameters
+        ----------
+        x
+            Array of shape ``[n,]`` or ``[n, d]`` to push.
+        scale_by_marginals
+            Whether to scale by the source marginals :attr:`a`.
+
+        Returns
+        -------
+        Array of shape ``[m,]`` or ``[m, d]``, depending on ``x``.
+        """
         if x.ndim not in (1, 2):
             raise ValueError(f"Expected 1D or 2D array, found `{x.ndim}`.")
         if x.shape[0] != self.shape[0]:
@@ -68,6 +101,21 @@ class BaseSolverOutput(ABC):
         return self._apply(x, forward=True)
 
     def pull(self, x: ArrayLike, scale_by_marginals: bool = False) -> ArrayLike:
+        """Pull mass through the :attr:`transport_matrix`.
+
+        It is equivalent to :math:`T x` but without instantiating the transport matrix :math:`T`, if possible.
+
+        Parameters
+        ----------
+        x
+            Array of shape ``[m,]`` or ``[m, d]`` to pull.
+        scale_by_marginals
+            Whether to scale by the target marginals :attr:`b`.
+
+        Returns
+        -------
+        Array of shape ``[n,]`` or ``[n, d]``, depending on ``x``.
+        """
         if x.ndim not in (1, 2):
             raise ValueError(f"Expected 1D or 2D array, found `{x.ndim}`.")
         if x.shape[0] != self.shape[1]:
@@ -77,6 +125,19 @@ class BaseSolverOutput(ABC):
         return self._apply(x, forward=False)
 
     def as_linear_operator(self, *, forward: bool, scale_by_marginals: bool = False) -> LinearOperator:
+        """Transform :attr:`transport_matrix` into a linear operator.
+
+        Parameters
+        ----------
+        forward
+            If `True`, convert the :meth:`push` operator, else the :meth:`pull` operator.
+        scale_by_marginals
+            Whether to scale by marginals.
+
+        Returns
+        -------
+        The :attr:`transport_matrix` as a linear operator.
+        """
         push = partial(self.push, scale_by_marginals=scale_by_marginals)
         pull = partial(self.pull, scale_by_marginals=scale_by_marginals)
         mv, rmv = (pull, push) if forward else (push, pull)  # please do not change this line
@@ -85,6 +146,21 @@ class BaseSolverOutput(ABC):
     def chain(
         self, outputs: Iterable["BaseSolverOutput"], forward: bool, scale_by_marginals: bool = False
     ) -> LinearOperator:
+        """Chain subsequent applications of :attr:`transport_matrix`.
+
+        Parameters
+        ----------
+        outputs
+            Sequence of transport matrices to chain.
+        forward
+            If `True`, chain the :meth:`push` operator, else the :meth:`pull` operator.
+        scale_by_marginals
+            Whether to scale by marginals.
+
+        Returns
+        -------
+        The chained transport matrices as a linear operator.
+        """
         op = self.as_linear_operator(forward=forward, scale_by_marginals=scale_by_marginals)
         for out in outputs:
             op *= out.as_linear_operator(forward=forward, scale_by_marginals=scale_by_marginals)
@@ -93,24 +169,23 @@ class BaseSolverOutput(ABC):
 
     @property
     def a(self) -> ArrayLike:
-        """
-        Marginals of the source distribution.
+        """Marginals of the source distribution.
 
-        If output of an unbalanced OT problem, these are the posterior marginals.
+        If the output of an unbalanced OT problem, these are the posterior marginals.
         """
         return self.pull(self._ones(self.shape[1]))
 
     @property
     def b(self) -> ArrayLike:
-        """
-        Marginals of the target distribution.
+        """Marginals of the target distribution.
 
-        If output of an unbalanced OT problem, these are the posterior marginals.
+        If the output of an unbalanced OT problem, these are the posterior marginals.
         """
         return self.push(self._ones(self.shape[0]))
 
     @property
     def dtype(self) -> DTypeLike:
+        """Underlying data type."""
         return self.a.dtype
 
     def _scale_by_marginals(self, x: ArrayLike, *, forward: bool, eps: float = 1e-12) -> ArrayLike:
@@ -135,9 +210,17 @@ class BaseSolverOutput(ABC):
 
 
 class MatrixSolverOutput(BaseSolverOutput, ABC):  # noqa: B024
-    def __init__(self, matrix: ArrayLike):
+    """Optimal transport output with materialized :attr:`transport_matrix`.
+
+    Parameters
+    ----------
+    transport_matrix
+        Transport matrix of shape ``[n, m]``.
+    """
+
+    def __init__(self, transport_matrix: ArrayLike):
         super().__init__()
-        self._matrix = matrix
+        self._transport_matrix = transport_matrix
 
     def _apply(self, x: ArrayLike, *, forward: bool) -> ArrayLike:
         if forward:
@@ -146,21 +229,18 @@ class MatrixSolverOutput(BaseSolverOutput, ABC):  # noqa: B024
 
     @property
     def transport_matrix(self) -> ArrayLike:
-        """%(transport_matrix)s"""  # noqa: D400
-        return self._matrix
+        return self._transport_matrix
 
     @property
     def shape(self) -> Tuple[int, int]:
-        """%(shape)s"""  # noqa: D400
         return self.transport_matrix.shape  # type: ignore[return-value]
 
     def to(self, device: Optional[Device_t] = None, dtype: Optional[DTypeLike] = None) -> "BaseSolverOutput":
         if device is not None:
-            logger.info(f"`{self.__class__.__name__}` doesn't support `device` argument. Ignoring")
-            return self
+            logger.warning(f"`{self!r}` does not support the `device` argument, ignoring.")
         if dtype is None:
             return self
 
         obj = copy(self)
-        obj._matrix = obj.transport_matrix.astype(dtype)
+        obj._transport_matrix = obj.transport_matrix.astype(dtype)
         return obj

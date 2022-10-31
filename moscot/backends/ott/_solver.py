@@ -15,20 +15,19 @@ from ott.core.gromov_wasserstein import GromovWasserstein
 import jax.numpy as jnp
 
 from moscot._types import ArrayLike
-from moscot._docs._docs import d
 from moscot._constants._enum import ModeEnum
 from moscot.backends.ott._output import OTTOutput
 from moscot.problems.base._utils import _filter_kwargs
 from moscot.solvers._base_solver import OTSolver, ProblemKind
 from moscot.solvers._tagged_array import TaggedArray
 
-__all__ = ["Cost", "SinkhornSolver", "GWSolver", "FGWSolver"]
+__all__ = ["OTTCost", "SinkhornSolver", "GWSolver", "FGWSolver"]
 
 Scale_t = Union[float, Literal["mean", "median", "max_cost", "max_norm", "max_bound"]]
 Epsilon_t = Union[float, Epsilon]
 
 
-class Cost(ModeEnum):
+class OTTCost(ModeEnum):
     EUCL = "euclidean"
     SQEUCL = "sq_euclidean"
     COSINE = "cosine"
@@ -36,35 +35,23 @@ class Cost(ModeEnum):
     BUREL_UNBAL = "unbalanced_bures"
 
     def __call__(self, **kwargs: Any) -> CostFn:
-        if self.value == Cost.EUCL:
+        if self.value == OTTCost.EUCL:
             return Euclidean()
-        if self.value == Cost.SQEUCL:
+        if self.value == OTTCost.SQEUCL:
             return SqEuclidean()
-        if self.value == Cost.COSINE:
+        if self.value == OTTCost.COSINE:
             return Cosine()
-        if self.value == Cost.BURES:
+        if self.value == OTTCost.BURES:
             return Bures(**kwargs)
-        if self.value == Cost.BUREL_UNBAL:
+        if self.value == OTTCost.BUREL_UNBAL:
             return UnbalancedBures(**kwargs)
         raise NotImplementedError(self.value)
 
 
-# TODO(michalk8): consider removing the variadic parametrization in the future
 class OTTJaxSolver(OTSolver[OTTOutput], ABC):  # noqa: B024
-    """
-    Class handling the preparation of :class:`ott.geometry.Geometry`.
+    """Base class for :mod:`ott` solvers :cite:`cuturi2022optimal`."""
 
-    Parameters
-    ----------
-    kwargs
-        keyword arguments for one of the following:
-
-            - :class:`ott.core.sinkhorn.Sinkhorn`
-            - :class:`ott.core.sinkhorn_lr.LRSinkhorn`
-            - :class:`ott.core.gromov_wasserstein.GromovWasserstein`
-    """
-
-    def __init__(self) -> None:
+    def __init__(self):
         super().__init__()
         self._solver: Optional[Union[Sinkhorn, LRSinkhorn, GromovWasserstein]] = None
         self._problem: Optional[Union[LinearProblem, QuadraticProblem]] = None
@@ -74,32 +61,22 @@ class OTTJaxSolver(OTSolver[OTTOutput], ABC):  # noqa: B024
         x: TaggedArray,
         **kwargs: Any,
     ) -> Geometry:
-        """
-        TODO.
-
-        Raises
-        ------
-        ValueError
-            If the dimensions of `x` and `y` do not match
-        NotImplementedError
-            If the `tag` is not among the implemented ones
-        """
         if x.is_point_cloud:
             kwargs = _filter_kwargs(PointCloud, Geometry, **kwargs)
             cost_fn = self._create_cost(x.cost)
-            x, y = self._assert2d(x.data), self._assert2d(x.data_y)
-            n, m = x.shape[1], (None if y is None else y.shape[1])  # type: ignore[attr-defined]
+            x, y = self._assert2d(x.data_src), self._assert2d(x.data_tgt)
+            n, m = x.shape[1], (None if y is None else y.shape[1])
             if m is not None and n != m:
                 raise ValueError(f"Expected `x/y` to have the same number of dimensions, found `{n}/{m}`.")
             return PointCloud(x, y=y, cost_fn=cost_fn, **kwargs)  # TODO: add ScaleCost
 
         kwargs = _filter_kwargs(Geometry, **kwargs)
-        arr = self._assert2d(x.data, allow_reshape=False)
+        arr = self._assert2d(x.data_src, allow_reshape=False)
         if x.is_cost_matrix:
             return Geometry(cost_matrix=arr, **kwargs)
         if x.is_cost_matrix:
             return Geometry(kernel_matrix=arr, **kwargs)
-        raise NotImplementedError(f"Creating geometry from `tag={x.tag!r}` is not yet implemeted.")
+        raise NotImplementedError(f"Creating geometry from `tag={x.tag!r}` is not yet implemented.")
 
     def _solve(  # type: ignore[override]
         self,
@@ -126,11 +103,11 @@ class OTTJaxSolver(OTSolver[OTTOutput], ABC):  # noqa: B024
             return cost
         if cost is None:
             cost = "sq_euclidean"
-        return Cost(cost)(**kwargs)
+        return OTTCost(cost)(**kwargs)
 
     @property
     def solver(self) -> Union[Sinkhorn, LRSinkhorn, GromovWasserstein]:
-        """Underlying optimal transport solver."""
+        """Underlying :mod:`ott` solver."""
         return self._solver
 
     @property
@@ -144,24 +121,24 @@ class OTTJaxSolver(OTSolver[OTTOutput], ABC):  # noqa: B024
         return self.rank > -1
 
 
-@d.dedent
 class SinkhornSolver(OTTJaxSolver):
-    """
-    Solver class solving linear Optimal Transport problems.
+    """Linear optimal transport problem solver.
 
-    The (Kantorovich relaxed) Optimal Transport problem is defined by two distributions in the same space. The
-    aim is to obtain a probabilistic map from the source distribution to the target distribution such that
+    The (Kantorovich relaxed) optimal transport problem is defined by two distributions in the same space.
+    The aim is to obtain a probabilistic map from the source distribution to the target distribution such that
     the (weighted) sum of the distances between coupled data point in the source and the target distribution is
     minimized.
 
-    This solver wraps :class:`ott.core.sinkhorn.Sinkhorn` :cite:`cuturi:2013` by default and :cite:`cuturi:2013`
-    :class:`ott.core.sinkhorn_lr.LRSinkhorn` :cite:`scetbon:21` if `rank` is a positive integer. In the
-    former case, the solver makes use of the Sinkhorn algorithm, in the latter a mirror descent algorithm.
-    TODO: link notebooks for example
-
     Parameters
     ----------
-    %(OTSolver.parameters)s
+    rank
+        Rank of the linear solver. If `-1`, use :class:`~ott.core.sinkhorn.Sinkhorn` :cite:`cuturi:2013`,
+        otherwise, use :class:`~ott.core.sinkhorn_lr.LRSinkhorn` :cite:`scetbon:21a`.
+    initializer_kwargs
+        Keyword arguments for the initializer.
+    kwargs
+        Keyword arguments for :class:`~ott.core.sinkhorn.Sinkhorn` or :class:`~ott.core.sinkhorn_lr.LRSinkhorn`,
+        depending on the ``rank``.
     """
 
     def __init__(self, rank: int = -1, initializer_kwargs: Mapping[str, Any] = MappingProxyType({}), **kwargs: Any):
@@ -195,6 +172,7 @@ class SinkhornSolver(OTTJaxSolver):
 
     @property
     def xy(self) -> Optional[Geometry]:
+        """Geometry defining the linear term."""
         return None if self._problem is None else self._problem.geom
 
     @property
@@ -202,24 +180,25 @@ class SinkhornSolver(OTTJaxSolver):
         return ProblemKind.LINEAR
 
 
-@d.dedent
 class GWSolver(OTTJaxSolver):
-    """
-    Solver class solving quadratic Optimal Transport problems.
+    """Solver solving quadratic optimal transport problem.
 
-    The Gromov-Wasserstein (GW) problem involves two distribution in possibly two different spaces. Points in the source
-    distribution are matched to points in the target distribution by comparing the relative location of the datapoints
-    within each distribution.
-
-    This solver wraps :class:`ott.core.gromov_wasserstein.GromovWasserstein` which handles both the full rank
-    Gromov-Wasserstein algorithm :cite:`memoli:2011` as well as the low rank approach :cite:`scetbon:21b`.
-    In both cases the solver makes use of a mirror-descent algorithm :cite:`memoli:2011`.
-
-    TODO: link notebooks for example
+    The Gromov-Wasserstein (GW) problem involves two distribution in possibly two different spaces.
+    Points in the source distribution are matched to points in the target distribution by comparing the relative
+    location of the points within each distribution.
 
     Parameters
     ----------
-    %(OTSolver.parameters)s
+    rank
+        Rank of the quadratic solver. If `-1` use the full-rank GW :cite:`memoli:2011`,
+        otherwise, use the low-rank approach :cite:`scetbon:21b`.
+    initializer_kwargs
+        Keyword arguments for the initializer.
+    linear_solver_kwargs
+        Keyword arguments for :class:`~ott.core.sinkhorn.Sinkhorn` or :class:`~ott.core.sinkhorn_lr.LRSinkhorn`,
+        depending on the ``rank``.
+    kwargs
+        Keyword arguments for :class:`~ott.core.gromov_wasserstein.GromovWasserstein` .
     """
 
     def __init__(
@@ -263,12 +242,12 @@ class GWSolver(OTTJaxSolver):
 
     @property
     def x(self) -> Optional[Geometry]:
-        """Geometry of the first space."""
+        """First geometry defining the quadratic term."""
         return None if self._problem is None else self._problem.geom_xx
 
     @property
     def y(self) -> Geometry:
-        """Geometry of the second space."""
+        """Second geometry defining the quadratic term."""
         return None if self._problem is None else self._problem.geom_yy
 
     @property
@@ -278,21 +257,30 @@ class GWSolver(OTTJaxSolver):
 
 class FGWSolver(GWSolver):
     """
-    Class which solves quadratic OT problems with a linear term included.
+    Class which solves quadratic OT problem with a linear term included.
 
     The Fused Gromov-Wasserstein (FGW) problem involves two distributions living in two subspaces,
-    corresponding to the linear term and the quadratic termm, respectively. The subspace corresponding
-    to the linear term is shared between the two distributions. The subspace corresponding to the quadratic
-    term is defined in possibly two different spaces. The matchings obtained from FGW are a compromise
-    between the ones induced by the linear OT problem and the purely quadratic OT problem (GW) :cite:`vayer:2018`.
+    corresponding to the linear term and the quadratic term, respectively.
 
-    This solver wraps :class:`ott.core.gromov_wasserstein.GromovWasserstein` with non-trivial `fused_penalty`.
+    The subspace corresponding to the linear term is shared between the two distributions.
+    The subspace corresponding to the quadratic term is defined in possibly two different spaces.
+    The matching obtained from the FGW is a compromise between the ones induced by the linear OT problem and
+    the quadratic OT problem :cite:`vayer:2018`.
 
-    TODO: link notebooks for example
+    This solver wraps :class:`~ott.core.gromov_wasserstein.GromovWasserstein` with a non-trivial ``fused_penalty``.
 
     Parameters
     ----------
-    %(GWSolver.parameters)s
+    rank
+        Rank of the quadratic solver. If `-1` use the full-rank GW :cite:`memoli:2011`,
+        otherwise, use the low-rank approach :cite:`scetbon:21b`.
+    initializer_kwargs
+        Keyword arguments for the initializer.
+    linear_solver_kwargs
+        Keyword arguments for :class:`~ott.core.sinkhorn.Sinkhorn` or :class:`~ott.core.sinkhorn_lr.LRSinkhorn`,
+        depending on the ``rank``.
+    kwargs
+        Keyword arguments for :class:`~ott.core.gromov_wasserstein.GromovWasserstein` .
     """
 
     def _prepare(
@@ -322,7 +310,7 @@ class FGWSolver(GWSolver):
 
     @property
     def xy(self) -> Optional[Geometry]:
-        """Geometry of the joint space."""
+        """Geometry defining the linear term."""
         return None if self._problem is None else self._problem.geom_xy
 
     @property

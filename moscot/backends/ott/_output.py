@@ -16,14 +16,15 @@ from moscot.solvers._output import BaseSolverOutput
 __all__ = ["OTTOutput"]
 
 
-# TODO(michalk8): merge to OTTOutput
 class ConvergencePlotterMixin:
-    NOT_COMPUTED = -1.0
+    _NOT_COMPUTED = -1.0
 
     def __init__(self, costs: jnp.ndarray, errors: Optional[jnp.ndarray], *args: Any, **kwargs: Any):
         super().__init__(*args, **kwargs)
-        self._costs = costs[costs != self.NOT_COMPUTED]
-        self._errors = None if errors is None else errors[errors != self.NOT_COMPUTED]
+        # TODO(michalk8): don't plot costs?
+        self._costs = costs[costs != self._NOT_COMPUTED]
+        # TODO(michalk8): always compute errors?
+        self._errors = None if errors is None else errors[errors != self._NOT_COMPUTED]
 
     def plot_convergence(
         self,
@@ -41,11 +42,23 @@ class ConvergencePlotterMixin:
         Parameters
         ----------
         last_k
-            How many of the last k steps of the algorithm to plot. If `None`, the full curve is plotted.
+            How many of the last k steps of the algorithm to plot. If `None`, plot the full curve.
+        title
+            Title of the plot. If `None`, it is determined automatically.
+        figsize
+            Size of the figure.
+        dpi
+            Dots per inch.
+        save
+            Path where to save the figure.
+        return_fig
+            Whether to return the figure.
+        kwargs
+            Keyword arguments for :meth:`~matplotlib.axes.Axes.plot`.
 
         Returns
         -------
-        TODO.
+        The figure if ``return_fig = True``.
         """
 
         def select_values(last_k: Optional[int] = None) -> Tuple[str, jnp.ndarray, jnp.ndarray]:
@@ -56,6 +69,7 @@ class ConvergencePlotterMixin:
             else:
                 metric = self._errors
                 metric_str = "error"
+
             last_k = min(last_k, len(metric)) if last_k is not None else len(metric)
             return metric_str, metric[-last_k:], range(len(metric))[-last_k:]
 
@@ -76,17 +90,12 @@ class ConvergencePlotterMixin:
 
 
 class OTTOutput(ConvergencePlotterMixin, BaseSolverOutput):
-    """
-    Output representation of various OT problems.
+    """Output of various optimal transport problems.
 
     Parameters
     ----------
     output
-        One of:
-
-            - :class:`ott.core.sinkhorn.SinkhornOutput`.
-            - :class:`ott.core.sinkhorn_lr.LRSinkhornOutput`.
-            - :class:`ott.core.gromov_wasserstein.QuadraticOutput`.
+        Output of the :mod:`ott` backend.
     """
 
     def __init__(self, output: Union[OTTSinkhornOutput, OTTLRSinkhornOutput, OTTGWOutput]):
@@ -101,38 +110,19 @@ class OTTOutput(ConvergencePlotterMixin, BaseSolverOutput):
     def _apply(self, x: ArrayLike, *, forward: bool) -> ArrayLike:
         if x.ndim == 1:
             return self._output.apply(x, axis=1 - forward)
-        return self._output.apply(x.T, axis=1 - forward).T  # conver batch first
+        return self._output.apply(x.T, axis=1 - forward).T  # convert to batch first
 
     @property
     def shape(self) -> Tuple[int, int]:
-        """%(shape)s"""
-        # TODO(michalk8): add to OTT
         if isinstance(self._output, OTTSinkhornOutput):
             return self._output.f.shape[0], self._output.g.shape[0]
         return self._output.geom.shape
 
     @property
     def transport_matrix(self) -> ArrayLike:
-        """%(transport_matrix)s"""
         return self._output.matrix
 
-    def to(
-        self,
-        device: Optional[Device_t] = None,
-    ) -> "OTTOutput":
-        """
-        Transfer the output to another device or change its data type.
-
-        Parameters
-        ----------
-        device
-            Device where to transfer the solver output.
-
-        Returns
-        -------
-        Self with possibly modified device and dtypes.
-        """
-        # TODO(michalk8): when polishing docs, move the definition to the base class + use docrep
+    def to(self, device: Optional[Device_t] = None) -> "OTTOutput":
         if isinstance(device, str) and ":" in device:
             device, ix = device.split(":")
             idx = int(ix)
@@ -145,31 +135,27 @@ class OTTOutput(ConvergencePlotterMixin, BaseSolverOutput):
             except IndexError:
                 raise IndexError(f"Unable to fetch the device with `id={idx}`.")
 
-        out = jax.device_put(self._output, device)
-        return OTTOutput(out)
+        return OTTOutput(jax.device_put(self._output, device))
 
     @property
     def cost(self) -> float:
-        """Regularized optimal transport cost."""
         if isinstance(self._output, (OTTSinkhornOutput, OTTLRSinkhornOutput)):
             return float(self._output.reg_ot_cost)
         return float(self._output.reg_gw_cost)
 
     @property
     def converged(self) -> bool:
-        """%(converged)s."""
         return bool(self._output.converged)
 
     @property
-    def potentials(self) -> Tuple[Optional[ArrayLike], Optional[ArrayLike]]:
-        """Potentials obtained from Sinkhorn algorithm."""
+    def potentials(self) -> Optional[Tuple[ArrayLike, ArrayLike]]:
+
         if isinstance(self._output, OTTSinkhornOutput):
             return self._output.f, self._output.g
-        return None, None
+        return None
 
     @property
     def rank(self) -> int:
-        """Rank of the transport matrix."""
         lin_output = self._output.linear_state if isinstance(self._output, OTTGWOutput) else self._output
         return len(lin_output.g) if isinstance(lin_output, OTTLRSinkhornOutput) else -1
 

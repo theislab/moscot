@@ -2,14 +2,17 @@ Developer
 #########
 
 
-Output
-~~~~~~
+OTT Backend
+~~~~~~~~~~~~
 
 .. autosummary::
     :toctree: genapi
 
+    moscot.backends.ott.SinkhornSolver
+    moscot.backends.ott.GWSolver
+    moscot.backends.ott.FGWSolver
     moscot.backends.ott.OTTOutput
-
+    moscot.backends.ott.OTTCost
 
 Costs
 ~~~~~
@@ -23,7 +26,6 @@ Costs
 
 Translation Classes
 ~~~~~~~~~~~~~~~~~~~
-
 .. autosummary::
     :toctree: genapi
 
@@ -32,7 +34,6 @@ Translation Classes
 
 Optimal Transport classes
 ~~~~~~~~~~~~~~~~~~~~~~~~~
-
 .. autosummary::
     :toctree: genapi
 
@@ -42,7 +43,6 @@ Optimal Transport classes
 
 Mixin classes
 ~~~~~~~~~~~~~
-
 .. autosummary::
     :toctree: genapi
 
@@ -50,8 +50,15 @@ Mixin classes
 
 Base classes
 ~~~~~~~~~~~~
-
 .. autosummary::
     :toctree: genapi
 
     moscot.problems.base.BaseProblem
+    moscot.problems.base.OTProblem
+    moscot.solvers.BaseSolver
+    moscot.solvers.OTSolver
+    moscot.solvers.BaseSolverOutput
+    moscot.solvers.MatrixSolverOutput
+    moscot.costs.BaseCost
+    moscot.solvers.TaggedArray
+    moscot.solvers.Tag
