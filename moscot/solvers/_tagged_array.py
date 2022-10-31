@@ -90,6 +90,7 @@ class TaggedArray:
         Parameters
         ----------
         %(adata)s
+
         dist_key
             Helper key which determines into which subset ``adata`` belongs.
         attr

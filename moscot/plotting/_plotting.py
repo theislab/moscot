@@ -65,7 +65,7 @@ def cell_transition(
         raise KeyError(f"No data found in `adata.uns[{AdataKeys.UNS!r}][{PlottingKeys.CELL_TRANSITION!r}][{key!r}]`.")
 
     data = adata1.uns[AdataKeys.UNS][PlottingKeys.CELL_TRANSITION][key]
-    fig = _heatmap(
+    fig = _heatmap(  # noqa: F841
         row_adata=adata1,
         col_adata=adata2,
         transition_matrix=data["transition_matrix"],

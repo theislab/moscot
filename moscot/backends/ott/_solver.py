@@ -48,7 +48,7 @@ class OTTCost(ModeEnum):
         raise NotImplementedError(self.value)
 
 
-class OTTJaxSolver(OTSolver[OTTOutput], ABC):  # noqa: B024
+class OTTJaxSolver(OTSolver[OTTOutput], ABC):
     """Base class for :mod:`ott` solvers :cite:`cuturi2022optimal`."""
 
     def __init__(self):
