@@ -20,6 +20,8 @@ class BirthDeathProtocol(Protocol):
     apoptosis_key: Optional[str]
     _proliferation_key: Optional[str] = None
     _apoptosis_key: Optional[str] = None
+    _scaling: Optional[float] = None
+    _prior_growth: Optional[ArrayLike] = None
 
     def score_genes_for_marginals(
         self: "BirthDeathProtocol",
@@ -46,6 +48,8 @@ class BirthDeathMixin:
         super().__init__(*args, **kwargs)
         self._proliferation_key: Optional[str] = None
         self._apoptosis_key: Optional[str] = None
+        self._scaling: Optional[float] = None
+        self._prior_growth: Optional[ArrayLike] = None
 
     @d.dedent
     def score_genes_for_marginals(
@@ -187,9 +191,14 @@ class BirthDeathProblem(BirthDeathMixin, OTProblem):
 
         birth = estimate(proliferation_key, fn=beta)
         death = estimate(apoptosis_key, fn=delta)
-        growth = np.exp((birth - death) * self.delta)
+        prior_growth = np.exp((birth - death) * self.delta)
+        scaling = np.sum(prior_growth)
+        normalized_growth = prior_growth / scaling
+        if source:
+            self._scaling = scaling
+            self._prior_growth = prior_growth
 
-        return growth if source else np.full(self.adata_tgt.n_obs, fill_value=np.mean(growth))
+        return normalized_growth if source else np.full(self.adata_tgt.n_obs, fill_value=np.mean(normalized_growth))
 
     # TODO(michalk8): temporary fix to satisfy the mixin, consider removing the mixin
     @property
@@ -198,11 +207,20 @@ class BirthDeathProblem(BirthDeathMixin, OTProblem):
         return self.adata_src
 
     @property
-    def growth_rates(self) -> Optional[ArrayLike]:
-        """Return the growth rates of the cells in the source distribution."""
-        if self.a is None:
+    def prior_growth_rates(self) -> Optional[ArrayLike]:
+        """Return the prior estimate of growth rates of the cells in the source distribution."""
+        if self._prior_growth is None:
             return None
-        return np.power(self.a, 1.0 / self.delta)
+        return np.power(self._prior_growth, 1.0 / self.delta)
+
+    @property
+    def posterior_growth_rates(self) -> Optional[ArrayLike]:
+        """Return the posterior estimate of growth rates of the cells in the source distribution."""
+        if self.solution.a is None:  # type: ignore[union-attr]
+            return None
+        if self.delta is None:
+            return self.solution.a * self.adata.n_obs
+        return np.power(self.solution.a * self._scaling, 1.0 / self.delta)  # type: ignore[union-attr, operator]
 
     @property
     def delta(self) -> float:

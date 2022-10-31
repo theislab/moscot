@@ -96,6 +96,7 @@ class TemporalMixinProtocol(AnalysisMixinProtocol[K, B], Protocol[K, B]):
         start: K,
         intermediate: Optional[K] = None,
         end: Optional[K] = None,
+        posterior_marginals: bool = True,
         *,
         only_start: bool = False,
     ) -> Union[Tuple[ArrayLike, AnnData], Tuple[ArrayLike, ArrayLike, ArrayLike, AnnData, ArrayLike]]:
@@ -404,6 +405,7 @@ class TemporalMixin(AnalysisMixin[K, B]):
         start: K,
         intermediate: Optional[K] = None,
         end: Optional[K] = None,
+        posterior_marginals: bool = True,
         *,
         only_start: bool = False,
     ) -> Union[Tuple[ArrayLike, AnnData], Tuple[ArrayLike, ArrayLike, ArrayLike, AnnData, ArrayLike]]:
@@ -420,7 +422,8 @@ class TemporalMixin(AnalysisMixin[K, B]):
                 if only_start:
                     return source_data, self.problems[src, tgt].adata_src
                 # TODO(michalk8): posterior marginals
-                growth_rates_source = self.problems[src, tgt].growth_rates  # type: ignore[attr-defined]
+                attr = "posterior_growth_rates" if posterior_marginals else "prior_growth_rates"
+                growth_rates_source = getattr(self.problems[src, tgt], attr)
                 break
         else:
             raise ValueError(f"No data found for `{start}` time point.")
@@ -455,6 +458,7 @@ class TemporalMixin(AnalysisMixin[K, B]):
         n_interpolated_cells: Optional[int] = None,
         account_for_unbalancedness: bool = False,
         batch_size: int = 256,
+        posterior_marginals: bool = True,
         seed: Optional[int] = None,
         backend: Literal["ott"] = "ott",
         **kwargs: Any,
@@ -485,6 +489,7 @@ class TemporalMixin(AnalysisMixin[K, B]):
         %(n_interpolated_cells)s
         %(account_for_unbalancedness)s
         %(batch_size)s
+        %(use_posterior_marginals)s
         %(seed_sampling)s
         %(backend)s
         %(kwargs_divergence)
@@ -497,6 +502,7 @@ class TemporalMixin(AnalysisMixin[K, B]):
             start,
             intermediate,
             end,
+            posterior_marginals=posterior_marginals,
             only_start=False,
         )
         interpolation_parameter = self._get_interp_param(
@@ -526,6 +532,7 @@ class TemporalMixin(AnalysisMixin[K, B]):
         interpolation_parameter: Optional[float] = None,
         n_interpolated_cells: Optional[int] = None,
         account_for_unbalancedness: bool = False,
+        posterior_marginals: bool = True,
         seed: Optional[int] = None,
         backend: Literal["ott"] = "ott",
         **kwargs: Any,
@@ -546,6 +553,7 @@ class TemporalMixin(AnalysisMixin[K, B]):
         %(interpolation_parameter)s
         %(n_interpolated_cells)s
         %(account_for_unbalancedness)s
+        %(use_posterior_marginals)s
         %(seed_interpolation)s
         %(backend)s
         %(kwargs_divergence)
@@ -555,7 +563,7 @@ class TemporalMixin(AnalysisMixin[K, B]):
         The Wasserstein distance between a randomly interpolated cell distribution and the true cell distribution.
         """
         source_data, growth_rates_source, intermediate_data, _, target_data = self._get_data(  # type: ignore[misc]
-            start, intermediate, end, only_start=False
+            start, intermediate, end, posterior_marginals=posterior_marginals, only_start=False
         )
 
         interpolation_parameter = self._get_interp_param(
@@ -579,6 +587,7 @@ class TemporalMixin(AnalysisMixin[K, B]):
         start: K,
         intermediate: K,
         end: K,
+        posterior_marginals: bool = True,
         backend: Literal["ott"] = "ott",
         **kwargs: Any,
     ) -> Tuple[Numeric_t, Numeric_t]:
@@ -595,6 +604,7 @@ class TemporalMixin(AnalysisMixin[K, B]):
         %(start)s
         %(intermediate)s
         %(end)s
+        %(use_posterior_marginals)s
         %(backend)s
         %(kwargs_divergence)s
         """
@@ -602,6 +612,7 @@ class TemporalMixin(AnalysisMixin[K, B]):
             start,
             intermediate,
             end,
+            posterior_marginals=posterior_marginals,
             only_start=False,
         )
         distance_source_intermediate = self._compute_wasserstein_distance(
@@ -614,7 +625,12 @@ class TemporalMixin(AnalysisMixin[K, B]):
         return distance_source_intermediate, distance_intermediate_target
 
     def compute_batch_distances(
-        self: TemporalMixinProtocol[K, B], time: K, batch_key: str, backend: Literal["ott"] = "ott", **kwargs: Any
+        self: TemporalMixinProtocol[K, B],
+        time: K,
+        batch_key: str,
+        posterior_marginals: bool = True,
+        backend: Literal["ott"] = "ott",
+        **kwargs: Any,
     ) -> np.float_:
         """
         Compute the mean Wasserstein distance between batches of a distribution corresponding to one time point.
@@ -623,6 +639,7 @@ class TemporalMixin(AnalysisMixin[K, B]):
         ----------
         %(time_batch_distance)s
         %(batch_key_batch_distance)s
+        %(use_posterior_marginals)s
         %(backend)s
         %(kwargs_divergence)
 
@@ -630,7 +647,7 @@ class TemporalMixin(AnalysisMixin[K, B]):
         -------
         The mean Wasserstein distance between batches of a distribution corresponding to one time point.
         """
-        data, adata = self._get_data(time, only_start=True)  # type: ignore[misc]
+        data, adata = self._get_data(time, posterior_marginals=posterior_marginals, only_start=True)  # type: ignore[misc] # noqa: E501
         assert len(adata) == len(data), "TODO: wrong shapes"
         dist: List[Numeric_t] = []
         for batch_1, batch_2 in itertools.combinations(adata.obs[batch_key].unique(), 2):

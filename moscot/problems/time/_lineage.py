@@ -180,21 +180,34 @@ class TemporalProblem(
         )  # type:ignore[return-value]
 
     @property
-    def growth_rates(self) -> Optional[pd.DataFrame]:
-        """Growth rates of the cells estimated by posterior marginals."""
-        # TODO: do we want to put this description above? (giovp) no, too long. Text for tutorial
-        # If the OT problem is balanced, the posterior marginals
-        # (approximately) equal the prior marginals (marginals defining the OT problem). In the unbalanced case the
-        # marginals of the OT solution usually differ from the marginals of the original OT problem. This is an
-        # indication of cell proliferation, i.e. a cell could have multiple descendants in the target distribution or
-        # cell death, i.e. the cell is unlikely to have a descendant.
-        # If multiple iterations are performed in :meth:`moscot.problems.time.TemporalProblem.solve` the number
-        # of estimates for the cell growth rates equals is strictly larger than 2.
-        # returns
+    def prior_growth_rates(self) -> Optional[pd.DataFrame]:
+        """Return the prior estimate of growth rates of the cells in the source distribution."""
         # TODO(michalk8): FIXME
-        cols = ["growth_rates"]
+        cols = ["prior_growth_rates"]
         df_list = [
-            pd.DataFrame(problem.growth_rates, index=problem.adata_src.obs.index, columns=cols)
+            pd.DataFrame(problem.prior_growth_rates, index=problem.adata.obs.index, columns=cols)
+            for problem in self.problems.values()
+        ]
+        tup = list(self)[-1]
+        df_list.append(
+            pd.DataFrame(
+                np.full(
+                    shape=(len(self.problems[tup].adata_tgt.obs), 1),
+                    fill_value=np.nan,
+                ),
+                index=self.problems[tup].adata_tgt.obs.index,
+                columns=cols,
+            )
+        )
+        return pd.concat(df_list, verify_integrity=True)
+
+    @property
+    def posterior_growth_rates(self) -> Optional[pd.DataFrame]:
+        """Return the posterior estimate of growth rates of the cells in the source distribution."""
+        # TODO(michalk8): FIXME
+        cols = ["posterior_growth_rates"]
+        df_list = [
+            pd.DataFrame(problem.posterior_growth_rates, index=problem.adata.obs.index, columns=cols)
             for problem in self.problems.values()
         ]
         tup = list(self)[-1]

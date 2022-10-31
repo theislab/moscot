@@ -170,14 +170,14 @@ class TestTemporalProblem:
         problem = problem.prepare("time", a=True, b=True)
         problem = problem.solve()
 
-        growth_rates = problem.growth_rates
+        growth_rates = problem.posterior_growth_rates
         assert isinstance(growth_rates, pd.DataFrame)
         assert len(growth_rates.columns) == 1
         assert set(growth_rates.index) == set(adata_time.obs.index)
-        assert set(growth_rates[growth_rates["growth_rates"].isnull()].index) == set(
+        assert set(growth_rates[growth_rates["posterior_growth_rates"].isnull()].index) == set(
             adata_time[adata_time.obs["time"] == 2].obs.index
         )
-        assert set(growth_rates[~growth_rates["growth_rates"].isnull()].index) == set(
+        assert set(growth_rates[~growth_rates["posterior_growth_rates"].isnull()].index) == set(
             adata_time[adata_time.obs["time"].isin([0, 1])].obs.index
         )
 

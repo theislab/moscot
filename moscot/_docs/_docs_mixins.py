@@ -179,6 +179,11 @@ _batch_key_batch_distance = """\
 batch_key
     Key in :attr:`anndata.AnnData.obs` storing which batch each cell belongs to.
 """
+_use_posterior_marginals = """\
+posterior_marginals
+    Whether to use posterior marginals (posterior growth rates). This requires the problem to be solved.
+    If `False`, prior marginals are used.
+"""
 
 d_mixins = DocstringProcessor(
     cell_trans_params=_cell_trans_params,
@@ -217,4 +222,5 @@ d_mixins = DocstringProcessor(
     seed_interpolatiob=_seed_interpolation,
     time_batch_distance=_time_batch_distance,
     batch_key_batch_distance=_batch_key_batch_distance,
+    use_posterior_marginals=_use_posterior_marginals,
 )
