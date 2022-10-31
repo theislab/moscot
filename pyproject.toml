@@ -69,18 +69,18 @@ dev = [
 ]
 docs = [
     "sphinx>=5",
-    "furo",
-    "nbsphinx",
+    "furo>=2022.09.29",
+    "nbsphinx>=0.8.9",
     "sphinx-autodoc-typehints>=1.10.3",
-    "sphinx-gallery",
-    "sphinx_copybutton",
+    "sphinx-gallery>=0.11.1",
+    "sphinx_copybutton>=0.5.0",
     "sphinxcontrib-bibtex>=2.3.0",
-    "sphinxcontrib-spelling"
+    "sphinxcontrib-spelling>=7.6.2"
 
 ]
 test = [
-    "pytest",
-    "pytest-cov",
+    "pytest>=7.1.2",
+    "pytest-cov>=4.0.0",
 ]
 
 [tool.black]

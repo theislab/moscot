@@ -1,3 +1,5 @@
+from importlib import metadata
+
 import moscot.costs
 import moscot.solvers
 import moscot.backends
@@ -5,27 +7,12 @@ import moscot.datasets
 import moscot.plotting
 import moscot.problems
 
-__author__ = __maintainer__ = "Theislab"
-__email__ = ", ".join(
-    [
-        "dominik.klein@helmholtz-muenchen.de",
-        "michal.klein@protonmail.com",
-        "giovanni.palla@helmholtz-muenchen.de",
-    ]
-)
-__version__ = "0.1"
-
 try:
-    from importlib_metadata import version  # Python < 3.8
+    __version__ = metadata.version(__name__)
+    md = metadata.metadata(__name__)
+    __author__ = md.get("Author", "")
+    __maintainer__ = md.get("Maintainer-email", "")
 except ImportError:
-    from importlib.metadata import version  # Python = 3.8
+    md = None
 
-from packaging.version import parse
-
-try:
-    __full_version__ = parse(version(__name__))
-    __full_version__ = f"{__version__}+{__full_version__.local}" if __full_version__.local else __version__
-except ImportError:
-    __full_version__ = __version__
-
-del version, parse
+del metadata, md
