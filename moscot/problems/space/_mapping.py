@@ -123,7 +123,7 @@ class MappingProblem(CompoundProblem[K, OTProblem], SpatialMappingMixin[K, OTPro
     def solve(
         self,
         alpha: Optional[float] = 0.5,
-        epsilon: Optional[float] = 1e-3,
+        epsilon: Optional[float] = 1e-2,
         tau_a: float = 1.0,
         tau_b: float = 1.0,
         rank: int = -1,

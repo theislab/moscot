@@ -98,7 +98,7 @@ def TedSim(
 def mosta(
     path: PathLike = "datasets/mosta",
     **kwargs: Any,
-) -> AnnData:
+) -> AnnData:  # pragma: no cover
     """
     Preprocessed and extracted data as provided in :cite:`chen:22`.
 
@@ -124,7 +124,7 @@ def mosta(
 def hspc(
     path: PathLike = "datasets/hspc",
     **kwargs: Any,
-) -> AnnData:
+) -> AnnData:  # pragma: no cover
     """
     Subsampled and processed data of the `NeurIPS Multimodal Single-Cell Integration Challenge \
     <https://www.kaggle.com/competitions/open-problems-multimodal/data>`.
@@ -152,7 +152,7 @@ def hspc(
 def drosophila_sc(
     path: PathLike = "datasets/adata_dm_sc",
     **kwargs: Any,
-) -> AnnData:
+) -> AnnData:  # pragma: no cover
     """
     Single-cell transcriptomics of embryo of drosophila melanogaster \
     as described in :cite:`Li-spatial:22`.
@@ -179,7 +179,7 @@ def drosophila_sc(
 def drosophila_sp(
     path: PathLike = "datasets/adata_dm_sp",
     **kwargs: Any,
-) -> AnnData:
+) -> AnnData:  # pragma: no cover
     """
     Spatial transcriptomics of embryo of drosophila melanogaster \
     as described in :cite:`Li-spatial:22`.
