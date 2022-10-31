@@ -11,6 +11,7 @@ from pandas.api.types import is_categorical_dtype
 from sklearn.neighbors import NearestNeighbors
 from scipy.sparse.linalg import LinearOperator
 import pandas as pd
+import scipy.sparse as sp
 
 import numpy as np
 
@@ -440,13 +441,14 @@ class SpatialMappingMixin(AnalysisMixin[K, B]):
             - `batch_key`: key of the batch (slide).
         """
 
-        def get_features(
+        def _get_features(
             adata: AnnData,
             attr: Optional[Dict[str, Any]] = None,
         ) -> ArrayLike:
             attr = {"attr": "X"} if attr is None else attr
-            att = attr.pop("attr", None)
-            key = attr.pop("key", None)
+            att = attr.get("attr", None)
+            key = attr.get("key", None)
+
             if key is not None:
                 return getattr(adata, att)[key]
             else:
@@ -463,13 +465,13 @@ class SpatialMappingMixin(AnalysisMixin[K, B]):
                 for c in categ:
                     adata_subset = self.adata[self.adata.obs[self.batch_key] == c]
                     spatial = adata_subset.obsm[self.spatial_key]
-                    features = get_features(adata_subset, attr)
+                    features = _get_features(adata_subset, attr)
                     out = _compute_correspondence(spatial, features, interval, max_dist)
                     out[self.batch_key] = c
                     out_list.append(out)
             else:
                 spatial = self.adata.obsm[self.spatial_key]
-                features = get_features(self.adata, attr)
+                features = _get_features(self.adata, attr)
                 out = _compute_correspondence(spatial, features, interval, max_dist)
                 out[self.batch_key] = categ[0]
                 out_list.append(out)
@@ -478,7 +480,7 @@ class SpatialMappingMixin(AnalysisMixin[K, B]):
             return out
         else:
             spatial = self.adata.obsm[self.spatial_key]
-            features = get_features(self.adata, attr)
+            features = _get_features(self.adata, attr)
             out = _compute_correspondence(spatial, features, interval, max_dist)
             return out
 
@@ -575,13 +577,14 @@ def _compute_correspondence(
     else:
         support = np.array(sorted(interval), dtype=np.float_, copy=True)
 
-    def pdist(row_idx: ArrayLike, col_idx: float, gexp: ArrayLike) -> Any:
+    def pdist(row_idx: ArrayLike, col_idx: float, feat: ArrayLike) -> Any:
         if len(row_idx) > 0:
-            return pairwise_distances(gexp[row_idx, :], gexp[[col_idx], :]).mean()  # type: ignore[index]
+            return pairwise_distances(feat[row_idx, :], feat[[col_idx], :]).mean()  # type: ignore[index]
 
-    vpdist = np.vectorize(pdist, excluded=["gexp"])
+    vpdist = np.vectorize(pdist, excluded=["feat"])
+    features = features.A if sp.issparse(features) else features  # type: ignore[attr-defined]
 
-    gexp_arr = []
+    feat_arr = []
     index_arr = []
     support_arr = []
 
@@ -589,19 +592,19 @@ def _compute_correspondence(
         tree = NearestNeighbors(radius=i).fit(spatial)
         _, idx = tree.radius_neighbors()
 
-        gexp_dist = vpdist(row_idx=idx, col_idx=np.arange(len(idx)), gexp=features)
-        gexp_dist = gexp_dist[~np.isnan(gexp_dist)]
+        feat_dist = vpdist(row_idx=idx, col_idx=np.arange(len(idx)), feat=features)
+        feat_dist = feat_dist[~np.isnan(feat_dist)]
 
-        gexp_arr.append(gexp_dist)
-        index_arr.append(np.repeat(ind, gexp_dist.shape[0]))
-        support_arr.append(np.repeat(i, gexp_dist.shape[0]))
+        feat_arr.append(feat_dist)
+        index_arr.append(np.repeat(ind, feat_dist.shape[0]))
+        support_arr.append(np.repeat(i, feat_dist.shape[0]))
 
-    gexp_arr = np.concatenate(gexp_arr)
+    feat_arr = np.concatenate(feat_arr)
     index_arr = np.concatenate(index_arr)
     support_arr = np.concatenate(support_arr)
 
     df = pd.DataFrame(
-        np.vstack([gexp_arr, index_arr, support_arr]).T,
+        np.vstack([feat_arr, index_arr, support_arr]).T,
         columns=["features_distance", "index_interval", "value_interval"],
     )
 
