@@ -208,7 +208,44 @@ def simulate_data(
     quad_cost_matrix: Optional[str] = None,
     **kwargs: Any,
 ) -> AnnData:
-    """TODO Simulate data."""
+    """
+    Simulate data.
+
+    This function is used to generate data, mainly for the purpose to
+    demonstrate certain functionalities of :mod:`moscot`.
+
+    Parameters
+    ----------
+    n_distributions
+        Number of distributions defined by `key`.
+    cells_per_distribution
+        Number of cells per distribution.
+    n_genes
+        Number of genes per simulated cell.
+    key
+        Key to identify distribution allocation.
+    var
+        Variance of one cell distribution
+    obs_to_add
+        Dictionary of names to add to columns of :attr:`anndata.AnnData.obs`
+        and number of different values for this column.
+    marginals
+        Column names of :attr:`anndata.AnnData.obs` where to save the randomly
+        generated marginals. If `None`, no marginals are generated.
+    seed
+        Random seed.
+    quad_term
+        Literal indicating whether to add costs corresponding to a specific problem setting.
+        If `None`, no quadratic cost element is generated.
+    lin_cost_matrix
+        Key where to save the linear cost matrix. If `None`, no linear cost matrix is generated.
+    quad_cost_matrix
+        Key where to save the quadratic cost matrices. If `None`, no quadratic cost matrix is generated.
+
+    Returns
+    -------
+    :class:`anndata.AnnData`.
+    """
     rng = np.random.RandomState(42)
     adatas = [
         AnnData(
@@ -241,5 +278,5 @@ def simulate_data(
                 seed=seed,
             )[0]
     if quad_term == "barcode":
-        pass  # TODO
+        raise NotImplementedError
     return adata
