@@ -1,0 +1,15 @@
+-r ../requirements.txt
+furo
+ipython_genutils
+ipywidgets>=8.0.0
+Jinja2>=3.1.1
+memory_profiler>=0.57.0
+nbconvert>=6.4.5
+nbsphinx>=0.8.1,<0.8.7
+pyenchant>=3.1.1
+pypandoc
+sphinx>=5.1.1
+sphinx-gallery
+sphinx_copybutton
+sphinxcontrib-bibtex>=2.2.0
+sphinxcontrib-spelling
