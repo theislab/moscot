@@ -10,7 +10,6 @@ pypandoc
 sphinx>=5.1.1
 sphinx-gallery>=0.8.2,<0.11 # https://github.com/spatialaudio/nbsphinx/pull/666
 sphinx_copybutton
-sphinx_design
 sphinx_last_updated_by_git
 sphinxcontrib-bibtex>=2.2.0
 sphinxcontrib-spelling
