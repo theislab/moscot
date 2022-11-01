@@ -6,10 +6,10 @@ Jinja2>=3.1.1
 memory_profiler>=0.57.0
 nbconvert>=6.4.5
 nbsphinx>=0.8.1,<0.8.7
+pyenchant>=3.1.1
 pypandoc
 sphinx>=5.1.1
-sphinx-gallery>=0.8.2,<0.11 # https://github.com/spatialaudio/nbsphinx/pull/666
+sphinx-gallery
 sphinx_copybutton
-sphinx_last_updated_by_git
 sphinxcontrib-bibtex>=2.2.0
 sphinxcontrib-spelling

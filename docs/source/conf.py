@@ -46,12 +46,15 @@ extensions = [
     "sphinx_autodoc_typehints",
     "sphinx.ext.intersphinx",
     "sphinx.ext.autosummary",
+    "sphinx_gallery.load_style",
+    "nbsphinx",
     "sphinx_copybutton",
     "sphinxcontrib.bibtex",
     "typed_returns",
-    "sphinx_design",
     "sphinx_gallery.load_style",
     "nbsphinx",
+    "edit_on_github",
+    "sphinxcontrib.bibtex",
 ]
 intersphinx_mapping = {
     "python": ("https://docs.python.org/3", None),
