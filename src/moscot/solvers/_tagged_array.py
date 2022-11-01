@@ -9,7 +9,6 @@ from anndata import AnnData
 
 from moscot._types import CostFn_t, ArrayLike
 from moscot._logging import logger
-from moscot._docs._docs import d
 from moscot.costs._costs import BaseCost
 from moscot._constants._enum import ModeEnum
 
@@ -40,7 +39,7 @@ class TaggedArray:
     data_src: ArrayLike  #: Source data.
     data_tgt: Optional[ArrayLike] = None  #: Target data.
     tag: Tag = Tag.POINT_CLOUD  #: How to interpret :attr:`data_src` and :attr:`data_tgt`.
-    cost: Optional[Union[str, Callable[..., Any]]] = None  #: Cost function when ``tag`` = 'point_cloud'``.
+    cost: Optional[Union[str, Callable[..., Any]]] = None  #: Cost function when ``tag = 'point_cloud'``.
 
     @staticmethod
     def _extract_data(
@@ -73,7 +72,6 @@ class TaggedArray:
         return data
 
     @classmethod
-    @d.dedent
     def from_adata(
         cls,
         adata: AnnData,
@@ -85,11 +83,12 @@ class TaggedArray:
         backend: Literal["ott"] = "ott",
         **kwargs: Any,
     ) -> "TaggedArray":
-        """Create a tagged array from :class:`anndata.AnnData`.
+        """Create tagged array from :class:`anndata.AnnData`.
 
         Parameters
         ----------
-        %(adata)s
+        adata
+            Annotated data object.
         dist_key
             Helper key which determines into which subset ``adata`` belongs.
         attr
@@ -101,10 +100,10 @@ class TaggedArray:
         cost
             Cost function to apply to the extracted array, depending on ``tag``:
 
-                - if ``tag = 'point_cloud'``, it is extract from the ``backend``.
-                - if ``tag = 'cost'`` or ``tag = 'kernel'``, and ``cost = 'custom'``,
-                  the extracted array is already assumed to be a cost/kernel matrix.
-                  Otherwise, :class:`moscot.costs.BaseCost` is used to compute the cost matrix.
+            - if ``tag = 'point_cloud'``, it is extracted from the ``backend``.
+            - if ``tag = 'cost'`` or ``tag = 'kernel'``, and ``cost = 'custom'``,
+              the extracted array is already assumed to be a cost/kernel matrix.
+              Otherwise, :class:`moscot.costs.BaseCost` is used to compute the cost matrix.
         backend
             Which backend to use, see :func:`moscot.backends.get_available_backends`.
         kwargs

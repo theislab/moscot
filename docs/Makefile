@@ -23,3 +23,6 @@ clean:
 	@rm -rf $(BUILDDIR)/*
 	@rm -rf $(SOURCEDIR)/genapi/
 	@rm -rf $(SOURCEDIR)/*/genapi/
+	@rm -rf $(SOURCEDIR)/auto_examples
+	@rm -rf $(SOURCEDIR)/auto_tutorials
+	@rm -rf $(SOURCEDIR)/gen_modules

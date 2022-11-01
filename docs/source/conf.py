@@ -16,10 +16,16 @@ from datetime import datetime
 #
 import sys
 
+from sphinx.application import Sphinx
+from sphinx_gallery.gen_gallery import DEFAULT_GALLERY_CONF
+
 import moscot
 
 HERE = Path(__file__).parent
+sys.path.insert(0, str(HERE))
 sys.path.insert(0, str(HERE / "extensions"))
+
+import utils  # noqa: E402
 
 # -- Project information -----------------------------------------------------
 
@@ -32,7 +38,7 @@ github_org = "theislab"
 github_repo = "moscot"
 github_ref = "main"
 github_nb_repo = "moscot_notebooks"
-# _fetch_notebooks(repo_url=f"https://github.com/{github_org}/{github_nb_repo}")
+utils.fetch_notebooks(repo_url=f"https://github.com/{github_org}/{github_nb_repo}")
 
 # -- General configuration ---------------------------------------------------
 
@@ -47,12 +53,9 @@ extensions = [
     "sphinx.ext.intersphinx",
     "sphinx.ext.autosummary",
     "sphinx_gallery.load_style",
-    "nbsphinx",
     "sphinxcontrib.bibtex",
+    "nbsphinx",
     "typed_returns",
-    "sphinx_gallery.load_style",
-    "nbsphinx",
-    "sphinxcontrib.bibtex",
     "sphinx_design",
 ]
 intersphinx_mapping = {
@@ -126,3 +129,11 @@ html_theme_options = {
         "code-font-size": "var(--font-size--small)",
     },
 }
+
+
+nbsphinx_thumbnails = utils.get_thumbnails("auto_examples")
+
+
+def setup(app: Sphinx) -> None:
+    DEFAULT_GALLERY_CONF["default_thumb_file"] = "docs/source/_static/img/logo.png"
+    app.add_config_value("sphinx_gallery_conf", DEFAULT_GALLERY_CONF, "html")

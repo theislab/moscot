@@ -80,7 +80,7 @@ docs = [
     "sphinxcontrib-bibtex>=2.3.0",
     "sphinxcontrib-spelling>=7.6.2",
     "sphinx_design",
-
+    "gitpython",
 ]
 
 test = [
