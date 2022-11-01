@@ -43,14 +43,13 @@ class TestLineageProblem:
             assert key in expected_keys
             assert isinstance(problem[key], BirthDeathProblem)
 
-    @pytest.mark.skip(
-        reason="Disabled passing info which cell distribution OTProblem belongs to. Hence, cannot pass trees in `uns`."
-    )
     def test_trees_pipeline(self, adata_time_trees: AnnData):
         expected_keys = [(0, 1), (1, 2)]
         problem = LineageProblem(adata=adata_time_trees)
-        problem = problem.prepare(time_key="time", lineage_attr={"attr": "uns", "tag": "cost", "cost": "leaf_distance"})
-        problem = problem.solve()
+        problem = problem.prepare(
+            time_key="time", lineage_attr={"attr": "uns", "key": "trees", "tag": "cost", "cost": "leaf_distance"}
+        )
+        problem = problem.solve(max_iterations=10)
 
         for key in problem:
             assert key in expected_keys
@@ -59,7 +58,7 @@ class TestLineageProblem:
     def test_cell_costs_pipeline(self, adata_time_custom_cost_xy: AnnData):
         problem = LineageProblem(adata=adata_time_custom_cost_xy)
         problem = problem.prepare("time")
-        problem = problem.solve()
+        problem = problem.solve(max_iterations=10)
 
         assert problem.cell_costs_source is None
         assert problem.cell_costs_target is None

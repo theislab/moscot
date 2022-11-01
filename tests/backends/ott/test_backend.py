@@ -14,7 +14,7 @@ import jax.numpy as jnp
 
 from tests._utils import ATOL, RTOL, Geom_t
 from moscot._types import Device_t, ArrayLike
-from moscot.backends.ott import GWSolver, FGWSolver, SinkhornSolver  # type: ignore[attr-defined]
+from moscot.backends.ott import GWSolver, FGWSolver, SinkhornSolver
 from moscot.solvers._output import BaseSolverOutput
 from moscot.solvers._base_solver import O, OTSolver
 from moscot.solvers._tagged_array import Tag
@@ -103,19 +103,19 @@ class TestGW:
         assert isinstance(solver.y, Geometry)
         np.testing.assert_allclose(gt.matrix, pred.transport_matrix, rtol=RTOL, atol=ATOL)
 
-    @pytest.mark.skip(reason="rewrite after refactoring of ott-jax when gromov_wasserstein() is removed.")
     @pytest.mark.parametrize("rank", [-1, 7])
     def test_rank(self, x: Geom_t, y: Geom_t, rank: int) -> None:
         thresh, eps = 1e-2, 1e-2
         kwargs = {"epsilon": eps, "threshold": thresh, "rank": rank}
         kwargs["tags"] = {"x": "point_cloud", "y": "point_cloud"}
 
-        gt = gromov_wasserstein(PointCloud(x, epsilon=eps), PointCloud(y, epsilon=eps), ranks=rank, threshold=thresh)
+        gt = GromovWasserstein(epsilon=eps, rank=rank, threshold=thresh)(
+            QuadraticProblem(PointCloud(x, epsilon=eps), PointCloud(y, epsilon=eps))
+        )
         solver = GWSolver(**kwargs)
-        pred = solver(**kwargs)
+        pred = solver(x=x, y=y, **kwargs)
 
         assert solver.rank == rank
-        assert solver.is_low_rank
         assert pred.rank == rank
         np.testing.assert_allclose(gt.matrix, pred.transport_matrix, rtol=RTOL, atol=ATOL)
 
