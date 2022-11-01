@@ -43,7 +43,7 @@ class TestSpatioTemporalProblem:
             assert isinstance(problem[key], BirthDeathProblem)
 
     def test_solve_balanced(self, adata_spatio_temporal: AnnData):
-        eps = 0.5
+        eps = 1
         alpha = 0.5
         expected_keys = [(0, 1), (1, 2)]
         problem = SpatioTemporalProblem(adata=adata_spatio_temporal)
