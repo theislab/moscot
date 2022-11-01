@@ -92,10 +92,10 @@ class TemporalProblem(
         marginal_kwargs = dict(kwargs.pop("marginal_kwargs", {}))
         marginal_kwargs["proliferation_key"] = self.proliferation_key
         marginal_kwargs["apoptosis_key"] = self.apoptosis_key
-        if "a" not in kwargs:
-            kwargs["a"] = self.proliferation_key is not None or self.apoptosis_key is not None
-        if "b" not in kwargs:
-            kwargs["b"] = self.proliferation_key is not None or self.apoptosis_key is not None
+        if a is None:
+            a = self.proliferation_key is not None or self.apoptosis_key is not None
+        if b is None:
+            b = self.proliferation_key is not None or self.apoptosis_key is not None
 
         return super().prepare(
             key=time_key,
