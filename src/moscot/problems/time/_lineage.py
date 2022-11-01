@@ -451,4 +451,5 @@ class LineageProblem(TemporalProblem):
             tolerances=tolerances,
             linear_solver_kwargs=linear_solver_kwargs,
             device=device,
+            **kwargs,
         )
