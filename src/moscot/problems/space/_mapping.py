@@ -81,6 +81,9 @@ class MappingProblem(CompoundProblem[K, OTProblem], SpatialMappingMixin[K, OTPro
         spatial_key: Union[str, Mapping[str, Any]] = Key.obsm.spatial,
         var_names: Optional[Sequence[Any]] = None,
         joint_attr: Optional[Union[str, Mapping[str, Any]]] = None,
+        cost: Literal["sq_euclidean", "cosine", "bures", "unbalanced_bures"] = "sq_euclidean",
+        a: Optional[str] = None,
+        b: Optional[str] = None,
         **kwargs: Any,
     ) -> "MappingProblem[K]":
         """
@@ -101,6 +104,10 @@ class MappingProblem(CompoundProblem[K, OTProblem], SpatialMappingMixin[K, OTPro
             between ``adata_sc`` and ``adata_sp``. If an empty list is pass, it defines a quadratic problem.
 
         %(joint_attr)s
+        %(cost)s
+        %(a)s
+        %(b)s
+        %(kwargs_prepare)s
 
         Returns
         -------
@@ -117,7 +124,7 @@ class MappingProblem(CompoundProblem[K, OTProblem], SpatialMappingMixin[K, OTPro
         if self.filtered_vars is not None:
             xy, kwargs = handle_joint_attr(joint_attr, kwargs)
             kwargs["xy"] = xy
-        return super().prepare(x=x, y=y, policy="external_star", key=batch_key, **kwargs)
+        return super().prepare(x=x, y=y, policy="external_star", key=batch_key, cost=cost, a=a, b=b, **kwargs)
 
     @d.dedent
     def solve(

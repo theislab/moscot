@@ -33,7 +33,9 @@ class SpatioTemporalProblem(
         spatial_key: str = Key.obsm.spatial,
         joint_attr: Optional[Union[str, Mapping[str, Any]]] = None,
         policy: Literal["sequential", "tril", "triu", "explicit"] = "sequential",
-        marginal_kwargs: Mapping[str, Any] = MappingProxyType({}),
+        cost: Literal["sq_euclidean", "cosine", "bures", "unbalanced_bures"] = "sq_euclidean",
+        a: Optional[str] = None,
+        b: Optional[str] = None,
         **kwargs: Any,
     ) -> "SpatioTemporalProblem":
         """
@@ -48,13 +50,10 @@ class SpatioTemporalProblem(
         %(spatial_key)s
         %(joint_attr)s
         %(policy)s
-        %(marginal_kwargs)s
+        %(cost)s
         %(a)s
         %(b)s
-        %(subset)s
-        %(reference)s
-        %(callback)s
-        %(callback_kwargs)s
+        %(kwargs_prepare)s
 
         Returns
         -------
@@ -80,21 +79,15 @@ class SpatioTemporalProblem(
         # spatial key set in AlignmentProblem
         self.temporal_key = time_key
 
-        marginal_kwargs = dict(marginal_kwargs)
-        if self.proliferation_key is not None:
-            marginal_kwargs["proliferation_key"] = self.proliferation_key
-            kwargs["a"] = True
-        if self.apoptosis_key is not None:
-            marginal_kwargs["apoptosis_key"] = self.apoptosis_key
-            kwargs["b"] = True
-
         return super().prepare(
             spatial_key=spatial_key,
             batch_key=time_key,
             joint_attr=joint_attr,
             policy=policy,
             reference=None,
-            marginal_kwargs=marginal_kwargs,
+            cost=cost,
+            a=a,
+            b=b,
             **kwargs,
         )
 

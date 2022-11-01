@@ -36,6 +36,9 @@ class SinkhornProblem(CompoundProblem[K, B], GenericAnalysisMixin[K, B]):
         key: str,
         joint_attr: Optional[Union[str, Mapping[str, Any]]] = None,
         policy: Literal["sequential", "pairwise", "explicit"] = "sequential",
+        cost: Literal["sq_euclidean", "cosine", "bures", "unbalanced_bures"] = "sq_euclidean",
+        a: Optional[str] = None,
+        b: Optional[str] = None,
         **kwargs: Any,
     ) -> "SinkhornProblem[K, B]":
         """
@@ -46,13 +49,10 @@ class SinkhornProblem(CompoundProblem[K, B], GenericAnalysisMixin[K, B]):
         %(key)s
         %(joint_attr)s
         %(policy)s
-        %(marginal_kwargs)s
+        %(cost)s
         %(a)s
         %(b)s
-        %(subset)s
-        %(reference)s
-        %(callback)s
-        %(callback_kwargs)s
+        %(kwargs_prepare)s
 
         Returns
         -------
@@ -83,6 +83,9 @@ class SinkhornProblem(CompoundProblem[K, B], GenericAnalysisMixin[K, B]):
             key=key,
             policy=policy,
             xy=xy,
+            cost=cost,
+            a=a,
+            b=b,
             **kwargs,
         )
 
@@ -192,6 +195,9 @@ class GWProblem(CompoundProblem[K, B], GenericAnalysisMixin[K, B]):
         GW_x: Mapping[str, Any] = MappingProxyType({}),
         GW_y: Mapping[str, Any] = MappingProxyType({}),
         policy: Literal["sequential", "pairwise", "explicit"] = "sequential",
+        cost: Literal["sq_euclidean", "cosine", "bures", "unbalanced_bures"] = "sq_euclidean",
+        a: Optional[str] = None,
+        b: Optional[str] = None,
         **kwargs: Any,
     ) -> "GWProblem[K, B]":
         """
@@ -203,13 +209,10 @@ class GWProblem(CompoundProblem[K, B], GenericAnalysisMixin[K, B]):
         %(GW_x)s
         %(GW_y)s
         %(policy)s
-        %(marginal_kwargs)s
+        %(cost)s
         %(a)s
         %(b)s
-        %(subset)s
-        %(reference)s
-        %(callback)s
-        %(callback_kwargs)s
+        %(kwargs_prepare)s
 
         Returns
         -------
@@ -236,6 +239,9 @@ class GWProblem(CompoundProblem[K, B], GenericAnalysisMixin[K, B]):
             x=GW_x,
             y=GW_y,
             policy=policy,
+            cost=cost,
+            a=a,
+            b=b,
             **kwargs,
         )
 
@@ -348,6 +354,9 @@ class FGWProblem(GWProblem[K, B]):
         GW_x: Mapping[str, Any] = MappingProxyType({}),
         GW_y: Mapping[str, Any] = MappingProxyType({}),
         policy: Literal["sequential", "pairwise", "explicit"] = "sequential",
+        cost: Literal["sq_euclidean", "cosine", "bures", "unbalanced_bures"] = "sq_euclidean",
+        a: Optional[str] = None,
+        b: Optional[str] = None,
         **kwargs: Any,
     ) -> "FGWProblem[K, B]":
         """
@@ -360,13 +369,10 @@ class FGWProblem(GWProblem[K, B]):
         %(GW_x)s
         %(GW_y)s
         %(policy)s
-        %(marginal_kwargs)s
+        %(cost)s
         %(a)s
         %(b)s
-        %(subset)s
-        %(reference)s
-        %(callback)s
-        %(callback_kwargs)s
+        %(kwargs_prepare)s
 
         Returns
         -------
@@ -377,7 +383,7 @@ class FGWProblem(GWProblem[K, B]):
         If `a` and `b` are provided `marginal_kwargs` are ignored.
         """
         xy, kwargs = handle_joint_attr(joint_attr, kwargs)
-        return super().prepare(key=key, GW_x=GW_x, GW_y=GW_y, xy=xy, policy=policy, **kwargs)
+        return super().prepare(key=key, GW_x=GW_x, GW_y=GW_y, xy=xy, policy=policy, cost=cost, a=a, b=b, **kwargs)
 
     @d.dedent
     def solve(
