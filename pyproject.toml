@@ -68,11 +68,14 @@ dev = [
     "pre-commit>=2.14.0"
 ]
 docs = [
-    "sphinx>=5",
+    "sphinx>=5.1.1",
+    "ipywidgets>=8.0.0",
+    "pyenchant>=3.1.1",
     "furo>=2022.09.29",
-    "nbsphinx>=0.8.9",
+    "nbsphinx>=0.8.1,<0.8.7",
     "sphinx-autodoc-typehints>=1.10.3",
-    "sphinx-gallery>=0.11.1",
+    "sphinx-gallery>=0.8.2,<0.11", #
+    "sphinx-last-updated-by-git",
     "sphinx_copybutton>=0.5.0",
     "sphinxcontrib-bibtex>=2.3.0",
     "sphinxcontrib-spelling>=7.6.2"
