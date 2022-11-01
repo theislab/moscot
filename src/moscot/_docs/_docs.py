@@ -313,10 +313,16 @@ kwargs
     Backend-specific keyword arguments for the linear solver.
 """
 _kwargs_quad = """\
+kwargs
     Backend-specific keyword arguments for the quadratic solver.
 """
 _kwargs_quad_fused = """\
+kwargs
     Backend-specific keyword arguments for the fused quadratic solver.
+"""
+_kwargs_prepare = """\
+kwargs
+    Keyword arguments, see notebooks TODO.
 """
 
 d = DocstringProcessor(
@@ -374,4 +380,5 @@ d = DocstringProcessor(
     kwargs_linear=_kwargs_linear,
     kwargs_quad=_kwargs_quad,
     kwargs_quad_fused=_kwargs_quad_fused,
+    kwargs_prepare=_kwargs_prepare,
 )
