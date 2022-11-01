@@ -110,6 +110,16 @@ spelling_filters = [
     "enchant.tokenize.EmailFilter",
     "enchant.tokenize.MentionFilter",
 ]
+
+exclude_patterns = [
+    "auto_*/**.ipynb",
+    "auto_*/**.md5",
+    "auto_*/**.py",
+    "**.ipynb_checkpoints",
+    "auto_examples/problems/**/index.rst",
+    "auto_*/**/index.rst",
+]  # ignore anything that isn't .rst or .ipynb
+
 # -- Options for HTML output -------------------------------------------------
 
 # The theme to use for HTML and HTML Help pages.  See the documentation for
