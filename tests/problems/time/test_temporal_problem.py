@@ -53,7 +53,6 @@ class TestTemporalProblem:
             assert isinstance(subsol, BaseSolverOutput)
             assert key in expected_keys
 
-    @pytest.mark.skip(reason="Revisit this once prior and posterior marginals are implemented.")
     def test_solve_unbalanced(self, adata_time: AnnData):
         taus = [9e-1, 1e-2]
         problem1 = TemporalProblem(adata=adata_time)
@@ -68,8 +67,8 @@ class TestTemporalProblem:
         assert problem2[0, 1].a is not None
         assert problem2[0, 1].b is not None
 
-        div1 = np.linalg.norm(problem1[0, 1].a[:, -1] - np.ones(len(problem1[0, 1].a[:, -1])))
-        div2 = np.linalg.norm(problem2[0, 1].a[:, -1] - np.ones(len(problem2[0, 1].a[:, -1])))
+        div1 = np.linalg.norm(problem1[0, 1].solution.a[:, -1] - np.ones(len(problem1[0, 1].a[:, -1])))
+        div2 = np.linalg.norm(problem2[0, 1].solution.a[:, -1] - np.ones(len(problem2[0, 1].a[:, -1])))
         assert div1 <= div2
 
     @pytest.mark.fast()
