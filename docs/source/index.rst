@@ -7,8 +7,8 @@ moscot - Multiomics Single-Cell Optimal Transport
    :width: 600px
    :align: center
 
-If you find a model useful for your research, please consider citing the ``moscot`` (TODO: link) manuscript as well as
-the publication describing the model, which can be found in the corresponding documentation.
+If you find a model useful for your research, please consider citing the ``moscot`` manuscript (in preparation) as
+well as the publication introducing the model, which can be found in the corresponding documentation.
 
 .. card:: Installation
     :link: installation
@@ -48,7 +48,7 @@ the publication describing the model, which can be found in the corresponding do
 
 .. card:: Manuscript
 
-    Check out our manuscript xxx
+    Stay tuned, coming soon!
 
 .. toctree::
     :caption: General
