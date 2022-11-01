@@ -71,6 +71,6 @@ jobs:
         uses: peter-evans/repository-dispatch@v1
         with:
           token: ${{ secrets.NOTEBOOKS_ACCESS_TOKEN }}
-          repository: scverse/squidpy_notebooks
+          repository: theislab/moscot_notebooks
           event-type: rebuild
           client-payload: '{"ref": "${{ github.ref }}", "sha": "${{ github.sha }}"}'
