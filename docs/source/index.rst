@@ -59,7 +59,9 @@ well as the publication introducing the model, which can be found in the corresp
     api/index
     contributing
     references
-    GitHub <https://github.com/theislab/moscot>
+
+    tutorials
+    examples
 
 .. toctree::
     :caption: Gallery
