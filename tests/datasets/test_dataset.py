@@ -1,5 +1,5 @@
 from types import FunctionType
-from typing import List
+from typing import Mapping
 from pathlib import Path
 from http.client import RemoteDisconnected
 import warnings
@@ -51,11 +51,10 @@ class TestSimulateData:
         assert adata.obs[key].nunique() == n_distributions
 
     @pytest.mark.fast()
-    @pytest.mark.parametrize("colnames", [["celltype"], ["celltype", "cluster"]])
-    @pytest.mark.parametrize("k", [[2], [3, 19]])
-    def test_obs_to_add(self, colnames: List[str], ks: List[int]):
-        adata = simulate_data(obs_to_add={colnames[i]: ks[i] for i in range(len(colnames))})
+    @pytest.mark.parametrize("obs_to_add", [{"celltype": 2}, {"celltype": 5, "cluster": 4}])
+    def test_obs_to_add(self, obs_to_add: Mapping[str, int]):
+        adata = simulate_data(obs_to_add=obs_to_add)
 
-        for i, colname in enumerate(colnames):
+        for colname, k in obs_to_add.items():
             assert colname in adata.obs.columns
-            assert adata.obs[colname].nunique() == ks[i]
+            assert adata.obs[colname].nunique() == k
