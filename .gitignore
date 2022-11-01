@@ -154,3 +154,6 @@ packages.dot
 
 # plotting tests
 tests/plotting/figures/
+
+# moscot notebooks
+moscot_notebooks
