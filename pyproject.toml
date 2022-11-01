@@ -1,6 +1,87 @@
 [build-system]
-requires = ['setuptools', 'setuptools_scm']
-build-backend = 'setuptools.build_meta'
+build-backend = "hatchling.build"
+requires = ["hatchling"]
+
+[project]
+name = "moscot"
+version = "0.1.0"
+description = "Multi-omic single-cell optimal transport tools"
+readme = "README.rst"
+requires-python = ">=3.8"
+license = {file = "LICENSE"}
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Science/Research",
+    "Natural Language :: English",
+    "Operating System :: POSIX :: Linux",
+    "Operating System :: MacOS :: MacOS X",
+    "Operating System :: Microsoft :: Windows",
+    "Typing :: Typed",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Topic :: Scientific/Engineering :: Bio-Informatics",
+    "Topic :: Scientific/Engineering :: Mathematics"
+]
+keywords = [
+    "single-cell",
+    "bio-informatics",
+    "optimal transport"
+]
+authors = [
+    {name = "Dominik Klein"},
+    {name = "Giovanni Palla"},
+    {name = "Michal Klein"},
+    {name = "Zoe Piran"},
+    {name = "Marius Lange"},
+]
+maintainers = [
+    {name = "Dominik Klein", email = "dominik.klein@helmholtz-muenchen.de"},
+    {name = "Giovanni Palla", email = "giovanni.palla@helmholtz-muenchen.de"},
+    {name = "Michal Klein", email = "michal.klein@helmholtz-muenchen.de"}
+]
+urls.Documentation = "https://moscot.readthedocs.io/"
+urls.Source = "https://github.com/theislab/moscot"
+urls.Home-page = "https://github.com/theislab/moscot"
+
+dependencies = [
+    "numpy>=1.20.0",
+    "scipy>=1.7.0",
+    "pandas>=1.4.0",
+    "networkx>=2.6.3",
+    "matplotlib>=3.4.0",
+    "anndata>=0.8.0",
+    "scanpy>=1.8.0",
+    "wrapt>=1.13.2",
+    "docrep>=0.3.2",
+    "ott-jax>=0.2.11",
+]
+
+[project.optional-dependencies]
+spatial = [
+    "squidpy>=1.2.3"
+]
+dev = [
+    "tox>=3.24.0",
+    "pre-commit>=2.14.0"
+]
+docs = [
+    "sphinx>=5",
+    "furo>=2022.09.29",
+    "nbsphinx>=0.8.9",
+    "sphinx-autodoc-typehints>=1.10.3",
+    "sphinx-gallery>=0.11.1",
+    "sphinx_copybutton>=0.5.0",
+    "sphinxcontrib-bibtex>=2.3.0",
+    "sphinxcontrib-spelling>=7.6.2"
+
+]
+test = [
+    "pytest>=7.1.2",
+    "pytest-cov>=4.0.0",
+]
 
 [tool.black]
 line-length = 120
