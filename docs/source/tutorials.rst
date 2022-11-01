@@ -5,4 +5,4 @@ This section contains various tutorials showcasing use cases for data analysis w
 .. nbgallery::
     :glob:
 
-    tutorials/tutorial_*
+    notebooks/docs/source/tutorials/tutorial_*
