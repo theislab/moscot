@@ -74,15 +74,3 @@ jobs:
           repository: scverse/squidpy_notebooks
           event-type: rebuild
           client-payload: '{"ref": "${{ github.ref }}", "sha": "${{ github.sha }}"}'
-
-  release:
-    if: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.reason == 'release' }}
-    needs: test
-    runs-on: ubuntu-latest
-    steps:
-      - name: Invoke deployment workflow
-        uses: benc-uk/workflow-dispatch@v1
-        with:
-          workflow: Deployment
-          token: ${{ secrets.RELEASE_DISPATCH_TOKEN }}
-          inputs: '{ "reason": "release" }'
