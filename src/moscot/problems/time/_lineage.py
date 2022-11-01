@@ -48,7 +48,9 @@ class TemporalProblem(
         time_key: str,
         joint_attr: Optional[Union[str, Mapping[str, Any]]] = None,
         policy: Literal["sequential", "tril", "triu", "explicit"] = "sequential",
-        marginal_kwargs: Mapping[str, Any] = MappingProxyType({}),
+        cost: Literal["sq_euclidean", "cosine", "bures", "unbalanced_bures"] = "sq_euclidean",
+        a: Optional[str] = None,
+        b: Optional[str] = None,
         **kwargs: Any,
     ) -> "TemporalProblem":
         """
@@ -60,14 +62,11 @@ class TemporalProblem(
         ----------
         %(time_key)s
         %(joint_attr)s
-        %(joint_attr)s
+        %(policy)s
+        %(cost)s
         %(a)s
         %(b)s
-        %(marginal_kwargs)s
-        %(subset)s
-        %(reference)s
-        %(callback)s
-        %(callback_kwargs)s
+        %(kwargs_prepare)s
 
 
         Returns
@@ -90,19 +89,22 @@ class TemporalProblem(
         xy, kwargs = handle_joint_attr(joint_attr, kwargs)
 
         # TODO(michalk8): needs to be modified
-        marginal_kwargs = dict(marginal_kwargs)
+        marginal_kwargs = dict(kwargs.pop("marginal_kwargs", {}))
         marginal_kwargs["proliferation_key"] = self.proliferation_key
         marginal_kwargs["apoptosis_key"] = self.apoptosis_key
-        if "a" not in kwargs:
-            kwargs["a"] = self.proliferation_key is not None or self.apoptosis_key is not None
-        if "b" not in kwargs:
-            kwargs["b"] = self.proliferation_key is not None or self.apoptosis_key is not None
+        if a is None:
+            a = self.proliferation_key is not None or self.apoptosis_key is not None
+        if b is None:
+            b = self.proliferation_key is not None or self.apoptosis_key is not None
 
         return super().prepare(
             key=time_key,
             xy=xy,
             policy=policy,
             marginal_kwargs=marginal_kwargs,
+            cost=cost,
+            a=a,
+            b=b,
             **kwargs,
         )
 
@@ -311,6 +313,9 @@ class LineageProblem(TemporalProblem):
         lineage_attr: Mapping[str, Any] = MappingProxyType({}),
         joint_attr: Optional[Union[str, Mapping[str, Any]]] = None,
         policy: Literal["sequential", "tril", "triu", "sequential"] = "sequential",
+        cost: Literal["sq_euclidean", "cosine", "bures", "unbalanced_bures"] = "sq_euclidean",
+        a: Optional[str] = None,
+        b: Optional[str] = None,
         **kwargs: Any,
     ) -> "LineageProblem":
         """
@@ -325,13 +330,10 @@ class LineageProblem(TemporalProblem):
 
         %(joint_attr)s
         %(policy)s
-        %(marginal_kwargs)s
+        %(cost)s
         %(a)s
         %(b)s
-        %(subset)s
-        %(reference)s
-        %(callback)s
-        %(callback_kwargs)s
+        %(kwargs_prepare)s
 
         Returns
         -------
@@ -347,10 +349,6 @@ class LineageProblem(TemporalProblem):
             If :attr:`adata.obsp` has no attribute `cost_matrices`.
         TypeError
             If `joint_attr` is not None, not a :class:`str` and not a :class:`dict`
-
-        Notes
-        -----
-        If `a` and `b` are provided `marginal_kwargs` are ignored.
         """
         if not len(lineage_attr) and ("cost_matrices" not in self.adata.obsp):
             raise KeyError("Unable to find cost matrices in `adata.obsp['cost_matrices']`.")
@@ -370,6 +368,9 @@ class LineageProblem(TemporalProblem):
             x=x,
             y=y,
             policy=policy,
+            cost=cost,
+            a=a,
+            b=b,
             **kwargs,
         )
 
@@ -451,4 +452,5 @@ class LineageProblem(TemporalProblem):
             tolerances=tolerances,
             linear_solver_kwargs=linear_solver_kwargs,
             device=device,
+            **kwargs,
         )

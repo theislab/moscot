@@ -37,6 +37,9 @@ class AlignmentProblem(CompoundProblem[K, B], SpatialAlignmentMixin[K, B]):
         joint_attr: Optional[Union[str, Mapping[str, Any]]] = None,
         policy: Literal["sequential", "star"] = "sequential",
         reference: Optional[str] = None,
+        cost: Literal["sq_euclidean", "cosine", "bures", "unbalanced_bures"] = "sq_euclidean",
+        a: Optional[str] = None,
+        b: Optional[str] = None,
         **kwargs: Any,
     ) -> "AlignmentProblem[K, B]":
         """
@@ -55,6 +58,11 @@ class AlignmentProblem(CompoundProblem[K, B], SpatialAlignmentMixin[K, B]):
             Only used if `policy="star"`, it's the value for reference stored
             in :attr:`adata.obs` ``["batch_key"]``.
 
+        %(cost)s
+        %(a)s
+        %(b)s
+        %(kwargs_prepare)s
+
         Returns
         -------
         :class:`moscot.problems.space.MappingProblem`.
@@ -65,7 +73,9 @@ class AlignmentProblem(CompoundProblem[K, B], SpatialAlignmentMixin[K, B]):
         x = y = {"attr": "obsm", "key": self.spatial_key, "tag": "point_cloud"}
 
         xy, kwargs = handle_joint_attr(joint_attr, kwargs)
-        return super().prepare(x=x, y=y, xy=xy, policy=policy, key=batch_key, reference=reference, **kwargs)
+        return super().prepare(
+            x=x, y=y, xy=xy, policy=policy, key=batch_key, reference=reference, cost=cost, a=a, b=b, **kwargs
+        )
 
     @d.dedent
     def solve(
