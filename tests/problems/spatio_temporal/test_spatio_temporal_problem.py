@@ -54,24 +54,28 @@ class TestSpatioTemporalProblem:
             assert isinstance(subsol, BaseSolverOutput)
             assert key in expected_keys
 
-    @pytest.mark.skip(reason="Revisit this once prior and posterior marginals are implemented.")
     def test_solve_unbalanced(self, adata_spatio_temporal: AnnData):
         taus = [9e-1, 1e-2]
         problem1 = SpatioTemporalProblem(adata=adata_spatio_temporal)
         problem2 = SpatioTemporalProblem(adata=adata_spatio_temporal)
         problem1 = problem1.prepare("time", spatial_key="spatial", a="left_marginals", b="right_marginals")
         problem2 = problem2.prepare("time", spatial_key="spatial", a="left_marginals", b="right_marginals")
-        problem1 = problem1.solve(tau_a=taus[0], tau_b=taus[0])
-        problem2 = problem2.solve(tau_a=taus[1], tau_b=taus[1])
-
         assert problem1[0, 1].a is not None
         assert problem1[0, 1].b is not None
         assert problem2[0, 1].a is not None
         assert problem2[0, 1].b is not None
 
-        div1 = np.linalg.norm(problem1[0, 1].a[:, -1] - np.ones(len(problem1[0, 1].a[:, -1])))
-        div2 = np.linalg.norm(problem2[0, 1].a[:, -1] - np.ones(len(problem2[0, 1].a[:, -1])))
-        assert div1 <= div2
+        problem1 = problem1.solve(epsilon=1, tau_a=taus[0], tau_b=taus[0], max_iterations=10000)
+        problem2 = problem2.solve(epsilon=1, tau_a=taus[1], tau_b=taus[1], max_iterations=10000)
+
+        assert problem1[0, 1].solution.a is not None
+        assert problem1[0, 1].solution.b is not None
+        assert problem2[0, 1].solution.a is not None
+        assert problem2[0, 1].solution.b is not None
+
+        div1 = np.linalg.norm(problem1[0, 1].a - problem1[0, 1].solution.a)
+        div2 = np.linalg.norm(problem1[0, 1].b - problem1[0, 1].solution.b)
+        assert div1 < div2
 
     @pytest.mark.fast()
     @pytest.mark.parametrize(
