@@ -1,4 +1,5 @@
 from types import FunctionType
+from typing import Mapping
 from pathlib import Path
 from http.client import RemoteDisconnected
 import warnings
@@ -7,6 +8,7 @@ import pytest
 
 from anndata import AnnData, OldFormatWarning
 
+from moscot.datasets import simulate_data
 import moscot as mt
 
 
@@ -32,3 +34,27 @@ class TestDatasetsDownload:
                 assert adata.shape == (1200, 500)
             except RemoteDisconnected as e:
                 pytest.xfail(str(e))
+
+
+class TestSimulateData:
+    @pytest.mark.fast()
+    def test_returns_adata(self):
+        result = simulate_data()
+        assert isinstance(result, AnnData)
+
+    @pytest.mark.fast()
+    @pytest.mark.parametrize("n_distributions", [2, 4])
+    @pytest.mark.parametrize("key", ["batch", "day"])
+    def test_n_distributions(self, n_distributions: int, key: str):
+        adata = simulate_data(n_distributions=n_distributions, key=key)
+        assert key in adata.obs.columns
+        assert adata.obs[key].nunique() == n_distributions
+
+    @pytest.mark.fast()
+    @pytest.mark.parametrize("obs_to_add", [{"celltype": 2}, {"celltype": 5, "cluster": 4}])
+    def test_obs_to_add(self, obs_to_add: Mapping[str, int]):
+        adata = simulate_data(obs_to_add=obs_to_add)
+
+        for colname, k in obs_to_add.items():
+            assert colname in adata.obs.columns
+            assert adata.obs[colname].nunique() == k
