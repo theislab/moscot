@@ -8,12 +8,6 @@ Install ``moscot`` by running::
 
     pip install moscot
 
-Conda
------
-Install ``moscot`` via Conda as::
-
-    conda install -c conda-forge moscot
-
 Development version
 -------------------
 To install ``moscot`` from GitHub, run::
