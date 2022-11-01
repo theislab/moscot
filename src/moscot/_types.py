@@ -16,9 +16,13 @@ except (ImportError, TypeError):
 Numeric_t = Union[int, float]  # type of `time_key` arguments
 Filter_t = Optional[Union[str, Mapping[str, Sequence[Any]]]]  # type how to filter adata
 Str_Dict_t = Union[str, Mapping[str, Sequence[Any]]]  # type for `cell_transition`
-SinkhornInitializer_t = Optional[Literal["default", "gaussian", "sorting"]]
-QuadInitializer_t = Optional[Literal["random", "rank2", "k-means", "generalized-k-means"]]
-Initializer_t = Union[SinkhornInitializer_t, QuadInitializer_t]
+SinkFullRankInit = Union[Literal["default", "gaussian", "sorting"]]
+LRInitializer_t = Literal["random", "rank2", "k-means", "generalized-k-means"]
+
+SinkhornInitializer_t = Optional[Union[SinkFullRankInit, LRInitializer_t]]
+QuadInitializer_t = Optional[LRInitializer_t]
+
+Initializer_t = Union[SinkhornInitializer_t, LRInitializer_t]
 ProblemStage_t = Literal["initialized", "prepared", "solved"]
 Device_t = Literal["cpu", "gpu", "tpu"]
 
