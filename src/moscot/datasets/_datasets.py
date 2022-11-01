@@ -211,8 +211,8 @@ def simulate_data(
     """
     Simulate data.
 
-    This function is used to generate data, mainly for the purpose to
-    demonstrate certain functionalities of :mod:`moscot`.
+    This function is used to generate data, mainly for the purpose of
+    demonstrating certain functionalities of :mod:`moscot`.
 
     Parameters
     ----------
