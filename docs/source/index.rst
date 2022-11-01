@@ -23,13 +23,13 @@ well as the publication introducing the model, which can be found in the corresp
     Find a detailed documentation of ``moscot``.
 
 .. card:: Examples
-    :link: notebooks/docs/source/examples
+    :link: examples
     :link-type: doc
 
     Find brief and concise examples of certain functionalities of ``moscot``.
 
 .. card:: Tutorials
-    :link: notebooks/docs/source/tutorials
+    :link: tutorials
     :link-type: doc
 
     Check out how to use ``moscot`` for data analysis.

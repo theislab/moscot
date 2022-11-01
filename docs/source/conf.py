@@ -19,7 +19,10 @@ import sys
 import moscot
 
 HERE = Path(__file__).parent
+sys.path.insert(0, str(HERE))
 sys.path.insert(0, str(HERE / "extensions"))
+
+import utils  # noqa: E402
 
 # -- Project information -----------------------------------------------------
 
@@ -32,7 +35,7 @@ github_org = "theislab"
 github_repo = "moscot"
 github_ref = "main"
 github_nb_repo = "moscot_notebooks"
-# _fetch_notebooks(repo_url=f"https://github.com/{github_org}/{github_nb_repo}")
+utils.fetch_notebooks(repo_url=f"https://github.com/{github_org}/{github_nb_repo}")
 
 # -- General configuration ---------------------------------------------------
 
@@ -47,12 +50,9 @@ extensions = [
     "sphinx.ext.intersphinx",
     "sphinx.ext.autosummary",
     "sphinx_gallery.load_style",
-    "nbsphinx",
     "sphinxcontrib.bibtex",
+    "nbsphinx",
     "typed_returns",
-    "sphinx_gallery.load_style",
-    "nbsphinx",
-    "sphinxcontrib.bibtex",
     "sphinx_design",
 ]
 intersphinx_mapping = {

@@ -9,7 +9,7 @@ This section contains various examples how to handle moscot problems.
 .. nbgallery::
     :glob:
 
-    auto_examples/problems/ex*
+    auto_examples/problems/ex_*
 
 Solvers
 =======
@@ -22,4 +22,4 @@ This section contains various examples from the :mod:`moscot.pl` module.
 .. nbgallery::
     :glob:
 
-    auto_examples/plotting/ex*
+    auto_examples/plotting/ex_*

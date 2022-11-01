@@ -134,7 +134,9 @@ dmypy.json
 
 # docs
 docs/source/**/genapi
-docs/source/development
+docs/source/auto_examples
+docs/source/tutorials
+docs/source/gen_modules
 
 # macOS
 *.DS_Store
