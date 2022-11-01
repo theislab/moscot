@@ -1,5 +1,5 @@
 from shutil import rmtree, copytree
-from typing import Union
+from typing import Dict, Union
 from logging import info, warning
 from pathlib import Path
 from tempfile import TemporaryDirectory
@@ -10,7 +10,7 @@ from git import Repo
 HERE = Path(__file__).parent
 
 
-__all__ = ["fetch_notebooks"]
+__all__ = ["fetch_notebooks", "get_thumbnails"]
 
 
 def fetch_notebooks(repo_url: str) -> None:
@@ -52,3 +52,19 @@ def fetch_notebooks(repo_url: str) -> None:
             return
 
         fetch_remote(repo_url)
+
+
+def get_thumbnails(root: Union[str, Path]) -> Dict[str, str]:
+    res = {}
+    root = Path(root)
+    thumb_path = Path(__file__).parent.parent.parent / "docs" / "source"
+
+    for fname in root.glob("**/*.py"):
+        path, name = os.path.split(str(fname)[:-3])
+        thumb_fname = f"sphx_glr_{name}_thumb.png"
+        if (thumb_path / path / "images" / "thumb" / thumb_fname).is_file():
+            res[str(fname)[:-3]] = f"_images/{thumb_fname}"
+
+    res["**"] = "_static/img/logo.png"
+
+    return res

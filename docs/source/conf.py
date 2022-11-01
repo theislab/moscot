@@ -16,6 +16,9 @@ from datetime import datetime
 #
 import sys
 
+from sphinx.application import Sphinx
+from sphinx_gallery.gen_gallery import DEFAULT_GALLERY_CONF
+
 import moscot
 
 HERE = Path(__file__).parent
@@ -126,3 +129,11 @@ html_theme_options = {
         "code-font-size": "var(--font-size--small)",
     },
 }
+
+
+nbsphinx_thumbnails = utils.get_thumbnails("auto_examples")
+
+
+def setup(app: Sphinx) -> None:
+    DEFAULT_GALLERY_CONF["default_thumb_file"] = "docs/source/_static/img/logo.png"
+    app.add_config_value("sphinx_gallery_conf", DEFAULT_GALLERY_CONF, "html")
