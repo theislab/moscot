@@ -7,31 +7,27 @@ on:
 
 jobs:
   deploy:
-    if: ${{ (github.event_name == 'push' && startsWith(github.ref, 'refs/tags')) }}
+    # this will run when you have tagged a commit, starting with "v*"
+    # and requires that you have put your twine API key in your
+    # github secrets (see readme for details)
+    needs: [test]
     runs-on: ubuntu-latest
+    if: contains(github.ref, 'tags')
     steps:
       - uses: actions/checkout@v2
-        with:
-          fetch-depth: 0
-      - name: Set up Python 3.9
+      - name: Set up Python
         uses: actions/setup-python@v2
         with:
-          python-version: 3.9
-
-      - name: Install pip dependencies
+          python-version: "3.x"
+      - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install build
-
-      # this will fail if the last commit is not tagged
-      - name: Build a binary wheel and a source tarball
+          pip install -U setuptools setuptools_scm wheel twine build
+      - name: Build and publish
+        env:
+          TWINE_USERNAME: __token__
+          TWINE_PASSWORD: ${{ secrets.TWINE_API_KEY }}
         run: |
-          python -m build --sdist --wheel --outdir dist/
-
-      - name: Publish on PyPI
-        uses: pypa/gh-action-pypi-publish@master
-        with:
-          user: __token__
-          password: ${{ secrets.PYPI_TOKEN }}
-          skip_existing: true
-          verbose: true
+          git tag
+          python -m build .
+          twine upload dist/*
