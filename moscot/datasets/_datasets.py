@@ -92,7 +92,7 @@ def mosta(
 
 
 def hspc(
-    path: PathLike = "~./cache/moscot/hspc.h5ad",
+    path: PathLike = "~/.cache/moscot/hspc.h5ad",
     **kwargs: Any,
 ) -> AnnData:  # pragma: no cover
     """Subsampled and processed data from the `NeurIPS Multimodal Single-Cell Integration Challenge \
