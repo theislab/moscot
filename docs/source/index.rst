@@ -65,6 +65,3 @@ the publication describing the model, which can be found in the corresponding do
     :caption: Gallery
     :maxdepth: 2
     :hidden:
-
-    notebooks/docs/source/examples
-    notebooks/docs/source/tutorials
