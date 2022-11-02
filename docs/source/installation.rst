@@ -1,18 +1,12 @@
 Installation
 ============
-``moscot`` requires Python version >= 3.7 to run.
+``moscot`` requires Python version >= 3.8 to run.
 
 PyPI
 ----
 Install ``moscot`` by running::
 
     pip install moscot
-
-Conda
------
-Install ``moscot`` via Conda as::
-
-    conda install -c conda-forge moscot
 
 Development version
 -------------------
