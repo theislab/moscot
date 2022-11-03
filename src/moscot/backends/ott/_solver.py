@@ -134,6 +134,9 @@ class SinkhornSolver(OTTJaxSolver):
     rank
         Rank of the linear solver. If `-1`, use :class:`~ott.core.sinkhorn.Sinkhorn` :cite:`cuturi:2013`,
         otherwise, use :class:`~ott.core.sinkhorn_lr.LRSinkhorn` :cite:`scetbon:21a`.
+    initializer
+        Initializer for :class:`~ott.core.sinkhorn.Sinkhorn` or :class:`~ott.core.sinkhorn_lr.LRSinkhorn`,
+        depending on the ``rank``.
     initializer_kwargs
         Keyword arguments for the initializer.
     kwargs
@@ -155,6 +158,7 @@ class SinkhornSolver(OTTJaxSolver):
             self._solver = LRSinkhorn(rank=rank, initializer=initializer, kwargs_init=initializer_kwargs, **kwargs)
         else:
             kwargs = _filter_kwargs(Sinkhorn, **kwargs)
+            initializer = initializer if initializer is not None else "default"  # `None` not handled by backend
             self._solver = Sinkhorn(initializer=initializer, kwargs_init=initializer_kwargs, **kwargs)
 
     def _prepare(
@@ -200,8 +204,7 @@ class GWSolver(OTTJaxSolver):
         Rank of the quadratic solver. If `-1` use the full-rank GW :cite:`memoli:2011`,
         otherwise, use the low-rank approach :cite:`scetbon:21b`.
     initializer
-        Initializer for :class:`~ott.core.sinkhorn.Sinkhorn` or :class:`~ott.core.sinkhorn_lr.LRSinkhorn`,
-        depending on the ``rank``.
+        Initializer for :class:`~ott.core.gromov_wasserstein.GromovWasserstein`.
     initializer_kwargs
         Keyword arguments for the initializer.
     linear_solver_kwargs
