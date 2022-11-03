@@ -192,6 +192,11 @@ class GWSolver(OTTJaxSolver):
     rank
         Rank of the quadratic solver. If `-1` use the full-rank GW :cite:`memoli:2011`,
         otherwise, use the low-rank approach :cite:`scetbon:21b`.
+    gamma
+        Only in low-rank setting: the (inverse of the) gradient step size used by the mirror descent algorithm
+        (:cite:`scetbon:22b`).
+    gamma_rescale
+        Only in low-rank setting: whether to rescale `gamma` every iteration as described in :cite:`scetbon:22b`.
     initializer_kwargs
         Keyword arguments for the initializer.
     linear_solver_kwargs
@@ -204,6 +209,8 @@ class GWSolver(OTTJaxSolver):
     def __init__(
         self,
         rank: int = -1,
+        gamma: float = 10.0,
+        gamma_rescale: bool = True,
         initializer_kwargs: Mapping[str, Any] = MappingProxyType({}),
         linear_solver_kwargs: Mapping[str, Any] = MappingProxyType({}),
         **kwargs: Any,
@@ -212,10 +219,9 @@ class GWSolver(OTTJaxSolver):
         if "initializer" in kwargs:  # rename arguments
             kwargs["quad_initializer"] = kwargs.pop("initializer")
         if rank > -1:
-            ls_kwargs = dict(linear_solver_kwargs)
-            ls_kwargs["gamma"] = kwargs.pop("gamma")
-            ls_kwargs["gamma_rescale"] = kwargs.pop("gamma_rescale")
-            linear_ot_solver = LRSinkhorn(rank=rank, **ls_kwargs)  # initialization handled by quad_initializer
+            linear_ot_solver = LRSinkhorn(
+                rank=rank, gamma=gamma, gamma_rescale=gamma_rescale, **linear_solver_kwargs
+            )  # initialization handled by quad_initializer
         else:
             linear_ot_solver = Sinkhorn(**linear_solver_kwargs)  # initialization handled by quad_initializer
         kwargs = _filter_kwargs(GromovWasserstein, WassersteinSolver, **kwargs)

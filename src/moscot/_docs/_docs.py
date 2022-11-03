@@ -251,7 +251,7 @@ gamma
     Only in low-rank setting: the (inverse of the) gradient step size used by the mirror descent algorithm
     (:cite:`scetbon:22b`).
 gamma_rescale
-    Only in low-rank setting: whether to rescale :math:`\\gamma` every iteration as described in :cite:`scetbon:22b`.
+    Only in low-rank setting: whether to rescale `gamma` every iteration as described in :cite:`scetbon:22b`.
 """
 _gw_kwargs = """\
 min_iterations

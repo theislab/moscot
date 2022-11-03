@@ -135,8 +135,6 @@ linear_solver_kwargs2 = {
     "lse_mode": True,
     "threshold": 4e-2,
     "norm_error": 3,
-    "gamma": 9.4,
-    "gamma_rescale": False,
 }
 
 gw_args_2 = {
@@ -228,9 +226,12 @@ sinkhorn_solver_args = {  # dictionary with key = moscot arg name, value = ott-j
     "initializer": "initializer",
     "initializer_kwargs": "kwargs_init",
     "jit": "jit",
-    "gamma": "gamma",
-    "gamma_rescale": "gamma_rescale",
 }
+
+lr_sinkhorn_solver_args = sinkhorn_solver_args.copy()
+lr_sinkhorn_solver_args["gamma"] = "gamma"
+lr_sinkhorn_solver_args["gamma_rescale"] = "gamma_rescale"
+
 lin_prob_args = {
     "tau_a": "tau_a",
     "tau_b": "tau_b",

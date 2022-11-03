@@ -16,6 +16,7 @@ from tests.problems.conftest import (
     sinkhorn_args_1,
     sinkhorn_args_2,
     sinkhorn_solver_args,
+    lr_sinkhorn_solver_args,
 )
 from moscot.problems.time._lineage import BirthDeathProblem
 
@@ -233,7 +234,8 @@ class TestTemporalProblem:
         problem = problem.solve(**args_to_check)
         key = (0, 1)
         solver = problem[key].solver.solver
-        for arg, val in sinkhorn_solver_args.items():
+        args = sinkhorn_solver_args if args_to_check["rank"] == -1 else lr_sinkhorn_solver_args
+        for arg, val in args.items():
             assert hasattr(solver, val)
             el = getattr(solver, val)[0] if isinstance(getattr(solver, val), tuple) else getattr(solver, val)
             assert el == args_to_check[arg]
