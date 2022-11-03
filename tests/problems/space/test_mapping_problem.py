@@ -123,7 +123,6 @@ class TestMappingProblem:
         problem = problem.solve(**args_to_check)
 
         solver = problem[key].solver.solver
-
         for arg, val in gw_solver_args.items():
             assert hasattr(solver, val)
             assert getattr(solver, val) == args_to_check[arg]

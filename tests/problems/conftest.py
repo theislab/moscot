@@ -116,7 +116,7 @@ gw_args_1 = {
     "scale_cost": "max_cost",
     "rank": -1,
     "batch_size": 122,
-    "initializer": "quad_initializer",
+    "initializer": None,  # full rank only suppo
     "initializer_kwargs": {},
     "jit": True,
     "threshold": 3e-2,

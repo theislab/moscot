@@ -147,7 +147,7 @@ class SinkhornSolver(OTTJaxSolver):
     def __init__(
         self,
         rank: int = -1,
-        initializer: Optional[SinkhornInitializer_t] = None,
+        initializer: SinkhornInitializer_t = None,
         initializer_kwargs: Mapping[str, Any] = MappingProxyType({}),
         **kwargs: Any,
     ):
@@ -217,26 +217,25 @@ class GWSolver(OTTJaxSolver):
     def __init__(
         self,
         rank: int = -1,
-        initializer: Optional[QuadInitializer_t] = None,
+        initializer: QuadInitializer_t = None,
         initializer_kwargs: Mapping[str, Any] = MappingProxyType({}),
         linear_solver_kwargs: Mapping[str, Any] = MappingProxyType({}),
         **kwargs: Any,
     ):
         super().__init__()
-        if "initializer" in kwargs:  # rename arguments
-            kwargs["quad_initializer"] = kwargs.pop("initializer")
         if rank > -1:
+            initializer = initializer if initializer is not None else "rank2"
             linear_ot_solver = LRSinkhorn(
                 rank=rank, **linear_solver_kwargs
             )  # initialization handled by quad_initializer
-            initializer = initializer if initializer is not None else "rank2"
         else:
-            linear_ot_solver = Sinkhorn(**linear_solver_kwargs)  # initialization handled by quad_initializer
+            initializer = None
+            linear_ot_solver = Sinkhorn(**linear_solver_kwargs)
         kwargs = _filter_kwargs(GromovWasserstein, WassersteinSolver, **kwargs)
         self._solver = GromovWasserstein(
             rank=rank,
             linear_ot_solver=linear_ot_solver,
-            initializer=initializer,
+            quad_initializer=initializer,
             kwargs_init=initializer_kwargs,
             **kwargs,
         )
