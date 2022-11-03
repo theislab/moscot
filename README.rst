@@ -4,7 +4,11 @@ moscot - multi-omic single-cell optimal transport tools
 =======================================================
 
 **moscot** is a scalable framework for Optimal Transport (OT) applications in
-single-cell genomics.
+single-cell genomics. It can be used for
+- temporal and spatio-temporal trajectory inference
+- spatial mapping
+- spatial alignment
+- prototyping of new OT models in single-cell genomics
 
 In the backend, moscot is powered by
 `OTT <https://ott-jax.readthedocs.io/en/latest/>`_ which is a JAX-based Optimal
