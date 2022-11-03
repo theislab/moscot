@@ -292,10 +292,6 @@ cost
     Cost between two points in dimension d. Only used if no precomputed cost matrix is passed.
 """
 _pointcloud_kwargs = """\
-power
-    a power to raise `(cost_fn(x,y)) ** . / 2.0`. As a result,
-    `power`=2.0 is the default and means no change is applied to the output of
-    `cost_fn`. Only used if no precomputed cost matrix is passed.
 batch_size
     Number of data points the matrix-vector products are applied to at the same time. The larger, the more memory
     is required. Only used if no precomputed cost matrix is used.
