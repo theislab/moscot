@@ -457,4 +457,5 @@ class FGWProblem(GWProblem[K, B]):
             tolerances=tolerances,
             linear_solver_kwargs=linear_solver_kwargs,
             device=device,
+            **kwargs,
         )

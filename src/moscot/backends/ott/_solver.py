@@ -74,7 +74,7 @@ class OTTJaxSolver(OTSolver[OTTOutput], ABC):  # noqa: B024
         arr = self._assert2d(x.data_src, allow_reshape=False)
         if x.is_cost_matrix:
             return Geometry(cost_matrix=arr, **kwargs)
-        if x.is_cost_matrix:
+        if x.is_kernel:
             return Geometry(kernel_matrix=arr, **kwargs)
         raise NotImplementedError(f"Creating geometry from `tag={x.tag!r}` is not yet implemented.")
 
