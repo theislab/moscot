@@ -90,7 +90,8 @@ class TestLineageProblem:
                 if isinstance(getattr(sinkhorn_solver, val), tuple)
                 else getattr(sinkhorn_solver, val)
             )
-            assert el == args_to_check["linear_solver_kwargs"][arg]
+            args_to_c = args_to_check if arg in ["gamma", "gamma_rescale"] else args_to_check["linear_solver_kwargs"]
+            assert el == args_to_c[arg]
 
         quad_prob = problem[key]._solver._problem
         for arg, val in quad_prob_args.items():

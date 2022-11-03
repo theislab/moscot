@@ -4,9 +4,9 @@ import pytest
 
 from anndata import AnnData
 
-from moscot.problems.base import OTProblem  # type: ignore[attr-defined]
+from moscot.problems.base import OTProblem
 from moscot.solvers._output import BaseSolverOutput
-from moscot.problems.generic import GWProblem  # type: ignore[attr-defined]
+from moscot.problems.generic import GWProblem
 from tests.problems.conftest import (
     gw_args_1,
     gw_args_2,
@@ -85,7 +85,8 @@ class TestGWProblem:
                 if isinstance(getattr(sinkhorn_solver, val), tuple)
                 else getattr(sinkhorn_solver, val)
             )
-            assert el == args_to_check["linear_solver_kwargs"][arg]
+            args_to_c = args_to_check if arg in ["gamma", "gamma_rescale"] else args_to_check["linear_solver_kwargs"]
+            assert el == args_to_c[arg]
 
         quad_prob = problem[key]._solver._problem
         for arg, val in quad_prob_args.items():
