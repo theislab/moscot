@@ -10,7 +10,7 @@ single-cell genomics. It can be used for
 - spatial alignment
 - prototyping of new OT models in single-cell genomics
 
-In the backend, moscot is powered by
+**moscot** is powered by
 `OTT <https://ott-jax.readthedocs.io/en/latest/>`_ which is a JAX-based Optimal
 Transport toolkit that supports just-in-time compilation, GPU acceleration, automatic
 differentiation and linear memory complexity for OT problems.
@@ -25,7 +25,7 @@ In order to install **moscot** from source, run::
 
     git clone https://github.com/theislab/moscot
     cd moscot
-    pip install -e.'[dev]'
+    pip install -e .'[dev]'
 
 If used with GPU, additionally run::
 
