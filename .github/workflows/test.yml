@@ -55,9 +55,3 @@ jobs:
       - name: Test
         run: |
           tox -vv
-      - name: Upload coverage
-        env:
-          CODECOV_NAME: ${{ matrix.python }}-${{ matrix.os }}
-          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
-        run: |-
-          codecov --no-color --required --flags unittests
