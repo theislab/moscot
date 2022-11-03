@@ -262,10 +262,6 @@ threshold
     Threshold used as convergence criterion for the outer Gromov-Wasserstein loop.
 """
 _gw_lr_kwargs = """\
-gw_unbalanced_correction
-    Whether the unbalanced version of
-    :cite:`sejourne:21` is used. Otherwise ``tau_a`` and ``tau_b`` only affect
-    the inner Sinkhorn loop.
 ranks
     Ranks of the cost matrices, see
     :meth:`~ott.geometry.geometry.Geometry.to_LRCGeometry`. Used when
