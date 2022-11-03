@@ -212,9 +212,10 @@ class GWSolver(OTTJaxSolver):
         if "initializer" in kwargs:  # rename arguments
             kwargs["quad_initializer"] = kwargs.pop("initializer")
         if rank > -1:
-            linear_ot_solver = LRSinkhorn(
-                rank=rank, **linear_solver_kwargs
-            )  # initialization handled by quad_initializer
+            ls_kwargs = dict(linear_solver_kwargs)
+            ls_kwargs["gamma"] = kwargs.pop("gamma")
+            ls_kwargs["gamma_rescale"] = kwargs.pop("gamma_rescale")
+            linear_ot_solver = LRSinkhorn(rank=rank, **ls_kwargs)  # initialization handled by quad_initializer
         else:
             linear_ot_solver = Sinkhorn(**linear_solver_kwargs)  # initialization handled by quad_initializer
         kwargs = _filter_kwargs(GromovWasserstein, WassersteinSolver, **kwargs)

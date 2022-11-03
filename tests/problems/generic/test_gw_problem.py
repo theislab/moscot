@@ -14,12 +14,13 @@ from tests.problems.conftest import (
     gw_solver_args,
     quad_prob_args,
     gw_linear_solver_args,
+    gw_lr_linear_solver_args,
 )
 
 
 class TestGWProblem:
     @pytest.mark.fast()
-    def test_prepare(self, adata_space_rotate: AnnData):  # type: ignore[no-untyped-def]
+    def test_prepare(self, adata_space_rotate: AnnData):
         expected_keys = [("0", "1"), ("1", "2")]
         problem = GWProblem(adata=adata_space_rotate)
 
@@ -58,7 +59,7 @@ class TestGWProblem:
             assert key in expected_keys
 
     @pytest.mark.parametrize("args_to_check", [gw_args_1, gw_args_2])
-    def test_pass_arguments(self, adata_space_rotate: AnnData, args_to_check: Mapping[str, Any]):  # type: ignore
+    def test_pass_arguments(self, adata_space_rotate: AnnData, args_to_check: Mapping[str, Any]):
         problem = GWProblem(adata=adata_space_rotate)
         adata_space_rotate = adata_space_rotate[adata_space_rotate.obs["batch"].isin((0, 1))].copy()
         problem = problem.prepare(
@@ -76,7 +77,8 @@ class TestGWProblem:
             assert getattr(solver, val) == args_to_check[arg]
 
         sinkhorn_solver = solver.linear_ot_solver
-        for arg, val in gw_linear_solver_args.items():
+        lin_solver_args = gw_linear_solver_args if args_to_check["rank"] == -1 else gw_lr_linear_solver_args
+        for arg, val in lin_solver_args.items():
             assert hasattr(sinkhorn_solver, val)
             el = (
                 getattr(sinkhorn_solver, val)[0]
