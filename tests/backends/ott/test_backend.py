@@ -39,12 +39,13 @@ class TestSinkhorn:
         np.testing.assert_allclose(gt.matrix, pred.transport_matrix, rtol=RTOL, atol=ATOL)
 
     @pytest.mark.parametrize("rank", [5, 10])
-    def test_rank(self, y: Geom_t, rank: Optional[int]) -> None:
+    @pytest.mark.parametrize("initializer", ["random", "rank2", "k-means"])
+    def test_rank(self, y: Geom_t, rank: Optional[int], initializer: str) -> None:
         eps = 1e-2
-        lr_sinkhorn = LRSinkhorn(rank=rank)
+        lr_sinkhorn = LRSinkhorn(rank=rank, initializer=initializer)
         problem = LinearProblem(PointCloud(y, y, epsilon=eps))
         gt = lr_sinkhorn(problem)
-        solver = SinkhornSolver(rank=rank)
+        solver = SinkhornSolver(rank=rank, initializer=initializer)
         assert solver.xy is None
         assert isinstance(solver.solver, LRSinkhorn)
 
