@@ -260,10 +260,6 @@ max_iterations
     Maximal number of outer Gromov-Wasserstein iterations.
 threshold
     Threshold used as convergence criterion for the outer Gromov-Wasserstein loop.
-warm_start
-    Whether to initialize (low-rank) Sinkhorn calls using values
-    from the previous iteration. If `None`, warm starts are not used for
-    standard Sinkhorn, but used for low-rank Sinkhorn.
 """
 _gw_lr_kwargs = """\
 gw_unbalanced_correction
