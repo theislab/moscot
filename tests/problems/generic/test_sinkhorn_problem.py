@@ -14,6 +14,7 @@ from tests.problems.conftest import (
     sinkhorn_args_1,
     sinkhorn_args_2,
     sinkhorn_solver_args,
+    lr_sinkhorn_solver_args,
 )
 
 
@@ -51,7 +52,7 @@ class TestSinkhornProblem:
             assert key in expected_keys
 
     @pytest.mark.parametrize("args_to_check", [sinkhorn_args_1, sinkhorn_args_2])
-    def test_pass_arguments(self, adata_time: AnnData, args_to_check: Mapping[str, Any]):  # type: ignore[no-untyped-def]  # noqa: E501
+    def test_pass_arguments(self, adata_time: AnnData, args_to_check: Mapping[str, Any]):
         adata_time = adata_time[adata_time.obs["time"].isin((0, 1))].copy()
         problem = SinkhornProblem(adata=adata_time)
         problem = problem.prepare(
@@ -62,42 +63,27 @@ class TestSinkhornProblem:
         problem = problem.solve(**args_to_check)
 
         solver = problem[(0, 1)].solver.solver
-        for arg in sinkhorn_solver_args:
-            assert hasattr(solver, sinkhorn_solver_args[arg])
-            el = (
-                getattr(solver, sinkhorn_solver_args[arg])[0]
-                if isinstance(getattr(solver, sinkhorn_solver_args[arg]), tuple)
-                else getattr(solver, sinkhorn_solver_args[arg])
-            )
+        args = sinkhorn_solver_args if args_to_check["rank"] == -1 else lr_sinkhorn_solver_args
+        for arg, val in args.items():
+            assert hasattr(solver, val)
+            el = getattr(solver, val)[0] if isinstance(getattr(solver, val), tuple) else getattr(solver, val)
             assert el == args_to_check[arg]
 
         lin_prob = problem[(0, 1)]._solver._problem
-        for arg in lin_prob_args:
-            assert hasattr(lin_prob, lin_prob_args[arg])
-            el = (
-                getattr(lin_prob, lin_prob_args[arg])[0]
-                if isinstance(getattr(lin_prob, lin_prob_args[arg]), tuple)
-                else getattr(lin_prob, lin_prob_args[arg])
-            )
+        for arg, val in lin_prob_args.items():
+            assert hasattr(lin_prob, val)
+            el = getattr(lin_prob, val)[0] if isinstance(getattr(lin_prob, val), tuple) else getattr(lin_prob, val)
             assert el == args_to_check[arg]
 
         geom = lin_prob.geom
-        for arg in geometry_args:
-            assert hasattr(geom, geometry_args[arg])
-            el = (
-                getattr(geom, geometry_args[arg])[0]
-                if isinstance(getattr(geom, geometry_args[arg]), tuple)
-                else getattr(geom, geometry_args[arg])
-            )
+        for arg, val in geometry_args.items():
+            assert hasattr(geom, val)
+            el = getattr(geom, val)[0] if isinstance(getattr(geom, val), tuple) else getattr(geom, val)
             assert el == args_to_check[arg]
 
-        for arg in pointcloud_args:
-            el = (
-                getattr(geom, pointcloud_args[arg])[0]
-                if isinstance(getattr(geom, pointcloud_args[arg]), tuple)
-                else getattr(geom, pointcloud_args[arg])
-            )
-            assert hasattr(geom, pointcloud_args[arg])
+        for arg, val in pointcloud_args.items():
+            el = getattr(geom, val)[0] if isinstance(getattr(geom, val), tuple) else getattr(geom, val)
+            assert hasattr(geom, val)
             if arg == "cost":
                 assert type(el) == type(args_to_check[arg])  # noqa: E721
             else:

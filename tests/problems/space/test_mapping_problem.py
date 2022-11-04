@@ -17,6 +17,7 @@ from tests.problems.conftest import (
     quad_prob_args,
     pointcloud_args,
     gw_linear_solver_args,
+    gw_lr_linear_solver_args,
 )
 from moscot.solvers._base_solver import ProblemKind
 
@@ -129,14 +130,16 @@ class TestMappingProblem:
             assert getattr(solver, val) == args_to_check[arg]
 
         sinkhorn_solver = solver.linear_ot_solver
-        for arg, val in gw_linear_solver_args.items():
+        lin_solver_args = gw_linear_solver_args if args_to_check["rank"] == -1 else gw_lr_linear_solver_args
+        for arg, val in lin_solver_args.items():
             assert hasattr(sinkhorn_solver, val)
             el = (
                 getattr(sinkhorn_solver, val)[0]
                 if isinstance(getattr(sinkhorn_solver, val), tuple)
                 else getattr(sinkhorn_solver, val)
             )
-            assert el == args_to_check["linear_solver_kwargs"][arg]
+            args_to_c = args_to_check if arg in ["gamma", "gamma_rescale"] else args_to_check["linear_solver_kwargs"]
+            assert el == args_to_c[arg]
 
         quad_prob = problem[key]._solver._problem
         for arg, val in quad_prob_args.items():

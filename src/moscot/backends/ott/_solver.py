@@ -74,7 +74,7 @@ class OTTJaxSolver(OTSolver[OTTOutput], ABC):  # noqa: B024
         arr = self._assert2d(x.data_src, allow_reshape=False)
         if x.is_cost_matrix:
             return Geometry(cost_matrix=arr, **kwargs)
-        if x.is_cost_matrix:
+        if x.is_kernel:
             return Geometry(kernel_matrix=arr, **kwargs)
         raise NotImplementedError(f"Creating geometry from `tag={x.tag!r}` is not yet implemented.")
 
@@ -192,6 +192,11 @@ class GWSolver(OTTJaxSolver):
     rank
         Rank of the quadratic solver. If `-1` use the full-rank GW :cite:`memoli:2011`,
         otherwise, use the low-rank approach :cite:`scetbon:21b`.
+    gamma
+        Only in low-rank setting: the (inverse of the) gradient step size used by the mirror descent algorithm
+        (:cite:`scetbon:22b`).
+    gamma_rescale
+        Only in low-rank setting: whether to rescale `gamma` every iteration as described in :cite:`scetbon:22b`.
     initializer_kwargs
         Keyword arguments for the initializer.
     linear_solver_kwargs
@@ -204,6 +209,8 @@ class GWSolver(OTTJaxSolver):
     def __init__(
         self,
         rank: int = -1,
+        gamma: float = 10.0,
+        gamma_rescale: bool = True,
         initializer_kwargs: Mapping[str, Any] = MappingProxyType({}),
         linear_solver_kwargs: Mapping[str, Any] = MappingProxyType({}),
         **kwargs: Any,
@@ -213,7 +220,7 @@ class GWSolver(OTTJaxSolver):
             kwargs["quad_initializer"] = kwargs.pop("initializer")
         if rank > -1:
             linear_ot_solver = LRSinkhorn(
-                rank=rank, **linear_solver_kwargs
+                rank=rank, gamma=gamma, gamma_rescale=gamma_rescale, **linear_solver_kwargs
             )  # initialization handled by quad_initializer
         else:
             linear_ot_solver = Sinkhorn(**linear_solver_kwargs)  # initialization handled by quad_initializer
