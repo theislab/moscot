@@ -251,7 +251,7 @@ gamma
     Only in low-rank setting: the (inverse of the) gradient step size used by the mirror descent algorithm
     (:cite:`scetbon:22b`).
 gamma_rescale
-    Only in low-rank setting: whether to rescale :math:`\\gamma` every iteration as described in :cite:`scetbon:22b`.
+    Only in low-rank setting: whether to rescale `gamma` every iteration as described in :cite:`scetbon:22b`.
 """
 _gw_kwargs = """\
 min_iterations
@@ -260,16 +260,8 @@ max_iterations
     Maximal number of outer Gromov-Wasserstein iterations.
 threshold
     Threshold used as convergence criterion for the outer Gromov-Wasserstein loop.
-warm_start
-    Whether to initialize (low-rank) Sinkhorn calls using values
-    from the previous iteration. If `None`, warm starts are not used for
-    standard Sinkhorn, but used for low-rank Sinkhorn.
 """
 _gw_lr_kwargs = """\
-gw_unbalanced_correction
-    Whether the unbalanced version of
-    :cite:`sejourne:21` is used. Otherwise ``tau_a`` and ``tau_b`` only affect
-    the inner Sinkhorn loop.
 ranks
     Ranks of the cost matrices, see
     :meth:`~ott.geometry.geometry.Geometry.to_LRCGeometry`. Used when
@@ -292,10 +284,6 @@ cost
     Cost between two points in dimension d. Only used if no precomputed cost matrix is passed.
 """
 _pointcloud_kwargs = """\
-power
-    a power to raise `(cost_fn(x,y)) ** . / 2.0`. As a result,
-    `power`=2.0 is the default and means no change is applied to the output of
-    `cost_fn`. Only used if no precomputed cost matrix is passed.
 batch_size
     Number of data points the matrix-vector products are applied to at the same time. The larger, the more memory
     is required. Only used if no precomputed cost matrix is used.
