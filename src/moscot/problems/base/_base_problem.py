@@ -319,17 +319,14 @@ class OTProblem(BaseProblem):
         """
         self._solver = self._problem_kind.solver(backend=backend, **kwargs)
 
-        a = kwargs.pop("a", self._a)
-        b = kwargs.pop("b", self._b)
-
         # TODO: add ScaleCost(scale_cost)
 
         self._solution = self._solver(  # type: ignore[misc]
             xy=self._xy,
             x=self._x,
             y=self._y,
-            a=a,
-            b=b,
+            a=self.a,
+            b=self.b,
             device=device,
             **kwargs,
         )
