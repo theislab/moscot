@@ -202,7 +202,7 @@ initializer
         - `k-means` :cite:`scetbon:22b`
         - `generalized-k-means` :cite:`scetbon:22b`
 
-    If `None`, the default for not low rank is `default`, for low rank it is `rank2`.
+    If `None`, the default for full low rank `default`, for low rank it is `rank2`.
 """
 _initializer_quad = """\
 initializer

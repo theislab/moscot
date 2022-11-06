@@ -114,7 +114,7 @@ gw_args_1 = {  # no gamma/gamma_rescale/tolerances/ranks as these are LR-specifi
     "scale_cost": "max_cost",
     "rank": -1,
     "batch_size": 122,
-    "initializer": None,  # full rank only suppo
+    "initializer": None,
     "initializer_kwargs": {},
     "jit": True,
     "threshold": 3e-2,
