@@ -277,6 +277,8 @@ def simulate_data(
                 leaf_names=[adata[adata.obs[key] == i].obs_names],
                 seed=seed,
             )[0]
+    if quad_term == "spatial":
+        adata.obsm["spatial"] = rng.normal(size=(adata.n_obs, 2))
     if quad_term == "barcode":
         raise NotImplementedError
     return adata

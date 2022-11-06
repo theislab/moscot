@@ -14,7 +14,7 @@ from ott.core.linear_problems import LinearProblem
 from ott.core.gromov_wasserstein import GromovWasserstein
 import jax.numpy as jnp
 
-from moscot._types import ArrayLike
+from moscot._types import ArrayLike, QuadInitializer_t, SinkhornInitializer_t
 from moscot._constants._enum import ModeEnum
 from moscot.backends.ott._output import OTTOutput
 from moscot.problems.base._utils import _filter_kwargs
@@ -134,6 +134,9 @@ class SinkhornSolver(OTTJaxSolver):
     rank
         Rank of the linear solver. If `-1`, use :class:`~ott.core.sinkhorn.Sinkhorn` :cite:`cuturi:2013`,
         otherwise, use :class:`~ott.core.sinkhorn_lr.LRSinkhorn` :cite:`scetbon:21a`.
+    initializer
+        Initializer for :class:`~ott.core.sinkhorn.Sinkhorn` or :class:`~ott.core.sinkhorn_lr.LRSinkhorn`,
+        depending on the ``rank``.
     initializer_kwargs
         Keyword arguments for the initializer.
     kwargs
@@ -141,14 +144,22 @@ class SinkhornSolver(OTTJaxSolver):
         depending on the ``rank``.
     """
 
-    def __init__(self, rank: int = -1, initializer_kwargs: Mapping[str, Any] = MappingProxyType({}), **kwargs: Any):
+    def __init__(
+        self,
+        rank: int = -1,
+        initializer: SinkhornInitializer_t = None,
+        initializer_kwargs: Mapping[str, Any] = MappingProxyType({}),
+        **kwargs: Any,
+    ):
         super().__init__()
         if rank > -1:
             kwargs = _filter_kwargs(Sinkhorn, LRSinkhorn, **kwargs)
-            self._solver = LRSinkhorn(rank=rank, kwargs_init=initializer_kwargs, **kwargs)
+            initializer = initializer if initializer is not None else "rank2"  # set rank2 as default LR initializer
+            self._solver = LRSinkhorn(rank=rank, initializer=initializer, kwargs_init=initializer_kwargs, **kwargs)
         else:
             kwargs = _filter_kwargs(Sinkhorn, **kwargs)
-            self._solver = Sinkhorn(kwargs_init=initializer_kwargs, **kwargs)
+            initializer = initializer if initializer is not None else "default"  # `None` not handled by backend
+            self._solver = Sinkhorn(initializer=initializer, kwargs_init=initializer_kwargs, **kwargs)
 
     def _prepare(
         self,
@@ -192,6 +203,8 @@ class GWSolver(OTTJaxSolver):
     rank
         Rank of the quadratic solver. If `-1` use the full-rank GW :cite:`memoli:2011`,
         otherwise, use the low-rank approach :cite:`scetbon:21b`.
+    initializer
+        Initializer for :class:`~ott.core.gromov_wasserstein.GromovWasserstein`.
     gamma
         Only in low-rank setting: the (inverse of the) gradient step size used by the mirror descent algorithm
         (:cite:`scetbon:22b`).
@@ -209,6 +222,7 @@ class GWSolver(OTTJaxSolver):
     def __init__(
         self,
         rank: int = -1,
+        initializer: QuadInitializer_t = None,
         gamma: float = 10.0,
         gamma_rescale: bool = True,
         initializer_kwargs: Mapping[str, Any] = MappingProxyType({}),
@@ -216,17 +230,21 @@ class GWSolver(OTTJaxSolver):
         **kwargs: Any,
     ):
         super().__init__()
-        if "initializer" in kwargs:  # rename arguments
-            kwargs["quad_initializer"] = kwargs.pop("initializer")
         if rank > -1:
+            initializer = initializer if initializer is not None else "rank2"
             linear_ot_solver = LRSinkhorn(
                 rank=rank, gamma=gamma, gamma_rescale=gamma_rescale, **linear_solver_kwargs
             )  # initialization handled by quad_initializer
         else:
-            linear_ot_solver = Sinkhorn(**linear_solver_kwargs)  # initialization handled by quad_initializer
+            initializer = None
+            linear_ot_solver = Sinkhorn(**linear_solver_kwargs)
         kwargs = _filter_kwargs(GromovWasserstein, WassersteinSolver, **kwargs)
         self._solver = GromovWasserstein(
-            rank=rank, linear_ot_solver=linear_ot_solver, kwargs_init=initializer_kwargs, **kwargs
+            rank=rank,
+            linear_ot_solver=linear_ot_solver,
+            quad_initializer=initializer,
+            kwargs_init=initializer_kwargs,
+            **kwargs,
         )
 
     def _prepare(
@@ -281,6 +299,8 @@ class FGWSolver(GWSolver):
     rank
         Rank of the quadratic solver. If `-1` use the full-rank GW :cite:`memoli:2011`,
         otherwise, use the low-rank approach :cite:`scetbon:21b`.
+    initializer
+        `quad_initializer` of :class:`~ott.core.gromov_wasserstein.GromovWasserstein`.
     initializer_kwargs
         Keyword arguments for the initializer.
     linear_solver_kwargs
