@@ -21,10 +21,6 @@ class SinkhornProblem(CompoundProblem[K, B], GenericAnalysisMixin[K, B]):
     Parameters
     ----------
     %(adata)s
-
-    Examples
-    --------
-    See notebook TODO(@MUCDK) LINK NOTEBOOK for how to use it
     """
 
     def __init__(self, adata: AnnData, **kwargs: Any):
@@ -186,10 +182,6 @@ class GWProblem(CompoundProblem[K, B], GenericAnalysisMixin[K, B]):
     Parameters
     ----------
     %(adata)s
-
-    Examples
-    --------
-    See notebook TODO(@MUCDK) LINK NOTEBOOK for how to use it
     """
 
     def __init__(self, adata: AnnData, **kwargs: Any):
@@ -349,10 +341,6 @@ class FGWProblem(GWProblem[K, B]):
     Parameters
     ----------
     %(adata)s
-
-    Examples
-    --------
-    See notebook TODO(@MUCDK) LINK NOTEBOOK for how to use it
     """
 
     @d.dedent
