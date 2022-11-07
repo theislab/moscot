@@ -7,6 +7,7 @@ from moscot._types import ScaleCost_t, ProblemStage_t, QuadInitializer_t, Sinkho
 from moscot._docs._docs import d
 from moscot.problems.base import OTProblem, CompoundProblem  # type: ignore[attr-defined]
 from moscot.problems._utils import handle_joint_attr
+from moscot._docs._docs_references import d_references
 from moscot.problems.generic._mixins import GenericAnalysisMixin
 from moscot.problems.base._compound_problem import B, K
 
@@ -30,6 +31,7 @@ class SinkhornProblem(CompoundProblem[K, B], GenericAnalysisMixin[K, B]):
     def __init__(self, adata: AnnData, **kwargs: Any):
         super().__init__(adata, **kwargs)
 
+    @d_references.dedent
     @d.dedent
     def prepare(
         self,
@@ -61,6 +63,10 @@ class SinkhornProblem(CompoundProblem[K, B], GenericAnalysisMixin[K, B]):
         Notes
         -----
         If `a` and `b` are provided `marginal_kwargs` are ignored.
+
+        Examples
+        --------
+        %(ex_prepare)s
         """
         self.batch_key = key
         if joint_attr is None:
@@ -89,6 +95,8 @@ class SinkhornProblem(CompoundProblem[K, B], GenericAnalysisMixin[K, B]):
             **kwargs,
         )
 
+    @d.dedent
+    @d_references.dedent
     def solve(
         self,
         epsilon: Optional[float] = 1e-3,
@@ -135,6 +143,10 @@ class SinkhornProblem(CompoundProblem[K, B], GenericAnalysisMixin[K, B]):
         Returns
         -------
         :class:`moscot.problems.generic.SinkhornProblem`.
+
+        Examples
+        --------
+        %(ex_solve_linear)s
         """
         return super().solve(
             epsilon=epsilon,
@@ -186,6 +198,7 @@ class GWProblem(CompoundProblem[K, B], GenericAnalysisMixin[K, B]):
     def __init__(self, adata: AnnData, **kwargs: Any):
         super().__init__(adata, **kwargs)
 
+    @d_references.dedent
     @d.dedent
     def prepare(
         self,
@@ -219,6 +232,10 @@ class GWProblem(CompoundProblem[K, B], GenericAnalysisMixin[K, B]):
         Notes
         -----
         If `a` and `b` are provided `marginal_kwargs` are ignored.
+
+        Examples
+        --------
+        %(ex_prepare)s
         """
         self.batch_key = key
         if not (len(GW_x) and len(GW_y)) and "cost_matrices" not in self.adata.obsp:
@@ -244,6 +261,7 @@ class GWProblem(CompoundProblem[K, B], GenericAnalysisMixin[K, B]):
         )
 
     @d.dedent
+    @d_references.dedent
     def solve(
         self,
         epsilon: Optional[float] = 1e-3,
@@ -291,6 +309,10 @@ class GWProblem(CompoundProblem[K, B], GenericAnalysisMixin[K, B]):
         Returns
         -------
         :class:`moscot.problems.generic.GWProblem`.
+
+        Examples
+        --------
+        %(ex_solve_quadratic)s
         """
         return super().solve(
             epsilon=epsilon,
@@ -338,6 +360,7 @@ class FGWProblem(GWProblem[K, B]):
     See notebook TODO(@MUCDK) LINK NOTEBOOK for how to use it
     """
 
+    @d_references.dedent
     @d.dedent
     def prepare(
         self,
@@ -373,11 +396,16 @@ class FGWProblem(GWProblem[K, B]):
         Notes
         -----
         If `a` and `b` are provided `marginal_kwargs` are ignored.
+
+        Examples
+        --------
+        %(ex_prepare)s
         """
         xy, kwargs = handle_joint_attr(joint_attr, kwargs)
         return super().prepare(key=key, GW_x=GW_x, GW_y=GW_y, xy=xy, policy=policy, cost=cost, a=a, b=b, **kwargs)
 
     @d.dedent
+    @d_references.dedent
     def solve(
         self,
         alpha: Optional[float] = 0.5,
@@ -427,6 +455,10 @@ class FGWProblem(GWProblem[K, B]):
         Returns
         -------
         :class:`moscot.problems.generic.FGWProblem`.
+
+        Examples
+        --------
+        %(ex_solve_quadratic)s
         """
         return super().solve(
             alpha=alpha,

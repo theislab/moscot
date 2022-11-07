@@ -40,6 +40,7 @@ class TemporalProblem(
     def __init__(self, adata: AnnData, **kwargs: Any):
         super().__init__(adata, **kwargs)
 
+    @d_references.dedent
     @d.dedent
     def prepare(
         self,
@@ -71,16 +72,13 @@ class TemporalProblem(
         -------
         :class:`moscot.problems.time.TemporalProblem`.
 
-        Raises
-        ------
-        KeyError
-            If `time_key` is not in :attr:`anndata.AnnData.obs`.
-        KeyError
-            If `joint_attr` is a string and cannot be found in :attr:`anndata.AnnData.obsm`.
-
         Notes
         -----
         If `a` and `b` are provided `marginal_kwargs` are ignored.
+
+        Examples
+        --------
+        %(ex_prepare)s
         """
         self.temporal_key = time_key
         policy = Policy(policy)  # type: ignore[assignment]
@@ -303,6 +301,7 @@ class LineageProblem(TemporalProblem):
     %(adata)s
     """
 
+    @d_references.dedent
     @d.dedent
     def prepare(
         self,
@@ -336,16 +335,9 @@ class LineageProblem(TemporalProblem):
         -------
         :class:`moscot.problems.time.LineageProblem`
 
-        Raises
-        ------
-        KeyError
-            If `time_key` is not in :attr:`anndata.AnnData.obs`.
-        KeyError
-            If `joint_attr` is a string and cannot be found in :attr:`anndata.AnnData.obsm`.
-        ValueError
-            If :attr:`adata.obsp` has no attribute `cost_matrices`.
-        TypeError
-            If `joint_attr` is not None, not a :class:`str` and not a :class:`dict`
+        Examples
+        --------
+        %(ex_prepare)s
         """
         if not len(lineage_attr) and ("cost_matrices" not in self.adata.obsp):
             raise KeyError("Unable to find cost matrices in `adata.obsp['cost_matrices']`.")

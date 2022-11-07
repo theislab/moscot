@@ -8,6 +8,7 @@ from moscot._docs._docs import d
 from moscot._constants._key import Key
 from moscot._constants._constants import Policy
 from moscot.problems.time._mixins import TemporalMixin
+from moscot._docs._docs_references import d_references
 from moscot.problems.space._mixins import SpatialAlignmentMixin
 from moscot.problems.space._alignment import AlignmentProblem
 from moscot.problems.base._birth_death import BirthDeathMixin, BirthDeathProblem
@@ -26,6 +27,7 @@ class SpatioTemporalProblem(
     def __init__(self, adata: AnnData, **kwargs: Any):
         super().__init__(adata, **kwargs)
 
+    @d_references.dedent
     @d.dedent
     def prepare(
         self,
@@ -59,22 +61,13 @@ class SpatioTemporalProblem(
         -------
         :class:`moscot.problems.spatio_temporal.SpatioTemporalProblem`.
 
-        Raises
-        ------
-        KeyError
-            If `time_key` is not in :attr:`anndata.AnnData.obs`.
-        KeyError
-            If `spatial_key` is not in :attr:`anndata.AnnData.obs`.
-        KeyError
-            If `joint_attr` is a string and cannot be found in :attr:`anndata.AnnData.obsm`.
-        ValueError
-            If :attr:`adata.obsp` has no attribute `cost_matrices`.
-        TypeError
-            If `joint_attr` is not None, not a :class:`str` and not a :class:`dict`.
-
         Notes
         -----
         If `a` and `b` are provided `marginal_kwargs` are ignored.
+
+        Examples
+        --------
+        %(ex_prepare)s
         """
         # spatial key set in AlignmentProblem
         self.temporal_key = time_key
@@ -92,6 +85,7 @@ class SpatioTemporalProblem(
         )
 
     @d.dedent
+    @d_references.dedent
     def solve(
         self,
         alpha: Optional[float] = 0.5,
@@ -141,6 +135,10 @@ class SpatioTemporalProblem(
         Returns
         -------
         :class:`moscot.problems.space.SpatioTemporalProblem`.
+
+        Examples
+        --------
+        %(ex_solve_quadratic)s
         """
         return super().solve(
             alpha=alpha,

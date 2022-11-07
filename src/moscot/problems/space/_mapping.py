@@ -8,6 +8,7 @@ from moscot._docs._docs import d
 from moscot._constants._key import Key
 from moscot.problems._utils import handle_joint_attr
 from moscot._constants._constants import Policy
+from moscot._docs._docs_references import d_references
 from moscot.problems.space._mixins import SpatialMappingMixin
 from moscot.problems._subset_policy import DummyPolicy, ExternalStarPolicy
 from moscot.problems.base._base_problem import OTProblem
@@ -29,10 +30,6 @@ class MappingProblem(CompoundProblem[K, OTProblem], SpatialMappingMixin[K, OTPro
         Instance of :class:`anndata.AnnData` containing the single cell data.
     adata_sp
         Instance of :class:`anndata.AnnData` containing the spatial data.
-
-    Examples
-    --------
-    See notebook TODO(@giovp) LINK NOTEBOOK for how to use it.
     """
 
     def __init__(self, adata_sc: AnnData, adata_sp: AnnData, **kwargs: Any):
@@ -73,6 +70,7 @@ class MappingProblem(CompoundProblem[K, OTProblem], SpatialMappingMixin[K, OTPro
             **kwargs,
         )
 
+    @d_references.dedent
     @d.dedent
     def prepare(
         self,
@@ -112,6 +110,10 @@ class MappingProblem(CompoundProblem[K, OTProblem], SpatialMappingMixin[K, OTPro
         Returns
         -------
         :class:`moscot.problems.space.MappingProblem`.
+
+        Examples
+        --------
+        %(ex_prepare)s
         """
         x = {"attr": "obsm", "key": spatial_key} if isinstance(spatial_key, str) else spatial_key
         y = {"attr": "obsm", "key": sc_attr} if isinstance(sc_attr, str) else sc_attr
@@ -127,6 +129,7 @@ class MappingProblem(CompoundProblem[K, OTProblem], SpatialMappingMixin[K, OTPro
         return super().prepare(x=x, y=y, policy="external_star", key=batch_key, cost=cost, a=a, b=b, **kwargs)
 
     @d.dedent
+    @d_references.dedent
     def solve(
         self,
         alpha: Optional[float] = 0.5,
@@ -176,6 +179,10 @@ class MappingProblem(CompoundProblem[K, OTProblem], SpatialMappingMixin[K, OTPro
         Returns
         -------
         :class:`moscot.problems.space.MappingProblem`.
+
+        Examples
+        --------
+        %(ex_solve_quadratic)s
         """
         return super().solve(
             alpha=alpha,
