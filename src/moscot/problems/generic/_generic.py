@@ -7,7 +7,6 @@ from moscot._types import ScaleCost_t, ProblemStage_t, QuadInitializer_t, Sinkho
 from moscot._docs._docs import d
 from moscot.problems.base import OTProblem, CompoundProblem  # type: ignore[attr-defined]
 from moscot.problems._utils import handle_joint_attr
-from moscot._docs._docs_references import d_references
 from moscot.problems.generic._mixins import GenericAnalysisMixin
 from moscot.problems.base._compound_problem import B, K
 
@@ -31,7 +30,6 @@ class SinkhornProblem(CompoundProblem[K, B], GenericAnalysisMixin[K, B]):
     def __init__(self, adata: AnnData, **kwargs: Any):
         super().__init__(adata, **kwargs)
 
-    @d_references.dedent
     @d.dedent
     def prepare(
         self,
@@ -96,7 +94,6 @@ class SinkhornProblem(CompoundProblem[K, B], GenericAnalysisMixin[K, B]):
         )
 
     @d.dedent
-    @d_references.dedent
     def solve(
         self,
         epsilon: Optional[float] = 1e-3,
@@ -198,7 +195,6 @@ class GWProblem(CompoundProblem[K, B], GenericAnalysisMixin[K, B]):
     def __init__(self, adata: AnnData, **kwargs: Any):
         super().__init__(adata, **kwargs)
 
-    @d_references.dedent
     @d.dedent
     def prepare(
         self,
@@ -261,7 +257,6 @@ class GWProblem(CompoundProblem[K, B], GenericAnalysisMixin[K, B]):
         )
 
     @d.dedent
-    @d_references.dedent
     def solve(
         self,
         epsilon: Optional[float] = 1e-3,
@@ -360,7 +355,6 @@ class FGWProblem(GWProblem[K, B]):
     See notebook TODO(@MUCDK) LINK NOTEBOOK for how to use it
     """
 
-    @d_references.dedent
     @d.dedent
     def prepare(
         self,
@@ -405,7 +399,6 @@ class FGWProblem(GWProblem[K, B]):
         return super().prepare(key=key, GW_x=GW_x, GW_y=GW_y, xy=xy, policy=policy, cost=cost, a=a, b=b, **kwargs)
 
     @d.dedent
-    @d_references.dedent
     def solve(
         self,
         alpha: Optional[float] = 0.5,

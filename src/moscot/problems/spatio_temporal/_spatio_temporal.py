@@ -8,7 +8,6 @@ from moscot._docs._docs import d
 from moscot._constants._key import Key
 from moscot._constants._constants import Policy
 from moscot.problems.time._mixins import TemporalMixin
-from moscot._docs._docs_references import d_references
 from moscot.problems.space._mixins import SpatialAlignmentMixin
 from moscot.problems.space._alignment import AlignmentProblem
 from moscot.problems.base._birth_death import BirthDeathMixin, BirthDeathProblem
@@ -27,7 +26,6 @@ class SpatioTemporalProblem(
     def __init__(self, adata: AnnData, **kwargs: Any):
         super().__init__(adata, **kwargs)
 
-    @d_references.dedent
     @d.dedent
     def prepare(
         self,
@@ -85,7 +83,6 @@ class SpatioTemporalProblem(
         )
 
     @d.dedent
-    @d_references.dedent
     def solve(
         self,
         alpha: Optional[float] = 0.5,

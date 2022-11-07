@@ -13,7 +13,6 @@ from moscot.problems._utils import handle_joint_attr
 from moscot.solvers._output import BaseSolverOutput
 from moscot._constants._constants import Policy
 from moscot.problems.time._mixins import TemporalMixin
-from moscot._docs._docs_references import d_references
 from moscot.problems.base._birth_death import BirthDeathMixin, BirthDeathProblem
 from moscot.problems.base._compound_problem import B, CompoundProblem
 
@@ -40,7 +39,6 @@ class TemporalProblem(
     def __init__(self, adata: AnnData, **kwargs: Any):
         super().__init__(adata, **kwargs)
 
-    @d_references.dedent
     @d.dedent
     def prepare(
         self,
@@ -105,7 +103,6 @@ class TemporalProblem(
         )
 
     @d.dedent
-    @d_references.dedent
     def solve(
         self,
         epsilon: Optional[float] = 1e-3,
@@ -301,7 +298,6 @@ class LineageProblem(TemporalProblem):
     %(adata)s
     """
 
-    @d_references.dedent
     @d.dedent
     def prepare(
         self,
@@ -364,7 +360,6 @@ class LineageProblem(TemporalProblem):
         )
 
     @d.dedent
-    @d_references.dedent
     def solve(
         self,
         alpha: Optional[float] = 0.5,

@@ -6,7 +6,6 @@ from moscot._docs._docs import d
 from moscot._constants._key import Key
 from moscot.problems._utils import handle_joint_attr
 from moscot._constants._constants import Policy
-from moscot._docs._docs_references import d_references
 from moscot.problems.space._mixins import SpatialAlignmentMixin
 from moscot.problems.base._base_problem import OTProblem
 from moscot.problems.base._compound_problem import B, K, CompoundProblem
@@ -26,7 +25,6 @@ class AlignmentProblem(CompoundProblem[K, B], SpatialAlignmentMixin[K, B]):
     %(adata)s
     """
 
-    @d_references.dedent
     @d.dedent
     def prepare(
         self,
@@ -80,7 +78,6 @@ class AlignmentProblem(CompoundProblem[K, B], SpatialAlignmentMixin[K, B]):
         )
 
     @d.dedent
-    @d_references.dedent
     def solve(
         self,
         alpha: Optional[float] = 0.5,

@@ -8,7 +8,6 @@ from moscot._docs._docs import d
 from moscot._constants._key import Key
 from moscot.problems._utils import handle_joint_attr
 from moscot._constants._constants import Policy
-from moscot._docs._docs_references import d_references
 from moscot.problems.space._mixins import SpatialMappingMixin
 from moscot.problems._subset_policy import DummyPolicy, ExternalStarPolicy
 from moscot.problems.base._base_problem import OTProblem
@@ -70,7 +69,6 @@ class MappingProblem(CompoundProblem[K, OTProblem], SpatialMappingMixin[K, OTPro
             **kwargs,
         )
 
-    @d_references.dedent
     @d.dedent
     def prepare(
         self,
@@ -129,7 +127,6 @@ class MappingProblem(CompoundProblem[K, OTProblem], SpatialMappingMixin[K, OTPro
         return super().prepare(x=x, y=y, policy="external_star", key=batch_key, cost=cost, a=a, b=b, **kwargs)
 
     @d.dedent
-    @d_references.dedent
     def solve(
         self,
         alpha: Optional[float] = 0.5,
