@@ -155,10 +155,7 @@ class TemporalProblem(
 
         Examples
         --------
-        See :ref:`sphx_glr_auto_examples_solvers_ex_linear_problems_basic.py` for a basic example
-        how to solve linear problems.
-        See :ref:`sphx_glr_auto_examples_solvers_ex_linear_problems_advanced.py` for an advanced
-        example how to solve linear problems.
+        %(solve_linear)s
         """
         return super().solve(
             epsilon=epsilon,
@@ -302,10 +299,6 @@ class LineageProblem(TemporalProblem):
     Parameters
     ----------
     %(adata)s
-
-    Examples
-    --------
-    See notebook TODO(@MUCDK) LINK NOTEBOOK for how to use it.
     """
 
     @d.dedent
@@ -429,10 +422,7 @@ class LineageProblem(TemporalProblem):
 
         Examples
         --------
-        See :ref:`sphx_glr_auto_examples_solvers_ex_quad_problems_basic.py` for a basic example
-        how to solve quadratic problems.
-        See :ref:`sphx_glr_auto_examples_solvers_ex_quad_problems_advanced.py` for an advanced
-        example how to solve quadratic problems.
+        %(solve_quadratic)s
         """
         return super().solve(
             alpha=alpha,
