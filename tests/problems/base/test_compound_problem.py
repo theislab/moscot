@@ -184,3 +184,17 @@ class TestCompoundProblem:
 
         p = Problem.load(file)
         assert isinstance(p, Problem)
+
+    def test_save_load_solved(self, adata_time: AnnData):
+        dir_path = "tests/data"
+        file_prefix = "test_save_load"
+        file = os.path.join(dir_path, f"{file_prefix}_Problem.pkl")
+        if os.path.exists(file):
+            os.remove(file)
+        problem = Problem(adata=adata_time)
+        problem = problem.prepare(xy={"x_attr": "X", "y_attr": "X"}, key="time")
+        problem = problem.solve(max_iterations=10)
+        problem.save(dir_path=dir_path, file_prefix=file_prefix)
+
+        p = Problem.load(file)
+        assert isinstance(p, Problem)
