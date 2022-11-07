@@ -34,9 +34,6 @@ class TemporalProblem(
     ----------
     %(adata)s
 
-    Examples
-    --------
-    See notebook TODO(@MUCDK) LINK NOTEBOOK for how to use it.
     """
 
     def __init__(self, adata: AnnData, **kwargs: Any):
@@ -155,6 +152,13 @@ class TemporalProblem(
         Returns
         -------
         :class:`moscot.problems.time.TemporalProblem`.
+
+        Examples
+        --------
+        See :ref:`sphx_glr_auto_examples_solvers_ex_linear_problems_basic.py` for a basic example
+        how to solve linear problems.
+        See :ref:`sphx_glr_auto_examples_solvers_ex_linear_problems_advanced.py` for an advanced
+        example how to solve linear problems.
         """
         return super().solve(
             epsilon=epsilon,
@@ -422,6 +426,13 @@ class LineageProblem(TemporalProblem):
         Returns
         -------
         :class:`moscot.problems.time.LineageProblem`
+
+        Examples
+        --------
+        See :ref:`sphx_glr_auto_examples_solvers_ex_quad_problems_basic.py` for a basic example
+        how to solve quadratic problems.
+        See :ref:`sphx_glr_auto_examples_solvers_ex_quad_problems_advanced.py` for an advanced
+        example how to solve quadratic problems.
         """
         return super().solve(
             alpha=alpha,
