@@ -34,9 +34,6 @@ class TemporalProblem(
     ----------
     %(adata)s
 
-    Examples
-    --------
-    See notebook TODO(@MUCDK) LINK NOTEBOOK for how to use it.
     """
 
     def __init__(self, adata: AnnData, **kwargs: Any):
@@ -73,16 +70,13 @@ class TemporalProblem(
         -------
         :class:`moscot.problems.time.TemporalProblem`.
 
-        Raises
-        ------
-        KeyError
-            If `time_key` is not in :attr:`anndata.AnnData.obs`.
-        KeyError
-            If `joint_attr` is a string and cannot be found in :attr:`anndata.AnnData.obsm`.
-
         Notes
         -----
         If `a` and `b` are provided `marginal_kwargs` are ignored.
+
+        Examples
+        --------
+        %(ex_prepare)s
         """
         self.temporal_key = time_key
         policy = Policy(policy)  # type: ignore[assignment]
@@ -155,6 +149,10 @@ class TemporalProblem(
         Returns
         -------
         :class:`moscot.problems.time.TemporalProblem`.
+
+        Examples
+        --------
+        %(ex_solve_linear)s
         """
         return super().solve(
             epsilon=epsilon,
@@ -298,10 +296,6 @@ class LineageProblem(TemporalProblem):
     Parameters
     ----------
     %(adata)s
-
-    Examples
-    --------
-    See notebook TODO(@MUCDK) LINK NOTEBOOK for how to use it.
     """
 
     @d.dedent
@@ -337,16 +331,9 @@ class LineageProblem(TemporalProblem):
         -------
         :class:`moscot.problems.time.LineageProblem`
 
-        Raises
-        ------
-        KeyError
-            If `time_key` is not in :attr:`anndata.AnnData.obs`.
-        KeyError
-            If `joint_attr` is a string and cannot be found in :attr:`anndata.AnnData.obsm`.
-        ValueError
-            If :attr:`adata.obsp` has no attribute `cost_matrices`.
-        TypeError
-            If `joint_attr` is not None, not a :class:`str` and not a :class:`dict`
+        Examples
+        --------
+        %(ex_prepare)s
         """
         if not len(lineage_attr) and ("cost_matrices" not in self.adata.obsp):
             raise KeyError("Unable to find cost matrices in `adata.obsp['cost_matrices']`.")
@@ -422,6 +409,10 @@ class LineageProblem(TemporalProblem):
         Returns
         -------
         :class:`moscot.problems.time.LineageProblem`
+
+        Examples
+        --------
+        %(ex_solve_quadratic)s
         """
         return super().solve(
             alpha=alpha,

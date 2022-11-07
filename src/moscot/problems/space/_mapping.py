@@ -29,10 +29,6 @@ class MappingProblem(CompoundProblem[K, OTProblem], SpatialMappingMixin[K, OTPro
         Instance of :class:`anndata.AnnData` containing the single cell data.
     adata_sp
         Instance of :class:`anndata.AnnData` containing the spatial data.
-
-    Examples
-    --------
-    See notebook TODO(@giovp) LINK NOTEBOOK for how to use it.
     """
 
     def __init__(self, adata_sc: AnnData, adata_sp: AnnData, **kwargs: Any):
@@ -112,6 +108,10 @@ class MappingProblem(CompoundProblem[K, OTProblem], SpatialMappingMixin[K, OTPro
         Returns
         -------
         :class:`moscot.problems.space.MappingProblem`.
+
+        Examples
+        --------
+        %(ex_prepare)s
         """
         x = {"attr": "obsm", "key": spatial_key} if isinstance(spatial_key, str) else spatial_key
         y = {"attr": "obsm", "key": sc_attr} if isinstance(sc_attr, str) else sc_attr
@@ -176,6 +176,10 @@ class MappingProblem(CompoundProblem[K, OTProblem], SpatialMappingMixin[K, OTPro
         Returns
         -------
         :class:`moscot.problems.space.MappingProblem`.
+
+        Examples
+        --------
+        %(ex_solve_quadratic)s
         """
         return super().solve(
             alpha=alpha,

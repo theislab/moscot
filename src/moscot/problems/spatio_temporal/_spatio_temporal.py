@@ -59,22 +59,13 @@ class SpatioTemporalProblem(
         -------
         :class:`moscot.problems.spatio_temporal.SpatioTemporalProblem`.
 
-        Raises
-        ------
-        KeyError
-            If `time_key` is not in :attr:`anndata.AnnData.obs`.
-        KeyError
-            If `spatial_key` is not in :attr:`anndata.AnnData.obs`.
-        KeyError
-            If `joint_attr` is a string and cannot be found in :attr:`anndata.AnnData.obsm`.
-        ValueError
-            If :attr:`adata.obsp` has no attribute `cost_matrices`.
-        TypeError
-            If `joint_attr` is not None, not a :class:`str` and not a :class:`dict`.
-
         Notes
         -----
         If `a` and `b` are provided `marginal_kwargs` are ignored.
+
+        Examples
+        --------
+        %(ex_prepare)s
         """
         # spatial key set in AlignmentProblem
         self.temporal_key = time_key
@@ -141,6 +132,10 @@ class SpatioTemporalProblem(
         Returns
         -------
         :class:`moscot.problems.space.SpatioTemporalProblem`.
+
+        Examples
+        --------
+        %(ex_solve_quadratic)s
         """
         return super().solve(
             alpha=alpha,

@@ -23,10 +23,6 @@ class AlignmentProblem(CompoundProblem[K, B], SpatialAlignmentMixin[K, B]):
     Parameters
     ----------
     %(adata)s
-
-    Examples
-    --------
-    See notebook TODO(@giovp) LINK NOTEBOOK for how to use it
     """
 
     @d.dedent
@@ -66,6 +62,10 @@ class AlignmentProblem(CompoundProblem[K, B], SpatialAlignmentMixin[K, B]):
         Returns
         -------
         :class:`moscot.problems.space.MappingProblem`.
+
+        Examples
+        --------
+        %(ex_prepare)s
         """
         self.spatial_key = spatial_key
         self.batch_key = batch_key
@@ -127,6 +127,10 @@ class AlignmentProblem(CompoundProblem[K, B], SpatialAlignmentMixin[K, B]):
         Returns
         -------
         :class:`moscot.problems.space.AlignmentProblem`.
+
+        Examples
+        --------
+        %(ex_solve_quadratic)s
         """
         return super().solve(
             alpha=alpha,

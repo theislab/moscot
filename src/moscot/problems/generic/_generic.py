@@ -21,10 +21,6 @@ class SinkhornProblem(CompoundProblem[K, B], GenericAnalysisMixin[K, B]):
     Parameters
     ----------
     %(adata)s
-
-    Examples
-    --------
-    See notebook TODO(@MUCDK) LINK NOTEBOOK for how to use it
     """
 
     def __init__(self, adata: AnnData, **kwargs: Any):
@@ -61,6 +57,10 @@ class SinkhornProblem(CompoundProblem[K, B], GenericAnalysisMixin[K, B]):
         Notes
         -----
         If `a` and `b` are provided `marginal_kwargs` are ignored.
+
+        Examples
+        --------
+        %(ex_prepare)s
         """
         self.batch_key = key
         if joint_attr is None:
@@ -89,6 +89,7 @@ class SinkhornProblem(CompoundProblem[K, B], GenericAnalysisMixin[K, B]):
             **kwargs,
         )
 
+    @d.dedent
     def solve(
         self,
         epsilon: Optional[float] = 1e-3,
@@ -129,12 +130,16 @@ class SinkhornProblem(CompoundProblem[K, B], GenericAnalysisMixin[K, B]):
         %(jit)s
         %(sinkhorn_kwargs)s
         %(sinkhorn_lr_kwargs)s
-        %(device_solve)
+        %(device_solve)s
         %(kwargs_linear)s
 
         Returns
         -------
         :class:`moscot.problems.generic.SinkhornProblem`.
+
+        Examples
+        --------
+        %(ex_solve_linear)s
         """
         return super().solve(
             epsilon=epsilon,
@@ -177,10 +182,6 @@ class GWProblem(CompoundProblem[K, B], GenericAnalysisMixin[K, B]):
     Parameters
     ----------
     %(adata)s
-
-    Examples
-    --------
-    See notebook TODO(@MUCDK) LINK NOTEBOOK for how to use it
     """
 
     def __init__(self, adata: AnnData, **kwargs: Any):
@@ -219,6 +220,10 @@ class GWProblem(CompoundProblem[K, B], GenericAnalysisMixin[K, B]):
         Notes
         -----
         If `a` and `b` are provided `marginal_kwargs` are ignored.
+
+        Examples
+        --------
+        %(ex_prepare)s
         """
         self.batch_key = key
         if not (len(GW_x) and len(GW_y)) and "cost_matrices" not in self.adata.obsp:
@@ -291,6 +296,10 @@ class GWProblem(CompoundProblem[K, B], GenericAnalysisMixin[K, B]):
         Returns
         -------
         :class:`moscot.problems.generic.GWProblem`.
+
+        Examples
+        --------
+        %(ex_solve_quadratic)s
         """
         return super().solve(
             epsilon=epsilon,
@@ -332,10 +341,6 @@ class FGWProblem(GWProblem[K, B]):
     Parameters
     ----------
     %(adata)s
-
-    Examples
-    --------
-    See notebook TODO(@MUCDK) LINK NOTEBOOK for how to use it
     """
 
     @d.dedent
@@ -373,6 +378,10 @@ class FGWProblem(GWProblem[K, B]):
         Notes
         -----
         If `a` and `b` are provided `marginal_kwargs` are ignored.
+
+        Examples
+        --------
+        %(ex_prepare)s
         """
         xy, kwargs = handle_joint_attr(joint_attr, kwargs)
         return super().prepare(key=key, GW_x=GW_x, GW_y=GW_y, xy=xy, policy=policy, cost=cost, a=a, b=b, **kwargs)
@@ -427,6 +436,10 @@ class FGWProblem(GWProblem[K, B]):
         Returns
         -------
         :class:`moscot.problems.generic.FGWProblem`.
+
+        Examples
+        --------
+        %(ex_solve_quadratic)s
         """
         return super().solve(
             alpha=alpha,
