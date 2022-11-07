@@ -137,7 +137,7 @@ class SinkhornProblem(CompoundProblem[K, B], GenericAnalysisMixin[K, B]):
         %(jit)s
         %(sinkhorn_kwargs)s
         %(sinkhorn_lr_kwargs)s
-        %(device_solve)
+        %(device_solve)s
         %(kwargs_linear)s
 
         Returns
