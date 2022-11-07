@@ -96,7 +96,6 @@ class SinkhornProblem(CompoundProblem[K, B], GenericAnalysisMixin[K, B]):
         )
 
     @d.dedent
-    @d_references.dedent
     def solve(
         self,
         epsilon: Optional[float] = 1e-3,
@@ -146,7 +145,7 @@ class SinkhornProblem(CompoundProblem[K, B], GenericAnalysisMixin[K, B]):
 
         Examples
         --------
-        %(ex_solve_linear)s
+        pass
         """
         return super().solve(
             epsilon=epsilon,
