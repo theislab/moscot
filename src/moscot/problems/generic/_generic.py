@@ -142,10 +142,6 @@ class SinkhornProblem(CompoundProblem[K, B], GenericAnalysisMixin[K, B]):
         Returns
         -------
         :class:`moscot.problems.generic.SinkhornProblem`.
-
-        Examples
-        --------
-        pass
         """
         return super().solve(
             epsilon=epsilon,
