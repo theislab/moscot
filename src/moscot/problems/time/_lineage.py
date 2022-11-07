@@ -155,7 +155,7 @@ class TemporalProblem(
 
         Examples
         --------
-        %(solve_linear)s
+        %(ex_solve_linear)s
         """
         return super().solve(
             epsilon=epsilon,
@@ -422,7 +422,7 @@ class LineageProblem(TemporalProblem):
 
         Examples
         --------
-        %(solve_quadratic)s
+        %(ex_solve_quadratic)s
         """
         return super().solve(
             alpha=alpha,
