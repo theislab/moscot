@@ -18,9 +18,9 @@ from typing import (
     TYPE_CHECKING,
 )
 import os
-import pickle
 
 from scipy.sparse import issparse
+import cloudpickle
 
 from anndata import AnnData
 
@@ -441,12 +441,9 @@ class BaseCompoundProblem(BaseProblem, ABC, Generic[K, B]):
     # TODO(MUCKD): should be on the OT problem level as well
     def save(
         self,
-        # TODO(michalk8): rename arg, no optional
-        dir_path: Optional[str] = None,
+        dir_path: str,
         file_prefix: Optional[str] = None,
         overwrite: bool = False,
-        # TODO(michalk8): pass as kwargs
-        protocol: Literal["highest", "default"] = "highest",
     ) -> None:
         """
         Save the model.
@@ -461,14 +458,11 @@ class BaseCompoundProblem(BaseProblem, ABC, Generic[K, B]):
             Prefix to prepend to the file name.
         overwrite
             Overwrite existing data or not.
-        protocol
-            Pickle protocol to use.
 
         Returns
         -------
         None
         """
-        prot = pickle.HIGHEST_PROTOCOL if protocol == "highest" else pickle.DEFAULT_PROTOCOL
         file_name = (
             f"{file_prefix}_{self.__class__.__name__}.pkl"
             if file_prefix is not None
@@ -479,7 +473,7 @@ class BaseCompoundProblem(BaseProblem, ABC, Generic[K, B]):
         if not overwrite and os.path.exists(file_dir):
             raise RuntimeError(f"Unable to save to an existing file `{file_dir}` use `overwrite=True` to overwrite it.")
         with open(file_dir, "wb") as f:
-            pickle.dump(self, f, protocol=prot)
+            cloudpickle.dump(self, f)
 
         logger.info(f"Successfully saved the problem as `{file_dir}`")
 
@@ -507,7 +501,7 @@ class BaseCompoundProblem(BaseProblem, ABC, Generic[K, B]):
         >>> problem.push....
         """
         with open(filename, "rb") as f:
-            problem = pickle.load(f)
+            problem = cloudpickle.load(f)
         if type(problem) is not cls:
             raise TypeError(f"Expected the problem to be type of `{cls}`, found `{type(problem)}`.")
         return problem
