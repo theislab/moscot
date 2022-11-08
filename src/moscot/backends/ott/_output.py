@@ -1,8 +1,9 @@
-from typing import Any, Tuple, Union, Optional
+from typing import Any, Dict, List, Tuple, Union, Callable, Optional
 
 from matplotlib.figure import Figure
 import matplotlib.pyplot as plt
 
+from ott.core import potentials
 from ott.core.sinkhorn import SinkhornOutput as OTTSinkhornOutput
 from ott.core.sinkhorn_lr import LRSinkhornOutput as OTTLRSinkhornOutput
 from ott.core.gromov_wasserstein import GWOutput as OTTGWOutput
@@ -13,7 +14,9 @@ import jaxlib.xla_extension as xla_ext
 from moscot._types import Device_t, ArrayLike
 from moscot.solvers._output import BaseSolverOutput
 
-__all__ = ["OTTOutput"]
+__all__ = ["OTTOutput", "NeuralOutput"]
+
+Train_t = Dict[str, Dict[str, List[float]]]
 
 
 class ConvergencePlotterMixin:
@@ -161,3 +164,119 @@ class OTTOutput(ConvergencePlotterMixin, BaseSolverOutput):
 
     def _ones(self, n: int) -> jnp.ndarray:
         return jnp.ones((n,))
+
+
+class NeuralOutput(BaseSolverOutput):
+    """
+    Output representation of neural OT problems.
+    """
+
+    def __init__(self, output: potentials.DualPotentials, training_logs: Train_t):
+        self._output = output
+        self._training_logs = training_logs
+
+    def _apply(self, x: ArrayLike, *, forward: bool) -> ArrayLike:
+        return self._output.transport(x, forward=forward)
+
+    @property
+    def training_logs(self) -> Train_t:
+        """Training logs."""
+        return self._training_logs
+
+    @property
+    def shape(self) -> Tuple[int, int]:
+        """%(shape)s"""
+        raise NotImplementedError()
+
+    @property
+    def transport_matrix(self) -> ArrayLike:
+        """%(transport_matrix)s"""
+        raise NotImplementedError()
+
+    def to(
+        self,
+        device: Optional[Device_t] = None,
+    ) -> "NeuralOutput":
+        """
+        Transfer the output to another device or change its data type.
+        """
+        # TODO(michalk8): when polishing docs, move the definition to the base class + use docrep
+        if isinstance(device, str) and ":" in device:
+            device, ix = device.split(":")
+            idx = int(ix)
+        else:
+            idx = 0
+
+        if not isinstance(device, xla_ext.Device):
+            try:
+                device = jax.devices(device)[idx]
+            except IndexError:
+                raise IndexError(f"Unable to fetch the device with `id={idx}`.")
+
+        out = jax.device_put(self._output, device)
+        return NeuralOutput(out, self.training_logs)
+
+    @property
+    def cost(self) -> float:
+        """Predicted optimal transport cost."""
+        return round(self.training_logs["valid_logs"]["predicted_cost"][0], 4)
+
+    @property
+    def converged(self) -> bool:
+        """%(converged)s."""
+        # always return True for now
+        return True
+
+    @property
+    def potentials(  # type: ignore[override]
+        self,
+    ) -> Tuple[Callable[[jnp.ndarray], float], Callable[[jnp.ndarray], float]]:
+        """Returns the two learned potential functions."""
+        f = jax.vmap(self._output.f)
+        g = jax.vmap(self._output.g)
+        return f, g
+
+    def push(self, x: ArrayLike) -> ArrayLike:  # type: ignore[override]
+        if x.ndim not in (1, 2):
+            raise ValueError(f"Expected 1D or 2D array, found `{x.ndim}`.")
+        return self._apply(x, forward=True)
+
+    def pull(self, x: ArrayLike) -> ArrayLike:  # type: ignore[override]
+        if x.ndim not in (1, 2):
+            raise ValueError(f"Expected 1D or 2D array, found `{x.ndim}`.")
+        return self._apply(x, forward=False)
+
+    def push_potential(self, x: ArrayLike) -> ArrayLike:
+        if x.ndim not in (1, 2):
+            raise ValueError(f"Expected 1D or 2D array, found `{x.ndim}`.")
+        return jax.vmap(self._output.f)(x)
+
+    def pull_potential(self, x: ArrayLike) -> ArrayLike:
+        if x.ndim not in (1, 2):
+            raise ValueError(f"Expected 1D or 2D array, found `{x.ndim}`.")
+        return jax.vmap(self._output.g)(x)
+
+    @property
+    def a(self) -> ArrayLike:
+        """
+        Marginals of the source distribution.
+        """
+        raise NotImplementedError()
+
+    @property
+    def b(self) -> ArrayLike:
+        """
+        Marginals of the target distribution.
+        """
+        raise NotImplementedError()
+
+    def _ones(self, n: int) -> jnp.ndarray:
+        return jnp.ones((n,))
+
+    def _format_params(self, fmt: Callable[[Any], str]) -> str:
+        params = {
+            "predicted_cost": round(self.training_logs["valid_logs"]["predicted_cost"][0], 3),
+            "best_loss": round(self.training_logs["valid_logs"]["best_loss"][0], 3),
+            "sink_dist": round(self.training_logs["valid_logs"]["sink_dist"][0], 3),
+        }
+        return ", ".join(f"{name}={fmt(val)}" for name, val in params.items())

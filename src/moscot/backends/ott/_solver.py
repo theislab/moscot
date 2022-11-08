@@ -1,6 +1,7 @@
 from abc import ABC
 from types import MappingProxyType
-from typing import Any, Union, Literal, Mapping, Optional
+from typing import Any, Tuple, Union, Literal, Mapping, Optional
+import math
 
 from scipy.sparse import issparse
 
@@ -12,16 +13,19 @@ from ott.core.sinkhorn_lr import LRSinkhorn
 from ott.core.quad_problems import QuadraticProblem
 from ott.core.linear_problems import LinearProblem
 from ott.core.gromov_wasserstein import GromovWasserstein
+import jax
 import jax.numpy as jnp
 
 from moscot._types import ArrayLike
 from moscot._constants._enum import ModeEnum
-from moscot.backends.ott._output import OTTOutput
+from moscot.backends.ott._output import OTTOutput, NeuralOutput
 from moscot.problems.base._utils import _filter_kwargs
 from moscot.solvers._base_solver import OTSolver, ProblemKind
 from moscot.solvers._tagged_array import TaggedArray
+from moscot.backends.ott._jax_data import JaxSampler
+from moscot.backends.ott._neuraldual import NeuralDualSolver
 
-__all__ = ["OTTCost", "SinkhornSolver", "GWSolver", "FGWSolver"]
+__all__ = ["OTTCost", "SinkhornSolver", "GWSolver", "FGWSolver", "NeuralSolver"]
 
 Scale_t = Union[float, Literal["mean", "median", "max_cost", "max_norm", "max_bound"]]
 Epsilon_t = Union[float, Epsilon]
@@ -48,7 +52,7 @@ class OTTCost(ModeEnum):
         raise NotImplementedError(self.value)
 
 
-class OTTJaxSolver(OTSolver[OTTOutput], ABC):  # noqa: B024
+class OTTJaxSolver(OTSolver[OTTOutput], ABC):
     """Base class for :mod:`ott` solvers :cite:`cuturi2022optimal`."""
 
     def __init__(self):
@@ -331,3 +335,82 @@ class FGWSolver(GWSolver):
         if not (0 < alpha <= 1):
             raise ValueError(f"Expected `alpha` to be in interval `(0, 1]`, found `{alpha}`.")
         return (1 - alpha) / alpha
+
+
+class NeuralSolver(OTSolver[OTTOutput]):
+    """Solver class solving Neural Optimal Transport problems."""
+
+    def __init__(self, **kwargs: Any) -> None:
+        super().__init__()
+        self._train_sampler: Optional[JaxSampler] = None
+        self._valid_sampler: Optional[JaxSampler] = None
+        kwargs = _filter_kwargs(NeuralDualSolver, **kwargs)
+        self._solver = NeuralDualSolver(**kwargs)
+
+    def _prepare(  # type: ignore[override]
+        self,
+        xy: TaggedArray,
+        a: Optional[ArrayLike] = None,
+        **kwargs: Any,
+    ) -> Tuple[JaxSampler, JaxSampler]:
+        if xy.data_tgt is None:
+            raise ValueError(f"Unable to obtain target data from `xy={xy}`.")
+        x, y = self._assert2d(xy.data_src), self._assert2d(xy.data_tgt)
+        n, m = x.shape[1], y.shape[1]
+        if n != m:
+            raise ValueError(f"Expected `x/y` to have the same number of dimensions, found `{n}/{m}`.")
+        train_size = kwargs.pop("train_size", 1.0)
+        if train_size > 1.0 or train_size <= 0.0:
+            raise ValueError("Invalid train_size. Must be: 0 < train_size <= 1")
+        if train_size != 1.0:
+            seed = kwargs.pop("seed", 0)
+            train_x, train_y, valid_x, valid_y, a = self._split_data(x, y, train_size=train_size, seed=seed, a=a)
+        else:
+            train_x, train_y = x, y
+            valid_x, valid_y = x, y
+
+        kwargs = _filter_kwargs(JaxSampler, **kwargs)
+        self._train_sampler = JaxSampler(train_x, train_y, weighting=a, **kwargs)
+        self._valid_sampler = JaxSampler(valid_x, valid_y)
+        return (self._train_sampler, self._valid_sampler)
+
+    def _solve(self, data_samplers: Tuple[JaxSampler, JaxSampler]) -> NeuralOutput:  # type: ignore[override]
+        model, logs = self.solver(data_samplers[0], data_samplers[1])
+        return NeuralOutput(model, logs)
+
+    @staticmethod
+    def _assert2d(arr: ArrayLike, *, allow_reshape: bool = True) -> jnp.ndarray:
+        arr: jnp.ndarray = jnp.asarray(arr.A if issparse(arr) else arr)  # type: ignore[no-redef, attr-defined]
+        if allow_reshape and arr.ndim == 1:
+            return jnp.reshape(arr, (-1, 1))
+        if arr.ndim != 2:
+            raise ValueError(f"Expected array to have 2 dimensions, found `{arr.ndim}`.")
+        return arr
+
+    def _split_data(
+        self,
+        x: ArrayLike,
+        y: ArrayLike,
+        train_size: float,
+        seed: int,
+        a: Optional[ArrayLike] = None,
+    ) -> Tuple[ArrayLike, ArrayLike, ArrayLike, ArrayLike, Optional[ArrayLike]]:
+        n_samples_x = x.shape[0]
+        n_samples_y = y.shape[0]
+        n_train_x = math.ceil(train_size * n_samples_x)
+        n_train_y = math.ceil(train_size * n_samples_y)
+        key = jax.random.PRNGKey(seed=seed)
+        x = jax.random.permutation(key, x)
+        y = jax.random.permutation(key, y)
+        if a is not None:
+            a = jax.random.permutation(key, a)[:n_train_x]
+        return x[:n_train_x], y[:n_train_y], x[n_train_x:], y[n_train_y:], a
+
+    @property
+    def solver(self) -> NeuralDualSolver:
+        """Underlying optimal transport solver."""
+        return self._solver
+
+    @property
+    def problem_kind(self) -> ProblemKind:
+        return ProblemKind.LINEAR

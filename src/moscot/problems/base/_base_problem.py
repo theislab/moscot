@@ -17,7 +17,7 @@ from moscot.solvers._base_solver import OTSolver, ProblemKind
 from moscot._constants._constants import ProblemStage
 from moscot.solvers._tagged_array import Tag, TaggedArray
 
-__all__ = ["BaseProblem", "OTProblem", "ProblemKind"]
+__all__ = ["BaseProblem", "OTProblem", "NeuralOTProblem", "ProblemKind"]
 
 
 @d.get_sections(base="BaseProblem", sections=["Parameters", "Raises"])
@@ -317,7 +317,7 @@ class OTProblem(BaseProblem):
         - :attr:`solver`: optimal transport solver.
         - :attr:`solution`: optimal transport solution.
         """
-        self._solver = self._problem_kind.solver(backend=backend, **kwargs)
+        self._solver = self._problem_kind.solver(backend=backend, neural=isinstance(self, NeuralOTProblem), **kwargs)
 
         a = kwargs.pop("a", self._a)
         b = kwargs.pop("b", self._b)
@@ -544,3 +544,23 @@ class OTProblem(BaseProblem):
 
     def __str__(self) -> str:
         return repr(self)
+
+
+class NeuralOTProblem(OTProblem):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.input_dim: Optional[int] = None
+
+    @d.get_sections(base="OTProblem_solve", sections=["Parameters", "Raises"])
+    @wrap_solve
+    def solve(
+        self,
+        backend: Literal["ott"] = "ott",
+        device: Optional[Device_t] = None,
+        **kwargs: Any,
+    ) -> "OTProblem":
+        """Solve method."""
+        if self._xy is None:
+            raise ValueError("Unable to solve the problem without `xy`.")
+        kwargs["input_dim"] = self._xy.data_src.shape[1]
+        return super().solve(backend=backend, device=device, **kwargs)

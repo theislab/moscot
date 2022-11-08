@@ -2,6 +2,7 @@ from typing import Any, Optional
 
 from ott.geometry.pointcloud import PointCloud
 from ott.tools.sinkhorn_divergence import sinkhorn_divergence
+import jax
 import jax.numpy as jnp
 
 from moscot._types import ArrayLike, ScaleCost_t
@@ -35,3 +36,9 @@ def _compute_sinkhorn_divergence(
         logger.warning("Solver did not converge in the `y/y` term.")
 
     return float(output.divergence)
+
+
+@jax.jit
+def subtract_pytrees(pytree1, pytree2, num_accumulations: int):
+    """Subtract one pytree from another divided by number of grad accumulations."""
+    return jax.tree_util.tree_map(lambda pt1, pt2: pt1 - pt2 / num_accumulations, pytree1, pytree2)
