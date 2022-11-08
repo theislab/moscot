@@ -57,6 +57,7 @@ dependencies = [
     "wrapt>=1.13.2",
     "docrep>=0.3.2",
     "ott-jax>=0.2.11",
+    "cloudpickle>=2.2.0",
 ]
 
 [project.optional-dependencies]
