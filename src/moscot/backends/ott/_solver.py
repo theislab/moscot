@@ -176,6 +176,8 @@ class SinkhornSolver(OTTJaxSolver):
             raise ValueError(f"Unable to create geometry from `xy={xy}`.")
 
         geom = self._create_geometry(xy, epsilon=epsilon, batch_size=batch_size, scale_cost=scale_cost, **kwargs)
+        if self.is_low_rank:
+            geom = geom.to_LRCGeometry()
         kwargs = _filter_kwargs(LinearProblem, **kwargs)
         self._problem = LinearProblem(geom, **kwargs)
 
