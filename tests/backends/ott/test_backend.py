@@ -6,6 +6,7 @@ from ott.core import LinearProblem
 from ott.geometry import Geometry, PointCloud
 from ott.core.sinkhorn import sinkhorn, Sinkhorn
 from ott.core.sinkhorn_lr import LRSinkhorn
+from ott.geometry.low_rank import LRCGeometry
 from ott.core.quad_problems import QuadraticProblem
 from ott.core.gromov_wasserstein import GromovWasserstein, gromov_wasserstein
 import jax
@@ -14,7 +15,7 @@ import jax.numpy as jnp
 
 from tests._utils import ATOL, RTOL, Geom_t
 from moscot._types import Device_t, ArrayLike
-from moscot.backends.ott import GWSolver, FGWSolver, SinkhornSolver
+from moscot.backends.ott import GWSolver, FGWSolver, SinkhornSolver  # type: ignore[attr-defined]
 from moscot.solvers._output import BaseSolverOutput
 from moscot.solvers._base_solver import O, OTSolver
 from moscot.solvers._tagged_array import Tag
@@ -43,7 +44,7 @@ class TestSinkhorn:
     def test_rank(self, y: Geom_t, rank: Optional[int], initializer: str) -> None:
         eps = 1e-2
         lr_sinkhorn = LRSinkhorn(rank=rank, initializer=initializer)
-        problem = LinearProblem(PointCloud(y, y, epsilon=eps))
+        problem = LinearProblem(PointCloud(y, y, epsilon=eps).to_LRCGeometry())
         gt = lr_sinkhorn(problem)
         solver = SinkhornSolver(rank=rank, initializer=initializer)
         assert solver.xy is None
@@ -53,7 +54,7 @@ class TestSinkhorn:
 
         assert solver.rank == rank
         assert solver.is_low_rank
-        assert isinstance(solver.xy, PointCloud)
+        assert isinstance(solver.xy, LRCGeometry)
         assert pred.rank == rank
         np.testing.assert_allclose(solver._problem.geom.cost_matrix, problem.geom.cost_matrix, rtol=RTOL, atol=ATOL)
         np.testing.assert_allclose(gt.matrix, pred.transport_matrix, rtol=RTOL, atol=ATOL)
