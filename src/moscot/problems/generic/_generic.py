@@ -111,6 +111,7 @@ class SinkhornProblem(CompoundProblem[K, B], GenericAnalysisMixin[K, B]):
         gamma: float = 10.0,
         gamma_rescale: bool = True,
         device: Optional[Literal["cpu", "gpu", "tpu"]] = None,
+        cost_matrix_rank: Optional[int] = None,
         **kwargs: Any,
     ) -> "SinkhornProblem[K,B]":
         """
@@ -131,6 +132,7 @@ class SinkhornProblem(CompoundProblem[K, B], GenericAnalysisMixin[K, B]):
         %(sinkhorn_kwargs)s
         %(sinkhorn_lr_kwargs)s
         %(device_solve)s
+        %(cost_matrix_rank)s
         %(kwargs_linear)s
 
         Returns
@@ -160,6 +162,7 @@ class SinkhornProblem(CompoundProblem[K, B], GenericAnalysisMixin[K, B]):
             max_iterations=max_iterations,
             gamma=gamma,
             gamma_rescale=gamma_rescale,
+            cost_matrix_rank=cost_matrix_rank,
             device=device,
             **kwargs,
         )

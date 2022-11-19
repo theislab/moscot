@@ -74,7 +74,7 @@ sinkhorn_args_1 = {
     "gamma": 9.4,
     "gamma_rescale": False,
     "power": 3,
-    "batch_size": 1023,
+    "batch_size": None,  # in to_LRC() `batch_size` cannot be passed so we expect None.
     "scale_cost": "max_cost",
 }
 
@@ -213,6 +213,11 @@ geometry_args = {"epsilon": "_epsilon_init", "scale_cost": "_scale_cost"}
 pointcloud_args = {
     "power": "power",
     "batch_size": "_batch_size",
+    "scale_cost": "_scale_cost",
+}
+
+lr_pointcloud_args = {
+    "batch_size": "batch_size",
     "scale_cost": "_scale_cost",
 }
 

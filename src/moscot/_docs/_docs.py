@@ -253,6 +253,11 @@ gamma
 gamma_rescale
     Only in low-rank setting: whether to rescale `gamma` every iteration as described in :cite:`scetbon:22b`.
 """
+_cost_matrix_rank = """\
+cost_matrix_rank
+    Rank of the matrix the cost matrix is approximated by. Only applies if a custom cost matrix is passed.
+    If `None`, `cost_matrix_rank` is set to `rank`.
+"""
 _gw_kwargs = """\
 min_iterations
     Minimal number of outer Gromov-Wasserstein iterations.
@@ -378,6 +383,7 @@ d = DocstringProcessor(
     jit=_jit,
     sinkhorn_kwargs=_sinkhorn_kwargs,
     sinkhorn_lr_kwargs=_sinkhorn_lr_kwargs,
+    cost_matrix_rank=_cost_matrix_rank,  # TODO(@MUCDK): test for this. cannot be tested with current `test_pass_for_arguments`.  # noqa: E501
     gw_kwargs=_gw_kwargs,
     gw_lr_kwargs=_gw_lr_kwargs,
     scale_cost=_scale_cost,

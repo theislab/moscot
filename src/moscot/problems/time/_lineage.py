@@ -123,6 +123,7 @@ class TemporalProblem(
         max_iterations: int = 2000,
         gamma: float = 10.0,
         gamma_rescale: bool = True,
+        cost_matrix_rank: Optional[int] = None,
         device: Optional[Literal["cpu", "gpu", "tpu"]] = None,
         **kwargs: Any,
     ) -> "TemporalProblem":
@@ -144,6 +145,7 @@ class TemporalProblem(
         %(sinkhorn_kwargs)s
         %(sinkhorn_lr_kwargs)s
         %(device_solve)s
+        %(cost_matrix_rank)s
         %(kwargs_linear)s
 
         Returns
@@ -173,6 +175,7 @@ class TemporalProblem(
             max_iterations=max_iterations,
             gamma=gamma,
             gamma_rescale=gamma_rescale,
+            cost_matrix_rank=cost_matrix_rank,
             device=device,
             **kwargs,
         )  # type:ignore[return-value]
