@@ -169,6 +169,7 @@ class SinkhornSolver(OTTJaxSolver):
         epsilon: Optional[Epsilon_t] = None,
         batch_size: Optional[int] = None,
         scale_cost: Scale_t = 1.0,
+        cost_matrix_rank: Optional[int] = None,
         **kwargs: Any,
     ) -> LinearProblem:
         del x, y
@@ -177,7 +178,10 @@ class SinkhornSolver(OTTJaxSolver):
 
         geom = self._create_geometry(xy, epsilon=epsilon, batch_size=batch_size, scale_cost=scale_cost, **kwargs)
         if self.is_low_rank:
-            geom = geom.to_LRCGeometry(rank=self.rank)  # batch_size cannot be passed in this function
+
+            geom = geom.to_LRCGeometry(
+                rank=self.rank if cost_matrix_rank is None else cost_matrix_rank
+            )  # batch_size cannot be passed in this function
         kwargs = _filter_kwargs(LinearProblem, **kwargs)
         self._problem = LinearProblem(geom, **kwargs)
 
