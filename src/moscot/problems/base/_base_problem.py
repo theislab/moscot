@@ -547,9 +547,7 @@ class OTProblem(BaseProblem):
 
 
 class NeuralOTProblem(OTProblem):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.input_dim: Optional[int] = None
+    """Base class for all neural optimal transport problems."""
 
     @d.get_sections(base="OTProblem_solve", sections=["Parameters", "Raises"])
     @wrap_solve
@@ -562,5 +560,4 @@ class NeuralOTProblem(OTProblem):
         """Solve method."""
         if self._xy is None:
             raise ValueError("Unable to solve the problem without `xy`.")
-        kwargs["input_dim"] = self._xy.data_src.shape[1]
-        return super().solve(backend=backend, device=device, **kwargs)
+        return super().solve(backend=backend, device=device, input_dim=self._xy.data_src.shape[1], **kwargs)

@@ -27,20 +27,9 @@ class ICNN(nn.Module):
             Dense = nn.Dense
         kernel_inits_wz = [self.init_fn(self.init_std) for _ in range(num_hidden + 1)]
 
+        w_xs = []
         w_zs = []
         for i in range(1, num_hidden):
-            w_zs.append(
-                Dense(
-                    self.dim_hidden[i],
-                    kernel_init=kernel_inits_wz[i],
-                    use_bias=False,
-                )
-            )
-        w_zs.append(Dense(1, kernel_init=kernel_inits_wz[-1], use_bias=False))
-        self.w_zs = w_zs
-
-        w_xs = []
-        for i in range(num_hidden):
             w_xs.append(
                 nn.Dense(
                     self.dim_hidden[i],
@@ -49,6 +38,14 @@ class ICNN(nn.Module):
                     use_bias=True,
                 )
             )
+            if i != 0:
+                w_zs.append(
+                    Dense(
+                        self.dim_hidden[i],
+                        kernel_init=kernel_inits_wz[i],
+                        use_bias=False,
+                    )
+                )
         w_xs.append(
             nn.Dense(
                 1,
@@ -57,7 +54,9 @@ class ICNN(nn.Module):
                 use_bias=True,
             )
         )
+        w_zs.append(Dense(1, kernel_init=kernel_inits_wz[-1], use_bias=False))
         self.w_xs = w_xs
+        self.w_zs = w_zs
 
     @nn.compact
     def __call__(self, x: jnp.ndarray) -> jnp.ndarray:

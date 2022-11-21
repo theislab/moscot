@@ -191,6 +191,7 @@ class NeuralOutput(BaseSolverOutput):
     @property
     def transport_matrix(self) -> ArrayLike:
         """%(transport_matrix)s"""
+        # TODO: refer to project_transport_matrix in error
         raise NotImplementedError()
 
     def to(
@@ -219,7 +220,7 @@ class NeuralOutput(BaseSolverOutput):
     @property
     def cost(self) -> float:
         """Predicted optimal transport cost."""
-        return round(self.training_logs["valid_logs"]["predicted_cost"][0], 4)
+        return self.training_logs["valid_logs"]["predicted_cost"][0]
 
     @property
     def converged(self) -> bool:
@@ -261,6 +262,7 @@ class NeuralOutput(BaseSolverOutput):
         """
         Marginals of the source distribution.
         """
+        # TODO: adapt when tracing marginals
         raise NotImplementedError()
 
     @property
@@ -268,6 +270,7 @@ class NeuralOutput(BaseSolverOutput):
         """
         Marginals of the target distribution.
         """
+        # TODO: adapt when tracing marginals
         raise NotImplementedError()
 
     def _ones(self, n: int) -> jnp.ndarray:
@@ -275,7 +278,7 @@ class NeuralOutput(BaseSolverOutput):
 
     def _format_params(self, fmt: Callable[[Any], str]) -> str:
         params = {
-            "predicted_cost": round(self.training_logs["valid_logs"]["predicted_cost"][0], 3),
+            "predicted_cost": round(self.cost, 3),
             "best_loss": round(self.training_logs["valid_logs"]["best_loss"][0], 3),
             "sink_dist": round(self.training_logs["valid_logs"]["sink_dist"][0], 3),
         }

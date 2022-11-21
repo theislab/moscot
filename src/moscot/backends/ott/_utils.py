@@ -2,7 +2,6 @@ from typing import Any, Optional
 
 from ott.geometry.pointcloud import PointCloud
 from ott.tools.sinkhorn_divergence import sinkhorn_divergence
-import jax
 import jax.numpy as jnp
 
 from moscot._types import ArrayLike, ScaleCost_t
@@ -38,7 +37,20 @@ def _compute_sinkhorn_divergence(
     return float(output.divergence)
 
 
-@jax.jit
-def subtract_pytrees(pytree1, pytree2, num_accumulations: int):
-    """Subtract one pytree from another divided by number of grad accumulations."""
-    return jax.tree_util.tree_map(lambda pt1, pt2: pt1 - pt2 / num_accumulations, pytree1, pytree2)
+class RunningAverageMeter:
+    """Computes and stores the average value."""
+
+    def __init__(self) -> None:
+        self.reset()
+
+    def reset(self) -> None:
+        """Reset the meter."""
+        self.avg: float = 0.0
+        self.sum: float = 0.0
+        self.count: float = 0.0
+
+    def update(self, val: float, n: int = 1) -> None:
+        """Update the meter."""
+        self.sum += val * n
+        self.count += n
+        self.avg = self.sum / self.count

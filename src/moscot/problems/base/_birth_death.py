@@ -9,7 +9,7 @@ from moscot._types import ArrayLike
 from moscot._logging import logger
 from moscot._docs._docs import d
 from moscot.problems.time._utils import beta, delta, MarkerGenes
-from moscot.problems.base._base_problem import OTProblem
+from moscot.problems.base._base_problem import OTProblem, NeuralOTProblem
 
 __all__ = ["BirthDeathProblem", "BirthDeathMixin"]
 
@@ -229,3 +229,14 @@ class BirthDeathProblem(BirthDeathMixin, OTProblem):
             assert isinstance(self._src_key, float)
             assert isinstance(self._tgt_key, float)
         return self._tgt_key - self._src_key
+
+
+@d.dedent
+class BirthDeathNeuralProblem(BirthDeathProblem, NeuralOTProblem):
+    """
+    Class handling an neural problem which allows to estimate the marginals with a birth-death process.
+
+    Parameters
+    ----------
+    %(adata_x)s
+    """

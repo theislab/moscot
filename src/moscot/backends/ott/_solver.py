@@ -351,6 +351,7 @@ class NeuralSolver(OTSolver[OTTOutput]):
         self,
         xy: TaggedArray,
         a: Optional[ArrayLike] = None,
+        b: Optional[ArrayLike] = None,
         **kwargs: Any,
     ) -> Tuple[JaxSampler, JaxSampler]:
         if xy.data_tgt is None:
@@ -364,13 +365,15 @@ class NeuralSolver(OTSolver[OTTOutput]):
             raise ValueError("Invalid train_size. Must be: 0 < train_size <= 1")
         if train_size != 1.0:
             seed = kwargs.pop("seed", 0)
-            train_x, train_y, valid_x, valid_y, a = self._split_data(x, y, train_size=train_size, seed=seed, a=a)
+            train_x, train_y, valid_x, valid_y, a, b = self._split_data(
+                x, y, train_size=train_size, seed=seed, a=a, b=b
+            )
         else:
             train_x, train_y = x, y
             valid_x, valid_y = x, y
 
         kwargs = _filter_kwargs(JaxSampler, **kwargs)
-        self._train_sampler = JaxSampler(train_x, train_y, weighting=a, **kwargs)
+        self._train_sampler = JaxSampler(train_x, train_y, a=a, b=b, **kwargs)
         self._valid_sampler = JaxSampler(valid_x, valid_y)
         return (self._train_sampler, self._valid_sampler)
 
@@ -394,7 +397,8 @@ class NeuralSolver(OTSolver[OTTOutput]):
         train_size: float,
         seed: int,
         a: Optional[ArrayLike] = None,
-    ) -> Tuple[ArrayLike, ArrayLike, ArrayLike, ArrayLike, Optional[ArrayLike]]:
+        b: Optional[ArrayLike] = None,
+    ) -> Tuple[ArrayLike, ArrayLike, ArrayLike, ArrayLike, Optional[ArrayLike], Optional[ArrayLike]]:
         n_samples_x = x.shape[0]
         n_samples_y = y.shape[0]
         n_train_x = math.ceil(train_size * n_samples_x)
@@ -404,7 +408,9 @@ class NeuralSolver(OTSolver[OTTOutput]):
         y = jax.random.permutation(key, y)
         if a is not None:
             a = jax.random.permutation(key, a)[:n_train_x]
-        return x[:n_train_x], y[:n_train_y], x[n_train_x:], y[n_train_y:], a
+        if b is not None:
+            b = jax.random.permutation(key, b)[:n_train_x]
+        return x[:n_train_x], y[:n_train_y], x[n_train_x:], y[n_train_y:], a, b
 
     @property
     def solver(self) -> NeuralDualSolver:
