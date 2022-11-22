@@ -478,6 +478,19 @@ class OTProblem(BaseProblem):
     def set_xy(
         self, data: Union[ArrayLike, pd.DataFrame], tag: Literal["cost", "kernel"], validate_data: bool = True
     ) -> None:
+        """
+        Set a custom cost matrix/kernel in the linear term.
+
+        Parameters
+        ----------
+        %(data_set)s
+        %(tag)s
+        %(validate_data_set)s
+
+        Returns
+        -------
+        None
+        """
         if self.problem_kind == ProblemKind.QUAD:
             logger.info(f"Changing the problem type from {self.problem_kind} to fused-quadratic.")
             self._problem_kind = ProblemKind.QUAD_FUSED
@@ -502,6 +515,19 @@ class OTProblem(BaseProblem):
     def set_x(
         self, data: Union[ArrayLike, pd.DataFrame], tag: Literal["cost", "kernel"], validate_data: bool = True
     ) -> None:
+        """
+        Set a custom cost matrix/kernel in the quadratic source term.
+
+        Parameters
+        ----------
+        %(data_set)s
+        %(tag)s
+        %(validate_data_set)s
+
+        Returns
+        -------
+        None
+        """
         if self.problem_kind == ProblemKind.LINEAR:
             logger.info(f"Changing the problem type from {self.problem_kind} to fused-quadratic.")
             self._problem_kind = ProblemKind.QUAD_FUSED
@@ -526,6 +552,19 @@ class OTProblem(BaseProblem):
     def set_y(
         self, data: Union[ArrayLike, pd.DataFrame], tag: Literal["cost", "kernel"], validate_data: bool = True
     ) -> None:
+        """
+        Set a custom cost matrix/kernel in the quadratic target term.
+
+        Parameters
+        ----------
+        %(data_set)s
+        %(tag)s
+        %(validate_data_set)s
+
+        Returns
+        -------
+        None
+        """
         if self.problem_kind == ProblemKind.LINEAR:
             logger.info(f"Changing the problem type from {self.problem_kind} to fused-quadratic.")
             self._problem_kind = ProblemKind.QUAD_FUSED
