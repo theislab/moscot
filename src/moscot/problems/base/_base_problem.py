@@ -478,6 +478,9 @@ class OTProblem(BaseProblem):
     def set_xy(
         self, data: Union[ArrayLike, pd.DataFrame], tag: Literal["cost", "kernel"], validate_data: bool = True
     ) -> None:
+        if self.problem_kind == ProblemKind.QUAD:
+            logger.info(f"Changing the problem type from {self.problem_kind} to fused-quadratic.")
+            self._problem_kind = ProblemKind.QUAD_FUSED
         if data.shape != (self.adata_src.n_obs, self.adata_tgt.n_obs):
             raise ValueError(
                 f"`data` is exptected to have shape {(self.adata_src.n_obs, self.adata_tgt.n_obs)} but found {data.shape}."  # noqa: E501
@@ -499,6 +502,9 @@ class OTProblem(BaseProblem):
     def set_x(
         self, data: Union[ArrayLike, pd.DataFrame], tag: Literal["cost", "kernel"], validate_data: bool = True
     ) -> None:
+        if self.problem_kind == ProblemKind.LINEAR:
+            logger.info(f"Changing the problem type from {self.problem_kind} to fused-quadratic.")
+            self._problem_kind = ProblemKind.QUAD_FUSED
         if data.shape != (self.adata_src.n_obs, self.adata_src.n_obs):
             raise ValueError(
                 f"`data` is exptected to have shape {(self.adata_src.n_obs, self.adata_src.n_obs)} but found {data.shape}."  # noqa: E501
@@ -520,6 +526,9 @@ class OTProblem(BaseProblem):
     def set_y(
         self, data: Union[ArrayLike, pd.DataFrame], tag: Literal["cost", "kernel"], validate_data: bool = True
     ) -> None:
+        if self.problem_kind == ProblemKind.LINEAR:
+            logger.info(f"Changing the problem type from {self.problem_kind} to fused-quadratic.")
+            self._problem_kind = ProblemKind.QUAD_FUSED
         if data.shape != (self.adata_tgt.n_obs, self.adata_tgt.n_obs):
             raise ValueError(
                 f"`data` is exptected to have shape {(self.adata_tgt.n_obs, self.adata_tgt.n_obs)} but found {data.shape}."  # noqa: E501
