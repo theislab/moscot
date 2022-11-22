@@ -2,6 +2,7 @@ from abc import ABC, abstractmethod
 from typing import Any, Dict, List, Tuple, Union, Literal, Mapping, Optional, TYPE_CHECKING
 
 from scipy.sparse import vstack, issparse, csr_matrix
+import pandas as pd
 
 import numpy as np
 
@@ -473,6 +474,69 @@ class OTProblem(BaseProblem):
 
     def _estimate_marginals(self, adata: AnnData, *, source: bool, **kwargs: Any) -> ArrayLike:
         return np.ones((adata.n_obs,), dtype=float) / adata.n_obs
+
+    def set_xy(
+        self, data: Union[ArrayLike, pd.DataFrame], tag: Literal["cost", "kernel"], validate_data: bool = True
+    ) -> None:
+        if data.shape != (self.adata_src.n_obs, self.adata_tgt.n_obs):
+            raise ValueError(
+                f"`data` is exptected to have shape {(self.adata_src.n_obs, self.adata_tgt.n_obs)} but found {data.shape}."  # noqa: E501
+            )
+        if validate_data:
+            if not isinstance(data, pd.DataFrame):
+                raise TypeError("If the data is to be validated, the data must be of type pandas.DataFrame.")
+            if set(data.index) != set(self.adata_src.obs_names):
+                raise ValueError(
+                    "The index names of `data` do not correspond to `adata.obs_names` of the source distribution.."
+                )
+            if set(data.columns) != set(self.adata_tgt.obs_names):
+                raise ValueError(
+                    "The column names of `data` do not correspond to `adata.obs_names` of the target distribution."
+                )
+        self._xy = TaggedArray(data_src=data, data_tgt=None, tag=Tag(tag), cost="cost")
+        self._stage = ProblemStage.PREPARED
+
+    def set_x(
+        self, data: Union[ArrayLike, pd.DataFrame], tag: Literal["cost", "kernel"], validate_data: bool = True
+    ) -> None:
+        if data.shape != (self.adata_src.n_obs, self.adata_src.n_obs):
+            raise ValueError(
+                f"`data` is exptected to have shape {(self.adata_src.n_obs, self.adata_src.n_obs)} but found {data.shape}."  # noqa: E501
+            )
+        if validate_data:
+            if not isinstance(data, pd.DataFrame):
+                raise TypeError("If the data is to be validated, the data must be of type pandas.DataFrame.")
+            if set(data.index) != set(self.adata_src.obs_names):
+                raise ValueError(
+                    "The index names of `data` do not correspond to `adata.obs_names` of the source distribution.."
+                )
+            if set(data.columns) != set(self.adata_src.obs_names):
+                raise ValueError(
+                    "The column names of `data` do not correspond to `adata.obs_names` of the source distribution."
+                )
+        self._x = TaggedArray(data_src=data, data_tgt=None, tag=Tag(tag), cost="cost")
+        self._stage = ProblemStage.PREPARED
+
+    def set_y(
+        self, data: Union[ArrayLike, pd.DataFrame], tag: Literal["cost", "kernel"], validate_data: bool = True
+    ) -> None:
+        if data.shape != (self.adata_tgt.n_obs, self.adata_tgt.n_obs):
+            raise ValueError(
+                f"`data` is exptected to have shape {(self.adata_tgt.n_obs, self.adata_tgt.n_obs)} but found {data.shape}."  # noqa: E501
+            )
+        if validate_data:
+            if not isinstance(data, pd.DataFrame):
+                raise TypeError("If the data is to be validated, the data must be of type pandas.DataFrame.")
+            if set(data.index) != set(self.adata_tgt.obs_names):
+                raise ValueError(
+                    "The index names of `data` do not correspond to `adata.obs_names` of the source distribution.."
+                )
+            if set(data.columns) != set(self.adata_tgt.obs_names):
+                raise ValueError(
+                    "The column names of `data` do not correspond to `adata.obs_names` of the source distribution."
+                )
+        self._y = TaggedArray(data_src=data, data_tgt=None, tag=Tag(tag), cost="cost")
+        self._stage = ProblemStage.PREPARED
 
     @property
     def adata_src(self) -> AnnData:
