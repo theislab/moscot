@@ -12,7 +12,7 @@ import scanpy as sc
 from moscot._types import Device_t, ArrayLike
 from moscot._logging import logger
 from moscot._docs._docs import d
-from moscot.problems._utils import wrap_solve, wrap_prepare, require_solution
+from moscot.problems._utils import wrap_solve, wrap_prepare, require_prepare, require_solution
 from moscot.solvers._output import BaseSolverOutput
 from moscot.solvers._base_solver import OTSolver, ProblemKind
 from moscot._constants._constants import ProblemStage
@@ -475,6 +475,7 @@ class OTProblem(BaseProblem):
     def _estimate_marginals(self, adata: AnnData, *, source: bool, **kwargs: Any) -> ArrayLike:
         return np.ones((adata.n_obs,), dtype=float) / adata.n_obs
 
+    @require_prepare
     def set_xy(
         self, data: Union[ArrayLike, pd.DataFrame], tag: Literal["cost", "kernel"], validate_data: bool = True
     ) -> None:
@@ -512,6 +513,7 @@ class OTProblem(BaseProblem):
         self._xy = TaggedArray(data_src=data, data_tgt=None, tag=Tag(tag), cost="cost")
         self._stage = ProblemStage.PREPARED
 
+    @require_prepare
     def set_x(
         self, data: Union[ArrayLike, pd.DataFrame], tag: Literal["cost", "kernel"], validate_data: bool = True
     ) -> None:
@@ -549,6 +551,7 @@ class OTProblem(BaseProblem):
         self._x = TaggedArray(data_src=data, data_tgt=None, tag=Tag(tag), cost="cost")
         self._stage = ProblemStage.PREPARED
 
+    @require_prepare
     def set_y(
         self, data: Union[ArrayLike, pd.DataFrame], tag: Literal["cost", "kernel"], validate_data: bool = True
     ) -> None:
