@@ -1,3 +1,4 @@
+import pandas as pd
 import pytest
 
 from ott.geometry import PointCloud
@@ -42,6 +43,57 @@ class TestOTProblem:
         sol = prob.solution
 
         np.testing.assert_allclose(gt.matrix, sol.transport_matrix, rtol=RTOL, atol=ATOL)
+
+    @pytest.mark.parametrize("validate_data", [True, False])
+    def test_set_xy(self, adata_x: AnnData, adata_y: AnnData, validate_data: bool):
+        rng = np.random.RandomState(42)
+        prob = OTProblem(adata_x, adata_y)
+        prob = prob.prepare(
+            xy={"x_attr": "obsm", "x_key": "X_pca", "y_attr": "obsm", "y_key": "X_pca"},
+            x={"attr": "X"},
+            y={"attr": "X"},
+        )
+
+        cm = rng.uniform(1, 10, size=(adata_x.n_obs, adata_y.n_obs))
+        cost_matrix = pd.DataFrame(index=adata_x.obs_names, columns=adata_y.obs_names, data=cm)
+        prob.set_xy(cost_matrix, tag="cost", validate_data=validate_data)
+
+        prob = prob.solve(max_iterations=5)
+        assert prob.xy.data_src == cost_matrix.data
+
+    @pytest.mark.parametrize("validate_data", [True, False])
+    def test_set_x(self, adata_x: AnnData, adata_y: AnnData, validate_data: bool):
+        rng = np.random.RandomState(42)
+        prob = OTProblem(adata_x, adata_y)
+        prob = prob.prepare(
+            xy={"x_attr": "obsm", "x_key": "X_pca", "y_attr": "obsm", "y_key": "X_pca"},
+            x={"attr": "X"},
+            y={"attr": "X"},
+        )
+
+        cm = rng.uniform(1, 10, size=(adata_x.n_obs, adata_x.n_obs))
+        cost_matrix = pd.DataFrame(index=adata_x.obs_names, columns=adata_x.obs_names, data=cm)
+        prob.set_x(cost_matrix, tag="cost", validate_data=validate_data)
+
+        prob = prob.solve(max_iterations=5)
+        assert prob.x.data_src == cost_matrix.data
+
+    @pytest.mark.parametrize("validate_data", [True, False])
+    def test_set_y(self, adata_x: AnnData, adata_y: AnnData, validate_data: bool):
+        rng = np.random.RandomState(42)
+        prob = OTProblem(adata_x, adata_y)
+        prob = prob.prepare(
+            xy={"x_attr": "obsm", "x_key": "X_pca", "y_attr": "obsm", "y_key": "X_pca"},
+            x={"attr": "X"},
+            y={"attr": "X"},
+        )
+
+        cm = rng.uniform(1, 10, size=(adata_y.n_obs, adata_y.n_obs))
+        cost_matrix = pd.DataFrame(index=adata_y.obs_names, columns=adata_y.obs_names, data=cm)
+        prob.set_x(cost_matrix, tag="cost", validate_data=validate_data)
+
+        prob = prob.solve(max_iterations=5)
+        assert prob.y.data_src == cost_matrix.data
 
 
 class MultiMarginalProblem:
