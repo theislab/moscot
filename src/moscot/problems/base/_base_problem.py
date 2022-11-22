@@ -475,6 +475,7 @@ class OTProblem(BaseProblem):
     def _estimate_marginals(self, adata: AnnData, *, source: bool, **kwargs: Any) -> ArrayLike:
         return np.ones((adata.n_obs,), dtype=float) / adata.n_obs
 
+    @d.dedent
     @require_prepare
     def set_xy(
         self, data: Union[ArrayLike, pd.DataFrame], tag: Literal["cost", "kernel"], validate_data: bool = True
@@ -513,6 +514,7 @@ class OTProblem(BaseProblem):
         self._xy = TaggedArray(data_src=data, data_tgt=None, tag=Tag(tag), cost="cost")
         self._stage = ProblemStage.PREPARED
 
+    @d.dedent
     @require_prepare
     def set_x(
         self, data: Union[ArrayLike, pd.DataFrame], tag: Literal["cost", "kernel"], validate_data: bool = True
@@ -551,6 +553,7 @@ class OTProblem(BaseProblem):
         self._x = TaggedArray(data_src=data, data_tgt=None, tag=Tag(tag), cost="cost")
         self._stage = ProblemStage.PREPARED
 
+    @d.dedent
     @require_prepare
     def set_y(
         self, data: Union[ArrayLike, pd.DataFrame], tag: Literal["cost", "kernel"], validate_data: bool = True
