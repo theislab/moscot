@@ -5,8 +5,8 @@ from pytest_mock import MockerFixture
 from sklearn.metrics.pairwise import euclidean_distances
 import pytest
 
-from ott.geometry import PointCloud
-from ott.core.sinkhorn import sinkhorn
+from ott.geometry.pointcloud import PointCloud
+from ott.solvers.linear.sinkhorn import sinkhorn
 import numpy as np
 
 from anndata import AnnData
