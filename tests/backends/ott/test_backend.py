@@ -2,13 +2,14 @@ from typing import Type, Tuple, Union, Optional
 
 import pytest
 
-from ott.core import LinearProblem
-from ott.geometry import Geometry, PointCloud
-from ott.core.sinkhorn import sinkhorn, Sinkhorn
-from ott.core.sinkhorn_lr import LRSinkhorn
+from ott.geometry.geometry import Geometry
 from ott.geometry.low_rank import LRCGeometry
-from ott.core.quad_problems import QuadraticProblem
-from ott.core.gromov_wasserstein import GromovWasserstein, gromov_wasserstein
+from ott.geometry.pointcloud import PointCloud
+from ott.solvers.linear.sinkhorn import sinkhorn, Sinkhorn
+from ott.solvers.linear.sinkhorn_lr import LRSinkhorn
+from ott.problems.linear.linear_problem import LinearProblem
+from ott.problems.quadratic.quadratic_problem import QuadraticProblem
+from ott.solvers.quadratic.gromov_wasserstein import GromovWasserstein, gromov_wasserstein
 import jax
 import numpy as np
 import jax.numpy as jnp
