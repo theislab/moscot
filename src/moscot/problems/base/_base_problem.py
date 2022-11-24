@@ -8,7 +8,7 @@ import numpy as np
 from anndata import AnnData
 import scanpy as sc
 
-from moscot._types import Device_t, ArrayLike
+from moscot._types import CostFn_t, Device_t, ArrayLike
 from moscot._logging import logger
 from moscot._docs._docs import d
 from moscot.problems._utils import wrap_solve, wrap_prepare, require_solution
@@ -174,14 +174,14 @@ class OTProblem(BaseProblem):
         self._a: Optional[ArrayLike] = None
         self._b: Optional[ArrayLike] = None
 
-    def _handle_linear(self, **kwargs: Any) -> TaggedArray:
+    def _handle_linear(self, cost: CostFn_t = "sq_euclidean", **kwargs: Any) -> TaggedArray:
         if "x_attr" not in kwargs or "y_attr" not in kwargs:
             kwargs.setdefault("tag", Tag.COST_MATRIX)
             attr = kwargs.pop("attr", "obsm")
 
             if attr in ("obsm", "uns"):
                 return TaggedArray.from_adata(
-                    self.adata_src, dist_key=(self._src_key, self._tgt_key), attr=attr, **kwargs
+                    self.adata_src, dist_key=(self._src_key, self._tgt_key), attr=attr, cost=cost, **kwargs
                 )
             raise ValueError(f"Storing `{kwargs['tag']!r}` in `adata.{attr}` is disallowed.")
 
@@ -190,8 +190,8 @@ class OTProblem(BaseProblem):
         x_kwargs["tag"] = Tag.POINT_CLOUD
         y_kwargs["tag"] = Tag.POINT_CLOUD
 
-        x_array = TaggedArray.from_adata(self.adata_src, dist_key=self._src_key, **x_kwargs)
-        y_array = TaggedArray.from_adata(self.adata_tgt, dist_key=self._tgt_key, **y_kwargs)
+        x_array = TaggedArray.from_adata(self.adata_src, dist_key=self._src_key, cost=cost, **x_kwargs)
+        y_array = TaggedArray.from_adata(self.adata_tgt, dist_key=self._tgt_key, cost=cost, **y_kwargs)
 
         # restich together
         return TaggedArray(data_src=x_array.data_src, data_tgt=y_array.data_src, tag=Tag.POINT_CLOUD, cost=x_array.cost)
@@ -204,6 +204,7 @@ class OTProblem(BaseProblem):
         y: Optional[Union[Mapping[str, Any], TaggedArray]] = None,
         a: Optional[Union[bool, str, ArrayLike]] = None,
         b: Optional[Union[bool, str, ArrayLike]] = None,
+        cost: CostFn_t = "sq_euclidean",
         **kwargs: Any,
     ) -> "OTProblem":
         """Prepare optimal transport problem.
@@ -241,6 +242,8 @@ class OTProblem(BaseProblem):
             - :class:`bool`: if `True`, compute the marginals from :attr:`adata_tgt`, otherwise use uniform.
             - :class:`~numpy.ndarray`: array of shape ``[m,]`` containing the target marginals.
             - :obj:`None`: uniform marginals.
+        cost
+            Cost function to be used in case the data is passed as pointclouds.
         kwargs
             Keyword arguments when creating the source/target marginals.
 
@@ -267,26 +270,25 @@ class OTProblem(BaseProblem):
             if isinstance(x, TaggedArray):
                 self._x = x
             else:
-                self._x = TaggedArray.from_adata(self.adata_src, dist_key=self._src_key, **x)
+                self._x = TaggedArray.from_adata(self.adata_src, dist_key=self._src_key, cost=cost, **x)
             if isinstance(y, TaggedArray):
                 self._y = y
             else:
-                self._y = TaggedArray.from_adata(self.adata_tgt, dist_key=self._tgt_key, **y)
+                self._y = TaggedArray.from_adata(self.adata_tgt, dist_key=self._tgt_key, cost=cost, **y)
         elif xy is not None and x is not None and y is not None:
             self._problem_kind = ProblemKind.QUAD_FUSED
-            self._xy = xy if isinstance(xy, TaggedArray) else self._handle_linear(**xy)
+            self._xy = xy if isinstance(xy, TaggedArray) else self._handle_linear(cost=cost, **xy)
             if isinstance(x, TaggedArray):
                 self._x = x
             else:
-                self._x = TaggedArray.from_adata(self.adata_src, dist_key=self._src_key, **x)
+                self._x = TaggedArray.from_adata(self.adata_src, dist_key=self._src_key, cost=cost, **x)
             if isinstance(y, TaggedArray):
                 self._y = y
             else:
-                self._y = TaggedArray.from_adata(self.adata_tgt, dist_key=self._tgt_key, **y)
+                self._y = TaggedArray.from_adata(self.adata_tgt, dist_key=self._tgt_key, cost=cost, **y)
         else:
             raise ValueError("Unable to prepare the data. Either only supply `xy=...`, or `x=..., y=...`, or all.")
         # fmt: on
-
         self._a = self._create_marginals(self.adata_src, data=a, source=True, **kwargs)
         self._b = self._create_marginals(self.adata_tgt, data=b, source=False, **kwargs)
         return self
