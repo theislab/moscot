@@ -73,8 +73,7 @@ sinkhorn_args_1 = {
     "max_iterations": 9,
     "gamma": 9.4,
     "gamma_rescale": False,
-    "power": 3,
-    "batch_size": 1023,
+    "batch_size": None,  # in to_LRC() `batch_size` cannot be passed so we expect None.
     "scale_cost": "max_cost",
 }
 
@@ -94,7 +93,6 @@ sinkhorn_args_2 = {  # no gamma/gamma_rescale as these are LR-specific
     "inner_iterations": 4,
     "min_iterations": 1,
     "max_iterations": 2,
-    "power": 4,
     "scale_cost": "mean",
 }
 
@@ -124,7 +122,6 @@ gw_args_1 = {  # no gamma/gamma_rescale/tolerances/ranks as these are LR-specifi
     "ranks": 4,
     "tolerances": 2e-2,
     "warm_start": False,
-    "power": 4,
     "linear_solver_kwargs": linear_solver_kwargs1,
 }
 
@@ -155,7 +152,6 @@ gw_args_2 = {
     "ranks": 3,
     "tolerances": 3e-2,
     "warm_start": True,
-    "power": 3,
     "gamma": 9.4,
     "gamma_rescale": False,
     "linear_solver_kwargs": linear_solver_kwargs2,
@@ -211,8 +207,12 @@ quad_prob_args = {
 geometry_args = {"epsilon": "_epsilon_init", "scale_cost": "_scale_cost"}
 
 pointcloud_args = {
-    "power": "power",
     "batch_size": "_batch_size",
+    "scale_cost": "_scale_cost",
+}
+
+lr_pointcloud_args = {
+    "batch_size": "batch_size",
     "scale_cost": "_scale_cost",
 }
 

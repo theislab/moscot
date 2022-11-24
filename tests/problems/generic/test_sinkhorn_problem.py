@@ -13,6 +13,7 @@ from tests.problems.conftest import (
     pointcloud_args,
     sinkhorn_args_1,
     sinkhorn_args_2,
+    lr_pointcloud_args,
     sinkhorn_solver_args,
     lr_sinkhorn_solver_args,
 )
@@ -81,7 +82,11 @@ class TestSinkhornProblem:
             el = getattr(geom, val)[0] if isinstance(getattr(geom, val), tuple) else getattr(geom, val)
             assert el == args_to_check[arg]
 
-        for arg, val in pointcloud_args.items():
+        if args_to_check["rank"] == -1:
+            args = pointcloud_args
+        else:
+            args = lr_pointcloud_args
+        for arg, val in args.items():
             el = getattr(geom, val)[0] if isinstance(getattr(geom, val), tuple) else getattr(geom, val)
             assert hasattr(geom, val)
             if arg == "cost":

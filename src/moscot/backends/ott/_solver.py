@@ -4,14 +4,16 @@ from typing import Any, Union, Literal, Mapping, Optional
 
 from scipy.sparse import issparse
 
-from ott.geometry import Epsilon, Geometry, PointCloud
-from ott.core.sinkhorn import Sinkhorn
 from ott.geometry.costs import Bures, Cosine, CostFn, Euclidean, SqEuclidean, UnbalancedBures
-from ott.core.was_solver import WassersteinSolver
-from ott.core.sinkhorn_lr import LRSinkhorn
-from ott.core.quad_problems import QuadraticProblem
-from ott.core.linear_problems import LinearProblem
-from ott.core.gromov_wasserstein import GromovWasserstein
+from ott.geometry.geometry import Geometry
+from ott.solvers.was_solver import WassersteinSolver
+from ott.geometry.pointcloud import PointCloud
+from ott.solvers.linear.sinkhorn import Sinkhorn
+from ott.geometry.epsilon_scheduler import Epsilon
+from ott.solvers.linear.sinkhorn_lr import LRSinkhorn
+from ott.problems.linear.linear_problem import LinearProblem
+from ott.problems.quadratic.quadratic_problem import QuadraticProblem
+from ott.solvers.quadratic.gromov_wasserstein import GromovWasserstein
 import jax.numpy as jnp
 
 from moscot._types import ArrayLike, QuadInitializer_t, SinkhornInitializer_t
@@ -48,7 +50,7 @@ class OTTCost(ModeEnum):
         raise NotImplementedError(self.value)
 
 
-class OTTJaxSolver(OTSolver[OTTOutput], ABC):  # noqa: B024
+class OTTJaxSolver(OTSolver[OTTOutput], ABC):
     """Base class for :mod:`ott` solvers :cite:`cuturi2022optimal`."""
 
     def __init__(self):
@@ -132,16 +134,16 @@ class SinkhornSolver(OTTJaxSolver):
     Parameters
     ----------
     rank
-        Rank of the linear solver. If `-1`, use :class:`~ott.core.sinkhorn.Sinkhorn` :cite:`cuturi:2013`,
-        otherwise, use :class:`~ott.core.sinkhorn_lr.LRSinkhorn` :cite:`scetbon:21a`.
+        Rank of the linear solver. If `-1`, use :class:`~ott.solvers.linear.sinkhorn.Sinkhorn` :cite:`cuturi:2013`,
+        otherwise, use :class:`~ott.solvers.linear.sinkhorn_lr.LRSinkhorn` :cite:`scetbon:21a`.
     initializer
-        Initializer for :class:`~ott.core.sinkhorn.Sinkhorn` or :class:`~ott.core.sinkhorn_lr.LRSinkhorn`,
-        depending on the ``rank``.
+        Initializer for :class:`~ott.solvers.linear.sinkhorn.Sinkhorn` or
+        :class:`~ott.solvers.linear.sinkhorn_lr.LRSinkhorn`, depending on the ``rank``.
     initializer_kwargs
         Keyword arguments for the initializer.
     kwargs
-        Keyword arguments for :class:`~ott.core.sinkhorn.Sinkhorn` or :class:`~ott.core.sinkhorn_lr.LRSinkhorn`,
-        depending on the ``rank``.
+        Keyword arguments for :class:`~ott.solvers.linear.sinkhorn.Sinkhorn` or
+        :class:`~ott.solvers.linear.sinkhorn_lr.LRSinkhorn`, depending on the ``rank``.
     """
 
     def __init__(
@@ -169,6 +171,7 @@ class SinkhornSolver(OTTJaxSolver):
         epsilon: Optional[Epsilon_t] = None,
         batch_size: Optional[int] = None,
         scale_cost: Scale_t = 1.0,
+        cost_matrix_rank: Optional[int] = None,
         **kwargs: Any,
     ) -> LinearProblem:
         del x, y
@@ -176,6 +179,11 @@ class SinkhornSolver(OTTJaxSolver):
             raise ValueError(f"Unable to create geometry from `xy={xy}`.")
 
         geom = self._create_geometry(xy, epsilon=epsilon, batch_size=batch_size, scale_cost=scale_cost, **kwargs)
+        if self.is_low_rank:
+
+            geom = geom.to_LRCGeometry(
+                rank=self.rank if cost_matrix_rank is None else cost_matrix_rank
+            )  # batch_size cannot be passed in this function
         kwargs = _filter_kwargs(LinearProblem, **kwargs)
         self._problem = LinearProblem(geom, **kwargs)
 
@@ -204,7 +212,7 @@ class GWSolver(OTTJaxSolver):
         Rank of the quadratic solver. If `-1` use the full-rank GW :cite:`memoli:2011`,
         otherwise, use the low-rank approach :cite:`scetbon:21b`.
     initializer
-        Initializer for :class:`~ott.core.gromov_wasserstein.GromovWasserstein`.
+        Initializer for :class:`~ott.solvers.quadratic.gromov_wasserstein.GromovWasserstein`.
     gamma
         Only in low-rank setting: the (inverse of the) gradient step size used by the mirror descent algorithm
         (:cite:`scetbon:22b`).
@@ -213,10 +221,10 @@ class GWSolver(OTTJaxSolver):
     initializer_kwargs
         Keyword arguments for the initializer.
     linear_solver_kwargs
-        Keyword arguments for :class:`~ott.core.sinkhorn.Sinkhorn` or :class:`~ott.core.sinkhorn_lr.LRSinkhorn`,
-        depending on the ``rank``.
+        Keyword arguments for :class:`~ott.solvers.linear.sinkhorn.Sinkhorn` or
+        :class:`~ott.solvers.linear.sinkhorn_lr.LRSinkhorn`, depending on the ``rank``.
     kwargs
-        Keyword arguments for :class:`~ott.core.gromov_wasserstein.GromovWasserstein` .
+        Keyword arguments for :class:`~ott.solvers.quadratic.gromov_wasserstein.GromovWasserstein` .
     """
 
     def __init__(
@@ -292,7 +300,8 @@ class FGWSolver(GWSolver):
     The matching obtained from the FGW is a compromise between the ones induced by the linear OT problem and
     the quadratic OT problem :cite:`vayer:2018`.
 
-    This solver wraps :class:`~ott.core.gromov_wasserstein.GromovWasserstein` with a non-trivial ``fused_penalty``.
+    This solver wraps :class:`~ott.solvers.quadratic.gromov_wasserstein.GromovWasserstein`
+    with a non-trivial ``fused_penalty``.
 
     Parameters
     ----------
@@ -300,14 +309,14 @@ class FGWSolver(GWSolver):
         Rank of the quadratic solver. If `-1` use the full-rank GW :cite:`memoli:2011`,
         otherwise, use the low-rank approach :cite:`scetbon:21b`.
     initializer
-        `quad_initializer` of :class:`~ott.core.gromov_wasserstein.GromovWasserstein`.
+        `quad_initializer` of :class:`~ott.solvers.quadratic.gromov_wasserstein.GromovWasserstein`.
     initializer_kwargs
         Keyword arguments for the initializer.
     linear_solver_kwargs
-        Keyword arguments for :class:`~ott.core.sinkhorn.Sinkhorn` or :class:`~ott.core.sinkhorn_lr.LRSinkhorn`,
-        depending on the ``rank``.
+        Keyword arguments for :class:`~ott.solvers.linear.sinkhorn.Sinkhorn` or
+        :class:`~ott.solvers.linear.sinkhorn_lr.LRSinkhorn`, depending on the ``rank``.
     kwargs
-        Keyword arguments for :class:`~ott.core.gromov_wasserstein.GromovWasserstein` .
+        Keyword arguments for :class:`~ott.solvers.quadratic.gromov_wasserstein.GromovWasserstein` .
     """
 
     def _prepare(

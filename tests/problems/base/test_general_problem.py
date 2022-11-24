@@ -3,8 +3,8 @@ from typing import Literal
 import pandas as pd
 import pytest
 
-from ott.geometry import PointCloud
-from ott.core.sinkhorn import sinkhorn
+from ott.geometry.pointcloud import PointCloud
+from ott.solvers.linear.sinkhorn import sinkhorn
 import numpy as np
 import jax.numpy as jnp
 
