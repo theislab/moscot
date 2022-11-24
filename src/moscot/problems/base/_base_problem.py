@@ -502,11 +502,11 @@ class OTProblem(BaseProblem):
         if validate_data:
             if not isinstance(data, pd.DataFrame):
                 raise TypeError("If the data is to be validated, the data must be of type pandas.DataFrame.")
-            if set(data.index) != set(self.adata_src.obs_names):
+            if list(data.index) != list(self.adata_src.obs_names):
                 raise ValueError(
                     "The index names of `data` do not correspond to `adata.obs_names` of the source distribution.."
                 )
-            if set(data.columns) != set(self.adata_tgt.obs_names):
+            if list(data.columns) != list(self.adata_tgt.obs_names):
                 raise ValueError(
                     "The column names of `data` do not correspond to `adata.obs_names` of the target distribution."
                 )
@@ -540,11 +540,11 @@ class OTProblem(BaseProblem):
         if validate_data:
             if not isinstance(data, pd.DataFrame):
                 raise TypeError("If the data is to be validated, the data must be of type pandas.DataFrame.")
-            if set(data.index) != set(self.adata_src.obs_names):
+            if list(data.index) != list(self.adata_src.obs_names):
                 raise ValueError(
                     "The index names of `data` do not correspond to `adata.obs_names` of the source distribution.."
                 )
-            if set(data.columns) != set(self.adata_src.obs_names):
+            if list(data.columns) != list(self.adata_src.obs_names):
                 raise ValueError(
                     "The column names of `data` do not correspond to `adata.obs_names` of the source distribution."
                 )
@@ -578,11 +578,11 @@ class OTProblem(BaseProblem):
         if validate_data:
             if not isinstance(data, pd.DataFrame):
                 raise TypeError("If the data is to be validated, the data must be of type pandas.DataFrame.")
-            if set(data.index) != set(self.adata_tgt.obs_names):
+            if list(data.index) != list(self.adata_tgt.obs_names):
                 raise ValueError(
                     "The index names of `data` do not correspond to `adata.obs_names` of the source distribution.."
                 )
-            if set(data.columns) != set(self.adata_tgt.obs_names):
+            if list(data.columns) != list(self.adata_tgt.obs_names):
                 raise ValueError(
                     "The column names of `data` do not correspond to `adata.obs_names` of the source distribution."
                 )
