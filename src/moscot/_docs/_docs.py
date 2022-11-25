@@ -146,7 +146,6 @@ joint_attr
 _GW_x = """\
 GW_x
 
-    - If empty , cost matrix must be provided in :attr:`anndata.AnnData.obsp`.
     - If `str`, it must refer to a key in :attr:`anndata.AnnData.obsm`.
     - If `dict`, the dictionary stores `attr` (attribute of :class:`anndata.AnnData`) and `key`
       (key of :class:`anndata.AnnData` ``['{attr}']``).
@@ -154,7 +153,6 @@ GW_x
 _GW_y = """\
 GW_y
 
-    - If empty, cost matrix must be provided in :attr:`anndata.AnnData.obsp`.
     - If `str`, it must refer to a key in :attr:`anndata.AnnData.obsm`.
     - If `dict`, the dictionary stores `attr` (attribute of :class:`anndata.AnnData`) and `key`
       (key of :class:`anndata.AnnData` ``['{attr}']``).

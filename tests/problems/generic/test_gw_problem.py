@@ -1,6 +1,8 @@
-from typing import Any, Mapping
+from typing import Any, Tuple, Mapping
 
 import pytest
+
+from ott.geometry.costs import Cosine, Euclidean, SqEuclidean
 
 from anndata import AnnData
 
@@ -97,3 +99,28 @@ class TestGWProblem:
         for arg, val in geometry_args.items():
             assert hasattr(geom, val)
             assert getattr(geom, val) == args_to_check[arg]
+
+    @pytest.mark.fast()
+    @pytest.mark.parametrize("cost", [("sq_euclidean", SqEuclidean), ("euclidean", Euclidean), ("cosine", Cosine)])
+    def test_prepare_costs(self, adata_time: AnnData, cost: Tuple[str, Any]):
+        problem = GWProblem(adata=adata_time)
+        problem = problem.prepare(
+            key="time",
+            policy="sequential",
+            cost=cost[0],
+        )
+        assert isinstance(problem[0, 1].x.cost, cost[1])
+        assert isinstance(problem[0, 1].y.cost, cost[1])
+
+    @pytest.mark.fast()
+    def test_prepare_different_costs(self, adata_time: AnnData):
+        problem = GWProblem(adata=adata_time)
+        problem = problem.prepare(
+            key="time",
+            policy="sequential",
+            GW_x="X_pca",
+            GW_y="X_pca",
+            cost={"x": "euclidean", "y": "sq_euclidean"},
+        )
+        assert isinstance(problem[0, 1].x.cost, Euclidean)
+        assert isinstance(problem[0, 1].y.cost, SqEuclidean)

@@ -175,13 +175,14 @@ class OTProblem(BaseProblem):
         self._b: Optional[ArrayLike] = None
 
     def _handle_linear(self, cost: CostFn_t = None, **kwargs: Any) -> TaggedArray:
+        print("now in handle+linear ")
         if "x_attr" not in kwargs or "y_attr" not in kwargs:
             kwargs.setdefault("tag", Tag.COST_MATRIX)
             attr = kwargs.pop("attr", "obsm")
 
             if attr in ("obsm", "uns"):
                 return TaggedArray.from_adata(
-                    self.adata_src, dist_key=(self._src_key, self._tgt_key), attr=attr, cost="custom", **kwargs
+                    self.adata_src, dist_key=(self._src_key, self._tgt_key), attr=attr, **kwargs
                 )
             raise ValueError(f"Storing `{kwargs['tag']!r}` in `adata.{attr}` is disallowed.")
 

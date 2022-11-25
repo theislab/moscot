@@ -1,6 +1,8 @@
-from typing import Any, Mapping
+from typing import Any, Tuple, Mapping
 
 import pytest
+
+from ott.geometry.costs import Cosine, Euclidean, SqEuclidean
 
 from anndata import AnnData
 
@@ -110,3 +112,34 @@ class TestFGWProblem:
         for arg, val in pointcloud_args.items():
             assert hasattr(geom, val)
             assert getattr(geom, val) == args_to_check[arg]
+
+    @pytest.mark.fast()
+    @pytest.mark.parametrize("cost", [("sq_euclidean", SqEuclidean), ("euclidean", Euclidean), ("cosine", Cosine)])
+    def test_prepare_costs(self, adata_time: AnnData, cost: Tuple[str, Any]):
+        problem = FGWProblem(adata=adata_time)
+        problem = problem.prepare(
+            key="time",
+            policy="sequential",
+            joint_attr="X_umap",
+            GW_x="X_pca",
+            GW_y="X_pca",
+            cost=cost[0],
+        )
+        assert isinstance(problem[0, 1].xy.cost, cost[1])
+        assert isinstance(problem[0, 1].x.cost, cost[1])
+        assert isinstance(problem[0, 1].y.cost, cost[1])
+
+    @pytest.mark.fast()
+    def test_prepare_different_costs(self, adata_time: AnnData):
+        problem = FGWProblem(adata=adata_time)
+        problem = problem.prepare(
+            key="time",
+            policy="sequential",
+            joint_attr="X_umap",
+            GW_x="X_pca",
+            GW_y="X_pca",
+            cost={"xy": "cosine", "x": "euclidean", "y": "sq_euclidean"},
+        )
+        assert isinstance(problem[0, 1].xy.cost, Cosine)
+        assert isinstance(problem[0, 1].x.cost, Euclidean)
+        assert isinstance(problem[0, 1].y.cost, SqEuclidean)
