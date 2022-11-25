@@ -244,7 +244,7 @@ class GWProblem(CompoundProblem[K, B], GenericAnalysisMixin[K, B]):
                 z.setdefault("cost", "sq_euclidean")
                 z.setdefault("tag", "cost")
 
-        xy = kwargs.pop("joint_attr", None)
+        xy = kwargs.pop("xy", None)
         xy, x, y = handle_cost(xy=xy, x=GW_x, y=GW_y, cost=cost)
         return super().prepare(
             key=key,
