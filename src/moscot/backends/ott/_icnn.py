@@ -66,7 +66,7 @@ class ICNN(nn.Module):
             v = []
 
             if self.combiner: # if combine different conditions into a single one, we assume conditions being concatenated
-                self.final_condition_dim = self.combiner_output
+                cond_dim = self.combiner_output
                 # add just one layer 
                 self.w_c = nn.Dense( # combiner
                         self.combiner_output,
@@ -76,7 +76,7 @@ class ICNN(nn.Module):
                     )
                 
             else:
-                self.final_condition_dim = self.dim_condition
+                cond_dim = len(self.split_indices)
 
             for i in range(1, num_hidden):
                 w_zu.append(
@@ -105,7 +105,7 @@ class ICNN(nn.Module):
                 )
                 v.append(
                     nn.Dense(
-                        self.final_condition_dim,
+                        cond_dim,
                         kernel_init=self.init_fn(self.init_std),
                         use_bias=True,
                         bias_init = self.init_fn(self.init_std)
