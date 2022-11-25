@@ -44,7 +44,8 @@ epsilon
 """
 _alpha = """\
 alpha
-    Interpolation parameter between quadratic term and linear term.
+    Interpolation parameter between quadratic term and linear term, between 0 and 1. `alpha=1` corresponds to to
+    pure Gromov-Wasserstein, while `alpha -> 0` corresponds to pure Sinkhorn.
 """
 _tau_a = """\
 tau_a
