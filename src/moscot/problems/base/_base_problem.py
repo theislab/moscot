@@ -182,7 +182,7 @@ class OTProblem(BaseProblem):
 
             if attr in ("obsm", "uns"):
                 return TaggedArray.from_adata(
-                    self.adata_src, dist_key=(self._src_key, self._tgt_key), attr=attr, **kwargs
+                    self.adata_src, dist_key=(self._src_key, self._tgt_key), attr=attr, cost="custom", **kwargs
                 )
             raise ValueError(f"Storing `{kwargs['tag']!r}` in `adata.{attr}` is disallowed.")
 

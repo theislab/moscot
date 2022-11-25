@@ -107,6 +107,8 @@ class TestGWProblem:
         problem = problem.prepare(
             key="time",
             policy="sequential",
+            GW_x="X_pca",
+            GW_y="X_pca",
             cost=cost[0],
         )
         assert isinstance(problem[0, 1].x.cost, cost[1])
