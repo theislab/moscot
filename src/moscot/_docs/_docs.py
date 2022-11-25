@@ -44,17 +44,17 @@ epsilon
 """
 _alpha = """\
 alpha
-    Interpolation parameter between quadratic term and linear term, between 0 and 1. `alpha=1` corresponds to to
-    pure Gromov-Wasserstein, while `alpha -> 0` corresponds to pure Sinkhorn.
+    Interpolation parameter between quadratic term and linear term, between 0 and 1. :math:`alpha=1` corresponds to
+    pure Gromov-Wasserstein, while :math:`alpha -> 0` corresponds to pure Sinkhorn.
 """
 _tau_a = """\
 tau_a
-    Unbalancedness parameter for left marginal between 0 and 1. `tau_a` equalling 1 means no unbalancedness
+    Unbalancedness parameter for left marginal between 0 and 1. :math:`tau_a=1` means no unbalancedness
     in the source distribution. The limit of `tau_a` going to 0 ignores the left marginals.
 """
 _tau_b = """\
 tau_b
-    unbalancedness parameter for right marginal between 0 and 1. `tau_b` equalling 1 means no unbalancedness
+    unbalancedness parameter for right marginal between 0 and 1. :math:`tau_b=1` means no unbalancedness
     in the target distribution. The limit of `tau_b` going to 0 ignores the right marginals."""
 _scale_by_marginals = """\
 scale_by_marginals
