@@ -6,7 +6,7 @@ from anndata import AnnData
 from moscot._types import ScaleCost_t, ProblemStage_t, QuadInitializer_t, SinkhornInitializer_t
 from moscot._docs._docs import d
 from moscot.problems.base import OTProblem, CompoundProblem  # type: ignore[attr-defined]
-from moscot.problems._utils import handle_joint_attr
+from moscot.problems._utils import handle_cost, handle_joint_attr
 from moscot.problems.generic._mixins import GenericAnalysisMixin
 from moscot.problems.base._compound_problem import B, K
 
@@ -45,7 +45,7 @@ class SinkhornProblem(CompoundProblem[K, B], GenericAnalysisMixin[K, B]):
         %(key)s
         %(joint_attr)s
         %(policy)s
-        %(cost)s
+        %(cost_lin)s
         %(a)s
         %(b)s
         %(kwargs_prepare)s
@@ -79,6 +79,7 @@ class SinkhornProblem(CompoundProblem[K, B], GenericAnalysisMixin[K, B]):
             raise TypeError(f"Unable to interpret `joint_attr` of type `{type(joint_attr)}`.")
 
         xy, kwargs = handle_joint_attr(joint_attr, kwargs)
+        xy, _, _ = handle_cost(xy=xy, cost=cost)
         return super().prepare(
             key=key,
             policy=policy,
@@ -197,7 +198,10 @@ class GWProblem(CompoundProblem[K, B], GenericAnalysisMixin[K, B]):
         GW_x: Mapping[str, Any] = MappingProxyType({}),
         GW_y: Mapping[str, Any] = MappingProxyType({}),
         policy: Literal["sequential", "pairwise", "explicit"] = "sequential",
-        cost: Literal["sq_euclidean", "cosine", "bures", "unbalanced_bures"] = "sq_euclidean",
+        cost: Union[
+            Literal["sq_euclidean", "cosine", "bures", "unbalanced_bures"],
+            Mapping[str, Literal["sq_euclidean", "cosine", "bures", "unbalanced_bures"]],
+        ] = "sq_euclidean",
         a: Optional[str] = None,
         b: Optional[str] = None,
         **kwargs: Any,
@@ -240,10 +244,13 @@ class GWProblem(CompoundProblem[K, B], GenericAnalysisMixin[K, B]):
                 z.setdefault("cost", "sq_euclidean")
                 z.setdefault("tag", "cost")
 
+        xy = kwargs.pop("joint_attr", None)
+        xy, x, y = handle_cost(xy=xy, x=GW_x, y=GW_y, cost=cost)
         return super().prepare(
             key=key,
-            x=GW_x,
-            y=GW_y,
+            xy=xy,  # this is needed as FGWProblem inherits from GWProblem
+            x=x,
+            y=y,
             policy=policy,
             cost=cost,
             a=a,
@@ -354,7 +361,10 @@ class FGWProblem(GWProblem[K, B]):
         GW_x: Mapping[str, Any] = MappingProxyType({}),
         GW_y: Mapping[str, Any] = MappingProxyType({}),
         policy: Literal["sequential", "pairwise", "explicit"] = "sequential",
-        cost: Literal["sq_euclidean", "cosine", "bures", "unbalanced_bures"] = "sq_euclidean",
+        cost: Union[
+            Literal["sq_euclidean", "cosine", "bures", "unbalanced_bures"],
+            Mapping[str, Literal["sq_euclidean", "cosine", "bures", "unbalanced_bures"]],
+        ] = "sq_euclidean",
         a: Optional[str] = None,
         b: Optional[str] = None,
         **kwargs: Any,

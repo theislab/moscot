@@ -128,12 +128,11 @@ class TestCompoundProblem:
     def test_prepare_cost(self, adata_time: AnnData, cost: Tuple[str, Any]):
         problem = Problem(adata=adata_time)
         problem = problem.prepare(
-            xy={"x_attr": "X", "y_attr": "X"},
+            xy={"x_attr": "X", "y_attr": "X", "cost": cost[0]},
             x={"attr": "X"},
             y={"attr": "X"},
             key="time",
             policy="sequential",
-            cost=cost[0],
         )
         assert isinstance(problem[0, 1].xy.cost, cost[1])
 
