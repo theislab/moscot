@@ -343,7 +343,15 @@ _ex_prepare = """\
 See :ref:`sphx_glr_auto_examples_problems_ex_different_policies.py` for an example how to
 use different policies. See :ref:`sphx_glr_auto_examples_problems_ex_passing_marginals.py`
 for an example how to pass marginals.
-    """
+"""
+_data_set = """\
+data
+    Custom cost matrix or kernel matrix.
+"""
+_tag_set = """\
+tag
+    Tag indicating whether `data` is cost matrix or kernel matrix.
+"""
 
 d = DocstringProcessor(
     adata=_adata,
@@ -406,4 +414,6 @@ d = DocstringProcessor(
     ex_solve_quadratic=_ex_solve_quadratic,
     ex_solve_linear=_ex_solve_linear,
     ex_prepare=_ex_prepare,
+    data_set=_data_set,
+    tag_set=_tag_set,
 )
