@@ -176,7 +176,6 @@ class OTProblem(BaseProblem):
         self._b: Optional[ArrayLike] = None
 
     def _handle_linear(self, cost: CostFn_t = None, **kwargs: Any) -> TaggedArray:
-        print("now in handle+linear ")
         if "x_attr" not in kwargs or "y_attr" not in kwargs:
             kwargs.setdefault("tag", Tag.COST_MATRIX)
             attr = kwargs.pop("attr", "obsm")

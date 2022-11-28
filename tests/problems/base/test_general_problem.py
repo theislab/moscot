@@ -60,6 +60,8 @@ class TestOTProblem:
         cm = rng.uniform(1, 10, size=(adata_x.n_obs, adata_y.n_obs))
         cost_matrix = pd.DataFrame(index=adata_x.obs_names, columns=adata_y.obs_names, data=cm)
         prob.set_xy(cost_matrix, tag=tag)
+        assert isinstance(prob.xy.data_src, np.ndarray)
+        assert prob.xy.data_tgt is None
 
         prob = prob.solve(max_iterations=5)
         np.testing.assert_equal(prob.xy.data_src, cost_matrix.to_numpy())
@@ -76,6 +78,9 @@ class TestOTProblem:
 
         cm = rng.uniform(1, 10, size=(adata_x.n_obs, adata_x.n_obs))
         cost_matrix = pd.DataFrame(index=adata_x.obs_names, columns=adata_x.obs_names, data=cm)
+        prob.set_x(cost_matrix, tag=tag)
+        assert isinstance(prob.x.data_src, np.ndarray)
+        assert prob.x.data_tgt is None
 
         prob = prob.solve(max_iterations=5)
         np.testing.assert_equal(prob.x.data_src, cost_matrix.to_numpy())
@@ -93,6 +98,8 @@ class TestOTProblem:
         cm = rng.uniform(1, 10, size=(adata_y.n_obs, adata_y.n_obs))
         cost_matrix = pd.DataFrame(index=adata_y.obs_names, columns=adata_y.obs_names, data=cm)
         prob.set_y(cost_matrix, tag=tag)
+        assert isinstance(prob.y.data_src, np.ndarray)
+        assert prob.y.data_tgt is None
 
         prob = prob.solve(max_iterations=5)
         np.testing.assert_equal(prob.y.data_src, cost_matrix.to_numpy())

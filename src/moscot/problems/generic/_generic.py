@@ -245,7 +245,6 @@ class GWProblem(CompoundProblem[K, B], GenericAnalysisMixin[K, B]):
 
         xy = kwargs.pop("xy", None)
         xy, x, y = handle_cost(xy=xy, x=GW_updated[0], y=GW_updated[1], cost=cost)
-        print("xy is ", xy)
         return super().prepare(
             key=key,
             xy=xy,  # this is needed as FGWProblem inherits from GWProblem
