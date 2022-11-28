@@ -160,5 +160,5 @@ class TaggedArray:
 
     @property
     def is_point_cloud(self) -> bool:
-        """Whether :attr:`data_src` and :attr:`data_tgt` is a point cloud."""
+        """Whether :attr:`data_src` (and optionally) :attr:`data_tgt` is/are a point cloud."""
         return self.tag == Tag.POINT_CLOUD

@@ -480,7 +480,7 @@ class OTProblem(BaseProblem):
     @d.dedent
     def set_xy(
         self,
-        data: Union[ArrayLike, pd.DataFrame],
+        data: pd.DataFrame,
         tag: Literal["cost", "kernel"],
     ) -> None:
         """
@@ -489,7 +489,7 @@ class OTProblem(BaseProblem):
         Parameters
         ----------
         %(data_set)s
-        %(tag)s
+        %(tag_set)s
 
         Returns
         -------
@@ -516,14 +516,14 @@ class OTProblem(BaseProblem):
         self._stage = ProblemStage.PREPARED
 
     @d.dedent
-    def set_x(self, data: Union[ArrayLike, pd.DataFrame], tag: Literal["cost", "kernel"]) -> None:
+    def set_x(self, data: pd.DataFrame, tag: Literal["cost", "kernel"]) -> None:
         """
         Set a custom cost matrix/kernel in the quadratic source term.
 
         Parameters
         ----------
         %(data_set)s
-        %(tag)s
+        %(tag_set)s
 
         Returns
         -------
@@ -550,14 +550,14 @@ class OTProblem(BaseProblem):
         self._stage = ProblemStage.PREPARED
 
     @d.dedent
-    def set_y(self, data: Union[ArrayLike, pd.DataFrame], tag: Literal["cost", "kernel"]) -> None:
+    def set_y(self, data: pd.DataFrame, tag: Literal["cost", "kernel"]) -> None:
         """
         Set a custom cost matrix/kernel in the quadratic target term.
 
         Parameters
         ----------
         %(data_set)s
-        %(tag)s
+        %(tag_set)s
 
         Returns
         -------

@@ -63,7 +63,7 @@ class TestOTProblem:
         assert isinstance(prob.xy.data_src, np.ndarray)
         assert prob.xy.data_tgt is None
 
-        prob = prob.solve(max_iterations=5)
+        prob = prob.solve(max_iterations=5)  # TODO(@MUCDK) once fixed in OTT-JAX test for scale_cost
         np.testing.assert_equal(prob.xy.data_src, cost_matrix.to_numpy())
 
     @pytest.mark.parametrize("tag", ["cost", "kernel"])
@@ -82,7 +82,7 @@ class TestOTProblem:
         assert isinstance(prob.x.data_src, np.ndarray)
         assert prob.x.data_tgt is None
 
-        prob = prob.solve(max_iterations=5)
+        prob = prob.solve(max_iterations=5)  # TODO(@MUCDK) once fixed in OTT-JAX test for scale_cost
         np.testing.assert_equal(prob.x.data_src, cost_matrix.to_numpy())
 
     @pytest.mark.parametrize("tag", ["cost", "kernel"])

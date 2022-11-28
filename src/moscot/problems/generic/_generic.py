@@ -237,7 +237,7 @@ class GWProblem(CompoundProblem[K, B], GenericAnalysisMixin[K, B]):
         GW_updated: List[Dict[str, Any]] = [{}] * 2
         for i, z in enumerate([GW_x, GW_y]):
             if isinstance(z, str):
-                GW_updated[i] = {"attr": "obsm", "key": z, "tag": "pointcloud"}  # cost handled by handle_cost
+                GW_updated[i] = {"attr": "obsm", "key": z, "tag": "point_cloud"}  # cost handled by handle_cost
             elif isinstance(z, dict):
                 GW_updated[i] = z
             else:
