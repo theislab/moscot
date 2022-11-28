@@ -6,7 +6,7 @@ from anndata import AnnData
 from moscot._types import ArrayLike, Str_Dict_t, ScaleCost_t, ProblemStage_t, QuadInitializer_t
 from moscot._docs._docs import d
 from moscot._constants._key import Key
-from moscot.problems._utils import handle_joint_attr
+from moscot.problems._utils import handle_cost, handle_joint_attr
 from moscot._constants._constants import Policy
 from moscot.problems.space._mixins import SpatialMappingMixin
 from moscot.problems._subset_policy import DummyPolicy, ExternalStarPolicy
@@ -77,7 +77,10 @@ class MappingProblem(CompoundProblem[K, OTProblem], SpatialMappingMixin[K, OTPro
         spatial_key: Union[str, Mapping[str, Any]] = Key.obsm.spatial,
         var_names: Optional[Sequence[Any]] = None,
         joint_attr: Optional[Union[str, Mapping[str, Any]]] = None,
-        cost: Literal["sq_euclidean", "cosine", "bures", "unbalanced_bures"] = "sq_euclidean",
+        cost: Union[
+            Literal["sq_euclidean", "cosine", "bures", "unbalanced_bures"],
+            Mapping[str, Literal["sq_euclidean", "cosine", "bures", "unbalanced_bures"]],
+        ] = "sq_euclidean",
         a: Optional[str] = None,
         b: Optional[str] = None,
         **kwargs: Any,
@@ -123,6 +126,10 @@ class MappingProblem(CompoundProblem[K, OTProblem], SpatialMappingMixin[K, OTPro
         self.filtered_vars = var_names
         if self.filtered_vars is not None:
             xy, kwargs = handle_joint_attr(joint_attr, kwargs)
+        else:
+            xy = None
+        xy, x, y = handle_cost(xy=xy, x=x, y=y, cost=cost)
+        if xy is not None:
             kwargs["xy"] = xy
         return super().prepare(x=x, y=y, policy="external_star", key=batch_key, cost=cost, a=a, b=b, **kwargs)
 

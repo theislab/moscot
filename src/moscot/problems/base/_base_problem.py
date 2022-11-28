@@ -8,7 +8,7 @@ import numpy as np
 from anndata import AnnData
 import scanpy as sc
 
-from moscot._types import Device_t, ArrayLike
+from moscot._types import CostFn_t, Device_t, ArrayLike
 from moscot._logging import logger
 from moscot._docs._docs import d
 from moscot.problems._utils import wrap_solve, wrap_prepare, require_solution
@@ -174,19 +174,23 @@ class OTProblem(BaseProblem):
         self._a: Optional[ArrayLike] = None
         self._b: Optional[ArrayLike] = None
 
-    def _handle_linear(self, **kwargs: Any) -> TaggedArray:
+    def _handle_linear(self, cost: CostFn_t = None, **kwargs: Any) -> TaggedArray:
+        print("now in handle+linear ")
         if "x_attr" not in kwargs or "y_attr" not in kwargs:
             kwargs.setdefault("tag", Tag.COST_MATRIX)
             attr = kwargs.pop("attr", "obsm")
 
             if attr in ("obsm", "uns"):
                 return TaggedArray.from_adata(
-                    self.adata_src, dist_key=(self._src_key, self._tgt_key), attr=attr, **kwargs
+                    self.adata_src, dist_key=(self._src_key, self._tgt_key), attr=attr, cost="custom", **kwargs
                 )
             raise ValueError(f"Storing `{kwargs['tag']!r}` in `adata.{attr}` is disallowed.")
 
         x_kwargs = {k[2:]: v for k, v in kwargs.items() if k.startswith("x_")}
         y_kwargs = {k[2:]: v for k, v in kwargs.items() if k.startswith("y_")}
+        if cost is not None:
+            x_kwargs["cost"] = cost
+            y_kwargs["cost"] = cost
         x_kwargs["tag"] = Tag.POINT_CLOUD
         y_kwargs["tag"] = Tag.POINT_CLOUD
 
@@ -286,7 +290,6 @@ class OTProblem(BaseProblem):
         else:
             raise ValueError("Unable to prepare the data. Either only supply `xy=...`, or `x=..., y=...`, or all.")
         # fmt: on
-
         self._a = self._create_marginals(self.adata_src, data=a, source=True, **kwargs)
         self._b = self._create_marginals(self.adata_tgt, data=b, source=False, **kwargs)
         return self

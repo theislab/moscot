@@ -1,10 +1,11 @@
-from typing import Literal, Mapping
+from typing import Any, Tuple, Literal, Mapping
 import os
 
 from pytest_mock import MockerFixture
 from sklearn.metrics.pairwise import euclidean_distances
 import pytest
 
+from ott.geometry.costs import Cosine, Euclidean, SqEuclidean
 from ott.geometry.pointcloud import PointCloud
 from ott.solvers.linear.sinkhorn import sinkhorn
 import numpy as np
@@ -122,6 +123,35 @@ class TestCompoundProblem:
 
         np.testing.assert_allclose(gt.matrix, p1_tmap, rtol=RTOL, atol=ATOL)
         np.testing.assert_allclose(gt.matrix, p2_tmap, rtol=RTOL, atol=ATOL)
+
+    @pytest.mark.fast()
+    @pytest.mark.parametrize("cost", [("sq_euclidean", SqEuclidean), ("euclidean", Euclidean), ("cosine", Cosine)])
+    def test_prepare_cost(self, adata_time: AnnData, cost: Tuple[str, Any]):
+        problem = Problem(adata=adata_time)
+        problem = problem.prepare(
+            xy={"x_attr": "X", "y_attr": "X", "cost": cost[0]},
+            x={"attr": "X", "cost": cost[0]},
+            y={"attr": "X", "cost": cost[0]},
+            key="time",
+            policy="sequential",
+        )
+        assert isinstance(problem[0, 1].xy.cost, cost[1])
+        assert isinstance(problem[0, 1].x.cost, cost[1])
+        assert isinstance(problem[0, 1].y.cost, cost[1])
+
+    @pytest.mark.fast()
+    def test_prepare_different_costs(self, adata_time: AnnData):
+        problem = Problem(adata=adata_time)
+        problem = problem.prepare(
+            xy={"x_attr": "X", "y_attr": "X", "cost": "sq_euclidean"},
+            x={"attr": "X", "cost": "euclidean"},
+            y={"attr": "X", "cost": "cosine"},
+            key="time",
+            policy="sequential",
+        )
+        assert isinstance(problem[0, 1].xy.cost, SqEuclidean)
+        assert isinstance(problem[0, 1].x.cost, Euclidean)
+        assert isinstance(problem[0, 1].y.cost, Cosine)
 
     def test_add_problem(self, adata_time: AnnData):
         expected_keys = [(0, 1), (1, 2)]

@@ -4,7 +4,7 @@ from typing import Any, Type, Tuple, Union, Literal, Mapping, Optional
 from moscot._types import ScaleCost_t, ProblemStage_t, QuadInitializer_t
 from moscot._docs._docs import d
 from moscot._constants._key import Key
-from moscot.problems._utils import handle_joint_attr
+from moscot.problems._utils import handle_cost, handle_joint_attr
 from moscot._constants._constants import Policy
 from moscot.problems.space._mixins import SpatialAlignmentMixin
 from moscot.problems.base._base_problem import OTProblem
@@ -33,7 +33,10 @@ class AlignmentProblem(CompoundProblem[K, B], SpatialAlignmentMixin[K, B]):
         joint_attr: Optional[Union[str, Mapping[str, Any]]] = None,
         policy: Literal["sequential", "star"] = "sequential",
         reference: Optional[str] = None,
-        cost: Literal["sq_euclidean", "cosine", "bures", "unbalanced_bures"] = "sq_euclidean",
+        cost: Union[
+            Literal["sq_euclidean", "cosine", "bures", "unbalanced_bures"],
+            Mapping[str, Literal["sq_euclidean", "cosine", "bures", "unbalanced_bures"]],
+        ] = "sq_euclidean",
         a: Optional[str] = None,
         b: Optional[str] = None,
         **kwargs: Any,
@@ -73,6 +76,8 @@ class AlignmentProblem(CompoundProblem[K, B], SpatialAlignmentMixin[K, B]):
         x = y = {"attr": "obsm", "key": self.spatial_key, "tag": "point_cloud"}
 
         xy, kwargs = handle_joint_attr(joint_attr, kwargs)
+        xy, x, y = handle_cost(xy=xy, x=x, y=y, cost=cost)
+
         return super().prepare(
             x=x, y=y, xy=xy, policy=policy, key=batch_key, reference=reference, cost=cost, a=a, b=b, **kwargs
         )

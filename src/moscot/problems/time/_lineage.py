@@ -9,7 +9,7 @@ from anndata import AnnData
 
 from moscot._types import Numeric_t, ScaleCost_t, ProblemStage_t, QuadInitializer_t, SinkhornInitializer_t
 from moscot._docs._docs import d
-from moscot.problems._utils import handle_joint_attr
+from moscot.problems._utils import handle_cost, handle_joint_attr
 from moscot.solvers._output import BaseSolverOutput
 from moscot._constants._constants import Policy
 from moscot.problems.time._mixins import TemporalMixin
@@ -60,7 +60,7 @@ class TemporalProblem(
         %(time_key)s
         %(joint_attr)s
         %(policy)s
-        %(cost)s
+        %(cost_lin)s
         %(a)s
         %(b)s
         %(kwargs_prepare)s
@@ -81,6 +81,7 @@ class TemporalProblem(
         self.temporal_key = time_key
         policy = Policy(policy)  # type: ignore[assignment]
         xy, kwargs = handle_joint_attr(joint_attr, kwargs)
+        xy, x, y = handle_cost(xy=xy, x=kwargs.pop("x", None), y=kwargs.pop("y", None), cost=cost)
 
         # TODO(michalk8): needs to be modified
         marginal_kwargs = dict(kwargs.pop("marginal_kwargs", {}))
@@ -94,9 +95,10 @@ class TemporalProblem(
         return super().prepare(
             key=time_key,
             xy=xy,
+            x=x,
+            y=y,
             policy=policy,
             marginal_kwargs=marginal_kwargs,
-            cost=cost,
             a=a,
             b=b,
             **kwargs,
@@ -308,7 +310,10 @@ class LineageProblem(TemporalProblem):
         lineage_attr: Mapping[str, Any] = MappingProxyType({}),
         joint_attr: Optional[Union[str, Mapping[str, Any]]] = None,
         policy: Literal["sequential", "tril", "triu", "sequential"] = "sequential",
-        cost: Literal["sq_euclidean", "cosine", "bures", "unbalanced_bures"] = "sq_euclidean",
+        cost: Union[
+            Literal["sq_euclidean", "cosine", "bures", "unbalanced_bures"],
+            Mapping[str, Literal["sq_euclidean", "cosine", "bures", "unbalanced_bures"]],
+        ] = "sq_euclidean",
         a: Optional[str] = None,
         b: Optional[str] = None,
         **kwargs: Any,

@@ -33,7 +33,10 @@ class SpatioTemporalProblem(
         spatial_key: str = Key.obsm.spatial,
         joint_attr: Optional[Union[str, Mapping[str, Any]]] = None,
         policy: Literal["sequential", "tril", "triu", "explicit"] = "sequential",
-        cost: Literal["sq_euclidean", "cosine", "bures", "unbalanced_bures"] = "sq_euclidean",
+        cost: Union[
+            Literal["sq_euclidean", "cosine", "bures", "unbalanced_bures"],
+            Mapping[str, Literal["sq_euclidean", "cosine", "bures", "unbalanced_bures"]],
+        ] = "sq_euclidean",
         a: Optional[str] = None,
         b: Optional[str] = None,
         **kwargs: Any,
@@ -68,6 +71,7 @@ class SpatioTemporalProblem(
         %(ex_prepare)s
         """
         # spatial key set in AlignmentProblem
+        # handle_joint_attr and handle_cost in AlignmentProblem
         self.temporal_key = time_key
 
         return super().prepare(
