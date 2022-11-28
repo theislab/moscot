@@ -44,16 +44,17 @@ epsilon
 """
 _alpha = """\
 alpha
-    Interpolation parameter between quadratic term and linear term.
+    Interpolation parameter between quadratic term and linear term, between 0 and 1. `alpha=1` corresponds to
+    pure Gromov-Wasserstein, while `alpha -> 0` corresponds to pure Sinkhorn.
 """
 _tau_a = """\
 tau_a
-    Unbalancedness parameter for left marginal between 0 and 1. `tau_a` equalling 1 means no unbalancedness
+    Unbalancedness parameter for left marginal between 0 and 1. `tau_a=1` means no unbalancedness
     in the source distribution. The limit of `tau_a` going to 0 ignores the left marginals.
 """
 _tau_b = """\
 tau_b
-    unbalancedness parameter for right marginal between 0 and 1. `tau_b` equalling 1 means no unbalancedness
+    unbalancedness parameter for right marginal between 0 and 1. `tau_b=1` means no unbalancedness
     in the target distribution. The limit of `tau_b` going to 0 ignores the right marginals."""
 _scale_by_marginals = """\
 scale_by_marginals
@@ -146,7 +147,6 @@ joint_attr
 _GW_x = """\
 GW_x
 
-    - If empty , cost matrix must be provided in :attr:`anndata.AnnData.obsp`.
     - If `str`, it must refer to a key in :attr:`anndata.AnnData.obsm`.
     - If `dict`, the dictionary stores `attr` (attribute of :class:`anndata.AnnData`) and `key`
       (key of :class:`anndata.AnnData` ``['{attr}']``).
@@ -154,7 +154,6 @@ GW_x
 _GW_y = """\
 GW_y
 
-    - If empty, cost matrix must be provided in :attr:`anndata.AnnData.obsp`.
     - If `str`, it must refer to a key in :attr:`anndata.AnnData.obsm`.
     - If `dict`, the dictionary stores `attr` (attribute of :class:`anndata.AnnData`) and `key`
       (key of :class:`anndata.AnnData` ``['{attr}']``).
@@ -284,10 +283,18 @@ _scale_cost = """\
 scale_cost
     Method to scale cost matrices. If `None` no scaling is applied.
 """
-_cost = """\
+_cost_lin = """\
 cost
     Cost between two points in dimension d. Only used if no precomputed cost matrix is passed.
 """
+_cost = """\
+cost
+    Cost between two points in dimension d. Only used if no precomputed cost matrix is passed.
+    If `cost` is of type :obj:`str`, the cost will be used for all point clouds. If `cost` is of type :obj:`dict`,
+    it is expected to have keys `x`, `y`, and/or `xy`, with values corresponding to the cost functions
+    in the quadratic term of the source distribution, the quadratic term of the target distribution, and/or the
+    linear term, respectively.
+    """
 _pointcloud_kwargs = """\
 batch_size
     Number of data points the matrix-vector products are applied to at the same time. The larger, the more memory
@@ -401,6 +408,7 @@ d = DocstringProcessor(
     gw_kwargs=_gw_kwargs,
     gw_lr_kwargs=_gw_lr_kwargs,
     scale_cost=_scale_cost,
+    cost_lin=_cost_lin,
     cost=_cost,
     pointcloud_kwargs=_pointcloud_kwargs,
     device_solve=_device_solve,

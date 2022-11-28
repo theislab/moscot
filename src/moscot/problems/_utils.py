@@ -1,5 +1,7 @@
 from typing import Any, Dict, Tuple, Union, Mapping, Callable, Optional, TYPE_CHECKING
 
+from moscot._types import CostFn_t
+
 if TYPE_CHECKING:
     from moscot.problems.base import BaseProblem, BaseCompoundProblem  # type: ignore[attr-defined]
 
@@ -66,7 +68,7 @@ def wrap_solve(
 
 def handle_joint_attr(
     joint_attr: Optional[Union[str, Mapping[str, Any]]], kwargs: Any
-) -> Tuple[Optional[Union[str, Mapping[str, Any]]], Dict[str, Any]]:
+) -> Tuple[Optional[Mapping[str, Any]], Dict[str, Any]]:
     if joint_attr is None:
         if "callback" not in kwargs:
             kwargs["callback"] = "local-pca"
@@ -85,3 +87,36 @@ def handle_joint_attr(
     if isinstance(joint_attr, Mapping):
         return joint_attr, kwargs
     raise TypeError(f"Expected `joint_attr` to be either `str` or `dict`, found `{type(joint_attr)}`.")
+
+
+def handle_cost(
+    xy: Optional[Mapping[str, Any]] = None,
+    x: Optional[Mapping[str, Any]] = None,
+    y: Optional[Mapping[str, Any]] = None,
+    cost: Optional[Union[CostFn_t, Mapping[str, CostFn_t]]] = None,
+    **_: Any,
+) -> Tuple[Optional[Mapping[str, Any]], Optional[Mapping[str, Any]], Optional[Mapping[str, Any]]]:
+    if cost is None:
+        return xy, x, y
+    if isinstance(cost, str):
+        if xy is not None and "cost" not in xy:
+            xy = dict(xy)
+            xy["cost"] = cost
+        if x is not None and "cost" not in x:
+            x = dict(x)
+            x["cost"] = cost
+        if y is not None and "cost" not in y:
+            y = dict(y)
+            y["cost"] = cost
+        return xy, x, y
+    if isinstance(cost, Mapping):
+        if xy is not None and "cost" not in xy:
+            xy = dict(xy)
+            xy["cost"] = cost["xy"]
+        if x is not None and "cost" not in x:
+            x = dict(x)
+            x["cost"] = cost["x"]
+        if y is not None and "cost" not in y:
+            y = dict(y)
+            y["cost"] = cost["y"]
+        return xy, x, y
