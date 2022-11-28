@@ -114,12 +114,12 @@ class SpatialAlignmentMixin(AnalysisMixin[K, B]):
             transport_metadata = {reference: np.diag((1, 1))}  # 2d data
 
         # get policy
-        if not isinstance(reference, str):
+        if isinstance(reference, str):
             reference_ = [reference]
         else:
-            reference_ = reference  # type: ignore[assignment]
+            reference_ = reference
         full_steps = self._policy._graph
-        starts = set(chain.from_iterable(full_steps)) - set(reference_)
+        starts = set(chain.from_iterable(full_steps)) - set(reference_)  # type: ignore[arg-type]
         fwd_steps, bwd_steps = {}, {}
         for start in starts:
             try:
@@ -143,7 +143,7 @@ class SpatialAlignmentMixin(AnalysisMixin[K, B]):
 
         if len(bwd_steps):
             for (_, end), path in bwd_steps.items():
-                tmap = self._interpolate_transport(path=path, scale_by_marginals=True, forward=False)
+                tmap = self._interpolate_transport(path=path, scale_by_marginals=True, forward=True)
                 transport_maps[end], transport_metadata[end] = _transport(
                     tmap.T, self._subset_spatial(end, spatial_key=spatial_key), src
                 )
