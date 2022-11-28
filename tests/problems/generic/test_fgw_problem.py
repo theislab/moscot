@@ -137,6 +137,9 @@ class TestFGWProblem:
         adata_time = adata_time[adata_time.obs["time"].isin((0, 1))].copy()
         problem = FGWProblem(adata=adata_time)
         problem = problem.prepare(
+            GW_x="X_pca",
+            GW_y="X_pca",
+            joint_attr="X_pca",
             key="time",
             policy="sequential",
         )
@@ -160,6 +163,9 @@ class TestFGWProblem:
         adata_time = adata_time[adata_time.obs["time"].isin((0, 1))].copy()
         problem = FGWProblem(adata=adata_time)
         problem = problem.prepare(
+            GW_x="X_pca",
+            GW_y="X_pca",
+            joint_attr="X_pca",
             key="time",
             policy="sequential",
         )
@@ -172,7 +178,9 @@ class TestFGWProblem:
         assert isinstance(problem[0, 1].x.data_src, np.ndarray)
         assert problem[0, 1].x.data_tgt is None
 
-        problem = problem.solve(max_iterations=5)  # TODO(@MUCDK) once fixed in OTT-JAX test for scale_cost
+        problem = problem.solve(
+            max_iterations=5, scale_cost=1
+        )  # TODO(@MUCDK) once fixed in OTT-JAX test for scale_cost
         assert isinstance(problem[0, 1].x.data_src, np.ndarray)
         assert problem[0, 1].x.data_tgt is None
 
@@ -182,6 +190,9 @@ class TestFGWProblem:
         adata_time = adata_time[adata_time.obs["time"].isin((0, 1))].copy()
         problem = FGWProblem(adata=adata_time)
         problem = problem.prepare(
+            GW_x="X_pca",
+            GW_y="X_pca",
+            joint_attr="X_pca",
             key="time",
             policy="sequential",
         )
@@ -194,7 +205,9 @@ class TestFGWProblem:
         assert isinstance(problem[0, 1].y.data_src, np.ndarray)
         assert problem[0, 1].y.data_tgt is None
 
-        problem = problem.solve(max_iterations=5)  # TODO(@MUCDK) once fixed in OTT-JAX test for scale_cost
+        problem = problem.solve(
+            max_iterations=5, scale_cost=1
+        )  # TODO(@MUCDK) once fixed in OTT-JAX test for scale_cost
         assert isinstance(problem[0, 1].y.data_src, np.ndarray)
         assert problem[0, 1].y.data_tgt is None
 

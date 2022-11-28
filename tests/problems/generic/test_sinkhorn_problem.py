@@ -74,7 +74,9 @@ class TestSinkhornProblem:
         assert isinstance(problem[0, 1].xy.data_src, np.ndarray)
         assert problem[0, 1].xy.data_tgt is None
 
-        problem = problem.solve(max_iterations=5)  # TODO(@MUCDK) once fixed in OTT-JAX test for scale_cost
+        problem = problem.solve(
+            max_iterations=5, scale_cost=1
+        )  # TODO(@MUCDK) once fixed in OTT-JAX test for scale_cost
         assert isinstance(problem[0, 1].xy.data_src, np.ndarray)
         assert problem[0, 1].xy.data_tgt is None
 

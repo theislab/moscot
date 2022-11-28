@@ -265,7 +265,6 @@ class GWSolver(OTTJaxSolver):
         del xy
         if x is None or y is None:
             raise ValueError(f"Unable to create geometry from `x={x}`, `y={y}`.")
-
         geom_x = self._create_geometry(x, **kwargs)
         geom_y = self._create_geometry(y, **kwargs)
 
