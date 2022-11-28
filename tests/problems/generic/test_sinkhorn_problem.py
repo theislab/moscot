@@ -1,6 +1,9 @@
-from typing import Any, Mapping
+from typing import Any, Literal, Mapping
 
+import pandas as pd
 import pytest
+
+import numpy as np
 
 from anndata import AnnData
 
@@ -51,6 +54,29 @@ class TestSinkhornProblem:
         for key, subsol in problem.solutions.items():
             assert isinstance(subsol, BaseSolverOutput)
             assert key in expected_keys
+
+    @pytest.mark.parametrize("tag", ["cost", "kernel"])
+    def test_set_xy(self, adata_time: AnnData, tag: Literal["cost", "kernel"]):
+        rng = np.random.RandomState(42)
+        adata_time = adata_time[adata_time.obs["time"].isin((0, 1))].copy()
+        problem = SinkhornProblem(adata=adata_time)
+        problem = problem.prepare(
+            key="time",
+            policy="sequential",
+        )
+
+        adata_0 = adata_time[adata_time.obs["time"] == 0]
+        adata_1 = adata_time[adata_time.obs["time"] == 1]
+
+        cm = rng.uniform(1, 10, size=(adata_0.n_obs, adata_1.n_obs))
+        cost_matrix = pd.DataFrame(index=adata_0.obs_names, columns=adata_1.obs_names, data=cm)
+        problem[0, 1].set_xy(cost_matrix, tag=tag)
+        assert isinstance(problem[0, 1].xy.data_src, np.ndarray)
+        assert problem[0, 1].xy.data_tgt is None
+
+        problem = problem.solve(max_iterations=5)  # TODO(@MUCDK) once fixed in OTT-JAX test for scale_cost
+        assert isinstance(problem[0, 1].xy.data_src, np.ndarray)
+        assert problem[0, 1].xy.data_tgt is None
 
     @pytest.mark.parametrize("args_to_check", [sinkhorn_args_1, sinkhorn_args_2])
     def test_pass_arguments(self, adata_time: AnnData, args_to_check: Mapping[str, Any]):

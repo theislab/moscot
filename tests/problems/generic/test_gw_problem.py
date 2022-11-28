@@ -1,8 +1,10 @@
-from typing import Any, Tuple, Mapping
+from typing import Any, Tuple, Literal, Mapping
 
+import pandas as pd
 import pytest
 
 from ott.geometry.costs import Cosine, Euclidean, SqEuclidean
+import numpy as np
 
 from anndata import AnnData
 
@@ -113,6 +115,50 @@ class TestGWProblem:
         )
         assert isinstance(problem[0, 1].x.cost, cost[1])
         assert isinstance(problem[0, 1].y.cost, cost[1])
+
+    @pytest.mark.parametrize("tag", ["cost", "kernel"])
+    def test_set_x(self, adata_time: AnnData, tag: Literal["cost", "kernel"]):
+        rng = np.random.RandomState(42)
+        adata_time = adata_time[adata_time.obs["time"].isin((0, 1))].copy()
+        problem = GWProblem(adata=adata_time)
+        problem = problem.prepare(
+            key="time",
+            policy="sequential",
+        )
+
+        adata_0 = adata_time[adata_time.obs["time"] == 0]
+
+        cm = rng.uniform(1, 10, size=(adata_0.n_obs, adata_0.n_obs))
+        cost_matrix = pd.DataFrame(index=adata_0.obs_names, columns=adata_0.obs_names, data=cm)
+        problem[0, 1].set_x(cost_matrix, tag=tag)
+        assert isinstance(problem[0, 1].x.data_src, np.ndarray)
+        assert problem[0, 1].x.data_tgt is None
+
+        problem = problem.solve(max_iterations=5)  # TODO(@MUCDK) once fixed in OTT-JAX test for scale_cost
+        assert isinstance(problem[0, 1].x.data_src, np.ndarray)
+        assert problem[0, 1].x.data_tgt is None
+
+    @pytest.mark.parametrize("tag", ["cost", "kernel"])
+    def test_set_y(self, adata_time: AnnData, tag: Literal["cost", "kernel"]):
+        rng = np.random.RandomState(42)
+        adata_time = adata_time[adata_time.obs["time"].isin((0, 1))].copy()
+        problem = GWProblem(adata=adata_time)
+        problem = problem.prepare(
+            key="time",
+            policy="sequential",
+        )
+
+        adata_1 = adata_time[adata_time.obs["time"] == 1]
+
+        cm = rng.uniform(1, 10, size=(adata_1.n_obs, adata_1.n_obs))
+        cost_matrix = pd.DataFrame(index=adata_1.obs_names, columns=adata_1.obs_names, data=cm)
+        problem[0, 1].set_y(cost_matrix, tag=tag)
+        assert isinstance(problem[0, 1].y.data_src, np.ndarray)
+        assert problem[0, 1].y.data_tgt is None
+
+        problem = problem.solve(max_iterations=5)  # TODO(@MUCDK) once fixed in OTT-JAX test for scale_cost
+        assert isinstance(problem[0, 1].y.data_src, np.ndarray)
+        assert problem[0, 1].y.data_tgt is None
 
     @pytest.mark.fast()
     def test_prepare_different_costs(self, adata_time: AnnData):
