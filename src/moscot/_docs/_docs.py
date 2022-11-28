@@ -352,12 +352,6 @@ _tag_set = """\
 tag
     Tag indicating whether `data` is cost matrix or kernel matrix.
 """
-_validate_data_set = """\
-validate_data
-    Whether to validate the custom data by checking that the index names and the column names
-    correspond to the data extracted from the :class:`anndata.AnnData` object.
-"""
-
 
 d = DocstringProcessor(
     adata=_adata,
@@ -422,5 +416,4 @@ d = DocstringProcessor(
     ex_prepare=_ex_prepare,
     data_set=_data_set,
     tag_set=_tag_set,
-    validate_data_set=_validate_data_set,
 )

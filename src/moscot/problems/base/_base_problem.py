@@ -480,7 +480,9 @@ class OTProblem(BaseProblem):
 
     @d.dedent
     def set_xy(
-        self, data: Union[ArrayLike, pd.DataFrame], tag: Literal["cost", "kernel"], validate_data: bool = True
+        self,
+        data: Union[ArrayLike, pd.DataFrame],
+        tag: Literal["cost", "kernel"],
     ) -> None:
         """
         Set a custom cost matrix/kernel in the linear term.
@@ -489,7 +491,6 @@ class OTProblem(BaseProblem):
         ----------
         %(data_set)s
         %(tag)s
-        %(validate_data_set)s
 
         Returns
         -------
@@ -502,24 +503,21 @@ class OTProblem(BaseProblem):
             raise ValueError(
                 f"`data` is exptected to have shape {(self.adata_src.n_obs, self.adata_tgt.n_obs)} but found {data.shape}."  # noqa: E501
             )
-        if validate_data:
-            if not isinstance(data, pd.DataFrame):
-                raise TypeError("If the data is to be validated, the data must be of type pandas.DataFrame.")
-            if list(data.index) != list(self.adata_src.obs_names):
-                raise ValueError(
-                    "The index names of `data` do not correspond to `adata.obs_names` of the source distribution.."
-                )
-            if list(data.columns) != list(self.adata_tgt.obs_names):
-                raise ValueError(
-                    "The column names of `data` do not correspond to `adata.obs_names` of the target distribution."
-                )
-        self._xy = TaggedArray(data_src=data, data_tgt=None, tag=Tag(tag), cost="cost")
+        if not isinstance(data, pd.DataFrame):
+            raise TypeError("If the data is to be validated, the data must be of type pandas.DataFrame.")
+        if list(data.index) != list(self.adata_src.obs_names):
+            raise ValueError(
+                "The index names of `data` do not correspond to `adata.obs_names` of the source distribution.."
+            )
+        if list(data.columns) != list(self.adata_tgt.obs_names):
+            raise ValueError(
+                "The column names of `data` do not correspond to `adata.obs_names` of the target distribution."
+            )
+        self._xy = TaggedArray(data_src=data.values, data_tgt=None, tag=Tag(tag), cost="cost")
         self._stage = ProblemStage.PREPARED
 
     @d.dedent
-    def set_x(
-        self, data: Union[ArrayLike, pd.DataFrame], tag: Literal["cost", "kernel"], validate_data: bool = True
-    ) -> None:
+    def set_x(self, data: Union[ArrayLike, pd.DataFrame], tag: Literal["cost", "kernel"]) -> None:
         """
         Set a custom cost matrix/kernel in the quadratic source term.
 
@@ -527,7 +525,6 @@ class OTProblem(BaseProblem):
         ----------
         %(data_set)s
         %(tag)s
-        %(validate_data_set)s
 
         Returns
         -------
@@ -540,24 +537,21 @@ class OTProblem(BaseProblem):
             raise ValueError(
                 f"`data` is exptected to have shape {(self.adata_src.n_obs, self.adata_src.n_obs)} but found {data.shape}."  # noqa: E501
             )
-        if validate_data:
-            if not isinstance(data, pd.DataFrame):
-                raise TypeError("If the data is to be validated, the data must be of type pandas.DataFrame.")
-            if list(data.index) != list(self.adata_src.obs_names):
-                raise ValueError(
-                    "The index names of `data` do not correspond to `adata.obs_names` of the source distribution.."
-                )
-            if list(data.columns) != list(self.adata_src.obs_names):
-                raise ValueError(
-                    "The column names of `data` do not correspond to `adata.obs_names` of the source distribution."
-                )
-        self._x = TaggedArray(data_src=data, data_tgt=None, tag=Tag(tag), cost="cost")
+        if not isinstance(data, pd.DataFrame):
+            raise TypeError("If the data is to be validated, the data must be of type pandas.DataFrame.")
+        if list(data.index) != list(self.adata_src.obs_names):
+            raise ValueError(
+                "The index names of `data` do not correspond to `adata.obs_names` of the source distribution.."
+            )
+        if list(data.columns) != list(self.adata_src.obs_names):
+            raise ValueError(
+                "The column names of `data` do not correspond to `adata.obs_names` of the source distribution."
+            )
+        self._x = TaggedArray(data_src=data.values, data_tgt=None, tag=Tag(tag), cost="cost")
         self._stage = ProblemStage.PREPARED
 
     @d.dedent
-    def set_y(
-        self, data: Union[ArrayLike, pd.DataFrame], tag: Literal["cost", "kernel"], validate_data: bool = True
-    ) -> None:
+    def set_y(self, data: Union[ArrayLike, pd.DataFrame], tag: Literal["cost", "kernel"]) -> None:
         """
         Set a custom cost matrix/kernel in the quadratic target term.
 
@@ -565,7 +559,6 @@ class OTProblem(BaseProblem):
         ----------
         %(data_set)s
         %(tag)s
-        %(validate_data_set)s
 
         Returns
         -------
@@ -578,18 +571,17 @@ class OTProblem(BaseProblem):
             raise ValueError(
                 f"`data` is exptected to have shape {(self.adata_tgt.n_obs, self.adata_tgt.n_obs)} but found {data.shape}."  # noqa: E501
             )
-        if validate_data:
-            if not isinstance(data, pd.DataFrame):
-                raise TypeError("If the data is to be validated, the data must be of type pandas.DataFrame.")
-            if list(data.index) != list(self.adata_tgt.obs_names):
-                raise ValueError(
-                    "The index names of `data` do not correspond to `adata.obs_names` of the source distribution.."
-                )
-            if list(data.columns) != list(self.adata_tgt.obs_names):
-                raise ValueError(
-                    "The column names of `data` do not correspond to `adata.obs_names` of the source distribution."
-                )
-        self._y = TaggedArray(data_src=data, data_tgt=None, tag=Tag(tag), cost="cost")
+        if not isinstance(data, pd.DataFrame):
+            raise TypeError("If the data is to be validated, the data must be of type pandas.DataFrame.")
+        if list(data.index) != list(self.adata_tgt.obs_names):
+            raise ValueError(
+                "The index names of `data` do not correspond to `adata.obs_names` of the source distribution.."
+            )
+        if list(data.columns) != list(self.adata_tgt.obs_names):
+            raise ValueError(
+                "The column names of `data` do not correspond to `adata.obs_names` of the source distribution."
+            )
+        self._y = TaggedArray(data_src=data.values, data_tgt=None, tag=Tag(tag), cost="cost")
         self._stage = ProblemStage.PREPARED
 
     @property
