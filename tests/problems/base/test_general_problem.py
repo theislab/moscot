@@ -48,8 +48,7 @@ class TestOTProblem:
         np.testing.assert_allclose(gt.matrix, sol.transport_matrix, rtol=RTOL, atol=ATOL)
 
     @pytest.mark.parametrize("tag", ["cost", "kernel"])
-    @pytest.mark.parametrize("validate_data", [True, False])
-    def test_set_xy(self, adata_x: AnnData, adata_y: AnnData, validate_data: bool, tag: Literal["cost", "kernel"]):
+    def test_set_xy(self, adata_x: AnnData, adata_y: AnnData, tag: Literal["cost", "kernel"]):
         rng = np.random.RandomState(42)
         prob = OTProblem(adata_x, adata_y)
         prob = prob.prepare(
@@ -60,14 +59,13 @@ class TestOTProblem:
 
         cm = rng.uniform(1, 10, size=(adata_x.n_obs, adata_y.n_obs))
         cost_matrix = pd.DataFrame(index=adata_x.obs_names, columns=adata_y.obs_names, data=cm)
-        prob.set_xy(cost_matrix, tag=tag, validate_data=validate_data)
+        prob.set_xy(cost_matrix, tag=tag)
 
         prob = prob.solve(max_iterations=5)
         np.testing.assert_equal(prob.xy.data_src, cost_matrix.to_numpy())
 
     @pytest.mark.parametrize("tag", ["cost", "kernel"])
-    @pytest.mark.parametrize("validate_data", [True, False])
-    def test_set_x(self, adata_x: AnnData, adata_y: AnnData, validate_data: bool, tag: Literal["cost", "kernel"]):
+    def test_set_x(self, adata_x: AnnData, adata_y: AnnData, tag: Literal["cost", "kernel"]):
         rng = np.random.RandomState(42)
         prob = OTProblem(adata_x, adata_y)
         prob = prob.prepare(
@@ -78,14 +76,12 @@ class TestOTProblem:
 
         cm = rng.uniform(1, 10, size=(adata_x.n_obs, adata_x.n_obs))
         cost_matrix = pd.DataFrame(index=adata_x.obs_names, columns=adata_x.obs_names, data=cm)
-        prob.set_x(cost_matrix, tag=tag, validate_data=validate_data)
 
         prob = prob.solve(max_iterations=5)
         np.testing.assert_equal(prob.x.data_src, cost_matrix.to_numpy())
 
     @pytest.mark.parametrize("tag", ["cost", "kernel"])
-    @pytest.mark.parametrize("validate_data", [True, False])
-    def test_set_y(self, adata_x: AnnData, adata_y: AnnData, validate_data: bool, tag: Literal["cost", "kernel"]):
+    def test_set_y(self, adata_x: AnnData, adata_y: AnnData, tag: Literal["cost", "kernel"]):
         rng = np.random.RandomState(42)
         prob = OTProblem(adata_x, adata_y)
         prob = prob.prepare(
@@ -96,13 +92,12 @@ class TestOTProblem:
 
         cm = rng.uniform(1, 10, size=(adata_y.n_obs, adata_y.n_obs))
         cost_matrix = pd.DataFrame(index=adata_y.obs_names, columns=adata_y.obs_names, data=cm)
-        prob.set_y(cost_matrix, tag=tag, validate_data=validate_data)
+        prob.set_y(cost_matrix, tag=tag)
 
         prob = prob.solve(max_iterations=5)
         np.testing.assert_equal(prob.y.data_src, cost_matrix.to_numpy())
 
-    @pytest.mark.parametrize("validate_data", [True, False])
-    def test_set_xy_change_problem_kind(self, adata_x: AnnData, adata_y: AnnData, validate_data: bool):
+    def test_set_xy_change_problem_kind(self, adata_x: AnnData, adata_y: AnnData):
         rng = np.random.RandomState(42)
         prob = OTProblem(adata_x, adata_y)
         prob = prob.prepare(
@@ -113,12 +108,11 @@ class TestOTProblem:
 
         cm = rng.uniform(1, 10, size=(adata_x.n_obs, adata_y.n_obs))
         cost_matrix = pd.DataFrame(index=adata_x.obs_names, columns=adata_y.obs_names, data=cm)
-        prob.set_xy(cost_matrix, tag="cost", validate_data=validate_data)
+        prob.set_xy(cost_matrix, tag="cost")
 
         assert prob.problem_kind == ProblemKind.QUAD_FUSED
 
-    @pytest.mark.parametrize("validate_data", [True, False])
-    def test_set_x_change_problem_kind(self, adata_x: AnnData, adata_y: AnnData, validate_data: bool):
+    def test_set_x_change_problem_kind(self, adata_x: AnnData, adata_y: AnnData):
         rng = np.random.RandomState(42)
         prob = OTProblem(adata_x, adata_y)
         prob = prob.prepare(
@@ -128,11 +122,11 @@ class TestOTProblem:
 
         cm = rng.uniform(1, 10, size=(adata_x.n_obs, adata_x.n_obs))
         cost_matrix = pd.DataFrame(index=adata_x.obs_names, columns=adata_x.obs_names, data=cm)
-        prob.set_x(cost_matrix, tag="cost", validate_data=validate_data)
+        prob.set_x(cost_matrix, tag="cost")
 
         cm = rng.uniform(1, 10, size=(adata_y.n_obs, adata_y.n_obs))
         cost_matrix = pd.DataFrame(index=adata_y.obs_names, columns=adata_y.obs_names, data=cm)
-        prob.set_y(cost_matrix, tag="cost", validate_data=validate_data)
+        prob.set_y(cost_matrix, tag="cost")
 
         assert prob.problem_kind == ProblemKind.QUAD_FUSED
 
