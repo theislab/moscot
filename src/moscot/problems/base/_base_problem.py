@@ -489,7 +489,7 @@ class OTProblem(BaseProblem):
         Parameters
         ----------
         %(data_set)s
-        %(tag)s
+        %(tag_set)s
 
         Returns
         -------
@@ -523,7 +523,7 @@ class OTProblem(BaseProblem):
         Parameters
         ----------
         %(data_set)s
-        %(tag)s
+        %(tag_set)s
 
         Returns
         -------
@@ -557,7 +557,7 @@ class OTProblem(BaseProblem):
         Parameters
         ----------
         %(data_set)s
-        %(tag)s
+        %(tag_set)s
 
         Returns
         -------
