@@ -152,15 +152,27 @@ class ICNN(nn.Module):
             # Initialize
             u = c
             z = 0
-            for Wz, Wx, Wzu, Wxu, Wu, V in zip(self.w_zs, self.w_xs, self.w_zu, self.w_xu, self.w_u, self.v):
+            i = 0
+            for Wz, Wx, Wzu, Wxu, Wu, V in zip(self.w_zs[:-1], self.w_xs[:-1], self.w_zu[:-1], self.w_xu[:-1], self.w_u[:-1], self.v[:-1]):
+                i = i + 1
                 mlp_convex = jnp.clip(Wzu(u), a_min=0)  
                 z_hadamard_1 = jnp.multiply(z, mlp_convex)  
                 mlp_condition_embedding = Wxu(u)  
                 x_hadamard_1 = jnp.multiply(x, mlp_condition_embedding) 
                 mlp_condition = Wu(u)
                 z = self.act_fn(jnp.add(jnp.add(Wz(z_hadamard_1), Wx(x_hadamard_1)), mlp_condition))
+                if i == 1:
+                    z = jnp.multiply(z, z)
                 u = self.act_fn(V(u)) 
-            y = z
+
+            mlp_convex = jnp.clip(self.w_zu[-1](u), a_min=0)  
+            z_hadamard_1 = jnp.multiply(z, mlp_convex) 
+
+            mlp_condition_embedding = self.w_xu[-1](u)  
+            x_hadamard_1 = jnp.multiply(x, mlp_condition_embedding) 
+
+            mlp_condition = self.w_u[-1](u)
+            y = jnp.add(jnp.add(self.w_zs[-1](z_hadamard_1), self.w_xs[-1](x_hadamard_1)), mlp_condition) 
             
         return jnp.squeeze(y, axis=-1)
 
