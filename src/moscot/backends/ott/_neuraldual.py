@@ -261,7 +261,7 @@ class NeuralDualSolver:
             state_g: TrainState,
             batch: Dict[str, jnp.ndarray],
         ) -> Tuple[jnp.ndarray, List[float]]:
-            """Loss function."""
+            """Loss function for f."""
             # get loss terms of kantorovich dual
             grad_g_src = jax.vmap(jax.grad(lambda x: state_g.apply_fn({"params": params_g}, x), argnums=0))(
                 batch["source"]
@@ -289,7 +289,7 @@ class NeuralDualSolver:
             state_g: TrainState,
             batch: Dict[str, jnp.ndarray],
         ) -> Tuple[jnp.ndarray, List[float]]:
-            """Loss function."""
+            """Loss function for g."""
             # get loss terms of kantorovich dual
             grad_g_src = jax.vmap(jax.grad(lambda x: state_g.apply_fn({"params": params_g}, x), argnums=0))(
                 batch["source"]
