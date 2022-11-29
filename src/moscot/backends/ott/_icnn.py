@@ -146,10 +146,9 @@ class ICNN(nn.Module):
         else:
             x = x[:self.split_indices[0]]
             c = x[self.split_indices[0]:]
-            if self.combiner: # if combiner, get the new condition
+            if self.combiner: 
                 c = self.w_c(c) 
                 c = self.act_fn(c)
-            # Initialize
             u = c
             z = 0
             i = 0
