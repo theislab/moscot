@@ -138,14 +138,14 @@ class SpatialAlignmentMixin(AnalysisMixin[K, B]):
             for (start, _), path in fwd_steps.items():
                 tmap = self._interpolate_transport(path=path, scale_by_marginals=True, forward=True)
                 transport_maps[start], transport_metadata[start] = _transport(
-                    tmap, self._subset_spatial(start, spatial_key=spatial_key), src
+                    tmap, self._subset_spatial(start, spatial_key=spatial_key), src, forward=True
                 )
 
         if len(bwd_steps):
             for (_, end), path in bwd_steps.items():
-                tmap = self._interpolate_transport(path=path, scale_by_marginals=True, forward=True)
+                tmap = self._interpolate_transport(path=path, scale_by_marginals=True, forward=False)
                 transport_maps[end], transport_metadata[end] = _transport(
-                    tmap.T, self._subset_spatial(end, spatial_key=spatial_key), src
+                    tmap.T, self._subset_spatial(end, spatial_key=spatial_key), src, forward=False
                 )
 
         if mode == "affine":
@@ -283,7 +283,7 @@ class SpatialAlignmentMixin(AnalysisMixin[K, B]):
         return self.adata[self.adata.obs[self._policy._subset_key] == k].obsm[spatial_key].astype(np.float_, copy=True)
 
     @staticmethod
-    def _affine(tmap: LinearOperator, tgt: ArrayLike, src: ArrayLike) -> Tuple[ArrayLike, ArrayLike]:
+    def _affine(tmap: LinearOperator, tgt: ArrayLike, src: ArrayLike, *args: Any) -> Tuple[ArrayLike, ArrayLike]:
         """Affine transformation."""
         tgt -= tgt.mean(0)
         H = tgt.T.dot(tmap.dot(src))
@@ -293,9 +293,11 @@ class SpatialAlignmentMixin(AnalysisMixin[K, B]):
         return tgt, R
 
     @staticmethod
-    def _warp(tmap: LinearOperator, _: ArrayLike, src: ArrayLike) -> Tuple[ArrayLike, None]:
+    def _warp(tmap: LinearOperator, _: ArrayLike, src: ArrayLike, forward: bool = True) -> Tuple[ArrayLike, None]:
         """Warp transformation."""
-        return tmap.dot(src), None
+        if forward:
+            return tmap.dot(src), None
+        return tmap.T.dot(src), None
 
 
 class SpatialMappingMixin(AnalysisMixin[K, B]):
