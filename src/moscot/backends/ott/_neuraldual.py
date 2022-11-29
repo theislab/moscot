@@ -254,7 +254,7 @@ class NeuralDualSolver:
     ) -> Callable[[TrainState, TrainState, Dict[str, jnp.ndarray]], Tuple[TrainState, Dict[str, float]]]:
         """Get train step."""
 
-        def loss_fn(
+        def loss_f_fn(
             params_f: jnp.ndarray,
             params_g: jnp.ndarray,
             state_f: TrainState,
@@ -268,30 +268,42 @@ class NeuralDualSolver:
             )
             f_grad_g_src = jax.vmap(lambda x: state_f.apply_fn({"params": params_f}, x))(grad_g_src)
             src_dot_grad_g_src = jnp.sum(batch["source"] * grad_g_src, axis=1)
-            if to_optimize == "f":
-                # compute loss
-                f_tgt = jax.vmap(lambda x: state_f.apply_fn({"params": params_f}, x))(batch["target"])
-                loss = jnp.mean(f_tgt - f_grad_g_src)
-                total_loss = jnp.mean(f_grad_g_src - f_tgt - src_dot_grad_g_src)
-                # compute wasserstein distance
-                dist = 2 * (
-                    total_loss
-                    + jnp.mean(
-                        0.5 * jnp.sum(batch["target"] * batch["target"], axis=1)
-                        + 0.5 * jnp.sum(batch["source"] * batch["source"], axis=1)
-                    )
+            # compute loss
+            f_tgt = jax.vmap(lambda x: state_f.apply_fn({"params": params_f}, x))(batch["target"])
+            loss = jnp.mean(f_tgt - f_grad_g_src)
+            total_loss = jnp.mean(f_grad_g_src - f_tgt - src_dot_grad_g_src)
+            # compute wasserstein distance
+            dist = 2 * (
+                total_loss
+                + jnp.mean(
+                    0.5 * jnp.sum(batch["target"] * batch["target"], axis=1)
+                    + 0.5 * jnp.sum(batch["source"] * batch["source"], axis=1)
                 )
-                metrics = [total_loss, dist]
+            )
+            return loss, [total_loss, dist]
+
+        def loss_g_fn(
+            params_f: jnp.ndarray,
+            params_g: jnp.ndarray,
+            state_f: TrainState,
+            state_g: TrainState,
+            batch: Dict[str, jnp.ndarray],
+        ) -> Tuple[jnp.ndarray, List[float]]:
+            """Loss function."""
+            # get loss terms of kantorovich dual
+            grad_g_src = jax.vmap(jax.grad(lambda x: state_g.apply_fn({"params": params_g}, x), argnums=0))(
+                batch["source"]
+            )
+            f_grad_g_src = jax.vmap(lambda x: state_f.apply_fn({"params": params_f}, x))(grad_g_src)
+            src_dot_grad_g_src = jnp.sum(batch["source"] * grad_g_src, axis=1)
+            # compute loss
+            loss = jnp.mean(f_grad_g_src - src_dot_grad_g_src)
+            if not self.pos_weights:
+                penalty = self.beta * self.penalize_weights_icnn(params_g)
+                loss += penalty
             else:
-                # compute loss
-                loss = jnp.mean(f_grad_g_src - src_dot_grad_g_src)
-                if not self.pos_weights:
-                    penalty = self.beta * self.penalize_weights_icnn(params_g)
-                    loss += penalty
-                else:
-                    penalty = 0
-                metrics = [penalty]
-            return loss, metrics
+                penalty = 0
+            return loss, [penalty]
 
         @jax.jit
         def step_fn(
@@ -301,16 +313,20 @@ class NeuralDualSolver:
         ) -> Tuple[TrainState, Dict[str, float]]:
             """Step function for training."""
             # get loss function for f or g
-            argnums = 0 if to_optimize == "f" else 1
-            grad_fn = jax.value_and_grad(loss_fn, argnums=argnums, has_aux=True)
-            # compute loss, gradients and metrics
-            (loss, raw_metrics), grads = grad_fn(state_f.params, state_g.params, state_f, state_g, batch)
-            # return updated state and metrics
             if to_optimize == "f":
+                grad_fn = jax.value_and_grad(loss_f_fn, argnums=0, has_aux=True)
+                # compute loss, gradients and metrics
+                (loss, raw_metrics), grads = grad_fn(state_f.params, state_g.params, state_f, state_g, batch)
+                # return updated state and metrics dict
                 metrics = {"loss_f": loss, "loss": raw_metrics[0], "w_dist": raw_metrics[1]}
                 return state_f.apply_gradients(grads=grads), metrics
-            metrics = {"loss_g": loss, "penalty": raw_metrics[0]}
-            return state_g.apply_gradients(grads=grads), metrics
+            elif to_optimize == "g":
+                grad_fn = jax.value_and_grad(loss_g_fn, argnums=1, has_aux=True)
+                # compute loss, gradients and metrics
+                (loss, raw_metrics), grads = grad_fn(state_f.params, state_g.params, state_f, state_g, batch)
+                # return updated state and metrics dict
+                metrics = {"loss_g": loss, "penalty": raw_metrics[0]}
+                return state_g.apply_gradients(grads=grads), metrics
 
         return step_fn
 
