@@ -16,7 +16,7 @@ from moscot.problems.base._utils import (
     _validate_args_cell_transition,
     _check_argument_compatibility_cell_transition,
 )
-from moscot._constants._constants import Key, AdataKeys, PlottingKeys, AggregationMode, PlottingDefaults
+from moscot._constants._constants import Key, AdataKeys, TestMethod, PlottingKeys, AggregationMode, PlottingDefaults
 from moscot.problems._subset_policy import SubsetPolicy
 from moscot.problems.base._compound_problem import B, K, ApplyOutput_t
 
@@ -476,3 +476,110 @@ class AnalysisMixin(Generic[K, B]):
             tm = pd.concat([tm, to_app], verify_integrity=True, axis=0)
             df_1 = df_1.drop(current_cells, axis=1)
         return tm
+
+    # adapted from CellRank (github.com/theislab/cellrank)
+    def compute_cross_correlation(
+        self: AnalysisMixinProtocol[K, B],
+        key: str = None,
+        forward: bool = True,
+        method: Literal["fischer", "perm_test"] = TestMethod.FISCHER,
+        cluster_key: Optional[str] = None,
+        clusters: Optional[Union[str, Sequence]] = None,
+        layer: Optional[str] = None,
+        use_raw: bool = False,
+        confidence_level: float = 0.95,
+        n_perms: int = 1000,
+        seed: Optional[int] = None,
+        **kwargs: Any,
+    ) -> pd.DataFrame:
+        """
+        Compute driver genes per lineage.
+
+        Correlates gene expression with probabilities of cells mapped to a subset of cells, e.g. for a certain celltype.
+
+        Parameters
+        ----------
+        key
+            Column of :attr:`adata.obs` containing push-forward or pull-back distributions.
+        forward
+            Whether the distribution in `anndata.AnnData.obs`[key] is obtained from pulling or pushing. TODO.
+        method
+            Mode to use when calculating p-values and confidence intervals. Valid options are:
+                - `{tm.FISCHER!r}` - use Fischer transformation :cite:`fischer:21`.
+                - `{tm.PERM_TEST!r}` - use permutation test.
+        cluster_key
+            Key from :attr:`anndata.AnnData.obs` to obtain cluster annotations. These are considered for ``clusters``.
+        clusters
+            Restrict the correlations to these clusters.
+        layer
+            Key from :attr:`anndata.AnnData.layers` from which to get the expression.
+            If `None` or `'X'`, use :attr:`anndata.AnnData.X`.
+        var
+            If not `None`, dictionary with key from :attr:`anndata.AnnData.var` and value a subset of values adata.obs.var[key]
+        use_raw
+            Whether or not to use :attr:`anndata.AnnData.raw` to correlate (transformed) counts.
+        confidence_level
+            Confidence level for the confidence interval calculation. Must be in interval `[0, 1]`.
+        n_perms
+            Number of permutations to use when ``method = {tm.PERM_TEST!r}``.
+        seed
+            Random seed when ``method = {tm.PERM_TEST!r}``.
+        %(parallel)s
+        Returns
+        -------
+        %(correlation_test.returns)s
+        """
+
+        method = TestMethod(method)
+
+        if clusters is not None:
+            if cluster_key not in self.adata.obs.keys():
+                raise KeyError(f"Unable to find clusters in `adata.obs[{cluster_key!r}]`.")
+            if isinstance(clusters, str):
+                clusters = [clusters]
+
+            all_clusters = np.array(self.adata.obs[cluster_key].cat.categories)
+            cluster_mask = np.array([name not in all_clusters for name in clusters])
+
+            if any(cluster_mask):
+                raise KeyError(
+                    f"Clusters `{list(np.array(clusters)[cluster_mask])}` not found in "
+                    f"`adata.obs[{cluster_key!r}]`."
+                )
+            subset_mask = np.in1d(self.adata.obs[cluster_key], clusters)
+            adata_comp = self.adata[subset_mask]
+            lin_probs = abs_probs[subset_mask, :]
+        else:
+            adata_comp = self.adata
+            lin_probs = abs_probs
+
+        # check that the layer exists, and that use raw is only used with layer X
+        if layer in (None, "X"):
+            if use_raw and self.adata.raw is None:
+                logger.warning("No raw attribute set. Using `.X` instead")
+                use_raw = False
+            data = adata_comp.raw.X if use_raw else adata_comp.X
+            var_names = adata_comp.raw.var_names if use_raw else adata_comp.var_names
+        else:
+            if layer not in self.adata.layers:
+                raise KeyError(f"Layer `{layer!r}` not found in `adata.layers`.")
+            if use_raw:
+                logg.warning("If `use_raw=True`, layer must be `None`.")
+                use_raw = False
+            data = adata_comp.layers[layer]
+            var_names = adata_comp.var_names
+
+        drivers = _correlation_test(
+            data,
+            lin_probs,
+            gene_names=var_names,
+            method=method,
+            n_perms=n_perms,
+            seed=seed,
+            confidence_level=confidence_level,
+            **kwargs,
+        )
+        params = self._create_params()
+        self._write_lineage_drivers(drivers.loc[var_names], use_raw=use_raw, params=params, time=start)
+
+        return drivers
