@@ -166,7 +166,10 @@ class NeuralDualSolver:
         valid_batch: Dict[str, jnp.ndarray] = {}
         valid_batch["source"] = validloader(key=None, full_dataset=True, source=True)
         valid_batch["target"] = validloader(key=None, full_dataset=True, source=False)
-        sink_dist = _compute_sinkhorn_divergence(valid_batch["source"], valid_batch["target"])
+        if self.split_indices is None:
+            sink_dist = _compute_sinkhorn_divergence(valid_batch["source"], valid_batch["target"])
+        else:
+            sink_dist = _compute_sinkhorn_divergence(valid_batch["source"][:,self.split_indices[0]], valid_batch["target"][:,self.split_indices[0]])
         # set logging dictionaries
         train_logs: Dict[str, List[float]] = defaultdict(list)
         valid_logs: Dict[str, List[float]] = defaultdict(list)
@@ -268,6 +271,8 @@ class NeuralDualSolver:
             grad_g_src = jax.vmap(jax.grad(lambda x: state_g.apply_fn({"params": params_g}, x), argnums=0))(
                 batch["source"]
             )
+            if self.split_indices is not None:
+                grad_g_src = grad_g_src[:,:self.split_indices[0]]
             f_grad_g_src = jax.vmap(lambda x: state_f.apply_fn({"params": params_f}, x))(grad_g_src)
             src_dot_grad_g_src = jnp.sum(batch["source"] * grad_g_src, axis=1)
             if to_optimize == "f":
@@ -335,6 +340,9 @@ class NeuralDualSolver:
             pred_source = jax.vmap(jax.grad(lambda x: state_f.apply_fn({"params": state_f.params}, x), argnums=0))(
                 batch["target"]
             )
+            if self.split_indices is not None:
+                pred_target = pred_target[:,:self.split_indices[0]]
+                pred_source = pred_source[:,:self.split_indices[0]]
             # calculate sinkhorn loss between predicted and true samples
             # using sinkhorn_divergence because _compute_sinkhorn_divergence not jittable
             sink_loss_forward = sinkhorn_divergence(
@@ -366,7 +374,7 @@ class NeuralDualSolver:
         """Clip weights of ICNN."""
         params = params.unfreeze()
         for key in params.keys():
-            if key.startswith("w_z"):
+            if key.startswith("w_zs"):
                 params[key]["kernel"] = jnp.clip(params[key]["kernel"], a_min=0)
 
         return freeze(params)
