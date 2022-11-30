@@ -7,9 +7,9 @@ import numpy as np
 
 from anndata import AnnData
 
-from moscot.problems.base import OTProblem  # type: ignore[attr-defined]
+from moscot.problems.base import OTProblem
 from moscot.solvers._output import BaseSolverOutput
-from moscot.problems.generic import SinkhornProblem  # type: ignore[attr-defined]
+from moscot.problems.generic import SinkhornProblem
 from tests.problems.conftest import (
     geometry_args,
     lin_prob_args,
@@ -55,18 +55,21 @@ class TestSinkhornProblem:
             assert isinstance(subsol, BaseSolverOutput)
             assert key in expected_keys
 
-    def test_compute_feature_correlation(self, adata_time: AnnData):
+    @pytest.mark.parametrize("method", ["fischer", "perm_test"])
+    def test_compute_feature_correlation(self, adata_time: AnnData, method: str):
         problem = SinkhornProblem(adata=adata_time)
         problem = problem.prepare(key="time")
         problem = problem.solve()
         assert problem[0, 1].solution.converged
 
-        method = "fischer"
         key_added = "test_push"
         problem.push(source=0, target=1, data="celltype", subset="A", key_added=key_added)
         feature_correlation = problem.compute_feature_correlation(key_added, method=method)
 
         assert isinstance(feature_correlation, pd.DataFrame)
+        suffix = ["_corr", "_pval", "_qval", "_ci_low", "_ci_high"]
+        assert list(feature_correlation.columns) == [key_added + suf for suf in suffix]
+        assert feature_correlation.isna().sum().sum() == 0
 
     @pytest.mark.parametrize("tag", ["cost", "kernel"])
     def test_set_xy(self, adata_time: AnnData, tag: Literal["cost", "kernel"]):
