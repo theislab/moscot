@@ -58,11 +58,12 @@ class TestSinkhornProblem:
     def test_compute_feature_correlation(self, adata_time: AnnData):
         problem = SinkhornProblem(adata=adata_time)
         problem = problem.prepare(key="time")
-        problem = problem.solve(max_iterations=5)
+        problem = problem.solve()
+        assert problem[0, 1].solution.converged
 
         method = "fischer"
         key_added = "test_push"
-        adata_time.obs[key_added] = problem.push(source=0, target=1, data="celltype", subset="A")
+        problem.push(source=0, target=1, data="celltype", subset="A", key_added=key_added)
         feature_correlation = problem.compute_feature_correlation(key_added, method=method)
 
         assert isinstance(feature_correlation, pd.DataFrame)

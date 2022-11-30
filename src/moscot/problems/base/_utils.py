@@ -285,7 +285,7 @@ def _correlation_test(
 
     corr, pvals, ci_low, ci_high = _correlation_test_helper(
         X.T,
-        Y,
+        Y.values,
         method=method,
         n_perms=n_perms,
         seed=seed,
@@ -319,8 +319,8 @@ def _correlation_test(
         res[f"{c}_ci_high"] = ci_high[:, idx]
 
     # fmt: off
-    res = res[[f"{c}_{stat}" for c in Y.names for stat in ("corr", "pval", "qval", "ci_low", "ci_high")]]
-    return res.sort_values(by=[f"{c}_corr" for c in Y.names], ascending=False)
+    res = res[[f"{c}_{stat}" for c in Y.columns for stat in ("corr", "pval", "qval", "ci_low", "ci_high")]]
+    return res.sort_values(by=[f"{c}_corr" for c in Y.columns], ascending=False)
     # fmt: on
 
 
@@ -418,7 +418,6 @@ def _mat_mat_corr_sparse(
     Y: ArrayLike,
 ) -> ArrayLike:
     n = X.shape[1]
-
     X_bar = np.reshape(np.array(X.mean(axis=1)), (-1, 1))
     X_std = np.reshape(np.sqrt(np.array(X.power(2).mean(axis=1)) - (X_bar**2)), (-1, 1))
 

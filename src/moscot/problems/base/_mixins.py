@@ -545,6 +545,8 @@ class AnalysisMixin(Generic[K, B]):
             adata_red = self.adata
 
         adata_red = adata_red[~adata_red.obs[key].isnull()]
+        if len(adata_red) == 0:
+            raise ValueError(f"`adata.obs[{key!r}]` only contains NaN values.")
         distribution = adata_red.obs[[key]]
 
         if features is not None:

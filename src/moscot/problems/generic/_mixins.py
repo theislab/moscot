@@ -1,20 +1,22 @@
 from typing import Any, List, Tuple, Union, Literal, Optional, Protocol, TYPE_CHECKING
 
 import pandas as pd
+
 from anndata import AnnData
 
 from moscot._types import ArrayLike, Str_Dict_t
 from moscot._docs._docs_mixins import d_mixins
 from moscot._constants._constants import Key, AdataKeys, PlottingKeys, PlottingDefaults
-from moscot.problems.base._mixins import AnalysisMixin, AnalysisMixinProtocol  # type: ignore[attr-defined]
+from moscot.problems.base._mixins import AnalysisMixin, AnalysisMixinProtocol
 from moscot.problems.base._compound_problem import B, K, ApplyOutput_t
 
 
 class GenericAnalysisMixinProtocol(AnalysisMixinProtocol[K, B], Protocol[K, B]):
     """Protocol class."""
 
+    _batch_key: Optional[str]
     batch_key: Optional[str]
-    adata: Optional[AnnData]
+    adata: AnnData
 
     def _cell_transition(
         self: AnalysisMixinProtocol[K, B],
@@ -134,6 +136,8 @@ class GenericAnalysisMixin(AnalysisMixin[K, B]):
             assert isinstance(result, dict)
 
         if key_added is not None:
+            if TYPE_CHECKING:
+                assert isinstance(key_added, str)
             plot_vars = {
                 "distribution_key": self.batch_key,
             }
@@ -197,12 +201,12 @@ class GenericAnalysisMixin(AnalysisMixin[K, B]):
             return result
 
     @property
-    def batch_key(self) -> Optional[str]:
+    def batch_key(self: GenericAnalysisMixinProtocol[K, B]) -> Optional[str]:
         """Batch key in :attr:`anndata.AnnData.obs`."""
         return self._batch_key
 
     @batch_key.setter
-    def batch_key(self, key: Optional[str]) -> None:
+    def batch_key(self: GenericAnalysisMixinProtocol[K, B], key: Optional[str]) -> None:
         if key is not None and key not in self.adata.obs:
             raise KeyError(f"Unable to find batch data in `adata.obs[{key!r}]`.")
         self._batch_key = key
