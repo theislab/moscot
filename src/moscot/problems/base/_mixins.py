@@ -503,8 +503,8 @@ class AnalysisMixin(Generic[K, B]):
             Column of :attr:`adata.obs` containing push-forward or pull-back distributions.
         method
             Mode to use when calculating p-values and confidence intervals. Valid options are:
-                - `{tm.FISCHER!r}` - use Fischer transformation :cite:`fischer:21`.
-                - `{tm.PERM_TEST!r}` - use permutation test.
+                - `{TestMethod.FISCHER!r}` - use Fischer transformation :cite:`fischer:21`.
+                - `{TestMethod.PERM_TEST!r}` - use permutation test.
         annotation
             If not `None`, this defines the subset of data to be considered. The key of the :class:`dict` should
             correspond to a column in :attr:`anndata.AnnData.obs` while the value should be a list of values in this
@@ -518,11 +518,11 @@ class AnalysisMixin(Generic[K, B]):
         confidence_level
             Confidence level for the confidence interval calculation. Must be in interval `[0, 1]`.
         n_perms
-            Number of permutations to use when ``method = {tm.PERM_TEST!r}``.
+            Number of permutations to use when ``method = {TestMethod.PERM_TEST!r}``.
         seed
-            Random seed when ``method = {tm.PERM_TEST!r}``.
+            Random seed when ``method = {TestMethod.PERM_TEST!r}``.
 
-        %(parallel)s
+        %(parallel_kwargs)s
 
         Returns
         -------
@@ -534,7 +534,7 @@ class AnalysisMixin(Generic[K, B]):
         method = TestMethod(method)
 
         if annotation is not None:
-            annotation_key, annotation_vals = next(iter(annotation))  # type:ignore[misc]
+            annotation_key, annotation_vals = next(iter(annotation.items()))  # type:ignore[misc]
             if annotation_key not in self.adata.obs.columns:  # type:ignore[has-type]
                 raise KeyError(f"[{annotation_key!r} not found in `adata.obs`.")  # type:ignore[has-type]
             if not isinstance(annotation_vals, list):  # type:ignore[has-type]

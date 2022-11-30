@@ -184,6 +184,9 @@ posterior_marginals
     Whether to use posterior marginals (posterior growth rates). This requires the problem to be solved.
     If `False`, prior marginals are used.
 """
+_parallel_kwargs = """\
+kwargs
+    Keyword arguments for :func:`moscot._utils.parallelize`, e.g. `n_jobs`."""
 
 d_mixins = DocstringProcessor(
     cell_trans_params=_cell_trans_params,
@@ -223,4 +226,5 @@ d_mixins = DocstringProcessor(
     time_batch_distance=_time_batch_distance,
     batch_key_batch_distance=_batch_key_batch_distance,
     use_posterior_marginals=_use_posterior_marginals,
+    parallel_kwargs=_parallel_kwargs,
 )

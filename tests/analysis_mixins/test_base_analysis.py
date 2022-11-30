@@ -177,10 +177,10 @@ class TestBaseAnalysisMixin:
         tmap = rng.uniform(1e-6, 1, size=(n0, n1))
         tmap /= tmap.sum().sum()
         problem = CompoundProblemWithMixin(adata_time)
-        problem = problem.prepare("day", subset=[(0, 1)], policy="explicit", callback="local-pca")
+        problem = problem.prepare("time", callback="local-pca")
         problem[0, 1]._solution = MockSolverOutput(tmap)
 
-        adata_time.obs[key_added] = problem[0, 1].pull(start=0, end=1)
+        adata_time.obs[key_added] = np.vstack((np.zeros(n0), problem.pull(start=0, end=1).squeeze()))
 
         res = problem.compute_feature_correlation(key=key_added, method=method)
 
@@ -206,16 +206,16 @@ class TestBaseAnalysisMixin:
         tmap = rng.uniform(1e-6, 1, size=(n0, n1))
         tmap /= tmap.sum().sum()
         problem = CompoundProblemWithMixin(adata_time)
-        problem = problem.prepare("day", subset=[(0, 1)], policy="explicit", callback="local-pca")
+        problem = problem.prepare("time",  callback="local-pca")
         problem[0, 1]._solution = MockSolverOutput(tmap)
 
-        adata_time.obs[key_added] = problem[0, 1].pull(start=0, end=1)
+        adata_time.obs[key_added] = np.hstack((np.zeros(n0), problem.pull(start=0, end=1).squeeze()))
 
         if isinstance(features, int):
             features = list(adata_time.var_names)[:features]
             features_validation = features
         else:
-            features_validation = adata_time.var_names
+            features_validation = list(adata_time.var_names)
         res = problem.compute_feature_correlation(
             key=key_added, annotation={"celltype": ["A"]}, method=method, features=features
         )
@@ -232,10 +232,10 @@ class TestBaseAnalysisMixin:
         tmap = rng.uniform(1e-6, 1, size=(n0, n1))
         tmap /= tmap.sum().sum()
         problem = CompoundProblemWithMixin(adata_time)
-        problem = problem.prepare("day", subset=[(0, 1)], policy="explicit", callback="local-pca")
+        problem = problem.prepare("time", callback="local-pca")
         problem[0, 1]._solution = MockSolverOutput(tmap)
 
-        adata_time.obs[key_added] = problem[0, 1].pull(start=0, end=1)
+        adata_time.obs[key_added] = np.hstack((np.zeros(n0), problem.pull(start=0, end=1).squeeze()))
 
         res_a = problem.compute_feature_correlation(key=key_added, n_perms=10, n_jobs=1, seed=0, method="perm_test")
         res_b = problem.compute_feature_correlation(key=key_added, n_perms=10, n_jobs=1, seed=0, method="perm_test")
@@ -257,10 +257,10 @@ class TestBaseAnalysisMixin:
         tmap = rng.uniform(1e-6, 1, size=(n0, n1))
         tmap /= tmap.sum().sum()
         problem = CompoundProblemWithMixin(adata_time)
-        problem = problem.prepare("day", subset=[(0, 1)], policy="explicit", callback="local-pca")
+        problem = problem.prepare("time", callback="local-pca")
         problem[0, 1]._solution = MockSolverOutput(tmap)
 
-        adata_time.obs[key_added] = problem[0, 1].pull(start=0, end=1)
+        adata_time.obs[key_added] = np.hstack((np.zeros(n0), problem.pull(start=0, end=1).squeeze()))
 
         res_a = problem.compute_feature_correlation(
             key=key_added, n_perms=10, n_jobs=2, backend="threading", seed=0, method="perm_test"
@@ -283,10 +283,10 @@ class TestBaseAnalysisMixin:
         tmap = rng.uniform(1e-6, 1, size=(n0, n1))
         tmap /= tmap.sum().sum()
         problem = CompoundProblemWithMixin(adata_time)
-        problem = problem.prepare("day", subset=[(0, 1)], policy="explicit", callback="local-pca")
+        problem = problem.prepare("time", callback="local-pca")
         problem[0, 1]._solution = MockSolverOutput(tmap)
 
-        adata_time.obs[key_added] = problem[0, 1].pull(start=0, end=1)
+        adata_time.obs[key_added] = np.hstack((np.zeros(n0), problem.pull(start=0, end=1).squeeze()))
 
         res_narrow = problem.compute_feature_correlation(key=key_added, confidence_level=0.95)
         res_wide = problem.compute_feature_correlation(key=key_added, confidence_level=0.99)
