@@ -15,6 +15,7 @@ from anndata import AnnData
 
 from moscot._types import ArrayLike, Str_Dict_t
 from moscot._logging import logger
+from moscot._docs._docs import d
 from moscot._constants._constants import TestMethod, AggregationMode
 
 __all__ = [
@@ -239,7 +240,7 @@ def _filter_kwargs(*funcs: Callable[..., Any], **kwargs: Any) -> Dict[str, Any]:
 
 @d.dedent
 def _correlation_test(
-    X: Union[np.ndarray, spmatrix],
+    X: Union[ArrayLike, spmatrix],
     Y: pd.DataFrame,
     feature_names: Sequence[str],
     method: TestMethod = TestMethod.FISCHER,
@@ -249,8 +250,8 @@ def _correlation_test(
     **kwargs: Any,
 ) -> pd.DataFrame:
     """
-    Perform a statistical test.
-    
+    Perform a statistical test for correlation between X and .
+
     Return NaN for genes which don't vary across cells.
 
     Parameters
@@ -258,7 +259,7 @@ def _correlation_test(
     X
         Array or sparse matrix of shape ``(n_cells, n_features)`` containing the counts.
     Y
-        Array of shape ``(n_cells, n_distributions)`` containing the absorption probabilities.
+        Data frame of shape ``(n_cells, 1)`` containing the pull/push distribution.
     feature_names
         Sequence of shape ``(n_features,)`` containing the feature names.
     method
@@ -269,6 +270,7 @@ def _correlation_test(
         Number of permutations if ``method = 'perm_test'``.
     seed
         Random seed if ``method = 'perm_test'``.
+
     %(parallel)s
 
     Returns
@@ -283,7 +285,7 @@ def _correlation_test(
 
     corr, pvals, ci_low, ci_high = _correlation_test_helper(
         X.T,
-        Y.X,
+        Y,
         method=method,
         n_perms=n_perms,
         seed=seed,
@@ -303,7 +305,7 @@ def _correlation_test(
         ci_high[invalid] = np.nan
 
     res = pd.DataFrame(corr, index=feature_names, columns=[f"{c}_corr" for c in Y.columns])
-    for idx, c in enumerate(Y.names):
+    for idx, c in enumerate(Y.columns):
         p = pvals[:, idx]
         valid_mask = ~np.isnan(p)
 
@@ -333,7 +335,7 @@ def _correlation_test_helper(
 ) -> Tuple[ArrayLike, ArrayLike, ArrayLike, ArrayLike]:
     """
     Compute the correlation between rows in matrix ``X`` columns of matrix ``Y``.
-    
+
     Parameters
     ----------
     X
@@ -353,18 +355,20 @@ def _correlation_test_helper(
 
     Returns
     -------
-        Correlations, p-values, corrected p-values, lower and upper bound of 95% confidence interval.
+    Correlations, p-values, corrected p-values, lower and upper bound of 95% confidence interval.
     """
     from moscot._utils import parallelize
 
-    def perm_test_extractor(res: Sequence[Tuple[np.ndarray, np.ndarray]]) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+    def perm_test_extractor(res: Sequence[Tuple[ArrayLike, ArrayLike]]) -> Tuple[ArrayLike, ArrayLike, ArrayLike]:
         pvals, corr_bs = zip(*res)
+        if TYPE_CHECKING:
+            assert isinstance(n_perms, int)
         pvals = np.sum(pvals, axis=0) / float(n_perms)
 
         corr_bs = np.concatenate(corr_bs, axis=0)
         corr_ci_low, corr_ci_high = np.quantile(corr_bs, q=ql, axis=0), np.quantile(corr_bs, q=qh, axis=0)
 
-        return pvals, corr_ci_low, corr_ci_high
+        return pvals, corr_ci_low, corr_ci_high  # type:ignore[return-value]
 
     if not (0 <= confidence_level <= 1):
         raise ValueError(f"Expected `confidence_level` to be in interval `[0, 1]`, found `{confidence_level}`.")
@@ -395,7 +399,7 @@ def _correlation_test_helper(
             raise ValueError(f"Expcted `n_perms` to be positive, found `{n_perms}`.")
 
         pvals, corr_ci_low, corr_ci_high = parallelize(
-            _perm_test,
+            _perm_test,  # type:ignore[arg-type]
             np.arange(n_perms),
             as_array=False,
             unit="permutation",
@@ -411,8 +415,8 @@ def _correlation_test_helper(
 
 def _mat_mat_corr_sparse(
     X: csr_matrix,
-    Y: np.ndarray,
-) -> np.ndarray:
+    Y: ArrayLike,
+) -> ArrayLike:
     n = X.shape[1]
 
     X_bar = np.reshape(np.array(X.mean(axis=1)), (-1, 1))
@@ -426,7 +430,7 @@ def _mat_mat_corr_sparse(
         return (X @ Y - (n * X_bar * y_bar)) / ((n - 1) * X_std * y_std)
 
 
-def _mat_mat_corr_dense(X: np.ndarray, Y: np.ndarray) -> np.ndarray:
+def _mat_mat_corr_dense(X: ArrayLike, Y: ArrayLike) -> ArrayLike:
     from moscot._utils import np_std, np_mean
 
     n = X.shape[1]
@@ -443,13 +447,13 @@ def _mat_mat_corr_dense(X: np.ndarray, Y: np.ndarray) -> np.ndarray:
 
 
 def _perm_test(
-    ixs: np.ndarray,
-    corr: np.ndarray,
-    X: Union[np.ndarray, spmatrix],
-    Y: np.ndarray,
+    ixs: ArrayLike,
+    corr: ArrayLike,
+    X: Union[ArrayLike, spmatrix],
+    Y: ArrayLike,
     seed: Optional[int] = None,
     queue=None,
-) -> Tuple[np.ndarray, np.ndarray]:
+) -> Tuple[ArrayLike, ArrayLike]:
     rs = np.random.RandomState(None if seed is None else seed + ixs[0])
     cell_ixs = np.arange(X.shape[1])
     pvals = np.zeros_like(corr, dtype=np.float64)

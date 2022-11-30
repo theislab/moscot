@@ -114,6 +114,7 @@ def adata_time() -> AnnData:
     adata.obs["batch"] = rng.choice((0, 1, 2), len(adata))
     adata.obs["left_marginals"] = np.ones(len(adata))
     adata.obs["right_marginals"] = np.ones(len(adata))
+    adata.obs["celltype"] = np.random.choice(["A", "B", "C"], size=len(adata))
     # three genes from mouse/human prliferation/apoptosis
     genes = ["ANLN", "ANP32E", "ATAD2", "Mcm4", "Smc4", "Gtse1", "ADD1", "AIFM3", "ANKH", "Ercc5", "Serpinb5", "Inhbb"]
     adata.var.index = ["gene_" + el if i > 11 else genes[i] for i, el in enumerate(adata.var.index)]

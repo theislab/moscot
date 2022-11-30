@@ -179,7 +179,7 @@ class SubsetPolicy(Generic[K]):
             pass
 
 
-class OrderedPolicy(SubsetPolicy[K], ABC):
+class OrderedPolicy(SubsetPolicy[K]):
     def __init__(self, adata: Union[AnnData, pd.Series, pd.Categorical], **kwargs: Any):
         super().__init__(adata, **kwargs)
         # TODO(michalk8): verify whether they can be ordered (only numeric?) + warn (or just raise)
@@ -210,7 +210,7 @@ class OrderedPolicy(SubsetPolicy[K], ABC):
         return path if forward else path[::-1]
 
 
-class SimplePlanPolicy(SubsetPolicy[K], ABC):
+class SimplePlanPolicy(SubsetPolicy[K]):
     def _plan(self, **_: Any) -> Sequence[Tuple[K, K]]:
         return list(self._graph)
 

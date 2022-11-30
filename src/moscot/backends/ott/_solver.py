@@ -1,4 +1,3 @@
-from abc import ABC
 from types import MappingProxyType
 from typing import Any, Union, Literal, Mapping, Optional
 
@@ -50,7 +49,7 @@ class OTTCost(ModeEnum):
         raise NotImplementedError(self.value)
 
 
-class OTTJaxSolver(OTSolver[OTTOutput], ABC):
+class OTTJaxSolver(OTSolver[OTTOutput]):
     """Base class for :mod:`ott` solvers :cite:`cuturi2022optimal`."""
 
     def __init__(self):

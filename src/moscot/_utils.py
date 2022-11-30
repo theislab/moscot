@@ -11,6 +11,8 @@ import joblib as jl
 
 import numpy as np
 
+from moscot._types import ArrayLike
+
 jit_kwargs = {"nogil": True, "cache": True, "fastmath": True}
 
 
@@ -51,6 +53,7 @@ def parallelize(
         Function to apply to the result after all jobs have finished.
     show_progress_bar
         Whether to show a progress bar.
+
     Returns
     -------
     The result depending on ``callable``, ``extractor`` and ``as_array``.
@@ -114,21 +117,21 @@ def parallelize(
 
         return res if extractor is None else extractor(res)
 
-    col_len = collection.shape[0] if issparse(collection) else len(collection)
+    col_len = collection.shape[0] if issparse(collection) else len(collection)  # type: ignore[union-attr]
     n_jobs = _get_n_cores(n_jobs, col_len)
     if n_split is None:
         n_split = n_jobs
 
     if issparse(collection):
-        n_split = max(1, min(n_split, collection.shape[0]))
-        if n_split == collection.shape[0]:
-            collections = [collection[[ix], :] for ix in range(collection.shape[0])]
+        n_split = max(1, min(n_split, collection.shape[0]))  # type: ignore
+        if n_split == collection.shape[0]:  # type: ignore[union-attr]
+            collections = [collection[[ix], :] for ix in range(collection.shape[0])]  # type: ignore
         else:
-            step = collection.shape[0] // n_split
-            ixs = [np.arange(i * step, min((i + 1) * step, collection.shape[0])) for i in range(n_split)]
-            ixs[-1] = np.append(ixs[-1], np.arange(ixs[-1][-1] + 1, collection.shape[0]))
+            step = collection.shape[0] // n_split  # type: ignore[union-attr]
+            ixs = [np.arange(i * step, min((i + 1) * step, collection.shape[0])) for i in range(n_split)]  # type: ignore  # noqa:501
+            ixs[-1] = np.append(ixs[-1], np.arange(ixs[-1][-1] + 1, collection.shape[0]))  # type: ignore
 
-            collections = [collection[ix, :] for ix in filter(len, ixs)]
+            collections = [collection[ix, :] for ix in filter(len, ixs)]  # type:ignore[call-overload]
     else:
         collections = list(filter(len, np.array_split(collection, n_split)))
 
@@ -166,7 +169,7 @@ def _get_n_cores(n_cores: Optional[int], n_jobs: Optional[int]) -> int:
 
 
 @njit(parallel=False, **jit_kwargs)
-def _np_apply_along_axis(func1d, axis: int, arr: np.ndarray) -> np.ndarray:
+def _np_apply_along_axis(func1d, axis: int, arr: ArrayLike) -> ArrayLike:
     """
     Apply a reduction function over a given axis.
 
@@ -178,7 +181,7 @@ def _np_apply_along_axis(func1d, axis: int, arr: np.ndarray) -> np.ndarray:
         Axis over which to apply the reduction.
     arr
         The array to be reduced.
-        
+
     Returns
     -------
     The reduced array.
@@ -201,10 +204,10 @@ def _np_apply_along_axis(func1d, axis: int, arr: np.ndarray) -> np.ndarray:
 
 
 @njit(**jit_kwargs)
-def np_mean(array: np.ndarray, axis: int) -> np.ndarray:  # noqa
+def np_mean(array: ArrayLike, axis: int) -> ArrayLike:  # noqa
     return _np_apply_along_axis(np.mean, axis, array)
 
 
 @njit(**jit_kwargs)
-def np_std(array: np.ndarray, axis: int) -> np.ndarray:  # noqa
+def np_std(array: ArrayLike, axis: int) -> ArrayLike:  # noqa
     return _np_apply_along_axis(np.std, axis, array)

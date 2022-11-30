@@ -1,19 +1,20 @@
-from typing import Any, Literal, Optional, Protocol, TYPE_CHECKING
+from typing import Any, List, Tuple, Union, Literal, Optional, Protocol, TYPE_CHECKING
 
 import pandas as pd
+from anndata import AnnData
 
-from moscot._types import Str_Dict_t
-from moscot.problems.base import AnalysisMixin  # type: ignore[attr-defined]
+from moscot._types import ArrayLike, Str_Dict_t
 from moscot._docs._docs_mixins import d_mixins
-from moscot._constants._constants import PlottingDefaults
-from moscot.problems.base._mixins import AnalysisMixinProtocol
-from moscot.problems.base._compound_problem import B, K
+from moscot._constants._constants import Key, AdataKeys, PlottingKeys, PlottingDefaults
+from moscot.problems.base._mixins import AnalysisMixin, AnalysisMixinProtocol  # type: ignore[attr-defined]
+from moscot.problems.base._compound_problem import B, K, ApplyOutput_t
 
 
 class GenericAnalysisMixinProtocol(AnalysisMixinProtocol[K, B], Protocol[K, B]):
     """Protocol class."""
 
     batch_key: Optional[str]
+    adata: Optional[AnnData]
 
     def _cell_transition(
         self: AnalysisMixinProtocol[K, B],
@@ -85,6 +86,115 @@ class GenericAnalysisMixin(AnalysisMixin[K, B]):
             other_key=None,
             key_added=key_added,
         )
+
+    @d_mixins.dedent
+    def push(
+        self: GenericAnalysisMixinProtocol[K, B],
+        source: K,
+        target: K,
+        data: Optional[Union[str, ArrayLike]] = None,
+        subset: Optional[Union[str, List[str], Tuple[int, int]]] = None,
+        scale_by_marginals: bool = True,
+        key_added: Optional[str] = PlottingDefaults.PUSH,
+        return_all: bool = False,
+        return_data: bool = False,
+        **kwargs: Any,
+    ) -> Optional[ApplyOutput_t[K]]:
+        """
+        Push distribution of cells through time.
+
+        Parameters
+        ----------
+        %(source)s
+        %(target)s
+        %(data)s
+        %(subset)s
+        %(scale_by_marginals)s
+        %(key_added_plotting)s
+        %(return_all)s
+        %(return_data)s
+
+        Return
+        ------
+        %(return_push_pull)s
+
+        """
+        result = self._apply(
+            start=source,
+            end=target,
+            data=data,
+            subset=subset,
+            forward=True,
+            return_all=return_all or key_added is not None,
+            scale_by_marginals=scale_by_marginals,
+            **kwargs,
+        )
+
+        if TYPE_CHECKING:
+            assert isinstance(result, dict)
+
+        if key_added is not None:
+            plot_vars = {
+                "distribution_key": self.batch_key,
+            }
+            self.adata.obs[key_added] = self._flatten(result, key=self.batch_key)
+            Key.uns.set_plotting_vars(self.adata, AdataKeys.UNS, PlottingKeys.PUSH, key_added, plot_vars)
+        if return_data:
+            return result
+
+    @d_mixins.dedent
+    def pull(
+        self: GenericAnalysisMixinProtocol[K, B],
+        source: K,
+        target: K,
+        data: Optional[Union[str, ArrayLike]] = None,
+        subset: Optional[Union[str, List[str], Tuple[int, int]]] = None,
+        scale_by_marginals: bool = True,
+        key_added: Optional[str] = PlottingDefaults.PULL,
+        return_all: bool = False,
+        return_data: bool = False,
+        **kwargs: Any,
+    ) -> Optional[ApplyOutput_t[K]]:
+        """
+        Pull distribution of cells through time.
+
+        Parameters
+        ----------
+        %(source)s
+        %(target)s
+        %(data)s
+        %(subset)s
+        %(scale_by_marginals)s
+        %(key_added_plotting)s
+        %(return_all)s
+        %(return_data)s
+
+        Return
+        ------
+        %(return_push_pull)s
+
+        """
+        result = self._apply(
+            start=source,
+            end=target,
+            data=data,
+            subset=subset,
+            forward=False,
+            return_all=return_all or key_added is not None,
+            scale_by_marginals=scale_by_marginals,
+            **kwargs,
+        )
+        if TYPE_CHECKING:
+            assert isinstance(result, dict)
+
+        if key_added is not None:
+            plot_vars = {
+                "key": self.batch_key,
+            }
+            self.adata.obs[key_added] = self._flatten(result, key=self.batch_key)
+            Key.uns.set_plotting_vars(self.adata, AdataKeys.UNS, PlottingKeys.PULL, key_added, plot_vars)
+        if return_data:
+            return result
 
     @property
     def batch_key(self) -> Optional[str]:

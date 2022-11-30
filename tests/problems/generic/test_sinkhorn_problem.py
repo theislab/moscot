@@ -55,6 +55,18 @@ class TestSinkhornProblem:
             assert isinstance(subsol, BaseSolverOutput)
             assert key in expected_keys
 
+    def test_compute_feature_correlation(self, adata_time: AnnData):
+        problem = SinkhornProblem(adata=adata_time)
+        problem = problem.prepare(key="time")
+        problem = problem.solve(max_iterations=5)
+
+        method = "fischer"
+        key_added = "test_push"
+        adata_time.obs[key_added] = problem.push(source=0, target=1, data="celltype", subset="A")
+        feature_correlation = problem.compute_feature_correlation(key_added, method=method)
+
+        assert isinstance(feature_correlation, pd.DataFrame)
+
     @pytest.mark.parametrize("tag", ["cost", "kernel"])
     def test_set_xy(self, adata_time: AnnData, tag: Literal["cost", "kernel"]):
         rng = np.random.RandomState(42)
