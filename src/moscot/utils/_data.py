@@ -13,7 +13,9 @@ class TranscriptionFactors:
 
     """
 
-    data_dir = "../data"
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+    print("Current dir  is ", current_dir)
+    data_dir = os.path.join(current_dir, "data")
     _transcription_factors: Mapping[str, Sequence[str]] = {
         "human": os.path.join(data_dir, "allTFs_hg38.txt"),
         "mouse": os.path.join(data_dir, "allTFs_mm.txt"),
@@ -22,7 +24,7 @@ class TranscriptionFactors:
 
     @classmethod
     def _load(cls, organism: Literal["human", "mouse", "drosophila"]) -> Sequence[str]:
-        return pd.read_csv(cls._transcription_factors[organism], sep=" ", header=None)[0].values
+        return list(pd.read_csv(cls._transcription_factors[organism], sep=" ", header=None)[0].values)
 
     @classmethod
     def transcription_factors(cls, organism: Literal["human", "mouse", "drosophila"]) -> Sequence[str]:
@@ -39,7 +41,7 @@ class MarkerGenes:
     # fmt: off
     _proliferation_markers: Mapping[str, Sequence[str]] = {
         # 97
-        "human": ("ANLN", "ANP32E", "ATAD2", "AURKA", "AURKB", "BIRC5", "BLM",
+        "human": ["ANLN", "ANP32E", "ATAD2", "AURKA", "AURKB", "BIRC5", "BLM",
                   "BRIP1", "BUB1", "CASP8AP2", "CBX5", "CCNB2", "CCNE2", "CDC20",
                   "CDC25C", "CDC45", "CDC6", "CDCA2", "CDCA3", "CDCA7", "CDCA8",
                   "CDK1", "CENPA", "CENPE", "CENPF", "CHAF1B", "CKAP2", "CKAP2L",
@@ -52,9 +54,9 @@ class MarkerGenes:
                   "PSRC1", "RAD51", "RAD51AP1", "RANGAP1", "RFC2", "RPA2", "RRM1",
                   "RRM2", "SLBP", "SMC4", "TACC3", "TIPIN", "TMPO", "TOP2A", "TPX2",
                   "TTK", "TUBB4B", "TYMS", "UBE2C", "UBR7", "UHRF1", "UNG", "USP1",
-                  "WDR76"),
+                  "WDR76"],
         # 98
-        "mouse": ("Mcm4", "Smc4", "Gtse1", "Ttk", "Rangap1", "Ccnb2", "Cenpa",
+        "mouse": ["Mcm4", "Smc4", "Gtse1", "Ttk", "Rangap1", "Ccnb2", "Cenpa",
                   "Cenpe", "Cdca8", "Ckap2", "Rad51", "Pcna", "Ube2c", "Lbr",
                   "Cenpf", "Birc5", "Dtl", "Dscc1", "Cbx5", "Usp1", "Hmmr", "Wdr76",
                   "Ung", "Hn1", "Cks2", "Kif20b", "Cdk1", "Slbp", "Aurkb", "Kif11",
@@ -67,12 +69,12 @@ class MarkerGenes:
                   "Pola1", "Mki67", "Tpx2", "Aurka", "Anln", "Chaf1b", "Hjurp",
                   "Tacc3", "Mcm5", "Anp32e", "Dlgap5", "Ect2", "Nuf2", "Cdc45",
                   "Ckap5", "Ctcf", "Clspn", "Cdca7", "Cdca3", "Rpa2", "Gins2",
-                  "E2f8", "Cdc25c", "Nek2", "Cdc20", "Rad51ap1"),
+                  "E2f8", "Cdc25c", "Nek2", "Cdc20", "Rad51ap1"],
     }
     _apoptosis_markers: Mapping[str, Sequence[str]] = {
         # 161
         "human":
-            ("ADD1", "AIFM3", "ANKH", "ANXA1", "APP", "ATF3", "AVPR1A", "BAX",
+            ["ADD1", "AIFM3", "ANKH", "ANXA1", "APP", "ATF3", "AVPR1A", "BAX",
              "BCAP31", "BCL10", "BCL2L1", "BCL2L10", "BCL2L11", "BCL2L2", "BGN",
              "BID", "BIK", "BIRC3", "BMF", "BMP2", "BNIP3L", "BRCA1", "BTG2",
              "BTG3", "CASP1", "CASP2", "CASP3", "CASP4", "CASP6", "CASP7",
@@ -93,9 +95,9 @@ class MarkerGenes:
              "RNASEL", "ROCK1", "SAT1", "SATB1", "SC5D", "SLC20A1", "SMAD7",
              "SOD1", "SOD2", "SPTAN1", "SQSTM1", "TAP1", "TGFB2", "TGFBR3",
              "TIMP1", "TIMP2", "TIMP3", "TNF", "TNFRSF12A", "TNFSF10", "TOP2A",
-             "TSPO", "TXNIP", "VDAC2", "WEE1", "XIAP"),
+             "TSPO", "TXNIP", "VDAC2", "WEE1", "XIAP"],
         # 193
-        "mouse": ("Ercc5", "Serpinb5", "Inhbb", "Steap3", "Btg2", "Phlda3", "Tnni1",
+        "mouse": ["Ercc5", "Serpinb5", "Inhbb", "Steap3", "Btg2", "Phlda3", "Tnni1",
                   "Rgs16", "Ier5", "Slc19a2", "Adck3", "Ephx1", "Ptpn14", "Atf3",
                   "Notch1", "Rxra", "Ralgds", "Ak1", "Stom", "Ddb2", "Cd82", "Il1a",
                   "Pcna", "Bmp2", "Trib3", "Procr", "Blcap", "Ada", "Fgf13", "Irak1",
@@ -121,7 +123,7 @@ class MarkerGenes:
                   "Ccnk", "Jag2", "Ndrg1", "Pmm1", "Plxnb2", "Vdr", "Csrnp2",
                   "Acvr1b", "Sp1", "Abat", "Socs1", "Abcc5", "Trp63", "Fam162a",
                   "App", "Rab40c", "Bak1", "Def6", "Cdkn1a", "Tap1", "Ier3", "Polh",
-                  "Ccnd3", "Hbegf", "Hdac3", "Rad9a", "Ctsf", "Slc3a2", "Fas"),
+                  "Ccnd3", "Hbegf", "Hdac3", "Rad9a", "Ctsf", "Slc3a2", "Fas"],
     }
     # fmt: on
 
