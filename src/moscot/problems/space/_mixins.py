@@ -283,10 +283,16 @@ class SpatialAlignmentMixin(AnalysisMixin[K, B]):
         return self.adata[self.adata.obs[self._policy._subset_key] == k].obsm[spatial_key].astype(np.float_, copy=True)
 
     @staticmethod
-    def _affine(tmap: LinearOperator, tgt: ArrayLike, src: ArrayLike, *args: Any) -> Tuple[ArrayLike, ArrayLike]:
+    def _affine(
+        tmap: LinearOperator, tgt: ArrayLike, src: ArrayLike, forward: bool = True, *args: Any
+    ) -> Tuple[ArrayLike, ArrayLike]:
         """Affine transformation."""
         tgt -= tgt.mean(0)
-        H = tgt.T.dot(tmap.dot(src))
+        if forward:
+            out = tmap.dot(src)
+        else:
+            out = tmap.T.dot(src)
+        H = tgt.T.dot(out)
         U, _, Vt = svd(H)
         R = Vt.T.dot(U.T)
         tgt = R.dot(tgt.T).T
