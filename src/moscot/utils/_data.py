@@ -14,7 +14,6 @@ class TranscriptionFactors:
     """
 
     current_dir = os.path.dirname(os.path.abspath(__file__))
-    print("Current dir  is ", current_dir)
     data_dir = os.path.join(current_dir, "data")
     _transcription_factors: Mapping[str, Sequence[str]] = {
         "human": os.path.join(data_dir, "allTFs_hg38.txt"),
