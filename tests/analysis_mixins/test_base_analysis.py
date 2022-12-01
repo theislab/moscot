@@ -180,18 +180,17 @@ class TestBaseAnalysisMixin:
         problem = problem.prepare("time", callback="local-pca")
         problem[0, 1]._solution = MockSolverOutput(tmap)
 
-        adata_time.obs[key_added] = np.vstack((np.zeros(n0), problem.pull(start=0, end=1).squeeze()))
+        adata_time.obs[key_added] = np.hstack((np.zeros(n0), problem.pull(start=0, end=1).squeeze()))
 
         res = problem.compute_feature_correlation(key=key_added, method=method)
 
         assert isinstance(res, pd.DataFrame)
-        genes = adata_time.var_names
-        for gene in genes:
-            assert np.all(adata_time[f"{gene}_corr"] >= -1.0)
-            assert np.all(adata_time[f"{gene}_corr"] <= 1.0)
 
-            assert np.all(adata_time[f"{gene}_qval"] >= 0)
-            assert np.all(adata_time[f"{gene}_qval"] <= 1.0)
+        assert np.all(res[f"{key_added}_corr"] >= -1.0)
+        assert np.all(res[f"{key_added}_corr"] <= 1.0)
+
+        assert np.all(res[f"{key_added}_qval"] >= 0)
+        assert np.all(res[f"{key_added}_qval"] <= 1.0)
 
     @pytest.mark.parametrize("features", [10, None])
     @pytest.mark.parametrize("method", ["fischer", "perm_test"])
@@ -206,7 +205,7 @@ class TestBaseAnalysisMixin:
         tmap = rng.uniform(1e-6, 1, size=(n0, n1))
         tmap /= tmap.sum().sum()
         problem = CompoundProblemWithMixin(adata_time)
-        problem = problem.prepare("time",  callback="local-pca")
+        problem = problem.prepare("time", callback="local-pca")
         problem[0, 1]._solution = MockSolverOutput(tmap)
 
         adata_time.obs[key_added] = np.hstack((np.zeros(n0), problem.pull(start=0, end=1).squeeze()))
@@ -219,9 +218,8 @@ class TestBaseAnalysisMixin:
         res = problem.compute_feature_correlation(
             key=key_added, annotation={"celltype": ["A"]}, method=method, features=features
         )
-
         assert isinstance(res, pd.DataFrame)
-        assert list(res.index) == features_validation
+        assert set(res.index) == set(features_validation)
 
     def test_seed_reproducible(self, adata_time: AnnData):
         key_added = "test"
