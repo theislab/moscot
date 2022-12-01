@@ -72,10 +72,10 @@ class TestGWProblem:
             GW_y={"attr": "obsm", "key": "spatial"},
         )
         problem = problem.solve(epsilon=0.5)
-        assert problem[0, 1].solution.converged
+        assert problem["0", "1"].solution.converged
 
         key_added = "test_push"
-        problem.push(source=0, target=1, data="celltype", subset="A", key_added=key_added)
+        problem.push(source="0", target="1", data="celltype", subset="A", key_added=key_added)
         feature_correlation = problem.compute_feature_correlation(key_added, method=method)
 
         assert isinstance(feature_correlation, pd.DataFrame)
