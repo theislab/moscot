@@ -149,26 +149,29 @@ class ICNN(nn.Module):
             if self.combiner: 
                 c = self.w_c(c) 
                 c = self.act_fn(c)
-            u = c
-            z = 0
-            i = 0
-            for Wz, Wx, Wzu, Wxu, Wu, V in zip(self.w_zs[:-1], self.w_xs[:-1], self.w_zu[:-1], self.w_xu[:-1], self.w_u[:-1], self.v[:-1]):
-                i = i + 1
+            
+            # Initialize
+            mlp_condition_embedding = self.w_xu[0](c)  
+            x_hadamard_1 = jnp.multiply(x, mlp_condition_embedding) 
+            mlp_condition = self.w_u[0](c)
+            z = jnp.add(mlp_condition, self.w_xs[0](x_hadamard_1))
+            z = jnp.multiply(z, z)
+            u = self.act_fn(self.v[0](c))
+
+            for Wz, Wx, Wzu, Wxu, Wu, V in zip(self.w_zs[:-1], self.w_xs[1:-1], self.w_zu[:-1], self.w_xu[1:-1], self.w_u[1:-1], self.v[1:-1]):
                 mlp_convex = jnp.clip(Wzu(u), a_min=0)  
                 z_hadamard_1 = jnp.multiply(z, mlp_convex)  
                 mlp_condition_embedding = Wxu(u)  
                 x_hadamard_1 = jnp.multiply(x, mlp_condition_embedding) 
                 mlp_condition = Wu(u)
                 z = self.act_fn(jnp.add(jnp.add(Wz(z_hadamard_1), Wx(x_hadamard_1)), mlp_condition))
-                if i == 1:
-                    z = jnp.multiply(z, z)
-                u = self.act_fn(V(u)) 
+                u = self.act_fn(V(u))
 
-            mlp_convex = jnp.clip(self.w_zu[-1](u), a_min=0)  
-            z_hadamard_1 = jnp.multiply(z, mlp_convex) 
+            mlp_convex = jnp.clip(self.w_zu[-1](u), a_min=0)   # bs x d
+            z_hadamard_1 = jnp.multiply(z, mlp_convex) # bs x d
 
-            mlp_condition_embedding = self.w_xu[-1](u)  
-            x_hadamard_1 = jnp.multiply(x, mlp_condition_embedding) 
+            mlp_condition_embedding = self.w_xu[-1](u)  # bs x d
+            x_hadamard_1 = jnp.multiply(x, mlp_condition_embedding) # bs x d
 
             mlp_condition = self.w_u[-1](u)
             y = jnp.add(jnp.add(self.w_zs[-1](z_hadamard_1), self.w_xs[-1](x_hadamard_1)), mlp_condition) 
