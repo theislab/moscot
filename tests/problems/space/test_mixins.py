@@ -21,38 +21,34 @@ SOLUTIONS_PATH_MAPPING = Path(__file__).parent.parent.parent / "data/mapping_sol
 
 class TestSpatialAlignmentAnalysisMixin:
     def test_analysis(self, adata_space_rotate: AnnData):
+        import scanpy as sc
+
         adata_ref = adata_space_rotate.copy()
-        problem = AlignmentProblem(adata=adata_ref).prepare(batch_key="batch").solve(epsilon=1e-2)
+        sc.pp.subsample(adata_ref, fraction=0.9)
+        problem = AlignmentProblem(adata=adata_ref).prepare(batch_key="batch").solve(epsilon=1e-1)
         categories = adata_space_rotate.obs.batch.cat.categories
 
         for ref in categories:
             problem.align(reference=ref, mode="affine")
             problem.align(reference=ref, mode="warp")
-            for c1, c2 in zip(categories, categories[1:]):
-                np.testing.assert_array_almost_equal(
-                    adata_ref[adata_ref.obs.batch == c1].obsm["spatial_warp"],
-                    adata_ref[adata_ref.obs.batch == c2].obsm["spatial_warp"],
-                    decimal=6,
+            tgts = set(categories) - set(ref)
+            for c in zip(tgts):
+                assert (
+                    adata_ref[adata_ref.obs.batch == c].obsm["spatial_warp"].shape
+                    == adata_ref[adata_ref.obs.batch == c].obsm["spatial"].shape
                 )
-                np.testing.assert_array_almost_equal(
-                    adata_ref[adata_ref.obs.batch == c1].obsm["spatial_affine"],
-                    adata_ref[adata_ref.obs.batch == c2].obsm["spatial_affine"],
-                    decimal=6,
-                )
-                angles = sorted(
-                    round(np.rad2deg(acos(arr[0, 0])))
-                    for arr in adata_ref.uns["spatial"]["alignment_metadata"].values()
-                    if isinstance(arr, np.ndarray)
-                )
-                assert set(angles).issubset(ANGLES)
-            assert adata_ref.obsm["spatial_warp"].shape == adata_space_rotate.obsm["spatial"].shape
+            angles = sorted(
+                round(np.rad2deg(acos(arr[0, 0])), 3)
+                for arr in adata_ref.uns["spatial"]["alignment_metadata"].values()
+                if isinstance(arr, np.ndarray)
+            )
+            assert np.sum(angles) <= np.sum(ANGLES) + 2
 
             problem.align(reference=ref, mode="affine", spatial_key="spatial")
-            for c1, c2 in zip(categories, categories[1:]):
-                np.testing.assert_array_almost_equal(
-                    adata_ref[adata_ref.obs.batch == c1].obsm["spatial_affine"],
-                    adata_ref[adata_ref.obs.batch == c2].obsm["spatial_affine"],
-                    decimal=6,
+            for c in zip(tgts):
+                assert (
+                    adata_ref[adata_ref.obs.batch == c].obsm["spatial_affine"].shape
+                    == adata_ref[adata_ref.obs.batch == c].obsm["spatial"].shape
                 )
 
     def test_regression_testing(self, adata_space_rotate: AnnData):

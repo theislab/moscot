@@ -143,9 +143,9 @@ class SpatialAlignmentMixin(AnalysisMixin[K, B]):
 
         if len(bwd_steps):
             for (_, end), path in bwd_steps.items():
-                tmap = self._interpolate_transport(path=path, scale_by_marginals=True, forward=False)
+                tmap = self._interpolate_transport(path=path, scale_by_marginals=True, forward=True)
                 transport_maps[end], transport_metadata[end] = _transport(
-                    tmap.T, self._subset_spatial(end, spatial_key=spatial_key), src, forward=False
+                    tmap, self._subset_spatial(end, spatial_key=spatial_key), src, forward=False
                 )
 
         if mode == "affine":
