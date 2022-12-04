@@ -16,7 +16,7 @@ from anndata import AnnData
 from moscot._types import ArrayLike, Str_Dict_t
 from moscot._logging import logger
 from moscot._docs._docs import d
-from moscot._constants._constants import TestMethod, AggregationMode
+from moscot._constants._constants import CorrTestMethod, AggregationMode
 
 __all__ = [
     "attributedispatch",
@@ -243,7 +243,7 @@ def _correlation_test(
     X: Union[ArrayLike, spmatrix],
     Y: pd.DataFrame,
     feature_names: Sequence[str],
-    method: TestMethod = TestMethod.FISCHER,
+    method: CorrTestMethod = CorrTestMethod.FISCHER,
     confidence_level: float = 0.95,
     n_perms: Optional[int] = None,
     seed: Optional[int] = None,
@@ -327,7 +327,7 @@ def _correlation_test(
 def _correlation_test_helper(
     X: ArrayLike,
     Y: ArrayLike,
-    method: TestMethod = TestMethod.FISCHER,
+    method: CorrTestMethod = CorrTestMethod.FISCHER,
     n_perms: Optional[int] = None,
     seed: Optional[int] = None,
     confidence_level: float = 0.95,
@@ -350,7 +350,7 @@ def _correlation_test_helper(
         Random seed if ``method = 'perm_test'``.
     confidence_level
         Confidence level for the confidence interval calculation. Must be in `[0, 1]`.
-    
+
     %(parallel_kwargs)s
 
     Returns
@@ -382,7 +382,7 @@ def _correlation_test_helper(
 
     corr = _mat_mat_corr_sparse(X, Y) if issparse(X) else _mat_mat_corr_dense(X, Y)
 
-    if method == TestMethod.FISCHER:
+    if method == CorrTestMethod.FISCHER:
         # see: https://en.wikipedia.org/wiki/Pearson_correlation_coefficient#Using_the_Fisher_transformation
         mean, se = np.arctanh(corr), 1.0 / np.sqrt(n - 3)
         z_score = (np.arctanh(corr) - np.arctanh(0)) * np.sqrt(n - 3)
@@ -392,7 +392,7 @@ def _correlation_test_helper(
         corr_ci_high = np.tanh(mean + z * se)
         pvals = 2 * norm.cdf(-np.abs(z_score))
 
-    elif method == TestMethod.PERM_TEST:
+    elif method == CorrTestMethod.PERM_TEST:
         if not isinstance(n_perms, int):
             raise TypeError(f"Expected `n_perms` to be an integer, found `{type(n_perms).__name__}`.")
         if n_perms <= 0:

@@ -17,7 +17,7 @@ from moscot.problems.base._utils import (
     _validate_args_cell_transition,
     _check_argument_compatibility_cell_transition,
 )
-from moscot._constants._constants import Key, AdataKeys, TestMethod, PlottingKeys, AggregationMode, PlottingDefaults
+from moscot._constants._constants import Key, AdataKeys, PlottingKeys, CorrTestMethod, AggregationMode, PlottingDefaults
 from moscot.problems._subset_policy import SubsetPolicy
 from moscot.problems.base._compound_problem import B, K, ApplyOutput_t
 
@@ -481,8 +481,8 @@ class AnalysisMixin(Generic[K, B]):
     # adapted from CellRank (github.com/theislab/cellrank)
     def compute_feature_correlation(
         self: AnalysisMixinProtocol[K, B],
-        key: str = None,
-        method: Literal["fischer", "perm_test"] = TestMethod.FISCHER,
+        obs_key: str,
+        method: Literal["fischer", "perm_test"] = CorrTestMethod.FISCHER,
         annotation: Optional[Dict[str, List[str]]] = None,
         layer: Optional[str] = None,
         features: Optional[List[str]] = None,
@@ -499,28 +499,29 @@ class AnalysisMixin(Generic[K, B]):
 
         Parameters
         ----------
-        key
+        obs_key
             Column of :attr:`adata.obs` containing push-forward or pull-back distributions.
         method
             Mode to use when calculating p-values and confidence intervals. Valid options are:
-                - `{TestMethod.FISCHER!r}` - use Fischer transformation :cite:`fischer:21`.
-                - `{TestMethod.PERM_TEST!r}` - use permutation test.
+                - `{CorrTestMethod.FISCHER!r}` - use Fischer transformation :cite:`fischer:21`.
+                - `{CorrTestMethod.PERM_TEST!r}` - use permutation test.
         annotation
-            If not `None`, this defines the subset of data to be considered. The key of the :class:`dict` should
-            correspond to a column in :attr:`anndata.AnnData.obs` while the value should be a list of values in this
-            column.
+            If not `None`, this defines the subset of data to be considered when computing the correlation.
+            Its key should correspond to a key in
+            :attr:`anndata.AnnData.obs` and its value to a list containing a subset of categories present in
+            :attr:`anndata.AnnData.obs` ``['{annotation.keys()[0]}']``.
         layer
             Key from :attr:`anndata.AnnData.layers` from which to get the expression.
-            If `None` or `'X'`, use :attr:`anndata.AnnData.X`.
+            If `None`, use :attr:`anndata.AnnData.X`.
         features
-            A subset of :attr:`anndata.AnnData.var` the features the distribution in :attr:`anndata.AnnData.obs[]`
-            should be compared to. If `None`, all features will be taken into account.
+            Features of :class:`anndata.AnnData` which the correlation of ``anndata.AnnData.obs['{obs_key}']`` is
+            computed with. If `None`, all features will be taken into account.
         confidence_level
             Confidence level for the confidence interval calculation. Must be in interval `[0, 1]`.
         n_perms
-            Number of permutations to use when ``method = {TestMethod.PERM_TEST!r}``.
+            Number of permutations to use when ``method = {CorrTestMethod.PERM_TEST!r}``.
         seed
-            Random seed when ``method = {TestMethod.PERM_TEST!r}``.
+            Random seed when ``method = {CorrTestMethod.PERM_TEST!r}``.
 
         %(parallel_kwargs)s
 
@@ -528,14 +529,14 @@ class AnalysisMixin(Generic[K, B]):
         -------
         %(correlation_test.returns)s
         """
-        if key not in self.adata.obs.columns:
-            raise KeyError(f"[{key!r} not found in `adata.obs`.")
+        if obs_key not in self.adata.obs.columns:
+            raise KeyError(f"[{obs_key!r} not found in `adata.obs`.")
 
-        method = TestMethod(method)
+        method = CorrTestMethod(method)
 
         if annotation is not None:
             annotation_key, annotation_vals = next(iter(annotation.items()))  # type:ignore[misc]
-            if annotation_key not in self.adata.obs.columns:  # type:ignore[has-type]
+            if annotation_key not in self.adata.obs:  # type:ignore[has-type]
                 raise KeyError(f"[{annotation_key!r} not found in `adata.obs`.")  # type:ignore[has-type]
             if not isinstance(annotation_vals, list):  # type:ignore[has-type]
                 raise TypeError("`annotation` expected to be dictionary of length 1 with value being a list.")
@@ -544,10 +545,10 @@ class AnalysisMixin(Generic[K, B]):
         else:
             adata_red = self.adata
 
-        adata_red = adata_red[~adata_red.obs[key].isnull()]
+        adata_red = adata_red[~adata_red.obs[obs_key].isnull()]
         if len(adata_red) == 0:
-            raise ValueError(f"`adata.obs[{key!r}]` only contains NaN values.")
-        distribution = adata_red.obs[[key]]
+            raise ValueError(f"`adata.obs[{obs_key!r}]` only contains NaN values.")
+        distribution = adata_red.obs[[obs_key]]
 
         if features is not None:
             adata_red = adata_red[:, features]

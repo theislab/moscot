@@ -74,7 +74,7 @@ class PlottingDefaults(ModeEnum):  # sets the adata.uns[AdataKeys.UNS][value] va
 
 
 @unique
-class TestMethod(ModeEnum):
+class CorrTestMethod(ModeEnum):
     FISCHER = "fischer"
     PERM_TEST = "perm_test"
 
