@@ -182,7 +182,7 @@ class TestBaseAnalysisMixin:
 
         adata_time.obs[key_added] = np.hstack((np.zeros(n0), problem.pull(start=0, end=1).squeeze()))
 
-        res = problem.compute_feature_correlation(key=key_added, method=method)
+        res = problem.compute_feature_correlation(obs_key=key_added, method=method)
 
         assert isinstance(res, pd.DataFrame)
 
@@ -216,7 +216,7 @@ class TestBaseAnalysisMixin:
         else:
             features_validation = list(adata_time.var_names)
         res = problem.compute_feature_correlation(
-            key=key_added, annotation={"celltype": ["A"]}, method=method, features=features
+            obs_key=key_added, annotation={"celltype": ["A"]}, method=method, features=features
         )
         assert isinstance(res, pd.DataFrame)
         assert set(res.index) == set(features_validation)
@@ -235,9 +235,9 @@ class TestBaseAnalysisMixin:
 
         adata_time.obs[key_added] = np.hstack((np.zeros(n0), problem.pull(start=0, end=1).squeeze()))
 
-        res_a = problem.compute_feature_correlation(key=key_added, n_perms=10, n_jobs=1, seed=0, method="perm_test")
-        res_b = problem.compute_feature_correlation(key=key_added, n_perms=10, n_jobs=1, seed=0, method="perm_test")
-        res_c = problem.compute_feature_correlation(key=key_added, n_perms=10, n_jobs=1, seed=1, method="perm_test")
+        res_a = problem.compute_feature_correlation(obs_key=key_added, n_perms=10, n_jobs=1, seed=0, method="perm_test")
+        res_b = problem.compute_feature_correlation(obs_key=key_added, n_perms=10, n_jobs=1, seed=0, method="perm_test")
+        res_c = problem.compute_feature_correlation(obs_key=key_added, n_perms=10, n_jobs=1, seed=1, method="perm_test")
 
         assert res_a is not res_b
         np.testing.assert_array_equal(res_a.index, res_b.index)
@@ -261,10 +261,10 @@ class TestBaseAnalysisMixin:
         adata_time.obs[key_added] = np.hstack((np.zeros(n0), problem.pull(start=0, end=1).squeeze()))
 
         res_a = problem.compute_feature_correlation(
-            key=key_added, n_perms=10, n_jobs=2, backend="threading", seed=0, method="perm_test"
+            obs_key=key_added, n_perms=10, n_jobs=2, backend="threading", seed=0, method="perm_test"
         )
         res_b = problem.compute_feature_correlation(
-            key=key_added, n_perms=10, n_jobs=2, backend="threading", seed=0, method="perm_test"
+            obs_key=key_added, n_perms=10, n_jobs=2, backend="threading", seed=0, method="perm_test"
         )
 
         assert res_a is not res_b
@@ -286,8 +286,8 @@ class TestBaseAnalysisMixin:
 
         adata_time.obs[key_added] = np.hstack((np.zeros(n0), problem.pull(start=0, end=1).squeeze()))
 
-        res_narrow = problem.compute_feature_correlation(key=key_added, confidence_level=0.95)
-        res_wide = problem.compute_feature_correlation(key=key_added, confidence_level=0.99)
+        res_narrow = problem.compute_feature_correlation(obs_key=key_added, confidence_level=0.95)
+        res_wide = problem.compute_feature_correlation(obs_key=key_added, confidence_level=0.99)
 
         assert np.all(res_narrow[f"{key_added}_ci_low"] >= res_wide[f"{key_added}_ci_low"])
         assert np.all(res_narrow[f"{key_added}_ci_high"] <= res_wide[f"{key_added}_ci_high"])
