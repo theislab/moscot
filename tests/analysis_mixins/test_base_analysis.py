@@ -1,4 +1,4 @@
-from typing import Literal, Optional
+from typing import Literal, Optional, Tuple, List
 
 from scipy.sparse.linalg import LinearOperator
 import pandas as pd
@@ -220,6 +220,35 @@ class TestBaseAnalysisMixin:
         )
         assert isinstance(res, pd.DataFrame)
         assert set(res.index) == set(features_validation)
+
+    @pytest.mark.parametrize("features", [("human", ["KLF12", "ZNF143"]), ("mouse", ["Zic5"]), ("drosophila", ["Cf2", "Dlip3", "Dref"]), ("error", [None])])
+    def test_compute_feature_correlation_transcription_factors(
+        self, adata_time: AnnData, features: Tuple[str, List[str]],
+    ):
+        key_added = "test"
+        rng = np.random.RandomState(42)
+        adata_time = adata_time[adata_time.obs["time"].isin((0, 1))].copy()
+        n0 = adata_time[adata_time.obs["time"] == 0].n_obs
+        n1 = adata_time[adata_time.obs["time"] == 1].n_obs
+        tmap = rng.uniform(1e-6, 1, size=(n0, n1))
+        tmap /= tmap.sum().sum()
+        problem = CompoundProblemWithMixin(adata_time)
+        problem = problem.prepare("time", callback="local-pca")
+        problem[0, 1]._solution = MockSolverOutput(tmap)
+
+        adata_time.obs[key_added] = np.hstack((np.zeros(n0), problem.pull(start=0, end=1).squeeze()))
+
+        if features[0]=="error":
+            with np.testing.assert_raises(NotImplementedError):
+                res = problem.compute_feature_correlation(
+                    obs_key=key_added, annotation={"celltype": ["A"]}, features=features[0]
+                )
+        else:
+            res = problem.compute_feature_correlation(
+                    obs_key=key_added, annotation={"celltype": ["A"]}, features=features[0]
+                )
+            assert isinstance(res, pd.DataFrame)
+            assert set(res.index) == set(features[1])
 
     def test_seed_reproducible(self, adata_time: AnnData):
         key_added = "test"

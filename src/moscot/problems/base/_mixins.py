@@ -20,6 +20,7 @@ from moscot.problems.base._utils import (
 from moscot._constants._constants import Key, AdataKeys, PlottingKeys, CorrTestMethod, AggregationMode, PlottingDefaults
 from moscot.problems._subset_policy import SubsetPolicy
 from moscot.problems.base._compound_problem import B, K, ApplyOutput_t
+from moscot.utils._data import TranscriptionFactors
 
 
 class AnalysisMixinProtocol(Protocol[K, B]):
@@ -485,7 +486,7 @@ class AnalysisMixin(Generic[K, B]):
         method: Literal["fischer", "perm_test"] = CorrTestMethod.FISCHER,
         annotation: Optional[Dict[str, List[str]]] = None,
         layer: Optional[str] = None,
-        features: Optional[List[str]] = None,
+        features: Optional[Union[List[str], Literal["human", "mouse", "drosophila"]]] = None,
         confidence_level: float = 0.95,
         n_perms: int = 1000,
         seed: Optional[int] = None,
@@ -515,7 +516,10 @@ class AnalysisMixin(Generic[K, B]):
             If `None`, use :attr:`anndata.AnnData.X`.
         features
             Features of :class:`anndata.AnnData` which the correlation of ``anndata.AnnData.obs['{obs_key}']`` is
-            computed with. If `None`, all features will be taken into account.
+            computed with. 
+                - If `None`, all features will be taken into account.
+                - If of type :obj:`list`, features from :attr:`anndata.AnnData.var_names` will be taken.
+                - If `human`, `mouse`, or `drosophila`, the features are subsetted to transcription factors.
         confidence_level
             Confidence level for the confidence interval calculation. Must be in interval `[0, 1]`.
         n_perms
@@ -550,7 +554,10 @@ class AnalysisMixin(Generic[K, B]):
             raise ValueError(f"`adata.obs[{obs_key!r}]` only contains NaN values.")
         distribution = adata_red.obs[[obs_key]]
 
-        if features is not None:
+        if isinstance(features, str):
+            tfs = TranscriptionFactors.transcription_factors(organism=features)
+            adata_red = adata_red[:, list(set(tfs).intersection(adata_red.var_names))]
+        if isinstance(features, list):
             adata_red = adata_red[:, features]
 
         if layer is not None and layer not in self.adata.layers:
