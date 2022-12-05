@@ -2,6 +2,7 @@ from abc import ABC, abstractmethod
 from typing import Any, Dict, List, Tuple, Union, Literal, Mapping, Optional, TYPE_CHECKING
 
 from scipy.sparse import vstack, issparse, csr_matrix
+from sklearn.preprocessing import StandardScaler
 import pandas as pd
 
 import numpy as np
@@ -422,6 +423,7 @@ class OTProblem(BaseProblem):
         layer: Optional[str] = None,
         return_linear: bool = True,
         n_comps: int = 30,
+        scale: bool = False,
         **kwargs: Any,
     ) -> Dict[Literal["xy", "x", "y"], TaggedArray]:
         def concat(x: ArrayLike, y: ArrayLike) -> ArrayLike:
@@ -436,6 +438,8 @@ class OTProblem(BaseProblem):
         else:
             x, y, msg = adata.layers[layer], adata_y.layers[layer], f"adata.layers[{layer!r}]"
 
+        scaler = StandardScaler() if scale else None
+
         if return_linear:
             n = x.shape[0]
             data = concat(x, y)
@@ -443,13 +447,18 @@ class OTProblem(BaseProblem):
                 # TODO(michalk8): log
                 return {"xy": TaggedArray(data[:n], data[n:], tag=Tag.POINT_CLOUD)}
 
-            logger.info(f"Computing pca with `n_comps={n_comps}` using `{msg}`")
+            logger.info(f"Computing pca with `n_comps={n_comps}` for `xy` using `{msg}`")
             data = sc.pp.pca(data, n_comps=n_comps, **kwargs)
+            if scaler is not None:
+                data = scaler.fit_transform(data)
             return {"xy": TaggedArray(data[:n], data[n:], tag=Tag.POINT_CLOUD)}
 
-        logger.info(f"Computing pca with `n_comps={n_comps}` using `{msg}`")
+        logger.info(f"Computing pca with `n_comps={n_comps}` for `x` and `y` using `{msg}`")
         x = sc.pp.pca(x, n_comps=n_comps, **kwargs)
         y = sc.pp.pca(y, n_comps=n_comps, **kwargs)
+        if scaler is not None:
+            x = scaler.fit_transform(x)
+            y = scaler.fit_transform(y)
         return {"x": TaggedArray(x, tag=Tag.POINT_CLOUD), "y": TaggedArray(y, tag=Tag.POINT_CLOUD)}
 
     def _create_marginals(

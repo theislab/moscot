@@ -51,10 +51,11 @@ class TestCompoundProblem:
             assert isinstance(problem[key], OTProblem)
             assert problem[key].solution is problem.solutions[key]
 
+    @pytest.mark.parametrize("scale", [True, False])
     @pytest.mark.fast()
-    def test_default_callback(self, adata_time: AnnData, mocker: MockerFixture):
+    def test_default_callback(self, adata_time: AnnData, mocker: MockerFixture, scale: bool):
         subproblem = OTProblem(adata_time, adata_tgt=adata_time.copy())
-        callback_kwargs = {"n_comps": 5}
+        callback_kwargs = {"n_comps": 5, "scale": scale}
         spy = mocker.spy(subproblem, "_local_pca_callback")
 
         problem = Problem(adata_time)

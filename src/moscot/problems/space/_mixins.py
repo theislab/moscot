@@ -114,12 +114,12 @@ class SpatialAlignmentMixin(AnalysisMixin[K, B]):
             transport_metadata = {reference: np.diag((1, 1))}  # 2d data
 
         # get policy
-        if not isinstance(reference, str):
+        if isinstance(reference, str):
             reference_ = [reference]
         else:
-            reference_ = reference  # type: ignore[assignment]
+            reference_ = reference
         full_steps = self._policy._graph
-        starts = set(chain.from_iterable(full_steps)) - set(reference_)
+        starts = set(chain.from_iterable(full_steps)) - set(reference_)  # type: ignore[arg-type]
         fwd_steps, bwd_steps = {}, {}
         for start in starts:
             try:
@@ -138,14 +138,14 @@ class SpatialAlignmentMixin(AnalysisMixin[K, B]):
             for (start, _), path in fwd_steps.items():
                 tmap = self._interpolate_transport(path=path, scale_by_marginals=True, forward=True)
                 transport_maps[start], transport_metadata[start] = _transport(
-                    tmap, self._subset_spatial(start, spatial_key=spatial_key), src
+                    tmap, self._subset_spatial(start, spatial_key=spatial_key), src, forward=True
                 )
 
         if len(bwd_steps):
             for (_, end), path in bwd_steps.items():
-                tmap = self._interpolate_transport(path=path, scale_by_marginals=True, forward=False)
+                tmap = self._interpolate_transport(path=path, scale_by_marginals=True, forward=True)
                 transport_maps[end], transport_metadata[end] = _transport(
-                    tmap.T, self._subset_spatial(end, spatial_key=spatial_key), src
+                    tmap, self._subset_spatial(end, spatial_key=spatial_key), src, forward=False
                 )
 
         if mode == "affine":
@@ -283,19 +283,27 @@ class SpatialAlignmentMixin(AnalysisMixin[K, B]):
         return self.adata[self.adata.obs[self._policy._subset_key] == k].obsm[spatial_key].astype(np.float_, copy=True)
 
     @staticmethod
-    def _affine(tmap: LinearOperator, tgt: ArrayLike, src: ArrayLike) -> Tuple[ArrayLike, ArrayLike]:
+    def _affine(
+        tmap: LinearOperator, tgt: ArrayLike, src: ArrayLike, forward: bool = True, *args: Any
+    ) -> Tuple[ArrayLike, ArrayLike]:
         """Affine transformation."""
         tgt -= tgt.mean(0)
-        H = tgt.T.dot(tmap.dot(src))
+        if forward:
+            out = tmap.dot(src)
+        else:
+            out = tmap.T.dot(src)
+        H = tgt.T.dot(out)
         U, _, Vt = svd(H)
         R = Vt.T.dot(U.T)
         tgt = R.dot(tgt.T).T
         return tgt, R
 
     @staticmethod
-    def _warp(tmap: LinearOperator, _: ArrayLike, src: ArrayLike) -> Tuple[ArrayLike, None]:
+    def _warp(tmap: LinearOperator, _: ArrayLike, src: ArrayLike, forward: bool = True) -> Tuple[ArrayLike, None]:
         """Warp transformation."""
-        return tmap.dot(src), None
+        if forward:
+            return tmap.dot(src), None
+        return tmap.T.dot(src), None
 
 
 class SpatialMappingMixin(AnalysisMixin[K, B]):
