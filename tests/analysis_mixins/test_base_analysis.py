@@ -185,6 +185,7 @@ class TestBaseAnalysisMixin:
         res = problem.compute_feature_correlation(obs_key=key_added, method=method)
 
         assert isinstance(res, pd.DataFrame)
+        assert res.isnull().values.sum() == 0
 
         assert np.all(res[f"{key_added}_corr"] >= -1.0)
         assert np.all(res[f"{key_added}_corr"] <= 1.0)
@@ -219,6 +220,7 @@ class TestBaseAnalysisMixin:
             obs_key=key_added, annotation={"celltype": ["A"]}, method=method, features=features
         )
         assert isinstance(res, pd.DataFrame)
+        assert res.isnull().values.sum() == 0
         assert set(res.index) == set(features_validation)
 
     @pytest.mark.parametrize("features", [("human", ["KLF12", "ZNF143"]), ("mouse", ["Zic5"]), ("drosophila", ["Cf2", "Dlip3", "Dref"]), ("error", [None])])
@@ -247,6 +249,7 @@ class TestBaseAnalysisMixin:
             res = problem.compute_feature_correlation(
                     obs_key=key_added, annotation={"celltype": ["A"]}, features=features[0]
                 )
+            assert res.isnull().values.sum() == 0
             assert isinstance(res, pd.DataFrame)
             assert set(res.index) == set(features[1])
 
