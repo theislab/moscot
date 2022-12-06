@@ -1,4 +1,5 @@
-from typing import List, Tuple, Union, Callable, Optional, Sequence, TYPE_CHECKING
+from types import MappingProxyType
+from typing import Any, Dict, Tuple, Union, Callable, Sequence
 
 from flax import linen as nn
 from flax.training import train_state
@@ -18,6 +19,8 @@ class ICNN(nn.Module):
     pos_weights: bool = False
     split_index: int = -1
     cond_dim: int = 0
+    combiner_output_dim: int = 0
+    combiner_kwargs: Dict[str, Any] = MappingProxyType({})
 
     def setup(self):
         """Initialize ICNN architecture."""
@@ -67,7 +70,7 @@ class ICNN(nn.Module):
             v = []
 
             if (
-                self.combiner_output_dim is not None
+                self.combiner_output_dim != 0
             ):  # if combine different conditions into a single one, we assume conditions being concatenated
                 # add one layer only, activation function in forward pass
                 self.combiner = nn.Dense(  # combiner
@@ -120,7 +123,7 @@ class ICNN(nn.Module):
                 )
             )
 
-            self.w_zu = w_zu #TODO(@MUCDK) check why we assign to attributes only here
+            self.w_zu = w_zu  # TODO(@MUCDK) check why we assign to attributes only here
             self.w_xu = w_xu
             self.w_u = w_u
             self.v = v
