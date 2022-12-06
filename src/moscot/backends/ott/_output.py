@@ -3,10 +3,9 @@ from typing import Any, Dict, List, Tuple, Union, Callable, Optional
 from matplotlib.figure import Figure
 import matplotlib.pyplot as plt
 
-from ott.core import potentials
-from ott.core.sinkhorn import SinkhornOutput as OTTSinkhornOutput
-from ott.core.sinkhorn_lr import LRSinkhornOutput as OTTLRSinkhornOutput
-from ott.core.gromov_wasserstein import GWOutput as OTTGWOutput
+from ott.solvers.linear.sinkhorn import SinkhornOutput as OTTSinkhornOutput
+from ott.solvers.linear.sinkhorn_lr import LRSinkhornOutput as OTTLRSinkhornOutput
+from ott.solvers.quadratic.gromov_wasserstein import GWOutput as OTTGWOutput
 import jax
 import jax.numpy as jnp
 import jaxlib.xla_extension as xla_ext

@@ -5,18 +5,19 @@ import math
 
 from scipy.sparse import issparse
 
-from ott.geometry import Epsilon, Geometry, PointCloud
-from ott.core.sinkhorn import Sinkhorn
 from ott.geometry.costs import Bures, Cosine, CostFn, Euclidean, SqEuclidean, UnbalancedBures
-from ott.core.was_solver import WassersteinSolver
-from ott.core.sinkhorn_lr import LRSinkhorn
-from ott.core.quad_problems import QuadraticProblem
-from ott.core.linear_problems import LinearProblem
-from ott.core.gromov_wasserstein import GromovWasserstein
-import jax
+from ott.geometry.geometry import Geometry
+from ott.solvers.was_solver import WassersteinSolver
+from ott.geometry.pointcloud import PointCloud
+from ott.solvers.linear.sinkhorn import Sinkhorn
+from ott.geometry.epsilon_scheduler import Epsilon
+from ott.solvers.linear.sinkhorn_lr import LRSinkhorn
+from ott.problems.linear.linear_problem import LinearProblem
+from ott.problems.quadratic.quadratic_problem import QuadraticProblem
+from ott.solvers.quadratic.gromov_wasserstein import GromovWasserstein
 import jax.numpy as jnp
 
-from moscot._types import ArrayLike
+from moscot._types import ArrayLike, QuadInitializer_t, SinkhornInitializer_t
 from moscot._constants._enum import ModeEnum
 from moscot.backends.ott._output import OTTOutput, NeuralOutput
 from moscot.problems.base._utils import _filter_kwargs
@@ -78,7 +79,7 @@ class OTTJaxSolver(OTSolver[OTTOutput], ABC):
         arr = self._assert2d(x.data_src, allow_reshape=False)
         if x.is_cost_matrix:
             return Geometry(cost_matrix=arr, **kwargs)
-        if x.is_cost_matrix:
+        if x.is_kernel:
             return Geometry(kernel_matrix=arr, **kwargs)
         raise NotImplementedError(f"Creating geometry from `tag={x.tag!r}` is not yet implemented.")
 
@@ -136,23 +137,34 @@ class SinkhornSolver(OTTJaxSolver):
     Parameters
     ----------
     rank
-        Rank of the linear solver. If `-1`, use :class:`~ott.core.sinkhorn.Sinkhorn` :cite:`cuturi:2013`,
-        otherwise, use :class:`~ott.core.sinkhorn_lr.LRSinkhorn` :cite:`scetbon:21a`.
+        Rank of the linear solver. If `-1`, use :class:`~ott.solvers.linear.sinkhorn.Sinkhorn` :cite:`cuturi:2013`,
+        otherwise, use :class:`~ott.solvers.linear.sinkhorn_lr.LRSinkhorn` :cite:`scetbon:21a`.
+    initializer
+        Initializer for :class:`~ott.solvers.linear.sinkhorn.Sinkhorn` or
+        :class:`~ott.solvers.linear.sinkhorn_lr.LRSinkhorn`, depending on the ``rank``.
     initializer_kwargs
         Keyword arguments for the initializer.
     kwargs
-        Keyword arguments for :class:`~ott.core.sinkhorn.Sinkhorn` or :class:`~ott.core.sinkhorn_lr.LRSinkhorn`,
-        depending on the ``rank``.
+        Keyword arguments for :class:`~ott.solvers.linear.sinkhorn.Sinkhorn` or
+        :class:`~ott.solvers.linear.sinkhorn_lr.LRSinkhorn`, depending on the ``rank``.
     """
 
-    def __init__(self, rank: int = -1, initializer_kwargs: Mapping[str, Any] = MappingProxyType({}), **kwargs: Any):
+    def __init__(
+        self,
+        rank: int = -1,
+        initializer: SinkhornInitializer_t = None,
+        initializer_kwargs: Mapping[str, Any] = MappingProxyType({}),
+        **kwargs: Any,
+    ):
         super().__init__()
         if rank > -1:
             kwargs = _filter_kwargs(Sinkhorn, LRSinkhorn, **kwargs)
-            self._solver = LRSinkhorn(rank=rank, kwargs_init=initializer_kwargs, **kwargs)
+            initializer = initializer if initializer is not None else "rank2"  # set rank2 as default LR initializer
+            self._solver = LRSinkhorn(rank=rank, initializer=initializer, kwargs_init=initializer_kwargs, **kwargs)
         else:
             kwargs = _filter_kwargs(Sinkhorn, **kwargs)
-            self._solver = Sinkhorn(kwargs_init=initializer_kwargs, **kwargs)
+            initializer = initializer if initializer is not None else "default"  # `None` not handled by backend
+            self._solver = Sinkhorn(initializer=initializer, kwargs_init=initializer_kwargs, **kwargs)
 
     def _prepare(
         self,
@@ -162,6 +174,7 @@ class SinkhornSolver(OTTJaxSolver):
         epsilon: Optional[Epsilon_t] = None,
         batch_size: Optional[int] = None,
         scale_cost: Scale_t = 1.0,
+        cost_matrix_rank: Optional[int] = None,
         **kwargs: Any,
     ) -> LinearProblem:
         del x, y
@@ -169,6 +182,11 @@ class SinkhornSolver(OTTJaxSolver):
             raise ValueError(f"Unable to create geometry from `xy={xy}`.")
 
         geom = self._create_geometry(xy, epsilon=epsilon, batch_size=batch_size, scale_cost=scale_cost, **kwargs)
+        if self.is_low_rank:
+
+            geom = geom.to_LRCGeometry(
+                rank=self.rank if cost_matrix_rank is None else cost_matrix_rank
+            )  # batch_size cannot be passed in this function
         kwargs = _filter_kwargs(LinearProblem, **kwargs)
         self._problem = LinearProblem(geom, **kwargs)
 
@@ -196,34 +214,48 @@ class GWSolver(OTTJaxSolver):
     rank
         Rank of the quadratic solver. If `-1` use the full-rank GW :cite:`memoli:2011`,
         otherwise, use the low-rank approach :cite:`scetbon:21b`.
+    initializer
+        Initializer for :class:`~ott.solvers.quadratic.gromov_wasserstein.GromovWasserstein`.
+    gamma
+        Only in low-rank setting: the (inverse of the) gradient step size used by the mirror descent algorithm
+        (:cite:`scetbon:22b`).
+    gamma_rescale
+        Only in low-rank setting: whether to rescale `gamma` every iteration as described in :cite:`scetbon:22b`.
     initializer_kwargs
         Keyword arguments for the initializer.
     linear_solver_kwargs
-        Keyword arguments for :class:`~ott.core.sinkhorn.Sinkhorn` or :class:`~ott.core.sinkhorn_lr.LRSinkhorn`,
-        depending on the ``rank``.
+        Keyword arguments for :class:`~ott.solvers.linear.sinkhorn.Sinkhorn` or
+        :class:`~ott.solvers.linear.sinkhorn_lr.LRSinkhorn`, depending on the ``rank``.
     kwargs
-        Keyword arguments for :class:`~ott.core.gromov_wasserstein.GromovWasserstein` .
+        Keyword arguments for :class:`~ott.solvers.quadratic.gromov_wasserstein.GromovWasserstein` .
     """
 
     def __init__(
         self,
         rank: int = -1,
+        initializer: QuadInitializer_t = None,
+        gamma: float = 10.0,
+        gamma_rescale: bool = True,
         initializer_kwargs: Mapping[str, Any] = MappingProxyType({}),
         linear_solver_kwargs: Mapping[str, Any] = MappingProxyType({}),
         **kwargs: Any,
     ):
         super().__init__()
-        if "initializer" in kwargs:  # rename arguments
-            kwargs["quad_initializer"] = kwargs.pop("initializer")
         if rank > -1:
+            initializer = initializer if initializer is not None else "rank2"
             linear_ot_solver = LRSinkhorn(
-                rank=rank, **linear_solver_kwargs
+                rank=rank, gamma=gamma, gamma_rescale=gamma_rescale, **linear_solver_kwargs
             )  # initialization handled by quad_initializer
         else:
-            linear_ot_solver = Sinkhorn(**linear_solver_kwargs)  # initialization handled by quad_initializer
+            initializer = None
+            linear_ot_solver = Sinkhorn(**linear_solver_kwargs)
         kwargs = _filter_kwargs(GromovWasserstein, WassersteinSolver, **kwargs)
         self._solver = GromovWasserstein(
-            rank=rank, linear_ot_solver=linear_ot_solver, kwargs_init=initializer_kwargs, **kwargs
+            rank=rank,
+            linear_ot_solver=linear_ot_solver,
+            quad_initializer=initializer,
+            kwargs_init=initializer_kwargs,
+            **kwargs,
         )
 
     def _prepare(
@@ -236,7 +268,6 @@ class GWSolver(OTTJaxSolver):
         del xy
         if x is None or y is None:
             raise ValueError(f"Unable to create geometry from `x={x}`, `y={y}`.")
-
         geom_x = self._create_geometry(x, **kwargs)
         geom_y = self._create_geometry(y, **kwargs)
 
@@ -271,20 +302,23 @@ class FGWSolver(GWSolver):
     The matching obtained from the FGW is a compromise between the ones induced by the linear OT problem and
     the quadratic OT problem :cite:`vayer:2018`.
 
-    This solver wraps :class:`~ott.core.gromov_wasserstein.GromovWasserstein` with a non-trivial ``fused_penalty``.
+    This solver wraps :class:`~ott.solvers.quadratic.gromov_wasserstein.GromovWasserstein`
+    with a non-trivial ``fused_penalty``.
 
     Parameters
     ----------
     rank
         Rank of the quadratic solver. If `-1` use the full-rank GW :cite:`memoli:2011`,
         otherwise, use the low-rank approach :cite:`scetbon:21b`.
+    initializer
+        `quad_initializer` of :class:`~ott.solvers.quadratic.gromov_wasserstein.GromovWasserstein`.
     initializer_kwargs
         Keyword arguments for the initializer.
     linear_solver_kwargs
-        Keyword arguments for :class:`~ott.core.sinkhorn.Sinkhorn` or :class:`~ott.core.sinkhorn_lr.LRSinkhorn`,
-        depending on the ``rank``.
+        Keyword arguments for :class:`~ott.solvers.linear.sinkhorn.Sinkhorn` or
+        :class:`~ott.solvers.linear.sinkhorn_lr.LRSinkhorn`, depending on the ``rank``.
     kwargs
-        Keyword arguments for :class:`~ott.core.gromov_wasserstein.GromovWasserstein` .
+        Keyword arguments for :class:`~ott.solvers.quadratic.gromov_wasserstein.GromovWasserstein` .
     """
 
     def _prepare(

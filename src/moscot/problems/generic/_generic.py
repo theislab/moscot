@@ -1,12 +1,12 @@
 from types import MappingProxyType
-from typing import Any, Type, Tuple, Union, Literal, Mapping, Optional
+from typing import Any, Dict, List, Type, Tuple, Union, Literal, Mapping, Optional
 
 from anndata import AnnData
 
 from moscot._types import ScaleCost_t, ProblemStage_t, QuadInitializer_t, SinkhornInitializer_t
 from moscot._docs._docs import d
 from moscot.problems.base import OTProblem, CompoundProblem  # type: ignore[attr-defined]
-from moscot.problems._utils import handle_joint_attr
+from moscot.problems._utils import handle_cost, handle_joint_attr
 from moscot.problems.generic._mixins import GenericAnalysisMixin
 from moscot.problems.base._compound_problem import B, K
 
@@ -21,10 +21,6 @@ class SinkhornProblem(CompoundProblem[K, B], GenericAnalysisMixin[K, B]):
     Parameters
     ----------
     %(adata)s
-
-    Examples
-    --------
-    See notebook TODO(@MUCDK) LINK NOTEBOOK for how to use it
     """
 
     def __init__(self, adata: AnnData, **kwargs: Any):
@@ -49,7 +45,7 @@ class SinkhornProblem(CompoundProblem[K, B], GenericAnalysisMixin[K, B]):
         %(key)s
         %(joint_attr)s
         %(policy)s
-        %(cost)s
+        %(cost_lin)s
         %(a)s
         %(b)s
         %(kwargs_prepare)s
@@ -61,6 +57,10 @@ class SinkhornProblem(CompoundProblem[K, B], GenericAnalysisMixin[K, B]):
         Notes
         -----
         If `a` and `b` are provided `marginal_kwargs` are ignored.
+
+        Examples
+        --------
+        %(ex_prepare)s
         """
         self.batch_key = key
         if joint_attr is None:
@@ -79,6 +79,7 @@ class SinkhornProblem(CompoundProblem[K, B], GenericAnalysisMixin[K, B]):
             raise TypeError(f"Unable to interpret `joint_attr` of type `{type(joint_attr)}`.")
 
         xy, kwargs = handle_joint_attr(joint_attr, kwargs)
+        xy, _, _ = handle_cost(xy=xy, cost=cost)
         return super().prepare(
             key=key,
             policy=policy,
@@ -89,6 +90,7 @@ class SinkhornProblem(CompoundProblem[K, B], GenericAnalysisMixin[K, B]):
             **kwargs,
         )
 
+    @d.dedent
     def solve(
         self,
         epsilon: Optional[float] = 1e-3,
@@ -96,10 +98,9 @@ class SinkhornProblem(CompoundProblem[K, B], GenericAnalysisMixin[K, B]):
         tau_b: float = 1.0,
         rank: int = -1,
         scale_cost: ScaleCost_t = "mean",
-        power: int = 1,
         batch_size: Optional[int] = None,
         stage: Union[ProblemStage_t, Tuple[ProblemStage_t, ...]] = ("prepared", "solved"),
-        initializer: SinkhornInitializer_t = "default",
+        initializer: SinkhornInitializer_t = None,
         initializer_kwargs: Mapping[str, Any] = MappingProxyType({}),
         jit: bool = True,
         threshold: float = 1e-3,
@@ -111,6 +112,7 @@ class SinkhornProblem(CompoundProblem[K, B], GenericAnalysisMixin[K, B]):
         gamma: float = 10.0,
         gamma_rescale: bool = True,
         device: Optional[Literal["cpu", "gpu", "tpu"]] = None,
+        cost_matrix_rank: Optional[int] = None,
         **kwargs: Any,
     ) -> "SinkhornProblem[K,B]":
         """
@@ -130,12 +132,17 @@ class SinkhornProblem(CompoundProblem[K, B], GenericAnalysisMixin[K, B]):
         %(jit)s
         %(sinkhorn_kwargs)s
         %(sinkhorn_lr_kwargs)s
-        %(device_solve)
+        %(device_solve)s
+        %(cost_matrix_rank)s
         %(kwargs_linear)s
 
         Returns
         -------
         :class:`moscot.problems.generic.SinkhornProblem`.
+
+        Examples
+        --------
+        %(ex_solve_linear)s
         """
         return super().solve(
             epsilon=epsilon,
@@ -143,7 +150,6 @@ class SinkhornProblem(CompoundProblem[K, B], GenericAnalysisMixin[K, B]):
             tau_b=tau_b,
             rank=rank,
             scale_cost=scale_cost,
-            power=power,
             batch_size=batch_size,
             stage=stage,
             initializer=initializer,
@@ -157,6 +163,7 @@ class SinkhornProblem(CompoundProblem[K, B], GenericAnalysisMixin[K, B]):
             max_iterations=max_iterations,
             gamma=gamma,
             gamma_rescale=gamma_rescale,
+            cost_matrix_rank=cost_matrix_rank,
             device=device,
             **kwargs,
         )
@@ -179,10 +186,6 @@ class GWProblem(CompoundProblem[K, B], GenericAnalysisMixin[K, B]):
     Parameters
     ----------
     %(adata)s
-
-    Examples
-    --------
-    See notebook TODO(@MUCDK) LINK NOTEBOOK for how to use it
     """
 
     def __init__(self, adata: AnnData, **kwargs: Any):
@@ -192,10 +195,13 @@ class GWProblem(CompoundProblem[K, B], GenericAnalysisMixin[K, B]):
     def prepare(
         self,
         key: str,
-        GW_x: Mapping[str, Any] = MappingProxyType({}),
-        GW_y: Mapping[str, Any] = MappingProxyType({}),
+        GW_x: Union[str, Mapping[str, Any]],
+        GW_y: Union[str, Mapping[str, Any]],
         policy: Literal["sequential", "pairwise", "explicit"] = "sequential",
-        cost: Literal["sq_euclidean", "cosine", "bures", "unbalanced_bures"] = "sq_euclidean",
+        cost: Union[
+            Literal["sq_euclidean", "cosine", "bures", "unbalanced_bures"],
+            Mapping[str, Literal["sq_euclidean", "cosine", "bures", "unbalanced_bures"]],
+        ] = "sq_euclidean",
         a: Optional[str] = None,
         b: Optional[str] = None,
         **kwargs: Any,
@@ -221,23 +227,29 @@ class GWProblem(CompoundProblem[K, B], GenericAnalysisMixin[K, B]):
         Notes
         -----
         If `a` and `b` are provided `marginal_kwargs` are ignored.
+
+        Examples
+        --------
+        %(ex_prepare)s
         """
         self.batch_key = key
-        if not (len(GW_x) and len(GW_y)) and "cost_matrices" not in self.adata.obsp:
-            raise KeyError("Unable to find cost matrices in `adata.obsp['cost_matrices']`.")
 
-        for z in [GW_x, GW_y]:
-            if not len(z):
-                z = dict(z)  # FIXME: this is a copy
-                z.setdefault("attr", "obsp")
-                z.setdefault("key", "cost_matrices")
-                z.setdefault("cost", "sq_euclidean")
-                z.setdefault("tag", "cost")
+        GW_updated: List[Dict[str, Any]] = [{}] * 2
+        for i, z in enumerate([GW_x, GW_y]):
+            if isinstance(z, str):
+                GW_updated[i] = {"attr": "obsm", "key": z, "tag": "point_cloud"}  # cost handled by handle_cost
+            elif isinstance(z, dict):
+                GW_updated[i] = z
+            else:
+                raise TypeError("`GW_x` and `GW_y` must be of type `str` or `dict`.")
 
+        xy = kwargs.pop("xy", None)
+        xy, x, y = handle_cost(xy=xy, x=GW_updated[0], y=GW_updated[1], cost=cost)
         return super().prepare(
             key=key,
-            x=GW_x,
-            y=GW_y,
+            xy=xy,  # this is needed as FGWProblem inherits from GWProblem
+            x=x,
+            y=y,
             policy=policy,
             cost=cost,
             a=a,
@@ -253,7 +265,6 @@ class GWProblem(CompoundProblem[K, B], GenericAnalysisMixin[K, B]):
         tau_b: float = 1.0,
         rank: int = -1,
         scale_cost: ScaleCost_t = "mean",
-        power: int = 1,
         batch_size: Optional[int] = None,
         stage: Union[ProblemStage_t, Tuple[ProblemStage_t, ...]] = ("prepared", "solved"),
         initializer: QuadInitializer_t = None,
@@ -262,10 +273,8 @@ class GWProblem(CompoundProblem[K, B], GenericAnalysisMixin[K, B]):
         min_iterations: int = 5,
         max_iterations: int = 50,
         threshold: float = 1e-3,
-        warm_start: Optional[bool] = None,
         gamma: float = 10.0,
         gamma_rescale: bool = True,
-        gw_unbalanced_correction: bool = True,
         ranks: Union[int, Tuple[int, ...]] = -1,
         tolerances: Union[float, Tuple[float, ...]] = 1e-2,
         linear_solver_kwargs: Mapping[str, Any] = MappingProxyType({}),
@@ -296,6 +305,10 @@ class GWProblem(CompoundProblem[K, B], GenericAnalysisMixin[K, B]):
         Returns
         -------
         :class:`moscot.problems.generic.GWProblem`.
+
+        Examples
+        --------
+        %(ex_solve_quadratic)s
         """
         return super().solve(
             epsilon=epsilon,
@@ -303,7 +316,6 @@ class GWProblem(CompoundProblem[K, B], GenericAnalysisMixin[K, B]):
             tau_b=tau_b,
             rank=rank,
             scale_cost=scale_cost,
-            power=power,
             batch_size=batch_size,
             stage=stage,
             initializer=initializer,
@@ -312,10 +324,8 @@ class GWProblem(CompoundProblem[K, B], GenericAnalysisMixin[K, B]):
             min_iterations=min_iterations,
             max_iterations=max_iterations,
             threshold=threshold,
-            warm_start=warm_start,
             gamma=gamma,
             gamma_rescale=gamma_rescale,
-            gw_unbalanced_correction=gw_unbalanced_correction,
             ranks=ranks,
             tolerances=tolerances,
             linear_solver_kwargs=linear_solver_kwargs,
@@ -340,21 +350,20 @@ class FGWProblem(GWProblem[K, B]):
     Parameters
     ----------
     %(adata)s
-
-    Examples
-    --------
-    See notebook TODO(@MUCDK) LINK NOTEBOOK for how to use it
     """
 
     @d.dedent
     def prepare(
         self,
         key: str,
+        GW_x: Union[str, Mapping[str, Any]],
+        GW_y: Union[str, Mapping[str, Any]],
         joint_attr: Optional[Union[str, Mapping[str, Any]]] = None,
-        GW_x: Mapping[str, Any] = MappingProxyType({}),
-        GW_y: Mapping[str, Any] = MappingProxyType({}),
         policy: Literal["sequential", "pairwise", "explicit"] = "sequential",
-        cost: Literal["sq_euclidean", "cosine", "bures", "unbalanced_bures"] = "sq_euclidean",
+        cost: Union[
+            Literal["sq_euclidean", "cosine", "bures", "unbalanced_bures"],
+            Mapping[str, Literal["sq_euclidean", "cosine", "bures", "unbalanced_bures"]],
+        ] = "sq_euclidean",
         a: Optional[str] = None,
         b: Optional[str] = None,
         **kwargs: Any,
@@ -365,9 +374,9 @@ class FGWProblem(GWProblem[K, B]):
         Parameters
         ----------
         %(key)s
-        %(joint_attr)s
         %(GW_x)s
         %(GW_y)s
+        %(joint_attr)s
         %(policy)s
         %(cost)s
         %(a)s
@@ -381,6 +390,10 @@ class FGWProblem(GWProblem[K, B]):
         Notes
         -----
         If `a` and `b` are provided `marginal_kwargs` are ignored.
+
+        Examples
+        --------
+        %(ex_prepare)s
         """
         xy, kwargs = handle_joint_attr(joint_attr, kwargs)
         return super().prepare(key=key, GW_x=GW_x, GW_y=GW_y, xy=xy, policy=policy, cost=cost, a=a, b=b, **kwargs)
@@ -394,7 +407,6 @@ class FGWProblem(GWProblem[K, B]):
         tau_b: float = 1.0,
         rank: int = -1,
         scale_cost: ScaleCost_t = "mean",
-        power: int = 1,
         batch_size: Optional[int] = None,
         stage: Union[ProblemStage_t, Tuple[ProblemStage_t, ...]] = ("prepared", "solved"),
         initializer: QuadInitializer_t = None,
@@ -403,10 +415,8 @@ class FGWProblem(GWProblem[K, B]):
         min_iterations: int = 5,
         max_iterations: int = 50,
         threshold: float = 1e-3,
-        warm_start: Optional[bool] = None,
         gamma: float = 10.0,
         gamma_rescale: bool = True,
-        gw_unbalanced_correction: bool = True,
         ranks: Union[int, Tuple[int, ...]] = -1,
         tolerances: Union[float, Tuple[float, ...]] = 1e-2,
         linear_solver_kwargs: Mapping[str, Any] = MappingProxyType({}),
@@ -438,6 +448,10 @@ class FGWProblem(GWProblem[K, B]):
         Returns
         -------
         :class:`moscot.problems.generic.FGWProblem`.
+
+        Examples
+        --------
+        %(ex_solve_quadratic)s
         """
         return super().solve(
             alpha=alpha,
@@ -446,7 +460,6 @@ class FGWProblem(GWProblem[K, B]):
             tau_b=tau_b,
             rank=rank,
             scale_cost=scale_cost,
-            power=power,
             batch_size=batch_size,
             stage=stage,
             initializer=initializer,
@@ -455,12 +468,11 @@ class FGWProblem(GWProblem[K, B]):
             min_iterations=min_iterations,
             max_iterations=max_iterations,
             threshold=threshold,
-            warm_start=warm_start,
             gamma=gamma,
             gamma_rescale=gamma_rescale,
-            gw_unbalanced_correction=gw_unbalanced_correction,
             ranks=ranks,
             tolerances=tolerances,
             linear_solver_kwargs=linear_solver_kwargs,
             device=device,
+            **kwargs,
         )
