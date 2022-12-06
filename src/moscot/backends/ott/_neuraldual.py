@@ -7,7 +7,7 @@ from flax.core.scope import FrozenVariableDict
 from flax.training.train_state import TrainState
 import optax
 
-from ott.core import potentials
+from ott.problems.linear.potentials import DualPotentials
 from ott.geometry.pointcloud import PointCloud
 from ott.tools.sinkhorn_divergence import sinkhorn_divergence
 import jax
@@ -107,7 +107,7 @@ class NeuralDualSolver:
         self,
         trainloader: JaxSampler,
         validloader: JaxSampler,
-    ) -> Tuple[potentials.DualPotentials, Train_t]:
+    ) -> Tuple[DualPotentials, Train_t]:
         """Call the training script, and return the trained neural dual."""
         pretrain_logs = {}
         if self.pretrain:

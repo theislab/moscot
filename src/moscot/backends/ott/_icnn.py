@@ -4,7 +4,7 @@ from flax import linen as nn
 from flax.training import train_state
 import optax
 
-from ott.core.icnn import PositiveDense
+from ott.solvers.nn.layers import PositiveDense
 import jax.numpy as jnp
 
 
