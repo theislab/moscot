@@ -1,4 +1,5 @@
-from typing import Dict, List, Tuple, Literal, Callable, Optional
+from types import MappingProxyType
+from typing import Any, Dict, List, Tuple, Literal, Callable, Optional
 from collections import defaultdict
 
 from flax.core import freeze
@@ -53,6 +54,7 @@ class NeuralDualSolver:
         tau_a: float = 1.0,
         tau_b: float = 1.0,
         split_index: int = -1,
+        combiner_kwargs: Dict[str, Any] = MappingProxyType({}),
     ):
         self.input_dim = input_dim
         self.pos_weights = pos_weights
@@ -77,8 +79,24 @@ class NeuralDualSolver:
         self.key = jax.random.PRNGKey(seed)
         optimizer_f = optax.adamw(learning_rate=learning_rate, b1=beta_one, b2=beta_two, weight_decay=weight_decay)
         optimizer_g = optax.adamw(learning_rate=learning_rate, b1=beta_one, b2=beta_two, weight_decay=weight_decay)
-        neural_f = ICNN(dim_hidden=dim_hidden, pos_weights=pos_weights, split_index=self.split_index)
-        neural_g = ICNN(dim_hidden=dim_hidden, pos_weights=pos_weights, split_index=self.split_index)
+        cond_dim = 0 if split_index > -1 else self.input_dim - self.split_index - 1
+        combiner_output_dim = combiner_kwargs.pop("combiner_output_dim", 0)
+        neural_f = ICNN(
+            dim_hidden=dim_hidden,
+            pos_weights=pos_weights,
+            split_index=self.split_index,
+            cond_dim=cond_dim,
+            combiner_output_dim=combiner_output_dim,
+            combiner_kwargs=combiner_kwargs,
+        )
+        neural_g = ICNN(
+            dim_hidden=dim_hidden,
+            pos_weights=pos_weights,
+            split_index=self.split_index,
+            cond_dim=cond_dim,
+            combiner_output_dim=combiner_output_dim,
+            combiner_kwargs=combiner_kwargs,
+        )
 
         # set optimizer and networks
         self.setup(neural_f, neural_g, optimizer_f, optimizer_g)
