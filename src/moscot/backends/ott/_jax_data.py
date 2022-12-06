@@ -1,6 +1,7 @@
 from typing import Tuple, Optional
-from ott.solvers.linear.sinkhorn import sinkhorn
+
 from ott.geometry.pointcloud import PointCloud
+from ott.solvers.linear.sinkhorn import sinkhorn
 import jax
 import jax.numpy as jnp
 

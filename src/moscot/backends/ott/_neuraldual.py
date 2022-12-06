@@ -7,9 +7,9 @@ from flax.core.scope import FrozenVariableDict
 from flax.training.train_state import TrainState
 import optax
 
-from ott.problems.linear.potentials import DualPotentials
 from ott.geometry.pointcloud import PointCloud
 from ott.tools.sinkhorn_divergence import sinkhorn_divergence
+from ott.problems.linear.potentials import DualPotentials
 import jax
 import jax.numpy as jnp
 
@@ -393,6 +393,6 @@ class NeuralDualSolver:
                 penalty += jnp.linalg.norm(jax.nn.relu(-params[key]["kernel"]))
         return penalty
 
-    def to_dual_potentials(self) -> potentials.DualPotentials:
+    def to_dual_potentials(self) -> DualPotentials:
         """Return the Kantorovich dual potentials from the trained potentials."""
-        return potentials.DualPotentials(self.state_f, self.state_g, cor=True)
+        return DualPotentials(self.state_f, self.state_g, cor=True)

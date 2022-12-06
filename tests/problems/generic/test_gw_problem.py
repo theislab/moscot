@@ -8,9 +8,9 @@ import numpy as np
 
 from anndata import AnnData
 
-from moscot.problems.base import OTProblem
+from moscot.problems.base import OTProblem  # type: ignore[attr-defined]
 from moscot.solvers._output import BaseSolverOutput
-from moscot.problems.generic import GWProblem
+from moscot.problems.generic import GWProblem  # type: ignore[attr-defined]
 from tests.problems.conftest import (
     gw_args_1,
     gw_args_2,

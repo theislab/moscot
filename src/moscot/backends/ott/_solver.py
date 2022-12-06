@@ -15,6 +15,7 @@ from ott.solvers.linear.sinkhorn_lr import LRSinkhorn
 from ott.problems.linear.linear_problem import LinearProblem
 from ott.problems.quadratic.quadratic_problem import QuadraticProblem
 from ott.solvers.quadratic.gromov_wasserstein import GromovWasserstein
+import jax
 import jax.numpy as jnp
 
 from moscot._types import ArrayLike, QuadInitializer_t, SinkhornInitializer_t

@@ -8,9 +8,9 @@ import scanpy as sc
 from moscot._types import ArrayLike
 from moscot._logging import logger
 from moscot._docs._docs import d
-from moscot.problems.base._base_problem import OTProblem, NeuralOTProblem
 from moscot.utils._data import MarkerGenes
 from moscot.problems.time._utils import beta, delta
+from moscot.problems.base._base_problem import OTProblem, NeuralOTProblem
 
 __all__ = ["BirthDeathProblem", "BirthDeathMixin"]
 
