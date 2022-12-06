@@ -8,6 +8,7 @@ import numpy as np
 from anndata import AnnData
 
 from moscot._types import ArrayLike, Numeric_t, Str_Dict_t
+from moscot.utils._data import TranscriptionFactors
 from moscot.solvers._output import BaseSolverOutput
 from moscot.problems.base._utils import (
     _correlation_test,
@@ -20,7 +21,6 @@ from moscot.problems.base._utils import (
 from moscot._constants._constants import Key, AdataKeys, PlottingKeys, CorrTestMethod, AggregationMode, PlottingDefaults
 from moscot.problems._subset_policy import SubsetPolicy
 from moscot.problems.base._compound_problem import B, K, ApplyOutput_t
-from moscot.utils._data import TranscriptionFactors
 
 
 class AnalysisMixinProtocol(Protocol[K, B]):
@@ -516,10 +516,10 @@ class AnalysisMixin(Generic[K, B]):
             If `None`, use :attr:`anndata.AnnData.X`.
         features
             Features of :class:`anndata.AnnData` which the correlation of ``anndata.AnnData.obs['{obs_key}']`` is
-            computed with. 
-                - If `None`, all features will be taken into account.
-                - If of type :obj:`list`, features from :attr:`anndata.AnnData.var_names` will be taken.
-                - If `human`, `mouse`, or `drosophila`, the features are subsetted to transcription factors.
+            computed with:
+            - If `None`, all features will be taken into account.
+            - If of type :obj:`list`, features from :attr:`anndata.AnnData.var_names` will be taken.
+            - If `human`, `mouse`, or `drosophila`, the features are subsetted to transcription factors.
         confidence_level
             Confidence level for the confidence interval calculation. Must be in interval `[0, 1]`.
         n_perms
@@ -539,13 +539,13 @@ class AnalysisMixin(Generic[K, B]):
         method = CorrTestMethod(method)
 
         if annotation is not None:
-            annotation_key, annotation_vals = next(iter(annotation.items()))  # type:ignore[misc]
-            if annotation_key not in self.adata.obs:  # type:ignore[has-type]
-                raise KeyError(f"[{annotation_key!r} not found in `adata.obs`.")  # type:ignore[has-type]
-            if not isinstance(annotation_vals, list):  # type:ignore[has-type]
+            annotation_key, annotation_vals = next(iter(annotation.items()))
+            if annotation_key not in self.adata.obs:
+                raise KeyError(f"[{annotation_key!r} not found in `adata.obs`.")
+            if not isinstance(annotation_vals, list):
                 raise TypeError("`annotation` expected to be dictionary of length 1 with value being a list.")
 
-            adata_red = self.adata[self.adata.obs[annotation_key].isin(annotation_vals)]  # type:ignore[has-type]
+            adata_red = self.adata[self.adata.obs[annotation_key].isin(annotation_vals)]
         else:
             adata_red = self.adata
 

@@ -1,4 +1,4 @@
-from typing import Literal, Optional, Tuple, List
+from typing import List, Tuple, Literal, Optional
 
 from scipy.sparse.linalg import LinearOperator
 import pandas as pd
@@ -223,9 +223,19 @@ class TestBaseAnalysisMixin:
         assert res.isnull().values.sum() == 0
         assert set(res.index) == set(features_validation)
 
-    @pytest.mark.parametrize("features", [("human", ["KLF12", "ZNF143"]), ("mouse", ["Zic5"]), ("drosophila", ["Cf2", "Dlip3", "Dref"]), ("error", [None])])
+    @pytest.mark.parametrize(
+        "features",
+        [
+            ("human", ["KLF12", "ZNF143"]),
+            ("mouse", ["Zic5"]),
+            ("drosophila", ["Cf2", "Dlip3", "Dref"]),
+            ("error", [None]),
+        ],
+    )
     def test_compute_feature_correlation_transcription_factors(
-        self, adata_time: AnnData, features: Tuple[str, List[str]],
+        self,
+        adata_time: AnnData,
+        features: Tuple[str, List[str]],
     ):
         key_added = "test"
         rng = np.random.RandomState(42)
@@ -240,15 +250,15 @@ class TestBaseAnalysisMixin:
 
         adata_time.obs[key_added] = np.hstack((np.zeros(n0), problem.pull(start=0, end=1).squeeze()))
 
-        if features[0]=="error":
+        if features[0] == "error":
             with np.testing.assert_raises(NotImplementedError):
                 res = problem.compute_feature_correlation(
                     obs_key=key_added, annotation={"celltype": ["A"]}, features=features[0]
                 )
         else:
             res = problem.compute_feature_correlation(
-                    obs_key=key_added, annotation={"celltype": ["A"]}, features=features[0]
-                )
+                obs_key=key_added, annotation={"celltype": ["A"]}, features=features[0]
+            )
             assert res.isnull().values.sum() == 0
             assert isinstance(res, pd.DataFrame)
             assert set(res.index) == set(features[1])

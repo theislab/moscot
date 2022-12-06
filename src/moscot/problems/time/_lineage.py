@@ -283,7 +283,7 @@ class TemporalProblem(
         return pd.concat(df_list, verify_integrity=True)
 
     @property
-    def _base_problem_type(self) -> Type[B]:
+    def _base_problem_type(self) -> Type[B]:  # type: ignore[override]
         return BirthDeathProblem  # type: ignore[return-value]
 
     @property

@@ -119,7 +119,7 @@ def adata_time() -> AnnData:
     genes = ["ANLN", "ANP32E", "ATAD2", "Mcm4", "Smc4", "Gtse1", "ADD1", "AIFM3", "ANKH", "Ercc5", "Serpinb5", "Inhbb"]
     # genes which are transcription factors, 3 from drosophila, 2 from human, 1 from mouse
     genes += ["Cf2", "Dlip3", "Dref", "KLF12", "ZNF143", "Zic5"]
-    adata.var.index = ["gene_" + el if i > len(genes)-1 else genes[i] for i, el in enumerate(adata.var.index)]
+    adata.var.index = ["gene_" + el if i > len(genes) - 1 else genes[i] for i, el in enumerate(adata.var.index)]
     adata.obsm["X_umap"] = rng.randn(len(adata), 2)
     sc.pp.pca(adata)
     return adata
