@@ -61,9 +61,7 @@ class ICNN(nn.Module):
 
         if self.split_indices is not None:
             if TYPE_CHECKING:
-                assert isinstance(
-                    self.split_indices,
-                )
+                assert isinstance(self.split_indices, list)
             w_zu = []
             w_xu = []
             w_u = []
