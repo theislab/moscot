@@ -16,7 +16,8 @@ class ICNN(nn.Module):
     init_fn: Callable[[jnp.ndarray], Callable[[jnp.ndarray], jnp.ndarray]] = nn.initializers.normal
     act_fn: Callable[[jnp.ndarray], jnp.ndarray] = nn.leaky_relu
     pos_weights: bool = False
-    split_indices: Optional[List[int]] = None
+    split_index: int = -1
+    cond_dim: int = 0
 
     def setup(self):
         """Initialize ICNN architecture."""
@@ -59,28 +60,23 @@ class ICNN(nn.Module):
         self.w_xs = w_xs
         self.w_zs = w_zs
 
-        if self.split_indices is not None:
-            if TYPE_CHECKING:
-                assert isinstance(self.split_indices, list)
+        if self.split_index > -1:
             w_zu = []
             w_xu = []
             w_u = []
             v = []
 
             if (
-                self.combiner
+                self.combiner_output_dim is not None
             ):  # if combine different conditions into a single one, we assume conditions being concatenated
-                cond_dim = self.combiner_output
-                # add just one layer
-                self.w_c = nn.Dense(  # combiner
-                    self.combiner_output,
+                # add one layer only, activation function in forward pass
+                self.combiner = nn.Dense(  # combiner
+                    self.combiner_output_dim,
                     kernel_init=self.init_fn(self.init_std),
                     use_bias=True,
                     bias_init=self.init_fn(self.init_std),
                 )
-
-            else:
-                cond_dim = len(self.split_indices)
+                self.cond_dim = self.combiner_output_dim
 
             for i in range(1, num_hidden):
                 w_zu.append(
@@ -109,7 +105,7 @@ class ICNN(nn.Module):
                 )
                 v.append(
                     nn.Dense(
-                        cond_dim,
+                        self.cond_dim,
                         kernel_init=self.init_fn(self.init_std),
                         use_bias=True,
                         bias_init=self.init_fn(self.init_std),
@@ -123,16 +119,8 @@ class ICNN(nn.Module):
                     use_bias=True,
                 )
             )
-            v.append(
-                nn.Dense(
-                    1,
-                    kernel_init=self.init_fn(self.init_std),
-                    bias_init=self.init_fn(self.init_std),
-                    use_bias=True,
-                )
-            )
 
-            self.w_zu = w_zu
+            self.w_zu = w_zu #TODO(@MUCDK) check why we assign to attributes only here
             self.w_xu = w_xu
             self.w_u = w_u
             self.v = v
@@ -141,17 +129,16 @@ class ICNN(nn.Module):
     def __call__(self, x: jnp.ndarray) -> jnp.ndarray:
         """Apply ICNN module."""
 
-        if self.split_indices is None:
+        if self.split_index == -1:
             z = self.w_xs[0](x)
             z = jnp.multiply(z, z)
             for Wz, Wx in zip(self.w_zs[:-1], self.w_xs[1:-1]):
                 z = self.act_fn(jnp.add(Wz(z), Wx(x)))
             y = jnp.add(self.w_zs[-1](z), self.w_xs[-1](x))
         else:
-            x = x[: self.split_indices[0]]
-            c = x[self.split_indices[0] :]
-            if self.combiner:
-                c = self.w_c(c)
+            x, c = x[: self.split_index], x[self.split_index :]
+            if self.combiner_output_dim is not None:
+                c = self.combiner(c)
                 c = self.act_fn(c)
 
             # Initialize

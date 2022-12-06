@@ -53,7 +53,7 @@ class NeuralDualSolver:
         batch_size: int = 1024,
         tau_a: float = 1.0,
         tau_b: float = 1.0,
-        split_indices: Optional[List[int]] = None,
+        split_index: int = -1,
     ):
         self.input_dim = input_dim
         self.pos_weights = pos_weights
@@ -68,7 +68,7 @@ class NeuralDualSolver:
         self.pretrain_iters = pretrain_iters
         self.pretrain_scale = pretrain_scale
         self.batch_size = batch_size
-        self.split_indices = split_indices
+        self.split_index = split_index
         self.tau_a = 1.0 if tau_a is None else tau_a
         self.tau_b = 1.0 if tau_b is None else tau_b
         self.epsilon = 0.1 if self.tau_a != 1.0 or self.tau_b != 1.0 else None
@@ -78,8 +78,8 @@ class NeuralDualSolver:
         self.key = jax.random.PRNGKey(seed)
         optimizer_f = optax.adamw(learning_rate=learning_rate, b1=beta_one, b2=beta_two, weight_decay=weight_decay)
         optimizer_g = optax.adamw(learning_rate=learning_rate, b1=beta_one, b2=beta_two, weight_decay=weight_decay)
-        neural_f = ICNN(dim_hidden=dim_hidden, pos_weights=pos_weights, split_indices=split_indices)
-        neural_g = ICNN(dim_hidden=dim_hidden, pos_weights=pos_weights, split_indices=split_indices)
+        neural_f = ICNN(dim_hidden=dim_hidden, pos_weights=pos_weights, split_index=self.split_index)
+        neural_g = ICNN(dim_hidden=dim_hidden, pos_weights=pos_weights, split_index=self.split_index)
 
         # set optimizer and networks
         self.setup(neural_f, neural_g, optimizer_f, optimizer_g)
@@ -167,12 +167,9 @@ class NeuralDualSolver:
         valid_batch: Dict[str, jnp.ndarray] = {}
         valid_batch["source"] = validloader(key=None, full_dataset=True, source=True)
         valid_batch["target"] = validloader(key=None, full_dataset=True, source=False)
-        if self.split_indices is None:
-            sink_dist = _compute_sinkhorn_divergence(valid_batch["source"], valid_batch["target"])
-        else:
-            sink_dist = _compute_sinkhorn_divergence(
-                valid_batch["source"][:, self.split_indices[0]], valid_batch["target"][:, self.split_indices[0]]
-            )
+        sink_dist = _compute_sinkhorn_divergence(
+            valid_batch["source"][:, self.split_index], valid_batch["target"][:, self.split_index]
+        )
         # set logging dictionaries
         train_logs: Dict[str, List[float]] = defaultdict(list)
         valid_logs: Dict[str, List[float]] = defaultdict(list)
@@ -274,8 +271,7 @@ class NeuralDualSolver:
             grad_g_src = jax.vmap(jax.grad(lambda x: state_g.apply_fn({"params": params_g}, x), argnums=0))(
                 batch["source"]
             )
-            if self.split_indices is not None:
-                grad_g_src = grad_g_src[:, : self.split_indices[0]]
+            grad_g_src = grad_g_src[:, : self.split_index]
             f_grad_g_src = jax.vmap(lambda x: state_f.apply_fn({"params": params_f}, x))(grad_g_src)
             src_dot_grad_g_src = jnp.sum(batch["source"] * grad_g_src, axis=1)
             # compute loss
@@ -359,9 +355,8 @@ class NeuralDualSolver:
             pred_source = jax.vmap(jax.grad(lambda x: state_f.apply_fn({"params": state_f.params}, x), argnums=0))(
                 batch["target"]
             )
-            if self.split_indices is not None:
-                pred_target = pred_target[:, : self.split_indices[0]]
-                pred_source = pred_source[:, : self.split_indices[0]]
+            pred_target = pred_target[:, : self.split_index]
+            pred_source = pred_source[:, : self.split_index]
             # calculate sinkhorn loss between predicted and true samples
             # using sinkhorn_divergence because _compute_sinkhorn_divergence not jittable
             sink_loss_forward = sinkhorn_divergence(
