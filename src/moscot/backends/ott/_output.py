@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 from ott.solvers.linear.sinkhorn import SinkhornOutput as OTTSinkhornOutput
 from ott.solvers.linear.sinkhorn_lr import LRSinkhornOutput as OTTLRSinkhornOutput
 from ott.solvers.quadratic.gromov_wasserstein import GWOutput as OTTGWOutput
-from ott.solvers.linear.potentials import DualPotentials
+from ott.problems.linear.potentials import DualPotentials
 import jax
 import jax.numpy as jnp
 import jaxlib.xla_extension as xla_ext
