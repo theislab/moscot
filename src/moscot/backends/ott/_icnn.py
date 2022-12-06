@@ -1,4 +1,4 @@
-from typing import Tuple, Union, Callable, Sequence, Optional, List
+from typing import List, Tuple, Union, Callable, Optional, Sequence, TYPE_CHECKING
 
 from flax import linen as nn
 from flax.training import train_state
@@ -16,7 +16,7 @@ class ICNN(nn.Module):
     init_fn: Callable[[jnp.ndarray], Callable[[jnp.ndarray], jnp.ndarray]] = nn.initializers.normal
     act_fn: Callable[[jnp.ndarray], jnp.ndarray] = nn.leaky_relu
     pos_weights: bool = False
-    split_indices: Optional[List[int]] = None 
+    split_indices: Optional[List[int]] = None
 
     def setup(self):
         """Initialize ICNN architecture."""
@@ -59,22 +59,28 @@ class ICNN(nn.Module):
         self.w_xs = w_xs
         self.w_zs = w_zs
 
-        if self.split_indices != None:
-            w_zu = [] 
+        if self.split_indices is not None:
+            if TYPE_CHECKING:
+                assert isinstance(
+                    self.split_indices,
+                )
+            w_zu = []
             w_xu = []
             w_u = []
             v = []
 
-            if self.combiner: # if combine different conditions into a single one, we assume conditions being concatenated
+            if (
+                self.combiner
+            ):  # if combine different conditions into a single one, we assume conditions being concatenated
                 cond_dim = self.combiner_output
-                # add just one layer 
-                self.w_c = nn.Dense( # combiner
-                        self.combiner_output,
-                        kernel_init=self.init_fn(self.init_std),
-                        use_bias=True,
-                        bias_init = self.init_fn(self.init_std)
-                    )
-                
+                # add just one layer
+                self.w_c = nn.Dense(  # combiner
+                    self.combiner_output,
+                    kernel_init=self.init_fn(self.init_std),
+                    use_bias=True,
+                    bias_init=self.init_fn(self.init_std),
+                )
+
             else:
                 cond_dim = len(self.split_indices)
 
@@ -84,15 +90,15 @@ class ICNN(nn.Module):
                         self.dim_hidden[i],
                         kernel_init=self.init_fn(self.init_std),
                         use_bias=True,
-                        bias_init = self.init_fn(self.init_std)
+                        bias_init=self.init_fn(self.init_std),
                     )
                 )
-                w_xu.append( # this the matrix that multiply with x
+                w_xu.append(  # this the matrix that multiply with x
                     nn.Dense(
                         self.dim_data,
                         kernel_init=self.init_fn(self.init_std),
                         use_bias=True,
-                        bias_init = self.init_fn(self.init_std)
+                        bias_init=self.init_fn(self.init_std),
                     )
                 )
                 w_u.append(
@@ -100,7 +106,7 @@ class ICNN(nn.Module):
                         self.dim_hidden[i],
                         kernel_init=self.init_fn(self.init_std),
                         use_bias=True,
-                        bias_init = self.init_fn(self.init_std)
+                        bias_init=self.init_fn(self.init_std),
                     )
                 )
                 v.append(
@@ -108,8 +114,8 @@ class ICNN(nn.Module):
                         cond_dim,
                         kernel_init=self.init_fn(self.init_std),
                         use_bias=True,
-                        bias_init = self.init_fn(self.init_std)
-                    )                    
+                        bias_init=self.init_fn(self.init_std),
+                    )
                 )
             w_u.append(
                 nn.Dense(
@@ -137,45 +143,47 @@ class ICNN(nn.Module):
     def __call__(self, x: jnp.ndarray) -> jnp.ndarray:
         """Apply ICNN module."""
 
-        if self.split_indices == None:
+        if self.split_indices is None:
             z = self.w_xs[0](x)
             z = jnp.multiply(z, z)
             for Wz, Wx in zip(self.w_zs[:-1], self.w_xs[1:-1]):
                 z = self.act_fn(jnp.add(Wz(z), Wx(x)))
             y = jnp.add(self.w_zs[-1](z), self.w_xs[-1](x))
         else:
-            x = x[:self.split_indices[0]]
-            c = x[self.split_indices[0]:]
-            if self.combiner: 
-                c = self.w_c(c) 
+            x = x[: self.split_indices[0]]
+            c = x[self.split_indices[0] :]
+            if self.combiner:
+                c = self.w_c(c)
                 c = self.act_fn(c)
-            
+
             # Initialize
-            mlp_condition_embedding = self.w_xu[0](c)  
-            x_hadamard_1 = jnp.multiply(x, mlp_condition_embedding) 
+            mlp_condition_embedding = self.w_xu[0](c)
+            x_hadamard_1 = jnp.multiply(x, mlp_condition_embedding)
             mlp_condition = self.w_u[0](c)
             z = jnp.add(mlp_condition, self.w_xs[0](x_hadamard_1))
             z = jnp.multiply(z, z)
             u = self.act_fn(self.v[0](c))
 
-            for Wz, Wx, Wzu, Wxu, Wu, V in zip(self.w_zs[:-1], self.w_xs[1:-1], self.w_zu[:-1], self.w_xu[1:-1], self.w_u[1:-1], self.v[1:-1]):
-                mlp_convex = jnp.clip(Wzu(u), a_min=0)  
-                z_hadamard_1 = jnp.multiply(z, mlp_convex)  
-                mlp_condition_embedding = Wxu(u)  
-                x_hadamard_1 = jnp.multiply(x, mlp_condition_embedding) 
+            for Wz, Wx, Wzu, Wxu, Wu, V in zip(
+                self.w_zs[:-1], self.w_xs[1:-1], self.w_zu[:-1], self.w_xu[1:-1], self.w_u[1:-1], self.v[1:-1]
+            ):
+                mlp_convex = jnp.clip(Wzu(u), a_min=0)
+                z_hadamard_1 = jnp.multiply(z, mlp_convex)
+                mlp_condition_embedding = Wxu(u)
+                x_hadamard_1 = jnp.multiply(x, mlp_condition_embedding)
                 mlp_condition = Wu(u)
                 z = self.act_fn(jnp.add(jnp.add(Wz(z_hadamard_1), Wx(x_hadamard_1)), mlp_condition))
                 u = self.act_fn(V(u))
 
-            mlp_convex = jnp.clip(self.w_zu[-1](u), a_min=0)   # bs x d
-            z_hadamard_1 = jnp.multiply(z, mlp_convex) # bs x d
+            mlp_convex = jnp.clip(self.w_zu[-1](u), a_min=0)  # bs x d
+            z_hadamard_1 = jnp.multiply(z, mlp_convex)  # bs x d
 
             mlp_condition_embedding = self.w_xu[-1](u)  # bs x d
-            x_hadamard_1 = jnp.multiply(x, mlp_condition_embedding) # bs x d
+            x_hadamard_1 = jnp.multiply(x, mlp_condition_embedding)  # bs x d
 
             mlp_condition = self.w_u[-1](u)
-            y = jnp.add(jnp.add(self.w_zs[-1](z_hadamard_1), self.w_xs[-1](x_hadamard_1)), mlp_condition) 
-            
+            y = jnp.add(jnp.add(self.w_zs[-1](z_hadamard_1), self.w_xs[-1](x_hadamard_1)), mlp_condition)
+
         return jnp.squeeze(y, axis=-1)
 
     def create_train_state(
@@ -185,8 +193,8 @@ class ICNN(nn.Module):
         input_shape: Union[int, Tuple[int, ...]],
     ) -> train_state.TrainState:
         """Create initial `TrainState`."""
-        if self.split != None:
-            params = self.init(rng, jnp.ones(self.split), jnp.ones(input_shape-self.split))["params"]
+        if self.split:
+            params = self.init(rng, jnp.ones(self.split), jnp.ones(input_shape - self.split))["params"]
             return train_state.TrainState.create(apply_fn=self.apply, params=params, tx=optimizer)
         params = self.init(rng, jnp.ones(input_shape))["params"]
         return train_state.TrainState.create(apply_fn=self.apply, params=params, tx=optimizer)
