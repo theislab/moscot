@@ -6,6 +6,7 @@ import matplotlib.pyplot as plt
 from ott.solvers.linear.sinkhorn import SinkhornOutput as OTTSinkhornOutput
 from ott.solvers.linear.sinkhorn_lr import LRSinkhornOutput as OTTLRSinkhornOutput
 from ott.solvers.quadratic.gromov_wasserstein import GWOutput as OTTGWOutput
+from ott.solvers.linear.potentials import DualPotentials
 import jax
 import jax.numpy as jnp
 import jaxlib.xla_extension as xla_ext
@@ -170,7 +171,7 @@ class NeuralOutput(BaseSolverOutput):
     Output representation of neural OT problems.
     """
 
-    def __init__(self, output: potentials.DualPotentials, training_logs: Train_t):
+    def __init__(self, output: DualPotentials, training_logs: Train_t):
         self._output = output
         self._training_logs = training_logs
 
