@@ -4,7 +4,7 @@ from typing import Any, Type, Tuple, Union, Literal, Mapping, Optional
 from moscot._types import ScaleCost_t, ProblemStage_t, QuadInitializer_t
 from moscot._docs._docs import d
 from moscot._constants._key import Key
-from moscot.problems._utils import handle_joint_attr
+from moscot.problems._utils import handle_cost, handle_joint_attr
 from moscot._constants._constants import Policy
 from moscot.problems.space._mixins import SpatialAlignmentMixin
 from moscot.problems.base._base_problem import OTProblem
@@ -23,10 +23,6 @@ class AlignmentProblem(CompoundProblem[K, B], SpatialAlignmentMixin[K, B]):
     Parameters
     ----------
     %(adata)s
-
-    Examples
-    --------
-    See notebook TODO(@giovp) LINK NOTEBOOK for how to use it
     """
 
     @d.dedent
@@ -37,7 +33,10 @@ class AlignmentProblem(CompoundProblem[K, B], SpatialAlignmentMixin[K, B]):
         joint_attr: Optional[Union[str, Mapping[str, Any]]] = None,
         policy: Literal["sequential", "star"] = "sequential",
         reference: Optional[str] = None,
-        cost: Literal["sq_euclidean", "cosine", "bures", "unbalanced_bures"] = "sq_euclidean",
+        cost: Union[
+            Literal["sq_euclidean", "cosine", "bures", "unbalanced_bures"],
+            Mapping[str, Literal["sq_euclidean", "cosine", "bures", "unbalanced_bures"]],
+        ] = "sq_euclidean",
         a: Optional[str] = None,
         b: Optional[str] = None,
         **kwargs: Any,
@@ -66,6 +65,10 @@ class AlignmentProblem(CompoundProblem[K, B], SpatialAlignmentMixin[K, B]):
         Returns
         -------
         :class:`moscot.problems.space.MappingProblem`.
+
+        Examples
+        --------
+        %(ex_prepare)s
         """
         self.spatial_key = spatial_key
         self.batch_key = batch_key
@@ -73,6 +76,8 @@ class AlignmentProblem(CompoundProblem[K, B], SpatialAlignmentMixin[K, B]):
         x = y = {"attr": "obsm", "key": self.spatial_key, "tag": "point_cloud"}
 
         xy, kwargs = handle_joint_attr(joint_attr, kwargs)
+        xy, x, y = handle_cost(xy=xy, x=x, y=y, cost=cost)
+
         return super().prepare(
             x=x, y=y, xy=xy, policy=policy, key=batch_key, reference=reference, cost=cost, a=a, b=b, **kwargs
         )
@@ -86,7 +91,6 @@ class AlignmentProblem(CompoundProblem[K, B], SpatialAlignmentMixin[K, B]):
         tau_b: float = 1.0,
         rank: int = -1,
         scale_cost: ScaleCost_t = "mean",
-        power: int = 1,
         batch_size: Optional[int] = None,
         stage: Union[ProblemStage_t, Tuple[ProblemStage_t, ...]] = ("prepared", "solved"),
         initializer: QuadInitializer_t = None,
@@ -95,10 +99,8 @@ class AlignmentProblem(CompoundProblem[K, B], SpatialAlignmentMixin[K, B]):
         min_iterations: int = 5,
         max_iterations: int = 50,
         threshold: float = 1e-3,
-        warm_start: Optional[bool] = None,
         gamma: float = 10.0,
         gamma_rescale: bool = True,
-        gw_unbalanced_correction: bool = True,
         ranks: Union[int, Tuple[int, ...]] = -1,
         tolerances: Union[float, Tuple[float, ...]] = 1e-2,
         linear_solver_kwargs: Mapping[str, Any] = MappingProxyType({}),
@@ -130,6 +132,10 @@ class AlignmentProblem(CompoundProblem[K, B], SpatialAlignmentMixin[K, B]):
         Returns
         -------
         :class:`moscot.problems.space.AlignmentProblem`.
+
+        Examples
+        --------
+        %(ex_solve_quadratic)s
         """
         return super().solve(
             alpha=alpha,
@@ -138,7 +144,6 @@ class AlignmentProblem(CompoundProblem[K, B], SpatialAlignmentMixin[K, B]):
             tau_b=tau_b,
             rank=rank,
             scale_cost=scale_cost,
-            power=power,
             batch_size=batch_size,
             stage=stage,
             initializer=initializer,
@@ -147,10 +152,8 @@ class AlignmentProblem(CompoundProblem[K, B], SpatialAlignmentMixin[K, B]):
             min_iterations=min_iterations,
             max_iterations=max_iterations,
             threshold=threshold,
-            warm_start=warm_start,
             gamma=gamma,
             gamma_rescale=gamma_rescale,
-            gw_unbalanced_correction=gw_unbalanced_correction,
             ranks=ranks,
             tolerances=tolerances,
             linear_solver_kwargs=linear_solver_kwargs,

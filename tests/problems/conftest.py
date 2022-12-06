@@ -73,14 +73,12 @@ sinkhorn_args_1 = {
     "max_iterations": 9,
     "gamma": 9.4,
     "gamma_rescale": False,
-    # "cost": "SqEuclidean", #TODO handle
-    "power": 3,
-    "batch_size": 1023,
+    "batch_size": None,  # in to_LRC() `batch_size` cannot be passed so we expect None.
     "scale_cost": "max_cost",
 }
 
 
-sinkhorn_args_2 = {
+sinkhorn_args_2 = {  # no gamma/gamma_rescale as these are LR-specific
     "epsilon": 0.8,
     "tau_a": 0.9,
     "tau_b": 0.8,
@@ -95,8 +93,6 @@ sinkhorn_args_2 = {
     "inner_iterations": 4,
     "min_iterations": 1,
     "max_iterations": 2,
-    # "cost": "SqEuclidean", TODO: handle
-    "power": 4,
     "scale_cost": "mean",
 }
 
@@ -109,27 +105,23 @@ linear_solver_kwargs1 = {
     "norm_error": 4,
 }
 
-gw_args_1 = {
+gw_args_1 = {  # no gamma/gamma_rescale/tolerances/ranks as these are LR-specific
     "epsilon": 0.5,
     "tau_a": 0.7,
     "tau_b": 0.8,
     "scale_cost": "max_cost",
     "rank": -1,
     "batch_size": 122,
-    "initializer": "quad_initializer",
+    "initializer": None,
     "initializer_kwargs": {},
     "jit": True,
     "threshold": 3e-2,
     "min_iterations": 3,
     "max_iterations": 4,
-    "gamma": 9.3,
-    "gamma_rescale": True,
     "gw_unbalanced_correction": True,
     "ranks": 4,
     "tolerances": 2e-2,
     "warm_start": False,
-    "power": 4,
-    # "cost": "SqEuclidean", #TODO handle
     "linear_solver_kwargs": linear_solver_kwargs1,
 }
 
@@ -156,14 +148,12 @@ gw_args_2 = {
     "threshold": 2e-3,
     "min_iterations": 2,
     "max_iterations": 3,
-    "gamma": 9.4,
-    "gamma_rescale": False,
     "gw_unbalanced_correction": False,
     "ranks": 3,
     "tolerances": 3e-2,
     "warm_start": True,
-    "power": 3,
-    # "cost": "SqEuclidean", TODO: handle
+    "gamma": 9.4,
+    "gamma_rescale": False,
     "linear_solver_kwargs": linear_solver_kwargs2,
 }
 
@@ -195,6 +185,17 @@ gw_linear_solver_args = {
     "min_iterations": "min_iterations",
 }
 
+gw_lr_linear_solver_args = {
+    "lse_mode": "lse_mode",
+    "inner_iterations": "inner_iterations",
+    "threshold": "threshold",
+    "norm_error": "norm_error",
+    "max_iterations": "max_iterations",
+    "min_iterations": "min_iterations",
+    "gamma": "gamma",
+    "gamma_rescale": "gamma_rescale",
+}
+
 quad_prob_args = {
     "tau_a": "tau_a",
     "tau_b": "tau_b",
@@ -206,13 +207,16 @@ quad_prob_args = {
 geometry_args = {"epsilon": "_epsilon_init", "scale_cost": "_scale_cost"}
 
 pointcloud_args = {
-    # "cost": "cost_fn", TODO: handle
-    "power": "power",
     "batch_size": "_batch_size",
     "scale_cost": "_scale_cost",
 }
 
-sinkhorn_solver_args = {
+lr_pointcloud_args = {
+    "batch_size": "batch_size",
+    "scale_cost": "_scale_cost",
+}
+
+sinkhorn_solver_args = {  # dictionary with key = moscot arg name, value = ott-jax attribute
     "lse_mode": "lse_mode",
     "threshold": "threshold",
     "norm_error": "norm_error",
@@ -223,6 +227,11 @@ sinkhorn_solver_args = {
     "initializer_kwargs": "kwargs_init",
     "jit": "jit",
 }
+
+lr_sinkhorn_solver_args = sinkhorn_solver_args.copy()
+lr_sinkhorn_solver_args["gamma"] = "gamma"
+lr_sinkhorn_solver_args["gamma_rescale"] = "gamma_rescale"
+
 lin_prob_args = {
     "tau_a": "tau_a",
     "tau_b": "tau_b",

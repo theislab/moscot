@@ -35,3 +35,22 @@ def _compute_sinkhorn_divergence(
         logger.warning("Solver did not converge in the `y/y` term.")
 
     return float(output.divergence)
+
+
+class RunningAverageMeter:
+    """Computes and stores the average value."""
+
+    def __init__(self) -> None:
+        self.reset()
+
+    def reset(self) -> None:
+        """Reset the meter."""
+        self.avg: float = 0.0
+        self.sum: float = 0.0
+        self.count: float = 0.0
+
+    def update(self, val: float, n: int = 1) -> None:
+        """Update the meter."""
+        self.sum += val * n
+        self.count += n
+        self.avg = self.sum / self.count

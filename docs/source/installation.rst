@@ -1,6 +1,6 @@
 Installation
 ============
-``moscot`` requires Python version >= 3.7 to run.
+``moscot`` requires Python version >= 3.8 to run.
 
 PyPI
 ----

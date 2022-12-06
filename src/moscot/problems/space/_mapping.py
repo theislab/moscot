@@ -6,7 +6,7 @@ from anndata import AnnData
 from moscot._types import ArrayLike, Str_Dict_t, ScaleCost_t, ProblemStage_t, QuadInitializer_t
 from moscot._docs._docs import d
 from moscot._constants._key import Key
-from moscot.problems._utils import handle_joint_attr
+from moscot.problems._utils import handle_cost, handle_joint_attr
 from moscot._constants._constants import Policy
 from moscot.problems.space._mixins import SpatialMappingMixin
 from moscot.problems._subset_policy import DummyPolicy, ExternalStarPolicy
@@ -29,10 +29,6 @@ class MappingProblem(CompoundProblem[K, OTProblem], SpatialMappingMixin[K, OTPro
         Instance of :class:`anndata.AnnData` containing the single cell data.
     adata_sp
         Instance of :class:`anndata.AnnData` containing the spatial data.
-
-    Examples
-    --------
-    See notebook TODO(@giovp) LINK NOTEBOOK for how to use it.
     """
 
     def __init__(self, adata_sc: AnnData, adata_sp: AnnData, **kwargs: Any):
@@ -81,7 +77,10 @@ class MappingProblem(CompoundProblem[K, OTProblem], SpatialMappingMixin[K, OTPro
         spatial_key: Union[str, Mapping[str, Any]] = Key.obsm.spatial,
         var_names: Optional[Sequence[Any]] = None,
         joint_attr: Optional[Union[str, Mapping[str, Any]]] = None,
-        cost: Literal["sq_euclidean", "cosine", "bures", "unbalanced_bures"] = "sq_euclidean",
+        cost: Union[
+            Literal["sq_euclidean", "cosine", "bures", "unbalanced_bures"],
+            Mapping[str, Literal["sq_euclidean", "cosine", "bures", "unbalanced_bures"]],
+        ] = "sq_euclidean",
         a: Optional[str] = None,
         b: Optional[str] = None,
         **kwargs: Any,
@@ -112,6 +111,10 @@ class MappingProblem(CompoundProblem[K, OTProblem], SpatialMappingMixin[K, OTPro
         Returns
         -------
         :class:`moscot.problems.space.MappingProblem`.
+
+        Examples
+        --------
+        %(ex_prepare)s
         """
         x = {"attr": "obsm", "key": spatial_key} if isinstance(spatial_key, str) else spatial_key
         y = {"attr": "obsm", "key": sc_attr} if isinstance(sc_attr, str) else sc_attr
@@ -123,6 +126,10 @@ class MappingProblem(CompoundProblem[K, OTProblem], SpatialMappingMixin[K, OTPro
         self.filtered_vars = var_names
         if self.filtered_vars is not None:
             xy, kwargs = handle_joint_attr(joint_attr, kwargs)
+        else:
+            xy = None
+        xy, x, y = handle_cost(xy=xy, x=x, y=y, cost=cost)
+        if xy is not None:
             kwargs["xy"] = xy
         return super().prepare(x=x, y=y, policy="external_star", key=batch_key, cost=cost, a=a, b=b, **kwargs)
 
@@ -135,7 +142,6 @@ class MappingProblem(CompoundProblem[K, OTProblem], SpatialMappingMixin[K, OTPro
         tau_b: float = 1.0,
         rank: int = -1,
         scale_cost: ScaleCost_t = "mean",
-        power: int = 1,
         batch_size: Optional[int] = None,
         stage: Union[ProblemStage_t, Tuple[ProblemStage_t, ...]] = ("prepared", "solved"),
         initializer: QuadInitializer_t = None,
@@ -144,10 +150,8 @@ class MappingProblem(CompoundProblem[K, OTProblem], SpatialMappingMixin[K, OTPro
         min_iterations: int = 5,
         max_iterations: int = 50,
         threshold: float = 1e-3,
-        warm_start: Optional[bool] = None,
         gamma: float = 10.0,
         gamma_rescale: bool = True,
-        gw_unbalanced_correction: bool = True,
         ranks: Union[int, Tuple[int, ...]] = -1,
         tolerances: Union[float, Tuple[float, ...]] = 1e-2,
         linear_solver_kwargs: Mapping[str, Any] = MappingProxyType({}),
@@ -179,6 +183,10 @@ class MappingProblem(CompoundProblem[K, OTProblem], SpatialMappingMixin[K, OTPro
         Returns
         -------
         :class:`moscot.problems.space.MappingProblem`.
+
+        Examples
+        --------
+        %(ex_solve_quadratic)s
         """
         return super().solve(
             alpha=alpha,
@@ -187,7 +195,6 @@ class MappingProblem(CompoundProblem[K, OTProblem], SpatialMappingMixin[K, OTPro
             tau_b=tau_b,
             rank=rank,
             scale_cost=scale_cost,
-            power=power,
             batch_size=batch_size,
             stage=stage,
             initializer=initializer,
@@ -196,10 +203,8 @@ class MappingProblem(CompoundProblem[K, OTProblem], SpatialMappingMixin[K, OTPro
             min_iterations=min_iterations,
             max_iterations=max_iterations,
             threshold=threshold,
-            warm_start=warm_start,
             gamma=gamma,
             gamma_rescale=gamma_rescale,
-            gw_unbalanced_correction=gw_unbalanced_correction,
             ranks=ranks,
             tolerances=tolerances,
             linear_solver_kwargs=linear_solver_kwargs,

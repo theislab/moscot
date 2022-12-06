@@ -1,12 +1,13 @@
-from typing import Literal, Mapping
+from typing import Any, Tuple, Literal, Mapping
 import os
 
 from pytest_mock import MockerFixture
 from sklearn.metrics.pairwise import euclidean_distances
 import pytest
 
-from ott.geometry import PointCloud
-from ott.core.sinkhorn import sinkhorn
+from ott.geometry.costs import Cosine, Euclidean, SqEuclidean
+from ott.geometry.pointcloud import PointCloud
+from ott.solvers.linear.sinkhorn import sinkhorn
 import numpy as np
 
 from anndata import AnnData
@@ -50,10 +51,11 @@ class TestCompoundProblem:
             assert isinstance(problem[key], OTProblem)
             assert problem[key].solution is problem.solutions[key]
 
+    @pytest.mark.parametrize("scale", [True, False])
     @pytest.mark.fast()
-    def test_default_callback(self, adata_time: AnnData, mocker: MockerFixture):
+    def test_default_callback(self, adata_time: AnnData, mocker: MockerFixture, scale: bool):
         subproblem = OTProblem(adata_time, adata_tgt=adata_time.copy())
-        callback_kwargs = {"n_comps": 5}
+        callback_kwargs = {"n_comps": 5, "scale": scale}
         spy = mocker.spy(subproblem, "_local_pca_callback")
 
         problem = Problem(adata_time)
@@ -123,6 +125,35 @@ class TestCompoundProblem:
         np.testing.assert_allclose(gt.matrix, p1_tmap, rtol=RTOL, atol=ATOL)
         np.testing.assert_allclose(gt.matrix, p2_tmap, rtol=RTOL, atol=ATOL)
 
+    @pytest.mark.fast()
+    @pytest.mark.parametrize("cost", [("sq_euclidean", SqEuclidean), ("euclidean", Euclidean), ("cosine", Cosine)])
+    def test_prepare_cost(self, adata_time: AnnData, cost: Tuple[str, Any]):
+        problem = Problem(adata=adata_time)
+        problem = problem.prepare(
+            xy={"x_attr": "X", "y_attr": "X", "cost": cost[0]},
+            x={"attr": "X", "cost": cost[0]},
+            y={"attr": "X", "cost": cost[0]},
+            key="time",
+            policy="sequential",
+        )
+        assert isinstance(problem[0, 1].xy.cost, cost[1])
+        assert isinstance(problem[0, 1].x.cost, cost[1])
+        assert isinstance(problem[0, 1].y.cost, cost[1])
+
+    @pytest.mark.fast()
+    def test_prepare_different_costs(self, adata_time: AnnData):
+        problem = Problem(adata=adata_time)
+        problem = problem.prepare(
+            xy={"x_attr": "X", "y_attr": "X", "cost": "sq_euclidean"},
+            x={"attr": "X", "cost": "euclidean"},
+            y={"attr": "X", "cost": "cosine"},
+            key="time",
+            policy="sequential",
+        )
+        assert isinstance(problem[0, 1].xy.cost, SqEuclidean)
+        assert isinstance(problem[0, 1].x.cost, Euclidean)
+        assert isinstance(problem[0, 1].y.cost, Cosine)
+
     def test_add_problem(self, adata_time: AnnData):
         expected_keys = [(0, 1), (1, 2)]
         problem = Problem(adata=adata_time)
@@ -180,6 +211,20 @@ class TestCompoundProblem:
             os.remove(file)
         problem = Problem(adata=adata_time)
         problem = problem.prepare(xy={"x_attr": "X", "y_attr": "X"}, key="time")
+        problem.save(dir_path=dir_path, file_prefix=file_prefix)
+
+        p = Problem.load(file)
+        assert isinstance(p, Problem)
+
+    def test_save_load_solved(self, adata_time: AnnData):
+        dir_path = "tests/data"
+        file_prefix = "test_save_load"
+        file = os.path.join(dir_path, f"{file_prefix}_Problem.pkl")
+        if os.path.exists(file):
+            os.remove(file)
+        problem = Problem(adata=adata_time)
+        problem = problem.prepare(xy={"x_attr": "X", "y_attr": "X"}, key="time")
+        problem = problem.solve(max_iterations=10)
         problem.save(dir_path=dir_path, file_prefix=file_prefix)
 
         p = Problem.load(file)

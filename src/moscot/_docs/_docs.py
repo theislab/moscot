@@ -44,16 +44,17 @@ epsilon
 """
 _alpha = """\
 alpha
-    Interpolation parameter between quadratic term and linear term.
+    Interpolation parameter between quadratic term and linear term, between 0 and 1. `alpha=1` corresponds to
+    pure Gromov-Wasserstein, while `alpha -> 0` corresponds to pure Sinkhorn.
 """
 _tau_a = """\
 tau_a
-    Unbalancedness parameter for left marginal between 0 and 1. `tau_a` equalling 1 means no unbalancedness
+    Unbalancedness parameter for left marginal between 0 and 1. `tau_a=1` means no unbalancedness
     in the source distribution. The limit of `tau_a` going to 0 ignores the left marginals.
 """
 _tau_b = """\
 tau_b
-    unbalancedness parameter for right marginal between 0 and 1. `tau_b` equalling 1 means no unbalancedness
+    unbalancedness parameter for right marginal between 0 and 1. `tau_b=1` means no unbalancedness
     in the target distribution. The limit of `tau_b` going to 0 ignores the right marginals."""
 _scale_by_marginals = """\
 scale_by_marginals
@@ -146,7 +147,6 @@ joint_attr
 _GW_x = """\
 GW_x
 
-    - If empty , cost matrix must be provided in :attr:`anndata.AnnData.obsp`.
     - If `str`, it must refer to a key in :attr:`anndata.AnnData.obsm`.
     - If `dict`, the dictionary stores `attr` (attribute of :class:`anndata.AnnData`) and `key`
       (key of :class:`anndata.AnnData` ``['{attr}']``).
@@ -154,7 +154,6 @@ GW_x
 _GW_y = """\
 GW_y
 
-    - If empty, cost matrix must be provided in :attr:`anndata.AnnData.obsp`.
     - If `str`, it must refer to a key in :attr:`anndata.AnnData.obsm`.
     - If `dict`, the dictionary stores `attr` (attribute of :class:`anndata.AnnData`) and `key`
       (key of :class:`anndata.AnnData` ``['{attr}']``).
@@ -202,7 +201,7 @@ initializer
         - `k-means` :cite:`scetbon:22b`
         - `generalized-k-means` :cite:`scetbon:22b`
 
-    If `None`, the default for not low rank is `default`, for low rank it is `random`.
+    If `None`, the default for full low rank `default`, for low rank it is `rank2`.
 """
 _initializer_quad = """\
 initializer
@@ -251,7 +250,12 @@ gamma
     Only in low-rank setting: the (inverse of the) gradient step size used by the mirror descent algorithm
     (:cite:`scetbon:22b`).
 gamma_rescale
-    Only in low-rank setting: whether to rescale :math:`\\gamma` every iteration as described in :cite:`scetbon:22b`.
+    Only in low-rank setting: whether to rescale `gamma` every iteration as described in :cite:`scetbon:22b`.
+"""
+_cost_matrix_rank = """\
+cost_matrix_rank
+    Rank of the matrix the cost matrix is approximated by. Only applies if a custom cost matrix is passed.
+    If `None`, `cost_matrix_rank` is set to `rank`.
 """
 _gw_kwargs = """\
 min_iterations
@@ -260,16 +264,8 @@ max_iterations
     Maximal number of outer Gromov-Wasserstein iterations.
 threshold
     Threshold used as convergence criterion for the outer Gromov-Wasserstein loop.
-warm_start
-    Whether to initialize (low-rank) Sinkhorn calls using values
-    from the previous iteration. If `None`, warm starts are not used for
-    standard Sinkhorn, but used for low-rank Sinkhorn.
 """
 _gw_lr_kwargs = """\
-gw_unbalanced_correction
-    Whether the unbalanced version of
-    :cite:`sejourne:21` is used. Otherwise ``tau_a`` and ``tau_b`` only affect
-    the inner Sinkhorn loop.
 ranks
     Ranks of the cost matrices, see
     :meth:`~ott.geometry.geometry.Geometry.to_LRCGeometry`. Used when
@@ -287,15 +283,19 @@ _scale_cost = """\
 scale_cost
     Method to scale cost matrices. If `None` no scaling is applied.
 """
-_cost = """\
+_cost_lin = """\
 cost
     Cost between two points in dimension d. Only used if no precomputed cost matrix is passed.
 """
+_cost = """\
+cost
+    Cost between two points in dimension d. Only used if no precomputed cost matrix is passed.
+    If `cost` is of type :obj:`str`, the cost will be used for all point clouds. If `cost` is of type :obj:`dict`,
+    it is expected to have keys `x`, `y`, and/or `xy`, with values corresponding to the cost functions
+    in the quadratic term of the source distribution, the quadratic term of the target distribution, and/or the
+    linear term, respectively.
+    """
 _pointcloud_kwargs = """\
-power
-    a power to raise `(cost_fn(x,y)) ** . / 2.0`. As a result,
-    `power`=2.0 is the default and means no change is applied to the output of
-    `cost_fn`. Only used if no precomputed cost matrix is passed.
 batch_size
     Number of data points the matrix-vector products are applied to at the same time. The larger, the more memory
     is required. Only used if no precomputed cost matrix is used.
@@ -323,6 +323,34 @@ kwargs
 _kwargs_prepare = """\
 kwargs
     Keyword arguments, see notebooks TODO.
+"""
+##################################################################################
+# References to examples and notebooks
+
+_ex_solve_quadratic = """\
+See :ref:`sphx_glr_auto_examples_solvers_ex_quad_problems_basic.py` for a basic example
+how to solve quadratic problems.
+See :ref:`sphx_glr_auto_examples_solvers_ex_quad_problems_advanced.py` for an advanced
+example how to solve quadratic problems.
+"""
+_ex_solve_linear = """\
+See :ref:`sphx_glr_auto_examples_solvers_ex_linear_problems_basic.py` for a basic example
+how to solve linear problems.
+See :ref:`sphx_glr_auto_examples_solvers_ex_linear_problems_advanced.py` for an advanced
+example how to solve linear problems.
+"""
+_ex_prepare = """\
+See :ref:`sphx_glr_auto_examples_problems_ex_different_policies.py` for an example how to
+use different policies. See :ref:`sphx_glr_auto_examples_problems_ex_passing_marginals.py`
+for an example how to pass marginals.
+"""
+_data_set = """\
+data
+    Custom cost matrix or kernel matrix.
+"""
+_tag_set = """\
+tag
+    Tag indicating whether `data` is cost matrix or kernel matrix.
 """
 
 d = DocstringProcessor(
@@ -370,9 +398,11 @@ d = DocstringProcessor(
     jit=_jit,
     sinkhorn_kwargs=_sinkhorn_kwargs,
     sinkhorn_lr_kwargs=_sinkhorn_lr_kwargs,
+    cost_matrix_rank=_cost_matrix_rank,  # TODO(@MUCDK): test for this. cannot be tested with current `test_pass_for_arguments`.  # noqa: E501
     gw_kwargs=_gw_kwargs,
     gw_lr_kwargs=_gw_lr_kwargs,
     scale_cost=_scale_cost,
+    cost_lin=_cost_lin,
     cost=_cost,
     pointcloud_kwargs=_pointcloud_kwargs,
     device_solve=_device_solve,
@@ -381,4 +411,9 @@ d = DocstringProcessor(
     kwargs_quad=_kwargs_quad,
     kwargs_quad_fused=_kwargs_quad_fused,
     kwargs_prepare=_kwargs_prepare,
+    ex_solve_quadratic=_ex_solve_quadratic,
+    ex_solve_linear=_ex_solve_linear,
+    ex_prepare=_ex_prepare,
+    data_set=_data_set,
+    tag_set=_tag_set,
 )

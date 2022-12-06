@@ -23,7 +23,7 @@ class ProblemKind(ModeEnum):
     QUAD = "quadratic"
     QUAD_FUSED = "quadratic_fused"
 
-    def solver(self, *, backend: Literal["ott"] = "ott", **kwargs: Any) -> "BaseSolver[O]":
+    def solver(self, *, backend: Literal["ott"] = "ott", neural: bool = False, **kwargs: Any) -> "BaseSolver[O]":
         """
         Return the solver dependent on the backend and the problem.
 
@@ -31,6 +31,8 @@ class ProblemKind(ModeEnum):
         ----------
         backend
             Which backend to use, see :func:`moscot.backends.get_available_backends`.
+        neural
+            Whether to use neural or sinkhorn solver in the linear case.
         kwargs
             Keyword arguments when instantiating the solver.
 
@@ -40,9 +42,16 @@ class ProblemKind(ModeEnum):
         """
         # TODO(michalk8): refactor using backend utils
         if backend == "ott":
-            from moscot.backends.ott import GWSolver, FGWSolver, SinkhornSolver  # type: ignore[attr-defined]
+            from moscot.backends.ott import (  # type: ignore[attr-defined]
+                GWSolver,
+                FGWSolver,
+                NeuralSolver,
+                SinkhornSolver,
+            )
 
             if self == ProblemKind.LINEAR:
+                if neural:
+                    return NeuralSolver(**kwargs)
                 return SinkhornSolver(**kwargs)
             if self == ProblemKind.QUAD:
                 return GWSolver(**kwargs)
@@ -147,7 +156,7 @@ class BaseSolver(Generic[O], ABC):
 
 @d.get_sections(base="OTSolver", sections=["Parameters", "Raises"])
 @d.dedent
-class OTSolver(TagConverterMixin, BaseSolver[O], ABC):  # noqa: B024
+class OTSolver(TagConverterMixin, BaseSolver[O], ABC):
     """Base class for optimal transport solvers."""
 
     def __call__(

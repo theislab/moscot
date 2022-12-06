@@ -10,7 +10,6 @@ def _get_random_trees(
 ) -> List[nx.DiGraph]:
     rng = np.random.RandomState(42)
     if leaf_names is not None:
-
         assert len(leaf_names) == n_trees
         for i in range(n_trees):
             assert len(leaf_names[i]) == n_leaves
