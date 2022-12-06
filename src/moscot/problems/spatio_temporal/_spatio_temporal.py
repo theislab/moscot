@@ -33,7 +33,10 @@ class SpatioTemporalProblem(
         spatial_key: str = Key.obsm.spatial,
         joint_attr: Optional[Union[str, Mapping[str, Any]]] = None,
         policy: Literal["sequential", "tril", "triu", "explicit"] = "sequential",
-        cost: Literal["sq_euclidean", "cosine", "bures", "unbalanced_bures"] = "sq_euclidean",
+        cost: Union[
+            Literal["sq_euclidean", "cosine", "bures", "unbalanced_bures"],
+            Mapping[str, Literal["sq_euclidean", "cosine", "bures", "unbalanced_bures"]],
+        ] = "sq_euclidean",
         a: Optional[str] = None,
         b: Optional[str] = None,
         **kwargs: Any,
@@ -59,24 +62,16 @@ class SpatioTemporalProblem(
         -------
         :class:`moscot.problems.spatio_temporal.SpatioTemporalProblem`.
 
-        Raises
-        ------
-        KeyError
-            If `time_key` is not in :attr:`anndata.AnnData.obs`.
-        KeyError
-            If `spatial_key` is not in :attr:`anndata.AnnData.obs`.
-        KeyError
-            If `joint_attr` is a string and cannot be found in :attr:`anndata.AnnData.obsm`.
-        ValueError
-            If :attr:`adata.obsp` has no attribute `cost_matrices`.
-        TypeError
-            If `joint_attr` is not None, not a :class:`str` and not a :class:`dict`.
-
         Notes
         -----
         If `a` and `b` are provided `marginal_kwargs` are ignored.
+
+        Examples
+        --------
+        %(ex_prepare)s
         """
         # spatial key set in AlignmentProblem
+        # handle_joint_attr and handle_cost in AlignmentProblem
         self.temporal_key = time_key
 
         return super().prepare(
@@ -100,7 +95,6 @@ class SpatioTemporalProblem(
         tau_b: float = 1.0,
         rank: int = -1,
         scale_cost: ScaleCost_t = "mean",
-        power: int = 1,
         batch_size: Optional[int] = None,
         stage: Union[ProblemStage_t, Tuple[ProblemStage_t, ...]] = ("prepared", "solved"),
         initializer: QuadInitializer_t = None,
@@ -109,10 +103,8 @@ class SpatioTemporalProblem(
         min_iterations: int = 5,
         max_iterations: int = 50,
         threshold: float = 1e-3,
-        warm_start: Optional[bool] = None,
         gamma: float = 10.0,
         gamma_rescale: bool = True,
-        gw_unbalanced_correction: bool = True,
         ranks: Union[int, Tuple[int, ...]] = -1,
         tolerances: Union[float, Tuple[float, ...]] = 1e-2,
         linear_solver_kwargs: Mapping[str, Any] = MappingProxyType({}),
@@ -144,6 +136,10 @@ class SpatioTemporalProblem(
         Returns
         -------
         :class:`moscot.problems.space.SpatioTemporalProblem`.
+
+        Examples
+        --------
+        %(ex_solve_quadratic)s
         """
         return super().solve(
             alpha=alpha,
@@ -152,7 +148,6 @@ class SpatioTemporalProblem(
             tau_b=tau_b,
             rank=rank,
             scale_cost=scale_cost,
-            power=power,
             batch_size=batch_size,
             stage=stage,
             initializer=initializer,
@@ -161,10 +156,8 @@ class SpatioTemporalProblem(
             min_iterations=min_iterations,
             max_iterations=max_iterations,
             threshold=threshold,
-            warm_start=warm_start,
             gamma=gamma,
             gamma_rescale=gamma_rescale,
-            gw_unbalanced_correction=gw_unbalanced_correction,
             ranks=ranks,
             tolerances=tolerances,
             linear_solver_kwargs=linear_solver_kwargs,

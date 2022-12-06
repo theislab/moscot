@@ -4,12 +4,12 @@ from moscot._types import Numeric_t
 from moscot._docs._docs import d
 from moscot.problems._utils import handle_joint_attr
 from moscot._constants._constants import Policy
-from moscot.problems.base._birth_death import BirthDeathMixin, BirthDeathProblem, BirthDeathNeuralProblem
+from moscot.problems.base._birth_death import BirthDeathMixin, BirthDeathNeuralProblem
 from moscot.problems.base._compound_problem import CompoundProblem
 
 
 @d.dedent
-class TemporalNeuralProblem(BirthDeathMixin, CompoundProblem[Numeric_t, BirthDeathProblem]):
+class TemporalNeuralProblem(BirthDeathMixin, CompoundProblem[Numeric_t, BirthDeathNeuralProblem]):
     """TemporalNeuralProblem."""
 
     @d.dedent
@@ -18,6 +18,8 @@ class TemporalNeuralProblem(BirthDeathMixin, CompoundProblem[Numeric_t, BirthDea
         time_key: str,
         joint_attr: Union[str, Mapping[str, Any]],
         policy: Literal["sequential", "tril", "triu", "explicit"] = "sequential",
+        a: Optional[str] = None,
+        b: Optional[str] = None,
         **kwargs: Any,
     ) -> "TemporalNeuralProblem":
         """Prepare the :class:`moscot.problems.time.TemporalNeuralProblem`."""
@@ -25,10 +27,21 @@ class TemporalNeuralProblem(BirthDeathMixin, CompoundProblem[Numeric_t, BirthDea
         policy = Policy(policy)  # type: ignore[assignment]
         xy, kwargs = handle_joint_attr(joint_attr, kwargs)
 
+        # TODO(michalk8): needs to be modified
+        marginal_kwargs = dict(kwargs.pop("marginal_kwargs", {}))
+        marginal_kwargs["proliferation_key"] = self.proliferation_key
+        marginal_kwargs["apoptosis_key"] = self.apoptosis_key
+        if a is None:
+            a = self.proliferation_key is not None or self.apoptosis_key is not None
+        if b is None:
+            b = self.proliferation_key is not None or self.apoptosis_key is not None
+
         return super().prepare(
             key=time_key,
             xy=xy,
             policy=policy,
+            a=a,
+            b=b,
             **kwargs,
         )
 
@@ -85,7 +98,7 @@ class TemporalNeuralProblem(BirthDeathMixin, CompoundProblem[Numeric_t, BirthDea
         )  # type:ignore[return-value]
 
     @property
-    def _base_problem_type(self) -> Type[BirthDeathProblem]:
+    def _base_problem_type(self) -> Type[BirthDeathNeuralProblem]:
         return BirthDeathNeuralProblem
 
     @property

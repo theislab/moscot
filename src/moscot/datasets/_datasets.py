@@ -277,6 +277,15 @@ def simulate_data(
                 leaf_names=[adata[adata.obs[key] == i].obs_names],
                 seed=seed,
             )[0]
+    if quad_term == "spatial":
+        dim = kwargs.pop("spatial_dim", 2)
+        adata.obsm["spatial"] = rng.normal(size=(adata.n_obs, dim))
     if quad_term == "barcode":
+        n_intBCs = kwargs.pop("n_intBCs", 20)
+        barcode_dim = kwargs.pop("barcode_dim", 10)
+        adata.obsm["barcode"] = rng.choice(n_intBCs, size=(adata.n_obs, barcode_dim))
+    if lin_cost_matrix is not None:
+        raise NotImplementedError
+    if quad_cost_matrix is not None:
         raise NotImplementedError
     return adata

@@ -37,7 +37,7 @@ def cell_transition(
     """
     Plot a cell transition matrix.
 
-    {desc_cell_transition}
+    %(desc_cell_transition)s
 
     Parameters
     ----------

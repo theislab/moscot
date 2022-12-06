@@ -2,13 +2,15 @@ from abc import ABC, abstractmethod
 from typing import Any, Dict, List, Tuple, Union, Literal, Mapping, Optional, TYPE_CHECKING
 
 from scipy.sparse import vstack, issparse, csr_matrix
+from sklearn.preprocessing import StandardScaler
+import pandas as pd
 
 import numpy as np
 
 from anndata import AnnData
 import scanpy as sc
 
-from moscot._types import Device_t, ArrayLike
+from moscot._types import CostFn_t, Device_t, ArrayLike
 from moscot._logging import logger
 from moscot._docs._docs import d
 from moscot.problems._utils import wrap_solve, wrap_prepare, require_solution
@@ -174,19 +176,22 @@ class OTProblem(BaseProblem):
         self._a: Optional[ArrayLike] = None
         self._b: Optional[ArrayLike] = None
 
-    def _handle_linear(self, **kwargs: Any) -> TaggedArray:
+    def _handle_linear(self, cost: CostFn_t = None, **kwargs: Any) -> TaggedArray:
         if "x_attr" not in kwargs or "y_attr" not in kwargs:
             kwargs.setdefault("tag", Tag.COST_MATRIX)
             attr = kwargs.pop("attr", "obsm")
 
             if attr in ("obsm", "uns"):
                 return TaggedArray.from_adata(
-                    self.adata_src, dist_key=(self._src_key, self._tgt_key), attr=attr, **kwargs
+                    self.adata_src, dist_key=(self._src_key, self._tgt_key), attr=attr, cost="custom", **kwargs
                 )
             raise ValueError(f"Storing `{kwargs['tag']!r}` in `adata.{attr}` is disallowed.")
 
         x_kwargs = {k[2:]: v for k, v in kwargs.items() if k.startswith("x_")}
         y_kwargs = {k[2:]: v for k, v in kwargs.items() if k.startswith("y_")}
+        if cost is not None:
+            x_kwargs["cost"] = cost
+            y_kwargs["cost"] = cost
         x_kwargs["tag"] = Tag.POINT_CLOUD
         y_kwargs["tag"] = Tag.POINT_CLOUD
 
@@ -286,7 +291,6 @@ class OTProblem(BaseProblem):
         else:
             raise ValueError("Unable to prepare the data. Either only supply `xy=...`, or `x=..., y=...`, or all.")
         # fmt: on
-
         self._a = self._create_marginals(self.adata_src, data=a, source=True, **kwargs)
         self._b = self._create_marginals(self.adata_tgt, data=b, source=False, **kwargs)
         return self
@@ -319,17 +323,14 @@ class OTProblem(BaseProblem):
         """
         self._solver = self._problem_kind.solver(backend=backend, neural=isinstance(self, NeuralOTProblem), **kwargs)
 
-        a = kwargs.pop("a", self._a)
-        b = kwargs.pop("b", self._b)
-
         # TODO: add ScaleCost(scale_cost)
 
         self._solution = self._solver(  # type: ignore[misc]
             xy=self._xy,
             x=self._x,
             y=self._y,
-            a=a,
-            b=b,
+            a=self.a,
+            b=self.b,
             device=device,
             **kwargs,
         )
@@ -422,6 +423,7 @@ class OTProblem(BaseProblem):
         layer: Optional[str] = None,
         return_linear: bool = True,
         n_comps: int = 30,
+        scale: bool = False,
         **kwargs: Any,
     ) -> Dict[Literal["xy", "x", "y"], TaggedArray]:
         def concat(x: ArrayLike, y: ArrayLike) -> ArrayLike:
@@ -436,6 +438,8 @@ class OTProblem(BaseProblem):
         else:
             x, y, msg = adata.layers[layer], adata_y.layers[layer], f"adata.layers[{layer!r}]"
 
+        scaler = StandardScaler() if scale else None
+
         if return_linear:
             n = x.shape[0]
             data = concat(x, y)
@@ -443,13 +447,18 @@ class OTProblem(BaseProblem):
                 # TODO(michalk8): log
                 return {"xy": TaggedArray(data[:n], data[n:], tag=Tag.POINT_CLOUD)}
 
-            logger.info(f"Computing pca with `n_comps={n_comps}` using `{msg}`")
+            logger.info(f"Computing pca with `n_comps={n_comps}` for `xy` using `{msg}`")
             data = sc.pp.pca(data, n_comps=n_comps, **kwargs)
+            if scaler is not None:
+                data = scaler.fit_transform(data)
             return {"xy": TaggedArray(data[:n], data[n:], tag=Tag.POINT_CLOUD)}
 
-        logger.info(f"Computing pca with `n_comps={n_comps}` using `{msg}`")
+        logger.info(f"Computing pca with `n_comps={n_comps}` for `x` and `y` using `{msg}`")
         x = sc.pp.pca(x, n_comps=n_comps, **kwargs)
         y = sc.pp.pca(y, n_comps=n_comps, **kwargs)
+        if scaler is not None:
+            x = scaler.fit_transform(x)
+            y = scaler.fit_transform(y)
         return {"x": TaggedArray(x, tag=Tag.POINT_CLOUD), "y": TaggedArray(y, tag=Tag.POINT_CLOUD)}
 
     def _create_marginals(
@@ -476,6 +485,112 @@ class OTProblem(BaseProblem):
 
     def _estimate_marginals(self, adata: AnnData, *, source: bool, **kwargs: Any) -> ArrayLike:
         return np.ones((adata.n_obs,), dtype=float) / adata.n_obs
+
+    @d.dedent
+    def set_xy(
+        self,
+        data: pd.DataFrame,
+        tag: Literal["cost", "kernel"],
+    ) -> None:
+        """
+        Set a custom cost matrix/kernel in the linear term.
+
+        Parameters
+        ----------
+        %(data_set)s
+        %(tag_set)s
+
+        Returns
+        -------
+        None
+        """
+        if self.problem_kind == ProblemKind.QUAD:
+            logger.info(f"Changing the problem type from {self.problem_kind} to fused-quadratic.")
+            self._problem_kind = ProblemKind.QUAD_FUSED
+        if data.shape != (self.adata_src.n_obs, self.adata_tgt.n_obs):
+            raise ValueError(
+                f"`data` is exptected to have shape {(self.adata_src.n_obs, self.adata_tgt.n_obs)} but found {data.shape}."  # noqa: E501
+            )
+        if not isinstance(data, pd.DataFrame):
+            raise TypeError("If the data is to be validated, the data must be of type pandas.DataFrame.")
+        if list(data.index) != list(self.adata_src.obs_names):
+            raise ValueError(
+                "The index names of `data` do not correspond to `adata.obs_names` of the source distribution.."
+            )
+        if list(data.columns) != list(self.adata_tgt.obs_names):
+            raise ValueError(
+                "The column names of `data` do not correspond to `adata.obs_names` of the target distribution."
+            )
+        self._xy = TaggedArray(data_src=data.values, data_tgt=None, tag=Tag(tag), cost="cost")
+        self._stage = ProblemStage.PREPARED
+
+    @d.dedent
+    def set_x(self, data: pd.DataFrame, tag: Literal["cost", "kernel"]) -> None:
+        """
+        Set a custom cost matrix/kernel in the quadratic source term.
+
+        Parameters
+        ----------
+        %(data_set)s
+        %(tag_set)s
+
+        Returns
+        -------
+        None
+        """
+        if self.problem_kind == ProblemKind.LINEAR:
+            logger.info(f"Changing the problem type from {self.problem_kind} to fused-quadratic.")
+            self._problem_kind = ProblemKind.QUAD_FUSED
+        if data.shape != (self.adata_src.n_obs, self.adata_src.n_obs):
+            raise ValueError(
+                f"`data` is exptected to have shape {(self.adata_src.n_obs, self.adata_src.n_obs)} but found {data.shape}."  # noqa: E501
+            )
+        if not isinstance(data, pd.DataFrame):
+            raise TypeError("If the data is to be validated, the data must be of type pandas.DataFrame.")
+        if list(data.index) != list(self.adata_src.obs_names):
+            raise ValueError(
+                "The index names of `data` do not correspond to `adata.obs_names` of the source distribution.."
+            )
+        if list(data.columns) != list(self.adata_src.obs_names):
+            raise ValueError(
+                "The column names of `data` do not correspond to `adata.obs_names` of the source distribution."
+            )
+        self._x = TaggedArray(data_src=data.values, data_tgt=None, tag=Tag(tag), cost="cost")
+        self._stage = ProblemStage.PREPARED
+
+    @d.dedent
+    def set_y(self, data: pd.DataFrame, tag: Literal["cost", "kernel"]) -> None:
+        """
+        Set a custom cost matrix/kernel in the quadratic target term.
+
+        Parameters
+        ----------
+        %(data_set)s
+        %(tag_set)s
+
+        Returns
+        -------
+        None
+        """
+        if self.problem_kind == ProblemKind.LINEAR:
+            logger.info(f"Changing the problem type from {self.problem_kind} to fused-quadratic.")
+            self._problem_kind = ProblemKind.QUAD_FUSED
+        if data.shape != (self.adata_tgt.n_obs, self.adata_tgt.n_obs):
+            raise ValueError(
+                f"`data` is exptected to have shape {(self.adata_tgt.n_obs, self.adata_tgt.n_obs)} but found {data.shape}."  # noqa: E501
+            )
+        if not isinstance(data, pd.DataFrame):
+            raise TypeError("If the data is to be validated, the data must be of type pandas.DataFrame.")
+        if list(data.index) != list(self.adata_tgt.obs_names):
+            raise ValueError(
+                "The index names of `data` do not correspond to `adata.obs_names` of the source distribution.."
+            )
+        if list(data.columns) != list(self.adata_tgt.obs_names):
+            raise ValueError(
+                "The column names of `data` do not correspond to `adata.obs_names` of the source distribution."
+            )
+        self._y = TaggedArray(data_src=data.values, data_tgt=None, tag=Tag(tag), cost="cost")
+        self._stage = ProblemStage.PREPARED
 
     @property
     def adata_src(self) -> AnnData:
