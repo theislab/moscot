@@ -183,11 +183,11 @@ class NeuralDualSolver:
         # define dict to contain source and target batch
         batch: Dict[str, jnp.ndarray] = {}
         valid_batch: Dict[str, jnp.ndarray] = {}
-        valid_batch["source"] = validloader(key=None, full_dataset=True, source=True)
-        valid_batch["target"] = validloader(key=None, full_dataset=True, source=False)
+        valid_batch["source"], valid_batch["target"] = validloader(key=None, full_dataset=True)
         sink_dist = _compute_sinkhorn_divergence(
             valid_batch["source"][:, self.split_index], valid_batch["target"][:, self.split_index]
         )
+
         # set logging dictionaries
         train_logs: Dict[str, List[float]] = defaultdict(list)
         valid_logs: Dict[str, List[float]] = defaultdict(list)
@@ -200,30 +200,29 @@ class NeuralDualSolver:
 
         for iteration in tqdm(range(self.iterations)):
             # sample target batch
-            target_key, self.key = jax.random.split(self.key, 2)
-            batch["target"] = trainloader(target_key, source=False)
+            key, self.key = jax.random.split(self.key, 4)
+            curr_source, batch["target"] = trainloader(key)
             if self.epsilon is not None:
                 # sample source batch and compute unbalanced marginals
-                curr_source = trainloader(target_key, source=True)
                 marginals_source, marginals_target = trainloader.compute_unbalanced_marginals(
                     curr_source, batch["target"]
                 )
 
             for _ in range(self.inner_iters):
-                source_key, self.key = jax.random.split(self.key, 2)
+                key, self.key = jax.random.split(self.key, 4)
                 if self.epsilon is None:
                     # sample source batch
-                    batch["source"] = trainloader(source_key, source=True)
+                    batch["source"], batch["target"] = trainloader(key)
                 else:
                     # resample source with unbalanced marginals
-                    batch["source"] = trainloader.unbalanced_resample(source_key, curr_source, marginals_source)
+                    batch["source"] = trainloader.unbalanced_resample(key, curr_source, marginals_source)
                 # train step for potential g directly updating the train state
                 self.state_g, train_g_metrics = self.train_step_g(self.state_f, self.state_g, batch)
                 for key, value in train_g_metrics.items():
                     average_meters[key].update(value)
             # resample target batch with unbalanced marginals
             if self.epsilon is not None:
-                batch["target"] = trainloader.unbalanced_resample(target_key, batch["target"], marginals_target)
+                batch["target"] = trainloader.unbalanced_resample(key, batch["target"], marginals_target)
             # train step for potential f directly updating the train state
             self.state_f, train_f_metrics = self.train_step_f(self.state_f, self.state_g, batch)
             for key, value in train_f_metrics.items():
