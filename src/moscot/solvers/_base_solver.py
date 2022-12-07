@@ -23,7 +23,9 @@ class ProblemKind(ModeEnum):
     QUAD = "quadratic"
     QUAD_FUSED = "quadratic_fused"
 
-    def solver(self, *, backend: Literal["ott"] = "ott", neural: bool = False, **kwargs: Any) -> "BaseSolver[O]":
+    def solver(
+        self, *, backend: Literal["ott"] = "ott", neural: Union[bool, Literal["cond"]] = False, **kwargs: Any
+    ) -> "BaseSolver[O]":
         """
         Return the solver dependent on the backend and the problem.
 
@@ -47,10 +49,13 @@ class ProblemKind(ModeEnum):
                 FGWSolver,
                 NeuralSolver,
                 SinkhornSolver,
+                CondNeuralSolver,
             )
 
             if self == ProblemKind.LINEAR:
                 if neural:
+                    if neural == "cond":
+                        return CondNeuralSolver(**kwargs)
                     return NeuralSolver(**kwargs)
                 return SinkhornSolver(**kwargs)
             if self == ProblemKind.QUAD:

@@ -19,7 +19,6 @@ from moscot.solvers._base_solver import OTSolver, ProblemKind
 from moscot._constants._constants import ProblemStage
 from moscot.solvers._tagged_array import Tag, TaggedArray
 from moscot.problems._subset_policy import Policy_t, SubsetPolicy
-from moscot.problems.base._compound_problem import K
 
 __all__ = ["BaseProblem", "OTProblem", "NeuralOTProblem", "ProblemKind"]
 
@@ -740,9 +739,10 @@ class CondOTProblem(BaseProblem):
         self._a: Optional[str] = None
         self._b: Optional[str] = None
 
-        self._inner_policy: Optional[SubsetPolicy[K]] = None  # type:ignore[valid-type]
+        self._inner_policy: Optional[SubsetPolicy[Any]] = None
         self._sample_pairs: Optional[List[Tuple[Any, Any]]] = None
 
+    @d.dedent
     @wrap_prepare
     def prepare(
         self,
@@ -761,9 +761,9 @@ class CondOTProblem(BaseProblem):
             Geometry defining the linear term. If passed as a :class:`dict`,
             :meth:`~moscot.solvers.TaggedArray.from_adata` will be called.
         policy
-            TODO
+            Policy defining which pairs of distributions to sample from during training.
         policy_key
-            TODO
+            %(key)s
         a
             Source marginals.
         b
@@ -775,13 +775,7 @@ class CondOTProblem(BaseProblem):
         -------
         Self and modifies the following attributes:
 
-        - :attr:`xy`: geometry of shape ``[n, m]`` defining the linear term.
-        - :attr:`x`: first geometry of shape ``[n, n]`` defining  the quadratic term.
-        - :attr:`y`: second geometry of shape ``[m, m]`` defining the quadratic term.
-        - :attr:`a`: source marginals of shape ``[n,]``.
-        - :attr:`b`: target marginals of shape ``[m,]``.
-        - :attr:`problem_kind`: kind of the optimal transport problem.
-        - :attr:`solution`: set to :obj:`None`.
+        TODO
         """
         self._solution = None
 
