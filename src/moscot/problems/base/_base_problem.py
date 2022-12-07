@@ -18,6 +18,8 @@ from moscot.solvers._output import BaseSolverOutput
 from moscot.solvers._base_solver import OTSolver, ProblemKind
 from moscot._constants._constants import ProblemStage
 from moscot.solvers._tagged_array import Tag, TaggedArray
+from moscot.problems._subset_policy import Policy_t, SubsetPolicy
+from moscot.problems.base._compound_problem import K
 
 __all__ = ["BaseProblem", "OTProblem", "NeuralOTProblem", "ProblemKind"]
 
@@ -676,3 +678,196 @@ class NeuralOTProblem(OTProblem):
         if self._xy is None:
             raise ValueError("Unable to solve the problem without `xy`.")
         return super().solve(backend=backend, device=device, input_dim=self._xy.data_src.shape[1], **kwargs)
+
+
+class CondOTProblem(BaseProblem):
+    """
+    Base class for all optimal transport problems.
+
+    Parameters
+    ----------
+    adata
+        Source annotated data object.
+    adata_tgt
+        Target annotated data object. If `None`, use ``adata``.
+    src_obs_mask
+        Source observation mask that defines :attr:`adata_src`.
+    tgt_obs_mask
+        Target observation mask that defines :attr:`adata_tgt`.
+    src_var_mask
+        Source variable mask that defines :attr:`adata_src`.
+    tgt_var_mask
+        Target variable mask that defines :attr:`adata_tgt`.
+    src_key
+        Source key name, usually supplied by :class:`moscot.problems.CompoundBaseProblem`.
+    tgt_key
+        Target key name, usually supplied by :class:`moscot.problems.CompoundBaseProblem`.
+    kwargs
+        Keyword arguments for :class:`moscot.problems.base.BaseProblem.`
+
+    Notes
+    -----
+    If any of the source/target masks are specified, :attr:`adata_src`/:attr:`adata_tgt` will be a view.
+    """
+
+    def __init__(
+        self,
+        adata: AnnData,
+        adata_tgt: Optional[AnnData] = None,
+        src_obs_mask: Optional[ArrayLike] = None,
+        tgt_obs_mask: Optional[ArrayLike] = None,
+        src_var_mask: Optional[ArrayLike] = None,
+        tgt_var_mask: Optional[ArrayLike] = None,
+        src_key: Optional[Any] = None,
+        tgt_key: Optional[Any] = None,
+        **kwargs: Any,
+    ):
+        super().__init__(**kwargs)
+        self._adata = adata
+        self._src_obs_mask = src_obs_mask
+        self._tgt_obs_mask = tgt_obs_mask
+        self._src_var_mask = src_var_mask
+        self._tgt_var_mask = tgt_var_mask
+        self._src_key = src_key
+        self._tgt_key = tgt_key
+
+        self._distributions: Dict[Any, Tuple[TaggedArray, ArrayLike, ArrayLike]] = {}
+        self._solver: Optional[OTSolver[BaseSolverOutput]] = None
+        self._solution: Optional[BaseSolverOutput] = None
+
+        self._xy: Optional[TaggedArray] = None
+
+        self._a: Optional[str] = None
+        self._b: Optional[str] = None
+
+        self._inner_policy: Optional[SubsetPolicy[K]] = None  # type:ignore[valid-type]
+        self._sample_pairs: Optional[List[Tuple[Any, Any]]] = None
+
+    @wrap_prepare
+    def prepare(
+        self,
+        xy: Mapping[str, Any],
+        policy: Policy_t,
+        policy_key: str,
+        a: Optional[str] = None,
+        b: Optional[str] = None,
+        **kwargs: Any,
+    ) -> "CondOTProblem":
+        """Prepare conditional optimal transport problem.
+
+        Parameters
+        ----------
+        xy
+            Geometry defining the linear term. If passed as a :class:`dict`,
+            :meth:`~moscot.solvers.TaggedArray.from_adata` will be called.
+        policy
+            TODO
+        policy_key
+            TODO
+        a
+            Source marginals.
+        b
+            Target marginals.
+        kwargs
+            Keyword arguments when creating the source/target marginals.
+
+        Returns
+        -------
+        Self and modifies the following attributes:
+
+        - :attr:`xy`: geometry of shape ``[n, m]`` defining the linear term.
+        - :attr:`x`: first geometry of shape ``[n, n]`` defining  the quadratic term.
+        - :attr:`y`: second geometry of shape ``[m, m]`` defining the quadratic term.
+        - :attr:`a`: source marginals of shape ``[n,]``.
+        - :attr:`b`: target marginals of shape ``[m,]``.
+        - :attr:`problem_kind`: kind of the optimal transport problem.
+        - :attr:`solution`: set to :obj:`None`.
+        """
+        self._solution = None
+
+        self._inner_policy = SubsetPolicy.create(policy, adata=self.adata, key=policy_key)
+        self._sample_pairs = list(self._inner_policy._graph)
+
+        for (src, tgt), (src_mask, tgt_mask) in self._inner_policy.create_masks().items():
+            if src not in self._distributions.keys():
+                x_tagged = TaggedArray.from_adata(self.adata[src_mask], dist_key=policy_key, tag=Tag.POINT_CLOUD, **xy)
+                a = self._create_marginals(self.adata[src_mask], data=a, source=True, **kwargs)
+                b = self._create_marginals(self.adata[src_mask], data=b, source=False, **kwargs)
+                self._distributions[d] = (x_tagged, a, b)
+            if tgt not in self._distributions.keys():
+                x_tagged = TaggedArray.from_adata(self.adata[tgt_mask], dist_key=policy_key, tag=Tag.POINT_CLOUD, **xy)
+                a = self._create_marginals(self.adata[tgt_mask], data=a, source=True, **kwargs)
+                b = self._create_marginals(self.adata[tgt_mask], data=b, source=False, **kwargs)
+                self._distributions[d] = (x_tagged, a, b)
+        return self
+
+    @wrap_solve
+    def solve(
+        self,
+        backend: Literal["ott"] = "ott",
+        device: Optional[Device_t] = None,
+        **kwargs: Any,
+    ) -> "CondOTProblem":
+        """Solve optimal transport problem.
+
+        Parameters
+        ----------
+        backend
+            Which backend to use, see :func:`moscot.backends.get_available_backends`.
+        device
+            Device where to transfer the solution, see :meth:`moscot.solvers.BaseSolverOutput.to`.
+        kwargs
+            Keyword arguments for :meth:`moscot.solvers.BaseSolver.__call__`.
+
+        Returns
+        -------
+        Self and modifies the following attributes:
+
+        - :attr:`solver`: optimal transport solver.
+        - :attr:`solution`: optimal transport solution.
+        """
+        self._solver = self._problem_kind.solver(
+            distributions=self._distributions,
+            sample_pairs=self._sample_pairs,
+            backend=backend,
+            neural=isinstance(self, NeuralOTProblem),
+            **kwargs,
+        )
+
+        # TODO: add ScaleCost(scale_cost)
+
+        self._solution = self._solver(  # type: ignore[misc]
+            xy=self._xy,
+            x=self._x,
+            y=self._y,
+            a=self.a,
+            b=self.b,
+            device=device,
+            **kwargs,
+        )
+        return self
+
+    def _create_marginals(
+        self, adata: AnnData, *, source: bool, data: Optional[str] = None, **kwargs: Any
+    ) -> ArrayLike:
+        if data is True:
+            marginals = self._estimate_marginals(adata, source=source, **kwargs)
+        elif data in (False, None):
+            marginals = np.ones((adata.n_obs,), dtype=float) / adata.n_obs
+        elif isinstance(data, str):
+            try:
+                marginals = np.asarray(adata.obs[data], dtype=float)
+            except KeyError:
+                raise KeyError(f"Unable to find data in `adata.obs[{data!r}]`.") from None
+        return marginals
+
+    @property
+    def adata(self) -> AnnData:
+        """Source annotated data object."""
+        adata = self._adata if self._src_obs_mask is None else self._adata[self._src_obs_mask]
+        if not adata.n_obs:
+            raise ValueError("No observations in the source `AnnData`.")
+        adata = adata if self._src_var_mask is None else adata[:, self._src_var_mask]
+        if not adata.n_vars:
+            raise ValueError("No variables in the source `AnnData`.")
+        return adata

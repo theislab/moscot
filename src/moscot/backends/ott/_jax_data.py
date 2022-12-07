@@ -1,8 +1,9 @@
-from typing import Tuple, Optional
+from typing import Any, List, Tuple, Optional
 
 from ott.geometry.pointcloud import PointCloud
 from ott.solvers.linear.sinkhorn import sinkhorn
 import jax
+import numpy as np
 import jax.numpy as jnp
 
 
@@ -11,8 +12,8 @@ class JaxSampler:
 
     def __init__(
         self,
-        data_source: jnp.ndarray,
-        data_target: jnp.ndarray,
+        distributions: List[jnp.ndarray],
+        policies: List[Tuple[Any, Any]],
         a: Optional[jnp.ndarray] = None,
         b: Optional[jnp.ndarray] = None,
         batch_size: int = 1024,
@@ -21,8 +22,8 @@ class JaxSampler:
         epsilon: float = 0.1,
     ):
         """Initialize data sampler."""
-        self.data_source = data_source
-        self.data_target = data_target
+        self.distributions = distributions
+        self.policies = policies
         self.a = a
         self.b = b
         self.batch_size = batch_size
@@ -31,14 +32,20 @@ class JaxSampler:
         self.epsilon = epsilon
 
         @jax.jit
-        def _sample_source(key: jax.random.KeyArray) -> Tuple[jnp.ndarray, jnp.ndarray]:
+        def _sample_source(key: jax.random.KeyArray, idx: Any) -> jnp.ndarray:
             """Jitted sample function."""
-            return jax.random.choice(key, self.data_source, shape=[self.batch_size], p=self.a)
+            return jax.random.choice(key, self.distributions[idx], shape=[self.batch_size], p=self.a)
 
         @jax.jit
-        def _sample_target(key: jax.random.KeyArray) -> Tuple[jnp.ndarray, jnp.ndarray]:
+        def _sample_target(key: jax.random.KeyArray, idx: Any) -> jnp.ndarray:
             """Jitted sample function."""
-            return jax.random.choice(key, self.data_target, shape=[self.batch_size], p=self.b)
+            return jax.random.choice(key, self.distributions[idx], shape=[self.batch_size], p=self.b)
+
+        @jax.jit
+        def _sample(key: jax.random.KeyArray) -> Tuple[jnp.ndarray, jnp.ndarray]:
+            """Jitted sample function."""
+            pair = self.policies[jax.random.choice(key, np.arange(len(self.policies)))]
+            return self._sample_source(key, pair[0]), self._sample_target(key, pair[1])
 
         @jax.jit
         def _compute_unbalanced_marginals(
@@ -72,6 +79,7 @@ class JaxSampler:
             indices = jax.random.categorical(key, log_marginals, shape=[self.batch_size])
             return batch[indices]
 
+        self._sample = _sample
         self._sample_source = _sample_source
         self._sample_target = _sample_target
         self.compute_unbalanced_marginals = _compute_unbalanced_marginals
@@ -80,14 +88,11 @@ class JaxSampler:
     def __call__(
         self,
         key: jax.random.KeyArray,
-        source: bool,
         full_dataset: bool = False,
-    ) -> jnp.ndarray:
+    ) -> Tuple[jnp.ndarray, jnp.ndarray]:
         """Sample data."""
         if full_dataset:
-            if source:
-                return self.data_source
-            return self.data_target
-        if source:
-            return self._sample_source(key)
-        return self._sample_target(key)
+            return np.vstack([self.distributions[idx] for idx, _ in self.policies]), np.vstack(
+                [self.distributions[idx] for _, idx in self.policies]
+            )
+        return self._sample(key)
