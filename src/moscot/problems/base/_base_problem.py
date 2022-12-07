@@ -724,23 +724,18 @@ class CondOTProblem(BaseProblem):
         super().__init__(**kwargs)
         self._adata = adata
         self._src_obs_mask = src_obs_mask
-        self._tgt_obs_mask = tgt_obs_mask
         self._src_var_mask = src_var_mask
-        self._tgt_var_mask = tgt_var_mask
         self._src_key = src_key
-        self._tgt_key = tgt_key
 
         self._distributions: Dict[Any, Tuple[TaggedArray, ArrayLike, ArrayLike]] = {}
+        self._inner_policy: Optional[SubsetPolicy[Any]] = None
+        self._sample_pairs: Optional[List[Tuple[Any, Any]]] = None
+
         self._solver: Optional[OTSolver[BaseSolverOutput]] = None
         self._solution: Optional[BaseSolverOutput] = None
 
-        self._xy: Optional[TaggedArray] = None
-
         self._a: Optional[str] = None
         self._b: Optional[str] = None
-
-        self._inner_policy: Optional[SubsetPolicy[Any]] = None
-        self._sample_pairs: Optional[List[Tuple[Any, Any]]] = None
 
     @d.dedent
     @wrap_prepare
@@ -777,6 +772,8 @@ class CondOTProblem(BaseProblem):
 
         TODO
         """
+        self._a = a
+        self._b = b
         self._solution = None
 
         self._inner_policy = SubsetPolicy.create(policy, adata=self.adata, key=policy_key)
