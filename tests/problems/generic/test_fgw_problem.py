@@ -117,7 +117,7 @@ class TestFGWProblem:
 
     @pytest.mark.fast()
     @pytest.mark.parametrize(
-        "cost_matrix", [("sq_euclidean", SqEuclidean), ("euclidean", Euclidean), ("cosine", Cosine)]
+        "cost", [("sq_euclidean", SqEuclidean), ("euclidean", Euclidean), ("cosine", Cosine)]
     )
     def test_prepare_costs(self, adata_time: AnnData, cost: Tuple[str, Any]):
         problem = FGWProblem(adata=adata_time)
