@@ -65,8 +65,8 @@ class TestCompoundProblem:
             xy={"x_attr": "X", "y_attr": "X"},
             key="time",
             policy="sequential",
-            callback="local-pca",
-            callback_kwargs=callback_kwargs,
+            xy_callback="local-pca",
+            xy_callback_kwargs=callback_kwargs,
         )
 
         assert isinstance(problem, CompoundProblem)
@@ -76,7 +76,7 @@ class TestCompoundProblem:
     @pytest.mark.fast()
     def test_custom_callback(self, adata_time: AnnData, mocker: MockerFixture):
         expected_keys = [(0, 1), (1, 2)]
-        spy = mocker.spy(TestCompoundProblem, "callback")
+        spy = mocker.spy(TestCompoundProblem, "xy_callback")
 
         problem = Problem(adata=adata_time)
         _ = problem.prepare(
@@ -86,7 +86,7 @@ class TestCompoundProblem:
             key="time",
             policy="sequential",
             callback=TestCompoundProblem.callback,
-            callback_kwargs={"sentinel": True},
+            xy_callback_kwargs={"sentinel": True},
         )
 
         assert spy.call_count == len(expected_keys)

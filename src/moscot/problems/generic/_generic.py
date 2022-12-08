@@ -64,8 +64,8 @@ class SinkhornProblem(CompoundProblem[K, B], GenericAnalysisMixin[K, B]):
         """
         self.batch_key = key
         if joint_attr is None:
-            kwargs["callback"] = "local-pca"
-            kwargs["callback_kwargs"] = {**kwargs.get("callback_kwargs", {}), **{"return_linear": True}}
+            kwargs["xy_callback"] = "local-pca"
+            kwargs["xy_callback_kwargs"] = {**kwargs.get("callback_kwargs", {})}
         elif isinstance(joint_attr, str):
             kwargs["xy"] = {
                 "x_attr": "obsm",

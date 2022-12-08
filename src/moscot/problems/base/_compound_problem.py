@@ -48,7 +48,7 @@ __all__ = ["BaseCompoundProblem", "CompoundProblem"]
 
 K = TypeVar("K", bound=Hashable)
 B = TypeVar("B", bound=OTProblem)
-Callback_t = Callable[[AnnData, AnnData], Mapping[Literal["xy", "x", "y"], TaggedArray]]
+Callback_t = Callable[[Literal["xy", "x", "y"], AnnData, AnnData], Mapping[Literal["xy", "x", "y"], TaggedArray]]
 ApplyOutput_t = Union[ArrayLike, Dict[K, ArrayLike]]
 # TODO(michalk8): future behavior
 # ApplyOutput_t = Union[ArrayLike, Dict[Tuple[K, K], ArrayLike]]
@@ -97,8 +97,9 @@ class BaseCompoundProblem(BaseProblem, ABC, Generic[K, B]):
     # TODO(michalk8): refactor me
     def _callback_handler(
         self,
-        src: K,
-        tgt: K,
+        term: Literal["x", "y", "xy"],
+        key_1: K,
+        key_2: K,
         problem: B,
         *,
         callback: Union[Literal["local-pca"], Callback_t],
@@ -117,15 +118,19 @@ class BaseCompoundProblem(BaseProblem, ABC, Generic[K, B]):
 
         if not callable(callback):
             raise TypeError("Callback is not a function.")
-        data = callback(problem.adata_src, problem.adata_tgt, **kwargs)
+        data = callback(term=term, adata=problem.adata_src, adata_y=problem.adata_tgt, **kwargs)
         verify_data(data)
         return data
 
     # TODO(michalk8): refactor me
     def _create_problems(
         self,
-        callback: Optional[Union[Literal["local-pca"], Callback_t]] = None,
-        callback_kwargs: Mapping[str, Any] = MappingProxyType({}),
+        xy_callback: Optional[Union[Literal["local-pca"], Callback_t]] = None,
+        x_callback: Optional[Union[Literal["local-pca"], Callback_t]] = None,
+        y_callback: Optional[Union[Literal["local-pca"], Callback_t]] = None,
+        xy_callback_kwargs: Mapping[str, Any] = MappingProxyType({}),
+        x_callback_kwargs: Mapping[str, Any] = MappingProxyType({}),
+        y_callback_kwargs: Mapping[str, Any] = MappingProxyType({}),
         **kwargs: Any,
     ) -> Dict[Tuple[K, K], B]:
         from moscot.problems.base._birth_death import BirthDeathProblem
@@ -143,11 +148,25 @@ class BaseCompoundProblem(BaseProblem, ABC, Generic[K, B]):
                 tgt_name = tgt
 
             problem = self._create_problem(src, tgt, src_mask=src_mask, tgt_mask=tgt_mask)
-            if callback is not None:
-                data = self._callback_handler(src, tgt, problem, callback=callback, **callback_kwargs)
-                kws = {**kwargs, **data}  # type: ignore[arg-type]
+            if xy_callback is not None:
+                xy_data = self._callback_handler(
+                    term="xy", key_1=src, key_2=tgt, problem=problem, callback=xy_callback, **xy_callback_kwargs
+                )
             else:
-                kws = kwargs
+                xy_data = {}
+            if x_callback is not None:
+                x_data = self._callback_handler(
+                    term="x", key_1=src, key_2=tgt, problem=problem, callback=x_callback, **x_callback_kwargs
+                )
+            else:
+                x_data = {}
+            if y_callback is not None:
+                y_data = self._callback_handler(
+                    term="y", key_1=src, key_2=tgt, problem=problem, callback=y_callback, **y_callback_kwargs
+                )
+            else:
+                y_data = {}
+            kws = {**kwargs, **xy_data, **x_data, **y_data}  # type: ignore[arg-type]
 
             if isinstance(problem, BirthDeathProblem):
                 kws["proliferation_key"] = self.proliferation_key  # type: ignore[attr-defined]
@@ -164,8 +183,12 @@ class BaseCompoundProblem(BaseProblem, ABC, Generic[K, B]):
         policy: Policy_t = "sequential",
         subset: Optional[Sequence[Tuple[K, K]]] = None,
         reference: Optional[Any] = None,
-        callback: Optional[Union[Literal["local-pca"], Callback_t]] = None,
-        callback_kwargs: Mapping[str, Any] = MappingProxyType({}),
+        xy_callback: Optional[Union[Literal["local-pca"], Callback_t]] = None,
+        x_callback: Optional[Union[Literal["local-pca"], Callback_t]] = None,
+        y_callback: Optional[Union[Literal["local-pca"], Callback_t]] = None,
+        xy_callback_kwargs: Mapping[str, Any] = MappingProxyType({}),
+        x_callback_kwargs: Mapping[str, Any] = MappingProxyType({}),
+        y_callback_kwargs: Mapping[str, Any] = MappingProxyType({}),
         **kwargs: Any,
     ) -> "BaseCompoundProblem[K,B]":
         """
@@ -201,7 +224,15 @@ class BaseCompoundProblem(BaseProblem, ABC, Generic[K, B]):
         # TODO(michalk8): manager must be currently instantiated first, since `_create_problems` accesses the policy
         # when refactoring the callback, consider changing this
         self._problem_manager = ProblemManager(self, policy=policy)
-        problems = self._create_problems(callback=callback, callback_kwargs=callback_kwargs, **kwargs)
+        problems = self._create_problems(
+            xy_callback=xy_callback,
+            x_callback=x_callback,
+            y_callback=y_callback,
+            xy_callback_kwargs=xy_callback_kwargs,
+            x_callback_kwargs=x_callback_kwargs,
+            y_callback_kwargs=y_callback_kwargs,
+            **kwargs,
+        )
         self._problem_manager.add_problems(problems)
 
         for p in self.problems.values():
@@ -584,8 +615,9 @@ class CompoundProblem(BaseCompoundProblem[K, B], ABC):
 
     def _callback_handler(
         self,
-        src: K,
-        tgt: K,
+        term: Literal["xy", "x", "y"],
+        key_1: K,
+        key_2: K,
         problem: B,
         *,
         callback: Union[Literal["local-pca", "cost-matrix"], Callback_t],
@@ -593,12 +625,14 @@ class CompoundProblem(BaseCompoundProblem[K, B], ABC):
     ) -> Mapping[Literal["xy", "x", "y"], TaggedArray]:
         # TODO(michalk8): better name?
         if callback == "cost-matrix":
-            return self._cost_matrix_callback(src, tgt, **kwargs)
+            return self._cost_matrix_callback(term=term, key_1=key_1, key_2=key_2, **kwargs)
 
-        return super()._callback_handler(src, tgt, problem, callback=callback, **kwargs)
+        return super()._callback_handler(
+            term=term, key_1=key_1, key_2=key_2, problem=problem, callback=callback, **kwargs
+        )
 
     def _cost_matrix_callback(
-        self, src: K, tgt: K, *, key: str, return_linear: bool = True, **_: Any
+        self, term: Literal["xy", "x", "y"], *, key: str, key_1: K, key_2: Optional[K] = None, **_: Any
     ) -> Mapping[Literal["xy", "x", "y"], TaggedArray]:
         if TYPE_CHECKING:
             assert isinstance(self._policy, SubsetPolicy)
@@ -608,16 +642,18 @@ class CompoundProblem(BaseCompoundProblem[K, B], ABC):
         except KeyError:
             raise KeyError(f"Unable to fetch data from `adata.obsp[{key!r}]`.") from None
 
-        src_mask = self._policy.create_mask(src, allow_empty=False)
-        tgt_mask = self._policy.create_mask(tgt, allow_empty=False)
+        mask = self._policy.create_mask(key_1, allow_empty=False)
 
-        if return_linear:
-            linear_cost_matrix = data[src_mask, :][:, tgt_mask]
+        if term == "xy":
+            mask_2 = self._policy.create_mask(key_2, allow_empty=False)
+
+            linear_cost_matrix = data[mask, :][:, mask_2]
             if issparse(linear_cost_matrix):
                 linear_cost_matrix = linear_cost_matrix.A
             return {"xy": TaggedArray(linear_cost_matrix, tag=Tag.COST_MATRIX)}
 
-        return {
-            "x": TaggedArray(data[src_mask, :][:, src_mask], tag=Tag.COST_MATRIX),
-            "y": TaggedArray(data[tgt_mask, :][:, tgt_mask], tag=Tag.COST_MATRIX),
-        }
+        if term in ("x", "y"):
+            self._policy.create_mask(key_1, allow_empty=False)
+            return {term: TaggedArray(data[mask, :][:, mask], tag=Tag.COST_MATRIX)}
+
+        raise ValueError(f"Expected `term` to be one of `x`, `y`, or `xy`, found `{term!r}`.")

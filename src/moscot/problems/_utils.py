@@ -70,11 +70,11 @@ def handle_joint_attr(
     joint_attr: Optional[Union[str, Mapping[str, Any]]], kwargs: Any
 ) -> Tuple[Optional[Mapping[str, Any]], Dict[str, Any]]:
     if joint_attr is None:
-        if "callback" not in kwargs:
-            kwargs["callback"] = "local-pca"
+        if "xy_callback" not in kwargs:
+            kwargs["xy_callback"] = "local-pca"
         else:
-            kwargs["callback"] = kwargs["callback"]
-        kwargs["callback_kwargs"] = {**kwargs.get("callback_kwargs", {}), **{"return_linear": True}}
+            kwargs["xy_callback"] = kwargs["xy_callback"]
+        kwargs["xy_callback_kwargs"] = {**kwargs.get("xy_callback_kwargs", {})}
         return None, kwargs
     if isinstance(joint_attr, str):
         xy = {
