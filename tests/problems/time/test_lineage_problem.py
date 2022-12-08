@@ -25,7 +25,7 @@ class TestLineageProblem:
         problem = LineageProblem(adata=adata_time_barcodes)
         problem = problem.prepare(
             time_key="time",
-            lineage_attr={"attr": "obsm", "key": "barcodes", "tag": "cost", "cost": "barcode_distance"},
+            lineage_attr={"attr": "obsm", "key": "barcodes", "tag": "cost_matrix", "cost": "barcode_distance"},
             policy="sequential",
         )
         problem = problem.solve()
@@ -48,7 +48,7 @@ class TestLineageProblem:
         expected_keys = [(0, 1), (1, 2)]
         problem = LineageProblem(adata=adata_time_trees)
         problem = problem.prepare(
-            time_key="time", lineage_attr={"attr": "uns", "key": "trees", "tag": "cost", "cost": "leaf_distance"}
+            time_key="time", lineage_attr={"attr": "uns", "key": "trees", "tag": "cost_matrix", "cost": "leaf_distance"}
         )
         problem = problem.solve(max_iterations=10)
 
@@ -71,7 +71,7 @@ class TestLineageProblem:
         problem = problem.prepare(
             time_key="time",
             policy="sequential",
-            lineage_attr={"attr": "obsm", "key": "barcodes", "tag": "cost", "cost": "barcode_distance"},
+            lineage_attr={"attr": "obsm", "key": "barcodes", "tag": "cost_matrix", "cost": "barcode_distance"},
         )
 
         problem = problem.solve(**args_to_check)
