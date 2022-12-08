@@ -47,8 +47,8 @@ class TestOTProblem:
 
         np.testing.assert_allclose(gt.matrix, sol.transport_matrix, rtol=RTOL, atol=ATOL)
 
-    @pytest.mark.parametrize("tag", ["cost", "kernel"])
-    def test_set_xy(self, adata_x: AnnData, adata_y: AnnData, tag: Literal["cost", "kernel"]):
+    @pytest.mark.parametrize("tag", ["cost_matrix", "kernel"])
+    def test_set_xy(self, adata_x: AnnData, adata_y: AnnData, tag: Literal["cost_matrix", "kernel"]):
         rng = np.random.RandomState(42)
         prob = OTProblem(adata_x, adata_y)
         prob = prob.prepare(
@@ -66,8 +66,8 @@ class TestOTProblem:
         prob = prob.solve(max_iterations=5)  # TODO(@MUCDK) once fixed in OTT-JAX test for scale_cost
         np.testing.assert_equal(prob.xy.data_src, cost_matrix.to_numpy())
 
-    @pytest.mark.parametrize("tag", ["cost", "kernel"])
-    def test_set_x(self, adata_x: AnnData, adata_y: AnnData, tag: Literal["cost", "kernel"]):
+    @pytest.mark.parametrize("tag", ["cost_matrix", "kernel"])
+    def test_set_x(self, adata_x: AnnData, adata_y: AnnData, tag: Literal["cost_matrix", "kernel"]):
         rng = np.random.RandomState(42)
         prob = OTProblem(adata_x, adata_y)
         prob = prob.prepare(
@@ -85,8 +85,8 @@ class TestOTProblem:
         prob = prob.solve(max_iterations=5)  # TODO(@MUCDK) once fixed in OTT-JAX test for scale_cost
         np.testing.assert_equal(prob.x.data_src, cost_matrix.to_numpy())
 
-    @pytest.mark.parametrize("tag", ["cost", "kernel"])
-    def test_set_y(self, adata_x: AnnData, adata_y: AnnData, tag: Literal["cost", "kernel"]):
+    @pytest.mark.parametrize("tag", ["cost_matrix", "kernel"])
+    def test_set_y(self, adata_x: AnnData, adata_y: AnnData, tag: Literal["cost_matrix", "kernel"]):
         rng = np.random.RandomState(42)
         prob = OTProblem(adata_x, adata_y)
         prob = prob.prepare(
@@ -115,7 +115,7 @@ class TestOTProblem:
 
         cm = rng.uniform(1, 10, size=(adata_x.n_obs, adata_y.n_obs))
         cost_matrix = pd.DataFrame(index=adata_x.obs_names, columns=adata_y.obs_names, data=cm)
-        prob.set_xy(cost_matrix, tag="cost")
+        prob.set_xy(cost_matrix, tag="cost_matrix")
 
         assert prob.problem_kind == ProblemKind.QUAD_FUSED
 
@@ -129,11 +129,11 @@ class TestOTProblem:
 
         cm = rng.uniform(1, 10, size=(adata_x.n_obs, adata_x.n_obs))
         cost_matrix = pd.DataFrame(index=adata_x.obs_names, columns=adata_x.obs_names, data=cm)
-        prob.set_x(cost_matrix, tag="cost")
+        prob.set_x(cost_matrix, tag="cost_matrix")
 
         cm = rng.uniform(1, 10, size=(adata_y.n_obs, adata_y.n_obs))
         cost_matrix = pd.DataFrame(index=adata_y.obs_names, columns=adata_y.obs_names, data=cm)
-        prob.set_y(cost_matrix, tag="cost")
+        prob.set_y(cost_matrix, tag="cost_matrix")
 
         assert prob.problem_kind == ProblemKind.QUAD_FUSED
 
