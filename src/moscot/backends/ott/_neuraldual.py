@@ -395,4 +395,4 @@ class NeuralDualSolver:
 
     def to_dual_potentials(self) -> DualPotentials:
         """Return the Kantorovich dual potentials from the trained potentials."""
-        return DualPotentials(self.state_f, self.state_g, cor=True)
+        return DualPotentials(self.state_f, self.state_g, corr=True)
