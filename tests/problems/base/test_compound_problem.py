@@ -90,7 +90,7 @@ class TestCompoundProblem:
         spy.assert_called_with("xy", subproblem.adata_src, subproblem.adata_tgt, **xy_callback_kwargs)
 
     @pytest.mark.fast()
-    def test_custom_callback(self, adata_time: AnnData, mocker: MockerFixture):
+    def test_custom_callback_lin(self, adata_time: AnnData, mocker: MockerFixture):
         expected_keys = [(0, 1), (1, 2)]
         spy = mocker.spy(TestCompoundProblem, "xy_callback")
 
@@ -106,6 +106,28 @@ class TestCompoundProblem:
         )
 
         assert spy.call_count == len(expected_keys)
+
+    @pytest.mark.fast()
+    def test_custom_callback_quad(self, adata_time: AnnData, mocker: MockerFixture):
+        expected_keys = [(0, 1), (1, 2)]
+        spy_x = mocker.spy(TestCompoundProblem, "x_callback")
+        spy_y = mocker.spy(TestCompoundProblem, "y_callback")
+
+        problem = Problem(adata=adata_time)
+        _ = problem.prepare(
+            xy=None,
+            x={"attr": "X"},
+            y={"attr": "X"},
+            key="time",
+            policy="sequential",
+            x_callback=TestCompoundProblem.x_callback,
+            y_callback=TestCompoundProblem.y_callback,
+            x_callback_kwargs={"sentinel": True},
+            y_callback_kwargs={"sentinel": True},
+        )
+
+        assert spy_x.call_count == len(expected_keys)
+        assert spy_y.call_count == len(expected_keys)
 
     def test_different_passings_linear(self, adata_with_cost_matrix: AnnData):
         epsilon = 5
