@@ -25,7 +25,7 @@ class TestBaseAnalysisMixin:
         source_dim = len(gt_temporal_adata[gt_temporal_adata.obs["day"] == 10])
         target_dim = len(gt_temporal_adata[gt_temporal_adata.obs["day"] == 10.5])
         problem = CompoundProblemWithMixin(gt_temporal_adata)
-        problem = problem.prepare("day", subset=[(10, 10.5)], policy="sequential", callback="local-pca")
+        problem = problem.prepare("day", subset=[(10, 10.5)], policy="sequential", xy_callback="local-pca")
         problem[10, 10.5]._solution = MockSolverOutput(gt_temporal_adata.uns["tmap_10_105"])
 
         if interpolation_parameter is not None and not 0 <= interpolation_parameter <= 1:
@@ -71,7 +71,7 @@ class TestBaseAnalysisMixin:
     def test_interpolate_transport(self, gt_temporal_adata: AnnData, forward: bool, scale_by_marginals: bool):
         problem = CompoundProblemWithMixin(gt_temporal_adata)
         problem = problem.prepare(
-            "day", subset=[(10, 10.5), (10.5, 11), (10, 11)], policy="explicit", callback="local-pca"
+            "day", subset=[(10, 10.5), (10.5, 11), (10, 11)], policy="explicit", xy_callback="local-pca"
         )
         problem[(10.0, 10.5)]._solution = MockSolverOutput(gt_temporal_adata.uns["tmap_10_105"])
         problem[(10.5, 11.0)]._solution = MockSolverOutput(gt_temporal_adata.uns["tmap_105_11"])
@@ -92,7 +92,7 @@ class TestBaseAnalysisMixin:
         key_2 = config["key_2"]
         config["key_3"]
         problem = CompoundProblemWithMixin(gt_temporal_adata)
-        problem = problem.prepare("day", subset=[(10, 10.5)], policy="explicit", callback="local-pca")
+        problem = problem.prepare("day", subset=[(10, 10.5)], policy="explicit", xy_callback="local-pca")
         assert set(problem.problems.keys()) == {(key_1, key_2)}
         problem[key_1, key_2]._solution = MockSolverOutput(gt_temporal_adata.uns["tmap_10_105"])
 
@@ -133,7 +133,7 @@ class TestBaseAnalysisMixin:
         key_1 = config["key_1"]
         key_2 = config["key_2"]
         problem = CompoundProblemWithMixin(gt_temporal_adata)
-        problem = problem.prepare("day", subset=[(10, 10.5)], policy="explicit", callback="local-pca")
+        problem = problem.prepare("day", subset=[(10, 10.5)], policy="explicit", xy_callback="local-pca")
         assert set(problem.problems.keys()) == {(key_1, key_2)}
         problem[key_1, key_2]._solution = MockSolverOutput(gt_temporal_adata.uns["tmap_10_105"])
 

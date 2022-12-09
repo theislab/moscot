@@ -27,9 +27,7 @@ SOLUTIONS_PATH = Path("./tests/data/mapping_solutions.pkl")  # base is moscot
 class TestMappingProblem:
     @pytest.mark.fast()
     @pytest.mark.parametrize("sc_attr", [{"attr": "X"}, {"attr": "obsm", "key": "X_pca"}])
-    @pytest.mark.parametrize(
-        "joint_attr", [None, "X_pca", {"x_attr": "obsm", "x_key": "X_pca", "y_attr": "obsm", "y_key": "X_pca"}]
-    )
+    @pytest.mark.parametrize("joint_attr", [None, "X_pca", {"attr": "obsm", "key": "X_pca"}])
     def test_prepare(self, adata_mapping: AnnData, sc_attr: Mapping[str, str], joint_attr: Optional[Mapping[str, str]]):
         adataref, adatasp = _adata_spatial_split(adata_mapping)
         expected_keys = {(i, "ref") for i in adatasp.obs.batch.cat.categories}

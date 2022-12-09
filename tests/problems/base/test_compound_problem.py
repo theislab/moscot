@@ -1,4 +1,4 @@
-from typing import Any, Tuple, Literal, Mapping
+from typing import Any, Tuple, Literal, Mapping, Optional
 import os
 
 from pytest_mock import MockerFixture
@@ -19,12 +19,28 @@ from moscot.solvers._tagged_array import Tag, TaggedArray
 
 class TestCompoundProblem:
     @staticmethod
-    def callback(
-        adata: AnnData, adata_y: AnnData, sentinel: bool = False
+    def xy_callback(
+        term: Literal["x", "y", "xy"], adata: AnnData, adata_y: Optional[AnnData] = None, sentinel: bool = False
     ) -> Mapping[Literal["xy", "x", "y"], TaggedArray]:
         assert sentinel
         assert isinstance(adata_y, AnnData)
-        return {"xy": TaggedArray(euclidean_distances(adata.X, adata_y.X), tag=Tag.COST_MATRIX)}
+        return {term: TaggedArray(euclidean_distances(adata.X, adata_y.X), tag=Tag.COST_MATRIX)}
+
+    @staticmethod
+    def x_callback(
+        term: Literal["x", "y", "xy"], adata: AnnData, adata_y: Optional[AnnData] = None, sentinel: bool = False
+    ) -> Mapping[Literal["xy", "x", "y"], TaggedArray]:
+        assert sentinel
+        assert isinstance(adata_y, AnnData)
+        return {term: TaggedArray(euclidean_distances(adata.X, adata_y.X), tag=Tag.COST_MATRIX)}
+
+    @staticmethod
+    def y_callback(
+        term: Literal["x", "y", "xy"], adata: AnnData, adata_y: Optional[AnnData] = None, sentinel: bool = False
+    ) -> Mapping[Literal["xy", "x", "y"], TaggedArray]:
+        assert sentinel
+        assert isinstance(adata_y, AnnData)
+        return {term: TaggedArray(euclidean_distances(adata.X, adata_y.X), tag=Tag.COST_MATRIX)}
 
     def test_sc_pipeline(self, adata_time: AnnData):
         expected_keys = [(0, 1), (1, 2)]
@@ -55,7 +71,7 @@ class TestCompoundProblem:
     @pytest.mark.fast()
     def test_default_callback(self, adata_time: AnnData, mocker: MockerFixture, scale: bool):
         subproblem = OTProblem(adata_time, adata_tgt=adata_time.copy())
-        callback_kwargs = {"n_comps": 5, "scale": scale}
+        xy_callback_kwargs = {"n_comps": 5, "scale": scale}
         spy = mocker.spy(subproblem, "_local_pca_callback")
 
         problem = Problem(adata_time)
@@ -65,31 +81,53 @@ class TestCompoundProblem:
             xy={"x_attr": "X", "y_attr": "X"},
             key="time",
             policy="sequential",
-            callback="local-pca",
-            callback_kwargs=callback_kwargs,
+            xy_callback="local-pca",
+            xy_callback_kwargs=xy_callback_kwargs,
         )
 
         assert isinstance(problem, CompoundProblem)
         assert isinstance(problem.problems, dict)
-        spy.assert_called_with(subproblem.adata_src, subproblem.adata_tgt, **callback_kwargs)
+        spy.assert_called_with("xy", subproblem.adata_src, subproblem.adata_tgt, **xy_callback_kwargs)
 
     @pytest.mark.fast()
-    def test_custom_callback(self, adata_time: AnnData, mocker: MockerFixture):
+    def test_custom_callback_lin(self, adata_time: AnnData, mocker: MockerFixture):
         expected_keys = [(0, 1), (1, 2)]
-        spy = mocker.spy(TestCompoundProblem, "callback")
+        spy = mocker.spy(TestCompoundProblem, "xy_callback")
 
         problem = Problem(adata=adata_time)
         _ = problem.prepare(
-            xy={"x_attr": "X", "y_attr": "X"},
+            xy=None,
             x={"attr": "X"},
             y={"attr": "X"},
             key="time",
             policy="sequential",
-            callback=TestCompoundProblem.callback,
-            callback_kwargs={"sentinel": True},
+            xy_callback=TestCompoundProblem.xy_callback,
+            xy_callback_kwargs={"sentinel": True},
         )
 
         assert spy.call_count == len(expected_keys)
+
+    @pytest.mark.fast()
+    def test_custom_callback_quad(self, adata_time: AnnData, mocker: MockerFixture):
+        expected_keys = [(0, 1), (1, 2)]
+        spy_x = mocker.spy(TestCompoundProblem, "x_callback")
+        spy_y = mocker.spy(TestCompoundProblem, "y_callback")
+
+        problem = Problem(adata=adata_time)
+        _ = problem.prepare(
+            xy=None,
+            x={"attr": "X"},
+            y={"attr": "X"},
+            key="time",
+            policy="sequential",
+            x_callback=TestCompoundProblem.x_callback,
+            y_callback=TestCompoundProblem.y_callback,
+            x_callback_kwargs={"sentinel": True},
+            y_callback_kwargs={"sentinel": True},
+        )
+
+        assert spy_x.call_count == len(expected_keys)
+        assert spy_y.call_count == len(expected_keys)
 
     def test_different_passings_linear(self, adata_with_cost_matrix: AnnData):
         epsilon = 5
@@ -100,7 +138,7 @@ class TestCompoundProblem:
         p1_tmap = p1[0, 1].solution.transport_matrix
 
         p2 = Problem(adata_with_cost_matrix)
-        p2 = p2.prepare(key="batch", xy={"attr": "uns", "key": 0, "cost": "custom", "tag": "cost"})
+        p2 = p2.prepare(key="batch", xy={"attr": "uns", "key": 0, "cost": "custom", "tag": "cost_matrix"})
         p2 = p2.solve(epsilon=epsilon)
         p2_tmap = p2[0, 1].solution.transport_matrix
 
