@@ -116,9 +116,7 @@ class TestFGWProblem:
             assert getattr(geom, val) == args_to_check[arg]
 
     @pytest.mark.fast()
-    @pytest.mark.parametrize(
-        "cost", [("sq_euclidean", SqEuclidean), ("euclidean", Euclidean), ("cosine", Cosine)]
-    )
+    @pytest.mark.parametrize("cost", [("sq_euclidean", SqEuclidean), ("euclidean", Euclidean), ("cosine", Cosine)])
     def test_prepare_costs(self, adata_time: AnnData, cost: Tuple[str, Any]):
         problem = FGWProblem(adata=adata_time)
         problem = problem.prepare(

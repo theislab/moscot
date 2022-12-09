@@ -48,7 +48,9 @@ __all__ = ["BaseCompoundProblem", "CompoundProblem"]
 
 K = TypeVar("K", bound=Hashable)
 B = TypeVar("B", bound=OTProblem)
-Callback_t = Callable[[Literal["xy", "x", "y"], AnnData, AnnData], Mapping[Literal["xy", "x", "y"], TaggedArray]]
+Callback_t = Callable[
+    [Literal["xy", "x", "y"], AnnData, Optional[AnnData]], Mapping[Literal["xy", "x", "y"], TaggedArray]
+]
 ApplyOutput_t = Union[ArrayLike, Dict[K, ArrayLike]]
 # TODO(michalk8): future behavior
 # ApplyOutput_t = Union[ArrayLike, Dict[Tuple[K, K], ArrayLike]]
@@ -118,7 +120,7 @@ class BaseCompoundProblem(BaseProblem, ABC, Generic[K, B]):
 
         if not callable(callback):
             raise TypeError("Callback is not a function.")
-        data = callback(term=term, adata=problem.adata_src, adata_y=problem.adata_tgt, **kwargs)
+        data = callback(term, problem.adata_src, problem.adata_tgt, **kwargs)
         verify_data(data)
         return data
 
@@ -645,6 +647,8 @@ class CompoundProblem(BaseCompoundProblem[K, B], ABC):
         mask = self._policy.create_mask(key_1, allow_empty=False)
 
         if term == "xy":
+            if key_2 is None:
+                raise ValueError("If `term` is `xy`, `key_2` cannot be `None`.")
             mask_2 = self._policy.create_mask(key_2, allow_empty=False)
 
             linear_cost_matrix = data[mask, :][:, mask_2]

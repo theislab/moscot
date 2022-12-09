@@ -20,31 +20,21 @@ from moscot.solvers._tagged_array import Tag, TaggedArray
 class TestCompoundProblem:
     @staticmethod
     def xy_callback(
-        term: Literal["x", "y", "xy"],
-        adata: AnnData,
-        adata_y: Optional[AnnData] = None,
-        sentinel: bool = False
+        term: Literal["x", "y", "xy"], adata: AnnData, adata_y: Optional[AnnData] = None, sentinel: bool = False
     ) -> Mapping[Literal["xy", "x", "y"], TaggedArray]:
         assert sentinel
         assert isinstance(adata_y, AnnData)
         return {term: TaggedArray(euclidean_distances(adata.X, adata_y.X), tag=Tag.COST_MATRIX)}
 
-    
     def x_callback(
-        term: Literal["x", "y", "xy"],
-        adata: AnnData,
-        adata_y: Optional[AnnData] = None,
-        sentinel: bool = False
+        term: Literal["x", "y", "xy"], adata: AnnData, adata_y: Optional[AnnData] = None, sentinel: bool = False
     ) -> Mapping[Literal["xy", "x", "y"], TaggedArray]:
         assert sentinel
         assert isinstance(adata_y, AnnData)
         return {term: TaggedArray(euclidean_distances(adata.X, adata_y.X), tag=Tag.COST_MATRIX)}
 
     def y_callback(
-        term: Literal["x", "y", "xy"],
-        adata: AnnData,
-        adata_y: Optional[AnnData] = None,
-        sentinel: bool = False
+        term: Literal["x", "y", "xy"], adata: AnnData, adata_y: Optional[AnnData] = None, sentinel: bool = False
     ) -> Mapping[Literal["xy", "x", "y"], TaggedArray]:
         assert sentinel
         assert isinstance(adata_y, AnnData)
