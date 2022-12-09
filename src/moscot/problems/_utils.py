@@ -84,11 +84,19 @@ def handle_joint_attr(
         return xy, kwargs
     if isinstance(joint_attr, Mapping):
         joint_attr = dict(joint_attr)
-        if "tag" not in joint_attr:
-            raise KeyError("When providing a `dict` as `joint_attr`, the key `tag` is required.")
-        if "key" not in joint_attr:
-            raise KeyError("When providing a `dict` as `joint_attr`, the key `key` is required.")
-        if joint_attr["tag"] == "cost_matrix":
+        if "attr" in joint_attr and joint_attr["attr"] == "X":
+            return {"x_attr": "X", "y_attr": "X"}, kwargs
+        if "attr" in joint_attr and joint_attr["attr"] == "obsm":
+            if "key" not in joint_attr:
+                raise KeyError("`key` must be provided when `attr` is `obsm`.")
+            xy = {
+                "x_attr": "obsm",
+                "x_key": joint_attr["key"],
+                "y_attr": "obsm",
+                "y_key": joint_attr["key"],
+            }
+            return xy, kwargs
+        if joint_attr.get("tag", None) == "cost_matrix":
             if len(joint_attr) == 2 or kwargs.get("attr", None) == "obsp":
                 joint_attr.setdefault("cost", "custom")
                 joint_attr.setdefault("attr", "obsp")
