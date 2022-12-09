@@ -177,7 +177,7 @@ class TestBaseAnalysisMixin:
         tmap = rng.uniform(1e-6, 1, size=(n0, n1))
         tmap /= tmap.sum().sum()
         problem = CompoundProblemWithMixin(adata_time)
-        problem = problem.prepare("time", callback="local-pca")
+        problem = problem.prepare("time", xy_callback="local-pca")
         problem[0, 1]._solution = MockSolverOutput(tmap)
 
         adata_time.obs[key_added] = np.hstack((np.zeros(n0), problem.pull(start=0, end=1).squeeze()))
@@ -206,7 +206,7 @@ class TestBaseAnalysisMixin:
         tmap = rng.uniform(1e-6, 1, size=(n0, n1))
         tmap /= tmap.sum().sum()
         problem = CompoundProblemWithMixin(adata_time)
-        problem = problem.prepare("time", callback="local-pca")
+        problem = problem.prepare("time", xy_callback="local-pca")
         problem[0, 1]._solution = MockSolverOutput(tmap)
 
         adata_time.obs[key_added] = np.hstack((np.zeros(n0), problem.pull(start=0, end=1).squeeze()))
@@ -245,7 +245,7 @@ class TestBaseAnalysisMixin:
         tmap = rng.uniform(1e-6, 1, size=(n0, n1))
         tmap /= tmap.sum().sum()
         problem = CompoundProblemWithMixin(adata_time)
-        problem = problem.prepare("time", callback="local-pca")
+        problem = problem.prepare("time", xy_callback="local-pca")
         problem[0, 1]._solution = MockSolverOutput(tmap)
 
         adata_time.obs[key_added] = np.hstack((np.zeros(n0), problem.pull(start=0, end=1).squeeze()))
@@ -272,7 +272,7 @@ class TestBaseAnalysisMixin:
         tmap = rng.uniform(1e-6, 1, size=(n0, n1))
         tmap /= tmap.sum().sum()
         problem = CompoundProblemWithMixin(adata_time)
-        problem = problem.prepare("time", callback="local-pca")
+        problem = problem.prepare("time", xy_callback="local-pca")
         problem[0, 1]._solution = MockSolverOutput(tmap)
 
         adata_time.obs[key_added] = np.hstack((np.zeros(n0), problem.pull(start=0, end=1).squeeze()))
@@ -297,7 +297,7 @@ class TestBaseAnalysisMixin:
         tmap = rng.uniform(1e-6, 1, size=(n0, n1))
         tmap /= tmap.sum().sum()
         problem = CompoundProblemWithMixin(adata_time)
-        problem = problem.prepare("time", callback="local-pca")
+        problem = problem.prepare("time", xy_callback="local-pca")
         problem[0, 1]._solution = MockSolverOutput(tmap)
 
         adata_time.obs[key_added] = np.hstack((np.zeros(n0), problem.pull(start=0, end=1).squeeze()))
@@ -323,7 +323,7 @@ class TestBaseAnalysisMixin:
         tmap = rng.uniform(1e-6, 1, size=(n0, n1))
         tmap /= tmap.sum().sum()
         problem = CompoundProblemWithMixin(adata_time)
-        problem = problem.prepare("time", callback="local-pca")
+        problem = problem.prepare("time", xy_callback="local-pca")
         problem[0, 1]._solution = MockSolverOutput(tmap)
 
         adata_time.obs[key_added] = np.hstack((np.zeros(n0), problem.pull(start=0, end=1).squeeze()))
