@@ -67,12 +67,12 @@ def wrap_solve(
 
 
 def handle_joint_attr(
-    joint_attr: Optional[Union[str, Mapping[str, Any]]], kwargs: Any
+    joint_attr: Optional[Union[str, Mapping[str, Any]]], kwargs: Dict[Any, Any]
 ) -> Tuple[Optional[Mapping[str, Any]], Dict[str, Any]]:
     if joint_attr is None:
         if "xy_callback" not in kwargs:
             kwargs["xy_callback"] = "local-pca"
-        kwargs["xy_callback_kwargs"] = kwargs["xy_callback_kwargs"].set_default({})
+        kwargs.setdefault("xy_callback_kwargs", {})
         return None, kwargs
     if isinstance(joint_attr, str):
         xy = {

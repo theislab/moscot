@@ -99,7 +99,7 @@ class TestCompoundProblem:
             y={"attr": "X"},
             key="time",
             policy="sequential",
-            callback=TestCompoundProblem.callback,
+            callback=TestCompoundProblem.callback_xy,
             xy_callback_kwargs={"sentinel": True},
         )
 
