@@ -630,9 +630,9 @@ class CompoundProblem(BaseCompoundProblem[K, B], ABC):
         **kwargs: Any,
     ) -> Mapping[Literal["xy", "x", "y"], TaggedArray]:
         # TODO(michalk8): better name?
+
         if callback == "cost-matrix":
             return self._cost_matrix_callback(term=term, key_1=key_1, key_2=key_2, **kwargs)
-
         return super()._callback_handler(
             term=term, key_1=key_1, key_2=key_2, problem=problem, callback=callback, **kwargs
         )

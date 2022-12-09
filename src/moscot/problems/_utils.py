@@ -67,8 +67,8 @@ def wrap_solve(
 
 
 def handle_joint_attr(
-    joint_attr: Optional[Union[str, Mapping[str, Any]]], kwargs: Dict[Any, Any]
-) -> Tuple[Optional[Mapping[str, Any]], Dict[str, Any]]:
+    joint_attr: Optional[Union[str, Mapping[str, Any]]], kwargs: Dict[str, Any]
+) -> Tuple[Optional[Dict[str, Any]], Dict[str, Any]]:
     if joint_attr is None:
         if "xy_callback" not in kwargs:
             kwargs["xy_callback"] = "local-pca"
@@ -83,6 +83,18 @@ def handle_joint_attr(
         }
         return xy, kwargs
     if isinstance(joint_attr, Mapping):
+        joint_attr = dict(joint_attr)
+        if "tag" not in joint_attr:
+            raise KeyError("When providing a `dict` as `joint_attr`, the key `tag` is required.")
+        if "key" not in joint_attr:
+            raise KeyError("When providing a `dict` as `joint_attr`, the key `key` is required.")
+        if joint_attr["tag"] == "cost_matrix":
+            if len(joint_attr) == 2 or kwargs.get("attr", None) == "obsp":
+                joint_attr.setdefault("cost", "custom")
+                joint_attr.setdefault("attr", "obsp")
+                kwargs["xy_callback"] = "cost-matrix"
+                kwargs.setdefault("xy_callback_kwargs", {"key": joint_attr["key"]})
+        kwargs.setdefault("xy_callback_kwargs", {})
         return joint_attr, kwargs
     raise TypeError(f"Expected `joint_attr` to be either `str` or `dict`, found `{type(joint_attr)}`.")
 
