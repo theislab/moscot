@@ -96,12 +96,12 @@ class TestCompoundProblem:
 
         problem = Problem(adata=adata_time)
         _ = problem.prepare(
-            xy={"x_attr": "X", "y_attr": "X"},
+            xy=None,
             x={"attr": "X"},
             y={"attr": "X"},
             key="time",
             policy="sequential",
-            callback=TestCompoundProblem.xy_callback,
+            xy_callback=TestCompoundProblem.xy_callback,
             xy_callback_kwargs={"sentinel": True},
         )
 
