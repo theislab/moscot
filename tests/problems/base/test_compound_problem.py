@@ -26,6 +26,7 @@ class TestCompoundProblem:
         assert isinstance(adata_y, AnnData)
         return {term: TaggedArray(euclidean_distances(adata.X, adata_y.X), tag=Tag.COST_MATRIX)}
 
+    @staticmethod
     def x_callback(
         term: Literal["x", "y", "xy"], adata: AnnData, adata_y: Optional[AnnData] = None, sentinel: bool = False
     ) -> Mapping[Literal["xy", "x", "y"], TaggedArray]:
@@ -33,6 +34,7 @@ class TestCompoundProblem:
         assert isinstance(adata_y, AnnData)
         return {term: TaggedArray(euclidean_distances(adata.X, adata_y.X), tag=Tag.COST_MATRIX)}
 
+    @staticmethod
     def y_callback(
         term: Literal["x", "y", "xy"], adata: AnnData, adata_y: Optional[AnnData] = None, sentinel: bool = False
     ) -> Mapping[Literal["xy", "x", "y"], TaggedArray]:
@@ -85,7 +87,7 @@ class TestCompoundProblem:
 
         assert isinstance(problem, CompoundProblem)
         assert isinstance(problem.problems, dict)
-        spy.assert_called_with(subproblem.adata_src, subproblem.adata_tgt, **xy_callback_kwargs)
+        spy.assert_called_with("xy", subproblem.adata_src, subproblem.adata_tgt, **xy_callback_kwargs)
 
     @pytest.mark.fast()
     def test_custom_callback(self, adata_time: AnnData, mocker: MockerFixture):
@@ -99,7 +101,7 @@ class TestCompoundProblem:
             y={"attr": "X"},
             key="time",
             policy="sequential",
-            callback=TestCompoundProblem.callback_xy,
+            callback=TestCompoundProblem.xy_callback,
             xy_callback_kwargs={"sentinel": True},
         )
 
