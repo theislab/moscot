@@ -445,7 +445,7 @@ class OTProblem(BaseProblem):
         scaler = StandardScaler() if scale else None
 
         if term == "xy":
-            if adata_y is None:
+            if y is None:
                 raise ValueError("When `term` is `xy` `adata_y` cannot be `None`.")
             n = x.shape[0]
             data = concat(x, y)

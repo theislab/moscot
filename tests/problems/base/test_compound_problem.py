@@ -1,4 +1,4 @@
-from typing import Any, Tuple, Literal, Mapping
+from typing import Any, Tuple, Literal, Mapping, Optional
 import os
 
 from pytest_mock import MockerFixture
@@ -19,12 +19,36 @@ from moscot.solvers._tagged_array import Tag, TaggedArray
 
 class TestCompoundProblem:
     @staticmethod
-    def callback(
-        adata: AnnData, adata_y: AnnData, sentinel: bool = False
+    def xy_callback(
+        term: Literal["x", "y", "xy"],
+        adata: AnnData,
+        adata_y: Optional[AnnData] = None,
+        sentinel: bool = False
     ) -> Mapping[Literal["xy", "x", "y"], TaggedArray]:
         assert sentinel
         assert isinstance(adata_y, AnnData)
-        return {"xy": TaggedArray(euclidean_distances(adata.X, adata_y.X), tag=Tag.COST_MATRIX)}
+        return {term: TaggedArray(euclidean_distances(adata.X, adata_y.X), tag=Tag.COST_MATRIX)}
+
+    
+    def x_callback(
+        term: Literal["x", "y", "xy"],
+        adata: AnnData,
+        adata_y: Optional[AnnData] = None,
+        sentinel: bool = False
+    ) -> Mapping[Literal["xy", "x", "y"], TaggedArray]:
+        assert sentinel
+        assert isinstance(adata_y, AnnData)
+        return {term: TaggedArray(euclidean_distances(adata.X, adata_y.X), tag=Tag.COST_MATRIX)}
+
+    def y_callback(
+        term: Literal["x", "y", "xy"],
+        adata: AnnData,
+        adata_y: Optional[AnnData] = None,
+        sentinel: bool = False
+    ) -> Mapping[Literal["xy", "x", "y"], TaggedArray]:
+        assert sentinel
+        assert isinstance(adata_y, AnnData)
+        return {term: TaggedArray(euclidean_distances(adata.X, adata_y.X), tag=Tag.COST_MATRIX)}
 
     def test_sc_pipeline(self, adata_time: AnnData):
         expected_keys = [(0, 1), (1, 2)]
@@ -55,7 +79,7 @@ class TestCompoundProblem:
     @pytest.mark.fast()
     def test_default_callback(self, adata_time: AnnData, mocker: MockerFixture, scale: bool):
         subproblem = OTProblem(adata_time, adata_tgt=adata_time.copy())
-        callback_kwargs = {"n_comps": 5, "scale": scale}
+        xy_callback_kwargs = {"n_comps": 5, "scale": scale}
         spy = mocker.spy(subproblem, "_local_pca_callback")
 
         problem = Problem(adata_time)
@@ -66,12 +90,12 @@ class TestCompoundProblem:
             key="time",
             policy="sequential",
             xy_callback="local-pca",
-            xy_callback_kwargs=callback_kwargs,
+            xy_callback_kwargs=xy_callback_kwargs,
         )
 
         assert isinstance(problem, CompoundProblem)
         assert isinstance(problem.problems, dict)
-        spy.assert_called_with(subproblem.adata_src, subproblem.adata_tgt, **callback_kwargs)
+        spy.assert_called_with(subproblem.adata_src, subproblem.adata_tgt, **xy_callback_kwargs)
 
     @pytest.mark.fast()
     def test_custom_callback(self, adata_time: AnnData, mocker: MockerFixture):

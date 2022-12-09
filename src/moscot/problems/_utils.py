@@ -72,9 +72,7 @@ def handle_joint_attr(
     if joint_attr is None:
         if "xy_callback" not in kwargs:
             kwargs["xy_callback"] = "local-pca"
-        else:
-            kwargs["xy_callback"] = kwargs["xy_callback"]
-        kwargs["xy_callback_kwargs"] = {**kwargs.get("xy_callback_kwargs", {})}
+        kwargs["xy_callback_kwargs"] = kwargs["xy_callback_kwargs"].set_default({})
         return None, kwargs
     if isinstance(joint_attr, str):
         xy = {

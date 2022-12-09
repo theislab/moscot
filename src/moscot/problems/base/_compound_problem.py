@@ -653,7 +653,6 @@ class CompoundProblem(BaseCompoundProblem[K, B], ABC):
             return {"xy": TaggedArray(linear_cost_matrix, tag=Tag.COST_MATRIX)}
 
         if term in ("x", "y"):
-            self._policy.create_mask(key_1, allow_empty=False)
             return {term: TaggedArray(data[mask, :][:, mask], tag=Tag.COST_MATRIX)}
 
         raise ValueError(f"Expected `term` to be one of `x`, `y`, or `xy`, found `{term!r}`.")
