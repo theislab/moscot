@@ -147,7 +147,7 @@ class BaseSolver(Generic[O], ABC):
 
 @d.get_sections(base="OTSolver", sections=["Parameters", "Raises"])
 @d.dedent
-class OTSolver(TagConverterMixin, BaseSolver[O], ABC):  # noqa: B024
+class OTSolver(TagConverterMixin, BaseSolver[O], ABC):
     """Base class for optimal transport solvers."""
 
     def __call__(

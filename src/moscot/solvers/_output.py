@@ -209,7 +209,7 @@ class BaseSolverOutput(ABC):
         return f"{self.__class__.__name__}[{self._format_params(str)}]"
 
 
-class MatrixSolverOutput(BaseSolverOutput, ABC):  # noqa: B024
+class MatrixSolverOutput(BaseSolverOutput, ABC):
     """Optimal transport output with materialized :attr:`transport_matrix`.
 
     Parameters

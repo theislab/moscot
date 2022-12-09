@@ -27,7 +27,7 @@ def get_cost_function(cost: str, *, backend: Literal["ott"] = "ott", **kwargs: A
 class Tag(ModeEnum):
     """Tag used to interpret array-like data in :class:`moscot.solvers.TaggedArray`."""
 
-    COST_MATRIX = "cost"  #: Cost matrix.
+    COST_MATRIX = "cost_matrix"  #: Cost matrix.
     KERNEL = "kernel"  #: Kernel matrix.
     POINT_CLOUD = "point_cloud"  #: Point cloud.
 
