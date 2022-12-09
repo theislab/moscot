@@ -350,7 +350,7 @@ class LineageProblem(TemporalProblem):
         lineage_attr.setdefault("attr", "obsp")
         lineage_attr.setdefault("key", "cost_matrices")
         lineage_attr.setdefault("cost", "custom")
-        lineage_attr.setdefault("tag", "cost")
+        lineage_attr.setdefault("tag", "cost_matrix")
 
         x = y = lineage_attr
 

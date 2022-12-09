@@ -71,8 +71,8 @@ class TestSinkhornProblem:
         assert list(feature_correlation.columns) == [key_added + suf for suf in suffix]
         assert feature_correlation.isna().sum().sum() == 0
 
-    @pytest.mark.parametrize("tag", ["cost", "kernel"])
-    def test_set_xy(self, adata_time: AnnData, tag: Literal["cost", "kernel"]):
+    @pytest.mark.parametrize("tag", ["cost_matrix", "kernel"])
+    def test_set_xy(self, adata_time: AnnData, tag: Literal["cost_matrix", "kernel"]):
         rng = np.random.RandomState(42)
         adata_time = adata_time[adata_time.obs["time"].isin((0, 1))].copy()
         problem = SinkhornProblem(adata=adata_time)

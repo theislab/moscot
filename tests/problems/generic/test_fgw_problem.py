@@ -8,9 +8,9 @@ import numpy as np
 
 from anndata import AnnData
 
-from moscot.problems.base import OTProblem
+from moscot.problems.base import OTProblem  # type:ignore[attr-defined]
 from moscot.solvers._output import BaseSolverOutput
-from moscot.problems.generic import FGWProblem
+from moscot.problems.generic import FGWProblem  # type:ignore[attr-defined]
 from tests.problems.conftest import (
     fgw_args_1,
     fgw_args_2,
@@ -131,8 +131,8 @@ class TestFGWProblem:
         assert isinstance(problem[0, 1].x.cost, cost[1])
         assert isinstance(problem[0, 1].y.cost, cost[1])
 
-    @pytest.mark.parametrize("tag", ["cost", "kernel"])
-    def test_set_xy(self, adata_time: AnnData, tag: Literal["cost", "kernel"]):
+    @pytest.mark.parametrize("tag", ["cost_matrix", "kernel"])
+    def test_set_xy(self, adata_time: AnnData, tag: Literal["cost_matrix", "kernel"]):
         rng = np.random.RandomState(42)
         adata_time = adata_time[adata_time.obs["time"].isin((0, 1))].copy()
         problem = FGWProblem(adata=adata_time)
@@ -159,8 +159,8 @@ class TestFGWProblem:
         assert isinstance(problem[0, 1].xy.data_src, np.ndarray)
         assert problem[0, 1].xy.data_tgt is None
 
-    @pytest.mark.parametrize("tag", ["cost", "kernel"])
-    def test_set_x(self, adata_time: AnnData, tag: Literal["cost", "kernel"]):
+    @pytest.mark.parametrize("tag", ["cost_matrix", "kernel"])
+    def test_set_x(self, adata_time: AnnData, tag: Literal["cost_matrix", "kernel"]):
         rng = np.random.RandomState(42)
         adata_time = adata_time[adata_time.obs["time"].isin((0, 1))].copy()
         problem = FGWProblem(adata=adata_time)
@@ -186,8 +186,8 @@ class TestFGWProblem:
         assert isinstance(problem[0, 1].x.data_src, np.ndarray)
         assert problem[0, 1].x.data_tgt is None
 
-    @pytest.mark.parametrize("tag", ["cost", "kernel"])
-    def test_set_y(self, adata_time: AnnData, tag: Literal["cost", "kernel"]):
+    @pytest.mark.parametrize("tag", ["cost_matrix", "kernel"])
+    def test_set_y(self, adata_time: AnnData, tag: Literal["cost_matrix", "kernel"]):
         rng = np.random.RandomState(42)
         adata_time = adata_time[adata_time.obs["time"].isin((0, 1))].copy()
         problem = FGWProblem(adata=adata_time)
