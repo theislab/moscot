@@ -458,7 +458,7 @@ class OTProblem(BaseProblem):
             if scaler is not None:
                 data = scaler.fit_transform(data)
             return {"xy": TaggedArray(data[:n], data[n:], tag=Tag.POINT_CLOUD)}
-        if term in ("x", "y"):
+        if term in ("x", "y"):  # if we don't have a shared space, then adata_y is always None
             logger.info(f"Computing pca with `n_comps={n_comps}` for `{term}` using `{msg}`")
             x = sc.pp.pca(x, n_comps=n_comps, **kwargs)
             if scaler is not None:

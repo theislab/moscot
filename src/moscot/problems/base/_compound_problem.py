@@ -104,7 +104,7 @@ class BaseCompoundProblem(BaseProblem, ABC, Generic[K, B]):
         key_2: K,
         problem: B,
         *,
-        callback: Union[Literal["local-pca"], Callback_t],
+        callback: Optional[Union[Literal["local-pca"], Callback_t]] = None,
         **kwargs: Any,
     ) -> Mapping[Literal["xy", "x", "y"], TaggedArray]:
         def verify_data(data: Mapping[Literal["xy", "x", "y"], TaggedArray]) -> None:
@@ -115,6 +115,8 @@ class BaseCompoundProblem(BaseProblem, ABC, Generic[K, B]):
                 if not isinstance(val, TaggedArray):
                     raise TypeError(f"Expected value for `{key}` to be a `TaggedArray`, found `{type(val)}`.")
 
+        if callback is None:
+            return {}
         if callback == "local-pca":
             callback = problem._local_pca_callback
 
@@ -150,24 +152,19 @@ class BaseCompoundProblem(BaseProblem, ABC, Generic[K, B]):
                 tgt_name = tgt
 
             problem = self._create_problem(src, tgt, src_mask=src_mask, tgt_mask=tgt_mask)
-            if xy_callback is not None:
-                xy_data = self._callback_handler(
-                    term="xy", key_1=src, key_2=tgt, problem=problem, callback=xy_callback, **xy_callback_kwargs
-                )
-            else:
-                xy_data = {}
-            if x_callback is not None:
-                x_data = self._callback_handler(
-                    term="x", key_1=src, key_2=tgt, problem=problem, callback=x_callback, **x_callback_kwargs
-                )
-            else:
-                x_data = {}
-            if y_callback is not None:
-                y_data = self._callback_handler(
-                    term="y", key_1=src, key_2=tgt, problem=problem, callback=y_callback, **y_callback_kwargs
-                )
-            else:
-                y_data = {}
+
+            xy_data = self._callback_handler(
+                term="xy", key_1=src, key_2=tgt, problem=problem, callback=xy_callback, **xy_callback_kwargs
+            )
+
+            x_data = self._callback_handler(
+                term="x", key_1=src, key_2=tgt, problem=problem, callback=x_callback, **x_callback_kwargs
+            )
+
+            y_data = self._callback_handler(
+                term="y", key_1=src, key_2=tgt, problem=problem, callback=y_callback, **y_callback_kwargs
+            )
+
             kws = {**kwargs, **xy_data, **x_data, **y_data}  # type: ignore[arg-type]
 
             if isinstance(problem, BirthDeathProblem):
@@ -626,7 +623,7 @@ class CompoundProblem(BaseCompoundProblem[K, B], ABC):
         key_2: K,
         problem: B,
         *,
-        callback: Union[Literal["local-pca", "cost-matrix"], Callback_t],
+        callback: Optional[Union[Literal["local-pca", "cost-matrix"], Callback_t]] = None,
         **kwargs: Any,
     ) -> Mapping[Literal["xy", "x", "y"], TaggedArray]:
         # TODO(michalk8): better name?
@@ -657,10 +654,15 @@ class CompoundProblem(BaseCompoundProblem[K, B], ABC):
 
             linear_cost_matrix = data[mask, :][:, mask_2]
             if issparse(linear_cost_matrix):
+                logger.warning("Linear cost matrix being densified.")
                 linear_cost_matrix = linear_cost_matrix.A
             return {"xy": TaggedArray(linear_cost_matrix, tag=Tag.COST_MATRIX)}
 
         if term in ("x", "y"):
-            return {term: TaggedArray(data[mask, :][:, mask], tag=Tag.COST_MATRIX)}
+            quad_cost_matrix = data[mask, :][:, mask_2]
+            if issparse(quad_cost_matrix):
+                logger.warning("Quadratic cost matrix being densified.")
+                quad_cost_matrix = quad_cost_matrix.A
+            return {term: TaggedArray(quad_cost_matrix, tag=Tag.COST_MATRIX)}
 
         raise ValueError(f"Expected `term` to be one of `x`, `y`, or `xy`, found `{term!r}`.")
