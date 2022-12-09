@@ -202,8 +202,12 @@ class BaseCompoundProblem(BaseProblem, ABC, Generic[K, B]):
         %(policy)s
         %(subset)s
         %(reference)s
-        %(callback)s
-        %(callback_kwargs)s
+        %(xy_callback)s
+        %(x_callback)s
+        %(y_callback)s
+        %(xy_callback_kwargs)s
+        %(x_callback_kwargs)s
+        %(y_callback_kwargs)s
         %(a)s
         %(b)s
 
