@@ -540,7 +540,7 @@ class AnalysisMixin(Generic[K, B]):
 
         Returns
         -------
-        Dataframe of shape ``(n_genes, 5)`` containing the following columns, one for each lineage:
+        Dataframe of shape ``(n_features, 5)`` containing the following columns, one for each lineage:
 
             - `corr` - correlation between the count data and push/pull distributions.
             - `pval` - calculated p-values for double-sided test.
