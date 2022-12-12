@@ -16,6 +16,7 @@ from anndata import AnnData
 from moscot._types import ArrayLike, Str_Dict_t
 from moscot._logging import logger
 from moscot._docs._docs import d
+from moscot._docs._utils import inject_docs
 from moscot._constants._constants import CorrTestMethod, AggregationMode
 
 __all__ = [
@@ -239,6 +240,7 @@ def _filter_kwargs(*funcs: Callable[..., Any], **kwargs: Any) -> Dict[str, Any]:
 
 
 @d.dedent
+@inject_docs(tm=CorrTestMethod)
 def _correlation_test(
     X: Union[ArrayLike, spmatrix],
     Y: pd.DataFrame,

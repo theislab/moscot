@@ -1,4 +1,17 @@
-from typing import Any, Dict, List, Tuple, Union, Generic, Literal, Optional, Protocol, Sequence, TYPE_CHECKING
+from typing import (
+    Any,
+    Dict,
+    List,
+    Tuple,
+    Union,
+    Generic,
+    Literal,
+    Iterable,
+    Optional,
+    Protocol,
+    Sequence,
+    TYPE_CHECKING,
+)
 
 from scipy.sparse.linalg import LinearOperator
 import pandas as pd
@@ -6,9 +19,12 @@ import pandas as pd
 import numpy as np
 
 from anndata import AnnData
+import scanpy as sc
 
 from moscot._types import ArrayLike, Numeric_t, Str_Dict_t
+from moscot._docs._docs import d
 from moscot.utils._data import TranscriptionFactors
+from moscot._docs._utils import inject_docs
 from moscot.solvers._output import BaseSolverOutput
 from moscot.problems.base._utils import (
     _correlation_test,
@@ -480,6 +496,8 @@ class AnalysisMixin(Generic[K, B]):
         return tm
 
     # adapted from CellRank (github.com/theislab/cellrank)
+    @d.dedent
+    @inject_docs(tm=CorrTestMethod)
     def compute_feature_correlation(
         self: AnalysisMixinProtocol[K, B],
         obs_key: str,
@@ -487,6 +505,7 @@ class AnalysisMixin(Generic[K, B]):
         annotation: Optional[Dict[str, List[str]]] = None,
         layer: Optional[str] = None,
         features: Optional[Union[List[str], Literal["human", "mouse", "drosophila"]]] = None,
+        obsm_keys: Iterable[Tuple[str, int]] = (),
         confidence_level: float = 0.95,
         n_perms: int = 1000,
         seed: Optional[int] = None,
@@ -495,13 +514,13 @@ class AnalysisMixin(Generic[K, B]):
         """
         Compute correlation of push or pull distribution with features.
 
-        Correlates (processed) count data with probabilities of cells mapped to a subset of cells, e.g. for a
-        certain celltype.
+        Correlates a feature (e.g. counts of a gene) with probabilities of cells mapped to a set of cells, e.g.
+        a pull back or push forward distribution.
 
         Parameters
         ----------
         obs_key
-            Column of :attr:`adata.obs` containing push-forward or pull-back distributions.
+            Column of :attr:`anndata.AnnData.obs` containing push-forward or pull-back distributions.
         method
             Mode to use when calculating p-values and confidence intervals. Valid options are:
                 - `{CorrTestMethod.FISCHER!r}` - use Fischer transformation :cite:`fischer:21`.
@@ -520,6 +539,13 @@ class AnalysisMixin(Generic[K, B]):
             - If `None`, all features will be taken into account.
             - If of type :obj:`list`, features from :attr:`anndata.AnnData.var_names` will be taken.
             - If `human`, `mouse`, or `drosophila`, the features are subsetted to transcription factors.
+        obsm_keys
+            Tuple of `(key from obsm, column index of obsm[key])` which the correlation of
+            ``anndata.AnnData.obs['{obs_key}']`` is
+            computed with. While `features` handles entries from :attr:`anndata.AnnData.X`,
+            :attr:`anndata.AnnData.layers`, and
+            :attr:`anndata.AnnData.obs`, `obsm_keys` allows to choose columns from :attr:`anndata.AnnData.obsm`.
+            See the documentation of :meth:`scanpy.get.obs_df` for more details.
         confidence_level
             Confidence level for the confidence interval calculation. Must be in interval `[0, 1]`.
         n_perms
@@ -533,8 +559,8 @@ class AnalysisMixin(Generic[K, B]):
         -------
         %(correlation_test.returns)s
         """
-        if obs_key not in self.adata.obs.columns:
-            raise KeyError(f"[{obs_key!r} not found in `adata.obs`.")
+        if obs_key not in self.adata.obs:
+            raise KeyError("Unable to access data in `adata.obs[{obs_key!r}]`.")
 
         method = CorrTestMethod(method)
 
@@ -545,30 +571,25 @@ class AnalysisMixin(Generic[K, B]):
             if not isinstance(annotation_vals, list):
                 raise TypeError("`annotation` expected to be dictionary of length 1 with value being a list.")
 
-            adata_red = self.adata[self.adata.obs[annotation_key].isin(annotation_vals)]
+            adata = self.adata[self.adata.obs[annotation_key].isin(annotation_vals)]
         else:
-            adata_red = self.adata
+            adata = self.adata
 
-        adata_red = adata_red[~adata_red.obs[obs_key].isnull()]
-        if len(adata_red) == 0:
+        adata = adata[~adata.obs[obs_key].isnull()]
+        if adata.n_obs == 0:
             raise ValueError(f"`adata.obs[{obs_key!r}]` only contains NaN values.")
-        distribution = adata_red.obs[[obs_key]]
+        distribution = adata.obs[[obs_key]]
 
         if isinstance(features, str):
             tfs = TranscriptionFactors.transcription_factors(organism=features)
-            adata_red = adata_red[:, list(set(tfs).intersection(adata_red.var_names))]
-        if isinstance(features, list):
-            adata_red = adata_red[:, features]
-
-        if layer is not None and layer not in self.adata.layers:
-            raise KeyError(f"Layer `{layer!r}` not found in `adata.layers`.")
-
-        data = adata_red.X if layer is None else adata_red.layers[layer]
+            features = set(tfs).intersection(adata.var_names)
+            if len(features) == 0:
+                raise KeyError("No common transcription factors found in the data base.")
 
         return _correlation_test(
-            X=data,
+            X=sc.get.obs_df(self.adata, keys=features, layer=layer, obsm_keys=obsm_keys),
             Y=distribution,
-            feature_names=adata_red.var_names,
+            feature_names=adata.var_names,
             method=method,
             confidence_level=confidence_level,
             n_perms=n_perms,
