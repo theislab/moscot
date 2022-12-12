@@ -541,11 +541,13 @@ class AnalysisMixin(Generic[K, B]):
         Returns
         -------
         Dataframe of shape ``(n_genes, 5)`` containing the following columns, one for each lineage:
+
             - `corr` - correlation between the count data and push/pull distributions.
             - `pval` - calculated p-values for double-sided test.
             - `qval` - corrected p-values using Benjamini-Hochberg method at level `0.05`.
             - `ci_low` - lower bound of the ``confidence_level`` correlation confidence interval.
             - `ci_high` - upper bound of the ``confidence_level`` correlation confidence interval.
+
         """
         if obs_key not in self.adata.obs:
             raise KeyError("Unable to access data in `adata.obs[{obs_key!r}]`.")
