@@ -507,8 +507,8 @@ class AnalysisMixin(Generic[K, B]):
             Column of :attr:`anndata.AnnData.obs` containing push-forward or pull-back distributions.
         method
             Mode to use when calculating p-values and confidence intervals. Valid options are:
-                - `{CorrTestMethod.FISCHER!r}` - use Fischer transformation :cite:`fischer:21`.
-                - `{CorrTestMethod.PERM_TEST!r}` - use permutation test.
+                - `fischer` - use Fischer transformation :cite:`fischer:21`.
+                - `perm_test` - use permutation test.
         annotation
             If not `None`, this defines the subset of data to be considered when computing the correlation.
             Its key should correspond to a key in
@@ -518,17 +518,17 @@ class AnalysisMixin(Generic[K, B]):
             Key from :attr:`anndata.AnnData.layers` from which to get the expression.
             If `None`, use :attr:`anndata.AnnData.X`.
         features
-            Features of :class:`anndata.AnnData` which the correlation of ``anndata.AnnData.obs['{obs_key}']`` is
-            computed with:
-            - If `None`, all features will be taken into account.
-            - If of type :obj:`list`, features from :attr:`anndata.AnnData.var_names` will be taken.
-            - If `human`, `mouse`, or `drosophila`, the features are subsetted to transcription factors.
+            Features in :class:`anndata.AnnData` which the correlation of ``anndata.AnnData.obs['{obs_key}']``
+            is computed with:  # noqa: RST301
+                - `None` - all features will be taken into account.
+                - :obj:`list` - features from :attr:`anndata.AnnData.var_names` will be taken.
+                - `human`, `mouse`, or `drosophila` - the features are subsetted to transcription factors.
         confidence_level
             Confidence level for the confidence interval calculation. Must be in interval `[0, 1]`.
         n_perms
-            Number of permutations to use when ``method = {CorrTestMethod.PERM_TEST!r}``.
+            Number of permutations to use when ``method = perm_test``.
         seed
-            Random seed when ``method = {CorrTestMethod.PERM_TEST!r}``.
+            Random seed when ``method = perm_test``.
 
         %(parallel_kwargs)s
 
