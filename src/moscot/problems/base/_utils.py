@@ -16,7 +16,6 @@ from anndata import AnnData
 from moscot._types import ArrayLike, Str_Dict_t
 from moscot._logging import logger
 from moscot._docs._docs import d
-from moscot._docs._utils import inject_docs
 from moscot._constants._constants import CorrTestMethod, AggregationMode
 
 __all__ = [
@@ -240,7 +239,6 @@ def _filter_kwargs(*funcs: Callable[..., Any], **kwargs: Any) -> Dict[str, Any]:
 
 
 @d.dedent
-@inject_docs(tm=CorrTestMethod)
 def _correlation_test(
     X: Union[ArrayLike, spmatrix],
     Y: pd.DataFrame,
@@ -314,9 +312,9 @@ def _correlation_test(
         res[f"{c}_pval"] = p
         res[f"{c}_qval"] = np.nan
         if np.any(valid_mask):
-            res.loc[feature_names[valid_mask], f"{c}_qval"] = multipletests(p[valid_mask], alpha=0.05, method="fdr_bh")[
-                1
-            ]
+            res.loc[np.asarray(feature_names)[valid_mask], f"{c}_qval"] = multipletests(
+                p[valid_mask], alpha=0.05, method="fdr_bh"
+            )[1]
         res[f"{c}_ci_low"] = ci_low[:, idx]
         res[f"{c}_ci_high"] = ci_high[:, idx]
 
@@ -381,7 +379,8 @@ def _correlation_test_helper(
 
     if issparse(X) and not isspmatrix_csr(X):
         X = csr_matrix(X)
-
+    print("x.shape", X.shape)
+    print("y.shape", Y.shape)
     corr = _mat_mat_corr_sparse(X, Y) if issparse(X) else _mat_mat_corr_dense(X, Y)
 
     if method == CorrTestMethod.FISCHER:

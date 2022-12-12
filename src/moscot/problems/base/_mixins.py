@@ -1,17 +1,4 @@
-from typing import (
-    Any,
-    Dict,
-    List,
-    Tuple,
-    Union,
-    Generic,
-    Literal,
-    Iterable,
-    Optional,
-    Protocol,
-    Sequence,
-    TYPE_CHECKING,
-)
+from typing import Any, Dict, List, Tuple, Union, Generic, Literal, Optional, Protocol, Sequence, TYPE_CHECKING
 
 from scipy.sparse.linalg import LinearOperator
 import pandas as pd
@@ -24,7 +11,6 @@ import scanpy as sc
 from moscot._types import ArrayLike, Numeric_t, Str_Dict_t
 from moscot._docs._docs import d
 from moscot.utils._data import TranscriptionFactors
-from moscot._docs._utils import inject_docs
 from moscot.solvers._output import BaseSolverOutput
 from moscot.problems.base._utils import (
     _correlation_test,
@@ -497,7 +483,6 @@ class AnalysisMixin(Generic[K, B]):
 
     # adapted from CellRank (github.com/theislab/cellrank)
     @d.dedent
-    @inject_docs(tm=CorrTestMethod)
     def compute_feature_correlation(
         self: AnalysisMixinProtocol[K, B],
         obs_key: str,
@@ -505,7 +490,6 @@ class AnalysisMixin(Generic[K, B]):
         annotation: Optional[Dict[str, List[str]]] = None,
         layer: Optional[str] = None,
         features: Optional[Union[List[str], Literal["human", "mouse", "drosophila"]]] = None,
-        obsm_keys: Iterable[Tuple[str, int]] = (),
         confidence_level: float = 0.95,
         n_perms: int = 1000,
         seed: Optional[int] = None,
@@ -539,13 +523,6 @@ class AnalysisMixin(Generic[K, B]):
             - If `None`, all features will be taken into account.
             - If of type :obj:`list`, features from :attr:`anndata.AnnData.var_names` will be taken.
             - If `human`, `mouse`, or `drosophila`, the features are subsetted to transcription factors.
-        obsm_keys
-            Tuple of `(key from obsm, column index of obsm[key])` which the correlation of
-            ``anndata.AnnData.obs['{obs_key}']`` is
-            computed with. While `features` handles entries from :attr:`anndata.AnnData.X`,
-            :attr:`anndata.AnnData.layers`, and
-            :attr:`anndata.AnnData.obs`, `obsm_keys` allows to choose columns from :attr:`anndata.AnnData.obsm`.
-            See the documentation of :meth:`scanpy.get.obs_df` for more details.
         confidence_level
             Confidence level for the confidence interval calculation. Must be in interval `[0, 1]`.
         n_perms
@@ -557,7 +534,12 @@ class AnalysisMixin(Generic[K, B]):
 
         Returns
         -------
-        %(correlation_test.returns)s
+        Dataframe of shape ``(n_genes, 5)`` containing the following columns, one for each lineage:
+            - ``corr`` - correlation between the count data and push/pull distributions.
+            - ``pval`` - calculated p-values for double-sided test.
+            - ``qval`` - corrected p-values using Benjamini-Hochberg method at level `0.05`.
+            - ``ci_low`` - lower bound of the ``confidence_level`` correlation confidence interval.
+            - ``ci_high`` - upper bound of the ``confidence_level`` correlation confidence interval.
         """
         if obs_key not in self.adata.obs:
             raise KeyError("Unable to access data in `adata.obs[{obs_key!r}]`.")
@@ -582,14 +564,16 @@ class AnalysisMixin(Generic[K, B]):
 
         if isinstance(features, str):
             tfs = TranscriptionFactors.transcription_factors(organism=features)
-            features = set(tfs).intersection(adata.var_names)
+            features = list(set(tfs).intersection(adata.var_names))
             if len(features) == 0:
                 raise KeyError("No common transcription factors found in the data base.")
+        elif features is None:
+            features = list(self.adata.var_names)
 
         return _correlation_test(
-            X=sc.get.obs_df(self.adata, keys=features, layer=layer, obsm_keys=obsm_keys),
+            X=sc.get.obs_df(adata, keys=features, layer=layer).values,
             Y=distribution,
-            feature_names=adata.var_names,
+            feature_names=features,
             method=method,
             confidence_level=confidence_level,
             n_perms=n_perms,
