@@ -507,8 +507,10 @@ class AnalysisMixin(Generic[K, B]):
             Column of :attr:`anndata.AnnData.obs` containing push-forward or pull-back distributions.
         method
             Mode to use when calculating p-values and confidence intervals. Valid options are:
+
                 - `fischer` - use Fischer transformation :cite:`fischer:21`.
                 - `perm_test` - use permutation test.
+
         annotation
             If not `None`, this defines the subset of data to be considered when computing the correlation.
             Its key should correspond to a key in
@@ -521,9 +523,11 @@ class AnalysisMixin(Generic[K, B]):
             Features in :class:`anndata.AnnData` which the correlation
             of ``anndata.AnnData.obs['{obs_key}']`` is computed with:
 
-                - `None` - all features will be taken into account.
-                - :obj:`list` - features from :attr:`anndata.AnnData.var_names` will be taken.
-                - `human`, `mouse`, or `drosophila` - the features are subsetted to transcription factors.
+                - If `None`, all features from :attr:`anndata.AnnData.var` will be taken into account.
+                - If of type :obj:`list`, the elements should be from :attr:`anndata.AnnData.var_names` or
+                  :attr:`anndata.AnnData.obs_names`.
+                - If `human`, `mouse`, or `drosophila`, the features are subsetted to transcription factors,
+                  see :class:`moscot.utils._data.TranscriptionFactors`.
 
         confidence_level
             Confidence level for the confidence interval calculation. Must be in interval `[0, 1]`.
