@@ -270,8 +270,8 @@ def _correlation_test(
         Number of permutations if ``method = 'perm_test'``.
     seed
         Random seed if ``method = 'perm_test'``.
-
-    %(parallel_kwargs)s
+    kwargs
+        Keyword arguments for :func:`moscot._utils.parallelize`, e.g. `n_jobs`.
 
     Returns
     -------
@@ -350,8 +350,8 @@ def _correlation_test_helper(
         Random seed if ``method = 'perm_test'``.
     confidence_level
         Confidence level for the confidence interval calculation. Must be in `[0, 1]`.
-
-    %(parallel_kwargs)s
+    kwargs
+        Keyword arguments for :func:`moscot._utils.parallelize`, e.g. `n_jobs`.
 
     Returns
     -------

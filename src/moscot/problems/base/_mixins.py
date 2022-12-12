@@ -518,28 +518,30 @@ class AnalysisMixin(Generic[K, B]):
             Key from :attr:`anndata.AnnData.layers` from which to get the expression.
             If `None`, use :attr:`anndata.AnnData.X`.
         features
-            Features in :class:`anndata.AnnData` which the correlation of ``anndata.AnnData.obs['{obs_key}']``
-            is computed with:  # noqa: RST301
+            Features in :class:`anndata.AnnData` which the correlation
+            of ``anndata.AnnData.obs['{obs_key}']`` is computed with:
+
                 - `None` - all features will be taken into account.
                 - :obj:`list` - features from :attr:`anndata.AnnData.var_names` will be taken.
                 - `human`, `mouse`, or `drosophila` - the features are subsetted to transcription factors.
+
         confidence_level
             Confidence level for the confidence interval calculation. Must be in interval `[0, 1]`.
         n_perms
             Number of permutations to use when ``method = perm_test``.
         seed
             Random seed when ``method = perm_test``.
-
-        %(parallel_kwargs)s
+        kwargs
+            Keyword arguments for :func:`moscot._utils.parallelize`, e.g. `n_jobs`.
 
         Returns
         -------
         Dataframe of shape ``(n_genes, 5)`` containing the following columns, one for each lineage:
-            - ``corr`` - correlation between the count data and push/pull distributions.
-            - ``pval`` - calculated p-values for double-sided test.
-            - ``qval`` - corrected p-values using Benjamini-Hochberg method at level `0.05`.
-            - ``ci_low`` - lower bound of the ``confidence_level`` correlation confidence interval.
-            - ``ci_high`` - upper bound of the ``confidence_level`` correlation confidence interval.
+            - `corr` - correlation between the count data and push/pull distributions.
+            - `pval` - calculated p-values for double-sided test.
+            - `qval` - corrected p-values using Benjamini-Hochberg method at level `0.05`.
+            - `ci_low` - lower bound of the ``confidence_level`` correlation confidence interval.
+            - `ci_high` - upper bound of the ``confidence_level`` correlation confidence interval.
         """
         if obs_key not in self.adata.obs:
             raise KeyError("Unable to access data in `adata.obs[{obs_key!r}]`.")
