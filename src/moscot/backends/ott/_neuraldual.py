@@ -7,6 +7,7 @@ from flax.core.scope import FrozenVariableDict
 from flax.training.train_state import TrainState
 import optax
 
+from ott.geometry import costs
 from ott.geometry.pointcloud import PointCloud
 from ott.tools.sinkhorn_divergence import sinkhorn_divergence
 from ott.problems.linear.potentials import DualPotentials
@@ -395,4 +396,4 @@ class NeuralDualSolver:
 
     def to_dual_potentials(self) -> DualPotentials:
         """Return the Kantorovich dual potentials from the trained potentials."""
-        return DualPotentials(self.state_f, self.state_g, cor=True)
+        return DualPotentials(self.state_f, self.state_g, corr=True, cost_fn=costs.SqEuclidean())
