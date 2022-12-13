@@ -180,6 +180,7 @@ def _sankey(
 
         ax.axis("off")
         ax.set_title(title)
+    return fig
 
 
 def _heatmap(

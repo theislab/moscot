@@ -40,4 +40,5 @@ class TestMoscotPl:
         _ = mpl.pull(adata_pl_pull, time_points=time_points)
 
     def test_sankey(self, adata_pl_sankey: AnnData):
-        mpl.sankey(adata_pl_sankey)
+        fig = mpl.sankey(adata_pl_sankey, return_fig=True)
+        assert fig is not None
