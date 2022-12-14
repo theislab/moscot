@@ -61,7 +61,6 @@ class AnalysisMixinProtocol(Protocol[K, B]):
     def _interpolate_transport(
         self: "AnalysisMixinProtocol[K, B]",
         path: Sequence[Tuple[K, K]],
-        forward: bool = True,
         scale_by_marginals: bool = True,
     ) -> LinearOperator:
         ...
@@ -365,7 +364,6 @@ class AnalysisMixin(Generic[K, B]):
         self: AnalysisMixinProtocol[K, B],
         # TODO(@giovp): rename this to 'explicit_steps', pass to policy.plan() and reintroduce (source_key, target_key)
         path: Sequence[Tuple[K, K]],
-        forward: bool = True,
         scale_by_marginals: bool = True,
         **_: Any,
     ) -> LinearOperator:
@@ -374,9 +372,7 @@ class AnalysisMixin(Generic[K, B]):
             assert isinstance(self._policy, SubsetPolicy)
         # TODO(@MUCDK, @giovp, discuss what exactly this function should do, seems like it could be more generic)
         fst, *rest = path
-        return self.solutions[fst].chain(
-            [self.solutions[r] for r in rest], forward=forward, scale_by_marginals=scale_by_marginals
-        )
+        return self.solutions[fst].chain([self.solutions[r] for r in rest], scale_by_marginals=scale_by_marginals)
 
     def _flatten(self: AnalysisMixinProtocol[K, B], data: Dict[K, ArrayLike], *, key: Optional[str]) -> ArrayLike:
         tmp = np.full(len(self.adata), np.nan)
