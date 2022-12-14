@@ -3,7 +3,7 @@ from typing import Any, Dict, List, Tuple, Union, Mapping, Iterable, Optional
 
 from matplotlib import colors as mcolors
 from matplotlib.axes import Axes
-import matplotlib as mpl
+import matplotlib as mp
 
 import numpy as np
 
@@ -33,7 +33,7 @@ def cell_transition(
     return_fig: bool = True,
     cbar_kwargs: Mapping[str, Any] = MappingProxyType({}),
     **kwargs: Any,
-) -> mpl.figure.Figure:
+) -> mp.figure.Figure:
     """
     Plot a cell transition matrix.
 
@@ -106,7 +106,7 @@ def sankey(
     ax: Optional[Axes] = None,
     return_fig: bool = True,
     **kwargs: Any,
-) -> mpl.figure.Figure:
+) -> mp.figure.Figure:
     """
     Plot a Sankey diagram.
 
@@ -174,7 +174,7 @@ def push(
     ax: Optional[Axes] = None,
     return_fig: bool = True,
     **kwargs: Any,
-) -> mpl.figure.Figure:
+) -> mp.figure.Figure:
     """
     Visualise the push result in an embedding.
 
@@ -223,7 +223,7 @@ def push(
         **kwargs,
     )
     if return_fig:
-        return fig
+        return fig.figure
 
 
 @d_plotting.dedent
@@ -242,7 +242,7 @@ def pull(
     ax: Optional[Axes] = None,
     return_fig: bool = True,
     **kwargs: Any,
-) -> mpl.figure.Figure:
+) -> mp.figure.Figure:
     """
     Visualise the pull result in an embedding.
 
@@ -291,4 +291,4 @@ def pull(
         **kwargs,
     )
     if return_fig:
-        return fig
+        return fig.figure

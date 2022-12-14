@@ -2,6 +2,7 @@ from typing import List, Optional
 import os
 
 import pytest
+import matplotlib as mp
 
 import numpy as np
 
@@ -37,6 +38,7 @@ class TestMoscotPl:
         fig = mpl.cell_transition(adata_pl_cell_transition, return_fig=return_fig, save=save)
         if return_fig:
             assert fig is not None
+            assert isinstance(fig, mp.figure.Figure)
         else:
             assert fig is None
         if save:
@@ -56,6 +58,7 @@ class TestMoscotPl:
 
         if return_fig:
             assert fig is not None
+            assert isinstance(fig, mp.figure.Figure)
         else:
             assert fig is None
         if save:
@@ -73,6 +76,7 @@ class TestMoscotPl:
         fig = mpl.pull(adata_pl_pull, time_points=time_points, return_fig=return_fig, save=save)
         if return_fig:
             assert fig is not None
+            assert isinstance(fig, mp.figure.Figure)
         else:
             assert fig is None
         if save:
@@ -87,6 +91,7 @@ class TestMoscotPl:
         fig = mpl.sankey(adata_pl_sankey, return_fig=return_fig, save=save)
         if return_fig:
             assert fig is not None
+            assert isinstance(fig, mp.figure.Figure)
         else:
             assert fig is None
         if save:
