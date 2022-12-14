@@ -35,14 +35,14 @@ class SpatialAlignmentMixinProtocol(AnalysisMixinProtocol[K, B]):
     _spatial_key: Optional[str]
     batch_key: Optional[str]
 
-    def _subset_spatial(
+    def _subset_spatial(  # type:ignore[empty-body]
         self: "SpatialAlignmentMixinProtocol[K, B]",
         k: K,
         spatial_key: Optional[str] = None,
     ) -> ArrayLike:
         ...
 
-    def _interpolate_scheme(
+    def _interpolate_scheme(  # type:ignore[empty-body]
         self: "SpatialAlignmentMixinProtocol[K, B]",
         reference: K,
         mode: Literal["warp", "affine"],
@@ -51,11 +51,13 @@ class SpatialAlignmentMixinProtocol(AnalysisMixinProtocol[K, B]):
         ...
 
     @staticmethod
-    def _affine(tmap: LinearOperator, tgt: ArrayLike, src: ArrayLike) -> Tuple[ArrayLike, ArrayLike]:
+    def _affine(  # type:ignore[empty-body]
+        tmap: LinearOperator, tgt: ArrayLike, src: ArrayLike
+    ) -> Tuple[ArrayLike, ArrayLike]:
         ...
 
     @staticmethod
-    def _warp(tmap: LinearOperator, _: ArrayLike, src: ArrayLike) -> Tuple[ArrayLike, None]:
+    def _warp(tmap: LinearOperator, _: ArrayLike, src: ArrayLike) -> Tuple[ArrayLike, None]:  # type:ignore[empty-body]
         ...
 
     def _cell_transition(

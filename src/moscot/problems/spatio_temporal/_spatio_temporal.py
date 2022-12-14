@@ -170,5 +170,5 @@ class SpatioTemporalProblem(
         return Policy.SEQUENTIAL, Policy.TRIL, Policy.TRIU, Policy.EXPLICIT
 
     @property
-    def _base_problem_type(self) -> Type[B]:
+    def _base_problem_type(self) -> Type[B]:  # type: ignore[override]
         return BirthDeathProblem  # type: ignore[return-value]
