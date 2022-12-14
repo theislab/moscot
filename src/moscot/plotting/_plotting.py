@@ -223,7 +223,7 @@ def push(
         **kwargs,
     )
     if return_fig:
-        return fig
+        return fig.figure
 
 
 @d_plotting.dedent
@@ -291,4 +291,4 @@ def pull(
         **kwargs,
     )
     if return_fig:
-        return fig
+        return fig.figure
