@@ -39,6 +39,10 @@ class TestMoscotPl:
     def test_pull(self, adata_pl_pull: AnnData, time_points: Optional[List[int]]):
         _ = mpl.pull(adata_pl_pull, time_points=time_points)
 
-    def test_sankey(self, adata_pl_sankey: AnnData):
-        fig = mpl.sankey(adata_pl_sankey, return_fig=True)
-        assert fig is not None
+    @pytest.mark.parametrize("return_fig", [True, False])
+    def test_sankey(self, adata_pl_sankey: AnnData, return_fig: bool):
+        fig = mpl.sankey(adata_pl_sankey, return_fig=return_fig)
+        if return_fig:
+            assert fig is not None
+        else:
+            assert fig is None
