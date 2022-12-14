@@ -1,4 +1,17 @@
-from typing import Any, Dict, List, Tuple, Union, Generic, Literal, Optional, Protocol, Sequence, TYPE_CHECKING
+from typing import (
+    Any,
+    Dict,
+    List,
+    Tuple,
+    Union,
+    Generic,
+    Literal,
+    Iterable,
+    Optional,
+    Protocol,
+    Sequence,
+    TYPE_CHECKING,
+)
 
 from scipy.sparse.linalg import LinearOperator
 import pandas as pd
@@ -6,17 +19,21 @@ import pandas as pd
 import numpy as np
 
 from anndata import AnnData
+import scanpy as sc
 
 from moscot._types import ArrayLike, Numeric_t, Str_Dict_t
+from moscot._docs._docs import d
+from moscot.utils._data import TranscriptionFactors
 from moscot.solvers._output import BaseSolverOutput
 from moscot.problems.base._utils import (
+    _correlation_test,
     _validate_annotations,
     _get_df_cell_transition,
     _order_transition_matrix,
     _validate_args_cell_transition,
     _check_argument_compatibility_cell_transition,
 )
-from moscot._constants._constants import Key, AdataKeys, PlottingKeys, AggregationMode, PlottingDefaults
+from moscot._constants._constants import Key, AdataKeys, PlottingKeys, CorrTestMethod, AggregationMode, PlottingDefaults
 from moscot.problems._subset_policy import SubsetPolicy
 from moscot.problems.base._compound_problem import B, K, ApplyOutput_t
 
@@ -427,3 +444,111 @@ class AnalysisMixin(Generic[K, B]):
             tm = pd.concat([tm, to_app], verify_integrity=True, axis=0)
             df_1 = df_1.drop(current_cells, axis=1)
         return tm
+
+    # adapted from CellRank (github.com/theislab/cellrank)
+    @d.dedent
+    def compute_feature_correlation(
+        self: AnalysisMixinProtocol[K, B],
+        obs_key: str,
+        method: Literal["fischer", "perm_test"] = CorrTestMethod.FISCHER,
+        annotation: Optional[Dict[str, Iterable[str]]] = None,
+        layer: Optional[str] = None,
+        features: Optional[Union[List[str], Literal["human", "mouse", "drosophila"]]] = None,
+        confidence_level: float = 0.95,
+        n_perms: int = 1000,
+        seed: Optional[int] = None,
+        **kwargs: Any,
+    ) -> pd.DataFrame:
+        """
+        Compute correlation of push or pull distribution with features.
+
+        Correlates a feature (e.g. counts of a gene) with probabilities of cells mapped to a set of cells, e.g.
+        a pull back or push forward distribution.
+
+        Parameters
+        ----------
+        obs_key
+            Column of :attr:`anndata.AnnData.obs` containing push-forward or pull-back distributions.
+        method
+            Mode to use when calculating p-values and confidence intervals. Valid options are:
+
+                - `fischer` - use Fischer transformation :cite:`fischer:21`.
+                - `perm_test` - use permutation test.
+
+        annotation
+            If not `None`, this defines the subset of data to be considered when computing the correlation.
+            Its key should correspond to a key in
+            :attr:`anndata.AnnData.obs` and its value to an iterable containing a subset of categories present in
+            :attr:`anndata.AnnData.obs` ``['{annotation.keys()[0]}']``.
+        layer
+            Key from :attr:`anndata.AnnData.layers` from which to get the expression.
+            If `None`, use :attr:`anndata.AnnData.X`.
+        features
+            Features in :class:`anndata.AnnData` which the correlation
+            of ``anndata.AnnData.obs['{obs_key}']`` is computed with:
+
+                - If `None`, all features from :attr:`anndata.AnnData.var` will be taken into account.
+                - If of type :obj:`list`, the elements should be from :attr:`anndata.AnnData.var_names` or
+                  :attr:`anndata.AnnData.obs_names`.
+                - If `human`, `mouse`, or `drosophila`, the features are subsetted to transcription factors,
+                  see :class:`moscot.utils._data.TranscriptionFactors`.
+
+        confidence_level
+            Confidence level for the confidence interval calculation. Must be in interval `[0, 1]`.
+        n_perms
+            Number of permutations to use when ``method = perm_test``.
+        seed
+            Random seed when ``method = perm_test``.
+        kwargs
+            Keyword arguments for :func:`moscot._utils.parallelize`, e.g. `n_jobs`.
+
+        Returns
+        -------
+        Dataframe of shape ``(n_features, 5)`` containing the following columns, one for each lineage:
+
+            - `corr` - correlation between the count data and push/pull distributions.
+            - `pval` - calculated p-values for double-sided test.
+            - `qval` - corrected p-values using Benjamini-Hochberg method at level `0.05`.
+            - `ci_low` - lower bound of the ``confidence_level`` correlation confidence interval.
+            - `ci_high` - upper bound of the ``confidence_level`` correlation confidence interval.
+
+        """
+        if obs_key not in self.adata.obs:
+            raise KeyError(f"Unable to access data in `adata.obs[{obs_key!r}]`.")
+
+        method = CorrTestMethod(method)
+
+        if annotation is not None:
+            annotation_key, annotation_vals = next(iter(annotation.items()))
+            if annotation_key not in self.adata.obs:
+                raise KeyError(f"Unable to access data in [{annotation_key!r}.")
+            if not isinstance(annotation_vals, Iterable):
+                raise TypeError("`annotation` expected to be dictionary of length 1 with value being a list.")
+
+            adata = self.adata[self.adata.obs[annotation_key].isin(annotation_vals)]
+        else:
+            adata = self.adata
+
+        adata = adata[~adata.obs[obs_key].isnull()]
+        if adata.n_obs == 0:
+            raise ValueError(f"`adata.obs[{obs_key!r}]` only contains NaN values.")
+        distribution = adata.obs[[obs_key]]
+
+        if isinstance(features, str):
+            tfs = TranscriptionFactors.transcription_factors(organism=features)
+            features = list(set(tfs).intersection(adata.var_names))
+            if len(features) == 0:
+                raise KeyError("No common transcription factors found in the data base.")
+        elif features is None:
+            features = list(self.adata.var_names)
+
+        return _correlation_test(
+            X=sc.get.obs_df(adata, keys=features, layer=layer).values,
+            Y=distribution,
+            feature_names=features,
+            method=method,
+            confidence_level=confidence_level,
+            n_perms=n_perms,
+            seed=seed,
+            **kwargs,
+        )
