@@ -124,13 +124,11 @@ class BaseSolverOutput(ABC):
             x = self._scale_by_marginals(x, forward=False)
         return self._apply(x, forward=False)
 
-    def as_linear_operator(self, *, forward: bool, scale_by_marginals: bool = False) -> LinearOperator:
+    def as_linear_operator(self, scale_by_marginals: bool = False) -> LinearOperator:
         """Transform :attr:`transport_matrix` into a linear operator.
 
         Parameters
         ----------
-        forward
-            If `True`, convert the :meth:`push` operator, else the :meth:`pull` operator.
         scale_by_marginals
             Whether to scale by marginals.
 
@@ -140,20 +138,17 @@ class BaseSolverOutput(ABC):
         """
         push = partial(self.push, scale_by_marginals=scale_by_marginals)
         pull = partial(self.pull, scale_by_marginals=scale_by_marginals)
-        mv, rmv = (pull, push) if forward else (push, pull)  # please do not change this line
-        return LinearOperator(shape=self.shape, dtype=self.a.dtype, matvec=mv, rmatvec=rmv)
+        # push: a @ X (rmatvec)
+        # pull: X @ a (matvec)
+        return LinearOperator(shape=self.shape, dtype=self.dtype, matvec=pull, rmatvec=push)
 
-    def chain(
-        self, outputs: Iterable["BaseSolverOutput"], forward: bool, scale_by_marginals: bool = False
-    ) -> LinearOperator:
+    def chain(self, outputs: Iterable["BaseSolverOutput"], scale_by_marginals: bool = False) -> LinearOperator:
         """Chain subsequent applications of :attr:`transport_matrix`.
 
         Parameters
         ----------
         outputs
             Sequence of transport matrices to chain.
-        forward
-            If `True`, chain the :meth:`push` operator, else the :meth:`pull` operator.
         scale_by_marginals
             Whether to scale by marginals.
 
@@ -161,9 +156,9 @@ class BaseSolverOutput(ABC):
         -------
         The chained transport matrices as a linear operator.
         """
-        op = self.as_linear_operator(forward=forward, scale_by_marginals=scale_by_marginals)
+        op = self.as_linear_operator(scale_by_marginals)
         for out in outputs:
-            op *= out.as_linear_operator(forward=forward, scale_by_marginals=scale_by_marginals)
+            op *= out.as_linear_operator(scale_by_marginals)
 
         return op
 
