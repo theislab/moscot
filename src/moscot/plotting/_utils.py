@@ -8,7 +8,7 @@ from matplotlib.axes import Axes
 from matplotlib.colors import ListedColormap
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 import pandas as pd
-import matplotlib as mpl
+import matplotlib as mp
 
 import numpy as np
 
@@ -52,7 +52,7 @@ def _sankey(
     horizontal_space: float = 1.5,
     force_update_colors: bool = False,
     **_: Any,
-) -> mpl.figure.Figure:
+) -> mp.figure.Figure:
     if ax is None:
         fig, ax = plt.subplots(constrained_layout=True, dpi=dpi, figsize=figsize)
     if captions is not None and len(captions) != len(transition_matrices):
@@ -200,7 +200,7 @@ def _heatmap(
     cbar_kwargs: Mapping[str, Any] = MappingProxyType({}),
     ax: Optional[Axes] = None,
     **kwargs: Any,
-) -> Optional[mpl.figure.Figure]:
+) -> mp.figure.Figure:
     cbar_kwargs = dict(cbar_kwargs)
 
     if ax is None:
@@ -214,10 +214,10 @@ def _heatmap(
         row_adata, col_adata, transition_matrix, row_annotation, col_annotation
     )
 
-    row_sm = mpl.cm.ScalarMappable(cmap=row_cmap, norm=row_norm)
-    col_sm = mpl.cm.ScalarMappable(cmap=col_cmap, norm=col_norm)
+    row_sm = mp.cm.ScalarMappable(cmap=row_cmap, norm=row_norm)
+    col_sm = mp.cm.ScalarMappable(cmap=col_cmap, norm=col_norm)
 
-    norm = mpl.colors.Normalize(
+    norm = mp.colors.Normalize(
         vmin=kwargs.pop("vmin", np.nanmin(transition_matrix)), vmax=kwargs.pop("vmax", np.nanmax(transition_matrix))
     )
     cont_cmap = copy(plt.get_cmap(cont_cmap))
@@ -274,9 +274,9 @@ def _get_black_or_white(value: float, cmap: mcolors.Colormap) -> str:
 
 def _annotate_heatmap(
     transition_matrix: pd.DataFrame,
-    im: mpl.image.AxesImage,
+    im: mp.image.AxesImage,
     valfmt: str = "{x:.2f}",
-    cmap: Union[mpl.colors.Colormap, str] = "viridis",
+    cmap: Union[mp.colors.Colormap, str] = "viridis",
     fontsize: float = 5,
     **kwargs: Any,
 ) -> None:
@@ -288,7 +288,7 @@ def _annotate_heatmap(
     kw.update(**kwargs)
 
     if isinstance(valfmt, str):
-        valfmt = mpl.ticker.StrMethodFormatter(valfmt)
+        valfmt = mp.ticker.StrMethodFormatter(valfmt)
     if TYPE_CHECKING:
         assert callable(valfmt)
 
@@ -371,7 +371,7 @@ def _plot_temporal(
     ax: Optional[Axes] = None,
     show: bool = False,
     **kwargs: Any,
-) -> Optional[mpl.figure.Figure]:
+) -> mp.figure.Figure:
     all_keys = adata.obs[temporal_key].unique()
     if time_points is None:
         constant_fill_keys: Set[K] = set()
