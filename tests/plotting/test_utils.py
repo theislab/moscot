@@ -2,7 +2,7 @@ from typing import List, Optional
 import os
 
 import pytest
-import matplotlib as mp
+import matplotlib as mpl
 
 import numpy as np
 
@@ -10,7 +10,7 @@ from anndata import AnnData
 
 from tests._utils import Problem
 from moscot.plotting._utils import _input_to_adatas
-import moscot.plotting as mpl
+import moscot as msc
 
 
 class TestMoscotPl:
@@ -35,10 +35,10 @@ class TestMoscotPl:
         if save:
             if os.path.exists(save):
                 os.remove(save)
-        fig = mpl.cell_transition(adata_pl_cell_transition, return_fig=return_fig, save=save)
+        fig = msc.pl.cell_transition(adata_pl_cell_transition, return_fig=return_fig, save=save)
         if return_fig:
             assert fig is not None
-            assert isinstance(fig, mp.figure.Figure)
+            assert isinstance(fig, mpl.figure.Figure)
         else:
             assert fig is None
         if save:
@@ -54,11 +54,11 @@ class TestMoscotPl:
             if os.path.exists(save):
                 os.remove(save)
 
-        fig = mpl.push(adata_pl_push, time_points=time_points, return_fig=return_fig, save=save)
+        fig = msc.pl.push(adata_pl_push, time_points=time_points, return_fig=return_fig, save=save)
 
         if return_fig:
             assert fig is not None
-            assert isinstance(fig, mp.figure.Figure)
+            assert isinstance(fig, mpl.figure.Figure)
         else:
             assert fig is None
         if save:
@@ -73,10 +73,10 @@ class TestMoscotPl:
         if save:
             if os.path.exists(save):
                 os.remove(save)
-        fig = mpl.pull(adata_pl_pull, time_points=time_points, return_fig=return_fig, save=save)
+        fig = msc.pl.pull(adata_pl_pull, time_points=time_points, return_fig=return_fig, save=save)
         if return_fig:
             assert fig is not None
-            assert isinstance(fig, mp.figure.Figure)
+            assert isinstance(fig, mpl.figure.Figure)
         else:
             assert fig is None
         if save:
@@ -88,10 +88,10 @@ class TestMoscotPl:
         if save:
             if os.path.exists(save):
                 os.remove(save)
-        fig = mpl.sankey(adata_pl_sankey, return_fig=return_fig, save=save)
+        fig = msc.pl.sankey(adata_pl_sankey, return_fig=return_fig, save=save)
         if return_fig:
             assert fig is not None
-            assert isinstance(fig, mp.figure.Figure)
+            assert isinstance(fig, mpl.figure.Figure)
         else:
             assert fig is None
         if save:
