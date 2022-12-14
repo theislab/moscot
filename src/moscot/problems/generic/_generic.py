@@ -14,7 +14,7 @@ __all__ = ["SinkhornProblem", "GWProblem", "FGWProblem"]
 
 
 @d.dedent
-class SinkhornProblem(CompoundProblem[K, B], GenericAnalysisMixin[K, B]):
+class SinkhornProblem(GenericAnalysisMixin[K, B], CompoundProblem[K, B]):
     """
     Class for solving linear OT problems.
 
@@ -179,7 +179,7 @@ class SinkhornProblem(CompoundProblem[K, B], GenericAnalysisMixin[K, B]):
 
 @d.get_sections(base="GWProblem", sections=["Parameters"])
 @d.dedent
-class GWProblem(CompoundProblem[K, B], GenericAnalysisMixin[K, B]):
+class GWProblem(GenericAnalysisMixin[K, B], CompoundProblem[K, B]):
     """
     Class for solving Gromov-Wasserstein problems.
 

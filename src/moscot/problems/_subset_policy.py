@@ -45,7 +45,7 @@ class FormatterMixin(ABC):
         pass
 
 
-class SubsetPolicy(Generic[K]):
+class SubsetPolicy(Generic[K], ABC):
     """Policy class."""
 
     def __init__(
