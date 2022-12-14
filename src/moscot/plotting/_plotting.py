@@ -30,7 +30,7 @@ def cell_transition(
     dpi: Optional[int] = None,
     save: Optional[str] = None,
     ax: Optional[Axes] = None,
-    return_fig: Optional[bool] = None,
+    return_fig: bool = True,
     cbar_kwargs: Mapping[str, Any] = MappingProxyType({}),
     **kwargs: Any,
 ) -> mpl.figure.Figure:
@@ -103,7 +103,7 @@ def sankey(
     dpi: Optional[int] = None,
     save: Optional[str] = None,
     ax: Optional[Axes] = None,
-    return_fig: Optional[bool] = None,
+    return_fig: bool = True,
     **kwargs: Any,
 ) -> mpl.figure.Figure:
     """
@@ -154,7 +154,8 @@ def sankey(
     )
     if save:
         fig.save(save)
-    return fig
+    if return_fig:
+        return fig
 
 
 @d_plotting.dedent
