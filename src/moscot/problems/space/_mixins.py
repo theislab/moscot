@@ -52,12 +52,14 @@ class SpatialAlignmentMixinProtocol(AnalysisMixinProtocol[K, B]):
 
     @staticmethod
     def _affine(  # type:ignore[empty-body]
-        tmap: LinearOperator, tgt: ArrayLike, src: ArrayLike
+        tmap: LinearOperator, tgt: ArrayLike, src: ArrayLike, *, forward: bool
     ) -> Tuple[ArrayLike, ArrayLike]:
         ...
 
     @staticmethod
-    def _warp(tmap: LinearOperator, _: ArrayLike, src: ArrayLike) -> Tuple[ArrayLike, None]:  # type:ignore[empty-body]
+    def _warp(  # type: ignore[empty-body]
+        tmap: LinearOperator, _: ArrayLike, src: ArrayLike, *, forward: bool
+    ) -> Tuple[ArrayLike, Optional[ArrayLike]]:
         ...
 
     def _cell_transition(
@@ -138,14 +140,14 @@ class SpatialAlignmentMixin(AnalysisMixin[K, B]):
 
         if len(fwd_steps):
             for (start, _), path in fwd_steps.items():
-                tmap = self._interpolate_transport(path=path, scale_by_marginals=True, forward=True)
+                tmap = self._interpolate_transport(path=path, scale_by_marginals=True)
                 transport_maps[start], transport_metadata[start] = _transport(
                     tmap, self._subset_spatial(start, spatial_key=spatial_key), src, forward=True
                 )
 
         if len(bwd_steps):
             for (_, end), path in bwd_steps.items():
-                tmap = self._interpolate_transport(path=path, scale_by_marginals=True, forward=True)
+                tmap = self._interpolate_transport(path=path, scale_by_marginals=True)
                 transport_maps[end], transport_metadata[end] = _transport(
                     tmap, self._subset_spatial(end, spatial_key=spatial_key), src, forward=False
                 )
@@ -282,18 +284,19 @@ class SpatialAlignmentMixin(AnalysisMixin[K, B]):
     ) -> ArrayLike:
         if spatial_key is None:
             spatial_key = self.spatial_key
-        return self.adata[self.adata.obs[self._policy._subset_key] == k].obsm[spatial_key].astype(np.float_, copy=True)
+        return self.adata[self.adata.obs[self._policy._subset_key] == k].obsm[spatial_key].astype(float, copy=True)
 
     @staticmethod
     def _affine(
-        tmap: LinearOperator, tgt: ArrayLike, src: ArrayLike, forward: bool = True, *args: Any
+        tmap: LinearOperator,
+        tgt: ArrayLike,
+        src: ArrayLike,
+        *,
+        forward: bool = True,
     ) -> Tuple[ArrayLike, ArrayLike]:
         """Affine transformation."""
         tgt -= tgt.mean(0)
-        if forward:
-            out = tmap.dot(src)
-        else:
-            out = tmap.T.dot(src)
+        out = tmap.T @ src if forward else tmap @ src
         H = tgt.T.dot(out)
         U, _, Vt = svd(H)
         R = Vt.T.dot(U.T)
@@ -301,11 +304,10 @@ class SpatialAlignmentMixin(AnalysisMixin[K, B]):
         return tgt, R
 
     @staticmethod
-    def _warp(tmap: LinearOperator, _: ArrayLike, src: ArrayLike, forward: bool = True) -> Tuple[ArrayLike, None]:
+    def _warp(tmap: LinearOperator, _: ArrayLike, src: ArrayLike, *, forward: bool = True) -> Tuple[ArrayLike, None]:
         """Warp transformation."""
-        if forward:
-            return tmap.dot(src), None
-        return tmap.T.dot(src), None
+        out = tmap.T @ src if forward else tmap @ src
+        return out, None
 
 
 class SpatialMappingMixin(AnalysisMixin[K, B]):
