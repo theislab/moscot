@@ -27,17 +27,31 @@ class TestMoscotPl:
         np.testing.assert_array_equal(adata1.X.A, adata_time.X.A)
         np.testing.assert_array_equal(adata2.X.A, adata_time.X.A)
 
-    def test_cell_transition(self, adata_pl_cell_transition: AnnData):
-        mpl.cell_transition(adata_pl_cell_transition)
-        mpl.cell_transition(adata_pl_cell_transition)
+    @pytest.mark.parametrize("return_fig", [True, False])
+    def test_cell_transition(self, adata_pl_cell_transition: AnnData, return_fig: bool):
+        fig = mpl.cell_transition(adata_pl_cell_transition, return_fig=return_fig)
+        if return_fig:
+            assert fig is not None
+        else:
+            assert fig is None
 
     @pytest.mark.parametrize("time_points", [None, [0]])
-    def test_push(self, adata_pl_push: AnnData, time_points: Optional[List[int]]):
-        _ = mpl.push(adata_pl_push, time_points=time_points)
+    @pytest.mark.parametrize("return_fig", [True, False])
+    def test_push(self, adata_pl_push: AnnData, time_points: Optional[List[int]], return_fig: bool):
+        fig = mpl.push(adata_pl_push, time_points=time_points, return_fig=return_fig)
+        if return_fig:
+            assert fig is not None
+        else:
+            assert fig is None
 
     @pytest.mark.parametrize("time_points", [None, [0]])
-    def test_pull(self, adata_pl_pull: AnnData, time_points: Optional[List[int]]):
-        _ = mpl.pull(adata_pl_pull, time_points=time_points)
+    @pytest.mark.parametrize("return_fig", [True, False])
+    def test_pull(self, adata_pl_pull: AnnData, time_points: Optional[List[int]], return_fig: bool):
+        fig = mpl.pull(adata_pl_pull, time_points=time_points, return_fig=return_fig)
+        if return_fig:
+            assert fig is not None
+        else:
+            assert fig is None
 
     @pytest.mark.parametrize("return_fig", [True, False])
     def test_sankey(self, adata_pl_sankey: AnnData, return_fig: bool):

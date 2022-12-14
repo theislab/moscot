@@ -66,7 +66,7 @@ def cell_transition(
         raise KeyError(f"No data found in `adata.uns[{AdataKeys.UNS!r}][{PlottingKeys.CELL_TRANSITION!r}][{key!r}]`.")
 
     data = adata1.uns[AdataKeys.UNS][PlottingKeys.CELL_TRANSITION][key]
-    return _heatmap(
+    fig = _heatmap(
         row_adata=adata1,
         col_adata=adata2,
         transition_matrix=data["transition_matrix"],
@@ -85,10 +85,11 @@ def cell_transition(
         dpi=dpi,
         ax=ax,
         save=save,
-        return_fig=return_fig,
         cbar_kwargs=cbar_kwargs,
         **kwargs,
     )
+    if return_fig:
+        return fig
 
 
 @d_plotting.dedent
@@ -149,7 +150,6 @@ def sankey(
         figsize=figsize,
         dpi=dpi,
         ax=ax,
-        return_fig=return_fig,
         **kwargs,
     )
     if save:
@@ -206,7 +206,7 @@ def push(
     if key not in adata.obs:
         raise KeyError(f"No data found in `adata.obs[{key!r}]`.")
     data = adata.uns[AdataKeys.UNS][PlottingKeys.PUSH][key]
-    _plot_temporal(
+    fig = _plot_temporal(
         adata=adata,
         temporal_key=data["temporal_key"],
         key_stored=key,
@@ -220,9 +220,10 @@ def push(
         figsize=figsize,
         dpi=dpi,
         ax=ax,
-        return_fig=return_fig,
         **kwargs,
     )
+    if return_fig:
+        return fig
 
 
 @d_plotting.dedent
@@ -273,7 +274,7 @@ def pull(
     if key not in adata.obs:
         raise KeyError(f"No data found in `adata.obs[{key!r}]`.")
     data = adata.uns[AdataKeys.UNS][PlottingKeys.PULL][key]
-    _plot_temporal(
+    fig = _plot_temporal(
         adata=adata,
         temporal_key=data["temporal_key"],
         key_stored=key,
@@ -287,6 +288,7 @@ def pull(
         figsize=figsize,
         dpi=dpi,
         ax=ax,
-        return_fig=return_fig,
         **kwargs,
     )
+    if return_fig:
+        return fig
