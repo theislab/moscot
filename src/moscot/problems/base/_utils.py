@@ -331,7 +331,7 @@ def _correlation_test_helper(
     n_perms: Optional[int] = None,
     seed: Optional[int] = None,
     confidence_level: float = 0.95,
-    **kwargs,
+    **kwargs: Any,
 ) -> Tuple[ArrayLike, ArrayLike, ArrayLike, ArrayLike]:
     """
     Compute the correlation between rows in matrix ``X`` columns of matrix ``Y``.

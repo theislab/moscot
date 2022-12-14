@@ -1,4 +1,17 @@
-from typing import Any, Dict, List, Tuple, Union, Generic, Literal, Optional, Protocol, Sequence, TYPE_CHECKING
+from typing import (
+    Any,
+    Dict,
+    List,
+    Tuple,
+    Union,
+    Generic,
+    Literal,
+    Iterable,
+    Optional,
+    Protocol,
+    Sequence,
+    TYPE_CHECKING,
+)
 
 from scipy.sparse.linalg import LinearOperator
 import pandas as pd
@@ -487,7 +500,7 @@ class AnalysisMixin(Generic[K, B]):
         self: AnalysisMixinProtocol[K, B],
         obs_key: str,
         method: Literal["fischer", "perm_test"] = CorrTestMethod.FISCHER,
-        annotation: Optional[Dict[str, List[str]]] = None,
+        annotation: Optional[Dict[str, Iterable[str]]] = None,
         layer: Optional[str] = None,
         features: Optional[Union[List[str], Literal["human", "mouse", "drosophila"]]] = None,
         confidence_level: float = 0.95,
@@ -514,7 +527,7 @@ class AnalysisMixin(Generic[K, B]):
         annotation
             If not `None`, this defines the subset of data to be considered when computing the correlation.
             Its key should correspond to a key in
-            :attr:`anndata.AnnData.obs` and its value to a list containing a subset of categories present in
+            :attr:`anndata.AnnData.obs` and its value to an iterable containing a subset of categories present in
             :attr:`anndata.AnnData.obs` ``['{annotation.keys()[0]}']``.
         layer
             Key from :attr:`anndata.AnnData.layers` from which to get the expression.
@@ -550,15 +563,15 @@ class AnalysisMixin(Generic[K, B]):
 
         """
         if obs_key not in self.adata.obs:
-            raise KeyError("Unable to access data in `adata.obs[{obs_key!r}]`.")
+            raise KeyError(f"Unable to access data in `adata.obs[{obs_key!r}]`.")
 
         method = CorrTestMethod(method)
 
         if annotation is not None:
             annotation_key, annotation_vals = next(iter(annotation.items()))
             if annotation_key not in self.adata.obs:
-                raise KeyError(f"[{annotation_key!r} not found in `adata.obs`.")
-            if not isinstance(annotation_vals, list):
+                raise KeyError(f"Unable to access data in [{annotation_key!r}.")
+            if not isinstance(annotation_vals, Iterable):
                 raise TypeError("`annotation` expected to be dictionary of length 1 with value being a list.")
 
             adata = self.adata[self.adata.obs[annotation_key].isin(annotation_vals)]
