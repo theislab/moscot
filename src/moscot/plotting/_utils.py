@@ -199,7 +199,6 @@ def _heatmap(
     save: Optional[str] = None,
     cbar_kwargs: Mapping[str, Any] = MappingProxyType({}),
     ax: Optional[Axes] = None,
-    return_fig: bool = True,
     **kwargs: Any,
 ) -> Optional[mpl.figure.Figure]:
     cbar_kwargs = dict(cbar_kwargs)
@@ -262,8 +261,7 @@ def _heatmap(
 
     if save:
         fig.savefig(save, bbox_inches="tight")
-    if return_fig:
-        return fig
+    return fig
 
 
 def _get_black_or_white(value: float, cmap: mcolors.Colormap) -> str:
@@ -372,7 +370,6 @@ def _plot_temporal(
     save: Optional[str] = None,
     ax: Optional[Axes] = None,
     show: bool = False,
-    return_fig: bool = True,
     **kwargs: Any,
 ) -> Optional[mpl.figure.Figure]:
     all_keys = adata.obs[temporal_key].unique()
@@ -399,11 +396,9 @@ def _plot_temporal(
         title=title,
         ax=ax,
         show=show,
-        return_fig=return_fig,
         **kwargs,
     )
 
     if save:
         fig.savefig(save, bbox_inches="tight")
-    if return_fig:
-        return fig
+    return fig
