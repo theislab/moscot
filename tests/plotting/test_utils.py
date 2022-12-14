@@ -35,7 +35,7 @@ class TestMoscotPl:
         if save:
             if os.path.exists(save):
                 os.remove(save)
-        fig = msc.pl.cell_transition(adata_pl_cell_transition, return_fig=return_fig, save=save)
+        fig = msc.plotting.cell_transition(adata_pl_cell_transition, return_fig=return_fig, save=save)
         if return_fig:
             assert fig is not None
             assert isinstance(fig, mpl.figure.Figure)
@@ -54,7 +54,7 @@ class TestMoscotPl:
             if os.path.exists(save):
                 os.remove(save)
 
-        fig = msc.pl.push(adata_pl_push, time_points=time_points, return_fig=return_fig, save=save)
+        fig = msc.plotting.push(adata_pl_push, time_points=time_points, return_fig=return_fig, save=save)
 
         if return_fig:
             assert fig is not None
@@ -73,7 +73,7 @@ class TestMoscotPl:
         if save:
             if os.path.exists(save):
                 os.remove(save)
-        fig = msc.pl.pull(adata_pl_pull, time_points=time_points, return_fig=return_fig, save=save)
+        fig = msc.plotting.pull(adata_pl_pull, time_points=time_points, return_fig=return_fig, save=save)
         if return_fig:
             assert fig is not None
             assert isinstance(fig, mpl.figure.Figure)
@@ -88,7 +88,7 @@ class TestMoscotPl:
         if save:
             if os.path.exists(save):
                 os.remove(save)
-        fig = msc.pl.sankey(adata_pl_sankey, return_fig=return_fig, save=save)
+        fig = msc.plotting.sankey(adata_pl_sankey, return_fig=return_fig, save=save)
         if return_fig:
             assert fig is not None
             assert isinstance(fig, mpl.figure.Figure)
