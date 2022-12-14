@@ -379,8 +379,6 @@ def _correlation_test_helper(
 
     if issparse(X) and not isspmatrix_csr(X):
         X = csr_matrix(X)
-    print("x.shape", X.shape)
-    print("y.shape", Y.shape)
     corr = _mat_mat_corr_sparse(X, Y) if issparse(X) else _mat_mat_corr_dense(X, Y)
 
     if method == CorrTestMethod.FISCHER:

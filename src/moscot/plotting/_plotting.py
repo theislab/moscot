@@ -153,7 +153,7 @@ def sankey(
         **kwargs,
     )
     if save:
-        fig.save(save)
+        fig.figure.savefig(save)
     if return_fig:
         return fig
 

@@ -398,7 +398,6 @@ def _plot_temporal(
         show=show,
         **kwargs,
     )
-
     if save:
-        fig.savefig(save, bbox_inches="tight")
+        fig.figure.savefig(save, bbox_inches="tight")
     return fig
