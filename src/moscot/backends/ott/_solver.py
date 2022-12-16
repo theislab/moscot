@@ -13,6 +13,7 @@ from ott.solvers.linear.sinkhorn_lr import LRSinkhorn
 from ott.problems.linear.linear_problem import LinearProblem
 from ott.problems.quadratic.quadratic_problem import QuadraticProblem
 from ott.solvers.quadratic.gromov_wasserstein import GromovWasserstein
+import jax
 import jax.numpy as jnp
 
 from moscot._types import ArrayLike, QuadInitializer_t, SinkhornInitializer_t
@@ -50,12 +51,19 @@ class OTTCost(ModeEnum):
 
 
 class OTTJaxSolver(OTSolver[OTTOutput]):
-    """Base class for :mod:`ott` solvers :cite:`cuturi2022optimal`."""
+    """Base class for :mod:`ott` solvers :cite:`cuturi2022optimal`.
 
-    def __init__(self):
+    Parameters
+    ----------
+    jit
+        Whether to jit the :attr:`solver`.
+    """
+
+    def __init__(self, jit: bool = True):
         super().__init__()
         self._solver: Optional[Union[Sinkhorn, LRSinkhorn, GromovWasserstein]] = None
         self._problem: Optional[Union[LinearProblem, QuadraticProblem]] = None
+        self._jit = jit
 
     def _create_geometry(
         self,
@@ -84,7 +92,8 @@ class OTTJaxSolver(OTSolver[OTTOutput]):
         prob: Union[LinearProblem, QuadraticProblem],
         **kwargs: Any,
     ) -> OTTOutput:
-        out = self.solver(prob, **kwargs)
+        solver = jax.jit(self.solver) if self._jit else self._solver
+        out = solver(prob, **kwargs)  # type: ignore[misc]
         return OTTOutput(out)
 
     @staticmethod

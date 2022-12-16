@@ -169,9 +169,7 @@ gw_solver_args = {
     "threshold": "threshold",
     "min_iterations": "min_iterations",
     "max_iterations": "max_iterations",
-    "initializer": "quad_initializer",
     "initializer_kwargs": "kwargs_init",
-    "jit": "jit",
     "warm_start": "_warm_start",
     "initializer": "quad_initializer",
 }
@@ -225,7 +223,6 @@ sinkhorn_solver_args = {  # dictionary with key = moscot arg name, value = ott-j
     "max_iterations": "max_iterations",
     "initializer": "initializer",
     "initializer_kwargs": "kwargs_init",
-    "jit": "jit",
 }
 
 lr_sinkhorn_solver_args = sinkhorn_solver_args.copy()
