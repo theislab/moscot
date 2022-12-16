@@ -27,7 +27,8 @@ class TestSinkhorn:
     @pytest.mark.parametrize("jit", [False, True])
     @pytest.mark.parametrize("eps", [None, 1e-2, 1e-1])
     def test_matches_ott(self, x: Geom_t, eps: Optional[float], jit: bool) -> None:
-        gt = sinkhorn(PointCloud(x, epsilon=eps), jit=jit)
+        fn = jax.jit(sinkhorn) if jit else sinkhorn
+        gt = fn(PointCloud(x, epsilon=eps))
         solver = SinkhornSolver(jit=jit)
         assert solver.xy is None
         assert isinstance(solver.solver, Sinkhorn)
@@ -66,18 +67,16 @@ class TestGW:
     @pytest.mark.parametrize("eps", [5e-2, 1e-2, 1e-1])
     def test_matches_ott(self, x: Geom_t, y: Geom_t, eps: Optional[float], jit: bool) -> None:
         thresh = 1e-2
-        kwargs = {"epsilon": eps, "threshold": thresh, "jit": jit}
-        kwargs["tags"] = {"x": "point_cloud", "y": "point_cloud"}
-        gt = gromov_wasserstein(
-            PointCloud(x, epsilon=eps), PointCloud(y, epsilon=eps), threshold=thresh, jit=jit, epsilon=eps
-        )
+        pc_x, pc_y = PointCloud(x, epsilon=eps), PointCloud(y, epsilon=eps)
+        fn = jax.jit(gromov_wasserstein, static_argnames=["threshold", "epsilon"]) if jit else gromov_wasserstein
+        gt = fn(pc_x, pc_y, threshold=thresh, epsilon=eps)
 
-        solver = GWSolver(**kwargs)
+        solver = GWSolver(jit=jit, epsilon=eps, threshold=thresh)
         assert isinstance(solver.solver, GromovWasserstein)
         assert solver.x is None
         assert solver.y is None
 
-        pred = solver(x=x, y=y, **kwargs)
+        pred = solver(x=x, y=y, tags={"x": "point_cloud", "y": "point_cloud"})
 
         assert solver.rank == -1
         assert not solver.is_low_rank
@@ -89,16 +88,13 @@ class TestGW:
     @pytest.mark.parametrize("eps", [5e-1, 1])
     def test_epsilon(self, x_cost: jnp.ndarray, y_cost: jnp.ndarray, eps: Optional[float]) -> None:
         thresh = 1e-3
-        kwargs = {"epsilon": eps, "threshold": thresh}
-        kwargs["tags"] = {"x": Tag.COST_MATRIX, "y": Tag.COST_MATRIX}
-
         problem = QuadraticProblem(
             geom_xx=Geometry(cost_matrix=x_cost, epsilon=eps), geom_yy=Geometry(cost_matrix=y_cost, epsilon=eps)
         )
         gt = GromovWasserstein(epsilon=eps, threshold=thresh)(problem)
-        solver = GWSolver(**kwargs)
+        solver = GWSolver(epsilon=eps, threshold=thresh)
 
-        pred = solver(x=x_cost, y=y_cost, **kwargs)
+        pred = solver(x=x_cost, y=y_cost, tags={"x": Tag.COST_MATRIX, "y": Tag.COST_MATRIX})
 
         assert pred.rank == -1
         assert solver.rank == -1
@@ -109,14 +105,12 @@ class TestGW:
     @pytest.mark.parametrize("rank", [-1, 7])
     def test_rank(self, x: Geom_t, y: Geom_t, rank: int) -> None:
         thresh, eps = 1e-2, 1e-2
-        kwargs = {"epsilon": eps, "threshold": thresh, "rank": rank}
-        kwargs["tags"] = {"x": "point_cloud", "y": "point_cloud"}
-
         gt = GromovWasserstein(epsilon=eps, rank=rank, threshold=thresh)(
             QuadraticProblem(PointCloud(x, epsilon=eps), PointCloud(y, epsilon=eps))
         )
-        solver = GWSolver(**kwargs)
-        pred = solver(x=x, y=y, **kwargs)
+
+        solver = GWSolver(rank=rank, epsilon=eps, threshold=thresh)
+        pred = solver(x=x, y=y, tags={"x": "point_cloud", "y": "point_cloud"})
 
         assert solver.rank == rank
         assert pred.rank == rank
@@ -128,23 +122,22 @@ class TestFGW:
     @pytest.mark.parametrize("eps", [1e-2, 1e-1, 5e-1])
     def test_matches_ott(self, x: Geom_t, y: Geom_t, xy: Geom_t, eps: Optional[float], alpha: float) -> None:
         thresh = 1e-2
-        kwargs = {"epsilon": eps, "threshold": thresh, "alpha": alpha}
-        kwargs["tags"] = {"x": "point_cloud", "y": "point_cloud", "xy": "point_cloud"}
+        xx, yy = xy
 
         gt = gromov_wasserstein(
             geom_xx=PointCloud(x, epsilon=eps),
             geom_yy=PointCloud(y, epsilon=eps),
-            geom_xy=PointCloud(xy[0], xy[1], epsilon=eps),
+            geom_xy=PointCloud(xx, yy, epsilon=eps),
             fused_penalty=FGWSolver._alpha_to_fused_penalty(alpha),
             epsilon=eps,
             threshold=thresh,
         )
 
-        solver = FGWSolver(**kwargs)
+        solver = FGWSolver(epsilon=eps, threshold=thresh)
         assert isinstance(solver.solver, GromovWasserstein)
         assert solver.xy is None
 
-        pred = solver(x=x, y=y, xy=xy, **kwargs)
+        pred = solver(x=x, y=y, xy=xy, alpha=alpha, tags={"x": "point_cloud", "y": "point_cloud", "xy": "point_cloud"})
 
         assert solver.rank == -1
         assert pred.rank == -1
@@ -157,9 +150,6 @@ class TestFGW:
         thresh, eps = 5e-2, 1e-1
         xx, yy = xy
 
-        kwargs = {"epsilon": eps, "threshold": thresh, "alpha": alpha}
-        kwargs["tags"] = {"x": "point_cloud", "y": "point_cloud", "xy": "point_cloud"}
-
         gt = gromov_wasserstein(
             geom_xx=PointCloud(x, epsilon=eps),
             geom_yy=PointCloud(y, epsilon=eps),
@@ -168,8 +158,8 @@ class TestFGW:
             epsilon=eps,
             threshold=thresh,
         )
-        solver = FGWSolver(**kwargs)
-        pred = solver(x=x, y=y, xy=xy, **kwargs)
+        solver = FGWSolver(epsilon=eps, threshold=thresh)
+        pred = solver(x=x, y=y, xy=xy, alpha=alpha, tags={"x": "point_cloud", "y": "point_cloud", "xy": "point_cloud"})
 
         assert not solver.is_low_rank
         assert pred.rank == -1
@@ -181,7 +171,6 @@ class TestFGW:
         self, x_cost: jnp.ndarray, y_cost: jnp.ndarray, xy_cost: jnp.ndarray, eps: Optional[float]
     ) -> None:
         thresh, alpha = 5e-1, 0.66
-        kwargs = {"epsilon": eps, "threshold": thresh, "alpha": alpha}
 
         problem = QuadraticProblem(
             geom_xx=Geometry(cost_matrix=x_cost, epsilon=eps),
@@ -191,13 +180,13 @@ class TestFGW:
         )
         gt = GromovWasserstein(epsilon=eps, threshold=thresh)(problem)
 
-        solver = FGWSolver(**kwargs)
+        solver = FGWSolver(epsilon=eps, threshold=thresh)
         pred = solver(
             x=x_cost,
             y=y_cost,
             xy=xy_cost,
+            alpha=alpha,
             tags={"x": Tag.COST_MATRIX, "y": Tag.COST_MATRIX, "xy": Tag.COST_MATRIX},
-            **kwargs,
         )
 
         assert pred.rank == -1
