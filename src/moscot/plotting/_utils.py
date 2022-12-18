@@ -8,7 +8,7 @@ from matplotlib.axes import Axes
 from matplotlib.colors import ListedColormap
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 import pandas as pd
-import matplotlib as mp
+import matplotlib as mpl
 
 import numpy as np
 
@@ -51,8 +51,10 @@ def _sankey(
     fontsize: float = 12.0,
     horizontal_space: float = 1.5,
     force_update_colors: bool = False,
-    **_: Any,
-) -> mp.figure.Figure:
+    alpha: float = 1.0,
+    interpolate_color: bool = True,
+    **kwargs: Any,
+) -> mpl.figure.Figure:
     if ax is None:
         fig, ax = plt.subplots(constrained_layout=True, dpi=dpi, figsize=figsize)
     if captions is not None and len(captions) != len(transition_matrices):
@@ -110,7 +112,8 @@ def _sankey(
                     2 * [leftWidths[leftLabel]["bottom"]],
                     2 * [leftWidths[leftLabel]["bottom"] + leftWidths[leftLabel]["left"]],
                     color=colorDict[leftLabel],
-                    alpha=0.99,
+                    alpha=alpha,
+                    **kwargs,
                 )
                 ax.text(
                     -0.05 * xMax,
@@ -121,11 +124,12 @@ def _sankey(
                 )
         for rightLabel in rightLabels:
             ax.fill_between(
-                [xMax + left_pos[ind], 1.02 * xMax + left_pos[ind]],
+                [xMax + left_pos[ind], xMax + left_pos[ind]],
                 2 * [rightWidths[rightLabel]["bottom"]],
                 2 * [rightWidths[rightLabel]["bottom"] + rightWidths[rightLabel]["right"]],
                 color=colorDict[rightLabel],
-                alpha=0.99,
+                alpha=alpha,
+                **kwargs,
             )
             ax.text(
                 1.05 * xMax + left_pos[ind],
@@ -143,7 +147,6 @@ def _sankey(
         # Plot strips
         for leftLabel in leftLabels:
             for rightLabel in rightLabels:
-                labelColor = leftLabel
                 if dataFrame.loc[leftLabel, rightLabel] > 0:
                     # Create array of y values for each strip, half at left value,
                     # half at right, convolve
@@ -161,22 +164,41 @@ def _sankey(
                     leftWidths[leftLabel]["bottom"] += dataFrame.loc[leftLabel, rightLabel]
                     rightWidths[rightLabel]["bottom"] += dataFrame.loc[leftLabel, rightLabel]
 
+                    arr = np.linspace(0 + left_pos[ind], xMax + left_pos[ind], len(ys_d))
+                    color = (
+                        _color_transition(colorDict[leftLabel], colorDict[rightLabel], num=len(arr), alpha=alpha)
+                        if interpolate_color
+                        else colorDict[leftLabel]
+                    )
                     if ind == 0:
-                        ax.fill_between(
-                            np.linspace(0 + left_pos[ind], xMax + left_pos[ind], len(ys_d)),
-                            ys_d,
-                            ys_u,
-                            alpha=0.65,
-                            color=colorDict[labelColor],
-                        )
+                        if interpolate_color:
+                            for l in range(len(ys_d)):  # necessary to get smooth lines
+                                ax.fill_between(
+                                    arr[l:], ys_d[l:], ys_u[l:], color=color[l], ec=color[l], alpha=alpha, **kwargs
+                                )
+                        else:
+                            ax.fill_between(arr, ys_d, ys_u, alpha=alpha, color=color, **kwargs)
+
                     else:
-                        ax.fill_between(
-                            np.linspace(0 + left_pos[ind], xMax + left_pos[ind], len(ys_d)),
-                            ys_d,
-                            ys_u,
-                            alpha=0.65,
-                            color=colorDict[labelColor],
-                        )
+                        if interpolate_color:
+                            for l in range(len(ys_d)):
+                                ax.fill_between(
+                                    arr[l:],
+                                    ys_d[l:],
+                                    ys_u[l:],
+                                    color=color[l],
+                                    ec=color[l],
+                                    **kwargs,
+                                )
+                        else:
+                            ax.fill_between(
+                                np.linspace(0 + left_pos[ind], xMax + left_pos[ind], len(ys_d)),
+                                ys_d,
+                                ys_u,
+                                alpha=alpha,
+                                color=color,
+                                **kwargs,
+                            )
 
         ax.axis("off")
         ax.set_title(title)
@@ -200,7 +222,7 @@ def _heatmap(
     cbar_kwargs: Mapping[str, Any] = MappingProxyType({}),
     ax: Optional[Axes] = None,
     **kwargs: Any,
-) -> mp.figure.Figure:
+) -> mpl.figure.Figure:
     cbar_kwargs = dict(cbar_kwargs)
 
     if ax is None:
@@ -214,10 +236,10 @@ def _heatmap(
         row_adata, col_adata, transition_matrix, row_annotation, col_annotation
     )
 
-    row_sm = mp.cm.ScalarMappable(cmap=row_cmap, norm=row_norm)
-    col_sm = mp.cm.ScalarMappable(cmap=col_cmap, norm=col_norm)
+    row_sm = mpl.cm.ScalarMappable(cmap=row_cmap, norm=row_norm)
+    col_sm = mpl.cm.ScalarMappable(cmap=col_cmap, norm=col_norm)
 
-    norm = mp.colors.Normalize(
+    norm = mpl.colors.Normalize(
         vmin=kwargs.pop("vmin", np.nanmin(transition_matrix)), vmax=kwargs.pop("vmax", np.nanmax(transition_matrix))
     )
     cont_cmap = copy(plt.get_cmap(cont_cmap))
@@ -274,9 +296,9 @@ def _get_black_or_white(value: float, cmap: mcolors.Colormap) -> str:
 
 def _annotate_heatmap(
     transition_matrix: pd.DataFrame,
-    im: mp.image.AxesImage,
+    im: mpl.image.AxesImage,
     valfmt: str = "{x:.2f}",
-    cmap: Union[mp.colors.Colormap, str] = "viridis",
+    cmap: Union[mpl.colors.Colormap, str] = "viridis",
     fontsize: float = 5,
     **kwargs: Any,
 ) -> None:
@@ -288,7 +310,7 @@ def _annotate_heatmap(
     kw.update(**kwargs)
 
     if isinstance(valfmt, str):
-        valfmt = mp.ticker.StrMethodFormatter(valfmt)
+        valfmt = mpl.ticker.StrMethodFormatter(valfmt)
     if TYPE_CHECKING:
         assert callable(valfmt)
 
@@ -371,7 +393,7 @@ def _plot_temporal(
     ax: Optional[Axes] = None,
     show: bool = False,
     **kwargs: Any,
-) -> mp.figure.Figure:
+) -> mpl.figure.Figure:
     all_keys = adata.obs[temporal_key].unique()
     if time_points is None:
         constant_fill_keys: Set[K] = set()
@@ -401,3 +423,13 @@ def _plot_temporal(
     if save:
         fig.figure.savefig(save, bbox_inches="tight")
     return fig
+
+
+def _color_transition(c1: str, c2: str, num: int, alpha: float) -> List[str]:
+    if not mpl.colors.is_color_like(c1):
+        raise ValueError(f"{c1} cannot be interpreted as an RGB color.")
+    if not mpl.colors.is_color_like(c2):
+        raise ValueError(f"{c2} cannot be interpreted as an RGB color.")
+    c1_rgb = np.array(mpl.colors.to_rgb(c1))
+    c2_rgb = np.array(mpl.colors.to_rgb(c2))
+    return [mpl.colors.to_rgb((1 - n / num) * c1_rgb + n / num * c2_rgb) + (alpha,) for n in range(num)]

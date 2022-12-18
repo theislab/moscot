@@ -99,6 +99,8 @@ def sankey(
     captions: Optional[List[str]] = None,
     title: Optional[str] = None,
     colors_dict: Optional[Dict[str, float]] = None,
+    alpha: float = 1.0,
+    interpolate_color: bool = True,
     cmap: Union[str, mcolors.Colormap] = "viridis",
     figsize: Optional[Tuple[float, float]] = None,
     dpi: Optional[int] = None,
@@ -119,8 +121,11 @@ def sankey(
     %(captions_sankey)s
     %(title)s
     %(colors_dict_sankey)s
+    %(alpha_transparency)s
+    %(interpolate_color)s
     %(cmap)s
     %(figsize_dpi_save)s
+    %(sankey_kwargs)s
 
     Returns
     -------
@@ -150,6 +155,8 @@ def sankey(
         figsize=figsize,
         dpi=dpi,
         ax=ax,
+        alpha=alpha,
+        interpolate_color=interpolate_color,
         **kwargs,
     )
     if save:

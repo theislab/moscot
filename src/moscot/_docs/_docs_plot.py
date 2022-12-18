@@ -64,7 +64,18 @@ which is passed or saved as an attribute of :mod:`moscot.problems.base.CompoundP
     - `captions`
     - `key`
 """
-
+_alpha_transparancy = """\
+Alpha
+    Transparancy value.
+"""
+_interpolate_color = """\
+interpolate_color
+    Whether the color is continuously interpolated.
+"""
+_sankey_kwargs = """\
+kwargs
+    Keyword arguments for :meth:`matplotlib.pyplot.fill_between`.
+"""
 ###############################################################################
 # plotting.push/pull
 # input
@@ -133,6 +144,7 @@ save
     Path where to save the plot. If `None`, the plot is not saved.
 {_ax}"""
 
+
 d_plotting = DocstringProcessor(
     desc_cell_transition=_desc_cell_transition,
     transition_labels_cell_transition=_transition_labels_cell_transition,
@@ -159,4 +171,7 @@ d_plotting = DocstringProcessor(
     ax=_ax,
     figsize_dpi_save=_figsize_dpi_save,
     fontsize=_fontsize,
+    alpha_transparancy=_alpha_transparancy,
+    interpolate_color=_interpolate_color,
+    sankey_kwargs=_sankey_kwargs,
 )
