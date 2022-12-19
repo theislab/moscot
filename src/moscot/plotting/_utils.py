@@ -435,13 +435,13 @@ def _create_col_colors(adata: AnnData, obs_col: str, subset: Union[str, Sequence
                 cat: adata.uns[f"{obs_col}_colors"][i] for i, cat in enumerate(adata.obs[obs_col].cat.categories)
             }
         except KeyError:
-            raise KeyError(f"Unable to access `adata.uns['{obs_col}'_colors]`.") from None
+            raise KeyError(f"Unable to access `adata.uns['{obs_col}_colors']`.") from None
 
         color = colorDict[subset]
 
         h, _, v = mcolors.rgb_to_hsv(mcolors.to_rgb(color))
         end_color = mcolors.hsv_to_rgb([h, 1, v])
 
-        col_cmap = mcolors.LinearSegmentedColormap.from_list("lineage_cmap", ["#ffffff", end_color])
+        col_cmap = mcolors.LinearSegmentedColormap.from_list("lineage_cmap", ["darkgrey", end_color])
 
         return col_cmap
