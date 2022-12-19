@@ -243,7 +243,7 @@ def pull(
     result_key: str = "plot_pull",
     fill_value: float = np.nan,
     title: Optional[str] = None,
-    cmap: Union[str, mcolors.Colormap] = "viridis",
+    cmap: Optional[Union[str, mcolors.Colormap]] = None,
     figsize: Optional[Tuple[float, float]] = None,
     dpi: Optional[int] = None,
     save: Optional[str] = None,
