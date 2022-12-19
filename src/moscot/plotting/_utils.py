@@ -363,7 +363,7 @@ def _plot_temporal(
     time_points: Optional[Sequence[K]] = None,
     basis: str = "umap",
     result_key: str = "plot_tmp",
-    constant_fill_value: float = 0.0,
+    constant_fill_value: float = np.nan,
     cont_cmap: Union[str, mcolors.Colormap] = "viridis",
     title: Optional[str] = None,
     figsize: Optional[Tuple[float, float]] = None,
@@ -371,6 +371,9 @@ def _plot_temporal(
     save: Optional[str] = None,
     ax: Optional[Axes] = None,
     show: bool = False,
+    circle_size: Optional[float] = 1.0,
+    circle_color: str = "#000000",
+    circle_kwargs: Mapping[str, Any] = MappingProxyType({}),
     **kwargs: Any,
 ) -> mpl.figure.Figure:
 
@@ -384,8 +387,16 @@ def _plot_temporal(
         else:
             tmp = np.full(len(adata), constant_fill_value)
             mask = adata.obs[temporal_key] == time_points[i]
+
             tmp[mask] = adata[adata.obs[temporal_key] == time_points[i]].obs[key_stored]
             adata.obs[result_key] = tmp
+
+        if circle_size is not None:
+            location_cells = adata[mask, :].obsm[basis]
+            x = location_cells[:, 0].mean()
+            y = location_cells[:, 1].mean()
+            circle = plt.Circle((x, y), circle_size, color=circle_color, clip_on=False, fill=False, **circle_kwargs)
+            ax.add_patch(circle)
 
         sc.pl.embedding(
             adata=adata,
