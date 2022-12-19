@@ -339,6 +339,8 @@ class TemporalMixin(AnalysisMixin[K, B]):
         if key_added is not None:
             plot_vars = {
                 "temporal_key": self.temporal_key,
+                "data": data if isinstance(data, str) else None,
+                "subset": subset,
             }
             self.adata.obs[key_added] = self._flatten(result, key=self.temporal_key)
             Key.uns.set_plotting_vars(self.adata, AdataKeys.UNS, PlottingKeys.PUSH, key_added, plot_vars)
@@ -393,6 +395,8 @@ class TemporalMixin(AnalysisMixin[K, B]):
         if key_added is not None:
             plot_vars = {
                 "temporal_key": self.temporal_key,
+                "data": data if isinstance(data, str) else None,
+                "subset": subset,
             }
             self.adata.obs[key_added] = self._flatten(result, key=self.temporal_key)
             Key.uns.set_plotting_vars(self.adata, AdataKeys.UNS, PlottingKeys.PULL, key_added, plot_vars)

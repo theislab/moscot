@@ -11,7 +11,7 @@ from anndata import AnnData
 
 from moscot.problems.base import CompoundProblem  # type: ignore[attr-defined]
 from moscot.problems.time import LineageProblem, TemporalProblem  # type: ignore[attr-defined]
-from moscot.plotting._utils import _sankey, _heatmap, _plot_temporal, _input_to_adatas
+from moscot.plotting._utils import _sankey, _heatmap, _plot_temporal, _input_to_adatas, _create_col_colors
 from moscot._docs._docs_plot import d_plotting
 from moscot._constants._constants import AdataKeys, PlottingKeys, PlottingDefaults
 from moscot.problems.base._compound_problem import K
@@ -174,7 +174,7 @@ def push(
     result_key: str = "plot_push",
     fill_value: float = np.nan,
     title: Optional[str] = None,
-    cmap: Union[str, mcolors.Colormap] = "viridis",
+    cmap: Optional[Union[str, mcolors.Colormap]] = None,
     figsize: Optional[Tuple[float, float]] = None,
     dpi: Optional[int] = None,
     save: Optional[str] = None,
@@ -213,6 +213,7 @@ def push(
     if key not in adata.obs:
         raise KeyError(f"No data found in `adata.obs[{key!r}]`.")
     data = adata.uns[AdataKeys.UNS][PlottingKeys.PUSH][key]
+    cmap = _create_col_colors(adata, data["annotation"], data["subset"]) if cmap is None else cmap
     fig = _plot_temporal(
         adata=adata,
         temporal_key=data["temporal_key"],
@@ -281,6 +282,7 @@ def pull(
     if key not in adata.obs:
         raise KeyError(f"No data found in `adata.obs[{key!r}]`.")
     data = adata.uns[AdataKeys.UNS][PlottingKeys.PULL][key]
+    cmap = _create_col_colors(adata, data["annotation"], data["subset"]) if cmap is None else cmap
     fig = _plot_temporal(
         adata=adata,
         temporal_key=data["temporal_key"],

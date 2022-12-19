@@ -20,6 +20,8 @@ from moscot.problems.base import CompoundProblem  # type: ignore[attr-defined]
 from moscot._constants._constants import AggregationMode
 from moscot.problems.base._compound_problem import K
 
+_N = 200
+
 
 def set_palette(
     adata: AnnData,
@@ -433,3 +435,26 @@ def _color_transition(c1: str, c2: str, num: int, alpha: float) -> List[str]:
     c1_rgb = np.array(mpl.colors.to_rgb(c1))
     c2_rgb = np.array(mpl.colors.to_rgb(c2))
     return [mpl.colors.to_rgb((1 - n / num) * c1_rgb + n / num * c2_rgb) + (alpha,) for n in range(num)]
+
+
+def _create_col_colors(adata: AnnData, obs_col: Optional[str], subset: Optional[str]) -> Optional[mcolors.Colormap]:
+    if obs_col is not None and subset is not None:
+        if isinstance(subset, list) and isinstance(subset[0], str):
+            subset = subset[0]
+        if isinstance(subset, str):
+            try:
+                colorDict = {
+                    cat: adata.uns[f"{obs_col}_colors"][i] for i, cat in enumerate(adata.obs[obs_col].cat.categories)
+                }
+            except KeyError:
+                raise KeyError(f"Unable to access `adata.uns[{obs_col}_colors]`.") from None
+
+            color = colorDict[subset]
+
+            h, _, v = mcolors.rgb_to_hsv(mcolors.to_rgb(color))
+            end_color = mcolors.hsv_to_rgb([h, 1, v])
+
+            col_cmap = mcolors.LinearSegmentedColormap.from_list("lineage_cmap", ["#ffffff", end_color], N=_N)
+
+            return col_cmap
+    return None
