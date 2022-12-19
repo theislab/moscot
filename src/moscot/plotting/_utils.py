@@ -389,7 +389,7 @@ def _plot_temporal(
             raise ValueError("If `title` is a list, its length must be equal to the length of `time_points`.")
         titles = title
     else:
-        titles = [None] * (len(time_points) if time_points is not None else 1)  # type: ignore[list-item]
+        titles = [""] * (len(time_points) if time_points is not None else 1)
 
     for i, ax in enumerate(axs):
         if time_points is None:
@@ -397,7 +397,7 @@ def _plot_temporal(
                 vmin, vmax = np.nanmin(adata.obs[key_stored]), np.nanmax(adata.obs[key_stored])
             else:
                 vmin, vmax = 0, 1
-            adata.obs[result_key] = (adata.obs[key_stored] - vmin) / (vmax - vmin)
+            adata.obs[f"result_key_{i}"] = (adata.obs[key_stored] - vmin) / (vmax - vmin)
             size = None
         else:
             tmp = np.full(len(adata), constant_fill_value)
