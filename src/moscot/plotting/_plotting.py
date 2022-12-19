@@ -100,7 +100,7 @@ def sankey(
     title: Optional[str] = None,
     colors_dict: Optional[Dict[str, float]] = None,
     alpha: float = 1.0,
-    interpolate_color: bool = True,
+    interpolate_color: bool = False,
     cmap: Union[str, mcolors.Colormap] = "viridis",
     figsize: Optional[Tuple[float, float]] = None,
     dpi: Optional[int] = None,
@@ -213,7 +213,8 @@ def push(
     if key not in adata.obs:
         raise KeyError(f"No data found in `adata.obs[{key!r}]`.")
     data = adata.uns[AdataKeys.UNS][PlottingKeys.PUSH][key]
-    cmap = _create_col_colors(adata, data["annotation"], data["subset"]) if cmap is None else cmap
+    if data["annotation"] is not None and data["subset"] is not None and cmap is None:
+        cmap = _create_col_colors(adata, data["annotation"], data["subset"])
     fig = _plot_temporal(
         adata=adata,
         temporal_key=data["temporal_key"],
@@ -282,7 +283,8 @@ def pull(
     if key not in adata.obs:
         raise KeyError(f"No data found in `adata.obs[{key!r}]`.")
     data = adata.uns[AdataKeys.UNS][PlottingKeys.PULL][key]
-    cmap = _create_col_colors(adata, data["annotation"], data["subset"]) if cmap is None else cmap
+    if data["annotation"] is not None and data["subset"] is not None and cmap is None:
+        cmap = _create_col_colors(adata, data["annotation"], data["subset"])
     fig = _plot_temporal(
         adata=adata,
         temporal_key=data["temporal_key"],

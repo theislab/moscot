@@ -1,11 +1,7 @@
 from anndata import AnnData
-import scanpy as sc
 
 from tests.plotting.conftest import PlotTester, PlotTesterMeta
 import moscot.plotting as mpl
-
-sc.pl.set_rcParams_defaults()
-sc.set_figure_params(dpi=40, color_map="viridis")
 
 # WARNING:
 # 1. all classes must both subclass PlotTester and use metaclass=PlotTesterMeta

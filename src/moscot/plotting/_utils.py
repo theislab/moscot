@@ -5,6 +5,7 @@ from collections import defaultdict
 
 from matplotlib import colors as mcolors, pyplot as plt
 from matplotlib.axes import Axes
+from pandas.api.types import is_categorical_dtype
 from matplotlib.colors import ListedColormap
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 import pandas as pd
@@ -19,8 +20,6 @@ import scanpy as sc
 from moscot.problems.base import CompoundProblem  # type: ignore[attr-defined]
 from moscot._constants._constants import AggregationMode
 from moscot.problems.base._compound_problem import K
-
-_N = 200
 
 
 def set_palette(
@@ -54,7 +53,7 @@ def _sankey(
     horizontal_space: float = 1.5,
     force_update_colors: bool = False,
     alpha: float = 1.0,
-    interpolate_color: bool = True,
+    interpolate_color: bool = False,
     **kwargs: Any,
 ) -> mpl.figure.Figure:
     if ax is None:
@@ -172,35 +171,13 @@ def _sankey(
                         if interpolate_color
                         else colorDict[leftLabel]
                     )
-                    if ind == 0:
-                        if interpolate_color:
-                            for l in range(len(ys_d)):  # necessary to get smooth lines
-                                ax.fill_between(
-                                    arr[l:], ys_d[l:], ys_u[l:], color=color[l], ec=color[l], alpha=alpha, **kwargs
-                                )
-                        else:
-                            ax.fill_between(arr, ys_d, ys_u, alpha=alpha, color=color, **kwargs)
-
-                    else:
-                        if interpolate_color:
-                            for l in range(len(ys_d)):
-                                ax.fill_between(
-                                    arr[l:],
-                                    ys_d[l:],
-                                    ys_u[l:],
-                                    color=color[l],
-                                    ec=color[l],
-                                    **kwargs,
-                                )
-                        else:
+                    if interpolate_color:
+                        for l in range(len(ys_d)):  # necessary to get smooth lines
                             ax.fill_between(
-                                np.linspace(0 + left_pos[ind], xMax + left_pos[ind], len(ys_d)),
-                                ys_d,
-                                ys_u,
-                                alpha=alpha,
-                                color=color,
-                                **kwargs,
+                                arr[l:], ys_d[l:], ys_u[l:], color=color[l], ec=color[l], alpha=alpha, **kwargs
                             )
+                    else:
+                        ax.fill_between(arr, ys_d, ys_u, alpha=alpha, color=color, **kwargs)
 
         ax.axis("off")
         ax.set_title(title)
@@ -435,24 +412,25 @@ def _color_transition(c1: str, c2: str, num: int, alpha: float) -> List[str]:
     return [mpl.colors.to_rgb((1 - n / num) * c1_rgb + n / num * c2_rgb) + (alpha,) for n in range(num)]
 
 
-def _create_col_colors(adata: AnnData, obs_col: Optional[str], subset: Optional[str]) -> Optional[mcolors.Colormap]:
-    if obs_col is not None and subset is not None:
-        if isinstance(subset, list) and isinstance(subset[0], str):
-            subset = subset[0]
-        if isinstance(subset, str):
-            try:
-                colorDict = {
-                    cat: adata.uns[f"{obs_col}_colors"][i] for i, cat in enumerate(adata.obs[obs_col].cat.categories)
-                }
-            except KeyError:
-                raise KeyError(f"Unable to access `adata.uns[{obs_col}_colors]`.") from None
+def _create_col_colors(adata: AnnData, obs_col: str, subset: Union[str, Sequence[str]]) -> Optional[mcolors.Colormap]:
 
-            color = colorDict[subset]
+    if isinstance(subset, Sequence) and len(subset) == 1 and isinstance(subset[0], str):
+        subset = subset[0]
+    if not is_categorical_dtype(adata.obs[obs_col]):
+        raise TypeError(f"`adata.obs['{obs_col}'] must be of categorical type.")
+    if isinstance(subset, str):
+        try:
+            colorDict = {
+                cat: adata.uns[f"{obs_col}_colors"][i] for i, cat in enumerate(adata.obs[obs_col].cat.categories)
+            }
+        except KeyError:
+            raise KeyError(f"Unable to access `adata.uns['{obs_col}'_colors]`.") from None
 
-            h, _, v = mcolors.rgb_to_hsv(mcolors.to_rgb(color))
-            end_color = mcolors.hsv_to_rgb([h, 1, v])
+        color = colorDict[subset]
 
-            col_cmap = mcolors.LinearSegmentedColormap.from_list("lineage_cmap", ["#ffffff", end_color], N=_N)
+        h, _, v = mcolors.rgb_to_hsv(mcolors.to_rgb(color))
+        end_color = mcolors.hsv_to_rgb([h, 1, v])
 
-            return col_cmap
-    return None
+        col_cmap = mcolors.LinearSegmentedColormap.from_list("lineage_cmap", ["#ffffff", end_color])
+
+        return col_cmap
