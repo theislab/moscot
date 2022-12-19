@@ -368,12 +368,11 @@ def _plot_temporal(
     title: Optional[str] = None,
     figsize: Optional[Tuple[float, float]] = None,
     dpi: Optional[int] = None,
+    dot_scale_factor: float = 2.0,
+    na_color: Optional[str] = "#e8ebe9",
     save: Optional[str] = None,
     ax: Optional[Axes] = None,
     show: bool = False,
-    circle_size: Optional[float] = 1.0,
-    circle_color: str = "#000000",
-    circle_kwargs: Mapping[str, Any] = MappingProxyType({}),
     **kwargs: Any,
 ) -> mpl.figure.Figure:
 
@@ -384,28 +383,25 @@ def _plot_temporal(
     for i, ax in enumerate(axs):
         if time_points is None:
             adata.obs[result_key] = adata.obs[key_stored]
+            size = None
         else:
             tmp = np.full(len(adata), constant_fill_value)
             mask = adata.obs[temporal_key] == time_points[i]
 
             tmp[mask] = adata[adata.obs[temporal_key] == time_points[i]].obs[key_stored]
-            adata.obs[result_key] = tmp
-
-        if circle_size is not None:
-            location_cells = adata[mask, :].obsm[basis]
-            x = location_cells[:, 0].mean()
-            y = location_cells[:, 1].mean()
-            circle = plt.Circle((x, y), circle_size, color=circle_color, clip_on=False, fill=False, **circle_kwargs)
-            ax.add_patch(circle)
+            adata.obs[f"result_key_{i}"] = tmp
+            size = (mask * 120000 * dot_scale_factor + (1 - mask) * 120000) / adata.n_obs
 
         sc.pl.embedding(
             adata=adata,
             basis=basis,
-            color=result_key,
+            color=f"result_key_{i}",
             color_map=cont_cmap,
             title=title,
+            size=size,
             ax=ax,
             show=show,
+            na_color=na_color,
             **kwargs,
         )
     if save:

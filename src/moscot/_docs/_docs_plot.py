@@ -124,7 +124,16 @@ cmap
     Colormap for continuous annotations, see :class:`matplotlib.colors.Colormap`."""
 _title = """\
 title
-    TODO."""
+    Title of the plot.
+"""
+_dot_scale_factor = """\
+dot_scale_factor
+    If `time_points` is not `None`, `dot_scale_factor` increases the size of the dots by this factor.
+"""
+_na_color = """\
+na_color
+    Color to use for null or masked values. Can be anything matplotlib accepts as a color.
+"""
 
 ###############################################################################
 # general output
@@ -174,4 +183,6 @@ d_plotting = DocstringProcessor(
     alpha_transparancy=_alpha_transparancy,
     interpolate_color=_interpolate_color,
     sankey_kwargs=_sankey_kwargs,
+    na_color=_na_color,
+    dot_scale_factor=_dot_scale_factor,
 )

@@ -175,6 +175,8 @@ def push(
     fill_value: float = np.nan,
     title: Optional[str] = None,
     cmap: Optional[Union[str, mcolors.Colormap]] = None,
+    dot_scale_factor: float = 2.0,
+    na_color: Optional[str] = "#e8ebe9",
     figsize: Optional[Tuple[float, float]] = None,
     dpi: Optional[int] = None,
     save: Optional[str] = None,
@@ -197,6 +199,8 @@ def push(
     %(fill_value_push_pull)s
     %(title)s
     %(cmap)s
+    %(dot_scale_factor)s
+    %(na_color)s
     %(figsize_dpi_save)s
 
     Returns
@@ -225,6 +229,8 @@ def push(
         constant_fill_value=fill_value,
         save=save,
         cont_cmap=cmap,
+        dot_scale_factor=dot_scale_factor,
+        na_color=na_color,
         title=title,
         figsize=figsize,
         dpi=dpi,
@@ -245,6 +251,8 @@ def pull(
     fill_value: float = np.nan,
     title: Optional[str] = None,
     cmap: Optional[Union[str, mcolors.Colormap]] = None,
+    dot_scale_factor: float = 2.0,
+    na_color: Optional[str] = "#e8ebe9",
     figsize: Optional[Tuple[float, float]] = None,
     dpi: Optional[int] = None,
     save: Optional[str] = None,
@@ -267,6 +275,8 @@ def pull(
     %(fill_value_push_pull)s
     %(title)s
     %(cmap)s
+    %(dot_scale_factor)s
+    %(na_color)s
     %(figsize_dpi_save)s
 
     Returns
@@ -295,6 +305,8 @@ def pull(
         constant_fill_value=fill_value,
         save=save,
         cont_cmap=cmap,
+        dot_scale_factor=dot_scale_factor,
+        na_color=na_color,
         title=title,
         figsize=figsize,
         dpi=dpi,

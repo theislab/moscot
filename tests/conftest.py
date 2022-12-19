@@ -25,8 +25,7 @@ config.update("jax_enable_x64", True)
 _gt_temporal_adata = sc.read("tests/data/moscot_temporal_tests.h5ad")
 
 
-@pytest.fixture(scope="session")
-def _pytest_sessionstart() -> None:
+def pytest_sessionstart() -> None:
     sc.pl.set_rcParams_defaults()
     sc.set_figure_params(dpi=40, color_map="viridis")
 
