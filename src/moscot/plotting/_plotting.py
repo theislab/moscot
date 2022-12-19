@@ -173,6 +173,7 @@ def push(
     basis: str = "umap",
     result_key: str = "plot_push",
     fill_value: float = np.nan,
+    scale: bool = True,
     title: Optional[str] = None,
     cmap: Optional[Union[str, mcolors.Colormap]] = None,
     dot_scale_factor: float = 2.0,
@@ -197,6 +198,7 @@ def push(
     %(basis_push_pull)s
     %(result_key_push_pull)s
     %(fill_value_push_pull)s
+    %(scale_push_pull)s
     %(title)s
     %(cmap)s
     %(dot_scale_factor)s
@@ -249,6 +251,7 @@ def pull(
     basis: str = "umap",
     result_key: str = "plot_pull",
     fill_value: float = np.nan,
+    scale: bool = True,
     title: Optional[str] = None,
     cmap: Optional[Union[str, mcolors.Colormap]] = None,
     dot_scale_factor: float = 2.0,
@@ -273,6 +276,7 @@ def pull(
     %(basis_push_pull)s
     %(result_key_push_pull)s
     %(fill_value_push_pull)s
+    %(scale_push_pull)s
     %(title)s
     %(cmap)s
     %(dot_scale_factor)s

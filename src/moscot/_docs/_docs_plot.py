@@ -96,6 +96,10 @@ _basis_push_pull = """\
 basis
     Basis of the embedding, saved in :attr:`anndata.AnnData.obsm`.
 """
+_scale_push_pull = """\
+scale
+    Whether to linearly scale the distribution.
+"""
 # return push/pull
 _return_push_pull = """\
 :class:`matplotlib.figure.Figure` scatterplot in `basis` coordinates.
@@ -185,4 +189,5 @@ d_plotting = DocstringProcessor(
     sankey_kwargs=_sankey_kwargs,
     na_color=_na_color,
     dot_scale_factor=_dot_scale_factor,
+    scale_push_pull=_scale_push_pull,
 )

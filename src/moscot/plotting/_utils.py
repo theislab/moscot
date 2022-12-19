@@ -364,8 +364,9 @@ def _plot_temporal(
     basis: str = "umap",
     result_key: str = "plot_tmp",
     constant_fill_value: float = np.nan,
+    scale: bool = True,
     cont_cmap: Union[str, mcolors.Colormap] = "viridis",
-    title: Optional[str] = None,
+    title: Optional[Union[str, Sequence[str]]] = None,
     figsize: Optional[Tuple[float, float]] = None,
     dpi: Optional[int] = None,
     dot_scale_factor: float = 2.0,
@@ -373,6 +374,7 @@ def _plot_temporal(
     save: Optional[str] = None,
     ax: Optional[Axes] = None,
     show: bool = False,
+    title_fontsize: Optional[float] = None,
     **kwargs: Any,
 ) -> mpl.figure.Figure:
 
@@ -380,16 +382,29 @@ def _plot_temporal(
         1, 1 if time_points is None else len(time_points), figsize=figsize, dpi=dpi, constrained_layout=True
     )
     axs = np.ravel(axs)  # make into iterable
+    if isinstance(title, Sequence):
+        if TYPE_CHECKING:
+            assert isinstance(time_points, Sequence)
+        if len(title) != len(time_points):
+            raise ValueError("If `title` is a list, its length must be equal to the length of `time_points`.")
+        titles = title
+    else:
+        titles = [None] * (len(time_points) if time_points is not None else 1)  # type: ignore[list-item]
+
+    if scale:
+        vmin, vmax = np.nanmin(adata.obs[key_stored]), np.nanmax(adata.obs[key_stored])
+    else:
+        vmin, vmax = 0, 1
     for i, ax in enumerate(axs):
         if time_points is None:
-            adata.obs[result_key] = adata.obs[key_stored]
+            adata.obs[result_key] = (adata.obs[key_stored] - vmin) / (vmax - vmin)
             size = None
         else:
             tmp = np.full(len(adata), constant_fill_value)
             mask = adata.obs[temporal_key] == time_points[i]
 
             tmp[mask] = adata[adata.obs[temporal_key] == time_points[i]].obs[key_stored]
-            adata.obs[f"result_key_{i}"] = tmp
+            adata.obs[f"result_key_{i}"] = (tmp - vmin) / (vmax - vmin)
             size = (mask * 120000 * dot_scale_factor + (1 - mask) * 120000) / adata.n_obs
 
         sc.pl.embedding(
@@ -397,13 +412,15 @@ def _plot_temporal(
             basis=basis,
             color=f"result_key_{i}",
             color_map=cont_cmap,
-            title=title,
+            title=titles[i],
             size=size,
             ax=ax,
             show=show,
             na_color=na_color,
             **kwargs,
         )
+    if isinstance(title, str):
+        fig.suptitle(title, fontsize=title_fontsize)
     if save:
         fig.figure.savefig(save, bbox_inches="tight")
     return fig
