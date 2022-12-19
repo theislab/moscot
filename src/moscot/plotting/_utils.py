@@ -1,6 +1,6 @@
 from copy import copy
 from types import MappingProxyType
-from typing import Any, Set, Dict, List, Tuple, Union, Mapping, Iterable, Optional, TYPE_CHECKING
+from typing import Any, Dict, List, Tuple, Union, Mapping, Optional, Sequence, TYPE_CHECKING
 from collections import defaultdict
 
 from matplotlib import colors as mcolors, pyplot as plt
@@ -383,7 +383,7 @@ def _plot_temporal(
     adata: AnnData,
     temporal_key: str,
     key_stored: str,
-    time_points: Optional[Iterable[K]] = None,
+    time_points: Optional[Sequence[K]] = None,
     basis: str = "umap",
     result_key: str = "plot_tmp",
     constant_fill_value: float = 0.0,
@@ -396,32 +396,30 @@ def _plot_temporal(
     show: bool = False,
     **kwargs: Any,
 ) -> mpl.figure.Figure:
-    all_keys = adata.obs[temporal_key].unique()
-    if time_points is None:
-        constant_fill_keys: Set[K] = set()
-    else:
-        constant_fill_keys = set(all_keys) - set(time_points)
-    tmp = np.full(len(adata), np.nan)
-    for t in adata.obs[temporal_key].unique():
-        mask = adata.obs[temporal_key] == t
-        if t in constant_fill_keys:
-            tmp[mask] = constant_fill_value
-        else:
-            tmp[mask] = adata[adata.obs[temporal_key] == t].obs[key_stored]
 
-    adata.obs[result_key] = tmp
-
-    sc.set_figure_params(figsize=figsize, dpi=dpi)  # TODO(@MUCDK, michalk8): necessary? want to make it uniform
-    fig = sc.pl.embedding(
-        adata=adata,
-        basis=basis,
-        color=result_key,
-        color_map=cont_cmap,
-        title=title,
-        ax=ax,
-        show=show,
-        **kwargs,
+    fig, axs = plt.subplots(
+        1, 1 if time_points is None else len(time_points), figsize=figsize, dpi=dpi, constrained_layout=True
     )
+    axs = np.ravel(axs)  # make into iterable
+    for i, ax in enumerate(axs):
+        if time_points is None:
+            adata.obs[result_key] = adata.obs[key_stored]
+        else:
+            tmp = np.full(len(adata), constant_fill_value)
+            mask = adata.obs[temporal_key] == time_points[i]
+            tmp[mask] = adata[adata.obs[temporal_key] == time_points[i]].obs[key_stored]
+            adata.obs[result_key] = tmp
+
+        sc.pl.embedding(
+            adata=adata,
+            basis=basis,
+            color=result_key,
+            color_map=cont_cmap,
+            title=title,
+            ax=ax,
+            show=show,
+            **kwargs,
+        )
     if save:
         fig.figure.savefig(save, bbox_inches="tight")
     return fig

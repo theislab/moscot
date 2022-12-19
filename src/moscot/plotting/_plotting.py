@@ -1,5 +1,5 @@
 from types import MappingProxyType
-from typing import Any, Dict, List, Tuple, Union, Mapping, Iterable, Optional
+from typing import Any, Dict, List, Tuple, Union, Mapping, Optional, Sequence
 
 from matplotlib import colors as mcolors
 from matplotlib.axes import Axes
@@ -169,7 +169,7 @@ def sankey(
 def push(
     inp: Union[AnnData, TemporalProblem, LineageProblem, CompoundProblem],
     uns_key: Optional[str] = None,
-    time_points: Optional[Iterable[K]] = None,
+    time_points: Optional[Sequence[K]] = None,
     basis: str = "umap",
     result_key: str = "plot_push",
     fill_value: float = np.nan,
@@ -238,7 +238,7 @@ def push(
 def pull(
     inp: Union[AnnData, TemporalProblem, LineageProblem, CompoundProblem],
     uns_key: Optional[str] = None,
-    time_points: Optional[Iterable[K]] = None,
+    time_points: Optional[Sequence[K]] = None,
     basis: str = "umap",
     result_key: str = "plot_pull",
     fill_value: float = np.nan,
