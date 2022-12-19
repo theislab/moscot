@@ -213,8 +213,8 @@ def push(
     if key not in adata.obs:
         raise KeyError(f"No data found in `adata.obs[{key!r}]`.")
     data = adata.uns[AdataKeys.UNS][PlottingKeys.PUSH][key]
-    if data["annotation"] is not None and data["subset"] is not None and cmap is None:
-        cmap = _create_col_colors(adata, data["annotation"], data["subset"])
+    if data["data"] is not None and data["subset"] is not None and cmap is None:
+        cmap = _create_col_colors(adata, data["data"], data["subset"])
     fig = _plot_temporal(
         adata=adata,
         temporal_key=data["temporal_key"],
@@ -283,8 +283,8 @@ def pull(
     if key not in adata.obs:
         raise KeyError(f"No data found in `adata.obs[{key!r}]`.")
     data = adata.uns[AdataKeys.UNS][PlottingKeys.PULL][key]
-    if data["annotation"] is not None and data["subset"] is not None and cmap is None:
-        cmap = _create_col_colors(adata, data["annotation"], data["subset"])
+    if data["data"] is not None and data["subset"] is not None and cmap is None:
+        cmap = _create_col_colors(adata, data["data"], data["subset"])
     fig = _plot_temporal(
         adata=adata,
         temporal_key=data["temporal_key"],
