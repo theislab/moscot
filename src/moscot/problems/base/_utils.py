@@ -1,5 +1,6 @@
 from types import MappingProxyType
 from typing import Any, Dict, List, Type, Tuple, Union, Literal, Callable, Optional, Sequence, TYPE_CHECKING
+from difflib import SequenceMatcher
 from functools import partial, update_wrapper
 import inspect
 import warnings
@@ -23,6 +24,7 @@ __all__ = [
 ]
 
 Callback = Callable[..., Any]
+SIMILAR_KEYS = ["rank", "ranks"]
 
 
 def attributedispatch(func: Optional[Callback] = None, attr: Optional[str] = None) -> Callback:
@@ -235,6 +237,14 @@ def _filter_kwargs(*funcs: Callable[..., Any], **kwargs: Any) -> Dict[str, Any]:
     for func in funcs:
         params = inspect.signature(func).parameters
         res.update({k: v for k, v in kwargs.items() if k in params})
+    for k in res:
+        kwargs.pop(k)
+    for k in res:
+        for j in kwargs:
+            if any(k in x for x in SIMILAR_KEYS) or any(j in x for x in SIMILAR_KEYS):
+                continue
+            if SequenceMatcher(None, k, j).ratio() > 0.7:
+                logger.warning(f"Found similar key `{k}` and `{j}`. Are you sure `{j}` is correct?")
     return res
 
 
