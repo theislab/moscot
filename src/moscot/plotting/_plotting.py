@@ -174,6 +174,7 @@ def push(
     fill_value: float = np.nan,
     scale: bool = True,
     title: Optional[Union[str, List[str]]] = None,
+    suptitle: Optional[str] = None,
     cmap: Optional[Union[str, mcolors.Colormap]] = None,
     dot_scale_factor: float = 2.0,
     na_color: Optional[str] = "#e8ebe9",
@@ -182,6 +183,7 @@ def push(
     save: Optional[str] = None,
     ax: Optional[Axes] = None,
     return_fig: bool = True,
+    suptitle_fontsize: Optional[float] = None,
     **kwargs: Any,
 ) -> mpl.figure.Figure:
     """
@@ -225,6 +227,7 @@ def push(
         key_stored=key,
         start=data["start"],
         end=data["end"],
+        categories=data["subset"],
         push=True,
         time_points=time_points,
         basis=basis,
@@ -235,9 +238,11 @@ def push(
         dot_scale_factor=dot_scale_factor,
         na_color=na_color,
         title=title,
+        suptitle=suptitle,
         figsize=figsize,
         dpi=dpi,
         ax=ax,
+        suptitle_fontsize=suptitle_fontsize,
         **kwargs,
     )
     if return_fig:
@@ -253,6 +258,7 @@ def pull(
     fill_value: float = np.nan,
     scale: bool = True,
     title: Optional[Union[str, List[str]]] = None,
+    suptitle: Optional[str] = None,
     cmap: Optional[Union[str, mcolors.Colormap]] = None,
     dot_scale_factor: float = 2.0,
     na_color: Optional[str] = "#e8ebe9",
@@ -261,6 +267,7 @@ def pull(
     save: Optional[str] = None,
     ax: Optional[Axes] = None,
     return_fig: bool = True,
+    suptitle_fontsize: Optional[float] = None,
     **kwargs: Any,
 ) -> mpl.figure.Figure:
     """
@@ -291,7 +298,9 @@ def pull(
     %(return_push_pull)s
     """
     adata, _ = _input_to_adatas(inp)
-
+    if time_points is not None:
+        time_points = list(time_points)
+        time_points.sort()
     key = PlottingDefaults.PULL if uns_key is None else uns_key
     if key not in adata.obs:
         raise KeyError(f"No data found in `adata.obs[{key!r}]`.")
@@ -304,6 +313,7 @@ def pull(
         key_stored=key,
         start=data["start"],
         end=data["end"],
+        categories=data["subset"],
         push=False,
         time_points=time_points,
         basis=basis,
@@ -314,9 +324,11 @@ def pull(
         dot_scale_factor=dot_scale_factor,
         na_color=na_color,
         title=title,
+        suptitle=suptitle,
         figsize=figsize,
         dpi=dpi,
         ax=ax,
+        suptitle_fontsize=suptitle_fontsize,
         **kwargs,
     )
     if return_fig:

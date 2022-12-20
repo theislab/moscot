@@ -362,6 +362,7 @@ def _plot_temporal(
     key_stored: str,
     start: float,
     end: float,
+    categories: Optional[Union[str, List[str]]] = None,
     *,
     push: bool,
     time_points: Optional[Sequence[K]] = None,
@@ -370,6 +371,7 @@ def _plot_temporal(
     scale: bool = True,
     cont_cmap: Union[str, mcolors.Colormap] = "viridis",
     title: Optional[Union[str, List[str]]] = None,
+    suptitle: Optional[str] = None,
     figsize: Optional[Tuple[float, float]] = None,
     dpi: Optional[int] = None,
     dot_scale_factor: float = 2.0,
@@ -377,7 +379,7 @@ def _plot_temporal(
     save: Optional[str] = None,
     ax: Optional[Axes] = None,
     show: bool = False,
-    title_fontsize: Optional[float] = None,
+    suptitle_fontsize: Optional[float] = None,
     **kwargs: Any,
 ) -> mpl.figure.Figure:
 
@@ -385,6 +387,10 @@ def _plot_temporal(
         1, 1 if time_points is None else len(time_points), figsize=figsize, dpi=dpi, constrained_layout=True
     )
     axs = np.ravel(axs)  # make into iterable
+
+    if not push and time_points is not None:
+        time_points = time_points[::-1]
+
     if isinstance(title, list):
         if TYPE_CHECKING:
             assert isinstance(time_points, list)
@@ -392,8 +398,12 @@ def _plot_temporal(
             raise ValueError("If `title` is a list, its length must be equal to the length of `time_points`.")
         titles = title
     else:
-        titles = [""] * (len(time_points) if time_points is not None else 1)
-
+        name = "descendants" if push else "ancestors"
+        if time_points is not None:
+            titles = [f"{categories} at time point {start if push else end}"]
+            titles.extend([f"{name} at time point {time_points[i]}" for i in range(1, len(time_points))])
+        else:
+            titles = [f"{categories} at time point {start if push else end} and {name}"]
     for i, ax in enumerate(axs):
         if time_points is None:
             if scale:
@@ -416,14 +426,28 @@ def _plot_temporal(
             adata.obs[f"result_key_{i}"] = (tmp - vmin) / (vmax - vmin)
             size = (mask * 120000 * dot_scale_factor + (1 - mask) * 120000) / adata.n_obs  # 120,000 from scanpy
 
+            _ = kwargs.pop("color_map", None)
+            _ = kwargs.pop("palette", None)
+
+            if isinstance(cont_cmap, str):
+                try:
+                    cont_cmap = mpl.colormaps[cont_cmap]
+                except KeyError:
+                    raise KeyError("`cont_cmap` is not a valid key for `matplotlib.colormaps`.")
             if (time_points[i] == start and push) or (time_points[i] == end and not push):
-                adata.obs[f"result_key_{i}"] = adata.obs[f"result_key_{i}"].astype("category")
+                vmin, vmax = np.nanmin(adata.obs[f"result_key_{i}"]), np.nanmax(adata.obs[f"result_key_{i}"])
+                adata.obs[f"result_key_{i}"] = adata.obs[f"result_key_{i}"].astype("str")
+                st = f"not in {time_points[i]}"
+                adata.obs[f"result_key_{i}"] = adata.obs[f"result_key_{i}"].replace("nan", st)
+                palette = {str(vmax): cont_cmap.reversed()(0), str(vmin): cont_cmap(0), st: na_color}
+                kwargs["palette"] = palette
+            else:
+                kwargs["color_map"] = cont_cmap
 
         sc.pl.embedding(
             adata=adata,
             basis=basis,
             color=f"result_key_{i}",
-            color_map=cont_cmap,
             title=titles[i],
             size=size,
             ax=ax,
@@ -431,8 +455,8 @@ def _plot_temporal(
             na_color=na_color,
             **kwargs,
         )
-    if isinstance(title, str):
-        fig.suptitle(title, fontsize=title_fontsize)
+    if suptitle is not None:
+        fig.suptitle(suptitle, fontsize=suptitle_fontsize)
     if save:
         fig.figure.savefig(save, bbox_inches="tight")
     return fig
@@ -467,6 +491,6 @@ def _create_col_colors(adata: AnnData, obs_col: str, subset: Union[str, Sequence
         h, _, v = mcolors.rgb_to_hsv(mcolors.to_rgb(color))
         end_color = mcolors.hsv_to_rgb([h, 1, v])
 
-        col_cmap = mcolors.LinearSegmentedColormap.from_list("lineage_cmap", ["darkgrey", end_color])
+        col_cmap = mcolors.LinearSegmentedColormap.from_list("category_cmap", ["darkgrey", end_color])
 
         return col_cmap
