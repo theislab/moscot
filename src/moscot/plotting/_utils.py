@@ -360,9 +360,12 @@ def _plot_temporal(
     adata: AnnData,
     temporal_key: str,
     key_stored: str,
+    start: float,
+    end: float,
+    *,
+    push: bool,
     time_points: Optional[Sequence[K]] = None,
     basis: str = "umap",
-    result_key: str = "plot_tmp",
     constant_fill_value: float = np.nan,
     scale: bool = True,
     cont_cmap: Union[str, mcolors.Colormap] = "viridis",
@@ -411,7 +414,10 @@ def _plot_temporal(
                 vmin = 0
                 vmax = 1
             adata.obs[f"result_key_{i}"] = (tmp - vmin) / (vmax - vmin)
-            size = (mask * 120000 * dot_scale_factor + (1 - mask) * 120000) / adata.n_obs
+            size = (mask * 120000 * dot_scale_factor + (1 - mask) * 120000) / adata.n_obs  # 120,000 from scanpy
+
+            if (time_points[i] == start and push) or (time_points[i] == end and not push):
+                adata.obs[f"result_key_{i}"] = adata.obs[f"result_key_{i}"].astype("category")
 
         sc.pl.embedding(
             adata=adata,

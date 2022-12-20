@@ -171,7 +171,6 @@ def push(
     uns_key: Optional[str] = None,
     time_points: Optional[Sequence[K]] = None,
     basis: str = "umap",
-    result_key: str = "plot_push",
     fill_value: float = np.nan,
     scale: bool = True,
     title: Optional[Union[str, List[str]]] = None,
@@ -196,7 +195,6 @@ def push(
     %(uns_key)s
     %(time_points_push_pull)s
     %(basis_push_pull)s
-    %(result_key_push_pull)s
     %(fill_value_push_pull)s
     %(scale_push_pull)s
     %(title)s
@@ -225,9 +223,11 @@ def push(
         adata=adata,
         temporal_key=data["temporal_key"],
         key_stored=key,
+        start=data["start"],
+        end=data["end"],
+        push=True,
         time_points=time_points,
         basis=basis,
-        result_key=result_key,
         constant_fill_value=fill_value,
         scale=scale,
         save=save,
@@ -250,7 +250,6 @@ def pull(
     uns_key: Optional[str] = None,
     time_points: Optional[Sequence[K]] = None,
     basis: str = "umap",
-    result_key: str = "plot_pull",
     fill_value: float = np.nan,
     scale: bool = True,
     title: Optional[Union[str, List[str]]] = None,
@@ -275,7 +274,6 @@ def pull(
     %(uns_key)s
     %(time_points_push_pull)s
     %(basis_push_pull)s
-    %(result_key_push_pull)s
     %(fill_value_push_pull)s
     %(scale_push_pull)s
     %(title)s
@@ -304,9 +302,11 @@ def pull(
         adata=adata,
         temporal_key=data["temporal_key"],
         key_stored=key,
+        start=data["start"],
+        end=data["end"],
+        push=False,
         time_points=time_points,
         basis=basis,
-        result_key=result_key,
         constant_fill_value=fill_value,
         scale=scale,
         save=save,

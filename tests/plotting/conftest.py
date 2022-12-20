@@ -41,7 +41,7 @@ def adata_pl_cell_transition(gt_temporal_adata: AnnData) -> AnnData:
 @pytest.fixture()
 def adata_pl_push(adata_time: AnnData) -> AnnData:
     rng = np.random.RandomState(0)
-    plot_vars = {"temporal_key": "time", "data": "celltype", "subset": "A"}
+    plot_vars = {"temporal_key": "time", "data": "celltype", "subset": "A", "start": 0, "end": 1}
     adata_time.uns["celltype_colors"] = ["#cc1b1b", "#2ccc1b", "#cc1bcc"]
     adata_time.obs["celltype"] = adata_time.obs["celltype"].astype("category")
     Key.uns.set_plotting_vars(adata_time, AdataKeys.UNS, PlottingKeys.PUSH, PlottingDefaults.PUSH, plot_vars)
@@ -52,7 +52,7 @@ def adata_pl_push(adata_time: AnnData) -> AnnData:
 @pytest.fixture()
 def adata_pl_pull(adata_time: AnnData) -> AnnData:
     rng = np.random.RandomState(0)
-    plot_vars = {"temporal_key": "time", "data": "celltype", "subset": "A"}
+    plot_vars = {"temporal_key": "time", "data": "celltype", "subset": "A", "start": 0, "end": 1}
     adata_time.uns["celltype_colors"] = ["#cc1b1b", "#2ccc1b", "#cc1bcc"]
     adata_time.obs["celltype"] = adata_time.obs["celltype"].astype("category")
     Key.uns.set_plotting_vars(adata_time, AdataKeys.UNS, PlottingKeys.PULL, PlottingDefaults.PULL, plot_vars)
