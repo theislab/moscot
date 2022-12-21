@@ -45,7 +45,13 @@ def adata_pl_push(adata_time: AnnData) -> AnnData:
     adata_time.uns["celltype_colors"] = ["#cc1b1b", "#2ccc1b", "#cc1bcc"]
     adata_time.obs["celltype"] = adata_time.obs["celltype"].astype("category")
     Key.uns.set_plotting_vars(adata_time, AdataKeys.UNS, PlottingKeys.PUSH, PlottingDefaults.PUSH, plot_vars)
-    adata_time.obs[PlottingDefaults.PUSH] = np.abs(rng.randn(len(adata_time)))
+    push_initial_dist = np.zeros(
+        shape=(len(adata_time[adata_time.obs["time"] == 0]),)
+    )  # we need this for a cat. distr. in plots
+    push_initial_dist[0:10] = 1 / 10
+    adata_time.obs[PlottingDefaults.PUSH] = np.hstack(
+        (push_initial_dist, np.abs(rng.randn(len(adata_time) - len(push_initial_dist))))
+    )
     return adata_time
 
 
