@@ -18,7 +18,7 @@ annotate
 """
 _cbar_kwargs_cell_transition = """\
 cbar_kwargs
-    Keyword arguments for :meth:`matplotlib.figure.Figure.colorbar`."""
+    Keyword arguments for :func:`matplotlib.figure.Figure.colorbar`."""
 # return cell transition
 _return_cell_transition = """\
 :class:`matplotlib.figure.Figure` heatmap of cell transition matrix.
@@ -65,7 +65,7 @@ which is passed or saved as an attribute of :mod:`moscot.problems.base.CompoundP
     - `key`
 """
 _alpha_transparancy = """\
-Alpha
+alpha
     Transparancy value.
 """
 _interpolate_color = """\
@@ -74,7 +74,7 @@ interpolate_color
 """
 _sankey_kwargs = """\
 kwargs
-    Keyword arguments for :meth:`matplotlib.pyplot.fill_between`.
+    Keyword arguments for :func:`matplotlib.pyplot.fill_between`.
 """
 ###############################################################################
 # plotting.push/pull
@@ -138,7 +138,10 @@ _na_color = """\
 na_color
     Color to use for null or masked values. Can be anything matplotlib accepts as a color.
 """
-
+_suptitle_fontsize = """
+suptitle_fontsize
+    Fontsize of the suptitle.
+"""
 ###############################################################################
 # general output
 _return_fig = """\
@@ -190,4 +193,5 @@ d_plotting = DocstringProcessor(
     na_color=_na_color,
     dot_scale_factor=_dot_scale_factor,
     scale_push_pull=_scale_push_pull,
+    suptitle_fontsize=_suptitle_fontsize,
 )
