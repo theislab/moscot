@@ -24,7 +24,7 @@ __all__ = [
 ]
 
 Callback = Callable[..., Any]
-SIMILAR_KEYS = ["rank", "ranks"]
+SIMILAR_KEYS = ["rank", "ranks", "tau_a", "tau_b", "min_iterations", "max_iterations"]
 
 
 def attributedispatch(func: Optional[Callback] = None, attr: Optional[str] = None) -> Callback:
@@ -239,7 +239,6 @@ def _filter_kwargs(*funcs: Callable[..., Any], **kwargs: Any) -> Dict[str, Any]:
         res.update({k: v for k, v in kwargs.items() if k in params})
     for k in res:
         kwargs.pop(k)
-    for k in res:
         for j in kwargs:
             if any(k in x for x in SIMILAR_KEYS) or any(j in x for x in SIMILAR_KEYS):
                 continue
