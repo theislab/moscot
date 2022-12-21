@@ -48,7 +48,7 @@ def adata_pl_push(adata_time: AnnData) -> AnnData:
     push_initial_dist = np.zeros(
         shape=(len(adata_time[adata_time.obs["time"] == 0]),)
     )  # we need this for a cat. distr. in plots
-    push_initial_dist[0:10] = 1 / 10
+    push_initial_dist[0:10] = 0.1
     adata_time.obs[PlottingDefaults.PUSH] = np.hstack(
         (push_initial_dist, np.abs(rng.randn(len(adata_time) - len(push_initial_dist))))
     )
@@ -62,7 +62,13 @@ def adata_pl_pull(adata_time: AnnData) -> AnnData:
     adata_time.uns["celltype_colors"] = ["#cc1b1b", "#2ccc1b", "#cc1bcc"]
     adata_time.obs["celltype"] = adata_time.obs["celltype"].astype("category")
     Key.uns.set_plotting_vars(adata_time, AdataKeys.UNS, PlottingKeys.PULL, PlottingDefaults.PULL, plot_vars)
-    adata_time.obs[PlottingDefaults.PULL] = np.abs(rng.randn(len(adata_time)))
+    pull_initial_dist = np.zeros(
+        shape=(len(adata_time[adata_time.obs["time"] == 1]),)
+    )  # we need this for a cat. distr. in plots
+    pull_initial_dist[0:10] = 0.1
+    rand0 = np.abs(rng.randn(len(adata_time[adata_time.obs["time"] == 0])))
+    rand2 = np.abs(rng.randn(len(adata_time[adata_time.obs["time"] == 2])))
+    adata_time.obs[PlottingDefaults.PULL] = np.hstack((rand0, pull_initial_dist, rand2))
     return adata_time
 
 
