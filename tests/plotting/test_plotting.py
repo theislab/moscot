@@ -22,7 +22,7 @@ class TestPlotting(PlotTester, metaclass=PlotTesterMeta):
         mpl.sankey(adata_pl_sankey)
 
     def test_plot_sankey_params(self, adata_pl_sankey: AnnData):
-        mpl.sankey(adata_pl_sankey, captions=["Test", "Other test"], title="Title", figsize=(3, 3))
+        mpl.sankey(adata_pl_sankey, captions=["Test", "Other test"], title="Title")
 
     def test_plot_push(self, adata_pl_push: AnnData):
         mpl.push(adata_pl_push, time_points=[0, 1])
