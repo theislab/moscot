@@ -29,7 +29,7 @@ def cell_transition(
     dpi: Optional[int] = None,
     save: Optional[str] = None,
     ax: Optional[Axes] = None,
-    return_fig: bool = True,
+    return_fig: bool = False,
     cbar_kwargs: Mapping[str, Any] = MappingProxyType({}),
     **kwargs: Any,
 ) -> mpl.figure.Figure:
@@ -105,7 +105,7 @@ def sankey(
     dpi: Optional[int] = None,
     save: Optional[str] = None,
     ax: Optional[Axes] = None,
-    return_fig: bool = True,
+    return_fig: bool = False,
     **kwargs: Any,
 ) -> mpl.figure.Figure:
     """
@@ -181,7 +181,7 @@ def push(
     dpi: Optional[int] = None,
     save: Optional[str] = None,
     ax: Optional[Axes] = None,
-    return_fig: bool = True,
+    return_fig: bool = False,
     suptitle_fontsize: Optional[float] = None,
     **kwargs: Any,
 ) -> mpl.figure.Figure:
@@ -266,7 +266,7 @@ def pull(
     dpi: Optional[int] = None,
     save: Optional[str] = None,
     ax: Optional[Axes] = None,
-    return_fig: bool = True,
+    return_fig: bool = False,
     suptitle_fontsize: Optional[float] = None,
     **kwargs: Any,
 ) -> mpl.figure.Figure:

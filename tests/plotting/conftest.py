@@ -49,8 +49,10 @@ def adata_pl_push(adata_time: AnnData) -> AnnData:
         shape=(len(adata_time[adata_time.obs["time"] == 0]),)
     )  # we need this for a cat. distr. in plots
     push_initial_dist[0:10] = 0.1
+    nan2 = np.empty(len(adata_time[adata_time.obs["time"] == 2]))
+    nan2[:] = np.nan
     adata_time.obs[PlottingDefaults.PUSH] = np.hstack(
-        (push_initial_dist, np.abs(rng.randn(len(adata_time) - len(push_initial_dist))))
+        (push_initial_dist, np.abs(rng.randn(len(adata_time[adata_time.obs["time"] == 1]))), nan2)
     )
     return adata_time
 
@@ -67,8 +69,9 @@ def adata_pl_pull(adata_time: AnnData) -> AnnData:
     )  # we need this for a cat. distr. in plots
     pull_initial_dist[0:10] = 0.1
     rand0 = np.abs(rng.randn(len(adata_time[adata_time.obs["time"] == 0])))
-    rand2 = np.abs(rng.randn(len(adata_time[adata_time.obs["time"] == 2])))
-    adata_time.obs[PlottingDefaults.PULL] = np.hstack((rand0, pull_initial_dist, rand2))
+    nan2 = np.empty(len(adata_time[adata_time.obs["time"] == 2]))
+    nan2[:] = np.nan
+    adata_time.obs[PlottingDefaults.PULL] = np.hstack((rand0, pull_initial_dist, nan2))
     return adata_time
 
 

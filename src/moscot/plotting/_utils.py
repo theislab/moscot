@@ -402,15 +402,17 @@ def _plot_temporal(
     else:
         name = "descendants" if push else "ancestors"
         if time_points is not None:
-            titles = [f"{categories} at {start if push else end}"]
-            titles.extend([f"{name} at {time_points[i]}" for i in range(1, len(time_points))])
+            titles = [f"{categories} at time {start if push else end}"]
+            titles.extend([f"{name} at time {time_points[i]}" for i in range(1, len(time_points))])
         else:
-            titles = [f"{categories} at {start if push else end} and {name}"]
+            titles = [f"{categories} at time {start if push else end} and {name}"]
     for i, ax in enumerate(axs):
         with RandomKeys(adata, n=1, where="obs") as keys:
             if time_points is None:
                 if scale:
-                    adata.obs[keys[0]] = MinMaxScaler.fit_transform(adata.obs[key_stored])
+                    adata.obs[keys[0]] = (
+                        MinMaxScaler().fit_transform(adata.obs[key_stored].values.reshape(-1, 1)).squeeze()
+                    )
                 else:
                     adata.obs[keys[0]] = adata.obs[key_stored]
                 size = None
@@ -420,25 +422,28 @@ def _plot_temporal(
 
                 tmp[mask] = adata[mask].obs[key_stored]
                 if scale:
-                    adata.obs[keys[0]] = MinMaxScaler.fit_transform(mask * adata.obs[key_stored])
+                    tmp[mask] = (
+                        MinMaxScaler().fit_transform(adata[mask].obs[key_stored].values.reshape(-1, 1)).squeeze()
+                    )
                 else:
-                    adata.obs[keys[0]] = mask * adata.obs[key_stored]
+                    tmp = mask * adata.obs[key_stored]
 
                 size = (mask * 120000 * dot_scale_factor + (1 - mask) * 120000) / adata.n_obs  # 120,000 from scanpy
 
                 _ = kwargs.pop("color_map", None)
                 _ = kwargs.pop("palette", None)
-
                 if (time_points[i] == start and push) or (time_points[i] == end and not push):
                     st = f"not in {time_points[i]}"
-                    vmin, vmax = np.nanmin(tmp), np.nanmax(tmp)
-                    tmp_ser = pd.Series(tmp).fillna(st).astype("category")
-                    if len(tmp_ser.cat.categories) != 3:
-                        raise ValueError(f"Not exactly three categories, found `{tmp_ser.cat.categories}`.")
-
+                    vmin, vmax = np.nanmin(tmp[mask]), np.nanmax(tmp[mask])
+                    column = pd.Series(tmp).fillna(st).astype("category")
+                    if len(np.unique(column[mask.values].values)) != 2:
+                        raise ValueError(f"Not exactly two categories, found `{column.cat.categories}`.")
                     kwargs["palette"] = {vmax: cont_cmap.reversed()(0), vmin: cont_cmap(0), st: na_color}
+                    adata.obs[keys[0]] = column.values
                 else:
                     kwargs["color_map"] = cont_cmap
+                    kwargs["na_color"] = na_color
+                    adata.obs[keys[0]] = tmp
 
             sc.pl.embedding(
                 adata=adata,
@@ -448,7 +453,6 @@ def _plot_temporal(
                 size=size,
                 ax=ax,
                 show=show,
-                na_color=na_color,
                 **kwargs,
             )
     if suptitle is not None:
@@ -468,7 +472,9 @@ def _color_transition(c1: str, c2: str, num: int, alpha: float) -> List[str]:
     return [mpl.colors.to_rgb((1 - n / num) * c1_rgb + n / num * c2_rgb) + (alpha,) for n in range(num)]
 
 
-def _create_col_colors(adata: AnnData, obs_col: str, subset: str) -> Optional[mcolors.Colormap]:
+def _create_col_colors(adata: AnnData, obs_col: str, subset: Union[str, List[str]]) -> Optional[mcolors.Colormap]:
+    if isinstance(subset, list):
+        subset = subset[0]
     if not is_categorical_dtype(adata.obs[obs_col]):
         raise TypeError(f"`adata.obs[{obs_col!r}] must be of categorical type.")
 
@@ -477,7 +483,7 @@ def _create_col_colors(adata: AnnData, obs_col: str, subset: str) -> Optional[mc
             color = adata.uns[f"{obs_col}_colors"][i]
             break
     else:
-        raise ValueError("Cannot find color for {subset} in `adata.obs[{obs_col!r}]`.")
+        raise ValueError(f"Cannot find color for {subset} in `adata.obs[{obs_col!r}]`.")
 
     h, _, v = mcolors.rgb_to_hsv(mcolors.to_rgb(color))
     end_color = mcolors.hsv_to_rgb([h, 1, v])

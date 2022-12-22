@@ -64,7 +64,7 @@ which is passed or saved as an attribute of :mod:`moscot.problems.base.CompoundP
     - `captions`
     - `key`
 """
-_alpha_transparancy = """\
+_alpha_transparency = """\
 alpha
     Transparancy value.
 """
@@ -187,7 +187,7 @@ d_plotting = DocstringProcessor(
     ax=_ax,
     figsize_dpi_save=_figsize_dpi_save,
     fontsize=_fontsize,
-    alpha_transparancy=_alpha_transparancy,
+    alpha_transparency=_alpha_transparency,
     interpolate_color=_interpolate_color,
     sankey_kwargs=_sankey_kwargs,
     na_color=_na_color,
