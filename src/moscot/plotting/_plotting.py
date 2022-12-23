@@ -1,5 +1,5 @@
 from types import MappingProxyType
-from typing import Any, Dict, List, Tuple, Union, Mapping, Iterable, Optional
+from typing import Any, Dict, List, Tuple, Union, Mapping, Optional, Sequence
 
 from matplotlib import colors as mcolors
 from matplotlib.axes import Axes
@@ -11,10 +11,9 @@ from anndata import AnnData
 
 from moscot.problems.base import CompoundProblem  # type: ignore[attr-defined]
 from moscot.problems.time import LineageProblem, TemporalProblem  # type: ignore[attr-defined]
-from moscot.plotting._utils import _sankey, _heatmap, _plot_temporal, _input_to_adatas
+from moscot.plotting._utils import _sankey, _heatmap, _plot_temporal, _input_to_adatas, _create_col_colors
 from moscot._docs._docs_plot import d_plotting
 from moscot._constants._constants import AdataKeys, PlottingKeys, PlottingDefaults
-from moscot.problems.base._compound_problem import K
 
 
 @d_plotting.dedent
@@ -30,7 +29,7 @@ def cell_transition(
     dpi: Optional[int] = None,
     save: Optional[str] = None,
     ax: Optional[Axes] = None,
-    return_fig: bool = True,
+    return_fig: bool = False,
     cbar_kwargs: Mapping[str, Any] = MappingProxyType({}),
     **kwargs: Any,
 ) -> mpl.figure.Figure:
@@ -99,12 +98,14 @@ def sankey(
     captions: Optional[List[str]] = None,
     title: Optional[str] = None,
     colors_dict: Optional[Dict[str, float]] = None,
+    alpha: float = 1.0,
+    interpolate_color: bool = False,
     cmap: Union[str, mcolors.Colormap] = "viridis",
     figsize: Optional[Tuple[float, float]] = None,
     dpi: Optional[int] = None,
     save: Optional[str] = None,
     ax: Optional[Axes] = None,
-    return_fig: bool = True,
+    return_fig: bool = False,
     **kwargs: Any,
 ) -> mpl.figure.Figure:
     """
@@ -119,8 +120,11 @@ def sankey(
     %(captions_sankey)s
     %(title)s
     %(colors_dict_sankey)s
+    %(alpha_transparency)s
+    %(interpolate_color)s
     %(cmap)s
     %(figsize_dpi_save)s
+    %(sankey_kwargs)s
 
     Returns
     -------
@@ -150,6 +154,8 @@ def sankey(
         figsize=figsize,
         dpi=dpi,
         ax=ax,
+        alpha=alpha,
+        interpolate_color=interpolate_color,
         **kwargs,
     )
     if save:
@@ -162,17 +168,21 @@ def sankey(
 def push(
     inp: Union[AnnData, TemporalProblem, LineageProblem, CompoundProblem],
     uns_key: Optional[str] = None,
-    time_points: Optional[Iterable[K]] = None,
+    time_points: Optional[Sequence[float]] = None,
     basis: str = "umap",
-    result_key: str = "plot_push",
     fill_value: float = np.nan,
-    title: Optional[str] = None,
-    cmap: Union[str, mcolors.Colormap] = "viridis",
+    scale: bool = True,
+    title: Optional[Union[str, List[str]]] = None,
+    suptitle: Optional[str] = None,
+    cmap: Optional[Union[str, mcolors.Colormap]] = None,
+    dot_scale_factor: float = 2.0,
+    na_color: str = "#e8ebe9",
     figsize: Optional[Tuple[float, float]] = None,
     dpi: Optional[int] = None,
     save: Optional[str] = None,
     ax: Optional[Axes] = None,
-    return_fig: bool = True,
+    return_fig: bool = False,
+    suptitle_fontsize: Optional[float] = None,
     **kwargs: Any,
 ) -> mpl.figure.Figure:
     """
@@ -186,11 +196,14 @@ def push(
     %(uns_key)s
     %(time_points_push_pull)s
     %(basis_push_pull)s
-    %(result_key_push_pull)s
     %(fill_value_push_pull)s
+    %(scale_push_pull)s
     %(title)s
     %(cmap)s
+    %(dot_scale_factor)s
+    %(na_color)s
     %(figsize_dpi_save)s
+    %(suptitle_fontsize)s
 
     Returns
     -------
@@ -206,20 +219,30 @@ def push(
     if key not in adata.obs:
         raise KeyError(f"No data found in `adata.obs[{key!r}]`.")
     data = adata.uns[AdataKeys.UNS][PlottingKeys.PUSH][key]
+    if data["data"] is not None and data["subset"] is not None and cmap is None:
+        cmap = _create_col_colors(adata, data["data"], data["subset"])
     fig = _plot_temporal(
         adata=adata,
         temporal_key=data["temporal_key"],
         key_stored=key,
+        start=data["start"],
+        end=data["end"],
+        categories=data["subset"],
+        push=True,
         time_points=time_points,
         basis=basis,
-        result_key=result_key,
         constant_fill_value=fill_value,
+        scale=scale,
         save=save,
         cont_cmap=cmap,
+        dot_scale_factor=dot_scale_factor,
+        na_color=na_color,
         title=title,
+        suptitle=suptitle,
         figsize=figsize,
         dpi=dpi,
         ax=ax,
+        suptitle_fontsize=suptitle_fontsize,
         **kwargs,
     )
     if return_fig:
@@ -230,17 +253,21 @@ def push(
 def pull(
     inp: Union[AnnData, TemporalProblem, LineageProblem, CompoundProblem],
     uns_key: Optional[str] = None,
-    time_points: Optional[Iterable[K]] = None,
+    time_points: Optional[Sequence[float]] = None,
     basis: str = "umap",
-    result_key: str = "plot_pull",
     fill_value: float = np.nan,
-    title: Optional[str] = None,
-    cmap: Union[str, mcolors.Colormap] = "viridis",
+    scale: bool = True,
+    title: Optional[Union[str, List[str]]] = None,
+    suptitle: Optional[str] = None,
+    cmap: Optional[Union[str, mcolors.Colormap]] = None,
+    dot_scale_factor: float = 2.0,
+    na_color: str = "#e8ebe9",
     figsize: Optional[Tuple[float, float]] = None,
     dpi: Optional[int] = None,
     save: Optional[str] = None,
     ax: Optional[Axes] = None,
-    return_fig: bool = True,
+    return_fig: bool = False,
+    suptitle_fontsize: Optional[float] = None,
     **kwargs: Any,
 ) -> mpl.figure.Figure:
     """
@@ -254,11 +281,14 @@ def pull(
     %(uns_key)s
     %(time_points_push_pull)s
     %(basis_push_pull)s
-    %(result_key_push_pull)s
     %(fill_value_push_pull)s
+    %(scale_push_pull)s
     %(title)s
     %(cmap)s
+    %(dot_scale_factor)s
+    %(na_color)s
     %(figsize_dpi_save)s
+    %(suptitle_fontsize)s
 
     Returns
     -------
@@ -274,20 +304,30 @@ def pull(
     if key not in adata.obs:
         raise KeyError(f"No data found in `adata.obs[{key!r}]`.")
     data = adata.uns[AdataKeys.UNS][PlottingKeys.PULL][key]
+    if data["data"] is not None and data["subset"] is not None and cmap is None:
+        cmap = _create_col_colors(adata, data["data"], data["subset"])
     fig = _plot_temporal(
         adata=adata,
         temporal_key=data["temporal_key"],
         key_stored=key,
+        start=data["start"],
+        end=data["end"],
+        categories=data["subset"],
+        push=False,
         time_points=time_points,
         basis=basis,
-        result_key=result_key,
         constant_fill_value=fill_value,
+        scale=scale,
         save=save,
         cont_cmap=cmap,
+        dot_scale_factor=dot_scale_factor,
+        na_color=na_color,
         title=title,
+        suptitle=suptitle,
         figsize=figsize,
         dpi=dpi,
         ax=ax,
+        suptitle_fontsize=suptitle_fontsize,
         **kwargs,
     )
     if return_fig:
