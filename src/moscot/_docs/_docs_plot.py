@@ -18,7 +18,7 @@ annotate
 """
 _cbar_kwargs_cell_transition = """\
 cbar_kwargs
-    Keyword arguments for :meth:`matplotlib.figure.Figure.colorbar`."""
+    Keyword arguments for :func:`matplotlib.figure.Figure.colorbar`."""
 # return cell transition
 _return_cell_transition = """\
 :class:`matplotlib.figure.Figure` heatmap of cell transition matrix.
@@ -64,7 +64,18 @@ which is passed or saved as an attribute of :mod:`moscot.problems.base.CompoundP
     - `captions`
     - `key`
 """
-
+_alpha_transparency = """\
+alpha
+    Transparancy value.
+"""
+_interpolate_color = """\
+interpolate_color
+    Whether the color is continuously interpolated.
+"""
+_sankey_kwargs = """\
+kwargs
+    Keyword arguments for :func:`matplotlib.pyplot.fill_between`.
+"""
 ###############################################################################
 # plotting.push/pull
 # input
@@ -84,6 +95,10 @@ time_points
 _basis_push_pull = """\
 basis
     Basis of the embedding, saved in :attr:`anndata.AnnData.obsm`.
+"""
+_scale_push_pull = """\
+scale
+    Whether to linearly scale the distribution.
 """
 # return push/pull
 _return_push_pull = """\
@@ -113,8 +128,20 @@ cmap
     Colormap for continuous annotations, see :class:`matplotlib.colors.Colormap`."""
 _title = """\
 title
-    TODO."""
-
+    Title of the plot.
+"""
+_dot_scale_factor = """\
+dot_scale_factor
+    If `time_points` is not `None`, `dot_scale_factor` increases the size of the dots by this factor.
+"""
+_na_color = """\
+na_color
+    Color to use for null or masked values. Can be anything matplotlib accepts as a color.
+"""
+_suptitle_fontsize = """
+suptitle_fontsize
+    Fontsize of the suptitle.
+"""
 ###############################################################################
 # general output
 _return_fig = """\
@@ -132,6 +159,7 @@ dpi
 save
     Path where to save the plot. If `None`, the plot is not saved.
 {_ax}"""
+
 
 d_plotting = DocstringProcessor(
     desc_cell_transition=_desc_cell_transition,
@@ -159,4 +187,11 @@ d_plotting = DocstringProcessor(
     ax=_ax,
     figsize_dpi_save=_figsize_dpi_save,
     fontsize=_fontsize,
+    alpha_transparency=_alpha_transparency,
+    interpolate_color=_interpolate_color,
+    sankey_kwargs=_sankey_kwargs,
+    na_color=_na_color,
+    dot_scale_factor=_dot_scale_factor,
+    scale_push_pull=_scale_push_pull,
+    suptitle_fontsize=_suptitle_fontsize,
 )
