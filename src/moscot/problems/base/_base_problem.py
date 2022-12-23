@@ -541,8 +541,9 @@ class OTProblem(BaseProblem):
         if self.problem_kind == ProblemKind.LINEAR:
             logger.info(f"Changing the problem type from {self.problem_kind} to fused-quadratic.")
             self._problem_kind = ProblemKind.QUAD
-        if data.shape != self.shape:
-            raise ValueError(f"`data` is expected to have shape {self.shape} but found {data.shape}.")
+        expected_shape = self.shape[0], self.shape[0]
+        if data.shape != expected_shape:
+            raise ValueError(f"`data` is expected to have shape {expected_shape} but found {data.shape}.")
         if not isinstance(data, pd.DataFrame):
             raise TypeError("If the data is to be validated, the data must be of type pandas.DataFrame.")
         if list(data.index) != list(self.adata_src.obs_names):
@@ -573,8 +574,9 @@ class OTProblem(BaseProblem):
         if self.problem_kind == ProblemKind.LINEAR:
             logger.info(f"Changing the problem type from {self.problem_kind} to fused-quadratic.")
             self._problem_kind = ProblemKind.QUAD
-        if data.shape != self.shape:
-            raise ValueError(f"`data` is expected to have shape {self.shape} but found {data.shape}.")
+        expected_shape = self.shape[1], self.shape[1]
+        if data.shape != expected_shape:
+            raise ValueError(f"`data` is expected to have shape {expected_shape} but found {data.shape}.")
         if not isinstance(data, pd.DataFrame):
             raise TypeError("If the data is to be validated, the data must be of type pandas.DataFrame.")
         if list(data.index) != list(self.adata_tgt.obs_names):
