@@ -10,7 +10,7 @@ from anndata import AnnData
 
 from moscot.problems.base import OTProblem  # type:ignore[attr-defined]
 from moscot.solvers._output import BaseSolverOutput
-from moscot.problems.generic import FGWProblem  # type:ignore[attr-defined]
+from moscot.problems.generic import GWProblem  # type:ignore[attr-defined]
 from tests.problems.conftest import (
     fgw_args_1,
     fgw_args_2,
@@ -27,7 +27,7 @@ class TestFGWProblem:
     @pytest.mark.fast()
     def test_prepare(self, adata_space_rotate: AnnData):
         expected_keys = [("0", "1"), ("1", "2")]
-        problem = FGWProblem(adata=adata_space_rotate)
+        problem = GWProblem(adata=adata_space_rotate)
 
         assert len(problem) == 0
         assert problem.problems == {}
@@ -52,7 +52,7 @@ class TestFGWProblem:
         eps = 0.5
         adata_space_rotate = adata_space_rotate[adata_space_rotate.obs["batch"].isin(("0", "1"))].copy()
         expected_keys = [("0", "1"), ("1", "2")]
-        problem = FGWProblem(adata=adata_space_rotate)
+        problem = GWProblem(adata=adata_space_rotate)
         problem = problem.prepare(
             key="batch",
             policy="sequential",
@@ -68,8 +68,7 @@ class TestFGWProblem:
 
     @pytest.mark.parametrize("args_to_check", [fgw_args_1, fgw_args_2])
     def test_pass_arguments(self, adata_space_rotate: AnnData, args_to_check: Mapping[str, Any]):
-        problem = FGWProblem(adata=adata_space_rotate)
-        adata_space_rotate = adata_space_rotate[adata_space_rotate.obs["batch"].isin((0, 1))].copy()
+        problem = GWProblem(adata=adata_space_rotate)
         problem = problem.prepare(
             key="batch",
             policy="sequential",
@@ -118,7 +117,7 @@ class TestFGWProblem:
     @pytest.mark.fast()
     @pytest.mark.parametrize("cost", [("sq_euclidean", SqEuclidean), ("euclidean", Euclidean), ("cosine", Cosine)])
     def test_prepare_costs(self, adata_time: AnnData, cost: Tuple[str, Any]):
-        problem = FGWProblem(adata=adata_time)
+        problem = GWProblem(adata=adata_time)
         problem = problem.prepare(
             key="time",
             policy="sequential",
@@ -135,7 +134,7 @@ class TestFGWProblem:
     def test_set_xy(self, adata_time: AnnData, tag: Literal["cost_matrix", "kernel"]):
         rng = np.random.RandomState(42)
         adata_time = adata_time[adata_time.obs["time"].isin((0, 1))].copy()
-        problem = FGWProblem(adata=adata_time)
+        problem = GWProblem(adata=adata_time)
         problem = problem.prepare(
             GW_x="X_pca",
             GW_y="X_pca",
@@ -163,7 +162,7 @@ class TestFGWProblem:
     def test_set_x(self, adata_time: AnnData, tag: Literal["cost_matrix", "kernel"]):
         rng = np.random.RandomState(42)
         adata_time = adata_time[adata_time.obs["time"].isin((0, 1))].copy()
-        problem = FGWProblem(adata=adata_time)
+        problem = GWProblem(adata=adata_time)
         problem = problem.prepare(
             GW_x="X_pca",
             GW_y="X_pca",
@@ -190,7 +189,7 @@ class TestFGWProblem:
     def test_set_y(self, adata_time: AnnData, tag: Literal["cost_matrix", "kernel"]):
         rng = np.random.RandomState(42)
         adata_time = adata_time[adata_time.obs["time"].isin((0, 1))].copy()
-        problem = FGWProblem(adata=adata_time)
+        problem = GWProblem(adata=adata_time)
         problem = problem.prepare(
             GW_x="X_pca",
             GW_y="X_pca",
@@ -215,7 +214,7 @@ class TestFGWProblem:
 
     @pytest.mark.fast()
     def test_prepare_different_costs(self, adata_time: AnnData):
-        problem = FGWProblem(adata=adata_time)
+        problem = GWProblem(adata=adata_time)
         problem = problem.prepare(
             key="time",
             policy="sequential",
