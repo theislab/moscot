@@ -56,6 +56,7 @@ class NeuralDualSolver:
         tau_b: float = 1.0,
         split_index: int = -1,
         combiner_kwargs: Dict[str, Any] = MappingProxyType({}),
+        valid_sinkhorn_kwargs: Dict[str, Any] = MappingProxyType({}),
     ):
         self.input_dim = input_dim
         self.pos_weights = pos_weights
@@ -76,6 +77,7 @@ class NeuralDualSolver:
         self.epsilon = 0.1 if self.tau_a != 1.0 or self.tau_b != 1.0 else None
         if dim_hidden is None:
             dim_hidden = [64, 64, 64, 64]
+        self.valid_sinkhorn_kwargs = valid_sinkhorn_kwargs
 
         self.key = jax.random.PRNGKey(seed)
         optimizer_f = optax.adamw(learning_rate=learning_rate, b1=beta_one, b2=beta_two, weight_decay=weight_decay)
@@ -185,7 +187,12 @@ class NeuralDualSolver:
         valid_batch: Dict[str, jnp.ndarray] = {}
         valid_batch["source"], valid_batch["target"] = validloader(key=None, full_dataset=True)
         sink_dist = _compute_sinkhorn_divergence(
-            valid_batch["source"][:, self.split_index], valid_batch["target"][:, self.split_index]
+            point_cloud_1=valid_batch["source"][:, self.split_index],
+            point_cloud_2=valid_batch["target"][:, self.split_index],
+            epsilon=self.valid_sinkhorn_kwargs.pop("epsilon", self.epsilon),
+            tau_a=self.valid_sinkhorn_kwargs.pop("tau_a", self.tau_a),
+            tau_b=self.valid_sinkhorn_kwargs.pop("tau_b", self.tau_b),
+            **self.valid_sinkhorn_kwargs,
         )
 
         # set logging dictionaries
