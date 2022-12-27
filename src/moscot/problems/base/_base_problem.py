@@ -664,7 +664,7 @@ class OTProblem(BaseProblem):
 
 
 class NeuralOTProblem(OTProblem):
-    """Base class for all neural optimal transport problems."""
+    """Base class for non-conditional neural optimal transport problems."""
 
     @d.get_sections(base="OTProblem_solve", sections=["Parameters", "Raises"])
     @wrap_solve
@@ -677,10 +677,12 @@ class NeuralOTProblem(OTProblem):
         """Solve method."""
         if self._xy is None:
             raise ValueError("Unable to solve the problem without `xy`.")
-        return super().solve(backend=backend, device=device, input_dim=self._xy.data_src.shape[1], **kwargs)
+        return super().solve(
+            backend=backend, device=device, split_index=-1, input_dim=self._xy.data_src.shape[1], **kwargs
+        )
 
 
-class CondOTProblem(BaseProblem):
+class CondOTProblem(BaseProblem): #TODO(@MUCDK) check generic types, save and load
     """
     Base class for all optimal transport problems.
 
@@ -731,6 +733,7 @@ class CondOTProblem(BaseProblem):
         self._distributions: Dict[Any, Tuple[TaggedArray, ArrayLike, ArrayLike]] = {}
         self._inner_policy: Optional[SubsetPolicy[Any]] = None
         self._sample_pairs: Optional[List[Tuple[Any, Any]]] = None
+        self._split_index: Optional[int] = None
 
         self._solver: Optional[OTSolver[BaseSolverOutput]] = None
         self._solution: Optional[BaseSolverOutput] = None
@@ -745,6 +748,7 @@ class CondOTProblem(BaseProblem):
         xy: Mapping[str, Any],
         policy: Policy_t,
         policy_key: str,
+        split_index: int,
         a: Optional[str] = None,
         b: Optional[str] = None,
         **kwargs: Any,
@@ -760,6 +764,8 @@ class CondOTProblem(BaseProblem):
             Policy defining which pairs of distributions to sample from during training.
         policy_key
             %(key)s
+        split_index
+            Index separating data from condition.
         a
             Source marginals.
         b
@@ -776,6 +782,7 @@ class CondOTProblem(BaseProblem):
         self._a = a
         self._b = b
         self._solution = None
+        self._split_index = split_index
 
         self._inner_policy = SubsetPolicy.create(policy, adata=self.adata, key=policy_key)
         self._sample_pairs = list(self._inner_policy._graph)

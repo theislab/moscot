@@ -1,5 +1,5 @@
 from types import MappingProxyType
-from typing import Any, Dict, List, Type, Tuple, Union, Literal, Mapping, Optional
+from typing import Any, Dict, List, Type, Tuple, Union, Literal, Mapping, Iterable, Optional
 
 from anndata import AnnData
 
@@ -486,6 +486,8 @@ class FGWProblem(GWProblem[K, B]):
 
 @d.dedent
 class NeuralProblem(CompoundProblem[K, B], GenericAnalysisMixin[K, B]):
+    """Class for solving Parameterized Monge Map problems / Neural OT problems."""
+
     @d.dedent
     def prepare(
         self,
@@ -511,52 +513,52 @@ class NeuralProblem(CompoundProblem[K, B], GenericAnalysisMixin[K, B]):
     @d.dedent
     def solve(
         self,
+        batch_size: int = 1024,
+        tau_a: float = 1.0,
+        tau_b: float = 1.0,
+        epsilon: float = 0.1,
         seed: int = 0,
         pos_weights: bool = False,
-        dim_hidden: Optional[List[int]] = None,
+        dim_hidden: Iterable[int] = (64, 64, 64, 64),
         beta: float = 1.0,
-        metric: str = "sinkhorn_forward",
-        learning_rate: float = 1e-3,
-        beta_one: float = 0.5,
-        beta_two: float = 0.9,
-        weight_decay: float = 0.0,
-        iterations: int = 25000,
+        best_model_metric: Literal[
+            "sinkhorn_forward", "sinkhorn"
+        ] = "sinkhorn_forward",  # TODO(@MUCDK) include only backward sinkhorn
+        iterations: int = 25000,  # TODO(@MUCDK): rename to max_iterations
         inner_iters: int = 10,
         valid_freq: int = 50,
         log_freq: int = 5,
         patience: int = 100,
-        pretrain: bool = True,
+        optimizer_f_kwargs: Dict[str, Any] = MappingProxyType({}),
+        optimizer_g_kwargs: Dict[str, Any] = MappingProxyType({}),
         pretrain_iters: int = 15001,
         pretrain_scale: float = 3.0,
+        valid_sinkhorn_kwargs: Dict[str, Any] = MappingProxyType({}),
         train_size: float = 1.0,
-        batch_size: int = 1024,
-        tau_a: float = 1.0,
-        tau_b: float = 1.0,
         **kwargs: Any,
     ) -> "NeuralProblem[K, B]":
         """Solve."""
         return super().solve(
+            batch_size=batch_size,
+            tau_a=tau_a,
+            tau_b=tau_b,
+            epsilon=epsilon,
             seed=seed,
             pos_weights=pos_weights,
+            dim_hidden=dim_hidden,
             beta=beta,
-            pretrain=pretrain,
-            metric=metric,
+            best_model_metric=best_model_metric,
             iterations=iterations,
             inner_iters=inner_iters,
             valid_freq=valid_freq,
             log_freq=log_freq,
             patience=patience,
-            dim_hidden=dim_hidden,
-            learning_rate=learning_rate,
-            beta_one=beta_one,
-            beta_two=beta_two,
-            weight_decay=weight_decay,
+            optimizer_f_kwargs=optimizer_f_kwargs,
+            optimizer_g_kwargs=optimizer_g_kwargs,
             pretrain_iters=pretrain_iters,
             pretrain_scale=pretrain_scale,
+            valid_sinkhorn_kwargs=valid_sinkhorn_kwargs,
             train_size=train_size,
-            batch_size=batch_size,
-            tau_a=tau_a,
-            tau_b=tau_b,
             **kwargs,
         )  # type:ignore[return-value]
 
@@ -570,7 +572,9 @@ class NeuralProblem(CompoundProblem[K, B], GenericAnalysisMixin[K, B]):
 
 
 @d.dedent
-class ConditionalNeuralProblem(CompoundProblem[K, B], GenericAnalysisMixin[K, B]):
+class ConditionalNeuralProblem(CondOTProblem, GenericAnalysisMixin[K, B]):
+    """Class for solving Conditional Parameterized Monge Map problems / Conditional Neural OT problems."""
+
     @d.dedent
     def prepare(
         self,
@@ -580,7 +584,7 @@ class ConditionalNeuralProblem(CompoundProblem[K, B], GenericAnalysisMixin[K, B]
         a: Optional[str] = None,
         b: Optional[str] = None,
         **kwargs: Any,
-    ) -> "NeuralProblem[K, B]":
+    ) -> "ConditionalNeuralProblem[K, B]":
         """Prepare the :class:`moscot.problems.generic.ConditionalNeuralProblem`."""
         self.batch_key = key
         xy, kwargs = handle_joint_attr(joint_attr, kwargs)
@@ -596,52 +600,54 @@ class ConditionalNeuralProblem(CompoundProblem[K, B], GenericAnalysisMixin[K, B]
     @d.dedent
     def solve(
         self,
+        batch_size: int = 1024,
+        tau_a: float = 1.0,
+        tau_b: float = 1.0,
+        epsilon: float = 0.1,
         seed: int = 0,
         pos_weights: bool = False,
-        dim_hidden: Optional[List[int]] = None,
+        dim_hidden: Iterable[int] = (64, 64, 64, 64),
         beta: float = 1.0,
-        metric: str = "sinkhorn_forward",
-        learning_rate: float = 1e-3,
-        beta_one: float = 0.5,
-        beta_two: float = 0.9,
-        weight_decay: float = 0.0,
-        iterations: int = 25000,
+        best_model_metric: Literal[
+            "sinkhorn_forward", "sinkhorn"
+        ] = "sinkhorn_forward",  # TODO(@MUCDK) include only backward sinkhorn
+        iterations: int = 25000,  # TODO(@MUCDK): rename to max_iterations
         inner_iters: int = 10,
         valid_freq: int = 50,
         log_freq: int = 5,
         patience: int = 100,
-        pretrain: bool = True,
+        optimizer_f_kwargs: Dict[str, Any] = MappingProxyType({}),
+        optimizer_g_kwargs: Dict[str, Any] = MappingProxyType({}),
         pretrain_iters: int = 15001,
         pretrain_scale: float = 3.0,
+        combiner_kwargs: Dict[str, Any] = MappingProxyType({}),
+        valid_sinkhorn_kwargs: Dict[str, Any] = MappingProxyType({}),
         train_size: float = 1.0,
-        batch_size: int = 1024,
-        tau_a: float = 1.0,
-        tau_b: float = 1.0,
         **kwargs: Any,
     ) -> "ConditionalNeuralProblem[K, B]":
         """Solve."""
         return super().solve(
+            batch_size=batch_size,
+            tau_a=tau_a,
+            tau_b=tau_b,
+            epsilon=epsilon,
             seed=seed,
             pos_weights=pos_weights,
+            dim_hidden=dim_hidden,
             beta=beta,
-            pretrain=pretrain,
-            metric=metric,
+            best_model_metric=best_model_metric,
             iterations=iterations,
             inner_iters=inner_iters,
             valid_freq=valid_freq,
             log_freq=log_freq,
             patience=patience,
-            dim_hidden=dim_hidden,
-            learning_rate=learning_rate,
-            beta_one=beta_one,
-            beta_two=beta_two,
-            weight_decay=weight_decay,
+            optimizer_f_kwargs=optimizer_f_kwargs,
+            optimizer_g_kwargs=optimizer_g_kwargs,
             pretrain_iters=pretrain_iters,
             pretrain_scale=pretrain_scale,
+            combiner_kwargs=combiner_kwargs,
+            valid_sinkhorn_kwargs=valid_sinkhorn_kwargs,
             train_size=train_size,
-            batch_size=batch_size,
-            tau_a=tau_a,
-            tau_b=tau_b,
             **kwargs,
         )  # type:ignore[return-value]
 

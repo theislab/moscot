@@ -623,7 +623,7 @@ class CompoundProblem(BaseCompoundProblem[K, B], ABC):
         }
 
 
-class JointProblem(BaseCompoundProblem[K, B], ABC):
+class JointProblem(BaseCompoundProblem[K, B], ABC): #TODO(@MUCDK remove whole class
     @d.dedent
     def prepare(
         self,

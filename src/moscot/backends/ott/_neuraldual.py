@@ -1,5 +1,5 @@
 from types import MappingProxyType
-from typing import Any, Dict, List, Tuple, Literal, Callable, Optional
+from typing import Any, Dict, List, Tuple, Literal, Callable, Iterable
 from collections import defaultdict
 
 from flax.core import freeze
@@ -29,66 +29,129 @@ class NeuralDualSolver:
     Optimal transport mapping via input convex neural networks,
     Makkuva-Taghvaei-Lee-Oh, ICML'20.
     http://proceedings.mlr.press/v119/makkuva20a/makkuva20a.pdf
+
+    Parameters
+    ----------
+    input_dim
+        Input dimension of data (without condition)
+    split_index
+        Index where to split the data from the conditions. `-1` denotes no condition.
+    batch_size
+        Batch size.
+    tau_a
+        Unbalancedness parameter in the source distribution in the inner sampling loop.
+    tau_b
+        Unbalancedness parameter in the target distribution in the inner sampling loop.
+    epsilon
+        Entropic regularisation parameter in the inner sampling loop.
+    seed
+        Seed for splitting the data
+    pos_weights
+        If `True` enforces non-negativity of corresponding weights of ICNNs, else only penalizes negativity.
+    dim_hidden
+        The length of `dim_hidden` determines the depth of the ICNNs, while the entries of the list determine
+        the layer widhts.
+    beta
+        If `pos_weights` is not `None`, this determines the multiplicative constant of L2-penalization of
+        negative weights in ICNNs.
+    best_model_metric
+        Which metric to use to assess model training. If `sinkhorn_forward` only the forward map is taken
+        into account, while `sinkhorn` takes the mean between the forward and the inverse map.
+    iterations
+        Number of (outer) training steps (batches) of the training process.
+    inner_iters
+        Number of inner iterations for updating the convex conjugate.
+    valid_freq
+        Frequency at which the model is evaluated.
+    log_freq
+        Frequency at which training is logged.
+    patience
+        Number of iterations of no performance increase after which to apply early stopping.
+    optimizer_f_kwargs
+        Keyword arguments for the optimizer :class:`optax.adamw` for f.
+    optimizer_g_kwargs
+        Keyword arguments for the optimizer :class:`optax.adamw` for g.
+    pretrain_iters
+        Number of iterations (batches) for pretraining with the identity map.
+    pretrain_scale
+        Variance of Gaussian distribution used for pretraining.
+    combiner_kwargs
+        Keyword arguments for the combiner module in the PICNN TODO(@MUCDK cite Bunne).
+    valid_sinkhorn_kwargs
+        Keyword arguments for computing the discrete sinkhorn divergence for assessing model training.
+        By default, the same `tau_a`, `tau_b` and `epsilon` are taken as for the inner sampling loop.
+
     """
 
     def __init__(
         self,
         input_dim: int,
+        split_index: int = -1,
+        batch_size: int = 1024,
+        tau_a: float = 1.0,
+        tau_b: float = 1.0,
+        epsilon: float = 0.1,
         seed: int = 0,
         pos_weights: bool = False,
-        dim_hidden: Optional[List[int]] = None,
+        dim_hidden: Iterable[int] = (64, 64, 64, 64),
         beta: float = 1.0,
-        pretrain: bool = True,
-        metric: str = "sinkhorn_forward",
-        iterations: int = 25000,
+        best_model_metric: Literal[
+            "sinkhorn_forward", "sinkhorn"
+        ] = "sinkhorn_forward",  # TODO(@MUCDK) include only backward sinkhorn
+        iterations: int = 25000,  # TODO(@MUCDK): rename to max_iterations
         inner_iters: int = 10,
         valid_freq: int = 50,
         log_freq: int = 5,
         patience: int = 100,
-        learning_rate: float = 1e-3,
-        beta_one: float = 0.5,
-        beta_two: float = 0.9,
-        weight_decay: float = 0.0,
+        optimizer_f_kwargs: Dict[str, Any] = MappingProxyType({}),
+        optimizer_g_kwargs: Dict[str, Any] = MappingProxyType({}),
         pretrain_iters: int = 15001,
         pretrain_scale: float = 3.0,
-        batch_size: int = 1024,
-        tau_a: float = 1.0,
-        tau_b: float = 1.0,
-        split_index: int = -1,
         combiner_kwargs: Dict[str, Any] = MappingProxyType({}),
         valid_sinkhorn_kwargs: Dict[str, Any] = MappingProxyType({}),
     ):
         self.input_dim = input_dim
+        self.split_index = split_index
+        self.batch_size = batch_size
+        self.tau_a = 1.0 if tau_a is None else tau_a
+        self.tau_b = 1.0 if tau_b is None else tau_b
+        self.epsilon = epsilon if self.tau_a != 1.0 or self.tau_b != 1.0 else None
         self.pos_weights = pos_weights
         self.beta = beta
-        self.pretrain = pretrain
-        self.metric = metric
+        self.best_model_metric = best_model_metric
         self.iterations = iterations
         self.inner_iters = inner_iters
         self.valid_freq = valid_freq
         self.log_freq = log_freq
         self.patience = patience
+        self.optimizer_f_kwargs = dict(optimizer_f_kwargs)
+        self.optimizer_g_kwargs = dict(optimizer_g_kwargs)
         self.pretrain_iters = pretrain_iters
         self.pretrain_scale = pretrain_scale
-        self.batch_size = batch_size
-        self.split_index = split_index
-        self.tau_a = 1.0 if tau_a is None else tau_a
-        self.tau_b = 1.0 if tau_b is None else tau_b
-        self.epsilon = 0.1 if self.tau_a != 1.0 or self.tau_b != 1.0 else None
-        if dim_hidden is None:
-            dim_hidden = [64, 64, 64, 64]
-        self.valid_sinkhorn_kwargs = valid_sinkhorn_kwargs
+        self.valid_sinkhorn_kwargs = dict(valid_sinkhorn_kwargs)
+        key = jax.random.PRNGKey(seed)
+        key, self.key = jax.random.split(key, 2)
 
-        self.key = jax.random.PRNGKey(seed)
-        optimizer_f = optax.adamw(learning_rate=learning_rate, b1=beta_one, b2=beta_two, weight_decay=weight_decay)
-        optimizer_g = optax.adamw(learning_rate=learning_rate, b1=beta_one, b2=beta_two, weight_decay=weight_decay)
-        cond_dim = 0 if split_index > -1 else self.input_dim - self.split_index - 1
-        combiner_output_dim = combiner_kwargs.pop("combiner_output_dim", 0)
+        # self.key = jax.random.PRNGKey(seed)
+        optimizer_f = optax.adamw(
+            learning_rate=self.optimizer_f_kwargs.pop("learning_rate", 1e-3),
+            b1=self.optimizer_f_kwargs.pop("b1", 0.5),
+            b2=self.optimizer_f_kwargs.pop("b2", 0.9),
+            weight_decay=self.optimizer_f_kwargs.pop("weight_decay", 0.0),
+        )
+        optimizer_g = optax.adamw(
+            learning_rate=self.optimizer_g_kwargs.pop("learning_rate", 1e-3),
+            b1=self.optimizer_g_kwargs.pop("b1", 0.5),
+            b2=self.optimizer_g_kwargs.pop("b2", 0.9),
+            weight_decay=self.optimizer_g_kwargs.pop("weight_decay", 0.0),
+        )
+        self.cond_dim: int = self.input_dim - self.split_index - 1 if split_index > -1 else 0 
+        combiner_output_dim = combiner_kwargs.get("combiner_output_dim", 0)
         neural_f = ICNN(
             dim_hidden=dim_hidden,
             pos_weights=pos_weights,
             split_index=self.split_index,
-            cond_dim=cond_dim,
+            cond_dim=self.cond_dim,
             combiner_output_dim=combiner_output_dim,
             combiner_kwargs=combiner_kwargs,
         )
@@ -96,17 +159,19 @@ class NeuralDualSolver:
             dim_hidden=dim_hidden,
             pos_weights=pos_weights,
             split_index=self.split_index,
-            cond_dim=cond_dim,
+            cond_dim=self.cond_dim,
             combiner_output_dim=combiner_output_dim,
             combiner_kwargs=combiner_kwargs,
         )
 
         # set optimizer and networks
-        self.setup(neural_f, neural_g, optimizer_f, optimizer_g)
+        self.setup(key, neural_f, neural_g, optimizer_f, optimizer_g)
 
-    def setup(self, neural_f: ICNN, neural_g: ICNN, optimizer_f: optax.OptState, optimizer_g: optax.OptState):
+    def setup(
+        self, key: jnp.ndarray, neural_f: ICNN, neural_g: ICNN, optimizer_f: optax.OptState, optimizer_g: optax.OptState
+    ):
         """Initialize all components required to train the `NeuralDual`."""
-        key_f, key_g, self.key = jax.random.split(self.key, 3)
+        key_f, key_g, key = jax.random.split(key, 3)
 
         # check setting of network architectures
         if neural_g.pos_weights != self.pos_weights or neural_f.pos_weights != self.pos_weights:
@@ -133,7 +198,7 @@ class NeuralDualSolver:
     ) -> Tuple[DualPotentials, Train_t]:
         """Call the training script, and return the trained neural dual."""
         pretrain_logs = {}
-        if self.pretrain:
+        if self.pretrain_iters > 0:  # TODO(@MUCDK) does it make sense to use the data for pretraining on the identity?
             pretrain_logs = self.pretrain_identity()
 
         train_logs = self.train_neuraldual(trainloader, validloader)
@@ -144,6 +209,7 @@ class NeuralDualSolver:
 
     def pretrain_identity(self) -> Train_t:
         """Pretrain the neural networks to identity."""
+        key, self.key = jax.random.split(self.key, 2)
 
         @jax.jit
         def pretrain_loss_fn(params: jnp.ndarray, data: jnp.ndarray, state: TrainState) -> float:
@@ -164,7 +230,7 @@ class NeuralDualSolver:
 
         pretrain_logs: Dict[str, List[float]] = {"pretrain_loss": []}
         for iteration in range(self.pretrain_iters):
-            key_pre, self.key = jax.random.split(self.key, 2)
+            key_pre, key = jax.random.split(key, 2)
             # train step for potential f directly updating the train state
             loss, self.state_f = pretrain_update(self.state_f, key_pre)
             # clip weights of f
@@ -187,8 +253,8 @@ class NeuralDualSolver:
         valid_batch: Dict[str, jnp.ndarray] = {}
         valid_batch["source"], valid_batch["target"] = validloader(key=None, full_dataset=True)
         sink_dist = _compute_sinkhorn_divergence(
-            point_cloud_1=valid_batch["source"][:, self.split_index],
-            point_cloud_2=valid_batch["target"][:, self.split_index],
+            point_cloud_1=valid_batch["source"][:, : (self.input_dim - self.cond_dim)],
+            point_cloud_2=valid_batch["target"][:, : (self.input_dim - self.cond_dim)],
             epsilon=self.valid_sinkhorn_kwargs.pop("epsilon", self.epsilon),
             tau_a=self.valid_sinkhorn_kwargs.pop("tau_a", self.tau_a),
             tau_b=self.valid_sinkhorn_kwargs.pop("tau_b", self.tau_b),
@@ -207,8 +273,9 @@ class NeuralDualSolver:
 
         for iteration in tqdm(range(self.iterations)):
             # sample target batch
-            key, self.key = jax.random.split(self.key, 4)
-            curr_source, batch["target"] = trainloader(key)
+            trainloader_key, self.key = jax.random.split(self.key, 2)
+            curr_source, batch["target"] = trainloader(trainloader_key)
+            
             if self.epsilon is not None:
                 # sample source batch and compute unbalanced marginals
                 marginals_source, marginals_target = trainloader.compute_unbalanced_marginals(
@@ -216,20 +283,22 @@ class NeuralDualSolver:
                 )
 
             for _ in range(self.inner_iters):
-                key, self.key = jax.random.split(self.key, 4)
+                trainloader_key, self.key = jax.random.split(self.key, 2)
+              
                 if self.epsilon is None:
                     # sample source batch
-                    batch["source"], batch["target"] = trainloader(key)
+                    batch["source"], batch["target"] = trainloader(trainloader_key)
                 else:
                     # resample source with unbalanced marginals
-                    batch["source"] = trainloader.unbalanced_resample(key, curr_source, marginals_source)
+                    batch["source"] = trainloader.unbalanced_resample(trainloader_key, curr_source, marginals_source)
                 # train step for potential g directly updating the train state
                 self.state_g, train_g_metrics = self.train_step_g(self.state_f, self.state_g, batch)
                 for key, value in train_g_metrics.items():
                     average_meters[key].update(value)
             # resample target batch with unbalanced marginals
+            resampling_key, self.key = jax.random.split(self.key, 2)
             if self.epsilon is not None:
-                batch["target"] = trainloader.unbalanced_resample(key, batch["target"], marginals_target)
+                batch["target"] = trainloader.unbalanced_resample(resampling_key, batch["target"], marginals_target)
             # train step for potential f directly updating the train state
             self.state_f, train_f_metrics = self.train_step_f(self.state_f, self.state_g, batch)
             for key, value in train_f_metrics.items():
@@ -251,12 +320,12 @@ class NeuralDualSolver:
                 valid_logs["sinkhorn_loss_inverse"].append(float(sink_loss_inverse))
                 valid_logs["valid_w_dist"].append(float(neural_dual_dist))
                 # update best model and patience as necessary
-                if self.metric == "sinkhorn":
+                if self.best_model_metric == "sinkhorn":
                     total_loss = jnp.abs(sink_loss_forward) + jnp.abs(sink_loss_inverse)
-                elif self.metric == "sinkhorn_forward":
+                elif self.best_model_metric == "sinkhorn_forward":
                     total_loss = jnp.abs(sink_loss_forward)
                 else:
-                    raise ValueError(f"Unknown metric: {self.metric}")
+                    raise ValueError(f"Unknown metric: {self.best_model_metric}.")
                 if total_loss < best_loss:
                     best_loss = total_loss
                     best_iter_distance = neural_dual_dist
@@ -295,7 +364,7 @@ class NeuralDualSolver:
             grad_g_src = jax.vmap(jax.grad(lambda x: state_g.apply_fn({"params": params_g}, x), argnums=0))(
                 batch["source"]
             )
-            grad_g_src = grad_g_src[:, : self.split_index]
+            grad_g_src = grad_g_src[:, : (self.input_dim - self.cond_dim)]
             f_grad_g_src = jax.vmap(lambda x: state_f.apply_fn({"params": params_f}, x))(grad_g_src)
             src_dot_grad_g_src = jnp.sum(batch["source"] * grad_g_src, axis=1)
             # compute loss
@@ -379,8 +448,8 @@ class NeuralDualSolver:
             pred_source = jax.vmap(jax.grad(lambda x: state_f.apply_fn({"params": state_f.params}, x), argnums=0))(
                 batch["target"]
             )
-            pred_target = pred_target[:, : self.split_index]
-            pred_source = pred_source[:, : self.split_index]
+            pred_target = pred_target[:, : (self.input_dim - self.cond_dim)]
+            pred_source = pred_source[:, : (self.input_dim - self.cond_dim)]
             # calculate sinkhorn loss between predicted and true samples
             # using sinkhorn_divergence because _compute_sinkhorn_divergence not jittable
             sink_loss_forward = sinkhorn_divergence(

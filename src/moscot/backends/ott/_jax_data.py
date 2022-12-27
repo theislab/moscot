@@ -1,4 +1,5 @@
 from typing import Any, List, Tuple, Optional
+from functools import partial
 
 from ott.geometry.pointcloud import PointCloud
 from ott.solvers.linear.sinkhorn import sinkhorn
@@ -30,24 +31,20 @@ class JaxSampler:
         self.tau_a = tau_a
         self.tau_b = tau_b
         self.epsilon = epsilon
-
-        @jax.jit
-        def _sample_source(key: jax.random.KeyArray, idx: Any) -> jnp.ndarray:
+       
+        def _sample_source(key: jax.random.KeyArray, idx: Any, distributions) -> jnp.ndarray:
             """Jitted sample function."""
-            return jax.random.choice(key, self.distributions[idx], shape=[self.batch_size], p=self.a)
+            return jax.random.choice(key, distributions[idx], shape=[self.batch_size], p=self.a)
 
-        @jax.jit
-        def _sample_target(key: jax.random.KeyArray, idx: Any) -> jnp.ndarray:
+        def _sample_target(key: jax.random.KeyArray, idx: Any, distributions) -> jnp.ndarray:
             """Jitted sample function."""
-            return jax.random.choice(key, self.distributions[idx], shape=[self.batch_size], p=self.b)
+            return jax.random.choice(key, distributions[idx], shape=[self.batch_size], p=self.b)
 
-        @jax.jit
-        def _sample(key: jax.random.KeyArray) -> Tuple[jnp.ndarray, jnp.ndarray]:
+        def _sample(key: jax.random.KeyArray, distributions, policies) -> Tuple[jnp.ndarray, jnp.ndarray]:
             """Jitted sample function."""
-            pair = self.policies[jax.random.choice(key, np.arange(len(self.policies)))]
-            return self._sample_source(key, pair[0]), self._sample_target(key, pair[1])
+            pair = policies[jax.random.choice(key, np.arange(len(policies)))]
+            return self._sample_source(key, pair[0], distributions), self._sample_target(key, pair[1], distributions)
 
-        @jax.jit
         def _compute_unbalanced_marginals(
             batch_source: jnp.ndarray,
             batch_target: jnp.ndarray,
@@ -68,7 +65,6 @@ class JaxSampler:
             log_marginals_target = jnp.log(jnp.sum(transition_matrix, axis=0))
             return log_marginals_source, log_marginals_target
 
-        @jax.jit
         def _unbalanced_resample(
             key: jax.random.KeyArray,
             batch: jnp.ndarray,
@@ -93,6 +89,6 @@ class JaxSampler:
         """Sample data."""
         if full_dataset:
             return np.vstack([self.distributions[idx] for idx, _ in self.policies]), np.vstack(
-                [self.distributions[idx] for _, idx in self.policies]
+               [self.distributions[idx] for _, idx in self.policies]
             )
-        return self._sample(key)
+        return self._sample(key, self.distributions, self.policies)
