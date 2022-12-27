@@ -123,7 +123,7 @@ class ICNN(nn.Module):
                 )
             )
 
-            self.w_zu = w_zu  # TODO(@MUCDK) check why we assign to attributes only here
+            self.w_zu = w_zu
             self.w_xu = w_xu
             self.w_u = w_u
             self.v = v
@@ -181,8 +181,5 @@ class ICNN(nn.Module):
         input_shape: Union[int, Tuple[int, ...]],
     ) -> train_state.TrainState:
         """Create initial `TrainState`."""
-        if self.split:
-            params = self.init(rng, jnp.ones(self.split), jnp.ones(input_shape - self.split))["params"]
-            return train_state.TrainState.create(apply_fn=self.apply, params=params, tx=optimizer)
         params = self.init(rng, jnp.ones(input_shape))["params"]
         return train_state.TrainState.create(apply_fn=self.apply, params=params, tx=optimizer)
