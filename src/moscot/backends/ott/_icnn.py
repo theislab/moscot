@@ -92,7 +92,7 @@ class ICNN(nn.Module):
                 )
                 w_xu.append(  # this the matrix that multiply with x
                     nn.Dense(
-                        self.input_dim - self.cond_dim,
+                        self.dim_hidden[i],
                         kernel_init=self.init_fn(self.init_std),
                         use_bias=True,
                         bias_init=self.init_fn(self.init_std),

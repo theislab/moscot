@@ -408,8 +408,8 @@ class NeuralSolver(OTSolver[OTTOutput]):
             valid_x, valid_y, valid_a, valid_b = x, y, a, b
 
         kwargs = _filter_kwargs(JaxSampler, **kwargs)
-        self._train_sampler = JaxSampler([train_x, train_y], policies=[(0, 1)], a=train_a, b=train_b, **kwargs)
-        self._valid_sampler = JaxSampler([valid_x, valid_y], policies=[(0, 1)], a=valid_a, b=valid_b, **kwargs)
+        self._train_sampler = JaxSampler([train_x, train_y], policies=[(0, 1)], a=[train_a, train_b*0], b=[train_a*0, train_b], **kwargs)
+        self._valid_sampler = JaxSampler([valid_x, valid_y], policies=[(0, 1)], a=[valid_a, valid_b*0], b=[valid_a*0, valid_b], **kwargs)
         return (self._train_sampler, self._valid_sampler)
 
     def _solve(self, data_samplers: Tuple[JaxSampler, JaxSampler]) -> NeuralOutput:  # type: ignore[override]
