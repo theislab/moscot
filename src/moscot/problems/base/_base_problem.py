@@ -822,6 +822,8 @@ class CondOTProblem(BaseProblem):  # TODO(@MUCDK) check generic types, save and 
             **kwargs,
         )
 
+        return self
+
     def _create_marginals(
         self, adata: AnnData, *, source: bool, data: Optional[str] = None, **kwargs: Any
     ) -> ArrayLike:

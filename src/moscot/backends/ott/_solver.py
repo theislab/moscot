@@ -499,15 +499,15 @@ class CondNeuralSolver(NeuralSolver):
             train_a = [d[1] for d in xy.values()]
             train_b = [d[2] for d in xy.values()]
             valid_data, valid_a, valid_b = train_data, train_a, train_b
-            sample2idx = {k:i for i, k in enumerate(xy.keys())}
+            sample2idx = {k: i for i, k in enumerate(xy.keys())}
         else:
             if train_size > 1.0 or train_size <= 0.0:
                 raise ValueError("Invalid train_size. Must be: 0 < train_size <= 1")
 
             seed = kwargs.pop("seed", 0)
-            for i, (k, (d, a, b)) in xy.items():
+            for i, (k, (d, a, b)) in enumerate(xy.items()):
                 t_data, v_data, t_a, t_b, v_a, v_b = self._split_data(  # type: ignore[has-type]
-                    d.data_src, train_size=train_size, seed=seed, a=a, b=b
+                    d.data_src, train_size=train_size, seed=seed, a=a, b=b  # type: ignore[has-type]
                 )
                 train_data.append(t_data)
                 train_a.append(t_a)

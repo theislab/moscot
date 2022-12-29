@@ -15,10 +15,10 @@ def _compute_sinkhorn_divergence(
     point_cloud_2: ArrayLike,
     a: Optional[ArrayLike] = None,
     b: Optional[ArrayLike] = None,
-    epsilon: float = 10.0, 
+    epsilon: float = 10.0,
     tau_a: float = 1.0,
     tau_b: float = 1.0,
-    scale_cost: ScaleCost_t = 1.0, 
+    scale_cost: ScaleCost_t = 1.0,
     **kwargs: Any,
 ) -> float:
     point_cloud_1 = jnp.asarray(point_cloud_1)
@@ -39,7 +39,7 @@ def _compute_sinkhorn_divergence(
         y=point_cloud_2,
         a=a,
         b=b,
-        sinkhorn_kwargs = {"tau_a": tau_a, "tau_b": tau_b, "epsilon": epsilon},
+        sinkhorn_kwargs={"tau_a": tau_a, "tau_b": tau_b, "epsilon": epsilon},
         scale_cost=scale_cost,
         **kwargs,
     )
