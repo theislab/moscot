@@ -1,13 +1,13 @@
-from typing import Any, Tuple, Literal, Mapping
+import scanpy as sc
 
-import pandas as pd
-import pytest
 from moscot.datasets import simulate_data
-from moscot.problems.generic import NeuralProblem, ConditionalNeuralProblem
+from moscot.problems.generic import ConditionalNeuralProblem  # type: ignore[attr-defined]
+
 
 class TestNeuralProblem:
-     def test_pipeline():
+    def test_pipeline(self):
         adata = simulate_data()
+        sc.pp.pca(adata)
         cnp = ConditionalNeuralProblem(adata)
-        cnp = cnp.prepare("batch")
-        cnp = cnp.solve(batch_size=8, iterations=10, valid_sinkhorn_kwargs={"tau_a": 1.0, "tau_b": 1.0})
+        cnp = cnp.prepare(key="batch", joint_attr="X_pca", cond_dim=1)
+        cnp = cnp.solve(batch_size=8, iterations=10)

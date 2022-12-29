@@ -560,7 +560,7 @@ class NeuralProblem(CompoundProblem[K, B], GenericAnalysisMixin[K, B]):
             valid_sinkhorn_kwargs=valid_sinkhorn_kwargs,
             train_size=train_size,
             **kwargs,
-        )  # type:ignore[return-value]
+        )
 
     @property
     def _base_problem_type(self) -> Type["NeuralProblem[K, B]"]:
@@ -651,7 +651,7 @@ class ConditionalNeuralProblem(CondOTProblem, GenericAnalysisMixin[K, B]):
             valid_sinkhorn_kwargs=valid_sinkhorn_kwargs,
             train_size=train_size,
             **kwargs,
-        )  # type:ignore[return-value]
+        )
 
     @property
     def _base_problem_type(self) -> Type["ConditionalNeuralProblem[K, B]"]:
