@@ -150,7 +150,7 @@ class SubsetPolicy(Generic[K]):
             except ValueError as e:
                 if "Unable to construct an empty mask" not in str(e):
                     raise
-        
+
         if not res:
             # can only happen when `discard_empty=True`
             raise ValueError("All empty masks were discarded.")

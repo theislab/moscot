@@ -15,6 +15,7 @@ from ott.problems.linear.potentials import DualPotentials
 import jax
 import jax.numpy as jnp
 
+from moscot._types import ArrayLike
 from moscot._logging import logger
 from moscot.backends.ott._icnn import ICNN
 from moscot.backends.ott._utils import RunningAverageMeter, _compute_sinkhorn_divergence
@@ -129,10 +130,8 @@ class NeuralDualSolver:
         self.pretrain_iters = pretrain_iters
         self.pretrain_scale = pretrain_scale
         self.valid_sinkhorn_kwargs = dict(valid_sinkhorn_kwargs)
-        key = jax.random.PRNGKey(seed)
-        key, self.key = jax.random.split(key, 2)
+        self.key: ArrayLike = jax.random.PRNGKey(seed)
 
-        # self.key = jax.random.PRNGKey(seed)
         optimizer_f = optax.adamw(
             learning_rate=self.optimizer_f_kwargs.pop("learning_rate", 1e-3),
             b1=self.optimizer_f_kwargs.pop("b1", 0.5),
@@ -162,7 +161,8 @@ class NeuralDualSolver:
             combiner_output_dim=combiner_output_dim,
             combiner_kwargs=combiner_kwargs,
         )
-     
+
+        key, self.key = jax.random.split(self.key, 2)
         # set optimizer and networks
         self.setup(key, neural_f, neural_g, optimizer_f, optimizer_g)
 
@@ -274,7 +274,7 @@ class NeuralDualSolver:
             # sample target batch
             trainloader_key, self.key = jax.random.split(self.key, 2)
             curr_source, batch["target"] = trainloader(trainloader_key)
-            
+
             if self.epsilon is not None:
                 # sample source batch and compute unbalanced marginals
                 marginals_source, marginals_target = trainloader.compute_unbalanced_marginals(
@@ -283,7 +283,7 @@ class NeuralDualSolver:
 
             for _ in range(self.inner_iters):
                 trainloader_key, self.key = jax.random.split(self.key, 2)
-              
+
                 if self.epsilon is None:
                     # sample source batch
                     batch["source"], batch["target"] = trainloader(trainloader_key)

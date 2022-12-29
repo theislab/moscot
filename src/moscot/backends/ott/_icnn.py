@@ -1,5 +1,5 @@
 from types import MappingProxyType
-from typing import Any, Dict, Tuple, Union, Callable, Sequence, Optional, Type
+from typing import Any, Dict, Tuple, Union, Callable, Sequence
 
 from flax import linen as nn
 from flax.training import train_state
@@ -19,7 +19,7 @@ class ICNN(nn.Module):
     init_fn: Callable[[jnp.ndarray], Callable[[jnp.ndarray], jnp.ndarray]] = nn.initializers.normal
     act_fn: Callable[[jnp.ndarray], jnp.ndarray] = nn.leaky_relu
     pos_weights: bool = False
-    #combiner: Optional[Type[nn.Dense]] = None
+    # combiner: Optional[Type[nn.Dense]] = None
     combiner_output_dim: int = 0
     combiner_kwargs: Dict[str, Any] = MappingProxyType({})
 
@@ -80,7 +80,7 @@ class ICNN(nn.Module):
                     use_bias=True,
                     bias_init=self.init_fn(self.init_std),
                 )
-         
+
             for i in range(1, num_hidden):
                 w_zu.append(
                     nn.Dense(
@@ -139,7 +139,7 @@ class ICNN(nn.Module):
                 z = self.act_fn(jnp.add(Wz(z), Wx(x)))
             y = jnp.add(self.w_zs[-1](z), self.w_xs[-1](x))
         else:
-            x, c = x[:- self.cond_dim], x[-self.cond_dim:]
+            x, c = x[: -self.cond_dim], x[-self.cond_dim :]
             if self.combiner_output_dim is not None:
                 c = self.combiner(c)
                 c = self.act_fn(c)
