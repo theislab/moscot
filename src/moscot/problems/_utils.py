@@ -42,7 +42,7 @@ def wrap_prepare(
     """Check and update the state when preparing :class:`moscot.problems.base.OTProblem`."""
     from moscot._constants._constants import ProblemStage
     from moscot.problems.base._base_problem import ProblemKind  # TODO: move ENUMs to this file
-    
+
     instance = wrapped(*args, **kwargs)
     if instance.problem_kind == ProblemKind.UNKNOWN:
         raise RuntimeError("Problem kind was not set after running `.prepare()`.")

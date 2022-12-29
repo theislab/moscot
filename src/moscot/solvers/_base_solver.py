@@ -166,7 +166,11 @@ class OTSolver(TagConverterMixin, BaseSolver[O], ABC):
 
     def __call__(
         self,
-        xy: Optional[Union[TaggedArray, ArrayLike, Tuple[ArrayLike, ArrayLike]]] = None,
+        xy: Optional[
+            Union[
+                TaggedArray, ArrayLike, Tuple[ArrayLike, ArrayLike], Dict[Any, Tuple[TaggedArray, ArrayLike, ArrayLike]]
+            ]
+        ] = None,
         x: Optional[Union[TaggedArray, ArrayLike]] = None,
         y: Optional[Union[TaggedArray, ArrayLike]] = None,
         tags: Mapping[Literal["x", "y", "xy"], Tag] = MappingProxyType({}),

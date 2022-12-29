@@ -663,7 +663,7 @@ class OTProblem(BaseProblem):
         return repr(self)
 
 
-class NeuralOTProblem(OTProblem): #TODO override set_x/set_y
+class NeuralOTProblem(OTProblem):  # TODO override set_x/set_y
     """Base class for non-conditional neural optimal transport problems."""
 
     @d.get_sections(base="OTProblem_solve", sections=["Parameters", "Raises"])
@@ -677,12 +677,10 @@ class NeuralOTProblem(OTProblem): #TODO override set_x/set_y
         """Solve method."""
         if self._xy is None:
             raise ValueError("Unable to solve the problem without `xy`.")
-        return super().solve(
-            backend=backend, device=device, cond_dim=0, input_dim=self._xy.data_src.shape[1], **kwargs
-        )
+        return super().solve(backend=backend, device=device, cond_dim=0, input_dim=self._xy.data_src.shape[1], **kwargs)
 
 
-class CondOTProblem(BaseProblem): #TODO(@MUCDK) check generic types, save and load
+class CondOTProblem(BaseProblem):  # TODO(@MUCDK) check generic types, save and load
     """
     Base class for all optimal transport problems.
 
@@ -698,7 +696,7 @@ class CondOTProblem(BaseProblem): #TODO(@MUCDK) check generic types, save and lo
     If any of the source/target masks are specified, :attr:`adata_src`/:attr:`adata_tgt` will be a view.
     """
 
-    _problem_kind=ProblemKind.LINEAR
+    _problem_kind = ProblemKind.LINEAR
 
     def __init__(
         self,
@@ -707,7 +705,7 @@ class CondOTProblem(BaseProblem): #TODO(@MUCDK) check generic types, save and lo
     ):
         super().__init__(**kwargs)
         self._adata = adata
-        
+
         self._distributions: Dict[Any, Tuple[TaggedArray, ArrayLike, ArrayLike]] = {}
         self._inner_policy: Optional[SubsetPolicy[Any]] = None
         self._sample_pairs: Optional[List[Tuple[Any, Any]]] = None
@@ -718,7 +716,7 @@ class CondOTProblem(BaseProblem): #TODO(@MUCDK) check generic types, save and lo
 
         self._a: Optional[str] = None
         self._b: Optional[str] = None
-     
+
     @d.dedent
     @wrap_prepare
     def prepare(
@@ -764,7 +762,7 @@ class CondOTProblem(BaseProblem): #TODO(@MUCDK) check generic types, save and lo
 
         self._inner_policy = SubsetPolicy.create(policy, adata=self.adata, key=policy_key)
         self._sample_pairs = list(self._inner_policy()._graph)
-        
+
         xy = {k[2:]: v for k, v in xy.items() if k.startswith("x_")}
         for (src, tgt), (src_mask, tgt_mask) in self._inner_policy().create_masks().items():
             if src not in self._distributions.keys():
@@ -806,24 +804,23 @@ class CondOTProblem(BaseProblem): #TODO(@MUCDK) check generic types, save and lo
         - :attr:`solver`: optimal transport solver.
         - :attr:`solution`: optimal transport solution.
         """
-       
+
         self._solver = self._problem_kind.solver(
             backend=backend,
             neural="cond",
             distributions=self._distributions,
             sample_pairs=self._sample_pairs,
-            cond_dim=self._cond_dim, 
+            cond_dim=self._cond_dim,
             input_dim=list(self._distributions.values())[0][0].data_src.shape[1],
             **kwargs,
         )
 
         self._solution = self._solver(  # type: ignore[misc]
             xy=self._distributions,
-            sample_pairs = self._sample_pairs,
+            sample_pairs=self._sample_pairs,
             device=device,
             **kwargs,
         )
-
 
     def _create_marginals(
         self, adata: AnnData, *, source: bool, data: Optional[str] = None, **kwargs: Any

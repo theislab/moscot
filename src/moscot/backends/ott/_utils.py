@@ -15,17 +15,17 @@ def _compute_sinkhorn_divergence(
     point_cloud_2: ArrayLike,
     a: Optional[ArrayLike] = None,
     b: Optional[ArrayLike] = None,
-    epsilon: float = 10.0, #TODO(@MUCDK) enable once fixed on ott-jax
+    epsilon: float = 10.0, 
     tau_a: float = 1.0,
     tau_b: float = 1.0,
-    scale_cost: ScaleCost_t = 1.0, #TODO(@MUCDK) enable once fixed on ott-jax
+    scale_cost: ScaleCost_t = 1.0, 
     **kwargs: Any,
 ) -> float:
     point_cloud_1 = jnp.asarray(point_cloud_1)
     point_cloud_2 = jnp.asarray(point_cloud_2)
     a = None if a is None else jnp.asarray(a)
     b = None if b is None else jnp.asarray(b)
-   
+
     if tau_a != 1.0:
         tau_a = 1.0
         logger.info(f"Setting `tau_a` from {tau_a} to 1.0 until fixed on OTT side.")
@@ -37,12 +37,10 @@ def _compute_sinkhorn_divergence(
         PointCloud,
         x=point_cloud_1,
         y=point_cloud_2,
-        # tau_a=tau_a,
-        # tau_b=tau_b,
-        # a=a,
-        # b=b,
-        # epsilon=epsilon,
-        # scale_cost=scale_cost,
+        a=a,
+        b=b,
+        sinkhorn_kwargs = {"tau_a": tau_a, "tau_b": tau_b, "epsilon": epsilon},
+        scale_cost=scale_cost,
         **kwargs,
     )
     xy_conv, xx_conv, *yy_conv = output.converged
