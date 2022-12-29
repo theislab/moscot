@@ -506,8 +506,8 @@ class CondNeuralSolver(NeuralSolver):
 
             seed = kwargs.pop("seed", 0)
             for i, (k, (d, a, b)) in enumerate(xy.items()):
-                t_data, v_data, t_a, t_b, v_a, v_b = self._split_data(  # type: ignore[has-type]
-                    d.data_src, train_size=train_size, seed=seed, a=a, b=b  # type: ignore[has-type]
+                t_data, v_data, t_a, t_b, v_a, v_b = self._split_data(
+                    d.data_src, train_size=train_size, seed=seed, a=a, b=b
                 )
                 train_data.append(t_data)
                 train_a.append(t_a)

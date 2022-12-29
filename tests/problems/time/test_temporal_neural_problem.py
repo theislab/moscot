@@ -1,12 +1,9 @@
-from typing import Any, Tuple, Literal, Mapping
-
-import pandas as pd
-import pytest
 from moscot.datasets import simulate_data
 from moscot.problems.time import TemporalNeuralProblem
 
+
 class TestNeuralProblem:
-     def test_pipeline():
+    def test_pipeline():
         adata = simulate_data(key="time")
         tnp = TemporalNeuralProblem(adata)
         tnp = tnp.prepare("batch")
