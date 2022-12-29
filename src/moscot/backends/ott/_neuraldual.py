@@ -271,7 +271,6 @@ class NeuralDualSolver:
         best_params_g: jnp.ndarray = None
 
         for iteration in tqdm(range(self.iterations)):
-            #print(iteration)
             # sample target batch
             trainloader_key, self.key = jax.random.split(self.key, 2)
             curr_source, batch["target"] = trainloader(trainloader_key)
