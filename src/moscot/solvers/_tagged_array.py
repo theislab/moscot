@@ -49,7 +49,6 @@ class TaggedArray:
         key: Optional[str] = None,
     ) -> ArrayLike:
         modifier = f"adata.{attr}" if key is None else f"adata.{attr}[{key!r}]"
-
         try:
             data = getattr(adata, attr)
         except AttributeError:

@@ -194,8 +194,11 @@ class OTSolver(TagConverterMixin, BaseSolver[O], ABC):
         -------
         The optimal transport solution.
         """
-        data = self._get_array_data(xy=xy, x=x, y=y, tags=tags)
-        kwargs = {**kwargs, **self._prepare_kwargs(data)}
+        if isinstance(xy, dict):
+            kwargs["xy"] = xy
+        else:
+            data = self._get_array_data(xy=xy, x=x, y=y, tags=tags)
+            kwargs = {**kwargs, **self._prepare_kwargs(data)}
         res = super().__call__(**kwargs)
         if not res.converged:
             logger.warning("Solver did not converge")
