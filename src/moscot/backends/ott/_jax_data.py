@@ -34,15 +34,15 @@ class JaxSampler:
         if sample2idx is None:
             if len(policies) > 1:
                 raise ValueError("If `policies` contains more than 1 value, `sample2idx` is required.")
-            sample2idx = {self.policies[0][0]:0, self.policies[0][1]:1}
+            sample2idx = {self.policies[0][0]: 0, self.policies[0][1]: 1}
         self.sample2idx = sample2idx
 
         def _sample_source(key: jax.random.KeyArray, s: Any, distributions) -> jnp.ndarray:
             """Jitted sample function."""
-            print("s is ",s)
+            print("s is ", s)
             return jax.random.choice(key, distributions[self.sample2idx[s]], shape=[self.batch_size], p=self.a)
 
-        def _sample_target(key: jax.random.KeyArray,s : Any, distributions) -> jnp.ndarray:
+        def _sample_target(key: jax.random.KeyArray, s: Any, distributions) -> jnp.ndarray:
             """Jitted sample function."""
             return jax.random.choice(key, distributions[self.sample2idx[s]], shape=[self.batch_size], p=self.b)
 

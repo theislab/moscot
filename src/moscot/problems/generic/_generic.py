@@ -16,7 +16,7 @@ from moscot._constants._constants import Policy
 from moscot.problems.generic._mixins import GenericAnalysisMixin
 from moscot.problems.base._compound_problem import B, K
 
-__all__ = ["SinkhornProblem", "GWProblem", "FGWProblem"]
+__all__ = ["SinkhornProblem", "GWProblem", "FGWProblem", "NeuralProblem", "ConditionalNeuralProblem"]
 
 
 @d.dedent
