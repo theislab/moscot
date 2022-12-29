@@ -14,8 +14,8 @@ class JaxSampler:
         self,
         distributions: List[jnp.ndarray],
         policies: List[Tuple[Any, Any]],
-        a: Optional[jnp.ndarray] = None,
-        b: Optional[jnp.ndarray] = None,
+        a: List[jnp.ndarray] = None,
+        b: List[jnp.ndarray] = None,
         sample2idx: Optional[Dict[int, Any]] = None,
         batch_size: int = 1024,
         tau_a: float = 1.0,
@@ -36,15 +36,14 @@ class JaxSampler:
                 raise ValueError("If `policies` contains more than 1 value, `sample2idx` is required.")
             sample2idx = {self.policies[0][0]: 0, self.policies[0][1]: 1}
         self.sample2idx = sample2idx
-
+      
         def _sample_source(key: jax.random.KeyArray, s: Any, distributions) -> jnp.ndarray:
             """Jitted sample function."""
-            print("s is ", s)
-            return jax.random.choice(key, distributions[self.sample2idx[s]], shape=[self.batch_size], p=self.a)
+            return jax.random.choice(key, distributions[self.sample2idx[s]], shape=[self.batch_size], p=self.a[self.sample2idx[s]])
 
         def _sample_target(key: jax.random.KeyArray, s: Any, distributions) -> jnp.ndarray:
             """Jitted sample function."""
-            return jax.random.choice(key, distributions[self.sample2idx[s]], shape=[self.batch_size], p=self.b)
+            return jax.random.choice(key, distributions[self.sample2idx[s]], shape=[self.batch_size], p=self.b[self.sample2idx[s]])
 
         def _sample(key: jax.random.KeyArray, distributions, policies) -> Tuple[jnp.ndarray, jnp.ndarray]:
             """Jitted sample function."""
@@ -93,7 +92,6 @@ class JaxSampler:
         full_dataset: bool = False,
     ) -> Tuple[jnp.ndarray, jnp.ndarray]:
         """Sample data."""
-        print(self.sample2idx)
         if full_dataset:
             return np.vstack([self.distributions[self.sample2idx[s]] for s, _ in self.policies]), np.vstack(
                 [self.distributions[self.sample2idx[s]] for _, s in self.policies]
