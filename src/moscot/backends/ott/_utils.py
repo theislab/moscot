@@ -37,8 +37,9 @@ def _compute_sinkhorn_divergence(
         y=point_cloud_2,
         a=a,
         b=b,
-        sinkhorn_kwargs={"tau_a": tau_a, "tau_b": tau_b, "epsilon": epsilon},
+        sinkhorn_kwargs={"tau_a": tau_a, "tau_b": tau_b},
         scale_cost=scale_cost,
+        epsilon=epsilon,
         **kwargs,
     )
     xy_conv, xx_conv, *yy_conv = output.converged
