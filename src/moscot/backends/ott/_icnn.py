@@ -1,5 +1,5 @@
 from types import MappingProxyType
-from typing import Any, Dict, Tuple, Union, Callable, Sequence
+from typing import Any, Dict, Tuple, Union, Callable, Sequence, Optional, Type
 
 from flax import linen as nn
 from flax.training import train_state
@@ -13,12 +13,13 @@ class ICNN(nn.Module):
     """Input convex neural network (ICNN) architecture."""
 
     dim_hidden: Sequence[int]
+    input_dim: int
+    cond_dim: int
     init_std: float = 0.1
     init_fn: Callable[[jnp.ndarray], Callable[[jnp.ndarray], jnp.ndarray]] = nn.initializers.normal
     act_fn: Callable[[jnp.ndarray], jnp.ndarray] = nn.leaky_relu
     pos_weights: bool = False
-    split_index: int = -1
-    cond_dim: int = 0
+    #combiner: Optional[Type[nn.Dense]] = None
     combiner_output_dim: int = 0
     combiner_kwargs: Dict[str, Any] = MappingProxyType({})
 
@@ -63,14 +64,14 @@ class ICNN(nn.Module):
         self.w_xs = w_xs
         self.w_zs = w_zs
 
-        if self.split_index > -1:
+        if self.cond_dim > 0:
             w_zu = []
             w_xu = []
             w_u = []
             v = []
 
             if (
-                self.combiner_output_dim != 0
+                self.combiner_output_dim > 0
             ):  # if combine different conditions into a single one, we assume conditions being concatenated
                 # add one layer only, activation function in forward pass
                 self.combiner = nn.Dense(  # combiner
@@ -79,8 +80,7 @@ class ICNN(nn.Module):
                     use_bias=True,
                     bias_init=self.init_fn(self.init_std),
                 )
-                self.cond_dim = self.combiner_output_dim
-
+         
             for i in range(1, num_hidden):
                 w_zu.append(
                     nn.Dense(
@@ -92,7 +92,7 @@ class ICNN(nn.Module):
                 )
                 w_xu.append(  # this the matrix that multiply with x
                     nn.Dense(
-                        self.dim_data,
+                        self.input_dim - self.cond_dim,
                         kernel_init=self.init_fn(self.init_std),
                         use_bias=True,
                         bias_init=self.init_fn(self.init_std),
@@ -132,14 +132,14 @@ class ICNN(nn.Module):
     def __call__(self, x: jnp.ndarray) -> jnp.ndarray:
         """Apply ICNN module."""
 
-        if self.split_index == -1:
+        if self.cond_dim == 0:
             z = self.w_xs[0](x)
             z = jnp.multiply(z, z)
             for Wz, Wx in zip(self.w_zs[:-1], self.w_xs[1:-1]):
                 z = self.act_fn(jnp.add(Wz(z), Wx(x)))
             y = jnp.add(self.w_zs[-1](z), self.w_xs[-1](x))
         else:
-            x, c = x[: self.split_index], x[self.split_index :]
+            x, c = x[:- self.cond_dim], x[-self.cond_dim:]
             if self.combiner_output_dim is not None:
                 c = self.combiner(c)
                 c = self.act_fn(c)

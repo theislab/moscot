@@ -34,8 +34,8 @@ class NeuralDualSolver:
     ----------
     input_dim
         Input dimension of data (without condition)
-    split_index
-        Index where to split the data from the conditions. `-1` denotes no condition.
+    cond_dim
+        Dimension of the condition. 0 corresponds to no condition.
     batch_size
         Batch size.
     tau_a
@@ -86,7 +86,7 @@ class NeuralDualSolver:
     def __init__(
         self,
         input_dim: int,
-        split_index: int = -1,
+        cond_dim: int = 0,
         batch_size: int = 1024,
         tau_a: float = 1.0,
         tau_b: float = 1.0,
@@ -111,7 +111,7 @@ class NeuralDualSolver:
         valid_sinkhorn_kwargs: Dict[str, Any] = MappingProxyType({}),
     ):
         self.input_dim = input_dim
-        self.split_index = split_index
+        self.cond_dim = cond_dim
         self.batch_size = batch_size
         self.tau_a = 1.0 if tau_a is None else tau_a
         self.tau_b = 1.0 if tau_b is None else tau_b
@@ -145,25 +145,24 @@ class NeuralDualSolver:
             b2=self.optimizer_g_kwargs.pop("b2", 0.9),
             weight_decay=self.optimizer_g_kwargs.pop("weight_decay", 0.0),
         )
-        self.cond_dim: int = self.input_dim - self.split_index - 1 if split_index > -1 else 0 
-        combiner_output_dim = combiner_kwargs.get("combiner_output_dim", 0)
+        combiner_output_dim = combiner_kwargs.get("combiner_output_dim", self.cond_dim)
         neural_f = ICNN(
             dim_hidden=dim_hidden,
-            pos_weights=pos_weights,
-            split_index=self.split_index,
+            input_dim=self.input_dim,
             cond_dim=self.cond_dim,
+            pos_weights=pos_weights,
             combiner_output_dim=combiner_output_dim,
             combiner_kwargs=combiner_kwargs,
         )
         neural_g = ICNN(
             dim_hidden=dim_hidden,
-            pos_weights=pos_weights,
-            split_index=self.split_index,
+            input_dim=self.input_dim,
             cond_dim=self.cond_dim,
+            pos_weights=pos_weights,
             combiner_output_dim=combiner_output_dim,
             combiner_kwargs=combiner_kwargs,
         )
-
+     
         # set optimizer and networks
         self.setup(key, neural_f, neural_g, optimizer_f, optimizer_g)
 

@@ -580,6 +580,7 @@ class ConditionalNeuralProblem(CondOTProblem, GenericAnalysisMixin[K, B]):
         self,
         key: str,
         joint_attr: str,
+        cond_dim: int,
         policy: Literal["sequential", "pairwise", "explicit"] = "sequential",
         a: Optional[str] = None,
         b: Optional[str] = None,
@@ -589,9 +590,10 @@ class ConditionalNeuralProblem(CondOTProblem, GenericAnalysisMixin[K, B]):
         self.batch_key = key
         xy, kwargs = handle_joint_attr(joint_attr, kwargs)
         return super().prepare(
-            key=key,
+            policy_key=key,
             policy=policy,
             xy=xy,
+            cond_dim=cond_dim,
             a=a,
             b=b,
             **kwargs,

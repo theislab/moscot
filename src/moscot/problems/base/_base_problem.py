@@ -663,7 +663,7 @@ class OTProblem(BaseProblem):
         return repr(self)
 
 
-class NeuralOTProblem(OTProblem):
+class NeuralOTProblem(OTProblem): #TODO override set_x/set_y
     """Base class for non-conditional neural optimal transport problems."""
 
     @d.get_sections(base="OTProblem_solve", sections=["Parameters", "Raises"])
@@ -678,7 +678,7 @@ class NeuralOTProblem(OTProblem):
         if self._xy is None:
             raise ValueError("Unable to solve the problem without `xy`.")
         return super().solve(
-            backend=backend, device=device, split_index=-1, input_dim=self._xy.data_src.shape[1], **kwargs
+            backend=backend, device=device, cond_dim=0, input_dim=self._xy.data_src.shape[1], **kwargs
         )
 
 
@@ -690,20 +690,6 @@ class CondOTProblem(BaseProblem): #TODO(@MUCDK) check generic types, save and lo
     ----------
     adata
         Source annotated data object.
-    adata_tgt
-        Target annotated data object. If `None`, use ``adata``.
-    src_obs_mask
-        Source observation mask that defines :attr:`adata_src`.
-    tgt_obs_mask
-        Target observation mask that defines :attr:`adata_tgt`.
-    src_var_mask
-        Source variable mask that defines :attr:`adata_src`.
-    tgt_var_mask
-        Target variable mask that defines :attr:`adata_tgt`.
-    src_key
-        Source key name, usually supplied by :class:`moscot.problems.CompoundBaseProblem`.
-    tgt_key
-        Target key name, usually supplied by :class:`moscot.problems.CompoundBaseProblem`.
     kwargs
         Keyword arguments for :class:`moscot.problems.base.BaseProblem.`
 
@@ -712,43 +698,35 @@ class CondOTProblem(BaseProblem): #TODO(@MUCDK) check generic types, save and lo
     If any of the source/target masks are specified, :attr:`adata_src`/:attr:`adata_tgt` will be a view.
     """
 
+    _problem_kind=ProblemKind.LINEAR
+
     def __init__(
         self,
         adata: AnnData,
-        adata_tgt: Optional[AnnData] = None,
-        src_obs_mask: Optional[ArrayLike] = None,
-        tgt_obs_mask: Optional[ArrayLike] = None,
-        src_var_mask: Optional[ArrayLike] = None,
-        tgt_var_mask: Optional[ArrayLike] = None,
-        src_key: Optional[Any] = None,
-        tgt_key: Optional[Any] = None,
         **kwargs: Any,
     ):
         super().__init__(**kwargs)
         self._adata = adata
-        self._src_obs_mask = src_obs_mask
-        self._src_var_mask = src_var_mask
-        self._src_key = src_key
-
+        
         self._distributions: Dict[Any, Tuple[TaggedArray, ArrayLike, ArrayLike]] = {}
         self._inner_policy: Optional[SubsetPolicy[Any]] = None
         self._sample_pairs: Optional[List[Tuple[Any, Any]]] = None
-        self._split_index: Optional[int] = None
+        self._cond_dim: Optional[int] = None
 
         self._solver: Optional[OTSolver[BaseSolverOutput]] = None
         self._solution: Optional[BaseSolverOutput] = None
 
         self._a: Optional[str] = None
         self._b: Optional[str] = None
-
+     
     @d.dedent
     @wrap_prepare
     def prepare(
         self,
-        xy: Mapping[str, Any],
-        policy: Policy_t,
         policy_key: str,
-        split_index: int,
+        policy: Policy_t,
+        xy: Mapping[str, Any],
+        cond_dim: int,
         a: Optional[str] = None,
         b: Optional[str] = None,
         **kwargs: Any,
@@ -764,8 +742,8 @@ class CondOTProblem(BaseProblem): #TODO(@MUCDK) check generic types, save and lo
             Policy defining which pairs of distributions to sample from during training.
         policy_key
             %(key)s
-        split_index
-            Index separating data from condition.
+        cond_dim
+            Dimension of condition. Expected to be in the last dimensions of axis 1.
         a
             Source marginals.
         b
@@ -782,22 +760,25 @@ class CondOTProblem(BaseProblem): #TODO(@MUCDK) check generic types, save and lo
         self._a = a
         self._b = b
         self._solution = None
-        self._split_index = split_index
+        self._cond_dim = cond_dim
 
         self._inner_policy = SubsetPolicy.create(policy, adata=self.adata, key=policy_key)
-        self._sample_pairs = list(self._inner_policy._graph)
-
-        for (src, tgt), (src_mask, tgt_mask) in self._inner_policy.create_masks().items():
+        self._sample_pairs = list(self._inner_policy()._graph)
+        
+        xy = {k[2:]: v for k, v in xy.items() if k.startswith("x_")}
+        for (src, tgt), (src_mask, tgt_mask) in self._inner_policy().create_masks().items():
             if src not in self._distributions.keys():
                 x_tagged = TaggedArray.from_adata(self.adata[src_mask], dist_key=policy_key, tag=Tag.POINT_CLOUD, **xy)
-                a = self._create_marginals(self.adata[src_mask], data=a, source=True, **kwargs)
-                b = self._create_marginals(self.adata[src_mask], data=b, source=False, **kwargs)
-                self._distributions[d] = (x_tagged, a, b)
+                a = self._create_marginals(self.adata[src_mask], data=self._a, source=True, **kwargs)
+                b = self._create_marginals(self.adata[src_mask], data=self._b, source=False, **kwargs)
+                self._distributions[src] = (x_tagged, a, b)
             if tgt not in self._distributions.keys():
                 x_tagged = TaggedArray.from_adata(self.adata[tgt_mask], dist_key=policy_key, tag=Tag.POINT_CLOUD, **xy)
-                a = self._create_marginals(self.adata[tgt_mask], data=a, source=True, **kwargs)
-                b = self._create_marginals(self.adata[tgt_mask], data=b, source=False, **kwargs)
-                self._distributions[d] = (x_tagged, a, b)
+                a = self._create_marginals(self.adata[tgt_mask], data=self._a, source=True, **kwargs)
+                b = self._create_marginals(self.adata[tgt_mask], data=self._b, source=False, **kwargs)
+                self._distributions[tgt] = (x_tagged, a, b)
+
+        self._problem_kind = ProblemKind.LINEAR
         return self
 
     @wrap_solve
@@ -825,26 +806,24 @@ class CondOTProblem(BaseProblem): #TODO(@MUCDK) check generic types, save and lo
         - :attr:`solver`: optimal transport solver.
         - :attr:`solution`: optimal transport solution.
         """
+       
         self._solver = self._problem_kind.solver(
+            backend=backend,
+            neural="cond",
             distributions=self._distributions,
             sample_pairs=self._sample_pairs,
-            backend=backend,
-            neural=isinstance(self, NeuralOTProblem),
+            cond_dim=self._cond_dim, 
+            input_dim=list(self._distributions.values())[0][0].data_src.shape[1],
             **kwargs,
         )
 
-        # TODO: add ScaleCost(scale_cost)
-
         self._solution = self._solver(  # type: ignore[misc]
-            xy=self._xy,
-            x=self._x,
-            y=self._y,
-            a=self.a,
-            b=self.b,
+            xy=self._distributions,
+            sample_pairs = self._sample_pairs,
             device=device,
             **kwargs,
         )
-        return self
+
 
     def _create_marginals(
         self, adata: AnnData, *, source: bool, data: Optional[str] = None, **kwargs: Any
@@ -863,10 +842,8 @@ class CondOTProblem(BaseProblem): #TODO(@MUCDK) check generic types, save and lo
     @property
     def adata(self) -> AnnData:
         """Source annotated data object."""
-        adata = self._adata if self._src_obs_mask is None else self._adata[self._src_obs_mask]
-        if not adata.n_obs:
-            raise ValueError("No observations in the source `AnnData`.")
-        adata = adata if self._src_var_mask is None else adata[:, self._src_var_mask]
-        if not adata.n_vars:
-            raise ValueError("No variables in the source `AnnData`.")
-        return adata
+        return self._adata
+
+    @property
+    def problem_kind(self) -> ProblemKind:
+        return self._problem_kind

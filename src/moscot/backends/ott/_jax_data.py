@@ -1,4 +1,4 @@
-from typing import Any, List, Tuple, Optional
+from typing import Any, List, Tuple, Optional, Dict
 from functools import partial
 
 from ott.geometry.pointcloud import PointCloud
@@ -17,6 +17,7 @@ class JaxSampler:
         policies: List[Tuple[Any, Any]],
         a: Optional[jnp.ndarray] = None,
         b: Optional[jnp.ndarray] = None,
+        idx2sample: Optional[Dict[int, Any]] = None,
         batch_size: int = 1024,
         tau_a: float = 1.0,
         tau_b: float = 1.0,
@@ -31,6 +32,11 @@ class JaxSampler:
         self.tau_a = tau_a
         self.tau_b = tau_b
         self.epsilon = epsilon
+        if idx2sample is None:
+            if len(policies) > 1:
+                raise ValueError("If `policies` contains more than 1 value, `idx2sample` is required.")
+            idx2sample = {0:self.policies[0][0], 1:self.policies[0][1]}
+        self.idx2sapmle = idx2sample
        
         def _sample_source(key: jax.random.KeyArray, idx: Any, distributions) -> jnp.ndarray:
             """Jitted sample function."""
@@ -88,7 +94,7 @@ class JaxSampler:
     ) -> Tuple[jnp.ndarray, jnp.ndarray]:
         """Sample data."""
         if full_dataset:
-            return np.vstack([self.distributions[idx] for idx, _ in self.policies]), np.vstack(
-               [self.distributions[idx] for _, idx in self.policies]
+            return np.vstack([self.distributions[self.idx2sample[idx]] for idx, _ in self.policies]), np.vstack(
+               [self.distributions[self.idx2sample[idx]] for _, idx in self.policies]
             )
         return self._sample(key, self.distributions, self.policies)
