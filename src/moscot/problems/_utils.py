@@ -81,6 +81,7 @@ def handle_joint_attr(
             "y_attr": "obsm",
             "y_key": joint_attr,
         }
+        kwargs.pop("xy")
         return xy, kwargs
     if isinstance(joint_attr, Mapping):  # input mapping does not distinguish between x and y as it's a shared space
         joint_attr = dict(joint_attr)
@@ -95,6 +96,7 @@ def handle_joint_attr(
                 "y_attr": "obsm",
                 "y_key": joint_attr["key"],
             }
+            kwargs.pop("xy")
             return xy, kwargs
         if joint_attr.get("tag", None) == "cost_matrix":  # if this is True we have custom cost matrix or moscot cost
             if len(joint_attr) == 2 or kwargs.get("attr", None) == "obsp":  # in this case we have a custom cost matrix
@@ -103,6 +105,7 @@ def handle_joint_attr(
                 kwargs["xy_callback"] = "cost-matrix"
                 kwargs.setdefault("xy_callback_kwargs", {"key": joint_attr["key"]})
         kwargs.setdefault("xy_callback_kwargs", {})
+        kwargs.pop("xy")
         return joint_attr, kwargs
     raise TypeError(f"Expected `joint_attr` to be either `str` or `dict`, found `{type(joint_attr)}`.")
 

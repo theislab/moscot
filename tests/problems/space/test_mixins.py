@@ -34,7 +34,7 @@ class TestSpatialAlignmentAnalysisMixin:
             tgts = set(categories) - set(ref)
             for c in zip(tgts):
                 assert (
-                    adata_ref[adata_ref.obs.batch == c].obsm["spatial_warp"].shape
+                    adata_ref[adata_ref.obs.batch == c].obsm["spatial_norm_warp"].shape
                     == adata_ref[adata_ref.obs.batch == c].obsm["spatial"].shape
                 )
             angles = sorted(
@@ -47,7 +47,7 @@ class TestSpatialAlignmentAnalysisMixin:
             problem.align(reference=ref, mode="affine", spatial_key="spatial")
             for c in zip(tgts):
                 assert (
-                    adata_ref[adata_ref.obs.batch == c].obsm["spatial_affine"].shape
+                    adata_ref[adata_ref.obs.batch == c].obsm["spatial_norm_affine"].shape
                     == adata_ref[adata_ref.obs.batch == c].obsm["spatial"].shape
                 )
 

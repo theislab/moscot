@@ -1,4 +1,4 @@
-from typing import Any, Literal, Mapping
+from typing import Any, Union, Literal, Mapping, Optional
 
 import pandas as pd
 import pytest
@@ -97,12 +97,16 @@ class TestSinkhornProblem:
         assert problem[0, 1].xy.data_tgt is None
 
     @pytest.mark.parametrize("args_to_check", [sinkhorn_args_1, sinkhorn_args_2])
-    def test_pass_arguments(self, adata_time: AnnData, args_to_check: Mapping[str, Any]):
+    @pytest.mark.parametrize("joint_attr", [None, {"attr": "obsm", "key": "X_pca"}, {"attr": "X"}])
+    def test_pass_arguments(
+        self, adata_time: AnnData, args_to_check: Mapping[str, Any], joint_attr: Optional[Union[str, Mapping[str, Any]]]
+    ):
         adata_time = adata_time[adata_time.obs["time"].isin((0, 1))].copy()
         problem = SinkhornProblem(adata=adata_time)
         problem = problem.prepare(
             key="time",
             policy="sequential",
+            joint_attr=joint_attr,
         )
 
         problem = problem.solve(**args_to_check)
