@@ -4,7 +4,7 @@ from moscot.datasets import simulate_data
 from moscot.problems.generic import ConditionalNeuralProblem  # type: ignore[attr-defined]
 
 
-class TestNeuralProblem:
+class TestConditionalNeuralProblem:
     def test_pipeline(self):
         adata = simulate_data()
         sc.pp.pca(adata)
