@@ -1,4 +1,5 @@
-from typing import Any, Dict, List, Tuple, Union, Callable, Optional
+from types import MappingProxyType
+from typing import Any, Dict, List, Tuple, Union, Literal, Callable, Optional
 
 from scipy.sparse import csr_matrix
 from matplotlib.figure import Figure
@@ -34,6 +35,7 @@ class ConvergencePlotterMixin:
     def plot_convergence(
         self,
         last_k: Optional[int] = None,
+        data: Optional[Dict[str, List[float]]] = None,
         title: Optional[str] = None,
         figsize: Optional[Tuple[float, float]] = None,
         dpi: Optional[int] = None,
@@ -48,6 +50,8 @@ class ConvergencePlotterMixin:
         ----------
         last_k
             How many of the last k steps of the algorithm to plot. If `None`, plot the full curve.
+        data
+            Data containing information on convergence.
         title
             Title of the plot. If `None`, it is determined automatically.
         figsize
@@ -65,21 +69,32 @@ class ConvergencePlotterMixin:
         -------
         The figure if ``return_fig = True``.
         """
+        print("data is ", data)
 
-        def select_values(last_k: Optional[int] = None) -> Tuple[str, jnp.ndarray, jnp.ndarray]:
-            # `> 1` because of pure Sinkhorn
-            if len(self._costs) > 1 or self._errors is None:
-                metric = self._costs
-                metric_str = "cost"
-            else:
-                metric = self._errors
-                metric_str = "error"
+        def select_values(
+            last_k: Optional[int] = None, data: Optional[Dict[str, List[float]]] = None
+        ) -> Tuple[str, jnp.ndarray, jnp.ndarray]:
+            if data is None:  # this is for discrete OT classes
+                # `> 1` because of pure Sinkhorn
+                if len(self._costs) > 1 or self._errors is None:
+                    metric = self._costs
+                    metric_str = "cost"
+                else:
+                    metric = self._errors
+                    metric_str = "error"
+            else:  # this is for Monge Maps
+                if len(data) > 1:
+                    raise ValueError(f"`data` must have length 1, but found {len(data)}.")
+                metric = list(data.values())[0]
+                metric_str = list(data.keys())[0]
 
             last_k = min(last_k, len(metric)) if last_k is not None else len(metric)
+            print(metric_str)
+            print(metric)
             return metric_str, metric[-last_k:], range(len(metric))[-last_k:]
 
         fig, ax = plt.subplots(figsize=figsize, dpi=dpi)
-        kind, values, xs = select_values(last_k)
+        kind, values, xs = select_values(last_k, data=data)
 
         ax.plot(xs, values, **kwargs)
         ax.set_xlabel("iteration")
@@ -168,7 +183,7 @@ class OTTOutput(ConvergencePlotterMixin, BaseSolverOutput):
         return jnp.ones((n,))
 
 
-class NeuralOutput(BaseSolverOutput):
+class NeuralOutput(ConvergencePlotterMixin, BaseSolverOutput):
     """
     Output representation of neural OT problems.
     """
@@ -181,6 +196,33 @@ class NeuralOutput(BaseSolverOutput):
 
     def _apply(self, x: ArrayLike, *, forward: bool) -> ArrayLike:
         return self._output.transport(x, forward=forward)
+
+    def plot_convergence(  # type: ignore[override]
+        self,
+        data: Dict[
+            Literal["pretrain", "train", "valid"], Literal["loss", "w_dist", "penalty", "loss_g", "loss_f"]
+        ] = MappingProxyType({"train": "loss"}),
+        last_k: Optional[int] = None,
+        title: Optional[str] = None,
+        figsize: Optional[Tuple[float, float]] = None,
+        dpi: Optional[int] = None,
+        save: Optional[str] = None,
+        return_fig: bool = False,
+        **kwargs: Any,
+    ) -> Optional[Figure]:
+        if len(data) > 1:
+            raise ValueError(f"`data` must be of length 1, but found {len(data)}.")
+        k, v = next(iter(data.items()))
+        return super().plot_convergence(
+            data={k + ": " + v: self._training_logs[k][v]},
+            last_k=last_k,
+            title=title,
+            figsize=figsize,
+            dpi=dpi,
+            save=save,
+            return_fig=return_fig,
+            **kwargs,
+        )
 
     @property
     def training_logs(self) -> Train_t:
