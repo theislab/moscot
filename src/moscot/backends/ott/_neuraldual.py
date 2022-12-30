@@ -227,7 +227,7 @@ class NeuralDualSolver:
             loss, grads = grad_fn(state.params, x, state)
             return loss, state.apply_gradients(grads=grads)
 
-        pretrain_logs: Dict[str, List[float]] = {"pretrain_loss": []}
+        pretrain_logs: Dict[str, List[float]] = {"loss": []}
         for iteration in range(self.pretrain_iters):
             key_pre, key = jax.random.split(key, 2)
             # train step for potential f directly updating the train state
@@ -236,7 +236,7 @@ class NeuralDualSolver:
             if not self.pos_weights:
                 self.state_f = self.state_f.replace(params=self.clip_weights_icnn(self.state_f.params))
             if iteration % self.log_freq == 0:
-                pretrain_logs["pretrain_loss"].append(float(loss))
+                pretrain_logs["loss"].append(float(loss))
         # load params of f into state_g
         self.state_g = self.state_g.replace(params=self.state_f.params)
         return {"pretrain_logs": pretrain_logs}
