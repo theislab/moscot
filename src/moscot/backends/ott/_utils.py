@@ -24,13 +24,6 @@ def _compute_sinkhorn_divergence(
     a = None if a is None else jnp.asarray(a)
     b = None if b is None else jnp.asarray(b)
 
-    if tau_a != 1.0:
-        tau_a = 1.0
-        logger.info(f"Setting `tau_a` from {tau_a} to 1.0 until fixed on OTT side.")
-    if tau_b != 1.0:
-        tau_b = 1.0
-        logger.info(f"Setting `tau_b` from {tau_b} to 1.0 until fixed on OTT side.")
-
     output = sinkhorn_divergence(
         PointCloud,
         x=point_cloud_1,

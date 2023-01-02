@@ -60,11 +60,10 @@ class JaxSampler:
         ) -> Tuple[jnp.ndarray, jnp.ndarray]:
             """Jitted function to compute the source and target marginals for a batch."""
             geom = PointCloud(batch_source, batch_target, epsilon=self.epsilon, scale_cost="mean")
-            out = sinkhorn(
+            out = sinkhorn(  # TODO: make jittable and use Sinkhorn class, not sinkhorn method
                 geom,
                 tau_a=self.tau_a,
                 tau_b=self.tau_b,
-                jit=False,
                 max_iterations=1e7,
             )
             # get flattened log transition matrix
