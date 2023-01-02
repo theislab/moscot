@@ -1,14 +1,16 @@
 from copy import copy
 from types import MappingProxyType
-from typing import Any, Set, Dict, List, Tuple, Union, Mapping, Iterable, Optional, TYPE_CHECKING
+from typing import Any, Dict, List, Tuple, Union, Mapping, Optional, Sequence, TYPE_CHECKING
 from collections import defaultdict
 
 from matplotlib import colors as mcolors, pyplot as plt
 from matplotlib.axes import Axes
+from pandas.api.types import is_categorical_dtype
 from matplotlib.colors import ListedColormap
+from sklearn.preprocessing import MinMaxScaler
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 import pandas as pd
-import matplotlib as mp
+import matplotlib as mpl
 
 import numpy as np
 
@@ -17,8 +19,8 @@ from scanpy.plotting._utils import add_colors_for_categorical_sample_annotation 
 import scanpy as sc
 
 from moscot.problems.base import CompoundProblem  # type: ignore[attr-defined]
+from moscot._constants._key import RandomKeys
 from moscot._constants._constants import AggregationMode
-from moscot.problems.base._compound_problem import K
 
 
 def set_palette(
@@ -51,8 +53,10 @@ def _sankey(
     fontsize: float = 12.0,
     horizontal_space: float = 1.5,
     force_update_colors: bool = False,
-    **_: Any,
-) -> mp.figure.Figure:
+    alpha: float = 1.0,
+    interpolate_color: bool = False,
+    **kwargs: Any,
+) -> mpl.figure.Figure:
     if ax is None:
         fig, ax = plt.subplots(constrained_layout=True, dpi=dpi, figsize=figsize)
     if captions is not None and len(captions) != len(transition_matrices):
@@ -110,7 +114,8 @@ def _sankey(
                     2 * [leftWidths[leftLabel]["bottom"]],
                     2 * [leftWidths[leftLabel]["bottom"] + leftWidths[leftLabel]["left"]],
                     color=colorDict[leftLabel],
-                    alpha=0.99,
+                    alpha=alpha,
+                    **kwargs,
                 )
                 ax.text(
                     -0.05 * xMax,
@@ -121,11 +126,12 @@ def _sankey(
                 )
         for rightLabel in rightLabels:
             ax.fill_between(
-                [xMax + left_pos[ind], 1.02 * xMax + left_pos[ind]],
+                [xMax + left_pos[ind], xMax + left_pos[ind]],
                 2 * [rightWidths[rightLabel]["bottom"]],
                 2 * [rightWidths[rightLabel]["bottom"] + rightWidths[rightLabel]["right"]],
                 color=colorDict[rightLabel],
-                alpha=0.99,
+                alpha=alpha,
+                **kwargs,
             )
             ax.text(
                 1.05 * xMax + left_pos[ind],
@@ -143,7 +149,6 @@ def _sankey(
         # Plot strips
         for leftLabel in leftLabels:
             for rightLabel in rightLabels:
-                labelColor = leftLabel
                 if dataFrame.loc[leftLabel, rightLabel] > 0:
                     # Create array of y values for each strip, half at left value,
                     # half at right, convolve
@@ -161,22 +166,17 @@ def _sankey(
                     leftWidths[leftLabel]["bottom"] += dataFrame.loc[leftLabel, rightLabel]
                     rightWidths[rightLabel]["bottom"] += dataFrame.loc[leftLabel, rightLabel]
 
-                    if ind == 0:
-                        ax.fill_between(
-                            np.linspace(0 + left_pos[ind], xMax + left_pos[ind], len(ys_d)),
-                            ys_d,
-                            ys_u,
-                            alpha=0.65,
-                            color=colorDict[labelColor],
+                    arr = np.linspace(0 + left_pos[ind], xMax + left_pos[ind], len(ys_d))
+                    if interpolate_color:
+                        color = _color_transition(
+                            colorDict[leftLabel], colorDict[rightLabel], num=len(arr), alpha=alpha
                         )
+                        for l in range(len(ys_d)):  # necessary to get smooth lines
+                            ax.fill_between(
+                                arr[l:], ys_d[l:], ys_u[l:], color=color[l], ec=color[l], alpha=alpha, **kwargs
+                            )
                     else:
-                        ax.fill_between(
-                            np.linspace(0 + left_pos[ind], xMax + left_pos[ind], len(ys_d)),
-                            ys_d,
-                            ys_u,
-                            alpha=0.65,
-                            color=colorDict[labelColor],
-                        )
+                        ax.fill_between(arr, ys_d, ys_u, alpha=alpha, color=colorDict[leftLabel], **kwargs)
 
         ax.axis("off")
         ax.set_title(title)
@@ -200,7 +200,7 @@ def _heatmap(
     cbar_kwargs: Mapping[str, Any] = MappingProxyType({}),
     ax: Optional[Axes] = None,
     **kwargs: Any,
-) -> mp.figure.Figure:
+) -> mpl.figure.Figure:
     cbar_kwargs = dict(cbar_kwargs)
 
     if ax is None:
@@ -214,10 +214,10 @@ def _heatmap(
         row_adata, col_adata, transition_matrix, row_annotation, col_annotation
     )
 
-    row_sm = mp.cm.ScalarMappable(cmap=row_cmap, norm=row_norm)
-    col_sm = mp.cm.ScalarMappable(cmap=col_cmap, norm=col_norm)
+    row_sm = mpl.cm.ScalarMappable(cmap=row_cmap, norm=row_norm)
+    col_sm = mpl.cm.ScalarMappable(cmap=col_cmap, norm=col_norm)
 
-    norm = mp.colors.Normalize(
+    norm = mpl.colors.Normalize(
         vmin=kwargs.pop("vmin", np.nanmin(transition_matrix)), vmax=kwargs.pop("vmax", np.nanmax(transition_matrix))
     )
     cont_cmap = copy(plt.get_cmap(cont_cmap))
@@ -274,9 +274,9 @@ def _get_black_or_white(value: float, cmap: mcolors.Colormap) -> str:
 
 def _annotate_heatmap(
     transition_matrix: pd.DataFrame,
-    im: mp.image.AxesImage,
+    im: mpl.image.AxesImage,
     valfmt: str = "{x:.2f}",
-    cmap: Union[mp.colors.Colormap, str] = "viridis",
+    cmap: Union[mpl.colors.Colormap, str] = "viridis",
     fontsize: float = 5,
     **kwargs: Any,
 ) -> None:
@@ -288,7 +288,7 @@ def _annotate_heatmap(
     kw.update(**kwargs)
 
     if isinstance(valfmt, str):
-        valfmt = mp.ticker.StrMethodFormatter(valfmt)
+        valfmt = mpl.ticker.StrMethodFormatter(valfmt)
     if TYPE_CHECKING:
         assert callable(valfmt)
 
@@ -359,45 +359,135 @@ def _plot_temporal(
     adata: AnnData,
     temporal_key: str,
     key_stored: str,
-    time_points: Optional[Iterable[K]] = None,
+    start: float,
+    end: float,
+    categories: Optional[Union[str, List[str]]] = None,
+    *,
+    push: bool,
+    time_points: Optional[Sequence[float]] = None,
     basis: str = "umap",
-    result_key: str = "plot_tmp",
-    constant_fill_value: float = 0.0,
+    constant_fill_value: float = np.nan,
+    scale: bool = True,
     cont_cmap: Union[str, mcolors.Colormap] = "viridis",
-    title: Optional[str] = None,
+    title: Optional[Union[str, List[str]]] = None,
+    suptitle: Optional[str] = None,
     figsize: Optional[Tuple[float, float]] = None,
     dpi: Optional[int] = None,
+    dot_scale_factor: float = 2.0,
+    na_color: str = "#e8ebe9",
     save: Optional[str] = None,
     ax: Optional[Axes] = None,
     show: bool = False,
+    suptitle_fontsize: Optional[float] = None,
     **kwargs: Any,
-) -> mp.figure.Figure:
-    all_keys = adata.obs[temporal_key].unique()
-    if time_points is None:
-        constant_fill_keys: Set[K] = set()
-    else:
-        constant_fill_keys = set(all_keys) - set(time_points)
-    tmp = np.full(len(adata), np.nan)
-    for t in adata.obs[temporal_key].unique():
-        mask = adata.obs[temporal_key] == t
-        if t in constant_fill_keys:
-            tmp[mask] = constant_fill_value
-        else:
-            tmp[mask] = adata[adata.obs[temporal_key] == t].obs[key_stored]
-
-    adata.obs[result_key] = tmp
-
-    sc.set_figure_params(figsize=figsize, dpi=dpi)  # TODO(@MUCDK, michalk8): necessary? want to make it uniform
-    fig = sc.pl.embedding(
-        adata=adata,
-        basis=basis,
-        color=result_key,
-        color_map=cont_cmap,
-        title=title,
-        ax=ax,
-        show=show,
-        **kwargs,
+) -> mpl.figure.Figure:
+    if time_points is not None:
+        time_points = sorted(time_points)
+    if isinstance(cont_cmap, str):
+        cont_cmap = mpl.colormaps["viridis"]
+    fig, axs = plt.subplots(
+        1, 1 if time_points is None else len(time_points), figsize=figsize, dpi=dpi, constrained_layout=True
     )
+    axs = np.ravel(axs)  # make into iterable
+
+    if not push and time_points is not None:
+        time_points = time_points[::-1]
+
+    if isinstance(title, list):
+        if TYPE_CHECKING:
+            assert isinstance(time_points, list)
+        if len(title) != len(time_points):
+            raise ValueError("If `title` is a list, its length must be equal to the length of `time_points`.")
+        titles = title
+    else:
+        name = "descendants" if push else "ancestors"
+        if time_points is not None:
+            titles = [f"{categories} at time {start if push else end}"]
+            titles.extend([f"{name} at time {time_points[i]}" for i in range(1, len(time_points))])
+        else:
+            titles = [f"{categories} at time {start if push else end} and {name}"]
+    for i, ax in enumerate(axs):
+        with RandomKeys(adata, n=1, where="obs") as keys:
+            if time_points is None:
+                if scale:
+                    adata.obs[keys[0]] = (
+                        MinMaxScaler().fit_transform(adata.obs[key_stored].values.reshape(-1, 1)).squeeze()
+                    )
+                else:
+                    adata.obs[keys[0]] = adata.obs[key_stored]
+                size = None
+            else:
+                tmp = np.full(len(adata), constant_fill_value)
+                mask = adata.obs[temporal_key] == time_points[i]
+
+                tmp[mask] = adata[mask].obs[key_stored]
+                if scale:
+                    tmp[mask] = (
+                        MinMaxScaler().fit_transform(adata[mask].obs[key_stored].values.reshape(-1, 1)).squeeze()
+                    )
+                else:
+                    tmp = mask * adata.obs[key_stored]
+
+                size = (mask * 120000 * dot_scale_factor + (1 - mask) * 120000) / adata.n_obs  # 120,000 from scanpy
+
+                _ = kwargs.pop("color_map", None)
+                _ = kwargs.pop("palette", None)
+                if (time_points[i] == start and push) or (time_points[i] == end and not push):
+                    st = f"not in {time_points[i]}"
+                    vmin, vmax = np.nanmin(tmp[mask]), np.nanmax(tmp[mask])
+                    column = pd.Series(tmp).fillna(st).astype("category")
+                    if len(np.unique(column[mask.values].values)) != 2:
+                        raise ValueError(f"Not exactly two categories, found `{column.cat.categories}`.")
+                    kwargs["palette"] = {vmax: cont_cmap.reversed()(0), vmin: cont_cmap(0), st: na_color}
+                    adata.obs[keys[0]] = column.values
+                else:
+                    kwargs["color_map"] = cont_cmap
+                    kwargs["na_color"] = na_color
+                    adata.obs[keys[0]] = tmp
+
+            sc.pl.embedding(
+                adata=adata,
+                basis=basis,
+                color=keys[0],
+                title=titles[i],
+                size=size,
+                ax=ax,
+                show=show,
+                **kwargs,
+            )
+    if suptitle is not None:
+        fig.suptitle(suptitle, fontsize=suptitle_fontsize)
     if save:
         fig.figure.savefig(save, bbox_inches="tight")
     return fig
+
+
+def _color_transition(c1: str, c2: str, num: int, alpha: float) -> List[str]:
+    if not mpl.colors.is_color_like(c1):
+        raise ValueError(f"{c1} cannot be interpreted as an RGB color.")
+    if not mpl.colors.is_color_like(c2):
+        raise ValueError(f"{c2} cannot be interpreted as an RGB color.")
+    c1_rgb = np.asarray(mpl.colors.to_rgb(c1))
+    c2_rgb = np.asarray(mpl.colors.to_rgb(c2))
+    return [mpl.colors.to_rgb((1 - n / num) * c1_rgb + n / num * c2_rgb) + (alpha,) for n in range(num)]
+
+
+def _create_col_colors(adata: AnnData, obs_col: str, subset: Union[str, List[str]]) -> Optional[mcolors.Colormap]:
+    if isinstance(subset, list):
+        subset = subset[0]
+    if not is_categorical_dtype(adata.obs[obs_col]):
+        raise TypeError(f"`adata.obs[{obs_col!r}] must be of categorical type.")
+
+    for i, cat in enumerate(adata.obs[obs_col].cat.categories):
+        if cat == subset:
+            color = adata.uns[f"{obs_col}_colors"][i]
+            break
+    else:
+        raise ValueError(f"Cannot find color for {subset} in `adata.obs[{obs_col!r}]`.")
+
+    h, _, v = mcolors.rgb_to_hsv(mcolors.to_rgb(color))
+    end_color = mcolors.hsv_to_rgb([h, 1, v])
+
+    col_cmap = mcolors.LinearSegmentedColormap.from_list("category_cmap", ["darkgrey", end_color])
+
+    return col_cmap

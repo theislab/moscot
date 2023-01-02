@@ -25,6 +25,11 @@ config.update("jax_enable_x64", True)
 _gt_temporal_adata = sc.read("tests/data/moscot_temporal_tests.h5ad")
 
 
+def pytest_sessionstart() -> None:
+    sc.pl.set_rcParams_defaults()
+    sc.set_figure_params(dpi=40, color_map="viridis")
+
+
 @pytest.fixture()
 def x() -> Geom_t:
     rng = np.random.RandomState(0)
