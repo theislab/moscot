@@ -257,6 +257,7 @@ class NeuralDualSolver:
             epsilon=self.valid_sinkhorn_kwargs.pop("epsilon", self.epsilon),
             tau_a=self.valid_sinkhorn_kwargs.pop("tau_a", self.tau_a),
             tau_b=self.valid_sinkhorn_kwargs.pop("tau_b", self.tau_b),
+            batch_size=self.batch_size,
             **self.valid_sinkhorn_kwargs,
         )
 

@@ -19,6 +19,7 @@ def _compute_sinkhorn_divergence(
     tau_a: float = 1.0,
     tau_b: float = 1.0,
     scale_cost: ScaleCost_t = 1.0,
+    batch_size: Optional[int] = None,
     **kwargs: Any,
 ) -> float:
     point_cloud_1 = jnp.asarray(point_cloud_1)
@@ -30,6 +31,7 @@ def _compute_sinkhorn_divergence(
         PointCloud,
         x=point_cloud_1,
         y=point_cloud_2,
+        batch_size=batch_size,
         a=a,
         b=b,
         sinkhorn_kwargs={"tau_a": tau_a, "tau_b": tau_b},
