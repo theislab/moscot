@@ -69,21 +69,6 @@ class SinkhornProblem(GenericAnalysisMixin[K, B], CompoundProblem[K, B]):
         %(ex_prepare)s
         """
         self.batch_key = key
-        if joint_attr is None:
-            kwargs["xy_callback"] = "local-pca"
-            kwargs.setdefault("xy_callback_kwargs", {})
-        elif isinstance(joint_attr, str):
-            kwargs["xy"] = {
-                "x_attr": "obsm",
-                "x_key": joint_attr,
-                "y_attr": "obsm",
-                "y_key": joint_attr,
-            }
-        elif isinstance(joint_attr, Mapping):
-            kwargs["xy"] = joint_attr
-        else:
-            raise TypeError(f"Unable to interpret `joint_attr` of type `{type(joint_attr)}`.")
-
         xy, kwargs = handle_joint_attr(joint_attr, kwargs)
         xy, _, _ = handle_cost(xy=xy, cost=cost)
         return super().prepare(
