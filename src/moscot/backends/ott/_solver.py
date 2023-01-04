@@ -26,7 +26,7 @@ from moscot.solvers._tagged_array import TaggedArray
 from moscot.backends.ott._jax_data import JaxSampler
 from moscot.backends.ott._neuraldual import NeuralDualSolver
 
-__all__ = ["OTTCost", "SinkhornSolver", "GWSolver", "FGWSolver", "NeuralSolver", "CondNeuralSolver"]
+__all__ = ["OTTCost", "SinkhornSolver", "GWSolver", "NeuralSolver", "CondNeuralSolver"]
 
 Scale_t = Union[float, Literal["mean", "median", "max_cost", "max_norm", "max_bound"]]
 Epsilon_t = Union[float, Epsilon]
@@ -271,97 +271,24 @@ class GWSolver(OTTJaxSolver):
         xy: Optional[TaggedArray] = None,
         x: Optional[TaggedArray] = None,
         y: Optional[TaggedArray] = None,
-        **kwargs: Any,
-    ) -> QuadraticProblem:
-        del xy
-        if x is None or y is None:
-            raise ValueError(f"Unable to create geometry from `x={x}`, `y={y}`.")
-        geom_x = self._create_geometry(x, **kwargs)
-        geom_y = self._create_geometry(y, **kwargs)
-
-        kwargs = _filter_kwargs(QuadraticProblem, **kwargs)
-        self._problem = QuadraticProblem(geom_x, geom_y, geom_xy=None, **kwargs)
-        return self._problem
-
-    @property
-    def x(self) -> Optional[Geometry]:
-        """First geometry defining the quadratic term."""
-        return None if self._problem is None else self._problem.geom_xx
-
-    @property
-    def y(self) -> Geometry:
-        """Second geometry defining the quadratic term."""
-        return None if self._problem is None else self._problem.geom_yy
-
-    @property
-    def problem_kind(self) -> ProblemKind:
-        return ProblemKind.QUAD
-
-
-class FGWSolver(GWSolver):
-    """
-    Class which solves quadratic OT problem with a linear term included.
-
-    The Fused Gromov-Wasserstein (FGW) problem involves two distributions living in two subspaces,
-    corresponding to the linear term and the quadratic term, respectively.
-
-    The subspace corresponding to the linear term is shared between the two distributions.
-    The subspace corresponding to the quadratic term is defined in possibly two different spaces.
-    The matching obtained from the FGW is a compromise between the ones induced by the linear OT problem and
-    the quadratic OT problem :cite:`vayer:2018`.
-
-    This solver wraps :class:`~ott.solvers.quadratic.gromov_wasserstein.GromovWasserstein`
-    with a non-trivial ``fused_penalty``.
-
-    Parameters
-    ----------
-    rank
-        Rank of the quadratic solver. If `-1` use the full-rank GW :cite:`memoli:2011`,
-        otherwise, use the low-rank approach :cite:`scetbon:21b`.
-    initializer
-        `quad_initializer` of :class:`~ott.solvers.quadratic.gromov_wasserstein.GromovWasserstein`.
-    initializer_kwargs
-        Keyword arguments for the initializer.
-    linear_solver_kwargs
-        Keyword arguments for :class:`~ott.solvers.linear.sinkhorn.Sinkhorn` or
-        :class:`~ott.solvers.linear.sinkhorn_lr.LRSinkhorn`, depending on the ``rank``.
-    kwargs
-        Keyword arguments for :class:`~ott.solvers.quadratic.gromov_wasserstein.GromovWasserstein` .
-    """
-
-    def _prepare(
-        self,
-        xy: Optional[TaggedArray] = None,
-        x: Optional[TaggedArray] = None,
-        y: Optional[TaggedArray] = None,
         alpha: float = 0.5,
         **kwargs: Any,
     ) -> QuadraticProblem:
-        if xy is None:
-            raise ValueError(f"Unable to create geometry from `xy={xy}`.")
-
-        prob = super()._prepare(x=x, y=y, **kwargs)
-        geom_xy = self._create_geometry(xy, **kwargs)
-        self._validate_geoms(prob.geom_xx, prob.geom_yy, geom_xy)
+        if x is None or y is None:
+            raise ValueError(f"Unable to create geometry from `x={x}`, `y={y}`.")
+        geom_xx = self._create_geometry(x, **kwargs)
+        geom_yy = self._create_geometry(y, **kwargs)
+        if alpha == 1.0 or xy is None:  # GW
+            # arbitrary fused penalty (must be positive)
+            geom_xy, fused_penalty = None, 1.0
+        else:  # FGW
+            fused_penalty = self._alpha_to_fused_penalty(alpha)
+            geom_xy = self._create_geometry(xy, **kwargs)
+            self._validate_geoms(geom_xx, geom_yy, geom_xy)
 
         kwargs = _filter_kwargs(QuadraticProblem, **kwargs)
-        self._problem = QuadraticProblem(
-            geom_xx=prob.geom_xx,
-            geom_yy=prob.geom_yy,
-            geom_xy=geom_xy,
-            fused_penalty=self._alpha_to_fused_penalty(alpha),
-            **kwargs,
-        )
+        self._problem = QuadraticProblem(geom_xx, geom_yy, geom_xy=geom_xy, fused_penalty=fused_penalty, **kwargs)
         return self._problem
-
-    @property
-    def xy(self) -> Optional[Geometry]:
-        """Geometry defining the linear term."""
-        return None if self._problem is None else self._problem.geom_xy
-
-    @property
-    def problem_kind(self) -> ProblemKind:
-        return ProblemKind.QUAD_FUSED
 
     @staticmethod
     def _validate_geoms(geom_x: Geometry, geom_y: Geometry, geom_xy: Geometry) -> None:
@@ -377,6 +304,30 @@ class FGWSolver(GWSolver):
         if not (0 < alpha <= 1):
             raise ValueError(f"Expected `alpha` to be in interval `(0, 1]`, found `{alpha}`.")
         return (1 - alpha) / alpha
+
+    @property
+    def x(self) -> Optional[Geometry]:
+        """First geometry defining the quadratic term."""
+        return None if self._problem is None else self._problem.geom_xx
+
+    @property
+    def y(self) -> Geometry:
+        """Second geometry defining the quadratic term."""
+        return None if self._problem is None else self._problem.geom_yy
+
+    @property
+    def xy(self) -> Optional[Geometry]:
+        """Geometry defining the linear term in the fused case."""
+        return None if self._problem is None else self._problem.geom_xy
+
+    @property
+    def is_fused(self) -> Optional[bool]:
+        """Whether the problem is fused."""
+        return None if self._problem is None else (self.xy is not None)
+
+    @property
+    def problem_kind(self) -> ProblemKind:
+        return ProblemKind.QUAD
 
 
 class NeuralSolver(OTSolver[OTTOutput]):

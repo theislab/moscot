@@ -280,7 +280,7 @@ class OTProblem(BaseProblem):
             else:
                 self._y = TaggedArray.from_adata(self.adata_tgt, dist_key=self._tgt_key, **y)
         elif xy is not None and x is not None and y is not None:
-            self._problem_kind = ProblemKind.QUAD_FUSED
+            self._problem_kind = ProblemKind.QUAD
             self._xy = xy if isinstance(xy, TaggedArray) else self._handle_linear(**xy)
             if isinstance(x, TaggedArray):
                 self._x = x
@@ -511,18 +511,13 @@ class OTProblem(BaseProblem):
         -------
         None
         """
-        if self.problem_kind == ProblemKind.QUAD:
-            logger.info(f"Changing the problem type from {self.problem_kind} to fused-quadratic.")
-            self._problem_kind = ProblemKind.QUAD_FUSED
-        if data.shape != (self.adata_src.n_obs, self.adata_tgt.n_obs):
-            raise ValueError(
-                f"`data` is exptected to have shape {(self.adata_src.n_obs, self.adata_tgt.n_obs)} but found {data.shape}."  # noqa: E501
-            )
+        if data.shape != self.shape:
+            raise ValueError(f"`data` is expected to have shape {self.shape} but found {data.shape}.")
         if not isinstance(data, pd.DataFrame):
             raise TypeError("If the data is to be validated, the data must be of type pandas.DataFrame.")
         if list(data.index) != list(self.adata_src.obs_names):
             raise ValueError(
-                "The index names of `data` do not correspond to `adata.obs_names` of the source distribution.."
+                "The index names of `data` do not correspond to `adata.obs_names` of the source distribution."
             )
         if list(data.columns) != list(self.adata_tgt.obs_names):
             raise ValueError(
@@ -547,16 +542,15 @@ class OTProblem(BaseProblem):
         """
         if self.problem_kind == ProblemKind.LINEAR:
             logger.info(f"Changing the problem type from {self.problem_kind} to fused-quadratic.")
-            self._problem_kind = ProblemKind.QUAD_FUSED
-        if data.shape != (self.adata_src.n_obs, self.adata_src.n_obs):
-            raise ValueError(
-                f"`data` is exptected to have shape {(self.adata_src.n_obs, self.adata_src.n_obs)} but found {data.shape}."  # noqa: E501
-            )
+            self._problem_kind = ProblemKind.QUAD
+        expected_shape = self.shape[0], self.shape[0]
+        if data.shape != expected_shape:
+            raise ValueError(f"`data` is expected to have shape {expected_shape} but found {data.shape}.")
         if not isinstance(data, pd.DataFrame):
             raise TypeError("If the data is to be validated, the data must be of type pandas.DataFrame.")
         if list(data.index) != list(self.adata_src.obs_names):
             raise ValueError(
-                "The index names of `data` do not correspond to `adata.obs_names` of the source distribution.."
+                "The index names of `data` do not correspond to `adata.obs_names` of the source distribution."
             )
         if list(data.columns) != list(self.adata_src.obs_names):
             raise ValueError(
@@ -581,16 +575,15 @@ class OTProblem(BaseProblem):
         """
         if self.problem_kind == ProblemKind.LINEAR:
             logger.info(f"Changing the problem type from {self.problem_kind} to fused-quadratic.")
-            self._problem_kind = ProblemKind.QUAD_FUSED
-        if data.shape != (self.adata_tgt.n_obs, self.adata_tgt.n_obs):
-            raise ValueError(
-                f"`data` is exptected to have shape {(self.adata_tgt.n_obs, self.adata_tgt.n_obs)} but found {data.shape}."  # noqa: E501
-            )
+            self._problem_kind = ProblemKind.QUAD
+        expected_shape = self.shape[1], self.shape[1]
+        if data.shape != expected_shape:
+            raise ValueError(f"`data` is expected to have shape {expected_shape} but found {data.shape}.")
         if not isinstance(data, pd.DataFrame):
             raise TypeError("If the data is to be validated, the data must be of type pandas.DataFrame.")
         if list(data.index) != list(self.adata_tgt.obs_names):
             raise ValueError(
-                "The index names of `data` do not correspond to `adata.obs_names` of the source distribution.."
+                "The index names of `data` do not correspond to `adata.obs_names` of the source distribution."
             )
         if list(data.columns) != list(self.adata_tgt.obs_names):
             raise ValueError(

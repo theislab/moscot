@@ -16,7 +16,7 @@ from moscot._constants._constants import Policy
 from moscot.problems.generic._mixins import GenericAnalysisMixin
 from moscot.problems.base._compound_problem import B, K
 
-__all__ = ["SinkhornProblem", "GWProblem", "FGWProblem", "NeuralProblem", "ConditionalNeuralProblem"]
+__all__ = ["SinkhornProblem", "GWProblem", "NeuralProblem", "ConditionalNeuralProblem"]
 
 
 @d.dedent
@@ -203,6 +203,7 @@ class GWProblem(GenericAnalysisMixin[K, B], CompoundProblem[K, B]):
         key: str,
         GW_x: Union[str, Mapping[str, Any]],
         GW_y: Union[str, Mapping[str, Any]],
+        joint_attr: Optional[Union[str, Mapping[str, Any]]] = None,
         policy: Literal["sequential", "pairwise", "explicit"] = "sequential",
         cost: Union[
             Literal["sq_euclidean", "cosine", "bures", "unbalanced_bures"],
@@ -220,6 +221,7 @@ class GWProblem(GenericAnalysisMixin[K, B], CompoundProblem[K, B]):
         %(key)s
         %(GW_x)s
         %(GW_y)s
+        %(joint_attr)s
         %(policy)s
         %(cost)s
         %(a)s
@@ -249,11 +251,11 @@ class GWProblem(GenericAnalysisMixin[K, B], CompoundProblem[K, B]):
             else:
                 raise TypeError("`GW_x` and `GW_y` must be of type `str` or `dict`.")
 
-        xy = kwargs.pop("xy", None)
+        xy, kwargs = handle_joint_attr(joint_attr, kwargs)
         xy, x, y = handle_cost(xy=xy, x=GW_updated[0], y=GW_updated[1], cost=cost)
         return super().prepare(
             key=key,
-            xy=xy,  # this is needed as FGWProblem inherits from GWProblem
+            xy=xy,
             x=x,
             y=y,
             policy=policy,
@@ -266,6 +268,7 @@ class GWProblem(GenericAnalysisMixin[K, B], CompoundProblem[K, B]):
     @d.dedent
     def solve(
         self,
+        alpha: float = 1.0,
         epsilon: Optional[float] = 1e-3,
         tau_a: float = 1.0,
         tau_b: float = 1.0,
@@ -292,6 +295,7 @@ class GWProblem(GenericAnalysisMixin[K, B], CompoundProblem[K, B]):
 
         Parameters
         ----------
+        %(alpha)s
         %(epsilon)s
         %(tau_a)s
         %(tau_b)s
@@ -317,6 +321,7 @@ class GWProblem(GenericAnalysisMixin[K, B], CompoundProblem[K, B]):
         %(ex_solve_quadratic)s
         """
         return super().solve(
+            alpha=alpha,
             epsilon=epsilon,
             tau_a=tau_a,
             tau_b=tau_b,

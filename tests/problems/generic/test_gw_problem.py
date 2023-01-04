@@ -61,6 +61,7 @@ class TestGWProblem:
         for key, subsol in problem.solutions.items():
             assert isinstance(subsol, BaseSolverOutput)
             assert key in expected_keys
+            assert problem[key].solver._problem.geom_xy is None
 
     @pytest.mark.parametrize("method", ["fischer", "perm_test"])
     def test_compute_feature_correlation(self, adata_space_rotate: AnnData, method: str):
