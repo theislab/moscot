@@ -302,7 +302,7 @@ class BaseCompoundProblem(BaseProblem, ABC, Generic[K, B]):
         # TODO(michalk8): should use manager.plan (once implemented), as some problems may not be solved
         # TODO: better check
         source = source if isinstance(source, list) else [source]
-        _ = kwargs.pop("end", None)  # make compatible with Explicit/Ordered policy
+        _ = kwargs.pop("target", None)  # make compatible with Explicit/Ordered policy
         for src, tgt in self._policy.plan(
             explicit_steps=kwargs.pop("explicit_steps", None),
             filter=source,  # type: ignore [arg-type]
