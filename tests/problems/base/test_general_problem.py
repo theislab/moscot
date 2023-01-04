@@ -117,7 +117,7 @@ class TestOTProblem:
         cost_matrix = pd.DataFrame(index=adata_x.obs_names, columns=adata_y.obs_names, data=cm)
         prob.set_xy(cost_matrix, tag="cost_matrix")
 
-        assert prob.problem_kind == ProblemKind.QUAD_FUSED
+        assert prob.problem_kind == ProblemKind.QUAD
 
     def test_set_x_change_problem_kind(self, adata_x: AnnData, adata_y: AnnData):
         rng = np.random.RandomState(42)
@@ -135,7 +135,7 @@ class TestOTProblem:
         cost_matrix = pd.DataFrame(index=adata_y.obs_names, columns=adata_y.obs_names, data=cm)
         prob.set_y(cost_matrix, tag="cost_matrix")
 
-        assert prob.problem_kind == ProblemKind.QUAD_FUSED
+        assert prob.problem_kind == ProblemKind.QUAD
 
 
 class MultiMarginalProblem:

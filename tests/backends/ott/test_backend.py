@@ -16,7 +16,7 @@ import jax.numpy as jnp
 
 from tests._utils import ATOL, RTOL, Geom_t
 from moscot._types import Device_t, ArrayLike
-from moscot.backends.ott import GWSolver, FGWSolver, SinkhornSolver  # type: ignore[attr-defined]
+from moscot.backends.ott import GWSolver, SinkhornSolver  # type: ignore[attr-defined]
 from moscot.solvers._output import BaseSolverOutput
 from moscot.solvers._base_solver import O, OTSolver
 from moscot.solvers._tagged_array import Tag
@@ -78,6 +78,7 @@ class TestGW:
 
         pred = solver(x=x, y=y, tags={"x": "point_cloud", "y": "point_cloud"})
 
+        assert solver.is_fused is False
         assert solver.rank == -1
         assert not solver.is_low_rank
         assert isinstance(solver.x, PointCloud)
@@ -96,6 +97,7 @@ class TestGW:
 
         pred = solver(x=x_cost, y=y_cost, tags={"x": Tag.COST_MATRIX, "y": Tag.COST_MATRIX})
 
+        assert solver.is_fused is False
         assert pred.rank == -1
         assert solver.rank == -1
         assert isinstance(solver.x, Geometry)
@@ -112,6 +114,7 @@ class TestGW:
         solver = GWSolver(rank=rank, epsilon=eps, threshold=thresh)
         pred = solver(x=x, y=y, tags={"x": "point_cloud", "y": "point_cloud"})
 
+        assert solver.is_fused is False
         assert solver.rank == rank
         assert pred.rank == rank
         np.testing.assert_allclose(gt.matrix, pred.transport_matrix, rtol=RTOL, atol=ATOL)
@@ -128,17 +131,18 @@ class TestFGW:
             geom_xx=PointCloud(x, epsilon=eps),
             geom_yy=PointCloud(y, epsilon=eps),
             geom_xy=PointCloud(xx, yy, epsilon=eps),
-            fused_penalty=FGWSolver._alpha_to_fused_penalty(alpha),
+            fused_penalty=GWSolver._alpha_to_fused_penalty(alpha),
             epsilon=eps,
             threshold=thresh,
         )
 
-        solver = FGWSolver(epsilon=eps, threshold=thresh)
+        solver = GWSolver(epsilon=eps, threshold=thresh)
         assert isinstance(solver.solver, GromovWasserstein)
         assert solver.xy is None
 
         pred = solver(x=x, y=y, xy=xy, alpha=alpha, tags={"x": "point_cloud", "y": "point_cloud", "xy": "point_cloud"})
 
+        assert solver.is_fused is True
         assert solver.rank == -1
         assert pred.rank == -1
         assert isinstance(solver.xy, PointCloud)
@@ -154,13 +158,14 @@ class TestFGW:
             geom_xx=PointCloud(x, epsilon=eps),
             geom_yy=PointCloud(y, epsilon=eps),
             geom_xy=PointCloud(xx, yy, epsilon=eps),
-            fused_penalty=FGWSolver._alpha_to_fused_penalty(alpha),
+            fused_penalty=GWSolver._alpha_to_fused_penalty(alpha),
             epsilon=eps,
             threshold=thresh,
         )
-        solver = FGWSolver(epsilon=eps, threshold=thresh)
+        solver = GWSolver(epsilon=eps, threshold=thresh)
         pred = solver(x=x, y=y, xy=xy, alpha=alpha, tags={"x": "point_cloud", "y": "point_cloud", "xy": "point_cloud"})
 
+        assert solver.is_fused is True
         assert not solver.is_low_rank
         assert pred.rank == -1
         assert not pred.is_low_rank
@@ -176,11 +181,11 @@ class TestFGW:
             geom_xx=Geometry(cost_matrix=x_cost, epsilon=eps),
             geom_yy=Geometry(cost_matrix=y_cost, epsilon=eps),
             geom_xy=Geometry(cost_matrix=xy_cost, epsilon=eps),
-            fused_penalty=FGWSolver._alpha_to_fused_penalty(alpha),
+            fused_penalty=GWSolver._alpha_to_fused_penalty(alpha),
         )
         gt = GromovWasserstein(epsilon=eps, threshold=thresh)(problem)
 
-        solver = FGWSolver(epsilon=eps, threshold=thresh)
+        solver = GWSolver(epsilon=eps, threshold=thresh)
         pred = solver(
             x=x_cost,
             y=y_cost,
@@ -189,6 +194,7 @@ class TestFGW:
             tags={"x": Tag.COST_MATRIX, "y": Tag.COST_MATRIX, "xy": Tag.COST_MATRIX},
         )
 
+        assert solver.is_fused is True
         assert pred.rank == -1
         np.testing.assert_allclose(gt.matrix, pred.transport_matrix, rtol=RTOL, atol=ATOL)
 
@@ -247,7 +253,7 @@ class TestSolverOutput:
             assert p.shape == (out.shape[1],)
 
     @pytest.mark.parametrize("batched", [False, True])
-    @pytest.mark.parametrize("solver_t", [GWSolver, FGWSolver])
+    @pytest.mark.parametrize("solver_t", [GWSolver])
     def test_pull(
         self,
         x: ArrayLike,

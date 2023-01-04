@@ -21,7 +21,6 @@ class ProblemKind(ModeEnum):
     UNKNOWN = "unknown"
     LINEAR = "linear"
     QUAD = "quadratic"
-    QUAD_FUSED = "quadratic_fused"
 
     def solver(self, *, backend: Literal["ott"] = "ott", **kwargs: Any) -> "BaseSolver[O]":
         """
@@ -40,14 +39,12 @@ class ProblemKind(ModeEnum):
         """
         # TODO(michalk8): refactor using backend utils
         if backend == "ott":
-            from moscot.backends.ott import GWSolver, FGWSolver, SinkhornSolver  # type: ignore[attr-defined]
+            from moscot.backends.ott import GWSolver, SinkhornSolver  # type: ignore[attr-defined]
 
             if self == ProblemKind.LINEAR:
                 return SinkhornSolver(**kwargs)
             if self == ProblemKind.QUAD:
                 return GWSolver(**kwargs)
-            if self == ProblemKind.QUAD_FUSED:
-                return FGWSolver(**kwargs)
             raise NotImplementedError(f"Unable to create solver for `{self}` problem.")
 
         raise NotImplementedError(f"Backend `{backend}` is not yet implemented.")
@@ -189,23 +186,14 @@ class OTSolver(TagConverterMixin, BaseSolver[O], ABC):
         return res.to(device=device)  # type: ignore[return-value]
 
     def _prepare_kwargs(self, data: TaggedArrayData) -> Dict[str, Any]:
-        def assert_linear() -> None:
+        if self.problem_kind == ProblemKind.LINEAR:
             if data.xy is None:
                 raise ValueError("No data specified for the linear term.")
-
-        def assert_quadratic() -> None:
-            if data.x is None or data.y is None:
-                raise ValueError("No data specified for the quadratic term.")
-
-        if self.problem_kind == ProblemKind.LINEAR:
-            assert_linear()
             data_kwargs: Dict[str, Any] = {"xy": data.xy}
         elif self.problem_kind == ProblemKind.QUAD:
-            assert_quadratic()
-            data_kwargs = {"x": data.x, "y": data.y}
-        elif self.problem_kind == ProblemKind.QUAD_FUSED:
-            assert_linear()
-            assert_quadratic()
+            if data.x is None or data.y is None:
+                raise ValueError("No data specified for the quadratic term.")
+            # `data.xy` can be `None`, in which case GW is used
             data_kwargs = {"x": data.x, "y": data.y, "xy": data.xy}
         else:
             raise NotImplementedError(f"Unable to prepare data for `{self.problem_kind}` problem.")
