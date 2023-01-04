@@ -359,8 +359,8 @@ def _plot_temporal(
     adata: AnnData,
     temporal_key: str,
     key_stored: str,
-    start: float,
-    end: float,
+    source: float,
+    target: float,
     categories: Optional[Union[str, List[str]]] = None,
     *,
     push: bool,
@@ -402,10 +402,10 @@ def _plot_temporal(
     else:
         name = "descendants" if push else "ancestors"
         if time_points is not None:
-            titles = [f"{categories} at time {start if push else end}"]
+            titles = [f"{categories} at time {source if push else target}"]
             titles.extend([f"{name} at time {time_points[i]}" for i in range(1, len(time_points))])
         else:
-            titles = [f"{categories} at time {start if push else end} and {name}"]
+            titles = [f"{categories} at time {source if push else target} and {name}"]
     for i, ax in enumerate(axs):
         with RandomKeys(adata, n=1, where="obs") as keys:
             if time_points is None:
@@ -432,7 +432,7 @@ def _plot_temporal(
 
                 _ = kwargs.pop("color_map", None)
                 _ = kwargs.pop("palette", None)
-                if (time_points[i] == start and push) or (time_points[i] == end and not push):
+                if (time_points[i] == source and push) or (time_points[i] == target and not push):
                     st = f"not in {time_points[i]}"
                     vmin, vmax = np.nanmin(tmp[mask]), np.nanmax(tmp[mask])
                     column = pd.Series(tmp).fillna(st).astype("category")

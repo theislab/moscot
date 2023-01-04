@@ -178,7 +178,7 @@ class TestBaseAnalysisMixin:
         problem = problem.prepare("time", xy_callback="local-pca")
         problem[0, 1]._solution = MockSolverOutput(tmap)
 
-        adata_time.obs[key_added] = np.hstack((np.zeros(n0), problem.pull(start=0, end=1).squeeze()))
+        adata_time.obs[key_added] = np.hstack((np.zeros(n0), problem.pull(source=0, target=1).squeeze()))
 
         res = problem.compute_feature_correlation(obs_key=key_added, method=method)
 
@@ -207,7 +207,7 @@ class TestBaseAnalysisMixin:
         problem = problem.prepare("time", xy_callback="local-pca")
         problem[0, 1]._solution = MockSolverOutput(tmap)
 
-        adata_time.obs[key_added] = np.hstack((np.zeros(n0), problem.pull(start=0, end=1).squeeze()))
+        adata_time.obs[key_added] = np.hstack((np.zeros(n0), problem.pull(source=0, target=1).squeeze()))
 
         if isinstance(features, int):
             features = list(adata_time.var_names)[:features]
@@ -246,7 +246,7 @@ class TestBaseAnalysisMixin:
         problem = problem.prepare("time", xy_callback="local-pca")
         problem[0, 1]._solution = MockSolverOutput(tmap)
 
-        adata_time.obs[key_added] = np.hstack((np.zeros(n0), problem.pull(start=0, end=1).squeeze()))
+        adata_time.obs[key_added] = np.hstack((np.zeros(n0), problem.pull(source=0, target=1).squeeze()))
 
         if features[0] == "error":
             with np.testing.assert_raises(NotImplementedError):
@@ -273,7 +273,7 @@ class TestBaseAnalysisMixin:
         problem = problem.prepare("time", xy_callback="local-pca")
         problem[0, 1]._solution = MockSolverOutput(tmap)
 
-        adata_time.obs[key_added] = np.hstack((np.zeros(n0), problem.pull(start=0, end=1).squeeze()))
+        adata_time.obs[key_added] = np.hstack((np.zeros(n0), problem.pull(source=0, target=1).squeeze()))
 
         res_a = problem.compute_feature_correlation(obs_key=key_added, n_perms=10, n_jobs=1, seed=0, method="perm_test")
         res_b = problem.compute_feature_correlation(obs_key=key_added, n_perms=10, n_jobs=1, seed=0, method="perm_test")
@@ -298,7 +298,7 @@ class TestBaseAnalysisMixin:
         problem = problem.prepare("time", xy_callback="local-pca")
         problem[0, 1]._solution = MockSolverOutput(tmap)
 
-        adata_time.obs[key_added] = np.hstack((np.zeros(n0), problem.pull(start=0, end=1).squeeze()))
+        adata_time.obs[key_added] = np.hstack((np.zeros(n0), problem.pull(source=0, target=1).squeeze()))
 
         res_a = problem.compute_feature_correlation(
             obs_key=key_added, n_perms=10, n_jobs=2, backend="threading", seed=0, method="perm_test"
@@ -324,7 +324,7 @@ class TestBaseAnalysisMixin:
         problem = problem.prepare("time", xy_callback="local-pca")
         problem[0, 1]._solution = MockSolverOutput(tmap)
 
-        adata_time.obs[key_added] = np.hstack((np.zeros(n0), problem.pull(start=0, end=1).squeeze()))
+        adata_time.obs[key_added] = np.hstack((np.zeros(n0), problem.pull(source=0, target=1).squeeze()))
 
         res_narrow = problem.compute_feature_correlation(obs_key=key_added, confidence_level=0.95)
         res_wide = problem.compute_feature_correlation(obs_key=key_added, confidence_level=0.99)

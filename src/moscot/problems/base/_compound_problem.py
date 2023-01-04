@@ -292,7 +292,7 @@ class BaseCompoundProblem(BaseProblem, ABC, Generic[K, B]):
         data: Optional[Union[str, ArrayLike]] = None,
         forward: bool = True,
         scale_by_marginals: bool = False,
-        start: Optional[K] = None,
+        source: Optional[K] = None,
         return_all: bool = True,
         **kwargs: Any,
     ) -> ApplyOutput_t[K]:
@@ -301,11 +301,11 @@ class BaseCompoundProblem(BaseProblem, ABC, Generic[K, B]):
         res = {}
         # TODO(michalk8): should use manager.plan (once implemented), as some problems may not be solved
         # TODO: better check
-        start = start if isinstance(start, list) else [start]
+        source = source if isinstance(source, list) else [source]
         _ = kwargs.pop("end", None)  # make compatible with Explicit/Ordered policy
         for src, tgt in self._policy.plan(
             explicit_steps=kwargs.pop("explicit_steps", None),
-            filter=start,  # type: ignore [arg-type]
+            filter=source,  # type: ignore [arg-type]
         ):
             problem = self.problems[src, tgt]
             fun = problem.push if forward else problem.pull
@@ -319,20 +319,20 @@ class BaseCompoundProblem(BaseProblem, ABC, Generic[K, B]):
         data: Optional[Union[str, ArrayLike]] = None,
         forward: bool = True,
         scale_by_marginals: bool = False,
-        start: Optional[K] = None,
-        end: Optional[K] = None,
+        source: Optional[K] = None,
+        target: Optional[K] = None,
         return_all: bool = False,
         **kwargs: Any,
     ) -> ApplyOutput_t[K]:
         explicit_steps = kwargs.pop(
-            "explicit_steps", [[start, end]] if isinstance(self._policy, ExplicitPolicy) else None
+            "explicit_steps", [[source, target]] if isinstance(self._policy, ExplicitPolicy) else None
         )
         if TYPE_CHECKING:
             assert isinstance(self._policy, OrderedPolicy)
         (src, tgt), *rest = self._policy.plan(
             forward=forward,
-            start=start,
-            end=end,
+            start=source,
+            end=target,
             explicit_steps=explicit_steps,
         )
         problem = self.problems[src, tgt]
