@@ -262,7 +262,7 @@ class GWProblem(GenericAnalysisMixin[K, B], CompoundProblem[K, B]):
     @d.dedent
     def solve(
         self,
-        alpha: float = 0.5,
+        alpha: float = 1.0,
         epsilon: Optional[float] = 1e-3,
         tau_a: float = 1.0,
         tau_b: float = 1.0,
