@@ -275,10 +275,10 @@ class GWSolver(OTTJaxSolver):
             raise ValueError(f"Unable to create geometry from `x={x}`, `y={y}`.")
         geom_xx = self._create_geometry(x, **kwargs)
         geom_yy = self._create_geometry(y, **kwargs)
-        if alpha == 0 or xy is None:
-            # arbitrary positive fused penalty
+        if alpha == 1.0 or xy is None:  # GW
+            # arbitrary fused penalty (must be positive)
             geom_xy, fused_penalty = None, 1.0
-        else:
+        else:  # FGW
             fused_penalty = self._alpha_to_fused_penalty(alpha)
             geom_xy = self._create_geometry(xy, **kwargs)
             self._validate_geoms(geom_xx, geom_yy, geom_xy)

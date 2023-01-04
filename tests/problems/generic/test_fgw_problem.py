@@ -60,7 +60,7 @@ class TestFGWProblem:
             GW_x={"attr": "obsm", "key": "spatial"},
             GW_y={"attr": "obsm", "key": "spatial"},
         )
-        problem = problem.solve(epsilon=eps)
+        problem = problem.solve(alpha=0.5, epsilon=eps)
 
         for key, subsol in problem.solutions.items():
             assert isinstance(subsol, BaseSolverOutput)
@@ -82,13 +82,11 @@ class TestFGWProblem:
 
         solver = problem[key].solver.solver
         for arg, val in gw_solver_args.items():
-            assert hasattr(solver, val)
-            assert getattr(solver, val) == args_to_check[arg]
+            assert getattr(solver, val, object()) == args_to_check[arg]
 
         sinkhorn_solver = solver.linear_ot_solver
         lin_solver_args = gw_linear_solver_args if args_to_check["rank"] == -1 else gw_lr_linear_solver_args
         for arg, val in lin_solver_args.items():
-            assert hasattr(sinkhorn_solver, val)
             el = (
                 getattr(sinkhorn_solver, val)[0]
                 if isinstance(getattr(sinkhorn_solver, val), tuple)
@@ -97,22 +95,18 @@ class TestFGWProblem:
             args_to_c = args_to_check if arg in ["gamma", "gamma_rescale"] else args_to_check["linear_solver_kwargs"]
             assert el == args_to_c[arg]
 
-        quad_prob = problem[key]._solver._problem
+        quad_prob = problem[key].solver._problem
         for arg, val in quad_prob_args.items():
-            assert hasattr(quad_prob, val)
-            assert getattr(quad_prob, val) == args_to_check[arg]
-        assert hasattr(quad_prob, "fused_penalty")
-        assert quad_prob.fused_penalty == problem[key]._solver._alpha_to_fused_penalty(args_to_check["alpha"])
+            assert getattr(quad_prob, val, object()) == args_to_check[arg]
+        assert quad_prob.fused_penalty == problem[key].solver._alpha_to_fused_penalty(args_to_check["alpha"])
 
         geom = quad_prob.geom_xx
         for arg, val in geometry_args.items():
-            assert hasattr(geom, val)
-            assert getattr(geom, val) == args_to_check[arg]
+            assert getattr(geom, val, object()) == args_to_check[arg]
 
         geom = quad_prob.geom_xy
         for arg, val in pointcloud_args.items():
-            assert hasattr(geom, val)
-            assert getattr(geom, val) == args_to_check[arg]
+            assert getattr(geom, val, object()) == args_to_check[arg]
 
     @pytest.mark.fast()
     @pytest.mark.parametrize("cost", [("sq_euclidean", SqEuclidean), ("euclidean", Euclidean), ("cosine", Cosine)])
@@ -152,9 +146,8 @@ class TestFGWProblem:
         assert isinstance(problem[0, 1].xy.data_src, np.ndarray)
         assert problem[0, 1].xy.data_tgt is None
 
-        problem = problem.solve(
-            max_iterations=5, scale_cost=1
-        )  # TODO(@MUCDK) once fixed in OTT-JAX test for scale_cost
+        # TODO(@MUCDK) once fixed in OTT-JAX test for scale_cost
+        problem = problem.solve(alpha=0.5, max_iterations=5, scale_cost=1)
         assert isinstance(problem[0, 1].xy.data_src, np.ndarray)
         assert problem[0, 1].xy.data_tgt is None
 
@@ -179,9 +172,8 @@ class TestFGWProblem:
         assert isinstance(problem[0, 1].x.data_src, np.ndarray)
         assert problem[0, 1].x.data_tgt is None
 
-        problem = problem.solve(
-            max_iterations=5, scale_cost=1
-        )  # TODO(@MUCDK) once fixed in OTT-JAX test for scale_cost
+        # TODO(@MUCDK) once fixed in OTT-JAX test for scale_cost
+        problem = problem.solve(alpha=0.5, max_iterations=5, scale_cost=1)
         assert isinstance(problem[0, 1].x.data_src, np.ndarray)
         assert problem[0, 1].x.data_tgt is None
 
@@ -206,9 +198,8 @@ class TestFGWProblem:
         assert isinstance(problem[0, 1].y.data_src, np.ndarray)
         assert problem[0, 1].y.data_tgt is None
 
-        problem = problem.solve(
-            max_iterations=5, scale_cost=1
-        )  # TODO(@MUCDK) once fixed in OTT-JAX test for scale_cost
+        # TODO(@MUCDK) once fixed in OTT-JAX test for scale_cost
+        problem = problem.solve(alpha=0.5, max_iterations=5, scale_cost=1)
         assert isinstance(problem[0, 1].y.data_src, np.ndarray)
         assert problem[0, 1].y.data_tgt is None
 
