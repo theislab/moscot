@@ -84,8 +84,8 @@ class TemporalMixinProtocol(AnalysisMixinProtocol[K, B], Protocol[K, B]):
         number_cells: int,
         source_data: ArrayLike,
         target_data: ArrayLike,
-        start: K,
-        end: K,
+        source: K,
+        target: K,
         interpolation_parameter: float,
         account_for_unbalancedness: bool = True,
         batch_size: int = 256,
@@ -95,9 +95,9 @@ class TemporalMixinProtocol(AnalysisMixinProtocol[K, B], Protocol[K, B]):
 
     def _get_data(
         self: "TemporalMixinProtocol[K, B]",
-        start: K,
+        source: K,
         intermediate: Optional[K] = None,
-        end: Optional[K] = None,
+        target: Optional[K] = None,
         posterior_marginals: bool = True,
         *,
         only_start: bool = False,
@@ -118,8 +118,8 @@ class TemporalMixinProtocol(AnalysisMixinProtocol[K, B], Protocol[K, B]):
     def _plot_temporal(
         self: "TemporalMixinProtocol[K, B]",
         data: Dict[K, ArrayLike],
-        start: K,
-        end: K,
+        source: K,
+        target: K,
         time_points: Optional[Iterable[K]] = None,
         basis: str = "umap",
         result_key: Optional[str] = None,
@@ -131,7 +131,7 @@ class TemporalMixinProtocol(AnalysisMixinProtocol[K, B], Protocol[K, B]):
 
     @staticmethod
     def _get_interp_param(
-        start: K, intermediate: K, end: K, interpolation_parameter: Optional[float] = None
+        source: K, intermediate: K, target: K, interpolation_parameter: Optional[float] = None
     ) -> Numeric_t:
         ...
 
@@ -295,8 +295,8 @@ class TemporalMixin(AnalysisMixin[K, B]):
     @d_mixins.dedent
     def push(
         self: TemporalMixinProtocol[K, B],
-        start: K,
-        end: K,
+        source: K,
+        target: K,
         data: Optional[Union[str, ArrayLike]] = None,
         subset: Optional[Union[str, List[str], Tuple[int, int]]] = None,
         scale_by_marginals: bool = True,
@@ -325,8 +325,8 @@ class TemporalMixin(AnalysisMixin[K, B]):
 
         """
         result = self._apply(
-            start=start,
-            end=end,
+            source=source,
+            target=target,
             data=data,
             subset=subset,
             forward=True,
@@ -340,8 +340,8 @@ class TemporalMixin(AnalysisMixin[K, B]):
 
         if key_added is not None:
             plot_vars = {
-                "start": start,
-                "end": end,
+                "source": source,
+                "target": target,
                 "temporal_key": self.temporal_key,
                 "data": data if isinstance(data, str) else None,
                 "subset": subset,
@@ -354,8 +354,8 @@ class TemporalMixin(AnalysisMixin[K, B]):
     @d_mixins.dedent
     def pull(
         self: TemporalMixinProtocol[K, B],
-        start: K,
-        end: K,
+        source: K,
+        target: K,
         data: Optional[Union[str, ArrayLike]] = None,
         subset: Optional[Union[str, List[str], Tuple[int, int]]] = None,
         scale_by_marginals: bool = True,
@@ -384,8 +384,8 @@ class TemporalMixin(AnalysisMixin[K, B]):
 
         """
         result = self._apply(
-            start=start,
-            end=end,
+            source=source,
+            target=target,
             data=data,
             subset=subset,
             forward=False,
@@ -401,8 +401,8 @@ class TemporalMixin(AnalysisMixin[K, B]):
                 "temporal_key": self.temporal_key,
                 "data": data if isinstance(data, str) else None,
                 "subset": subset,
-                "start": start,
-                "end": end,
+                "source": source,
+                "target": target,
             }
             self.adata.obs[key_added] = self._flatten(result, key=self.temporal_key)
             Key.uns.set_plotting_vars(self.adata, AdataKeys.UNS, PlottingKeys.PULL, key_added, plot_vars)
@@ -412,9 +412,9 @@ class TemporalMixin(AnalysisMixin[K, B]):
     # TODO(michalk8): refactor me
     def _get_data(
         self: TemporalMixinProtocol[K, B],
-        start: K,
+        source: K,
         intermediate: Optional[K] = None,
-        end: Optional[K] = None,
+        target: Optional[K] = None,
         posterior_marginals: bool = True,
         *,
         only_start: bool = False,
@@ -427,7 +427,7 @@ class TemporalMixin(AnalysisMixin[K, B]):
                     f"Expected `tag={Tag.POINT_CLOUD}`, "  # type: ignore[union-attr]
                     f"found `tag={self.problems[src, tgt].xy.tag}`."
                 )
-            if src == start:
+            if src == source:
                 source_data = self.problems[src, tgt].xy.data_src  # type: ignore[union-attr]
                 if only_start:
                     return source_data, self.problems[src, tgt].adata_src
@@ -436,7 +436,7 @@ class TemporalMixin(AnalysisMixin[K, B]):
                 growth_rates_source = getattr(self.problems[src, tgt], attr)
                 break
         else:
-            raise ValueError(f"No data found for `{start}` time point.")
+            raise ValueError(f"No data found for `{source}` time point.")
         for (src, tgt) in self.problems.keys():
             if src == intermediate:
                 intermediate_data = self.problems[src, tgt].xy.data_src  # type: ignore[union-attr]
@@ -445,11 +445,11 @@ class TemporalMixin(AnalysisMixin[K, B]):
         else:
             raise ValueError(f"No data found for `{intermediate}` time point.")
         for (src, tgt) in self.problems.keys():
-            if tgt == end:
+            if tgt == target:
                 target_data = self.problems[src, tgt].xy.data_tgt  # type: ignore[union-attr]
                 break
         else:
-            raise ValueError(f"No data found for `{end}` time point.")
+            raise ValueError(f"No data found for `{target}` time point.")
 
         return (  # type: ignore[return-value]
             source_data,
@@ -461,9 +461,9 @@ class TemporalMixin(AnalysisMixin[K, B]):
 
     def compute_interpolated_distance(
         self: TemporalMixinProtocol[K, B],
-        start: K,
+        source: K,
         intermediate: K,
-        end: K,
+        target: K,
         interpolation_parameter: Optional[float] = None,
         n_interpolated_cells: Optional[int] = None,
         account_for_unbalancedness: bool = False,
@@ -509,22 +509,22 @@ class TemporalMixin(AnalysisMixin[K, B]):
         Wasserstein distance between OT-based interpolated distribution and the true cell distribution.
         """
         source_data, _, intermediate_data, _, target_data = self._get_data(  # type: ignore[misc]
-            start,
+            source,
             intermediate,
-            end,
+            target,
             posterior_marginals=posterior_marginals,
             only_start=False,
         )
         interpolation_parameter = self._get_interp_param(
-            start, intermediate, end, interpolation_parameter=interpolation_parameter
+            source, intermediate, target, interpolation_parameter=interpolation_parameter
         )
         n_interpolated_cells = n_interpolated_cells if n_interpolated_cells is not None else len(intermediate_data)
         interpolation = self._interpolate_gex_with_ot(
             number_cells=n_interpolated_cells,
             source_data=source_data,
             target_data=target_data,
-            start=start,
-            end=end,
+            source=source,
+            target=target,
             interpolation_parameter=interpolation_parameter,
             account_for_unbalancedness=account_for_unbalancedness,
             batch_size=batch_size,
@@ -536,9 +536,9 @@ class TemporalMixin(AnalysisMixin[K, B]):
 
     def compute_random_distance(
         self: TemporalMixinProtocol[K, B],
-        start: K,
+        source: K,
         intermediate: K,
-        end: K,
+        target: K,
         interpolation_parameter: Optional[float] = None,
         n_interpolated_cells: Optional[int] = None,
         account_for_unbalancedness: bool = False,
@@ -573,11 +573,11 @@ class TemporalMixin(AnalysisMixin[K, B]):
         The Wasserstein distance between a randomly interpolated cell distribution and the true cell distribution.
         """
         source_data, growth_rates_source, intermediate_data, _, target_data = self._get_data(  # type: ignore[misc]
-            start, intermediate, end, posterior_marginals=posterior_marginals, only_start=False
+            source, intermediate, target, posterior_marginals=posterior_marginals, only_start=False
         )
 
         interpolation_parameter = self._get_interp_param(
-            start, intermediate, end, interpolation_parameter=interpolation_parameter
+            source, intermediate, target, interpolation_parameter=interpolation_parameter
         )
         n_interpolated_cells = n_interpolated_cells if n_interpolated_cells is not None else len(intermediate_data)
 
@@ -594,9 +594,9 @@ class TemporalMixin(AnalysisMixin[K, B]):
 
     def compute_time_point_distances(
         self: TemporalMixinProtocol[K, B],
-        start: K,
+        source: K,
         intermediate: K,
-        end: K,
+        target: K,
         posterior_marginals: bool = True,
         backend: Literal["ott"] = "ott",
         **kwargs: Any,
@@ -619,9 +619,9 @@ class TemporalMixin(AnalysisMixin[K, B]):
         %(kwargs_divergence)s
         """
         source_data, _, intermediate_data, _, target_data = self._get_data(  # type: ignore[misc]
-            start,
+            source,
             intermediate,
-            end,
+            target,
             posterior_marginals=posterior_marginals,
             only_start=False,
         )
@@ -695,16 +695,16 @@ class TemporalMixin(AnalysisMixin[K, B]):
         number_cells: int,
         source_data: ArrayLike,
         target_data: ArrayLike,
-        start: K,
-        end: K,
+        source: K,
+        target: K,
         interpolation_parameter: float,
         account_for_unbalancedness: bool = True,
         batch_size: int = 256,
         seed: Optional[int] = None,
     ) -> ArrayLike:
         rows_sampled, cols_sampled = self._sample_from_tmap(
-            source=start,
-            target=end,
+            source=source,
+            target=target,
             n_samples=number_cells,
             source_dim=len(source_data),
             target_dim=len(target_data),
@@ -742,12 +742,12 @@ class TemporalMixin(AnalysisMixin[K, B]):
 
     @staticmethod
     def _get_interp_param(
-        start: K, intermediate: K, end: K, interpolation_parameter: Optional[float] = None
+        source: K, intermediate: K, target: K, interpolation_parameter: Optional[float] = None
     ) -> Numeric_t:
         if TYPE_CHECKING:
-            assert isinstance(start, float)
+            assert isinstance(source, float)
             assert isinstance(intermediate, float)
-            assert isinstance(end, float)
+            assert isinstance(target, float)
         if interpolation_parameter is not None:
             if 0 < interpolation_parameter < 1:
                 return interpolation_parameter
@@ -755,10 +755,10 @@ class TemporalMixin(AnalysisMixin[K, B]):
                 f"Expected interpolation parameter to be in interval `(0, 1)`, found `{interpolation_parameter}`."
             )
 
-        if start < intermediate < end:
-            return (intermediate - start) / (end - start)
+        if source < intermediate < target:
+            return (intermediate - source) / (target - source)
         raise ValueError(
-            f"Expected intermediate time point to be in interval `({start}, {end})`, found `{intermediate}`."
+            f"Expected intermediate time point to be in interval `({source}, {target})`, found `{intermediate}`."
         )
 
     @property

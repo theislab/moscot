@@ -129,9 +129,9 @@ class TestTemporalMixin:
         problem = TemporalProblem(adata_time)
         problem.prepare("time")
         distance_source_intermediate, distance_intermediate_target = problem.compute_time_point_distances(
-            start=0,
+            source=0,
             intermediate=1,
-            end=2,
+            target=2,
             posterior_marginals=False,
         )
         assert distance_source_intermediate > 0

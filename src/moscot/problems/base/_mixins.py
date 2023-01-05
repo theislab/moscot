@@ -49,8 +49,8 @@ class AnalysisMixinProtocol(Protocol[K, B]):
     def _apply(
         self,
         data: Optional[Union[str, ArrayLike]] = None,
-        start: Optional[K] = None,
-        end: Optional[K] = None,
+        source: Optional[K] = None,
+        target: Optional[K] = None,
         forward: bool = True,
         return_all: bool = False,
         scale_by_marginals: bool = False,
@@ -291,8 +291,8 @@ class AnalysisMixin(Generic[K, B]):
         mass = np.ones(target_dim)
         if account_for_unbalancedness and interpolation_parameter is not None:
             col_sums = self._apply(
-                start=source,
-                end=target,
+                source=source,
+                target=target,
                 normalize=True,
                 forward=True,
                 scale_by_marginals=False,
@@ -305,8 +305,8 @@ class AnalysisMixin(Generic[K, B]):
 
         row_probability = np.asarray(
             self._apply(
-                start=source,
-                end=target,
+                source=source,
+                target=target,
                 data=mass,
                 normalize=True,
                 forward=False,
@@ -326,8 +326,8 @@ class AnalysisMixin(Generic[K, B]):
 
             col_p_given_row = np.asarray(
                 self._apply(
-                    start=source,
-                    end=target,
+                    source=source,
+                    target=target,
                     data=data,
                     normalize=True,
                     forward=True,
@@ -384,8 +384,8 @@ class AnalysisMixin(Generic[K, B]):
         func = self.push if forward else self.pull
         for subset in annotations_1:
             result = func(  # TODO(@MUCDK) check how to make compatible with all policies
-                start=source,
-                end=target,
+                source=source,
+                target=target,
                 data=annotation_key,
                 subset=subset,
                 normalize=True,
@@ -423,8 +423,8 @@ class AnalysisMixin(Generic[K, B]):
             batch_size = len(df_2)
         for batch in range(0, len(df_2), batch_size):
             result = func(  # TODO(@MUCDK) check how to make compatible with all policies
-                start=source,
-                end=target,
+                source=source,
+                target=target,
                 data=None,
                 subset=(batch, batch_size),
                 normalize=True,
