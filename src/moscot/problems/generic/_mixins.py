@@ -107,8 +107,8 @@ class GenericAnalysisMixin(AnalysisMixin[K, B]):
 
         Parameters
         ----------
-        %(source)s
-        %(target)s
+        %(start)s
+        %(end)s
         %(data)s
         %(subset)s
         %(scale_by_marginals)s
@@ -122,8 +122,8 @@ class GenericAnalysisMixin(AnalysisMixin[K, B]):
 
         """
         result = self._apply(
-            start=source,
-            end=target,
+            source=source,
+            target=target,
             data=data,
             subset=subset,
             forward=True,
@@ -179,8 +179,8 @@ class GenericAnalysisMixin(AnalysisMixin[K, B]):
 
         """
         result = self._apply(
-            start=source,
-            end=target,
+            source=source,
+            target=target,
             data=data,
             subset=subset,
             forward=False,
