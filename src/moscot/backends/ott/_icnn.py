@@ -35,7 +35,7 @@ class ICNN(nn.Module):
 
         w_xs = []
         w_zs = []
-        for i in range(1, num_hidden):
+        for i in range(0, num_hidden):
             w_xs.append(
                 nn.Dense(
                     self.dim_hidden[i],
@@ -80,19 +80,22 @@ class ICNN(nn.Module):
                     use_bias=True,
                     bias_init=self.init_fn(self.init_std),
                 )
+            else:
+                self.combiner_output_dim = self.cond_dim
 
-            for i in range(1, num_hidden):
-                w_zu.append(
-                    nn.Dense(
-                        self.dim_hidden[i],
-                        kernel_init=self.init_fn(self.init_std),
-                        use_bias=True,
-                        bias_init=self.init_fn(self.init_std),
+            for i in range(0, num_hidden):
+                if i != 0:
+                    w_zu.append(
+                        nn.Dense(
+                            self.dim_hidden[i],
+                            kernel_init=self.init_fn(self.init_std),
+                            use_bias=True,
+                            bias_init=self.init_fn(self.init_std),
+                        )
                     )
-                )
                 w_xu.append(  # this the matrix that multiply with x
                     nn.Dense(
-                        self.dim_hidden[i],
+                        self.input_dim - self.cond_dim,  # self.dim_hidden[i],
                         kernel_init=self.init_fn(self.init_std),
                         use_bias=True,
                         bias_init=self.init_fn(self.init_std),
@@ -108,13 +111,37 @@ class ICNN(nn.Module):
                 )
                 v.append(
                     nn.Dense(
-                        self.cond_dim,
+                        self.combiner_output_dim,
                         kernel_init=self.init_fn(self.init_std),
                         use_bias=True,
                         bias_init=self.init_fn(self.init_std),
                     )
                 )
+            w_zu.append(
+                nn.Dense(
+                    self.dim_hidden[-1],
+                    kernel_init=self.init_fn(self.init_std),
+                    use_bias=True,
+                    bias_init=self.init_fn(self.init_std),
+                )
+            )
+            w_xu.append(  # this the matrix that multiply with x
+                nn.Dense(
+                    self.input_dim - self.cond_dim,
+                    kernel_init=self.init_fn(self.init_std),
+                    use_bias=True,
+                    bias_init=self.init_fn(self.init_std),
+                )
+            )
             w_u.append(
+                nn.Dense(
+                    1,
+                    kernel_init=self.init_fn(self.init_std),
+                    bias_init=self.init_fn(self.init_std),
+                    use_bias=True,
+                )
+            )
+            v.append(
                 nn.Dense(
                     1,
                     kernel_init=self.init_fn(self.init_std),
@@ -145,6 +172,8 @@ class ICNN(nn.Module):
                 c = self.act_fn(c)
 
             # Initialize
+            print(self.input_dim, x.shape)
+            print(self.cond_dim, c.shape)
             mlp_condition_embedding = self.w_xu[0](c)
             x_hadamard_1 = jnp.multiply(x, mlp_condition_embedding)
             mlp_condition = self.w_u[0](c)
@@ -153,7 +182,7 @@ class ICNN(nn.Module):
             u = self.act_fn(self.v[0](c))
 
             for Wz, Wx, Wzu, Wxu, Wu, V in zip(
-                self.w_zs[:-1], self.w_xs[1:-1], self.w_zu[:-1], self.w_xu[1:-1], self.w_u[1:-1], self.v[1:-1]
+                self.w_zs[:-1], self.w_xs[:-1], self.w_zu[:-1], self.w_xu[1:-1], self.w_u[1:-1], self.v[1:-1]
             ):
                 mlp_convex = jnp.clip(Wzu(u), a_min=0)
                 z_hadamard_1 = jnp.multiply(z, mlp_convex)

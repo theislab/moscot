@@ -257,7 +257,6 @@ class NeuralDualSolver:
             epsilon=self.valid_sinkhorn_kwargs.pop("epsilon", self.epsilon),
             tau_a=self.valid_sinkhorn_kwargs.pop("tau_a", self.tau_a),
             tau_b=self.valid_sinkhorn_kwargs.pop("tau_b", self.tau_b),
-            batch_size=self.batch_size,
             **self.valid_sinkhorn_kwargs,
         )
 
@@ -365,8 +364,15 @@ class NeuralDualSolver:
                 batch["source"]
             )
             grad_g_src = grad_g_src[:, : (self.input_dim - self.cond_dim)]
+            if self.cond_dim > 0:
+                grad_g_src = jnp.concatenate((grad_g_src, batch["target"][:, -self.cond_dim :]), axis=1)
+
             f_grad_g_src = jax.vmap(lambda x: state_f.apply_fn({"params": params_f}, x))(grad_g_src)
-            src_dot_grad_g_src = jnp.sum(batch["source"] * grad_g_src, axis=1)
+            src_dot_grad_g_src = jnp.sum(
+                batch["source"][:, : (self.input_dim - self.cond_dim)]
+                * grad_g_src[:, : (self.input_dim - self.cond_dim)],
+                axis=1,
+            )
             # compute loss
             f_tgt = jax.vmap(lambda x: state_f.apply_fn({"params": params_f}, x))(batch["target"])
             loss = jnp.mean(f_tgt - f_grad_g_src)
@@ -375,8 +381,18 @@ class NeuralDualSolver:
             dist = 2 * (
                 total_loss
                 + jnp.mean(
-                    0.5 * jnp.sum(batch["target"] * batch["target"], axis=1)
-                    + 0.5 * jnp.sum(batch["source"] * batch["source"], axis=1)
+                    0.5
+                    * jnp.sum(
+                        batch["target"][:, : (self.input_dim - self.cond_dim)]
+                        * batch["target"][:, : (self.input_dim - self.cond_dim)],
+                        axis=1,
+                    )
+                    + 0.5
+                    * jnp.sum(
+                        batch["source"][:, : (self.input_dim - self.cond_dim)]
+                        * batch["source"][:, : (self.input_dim - self.cond_dim)],
+                        axis=1,
+                    )
                 )
             )
             return loss, [total_loss, dist]
@@ -393,8 +409,15 @@ class NeuralDualSolver:
             grad_g_src = jax.vmap(jax.grad(lambda x: state_g.apply_fn({"params": params_g}, x), argnums=0))(
                 batch["source"]
             )
+            grad_g_src = grad_g_src[:, : (self.input_dim - self.cond_dim)]
+            if self.cond_dim > 0:
+                grad_g_src = jnp.concatenate((grad_g_src, batch["target"][:, -self.cond_dim :]), axis=1)
             f_grad_g_src = jax.vmap(lambda x: state_f.apply_fn({"params": params_f}, x))(grad_g_src)
-            src_dot_grad_g_src = jnp.sum(batch["source"] * grad_g_src, axis=1)
+            src_dot_grad_g_src = jnp.sum(
+                batch["source"][:, : (self.input_dim - self.cond_dim)]
+                * grad_g_src[:, : (self.input_dim - self.cond_dim)],
+                axis=1,
+            )
             # compute loss
             loss = jnp.mean(f_grad_g_src - src_dot_grad_g_src)
             if not self.pos_weights:
@@ -455,23 +478,29 @@ class NeuralDualSolver:
             sink_loss_forward = sinkhorn_divergence(
                 PointCloud,
                 x=pred_target,
-                y=batch["target"],
+                y=batch["target"][:, : (self.input_dim - self.cond_dim)],
                 epsilon=10,
                 sinkhorn_kwargs={"tau_a": self.tau_a, "tau_b": self.tau_b},
             ).divergence
             sink_loss_inverse = sinkhorn_divergence(
                 PointCloud,
                 x=pred_source,
-                y=batch["source"],
+                y=batch["source"][:, : (self.input_dim - self.cond_dim)],
                 epsilon=10,
                 sinkhorn_kwargs={"tau_a": self.tau_a, "tau_b": self.tau_b},
             ).divergence
             # get neural dual distance between true source and target
             f_tgt = jax.vmap(lambda x: state_f.apply_fn({"params": state_f.params}, x))(batch["target"])
+            if self.cond_dim > 0:
+                pred_target = jnp.concatenate((pred_target, batch["target"][:, -self.cond_dim :]), axis=1)
             f_grad_g_src = jax.vmap(lambda x: state_f.apply_fn({"params": state_f.params}, x))(pred_target)
-            src_dot_grad_g_src = jnp.sum(batch["source"] * pred_target, axis=-1)
-            src_sq = jnp.mean(jnp.sum(batch["source"] ** 2, axis=-1))
-            tgt_sq = jnp.mean(jnp.sum(batch["target"] ** 2, axis=-1))
+            src_dot_grad_g_src = jnp.sum(
+                batch["source"][:, : (self.input_dim - self.cond_dim)]
+                * pred_target[:, : (self.input_dim - self.cond_dim)],
+                axis=-1,
+            )
+            src_sq = jnp.mean(jnp.sum(batch["source"][:, : (self.input_dim - self.cond_dim)] ** 2, axis=-1))
+            tgt_sq = jnp.mean(jnp.sum(batch["target"][:, : (self.input_dim - self.cond_dim)] ** 2, axis=-1))
             neural_dual_dist = tgt_sq + src_sq + 2.0 * (jnp.mean(f_grad_g_src - src_dot_grad_g_src) - jnp.mean(f_tgt))
             return sink_loss_forward, sink_loss_inverse, neural_dual_dist
 
