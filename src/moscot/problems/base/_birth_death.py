@@ -109,7 +109,7 @@ class BirthDeathMixin:
             if isinstance(gene_set_proliferation, str):
                 sc.tl.score_genes(
                     self.adata,
-                    MarkerGenes.proliferation_markers(gene_set_proliferation),
+                    MarkerGenes.proliferation_markers(gene_set_proliferation),  # type: ignore[arg-type]
                     score_name=proliferation_key,
                     **kwargs,
                 )
@@ -122,7 +122,7 @@ class BirthDeathMixin:
             if isinstance(gene_set_apoptosis, str):
                 sc.tl.score_genes(
                     self.adata,
-                    MarkerGenes.apoptosis_markers(gene_set_apoptosis),
+                    MarkerGenes.apoptosis_markers(gene_set_apoptosis),  # type: ignore[arg-type]
                     score_name=apoptosis_key,
                     **kwargs,
                 )

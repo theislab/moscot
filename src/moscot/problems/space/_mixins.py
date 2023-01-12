@@ -35,14 +35,14 @@ class SpatialAlignmentMixinProtocol(AnalysisMixinProtocol[K, B]):
     _spatial_key: Optional[str]
     batch_key: Optional[str]
 
-    def _subset_spatial(
+    def _subset_spatial(  # type:ignore[empty-body]
         self: "SpatialAlignmentMixinProtocol[K, B]",
         k: K,
         spatial_key: Optional[str] = None,
     ) -> ArrayLike:
         ...
 
-    def _interpolate_scheme(
+    def _interpolate_scheme(  # type:ignore[empty-body]
         self: "SpatialAlignmentMixinProtocol[K, B]",
         reference: K,
         mode: Literal["warp", "affine"],
@@ -51,11 +51,15 @@ class SpatialAlignmentMixinProtocol(AnalysisMixinProtocol[K, B]):
         ...
 
     @staticmethod
-    def _affine(tmap: LinearOperator, tgt: ArrayLike, src: ArrayLike) -> Tuple[ArrayLike, ArrayLike]:
+    def _affine(  # type:ignore[empty-body]
+        tmap: LinearOperator, src: ArrayLike, tgt: ArrayLike
+    ) -> Tuple[ArrayLike, ArrayLike]:
         ...
 
     @staticmethod
-    def _warp(tmap: LinearOperator, _: ArrayLike, src: ArrayLike) -> Tuple[ArrayLike, None]:
+    def _warp(  # type: ignore[empty-body]
+        tmap: LinearOperator, src: ArrayLike, _: ArrayLike
+    ) -> Tuple[ArrayLike, Optional[ArrayLike]]:
         ...
 
     def _cell_transition(
@@ -120,12 +124,6 @@ class SpatialAlignmentMixin(AnalysisMixin[K, B]):
             reference_ = reference
         full_steps = self._policy._graph
         starts = set(chain.from_iterable(full_steps)) - set(reference_)  # type: ignore[arg-type]
-        fwd_steps, bwd_steps = {}, {}
-        for start in starts:
-            try:
-                fwd_steps[(start, reference)] = self._policy.plan(start=start, end=reference)
-            except NetworkXNoPath:
-                bwd_steps[(reference, start)] = self._policy.plan(start=reference, end=start)
 
         if mode == AlignmentMode.AFFINE:
             _transport = self._affine
@@ -134,23 +132,21 @@ class SpatialAlignmentMixin(AnalysisMixin[K, B]):
         else:
             raise NotImplementedError(f"Alignment mode `{mode!r}` is not yet implemented.")
 
-        if len(fwd_steps):
-            for (start, _), path in fwd_steps.items():
-                tmap = self._interpolate_transport(path=path, scale_by_marginals=True, forward=True)
-                transport_maps[start], transport_metadata[start] = _transport(
-                    tmap, self._subset_spatial(start, spatial_key=spatial_key), src, forward=True
-                )
+        steps = {}
+        for start in starts:
+            try:
+                steps[start, reference, True] = self._policy.plan(start=start, end=reference)
+            except NetworkXNoPath:
+                steps[reference, start, False] = self._policy.plan(start=reference, end=start)
 
-        if len(bwd_steps):
-            for (_, end), path in bwd_steps.items():
-                tmap = self._interpolate_transport(path=path, scale_by_marginals=True, forward=True)
-                transport_maps[end], transport_metadata[end] = _transport(
-                    tmap, self._subset_spatial(end, spatial_key=spatial_key), src, forward=False
-                )
+        for (start, end, forward), path in steps.items():
+            tmap = self._interpolate_transport(path=path, scale_by_marginals=True)
+            # make `tmap` to have shape `(m, n_ref)` and apply it to `src` of shape `(n_ref, d)`
+            key, tmap = (start, tmap) if forward else (end, tmap.T)
+            spatial_data = self._subset_spatial(key, spatial_key=spatial_key)
+            transport_maps[key], transport_metadata[key] = _transport(tmap, src=src, tgt=spatial_data)
 
-        if mode == "affine":
-            return transport_maps, transport_metadata
-        return transport_maps, None
+        return transport_maps, (transport_metadata if mode == "affine" else None)
 
     @d.dedent
     def align(
@@ -280,18 +276,17 @@ class SpatialAlignmentMixin(AnalysisMixin[K, B]):
     ) -> ArrayLike:
         if spatial_key is None:
             spatial_key = self.spatial_key
-        return self.adata[self.adata.obs[self._policy._subset_key] == k].obsm[spatial_key].astype(np.float_, copy=True)
+        return self.adata[self.adata.obs[self._policy._subset_key] == k].obsm[spatial_key].astype(float, copy=True)
 
     @staticmethod
     def _affine(
-        tmap: LinearOperator, tgt: ArrayLike, src: ArrayLike, forward: bool = True, *args: Any
+        tmap: LinearOperator,
+        src: ArrayLike,
+        tgt: ArrayLike,
     ) -> Tuple[ArrayLike, ArrayLike]:
         """Affine transformation."""
         tgt -= tgt.mean(0)
-        if forward:
-            out = tmap.dot(src)
-        else:
-            out = tmap.T.dot(src)
+        out = tmap @ src
         H = tgt.T.dot(out)
         U, _, Vt = svd(H)
         R = Vt.T.dot(U.T)
@@ -299,11 +294,10 @@ class SpatialAlignmentMixin(AnalysisMixin[K, B]):
         return tgt, R
 
     @staticmethod
-    def _warp(tmap: LinearOperator, _: ArrayLike, src: ArrayLike, forward: bool = True) -> Tuple[ArrayLike, None]:
+    def _warp(tmap: LinearOperator, src: ArrayLike, tgt: ArrayLike) -> Tuple[ArrayLike, None]:
         """Warp transformation."""
-        if forward:
-            return tmap.dot(src), None
-        return tmap.T.dot(src), None
+        del tgt
+        return tmap @ src, None
 
 
 class SpatialMappingMixin(AnalysisMixin[K, B]):

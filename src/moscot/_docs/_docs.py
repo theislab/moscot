@@ -30,13 +30,31 @@ _reference = """\
 reference
     `reference` in :class:`moscot.problems._subset_policy.StarPolicy`.
 """
-_callback = """\
-callback
-    Custom callback applied to each distribution as pre-processing step. Examples are given in TODO Link Notebook.
+_xy_callback = """\
+xy_callback
+    Custom callback applied to the linear term as pre-processing step. Examples are given in TODO Link Notebook.
 """
-_callback_kwargs = """\
-callback_kwargs
-    Keyword arguments for `callback`.
+_xy_callback_kwargs = """\
+xy_callback_kwargs
+    Keyword arguments for `xy_callback`.
+"""
+_x_callback = """\
+x_callback
+    Custom callback applied to the source distribution of the quadratic term as pre-processing step.
+    Examples are given in TODO Link Notebook.
+"""
+_x_callback_kwargs = """\
+x_callback_kwargs
+    Keyword arguments for `x_callback`.
+"""
+_y_callback = """\
+y_callback
+    Custom callback applied to the target distribution of the quadratic term as pre-processing step.
+    Examples are given in TODO Link Notebook.
+"""
+_y_callback_kwargs = """\
+x_callback_kwargs
+    Keyword arguments for `y_callback`.
 """
 _epsilon = """\
 epsilon
@@ -362,8 +380,12 @@ d = DocstringProcessor(
     source=_source,
     target=_target,
     reference=_reference,
-    callback=_callback,
-    callback_kwargs=_callback_kwargs,
+    xy_callback=_xy_callback,
+    xy_callback_kwargs=_xy_callback_kwargs,
+    x_callback=_x_callback,
+    x_callback_kwargs=_x_callback_kwargs,
+    y_callback=_y_callback,
+    y_callback_kwargs=_y_callback_kwargs,
     epsilon=_epsilon,
     alpha=_alpha,
     tau_a=_tau_a,

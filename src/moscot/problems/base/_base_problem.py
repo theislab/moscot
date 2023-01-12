@@ -279,7 +279,7 @@ class OTProblem(BaseProblem):
             else:
                 self._y = TaggedArray.from_adata(self.adata_tgt, dist_key=self._tgt_key, **y)
         elif xy is not None and x is not None and y is not None:
-            self._problem_kind = ProblemKind.QUAD_FUSED
+            self._problem_kind = ProblemKind.QUAD
             self._xy = xy if isinstance(xy, TaggedArray) else self._handle_linear(**xy)
             if isinstance(x, TaggedArray):
                 self._x = x
@@ -419,10 +419,10 @@ class OTProblem(BaseProblem):
 
     @staticmethod
     def _local_pca_callback(
+        term: Literal["x", "y", "xy"],
         adata: AnnData,
-        adata_y: AnnData,
+        adata_y: Optional[AnnData] = None,
         layer: Optional[str] = None,
-        return_linear: bool = True,
         n_comps: int = 30,
         scale: bool = False,
         **kwargs: Any,
@@ -435,13 +435,19 @@ class OTProblem(BaseProblem):
             return np.vstack([x, y])
 
         if layer is None:
-            x, y, msg = adata.X, adata_y.X, "adata.X"
+            x, y, msg = adata.X, adata_y.X if adata_y is not None else None, "adata.X"
         else:
-            x, y, msg = adata.layers[layer], adata_y.layers[layer], f"adata.layers[{layer!r}]"
+            x, y, msg = (
+                adata.layers[layer],
+                adata_y.layers[layer] if adata_y is not None else None,
+                f"adata.layers[{layer!r}]",
+            )
 
         scaler = StandardScaler() if scale else None
 
-        if return_linear:
+        if term == "xy":
+            if y is None:
+                raise ValueError("When `term` is `xy` `adata_y` cannot be `None`.")
             n = x.shape[0]
             data = concat(x, y)
             if data.shape[1] <= n_comps:
@@ -453,14 +459,13 @@ class OTProblem(BaseProblem):
             if scaler is not None:
                 data = scaler.fit_transform(data)
             return {"xy": TaggedArray(data[:n], data[n:], tag=Tag.POINT_CLOUD)}
-
-        logger.info(f"Computing pca with `n_comps={n_comps}` for `x` and `y` using `{msg}`")
-        x = sc.pp.pca(x, n_comps=n_comps, **kwargs)
-        y = sc.pp.pca(y, n_comps=n_comps, **kwargs)
-        if scaler is not None:
-            x = scaler.fit_transform(x)
-            y = scaler.fit_transform(y)
-        return {"x": TaggedArray(x, tag=Tag.POINT_CLOUD), "y": TaggedArray(y, tag=Tag.POINT_CLOUD)}
+        if term in ("x", "y"):  # if we don't have a shared space, then adata_y is always None
+            logger.info(f"Computing pca with `n_comps={n_comps}` for `{term}` using `{msg}`")
+            x = sc.pp.pca(x, n_comps=n_comps, **kwargs)
+            if scaler is not None:
+                x = scaler.fit_transform(x)
+            return {term: TaggedArray(x, tag=Tag.POINT_CLOUD)}
+        raise ValueError(f"Expected `term` to be one of `x`, `y`, or `xy`, found `{term!r}`.")
 
     def _create_marginals(
         self, adata: AnnData, *, source: bool, data: Optional[Union[bool, str, ArrayLike]] = None, **kwargs: Any
@@ -505,18 +510,13 @@ class OTProblem(BaseProblem):
         -------
         None
         """
-        if self.problem_kind == ProblemKind.QUAD:
-            logger.info(f"Changing the problem type from {self.problem_kind} to fused-quadratic.")
-            self._problem_kind = ProblemKind.QUAD_FUSED
-        if data.shape != (self.adata_src.n_obs, self.adata_tgt.n_obs):
-            raise ValueError(
-                f"`data` is exptected to have shape {(self.adata_src.n_obs, self.adata_tgt.n_obs)} but found {data.shape}."  # noqa: E501
-            )
+        if data.shape != self.shape:
+            raise ValueError(f"`data` is expected to have shape {self.shape} but found {data.shape}.")
         if not isinstance(data, pd.DataFrame):
             raise TypeError("If the data is to be validated, the data must be of type pandas.DataFrame.")
         if list(data.index) != list(self.adata_src.obs_names):
             raise ValueError(
-                "The index names of `data` do not correspond to `adata.obs_names` of the source distribution.."
+                "The index names of `data` do not correspond to `adata.obs_names` of the source distribution."
             )
         if list(data.columns) != list(self.adata_tgt.obs_names):
             raise ValueError(
@@ -541,16 +541,15 @@ class OTProblem(BaseProblem):
         """
         if self.problem_kind == ProblemKind.LINEAR:
             logger.info(f"Changing the problem type from {self.problem_kind} to fused-quadratic.")
-            self._problem_kind = ProblemKind.QUAD_FUSED
-        if data.shape != (self.adata_src.n_obs, self.adata_src.n_obs):
-            raise ValueError(
-                f"`data` is exptected to have shape {(self.adata_src.n_obs, self.adata_src.n_obs)} but found {data.shape}."  # noqa: E501
-            )
+            self._problem_kind = ProblemKind.QUAD
+        expected_shape = self.shape[0], self.shape[0]
+        if data.shape != expected_shape:
+            raise ValueError(f"`data` is expected to have shape {expected_shape} but found {data.shape}.")
         if not isinstance(data, pd.DataFrame):
             raise TypeError("If the data is to be validated, the data must be of type pandas.DataFrame.")
         if list(data.index) != list(self.adata_src.obs_names):
             raise ValueError(
-                "The index names of `data` do not correspond to `adata.obs_names` of the source distribution.."
+                "The index names of `data` do not correspond to `adata.obs_names` of the source distribution."
             )
         if list(data.columns) != list(self.adata_src.obs_names):
             raise ValueError(
@@ -575,16 +574,15 @@ class OTProblem(BaseProblem):
         """
         if self.problem_kind == ProblemKind.LINEAR:
             logger.info(f"Changing the problem type from {self.problem_kind} to fused-quadratic.")
-            self._problem_kind = ProblemKind.QUAD_FUSED
-        if data.shape != (self.adata_tgt.n_obs, self.adata_tgt.n_obs):
-            raise ValueError(
-                f"`data` is exptected to have shape {(self.adata_tgt.n_obs, self.adata_tgt.n_obs)} but found {data.shape}."  # noqa: E501
-            )
+            self._problem_kind = ProblemKind.QUAD
+        expected_shape = self.shape[1], self.shape[1]
+        if data.shape != expected_shape:
+            raise ValueError(f"`data` is expected to have shape {expected_shape} but found {data.shape}.")
         if not isinstance(data, pd.DataFrame):
             raise TypeError("If the data is to be validated, the data must be of type pandas.DataFrame.")
         if list(data.index) != list(self.adata_tgt.obs_names):
             raise ValueError(
-                "The index names of `data` do not correspond to `adata.obs_names` of the source distribution.."
+                "The index names of `data` do not correspond to `adata.obs_names` of the source distribution."
             )
         if list(data.columns) != list(self.adata_tgt.obs_names):
             raise ValueError(

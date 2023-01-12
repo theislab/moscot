@@ -25,9 +25,7 @@ SOLUTIONS_PATH = Path("./tests/data/alignment_solutions.pkl")  # base is moscot
 
 class TestAlignmentProblem:
     @pytest.mark.fast()
-    @pytest.mark.parametrize(
-        "joint_attr", [{"x_attr": "X", "y_attr": "X"}]
-    )  # TODO(giovp): check that callback is correct
+    @pytest.mark.parametrize("joint_attr", [{"attr": "X"}])  # TODO(giovp): check that callback is correct
     def test_prepare_sequential(self, adata_space_rotate: AnnData, joint_attr: Optional[Mapping[str, Any]]):
         n_obs = adata_space_rotate.shape[0] // 3  # adata is made of 3 datasets
         n_var = adata_space_rotate.shape[1]
@@ -112,7 +110,7 @@ class TestAlignmentProblem:
         adata_space_rotate = adata_space_rotate[adata_space_rotate.obs["batch"].isin(("0", "1"))]
         key = ("0", "1")
         problem = AlignmentProblem(adata=adata_space_rotate)
-        problem = problem.prepare(batch_key="batch", joint_attr={"x_attr": "X", "y_attr": "X"})
+        problem = problem.prepare(batch_key="batch", joint_attr={"attr": "X"})
         problem = problem.solve(**args_to_check)
 
         solver = problem[key].solver.solver
