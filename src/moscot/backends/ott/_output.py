@@ -69,7 +69,7 @@ class ConvergencePlotterMixin:
         -------
         The figure if ``return_fig = True``.
         """
-       
+
         def select_values(
             last_k: Optional[int] = None, data: Optional[Dict[str, List[float]]] = None
         ) -> Tuple[str, jnp.ndarray, jnp.ndarray]:
