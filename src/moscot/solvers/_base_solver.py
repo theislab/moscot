@@ -45,7 +45,6 @@ class ProblemKind(ModeEnum):
         if backend == "ott":
             from moscot.backends.ott import (  # type: ignore[attr-defined]
                 GWSolver,
-                FGWSolver,
                 NeuralSolver,
                 SinkhornSolver,
                 CondNeuralSolver,

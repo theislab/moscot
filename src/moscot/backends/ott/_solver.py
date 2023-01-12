@@ -26,7 +26,7 @@ from moscot.solvers._tagged_array import TaggedArray
 from moscot.backends.ott._jax_data import JaxSampler
 from moscot.backends.ott._neuraldual import NeuralDualSolver
 
-__all__ = ["OTTCost", "SinkhornSolver", "GWSolver", "FGWSolver", "NeuralSolver", "CondNeuralSolver"]
+__all__ = ["OTTCost", "SinkhornSolver", "GWSolver", "NeuralSolver", "CondNeuralSolver"]
 
 Scale_t = Union[float, Literal["mean", "median", "max_cost", "max_norm", "max_bound"]]
 Epsilon_t = Union[float, Epsilon]
@@ -324,12 +324,6 @@ class GWSolver(OTTJaxSolver):
     def is_fused(self) -> Optional[bool]:
         """Whether the problem is fused."""
         return None if self._problem is None else (self.xy is not None)
-
-    @staticmethod
-    def _alpha_to_fused_penalty(alpha: float) -> float:
-        if not (0 < alpha <= 1):
-            raise ValueError(f"Expected `alpha` to be in interval `(0, 1]`, found `{alpha}`.")
-        return (1 - alpha) / alpha
 
     @property
     def problem_kind(self) -> ProblemKind:
