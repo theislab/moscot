@@ -172,8 +172,6 @@ class ICNN(nn.Module):
                 c = self.act_fn(c)
 
             # Initialize
-            print(self.input_dim, x.shape)
-            print(self.cond_dim, c.shape)
             mlp_condition_embedding = self.w_xu[0](c)
             x_hadamard_1 = jnp.multiply(x, mlp_condition_embedding)
             mlp_condition = self.w_u[0](c)
