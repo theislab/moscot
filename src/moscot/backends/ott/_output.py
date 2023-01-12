@@ -69,8 +69,7 @@ class ConvergencePlotterMixin:
         -------
         The figure if ``return_fig = True``.
         """
-        print("data is ", data)
-
+       
         def select_values(
             last_k: Optional[int] = None, data: Optional[Dict[str, List[float]]] = None
         ) -> Tuple[str, jnp.ndarray, jnp.ndarray]:
@@ -89,8 +88,6 @@ class ConvergencePlotterMixin:
                 metric_str = list(data.keys())[0]
 
             last_k = min(last_k, len(metric)) if last_k is not None else len(metric)
-            print(metric_str)
-            print(metric)
             return metric_str, metric[-last_k:], range(len(metric))[-last_k:]
 
         fig, ax = plt.subplots(figsize=figsize, dpi=dpi)
