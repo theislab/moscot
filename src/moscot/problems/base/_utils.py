@@ -4,7 +4,7 @@ from functools import partial, update_wrapper
 import inspect
 import warnings
 
-from scipy.stats import norm
+from scipy.stats import norm, spearmanr
 from scipy.sparse import issparse, spmatrix, csr_matrix, isspmatrix_csr
 from statsmodels.stats.multitest import multipletests
 import pandas as pd
@@ -16,7 +16,7 @@ from anndata import AnnData
 from moscot._types import ArrayLike, Str_Dict_t
 from moscot._logging import logger
 from moscot._docs._docs import d
-from moscot._constants._constants import CorrTestMethod, AggregationMode
+from moscot._constants._constants import CorrMethod, CorrTestMethod, AggregationMode
 
 __all__ = [
     "attributedispatch",
@@ -327,6 +327,7 @@ def _correlation_test(
 def _correlation_test_helper(
     X: ArrayLike,
     Y: ArrayLike,
+    corr_method: CorrMethod = CorrMethod.SPEARMAN,
     method: CorrTestMethod = CorrTestMethod.FISCHER,
     n_perms: Optional[int] = None,
     seed: Optional[int] = None,
@@ -342,6 +343,8 @@ def _correlation_test_helper(
         Array or matrix of `(M, N)` elements.
     Y
         Array of `(N, K)` elements.
+    corr_method
+        Which correlation to compute.
     method
         Method for p-value calculation.
     n_perms
@@ -379,7 +382,11 @@ def _correlation_test_helper(
 
     if issparse(X) and not isspmatrix_csr(X):
         X = csr_matrix(X)
-    corr = _mat_mat_corr_sparse(X, Y) if issparse(X) else _mat_mat_corr_dense(X, Y)
+
+    if corr_method == CorrMethod.SPEARMAN:
+        corr = _spearman(X, Y)
+    elif corr_method == CorrMethod.PEARSON:
+        corr = _pearson_mat_mat_corr_sparse(X, Y) if issparse(X) else _pearson_mat_mat_corr_dense(X, Y)
 
     if method == CorrTestMethod.FISCHER:
         # see: https://en.wikipedia.org/wiki/Pearson_correlation_coefficient#Using_the_Fisher_transformation
@@ -412,7 +419,11 @@ def _correlation_test_helper(
     return corr, pvals, corr_ci_low, corr_ci_high
 
 
-def _mat_mat_corr_sparse(
+def _spearman(X: Union[ArrayLike, csr_matrix], Y: ArrayLike) -> ArrayLike:
+    return spearmanr(X, Y, axis=0).statistic
+
+
+def _pearson_mat_mat_corr_sparse(
     X: csr_matrix,
     Y: ArrayLike,
 ) -> ArrayLike:
@@ -428,7 +439,7 @@ def _mat_mat_corr_sparse(
         return (X @ Y - (n * X_bar * y_bar)) / ((n - 1) * X_std * y_std)
 
 
-def _mat_mat_corr_dense(X: ArrayLike, Y: ArrayLike) -> ArrayLike:
+def _pearson_mat_mat_corr_dense(X: ArrayLike, Y: ArrayLike) -> ArrayLike:
     from moscot._utils import np_std, np_mean
 
     n = X.shape[1]
@@ -447,6 +458,7 @@ def _mat_mat_corr_dense(X: ArrayLike, Y: ArrayLike) -> ArrayLike:
 def _perm_test(
     ixs: ArrayLike,
     corr: ArrayLike,
+    corr_method: CorrMethod,
     X: Union[ArrayLike, spmatrix],
     Y: ArrayLike,
     seed: Optional[int] = None,
@@ -457,7 +469,12 @@ def _perm_test(
     pvals = np.zeros_like(corr, dtype=np.float64)
     corr_bs = np.zeros((len(ixs), X.shape[0], Y.shape[1]))  # perms x genes x lineages
 
-    mmc = _mat_mat_corr_sparse if issparse(X) else _mat_mat_corr_dense
+    if corr_method == CorrMethod.PEARSON:
+        mmc = _pearson_mat_mat_corr_sparse if issparse(X) else _pearson_mat_mat_corr_dense
+    elif corr_method == CorrMethod.SPEARMAN:
+        mmc = _spearman
+    else:
+        raise NotImplementedError
 
     for i, _ in enumerate(ixs):
         rs.shuffle(cell_ixs)
