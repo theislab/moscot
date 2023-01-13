@@ -244,7 +244,7 @@ def _correlation_test(
     Y: pd.DataFrame,
     feature_names: Sequence[str],
     corr_method: CorrMethod = CorrMethod.PEARSON,
-    method: CorrTestMethod = CorrTestMethod.FISCHER,
+    significance_method: CorrTestMethod = CorrTestMethod.FISCHER,
     confidence_level: float = 0.95,
     n_perms: Optional[int] = None,
     seed: Optional[int] = None,
@@ -264,8 +264,8 @@ def _correlation_test(
     feature_names
         Sequence of shape ``(n_features,)`` containing the feature names.
     corr_method
-        Correlation method, either `pearson` or `spearman`.
-    method
+        Which type of correlation to compute, options are `pearson`, and `spearman`.
+    significance_method
         Method for p-value calculation.
     confidence_level
         Confidence level for the confidence interval calculation. Must be in `[0, 1]`.
@@ -290,7 +290,7 @@ def _correlation_test(
         X.T,
         Y.values,
         corr_method=corr_method,
-        method=method,
+        significance_method=significance_method,
         n_perms=n_perms,
         seed=seed,
         confidence_level=confidence_level,
@@ -332,7 +332,7 @@ def _correlation_test_helper(
     X: ArrayLike,
     Y: ArrayLike,
     corr_method: CorrMethod = CorrMethod.SPEARMAN,
-    method: CorrTestMethod = CorrTestMethod.FISCHER,
+    significance_method: CorrTestMethod = CorrTestMethod.FISCHER,
     n_perms: Optional[int] = None,
     seed: Optional[int] = None,
     confidence_level: float = 0.95,
@@ -348,8 +348,8 @@ def _correlation_test_helper(
     Y
         Array of `(N, K)` elements.
     corr_method
-        Which correlation to compute.
-    method
+        Which type of correlation to compute, options are `pearson`, and `spearman`.
+    significance_method
         Method for p-value calculation.
     n_perms
         Number of permutations if ``method='perm_test'``.
@@ -391,7 +391,7 @@ def _correlation_test_helper(
         X, Y = rankdata(X, method="average", axis=0), rankdata(Y, method="average", axis=0)
     corr = _pearson_mat_mat_corr_sparse(X, Y) if issparse(X) else _pearson_mat_mat_corr_dense(X, Y)
 
-    if method == CorrTestMethod.FISCHER:
+    if significance_method == CorrTestMethod.FISCHER:
         # see: https://en.wikipedia.org/wiki/Pearson_correlation_coefficient#Using_the_Fisher_transformation
         # for spearman see: https://www.sciencedirect.com/topics/mathematics/spearman-correlation
         mean, se = np.arctanh(corr), 1 / np.sqrt(n - 3)
@@ -402,7 +402,7 @@ def _correlation_test_helper(
         corr_ci_high = np.tanh(mean + z * se)
         pvals = 2 * norm.cdf(-np.abs(z_score))
 
-    elif method == CorrTestMethod.PERM_TEST:
+    elif significance_method == CorrTestMethod.PERM_TEST:
         if not isinstance(n_perms, int):
             raise TypeError(f"Expected `n_perms` to be an integer, found `{type(n_perms).__name__}`.")
         if n_perms <= 0:
@@ -418,7 +418,7 @@ def _correlation_test_helper(
         )(corr, X, Y, seed=seed)
 
     else:
-        raise NotImplementedError(method)
+        raise NotImplementedError(significance_method)
 
     return corr, pvals, corr_ci_low, corr_ci_high
 
