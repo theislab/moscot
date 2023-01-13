@@ -292,9 +292,15 @@ class TestBaseAnalysisMixin:
 
         adata_time.obs[key_added] = np.hstack((np.zeros(n0), problem.pull(source=0, target=1).squeeze()))
 
-        res_a = problem.compute_feature_correlation(obs_key=key_added, n_perms=10, n_jobs=1, seed=0, method="perm_test")
-        res_b = problem.compute_feature_correlation(obs_key=key_added, n_perms=10, n_jobs=1, seed=0, method="perm_test")
-        res_c = problem.compute_feature_correlation(obs_key=key_added, n_perms=10, n_jobs=1, seed=1, method="perm_test")
+        res_a = problem.compute_feature_correlation(
+            obs_key=key_added, n_perms=10, n_jobs=1, seed=0, significance_method="perm_test"
+        )
+        res_b = problem.compute_feature_correlation(
+            obs_key=key_added, n_perms=10, n_jobs=1, seed=0, significance_method="perm_test"
+        )
+        res_c = problem.compute_feature_correlation(
+            obs_key=key_added, n_perms=10, n_jobs=1, seed=2, significance_method="perm_test"
+        )
 
         assert res_a is not res_b
         np.testing.assert_array_equal(res_a.index, res_b.index)
