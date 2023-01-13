@@ -4,7 +4,7 @@ from functools import partial, update_wrapper
 import inspect
 import warnings
 
-from scipy.stats import norm, spearmanr
+from scipy.stats import norm, rankdata
 from scipy.sparse import issparse, spmatrix, csr_matrix, isspmatrix_csr
 from statsmodels.stats.multitest import multipletests
 import pandas as pd
@@ -243,6 +243,7 @@ def _correlation_test(
     X: Union[ArrayLike, spmatrix],
     Y: pd.DataFrame,
     feature_names: Sequence[str],
+    corr_method: CorrMethod = CorrMethod.PEARSON,
     method: CorrTestMethod = CorrTestMethod.FISCHER,
     confidence_level: float = 0.95,
     n_perms: Optional[int] = None,
@@ -262,6 +263,8 @@ def _correlation_test(
         Data frame of shape ``(n_cells, 1)`` containing the pull/push distribution.
     feature_names
         Sequence of shape ``(n_features,)`` containing the feature names.
+    corr_method
+        Correlation method, either `pearson` or `spearman`.
     method
         Method for p-value calculation.
     confidence_level
@@ -286,6 +289,7 @@ def _correlation_test(
     corr, pvals, ci_low, ci_high = _correlation_test_helper(
         X.T,
         Y.values,
+        corr_method=corr_method,
         method=method,
         n_perms=n_perms,
         seed=seed,
@@ -384,13 +388,13 @@ def _correlation_test_helper(
         X = csr_matrix(X)
 
     if corr_method == CorrMethod.SPEARMAN:
-        corr = _spearman(X, Y)
-    elif corr_method == CorrMethod.PEARSON:
-        corr = _pearson_mat_mat_corr_sparse(X, Y) if issparse(X) else _pearson_mat_mat_corr_dense(X, Y)
+        X, Y = rankdata(X, method="average", axis=0), rankdata(Y, method="average", axis=0)
+    corr = _pearson_mat_mat_corr_sparse(X, Y) if issparse(X) else _pearson_mat_mat_corr_dense(X, Y)
 
     if method == CorrTestMethod.FISCHER:
         # see: https://en.wikipedia.org/wiki/Pearson_correlation_coefficient#Using_the_Fisher_transformation
-        mean, se = np.arctanh(corr), 1.0 / np.sqrt(n - 3)
+        # for spearman see: https://www.sciencedirect.com/topics/mathematics/spearman-correlation
+        mean, se = np.arctanh(corr), 1 / np.sqrt(n - 3)
         z_score = (np.arctanh(corr) - np.arctanh(0)) * np.sqrt(n - 3)
 
         z = norm.ppf(qh)
@@ -417,10 +421,6 @@ def _correlation_test_helper(
         raise NotImplementedError(method)
 
     return corr, pvals, corr_ci_low, corr_ci_high
-
-
-def _spearman(X: Union[ArrayLike, csr_matrix], Y: ArrayLike) -> ArrayLike:
-    return spearmanr(X, Y, axis=0).statistic
 
 
 def _pearson_mat_mat_corr_sparse(
@@ -458,7 +458,6 @@ def _pearson_mat_mat_corr_dense(X: ArrayLike, Y: ArrayLike) -> ArrayLike:
 def _perm_test(
     ixs: ArrayLike,
     corr: ArrayLike,
-    corr_method: CorrMethod,
     X: Union[ArrayLike, spmatrix],
     Y: ArrayLike,
     seed: Optional[int] = None,
@@ -469,12 +468,7 @@ def _perm_test(
     pvals = np.zeros_like(corr, dtype=np.float64)
     corr_bs = np.zeros((len(ixs), X.shape[0], Y.shape[1]))  # perms x genes x lineages
 
-    if corr_method == CorrMethod.PEARSON:
-        mmc = _pearson_mat_mat_corr_sparse if issparse(X) else _pearson_mat_mat_corr_dense
-    elif corr_method == CorrMethod.SPEARMAN:
-        mmc = _spearman
-    else:
-        raise NotImplementedError
+    mmc = _pearson_mat_mat_corr_sparse if issparse(X) else _pearson_mat_mat_corr_dense
 
     for i, _ in enumerate(ixs):
         rs.shuffle(cell_ixs)

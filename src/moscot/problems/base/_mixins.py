@@ -33,7 +33,15 @@ from moscot.problems.base._utils import (
     _validate_args_cell_transition,
     _check_argument_compatibility_cell_transition,
 )
-from moscot._constants._constants import Key, AdataKeys, PlottingKeys, CorrTestMethod, AggregationMode, PlottingDefaults
+from moscot._constants._constants import (
+    Key,
+    AdataKeys,
+    CorrMethod,
+    PlottingKeys,
+    CorrTestMethod,
+    AggregationMode,
+    PlottingDefaults,
+)
 from moscot.problems._subset_policy import SubsetPolicy
 from moscot.problems.base._compound_problem import B, K, ApplyOutput_t
 
@@ -495,6 +503,7 @@ class AnalysisMixin(Generic[K, B]):
     def compute_feature_correlation(
         self: AnalysisMixinProtocol[K, B],
         obs_key: str,
+        corr_method: CorrMethod = CorrMethod.PEARSON,
         method: Literal["fischer", "perm_test"] = CorrTestMethod.FISCHER,
         annotation: Optional[Dict[str, Iterable[str]]] = None,
         layer: Optional[str] = None,
@@ -514,6 +523,9 @@ class AnalysisMixin(Generic[K, B]):
         ----------
         obs_key
             Column of :attr:`anndata.AnnData.obs` containing push-forward or pull-back distributions.
+
+        corr_method
+            Correlation method, either `pearson` or `spearman`.
         method
             Mode to use when calculating p-values and confidence intervals. Valid options are:
 
@@ -591,6 +603,7 @@ class AnalysisMixin(Generic[K, B]):
             X=sc.get.obs_df(adata, keys=features, layer=layer).values,
             Y=distribution,
             feature_names=features,
+            corr_method=corr_method,
             method=method,
             confidence_level=confidence_level,
             n_perms=n_perms,
