@@ -90,7 +90,10 @@ class TestMoscotPl:
             if os.path.exists(save):
                 os.remove(save)
         fig = msc.plotting.sankey(
-            adata_pl_sankey, return_fig=return_fig, save=save, interpolate_color=interpolate_color
+            adata_pl_sankey,
+            return_fig=return_fig,
+            save=save,
+            interpolate_color=interpolate_color,
         )
         if return_fig:
             assert fig is not None
