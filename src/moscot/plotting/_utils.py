@@ -55,6 +55,7 @@ def _sankey(
     force_update_colors: bool = False,
     alpha: float = 1.0,
     interpolate_color: bool = False,
+    side_bar_width: float = 0.02,  # width of the bars on left and right of the sankey strips
     **kwargs: Any,
 ) -> mpl.figure.Figure:
     if ax is None:
@@ -110,11 +111,11 @@ def _sankey(
         for leftLabel in leftLabels:
             if ind == 0:
                 ax.fill_between(
-                    [-0.02 * xMax, 0],
+                    [-side_bar_width * xMax, 0],
                     2 * [leftWidths[leftLabel]["bottom"]],
                     2 * [leftWidths[leftLabel]["bottom"] + leftWidths[leftLabel]["left"]],
                     color=colorDict[leftLabel],
-                    alpha=alpha,
+                    alpha=1.0,
                     **kwargs,
                 )
                 ax.text(
@@ -126,11 +127,11 @@ def _sankey(
                 )
         for rightLabel in rightLabels:
             ax.fill_between(
-                [xMax + left_pos[ind], xMax + left_pos[ind]],
+                [xMax + left_pos[ind], (1 + side_bar_width) * xMax + left_pos[ind]],
                 2 * [rightWidths[rightLabel]["bottom"]],
                 2 * [rightWidths[rightLabel]["bottom"] + rightWidths[rightLabel]["right"]],
                 color=colorDict[rightLabel],
-                alpha=alpha,
+                alpha=1.0,
                 **kwargs,
             )
             ax.text(
