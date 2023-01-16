@@ -177,8 +177,7 @@ def _sankey(
                                 arr[l:], ys_d[l:], ys_u[l:], color=color[l], ec=color[l], alpha=alpha, **kwargs
                             )
                     else:
-                        color = colorDict[leftLabel]
-                        ax.fill_between(arr, ys_d, ys_u, alpha=alpha, color=color, **kwargs)
+                        ax.fill_between(arr, ys_d, ys_u, alpha=alpha, color=colorDict[leftLabel], **kwargs)
 
         ax.axis("off")
         ax.set_title(title)
