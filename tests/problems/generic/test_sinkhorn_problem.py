@@ -64,7 +64,7 @@ class TestSinkhornProblem:
 
         key_added = "test_push"
         problem.push(source=0, target=1, data="celltype", subset="A", key_added=key_added)
-        feature_correlation = problem.compute_feature_correlation(key_added, method=method)
+        feature_correlation = problem.compute_feature_correlation(key_added, significance_method=method)
 
         assert isinstance(feature_correlation, pd.DataFrame)
         suffix = ["_corr", "_pval", "_qval", "_ci_low", "_ci_high"]

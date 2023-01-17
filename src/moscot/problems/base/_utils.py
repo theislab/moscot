@@ -4,7 +4,7 @@ from functools import partial, update_wrapper
 import inspect
 import warnings
 
-from scipy.stats import norm
+from scipy.stats import norm, rankdata
 from scipy.sparse import issparse, spmatrix, csr_matrix, isspmatrix_csr
 from statsmodels.stats.multitest import multipletests
 import pandas as pd
@@ -16,7 +16,7 @@ from anndata import AnnData
 from moscot._types import ArrayLike, Str_Dict_t
 from moscot._logging import logger
 from moscot._docs._docs import d
-from moscot._constants._constants import CorrTestMethod, AggregationMode
+from moscot._constants._constants import CorrMethod, CorrTestMethod, AggregationMode
 
 __all__ = [
     "attributedispatch",
@@ -279,7 +279,8 @@ def _correlation_test(
     X: Union[ArrayLike, spmatrix],
     Y: pd.DataFrame,
     feature_names: Sequence[str],
-    method: CorrTestMethod = CorrTestMethod.FISCHER,
+    corr_method: CorrMethod = CorrMethod.PEARSON,
+    significance_method: CorrTestMethod = CorrTestMethod.FISCHER,
     confidence_level: float = 0.95,
     n_perms: Optional[int] = None,
     seed: Optional[int] = None,
@@ -298,7 +299,9 @@ def _correlation_test(
         Data frame of shape ``(n_cells, 1)`` containing the pull/push distribution.
     feature_names
         Sequence of shape ``(n_features,)`` containing the feature names.
-    method
+    corr_method
+        Which type of correlation to compute, options are `pearson`, and `spearman`.
+    significance_method
         Method for p-value calculation.
     confidence_level
         Confidence level for the confidence interval calculation. Must be in `[0, 1]`.
@@ -322,7 +325,8 @@ def _correlation_test(
     corr, pvals, ci_low, ci_high = _correlation_test_helper(
         X.T,
         Y.values,
-        method=method,
+        corr_method=corr_method,
+        significance_method=significance_method,
         n_perms=n_perms,
         seed=seed,
         confidence_level=confidence_level,
@@ -363,7 +367,8 @@ def _correlation_test(
 def _correlation_test_helper(
     X: ArrayLike,
     Y: ArrayLike,
-    method: CorrTestMethod = CorrTestMethod.FISCHER,
+    corr_method: CorrMethod = CorrMethod.SPEARMAN,
+    significance_method: CorrTestMethod = CorrTestMethod.FISCHER,
     n_perms: Optional[int] = None,
     seed: Optional[int] = None,
     confidence_level: float = 0.95,
@@ -378,7 +383,9 @@ def _correlation_test_helper(
         Array or matrix of `(M, N)` elements.
     Y
         Array of `(N, K)` elements.
-    method
+    corr_method
+        Which type of correlation to compute, options are `pearson`, and `spearman`.
+    significance_method
         Method for p-value calculation.
     n_perms
         Number of permutations if ``method='perm_test'``.
@@ -415,11 +422,15 @@ def _correlation_test_helper(
 
     if issparse(X) and not isspmatrix_csr(X):
         X = csr_matrix(X)
-    corr = _mat_mat_corr_sparse(X, Y) if issparse(X) else _mat_mat_corr_dense(X, Y)
 
-    if method == CorrTestMethod.FISCHER:
+    if corr_method == CorrMethod.SPEARMAN:
+        X, Y = rankdata(X, method="average", axis=0), rankdata(Y, method="average", axis=0)
+    corr = _pearson_mat_mat_corr_sparse(X, Y) if issparse(X) else _pearson_mat_mat_corr_dense(X, Y)
+
+    if significance_method == CorrTestMethod.FISCHER:
         # see: https://en.wikipedia.org/wiki/Pearson_correlation_coefficient#Using_the_Fisher_transformation
-        mean, se = np.arctanh(corr), 1.0 / np.sqrt(n - 3)
+        # for spearman see: https://www.sciencedirect.com/topics/mathematics/spearman-correlation
+        mean, se = np.arctanh(corr), 1 / np.sqrt(n - 3)
         z_score = (np.arctanh(corr) - np.arctanh(0)) * np.sqrt(n - 3)
 
         z = norm.ppf(qh)
@@ -427,7 +438,7 @@ def _correlation_test_helper(
         corr_ci_high = np.tanh(mean + z * se)
         pvals = 2 * norm.cdf(-np.abs(z_score))
 
-    elif method == CorrTestMethod.PERM_TEST:
+    elif significance_method == CorrTestMethod.PERM_TEST:
         if not isinstance(n_perms, int):
             raise TypeError(f"Expected `n_perms` to be an integer, found `{type(n_perms).__name__}`.")
         if n_perms <= 0:
@@ -443,12 +454,12 @@ def _correlation_test_helper(
         )(corr, X, Y, seed=seed)
 
     else:
-        raise NotImplementedError(method)
+        raise NotImplementedError(significance_method)
 
     return corr, pvals, corr_ci_low, corr_ci_high
 
 
-def _mat_mat_corr_sparse(
+def _pearson_mat_mat_corr_sparse(
     X: csr_matrix,
     Y: ArrayLike,
 ) -> ArrayLike:
@@ -464,7 +475,7 @@ def _mat_mat_corr_sparse(
         return (X @ Y - (n * X_bar * y_bar)) / ((n - 1) * X_std * y_std)
 
 
-def _mat_mat_corr_dense(X: ArrayLike, Y: ArrayLike) -> ArrayLike:
+def _pearson_mat_mat_corr_dense(X: ArrayLike, Y: ArrayLike) -> ArrayLike:
     from moscot._utils import np_std, np_mean
 
     n = X.shape[1]
@@ -493,7 +504,7 @@ def _perm_test(
     pvals = np.zeros_like(corr, dtype=np.float64)
     corr_bs = np.zeros((len(ixs), X.shape[0], Y.shape[1]))  # perms x genes x lineages
 
-    mmc = _mat_mat_corr_sparse if issparse(X) else _mat_mat_corr_dense
+    mmc = _pearson_mat_mat_corr_sparse if issparse(X) else _pearson_mat_mat_corr_dense
 
     for i, _ in enumerate(ixs):
         rs.shuffle(cell_ixs)
