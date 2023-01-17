@@ -165,8 +165,14 @@ class TestBaseAnalysisMixin:
             ctr_ordered.values.astype(float), df_res_ordered.values.astype(float), rtol=RTOL, atol=ATOL
         )
 
-    @pytest.mark.parametrize("method", ["fischer", "perm_test"])
-    def test_compute_feature_correlation(self, adata_time: AnnData, method: Literal["fischer", "perm_test"]):
+    @pytest.mark.parametrize("corr_method", ["pearson", "spearman"])
+    @pytest.mark.parametrize("significance_method", ["fischer", "perm_test"])
+    def test_compute_feature_correlation(
+        self,
+        adata_time: AnnData,
+        corr_method: Literal["pearson", "spearman"],
+        significance_method: Literal["fischer", "perm_test"],
+    ):
         key_added = "test"
         rng = np.random.RandomState(42)
         adata_time = adata_time[adata_time.obs["time"].isin((0, 1))].copy()
@@ -180,7 +186,9 @@ class TestBaseAnalysisMixin:
 
         adata_time.obs[key_added] = np.hstack((np.zeros(n0), problem.pull(source=0, target=1).squeeze()))
 
-        res = problem.compute_feature_correlation(obs_key=key_added, method=method)
+        res = problem.compute_feature_correlation(
+            obs_key=key_added, corr_method=corr_method, significance_method=significance_method
+        )
 
         assert isinstance(res, pd.DataFrame)
         assert res.isnull().values.sum() == 0
@@ -191,10 +199,15 @@ class TestBaseAnalysisMixin:
         assert np.all(res[f"{key_added}_qval"] >= 0)
         assert np.all(res[f"{key_added}_qval"] <= 1.0)
 
+    @pytest.mark.parametrize("corr_method", ["pearson", "spearman"])
     @pytest.mark.parametrize("features", [10, None])
     @pytest.mark.parametrize("method", ["fischer", "perm_test"])
     def test_compute_feature_correlation_subset(
-        self, adata_time: AnnData, features: Optional[int], method: Literal["fischer", "perm_test"]
+        self,
+        adata_time: AnnData,
+        features: Optional[int],
+        corr_method: Literal["pearson", "spearman"],
+        method: Literal["fischer", "perm_test"],
     ):
         key_added = "test"
         rng = np.random.RandomState(42)
@@ -215,7 +228,11 @@ class TestBaseAnalysisMixin:
         else:
             features_validation = list(adata_time.var_names)
         res = problem.compute_feature_correlation(
-            obs_key=key_added, annotation={"celltype": ["A"]}, method=method, features=features
+            obs_key=key_added,
+            annotation={"celltype": ["A"]},
+            corr_method=corr_method,
+            significance_method=method,
+            features=features,
         )
         assert isinstance(res, pd.DataFrame)
         assert res.isnull().values.sum() == 0
@@ -275,9 +292,15 @@ class TestBaseAnalysisMixin:
 
         adata_time.obs[key_added] = np.hstack((np.zeros(n0), problem.pull(source=0, target=1).squeeze()))
 
-        res_a = problem.compute_feature_correlation(obs_key=key_added, n_perms=10, n_jobs=1, seed=0, method="perm_test")
-        res_b = problem.compute_feature_correlation(obs_key=key_added, n_perms=10, n_jobs=1, seed=0, method="perm_test")
-        res_c = problem.compute_feature_correlation(obs_key=key_added, n_perms=10, n_jobs=1, seed=1, method="perm_test")
+        res_a = problem.compute_feature_correlation(
+            obs_key=key_added, n_perms=10, n_jobs=1, seed=0, significance_method="perm_test"
+        )
+        res_b = problem.compute_feature_correlation(
+            obs_key=key_added, n_perms=10, n_jobs=1, seed=0, significance_method="perm_test"
+        )
+        res_c = problem.compute_feature_correlation(
+            obs_key=key_added, n_perms=10, n_jobs=1, seed=2, significance_method="perm_test"
+        )
 
         assert res_a is not res_b
         np.testing.assert_array_equal(res_a.index, res_b.index)
@@ -312,7 +335,8 @@ class TestBaseAnalysisMixin:
         np.testing.assert_array_equal(res_a.columns, res_b.columns)
         np.testing.assert_allclose(res_a.values, res_b.values)
 
-    def test_confidence_level(self, adata_time: AnnData):
+    @pytest.mark.parametrize("corr_method", ["pearson", "spearman"])
+    def test_confidence_level(self, adata_time: AnnData, corr_method: Literal["pearson", "spearman"]):
         key_added = "test"
         rng = np.random.RandomState(42)
         adata_time = adata_time[adata_time.obs["time"].isin((0, 1))].copy()
@@ -326,8 +350,12 @@ class TestBaseAnalysisMixin:
 
         adata_time.obs[key_added] = np.hstack((np.zeros(n0), problem.pull(source=0, target=1).squeeze()))
 
-        res_narrow = problem.compute_feature_correlation(obs_key=key_added, confidence_level=0.95)
-        res_wide = problem.compute_feature_correlation(obs_key=key_added, confidence_level=0.99)
+        res_narrow = problem.compute_feature_correlation(
+            obs_key=key_added, corr_method=corr_method, confidence_level=0.95
+        )
+        res_wide = problem.compute_feature_correlation(
+            obs_key=key_added, corr_method=corr_method, confidence_level=0.99
+        )
 
         assert np.all(res_narrow[f"{key_added}_ci_low"] >= res_wide[f"{key_added}_ci_low"])
         assert np.all(res_narrow[f"{key_added}_ci_high"] <= res_wide[f"{key_added}_ci_high"])
