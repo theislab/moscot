@@ -570,7 +570,6 @@ def _compute_correspondence(
 ) -> pd.DataFrame:
     if isinstance(interval, int):
         # prepare support
-        spatial.shape[0]
         hull = ConvexHull(spatial)
         area = hull.volume
         if max_dist is None:
