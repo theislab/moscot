@@ -332,3 +332,16 @@ class TestTemporalMixin:
         res = result.sort_index().sort_index(1)
         df_expected = adata_time_with_tmap.uns["cell_transition_gt"].sort_index().sort_index(1)
         np.testing.assert_almost_equal(res.values, df_expected.values, decimal=8)
+
+    @pytest.mark.fast()
+    @pytest.mark.parametrize("temporal_key", ["celltype", "time", "missing"])
+    def test_temporal_key_numeric(self, adata_time: AnnData, temporal_key: str):
+        problem = TemporalProblem(adata_time)
+        if temporal_key == "missing":
+            with pytest.raises(KeyError, match="Unable to find temporal key"):
+                problem = problem.prepare(temporal_key)
+        elif temporal_key == "celltype":
+            with pytest.raises(TypeError, match="`temporal_key` has to be of numeric type"):
+                problem = problem.prepare(temporal_key)
+        elif temporal_key == "time":
+            problem = problem.prepare(temporal_key)
