@@ -408,7 +408,7 @@ def _plot_temporal(
         else:
             titles = [f"{categories} at time {source if push else target} and {name}"]
     for i, ax in enumerate(axs):
-        with RandomKeys(adata, n=1, where="obs") as keys:
+        with RandomKeys(adata, n=2, where="obs") as keys:
             if time_points is None:
                 if scale:
                     adata.obs[keys[0]] = (
@@ -441,6 +441,13 @@ def _plot_temporal(
                         raise ValueError(f"Not exactly two categories, found `{column.cat.categories}`.")
                     kwargs["palette"] = {vmax: cont_cmap.reversed()(0), vmin: cont_cmap(0), st: na_color}
                     adata.obs[keys[0]] = column.values
+                    adata.obs[keys[1]] = list(range(adata.n_obs))
+                    cells_with_vmax = adata[adata.obs[keys[0]] == vmax].obs[keys[1]].values
+                    cells_with_vmin = adata[adata.obs[keys[0]] == vmin].obs[keys[1]].values
+                    cells_with_st = adata[adata.obs[keys[0]] == st].obs[keys[1]].values
+                    indices = list(cells_with_st) + list(cells_with_vmin) + list(cells_with_vmax)
+                    adata = adata[indices, :]
+                    size = size[indices]
                 else:
                     kwargs["color_map"] = cont_cmap
                     kwargs["na_color"] = na_color
