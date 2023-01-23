@@ -134,6 +134,24 @@ b
     Specifies the right marginals. If of type :class:`str` the right marginals are taken from
     :attr:`anndata.AnnData.obs` ``['{b}']``. If `b` is `None` uniform marginals are used.
 """
+_a_temporal = """\
+a
+    Specifies the left marginals. If of type :class:`str` the left marginals are taken from
+    :attr:`anndata.AnnData.obs` ``['{a}']``. If
+    :meth:`moscot.problems.base._birth_death.BirthDeathMixin.score_genes_for_marginals` was run and
+    if `a` is `None`, marginals are computed based on a birth-death process as suggested in
+    :cite:`schiebinger:19`. Otherwise, uniform marginals are used. If `a` is `False`, uniform
+    marginals are used.
+"""
+_b_temporal = """\
+b
+    Specifies the right marginals. If of type :class:`str` the right marginals are taken from
+    :attr:`anndata.AnnData.obs` ``['{b}']``. If
+    :meth:`moscot.problems.base._birth_death.BirthDeathMixin.score_genes_for_marginals` was run and
+    if `b` is `None`, marginals are computed based on a birth-death process as suggested in
+    :cite:`schiebinger:19`. Otherwise, uniform marginals are used. If `b` is `False`, uniform
+    marginals are used.
+"""
 _time_key = """\
 time_key
     Time point key in :attr:`anndata.AnnData.obs`.
@@ -400,6 +418,8 @@ d = DocstringProcessor(
     converged=_converged,
     a=_a,
     b=_b,
+    a_temporal=_a_temporal,
+    b_temporal=_b_temporal,
     time_key=_time_key,
     spatial_key=_spatial_key,
     batch_key=_batch_key,

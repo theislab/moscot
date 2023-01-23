@@ -1,4 +1,5 @@
-from typing import Any, Union, Literal, Callable, Optional, Protocol, Sequence, TYPE_CHECKING
+from types import MappingProxyType
+from typing import Any, Union, Literal, Mapping, Callable, Optional, Protocol, Sequence, TYPE_CHECKING
 
 import numpy as np
 
@@ -175,9 +176,10 @@ class BirthDeathProblem(BirthDeathMixin, OTProblem):
         source: bool,
         proliferation_key: Optional[str] = None,
         apoptosis_key: Optional[str] = None,
-        **kwargs: Any,
+        marginal_kwargs: Mapping[str, Any] = MappingProxyType({}),
+        **_: Any,
     ) -> ArrayLike:
-        def estimate(key: Optional[str], *, fn: Callable[..., ArrayLike]) -> ArrayLike:
+        def estimate(key: Optional[str], *, fn: Callable[..., ArrayLike], **kwargs: Any) -> ArrayLike:
             if key is None:
                 return np.zeros(adata.n_obs, dtype=float)
             try:
@@ -190,8 +192,8 @@ class BirthDeathProblem(BirthDeathMixin, OTProblem):
         self.proliferation_key = proliferation_key
         self.apoptosis_key = apoptosis_key
 
-        birth = estimate(proliferation_key, fn=beta)
-        death = estimate(apoptosis_key, fn=delta)
+        birth = estimate(proliferation_key, fn=beta, **marginal_kwargs)
+        death = estimate(apoptosis_key, fn=delta, **marginal_kwargs)
         prior_growth = np.exp((birth - death) * self.delta)
         scaling = np.sum(prior_growth)
         normalized_growth = prior_growth / scaling
