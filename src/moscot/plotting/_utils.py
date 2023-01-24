@@ -452,7 +452,7 @@ def _plot_temporal(
                     kwargs["color_map"] = cont_cmap
                     kwargs["na_color"] = na_color
                     adata.obs[keys[0]] = tmp
-
+          
             sc.pl.embedding(
                 adata=adata,
                 basis=basis,
@@ -485,7 +485,6 @@ def _create_col_colors(adata: AnnData, obs_col: str, subset: Union[str, List[str
         subset = subset[0]
     if not is_categorical_dtype(adata.obs[obs_col]):
         raise TypeError(f"`adata.obs[{obs_col!r}] must be of categorical type.")
-
     for i, cat in enumerate(adata.obs[obs_col].cat.categories):
         if cat == subset:
             color = adata.uns[f"{obs_col}_colors"][i]
@@ -493,9 +492,8 @@ def _create_col_colors(adata: AnnData, obs_col: str, subset: Union[str, List[str
     else:
         raise ValueError(f"Cannot find color for {subset} in `adata.obs[{obs_col!r}]`.")
 
-    h, _, v = mcolors.rgb_to_hsv(mcolors.to_rgb(color))
-    end_color = mcolors.hsv_to_rgb([h, 1, v])
+    h, s, v = mcolors.rgb_to_hsv(mcolors.to_rgb(color))
+    end_color = mcolors.hsv_to_rgb([h, s, v])
 
     col_cmap = mcolors.LinearSegmentedColormap.from_list("category_cmap", ["darkgrey", end_color])
-
     return col_cmap
