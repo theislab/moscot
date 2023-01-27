@@ -444,8 +444,10 @@ def _plot_temporal(
                     adata.obs[keys[0]] = adata.obs[keys[0]].astype("category")
                     adata.obs[keys[1]] = list(range(adata.n_obs))
 
-                    set_palette(adata, keys[0], cont_cmap={vmax: cont_cmap.reversed()(0), vmin: cont_cmap(0), st: na_color})
-                 
+                    set_palette(
+                        adata, keys[0], cont_cmap={vmax: cont_cmap.reversed()(0), vmin: cont_cmap(0), st: na_color}
+                    )
+
                     cells_with_vmax = adata[adata.obs[keys[0]] == vmax].obs[keys[1]].values
                     cells_with_vmin = adata[adata.obs[keys[0]] == vmin].obs[keys[1]].values
                     cells_with_st = adata[adata.obs[keys[0]] == st].obs[keys[1]].values
