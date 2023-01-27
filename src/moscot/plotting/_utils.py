@@ -408,8 +408,8 @@ def _plot_temporal(
         else:
             titles = [f"{categories} at time {source if push else target} and {name}"]
     for i, ax in enumerate(axs):
-        adata_to_view = adata
-        with RandomKeys(adata_to_view, n=2, where="obs") as keys:
+        # we need to create adata_view because otherwise the view of the adata is copied in the next step i+1
+        with RandomKeys(adata, n=2, where="obs") as keys:
             if time_points is None:
                 if scale:
                     adata.obs[keys[0]] = (
@@ -418,6 +418,7 @@ def _plot_temporal(
                 else:
                     adata.obs[keys[0]] = adata.obs[key_stored]
                 size = None
+                adata_view = adata
             else:
                 tmp = np.full(len(adata), constant_fill_value)
                 mask = adata.obs[temporal_key] == time_points[i]
