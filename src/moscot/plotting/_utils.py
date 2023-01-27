@@ -439,9 +439,12 @@ def _plot_temporal(
                     column = pd.Series(tmp).fillna(st).astype("category")
                     if len(np.unique(column[mask.values].values)) != 2:
                         raise ValueError(f"Not exactly two categories, found `{column.cat.categories}`.")
-                    kwargs["palette"] = {vmax: cont_cmap.reversed()(0), vmin: cont_cmap(0), st: na_color}
+                    #kwargs["palette"] = {vmax: cont_cmap.reversed()(0), vmin: cont_cmap(0), st: na_color}
                     adata.obs[keys[0]] = column.values
                     adata.obs[keys[1]] = list(range(adata.n_obs))
+
+                    set_palette(adata, keys[0], palette={vmax: cont_cmap.reversed()(0), vmin: cont_cmap(0), st: na_color})
+    
                     cells_with_vmax = adata[adata.obs[keys[0]] == vmax].obs[keys[1]].values
                     cells_with_vmin = adata[adata.obs[keys[0]] == vmin].obs[keys[1]].values
                     cells_with_st = adata[adata.obs[keys[0]] == st].obs[keys[1]].values
