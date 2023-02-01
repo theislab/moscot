@@ -7,6 +7,7 @@ import numpy as np
 
 from anndata import AnnData
 
+from tests._utils import ATOL, RTOL
 from moscot.problems.time import TemporalProblem
 from moscot.solvers._output import BaseSolverOutput
 from tests.problems.conftest import (
@@ -157,7 +158,7 @@ class TestTemporalProblem:
             * delta
             / c
         )
-        np.testing.assert_allclose(problem[keys[0], keys[1]]._prior_growth, expected_marginals, rtol=1e-5, atol=1e-12)
+        np.testing.assert_allclose(problem[keys[0], keys[1]]._prior_growth, expected_marginals, rtol=RTOL, atol=ATOL)
 
     def test_cell_costs_source_pipeline(self, adata_time: AnnData):
         problem = TemporalProblem(adata=adata_time)
