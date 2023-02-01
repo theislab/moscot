@@ -2,6 +2,7 @@ from typing import Any, Dict, List, Tuple, Union, Literal, Iterable, Optional, P
 from pathlib import Path
 import itertools
 
+from pandas.api.types import infer_dtype, is_numeric_dtype
 import pandas as pd
 
 import numpy as np
@@ -768,11 +769,9 @@ class TemporalMixin(AnalysisMixin[K, B]):
     def temporal_key(self: TemporalMixinProtocol[K, B], key: Optional[str]) -> None:
         if key is not None and key not in self.adata.obs:
             raise KeyError(f"Unable to find temporal key in `adata.obs[{key!r}]`.")
-        if key is not None and not (
-            pd.api.types.is_float_dtype(self.adata.obs[key]) or pd.api.types.is_integer_dtype(self.adata.obs[key])
-        ):
+        if key is not None and not is_numeric_dtype(self.adata.obs[key]):
             raise TypeError(
                 "`temporal_key` has to be of numeric type."
-                + f"Found `adata.obs[{key!r}]` to be of type {self.adata.obs[key].dtype}."
+                + f"Found `adata.obs[{key!r}]` to be of type {infer_dtype(self.adata.obs[key])}."
             )
         self._temporal_key = key

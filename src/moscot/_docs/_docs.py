@@ -96,7 +96,7 @@ subset
 """
 _marginal_kwargs = """\
 marginal_kwargs
-    keyword arguments for :meth:`moscot.problems.BirthDeathProblem._estimate_marginals`, i.e.
+    keyword arguments for :meth:`~moscot.problems.BirthDeathProblem._estimate_marginals`, i.e.
     for modeling the birth-death process. The keyword arguments
     are either used for :func:`moscot.problems.time._utils.beta`, i.e. one of:
 
@@ -136,21 +136,23 @@ b
 """
 _a_temporal = """\
 a
-    Specifies the left marginals. If of type :class:`str` the left marginals are taken from
-    :attr:`anndata.AnnData.obs` ``['{a}']``. If
-    :meth:`moscot.problems.base._birth_death.BirthDeathMixin.score_genes_for_marginals` was run and
-    if `a` is `None`, marginals are computed based on a birth-death process as suggested in
-    :cite:`schiebinger:19`. Otherwise, uniform marginals are used. If `a` is `False`, uniform
-    marginals are used.
+    Specifies the left marginals. If
+        - ``a`` is :class:`str` - the left marginals are taken from :attr:`anndata.AnnData.obs`,
+        - If :meth:`~moscot.problems.base._birth_death.BirthDeathMixin.score_genes_for_marginals` was run and
+        if `a` is `None`, marginals are computed based on a birth-death process as suggested in
+        :cite:`schiebinger:19`,
+        - If :meth:`~moscot.problems.base._birth_death.BirthDeathMixin.score_genes_for_marginals` was run and
+        if `a` is `None`, and additionally `c` is provided in `marginal_kwargs`, the marginals are computed as
+        exp((proliferation - apoptosis) * (t_2 - t_1) / c) rather than using a birth-death process,
+        - otherwise or if `a` is `False`, uniform marginals are used.
 """
 _b_temporal = """\
 b
-    Specifies the right marginals. If of type :class:`str` the right marginals are taken from
-    :attr:`anndata.AnnData.obs` ``['{b}']``. If
-    :meth:`moscot.problems.base._birth_death.BirthDeathMixin.score_genes_for_marginals` was run and
-    if `b` is `None`, marginals are computed based on a birth-death process as suggested in
-    :cite:`schiebinger:19`. Otherwise, uniform marginals are used. If `b` is `False`, uniform
-    marginals are used.
+    Specifies the right marginals. If
+        - ``b`` is :class:`str` - the left marginals are taken from :attr:`anndata.AnnData.obs`,
+        - If :meth:`~moscot.problems.base._birth_death.BirthDeathMixin.score_genes_for_marginals` was run
+          uniform (mean of left marginals) right marginals are used.
+        - otherwise or if `a` is `False`, uniform marginals are used.
 """
 _time_key = """\
 time_key

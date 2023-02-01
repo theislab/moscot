@@ -257,9 +257,9 @@ class BaseCompoundProblem(BaseProblem, ABC, Generic[K, B]):
             Some stage TODO.
         kwargs
             Keyword arguments for one of:
-                - :meth:`moscot.problems.OTProblem.solve`.
-                - :meth:`moscot.problems.MultiMarginalProblem.solve`.
-                - :meth:`moscot.problems.BirthDeathProblem.solve`.
+                - :meth:`~moscot.problems.OTProblem.solve`.
+                - :meth:`~moscot.problems.MultiMarginalProblem.solve`.
+                - :meth:`~moscot.problems.BirthDeathProblem.solve`.
 
         Returns
         -------
@@ -371,7 +371,7 @@ class BaseCompoundProblem(BaseProblem, ABC, Generic[K, B]):
         %(scale_by_marginals)s
 
         kwargs
-            keyword arguments for :meth:`moscot.problems.CompoundProblem._apply`.
+            keyword arguments for :meth:`~moscot.problems.CompoundProblem._apply`.
 
         Returns
         -------
@@ -402,7 +402,7 @@ class BaseCompoundProblem(BaseProblem, ABC, Generic[K, B]):
         %(scale_by_marginals)s
 
         kwargs
-            Keyword arguments for :meth:`moscot.problems.CompoundProblem._apply`.
+            Keyword arguments for :meth:`~moscot.problems.CompoundProblem._apply`.
 
         Returns
         -------

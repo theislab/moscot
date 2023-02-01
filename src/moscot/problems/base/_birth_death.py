@@ -10,7 +10,6 @@ from moscot._types import ArrayLike
 from moscot._logging import logger
 from moscot._docs._docs import d
 from moscot.utils._data import MarkerGenes
-from moscot.problems.time._utils import beta, delta
 from moscot.problems.base._base_problem import OTProblem
 
 __all__ = ["BirthDeathProblem", "BirthDeathMixin"]
@@ -69,7 +68,7 @@ class BirthDeathMixin:
         to proliferation and/or apoptosis must be passed.
 
         Alternatively, proliferation and apoptosis genes for humans and mice are saved in :mod:`moscot`.
-        The gene scores will be used in :meth:`moscot.problems.TemporalProblem.prepare` to estimate the initial
+        The gene scores will be used in :meth:`~moscot.problems.TemporalProblem.prepare` to estimate the initial
         growth rates as suggested in :cite:`schiebinger:19`
 
         Parameters
@@ -191,16 +190,21 @@ class BirthDeathProblem(BirthDeathMixin, OTProblem):
             raise ValueError("Either `proliferation_key` or `apoptosis_key` must be specified.")
         self.proliferation_key = proliferation_key
         self.apoptosis_key = apoptosis_key
-
+        if "c" in marginal_kwargs:
+            beta = delta = lambda x, *args, **kwargs: x
+            c = marginal_kwargs["c"]
+        else:
+            c = 1
         birth = estimate(proliferation_key, fn=beta, **marginal_kwargs)
         death = estimate(apoptosis_key, fn=delta, **marginal_kwargs)
-        prior_growth = np.exp((birth - death) * self.delta)
+
+        prior_growth = np.exp((birth - death) * self.delta / c)
+
         scaling = np.sum(prior_growth)
         normalized_growth = prior_growth / scaling
         if source:
             self._scaling = scaling
             self._prior_growth = prior_growth
-
         return normalized_growth if source else np.full(self.adata_tgt.n_obs, fill_value=np.mean(normalized_growth))
 
     # TODO(michalk8): temporary fix to satisfy the mixin, consider removing the mixin
