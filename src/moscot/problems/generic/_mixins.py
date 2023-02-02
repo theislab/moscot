@@ -121,7 +121,7 @@ class GenericAnalysisMixin(AnalysisMixin[K, B]):
         %(return_push_pull)s
 
         """
-        result = self.apply(
+        result = self._apply(
             source=source,
             target=target,
             data=data,
@@ -178,7 +178,7 @@ class GenericAnalysisMixin(AnalysisMixin[K, B]):
         %(return_push_pull)s
 
         """
-        result = self.apply(
+        result = self._apply(
             source=source,
             target=target,
             data=data,

@@ -276,7 +276,7 @@ class BaseCompoundProblem(BaseProblem, ABC, Generic[K, B]):
         return self
 
     @attributedispatch(attr="_policy")
-    def apply(
+    def _apply(
         self,
         data: Optional[Union[str, ArrayLike]] = None,
         forward: bool = True,
@@ -302,8 +302,8 @@ class BaseCompoundProblem(BaseProblem, ABC, Generic[K, B]):
         """
         raise NotImplementedError(type(self._policy))
 
-    @apply.register(DummyPolicy)
-    @apply.register(StarPolicy)
+    @_apply.register(DummyPolicy)
+    @_apply.register(StarPolicy)
     def _(
         self,
         data: Optional[Union[str, ArrayLike]] = None,
@@ -329,8 +329,8 @@ class BaseCompoundProblem(BaseProblem, ABC, Generic[K, B]):
             res[src] = fun(data=data, scale_by_marginals=scale_by_marginals, **kwargs)
         return res if return_all else res[src]
 
-    @apply.register(ExplicitPolicy)
-    @apply.register(OrderedPolicy)
+    @_apply.register(ExplicitPolicy)
+    @_apply.register(OrderedPolicy)
     def _(
         self,
         data: Optional[Union[str, ArrayLike]] = None,
@@ -396,7 +396,7 @@ class BaseCompoundProblem(BaseProblem, ABC, Generic[K, B]):
         """
         _ = kwargs.pop("return_data", None)
         _ = kwargs.pop("key_added", None)  # this should be handled by overriding method
-        return self.apply(*args, forward=True, **kwargs)
+        return self._apply(*args, forward=True, **kwargs)
 
     @d.get_sections(base="BaseCompoundProblem_pull", sections=["Parameters", "Raises"])
     @d.dedent
@@ -427,7 +427,7 @@ class BaseCompoundProblem(BaseProblem, ABC, Generic[K, B]):
         """
         _ = kwargs.pop("return_data", None)
         _ = kwargs.pop("key_added", None)  # this should be handled by overriding method
-        return self.apply(*args, forward=False, **kwargs)
+        return self._apply(*args, forward=False, **kwargs)
 
     @property
     def problems(self) -> Dict[Tuple[K, K], B]:
