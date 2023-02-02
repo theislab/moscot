@@ -109,8 +109,8 @@ class OTTOutput(ConvergencePlotterMixin, BaseSolverOutput):
 
     def _apply(self, x: ArrayLike, *, forward: bool) -> ArrayLike:
         if x.ndim == 1:
-            return self._output._apply(x, axis=1 - forward)
-        return self._output._apply(x.T, axis=1 - forward).T  # convert to batch first
+            return self._output.apply(x, axis=1 - forward)
+        return self._output.apply(x.T, axis=1 - forward).T  # convert to batch first
 
     @property
     def shape(self) -> Tuple[int, int]:
