@@ -257,9 +257,9 @@ class BaseCompoundProblem(BaseProblem, ABC, Generic[K, B]):
             Some stage TODO.
         kwargs
             Keyword arguments for one of:
-                - :meth:`~moscot.problems.OTProblem.solve`.
-                - :meth:`~moscot.problems.MultiMarginalProblem.solve`.
-                - :meth:`~moscot.problems.BirthDeathProblem.solve`.
+                - :meth:`moscot.problems.OTProblem.solve`.
+                - :meth:`moscot.problems.MultiMarginalProblem.solve`.
+                - :meth:`moscot.problems.BirthDeathProblem.solve`.
 
         Returns
         -------
@@ -276,17 +276,34 @@ class BaseCompoundProblem(BaseProblem, ABC, Generic[K, B]):
         return self
 
     @attributedispatch(attr="_policy")
-    def _apply(
+    def apply(
         self,
         data: Optional[Union[str, ArrayLike]] = None,
         forward: bool = True,
         scale_by_marginals: bool = False,
         **kwargs: Any,
     ) -> ApplyOutput_t[K]:
+        """
+        Apply the transport matrix as linear operator.
+
+        Parameters
+        ----------
+        %(data)s
+        %(forward)s
+        %(scale_by_marginals)s
+
+        kwargs
+            Keyword arguments for policy-dependent `apply` method.
+
+        Returns
+        -------
+        The result of the transport matrix applied to distributions defined by `data`.
+
+        """
         raise NotImplementedError(type(self._policy))
 
-    @_apply.register(DummyPolicy)
-    @_apply.register(StarPolicy)
+    @apply.register(DummyPolicy)
+    @apply.register(StarPolicy)
     def _(
         self,
         data: Optional[Union[str, ArrayLike]] = None,
@@ -312,8 +329,8 @@ class BaseCompoundProblem(BaseProblem, ABC, Generic[K, B]):
             res[src] = fun(data=data, scale_by_marginals=scale_by_marginals, **kwargs)
         return res if return_all else res[src]
 
-    @_apply.register(ExplicitPolicy)
-    @_apply.register(OrderedPolicy)
+    @apply.register(ExplicitPolicy)
+    @apply.register(OrderedPolicy)
     def _(
         self,
         data: Optional[Union[str, ArrayLike]] = None,
@@ -371,7 +388,7 @@ class BaseCompoundProblem(BaseProblem, ABC, Generic[K, B]):
         %(scale_by_marginals)s
 
         kwargs
-            keyword arguments for :meth:`~moscot.problems.CompoundProblem._apply`.
+            keyword arguments for :meth:`~moscot.problems.CompoundProblem.apply`.
 
         Returns
         -------
@@ -379,7 +396,7 @@ class BaseCompoundProblem(BaseProblem, ABC, Generic[K, B]):
         """
         _ = kwargs.pop("return_data", None)
         _ = kwargs.pop("key_added", None)  # this should be handled by overriding method
-        return self._apply(*args, forward=True, **kwargs)
+        return self.apply(*args, forward=True, **kwargs)
 
     @d.get_sections(base="BaseCompoundProblem_pull", sections=["Parameters", "Raises"])
     @d.dedent
@@ -402,7 +419,7 @@ class BaseCompoundProblem(BaseProblem, ABC, Generic[K, B]):
         %(scale_by_marginals)s
 
         kwargs
-            Keyword arguments for :meth:`~moscot.problems.CompoundProblem._apply`.
+            Keyword arguments for :meth:`~moscot.problems.CompoundProblem.apply`.
 
         Returns
         -------
@@ -410,7 +427,7 @@ class BaseCompoundProblem(BaseProblem, ABC, Generic[K, B]):
         """
         _ = kwargs.pop("return_data", None)
         _ = kwargs.pop("key_added", None)  # this should be handled by overriding method
-        return self._apply(*args, forward=False, **kwargs)
+        return self.apply(*args, forward=False, **kwargs)
 
     @property
     def problems(self) -> Dict[Tuple[K, K], B]:

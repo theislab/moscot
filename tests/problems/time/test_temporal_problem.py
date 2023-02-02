@@ -137,8 +137,8 @@ class TestTemporalProblem:
         assert problem.apoptosis_key == "new_apoptosis"
 
     @pytest.mark.fast()
-    @pytest.mark.parametrize("c", [0.1, 1, 4])
-    def test_proliferation_key_c_pipeline(self, adata_time: AnnData, c: float):
+    @pytest.mark.parametrize("scaling", [0.1, 1, 4])
+    def test_proliferation_key_c_pipeline(self, adata_time: AnnData, scaling: float):
         keys = np.sort(np.unique(adata_time.obs["time"].values))
         adata_time = adata_time[adata_time.obs["time"].isin([keys[0], keys[1]])]
         delta = keys[1] - keys[0]
@@ -148,16 +148,10 @@ class TestTemporalProblem:
         problem.score_genes_for_marginals(gene_set_proliferation="human", gene_set_apoptosis="human")
         assert problem.proliferation_key == "proliferation"
 
-        problem = problem.prepare(time_key="time", marginal_kwargs={"c": c})
-
-        expected_marginals = np.exp(
-            (
-                adata_time[adata_time.obs["time"] == keys[0]].obs["proliferation"]
-                - adata_time[adata_time.obs["time"] == keys[0]].obs["apoptosis"]
-            )
-            * delta
-            / c
-        )
+        problem = problem.prepare(time_key="time", marginal_kwargs={"scaling": scaling})
+        prolif = adata_time[adata_time.obs["time"] == keys[0]].obs["proliferation"]
+        apopt = adata_time[adata_time.obs["time"] == keys[0]].obs["apoptosis"]
+        expected_marginals = np.exp((prolif - apopt) * delta / scaling)
         np.testing.assert_allclose(problem[keys[0], keys[1]]._prior_growth, expected_marginals, rtol=RTOL, atol=ATOL)
 
     def test_cell_costs_source_pipeline(self, adata_time: AnnData):

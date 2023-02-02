@@ -54,7 +54,7 @@ class AnalysisMixinProtocol(Protocol[K, B]):
     solutions: Dict[Tuple[K, K], BaseSolverOutput]
     problems: Dict[Tuple[K, K], B]
 
-    def _apply(
+    def apply(
         self,
         data: Optional[Union[str, ArrayLike]] = None,
         source: Optional[K] = None,
@@ -64,6 +64,7 @@ class AnalysisMixinProtocol(Protocol[K, B]):
         scale_by_marginals: bool = False,
         **kwargs: Any,
     ) -> ApplyOutput_t[K]:
+        """Apply method."""
         ...
 
     def _interpolate_transport(
@@ -311,7 +312,7 @@ class AnalysisMixin(Generic[K, B]):
             )
         mass = np.ones(target_dim)
         if account_for_unbalancedness and interpolation_parameter is not None:
-            col_sums = self._apply(
+            col_sums = self.apply(
                 source=source,
                 target=target,
                 normalize=True,
@@ -325,7 +326,7 @@ class AnalysisMixin(Generic[K, B]):
             mass = mass / np.power(col_sums, 1 - interpolation_parameter)
 
         row_probability = np.asarray(
-            self._apply(
+            self.apply(
                 source=source,
                 target=target,
                 data=mass,
@@ -346,7 +347,7 @@ class AnalysisMixin(Generic[K, B]):
             data[rows_batch, range(len(rows_batch))] = 1
 
             col_p_given_row = np.asarray(
-                self._apply(
+                self.apply(
                     source=source,
                     target=target,
                     data=data,

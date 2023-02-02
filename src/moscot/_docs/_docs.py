@@ -96,8 +96,10 @@ subset
 """
 _marginal_kwargs = """\
 marginal_kwargs
-    keyword arguments for :meth:`~moscot.problems.BirthDeathProblem._estimate_marginals`, i.e.
-    for modeling the birth-death process. The keyword arguments
+    Keyword arguments for :meth:`~moscot.problems.BirthDeathProblem._estimate_marginals`. If `scaling`
+    is in `marginal_kwargs`, the left marginals are computed as
+    :math:`exp((proliferation - apoptosis) * (t_2 - t_1) / scaling)`.
+    Otherwise, the left marginals are computed using a birth-death process. The keyword arguments
     are either used for :func:`moscot.problems.time._utils.beta`, i.e. one of:
 
         - beta_max: float
@@ -127,7 +129,7 @@ converged
 _a = """\
 a
     Specifies the left marginals. If of type :class:`str` the left marginals are taken from
-    :attr:`anndata.AnnData.obs` ``['{a}']``. If `a` is `None` uniform marginals are used.
+    :attr:`anndata.AnnData.obs` ``['{a}']``. If ``a`` is `None` uniform marginals are used.
 """
 _b = """\
 b
@@ -139,12 +141,13 @@ a
     Specifies the left marginals. If
         - ``a`` is :class:`str` - the left marginals are taken from :attr:`anndata.AnnData.obs`,
         - if :meth:`~moscot.problems.base._birth_death.BirthDeathMixin.score_genes_for_marginals` was run and
-        if `a` is `None`, marginals are computed based on a birth-death process as suggested in
-        :cite:`schiebinger:19`,
+          if ``a`` is `None`, marginals are computed based on a birth-death process as suggested in
+          :cite:`schiebinger:19`,
         - if :meth:`~moscot.problems.base._birth_death.BirthDeathMixin.score_genes_for_marginals` was run and
-        if `a` is `None`, and additionally `c` is provided in `marginal_kwargs`, the marginals are computed as
-        exp((proliferation - apoptosis) * (t_2 - t_1) / c) rather than using a birth-death process,
-        - otherwise or if `a` is `False`, uniform marginals are used.
+          if ``a`` is `None`, and additionally ``scaling`` is provided in `marginal_kwargs`,
+          the marginals are computed as math:`exp((proliferation - apoptosis) * (t_2 - t_1) / scaling)`
+          rather than using a birth-death process,
+        - otherwise or if ``a`` is `False`, uniform marginals are used.
 """
 _b_temporal = """\
 b
@@ -152,7 +155,7 @@ b
         - ``b`` is :class:`str` - the left marginals are taken from :attr:`anndata.AnnData.obs`,
         - if :meth:`~moscot.problems.base._birth_death.BirthDeathMixin.score_genes_for_marginals` was run
           uniform (mean of left marginals) right marginals are used,
-        - otherwise or if `b` is `False`, uniform marginals are used.
+        - otherwise or if ``b`` is `False`, uniform marginals are used.
 """
 _time_key = """\
 time_key

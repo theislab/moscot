@@ -10,6 +10,7 @@ from moscot._types import ArrayLike
 from moscot._logging import logger
 from moscot._docs._docs import d
 from moscot.utils._data import MarkerGenes
+from moscot.problems.time._utils import beta, delta
 from moscot.problems.base._base_problem import OTProblem
 
 __all__ = ["BirthDeathProblem", "BirthDeathMixin"]
@@ -68,7 +69,7 @@ class BirthDeathMixin:
         to proliferation and/or apoptosis must be passed.
 
         Alternatively, proliferation and apoptosis genes for humans and mice are saved in :mod:`moscot`.
-        The gene scores will be used in :meth:`~moscot.problems.TemporalProblem.prepare` to estimate the initial
+        The gene scores will be used in :meth:`~moscot.problems.CompoundBaseProblem.prepare` to estimate the initial
         growth rates as suggested in :cite:`schiebinger:19`
 
         Parameters
@@ -191,14 +192,15 @@ class BirthDeathProblem(BirthDeathMixin, OTProblem):
         self.proliferation_key = proliferation_key
         self.apoptosis_key = apoptosis_key
         if "c" in marginal_kwargs:
-            beta = delta = lambda x, *args, **kwargs: x
-            c = marginal_kwargs["c"]
+            beta_fn = delta_fn = lambda x, *args, **kwargs: x
+            scaling = marginal_kwargs["scaling"]
         else:
-            c = 1
-        birth = estimate(proliferation_key, fn=beta, **marginal_kwargs)
-        death = estimate(apoptosis_key, fn=delta, **marginal_kwargs)
+            beta_fn, delta_fn = beta, delta
+            scaling = 1
+        birth = estimate(proliferation_key, fn=beta_fn, **marginal_kwargs)
+        death = estimate(apoptosis_key, fn=delta_fn, **marginal_kwargs)
 
-        prior_growth = np.exp((birth - death) * self.delta / c)
+        prior_growth = np.exp((birth - death) * self.delta / scaling)
 
         scaling = np.sum(prior_growth)
         normalized_growth = prior_growth / scaling

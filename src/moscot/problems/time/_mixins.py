@@ -323,7 +323,7 @@ class TemporalMixin(AnalysisMixin[K, B]):
         %(return_push_pull)s
 
         """
-        result = self._apply(
+        result = self.apply(
             source=source,
             target=target,
             data=data,
@@ -382,7 +382,7 @@ class TemporalMixin(AnalysisMixin[K, B]):
         %(return_push_pull)s
 
         """
-        result = self._apply(
+        result = self.apply(
             source=source,
             target=target,
             data=data,
@@ -771,7 +771,7 @@ class TemporalMixin(AnalysisMixin[K, B]):
             raise KeyError(f"Unable to find temporal key in `adata.obs[{key!r}]`.")
         if key is not None and not is_numeric_dtype(self.adata.obs[key]):
             raise TypeError(
-                "`temporal_key` has to be of numeric type."
-                + f"Found `adata.obs[{key!r}]` to be of type {infer_dtype(self.adata.obs[key])}."
+                "`temporal key` has to be of numeric type."
+                f"Found `adata.obs[{key!r}]` to be of type {infer_dtype(self.adata.obs[key])}."
             )
         self._temporal_key = key
