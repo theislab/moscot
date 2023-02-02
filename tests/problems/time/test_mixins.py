@@ -341,7 +341,7 @@ class TestTemporalMixin:
             with pytest.raises(KeyError, match="Unable to find temporal key"):
                 problem = problem.prepare(temporal_key)
         elif temporal_key == "celltype":
-            with pytest.raises(TypeError, match="`temporal key` has to be of numeric type"):
+            with pytest.raises(TypeError, match="`Temporal key` has to be of numeric type"):
                 problem = problem.prepare(temporal_key)
         elif temporal_key == "time":
             problem = problem.prepare(temporal_key)
