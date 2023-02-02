@@ -27,7 +27,6 @@ sys.path.insert(0, str(HERE / "extensions"))
 
 import utils  # noqa: E402
 
-mathjax_path = "https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"
 # -- Project information -----------------------------------------------------
 
 project = moscot.__name__

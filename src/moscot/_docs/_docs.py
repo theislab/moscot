@@ -85,7 +85,7 @@ _data = """\
 data
     - If `data` is a :class:`str` this should correspond to a column in :attr:`anndata.AnnData.obs`.
       The transport map is applied to the subset corresponding to the source distribution
-      (if `forward` is `True`) or target distribution (if `forward` is `False`) of that column.
+      (if `forward` is `True`) or target distribution (if `forward` is :obj:`False`) of that column.
     - If `data` is a :class:npt.ArrayLike the transport map is applied to `data`.
     - If `data` is a :class:`dict` then the keys should correspond to the tuple defining a single optimal
       transport map and the value should be one of the two cases described above.
@@ -94,20 +94,20 @@ _subset = """\
 subset
     Subset of :attr:`anndata.AnnData.obs` ``['{key}']`` values of which the policy is to be applied to.
 """
-_marginal_kwargs = """\
+_marginal_kwargs = r"""
 marginal_kwargs
-    Keyword arguments for :meth:`~moscot.problems.BirthDeathProblem._estimate_marginals`. If `scaling`
-    is in `marginal_kwargs`, the left marginals are computed as
-    :math:`exp((proliferation - apoptosis) * (t_2 - t_1) / scaling)`.
+    Keyword arguments for :meth:`~moscot.problems.BirthDeathProblem._estimate_marginals`. If ``'scaling'``
+    is in ``marginal_kwargs``, the left marginals are computed as
+    :math:`\exp(\frac{(\textit{proliferation} - \textit{apoptosis}) \cdot (t_2 - t_1)}{\textit{scaling}})`.
     Otherwise, the left marginals are computed using a birth-death process. The keyword arguments
-    are either used for :func:`moscot.problems.time._utils.beta`, i.e. one of:
+    are either used for :func:`~moscot.problems.time._utils.beta`, i.e. one of:
 
         - beta_max: float
         - beta_min: float
         - beta_center: float
         - beta_width: float
 
-    or for :func:`moscot.problems.time._utils.beta`, i.e. one of:
+    or for :func:`~moscot.problems.time._utils.delta`, i.e. one of:
 
         - delta_max: float
         - delta_min: float
@@ -136,7 +136,7 @@ b
     Specifies the right marginals. If of type :class:`str` the right marginals are taken from
     :attr:`anndata.AnnData.obs` ``['{b}']``. If `b` is `None` uniform marginals are used.
 """
-_a_temporal = """\
+_a_temporal = r"""
 a
     Specifies the left marginals. If
         - ``a`` is :class:`str` - the left marginals are taken from :attr:`anndata.AnnData.obs`,
@@ -144,10 +144,11 @@ a
           if ``a`` is `None`, marginals are computed based on a birth-death process as suggested in
           :cite:`schiebinger:19`,
         - if :meth:`~moscot.problems.base._birth_death.BirthDeathMixin.score_genes_for_marginals` was run and
-          if ``a`` is `None`, and additionally ``scaling`` is provided in `marginal_kwargs`,
-          the marginals are computed as math:`exp((proliferation - apoptosis) * (t_2 - t_1) / scaling)`
+          if ``a`` is `None`, and additionally ``'scaling'`` is provided in ``marginal_kwargs``,
+          the marginals are computed as
+          :math:`\exp(\frac{(\textit{proliferation} - \textit{apoptosis}) \cdot (t_2 - t_1)}{\textit{scaling}})`
           rather than using a birth-death process,
-        - otherwise or if ``a`` is `False`, uniform marginals are used.
+        - otherwise or if ``a`` is :obj:`False`, uniform marginals are used.
 """
 _b_temporal = """\
 b
@@ -155,7 +156,7 @@ b
         - ``b`` is :class:`str` - the left marginals are taken from :attr:`anndata.AnnData.obs`,
         - if :meth:`~moscot.problems.base._birth_death.BirthDeathMixin.score_genes_for_marginals` was run
           uniform (mean of left marginals) right marginals are used,
-        - otherwise or if ``b`` is `False`, uniform marginals are used.
+        - otherwise or if ``b`` is :obj:`False`, uniform marginals are used.
 """
 _time_key = """\
 time_key

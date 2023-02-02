@@ -55,10 +55,7 @@ key_added
     for the corresponding plotting functions are stored.
     See TODO Notebook for how :mod:`moscot.plotting` works.
 """
-_return_cell_transition = """\
-retun_cell_transition
-    Transition matrix of cells or groups of cells.
-"""
+_return_cell_transition = "Transition matrix of cells or groups of cells."
 _notes_cell_transition = """\
 To visualise the results, see :func:`moscot.pl.cell_transition`.
 """
