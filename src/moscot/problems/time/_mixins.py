@@ -2,6 +2,7 @@ from typing import Any, Dict, List, Tuple, Union, Literal, Iterable, Optional, P
 from pathlib import Path
 import itertools
 
+from pandas.api.types import infer_dtype, is_numeric_dtype
 import pandas as pd
 
 import numpy as np
@@ -457,6 +458,7 @@ class TemporalMixin(AnalysisMixin[K, B]):
             target_data,
         )
 
+    @d_mixins.dedent
     def compute_interpolated_distance(
         self: TemporalMixinProtocol[K, B],
         source: K,
@@ -500,7 +502,7 @@ class TemporalMixin(AnalysisMixin[K, B]):
         %(use_posterior_marginals)s
         %(seed_sampling)s
         %(backend)s
-        %(kwargs_divergence)
+        %(kwargs_divergence)s
 
         Returns
         -------
@@ -532,6 +534,7 @@ class TemporalMixin(AnalysisMixin[K, B]):
             point_cloud_1=intermediate_data, point_cloud_2=interpolation, backend=backend, **kwargs
         )
 
+    @d_mixins.dedent
     def compute_random_distance(
         self: TemporalMixinProtocol[K, B],
         source: K,
@@ -542,7 +545,7 @@ class TemporalMixin(AnalysisMixin[K, B]):
         account_for_unbalancedness: bool = False,
         posterior_marginals: bool = True,
         seed: Optional[int] = None,
-        backend: Literal["ott"] = "ott",
+        backend: Literal["ott"] = "ott",  # TODO: not used
         **kwargs: Any,
     ) -> Numeric_t:
         """
@@ -564,7 +567,7 @@ class TemporalMixin(AnalysisMixin[K, B]):
         %(use_posterior_marginals)s
         %(seed_interpolation)s
         %(backend)s
-        %(kwargs_divergence)
+        %(kwargs_divergence)s
 
         Returns
         -------
@@ -590,6 +593,7 @@ class TemporalMixin(AnalysisMixin[K, B]):
         )
         return self._compute_wasserstein_distance(intermediate_data, random_interpolation, **kwargs)
 
+    @d_mixins.dedent
     def compute_time_point_distances(
         self: TemporalMixinProtocol[K, B],
         source: K,
@@ -768,4 +772,9 @@ class TemporalMixin(AnalysisMixin[K, B]):
     def temporal_key(self: TemporalMixinProtocol[K, B], key: Optional[str]) -> None:
         if key is not None and key not in self.adata.obs:
             raise KeyError(f"Unable to find temporal key in `adata.obs[{key!r}]`.")
+        if key is not None and not is_numeric_dtype(self.adata.obs[key]):
+            raise TypeError(
+                "Temporal key has to be of numeric type."
+                f"Found `adata.obs[{key!r}]` to be of type `{infer_dtype(self.adata.obs[key])}`."
+            )
         self._temporal_key = key
