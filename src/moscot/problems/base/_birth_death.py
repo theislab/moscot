@@ -191,7 +191,7 @@ class BirthDeathProblem(BirthDeathMixin, OTProblem):
             raise ValueError("Either `proliferation_key` or `apoptosis_key` must be specified.")
         self.proliferation_key = proliferation_key
         self.apoptosis_key = apoptosis_key
-        if "c" in marginal_kwargs:
+        if "scaling" in marginal_kwargs:
             beta_fn = delta_fn = lambda x, *args, **kwargs: x
             scaling = marginal_kwargs["scaling"]
         else:

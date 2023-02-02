@@ -283,23 +283,6 @@ class BaseCompoundProblem(BaseProblem, ABC, Generic[K, B]):
         scale_by_marginals: bool = False,
         **kwargs: Any,
     ) -> ApplyOutput_t[K]:
-        """
-        Apply the transport matrix as linear operator.
-
-        Parameters
-        ----------
-        %(data)s
-        %(forward)s
-        %(scale_by_marginals)s
-
-        kwargs
-            Keyword arguments for policy-dependent `apply` method.
-
-        Returns
-        -------
-        The result of the transport matrix applied to distributions defined by `data`.
-
-        """
         raise NotImplementedError(type(self._policy))
 
     @_apply.register(DummyPolicy)
@@ -368,7 +351,7 @@ class BaseCompoundProblem(BaseProblem, ABC, Generic[K, B]):
         return res if return_all else current_mass
 
     @d.get_sections(base="BaseCompoundProblem_push", sections=["Parameters", "Raises"])
-    @d.dedent
+    @d.dedent  # TODO(@MUCDK) document private _apply
     def push(self, *args: Any, **kwargs: Any) -> ApplyOutput_t[K]:
         """
         Push mass from `start` to `end`.
@@ -388,7 +371,7 @@ class BaseCompoundProblem(BaseProblem, ABC, Generic[K, B]):
         %(scale_by_marginals)s
 
         kwargs
-            keyword arguments for :meth:`~moscot.problems.CompoundProblem.apply`.
+            keyword arguments for policy-specific `_apply` method of :class:`moscot.problems.CompoundProblem`.
 
         Returns
         -------
@@ -399,7 +382,7 @@ class BaseCompoundProblem(BaseProblem, ABC, Generic[K, B]):
         return self._apply(*args, forward=True, **kwargs)
 
     @d.get_sections(base="BaseCompoundProblem_pull", sections=["Parameters", "Raises"])
-    @d.dedent
+    @d.dedent  # TODO(@MUCDK) document private functions
     def pull(self, *args: Any, **kwargs: Any) -> ApplyOutput_t[K]:
         """
         Pull mass from `end` to `start`.
@@ -419,7 +402,7 @@ class BaseCompoundProblem(BaseProblem, ABC, Generic[K, B]):
         %(scale_by_marginals)s
 
         kwargs
-            Keyword arguments for :meth:`~moscot.problems.CompoundProblem.apply`.
+            keyword arguments for policy-specific `_apply` method of :class:`moscot.problems.CompoundProblem`.
 
         Returns
         -------
