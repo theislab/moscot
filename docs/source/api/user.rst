@@ -28,4 +28,3 @@ Generic Problems
 
     SinkhornProblem
     GWProblem
-    FGWProblem

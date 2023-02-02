@@ -10,7 +10,6 @@ OTT Backend
 
     moscot.backends.ott.SinkhornSolver
     moscot.backends.ott.GWSolver
-    moscot.backends.ott.FGWSolver
     moscot.backends.ott.OTTOutput
     moscot.backends.ott.OTTCost
 

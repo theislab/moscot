@@ -48,6 +48,7 @@ class TemporalProblem(
         cost: Literal["sq_euclidean", "cosine", "bures", "unbalanced_bures"] = "sq_euclidean",
         a: Optional[str] = None,
         b: Optional[str] = None,
+        marginal_kwargs: Mapping[str, Any] = MappingProxyType({}),
         **kwargs: Any,
     ) -> "TemporalProblem":
         """
@@ -61,8 +62,9 @@ class TemporalProblem(
         %(joint_attr)s
         %(policy)s
         %(cost_lin)s
-        %(a)s
-        %(b)s
+        %(a_temporal)s
+        %(b_temporal)s
+        %(marginal_kwargs)s
         %(kwargs_prepare)s
 
 
@@ -84,7 +86,7 @@ class TemporalProblem(
         xy, x, y = handle_cost(xy=xy, x=kwargs.pop("x", None), y=kwargs.pop("y", None), cost=cost)
 
         # TODO(michalk8): needs to be modified
-        marginal_kwargs = dict(kwargs.pop("marginal_kwargs", {}))
+        marginal_kwargs = dict(marginal_kwargs)
         marginal_kwargs["proliferation_key"] = self.proliferation_key
         marginal_kwargs["apoptosis_key"] = self.apoptosis_key
         if a is None:
@@ -316,6 +318,7 @@ class LineageProblem(TemporalProblem):
         ] = "sq_euclidean",
         a: Optional[str] = None,
         b: Optional[str] = None,
+        marginal_kwargs: Mapping[str, Any] = MappingProxyType({}),
         **kwargs: Any,
     ) -> "LineageProblem":
         """
@@ -331,8 +334,9 @@ class LineageProblem(TemporalProblem):
         %(joint_attr)s
         %(policy)s
         %(cost)s
-        %(a)s
-        %(b)s
+        %(a_temporal)s
+        %(b_temporal)s
+        %(marginal_kwargs)s
         %(kwargs_prepare)s
 
         Returns
@@ -364,6 +368,7 @@ class LineageProblem(TemporalProblem):
             cost=cost,
             a=a,
             b=b,
+            marginal_kwargs=marginal_kwargs,
             **kwargs,
         )
 

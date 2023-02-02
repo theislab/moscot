@@ -1,4 +1,5 @@
-from typing import Any, Union, Literal, Callable, Optional, Protocol, Sequence, TYPE_CHECKING
+from types import MappingProxyType
+from typing import Any, Union, Literal, Mapping, Callable, Optional, Protocol, Sequence, TYPE_CHECKING
 
 import numpy as np
 
@@ -68,7 +69,7 @@ class BirthDeathMixin:
         to proliferation and/or apoptosis must be passed.
 
         Alternatively, proliferation and apoptosis genes for humans and mice are saved in :mod:`moscot`.
-        The gene scores will be used in :meth:`moscot.problems.TemporalProblem.prepare` to estimate the initial
+        The gene scores will be used in :meth:`~moscot.problems.CompoundBaseProblem.prepare` to estimate the initial
         growth rates as suggested in :cite:`schiebinger:19`
 
         Parameters
@@ -175,9 +176,10 @@ class BirthDeathProblem(BirthDeathMixin, OTProblem):
         source: bool,
         proliferation_key: Optional[str] = None,
         apoptosis_key: Optional[str] = None,
-        **kwargs: Any,
+        marginal_kwargs: Mapping[str, Any] = MappingProxyType({}),
+        **_: Any,
     ) -> ArrayLike:
-        def estimate(key: Optional[str], *, fn: Callable[..., ArrayLike]) -> ArrayLike:
+        def estimate(key: Optional[str], *, fn: Callable[..., ArrayLike], **kwargs: Any) -> ArrayLike:
             if key is None:
                 return np.zeros(adata.n_obs, dtype=float)
             try:
@@ -189,16 +191,22 @@ class BirthDeathProblem(BirthDeathMixin, OTProblem):
             raise ValueError("Either `proliferation_key` or `apoptosis_key` must be specified.")
         self.proliferation_key = proliferation_key
         self.apoptosis_key = apoptosis_key
+        if "scaling" in marginal_kwargs:
+            beta_fn = delta_fn = lambda x, *args, **kwargs: x
+            scaling = marginal_kwargs["scaling"]
+        else:
+            beta_fn, delta_fn = beta, delta
+            scaling = 1
+        birth = estimate(proliferation_key, fn=beta_fn, **marginal_kwargs)
+        death = estimate(apoptosis_key, fn=delta_fn, **marginal_kwargs)
 
-        birth = estimate(proliferation_key, fn=beta)
-        death = estimate(apoptosis_key, fn=delta)
-        prior_growth = np.exp((birth - death) * self.delta)
+        prior_growth = np.exp((birth - death) * self.delta / scaling)
+
         scaling = np.sum(prior_growth)
         normalized_growth = prior_growth / scaling
         if source:
             self._scaling = scaling
             self._prior_growth = prior_growth
-
         return normalized_growth if source else np.full(self.adata_tgt.n_obs, fill_value=np.mean(normalized_growth))
 
     # TODO(michalk8): temporary fix to satisfy the mixin, consider removing the mixin
