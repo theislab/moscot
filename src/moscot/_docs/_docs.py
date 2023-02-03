@@ -323,7 +323,10 @@ tolerances
 """
 _scale_cost = """\
 scale_cost
-    Method to scale cost matrices. If `None` no scaling is applied.
+    How to rescale the cost matrix. Implemented scalings are
+    'median', 'mean', 'max_cost', 'max_norm' and 'max_bound'.
+    Alternatively, a float factor can be given to rescale the cost such
+    that ``cost_matrix /= scale_cost``.
 """
 _cost_lin = """\
 cost
