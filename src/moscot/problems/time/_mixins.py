@@ -13,7 +13,7 @@ from moscot._types import ArrayLike, Numeric_t, Str_Dict_t
 from moscot._docs._docs_mixins import d_mixins
 from moscot._constants._constants import Key, AdataKeys, PlottingKeys, PlottingDefaults
 from moscot.problems.base._mixins import AnalysisMixin, AnalysisMixinProtocol
-from moscot.solvers._tagged_array import Tag
+from moscot.problems._tagged_array import Tag
 from moscot.problems.base._compound_problem import B, K, ApplyOutput_t
 
 
