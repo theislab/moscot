@@ -77,7 +77,7 @@ class ConvergencePlotterMixin:
         kind, values, xs = select_values(last_k)
 
         ax.plot(xs, values, **kwargs)
-        ax.set_xlabel("iteration")
+        ax.set_xlabel("iteration (logged)")
         ax.set_ylabel(kind)
         if title is None:
             title = "converged" if self.converged else "not converged"  # type: ignore[attr-defined]
