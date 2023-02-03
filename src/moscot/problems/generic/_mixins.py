@@ -103,7 +103,7 @@ class GenericAnalysisMixin(AnalysisMixin[K, B]):
         **kwargs: Any,
     ) -> Optional[ApplyOutput_t[K]]:
         """
-        Push distribution of cells through time.
+        Push distribution of cells from source to target.
 
         Parameters
         ----------
@@ -160,7 +160,7 @@ class GenericAnalysisMixin(AnalysisMixin[K, B]):
         **kwargs: Any,
     ) -> Optional[ApplyOutput_t[K]]:
         """
-        Pull distribution of cells through time.
+        Pull distribution of cells from target to source.
 
         Parameters
         ----------
