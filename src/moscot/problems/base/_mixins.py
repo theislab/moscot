@@ -35,7 +35,6 @@ from moscot.problems.base._utils import (
 )
 from moscot._constants._constants import (
     Key,
-    AdataKeys,
     CorrMethod,
     PlottingKeys,
     CorrTestMethod,
@@ -151,7 +150,6 @@ class AnalysisMixin(Generic[K, B]):
             }
             Key.uns.set_plotting_vars(
                 adata=self.adata,
-                uns_key=AdataKeys.UNS,
                 pl_func_key=PlottingKeys.CELL_TRANSITION,
                 key=key_added,
                 value=plot_vars,
