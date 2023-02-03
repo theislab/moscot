@@ -11,7 +11,7 @@ from anndata import AnnData
 
 from moscot._types import ArrayLike, Numeric_t, Str_Dict_t
 from moscot._docs._docs_mixins import d_mixins
-from moscot._constants._constants import Key, AdataKeys, PlottingKeys, PlottingDefaults
+from moscot._constants._constants import Key, PlottingKeys, PlottingDefaults
 from moscot.problems.base._mixins import AnalysisMixin, AnalysisMixinProtocol
 from moscot.solvers._tagged_array import Tag
 from moscot.problems.base._compound_problem import B, K, ApplyOutput_t
@@ -287,7 +287,7 @@ class TemporalMixin(AnalysisMixin[K, B]):
                 "target_groups": target_groups,
                 "captions": [str(t) for t in tuples],
             }
-            Key.uns.set_plotting_vars(self.adata, AdataKeys.UNS, PlottingKeys.SANKEY, key_added, plot_vars)
+            Key.uns.set_plotting_vars(self.adata, PlottingKeys.SANKEY, key_added, plot_vars)
         if return_data:
             return cell_transitions_updated
 
@@ -346,7 +346,7 @@ class TemporalMixin(AnalysisMixin[K, B]):
                 "subset": subset,
             }
             self.adata.obs[key_added] = self._flatten(result, key=self.temporal_key)
-            Key.uns.set_plotting_vars(self.adata, AdataKeys.UNS, PlottingKeys.PUSH, key_added, plot_vars)
+            Key.uns.set_plotting_vars(self.adata, PlottingKeys.PUSH, key_added, plot_vars)
         if return_data:
             return result
 
@@ -404,7 +404,7 @@ class TemporalMixin(AnalysisMixin[K, B]):
                 "target": target,
             }
             self.adata.obs[key_added] = self._flatten(result, key=self.temporal_key)
-            Key.uns.set_plotting_vars(self.adata, AdataKeys.UNS, PlottingKeys.PULL, key_added, plot_vars)
+            Key.uns.set_plotting_vars(self.adata, PlottingKeys.PULL, key_added, plot_vars)
         if return_data:
             return result
 
