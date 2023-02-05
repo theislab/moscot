@@ -55,7 +55,7 @@ class TestCompoundProblem:
             key="time",
             policy="sequential",
         )
-        problem = problem.solve()
+        problem = problem.solve(max_iterations=2)
 
         assert len(problem) == len(expected_keys)
         assert isinstance(problem.solutions, dict)

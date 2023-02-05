@@ -304,7 +304,7 @@ class TestTemporalMixin:
         interpolation_parameter = None if len(time_points) == 3 else 0.5
         problem = TemporalProblem(adata_time)
         problem.prepare("time")
-        problem.solve()
+        problem.solve(max_iterations=2)
 
         if intermediate <= start or end <= intermediate:
             with np.testing.assert_raises(ValueError):

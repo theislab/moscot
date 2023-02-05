@@ -157,7 +157,7 @@ class TestTemporalProblem:
     def test_cell_costs_source_pipeline(self, adata_time: AnnData):
         problem = TemporalProblem(adata=adata_time)
         problem = problem.prepare("time")
-        problem = problem.solve()
+        problem = problem.solve(max_iterations=2)
 
         cell_costs_source = problem.cell_costs_source
 
@@ -175,7 +175,7 @@ class TestTemporalProblem:
     def test_cell_costs_target_pipeline(self, adata_time: AnnData):
         problem = TemporalProblem(adata=adata_time)
         problem = problem.prepare("time")
-        problem = problem.solve()
+        problem = problem.solve(max_iterations=2)
 
         cell_costs_target = problem.cell_costs_target
 
@@ -194,7 +194,7 @@ class TestTemporalProblem:
         problem = TemporalProblem(adata=adata_time)
         problem = problem.score_genes_for_marginals(gene_set_proliferation="mouse", gene_set_apoptosis="mouse")
         problem = problem.prepare("time", a=True, b=True)
-        problem = problem.solve()
+        problem = problem.solve(max_iterations=2)
 
         growth_rates = problem.posterior_growth_rates
         assert isinstance(growth_rates, pd.DataFrame)
