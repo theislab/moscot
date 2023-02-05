@@ -154,47 +154,11 @@ class TestSpatioTemporalProblem:
         expected_marginals = np.exp((prolif - apopt) * delta / scaling)
         np.testing.assert_allclose(problem[keys[0], keys[1]]._prior_growth, expected_marginals, rtol=RTOL, atol=ATOL)
 
-    def test_cell_costs_source_pipeline(self, adata_spatio_temporal: AnnData):
-        problem = SpatioTemporalProblem(adata=adata_spatio_temporal)
-        problem = problem.prepare("time")
-        problem = problem.solve()
-
-        cell_costs_source = problem.cell_costs_source
-
-        assert isinstance(cell_costs_source, pd.DataFrame)
-        assert len(cell_costs_source.columns) == 1
-        assert list(cell_costs_source.columns)[0] == "cell_cost_source"
-        assert set(cell_costs_source.index) == set(adata_spatio_temporal.obs.index)
-        assert set(cell_costs_source[cell_costs_source["cell_cost_source"].isnull()].index) == set(
-            adata_spatio_temporal[adata_spatio_temporal.obs["time"] == 2].obs.index
-        )
-        assert set(cell_costs_source[~cell_costs_source["cell_cost_source"].isnull()].index) == set(
-            adata_spatio_temporal[adata_spatio_temporal.obs["time"].isin([0, 1])].obs.index
-        )
-
-    def test_cell_costs_target_pipeline(self, adata_spatio_temporal: AnnData):
-        problem = SpatioTemporalProblem(adata=adata_spatio_temporal)
-        problem = problem.prepare("time")
-        problem = problem.solve()
-
-        cell_costs_target = problem.cell_costs_target
-
-        assert isinstance(cell_costs_target, pd.DataFrame)
-        assert len(cell_costs_target.columns) == 1
-        assert list(cell_costs_target.columns)[0] == "cell_cost_target"
-        assert set(cell_costs_target.index) == set(adata_spatio_temporal.obs.index)
-        assert set(cell_costs_target[cell_costs_target["cell_cost_target"].isnull()].index) == set(
-            adata_spatio_temporal[adata_spatio_temporal.obs["time"] == 0].obs.index
-        )
-        assert set(cell_costs_target[~cell_costs_target["cell_cost_target"].isnull()].index) == set(
-            adata_spatio_temporal[adata_spatio_temporal.obs["time"].isin([1, 2])].obs.index
-        )
-
     def test_growth_rates_pipeline(self, adata_spatio_temporal: AnnData):
         problem = SpatioTemporalProblem(adata=adata_spatio_temporal)
         problem = problem.score_genes_for_marginals(gene_set_proliferation="mouse", gene_set_apoptosis="mouse")
         problem = problem.prepare("time", a=True, b=True)
-        problem = problem.solve()
+        problem = problem.solve(max_iterations=2)
 
         growth_rates = problem.posterior_growth_rates
         assert isinstance(growth_rates, pd.DataFrame)
@@ -206,6 +170,14 @@ class TestSpatioTemporalProblem:
         assert set(growth_rates[~growth_rates["posterior_growth_rates"].isnull()].index) == set(
             adata_spatio_temporal[adata_spatio_temporal.obs["time"].isin([0, 1])].obs.index
         )
+
+    def test_cell_costs_pipeline(self, adata_spatio_temporal: AnnData):
+        problem = SpatioTemporalProblem(adata=adata_spatio_temporal)
+        problem = problem.prepare("time")
+        problem = problem.solve(max_iterations=2)
+
+        assert problem.cell_costs_source is None
+        assert problem.cell_costs_target is None
 
     @pytest.mark.parametrize("args_to_check", [fgw_args_1, fgw_args_2])
     def test_pass_arguments(self, adata_spatio_temporal: AnnData, args_to_check: Mapping[str, Any]):

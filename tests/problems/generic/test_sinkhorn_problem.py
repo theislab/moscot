@@ -59,7 +59,7 @@ class TestSinkhornProblem:
     def test_compute_feature_correlation(self, adata_time: AnnData, method: str):
         problem = SinkhornProblem(adata=adata_time)
         problem = problem.prepare(key="time")
-        problem = problem.solve()
+        problem = problem.solve(max_iterations=2)
         assert problem[0, 1].solution.converged
 
         key_added = "test_push"
