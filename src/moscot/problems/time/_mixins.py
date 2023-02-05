@@ -556,7 +556,7 @@ class TemporalMixin(AnalysisMixin[K, B]):
         else:
             raise ValueError(f"No data found for `{target}` time point.")
 
-        return (  # type: ignore[return-value]
+        return (  # type:ignore[return-value]
             source_data,
             growth_rates_source,
             intermediate_data,
