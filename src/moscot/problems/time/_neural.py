@@ -21,6 +21,7 @@ class TemporalNeuralProblem(BirthDeathMixin, CompoundProblem[Numeric_t, BirthDea
         policy: Literal["sequential", "tril", "triu", "explicit"] = "sequential",
         a: Optional[str] = None,
         b: Optional[str] = None,
+        marginal_kwargs: Mapping[str, Any] = MappingProxyType({}),
         **kwargs: Any,
     ) -> "TemporalNeuralProblem":
         """Prepare the :class:`moscot.problems.time.TemporalNeuralProblem`."""
@@ -43,6 +44,7 @@ class TemporalNeuralProblem(BirthDeathMixin, CompoundProblem[Numeric_t, BirthDea
             policy=policy,
             a=a,
             b=b,
+            marginal_kwargs=marginal_kwargs,
             **kwargs,
         )
 
