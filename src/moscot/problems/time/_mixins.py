@@ -1,4 +1,4 @@
-from typing import Any, Dict, List, Tuple, Union, Literal, Iterable, Optional, Protocol, TYPE_CHECKING
+from typing import Any, Dict, List, Tuple, Union, Literal, Iterable, Iterator, Optional, Protocol, TYPE_CHECKING
 from pathlib import Path
 import itertools
 
@@ -10,18 +10,21 @@ import numpy as np
 from anndata import AnnData
 
 from moscot._types import ArrayLike, Numeric_t, Str_Dict_t
+from moscot.solvers._output import BaseSolverOutput
 from moscot._docs._docs_mixins import d_mixins
 from moscot._constants._constants import Key, PlottingKeys, PlottingDefaults
 from moscot.problems.base._mixins import AnalysisMixin, AnalysisMixinProtocol
 from moscot.solvers._tagged_array import Tag
+from moscot.problems.base._birth_death import BirthDeathProblem
 from moscot.problems.base._compound_problem import B, K, ApplyOutput_t
 
 
-class TemporalMixinProtocol(AnalysisMixinProtocol[K, B], Protocol[K, B]):
+# TODO(@MUCDK, @michalk8): check for ignore[misc] in line below, might become redundant
+class TemporalMixinProtocol(AnalysisMixinProtocol[K, B], Protocol[K, B]):  # type:ignore
     """Protocol class."""
 
     adata: AnnData
-    problems: Dict[Tuple[K, K], B]
+    problems: Dict[Tuple[K, K], BirthDeathProblem]
     temporal_key: Optional[str]
     _temporal_key: Optional[str]
 
@@ -132,6 +135,9 @@ class TemporalMixinProtocol(AnalysisMixinProtocol[K, B], Protocol[K, B]):
     def _get_interp_param(
         source: K, intermediate: K, target: K, interpolation_parameter: Optional[float] = None
     ) -> Numeric_t:
+        ...
+
+    def __iter__(self) -> Iterator[Tuple[K, K]]:
         ...
 
 
@@ -407,6 +413,106 @@ class TemporalMixin(AnalysisMixin[K, B]):
             Key.uns.set_plotting_vars(self.adata, PlottingKeys.PULL, key_added, plot_vars)
         if return_data:
             return result
+
+    @property
+    def prior_growth_rates(self: TemporalMixinProtocol[K, B]) -> Optional[pd.DataFrame]:
+        """Return the prior estimate of growth rates of the cells in the source distribution."""
+        # TODO(michalk8): FIXME
+        cols = ["prior_growth_rates"]
+        df_list = [
+            pd.DataFrame(problem.prior_growth_rates, index=problem.adata.obs.index, columns=cols)
+            for problem in self.problems.values()
+        ]
+        tup = list(self)[-1]
+        df_list.append(
+            pd.DataFrame(
+                np.full(
+                    shape=(len(self.problems[tup].adata_tgt.obs), 1),
+                    fill_value=np.nan,
+                ),
+                index=self.problems[tup].adata_tgt.obs.index,
+                columns=cols,
+            )
+        )
+        return pd.concat(df_list, verify_integrity=True)
+
+    @property
+    def posterior_growth_rates(self: TemporalMixinProtocol[K, B]) -> Optional[pd.DataFrame]:
+        """Return the posterior estimate of growth rates of the cells in the source distribution."""
+        # TODO(michalk8): FIXME
+        cols = ["posterior_growth_rates"]
+        df_list = [
+            pd.DataFrame(problem.posterior_growth_rates, index=problem.adata.obs.index, columns=cols)
+            for problem in self.problems.values()
+        ]
+        tup = list(self)[-1]
+        df_list.append(
+            pd.DataFrame(
+                np.full(
+                    shape=(len(self.problems[tup].adata_tgt.obs), 1),
+                    fill_value=np.nan,
+                ),
+                index=self.problems[tup].adata_tgt.obs.index,
+                columns=cols,
+            )
+        )
+        return pd.concat(df_list, verify_integrity=True)
+
+    # TODO(michalk8): refactor me
+    @property
+    def cell_costs_source(self: TemporalMixinProtocol[K, B]) -> Optional[pd.DataFrame]:
+        """Return the cost of a cell obtained by the potentials of the optimal transport solution."""
+        sol = list(self.problems.values())[0].solution
+        if TYPE_CHECKING:
+            assert isinstance(sol, BaseSolverOutput)
+        if sol.potentials is None:
+            return None
+        df_list = [
+            pd.DataFrame(
+                np.array(np.abs(problem.solution.potentials[0])),  # type: ignore[union-attr,index]
+                index=problem.adata_src.obs_names,
+                columns=["cell_cost_source"],
+            )
+            for problem in self.problems.values()
+        ]
+        tup = list(self)[-1]
+        df_list.append(
+            pd.DataFrame(
+                np.full(shape=(len(self.problems[tup].adata_tgt.obs), 1), fill_value=np.nan),
+                index=self.problems[tup].adata_tgt.obs_names,
+                columns=["cell_cost_source"],
+            )
+        )
+        return pd.concat(df_list, verify_integrity=True)
+
+    @property
+    def cell_costs_target(self: TemporalMixinProtocol[K, B]) -> Optional[pd.DataFrame]:
+        """Return the cost of a cell (see online methods) obtained by the potentials of the OT solution."""
+        sol = list(self.problems.values())[0].solution
+        if TYPE_CHECKING:
+            assert isinstance(sol, BaseSolverOutput)
+        if sol.potentials is None:
+            return None
+
+        tup = list(self)[0]
+        df_list = [
+            pd.DataFrame(
+                np.full(shape=(len(self.problems[tup].adata_src), 1), fill_value=np.nan),
+                index=self.problems[tup].adata_src.obs_names,
+                columns=["cell_cost_target"],
+            )
+        ]
+        df_list.extend(
+            [
+                pd.DataFrame(
+                    np.array(np.abs(problem.solution.potentials[1])),  # type: ignore[union-attr,index]
+                    index=problem.adata_tgt.obs_names,
+                    columns=["cell_cost_target"],
+                )
+                for problem in self.problems.values()
+            ]
+        )
+        return pd.concat(df_list, verify_integrity=True)
 
     # TODO(michalk8): refactor me
     def _get_data(
