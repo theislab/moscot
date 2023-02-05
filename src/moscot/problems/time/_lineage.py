@@ -17,10 +17,10 @@ class TemporalProblem(
     TemporalMixin[Numeric_t, BirthDeathProblem], BirthDeathMixin, CompoundProblem[Numeric_t, BirthDeathProblem]
 ):
     """
-    Class for analysing time series single cell data based on :cite:`schiebinger:19`.
+    Class for analyzing time series single cell data based on :cite:`schiebinger:19`.
 
-    The `TemporalProblem` allows to model and analyse time series single cell data by matching
-    cells from previous time points to later time points via optimal transport.
+    The `TemporalProblem` allows to model and analyze time series single cell data by matching
+    cells from previous time points to later time points via OT.
     Based on the assumption that the considered cell modality is similar in consecutive time points
     probabilistic couplings are computed between different time points.
     This allows to understand cell trajectories by inferring ancestors and descendants of single cells.

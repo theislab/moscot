@@ -172,6 +172,7 @@ class TestLineageProblem:
             time_key="time",
             lineage_attr={"attr": "obsm", "key": "barcodes", "tag": "cost_matrix", "cost": "barcode_distance"},
             policy="sequential",
+            marginal_kwargs={"scaling": scaling},
         )
         prolif = adata_time_barcodes[adata_time_barcodes.obs["time"] == keys[0]].obs["proliferation"]
         apopt = adata_time_barcodes[adata_time_barcodes.obs["time"] == keys[0]].obs["apoptosis"]

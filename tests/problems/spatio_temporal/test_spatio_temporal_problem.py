@@ -152,6 +152,8 @@ class TestSpatioTemporalProblem:
         prolif = adata_spatio_temporal[adata_spatio_temporal.obs["time"] == keys[0]].obs["proliferation"]
         apopt = adata_spatio_temporal[adata_spatio_temporal.obs["time"] == keys[0]].obs["apoptosis"]
         expected_marginals = np.exp((prolif - apopt) * delta / scaling)
+        print("problem[keys[0], keys[1]]._prior_growth", problem[keys[0], keys[1]]._prior_growth)
+        print("expected_marginals", expected_marginals)
         np.testing.assert_allclose(problem[keys[0], keys[1]]._prior_growth, expected_marginals, rtol=RTOL, atol=ATOL)
 
     def test_growth_rates_pipeline(self, adata_spatio_temporal: AnnData):
