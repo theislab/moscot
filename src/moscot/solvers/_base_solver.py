@@ -7,7 +7,7 @@ from moscot._logging import logger
 from moscot._docs._docs import d
 from moscot.solvers._output import BaseSolverOutput
 from moscot._constants._enum import ModeEnum
-from moscot.solvers._tagged_array import Tag, TaggedArray
+from moscot.utils._tagged_array import Tag, TaggedArray
 
 __all__ = ["ProblemKind", "BaseSolver", "OTSolver"]
 

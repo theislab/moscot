@@ -18,8 +18,8 @@ from tests._utils import ATOL, RTOL, Geom_t
 from moscot._types import Device_t, ArrayLike
 from moscot.backends.ott import GWSolver, SinkhornSolver  # type: ignore[attr-defined]
 from moscot.solvers._output import BaseSolverOutput
+from moscot.utils._tagged_array import Tag
 from moscot.solvers._base_solver import O, OTSolver
-from moscot.solvers._tagged_array import Tag
 
 
 class TestSinkhorn:
