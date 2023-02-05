@@ -28,19 +28,13 @@ class TestLineageProblem:
         expected_keys = [(0, 1), (1, 2)]
         adata_time_barcodes = adata_time_barcodes[adata_time_barcodes.obs["time"].isin((0, 1))]
         problem = LineageProblem(adata=adata_time_barcodes)
+        assert len(problem) == 0
+        assert problem.problems == {}
+        assert problem.solutions == {}
         problem = problem.prepare(
             time_key="time",
             policy="sequential",
             lineage_attr={"attr": "obsm", "key": "barcodes", "tag": "cost_matrix", "cost": "barcode_distance"},
-        )
-
-        assert len(problem) == 0
-        assert problem.problems == {}
-        assert problem.solutions == {}
-
-        problem = problem.prepare(
-            time_key="time",
-            policy="sequential",
         )
 
         assert isinstance(problem.problems, dict)
