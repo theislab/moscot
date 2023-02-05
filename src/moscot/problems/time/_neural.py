@@ -26,6 +26,7 @@ class TemporalNeuralProblem(
         policy: Literal["sequential", "tril", "triu", "explicit"] = "sequential",
         a: Optional[str] = None,
         b: Optional[str] = None,
+        marginal_kwargs: Mapping[str, Any] = MappingProxyType({}),
         **kwargs: Any,
     ) -> "TemporalNeuralProblem":
         """Prepare the :class:`moscot.problems.time.TemporalNeuralProblem`."""
@@ -48,6 +49,7 @@ class TemporalNeuralProblem(
             policy=policy,
             a=a,
             b=b,
+            marginal_kwargs=marginal_kwargs,
             **kwargs,
         )
 
