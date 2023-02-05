@@ -14,7 +14,7 @@ from anndata import AnnData
 
 from tests._utils import ATOL, RTOL, Problem
 from moscot.problems.base import OTProblem, CompoundProblem
-from moscot.problems._tagged_array import Tag, TaggedArray
+from moscot.solvers._tagged_array import Tag, TaggedArray
 
 
 class TestCompoundProblem:

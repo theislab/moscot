@@ -31,7 +31,7 @@ from moscot.problems._utils import require_prepare
 from moscot.solvers._output import BaseSolverOutput
 from moscot.problems.base._utils import attributedispatch
 from moscot._constants._constants import Policy
-from moscot.problems._tagged_array import Tag, TaggedArray
+from moscot.solvers._tagged_array import Tag, TaggedArray
 from moscot.problems._subset_policy import (
     Policy_t,
     StarPolicy,

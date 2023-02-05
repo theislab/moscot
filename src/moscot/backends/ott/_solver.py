@@ -21,7 +21,7 @@ from moscot._constants._enum import ModeEnum
 from moscot.backends.ott._output import OTTOutput
 from moscot.problems.base._utils import _filter_kwargs
 from moscot.solvers._base_solver import OTSolver, ProblemKind
-from moscot.problems._tagged_array import TaggedArray
+from moscot.solvers._tagged_array import TaggedArray
 
 __all__ = ["OTTCost", "SinkhornSolver", "GWSolver"]
 
