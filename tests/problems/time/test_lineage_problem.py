@@ -26,7 +26,6 @@ class TestLineageProblem:
     @pytest.mark.fast()
     def test_prepare(self, adata_time_barcodes: AnnData):
         expected_keys = [(0, 1), (1, 2)]
-        adata_time_barcodes = adata_time_barcodes[adata_time_barcodes.obs["time"].isin((0, 1))]
         problem = LineageProblem(adata=adata_time_barcodes)
         assert len(problem) == 0
         assert problem.problems == {}
