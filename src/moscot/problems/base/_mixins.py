@@ -33,7 +33,14 @@ from moscot.problems.base._utils import (
     _validate_args_cell_transition,
     _check_argument_compatibility_cell_transition,
 )
-from moscot._constants._constants import Key, AdataKeys, PlottingKeys, CorrTestMethod, AggregationMode, PlottingDefaults
+from moscot._constants._constants import (
+    Key,
+    CorrMethod,
+    PlottingKeys,
+    CorrTestMethod,
+    AggregationMode,
+    PlottingDefaults,
+)
 from moscot.problems._subset_policy import SubsetPolicy
 from moscot.problems.base._compound_problem import B, K, ApplyOutput_t
 
@@ -49,8 +56,8 @@ class AnalysisMixinProtocol(Protocol[K, B]):
     def _apply(
         self,
         data: Optional[Union[str, ArrayLike]] = None,
-        start: Optional[K] = None,
-        end: Optional[K] = None,
+        source: Optional[K] = None,
+        target: Optional[K] = None,
         forward: bool = True,
         return_all: bool = False,
         scale_by_marginals: bool = False,
@@ -156,7 +163,6 @@ class AnalysisMixin(Generic[K, B]):
             }
             Key.uns.set_plotting_vars(
                 adata=self.adata,
-                uns_key=AdataKeys.UNS,
                 pl_func_key=PlottingKeys.CELL_TRANSITION,
                 key=key_added,
                 value=plot_vars,
@@ -304,8 +310,8 @@ class AnalysisMixin(Generic[K, B]):
         mass = np.ones(target_dim)
         if account_for_unbalancedness and interpolation_parameter is not None:
             col_sums = self._apply(
-                start=source,
-                end=target,
+                source=source,
+                target=target,
                 normalize=True,
                 forward=True,
                 scale_by_marginals=False,
@@ -318,8 +324,8 @@ class AnalysisMixin(Generic[K, B]):
 
         row_probability = np.asarray(
             self._apply(
-                start=source,
-                end=target,
+                source=source,
+                target=target,
                 data=mass,
                 normalize=True,
                 forward=False,
@@ -339,8 +345,8 @@ class AnalysisMixin(Generic[K, B]):
 
             col_p_given_row = np.asarray(
                 self._apply(
-                    start=source,
-                    end=target,
+                    source=source,
+                    target=target,
                     data=data,
                     normalize=True,
                     forward=True,
@@ -433,8 +439,8 @@ class AnalysisMixin(Generic[K, B]):
         func = self.push if forward else self.pull
         for subset in annotations_1:
             result = func(  # TODO(@MUCDK) check how to make compatible with all policies
-                start=source,
-                end=target,
+                source=source,
+                target=target,
                 data=annotation_key,
                 subset=subset,
                 normalize=True,
@@ -472,8 +478,8 @@ class AnalysisMixin(Generic[K, B]):
             batch_size = len(df_2)
         for batch in range(0, len(df_2), batch_size):
             result = func(  # TODO(@MUCDK) check how to make compatible with all policies
-                start=source,
-                end=target,
+                source=source,
+                target=target,
                 data=None,
                 subset=(batch, batch_size),
                 normalize=True,
@@ -495,7 +501,8 @@ class AnalysisMixin(Generic[K, B]):
     def compute_feature_correlation(
         self: AnalysisMixinProtocol[K, B],
         obs_key: str,
-        method: Literal["fischer", "perm_test"] = CorrTestMethod.FISCHER,
+        corr_method: CorrMethod = CorrMethod.PEARSON,
+        significance_method: Literal["fischer", "perm_test"] = CorrTestMethod.FISCHER,
         annotation: Optional[Dict[str, Iterable[str]]] = None,
         layer: Optional[str] = None,
         features: Optional[Union[List[str], Literal["human", "mouse", "drosophila"]]] = None,
@@ -514,7 +521,9 @@ class AnalysisMixin(Generic[K, B]):
         ----------
         obs_key
             Column of :attr:`anndata.AnnData.obs` containing push-forward or pull-back distributions.
-        method
+        corr_method
+            Which type of correlation to compute, options are `pearson`, and `spearman`.
+        significance_method
             Mode to use when calculating p-values and confidence intervals. Valid options are:
 
                 - `fischer` - use Fischer transformation :cite:`fischer:21`.
@@ -561,7 +570,7 @@ class AnalysisMixin(Generic[K, B]):
         if obs_key not in self.adata.obs:
             raise KeyError(f"Unable to access data in `adata.obs[{obs_key!r}]`.")
 
-        method = CorrTestMethod(method)
+        significance_method = CorrTestMethod(significance_method)
 
         if annotation is not None:
             annotation_key, annotation_vals = next(iter(annotation.items()))
@@ -591,7 +600,8 @@ class AnalysisMixin(Generic[K, B]):
             X=sc.get.obs_df(adata, keys=features, layer=layer).values,
             Y=distribution,
             feature_names=features,
-            method=method,
+            corr_method=corr_method,
+            significance_method=significance_method,
             confidence_level=confidence_level,
             n_perms=n_perms,
             seed=seed,
