@@ -13,7 +13,8 @@ import scanpy as sc
 from moscot._types import CostFn_t, Device_t, ArrayLike
 from moscot._logging import logger
 from moscot._docs._docs import d
-from moscot.problems._utils import wrap_solve, wrap_prepare, require_solution
+from moscot.problems._utils import wrap_solve, wrap_prepare
+from moscot._utils import  require_solution
 from moscot.solvers._output import BaseSolverOutput
 from moscot.solvers._base_solver import OTSolver, ProblemKind
 from moscot._constants._constants import ProblemStage

@@ -7,32 +7,9 @@ if TYPE_CHECKING:
 
 import wrapt
 
-__all__ = ["require_prepare", "require_solution", "wrap_prepare", "wrap_solve"]
+__all__ = ["wrap_prepare", "wrap_solve"]
 
 
-# TODO(michalk8): refactor using stage
-@wrapt.decorator
-def require_solution(
-    wrapped: Callable[[Any], Any], instance: "BaseProblem", args: Tuple[Any, ...], kwargs: Mapping[str, Any]
-) -> Any:
-    """Check whether problem has been solved."""
-    from moscot.problems.base import OTProblem, BaseCompoundProblem  # type: ignore[attr-defined]
-
-    if isinstance(instance, OTProblem) and instance.solution is None:
-        raise RuntimeError("Run `.solve()` first.")
-    if isinstance(instance, BaseCompoundProblem) and instance.solutions is None:
-        raise RuntimeError("Run `.solve()` first.")
-    return wrapped(*args, **kwargs)
-
-
-@wrapt.decorator
-def require_prepare(
-    wrapped: Callable[[Any], Any], instance: "BaseCompoundProblem", args: Tuple[Any, ...], kwargs: Mapping[str, Any]
-) -> Any:
-    """Check whether problem has been prepared."""
-    if instance.problems is None:
-        raise RuntimeError("Run `.prepare()` first.")
-    return wrapped(*args, **kwargs)
 
 
 @wrapt.decorator

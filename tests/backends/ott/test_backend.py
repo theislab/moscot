@@ -13,13 +13,15 @@ from ott.solvers.quadratic.gromov_wasserstein import GromovWasserstein, gromov_w
 import jax
 import numpy as np
 import jax.numpy as jnp
+from scipy.sparse import csr_matrix
 
-from tests._utils import ATOL, RTOL, Geom_t
+from tests._utils import ATOL, RTOL, Geom_t, MockSolverOutput
 from moscot._types import Device_t, ArrayLike
 from moscot.backends.ott import GWSolver, SinkhornSolver  # type: ignore[attr-defined]
 from moscot.solvers._output import BaseSolverOutput
 from moscot.solvers._base_solver import O, OTSolver
 from moscot.solvers._tagged_array import Tag
+
 
 
 class TestSinkhorn:
@@ -305,3 +307,6 @@ class TestSolverOutput:
                 _ = solver(xy=(x, x), device=device)
         else:
             _ = solver(xy=(x, x), device=device)
+
+    
+

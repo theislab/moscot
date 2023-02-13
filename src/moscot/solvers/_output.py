@@ -1,12 +1,16 @@
 from abc import ABC, abstractmethod
 from copy import copy
-from typing import Any, Tuple, Callable, Iterable, Optional
+from typing import Any, Tuple, Callable, Iterable, Optional, List
 from functools import partial
 
-from scipy.sparse.linalg import LinearOperator
+import numpy as np
 
+from scipy.sparse.linalg import LinearOperator
+from scipy.sparse import csr_matrix
+from scipy.sparse import hstack as sparse_hstack
 from moscot._types import Device_t, ArrayLike, DTypeLike
 from moscot._logging import logger
+from moscot._utils import require_solution
 
 __all__ = ["BaseSolverOutput", "MatrixSolverOutput"]
 
@@ -161,6 +165,20 @@ class BaseSolverOutput(ABC):
             op *= out.as_linear_operator(scale_by_marginals)
 
         return op
+
+    @require_solution
+    def sparsify(self, threshold: 1e-8, batch_size: int = 1024, dtype=None) -> csr_matrix:
+        tmaps_sparse: List[csr_matrix] = []
+        for batch in range(0, self.shape[1], batch_size):
+            upper_lim = min(self.shape[1], batch*batch_size)
+            x = np.eye(self.shape[1], upper_lim, -batch*batch_size)
+            res = self.pull(x, scale_by_marginals=False) # tmap @ indicator_vectors
+            res[res<threshold] = 0
+            tmaps_sparse.append(csr_matrix(res))
+        return sparse_hstack(tmaps_sparse)
+
+
+
 
     @property
     def a(self) -> ArrayLike:

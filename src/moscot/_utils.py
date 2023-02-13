@@ -1,19 +1,49 @@
 # adapted from CellRank
 """Module used to parallelize model fitting."""
 
-from typing import Any, Union, Callable, Optional, Sequence
+from typing import Any, Union, Callable, Optional, Sequence, Tuple, Mapping, TYPE_CHECKING
 from threading import Thread
 from multiprocessing import Manager, cpu_count
 
 from numba import njit
 from scipy.sparse import issparse, spmatrix
 import joblib as jl
-
+import wrapt
 import numpy as np
+
+if TYPE_CHECKING:
+    from moscot.problems.base import BaseProblem, BaseCompoundProblem  # type: ignore[attr-defined]
 
 from moscot._types import ArrayLike
 
 jit_kwargs = {"nogil": True, "cache": True, "fastmath": True}
+
+__all__ = ["require_prepare", "require_solution", "parallelize"]
+
+
+# TODO(michalk8): refactor using stage
+@wrapt.decorator
+def require_solution(
+    wrapped: Callable[[Any], Any], instance: "BaseProblem", args: Tuple[Any, ...], kwargs: Mapping[str, Any]
+) -> Any:
+    """Check whether problem has been solved."""
+    from moscot.problems.base import OTProblem, BaseCompoundProblem  # type: ignore[attr-defined]
+
+    if isinstance(instance, OTProblem) and instance.solution is None:
+        raise RuntimeError("Run `.solve()` first.")
+    if isinstance(instance, BaseCompoundProblem) and instance.solutions is None:
+        raise RuntimeError("Run `.solve()` first.")
+    return wrapped(*args, **kwargs)
+
+
+@wrapt.decorator
+def require_prepare(
+    wrapped: Callable[[Any], Any], instance: "BaseCompoundProblem", args: Tuple[Any, ...], kwargs: Mapping[str, Any]
+) -> Any:
+    """Check whether problem has been prepared."""
+    if instance.problems is None:
+        raise RuntimeError("Run `.prepare()` first.")
+    return wrapped(*args, **kwargs)
 
 
 def parallelize(
