@@ -4,7 +4,7 @@ import pandas as pd
 import pytest
 
 from ott.geometry.pointcloud import PointCloud
-from ott.solvers.linear.sinkhorn import sinkhorn
+from ott.solvers.linear.sinkhorn import solve as sinkhorn
 import numpy as np
 import jax.numpy as jnp
 

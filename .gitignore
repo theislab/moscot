@@ -156,4 +156,4 @@ packages.dot
 .vscode
 
 # plotting tests
-tests/plotting/figures/
+tests/plotting/actual_figures/

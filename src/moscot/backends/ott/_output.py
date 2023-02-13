@@ -1,48 +1,58 @@
 from typing import Any, Tuple, Union, Optional
 
-from matplotlib.figure import Figure
+import matplotlib as mpl
 import matplotlib.pyplot as plt
 
 from ott.solvers.linear.sinkhorn import SinkhornOutput as OTTSinkhornOutput
 from ott.solvers.linear.sinkhorn_lr import LRSinkhornOutput as OTTLRSinkhornOutput
 from ott.solvers.quadratic.gromov_wasserstein import GWOutput as OTTGWOutput
 import jax
+import numpy as np
 import jax.numpy as jnp
 import jaxlib.xla_extension as xla_ext
 
 from moscot._types import Device_t, ArrayLike
+from moscot._docs._docs import d
 from moscot.solvers._output import BaseSolverOutput
 
 __all__ = ["OTTOutput"]
 
 
-class ConvergencePlotterMixin:
+class OTTOutput(BaseSolverOutput):
+    """Output of various optimal transport problems.
+
+    Parameters
+    ----------
+    output
+        Output of :mod:`ott` backend.
+    """
+
     _NOT_COMPUTED = -1.0
 
-    def __init__(self, costs: jnp.ndarray, errors: Optional[jnp.ndarray], *args: Any, **kwargs: Any):
-        super().__init__(*args, **kwargs)
-        # TODO(michalk8): don't plot costs?
-        self._costs = costs[costs != self._NOT_COMPUTED]
-        # TODO(michalk8): always compute errors?
-        self._errors = None if errors is None else errors[errors != self._NOT_COMPUTED]
+    def __init__(self, output: Union[OTTSinkhornOutput, OTTLRSinkhornOutput, OTTGWOutput]):
+        super().__init__()
+        self._output = output
+        self._costs = None if isinstance(output, OTTSinkhornOutput) else output.costs
+        self._errors = output.errors
 
-    def plot_convergence(
+    @d.get_sections(base="plot_costs", sections=["Parameters", "Returns"])
+    def plot_costs(
         self,
-        last_k: Optional[int] = None,
+        last: Optional[int] = None,
         title: Optional[str] = None,
+        return_fig: bool = False,
         figsize: Optional[Tuple[float, float]] = None,
         dpi: Optional[int] = None,
         save: Optional[str] = None,
-        return_fig: bool = False,
+        ax: Optional[mpl.axes.Axes] = None,
         **kwargs: Any,
-    ) -> Optional[Figure]:
-        """
-        Plot the convergence curve.
+    ) -> Optional[mpl.figure.Figure]:
+        """Plot regularized OT costs during the iterations.
 
         Parameters
         ----------
-        last_k
-            How many of the last k steps of the algorithm to plot. If `None`, plot the full curve.
+        last
+            How many of the last steps of the algorithm to plot. If `None`, plot the full curve.
         title
             Title of the plot. If `None`, it is determined automatically.
         figsize
@@ -53,6 +63,8 @@ class ConvergencePlotterMixin:
             Path where to save the figure.
         return_fig
             Whether to return the figure.
+        ax
+            Axes on which to plot.
         kwargs
             Keyword arguments for :meth:`~matplotlib.axes.Axes.plot`.
 
@@ -60,52 +72,82 @@ class ConvergencePlotterMixin:
         -------
         The figure if ``return_fig = True``.
         """
+        if self._costs is None:
+            raise RuntimeError("No costs to plot.")
 
-        def select_values(last_k: Optional[int] = None) -> Tuple[str, jnp.ndarray, jnp.ndarray]:
-            # `> 1` because of pure Sinkhorn
-            if len(self._costs) > 1 or self._errors is None:
-                metric = self._costs
-                metric_str = "cost"
-            else:
-                metric = self._errors
-                metric_str = "error"
-
-            last_k = min(last_k, len(metric)) if last_k is not None else len(metric)
-            return metric_str, metric[-last_k:], range(len(metric))[-last_k:]
-
-        fig, ax = plt.subplots(figsize=figsize, dpi=dpi)
-        kind, values, xs = select_values(last_k)
-
-        ax.plot(xs, values, **kwargs)
-        ax.set_xlabel("iteration (logged)")
-        ax.set_ylabel(kind)
-        if title is None:
-            title = "converged" if self.converged else "not converged"  # type: ignore[attr-defined]
-        ax.set_title(title)
+        fig, ax = plt.subplots(figsize=figsize, dpi=dpi) if ax is None else (ax.get_figure(), ax)
+        self._plot_lines(ax, np.asarray(self._costs), last=last, y_label="cost", title=title, **kwargs)
 
         if save is not None:
             fig.savefig(save)
         if return_fig:
             return fig
 
+    @d.dedent
+    def plot_errors(
+        self,
+        last: Optional[int] = None,
+        title: Optional[str] = None,
+        outer_iteration: int = -1,
+        return_fig: bool = False,
+        figsize: Optional[Tuple[float, float]] = None,
+        dpi: Optional[int] = None,
+        save: Optional[str] = None,
+        ax: Optional[mpl.axes.Axes] = None,
+        **kwargs: Any,
+    ) -> Optional[mpl.figure.Figure]:
+        """Plot errors during the iterations.
 
-class OTTOutput(ConvergencePlotterMixin, BaseSolverOutput):
-    """Output of various optimal transport problems.
+        Parameters
+        ----------
+        %(plot_costs.parameters)s
 
-    Parameters
-    ----------
-    output
-        Output of the :mod:`ott` backend.
-    """
+        Returns
+        -------
+        %(plot_costs.returns)s
+        """
+        if self._errors is None:
+            raise RuntimeError("No errors to plot.")
 
-    def __init__(self, output: Union[OTTSinkhornOutput, OTTLRSinkhornOutput, OTTGWOutput]):
-        # TODO(michalk8): think about whether we want to plot the error in inner Sinkhorn in GW
-        if isinstance(output, OTTSinkhornOutput):
-            costs, errors = jnp.asarray([output.reg_ot_cost]), output.errors
-        else:
-            costs, errors = output.costs, None
-        super().__init__(costs=costs, errors=errors)
-        self._output = output
+        fig, ax = plt.subplots(figsize=figsize, dpi=dpi) if ax is None else (ax.get_figure(), ax)
+        errors = np.asarray(self._errors)
+        errors = errors[np.where(errors != self._NOT_COMPUTED)[0]]
+
+        if not self.is_linear:  # handle Gromov's inner iterations
+            if self._errors.ndim != 2:
+                raise ValueError(f"Expected `errors` to be 2 dimensional array, found `{self._errors.ndim}`.")
+            # convert to numpy because of how JAX handles indexing
+            errors = errors[outer_iteration]
+
+        self._plot_lines(ax, errors, last=last, y_label="error", title=title, **kwargs)
+
+        if save is not None:
+            fig.savefig(save)
+        if return_fig:
+            return fig
+
+    def _plot_lines(
+        self,
+        ax: mpl.axes.Axes,
+        values: ArrayLike,
+        last: Optional[int] = None,
+        y_label: Optional[str] = None,
+        title: Optional[str] = None,
+        **kwargs: Any,
+    ) -> None:
+        if values.ndim != 1:
+            raise ValueError(f"Expected array to be 1 dimensional, found `{values.ndim}`.")
+        values = values[values != self._NOT_COMPUTED]
+        ixs = np.arange(len(values))
+        if last is not None:
+            values = values[-last:]
+            ixs = ixs[-last:]
+
+        ax.plot(ixs, values, **kwargs)
+        ax.set_xlabel("iteration (logged)")
+        ax.set_ylabel(y_label)
+        ax.set_title(title if title is not None else "converged" if self.converged else "not converged")
+        ax.xaxis.set_major_locator(mpl.ticker.MaxNLocator(integer=True))
 
     def _apply(self, x: ArrayLike, *, forward: bool) -> ArrayLike:
         if x.ndim == 1:
@@ -121,6 +163,10 @@ class OTTOutput(ConvergencePlotterMixin, BaseSolverOutput):
     @property
     def transport_matrix(self) -> ArrayLike:
         return self._output.matrix
+
+    @property
+    def is_linear(self) -> bool:
+        return isinstance(self._output, (OTTSinkhornOutput, OTTLRSinkhornOutput))
 
     def to(self, device: Optional[Device_t] = None) -> "OTTOutput":
         if isinstance(device, str) and ":" in device:
@@ -149,14 +195,13 @@ class OTTOutput(ConvergencePlotterMixin, BaseSolverOutput):
 
     @property
     def potentials(self) -> Optional[Tuple[ArrayLike, ArrayLike]]:
-
         if isinstance(self._output, OTTSinkhornOutput):
             return self._output.f, self._output.g
         return None
 
     @property
     def rank(self) -> int:
-        lin_output = self._output.linear_state if isinstance(self._output, OTTGWOutput) else self._output
+        lin_output = self._output if self.is_linear else self._output.linear_state
         return len(lin_output.g) if isinstance(lin_output, OTTLRSinkhornOutput) else -1
 
     def _ones(self, n: int) -> jnp.ndarray:
