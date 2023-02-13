@@ -11,10 +11,12 @@ import numpy as np
 from moscot._types import Device_t, ArrayLike, DTypeLike
 from moscot._utils import require_solution
 from moscot._logging import logger
+from moscot._docs._docs import d
 
 __all__ = ["BaseSolverOutput", "MatrixSolverOutput"]
 
 
+@d.dedent
 class BaseSolverOutput(ABC):
     """Base class for all solver outputs."""
 
@@ -85,6 +87,7 @@ class BaseSolverOutput(ABC):
     def _ones(self, n: int) -> ArrayLike:
         pass
 
+    @d.dedent
     def push(self, x: ArrayLike, scale_by_marginals: bool = False) -> ArrayLike:
         """Push mass through the :attr:`transport_matrix`.
 
@@ -109,6 +112,7 @@ class BaseSolverOutput(ABC):
             x = self._scale_by_marginals(x, forward=True)
         return self._apply(x, forward=True)
 
+    @d.dedent
     def pull(self, x: ArrayLike, scale_by_marginals: bool = False) -> ArrayLike:
         """Pull mass through the :attr:`transport_matrix`.
 
@@ -133,6 +137,7 @@ class BaseSolverOutput(ABC):
             x = self._scale_by_marginals(x, forward=False)
         return self._apply(x, forward=False)
 
+    @d.dedent
     def as_linear_operator(self, scale_by_marginals: bool = False) -> LinearOperator:
         """Transform :attr:`transport_matrix` into a linear operator.
 
@@ -151,6 +156,7 @@ class BaseSolverOutput(ABC):
         # pull: X @ a (matvec)
         return LinearOperator(shape=self.shape, dtype=self.dtype, matvec=pull, rmatvec=push)
 
+    @d.dedent
     def chain(self, outputs: Iterable["BaseSolverOutput"], scale_by_marginals: bool = False) -> LinearOperator:
         """Chain subsequent applications of :attr:`transport_matrix`.
 
@@ -173,6 +179,25 @@ class BaseSolverOutput(ABC):
 
     @require_solution
     def sparsify(self, threshold: float = 1e-8, batch_size: int = 1024) -> csr_matrix:
+        """
+        Sparsify the transport matrix.
+
+        This function sets all entries of the transport matrix below `threshold` to 0 and
+        returns the result as a :class:`scipuy.sparse.csr_matrix`.
+        We encourage users not to use this function unless it is necessary. Note that this
+        does not necessarily reduce memory complexity.
+
+        Parameters
+        ----------
+        threshold
+            threshold below which entries are set to 0.0.
+        batch_size
+            How many rows of the transport matrix to sparsify per batch.
+
+        Returns
+        -------
+        A :class:`scipuy.sparse.csr_matrix` with the sparsified transport matrix.
+        """
         tmaps_sparse: List[csr_matrix] = []
         for batch in range(0, self.shape[1], batch_size):
             x = np.eye(self.shape[1], min(batch_size, self.shape[1] - batch), -(min(batch, self.shape[1])))
