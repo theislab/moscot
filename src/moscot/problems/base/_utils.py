@@ -72,6 +72,42 @@ def _validate_annotations_helper(
     return [None]
 
 
+def _validate_annotations(
+    df_source: pd.DataFrame,
+    df_target: pd.DataFrame,
+    source_annotation_key: Optional[str] = None,
+    target_annotation_key: Optional[str] = None,
+    source_annotations: Optional[List[Any]] = None,
+    target_annotations: Optional[List[Any]] = None,
+    aggregation_mode: Literal["annotation", "cell"] = "annotation",
+    forward: bool = False,
+) -> Tuple[List[Any], List[Any]]:
+    if forward:
+        if TYPE_CHECKING:  # checked in _check_argument_compatibility_cell_transition(
+            assert target_annotations is not None
+        target_annotations_verified = list(
+            set(df_target[target_annotation_key].cat.categories).intersection(target_annotations)
+        )
+        if not len(target_annotations_verified):
+            raise ValueError(f"None of `{target_annotations}`, found in the target annotations.")
+        source_annotations_verified = _validate_annotations_helper(
+            df_source, source_annotation_key, source_annotations, aggregation_mode
+        )
+        return source_annotations_verified, target_annotations_verified
+
+    if TYPE_CHECKING:  # checked in _check_argument_compatibility_cell_transition(
+        assert source_annotations is not None
+    source_annotations_verified = list(
+        set(df_source[source_annotation_key].cat.categories).intersection(set(source_annotations))
+    )
+    if not len(source_annotations_verified):
+        raise ValueError(f"None of `{source_annotations}`, found in the source annotations.")
+    target_annotations_verified = _validate_annotations_helper(
+        df_target, target_annotation_key, target_annotations, aggregation_mode
+    )
+    return source_annotations_verified, target_annotations_verified
+
+
 def _check_argument_compatibility_cell_transition(
     source_annotation: Str_Dict_t,
     target_annotation: Str_Dict_t,
