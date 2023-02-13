@@ -94,8 +94,9 @@ class BaseProblem(ABC):
             data = np.reshape(data, (-1, 1))
         if data.shape[0] != adata.n_obs:
             raise ValueError(f"Expected array of shape `({adata.n_obs,}, ...)`, found `{data.shape}`.")
-        if np.any(data < 0.0):
-            raise ValueError("Some entries have negative mass.")
+        # TO-DO: do we need this check or can we change it? alternative check for ProblemKind
+        # if np.any(data < 0.0):
+        #    raise ValueError("Some entries have negative mass.")
         total = np.sum(data, axis=0, keepdims=True)
         if np.any(total <= 0.0):
             raise ValueError("Some measures have no mass.")

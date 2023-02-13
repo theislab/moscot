@@ -308,6 +308,7 @@ class BaseCompoundProblem(BaseProblem, ABC, Generic[K, B]):
         # res = {(None, src) if forward else (tgt, None): current_mass}
         res = {src if forward else tgt: current_mass}
         for _src, _tgt in [(src, tgt)] + rest:
+            print(current_mass.shape)
             problem = self.problems[_src, _tgt]
             fun = problem.push if forward else problem.pull
             res[_tgt if forward else _src] = current_mass = fun(

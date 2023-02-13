@@ -10,7 +10,8 @@ from anndata import AnnData
 
 from moscot._types import ArrayLike, Numeric_t, Str_Dict_t
 from moscot._docs._docs_mixins import d_mixins
-from moscot._constants._constants import Key, AdataKeys, PlottingKeys, PlottingDefaults
+from moscot.problems.base._utils import _validate_annotations, _order_transition_matrix, _validate_args_cell_transition
+from moscot._constants._constants import Key, AdataKeys, PlottingKeys, AggregationMode, PlottingDefaults
 from moscot.problems.base._mixins import AnalysisMixin, AnalysisMixinProtocol
 from moscot.solvers._tagged_array import Tag
 from moscot.problems.base._compound_problem import B, K, ApplyOutput_t
@@ -761,3 +762,232 @@ class TemporalMixin(AnalysisMixin[K, B]):
         if key is not None and key not in self.adata.obs:
             raise KeyError(f"Unable to find temporal key in `adata.obs[{key!r}]`.")
         self._temporal_key = key
+
+
+class NeuralAnalysisMixin(AnalysisMixin[K, B]):
+    """Analysis Mixin for all problems involving a temporal dimension."""
+
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
+        super().__init__(*args, **kwargs)
+
+    @d_mixins.dedent
+    def cell_transition(
+        self: TemporalMixinProtocol[K, B],
+        source: K,
+        target: K,
+        source_groups: Str_Dict_t,
+        target_groups: Str_Dict_t,
+        forward: bool = False,  # return value will be row-stochastic if forward=True, else column-stochastic
+        aggregation_mode: Literal["annotation", "cell"] = "cell",
+        batch_size: int = 1024,
+        normalize: bool = True,
+        precomputed: bool = False,
+        key_added: Optional[str] = PlottingDefaults.CELL_TRANSITION,
+    ) -> Optional[pd.DataFrame]:
+        """
+        Compute a grouped cell transition matrix.
+
+        This function computes a transition matrix with entries corresponding to categories, e.g. cell types.
+        The transition matrix will be row-stochastic if `forward` is `True`, otherwise column-stochastic.
+
+        Parameters
+        ----------
+        %(cell_trans_params)s
+        %(forward_cell_transition)s
+        %(aggregation_mode)s
+        %(ott_jax_batch_size)s
+        %(normalize)s
+        %(key_added_plotting)s
+
+        Returns
+        -------
+        %(return_cell_transition)s
+
+        Notes
+        -----
+        %(notes_cell_transition)s
+        """
+
+        if TYPE_CHECKING:
+            assert isinstance(self.temporal_key, str)
+        if not precomputed:
+            if forward:
+                data_source = self.problems[source, target].xy.data_src  # type: ignore[union-attr]
+                data_target = self.problems[source, target].xy.data_tgt  # type: ignore[union-attr]
+            else:
+                data_source = self.problems[source, target].xy.data_tgt  # type: ignore[union-attr]
+                data_target = self.problems[source, target].xy.data_src  # type: ignore[union-attr]
+            tm_result = self.problems[source, target].solution.project_transport_matrix(  # type: ignore[union-attr]
+                data_source, data_target, forward=forward, batch_size=batch_size
+            )
+        else:
+            tm_result = self.problems[source, target].solution.transport_matrix  # type: ignore[union-attr]
+        if not forward:
+            tm_result = tm_result.T
+
+        annotation_key_source, annotations_present_source, annotations_ordered_source = _validate_args_cell_transition(
+            self.adata, source_groups
+        )
+        annotation_key_target, annotations_present_target, annotations_ordered_target = _validate_args_cell_transition(
+            self.adata, target_groups
+        )
+        df_source = self.adata[self.adata.obs[self.temporal_key] == source].obs[[annotation_key_source]].copy()
+        df_target = self.adata[self.adata.obs[self.temporal_key] == target].obs[[annotation_key_target]].copy()
+        annotations_verified_source, annotations_verified_target = _validate_annotations(
+            df_source=df_source,
+            df_target=df_target,
+            source_annotation_key=annotation_key_source,
+            target_annotation_key=annotation_key_target,
+            source_annotations=annotations_present_source,
+            target_annotations=annotations_present_target,
+            aggregation_mode=aggregation_mode,
+            forward=forward,
+        )
+        tm = pd.DataFrame(
+            np.zeros((len(annotations_present_source), len(annotations_present_target))),
+            index=annotations_present_source,
+            columns=annotations_present_target,
+        )
+        for annotation_src in annotations_present_source:
+            for annotation_tgt in annotations_present_target:
+                transition_pairs_indices = (df_source == annotation_src) @ (df_target == annotation_tgt).T
+                tm.loc[annotation_src, annotation_tgt] = tm_result[transition_pairs_indices].sum()
+
+        if normalize:
+            tm = tm.div(tm.sum(axis=1), axis=0)
+        if not forward:
+            tm = tm.T
+        if key_added is not None:
+            if aggregation_mode == AggregationMode.CELL and AggregationMode.CELL in self.adata.obs:
+                raise KeyError(f"Aggregation is already present in `adata.obs[{aggregation_mode!r}]`.")
+            plot_vars = {
+                "transition_matrix": tm,
+                "source": source,
+                "target": target,
+                "source_groups": source_groups,
+                "target_groups": target_groups,
+            }
+            Key.uns.set_plotting_vars(
+                adata=self.adata,
+                uns_key=AdataKeys.UNS,
+                pl_func_key=PlottingKeys.CELL_TRANSITION,
+                key=key_added,
+                value=plot_vars,
+            )
+        return _order_transition_matrix(
+            tm=tm,
+            source_annotations_verified=annotations_verified_source,
+            target_annotations_verified=annotations_verified_target,
+            source_annotations_ordered=annotations_ordered_source,
+            target_annotations_ordered=annotations_ordered_target,
+            forward=forward,
+        )
+
+    @d_mixins.dedent
+    def push(
+        self: TemporalMixinProtocol[K, B],
+        start: K,
+        end: K,
+        data: Optional[Union[str, ArrayLike]] = None,
+        subset: Optional[Union[str, List[str], Tuple[int, int]]] = None,
+        scale_by_marginals: bool = True,
+        key_added: Optional[str] = PlottingDefaults.PUSH,
+        return_all: bool = False,
+        return_data: bool = False,
+        **kwargs: Any,
+    ) -> Optional[ApplyOutput_t[K]]:
+        """
+        Push distribution of cells through time.
+
+        Parameters
+        ----------
+        %(source)s
+        %(target)s
+        %(data)s
+        %(subset)s
+        %(scale_by_marginals)s
+        %(key_added_plotting)s
+        %(return_all)s
+        %(return_data)s
+
+        Return
+        ------
+        %(return_push_pull)s
+
+        """
+        result = self._apply(
+            start=start,
+            end=end,
+            data=data,
+            subset=subset,
+            forward=True,
+            return_all=return_all or key_added is not None,
+            scale_by_marginals=scale_by_marginals,
+            **kwargs,
+        )
+
+        if TYPE_CHECKING:
+            assert isinstance(result, dict)
+
+        if key_added is not None:
+            plot_vars = {
+                "temporal_key": self.temporal_key,
+            }
+            self.adata.obs[key_added] = self._flatten(result, key=self.temporal_key)
+            Key.uns.set_plotting_vars(self.adata, AdataKeys.UNS, PlottingKeys.PUSH, key_added, plot_vars)
+        if return_data:
+            return result
+
+    @d_mixins.dedent
+    def pull(
+        self: TemporalMixinProtocol[K, B],
+        start: K,
+        end: K,
+        data: Optional[Union[str, ArrayLike]] = None,
+        subset: Optional[Union[str, List[str], Tuple[int, int]]] = None,
+        scale_by_marginals: bool = True,
+        key_added: Optional[str] = PlottingDefaults.PULL,
+        return_all: bool = False,
+        return_data: bool = False,
+        **kwargs: Any,
+    ) -> Optional[ApplyOutput_t[K]]:
+        """
+        Pull distribution of cells through time.
+
+        Parameters
+        ----------
+        %(source)s
+        %(target)s
+        %(data)s
+        %(subset)s
+        %(scale_by_marginals)s
+        %(key_added_plotting)s
+        %(return_all)s
+        %(return_data)s
+
+        Return
+        ------
+        %(return_push_pull)s
+
+        """
+        result = self._apply(
+            start=start,
+            end=end,
+            data=data,
+            subset=subset,
+            forward=False,
+            return_all=return_all or key_added is not None,
+            scale_by_marginals=scale_by_marginals,
+            **kwargs,
+        )
+        if TYPE_CHECKING:
+            assert isinstance(result, dict)
+
+        if key_added is not None:
+            plot_vars = {
+                "temporal_key": self.temporal_key,
+            }
+            self.adata.obs[key_added] = self._flatten(result, key=self.temporal_key)
+            Key.uns.set_plotting_vars(self.adata, AdataKeys.UNS, PlottingKeys.PULL, key_added, plot_vars)
+        if return_data:
+            return result
