@@ -40,6 +40,10 @@ class MockSolverOutput(MatrixSolverOutput):
     def potentials(self) -> Tuple[Optional[ArrayLike], Optional[ArrayLike]]:
         return None, None
 
+    @property
+    def is_linear(self) -> bool:
+        return True
+
     def _ones(self, n: int) -> ArrayLike:
         return np.ones(n)
 
