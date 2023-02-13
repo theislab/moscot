@@ -22,6 +22,7 @@ classifiers = [
     "Programming Language :: Python :: 3.8",
     "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
     "Topic :: Scientific/Engineering :: Bio-Informatics",
     "Topic :: Scientific/Engineering :: Mathematics"
 ]
@@ -56,7 +57,7 @@ dependencies = [
     "scanpy>=1.8.0",
     "wrapt>=1.13.2",
     "docrep>=0.3.2",
-    "ott-jax>=0.3.0",
+    "ott-jax>=0.4.0",
     "cloudpickle>=2.2.0",
 ]
 

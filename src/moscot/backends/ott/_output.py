@@ -111,13 +111,13 @@ class OTTOutput(BaseSolverOutput):
 
         fig, ax = plt.subplots(figsize=figsize, dpi=dpi) if ax is None else (ax.get_figure(), ax)
         errors = np.asarray(self._errors)
-        errors = errors[np.where(errors[:, 0] != self._NOT_COMPUTED)]
+        errors = errors[np.where(errors != self._NOT_COMPUTED)[0]]
 
         if not self.is_linear:  # handle Gromov's inner iterations
             if self._errors.ndim != 2:
                 raise ValueError(f"Expected `errors` to be 2 dimensional array, found `{self._errors.ndim}`.")
             # convert to numpy because of how JAX handles indexing
-            errors = errors[outer_iteration, :]
+            errors = errors[outer_iteration]
 
         self._plot_lines(ax, errors, last=last, y_label="error", title=title, **kwargs)
 
