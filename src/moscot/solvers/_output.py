@@ -190,13 +190,13 @@ class BaseSolverOutput(ABC):
         Parameters
         ----------
         threshold
-            threshold below which entries are set to 0.0.
+            Threshold below which entries are set to 0.0.
         batch_size
             How many rows of the transport matrix to sparsify per batch.
 
         Returns
         -------
-        A :class:`scipuy.sparse.csr_matrix` with the sparsified transport matrix.
+        A :class:`scipy.sparse.csr_matrix` with the sparsified transport matrix.
         """
         tmaps_sparse: List[csr_matrix] = []
         for batch in range(0, self.shape[1], batch_size):
