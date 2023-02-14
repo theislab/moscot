@@ -193,7 +193,7 @@ class NeuralOutput(BaseSolverOutput):
 
     def project_transport_matrix(
         self, src: ArrayLike, tgt: ArrayLike, forward: bool = True, batch_size: int = 1024, k: int = 30
-    ) -> ArrayLike:
+    ) -> csr_matrix:
         """Compute transport matrix given src and tgt arrays."""
         func = self.push if forward else self.pull
         get_knn_fn = jax.vmap(get_nearest_neighbors, in_axes=(0, None, None))
@@ -217,7 +217,9 @@ class NeuralOutput(BaseSolverOutput):
     def transport_matrix(self) -> ArrayLike:
         """%(transport_matrix)s"""
         if self._transport_matrix is None:
-            raise ValueError("Transport matrix is not computed yet.")
+            raise ValueError(
+                "The projected transport matrix has not computed yet. Please call `project_transport_matrix`."
+            )
         return self._transport_matrix
 
     def to(

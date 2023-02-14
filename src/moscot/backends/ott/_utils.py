@@ -1,4 +1,4 @@
-from typing import Any, Optional
+from typing import Any, Tuple, Optional
 from functools import partial
 
 from ott.geometry.pointcloud import PointCloud
@@ -59,7 +59,9 @@ class RunningAverageMeter:
 
 
 @partial(jax.jit, static_argnames=["k"])
-def get_nearest_neighbors(input_batch, target, k=30):
+def get_nearest_neighbors(
+    input_batch: jnp.ndarray, target: jnp.ndarray, k: int = 30
+) -> Tuple[jnp.ndarray, jnp.ndarray]:
     """Get the k nearest neighbors of the input batch in the target."""
     if input_batch.shape[0] < k:
         k = input_batch.shape[0]
