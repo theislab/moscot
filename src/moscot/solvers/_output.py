@@ -196,7 +196,7 @@ class BaseSolverOutput(ABC):
 
         Returns
         -------
-        A :class:`scipy.sparse.csr_matrix` with the sparsified transport matrix.
+        The sparsified transport matrix as a :class:`scipy.sparse.csr_matrix`.
         """
         tmaps_sparse: List[csr_matrix] = []
         for batch in range(0, self.shape[1], batch_size):
