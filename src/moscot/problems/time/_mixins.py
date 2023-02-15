@@ -9,6 +9,7 @@ import numpy as np
 from anndata import AnnData
 
 from moscot._types import ArrayLike, Numeric_t, Str_Dict_t
+from moscot._logging import logger
 from moscot._docs._docs_mixins import d_mixins
 from moscot.problems.base._utils import _validate_annotations, _order_transition_matrix, _validate_args_cell_transition
 from moscot._constants._constants import Key, AdataKeys, PlottingKeys, AggregationMode, PlottingDefaults
@@ -781,8 +782,10 @@ class NeuralAnalysisMixin(AnalysisMixin[K, B]):
         aggregation_mode: Literal["annotation", "cell"] = "cell",
         batch_size: int = 1024,
         normalize: bool = True,
-        precomputed: bool = False,
+        k: int = 30,
         key_added: Optional[str] = PlottingDefaults.CELL_TRANSITION,
+        new_adata: Optional[AnnData] = None,
+        joint_attr: Optional[str] = None,
     ) -> Optional[pd.DataFrame]:
         """
         Compute a grouped cell transition matrix.
@@ -810,29 +813,40 @@ class NeuralAnalysisMixin(AnalysisMixin[K, B]):
 
         if TYPE_CHECKING:
             assert isinstance(self.temporal_key, str)
-        if not precomputed:
-            if forward:
-                data_source = self.problems[source, target].xy.data_src  # type: ignore[union-attr]
-                data_target = self.problems[source, target].xy.data_tgt  # type: ignore[union-attr]
-            else:
-                data_source = self.problems[source, target].xy.data_tgt  # type: ignore[union-attr]
-                data_target = self.problems[source, target].xy.data_src  # type: ignore[union-attr]
-            tm_result = self.problems[source, target].solution.project_transport_matrix(  # type: ignore[union-attr]
-                data_source, data_target, forward=forward, batch_size=batch_size
+        solution = self.problems[source, target].solution
+        # check if new adata object is given
+        if new_adata is not None:
+            assert joint_attr is not None
+            adata = new_adata
+            data_source = adata[adata.obs[self.temporal_key] == source].obsm[joint_attr].copy()
+            data_target = adata[adata.obs[self.temporal_key] == target].obsm[joint_attr].copy()
+            logger.info(f"Computing projected transport matrix for new adata object with k={k}.")
+            tm_result = solution.project_transport_matrix(  # type: ignore[union-attr]
+                data_source, data_target, forward=forward, save_transport_matrix=False, batch_size=batch_size, k=k
             )
         else:
-            tm_result = self.problems[source, target].solution.transport_matrix  # type: ignore[union-attr]
-        if not forward:
-            tm_result = tm_result.T
+            adata = self.adata
+            try:
+                # try to get projected transport matrix
+                tm_result = solution.get_projected_transport_matrix(forward)  # type: ignore[union-attr]
+            except ValueError:
+                # otherwise compute projected transport matrix
+                data_source = self.problems[source, target].xy.data_src  # type: ignore[union-attr]
+                data_target = self.problems[source, target].xy.data_tgt  # type: ignore[union-attr]
+                logger.info(f"Computing projected transport matrix with k={k}.")
+                tm_result = solution.project_transport_matrix(  # type: ignore[union-attr]
+                    data_source, data_target, forward=forward, save_transport_matrix=True, batch_size=batch_size, k=k
+                )
 
+        # get annotation information
         annotation_key_source, annotations_present_source, annotations_ordered_source = _validate_args_cell_transition(
-            self.adata, source_groups
+            adata, source_groups
         )
         annotation_key_target, annotations_present_target, annotations_ordered_target = _validate_args_cell_transition(
-            self.adata, target_groups
+            adata, target_groups
         )
-        df_source = self.adata[self.adata.obs[self.temporal_key] == source].obs[[annotation_key_source]].copy()
-        df_target = self.adata[self.adata.obs[self.temporal_key] == target].obs[[annotation_key_target]].copy()
+        df_source = adata[adata.obs[self.temporal_key] == source].obs[[annotation_key_source]].copy()
+        df_target = adata[adata.obs[self.temporal_key] == target].obs[[annotation_key_target]].copy()
         annotations_verified_source, annotations_verified_target = _validate_annotations(
             df_source=df_source,
             df_target=df_target,
@@ -840,23 +854,23 @@ class NeuralAnalysisMixin(AnalysisMixin[K, B]):
             target_annotation_key=annotation_key_target,
             source_annotations=annotations_present_source,
             target_annotations=annotations_present_target,
-            aggregation_mode=aggregation_mode,
+            aggregation_mode="annotation",
             forward=forward,
         )
+        # aggregate transition matrix
         tm = pd.DataFrame(
-            np.zeros((len(annotations_present_source), len(annotations_present_target))),
-            index=annotations_present_source,
-            columns=annotations_present_target,
+            np.zeros((len(annotations_verified_source), len(annotations_verified_target))),
+            index=annotations_verified_source,
+            columns=annotations_verified_target,
         )
-        for annotation_src in annotations_present_source:
-            for annotation_tgt in annotations_present_target:
-                transition_pairs_indices = (df_source == annotation_src) @ (df_target == annotation_tgt).T
-                tm.loc[annotation_src, annotation_tgt] = tm_result[transition_pairs_indices].sum()
+        for annotation_src in annotations_verified_source:
+            for annotation_tgt in annotations_verified_target:
+                tm.loc[annotation_src, annotation_tgt] = tm_result[
+                    np.ix_((df_source == annotation_src).squeeze(), (df_target == annotation_tgt).squeeze())
+                ].sum()
 
         if normalize:
-            tm = tm.div(tm.sum(axis=1), axis=0)
-        if not forward:
-            tm = tm.T
+            tm = tm.div(tm.sum(axis=int(forward)), axis=int(not forward))
         if key_added is not None:
             if aggregation_mode == AggregationMode.CELL and AggregationMode.CELL in self.adata.obs:
                 raise KeyError(f"Aggregation is already present in `adata.obs[{aggregation_mode!r}]`.")
@@ -868,7 +882,7 @@ class NeuralAnalysisMixin(AnalysisMixin[K, B]):
                 "target_groups": target_groups,
             }
             Key.uns.set_plotting_vars(
-                adata=self.adata,
+                adata=adata,
                 uns_key=AdataKeys.UNS,
                 pl_func_key=PlottingKeys.CELL_TRANSITION,
                 key=key_added,

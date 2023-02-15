@@ -177,6 +177,7 @@ class NeuralOutput(BaseSolverOutput):
         self._output = output
         self._training_logs = training_logs
         self._transport_matrix = None
+        self._inverse_transport_matrix = None
 
     def _apply(self, x: ArrayLike, *, forward: bool) -> ArrayLike:
         return self._output.transport(x, forward=forward)
@@ -192,35 +193,70 @@ class NeuralOutput(BaseSolverOutput):
         raise NotImplementedError()
 
     def project_transport_matrix(
-        self, src: ArrayLike, tgt: ArrayLike, forward: bool = True, batch_size: int = 1024, k: int = 30
+        self,
+        src: ArrayLike,
+        tgt: ArrayLike,
+        forward: bool = True,
+        save_transport_matrix: bool = True,
+        batch_size: int = 1024,
+        k: int = 30,
     ) -> csr_matrix:
-        """Compute transport matrix given src and tgt arrays."""
-        func = self.push if forward else self.pull
+        """Compute projected transport matrix batch-wise given src and tgt arrays."""
+        src, tgt = jnp.asarray(src), jnp.asarray(tgt)
+        if forward:
+            func = self.push
+        else:
+            func = self.pull
+            src, tgt = tgt, src
         get_knn_fn = jax.vmap(get_nearest_neighbors, in_axes=(0, None, None))
         row_indices = []
         column_indices = []
         distances_list = []
         for index in range(0, len(src), batch_size):
+            # compute k nearest neighbors for current source batch compared to whole target
             negative_distances, indices = get_knn_fn(func(src[index : index + batch_size]), tgt, k)
             distances = jnp.exp(negative_distances)
             distances /= jnp.sum(distances, axis=1)[:, None]
             distances_list.append(distances.flatten())
             column_indices.append(indices.flatten())
             row_indices.append(jnp.repeat(jnp.arange(index, index + min(batch_size, len(src))), min(k, len(tgt))))
+        # create sparse matrix with normalized exp(-d(x,y)) as entries
         distances = jnp.concatenate(distances_list)
         row_indices = jnp.concatenate(row_indices)
         column_indices = jnp.concatenate(column_indices)
-        self._transport_matrix = csr_matrix((distances, (row_indices, column_indices)), shape=[len(src), len(tgt)])
-        return self.transport_matrix
+        tm = csr_matrix((distances, (row_indices, column_indices)), shape=[len(src), len(tgt)])
+        if forward:
+            if save_transport_matrix:
+                self._transport_matrix = tm
+        else:
+            tm = tm.T
+            if save_transport_matrix:
+                self._inverse_transport_matrix = tm
+        return tm
 
     @property
     def transport_matrix(self) -> ArrayLike:
         """%(transport_matrix)s"""
         if self._transport_matrix is None:
             raise ValueError(
-                "The projected transport matrix has not computed yet. Please call `project_transport_matrix`."
+                "The forward projected transport matrix has not computed yet. Please call `project_transport_matrix`."
             )
         return self._transport_matrix
+
+    @property
+    def inverse_transport_matrix(self) -> ArrayLike:
+        """%(inverse_transport_matrix)s"""
+        if self._inverse_transport_matrix is None:
+            raise ValueError(
+                "The inverse projected transport matrix has not computed yet. Please call `project_transport_matrix`."
+            )
+        return self._inverse_transport_matrix
+
+    def get_projected_transport_matrix(self, forward: bool = True) -> ArrayLike:
+        """%(get_transport_matrix)s"""
+        if forward:
+            return self.transport_matrix
+        return self.inverse_transport_matrix
 
     def to(
         self,
