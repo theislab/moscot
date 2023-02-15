@@ -816,7 +816,8 @@ class NeuralAnalysisMixin(AnalysisMixin[K, B]):
         solution = self.problems[source, target].solution
         # check if new adata object is given
         if new_adata is not None:
-            assert joint_attr is not None
+            if joint_attr is None:
+                raise ValueError("`joint_attr` must be provided if `new_adata` is given.")
             adata = new_adata
             data_source = adata[adata.obs[self.temporal_key] == source].obsm[joint_attr].copy()
             data_target = adata[adata.obs[self.temporal_key] == target].obsm[joint_attr].copy()

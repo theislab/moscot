@@ -239,7 +239,8 @@ class NeuralOutput(BaseSolverOutput):
         """%(transport_matrix)s"""
         if self._transport_matrix is None:
             raise ValueError(
-                "The forward projected transport matrix has not computed yet. Please call `project_transport_matrix`."
+                "The forward projected transport matrix has not been computed yet."
+                " Please call `project_transport_matrix`."
             )
         return self._transport_matrix
 
@@ -248,7 +249,8 @@ class NeuralOutput(BaseSolverOutput):
         """%(inverse_transport_matrix)s"""
         if self._inverse_transport_matrix is None:
             raise ValueError(
-                "The inverse projected transport matrix has not computed yet. Please call `project_transport_matrix`."
+                "The inverse projected transport matrix has not been computed yet."
+                " Please call `project_transport_matrix`."
             )
         return self._inverse_transport_matrix
 
@@ -301,12 +303,12 @@ class NeuralOutput(BaseSolverOutput):
         g = jax.vmap(self._output.g)
         return f, g
 
-    def push(self, x: ArrayLike, scale_by_marginals: bool = False) -> ArrayLike:
+    def push(self, x: ArrayLike) -> ArrayLike:  # type: ignore[override]
         if x.ndim not in (1, 2):
             raise ValueError(f"Expected 1D or 2D array, found `{x.ndim}`.")
         return self._apply(x, forward=True)
 
-    def pull(self, x: ArrayLike, scale_by_marginals: bool = False) -> ArrayLike:
+    def pull(self, x: ArrayLike) -> ArrayLike:  # type: ignore[override]
         if x.ndim not in (1, 2):
             raise ValueError(f"Expected 1D or 2D array, found `{x.ndim}`.")
         return self._apply(x, forward=False)
