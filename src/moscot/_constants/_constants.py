@@ -50,6 +50,12 @@ class AggregationMode(ModeEnum):
     ANNOTATION = "annotation"
     CELL = "cell"
 
+@unique
+class SparsifyMode(ModeEnum):
+    THRESHOLD = "threshold"
+    PERCENTILE = "percentile"
+    MIN_1 = "min_1"
+
 
 # TODO(MUCKD): refactor, no need for enum
 @unique

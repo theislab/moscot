@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 from copy import copy
-from typing import Any, List, Tuple, Callable, Iterable, Optional
+from typing import Any, List, Tuple, Callable, Iterable, Optional, Literal
 from functools import partial
 
 from scipy.sparse import hstack as sparse_hstack, csr_matrix
@@ -8,6 +8,7 @@ from scipy.sparse.linalg import LinearOperator
 
 import numpy as np
 
+from moscot._constants._constants import SparsifyMode
 from moscot._types import Device_t, ArrayLike, DTypeLike
 from moscot._utils import require_solution
 from moscot._logging import logger
@@ -178,7 +179,7 @@ class BaseSolverOutput(ABC):
         return op
 
     @require_solution
-    def sparsify(self, threshold: float = 1e-8, batch_size: int = 1024) -> csr_matrix:
+    def compute_sparsification(self, mode: Literal["threshold", "percentile", "min_1"] = SparsifyMode.THRESHOLD, threshold: float = 1e-8,  batch_size: int = 1024, n_samples: Optional[int] = None) -> None:
         """
         Sparsify the transport matrix.
 
@@ -189,22 +190,54 @@ class BaseSolverOutput(ABC):
 
         Parameters
         ----------
+        mode
+            Which threshold to use for sparsification. Can be one of
+            - "threshold" - threshold below which entries are set to 0.0.
+            - "percentile" - determine threshold by percentile below which entries are set to 0. Hence, between 0 and 100.
+            - "min_1" - choose the threshold such that each row has at least one non-zero entry.
         threshold
-            Threshold below which entries are set to 0.0.
+            Threshold or percentile depending on `mode`. If `mode` is `min_1`, `threshold` can be neglected.
         batch_size
             How many rows of the transport matrix to sparsify per batch.
+        n_samples
+            If `mode` is `percentile`, determine the number of samples based on which the percentile
+            is computed stochastically. Note this means that a matrix of shape `[n_samples, transport_matrix.shape[1]]`
+            has to be instantiated. If `None`, `n_samples` is set to batch_size.
 
         Returns
         -------
-        The sparsified transport matrix as a :class:`scipy.sparse.csr_matrix`.
+        Nothing, but adds the sparsified transport matrix (:class:`scipy.sparse.csr_matrix`) to `self.sparsified_tmap`.
         """
+        mode = SparsifyMode(mode)
+        if mode == SparsifyMode.THRESHOLD:
+            thr = threshold
+        if mode == SparsifyMode.PERCENTILE:
+            n_samples = n_samples if n_samples is not None else batch_size
+            x = np.eye(self.shape[1], max(n_samples, self.shape[1]))
+            res = self.pull(x, scale_by_marginals=False)  # tmap @ indicator_vectors
+            thr = np.percentile(res, threshold)
+        elif mode == SparsifyMode.MIN_1:
+            thr = np.inf
+            for batch in range(0, self.shape[1], batch_size):
+                x = np.eye(self.shape[1], min(batch_size, self.shape[1] - batch), -(min(batch, self.shape[1])))
+                res = self.pull(x, scale_by_marginals=False)  # tmap @ indicator_vectors
+                thr_batch = res.max(axis=1).min() 
+                thr = thr_batch if thr_batch < thr else thr
+        else:
+            raise NotImplementedError(mode)
+
+            
         tmaps_sparse: List[csr_matrix] = []
         for batch in range(0, self.shape[1], batch_size):
             x = np.eye(self.shape[1], min(batch_size, self.shape[1] - batch), -(min(batch, self.shape[1])))
             res = self.pull(x, scale_by_marginals=False)  # tmap @ indicator_vectors
-            res[res < threshold] = 0
+            res[res < thr] = 0
             tmaps_sparse.append(csr_matrix(res))
-        return sparse_hstack(tmaps_sparse)
+        self._sparsified_tmap = sparse_hstack(tmaps_sparse)
+
+    @property
+    def sparsified_tmap(self) -> Optional[csr_matrix]:
+        return self._sparsified_tmap
 
     @property
     def a(self) -> ArrayLike:
