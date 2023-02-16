@@ -25,9 +25,9 @@ import cloudpickle
 from anndata import AnnData
 
 from moscot._types import ArrayLike, ProblemStage_t
+from moscot._utils import require_prepare
 from moscot._logging import logger
 from moscot._docs._docs import d
-from moscot._utils import require_prepare
 from moscot.solvers._output import BaseSolverOutput
 from moscot.problems.base._utils import attributedispatch
 from moscot._constants._constants import Policy
@@ -420,7 +420,7 @@ class BaseCompoundProblem(BaseProblem, ABC, Generic[K, B]):
         return self._problem_manager.problems
 
     @d.dedent
-    @require_prepare
+    @require_prepare  # type:ignore[has-type]  # type:ignore[has-type]
     def add_problem(
         self,
         key: Tuple[K, K],
@@ -454,7 +454,7 @@ class BaseCompoundProblem(BaseProblem, ABC, Generic[K, B]):
         return self
 
     @d.dedent
-    @require_prepare
+    @require_prepare  # type:ignore[has-type]
     def remove_problem(self, key: Tuple[K, K]) -> "BaseCompoundProblem[K, B]":
         """
         Remove a (sub)problem.

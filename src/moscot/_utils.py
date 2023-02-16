@@ -1,15 +1,18 @@
 # adapted from CellRank
 """Module used to parallelize model fitting."""
 
-from typing import Any, Union, Callable, Optional, Sequence, Tuple, Mapping, TYPE_CHECKING
+from typing import Any, Tuple, Union, Mapping, Callable, Optional, Sequence, TYPE_CHECKING
 from threading import Thread
 from multiprocessing import Manager, cpu_count
 
 from numba import njit
 from scipy.sparse import issparse, spmatrix
-import joblib as jl
 import wrapt
+import joblib as jl
+
 import numpy as np
+
+from moscot.problems.base._compound_problem import B, K
 
 if TYPE_CHECKING:
     from moscot.problems.base import BaseProblem, BaseCompoundProblem  # type: ignore[attr-defined]
@@ -38,7 +41,10 @@ def require_solution(
 
 @wrapt.decorator
 def require_prepare(
-    wrapped: Callable[[Any], Any], instance: "BaseCompoundProblem", args: Tuple[Any, ...], kwargs: Mapping[str, Any]
+    wrapped: Callable[[Any], Any],
+    instance: "BaseCompoundProblem[K,B]",
+    args: Tuple[Any, ...],
+    kwargs: Mapping[str, Any],
 ) -> Any:
     """Check whether problem has been prepared."""
     if instance.problems is None:
@@ -158,7 +164,7 @@ def parallelize(
             collections = [collection[[ix], :] for ix in range(collection.shape[0])]  # type: ignore
         else:
             step = collection.shape[0] // n_split  # type: ignore[union-attr]
-            ixs = [np.arange(i * step, min((i + 1) * step, collection.shape[0])) for i in range(n_split)]  # type: ignore  # noqa:501
+            ixs = [np.arange(i * step, min((i + 1) * step, collection.shape[0])) for i in range(n_split)]  # type:ignore
             ixs[-1] = np.append(ixs[-1], np.arange(ixs[-1][-1] + 1, collection.shape[0]))  # type: ignore
 
             collections = [collection[ix, :] for ix in filter(len, ixs)]  # type:ignore[call-overload]
@@ -234,10 +240,10 @@ def _np_apply_along_axis(func1d, axis: int, arr: ArrayLike) -> ArrayLike:
 
 
 @njit(**jit_kwargs)
-def np_mean(array: ArrayLike, axis: int) -> ArrayLike:  # noqa
+def np_mean(array: ArrayLike, axis: int) -> ArrayLike:
     return _np_apply_along_axis(np.mean, axis, array)
 
 
 @njit(**jit_kwargs)
-def np_std(array: ArrayLike, axis: int) -> ArrayLike:  # noqa
+def np_std(array: ArrayLike, axis: int) -> ArrayLike:
     return _np_apply_along_axis(np.std, axis, array)

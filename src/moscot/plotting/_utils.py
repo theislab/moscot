@@ -21,6 +21,7 @@ import scanpy as sc
 from moscot.problems.base import CompoundProblem  # type: ignore[attr-defined]
 from moscot._constants._key import RandomKeys
 from moscot._constants._constants import AggregationMode
+from moscot.problems.base._compound_problem import B, K
 
 
 def set_palette(
@@ -313,7 +314,6 @@ def _get_cmap_norm(
     row_annotation: str,
     col_annotation: str,
 ) -> Tuple[mcolors.ListedColormap, mcolors.ListedColormap, mcolors.BoundaryNorm, mcolors.BoundaryNorm]:
-
     if row_annotation != AggregationMode.CELL:
         row_color_dict = {
             row_adata.obs[row_annotation].cat.categories[i]: col
@@ -346,7 +346,7 @@ def _contrasting_color(r: int, g: int, b: int) -> str:
     return "#000000" if r * 0.299 + g * 0.587 + b * 0.114 > 186 else "#ffffff"
 
 
-def _input_to_adatas(inp: Union[AnnData, Tuple[AnnData, AnnData], CompoundProblem]) -> Tuple[AnnData, AnnData]:
+def _input_to_adatas(inp: Union[AnnData, Tuple[AnnData, AnnData], CompoundProblem[K, B]]) -> Tuple[AnnData, AnnData]:
     if isinstance(inp, CompoundProblem):
         return inp.adata, inp.adata
     if isinstance(inp, AnnData):

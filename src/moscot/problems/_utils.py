@@ -3,13 +3,11 @@ from typing import Any, Dict, Tuple, Union, Mapping, Callable, Optional, TYPE_CH
 from moscot._types import CostFn_t
 
 if TYPE_CHECKING:
-    from moscot.problems.base import BaseProblem, BaseCompoundProblem  # type: ignore[attr-defined]
+    from moscot.problems.base import BaseProblem  # type: ignore[attr-defined]
 
 import wrapt
 
 __all__ = ["wrap_prepare", "wrap_solve"]
-
-
 
 
 @wrapt.decorator

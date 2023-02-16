@@ -305,7 +305,6 @@ class DummyPolicy(FormatterMixin, SubsetPolicy[str]):
         tgt_name: Literal["tgt"] = "tgt",
         **kwargs: Any,
     ):
-
         super().__init__(pd.Series([self._SENTINEL] * len(adata)), verify_integrity=False, **kwargs)
         self._cat = (src_name, tgt_name)
         self._src_name = src_name

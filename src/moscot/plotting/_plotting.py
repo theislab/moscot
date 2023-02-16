@@ -14,11 +14,12 @@ from moscot.problems.time import LineageProblem, TemporalProblem  # type: ignore
 from moscot.plotting._utils import _sankey, _heatmap, _plot_temporal, _input_to_adatas, _create_col_colors
 from moscot._docs._docs_plot import d_plotting
 from moscot._constants._constants import AdataKeys, PlottingKeys, PlottingDefaults
+from moscot.problems.base._compound_problem import B, K
 
 
 @d_plotting.dedent
 def cell_transition(
-    inp: Union[AnnData, Tuple[AnnData, AnnData], CompoundProblem],
+    inp: Union[AnnData, Tuple[AnnData, AnnData], CompoundProblem[K, B]],
     uns_key: str = PlottingKeys.CELL_TRANSITION,
     row_labels: Optional[str] = None,
     col_labels: Optional[str] = None,
@@ -166,7 +167,7 @@ def sankey(
 
 @d_plotting.dedent
 def push(
-    inp: Union[AnnData, TemporalProblem, LineageProblem, CompoundProblem],
+    inp: Union[AnnData, TemporalProblem, LineageProblem, CompoundProblem[K, B]],
     uns_key: Optional[str] = None,
     time_points: Optional[Sequence[float]] = None,
     basis: str = "umap",
@@ -251,7 +252,7 @@ def push(
 
 @d_plotting.dedent
 def pull(
-    inp: Union[AnnData, TemporalProblem, LineageProblem, CompoundProblem],
+    inp: Union[AnnData, TemporalProblem, LineageProblem, CompoundProblem[K, B]],
     uns_key: Optional[str] = None,
     time_points: Optional[Sequence[float]] = None,
     basis: str = "umap",

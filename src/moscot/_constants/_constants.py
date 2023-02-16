@@ -50,6 +50,7 @@ class AggregationMode(ModeEnum):
     ANNOTATION = "annotation"
     CELL = "cell"
 
+
 @unique
 class SparsifyMode(ModeEnum):
     THRESHOLD = "threshold"

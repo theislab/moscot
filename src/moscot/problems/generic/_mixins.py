@@ -3,12 +3,13 @@ from typing import Any, List, Tuple, Union, Literal, Optional, Protocol, TYPE_CH
 import pandas as pd
 
 from anndata import AnnData
-from scipy.sparse import csr_matrix
+
 from moscot._types import ArrayLike, Str_Dict_t
 from moscot._docs._docs_mixins import d_mixins
 from moscot._constants._constants import Key, PlottingKeys, PlottingDefaults
 from moscot.problems.base._mixins import AnalysisMixin, AnalysisMixinProtocol
 from moscot.problems.base._compound_problem import B, K, ApplyOutput_t
+
 
 class GenericAnalysisMixinProtocol(AnalysisMixinProtocol[K, B], Protocol[K, B]):
     """Protocol class."""

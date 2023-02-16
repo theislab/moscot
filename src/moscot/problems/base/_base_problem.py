@@ -11,10 +11,10 @@ from anndata import AnnData
 import scanpy as sc
 
 from moscot._types import CostFn_t, Device_t, ArrayLike
+from moscot._utils import require_solution
 from moscot._logging import logger
 from moscot._docs._docs import d
 from moscot.problems._utils import wrap_solve, wrap_prepare
-from moscot._utils import  require_solution
 from moscot.solvers._output import BaseSolverOutput
 from moscot.solvers._base_solver import OTSolver, ProblemKind
 from moscot._constants._constants import ProblemStage
@@ -337,7 +337,7 @@ class OTProblem(BaseProblem):
         )
         return self
 
-    @require_solution
+    @require_solution  # type:ignore[has-type]
     def push(
         self,
         data: Optional[Union[str, ArrayLike]] = None,
@@ -377,7 +377,6 @@ class OTProblem(BaseProblem):
         data = self._get_mass(self.adata_src, data=data, subset=subset, normalize=normalize, split_mass=split_mass)
         return self.solution.push(data, **kwargs)
 
-    @require_solution
     def pull(
         self,
         data: Optional[Union[str, ArrayLike]] = None,

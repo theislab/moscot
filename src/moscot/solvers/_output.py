@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 from copy import copy
-from typing import Any, List, Tuple, Callable, Iterable, Optional, Literal
+from typing import Any, List, Tuple, Literal, Callable, Iterable, Optional
 from functools import partial
 
 from scipy.sparse import hstack as sparse_hstack, csr_matrix
@@ -8,11 +8,10 @@ from scipy.sparse.linalg import LinearOperator
 
 import numpy as np
 
-from moscot._constants._constants import SparsifyMode
 from moscot._types import Device_t, ArrayLike, DTypeLike
-from moscot._utils import require_solution
 from moscot._logging import logger
 from moscot._docs._docs import d
+from moscot._constants._constants import SparsifyMode
 
 __all__ = ["BaseSolverOutput", "MatrixSolverOutput"]
 
@@ -178,8 +177,14 @@ class BaseSolverOutput(ABC):
 
         return op
 
-    @require_solution
-    def compute_sparsification(self, mode: Literal["threshold", "percentile", "min_1"] = SparsifyMode.THRESHOLD, threshold: float = 1e-8,  batch_size: int = 1024, n_samples: Optional[int] = None) -> None:
+    @d.dedent
+    def compute_sparsification(
+        self,
+        mode: Literal["threshold", "percentile", "min_1"] = SparsifyMode.THRESHOLD,
+        threshold: float = 1e-8,
+        batch_size: int = 1024,
+        n_samples: Optional[int] = None,
+    ) -> None:
         """
         Sparsify the transport matrix.
 
@@ -193,7 +198,8 @@ class BaseSolverOutput(ABC):
         mode
             Which threshold to use for sparsification. Can be one of
             - "threshold" - threshold below which entries are set to 0.0.
-            - "percentile" - determine threshold by percentile below which entries are set to 0. Hence, between 0 and 100.
+            - "percentile" - determine threshold by percentile below which entries are set to 0. Hence, between 0 and
+            100.
             - "min_1" - choose the threshold such that each row has at least one non-zero entry.
         threshold
             Threshold or percentile depending on `mode`. If `mode` is `min_1`, `threshold` can be neglected.
@@ -221,12 +227,11 @@ class BaseSolverOutput(ABC):
             for batch in range(0, self.shape[1], batch_size):
                 x = np.eye(self.shape[1], min(batch_size, self.shape[1] - batch), -(min(batch, self.shape[1])))
                 res = self.pull(x, scale_by_marginals=False)  # tmap @ indicator_vectors
-                thr_batch = res.max(axis=1).min() 
+                thr_batch = res.max(axis=1).min()
                 thr = thr_batch if thr_batch < thr else thr
         else:
             raise NotImplementedError(mode)
 
-            
         tmaps_sparse: List[csr_matrix] = []
         for batch in range(0, self.shape[1], batch_size):
             x = np.eye(self.shape[1], min(batch_size, self.shape[1] - batch), -(min(batch, self.shape[1])))
@@ -237,7 +242,7 @@ class BaseSolverOutput(ABC):
 
     @property
     def sparsified_tmap(self) -> Optional[csr_matrix]:
-        return self._sparsified_tmap
+        return self._sparsified_tmap  # type:ignore[has-type]
 
     @property
     def a(self) -> ArrayLike:

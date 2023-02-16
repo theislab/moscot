@@ -105,7 +105,7 @@ class OTTJaxSolver(OTSolver[OTTOutput]):
             return jnp.reshape(arr, (-1, 1))
         if arr.ndim != 2:
             raise ValueError(f"Expected array to have 2 dimensions, found `{arr.ndim}`.")
-        return arr
+        return arr  # type:ignore[return-value]
 
     @staticmethod
     def _create_cost(cost: Optional[Union[str, CostFn]], **kwargs: Any) -> CostFn:
@@ -188,7 +188,6 @@ class SinkhornSolver(OTTJaxSolver):
 
         geom = self._create_geometry(xy, epsilon=epsilon, batch_size=batch_size, scale_cost=scale_cost, **kwargs)
         if self.is_low_rank:
-
             geom = geom.to_LRCGeometry(
                 rank=self.rank if cost_matrix_rank is None else cost_matrix_rank
             )  # batch_size cannot be passed in this function
