@@ -64,6 +64,6 @@ def get_nearest_neighbors(
 ) -> Tuple[jnp.ndarray, jnp.ndarray]:
     """Get the k nearest neighbors of the input batch in the target."""
     k = max(input_batch.shape[0], k)
-    euclidean_distances = -1 * jnp.sqrt(jnp.sum((input_batch - target) ** 2, axis=-1))
-    distances, indices = jax.lax.top_k(euclidean_distances, k=k)
+    pairwise_euclidean_distances = -1 * jnp.sqrt(jnp.sum((input_batch - target) ** 2, axis=-1))
+    distances, indices = jax.lax.top_k(pairwise_euclidean_distances, k=k)
     return distances, indices

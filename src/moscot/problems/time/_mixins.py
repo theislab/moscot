@@ -829,7 +829,10 @@ class NeuralAnalysisMixin(AnalysisMixin[K, B]):
             adata = self.adata
             try:
                 # try to get projected transport matrix
-                tm_result = solution.get_projected_transport_matrix(forward)  # type: ignore[union-attr]
+                if forward:
+                    tm_result = solution.transport_matrix  # type: ignore[union-attr]
+                else:
+                    tm_result = solution.inverse_transport_matrix  # type: ignore[union-attr]
             except ValueError:
                 # otherwise compute projected transport matrix
                 data_source = self.problems[source, target].xy.data_src  # type: ignore[union-attr]

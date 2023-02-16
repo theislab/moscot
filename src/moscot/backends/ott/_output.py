@@ -254,12 +254,6 @@ class NeuralOutput(BaseSolverOutput):
             )
         return self._inverse_transport_matrix
 
-    def get_projected_transport_matrix(self, forward: bool = True) -> ArrayLike:
-        """%(get_transport_matrix)s"""
-        if forward:
-            return self.transport_matrix
-        return self.inverse_transport_matrix
-
     def to(
         self,
         device: Optional[Device_t] = None,
