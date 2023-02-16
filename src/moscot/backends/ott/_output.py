@@ -219,7 +219,9 @@ class NeuralOutput(BaseSolverOutput):
             distances /= jnp.sum(distances, axis=1)[:, None]
             distances_list.append(distances.flatten())
             column_indices.append(indices.flatten())
-            row_indices.append(jnp.repeat(jnp.arange(index, index + min(batch_size, len(src))), min(k, len(tgt))))
+            row_indices.append(
+                jnp.repeat(jnp.arange(index, index + min(batch_size, len(src) - index)), min(k, len(tgt)))
+            )
         # create sparse matrix with normalized exp(-d(x,y)) as entries
         distances = jnp.concatenate(distances_list)
         row_indices = jnp.concatenate(row_indices)
