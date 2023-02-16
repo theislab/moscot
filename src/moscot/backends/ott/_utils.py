@@ -1,7 +1,9 @@
-from typing import Any, Optional
+from typing import Any, Tuple, Optional
+from functools import partial
 
 from ott.geometry.pointcloud import PointCloud
 from ott.tools.sinkhorn_divergence import sinkhorn_divergence
+import jax
 import jax.numpy as jnp
 
 from moscot._types import ArrayLike, ScaleCost_t
@@ -54,3 +56,14 @@ class RunningAverageMeter:
         self.sum += val * n
         self.count += n
         self.avg = self.sum / self.count
+
+
+@partial(jax.jit, static_argnames=["k"])
+def get_nearest_neighbors(
+    input_batch: jnp.ndarray, target: jnp.ndarray, k: int = 30
+) -> Tuple[jnp.ndarray, jnp.ndarray]:
+    """Get the k nearest neighbors of the input batch in the target."""
+    k = max(input_batch.shape[0], k)
+    pairwise_euclidean_distances = -1 * jnp.sqrt(jnp.sum((input_batch - target) ** 2, axis=-1))
+    distances, indices = jax.lax.top_k(pairwise_euclidean_distances, k=k)
+    return distances, indices
