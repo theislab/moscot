@@ -109,11 +109,13 @@ exclude_patterns = ["**.ipynb_checkpoints"]
 # a list of builtin themes.
 html_theme = "furo"
 html_static_path = ["_static"]
-html_logo = "_static/img/logo.png"
+
 html_show_sphinx = False
 html_show_sourcelink = False
 html_theme_options = {
     "sidebar_hide_name": True,
+    "light_logo": "img/light_mode_logo.png",
+    "dark_logo": "img/dark_mode_logo.png",
     "light_css_variables": {
         "color-brand-primary": "#003262",
         "color-brand-content": "#003262",
