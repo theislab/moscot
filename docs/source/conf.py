@@ -1,4 +1,3 @@
-# type: ignore
 # Configuration file for the Sphinx documentation builder.
 #
 # This file only contains a selection of the most common options. For a full
@@ -6,26 +5,13 @@
 # https://www.sphinx-doc.org/en/master/usage/configuration.html
 
 # -- Path setup --------------------------------------------------------------
-
-from pathlib import Path
 from datetime import datetime
 
 # If extensions (or modules to document with autodoc) are in another directory,
 # add these directories to sys.path here. If the directory is relative to the
 # documentation root, use os.path.abspath to make it absolute, like shown here.
 #
-import sys
-
-from sphinx.application import Sphinx
-from sphinx_gallery.gen_gallery import DEFAULT_GALLERY_CONF
-
 import moscot
-
-HERE = Path(__file__).parent
-sys.path.insert(0, str(HERE))
-sys.path.insert(0, str(HERE / "extensions"))
-
-import utils  # noqa: E402
 
 # -- Project information -----------------------------------------------------
 
@@ -33,12 +19,6 @@ project = moscot.__name__
 author = moscot.__author__
 version = moscot.__version__
 copyright = f"{datetime.now():%Y}, Theislab"
-
-github_org = "theislab"
-github_repo = "moscot"
-github_ref = "main"
-github_nb_repo = "moscot_notebooks"
-utils.fetch_notebooks(repo_url=f"https://github.com/{github_org}/{github_nb_repo}")
 
 # -- General configuration ---------------------------------------------------
 
@@ -53,11 +33,11 @@ extensions = [
     "sphinx_autodoc_typehints",
     "sphinx.ext.intersphinx",
     "sphinx.ext.autosummary",
-    "sphinx_gallery.load_style",
     "sphinxcontrib.bibtex",
-    "nbsphinx",
     "typed_returns",
-    "sphinx_design",
+    "sphinx_copybutton",
+    "myst_nb",
+    "IPython.sphinxext.ipython_console_highlighting",
 ]
 intersphinx_mapping = {
     "python": ("https://docs.python.org/3", None),
@@ -80,12 +60,14 @@ bibtex_default_style = "alpha"
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ["_templates"]
-source_suffix = [".rst"]  # , ".ipynb"]
+source_suffix = {
+    ".rst": "restructuredtext",
+    ".ipynb": "myst-nb",
+}
 
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.
 # This pattern also affects html_static_path and html_extra_path.
-exclude_patterns = []
 autosummary_generate = True
 autodoc_member_order = "bysource"
 typehints_fully_qualified = False
@@ -112,14 +94,7 @@ spelling_filters = [
     "enchant.tokenize.MentionFilter",
 ]
 
-exclude_patterns = [
-    "auto_*/**.ipynb",
-    "auto_*/**.md5",
-    "auto_*/**.py",
-    "**.ipynb_checkpoints",
-    "auto_examples/problems/**/index.rst",
-    "auto_*/**/index.rst",
-]  # ignore anything that isn't .rst or .ipynb
+exclude_patterns = ["**.ipynb_checkpoints"]
 
 # -- Options for HTML output -------------------------------------------------
 
@@ -140,11 +115,3 @@ html_theme_options = {
         "code-font-size": "var(--font-size--small)",
     },
 }
-
-
-nbsphinx_thumbnails = utils.get_thumbnails("auto_examples")
-
-
-def setup(app: Sphinx) -> None:
-    DEFAULT_GALLERY_CONF["default_thumb_file"] = "docs/source/_static/img/logo.png"
-    app.add_config_value("sphinx_gallery_conf", DEFAULT_GALLERY_CONF, "html")
