@@ -17,7 +17,8 @@ class TestBaseSolverOutput:
         tmap = np.abs(rng.rand(shape[0], shape[1]))
         tmap = tmap / tmap.sum()
         output = MockSolverOutput(tmap)
-        res = output.compute_sparsification(mode="threshold", threshold=threshold, batch_size=batch_size)
+        output.compute_sparsification(mode="threshold", threshold=threshold, batch_size=batch_size)
+        res = output.sparsified_tmap
         assert isinstance(res, csr_matrix)
         assert res.shape == shape
         assert np.all(res.data >= 0)
@@ -36,7 +37,8 @@ class TestBaseSolverOutput:
         tmap = np.abs(rng.rand(shape[0], shape[1]))
         tmap = tmap / tmap.sum()
         output = MockSolverOutput(tmap)
-        res = output.compute_sparsification(mode="min_1", batch_size=batch_size)
+        output.compute_sparsification(mode="min_1", batch_size=batch_size)
+        res = output.sparsified_tmap
         assert isinstance(res, csr_matrix)
         assert res.shape == shape
         assert np.all(res.data >= 0)
@@ -51,9 +53,8 @@ class TestBaseSolverOutput:
         tmap = np.abs(rng.rand(shape[0], shape[1]))
         tmap = tmap / tmap.sum()
         output = MockSolverOutput(tmap)
-        res = output.compute_sparsification(
-            mode="percentile", threshold=threshold, batch_size=batch_size
-        ).sparsified_tmap
+        output.compute_sparsification(mode="percentile", threshold=threshold, batch_size=batch_size)
+        res = output.sparsified_tmap
         assert isinstance(res, csr_matrix)
         assert res.shape == shape
         assert np.all(res.data >= 0)
