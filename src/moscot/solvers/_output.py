@@ -190,17 +190,16 @@ class BaseSolverOutput(ABC):
 
         This function sets all entries of the transport matrix below `threshold` to 0 and
         returns the result as a :class:`scipy.sparse.csr_matrix`.
-        We encourage users not to use this function unless it is necessary. Note that this
-        does not necessarily reduce memory complexity.
 
         Parameters
         ----------
         mode
             Which threshold to use for sparsification. Can be one of:
 
-            	- "threshold" - threshold below which entries are set to 0.0.
-            	- "percentile" - determine threshold by percentile below which entries are set to 0. Hence, between 0 and 100.
-            	- "min_1" - choose the threshold such that each row has at least one non-zero entry.
+                - "threshold" - threshold below which entries are set to 0.0.
+                - "percentile" - determine threshold by percentile below which entries are set to 0. Hence, between 0
+                  and 100.
+                - "min_1" - choose the threshold such that each row has at least one non-zero entry.
 
         threshold
             Threshold or percentile depending on `mode`. If `mode` is `min_1`, `threshold` can be neglected.
@@ -214,6 +213,11 @@ class BaseSolverOutput(ABC):
         Returns
         -------
         Nothing, but adds the sparsified transport matrix (:class:`scipy.sparse.csr_matrix`) to `self.sparsified_tmap`.
+
+        Note
+        ----
+        This function only serves for interfacing software which has to instantiate the transport matrix. Within moscot,
+        there is no point in using this function. We encourage users not to use this function unless it is necessary.
         """
         mode = SparsifyMode(mode)
         if mode == SparsifyMode.THRESHOLD:
