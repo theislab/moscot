@@ -51,7 +51,9 @@ class TestBaseSolverOutput:
         tmap = np.abs(rng.rand(shape[0], shape[1]))
         tmap = tmap / tmap.sum()
         output = MockSolverOutput(tmap)
-        res = output.compute_sparsification(mode="percentile", threshold=threshold, batch_size=batch_size)
+        res = output.compute_sparsification(
+            mode="percentile", threshold=threshold, batch_size=batch_size
+        ).sparsified_tmap
         assert isinstance(res, csr_matrix)
         assert res.shape == shape
         assert np.all(res.data >= 0)

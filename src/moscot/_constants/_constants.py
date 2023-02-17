@@ -52,7 +52,7 @@ class AggregationMode(ModeEnum):
 
 
 @unique
-class SparsifyMode(ModeEnum):
+class SparsifyMode(ModeEnum):  # sets mode for thresholding the transport map
     THRESHOLD = "threshold"
     PERCENTILE = "percentile"
     MIN_1 = "min_1"
