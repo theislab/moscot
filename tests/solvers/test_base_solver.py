@@ -42,8 +42,8 @@ class TestBaseSolverOutput:
         assert isinstance(res, csr_matrix)
         assert res.shape == shape
         assert np.all(res.data >= 0)
-        assert np.all(np.sum(res, axis=1) > 0)
-        assert np.min(np.sum(res != 0), axis=1) == 1
+        assert np.all(np.sum(res.A, axis=1) > 0)
+        assert np.min(np.sum(res.A != 0), axis=1) == 1
 
     @pytest.mark.parametrize("batch_size", [1, 4])
     @pytest.mark.parametrize("threshold", [0, 10, 100])
@@ -58,7 +58,7 @@ class TestBaseSolverOutput:
         assert isinstance(res, csr_matrix)
         assert res.shape == shape
         assert np.all(res.data >= 0)
-        if threshold == 100:
-            np.testing.assert_allclose(res.A, tmap, rtol=RTOL, atol=ATOL)
         if threshold == 0:
+            np.testing.assert_allclose(res.A, tmap, rtol=RTOL, atol=ATOL)
+        if threshold == 100:
             assert np.all(res.data == 0)
