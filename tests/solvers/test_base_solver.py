@@ -28,7 +28,7 @@ class TestBaseSolverOutput:
             data = res.data
             assert np.sum((data > threshold) + (data == 0)) == len(data)
         if threshold == 1.0:
-            assert np.all(res.data == 0)
+            assert np.all(res.data == 0.0)
 
     @pytest.mark.parametrize("batch_size", [1, 4])
     @pytest.mark.parametrize("shape", [(7, 2), (91, 103)])
@@ -41,9 +41,9 @@ class TestBaseSolverOutput:
         res = output.sparsified_tmap
         assert isinstance(res, csr_matrix)
         assert res.shape == shape
-        assert np.all(res.data >= 0)
-        assert np.all(np.sum(res.A, axis=1) > 0)
-        assert np.min(np.sum(res.A != 0), axis=1) == 1
+        assert np.all(res.data >= 0.0)
+        assert np.all(np.sum(res.A, axis=1) > 0.0)
+        assert np.min(np.sum(res.A != 0.0), axis=1) == 1
 
     @pytest.mark.parametrize("batch_size", [1, 4])
     @pytest.mark.parametrize("threshold", [0, 10, 100])
@@ -57,8 +57,8 @@ class TestBaseSolverOutput:
         res = output.sparsified_tmap
         assert isinstance(res, csr_matrix)
         assert res.shape == shape
-        assert np.all(res.data >= 0)
+        assert np.all(res.data >= 0.0)
         if threshold == 0:
             np.testing.assert_allclose(res.A, tmap, rtol=RTOL, atol=ATOL)
         if threshold == 100:
-            assert np.all(res.data == 0)
+            assert np.all(res.data == 0.0)

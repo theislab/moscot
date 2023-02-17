@@ -222,7 +222,7 @@ class BaseSolverOutput(ABC):
         mode = SparsifyMode(mode)
         if mode == SparsifyMode.THRESHOLD:
             thr = threshold
-        if mode == SparsifyMode.PERCENTILE:
+        elif mode == SparsifyMode.PERCENTILE:
             n_samples = n_samples if n_samples is not None else batch_size
             x = np.eye(self.shape[1], max(n_samples, self.shape[1]))
             res = self.pull(x, scale_by_marginals=False)  # tmap @ indicator_vectors
