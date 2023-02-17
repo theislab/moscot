@@ -72,6 +72,14 @@ source_suffix = {
     ".ipynb": "myst-nb",
 }
 
+# myst
+myst_enable_extensions = [
+    "colon_fence",
+    "dollarmath",
+    "amsmath",
+]
+myst_heading_anchors = 2
+
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.
 # This pattern also affects html_static_path and html_extra_path.

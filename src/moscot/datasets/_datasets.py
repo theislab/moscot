@@ -2,8 +2,8 @@
 from types import MappingProxyType
 from typing import Any, Tuple, Union, Literal, Mapping, Optional
 import os
+import warnings
 
-from scipy.sparse import csr_matrix
 import pandas as pd
 
 import numpy as np
@@ -194,6 +194,7 @@ def sim_align(
     return _load_dataset_from_url(path, *_datasets["sim_align"], **kwargs)
 
 
+# TODO(michalk8): expose the kwargs
 def simulate_data(
     n_distributions: int = 2,
     cells_per_distribution: int = 20,
@@ -246,20 +247,22 @@ def simulate_data(
     -------
     :class:`anndata.AnnData`.
     """
-    rng = np.random.RandomState(42)
+    rng = np.random.RandomState(seed)
     adatas = [
         AnnData(
-            X=csr_matrix(
-                rng.multivariate_normal(
-                    mean=kwargs.pop("mean", np.arange(n_genes)),
-                    cov=kwargs.pop("cov", var * np.diag(np.ones(n_genes))),
-                    size=cells_per_distribution,
-                )
-            )
+            X=rng.multivariate_normal(
+                mean=kwargs.pop("mean", np.arange(n_genes)),
+                cov=kwargs.pop("cov", var * np.diag(np.ones(n_genes))),
+                size=cells_per_distribution,
+            ),
+            dtype=float,
         )
         for _ in range(n_distributions)
     ]
-    adata = adatas[0].concatenate(*adatas[1:], batch_key=key)
+    # remove once new `anndata` is release
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore", category=FutureWarning)
+        adata = adatas[0].concatenate(*adatas[1:], batch_key=key)
     if key == "day":
         adata.obs["day"] = pd.to_numeric(adata.obs["day"])
     for k, val in obs_to_add.items():
@@ -275,6 +278,7 @@ def simulate_data(
                 n_trees=1,
                 n_initial_nodes=kwargs.pop("n_initial_nodes", 5),
                 leaf_names=[adata[adata.obs[key] == i].obs_names],
+                # TODO(michalk8): fix the seed
                 seed=seed,
             )[0]
     if quad_term == "spatial":
