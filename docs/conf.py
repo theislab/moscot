@@ -43,6 +43,7 @@ extensions = [
     "sphinx_copybutton",
     "myst_nb",
     "nbsphinx",
+    # TODO(michalk8): fix the lexer
     "IPython.sphinxext.ipython_console_highlighting",
     "sphinx_design",  # for cards
 ]
@@ -73,6 +74,7 @@ source_suffix = {
 }
 
 # myst
+nb_execution_mode = "off"
 myst_enable_extensions = [
     "colon_fence",
     "dollarmath",
@@ -109,7 +111,7 @@ spelling_filters = [
     "enchant.tokenize.MentionFilter",
 ]
 
-exclude_patterns = ["**.ipynb_checkpoints"]
+exclude_patterns = ["build", "**.ipynb_checkpoints"]
 
 # -- Options for HTML output -------------------------------------------------
 

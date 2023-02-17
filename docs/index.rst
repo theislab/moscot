@@ -57,7 +57,6 @@ well as the publication introducing the model, which can be found in the corresp
     Stay tuned, coming soon!
 
 .. toctree::
-    :caption: General
     :maxdepth: 2
     :hidden:
 
@@ -66,10 +65,5 @@ well as the publication introducing the model, which can be found in the corresp
     contributing
     references
 
-    tutorials
-    examples
-
-.. toctree::
-    :caption: Gallery
-    :maxdepth: 2
-    :hidden:
+    notebooks/tutorials/index
+    notebooks/examples/index
