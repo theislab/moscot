@@ -229,7 +229,7 @@ class MappingProblem(CompoundProblem[K, OTProblem], SpatialMappingMixin[K, OTPro
 
     @filtered_vars.setter
     def filtered_vars(self, value: Optional[Sequence[str]]) -> None:
-        self._filtered_vars = self._filter_vars(var_names=value)  # type:ignore[misc]
+        self._filtered_vars = self._filter_vars(var_names=value)
 
     @property
     def _base_problem_type(self) -> Type[B]:

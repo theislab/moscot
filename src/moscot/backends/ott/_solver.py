@@ -105,7 +105,7 @@ class OTTJaxSolver(OTSolver[OTTOutput]):
             return jnp.reshape(arr, (-1, 1))
         if arr.ndim != 2:
             raise ValueError(f"Expected array to have 2 dimensions, found `{arr.ndim}`.")
-        return arr  # type:ignore[return-value]
+        return arr
 
     @staticmethod
     def _create_cost(cost: Optional[Union[str, CostFn]], **kwargs: Any) -> CostFn:

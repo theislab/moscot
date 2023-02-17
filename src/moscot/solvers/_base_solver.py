@@ -39,12 +39,12 @@ class ProblemKind(ModeEnum):
         """
         # TODO(michalk8): refactor using backend utils
         if backend == "ott":
-            from moscot.backends.ott import GWSolver, SinkhornSolver  # type: ignore[attr-defined]
+            from moscot.backends.ott import GWSolver, SinkhornSolver  # type:ignore[attr-defined]
 
             if self == ProblemKind.LINEAR:
-                return SinkhornSolver(**kwargs)  # type:ignore[return-value]
+                return SinkhornSolver(**kwargs)
             if self == ProblemKind.QUAD:
-                return GWSolver(**kwargs)  # type:ignore[return-value]
+                return GWSolver(**kwargs)
             raise NotImplementedError(f"Unable to create solver for `{self}` problem.")
 
         raise NotImplementedError(f"Backend `{backend}` is not yet implemented.")

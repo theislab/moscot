@@ -420,7 +420,7 @@ class BaseCompoundProblem(BaseProblem, ABC, Generic[K, B]):
         return self._problem_manager.problems
 
     @d.dedent
-    @require_prepare  # type:ignore[has-type]  # type:ignore[has-type]
+    @require_prepare
     def add_problem(
         self,
         key: Tuple[K, K],
@@ -454,7 +454,7 @@ class BaseCompoundProblem(BaseProblem, ABC, Generic[K, B]):
         return self
 
     @d.dedent
-    @require_prepare  # type:ignore[has-type]
+    @require_prepare
     def remove_problem(self, key: Tuple[K, K]) -> "BaseCompoundProblem[K, B]":
         """
         Remove a (sub)problem.

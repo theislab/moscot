@@ -337,7 +337,7 @@ class OTProblem(BaseProblem):
         )
         return self
 
-    @require_solution  # type:ignore[has-type]
+    @require_solution
     def push(
         self,
         data: Optional[Union[str, ArrayLike]] = None,

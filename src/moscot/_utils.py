@@ -12,8 +12,6 @@ import joblib as jl
 
 import numpy as np
 
-from moscot.problems.base._compound_problem import B, K
-
 if TYPE_CHECKING:
     from moscot.problems.base import BaseProblem, BaseCompoundProblem  # type: ignore[attr-defined]
 
@@ -27,14 +25,14 @@ __all__ = ["require_prepare", "require_solution", "parallelize"]
 # TODO(michalk8): refactor using stage
 @wrapt.decorator
 def require_solution(
-    wrapped: Callable[[Any], Any], instance: "BaseProblem", args: Tuple[Any, ...], kwargs: Mapping[str, Any]
+    wrapped: Callable[[Any], Any], problem: "BaseProblem", args: Tuple[Any, ...], kwargs: Mapping[str, Any]
 ) -> Any:
     """Check whether problem has been solved."""
     from moscot.problems.base import OTProblem, BaseCompoundProblem  # type: ignore[attr-defined]
 
-    if isinstance(instance, OTProblem) and instance.solution is None:
+    if isinstance(problem, OTProblem) and problem.solution is None:
         raise RuntimeError("Run `.solve()` first.")
-    if isinstance(instance, BaseCompoundProblem) and instance.solutions is None:
+    if isinstance(problem, BaseCompoundProblem) and problem.solutions is None:
         raise RuntimeError("Run `.solve()` first.")
     return wrapped(*args, **kwargs)
 
@@ -42,12 +40,12 @@ def require_solution(
 @wrapt.decorator
 def require_prepare(
     wrapped: Callable[[Any], Any],
-    instance: "BaseCompoundProblem[K,B]",
+    problem: "BaseCompoundProblem",
     args: Tuple[Any, ...],
     kwargs: Mapping[str, Any],
 ) -> Any:
     """Check whether problem has been prepared."""
-    if instance.problems is None:
+    if problem.problems is None:
         raise RuntimeError("Run `.prepare()` first.")
     return wrapped(*args, **kwargs)
 

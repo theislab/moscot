@@ -204,5 +204,5 @@ class OTTOutput(BaseSolverOutput):
         lin_output = self._output if self.is_linear else self._output.linear_state
         return len(lin_output.g) if isinstance(lin_output, OTTLRSinkhornOutput) else -1
 
-    def _ones(self, n: int) -> jnp.ndarray:  # type:ignore[override]
+    def _ones(self, n: int) -> jnp.ndarray:
         return jnp.ones((n,))
