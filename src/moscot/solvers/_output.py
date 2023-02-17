@@ -196,11 +196,12 @@ class BaseSolverOutput(ABC):
         Parameters
         ----------
         mode
-            Which threshold to use for sparsification. Can be one of
-            - "threshold" - threshold below which entries are set to 0.0.
-            - "percentile" - determine threshold by percentile below which entries are set to 0. Hence, between 0 and
-            100.
-            - "min_1" - choose the threshold such that each row has at least one non-zero entry.
+            Which threshold to use for sparsification. Can be one of:
+
+            	- "threshold" - threshold below which entries are set to 0.0.
+            	- "percentile" - determine threshold by percentile below which entries are set to 0. Hence, between 0 and 100.
+            	- "min_1" - choose the threshold such that each row has at least one non-zero entry.
+
         threshold
             Threshold or percentile depending on `mode`. If `mode` is `min_1`, `threshold` can be neglected.
         batch_size
