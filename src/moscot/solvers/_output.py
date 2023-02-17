@@ -228,12 +228,12 @@ class BaseSolverOutput(ABC):
             res = self.pull(x, scale_by_marginals=False)  # tmap @ indicator_vectors
             thr = np.percentile(res, threshold)
         elif mode == SparsifyMode.MIN_1:
-            thr = np.inf
+            thr = -np.inf
             for batch in range(0, self.shape[1], batch_size):
                 x = np.eye(self.shape[1], min(batch_size, self.shape[1] - batch), -(min(batch, self.shape[1])))
                 res = self.pull(x, scale_by_marginals=False)  # tmap @ indicator_vectors
                 thr_batch = res.min(axis=1).max()
-                thr = thr_batch if thr_batch < thr else thr
+                thr = thr_batch if thr_batch > thr else thr
         else:
             raise NotImplementedError(mode)
 
