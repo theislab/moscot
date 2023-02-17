@@ -305,7 +305,6 @@ class DummyPolicy(FormatterMixin, SubsetPolicy[str]):
         tgt_name: Literal["tgt"] = "tgt",
         **kwargs: Any,
     ):
-
         super().__init__(pd.Series([self._SENTINEL] * len(adata)), verify_integrity=False, **kwargs)
         self._cat = (src_name, tgt_name)
         self._src_name = src_name
@@ -319,3 +318,6 @@ class DummyPolicy(FormatterMixin, SubsetPolicy[str]):
 
     def _format(self, _: Any, *, is_source: bool) -> str:
         return self._src_name if is_source else self._tgt_name
+
+    def _filter_plan(self, plan: Sequence[Tuple[K, K]], filter: Sequence[Tuple[K, K]]) -> Sequence[Tuple[K, K]]:
+        return plan

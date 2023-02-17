@@ -305,7 +305,7 @@ class BaseCompoundProblem(BaseProblem, ABC, Generic[K, B]):
         _ = kwargs.pop("target", None)  # make compatible with Explicit/Ordered policy
         for src, tgt in self._policy.plan(
             explicit_steps=kwargs.pop("explicit_steps", None),
-            filter=source if not isinstance(self._policy, DummyPolicy) else None,  # type: ignore [arg-type]
+            filter=source,  # type: ignore [arg-type]
         ):
             problem = self.problems[src, tgt]
             fun = problem.push if forward else problem.pull
