@@ -189,7 +189,7 @@ class BaseSolverOutput(ABC):
         Sparsify the transport matrix.
 
         This function sets all entries of the transport matrix below `threshold` to 0 and
-        returns the result as a :class:`scipuy.sparse.csr_matrix`.
+        returns the result as a :class:`scipy.sparse.csr_matrix`.
         We encourage users not to use this function unless it is necessary. Note that this
         does not necessarily reduce memory complexity.
 
