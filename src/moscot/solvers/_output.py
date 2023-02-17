@@ -234,6 +234,7 @@ class BaseSolverOutput(ABC):
                 res = self.pull(x, scale_by_marginals=False)  # tmap @ indicator_vectors
                 thr_batch = res.max(axis=1).min()
                 thr = thr_batch if thr_batch < thr else thr
+            thr -= 1e-12  # necessary for the edge case
         else:
             raise NotImplementedError(mode)
 
