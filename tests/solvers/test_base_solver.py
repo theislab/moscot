@@ -34,7 +34,7 @@ class TestBaseSolverOutput:
     @pytest.mark.parametrize("shape", [(7, 2), (91, 103)])
     def test_compute_sparsification_min1(self, batch_size: int, shape: Tuple[int, int]) -> None:
         rng = np.random.RandomState(42)
-        tmap = np.abs(rng.rand(shape[0], shape[1]))
+        tmap = np.abs(rng.rand(shape[0], shape[1])) + 1e-3  # make sure it's not 0
         tmap = tmap / tmap.sum()
         output = MockSolverOutput(tmap)
         output.compute_sparsification(mode="min_1", batch_size=batch_size)
@@ -52,7 +52,9 @@ class TestBaseSolverOutput:
         tmap = np.abs(rng.rand(shape[0], shape[1]))
         tmap = tmap / tmap.sum()
         output = MockSolverOutput(tmap)
-        output.compute_sparsification(mode="percentile", threshold=threshold, batch_size=batch_size)
+        output.compute_sparsification(
+            mode="percentile", threshold=threshold, batch_size=batch_size, n_samples=int(0.5 * shape[0])
+        )
         res = output.sparsified_tmap
         assert isinstance(res, csr_matrix)
         assert res.shape == shape
