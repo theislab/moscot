@@ -232,7 +232,7 @@ class BaseSolverOutput(ABC):
             for batch in range(0, self.shape[1], batch_size):
                 x = np.eye(self.shape[1], min(batch_size, self.shape[1] - batch), -(min(batch, self.shape[1])))
                 res = self.pull(x, scale_by_marginals=False)  # tmap @ indicator_vectors
-                thr_batch = res.max(axis=1).min()
+                thr_batch = res.min(axis=1).max()
                 thr = thr_batch if thr_batch < thr else thr
         else:
             raise NotImplementedError(mode)
