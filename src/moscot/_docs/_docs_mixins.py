@@ -216,8 +216,9 @@ d_mixins = DocstringProcessor(
     seed_sampling=_seed_sampling,
     interpolation_parameter=_interpolation_parameter,
     n_interpolated_cells=_n_interpolated_cells,
-    seed_interpolatiob=_seed_interpolation,
+    seed_interpolation=_seed_interpolation,
     time_batch_distance=_time_batch_distance,
     batch_key_batch_distance=_batch_key_batch_distance,
     use_posterior_marginals=_use_posterior_marginals,
+    account_for_unbalancedness=_account_for_unbalancedness,
 )
