@@ -9,6 +9,7 @@ from moscot._constants._constants import Policy
 from moscot.problems.space._mixins import SpatialAlignmentMixin
 from moscot.problems.base._base_problem import OTProblem
 from moscot.problems.base._compound_problem import B, K, CompoundProblem
+from moscot._logging import logger
 
 __all__ = ["AlignmentProblem"]
 
@@ -83,6 +84,7 @@ class AlignmentProblem(CompoundProblem[K, B], SpatialAlignmentMixin[K, B]):
                 normalize_key=normalize_key,
             )
             spatial_key = f"{spatial_key}_{normalize_key}"
+            logger.info(f"Normalizing spatial coordinates and saving them in `adata.obsm['{spatial_key}']`.")
         self.spatial_key = spatial_key
         self.batch_key = batch_key
 
