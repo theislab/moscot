@@ -16,6 +16,7 @@ __all__ = ["Tag", "TaggedArray", "get_cost_function"]
 
 
 def get_cost_function(cost: str, *, backend: Literal["ott"] = "ott", **kwargs: Any) -> Callable[..., Any]:
+    """Get backend-dependent cost function."""
     if backend == "ott":
         from moscot.backends.ott._solver import OTTCost
 

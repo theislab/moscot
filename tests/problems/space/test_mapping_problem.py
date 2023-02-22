@@ -61,14 +61,15 @@ class TestMappingProblem:
     @pytest.mark.parametrize("var_names", ["0", [], [str(i) for i in range(20)]])
     def test_prepare_varnames(self, adata_mapping: AnnData, var_names: Optional[List[str]]):
         adataref, adatasp = _adata_spatial_split(adata_mapping)
-        problem_kind = ProblemKind.QUAD_FUSED if len(var_names) else ProblemKind.QUAD
         n_obs = adataref.shape[0]
         x_n_var = adatasp.obsm["spatial"].shape[1]
         y_n_var = adataref.shape[1] if not len(var_names) else len(var_names)
 
         mp = MappingProblem(adataref, adatasp).prepare(batch_key="batch", sc_attr={"attr": "X"}, var_names=var_names)
         for prob in mp.problems.values():
-            assert prob._problem_kind == problem_kind
+            assert prob._problem_kind == ProblemKind.QUAD
+            # this should hold after running `mp.solve()`
+            # assert prob.solver.is_fused is bool(var_names)
             assert prob.shape == (n_obs, n_obs)
             assert prob.x.data_src.shape == (n_obs, x_n_var)
             assert prob.y.data_src.shape == (n_obs, y_n_var)

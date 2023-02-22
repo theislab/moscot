@@ -1,4 +1,4 @@
-from typing import List, Optional
+from typing import Any, List, Mapping, Optional
 
 import pytest
 
@@ -95,3 +95,38 @@ class TestBirthDeathProblem:
 
         gr = prob.posterior_growth_rates
         assert isinstance(gr, np.ndarray)
+
+    @pytest.mark.fast()
+    @pytest.mark.parametrize(
+        "marginal_kwargs", [{}, {"delta_width": 0.9}, {"delta_center": 0.9}, {"beta_width": 0.9}, {"beta_center": 0.9}]
+    )
+    def test_marginal_kwargs(self, adata_time_marginal_estimations: AnnData, marginal_kwargs: Mapping[str, Any]):
+        t1, t2 = 0, 1
+        adata_x = adata_time_marginal_estimations[adata_time_marginal_estimations.obs["time"] == t1]
+        adata_y = adata_time_marginal_estimations[adata_time_marginal_estimations.obs["time"] == t2]
+
+        prob = BirthDeathProblem(adata_x, adata_y, src_key=t1, tgt_key=t2)
+        prob = prob.prepare(
+            x={"attr": "X"},
+            y={"attr": "X"},
+            a=True,
+            b=True,
+            proliferation_key="proliferation",
+            apoptosis_key="apoptosis",
+        )
+
+        gr1 = prob.prior_growth_rates
+        prob = prob.prepare(
+            x={"attr": "X"},
+            y={"attr": "X"},
+            a=True,
+            b=True,
+            proliferation_key="proliferation",
+            apoptosis_key="apoptosis",
+            marginal_kwargs=marginal_kwargs,
+        )
+        gr2 = prob.prior_growth_rates
+        if len(marginal_kwargs) > 0:
+            assert not np.allclose(gr1, gr2)
+        else:
+            assert np.allclose(gr1, gr2)

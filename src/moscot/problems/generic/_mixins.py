@@ -6,7 +6,7 @@ from anndata import AnnData
 
 from moscot._types import ArrayLike, Str_Dict_t
 from moscot._docs._docs_mixins import d_mixins
-from moscot._constants._constants import Key, AdataKeys, PlottingKeys, PlottingDefaults
+from moscot._constants._constants import Key, PlottingKeys, PlottingDefaults
 from moscot.problems.base._mixins import AnalysisMixin, AnalysisMixinProtocol
 from moscot.problems.base._compound_problem import B, K, ApplyOutput_t
 
@@ -103,12 +103,12 @@ class GenericAnalysisMixin(AnalysisMixin[K, B]):
         **kwargs: Any,
     ) -> Optional[ApplyOutput_t[K]]:
         """
-        Push distribution of cells through time.
+        Push distribution of cells from source to target.
 
         Parameters
         ----------
-        %(source)s
-        %(target)s
+        %(start)s
+        %(end)s
         %(data)s
         %(subset)s
         %(scale_by_marginals)s
@@ -122,8 +122,8 @@ class GenericAnalysisMixin(AnalysisMixin[K, B]):
 
         """
         result = self._apply(
-            start=source,
-            end=target,
+            source=source,
+            target=target,
             data=data,
             subset=subset,
             forward=True,
@@ -142,7 +142,7 @@ class GenericAnalysisMixin(AnalysisMixin[K, B]):
                 "distribution_key": self.batch_key,
             }
             self.adata.obs[key_added] = self._flatten(result, key=self.batch_key)
-            Key.uns.set_plotting_vars(self.adata, AdataKeys.UNS, PlottingKeys.PUSH, key_added, plot_vars)
+            Key.uns.set_plotting_vars(self.adata, PlottingKeys.PUSH, key_added, plot_vars)
         if return_data:
             return result
 
@@ -160,7 +160,7 @@ class GenericAnalysisMixin(AnalysisMixin[K, B]):
         **kwargs: Any,
     ) -> Optional[ApplyOutput_t[K]]:
         """
-        Pull distribution of cells through time.
+        Pull distribution of cells from target to source.
 
         Parameters
         ----------
@@ -179,8 +179,8 @@ class GenericAnalysisMixin(AnalysisMixin[K, B]):
 
         """
         result = self._apply(
-            start=source,
-            end=target,
+            source=source,
+            target=target,
             data=data,
             subset=subset,
             forward=False,
@@ -196,7 +196,7 @@ class GenericAnalysisMixin(AnalysisMixin[K, B]):
                 "key": self.batch_key,
             }
             self.adata.obs[key_added] = self._flatten(result, key=self.batch_key)
-            Key.uns.set_plotting_vars(self.adata, AdataKeys.UNS, PlottingKeys.PULL, key_added, plot_vars)
+            Key.uns.set_plotting_vars(self.adata, PlottingKeys.PULL, key_added, plot_vars)
         if return_data:
             return result
 

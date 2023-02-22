@@ -46,6 +46,11 @@ class BaseSolverOutput(ABC):
         Only valid for the Sinkhorn's algorithm.
         """
 
+    @property
+    @abstractmethod
+    def is_linear(self) -> bool:
+        """Whether the output is linear."""
+
     @abstractmethod
     def to(self, device: Optional[Device_t] = None) -> "BaseSolverOutput":
         """Transfer self to another device using :func:`jax.device_put`.

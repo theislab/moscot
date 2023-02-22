@@ -10,7 +10,7 @@ from moscot.problems._utils import handle_cost, handle_joint_attr
 from moscot.problems.generic._mixins import GenericAnalysisMixin
 from moscot.problems.base._compound_problem import B, K
 
-__all__ = ["SinkhornProblem", "GWProblem", "FGWProblem"]
+__all__ = ["SinkhornProblem", "GWProblem"]
 
 
 @d.dedent
@@ -63,20 +63,6 @@ class SinkhornProblem(GenericAnalysisMixin[K, B], CompoundProblem[K, B]):
         %(ex_prepare)s
         """
         self.batch_key = key
-        if joint_attr is None:
-            kwargs["xy_callback"] = "local-pca"
-            kwargs.setdefault("xy_callback_kwargs", {})
-        elif isinstance(joint_attr, str):
-            kwargs["xy"] = {
-                "x_attr": "obsm",
-                "x_key": joint_attr,
-                "y_attr": "obsm",
-                "y_key": joint_attr,
-            }
-        elif isinstance(joint_attr, Mapping):
-            kwargs["xy"] = joint_attr
-        else:
-            raise TypeError(f"Unable to interpret `joint_attr` of type `{type(joint_attr)}`.")
         xy, kwargs = handle_joint_attr(joint_attr, kwargs)
         xy, _, _ = handle_cost(xy=xy, cost=cost)
         return super().prepare(
@@ -196,6 +182,7 @@ class GWProblem(GenericAnalysisMixin[K, B], CompoundProblem[K, B]):
         key: str,
         GW_x: Union[str, Mapping[str, Any]],
         GW_y: Union[str, Mapping[str, Any]],
+        joint_attr: Optional[Union[str, Mapping[str, Any]]] = None,
         policy: Literal["sequential", "pairwise", "explicit"] = "sequential",
         cost: Union[
             Literal["sq_euclidean", "cosine", "bures", "unbalanced_bures"],
@@ -213,6 +200,7 @@ class GWProblem(GenericAnalysisMixin[K, B], CompoundProblem[K, B]):
         %(key)s
         %(GW_x)s
         %(GW_y)s
+        %(joint_attr)s
         %(policy)s
         %(cost)s
         %(a)s
@@ -242,11 +230,11 @@ class GWProblem(GenericAnalysisMixin[K, B], CompoundProblem[K, B]):
             else:
                 raise TypeError("`GW_x` and `GW_y` must be of type `str` or `dict`.")
 
-        xy = kwargs.pop("xy", None)
+        xy, kwargs = handle_joint_attr(joint_attr, kwargs)
         xy, x, y = handle_cost(xy=xy, x=GW_updated[0], y=GW_updated[1], cost=cost)
         return super().prepare(
             key=key,
-            xy=xy,  # this is needed as FGWProblem inherits from GWProblem
+            xy=xy,
             x=x,
             y=y,
             policy=policy,
@@ -259,6 +247,7 @@ class GWProblem(GenericAnalysisMixin[K, B], CompoundProblem[K, B]):
     @d.dedent
     def solve(
         self,
+        alpha: float = 1.0,
         epsilon: Optional[float] = 1e-3,
         tau_a: float = 1.0,
         tau_b: float = 1.0,
@@ -285,6 +274,7 @@ class GWProblem(GenericAnalysisMixin[K, B], CompoundProblem[K, B]):
 
         Parameters
         ----------
+        %(alpha)s
         %(epsilon)s
         %(tau_a)s
         %(tau_b)s
@@ -310,6 +300,7 @@ class GWProblem(GenericAnalysisMixin[K, B], CompoundProblem[K, B]):
         %(ex_solve_quadratic)s
         """
         return super().solve(
+            alpha=alpha,
             epsilon=epsilon,
             tau_a=tau_a,
             tau_b=tau_b,
@@ -339,139 +330,3 @@ class GWProblem(GenericAnalysisMixin[K, B], CompoundProblem[K, B]):
     @property
     def _valid_policies(self) -> Tuple[str, ...]:
         return "sequential", "pairwise", "explicit"
-
-
-@d.dedent
-class FGWProblem(GWProblem[K, B]):
-    """
-    Class for solving Fused Gromov-Wasserstein problems.
-
-    Parameters
-    ----------
-    %(adata)s
-    """
-
-    @d.dedent
-    def prepare(
-        self,
-        key: str,
-        GW_x: Union[str, Mapping[str, Any]],
-        GW_y: Union[str, Mapping[str, Any]],
-        joint_attr: Optional[Union[str, Mapping[str, Any]]] = None,
-        policy: Literal["sequential", "pairwise", "explicit"] = "sequential",
-        cost: Union[
-            Literal["sq_euclidean", "cosine", "bures", "unbalanced_bures"],
-            Mapping[str, Literal["sq_euclidean", "cosine", "bures", "unbalanced_bures"]],
-        ] = "sq_euclidean",
-        a: Optional[str] = None,
-        b: Optional[str] = None,
-        **kwargs: Any,
-    ) -> "FGWProblem[K, B]":
-        """
-        Prepare the :class:`moscot.problems.generic.FGWProblem`.
-
-        Parameters
-        ----------
-        %(key)s
-        %(GW_x)s
-        %(GW_y)s
-        %(joint_attr)s
-        %(policy)s
-        %(cost)s
-        %(a)s
-        %(b)s
-        %(kwargs_prepare)s
-
-        Returns
-        -------
-        :class:`moscot.problems.generic.FGWProblem`
-
-        Notes
-        -----
-        If `a` and `b` are provided `marginal_kwargs` are ignored.
-
-        Examples
-        --------
-        %(ex_prepare)s
-        """
-        xy, kwargs = handle_joint_attr(joint_attr, kwargs)
-        return super().prepare(key=key, GW_x=GW_x, GW_y=GW_y, xy=xy, policy=policy, cost=cost, a=a, b=b, **kwargs)
-
-    @d.dedent
-    def solve(
-        self,
-        alpha: Optional[float] = 0.5,
-        epsilon: Optional[float] = 1e-3,
-        tau_a: float = 1.0,
-        tau_b: float = 1.0,
-        rank: int = -1,
-        scale_cost: ScaleCost_t = "mean",
-        batch_size: Optional[int] = None,
-        stage: Union[ProblemStage_t, Tuple[ProblemStage_t, ...]] = ("prepared", "solved"),
-        initializer: QuadInitializer_t = None,
-        initializer_kwargs: Mapping[str, Any] = MappingProxyType({}),
-        jit: bool = True,
-        min_iterations: int = 5,
-        max_iterations: int = 50,
-        threshold: float = 1e-3,
-        gamma: float = 10.0,
-        gamma_rescale: bool = True,
-        ranks: Union[int, Tuple[int, ...]] = -1,
-        tolerances: Union[float, Tuple[float, ...]] = 1e-2,
-        linear_solver_kwargs: Mapping[str, Any] = MappingProxyType({}),
-        device: Optional[Literal["cpu", "gpu", "tpu"]] = None,
-        **kwargs: Any,
-    ) -> "FGWProblem[K,B]":
-        """
-        Solve optimal transport problems defined in :class:`moscot.problems.generic.FGWProblem`.
-
-        Parameters
-        ----------
-        %(alpha)s
-        %(epsilon)s
-        %(tau_a)s
-        %(tau_b)s
-        %(rank)s
-        %(scale_cost)s
-        %(pointcloud_kwargs)s
-        %(stage)s
-        %(initializer_quad)s
-        %(initializer_kwargs)s
-        %(gw_kwargs)s
-        %(sinkhorn_lr_kwargs)s
-        %(gw_lr_kwargs)s
-        %(linear_solver_kwargs)s
-        %(device_solve)s
-        %(kwargs_quad_fused)s
-
-        Returns
-        -------
-        :class:`moscot.problems.generic.FGWProblem`.
-
-        Examples
-        --------
-        %(ex_solve_quadratic)s
-        """
-        return super().solve(
-            alpha=alpha,
-            epsilon=epsilon,
-            tau_a=tau_a,
-            tau_b=tau_b,
-            rank=rank,
-            scale_cost=scale_cost,
-            batch_size=batch_size,
-            stage=stage,
-            initializer=initializer,
-            initializer_kwargs=initializer_kwargs,
-            jit=jit,
-            min_iterations=min_iterations,
-            max_iterations=max_iterations,
-            threshold=threshold,
-            gamma=gamma,
-            gamma_rescale=gamma_rescale,
-            ranks=ranks,
-            tolerances=tolerances,
-            linear_solver_kwargs=linear_solver_kwargs,
-            device=device,
-            **kwargs,
-        )

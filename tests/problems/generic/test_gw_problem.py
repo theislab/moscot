@@ -61,6 +61,7 @@ class TestGWProblem:
         for key, subsol in problem.solutions.items():
             assert isinstance(subsol, BaseSolverOutput)
             assert key in expected_keys
+            assert problem[key].solver._problem.geom_xy is None
 
     @pytest.mark.parametrize("method", ["fischer", "perm_test"])
     def test_compute_feature_correlation(self, adata_space_rotate: AnnData, method: str):
@@ -76,7 +77,7 @@ class TestGWProblem:
 
         key_added = "test_push"
         problem.push(source="0", target="1", data="celltype", subset="A", key_added=key_added)
-        feature_correlation = problem.compute_feature_correlation(key_added, method=method)
+        feature_correlation = problem.compute_feature_correlation(key_added, significance_method=method)
 
         assert isinstance(feature_correlation, pd.DataFrame)
         suffix = ["_corr", "_pval", "_qval", "_ci_low", "_ci_high"]
