@@ -4,6 +4,7 @@ from typing import Any, Type, Tuple, Union, Literal, Mapping, Optional, Sequence
 from anndata import AnnData
 
 from moscot._types import ArrayLike, Str_Dict_t, ScaleCost_t, ProblemStage_t, QuadInitializer_t
+from moscot._logging import logger
 from moscot._docs._docs import d
 from moscot._constants._key import Key
 from moscot.problems._utils import handle_cost, handle_joint_attr
@@ -12,8 +13,6 @@ from moscot.problems.space._mixins import SpatialMappingMixin
 from moscot.problems._subset_policy import DummyPolicy, ExternalStarPolicy
 from moscot.problems.base._base_problem import OTProblem
 from moscot.problems.base._compound_problem import B, K, CompoundProblem
-from moscot._logging import logger
-
 
 __all__ = ["MappingProblem"]
 
@@ -126,12 +125,13 @@ class MappingProblem(CompoundProblem[K, OTProblem], SpatialMappingMixin[K, OTPro
         %(ex_prepare)s
         """
         if normalize_spatial:
-            self._normalize_spatial(
-                spatial_key=spatial_key,
-                normalize_key=normalize_key,
-            )
-            spatial_key = f"{spatial_key}_{normalize_key}"
-            logger.info(f"Normalizing spatial coordinates and saving them in `adata.obsm['{spatial_key}']`.")
+            if isinstance(spatial_key, str):
+                self._normalize_spatial(
+                    spatial_key=spatial_key,
+                    normalize_key=normalize_key,
+                )
+                spatial_key = f"{spatial_key}_{normalize_key}"
+                logger.info(f"Normalizing spatial coordinates and saving them in `adata.obsm['{spatial_key}']`.")
 
         x = {"attr": "obsm", "key": spatial_key} if isinstance(spatial_key, str) else spatial_key
         y = {"attr": "obsm", "key": sc_attr} if isinstance(sc_attr, str) else sc_attr

@@ -128,7 +128,7 @@ def parallelize(
             collections = [collection[[ix], :] for ix in range(collection.shape[0])]  # type: ignore
         else:
             step = collection.shape[0] // n_split  # type: ignore[union-attr]
-            ixs = [np.arange(i * step, min((i + 1) * step, collection.shape[0])) for i in range(n_split)]  # type: ignore  # noqa:501
+            ixs = [np.arange(i * step, min((i + 1) * step, collection.shape[0])) for i in range(n_split)]  # type: ignore[union-attr,arg-type] # noqa: E501
             ixs[-1] = np.append(ixs[-1], np.arange(ixs[-1][-1] + 1, collection.shape[0]))  # type: ignore
 
             collections = [collection[ix, :] for ix in filter(len, ixs)]  # type:ignore[call-overload]
@@ -204,10 +204,10 @@ def _np_apply_along_axis(func1d, axis: int, arr: ArrayLike) -> ArrayLike:
 
 
 @njit(**jit_kwargs)
-def np_mean(array: ArrayLike, axis: int) -> ArrayLike:  # noqa
+def np_mean(array: ArrayLike, axis: int) -> ArrayLike:  # noqa: D103
     return _np_apply_along_axis(np.mean, axis, array)
 
 
 @njit(**jit_kwargs)
-def np_std(array: ArrayLike, axis: int) -> ArrayLike:  # noqa
+def np_std(array: ArrayLike, axis: int) -> ArrayLike:  # noqa: D103
     return _np_apply_along_axis(np.std, axis, array)

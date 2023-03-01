@@ -313,7 +313,6 @@ def _get_cmap_norm(
     row_annotation: str,
     col_annotation: str,
 ) -> Tuple[mcolors.ListedColormap, mcolors.ListedColormap, mcolors.BoundaryNorm, mcolors.BoundaryNorm]:
-
     if row_annotation != AggregationMode.CELL:
         row_color_dict = {
             row_adata.obs[row_annotation].cat.categories[i]: col

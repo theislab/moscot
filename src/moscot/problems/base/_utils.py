@@ -189,7 +189,6 @@ def _order_transition_matrix(
     target_annotations_ordered: Optional[List[str]],
     forward: bool,
 ) -> pd.DataFrame:
-
     if target_annotations_ordered is not None or source_annotations_ordered is not None:
         if forward:
             tm = _order_transition_matrix_helper(
