@@ -12,6 +12,8 @@ from moscot.problems.space._mixins import SpatialMappingMixin
 from moscot.problems._subset_policy import DummyPolicy, ExternalStarPolicy
 from moscot.problems.base._base_problem import OTProblem
 from moscot.problems.base._compound_problem import B, K, CompoundProblem
+from moscot._logging import logger
+
 
 __all__ = ["MappingProblem"]
 
@@ -76,6 +78,8 @@ class MappingProblem(CompoundProblem[K, OTProblem], SpatialMappingMixin[K, OTPro
         batch_key: Optional[str] = None,
         spatial_key: Union[str, Mapping[str, Any]] = Key.obsm.spatial,
         var_names: Optional[Sequence[Any]] = None,
+        normalize_spatial: bool = True,
+        normalize_key: str = "norm",
         joint_attr: Optional[Union[str, Mapping[str, Any]]] = None,
         cost: Union[
             Literal["sq_euclidean", "cosine", "bures", "unbalanced_bures"],
@@ -101,6 +105,11 @@ class MappingProblem(CompoundProblem[K, OTProblem], SpatialMappingMixin[K, OTPro
         var_names
             List of shared features to be used for the linear problem. If None, it defaults to the intersection
             between ``adata_sc`` and ``adata_sp``. If an empty list is pass, it defines a quadratic problem.
+        normalize_spatial
+            Whether to normalize the spatial coordinates. If `True`, the coordinates are normalized
+            by standardizing them. If `False`, no normalization is performed.
+        normalize_key
+            Key to store the normalization coordinates in :attr:`adata.obsm`.
 
         %(joint_attr)s
         %(cost)s
@@ -116,6 +125,14 @@ class MappingProblem(CompoundProblem[K, OTProblem], SpatialMappingMixin[K, OTPro
         --------
         %(ex_prepare)s
         """
+        if normalize_spatial:
+            self._normalize_spatial(
+                spatial_key=spatial_key,
+                normalize_key=normalize_key,
+            )
+            spatial_key = f"{spatial_key}_{normalize_key}"
+            logger.info(f"Normalizing spatial coordinates and saving them in `adata.obsm['{spatial_key}']`.")
+
         x = {"attr": "obsm", "key": spatial_key} if isinstance(spatial_key, str) else spatial_key
         y = {"attr": "obsm", "key": sc_attr} if isinstance(sc_attr, str) else sc_attr
         self.batch_key = batch_key
@@ -211,6 +228,14 @@ class MappingProblem(CompoundProblem[K, OTProblem], SpatialMappingMixin[K, OTPro
             device=device,
             **kwargs,
         )  # type: ignore[return-value]
+
+    def _normalize_spatial(
+        self,
+        spatial_key: str,
+        normalize_key: str,
+    ) -> None:
+        spatial = self.adata_sp.obsm[spatial_key]
+        self.adata_sp.obsm[f"{spatial_key}_{normalize_key}"] = (spatial - spatial.mean()) / spatial.std()
 
     @property
     def adata_sc(self) -> AnnData:

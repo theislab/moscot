@@ -9,6 +9,7 @@ from moscot._constants._constants import Policy
 from moscot.problems.space._mixins import SpatialAlignmentMixin
 from moscot.problems.base._base_problem import OTProblem
 from moscot.problems.base._compound_problem import B, K, CompoundProblem
+from moscot._logging import logger
 
 __all__ = ["AlignmentProblem"]
 
@@ -33,6 +34,8 @@ class AlignmentProblem(CompoundProblem[K, B], SpatialAlignmentMixin[K, B]):
         joint_attr: Optional[Union[str, Mapping[str, Any]]] = None,
         policy: Literal["sequential", "star"] = "sequential",
         reference: Optional[str] = None,
+        normalize_spatial: bool = True,
+        normalize_key: str = "norm",
         cost: Union[
             Literal["sq_euclidean", "cosine", "bures", "unbalanced_bures"],
             Mapping[str, Literal["sq_euclidean", "cosine", "bures", "unbalanced_bures"]],
@@ -56,6 +59,11 @@ class AlignmentProblem(CompoundProblem[K, B], SpatialAlignmentMixin[K, B]):
         reference
             Only used if `policy="star"`, it's the value for reference stored
             in :attr:`adata.obs` ``["batch_key"]``.
+        normalize_spatial
+            Whether to normalize the spatial coordinates. If `True`, the coordinates are normalized
+            by standardizing them. If `False`, no normalization is performed.
+        normalize_key
+            Key to store the normalization coordinates in :attr:`adata.obsm`.
 
         %(cost)s
         %(a)s
@@ -70,6 +78,14 @@ class AlignmentProblem(CompoundProblem[K, B], SpatialAlignmentMixin[K, B]):
         --------
         %(ex_prepare)s
         """
+        if normalize_spatial:
+            self._normalize_spatial(
+                spatial_key=spatial_key,
+                normalize_key=normalize_key,
+            )
+            spatial_key = f"{spatial_key}_{normalize_key}"
+            logger.info(f"Normalizing spatial coordinates and saving them in `adata.obsm['{spatial_key}']`.")
+
         self.spatial_key = spatial_key
         self.batch_key = batch_key
 
@@ -160,6 +176,14 @@ class AlignmentProblem(CompoundProblem[K, B], SpatialAlignmentMixin[K, B]):
             device=device,
             **kwargs,
         )  # type: ignore[return-value]
+
+    def _normalize_spatial(
+        self,
+        spatial_key: str,
+        normalize_key: str,
+    ) -> None:
+        spatial = self.adata.obsm[spatial_key]
+        self.adata.obsm[f"{spatial_key}_{normalize_key}"] = (spatial - spatial.mean()) / spatial.std()
 
     @property
     def _base_problem_type(self) -> Type[B]:
