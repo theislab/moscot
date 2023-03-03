@@ -72,12 +72,11 @@ class SubsetPolicy(Generic[K], ABC):
 
     def plan(
         self,
-        filter: Optional[Sequence[Tuple[K, K]]] = None,
+        filter: Optional[Sequence[Tuple[K, K]]] = None,  # noqa: A002
         explicit_steps: Optional[Sequence[Tuple[K, K]]] = None,
         **kwargs: Any,
     ) -> Sequence[Tuple[K, K]]:
-        """
-        Compute all pairs of distributions belonging to the policy.
+        """Compute all pairs of distributions belonging to the policy.
 
         Parameters
         ----------
@@ -118,7 +117,9 @@ class SubsetPolicy(Generic[K], ABC):
         self._graph = graph
         return self
 
-    def _filter_plan(self, plan: Sequence[Tuple[K, K]], filter: Sequence[Tuple[K, K]]) -> Sequence[Tuple[K, K]]:
+    def _filter_plan(
+        self, plan: Sequence[Tuple[K, K]], filter: Sequence[Tuple[K, K]]  # noqa: A002
+    ) -> Sequence[Tuple[K, K]]:
         return [step for step in plan if step in filter]
 
     @classmethod
@@ -290,15 +291,16 @@ class StarPolicy(SimplePlanPolicy[K]):
         return {(c, reference) for c in self._cat if c != reference}
 
     def _filter_plan(
-        self, plan: Sequence[Tuple[K, K]], filter: Sequence[Union[K, Tuple[K, K]]]
+        self, plan: Sequence[Tuple[K, K]], filter: Sequence[Union[K, Tuple[K, K]]]  # noqa: A002
     ) -> Sequence[Tuple[K, K]]:
         filter = [src[0] if isinstance(src, tuple) else src for src in filter]  # noqa: A001
         return [(src, ref) for src, ref in plan if src in filter]
 
     @property
-    def reference(self) -> K:  # type: ignore[return-value]
+    def reference(self) -> K:
         for _, ref in self._graph:
             return ref
+        raise ValueError("Graph is empty.")
 
     def add_node(self, node: Union[K, Tuple[K, K]], only_existing: bool = False) -> None:
         if not isinstance(node, tuple):
@@ -384,7 +386,6 @@ class DummyPolicy(FormatterMixin, SubsetPolicy[str]):
         tgt_name: Literal["tgt"] = "tgt",
         **kwargs: Any,
     ):
-
         super().__init__(pd.Series([self._SENTINEL] * len(adata)), verify_integrity=False, **kwargs)
         self._cat = (src_name, tgt_name)
         self._src_name = src_name
@@ -398,3 +399,8 @@ class DummyPolicy(FormatterMixin, SubsetPolicy[str]):
 
     def _format(self, _: Any, *, is_source: bool) -> str:
         return self._src_name if is_source else self._tgt_name
+
+    def _filter_plan(
+        self, plan: Sequence[Tuple[K, K]], filter: Sequence[Tuple[K, K]]  # noqa: A002
+    ) -> Sequence[Tuple[K, K]]:
+        return plan

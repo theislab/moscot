@@ -1,11 +1,13 @@
 from typing import Any, List, Mapping
 
+import pandas as pd
 import pytest
 
 import numpy as np
 
 from anndata import AnnData
 
+from tests._utils import ATOL, RTOL
 from moscot.solvers._output import BaseSolverOutput
 from tests.problems.conftest import (
     fgw_args_1,
@@ -109,6 +111,75 @@ class TestSpatioTemporalProblem:
             assert np.sum(np.isnan(adata_spatio_temporal.obs["apoptosis"])) == 0
         else:
             assert problem.apoptosis_key is None
+
+    @pytest.mark.fast()
+    def test_proliferation_key_pipeline(self, adata_spatio_temporal: AnnData):
+        problem = SpatioTemporalProblem(adata_spatio_temporal)
+        assert problem.proliferation_key is None
+
+        problem.score_genes_for_marginals(gene_set_proliferation="human", gene_set_apoptosis="human")
+        assert problem.proliferation_key == "proliferation"
+
+        adata_spatio_temporal.obs["new_proliferation"] = np.ones(adata_spatio_temporal.n_obs)
+        problem.proliferation_key = "new_proliferation"
+        assert problem.proliferation_key == "new_proliferation"
+
+    @pytest.mark.fast()
+    def test_apoptosis_key_pipeline(self, adata_spatio_temporal: AnnData):
+        problem = SpatioTemporalProblem(adata_spatio_temporal)
+        assert problem.apoptosis_key is None
+
+        problem.score_genes_for_marginals(gene_set_proliferation="human", gene_set_apoptosis="human")
+        assert problem.apoptosis_key == "apoptosis"
+
+        adata_spatio_temporal.obs["new_apoptosis"] = np.ones(adata_spatio_temporal.n_obs)
+        problem.apoptosis_key = "new_apoptosis"
+        assert problem.apoptosis_key == "new_apoptosis"
+
+    @pytest.mark.fast()
+    @pytest.mark.parametrize("scaling", [0.1, 1, 4])
+    def test_proliferation_key_c_pipeline(self, adata_spatio_temporal: AnnData, scaling: float):
+        keys = np.sort(np.unique(adata_spatio_temporal.obs["time"].values))
+        adata_spatio_temporal = adata_spatio_temporal[adata_spatio_temporal.obs["time"].isin([keys[0], keys[1]])]
+        delta = keys[1] - keys[0]
+        problem = SpatioTemporalProblem(adata_spatio_temporal)
+        assert problem.proliferation_key is None
+
+        problem.score_genes_for_marginals(gene_set_proliferation="human", gene_set_apoptosis="human")
+        assert problem.proliferation_key == "proliferation"
+
+        problem = problem.prepare(time_key="time", marginal_kwargs={"scaling": scaling})
+        prolif = adata_spatio_temporal[adata_spatio_temporal.obs["time"] == keys[0]].obs["proliferation"]
+        apopt = adata_spatio_temporal[adata_spatio_temporal.obs["time"] == keys[0]].obs["apoptosis"]
+        expected_marginals = np.exp((prolif - apopt) * delta / scaling)
+        print("problem[keys[0], keys[1]]._prior_growth", problem[keys[0], keys[1]]._prior_growth)
+        print("expected_marginals", expected_marginals)
+        np.testing.assert_allclose(problem[keys[0], keys[1]]._prior_growth, expected_marginals, rtol=RTOL, atol=ATOL)
+
+    def test_growth_rates_pipeline(self, adata_spatio_temporal: AnnData):
+        problem = SpatioTemporalProblem(adata=adata_spatio_temporal)
+        problem = problem.score_genes_for_marginals(gene_set_proliferation="mouse", gene_set_apoptosis="mouse")
+        problem = problem.prepare("time", a=True, b=True)
+        problem = problem.solve(max_iterations=2)
+
+        growth_rates = problem.posterior_growth_rates
+        assert isinstance(growth_rates, pd.DataFrame)
+        assert len(growth_rates.columns) == 1
+        assert set(growth_rates.index) == set(adata_spatio_temporal.obs.index)
+        assert set(growth_rates[growth_rates["posterior_growth_rates"].isnull()].index) == set(
+            adata_spatio_temporal[adata_spatio_temporal.obs["time"] == 2].obs.index
+        )
+        assert set(growth_rates[~growth_rates["posterior_growth_rates"].isnull()].index) == set(
+            adata_spatio_temporal[adata_spatio_temporal.obs["time"].isin([0, 1])].obs.index
+        )
+
+    def test_cell_costs_pipeline(self, adata_spatio_temporal: AnnData):
+        problem = SpatioTemporalProblem(adata=adata_spatio_temporal)
+        problem = problem.prepare("time")
+        problem = problem.solve(max_iterations=2)
+
+        assert problem.cell_costs_source is None
+        assert problem.cell_costs_target is None
 
     @pytest.mark.parametrize("args_to_check", [fgw_args_1, fgw_args_2])
     def test_pass_arguments(self, adata_spatio_temporal: AnnData, args_to_check: Mapping[str, Any]):

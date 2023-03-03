@@ -16,8 +16,8 @@ from moscot._constants._constants import Key, PlottingKeys, PlottingDefaults
 
 HERE: Path = Path(__file__).parent
 
-EXPECTED = HERE / "_images"
-ACTUAL = HERE / "figures"
+EXPECTED = HERE / "expected_figures"
+ACTUAL = HERE / "actual_figures"
 TOL = 60
 DPI = 40
 

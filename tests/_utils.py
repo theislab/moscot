@@ -37,18 +37,15 @@ class MockSolverOutput(MatrixSolverOutput):
         return True
 
     @property
+    def is_linear(self) -> bool:
+        return True
+
+    @property
     def potentials(self) -> Tuple[Optional[ArrayLike], Optional[ArrayLike]]:
         return None, None
 
     def _ones(self, n: int) -> ArrayLike:
         return np.ones(n)
-
-
-class MockBaseSolverOutput:
-    def __init__(self, len_a: int, len_b: int):
-        rng = np.random.RandomState(42)
-        self.a = rng.randn(len_a)
-        self.b = rng.randn(len_b)
 
 
 def _make_adata(grid: ArrayLike, n: int, seed) -> List[AnnData]:

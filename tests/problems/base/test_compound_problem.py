@@ -7,7 +7,7 @@ import pytest
 
 from ott.geometry.costs import Cosine, Euclidean, SqEuclidean
 from ott.geometry.pointcloud import PointCloud
-from ott.solvers.linear.sinkhorn import sinkhorn
+from ott.solvers.linear.sinkhorn import solve as sinkhorn
 import numpy as np
 
 from anndata import AnnData
@@ -55,7 +55,7 @@ class TestCompoundProblem:
             key="time",
             policy="sequential",
         )
-        problem = problem.solve()
+        problem = problem.solve(max_iterations=2)
 
         assert len(problem) == len(expected_keys)
         assert isinstance(problem.solutions, dict)
