@@ -33,6 +33,7 @@ from moscot.problems.base._utils import (
     _validate_args_cell_transition,
     _check_argument_compatibility_cell_transition,
 )
+from moscot.utils._subset_policy import SubsetPolicy
 from moscot._constants._constants import (
     Key,
     CorrMethod,
@@ -41,7 +42,6 @@ from moscot._constants._constants import (
     AggregationMode,
     PlottingDefaults,
 )
-from moscot.problems._subset_policy import SubsetPolicy
 from moscot.problems.base._compound_problem import B, K, ApplyOutput_t
 
 

@@ -72,10 +72,22 @@ class SubsetPolicy(Generic[K], ABC):
 
     def plan(
         self,
-        filter: Optional[Sequence[Tuple[K, K]]] = None,
+        filter: Optional[Sequence[Tuple[K, K]]] = None,  # noqa: A002
         explicit_steps: Optional[Sequence[Tuple[K, K]]] = None,
         **kwargs: Any,
     ) -> Sequence[Tuple[K, K]]:
+        """Compute all pairs of distributions belonging to the policy.
+
+        Parameters
+        ----------
+        %(fitler)s
+        %(explicit_steps)s
+        %(kwargs_plan)s
+
+        Returns
+        -------
+        Sequence containing pairs of distributions.
+        """
         if explicit_steps is not None:
             G = nx.DiGraph()
             G.add_edges_from(explicit_steps)
@@ -105,7 +117,9 @@ class SubsetPolicy(Generic[K], ABC):
         self._graph = graph
         return self
 
-    def _filter_plan(self, plan: Sequence[Tuple[K, K]], filter: Sequence[Tuple[K, K]]) -> Sequence[Tuple[K, K]]:
+    def _filter_plan(
+        self, plan: Sequence[Tuple[K, K]], filter: Sequence[Tuple[K, K]]  # noqa: A002
+    ) -> Sequence[Tuple[K, K]]:
         return [step for step in plan if step in filter]
 
     @classmethod
@@ -115,6 +129,25 @@ class SubsetPolicy(Generic[K], ABC):
         adata: Union[AnnData, pd.Series, pd.Categorical],
         **kwargs: Any,
     ) -> "SubsetPolicy[K]":
+        """
+        Create an instance of a `moscot.utils.SubsetPolicy`.
+
+        Parameters
+        ----------
+        %(policy_kind)s
+        %(adata)s
+
+        kwargs
+            Keyword arguments for a :class:`moscot.utils.SubsetPolicy`.
+
+        Returns
+        -------
+        An instance of a :class:`moscot.utils.SubsetPolicy`.
+
+        Notes
+        -----
+        TODO: link policy example.
+        """
         kind = Policy(kind)
         if kind == Policy.SEQUENTIAL:
             return SequentialPolicy(adata, **kwargs)
@@ -158,6 +191,18 @@ class SubsetPolicy(Generic[K], ABC):
         return res
 
     def add_node(self, node: Tuple[K, K], only_existing: bool = False) -> None:
+        """
+        Add a node to the policy.
+
+        Parameters
+        ----------
+        %(node)s
+        %(only_existing)s
+
+        Returns
+        -------
+        None
+        """
         if self._graph is None:
             raise RuntimeError("Construct the policy graph first.")
         src, tgt = node
@@ -171,6 +216,17 @@ class SubsetPolicy(Generic[K], ABC):
         self._graph.add(node)
 
     def remove_node(self, node: Tuple[K, K]) -> None:
+        """
+        Remove a node from the policy graph.
+
+        Parameters
+        ----------
+        %(node)s
+
+        Returns
+        -------
+        None
+        """
         if self._graph is None:
             raise RuntimeError("Construct the policy graph first.")
         try:
@@ -180,6 +236,19 @@ class SubsetPolicy(Generic[K], ABC):
 
 
 class OrderedPolicy(SubsetPolicy[K], ABC):
+    """
+    Policy taking into account the order of nodes.
+
+    Parameters
+    ----------
+    %(adata_policy)s
+    %(kwargs_policy)s
+
+    Returns
+    -------
+    None
+    """
+
     def __init__(self, adata: Union[AnnData, pd.Series, pd.Categorical], **kwargs: Any):
         super().__init__(adata, **kwargs)
         # TODO(michalk8): verify whether they can be ordered (only numeric?) + warn (or just raise)
@@ -222,15 +291,16 @@ class StarPolicy(SimplePlanPolicy[K]):
         return {(c, reference) for c in self._cat if c != reference}
 
     def _filter_plan(
-        self, plan: Sequence[Tuple[K, K]], filter: Sequence[Union[K, Tuple[K, K]]]
+        self, plan: Sequence[Tuple[K, K]], filter: Sequence[Union[K, Tuple[K, K]]]  # noqa: A002
     ) -> Sequence[Tuple[K, K]]:
         filter = [src[0] if isinstance(src, tuple) else src for src in filter]  # noqa: A001
         return [(src, ref) for src, ref in plan if src in filter]
 
     @property
-    def reference(self) -> K:  # type: ignore[return-value]
+    def reference(self) -> K:
         for _, ref in self._graph:
             return ref
+        raise ValueError("Graph is empty.")
 
     def add_node(self, node: Union[K, Tuple[K, K]], only_existing: bool = False) -> None:
         if not isinstance(node, tuple):
@@ -244,6 +314,8 @@ class StarPolicy(SimplePlanPolicy[K]):
 
 
 class ExternalStarPolicy(FormatterMixin, StarPolicy[K]):
+    """Policy with one central node connected to all other nodes."""
+
     _SENTINEL = object()
 
     def __init__(self, adata: Union[AnnData, pd.Series, pd.Categorical], tgt_name: str = "ref", **kwargs: Any):
@@ -264,6 +336,7 @@ class ExternalStarPolicy(FormatterMixin, StarPolicy[K]):
         return [(src, self._format(tgt, is_source=False)) for (src, tgt) in self._graph]
 
     def add_node(self, node: Union[K, Tuple[K, K]], only_existing: bool = False) -> None:
+        """Add a node to the policy."""
         if isinstance(node, tuple):
             _, tgt = node
         if tgt is self._tgt_name:
@@ -275,11 +348,15 @@ class ExternalStarPolicy(FormatterMixin, StarPolicy[K]):
 
 
 class SequentialPolicy(OrderedPolicy[K]):
+    """Policy connecting subsequent nodes."""
+
     def _create_graph(self, *_: Any, **__: Any) -> Set[Tuple[K, K]]:
         return set(zip(self._cat[:-1], self._cat[1:]))
 
 
 class TriangularPolicy(OrderedPolicy[K]):
+    """Connect all nodes with all subsequent nodes."""
+
     def __init__(self, adata: Union[AnnData, pd.Series, pd.Categorical], upper: bool = True, **kwargs: Any):
         super().__init__(adata, **kwargs)
         self._compare = lt if upper else gt
@@ -289,6 +366,8 @@ class TriangularPolicy(OrderedPolicy[K]):
 
 
 class ExplicitPolicy(SimplePlanPolicy[K]):
+    """A policy specified by the user."""
+
     def _create_graph(self, subset: Sequence[Tuple[K, K]], **_: Any) -> Set[Tuple[K, K]]:  # type: ignore[override]
         if subset is None:
             raise ValueError("No steps specifying the explicit policy.")
@@ -296,6 +375,8 @@ class ExplicitPolicy(SimplePlanPolicy[K]):
 
 
 class DummyPolicy(FormatterMixin, SubsetPolicy[str]):
+    """Policy to handle sentinel values."""
+
     _SENTINEL = object()
 
     def __init__(
@@ -318,3 +399,8 @@ class DummyPolicy(FormatterMixin, SubsetPolicy[str]):
 
     def _format(self, _: Any, *, is_source: bool) -> str:
         return self._src_name if is_source else self._tgt_name
+
+    def _filter_plan(
+        self, plan: Sequence[Tuple[K, K]], filter: Sequence[Tuple[K, K]]  # noqa: A002
+    ) -> Sequence[Tuple[K, K]]:
+        return plan
