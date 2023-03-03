@@ -22,9 +22,9 @@ from moscot._logging import logger
 from moscot._docs._docs import d
 from moscot.problems.base import AnalysisMixin  # type: ignore[attr-defined]
 from moscot._docs._docs_mixins import d_mixins
+from moscot.utils._subset_policy import StarPolicy
 from moscot._constants._constants import CorrMethod, AlignmentMode, PlottingDefaults
 from moscot.problems.base._mixins import AnalysisMixinProtocol
-from moscot.problems._subset_policy import StarPolicy
 from moscot.problems.base._compound_problem import B, K
 
 

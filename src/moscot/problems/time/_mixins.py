@@ -12,9 +12,9 @@ from anndata import AnnData
 from moscot._types import ArrayLike, Numeric_t, Str_Dict_t
 from moscot.solvers._output import BaseSolverOutput
 from moscot._docs._docs_mixins import d_mixins
+from moscot.utils._tagged_array import Tag
 from moscot._constants._constants import Key, PlottingKeys, PlottingDefaults
 from moscot.problems.base._mixins import AnalysisMixin, AnalysisMixinProtocol
-from moscot.solvers._tagged_array import Tag
 from moscot.problems.base._birth_death import BirthDeathProblem
 from moscot.problems.base._compound_problem import B, K, ApplyOutput_t
 
@@ -239,7 +239,7 @@ class TemporalMixin(AnalysisMixin[K, B]):
         """
         tuples = self._policy.plan(start=source, end=target)
         cell_transitions = []
-        for (src, tgt) in tuples:
+        for src, tgt in tuples:
             cell_transitions.append(
                 self.cell_transition(
                     src,
@@ -525,7 +525,7 @@ class TemporalMixin(AnalysisMixin[K, B]):
         only_start: bool = False,
     ) -> Union[Tuple[ArrayLike, AnnData], Tuple[ArrayLike, ArrayLike, ArrayLike, AnnData, ArrayLike]]:
         # TODO: use .items()
-        for (src, tgt) in self.problems:
+        for src, tgt in self.problems:
             tag = self.problems[src, tgt].xy.tag  # type: ignore[union-attr]
             if tag != Tag.POINT_CLOUD:
                 raise ValueError(
@@ -542,14 +542,14 @@ class TemporalMixin(AnalysisMixin[K, B]):
                 break
         else:
             raise ValueError(f"No data found for `{source}` time point.")
-        for (src, tgt) in self.problems.keys():
+        for src, tgt in self.problems.keys():
             if src == intermediate:
                 intermediate_data = self.problems[src, tgt].xy.data_src  # type: ignore[union-attr]
                 intermediate_adata = self.problems[src, tgt].adata_src
                 break
         else:
             raise ValueError(f"No data found for `{intermediate}` time point.")
-        for (src, tgt) in self.problems.keys():
+        for src, tgt in self.problems.keys():
             if tgt == target:
                 target_data = self.problems[src, tgt].xy.data_tgt  # type: ignore[union-attr]
                 break
