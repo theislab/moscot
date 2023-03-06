@@ -4,8 +4,8 @@ from collections import defaultdict
 
 from moscot._types import ProblemStage_t
 from moscot.solvers._output import BaseSolverOutput
+from moscot.utils._subset_policy import SubsetPolicy
 from moscot._constants._constants import ProblemStage
-from moscot.problems._subset_policy import SubsetPolicy
 from moscot.problems.base._base_problem import OTProblem
 
 if TYPE_CHECKING:

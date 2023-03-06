@@ -18,10 +18,10 @@ import jax.numpy as jnp
 
 from moscot._types import ArrayLike, QuadInitializer_t, SinkhornInitializer_t
 from moscot._constants._enum import ModeEnum
+from moscot.utils._tagged_array import TaggedArray
 from moscot.backends.ott._output import OTTOutput
 from moscot.problems.base._utils import _filter_kwargs
 from moscot.solvers._base_solver import OTSolver, ProblemKind
-from moscot.solvers._tagged_array import TaggedArray
 
 __all__ = ["OTTCost", "SinkhornSolver", "GWSolver"]
 

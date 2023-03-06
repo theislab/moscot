@@ -8,9 +8,9 @@ from moscot._logging import logger
 from moscot._docs._docs import d
 from moscot._constants._key import Key
 from moscot.problems._utils import handle_cost, handle_joint_attr
+from moscot.utils._subset_policy import DummyPolicy, ExternalStarPolicy
 from moscot._constants._constants import Policy
 from moscot.problems.space._mixins import SpatialMappingMixin
-from moscot.problems._subset_policy import DummyPolicy, ExternalStarPolicy
 from moscot.problems.base._base_problem import OTProblem
 from moscot.problems.base._compound_problem import B, K, CompoundProblem
 
