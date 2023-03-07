@@ -18,3 +18,4 @@ python:
 
 submodules:
   include: [docs/notebooks]
+  recursive: true
