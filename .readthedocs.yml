@@ -20,4 +20,4 @@ python:
         - docs
 
 submodules:
-  include: [docs/source/notebooks]
+  include: all

@@ -21,11 +21,12 @@ jobs:
           pip install tox
 
       - name: Build package
-        # TODO(michalk8): add this command
         run: tox -e build-package
 
       - name: Publish package
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
-          password: ${{ secrets.PYPI_API_TOKEN }}
+          password: ${{ secrets.TWINE_API_KEY }}
+          skip_existing: true
+          verify_metadata: true
           verbose: true
