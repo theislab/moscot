@@ -601,10 +601,10 @@ class TemporalMixin(AnalysisMixin[K, B]):
         %(start)s
         %(intermediate_interpolation)s
         %(end)s
-        %(interpolation_parameters)s
+        %(interpolation_parameter)s
         %(n_interpolated_cells)s
         %(account_for_unbalancedness)s
-        %(batch_size)s
+        %(ott_jax_batch_size)s
         %(use_posterior_marginals)s
         %(seed_sampling)s
         %(backend)s

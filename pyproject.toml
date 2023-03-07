@@ -52,7 +52,8 @@ dependencies = [
     "scipy>=1.7.0",
     "pandas>=1.4.0",
     "networkx>=2.6.3",
-    "matplotlib>=3.4.0",
+    # https://github.com/scverse/scanpy/issues/2411
+    "matplotlib>=3.4.0,<3.7",
     "anndata>=0.8.0",
     "scanpy>=1.9.0",
     "wrapt>=1.13.2",
@@ -71,18 +72,15 @@ dev = [
 ]
 docs = [
     "sphinx>=5.1.1",
-    "ipywidgets>=8.0.0",
-    "pyenchant>=3.1.1",
-    "furo>=2022.09.29",
-    "nbsphinx>=0.8.1,<0.8.7",
     "sphinx-autodoc-typehints>=1.10.3",
-    "sphinx-gallery>=0.8.2,<0.11",
-    "sphinx-last-updated-by-git",
     "sphinx_copybutton>=0.5.0",
     "sphinxcontrib-bibtex>=2.3.0",
     "sphinxcontrib-spelling>=7.6.2",
-    "sphinx_design",
-    "gitpython",
+    "furo>=2022.09.29",
+    "myst-nb>=0.17.1",
+    "nbsphinx>=0.8.1",
+    "ipython>=7.20.0",
+    "sphinx_design>=0.3.0",
 ]
 
 test = [

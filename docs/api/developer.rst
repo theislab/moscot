@@ -47,6 +47,20 @@ Mixin classes
 
     moscot.problems.base._birth_death.BirthDeathMixin
 
+Policy classes
+~~~~~~~~~~~~~~
+.. autosummary::
+    :toctree: genapi
+
+    moscot.utils.StarPolicy
+    moscot.utils.SubsetPolicy
+    moscot.utils.OrderedPolicy
+    moscot.utils.ExplicitPolicy
+    moscot.utils.SequentialPolicy
+    moscot.utils.TriangularPolicy
+    moscot.utils.ExternalStarPolicy
+
+
 Base classes
 ~~~~~~~~~~~~
 .. autosummary::

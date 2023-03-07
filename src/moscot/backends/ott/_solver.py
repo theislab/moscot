@@ -188,7 +188,6 @@ class SinkhornSolver(OTTJaxSolver):
 
         geom = self._create_geometry(xy, epsilon=epsilon, batch_size=batch_size, scale_cost=scale_cost, **kwargs)
         if self.is_low_rank:
-
             geom = geom.to_LRCGeometry(
                 rank=self.rank if cost_matrix_rank is None else cost_matrix_rank
             )  # batch_size cannot be passed in this function

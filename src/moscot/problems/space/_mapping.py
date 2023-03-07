@@ -224,7 +224,7 @@ class MappingProblem(CompoundProblem[K, OTProblem], SpatialMappingMixin[K, OTPro
 
     @property
     def filtered_vars(self) -> Optional[Sequence[str]]:
-        """Filtered variables."""  # noqa: D401
+        """Filtered variables."""
         return self._filtered_vars
 
     @filtered_vars.setter

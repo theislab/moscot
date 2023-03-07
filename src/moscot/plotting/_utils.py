@@ -313,7 +313,6 @@ def _get_cmap_norm(
     row_annotation: str,
     col_annotation: str,
 ) -> Tuple[mcolors.ListedColormap, mcolors.ListedColormap, mcolors.BoundaryNorm, mcolors.BoundaryNorm]:
-
     if row_annotation != AggregationMode.CELL:
         row_color_dict = {
             row_adata.obs[row_annotation].cat.categories[i]: col
@@ -373,7 +372,7 @@ def _plot_temporal(
     basis: str = "umap",
     constant_fill_value: float = np.nan,
     scale: bool = True,
-    cont_cmap: Union[str, mcolors.Colormap] = "viridis",
+    cont_cmap: Optional[Union[str, mcolors.Colormap]] = "viridis",
     title: Optional[Union[str, List[str]]] = None,
     suptitle: Optional[str] = None,
     figsize: Optional[Tuple[float, float]] = None,
@@ -388,8 +387,9 @@ def _plot_temporal(
 ) -> mpl.figure.Figure:
     if time_points is not None:
         time_points = sorted(time_points)
-    if isinstance(cont_cmap, str):
-        cont_cmap = mpl.colormaps["viridis"]
+    if cont_cmap is None or isinstance(cont_cmap, str):
+        cont_cmap = plt.get_cmap(cont_cmap)
+
     fig, axs = plt.subplots(
         1, 1 if time_points is None else len(time_points), figsize=figsize, dpi=dpi, constrained_layout=True
     )
@@ -443,7 +443,8 @@ def _plot_temporal(
                     st = f"not in {time_points[i]}"
                     vmin, vmax = np.nanmin(tmp[mask]), np.nanmax(tmp[mask])
                     column = pd.Series(tmp).fillna(st).astype("category")
-                    if len(np.unique(column[mask.values].values)) != 2:
+                    # TODO(michalk8): check
+                    if len(np.unique(column[mask.values].values)) > 2:
                         raise ValueError(f"Not exactly two categories, found `{column.cat.categories}`.")
                     adata.obs[keys[0]] = column.values
                     adata.obs[keys[0]] = adata.obs[keys[0]].astype("category")
