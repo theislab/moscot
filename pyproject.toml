@@ -67,8 +67,8 @@ spatial = [
     "squidpy>=1.2.3"
 ]
 dev = [
-    "tox>=3.24.0",
-    "pre-commit>=2.14.0"
+    "tox>=4.0.0",
+    "pre-commit>=3.0.0"
 ]
 docs = [
     "sphinx>=5.1.1",
@@ -159,3 +159,35 @@ ignore_directives = [
     "bibliography",
     "card",
 ]
+
+[tool.mypy]
+mypy_path = "$MYPY_CONFIG_FILE_DIR/src"
+python_version = "3.9"
+plugins = "numpy.typing.mypy_plugin"
+
+ignore_errors = false
+
+warn_redundant_casts = true
+warn_unused_configs = true
+warn_unused_ignores = true
+
+disallow_untyped_calls = false
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
+disallow_any_generics = true
+
+strict_optional = true
+strict_equality = true
+warn_return_any = false
+warn_unreachable = false
+check_untyped_defs = true
+no_implicit_optional = true
+no_implicit_reexport = true
+no_warn_no_return = true
+
+show_error_codes = true
+show_column_numbers = true
+error_summary = true
+ignore_missing_imports = true
+
+disable_error_code = ["assignment", "comparison-overlap", "no-untyped-def"]
