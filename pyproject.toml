@@ -148,3 +148,14 @@ lexicographical = true
 markers = [
     "fast: marks tests as fask",
 ]
+
+[tool.rstcheck]
+ignore_directives = [
+    "toctree",
+    "currentmodule",
+    "autosummary",
+    "automodule",
+    "autoclass",
+    "bibliography",
+    "card",
+]

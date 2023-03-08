@@ -1,9 +1,6 @@
 Plotting
 ########
 
-Plotting
-~~~~~~~~
-
 .. currentmodule:: moscot.plotting
 
 .. autosummary::

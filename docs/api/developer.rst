@@ -1,9 +1,8 @@
 Developer
 #########
 
-
 OTT Backend
-~~~~~~~~~~~~
+~~~~~~~~~~~
 
 .. autosummary::
     :toctree: genapi
