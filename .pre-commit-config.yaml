@@ -59,7 +59,6 @@ repos:
       - id: mixed-line-ending
         args: [--fix=lf]
       - id: trailing-whitespace
-        exclude: ^.bumpversion.cfg$
       - id: check-case-conflict
       - id: check-docstring-first
       - id: check-yaml
