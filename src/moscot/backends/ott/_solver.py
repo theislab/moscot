@@ -97,10 +97,10 @@ class OTTJaxSolver(OTSolver[OTTOutput]):
         return OTTOutput(out)
 
     @staticmethod
-    def _assert2d(arr: Optional[ArrayLike], *, allow_reshape: bool = True) -> Optional[jnp.ndarray]:
+    def _assert2d(arr: Optional[ArrayLike], *, allow_reshape: bool = True) -> Optional[ArrayLike]:
         if arr is None:
             return None
-        arr: jnp.ndarray = jnp.asarray(arr.A if issparse(arr) else arr)  # type: ignore[attr-defined, no-redef]
+        arr: ArrayLike = jnp.asarray(arr.A if issparse(arr) else arr)  # type: ignore[attr-defined, no-redef]
         if allow_reshape and arr.ndim == 1:
             return jnp.reshape(arr, (-1, 1))
         if arr.ndim != 2:

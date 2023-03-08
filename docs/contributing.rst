@@ -1,4 +1,3 @@
 Contributing
 ============
-
-Under construction. Pleae feel free to reach out!
+Under construction. Please feel free to reach out!

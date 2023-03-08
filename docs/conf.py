@@ -13,7 +13,6 @@ import sys
 # If extensions (or modules to document with autodoc) are in another directory,
 # add these directories to sys.path here. If the directory is relative to the
 # documentation root, use os.path.abspath to make it absolute, like shown here.
-#
 import moscot
 
 sys.path.insert(0, str(Path(__file__).parent / "extensions"))
@@ -35,28 +34,27 @@ extensions = [
     "sphinx.ext.napoleon",
     "sphinx.ext.viewcode",
     "sphinx.ext.mathjax",
-    "sphinx_autodoc_typehints",
     "sphinx.ext.intersphinx",
     "sphinx.ext.autosummary",
     "sphinxcontrib.bibtex",
-    "typed_returns",
     "sphinx_copybutton",
     "myst_nb",
     "nbsphinx",
-    # TODO(michalk8): fix the lexer
-    "IPython.sphinxext.ipython_console_highlighting",
     "sphinx_design",  # for cards
+    "typed_returns",
 ]
 intersphinx_mapping = {
     "python": ("https://docs.python.org/3", None),
     "numpy": ("https://numpy.org/doc/stable/", None),
     "scipy": ("https://docs.scipy.org/doc/scipy/", None),
-    "matplotlib": ("https://matplotlib.org/stable/", None),
+    "pandas": ("https://pandas.pydata.org/docs/", None),
+    "networkx": ("https://networkx.org/documentation/stable/", None),
     "jax": ("https://jax.readthedocs.io/en/latest/", None),
     "ott": ("https://ott-jax.readthedocs.io/en/latest/", None),
-    "pandas": ("https://pandas.pydata.org/docs/", None),
+    "matplotlib": ("https://matplotlib.org/stable/", None),
     "anndata": ("https://anndata.readthedocs.io/en/latest/", None),
     "scanpy": ("https://scanpy.readthedocs.io/en/latest/", None),
+    "squidpy": ("https://squidpy.readthedocs.io/en/latest/", None),
 }
 master_doc = "index"
 pygments_style = "sphinx"
@@ -87,6 +85,7 @@ myst_heading_anchors = 2
 # This pattern also affects html_static_path and html_extra_path.
 autosummary_generate = True
 autodoc_member_order = "bysource"
+autodoc_typehints = "description"
 typehints_fully_qualified = False
 napoleon_google_docstring = False
 napoleon_numpy_docstring = True
@@ -102,7 +101,6 @@ spelling_lang = "en_US"
 spelling_warning = True
 spelling_word_list_filename = "spelling_wordlist.txt"
 spelling_add_pypi_package_names = True
-spelling_show_suggestions = True
 spelling_exclude_patterns = ["references.rst"]
 # see: https://pyenchant.github.io/pyenchant/api/enchant.tokenize.html
 spelling_filters = [
@@ -111,7 +109,7 @@ spelling_filters = [
     "enchant.tokenize.MentionFilter",
 ]
 
-exclude_patterns = ["build", "**.ipynb_checkpoints"]
+exclude_patterns = ["build", "**.ipynb_checkpoints", "notebooks/README.rst", "notebooks/CONTRIBUTING.rst"]
 
 # -- Options for HTML output -------------------------------------------------
 
