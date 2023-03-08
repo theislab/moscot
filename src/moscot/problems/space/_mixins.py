@@ -115,7 +115,7 @@ class SpatialAlignmentMixin(AnalysisMixin[K, B]):
         # get policy
         reference_ = [reference] if isinstance(reference, str) else reference
         full_steps = self._policy._graph
-        starts = set(chain.from_iterable(full_steps)) - set(reference_)  # type: ignore[arg-type]
+        starts = set(chain.from_iterable(full_steps)) - set(reference_)  # type: ignore[call-overload]
 
         if mode == AlignmentMode.AFFINE:
             _transport = self._affine
