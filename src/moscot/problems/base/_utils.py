@@ -284,7 +284,6 @@ def _correlation_test(
         - ``ci_low`` - lower bound of the ``confidence_level`` correlation confidence interval.
         - ``ci_high`` - upper bound of the ``confidence_level`` correlation confidence interval.
     """
-
     corr, pvals, ci_low, ci_high = _correlation_test_helper(
         X.T,
         Y.values,

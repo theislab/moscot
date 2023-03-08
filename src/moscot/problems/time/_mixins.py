@@ -184,7 +184,6 @@ class TemporalMixin(AnalysisMixin[K, B]):
         -----
         %(notes_cell_transition)s
         """
-
         if TYPE_CHECKING:
             assert isinstance(self.temporal_key, str)
         return self._cell_transition(
@@ -542,14 +541,14 @@ class TemporalMixin(AnalysisMixin[K, B]):
                 break
         else:
             raise ValueError(f"No data found for `{source}` time point.")
-        for src, tgt in self.problems.keys():
+        for src, tgt in self.problems:
             if src == intermediate:
                 intermediate_data = self.problems[src, tgt].xy.data_src  # type: ignore[union-attr]
                 intermediate_adata = self.problems[src, tgt].adata_src
                 break
         else:
             raise ValueError(f"No data found for `{intermediate}` time point.")
-        for src, tgt in self.problems.keys():
+        for src, tgt in self.problems:
             if tgt == target:
                 target_data = self.problems[src, tgt].xy.data_tgt  # type: ignore[union-attr]
                 break

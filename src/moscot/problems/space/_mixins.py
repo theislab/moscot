@@ -104,7 +104,6 @@ class SpatialAlignmentMixin(AnalysisMixin[K, B]):
         spatial_key: Optional[str] = None,
     ) -> Tuple[Dict[K, ArrayLike], Optional[Dict[K, Optional[ArrayLike]]]]:
         """Scheme for interpolation."""
-
         # get reference
         src = self._subset_spatial(reference, spatial_key=spatial_key)
         transport_maps: Dict[K, ArrayLike] = {reference: src}
@@ -114,10 +113,7 @@ class SpatialAlignmentMixin(AnalysisMixin[K, B]):
             transport_metadata = {reference: np.diag((1, 1))}  # 2d data
 
         # get policy
-        if isinstance(reference, str):
-            reference_ = [reference]
-        else:
-            reference_ = reference
+        reference_ = [reference] if isinstance(reference, str) else reference
         full_steps = self._policy._graph
         starts = set(chain.from_iterable(full_steps)) - set(reference_)  # type: ignore[arg-type]
 

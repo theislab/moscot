@@ -272,10 +272,7 @@ class TestTemporalProblem:
             el = getattr(geom, val)[0] if isinstance(getattr(geom, val), tuple) else getattr(geom, val)
             assert el == args_to_check[arg]
 
-        if args_to_check["rank"] == -1:
-            args = pointcloud_args
-        else:
-            args = lr_pointcloud_args
+        args = pointcloud_args if args_to_check["rank"] == -1 else lr_pointcloud_args
         for arg, val in args.items():
             el = getattr(geom, val)[0] if isinstance(getattr(geom, val), tuple) else getattr(geom, val)
             assert hasattr(geom, val)
