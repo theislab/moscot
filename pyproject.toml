@@ -237,6 +237,19 @@ skip_install = true
 commands =
     pre-commit run --all-files --show-diff-on-failure
 
+[testenv:lint-docs]
+description = Lint the documentation.
+deps =
+extras = docs
+ignore_errors = true
+allowlist_externals = make
+pass_env = PYENCHANT_LIBRARY_PATH
+set_env = SPHINXOPTS = -W -q --keep-going
+changedir = {tox_root}{/}docs
+commands =
+    make linkcheck {posargs}
+    make spelling {posargs}
+
 [testenv:clean-docs]
 description = Remove the documentation.
 skip_install = true
