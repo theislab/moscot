@@ -27,7 +27,10 @@ def require_solution(
 
 @wrapt.decorator
 def require_prepare(
-    wrapped: Callable[[Any], Any], instance: "BaseCompoundProblem", args: Tuple[Any, ...], kwargs: Mapping[str, Any]
+    wrapped: Callable[[Any], Any],
+    instance: "BaseCompoundProblem",  # type: ignore[type-arg]
+    args: Tuple[Any, ...],
+    kwargs: Mapping[str, Any],
 ) -> Any:
     """Check whether problem has been prepared."""
     if instance.problems is None:

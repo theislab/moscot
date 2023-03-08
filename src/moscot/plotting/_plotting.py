@@ -18,7 +18,7 @@ from moscot._constants._constants import AdataKeys, PlottingKeys, PlottingDefaul
 
 @d_plotting.dedent
 def cell_transition(
-    inp: Union[AnnData, Tuple[AnnData, AnnData], CompoundProblem],
+    inp: Union[AnnData, Tuple[AnnData, AnnData], CompoundProblem],  # type: ignore[type-arg]
     uns_key: str = PlottingKeys.CELL_TRANSITION,
     row_labels: Optional[str] = None,
     col_labels: Optional[str] = None,
@@ -166,7 +166,7 @@ def sankey(
 
 @d_plotting.dedent
 def push(
-    inp: Union[AnnData, TemporalProblem, LineageProblem, CompoundProblem],
+    inp: Union[AnnData, TemporalProblem, LineageProblem, CompoundProblem],  # type: ignore[type-arg]
     uns_key: Optional[str] = None,
     time_points: Optional[Sequence[float]] = None,
     basis: str = "umap",
@@ -251,7 +251,7 @@ def push(
 
 @d_plotting.dedent
 def pull(
-    inp: Union[AnnData, TemporalProblem, LineageProblem, CompoundProblem],
+    inp: Union[AnnData, TemporalProblem, LineageProblem, CompoundProblem],  # type: ignore[type-arg]
     uns_key: Optional[str] = None,
     time_points: Optional[Sequence[float]] = None,
     basis: str = "umap",

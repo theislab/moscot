@@ -85,11 +85,7 @@ class SpatialMappingMixinProtocol(AnalysisMixinProtocol[K, B]):
     ) -> Optional[List[str]]:
         ...
 
-    def _cell_transition(
-        self: AnalysisMixinProtocol[K, B],
-        *args: Any,
-        **kwargs: Any,
-    ) -> pd.DataFrame:
+    def _cell_transition(self: AnalysisMixinProtocol[K, B], *args: Any, **kwargs: Any) -> pd.DataFrame:
         ...
 
 
@@ -101,7 +97,7 @@ class SpatialAlignmentMixin(AnalysisMixin[K, B]):
         self._spatial_key: Optional[str] = None
         self._batch_key: Optional[str] = None
 
-    def _interpolate_scheme(
+    def _interpolate_scheme(  # type: ignore[misc]
         self: SpatialAlignmentMixinProtocol[K, B],
         reference: K,
         mode: Literal["warp", "affine"],
@@ -149,7 +145,7 @@ class SpatialAlignmentMixin(AnalysisMixin[K, B]):
         return transport_maps, (transport_metadata if mode == "affine" else None)
 
     @d.dedent
-    def align(
+    def align(  # type: ignore[misc]
         self: SpatialAlignmentMixinProtocol[K, B],
         reference: K,
         mode: Literal["warp", "affine"] = "warp",
@@ -196,7 +192,7 @@ class SpatialAlignmentMixin(AnalysisMixin[K, B]):
         self.adata.obsm[f"{self.spatial_key}_{mode}"] = aligned_basis
 
     @d_mixins.dedent
-    def cell_transition(
+    def cell_transition(  # type: ignore[misc]
         self: SpatialAlignmentMixinProtocol[K, B],
         source: K,
         target: K,
@@ -255,7 +251,7 @@ class SpatialAlignmentMixin(AnalysisMixin[K, B]):
         return self._spatial_key
 
     @spatial_key.setter
-    def spatial_key(self: SpatialAlignmentMixinProtocol[K, B], key: Optional[str]) -> None:
+    def spatial_key(self: SpatialAlignmentMixinProtocol[K, B], key: Optional[str]) -> None:  # type: ignore[misc]
         if key is not None and key not in self.adata.obsm:
             raise KeyError(f"Unable to find spatial data in `adata.obsm[{key!r}]`.")
         self._spatial_key = key
@@ -267,11 +263,11 @@ class SpatialAlignmentMixin(AnalysisMixin[K, B]):
 
     @batch_key.setter
     def batch_key(self, key: Optional[str]) -> None:
-        if key is not None and key not in self.adata.obs:
+        if key is not None and key not in self.adata.obs:  # type: ignore[attr-defined]
             raise KeyError(f"Unable to find batch data in `adata.obs[{key!r}]`.")
         self._batch_key = key
 
-    def _subset_spatial(
+    def _subset_spatial(  # type: ignore[misc]
         self: SpatialAlignmentMixinProtocol[K, B], k: K, spatial_key: Optional[str] = None
     ) -> ArrayLike:
         if spatial_key is None:
@@ -308,7 +304,7 @@ class SpatialMappingMixin(AnalysisMixin[K, B]):
         self._batch_key: Optional[str] = None
         self._spatial_key: Optional[str] = None
 
-    def _filter_vars(
+    def _filter_vars(  # type: ignore[misc]
         self: SpatialMappingMixinProtocol[K, B],
         var_names: Optional[Sequence[str]] = None,
     ) -> Optional[List[str]]:
@@ -330,7 +326,7 @@ class SpatialMappingMixin(AnalysisMixin[K, B]):
 
         raise ValueError("Some variable are missing in the single-cell or the spatial `AnnData`.")
 
-    def correlate(
+    def correlate(  # type: ignore[misc]
         self: SpatialMappingMixinProtocol[K, B],
         var_names: Optional[List[str]] = None,
         corr_method: Literal["pearson", "spearman"] = "pearson",
@@ -382,7 +378,7 @@ class SpatialMappingMixin(AnalysisMixin[K, B]):
 
         return corrs
 
-    def impute(
+    def impute(  # type: ignore[misc]
         self: SpatialMappingMixinProtocol[K, B],
         var_names: Optional[Sequence[Any]] = None,
         device: Optional[Device_t] = None,
@@ -415,7 +411,7 @@ class SpatialMappingMixin(AnalysisMixin[K, B]):
         return adata_pred
 
     @d.dedent
-    def spatial_correspondence(
+    def spatial_correspondence(  # type: ignore[misc]
         self: SpatialMappingMixinProtocol[K, B],
         interval: Union[ArrayLike, int] = 10,
         max_dist: Optional[int] = None,
@@ -487,7 +483,7 @@ class SpatialMappingMixin(AnalysisMixin[K, B]):
             return out
 
     @d_mixins.dedent
-    def cell_transition(
+    def cell_transition(  # type: ignore[misc]
         self: SpatialMappingMixinProtocol[K, B],
         source: K,
         target: Optional[K] = None,
@@ -546,7 +542,7 @@ class SpatialMappingMixin(AnalysisMixin[K, B]):
 
     @batch_key.setter
     def batch_key(self, key: Optional[str]) -> None:
-        if key is not None and key not in self.adata.obs:
+        if key is not None and key not in self.adata.obs:  # type: ignore[attr-defined]
             raise KeyError(f"Unable to find batch data in `adata.obs[{key!r}]`.")
         self._batch_key = key
 
@@ -556,7 +552,7 @@ class SpatialMappingMixin(AnalysisMixin[K, B]):
         return self._spatial_key
 
     @spatial_key.setter
-    def spatial_key(self: SpatialAlignmentMixinProtocol[K, B], key: Optional[str]) -> None:
+    def spatial_key(self: SpatialAlignmentMixinProtocol[K, B], key: Optional[str]) -> None:  # type: ignore[misc]
         if key is not None and key not in self.adata.obsm:
             raise KeyError(f"Unable to find spatial data in `adata.obsm[{key!r}]`.")
         self._spatial_key = key

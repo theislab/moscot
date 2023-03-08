@@ -102,7 +102,7 @@ class OTTJaxSolver(OTSolver[OTTOutput]):
             return None
         arr: ArrayLike = jnp.asarray(arr.A if issparse(arr) else arr)  # type: ignore[attr-defined, no-redef]
         if allow_reshape and arr.ndim == 1:
-            return jnp.reshape(arr, (-1, 1))
+            return jnp.reshape(arr, (-1, 1))  # type: ignore[return-value]
         if arr.ndim != 2:
             raise ValueError(f"Expected array to have 2 dimensions, found `{arr.ndim}`.")
         return arr

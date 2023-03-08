@@ -205,4 +205,4 @@ class OTTOutput(BaseSolverOutput):
         return len(lin_output.g) if isinstance(lin_output, OTTLRSinkhornOutput) else -1
 
     def _ones(self, n: int) -> ArrayLike:
-        return jnp.ones((n,))
+        return jnp.ones((n,))  # type: ignore[return-value]

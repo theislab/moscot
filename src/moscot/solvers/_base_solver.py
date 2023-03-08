@@ -42,9 +42,9 @@ class ProblemKind(ModeEnum):
             from moscot.backends.ott import GWSolver, SinkhornSolver  # type: ignore[attr-defined]
 
             if self == ProblemKind.LINEAR:
-                return SinkhornSolver(**kwargs)
+                return SinkhornSolver(**kwargs)  # type: ignore[return-value]
             if self == ProblemKind.QUAD:
-                return GWSolver(**kwargs)
+                return GWSolver(**kwargs)  # type: ignore[return-value]
             raise NotImplementedError(f"Unable to create solver for `{self}` problem.")
 
         raise NotImplementedError(f"Backend `{backend}` is not yet implemented.")
