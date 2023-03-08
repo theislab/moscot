@@ -67,8 +67,13 @@ spatial = [
     "squidpy>=1.2.3"
 ]
 dev = [
-    "tox>=4.0.0",
-    "pre-commit>=3.0.0"
+    "pre-commit>=3.0.0",
+    "tox>=4",
+]
+test = [
+    "pytest>=7.1.2",
+    "pytest-mock>=3.5.0",
+    "pytest-cov>=4.0.0",
 ]
 docs = [
     "sphinx>=5.1.1",
@@ -80,12 +85,6 @@ docs = [
     "nbsphinx>=0.8.1",
     "ipython>=7.20.0",
     "sphinx_design>=0.3.0",
-]
-
-test = [
-    "pytest>=7.1.2",
-    "pytest-mock>=3.5.0",
-    "pytest-cov>=4.0.0",
 ]
 
 [tool.setuptools]
@@ -148,6 +147,27 @@ lexicographical = true
 markers = ["fast: marks tests as fask"]
 xfail_strict = true
 
+[tool.coverage.run]
+branch = true
+source = ["src/"]
+omit = [
+    "*/__init__.py",
+    "*/_version.py",
+]
+
+[tool.coverage.report]
+exclude_lines = [
+    '\#.*pragma:\s*no.?cover',
+    "^if __name__ == .__main__.:$",
+    '^\s*raise AssertionError\b',
+    '^\s*raise NotImplementedError\b',
+    '^\s*return NotImplemented\b',
+]
+precision = 2
+show_missing = true
+skip_empty = true
+sort = "Miss"
+
 [tool.rstcheck]
 ignore_directives = [
     "toctree",
@@ -193,3 +213,58 @@ disable_error_code = ["assignment", "comparison-overlap", "no-untyped-def"]
 
 [tool.doc8]
 max_line_length = 120
+
+[tool.tox]
+legacy_tox_ini = """
+[tox]
+min_version = 4.0
+env_list = lint-code,py{3.8,3.9,3.10,3.11}-{linux,macos}
+skip_missing_interpreters = true
+
+[testenv]
+extras = test
+use_develop = true
+pass_env = PYTEST_*,CI
+commands =
+    python -m pytest {tty:--color=yes} {posargs: \
+        --cov={env_site_packages_dir}{/}ott --cov-config={tox_root}{/}pyproject.toml \
+        --no-cov-on-fail --cov-report=xml --cov-report=term-missing:skip-covered}
+
+[testenv:lint-code]
+description = Lint the code.
+deps = pre-commit>=3.0.0
+skip_install = true
+commands =
+    pre-commit run --all-files --show-diff-on-failure
+
+[testenv:clean-docs]
+description = Remove the documentation.
+skip_install = true
+changedir = {tox_root}{/}docs
+allowlist_externals = make
+commands =
+    make clean
+
+[testenv:build-docs]
+description = Build the documentation.
+use_develop = true
+deps =
+extras = docs
+allowlist_externals = make
+changedir = {tox_root}{/}docs
+commands =
+    make html {posargs}
+commands_post =
+    python -c 'import pathlib; print("Documentation is under:", pathlib.Path("{tox_root}") / "docs" / "_build" / "html" / "index.html")'
+
+[testenv:build-package]
+description = Build the package.
+deps =
+    build
+    twine
+commands =
+    python -m build --sdist --wheel --outdir {tox_root}{/}dist{/} {posargs:}
+    twine check {tox_root}{/}dist{/}*
+commands_post =
+    python -c 'import pathlib; print(f"Package is under:", pathlib.Path("{tox_root}") / "dist")'
+"""
