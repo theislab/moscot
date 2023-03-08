@@ -191,3 +191,6 @@ error_summary = true
 ignore_missing_imports = true
 
 disable_error_code = ["assignment", "comparison-overlap", "no-untyped-def"]
+
+[tool.doc8]
+max_line_length = 120
