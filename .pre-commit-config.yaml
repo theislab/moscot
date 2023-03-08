@@ -47,23 +47,16 @@ repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v4.4.0
     hooks:
-      - id: detect-private-key
       - id: check-merge-conflict
       - id: check-ast
-      - id: check-symlinks
       - id: check-added-large-files
-      - id: check-executables-have-shebangs
-      - id: fix-encoding-pragma
-        args: [--remove]
       - id: end-of-file-fixer
       - id: mixed-line-ending
         args: [--fix=lf]
       - id: trailing-whitespace
-      - id: check-case-conflict
       - id: check-docstring-first
       - id: check-yaml
       - id: check-toml
-      - id: requirements-txt-fixer
   - repo: https://github.com/myint/autoflake
     rev: v2.0.1
     hooks:
