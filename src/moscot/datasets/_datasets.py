@@ -151,10 +151,8 @@ def tedsim(
 ) -> AnnData:  # pragma: no cover
     """Dataset simulated with TedSim :cite:`pan:22`.
 
-    The data was simulated with asymmetric division rate of `0.2` and intermediate state step size of `0.2`.
-    :attr:`anndata.AnnData.X` was preprocessed using :func:`scanpy.pp.normalize_total` and :func:`scanpy.pp.log1p`.
-
-    The annotated data object contains the following fields:
+    The data was simulated with asymmetric division rate of `0.2` and intermediate state step size of `0.2` and contains
+    the following fields:
 
     - :attr:`anndata.AnnData.obsm` ``['barcodes']``: barcodes.
     - :attr:`anndata.AnnData.obsp` ``['barcodes_cost']``: pre-computed barcode distances.
