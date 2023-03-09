@@ -198,6 +198,7 @@ filterwarnings = [
 
 [tool.coverage.run]
 branch = true
+parallel = true
 source = ["src/"]
 omit = [
     "*/__init__.py",

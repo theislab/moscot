@@ -18,6 +18,7 @@ from tests._utils import Geom_t, _make_grid, _make_adata
 ANGLES = (0, 30, 60)
 
 
+# TODO(michalk8): consider passing this via env
 config.update("jax_enable_x64", True)
 
 

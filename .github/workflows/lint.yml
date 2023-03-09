@@ -19,7 +19,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        lint-kind: [code, docs]
+        # TODO(michalk8): enable in the future
+        lint-kind: [code] # , docs]
 
     steps:
       - uses: actions/checkout@v3
@@ -48,7 +49,5 @@ jobs:
           python -m pip install pyenchant
 
       - name: Lint ${{ matrix.lint-kind }}
-        # TODO(michalk8): fix the docs linter in the future
-        continue-on-error: ${{ matrix.lint-kind == 'docs' }}
         run: |
           tox -e lint-${{ matrix.lint-kind }}
