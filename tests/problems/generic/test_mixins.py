@@ -118,8 +118,8 @@ class TestBaseAnalysisMixin:
 
         df_res = df_res.div(df_res.sum(axis=1), axis=0)
 
-        ctr_ordered = ctr.sort_index().sort_index(1)
-        df_res_ordered = df_res.sort_index().sort_index(1)
+        ctr_ordered = ctr.sort_index().sort_index(axis=1)
+        df_res_ordered = df_res.sort_index().sort_index(axis=1)
         np.testing.assert_allclose(
             ctr_ordered.values.astype(float), df_res_ordered.values.astype(float), rtol=RTOL, atol=ATOL
         )
@@ -159,8 +159,8 @@ class TestBaseAnalysisMixin:
 
         df_res = df_res.div(df_res.sum(axis=0), axis=1)
 
-        ctr_ordered = ctr.sort_index().sort_index(1)
-        df_res_ordered = df_res.sort_index().sort_index(1)
+        ctr_ordered = ctr.sort_index().sort_index(axis=1)
+        df_res_ordered = df_res.sort_index().sort_index(axis=1)
         np.testing.assert_allclose(
             ctr_ordered.values.astype(float), df_res_ordered.values.astype(float), rtol=RTOL, atol=ATOL
         )

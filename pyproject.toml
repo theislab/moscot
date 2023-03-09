@@ -53,7 +53,7 @@ dependencies = [
     "pandas>=1.4.0",
     "networkx>=2.6.3",
     # https://github.com/scverse/scanpy/issues/2411
-    "matplotlib>=3.4.0,<3.7",
+    "matplotlib>=3.5.0,<3.7",
     "anndata>=0.8.0",
     "scanpy>=1.9.0",
     "wrapt>=1.13.2",

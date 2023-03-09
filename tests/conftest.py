@@ -1,6 +1,5 @@
 from math import cos, sin
 from typing import Tuple, Optional
-import random
 
 from scipy.sparse import csr_matrix
 import pandas as pd
@@ -55,7 +54,7 @@ def y() -> Geom_t:
 
 
 @pytest.fixture()
-def xy() -> Geom_t:
+def xy() -> Tuple[Geom_t, Geom_t]:
     rng = np.random.RandomState(2)
     n = 20  # number of points in the first distribution
     n2 = 30  # number of points in the second distribution
@@ -145,15 +144,16 @@ def create_marginals(n: int, m: int, *, uniform: bool = False, seed: Optional[in
 
 @pytest.fixture()
 def gt_temporal_adata() -> AnnData:
-    return _gt_temporal_adata.copy()
+    adata = _gt_temporal_adata.copy()
+    adata.obs_names_make_unique()
+    return adata
 
 
 @pytest.fixture()
 def adata_space_rotate() -> AnnData:
-    seed = random.randint(0, 422)
-    rng = np.random.RandomState(seed)
+    rng = np.random.RandomState(31)
     grid = _make_grid(10)
-    adatas = _make_adata(grid, n=len(ANGLES), seed=seed + 1)
+    adatas = _make_adata(grid, n=len(ANGLES), seed=32)
     for adata, angle in zip(adatas, ANGLES):
         theta = np.deg2rad(angle)
         rot = np.array([[cos(theta), -sin(theta)], [sin(theta), cos(theta)]])
@@ -169,9 +169,8 @@ def adata_space_rotate() -> AnnData:
 
 @pytest.fixture()
 def adata_mapping() -> AnnData:
-    seed = random.randint(0, 422)
     grid = _make_grid(10)
-    adataref, adata1, adata2 = _make_adata(grid, n=3, seed=seed)
+    adataref, adata1, adata2 = _make_adata(grid, n=3, seed=17)
     sc.pp.pca(adataref, n_comps=30)
 
     adata = ad.concat([adataref, adata1, adata2], label="batch", join="outer")
