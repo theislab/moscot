@@ -81,20 +81,12 @@ myst_enable_extensions = [
 ]
 myst_heading_anchors = 2
 
-# List of patterns, relative to source directory, that match files and
-# directories to ignore when looking for source files.
-# This pattern also affects html_static_path and html_extra_path.
+# autodoc + napoleon
 autosummary_generate = True
-autodoc_member_order = "bysource"
+autodoc_member_order = "alphabetical"
 autodoc_typehints = "description"
-typehints_fully_qualified = False
 napoleon_google_docstring = False
 napoleon_numpy_docstring = True
-napoleon_include_init_with_doc = False
-napoleon_use_rtype = True
-napoleon_use_param = True
-napoleon_custom_sections = [("Params", "Parameters")]
-todo_include_todos = False
 
 
 # spelling
