@@ -21,6 +21,7 @@ from tests.problems.conftest import (
 )
 from moscot.solvers._base_solver import ProblemKind
 
+# TODO(michalk8): should be made relative to tests root
 SOLUTIONS_PATH = Path("./tests/data/mapping_solutions.pkl")  # base is moscot
 
 

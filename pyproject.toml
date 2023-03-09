@@ -53,9 +53,9 @@ dependencies = [
     "pandas>=1.4.0",
     "networkx>=2.6.3",
     # https://github.com/scverse/scanpy/issues/2411
-    "matplotlib>=3.5.0,<3.7",
+    "matplotlib>=3.5.0",
     "anndata>=0.8.0",
-    "scanpy>=1.9.0",
+    "scanpy>=1.9.3",
     "wrapt>=1.13.2",
     "docrep>=0.3.2",
     "ott-jax>=0.4.0",
@@ -71,9 +71,11 @@ dev = [
     "tox>=4",
 ]
 test = [
-    "pytest>=7.1.2",
+    "pytest>=7",
+    "pytest-xdist>=3",
     "pytest-mock>=3.5.0",
-    "pytest-cov>=4.0.0",
+    "pytest-cov>=4",
+    "coverage[toml]>=7",
 ]
 docs = [
     "sphinx>=5.1.1",
@@ -89,7 +91,7 @@ docs = [
 
 [tool.setuptools]
 package-dir = {"" = "src"}
-packages = {find = {where = ["src"], namespaces = false}}
+include-package-data = true
 
 [tool.setuptools_scm]
 
@@ -118,7 +120,7 @@ ignore = [
 line-length = 120
 select = [
     "D", # flake8-docstrings
-    # TODO(michalk8): enable this
+    # TODO(michalk8): enable this in https://github.com/theislab/moscot/issues/483
     # "I", # isort
     "E", # pycodestyle
     "F", # pyflakes
@@ -155,24 +157,8 @@ inline-quotes = "double"
 line-length = 120
 target-version = ['py38']
 include = '\.pyi?$'
-exclude = '''
-(
-  /(
-      \.eggs
-    | \.git
-    | \.hg
-    | \.mypy_cache
-    | \.tox
-    | \.venv
-    | _build
-    | buck-out
-    | build
-    | dist
-  )/
 
-)
-'''
-
+# TODO(michalk8): simplify in https://github.com/theislab/moscot/issues/483
 [tool.isort]
 profile = "black"
 py_version = "38"
@@ -204,6 +190,11 @@ lexicographical = true
 [tool.pytest.ini_options]
 markers = ["fast: marks tests as fask"]
 xfail_strict = true
+filterwarnings = [
+    "ignore:X.dtype being converted:FutureWarning",
+    "ignore:No data for colormapping:UserWarning",
+    "ignore:jax\\.experimental\\.pjit\\.PartitionSpec:DeprecationWarning",
+]
 
 [tool.coverage.run]
 branch = true
@@ -276,7 +267,7 @@ max_line_length = 120
 legacy_tox_ini = """
 [tox]
 min_version = 4.0
-env_list = lint-code,py{3.8,3.9,3.10,3.11}-{linux,macos}
+env_list = lint-code,py{3.8,3.9,3.10,3.11}
 skip_missing_interpreters = true
 
 [testenv]
@@ -333,9 +324,11 @@ description = Build the package.
 deps =
     build
     twine
+allowlist_externals = rm
 commands =
+    rm -rf {tox_root}{/}dist
     python -m build --sdist --wheel --outdir {tox_root}{/}dist{/} {posargs:}
-    twine check {tox_root}{/}dist{/}*
+    python -m twine check {tox_root}{/}dist{/}*
 commands_post =
     python -c 'import pathlib; print(f"Package is under:", pathlib.Path("{tox_root}") / "dist")'
 """

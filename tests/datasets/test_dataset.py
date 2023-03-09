@@ -5,17 +5,10 @@ import networkx as nx
 
 import numpy as np
 
-from anndata import AnnData
-
 from moscot.datasets import simulate_data
 
 
 class TestSimulateData:
-    @pytest.mark.fast()
-    def test_returns_adata(self):
-        result = simulate_data()
-        assert isinstance(result, AnnData)
-
     @pytest.mark.fast()
     @pytest.mark.parametrize("n_distributions", [2, 4])
     @pytest.mark.parametrize("key", ["batch", "day"])

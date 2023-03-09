@@ -11,7 +11,6 @@ import jax.numpy as jnp
 
 from anndata import AnnData
 import scanpy as sc
-import anndata as ad
 
 from tests._utils import Geom_t, _make_grid, _make_adata
 
@@ -159,7 +158,7 @@ def adata_space_rotate() -> AnnData:
         rot = np.array([[cos(theta), -sin(theta)], [sin(theta), cos(theta)]])
         adata.obsm["spatial"] = np.dot(adata.obsm["spatial"], rot)
 
-    adata = ad.concat(adatas, label="batch")
+    adata = adatas[0].concatenate(*adatas[1:], batch_key="batch")
     adata.obs["celltype"] = rng.choice(["A", "B", "C"], size=len(adata))
     adata.uns["spatial"] = {}
     adata.obs_names_make_unique()
@@ -173,6 +172,6 @@ def adata_mapping() -> AnnData:
     adataref, adata1, adata2 = _make_adata(grid, n=3, seed=17)
     sc.pp.pca(adataref, n_comps=30)
 
-    adata = ad.concat([adataref, adata1, adata2], label="batch", join="outer")
+    adata = adataref.concatenate(adata1, adata2, batch_key="batch", join="outer")
     adata.obs_names_make_unique()
     return adata

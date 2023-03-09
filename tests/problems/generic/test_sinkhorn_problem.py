@@ -44,7 +44,7 @@ class TestSinkhornProblem:
             assert key in expected_keys
             assert isinstance(problem[key], OTProblem)
 
-    def test_solve_balanced(self, adata_time: AnnData):  # type: ignore[no-untyped-def]
+    def test_solve_balanced(self, adata_time: AnnData):
         eps = 0.5
         expected_keys = [(0, 1), (1, 2)]
         problem = SinkhornProblem(adata=adata_time)
