@@ -277,7 +277,6 @@ skip_missing_interpreters = true
 
 [testenv]
 extras = test
-use_develop = true
 pass_env = PYTEST_*,CI
 commands =
     python -m pytest {tty:--color=yes} {posargs: \
