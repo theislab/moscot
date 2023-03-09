@@ -4,6 +4,7 @@ from typing import Tuple, Optional
 from scipy.sparse import csr_matrix
 import pandas as pd
 import pytest
+import matplotlib.pyplot as plt
 
 from jax.config import config
 import numpy as np
@@ -26,6 +27,13 @@ _gt_temporal_adata = sc.read("tests/data/moscot_temporal_tests.h5ad")
 def pytest_sessionstart() -> None:
     sc.pl.set_rcParams_defaults()
     sc.set_figure_params(dpi=40, color_map="viridis")
+
+
+@pytest.fixture(autouse=True)
+def _close_figure():
+    # prevent `RuntimeWarning: More than 20 figures have been opened.`
+    yield
+    plt.close()
 
 
 @pytest.fixture()

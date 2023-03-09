@@ -12,6 +12,8 @@ from tests._utils import Problem
 from moscot.plotting._utils import _input_to_adatas
 import moscot as msc
 
+# TODO(michalk8): use `tmp_path` fixture
+
 
 class TestMoscotPl:
     def test_input_to_adatas_problem(self, adata_time: AnnData):
