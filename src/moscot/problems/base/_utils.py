@@ -153,19 +153,6 @@ def _get_categories_from_adata(
     return adata[adata.obs[key] == key_value].obs[annotation_key]
 
 
-def _get_problem_key(
-    source: Optional[Any] = None,  # TODO(@MUCDK) using `K` induces circular import, resolve
-    target: Optional[Any] = None,  # TODO(@MUCDK) using `K` induces circular import, resolve
-) -> Tuple[Any, Any]:  # TODO(@MUCDK) using `K` induces circular import, resolve
-    if source is not None and target is not None:
-        return (source, target)
-    elif source is None and target is not None:
-        return ("src", target)  # TODO(@MUCDK) make package constant
-    elif source is not None and target is None:
-        return (source, "ref")  # TODO(@MUCDK) make package constant
-    return ("src", "ref")
-
-
 def _order_transition_matrix_helper(
     tm: pd.DataFrame,
     rows_verified: List[str],
@@ -189,43 +176,42 @@ def _order_transition_matrix(
     target_annotations_ordered: Optional[List[str]],
     forward: bool,
 ) -> pd.DataFrame:
+    # TODO(michalk8): simplify
     if target_annotations_ordered is not None or source_annotations_ordered is not None:
         if forward:
-            tm = _order_transition_matrix_helper(
+            return _order_transition_matrix_helper(
                 tm=tm,
                 rows_verified=source_annotations_verified,
                 cols_verified=target_annotations_verified,
                 row_order=source_annotations_ordered,
                 col_order=target_annotations_ordered,
-            )
-        else:
-            tm = _order_transition_matrix_helper(
-                tm=tm,
-                rows_verified=target_annotations_verified,
-                cols_verified=source_annotations_verified,
-                row_order=target_annotations_ordered,
-                col_order=source_annotations_ordered,
-            )
-        return tm.T if forward else tm
-    elif target_annotations_verified == source_annotations_verified:
+            ).T
+        return _order_transition_matrix_helper(
+            tm=tm,
+            rows_verified=target_annotations_verified,
+            cols_verified=source_annotations_verified,
+            row_order=target_annotations_ordered,
+            col_order=source_annotations_ordered,
+        )
+
+    if target_annotations_verified == source_annotations_verified:
         annotations_ordered = tm.columns.sort_values()
         if forward:
-            tm = _order_transition_matrix_helper(
+            return _order_transition_matrix_helper(
                 tm=tm,
                 rows_verified=source_annotations_verified,
                 cols_verified=target_annotations_verified,
                 row_order=annotations_ordered,
                 col_order=annotations_ordered,
-            )
-        else:
-            tm = _order_transition_matrix_helper(
-                tm=tm,
-                rows_verified=target_annotations_verified,
-                cols_verified=source_annotations_verified,
-                row_order=annotations_ordered,
-                col_order=annotations_ordered,
-            )
-        return tm.T if forward else tm
+            ).T
+        return _order_transition_matrix_helper(
+            tm=tm,
+            rows_verified=target_annotations_verified,
+            cols_verified=source_annotations_verified,
+            row_order=annotations_ordered,
+            col_order=annotations_ordered,
+        )
+
     return tm if forward else tm.T
 
 

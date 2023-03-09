@@ -511,6 +511,4 @@ def _create_col_colors(adata: AnnData, obs_col: str, subset: Union[str, List[str
     h, _, v = mcolors.rgb_to_hsv(mcolors.to_rgb(color))
     end_color = mcolors.hsv_to_rgb([h, 1, v])
 
-    col_cmap = mcolors.LinearSegmentedColormap.from_list("category_cmap", ["darkgrey", end_color])
-
-    return col_cmap
+    return mcolors.LinearSegmentedColormap.from_list("category_cmap", ["darkgrey", end_color])

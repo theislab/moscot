@@ -62,7 +62,9 @@ def cell_transition(
     try:
         _ = adata1.uns[AdataKeys.UNS][PlottingKeys.CELL_TRANSITION][key]
     except KeyError:
-        raise KeyError(f"No data found in `adata.uns[{AdataKeys.UNS!r}][{PlottingKeys.CELL_TRANSITION!r}][{key!r}]`.")
+        raise KeyError(
+            f"No data found in `adata.uns[{AdataKeys.UNS!r}][{PlottingKeys.CELL_TRANSITION!r}][{key!r}]`."
+        ) from None
 
     data = adata1.uns[AdataKeys.UNS][PlottingKeys.CELL_TRANSITION][key]
     fig = _heatmap(
@@ -87,8 +89,7 @@ def cell_transition(
         cbar_kwargs=cbar_kwargs,
         **kwargs,
     )
-    if return_fig:
-        return fig
+    return fig if return_fig else None
 
 
 @d_plotting.dedent
@@ -140,7 +141,7 @@ def sankey(
     try:
         _ = adata.uns[AdataKeys.UNS][PlottingKeys.SANKEY][key]
     except KeyError:
-        raise KeyError(f"No data found in `adata.uns[{AdataKeys.UNS!r}][{PlottingKeys.SANKEY!r}][{key!r}]`.")
+        raise KeyError(f"No data found in `adata.uns[{AdataKeys.UNS!r}][{PlottingKeys.SANKEY!r}][{key!r}]`.") from None
 
     data = adata.uns[AdataKeys.UNS][PlottingKeys.SANKEY][key]
     fig = _sankey(
@@ -160,8 +161,7 @@ def sankey(
     )
     if save:
         fig.figure.savefig(save)
-    if return_fig:
-        return fig
+    return fig if return_fig else None
 
 
 @d_plotting.dedent
@@ -245,8 +245,7 @@ def push(
         suptitle_fontsize=suptitle_fontsize,
         **kwargs,
     )
-    if return_fig:
-        return fig.figure
+    return fig.figure if return_fig else None
 
 
 @d_plotting.dedent
@@ -330,5 +329,4 @@ def pull(
         suptitle_fontsize=suptitle_fontsize,
         **kwargs,
     )
-    if return_fig:
-        return fig.figure
+    return fig.figure if return_fig else None

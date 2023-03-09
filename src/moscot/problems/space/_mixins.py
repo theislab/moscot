@@ -185,7 +185,7 @@ class SpatialAlignmentMixin(AnalysisMixin[K, B]):
             self.adata.uns[self.spatial_key]["alignment_metadata"] = aligned_metadata
         if not inplace:
             return aligned_basis
-        self.adata.obsm[f"{self.spatial_key}_{mode}"] = aligned_basis
+        self.adata.obsm[f"{self.spatial_key}_{mode}"] = aligned_basis  # noqa: RET503
 
     @d_mixins.dedent
     def cell_transition(  # type: ignore[misc]
@@ -445,8 +445,7 @@ class SpatialMappingMixin(AnalysisMixin[K, B]):
 
             if key is not None:
                 return getattr(adata, att)[key]
-            else:
-                return getattr(adata, att)
+            return getattr(adata, att)
 
         if self.batch_key is not None:
             out_list = []
@@ -472,11 +471,10 @@ class SpatialMappingMixin(AnalysisMixin[K, B]):
             out = pd.concat(out_list, axis=0)
             out[self.batch_key] = pd.Categorical(out[self.batch_key])
             return out
-        else:
-            spatial = self.adata.obsm[self.spatial_key]
-            features = _get_features(self.adata, attr)
-            out = _compute_correspondence(spatial, features, interval, max_dist)
-            return out
+
+        spatial = self.adata.obsm[self.spatial_key]
+        features = _get_features(self.adata, attr)
+        return _compute_correspondence(spatial, features, interval, max_dist)
 
     @d_mixins.dedent
     def cell_transition(  # type: ignore[misc]
@@ -562,7 +560,6 @@ def _compute_correspondence(
 ) -> pd.DataFrame:
     if isinstance(interval, int):
         # prepare support
-        spatial.shape[0]
         hull = ConvexHull(spatial)
         area = hull.volume
         if max_dist is None:
@@ -574,6 +571,7 @@ def _compute_correspondence(
     def pdist(row_idx: ArrayLike, col_idx: float, feat: ArrayLike) -> Any:
         if len(row_idx) > 0:
             return pairwise_distances(feat[row_idx, :], feat[[col_idx], :]).mean()  # type: ignore[index]
+        return np.nan
 
     vpdist = np.vectorize(pdist, excluded=["feat"])
     features = features.A if sp.issparse(features) else features  # type: ignore[attr-defined]

@@ -26,7 +26,7 @@ def _pretty_raise_enum(cls: Type["ErrorFormatterABC"], func: Callable[..., Any])
 
     if not issubclass(cls, ErrorFormatterABC):
         raise TypeError(f"Class `{cls}` must be subtype of `ErrorFormatterABC`.")
-    elif not len(cls.__members__):  # type: ignore[attr-defined]
+    if not len(cls.__members__):  # type: ignore[attr-defined]
         # empty enum, for class hierarchy
         return func
 

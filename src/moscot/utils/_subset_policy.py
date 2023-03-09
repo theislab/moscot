@@ -2,6 +2,7 @@ from abc import ABC, abstractmethod
 from typing import Any, Set, Dict, List, Tuple, Union, Generic, Literal, TypeVar, Hashable, Iterable, Optional, Sequence
 from operator import gt, lt
 from itertools import product
+import contextlib
 
 import pandas as pd
 import networkx as nx
@@ -229,10 +230,8 @@ class SubsetPolicy(Generic[K], ABC):
         """
         if self._graph is None:
             raise RuntimeError("Construct the policy graph first.")
-        try:
+        with contextlib.suppress(KeyError):
             self._graph.remove(node)
-        except KeyError:
-            pass
 
 
 class OrderedPolicy(SubsetPolicy[K], ABC):

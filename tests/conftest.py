@@ -119,7 +119,7 @@ def adata_time() -> AnnData:
     adata.obs["batch"] = rng.choice((0, 1, 2), len(adata))
     adata.obs["left_marginals"] = np.ones(len(adata))
     adata.obs["right_marginals"] = np.ones(len(adata))
-    adata.obs["celltype"] = np.random.choice(["A", "B", "C"], size=len(adata))
+    adata.obs["celltype"] = rng.choice(["A", "B", "C"], size=len(adata))
     # genes from mouse/human proliferation/apoptosis
     genes = ["ANLN", "ANP32E", "ATAD2", "Mcm4", "Smc4", "Gtse1", "ADD1", "AIFM3", "ANKH", "Ercc5", "Serpinb5", "Inhbb"]
     # genes which are transcription factors, 3 from drosophila, 2 from human, 1 from mouse
@@ -151,15 +151,16 @@ def gt_temporal_adata() -> AnnData:
 @pytest.fixture()
 def adata_space_rotate() -> AnnData:
     seed = random.randint(0, 422)
+    rng = np.random.RandomState(seed)
     grid = _make_grid(10)
-    adatas = _make_adata(grid, n=len(ANGLES), seed=seed)
+    adatas = _make_adata(grid, n=len(ANGLES), seed=seed + 1)
     for adata, angle in zip(adatas, ANGLES):
         theta = np.deg2rad(angle)
         rot = np.array([[cos(theta), -sin(theta)], [sin(theta), cos(theta)]])
         adata.obsm["spatial"] = np.dot(adata.obsm["spatial"], rot)
 
     adata = ad.concat(adatas, label="batch")
-    adata.obs["celltype"] = np.random.choice(["A", "B", "C"], size=len(adata))
+    adata.obs["celltype"] = rng.choice(["A", "B", "C"], size=len(adata))
     adata.uns["spatial"] = {}
     adata.obs_names_make_unique()
     sc.pp.pca(adata)

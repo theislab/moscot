@@ -29,7 +29,7 @@ class TestBaseAnalysisMixin:
         problem[10, 10.5]._solution = MockSolverOutput(gt_temporal_adata.uns["tmap_10_105"])
 
         if interpolation_parameter is not None and not 0 <= interpolation_parameter <= 1:
-            with np.testing.assert_raises(ValueError):
+            with pytest.raises(ValueError, match="TODO"):
                 problem._sample_from_tmap(
                     10,
                     10.5,
@@ -40,7 +40,7 @@ class TestBaseAnalysisMixin:
                     interpolation_parameter=interpolation_parameter,
                 )
         elif interpolation_parameter is None and account_for_unbalancedness:
-            with np.testing.assert_raises(ValueError):
+            with pytest.raises(ValueError, match="TODO2"):
                 problem._sample_from_tmap(
                     10,
                     10.5,
