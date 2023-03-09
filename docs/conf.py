@@ -57,7 +57,8 @@ intersphinx_mapping = {
     "squidpy": ("https://squidpy.readthedocs.io/en/latest/", None),
 }
 master_doc = "index"
-pygments_style = "sphinx"
+pygments_style = "tango"
+pygments_dark_style = "monokai"
 
 # bibliography
 bibtex_bibfiles = ["references.bib"]
@@ -109,7 +110,7 @@ spelling_filters = [
     "enchant.tokenize.MentionFilter",
 ]
 
-exclude_patterns = ["build", "**.ipynb_checkpoints", "notebooks/README.rst", "notebooks/CONTRIBUTING.rst"]
+exclude_patterns = ["_build", "**.ipynb_checkpoints", "notebooks/README.rst", "notebooks/CONTRIBUTING.rst"]
 
 # -- Options for HTML output -------------------------------------------------
 
@@ -127,8 +128,8 @@ html_theme_options = {
     "light_css_variables": {
         "color-brand-primary": "#003262",
         "color-brand-content": "#003262",
-        "admonition-font-size": "var(--font-size-normal)",
-        "admonition-title-font-size": "var(--font-size-normal)",
-        "code-font-size": "var(--font-size--small)",
     },
+    "source_repository": "https://github.com/theislab/moscot/",
+    "source_branch": "main",
+    "source_directory": "docs/",
 }
