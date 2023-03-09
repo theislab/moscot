@@ -1,33 +1,29 @@
-:github_url: {{ fullname }}
-
-{{ fullname | escape | underline}}
+{{ fullname | escape | underline }}
 
 .. currentmodule:: {{ module }}
 
 .. autoclass:: {{ objname }}
+    {% block methods %}
+    {%- if methods %}
+    .. rubric:: {{ _('Methods') }}
 
-   {% block attributes %}
-   {% if attributes %}
-   .. rubric:: Attributes
+    .. autosummary::
+        :toctree: .
+    {% for item in methods %}
+    {%- if item not in ['__init__', 'tree_flatten', 'tree_unflatten', 'bind'] %}
+        ~{{ name }}.{{ item }}
+    {%- endif %}
+    {%- endfor %}
+    {%- endif %}
+    {%- endblock %}
+    {% block attributes %}
+    {%- if attributes %}
+    .. rubric:: {{ _('Attributes') }}
 
-   .. autosummary::
-      :toctree: .
-   {% for item in attributes %}
-      ~{{ fullname }}.{{ item }}
-   {%- endfor %}
-   {% endif %}
-   {% endblock %}
-
-   {% block methods %}
-   {% if methods %}
-   .. rubric:: Methods
-
-   .. autosummary::
-      :toctree: .
-   {% for item in methods %}
-      {%- if item != '__init__' %}
-      ~{{ fullname }}.{{ item }}
-      {%- endif -%}
-   {%- endfor %}
-   {% endif %}
-   {% endblock %}
+    .. autosummary::
+        :toctree: .
+    {% for item in attributes %}
+        ~{{ name }}.{{ item }}
+    {%- endfor %}
+    {%- endif %}
+    {% endblock %}

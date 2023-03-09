@@ -80,8 +80,7 @@ class OTTOutput(BaseSolverOutput):
 
         if save is not None:
             fig.savefig(save)
-        if return_fig:
-            return fig
+        return fig if return_fig else None
 
     @d.dedent
     def plot_errors(
@@ -123,8 +122,7 @@ class OTTOutput(BaseSolverOutput):
 
         if save is not None:
             fig.savefig(save)
-        if return_fig:
-            return fig
+        return fig if return_fig else None
 
     def _plot_lines(
         self,
@@ -179,7 +177,7 @@ class OTTOutput(BaseSolverOutput):
             try:
                 device = jax.devices(device)[idx]
             except IndexError:
-                raise IndexError(f"Unable to fetch the device with `id={idx}`.")
+                raise IndexError(f"Unable to fetch the device with `id={idx}`.") from None
 
         return OTTOutput(jax.device_put(self._output, device))
 
@@ -205,4 +203,4 @@ class OTTOutput(BaseSolverOutput):
         return len(lin_output.g) if isinstance(lin_output, OTTLRSinkhornOutput) else -1
 
     def _ones(self, n: int) -> ArrayLike:
-        return jnp.ones((n,))
+        return jnp.ones((n,))  # type: ignore[return-value]

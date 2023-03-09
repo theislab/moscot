@@ -75,7 +75,7 @@ class TestAlignmentProblem:
             if initializer == "random":
                 # kwargs["kwargs_init"] = {"key": 0}
                 # kwargs["key"] = 0
-                return 0  # TODO(@MUCDK) fix after refactoring
+                return  # TODO(@MUCDK) fix after refactoring
         ap = (
             AlignmentProblem(adata=adata_space_rotate)
             .prepare(batch_key="batch")
@@ -86,9 +86,12 @@ class TestAlignmentProblem:
             if initializer != "random":  # TODO: is this valid?
                 assert ap[prob_key].solution.converged
 
+        # TODO(michalk8): use np.testing
         assert np.allclose(*(sol.cost for sol in ap.solutions.values()))
         assert np.all([sol.converged for sol in ap.solutions.values()])
-        assert np.all([np.all(~np.isnan(sol.transport_matrix)) for sol in ap.solutions.values()])
+        np.testing.assert_array_equal(
+            [np.all(np.isfinite(sol.transport_matrix)) for sol in ap.solutions.values()], True
+        )
 
     def test_solve_unbalanced(self, adata_space_rotate: AnnData):
         tau_a, tau_b = [0.8, 1]

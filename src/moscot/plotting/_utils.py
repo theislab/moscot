@@ -345,7 +345,9 @@ def _contrasting_color(r: int, g: int, b: int) -> str:
     return "#000000" if r * 0.299 + g * 0.587 + b * 0.114 > 186 else "#ffffff"
 
 
-def _input_to_adatas(inp: Union[AnnData, Tuple[AnnData, AnnData], CompoundProblem]) -> Tuple[AnnData, AnnData]:
+def _input_to_adatas(
+    inp: Union[AnnData, Tuple[AnnData, AnnData], CompoundProblem]  # type: ignore[type-arg]
+) -> Tuple[AnnData, AnnData]:
     if isinstance(inp, CompoundProblem):
         return inp.adata, inp.adata
     if isinstance(inp, AnnData):
@@ -509,6 +511,4 @@ def _create_col_colors(adata: AnnData, obs_col: str, subset: Union[str, List[str
     h, _, v = mcolors.rgb_to_hsv(mcolors.to_rgb(color))
     end_color = mcolors.hsv_to_rgb([h, 1, v])
 
-    col_cmap = mcolors.LinearSegmentedColormap.from_list("category_cmap", ["darkgrey", end_color])
-
-    return col_cmap
+    return mcolors.LinearSegmentedColormap.from_list("category_cmap", ["darkgrey", end_color])

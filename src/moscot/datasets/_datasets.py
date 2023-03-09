@@ -95,7 +95,9 @@ def hspc(
     path: PathLike = "~/.cache/moscot/hspc.h5ad",
     **kwargs: Any,
 ) -> AnnData:  # pragma: no cover
-    """Subsampled and processed data from the `NeurIPS Multimodal Single-Cell Integration Challenge \
+    """CD34+ hematopoietic stem and progenitor cells from 4 healthy human donors.
+
+    From the `NeurIPS Multimodal Single-Cell Integration Challenge
     <https://www.kaggle.com/competitions/open-problems-multimodal/data>`_.
 
     4000 cells were randomly selected after filtering the multiome training data of the donor `31800`.

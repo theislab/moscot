@@ -8,9 +8,9 @@ import numpy as np
 
 from anndata import AnnData
 
-from moscot.problems.base import OTProblem  # type:ignore[attr-defined]
+from moscot.problems.base import OTProblem
 from moscot.solvers._output import BaseSolverOutput
-from moscot.problems.generic import GWProblem  # type:ignore[attr-defined]
+from moscot.problems.generic import GWProblem
 from tests.problems.conftest import (
     fgw_args_1,
     fgw_args_2,
@@ -48,7 +48,7 @@ class TestFGWProblem:
             assert key in expected_keys
             assert isinstance(problem[key], OTProblem)
 
-    def test_solve_balanced(self, adata_space_rotate: AnnData):  # type: ignore[no-untyped-def]
+    def test_solve_balanced(self, adata_space_rotate: AnnData):
         eps = 0.5
         adata_space_rotate = adata_space_rotate[adata_space_rotate.obs["batch"].isin(("0", "1"))].copy()
         expected_keys = [("0", "1"), ("1", "2")]

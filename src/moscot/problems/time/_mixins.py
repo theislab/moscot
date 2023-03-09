@@ -184,7 +184,6 @@ class TemporalMixin(AnalysisMixin[K, B]):
         -----
         %(notes_cell_transition)s
         """
-
         if TYPE_CHECKING:
             assert isinstance(self.temporal_key, str)
         return self._cell_transition(
@@ -294,8 +293,7 @@ class TemporalMixin(AnalysisMixin[K, B]):
                 "captions": [str(t) for t in tuples],
             }
             Key.uns.set_plotting_vars(self.adata, PlottingKeys.SANKEY, key_added, plot_vars)
-        if return_data:
-            return cell_transitions_updated
+        return cell_transitions_updated if return_data else None
 
     @d_mixins.dedent
     def push(
@@ -353,8 +351,7 @@ class TemporalMixin(AnalysisMixin[K, B]):
             }
             self.adata.obs[key_added] = self._flatten(result, key=self.temporal_key)
             Key.uns.set_plotting_vars(self.adata, PlottingKeys.PUSH, key_added, plot_vars)
-        if return_data:
-            return result
+        return result if return_data else None
 
     @d_mixins.dedent
     def pull(
@@ -411,8 +408,7 @@ class TemporalMixin(AnalysisMixin[K, B]):
             }
             self.adata.obs[key_added] = self._flatten(result, key=self.temporal_key)
             Key.uns.set_plotting_vars(self.adata, PlottingKeys.PULL, key_added, plot_vars)
-        if return_data:
-            return result
+        return result if return_data else None
 
     @property
     def prior_growth_rates(self: TemporalMixinProtocol[K, B]) -> Optional[pd.DataFrame]:
@@ -542,14 +538,14 @@ class TemporalMixin(AnalysisMixin[K, B]):
                 break
         else:
             raise ValueError(f"No data found for `{source}` time point.")
-        for src, tgt in self.problems.keys():
+        for src, tgt in self.problems:
             if src == intermediate:
                 intermediate_data = self.problems[src, tgt].xy.data_src  # type: ignore[union-attr]
                 intermediate_adata = self.problems[src, tgt].adata_src
                 break
         else:
             raise ValueError(f"No data found for `{intermediate}` time point.")
-        for src, tgt in self.problems.keys():
+        for src, tgt in self.problems:
             if tgt == target:
                 target_data = self.problems[src, tgt].xy.data_tgt  # type: ignore[union-attr]
                 break
@@ -841,12 +837,11 @@ class TemporalMixin(AnalysisMixin[K, B]):
         else:
             row_probability = growth_rates ** (1 - interpolation_parameter)
         row_probability /= np.sum(row_probability)
-        result = (
+        return (
             source_data[rng.choice(len(source_data), size=number_cells, p=row_probability), :]
             * (1 - interpolation_parameter)
             + target_data[rng.choice(len(target_data), size=number_cells), :] * interpolation_parameter
         )
-        return result
 
     @staticmethod
     def _get_interp_param(

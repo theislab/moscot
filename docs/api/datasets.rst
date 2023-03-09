@@ -1,9 +1,6 @@
 Datasets
 ########
 
-Datasets
-~~~~~~~~
-
 .. currentmodule:: moscot.datasets
 
 .. autosummary::

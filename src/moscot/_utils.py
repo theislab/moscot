@@ -58,7 +58,6 @@ def parallelize(
     -------
     The result depending on ``callable``, ``extractor`` and ``as_array``.
     """
-
     if show_progress_bar:
         try:
             from tqdm.auto import tqdm
@@ -186,7 +185,6 @@ def _np_apply_along_axis(func1d, axis: int, arr: ArrayLike) -> ArrayLike:
     -------
     The reduced array.
     """
-
     assert arr.ndim == 2
     assert axis in [0, 1]
 

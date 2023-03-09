@@ -7,7 +7,7 @@ except ImportError:
     raise ImportError(
         "Please install WOT from commit hash`ca5e94f05699997b01cf5ae13383f9810f0613f6`"
         + "with `pip install git+https://github.com/broadinstitute/wot.git@ca5e94f05699997b01cf5ae13383f9810f0613f6`"
-    )
+    ) from None
 
 import os
 

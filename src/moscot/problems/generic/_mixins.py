@@ -143,8 +143,7 @@ class GenericAnalysisMixin(AnalysisMixin[K, B]):
             }
             self.adata.obs[key_added] = self._flatten(result, key=self.batch_key)
             Key.uns.set_plotting_vars(self.adata, PlottingKeys.PUSH, key_added, plot_vars)
-        if return_data:
-            return result
+        return result if return_data else None
 
     @d_mixins.dedent
     def pull(
@@ -197,8 +196,7 @@ class GenericAnalysisMixin(AnalysisMixin[K, B]):
             }
             self.adata.obs[key_added] = self._flatten(result, key=self.batch_key)
             Key.uns.set_plotting_vars(self.adata, PlottingKeys.PULL, key_added, plot_vars)
-        if return_data:
-            return result
+        return result if return_data else None
 
     @property
     def batch_key(self: GenericAnalysisMixinProtocol[K, B]) -> Optional[str]:

@@ -27,7 +27,10 @@ def require_solution(
 
 @wrapt.decorator
 def require_prepare(
-    wrapped: Callable[[Any], Any], instance: "BaseCompoundProblem", args: Tuple[Any, ...], kwargs: Mapping[str, Any]
+    wrapped: Callable[[Any], Any],
+    instance: "BaseCompoundProblem",  # type: ignore[type-arg]
+    args: Tuple[Any, ...],
+    kwargs: Mapping[str, Any],
 ) -> Any:
     """Check whether problem has been prepared."""
     if instance.problems is None:
@@ -96,12 +99,15 @@ def handle_joint_attr(
                 "y_key": joint_attr["key"],
             }
             return xy, kwargs
-        if joint_attr.get("tag", None) == "cost_matrix":  # if this is True we have custom cost matrix or moscot cost
-            if len(joint_attr) == 2 or kwargs.get("attr", None) == "obsp":  # in this case we have a custom cost matrix
-                joint_attr.setdefault("cost", "custom")
-                joint_attr.setdefault("attr", "obsp")
-                kwargs["xy_callback"] = "cost-matrix"
-                kwargs.setdefault("xy_callback_kwargs", {"key": joint_attr["key"]})
+
+        # if this is True we have custom cost matrix or moscot cost - in this case we have a custom cost matrix
+        if joint_attr.get("tag", None) == "cost_matrix" and (
+            len(joint_attr) == 2 or kwargs.get("attr", None) == "obsp"
+        ):
+            joint_attr.setdefault("cost", "custom")
+            joint_attr.setdefault("attr", "obsp")
+            kwargs["xy_callback"] = "cost-matrix"
+            kwargs.setdefault("xy_callback_kwargs", {"key": joint_attr["key"]})
         kwargs.setdefault("xy_callback_kwargs", {})
         return joint_attr, kwargs
     raise TypeError(f"Expected `joint_attr` to be either `str` or `dict`, found `{type(joint_attr)}`.")
@@ -138,3 +144,4 @@ def handle_cost(
             y = dict(y)
             y["cost"] = cost["y"]
         return xy, x, y
+    raise TypeError(type(cost))

@@ -60,9 +60,9 @@ class TaggedArray:
             if key is not None:
                 data = data[key]
         except KeyError:
-            raise KeyError(f"Unable to fetch data from `{modifier}`.")
+            raise KeyError(f"Unable to fetch data from `{modifier}`.") from None
         except IndexError:
-            raise IndexError(f"Unable to fetch data from `{modifier}`.")
+            raise IndexError(f"Unable to fetch data from `{modifier}`.") from None
 
         if sp.issparse(data):
             logger.warning(f"Densifying data in `{modifier}`")

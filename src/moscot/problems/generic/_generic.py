@@ -62,7 +62,7 @@ class SinkhornProblem(GenericAnalysisMixin[K, B], CompoundProblem[K, B]):
         --------
         %(ex_prepare)s
         """
-        self.batch_key = key
+        self.batch_key = key  # type: ignore[misc]
         xy, kwargs = handle_joint_attr(joint_attr, kwargs)
         xy, _, _ = handle_cost(xy=xy, cost=cost)
         return super().prepare(
@@ -129,7 +129,7 @@ class SinkhornProblem(GenericAnalysisMixin[K, B], CompoundProblem[K, B]):
         --------
         %(ex_solve_linear)s
         """
-        return super().solve(
+        return super().solve(  # type: ignore[return-value]
             epsilon=epsilon,
             tau_a=tau_a,
             tau_b=tau_b,
@@ -155,7 +155,7 @@ class SinkhornProblem(GenericAnalysisMixin[K, B], CompoundProblem[K, B]):
 
     @property
     def _base_problem_type(self) -> Type[B]:
-        return OTProblem
+        return OTProblem  # type: ignore[return-value]
 
     @property
     def _valid_policies(self) -> Tuple[str, ...]:
@@ -219,7 +219,7 @@ class GWProblem(GenericAnalysisMixin[K, B], CompoundProblem[K, B]):
         --------
         %(ex_prepare)s
         """
-        self.batch_key = key
+        self.batch_key = key  # type: ignore[misc]
 
         GW_updated: List[Dict[str, Any]] = [{}] * 2
         for i, z in enumerate([GW_x, GW_y]):
@@ -299,7 +299,7 @@ class GWProblem(GenericAnalysisMixin[K, B], CompoundProblem[K, B]):
         --------
         %(ex_solve_quadratic)s
         """
-        return super().solve(
+        return super().solve(  # type: ignore[return-value]
             alpha=alpha,
             epsilon=epsilon,
             tau_a=tau_a,
@@ -325,7 +325,7 @@ class GWProblem(GenericAnalysisMixin[K, B], CompoundProblem[K, B]):
 
     @property
     def _base_problem_type(self) -> Type[B]:
-        return OTProblem
+        return OTProblem  # type: ignore[return-value]
 
     @property
     def _valid_policies(self) -> Tuple[str, ...]:

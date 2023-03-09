@@ -139,9 +139,9 @@ class TestTemporalProblem:
     @pytest.mark.fast()
     @pytest.mark.parametrize("scaling", [0.1, 1, 4])
     def test_proliferation_key_c_pipeline(self, adata_time: AnnData, scaling: float):
-        keys = np.sort(np.unique(adata_time.obs["time"].values))
-        adata_time = adata_time[adata_time.obs["time"].isin([keys[0], keys[1]])]
-        delta = keys[1] - keys[0]
+        key0, key1, *_ = np.sort(np.unique(adata_time.obs["time"].values))
+        adata_time = adata_time[adata_time.obs["time"].isin([key0, key1])].copy()
+        delta = key1 - key0
         problem = TemporalProblem(adata_time)
         assert problem.proliferation_key is None
 
@@ -149,14 +149,13 @@ class TestTemporalProblem:
         assert problem.proliferation_key == "proliferation"
 
         problem = problem.prepare(time_key="time", marginal_kwargs={"scaling": scaling})
-        prolif = adata_time[adata_time.obs["time"] == keys[0]].obs["proliferation"]
-        apopt = adata_time[adata_time.obs["time"] == keys[0]].obs["apoptosis"]
+        prolif = adata_time[adata_time.obs["time"] == key0].obs["proliferation"]
+        apopt = adata_time[adata_time.obs["time"] == key0].obs["apoptosis"]
         expected_marginals = np.exp((prolif - apopt) * delta / scaling)
-        np.testing.assert_allclose(problem[keys[0], keys[1]]._prior_growth, expected_marginals, rtol=RTOL, atol=ATOL)
+        np.testing.assert_allclose(problem[key0, key1]._prior_growth, expected_marginals, rtol=RTOL, atol=ATOL)
 
     def test_cell_costs_source_pipeline(self, adata_time: AnnData):
-        problem = TemporalProblem(adata=adata_time)
-        problem = problem.prepare("time")
+        problem = TemporalProblem(adata=adata_time).prepare("time")
         problem = problem.solve(max_iterations=2)
 
         cell_costs_source = problem.cell_costs_source
@@ -272,10 +271,7 @@ class TestTemporalProblem:
             el = getattr(geom, val)[0] if isinstance(getattr(geom, val), tuple) else getattr(geom, val)
             assert el == args_to_check[arg]
 
-        if args_to_check["rank"] == -1:
-            args = pointcloud_args
-        else:
-            args = lr_pointcloud_args
+        args = pointcloud_args if args_to_check["rank"] == -1 else lr_pointcloud_args
         for arg, val in args.items():
             el = getattr(geom, val)[0] if isinstance(getattr(geom, val), tuple) else getattr(geom, val)
             assert hasattr(geom, val)

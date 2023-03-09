@@ -19,7 +19,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # TODO(michalk8): in the future, lint the docs
+        # TODO(michalk8): enable in the future
         lint-kind: [code] # , docs]
 
     steps:

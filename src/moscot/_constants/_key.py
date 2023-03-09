@@ -1,4 +1,5 @@
 from typing import Any, Set, List, Callable, Optional
+import contextlib
 
 import numpy as np
 
@@ -56,8 +57,8 @@ class RandomKeys:
         self._keys: List[str] = []
 
     def _generate_random_keys(self):
-        def generator():
-            return f"RNG_COL_{np.random.randint(2 ** 16)}"
+        def generator() -> str:
+            return f"RNG_COL_{np.random.RandomState().randint(2 ** 16)}"
 
         where = getattr(self._adata, self._where)
         names: List[str] = []
@@ -76,13 +77,9 @@ class RandomKeys:
         return self._keys
 
     def __exit__(self, exc_type, exc_val, exc_tb):
-        for key in self._keys:
-            try:
-                getattr(self._adata, self._where).drop(key, axis="columns", inplace=True)
-            except KeyError:
-                pass
-            if self._where == "obs":
-                try:
+        with contextlib.suppress(KeyError):
+            for key in self._keys:
+                df = getattr(self._adata, self._where)
+                df.drop(key, axis="columns", inplace=True)
+                if self._where == "obs":
                     del self._adata.uns[f"{key}_colors"]
-                except KeyError:
-                    pass

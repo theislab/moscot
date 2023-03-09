@@ -9,8 +9,8 @@ import moscot.plotting
 import moscot.problems
 
 try:
-    __version__ = metadata.version(__name__)
     md = metadata.metadata(__name__)
+    __version__ = md.get("version", "")
     __author__ = md.get("Author", "")
     __maintainer__ = md.get("Maintainer-email", "")
 except ImportError:
