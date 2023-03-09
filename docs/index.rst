@@ -16,45 +16,42 @@ Moscot - Multiomics Single-cell Optimal Transport
 If you find a model useful for your research, please consider citing the ``moscot`` manuscript (in preparation) as
 well as the publication introducing the model, which can be found in the corresponding documentation.
 
-.. card:: Installation
-    :link: installation
-    :link-type: doc
+.. grid:: 3
+    :gutter: 1
 
-    Learn how to install ``moscot``.
+    .. grid-item-card:: Installation
+        :link: installation
+        :link-type: doc
 
-.. card:: API
-    :link: api/index
-    :link-type: doc
+        Learn how to install ``moscot``.
 
-    Find a detailed documentation of ``moscot``.
+    .. grid-item-card:: API
+        :link: api/index
+        :link-type: doc
 
-.. card:: Examples
-    :link: notebooks/examples/index
-    :link-type: doc
+        Find a detailed documentation of ``moscot``.
 
-    Find brief and concise examples of certain functionalities of ``moscot``.
+    .. grid-item-card:: Contributing
+        :link: contributing
+        :link-type: doc
 
-.. card:: Tutorials
-    :link: notebooks/tutorials/index
-    :link-type: doc
+        Add a functionality or report a bug.
 
-    Check out how to use ``moscot`` for data analysis.
+    .. grid-item-card:: Examples
+        :link: notebooks/examples/index
+        :link-type: doc
 
-.. card:: Contributing
-    :link: contributing
-    :link-type: doc
+        Find brief and concise examples of ``moscot``.
 
-    Add a functionality or report a bug.
+    .. grid-item-card:: Tutorials
+        :link: notebooks/tutorials/index
+        :link-type: doc
 
-.. card:: Github
-    :link: https://github.com/theislab/moscot
-    :link-type: url
+        Check out how to use ``moscot`` for data analysis.
 
-    Click here to see the Github repository.
+    .. grid-item-card:: Manuscript
 
-.. card:: Manuscript
-
-    Stay tuned, coming soon!
+        Stay tuned, coming soon!
 
 .. toctree::
     :maxdepth: 2

@@ -110,6 +110,9 @@ exclude_patterns = ["_build", "**.ipynb_checkpoints", "notebooks/README.rst", "n
 # a list of builtin themes.
 html_theme = "furo"
 html_static_path = ["_static"]
+html_css_files = [
+    "https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.1.1/css/all.min.css",
+]
 
 html_show_sphinx = False
 html_show_sourcelink = False
@@ -121,7 +124,12 @@ html_theme_options = {
         "color-brand-primary": "#003262",
         "color-brand-content": "#003262",
     },
-    "source_repository": "https://github.com/theislab/moscot/",
-    "source_branch": "main",
-    "source_directory": "docs/",
+    "footer_icons": [
+        {
+            "name": "GitHub",
+            "url": "https://github.com/theislab/moscot",
+            "html": "",
+            "class": "fab fa-github",
+        },
+    ],
 }

@@ -231,6 +231,7 @@ ignore_directives = [
     "autoclass",
     "bibliography",
     "card",
+    "grid",
 ]
 
 [tool.mypy]
