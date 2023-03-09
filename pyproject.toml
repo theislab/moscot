@@ -22,7 +22,6 @@ classifiers = [
     "Programming Language :: Python :: 3.8",
     "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
-    "Programming Language :: Python :: 3.11",
     "Topic :: Scientific/Engineering :: Bio-Informatics",
     "Topic :: Scientific/Engineering :: Mathematics"
 ]
@@ -43,9 +42,7 @@ maintainers = [
     {name = "Giovanni Palla", email = "giovanni.palla@helmholtz-muenchen.de"},
     {name = "Michal Klein", email = "michal.klein@helmholtz-muenchen.de"}
 ]
-urls.Documentation = "https://moscot.readthedocs.io/"
-urls.Source = "https://github.com/theislab/moscot"
-urls.Home-page = "https://github.com/theislab/moscot"
+
 
 dependencies = [
     "numpy>=1.20.0",
@@ -88,6 +85,13 @@ docs = [
     "ipython>=7.20.0",
     "sphinx_design>=0.3.0",
 ]
+
+[project.urls]
+Homepage = "https://github.com/theislab/moscot"
+Download = "https://moscot.readthedocs.io/en/latest/installation.html"
+"Bug Tracker" = "https://github.com/theislab/moscot/issues"
+Documentation = "https://moscot.readthedocs.io"
+"Source Code" = "https://github.com/theislab/moscot"
 
 [tool.setuptools]
 package-dir = {"" = "src"}
