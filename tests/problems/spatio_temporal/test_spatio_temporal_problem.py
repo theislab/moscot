@@ -139,9 +139,9 @@ class TestSpatioTemporalProblem:
     @pytest.mark.fast()
     @pytest.mark.parametrize("scaling", [0.1, 1, 4])
     def test_proliferation_key_c_pipeline(self, adata_spatio_temporal: AnnData, scaling: float):
-        keys = np.sort(np.unique(adata_spatio_temporal.obs["time"].values))
-        adata_spatio_temporal = adata_spatio_temporal[adata_spatio_temporal.obs["time"].isin([keys[0], keys[1]])]
-        delta = keys[1] - keys[0]
+        key0, key1, *_ = np.sort(np.unique(adata_spatio_temporal.obs["time"].values))
+        adata_spatio_temporal = adata_spatio_temporal[adata_spatio_temporal.obs["time"].isin([key0, key1])].copy()
+        delta = key1 - key0
         problem = SpatioTemporalProblem(adata_spatio_temporal)
         assert problem.proliferation_key is None
 
@@ -149,10 +149,10 @@ class TestSpatioTemporalProblem:
         assert problem.proliferation_key == "proliferation"
 
         problem = problem.prepare(time_key="time", marginal_kwargs={"scaling": scaling})
-        prolif = adata_spatio_temporal[adata_spatio_temporal.obs["time"] == keys[0]].obs["proliferation"]
-        apopt = adata_spatio_temporal[adata_spatio_temporal.obs["time"] == keys[0]].obs["apoptosis"]
+        prolif = adata_spatio_temporal[adata_spatio_temporal.obs["time"] == key0].obs["proliferation"]
+        apopt = adata_spatio_temporal[adata_spatio_temporal.obs["time"] == key0].obs["apoptosis"]
         expected_marginals = np.exp((prolif - apopt) * delta / scaling)
-        np.testing.assert_allclose(problem[keys[0], keys[1]]._prior_growth, expected_marginals, rtol=RTOL, atol=ATOL)
+        np.testing.assert_allclose(problem[key0, key1]._prior_growth, expected_marginals, rtol=RTOL, atol=ATOL)
 
     def test_growth_rates_pipeline(self, adata_spatio_temporal: AnnData):
         problem = SpatioTemporalProblem(adata=adata_spatio_temporal)
