@@ -21,20 +21,22 @@ jobs:
         os: [ubuntu-latest]
         python: ["3.8", "3.9", "3.10"]
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - name: Set up Python ${{ matrix.python }}
-        uses: actions/setup-python@v2
+        uses: actions/setup-python@v4
         with:
           python-version: ${{ matrix.python }}
 
       - name: Install pip dependencies
-        # TODO(michalk8): remove tox-gh dependency, update tox.ini
         run: |
           python -m pip install --upgrade pip
-          pip install tox tox-gh-actions
+          pip install tox
+
       - name: Test
         run: |
-          tox -vv
+          tox -e py-${{ matrix.python }}
+        env:
+          PYTEST_ADDOPTS: -vv -n 2
 
       - name: Upload coverage
         uses: codecov/codecov-action@v3
