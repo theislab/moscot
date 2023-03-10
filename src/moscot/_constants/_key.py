@@ -37,7 +37,7 @@ class Key:
 
 class RandomKeys:
     """
-    Create random keys inside an :class:`anndata.AnnData` object.
+    Create random keys inside an :class:`~anndata.AnnData` object.
 
     Parameters
     ----------
