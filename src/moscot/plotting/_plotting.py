@@ -1,24 +1,42 @@
 from types import MappingProxyType
-from typing import Any, Dict, List, Tuple, Union, Mapping, Optional, Sequence
-
-from matplotlib import colors as mcolors
-from matplotlib.axes import Axes
-import matplotlib as mpl
-
-import numpy as np
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Dict,
+    List,
+    Mapping,
+    Optional,
+    Sequence,
+    Tuple,
+    Union,
+)
 
 from anndata import AnnData
 
-from moscot.problems.base import CompoundProblem  # type: ignore[attr-defined]
-from moscot.problems.time import LineageProblem, TemporalProblem  # type: ignore[attr-defined]
-from moscot.plotting._utils import _sankey, _heatmap, _plot_temporal, _input_to_adatas, _create_col_colors
+import numpy as np
+
+import matplotlib as mpl
+from matplotlib import colors as mcolors
+from matplotlib.axes import Axes
+
+if TYPE_CHECKING:
+    from moscot.base.problems.compound_problem import CompoundProblem
+    from moscot.problems.time import LineageProblem, TemporalProblem
+
+from moscot._constants._constants import AdataKeys, PlottingDefaults, PlottingKeys
 from moscot._docs._docs_plot import d_plotting
-from moscot._constants._constants import AdataKeys, PlottingKeys, PlottingDefaults
+from moscot.plotting._utils import (
+    _create_col_colors,
+    _heatmap,
+    _input_to_adatas,
+    _plot_temporal,
+    _sankey,
+)
 
 
 @d_plotting.dedent
 def cell_transition(
-    inp: Union[AnnData, Tuple[AnnData, AnnData], CompoundProblem],  # type: ignore[type-arg]
+    inp: Union[AnnData, Tuple[AnnData, AnnData], "CompoundProblem"],  # type: ignore[type-arg]
     uns_key: str = PlottingKeys.CELL_TRANSITION,
     row_labels: Optional[str] = None,
     col_labels: Optional[str] = None,
@@ -94,7 +112,7 @@ def cell_transition(
 
 @d_plotting.dedent
 def sankey(
-    inp: Union[AnnData, TemporalProblem, LineageProblem],
+    inp: Union[AnnData, "TemporalProblem", "LineageProblem"],
     uns_key: Optional[str] = None,
     captions: Optional[List[str]] = None,
     title: Optional[str] = None,
@@ -166,7 +184,7 @@ def sankey(
 
 @d_plotting.dedent
 def push(
-    inp: Union[AnnData, TemporalProblem, LineageProblem, CompoundProblem],  # type: ignore[type-arg]
+    inp: Union[AnnData, "TemporalProblem", "LineageProblem", "CompoundProblem"],  # type: ignore[type-arg]
     uns_key: Optional[str] = None,
     time_points: Optional[Sequence[float]] = None,
     basis: str = "umap",
@@ -250,7 +268,7 @@ def push(
 
 @d_plotting.dedent
 def pull(
-    inp: Union[AnnData, TemporalProblem, LineageProblem, CompoundProblem],  # type: ignore[type-arg]
+    inp: Union[AnnData, "TemporalProblem", "LineageProblem", "CompoundProblem"],  # type: ignore[type-arg]
     uns_key: Optional[str] = None,
     time_points: Optional[Sequence[float]] = None,
     basis: str = "umap",

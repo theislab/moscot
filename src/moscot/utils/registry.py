@@ -1,4 +1,4 @@
-from typing import Any, Tuple, TypeVar, Callable, Optional
+from typing import Any, Callable, Optional, Tuple, TypeVar
 
 __all__ = ["Registry"]
 

@@ -1,31 +1,40 @@
-from typing import Any, Dict, List, Tuple, Union, Literal, Mapping, Optional, Sequence, TYPE_CHECKING
 from itertools import chain
-
-from networkx import NetworkXNoPath
-from scipy.stats import pearsonr, spearmanr
-from scipy.linalg import svd
-from scipy.sparse import issparse
-from scipy.spatial import ConvexHull
-from sklearn.metrics import pairwise_distances
-from pandas.api.types import is_categorical_dtype
-from sklearn.neighbors import NearestNeighbors
-from scipy.sparse.linalg import LinearOperator
-import pandas as pd
-import scipy.sparse as sp
-
-import numpy as np
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Dict,
+    List,
+    Literal,
+    Mapping,
+    Optional,
+    Sequence,
+    Tuple,
+    Union,
+)
 
 from anndata import AnnData
 
-from moscot._types import Device_t, ArrayLike, Str_Dict_t
-from moscot.logging import logger
+import numpy as np
+import pandas as pd
+import scipy.sparse as sp
+from networkx import NetworkXNoPath
+from pandas.api.types import is_categorical_dtype
+from scipy.linalg import svd
+from scipy.sparse import issparse
+from scipy.sparse.linalg import LinearOperator
+from scipy.spatial import ConvexHull
+from scipy.stats import pearsonr, spearmanr
+from sklearn.metrics import pairwise_distances
+from sklearn.neighbors import NearestNeighbors
+
+from moscot._constants._constants import AlignmentMode, CorrMethod, PlottingDefaults
 from moscot._docs._docs import d
-from moscot.problems.base import AnalysisMixin  # type: ignore[attr-defined]
 from moscot._docs._docs_mixins import d_mixins
+from moscot._types import ArrayLike, Device_t, Str_Dict_t
+from moscot.base.problems._mixins import AnalysisMixin, AnalysisMixinProtocol
+from moscot.base.problems.compound_problem import B, K
+from moscot.logging import logger
 from moscot.utils._subset_policy import StarPolicy
-from moscot._constants._constants import CorrMethod, AlignmentMode, PlottingDefaults
-from moscot.problems.base._mixins import AnalysisMixinProtocol
-from moscot.problems.base._compound_problem import B, K
 
 
 class SpatialAlignmentMixinProtocol(AnalysisMixinProtocol[K, B]):

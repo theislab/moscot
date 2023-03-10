@@ -1,24 +1,23 @@
-from typing import Any, List, Literal, Mapping, Optional
 from pathlib import Path
+from typing import Any, List, Literal, Mapping, Optional
 
 import pytest
+from anndata import AnnData
 
 import numpy as np
 
-from anndata import AnnData
-
-from tests._utils import _adata_spatial_split
 from moscot.base.solver import ProblemKind
 from moscot.problems.space import MappingProblem
+from tests._utils import _adata_spatial_split
 from tests.problems.conftest import (
     fgw_args_1,
     fgw_args_2,
     geometry_args,
-    gw_solver_args,
-    quad_prob_args,
-    pointcloud_args,
     gw_linear_solver_args,
     gw_lr_linear_solver_args,
+    gw_solver_args,
+    pointcloud_args,
+    quad_prob_args,
 )
 
 # TODO(michalk8): should be made relative to tests root

@@ -1,48 +1,48 @@
 from typing import (
+    TYPE_CHECKING,
     Any,
     Dict,
-    List,
-    Tuple,
-    Union,
     Generic,
-    Literal,
     Iterable,
+    List,
+    Literal,
     Optional,
     Protocol,
     Sequence,
-    TYPE_CHECKING,
+    Tuple,
+    Union,
 )
 
-from scipy.sparse.linalg import LinearOperator
-import pandas as pd
+from anndata import AnnData
 
 import numpy as np
+import pandas as pd
+from scipy.sparse.linalg import LinearOperator
 
-from anndata import AnnData
 import scanpy as sc
 
-from moscot._types import ArrayLike, Numeric_t, Str_Dict_t
+from moscot._constants._constants import (
+    AggregationMode,
+    CorrMethod,
+    CorrTestMethod,
+    Key,
+    PlottingDefaults,
+    PlottingKeys,
+)
 from moscot._docs._docs import d
+from moscot._types import ArrayLike, Numeric_t, Str_Dict_t
 from moscot.base.output import BaseSolverOutput
-from moscot.utils._data import TranscriptionFactors
-from moscot.problems.base._utils import (
+from moscot.base.problems._utils import (
+    _check_argument_compatibility_cell_transition,
     _correlation_test,
     _get_df_cell_transition,
     _order_transition_matrix,
     _validate_annotations_helper,
     _validate_args_cell_transition,
-    _check_argument_compatibility_cell_transition,
 )
+from moscot.base.problems.compound_problem import ApplyOutput_t, B, K
+from moscot.utils._data import TranscriptionFactors
 from moscot.utils._subset_policy import SubsetPolicy
-from moscot._constants._constants import (
-    Key,
-    CorrMethod,
-    PlottingKeys,
-    CorrTestMethod,
-    AggregationMode,
-    PlottingDefaults,
-)
-from moscot.problems.base._compound_problem import B, K, ApplyOutput_t
 
 
 class AnalysisMixinProtocol(Protocol[K, B]):

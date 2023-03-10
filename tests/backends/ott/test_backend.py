@@ -1,26 +1,28 @@
-from typing import Type, Tuple, Union, Optional
+from typing import Optional, Tuple, Type, Union
 
 import pytest
 
+import jax
+import jax.numpy as jnp
+import numpy as np
 from ott.geometry.geometry import Geometry
 from ott.geometry.low_rank import LRCGeometry
 from ott.geometry.pointcloud import PointCloud
-from ott.solvers.linear.sinkhorn import solve as sinkhorn, Sinkhorn
-from ott.solvers.linear.sinkhorn_lr import LRSinkhorn
 from ott.problems.linear.linear_problem import LinearProblem
 from ott.problems.quadratic.quadratic_problem import QuadraticProblem
-from ott.solvers.quadratic.gromov_wasserstein import solve as gromov_wasserstein, GromovWasserstein
-import jax
-import numpy as np
-import jax.numpy as jnp
+from ott.solvers.linear.sinkhorn import Sinkhorn
+from ott.solvers.linear.sinkhorn import solve as sinkhorn
+from ott.solvers.linear.sinkhorn_lr import LRSinkhorn
+from ott.solvers.quadratic.gromov_wasserstein import GromovWasserstein
+from ott.solvers.quadratic.gromov_wasserstein import solve as gromov_wasserstein
 
-from tests._utils import ATOL, RTOL, Geom_t
-from moscot._types import Device_t, ArrayLike
+from moscot._types import ArrayLike, Device_t
+from moscot.backends.ott import GWSolver, SinkhornSolver  # type: ignore[attr-defined]
 from moscot.base.output import BaseSolverOutput
 from moscot.base.solver import O, OTSolver
-from moscot.backends.ott import GWSolver, SinkhornSolver  # type: ignore[attr-defined]
-from tests.plotting.conftest import PlotTester, PlotTesterMeta
 from moscot.utils._tagged_array import Tag
+from tests._utils import ATOL, RTOL, Geom_t
+from tests.plotting.conftest import PlotTester, PlotTesterMeta
 
 
 class TestSinkhorn:

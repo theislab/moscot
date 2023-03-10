@@ -1,18 +1,31 @@
-from abc import ABC, abstractmethod
-from typing import Any, Set, Dict, List, Tuple, Union, Generic, Literal, TypeVar, Hashable, Iterable, Optional, Sequence
-from operator import gt, lt
-from itertools import product
 import contextlib
-
-import pandas as pd
-import networkx as nx
-
-import numpy as np
+from abc import ABC, abstractmethod
+from itertools import product
+from operator import gt, lt
+from typing import (
+    Any,
+    Dict,
+    Generic,
+    Hashable,
+    Iterable,
+    List,
+    Literal,
+    Optional,
+    Sequence,
+    Set,
+    Tuple,
+    TypeVar,
+    Union,
+)
 
 from anndata import AnnData
 
-from moscot._types import ArrayLike
+import networkx as nx
+import numpy as np
+import pandas as pd
+
 from moscot._constants._constants import Policy
+from moscot._types import ArrayLike
 
 Value_t = Tuple[ArrayLike, ArrayLike]
 Policy_t = Literal[

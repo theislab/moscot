@@ -1,8 +1,8 @@
 from typing import Any, Optional
 
+import jax.numpy as jnp
 from ott.geometry.pointcloud import PointCloud
 from ott.tools.sinkhorn_divergence import sinkhorn_divergence
-import jax.numpy as jnp
 
 from moscot._types import ArrayLike, ScaleCost_t
 from moscot.logging import logger

@@ -1,4 +1,4 @@
-from typing import Any, Union, Literal, TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, Literal, Union
 
 from moscot.base import solver  # TODO(michalk8): move to problem
 from moscot.utils import registry

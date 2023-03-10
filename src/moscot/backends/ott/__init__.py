@@ -1,8 +1,8 @@
 from ott.geometry import costs
 
-from moscot.costs import register_cost
 from moscot.backends.ott.output import OTTOutput
 from moscot.backends.ott.solver import GWSolver, SinkhornSolver
+from moscot.costs import register_cost
 
 __all__ = ["OTTOutput", "GWSolver", "SinkhornSolver"]
 

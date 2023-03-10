@@ -1,15 +1,15 @@
 # this file was adapted from https://github.com/theislab/cellrank/blob/master/cellrank/datasets/_datasets.py
-from types import MappingProxyType
-from typing import Any, Tuple, Union, Literal, Mapping, Optional
 import os
 import warnings
+from types import MappingProxyType
+from typing import Any, Literal, Mapping, Optional, Tuple, Union
 
-import pandas as pd
+from anndata import AnnData
 
 import numpy as np
+import pandas as pd
 
 from scanpy import read
-from anndata import AnnData
 
 from moscot.datasets._utils import _get_random_trees
 

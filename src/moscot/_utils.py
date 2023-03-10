@@ -1,20 +1,23 @@
 # adapted from CellRank
-from typing import Any, Union, Callable, Optional, Sequence
-from threading import Thread
+import inspect
+from functools import partial, update_wrapper
 from multiprocessing import Manager, cpu_count
+from threading import Thread
+from types import MappingProxyType
+from typing import Any, Callable, Dict, Optional, Sequence, Type, Union
 
-from scipy.sparse import issparse, spmatrix
 import joblib as jl
 
 import numpy as np
+import scipy.sparse as sp
 
-jit_kwargs = {"nogil": True, "cache": True, "fastmath": True}
+Callback = Callable[..., Any]
 
 
 # TODO(michalk8): update
 def parallelize(
     callback: Callable[[Any], Any],
-    collection: Union[spmatrix, Sequence[Any]],
+    collection: Union[sp.spmatrix, Sequence[Any]],
     n_jobs: Optional[int] = None,
     n_split: Optional[int] = None,
     unit: str = "",
@@ -112,12 +115,12 @@ def parallelize(
 
         return res if extractor is None else extractor(res)
 
-    col_len = collection.shape[0] if issparse(collection) else len(collection)  # type: ignore[union-attr]
+    col_len = collection.shape[0] if sp.issparse(collection) else len(collection)  # type: ignore[union-attr]
     n_jobs = _get_n_cores(n_jobs, col_len)
     if n_split is None:
         n_split = n_jobs
 
-    if issparse(collection):
+    if sp.issparse(collection):
         n_split = max(1, min(n_split, collection.shape[0]))  # type: ignore
         if n_split == collection.shape[0]:  # type: ignore[union-attr]
             collections = [collection[[ix], :] for ix in range(collection.shape[0])]  # type: ignore
@@ -161,3 +164,42 @@ def _get_n_cores(n_cores: Optional[int], n_jobs: Optional[int]) -> int:
         return cpu_count() + 1 + n_cores
 
     return n_cores
+
+
+def attributedispatch(func: Optional[Callback] = None, attr: Optional[str] = None) -> Callback:
+    """Dispatch a function based on the first value."""
+
+    def dispatch(value: Type[Any]) -> Callback:
+        for typ in value.mro():
+            if typ in registry:
+                return registry[typ]
+        return func  # type: ignore[return-value]
+
+    def register(value: Type[Any], func: Optional[Callback] = None) -> Callback:
+        if func is None:
+            return lambda f: register(value, f)
+        registry[value] = func
+        return func
+
+    def wrapper(instance: Any, *args: Any, **kwargs: Any) -> Any:
+        typ = type(getattr(instance, str(attr)))
+        return dispatch(typ)(instance, *args, **kwargs)
+
+    if func is None:
+        return partial(attributedispatch, attr=attr)
+
+    registry: Dict[Type[Any], Callback] = {}
+    wrapper.register = register  # type: ignore[attr-defined]
+    wrapper.dispatch = dispatch  # type: ignore[attr-defined]
+    wrapper.registry = MappingProxyType(registry)  # type: ignore[attr-defined]
+    update_wrapper(wrapper, func)
+
+    return wrapper
+
+
+def _filter_kwargs(*funcs: Callable[..., Any], **kwargs: Any) -> Dict[str, Any]:
+    res = {}
+    for func in funcs:
+        params = inspect.signature(func).parameters
+        res.update({k: v for k, v in kwargs.items() if k in params})
+    return res

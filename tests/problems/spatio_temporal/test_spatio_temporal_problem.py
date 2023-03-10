@@ -1,26 +1,25 @@
 from typing import Any, List, Mapping
 
-import pandas as pd
 import pytest
-
-import numpy as np
-
 from anndata import AnnData
 
-from tests._utils import ATOL, RTOL
+import numpy as np
+import pandas as pd
+
 from moscot.base.output import BaseSolverOutput
+from moscot.problems.spatio_temporal import SpatioTemporalProblem
+from moscot.problems.time._lineage import BirthDeathProblem
+from tests._utils import ATOL, RTOL
 from tests.problems.conftest import (
     fgw_args_1,
     fgw_args_2,
     geometry_args,
-    gw_solver_args,
-    quad_prob_args,
-    pointcloud_args,
     gw_linear_solver_args,
     gw_lr_linear_solver_args,
+    gw_solver_args,
+    pointcloud_args,
+    quad_prob_args,
 )
-from moscot.problems.time._lineage import BirthDeathProblem
-from moscot.problems.spatio_temporal import SpatioTemporalProblem
 
 
 class TestSpatioTemporalProblem:

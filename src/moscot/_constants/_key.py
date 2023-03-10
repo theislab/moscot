@@ -1,9 +1,9 @@
-from typing import Any, Set, List, Callable, Optional
 import contextlib
-
-import numpy as np
+from typing import Any, Callable, List, Optional, Set
 
 from anndata import AnnData
+
+import numpy as np
 
 
 class cprop:

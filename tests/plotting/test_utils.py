@@ -1,15 +1,15 @@
 from typing import List, Optional
 
 import pytest
-import matplotlib as mpl
+from anndata import AnnData
 
 import numpy as np
 
-from anndata import AnnData
+import matplotlib as mpl
 
-from tests._utils import Problem
-from moscot.plotting._utils import _input_to_adatas
 import moscot as msc
+from moscot.plotting._utils import _input_to_adatas
+from tests._utils import Problem
 
 
 class TestMoscotPl:

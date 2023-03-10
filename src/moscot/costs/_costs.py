@@ -1,7 +1,6 @@
 from typing import Any, List, Mapping, Optional
 
 import networkx as nx
-
 import numpy as np
 
 from moscot._types import ArrayLike

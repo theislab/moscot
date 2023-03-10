@@ -1,18 +1,19 @@
-from typing import Any, Tuple, Union, Optional
+from typing import Any, Optional, Tuple, Union
+
+import jaxlib.xla_extension as xla_ext
+
+import jax
+import jax.numpy as jnp
+import numpy as np
+from ott.solvers.linear.sinkhorn import SinkhornOutput as OTTSinkhornOutput
+from ott.solvers.linear.sinkhorn_lr import LRSinkhornOutput as OTTLRSinkhornOutput
+from ott.solvers.quadratic.gromov_wasserstein import GWOutput as OTTGWOutput
 
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 
-from ott.solvers.linear.sinkhorn import SinkhornOutput as OTTSinkhornOutput
-from ott.solvers.linear.sinkhorn_lr import LRSinkhornOutput as OTTLRSinkhornOutput
-from ott.solvers.quadratic.gromov_wasserstein import GWOutput as OTTGWOutput
-import jax
-import numpy as np
-import jax.numpy as jnp
-import jaxlib.xla_extension as xla_ext
-
-from moscot._types import Device_t, ArrayLike
 from moscot._docs._docs import d
+from moscot._types import ArrayLike, Device_t
 from moscot.base.output import BaseSolverOutput
 
 __all__ = ["OTTOutput"]

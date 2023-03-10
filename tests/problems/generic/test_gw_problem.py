@@ -1,24 +1,23 @@
-from typing import Any, Tuple, Literal, Mapping
+from typing import Any, Literal, Mapping, Tuple
 
-import pandas as pd
 import pytest
-
-from ott.geometry.costs import Cosine, Euclidean, SqEuclidean
-import numpy as np
-
 from anndata import AnnData
+
+import numpy as np
+import pandas as pd
+from ott.geometry.costs import Cosine, Euclidean, SqEuclidean
 
 from moscot.base.output import BaseSolverOutput
 from moscot.problems.base import OTProblem
 from moscot.problems.generic import GWProblem
 from tests.problems.conftest import (
+    geometry_args,
     gw_args_1,
     gw_args_2,
-    geometry_args,
-    gw_solver_args,
-    quad_prob_args,
     gw_linear_solver_args,
     gw_lr_linear_solver_args,
+    gw_solver_args,
+    quad_prob_args,
 )
 
 

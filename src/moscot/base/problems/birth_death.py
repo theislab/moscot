@@ -1,22 +1,32 @@
 from types import MappingProxyType
-from typing import Any, Union, Literal, Mapping, Callable, Optional, Protocol, Sequence, TYPE_CHECKING
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Callable,
+    Literal,
+    Mapping,
+    Optional,
+    Protocol,
+    Sequence,
+    Union,
+)
+
+from anndata import AnnData
 
 import numpy as np
 
-from anndata import AnnData
 import scanpy as sc
 
-from moscot._types import ArrayLike
-from moscot.logging import logger
 from moscot._docs._docs import d
+from moscot._types import ArrayLike
+from moscot.base.problems.problem import OTProblem
+from moscot.logging import logger
 from moscot.utils._data import MarkerGenes
-from moscot.problems.time._utils import beta, delta
-from moscot.problems.base._base_problem import OTProblem
 
 __all__ = ["BirthDeathProblem", "BirthDeathMixin"]
 
 
-class BirthDeathProtocol(Protocol):
+class BirthDeathProtocol(Protocol):  # noqa: D101
     adata: AnnData
     proliferation_key: Optional[str]
     apoptosis_key: Optional[str]
@@ -25,7 +35,7 @@ class BirthDeathProtocol(Protocol):
     _scaling: Optional[float] = None
     _prior_growth: Optional[ArrayLike] = None
 
-    def score_genes_for_marginals(
+    def score_genes_for_marginals(  # noqa: D102
         self: "BirthDeathProtocol",
         gene_set_proliferation: Optional[Union[Literal["human", "mouse"], Sequence[str]]] = None,
         gene_set_apoptosis: Optional[Union[Literal["human", "mouse"], Sequence[str]]] = None,
@@ -36,7 +46,7 @@ class BirthDeathProtocol(Protocol):
         ...
 
 
-class BirthDeathProblemProtocol(BirthDeathProtocol, Protocol):
+class BirthDeathProblemProtocol(BirthDeathProtocol, Protocol):  # noqa: D101
     delta: float
     adata_tgt: AnnData
     a: Optional[ArrayLike]
@@ -238,3 +248,37 @@ class BirthDeathProblem(BirthDeathMixin, OTProblem):
             assert isinstance(self._src_key, float)
             assert isinstance(self._tgt_key, float)
         return self._tgt_key - self._src_key
+
+
+def _logistic(x: ArrayLike, L: float, k: float, center: float = 0) -> ArrayLike:
+    """Logistic function."""
+    return L / (1 + np.exp(-k * (x - center)))
+
+
+def _gen_logistic(p: ArrayLike, sup: float, inf: float, center: float, width: float) -> ArrayLike:
+    """Shifted logistic function."""
+    return inf + _logistic(p, L=sup - inf, k=4 / width, center=center)
+
+
+def beta(
+    p: ArrayLike,
+    beta_max: float = 1.7,
+    beta_min: float = 0.3,
+    beta_center: float = 0.25,
+    beta_width: float = 0.5,
+    **_: Any,
+) -> ArrayLike:
+    """Birth process."""
+    return _gen_logistic(p, beta_max, beta_min, beta_center, beta_width)
+
+
+def delta(
+    a: ArrayLike,
+    delta_max: float = 1.7,
+    delta_min: float = 0.3,
+    delta_center: float = 0.1,
+    delta_width: float = 0.2,
+    **_: Any,
+) -> ArrayLike:
+    """Death process."""
+    return _gen_logistic(a, delta_max, delta_min, delta_center, delta_width)

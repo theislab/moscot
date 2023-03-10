@@ -1,13 +1,11 @@
-from typing import Any, Union, Literal, Mapping, Optional, Sequence
+from typing import Any, Literal, Mapping, Optional, Sequence, Union
 
 import numpy as np
-
-__all__ = ["ArrayLike", "DTypeLike", "Numeric_t"]
 
 # TODO(michalk8): polish
 
 try:
-    from numpy.typing import NDArray, DTypeLike
+    from numpy.typing import DTypeLike, NDArray
 
     ArrayLike = NDArray[np.float_]
 except (ImportError, TypeError):

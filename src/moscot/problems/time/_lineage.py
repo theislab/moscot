@@ -1,15 +1,21 @@
 from types import MappingProxyType
-from typing import Any, Type, Tuple, Union, Literal, Mapping, Optional
+from typing import Any, Literal, Mapping, Optional, Tuple, Type, Union
 
 from anndata import AnnData
 
-from moscot._types import Numeric_t, ScaleCost_t, ProblemStage_t, QuadInitializer_t, SinkhornInitializer_t
-from moscot._docs._docs import d
-from moscot.problems._utils import handle_cost, handle_joint_attr
 from moscot._constants._constants import Policy
+from moscot._docs._docs import d
+from moscot._types import (
+    Numeric_t,
+    ProblemStage_t,
+    QuadInitializer_t,
+    ScaleCost_t,
+    SinkhornInitializer_t,
+)
+from moscot.base.problems.birth_death import BirthDeathMixin, BirthDeathProblem
+from moscot.base.problems.compound_problem import B, CompoundProblem
+from moscot.problems._utils import handle_cost, handle_joint_attr
 from moscot.problems.time._mixins import TemporalMixin
-from moscot.problems.base._birth_death import BirthDeathMixin, BirthDeathProblem
-from moscot.problems.base._compound_problem import B, CompoundProblem
 
 
 @d.dedent

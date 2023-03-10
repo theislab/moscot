@@ -1,14 +1,13 @@
 from typing import Tuple
 
-import pandas as pd
 import pytest
-
-import numpy as np
-
 from anndata import AnnData
 
-from tests._utils import MockSolverOutput
+import numpy as np
+import pandas as pd
+
 from moscot.problems.time._lineage import TemporalProblem
+from tests._utils import MockSolverOutput
 
 
 class TestTemporalMixin:

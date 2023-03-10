@@ -1,27 +1,26 @@
-from typing import Any, Union, Literal, Mapping, Optional
 import types
+from typing import Any, Literal, Mapping, Optional, Union
 
-import scipy.sparse as sp
-
-from ott.geometry import costs
-from ott.geometry.geometry import Geometry
-from ott.solvers.was_solver import WassersteinSolver
-from ott.geometry.pointcloud import PointCloud
-from ott.solvers.linear.sinkhorn import Sinkhorn
-from ott.geometry.epsilon_scheduler import Epsilon
-from ott.solvers.linear.sinkhorn_lr import LRSinkhorn
-from ott.problems.linear.linear_problem import LinearProblem
-from ott.problems.quadratic.quadratic_problem import QuadraticProblem
-from ott.solvers.quadratic.gromov_wasserstein import GromovWasserstein
 import jax
 import jax.numpy as jnp
+import scipy.sparse as sp
+from ott.geometry import costs
+from ott.geometry.epsilon_scheduler import Epsilon
+from ott.geometry.geometry import Geometry
+from ott.geometry.pointcloud import PointCloud
+from ott.problems.linear.linear_problem import LinearProblem
+from ott.problems.quadratic.quadratic_problem import QuadraticProblem
+from ott.solvers.linear.sinkhorn import Sinkhorn
+from ott.solvers.linear.sinkhorn_lr import LRSinkhorn
+from ott.solvers.quadratic.gromov_wasserstein import GromovWasserstein
+from ott.solvers.was_solver import WassersteinSolver
 
-from moscot.costs import get_cost
 from moscot._types import ArrayLike, QuadInitializer_t, SinkhornInitializer_t
-from moscot.base.solver import OTSolver, ProblemKind
+from moscot._utils import _filter_kwargs
 from moscot.backends.ott.output import OTTOutput
+from moscot.base.solver import OTSolver, ProblemKind
+from moscot.costs import get_cost
 from moscot.utils._tagged_array import TaggedArray
-from moscot.problems.base._utils import _filter_kwargs
 
 __all__ = ["SinkhornSolver", "GWSolver"]
 

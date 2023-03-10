@@ -1,18 +1,18 @@
 from abc import ABC, ABCMeta
-from typing import Callable, Optional
-from pathlib import Path
 from functools import wraps
+from pathlib import Path
+from typing import Callable, Optional
 
-from matplotlib.testing.compare import compare_images
-import pandas as pd
 import pytest
-import matplotlib.pyplot as plt
-
-import numpy as np
-
 from anndata import AnnData
 
-from moscot._constants._constants import Key, PlottingKeys, PlottingDefaults
+import numpy as np
+import pandas as pd
+
+import matplotlib.pyplot as plt
+from matplotlib.testing.compare import compare_images
+
+from moscot._constants._constants import Key, PlottingDefaults, PlottingKeys
 
 HERE: Path = Path(__file__).parent
 

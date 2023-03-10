@@ -1,15 +1,26 @@
-from types import MappingProxyType
-from typing import Any, Dict, Tuple, Union, Generic, Mapping, TypeVar, Hashable, Optional, TYPE_CHECKING
 from collections import defaultdict
+from types import MappingProxyType
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Dict,
+    Generic,
+    Hashable,
+    Mapping,
+    Optional,
+    Tuple,
+    TypeVar,
+    Union,
+)
 
+from moscot._constants._constants import ProblemStage
 from moscot._types import ProblemStage_t
 from moscot.base.output import BaseSolverOutput
+from moscot.base.problems.problem import OTProblem
 from moscot.utils._subset_policy import SubsetPolicy
-from moscot._constants._constants import ProblemStage
-from moscot.problems.base._base_problem import OTProblem
 
 if TYPE_CHECKING:
-    from moscot.problems.base._compound_problem import BaseCompoundProblem
+    from moscot.base.problems.compound_problem import BaseCompoundProblem
 
 K = TypeVar("K", bound=Hashable)
 B = TypeVar("B", bound=OTProblem)
@@ -38,7 +49,7 @@ class ProblemManager(Generic[K, B]):
         verify_integrity: bool = True,
         **kwargs: Any,
     ) -> None:
-        from moscot.problems.base._compound_problem import CompoundProblem
+        from moscot.base.problems.compound_problem import CompoundProblem
 
         if not overwrite and key in self.problems:
             raise KeyError(f"Problem `{key}` is already present, use `overwrite=True` to add it.")
@@ -111,8 +122,10 @@ class ProblemManager(Generic[K, B]):
 
     @property
     def solutions(self) -> Dict[Tuple[K, K], BaseSolverOutput]:
+        """TODO."""
         return self.get_solutions(only_converged=False)
 
     @property
     def problems(self) -> Dict[Tuple[K, K], B]:
+        """TODO."""
         return self._problems

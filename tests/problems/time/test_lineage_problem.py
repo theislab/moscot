@@ -1,25 +1,24 @@
 from typing import Any, List, Mapping
 
 import pytest
+from anndata import AnnData
 
 import numpy as np
 
-from anndata import AnnData
-
-from tests._utils import ATOL, RTOL
 from moscot.base.output import BaseSolverOutput
+from moscot.base.problems.birth_death import BirthDeathProblem
 from moscot.problems.time import LineageProblem
+from tests._utils import ATOL, RTOL
 from tests.problems.conftest import (
     fgw_args_1,
     fgw_args_2,
     geometry_args,
-    gw_solver_args,
-    quad_prob_args,
-    pointcloud_args,
     gw_linear_solver_args,
     gw_lr_linear_solver_args,
+    gw_solver_args,
+    pointcloud_args,
+    quad_prob_args,
 )
-from moscot.problems.base._birth_death import BirthDeathProblem
 
 
 class TestLineageProblem:

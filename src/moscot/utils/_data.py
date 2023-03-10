@@ -1,5 +1,5 @@
-from typing import Literal, Mapping, Sequence
 import os
+from typing import Literal, Mapping, Sequence
 
 import pandas as pd
 
@@ -13,6 +13,7 @@ class TranscriptionFactors:
 
     """
 
+    # TODO(michalk8): clean this up
     current_dir = os.path.dirname(os.path.abspath(__file__))
     data_dir = os.path.join(current_dir, "data")
     _transcription_factors: Mapping[str, Sequence[str]] = {

@@ -1,5 +1,5 @@
-from typing import Any, Dict, Tuple, TYPE_CHECKING
 import sys
+from typing import TYPE_CHECKING, Any, Dict, Tuple
 
 try:
     import wot  # please install WOT from commit hash`ca5e94f05699997b01cf5ae13383f9810f0613f6`"
@@ -11,12 +11,12 @@ except ImportError:
 
 import os
 
-from sklearn.metrics import pairwise_distances
-import pandas as pd
+from anndata import AnnData
 
 import numpy as np
+import pandas as pd
+from sklearn.metrics import pairwise_distances
 
-from anndata import AnnData
 import scanpy as sc
 
 from moscot._types import ArrayLike

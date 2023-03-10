@@ -1,16 +1,15 @@
-from typing import Any, Tuple, Union, Literal, Callable, Optional
 from dataclasses import dataclass
-
-import scipy.sparse as sp
-
-import numpy as np
+from typing import Any, Callable, Literal, Optional, Tuple, Union
 
 from anndata import AnnData
 
-from moscot.costs import get_cost
-from moscot._types import CostFn_t, ArrayLike
-from moscot.logging import logger
+import numpy as np
+import scipy.sparse as sp
+
 from moscot._constants._enum import ModeEnum
+from moscot._types import ArrayLike, CostFn_t
+from moscot.costs import get_cost
+from moscot.logging import logger
 
 __all__ = ["Tag", "TaggedArray"]
 

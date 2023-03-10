@@ -1,13 +1,12 @@
 from abc import ABC, abstractmethod
 from copy import copy
-from typing import Any, Tuple, Callable, Iterable, Optional
 from functools import partial
-
-from scipy.sparse.linalg import LinearOperator
+from typing import Any, Callable, Iterable, Optional, Tuple
 
 import numpy as np
+from scipy.sparse.linalg import LinearOperator
 
-from moscot._types import Device_t, ArrayLike, DTypeLike
+from moscot._types import ArrayLike, Device_t, DTypeLike  # type: ignore[attr-defined]
 from moscot.logging import logger
 
 __all__ = ["BaseSolverOutput", "MatrixSolverOutput"]

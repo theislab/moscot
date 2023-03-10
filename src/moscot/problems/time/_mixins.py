@@ -1,22 +1,33 @@
-from typing import Any, Dict, List, Tuple, Union, Literal, Iterable, Iterator, Optional, Protocol, TYPE_CHECKING
-from pathlib import Path
 import itertools
-
-from pandas.api.types import infer_dtype, is_numeric_dtype
-import pandas as pd
-
-import numpy as np
+from pathlib import Path
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Dict,
+    Iterable,
+    Iterator,
+    List,
+    Literal,
+    Optional,
+    Protocol,
+    Tuple,
+    Union,
+)
 
 from anndata import AnnData
 
+import numpy as np
+import pandas as pd
+from pandas.api.types import infer_dtype, is_numeric_dtype
+
+from moscot._constants._constants import Key, PlottingDefaults, PlottingKeys
+from moscot._docs._docs_mixins import d_mixins
 from moscot._types import ArrayLike, Numeric_t, Str_Dict_t
 from moscot.base.output import BaseSolverOutput
-from moscot._docs._docs_mixins import d_mixins
+from moscot.base.problems._mixins import AnalysisMixin, AnalysisMixinProtocol
+from moscot.base.problems.birth_death import BirthDeathProblem
+from moscot.base.problems.compound_problem import ApplyOutput_t, B, K
 from moscot.utils._tagged_array import Tag
-from moscot._constants._constants import Key, PlottingKeys, PlottingDefaults
-from moscot.problems.base._mixins import AnalysisMixin, AnalysisMixinProtocol
-from moscot.problems.base._birth_death import BirthDeathProblem
-from moscot.problems.base._compound_problem import B, K, ApplyOutput_t
 
 
 # TODO(@MUCDK, @michalk8): check for ignore[misc] in line below, might become redundant

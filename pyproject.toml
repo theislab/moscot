@@ -162,34 +162,15 @@ line-length = 120
 target-version = ['py38']
 include = '\.pyi?$'
 
-# TODO(michalk8): simplify in https://github.com/theislab/moscot/issues/483
 [tool.isort]
 profile = "black"
-py_version = "38"
-skip = "docs/source/conf.py,.tox,build"
-line_length = 120
-multi_line_output = 3
 include_trailing_comma = true
-use_parentheses = true
-known_bio = "anndata,scanpy"
-known_num = "numpy,jax,jaxlib,ott"
-sections = "FUTURE,STDLIB,THIRDPARTY,NUM,BIO,FIRSTPARTY,LOCALFOLDER"
-no_lines_before="LOCALFOLDER"
-balanced_wrapping = true
-force_grid_wrap = 0
-length_sort = "1"
-indent = "    "
-from_first = true
-order_by_type = true
-atomic = true
-combine_star = true
-combine_as_imports = true
-honor_noqa = true
-remove_redundant_aliases = true
-only_modified = true
-group_by_package = true
-force_alphabetical_sort_within_sections = true
-lexicographical = true
+multi_line_output = 3
+sections = ["FUTURE", "STDLIB", "THIRDPARTY", "NUMERIC", "PLOTTING", "BIO", "FIRSTPARTY", "LOCALFOLDER"]
+# also contains what we import in notebooks
+known_numeric = ["numpy", "scipy", "jax", "ott", "pandas", "sklearn", "networkx"]
+known_bio = ["scanpy", "squidpy"]
+known_plotting = ["IPython", "matplotlib", "mpl_toolkits", "seaborn"]
 
 [tool.pytest.ini_options]
 markers = ["fast: marks tests as fask"]

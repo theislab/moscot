@@ -1,26 +1,42 @@
+from collections import defaultdict
 from copy import copy
 from types import MappingProxyType
-from typing import Any, Dict, List, Tuple, Union, Mapping, Optional, Sequence, TYPE_CHECKING
-from collections import defaultdict
-
-from matplotlib import colors as mcolors, pyplot as plt
-from matplotlib.axes import Axes
-from pandas.api.types import is_categorical_dtype
-from matplotlib.colors import ListedColormap
-from sklearn.preprocessing import MinMaxScaler
-from mpl_toolkits.axes_grid1 import make_axes_locatable
-import pandas as pd
-import matplotlib as mpl
-
-import numpy as np
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Dict,
+    List,
+    Mapping,
+    Optional,
+    Sequence,
+    Tuple,
+    Union,
+)
 
 from anndata import AnnData
-from scanpy.plotting._utils import add_colors_for_categorical_sample_annotation as add_color_palette
-import scanpy as sc
 
-from moscot.problems.base import CompoundProblem  # type: ignore[attr-defined]
-from moscot._constants._key import RandomKeys
+import numpy as np
+import pandas as pd
+from pandas.api.types import is_categorical_dtype
+from sklearn.preprocessing import MinMaxScaler
+
+import matplotlib as mpl
+from matplotlib import colors as mcolors
+from matplotlib import pyplot as plt
+from matplotlib.axes import Axes
+from matplotlib.colors import ListedColormap
+from mpl_toolkits.axes_grid1 import make_axes_locatable
+
+import scanpy as sc
+from scanpy.plotting._utils import (
+    add_colors_for_categorical_sample_annotation as add_color_palette,
+)
+
+if TYPE_CHECKING:
+    from moscot.base.problems.compound_problem import CompoundProblem
+
 from moscot._constants._constants import AggregationMode
+from moscot._constants._key import RandomKeys
 
 
 def set_palette(
@@ -346,7 +362,7 @@ def _contrasting_color(r: int, g: int, b: int) -> str:
 
 
 def _input_to_adatas(
-    inp: Union[AnnData, Tuple[AnnData, AnnData], CompoundProblem]  # type: ignore[type-arg]
+    inp: Union[AnnData, Tuple[AnnData, AnnData], "CompoundProblem"]  # type: ignore[type-arg]
 ) -> Tuple[AnnData, AnnData]:
     if isinstance(inp, CompoundProblem):
         return inp.adata, inp.adata

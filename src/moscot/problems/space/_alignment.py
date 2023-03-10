@@ -1,14 +1,14 @@
 from types import MappingProxyType
-from typing import Any, Type, Tuple, Union, Literal, Mapping, Optional
+from typing import Any, Literal, Mapping, Optional, Tuple, Type, Union
 
-from moscot._types import ScaleCost_t, ProblemStage_t, QuadInitializer_t
-from moscot._docs._docs import d
-from moscot._constants._key import Key
-from moscot.problems._utils import handle_cost, handle_joint_attr
 from moscot._constants._constants import Policy
+from moscot._constants._key import Key
+from moscot._docs._docs import d
+from moscot._types import ProblemStage_t, QuadInitializer_t, ScaleCost_t
+from moscot.base.problems.compound_problem import B, CompoundProblem, K
+from moscot.base.problems.problem import OTProblem
+from moscot.problems._utils import handle_cost, handle_joint_attr
 from moscot.problems.space._mixins import SpatialAlignmentMixin
-from moscot.problems.base._base_problem import OTProblem
-from moscot.problems.base._compound_problem import B, K, CompoundProblem
 
 __all__ = ["AlignmentProblem"]
 

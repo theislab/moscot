@@ -1,8 +1,7 @@
 import pytest
+from anndata import AnnData
 
 import numpy as np
-
-from anndata import AnnData
 
 from tests._utils import _make_grid
 

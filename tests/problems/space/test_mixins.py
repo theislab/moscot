@@ -1,18 +1,17 @@
-from math import acos
-from typing import Dict, List, Optional
-from pathlib import Path
 import pickle
+from math import acos
+from pathlib import Path
+from typing import Dict, List, Optional
 
-import pandas as pd
 import pytest
-
-import numpy as np
-
 from anndata import AnnData
 
+import numpy as np
+import pandas as pd
+
+from moscot.problems.space import AlignmentProblem, MappingProblem
 from tests._utils import MockSolverOutput, _adata_spatial_split
 from tests.conftest import ANGLES
-from moscot.problems.space import MappingProblem, AlignmentProblem
 
 # TODO(giovp): refactor as fixture
 SOLUTIONS_PATH_ALIGNMENT = Path(__file__).parent.parent.parent / "data/alignment_solutions.pkl"  # base is moscot

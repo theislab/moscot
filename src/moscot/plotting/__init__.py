@@ -1,1 +1,1 @@
-from moscot.plotting._plotting import pull, push, sankey, cell_transition
+from moscot.plotting._plotting import cell_transition, pull, push, sankey

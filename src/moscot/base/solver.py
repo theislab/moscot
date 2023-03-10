@@ -1,12 +1,23 @@
-from typing import Any, Dict, Tuple, Union, Generic, Literal, Mapping, TypeVar, Optional, NamedTuple
 import abc
 import types
+from typing import (
+    Any,
+    Dict,
+    Generic,
+    Literal,
+    Mapping,
+    NamedTuple,
+    Optional,
+    Tuple,
+    TypeVar,
+    Union,
+)
 
-from moscot._types import Device_t, ArrayLike
-from moscot.logging import logger
-from moscot._docs._docs import d
-from moscot.base.output import BaseSolverOutput
 from moscot._constants._enum import ModeEnum
+from moscot._docs._docs import d
+from moscot._types import ArrayLike, Device_t
+from moscot.base.output import BaseSolverOutput
+from moscot.logging import logger
 from moscot.utils._tagged_array import Tag, TaggedArray
 
 __all__ = ["ProblemKind", "BaseSolver", "OTSolver"]

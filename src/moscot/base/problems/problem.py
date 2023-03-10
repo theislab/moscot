@@ -1,23 +1,33 @@
 from abc import ABC, abstractmethod
-from typing import Any, Dict, List, Tuple, Union, Literal, Mapping, Optional, TYPE_CHECKING
-
-from scipy.sparse import vstack, issparse, csr_matrix
-from sklearn.preprocessing import StandardScaler
-import pandas as pd
-
-import numpy as np
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Dict,
+    List,
+    Literal,
+    Mapping,
+    Optional,
+    Tuple,
+    Union,
+)
 
 from anndata import AnnData
+
+import numpy as np
+import pandas as pd
+from scipy.sparse import csr_matrix, issparse, vstack
+from sklearn.preprocessing import StandardScaler
+
 import scanpy as sc
 
-from moscot._types import CostFn_t, Device_t, ArrayLike
-from moscot.logging import logger
-from moscot._docs._docs import d
-from moscot.base.output import BaseSolverOutput
-from moscot.base.solver import OTSolver, ProblemKind
-from moscot.problems._utils import wrap_solve, wrap_prepare, require_solution
-from moscot.utils._tagged_array import Tag, TaggedArray
 from moscot._constants._constants import ProblemStage
+from moscot._docs._docs import d
+from moscot._types import ArrayLike, CostFn_t, Device_t
+from moscot.base.output import BaseSolverOutput
+from moscot.base.problems._utils import require_solution, wrap_prepare, wrap_solve
+from moscot.base.solver import OTSolver, ProblemKind
+from moscot.logging import logger
+from moscot.utils._tagged_array import Tag, TaggedArray
 
 __all__ = ["BaseProblem", "OTProblem", "ProblemKind"]
 

@@ -1,59 +1,34 @@
-from types import MappingProxyType
-from typing import Any, Dict, List, Type, Tuple, Union, Literal, Callable, Optional, Sequence, TYPE_CHECKING
-from functools import partial, update_wrapper
-import inspect
 import warnings
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Callable,
+    List,
+    Literal,
+    Mapping,
+    Optional,
+    Sequence,
+    Tuple,
+    Union,
+)
 
-from scipy.stats import norm, rankdata
-from scipy.sparse import issparse, spmatrix, csr_matrix, isspmatrix_csr
+if TYPE_CHECKING:
+    from moscot.base.problems.compound_problem import BaseCompoundProblem
+    from moscot.base.problems.problem import BaseProblem
+
+import wrapt
+from anndata import AnnData
 from statsmodels.stats.multitest import multipletests
-import pandas as pd
 
 import numpy as np
+import pandas as pd
+from scipy.sparse import csr_matrix, issparse, isspmatrix_csr, spmatrix
+from scipy.stats import norm, rankdata
 
-from anndata import AnnData
-
+from moscot._constants._constants import AggregationMode, CorrMethod, CorrTestMethod
+from moscot._docs._docs import d
 from moscot._types import ArrayLike, Str_Dict_t
 from moscot.logging import logger
-from moscot._docs._docs import d
-from moscot._constants._constants import CorrMethod, CorrTestMethod, AggregationMode
-
-__all__ = [
-    "attributedispatch",
-]
-
-Callback = Callable[..., Any]
-
-
-def attributedispatch(func: Optional[Callback] = None, attr: Optional[str] = None) -> Callback:
-    """Dispatch a function based on the first value."""
-
-    def dispatch(value: Type[Any]) -> Callback:
-        for typ in value.mro():
-            if typ in registry:
-                return registry[typ]
-        return func  # type: ignore[return-value]
-
-    def register(value: Type[Any], func: Optional[Callback] = None) -> Callback:
-        if func is None:
-            return lambda f: register(value, f)
-        registry[value] = func
-        return func
-
-    def wrapper(instance: Any, *args: Any, **kwargs: Any) -> Any:
-        typ = type(getattr(instance, str(attr)))
-        return dispatch(typ)(instance, *args, **kwargs)
-
-    if func is None:
-        return partial(attributedispatch, attr=attr)
-
-    registry: Dict[Type[Any], Callback] = {}
-    wrapper.register = register  # type: ignore[attr-defined]
-    wrapper.dispatch = dispatch  # type: ignore[attr-defined]
-    wrapper.registry = MappingProxyType(registry)  # type: ignore[attr-defined]
-    update_wrapper(wrapper, func)
-
-    return wrapper
 
 
 def _validate_annotations_helper(
@@ -213,14 +188,6 @@ def _order_transition_matrix(
         )
 
     return tm if forward else tm.T
-
-
-def _filter_kwargs(*funcs: Callable[..., Any], **kwargs: Any) -> Dict[str, Any]:
-    res = {}
-    for func in funcs:
-        params = inspect.signature(func).parameters
-        res.update({k: v for k, v in kwargs.items() if k in params})
-    return res
 
 
 @d.dedent
@@ -467,3 +434,64 @@ def _perm_test(
         queue.put(None)
 
     return pvals, corr_bs
+
+
+@wrapt.decorator
+def require_solution(
+    wrapped: Callable[[Any], Any], instance: "BaseProblem", args: Tuple[Any, ...], kwargs: Mapping[str, Any]
+) -> Any:
+    """Check whether problem has been solved."""
+    from moscot.base.problems.compound_problem import BaseCompoundProblem
+    from moscot.base.problems.problem import OTProblem
+
+    if isinstance(instance, OTProblem) and instance.solution is None:
+        raise RuntimeError("Run `.solve()` first.")
+    if isinstance(instance, BaseCompoundProblem) and instance.solutions is None:
+        raise RuntimeError("Run `.solve()` first.")
+    return wrapped(*args, **kwargs)
+
+
+@wrapt.decorator
+def require_prepare(
+    wrapped: Callable[[Any], Any],
+    instance: "BaseCompoundProblem",  # type: ignore[type-arg]
+    args: Tuple[Any, ...],
+    kwargs: Mapping[str, Any],
+) -> Any:
+    """Check whether problem has been prepared."""
+    if instance.problems is None:
+        raise RuntimeError("Run `.prepare()` first.")
+    return wrapped(*args, **kwargs)
+
+
+@wrapt.decorator
+def wrap_prepare(
+    wrapped: Callable[[Any], Any], instance: "BaseProblem", args: Tuple[Any, ...], kwargs: Mapping[str, Any]
+) -> Any:
+    """Check and update the state when preparing :class:`moscot.problems.base.OTProblem`."""
+    from moscot._constants._constants import ProblemStage
+    from moscot.base.problems.problem import (
+        ProblemKind,  # TODO: move ENUMs to this file
+    )
+
+    instance = wrapped(*args, **kwargs)
+    if instance.problem_kind == ProblemKind.UNKNOWN:
+        raise RuntimeError("Problem kind was not set after running `.prepare()`.")
+    instance._stage = ProblemStage.PREPARED
+    return instance
+
+
+@wrapt.decorator
+def wrap_solve(
+    wrapped: Callable[[Any], Any], instance: "BaseProblem", args: Tuple[Any, ...], kwargs: Mapping[str, Any]
+) -> Any:
+    """Check and update the state when solving :class:`moscot.problems.base.OTProblem`."""
+    from moscot._constants._constants import ProblemStage
+
+    if instance.stage not in (ProblemStage.PREPARED, ProblemStage.SOLVED):
+        raise RuntimeError(
+            f"Expected problem's stage to be either `'prepared'` or `'solved'`, found `{instance.stage!r}`."
+        )
+    instance = wrapped(*args, **kwargs)
+    instance._stage = ProblemStage.SOLVED
+    return instance

@@ -1,48 +1,48 @@
+import os
 from abc import ABC, abstractmethod
 from types import MappingProxyType
 from typing import (
+    TYPE_CHECKING,
     Any,
-    Dict,
-    Type,
-    Tuple,
-    Union,
-    Generic,
-    Literal,
-    Mapping,
-    TypeVar,
     Callable,
+    Dict,
+    Generic,
     Hashable,
     Iterator,
+    Literal,
+    Mapping,
     Optional,
     Sequence,
-    TYPE_CHECKING,
+    Tuple,
+    Type,
+    TypeVar,
+    Union,
 )
-import os
 
-from scipy.sparse import issparse
 import cloudpickle
-
 from anndata import AnnData
 
-from moscot._types import ArrayLike, ProblemStage_t
-from moscot.logging import logger
+from scipy.sparse import issparse
+
+from moscot._constants._constants import Policy
 from moscot._docs._docs import d
+from moscot._types import ArrayLike, ProblemStage_t
+from moscot._utils import attributedispatch
 from moscot.base.output import BaseSolverOutput
-from moscot.problems._utils import require_prepare
-from moscot.utils._tagged_array import Tag, TaggedArray
-from moscot.problems.base._utils import attributedispatch
+from moscot.base.problems._utils import require_prepare
+from moscot.base.problems.manager import ProblemManager
+from moscot.base.problems.problem import BaseProblem, OTProblem
+from moscot.logging import logger
 from moscot.utils._subset_policy import (
-    Policy_t,
-    StarPolicy,
     DummyPolicy,
-    SubsetPolicy,
-    OrderedPolicy,
     ExplicitPolicy,
     FormatterMixin,
+    OrderedPolicy,
+    Policy_t,
+    StarPolicy,
+    SubsetPolicy,
 )
-from moscot._constants._constants import Policy
-from moscot.problems.base._base_problem import OTProblem, BaseProblem
-from moscot.problems.base._problem_manager import ProblemManager
+from moscot.utils._tagged_array import Tag, TaggedArray
 
 __all__ = ["BaseCompoundProblem", "CompoundProblem"]
 
@@ -137,7 +137,7 @@ class BaseCompoundProblem(BaseProblem, ABC, Generic[K, B]):
         y_callback_kwargs: Mapping[str, Any] = MappingProxyType({}),
         **kwargs: Any,
     ) -> Dict[Tuple[K, K], B]:
-        from moscot.problems.base._birth_death import BirthDeathProblem
+        from moscot.base.problems.birth_death import BirthDeathProblem
 
         if TYPE_CHECKING:
             assert isinstance(self._policy, SubsetPolicy)

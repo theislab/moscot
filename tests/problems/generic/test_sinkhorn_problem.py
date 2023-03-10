@@ -1,11 +1,10 @@
 from typing import Any, Literal, Mapping
 
-import pandas as pd
 import pytest
+from anndata import AnnData
 
 import numpy as np
-
-from anndata import AnnData
+import pandas as pd
 
 from moscot.base.output import BaseSolverOutput
 from moscot.problems.base import OTProblem
@@ -13,12 +12,12 @@ from moscot.problems.generic import SinkhornProblem
 from tests.problems.conftest import (
     geometry_args,
     lin_prob_args,
+    lr_pointcloud_args,
+    lr_sinkhorn_solver_args,
     pointcloud_args,
     sinkhorn_args_1,
     sinkhorn_args_2,
-    lr_pointcloud_args,
     sinkhorn_solver_args,
-    lr_sinkhorn_solver_args,
 )
 
 
