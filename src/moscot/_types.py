@@ -4,6 +4,7 @@ import numpy as np
 
 __all__ = ["ArrayLike", "DTypeLike", "Numeric_t"]
 
+# TODO(michalk8): polish
 
 try:
     from numpy.typing import NDArray, DTypeLike

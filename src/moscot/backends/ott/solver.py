@@ -1,9 +1,9 @@
-from types import MappingProxyType
 from typing import Any, Union, Literal, Mapping, Optional
+import types
 
-from scipy.sparse import issparse
+import scipy.sparse as sp
 
-from ott.geometry.costs import Bures, Cosine, CostFn, Euclidean, SqEuclidean, UnbalancedBures
+from ott.geometry import costs
 from ott.geometry.geometry import Geometry
 from ott.solvers.was_solver import WassersteinSolver
 from ott.geometry.pointcloud import PointCloud
@@ -16,38 +16,17 @@ from ott.solvers.quadratic.gromov_wasserstein import GromovWasserstein
 import jax
 import jax.numpy as jnp
 
+from moscot.costs import get_cost
 from moscot._types import ArrayLike, QuadInitializer_t, SinkhornInitializer_t
 from moscot.base.solver import OTSolver, ProblemKind
-from moscot._constants._enum import ModeEnum
+from moscot.backends.ott.output import OTTOutput
 from moscot.utils._tagged_array import TaggedArray
-from moscot.backends.ott._output import OTTOutput
 from moscot.problems.base._utils import _filter_kwargs
 
-__all__ = ["OTTCost", "SinkhornSolver", "GWSolver"]
+__all__ = ["SinkhornSolver", "GWSolver"]
 
 Scale_t = Union[float, Literal["mean", "median", "max_cost", "max_norm", "max_bound"]]
 Epsilon_t = Union[float, Epsilon]
-
-
-class OTTCost(ModeEnum):
-    EUCL = "euclidean"
-    SQEUCL = "sq_euclidean"
-    COSINE = "cosine"
-    BURES = "bures"
-    BUREL_UNBAL = "unbalanced_bures"
-
-    def __call__(self, **kwargs: Any) -> CostFn:
-        if self.value == OTTCost.EUCL:
-            return Euclidean()
-        if self.value == OTTCost.SQEUCL:
-            return SqEuclidean()
-        if self.value == OTTCost.COSINE:
-            return Cosine()
-        if self.value == OTTCost.BURES:
-            return Bures(**kwargs)
-        if self.value == OTTCost.BUREL_UNBAL:
-            return UnbalancedBures(**kwargs)
-        raise NotImplementedError(self.value)
 
 
 class OTTJaxSolver(OTSolver[OTTOutput]):
@@ -100,7 +79,7 @@ class OTTJaxSolver(OTSolver[OTTOutput]):
     def _assert2d(arr: Optional[ArrayLike], *, allow_reshape: bool = True) -> Optional[ArrayLike]:
         if arr is None:
             return None
-        arr: ArrayLike = jnp.asarray(arr.A if issparse(arr) else arr)  # type: ignore[attr-defined, no-redef]
+        arr: ArrayLike = jnp.asarray(arr.A if sp.issparse(arr) else arr)  # type: ignore[attr-defined, no-redef]
         if allow_reshape and arr.ndim == 1:
             return jnp.reshape(arr, (-1, 1))  # type: ignore[return-value]
         if arr.ndim != 2:
@@ -108,12 +87,12 @@ class OTTJaxSolver(OTSolver[OTTOutput]):
         return arr
 
     @staticmethod
-    def _create_cost(cost: Optional[Union[str, CostFn]], **kwargs: Any) -> CostFn:
-        if isinstance(cost, CostFn):
+    def _create_cost(cost: Optional[Union[str, costs.CostFn]], **kwargs: Any) -> costs.CostFn:
+        if isinstance(cost, costs.CostFn):
             return cost
         if cost is None:
-            cost = "sq_euclidean"
-        return OTTCost(cost)(**kwargs)
+            return costs.SqEuclidean()
+        return get_cost(cost, backend="ott", **kwargs)
 
     @property
     def solver(self) -> Union[Sinkhorn, LRSinkhorn, GromovWasserstein]:
@@ -158,7 +137,7 @@ class SinkhornSolver(OTTJaxSolver):
         self,
         rank: int = -1,
         initializer: SinkhornInitializer_t = None,
-        initializer_kwargs: Mapping[str, Any] = MappingProxyType({}),
+        initializer_kwargs: Mapping[str, Any] = types.MappingProxyType({}),
         **kwargs: Any,
     ):
         super().__init__()
@@ -202,7 +181,7 @@ class SinkhornSolver(OTTJaxSolver):
         return None if self._problem is None else self._problem.geom
 
     @property
-    def problem_kind(self) -> ProblemKind:
+    def problem_kind(self) -> ProblemKind:  # noqa: D102
         return ProblemKind.LINEAR
 
 
@@ -240,8 +219,8 @@ class GWSolver(OTTJaxSolver):
         initializer: QuadInitializer_t = None,
         gamma: float = 10.0,
         gamma_rescale: bool = True,
-        initializer_kwargs: Mapping[str, Any] = MappingProxyType({}),
-        linear_solver_kwargs: Mapping[str, Any] = MappingProxyType({}),
+        initializer_kwargs: Mapping[str, Any] = types.MappingProxyType({}),
+        linear_solver_kwargs: Mapping[str, Any] = types.MappingProxyType({}),
         **kwargs: Any,
     ):
         super().__init__()
@@ -322,5 +301,5 @@ class GWSolver(OTTJaxSolver):
         return None if self._problem is None else (self.xy is not None)
 
     @property
-    def problem_kind(self) -> ProblemKind:
+    def problem_kind(self) -> ProblemKind:  # noqa: D102
         return ProblemKind.QUAD

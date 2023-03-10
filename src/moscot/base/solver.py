@@ -97,7 +97,6 @@ class BaseSolver(Generic[O], abc.ABC):
     @abc.abstractmethod
     def problem_kind(self) -> ProblemKind:
         """Problem kind this solver handles."""
-        # to check whether necessary inputs were passed
 
     def __call__(self, **kwargs: Any) -> O:
         """Solve a problem.

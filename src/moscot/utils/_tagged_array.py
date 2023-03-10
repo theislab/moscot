@@ -15,17 +15,6 @@ from moscot._constants._enum import ModeEnum
 __all__ = ["Tag", "TaggedArray"]
 
 
-# TODO(michalk8): refactor
-def get_cost_function(cost: str, *, backend: Literal["ott"] = "ott", **kwargs: Any) -> Callable[..., Any]:
-    """Get backend-dependent cost function."""
-    if backend == "ott":
-        from moscot.backends.ott._solver import OTTCost
-
-        return OTTCost(cost)(**kwargs)
-
-    raise NotImplementedError(f"Backend `{backend}` is not yet implemented.")
-
-
 class Tag(ModeEnum):
     """Tag used to interpret array-like data in :class:`moscot.solvers.TaggedArray`."""
 

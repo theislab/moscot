@@ -153,20 +153,20 @@ class OTTOutput(BaseSolverOutput):
         return self._output.apply(x.T, axis=1 - forward).T  # convert to batch first
 
     @property
-    def shape(self) -> Tuple[int, int]:
+    def shape(self) -> Tuple[int, int]:  # noqa: D102
         if isinstance(self._output, OTTSinkhornOutput):
             return self._output.f.shape[0], self._output.g.shape[0]
         return self._output.geom.shape
 
     @property
-    def transport_matrix(self) -> ArrayLike:
+    def transport_matrix(self) -> ArrayLike:  # noqa: D102
         return self._output.matrix
 
     @property
-    def is_linear(self) -> bool:
+    def is_linear(self) -> bool:  # noqa: D102
         return isinstance(self._output, (OTTSinkhornOutput, OTTLRSinkhornOutput))
 
-    def to(self, device: Optional[Device_t] = None) -> "OTTOutput":
+    def to(self, device: Optional[Device_t] = None) -> "OTTOutput":  # noqa: D102
         if isinstance(device, str) and ":" in device:
             device, ix = device.split(":")
             idx = int(ix)
@@ -182,25 +182,25 @@ class OTTOutput(BaseSolverOutput):
         return OTTOutput(jax.device_put(self._output, device))
 
     @property
-    def cost(self) -> float:
+    def cost(self) -> float:  # noqa: D102
         if isinstance(self._output, (OTTSinkhornOutput, OTTLRSinkhornOutput)):
             return float(self._output.reg_ot_cost)
         return float(self._output.reg_gw_cost)
 
     @property
-    def converged(self) -> bool:
+    def converged(self) -> bool:  # noqa: D102
         return bool(self._output.converged)
 
     @property
-    def potentials(self) -> Optional[Tuple[ArrayLike, ArrayLike]]:
+    def potentials(self) -> Optional[Tuple[ArrayLike, ArrayLike]]:  # noqa: D102
         if isinstance(self._output, OTTSinkhornOutput):
             return self._output.f, self._output.g
         return None
 
     @property
-    def rank(self) -> int:
+    def rank(self) -> int:  # noqa: D102
         lin_output = self._output if self.is_linear else self._output.linear_state
         return len(lin_output.g) if isinstance(lin_output, OTTLRSinkhornOutput) else -1
 
-    def _ones(self, n: int) -> ArrayLike:
+    def _ones(self, n: int) -> ArrayLike:  # noqa: D102
         return jnp.ones((n,))  # type: ignore[return-value]
