@@ -7,14 +7,15 @@ import numpy as np
 
 from anndata import AnnData
 
+from moscot.costs import get_cost
 from moscot._types import CostFn_t, ArrayLike
 from moscot.logging import logger
-from moscot.base.cost import BaseCost
 from moscot._constants._enum import ModeEnum
 
 __all__ = ["Tag", "TaggedArray", "get_cost_function"]
 
 
+# TODO(michalk8): refactor
 def get_cost_function(cost: str, *, backend: Literal["ott"] = "ott", **kwargs: Any) -> Callable[..., Any]:
     """Get backend-dependent cost function."""
     if backend == "ott":
@@ -125,14 +126,8 @@ class TaggedArray:
                     raise ValueError("Cost matrix contains negative values.")
                 return cls(data_src=data, tag=Tag.COST_MATRIX, cost=None)
 
-            # TOOD(michalk8): FIXME
-            cost_matrix = BaseCost.create(  # type: ignore[attr-defined]
-                kind=cost,
-                adata=adata,
-                attr=attr,
-                key=key,
-                dist_key=dist_key,
-            )(**kwargs)
+            cost_fn = get_cost(cost, adata=adata, attr=attr, key=key, dist_key=dist_key)
+            cost_matrix = cost_fn(**kwargs)
             return cls(data_src=cost_matrix, tag=Tag.COST_MATRIX, cost=None)
 
         # tag is either a point cloud or a kernel
