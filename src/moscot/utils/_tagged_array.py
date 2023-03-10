@@ -12,7 +12,7 @@ from moscot._types import CostFn_t, ArrayLike
 from moscot.logging import logger
 from moscot._constants._enum import ModeEnum
 
-__all__ = ["Tag", "TaggedArray", "get_cost_function"]
+__all__ = ["Tag", "TaggedArray"]
 
 
 # TODO(michalk8): refactor
@@ -132,7 +132,7 @@ class TaggedArray:
 
         # tag is either a point cloud or a kernel
         data = cls._extract_data(adata, attr=attr, key=key)
-        cost_fn = get_cost_function(cost, backend=backend, **kwargs)
+        cost_fn = get_cost(cost, backend=backend, **kwargs)
         return cls(data_src=data, tag=tag, cost=cost_fn)
 
     @property

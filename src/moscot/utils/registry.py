@@ -9,9 +9,8 @@ F = TypeVar("F", bound=Callable[..., Any])
 class Registry:  # noqa: D101
     """TODO."""
 
-    def __init__(self, fallback: Optional[str] = None):
-        self._registry = {}  # type: ignore[var-annotated]
-        self._fallback = fallback
+    def __init__(self):
+        self._registry = {}
 
     def register(self, name: str) -> Callable[[F], F]:
         """TODO."""
@@ -25,13 +24,6 @@ class Registry:  # noqa: D101
     def keys(self) -> Tuple[str, ...]:
         """TODO."""
         return tuple(self._registry.keys())
-
-    @property
-    def fallback(self) -> str:
-        """TODO."""
-        if self._fallback is None:
-            raise ValueError("TODO")
-        return self._fallback
 
     def __contains__(self, backend: str) -> bool:
         return backend in self._registry

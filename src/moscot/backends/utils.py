@@ -1,4 +1,4 @@
-from typing import Any, Union, Literal, Optional, TYPE_CHECKING
+from typing import Any, Union, Literal, TYPE_CHECKING
 
 from moscot.base import solver  # TODO(michalk8): move to problem
 from moscot.utils import registry
@@ -9,13 +9,11 @@ if TYPE_CHECKING:
 __all__ = ["get_solver", "register_solver"]
 
 
-_REGISTRY = registry.Registry(fallback="ott")
+_REGISTRY = registry.Registry()
 
 
-def get_solver(problem_kind: solver.ProblemKind, *, backend: Optional[str] = None, **kwargs: Any) -> Any:
+def get_solver(problem_kind: solver.ProblemKind, *, backend: str = "ott", **kwargs: Any) -> Any:
     """TODO."""
-    if backend is None:
-        backend = _REGISTRY.fallback
     if backend not in _REGISTRY:
         raise ValueError(f"Backend `{backend!r}` is not available.")
     return _REGISTRY[backend](problem_kind, **kwargs)
