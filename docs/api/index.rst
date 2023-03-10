@@ -3,7 +3,7 @@ API
 
 Import ``moscot`` as::
 
-    import moscot
+    import moscot as mt
 
 .. toctree::
     :maxdepth: 2

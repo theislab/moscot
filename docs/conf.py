@@ -57,7 +57,8 @@ intersphinx_mapping = {
     "squidpy": ("https://squidpy.readthedocs.io/en/latest/", None),
 }
 master_doc = "index"
-pygments_style = "sphinx"
+pygments_style = "tango"
+pygments_dark_style = "monokai"
 
 # bibliography
 bibtex_bibfiles = ["references.bib"]
@@ -80,20 +81,12 @@ myst_enable_extensions = [
 ]
 myst_heading_anchors = 2
 
-# List of patterns, relative to source directory, that match files and
-# directories to ignore when looking for source files.
-# This pattern also affects html_static_path and html_extra_path.
+# autodoc + napoleon
 autosummary_generate = True
-autodoc_member_order = "bysource"
+autodoc_member_order = "alphabetical"
 autodoc_typehints = "description"
-typehints_fully_qualified = False
 napoleon_google_docstring = False
 napoleon_numpy_docstring = True
-napoleon_include_init_with_doc = False
-napoleon_use_rtype = True
-napoleon_use_param = True
-napoleon_custom_sections = [("Params", "Parameters")]
-todo_include_todos = False
 
 
 # spelling
@@ -109,7 +102,7 @@ spelling_filters = [
     "enchant.tokenize.MentionFilter",
 ]
 
-exclude_patterns = ["build", "**.ipynb_checkpoints", "notebooks/README.rst", "notebooks/CONTRIBUTING.rst"]
+exclude_patterns = ["_build", "**.ipynb_checkpoints", "notebooks/README.rst", "notebooks/CONTRIBUTING.rst"]
 
 # -- Options for HTML output -------------------------------------------------
 
@@ -117,6 +110,9 @@ exclude_patterns = ["build", "**.ipynb_checkpoints", "notebooks/README.rst", "no
 # a list of builtin themes.
 html_theme = "furo"
 html_static_path = ["_static"]
+html_css_files = [
+    "https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.1.1/css/all.min.css",
+]
 
 html_show_sphinx = False
 html_show_sourcelink = False
@@ -127,8 +123,13 @@ html_theme_options = {
     "light_css_variables": {
         "color-brand-primary": "#003262",
         "color-brand-content": "#003262",
-        "admonition-font-size": "var(--font-size-normal)",
-        "admonition-title-font-size": "var(--font-size-normal)",
-        "code-font-size": "var(--font-size--small)",
     },
+    "footer_icons": [
+        {
+            "name": "GitHub",
+            "url": "https://github.com/theislab/moscot",
+            "html": "",
+            "class": "fab fa-github",
+        },
+    ],
 }
