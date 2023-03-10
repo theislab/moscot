@@ -1,98 +1,13 @@
-from abc import ABC, abstractmethod
-from typing import Any, List, Tuple, Union, Literal, Mapping, Optional
+from typing import Any, List, Mapping, Optional
 
 import networkx as nx
 
 import numpy as np
 
-from anndata import AnnData
-
 from moscot._types import ArrayLike
-from moscot.logging import logger
+from moscot.base.cost import BaseCost
 
-__all__ = ["BaseCost", "LeafDistance", "BarcodeDistance"]
-
-
-class BaseCost(ABC):
-    """Base class for all :mod:`moscot` losses.
-
-    Parameters
-    ----------
-    adata
-        Annotated data object.
-    attr
-        Attribute of :class:`anndata.AnnData` used when computing the cost.
-    key
-        Key in the ``attr`` of :class:`anndata.AnnData` used when computing the cost.
-    dist_key
-        Helper key which determines into which subset ``adata`` belongs.
-    """
-
-    def __init__(self, adata: AnnData, attr: str, key: str, dist_key: Union[Any, Tuple[Any, Any]]):
-        self._adata = adata
-        self._attr = attr
-        self._key = key
-        self._dist_key = dist_key
-
-    @abstractmethod
-    def _compute(self, *args: Any, **kwargs: Any) -> ArrayLike:
-        pass
-
-    def __call__(self, *args: Any, **kwargs: Any) -> ArrayLike:
-        """Compute a cost matrix from :attr:`adata`.
-
-        Parameters
-        ----------
-        args
-            Positional arguments for :meth:`_compute`.
-        kwargs
-            Keyword arguments for :meth:`_compute`.
-
-        Returns
-        -------
-        The computed cost matrix.
-        """
-        cost = self._compute(*args, **kwargs)
-        if not np.all(np.isnan(cost)):
-            maxx = np.nanmax(cost)
-            logger.warning(f"Cost matrix contains `NaN` values, setting them to the maximum value `{maxx}`.")
-            cost = np.nan_to_num(cost, nan=maxx)  # type: ignore[call-overload]
-        if np.any(cost < 0):
-            raise ValueError("Cost matrix contains negative values.")
-        return cost
-
-    @classmethod
-    def create(cls, kind: Literal["leaf_distance", "barcode_distance"], *args: Any, **kwargs: Any) -> "BaseCost":
-        """Create :mod:`moscot` cost instance.
-
-        Parameters
-        ----------
-        kind
-            Kind of the cost matrix to create.
-        args
-            Positional arguments for :class:`moscot.costs.BaseCost`.
-        kwargs
-            Keyword arguments for :class:`moscot.costs.BaseCost`.
-
-        Returns
-        -------
-        The base cost instance.
-        """
-        if kind == "leaf_distance":
-            return LeafDistance(*args, **kwargs)
-        if kind == "barcode_distance":
-            return BarcodeDistance(*args, **kwargs)
-        raise NotImplementedError(f"OTTCost function `{kind}` is not yet implemented.")
-
-    @property
-    def adata(self) -> AnnData:
-        """Annotated data object."""
-        return self._adata
-
-    @property
-    @abstractmethod
-    def data(self) -> Any:
-        """Container containing the data."""
+__all__ = ["LeafDistance", "BarcodeDistance"]
 
 
 class BarcodeDistance(BaseCost):

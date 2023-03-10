@@ -9,7 +9,7 @@ from anndata import AnnData
 
 from moscot._types import CostFn_t, ArrayLike
 from moscot.logging import logger
-from moscot.costs._costs import BaseCost
+from moscot.base.cost import BaseCost
 from moscot._constants._enum import ModeEnum
 
 __all__ = ["Tag", "TaggedArray", "get_cost_function"]
@@ -125,9 +125,9 @@ class TaggedArray:
                     raise ValueError("Cost matrix contains negative values.")
                 return cls(data_src=data, tag=Tag.COST_MATRIX, cost=None)
 
-            # TOOD(michalk8): consider determining if the backend supports this cost as a point cloud
-            cost_matrix = BaseCost.create(
-                kind=cost,  # type: ignore[arg-type]
+            # TOOD(michalk8): FIXME
+            cost_matrix = BaseCost.create(  # type: ignore[attr-defined]
+                kind=cost,
                 adata=adata,
                 attr=attr,
                 key=key,
