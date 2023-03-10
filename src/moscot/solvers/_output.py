@@ -6,7 +6,7 @@ from functools import partial
 from scipy.sparse.linalg import LinearOperator
 
 from moscot._types import Device_t, ArrayLike, DTypeLike
-from moscot._logging import logger
+from moscot.logging import logger
 
 __all__ = ["BaseSolverOutput", "MatrixSolverOutput"]
 

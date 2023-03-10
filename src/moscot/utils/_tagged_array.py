@@ -8,7 +8,7 @@ import numpy as np
 from anndata import AnnData
 
 from moscot._types import CostFn_t, ArrayLike
-from moscot._logging import logger
+from moscot.logging import logger
 from moscot.costs._costs import BaseCost
 from moscot._constants._enum import ModeEnum
 

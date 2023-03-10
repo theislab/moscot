@@ -25,7 +25,7 @@ import cloudpickle
 from anndata import AnnData
 
 from moscot._types import ArrayLike, ProblemStage_t
-from moscot._logging import logger
+from moscot.logging import logger
 from moscot._docs._docs import d
 from moscot.problems._utils import require_prepare
 from moscot.solvers._output import BaseSolverOutput

@@ -1,5 +1,7 @@
 import logging
 
+__all__ = ["logger"]
+
 
 def _setup_logger() -> "logging.Logger":
     from rich.console import Console

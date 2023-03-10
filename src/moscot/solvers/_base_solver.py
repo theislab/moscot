@@ -3,7 +3,7 @@ from types import MappingProxyType
 from typing import Any, Dict, Tuple, Union, Generic, Literal, Mapping, TypeVar, Optional, NamedTuple
 
 from moscot._types import Device_t, ArrayLike
-from moscot._logging import logger
+from moscot.logging import logger
 from moscot._docs._docs import d
 from moscot.solvers._output import BaseSolverOutput
 from moscot._constants._enum import ModeEnum

@@ -5,7 +5,7 @@ from ott.tools.sinkhorn_divergence import sinkhorn_divergence
 import jax.numpy as jnp
 
 from moscot._types import ArrayLike, ScaleCost_t
-from moscot._logging import logger
+from moscot.logging import logger
 
 
 def _compute_sinkhorn_divergence(

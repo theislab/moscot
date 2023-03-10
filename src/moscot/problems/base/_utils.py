@@ -14,7 +14,7 @@ import numpy as np
 from anndata import AnnData
 
 from moscot._types import ArrayLike, Str_Dict_t
-from moscot._logging import logger
+from moscot.logging import logger
 from moscot._docs._docs import d
 from moscot._constants._constants import CorrMethod, CorrTestMethod, AggregationMode
 

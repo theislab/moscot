@@ -8,7 +8,7 @@ import numpy as np
 from anndata import AnnData
 
 from moscot._types import ArrayLike
-from moscot._logging import logger
+from moscot.logging import logger
 
 __all__ = ["BaseCost", "LeafDistance", "BarcodeDistance"]
 
