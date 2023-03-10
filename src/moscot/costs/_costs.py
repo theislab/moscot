@@ -6,10 +6,12 @@ import numpy as np
 
 from moscot._types import ArrayLike
 from moscot.base.cost import BaseCost
+from moscot.costs._utils import register_cost
 
 __all__ = ["LeafDistance", "BarcodeDistance"]
 
 
+@register_cost("barcode_distance")
 class BarcodeDistance(BaseCost):
     """Barcode distance."""
 
@@ -54,6 +56,7 @@ class BarcodeDistance(BaseCost):
         return (np.sum(differences) + np.sum(double_scars)) / len(b1)
 
 
+@register_cost("leaf_distance")
 class LeafDistance(BaseCost):
     """Tree leaf distance."""
 

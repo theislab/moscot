@@ -8,3 +8,4 @@ from moscot.utils._subset_policy import (
     TriangularPolicy,
     ExternalStarPolicy,
 )
+from . import registry
