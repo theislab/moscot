@@ -11,9 +11,9 @@ import jax.numpy as jnp
 from anndata import AnnData
 
 from tests._utils import ATOL, RTOL, Geom_t, MockSolverOutput
+from moscot.base.output import BaseSolverOutput
+from moscot.base.solver import ProblemKind
 from moscot.problems.base import OTProblem
-from moscot.solvers._output import BaseSolverOutput
-from moscot.solvers._base_solver import ProblemKind
 
 
 class TestOTProblem:

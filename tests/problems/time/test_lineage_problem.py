@@ -7,8 +7,8 @@ import numpy as np
 from anndata import AnnData
 
 from tests._utils import ATOL, RTOL
+from moscot.base.output import BaseSolverOutput
 from moscot.problems.time import LineageProblem
-from moscot.solvers._output import BaseSolverOutput
 from tests.problems.conftest import (
     fgw_args_1,
     fgw_args_2,

@@ -8,6 +8,7 @@ import numpy as np
 from anndata import AnnData
 
 from tests._utils import _adata_spatial_split
+from moscot.base.solver import ProblemKind
 from moscot.problems.space import MappingProblem
 from tests.problems.conftest import (
     fgw_args_1,
@@ -19,7 +20,6 @@ from tests.problems.conftest import (
     gw_linear_solver_args,
     gw_lr_linear_solver_args,
 )
-from moscot.solvers._base_solver import ProblemKind
 
 # TODO(michalk8): should be made relative to tests root
 SOLUTIONS_PATH = Path("./tests/data/mapping_solutions.pkl")  # base is moscot

@@ -1,8 +1,8 @@
 from importlib import metadata
 
+import moscot.base
 import moscot.costs
 import moscot.utils
-import moscot.solvers
 import moscot.backends
 import moscot.datasets
 import moscot.plotting

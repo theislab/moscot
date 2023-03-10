@@ -23,8 +23,8 @@ import scanpy as sc
 
 from moscot._types import ArrayLike, Numeric_t, Str_Dict_t
 from moscot._docs._docs import d
+from moscot.base.output import BaseSolverOutput
 from moscot.utils._data import TranscriptionFactors
-from moscot.solvers._output import BaseSolverOutput
 from moscot.problems.base._utils import (
     _correlation_test,
     _get_df_cell_transition,

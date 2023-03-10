@@ -7,8 +7,8 @@ import numpy as np
 from anndata import AnnData
 
 from moscot._types import ArrayLike
+from moscot.base.output import MatrixSolverOutput
 from moscot.problems.base import OTProblem, CompoundProblem
-from moscot.solvers._output import MatrixSolverOutput
 from moscot.problems.base._mixins import AnalysisMixin
 from moscot.problems.base._compound_problem import B
 

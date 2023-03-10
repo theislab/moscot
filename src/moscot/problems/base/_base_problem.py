@@ -13,10 +13,10 @@ import scanpy as sc
 from moscot._types import CostFn_t, Device_t, ArrayLike
 from moscot.logging import logger
 from moscot._docs._docs import d
+from moscot.base.output import BaseSolverOutput
+from moscot.base.solver import OTSolver, ProblemKind
 from moscot.problems._utils import wrap_solve, wrap_prepare, require_solution
-from moscot.solvers._output import BaseSolverOutput
 from moscot.utils._tagged_array import Tag, TaggedArray
-from moscot.solvers._base_solver import OTSolver, ProblemKind
 from moscot._constants._constants import ProblemStage
 
 __all__ = ["BaseProblem", "OTProblem", "ProblemKind"]
@@ -321,7 +321,7 @@ class OTProblem(BaseProblem):
         - :attr:`solver`: optimal transport solver.
         - :attr:`solution`: optimal transport solution.
         """
-        self._solver = self._problem_kind.solver(backend=backend, **kwargs)
+        self._solver = "TODO"
 
         # TODO: add ScaleCost(scale_cost)
 

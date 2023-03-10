@@ -5,6 +5,8 @@ from functools import partial
 
 from scipy.sparse.linalg import LinearOperator
 
+import numpy as np
+
 from moscot._types import Device_t, ArrayLike, DTypeLike
 from moscot.logging import logger
 
@@ -209,18 +211,29 @@ class BaseSolverOutput(ABC):
         return f"{self.__class__.__name__}[{self._format_params(str)}]"
 
 
-class MatrixSolverOutput(BaseSolverOutput, ABC):
+class MatrixSolverOutput(BaseSolverOutput):
     """Optimal transport output with materialized :attr:`transport_matrix`.
 
     Parameters
     ----------
     transport_matrix
         Transport matrix of shape ``[n, m]``.
+    cost
+        TODO
+    converged
+        TODO.
+    is_linear
+        TODO.
     """
 
-    def __init__(self, transport_matrix: ArrayLike):
+    def __init__(
+        self, transport_matrix: ArrayLike, *, cost: float = np.nan, converged: bool = True, is_linear: bool = True
+    ):
         super().__init__()
         self._transport_matrix = transport_matrix
+        self._cost = cost
+        self._converged = converged
+        self._is_linear = is_linear
 
     def _apply(self, x: ArrayLike, *, forward: bool) -> ArrayLike:
         if forward:
@@ -228,14 +241,16 @@ class MatrixSolverOutput(BaseSolverOutput, ABC):
         return self.transport_matrix @ x
 
     @property
-    def transport_matrix(self) -> ArrayLike:
+    def transport_matrix(self) -> ArrayLike:  # noqa: D102
         return self._transport_matrix
 
     @property
-    def shape(self) -> Tuple[int, int]:
+    def shape(self) -> Tuple[int, int]:  # noqa: D102
         return self.transport_matrix.shape  # type: ignore[return-value]
 
-    def to(self, device: Optional[Device_t] = None, dtype: Optional[DTypeLike] = None) -> "BaseSolverOutput":
+    def to(  # noqa: D102
+        self, device: Optional[Device_t] = None, dtype: Optional[DTypeLike] = None
+    ) -> "BaseSolverOutput":
         if device is not None:
             logger.warning(f"`{self!r}` does not support the `device` argument, ignoring.")
         if dtype is None:
@@ -244,3 +259,27 @@ class MatrixSolverOutput(BaseSolverOutput, ABC):
         obj = copy(self)
         obj._transport_matrix = obj.transport_matrix.astype(dtype)
         return obj
+
+    @property
+    def cost(self) -> float:  # noqa: D102
+        return self._cost
+
+    @property
+    def converged(self) -> bool:  # noqa: D102
+        return self._converged
+
+    @property
+    def potentials(self) -> Optional[Tuple[ArrayLike, ArrayLike]]:  # noqa: D102
+        return None
+
+    @property
+    def is_linear(self) -> bool:  # noqa: D102
+        return self._is_linear
+
+    def _ones(self, n: int) -> ArrayLike:
+        if isinstance(self.transport_matrix, np.ndarray):
+            return np.ones((n,), dtype=self.transport_matrix.dtype)
+
+        import jax.numpy as jnp
+
+        return jnp.ones((n,), dtype=self.transport_matrix.dtype)

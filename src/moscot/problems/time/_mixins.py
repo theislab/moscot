@@ -10,7 +10,7 @@ import numpy as np
 from anndata import AnnData
 
 from moscot._types import ArrayLike, Numeric_t, Str_Dict_t
-from moscot.solvers._output import BaseSolverOutput
+from moscot.base.output import BaseSolverOutput
 from moscot._docs._docs_mixins import d_mixins
 from moscot.utils._tagged_array import Tag
 from moscot._constants._constants import Key, PlottingKeys, PlottingDefaults

@@ -1,11 +1,11 @@
-from abc import ABC, abstractmethod
-from types import MappingProxyType
 from typing import Any, Dict, Tuple, Union, Generic, Literal, Mapping, TypeVar, Optional, NamedTuple
+import abc
+import types
 
 from moscot._types import Device_t, ArrayLike
 from moscot.logging import logger
 from moscot._docs._docs import d
-from moscot.solvers._output import BaseSolverOutput
+from moscot.base.output import BaseSolverOutput
 from moscot._constants._enum import ModeEnum
 from moscot.utils._tagged_array import Tag, TaggedArray
 
@@ -15,54 +15,27 @@ __all__ = ["ProblemKind", "BaseSolver", "OTSolver"]
 O = TypeVar("O", bound=BaseSolverOutput)
 
 
-class ProblemKind(ModeEnum):
+class ProblemKind(ModeEnum):  # TODO(michalk8): remove from here
     """Type of optimal transport problems."""
 
     UNKNOWN = "unknown"
     LINEAR = "linear"
     QUAD = "quadratic"
 
-    def solver(self, *, backend: Literal["ott"] = "ott", **kwargs: Any) -> "BaseSolver[O]":
-        """
-        Return the solver dependent on the backend and the problem.
 
-        Parameters
-        ----------
-        backend
-            Which backend to use, see :func:`moscot.backends.get_available_backends`.
-        kwargs
-            Keyword arguments when instantiating the solver.
-
-        Returns
-        -------
-        Solver corresponding to the backend and the of the the problem.
-        """
-        # TODO(michalk8): refactor using backend utils
-        if backend == "ott":
-            from moscot.backends.ott import GWSolver, SinkhornSolver  # type: ignore[attr-defined]
-
-            if self == ProblemKind.LINEAR:
-                return SinkhornSolver(**kwargs)  # type: ignore[return-value]
-            if self == ProblemKind.QUAD:
-                return GWSolver(**kwargs)  # type: ignore[return-value]
-            raise NotImplementedError(f"Unable to create solver for `{self}` problem.")
-
-        raise NotImplementedError(f"Backend `{backend}` is not yet implemented.")
-
-
-class TaggedArrayData(NamedTuple):
+class TaggedArrayData(NamedTuple):  # noqa: D101
     x: Optional[TaggedArray]
     y: Optional[TaggedArray]
     xy: Optional[TaggedArray]
 
 
-class TagConverterMixin:
+class TagConverter:  # noqa: D101
     def _get_array_data(
         self,
         xy: Optional[Union[TaggedArray, ArrayLike, Tuple[ArrayLike, ArrayLike]]] = None,
         x: Optional[Union[TaggedArray, ArrayLike, Tuple[ArrayLike, ArrayLike]]] = None,
         y: Optional[Union[TaggedArray, ArrayLike, Tuple[ArrayLike, ArrayLike]]] = None,
-        tags: Mapping[Literal["xy", "x", "y"], Tag] = MappingProxyType({}),
+        tags: Mapping[Literal["xy", "x", "y"], Tag] = types.MappingProxyType({}),
         **kwargs: Any,
     ) -> TaggedArrayData:
         def to_tuple(
@@ -109,19 +82,19 @@ class TagConverterMixin:
         return TaggedArray(data_src=x, data_tgt=y, tag=tag, **kwargs)
 
 
-class BaseSolver(Generic[O], ABC):
+class BaseSolver(Generic[O], abc.ABC):
     """Base class for all solvers."""
 
-    @abstractmethod
+    @abc.abstractmethod
     def _prepare(self, **kwargs: Any) -> Any:
         pass
 
-    @abstractmethod
+    @abc.abstractmethod
     def _solve(self, data: Any, **kwargs: Any) -> O:
         pass
 
     @property
-    @abstractmethod
+    @abc.abstractmethod
     def problem_kind(self) -> ProblemKind:
         """Problem kind this solver handles."""
         # to check whether necessary inputs were passed
@@ -144,7 +117,7 @@ class BaseSolver(Generic[O], ABC):
 
 @d.get_sections(base="OTSolver", sections=["Parameters", "Raises"])
 @d.dedent
-class OTSolver(TagConverterMixin, BaseSolver[O], ABC):
+class OTSolver(TagConverter, BaseSolver[O], abc.ABC):
     """Base class for optimal transport solvers."""
 
     def __call__(
@@ -152,7 +125,7 @@ class OTSolver(TagConverterMixin, BaseSolver[O], ABC):
         xy: Optional[Union[TaggedArray, ArrayLike, Tuple[ArrayLike, ArrayLike]]] = None,
         x: Optional[Union[TaggedArray, ArrayLike]] = None,
         y: Optional[Union[TaggedArray, ArrayLike]] = None,
-        tags: Mapping[Literal["x", "y", "xy"], Tag] = MappingProxyType({}),
+        tags: Mapping[Literal["x", "y", "xy"], Tag] = types.MappingProxyType({}),
         device: Optional[Device_t] = None,
         **kwargs: Any,
     ) -> O:

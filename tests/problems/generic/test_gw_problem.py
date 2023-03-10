@@ -8,8 +8,8 @@ import numpy as np
 
 from anndata import AnnData
 
+from moscot.base.output import BaseSolverOutput
 from moscot.problems.base import OTProblem
-from moscot.solvers._output import BaseSolverOutput
 from moscot.problems.generic import GWProblem
 from tests.problems.conftest import (
     gw_args_1,

@@ -27,8 +27,8 @@ from anndata import AnnData
 from moscot._types import ArrayLike, ProblemStage_t
 from moscot.logging import logger
 from moscot._docs._docs import d
+from moscot.base.output import BaseSolverOutput
 from moscot.problems._utils import require_prepare
-from moscot.solvers._output import BaseSolverOutput
 from moscot.utils._tagged_array import Tag, TaggedArray
 from moscot.problems.base._utils import attributedispatch
 from moscot.utils._subset_policy import (

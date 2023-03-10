@@ -8,8 +8,8 @@ import numpy as np
 from anndata import AnnData
 
 from tests._utils import ATOL, RTOL
+from moscot.base.output import BaseSolverOutput
 from moscot.problems.time import TemporalProblem
-from moscot.solvers._output import BaseSolverOutput
 from tests.problems.conftest import (
     geometry_args,
     lin_prob_args,

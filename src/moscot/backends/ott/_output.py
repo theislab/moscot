@@ -13,7 +13,7 @@ import jaxlib.xla_extension as xla_ext
 
 from moscot._types import Device_t, ArrayLike
 from moscot._docs._docs import d
-from moscot.solvers._output import BaseSolverOutput
+from moscot.base.output import BaseSolverOutput
 
 __all__ = ["OTTOutput"]
 
