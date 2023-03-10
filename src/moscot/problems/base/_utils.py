@@ -424,15 +424,13 @@ def _pearson_mat_mat_corr_sparse(
 
 
 def _pearson_mat_mat_corr_dense(X: ArrayLike, Y: ArrayLike) -> ArrayLike:
-    from moscot._utils import np_std, np_mean
-
     n = X.shape[1]
 
-    X_bar = np.reshape(np_mean(X, axis=1), (-1, 1))
-    X_std = np.reshape(np_std(X, axis=1), (-1, 1))
+    X_bar = np.reshape(np.mean(X, axis=1), (-1, 1))
+    X_std = np.reshape(np.std(X, axis=1), (-1, 1))
 
-    y_bar = np.reshape(np_mean(Y, axis=0), (1, -1))
-    y_std = np.reshape(np_std(Y, axis=0), (1, -1))
+    y_bar = np.reshape(np.mean(Y, axis=0), (1, -1))
+    y_std = np.reshape(np.std(Y, axis=0), (1, -1))
 
     with warnings.catch_warnings():
         warnings.simplefilter("ignore", RuntimeWarning)

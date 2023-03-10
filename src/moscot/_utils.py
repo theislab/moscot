@@ -1,21 +1,17 @@
 # adapted from CellRank
-"""Module used to parallelize model fitting."""
-
 from typing import Any, Union, Callable, Optional, Sequence
 from threading import Thread
 from multiprocessing import Manager, cpu_count
 
-from numba import njit
 from scipy.sparse import issparse, spmatrix
 import joblib as jl
 
 import numpy as np
 
-from moscot._types import ArrayLike
-
 jit_kwargs = {"nogil": True, "cache": True, "fastmath": True}
 
 
+# TODO(michalk8): update
 def parallelize(
     callback: Callable[[Any], Any],
     collection: Union[spmatrix, Sequence[Any]],
@@ -165,47 +161,3 @@ def _get_n_cores(n_cores: Optional[int], n_jobs: Optional[int]) -> int:
         return cpu_count() + 1 + n_cores
 
     return n_cores
-
-
-@njit(parallel=False, **jit_kwargs)
-def _np_apply_along_axis(func1d, axis: int, arr: ArrayLike) -> ArrayLike:
-    """
-    Apply a reduction function over a given axis.
-
-    Parameters
-    ----------
-    func1d
-        Reduction function that operates only on 1 dimension.
-    axis
-        Axis over which to apply the reduction.
-    arr
-        The array to be reduced.
-
-    Returns
-    -------
-    The reduced array.
-    """
-    assert arr.ndim == 2
-    assert axis in [0, 1]
-
-    if axis == 0:
-        result = np.empty(arr.shape[1])
-        for i in range(len(result)):
-            result[i] = func1d(arr[:, i])
-        return result
-
-    result = np.empty(arr.shape[0])
-    for i in range(len(result)):
-        result[i] = func1d(arr[i, :])
-
-    return result
-
-
-@njit(**jit_kwargs)
-def np_mean(array: ArrayLike, axis: int) -> ArrayLike:  # noqa: D103
-    return _np_apply_along_axis(np.mean, axis, array)
-
-
-@njit(**jit_kwargs)
-def np_std(array: ArrayLike, axis: int) -> ArrayLike:  # noqa: D103
-    return _np_apply_along_axis(np.std, axis, array)
