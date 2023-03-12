@@ -29,7 +29,7 @@ class TestBaseAnalysisMixin:
         problem[10, 10.5]._solution = MockSolverOutput(gt_temporal_adata.uns["tmap_10_105"])
 
         if interpolation_parameter is not None and not 0 <= interpolation_parameter <= 1:
-            with np.testing.assert_raises(ValueError):
+            with pytest.raises(ValueError, match=r"^Expected interpolation"):
                 problem._sample_from_tmap(
                     10,
                     10.5,
@@ -40,7 +40,7 @@ class TestBaseAnalysisMixin:
                     interpolation_parameter=interpolation_parameter,
                 )
         elif interpolation_parameter is None and account_for_unbalancedness:
-            with np.testing.assert_raises(ValueError):
+            with pytest.raises(ValueError, match=r"^When accounting for unbalancedness"):
                 problem._sample_from_tmap(
                     10,
                     10.5,
@@ -118,8 +118,8 @@ class TestBaseAnalysisMixin:
 
         df_res = df_res.div(df_res.sum(axis=1), axis=0)
 
-        ctr_ordered = ctr.sort_index().sort_index(1)
-        df_res_ordered = df_res.sort_index().sort_index(1)
+        ctr_ordered = ctr.sort_index().sort_index(axis=1)
+        df_res_ordered = df_res.sort_index().sort_index(axis=1)
         np.testing.assert_allclose(
             ctr_ordered.values.astype(float), df_res_ordered.values.astype(float), rtol=RTOL, atol=ATOL
         )
@@ -159,8 +159,8 @@ class TestBaseAnalysisMixin:
 
         df_res = df_res.div(df_res.sum(axis=0), axis=1)
 
-        ctr_ordered = ctr.sort_index().sort_index(1)
-        df_res_ordered = df_res.sort_index().sort_index(1)
+        ctr_ordered = ctr.sort_index().sort_index(axis=1)
+        df_res_ordered = df_res.sort_index().sort_index(axis=1)
         np.testing.assert_allclose(
             ctr_ordered.values.astype(float), df_res_ordered.values.astype(float), rtol=RTOL, atol=ATOL
         )

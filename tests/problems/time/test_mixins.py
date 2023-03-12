@@ -89,7 +89,6 @@ class TestTemporalMixin:
         key_1 = config["key_1"]
         key_2 = config["key_2"]
         key_3 = config["key_3"]
-        set(gt_temporal_adata.obs["cell_type"].cat.categories)
         problem = TemporalProblem(gt_temporal_adata)
         problem = problem.prepare(key)
         assert set(problem.problems.keys()) == {(key_1, key_2), (key_2, key_3)}
@@ -116,18 +115,17 @@ class TestTemporalMixin:
         assert result.shape == expected_shape
         marginal = result.sum(axis=forward == 1).values
         present_cell_type_marginal = marginal[marginal > 0]
-        np.testing.assert_almost_equal(present_cell_type_marginal, np.ones(len(present_cell_type_marginal)), decimal=5)
+        np.testing.assert_allclose(present_cell_type_marginal, 1.0)
 
         direction = "forward" if forward else "backward"
         gt = gt_temporal_adata.uns[f"cell_transition_10_105_{direction}"]
         gt = gt.sort_index()
         result = result.sort_index()
         result = result[gt.columns]
-        np.testing.assert_almost_equal(result.values, gt.values, decimal=4)
+        np.testing.assert_allclose(result.values, gt.values, rtol=1e-6, atol=1e-6)
 
     def test_compute_time_point_distances_pipeline(self, adata_time: AnnData):
-        problem = TemporalProblem(adata_time)
-        problem.prepare("time")
+        problem = TemporalProblem(adata_time).prepare("time")
         distance_source_intermediate, distance_intermediate_target = problem.compute_time_point_distances(
             source=0,
             intermediate=1,
@@ -318,8 +316,7 @@ class TestTemporalMixin:
         self,
         adata_time_with_tmap: AnnData,
     ):  # TODO(MUCDK): please check.
-        problem = TemporalProblem(adata_time_with_tmap)
-        problem = problem.prepare("time")
+        problem = TemporalProblem(adata_time_with_tmap).prepare("time")
         problem[0, 1]._solution = MockSolverOutput(adata_time_with_tmap.uns["transport_matrix"])
 
         result = problem.cell_transition(
@@ -329,8 +326,8 @@ class TestTemporalMixin:
             target_groups="cell_type",
             forward=True,
         )
-        res = result.sort_index().sort_index(1)
-        df_expected = adata_time_with_tmap.uns["cell_transition_gt"].sort_index().sort_index(1)
+        res = result.sort_index().sort_index(axis=1)
+        df_expected = adata_time_with_tmap.uns["cell_transition_gt"].sort_index().sort_index(axis=1)
         np.testing.assert_almost_equal(res.values, df_expected.values, decimal=8)
 
     @pytest.mark.fast()

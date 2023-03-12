@@ -14,12 +14,11 @@ from moscot.problems.time import LineageProblem, TemporalProblem  # type: ignore
 from moscot.plotting._utils import _sankey, _heatmap, _plot_temporal, _input_to_adatas, _create_col_colors
 from moscot._docs._docs_plot import d_plotting
 from moscot._constants._constants import AdataKeys, PlottingKeys, PlottingDefaults
-from moscot.problems.base._compound_problem import B, K
 
 
 @d_plotting.dedent
 def cell_transition(
-    inp: Union[AnnData, Tuple[AnnData, AnnData], CompoundProblem[K, B]],
+    inp: Union[AnnData, Tuple[AnnData, AnnData], CompoundProblem],  # type: ignore[type-arg]
     uns_key: str = PlottingKeys.CELL_TRANSITION,
     row_labels: Optional[str] = None,
     col_labels: Optional[str] = None,
@@ -63,7 +62,9 @@ def cell_transition(
     try:
         _ = adata1.uns[AdataKeys.UNS][PlottingKeys.CELL_TRANSITION][key]
     except KeyError:
-        raise KeyError(f"No data found in `adata.uns[{AdataKeys.UNS!r}][{PlottingKeys.CELL_TRANSITION!r}][{key!r}]`.")
+        raise KeyError(
+            f"No data found in `adata.uns[{AdataKeys.UNS!r}][{PlottingKeys.CELL_TRANSITION!r}][{key!r}]`."
+        ) from None
 
     data = adata1.uns[AdataKeys.UNS][PlottingKeys.CELL_TRANSITION][key]
     fig = _heatmap(
@@ -88,8 +89,7 @@ def cell_transition(
         cbar_kwargs=cbar_kwargs,
         **kwargs,
     )
-    if return_fig:
-        return fig
+    return fig if return_fig else None
 
 
 @d_plotting.dedent
@@ -141,7 +141,7 @@ def sankey(
     try:
         _ = adata.uns[AdataKeys.UNS][PlottingKeys.SANKEY][key]
     except KeyError:
-        raise KeyError(f"No data found in `adata.uns[{AdataKeys.UNS!r}][{PlottingKeys.SANKEY!r}][{key!r}]`.")
+        raise KeyError(f"No data found in `adata.uns[{AdataKeys.UNS!r}][{PlottingKeys.SANKEY!r}][{key!r}]`.") from None
 
     data = adata.uns[AdataKeys.UNS][PlottingKeys.SANKEY][key]
     fig = _sankey(
@@ -161,13 +161,12 @@ def sankey(
     )
     if save:
         fig.figure.savefig(save)
-    if return_fig:
-        return fig
+    return fig if return_fig else None
 
 
 @d_plotting.dedent
 def push(
-    inp: Union[AnnData, TemporalProblem, LineageProblem, CompoundProblem[K, B]],
+    inp: Union[AnnData, TemporalProblem, LineageProblem, CompoundProblem],  # type: ignore[type-arg]
     uns_key: Optional[str] = None,
     time_points: Optional[Sequence[float]] = None,
     basis: str = "umap",
@@ -246,13 +245,12 @@ def push(
         suptitle_fontsize=suptitle_fontsize,
         **kwargs,
     )
-    if return_fig:
-        return fig.figure
+    return fig.figure if return_fig else None
 
 
 @d_plotting.dedent
 def pull(
-    inp: Union[AnnData, TemporalProblem, LineageProblem, CompoundProblem[K, B]],
+    inp: Union[AnnData, TemporalProblem, LineageProblem, CompoundProblem],  # type: ignore[type-arg]
     uns_key: Optional[str] = None,
     time_points: Optional[Sequence[float]] = None,
     basis: str = "umap",
@@ -331,5 +329,4 @@ def pull(
         suptitle_fontsize=suptitle_fontsize,
         **kwargs,
     )
-    if return_fig:
-        return fig.figure
+    return fig.figure if return_fig else None

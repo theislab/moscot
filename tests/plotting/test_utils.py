@@ -1,5 +1,4 @@
 from typing import List, Optional
-import os
 
 import pytest
 import matplotlib as mpl
@@ -29,70 +28,47 @@ class TestMoscotPl:
         np.testing.assert_array_equal(adata1.X.A, adata_time.X.A)
         np.testing.assert_array_equal(adata2.X.A, adata_time.X.A)
 
-    @pytest.mark.parametrize("save", [None, "tests/data/test_plot.png"])
     @pytest.mark.parametrize("return_fig", [True, False])
-    def test_cell_transition(self, adata_pl_cell_transition: AnnData, return_fig: bool, save: Optional[str]):
-        if save:
-            if os.path.exists(save):
-                os.remove(save)
-        fig = msc.plotting.cell_transition(adata_pl_cell_transition, return_fig=return_fig, save=save)
+    def test_cell_transition(self, adata_pl_cell_transition: AnnData, return_fig: bool):
+        fig = msc.plotting.cell_transition(adata_pl_cell_transition, return_fig=return_fig)
         if return_fig:
             assert fig is not None
             assert isinstance(fig, mpl.figure.Figure)
         else:
             assert fig is None
-        if save:
-            assert os.path.exists(save)
 
     @pytest.mark.parametrize("time_points", [None, [0]])
     @pytest.mark.parametrize("return_fig", [True, False])
-    @pytest.mark.parametrize("save", [None, "tests/data/test_plot.png"])
-    def test_push(
-        self, adata_pl_push: AnnData, time_points: Optional[List[int]], return_fig: bool, save: Optional[str]
-    ):
-        if save:
-            if os.path.exists(save):
-                os.remove(save)
-
-        fig = msc.plotting.push(adata_pl_push, time_points=time_points, return_fig=return_fig, save=save)
+    def test_push(self, adata_pl_push: AnnData, time_points: Optional[List[int]], return_fig: bool):
+        fig = msc.plotting.push(adata_pl_push, time_points=time_points, return_fig=return_fig)
 
         if return_fig:
             assert fig is not None
             assert isinstance(fig, mpl.figure.Figure)
         else:
             assert fig is None
-        if save:
-            assert os.path.exists(save)
 
     @pytest.mark.parametrize("time_points", [None, [0]])
     @pytest.mark.parametrize("return_fig", [True, False])
-    @pytest.mark.parametrize("save", [None, "tests/data/test_plot.png"])
     def test_pull(
-        self, adata_pl_pull: AnnData, time_points: Optional[List[int]], return_fig: bool, save: Optional[str]
+        self,
+        adata_pl_pull: AnnData,
+        time_points: Optional[List[int]],
+        return_fig: bool,
     ):
-        if save:
-            if os.path.exists(save):
-                os.remove(save)
-        fig = msc.plotting.pull(adata_pl_pull, time_points=time_points, return_fig=return_fig, save=save)
+        fig = msc.plotting.pull(adata_pl_pull, time_points=time_points, return_fig=return_fig)
         if return_fig:
             assert fig is not None
             assert isinstance(fig, mpl.figure.Figure)
         else:
             assert fig is None
-        if save:
-            assert os.path.exists(save)
 
-    @pytest.mark.parametrize("save", [None, "tests/data/test_plot.png"])
     @pytest.mark.parametrize("return_fig", [True, False])
     @pytest.mark.parametrize("interpolate_color", [True, False])
-    def test_sankey(self, adata_pl_sankey: AnnData, return_fig: bool, save: Optional[str], interpolate_color: bool):
-        if save:
-            if os.path.exists(save):
-                os.remove(save)
+    def test_sankey(self, adata_pl_sankey: AnnData, return_fig: bool, interpolate_color: bool):
         fig = msc.plotting.sankey(
             adata_pl_sankey,
             return_fig=return_fig,
-            save=save,
             interpolate_color=interpolate_color,
         )
         if return_fig:
@@ -100,5 +76,3 @@ class TestMoscotPl:
             assert isinstance(fig, mpl.figure.Figure)
         else:
             assert fig is None
-        if save:
-            assert os.path.exists(save)

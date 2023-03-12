@@ -21,6 +21,7 @@ from tests.problems.conftest import (
 )
 from moscot.solvers._base_solver import ProblemKind
 
+# TODO(michalk8): should be made relative to tests root
 SOLUTIONS_PATH = Path("./tests/data/mapping_solutions.pkl")  # base is moscot
 
 
@@ -97,7 +98,7 @@ class TestMappingProblem:
             if initializer == "random":
                 # kwargs["kwargs_init"] = {"key": 0}
                 # kwargs["key"] = 0
-                return 0  # TODO(@MUCDK) fix after refactoring
+                return  # TODO(@MUCDK) fix after refactoring
         mp = MappingProblem(adataref, adatasp)
         mp = mp.prepare(batch_key="batch", sc_attr=sc_attr, var_names=var_names)
         mp = mp.solve(epsilon=epsilon, alpha=alpha, rank=rank, **kwargs)

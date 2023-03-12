@@ -12,9 +12,9 @@ from anndata import AnnData
 from moscot._types import ArrayLike, Numeric_t, Str_Dict_t
 from moscot.solvers._output import BaseSolverOutput
 from moscot._docs._docs_mixins import d_mixins
+from moscot.utils._tagged_array import Tag
 from moscot._constants._constants import Key, PlottingKeys, PlottingDefaults
 from moscot.problems.base._mixins import AnalysisMixin, AnalysisMixinProtocol
-from moscot.solvers._tagged_array import Tag
 from moscot.problems.base._birth_death import BirthDeathProblem
 from moscot.problems.base._compound_problem import B, K, ApplyOutput_t
 
@@ -184,7 +184,6 @@ class TemporalMixin(AnalysisMixin[K, B]):
         -----
         %(notes_cell_transition)s
         """
-
         if TYPE_CHECKING:
             assert isinstance(self.temporal_key, str)
         return self._cell_transition(
@@ -294,8 +293,7 @@ class TemporalMixin(AnalysisMixin[K, B]):
                 "captions": [str(t) for t in tuples],
             }
             Key.uns.set_plotting_vars(self.adata, PlottingKeys.SANKEY, key_added, plot_vars)
-        if return_data:
-            return cell_transitions_updated
+        return cell_transitions_updated if return_data else None
 
     @d_mixins.dedent
     def push(
@@ -353,8 +351,7 @@ class TemporalMixin(AnalysisMixin[K, B]):
             }
             self.adata.obs[key_added] = self._flatten(result, key=self.temporal_key)
             Key.uns.set_plotting_vars(self.adata, PlottingKeys.PUSH, key_added, plot_vars)
-        if return_data:
-            return result
+        return result if return_data else None
 
     @d_mixins.dedent
     def pull(
@@ -411,8 +408,7 @@ class TemporalMixin(AnalysisMixin[K, B]):
             }
             self.adata.obs[key_added] = self._flatten(result, key=self.temporal_key)
             Key.uns.set_plotting_vars(self.adata, PlottingKeys.PULL, key_added, plot_vars)
-        if return_data:
-            return result
+        return result if return_data else None
 
     @property
     def prior_growth_rates(self: TemporalMixinProtocol[K, B]) -> Optional[pd.DataFrame]:
@@ -542,14 +538,14 @@ class TemporalMixin(AnalysisMixin[K, B]):
                 break
         else:
             raise ValueError(f"No data found for `{source}` time point.")
-        for src, tgt in self.problems.keys():
+        for src, tgt in self.problems:
             if src == intermediate:
                 intermediate_data = self.problems[src, tgt].xy.data_src  # type: ignore[union-attr]
                 intermediate_adata = self.problems[src, tgt].adata_src
                 break
         else:
             raise ValueError(f"No data found for `{intermediate}` time point.")
-        for src, tgt in self.problems.keys():
+        for src, tgt in self.problems:
             if tgt == target:
                 target_data = self.problems[src, tgt].xy.data_tgt  # type: ignore[union-attr]
                 break
@@ -601,10 +597,10 @@ class TemporalMixin(AnalysisMixin[K, B]):
         %(start)s
         %(intermediate_interpolation)s
         %(end)s
-        %(interpolation_parameters)s
+        %(interpolation_parameter)s
         %(n_interpolated_cells)s
         %(account_for_unbalancedness)s
-        %(batch_size)s
+        %(ott_jax_batch_size)s
         %(use_posterior_marginals)s
         %(seed_sampling)s
         %(backend)s
@@ -841,12 +837,11 @@ class TemporalMixin(AnalysisMixin[K, B]):
         else:
             row_probability = growth_rates ** (1 - interpolation_parameter)
         row_probability /= np.sum(row_probability)
-        result = (
+        return (
             source_data[rng.choice(len(source_data), size=number_cells, p=row_probability), :]
             * (1 - interpolation_parameter)
             + target_data[rng.choice(len(target_data), size=number_cells), :] * interpolation_parameter
         )
-        return result
 
     @staticmethod
     def _get_interp_param(

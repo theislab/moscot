@@ -18,10 +18,10 @@ import jax.numpy as jnp
 
 from moscot._types import ArrayLike, QuadInitializer_t, SinkhornInitializer_t
 from moscot._constants._enum import ModeEnum
+from moscot.utils._tagged_array import TaggedArray
 from moscot.backends.ott._output import OTTOutput
 from moscot.problems.base._utils import _filter_kwargs
 from moscot.solvers._base_solver import OTSolver, ProblemKind
-from moscot.solvers._tagged_array import TaggedArray
 
 __all__ = ["OTTCost", "SinkhornSolver", "GWSolver"]
 
@@ -97,12 +97,12 @@ class OTTJaxSolver(OTSolver[OTTOutput]):
         return OTTOutput(out)
 
     @staticmethod
-    def _assert2d(arr: Optional[ArrayLike], *, allow_reshape: bool = True) -> Optional[jnp.ndarray]:
+    def _assert2d(arr: Optional[ArrayLike], *, allow_reshape: bool = True) -> Optional[ArrayLike]:
         if arr is None:
             return None
-        arr: jnp.ndarray = jnp.asarray(arr.A if issparse(arr) else arr)  # type: ignore[attr-defined, no-redef]
+        arr: ArrayLike = jnp.asarray(arr.A if issparse(arr) else arr)  # type: ignore[attr-defined, no-redef]
         if allow_reshape and arr.ndim == 1:
-            return jnp.reshape(arr, (-1, 1))
+            return jnp.reshape(arr, (-1, 1))  # type: ignore[return-value]
         if arr.ndim != 2:
             raise ValueError(f"Expected array to have 2 dimensions, found `{arr.ndim}`.")
         return arr

@@ -7,9 +7,9 @@ from moscot._types import ArrayLike, Str_Dict_t, ScaleCost_t, ProblemStage_t, Qu
 from moscot._docs._docs import d
 from moscot._constants._key import Key
 from moscot.problems._utils import handle_cost, handle_joint_attr
+from moscot.utils._subset_policy import DummyPolicy, ExternalStarPolicy
 from moscot._constants._constants import Policy
 from moscot.problems.space._mixins import SpatialMappingMixin
-from moscot.problems._subset_policy import DummyPolicy, ExternalStarPolicy
 from moscot.problems.base._base_problem import OTProblem
 from moscot.problems.base._compound_problem import B, K, CompoundProblem
 
@@ -224,12 +224,12 @@ class MappingProblem(CompoundProblem[K, OTProblem], SpatialMappingMixin[K, OTPro
 
     @property
     def filtered_vars(self) -> Optional[Sequence[str]]:
-        """Filtered variables."""  # noqa: D401
+        """Filtered variables."""
         return self._filtered_vars
 
     @filtered_vars.setter
     def filtered_vars(self, value: Optional[Sequence[str]]) -> None:
-        self._filtered_vars = self._filter_vars(var_names=value)
+        self._filtered_vars = self._filter_vars(var_names=value)  # type: ignore[misc]
 
     @property
     def _base_problem_type(self) -> Type[B]:

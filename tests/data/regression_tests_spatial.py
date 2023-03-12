@@ -34,8 +34,7 @@ def adata_mapping() -> AnnData:
     adataref, adata1, adata2 = _make_adata(grid, n=3)
     sc.pp.pca(adataref)
 
-    adata = ad.concat([adataref, adata1, adata2], label="batch", join="outer")
-    return adata
+    return ad.concat([adataref, adata1, adata2], label="batch", join="outer")
 
 
 def _make_grid(grid_size: int) -> ArrayLike:
@@ -43,8 +42,7 @@ def _make_grid(grid_size: int) -> ArrayLike:
     x1s = np.linspace(*xlimits, num=grid_size)  # type: ignore [call-overload]
     x2s = np.linspace(*ylimits, num=grid_size)  # type: ignore [call-overload]
     X1, X2 = np.meshgrid(x1s, x2s)
-    X_orig_single = np.vstack([X1.ravel(), X2.ravel()]).T
-    return X_orig_single
+    return np.vstack([X1.ravel(), X2.ravel()]).T
 
 
 def _make_adata(grid: ArrayLike, n: int) -> List[AnnData]:

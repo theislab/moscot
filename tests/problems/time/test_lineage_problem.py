@@ -44,9 +44,8 @@ class TestLineageProblem:
             assert isinstance(problem[key], BirthDeathProblem)
 
     def test_solve_balanced(self, adata_time_barcodes: AnnData):
-        eps = 0.5
-        expected_keys = [(0, 1)]
-        adata_time_barcodes = adata_time_barcodes[adata_time_barcodes.obs["time"].isin((0, 1))]
+        eps, key = 0.5, (0, 1)
+        adata_time_barcodes = adata_time_barcodes[adata_time_barcodes.obs["time"].isin(key)].copy()
         problem = LineageProblem(adata=adata_time_barcodes)
         problem = problem.prepare(
             time_key="time",
@@ -57,7 +56,7 @@ class TestLineageProblem:
 
         for key, subsol in problem.solutions.items():
             assert isinstance(subsol, BaseSolverOutput)
-            assert key in expected_keys
+            assert key == key
 
     def test_solve_unbalanced(self, adata_time_barcodes: AnnData):
         taus = [9e-1, 1e-2]
@@ -152,9 +151,9 @@ class TestLineageProblem:
     @pytest.mark.fast()
     @pytest.mark.parametrize("scaling", [0.1, 1, 4])
     def test_proliferation_key_c_pipeline(self, adata_time_barcodes: AnnData, scaling: float):
-        keys = np.sort(np.unique(adata_time_barcodes.obs["time"].values))
-        adata_time_barcodes = adata_time_barcodes[adata_time_barcodes.obs["time"].isin([keys[0], keys[1]])]
-        delta = keys[1] - keys[0]
+        key0, key1, *_ = np.sort(np.unique(adata_time_barcodes.obs["time"].values))
+        adata_time_barcodes = adata_time_barcodes[adata_time_barcodes.obs["time"].isin([key0, key1])].copy()
+        delta = key1 - key0
         problem = LineageProblem(adata_time_barcodes)
         assert problem.proliferation_key is None
 
@@ -167,10 +166,10 @@ class TestLineageProblem:
             policy="sequential",
             marginal_kwargs={"scaling": scaling},
         )
-        prolif = adata_time_barcodes[adata_time_barcodes.obs["time"] == keys[0]].obs["proliferation"]
-        apopt = adata_time_barcodes[adata_time_barcodes.obs["time"] == keys[0]].obs["apoptosis"]
+        prolif = adata_time_barcodes[adata_time_barcodes.obs["time"] == key0].obs["proliferation"]
+        apopt = adata_time_barcodes[adata_time_barcodes.obs["time"] == key0].obs["apoptosis"]
         expected_marginals = np.exp((prolif - apopt) * delta / scaling)
-        np.testing.assert_allclose(problem[keys[0], keys[1]]._prior_growth, expected_marginals, rtol=RTOL, atol=ATOL)
+        np.testing.assert_allclose(problem[key0, key1]._prior_growth, expected_marginals, rtol=RTOL, atol=ATOL)
 
     @pytest.mark.fast()
     def test_barcodes_pipeline(self, adata_time_barcodes: AnnData):

@@ -40,7 +40,7 @@ def require_solution(
 @wrapt.decorator
 def require_prepare(
     wrapped: Callable[[Any], Any],
-    problem: "BaseCompoundProblem",
+    problem: "BaseCompoundProblem",  # type:ignore[type-arg]
     args: Tuple[Any, ...],
     kwargs: Mapping[str, Any],
 ) -> Any:
@@ -92,7 +92,6 @@ def parallelize(
     -------
     The result depending on ``callable``, ``extractor`` and ``as_array``.
     """
-
     if show_progress_bar:
         try:
             from tqdm.auto import tqdm
@@ -162,7 +161,7 @@ def parallelize(
             collections = [collection[[ix], :] for ix in range(collection.shape[0])]  # type: ignore
         else:
             step = collection.shape[0] // n_split  # type: ignore[union-attr]
-            ixs = [np.arange(i * step, min((i + 1) * step, collection.shape[0])) for i in range(n_split)]  # type:ignore
+            ixs = [np.arange(i * step, min((i + 1) * step, collection.shape[0])) for i in range(n_split)]  # type: ignore  # noqa: 501
             ixs[-1] = np.append(ixs[-1], np.arange(ixs[-1][-1] + 1, collection.shape[0]))  # type: ignore
 
             collections = [collection[ix, :] for ix in filter(len, ixs)]  # type:ignore[call-overload]
@@ -220,7 +219,6 @@ def _np_apply_along_axis(func1d, axis: int, arr: ArrayLike) -> ArrayLike:
     -------
     The reduced array.
     """
-
     assert arr.ndim == 2
     assert axis in [0, 1]
 
@@ -238,10 +236,10 @@ def _np_apply_along_axis(func1d, axis: int, arr: ArrayLike) -> ArrayLike:
 
 
 @njit(**jit_kwargs)
-def np_mean(array: ArrayLike, axis: int) -> ArrayLike:
+def np_mean(array: ArrayLike, axis: int) -> ArrayLike:  # noqa: D103
     return _np_apply_along_axis(np.mean, axis, array)
 
 
 @njit(**jit_kwargs)
-def np_std(array: ArrayLike, axis: int) -> ArrayLike:
+def np_std(array: ArrayLike, axis: int) -> ArrayLike:  # noqa: D103
     return _np_apply_along_axis(np.std, axis, array)

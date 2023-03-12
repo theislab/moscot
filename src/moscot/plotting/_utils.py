@@ -21,7 +21,6 @@ import scanpy as sc
 from moscot.problems.base import CompoundProblem  # type: ignore[attr-defined]
 from moscot._constants._key import RandomKeys
 from moscot._constants._constants import AggregationMode
-from moscot.problems.base._compound_problem import B, K
 
 
 def set_palette(
@@ -346,7 +345,9 @@ def _contrasting_color(r: int, g: int, b: int) -> str:
     return "#000000" if r * 0.299 + g * 0.587 + b * 0.114 > 186 else "#ffffff"
 
 
-def _input_to_adatas(inp: Union[AnnData, Tuple[AnnData, AnnData], CompoundProblem[K, B]]) -> Tuple[AnnData, AnnData]:
+def _input_to_adatas(
+    inp: Union[AnnData, Tuple[AnnData, AnnData], CompoundProblem]  # type: ignore[type-arg]
+) -> Tuple[AnnData, AnnData]:
     if isinstance(inp, CompoundProblem):
         return inp.adata, inp.adata
     if isinstance(inp, AnnData):
@@ -373,7 +374,7 @@ def _plot_temporal(
     basis: str = "umap",
     constant_fill_value: float = np.nan,
     scale: bool = True,
-    cont_cmap: Union[str, mcolors.Colormap] = "viridis",
+    cont_cmap: Optional[Union[str, mcolors.Colormap]] = "viridis",
     title: Optional[Union[str, List[str]]] = None,
     suptitle: Optional[str] = None,
     figsize: Optional[Tuple[float, float]] = None,
@@ -388,8 +389,9 @@ def _plot_temporal(
 ) -> mpl.figure.Figure:
     if time_points is not None:
         time_points = sorted(time_points)
-    if isinstance(cont_cmap, str):
-        cont_cmap = mpl.colormaps["viridis"]
+    if cont_cmap is None or isinstance(cont_cmap, str):
+        cont_cmap = plt.get_cmap(cont_cmap)
+
     fig, axs = plt.subplots(
         1, 1 if time_points is None else len(time_points), figsize=figsize, dpi=dpi, constrained_layout=True
     )
@@ -443,7 +445,8 @@ def _plot_temporal(
                     st = f"not in {time_points[i]}"
                     vmin, vmax = np.nanmin(tmp[mask]), np.nanmax(tmp[mask])
                     column = pd.Series(tmp).fillna(st).astype("category")
-                    if len(np.unique(column[mask.values].values)) != 2:
+                    # TODO(michalk8): check
+                    if len(np.unique(column[mask.values].values)) > 2:
                         raise ValueError(f"Not exactly two categories, found `{column.cat.categories}`.")
                     adata.obs[keys[0]] = column.values
                     adata.obs[keys[0]] = adata.obs[keys[0]].astype("category")
@@ -508,6 +511,4 @@ def _create_col_colors(adata: AnnData, obs_col: str, subset: Union[str, List[str
     h, _, v = mcolors.rgb_to_hsv(mcolors.to_rgb(color))
     end_color = mcolors.hsv_to_rgb([h, 1, v])
 
-    col_cmap = mcolors.LinearSegmentedColormap.from_list("category_cmap", ["darkgrey", end_color])
-
-    return col_cmap
+    return mcolors.LinearSegmentedColormap.from_list("category_cmap", ["darkgrey", end_color])

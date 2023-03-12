@@ -29,10 +29,9 @@ from moscot._utils import require_prepare
 from moscot._logging import logger
 from moscot._docs._docs import d
 from moscot.solvers._output import BaseSolverOutput
+from moscot.utils._tagged_array import Tag, TaggedArray
 from moscot.problems.base._utils import attributedispatch
-from moscot._constants._constants import Policy
-from moscot.solvers._tagged_array import Tag, TaggedArray
-from moscot.problems._subset_policy import (
+from moscot.utils._subset_policy import (
     Policy_t,
     StarPolicy,
     DummyPolicy,
@@ -41,6 +40,7 @@ from moscot.problems._subset_policy import (
     ExplicitPolicy,
     FormatterMixin,
 )
+from moscot._constants._constants import Policy
 from moscot.problems.base._base_problem import OTProblem, BaseProblem
 from moscot.problems.base._problem_manager import ProblemManager
 

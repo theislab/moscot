@@ -373,21 +373,20 @@ kwargs
 # References to examples and notebooks
 
 _ex_solve_quadratic = """\
-See :ref:`sphx_glr_auto_examples_solvers_ex_quad_problems_basic.py` for a basic example
-how to solve quadratic problems.
-See :ref:`sphx_glr_auto_examples_solvers_ex_quad_problems_advanced.py` for an advanced
-example how to solve quadratic problems.
+See :doc:`../../notebooks/examples/solvers/300_quad_problems_basic` for a basic example of how to solve quadratic
+problems.
+See :doc:`../../notebooks/examples/solvers/400_quad_problems_advanced` for an advanced example how to solve quadratic
+problems.
 """
 _ex_solve_linear = """\
-See :ref:`sphx_glr_auto_examples_solvers_ex_linear_problems_basic.py` for a basic example
-how to solve linear problems.
-See :ref:`sphx_glr_auto_examples_solvers_ex_linear_problems_advanced.py` for an advanced
-example how to solve linear problems.
+See  :doc:`../../notebooks/examples/solvers/100_linear_problems_basic` for a basic example of how to solve linear
+problems.
+See :doc:`../../notebooks/examples/solvers/200_linear_problems_advanced` for an advanced example of how to solve linear
+problems.
 """
 _ex_prepare = """\
-See :ref:`sphx_glr_auto_examples_problems_ex_different_policies.py` for an example how to
-use different policies. See :ref:`sphx_glr_auto_examples_problems_ex_passing_marginals.py`
-for an example how to pass marginals.
+See :doc:`../../notebooks/examples/problems/400_subset_policy` for an example of how to use different policies.
+See :doc:`../../notebooks/examples/problems/500_passing_marginals` for an example of how to pass marginals.
 """
 _data_set = """\
 data
