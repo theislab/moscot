@@ -34,8 +34,8 @@ from moscot.base.problems._utils import (
     _validate_args_cell_transition,
 )
 from moscot.base.problems.compound_problem import ApplyOutput_t, B, K
-from moscot.data import transcription_factors
 from moscot.plotting._utils import set_plotting_vars
+from moscot.utils.data import transcription_factors
 from moscot.utils.subset_policy import SubsetPolicy
 
 

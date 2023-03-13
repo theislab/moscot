@@ -20,8 +20,8 @@ import scanpy as sc
 from moscot._docs._docs import d
 from moscot._types import ArrayLike
 from moscot.base.problems.problem import OTProblem
-from moscot.data import apoptosis_markers, proliferation_markers
 from moscot.logging import logger
+from moscot.utils.data import apoptosis_markers, proliferation_markers
 
 __all__ = ["BirthDeathProblem", "BirthDeathMixin"]
 

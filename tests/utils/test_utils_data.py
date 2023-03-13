@@ -4,7 +4,11 @@ import pytest
 
 import numpy as np
 
-from moscot.data import apoptosis_markers, proliferation_markers, transcription_factors
+from moscot.utils.data import (
+    apoptosis_markers,
+    proliferation_markers,
+    transcription_factors,
+)
 
 
 class TestTranscriptionFactor:

@@ -1,16 +1,6 @@
 from importlib import metadata
 
-from . import (
-    backends,
-    base,
-    constants,
-    costs,
-    data,
-    datasets,
-    plotting,
-    problems,
-    utils,
-)
+from . import backends, base, constants, costs, datasets, plotting, problems, utils
 
 try:
     md = metadata.metadata(__name__)
