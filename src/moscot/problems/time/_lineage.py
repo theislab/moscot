@@ -3,7 +3,7 @@ from typing import Any, Literal, Mapping, Optional, Tuple, Type, Union
 
 from anndata import AnnData
 
-from moscot import constants
+from moscot import _constants
 from moscot._docs._docs import d
 from moscot._types import (
     Numeric_t,
@@ -191,7 +191,7 @@ class TemporalProblem(
 
     @property
     def _valid_policies(self) -> Tuple[Policy_t, ...]:
-        return constants.SEQUENTIAL, constants.TRIU, constants.EXPLICIT  # type: ignore[return-value]
+        return _constants.SEQUENTIAL, _constants.TRIU, _constants.EXPLICIT  # type: ignore[return-value]
 
 
 @d.dedent
@@ -213,9 +213,10 @@ class LineageProblem(TemporalProblem):
         lineage_attr: Mapping[str, Any] = MappingProxyType({}),
         joint_attr: Optional[Union[str, Mapping[str, Any]]] = None,
         policy: Literal["sequential", "tril", "triu", "sequential"] = "sequential",
+        # TODO(michalk8): update
         cost: Union[
-            Literal["sq_euclidean", "cosine", "bures", "unbalanced_bures"],
-            Mapping[str, Literal["sq_euclidean", "cosine", "bures", "unbalanced_bures"]],
+            Literal["sq_euclidean", "cosine"],
+            Mapping[str, Literal["sq_euclidean", "cosine"]],
         ] = "sq_euclidean",
         a: Optional[str] = None,
         b: Optional[str] = None,

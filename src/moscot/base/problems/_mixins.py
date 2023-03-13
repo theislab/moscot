@@ -21,7 +21,7 @@ from scipy.sparse.linalg import LinearOperator
 
 import scanpy as sc
 
-from moscot import constants
+from moscot import _constants
 from moscot._docs._docs import d
 from moscot._types import ArrayLike, Numeric_t, Str_Dict_t
 from moscot.base.output import BaseSolverOutput
@@ -124,7 +124,7 @@ class AnalysisMixin(Generic[K, B]):
         target: K,
         source_groups: Str_Dict_t,
         target_groups: Str_Dict_t,
-        key_added: Optional[str] = constants.CELL_TRANSITION,
+        key_added: Optional[str] = _constants.CELL_TRANSITION,
         **kwargs: Any,
     ) -> pd.DataFrame:
         _check_argument_compatibility_cell_transition(
@@ -153,7 +153,7 @@ class AnalysisMixin(Generic[K, B]):
             }
             set_plotting_vars(
                 self.adata,
-                constants.CELL_TRANSITION,
+                _constants.CELL_TRANSITION,
                 key=key_added,
                 value=plot_vars,
             )

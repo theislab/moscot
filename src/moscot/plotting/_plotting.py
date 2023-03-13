@@ -19,7 +19,7 @@ import matplotlib as mpl
 from matplotlib import colors as mcolors
 from matplotlib.axes import Axes
 
-from moscot import constants
+from moscot import _constants
 
 if TYPE_CHECKING:
     from moscot.base.problems.compound_problem import CompoundProblem
@@ -39,7 +39,7 @@ from moscot.plotting._utils import (
 @d_plotting.dedent
 def cell_transition(
     inp: Union[AnnData, Tuple[AnnData, AnnData], "CompoundProblem"],  # type: ignore[type-arg]
-    uns_key: str = constants.CELL_TRANSITION,
+    uns_key: str = _constants.CELL_TRANSITION,
     row_labels: Optional[str] = None,
     col_labels: Optional[str] = None,
     annotate: Optional[str] = "{x:.2f}",
@@ -77,7 +77,7 @@ def cell_transition(
     %(notes_cell_transition)s
     """
     adata1, adata2 = _input_to_adatas(inp)
-    data = get_plotting_vars(adata1, constants.CELL_TRANSITION, key=uns_key)
+    data = get_plotting_vars(adata1, _constants.CELL_TRANSITION, key=uns_key)
 
     fig = _heatmap(
         row_adata=adata1,
@@ -108,7 +108,7 @@ def cell_transition(
 def sankey(
     inp: Union[AnnData, "TemporalProblem", "LineageProblem"],
     # TODO(MUCDK): rename to `key` or `key_added`?
-    uns_key: str = constants.SANKEY,
+    uns_key: str = _constants.SANKEY,
     captions: Optional[List[str]] = None,
     title: Optional[str] = None,
     colors_dict: Optional[Dict[str, float]] = None,
@@ -149,7 +149,7 @@ def sankey(
     %(notes_sankey)s
     """
     adata, _ = _input_to_adatas(inp)
-    data = get_plotting_vars(adata, constants.SANKEY, key=uns_key)
+    data = get_plotting_vars(adata, _constants.SANKEY, key=uns_key)
 
     fig = _sankey(
         adata=adata,
@@ -174,7 +174,7 @@ def sankey(
 @d_plotting.dedent
 def push(
     inp: Union[AnnData, "TemporalProblem", "LineageProblem", "CompoundProblem"],  # type: ignore[type-arg]
-    uns_key: str = constants.PUSH,
+    uns_key: str = _constants.PUSH,
     time_points: Optional[Sequence[float]] = None,
     basis: str = "umap",
     fill_value: float = np.nan,
@@ -224,7 +224,7 @@ def push(
     if uns_key not in adata.obs:
         raise KeyError(f"No data found in `adata.obs[{uns_key!r}]`.")
 
-    data = get_plotting_vars(adata, constants.PUSH, key=uns_key)
+    data = get_plotting_vars(adata, _constants.PUSH, key=uns_key)
     if data["data"] is not None and data["subset"] is not None and cmap is None:
         cmap = _create_col_colors(adata, data["data"], data["subset"])
 
@@ -258,7 +258,7 @@ def push(
 @d_plotting.dedent
 def pull(
     inp: Union[AnnData, "TemporalProblem", "LineageProblem", "CompoundProblem"],  # type: ignore[type-arg]
-    uns_key: str = constants.PULL,
+    uns_key: str = _constants.PULL,
     time_points: Optional[Sequence[float]] = None,
     basis: str = "umap",
     fill_value: float = np.nan,
@@ -309,7 +309,7 @@ def pull(
     if uns_key not in adata.obs:
         raise KeyError(f"No data found in `adata.obs[{uns_key!r}]`.")
 
-    data = get_plotting_vars(adata, constants.PULL, key=uns_key)
+    data = get_plotting_vars(adata, _constants.PULL, key=uns_key)
     if data["data"] is not None and data["subset"] is not None and cmap is None:
         cmap = _create_col_colors(adata, data["data"], data["subset"])
 

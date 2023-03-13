@@ -3,7 +3,7 @@ from typing import Any, Literal, Mapping, Optional, Sequence, Tuple, Type, Union
 
 from anndata import AnnData
 
-from moscot import constants
+from moscot import _constants
 from moscot._docs._docs import d
 from moscot._types import (
     ArrayLike,
@@ -243,7 +243,7 @@ class MappingProblem(CompoundProblem[K, OTProblem], SpatialMappingMixin[K, OTPro
 
     @property
     def _valid_policies(self) -> Tuple[Policy_t, ...]:
-        return constants.EXTERNAL_STAR, constants.DUMMY  # type: ignore[return-value]
+        return _constants.EXTERNAL_STAR, _constants.DUMMY  # type: ignore[return-value]
 
     @property
     def _secondary_adata(self) -> Optional[AnnData]:

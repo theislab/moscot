@@ -1,7 +1,7 @@
 from types import MappingProxyType
 from typing import Any, Literal, Mapping, Optional, Tuple, Type, Union
 
-from moscot import constants
+from moscot import _constants
 from moscot._docs._docs import d
 from moscot._types import Policy_t, ProblemStage_t, QuadInitializer_t, ScaleCost_t
 from moscot.base.problems.compound_problem import B, CompoundProblem, K
@@ -166,4 +166,4 @@ class AlignmentProblem(CompoundProblem[K, B], SpatialAlignmentMixin[K, B]):
 
     @property
     def _valid_policies(self) -> Tuple[Policy_t, ...]:
-        return constants.SEQUENTIAL, constants.STAR  # type: ignore[return-value]
+        return _constants.SEQUENTIAL, _constants.STAR  # type: ignore[return-value]

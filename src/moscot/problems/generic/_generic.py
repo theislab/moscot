@@ -3,7 +3,7 @@ from typing import Any, Dict, List, Literal, Mapping, Optional, Tuple, Type, Uni
 
 from anndata import AnnData
 
-from moscot import constants
+from moscot import _constants
 from moscot._docs._docs import d
 from moscot._types import (
     Policy_t,
@@ -166,7 +166,7 @@ class SinkhornProblem(GenericAnalysisMixin[K, B], CompoundProblem[K, B]):
 
     @property
     def _valid_policies(self) -> Tuple[Policy_t, ...]:
-        return constants.SEQUENTIAL, constants.PAIRWISE, constants.EXPLICIT  # type: ignore[return-value]
+        return _constants.SEQUENTIAL, _constants.PAIRWISE, _constants.EXPLICIT  # type: ignore[return-value]
 
 
 @d.get_sections(base="GWProblem", sections=["Parameters"])
@@ -336,4 +336,4 @@ class GWProblem(GenericAnalysisMixin[K, B], CompoundProblem[K, B]):
 
     @property
     def _valid_policies(self) -> Tuple[Policy_t, ...]:
-        return constants.SEQUENTIAL, constants.PAIRWISE, constants.EXPLICIT  # type: ignore[return-value]
+        return _constants.SEQUENTIAL, _constants.PAIRWISE, _constants.EXPLICIT  # type: ignore[return-value]

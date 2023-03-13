@@ -27,7 +27,7 @@ from scipy.stats import pearsonr, spearmanr
 from sklearn.metrics import pairwise_distances
 from sklearn.neighbors import NearestNeighbors
 
-from moscot import constants
+from moscot import _constants
 from moscot._docs._docs import d
 from moscot._docs._docs_mixins import d_mixins
 from moscot._logging import logger
@@ -206,7 +206,7 @@ class SpatialAlignmentMixin(AnalysisMixin[K, B]):
         aggregation_mode: Literal["annotation", "cell"] = "annotation",
         batch_size: Optional[int] = None,
         normalize: bool = True,
-        key_added: Optional[str] = constants.CELL_TRANSITION,
+        key_added: Optional[str] = _constants.CELL_TRANSITION,
     ) -> pd.DataFrame:
         """
         Compute a grouped cell transition matrix.
@@ -494,7 +494,7 @@ class SpatialMappingMixin(AnalysisMixin[K, B]):
         aggregation_mode: Literal["annotation", "cell"] = "annotation",
         batch_size: Optional[int] = None,
         normalize: bool = True,
-        key_added: Optional[str] = constants.CELL_TRANSITION,
+        key_added: Optional[str] = _constants.CELL_TRANSITION,
     ) -> pd.DataFrame:
         """
         Compute a grouped cell transition matrix.

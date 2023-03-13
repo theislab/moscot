@@ -4,7 +4,7 @@ from anndata import AnnData
 
 import pandas as pd
 
-from moscot import constants
+from moscot import _constants
 from moscot._docs._docs_mixins import d_mixins
 from moscot._types import ArrayLike, Str_Dict_t
 from moscot.base.problems._mixins import AnalysisMixin, AnalysisMixinProtocol
@@ -47,7 +47,7 @@ class GenericAnalysisMixin(AnalysisMixin[K, B]):
         aggregation_mode: Literal["annotation", "cell"] = "annotation",
         batch_size: Optional[int] = None,
         normalize: bool = True,
-        key_added: Optional[str] = constants.CELL_TRANSITION,
+        key_added: Optional[str] = _constants.CELL_TRANSITION,
     ) -> pd.DataFrame:
         """
         Compute a grouped cell transition matrix.
@@ -99,7 +99,7 @@ class GenericAnalysisMixin(AnalysisMixin[K, B]):
         data: Optional[Union[str, ArrayLike]] = None,
         subset: Optional[Union[str, List[str], Tuple[int, int]]] = None,
         scale_by_marginals: bool = True,
-        key_added: Optional[str] = constants.PUSH,
+        key_added: Optional[str] = _constants.PUSH,
         return_all: bool = False,
         return_data: bool = False,
         **kwargs: Any,
@@ -144,7 +144,7 @@ class GenericAnalysisMixin(AnalysisMixin[K, B]):
                 "distribution_key": self.batch_key,
             }
             self.adata.obs[key_added] = self._flatten(result, key=self.batch_key)
-            set_plotting_vars(self.adata, constants.PUSH, key=key_added, value=plot_vars)
+            set_plotting_vars(self.adata, _constants.PUSH, key=key_added, value=plot_vars)
         return result if return_data else None
 
     @d_mixins.dedent
@@ -155,7 +155,7 @@ class GenericAnalysisMixin(AnalysisMixin[K, B]):
         data: Optional[Union[str, ArrayLike]] = None,
         subset: Optional[Union[str, List[str], Tuple[int, int]]] = None,
         scale_by_marginals: bool = True,
-        key_added: Optional[str] = constants.PULL,
+        key_added: Optional[str] = _constants.PULL,
         return_all: bool = False,
         return_data: bool = False,
         **kwargs: Any,
@@ -197,7 +197,7 @@ class GenericAnalysisMixin(AnalysisMixin[K, B]):
                 "key": self.batch_key,
             }
             self.adata.obs[key_added] = self._flatten(result, key=self.batch_key)
-            set_plotting_vars(self.adata, constants.PULL, key=key_added, value=plot_vars)
+            set_plotting_vars(self.adata, _constants.PULL, key=key_added, value=plot_vars)
         return result if return_data else None
 
     @property

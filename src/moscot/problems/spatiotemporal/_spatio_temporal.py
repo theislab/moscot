@@ -3,7 +3,7 @@ from typing import Any, Literal, Mapping, Optional, Tuple, Type, Union
 
 from anndata import AnnData
 
-from moscot import constants
+from moscot import _constants
 from moscot._docs._docs import d
 from moscot._types import (
     Numeric_t,
@@ -192,7 +192,12 @@ class SpatioTemporalProblem(
 
     @property
     def _valid_policies(self) -> Tuple[Policy_t, ...]:
-        return constants.SEQUENTIAL, constants.TRIL, constants.TRIU, constants.EXPLICIT  # type: ignore[return-value]
+        return (
+            _constants.SEQUENTIAL,
+            _constants.TRIL,
+            _constants.TRIU,
+            _constants.EXPLICIT,
+        )  # type: ignore[return-value]
 
     @property
     def _base_problem_type(self) -> Type[B]:  # type: ignore[override]

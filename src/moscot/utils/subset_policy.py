@@ -24,7 +24,7 @@ import networkx as nx
 import numpy as np
 import pandas as pd
 
-from moscot import constants
+from moscot import _constants
 from moscot._types import ArrayLike, Policy_t
 
 __all__ = [
@@ -151,17 +151,17 @@ class SubsetPolicy(Generic[K], abc.ABC):
         -----
         TODO: link policy example.
         """
-        if kind == constants.SEQUENTIAL:
+        if kind == _constants.SEQUENTIAL:
             return SequentialPolicy(adata, **kwargs)
-        if kind == constants.STAR:
+        if kind == _constants.STAR:
             return StarPolicy(adata, **kwargs)
-        if kind == constants.EXTERNAL_STAR:
+        if kind == _constants.EXTERNAL_STAR:
             return ExternalStarPolicy(adata, **kwargs)
-        if kind == constants.TRIU:
+        if kind == _constants.TRIU:
             return TriangularPolicy(adata, **kwargs, upper=True)
-        if kind == constants.TRIL:
+        if kind == _constants.TRIL:
             return TriangularPolicy(adata, **kwargs, upper=False)
-        if kind == constants.EXPLICIT:
+        if kind == _constants.EXPLICIT:
             return ExplicitPolicy(adata, **kwargs)
 
         raise NotImplementedError(kind)
