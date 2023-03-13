@@ -1,5 +1,4 @@
-from . import generic, space, time
-
-# TODO(michalk8): keep `spatiotemporal` submodule
-from .space import AlignmentProblem, MappingProblem, SpatioTemporalProblem
+from . import generic, space, spatiotemporal, time
+from .space import AlignmentProblem, MappingProblem
+from .spatiotemporal import SpatioTemporalProblem
 from .time import LineageProblem, TemporalProblem

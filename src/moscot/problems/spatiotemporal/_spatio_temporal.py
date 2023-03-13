@@ -8,9 +8,10 @@ from moscot._types import Numeric_t, ProblemStage_t, QuadInitializer_t, ScaleCos
 from moscot.base.problems.birth_death import BirthDeathMixin, BirthDeathProblem
 from moscot.base.problems.compound_problem import B
 from moscot.constants import Policy
-from moscot.problems.space._alignment import AlignmentProblem
-from moscot.problems.space._mixins import SpatialAlignmentMixin
-from moscot.problems.time._mixins import TemporalMixin
+from moscot.problems.space import AlignmentProblem, SpatialAlignmentMixin
+from moscot.problems.time import TemporalMixin
+
+__all__ = ["SpatioTemporalProblem"]
 
 
 @d.dedent
