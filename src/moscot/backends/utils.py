@@ -1,7 +1,8 @@
 from typing import TYPE_CHECKING, Any, Literal, Union
 
 from moscot._types import ProblemKind_t
-from moscot.utils import _registry
+
+from .. import _registry
 
 if TYPE_CHECKING:
     from . import ott

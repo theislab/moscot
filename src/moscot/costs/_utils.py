@@ -1,6 +1,6 @@
 from typing import Any, Optional, Tuple
 
-from moscot.utils import _registry
+from moscot import _registry
 
 __all__ = ["get_cost", "get_available_costs", "register_cost"]
 
