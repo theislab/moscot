@@ -1,7 +1,5 @@
-import os
-from typing import Literal, Mapping, Sequence
-
-import pandas as pd
+from pathlib import Path
+from typing import List, Literal, Mapping
 
 
 class TranscriptionFactors:
@@ -10,36 +8,28 @@ class TranscriptionFactors:
 
     modified on webpage: 2022-04-27
     accessed: 30/11/2022.
-
     """
 
-    # TODO(michalk8): clean this up
-    current_dir = os.path.dirname(os.path.abspath(__file__))
-    data_dir = os.path.join(current_dir, "data")
-    _transcription_factors: Mapping[str, Sequence[str]] = {
-        "human": os.path.join(data_dir, "allTFs_hg38.txt"),
-        "mouse": os.path.join(data_dir, "allTFs_mm.txt"),
-        "drosophila": os.path.join(data_dir, "allTFs_dmel.txt"),
-    }
-
     @classmethod
-    def _load(cls, organism: Literal["human", "mouse", "drosophila"]) -> Sequence[str]:
-        return list(pd.read_csv(cls._transcription_factors[organism], sep=" ", header=None)[0].values)
+    def transcription_factors(cls, organism: Literal["human", "mouse", "drosophila"]) -> List[str]:
+        if organism == "human":
+            fname = "allTFs_hg38.txt"
+        elif organism == "mouse":
+            fname = "allTFs_mm.txt"
+        elif organism == "drosphila":
+            fname = "allTFs_dmel.txt"
+        else:
+            raise NotImplementedError(f"Transcription factors for `{organism}` are not yet implemented.")
 
-    @classmethod
-    def transcription_factors(cls, organism: Literal["human", "mouse", "drosophila"]) -> Sequence[str]:
-        """Get transcription factors for ``organism``."""
-        try:
-            return cls._load(organism)
-        except KeyError:
-            raise NotImplementedError(f"Transcription factors for `{organism}` are not yet implemented.") from None
+        with open(Path(__file__).parent / "data" / fname) as fin:
+            return [tf.strip() for tf in fin.readlines() if tf.strip()]
 
 
 class MarkerGenes:
     """taken from https://github.com/theislab/cellrank/blob/master/cellrank/external/kernels/_utils.py."""
 
     # fmt: off
-    _proliferation_markers: Mapping[str, Sequence[str]] = {
+    _proliferation_markers: Mapping[str, List[str]] = {
         # 97
         "human": ["ANLN", "ANP32E", "ATAD2", "AURKA", "AURKB", "BIRC5", "BLM",
                   "BRIP1", "BUB1", "CASP8AP2", "CBX5", "CCNB2", "CCNE2", "CDC20",
@@ -71,7 +61,7 @@ class MarkerGenes:
                   "Ckap5", "Ctcf", "Clspn", "Cdca7", "Cdca3", "Rpa2", "Gins2",
                   "E2f8", "Cdc25c", "Nek2", "Cdc20", "Rad51ap1"],
     }
-    _apoptosis_markers: Mapping[str, Sequence[str]] = {
+    _apoptosis_markers: Mapping[str, List[str]] = {
         # 161
         "human":
             ["ADD1", "AIFM3", "ANKH", "ANXA1", "APP", "ATF3", "AVPR1A", "BAX",
@@ -128,7 +118,7 @@ class MarkerGenes:
     # fmt: on
 
     @classmethod
-    def proliferation_markers(cls, organism: Literal["human", "mouse"]) -> Sequence[str]:
+    def proliferation_markers(cls, organism: Literal["human", "mouse"]) -> List[str]:
         """Get proliferation markers for ``organism``."""
         try:
             return cls._proliferation_markers[organism]
@@ -136,7 +126,7 @@ class MarkerGenes:
             raise NotImplementedError(f"Proliferation markers for `{organism}` are not yet implemented.") from None
 
     @classmethod
-    def apoptosis_markers(cls, organism: Literal["human", "mouse"]) -> Sequence[str]:
+    def apoptosis_markers(cls, organism: Literal["human", "mouse"]) -> List[str]:
         """Get apoptosis markers for ``organism``."""
         try:
             return cls._apoptosis_markers[organism]
