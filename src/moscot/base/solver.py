@@ -1,4 +1,5 @@
 import abc
+import enum
 import types
 from typing import (
     Any,
@@ -13,7 +14,6 @@ from typing import (
     Union,
 )
 
-from moscot._constants._enum import ModeEnum
 from moscot._docs._docs import d
 from moscot._types import ArrayLike, Device_t
 from moscot.base.output import BaseSolverOutput
@@ -26,7 +26,8 @@ __all__ = ["ProblemKind", "BaseSolver", "OTSolver"]
 O = TypeVar("O", bound=BaseSolverOutput)
 
 
-class ProblemKind(ModeEnum):  # TODO(michalk8): remove from here
+@enum.unique
+class ProblemKind(str, enum.Enum):  # TODO(michalk8): remove from here
     """Type of optimal transport problems."""
 
     UNKNOWN = "unknown"

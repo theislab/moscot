@@ -1,20 +1,22 @@
-from enum import unique
+import enum
 from typing import Any, Optional
 
 from anndata import AnnData
 
-from moscot._constants._enum import ModeEnum
+
+class StrEnum(str, enum.Enum):
+    pass
 
 
-@unique
-class ProblemStage(ModeEnum):
+@enum.unique
+class ProblemStage(StrEnum):
     INITIALIZED = "initialized"
     PREPARED = "prepared"
     SOLVED = "solved"
 
 
-@unique
-class ScaleCost(ModeEnum):
+@enum.unique
+class ScaleCost(StrEnum):
     MEAN = "mean"
     MEDIAN = "median"
     MAX_COST = "max_cost"
@@ -22,8 +24,8 @@ class ScaleCost(ModeEnum):
     MAX_NORM = "max_norm"
 
 
-@unique
-class Policy(ModeEnum):
+@enum.unique
+class Policy(StrEnum):
     SEQUENTIAL = "sequential"
     STAR = "star"
     EXTERNAL_STAR = "external_star"
@@ -33,48 +35,48 @@ class Policy(ModeEnum):
     EXPLICIT = "explicit"
 
 
-@unique
-class AlignmentMode(ModeEnum):
+@enum.unique
+class AlignmentMode(StrEnum):
     AFFINE = "affine"
     WARP = "warp"
 
 
-@unique
-class CorrMethod(ModeEnum):
+@enum.unique
+class CorrMethod(StrEnum):
     PEARSON = "pearson"
     SPEARMAN = "spearman"
 
 
-@unique
-class AggregationMode(ModeEnum):
+@enum.unique
+class AggregationMode(StrEnum):
     ANNOTATION = "annotation"
     CELL = "cell"
 
 
 # TODO(MUCKD): refactor, no need for enum
-@unique
-class AdataKeys(ModeEnum):  # sets default keys for adata attributes
+@enum.unique
+class AdataKeys(StrEnum):  # sets default keys for adata attributes
     UNS = "moscot_results"
 
 
-@unique
-class PlottingKeys(ModeEnum):  # sets the adata.uns[AdataKeys.UNS][value] values
+@enum.unique
+class PlottingKeys(StrEnum):  # sets the adata.uns[AdataKeys.UNS][value] values
     CELL_TRANSITION = "cell_transition"
     SANKEY = "sankey"
     PUSH = "push"
     PULL = "pull"
 
 
-@unique
-class PlottingDefaults(ModeEnum):  # sets the adata.uns[AdataKeys.UNS][value] values
+@enum.unique
+class PlottingDefaults(StrEnum):  # sets the adata.uns[AdataKeys.UNS][value] values
     CELL_TRANSITION = "cell_transition"
     SANKEY = "sankey"
     PUSH = "push"
     PULL = "pull"
 
 
-@unique
-class CorrTestMethod(ModeEnum):
+@enum.unique
+class CorrTestMethod(StrEnum):
     FISCHER = "fischer"
     PERM_TEST = "perm_test"
 
