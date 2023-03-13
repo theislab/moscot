@@ -10,7 +10,7 @@ from ott.geometry.pointcloud import PointCloud
 from ott.solvers.linear.sinkhorn import solve as sinkhorn
 
 from moscot.base.output import BaseSolverOutput
-from moscot.base.solver import ProblemKind
+from moscot.constants import ProblemKind
 from moscot.problems.base import OTProblem
 from tests._utils import ATOL, RTOL, Geom_t, MockSolverOutput
 

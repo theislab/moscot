@@ -17,7 +17,7 @@ from moscot._types import ProblemStage_t
 from moscot.base.output import BaseSolverOutput
 from moscot.base.problems.problem import OTProblem
 from moscot.constants import ProblemStage
-from moscot.utils._subset_policy import SubsetPolicy
+from moscot.utils.subset_policy import SubsetPolicy
 
 if TYPE_CHECKING:
     from moscot.base.problems.compound_problem import BaseCompoundProblem

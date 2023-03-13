@@ -1,5 +1,4 @@
 import abc
-import enum
 import types
 from typing import (
     Any,
@@ -17,22 +16,14 @@ from typing import (
 from moscot._docs._docs import d
 from moscot._types import ArrayLike, Device_t
 from moscot.base.output import BaseSolverOutput
+from moscot.constants import ProblemKind, Tag
 from moscot.logging import logger
-from moscot.utils._tagged_array import Tag, TaggedArray
+from moscot.utils.tagged_array import TaggedArray
 
-__all__ = ["ProblemKind", "BaseSolver", "OTSolver"]
+__all__ = ["BaseSolver", "OTSolver"]
 
 
 O = TypeVar("O", bound=BaseSolverOutput)
-
-
-@enum.unique
-class ProblemKind(str, enum.Enum):  # TODO(michalk8): remove from here
-    """Type of optimal transport problems."""
-
-    UNKNOWN = "unknown"
-    LINEAR = "linear"
-    QUAD = "quadratic"
 
 
 class TaggedArrayData(NamedTuple):  # noqa: D101

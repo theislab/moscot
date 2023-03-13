@@ -24,12 +24,12 @@ from moscot._docs._docs import d
 from moscot._types import ArrayLike, CostFn_t, Device_t
 from moscot.base.output import BaseSolverOutput
 from moscot.base.problems._utils import require_solution, wrap_prepare, wrap_solve
-from moscot.base.solver import OTSolver, ProblemKind
-from moscot.constants import ProblemStage
+from moscot.base.solver import OTSolver
+from moscot.constants import ProblemKind, ProblemStage, Tag
 from moscot.logging import logger
-from moscot.utils._tagged_array import Tag, TaggedArray
+from moscot.utils.tagged_array import TaggedArray
 
-__all__ = ["BaseProblem", "OTProblem", "ProblemKind"]
+__all__ = ["BaseProblem", "OTProblem"]
 
 
 @d.get_sections(base="BaseProblem", sections=["Parameters", "Raises"])

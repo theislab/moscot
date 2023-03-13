@@ -2,12 +2,12 @@ import enum
 
 __all__ = [
     "ProblemStage",
-    "ScaleCost",
+    "ProblemKind",
+    "Tag",
     "Policy",
     "AlignmentMode",
     "CorrMethod",
     "AggregationMode",
-    "AdataKeys",
     "PlottingKeys",
     "PlottingDefaults",
     "CorrTestMethod",
@@ -26,12 +26,22 @@ class ProblemStage(StrEnum):
 
 
 @enum.unique
-class ScaleCost(StrEnum):
-    MEAN = "mean"
-    MEDIAN = "median"
-    MAX_COST = "max_cost"
-    MAX_BOUND = "max_bound"
-    MAX_NORM = "max_norm"
+class ProblemKind(StrEnum):
+    """Type of optimal transport problems."""
+
+    UNKNOWN = "unknown"
+    LINEAR = "linear"
+    QUAD = "quadratic"
+
+
+@enum.unique
+class Tag(str, enum.Enum):
+    """Tag used to interpret array-like data in :class:`moscot.solvers.TaggedArray`."""
+
+    # TODO(michalk8): document rest of the classes
+    COST_MATRIX = "cost_matrix"  #: Cost matrix.
+    KERNEL = "kernel"  #: Kernel matrix.
+    POINT_CLOUD = "point_cloud"  #: Point cloud.
 
 
 @enum.unique
@@ -61,12 +71,6 @@ class CorrMethod(StrEnum):
 class AggregationMode(StrEnum):
     ANNOTATION = "annotation"
     CELL = "cell"
-
-
-# TODO(MUCKD): refactor, no need for enum
-@enum.unique
-class AdataKeys(StrEnum):  # sets default keys for adata attributes
-    UNS = "moscot_results"
 
 
 @enum.unique

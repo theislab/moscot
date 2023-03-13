@@ -18,9 +18,10 @@ from ott.solvers.was_solver import WassersteinSolver
 from moscot._types import ArrayLike, QuadInitializer_t, SinkhornInitializer_t
 from moscot._utils import _filter_kwargs
 from moscot.backends.ott.output import OTTOutput
-from moscot.base.solver import OTSolver, ProblemKind
+from moscot.base.solver import OTSolver
+from moscot.constants import ProblemKind
 from moscot.costs import get_cost
-from moscot.utils._tagged_array import TaggedArray
+from moscot.utils.tagged_array import TaggedArray
 
 __all__ = ["SinkhornSolver", "GWSolver"]
 

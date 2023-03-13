@@ -12,6 +12,8 @@ from typing import (
     Union,
 )
 
+from moscot.constants import ProblemStage
+
 if TYPE_CHECKING:
     from moscot.base.problems.compound_problem import BaseCompoundProblem
     from moscot.base.problems.problem import BaseProblem
@@ -22,12 +24,12 @@ from statsmodels.stats.multitest import multipletests
 
 import numpy as np
 import pandas as pd
-from scipy.sparse import csr_matrix, issparse, isspmatrix_csr, spmatrix
+import scipy.sparse as sp
 from scipy.stats import norm, rankdata
 
 from moscot._docs._docs import d
 from moscot._types import ArrayLike, Str_Dict_t
-from moscot.constants import AggregationMode, CorrMethod, CorrTestMethod
+from moscot.constants import AggregationMode, CorrMethod, CorrTestMethod, ProblemKind
 from moscot.logging import logger
 
 
@@ -192,7 +194,7 @@ def _order_transition_matrix(
 
 @d.dedent
 def _correlation_test(
-    X: Union[ArrayLike, spmatrix],
+    X: Union[ArrayLike, sp.spmatrix],
     Y: pd.DataFrame,
     feature_names: Sequence[str],
     corr_method: CorrMethod = CorrMethod.PEARSON,
@@ -335,12 +337,12 @@ def _correlation_test_helper(
     ql = 1 - confidence_level - (1 - confidence_level) / 2.0
     qh = confidence_level + (1 - confidence_level) / 2.0
 
-    if issparse(X) and not isspmatrix_csr(X):
-        X = csr_matrix(X)
+    if sp.issparse(X):
+        X = sp.csr_matrix(X)
 
     if corr_method == CorrMethod.SPEARMAN:
         X, Y = rankdata(X, method="average", axis=0), rankdata(Y, method="average", axis=0)
-    corr = _pearson_mat_mat_corr_sparse(X, Y) if issparse(X) else _pearson_mat_mat_corr_dense(X, Y)
+    corr = _pearson_mat_mat_corr_sparse(X, Y) if sp.issparse(X) else _pearson_mat_mat_corr_dense(X, Y)
 
     if significance_method == CorrTestMethod.FISCHER:
         # see: https://en.wikipedia.org/wiki/Pearson_correlation_coefficient#Using_the_Fisher_transformation
@@ -375,7 +377,7 @@ def _correlation_test_helper(
 
 
 def _pearson_mat_mat_corr_sparse(
-    X: csr_matrix,
+    X: sp.csr_matrix,
     Y: ArrayLike,
 ) -> ArrayLike:
     n = X.shape[1]
@@ -407,7 +409,7 @@ def _pearson_mat_mat_corr_dense(X: ArrayLike, Y: ArrayLike) -> ArrayLike:
 def _perm_test(
     ixs: ArrayLike,
     corr: ArrayLike,
-    X: Union[ArrayLike, spmatrix],
+    X: Union[ArrayLike, sp.spmatrix],
     Y: ArrayLike,
     seed: Optional[int] = None,
     queue=None,
@@ -417,7 +419,7 @@ def _perm_test(
     pvals = np.zeros_like(corr, dtype=np.float64)
     corr_bs = np.zeros((len(ixs), X.shape[0], Y.shape[1]))  # perms x genes x lineages
 
-    mmc = _pearson_mat_mat_corr_sparse if issparse(X) else _pearson_mat_mat_corr_dense
+    mmc = _pearson_mat_mat_corr_sparse if sp.issparse(X) else _pearson_mat_mat_corr_dense
 
     for i, _ in enumerate(ixs):
         rs.shuffle(cell_ixs)
@@ -469,11 +471,6 @@ def wrap_prepare(
     wrapped: Callable[[Any], Any], instance: "BaseProblem", args: Tuple[Any, ...], kwargs: Mapping[str, Any]
 ) -> Any:
     """Check and update the state when preparing :class:`moscot.problems.base.OTProblem`."""
-    from moscot.base.problems.problem import (
-        ProblemKind,  # TODO: move ENUMs to this file
-    )
-    from moscot.constants import ProblemStage
-
     instance = wrapped(*args, **kwargs)
     if instance.problem_kind == ProblemKind.UNKNOWN:
         raise RuntimeError("Problem kind was not set after running `.prepare()`.")
@@ -486,8 +483,6 @@ def wrap_solve(
     wrapped: Callable[[Any], Any], instance: "BaseProblem", args: Tuple[Any, ...], kwargs: Mapping[str, Any]
 ) -> Any:
     """Check and update the state when solving :class:`moscot.problems.base.OTProblem`."""
-    from moscot.constants import ProblemStage
-
     if instance.stage not in (ProblemStage.PREPARED, ProblemStage.SOLVED):
         raise RuntimeError(
             f"Expected problem's stage to be either `'prepared'` or `'solved'`, found `{instance.stage!r}`."

@@ -40,9 +40,9 @@ from moscot.constants import (
     PlottingDefaults,
     PlottingKeys,
 )
+from moscot.data import transcription_factors
 from moscot.plotting._utils import set_plotting_vars
-from moscot.utils._data import TranscriptionFactors
-from moscot.utils._subset_policy import SubsetPolicy
+from moscot.utils.subset_policy import SubsetPolicy
 
 
 class AnalysisMixinProtocol(Protocol[K, B]):
@@ -589,7 +589,7 @@ class AnalysisMixin(Generic[K, B]):
         distribution = adata.obs[[obs_key]]
 
         if isinstance(features, str):
-            tfs = TranscriptionFactors.transcription_factors(organism=features)
+            tfs = transcription_factors(organism=features)
             features = list(set(tfs).intersection(adata.var_names))
             if len(features) == 0:
                 raise KeyError("No common transcription factors found in the data base.")

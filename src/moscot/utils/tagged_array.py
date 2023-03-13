@@ -1,4 +1,3 @@
-import enum
 from dataclasses import dataclass
 from typing import Any, Callable, Literal, Optional, Tuple, Union
 
@@ -8,19 +7,11 @@ import numpy as np
 import scipy.sparse as sp
 
 from moscot._types import ArrayLike, CostFn_t
+from moscot.constants import Tag
 from moscot.costs import get_cost
 from moscot.logging import logger
 
-__all__ = ["Tag", "TaggedArray"]
-
-
-@enum.unique
-class Tag(str, enum.Enum):
-    """Tag used to interpret array-like data in :class:`moscot.solvers.TaggedArray`."""
-
-    COST_MATRIX = "cost_matrix"  #: Cost matrix.
-    KERNEL = "kernel"  #: Kernel matrix.
-    POINT_CLOUD = "point_cloud"  #: Point cloud.
+__all__ = ["TaggedArray"]
 
 
 @dataclass(frozen=True, repr=True)

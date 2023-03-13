@@ -34,7 +34,7 @@ from moscot.base.problems._mixins import AnalysisMixin, AnalysisMixinProtocol
 from moscot.base.problems.compound_problem import B, K
 from moscot.constants import AlignmentMode, CorrMethod, PlottingDefaults
 from moscot.logging import logger
-from moscot.utils._subset_policy import StarPolicy
+from moscot.utils.subset_policy import StarPolicy
 
 
 class SpatialAlignmentMixinProtocol(AnalysisMixinProtocol[K, B]):

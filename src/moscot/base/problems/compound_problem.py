@@ -31,9 +31,9 @@ from moscot.base.output import BaseSolverOutput
 from moscot.base.problems._utils import require_prepare
 from moscot.base.problems.manager import ProblemManager
 from moscot.base.problems.problem import BaseProblem, OTProblem
-from moscot.constants import Policy
+from moscot.constants import Policy, Tag
 from moscot.logging import logger
-from moscot.utils._subset_policy import (
+from moscot.utils.subset_policy import (
     DummyPolicy,
     ExplicitPolicy,
     FormatterMixin,
@@ -42,7 +42,7 @@ from moscot.utils._subset_policy import (
     StarPolicy,
     SubsetPolicy,
 )
-from moscot.utils._tagged_array import Tag, TaggedArray
+from moscot.utils.tagged_array import TaggedArray
 
 __all__ = ["BaseCompoundProblem", "CompoundProblem"]
 

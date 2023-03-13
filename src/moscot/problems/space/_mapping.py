@@ -16,7 +16,7 @@ from moscot.base.problems.problem import OTProblem
 from moscot.constants import Policy
 from moscot.problems._utils import handle_cost, handle_joint_attr
 from moscot.problems.space._mixins import SpatialMappingMixin
-from moscot.utils._subset_policy import DummyPolicy, ExternalStarPolicy
+from moscot.utils.subset_policy import DummyPolicy, ExternalStarPolicy
 
 __all__ = ["MappingProblem"]
 

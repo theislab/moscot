@@ -20,8 +20,8 @@ import scanpy as sc
 from moscot._docs._docs import d
 from moscot._types import ArrayLike
 from moscot.base.problems.problem import OTProblem
+from moscot.data import apoptosis_markers, proliferation_markers
 from moscot.logging import logger
-from moscot.utils._data import MarkerGenes
 
 __all__ = ["BirthDeathProblem", "BirthDeathMixin"]
 
@@ -120,7 +120,7 @@ class BirthDeathMixin:
             if isinstance(gene_set_proliferation, str):
                 sc.tl.score_genes(
                     self.adata,
-                    MarkerGenes.proliferation_markers(gene_set_proliferation),  # type: ignore[arg-type]
+                    proliferation_markers(gene_set_proliferation),  # type: ignore[arg-type]
                     score_name=proliferation_key,
                     **kwargs,
                 )
@@ -133,7 +133,7 @@ class BirthDeathMixin:
             if isinstance(gene_set_apoptosis, str):
                 sc.tl.score_genes(
                     self.adata,
-                    MarkerGenes.apoptosis_markers(gene_set_apoptosis),  # type: ignore[arg-type]
+                    apoptosis_markers(gene_set_apoptosis),  # type: ignore[arg-type]
                     score_name=apoptosis_key,
                     **kwargs,
                 )

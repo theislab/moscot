@@ -26,9 +26,8 @@ from moscot.base.output import BaseSolverOutput
 from moscot.base.problems._mixins import AnalysisMixin, AnalysisMixinProtocol
 from moscot.base.problems.birth_death import BirthDeathProblem
 from moscot.base.problems.compound_problem import ApplyOutput_t, B, K
-from moscot.constants import PlottingDefaults, PlottingKeys
+from moscot.constants import PlottingDefaults, PlottingKeys, Tag
 from moscot.plotting._utils import set_plotting_vars
-from moscot.utils._tagged_array import Tag
 
 
 # TODO(@MUCDK, @michalk8): check for ignore[misc] in line below, might become redundant
