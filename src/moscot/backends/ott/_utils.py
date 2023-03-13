@@ -1,4 +1,5 @@
-from typing import Any, Optional
+import inspect
+from typing import Any, Callable, Dict, Optional
 
 import jax.numpy as jnp
 from ott.geometry.pointcloud import PointCloud
@@ -36,3 +37,11 @@ def _compute_sinkhorn_divergence(
         logger.warning("Solver did not converge in the `y/y` term.")
 
     return float(output.divergence)
+
+
+def _filter_kwargs(*funcs: Callable[..., Any], **kwargs: Any) -> Dict[str, Any]:
+    res = {}
+    for func in funcs:
+        params = inspect.signature(func).parameters
+        res.update({k: v for k, v in kwargs.items() if k in params})
+    return res

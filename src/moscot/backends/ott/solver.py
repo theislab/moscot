@@ -21,7 +21,7 @@ from moscot._types import (
     QuadInitializer_t,
     SinkhornInitializer_t,
 )
-from moscot._utils import _filter_kwargs
+from moscot.backends.ott._utils import _filter_kwargs
 from moscot.backends.ott.output import OTTOutput
 from moscot.base.solver import OTSolver
 from moscot.costs import get_cost
