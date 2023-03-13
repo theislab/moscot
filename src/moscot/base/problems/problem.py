@@ -19,6 +19,7 @@ from sklearn.preprocessing import StandardScaler
 import scanpy as sc
 from anndata import AnnData
 
+from moscot import backends
 from moscot._docs._docs import d
 from moscot._logging import logger
 from moscot._types import ArrayLike, CostFn_t, Device_t, ProblemKind_t, ProblemStage_t
@@ -327,7 +328,7 @@ class OTProblem(BaseProblem):
         - :attr:`solver`: optimal transport solver.
         - :attr:`solution`: optimal transport solution.
         """
-        self._solver = "TODO"
+        self._solver = backends.get_solver(self.problem_kind, backend=backend, **kwargs)
 
         # TODO: add ScaleCost(scale_cost)
 
