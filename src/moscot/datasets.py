@@ -1,69 +1,19 @@
-# this file was adapted from https://github.com/theislab/cellrank/blob/master/cellrank/datasets/_datasets.py
 import os
 import warnings
 from types import MappingProxyType
-from typing import Any, Literal, Mapping, Optional, Tuple, Union
+from typing import Any, List, Literal, Mapping, Optional, Tuple
 
 from anndata import AnnData
 
+import networkx as nx
 import numpy as np
 import pandas as pd
 
 from scanpy import read
 
-from moscot.datasets._utils import _get_random_trees
+from moscot._types import PathLike
 
-__all__ = ["mosta", "hspc", "drosophila", "tedsim", "sim_align", "simulate_data"]
-PathLike = Union[os.PathLike, str]
-
-_datasets = MappingProxyType(
-    {
-        "TedSim": (
-            "https://figshare.com/ndownloader/files/38031258",
-            (16382, 500),
-        ),
-        "mosta": (
-            "https://figshare.com/ndownloader/files/37953852",
-            (54134, 2000),
-        ),
-        "hspc": (
-            "https://figshare.com/ndownloader/files/37993503",
-            (4000, 2000),
-        ),
-        "adata_dm_sc": (
-            "https://figshare.com/ndownloader/files/37984938",
-            (1297, 2000),
-        ),
-        "adata_dm_sp": (
-            "https://figshare.com/ndownloader/files/37984935",
-            (3039, 82),
-        ),
-        "sim_align": (
-            "https://figshare.com/ndownloader/files/37984926",
-            (1200, 500),
-        ),
-    }
-)
-
-
-def _load_dataset_from_url(
-    fpath: PathLike,
-    backup_url: str,
-    expected_shape: Tuple[int, int],
-    sparse: bool = True,
-    cache: bool = True,
-    **kwargs: Any,
-) -> AnnData:
-    fpath = str(fpath)
-    if not fpath.endswith(".h5ad"):
-        fpath += ".h5ad"
-    fpath = os.path.expanduser(fpath)
-
-    adata = read(filename=fpath, backup_url=backup_url, sparse=sparse, cache=cache, **kwargs)
-    if adata.shape != expected_shape:
-        raise ValueError(f"Expected `AnnData` object to have shape `{expected_shape}`, found `{adata.shape}`.")
-
-    return adata
+__all__ = ["mosta", "hspc", "drosophila", "sim_align", "simulate_data"]
 
 
 def mosta(
@@ -88,7 +38,9 @@ def mosta(
     -------
     Annotated data object.
     """
-    return _load_dataset_from_url(path, *_datasets["mosta"], **kwargs)
+    return _load_dataset_from_url(
+        path, backup_url="https://figshare.com/ndownloader/files/37953852", expected_shape=(54134, 2000), **kwargs
+    )
 
 
 def hspc(
@@ -115,12 +67,15 @@ def hspc(
     -------
     Annotated data object.
     """
-    return _load_dataset_from_url(path, *_datasets["hspc"], **kwargs)
+    return _load_dataset_from_url(
+        path, backup_url="https://figshare.com/ndownloader/files/37993503", expected_shape=(4000, 2000), **kwargs
+    )
 
 
 def drosophila(
     path: PathLike = "~/.cache/moscot/drosophila.h5ad",
-    spatial: bool = False,
+    *,
+    spatial: bool,
     **kwargs: Any,
 ) -> AnnData:
     """Embryo of Drosophila melanogaster described in :cite:`Li-spatial:22`.
@@ -143,8 +98,19 @@ def drosophila(
     """
     path, _ = os.path.splitext(path)
     if spatial:
-        return _load_dataset_from_url(path + "_sp.h5ad", *_datasets["adata_dm_sp"], **kwargs)
-    return _load_dataset_from_url(path + "_sc.h5ad", *_datasets["adata_dm_sc"], **kwargs)
+        return _load_dataset_from_url(
+            path + "_sp.h5ad",
+            backup_url="https://figshare.com/ndownloader/files/37984935",
+            expected_shape=(3039, 82),
+            **kwargs,
+        )
+
+    return _load_dataset_from_url(
+        path + "_sc.h5ad",
+        backup_url="https://figshare.com/ndownloader/files/37984938",
+        expected_shape=(1297, 2000),
+        **kwargs,
+    )
 
 
 def tedsim(
@@ -171,7 +137,9 @@ def tedsim(
     -------
     Annotated data object.
     """
-    return _load_dataset_from_url(path, *_datasets["TedSim"], **kwargs)
+    return _load_dataset_from_url(
+        path, backup_url="https://figshare.com/ndownloader/files/38031258", expected_shape=(16382, 500), **kwargs
+    )
 
 
 def sim_align(
@@ -191,10 +159,11 @@ def sim_align(
     -------
     Annotated data object.
     """
-    return _load_dataset_from_url(path, *_datasets["sim_align"], **kwargs)
+    return _load_dataset_from_url(
+        path, backup_url="https://figshare.com/ndownloader/files/37984926", expected_shape=(1200, 500), **kwargs
+    )
 
 
-# TODO(michalk8): expose the kwargs
 def simulate_data(
     n_distributions: int = 2,
     cells_per_distribution: int = 20,
@@ -289,7 +258,55 @@ def simulate_data(
         barcode_dim = kwargs.pop("barcode_dim", 10)
         adata.obsm["barcode"] = rng.choice(n_intBCs, size=(adata.n_obs, barcode_dim))
     if lin_cost_matrix is not None:
-        raise NotImplementedError
+        raise NotImplementedError("TODO")
     if quad_cost_matrix is not None:
-        raise NotImplementedError
+        raise NotImplementedError("TODO")
     return adata
+
+
+def _load_dataset_from_url(
+    fpath: PathLike,
+    *,
+    backup_url: str,
+    expected_shape: Tuple[int, int],
+    sparse: bool = True,
+    cache: bool = True,
+    **kwargs: Any,
+) -> AnnData:
+    fpath = str(fpath)
+    if not fpath.endswith(".h5ad"):
+        fpath += ".h5ad"
+    fpath = os.path.expanduser(fpath)
+
+    adata = read(filename=fpath, backup_url=backup_url, sparse=sparse, cache=cache, **kwargs)
+    if adata.shape != expected_shape:
+        raise ValueError(f"Expected `AnnData` object to have shape `{expected_shape}`, found `{adata.shape}`.")
+
+    return adata
+
+
+def _get_random_trees(
+    n_leaves: int, n_trees: int, n_initial_nodes: int = 50, leaf_names: Optional[List[List[str]]] = None, seed: int = 42
+) -> List[nx.DiGraph]:
+    rng = np.random.RandomState(42)
+    if leaf_names is not None:
+        assert len(leaf_names) == n_trees
+        for i in range(n_trees):
+            assert len(leaf_names[i]) == n_leaves
+    trees = []
+    for tree_idx in range(n_trees):
+        G = nx.random_tree(n_initial_nodes, seed=seed, create_using=nx.DiGraph)
+        leaves = [x for x in G.nodes() if G.out_degree(x) == 0 and G.in_degree(x) == 1]
+        inner_nodes = list(set(G.nodes()) - set(leaves))
+        leaves_updated = leaves.copy()
+        for i in range(n_leaves - len(leaves)):
+            G.add_node(n_initial_nodes + i)
+            G.add_edge(rng.choice(inner_nodes, 1)[0], n_initial_nodes + i)
+            leaves_updated.append(n_initial_nodes + i)
+        assert len(leaves_updated) == n_leaves
+        if leaf_names is not None:
+            relabel_dict = {leaves_updated[i]: leaf_names[tree_idx][i] for i in range(len(leaves_updated))}
+            G = nx.relabel_nodes(G, relabel_dict)
+        trees.append(G)
+
+    return trees

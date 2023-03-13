@@ -1,3 +1,4 @@
+import os
 from typing import Any, Literal, Mapping, Optional, Sequence, Union
 
 import numpy as np
@@ -30,3 +31,4 @@ ScaleCost_t = Optional[Union[float, Literal["mean", "max_cost", "max_bound", "ma
 OttCostFn_t = Literal["euclidean", "sq_euclidean", "cosine", "bures", "unbalanced_bures"]
 GenericCostFn_t = Literal["barcode_distance", "leaf_distance", "custom"]
 CostFn_t = Union[str, GenericCostFn_t, OttCostFn_t]
+PathLike = Union[os.PathLike, str]
