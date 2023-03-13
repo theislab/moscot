@@ -1,9 +1,9 @@
 from abc import ABC, abstractmethod
 from typing import Any, Tuple, Union
 
-from anndata import AnnData
-
 import numpy as np
+
+from anndata import AnnData
 
 from moscot._logging import logger
 from moscot._types import ArrayLike

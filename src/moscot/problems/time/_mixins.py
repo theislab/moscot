@@ -14,11 +14,11 @@ from typing import (
     Union,
 )
 
-from anndata import AnnData
-
 import numpy as np
 import pandas as pd
 from pandas.api.types import infer_dtype, is_numeric_dtype
+
+from anndata import AnnData
 
 from moscot import _constants
 from moscot._docs._docs_mixins import d_mixins
@@ -29,6 +29,8 @@ from moscot.base.problems.birth_death import BirthDeathProblem
 from moscot.base.problems.compound_problem import ApplyOutput_t, B, K
 from moscot.plotting._utils import set_plotting_vars
 from moscot.utils.tagged_array import Tag
+
+__all__ = ["TemporalMixin"]
 
 
 # TODO(@MUCDK, @michalk8): check for ignore[misc] in line below, might become redundant

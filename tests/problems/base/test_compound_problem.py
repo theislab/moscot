@@ -2,7 +2,6 @@ import os
 from typing import Any, Literal, Mapping, Optional, Tuple
 
 import pytest
-from anndata import AnnData
 from pytest_mock import MockerFixture
 
 import numpy as np
@@ -10,6 +9,8 @@ from ott.geometry.costs import Cosine, Euclidean, SqEuclidean
 from ott.geometry.pointcloud import PointCloud
 from ott.solvers.linear.sinkhorn import solve as sinkhorn
 from sklearn.metrics.pairwise import euclidean_distances
+
+from anndata import AnnData
 
 from moscot.problems.base import CompoundProblem, OTProblem
 from moscot.utils.tagged_array import Tag, TaggedArray

@@ -4,10 +4,11 @@ from pathlib import Path
 from typing import Dict, List, Optional
 
 import pytest
-from anndata import AnnData
 
 import numpy as np
 import pandas as pd
+
+from anndata import AnnData
 
 from moscot.problems.space import AlignmentProblem, MappingProblem
 from tests._utils import MockSolverOutput, _adata_spatial_split

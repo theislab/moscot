@@ -1,9 +1,9 @@
 from typing import Any, List, Optional, Tuple, Type, Union
 
-from anndata import AnnData
-
 import numpy as np
 from scipy.sparse import csr_matrix
+
+from anndata import AnnData
 
 from moscot._types import ArrayLike
 from moscot.base.output import MatrixSolverOutput

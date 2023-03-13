@@ -2,10 +2,10 @@ import enum
 from dataclasses import dataclass
 from typing import Any, Callable, Literal, Optional, Tuple, Union
 
-from anndata import AnnData
-
 import numpy as np
 import scipy.sparse as sp
+
+from anndata import AnnData
 
 from moscot._logging import logger
 from moscot._types import ArrayLike, CostFn_t

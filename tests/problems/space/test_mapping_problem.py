@@ -2,9 +2,10 @@ from pathlib import Path
 from typing import Any, List, Literal, Mapping, Optional
 
 import pytest
-from anndata import AnnData
 
 import numpy as np
+
+from anndata import AnnData
 
 from moscot.problems.space import MappingProblem
 from tests._utils import _adata_spatial_split

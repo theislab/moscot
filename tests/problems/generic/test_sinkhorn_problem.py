@@ -1,10 +1,11 @@
 from typing import Any, Literal, Mapping
 
 import pytest
-from anndata import AnnData
 
 import numpy as np
 import pandas as pd
+
+from anndata import AnnData
 
 from moscot.base.output import BaseSolverOutput
 from moscot.problems.base import OTProblem

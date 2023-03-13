@@ -2,13 +2,12 @@ import pickle
 from math import cos, sin
 from typing import List, Tuple
 
-import anndata as ad
-from anndata import AnnData
-
 import numpy as np
 from scipy.sparse import csr_matrix
 
+import anndata as ad
 import scanpy as sc
+from anndata import AnnData
 
 from moscot._types import ArrayLike
 from moscot.problems.space import (  # type: ignore[attr-defined]

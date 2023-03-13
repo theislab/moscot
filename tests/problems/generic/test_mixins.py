@@ -1,11 +1,12 @@
 from typing import List, Literal, Optional, Tuple
 
 import pytest
-from anndata import AnnData
 
 import numpy as np
 import pandas as pd
 from scipy.sparse.linalg import LinearOperator
+
+from anndata import AnnData
 
 from tests._utils import ATOL, RTOL, CompoundProblemWithMixin, MockSolverOutput
 

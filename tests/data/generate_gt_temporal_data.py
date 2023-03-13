@@ -11,13 +11,12 @@ except ImportError:
 
 import os
 
-from anndata import AnnData
-
 import numpy as np
 import pandas as pd
 from sklearn.metrics import pairwise_distances
 
 import scanpy as sc
+from anndata import AnnData
 
 from moscot._types import ArrayLike
 from moscot.problems.time import TemporalProblem  # type: ignore[attr-defined]

@@ -2,9 +2,10 @@ from pathlib import Path
 from typing import Any, Literal, Mapping, Optional
 
 import pytest
-from anndata import AnnData
 
 import numpy as np
+
+from anndata import AnnData
 
 from moscot.problems.space import AlignmentProblem
 from tests.problems.conftest import (

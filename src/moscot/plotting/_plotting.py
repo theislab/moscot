@@ -11,20 +11,15 @@ from typing import (
     Union,
 )
 
-from anndata import AnnData
-
 import numpy as np
 
 import matplotlib as mpl
 from matplotlib import colors as mcolors
 from matplotlib.axes import Axes
 
+from anndata import AnnData
+
 from moscot import _constants
-
-if TYPE_CHECKING:
-    from moscot.base.problems.compound_problem import CompoundProblem
-    from moscot.problems.time import LineageProblem, TemporalProblem
-
 from moscot._docs._docs_plot import d_plotting
 from moscot.plotting._utils import (
     _create_col_colors,
@@ -34,6 +29,12 @@ from moscot.plotting._utils import (
     _sankey,
     get_plotting_vars,
 )
+
+if TYPE_CHECKING:
+    from moscot.base.problems.compound_problem import CompoundProblem
+    from moscot.problems.time import LineageProblem, TemporalProblem
+
+__all__ = ["cell_transition", "sankey", "push", "pull"]
 
 
 @d_plotting.dedent

@@ -1,9 +1,10 @@
 from typing import Any, List, Mapping, Optional
 
 import pytest
-from anndata import AnnData
 
 import numpy as np
+
+from anndata import AnnData
 
 from moscot.problems.time._lineage import BirthDeathProblem
 

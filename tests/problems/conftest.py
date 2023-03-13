@@ -1,9 +1,10 @@
 import pytest
-from anndata import AnnData
 
 import numpy as np
 import pandas as pd
 from sklearn.metrics import pairwise_distances
+
+from anndata import AnnData
 
 from tests._utils import Geom_t
 

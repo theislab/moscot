@@ -1,5 +1,5 @@
-from collections import defaultdict
-from types import MappingProxyType
+import collections
+import types
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -23,6 +23,8 @@ if TYPE_CHECKING:
 
 K = TypeVar("K", bound=Hashable)
 B = TypeVar("B", bound=OTProblem)
+
+__all__ = ["ProblemManager"]
 
 
 class ProblemManager(Generic[K, B]):
@@ -98,7 +100,7 @@ class ProblemManager(Generic[K, B]):
         }
 
     def _create_problem(
-        self, key: Tuple[K, K], init_kwargs: Mapping[str, Any] = MappingProxyType({}), **kwargs: Any
+        self, key: Tuple[K, K], init_kwargs: Mapping[str, Any] = types.MappingProxyType({}), **kwargs: Any
     ) -> B:
         src, tgt = key
         src_mask = self._policy.create_mask(src, allow_empty=False)
@@ -108,7 +110,7 @@ class ProblemManager(Generic[K, B]):
         ).prepare(**kwargs)
 
     def _verify_shape_integrity(self) -> None:
-        dims = defaultdict(set)
+        dims = collections.defaultdict(set)
         for (src, tgt), prob in self.problems.items():
             dims[src].add(prob.shape[0])
             dims[tgt].add(prob.shape[1])

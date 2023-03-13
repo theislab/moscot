@@ -171,7 +171,7 @@ multi_line_output = 3
 sections = ["FUTURE", "STDLIB", "THIRDPARTY", "NUMERIC", "PLOTTING", "BIO", "FIRSTPARTY", "LOCALFOLDER"]
 # also contains what we import in notebooks
 known_numeric = ["numpy", "scipy", "jax", "ott", "pandas", "sklearn", "networkx"]
-known_bio = ["scanpy", "squidpy"]
+known_bio = ["anndata", "scanpy", "squidpy"]
 known_plotting = ["IPython", "matplotlib", "mpl_toolkits", "seaborn"]
 
 [tool.pytest.ini_options]

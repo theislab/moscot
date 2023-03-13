@@ -1,9 +1,10 @@
 from typing import Any, List, Mapping
 
 import pytest
-from anndata import AnnData
 
 import numpy as np
+
+from anndata import AnnData
 
 from moscot.base.output import BaseSolverOutput
 from moscot.base.problems.birth_death import BirthDeathProblem

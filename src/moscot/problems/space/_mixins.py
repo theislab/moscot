@@ -1,4 +1,4 @@
-from itertools import chain
+import itertools
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -12,20 +12,19 @@ from typing import (
     Union,
 )
 
-from anndata import AnnData
-
 import numpy as np
 import pandas as pd
 import scipy.sparse as sp
 from networkx import NetworkXNoPath
 from pandas.api.types import is_categorical_dtype
 from scipy.linalg import svd
-from scipy.sparse import issparse
 from scipy.sparse.linalg import LinearOperator
 from scipy.spatial import ConvexHull
 from scipy.stats import pearsonr, spearmanr
 from sklearn.metrics import pairwise_distances
 from sklearn.neighbors import NearestNeighbors
+
+from anndata import AnnData
 
 from moscot import _constants
 from moscot._docs._docs import d
@@ -35,6 +34,8 @@ from moscot._types import ArrayLike, Device_t, Str_Dict_t
 from moscot.base.problems._mixins import AnalysisMixin, AnalysisMixinProtocol
 from moscot.base.problems.compound_problem import B, K
 from moscot.utils.subset_policy import StarPolicy
+
+__all__ = ["SpatialAlignmentMixin", "SpatialMappingMixin"]
 
 
 class SpatialAlignmentMixinProtocol(AnalysisMixinProtocol[K, B]):
@@ -124,7 +125,7 @@ class SpatialAlignmentMixin(AnalysisMixin[K, B]):
         # get policy
         reference_ = [reference] if isinstance(reference, str) else reference
         full_steps = self._policy._graph
-        starts = set(chain.from_iterable(full_steps)) - set(reference_)  # type: ignore[call-overload]
+        starts = set(itertools.chain.from_iterable(full_steps)) - set(reference_)  # type: ignore[call-overload]
 
         if mode == "affine":
             _transport = self._affine
@@ -364,7 +365,7 @@ class SpatialMappingMixin(AnalysisMixin[K, B]):
             raise NotImplementedError(f"Correlation method `{corr_method!r}` is not yet implemented.")
 
         corrs = {}
-        gexp_sc = self.adata_sc[:, var_sc].X if not issparse(self.adata_sc.X) else self.adata_sc[:, var_sc].X.A
+        gexp_sc = self.adata_sc[:, var_sc].X if not sp.issparse(self.adata_sc.X) else self.adata_sc[:, var_sc].X.A
         for key, val in self.solutions.items():
             index_obs: List[Union[bool, int]] = (
                 self.adata_sp.obs[self._policy._subset_key] == key[0]
@@ -372,8 +373,8 @@ class SpatialMappingMixin(AnalysisMixin[K, B]):
                 else np.arange(self.adata_sp.shape[0])
             )
             gexp_sp = self.adata_sp[index_obs, var_sc].X
-            if issparse(gexp_sp):
-                # TODO(giovp): in future, logg if too large
+            if sp.issparse(gexp_sp):
+                # TODO(giovp): in the future, logg if too large
                 gexp_sp = gexp_sp.A
             gexp_pred_sp = val.pull(gexp_sc, scale_by_marginals=True)
             corr_val = [cor(gexp_pred_sp[:, gi], gexp_sp[:, gi])[0] for gi, _ in enumerate(var_sc)]
@@ -399,7 +400,7 @@ class SpatialMappingMixin(AnalysisMixin[K, B]):
         """
         if var_names is None:
             var_names = self.adata_sc.var_names
-        gexp_sc = self.adata_sc[:, var_names].X if not issparse(self.adata_sc.X) else self.adata_sc[:, var_names].X.A
+        gexp_sc = self.adata_sc[:, var_names].X if not sp.issparse(self.adata_sc.X) else self.adata_sc[:, var_names].X.A
         pred_list = [
             val.to(device=device).pull(gexp_sc, scale_by_marginals=True)
             if device is not None

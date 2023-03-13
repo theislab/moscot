@@ -3,12 +3,11 @@ import warnings
 from types import MappingProxyType
 from typing import Any, List, Literal, Mapping, Optional, Tuple
 
-from anndata import AnnData
-
 import networkx as nx
 import numpy as np
 import pandas as pd
 
+from anndata import AnnData
 from scanpy import read
 
 from moscot._types import PathLike

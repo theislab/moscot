@@ -1,11 +1,12 @@
 from typing import Any, Literal, Mapping, Tuple
 
 import pytest
-from anndata import AnnData
 
 import numpy as np
 import pandas as pd
 from ott.geometry.costs import Cosine, Euclidean, SqEuclidean
+
+from anndata import AnnData
 
 from moscot.base.output import BaseSolverOutput
 from moscot.problems.base import OTProblem

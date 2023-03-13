@@ -11,14 +11,13 @@ from typing import (
     Union,
 )
 
-from anndata import AnnData
-
 import numpy as np
 import pandas as pd
-from scipy.sparse import csr_matrix, issparse, vstack
+import scipy.sparse as sp
 from sklearn.preprocessing import StandardScaler
 
 import scanpy as sc
+from anndata import AnnData
 
 from moscot._docs._docs import d
 from moscot._logging import logger
@@ -434,10 +433,10 @@ class OTProblem(BaseProblem):
         **kwargs: Any,
     ) -> Dict[Literal["xy", "x", "y"], TaggedArray]:
         def concat(x: ArrayLike, y: ArrayLike) -> ArrayLike:
-            if issparse(x):
-                return vstack([x, csr_matrix(y)])
-            if issparse(y):
-                return vstack([csr_matrix(x), y])
+            if sp.issparse(x):
+                return sp.vstack([x, sp.csr_matrix(y)])
+            if sp.issparse(y):
+                return sp.vstack([sp.csr_matrix(x), y])
             return np.vstack([x, y])
 
         if layer is None:

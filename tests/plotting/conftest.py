@@ -4,13 +4,14 @@ from pathlib import Path
 from typing import Callable, Optional
 
 import pytest
-from anndata import AnnData
 
 import numpy as np
 import pandas as pd
 
 import matplotlib.pyplot as plt
 from matplotlib.testing.compare import compare_images
+
+from anndata import AnnData
 
 from moscot import _constants
 from moscot.plotting._utils import set_plotting_vars

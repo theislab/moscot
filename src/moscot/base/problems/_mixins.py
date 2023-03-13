@@ -13,13 +13,12 @@ from typing import (
     Union,
 )
 
-from anndata import AnnData
-
 import numpy as np
 import pandas as pd
 from scipy.sparse.linalg import LinearOperator
 
 import scanpy as sc
+from anndata import AnnData
 
 from moscot import _constants
 from moscot._docs._docs import d
@@ -37,6 +36,8 @@ from moscot.base.problems.compound_problem import ApplyOutput_t, B, K
 from moscot.plotting._utils import set_plotting_vars
 from moscot.utils.data import transcription_factors
 from moscot.utils.subset_policy import SubsetPolicy
+
+__all__ = ["AnalysisMixin"]
 
 
 class AnalysisMixinProtocol(Protocol[K, B]):

@@ -1,8 +1,8 @@
 from typing import TYPE_CHECKING, Any, List, Literal, Optional, Protocol, Tuple, Union
 
-from anndata import AnnData
-
 import pandas as pd
+
+from anndata import AnnData
 
 from moscot import _constants
 from moscot._docs._docs_mixins import d_mixins
@@ -10,6 +10,8 @@ from moscot._types import ArrayLike, Str_Dict_t
 from moscot.base.problems._mixins import AnalysisMixin, AnalysisMixinProtocol
 from moscot.base.problems.compound_problem import ApplyOutput_t, B, K
 from moscot.plotting._utils import set_plotting_vars
+
+__all__ = ["GenericAnalysisMixin"]
 
 
 class GenericAnalysisMixinProtocol(AnalysisMixinProtocol[K, B], Protocol[K, B]):

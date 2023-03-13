@@ -1,8 +1,9 @@
 import pytest
-from anndata import AnnData
 
 import numpy as np
 import scipy
+
+from anndata import AnnData
 
 from moscot.datasets import _get_random_trees
 

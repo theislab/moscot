@@ -1,13 +1,14 @@
 from typing import Literal
 
 import pytest
-from anndata import AnnData
 
 import jax.numpy as jnp
 import numpy as np
 import pandas as pd
 from ott.geometry.pointcloud import PointCloud
 from ott.solvers.linear.sinkhorn import solve as sinkhorn
+
+from anndata import AnnData
 
 from moscot.base.output import BaseSolverOutput
 from moscot.problems.base import OTProblem

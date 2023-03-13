@@ -11,11 +11,10 @@ from typing import (
     Union,
 )
 
-from anndata import AnnData
-
 import numpy as np
 
 import scanpy as sc
+from anndata import AnnData
 
 from moscot._docs._docs import d
 from moscot._logging import logger

@@ -1,8 +1,9 @@
 import pytest
-from anndata import AnnData
 
 import numpy as np
 import pandas as pd
+
+from anndata import AnnData
 
 
 @pytest.fixture()

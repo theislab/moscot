@@ -1,5 +1,5 @@
+import abc
 import os
-from abc import ABC, abstractmethod
 from types import MappingProxyType
 from typing import (
     TYPE_CHECKING,
@@ -20,9 +20,10 @@ from typing import (
 )
 
 import cloudpickle
-from anndata import AnnData
 
-from scipy.sparse import issparse
+import scipy.sparse as sp
+
+from anndata import AnnData
 
 from moscot._docs._docs import d
 from moscot._logging import logger
@@ -55,7 +56,7 @@ ApplyOutput_t = Union[ArrayLike, Dict[K, ArrayLike]]
 
 @d.get_sections(base="BaseCompoundProblem", sections=["Parameters", "Raises"])
 @d.dedent
-class BaseCompoundProblem(BaseProblem, ABC, Generic[K, B]):
+class BaseCompoundProblem(BaseProblem, abc.ABC, Generic[K, B]):
     """
     Base class for all biological problems.
 
@@ -76,11 +77,11 @@ class BaseCompoundProblem(BaseProblem, ABC, Generic[K, B]):
         self._adata = adata
         self._problem_manager: Optional[ProblemManager[K, B]] = None
 
-    @abstractmethod
+    @abc.abstractmethod
     def _create_problem(self, src: K, tgt: K, src_mask: ArrayLike, tgt_mask: ArrayLike, **kwargs: Any) -> B:
         pass
 
-    @abstractmethod
+    @abc.abstractmethod
     def _create_policy(
         self,
         policy: Policy_t,
@@ -89,7 +90,7 @@ class BaseCompoundProblem(BaseProblem, ABC, Generic[K, B]):
         pass
 
     @property
-    @abstractmethod
+    @abc.abstractmethod
     def _valid_policies(self) -> Tuple[Policy_t, ...]:
         pass
 
@@ -580,7 +581,7 @@ class BaseCompoundProblem(BaseProblem, ABC, Generic[K, B]):
 
 @d.get_sections(base="CompoundProblem", sections=["Parameters", "Raises"])
 @d.dedent
-class CompoundProblem(BaseCompoundProblem[K, B], ABC):
+class CompoundProblem(BaseCompoundProblem[K, B], abc.ABC):
     """
     Class handling biological problems composed of exactly one :class:`anndata.AnnData` instance.
 
@@ -593,7 +594,7 @@ class CompoundProblem(BaseCompoundProblem[K, B], ABC):
     """
 
     @property
-    @abstractmethod
+    @abc.abstractmethod
     def _base_problem_type(self) -> Type[B]:
         pass
 
@@ -649,14 +650,14 @@ class CompoundProblem(BaseCompoundProblem[K, B], ABC):
             mask_2 = self._policy.create_mask(key_2, allow_empty=False)
 
             linear_cost_matrix = data[mask, :][:, mask_2]
-            if issparse(linear_cost_matrix):
+            if sp.issparse(linear_cost_matrix):
                 logger.warning("Linear cost matrix being densified.")
                 linear_cost_matrix = linear_cost_matrix.A
             return {"xy": TaggedArray(linear_cost_matrix, tag=Tag.COST_MATRIX)}
 
         if term in ("x", "y"):
             quad_cost_matrix = data[mask, :][:, mask_2]
-            if issparse(quad_cost_matrix):
+            if sp.issparse(quad_cost_matrix):
                 logger.warning("Quadratic cost matrix being densified.")
                 quad_cost_matrix = quad_cost_matrix.A
             return {term: TaggedArray(quad_cost_matrix, tag=Tag.COST_MATRIX)}

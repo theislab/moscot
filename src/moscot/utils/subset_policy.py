@@ -18,11 +18,11 @@ from typing import (
     Union,
 )
 
-from anndata import AnnData
-
 import networkx as nx
 import numpy as np
 import pandas as pd
+
+from anndata import AnnData
 
 from moscot import _constants
 from moscot._types import ArrayLike, Policy_t
@@ -36,6 +36,7 @@ __all__ = [
     "TriangularPolicy",
     "ExplicitPolicy",
     "DummyPolicy",
+    "FormatterMixin",
 ]
 
 

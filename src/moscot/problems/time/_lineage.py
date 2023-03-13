@@ -18,6 +18,8 @@ from moscot.base.problems.compound_problem import B, CompoundProblem
 from moscot.problems._utils import handle_cost, handle_joint_attr
 from moscot.problems.time._mixins import TemporalMixin
 
+__all__ = ["TemporalProblem", "LineageProblem"]
+
 
 @d.dedent
 class TemporalProblem(

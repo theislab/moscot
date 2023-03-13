@@ -2,7 +2,6 @@ from math import cos, sin
 from typing import Optional, Tuple
 
 import pytest
-from anndata import AnnData
 
 import jax.numpy as jnp
 import numpy as np
@@ -13,6 +12,7 @@ from scipy.sparse import csr_matrix
 import matplotlib.pyplot as plt
 
 import scanpy as sc
+from anndata import AnnData
 
 from tests._utils import Geom_t, _make_adata, _make_grid
 

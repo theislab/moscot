@@ -1,11 +1,12 @@
 from typing import List, Optional
 
 import pytest
-from anndata import AnnData
 
 import numpy as np
 
 import matplotlib as mpl
+
+from anndata import AnnData
 
 import moscot as msc
 from moscot.plotting._utils import _input_to_adatas

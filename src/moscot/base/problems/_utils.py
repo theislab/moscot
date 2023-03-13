@@ -25,13 +25,14 @@ if TYPE_CHECKING:
     from moscot.base.problems.problem import BaseProblem
 
 import wrapt
-from anndata import AnnData
 from statsmodels.stats.multitest import multipletests
 
 import numpy as np
 import pandas as pd
 import scipy.sparse as sp
 from scipy.stats import norm, rankdata
+
+from anndata import AnnData
 
 from moscot._docs._docs import d
 from moscot._logging import logger

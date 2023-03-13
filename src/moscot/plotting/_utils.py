@@ -15,8 +15,6 @@ from typing import (
     Union,
 )
 
-from anndata import AnnData
-
 import numpy as np
 import pandas as pd
 from pandas.api.types import is_categorical_dtype
@@ -30,6 +28,7 @@ from matplotlib.colors import ListedColormap
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 
 import scanpy as sc
+from anndata import AnnData
 from scanpy.plotting._utils import (
     add_colors_for_categorical_sample_annotation as add_color_palette,
 )
