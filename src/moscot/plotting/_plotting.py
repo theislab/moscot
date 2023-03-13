@@ -24,7 +24,7 @@ if TYPE_CHECKING:
     from moscot.problems.time import LineageProblem, TemporalProblem
 
 from moscot._docs._docs_plot import d_plotting
-from moscot.constants import AdataKeys, PlottingDefaults, PlottingKeys
+from moscot.constants import PlottingDefaults, PlottingKeys
 from moscot.plotting._utils import (
     _create_col_colors,
     _heatmap,
@@ -78,14 +78,8 @@ def cell_transition(
     adata1, adata2 = _input_to_adatas(inp)
 
     key = PlottingDefaults.CELL_TRANSITION if uns_key is None else uns_key
-    try:
-        _ = adata1.uns[AdataKeys.UNS][PlottingKeys.CELL_TRANSITION][key]
-    except KeyError:
-        raise KeyError(
-            f"No data found in `adata.uns[{AdataKeys.UNS!r}][{PlottingKeys.CELL_TRANSITION!r}][{key!r}]`."
-        ) from None
+    data = get_plotting_vars(adata1, PlottingKeys.CELL_TRANSITION, key=key)
 
-    data = adata1.uns[AdataKeys.UNS][PlottingKeys.CELL_TRANSITION][key]
     fig = _heatmap(
         row_adata=adata1,
         col_adata=adata2,
