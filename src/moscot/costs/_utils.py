@@ -1,11 +1,11 @@
 from typing import Any, Optional, Tuple
 
-from moscot.utils import registry
+from moscot.utils import _registry
 
 __all__ = ["get_cost", "get_available_costs", "register_cost"]
 
 
-_REGISTRY = registry.Registry()
+_REGISTRY = _registry.Registry()
 
 
 def get_cost(name: str, *, backend: Optional[str] = None, **kwargs: Any) -> Any:

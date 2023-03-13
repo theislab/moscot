@@ -1,7 +1,7 @@
 from typing import TYPE_CHECKING, Any, Literal, Union
 
 from moscot._types import ProblemKind_t
-from moscot.utils import registry
+from moscot.utils import _registry
 
 if TYPE_CHECKING:
     from . import ott
@@ -9,7 +9,7 @@ if TYPE_CHECKING:
 __all__ = ["get_solver", "register_solver"]
 
 
-_REGISTRY = registry.Registry()
+_REGISTRY = _registry.Registry()
 
 
 def get_solver(problem_kind: ProblemKind_t, *, backend: str = "ott", **kwargs: Any) -> Any:
