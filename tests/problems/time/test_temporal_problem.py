@@ -8,8 +8,8 @@ import pandas as pd
 from anndata import AnnData
 
 from moscot.base.output import BaseSolverOutput
+from moscot.base.problems import BirthDeathProblem
 from moscot.problems.time import TemporalProblem
-from moscot.problems.time._lineage import BirthDeathProblem
 from tests._utils import ATOL, RTOL
 from tests.problems.conftest import (
     geometry_args,

@@ -12,7 +12,7 @@ from sklearn.metrics.pairwise import euclidean_distances
 
 from anndata import AnnData
 
-from moscot.problems.base import CompoundProblem, OTProblem
+from moscot.base.problems import CompoundProblem, OTProblem
 from moscot.utils.tagged_array import Tag, TaggedArray
 from tests._utils import ATOL, RTOL, Problem
 

@@ -19,7 +19,7 @@ import scanpy as sc
 from anndata import AnnData
 
 from moscot._types import ArrayLike
-from moscot.problems.time import TemporalProblem  # type: ignore[attr-defined]
+from moscot.problems.time import TemporalProblem
 
 eps = 0.5
 lam1 = 1

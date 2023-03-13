@@ -7,9 +7,8 @@ from anndata import AnnData
 
 from moscot._types import ArrayLike
 from moscot.base.output import MatrixSolverOutput
-from moscot.base.problems._mixins import AnalysisMixin
+from moscot.base.problems import AnalysisMixin, CompoundProblem, OTProblem
 from moscot.base.problems.compound_problem import B
-from moscot.problems.base import CompoundProblem, OTProblem
 
 Geom_t = Union[np.ndarray, Tuple[np.ndarray, np.ndarray]]
 RTOL = 1e-6

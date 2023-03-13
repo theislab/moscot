@@ -10,10 +10,7 @@ import scanpy as sc
 from anndata import AnnData
 
 from moscot._types import ArrayLike
-from moscot.problems.space import (  # type: ignore[attr-defined]
-    AlignmentProblem,
-    MappingProblem,
-)
+from moscot.problems.space import AlignmentProblem, MappingProblem
 
 ANGLES = [0, 30, 60]
 

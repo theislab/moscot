@@ -17,7 +17,7 @@ from ott.solvers.quadratic.gromov_wasserstein import GromovWasserstein
 from ott.solvers.quadratic.gromov_wasserstein import solve as gromov_wasserstein
 
 from moscot._types import ArrayLike, Device_t
-from moscot.backends.ott import GWSolver, SinkhornSolver  # type: ignore[attr-defined]
+from moscot.backends.ott import GWSolver, SinkhornSolver
 from moscot.base.output import BaseSolverOutput
 from moscot.base.solver import O, OTSolver
 from moscot.utils.tagged_array import Tag

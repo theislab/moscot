@@ -9,7 +9,7 @@ from ott.geometry.costs import Cosine, Euclidean, SqEuclidean
 from anndata import AnnData
 
 from moscot.base.output import BaseSolverOutput
-from moscot.problems.base import OTProblem
+from moscot.base.problems import OTProblem
 from moscot.problems.generic import GWProblem
 from tests.problems.conftest import (
     fgw_args_1,

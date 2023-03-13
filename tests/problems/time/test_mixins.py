@@ -7,7 +7,7 @@ import pandas as pd
 
 from anndata import AnnData
 
-from moscot.problems.time._lineage import TemporalProblem
+from moscot.problems.time import TemporalProblem
 from tests._utils import MockSolverOutput
 
 

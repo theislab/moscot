@@ -8,7 +8,7 @@ import pandas as pd
 from anndata import AnnData
 
 from moscot.base.output import BaseSolverOutput
-from moscot.problems.base import OTProblem
+from moscot.base.problems import OTProblem
 from moscot.problems.generic import SinkhornProblem
 from tests.problems.conftest import (
     geometry_args,

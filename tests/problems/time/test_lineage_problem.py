@@ -7,7 +7,7 @@ import numpy as np
 from anndata import AnnData
 
 from moscot.base.output import BaseSolverOutput
-from moscot.base.problems.birth_death import BirthDeathProblem
+from moscot.base.problems import BirthDeathProblem
 from moscot.problems.time import LineageProblem
 from tests._utils import ATOL, RTOL
 from tests.problems.conftest import (
