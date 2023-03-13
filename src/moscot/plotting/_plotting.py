@@ -14,8 +14,6 @@ from typing import (
 import numpy as np
 
 import matplotlib as mpl
-from matplotlib import colors as mcolors
-from matplotlib.axes import Axes
 
 from anndata import AnnData
 
@@ -45,11 +43,11 @@ def cell_transition(
     col_labels: Optional[str] = None,
     annotate: Optional[str] = "{x:.2f}",
     fontsize: float = 7.0,
-    cmap: Union[str, mcolors.Colormap] = "viridis",
+    cmap: Union[str, mpl.colors.Colormap] = "viridis",
     figsize: Optional[Tuple[float, float]] = None,
     dpi: Optional[int] = None,
     save: Optional[str] = None,
-    ax: Optional[Axes] = None,
+    ax: Optional[mpl.axes.Axes] = None,
     return_fig: bool = False,
     cbar_kwargs: Mapping[str, Any] = MappingProxyType({}),
     **kwargs: Any,
@@ -115,11 +113,11 @@ def sankey(
     colors_dict: Optional[Dict[str, float]] = None,
     alpha: float = 1.0,
     interpolate_color: bool = False,
-    cmap: Union[str, mcolors.Colormap] = "viridis",
+    cmap: Union[str, mpl.colors.Colormap] = "viridis",
     figsize: Optional[Tuple[float, float]] = None,
     dpi: Optional[int] = None,
     save: Optional[str] = None,
-    ax: Optional[Axes] = None,
+    ax: Optional[mpl.axes.Axes] = None,
     return_fig: bool = False,
     **kwargs: Any,
 ) -> mpl.figure.Figure:
@@ -182,13 +180,13 @@ def push(
     scale: bool = True,
     title: Optional[Union[str, List[str]]] = None,
     suptitle: Optional[str] = None,
-    cmap: Optional[Union[str, mcolors.Colormap]] = None,
+    cmap: Optional[Union[str, mpl.colors.Colormap]] = None,
     dot_scale_factor: float = 2.0,
     na_color: str = "#e8ebe9",
     figsize: Optional[Tuple[float, float]] = None,
     dpi: Optional[int] = None,
     save: Optional[str] = None,
-    ax: Optional[Axes] = None,
+    ax: Optional[mpl.axes.Axes] = None,
     return_fig: bool = False,
     suptitle_fontsize: Optional[float] = None,
     **kwargs: Any,
@@ -266,13 +264,13 @@ def pull(
     scale: bool = True,
     title: Optional[Union[str, List[str]]] = None,
     suptitle: Optional[str] = None,
-    cmap: Optional[Union[str, mcolors.Colormap]] = None,
+    cmap: Optional[Union[str, mpl.colors.Colormap]] = None,
     dot_scale_factor: float = 2.0,
     na_color: str = "#e8ebe9",
     figsize: Optional[Tuple[float, float]] = None,
     dpi: Optional[int] = None,
     save: Optional[str] = None,
-    ax: Optional[Axes] = None,
+    ax: Optional[mpl.axes.Axes] = None,
     return_fig: bool = False,
     suptitle_fontsize: Optional[float] = None,
     **kwargs: Any,
