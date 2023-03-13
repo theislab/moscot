@@ -1,7 +1,17 @@
 import enum
-from typing import Any, Optional
 
-from anndata import AnnData
+__all__ = [
+    "ProblemStage",
+    "ScaleCost",
+    "Policy",
+    "AlignmentMode",
+    "CorrMethod",
+    "AggregationMode",
+    "AdataKeys",
+    "PlottingKeys",
+    "PlottingDefaults",
+    "CorrTestMethod",
+]
 
 
 class StrEnum(str, enum.Enum):
@@ -79,26 +89,3 @@ class PlottingDefaults(StrEnum):  # sets the adata.uns[AdataKeys.UNS][value] val
 class CorrTestMethod(StrEnum):
     FISCHER = "fischer"
     PERM_TEST = "perm_test"
-
-
-class Key:
-    class uns:
-        @classmethod
-        def set_plotting_vars(
-            cls,
-            adata: AnnData,
-            pl_func_key: Optional[str] = None,
-            key: Optional[str] = None,
-            value: Optional[Any] = None,
-            override: bool = True,
-        ) -> None:
-            adata.uns.setdefault(AdataKeys.UNS, {})
-            if pl_func_key is not None:
-                adata.uns[AdataKeys.UNS].setdefault(pl_func_key, {})
-            if key is not None:
-                if not override and key in adata.uns[AdataKeys.UNS][pl_func_key]:
-                    raise KeyError(
-                        f"Data in `adata.uns[{AdataKeys.UNS!r}][{pl_func_key!r}][{key!r}]` "
-                        f"already exists, use `override=True`."
-                    )
-                adata.uns[AdataKeys.UNS][pl_func_key][key] = value

@@ -21,14 +21,6 @@ from scipy.sparse.linalg import LinearOperator
 
 import scanpy as sc
 
-from moscot._constants._constants import (
-    AggregationMode,
-    CorrMethod,
-    CorrTestMethod,
-    Key,
-    PlottingDefaults,
-    PlottingKeys,
-)
 from moscot._docs._docs import d
 from moscot._types import ArrayLike, Numeric_t, Str_Dict_t
 from moscot.base.output import BaseSolverOutput
@@ -41,6 +33,14 @@ from moscot.base.problems._utils import (
     _validate_args_cell_transition,
 )
 from moscot.base.problems.compound_problem import ApplyOutput_t, B, K
+from moscot.constants import (
+    AggregationMode,
+    CorrMethod,
+    CorrTestMethod,
+    PlottingDefaults,
+    PlottingKeys,
+)
+from moscot.plotting._utils import set_plotting_vars
 from moscot.utils._data import TranscriptionFactors
 from moscot.utils._subset_policy import SubsetPolicy
 
@@ -161,9 +161,9 @@ class AnalysisMixin(Generic[K, B]):
                 if (forward or aggregation_mode == AggregationMode.ANNOTATION)
                 else AggregationMode.CELL,
             }
-            Key.uns.set_plotting_vars(
-                adata=self.adata,
-                pl_func_key=PlottingKeys.CELL_TRANSITION,
+            set_plotting_vars(
+                self.adata,
+                PlottingKeys.CELL_TRANSITION,
                 key=key_added,
                 value=plot_vars,
             )

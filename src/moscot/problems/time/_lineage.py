@@ -3,7 +3,6 @@ from typing import Any, Literal, Mapping, Optional, Tuple, Type, Union
 
 from anndata import AnnData
 
-from moscot._constants._constants import Policy
 from moscot._docs._docs import d
 from moscot._types import (
     Numeric_t,
@@ -14,6 +13,7 @@ from moscot._types import (
 )
 from moscot.base.problems.birth_death import BirthDeathMixin, BirthDeathProblem
 from moscot.base.problems.compound_problem import B, CompoundProblem
+from moscot.constants import Policy
 from moscot.problems._utils import handle_cost, handle_joint_attr
 from moscot.problems.time._mixins import TemporalMixin
 

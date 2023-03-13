@@ -1,15 +1,19 @@
 # adapted from CellRank
+import contextlib
 import inspect
 from functools import partial, update_wrapper
 from multiprocessing import Manager, cpu_count
 from threading import Thread
 from types import MappingProxyType
-from typing import Any, Callable, Dict, Optional, Sequence, Type, Union
+from typing import Any, Callable, Dict, List, Optional, Sequence, Set, Type, Union
 
 import joblib as jl
+from anndata import AnnData
 
 import numpy as np
 import scipy.sparse as sp
+
+__all__ = ["parallelize", "RandomKeys", "attributedispatch"]
 
 Callback = Callable[..., Any]
 
@@ -203,3 +207,53 @@ def _filter_kwargs(*funcs: Callable[..., Any], **kwargs: Any) -> Dict[str, Any]:
         params = inspect.signature(func).parameters
         res.update({k: v for k, v in kwargs.items() if k in params})
     return res
+
+
+class RandomKeys:
+    """
+    Create random keys inside an :class:`~anndata.AnnData` object.
+
+    Parameters
+    ----------
+    adata
+        Annotated data object.
+    n
+        Number of keys, If `None`, create just 1 keys.
+    where
+        Attribute of ``adata``. If `'obs'`, also clean up `'{key}_colors'` for each generated key.
+
+    """
+
+    def __init__(self, adata: AnnData, n: Optional[int] = None, where: str = "obs"):
+        self._adata = adata
+        self._where = where
+        self._n = n or 1
+        self._keys: List[str] = []
+
+    def _generate_random_keys(self):
+        def generator() -> str:
+            return f"RNG_COL_{np.random.RandomState().randint(2 ** 16)}"
+
+        where = getattr(self._adata, self._where)
+        names: List[str] = []
+        seen: Set[str] = set(where.keys())
+
+        while len(names) != self._n:
+            name = generator()
+            if name not in seen:
+                seen.add(name)
+                names.append(name)
+
+        return names
+
+    def __enter__(self):
+        self._keys = self._generate_random_keys()
+        return self._keys
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        with contextlib.suppress(KeyError):
+            for key in self._keys:
+                df = getattr(self._adata, self._where)
+                df.drop(key, axis="columns", inplace=True)
+                if self._where == "obs":
+                    del self._adata.uns[f"{key}_colors"]

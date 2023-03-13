@@ -1,12 +1,11 @@
 from types import MappingProxyType
 from typing import Any, Literal, Mapping, Optional, Tuple, Type, Union
 
-from moscot._constants._constants import Policy
-from moscot._constants._key import Key
 from moscot._docs._docs import d
 from moscot._types import ProblemStage_t, QuadInitializer_t, ScaleCost_t
 from moscot.base.problems.compound_problem import B, CompoundProblem, K
 from moscot.base.problems.problem import OTProblem
+from moscot.constants import Policy
 from moscot.problems._utils import handle_cost, handle_joint_attr
 from moscot.problems.space._mixins import SpatialAlignmentMixin
 
@@ -29,7 +28,7 @@ class AlignmentProblem(CompoundProblem[K, B], SpatialAlignmentMixin[K, B]):
     def prepare(
         self,
         batch_key: str,
-        spatial_key: str = Key.obsm.spatial,
+        spatial_key: str = "spatial",
         joint_attr: Optional[Union[str, Mapping[str, Any]]] = None,
         policy: Literal["sequential", "star"] = "sequential",
         reference: Optional[str] = None,

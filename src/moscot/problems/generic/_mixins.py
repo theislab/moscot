@@ -4,11 +4,12 @@ from anndata import AnnData
 
 import pandas as pd
 
-from moscot._constants._constants import Key, PlottingDefaults, PlottingKeys
 from moscot._docs._docs_mixins import d_mixins
 from moscot._types import ArrayLike, Str_Dict_t
 from moscot.base.problems._mixins import AnalysisMixin, AnalysisMixinProtocol
 from moscot.base.problems.compound_problem import ApplyOutput_t, B, K
+from moscot.constants import PlottingDefaults, PlottingKeys
+from moscot.plotting._utils import set_plotting_vars
 
 
 class GenericAnalysisMixinProtocol(AnalysisMixinProtocol[K, B], Protocol[K, B]):
@@ -142,7 +143,7 @@ class GenericAnalysisMixin(AnalysisMixin[K, B]):
                 "distribution_key": self.batch_key,
             }
             self.adata.obs[key_added] = self._flatten(result, key=self.batch_key)
-            Key.uns.set_plotting_vars(self.adata, PlottingKeys.PUSH, key_added, plot_vars)
+            set_plotting_vars(self.adata, PlottingKeys.PUSH, key=key_added, value=plot_vars)
         return result if return_data else None
 
     @d_mixins.dedent
@@ -195,7 +196,7 @@ class GenericAnalysisMixin(AnalysisMixin[K, B]):
                 "key": self.batch_key,
             }
             self.adata.obs[key_added] = self._flatten(result, key=self.batch_key)
-            Key.uns.set_plotting_vars(self.adata, PlottingKeys.PULL, key_added, plot_vars)
+            set_plotting_vars(self.adata, PlottingKeys.PULL, key=key_added, value=plot_vars)
         return result if return_data else None
 
     @property

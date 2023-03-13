@@ -20,13 +20,14 @@ import numpy as np
 import pandas as pd
 from pandas.api.types import infer_dtype, is_numeric_dtype
 
-from moscot._constants._constants import Key, PlottingDefaults, PlottingKeys
 from moscot._docs._docs_mixins import d_mixins
 from moscot._types import ArrayLike, Numeric_t, Str_Dict_t
 from moscot.base.output import BaseSolverOutput
 from moscot.base.problems._mixins import AnalysisMixin, AnalysisMixinProtocol
 from moscot.base.problems.birth_death import BirthDeathProblem
 from moscot.base.problems.compound_problem import ApplyOutput_t, B, K
+from moscot.constants import PlottingDefaults, PlottingKeys
+from moscot.plotting._utils import set_plotting_vars
 from moscot.utils._tagged_array import Tag
 
 
@@ -303,7 +304,7 @@ class TemporalMixin(AnalysisMixin[K, B]):
                 "target_groups": target_groups,
                 "captions": [str(t) for t in tuples],
             }
-            Key.uns.set_plotting_vars(self.adata, PlottingKeys.SANKEY, key_added, plot_vars)
+            set_plotting_vars(self.adata, PlottingKeys.SANKEY, key=key_added, value=plot_vars)
         return cell_transitions_updated if return_data else None
 
     @d_mixins.dedent
@@ -361,7 +362,7 @@ class TemporalMixin(AnalysisMixin[K, B]):
                 "subset": subset,
             }
             self.adata.obs[key_added] = self._flatten(result, key=self.temporal_key)
-            Key.uns.set_plotting_vars(self.adata, PlottingKeys.PUSH, key_added, plot_vars)
+            set_plotting_vars(self.adata, PlottingKeys.PUSH, key=key_added, value=plot_vars)
         return result if return_data else None
 
     @d_mixins.dedent
@@ -418,7 +419,7 @@ class TemporalMixin(AnalysisMixin[K, B]):
                 "target": target,
             }
             self.adata.obs[key_added] = self._flatten(result, key=self.temporal_key)
-            Key.uns.set_plotting_vars(self.adata, PlottingKeys.PULL, key_added, plot_vars)
+            set_plotting_vars(self.adata, PlottingKeys.PULL, key=key_added, value=plot_vars)
         return result if return_data else None
 
     @property

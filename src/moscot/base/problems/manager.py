@@ -13,10 +13,10 @@ from typing import (
     Union,
 )
 
-from moscot._constants._constants import ProblemStage
 from moscot._types import ProblemStage_t
 from moscot.base.output import BaseSolverOutput
 from moscot.base.problems.problem import OTProblem
+from moscot.constants import ProblemStage
 from moscot.utils._subset_policy import SubsetPolicy
 
 if TYPE_CHECKING:

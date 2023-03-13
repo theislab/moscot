@@ -12,7 +12,8 @@ import pandas as pd
 import matplotlib.pyplot as plt
 from matplotlib.testing.compare import compare_images
 
-from moscot._constants._constants import Key, PlottingDefaults, PlottingKeys
+from moscot._constants._constants import Key
+from moscot.constants import PlottingDefaults, PlottingKeys
 
 HERE: Path = Path(__file__).parent
 

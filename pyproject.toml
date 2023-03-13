@@ -146,6 +146,7 @@ target-version = "py38"
 "tests/*" = ["D"]
 "*/__init__.py" = ["F401"]
 "docs/*" = ["D"]
+"src/moscot/constants.py" = ["D101"]
 [tool.ruff.pydocstyle]
 convention = "numpy"
 [tool.ruff.pyupgrade]

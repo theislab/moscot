@@ -35,8 +35,8 @@ from scanpy.plotting._utils import (
 if TYPE_CHECKING:
     from moscot.base.problems.compound_problem import CompoundProblem
 
-from moscot._constants._constants import AggregationMode
-from moscot._constants._key import RandomKeys
+from moscot._utils import RandomKeys
+from moscot.constants import AggregationMode
 
 
 def set_palette(
@@ -528,3 +528,28 @@ def _create_col_colors(adata: AnnData, obs_col: str, subset: Union[str, List[str
     end_color = mcolors.hsv_to_rgb([h, 1, v])
 
     return mcolors.LinearSegmentedColormap.from_list("category_cmap", ["darkgrey", end_color])
+
+
+def set_plotting_vars(
+    adata: AnnData,
+    func_key: str,
+    *,
+    key: str,
+    value: Any,
+    override: bool = True,
+) -> None:
+    uns_key = "moscot_results"
+    adata.uns.setdefault(uns_key, {}).setdefault(func_key, {})
+    if not override and key in adata.uns[uns_key][func_key]:
+        raise KeyError(
+            f"Data in `adata.uns[{uns_key!r}][{func_key!r}][{key!r}]` " f"already exists, use `override=True`."
+        )
+    adata.uns[uns_key][func_key][key] = value
+
+
+def get_plotting_vars(adata: AnnData, func_key: str, *, key: str) -> Any:
+    uns_key = "moscot_results"
+    try:
+        return adata.uns[uns_key][func_key][key]
+    except KeyError:
+        raise KeyError(f"No data found in `adata.uns[{uns_key!r}][{func_key!r}][{key!r}]`.") from None

@@ -24,8 +24,8 @@ import networkx as nx
 import numpy as np
 import pandas as pd
 
-from moscot._constants._constants import Policy
 from moscot._types import ArrayLike
+from moscot.constants import Policy
 
 Value_t = Tuple[ArrayLike, ArrayLike]
 Policy_t = Literal[

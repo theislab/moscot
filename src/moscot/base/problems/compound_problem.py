@@ -24,7 +24,6 @@ from anndata import AnnData
 
 from scipy.sparse import issparse
 
-from moscot._constants._constants import Policy
 from moscot._docs._docs import d
 from moscot._types import ArrayLike, ProblemStage_t
 from moscot._utils import attributedispatch
@@ -32,6 +31,7 @@ from moscot.base.output import BaseSolverOutput
 from moscot.base.problems._utils import require_prepare
 from moscot.base.problems.manager import ProblemManager
 from moscot.base.problems.problem import BaseProblem, OTProblem
+from moscot.constants import Policy
 from moscot.logging import logger
 from moscot.utils._subset_policy import (
     DummyPolicy,

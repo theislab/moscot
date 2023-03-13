@@ -3,12 +3,11 @@ from typing import Any, Literal, Mapping, Optional, Tuple, Type, Union
 
 from anndata import AnnData
 
-from moscot._constants._constants import Policy
-from moscot._constants._key import Key
 from moscot._docs._docs import d
 from moscot._types import Numeric_t, ProblemStage_t, QuadInitializer_t, ScaleCost_t
 from moscot.base.problems.birth_death import BirthDeathMixin, BirthDeathProblem
 from moscot.base.problems.compound_problem import B
+from moscot.constants import Policy
 from moscot.problems.space._alignment import AlignmentProblem
 from moscot.problems.space._mixins import SpatialAlignmentMixin
 from moscot.problems.time._mixins import TemporalMixin
@@ -39,7 +38,7 @@ class SpatioTemporalProblem(
     def prepare(
         self,
         time_key: str,
-        spatial_key: str = Key.obsm.spatial,
+        spatial_key: str = "spatial",
         joint_attr: Optional[Union[str, Mapping[str, Any]]] = None,
         policy: Literal["sequential", "tril", "triu", "explicit"] = "sequential",
         cost: Union[

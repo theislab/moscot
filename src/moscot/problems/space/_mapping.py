@@ -3,8 +3,6 @@ from typing import Any, Literal, Mapping, Optional, Sequence, Tuple, Type, Union
 
 from anndata import AnnData
 
-from moscot._constants._constants import Policy
-from moscot._constants._key import Key
 from moscot._docs._docs import d
 from moscot._types import (
     ArrayLike,
@@ -15,6 +13,7 @@ from moscot._types import (
 )
 from moscot.base.problems.compound_problem import B, CompoundProblem, K
 from moscot.base.problems.problem import OTProblem
+from moscot.constants import Policy
 from moscot.problems._utils import handle_cost, handle_joint_attr
 from moscot.problems.space._mixins import SpatialMappingMixin
 from moscot.utils._subset_policy import DummyPolicy, ExternalStarPolicy
@@ -80,7 +79,7 @@ class MappingProblem(CompoundProblem[K, OTProblem], SpatialMappingMixin[K, OTPro
         self,
         sc_attr: Str_Dict_t,
         batch_key: Optional[str] = None,
-        spatial_key: Union[str, Mapping[str, Any]] = Key.obsm.spatial,
+        spatial_key: Union[str, Mapping[str, Any]] = "spatial",
         var_names: Optional[Sequence[Any]] = None,
         joint_attr: Optional[Union[str, Mapping[str, Any]]] = None,
         cost: Union[

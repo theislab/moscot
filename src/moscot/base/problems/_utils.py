@@ -25,9 +25,9 @@ import pandas as pd
 from scipy.sparse import csr_matrix, issparse, isspmatrix_csr, spmatrix
 from scipy.stats import norm, rankdata
 
-from moscot._constants._constants import AggregationMode, CorrMethod, CorrTestMethod
 from moscot._docs._docs import d
 from moscot._types import ArrayLike, Str_Dict_t
+from moscot.constants import AggregationMode, CorrMethod, CorrTestMethod
 from moscot.logging import logger
 
 
@@ -469,10 +469,10 @@ def wrap_prepare(
     wrapped: Callable[[Any], Any], instance: "BaseProblem", args: Tuple[Any, ...], kwargs: Mapping[str, Any]
 ) -> Any:
     """Check and update the state when preparing :class:`moscot.problems.base.OTProblem`."""
-    from moscot._constants._constants import ProblemStage
     from moscot.base.problems.problem import (
         ProblemKind,  # TODO: move ENUMs to this file
     )
+    from moscot.constants import ProblemStage
 
     instance = wrapped(*args, **kwargs)
     if instance.problem_kind == ProblemKind.UNKNOWN:
@@ -486,7 +486,7 @@ def wrap_solve(
     wrapped: Callable[[Any], Any], instance: "BaseProblem", args: Tuple[Any, ...], kwargs: Mapping[str, Any]
 ) -> Any:
     """Check and update the state when solving :class:`moscot.problems.base.OTProblem`."""
-    from moscot._constants._constants import ProblemStage
+    from moscot.constants import ProblemStage
 
     if instance.stage not in (ProblemStage.PREPARED, ProblemStage.SOLVED):
         raise RuntimeError(
