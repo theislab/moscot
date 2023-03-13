@@ -21,6 +21,7 @@ from scipy.sparse.linalg import LinearOperator
 
 import scanpy as sc
 
+from moscot import constants
 from moscot._docs._docs import d
 from moscot._types import ArrayLike, Numeric_t, Str_Dict_t
 from moscot.base.output import BaseSolverOutput
@@ -33,13 +34,6 @@ from moscot.base.problems._utils import (
     _validate_args_cell_transition,
 )
 from moscot.base.problems.compound_problem import ApplyOutput_t, B, K
-from moscot.constants import (
-    AggregationMode,
-    CorrMethod,
-    CorrTestMethod,
-    PlottingDefaults,
-    PlottingKeys,
-)
 from moscot.data import transcription_factors
 from moscot.plotting._utils import set_plotting_vars
 from moscot.utils.subset_policy import SubsetPolicy
@@ -130,7 +124,7 @@ class AnalysisMixin(Generic[K, B]):
         target: K,
         source_groups: Str_Dict_t,
         target_groups: Str_Dict_t,
-        key_added: Optional[str] = PlottingDefaults.CELL_TRANSITION,
+        key_added: Optional[str] = constants.CELL_TRANSITION,
         **kwargs: Any,
     ) -> pd.DataFrame:
         _check_argument_compatibility_cell_transition(
@@ -148,22 +142,18 @@ class AnalysisMixin(Generic[K, B]):
         if key_added is not None:
             aggregation_mode = kwargs.pop("aggregation_mode")
             forward = kwargs.pop("forward")
-            if aggregation_mode == AggregationMode.CELL and AggregationMode.CELL in self.adata.obs:
+            if aggregation_mode == "cell" and "cell" in self.adata.obs:
                 raise KeyError(f"Aggregation is already present in `adata.obs[{aggregation_mode!r}]`.")
             plot_vars = {
                 "transition_matrix": tm,
                 "source": source,
                 "target": target,
-                "source_groups": source_groups
-                if (not forward or aggregation_mode == AggregationMode.ANNOTATION)
-                else AggregationMode.CELL,
-                "target_groups": target_groups
-                if (forward or aggregation_mode == AggregationMode.ANNOTATION)
-                else AggregationMode.CELL,
+                "source_groups": source_groups if (not forward or aggregation_mode == "annotation") else "cell",
+                "target_groups": target_groups if (forward or aggregation_mode == "annotation") else "cell",
             }
             set_plotting_vars(
                 self.adata,
-                PlottingKeys.CELL_TRANSITION,
+                constants.CELL_TRANSITION,
                 key=key_added,
                 value=plot_vars,
             )
@@ -184,7 +174,6 @@ class AnalysisMixin(Generic[K, B]):
         normalize: bool = True,
         **_: Any,
     ) -> pd.DataFrame:
-        aggregation_mode = AggregationMode(aggregation_mode)
         source_annotation_key, source_annotations, source_annotations_ordered = _validate_args_cell_transition(
             self.adata, source_groups
         )
@@ -215,7 +204,7 @@ class AnalysisMixin(Generic[K, B]):
             forward=forward,
         )
 
-        if aggregation_mode == AggregationMode.ANNOTATION:
+        if aggregation_mode == "annotation":
             df_target["distribution"] = 0
             df_source["distribution"] = 0
             tm = pd.DataFrame(
@@ -224,7 +213,7 @@ class AnalysisMixin(Generic[K, B]):
                 columns=target_annotations_verified,
             )
             if forward:
-                tm = self._annotation_aggregation_transition(
+                tm = self._annotation_aggregation_transition(  # type: ignore[attr-defined]
                     source=source,
                     target=target,
                     annotation_key=source_annotation_key,
@@ -235,7 +224,7 @@ class AnalysisMixin(Generic[K, B]):
                     forward=True,
                 )
             else:
-                tm = self._annotation_aggregation_transition(
+                tm = self._annotation_aggregation_transition(  # type: ignore[attr-defined]
                     source=source,
                     target=target,
                     annotation_key=target_annotation_key,
@@ -245,10 +234,10 @@ class AnalysisMixin(Generic[K, B]):
                     tm=tm,
                     forward=False,
                 )
-        elif aggregation_mode == AggregationMode.CELL:
+        elif aggregation_mode == "cell":
             tm = pd.DataFrame(columns=target_annotations_verified if forward else source_annotations_verified)
             if forward:
-                tm = self._cell_aggregation_transition(
+                tm = self._cell_aggregation_transition(  # type: ignore[attr-defined]
                     source=source,
                     target=target,
                     annotation_key=target_annotation_key,
@@ -261,7 +250,7 @@ class AnalysisMixin(Generic[K, B]):
                     forward=True,
                 )
             else:
-                tm = self._cell_aggregation_transition(
+                tm = self._cell_aggregation_transition(  # type: ignore[attr-defined]
                     source=source,
                     target=target,
                     annotation_key=source_annotation_key,
@@ -300,7 +289,6 @@ class AnalysisMixin(Generic[K, B]):
         seed: Optional[int] = None,
     ) -> Tuple[List[Any], List[ArrayLike]]:
         rng = np.random.RandomState(seed)
-        _ = "accounting"
         if account_for_unbalancedness and interpolation_parameter is None:
             raise ValueError("When accounting for unbalancedness, interpolation parameter must be provided.")
         if interpolation_parameter is not None and not (0 < interpolation_parameter < 1):
@@ -501,8 +489,8 @@ class AnalysisMixin(Generic[K, B]):
     def compute_feature_correlation(
         self: AnalysisMixinProtocol[K, B],
         obs_key: str,
-        corr_method: CorrMethod = CorrMethod.PEARSON,
-        significance_method: Literal["fischer", "perm_test"] = CorrTestMethod.FISCHER,
+        corr_method: Literal["pearson", "spearman"] = "pearson",
+        significance_method: Literal["fischer", "perm_test"] = "fischer",
         annotation: Optional[Dict[str, Iterable[str]]] = None,
         layer: Optional[str] = None,
         features: Optional[Union[List[str], Literal["human", "mouse", "drosophila"]]] = None,
@@ -570,8 +558,6 @@ class AnalysisMixin(Generic[K, B]):
         if obs_key not in self.adata.obs:
             raise KeyError(f"Unable to access data in `adata.obs[{obs_key!r}]`.")
 
-        significance_method = CorrTestMethod(significance_method)
-
         if annotation is not None:
             annotation_key, annotation_vals = next(iter(annotation.items()))
             if annotation_key not in self.adata.obs:
@@ -591,7 +577,7 @@ class AnalysisMixin(Generic[K, B]):
         if isinstance(features, str):
             tfs = transcription_factors(organism=features)
             features = list(set(tfs).intersection(adata.var_names))
-            if len(features) == 0:
+            if not features:
                 raise KeyError("No common transcription factors found in the data base.")
         elif features is None:
             features = list(self.adata.var_names)

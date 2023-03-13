@@ -12,8 +12,6 @@ from typing import (
     Union,
 )
 
-from moscot.constants import ProblemStage
-
 if TYPE_CHECKING:
     from moscot.base.problems.compound_problem import BaseCompoundProblem
     from moscot.base.problems.problem import BaseProblem
@@ -29,7 +27,6 @@ from scipy.stats import norm, rankdata
 
 from moscot._docs._docs import d
 from moscot._types import ArrayLike, Str_Dict_t
-from moscot.constants import AggregationMode, CorrMethod, CorrTestMethod, ProblemKind
 from moscot.logging import logger
 
 
@@ -39,7 +36,7 @@ def _validate_annotations_helper(
     annotations: Optional[List[Any]] = None,
     aggregation_mode: Literal["annotation", "cell"] = "annotation",
 ) -> List[Any]:
-    if aggregation_mode == AggregationMode.ANNOTATION:
+    if aggregation_mode == "annotation":
         if TYPE_CHECKING:  # checked in _check_argument_compatibility_cell_transition(
             assert annotations is not None
         annotations_verified = set(df[annotation_key].cat.categories).intersection(set(annotations))
@@ -66,12 +63,9 @@ def _check_argument_compatibility_cell_transition(
         raise ValueError("No target annotation provided.")
     if not forward and source_annotation is None:
         raise ValueError("No source annotation provided.")
-    if (AggregationMode(aggregation_mode) == AggregationMode.ANNOTATION) and (
-        source_annotation is None or target_annotation is None
-    ):
+    if (aggregation_mode == "annotation") and (source_annotation is None or target_annotation is None):
         raise ValueError(
-            f"If aggregation mode is `{AggregationMode.ANNOTATION!r}`, "
-            f"source or target annotation in `adata.obs` must be provided."
+            "If aggregation mode is `'annotation'`, " "source or target annotation in `adata.obs` must be provided."
         )
 
 
@@ -197,8 +191,8 @@ def _correlation_test(
     X: Union[ArrayLike, sp.spmatrix],
     Y: pd.DataFrame,
     feature_names: Sequence[str],
-    corr_method: CorrMethod = CorrMethod.PEARSON,
-    significance_method: CorrTestMethod = CorrTestMethod.FISCHER,
+    corr_method: Literal["pearson", "spearman"] = "pearson",
+    significance_method: Literal["fischer", "perm_test"] = "fischer",
     confidence_level: float = 0.95,
     n_perms: Optional[int] = None,
     seed: Optional[int] = None,
@@ -284,8 +278,8 @@ def _correlation_test(
 def _correlation_test_helper(
     X: ArrayLike,
     Y: ArrayLike,
-    corr_method: CorrMethod = CorrMethod.SPEARMAN,
-    significance_method: CorrTestMethod = CorrTestMethod.FISCHER,
+    corr_method: Literal["pearson", "spearman"] = "spearman",
+    significance_method: Literal["fischer", "perm_test"] = "fischer",
     n_perms: Optional[int] = None,
     seed: Optional[int] = None,
     confidence_level: float = 0.95,
@@ -340,11 +334,11 @@ def _correlation_test_helper(
     if sp.issparse(X):
         X = sp.csr_matrix(X)
 
-    if corr_method == CorrMethod.SPEARMAN:
+    if corr_method == "spearman":
         X, Y = rankdata(X, method="average", axis=0), rankdata(Y, method="average", axis=0)
     corr = _pearson_mat_mat_corr_sparse(X, Y) if sp.issparse(X) else _pearson_mat_mat_corr_dense(X, Y)
 
-    if significance_method == CorrTestMethod.FISCHER:
+    if significance_method == "fischer":
         # see: https://en.wikipedia.org/wiki/Pearson_correlation_coefficient#Using_the_Fisher_transformation
         # for spearman see: https://www.sciencedirect.com/topics/mathematics/spearman-correlation
         mean, se = np.arctanh(corr), 1 / np.sqrt(n - 3)
@@ -355,14 +349,14 @@ def _correlation_test_helper(
         corr_ci_high = np.tanh(mean + z * se)
         pvals = 2 * norm.cdf(-np.abs(z_score))
 
-    elif significance_method == CorrTestMethod.PERM_TEST:
+    elif significance_method == "perm_test":
         if not isinstance(n_perms, int):
             raise TypeError(f"Expected `n_perms` to be an integer, found `{type(n_perms).__name__}`.")
         if n_perms <= 0:
-            raise ValueError(f"Expcted `n_perms` to be positive, found `{n_perms}`.")
+            raise ValueError(f"Expected `n_perms` to be positive, found `{n_perms}`.")
 
         pvals, corr_ci_low, corr_ci_high = parallelize(
-            _perm_test,  # type:ignore[arg-type]
+            _perm_test,  # type: ignore[arg-type]
             np.arange(n_perms),
             as_array=False,
             unit="permutation",
@@ -472,9 +466,9 @@ def wrap_prepare(
 ) -> Any:
     """Check and update the state when preparing :class:`moscot.problems.base.OTProblem`."""
     instance = wrapped(*args, **kwargs)
-    if instance.problem_kind == ProblemKind.UNKNOWN:
+    if instance.problem_kind == "unknown":
         raise RuntimeError("Problem kind was not set after running `.prepare()`.")
-    instance._stage = ProblemStage.PREPARED
+    instance._stage = "prepared"
     return instance
 
 
@@ -483,10 +477,10 @@ def wrap_solve(
     wrapped: Callable[[Any], Any], instance: "BaseProblem", args: Tuple[Any, ...], kwargs: Mapping[str, Any]
 ) -> Any:
     """Check and update the state when solving :class:`moscot.problems.base.OTProblem`."""
-    if instance.stage not in (ProblemStage.PREPARED, ProblemStage.SOLVED):
+    if instance.stage not in ("prepared", "solved"):
         raise RuntimeError(
             f"Expected problem's stage to be either `'prepared'` or `'solved'`, found `{instance.stage!r}`."
         )
     instance = wrapped(*args, **kwargs)
-    instance._stage = ProblemStage.SOLVED
+    instance._stage = "solved"
     return instance

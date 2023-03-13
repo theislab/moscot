@@ -4,11 +4,11 @@ from anndata import AnnData
 
 import pandas as pd
 
+from moscot import constants
 from moscot._docs._docs_mixins import d_mixins
 from moscot._types import ArrayLike, Str_Dict_t
 from moscot.base.problems._mixins import AnalysisMixin, AnalysisMixinProtocol
 from moscot.base.problems.compound_problem import ApplyOutput_t, B, K
-from moscot.constants import PlottingDefaults, PlottingKeys
 from moscot.plotting._utils import set_plotting_vars
 
 
@@ -41,12 +41,13 @@ class GenericAnalysisMixin(AnalysisMixin[K, B]):
         target: K,
         source_groups: Optional[Str_Dict_t] = None,
         target_groups: Optional[Str_Dict_t] = None,
+        # TODO(MUCDK): unused arg
         key: Optional[str] = None,
         forward: bool = False,  # return value will be row-stochastic if forward=True, else column-stochastic
         aggregation_mode: Literal["annotation", "cell"] = "annotation",
         batch_size: Optional[int] = None,
         normalize: bool = True,
-        key_added: Optional[str] = PlottingDefaults.CELL_TRANSITION,
+        key_added: Optional[str] = constants.CELL_TRANSITION,
     ) -> pd.DataFrame:
         """
         Compute a grouped cell transition matrix.
@@ -98,7 +99,7 @@ class GenericAnalysisMixin(AnalysisMixin[K, B]):
         data: Optional[Union[str, ArrayLike]] = None,
         subset: Optional[Union[str, List[str], Tuple[int, int]]] = None,
         scale_by_marginals: bool = True,
-        key_added: Optional[str] = PlottingDefaults.PUSH,
+        key_added: Optional[str] = constants.PUSH,
         return_all: bool = False,
         return_data: bool = False,
         **kwargs: Any,
@@ -143,7 +144,7 @@ class GenericAnalysisMixin(AnalysisMixin[K, B]):
                 "distribution_key": self.batch_key,
             }
             self.adata.obs[key_added] = self._flatten(result, key=self.batch_key)
-            set_plotting_vars(self.adata, PlottingKeys.PUSH, key=key_added, value=plot_vars)
+            set_plotting_vars(self.adata, constants.PUSH, key=key_added, value=plot_vars)
         return result if return_data else None
 
     @d_mixins.dedent
@@ -154,7 +155,7 @@ class GenericAnalysisMixin(AnalysisMixin[K, B]):
         data: Optional[Union[str, ArrayLike]] = None,
         subset: Optional[Union[str, List[str], Tuple[int, int]]] = None,
         scale_by_marginals: bool = True,
-        key_added: Optional[str] = PlottingDefaults.PULL,
+        key_added: Optional[str] = constants.PULL,
         return_all: bool = False,
         return_data: bool = False,
         **kwargs: Any,
@@ -196,7 +197,7 @@ class GenericAnalysisMixin(AnalysisMixin[K, B]):
                 "key": self.batch_key,
             }
             self.adata.obs[key_added] = self._flatten(result, key=self.batch_key)
-            set_plotting_vars(self.adata, PlottingKeys.PULL, key=key_added, value=plot_vars)
+            set_plotting_vars(self.adata, constants.PULL, key=key_added, value=plot_vars)
         return result if return_data else None
 
     @property

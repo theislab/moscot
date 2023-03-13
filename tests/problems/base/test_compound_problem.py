@@ -11,9 +11,8 @@ from ott.geometry.pointcloud import PointCloud
 from ott.solvers.linear.sinkhorn import solve as sinkhorn
 from sklearn.metrics.pairwise import euclidean_distances
 
-from moscot.constants import Tag
 from moscot.problems.base import CompoundProblem, OTProblem
-from moscot.utils.tagged_array import TaggedArray
+from moscot.utils.tagged_array import Tag, TaggedArray
 from tests._utils import ATOL, RTOL, Problem
 
 

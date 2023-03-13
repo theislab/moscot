@@ -15,11 +15,15 @@ from ott.solvers.linear.sinkhorn_lr import LRSinkhorn
 from ott.solvers.quadratic.gromov_wasserstein import GromovWasserstein
 from ott.solvers.was_solver import WassersteinSolver
 
-from moscot._types import ArrayLike, QuadInitializer_t, SinkhornInitializer_t
+from moscot._types import (
+    ArrayLike,
+    ProblemKind_t,
+    QuadInitializer_t,
+    SinkhornInitializer_t,
+)
 from moscot._utils import _filter_kwargs
 from moscot.backends.ott.output import OTTOutput
 from moscot.base.solver import OTSolver
-from moscot.constants import ProblemKind
 from moscot.costs import get_cost
 from moscot.utils.tagged_array import TaggedArray
 
@@ -181,8 +185,8 @@ class SinkhornSolver(OTTJaxSolver):
         return None if self._problem is None else self._problem.geom
 
     @property
-    def problem_kind(self) -> ProblemKind:  # noqa: D102
-        return ProblemKind.LINEAR
+    def problem_kind(self) -> ProblemKind_t:  # noqa: D102
+        return "linear"
 
 
 class GWSolver(OTTJaxSolver):
@@ -301,5 +305,5 @@ class GWSolver(OTTJaxSolver):
         return None if self._problem is None else (self.xy is not None)
 
     @property
-    def problem_kind(self) -> ProblemKind:  # noqa: D102
-        return ProblemKind.QUAD
+    def problem_kind(self) -> ProblemKind_t:  # noqa: D102
+        return "quadratic"

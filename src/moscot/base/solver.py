@@ -14,11 +14,10 @@ from typing import (
 )
 
 from moscot._docs._docs import d
-from moscot._types import ArrayLike, Device_t
+from moscot._types import ArrayLike, Device_t, ProblemKind_t
 from moscot.base.output import BaseSolverOutput
-from moscot.constants import ProblemKind, Tag
 from moscot.logging import logger
-from moscot.utils.tagged_array import TaggedArray
+from moscot.utils.tagged_array import Tag, TaggedArray
 
 __all__ = ["BaseSolver", "OTSolver"]
 
@@ -98,7 +97,7 @@ class BaseSolver(Generic[O], abc.ABC):
 
     @property
     @abc.abstractmethod
-    def problem_kind(self) -> ProblemKind:
+    def problem_kind(self) -> ProblemKind_t:
         """Problem kind this solver handles."""
 
     def __call__(self, **kwargs: Any) -> O:
@@ -161,11 +160,11 @@ class OTSolver(TagConverter, BaseSolver[O], abc.ABC):
         return res.to(device=device)  # type: ignore[return-value]
 
     def _prepare_kwargs(self, data: TaggedArrayData) -> Dict[str, Any]:
-        if self.problem_kind == ProblemKind.LINEAR:
+        if self.problem_kind == "linear":
             if data.xy is None:
                 raise ValueError("No data specified for the linear term.")
             data_kwargs: Dict[str, Any] = {"xy": data.xy}
-        elif self.problem_kind == ProblemKind.QUAD:
+        elif self.problem_kind == "quadratic":
             if data.x is None or data.y is None:
                 raise ValueError("No data specified for the quadratic term.")
             # `data.xy` can be `None`, in which case GW is used

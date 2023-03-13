@@ -1,6 +1,6 @@
 from typing import TYPE_CHECKING, Any, Literal, Union
 
-from moscot.constants import ProblemKind
+from moscot._types import ProblemKind_t
 from moscot.utils import registry
 
 if TYPE_CHECKING:
@@ -12,7 +12,7 @@ __all__ = ["get_solver", "register_solver"]
 _REGISTRY = registry.Registry()
 
 
-def get_solver(problem_kind: ProblemKind, *, backend: str = "ott", **kwargs: Any) -> Any:
+def get_solver(problem_kind: ProblemKind_t, *, backend: str = "ott", **kwargs: Any) -> Any:
     """TODO."""
     if backend not in _REGISTRY:
         raise ValueError(f"Backend `{backend!r}` is not available.")

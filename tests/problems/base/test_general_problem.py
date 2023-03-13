@@ -10,7 +10,6 @@ from ott.geometry.pointcloud import PointCloud
 from ott.solvers.linear.sinkhorn import solve as sinkhorn
 
 from moscot.base.output import BaseSolverOutput
-from moscot.constants import ProblemKind
 from moscot.problems.base import OTProblem
 from tests._utils import ATOL, RTOL, Geom_t, MockSolverOutput
 
@@ -110,13 +109,13 @@ class TestOTProblem:
             x={"attr": "X"},
             y={"attr": "X"},
         )
-        assert prob.problem_kind == ProblemKind.QUAD
+        assert prob.problem_kind == "quadratic"
 
         cm = rng.uniform(1, 10, size=(adata_x.n_obs, adata_y.n_obs))
         cost_matrix = pd.DataFrame(index=adata_x.obs_names, columns=adata_y.obs_names, data=cm)
         prob.set_xy(cost_matrix, tag="cost_matrix")
 
-        assert prob.problem_kind == ProblemKind.QUAD
+        assert prob.problem_kind == "quadratic"
 
     def test_set_x_change_problem_kind(self, adata_x: AnnData, adata_y: AnnData):
         rng = np.random.RandomState(42)
@@ -124,7 +123,7 @@ class TestOTProblem:
         prob = prob.prepare(
             xy={"x_attr": "obsm", "x_key": "X_pca", "y_attr": "obsm", "y_key": "X_pca"},
         )
-        assert prob.problem_kind == ProblemKind.LINEAR
+        assert prob.problem_kind == "linear"
 
         cm = rng.uniform(1, 10, size=(adata_x.n_obs, adata_x.n_obs))
         cost_matrix = pd.DataFrame(index=adata_x.obs_names, columns=adata_x.obs_names, data=cm)
@@ -134,7 +133,7 @@ class TestOTProblem:
         cost_matrix = pd.DataFrame(index=adata_y.obs_names, columns=adata_y.obs_names, data=cm)
         prob.set_y(cost_matrix, tag="cost_matrix")
 
-        assert prob.problem_kind == ProblemKind.QUAD
+        assert prob.problem_kind == "quadratic"
 
 
 class MultiMarginalProblem:

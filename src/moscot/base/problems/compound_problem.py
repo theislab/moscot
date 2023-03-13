@@ -25,24 +25,22 @@ from anndata import AnnData
 from scipy.sparse import issparse
 
 from moscot._docs._docs import d
-from moscot._types import ArrayLike, ProblemStage_t
+from moscot._types import ArrayLike, Policy_t, ProblemStage_t
 from moscot._utils import attributedispatch
 from moscot.base.output import BaseSolverOutput
 from moscot.base.problems._utils import require_prepare
 from moscot.base.problems.manager import ProblemManager
 from moscot.base.problems.problem import BaseProblem, OTProblem
-from moscot.constants import Policy, Tag
 from moscot.logging import logger
 from moscot.utils.subset_policy import (
     DummyPolicy,
     ExplicitPolicy,
     FormatterMixin,
     OrderedPolicy,
-    Policy_t,
     StarPolicy,
     SubsetPolicy,
 )
-from moscot.utils.tagged_array import TaggedArray
+from moscot.utils.tagged_array import Tag, TaggedArray
 
 __all__ = ["BaseCompoundProblem", "CompoundProblem"]
 
@@ -93,7 +91,7 @@ class BaseCompoundProblem(BaseProblem, ABC, Generic[K, B]):
 
     @property
     @abstractmethod
-    def _valid_policies(self) -> Tuple[str, ...]:
+    def _valid_policies(self) -> Tuple[Policy_t, ...]:
         pass
 
     # TODO(michalk8): refactor me
@@ -559,7 +557,6 @@ class BaseCompoundProblem(BaseProblem, ABC, Generic[K, B]):
         return self._problem_manager._policy
 
     def _ensure_valid_policy(self, policy: Policy_t) -> None:
-        policy = Policy(policy)
         if self._valid_policies and policy not in self._valid_policies:
             raise ValueError(f"Invalid policy `{policy!r}`. Valid policies are: `{self._valid_policies}`.")
 

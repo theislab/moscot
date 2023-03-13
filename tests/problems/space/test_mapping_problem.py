@@ -6,7 +6,6 @@ from anndata import AnnData
 
 import numpy as np
 
-from moscot.constants import ProblemKind
 from moscot.problems.space import MappingProblem
 from tests._utils import _adata_spatial_split
 from tests.problems.conftest import (
@@ -67,7 +66,7 @@ class TestMappingProblem:
 
         mp = MappingProblem(adataref, adatasp).prepare(batch_key="batch", sc_attr={"attr": "X"}, var_names=var_names)
         for prob in mp.problems.values():
-            assert prob._problem_kind == ProblemKind.QUAD
+            assert prob.problem_kind == "quadratic"
             # this should hold after running `mp.solve()`
             # assert prob.solver.is_fused is bool(var_names)
             assert prob.shape == (n_obs, n_obs)

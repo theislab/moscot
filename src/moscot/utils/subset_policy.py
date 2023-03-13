@@ -1,7 +1,7 @@
+import abc
 import contextlib
-from abc import ABC, abstractmethod
-from itertools import product
-from operator import gt, lt
+import itertools
+import operator
 from typing import (
     Any,
     Dict,
@@ -24,19 +24,8 @@ import networkx as nx
 import numpy as np
 import pandas as pd
 
-from moscot._types import ArrayLike
-from moscot.constants import Policy
-
-Value_t = Tuple[ArrayLike, ArrayLike]
-Policy_t = Literal[
-    "sequential",
-    "star",
-    "external_star",
-    "triu",
-    "tril",
-    "explicit",
-]
-
+from moscot import constants
+from moscot._types import ArrayLike, Policy_t
 
 __all__ = [
     "SubsetPolicy",
@@ -53,13 +42,13 @@ __all__ = [
 K = TypeVar("K", bound=Hashable)
 
 
-class FormatterMixin(ABC):
-    @abstractmethod
+class FormatterMixin(abc.ABC):
+    @abc.abstractmethod
     def _format(self, value: Any, *, is_source: bool) -> Any:
         pass
 
 
-class SubsetPolicy(Generic[K], ABC):
+class SubsetPolicy(Generic[K], abc.ABC):
     """Policy class."""
 
     def __init__(
@@ -80,7 +69,7 @@ class SubsetPolicy(Generic[K], ABC):
         if verify_integrity and len(self._cat) < 2:
             raise ValueError(f"Policy must contain at least `2` different values, found `{len(self._cat)}`.")
 
-    @abstractmethod
+    @abc.abstractmethod
     def _create_graph(self, **kwargs: Any) -> Set[Tuple[K, K]]:
         pass
 
@@ -120,7 +109,7 @@ class SubsetPolicy(Generic[K], ABC):
             raise ValueError("Unable to create a plan, no steps were selected after filtering.")
         return plan
 
-    @abstractmethod
+    @abc.abstractmethod
     def _plan(self, **kwargs: Any) -> Sequence[Tuple[K, K]]:
         pass
 
@@ -162,18 +151,17 @@ class SubsetPolicy(Generic[K], ABC):
         -----
         TODO: link policy example.
         """
-        kind = Policy(kind)
-        if kind == Policy.SEQUENTIAL:
+        if kind == constants.SEQUENTIAL:
             return SequentialPolicy(adata, **kwargs)
-        if kind == Policy.STAR:
+        if kind == constants.STAR:
             return StarPolicy(adata, **kwargs)
-        if kind == Policy.EXTERNAL_STAR:
+        if kind == constants.EXTERNAL_STAR:
             return ExternalStarPolicy(adata, **kwargs)
-        if kind == Policy.TRIU:
+        if kind == constants.TRIU:
             return TriangularPolicy(adata, **kwargs, upper=True)
-        if kind == Policy.TRIL:
+        if kind == constants.TRIL:
             return TriangularPolicy(adata, **kwargs, upper=False)
-        if kind == Policy.EXPLICIT:
+        if kind == constants.EXPLICIT:
             return ExplicitPolicy(adata, **kwargs)
 
         raise NotImplementedError(kind)
@@ -247,7 +235,7 @@ class SubsetPolicy(Generic[K], ABC):
             self._graph.remove(node)
 
 
-class OrderedPolicy(SubsetPolicy[K], ABC):
+class OrderedPolicy(SubsetPolicy[K], abc.ABC):
     """
     Policy taking into account the order of nodes.
 
@@ -291,7 +279,7 @@ class OrderedPolicy(SubsetPolicy[K], ABC):
         return path if forward else path[::-1]
 
 
-class SimplePlanPolicy(SubsetPolicy[K], ABC):
+class SimplePlanPolicy(SubsetPolicy[K], abc.ABC):
     def _plan(self, **_: Any) -> Sequence[Tuple[K, K]]:
         return list(self._graph)
 
@@ -371,10 +359,10 @@ class TriangularPolicy(OrderedPolicy[K]):
 
     def __init__(self, adata: Union[AnnData, pd.Series, pd.Categorical], upper: bool = True, **kwargs: Any):
         super().__init__(adata, **kwargs)
-        self._compare = lt if upper else gt
+        self._compare = operator.lt if upper else operator.gt
 
     def _create_graph(self, **__: Any) -> Set[Tuple[K, K]]:
-        return {(a, b) for a, b in product(self._cat, self._cat) if self._compare(a, b)}
+        return {(a, b) for a, b in itertools.product(self._cat, self._cat) if self._compare(a, b)}
 
 
 class ExplicitPolicy(SimplePlanPolicy[K]):

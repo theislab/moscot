@@ -19,12 +19,13 @@ import matplotlib as mpl
 from matplotlib import colors as mcolors
 from matplotlib.axes import Axes
 
+from moscot import constants
+
 if TYPE_CHECKING:
     from moscot.base.problems.compound_problem import CompoundProblem
     from moscot.problems.time import LineageProblem, TemporalProblem
 
 from moscot._docs._docs_plot import d_plotting
-from moscot.constants import PlottingDefaults, PlottingKeys
 from moscot.plotting._utils import (
     _create_col_colors,
     _heatmap,
@@ -38,7 +39,7 @@ from moscot.plotting._utils import (
 @d_plotting.dedent
 def cell_transition(
     inp: Union[AnnData, Tuple[AnnData, AnnData], "CompoundProblem"],  # type: ignore[type-arg]
-    uns_key: str = PlottingKeys.CELL_TRANSITION,
+    uns_key: str = constants.CELL_TRANSITION,
     row_labels: Optional[str] = None,
     col_labels: Optional[str] = None,
     annotate: Optional[str] = "{x:.2f}",
@@ -76,9 +77,7 @@ def cell_transition(
     %(notes_cell_transition)s
     """
     adata1, adata2 = _input_to_adatas(inp)
-
-    key = PlottingDefaults.CELL_TRANSITION if uns_key is None else uns_key
-    data = get_plotting_vars(adata1, PlottingKeys.CELL_TRANSITION, key=key)
+    data = get_plotting_vars(adata1, constants.CELL_TRANSITION, key=uns_key)
 
     fig = _heatmap(
         row_adata=adata1,
@@ -108,8 +107,8 @@ def cell_transition(
 @d_plotting.dedent
 def sankey(
     inp: Union[AnnData, "TemporalProblem", "LineageProblem"],
-    # TODO(MUCDK): rename to key_added an move down the line in the params
-    uns_key: Optional[str] = None,
+    # TODO(MUCDK): rename to `key` or `key_added`?
+    uns_key: str = constants.SANKEY,
     captions: Optional[List[str]] = None,
     title: Optional[str] = None,
     colors_dict: Optional[Dict[str, float]] = None,
@@ -150,8 +149,7 @@ def sankey(
     %(notes_sankey)s
     """
     adata, _ = _input_to_adatas(inp)
-    key = PlottingDefaults.SANKEY if uns_key is None else uns_key
-    data = get_plotting_vars(adata, PlottingKeys.SANKEY, key=key)
+    data = get_plotting_vars(adata, constants.SANKEY, key=uns_key)
 
     fig = _sankey(
         adata=adata,
@@ -176,7 +174,7 @@ def sankey(
 @d_plotting.dedent
 def push(
     inp: Union[AnnData, "TemporalProblem", "LineageProblem", "CompoundProblem"],  # type: ignore[type-arg]
-    uns_key: Optional[str] = None,
+    uns_key: str = constants.PUSH,
     time_points: Optional[Sequence[float]] = None,
     basis: str = "umap",
     fill_value: float = np.nan,
@@ -223,18 +221,17 @@ def push(
     %(return_push_pull)s
     """
     adata, _ = _input_to_adatas(inp)
-    key = PlottingDefaults.PUSH if uns_key is None else uns_key
-    if key not in adata.obs:
-        raise KeyError(f"No data found in `adata.obs[{key!r}]`.")
+    if uns_key not in adata.obs:
+        raise KeyError(f"No data found in `adata.obs[{uns_key!r}]`.")
 
-    data = get_plotting_vars(adata, PlottingKeys.PUSH, key=key)
+    data = get_plotting_vars(adata, constants.PUSH, key=uns_key)
     if data["data"] is not None and data["subset"] is not None and cmap is None:
         cmap = _create_col_colors(adata, data["data"], data["subset"])
 
     fig = _plot_temporal(
         adata=adata,
         temporal_key=data["temporal_key"],
-        key_stored=key,
+        key_stored=uns_key,
         source=data["source"],
         target=data["target"],
         categories=data["subset"],
@@ -261,7 +258,7 @@ def push(
 @d_plotting.dedent
 def pull(
     inp: Union[AnnData, "TemporalProblem", "LineageProblem", "CompoundProblem"],  # type: ignore[type-arg]
-    uns_key: Optional[str] = None,
+    uns_key: str = constants.PULL,
     time_points: Optional[Sequence[float]] = None,
     basis: str = "umap",
     fill_value: float = np.nan,
@@ -309,18 +306,17 @@ def pull(
     """
     adata, _ = _input_to_adatas(inp)
 
-    key = PlottingDefaults.PULL if uns_key is None else uns_key
-    if key not in adata.obs:
-        raise KeyError(f"No data found in `adata.obs[{key!r}]`.")
+    if uns_key not in adata.obs:
+        raise KeyError(f"No data found in `adata.obs[{uns_key!r}]`.")
 
-    data = get_plotting_vars(adata, PlottingKeys.PULL, key=key)
+    data = get_plotting_vars(adata, constants.PULL, key=uns_key)
     if data["data"] is not None and data["subset"] is not None and cmap is None:
         cmap = _create_col_colors(adata, data["data"], data["subset"])
 
     fig = _plot_temporal(
         adata=adata,
         temporal_key=data["temporal_key"],
-        key_stored=key,
+        key_stored=uns_key,
         source=data["source"],
         target=data["target"],
         categories=data["subset"],

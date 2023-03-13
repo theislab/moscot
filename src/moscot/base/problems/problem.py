@@ -21,13 +21,12 @@ from sklearn.preprocessing import StandardScaler
 import scanpy as sc
 
 from moscot._docs._docs import d
-from moscot._types import ArrayLike, CostFn_t, Device_t
+from moscot._types import ArrayLike, CostFn_t, Device_t, ProblemKind_t, ProblemStage_t
 from moscot.base.output import BaseSolverOutput
 from moscot.base.problems._utils import require_solution, wrap_prepare, wrap_solve
 from moscot.base.solver import OTSolver
-from moscot.constants import ProblemKind, ProblemStage, Tag
 from moscot.logging import logger
-from moscot.utils.tagged_array import TaggedArray
+from moscot.utils.tagged_array import Tag, TaggedArray
 
 __all__ = ["BaseProblem", "OTProblem"]
 
@@ -44,8 +43,8 @@ class BaseProblem(ABC):
     """
 
     def __init__(self, **kwargs: Any):
-        self._problem_kind: ProblemKind = ProblemKind.UNKNOWN
-        self._stage = ProblemStage.INITIALIZED
+        self._problem_kind: ProblemKind_t = "unknown"
+        self._stage: ProblemStage_t = "initialized"
         self._metadata = dict(kwargs)
 
     @abstractmethod
@@ -112,12 +111,12 @@ class BaseProblem(ABC):
         return (data / total) if normalize else data
 
     @property
-    def stage(self) -> ProblemStage:
+    def stage(self) -> ProblemStage_t:
         """Problem stage."""
         return self._stage
 
     @property
-    def problem_kind(self) -> ProblemKind:
+    def problem_kind(self) -> ProblemKind_t:
         """Kind of the underlying problem."""
         return self._problem_kind
 
@@ -225,11 +224,9 @@ class OTProblem(BaseProblem):
 
         Depending on which arguments are passed:
 
-        - if only ``xy`` is passed, :attr:`problem_kind` will be :attr:`~moscot.solvers.ProblemKind.LINEAR`.
-        - if only ``x`` and ``y`` are passed, :attr:`problem_kind` will be
-          :attr:`~moscot.solvers.ProblemKind.QUAD`.
-        - if all ``xy``, ``x`` and ``y`` are passed, :attr:`problem_kind` will be
-          :attr:`~moscot.solvers.ProblemKind.QUAD_FUSED`.
+        - if only ``xy`` is passed, :attr:`problem_kind` will be ``'linear'``.
+        - if only ``x`` and ``y`` are passed, :attr:`problem_kind` will be ``'quadratic'``.
+        - if all ``xy``, ``x`` and ``y`` are passed, :attr:`problem_kind` will be ``'quadratic'``.
 
         Parameters
         ----------
@@ -275,10 +272,10 @@ class OTProblem(BaseProblem):
         # TODO(michalk8): in the future, have a better dispatch
         # fmt: off
         if xy is not None and x is None and y is None:
-            self._problem_kind = ProblemKind.LINEAR
+            self._problem_kind = "linear"
             self._xy = xy if isinstance(xy, TaggedArray) else self._handle_linear(**xy)
         elif x is not None and y is not None and xy is None:
-            self._problem_kind = ProblemKind.QUAD
+            self._problem_kind = "quadratic"
             if isinstance(x, TaggedArray):
                 self._x = x
             else:
@@ -288,7 +285,7 @@ class OTProblem(BaseProblem):
             else:
                 self._y = TaggedArray.from_adata(self.adata_tgt, dist_key=self._tgt_key, **y)
         elif xy is not None and x is not None and y is not None:
-            self._problem_kind = ProblemKind.QUAD
+            self._problem_kind = "quadratic"
             self._xy = xy if isinstance(xy, TaggedArray) else self._handle_linear(**xy)
             if isinstance(x, TaggedArray):
                 self._x = x
@@ -532,7 +529,7 @@ class OTProblem(BaseProblem):
                 "The column names of `data` do not correspond to `adata.obs_names` of the target distribution."
             )
         self._xy = TaggedArray(data_src=data.values, data_tgt=None, tag=Tag(tag), cost="cost")
-        self._stage = ProblemStage.PREPARED
+        self._stage = "prepared"
 
     @d.dedent
     def set_x(self, data: pd.DataFrame, tag: Literal["cost", "kernel"]) -> None:
@@ -548,9 +545,9 @@ class OTProblem(BaseProblem):
         -------
         None
         """
-        if self.problem_kind == ProblemKind.LINEAR:
+        if self.problem_kind == "linear":
             logger.info(f"Changing the problem type from {self.problem_kind} to fused-quadratic.")
-            self._problem_kind = ProblemKind.QUAD
+            self._problem_kind = "quadratic"
         expected_shape = self.shape[0], self.shape[0]
         if data.shape != expected_shape:
             raise ValueError(f"`data` is expected to have shape {expected_shape} but found {data.shape}.")
@@ -565,7 +562,7 @@ class OTProblem(BaseProblem):
                 "The column names of `data` do not correspond to `adata.obs_names` of the source distribution."
             )
         self._x = TaggedArray(data_src=data.values, data_tgt=None, tag=Tag(tag), cost="cost")
-        self._stage = ProblemStage.PREPARED
+        self._stage = "prepared"
 
     @d.dedent
     def set_y(self, data: pd.DataFrame, tag: Literal["cost", "kernel"]) -> None:
@@ -581,9 +578,9 @@ class OTProblem(BaseProblem):
         -------
         None
         """
-        if self.problem_kind == ProblemKind.LINEAR:
+        if self.problem_kind == "linear":
             logger.info(f"Changing the problem type from {self.problem_kind} to fused-quadratic.")
-            self._problem_kind = ProblemKind.QUAD
+            self._problem_kind = "quadratic"
         expected_shape = self.shape[1], self.shape[1]
         if data.shape != expected_shape:
             raise ValueError(f"`data` is expected to have shape {expected_shape} but found {data.shape}.")
@@ -598,7 +595,7 @@ class OTProblem(BaseProblem):
                 "The column names of `data` do not correspond to `adata.obs_names` of the source distribution."
             )
         self._y = TaggedArray(data_src=data.values, data_tgt=None, tag=Tag(tag), cost="cost")
-        self._stage = ProblemStage.PREPARED
+        self._stage = "prepared"
 
     @property
     def adata_src(self) -> AnnData:

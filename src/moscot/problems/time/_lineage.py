@@ -3,9 +3,11 @@ from typing import Any, Literal, Mapping, Optional, Tuple, Type, Union
 
 from anndata import AnnData
 
+from moscot import constants
 from moscot._docs._docs import d
 from moscot._types import (
     Numeric_t,
+    Policy_t,
     ProblemStage_t,
     QuadInitializer_t,
     ScaleCost_t,
@@ -13,7 +15,6 @@ from moscot._types import (
 )
 from moscot.base.problems.birth_death import BirthDeathMixin, BirthDeathProblem
 from moscot.base.problems.compound_problem import B, CompoundProblem
-from moscot.constants import Policy
 from moscot.problems._utils import handle_cost, handle_joint_attr
 from moscot.problems.time._mixins import TemporalMixin
 
@@ -82,7 +83,6 @@ class TemporalProblem(
         %(ex_prepare)s
         """
         self.temporal_key = time_key
-        policy = Policy(policy)  # type: ignore[assignment]
         xy, kwargs = handle_joint_attr(joint_attr, kwargs)
         xy, x, y = handle_cost(xy=xy, x=kwargs.pop("x", None), y=kwargs.pop("y", None), cost=cost)
 
@@ -190,8 +190,8 @@ class TemporalProblem(
         return BirthDeathProblem  # type: ignore[return-value]
 
     @property
-    def _valid_policies(self) -> Tuple[str, ...]:
-        return Policy.SEQUENTIAL, Policy.TRIU, Policy.EXPLICIT
+    def _valid_policies(self) -> Tuple[Policy_t, ...]:
+        return constants.SEQUENTIAL, constants.TRIU, constants.EXPLICIT  # type: ignore[return-value]
 
 
 @d.dedent

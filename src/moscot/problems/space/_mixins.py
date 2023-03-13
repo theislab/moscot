@@ -27,12 +27,12 @@ from scipy.stats import pearsonr, spearmanr
 from sklearn.metrics import pairwise_distances
 from sklearn.neighbors import NearestNeighbors
 
+from moscot import constants
 from moscot._docs._docs import d
 from moscot._docs._docs_mixins import d_mixins
 from moscot._types import ArrayLike, Device_t, Str_Dict_t
 from moscot.base.problems._mixins import AnalysisMixin, AnalysisMixinProtocol
 from moscot.base.problems.compound_problem import B, K
-from moscot.constants import AlignmentMode, CorrMethod, PlottingDefaults
 from moscot.logging import logger
 from moscot.utils.subset_policy import StarPolicy
 
@@ -126,9 +126,9 @@ class SpatialAlignmentMixin(AnalysisMixin[K, B]):
         full_steps = self._policy._graph
         starts = set(chain.from_iterable(full_steps)) - set(reference_)  # type: ignore[call-overload]
 
-        if mode == AlignmentMode.AFFINE:
+        if mode == "affine":
             _transport = self._affine
-        elif mode == AlignmentMode.WARP:
+        elif mode == "warp":
             _transport = self._warp
         else:
             raise NotImplementedError(f"Alignment mode `{mode!r}` is not yet implemented.")
@@ -176,7 +176,6 @@ class SpatialAlignmentMixin(AnalysisMixin[K, B]):
         -------
         %(alignment_mixin_returns)s
         """
-        mode = AlignmentMode(mode)
         if reference not in self._policy._cat:
             raise ValueError(f"Reference `{reference}` is not in policy's categories: `{self._policy._cat}`.")
         if isinstance(self._policy, StarPolicy) and reference != self._policy.reference:
@@ -207,7 +206,7 @@ class SpatialAlignmentMixin(AnalysisMixin[K, B]):
         aggregation_mode: Literal["annotation", "cell"] = "annotation",
         batch_size: Optional[int] = None,
         normalize: bool = True,
-        key_added: Optional[str] = PlottingDefaults.CELL_TRANSITION,
+        key_added: Optional[str] = constants.CELL_TRANSITION,
     ) -> pd.DataFrame:
         """
         Compute a grouped cell transition matrix.
@@ -357,10 +356,9 @@ class SpatialMappingMixin(AnalysisMixin[K, B]):
         if var_sc is None or not len(var_sc):
             raise ValueError("No overlapping `var_names` between ` adata_sc` and `adata_sp`.")
 
-        corr_method = CorrMethod(corr_method)
-        if corr_method == CorrMethod.PEARSON:
+        if corr_method == "pearson":
             cor = pearsonr
-        elif corr_method == CorrMethod.SPEARMAN:
+        elif corr_method == "spearman":
             cor = spearmanr
         else:
             raise NotImplementedError(f"Correlation method `{corr_method!r}` is not yet implemented.")
@@ -496,7 +494,7 @@ class SpatialMappingMixin(AnalysisMixin[K, B]):
         aggregation_mode: Literal["annotation", "cell"] = "annotation",
         batch_size: Optional[int] = None,
         normalize: bool = True,
-        key_added: Optional[str] = PlottingDefaults.CELL_TRANSITION,
+        key_added: Optional[str] = constants.CELL_TRANSITION,
     ) -> pd.DataFrame:
         """
         Compute a grouped cell transition matrix.

@@ -20,7 +20,7 @@ from moscot._types import ArrayLike, Device_t
 from moscot.backends.ott import GWSolver, SinkhornSolver  # type: ignore[attr-defined]
 from moscot.base.output import BaseSolverOutput
 from moscot.base.solver import O, OTSolver
-from moscot.constants import Tag
+from moscot.utils.tagged_array import Tag
 from tests._utils import ATOL, RTOL, Geom_t
 from tests.plotting.conftest import PlotTester, PlotTesterMeta
 

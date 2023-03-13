@@ -16,7 +16,6 @@ from typing import (
 from moscot._types import ProblemStage_t
 from moscot.base.output import BaseSolverOutput
 from moscot.base.problems.problem import OTProblem
-from moscot.constants import ProblemStage
 from moscot.utils.subset_policy import SubsetPolicy
 
 if TYPE_CHECKING:
@@ -88,8 +87,6 @@ class ProblemManager(Generic[K, B]):
         if stage is None:
             return self._problems
         stage = (stage,) if isinstance(stage, str) else stage
-        stage = {ProblemStage(s) for s in stage}
-
         return {k: v for k, v in self.problems.items() if v.stage in stage}
 
     def get_solutions(self, only_converged: bool = False) -> Dict[Tuple[K, K], BaseSolverOutput]:

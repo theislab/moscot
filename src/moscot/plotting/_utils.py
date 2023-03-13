@@ -36,7 +36,6 @@ if TYPE_CHECKING:
     from moscot.base.problems.compound_problem import CompoundProblem
 
 from moscot._utils import RandomKeys
-from moscot.constants import AggregationMode
 
 
 def set_palette(
@@ -226,9 +225,9 @@ def _heatmap(
         fig, ax = plt.subplots(constrained_layout=True, dpi=dpi, figsize=figsize)
     else:
         fig = ax.figure
-    if row_annotation != AggregationMode.CELL:
+    if row_annotation != "cell":
         set_palette(adata=row_adata, key=row_annotation, cont_cmap=cont_cmap)
-    if col_annotation != AggregationMode.CELL:
+    if col_annotation != "cell":
         set_palette(adata=col_adata, key=col_annotation, cont_cmap=cont_cmap)
 
     row_cmap, col_cmap, row_norm, col_norm = _get_cmap_norm(
@@ -265,14 +264,14 @@ def _heatmap(
         **cbar_kwargs,
     )
 
-    if col_annotation != AggregationMode.CELL:
+    if col_annotation != "cell":
         col_cats = divider.append_axes("top", size="2%", pad=0)
         c = fig.colorbar(col_sm, cax=col_cats, orientation="horizontal", ticklocation="top")
 
         c.set_ticks(np.arange(transition_matrix.shape[1]) + 0.5)
         c.ax.set_xticklabels(transition_matrix.columns, rotation=90)
         c.set_label(col_annotation if col_annotation_label is None else col_annotation_label)
-    if row_annotation != AggregationMode.CELL:
+    if row_annotation != "cell":
         row_cats = divider.append_axes("left", size="2%", pad=0)
         c = fig.colorbar(row_sm, cax=row_cats, orientation="vertical", ticklocation="left")
 
@@ -329,7 +328,7 @@ def _get_cmap_norm(
     row_annotation: str,
     col_annotation: str,
 ) -> Tuple[mcolors.ListedColormap, mcolors.ListedColormap, mcolors.BoundaryNorm, mcolors.BoundaryNorm]:
-    if row_annotation != AggregationMode.CELL:
+    if row_annotation != "cell":
         row_color_dict = {
             row_adata.obs[row_annotation].cat.categories[i]: col
             for i, col in enumerate(row_adata.uns[f"{row_annotation}_colors"])
@@ -337,7 +336,8 @@ def _get_cmap_norm(
         row_colors = [row_color_dict[cat] for cat in transition_matrix.index][::-1]
     else:
         row_colors = [0, 0, 0]
-    if col_annotation != AggregationMode.CELL:
+
+    if col_annotation != "cell":
         col_color_dict = {
             col_adata.obs[col_annotation].cat.categories[i]: col
             for i, col in enumerate(col_adata.uns[f"{col_annotation}_colors"])

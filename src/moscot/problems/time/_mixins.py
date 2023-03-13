@@ -20,14 +20,15 @@ import numpy as np
 import pandas as pd
 from pandas.api.types import infer_dtype, is_numeric_dtype
 
+from moscot import constants
 from moscot._docs._docs_mixins import d_mixins
 from moscot._types import ArrayLike, Numeric_t, Str_Dict_t
 from moscot.base.output import BaseSolverOutput
 from moscot.base.problems._mixins import AnalysisMixin, AnalysisMixinProtocol
 from moscot.base.problems.birth_death import BirthDeathProblem
 from moscot.base.problems.compound_problem import ApplyOutput_t, B, K
-from moscot.constants import PlottingDefaults, PlottingKeys, Tag
 from moscot.plotting._utils import set_plotting_vars
+from moscot.utils.tagged_array import Tag
 
 
 # TODO(@MUCDK, @michalk8): check for ignore[misc] in line below, might become redundant
@@ -49,7 +50,7 @@ class TemporalMixinProtocol(AnalysisMixinProtocol[K, B], Protocol[K, B]):  # typ
         aggregation_mode: Literal["annotation", "cell"] = "annotation",
         batch_size: Optional[int] = None,
         normalize: bool = True,
-        key_added: Optional[str] = PlottingDefaults.CELL_TRANSITION,
+        key_added: Optional[str] = constants.CELL_TRANSITION,
     ) -> pd.DataFrame:
         ...
 
@@ -170,7 +171,7 @@ class TemporalMixin(AnalysisMixin[K, B]):
         aggregation_mode: Literal["annotation", "cell"] = "annotation",
         batch_size: Optional[int] = None,
         normalize: bool = True,
-        key_added: Optional[str] = PlottingDefaults.CELL_TRANSITION,
+        key_added: Optional[str] = constants.CELL_TRANSITION,
     ) -> Optional[pd.DataFrame]:
         """
         Compute a grouped cell transition matrix.
@@ -222,7 +223,7 @@ class TemporalMixin(AnalysisMixin[K, B]):
         forward: bool = True,
         restrict_to_existing: bool = True,
         order_annotations: Optional[List[Any]] = None,
-        key_added: Optional[str] = PlottingDefaults.SANKEY,
+        key_added: Optional[str] = constants.SANKEY,
         return_data: bool = False,
     ) -> Optional[List[pd.DataFrame]]:
         """
@@ -303,7 +304,7 @@ class TemporalMixin(AnalysisMixin[K, B]):
                 "target_groups": target_groups,
                 "captions": [str(t) for t in tuples],
             }
-            set_plotting_vars(self.adata, PlottingKeys.SANKEY, key=key_added, value=plot_vars)
+            set_plotting_vars(self.adata, constants.SANKEY, key=key_added, value=plot_vars)
         return cell_transitions_updated if return_data else None
 
     @d_mixins.dedent
@@ -314,7 +315,7 @@ class TemporalMixin(AnalysisMixin[K, B]):
         data: Optional[Union[str, ArrayLike]] = None,
         subset: Optional[Union[str, List[str], Tuple[int, int]]] = None,
         scale_by_marginals: bool = True,
-        key_added: Optional[str] = PlottingDefaults.PUSH,
+        key_added: Optional[str] = constants.PUSH,
         return_all: bool = False,
         return_data: bool = False,
         **kwargs: Any,
@@ -361,7 +362,7 @@ class TemporalMixin(AnalysisMixin[K, B]):
                 "subset": subset,
             }
             self.adata.obs[key_added] = self._flatten(result, key=self.temporal_key)
-            set_plotting_vars(self.adata, PlottingKeys.PUSH, key=key_added, value=plot_vars)
+            set_plotting_vars(self.adata, constants.PUSH, key=key_added, value=plot_vars)
         return result if return_data else None
 
     @d_mixins.dedent
@@ -372,7 +373,7 @@ class TemporalMixin(AnalysisMixin[K, B]):
         data: Optional[Union[str, ArrayLike]] = None,
         subset: Optional[Union[str, List[str], Tuple[int, int]]] = None,
         scale_by_marginals: bool = True,
-        key_added: Optional[str] = PlottingDefaults.PULL,
+        key_added: Optional[str] = constants.PULL,
         return_all: bool = False,
         return_data: bool = False,
         **kwargs: Any,
@@ -418,7 +419,7 @@ class TemporalMixin(AnalysisMixin[K, B]):
                 "target": target,
             }
             self.adata.obs[key_added] = self._flatten(result, key=self.temporal_key)
-            set_plotting_vars(self.adata, PlottingKeys.PULL, key=key_added, value=plot_vars)
+            set_plotting_vars(self.adata, constants.PULL, key=key_added, value=plot_vars)
         return result if return_data else None
 
     @property

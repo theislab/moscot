@@ -3,11 +3,17 @@ from typing import Any, Literal, Mapping, Optional, Tuple, Type, Union
 
 from anndata import AnnData
 
+from moscot import constants
 from moscot._docs._docs import d
-from moscot._types import Numeric_t, ProblemStage_t, QuadInitializer_t, ScaleCost_t
+from moscot._types import (
+    Numeric_t,
+    Policy_t,
+    ProblemStage_t,
+    QuadInitializer_t,
+    ScaleCost_t,
+)
 from moscot.base.problems.birth_death import BirthDeathMixin, BirthDeathProblem
 from moscot.base.problems.compound_problem import B
-from moscot.constants import Policy
 from moscot.problems.space import AlignmentProblem, SpatialAlignmentMixin
 from moscot.problems.time import TemporalMixin
 
@@ -185,8 +191,8 @@ class SpatioTemporalProblem(
         )
 
     @property
-    def _valid_policies(self) -> Tuple[Policy, ...]:
-        return Policy.SEQUENTIAL, Policy.TRIL, Policy.TRIU, Policy.EXPLICIT
+    def _valid_policies(self) -> Tuple[Policy_t, ...]:
+        return constants.SEQUENTIAL, constants.TRIL, constants.TRIU, constants.EXPLICIT  # type: ignore[return-value]
 
     @property
     def _base_problem_type(self) -> Type[B]:  # type: ignore[override]
