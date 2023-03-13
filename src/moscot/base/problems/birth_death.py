@@ -18,9 +18,9 @@ import numpy as np
 import scanpy as sc
 
 from moscot._docs._docs import d
+from moscot._logging import logger
 from moscot._types import ArrayLike
 from moscot.base.problems.problem import OTProblem
-from moscot.logging import logger
 from moscot.utils.data import apoptosis_markers, proliferation_markers
 
 __all__ = ["BirthDeathProblem", "BirthDeathMixin"]

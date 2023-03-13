@@ -5,8 +5,8 @@ from anndata import AnnData
 
 import numpy as np
 
+from moscot._logging import logger
 from moscot._types import ArrayLike
-from moscot.logging import logger
 
 __all__ = ["BaseCost"]
 

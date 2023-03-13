@@ -21,11 +21,11 @@ from sklearn.preprocessing import StandardScaler
 import scanpy as sc
 
 from moscot._docs._docs import d
+from moscot._logging import logger
 from moscot._types import ArrayLike, CostFn_t, Device_t, ProblemKind_t, ProblemStage_t
 from moscot.base.output import BaseSolverOutput
 from moscot.base.problems._utils import require_solution, wrap_prepare, wrap_solve
 from moscot.base.solver import OTSolver
-from moscot.logging import logger
 from moscot.utils.tagged_array import Tag, TaggedArray
 
 __all__ = ["BaseProblem", "OTProblem"]

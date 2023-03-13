@@ -6,8 +6,8 @@ from typing import Any, Callable, Iterable, Optional, Tuple
 import numpy as np
 from scipy.sparse.linalg import LinearOperator
 
+from moscot._logging import logger
 from moscot._types import ArrayLike, Device_t, DTypeLike  # type: ignore[attr-defined]
-from moscot.logging import logger
 
 __all__ = ["BaseSolverOutput", "MatrixSolverOutput"]
 

@@ -7,9 +7,9 @@ from anndata import AnnData
 import numpy as np
 import scipy.sparse as sp
 
+from moscot._logging import logger
 from moscot._types import ArrayLike, CostFn_t
 from moscot.costs import get_cost
-from moscot.logging import logger
 
 __all__ = ["Tag", "TaggedArray"]
 

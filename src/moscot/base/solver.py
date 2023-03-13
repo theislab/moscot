@@ -14,9 +14,9 @@ from typing import (
 )
 
 from moscot._docs._docs import d
+from moscot._logging import logger
 from moscot._types import ArrayLike, Device_t, ProblemKind_t
 from moscot.base.output import BaseSolverOutput
-from moscot.logging import logger
 from moscot.utils.tagged_array import Tag, TaggedArray
 
 __all__ = ["BaseSolver", "OTSolver"]

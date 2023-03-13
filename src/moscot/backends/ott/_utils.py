@@ -4,8 +4,8 @@ import jax.numpy as jnp
 from ott.geometry.pointcloud import PointCloud
 from ott.tools.sinkhorn_divergence import sinkhorn_divergence
 
+from moscot._logging import logger
 from moscot._types import ArrayLike, ScaleCost_t
-from moscot.logging import logger
 
 
 def _compute_sinkhorn_divergence(

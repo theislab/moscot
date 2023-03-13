@@ -26,8 +26,8 @@ import scipy.sparse as sp
 from scipy.stats import norm, rankdata
 
 from moscot._docs._docs import d
+from moscot._logging import logger
 from moscot._types import ArrayLike, Str_Dict_t
-from moscot.logging import logger
 
 
 def _validate_annotations_helper(

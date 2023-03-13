@@ -30,10 +30,10 @@ from sklearn.neighbors import NearestNeighbors
 from moscot import constants
 from moscot._docs._docs import d
 from moscot._docs._docs_mixins import d_mixins
+from moscot._logging import logger
 from moscot._types import ArrayLike, Device_t, Str_Dict_t
 from moscot.base.problems._mixins import AnalysisMixin, AnalysisMixinProtocol
 from moscot.base.problems.compound_problem import B, K
-from moscot.logging import logger
 from moscot.utils.subset_policy import StarPolicy
 
 
