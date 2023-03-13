@@ -1,11 +1,10 @@
 from typing import TYPE_CHECKING, Any, Literal, Union
 
+from moscot import _registry
 from moscot._types import ProblemKind_t
 
-from .. import _registry
-
 if TYPE_CHECKING:
-    from . import ott
+    from moscot.backends import ott
 
 __all__ = ["get_solver", "register_solver"]
 
@@ -27,7 +26,7 @@ def register_solver(backend: str) -> Any:
 
 @register_solver("ott")
 def _(problem_kind: Literal["linear", "quadratic"], **kwargs: Any) -> Union["ott.SinkhornSolver", "ott.GWSolver"]:
-    from . import ott
+    from moscot.backends import ott
 
     if problem_kind == "linear":
         return ott.SinkhornSolver(**kwargs)

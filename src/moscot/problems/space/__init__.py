@@ -1,6 +1,6 @@
-from ._alignment import AlignmentProblem
-from ._mapping import MappingProblem
-from ._mixins import SpatialAlignmentMixin, SpatialMappingMixin
+from moscot.problems.space._alignment import AlignmentProblem
+from moscot.problems.space._mapping import MappingProblem
+from moscot.problems.space._mixins import SpatialAlignmentMixin, SpatialMappingMixin
 
 __all__ = [
     "AlignmentProblem",

@@ -1,6 +1,6 @@
 from importlib import metadata
 
-from . import backends, base, costs, datasets, plotting, problems, utils
+from moscot import backends, base, costs, datasets, plotting, problems, utils
 
 try:
     md = metadata.metadata(__name__)
