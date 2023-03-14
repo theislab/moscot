@@ -13,7 +13,7 @@ def transcription_factors(organism: Literal["human", "mouse", "drosophila"]) -> 
         fname = "allTFs_hg38.txt"
     elif organism == "mouse":
         fname = "allTFs_mm.txt"
-    elif organism == "drosphila":
+    elif organism == "drosophila":
         fname = "allTFs_dmel.txt"
     else:
         raise NotImplementedError(f"Transcription factors for `{organism!r}` are not yet implemented.")
