@@ -1,4 +1,4 @@
-from typing import Any, Callable, Optional, Tuple, TypeVar
+from typing import Any, Callable, Iterator, Optional, TypeVar
 
 __all__ = ["Registry"]
 
@@ -21,15 +21,17 @@ class Registry:  # noqa: D101
 
         return decorator
 
-    def keys(self) -> Tuple[str, ...]:
-        """TODO."""
-        return tuple(self._registry.keys())
+    def __iter__(self) -> Iterator[str]:
+        yield from self._registry.keys()
 
     def __contains__(self, backend: str) -> bool:
         return backend in self._registry
 
     def __getitem__(self, backend: Optional[str]):
         return self._registry[backend]
+
+    def __len__(self):
+        return len(self._registry)
 
     def __repr__(self) -> str:
         return repr(self._registry)

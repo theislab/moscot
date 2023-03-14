@@ -10,7 +10,7 @@ from moscot.costs._utils import register_cost
 __all__ = ["LeafDistance", "BarcodeDistance"]
 
 
-@register_cost("barcode_distance")
+@register_cost("barcode_distance", backend="moscot")
 class BarcodeDistance(BaseCost):
     """Barcode distance."""
 
@@ -55,7 +55,7 @@ class BarcodeDistance(BaseCost):
         return (np.sum(differences) + np.sum(double_scars)) / len(b1)
 
 
-@register_cost("leaf_distance")
+@register_cost("leaf_distance", backend="moscot")
 class LeafDistance(BaseCost):
     """Tree leaf distance."""
 

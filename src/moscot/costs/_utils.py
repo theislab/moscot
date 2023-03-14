@@ -1,4 +1,5 @@
-from typing import Any, Optional, Tuple
+import collections
+from typing import Any, Dict, List, Optional, Tuple
 
 from moscot import _registry
 
@@ -6,29 +7,42 @@ __all__ = ["get_cost", "get_available_costs", "register_cost"]
 
 
 _REGISTRY = _registry.Registry()
+_SEP = "-"
 
 
-def get_cost(name: str, *, backend: Optional[str] = None, **kwargs: Any) -> Any:
-    """TODO."""
-    if backend is not None:
-        name = f"{backend}-{name}"
-    if name not in _REGISTRY:
-        raise ValueError(f"Cost `{name!r}` is not available.")
-    return _REGISTRY[name](**kwargs)
+def get_cost(name: str, *, backend: str = "moscot", **kwargs: Any) -> Any:
+    """Get cost function for a specific backend."""
+    key = f"{backend}{_SEP}{name}"
+    if key not in _REGISTRY:
+        raise ValueError(f"Cost `{name!r}` is not available for backend `{backend!r}`.")
+    return _REGISTRY[key](**kwargs)
 
 
-def get_available_costs(backend: Optional[str] = None) -> Tuple[str, ...]:
-    """TODO."""
-    costs = _REGISTRY.keys()
+def get_available_costs(backend: Optional[str] = None) -> Dict[str, Tuple[str, ...]]:
+    """Return available costs.
+
+    Parameters
+    ----------
+    backend
+        Select cost specific to a backend. If ``None``, return costs for each backend.
+
+    Returns
+    -------
+    Dictionary with keys as backend names and values as registered cost functions.
+    """
+    groups: Dict[str, List[str]] = collections.defaultdict(list)
+    for key in _REGISTRY:
+        back, *name = key.split(_SEP)
+        groups[back].append(_SEP.join(name))
+
     if backend is None:
-        # TODO(michalk8): remove backend prefixes?
-        return tuple(costs)
-    prefix = f"{backend}-"
-    return tuple(c.removeprefix(prefix) for c in costs if c.startswith(prefix))
+        return {k: tuple(v) for k, v in groups.items()}
+    if backend not in groups:
+        raise KeyError(f"No backend named `{backend!r}`.")
+
+    return {backend: tuple(groups[backend])}
 
 
-def register_cost(name: str, *, backend: Optional[str] = None) -> Any:
-    """TODO."""
-    if backend is not None:
-        name = f"{backend}-{name}"
-    return _REGISTRY.register(name)
+def register_cost(name: str, *, backend: str) -> Any:
+    """Register cost function for a specific backend."""
+    return _REGISTRY.register(f"{backend}{_SEP}{name}")
