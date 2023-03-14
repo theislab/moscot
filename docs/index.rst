@@ -23,13 +23,13 @@ well as the publication introducing the model, which can be found in the corresp
         :link: installation
         :link-type: doc
 
-        Learn how to install ``moscot``.
+        Learn how to install :mod:`moscot`.
 
-    .. grid-item-card:: API
-        :link: api/index
+    .. grid-item-card:: User API
+        :link: user
         :link-type: doc
 
-        Find a detailed documentation of ``moscot``.
+        Find a detailed documentation of :mod:`moscot`.
 
     .. grid-item-card:: Contributing
         :link: contributing
@@ -41,13 +41,13 @@ well as the publication introducing the model, which can be found in the corresp
         :link: notebooks/examples/index
         :link-type: doc
 
-        Find brief and concise examples of ``moscot``.
+        Find brief and concise examples of :mod:`moscot`.
 
     .. grid-item-card:: Tutorials
         :link: notebooks/tutorials/index
         :link-type: doc
 
-        Check out how to use ``moscot`` for data analysis.
+        Check out how to use :mod:`moscot` for data analysis.
 
     .. grid-item-card:: Manuscript
 
@@ -58,9 +58,9 @@ well as the publication introducing the model, which can be found in the corresp
     :hidden:
 
     installation
-    api/index
+    user
+    developer
     contributing
-    references
-
     notebooks/tutorials/index
     notebooks/examples/index
+    references

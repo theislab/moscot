@@ -210,11 +210,15 @@ ignore_directives = [
     "toctree",
     "currentmodule",
     "autosummary",
+    "module",
     "automodule",
     "autoclass",
     "bibliography",
     "card",
     "grid",
+]
+ignore_roles = [
+    "mod",
 ]
 
 [tool.mypy]

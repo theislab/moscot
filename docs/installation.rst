@@ -1,15 +1,15 @@
 Installation
 ============
-``moscot`` requires Python version >= 3.8 to run.
+:mod:`moscot` requires Python version >= 3.8 to run.
 
 PyPI
 ----
-Install ``moscot`` by running::
+Install :mod:`moscot` by running::
 
     pip install moscot
 
 Development version
 -------------------
-To install ``moscot`` from GitHub, run::
+To install :mod:`moscot` from `GitHub <https://github.com/theislab/moscot>`_, run::
 
-    pip install git+https://github.com/theislab/moscot
+    pip install git+https://github.com/theislab/moscot.git@main
