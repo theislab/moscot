@@ -29,8 +29,8 @@ from moscot.plotting._utils import (
 )
 
 if TYPE_CHECKING:
-    from moscot.base.problems.compound_problem import CompoundProblem
-    from moscot.problems.time import LineageProblem, TemporalProblem
+    from moscot.base.problems import CompoundProblem
+    from moscot.problems import LineageProblem, TemporalProblem
 
 __all__ = ["cell_transition", "sankey", "push", "pull"]
 

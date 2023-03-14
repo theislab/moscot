@@ -9,6 +9,7 @@ __all__ = [
     "BirthDeathMixin",
     "BirthDeathProblem",
     "BaseCompoundProblem",
+    "CompoundProblem",
     "ProblemManager",
     "BaseProblem",
     "OTProblem",
