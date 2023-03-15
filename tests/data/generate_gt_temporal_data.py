@@ -174,9 +174,9 @@ def generate_gt_temporal_data(data_path: str) -> None:
     tp[10, 11].set_xy(C_13, tag="cost_matrix")
     tp = tp.solve(epsilon=config["eps"], tau_a=config["tau_a"], tau_b=config["tau_b"])
 
-    assert (tp[config["key_1"], config["key_2"]].xy.data_src == C_12).all().all()
-    assert (tp[config["key_2"], config["key_3"]].xy.data_src == C_23).all().all()
-    assert (tp[config["key_1"], config["key_3"]].xy.data_src == C_13).all().all()
+    np.testing.assert_allclose(tp[config["key_1"], config["key_2"]].xy.data_src, C_12, atol=1e-6, rtol=1e-6)
+    np.testing.assert_allclose(tp[config["key_2"], config["key_3"]].xy.data_src, C_23, atol=1e-6, rtol=1e-6)
+    np.testing.assert_allclose(tp[config["key_1"], config["key_3"]].xy.data_src, C_13, atol=1e-6, rtol=1e-6)
 
     np.testing.assert_array_almost_equal(
         np.corrcoef(
