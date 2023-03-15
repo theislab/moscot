@@ -165,7 +165,6 @@ def generate_gt_temporal_data(data_path: str) -> None:
     tp = TemporalProblem(cdata)
     tp = tp.prepare(
         "day",
-        xy_callback="cost-matrix",
         subset=[(10, 10.5), (10.5, 11), (10, 11)],
         policy="explicit",
     )
