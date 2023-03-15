@@ -59,7 +59,7 @@ class BirthDeathMixin:
         super().__init__(*args, **kwargs)
         self._proliferation_key: Optional[str] = None
         self._apoptosis_key: Optional[str] = None
-        self._scaling: Optional[float] = None
+        self._scaling: float = 1.0
         self._prior_growth: Optional[ArrayLike] = None
 
     @d.dedent
@@ -238,7 +238,7 @@ class BirthDeathProblem(BirthDeathMixin, OTProblem):
             return None
         if self.delta is None:
             return self.solution.a * self.adata.n_obs
-        return np.power(self.solution.a * self._scaling, 1.0 / self.delta)  # type: ignore[union-attr, operator]
+        return np.power(self.solution.a * self._scaling, 1.0 / self.delta)  # type: ignore[union-attr]
 
     @property
     def delta(self) -> float:

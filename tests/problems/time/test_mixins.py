@@ -131,6 +131,7 @@ class TestTemporalMixin:
             intermediate=1,
             target=2,
             posterior_marginals=False,
+            epsilon=10,
         )
         assert distance_source_intermediate > 0
         assert distance_source_intermediate < 100
@@ -140,7 +141,7 @@ class TestTemporalMixin:
         problem = TemporalProblem(adata_time)
         problem.prepare("time")
 
-        batch_distance = problem.compute_batch_distances(time=1, batch_key="batch")
+        batch_distance = problem.compute_batch_distances(time=1, batch_key="batch", epsilon=10)
         assert batch_distance > 0
 
     @pytest.mark.parametrize("account_for_unbalancedness", [True, False])
@@ -169,6 +170,7 @@ class TestTemporalMixin:
             account_for_unbalancedness=account_for_unbalancedness,
             posterior_marginals=False,
             seed=config["seed"],
+            epsilon=10,
         )
         assert isinstance(interpolation_result, float)
         assert interpolation_result > 0
@@ -193,7 +195,7 @@ class TestTemporalMixin:
         problem[key_1, key_3]._solution = MockSolverOutput(gt_temporal_adata.uns["tmap_10_11"])
 
         interpolation_result = problem.compute_interpolated_distance(
-            key_1, key_2, key_3, posterior_marginals=False, seed=config["seed"]
+            key_1, key_2, key_3, posterior_marginals=False, seed=config["seed"], epsilon=10
         )
         assert isinstance(interpolation_result, float)
         assert interpolation_result > 0
@@ -220,7 +222,7 @@ class TestTemporalMixin:
         problem[key_2, key_3]._solution = MockSolverOutput(gt_temporal_adata.uns["tmap_105_11"])
         problem[key_1, key_3]._solution = MockSolverOutput(gt_temporal_adata.uns["tmap_10_11"])
 
-        result = problem.compute_time_point_distances(key_1, key_2, key_3, posterior_marginals=False)
+        result = problem.compute_time_point_distances(key_1, key_2, key_3, posterior_marginals=False, epsilon=10)
         assert isinstance(result, tuple)
         assert result[0] > 0
         assert result[1] > 0
@@ -246,7 +248,7 @@ class TestTemporalMixin:
         problem[key_2, key_3]._solution = MockSolverOutput(gt_temporal_adata.uns["tmap_105_11"])
         problem[key_1, key_3]._solution = MockSolverOutput(gt_temporal_adata.uns["tmap_10_11"])
 
-        result = problem.compute_batch_distances(key_1, "batch")
+        result = problem.compute_batch_distances(key_1, "batch", epsilon=10)
         assert isinstance(result, float)
         np.testing.assert_almost_equal(result, gt_temporal_adata.uns["batch_distances_10"], decimal=2)
 
@@ -266,7 +268,9 @@ class TestTemporalMixin:
         )
         assert set(problem.problems.keys()) == {(key_1, key_2), (key_2, key_3), (key_1, key_3)}
 
-        result = problem.compute_random_distance(key_1, key_2, key_3, posterior_marginals=False, seed=config["seed"])
+        result = problem.compute_random_distance(
+            key_1, key_2, key_3, posterior_marginals=False, seed=config["seed"], epsilon=10
+        )
         assert isinstance(result, float)
         np.testing.assert_almost_equal(result, gt_temporal_adata.uns["random_distance_10_105_11"], decimal=2)
 
