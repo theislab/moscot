@@ -31,7 +31,7 @@ class BirthDeathProtocol(Protocol):  # noqa: D101
     apoptosis_key: Optional[str]
     _proliferation_key: Optional[str] = None
     _apoptosis_key: Optional[str] = None
-    _scaling: Optional[float] = None
+    _scaling: float = 1.0
     _prior_growth: Optional[ArrayLike] = None
 
     def score_genes_for_marginals(  # noqa: D102
@@ -205,7 +205,7 @@ class BirthDeathProblem(BirthDeathMixin, OTProblem):
             scaling = marginal_kwargs["scaling"]
         else:
             beta_fn, delta_fn = beta, delta
-            scaling = 1
+            scaling = 1.0
         birth = estimate(proliferation_key, fn=beta_fn, **marginal_kwargs)
         death = estimate(apoptosis_key, fn=delta_fn, **marginal_kwargs)
 
