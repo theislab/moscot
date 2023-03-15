@@ -31,7 +31,7 @@ class BirthDeathProtocol(Protocol):  # noqa: D101
     apoptosis_key: Optional[str]
     _proliferation_key: Optional[str] = None
     _apoptosis_key: Optional[str] = None
-    _scaling: Optional[float] = None
+    _scaling: float = 1.0
     _prior_growth: Optional[ArrayLike] = None
 
     def score_genes_for_marginals(  # noqa: D102
@@ -59,7 +59,7 @@ class BirthDeathMixin:
         super().__init__(*args, **kwargs)
         self._proliferation_key: Optional[str] = None
         self._apoptosis_key: Optional[str] = None
-        self._scaling: Optional[float] = None
+        self._scaling: float = 1.0
         self._prior_growth: Optional[ArrayLike] = None
 
     @d.dedent
@@ -205,7 +205,7 @@ class BirthDeathProblem(BirthDeathMixin, OTProblem):
             scaling = marginal_kwargs["scaling"]
         else:
             beta_fn, delta_fn = beta, delta
-            scaling = 1
+            scaling = 1.0
         birth = estimate(proliferation_key, fn=beta_fn, **marginal_kwargs)
         death = estimate(apoptosis_key, fn=delta_fn, **marginal_kwargs)
 
@@ -238,7 +238,7 @@ class BirthDeathProblem(BirthDeathMixin, OTProblem):
             return None
         if self.delta is None:
             return self.solution.a * self.adata.n_obs
-        return np.power(self.solution.a * self._scaling, 1.0 / self.delta)  # type: ignore[union-attr, operator]
+        return np.power(self.solution.a * self._scaling, 1.0 / self.delta)  # type: ignore[union-attr]
 
     @property
     def delta(self) -> float:

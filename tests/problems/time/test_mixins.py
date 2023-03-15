@@ -48,7 +48,7 @@ class TestTemporalMixin:
         assert set(result.columns) == set(cell_types_present_key_2) if not forward else set(cell_types)
         marginal = result.sum(axis=forward == 1).values
         present_cell_type_marginal = marginal[marginal > 0]
-        np.testing.assert_almost_equal(present_cell_type_marginal, 1, decimal=5)
+        np.testing.assert_allclose(present_cell_type_marginal, 1.0)
 
     @pytest.mark.fast()
     @pytest.mark.parametrize("forward", [True, False])
@@ -80,7 +80,7 @@ class TestTemporalMixin:
 
         marginal = result.sum(axis=forward == 1).values
         present_cell_type_marginal = marginal[marginal > 0]
-        np.testing.assert_almost_equal(present_cell_type_marginal, np.ones(len(present_cell_type_marginal)), decimal=5)
+        np.testing.assert_allclose(present_cell_type_marginal, np.ones(len(present_cell_type_marginal)))
 
     @pytest.mark.parametrize("forward", [True, False])
     def test_cell_transition_regression(self, gt_temporal_adata: AnnData, forward: bool):
@@ -115,7 +115,7 @@ class TestTemporalMixin:
         assert result.shape == expected_shape
         marginal = result.sum(axis=forward == 1).values
         present_cell_type_marginal = marginal[marginal > 0]
-        np.testing.assert_allclose(present_cell_type_marginal, 1.0)
+        np.testing.assert_allclose(present_cell_type_marginal, 1.0, rtol=1e-6, atol=1e-6)
 
         direction = "forward" if forward else "backward"
         gt = gt_temporal_adata.uns[f"cell_transition_10_105_{direction}"]
@@ -197,8 +197,8 @@ class TestTemporalMixin:
         )
         assert isinstance(interpolation_result, float)
         assert interpolation_result > 0
-        np.testing.assert_almost_equal(
-            interpolation_result, gt_temporal_adata.uns["interpolated_distance_10_105_11"], decimal=2
+        np.testing.assert_allclose(
+            interpolation_result, gt_temporal_adata.uns["interpolated_distance_10_105_11"], rtol=1e-6, atol=1e-6
         )
 
     def test_compute_time_point_distances_regression(self, gt_temporal_adata: AnnData):
@@ -224,8 +224,12 @@ class TestTemporalMixin:
         assert isinstance(result, tuple)
         assert result[0] > 0
         assert result[1] > 0
-        np.testing.assert_almost_equal(result[0], gt_temporal_adata.uns["time_point_distances_10_105_11"][0], decimal=2)
-        np.testing.assert_almost_equal(result[1], gt_temporal_adata.uns["time_point_distances_10_105_11"][1], decimal=2)
+        np.testing.assert_allclose(
+            result[0], gt_temporal_adata.uns["time_point_distances_10_105_11"][0], rtol=1e-6, atol=1e-6
+        )
+        np.testing.assert_allclose(
+            result[1], gt_temporal_adata.uns["time_point_distances_10_105_11"][1], rtol=1e-6, atol=1e-6
+        )
 
     def test_compute_batch_distances_regression(self, gt_temporal_adata: AnnData):
         config = gt_temporal_adata.uns
@@ -248,7 +252,7 @@ class TestTemporalMixin:
 
         result = problem.compute_batch_distances(key_1, "batch")
         assert isinstance(result, float)
-        np.testing.assert_almost_equal(result, gt_temporal_adata.uns["batch_distances_10"], decimal=2)
+        np.testing.assert_allclose(result, gt_temporal_adata.uns["batch_distances_10"], rtol=1e-6, atol=1e-6)
 
     def test_compute_random_distance_regression(self, gt_temporal_adata: AnnData):
         config = gt_temporal_adata.uns
@@ -268,7 +272,7 @@ class TestTemporalMixin:
 
         result = problem.compute_random_distance(key_1, key_2, key_3, posterior_marginals=False, seed=config["seed"])
         assert isinstance(result, float)
-        np.testing.assert_almost_equal(result, gt_temporal_adata.uns["random_distance_10_105_11"], decimal=2)
+        np.testing.assert_allclose(result, gt_temporal_adata.uns["random_distance_10_105_11"], rtol=1e-6, atol=1e-6)
 
     # TODO(MUCDK): split into 2 tests
     @pytest.mark.fast()
@@ -328,7 +332,8 @@ class TestTemporalMixin:
         )
         res = result.sort_index().sort_index(axis=1)
         df_expected = adata_time_with_tmap.uns["cell_transition_gt"].sort_index().sort_index(axis=1)
-        np.testing.assert_almost_equal(res.values, df_expected.values, decimal=8)
+        # TODO(MUCDK): use pandas.testing
+        np.testing.assert_allclose(res.values, df_expected.values, rtol=1e-6, atol=1e-6)
 
     @pytest.mark.fast()
     @pytest.mark.parametrize("temporal_key", ["celltype", "time", "missing"])
@@ -336,9 +341,11 @@ class TestTemporalMixin:
         problem = TemporalProblem(adata_time)
         if temporal_key == "missing":
             with pytest.raises(KeyError, match="Unable to find temporal key"):
-                problem = problem.prepare(temporal_key)
+                _ = problem.prepare(temporal_key)
         elif temporal_key == "celltype":
             with pytest.raises(TypeError, match="Temporal key has to be of numeric type"):
-                problem = problem.prepare(temporal_key)
+                _ = problem.prepare(temporal_key)
         elif temporal_key == "time":
-            problem = problem.prepare(temporal_key)
+            _ = problem.prepare(temporal_key)
+        else:
+            raise NotImplementedError(temporal_key)

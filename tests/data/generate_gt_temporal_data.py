@@ -72,7 +72,6 @@ def _create_adata(data_path: str) -> AnnData:
     CELL_SETS_PATH = os.path.join(data_path, "major_cell_sets.gmt")
 
     adata = wot.io.read_dataset(VAR_GENE_DS_PATH, obs=[CELL_DAYS_PATH], obs_filter=SERUM_CELL_IDS_PATH)
-    CELL_SETS_PATH = os.path.join(data_path, "major_cell_sets.gmt")
     cell_sets = wot.io.read_sets(CELL_SETS_PATH, as_dict=True)
     cell_to_type = {v[i]: k for k, v in cell_sets.items() for i in range(len(v))}
     df_cell_type = pd.DataFrame(cell_to_type.items(), columns=["0", "cell_type"]).set_index("0")
@@ -174,36 +173,36 @@ def generate_gt_temporal_data(data_path: str) -> None:
     tp = TemporalProblem(cdata)
     tp = tp.prepare(
         "day",
-        callback="cost-matrix",
+        xy_callback="cost-matrix",
         subset=[(10, 10.5), (10.5, 11), (10, 11)],
         policy="explicit",
-        callback_kwargs={"key": "cost_matrices"},
+        xy_callback_kwargs={"key": "cost_matrices"},
     )
     tp = tp.solve(epsilon=config["eps"], tau_a=config["tau_a"], tau_b=config["tau_b"])
 
-    assert (tp[config["key_1"], config["key_2"]].xy.data_src == C_12).all()
-    assert (tp[config["key_2"], config["key_3"]].xy.data_src == C_23).all()
-    assert (tp[config["key_1"], config["key_3"]].xy.data_src == C_13).all()
+    np.testing.assert_allclose(tp[config["key_1"], config["key_2"]].xy.data_src, C_12)
+    np.testing.assert_allclose(tp[config["key_2"], config["key_3"]].xy.data_src, C_23)
+    np.testing.assert_allclose(tp[config["key_1"], config["key_3"]].xy.data_src, C_13)
 
     np.testing.assert_array_almost_equal(
         np.corrcoef(
             np.array(tp[config["key_1"], config["key_2"]].solution.transport_matrix).flatten(),
             tmap_wot_10_105.flatten(),
         ),
-        1,
+        1.0,
     )
     np.testing.assert_array_almost_equal(
         np.corrcoef(
             np.array(tp[config["key_2"], config["key_3"]].solution.transport_matrix).flatten(),
             tmap_wot_105_11.flatten(),
         ),
-        1,
+        1.0,
     )
     np.testing.assert_array_almost_equal(
         np.corrcoef(
             np.array(tp[config["key_1"], config["key_3"]].solution.transport_matrix).flatten(), tmap_wot_10_11.flatten()
         ),
-        1,
+        1.0,
     )
 
     cdata.uns["tmap_10_105"] = np.array(tp[config["key_1"], config["key_2"]].solution.transport_matrix)
@@ -215,21 +214,27 @@ def generate_gt_temporal_data(data_path: str) -> None:
         "day",
         subset=[(10, 10.5), (10.5, 11), (10, 11)],
         policy="explicit",
-        callback_kwargs={"n_comps": 50},
+        xy_callback_kwargs={"n_comps": 50},
     )
     tp2 = tp2.solve(epsilon=config["eps"], tau_a=config["tau_a"], tau_b=config["tau_b"], scale_cost="mean")
 
-    np.testing.assert_array_almost_equal(
+    np.testing.assert_allclose(
         np.array(tp[config["key_1"], config["key_2"]].solution.transport_matrix),
         np.array(tp2[config["key_1"], config["key_2"]].solution.transport_matrix),
+        rtol=1e-6,
+        atol=1e-6,
     )
-    np.testing.assert_array_almost_equal(
+    np.testing.assert_allclose(
         np.array(tp[config["key_2"], config["key_3"]].solution.transport_matrix),
         np.array(tp2[config["key_2"], config["key_3"]].solution.transport_matrix),
+        rtol=1e-6,
+        atol=1e-6,
     )
-    np.testing.assert_array_almost_equal(
+    np.testing.assert_allclose(
         np.array(tp[config["key_1"], config["key_3"]].solution.transport_matrix),
         np.array(tp2[config["key_1"], config["key_3"]].solution.transport_matrix),
+        rtol=1e-6,
+        atol=1e-6,
     )
 
     cdata = _write_analysis_output(cdata, tp2, config)
