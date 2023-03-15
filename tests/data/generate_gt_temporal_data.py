@@ -181,9 +181,9 @@ def generate_gt_temporal_data(data_path: str) -> None:
     )
     tp = tp.solve(epsilon=config["eps"], tau_a=config["tau_a"], tau_b=config["tau_b"])
 
-    assert (tp[config["key_1"], config["key_2"]].xy.data_src == C_12).all()
-    assert (tp[config["key_2"], config["key_3"]].xy.data_src == C_23).all()
-    assert (tp[config["key_1"], config["key_3"]].xy.data_src == C_13).all()
+    assert tp[config["key_1"], config["key_2"]].xy.data_src == C_12
+    assert tp[config["key_2"], config["key_3"]].xy.data_src == C_23
+    assert tp[config["key_1"], config["key_3"]].xy.data_src == C_13
 
     np.testing.assert_array_almost_equal(
         np.corrcoef(
