@@ -23,7 +23,7 @@ class BaseCost(ABC):
     key
         Key in the ``attr`` of :class:`anndata.AnnData` used when computing the cost.
     dist_key
-        Helper key which determines into which subset ``adata`` belongs.
+        Helper key which determines which distribution ``adata`` belongs to.
     """
 
     def __init__(self, adata: AnnData, attr: str, key: str, dist_key: Union[Any, Tuple[Any, Any]]):

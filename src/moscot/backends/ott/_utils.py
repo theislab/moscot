@@ -14,8 +14,7 @@ def _compute_sinkhorn_divergence(
     point_cloud_2: ArrayLike,
     a: Optional[ArrayLike] = None,
     b: Optional[ArrayLike] = None,
-    # TODO(MUCDK): why is this so high?
-    epsilon: float = 10.0,
+    epsilon: Optional[float] = 1e-1,
     scale_cost: ScaleCost_t = 1.0,
     **kwargs: Any,
 ) -> float:
