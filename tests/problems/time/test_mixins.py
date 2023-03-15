@@ -254,7 +254,7 @@ class TestTemporalMixin:
 
         result = problem.compute_batch_distances(key_1, "batch", epsilon=10)
         assert isinstance(result, float)
-        np.testing.assert_allclose(result, gt_temporal_adata.uns["batch_distances_10"], rtol=1e-5) # no atol as very large number
+        np.testing.assert_allclose(result, gt_temporal_adata.uns["batch_distances_10"], rtol=1e-5)
 
     def test_compute_random_distance_regression(self, gt_temporal_adata: AnnData):
         config = gt_temporal_adata.uns
