@@ -43,8 +43,6 @@ class GenericAnalysisMixin(AnalysisMixin[K, B]):
         target: K,
         source_groups: Optional[Str_Dict_t] = None,
         target_groups: Optional[Str_Dict_t] = None,
-        # TODO(MUCDK): unused arg
-        key: Optional[str] = None,
         forward: bool = False,  # return value will be row-stochastic if forward=True, else column-stochastic
         aggregation_mode: Literal["annotation", "cell"] = "annotation",
         batch_size: Optional[int] = None,
@@ -60,7 +58,6 @@ class GenericAnalysisMixin(AnalysisMixin[K, B]):
         Parameters
         ----------
         %(cell_trans_params)s
-        %(key)s
         %(forward_cell_transition)s
         %(aggregation_mode)s
         %(other_key)s
