@@ -1,18 +1,20 @@
 from abc import ABC, ABCMeta
-from typing import Callable, Optional
-from pathlib import Path
 from functools import wraps
+from pathlib import Path
+from typing import Callable, Optional
 
-from matplotlib.testing.compare import compare_images
-import pandas as pd
 import pytest
-import matplotlib.pyplot as plt
 
 import numpy as np
+import pandas as pd
+
+import matplotlib.pyplot as plt
+from matplotlib.testing.compare import compare_images
 
 from anndata import AnnData
 
-from moscot._constants._constants import Key, PlottingKeys, PlottingDefaults
+from moscot import _constants
+from moscot.plotting._utils import set_plotting_vars
 
 HERE: Path = Path(__file__).parent
 
@@ -31,9 +33,7 @@ def adata_pl_cell_transition(gt_temporal_adata: AnnData) -> AnnData:
         "source": 0,
         "target": 1,
     }
-    Key.uns.set_plotting_vars(
-        gt_temporal_adata, PlottingKeys.CELL_TRANSITION, PlottingDefaults.CELL_TRANSITION, plot_vars
-    )
+    set_plotting_vars(gt_temporal_adata, _constants.CELL_TRANSITION, key=_constants.CELL_TRANSITION, value=plot_vars)
 
     return gt_temporal_adata
 
@@ -44,14 +44,14 @@ def adata_pl_push(adata_time: AnnData) -> AnnData:
     plot_vars = {"temporal_key": "time", "data": "celltype", "subset": "A", "source": 0, "target": 1}
     adata_time.uns["celltype_colors"] = ["#cc1b1b", "#2ccc1b", "#cc1bcc"]
     adata_time.obs["celltype"] = adata_time.obs["celltype"].astype("category")
-    Key.uns.set_plotting_vars(adata_time, PlottingKeys.PUSH, PlottingDefaults.PUSH, plot_vars)
+    set_plotting_vars(adata_time, _constants.PUSH, key=_constants.PUSH, value=plot_vars)
     push_initial_dist = np.zeros(
         shape=(len(adata_time[adata_time.obs["time"] == 0]),)
     )  # we need this for a cat. distr. in plots
     push_initial_dist[0:10] = 0.1
     nan2 = np.empty(len(adata_time[adata_time.obs["time"] == 2]))
     nan2[:] = np.nan
-    adata_time.obs[PlottingDefaults.PUSH] = np.hstack(
+    adata_time.obs[_constants.PUSH] = np.hstack(
         (push_initial_dist, np.abs(rng.randn(len(adata_time[adata_time.obs["time"] == 1]))), nan2)
     )
     return adata_time
@@ -63,7 +63,7 @@ def adata_pl_pull(adata_time: AnnData) -> AnnData:
     plot_vars = {"temporal_key": "time", "data": "celltype", "subset": "A", "source": 0, "target": 1}
     adata_time.uns["celltype_colors"] = ["#cc1b1b", "#2ccc1b", "#cc1bcc"]
     adata_time.obs["celltype"] = adata_time.obs["celltype"].astype("category")
-    Key.uns.set_plotting_vars(adata_time, PlottingKeys.PULL, PlottingDefaults.PULL, plot_vars)
+    set_plotting_vars(adata_time, _constants.PULL, key=_constants.PULL, value=plot_vars)
     pull_initial_dist = np.zeros(
         shape=(len(adata_time[adata_time.obs["time"] == 1]),)
     )  # we need this for a cat. distr. in plots
@@ -71,7 +71,7 @@ def adata_pl_pull(adata_time: AnnData) -> AnnData:
     rand0 = np.abs(rng.randn(len(adata_time[adata_time.obs["time"] == 0])))
     nan2 = np.empty(len(adata_time[adata_time.obs["time"] == 2]))
     nan2[:] = np.nan
-    adata_time.obs[PlottingDefaults.PULL] = np.hstack((rand0, pull_initial_dist, nan2))
+    adata_time.obs[_constants.PULL] = np.hstack((rand0, pull_initial_dist, nan2))
     return adata_time
 
 
@@ -86,7 +86,7 @@ def adata_pl_sankey(adata_time: AnnData) -> AnnData:
     tm1 = pd.DataFrame(data=data1, index=celltypes, columns=celltypes)
     tm2 = pd.DataFrame(data=data2, index=celltypes, columns=celltypes)
     plot_vars = {"transition_matrices": [tm1, tm2], "captions": ["0", "1"], "key": "celltype"}
-    Key.uns.set_plotting_vars(adata_time, PlottingKeys.SANKEY, PlottingDefaults.SANKEY, plot_vars)
+    set_plotting_vars(adata_time, _constants.SANKEY, key=_constants.SANKEY, value=plot_vars)
 
     return adata_time
 

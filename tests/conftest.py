@@ -1,19 +1,20 @@
 from math import cos, sin
-from typing import Tuple, Optional
+from typing import Optional, Tuple
 
-from scipy.sparse import csr_matrix
-import pandas as pd
 import pytest
+
+import jax.numpy as jnp
+import numpy as np
+import pandas as pd
+from jax.config import config
+from scipy.sparse import csr_matrix
+
 import matplotlib.pyplot as plt
 
-from jax.config import config
-import numpy as np
-import jax.numpy as jnp
-
-from anndata import AnnData
 import scanpy as sc
+from anndata import AnnData
 
-from tests._utils import Geom_t, _make_grid, _make_adata
+from tests._utils import Geom_t, _make_adata, _make_grid
 
 ANGLES = (0, 30, 60)
 

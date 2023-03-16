@@ -1,14 +1,21 @@
 from types import MappingProxyType
-from typing import Any, Dict, List, Type, Tuple, Union, Literal, Mapping, Optional
+from typing import Any, Dict, List, Literal, Mapping, Optional, Tuple, Type, Union
 
 from anndata import AnnData
 
-from moscot._types import ScaleCost_t, ProblemStage_t, QuadInitializer_t, SinkhornInitializer_t
+from moscot import _constants
 from moscot._docs._docs import d
-from moscot.problems.base import OTProblem, CompoundProblem  # type: ignore[attr-defined]
+from moscot._types import (
+    Policy_t,
+    ProblemStage_t,
+    QuadInitializer_t,
+    ScaleCost_t,
+    SinkhornInitializer_t,
+)
+from moscot.base.problems.compound_problem import B, CompoundProblem, K
+from moscot.base.problems.problem import OTProblem
 from moscot.problems._utils import handle_cost, handle_joint_attr
 from moscot.problems.generic._mixins import GenericAnalysisMixin
-from moscot.problems.base._compound_problem import B, K
 
 __all__ = ["SinkhornProblem", "GWProblem"]
 
@@ -158,8 +165,8 @@ class SinkhornProblem(GenericAnalysisMixin[K, B], CompoundProblem[K, B]):
         return OTProblem  # type: ignore[return-value]
 
     @property
-    def _valid_policies(self) -> Tuple[str, ...]:
-        return "sequential", "pairwise", "explicit"
+    def _valid_policies(self) -> Tuple[Policy_t, ...]:
+        return _constants.SEQUENTIAL, _constants.PAIRWISE, _constants.EXPLICIT  # type: ignore[return-value]
 
 
 @d.get_sections(base="GWProblem", sections=["Parameters"])
@@ -328,5 +335,5 @@ class GWProblem(GenericAnalysisMixin[K, B], CompoundProblem[K, B]):
         return OTProblem  # type: ignore[return-value]
 
     @property
-    def _valid_policies(self) -> Tuple[str, ...]:
-        return "sequential", "pairwise", "explicit"
+    def _valid_policies(self) -> Tuple[Policy_t, ...]:
+        return _constants.SEQUENTIAL, _constants.PAIRWISE, _constants.EXPLICIT  # type: ignore[return-value]

@@ -1,22 +1,36 @@
-from typing import Any, Dict, List, Tuple, Union, Literal, Iterable, Iterator, Optional, Protocol, TYPE_CHECKING
-from pathlib import Path
 import itertools
-
-from pandas.api.types import infer_dtype, is_numeric_dtype
-import pandas as pd
+from pathlib import Path
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Dict,
+    Iterable,
+    Iterator,
+    List,
+    Literal,
+    Optional,
+    Protocol,
+    Tuple,
+    Union,
+)
 
 import numpy as np
+import pandas as pd
+from pandas.api.types import infer_dtype, is_numeric_dtype
 
 from anndata import AnnData
 
-from moscot._types import ArrayLike, Numeric_t, Str_Dict_t
-from moscot.solvers._output import BaseSolverOutput
+from moscot import _constants
 from moscot._docs._docs_mixins import d_mixins
-from moscot.utils._tagged_array import Tag
-from moscot._constants._constants import Key, PlottingKeys, PlottingDefaults
-from moscot.problems.base._mixins import AnalysisMixin, AnalysisMixinProtocol
-from moscot.problems.base._birth_death import BirthDeathProblem
-from moscot.problems.base._compound_problem import B, K, ApplyOutput_t
+from moscot._types import ArrayLike, Numeric_t, Str_Dict_t
+from moscot.base.output import BaseSolverOutput
+from moscot.base.problems._mixins import AnalysisMixin, AnalysisMixinProtocol
+from moscot.base.problems.birth_death import BirthDeathProblem
+from moscot.base.problems.compound_problem import ApplyOutput_t, B, K
+from moscot.plotting._utils import set_plotting_vars
+from moscot.utils.tagged_array import Tag
+
+__all__ = ["TemporalMixin"]
 
 
 # TODO(@MUCDK, @michalk8): check for ignore[misc] in line below, might become redundant
@@ -38,7 +52,7 @@ class TemporalMixinProtocol(AnalysisMixinProtocol[K, B], Protocol[K, B]):  # typ
         aggregation_mode: Literal["annotation", "cell"] = "annotation",
         batch_size: Optional[int] = None,
         normalize: bool = True,
-        key_added: Optional[str] = PlottingDefaults.CELL_TRANSITION,
+        key_added: Optional[str] = _constants.CELL_TRANSITION,
     ) -> pd.DataFrame:
         ...
 
@@ -159,7 +173,7 @@ class TemporalMixin(AnalysisMixin[K, B]):
         aggregation_mode: Literal["annotation", "cell"] = "annotation",
         batch_size: Optional[int] = None,
         normalize: bool = True,
-        key_added: Optional[str] = PlottingDefaults.CELL_TRANSITION,
+        key_added: Optional[str] = _constants.CELL_TRANSITION,
     ) -> Optional[pd.DataFrame]:
         """
         Compute a grouped cell transition matrix.
@@ -211,7 +225,7 @@ class TemporalMixin(AnalysisMixin[K, B]):
         forward: bool = True,
         restrict_to_existing: bool = True,
         order_annotations: Optional[List[Any]] = None,
-        key_added: Optional[str] = PlottingDefaults.SANKEY,
+        key_added: Optional[str] = _constants.SANKEY,
         return_data: bool = False,
     ) -> Optional[List[pd.DataFrame]]:
         """
@@ -292,7 +306,7 @@ class TemporalMixin(AnalysisMixin[K, B]):
                 "target_groups": target_groups,
                 "captions": [str(t) for t in tuples],
             }
-            Key.uns.set_plotting_vars(self.adata, PlottingKeys.SANKEY, key_added, plot_vars)
+            set_plotting_vars(self.adata, _constants.SANKEY, key=key_added, value=plot_vars)
         return cell_transitions_updated if return_data else None
 
     @d_mixins.dedent
@@ -303,7 +317,7 @@ class TemporalMixin(AnalysisMixin[K, B]):
         data: Optional[Union[str, ArrayLike]] = None,
         subset: Optional[Union[str, List[str], Tuple[int, int]]] = None,
         scale_by_marginals: bool = True,
-        key_added: Optional[str] = PlottingDefaults.PUSH,
+        key_added: Optional[str] = _constants.PUSH,
         return_all: bool = False,
         return_data: bool = False,
         **kwargs: Any,
@@ -350,7 +364,7 @@ class TemporalMixin(AnalysisMixin[K, B]):
                 "subset": subset,
             }
             self.adata.obs[key_added] = self._flatten(result, key=self.temporal_key)
-            Key.uns.set_plotting_vars(self.adata, PlottingKeys.PUSH, key_added, plot_vars)
+            set_plotting_vars(self.adata, _constants.PUSH, key=key_added, value=plot_vars)
         return result if return_data else None
 
     @d_mixins.dedent
@@ -361,7 +375,7 @@ class TemporalMixin(AnalysisMixin[K, B]):
         data: Optional[Union[str, ArrayLike]] = None,
         subset: Optional[Union[str, List[str], Tuple[int, int]]] = None,
         scale_by_marginals: bool = True,
-        key_added: Optional[str] = PlottingDefaults.PULL,
+        key_added: Optional[str] = _constants.PULL,
         return_all: bool = False,
         return_data: bool = False,
         **kwargs: Any,
@@ -407,7 +421,7 @@ class TemporalMixin(AnalysisMixin[K, B]):
                 "target": target,
             }
             self.adata.obs[key_added] = self._flatten(result, key=self.temporal_key)
-            Key.uns.set_plotting_vars(self.adata, PlottingKeys.PULL, key_added, plot_vars)
+            set_plotting_vars(self.adata, _constants.PULL, key=key_added, value=plot_vars)
         return result if return_data else None
 
     @property

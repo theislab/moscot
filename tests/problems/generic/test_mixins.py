@@ -1,14 +1,14 @@
-from typing import List, Tuple, Literal, Optional
+from typing import List, Literal, Optional, Tuple
 
-from scipy.sparse.linalg import LinearOperator
-import pandas as pd
 import pytest
 
 import numpy as np
+import pandas as pd
+from scipy.sparse.linalg import LinearOperator
 
 from anndata import AnnData
 
-from tests._utils import ATOL, RTOL, MockSolverOutput, CompoundProblemWithMixin
+from tests._utils import ATOL, RTOL, CompoundProblemWithMixin, MockSolverOutput
 
 
 class TestBaseAnalysisMixin:

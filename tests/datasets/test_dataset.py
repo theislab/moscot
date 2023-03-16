@@ -1,8 +1,8 @@
 from typing import Mapping, Optional
 
 import pytest
-import networkx as nx
 
+import networkx as nx
 import numpy as np
 
 from moscot.datasets import simulate_data

@@ -1,31 +1,41 @@
-from typing import Any, Dict, List, Tuple, Union, Literal, Mapping, Optional, Sequence, TYPE_CHECKING
-from itertools import chain
-
-from networkx import NetworkXNoPath
-from scipy.stats import pearsonr, spearmanr
-from scipy.linalg import svd
-from scipy.sparse import issparse
-from scipy.spatial import ConvexHull
-from sklearn.metrics import pairwise_distances
-from pandas.api.types import is_categorical_dtype
-from sklearn.neighbors import NearestNeighbors
-from scipy.sparse.linalg import LinearOperator
-import pandas as pd
-import scipy.sparse as sp
+import itertools
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Dict,
+    List,
+    Literal,
+    Mapping,
+    Optional,
+    Sequence,
+    Tuple,
+    Union,
+)
 
 import numpy as np
+import pandas as pd
+import scipy.sparse as sp
+from networkx import NetworkXNoPath
+from pandas.api.types import is_categorical_dtype
+from scipy.linalg import svd
+from scipy.sparse.linalg import LinearOperator
+from scipy.spatial import ConvexHull
+from scipy.stats import pearsonr, spearmanr
+from sklearn.metrics import pairwise_distances
+from sklearn.neighbors import NearestNeighbors
 
 from anndata import AnnData
 
-from moscot._types import Device_t, ArrayLike, Str_Dict_t
-from moscot._logging import logger
+from moscot import _constants
 from moscot._docs._docs import d
-from moscot.problems.base import AnalysisMixin  # type: ignore[attr-defined]
 from moscot._docs._docs_mixins import d_mixins
-from moscot.utils._subset_policy import StarPolicy
-from moscot._constants._constants import CorrMethod, AlignmentMode, PlottingDefaults
-from moscot.problems.base._mixins import AnalysisMixinProtocol
-from moscot.problems.base._compound_problem import B, K
+from moscot._logging import logger
+from moscot._types import ArrayLike, Device_t, Str_Dict_t
+from moscot.base.problems._mixins import AnalysisMixin, AnalysisMixinProtocol
+from moscot.base.problems.compound_problem import B, K
+from moscot.utils.subset_policy import StarPolicy
+
+__all__ = ["SpatialAlignmentMixin", "SpatialMappingMixin"]
 
 
 class SpatialAlignmentMixinProtocol(AnalysisMixinProtocol[K, B]):
@@ -115,11 +125,11 @@ class SpatialAlignmentMixin(AnalysisMixin[K, B]):
         # get policy
         reference_ = [reference] if isinstance(reference, str) else reference
         full_steps = self._policy._graph
-        starts = set(chain.from_iterable(full_steps)) - set(reference_)  # type: ignore[call-overload]
+        starts = set(itertools.chain.from_iterable(full_steps)) - set(reference_)  # type: ignore[call-overload]
 
-        if mode == AlignmentMode.AFFINE:
+        if mode == "affine":
             _transport = self._affine
-        elif mode == AlignmentMode.WARP:
+        elif mode == "warp":
             _transport = self._warp
         else:
             raise NotImplementedError(f"Alignment mode `{mode!r}` is not yet implemented.")
@@ -167,7 +177,6 @@ class SpatialAlignmentMixin(AnalysisMixin[K, B]):
         -------
         %(alignment_mixin_returns)s
         """
-        mode = AlignmentMode(mode)
         if reference not in self._policy._cat:
             raise ValueError(f"Reference `{reference}` is not in policy's categories: `{self._policy._cat}`.")
         if isinstance(self._policy, StarPolicy) and reference != self._policy.reference:
@@ -198,7 +207,7 @@ class SpatialAlignmentMixin(AnalysisMixin[K, B]):
         aggregation_mode: Literal["annotation", "cell"] = "annotation",
         batch_size: Optional[int] = None,
         normalize: bool = True,
-        key_added: Optional[str] = PlottingDefaults.CELL_TRANSITION,
+        key_added: Optional[str] = _constants.CELL_TRANSITION,
     ) -> pd.DataFrame:
         """
         Compute a grouped cell transition matrix.
@@ -348,16 +357,15 @@ class SpatialMappingMixin(AnalysisMixin[K, B]):
         if var_sc is None or not len(var_sc):
             raise ValueError("No overlapping `var_names` between ` adata_sc` and `adata_sp`.")
 
-        corr_method = CorrMethod(corr_method)
-        if corr_method == CorrMethod.PEARSON:
+        if corr_method == "pearson":
             cor = pearsonr
-        elif corr_method == CorrMethod.SPEARMAN:
+        elif corr_method == "spearman":
             cor = spearmanr
         else:
             raise NotImplementedError(f"Correlation method `{corr_method!r}` is not yet implemented.")
 
         corrs = {}
-        gexp_sc = self.adata_sc[:, var_sc].X if not issparse(self.adata_sc.X) else self.adata_sc[:, var_sc].X.A
+        gexp_sc = self.adata_sc[:, var_sc].X if not sp.issparse(self.adata_sc.X) else self.adata_sc[:, var_sc].X.A
         for key, val in self.solutions.items():
             index_obs: List[Union[bool, int]] = (
                 self.adata_sp.obs[self._policy._subset_key] == key[0]
@@ -365,8 +373,8 @@ class SpatialMappingMixin(AnalysisMixin[K, B]):
                 else np.arange(self.adata_sp.shape[0])
             )
             gexp_sp = self.adata_sp[index_obs, var_sc].X
-            if issparse(gexp_sp):
-                # TODO(giovp): in future, logg if too large
+            if sp.issparse(gexp_sp):
+                # TODO(giovp): in the future, logg if too large
                 gexp_sp = gexp_sp.A
             gexp_pred_sp = val.pull(gexp_sc, scale_by_marginals=True)
             corr_val = [cor(gexp_pred_sp[:, gi], gexp_sp[:, gi])[0] for gi, _ in enumerate(var_sc)]
@@ -392,7 +400,7 @@ class SpatialMappingMixin(AnalysisMixin[K, B]):
         """
         if var_names is None:
             var_names = self.adata_sc.var_names
-        gexp_sc = self.adata_sc[:, var_names].X if not issparse(self.adata_sc.X) else self.adata_sc[:, var_names].X.A
+        gexp_sc = self.adata_sc[:, var_names].X if not sp.issparse(self.adata_sc.X) else self.adata_sc[:, var_names].X.A
         pred_list = [
             val.to(device=device).pull(gexp_sc, scale_by_marginals=True)
             if device is not None
@@ -487,7 +495,7 @@ class SpatialMappingMixin(AnalysisMixin[K, B]):
         aggregation_mode: Literal["annotation", "cell"] = "annotation",
         batch_size: Optional[int] = None,
         normalize: bool = True,
-        key_added: Optional[str] = PlottingDefaults.CELL_TRANSITION,
+        key_added: Optional[str] = _constants.CELL_TRANSITION,
     ) -> pd.DataFrame:
         """
         Compute a grouped cell transition matrix.

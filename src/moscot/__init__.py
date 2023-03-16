@@ -1,12 +1,6 @@
 from importlib import metadata
 
-import moscot.costs
-import moscot.utils
-import moscot.solvers
-import moscot.backends
-import moscot.datasets
-import moscot.plotting
-import moscot.problems
+from moscot import backends, base, costs, datasets, plotting, problems, utils
 
 try:
     md = metadata.metadata(__name__)

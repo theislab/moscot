@@ -1,2 +1,11 @@
-from moscot.backends._utils import get_backend, get_default_backend, get_available_backends
-import moscot.backends.ott
+from typing import Tuple
+
+from moscot.backends import ott
+from moscot.backends.utils import get_solver, register_solver
+
+__all__ = ["ott", "get_solver", "register_solver", "get_available_backends"]
+
+
+def get_available_backends() -> Tuple[str, ...]:
+    """TODO."""
+    return ("ott",)

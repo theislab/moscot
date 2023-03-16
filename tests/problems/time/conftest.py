@@ -1,11 +1,11 @@
-import scipy
 import pytest
 
 import numpy as np
+import scipy
 
 from anndata import AnnData
 
-from moscot.datasets._utils import _get_random_trees
+from moscot.datasets import _get_random_trees
 
 
 @pytest.fixture()

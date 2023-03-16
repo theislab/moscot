@@ -6,7 +6,7 @@ import numpy as np
 
 from anndata import AnnData
 
-from moscot.problems.time._lineage import BirthDeathProblem
+from moscot.base.problems import BirthDeathProblem
 
 
 # TODO(@MUCDK) put file in different folder according to moscot.problems structure
