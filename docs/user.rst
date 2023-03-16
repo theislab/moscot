@@ -1,11 +1,10 @@
 User API
 ########
+.. module:: moscot
 
 Import ``moscot`` as::
 
     import moscot as mt
-
-.. module:: moscot
 
 Biological Problems
 ~~~~~~~~~~~~~~~~~~~
