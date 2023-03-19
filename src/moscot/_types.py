@@ -1,18 +1,19 @@
-from typing import Any, Union, Literal, Mapping, Optional, Sequence
+import os
+from typing import Any, Literal, Mapping, Optional, Sequence, Union
 
 import numpy as np
 
-__all__ = ["ArrayLike", "DTypeLike", "Numeric_t"]
-
+# TODO(michalk8): polish
 
 try:
-    from numpy.typing import NDArray, DTypeLike
+    from numpy.typing import DTypeLike, NDArray
 
     ArrayLike = NDArray[np.float_]
 except (ImportError, TypeError):
     ArrayLike = np.ndarray  # type: ignore[misc]
     DTypeLike = np.dtype  # type: ignore[misc]
 
+ProblemKind_t = Literal["linear", "quadratic", "unknown"]
 Numeric_t = Union[int, float]  # type of `time_key` arguments
 Filter_t = Optional[Union[str, Mapping[str, Sequence[Any]]]]  # type how to filter adata
 Str_Dict_t = Union[str, Mapping[str, Sequence[Any]]]  # type for `cell_transition`
@@ -31,3 +32,12 @@ ScaleCost_t = Optional[Union[float, Literal["mean", "max_cost", "max_bound", "ma
 OttCostFn_t = Literal["euclidean", "sq_euclidean", "cosine", "bures", "unbalanced_bures"]
 GenericCostFn_t = Literal["barcode_distance", "leaf_distance", "custom"]
 CostFn_t = Union[str, GenericCostFn_t, OttCostFn_t]
+PathLike = Union[os.PathLike, str]
+Policy_t = Literal[
+    "sequential",
+    "star",
+    "external_star",
+    "triu",
+    "tril",
+    "explicit",
+]

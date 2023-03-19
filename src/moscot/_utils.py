@@ -1,16 +1,25 @@
 # adapted from CellRank
 """Module used to parallelize model fitting."""
 
-from typing import Any, Tuple, Union, Mapping, Callable, Optional, Sequence, TYPE_CHECKING
-from threading import Thread
 from multiprocessing import Manager, cpu_count
+from threading import Thread
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Callable,
+    Mapping,
+    Optional,
+    Sequence,
+    Tuple,
+    Union,
+)
 
-from numba import njit
-from scipy.sparse import issparse, spmatrix
-import wrapt
 import joblib as jl
+import wrapt
+from numba import njit
 
 import numpy as np
+from scipy.sparse import issparse, spmatrix
 
 if TYPE_CHECKING:
     from moscot.problems.base import BaseProblem, BaseCompoundProblem  # type: ignore[attr-defined]
@@ -28,7 +37,10 @@ def require_solution(
     wrapped: Callable[[Any], Any], problem: "BaseProblem", args: Tuple[Any, ...], kwargs: Mapping[str, Any]
 ) -> Any:
     """Check whether problem has been solved."""
-    from moscot.problems.base import OTProblem, BaseCompoundProblem  # type: ignore[attr-defined]
+    from moscot.problems.base import (  # type: ignore[attr-defined]
+        BaseCompoundProblem,
+        OTProblem,
+    )
 
     if isinstance(problem, OTProblem) and problem.solution is None:
         raise RuntimeError("Run `.solve()` first.")
@@ -40,7 +52,7 @@ def require_solution(
 @wrapt.decorator
 def require_prepare(
     wrapped: Callable[[Any], Any],
-    problem: "BaseCompoundProblem",  # type:ignore[type-arg]
+    problem: "BaseCompoundProblem",
     args: Tuple[Any, ...],
     kwargs: Mapping[str, Any],
 ) -> Any:

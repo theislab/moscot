@@ -1,24 +1,24 @@
 from typing import Any, Literal, Mapping
 
-import pandas as pd
 import pytest
 
 import numpy as np
+import pandas as pd
 
 from anndata import AnnData
 
-from moscot.problems.base import OTProblem
-from moscot.solvers._output import BaseSolverOutput
+from moscot.base.output import BaseSolverOutput
+from moscot.base.problems import OTProblem
 from moscot.problems.generic import SinkhornProblem
 from tests.problems.conftest import (
     geometry_args,
     lin_prob_args,
+    lr_pointcloud_args,
+    lr_sinkhorn_solver_args,
     pointcloud_args,
     sinkhorn_args_1,
     sinkhorn_args_2,
-    lr_pointcloud_args,
     sinkhorn_solver_args,
-    lr_sinkhorn_solver_args,
 )
 
 

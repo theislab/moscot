@@ -1,5 +1,5 @@
-from typing import Any, List, Literal, Mapping, Optional
 from pathlib import Path
+from typing import Any, List, Literal, Mapping, Optional
 
 import pytest
 
@@ -7,19 +7,18 @@ import numpy as np
 
 from anndata import AnnData
 
-from tests._utils import _adata_spatial_split
 from moscot.problems.space import MappingProblem
+from tests._utils import _adata_spatial_split
 from tests.problems.conftest import (
     fgw_args_1,
     fgw_args_2,
     geometry_args,
-    gw_solver_args,
-    quad_prob_args,
-    pointcloud_args,
     gw_linear_solver_args,
     gw_lr_linear_solver_args,
+    gw_solver_args,
+    pointcloud_args,
+    quad_prob_args,
 )
-from moscot.solvers._base_solver import ProblemKind
 
 # TODO(michalk8): should be made relative to tests root
 SOLUTIONS_PATH = Path("./tests/data/mapping_solutions.pkl")  # base is moscot
@@ -68,7 +67,7 @@ class TestMappingProblem:
 
         mp = MappingProblem(adataref, adatasp).prepare(batch_key="batch", sc_attr={"attr": "X"}, var_names=var_names)
         for prob in mp.problems.values():
-            assert prob._problem_kind == ProblemKind.QUAD
+            assert prob.problem_kind == "quadratic"
             # this should hold after running `mp.solve()`
             # assert prob.solver.is_fused is bool(var_names)
             assert prob.shape == (n_obs, n_obs)

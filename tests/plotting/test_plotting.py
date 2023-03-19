@@ -1,7 +1,7 @@
 from anndata import AnnData
 
-from tests.plotting.conftest import PlotTester, PlotTesterMeta
 import moscot.plotting as mpl
+from tests.plotting.conftest import PlotTester, PlotTesterMeta
 
 # WARNING:
 # 1. all classes must both subclass PlotTester and use metaclass=PlotTesterMeta

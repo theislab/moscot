@@ -1,14 +1,17 @@
-from typing import Any, List, Tuple, Union, Literal, Optional, Protocol, TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, List, Literal, Optional, Protocol, Tuple, Union
 
 import pandas as pd
 
 from anndata import AnnData
 
-from moscot._types import ArrayLike, Str_Dict_t
+from moscot import _constants
 from moscot._docs._docs_mixins import d_mixins
-from moscot._constants._constants import Key, PlottingKeys, PlottingDefaults
-from moscot.problems.base._mixins import AnalysisMixin, AnalysisMixinProtocol
-from moscot.problems.base._compound_problem import B, K, ApplyOutput_t
+from moscot._types import ArrayLike, Str_Dict_t
+from moscot.base.problems._mixins import AnalysisMixin, AnalysisMixinProtocol
+from moscot.base.problems.compound_problem import ApplyOutput_t, B, K
+from moscot.plotting._utils import set_plotting_vars
+
+__all__ = ["GenericAnalysisMixin"]
 
 
 class GenericAnalysisMixinProtocol(AnalysisMixinProtocol[K, B], Protocol[K, B]):
@@ -40,12 +43,11 @@ class GenericAnalysisMixin(AnalysisMixin[K, B]):
         target: K,
         source_groups: Optional[Str_Dict_t] = None,
         target_groups: Optional[Str_Dict_t] = None,
-        key: Optional[str] = None,
         forward: bool = False,  # return value will be row-stochastic if forward=True, else column-stochastic
         aggregation_mode: Literal["annotation", "cell"] = "annotation",
         batch_size: Optional[int] = None,
         normalize: bool = True,
-        key_added: Optional[str] = PlottingDefaults.CELL_TRANSITION,
+        key_added: Optional[str] = _constants.CELL_TRANSITION,
     ) -> pd.DataFrame:
         """
         Compute a grouped cell transition matrix.
@@ -56,7 +58,6 @@ class GenericAnalysisMixin(AnalysisMixin[K, B]):
         Parameters
         ----------
         %(cell_trans_params)s
-        %(key)s
         %(forward_cell_transition)s
         %(aggregation_mode)s
         %(other_key)s
@@ -97,7 +98,7 @@ class GenericAnalysisMixin(AnalysisMixin[K, B]):
         data: Optional[Union[str, ArrayLike]] = None,
         subset: Optional[Union[str, List[str], Tuple[int, int]]] = None,
         scale_by_marginals: bool = True,
-        key_added: Optional[str] = PlottingDefaults.PUSH,
+        key_added: Optional[str] = _constants.PUSH,
         return_all: bool = False,
         return_data: bool = False,
         **kwargs: Any,
@@ -142,7 +143,7 @@ class GenericAnalysisMixin(AnalysisMixin[K, B]):
                 "distribution_key": self.batch_key,
             }
             self.adata.obs[key_added] = self._flatten(result, key=self.batch_key)
-            Key.uns.set_plotting_vars(self.adata, PlottingKeys.PUSH, key_added, plot_vars)
+            set_plotting_vars(self.adata, _constants.PUSH, key=key_added, value=plot_vars)
         return result if return_data else None
 
     @d_mixins.dedent
@@ -153,7 +154,7 @@ class GenericAnalysisMixin(AnalysisMixin[K, B]):
         data: Optional[Union[str, ArrayLike]] = None,
         subset: Optional[Union[str, List[str], Tuple[int, int]]] = None,
         scale_by_marginals: bool = True,
-        key_added: Optional[str] = PlottingDefaults.PULL,
+        key_added: Optional[str] = _constants.PULL,
         return_all: bool = False,
         return_data: bool = False,
         **kwargs: Any,
@@ -195,7 +196,7 @@ class GenericAnalysisMixin(AnalysisMixin[K, B]):
                 "key": self.batch_key,
             }
             self.adata.obs[key_added] = self._flatten(result, key=self.batch_key)
-            Key.uns.set_plotting_vars(self.adata, PlottingKeys.PULL, key_added, plot_vars)
+            set_plotting_vars(self.adata, _constants.PULL, key=key_added, value=plot_vars)
         return result if return_data else None
 
     @property

@@ -1,11 +1,12 @@
-from typing import Any, Optional
+import inspect
+from typing import Any, Callable, Dict, Optional
 
+import jax.numpy as jnp
 from ott.geometry.pointcloud import PointCloud
 from ott.tools.sinkhorn_divergence import sinkhorn_divergence
-import jax.numpy as jnp
 
-from moscot._types import ArrayLike, ScaleCost_t
 from moscot._logging import logger
+from moscot._types import ArrayLike, ScaleCost_t
 
 
 def _compute_sinkhorn_divergence(
@@ -13,7 +14,7 @@ def _compute_sinkhorn_divergence(
     point_cloud_2: ArrayLike,
     a: Optional[ArrayLike] = None,
     b: Optional[ArrayLike] = None,
-    epsilon: float = 10.0,
+    epsilon: Optional[float] = 1e-1,
     scale_cost: ScaleCost_t = 1.0,
     **kwargs: Any,
 ) -> float:
@@ -35,3 +36,11 @@ def _compute_sinkhorn_divergence(
         logger.warning("Solver did not converge in the `y/y` term.")
 
     return float(output.divergence)
+
+
+def _filter_kwargs(*funcs: Callable[..., Any], **kwargs: Any) -> Dict[str, Any]:
+    res = {}
+    for func in funcs:
+        params = inspect.signature(func).parameters
+        res.update({k: v for k, v in kwargs.items() if k in params})
+    return res

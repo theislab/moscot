@@ -1,5 +1,5 @@
-from typing import Any, Literal, Mapping, Optional
 from pathlib import Path
+from typing import Any, Literal, Mapping, Optional
 
 import pytest
 
@@ -12,11 +12,11 @@ from tests.problems.conftest import (
     fgw_args_1,
     fgw_args_2,
     geometry_args,
-    gw_solver_args,
-    quad_prob_args,
-    pointcloud_args,
     gw_linear_solver_args,
     gw_lr_linear_solver_args,
+    gw_solver_args,
+    pointcloud_args,
+    quad_prob_args,
 )
 
 # TODO(giovp): refactor as fixture

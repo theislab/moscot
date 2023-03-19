@@ -1,44 +1,6 @@
-from typing import Any, Dict, Tuple, Union, Mapping, Callable, Optional, TYPE_CHECKING
+from typing import Any, Dict, Mapping, Optional, Tuple, Union
 
 from moscot._types import CostFn_t
-
-if TYPE_CHECKING:
-    from moscot.problems.base import BaseProblem  # type: ignore[attr-defined]
-
-import wrapt
-
-__all__ = ["wrap_prepare", "wrap_solve", "handle_joint_attr", "handle_cost"]
-
-
-@wrapt.decorator
-def wrap_prepare(
-    wrapped: Callable[[Any], Any], instance: "BaseProblem", args: Tuple[Any, ...], kwargs: Mapping[str, Any]
-) -> Any:
-    """Check and update the state when preparing :class:`moscot.problems.base.OTProblem`."""
-    from moscot._constants._constants import ProblemStage
-    from moscot.problems.base._base_problem import ProblemKind  # TODO: move ENUMs to this file
-
-    instance = wrapped(*args, **kwargs)
-    if instance.problem_kind == ProblemKind.UNKNOWN:
-        raise RuntimeError("Problem kind was not set after running `.prepare()`.")
-    instance._stage = ProblemStage.PREPARED
-    return instance
-
-
-@wrapt.decorator
-def wrap_solve(
-    wrapped: Callable[[Any], Any], instance: "BaseProblem", args: Tuple[Any, ...], kwargs: Mapping[str, Any]
-) -> Any:
-    """Check and update the state when solving :class:`moscot.problems.base.OTProblem`."""
-    from moscot._constants._constants import ProblemStage
-
-    if instance.stage not in (ProblemStage.PREPARED, ProblemStage.SOLVED):
-        raise RuntimeError(
-            f"Expected problem's stage to be either `'prepared'` or `'solved'`, found `{instance.stage!r}`."
-        )
-    instance = wrapped(*args, **kwargs)
-    instance._stage = ProblemStage.SOLVED
-    return instance
 
 
 def handle_joint_attr(

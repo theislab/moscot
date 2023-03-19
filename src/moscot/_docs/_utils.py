@@ -1,5 +1,5 @@
-from typing import Any, Callable, TYPE_CHECKING
 from textwrap import dedent
+from typing import TYPE_CHECKING, Any, Callable
 
 
 def inject_docs(**kwargs: Any) -> Callable[[Callable[..., Any]], Callable[..., Any]]:

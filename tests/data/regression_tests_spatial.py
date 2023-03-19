@@ -1,17 +1,16 @@
+import pickle
 from math import cos, sin
 from typing import List, Tuple
-import pickle
-
-from scipy.sparse import csr_matrix
 
 import numpy as np
+from scipy.sparse import csr_matrix
 
-from anndata import AnnData
-import scanpy as sc
 import anndata as ad
+import scanpy as sc
+from anndata import AnnData
 
 from moscot._types import ArrayLike
-from moscot.problems.space import MappingProblem, AlignmentProblem  # type: ignore[attr-defined]
+from moscot.problems.space import AlignmentProblem, MappingProblem
 
 ANGLES = [0, 30, 60]
 
