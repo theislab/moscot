@@ -383,6 +383,7 @@ class OTProblem(BaseProblem):
         data = self._get_mass(self.adata_src, data=data, subset=subset, normalize=normalize, split_mass=split_mass)
         return self.solution.push(data, **kwargs)
 
+    @require_solution
     def pull(
         self,
         data: Optional[Union[str, ArrayLike]] = None,

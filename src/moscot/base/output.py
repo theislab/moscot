@@ -85,7 +85,6 @@ class BaseSolverOutput(ABC):
     def _ones(self, n: int) -> ArrayLike:
         pass
 
-    @d.dedent
     def push(self, x: ArrayLike, scale_by_marginals: bool = False) -> ArrayLike:
         """Push mass through the :attr:`transport_matrix`.
 
@@ -110,7 +109,6 @@ class BaseSolverOutput(ABC):
             x = self._scale_by_marginals(x, forward=True)
         return self._apply(x, forward=True)
 
-    @d.dedent
     def pull(self, x: ArrayLike, scale_by_marginals: bool = False) -> ArrayLike:
         """Pull mass through the :attr:`transport_matrix`.
 
@@ -135,7 +133,6 @@ class BaseSolverOutput(ABC):
             x = self._scale_by_marginals(x, forward=False)
         return self._apply(x, forward=False)
 
-    @d.dedent
     def as_linear_operator(self, scale_by_marginals: bool = False) -> LinearOperator:
         """Transform :attr:`transport_matrix` into a linear operator.
 
@@ -154,7 +151,6 @@ class BaseSolverOutput(ABC):
         # pull: X @ a (matvec)
         return LinearOperator(shape=self.shape, dtype=self.dtype, matvec=pull, rmatvec=push)
 
-    @d.dedent
     def chain(self, outputs: Iterable["BaseSolverOutput"], scale_by_marginals: bool = False) -> LinearOperator:
         """Chain subsequent applications of :attr:`transport_matrix`.
 
@@ -175,7 +171,6 @@ class BaseSolverOutput(ABC):
 
         return op
 
-    @d.dedent
     def compute_sparsification(
         self,
         mode: Literal["threshold", "percentile", "min_1"] = "threshold",
