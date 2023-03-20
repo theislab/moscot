@@ -60,11 +60,13 @@ pygments_style = "tango"
 pygments_dark_style = "monokai"
 
 nitpicky = True
+nitpick_ignore = [
+    ("py:class", "numpy.float64"),
+]
+# TODO(michalk8): remove once typing has been cleaned-up
 nitpick_ignore_regex = [
-    (r"py:class", r"moscot\..*(K|B)"),
+    (r"py:class", r"moscot\..*(K|B|O)"),
     (r"py:class", r"numpy\._typing.*"),
-    # TODO(michalk8): remove once typing has been cleaned-up
-    (r"py:class", r"numpy.float64"),
     (r"py:class", r"moscot\..*Protocol.*"),
 ]
 

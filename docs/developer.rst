@@ -38,13 +38,12 @@ Problems
 .. autosummary::
     :toctree: genapi
 
-    cost.BaseCost
-    output.BaseSolverOutput
     problems.BaseProblem
     problems.OTProblem
     problems.BirthDeathProblem
     problems.BaseCompoundProblem
     problems.CompoundProblem
+    cost.BaseCost
 
 Mixins
 ^^^^^^
@@ -63,6 +62,7 @@ Solvers
 
     solver.BaseSolver
     solver.OTSolver
+    output.BaseSolverOutput
 
 Output
 ^^^^^^
