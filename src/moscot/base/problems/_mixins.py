@@ -503,7 +503,7 @@ class AnalysisMixin(Generic[K, B]):
         """
         Compute correlation of push or pull distribution with features.
 
-        Correlates a feature (e.g. counts of a gene) with probabilities of cells mapped to a set of cells, e.g.l
+        Correlates a feature (e.g. counts of a gene) with probabilities of cells mapped to a set of cells, e.g.
         a pull back or push forward distribution.
 
         Parameters
