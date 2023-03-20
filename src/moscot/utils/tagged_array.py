@@ -16,9 +16,8 @@ __all__ = ["Tag", "TaggedArray"]
 
 @enum.unique
 class Tag(str, enum.Enum):
-    """Tag used to interpret array-like data in :class:`moscot.solvers.TaggedArray`."""
+    """Tag used to interpret array-like data in a class:`TaggedArray`."""
 
-    # TODO(michalk8): document rest of the classes
     COST_MATRIX = "cost_matrix"  #: Cost matrix.
     KERNEL = "kernel"  #: Kernel matrix.
     POINT_CLOUD = "point_cloud"  #: Point cloud.
@@ -75,7 +74,7 @@ class TaggedArray:
         backend: Literal["ott"] = "ott",
         **kwargs: Any,
     ) -> "TaggedArray":
-        """Create tagged array from :class:`anndata.AnnData`.
+        """Create tagged array from :class:`~anndata.AnnData`.
 
         Parameters
         ----------
@@ -84,22 +83,22 @@ class TaggedArray:
         dist_key
             Helper key which determines into which subset ``adata`` belongs.
         attr
-            Attribute of :class:`anndata.AnnData` used when extracting/computing the cost.
+            Attribute of :class:`~anndata.AnnData` used when extracting/computing the cost.
         tag
             Tag used to interpret the extracted data.
         key
-            Key in the ``attr`` of :class:`anndata.AnnData` used when extracting/computing the cost.
+            Key in the ``attr`` of :class:`~anndata.AnnData` used when extracting/computing the cost.
         cost
             Cost function to apply to the extracted array, depending on ``tag``:
 
             - if ``tag = 'point_cloud'``, it is extracted from the ``backend``.
             - if ``tag = 'cost'`` or ``tag = 'kernel'``, and ``cost = 'custom'``,
               the extracted array is already assumed to be a cost/kernel matrix.
-              Otherwise, :class:`moscot.costs.BaseCost` is used to compute the cost matrix.
+              Otherwise, :class:`~moscot.base.cost.BaseCost` is used to compute the cost matrix.
         backend
-            Which backend to use, see :func:`moscot.backends.get_available_backends`.
+            Which backend to use, see :func:`~moscot.backends.utils.get_available_backends`.
         kwargs
-            Keyword arguments for :class:`moscot.costs.BaseCost`.
+            Keyword arguments for :class:`~moscot.base.cost.BaseCost`.
 
         Returns
         -------

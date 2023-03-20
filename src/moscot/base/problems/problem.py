@@ -132,7 +132,7 @@ class OTProblem(BaseProblem):
     adata
         Source annotated data object.
     adata_tgt
-        Target annotated data object. If `None`, use ``adata``.
+        Target annotated data object. If :obj:`None`, use ``adata``.
     src_obs_mask
         Source observation mask that defines :attr:`adata_src`.
     tgt_obs_mask
@@ -142,11 +142,11 @@ class OTProblem(BaseProblem):
     tgt_var_mask
         Target variable mask that defines :attr:`adata_tgt`.
     src_key
-        Source key name, usually supplied by :class:`moscot.problems.CompoundBaseProblem`.
+        Source key name, usually supplied by :class:`~moscot.base.problems.BaseCompoundProblem`.
     tgt_key
-        Target key name, usually supplied by :class:`moscot.problems.CompoundBaseProblem`.
+        Target key name, usually supplied by :class:`~moscot.base.problems.BaseCompoundProblem`.
     kwargs
-        Keyword arguments for :class:`moscot.problems.base.BaseProblem.`
+        Keyword arguments for :class:`~moscot.base.problems.BaseProblem`.
 
     Notes
     -----
@@ -232,13 +232,13 @@ class OTProblem(BaseProblem):
         ----------
         xy
             Geometry defining the linear term. If passed as a :class:`dict`,
-            :meth:`~moscot.solvers.TaggedArray.from_adata` will be called.
+            :meth:`~moscot.utils.tagged_array.TaggedArray.from_adata` will be called.
         x
             First geometry defining the quadratic term. If passed as a :class:`dict`,
-            :meth:`~moscot.solvers.TaggedArray.from_adata` will be called.
+            :meth:`~moscot.utils.tagged_array.TaggedArray.from_adata` will be called.
         y
             Second geometry defining the quadratic term. If passed as a :class:`dict`,
-            :meth:`~moscot.solvers.TaggedArray.from_adata` will be called.
+            :meth:`~moscot.utils.tagged_array.TaggedArray.from_adata` will be called.
         a
             Source marginals. Valid value are:
 
@@ -315,11 +315,11 @@ class OTProblem(BaseProblem):
         Parameters
         ----------
         backend
-            Which backend to use, see :func:`moscot.backends.get_available_backends`.
+            Which backend to use, see :func:`~moscot.backends.utils.get_available_backends`.
         device
-            Device where to transfer the solution, see :meth:`moscot.solvers.BaseSolverOutput.to`.
+            Device where to transfer the solution, see :meth:`moscot.base.output.BaseSolverOutput.to`.
         kwargs
-            Keyword arguments for :meth:`moscot.solvers.BaseSolver.__call__`.
+            Keyword arguments for :meth:`moscot.base.solver.BaseSolver.__call__`.
 
         Returns
         -------
@@ -353,7 +353,7 @@ class OTProblem(BaseProblem):
         split_mass: bool = False,
         **kwargs: Any,
     ) -> ArrayLike:
-        """Push mass through the :attr:`~moscot.solvers.BaseSolverOutput.transport_matrix`.
+        """Push mass through the :attr:`~moscot.base.output.BaseSolverOutput.transport_matrix`.
 
         Parameters
         ----------
@@ -393,7 +393,7 @@ class OTProblem(BaseProblem):
         split_mass: bool = False,
         **kwargs: Any,
     ) -> ArrayLike:
-        """Pull mass through the :attr:`~moscot.solvers.BaseSolverOutput.transport_matrix`.
+        """Pull mass through the :attr:`~moscot.base.output.BaseSolverOutput.transport_matrix`.
 
         Parameters
         ----------
@@ -477,7 +477,7 @@ class OTProblem(BaseProblem):
         self, adata: AnnData, *, source: bool, data: Optional[Union[bool, str, ArrayLike]] = None, **kwargs: Any
     ) -> ArrayLike:
         if data is True:
-            marginals = self._estimate_marginals(adata, source=source, **kwargs)
+            marginals = self.estimate_marginals(adata, source=source, **kwargs)
         elif data in (False, None):
             marginals = np.ones((adata.n_obs,), dtype=float) / adata.n_obs
         elif isinstance(data, str):
@@ -495,7 +495,8 @@ class OTProblem(BaseProblem):
             )
         return marginals
 
-    def _estimate_marginals(self, adata: AnnData, *, source: bool, **kwargs: Any) -> ArrayLike:
+    def estimate_marginals(self, adata: AnnData, *, source: bool, **kwargs: Any) -> ArrayLike:
+        """TODO."""
         return np.ones((adata.n_obs,), dtype=float) / adata.n_obs
 
     @d.dedent

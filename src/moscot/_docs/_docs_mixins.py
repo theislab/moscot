@@ -57,7 +57,7 @@ key_added
 """
 _return_cell_transition = "Transition matrix of cells or groups of cells."
 _notes_cell_transition = """\
-To visualise the results, see :func:`moscot.pl.cell_transition`.
+To visualize the results, see :func:`moscot.plotting.cell_transition`.
 """
 _normalize = """\
 normalize
@@ -82,7 +82,7 @@ data
     - If `data` is a :class:`str` this should correspond to a column in :attr:`anndata.AnnData.obs`.
       The transport map is applied to the subset corresponding to the source distribution
       (if `forward` is `True`) or target distribution (if `forward` is `False`) of that column.
-    - If `data` is a :class:npt.ArrayLike the transport map is applied to `data`.
+    - If `data` is a :class:`numpy.ndarray` the transport map is applied to `data`.
     - If `data` is a :class:`dict` then the keys should correspond to the tuple defining a single optimal
       transport map and the value should be one of the two cases described above.
 """

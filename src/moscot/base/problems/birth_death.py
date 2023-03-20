@@ -53,7 +53,7 @@ class BirthDeathProblemProtocol(BirthDeathProtocol, Protocol):  # noqa: D101
 
 
 class BirthDeathMixin:
-    """Mixin class for biological problems based on :class:`moscot.problems.mixins.BirthDeathProblem`."""
+    """Mixin for biological problems based on :class:`~moscot.base.problems.BirthDeathProblem`."""
 
     def __init__(self, *args: Any, **kwargs: Any):
         super().__init__(*args, **kwargs)
@@ -70,16 +70,15 @@ class BirthDeathMixin:
         proliferation_key: str = "proliferation",
         apoptosis_key: str = "apoptosis",
         **kwargs: Any,
-    ) -> "BirthDeathProtocol":
-        """
-        Compute gene scores to obtain prior knowledge about proliferation and apoptosis.
+    ) -> "BirthDeathMixin":
+        """Compute gene scores to obtain prior knowledge about proliferation and apoptosis.
 
-        This method computes gene scores using :func:`scanpy.tl.score_genes`. Therefore, a list of genes corresponding
+        This method computes gene scores using :func:`~scanpy.tl.score_genes`. Therefore, a list of genes corresponding
         to proliferation and/or apoptosis must be passed.
 
         Alternatively, proliferation and apoptosis genes for humans and mice are saved in :mod:`moscot`.
-        The gene scores will be used in :meth:`~moscot.problems.CompoundBaseProblem.prepare` to estimate the initial
-        growth rates as suggested in :cite:`schiebinger:19`
+        The gene scores will be used in :meth:`~moscot.base.problems.BaseCompoundProblem.prepare` to estimate
+        the initial growth rates as suggested in :cite:`schiebinger:19`
 
         Parameters
         ----------
@@ -91,15 +90,17 @@ class BirthDeathMixin:
             to be used the corresponding organism must be passed.
         proliferation_key
             Key in :attr:`anndata.AnnData.obs` where to add the genes scores.
+        apoptosis_key
+            TODO.
         kwargs
-            Keyword arguments for :func:`scanpy.tl.score_genes`.
+            Keyword arguments for :func:`~scanpy.tl.score_genes`.
 
         Returns
         -------
-        Returns :class:`moscot.problems.time.TemporalProblem` and updates the following attributes
+        Returns self and updates the following:
 
-            - :attr:`proliferation_key`
-            - :attr:`apoptosis_key`
+            - :attr:`proliferation_key` - TODO: description
+            - :attr:`apoptosis_key` - TODO: description
 
         Notes
         -----
@@ -144,11 +145,11 @@ class BirthDeathMixin:
                 "At least one of `gene_set_proliferation` or `gene_set_apoptosis` must be provided to score genes."
             )
 
-        return self
+        return self  # type: ignore[return-value]
 
     @property
     def proliferation_key(self) -> Optional[str]:
-        """Key in :attr:`anndata.AnnData.obs` where cell proliferation is stored."""
+        """Key in :attr:`~anndata.AnnData.obs` where cell proliferation is stored."""
         return self._proliferation_key
 
     @proliferation_key.setter
@@ -171,15 +172,14 @@ class BirthDeathMixin:
 
 @d.dedent
 class BirthDeathProblem(BirthDeathMixin, OTProblem):
-    """
-    Class handling an optimal transport problem which allows to estimate the marginals with a birth-death process.
+    """Optimal transport problem which allows to estimate the marginals with a birth-death process.
 
     Parameters
     ----------
     %(adata_x)s
     """
 
-    def _estimate_marginals(
+    def estimate_marginals(
         self: BirthDeathProblemProtocol,
         adata: AnnData,
         source: bool,
@@ -188,6 +188,8 @@ class BirthDeathProblem(BirthDeathMixin, OTProblem):
         marginal_kwargs: Mapping[str, Any] = MappingProxyType({}),
         **_: Any,
     ) -> ArrayLike:
+        """TODO."""
+
         def estimate(key: Optional[str], *, fn: Callable[..., ArrayLike], **kwargs: Any) -> ArrayLike:
             if key is None:
                 return np.zeros(adata.n_obs, dtype=float)

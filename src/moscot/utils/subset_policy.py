@@ -37,6 +37,7 @@ __all__ = [
     "ExplicitPolicy",
     "DummyPolicy",
     "FormatterMixin",
+    "create_policy",
 ]
 
 
@@ -125,47 +126,6 @@ class SubsetPolicy(Generic[K], abc.ABC):
         self, plan: Sequence[Tuple[K, K]], filter: Sequence[Tuple[K, K]]  # noqa: A002
     ) -> Sequence[Tuple[K, K]]:
         return [step for step in plan if step in filter]
-
-    @classmethod
-    def create(
-        cls,
-        kind: Policy_t,
-        adata: Union[AnnData, pd.Series, pd.Categorical],
-        **kwargs: Any,
-    ) -> "SubsetPolicy[K]":
-        """
-        Create an instance of a `moscot.utils.SubsetPolicy`.
-
-        Parameters
-        ----------
-        %(policy_kind)s
-        %(adata)s
-
-        kwargs
-            Keyword arguments for a :class:`moscot.utils.SubsetPolicy`.
-
-        Returns
-        -------
-        An instance of a :class:`moscot.utils.SubsetPolicy`.
-
-        Notes
-        -----
-        TODO: link policy example.
-        """
-        if kind == _constants.SEQUENTIAL:
-            return SequentialPolicy(adata, **kwargs)
-        if kind == _constants.STAR:
-            return StarPolicy(adata, **kwargs)
-        if kind == _constants.EXTERNAL_STAR:
-            return ExternalStarPolicy(adata, **kwargs)
-        if kind == _constants.TRIU:
-            return TriangularPolicy(adata, **kwargs, upper=True)
-        if kind == _constants.TRIL:
-            return TriangularPolicy(adata, **kwargs, upper=False)
-        if kind == _constants.EXPLICIT:
-            return ExplicitPolicy(adata, **kwargs)
-
-        raise NotImplementedError(kind)
 
     def create_mask(self, value: Union[K, Sequence[K]], *, allow_empty: bool = False) -> ArrayLike:
         if isinstance(value, str) or not isinstance(value, Iterable):
@@ -405,3 +365,42 @@ class DummyPolicy(FormatterMixin, SubsetPolicy[str]):
         self, plan: Sequence[Tuple[K, K]], filter: Sequence[Tuple[K, K]]  # noqa: A002
     ) -> Sequence[Tuple[K, K]]:
         return plan
+
+
+# TODO(michalk8): in the future, use Registry
+def create_policy(
+    kind: Policy_t,
+    adata: Union[AnnData, pd.Series, pd.Categorical],
+    **kwargs: Any,
+) -> SubsetPolicy[K]:
+    """Create a policy.
+
+    Parameters
+    ----------
+    %(policy_kind)s
+    %(adata)s
+    kwargs
+        Keyword arguments for a :class:`~moscot.utils.subset_policy.SubsetPolicy`.
+
+    Returns
+    -------
+    The policy.
+
+    Notes
+    -----
+    TODO: link policy example.
+    """
+    if kind == _constants.SEQUENTIAL:
+        return SequentialPolicy(adata, **kwargs)
+    if kind == _constants.STAR:
+        return StarPolicy(adata, **kwargs)
+    if kind == _constants.EXTERNAL_STAR:
+        return ExternalStarPolicy(adata, **kwargs)
+    if kind == _constants.TRIU:
+        return TriangularPolicy(adata, **kwargs, upper=True)
+    if kind == _constants.TRIL:
+        return TriangularPolicy(adata, **kwargs, upper=False)
+    if kind == _constants.EXPLICIT:
+        return ExplicitPolicy(adata, **kwargs)
+
+    raise NotImplementedError(kind)

@@ -79,8 +79,7 @@ def drosophila(
 ) -> AnnData:
     """Embryo of Drosophila melanogaster described in :cite:`Li-spatial:22`.
 
-    Minimal pre-processing was performed, such as gene and cell filtering, as well as normalization,
-    see the `processing steps <https://github.com/theislab/moscot-framework_reproducibility>`_.
+    Minimal pre-processing was performed, such as gene and cell filtering, as well as normalization.
 
     Parameters
     ----------

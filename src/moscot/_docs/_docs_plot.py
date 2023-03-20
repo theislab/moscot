@@ -18,15 +18,15 @@ annotate
 """
 _cbar_kwargs_cell_transition = """\
 cbar_kwargs
-    Keyword arguments for :func:`matplotlib.figure.Figure.colorbar`."""
+    Keyword arguments for :meth:`~matplotlib.figure.Figure.colorbar`."""
 # return cell transition
 _return_cell_transition = """\
-:class:`matplotlib.figure.Figure` heatmap of cell transition matrix.
+Heatmap of cell transition matrix.
 """
 # notes cell transition
 _notes_cell_transition = """\
-This function looks for the following data in the :class:`anndata.AnnData` object
-which is passed or saved as an attribute of :mod:`moscot.problems.base.CompoundProblem`.
+This function looks for the following data in the :class:`~anndata.AnnData` object
+which is passed or saved as an attribute of :class:`moscot.base.problems.CompoundProblem`.
 
     - `transition_matrix`
     - `source`
@@ -57,8 +57,8 @@ _return_sankey = """\
 """
 # notes sankey
 _notes_sankey = """\
-This function looks for the following data in the :class:`anndata.AnnData` object
-which is passed or saved as an attribute of :mod:`moscot.problems.base.CompoundProblem`.
+This function looks for the following data in the :class:`~anndata.AnnData` object
+which is passed or saved as an attribute of :class:`moscot.base.problems.CompoundProblem`.
 
     - `transition_matrices`
     - `captions`
@@ -66,7 +66,7 @@ which is passed or saved as an attribute of :mod:`moscot.problems.base.CompoundP
 """
 _alpha_transparency = """\
 alpha
-    Transparancy value.
+    Transparency value.
 """
 _interpolate_color = """\
 interpolate_color
@@ -102,12 +102,12 @@ scale
 """
 # return push/pull
 _return_push_pull = """\
-:class:`matplotlib.figure.Figure` scatterplot in `basis` coordinates.
+Scatterplot in `basis` coordinates.
 """
 # notes push/pull
 _notes_push_pull = """\
-This function looks for the following data in the :class:`anndata.AnnData` object
-which is passed or saved as an attribute of :mod:`moscot.problems.base.CompoundProblem`.
+This function looks for the following data in the :class:`~anndata.AnnData` object
+which is passed or saved as an attribute of :class:`moscot.base.problems.CompoundProblem`.
 
     - `temporal_key`
 """
@@ -116,7 +116,7 @@ which is passed or saved as an attribute of :mod:`moscot.problems.base.CompoundP
 # general input
 _input_plotting = """\
 inp
-    An instance of :class:`anndata.AnnData` where the results of the corresponding method
+    An instance of :class:`~anndata.AnnData` where the results of the corresponding method
     of the :mod:`moscot.problems` instance is saved.
     Alternatively, the instance of the moscot problem can be passed, too."""
 _uns_key = """\
@@ -125,7 +125,7 @@ uns_key
     of the moscot problem instance is saved."""
 _cmap = """\
 cmap
-    Colormap for continuous annotations, see :class:`matplotlib.colors.Colormap`."""
+    Colormap for continuous annotations, see :class:`~matplotlib.colors.Colormap`."""
 _title = """\
 title
     Title of the plot.
@@ -149,7 +149,7 @@ return_fig
     Whether to return the figure."""
 _ax = f"""\
 ax
-    Axes, :class:`matplotlib.axes.Axes`.
+    Axes.
 {_return_fig}"""
 _figsize_dpi_save = f"""\
 figsize

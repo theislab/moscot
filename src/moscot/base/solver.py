@@ -89,11 +89,33 @@ class BaseSolver(Generic[O], abc.ABC):
 
     @abc.abstractmethod
     def _prepare(self, **kwargs: Any) -> Any:
-        pass
+        """Prepare a problem.
+
+        Parameters
+        ----------
+        kwargs
+            Keyword arguments.
+
+        Returns
+        -------
+        Object passed to :meth:`_solve`.
+        """
 
     @abc.abstractmethod
     def _solve(self, data: Any, **kwargs: Any) -> O:
-        pass
+        """Solve a problem.
+
+        Parameters
+        ----------
+        data
+            Object returned by :meth:`_prepare`.
+        kwargs
+            Additional keyword arguments.
+
+        Returns
+        -------
+        The output.
+        """
 
     @property
     @abc.abstractmethod
@@ -106,7 +128,7 @@ class BaseSolver(Generic[O], abc.ABC):
         Parameters
         ----------
         kwargs
-            Keyword arguments for :meth:`_prepare`.
+            Keyword arguments for data preparation.
 
         Returns
         -------
@@ -143,7 +165,7 @@ class OTSolver(TagConverter, BaseSolver[O], abc.ABC):
         tags
             How to interpret the data in ``xy``, ``x`` and ``y``.
         device
-            Device to transfer the output to, see :meth:`moscot.solvers.BaseSolverOutput.to`.
+            Device to transfer the output to, see :meth:`~moscot.base.output.BaseSolverOutput.to`.
         kwargs
             Keyword arguments for parent's :meth:`__call__`.
 
