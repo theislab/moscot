@@ -249,7 +249,7 @@ class BaseSolverOutput(ABC):
             x = np.eye(k, min(batch_size, k - batch), -(min(batch, k)))
             res = func(x, scale_by_marginals=False)
             res[res < thr] = 0
-            tmaps_sparse.append(sp.csr_matrix(res.T if func is self.push else res))
+            tmaps_sparse.append(sp.csr_matrix(res.T if func == self.push else res))
         return MatrixSolverOutput(
             transport_matrix=fn_stack(tmaps_sparse), cost=self.cost, converged=self.converged, is_linear=self.is_linear
         )
