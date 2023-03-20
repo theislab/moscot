@@ -12,18 +12,18 @@ __all__ = ["BaseCost"]
 
 
 class BaseCost(ABC):
-    """Base class for all :mod:`moscot` losses.
+    """Base class for all :mod:`moscot.costs`.
 
     Parameters
     ----------
     adata
         Annotated data object.
     attr
-        Attribute of :class:`anndata.AnnData` used when computing the cost.
+        Attribute of :class:`~anndata.AnnData` used when computing the cost.
     key
-        Key in the ``attr`` of :class:`anndata.AnnData` used when computing the cost.
+        Key in the ``attr`` of :class:`~anndata.AnnData` used when computing the cost.
     dist_key
-        Helper key which determines which distribution ``adata`` belongs to.
+        Helper key which determines which distribution :attr:`adata` belongs to.
     """
 
     def __init__(self, adata: AnnData, attr: str, key: str, dist_key: Union[Any, Tuple[Any, Any]]):
@@ -42,9 +42,9 @@ class BaseCost(ABC):
         Parameters
         ----------
         args
-            Positional arguments for :meth:`_compute`.
+            Positional arguments for computation.
         kwargs
-            Keyword arguments for :meth:`_compute`.
+            Keyword arguments for computation.
 
         Returns
         -------
@@ -64,6 +64,7 @@ class BaseCost(ABC):
         """Annotated data object."""
         return self._adata
 
+    # TODO(michalk8): don't require impl.
     @property
     @abstractmethod
     def data(self) -> Any:

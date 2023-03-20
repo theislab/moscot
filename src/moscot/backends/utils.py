@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING, Any, Literal, Union
+from typing import TYPE_CHECKING, Any, Literal, Tuple, Union
 
 from moscot import _registry
 from moscot._types import ProblemKind_t
@@ -6,7 +6,7 @@ from moscot._types import ProblemKind_t
 if TYPE_CHECKING:
     from moscot.backends import ott
 
-__all__ = ["get_solver", "register_solver"]
+__all__ = ["get_solver", "register_solver", "get_available_backends"]
 
 
 _REGISTRY = _registry.Registry()
@@ -33,3 +33,8 @@ def _(problem_kind: Literal["linear", "quadratic"], **kwargs: Any) -> Union["ott
     if problem_kind == "quadratic":
         return ott.GWSolver(**kwargs)
     raise NotImplementedError(f"Unable to create solver for `{problem_kind!r}` problem.")
+
+
+def get_available_backends() -> Tuple[str, ...]:
+    """TODO."""
+    return tuple(backend for backend in _REGISTRY)

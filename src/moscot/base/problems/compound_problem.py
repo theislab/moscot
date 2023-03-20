@@ -39,6 +39,7 @@ from moscot.utils.subset_policy import (
     OrderedPolicy,
     StarPolicy,
     SubsetPolicy,
+    create_policy,
 )
 from moscot.utils.tagged_array import Tag, TaggedArray
 
@@ -69,7 +70,7 @@ class BaseCompoundProblem(BaseProblem, abc.ABC, Generic[K, B]):
     Raises
     ------
     TypeError
-        If `base_problem_type` is not a subclass of :class:`moscot.problems.OTProblem`.
+        If `base_problem_type` is not a subclass of :class:`~moscot.base.problems.OTProblem`.
     """
 
     def __init__(self, adata: AnnData, **kwargs: Any):
@@ -187,7 +188,7 @@ class BaseCompoundProblem(BaseProblem, abc.ABC, Generic[K, B]):
         x_callback_kwargs: Mapping[str, Any] = MappingProxyType({}),
         y_callback_kwargs: Mapping[str, Any] = MappingProxyType({}),
         **kwargs: Any,
-    ) -> "BaseCompoundProblem[K,B]":
+    ) -> "BaseCompoundProblem[K, B]":
         """
         Prepare the biological problem.
 
@@ -208,7 +209,7 @@ class BaseCompoundProblem(BaseProblem, abc.ABC, Generic[K, B]):
 
         Returns
         -------
-        :class:`moscot.problems.CompoundProblem`.
+        The prepared problem.
         """
         self._ensure_valid_policy(policy)
         policy = self._create_policy(policy=policy, key=key)
@@ -254,14 +255,11 @@ class BaseCompoundProblem(BaseProblem, abc.ABC, Generic[K, B]):
         stage
             Some stage TODO.
         kwargs
-            Keyword arguments for one of:
-                - :meth:`moscot.problems.OTProblem.solve`.
-                - :meth:`moscot.problems.MultiMarginalProblem.solve`.
-                - :meth:`moscot.problems.BirthDeathProblem.solve`.
+            Keyword arguments for :meth:`~moscot.base.problems.OTProblem.solve`.
 
         Returns
         -------
-        :class:`moscot.problems.CompoundProblem`.
+        The solver problem.
         """
         if TYPE_CHECKING:
             assert isinstance(self._problem_manager, ProblemManager)
@@ -369,7 +367,7 @@ class BaseCompoundProblem(BaseProblem, abc.ABC, Generic[K, B]):
         %(scale_by_marginals)s
 
         kwargs
-            keyword arguments for policy-specific `_apply` method of :class:`moscot.problems.CompoundProblem`.
+            keyword arguments for policy-specific `_apply` method of :class:`moscot.base.problems.CompoundProblem`.
 
         Returns
         -------
@@ -400,7 +398,7 @@ class BaseCompoundProblem(BaseProblem, abc.ABC, Generic[K, B]):
         %(scale_by_marginals)s
 
         kwargs
-            keyword arguments for policy-specific `_apply` method of :class:`moscot.problems.CompoundProblem`.
+            keyword arguments for policy-specific `_apply` method of :class:`moscot.base.problems.CompoundProblem`.
 
         Returns
         -------
@@ -427,24 +425,23 @@ class BaseCompoundProblem(BaseProblem, abc.ABC, Generic[K, B]):
         overwrite: bool = False,
         **kwargs: Any,
     ) -> "BaseCompoundProblem[K, B]":
-        """
-        Add a problem.
+        """Add a subproblem.
 
         This function adds and prepares a problem, e.g. if it is not included by the initial
-        :class:`moscot.problems._subset_policy.SubsetPolicy`.
+        :class:`~moscot.utils.subset_policy.SubsetPolicy`.
 
         Parameters
         ----------
         %(key)s
 
         problem
-            Instance of :class:`moscot.problems.base.OTProblem`.
+            Instance of a :class:`~moscot.base.problems.OTProblem`.
         overwrite
             If `True` the problem will be reinitialized and prepared even if a problem with `key` exists.
 
         Returns
         -------
-        :class:`moscot.problems.base.BaseCompoundProblem`.
+        The updated compound problem.
         """
         if TYPE_CHECKING:
             assert isinstance(self._problem_manager, ProblemManager)
@@ -454,8 +451,7 @@ class BaseCompoundProblem(BaseProblem, abc.ABC, Generic[K, B]):
     @d.dedent
     @require_prepare
     def remove_problem(self, key: Tuple[K, K]) -> "BaseCompoundProblem[K, B]":
-        """
-        Remove a (sub)problem.
+        """Remove a subproblem.
 
         Parameters
         ----------
@@ -463,7 +459,7 @@ class BaseCompoundProblem(BaseProblem, abc.ABC, Generic[K, B]):
 
         Returns
         -------
-        :class:`moscot.problems.base.BaseCompoundProblem`
+        The updated compound problem.
         """
         if TYPE_CHECKING:
             assert isinstance(self._problem_manager, ProblemManager)
@@ -489,11 +485,11 @@ class BaseCompoundProblem(BaseProblem, abc.ABC, Generic[K, B]):
         file_prefix
             Prefix to prepend to the file name.
         overwrite
-            Overwrite existing data or not.
+            Whether to overwrite existing data or not.
 
         Returns
         -------
-        None
+        Nothing, just saves the problem.
         """
         file_name = (
             f"{file_prefix}_{self.__class__.__name__}.pkl"
@@ -525,10 +521,11 @@ class BaseCompoundProblem(BaseProblem, abc.ABC, Generic[K, B]):
 
         Returns
         -------
-            Loaded instance of the model.
+        Loaded instance of the model.
 
         Examples
         --------
+        #TODO(michalk8): make nicer
         >>> problem = ProblemClass.load(filename) # use the name of the model class used to save
         >>> problem.push....
         """
@@ -582,10 +579,9 @@ class BaseCompoundProblem(BaseProblem, abc.ABC, Generic[K, B]):
 @d.get_sections(base="CompoundProblem", sections=["Parameters", "Raises"])
 @d.dedent
 class CompoundProblem(BaseCompoundProblem[K, B], abc.ABC):
-    """
-    Class handling biological problems composed of exactly one :class:`anndata.AnnData` instance.
+    """Class handling biological problems composed of exactly one :class:`~anndata.AnnData` instance.
 
-    This class is needed to apply the `policy` to one :class:`anndata.AnnData` objects and hence create the
+    This class is needed to apply the `policy` to one :class:`~anndata.AnnData` objects and hence create the
     Optimal Transport subproblems from the biological problem.
 
     Parameters
@@ -610,7 +606,7 @@ class CompoundProblem(BaseCompoundProblem[K, B], abc.ABC):
         **_: Any,
     ) -> SubsetPolicy[K]:
         if isinstance(policy, str):
-            return SubsetPolicy.create(policy, adata=self.adata, key=key)
+            return create_policy(policy, adata=self.adata, key=key)
         return ExplicitPolicy(self.adata, key=key)
 
     def _callback_handler(
