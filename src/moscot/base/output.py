@@ -185,7 +185,7 @@ class BaseSolverOutput(ABC):
         returns an instance of the `MatrixSolverOutput` with the
         sparsified transport matrix stored as a :class:`~scipy.sparse.csr_matrix`.
 
-        .. warning:
+        .. warning::
             This function only serves for interfacing software which has to instantiate the transport matrix. Methods in
             :mod:`moscot` never use the sparsified transport matrix.
 
@@ -217,9 +217,10 @@ class BaseSolverOutput(ABC):
 
         Returns
         -------
-        Returns `MatrixSolverOutput` with a sparsified transport matrix.
+        Solve output with a sparsified transport matrix.
         """
         n, m = self.shape
+        k, func, fn_stack = (n, self.push, sp.vstack) if n < m else (m, self.pull, sp.hstack)
         if mode == "threshold":
             if value is None:
                 raise ValueError("If `mode` is `threshold`, `threshold` must not be `None`.")
@@ -237,14 +238,13 @@ class BaseSolverOutput(ABC):
             thr = np.percentile(res, value)
         elif mode == "min_row":
             thr = np.inf
-            for batch in range(0, m, batch_size):
-                x = np.eye(m, min(batch_size, m - batch), -(min(batch, m)))
-                res = self.pull(x, scale_by_marginals=False)  # tmap @ indicator_vectors
+            for batch in range(0, k, batch_size):
+                x = np.eye(k, min(batch_size, k - batch), -(min(batch, k)))
+                res = func(x, scale_by_marginals=False)
                 thr = min(thr, res.max(axis=1).min())
         else:
             raise NotImplementedError(mode)
 
-        k, func, fn_stack = (n, self.push, sp.vstack) if n < m else (m, self.pull, sp.hstack)
         tmaps_sparse: List[sp.csr_matrix] = []
         for batch in range(0, k, batch_size):
             x = np.eye(k, min(batch_size, k - batch), -(min(batch, k)))
