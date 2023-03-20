@@ -174,29 +174,34 @@ class BaseSolverOutput(ABC):
     def sparsify(
         self,
         mode: Literal["threshold", "percentile", "min_row"],
-        threshold: Optional[float] = None,
+        value: Optional[float] = None,
         batch_size: int = 1024,
         n_samples: Optional[int] = None,
         seed: Optional[int] = None,
-    ) -> None:
+    ) -> "MatrixSolverOutput":
         """
-        Sparsify the :attr:transport_matrix.
+        Sparsify the :attr:`transport_matrix`.
 
         This function sets all entries of the transport matrix below `threshold` to 0 and
-        returns the result as a :class:`~scipy.sparse.csr_matrix`.
+        returns an instance of :class:`moscot.base.MatrixSolverOutput` with the the
+        sparsified transport matrix stored as a :class:`~scipy.sparse.csr_matrix`.
 
         Parameters
         ----------
         mode
-            Which threshold to use for sparsification. Can be one of:
+            How to determine the value below which entries are set to 0:
 
                 - 'threshold' - threshold below which entries are set to 0.0.
-                - 'percentile' - determine threshold by percentile below which entries are set to 0. Hence, between 0
+                - 'percentile' - determine threshold by percentile below which entries are set to 0.0. Hence, between 0
                   and 100.
                 - 'min_row' - choose the threshold such that each row has at least one non-zero entry.
 
-        threshold
-            Threshold or percentile depending on ``mode```. If ``mode = 'min_row'``, ``threshold``` can be neglected.
+        value
+            Value to use for sparsification depending on ``mode``:
+
+                - `threshold` - `value` sets the threshold below which entries are set to 0.0.
+                - `percentile` - `value` is the percentile below which entries are set to 0.0.
+                - `min_row` - `value` is not used.
         batch_size
             How many rows of the transport matrix to sparsify per batch.
         n_samples
@@ -208,21 +213,20 @@ class BaseSolverOutput(ABC):
 
         Returns
         -------
-        Nothing, but adds the sparsified transport matrix to :attr:`self.sparsified_tmap`.
+        Returns :class:`moscot.base.MatrixSolverOutput` with a sparsified transport matrix.
 
         Note
         ----
-        This function only serves for interfacing software which has to instantiate the transport matrix. Within
-        :mod:`moscot`, there is no point in using this function. We encourage users not to use this function unless it
-        is necessary.
+        This function only serves for interfacing software which has to instantiate the transport matrix. Methods in
+        :mod:`moscot` never use the sparsified transport matrix.
         """
         n, m = self.shape
         if mode == "threshold":
-            if threshold is None:
+            if value is None:
                 raise ValueError("If `mode` is `threshold`, `threshold` must be provided.")
-            thr = threshold
+            thr = value
         elif mode == "percentile":
-            if threshold is None:
+            if value is None:
                 raise ValueError("If `mode` is `percentile`, `threshold` must be provided.")
             rng = np.random.RandomState(seed=seed)
             n_samples = n_samples if n_samples is not None else batch_size
@@ -231,7 +235,7 @@ class BaseSolverOutput(ABC):
             rows = rng.choice(m, size=k)
             x[rows, np.arange(k)] = 1.0
             res = self.pull(x, scale_by_marginals=False)  # tmap @ indicator_vectors
-            thr = np.percentile(res, threshold)
+            thr = np.percentile(res, value)
         elif mode == "min_row":
             thr = np.inf
             for batch in range(0, m, batch_size):
@@ -241,22 +245,23 @@ class BaseSolverOutput(ABC):
         else:
             raise NotImplementedError(mode)
 
+        if n < m:
+            k = n
+            func = self.push
+            fn_stack = sp.vstack
+        else:
+            k = m
+            func = self.pull
+            fn_stack = sp.hstack
         tmaps_sparse: List[sp.csr_matrix] = []
-        for batch in range(0, m, batch_size):
-            x = np.eye(m, min(batch_size, m - batch), -(min(batch, m)))
-            res = self.pull(x, scale_by_marginals=False)  # tmap @ indicator_vectors
+        for batch in range(0, k, batch_size):
+            x = np.eye(k, min(batch_size, k - batch), -(min(batch, k)))
+            res = func(x, scale_by_marginals=False)
             res[res < thr] = 0
-            tmaps_sparse.append(sp.csr_matrix(res))
-        self._sparsified_tmap = sp.hstack(tmaps_sparse)
-
-    @property
-    def sparse_transport_matrix(self) -> Optional[sp.csr_matrix]:
-        """Sparsified transport matrix.
-
-        This is `None` unless :meth:`moscot.base.output.BaseSolverOutput.sparsify`
-        has been run.
-        """
-        return self._sparsified_tmap
+            tmaps_sparse.append(sp.csr_matrix(res.T if func == self.push else res))
+        return MatrixSolverOutput(
+            transport_matrix=fn_stack(tmaps_sparse), cost=self.cost, converged=self.converged, is_linear=self.is_linear
+        )
 
     @property
     def a(self) -> ArrayLike:
