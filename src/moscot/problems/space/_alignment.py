@@ -40,8 +40,7 @@ class AlignmentProblem(CompoundProblem[K, B], SpatialAlignmentMixin[K, B]):
         b: Optional[str] = None,
         **kwargs: Any,
     ) -> "AlignmentProblem[K, B]":
-        """
-        Prepare the :class:`moscot.problems.space.AlignmentProblem`.
+        """Prepare the problem.
 
         This method prepares the data to be passed to the optimal transport solver.
 
@@ -54,7 +53,7 @@ class AlignmentProblem(CompoundProblem[K, B], SpatialAlignmentMixin[K, B]):
 
         reference
             Only used if `policy="star"`, it's the value for reference stored
-            in :attr:`adata.obs` ``["batch_key"]``.
+            in :attr:`anndata.AnnData.obs` ``["batch_key"]``.
 
         %(cost)s
         %(a)s

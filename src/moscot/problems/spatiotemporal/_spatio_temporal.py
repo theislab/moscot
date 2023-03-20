@@ -38,6 +38,7 @@ class SpatioTemporalProblem(
     %(adata)s
     """
 
+    # TODO(michalk8): check if this is necessary
     def __init__(self, adata: AnnData, **kwargs: Any):
         super().__init__(adata, **kwargs)
 
@@ -57,11 +58,10 @@ class SpatioTemporalProblem(
         marginal_kwargs: Mapping[str, Any] = MappingProxyType({}),
         **kwargs: Any,
     ) -> "SpatioTemporalProblem":
-        """
-        Prepare the :class:`moscot.problems.spatio_temporal.SpatioTemporalProblem`.
+        """Prepare the problem.
 
         This method executes multiple steps to prepare the problem for the Optimal Transport solver to be ready
-        to solve it
+        to solve it.
 
         Parameters
         ----------
@@ -76,7 +76,7 @@ class SpatioTemporalProblem(
 
         Returns
         -------
-        :class:`moscot.problems.spatio_temporal.SpatioTemporalProblem`.
+        The prepared problem.
 
         Notes
         -----
@@ -136,8 +136,7 @@ class SpatioTemporalProblem(
         device: Optional[Literal["cpu", "gpu", "tpu"]] = None,
         **kwargs: Any,
     ) -> "SpatioTemporalProblem":
-        """
-        Solve optimal transport problems defined in :class:`moscot.problems.space.SpatioTemporalProblem`.
+        """Solve the problem.
 
         Parameters
         ----------
@@ -160,7 +159,7 @@ class SpatioTemporalProblem(
 
         Returns
         -------
-        :class:`moscot.problems.space.SpatioTemporalProblem`.
+        The solved problem.
 
         Examples
         --------

@@ -387,16 +387,16 @@ class SpatialMappingMixin(AnalysisMixin[K, B]):
         var_names: Optional[Sequence[Any]] = None,
         device: Optional[Device_t] = None,
     ) -> AnnData:
-        """
-        Impute expression of specific genes.
+        """Impute expression of specific genes.
 
         Parameters
         ----------
-        TODO: don't use device from docstrings here, as different use
+        var_names:
+            TODO: don't use device from docstrings here, as different use
 
         Returns
         -------
-        :class:`anndata.AnnData` with imputed gene expression values.
+        Annotated data object with imputed gene expression values.
         """
         if var_names is None:
             var_names = self.adata_sc.var_names

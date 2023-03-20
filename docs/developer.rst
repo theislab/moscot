@@ -1,9 +1,6 @@
 Developer API
 #############
 
-.. module:: moscot
-    :noindex:
-
 Backends
 ~~~~~~~~
 .. module:: moscot.backends
@@ -14,6 +11,9 @@ Backends
     backends.ott.SinkhornSolver
     backends.ott.GWSolver
     backends.ott.OTTOutput
+
+    backends.utils.get_solver
+    backends.utils.get_available_backends
 
 Costs
 ~~~~~
@@ -38,12 +38,13 @@ Problems
 .. autosummary::
     :toctree: genapi
 
+    cost.BaseCost
+    output.BaseSolverOutput
     problems.BaseProblem
     problems.OTProblem
     problems.BirthDeathProblem
     problems.BaseCompoundProblem
     problems.CompoundProblem
-    problems.ProblemManager
 
 Mixins
 ^^^^^^
@@ -55,6 +56,7 @@ Mixins
 
 Solvers
 ^^^^^^^
+.. module:: moscot.solvers
 .. currentmodule:: moscot.base
 .. autosummary::
     :toctree: genapi
@@ -80,6 +82,7 @@ Policies
 .. autosummary::
     :toctree: genapi
 
+    subset_policy.SubsetPolicy
     subset_policy.StarPolicy
     subset_policy.ExternalStarPolicy
     subset_policy.ExplicitPolicy
@@ -97,3 +100,10 @@ Miscellaneous
     data.apoptosis_markers
     tagged_array.TaggedArray
     tagged_array.Tag
+
+.. currentmodule:: moscot.base.problems
+.. autosummary::
+    :toctree: genapi
+
+    birth_death.beta
+    birth_death.delta

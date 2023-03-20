@@ -503,7 +503,7 @@ class AnalysisMixin(Generic[K, B]):
         """
         Compute correlation of push or pull distribution with features.
 
-        Correlates a feature (e.g. counts of a gene) with probabilities of cells mapped to a set of cells, e.g.
+        Correlates a feature (e.g. counts of a gene) with probabilities of cells mapped to a set of cells, e.g.l
         a pull back or push forward distribution.
 
         Parameters
@@ -534,7 +534,7 @@ class AnalysisMixin(Generic[K, B]):
                 - If of type :obj:`list`, the elements should be from :attr:`anndata.AnnData.var_names` or
                   :attr:`anndata.AnnData.obs_names`.
                 - If `human`, `mouse`, or `drosophila`, the features are subsetted to transcription factors,
-                  see :class:`moscot.utils._data.TranscriptionFactors`.
+                  see :func:`~moscot.utils.data.transcription_factors`.
 
         confidence_level
             Confidence level for the confidence interval calculation. Must be in interval `[0, 1]`.
@@ -543,7 +543,7 @@ class AnalysisMixin(Generic[K, B]):
         seed
             Random seed when ``method = perm_test``.
         kwargs
-            Keyword arguments for :func:`moscot._utils.parallelize`, e.g. `n_jobs`.
+            Keyword arguments for parallelization, e.g., `n_jobs`. # TODO(michalk8): consider making the function public
 
         Returns
         -------
