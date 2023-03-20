@@ -171,78 +171,85 @@ class BaseSolverOutput(ABC):
 
         return op
 
-    def compute_sparsification(
+    def sparsify(
         self,
-        mode: Literal["threshold", "percentile", "min_1"] = "threshold",
-        threshold: float = 1e-8,
-        batch_size: int = 1024,
+        mode: Literal["threshold", "percentile", "min_row"],
+        threshold: float,
+        batch_size: int,
         n_samples: Optional[int] = None,
+        seed: Optional[int] = None,
     ) -> None:
         """
-        Sparsify the transport matrix.
+        Sparsify the :attr:transport_matrix.
 
         This function sets all entries of the transport matrix below `threshold` to 0 and
-        returns the result as a :class:`scipy.sparse.csr_matrix`.
+        returns the result as a :class:`~scipy.sparse.csr_matrix`.
 
         Parameters
         ----------
         mode
             Which threshold to use for sparsification. Can be one of:
 
-                - "threshold" - threshold below which entries are set to 0.0.
-                - "percentile" - determine threshold by percentile below which entries are set to 0. Hence, between 0
+                - 'threshold' - threshold below which entries are set to 0.0.
+                - 'percentile' - determine threshold by percentile below which entries are set to 0. Hence, between 0
                   and 100.
-                - "min_1" - choose the threshold such that each row has at least one non-zero entry.
+                - 'min_row' - choose the threshold such that each row has at least one non-zero entry.
 
         threshold
-            Threshold or percentile depending on `mode`. If `mode` is `min_1`, `threshold` can be neglected.
+            Threshold or percentile depending on ``mode```. If ``mode = 'min_row'``, ``threshold``` can be neglected.
         batch_size
             How many rows of the transport matrix to sparsify per batch.
         n_samples
-            If `mode` is `percentile`, determine the number of samples based on which the percentile
+            If ``mode = 'percentile'``, determine the number of samples based on which the percentile
             is computed stochastically. Note this means that a matrix of shape `[n_samples, transport_matrix.shape[1]]`
-            has to be instantiated. If `None`, `n_samples` is set to batch_size.
+            has to be instantiated. If `None`, ``n_samples`` is set to batch_size.
+        seed
+            Random seed needed for sampling if ``mode = 'percentile'``.
 
         Returns
         -------
-        Nothing, but adds the sparsified transport matrix (:class:`scipy.sparse.csr_matrix`) to `self.sparsified_tmap`.
+        Nothing, but adds the sparsified transport matrix to :attr:`self.sparsified_tmap`.
 
         Note
         ----
-        This function only serves for interfacing software which has to instantiate the transport matrix. Within moscot,
-        there is no point in using this function. We encourage users not to use this function unless it is necessary.
+        This function only serves for interfacing software which has to instantiate the transport matrix. Within
+        :mod:`moscot`, there is no point in using this function. We encourage users not to use this function unless it
+        is necessary.
         """
+        n, m = self.shape
         if mode == "threshold":
             thr = threshold
         elif mode == "percentile":
+            rng = np.random.RandomState(seed=seed)
             n_samples = n_samples if n_samples is not None else batch_size
-            x = np.eye(self.shape[1], max(n_samples, self.shape[1]))
+            k = min(n_samples, n)
+            x = np.zeros((m, k))
+            rows = rng.choice(m, size=k)
+            x[rows, np.arange(k)] = 1.0
             res = self.pull(x, scale_by_marginals=False)  # tmap @ indicator_vectors
             thr = np.percentile(res, threshold)
-        elif mode == "min_1":
+        elif mode == "min_row":
             thr = np.inf
-            for batch in range(0, self.shape[1], batch_size):
-                x = np.eye(self.shape[1], min(batch_size, self.shape[1] - batch), -(min(batch, self.shape[1])))
+            for batch in range(0, m, batch_size):
+                x = np.eye(m, min(batch_size, m - batch), -(min(batch, m)))
                 res = self.pull(x, scale_by_marginals=False)  # tmap @ indicator_vectors
-                thr_batch = res.max(axis=1).min()
-                thr = thr_batch if thr_batch < thr else thr
-            thr -= 1e-12  # necessary for the edge case
+                thr = min(thr, res.max(axis=1).min())
         else:
             raise NotImplementedError(mode)
 
         tmaps_sparse: List[sp.csr_matrix] = []
-        for batch in range(0, self.shape[1], batch_size):
-            x = np.eye(self.shape[1], min(batch_size, self.shape[1] - batch), -(min(batch, self.shape[1])))
+        for batch in range(0, m, batch_size):
+            x = np.eye(m, min(batch_size, m - batch), -(min(batch, m)))
             res = self.pull(x, scale_by_marginals=False)  # tmap @ indicator_vectors
-            res[res <= thr] = 0
+            res[res < thr] = 0
             tmaps_sparse.append(sp.csr_matrix(res))
-        self._sparsified_tmap = sp.sparse_hstack(tmaps_sparse)
+        self._sparsified_tmap = sp.hstack(tmaps_sparse)
 
     @property
-    def sparsified_tmap(self) -> Optional[sp.csr_matrix]:
-        """Sparsified transport map.
+    def sparse_transport_matrix(self) -> Optional[sp.csr_matrix]:
+        """Sparsified transport matrix.
 
-        This is `None` unless :meth:`moscot.base.output.BaseSolverOutput.compute_sparsification`
+        This is `None` unless :meth:`moscot.base.output.BaseSolverOutput.sparsify`
         has been run.
         """
         return self._sparsified_tmap
