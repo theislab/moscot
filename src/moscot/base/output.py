@@ -44,7 +44,7 @@ class BaseSolverOutput(ABC):
     def potentials(self) -> Optional[Tuple[ArrayLike, ArrayLike]]:
         """Dual potentials :math:`f` and :math:`g`.
 
-        Only valid for the Sinkhorn's algorithm.
+        Only valid for the Sinkhorn algorithm.
         """
 
     @property
@@ -54,13 +54,12 @@ class BaseSolverOutput(ABC):
 
     @abstractmethod
     def to(self, device: Optional[Device_t] = None) -> "BaseSolverOutput":
-        """Transfer self to another device using :func:`jax.device_put`.
+        """Transfer self to another device.
 
         Parameters
         ----------
         device
-            Device where to transfer the solver output.
-            If `None`, use the default device.
+            Device where to transfer the solver output. If `None`, use the default device.
 
         Returns
         -------
@@ -211,7 +210,7 @@ class BaseSolverOutput(ABC):
 
 
 class MatrixSolverOutput(BaseSolverOutput):
-    """Optimal transport output with materialized :attr:`transport_matrix`.
+    """Optimal transport output with materialized transport matrix.
 
     Parameters
     ----------
@@ -225,6 +224,7 @@ class MatrixSolverOutput(BaseSolverOutput):
         TODO.
     """
 
+    # TODO(michalk8): don't provide defaults?
     def __init__(
         self, transport_matrix: ArrayLike, *, cost: float = np.nan, converged: bool = True, is_linear: bool = True
     ):
