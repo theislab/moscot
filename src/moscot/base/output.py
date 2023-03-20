@@ -174,8 +174,8 @@ class BaseSolverOutput(ABC):
     def sparsify(
         self,
         mode: Literal["threshold", "percentile", "min_row"],
-        threshold: float,
-        batch_size: int,
+        threshold: Optional[float] = None,
+        batch_size: int = 1024,
         n_samples: Optional[int] = None,
         seed: Optional[int] = None,
     ) -> None:
@@ -218,8 +218,12 @@ class BaseSolverOutput(ABC):
         """
         n, m = self.shape
         if mode == "threshold":
+            if threshold is None:
+                raise ValueError("If `mode` is `threshold`, `threshold` must be provided.")
             thr = threshold
         elif mode == "percentile":
+            if threshold is None:
+                raise ValueError("If `mode` is `percentile`, `threshold` must be provided.")
             rng = np.random.RandomState(seed=seed)
             n_samples = n_samples if n_samples is not None else batch_size
             k = min(n_samples, n)

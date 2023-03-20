@@ -23,7 +23,7 @@ class TestBaseSolverOutput:
         assert np.all(res.data >= 0)
         if threshold == 0.0:
             np.testing.assert_allclose(res.A, tmap, rtol=RTOL, atol=ATOL)
-        elif threshold == 1e-8:
+        elif threshold == 1e-1:
             data = res.data
             assert np.sum((data > threshold) + (data == 0)) == len(data)
         elif threshold == 1.0:
