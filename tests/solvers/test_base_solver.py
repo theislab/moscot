@@ -22,7 +22,7 @@ class TestBaseSolverOutput:
         res = mso.transport_matrix
         assert isinstance(res, sp.csr_matrix)
         assert res.shape == shape
-        np.testing.assert_array_equal(res.data >= 0.0, np.full(res.data.shape, True))
+        np.testing.assert_array_equal(res.data >= 0.0, True)
         if threshold == 0.0:
             np.testing.assert_allclose(res.A, tmap, rtol=RTOL, atol=ATOL)
         elif threshold == 1e-1:
@@ -44,8 +44,8 @@ class TestBaseSolverOutput:
         res = mso.transport_matrix
         assert isinstance(res, sp.csr_matrix)
         assert res.shape == shape
-        np.testing.assert_array_equal(res.data >= 0.0, np.full(res.data.shape, True))
-        np.testing.assert_array_equal(np.sum(res.A, axis=1) > 0.0, np.full((shape[0],), True))
+        np.testing.assert_array_equal(res.data >= 0.0, True)
+        np.testing.assert_array_equal(np.sum(res.A, axis=1) > 0.0, True)
 
     @pytest.mark.parametrize("batch_size", [1, 4])
     @pytest.mark.parametrize("threshold", [0, 10, 100])
@@ -59,7 +59,7 @@ class TestBaseSolverOutput:
         res = mso.transport_matrix
         assert isinstance(res, sp.csr_matrix)
         assert res.shape == shape
-        np.testing.assert_array_equal(res.data >= 0.0, np.full(res.data.shape, True))
+        np.testing.assert_array_equal(res.data >= 0.0, True)
         n, m = shape
         if threshold == 0:
             assert np.sum(tmap != res.A) < n * m * 0.1  # this only holds with probability < 1

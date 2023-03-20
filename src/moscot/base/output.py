@@ -179,46 +179,45 @@ class BaseSolverOutput(ABC):
         n_samples: Optional[int] = None,
         seed: Optional[int] = None,
     ) -> "MatrixSolverOutput":
-        """
-        Sparsify the :attr:`transport_matrix`.
+        """Sparsify the :attr:`transport_matrix`.
 
         This function sets all entries of the transport matrix below `threshold` to 0 and
-        returns an instance of :class:`moscot.base.MatrixSolverOutput` with the the
+        returns an instance of the `MatrixSolverOutput` with the
         sparsified transport matrix stored as a :class:`~scipy.sparse.csr_matrix`.
+
+        .. warning:
+            This function only serves for interfacing software which has to instantiate the transport matrix. Methods in
+            :mod:`moscot` never use the sparsified transport matrix.
 
         Parameters
         ----------
         mode
             How to determine the value below which entries are set to 0:
 
-                - 'threshold' - threshold below which entries are set to 0.0.
-                - 'percentile' - determine threshold by percentile below which entries are set to 0.0. Hence, between 0
+                - 'threshold' - threshold below which entries are set to 0.
+                - 'percentile' - determine threshold by percentile below which entries are set to 0. Hence, between 0
                   and 100.
                 - 'min_row' - choose the threshold such that each row has at least one non-zero entry.
 
         value
             Value to use for sparsification depending on ``mode``:
 
-                - `threshold` - `value` sets the threshold below which entries are set to 0.0.
-                - `percentile` - `value` is the percentile below which entries are set to 0.0.
+                - `'threshold'` - `value` sets the threshold below which entries are set to 0.
+                - `percentile` - `value` is the percentile below which entries are set to 0.
                 - `min_row` - `value` is not used.
         batch_size
             How many rows of the transport matrix to sparsify per batch.
         n_samples
             If ``mode = 'percentile'``, determine the number of samples based on which the percentile
-            is computed stochastically. Note this means that a matrix of shape `[n_samples, transport_matrix.shape[1]]`
-            has to be instantiated. If `None`, ``n_samples`` is set to ``batch_size``.
+            is computed stochastically. Note this means that a matrix of shape
+            `[n_samples, min(transport_matrix.shape)]` has to be instantiated. If `None`, ``n_samples`` is set to
+            ``batch_size``.
         seed
             Random seed needed for sampling if ``mode = 'percentile'``.
 
         Returns
         -------
-        Returns :class:`moscot.base.MatrixSolverOutput` with a sparsified transport matrix.
-
-        Note
-        ----
-        This function only serves for interfacing software which has to instantiate the transport matrix. Methods in
-        :mod:`moscot` never use the sparsified transport matrix.
+        Returns `MatrixSolverOutput` with a sparsified transport matrix.
         """
         n, m = self.shape
         if mode == "threshold":
@@ -245,20 +244,13 @@ class BaseSolverOutput(ABC):
         else:
             raise NotImplementedError(mode)
 
-        if n < m:
-            k = n
-            func = self.push
-            fn_stack = sp.vstack
-        else:
-            k = m
-            func = self.pull
-            fn_stack = sp.hstack
+        k, func, fn_stack = (n, self.push, sp.vstack) if n < m else (m, self.pull, sp.hstack)
         tmaps_sparse: List[sp.csr_matrix] = []
         for batch in range(0, k, batch_size):
             x = np.eye(k, min(batch_size, k - batch), -(min(batch, k)))
             res = func(x, scale_by_marginals=False)
             res[res < thr] = 0
-            tmaps_sparse.append(sp.csr_matrix(res.T if func == self.push else res))
+            tmaps_sparse.append(sp.csr_matrix(res.T if func is self.push else res))
         return MatrixSolverOutput(
             transport_matrix=fn_stack(tmaps_sparse), cost=self.cost, converged=self.converged, is_linear=self.is_linear
         )
