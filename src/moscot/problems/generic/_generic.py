@@ -173,7 +173,7 @@ class SinkhornProblem(GenericAnalysisMixin[K, B], CompoundProblem[K, B]):
 @d.dedent
 class GWProblem(GenericAnalysisMixin[K, B], CompoundProblem[K, B]):
     """
-    Class for solving Gromov-Wasserstein problems.
+    Class for solving (Fused) Gromov-Wasserstein problems.
 
     Parameters
     ----------
