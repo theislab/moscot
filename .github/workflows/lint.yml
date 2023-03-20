@@ -19,8 +19,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # TODO(michalk8): enable in the future
-        lint-kind: [code] # , docs]
+        lint-kind: [code, docs]
 
     steps:
       - uses: actions/checkout@v3

@@ -289,7 +289,8 @@ set_env = SPHINXOPTS = -W -q --keep-going
 changedir = {tox_root}{/}docs
 commands =
     make linkcheck {posargs}
-    make spelling {posargs}
+    # TODO(michalk8): uncomment after https://github.com/theislab/moscot/issues/490
+    # make spelling {posargs}
 
 [testenv:clean-docs]
 description = Remove the documentation.
