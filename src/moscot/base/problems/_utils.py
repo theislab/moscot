@@ -233,7 +233,7 @@ def _correlation_test(
     seed
         Random seed if ``method = 'perm_test'``.
     kwargs
-        Keyword arguments for :func:`moscot._utils.parallelize`, e.g. `n_jobs`.
+        Keyword arguments for parallelization, e.g., `n_jobs`.
 
     Returns
     -------

@@ -248,7 +248,7 @@ class TemporalMixin(AnalysisMixin[K, B]):
 
         Notes
         -----
-        To visualise the results, see :func:`moscot.pl.sankey`.
+        To visualise the results, see :func:`moscot.plotting.sankey`.
         """
         tuples = self._policy.plan(start=source, end=target)
         cell_transitions = []
@@ -597,9 +597,7 @@ class TemporalMixin(AnalysisMixin[K, B]):
         Therefore, the Wasserstein distance between the interpolated and the real distribution is computed.
 
         It is recommended to compare the Wasserstein distance to the ones obtained by
-        :meth:`compute_time_point_distances`,
-        :meth:`compute_random_distance`, and
-        :meth:`compute_time_point_distance`.
+        :meth:`compute_time_point_distances` and :meth:`compute_random_distance`.
 
         This method does not instantiate the transport matrix if the solver output does not.
 
