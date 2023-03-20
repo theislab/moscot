@@ -164,6 +164,8 @@ class SubsetPolicy(Generic[K], abc.ABC):
             return TriangularPolicy(adata, **kwargs, upper=False)
         if kind == _constants.EXPLICIT:
             return ExplicitPolicy(adata, **kwargs)
+        if kind == _constants.DUMMY:
+            return DummyPolicy(adata, **kwargs)
 
         raise NotImplementedError(kind)
 
