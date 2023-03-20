@@ -207,7 +207,7 @@ class BaseSolverOutput(ABC):
         n_samples
             If ``mode = 'percentile'``, determine the number of samples based on which the percentile
             is computed stochastically. Note this means that a matrix of shape `[n_samples, transport_matrix.shape[1]]`
-            has to be instantiated. If `None`, ``n_samples`` is set to batch_size.
+            has to be instantiated. If `None`, ``n_samples`` is set to ``batch_size``.
         seed
             Random seed needed for sampling if ``mode = 'percentile'``.
 
@@ -223,11 +223,11 @@ class BaseSolverOutput(ABC):
         n, m = self.shape
         if mode == "threshold":
             if value is None:
-                raise ValueError("If `mode` is `threshold`, `threshold` must be provided.")
+                raise ValueError("If `mode` is `threshold`, `threshold` must not be `None`.")
             thr = value
         elif mode == "percentile":
             if value is None:
-                raise ValueError("If `mode` is `percentile`, `threshold` must be provided.")
+                raise ValueError("If `mode` is `percentile`, `threshold` must not be `None`.")
             rng = np.random.RandomState(seed=seed)
             n_samples = n_samples if n_samples is not None else batch_size
             k = min(n_samples, n)
