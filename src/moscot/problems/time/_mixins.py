@@ -10,11 +10,17 @@ import numpy as np
 from anndata import AnnData
 
 from moscot._types import ArrayLike, Numeric_t, Str_Dict_t
+<<<<<<< HEAD
 from moscot._logging import logger
 from moscot.solvers._output import BaseSolverOutput
 from moscot._docs._docs_mixins import d_mixins
 from moscot.problems.base._utils import _validate_annotations, _order_transition_matrix, _validate_args_cell_transition
 from moscot._constants._constants import Key, PlottingKeys, AggregationMode, PlottingDefaults
+=======
+from moscot.solvers._output import BaseSolverOutput
+from moscot._docs._docs_mixins import d_mixins
+from moscot._constants._constants import Key, PlottingKeys, PlottingDefaults
+>>>>>>> origin/conditional_not_precommit
 from moscot.problems.base._mixins import AnalysisMixin, AnalysisMixinProtocol
 from moscot.solvers._tagged_array import Tag
 from moscot.problems.base._birth_death import BirthDeathProblem

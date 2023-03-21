@@ -675,9 +675,13 @@ class NeuralOTProblem(OTProblem):  # TODO override set_x/set_y
         """Solve method."""
         if self._xy is None:
             raise ValueError("Unable to solve the problem without `xy`.")
+<<<<<<< HEAD
         return super().solve(
             backend=backend, device=device, conditional=False, input_dim=self._xy.data_src.shape[1], **kwargs
         )
+=======
+        return super().solve(backend=backend, device=device, cond_dim=0, input_dim=self._xy.data_src.shape[1], **kwargs)
+>>>>>>> origin/conditional_not_precommit
 
 
 class CondOTProblem(BaseProblem):  # TODO(@MUCDK) check generic types, save and load
@@ -724,6 +728,10 @@ class CondOTProblem(BaseProblem):  # TODO(@MUCDK) check generic types, save and 
         policy_key: str,
         policy: Policy_t,
         xy: Mapping[str, Any],
+<<<<<<< HEAD
+=======
+        cond_dim: int,
+>>>>>>> origin/conditional_not_precommit
         a: Optional[str] = None,
         b: Optional[str] = None,
         **kwargs: Any,
@@ -757,6 +765,10 @@ class CondOTProblem(BaseProblem):  # TODO(@MUCDK) check generic types, save and 
         self._a = a
         self._b = b
         self._solution = None
+<<<<<<< HEAD
+=======
+        self._cond_dim = cond_dim
+>>>>>>> origin/conditional_not_precommit
 
         self._inner_policy = SubsetPolicy.create(policy, adata=self.adata, key=policy_key)
         self._sample_pairs = list(self._inner_policy()._graph)
@@ -808,6 +820,10 @@ class CondOTProblem(BaseProblem):  # TODO(@MUCDK) check generic types, save and 
             neural="cond",
             distributions=self._distributions,
             sample_pairs=self._sample_pairs,
+<<<<<<< HEAD
+=======
+            cond_dim=self._cond_dim,
+>>>>>>> origin/conditional_not_precommit
             input_dim=list(self._distributions.values())[0][0].data_src.shape[1],
             **kwargs,
         )
