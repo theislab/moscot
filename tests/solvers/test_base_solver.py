@@ -23,11 +23,18 @@ class TestBaseSolverOutput:
         assert isinstance(res, sp.csr_matrix)
         assert res.shape == shape
         np.testing.assert_array_equal(res.data >= 0.0, True)
+        vec_pull = np.abs(rng.randn(shape[1], 1))
+        pull1 = mso.pull(vec_pull)
+        pull2 = output.pull(vec_pull)
+        assert isinstance(pull1, np.ndarray)
+
         if threshold == 0.0:
             np.testing.assert_allclose(res.A, tmap, rtol=RTOL, atol=ATOL)
+            np.testing.assert_array_less(0.5, np.corrcoef(pull1.squeeze(), pull2.squeeze())[0, 1])
         elif threshold == 1e-1:
             data = res.data
             np.testing.assert_equal(np.sum((data > threshold) + (data == 0)), len(data))
+            np.testing.assert_array_less(0.5, np.corrcoef(pull1.squeeze(), pull2.squeeze())[0, 1])
         elif threshold == 1.0:
             assert res.nnz == 0
         else:
@@ -46,6 +53,11 @@ class TestBaseSolverOutput:
         assert res.shape == shape
         np.testing.assert_array_equal(res.data >= 0.0, True)
         np.testing.assert_array_equal(np.sum(res.A, axis=1) > 0.0, True)
+        vec_pull = np.abs(rng.randn(shape[1], 1))
+        pull1 = mso.pull(vec_pull)
+        pull2 = output.pull(vec_pull)
+        assert isinstance(pull1, np.ndarray)
+        np.testing.assert_array_less(0.5, np.corrcoef(pull1.squeeze(), pull2.squeeze())[0, 1])
 
     @pytest.mark.parametrize("batch_size", [1, 4])
     @pytest.mark.parametrize("threshold", [0, 10, 100])
@@ -65,3 +77,9 @@ class TestBaseSolverOutput:
             assert np.sum(tmap != res.A) < n * m * 0.1  # this only holds with probability < 1
         if threshold == 100:
             assert res.nnz < n * m * 0.9  # this only holds with probability < 1
+        vec_pull = np.abs(rng.randn(shape[1], 1))
+        pull1 = mso.pull(vec_pull)
+        pull2 = output.pull(vec_pull)
+        assert isinstance(pull1, np.ndarray)
+        if threshold < 100:
+            np.testing.assert_array_less(0.5, np.corrcoef(pull1.squeeze(), pull2.squeeze())[0, 1])

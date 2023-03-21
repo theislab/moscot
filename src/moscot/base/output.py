@@ -323,7 +323,11 @@ class MatrixSolverOutput(BaseSolverOutput):
 
     def _apply(self, x: ArrayLike, *, forward: bool) -> ArrayLike:
         if forward:
+            if isinstance(self.transport_matrix, sp.csr_matrix):
+                return sp.csr_matrix.dot(self.transport_matrix.T, sp.csr_matrix(x)).A
             return self.transport_matrix.T @ x
+        if isinstance(self.transport_matrix, sp.csr_matrix):
+            return sp.csr_matrix.dot(self.transport_matrix, sp.csr_matrix(x)).A
         return self.transport_matrix @ x
 
     @property
