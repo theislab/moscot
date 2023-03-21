@@ -27,10 +27,7 @@ from moscot.utils._data import TranscriptionFactors
 from moscot.solvers._output import BaseSolverOutput
 from moscot.problems.base._utils import (
     _correlation_test,
-<<<<<<< HEAD
     _validate_annotations,
-=======
->>>>>>> origin/conditional_not_precommit
     _get_df_cell_transition,
     _order_transition_matrix,
     _validate_args_cell_transition,

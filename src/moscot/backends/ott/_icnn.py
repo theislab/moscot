@@ -1,9 +1,4 @@
-<<<<<<< HEAD
-from typing import Callable, Optional, Sequence, Tuple, Union
-=======
-from types import MappingProxyType
-from typing import Any, Dict, Tuple, Union, Callable, Sequence
->>>>>>> origin/conditional_not_precommit
+from typing import Tuple, Union, Callable, Optional, Sequence
 
 from flax import linen as nn
 from flax.training import train_state
@@ -18,18 +13,11 @@ class ICNN(nn.Module):
 
     dim_hidden: Sequence[int]
     input_dim: int
-<<<<<<< HEAD
     conditional: bool
-=======
-    cond_dim: int
->>>>>>> origin/conditional_not_precommit
     init_std: float = 0.1
     init_fn: Callable[[jnp.ndarray], Callable[[jnp.ndarray], jnp.ndarray]] = nn.initializers.normal
     act_fn: Callable[[jnp.ndarray], jnp.ndarray] = nn.leaky_relu
     pos_weights: bool = False
-    # combiner: Optional[Type[nn.Dense]] = None
-    combiner_output_dim: int = 0
-    combiner_kwargs: Dict[str, Any] = MappingProxyType({})
 
     def setup(self):
         """Initialize ICNN architecture."""
@@ -72,32 +60,12 @@ class ICNN(nn.Module):
         self.w_xs = w_xs
         self.w_zs = w_zs
 
-<<<<<<< HEAD
         if self.conditional:
-=======
-        if self.cond_dim > 0:
->>>>>>> origin/conditional_not_precommit
             w_zu = []
             w_xu = []
             w_u = []
             v = []
 
-<<<<<<< HEAD
-=======
-            if (
-                self.combiner_output_dim > 0
-            ):  # if combine different conditions into a single one, we assume conditions being concatenated
-                # add one layer only, activation function in forward pass
-                self.combiner = nn.Dense(  # combiner
-                    self.combiner_output_dim,
-                    kernel_init=self.init_fn(self.init_std),
-                    use_bias=True,
-                    bias_init=self.init_fn(self.init_std),
-                )
-            else:
-                self.combiner_output_dim = self.cond_dim
-
->>>>>>> origin/conditional_not_precommit
             for i in range(0, num_hidden):
                 if i != 0:
                     w_zu.append(
@@ -110,11 +78,7 @@ class ICNN(nn.Module):
                     )
                 w_xu.append(  # this the matrix that multiply with x
                     nn.Dense(
-<<<<<<< HEAD
                         self.input_dim,  # self.dim_hidden[i],
-=======
-                        self.input_dim - self.cond_dim,  # self.dim_hidden[i],
->>>>>>> origin/conditional_not_precommit
                         kernel_init=self.init_fn(self.init_std),
                         use_bias=True,
                         bias_init=self.init_fn(self.init_std),
@@ -130,11 +94,7 @@ class ICNN(nn.Module):
                 )
                 v.append(
                     nn.Dense(
-<<<<<<< HEAD
                         1,
-=======
-                        self.combiner_output_dim,
->>>>>>> origin/conditional_not_precommit
                         kernel_init=self.init_fn(self.init_std),
                         use_bias=True,
                         bias_init=self.init_fn(self.init_std),
@@ -150,11 +110,7 @@ class ICNN(nn.Module):
             )
             w_xu.append(  # this the matrix that multiply with x
                 nn.Dense(
-<<<<<<< HEAD
                     self.input_dim,
-=======
-                    self.input_dim - self.cond_dim,
->>>>>>> origin/conditional_not_precommit
                     kernel_init=self.init_fn(self.init_std),
                     use_bias=True,
                     bias_init=self.init_fn(self.init_std),
@@ -185,28 +141,15 @@ class ICNN(nn.Module):
     @nn.compact
     def __call__(self, x: jnp.ndarray, c: Optional[jnp.ndarray] = None) -> jnp.ndarray:
         """Apply ICNN module."""
-<<<<<<< HEAD
         assert (c is not None) == (self.conditional), "`conditional` flag and whether `c` is provided must match."
 
         if not self.conditional:
-=======
-
-        if self.cond_dim == 0:
->>>>>>> origin/conditional_not_precommit
             z = self.w_xs[0](x)
             z = jnp.multiply(z, z)
             for Wz, Wx in zip(self.w_zs[:-1], self.w_xs[1:-1]):
                 z = self.act_fn(jnp.add(Wz(z), Wx(x)))
             y = jnp.add(self.w_zs[-1](z), self.w_xs[-1](x))
         else:
-<<<<<<< HEAD
-=======
-            x, c = x[: -self.cond_dim], x[-self.cond_dim :]
-            if self.combiner_output_dim is not None:
-                c = self.combiner(c)
-                c = self.act_fn(c)
-
->>>>>>> origin/conditional_not_precommit
             # Initialize
             mlp_condition_embedding = self.w_xu[0](c)
             x_hadamard_1 = jnp.multiply(x, mlp_condition_embedding)

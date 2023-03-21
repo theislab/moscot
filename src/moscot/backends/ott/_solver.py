@@ -440,12 +440,9 @@ class NeuralSolver(OTSolver[OTTOutput]):
 class CondNeuralSolver(NeuralSolver):
     """Solver class solving Conditional Neural Optimal Transport problems."""
 
-<<<<<<< HEAD
     def __init__(self, **kwargs: Any) -> None:
         super().__init__(conditional=True, **kwargs)
 
-=======
->>>>>>> origin/conditional_not_precommit
     def _prepare(  # type: ignore[override]
         self,
         xy: Dict[Any, Tuple[TaggedArray, ArrayLike, ArrayLike]],
@@ -459,26 +456,17 @@ class CondNeuralSolver(NeuralSolver):
         valid_data: List[Optional[ArrayLike]] = []
         valid_a: List[Optional[ArrayLike]] = []
         valid_b: List[Optional[ArrayLike]] = []
-<<<<<<< HEAD
         conditions: List[Optional[ArrayLike]] = []
 
         sample_to_idx: Dict[int, Any] = {}
-=======
-
-        sample2idx: Dict[int, Any] = {}
->>>>>>> origin/conditional_not_precommit
         kwargs = _filter_kwargs(JaxSampler, **kwargs)
         if train_size == 1.0:
             train_data = [d[0].data_src for d in xy.values()]
             train_a = [d[1] for d in xy.values()]
             train_b = [d[2] for d in xy.values()]
             valid_data, valid_a, valid_b = train_data, train_a, train_b
-<<<<<<< HEAD
             sample_to_idx = {k: i for i, k in enumerate(xy.keys())}
             conditions = [k for k in xy.keys()][:-1]
-=======
-            sample2idx = {k: i for i, k in enumerate(xy.keys())}
->>>>>>> origin/conditional_not_precommit
         else:
             if train_size > 1.0 or train_size <= 0.0:
                 raise ValueError("Invalid train_size. Must be: 0 < train_size <= 1")
@@ -494,7 +482,6 @@ class CondNeuralSolver(NeuralSolver):
                 valid_data.append(v_data)
                 valid_a.append(v_a)
                 valid_b.append(v_b)
-<<<<<<< HEAD
                 sample_to_idx[k] = i
                 conditions.append(k)
 
@@ -503,15 +490,6 @@ class CondNeuralSolver(NeuralSolver):
         )
         self._valid_sampler = JaxSampler(
             valid_data, sample_pairs, a=valid_a, b=valid_b, sample_to_idx=sample_to_idx, conditions=conditions, **kwargs
-=======
-                sample2idx[k] = i
-
-        self._train_sampler = JaxSampler(
-            train_data, sample_pairs, a=train_a, b=train_b, sample2idx=sample2idx, **kwargs
-        )
-        self._valid_sampler = JaxSampler(
-            valid_data, sample_pairs, a=valid_a, b=valid_b, sample2idx=sample2idx, **kwargs
->>>>>>> origin/conditional_not_precommit
         )
         return (self._train_sampler, self._valid_sampler)
 

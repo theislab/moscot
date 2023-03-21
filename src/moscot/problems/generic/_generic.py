@@ -16,11 +16,7 @@ from moscot._constants._constants import Policy
 from moscot.problems.generic._mixins import GenericAnalysisMixin
 from moscot.problems.base._compound_problem import B, K
 
-<<<<<<< HEAD
 __all__ = ["SinkhornProblem", "GWProblem", "NeuralProblem", "ConditionalNeuralProblem"]
-=======
-__all__ = ["SinkhornProblem", "GWProblem", "FGWProblem", "NeuralProblem", "ConditionalNeuralProblem"]
->>>>>>> origin/conditional_not_precommit
 
 
 @d.dedent
@@ -574,10 +570,6 @@ class ConditionalNeuralProblem(CondOTProblem, GenericAnalysisMixin[K, B]):
         self,
         key: str,
         joint_attr: str,
-<<<<<<< HEAD
-=======
-        cond_dim: int,
->>>>>>> origin/conditional_not_precommit
         policy: Literal["sequential", "pairwise", "explicit"] = "sequential",
         a: Optional[str] = None,
         b: Optional[str] = None,
@@ -590,10 +582,6 @@ class ConditionalNeuralProblem(CondOTProblem, GenericAnalysisMixin[K, B]):
             policy_key=key,
             policy=policy,
             xy=xy,
-<<<<<<< HEAD
-=======
-            cond_dim=cond_dim,
->>>>>>> origin/conditional_not_precommit
             a=a,
             b=b,
             **kwargs,
@@ -622,10 +610,6 @@ class ConditionalNeuralProblem(CondOTProblem, GenericAnalysisMixin[K, B]):
         optimizer_g_kwargs: Dict[str, Any] = MappingProxyType({}),
         pretrain_iters: int = 15001,
         pretrain_scale: float = 3.0,
-<<<<<<< HEAD
-=======
-        combiner_kwargs: Dict[str, Any] = MappingProxyType({}),
->>>>>>> origin/conditional_not_precommit
         valid_sinkhorn_kwargs: Dict[str, Any] = MappingProxyType({}),
         train_size: float = 1.0,
         **kwargs: Any,
@@ -650,10 +634,6 @@ class ConditionalNeuralProblem(CondOTProblem, GenericAnalysisMixin[K, B]):
             optimizer_g_kwargs=optimizer_g_kwargs,
             pretrain_iters=pretrain_iters,
             pretrain_scale=pretrain_scale,
-<<<<<<< HEAD
-=======
-            combiner_kwargs=combiner_kwargs,
->>>>>>> origin/conditional_not_precommit
             valid_sinkhorn_kwargs=valid_sinkhorn_kwargs,
             train_size=train_size,
             **kwargs,
