@@ -675,7 +675,9 @@ class NeuralOTProblem(OTProblem):  # TODO override set_x/set_y
         """Solve method."""
         if self._xy is None:
             raise ValueError("Unable to solve the problem without `xy`.")
-        return super().solve(backend=backend, device=device, cond_dim=0, input_dim=self._xy.data_src.shape[1], **kwargs)
+        return super().solve(
+            backend=backend, device=device, conditional=False, input_dim=self._xy.data_src.shape[1], **kwargs
+        )
 
 
 class CondOTProblem(BaseProblem):  # TODO(@MUCDK) check generic types, save and load
@@ -722,7 +724,6 @@ class CondOTProblem(BaseProblem):  # TODO(@MUCDK) check generic types, save and 
         policy_key: str,
         policy: Policy_t,
         xy: Mapping[str, Any],
-        cond_dim: int,
         a: Optional[str] = None,
         b: Optional[str] = None,
         **kwargs: Any,
@@ -756,7 +757,6 @@ class CondOTProblem(BaseProblem):  # TODO(@MUCDK) check generic types, save and 
         self._a = a
         self._b = b
         self._solution = None
-        self._cond_dim = cond_dim
 
         self._inner_policy = SubsetPolicy.create(policy, adata=self.adata, key=policy_key)
         self._sample_pairs = list(self._inner_policy()._graph)
@@ -808,7 +808,6 @@ class CondOTProblem(BaseProblem):  # TODO(@MUCDK) check generic types, save and 
             neural="cond",
             distributions=self._distributions,
             sample_pairs=self._sample_pairs,
-            cond_dim=self._cond_dim,
             input_dim=list(self._distributions.values())[0][0].data_src.shape[1],
             **kwargs,
         )

@@ -1,6 +1,1 @@
-from moscot.problems.generic._generic import (
-    GWProblem,
-    NeuralProblem,
-    SinkhornProblem,
-    ConditionalNeuralProblem,
-)
+from moscot.problems.generic._generic import GWProblem, NeuralProblem, SinkhornProblem, ConditionalNeuralProblem
