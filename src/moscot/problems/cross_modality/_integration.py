@@ -2,6 +2,12 @@ from types import MappingProxyType
 from typing import Any, Literal, Mapping, Optional, Sequence, Tuple, Type, Union
 
 from anndata import AnnData
+import numpy as np
+import scipy.spatial
+import scanpy as sc
+import anndata as ad
+from sklearn.preprocessing import normalize
+
 
 from moscot import _constants
 from moscot._docs._docs import d
@@ -16,14 +22,15 @@ from moscot._types import (
 from moscot.base.problems.compound_problem import B, CompoundProblem, K
 from moscot.base.problems.problem import OTProblem
 from moscot.problems._utils import handle_cost, handle_joint_attr
-from moscot.problems.cross_modality._mixins import IntegrationMixin
+from moscot.problems.cross_modality._mixins import CrossModalityIntegrationMixin
 from moscot.utils.subset_policy import DummyPolicy
+from moscot.base.output import BaseSolverOutput
 
 __all__ = ["IntegrationProblem"]
 
 
 @d.dedent
-class IntegrationProblem(CompoundProblem[K, OTProblem], IntegrationMixin[K, OTProblem]):
+class IntegrationProblem(CompoundProblem[K, OTProblem], CrossModalityIntegrationMixin[K, OTProblem]):
     """
     Class for integrating single cell multiomics data.
 
@@ -90,9 +97,13 @@ class IntegrationProblem(CompoundProblem[K, OTProblem], IntegrationMixin[K, OTPr
         Examples
         --------
         """
+        self._src_attr = src_attr['key']
+        self._tgt_attr = tgt_attr['key']
+
         x = {"attr": "obsm", "key": src_attr} if isinstance(src_attr, str) else src_attr
         y = {"attr": "obsm", "key": tgt_attr} if isinstance(tgt_attr, str) else tgt_attr
         
+
         xy, kwargs = handle_joint_attr(joint_attr, kwargs)
         xy, _, _ = handle_cost(xy=xy, cost=cost)
         return super().prepare(x=x, y=y, xy=xy, policy="dummy", key=None, cost=cost, a=a, b=b, **kwargs)
@@ -176,6 +187,81 @@ class IntegrationProblem(CompoundProblem[K, OTProblem], IntegrationMixin[K, OTPr
             **kwargs,
         )  # type: ignore[return-value]
 
+    def normalize(
+            self,
+            norm="l2", 
+            bySample=True
+    ):
+        assert (norm in ["l1","l2","max"]), "Norm argument has to be either one of 'max', 'l1', or 'l2'."
+        if (bySample==True or bySample==None):
+            axis=1
+        else:
+            axis=0
+        self.adata_src.obsm[self._src_attr] = normalize(self.adata_src.obsm[self._src_attr], norm=norm, axis=axis)
+        self.adata_tgt.obsm[self._tgt_attr] = normalize(self.adata_tgt.obsm[self._tgt_attr], norm=norm, axis=axis)
+
+    def barycentric_projection(
+            self,
+            SRContoTGT=True
+    ):
+        if SRContoTGT:
+            # Projecting the source domain onto the target domain
+            self._tgt_aligned = self.adata_tgt.obsm[self._tgt_attr]
+            self.coupling = self[('src', 'tgt')].solution.transport_matrix
+            weights = np.sum(self.coupling, axis = 1)
+            self._src_aligned = np.matmul(self.coupling, self._tgt_aligned) / weights[:, None]
+        else:
+            # Projecting the target domain onto the source domain
+            self._src_aligned = self.adata_src.obsm[self._src_attr]
+            self.coupling = self[('src', 'tgt')].solution.transport_matrix
+            weights = np.sum(self.coupling, axis = 1)
+            self._tgt_aligned = np.matmul(np.transpose(self.coupling), self._src_aligned) / weights[:, None]
+        
+        self.adata_src.obsm["X_aligned"] = self._src_aligned
+        self.adata_tgt.obsm["X_aligned"] = self._tgt_aligned
+        return self._src_aligned, self._tgt_aligned
+    
+    def integrate(
+            self,
+            normalize = True,
+            norm = "l2",
+            SRContoTGT=True,
+            **kwargs:Any,
+    ) -> ArrayLike:
+        """
+        Integrate source and target objects
+        """
+        if normalize:
+            self.normalize(norm=norm) # überschreibt so die adata objecte, evlt. lieber neues feld in obsm hinzufügen?
+        
+        src_aligned, tgt_aligned = self.barycentric_projection(SRContoTGT=SRContoTGT)
+
+        self.src_aligned, self.tgt_aligned = src_aligned, tgt_aligned
+        return (self.src_aligned, self.tgt_aligned)
+
+    def plotting(
+            self,
+            color : Union[str, Sequence[str], None] = None, # add cell type here
+            **kwargs:Any, 
+    ):
+        adata_comb = ad.concat([self.adata_src, self.adata_tgt], join = 'outer', label='batch', index_unique = '-')
+        sc.pp.neighbors(adata_comb, use_rep="X_aligned")
+        sc.tl.umap(adata_comb)
+        if isinstance(color, str):
+            col = ["batch", color]
+        elif isinstance(color, list):
+            col = ['batch']+ color
+        else:
+            raise ValueError("Input color must be a string or a list of strings.")
+
+        sc.pl.umap(adata_comb, color=col)
+        self.adata_comb = adata_comb
+        
+    @property
+    def solution(self) -> Optional[BaseSolverOutput]:
+        """Solution of the optimal transport problem."""
+        return self._solution
+    
     @property
     def adata_tgt(self) -> AnnData:
         """Target data."""
@@ -197,3 +283,4 @@ class IntegrationProblem(CompoundProblem[K, OTProblem], IntegrationMixin[K, OTPr
     @property
     def _secondary_adata(self) -> Optional[AnnData]:
         return self._adata_tgt
+    
