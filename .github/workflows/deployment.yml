@@ -1,12 +1,11 @@
-name: Release
-
+name: Deployment
 on:
-  # TODO(michalk8): consider using GitHub releases
   push:
+    branches: [main]
     tags: [v*]
 
 jobs:
-  release:
+  deploy:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
