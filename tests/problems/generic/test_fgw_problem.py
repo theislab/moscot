@@ -37,8 +37,8 @@ class TestFGWProblem:
             key="batch",
             policy="sequential",
             joint_attr="X_pca",
-            GW_x={"attr": "obsm", "key": "spatial"},
-            GW_y={"attr": "obsm", "key": "spatial"},
+            x_attr={"attr": "obsm", "key": "spatial"},
+            y_attr={"attr": "obsm", "key": "spatial"},
         )
 
         assert isinstance(problem.problems, dict)
@@ -57,8 +57,8 @@ class TestFGWProblem:
             key="batch",
             policy="sequential",
             joint_attr="X_pca",
-            GW_x={"attr": "obsm", "key": "spatial"},
-            GW_y={"attr": "obsm", "key": "spatial"},
+            x_attr={"attr": "obsm", "key": "spatial"},
+            y_attr={"attr": "obsm", "key": "spatial"},
         )
         problem = problem.solve(alpha=0.5, epsilon=eps)
 
@@ -73,8 +73,8 @@ class TestFGWProblem:
             key="batch",
             policy="sequential",
             joint_attr="X_pca",
-            GW_x={"attr": "obsm", "key": "spatial"},
-            GW_y={"attr": "obsm", "key": "spatial"},
+            x_attr={"attr": "obsm", "key": "spatial"},
+            y_attr={"attr": "obsm", "key": "spatial"},
         )
 
         problem = problem.solve(**args_to_check)
@@ -116,8 +116,8 @@ class TestFGWProblem:
             key="time",
             policy="sequential",
             joint_attr="X_umap",
-            GW_x="X_pca",
-            GW_y="X_pca",
+            x_attr="X_pca",
+            y_attr="X_pca",
             cost=cost[0],
         )
         assert isinstance(problem[0, 1].xy.cost, cost[1])
@@ -130,8 +130,8 @@ class TestFGWProblem:
         adata_time = adata_time[adata_time.obs["time"].isin((0, 1))].copy()
         problem = GWProblem(adata=adata_time)
         problem = problem.prepare(
-            GW_x="X_pca",
-            GW_y="X_pca",
+            x_attr="X_pca",
+            y_attr="X_pca",
             joint_attr="X_pca",
             key="time",
             policy="sequential",
@@ -157,8 +157,8 @@ class TestFGWProblem:
         adata_time = adata_time[adata_time.obs["time"].isin((0, 1))].copy()
         problem = GWProblem(adata=adata_time)
         problem = problem.prepare(
-            GW_x="X_pca",
-            GW_y="X_pca",
+            x_attr="X_pca",
+            y_attr="X_pca",
             joint_attr="X_pca",
             key="time",
             policy="sequential",
@@ -183,8 +183,8 @@ class TestFGWProblem:
         adata_time = adata_time[adata_time.obs["time"].isin((0, 1))].copy()
         problem = GWProblem(adata=adata_time)
         problem = problem.prepare(
-            GW_x="X_pca",
-            GW_y="X_pca",
+            x_attr="X_pca",
+            y_attr="X_pca",
             joint_attr="X_pca",
             key="time",
             policy="sequential",
@@ -210,8 +210,8 @@ class TestFGWProblem:
             key="time",
             policy="sequential",
             joint_attr="X_umap",
-            GW_x="X_pca",
-            GW_y="X_pca",
+            x_attr="X_pca",
+            y_attr="X_pca",
             cost={"xy": "cosine", "x": "euclidean", "y": "sq_euclidean"},
         )
         assert isinstance(problem[0, 1].xy.cost, Cosine)
