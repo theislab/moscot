@@ -26,6 +26,6 @@ jobs:
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
           password: ${{ secrets.TWINE_API_KEY }}
-          skip_existing: true
-          verify_metadata: true
+          skip-existing: true
+          verify-metadata: true
           verbose: true
