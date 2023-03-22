@@ -55,20 +55,16 @@ class CrossModalityIntegrationMixin(AnalysisMixin[K, B]):
         Fraction of samples closer than true match (smaller is better)
         Parameters
         ----------
-        x
-            Coordinates for samples in modality X
-        y
-            Coordinates for samples in modality y
         **kwargs
             Additional keyword arguments are passed to
             :func:`scipy.spatial.distance_matrix`
         Returns
         -------
-        foscttm_x, foscttm_y
-            FOSCTTM for samples in modality X and Y, respectively
+        fracs: FOSCTTM for samples in source and target modality
+        
         Note
         ----
-        Samples in modality X and Y should be paired and given in the same order
+        Samples in source and target modality should be paired and given in the same order
         """
     
         x = self.adata_src.obsm["X_aligned"] 

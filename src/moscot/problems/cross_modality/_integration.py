@@ -192,6 +192,18 @@ class IntegrationProblem(CompoundProblem[K, OTProblem], CrossModalityIntegration
             norm="l2", 
             bySample=True
     ):
+        """
+        Determines what sort of normalization to run, "l2", "l1", "max". Default="l2" 
+
+        Parameters
+        ----------
+        %(norm)s
+        %(bySample)s
+
+        Returns
+        -------
+        
+        """
         assert (norm in ["l1","l2","max"]), "Norm argument has to be either one of 'max', 'l1', or 'l2'."
         if (bySample==True or bySample==None):
             axis=1
@@ -204,6 +216,21 @@ class IntegrationProblem(CompoundProblem[K, OTProblem], CrossModalityIntegration
             self,
             SRContoTGT=True
     ):
+        """
+        Determines the direction of barycentric projection. True or False (boolean parameter). 
+        If True, projects domain1 onto domain2. 
+        If False, projects domain2 onto domain1. 
+        Default=True.
+
+        Parameters
+        ----------
+        %(SRContoTGT)s
+
+        Returns
+        -------
+        
+        """
+
         if SRContoTGT:
             # Projecting the source domain onto the target domain
             self._tgt_aligned = self.adata_tgt.obsm[self._tgt_attr]
@@ -229,7 +256,17 @@ class IntegrationProblem(CompoundProblem[K, OTProblem], CrossModalityIntegration
             **kwargs:Any,
     ) -> ArrayLike:
         """
-        Integrate source and target objects
+        Integrate source and target objects.
+
+        Parameters
+        ----------
+        %(normalize)s
+        %(norm)s
+        %(SRContoTGT)s
+
+        Returns
+        -------
+        
         """
         if normalize:
             self.normalize(norm=norm) # überschreibt so die adata objecte, evlt. lieber neues feld in obsm hinzufügen?
@@ -244,6 +281,17 @@ class IntegrationProblem(CompoundProblem[K, OTProblem], CrossModalityIntegration
             color : Union[str, Sequence[str], None] = None, # add cell type here
             **kwargs:Any, 
     ):
+        """
+        UMAP plot of integrated source and target objects.
+
+        Parameters
+        ----------
+        %(color)s
+
+        Returns
+        -------
+        
+        """
         adata_comb = ad.concat([self.adata_src, self.adata_tgt], join = 'outer', label='batch', index_unique = '-')
         sc.pp.neighbors(adata_comb, use_rep="X_aligned")
         sc.tl.umap(adata_comb)
@@ -278,9 +326,11 @@ class IntegrationProblem(CompoundProblem[K, OTProblem], CrossModalityIntegration
 
     @property
     def _valid_policies(self) -> Tuple[Policy_t, ...]:
+        """Valid policies."""
         return _constants.DUMMY  # type: ignore[return-value]
 
     @property
     def _secondary_adata(self) -> Optional[AnnData]:
+        """Target data."""
         return self._adata_tgt
     
