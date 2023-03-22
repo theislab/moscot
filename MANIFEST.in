@@ -1,6 +1,4 @@
-include src/moscot/utils/data/allTFs_dmel.txt
-include src/moscot/utils/data/allTFs_hg38.txt
-include src/moscot/utils/data/allTFs_mm.txt
+include src/moscot/utils/_data/*.txt
 prune docs
 prune tests
 prune .github
