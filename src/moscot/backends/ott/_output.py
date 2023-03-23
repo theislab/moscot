@@ -1,8 +1,8 @@
 from types import MappingProxyType
 from typing import Any, Dict, List, Tuple, Union, Literal, Callable, Optional
 
-import scipy.sparse as sp
 from matplotlib.figure import Figure
+import scipy.sparse as sp
 import matplotlib.pyplot as plt
 
 from ott.solvers.linear.sinkhorn import SinkhornOutput as OTTSinkhornOutput
@@ -258,7 +258,7 @@ class NeuralOutput(ConvergencePlotterMixin, BaseSolverOutput):
         for index in range(0, len(src_dist), batch_size):
             # compute k nearest neighbors for current source batch compared to whole target
             distances, indices = get_knn_fn(func(src_dist[index : index + batch_size]), tgt_dist, k)
-            distances = jnp.exp(-((distances / length_scale)**2))
+            distances = jnp.exp(-((distances / length_scale) ** 2))
             distances /= jnp.expand_dims(jnp.sum(distances, axis=1), axis=1)
             distances_list.append(distances.flatten())
             column_indices.append(indices.flatten())

@@ -82,7 +82,7 @@ class NeuralDualSolver:
     valid_sinkhorn_kwargs
         Keyword arguments for computing the discrete sinkhorn divergence for assessing model training.
         By default, the same `tau_a`, `tau_b` and `epsilon` are taken as for the inner sampling loop.
-    
+
     Warning
     -------
     TODO: Explain warning about validation set size.
@@ -272,7 +272,9 @@ class NeuralDualSolver:
             )
             if self.compute_wasserstein_baseline:
                 if valid_batch[pair]["source"].shape[0] * valid_batch[pair]["source"].shape[1] > 25000000:
-                    logger.warning("Validation Sinkhorn divergence is expensive to compute due to large size of the validation set. Consider setting `valid_sinkhorn_divergence` to False.")
+                    logger.warning(
+                        "Validation Sinkhorn divergence is expensive to compute due to large size of the validation set. Consider setting `valid_sinkhorn_divergence` to False."
+                    )
                 sink_dist.append(
                     _compute_sinkhorn_divergence(
                         point_cloud_1=valid_batch[pair]["source"],
@@ -529,7 +531,7 @@ class NeuralDualSolver:
             return self.state_g.apply_fn({"params": self.state_g.params}, x)
 
         return DualPotentials(f, g, corr=True, cost_fn=costs.SqEuclidean())
-    
+
     @property
     def is_balanced(self) -> bool:
         """Return whether the problem is balanced."""
