@@ -84,11 +84,11 @@ def _get_df_cell_transition(
     adata: AnnData,
     key: Optional[str] = None,
     key_value: Optional[Any] = None,
-    annotation_key: Optional[str] = None,
+    annotation_keys: Optional[List[str]] = None,
 ) -> pd.DataFrame:
     if key is None:
-        return adata.obs[[annotation_key]].copy()
-    return adata[adata.obs[key] == key_value].obs[[annotation_key]].copy()
+        return adata.obs[annotation_keys].copy()
+    return adata[adata.obs[key] == key_value].obs[annotation_keys].copy()
 
 
 def _validate_args_cell_transition(

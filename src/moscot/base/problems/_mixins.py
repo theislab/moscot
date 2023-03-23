@@ -185,13 +185,13 @@ class AnalysisMixin(Generic[K, B]):
             self.adata,
             key,
             source,
-            source_annotation_key,
+            [source_annotation_key, target_annotation_key],
         )
         df_target = _get_df_cell_transition(
             self.adata if other_adata is None else other_adata,
             key if other_adata is None else other_key,
             target,
-            target_annotation_key,
+            [source_annotation_key, target_annotation_key],
         )
 
         source_annotations_verified, target_annotations_verified = self._validate_annotations(

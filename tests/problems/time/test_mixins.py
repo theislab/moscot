@@ -52,6 +52,36 @@ class TestTemporalMixin:
 
     @pytest.mark.fast()
     @pytest.mark.parametrize("forward", [True, False])
+    def test_cell_transition_different_groups(self, gt_temporal_adata: AnnData, forward: bool):
+        config = gt_temporal_adata.uns
+        key = config["key"]
+        key_1 = config["key_1"]
+        key_2 = config["key_2"]
+        key_3 = config["key_3"]
+
+        gt_temporal_adata.obs["batch"] = gt_temporal_adata.obs["batch"].astype("category")
+        batches = set(gt_temporal_adata.obs["batch"].cat.categories)
+        problem = TemporalProblem(gt_temporal_adata)
+        problem = problem.prepare(key)
+        assert set(problem.problems.keys()) == {(key_1, key_2), (key_2, key_3)}
+        problem[(key_1, key_2)]._solution = MockSolverOutput(gt_temporal_adata.uns["tmap_10_105"])
+        problem[(key_2, key_3)]._solution = MockSolverOutput(gt_temporal_adata.uns["tmap_105_11"])
+
+        result = problem.cell_transition(
+            key_1,
+            key_2,
+            "cell_type",
+            "batch",
+            forward=forward,
+        )
+        assert isinstance(result, pd.DataFrame)
+        cell_types = set(gt_temporal_adata[gt_temporal_adata.obs[key] == key_1].obs["cell_type"].cat.categories)
+        batches = set(gt_temporal_adata[gt_temporal_adata.obs[key] == key_2].obs["batch"].cat.categories)
+        assert set(result.index) == set(cell_types)
+        assert set(result.columns) == set(batches)
+
+    @pytest.mark.fast()
+    @pytest.mark.parametrize("forward", [True, False])
     def test_cell_transition_subset_pipeline(self, gt_temporal_adata: AnnData, forward: bool):
         config = gt_temporal_adata.uns
         key = config["key"]
