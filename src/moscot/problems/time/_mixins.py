@@ -908,7 +908,7 @@ class NeuralAnalysisMixin(AnalysisMixin[K, B]):
         k: int = 30,
         key_added: Optional[str] = PlottingDefaults.CELL_TRANSITION,
         new_adata: Optional[AnnData] = None,
-        joint_attr: Optional[str] = None,
+        new_adata_joint_attr: Optional[str] = None,
     ) -> Optional[pd.DataFrame]:
         """
         Compute a grouped cell transition matrix.
@@ -939,11 +939,11 @@ class NeuralAnalysisMixin(AnalysisMixin[K, B]):
         solution = self.problems[source, target].solution
         # check if new adata object is given
         if new_adata is not None:
-            if joint_attr is None:
-                raise ValueError("`joint_attr` must be provided if `new_adata` is given.")
+            if new_adata_joint_attr is None:
+                raise ValueError("`new_adata_joint_attr` must be provided if `new_adata` is given.")
             adata = new_adata
-            data_source = adata[adata.obs[self.temporal_key] == source].obsm[joint_attr].copy()
-            data_target = adata[adata.obs[self.temporal_key] == target].obsm[joint_attr].copy()
+            data_source = adata[adata.obs[self.temporal_key] == source].obsm[new_adata_joint_attr].copy()
+            data_target = adata[adata.obs[self.temporal_key] == target].obsm[new_adata_joint_attr].copy()
             logger.info(f"Computing projected transport matrix for new adata object with k={k}.")
             tm_result = solution.project_transport_matrix(  # type: ignore[union-attr]
                 data_source, data_target, forward=forward, save_transport_matrix=False, batch_size=batch_size, k=k
@@ -957,15 +957,12 @@ class NeuralAnalysisMixin(AnalysisMixin[K, B]):
                 else:
                     tm_result = solution.inverse_transport_matrix  # type: ignore[union-attr]
             except ValueError:
-                # otherwise compute projected transport matrix
                 data_source = self.problems[source, target].xy.data_src  # type: ignore[union-attr]
                 data_target = self.problems[source, target].xy.data_tgt  # type: ignore[union-attr]
-                logger.info(f"Computing projected transport matrix with k={k}.")
+                logger.info(f"Projecting transport matrix based on {k} nearest neighbors.")
                 tm_result = solution.project_transport_matrix(  # type: ignore[union-attr]
                     data_source, data_target, forward=forward, save_transport_matrix=True, batch_size=batch_size, k=k
                 )
-
-        # get annotation information
         annotation_key_source, annotations_present_source, annotations_ordered_source = _validate_args_cell_transition(
             adata, source_groups
         )
@@ -984,7 +981,6 @@ class NeuralAnalysisMixin(AnalysisMixin[K, B]):
             aggregation_mode="annotation",
             forward=forward,
         )
-        # aggregate transition matrix
         tm = pd.DataFrame(
             np.zeros((len(annotations_verified_source), len(annotations_verified_target))),
             index=annotations_verified_source,

@@ -447,7 +447,7 @@ class CondNeuralSolver(NeuralSolver):
         self,
         xy: Dict[Any, Tuple[TaggedArray, ArrayLike, ArrayLike]],
         sample_pairs: List[Tuple[Any, Any]],
-        train_size: float = 1.0,
+        train_size: float = 0.9,
         **kwargs: Any,
     ) -> Tuple[JaxSampler, JaxSampler]:
         train_data: List[Optional[ArrayLike]] = []
@@ -456,7 +456,6 @@ class CondNeuralSolver(NeuralSolver):
         valid_data: List[Optional[ArrayLike]] = []
         valid_a: List[Optional[ArrayLike]] = []
         valid_b: List[Optional[ArrayLike]] = []
-        conditions: List[Optional[ArrayLike]] = []
 
         sample_to_idx: Dict[int, Any] = {}
         kwargs = _filter_kwargs(JaxSampler, **kwargs)
@@ -466,7 +465,6 @@ class CondNeuralSolver(NeuralSolver):
             train_b = [d[2] for d in xy.values()]
             valid_data, valid_a, valid_b = train_data, train_a, train_b
             sample_to_idx = {k: i for i, k in enumerate(xy.keys())}
-            conditions = [k for k in xy.keys()][:-1]
         else:
             if train_size > 1.0 or train_size <= 0.0:
                 raise ValueError("Invalid train_size. Must be: 0 < train_size <= 1")
@@ -483,13 +481,12 @@ class CondNeuralSolver(NeuralSolver):
                 valid_a.append(v_a)
                 valid_b.append(v_b)
                 sample_to_idx[k] = i
-                conditions.append(k)
 
         self._train_sampler = JaxSampler(
-            train_data, sample_pairs, a=train_a, b=train_b, sample_to_idx=sample_to_idx, conditions=conditions, **kwargs
+            train_data, sample_pairs, a=train_a, b=train_b, sample_to_idx=sample_to_idx, **kwargs
         )
         self._valid_sampler = JaxSampler(
-            valid_data, sample_pairs, a=valid_a, b=valid_b, sample_to_idx=sample_to_idx, conditions=conditions, **kwargs
+            valid_data, sample_pairs, a=valid_a, b=valid_b, sample_to_idx=sample_to_idx, **kwargs
         )
         return (self._train_sampler, self._valid_sampler)
 

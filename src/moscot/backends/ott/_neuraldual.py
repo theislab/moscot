@@ -82,6 +82,10 @@ class NeuralDualSolver:
     valid_sinkhorn_kwargs
         Keyword arguments for computing the discrete sinkhorn divergence for assessing model training.
         By default, the same `tau_a`, `tau_b` and `epsilon` are taken as for the inner sampling loop.
+    
+    Warning
+    -------
+    TODO: Explain warning about validation set size.
 
     """
 
@@ -110,6 +114,7 @@ class NeuralDualSolver:
         pretrain_iters: int = 15001,
         pretrain_scale: float = 3.0,
         valid_sinkhorn_kwargs: Dict[str, Any] = MappingProxyType({}),
+        compute_wasserstein_baseline: bool = True,
     ):
         self.input_dim = input_dim
         self.conditional = conditional
@@ -132,7 +137,7 @@ class NeuralDualSolver:
         self.valid_sinkhorn_kwargs = dict(valid_sinkhorn_kwargs)
         self.valid_sinkhorn_kwargs.setdefault("tau_a", self.tau_a)
         self.valid_sinkhorn_kwargs.setdefault("tau_b", self.tau_b)
-        self.valid_sinkhorn_kwargs.setdefault("epsilon", self.epsilon)
+        self.compute_wasserstein_baseline = compute_wasserstein_baseline
         self.key: ArrayLike = jax.random.PRNGKey(seed)
 
         optimizer_f = optax.adamw(
@@ -260,18 +265,22 @@ class NeuralDualSolver:
         # define dict to contain source and target batch
         batch: Dict[str, jnp.ndarray] = {}
         valid_batch: Dict[Tuple[Any, Any], Dict[str, jnp.ndarray]] = {}
-        for policy in trainloader.policies:
-            valid_batch[policy] = {}
-            valid_batch[policy]["source"], valid_batch[policy]["target"] = validloader(
-                key=None, policy_pair=policy, full_dataset=True
+        for pair in trainloader.policy_pairs:
+            valid_batch[pair] = {}
+            valid_batch[pair]["source"], valid_batch[pair]["target"] = validloader(
+                key=None, policy_pair=pair, full_dataset=True
             )
-            sink_dist.append(
-                _compute_sinkhorn_divergence(
-                    point_cloud_1=valid_batch[policy]["source"],
-                    point_cloud_2=valid_batch[policy]["target"],
-                    **self.valid_sinkhorn_kwargs,
+            if self.compute_wasserstein_baseline:
+                if valid_batch[pair]["source"].shape[0] * valid_batch[pair]["source"].shape[1] > 25000000:
+                    logger.warning("Validation Sinkhorn divergence is expensive to compute due to large size of the validation set. Consider setting `valid_sinkhorn_divergence` to False.")
+                sink_dist.append(
+                    _compute_sinkhorn_divergence(
+                        point_cloud_1=valid_batch[pair]["source"],
+                        point_cloud_2=valid_batch[pair]["target"],
+                        epsilon=self.epsilon,
+                        **self.valid_sinkhorn_kwargs,
+                    )
                 )
-            )
 
         for iteration in tqdm(range(self.iterations)):
             # sample policy and condition if given in trainloader
@@ -280,7 +289,7 @@ class NeuralDualSolver:
             # sample target batch
             batch["target"] = trainloader(target_key, policy_pair, sample="target")
 
-            if self.epsilon is not None:
+            if not self.is_balanced:
                 # sample source batch and compute unbalanced marginals
                 source_key, self.key = jax.random.split(self.key, 2)
                 curr_source = trainloader(source_key, policy_pair, sample="source")
@@ -291,7 +300,7 @@ class NeuralDualSolver:
             for _ in range(self.inner_iters):
                 source_key, self.key = jax.random.split(self.key, 2)
 
-                if self.epsilon is None:
+                if self.is_balanced:
                     # sample source batch
                     batch["source"] = trainloader(source_key, policy_pair, sample="source")
                 else:
@@ -319,24 +328,24 @@ class NeuralDualSolver:
                     average_meter.reset()
             # evalute on validation set periodically
             if iteration % self.valid_freq == 0:
-                for index, policy in enumerate(trainloader.policies):
+                for index, pair in enumerate(trainloader.policy_pairs):
                     valid_metrics = self.valid_step(
-                        self.state_f, self.state_g, valid_batch[policy], trainloader.conditions[index]
+                        self.state_f, self.state_g, valid_batch[pair], trainloader.conditions[index]
                     )
                     for key, value in valid_metrics.items():
                         valid_average_meters[key].update(value)
                 # update best model and patience as necessary
                 if self.best_model_metric == "sinkhorn":
-                    total_loss = jnp.abs(valid_average_meters["sink_loss_forward"].avg) + jnp.abs(
+                    total_loss = jnp.abs(valid_average_meters["sinkhorn_loss_forward"].avg) + jnp.abs(
                         valid_average_meters["sink_loss_invers"].avg
                     )
                 elif self.best_model_metric == "sinkhorn_forward":
-                    total_loss = jnp.abs(valid_average_meters["sink_loss_forward"].avg)
+                    total_loss = jnp.abs(valid_average_meters["sinkhorn_loss_forward"].avg)
                 else:
                     raise ValueError(f"Unknown metric: {self.best_model_metric}.")
                 if total_loss < best_loss:
                     best_loss = total_loss
-                    best_iter_distance = valid_average_meters["valid_w_distance"].avg
+                    best_iter_distance = valid_average_meters["neural_dual_dist"].avg
                     best_params_f = self.state_f.params
                     best_params_g = self.state_g.params
                     curr_patience = 0
@@ -350,7 +359,8 @@ class NeuralDualSolver:
         self.state_f = self.state_f.replace(params=best_params_f)
         self.state_g = self.state_g.replace(params=best_params_g)
         valid_logs["best_loss"] = [float(best_loss)]
-        valid_logs["sink_dist"] = [float(np.mean(sink_dist))]
+        if self.compute_wasserstein_baseline:
+            valid_logs["sinkhorn_dist"] = [float(np.mean(sink_dist))]
         valid_logs["predicted_cost"] = [float(best_iter_distance)]
         return {
             "train_logs": train_logs,
@@ -439,7 +449,7 @@ class NeuralDualSolver:
 
     def get_eval_step(
         self,
-    ) -> Callable[[TrainState, TrainState, Dict[str, jnp.ndarray]], Tuple[float, float, float]]:
+    ) -> Callable[[TrainState, TrainState, Dict[str, jnp.ndarray]], Dict[str, float]]:
         """Get validation step."""
 
         @jax.jit
@@ -459,22 +469,6 @@ class NeuralDualSolver:
             )(batch["target"])
             pred_target = pred_target
             pred_source = pred_source
-            # calculate sinkhorn loss between predicted and true samples
-            # using sinkhorn_divergence because _compute_sinkhorn_divergence not jittable
-            sink_loss_forward = sinkhorn_divergence(
-                PointCloud,
-                x=pred_target,
-                y=batch["target"],
-                epsilon=10,
-                sinkhorn_kwargs={"tau_a": self.tau_a, "tau_b": self.tau_b},
-            ).divergence
-            sink_loss_inverse = sinkhorn_divergence(
-                PointCloud,
-                x=pred_source,
-                y=batch["source"],
-                epsilon=10,
-                sinkhorn_kwargs={"tau_a": self.tau_a, "tau_b": self.tau_b},
-            ).divergence
             # get neural dual distance between true source and target
             f_tgt = jax.vmap(lambda x: state_f.apply_fn({"params": state_f.params}, x, condition))(batch["target"])
             f_grad_g_src = jax.vmap(lambda x: state_f.apply_fn({"params": state_f.params}, x, condition))(pred_target)
@@ -482,6 +476,24 @@ class NeuralDualSolver:
             src_sq = jnp.mean(jnp.sum(batch["source"] ** 2, axis=-1))
             tgt_sq = jnp.mean(jnp.sum(batch["target"] ** 2, axis=-1))
             neural_dual_dist = tgt_sq + src_sq + 2.0 * (jnp.mean(f_grad_g_src - src_dot_grad_g_src) - jnp.mean(f_tgt))
+            if not self.compute_wasserstein_baseline:
+                return {"neural_dual_dist": neural_dual_dist}
+            # calculate sinkhorn loss between predicted and true samples
+            # using sinkhorn_divergence because _compute_sinkhorn_divergence not jittable
+            sink_loss_forward = sinkhorn_divergence(
+                PointCloud,
+                x=pred_target,
+                y=batch["target"],
+                epsilon=self.epsilon,
+                sinkhorn_kwargs=self.valid_sinkhorn_kwargs,
+            ).divergence
+            sink_loss_inverse = sinkhorn_divergence(
+                PointCloud,
+                x=pred_source,
+                y=batch["source"],
+                epsilon=self.epsilon,
+                sinkhorn_kwargs=self.valid_sinkhorn_kwargs,
+            ).divergence
             return {
                 "sink_loss_forward": sink_loss_forward,
                 "sink_loss_inverse": sink_loss_inverse,
@@ -517,3 +529,8 @@ class NeuralDualSolver:
             return self.state_g.apply_fn({"params": self.state_g.params}, x)
 
         return DualPotentials(f, g, corr=True, cost_fn=costs.SqEuclidean())
+    
+    @property
+    def is_balanced(self) -> bool:
+        """Return whether the problem is balanced."""
+        return self.tau_a == self.tau_b == 1.0

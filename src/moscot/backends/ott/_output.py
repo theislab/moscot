@@ -1,7 +1,7 @@
 from types import MappingProxyType
 from typing import Any, Dict, List, Tuple, Union, Literal, Callable, Optional
 
-from scipy.sparse import csr_matrix
+import scipy.sparse as sp
 from matplotlib.figure import Figure
 import matplotlib.pyplot as plt
 
@@ -188,8 +188,8 @@ class NeuralOutput(ConvergencePlotterMixin, BaseSolverOutput):
     def __init__(self, output: DualPotentials, training_logs: Train_t):
         self._output = output
         self._training_logs = training_logs
-        self._transport_matrix = None
-        self._inverse_transport_matrix = None
+        self._transport_matrix: ArrayLike = None
+        self._inverse_transport_matrix: ArrayLike = None
 
     def _apply(self, x: ArrayLike, *, forward: bool) -> ArrayLike:
         return self._output.transport(x, forward=forward)
@@ -239,33 +239,37 @@ class NeuralOutput(ConvergencePlotterMixin, BaseSolverOutput):
         save_transport_matrix: bool = True,
         batch_size: int = 1024,
         k: int = 30,
-    ) -> csr_matrix:
-        """Compute projected transport matrix batch-wise given src and tgt arrays."""
+        length_scale: Optional[float] = None,
+        seed: int = 42,
+    ) -> sp.csr_matrix:
+        """Project Monge Map onto a transport matrix."""
         src, tgt = jnp.asarray(src), jnp.asarray(tgt)
-        if forward:
-            func = self.push
-        else:
-            func = self.pull
-            src, tgt = tgt, src
+        func = self.push if forward else self.pull
+        src_dist, tgt_dist = src, tgt if forward else tgt, src
         get_knn_fn = jax.vmap(get_nearest_neighbors, in_axes=(0, None, None))
-        row_indices = []
-        column_indices = []
-        distances_list = []
-        for index in range(0, len(src), batch_size):
+        row_indices: Union[jnp.ndarray, List[jnp.ndarray]] = []
+        column_indices: Union[jnp.ndarray, List[jnp.ndarray]] = []
+        distances_list: Union[jnp.ndarray, List[jnp.ndarray]] = []
+        if length_scale is None:
+            key = jax.random.PRNGKey(seed)
+            src_batch = jax.random.choice(key, src.shape[0], shape=(batch_size))
+            tgt_batch = jax.random.choice(key, tgt.shape[0], shape=(batch_size))
+            length_scale = jnp.std(jnp.concatenate(src_batch, tgt_batch))
+        for index in range(0, len(src_dist), batch_size):
             # compute k nearest neighbors for current source batch compared to whole target
-            negative_distances, indices = get_knn_fn(func(src[index : index + batch_size]), tgt, k)
-            distances = jnp.exp(negative_distances)
-            distances /= jnp.sum(distances, axis=1)[:, None]
+            distances, indices = get_knn_fn(func(src_dist[index : index + batch_size]), tgt_dist, k)
+            distances = jnp.exp(-((distances / length_scale)**2))
+            distances /= jnp.expand_dims(jnp.sum(distances, axis=1), axis=1)
             distances_list.append(distances.flatten())
             column_indices.append(indices.flatten())
             row_indices.append(
-                jnp.repeat(jnp.arange(index, index + min(batch_size, len(src) - index)), min(k, len(tgt)))
+                jnp.repeat(jnp.arange(index, index + min(batch_size, len(src_dist) - index)), min(k, len(tgt)))
             )
         # create sparse matrix with normalized exp(-d(x,y)) as entries
         distances = jnp.concatenate(distances_list)
         row_indices = jnp.concatenate(row_indices)
         column_indices = jnp.concatenate(column_indices)
-        tm = csr_matrix((distances, (row_indices, column_indices)), shape=[len(src), len(tgt)])
+        tm = sp.csr_matrix((distances, (row_indices, column_indices)), shape=[len(src_dist), len(tgt_dist)])
         if forward:
             if save_transport_matrix:
                 self._transport_matrix = tm

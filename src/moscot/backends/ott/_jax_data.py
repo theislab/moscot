@@ -13,27 +13,25 @@ class JaxSampler:
     def __init__(
         self,
         distributions: List[jnp.ndarray],
-        policies: List[Tuple[Any, Any]],
+        policy_pairs: List[Tuple[Any, Any]],
         a: List[jnp.ndarray] = None,
         b: List[jnp.ndarray] = None,
         sample_to_idx: Optional[Dict[int, Any]] = None,
-        conditions: Optional[List[jnp.ndarray]] = None,
         batch_size: int = 1024,
         tau_a: float = 1.0,
         tau_b: float = 1.0,
         epsilon: float = 0.1,
     ):
         """Initialize data sampler."""
-        assert len(distributions) == len(a) == len(b), "Number of distributions, a, and b must be equal."
-        if conditions is not None:
-            assert len(policies) == len(conditions), "Number of policies, and conditions must be equal."
+        if not len(distributions) == len(a) == len(b):
+            raise ValueError("Number of distributions, a, and b must be equal.")
         self._distributions = distributions
-        self._policies = policies
-        self._conditions = jnp.array(conditions, dtype=jnp.float32)[:, None] if conditions is not None else None
+        self._policy_pairs = policy_pairs
+        self._conditions = jnp.array(policy_pairs, dtype=float)
         if sample_to_idx is None:
-            if len(self.policies) > 1:
-                raise ValueError("If `policies` contains more than 1 value, `sample_to_idx` is required.")
-            sample_to_idx = {self.policies[0][0]: 0, self.policies[0][1]: 1}
+            if len(self.policy_pairs) > 1:
+                raise ValueError("If `policy_pairs` contains more than 1 value, `sample_to_idx` is required.")
+            sample_to_idx = {self.policy_pairs[0][0]: 0, self.policy_pairs[0][1]: 1}
         self._sample_to_idx = sample_to_idx
 
         @partial(jax.jit, static_argnames=["index"])
@@ -78,8 +76,8 @@ class JaxSampler:
 
         def _sample_policy_pair(key: jax.random.KeyArray) -> Tuple[Tuple[Any, Any], Any]:
             """Sample a policy pair. If conditions are provided, return the policy pair and the conditions."""
-            index = jax.random.randint(key, shape=[], minval=0, maxval=len(self.policies))
-            policy_pair = self.policies[index]
+            index = jax.random.randint(key, shape=[], minval=0, maxval=len(self.policy_pairs))
+            policy_pair = self.policy_pairs[index]
             condition = self.conditions[index] if self.conditions is not None else None
             return policy_pair, condition
 
@@ -121,9 +119,9 @@ class JaxSampler:
         return self._distributions
 
     @property
-    def policies(self) -> List[Tuple[Any, Any]]:
-        """Return policies."""
-        return self._policies
+    def policy_pairs(self) -> List[Tuple[Any, Any]]:
+        """Return policy pairs."""
+        return self._policy_pairs
 
     @property
     def conditions(self) -> jnp.ndarray:

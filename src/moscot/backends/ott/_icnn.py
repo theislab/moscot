@@ -94,7 +94,7 @@ class ICNN(nn.Module):
                 )
                 v.append(
                     nn.Dense(
-                        1,
+                        2,
                         kernel_init=self.init_fn(self.init_std),
                         use_bias=True,
                         bias_init=self.init_fn(self.init_std),
@@ -187,6 +187,6 @@ class ICNN(nn.Module):
         input_shape: Union[int, Tuple[int, ...]],
     ) -> train_state.TrainState:
         """Create initial `TrainState`."""
-        condition = jnp.ones([1]) if self.conditional else None
+        condition = jnp.ones([2]) if self.conditional else None
         params = self.init(rng, x=jnp.ones(input_shape), c=condition)["params"]
         return train_state.TrainState.create(apply_fn=self.apply, params=params, tx=optimizer)
