@@ -3,11 +3,6 @@ from typing import Any, Literal, Mapping, Optional, Sequence, Tuple, Type, Union
 
 from anndata import AnnData
 import numpy as np
-#import scipy.spatial
-#import scanpy as sc
-#import anndata as ad
-#from sklearn.preprocessing import normalize
-
 
 from moscot import _constants
 from moscot._docs._docs import d
