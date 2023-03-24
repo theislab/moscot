@@ -196,9 +196,7 @@ class NeuralOutput(ConvergencePlotterMixin, BaseSolverOutput):
 
     def plot_convergence(  # type: ignore[override]
         self,
-        data: Dict[
-            Literal["pretrain", "train", "valid"], Literal["loss", "w_dist", "penalty", "loss_g", "loss_f"]
-        ] = MappingProxyType({"train": "loss"}),
+        data: Dict[Literal["pretrain", "train", "valid"], str] = MappingProxyType({"train": "loss"}),
         last_k: Optional[int] = None,
         title: Optional[str] = None,
         figsize: Optional[Tuple[float, float]] = None,
@@ -211,7 +209,7 @@ class NeuralOutput(ConvergencePlotterMixin, BaseSolverOutput):
             raise ValueError(f"`data` must be of length 1, but found {len(data)}.")
         k, v = next(iter(data.items()))
         return super().plot_convergence(
-            data={k + ": " + v: self._training_logs[k][v]},
+            data={k + ": " + v: self._training_logs[f"{k}_logs"][v]},
             last_k=last_k,
             title=title,
             figsize=figsize,
@@ -385,6 +383,6 @@ class NeuralOutput(ConvergencePlotterMixin, BaseSolverOutput):
         params = {
             "predicted_cost": round(self.cost, 3),
             "best_loss": round(self.training_logs["valid_logs"]["best_loss"][0], 3),
-            "sink_dist": round(self.training_logs["valid_logs"]["sink_dist"][0], 3),
+            "sinkhorn_dist": round(self.training_logs["valid_logs"]["sinkhorn_dist"][0], 3),
         }
         return ", ".join(f"{name}={fmt(val)}" for name, val in params.items())

@@ -106,8 +106,8 @@ class NeuralDualSolver:
         ] = "sinkhorn_forward",  # TODO(@MUCDK) include only backward sinkhorn
         iterations: int = 25000,  # TODO(@MUCDK): rename to max_iterations
         inner_iters: int = 10,
-        valid_freq: int = 50,
-        log_freq: int = 5,
+        valid_freq: int = 250,
+        log_freq: int = 10,
         patience: int = 100,
         optimizer_f_kwargs: Dict[str, Any] = MappingProxyType({}),
         optimizer_g_kwargs: Dict[str, Any] = MappingProxyType({}),
@@ -331,15 +331,15 @@ class NeuralDualSolver:
             # evalute on validation set periodically
             if iteration % self.valid_freq == 0:
                 for index, pair in enumerate(trainloader.policy_pairs):
-                    valid_metrics = self.valid_step(
-                        self.state_f, self.state_g, valid_batch[pair], trainloader.conditions[index]
-                    )
+                    condition = trainloader.conditions[index] if self.conditional else None
+                    valid_metrics = self.valid_step(self.state_f, self.state_g, valid_batch[pair], condition)
                     for key, value in valid_metrics.items():
+                        valid_logs[f"{pair[0]}_{pair[1]}_{key}"].append(value)
                         valid_average_meters[key].update(value)
                 # update best model and patience as necessary
                 if self.best_model_metric == "sinkhorn":
                     total_loss = jnp.abs(valid_average_meters["sinkhorn_loss_forward"].avg) + jnp.abs(
-                        valid_average_meters["sink_loss_invers"].avg
+                        valid_average_meters["sink_loss_inverse"].avg
                     )
                 elif self.best_model_metric == "sinkhorn_forward":
                     total_loss = jnp.abs(valid_average_meters["sinkhorn_loss_forward"].avg)
@@ -354,7 +354,7 @@ class NeuralDualSolver:
                 else:
                     curr_patience += 1
                 for key, average_meter in valid_average_meters.items():
-                    valid_logs[key].append(average_meter.avg)
+                    valid_logs[f"mean_{key}"].append(average_meter.avg)
                     average_meter.reset()
             if curr_patience >= self.patience:
                 break
@@ -497,8 +497,8 @@ class NeuralDualSolver:
                 sinkhorn_kwargs=self.valid_sinkhorn_kwargs,
             ).divergence
             return {
-                "sink_loss_forward": sink_loss_forward,
-                "sink_loss_inverse": sink_loss_inverse,
+                "sinkhorn_loss_forward": sink_loss_forward,
+                "sinkhorn_loss_inverse": sink_loss_inverse,
                 "neural_dual_dist": neural_dual_dist,
             }
 

@@ -14,6 +14,7 @@ class JaxSampler:
         self,
         distributions: List[jnp.ndarray],
         policy_pairs: List[Tuple[Any, Any]],
+        conditional: bool = False,
         a: List[jnp.ndarray] = None,
         b: List[jnp.ndarray] = None,
         sample_to_idx: Optional[Dict[int, Any]] = None,
@@ -27,7 +28,7 @@ class JaxSampler:
             raise ValueError("Number of distributions, a, and b must be equal.")
         self._distributions = distributions
         self._policy_pairs = policy_pairs
-        self._conditions = jnp.array(policy_pairs, dtype=float)
+        self._conditions = jnp.array(policy_pairs, dtype=float) if conditional else None
         if sample_to_idx is None:
             if len(self.policy_pairs) > 1:
                 raise ValueError("If `policy_pairs` contains more than 1 value, `sample_to_idx` is required.")

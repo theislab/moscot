@@ -367,10 +367,10 @@ class NeuralSolver(OTSolver[OTTOutput]):
 
         kwargs = _filter_kwargs(JaxSampler, **kwargs)
         self._train_sampler = JaxSampler(
-            [train_x, train_y], policies=[(0, 1)], a=[train_a, []], b=[[], train_b], **kwargs
+            [train_x, train_y], policy_pairs=[(0, 1)], a=[train_a, []], b=[[], train_b], **kwargs
         )
         self._valid_sampler = JaxSampler(
-            [valid_x, valid_y], policies=[(0, 1)], a=[valid_a, []], b=[[], valid_b], **kwargs
+            [valid_x, valid_y], policy_pairs=[(0, 1)], a=[valid_a, []], b=[[], valid_b], **kwargs
         )
         return (self._train_sampler, self._valid_sampler)
 
@@ -483,10 +483,10 @@ class CondNeuralSolver(NeuralSolver):
                 sample_to_idx[k] = i
 
         self._train_sampler = JaxSampler(
-            train_data, sample_pairs, a=train_a, b=train_b, sample_to_idx=sample_to_idx, **kwargs
+            train_data, sample_pairs, conditional=True, a=train_a, b=train_b, sample_to_idx=sample_to_idx, **kwargs
         )
         self._valid_sampler = JaxSampler(
-            valid_data, sample_pairs, a=valid_a, b=valid_b, sample_to_idx=sample_to_idx, **kwargs
+            valid_data, sample_pairs, conditional=True, a=valid_a, b=valid_b, sample_to_idx=sample_to_idx, **kwargs
         )
         return (self._train_sampler, self._valid_sampler)
 
