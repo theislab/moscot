@@ -17,17 +17,17 @@ from moscot._types import (
 from moscot.base.problems.compound_problem import B, CompoundProblem, K
 from moscot.base.problems.problem import OTProblem
 from moscot.problems._utils import handle_cost, handle_joint_attr
-from moscot.problems.cross_modality._mixins import CrossModalityIntegrationMixin
-from moscot.utils.subset_policy import DummyPolicy
+from moscot.problems.cross_modality._mixins import CrossModalityTranslationMixin
+from moscot.utils.subset_policy import DummyPolicy, ExternalStarPolicy
 from moscot.base.output import BaseSolverOutput
 
-__all__ = ["IntegrationProblem"]
+__all__ = ["TranslationProblem"]
 
 
 @d.dedent
-class IntegrationProblem(CompoundProblem[K, OTProblem], CrossModalityIntegrationMixin[K, OTProblem]):
+class TranslationProblem(CompoundProblem[K, OTProblem], CrossModalityTranslationMixin[K, OTProblem]):
     """
-    Class for integrating single cell multiomics data.
+    Class for integrating single cell multiomics data, based on :cite:`demetci-scot:22`.
 
     Parameters
     ----------
@@ -42,6 +42,18 @@ class IntegrationProblem(CompoundProblem[K, OTProblem], CrossModalityIntegration
         self._adata_tgt = adata_tgt
         self.filtered_vars: Optional[Sequence[str]] = None
 
+    def _create_policy(  # type: ignore[override]
+        self,
+        policy: Literal["external_star"] = "external_star",
+        key: Optional[str] = None,
+        **kwargs: Any,
+    ) -> Union[DummyPolicy, ExternalStarPolicy[K]]:
+        """Private class to create DummyPolicy if no batches are present in the spatial anndata."""
+        del policy
+        if key is None:
+            return DummyPolicy(self.adata, **kwargs)
+        return ExternalStarPolicy(self.adata, key=key, **kwargs)
+    
     def _create_problem(
         self,
         src: K,
@@ -65,9 +77,7 @@ class IntegrationProblem(CompoundProblem[K, OTProblem], CrossModalityIntegration
         self,
         src_attr: Str_Dict_t,
         tgt_attr: Str_Dict_t,
-        var_names: Optional[Sequence[Any]] = None,
         joint_attr: Optional[Union[str, Mapping[str, Any]]] = None,
-        policy: Literal["dummy"] = "dummy",
         cost: Union[
             Literal["sq_euclidean", "cosine", "bures", "unbalanced_bures"],
             Mapping[str, Literal["sq_euclidean", "cosine", "bures", "unbalanced_bures"]],
@@ -75,9 +85,9 @@ class IntegrationProblem(CompoundProblem[K, OTProblem], CrossModalityIntegration
         a: Optional[str] = None,
         b: Optional[str] = None,
         **kwargs: Any,
-    ) -> "IntegrationProblem[K]":
+    ) -> "TranslationProblem[K]":
         """
-        Prepare the :class:`moscot.problems.cross_modality.IntegrationProblem`.
+        Prepare the :class:`moscot.problems.cross_modality.TranslationProblem`.
 
         This method prepares the data to be passed to the optimal transport solver.
 
@@ -87,10 +97,8 @@ class IntegrationProblem(CompoundProblem[K, OTProblem], CrossModalityIntegration
 
         Returns
         -------
-        :class:`moscot.problems.cross_modality.IntegrationProblem`.
+        :class:`moscot.problems.cross_modality.TranslationProblem`.
 
-        Examples
-        --------
         """
         self._src_attr = src_attr['key']
         self._tgt_attr = tgt_attr['key']
@@ -100,8 +108,8 @@ class IntegrationProblem(CompoundProblem[K, OTProblem], CrossModalityIntegration
         
 
         xy, kwargs = handle_joint_attr(joint_attr, kwargs)
-        xy, _, _ = handle_cost(xy=xy, cost=cost)
-        return super().prepare(x=x, y=y, xy=xy, policy="dummy", key=None, cost=cost, a=a, b=b, **kwargs)
+        xy, x, y = handle_cost(xy=xy, x=x, y=y, cost=cost)
+        return super().prepare(x=x, y=y, xy=xy, policy="external_star", key=None, cost=cost, a=a, b=b, **kwargs)
 
     @d.dedent
     def solve(
@@ -127,9 +135,9 @@ class IntegrationProblem(CompoundProblem[K, OTProblem], CrossModalityIntegration
         linear_solver_kwargs: Mapping[str, Any] = MappingProxyType({}),
         device: Optional[Literal["cpu", "gpu", "tpu"]] = None,
         **kwargs: Any,
-    ) -> "IntegrationProblem[K]":
+    ) -> "TranslationProblem[K]":
         """
-        Solve optimal transport problems defined in :class:`moscot.problems.cross_modality.IntegrationProblem`.
+        Solve optimal transport problems defined in :class:`moscot.problems.cross_modality.TranslationProblem`.
 
         Parameters
         ----------
@@ -152,7 +160,7 @@ class IntegrationProblem(CompoundProblem[K, OTProblem], CrossModalityIntegration
 
         Returns
         -------
-        :class:`moscot.problems.space.MappingProblem`.
+        :class:`moscot.problems.cross_modality.TranslationProblem`.
 
         Examples
         --------
@@ -198,11 +206,6 @@ class IntegrationProblem(CompoundProblem[K, OTProblem], CrossModalityIntegration
 
     @property
     def _valid_policies(self) -> Tuple[Policy_t, ...]:
-        """Valid policies."""
-        return _constants.DUMMY  # type: ignore[return-value]
+        return _constants.EXTERNAL_STAR, _constants.DUMMY  # type: ignore[return-value]
 
-    @property
-    def _secondary_adata(self) -> Optional[AnnData]:
-        """Target data."""
-        return self._adata_tgt
     

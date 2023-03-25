@@ -1,7 +1,7 @@
-from moscot.problems.cross_modality._integration import IntegrationProblem
-from moscot.problems.cross_modality._mixins import CrossModalityIntegrationMixin
+from moscot.problems.cross_modality._translation import TranslationProblem
+from moscot.problems.cross_modality._mixins import CrossModalityTranslationMixin
 
 __all__ = [
-    "IntegrationProblem",
-    "CrossModalityIntegrationMixin"
+    "TranslationProblem",
+    "CrossModalityTranslationMixin"
 ]
