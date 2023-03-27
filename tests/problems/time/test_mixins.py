@@ -75,10 +75,8 @@ class TestTemporalMixin:
             forward=forward,
         )
         assert isinstance(result, pd.DataFrame)
-        mask_1 = gt_temporal_adata.obs[key] == key_1
-        cell_types = set(gt_temporal_adata.obs.loc[mask_1, "cell_type"].astype("category").cat.categories)
-        mask_2 = gt_temporal_adata.obs[key] == key_2
-        batches = set(gt_temporal_adata.obs.loc[mask_2, "batch"].astype("category").cat.categories)
+        cell_types = set(gt_temporal_adata[gt_temporal_adata.obs[key] == key_1].obs["cell_type"].cat.categories)
+        batches = set(gt_temporal_adata[gt_temporal_adata.obs[key] == key_2].obs["batch"].cat.categories)
         assert set(result.index) == cell_types
         assert set(result.columns) == set(batches)
 
