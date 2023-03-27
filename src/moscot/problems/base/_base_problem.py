@@ -18,6 +18,7 @@ from moscot.solvers._output import BaseSolverOutput
 from moscot.solvers._base_solver import OTSolver, ProblemKind
 from moscot._constants._constants import ProblemStage
 from moscot.solvers._tagged_array import Tag, TaggedArray
+from moscot.problems._subset_policy import Policy_t, SubsetPolicy
 
 __all__ = ["BaseProblem", "OTProblem", "NeuralOTProblem", "ProblemKind"]
 
@@ -279,7 +280,7 @@ class OTProblem(BaseProblem):
             else:
                 self._y = TaggedArray.from_adata(self.adata_tgt, dist_key=self._tgt_key, **y)
         elif xy is not None and x is not None and y is not None:
-            self._problem_kind = ProblemKind.QUAD_FUSED
+            self._problem_kind = ProblemKind.QUAD
             self._xy = xy if isinstance(xy, TaggedArray) else self._handle_linear(**xy)
             if isinstance(x, TaggedArray):
                 self._x = x
@@ -419,10 +420,10 @@ class OTProblem(BaseProblem):
 
     @staticmethod
     def _local_pca_callback(
+        term: Literal["x", "y", "xy"],
         adata: AnnData,
-        adata_y: AnnData,
+        adata_y: Optional[AnnData] = None,
         layer: Optional[str] = None,
-        return_linear: bool = True,
         n_comps: int = 30,
         scale: bool = False,
         **kwargs: Any,
@@ -435,13 +436,19 @@ class OTProblem(BaseProblem):
             return np.vstack([x, y])
 
         if layer is None:
-            x, y, msg = adata.X, adata_y.X, "adata.X"
+            x, y, msg = adata.X, adata_y.X if adata_y is not None else None, "adata.X"
         else:
-            x, y, msg = adata.layers[layer], adata_y.layers[layer], f"adata.layers[{layer!r}]"
+            x, y, msg = (
+                adata.layers[layer],
+                adata_y.layers[layer] if adata_y is not None else None,
+                f"adata.layers[{layer!r}]",
+            )
 
         scaler = StandardScaler() if scale else None
 
-        if return_linear:
+        if term == "xy":
+            if y is None:
+                raise ValueError("When `term` is `xy` `adata_y` cannot be `None`.")
             n = x.shape[0]
             data = concat(x, y)
             if data.shape[1] <= n_comps:
@@ -453,14 +460,13 @@ class OTProblem(BaseProblem):
             if scaler is not None:
                 data = scaler.fit_transform(data)
             return {"xy": TaggedArray(data[:n], data[n:], tag=Tag.POINT_CLOUD)}
-
-        logger.info(f"Computing pca with `n_comps={n_comps}` for `x` and `y` using `{msg}`")
-        x = sc.pp.pca(x, n_comps=n_comps, **kwargs)
-        y = sc.pp.pca(y, n_comps=n_comps, **kwargs)
-        if scaler is not None:
-            x = scaler.fit_transform(x)
-            y = scaler.fit_transform(y)
-        return {"x": TaggedArray(x, tag=Tag.POINT_CLOUD), "y": TaggedArray(y, tag=Tag.POINT_CLOUD)}
+        if term in ("x", "y"):  # if we don't have a shared space, then adata_y is always None
+            logger.info(f"Computing pca with `n_comps={n_comps}` for `{term}` using `{msg}`")
+            x = sc.pp.pca(x, n_comps=n_comps, **kwargs)
+            if scaler is not None:
+                x = scaler.fit_transform(x)
+            return {term: TaggedArray(x, tag=Tag.POINT_CLOUD)}
+        raise ValueError(f"Expected `term` to be one of `x`, `y`, or `xy`, found `{term!r}`.")
 
     def _create_marginals(
         self, adata: AnnData, *, source: bool, data: Optional[Union[bool, str, ArrayLike]] = None, **kwargs: Any
@@ -505,18 +511,13 @@ class OTProblem(BaseProblem):
         -------
         None
         """
-        if self.problem_kind == ProblemKind.QUAD:
-            logger.info(f"Changing the problem type from {self.problem_kind} to fused-quadratic.")
-            self._problem_kind = ProblemKind.QUAD_FUSED
-        if data.shape != (self.adata_src.n_obs, self.adata_tgt.n_obs):
-            raise ValueError(
-                f"`data` is exptected to have shape {(self.adata_src.n_obs, self.adata_tgt.n_obs)} but found {data.shape}."  # noqa: E501
-            )
+        if data.shape != self.shape:
+            raise ValueError(f"`data` is expected to have shape {self.shape} but found {data.shape}.")
         if not isinstance(data, pd.DataFrame):
             raise TypeError("If the data is to be validated, the data must be of type pandas.DataFrame.")
         if list(data.index) != list(self.adata_src.obs_names):
             raise ValueError(
-                "The index names of `data` do not correspond to `adata.obs_names` of the source distribution.."
+                "The index names of `data` do not correspond to `adata.obs_names` of the source distribution."
             )
         if list(data.columns) != list(self.adata_tgt.obs_names):
             raise ValueError(
@@ -541,16 +542,15 @@ class OTProblem(BaseProblem):
         """
         if self.problem_kind == ProblemKind.LINEAR:
             logger.info(f"Changing the problem type from {self.problem_kind} to fused-quadratic.")
-            self._problem_kind = ProblemKind.QUAD_FUSED
-        if data.shape != (self.adata_src.n_obs, self.adata_src.n_obs):
-            raise ValueError(
-                f"`data` is exptected to have shape {(self.adata_src.n_obs, self.adata_src.n_obs)} but found {data.shape}."  # noqa: E501
-            )
+            self._problem_kind = ProblemKind.QUAD
+        expected_shape = self.shape[0], self.shape[0]
+        if data.shape != expected_shape:
+            raise ValueError(f"`data` is expected to have shape {expected_shape} but found {data.shape}.")
         if not isinstance(data, pd.DataFrame):
             raise TypeError("If the data is to be validated, the data must be of type pandas.DataFrame.")
         if list(data.index) != list(self.adata_src.obs_names):
             raise ValueError(
-                "The index names of `data` do not correspond to `adata.obs_names` of the source distribution.."
+                "The index names of `data` do not correspond to `adata.obs_names` of the source distribution."
             )
         if list(data.columns) != list(self.adata_src.obs_names):
             raise ValueError(
@@ -575,16 +575,15 @@ class OTProblem(BaseProblem):
         """
         if self.problem_kind == ProblemKind.LINEAR:
             logger.info(f"Changing the problem type from {self.problem_kind} to fused-quadratic.")
-            self._problem_kind = ProblemKind.QUAD_FUSED
-        if data.shape != (self.adata_tgt.n_obs, self.adata_tgt.n_obs):
-            raise ValueError(
-                f"`data` is exptected to have shape {(self.adata_tgt.n_obs, self.adata_tgt.n_obs)} but found {data.shape}."  # noqa: E501
-            )
+            self._problem_kind = ProblemKind.QUAD
+        expected_shape = self.shape[1], self.shape[1]
+        if data.shape != expected_shape:
+            raise ValueError(f"`data` is expected to have shape {expected_shape} but found {data.shape}.")
         if not isinstance(data, pd.DataFrame):
             raise TypeError("If the data is to be validated, the data must be of type pandas.DataFrame.")
         if list(data.index) != list(self.adata_tgt.obs_names):
             raise ValueError(
-                "The index names of `data` do not correspond to `adata.obs_names` of the source distribution.."
+                "The index names of `data` do not correspond to `adata.obs_names` of the source distribution."
             )
         if list(data.columns) != list(self.adata_tgt.obs_names):
             raise ValueError(
@@ -662,8 +661,8 @@ class OTProblem(BaseProblem):
         return repr(self)
 
 
-class NeuralOTProblem(OTProblem):
-    """Base class for all neural optimal transport problems."""
+class NeuralOTProblem(OTProblem):  # TODO override set_x/set_y
+    """Base class for non-conditional neural optimal transport problems."""
 
     @d.get_sections(base="OTProblem_solve", sections=["Parameters", "Raises"])
     @wrap_solve
@@ -676,4 +675,170 @@ class NeuralOTProblem(OTProblem):
         """Solve method."""
         if self._xy is None:
             raise ValueError("Unable to solve the problem without `xy`.")
-        return super().solve(backend=backend, device=device, input_dim=self._xy.data_src.shape[1], **kwargs)
+        return super().solve(
+            backend=backend, device=device, conditional=False, input_dim=self._xy.data_src.shape[1], **kwargs
+        )
+
+
+class CondOTProblem(BaseProblem):  # TODO(@MUCDK) check generic types, save and load
+    """
+    Base class for all optimal transport problems.
+
+    Parameters
+    ----------
+    adata
+        Source annotated data object.
+    kwargs
+        Keyword arguments for :class:`moscot.problems.base.BaseProblem.`
+
+    Notes
+    -----
+    If any of the source/target masks are specified, :attr:`adata_src`/:attr:`adata_tgt` will be a view.
+    """
+
+    _problem_kind = ProblemKind.LINEAR
+
+    def __init__(
+        self,
+        adata: AnnData,
+        **kwargs: Any,
+    ):
+        super().__init__(**kwargs)
+        self._adata = adata
+
+        self._distributions: Dict[Any, Tuple[TaggedArray, ArrayLike, ArrayLike]] = {}
+        self._inner_policy: Optional[SubsetPolicy[Any]] = None
+        self._sample_pairs: Optional[List[Tuple[Any, Any]]] = None
+
+        self._solver: Optional[OTSolver[BaseSolverOutput]] = None
+        self._solution: Optional[BaseSolverOutput] = None
+
+        self._a: Optional[str] = None
+        self._b: Optional[str] = None
+
+    @d.dedent
+    @wrap_prepare
+    def prepare(
+        self,
+        policy_key: str,
+        policy: Policy_t,
+        xy: Mapping[str, Any],
+        a: Optional[str] = None,
+        b: Optional[str] = None,
+        **kwargs: Any,
+    ) -> "CondOTProblem":
+        """Prepare conditional optimal transport problem.
+
+        Parameters
+        ----------
+        xy
+            Geometry defining the linear term. If passed as a :class:`dict`,
+            :meth:`~moscot.solvers.TaggedArray.from_adata` will be called.
+        policy
+            Policy defining which pairs of distributions to sample from during training.
+        policy_key
+            %(key)s
+        cond_dim
+            Dimension of condition. Expected to be in the last dimensions of axis 1.
+        a
+            Source marginals.
+        b
+            Target marginals.
+        kwargs
+            Keyword arguments when creating the source/target marginals.
+
+        Returns
+        -------
+        Self and modifies the following attributes:
+
+        TODO
+        """
+        self._a = a
+        self._b = b
+        self._solution = None
+
+        self._inner_policy = SubsetPolicy.create(policy, adata=self.adata, key=policy_key)
+        self._sample_pairs = list(self._inner_policy()._graph)
+
+        xy = {k[2:]: v for k, v in xy.items() if k.startswith("x_")}
+        for (src, tgt), (src_mask, tgt_mask) in self._inner_policy().create_masks().items():
+            if src not in self._distributions.keys():
+                x_tagged = TaggedArray.from_adata(self.adata[src_mask], dist_key=policy_key, tag=Tag.POINT_CLOUD, **xy)
+                a = self._create_marginals(self.adata[src_mask], data=self._a, source=True, **kwargs)
+                b = self._create_marginals(self.adata[src_mask], data=self._b, source=False, **kwargs)
+                self._distributions[src] = (x_tagged, a, b)
+            if tgt not in self._distributions.keys():
+                x_tagged = TaggedArray.from_adata(self.adata[tgt_mask], dist_key=policy_key, tag=Tag.POINT_CLOUD, **xy)
+                a = self._create_marginals(self.adata[tgt_mask], data=self._a, source=True, **kwargs)
+                b = self._create_marginals(self.adata[tgt_mask], data=self._b, source=False, **kwargs)
+                self._distributions[tgt] = (x_tagged, a, b)
+
+        self._problem_kind = ProblemKind.LINEAR
+        return self
+
+    @wrap_solve
+    def solve(
+        self,
+        backend: Literal["ott"] = "ott",
+        device: Optional[Device_t] = None,
+        **kwargs: Any,
+    ) -> "CondOTProblem":
+        """Solve optimal transport problem.
+
+        Parameters
+        ----------
+        backend
+            Which backend to use, see :func:`moscot.backends.get_available_backends`.
+        device
+            Device where to transfer the solution, see :meth:`moscot.solvers.BaseSolverOutput.to`.
+        kwargs
+            Keyword arguments for :meth:`moscot.solvers.BaseSolver.__call__`.
+
+        Returns
+        -------
+        Self and modifies the following attributes:
+
+        - :attr:`solver`: optimal transport solver.
+        - :attr:`solution`: optimal transport solution.
+        """
+
+        self._solver = self._problem_kind.solver(
+            backend=backend,
+            neural="cond",
+            distributions=self._distributions,
+            sample_pairs=self._sample_pairs,
+            input_dim=list(self._distributions.values())[0][0].data_src.shape[1],
+            **kwargs,
+        )
+
+        self._solution = self._solver(  # type: ignore[misc]
+            xy=self._distributions,
+            sample_pairs=self._sample_pairs,
+            device=device,
+            **kwargs,
+        )
+
+        return self
+
+    def _create_marginals(
+        self, adata: AnnData, *, source: bool, data: Optional[str] = None, **kwargs: Any
+    ) -> ArrayLike:
+        if data is True:
+            marginals = self._estimate_marginals(adata, source=source, **kwargs)
+        elif data in (False, None):
+            marginals = np.ones((adata.n_obs,), dtype=float) / adata.n_obs
+        elif isinstance(data, str):
+            try:
+                marginals = np.asarray(adata.obs[data], dtype=float)
+            except KeyError:
+                raise KeyError(f"Unable to find data in `adata.obs[{data!r}]`.") from None
+        return marginals
+
+    @property
+    def adata(self) -> AnnData:
+        """Source annotated data object."""
+        return self._adata
+
+    @property
+    def problem_kind(self) -> ProblemKind:
+        return self._problem_kind

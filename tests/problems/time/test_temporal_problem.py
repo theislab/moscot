@@ -7,6 +7,7 @@ import numpy as np
 
 from anndata import AnnData
 
+from tests._utils import ATOL, RTOL
 from moscot.problems.time import TemporalProblem
 from moscot.solvers._output import BaseSolverOutput
 from tests.problems.conftest import (
@@ -135,10 +136,28 @@ class TestTemporalProblem:
         problem.apoptosis_key = "new_apoptosis"
         assert problem.apoptosis_key == "new_apoptosis"
 
+    @pytest.mark.fast()
+    @pytest.mark.parametrize("scaling", [0.1, 1, 4])
+    def test_proliferation_key_c_pipeline(self, adata_time: AnnData, scaling: float):
+        keys = np.sort(np.unique(adata_time.obs["time"].values))
+        adata_time = adata_time[adata_time.obs["time"].isin([keys[0], keys[1]])]
+        delta = keys[1] - keys[0]
+        problem = TemporalProblem(adata_time)
+        assert problem.proliferation_key is None
+
+        problem.score_genes_for_marginals(gene_set_proliferation="human", gene_set_apoptosis="human")
+        assert problem.proliferation_key == "proliferation"
+
+        problem = problem.prepare(time_key="time", marginal_kwargs={"scaling": scaling})
+        prolif = adata_time[adata_time.obs["time"] == keys[0]].obs["proliferation"]
+        apopt = adata_time[adata_time.obs["time"] == keys[0]].obs["apoptosis"]
+        expected_marginals = np.exp((prolif - apopt) * delta / scaling)
+        np.testing.assert_allclose(problem[keys[0], keys[1]]._prior_growth, expected_marginals, rtol=RTOL, atol=ATOL)
+
     def test_cell_costs_source_pipeline(self, adata_time: AnnData):
         problem = TemporalProblem(adata=adata_time)
         problem = problem.prepare("time")
-        problem = problem.solve()
+        problem = problem.solve(max_iterations=2)
 
         cell_costs_source = problem.cell_costs_source
 
@@ -156,7 +175,7 @@ class TestTemporalProblem:
     def test_cell_costs_target_pipeline(self, adata_time: AnnData):
         problem = TemporalProblem(adata=adata_time)
         problem = problem.prepare("time")
-        problem = problem.solve()
+        problem = problem.solve(max_iterations=2)
 
         cell_costs_target = problem.cell_costs_target
 
@@ -175,7 +194,7 @@ class TestTemporalProblem:
         problem = TemporalProblem(adata=adata_time)
         problem = problem.score_genes_for_marginals(gene_set_proliferation="mouse", gene_set_apoptosis="mouse")
         problem = problem.prepare("time", a=True, b=True)
-        problem = problem.solve()
+        problem = problem.solve(max_iterations=2)
 
         growth_rates = problem.posterior_growth_rates
         assert isinstance(growth_rates, pd.DataFrame)
@@ -205,7 +224,7 @@ class TestTemporalProblem:
             key,
             subset=[(key_1, key_2), (key_2, key_3), (key_1, key_3)],
             policy="explicit",
-            callback_kwargs={"n_comps": 50},
+            xy_callback_kwargs={"n_comps": 50},
         )
         tp = tp.solve(epsilon=eps, scale_cost="mean", tau_a=lam1 / (lam1 + eps), tau_b=lam2 / (lam2 + eps))
 

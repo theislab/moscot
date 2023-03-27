@@ -67,14 +67,12 @@ def wrap_solve(
 
 
 def handle_joint_attr(
-    joint_attr: Optional[Union[str, Mapping[str, Any]]], kwargs: Any
-) -> Tuple[Optional[Mapping[str, Any]], Dict[str, Any]]:
+    joint_attr: Optional[Union[str, Mapping[str, Any]]], kwargs: Dict[str, Any]
+) -> Tuple[Optional[Dict[str, Any]], Dict[str, Any]]:
     if joint_attr is None:
-        if "callback" not in kwargs:
-            kwargs["callback"] = "local-pca"
-        else:
-            kwargs["callback"] = kwargs["callback"]
-        kwargs["callback_kwargs"] = {**kwargs.get("callback_kwargs", {}), **{"return_linear": True}}
+        if "xy_callback" not in kwargs:
+            kwargs["xy_callback"] = "local-pca"
+        kwargs.setdefault("xy_callback_kwargs", {})
         return None, kwargs
     if isinstance(joint_attr, str):
         xy = {
@@ -84,7 +82,27 @@ def handle_joint_attr(
             "y_key": joint_attr,
         }
         return xy, kwargs
-    if isinstance(joint_attr, Mapping):
+    if isinstance(joint_attr, Mapping):  # input mapping does not distinguish between x and y as it's a shared space
+        joint_attr = dict(joint_attr)
+        if "attr" in joint_attr and joint_attr["attr"] == "X":  # we have a point cloud
+            return {"x_attr": "X", "y_attr": "X"}, kwargs
+        if "attr" in joint_attr and joint_attr["attr"] == "obsm":  # we have a point cloud
+            if "key" not in joint_attr:
+                raise KeyError("`key` must be provided when `attr` is `obsm`.")
+            xy = {
+                "x_attr": "obsm",
+                "x_key": joint_attr["key"],
+                "y_attr": "obsm",
+                "y_key": joint_attr["key"],
+            }
+            return xy, kwargs
+        if joint_attr.get("tag", None) == "cost_matrix":  # if this is True we have custom cost matrix or moscot cost
+            if len(joint_attr) == 2 or kwargs.get("attr", None) == "obsp":  # in this case we have a custom cost matrix
+                joint_attr.setdefault("cost", "custom")
+                joint_attr.setdefault("attr", "obsp")
+                kwargs["xy_callback"] = "cost-matrix"
+                kwargs.setdefault("xy_callback_kwargs", {"key": joint_attr["key"]})
+        kwargs.setdefault("xy_callback_kwargs", {})
         return joint_attr, kwargs
     raise TypeError(f"Expected `joint_attr` to be either `str` or `dict`, found `{type(joint_attr)}`.")
 

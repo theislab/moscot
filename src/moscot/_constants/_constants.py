@@ -73,25 +73,30 @@ class PlottingDefaults(ModeEnum):  # sets the adata.uns[AdataKeys.UNS][value] va
     PULL = "pull"
 
 
+@unique
+class CorrTestMethod(ModeEnum):
+    FISCHER = "fischer"
+    PERM_TEST = "perm_test"
+
+
 class Key:
     class uns:
         @classmethod
         def set_plotting_vars(
             cls,
             adata: AnnData,
-            uns_key: str,
             pl_func_key: Optional[str] = None,
             key: Optional[str] = None,
             value: Optional[Any] = None,
             override: bool = True,
         ) -> None:
-            adata.uns.setdefault(uns_key, {})
+            adata.uns.setdefault(AdataKeys.UNS, {})
             if pl_func_key is not None:
-                adata.uns[uns_key].setdefault(pl_func_key, {})
+                adata.uns[AdataKeys.UNS].setdefault(pl_func_key, {})
             if key is not None:
-                if not override and key in adata.uns[uns_key][pl_func_key]:
+                if not override and key in adata.uns[AdataKeys.UNS][pl_func_key]:
                     raise KeyError(
-                        f"Data in `adata.uns[{uns_key!r}][{pl_func_key!r}][{key!r}]` "
+                        f"Data in `adata.uns[{AdataKeys.UNS!r}][{pl_func_key!r}][{key!r}]` "
                         f"already exists, use `override=True`."
                     )
-                adata.uns[uns_key][pl_func_key][key] = value
+                adata.uns[AdataKeys.UNS][pl_func_key][key] = value

@@ -1,6 +1,5 @@
-from abc import ABC
 from types import MappingProxyType
-from typing import Any, Tuple, Union, Literal, Mapping, Optional
+from typing import Any, Dict, List, Tuple, Union, Literal, Mapping, Optional
 import math
 
 from scipy.sparse import issparse
@@ -27,7 +26,7 @@ from moscot.solvers._tagged_array import TaggedArray
 from moscot.backends.ott._jax_data import JaxSampler
 from moscot.backends.ott._neuraldual import NeuralDualSolver
 
-__all__ = ["OTTCost", "SinkhornSolver", "GWSolver", "FGWSolver", "NeuralSolver"]
+__all__ = ["OTTCost", "SinkhornSolver", "GWSolver", "NeuralSolver", "CondNeuralSolver"]
 
 Scale_t = Union[float, Literal["mean", "median", "max_cost", "max_norm", "max_bound"]]
 Epsilon_t = Union[float, Epsilon]
@@ -54,13 +53,20 @@ class OTTCost(ModeEnum):
         raise NotImplementedError(self.value)
 
 
-class OTTJaxSolver(OTSolver[OTTOutput], ABC):
-    """Base class for :mod:`ott` solvers :cite:`cuturi2022optimal`."""
+class OTTJaxSolver(OTSolver[OTTOutput]):
+    """Base class for :mod:`ott` solvers :cite:`cuturi2022optimal`.
 
-    def __init__(self):
+    Parameters
+    ----------
+    jit
+        Whether to jit the :attr:`solver`.
+    """
+
+    def __init__(self, jit: bool = True):
         super().__init__()
         self._solver: Optional[Union[Sinkhorn, LRSinkhorn, GromovWasserstein]] = None
         self._problem: Optional[Union[LinearProblem, QuadraticProblem]] = None
+        self._jit = jit
 
     def _create_geometry(
         self,
@@ -89,7 +95,8 @@ class OTTJaxSolver(OTSolver[OTTOutput], ABC):
         prob: Union[LinearProblem, QuadraticProblem],
         **kwargs: Any,
     ) -> OTTOutput:
-        out = self.solver(prob, **kwargs)
+        solver = jax.jit(self.solver) if self._jit else self._solver
+        out = solver(prob, **kwargs)  # type: ignore[misc]
         return OTTOutput(out)
 
     @staticmethod
@@ -264,97 +271,24 @@ class GWSolver(OTTJaxSolver):
         xy: Optional[TaggedArray] = None,
         x: Optional[TaggedArray] = None,
         y: Optional[TaggedArray] = None,
-        **kwargs: Any,
-    ) -> QuadraticProblem:
-        del xy
-        if x is None or y is None:
-            raise ValueError(f"Unable to create geometry from `x={x}`, `y={y}`.")
-        geom_x = self._create_geometry(x, **kwargs)
-        geom_y = self._create_geometry(y, **kwargs)
-
-        kwargs = _filter_kwargs(QuadraticProblem, **kwargs)
-        self._problem = QuadraticProblem(geom_x, geom_y, geom_xy=None, **kwargs)
-        return self._problem
-
-    @property
-    def x(self) -> Optional[Geometry]:
-        """First geometry defining the quadratic term."""
-        return None if self._problem is None else self._problem.geom_xx
-
-    @property
-    def y(self) -> Geometry:
-        """Second geometry defining the quadratic term."""
-        return None if self._problem is None else self._problem.geom_yy
-
-    @property
-    def problem_kind(self) -> ProblemKind:
-        return ProblemKind.QUAD
-
-
-class FGWSolver(GWSolver):
-    """
-    Class which solves quadratic OT problem with a linear term included.
-
-    The Fused Gromov-Wasserstein (FGW) problem involves two distributions living in two subspaces,
-    corresponding to the linear term and the quadratic term, respectively.
-
-    The subspace corresponding to the linear term is shared between the two distributions.
-    The subspace corresponding to the quadratic term is defined in possibly two different spaces.
-    The matching obtained from the FGW is a compromise between the ones induced by the linear OT problem and
-    the quadratic OT problem :cite:`vayer:2018`.
-
-    This solver wraps :class:`~ott.solvers.quadratic.gromov_wasserstein.GromovWasserstein`
-    with a non-trivial ``fused_penalty``.
-
-    Parameters
-    ----------
-    rank
-        Rank of the quadratic solver. If `-1` use the full-rank GW :cite:`memoli:2011`,
-        otherwise, use the low-rank approach :cite:`scetbon:21b`.
-    initializer
-        `quad_initializer` of :class:`~ott.solvers.quadratic.gromov_wasserstein.GromovWasserstein`.
-    initializer_kwargs
-        Keyword arguments for the initializer.
-    linear_solver_kwargs
-        Keyword arguments for :class:`~ott.solvers.linear.sinkhorn.Sinkhorn` or
-        :class:`~ott.solvers.linear.sinkhorn_lr.LRSinkhorn`, depending on the ``rank``.
-    kwargs
-        Keyword arguments for :class:`~ott.solvers.quadratic.gromov_wasserstein.GromovWasserstein` .
-    """
-
-    def _prepare(
-        self,
-        xy: Optional[TaggedArray] = None,
-        x: Optional[TaggedArray] = None,
-        y: Optional[TaggedArray] = None,
         alpha: float = 0.5,
         **kwargs: Any,
     ) -> QuadraticProblem:
-        if xy is None:
-            raise ValueError(f"Unable to create geometry from `xy={xy}`.")
-
-        prob = super()._prepare(x=x, y=y, **kwargs)
-        geom_xy = self._create_geometry(xy, **kwargs)
-        self._validate_geoms(prob.geom_xx, prob.geom_yy, geom_xy)
+        if x is None or y is None:
+            raise ValueError(f"Unable to create geometry from `x={x}`, `y={y}`.")
+        geom_xx = self._create_geometry(x, **kwargs)
+        geom_yy = self._create_geometry(y, **kwargs)
+        if alpha == 1.0 or xy is None:  # GW
+            # arbitrary fused penalty (must be positive)
+            geom_xy, fused_penalty = None, 1.0
+        else:  # FGW
+            fused_penalty = self._alpha_to_fused_penalty(alpha)
+            geom_xy = self._create_geometry(xy, **kwargs)
+            self._validate_geoms(geom_xx, geom_yy, geom_xy)
 
         kwargs = _filter_kwargs(QuadraticProblem, **kwargs)
-        self._problem = QuadraticProblem(
-            geom_xx=prob.geom_xx,
-            geom_yy=prob.geom_yy,
-            geom_xy=geom_xy,
-            fused_penalty=self._alpha_to_fused_penalty(alpha),
-            **kwargs,
-        )
+        self._problem = QuadraticProblem(geom_xx, geom_yy, geom_xy=geom_xy, fused_penalty=fused_penalty, **kwargs)
         return self._problem
-
-    @property
-    def xy(self) -> Optional[Geometry]:
-        """Geometry defining the linear term."""
-        return None if self._problem is None else self._problem.geom_xy
-
-    @property
-    def problem_kind(self) -> ProblemKind:
-        return ProblemKind.QUAD_FUSED
 
     @staticmethod
     def _validate_geoms(geom_x: Geometry, geom_y: Geometry, geom_xy: Geometry) -> None:
@@ -370,6 +304,30 @@ class FGWSolver(GWSolver):
         if not (0 < alpha <= 1):
             raise ValueError(f"Expected `alpha` to be in interval `(0, 1]`, found `{alpha}`.")
         return (1 - alpha) / alpha
+
+    @property
+    def x(self) -> Optional[Geometry]:
+        """First geometry defining the quadratic term."""
+        return None if self._problem is None else self._problem.geom_xx
+
+    @property
+    def y(self) -> Geometry:
+        """Second geometry defining the quadratic term."""
+        return None if self._problem is None else self._problem.geom_yy
+
+    @property
+    def xy(self) -> Optional[Geometry]:
+        """Geometry defining the linear term in the fused case."""
+        return None if self._problem is None else self._problem.geom_xy
+
+    @property
+    def is_fused(self) -> Optional[bool]:
+        """Whether the problem is fused."""
+        return None if self._problem is None else (self.xy is not None)
+
+    @property
+    def problem_kind(self) -> ProblemKind:
+        return ProblemKind.QUAD
 
 
 class NeuralSolver(OTSolver[OTTOutput]):
@@ -400,16 +358,20 @@ class NeuralSolver(OTSolver[OTTOutput]):
             raise ValueError("Invalid train_size. Must be: 0 < train_size <= 1")
         if train_size != 1.0:
             seed = kwargs.pop("seed", 0)
-            train_x, train_y, valid_x, valid_y, a, b = self._split_data(
+            train_x, train_y, valid_x, valid_y, train_a, train_b, valid_a, valid_b = self._split_data(
                 x, y, train_size=train_size, seed=seed, a=a, b=b
             )
         else:
-            train_x, train_y = x, y
-            valid_x, valid_y = x, y
+            train_x, train_y, train_a, train_b = x, y, a, b
+            valid_x, valid_y, valid_a, valid_b = x, y, a, b
 
         kwargs = _filter_kwargs(JaxSampler, **kwargs)
-        self._train_sampler = JaxSampler(train_x, train_y, a=a, b=b, **kwargs)
-        self._valid_sampler = JaxSampler(valid_x, valid_y)
+        self._train_sampler = JaxSampler(
+            [train_x, train_y], policy_pairs=[(0, 1)], a=[train_a, []], b=[[], train_b], **kwargs
+        )
+        self._valid_sampler = JaxSampler(
+            [valid_x, valid_y], policy_pairs=[(0, 1)], a=[valid_a, []], b=[[], valid_b], **kwargs
+        )
         return (self._train_sampler, self._valid_sampler)
 
     def _solve(self, data_samplers: Tuple[JaxSampler, JaxSampler]) -> NeuralOutput:  # type: ignore[override]
@@ -433,7 +395,16 @@ class NeuralSolver(OTSolver[OTTOutput]):
         seed: int,
         a: Optional[ArrayLike] = None,
         b: Optional[ArrayLike] = None,
-    ) -> Tuple[ArrayLike, ArrayLike, ArrayLike, ArrayLike, Optional[ArrayLike], Optional[ArrayLike]]:
+    ) -> Tuple[
+        ArrayLike,
+        ArrayLike,
+        ArrayLike,
+        ArrayLike,
+        Optional[ArrayLike],
+        Optional[ArrayLike],
+        Optional[ArrayLike],
+        Optional[ArrayLike],
+    ]:
         n_samples_x = x.shape[0]
         n_samples_y = y.shape[0]
         n_train_x = math.ceil(train_size * n_samples_x)
@@ -442,10 +413,19 @@ class NeuralSolver(OTSolver[OTTOutput]):
         x = jax.random.permutation(key, x)
         y = jax.random.permutation(key, y)
         if a is not None:
-            a = jax.random.permutation(key, a)[:n_train_x]
+            a = jax.random.permutation(key, a)
         if b is not None:
-            b = jax.random.permutation(key, b)[:n_train_x]
-        return x[:n_train_x], y[:n_train_y], x[n_train_x:], y[n_train_y:], a, b
+            b = jax.random.permutation(key, b)
+        return (
+            x[:n_train_x],
+            y[:n_train_y],
+            x[n_train_x:],
+            y[n_train_y:],
+            a[:n_train_x] if a is not None else None,
+            b[:n_train_x] if b is not None else None,
+            a[n_train_x:] if a is not None else None,
+            b[n_train_x:] if b is not None else None,
+        )
 
     @property
     def solver(self) -> NeuralDualSolver:
@@ -455,3 +435,84 @@ class NeuralSolver(OTSolver[OTTOutput]):
     @property
     def problem_kind(self) -> ProblemKind:
         return ProblemKind.LINEAR
+
+
+class CondNeuralSolver(NeuralSolver):
+    """Solver class solving Conditional Neural Optimal Transport problems."""
+
+    def __init__(self, **kwargs: Any) -> None:
+        super().__init__(conditional=True, **kwargs)
+
+    def _prepare(  # type: ignore[override]
+        self,
+        xy: Dict[Any, Tuple[TaggedArray, ArrayLike, ArrayLike]],
+        sample_pairs: List[Tuple[Any, Any]],
+        train_size: float = 0.9,
+        **kwargs: Any,
+    ) -> Tuple[JaxSampler, JaxSampler]:
+        train_data: List[Optional[ArrayLike]] = []
+        train_a: List[Optional[ArrayLike]] = []
+        train_b: List[Optional[ArrayLike]] = []
+        valid_data: List[Optional[ArrayLike]] = []
+        valid_a: List[Optional[ArrayLike]] = []
+        valid_b: List[Optional[ArrayLike]] = []
+
+        sample_to_idx: Dict[int, Any] = {}
+        kwargs = _filter_kwargs(JaxSampler, **kwargs)
+        if train_size == 1.0:
+            train_data = [d[0].data_src for d in xy.values()]
+            train_a = [d[1] for d in xy.values()]
+            train_b = [d[2] for d in xy.values()]
+            valid_data, valid_a, valid_b = train_data, train_a, train_b
+            sample_to_idx = {k: i for i, k in enumerate(xy.keys())}
+        else:
+            if train_size > 1.0 or train_size <= 0.0:
+                raise ValueError("Invalid train_size. Must be: 0 < train_size <= 1")
+
+            seed = kwargs.pop("seed", 0)
+            for i, (k, (d, a, b)) in enumerate(xy.items()):
+                t_data, v_data, t_a, t_b, v_a, v_b = self._split_data(
+                    d.data_src, train_size=train_size, seed=seed, a=a, b=b
+                )
+                train_data.append(t_data)
+                train_a.append(t_a)
+                train_b.append(t_b)
+                valid_data.append(v_data)
+                valid_a.append(v_a)
+                valid_b.append(v_b)
+                sample_to_idx[k] = i
+
+        self._train_sampler = JaxSampler(
+            train_data, sample_pairs, conditional=True, a=train_a, b=train_b, sample_to_idx=sample_to_idx, **kwargs
+        )
+        self._valid_sampler = JaxSampler(
+            valid_data, sample_pairs, conditional=True, a=valid_a, b=valid_b, sample_to_idx=sample_to_idx, **kwargs
+        )
+        return (self._train_sampler, self._valid_sampler)
+
+    def _split_data(  # type:ignore[override]
+        self,
+        x: ArrayLike,
+        train_size: float,
+        seed: int,
+        a: Optional[ArrayLike] = None,
+        b: Optional[ArrayLike] = None,
+    ) -> Tuple[
+        ArrayLike, ArrayLike, Optional[ArrayLike], Optional[ArrayLike], Optional[ArrayLike], Optional[ArrayLike]
+    ]:
+        n_samples_x = x.shape[0]
+        n_train_x = math.ceil(train_size * n_samples_x)
+        key = jax.random.PRNGKey(seed=seed)
+        x = jax.random.permutation(key, x)
+        if a is not None:
+            a = jax.random.permutation(key, a)
+        if b is not None:
+            b = jax.random.permutation(key, b)
+        return (
+            x[:n_train_x],
+            x[n_train_x:],
+            a[:n_train_x] if a is not None else None,
+            b[:n_train_x] if b is not None else None,
+            a[n_train_x:] if a is not None else None,
+            b[n_train_x:] if b is not None else None,
+        )

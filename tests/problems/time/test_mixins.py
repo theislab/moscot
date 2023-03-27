@@ -129,9 +129,9 @@ class TestTemporalMixin:
         problem = TemporalProblem(adata_time)
         problem.prepare("time")
         distance_source_intermediate, distance_intermediate_target = problem.compute_time_point_distances(
-            start=0,
+            source=0,
             intermediate=1,
-            end=2,
+            target=2,
             posterior_marginals=False,
         )
         assert distance_source_intermediate > 0
@@ -157,7 +157,7 @@ class TestTemporalMixin:
             key,
             subset=[(key_1, key_2), (key_2, key_3), (key_1, key_3)],
             policy="explicit",
-            callback_kwargs={"n_comps": 50},
+            xy_callback_kwargs={"n_comps": 50},
         )
         assert set(problem.problems.keys()) == {(key_1, key_2), (key_2, key_3), (key_1, key_3)}
         problem[key_1, key_2]._solution = MockSolverOutput(gt_temporal_adata.uns["tmap_10_105"])
@@ -187,7 +187,7 @@ class TestTemporalMixin:
             subset=[(key_1, key_2), (key_2, key_3), (key_1, key_3)],
             policy="explicit",
             scale_cost="mean",
-            callback_kwargs={"n_comps": 50},
+            xy_callback_kwargs={"n_comps": 50},
         )
         assert set(problem.problems.keys()) == {(key_1, key_2), (key_2, key_3), (key_1, key_3)}
         problem[key_1, key_2]._solution = MockSolverOutput(gt_temporal_adata.uns["tmap_10_105"])
@@ -215,7 +215,7 @@ class TestTemporalMixin:
             subset=[(key_1, key_2), (key_2, key_3), (key_1, key_3)],
             policy="explicit",
             scale_cost="mean",
-            callback_kwargs={"n_comps": 50},
+            xy_callback_kwargs={"n_comps": 50},
         )
         assert set(problem.problems.keys()) == {(key_1, key_2), (key_2, key_3), (key_1, key_3)}
         problem[key_1, key_2]._solution = MockSolverOutput(gt_temporal_adata.uns["tmap_10_105"])
@@ -241,7 +241,7 @@ class TestTemporalMixin:
             subset=[(key_1, key_2), (key_2, key_3), (key_1, key_3)],
             policy="explicit",
             scale_cost="mean",
-            callback_kwargs={"n_comps": 50},
+            xy_callback_kwargs={"n_comps": 50},
         )
         assert set(problem.problems.keys()) == {(key_1, key_2), (key_2, key_3), (key_1, key_3)}
         problem[key_1, key_2]._solution = MockSolverOutput(gt_temporal_adata.uns["tmap_10_105"])
@@ -264,7 +264,7 @@ class TestTemporalMixin:
             subset=[(key_1, key_2), (key_2, key_3), (key_1, key_3)],
             policy="explicit",
             scale_cost="mean",
-            callback_kwargs={"n_comps": 50},
+            xy_callback_kwargs={"n_comps": 50},
         )
         assert set(problem.problems.keys()) == {(key_1, key_2), (key_2, key_3), (key_1, key_3)}
 
@@ -304,7 +304,7 @@ class TestTemporalMixin:
         interpolation_parameter = None if len(time_points) == 3 else 0.5
         problem = TemporalProblem(adata_time)
         problem.prepare("time")
-        problem.solve()
+        problem.solve(max_iterations=2)
 
         if intermediate <= start or end <= intermediate:
             with np.testing.assert_raises(ValueError):
@@ -332,3 +332,16 @@ class TestTemporalMixin:
         res = result.sort_index().sort_index(1)
         df_expected = adata_time_with_tmap.uns["cell_transition_gt"].sort_index().sort_index(1)
         np.testing.assert_almost_equal(res.values, df_expected.values, decimal=8)
+
+    @pytest.mark.fast()
+    @pytest.mark.parametrize("temporal_key", ["celltype", "time", "missing"])
+    def test_temporal_key_numeric(self, adata_time: AnnData, temporal_key: str):
+        problem = TemporalProblem(adata_time)
+        if temporal_key == "missing":
+            with pytest.raises(KeyError, match="Unable to find temporal key"):
+                problem = problem.prepare(temporal_key)
+        elif temporal_key == "celltype":
+            with pytest.raises(TypeError, match="Temporal key has to be of numeric type"):
+                problem = problem.prepare(temporal_key)
+        elif temporal_key == "time":
+            problem = problem.prepare(temporal_key)

@@ -16,6 +16,7 @@ __all__ = ["Tag", "TaggedArray", "get_cost_function"]
 
 
 def get_cost_function(cost: str, *, backend: Literal["ott"] = "ott", **kwargs: Any) -> Callable[..., Any]:
+    """Get backend-dependent cost function."""
     if backend == "ott":
         from moscot.backends.ott._solver import OTTCost
 
@@ -27,7 +28,7 @@ def get_cost_function(cost: str, *, backend: Literal["ott"] = "ott", **kwargs: A
 class Tag(ModeEnum):
     """Tag used to interpret array-like data in :class:`moscot.solvers.TaggedArray`."""
 
-    COST_MATRIX = "cost"  #: Cost matrix.
+    COST_MATRIX = "cost_matrix"  #: Cost matrix.
     KERNEL = "kernel"  #: Kernel matrix.
     POINT_CLOUD = "point_cloud"  #: Point cloud.
 
@@ -49,7 +50,6 @@ class TaggedArray:
         key: Optional[str] = None,
     ) -> ArrayLike:
         modifier = f"adata.{attr}" if key is None else f"adata.{attr}[{key!r}]"
-
         try:
             data = getattr(adata, attr)
         except AttributeError:

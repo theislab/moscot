@@ -1,20 +1,26 @@
 from types import MappingProxyType
-from typing import Any, Dict, List, Type, Tuple, Union, Literal, Mapping, Optional
+from typing import Any, Dict, List, Type, Tuple, Union, Literal, Mapping, Iterable, Optional
 
 from anndata import AnnData
 
 from moscot._types import ScaleCost_t, ProblemStage_t, QuadInitializer_t, SinkhornInitializer_t
 from moscot._docs._docs import d
-from moscot.problems.base import OTProblem, CompoundProblem  # type: ignore[attr-defined]
+from moscot.problems.base import (  # type: ignore[attr-defined]
+    OTProblem,
+    CondOTProblem,
+    CompoundProblem,
+    NeuralOTProblem,
+)
 from moscot.problems._utils import handle_cost, handle_joint_attr
+from moscot._constants._constants import Policy
 from moscot.problems.generic._mixins import GenericAnalysisMixin
 from moscot.problems.base._compound_problem import B, K
 
-__all__ = ["SinkhornProblem", "GWProblem", "FGWProblem"]
+__all__ = ["SinkhornProblem", "GWProblem", "NeuralProblem", "ConditionalNeuralProblem"]
 
 
 @d.dedent
-class SinkhornProblem(CompoundProblem[K, B], GenericAnalysisMixin[K, B]):
+class SinkhornProblem(GenericAnalysisMixin[K, B], CompoundProblem[K, B]):
     """
     Class for solving linear OT problems.
 
@@ -63,21 +69,6 @@ class SinkhornProblem(CompoundProblem[K, B], GenericAnalysisMixin[K, B]):
         %(ex_prepare)s
         """
         self.batch_key = key
-        if joint_attr is None:
-            kwargs["callback"] = "local-pca"
-            kwargs["callback_kwargs"] = {**kwargs.get("callback_kwargs", {}), **{"return_linear": True}}
-        elif isinstance(joint_attr, str):
-            kwargs["xy"] = {
-                "x_attr": "obsm",
-                "x_key": joint_attr,
-                "y_attr": "obsm",
-                "y_key": joint_attr,
-            }
-        elif isinstance(joint_attr, Mapping):
-            kwargs["xy"] = joint_attr
-        else:
-            raise TypeError(f"Unable to interpret `joint_attr` of type `{type(joint_attr)}`.")
-
         xy, kwargs = handle_joint_attr(joint_attr, kwargs)
         xy, _, _ = handle_cost(xy=xy, cost=cost)
         return super().prepare(
@@ -179,7 +170,7 @@ class SinkhornProblem(CompoundProblem[K, B], GenericAnalysisMixin[K, B]):
 
 @d.get_sections(base="GWProblem", sections=["Parameters"])
 @d.dedent
-class GWProblem(CompoundProblem[K, B], GenericAnalysisMixin[K, B]):
+class GWProblem(GenericAnalysisMixin[K, B], CompoundProblem[K, B]):
     """
     Class for solving Gromov-Wasserstein problems.
 
@@ -197,6 +188,7 @@ class GWProblem(CompoundProblem[K, B], GenericAnalysisMixin[K, B]):
         key: str,
         GW_x: Union[str, Mapping[str, Any]],
         GW_y: Union[str, Mapping[str, Any]],
+        joint_attr: Optional[Union[str, Mapping[str, Any]]] = None,
         policy: Literal["sequential", "pairwise", "explicit"] = "sequential",
         cost: Union[
             Literal["sq_euclidean", "cosine", "bures", "unbalanced_bures"],
@@ -214,6 +206,7 @@ class GWProblem(CompoundProblem[K, B], GenericAnalysisMixin[K, B]):
         %(key)s
         %(GW_x)s
         %(GW_y)s
+        %(joint_attr)s
         %(policy)s
         %(cost)s
         %(a)s
@@ -243,11 +236,11 @@ class GWProblem(CompoundProblem[K, B], GenericAnalysisMixin[K, B]):
             else:
                 raise TypeError("`GW_x` and `GW_y` must be of type `str` or `dict`.")
 
-        xy = kwargs.pop("xy", None)
+        xy, kwargs = handle_joint_attr(joint_attr, kwargs)
         xy, x, y = handle_cost(xy=xy, x=GW_updated[0], y=GW_updated[1], cost=cost)
         return super().prepare(
             key=key,
-            xy=xy,  # this is needed as FGWProblem inherits from GWProblem
+            xy=xy,
             x=x,
             y=y,
             policy=policy,
@@ -260,6 +253,7 @@ class GWProblem(CompoundProblem[K, B], GenericAnalysisMixin[K, B]):
     @d.dedent
     def solve(
         self,
+        alpha: float = 1.0,
         epsilon: Optional[float] = 1e-3,
         tau_a: float = 1.0,
         tau_b: float = 1.0,
@@ -286,6 +280,7 @@ class GWProblem(CompoundProblem[K, B], GenericAnalysisMixin[K, B]):
 
         Parameters
         ----------
+        %(alpha)s
         %(epsilon)s
         %(tau_a)s
         %(tau_b)s
@@ -311,6 +306,7 @@ class GWProblem(CompoundProblem[K, B], GenericAnalysisMixin[K, B]):
         %(ex_solve_quadratic)s
         """
         return super().solve(
+            alpha=alpha,
             epsilon=epsilon,
             tau_a=tau_a,
             tau_b=tau_b,
@@ -476,3 +472,177 @@ class FGWProblem(GWProblem[K, B]):
             device=device,
             **kwargs,
         )
+
+
+@d.dedent
+class NeuralProblem(CompoundProblem[K, B], GenericAnalysisMixin[K, B]):
+    """Class for solving Parameterized Monge Map problems / Neural OT problems."""
+
+    @d.dedent
+    def prepare(
+        self,
+        key: str,
+        joint_attr: Optional[Union[str, Mapping[str, Any]]] = None,
+        policy: Literal["sequential", "pairwise", "explicit"] = "sequential",
+        a: Optional[str] = None,
+        b: Optional[str] = None,
+        **kwargs: Any,
+    ) -> "NeuralProblem[K, B]":
+        """Prepare the :class:`moscot.problems.generic.NeuralProblem[K, B]`."""
+        self.batch_key = key
+        xy, kwargs = handle_joint_attr(joint_attr, kwargs)
+        return super().prepare(
+            key=key,
+            policy=policy,
+            xy=xy,
+            a=a,
+            b=b,
+            **kwargs,
+        )
+
+    @d.dedent
+    def solve(
+        self,
+        batch_size: int = 1024,
+        tau_a: float = 1.0,
+        tau_b: float = 1.0,
+        epsilon: float = 0.1,
+        seed: int = 0,
+        pos_weights: bool = False,
+        dim_hidden: Iterable[int] = (64, 64, 64, 64),
+        beta: float = 1.0,
+        best_model_metric: Literal[
+            "sinkhorn_forward", "sinkhorn"
+        ] = "sinkhorn_forward",  # TODO(@MUCDK) include only backward sinkhorn
+        iterations: int = 25000,  # TODO(@MUCDK): rename to max_iterations
+        inner_iters: int = 10,
+        valid_freq: int = 50,
+        log_freq: int = 5,
+        patience: int = 100,
+        optimizer_f_kwargs: Dict[str, Any] = MappingProxyType({}),
+        optimizer_g_kwargs: Dict[str, Any] = MappingProxyType({}),
+        pretrain_iters: int = 15001,
+        pretrain_scale: float = 3.0,
+        valid_sinkhorn_kwargs: Dict[str, Any] = MappingProxyType({}),
+        train_size: float = 1.0,
+        **kwargs: Any,
+    ) -> "NeuralProblem[K, B]":
+        """Solve."""
+        return super().solve(
+            batch_size=batch_size,
+            tau_a=tau_a,
+            tau_b=tau_b,
+            epsilon=epsilon,
+            seed=seed,
+            pos_weights=pos_weights,
+            dim_hidden=dim_hidden,
+            beta=beta,
+            best_model_metric=best_model_metric,
+            iterations=iterations,
+            inner_iters=inner_iters,
+            valid_freq=valid_freq,
+            log_freq=log_freq,
+            patience=patience,
+            optimizer_f_kwargs=optimizer_f_kwargs,
+            optimizer_g_kwargs=optimizer_g_kwargs,
+            pretrain_iters=pretrain_iters,
+            pretrain_scale=pretrain_scale,
+            valid_sinkhorn_kwargs=valid_sinkhorn_kwargs,
+            train_size=train_size,
+            **kwargs,
+        )
+
+    @property
+    def _base_problem_type(self) -> Type["NeuralProblem[K, B]"]:
+        return NeuralOTProblem
+
+    @property
+    def _valid_policies(self) -> Tuple[str, ...]:
+        return Policy.SEQUENTIAL, Policy.TRIU, Policy.EXPLICIT
+
+
+@d.dedent
+class ConditionalNeuralProblem(CondOTProblem, GenericAnalysisMixin[K, B]):
+    """Class for solving Conditional Parameterized Monge Map problems / Conditional Neural OT problems."""
+
+    @d.dedent
+    def prepare(
+        self,
+        key: str,
+        joint_attr: str,
+        policy: Literal["sequential", "pairwise", "explicit"] = "sequential",
+        a: Optional[str] = None,
+        b: Optional[str] = None,
+        **kwargs: Any,
+    ) -> "ConditionalNeuralProblem[K, B]":
+        """Prepare the :class:`moscot.problems.generic.ConditionalNeuralProblem`."""
+        self.batch_key = key
+        xy, kwargs = handle_joint_attr(joint_attr, kwargs)
+        return super().prepare(
+            policy_key=key,
+            policy=policy,
+            xy=xy,
+            a=a,
+            b=b,
+            **kwargs,
+        )
+
+    @d.dedent
+    def solve(
+        self,
+        batch_size: int = 1024,
+        tau_a: float = 1.0,
+        tau_b: float = 1.0,
+        epsilon: float = 0.1,
+        seed: int = 0,
+        pos_weights: bool = False,
+        dim_hidden: Iterable[int] = (64, 64, 64, 64),
+        beta: float = 1.0,
+        best_model_metric: Literal[
+            "sinkhorn_forward", "sinkhorn"
+        ] = "sinkhorn_forward",  # TODO(@MUCDK) include only backward sinkhorn
+        iterations: int = 25000,  # TODO(@MUCDK): rename to max_iterations
+        inner_iters: int = 10,
+        valid_freq: int = 50,
+        log_freq: int = 5,
+        patience: int = 100,
+        optimizer_f_kwargs: Dict[str, Any] = MappingProxyType({}),
+        optimizer_g_kwargs: Dict[str, Any] = MappingProxyType({}),
+        pretrain_iters: int = 15001,
+        pretrain_scale: float = 3.0,
+        valid_sinkhorn_kwargs: Dict[str, Any] = MappingProxyType({}),
+        train_size: float = 1.0,
+        **kwargs: Any,
+    ) -> "ConditionalNeuralProblem[K, B]":
+        """Solve."""
+        return super().solve(
+            batch_size=batch_size,
+            tau_a=tau_a,
+            tau_b=tau_b,
+            epsilon=epsilon,
+            seed=seed,
+            pos_weights=pos_weights,
+            dim_hidden=dim_hidden,
+            beta=beta,
+            best_model_metric=best_model_metric,
+            iterations=iterations,
+            inner_iters=inner_iters,
+            valid_freq=valid_freq,
+            log_freq=log_freq,
+            patience=patience,
+            optimizer_f_kwargs=optimizer_f_kwargs,
+            optimizer_g_kwargs=optimizer_g_kwargs,
+            pretrain_iters=pretrain_iters,
+            pretrain_scale=pretrain_scale,
+            valid_sinkhorn_kwargs=valid_sinkhorn_kwargs,
+            train_size=train_size,
+            **kwargs,
+        )
+
+    @property
+    def _base_problem_type(self) -> Type["ConditionalNeuralProblem[K, B]"]:
+        return CondOTProblem
+
+    @property
+    def _valid_policies(self) -> Tuple[str, ...]:
+        return Policy.SEQUENTIAL, Policy.TRIU, Policy.EXPLICIT

@@ -8,9 +8,9 @@ import numpy as np
 
 from anndata import AnnData
 
-from moscot.problems.base import OTProblem  # type: ignore[attr-defined]
+from moscot.problems.base import OTProblem  # type:ignore[attr-defined]
 from moscot.solvers._output import BaseSolverOutput
-from moscot.problems.generic import GWProblem  # type: ignore[attr-defined]
+from moscot.problems.generic import GWProblem  # type:ignore[attr-defined]
 from tests.problems.conftest import (
     gw_args_1,
     gw_args_2,
@@ -61,6 +61,28 @@ class TestGWProblem:
         for key, subsol in problem.solutions.items():
             assert isinstance(subsol, BaseSolverOutput)
             assert key in expected_keys
+            assert problem[key].solver._problem.geom_xy is None
+
+    @pytest.mark.parametrize("method", ["fischer", "perm_test"])
+    def test_compute_feature_correlation(self, adata_space_rotate: AnnData, method: str):
+        problem = GWProblem(adata=adata_space_rotate)
+        problem = problem.prepare(
+            key="batch",
+            policy="sequential",
+            GW_x={"attr": "obsm", "key": "spatial"},
+            GW_y={"attr": "obsm", "key": "spatial"},
+        )
+        problem = problem.solve(epsilon=0.5)
+        assert problem["0", "1"].solution.converged
+
+        key_added = "test_push"
+        problem.push(source="0", target="1", data="celltype", subset="A", key_added=key_added)
+        feature_correlation = problem.compute_feature_correlation(key_added, significance_method=method)
+
+        assert isinstance(feature_correlation, pd.DataFrame)
+        suffix = ["_corr", "_pval", "_qval", "_ci_low", "_ci_high"]
+        assert list(feature_correlation.columns) == [key_added + suf for suf in suffix]
+        assert feature_correlation.isna().sum().sum() == 0
 
     @pytest.mark.parametrize("args_to_check", [gw_args_1, gw_args_2])
     def test_pass_arguments(self, adata_space_rotate: AnnData, args_to_check: Mapping[str, Any]):
@@ -116,8 +138,8 @@ class TestGWProblem:
         assert isinstance(problem[0, 1].x.cost, cost[1])
         assert isinstance(problem[0, 1].y.cost, cost[1])
 
-    @pytest.mark.parametrize("tag", ["cost", "kernel"])
-    def test_set_x(self, adata_time: AnnData, tag: Literal["cost", "kernel"]):
+    @pytest.mark.parametrize("tag", ["cost_matrix", "kernel"])
+    def test_set_x(self, adata_time: AnnData, tag: Literal["cost_matrix", "kernel"]):
         rng = np.random.RandomState(42)
         adata_time = adata_time[adata_time.obs["time"].isin((0, 1))].copy()
         problem = GWProblem(adata=adata_time)
@@ -142,8 +164,8 @@ class TestGWProblem:
         assert isinstance(problem[0, 1].x.data_src, np.ndarray)
         assert problem[0, 1].x.data_tgt is None
 
-    @pytest.mark.parametrize("tag", ["cost", "kernel"])
-    def test_set_y(self, adata_time: AnnData, tag: Literal["cost", "kernel"]):
+    @pytest.mark.parametrize("tag", ["cost_matrix", "kernel"])
+    def test_set_y(self, adata_time: AnnData, tag: Literal["cost_matrix", "kernel"]):
         rng = np.random.RandomState(42)
         adata_time = adata_time[adata_time.obs["time"].isin((0, 1))].copy()
         problem = GWProblem(adata=adata_time)

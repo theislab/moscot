@@ -11,30 +11,30 @@ def logistic(x: ArrayLike, L: float, k: float, center: float = 0) -> ArrayLike:
     return L / (1 + np.exp(-k * (x - center)))
 
 
-def gen_logistic(p: ArrayLike, beta_max: float, beta_min: float, center: float, width: float) -> ArrayLike:
+def gen_logistic(p: ArrayLike, sup: float, inf: float, center: float, width: float) -> ArrayLike:
     """Shifted logistic function."""
-    return beta_min + logistic(p, L=beta_max - beta_min, k=4 / width, center=center)
+    return inf + logistic(p, L=sup - inf, k=4 / width, center=center)
 
 
 def beta(
     p: ArrayLike,
     beta_max: float = 1.7,
     beta_min: float = 0.3,
-    center: float = 0.25,
-    width: float = 0.5,
+    beta_center: float = 0.25,
+    beta_width: float = 0.5,
     **_: Any,
 ) -> ArrayLike:
     """Birth process."""
-    return gen_logistic(p, beta_max, beta_min, center, width)
+    return gen_logistic(p, beta_max, beta_min, beta_center, beta_width)
 
 
 def delta(
     a: ArrayLike,
     delta_max: float = 1.7,
     delta_min: float = 0.3,
-    center: float = 0.1,
-    width: float = 0.2,
-    **kwargs: Any,
+    delta_center: float = 0.1,
+    delta_width: float = 0.2,
+    **_: Any,
 ) -> ArrayLike:
     """Death process."""
-    return gen_logistic(a, delta_max, delta_min, center, width)
+    return gen_logistic(a, delta_max, delta_min, delta_center, delta_width)

@@ -16,7 +16,10 @@ def _compute_sinkhorn_divergence(
     a: Optional[ArrayLike] = None,
     b: Optional[ArrayLike] = None,
     epsilon: float = 10.0,
+    tau_a: float = 1.0,
+    tau_b: float = 1.0,
     scale_cost: ScaleCost_t = 1.0,
+    batch_size: Optional[int] = None,
     **kwargs: Any,
 ) -> float:
     point_cloud_1 = jnp.asarray(point_cloud_1)
@@ -25,7 +28,16 @@ def _compute_sinkhorn_divergence(
     b = None if b is None else jnp.asarray(b)
 
     output = sinkhorn_divergence(
-        PointCloud, x=point_cloud_1, y=point_cloud_2, a=a, b=b, epsilon=epsilon, scale_cost=scale_cost, **kwargs
+        PointCloud,
+        x=point_cloud_1,
+        y=point_cloud_2,
+        batch_size=batch_size,
+        a=a,
+        b=b,
+        sinkhorn_kwargs={"tau_a": tau_a, "tau_b": tau_b},
+        scale_cost=scale_cost,
+        epsilon=epsilon,
+        **kwargs,
     )
     xy_conv, xx_conv, *yy_conv = output.converged
 
@@ -63,7 +75,8 @@ def get_nearest_neighbors(
     input_batch: jnp.ndarray, target: jnp.ndarray, k: int = 30
 ) -> Tuple[jnp.ndarray, jnp.ndarray]:
     """Get the k nearest neighbors of the input batch in the target."""
-    k = min(input_batch.shape[0], k)
-    pairwise_euclidean_distances = -1 * jnp.sqrt(jnp.sum((input_batch - target) ** 2, axis=-1))
-    distances, indices = jax.lax.top_k(pairwise_euclidean_distances, k=k)
-    return distances, indices
+    if target.shape[0] < k:
+        raise ValueError(f"k is {k}, but must be smaller or equal than {target.shape[0]}.")
+    pairwise_euclidean_distances = jnp.sqrt(jnp.sum((input_batch - target) ** 2, axis=-1))
+    negative_distances, indices = jax.lax.top_k(-1 * pairwise_euclidean_distances, k=k)
+    return -1 * negative_distances, indices

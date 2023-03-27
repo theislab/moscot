@@ -21,7 +21,16 @@ class SpatioTemporalProblem(
     AlignmentProblem[Numeric_t, BirthDeathProblem],
     SpatialAlignmentMixin[Numeric_t, BirthDeathProblem],
 ):
-    """Spatio-Temporal problem."""
+    """
+    Class for analyzing time series spatial single cell data.
+
+    The `SpatioTemporalProblem` allows to model and analyze spatio-temporal single cell data
+    by matching cells belonging to two different time points via OT.
+
+    Parameters
+    ----------
+    %(adata)s
+    """
 
     def __init__(self, adata: AnnData, **kwargs: Any):
         super().__init__(adata, **kwargs)
@@ -39,6 +48,7 @@ class SpatioTemporalProblem(
         ] = "sq_euclidean",
         a: Optional[str] = None,
         b: Optional[str] = None,
+        marginal_kwargs: Mapping[str, Any] = MappingProxyType({}),
         **kwargs: Any,
     ) -> "SpatioTemporalProblem":
         """
@@ -73,6 +83,14 @@ class SpatioTemporalProblem(
         # spatial key set in AlignmentProblem
         # handle_joint_attr and handle_cost in AlignmentProblem
         self.temporal_key = time_key
+        # TODO(michalk8): needs to be modified, move into BirthDeathMixin?
+        marginal_kwargs = dict(marginal_kwargs)
+        marginal_kwargs["proliferation_key"] = self.proliferation_key
+        marginal_kwargs["apoptosis_key"] = self.apoptosis_key
+        if a is None:
+            a = self.proliferation_key is not None or self.apoptosis_key is not None
+        if b is None:
+            b = self.proliferation_key is not None or self.apoptosis_key is not None
 
         return super().prepare(
             spatial_key=spatial_key,
@@ -83,6 +101,7 @@ class SpatioTemporalProblem(
             cost=cost,
             a=a,
             b=b,
+            marginal_kwargs=marginal_kwargs,
             **kwargs,
         )
 
@@ -170,5 +189,5 @@ class SpatioTemporalProblem(
         return Policy.SEQUENTIAL, Policy.TRIL, Policy.TRIU, Policy.EXPLICIT
 
     @property
-    def _base_problem_type(self) -> Type[B]:
+    def _base_problem_type(self) -> Type[B]:  # type: ignore[override]
         return BirthDeathProblem  # type: ignore[return-value]

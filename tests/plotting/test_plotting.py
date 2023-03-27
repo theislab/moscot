@@ -1,11 +1,7 @@
 from anndata import AnnData
-import scanpy as sc
 
 from tests.plotting.conftest import PlotTester, PlotTesterMeta
 import moscot.plotting as mpl
-
-sc.pl.set_rcParams_defaults()
-sc.set_figure_params(dpi=40, color_map="viridis")
 
 # WARNING:
 # 1. all classes must both subclass PlotTester and use metaclass=PlotTesterMeta
@@ -26,10 +22,10 @@ class TestPlotting(PlotTester, metaclass=PlotTesterMeta):
         mpl.sankey(adata_pl_sankey)
 
     def test_plot_sankey_params(self, adata_pl_sankey: AnnData):
-        mpl.sankey(adata_pl_sankey, captions=["Test", "Other test"], titel="Title", figsize=(3, 3))
+        mpl.sankey(adata_pl_sankey, captions=["Test", "Other test"], title="Title")
 
     def test_plot_push(self, adata_pl_push: AnnData):
-        mpl.push(adata_pl_push, time_points=[2])
+        mpl.push(adata_pl_push, time_points=[0, 1])
 
     def test_plot_pull(self, adata_pl_pull: AnnData):
-        mpl.pull(adata_pl_pull, time_points=[1])
+        mpl.pull(adata_pl_pull, time_points=[0, 1])

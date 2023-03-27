@@ -51,6 +51,7 @@ coverage.xml
 .hypothesis/
 .pytest_cache/
 *test_save_load_Problem.pkl
+*test_plot.png
 
 # Translations
 *.mo

@@ -1,16 +1,11 @@
 from types import MappingProxyType
-from typing import Any, Type, Tuple, Union, Literal, Mapping, Optional, TYPE_CHECKING
-
-import pandas as pd
-
-import numpy as np
+from typing import Any, Type, Tuple, Union, Literal, Mapping, Optional
 
 from anndata import AnnData
 
 from moscot._types import Numeric_t, ScaleCost_t, ProblemStage_t, QuadInitializer_t, SinkhornInitializer_t
 from moscot._docs._docs import d
 from moscot.problems._utils import handle_cost, handle_joint_attr
-from moscot.solvers._output import BaseSolverOutput
 from moscot._constants._constants import Policy
 from moscot.problems.time._mixins import TemporalMixin
 from moscot.problems.base._birth_death import BirthDeathMixin, BirthDeathProblem
@@ -22,10 +17,10 @@ class TemporalProblem(
     TemporalMixin[Numeric_t, BirthDeathProblem], BirthDeathMixin, CompoundProblem[Numeric_t, BirthDeathProblem]
 ):
     """
-    Class for analysing time series single cell data based on :cite:`schiebinger:19`.
+    Class for analyzing time series single cell data based on :cite:`schiebinger:19`.
 
-    The `TemporalProblem` allows to model and analyse time series single cell data by matching
-    cells from previous time points to later time points via optimal transport.
+    The `TemporalProblem` allows to model and analyze time series single cell data by matching
+    cells from previous time points to later time points via OT.
     Based on the assumption that the considered cell modality is similar in consecutive time points
     probabilistic couplings are computed between different time points.
     This allows to understand cell trajectories by inferring ancestors and descendants of single cells.
@@ -48,6 +43,7 @@ class TemporalProblem(
         cost: Literal["sq_euclidean", "cosine", "bures", "unbalanced_bures"] = "sq_euclidean",
         a: Optional[str] = None,
         b: Optional[str] = None,
+        marginal_kwargs: Mapping[str, Any] = MappingProxyType({}),
         **kwargs: Any,
     ) -> "TemporalProblem":
         """
@@ -61,8 +57,9 @@ class TemporalProblem(
         %(joint_attr)s
         %(policy)s
         %(cost_lin)s
-        %(a)s
-        %(b)s
+        %(a_temporal)s
+        %(b_temporal)s
+        %(marginal_kwargs)s
         %(kwargs_prepare)s
 
 
@@ -84,7 +81,7 @@ class TemporalProblem(
         xy, x, y = handle_cost(xy=xy, x=kwargs.pop("x", None), y=kwargs.pop("y", None), cost=cost)
 
         # TODO(michalk8): needs to be modified
-        marginal_kwargs = dict(kwargs.pop("marginal_kwargs", {}))
+        marginal_kwargs = dict(marginal_kwargs)
         marginal_kwargs["proliferation_key"] = self.proliferation_key
         marginal_kwargs["apoptosis_key"] = self.apoptosis_key
         if a is None:
@@ -183,107 +180,7 @@ class TemporalProblem(
         )  # type:ignore[return-value]
 
     @property
-    def prior_growth_rates(self) -> Optional[pd.DataFrame]:
-        """Return the prior estimate of growth rates of the cells in the source distribution."""
-        # TODO(michalk8): FIXME
-        cols = ["prior_growth_rates"]
-        df_list = [
-            pd.DataFrame(problem.prior_growth_rates, index=problem.adata.obs.index, columns=cols)
-            for problem in self.problems.values()
-        ]
-        tup = list(self)[-1]
-        df_list.append(
-            pd.DataFrame(
-                np.full(
-                    shape=(len(self.problems[tup].adata_tgt.obs), 1),
-                    fill_value=np.nan,
-                ),
-                index=self.problems[tup].adata_tgt.obs.index,
-                columns=cols,
-            )
-        )
-        return pd.concat(df_list, verify_integrity=True)
-
-    @property
-    def posterior_growth_rates(self) -> Optional[pd.DataFrame]:
-        """Return the posterior estimate of growth rates of the cells in the source distribution."""
-        # TODO(michalk8): FIXME
-        cols = ["posterior_growth_rates"]
-        df_list = [
-            pd.DataFrame(problem.posterior_growth_rates, index=problem.adata.obs.index, columns=cols)
-            for problem in self.problems.values()
-        ]
-        tup = list(self)[-1]
-        df_list.append(
-            pd.DataFrame(
-                np.full(
-                    shape=(len(self.problems[tup].adata_tgt.obs), 1),
-                    fill_value=np.nan,
-                ),
-                index=self.problems[tup].adata_tgt.obs.index,
-                columns=cols,
-            )
-        )
-        return pd.concat(df_list, verify_integrity=True)
-
-    # TODO(michalk8): refactor me
-    @property
-    def cell_costs_source(self) -> Optional[pd.DataFrame]:
-        """Return the cost of a cell obtained by the potentials of the optimal transport solution."""
-        sol = list(self.problems.values())[0].solution
-        if TYPE_CHECKING:
-            assert isinstance(sol, BaseSolverOutput)
-        if sol.potentials is None:
-            return None
-        df_list = [
-            pd.DataFrame(
-                np.array(np.abs(problem.solution.potentials[0])),  # type: ignore[union-attr,index]
-                index=problem.adata_src.obs_names,
-                columns=["cell_cost_source"],
-            )
-            for problem in self.problems.values()
-        ]
-        tup = list(self)[-1]
-        df_list.append(
-            pd.DataFrame(
-                np.full(shape=(len(self.problems[tup].adata_tgt.obs), 1), fill_value=np.nan),
-                index=self.problems[tup].adata_tgt.obs_names,
-                columns=["cell_cost_source"],
-            )
-        )
-        return pd.concat(df_list, verify_integrity=True)
-
-    @property
-    def cell_costs_target(self) -> Optional[pd.DataFrame]:
-        """Return the cost of a cell (see online methods) obtained by the potentials of the OT solution."""
-        sol = list(self.problems.values())[0].solution
-        if TYPE_CHECKING:
-            assert isinstance(sol, BaseSolverOutput)
-        if sol.potentials is None:
-            return None
-
-        tup = list(self)[0]
-        df_list = [
-            pd.DataFrame(
-                np.full(shape=(len(self.problems[tup].adata_src), 1), fill_value=np.nan),
-                index=self.problems[tup].adata_src.obs_names,
-                columns=["cell_cost_target"],
-            )
-        ]
-        df_list.extend(
-            [
-                pd.DataFrame(
-                    np.array(np.abs(problem.solution.potentials[1])),  # type: ignore[union-attr,index]
-                    index=problem.adata_tgt.obs_names,
-                    columns=["cell_cost_target"],
-                )
-                for problem in self.problems.values()
-            ]
-        )
-        return pd.concat(df_list, verify_integrity=True)
-
-    @property
-    def _base_problem_type(self) -> Type[B]:
+    def _base_problem_type(self) -> Type[B]:  # type: ignore[override]
         return BirthDeathProblem  # type: ignore[return-value]
 
     @property
@@ -316,6 +213,7 @@ class LineageProblem(TemporalProblem):
         ] = "sq_euclidean",
         a: Optional[str] = None,
         b: Optional[str] = None,
+        marginal_kwargs: Mapping[str, Any] = MappingProxyType({}),
         **kwargs: Any,
     ) -> "LineageProblem":
         """
@@ -331,8 +229,9 @@ class LineageProblem(TemporalProblem):
         %(joint_attr)s
         %(policy)s
         %(cost)s
-        %(a)s
-        %(b)s
+        %(a_temporal)s
+        %(b_temporal)s
+        %(marginal_kwargs)s
         %(kwargs_prepare)s
 
         Returns
@@ -350,7 +249,7 @@ class LineageProblem(TemporalProblem):
         lineage_attr.setdefault("attr", "obsp")
         lineage_attr.setdefault("key", "cost_matrices")
         lineage_attr.setdefault("cost", "custom")
-        lineage_attr.setdefault("tag", "cost")
+        lineage_attr.setdefault("tag", "cost_matrix")
 
         x = y = lineage_attr
 
@@ -364,6 +263,7 @@ class LineageProblem(TemporalProblem):
             cost=cost,
             a=a,
             b=b,
+            marginal_kwargs=marginal_kwargs,
             **kwargs,
         )
 
