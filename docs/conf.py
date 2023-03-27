@@ -115,6 +115,7 @@ spelling_filters = [
 linkcheck_ignore = [
     # 403 Client Error
     r"https://doi.org/10.1126/science.aad0501",
+    r"https://resources.aertslab.org/cistarget/tf_lists/",
 ]
 
 exclude_patterns = ["_build", "**.ipynb_checkpoints", "notebooks/README.rst", "notebooks/CONTRIBUTING.rst"]

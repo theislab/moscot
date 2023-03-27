@@ -90,9 +90,8 @@ class BaseProblem(ABC):
             if subset is None:  # allow for numeric values
                 data = np.asarray(adata.obs[data], dtype=float)
             else:
-                if isinstance(subset, str):
-                    subset = [subset]
-                data = np.asarray(adata.obs[data].isin(subset), dtype=float)
+                sset = subset if isinstance(subset, list) else [subset]  # type:ignore[list-item]
+                data = np.asarray(adata.obs[data].isin(sset), dtype=float)
         else:
             data = np.asarray(data, dtype=float)
 
