@@ -187,8 +187,8 @@ class GWProblem(GenericAnalysisMixin[K, B], CompoundProblem[K, B]):
     def prepare(
         self,
         key: str,
-        GW_x: Union[str, Mapping[str, Any]],
-        GW_y: Union[str, Mapping[str, Any]],
+        x_attr: Union[str, Mapping[str, Any]],
+        y_attr: Union[str, Mapping[str, Any]],
         joint_attr: Optional[Union[str, Mapping[str, Any]]] = None,
         policy: Literal["sequential", "pairwise", "explicit"] = "sequential",
         cost: Union[
@@ -205,8 +205,8 @@ class GWProblem(GenericAnalysisMixin[K, B], CompoundProblem[K, B]):
         Parameters
         ----------
         %(key)s
-        %(GW_x)s
-        %(GW_y)s
+        %(x_attr)s
+        %(y_attr)s
         %(joint_attr)s
         %(policy)s
         %(cost)s
@@ -229,13 +229,13 @@ class GWProblem(GenericAnalysisMixin[K, B], CompoundProblem[K, B]):
         self.batch_key = key  # type: ignore[misc]
 
         GW_updated: List[Dict[str, Any]] = [{}] * 2
-        for i, z in enumerate([GW_x, GW_y]):
+        for i, z in enumerate([x_attr, y_attr]):
             if isinstance(z, str):
                 GW_updated[i] = {"attr": "obsm", "key": z, "tag": "point_cloud"}  # cost handled by handle_cost
             elif isinstance(z, dict):
                 GW_updated[i] = z
             else:
-                raise TypeError("`GW_x` and `GW_y` must be of type `str` or `dict`.")
+                raise TypeError("`x_attr` and `y_attr` must be of type `str` or `dict`.")
 
         xy, kwargs = handle_joint_attr(joint_attr, kwargs)
         xy, x, y = handle_cost(xy=xy, x=GW_updated[0], y=GW_updated[1], cost=cost)

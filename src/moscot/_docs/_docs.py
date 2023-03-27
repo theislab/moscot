@@ -175,15 +175,15 @@ joint_attr
     - If `dict`, the dictionary stores `attr` (attribute of :class:`anndata.AnnData`) and `key`
       (key of :class:`anndata.AnnData` ``['{attr}']``).
 """
-_GW_x = """\
-GW_x
+_x_attr = """\
+x_attr
 
     - If `str`, it must refer to a key in :attr:`anndata.AnnData.obsm`.
     - If `dict`, the dictionary stores `attr` (attribute of :class:`anndata.AnnData`) and `key`
       (key of :class:`anndata.AnnData` ``['{attr}']``).
 """
-_GW_y = """\
-GW_y
+_y_attr = """\
+y_attr
 
     - If `str`, it must refer to a key in :attr:`anndata.AnnData.obsm`.
     - If `dict`, the dictionary stores `attr` (attribute of :class:`anndata.AnnData`) and `key`
@@ -423,8 +423,8 @@ d = DocstringProcessor(
     policy=_policy,
     key=_key,
     joint_attr=_joint_attr,
-    GW_x=_GW_x,
-    GW_y=_GW_y,
+    x_attr=_x_attr,
+    y_attr=_y_attr,
     split_mass=_split_mass,
     inplace=_inplace,
     alignment_mixin_returns=_alignment_mixin_returns,
