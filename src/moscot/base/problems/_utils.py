@@ -87,8 +87,8 @@ def _get_df_cell_transition(
     filter_value: Optional[Any] = None,
 ) -> pd.DataFrame:
     if filter_key is None:
-        return adata.obs[list(set(annotation_keys))].copy()
-    return adata[adata.obs[filter_key] == filter_value].obs[list(set(annotation_keys))].copy()
+        adata = adata[adata.obs[filter_key] == filter_value]
+    return adata.obs[list(set(annotation_keys))].copy()
 
 
 def _validate_args_cell_transition(
