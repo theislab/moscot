@@ -141,7 +141,7 @@ class BirthDeathMixin:
                 sc.tl.score_genes(self.adata, gene_set_apoptosis, score_name=apoptosis_key, **kwargs)
             self.apoptosis_key = apoptosis_key
         if gene_set_proliferation is None and gene_set_apoptosis is None:
-            logger.info(
+            logger.warning(
                 "At least one of `gene_set_proliferation` or `gene_set_apoptosis` must be provided to score genes."
             )
 
