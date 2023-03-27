@@ -244,7 +244,3 @@ class MappingProblem(CompoundProblem[K, OTProblem], SpatialMappingMixin[K, OTPro
     @property
     def _valid_policies(self) -> Tuple[Policy_t, ...]:
         return _constants.EXTERNAL_STAR, _constants.DUMMY  # type: ignore[return-value]
-
-    @property
-    def _secondary_adata(self) -> Optional[AnnData]:
-        return self._adata_sc
