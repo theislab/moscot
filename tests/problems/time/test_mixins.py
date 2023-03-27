@@ -78,7 +78,7 @@ class TestTemporalMixin:
         cell_types = set(gt_temporal_adata[gt_temporal_adata.obs[key] == key_1].obs["cell_type"].cat.categories)
         batches = set(gt_temporal_adata[gt_temporal_adata.obs[key] == key_2].obs["batch"].cat.categories)
         assert set(result.index) == cell_types
-        assert set(result.columns) == set(batches)
+        assert set(result.columns) == batches
 
     @pytest.mark.fast()
     @pytest.mark.parametrize("forward", [True, False])
