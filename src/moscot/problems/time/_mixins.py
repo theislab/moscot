@@ -1030,8 +1030,6 @@ class NeuralAnalysisMixin(AnalysisMixin[K, B]):
         key_added: Optional[str] = PlottingDefaults.PUSH,
         return_all: bool = False,
         return_data: bool = False,
-        new_adata: Optional[AnnData] = None,
-        new_adata_joint_attr: Optional[str] = None,
         **kwargs: Any,
     ) -> Optional[ApplyOutput_t[K]]:
         """
@@ -1055,21 +1053,16 @@ class NeuralAnalysisMixin(AnalysisMixin[K, B]):
         %(return_push_pull)s
 
         """
-        if new_adata is not None:
-            if new_adata_joint_attr is None:
-                raise ValueError("`new_adata_joint_attr` must be provided if `new_adata` is given.")
-            data = new_adata.obsm[new_adata_joint_attr].copy()
-        else:
-            result = self._apply(
-                start=start,
-                end=end,
-                data=data,
-                subset=subset,
-                forward=True,
-                return_all=return_all or key_added is not None,
-                scale_by_marginals=scale_by_marginals,
-                **kwargs,
-            )
+        result = self._apply(
+            start=start,
+            end=end,
+            data=data,
+            subset=subset,
+            forward=True,
+            return_all=return_all or key_added is not None,
+            scale_by_marginals=scale_by_marginals,
+            **kwargs,
+        )
 
         if TYPE_CHECKING:
             assert isinstance(result, dict)
@@ -1094,8 +1087,6 @@ class NeuralAnalysisMixin(AnalysisMixin[K, B]):
         key_added: Optional[str] = PlottingDefaults.PULL,
         return_all: bool = False,
         return_data: bool = False,
-        new_adata: Optional[AnnData] = None,
-        new_adata_joint_attr: Optional[str] = None,
         **kwargs: Any,
     ) -> Optional[ApplyOutput_t[K]]:
         """
@@ -1119,10 +1110,6 @@ class NeuralAnalysisMixin(AnalysisMixin[K, B]):
         %(return_push_pull)s
 
         """
-        if new_adata is not None:
-            if new_adata_joint_attr is None:
-                raise ValueError("`new_adata_joint_attr` must be provided if `new_adata` is given.")
-            data = new_adata.obsm[new_adata_joint_attr].copy()
         result = self._apply(
             start=start,
             end=end,
