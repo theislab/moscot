@@ -36,8 +36,8 @@ class NeuralDualSolver:
     ----------
     input_dim
         Input dimension of data (without condition)
-    cond_dim
-        Dimension of the condition. 0 corresponds to no condition.
+    conditional
+        Whether to use partial input convex neural networks (:cite:`amos2017niput`).
     batch_size
         Batch size.
     tau_a
@@ -47,7 +47,7 @@ class NeuralDualSolver:
     epsilon
         Entropic regularisation parameter in the inner sampling loop.
     seed
-        Seed for splitting the data
+        Seed for splitting the data.
     pos_weights
         If `True` enforces non-negativity of corresponding weights of ICNNs, else only penalizes negativity.
     dim_hidden
@@ -77,16 +77,18 @@ class NeuralDualSolver:
         Number of iterations (batches) for pretraining with the identity map.
     pretrain_scale
         Variance of Gaussian distribution used for pretraining.
-    combiner_kwargs
-        Keyword arguments for the combiner module in the PICNN TODO(@MUCDK cite Bunne).
     valid_sinkhorn_kwargs
         Keyword arguments for computing the discrete sinkhorn divergence for assessing model training.
         By default, the same `tau_a`, `tau_b` and `epsilon` are taken as for the inner sampling loop.
-
+    compute_wasserstein_baseline
+        Whether to compute the Sinkhorn divergence between the source and the target distribution as 
+        a baseline for the Wasserstein-2 distance computed with the neural solver.
+    
     Warning
     -------
-    TODO: Explain warning about validation set size.
-
+    If `compute_wasserstein_distance` is `True`, a discrete OT problem has to be solved on the validation
+    dataset which scales linearly in the validation set size. If `train_size=1.0` the validation dataset size
+    is the full dataset size, hence this is a source of prolonged run time or Out of Memory Error. 
     """
 
     def __init__(
