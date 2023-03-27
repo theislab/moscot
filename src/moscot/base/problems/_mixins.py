@@ -29,7 +29,7 @@ from moscot.base.problems._utils import (
     _correlation_test,
     _get_df_cell_transition,
     _order_transition_matrix,
-    _validate_annotations_helper,
+    _validate_annotations,
     _validate_args_cell_transition,
 )
 from moscot.base.problems.compound_problem import ApplyOutput_t, B, K
@@ -97,19 +97,6 @@ class AnalysisMixinProtocol(Protocol[K, B]):
         batch_size: Optional[int] = None,
         normalize: bool = True,
     ) -> pd.DataFrame:
-        ...
-
-    def _validate_annotations(
-        self: "AnalysisMixinProtocol[K, B]",
-        df_source: pd.DataFrame,
-        df_target: pd.DataFrame,
-        source_annotation_key: Optional[str] = None,
-        target_annotation_key: Optional[str] = None,
-        source_annotations: Optional[List[Any]] = None,
-        target_annotations: Optional[List[Any]] = None,
-        aggregation_mode: Literal["annotation", "cell"] = "annotation",
-        forward: bool = False,
-    ) -> Tuple[List[Any], List[Any]]:
         ...
 
 
@@ -194,7 +181,7 @@ class AnalysisMixin(Generic[K, B]):
             target,
         )
 
-        source_annotations_verified, target_annotations_verified = self._validate_annotations(
+        source_annotations_verified, target_annotations_verified = _validate_annotations(
             df_source=df_source,
             df_target=df_target,
             source_annotation_key=source_annotation_key,
@@ -375,42 +362,6 @@ class AnalysisMixin(Generic[K, B]):
             mask = self.adata.obs[key] == k
             tmp[mask] = np.squeeze(v)
         return tmp
-
-    def _validate_annotations(
-        self: AnalysisMixinProtocol[K, B],
-        df_source: pd.DataFrame,
-        df_target: pd.DataFrame,
-        source_annotation_key: Optional[str] = None,
-        target_annotation_key: Optional[str] = None,
-        source_annotations: Optional[List[Any]] = None,
-        target_annotations: Optional[List[Any]] = None,
-        aggregation_mode: Literal["annotation", "cell"] = "annotation",
-        forward: bool = False,
-    ) -> Tuple[List[Any], List[Any]]:
-        if forward:
-            if TYPE_CHECKING:  # checked in _check_argument_compatibility_cell_transition(
-                assert target_annotations is not None
-            target_annotations_verified = list(
-                set(df_target[target_annotation_key].cat.categories).intersection(target_annotations)
-            )
-            if not len(target_annotations_verified):
-                raise ValueError(f"None of `{target_annotations}`, found in the target annotations.")
-            source_annotations_verified = _validate_annotations_helper(
-                df_source, source_annotation_key, source_annotations, aggregation_mode
-            )
-            return source_annotations_verified, target_annotations_verified
-
-        if TYPE_CHECKING:  # checked in _check_argument_compatibility_cell_transition(
-            assert source_annotations is not None
-        source_annotations_verified = list(
-            set(df_source[source_annotation_key].cat.categories).intersection(set(source_annotations))
-        )
-        if not len(source_annotations_verified):
-            raise ValueError(f"None of `{source_annotations}`, found in the source annotations.")
-        target_annotations_verified = _validate_annotations_helper(
-            df_target, target_annotation_key, target_annotations, aggregation_mode
-        )
-        return source_annotations_verified, target_annotations_verified
 
     def _annotation_aggregation_transition(
         self: AnalysisMixinProtocol[K, B],
