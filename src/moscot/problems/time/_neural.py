@@ -5,12 +5,17 @@ from moscot._types import Numeric_t
 from moscot._docs._docs import d
 from moscot.problems._utils import handle_joint_attr
 from moscot._constants._constants import Policy
+from moscot.problems.time._mixins import NeuralAnalysisMixin
 from moscot.problems.base._birth_death import BirthDeathMixin, BirthDeathNeuralProblem
 from moscot.problems.base._compound_problem import CompoundProblem
 
 
 @d.dedent
-class TemporalNeuralProblem(BirthDeathMixin, CompoundProblem[Numeric_t, BirthDeathNeuralProblem]):
+class TemporalNeuralProblem(
+    NeuralAnalysisMixin[Numeric_t, BirthDeathNeuralProblem],
+    BirthDeathMixin,
+    CompoundProblem[Numeric_t, BirthDeathNeuralProblem],
+):
     """TemporalNeuralProblem."""
 
     @d.dedent

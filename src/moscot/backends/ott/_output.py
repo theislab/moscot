@@ -2,6 +2,7 @@ from types import MappingProxyType
 from typing import Any, Dict, List, Tuple, Union, Literal, Callable, Optional
 
 from matplotlib.figure import Figure
+import scipy.sparse as sp
 import matplotlib.pyplot as plt
 
 from ott.solvers.linear.sinkhorn import SinkhornOutput as OTTSinkhornOutput
@@ -14,6 +15,7 @@ import jaxlib.xla_extension as xla_ext
 
 from moscot._types import Device_t, ArrayLike
 from moscot.solvers._output import BaseSolverOutput
+from moscot.backends.ott._utils import get_nearest_neighbors
 
 __all__ = ["OTTOutput", "NeuralOutput"]
 
@@ -186,15 +188,15 @@ class NeuralOutput(ConvergencePlotterMixin, BaseSolverOutput):
     def __init__(self, output: DualPotentials, training_logs: Train_t):
         self._output = output
         self._training_logs = training_logs
+        self._transport_matrix: ArrayLike = None
+        self._inverse_transport_matrix: ArrayLike = None
 
     def _apply(self, x: ArrayLike, *, forward: bool) -> ArrayLike:
         return self._output.transport(x, forward=forward)
 
     def plot_convergence(  # type: ignore[override]
         self,
-        data: Dict[
-            Literal["pretrain", "train", "valid"], Literal["loss", "w_dist", "penalty", "loss_g", "loss_f"]
-        ] = MappingProxyType({"train": "loss"}),
+        data: Dict[Literal["pretrain", "train", "valid"], str] = MappingProxyType({"train": "loss"}),
         last_k: Optional[int] = None,
         title: Optional[str] = None,
         figsize: Optional[Tuple[float, float]] = None,
@@ -207,7 +209,7 @@ class NeuralOutput(ConvergencePlotterMixin, BaseSolverOutput):
             raise ValueError(f"`data` must be of length 1, but found {len(data)}.")
         k, v = next(iter(data.items()))
         return super().plot_convergence(
-            data={k + ": " + v: self._training_logs[k][v]},
+            data={k + ": " + v: self._training_logs[f"{k}_logs"][v]},
             last_k=last_k,
             title=title,
             figsize=figsize,
@@ -227,11 +229,73 @@ class NeuralOutput(ConvergencePlotterMixin, BaseSolverOutput):
         """%(shape)s"""
         raise NotImplementedError()
 
+    def project_transport_matrix(
+        self,
+        src: ArrayLike,
+        tgt: ArrayLike,
+        forward: bool = True,
+        save_transport_matrix: bool = True,
+        batch_size: int = 1024,
+        k: int = 30,
+        length_scale: Optional[float] = None,
+        seed: int = 42,
+    ) -> sp.csr_matrix:
+        """Project Monge Map onto a transport matrix."""
+        src, tgt = jnp.asarray(src), jnp.asarray(tgt)
+        func = self.push if forward else self.pull
+        src_dist, tgt_dist = src, tgt if forward else tgt, src
+        get_knn_fn = jax.vmap(get_nearest_neighbors, in_axes=(0, None, None))
+        row_indices: Union[jnp.ndarray, List[jnp.ndarray]] = []
+        column_indices: Union[jnp.ndarray, List[jnp.ndarray]] = []
+        distances_list: Union[jnp.ndarray, List[jnp.ndarray]] = []
+        if length_scale is None:
+            key = jax.random.PRNGKey(seed)
+            src_batch = jax.random.choice(key, src.shape[0], shape=(batch_size))
+            tgt_batch = jax.random.choice(key, tgt.shape[0], shape=(batch_size))
+            length_scale = jnp.std(jnp.concatenate(src_batch, tgt_batch))
+        for index in range(0, len(src_dist), batch_size):
+            # compute k nearest neighbors for current source batch compared to whole target
+            distances, indices = get_knn_fn(func(src_dist[index : index + batch_size]), tgt_dist, k)
+            distances = jnp.exp(-((distances / length_scale) ** 2))
+            distances /= jnp.expand_dims(jnp.sum(distances, axis=1), axis=1)
+            distances_list.append(distances.flatten())
+            column_indices.append(indices.flatten())
+            row_indices.append(
+                jnp.repeat(jnp.arange(index, index + min(batch_size, len(src_dist) - index)), min(k, len(tgt)))
+            )
+        # create sparse matrix with normalized exp(-d(x,y)) as entries
+        distances = jnp.concatenate(distances_list)
+        row_indices = jnp.concatenate(row_indices)
+        column_indices = jnp.concatenate(column_indices)
+        tm = sp.csr_matrix((distances, (row_indices, column_indices)), shape=[len(src_dist), len(tgt_dist)])
+        if forward:
+            if save_transport_matrix:
+                self._transport_matrix = tm
+        else:
+            tm = tm.T
+            if save_transport_matrix:
+                self._inverse_transport_matrix = tm
+        return tm
+
     @property
     def transport_matrix(self) -> ArrayLike:
         """%(transport_matrix)s"""
-        # TODO: refer to project_transport_matrix in error
-        raise NotImplementedError()
+        if self._transport_matrix is None:
+            raise ValueError(
+                "The forward projected transport matrix has not been computed yet."
+                " Please call `project_transport_matrix`."
+            )
+        return self._transport_matrix
+
+    @property
+    def inverse_transport_matrix(self) -> ArrayLike:
+        """%(inverse_transport_matrix)s"""
+        if self._inverse_transport_matrix is None:
+            raise ValueError(
+                "The inverse projected transport matrix has not been computed yet."
+                " Please call `project_transport_matrix`."
+            )
+        return self._inverse_transport_matrix
 
     def to(
         self,
@@ -319,6 +383,6 @@ class NeuralOutput(ConvergencePlotterMixin, BaseSolverOutput):
         params = {
             "predicted_cost": round(self.cost, 3),
             "best_loss": round(self.training_logs["valid_logs"]["best_loss"][0], 3),
-            "sink_dist": round(self.training_logs["valid_logs"]["sink_dist"][0], 3),
+            "sinkhorn_dist": round(self.training_logs["valid_logs"]["sinkhorn_dist"][0], 3),
         }
         return ", ".join(f"{name}={fmt(val)}" for name, val in params.items())

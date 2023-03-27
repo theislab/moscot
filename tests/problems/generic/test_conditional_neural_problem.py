@@ -9,5 +9,5 @@ class TestConditionalNeuralProblem:
         adata = simulate_data()
         sc.pp.pca(adata)
         cnp = ConditionalNeuralProblem(adata)
-        cnp = cnp.prepare(key="batch", joint_attr="X_pca", cond_dim=1)
+        cnp = cnp.prepare(key="batch", joint_attr="X_pca")
         cnp = cnp.solve(batch_size=8, iterations=10)
