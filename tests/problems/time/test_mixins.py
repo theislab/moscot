@@ -64,8 +64,8 @@ class TestTemporalMixin:
         problem = TemporalProblem(gt_temporal_adata)
         problem = problem.prepare(key)
         assert set(problem.problems.keys()) == {(key_1, key_2), (key_2, key_3)}
-        problem[(key_1, key_2)]._solution = MockSolverOutput(gt_temporal_adata.uns["tmap_10_105"])
-        problem[(key_2, key_3)]._solution = MockSolverOutput(gt_temporal_adata.uns["tmap_105_11"])
+        problem[key_1, key_2]._solution = MockSolverOutput(gt_temporal_adata.uns["tmap_10_105"])
+        problem[key_2, key_3]._solution = MockSolverOutput(gt_temporal_adata.uns["tmap_105_11"])
 
         result = problem.cell_transition(
             key_1,
@@ -75,9 +75,10 @@ class TestTemporalMixin:
             forward=forward,
         )
         assert isinstance(result, pd.DataFrame)
-        mask = gt_temporal_adata.obs[key] == key_1
-        cell_types = set(gt_temporal_adata.obs.loc[mask, "cell_type"].cat.categories)
-        batches = set(gt_temporal_adata.obs.loc[mask, "batch"].cat.categories)
+        mask_1 = gt_temporal_adata.obs[key] == key_1
+        cell_types = set(gt_temporal_adata.obs.loc[mask_1, "cell_type"].cat.categories)
+        mask_2 = gt_temporal_adata.obs[key] == key_2
+        batches = set(gt_temporal_adata.obs.loc[mask_2, "batch"].cat.categories)
         assert set(result.index) == cell_types
         assert set(result.columns) == set(batches)
 
