@@ -58,6 +58,10 @@ def _adata_spatial_split(adata: AnnData) -> Tuple[AnnData, AnnData]:
     adata_sp = adata[adata.obs.batch != "0"].copy()
     return adata_ref, adata_sp
 
+def _adata_modality_split(adata: AnnData) -> Tuple[AnnData, AnnData]:
+    adata_src = adata[adata.obs.batch == "0"].copy()
+    adata_tgt = adata[adata.obs.batch != "0"].copy()
+    return adata_src, adata_tgt
 
 def _make_grid(grid_size: int) -> ArrayLike:
     xlimits = ylimits = [0, 10]

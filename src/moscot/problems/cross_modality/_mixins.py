@@ -16,7 +16,6 @@ import numpy as np
 import pandas as pd
 from anndata import AnnData
 import scipy.spatial
-from sklearn.preprocessing import normalize
 import anndata as ad
 import scanpy as sc
 
@@ -49,13 +48,6 @@ class CrossModalityTranslationMixinProtocol(AnalysisMixinProtocol[K, B]):
     ) -> pd.DataFrame:
         ...
 
-    def _normalize(
-            self: AnalysisMixinProtocol[K, B],
-            norm: Literal["l2", "l1", "max"] = "l2", 
-            bySample: bool = True
-    ) -> None :
-        ...
-
 class CrossModalityTranslationMixin(AnalysisMixin[K, B]):
     """Cross modality translation analysis mixin class."""
 
@@ -66,8 +58,6 @@ class CrossModalityTranslationMixin(AnalysisMixin[K, B]):
 
     def translate(
             self: CrossModalityTranslationMixinProtocol[K, B],
-            normalize:bool = True,
-            norm: Literal["l2", "l1", "max"] = "l2",
             forward:bool = True,
             **kwargs:Any,
     ) -> ArrayLike:
@@ -76,8 +66,6 @@ class CrossModalityTranslationMixin(AnalysisMixin[K, B]):
 
         Parameters
         ----------
-        %(normalize)s
-        %(norm)s
         %(forward)s
 
         Return
@@ -85,28 +73,12 @@ class CrossModalityTranslationMixin(AnalysisMixin[K, B]):
         %(translation)s
         
         """
-        if normalize:
-            self._normalize(norm=norm) # überschreibt so die adata objecte, evlt. lieber neues feld in obsm hinzufügen?
-        
         if forward:
-            self._translation = self[('src', 'tgt')].solution.pull(self.adata_tgt.obsm[self._tgt_attr])
+            self._translation = self[('src', 'tgt')].solution.pull(self.adata_tgt.obsm[self._tgt_attr], scale_by_marginals=True)
         else:
-            self._translation = self[('src', 'tgt')].solution.push(self.adata_src.obsm[self._src_attr])
+            self._translation = self[('src', 'tgt')].solution.push(self.adata_src.obsm[self._src_attr], scale_by_marginals=True)
 
         return self._translation
-    
-    def _normalize(
-            self: CrossModalityTranslationMixinProtocol[K, B],
-            norm: Literal["l2", "l1", "max"] = "l2", 
-            bySample:bool = True
-    )-> None:
-        assert (norm in ["l1","l2","max"]), "Norm argument has to be either one of 'max', 'l1', or 'l2'."
-        if (bySample==True or bySample==None):
-            axis=1
-        else:
-            axis=0
-        self.adata_src.obsm[self._src_attr] = normalize(self.adata_src.obsm[self._src_attr], norm=norm, axis=axis)
-        self.adata_tgt.obsm[self._tgt_attr] = normalize(self.adata_tgt.obsm[self._tgt_attr], norm=norm, axis=axis)
 
     @d_mixins.dedent
     def cell_transition(  # type: ignore[misc]
@@ -147,7 +119,7 @@ class CrossModalityTranslationMixin(AnalysisMixin[K, B]):
         if TYPE_CHECKING:
             assert self.batch_key is not None
         return self._cell_transition(
-            key=self.batch_key,
+            key=None, #self.batch_key,
             source=source,
             target=target,
             source_groups=source_groups,
@@ -155,7 +127,7 @@ class CrossModalityTranslationMixin(AnalysisMixin[K, B]):
             forward=forward,
             aggregation_mode=aggregation_mode,
             other_key=None,
-            other_adata=self.adata_sc,
+            other_adata=self.adata_tgt,
             batch_size=batch_size,
             normalize=normalize,
             key_added=key_added,

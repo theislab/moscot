@@ -77,6 +77,7 @@ class TranslationProblem(CompoundProblem[K, OTProblem], CrossModalityTranslation
         self,
         src_attr: Str_Dict_t,
         tgt_attr: Str_Dict_t,
+        var_names: Optional[Sequence[Any]] = None,
         joint_attr: Optional[Union[str, Mapping[str, Any]]] = None,
         cost: Union[
             Literal["sq_euclidean", "cosine", "bures", "unbalanced_bures"],
@@ -105,11 +106,16 @@ class TranslationProblem(CompoundProblem[K, OTProblem], CrossModalityTranslation
 
         x = {"attr": "obsm", "key": src_attr} if isinstance(src_attr, str) else src_attr
         y = {"attr": "obsm", "key": tgt_attr} if isinstance(tgt_attr, str) else tgt_attr
-        
-
-        xy, kwargs = handle_joint_attr(joint_attr, kwargs)
+        self.filtered_vars = var_names
+        if self.filtered_vars is not None:
+            xy, kwargs = handle_joint_attr(joint_attr, kwargs)
+        else:
+            xy = None
+        #xy, kwargs = handle_joint_attr(joint_attr, kwargs)
         xy, x, y = handle_cost(xy=xy, x=x, y=y, cost=cost)
-        return super().prepare(x=x, y=y, xy=xy, policy="external_star", key=None, cost=cost, a=a, b=b, **kwargs)
+        if xy is not None:
+            kwargs["xy"] = xy
+        return super().prepare(x=x, y=y, policy="external_star", key=None, cost=cost, a=a, b=b, **kwargs)
 
     @d.dedent
     def solve(
