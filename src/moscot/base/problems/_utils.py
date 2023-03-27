@@ -82,13 +82,13 @@ def _check_argument_compatibility_cell_transition(
 
 def _get_df_cell_transition(
     adata: AnnData,
-    key: Optional[str] = None,
-    key_value: Optional[Any] = None,
-    annotation_keys: Optional[List[str]] = None,
+    annotation_keys: List[str],
+    filter_key: Optional[str] = None,
+    filter_value: Optional[Any] = None,
 ) -> pd.DataFrame:
-    if key is None:
-        return adata.obs[annotation_keys].copy()
-    return adata[adata.obs[key] == key_value].obs[list(set(annotation_keys))].copy()
+    if filter_key is None:
+        return adata.obs[list(set(annotation_keys))].copy()
+    return adata[adata.obs[filter_key] == filter_value].obs[list(set(annotation_keys))].copy()
 
 
 def _validate_args_cell_transition(
