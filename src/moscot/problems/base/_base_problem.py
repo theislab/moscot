@@ -4,6 +4,7 @@ from typing import Any, Dict, List, Tuple, Union, Literal, Mapping, Optional, TY
 from scipy.sparse import vstack, issparse, csr_matrix
 from sklearn.preprocessing import StandardScaler
 import pandas as pd
+import scipy.sparse as sp
 
 import numpy as np
 
@@ -679,6 +680,69 @@ class NeuralOTProblem(OTProblem):  # TODO override set_x/set_y
             backend=backend, device=device, conditional=False, input_dim=self._xy.data_src.shape[1], **kwargs
         )
 
+    def project_transport_matrix(
+        self,
+        source: Optional[ArrayLike] = None,
+        target: Optional[ArrayLike] = None,
+        forward: bool = True,
+        save_transport_matrix: bool = False,
+        batch_size: int = 1024,
+        k: int = 30,
+        length_scale: Optional[float] = None,
+        seed: int = 42,
+    ) -> sp.csr_matrix:
+        """
+        Project Neural OT map onto cells.
+
+        In constrast to discrete OT, Neural OT does not necessarily map cells onto cells,
+        but a cell can also be mapped to a location between two cells. This function computes
+        a pseudo-transport matrix considering the neighborhood of where a cell is mapped to.
+        Therefore, a neighborhood graph of `k` target cells is computed around each transported cell
+        of the source distribution. The assignment likelihood of each mapped cell to the target cells is then
+        computed with a Gaussian kernel with parameter `length_scale`.
+
+        Parameters
+        ----------
+        source
+            If `None`, the source cells are extracted from the :attr:`moscot.base.NeuralOTProblem.adata`, otherwise the
+            provided data is used.
+        target
+            If `None`, the target cells are extracted from the :attr:`moscot.base.NeuralOTProblem.adata`, otherwise the
+            provided data is used.
+        forward
+            Whether to map cells based on the forward transport map or backward transport map.
+        save_transport_matrix
+            Whether to save the transport matrix.
+        batch_size
+            Number of data points in the source distribution the neighborhoodgraph is computed
+            for in parallel.
+        k
+            Number of neighbors to construct the k-nearest neighbor graph of a mapped cell.
+        length_scale
+            Length scale of the Gaussian kernel used to compute the assignment likelihood. If `None`,
+            `length_scale` is set to the empirical standard deviation of `batch_size` pairs of data points of the
+            mapped source and target distribution.
+        seed
+            Random seed for sampling the pairs of distributions for computing the variance in case `length_scale`
+            is `None`.
+
+        Returns
+        -------
+        The projected transport matrix.
+        """
+        src_data = self._xy.data_src if source is None else source
+        tgt_data = self._xy.data_tgt if target is None else target
+        return self.solution.project_transport_matrix(
+            src_data,
+            tgt_data,
+            forward=forward,
+            save_transport_matrix=save_transport_matrix,
+            batch_size=batch_size,
+            k=k,
+            length_scale=length_scale,
+            seed=seed,
+        )
+
 
 class CondOTProblem(BaseProblem):  # TODO(@MUCDK) check generic types, save and load
     """
@@ -716,7 +780,6 @@ class CondOTProblem(BaseProblem):  # TODO(@MUCDK) check generic types, save and 
         self._a: Optional[str] = None
         self._b: Optional[str] = None
 
-    @d.dedent
     @wrap_prepare
     def prepare(
         self,

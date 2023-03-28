@@ -1,4 +1,5 @@
-from typing import Any, Dict, List, Tuple, Union, Literal, Optional
+from types import MappingProxyType
+from typing import Any, Dict, List, Tuple, Union, Literal
 from functools import partial
 
 from ott.solvers.linear import sinkhorn
@@ -17,7 +18,7 @@ class JaxSampler:
         conditional: bool = False,
         a: List[jnp.ndarray] = None,
         b: List[jnp.ndarray] = None,
-        sample_to_idx: Optional[Dict[int, Any]] = None,
+        sample_to_idx: Dict[int, Any] = MappingProxyType({}),
         batch_size: int = 1024,
         tau_a: float = 1.0,
         tau_b: float = 1.0,
@@ -29,7 +30,7 @@ class JaxSampler:
         self._distributions = distributions
         self._policy_pairs = policy_pairs
         self._conditions = jnp.array(policy_pairs, dtype=float) if conditional else None
-        if sample_to_idx is None:
+        if not len(sample_to_idx):
             if len(self.policy_pairs) > 1:
                 raise ValueError("If `policy_pairs` contains more than 1 value, `sample_to_idx` is required.")
             sample_to_idx = {self.policy_pairs[0][0]: 0, self.policy_pairs[0][1]: 1}
@@ -91,7 +92,7 @@ class JaxSampler:
     def __call__(
         self,
         key: jax.random.KeyArray,
-        policy_pair: Optional[Tuple[Any, Any]] = None,
+        policy_pair: Tuple[Any, Any] = (),
         full_dataset: bool = False,
         sample: Literal["pair", "source", "target"] = "pair",
     ) -> Union[jnp.ndarray, Tuple[jnp.ndarray, jnp.ndarray]]:

@@ -8,7 +8,7 @@ from scipy.sparse.linalg import LinearOperator
 from moscot._types import Device_t, ArrayLike, DTypeLike
 from moscot._logging import logger
 
-__all__ = ["BaseSolverOutput", "MatrixSolverOutput"]
+__all__ = ["BaseSolverOutput", "MatrixSolverOutput", "BaseNeuralOutput"]
 
 
 class BaseSolverOutput(ABC):
@@ -239,3 +239,14 @@ class MatrixSolverOutput(BaseSolverOutput, ABC):
         obj = copy(self)
         obj._transport_matrix = obj.transport_matrix.astype(dtype)
         return obj
+
+
+class BaseNeuralOutput(BaseSolverOutput, ABC):
+    @abstractmethod
+    def project_transport_matrix():
+        pass
+
+    @abstractmethod
+    @property
+    def inverse_transport_matrix():
+        pass

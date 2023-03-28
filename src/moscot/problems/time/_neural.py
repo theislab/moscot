@@ -52,6 +52,7 @@ class TemporalNeuralProblem(
             Defines the rule according to which pairs of distributions are selected to compute the transport map between.
         a
             Specifies the left marginals. If
+
                 - ``a`` is :class:`str` - the left marginals are taken from :attr:`anndata.AnnData.obs`,
                 - if :meth:`~moscot.problems.base._birth_death.BirthDeathMixin.score_genes_for_marginals` was run and
                 if ``a`` is `None`, marginals are computed based on a birth-death process as suggested in
@@ -59,19 +60,21 @@ class TemporalNeuralProblem(
                 - if :meth:`~moscot.problems.base._birth_death.BirthDeathMixin.score_genes_for_marginals` was run and
                 if ``a`` is `None`, and additionally ``'scaling'`` is provided in ``marginal_kwargs``,
                 the marginals are computed as
-                :math:`\exp(\frac{(\textit{proliferation} - \textit{apoptosis}) \cdot (t_2 - t_1)}{\textit{scaling}})`
+                :math:`\\exp(\frac{(\textit{proliferation} - \textit{apoptosis}) \\cdot (t_2 - t_1)}{\textit{scaling}})`
                 rather than using a birth-death process,
                 - otherwise or if ``a`` is :obj:`False`, uniform marginals are used.
+
         b
             Specifies the right marginals. If
                 - ``b`` is :class:`str` - the left marginals are taken from :attr:`anndata.AnnData.obs`,
                 - if :meth:`~moscot.problems.base._birth_death.BirthDeathMixin.score_genes_for_marginals` was run
                 uniform (mean of left marginals) right marginals are used,
                 - otherwise or if ``b`` is :obj:`False`, uniform marginals are used.
+
         marginal_kwargs
             Keyword arguments for :meth:`~moscot.problems.BirthDeathProblem._estimate_marginals`. If ``'scaling'``
             is in ``marginal_kwargs``, the left marginals are computed as
-            :math:`\exp(\frac{(\textit{proliferation} - \textit{apoptosis}) \cdot (t_2 - t_1)}{\textit{scaling}})`.
+            :math:`\\exp(\frac{(\textit{proliferation} - \textit{apoptosis}) \\cdot (t_2 - t_1)}{\textit{scaling}})`.
             Otherwise, the left marginals are computed using a birth-death process. The keyword arguments
             are either used for :func:`~moscot.problems.time._utils.beta`, i.e. one of:
 
@@ -125,7 +128,6 @@ class TemporalNeuralProblem(
             **kwargs,
         )
 
-    @d.dedent
     def solve(
         self,
         batch_size: int = 1024,
@@ -168,7 +170,7 @@ class TemporalNeuralProblem(
             in the target distribution. The limit of `tau_b` going to 0 ignores the right marginals.
             Unbalancedness is implemented as described in :cite:`eyring2022modeling`.
         epsilon
-            Entropic regularisation parameter in batch-wise inner loop. Only relevant if the problem is 
+            Entropic regularisation parameter in batch-wise inner loop. Only relevant if the problem is
             unbalanced.
         seed
             Seed for splitting the data.
@@ -209,7 +211,7 @@ class TemporalNeuralProblem(
         train_size
             Fraction of dataset to use as a training set. The remaining data is used for validation.
         compute_wasserstein_baseline
-            Whether to compute the Sinkhorn divergence between the source and the target distribution as 
+            Whether to compute the Sinkhorn divergence between the source and the target distribution as
             a baseline for the Wasserstein-2 distance computed with the neural solver.
         kwargs
             Keyword arguments.
@@ -218,7 +220,7 @@ class TemporalNeuralProblem(
         -------
         If `compute_wasserstein_distance` is `True`, a discrete OT problem has to be solved on the validation
         dataset which scales linearly in the validation set size. If `train_size=1.0` the validation dataset size
-        is the full dataset size, hence this is a source of prolonged run time or Out of Memory Error.   
+        is the full dataset size, hence this is a source of prolonged run time or Out of Memory Error.
         """
         return super().solve(
             batch_size=batch_size,

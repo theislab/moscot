@@ -22,6 +22,7 @@ from anndata import AnnData
 import scanpy as sc
 
 from moscot._types import ArrayLike, Numeric_t, Str_Dict_t
+from moscot._logging import logger
 from moscot._docs._docs import d
 from moscot.utils._data import TranscriptionFactors
 from moscot.solvers._output import BaseSolverOutput
@@ -558,3 +559,284 @@ class AnalysisMixin(Generic[K, B]):
             seed=seed,
             **kwargs,
         )
+
+
+class NeuralAnalysisMixin(AnalysisMixin[K, B]):
+    """Analysis Mixin for Neural OT problems."""
+
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
+        super().__init__(*args, **kwargs)
+
+    def cell_transition(
+        self,
+        source: Union[K, Tuple[AnnData, Dict[str, str]]],
+        target: Union[K, Tuple[AnnData, Dict[str, str]]],
+        source_groups: Str_Dict_t,
+        target_groups: Str_Dict_t,
+        forward: bool = False,  # return value will be row-stochastic if forward=True, else column-stochastic
+        aggregation_mode: Literal["annotation", "cell"] = "cell",
+        batch_size: int = 1024,
+        normalize: bool = True,
+        k: int = 30,
+        key_added: Optional[str] = PlottingDefaults.CELL_TRANSITION,
+    ) -> Optional[pd.DataFrame]:
+        """
+        Compute a grouped transition matrix based on a pseudo-transport matrix.
+
+        This function requires a projection of the velocity field onto existing cells, see
+        :meth:`moscot.backends.ott.NeuralOutput.project_transport_matrix`.
+        Afterwards, this function computes a transition matrix with entries corresponding to categories, e.g. cell
+        types. The transition matrix will be row-stochastic if `forward` is `True`, otherwise column-stochastic.
+
+        Parameters
+        ----------
+        source
+            If of type `K`, key identifying the source distribution. If tuple of :class:`anndata.AnnData`
+        target
+            Key identifying the target distribution.
+        source_groups
+            Can be one of the following:
+
+                - if `source_groups` is of type :class:`str` this should correspond to a key in
+                :attr:`anndata.AnnData.obs`. In this case, the categories in the transition matrix correspond to the
+                unique values in :attr:`anndata.AnnData.obs` ``['{source_groups}']``.
+
+                - if `target_groups` is of type :class:`dict`, its key should correspond to a key in
+                :attr:`anndata.AnnData.obs` and its value to a list containing a subset of categories present in
+                :attr:`anndata.AnnData.obs` ``['{source_groups.keys()[0]}']``. The order of the list determines the
+                order in the transition matrix.
+
+        target_groups
+            Can be one of the following:
+
+                - if `target_groups` is of type :class:`str` this should correspond to a key in
+                :attr:`anndata.AnnData.obs`. In this case, the categories in the transition matrix correspond to the
+                unique values in :attr:`anndata.AnnData.obs` ``['{target_groups}']``.
+
+                - if `target_groups` is of :class:`dict`, its key should correspond to a key in
+                :attr:`anndata.AnnData.obs` and its value to a list containing a subset of categories present in
+                :attr:`anndata.AnnData.obs` ``['{target_groups.keys()[0]}']``. The order of the list determines the
+                order in the transition matrix.
+        forward
+            If `True` computes transition from `source_annotations` to `target_annotations`, otherwise backward.
+        aggregation_mode
+
+            - `group`: transition probabilities from the groups defined by `source_annotation` are returned.
+            - `cell`: the transition probabilities for each cell are returned.
+        batch_size
+            Number of data points the matrix-vector products are applied to at the same time.
+            The larger, the more memory is required.
+        normalize
+            If `True` the transition matrix is normalized such that it is stochastic. If `forward` is `True`,
+            the transition matrix is row-stochastic, otherwise column-stochastic.
+        k
+            Number of neighbors used to compute the pseudo-transport matrix if it hasn't been computed by
+            :meth:`moscot.backends.ott.output.NeuralSolverOutput`
+        key_added
+            Key in :attr:`anndata.AnnData.uns` and/or :attr:`anndata.AnnData.obs` where the results
+            for the corresponding plotting functions are stored.
+            See TODO Notebook for how :mod:`moscot.plotting` works.
+
+        Returns
+        -------
+        Aggregated transition matrix of cells or groups of cells.
+
+        Notes
+        -----
+        To visualise the results, see :func:`moscot.pl.cell_transition`.
+        """
+
+        if TYPE_CHECKING:
+            assert isinstance(self.temporal_key, str)
+        problem = self.problems[source, target]
+        if new_adata is not None:
+            if new_adata_joint_attr is None:
+                raise ValueError("`new_adata_joint_attr` must be provided if `new_adata` is given.")
+            adata = new_adata
+            data_source = adata[adata.obs[self.temporal_key] == source].obsm[new_adata_joint_attr].copy()
+            data_target = adata[adata.obs[self.temporal_key] == target].obsm[new_adata_joint_attr].copy()
+            logger.info(f"Computing projected transport matrix for new adata object with k={k}.")
+            tm_result = problem.project_transport_matrix(  # type: ignore[union-attr]
+                data_source, data_target, forward=forward, save_transport_matrix=False, batch_size=batch_size, k=k
+            )
+        else:
+            adata = self.adata
+            try:
+                # try to get projected transport matrix
+                if forward:
+                    tm_result = solution.transport_matrix  # type: ignore[union-attr]
+                else:
+                    tm_result = solution.inverse_transport_matrix  # type: ignore[union-attr]
+            except ValueError:
+                data_source = self.problems[source, target].xy.data_src  # type: ignore[union-attr]
+                data_target = self.problems[source, target].xy.data_tgt  # type: ignore[union-attr]
+                logger.info(f"Projecting transport matrix based on {k} nearest neighbors.")
+                tm_result = problem.project_transport_matrix(  # type: ignore[union-attr]
+                    source, target, forward=forward, save_transport_matrix=True, batch_size=batch_size, k=k
+                )
+        annotation_key_source, annotations_present_source, annotations_ordered_source = _validate_args_cell_transition(
+            adata, source_groups
+        )
+        annotation_key_target, annotations_present_target, annotations_ordered_target = _validate_args_cell_transition(
+            adata, target_groups
+        )
+        df_source = adata[adata.obs[self.temporal_key] == source].obs[[annotation_key_source]].copy()
+        df_target = adata[adata.obs[self.temporal_key] == target].obs[[annotation_key_target]].copy()
+        annotations_verified_source, annotations_verified_target = _validate_annotations(
+            df_source=df_source,
+            df_target=df_target,
+            source_annotation_key=annotation_key_source,
+            target_annotation_key=annotation_key_target,
+            source_annotations=annotations_present_source,
+            target_annotations=annotations_present_target,
+            aggregation_mode="annotation",
+            forward=forward,
+        )
+        tm = pd.DataFrame(
+            np.zeros((len(annotations_verified_source), len(annotations_verified_target))),
+            index=annotations_verified_source,
+            columns=annotations_verified_target,
+        )
+        for annotation_src in annotations_verified_source:
+            for annotation_tgt in annotations_verified_target:
+                tm.loc[annotation_src, annotation_tgt] = tm_result[
+                    np.ix_((df_source == annotation_src).squeeze(), (df_target == annotation_tgt).squeeze())
+                ].sum()
+
+        if normalize:
+            tm = tm.div(tm.sum(axis=int(forward)), axis=int(not forward))
+        if key_added is not None:
+            if aggregation_mode == AggregationMode.CELL and AggregationMode.CELL in self.adata.obs:
+                raise KeyError(f"Aggregation is already present in `adata.obs[{aggregation_mode!r}]`.")
+            plot_vars = {
+                "transition_matrix": tm,
+                "source": source,
+                "target": target,
+                "source_groups": source_groups,
+                "target_groups": target_groups,
+            }
+            Key.uns.set_plotting_vars(
+                adata=adata,
+                pl_func_key=PlottingKeys.CELL_TRANSITION,
+                key=key_added,
+                value=plot_vars,
+            )
+        return _order_transition_matrix(
+            tm=tm,
+            source_annotations_verified=annotations_verified_source,
+            target_annotations_verified=annotations_verified_target,
+            source_annotations_ordered=annotations_ordered_source,
+            target_annotations_ordered=annotations_ordered_target,
+            forward=forward,
+        )
+
+    def push(
+        self,
+        source: K,
+        target: K,
+        data: Optional[Union[str, ArrayLike]] = None,
+        subset: Optional[Union[str, List[str], Tuple[int, int]]] = None,
+        scale_by_marginals: bool = True,
+        key_added: Optional[str] = PlottingDefaults.PUSH,
+        return_all: bool = False,
+        return_data: bool = False,
+        **kwargs: Any,
+    ) -> Optional[ApplyOutput_t[K]]:
+        """
+        Push cells.
+
+        Parameters
+        ----------
+        %(source)s
+        %(target)s
+        %(data)s
+        %(subset)s
+        %(scale_by_marginals)s
+        %(key_added_plotting)s
+        %(return_all)s
+        %(return_data)s
+        %(new_adata)s
+        %(new_adata_joint_attr)s
+
+        Return
+        ------
+        %(return_push_pull)s
+
+        """
+        result = self._apply(
+            start=source,
+            end=target,
+            data=data,
+            subset=subset,
+            forward=True,
+            return_all=return_all or key_added is not None,
+            scale_by_marginals=scale_by_marginals,
+            **kwargs,
+        )
+
+        if TYPE_CHECKING:
+            assert isinstance(result, dict)
+
+        if key_added is not None:
+            plot_vars = {
+                "temporal_key": self.temporal_key,
+            }
+            self.adata.obs[key_added] = self._flatten(result, key=self.temporal_key)
+            Key.uns.set_plotting_vars(self.adata, PlottingKeys.PUSH, key_added, plot_vars)
+        if return_data:
+            return result
+
+    def pull(
+        self,
+        source: K,
+        target: K,
+        data: Optional[Union[str, ArrayLike]] = None,
+        subset: Optional[Union[str, List[str], Tuple[int, int]]] = None,
+        scale_by_marginals: bool = True,
+        key_added: Optional[str] = PlottingDefaults.PULL,
+        return_all: bool = False,
+        return_data: bool = False,
+        **kwargs: Any,
+    ) -> Optional[ApplyOutput_t[K]]:
+        """
+        Pull cells.
+
+        Parameters
+        ----------
+        %(source)s
+        %(target)s
+        %(data)s
+        %(subset)s
+        %(scale_by_marginals)s
+        %(key_added_plotting)s
+        %(return_all)s
+        %(return_data)s
+        %(new_adata)s
+        %(new_adata_joint_attr)s
+
+        Return
+        ------
+        %(return_push_pull)s
+
+        """
+        result = self._apply(
+            start=source,
+            end=target,
+            data=data,
+            subset=subset,
+            forward=False,
+            return_all=return_all or key_added is not None,
+            scale_by_marginals=scale_by_marginals,
+            **kwargs,
+        )
+        if TYPE_CHECKING:
+            assert isinstance(result, dict)
+
+        if key_added is not None:
+            plot_vars = {
+                "temporal_key": self.temporal_key,
+            }
+            self.adata.obs[key_added] = self._flatten(result, key=self.temporal_key)
+            Key.uns.set_plotting_vars(self.adata, PlottingKeys.PULL, key_added, plot_vars)
+        if return_data:
+            return result
