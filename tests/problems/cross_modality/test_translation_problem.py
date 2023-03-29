@@ -22,8 +22,8 @@ from tests.problems.conftest import (
 
 class TestTranslationProblem:
     @pytest.mark.fast()
-    @pytest.mark.parametrize("src_attr", [{"attr": "X"}, {"attr": "obsm", "key": "X_pca"}])
-    @pytest.mark.parametrize("tgt_attr", [{"attr": "X"}, {"attr": "obsm", "key": "X_pca"}])
+    @pytest.mark.parametrize("src_attr", ["X_pca", {"attr": "obsm", "key": "X_pca"}])
+    @pytest.mark.parametrize("tgt_attr", ["X_pca", {"attr": "obsm", "key": "X_pca"}])
     @pytest.mark.parametrize("joint_attr", [None, "X_pca", {"attr": "obsm", "key": "X_pca"}])
     def test_prepare(
         self, 
