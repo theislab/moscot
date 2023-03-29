@@ -180,7 +180,6 @@ xfail_strict = true
 filterwarnings = [
     "ignore:X.dtype being converted:FutureWarning",
     "ignore:No data for colormapping:UserWarning",
-    "ignore:jax\\.experimental\\.pjit\\.PartitionSpec:DeprecationWarning",
 ]
 
 [tool.coverage.run]
