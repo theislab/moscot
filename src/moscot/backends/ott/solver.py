@@ -57,7 +57,7 @@ class OTTJaxSolver(OTSolver[OTTOutput], abc.ABC):
             elif isinstance(cost_fn, str):
                 cost_fn = get_cost(cost_fn, backend="ott", **kwargs)
             if not isinstance(cost_fn, costs.CostFn):
-                raise TypeError("TODO")
+                raise TypeError(f"Expected `cost_fn` to be `ott.geometry.costs.CostFn`, found `{type(cost_fn)}`.")
 
             y = None if x.data_tgt is None else ensure_2d(x.data_tgt, reshape=True)
             x = ensure_2d(x.data_src, reshape=True)
