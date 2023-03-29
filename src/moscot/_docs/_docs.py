@@ -276,13 +276,6 @@ min_iterations
 max_iterations
     The maximum number of Sinkhorn iterations.
 """
-_sinkhorn_lr_kwargs = """\
-gamma
-    Only in low-rank setting: the (inverse of the) gradient step size used by the mirror descent algorithm
-    (:cite:`scetbon:22b`).
-gamma_rescale
-    Only in low-rank setting: whether to rescale `gamma` every iteration as described in :cite:`scetbon:22b`.
-"""
 _cost_matrix_rank = """\
 cost_matrix_rank
     Rank of the matrix the cost matrix is approximated by. Only applies if a custom cost matrix is passed.
@@ -422,7 +415,6 @@ d = DocstringProcessor(
     initializer_kwargs=_initializer_kwargs,
     jit=_jit,
     sinkhorn_kwargs=_sinkhorn_kwargs,
-    sinkhorn_lr_kwargs=_sinkhorn_lr_kwargs,
     cost_matrix_rank=_cost_matrix_rank,  # TODO(@MUCDK): test for this. cannot be tested with current `test_pass_for_arguments`.  # noqa: E501
     gw_kwargs=_gw_kwargs,
     scale_cost=_scale_cost,

@@ -121,7 +121,6 @@ class SinkhornProblem(GenericAnalysisMixin[K, B], CompoundProblem[K, B]):
         %(initializer_kwargs)s
         %(jit)s
         %(sinkhorn_kwargs)s
-        %(sinkhorn_lr_kwargs)s
         %(device_solve)s
         %(cost_matrix_rank)s
         %(kwargs_linear)s
@@ -284,7 +283,6 @@ class GWProblem(GenericAnalysisMixin[K, B], CompoundProblem[K, B]):
         %(initializer_quad)s
         %(initializer_kwargs)s
         %(gw_kwargs)s
-        %(sinkhorn_lr_kwargs)s
         %(linear_solver_kwargs)s
         %(device_solve)s
         %(kwargs_quad)s
