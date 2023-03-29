@@ -4,8 +4,6 @@ import types
 from typing import Any, Literal, Mapping, Optional, Set, Tuple, Union
 
 import jax
-import jax.numpy as jnp
-import scipy.sparse as sp
 from ott.geometry import costs
 from ott.geometry.epsilon_scheduler import Epsilon
 from ott.geometry.geometry import Geometry
@@ -16,13 +14,8 @@ from ott.solvers.linear.sinkhorn import Sinkhorn
 from ott.solvers.linear.sinkhorn_lr import LRSinkhorn
 from ott.solvers.quadratic.gromov_wasserstein import GromovWasserstein
 
-from moscot._types import (
-    ArrayLike,
-    ProblemKind_t,
-    QuadInitializer_t,
-    SinkhornInitializer_t,
-)
-from moscot.backends.ott._utils import alpha_to_fused_penalty, check_shapes
+from moscot._types import ProblemKind_t, QuadInitializer_t, SinkhornInitializer_t
+from moscot.backends.ott._utils import alpha_to_fused_penalty, check_shapes, ensure_2d
 from moscot.backends.ott.output import OTTOutput
 from moscot.base.solver import OTSolver
 from moscot.costs import get_cost
@@ -66,8 +59,8 @@ class OTTJaxSolver(OTSolver[OTTOutput], abc.ABC):
             if not isinstance(cost_fn, costs.CostFn):
                 raise TypeError("TODO")
 
-            y = None if x.data_tgt is None else self._ensure_2d(x.data_tgt, reshape=True)
-            x = self._ensure_2d(x.data_src, reshape=True)
+            y = None if x.data_tgt is None else ensure_2d(x.data_tgt, reshape=True)
+            x = ensure_2d(x.data_src, reshape=True)
             if y is not None and x.shape[1] != y.shape[1]:
                 raise ValueError(
                     f"Expected `x/y` to have the same number of dimensions, found `{x.shape[1]}/{y.shape[1]}`."
@@ -83,7 +76,7 @@ class OTTJaxSolver(OTSolver[OTTOutput], abc.ABC):
                 batch_size=batch_size,
             )
 
-        arr = self._ensure_2d(x.data_src, reshape=False)
+        arr = ensure_2d(x.data_src, reshape=False)
         if x.is_cost_matrix:
             return Geometry(cost_matrix=arr, epsilon=epsilon, relative_epsilon=relative_epsilon, scale_cost=scale_cost)
         if x.is_kernel:
@@ -100,17 +93,6 @@ class OTTJaxSolver(OTSolver[OTTOutput], abc.ABC):
         solver = jax.jit(self.solver) if self._jit else self.solver
         out = solver(prob, **kwargs)
         return OTTOutput(out)
-
-    @staticmethod
-    def _ensure_2d(arr: ArrayLike, *, reshape: bool = False) -> Optional[jnp.ndarray]:  # type: ignore[name-defined]
-        if sp.issparse(arr):
-            arr = arr.A  # type: ignore[attr-defined]
-        arr = jnp.asarray(arr)
-        if reshape and arr.ndim == 1:
-            return jnp.reshape(arr, (-1, 1))
-        if arr.ndim != 2:
-            raise ValueError(f"Expected array to have 2 dimensions, found `{arr.ndim}`.")
-        return arr
 
     @property
     def solver(self) -> Union[Sinkhorn, LRSinkhorn, GromovWasserstein]:

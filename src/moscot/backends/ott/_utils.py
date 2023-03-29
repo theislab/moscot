@@ -1,6 +1,7 @@
 from typing import Any, Optional
 
 import jax.numpy as jnp
+import scipy.sparse as sp
 from ott.geometry.geometry import Geometry
 from ott.geometry.pointcloud import PointCloud
 from ott.tools.sinkhorn_divergence import sinkhorn_divergence
@@ -51,3 +52,14 @@ def alpha_to_fused_penalty(alpha: float) -> float:
     if not (0 < alpha <= 1):
         raise ValueError(f"Expected `alpha` to be in interval `(0, 1]`, found `{alpha}`.")
     return (1 - alpha) / alpha
+
+
+def ensure_2d(arr: ArrayLike, *, reshape: bool = False) -> Optional[jnp.ndarray]:  # type: ignore[name-defined]
+    if sp.issparse(arr):
+        arr = arr.A  # type: ignore[attr-defined]
+    arr = jnp.asarray(arr)
+    if reshape and arr.ndim == 1:
+        return jnp.reshape(arr, (-1, 1))
+    if arr.ndim != 2:
+        raise ValueError(f"Expected array to have 2 dimensions, found `{arr.ndim}`.")
+    return arr
