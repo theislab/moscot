@@ -391,7 +391,7 @@ class AnalysisMixin(Generic[K, B]):
                 return_data=True,
             )
             df["distribution"] = result
-            cell_dist = df[df[annotation_key].isin(annotations_2)].groupby(annotation_key).sum()
+            cell_dist = df[df[annotation_key].isin(annotations_2)].groupby(annotation_key).sum(numeric_only=True)
             cell_dist /= cell_dist.sum()
             tm.loc[subset, :] = [
                 cell_dist.loc[annotation, "distribution"] if annotation in cell_dist.distribution.index else 0
