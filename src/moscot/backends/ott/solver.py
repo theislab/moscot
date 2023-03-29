@@ -1,5 +1,7 @@
+import abc
+import inspect
 import types
-from typing import Any, Literal, Mapping, Optional, Union
+from typing import Any, Literal, Mapping, Optional, Set, Tuple, Union
 
 import jax
 import jax.numpy as jnp
@@ -13,7 +15,6 @@ from ott.problems.quadratic.quadratic_problem import QuadraticProblem
 from ott.solvers.linear.sinkhorn import Sinkhorn
 from ott.solvers.linear.sinkhorn_lr import LRSinkhorn
 from ott.solvers.quadratic.gromov_wasserstein import GromovWasserstein
-from ott.solvers.was_solver import WassersteinSolver
 
 from moscot._types import (
     ArrayLike,
@@ -21,7 +22,7 @@ from moscot._types import (
     QuadInitializer_t,
     SinkhornInitializer_t,
 )
-from moscot.backends.ott._utils import _filter_kwargs
+from moscot.backends.ott._utils import alpha_to_fused_penalty, check_shapes
 from moscot.backends.ott.output import OTTOutput
 from moscot.base.solver import OTSolver
 from moscot.costs import get_cost
@@ -30,10 +31,9 @@ from moscot.utils.tagged_array import TaggedArray
 __all__ = ["SinkhornSolver", "GWSolver"]
 
 Scale_t = Union[float, Literal["mean", "median", "max_cost", "max_norm", "max_bound"]]
-Epsilon_t = Union[float, Epsilon]
 
 
-class OTTJaxSolver(OTSolver[OTTOutput]):
+class OTTJaxSolver(OTSolver[OTTOutput], abc.ABC):
     """Base class for :mod:`ott` solvers :cite:`cuturi2022optimal`.
 
     Parameters
@@ -51,23 +51,45 @@ class OTTJaxSolver(OTSolver[OTTOutput]):
     def _create_geometry(
         self,
         x: TaggedArray,
+        epsilon: Optional[Union[float, Epsilon]] = None,
+        relative_epsilon: Optional[bool] = None,
+        scale_cost: Scale_t = 1.0,
+        batch_size: Optional[int] = None,
         **kwargs: Any,
     ) -> Geometry:
         if x.is_point_cloud:
-            kwargs = _filter_kwargs(PointCloud, Geometry, **kwargs)
-            cost_fn = self._create_cost(x.cost)
-            x, y = self._assert2d(x.data_src), self._assert2d(x.data_tgt)
-            n, m = x.shape[1], (None if y is None else y.shape[1])
-            if m is not None and n != m:
-                raise ValueError(f"Expected `x/y` to have the same number of dimensions, found `{n}/{m}`.")
-            return PointCloud(x, y=y, cost_fn=cost_fn, **kwargs)  # TODO: add ScaleCost
+            cost_fn = x.cost
+            if cost_fn is None:
+                cost_fn = costs.SqEuclidean()
+            elif isinstance(cost_fn, str):
+                cost_fn = get_cost(cost_fn, backend="ott", **kwargs)
+            if not isinstance(cost_fn, costs.CostFn):
+                raise TypeError("TODO")
 
-        kwargs = _filter_kwargs(Geometry, **kwargs)
-        arr = self._assert2d(x.data_src, allow_reshape=False)
+            y = None if x.data_tgt is None else self._ensure_2d(x.data_tgt, reshape=True)
+            x = self._ensure_2d(x.data_src, reshape=True)
+            if y is not None and x.shape[1] != y.shape[1]:
+                raise ValueError(
+                    f"Expected `x/y` to have the same number of dimensions, found `{x.shape[1]}/{y.shape[1]}`."
+                )
+
+            return PointCloud(
+                x,
+                y=y,
+                cost_fn=cost_fn,
+                epsilon=epsilon,
+                relative_epsilon=relative_epsilon,
+                scale_cost=scale_cost,
+                batch_size=batch_size,
+            )
+
+        arr = self._ensure_2d(x.data_src, reshape=False)
         if x.is_cost_matrix:
-            return Geometry(cost_matrix=arr, **kwargs)
+            return Geometry(cost_matrix=arr, epsilon=epsilon, relative_epsilon=relative_epsilon, scale_cost=scale_cost)
         if x.is_kernel:
-            return Geometry(kernel_matrix=arr, **kwargs)
+            return Geometry(
+                kernel_matrix=arr, epsilon=epsilon, relative_epsilon=relative_epsilon, scale_cost=scale_cost
+            )
         raise NotImplementedError(f"Creating geometry from `tag={x.tag!r}` is not yet implemented.")
 
     def _solve(  # type: ignore[override]
@@ -75,28 +97,20 @@ class OTTJaxSolver(OTSolver[OTTOutput]):
         prob: Union[LinearProblem, QuadraticProblem],
         **kwargs: Any,
     ) -> OTTOutput:
-        solver = jax.jit(self.solver) if self._jit else self._solver
-        out = solver(prob, **kwargs)  # type: ignore[misc]
+        solver = jax.jit(self.solver) if self._jit else self.solver
+        out = solver(prob, **kwargs)
         return OTTOutput(out)
 
     @staticmethod
-    def _assert2d(arr: Optional[ArrayLike], *, allow_reshape: bool = True) -> Optional[ArrayLike]:
-        if arr is None:
-            return None
-        arr: ArrayLike = jnp.asarray(arr.A if sp.issparse(arr) else arr)  # type: ignore[attr-defined, no-redef]
-        if allow_reshape and arr.ndim == 1:
-            return jnp.reshape(arr, (-1, 1))  # type: ignore[return-value]
+    def _ensure_2d(arr: ArrayLike, *, reshape: bool = False) -> Optional[jnp.ndarray]:  # type: ignore[name-defined]
+        if sp.issparse(arr):
+            arr = arr.A  # type: ignore[attr-defined]
+        arr = jnp.asarray(arr)
+        if reshape and arr.ndim == 1:
+            return jnp.reshape(arr, (-1, 1))
         if arr.ndim != 2:
             raise ValueError(f"Expected array to have 2 dimensions, found `{arr.ndim}`.")
         return arr
-
-    @staticmethod
-    def _create_cost(cost: Optional[Union[str, costs.CostFn]], **kwargs: Any) -> costs.CostFn:
-        if isinstance(cost, costs.CostFn):
-            return cost
-        if cost is None:
-            return costs.SqEuclidean()
-        return get_cost(cost, backend="ott", **kwargs)
 
     @property
     def solver(self) -> Union[Sinkhorn, LRSinkhorn, GromovWasserstein]:
@@ -127,6 +141,8 @@ class SinkhornSolver(OTTJaxSolver):
     rank
         Rank of the linear solver. If `-1`, use :class:`~ott.solvers.linear.sinkhorn.Sinkhorn` :cite:`cuturi:2013`,
         otherwise, use :class:`~ott.solvers.linear.sinkhorn_lr.LRSinkhorn` :cite:`scetbon:21a`.
+    epsilon
+        Additional epsilon regularization for the low-rank approach.
     initializer
         Initializer for :class:`~ott.solvers.linear.sinkhorn.Sinkhorn` or
         :class:`~ott.solvers.linear.sinkhorn_lr.LRSinkhorn`, depending on the ``rank``.
@@ -139,19 +155,21 @@ class SinkhornSolver(OTTJaxSolver):
 
     def __init__(
         self,
+        jit: bool = True,
         rank: int = -1,
+        epsilon: float = 0.0,
         initializer: SinkhornInitializer_t = None,
         initializer_kwargs: Mapping[str, Any] = types.MappingProxyType({}),
         **kwargs: Any,
     ):
-        super().__init__()
+        super().__init__(jit=jit)
         if rank > -1:
-            kwargs = _filter_kwargs(Sinkhorn, LRSinkhorn, **kwargs)
-            initializer = initializer if initializer is not None else "rank2"  # set rank2 as default LR initializer
-            self._solver = LRSinkhorn(rank=rank, initializer=initializer, kwargs_init=initializer_kwargs, **kwargs)
+            initializer = "rank2" if initializer is None else initializer
+            self._solver = LRSinkhorn(
+                rank=rank, epsilon=epsilon, initializer=initializer, kwargs_init=initializer_kwargs, **kwargs
+            )
         else:
-            kwargs = _filter_kwargs(Sinkhorn, **kwargs)
-            initializer = initializer if initializer is not None else "default"  # `None` not handled by backend
+            initializer = "default" if initializer is None else initializer
             self._solver = Sinkhorn(initializer=initializer, kwargs_init=initializer_kwargs, **kwargs)
 
     def _prepare(
@@ -159,24 +177,34 @@ class SinkhornSolver(OTTJaxSolver):
         xy: Optional[TaggedArray] = None,
         x: Optional[TaggedArray] = None,
         y: Optional[TaggedArray] = None,
-        epsilon: Optional[Epsilon_t] = None,
+        # geometry
+        epsilon: Optional[Union[float, Epsilon]] = None,
+        relative_epsilon: Optional[bool] = None,
         batch_size: Optional[int] = None,
         scale_cost: Scale_t = 1.0,
+        cost_kwargs: Mapping[str, Any] = types.MappingProxyType({}),
         cost_matrix_rank: Optional[int] = None,
+        # problem
         **kwargs: Any,
     ) -> LinearProblem:
         del x, y
         if xy is None:
             raise ValueError(f"Unable to create geometry from `xy={xy}`.")
 
-        geom = self._create_geometry(xy, epsilon=epsilon, batch_size=batch_size, scale_cost=scale_cost, **kwargs)
+        geom = self._create_geometry(
+            xy,
+            epsilon=epsilon,
+            relative_epsilon=relative_epsilon,
+            batch_size=batch_size,
+            scale_cost=scale_cost,
+            **cost_kwargs,
+        )
+        # TODO(MUCDK): do we really want to do this? solver rank/geom rank are 2 different things
         if self.is_low_rank:
-            geom = geom.to_LRCGeometry(
-                rank=self.rank if cost_matrix_rank is None else cost_matrix_rank
-            )  # batch_size cannot be passed in this function
-        kwargs = _filter_kwargs(LinearProblem, **kwargs)
+            rank = self.rank if cost_matrix_rank is None else cost_matrix_rank
+            # batch_size cannot be passed in this function
+            geom = geom.to_LRCGeometry(rank=rank)
         self._problem = LinearProblem(geom, **kwargs)
-
         return self._problem
 
     @property
@@ -187,6 +215,13 @@ class SinkhornSolver(OTTJaxSolver):
     @property
     def problem_kind(self) -> ProblemKind_t:  # noqa: D102
         return "linear"
+
+    @classmethod
+    def _call_kwargs(cls) -> Tuple[Set[str], Set[str]]:
+        geom_kwargs = {"epsilon", "relative_epsilon", "batch_size", "scale_cost", "cost_kwargs", "cost_matrix_rank"}
+        problem_kwargs = set(inspect.signature(LinearProblem).parameters.keys())
+        problem_kwargs -= {"geom"}
+        return geom_kwargs | problem_kwargs, {"epsilon"}
 
 
 class GWSolver(OTTJaxSolver):
@@ -201,13 +236,13 @@ class GWSolver(OTTJaxSolver):
     rank
         Rank of the quadratic solver. If `-1` use the full-rank GW :cite:`memoli:2011`,
         otherwise, use the low-rank approach :cite:`scetbon:21b`.
-    initializer
-        Initializer for :class:`~ott.solvers.quadratic.gromov_wasserstein.GromovWasserstein`.
     gamma
         Only in low-rank setting: the (inverse of the) gradient step size used by the mirror descent algorithm
-        (:cite:`scetbon:22b`).
+        :cite:`scetbon:22b`.
     gamma_rescale
         Only in low-rank setting: whether to rescale `gamma` every iteration as described in :cite:`scetbon:22b`.
+    initializer
+        Initializer for :class:`~ott.solvers.quadratic.gromov_wasserstein.GromovWasserstein`.
     initializer_kwargs
         Keyword arguments for the initializer.
     linear_solver_kwargs
@@ -220,23 +255,20 @@ class GWSolver(OTTJaxSolver):
     def __init__(
         self,
         rank: int = -1,
-        initializer: QuadInitializer_t = None,
         gamma: float = 10.0,
         gamma_rescale: bool = True,
+        initializer: QuadInitializer_t = None,
         initializer_kwargs: Mapping[str, Any] = types.MappingProxyType({}),
         linear_solver_kwargs: Mapping[str, Any] = types.MappingProxyType({}),
         **kwargs: Any,
     ):
         super().__init__()
         if rank > -1:
-            initializer = initializer if initializer is not None else "rank2"
-            linear_ot_solver = LRSinkhorn(
-                rank=rank, gamma=gamma, gamma_rescale=gamma_rescale, **linear_solver_kwargs
-            )  # initialization handled by quad_initializer
+            linear_ot_solver = LRSinkhorn(rank=rank, gamma=gamma, gamma_rescale=gamma_rescale, **linear_solver_kwargs)
+            initializer = "rank2" if initializer is None else initializer
         else:
-            initializer = None
             linear_ot_solver = Sinkhorn(**linear_solver_kwargs)
-        kwargs = _filter_kwargs(GromovWasserstein, WassersteinSolver, **kwargs)
+            initializer = None
         self._solver = GromovWasserstein(
             rank=rank,
             linear_ot_solver=linear_ot_solver,
@@ -250,39 +282,39 @@ class GWSolver(OTTJaxSolver):
         xy: Optional[TaggedArray] = None,
         x: Optional[TaggedArray] = None,
         y: Optional[TaggedArray] = None,
+        # geometry
+        epsilon: Optional[Union[float, Epsilon]] = None,
+        relative_epsilon: Optional[bool] = None,
+        batch_size: Optional[int] = None,
+        scale_cost: Scale_t = 1.0,
+        cost_kwargs: Mapping[str, Any] = types.MappingProxyType({}),
+        cost_matrix_rank: Optional[int] = None,
+        # problem
         alpha: float = 0.5,
         **kwargs: Any,
     ) -> QuadraticProblem:
         if x is None or y is None:
             raise ValueError(f"Unable to create geometry from `x={x}`, `y={y}`.")
-        geom_xx = self._create_geometry(x, **kwargs)
-        geom_yy = self._create_geometry(y, **kwargs)
+        geom_kwargs: Any = {
+            "epsilon": epsilon,
+            "relative_epsilon": relative_epsilon,
+            "batch_size": batch_size,
+            "scale_cost": scale_cost,
+            "cost_matrix_rank": cost_matrix_rank,
+            **cost_kwargs,
+        }
+        geom_xx = self._create_geometry(x, **geom_kwargs)
+        geom_yy = self._create_geometry(y, **geom_kwargs)
         if alpha == 1.0 or xy is None:  # GW
-            # arbitrary fused penalty (must be positive)
+            # arbitrary fused penalty; must be positive
             geom_xy, fused_penalty = None, 1.0
         else:  # FGW
-            fused_penalty = self._alpha_to_fused_penalty(alpha)
-            geom_xy = self._create_geometry(xy, **kwargs)
-            self._validate_geoms(geom_xx, geom_yy, geom_xy)
+            fused_penalty = alpha_to_fused_penalty(alpha)
+            geom_xy = self._create_geometry(xy, **geom_kwargs)
+            check_shapes(geom_xx, geom_yy, geom_xy)
 
-        kwargs = _filter_kwargs(QuadraticProblem, **kwargs)
-        self._problem = QuadraticProblem(geom_xx, geom_yy, geom_xy=geom_xy, fused_penalty=fused_penalty, **kwargs)
+        self._problem = QuadraticProblem(geom_xx, geom_yy, geom_xy, fused_penalty=fused_penalty, **kwargs)
         return self._problem
-
-    @staticmethod
-    def _validate_geoms(geom_x: Geometry, geom_y: Geometry, geom_xy: Geometry) -> None:
-        n, m = geom_xy.shape
-        n_, m_ = geom_x.shape[0], geom_y.shape[0]
-        if n != n_:
-            raise ValueError(f"Expected the first geometry to have `{n}` points, found `{n_}`.")
-        if m != m_:
-            raise ValueError(f"Expected the second geometry to have `{m}` points, found `{m_}`.")
-
-    @staticmethod
-    def _alpha_to_fused_penalty(alpha: float) -> float:
-        if not (0 < alpha <= 1):
-            raise ValueError(f"Expected `alpha` to be in interval `(0, 1]`, found `{alpha}`.")
-        return (1 - alpha) / alpha
 
     @property
     def x(self) -> Optional[Geometry]:
@@ -307,3 +339,11 @@ class GWSolver(OTTJaxSolver):
     @property
     def problem_kind(self) -> ProblemKind_t:  # noqa: D102
         return "quadratic"
+
+    @classmethod
+    def _call_kwargs(cls) -> Tuple[Set[str], Set[str]]:
+        geom_kwargs = {"epsilon", "relative_epsilon", "batch_size", "scale_cost", "cost_kwargs", "cost_matrix_rank"}
+        problem_kwargs = set(inspect.signature(QuadraticProblem).parameters.keys())
+        problem_kwargs -= {"geom_xx", "geom_yy", "geom_xy", "fused_penalty"}
+        problem_kwargs |= {"alpha"}
+        return geom_kwargs | problem_kwargs, {"epsilon"}

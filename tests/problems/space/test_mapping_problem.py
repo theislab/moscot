@@ -7,6 +7,7 @@ import numpy as np
 
 from anndata import AnnData
 
+from moscot.backends.ott._utils import alpha_to_fused_penalty
 from moscot.problems.space import MappingProblem
 from tests._utils import _adata_spatial_split
 from tests.problems.conftest import (
@@ -144,7 +145,7 @@ class TestMappingProblem:
             assert hasattr(quad_prob, val)
             assert getattr(quad_prob, val) == args_to_check[arg]
         assert hasattr(quad_prob, "fused_penalty")
-        assert quad_prob.fused_penalty == problem[key]._solver._alpha_to_fused_penalty(args_to_check["alpha"])
+        assert quad_prob.fused_penalty == alpha_to_fused_penalty(args_to_check["alpha"])
 
         geom = quad_prob.geom_xx
         for arg, val in geometry_args.items():

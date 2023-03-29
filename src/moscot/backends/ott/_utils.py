@@ -1,7 +1,7 @@
-import inspect
-from typing import Any, Callable, Dict, Optional
+from typing import Any, Optional
 
 import jax.numpy as jnp
+from ott.geometry.geometry import Geometry
 from ott.geometry.pointcloud import PointCloud
 from ott.tools.sinkhorn_divergence import sinkhorn_divergence
 
@@ -38,9 +38,16 @@ def _compute_sinkhorn_divergence(
     return float(output.divergence)
 
 
-def _filter_kwargs(*funcs: Callable[..., Any], **kwargs: Any) -> Dict[str, Any]:
-    res = {}
-    for func in funcs:
-        params = inspect.signature(func).parameters
-        res.update({k: v for k, v in kwargs.items() if k in params})
-    return res
+def check_shapes(geom_x: Geometry, geom_y: Geometry, geom_xy: Geometry) -> None:
+    n, m = geom_xy.shape
+    n_, m_ = geom_x.shape[0], geom_y.shape[0]
+    if n != n_:
+        raise ValueError(f"Expected the first geometry to have `{n}` points, found `{n_}`.")
+    if m != m_:
+        raise ValueError(f"Expected the second geometry to have `{m}` points, found `{m_}`.")
+
+
+def alpha_to_fused_penalty(alpha: float) -> float:
+    if not (0 < alpha <= 1):
+        raise ValueError(f"Expected `alpha` to be in interval `(0, 1]`, found `{alpha}`.")
+    return (1 - alpha) / alpha

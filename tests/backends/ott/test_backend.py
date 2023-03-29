@@ -18,6 +18,7 @@ from ott.solvers.quadratic.gromov_wasserstein import solve as gromov_wasserstein
 
 from moscot._types import ArrayLike, Device_t
 from moscot.backends.ott import GWSolver, SinkhornSolver
+from moscot.backends.ott._utils import alpha_to_fused_penalty
 from moscot.base.output import BaseSolverOutput
 from moscot.base.solver import O, OTSolver
 from moscot.utils.tagged_array import Tag
@@ -134,7 +135,7 @@ class TestFGW:
             geom_xx=PointCloud(x, epsilon=eps),
             geom_yy=PointCloud(y, epsilon=eps),
             geom_xy=PointCloud(xx, yy, epsilon=eps),
-            fused_penalty=GWSolver._alpha_to_fused_penalty(alpha),
+            fused_penalty=alpha_to_fused_penalty(alpha),
             epsilon=eps,
             threshold=thresh,
         )
@@ -161,7 +162,7 @@ class TestFGW:
             geom_xx=PointCloud(x, epsilon=eps),
             geom_yy=PointCloud(y, epsilon=eps),
             geom_xy=PointCloud(xx, yy, epsilon=eps),
-            fused_penalty=GWSolver._alpha_to_fused_penalty(alpha),
+            fused_penalty=alpha_to_fused_penalty(alpha),
             epsilon=eps,
             threshold=thresh,
         )
@@ -184,7 +185,7 @@ class TestFGW:
             geom_xx=Geometry(cost_matrix=x_cost, epsilon=eps),
             geom_yy=Geometry(cost_matrix=y_cost, epsilon=eps),
             geom_xy=Geometry(cost_matrix=xy_cost, epsilon=eps),
-            fused_penalty=GWSolver._alpha_to_fused_penalty(alpha),
+            fused_penalty=alpha_to_fused_penalty(alpha),
         )
         gt = GromovWasserstein(epsilon=eps, threshold=thresh)(problem)
 
@@ -320,7 +321,7 @@ class TestOutputPlotting(PlotTester, metaclass=PlotTesterMeta):
         out.plot_costs(last=3)
 
     def test_plot_errors_sink(self, x: Geom_t, y: Geom_t):
-        out = SinkhornSolver(store_inner_inners=True)(xy=(x, y))
+        out = SinkhornSolver()(xy=(x, y))
         out.plot_errors()
 
     def test_plot_errors_gw(self, x: Geom_t, y: Geom_t):
