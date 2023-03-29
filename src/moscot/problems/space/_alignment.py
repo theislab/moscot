@@ -118,7 +118,6 @@ class AlignmentProblem(CompoundProblem[K, B], SpatialAlignmentMixin[K, B]):
         %(initializer_kwargs)s
         %(gw_kwargs)s
         %(sinkhorn_lr_kwargs)s
-        %(gw_lr_kwargs)s
         %(linear_solver_kwargs)s
         %(device_solve)s
         %(kwargs_quad_fused)s

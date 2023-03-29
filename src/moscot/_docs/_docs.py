@@ -296,20 +296,6 @@ max_iterations
 threshold
     Threshold used as convergence criterion for the outer Gromov-Wasserstein loop.
 """
-_gw_lr_kwargs = """\
-ranks
-    Ranks of the cost matrices, see
-    :meth:`~ott.geometry.geometry.Geometry.to_LRCGeometry`. Used when
-    geometries are *not* :class:`~ott.geometry.pointcloud.PointCloud` with
-    `'sqeucl'` cost function. If `-1`, the geometries will not be converted
-    to low-rank. If :class:`tuple`, it specifies the ranks of ``geom_xx``,
-    ``geom_yy`` and ``geom_xy``, respectively. If :class:`int`, rank is shared
-    across all geometries.
-tolerances
-    Tolerances used when converting geometries to low-rank. Used
-    when geometries are not :class:`~ott.geometry.pointcloud.PointCloud` with
-    `'sqeucl'` cost. If :class:`float`, it is shared across all geometries.
-"""
 _scale_cost = """\
 scale_cost
     How to rescale the cost matrix. Implemented scalings are
@@ -439,7 +425,6 @@ d = DocstringProcessor(
     sinkhorn_lr_kwargs=_sinkhorn_lr_kwargs,
     cost_matrix_rank=_cost_matrix_rank,  # TODO(@MUCDK): test for this. cannot be tested with current `test_pass_for_arguments`.  # noqa: E501
     gw_kwargs=_gw_kwargs,
-    gw_lr_kwargs=_gw_lr_kwargs,
     scale_cost=_scale_cost,
     cost_lin=_cost_lin,
     cost=_cost,
