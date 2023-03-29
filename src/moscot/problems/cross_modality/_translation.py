@@ -106,12 +106,12 @@ class TranslationProblem(CompoundProblem[K, OTProblem], CrossModalityTranslation
 
         x = {"attr": "obsm", "key": src_attr} if isinstance(src_attr, str) else src_attr
         y = {"attr": "obsm", "key": tgt_attr} if isinstance(tgt_attr, str) else tgt_attr
-        self.filtered_vars = var_names
-        if self.filtered_vars is not None:
-            xy, kwargs = handle_joint_attr(joint_attr, kwargs)
-        else:
-            xy = None
-        #xy, kwargs = handle_joint_attr(joint_attr, kwargs)
+        #self.filtered_vars = var_names
+        #if self.filtered_vars is not None:
+        #    xy, kwargs = handle_joint_attr(joint_attr, kwargs)
+        #else:
+        #    xy = None
+        xy, kwargs = handle_joint_attr(joint_attr, kwargs)
         xy, x, y = handle_cost(xy=xy, x=x, y=y, cost=cost)
         if xy is not None:
             kwargs["xy"] = xy
