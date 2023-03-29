@@ -101,8 +101,8 @@ class TranslationProblem(CompoundProblem[K, OTProblem], CrossModalityTranslation
         :class:`moscot.problems.cross_modality.TranslationProblem`.
 
         """
-        self._src_attr = src_attr['key']
-        self._tgt_attr = tgt_attr['key']
+        self._src_attr = src_attr if isinstance(src_attr, str) else src_attr['key']
+        self._tgt_attr = tgt_attr if isinstance(tgt_attr, str) else tgt_attr['key']
 
         x = {"attr": "obsm", "key": src_attr} if isinstance(src_attr, str) else src_attr
         y = {"attr": "obsm", "key": tgt_attr} if isinstance(tgt_attr, str) else tgt_attr
