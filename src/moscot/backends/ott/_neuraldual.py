@@ -1,5 +1,5 @@
 from types import MappingProxyType
-from typing import Any, Dict, List, Tuple, Literal, Callable, Iterable
+from typing import Any, Dict, List, Tuple, Literal, Callable, Iterable, Optional
 from collections import defaultdict
 
 from flax.core import freeze
@@ -26,7 +26,7 @@ Train_t = Dict[str, Dict[str, List[float]]]
 
 
 class NeuralDualSolver:
-    r"""Solver of the ICNN-based Kantorovich dual.
+    """Solver of the ICNN-based Kantorovich dual.
 
     Optimal transport mapping via input convex neural networks,
     Makkuva-Taghvaei-Lee-Oh, ICML'20.
@@ -36,8 +36,8 @@ class NeuralDualSolver:
     ----------
     input_dim
         Input dimension of data (without condition)
-    cond_dim
-        Dimension of the condition. 0 corresponds to no condition.
+    conditional
+        Whether to use partial input convex neural networks (:cite:`bunne2022supervised`).
     batch_size
         Batch size.
     tau_a
@@ -47,7 +47,7 @@ class NeuralDualSolver:
     epsilon
         Entropic regularisation parameter in the inner sampling loop.
     seed
-        Seed for splitting the data
+        Seed for splitting the data.
     pos_weights
         If `True` enforces non-negativity of corresponding weights of ICNNs, else only penalizes negativity.
     dim_hidden
@@ -77,16 +77,18 @@ class NeuralDualSolver:
         Number of iterations (batches) for pretraining with the identity map.
     pretrain_scale
         Variance of Gaussian distribution used for pretraining.
-    combiner_kwargs
-        Keyword arguments for the combiner module in the PICNN TODO(@MUCDK cite Bunne).
     valid_sinkhorn_kwargs
         Keyword arguments for computing the discrete sinkhorn divergence for assessing model training.
         By default, the same `tau_a`, `tau_b` and `epsilon` are taken as for the inner sampling loop.
+    compute_wasserstein_baseline
+        Whether to compute the Sinkhorn divergence between the source and the target distribution as
+        a baseline for the Wasserstein-2 distance computed with the neural solver.
 
     Warning
     -------
-    TODO: Explain warning about validation set size.
-
+    If `compute_wasserstein_distance` is `True`, a discrete OT problem has to be solved on the validation
+    dataset which scales linearly in the validation set size. If `train_size=1.0` the validation dataset size
+    is the full dataset size, hence this is a source of prolonged run time or Out of Memory Error.
     """
 
     def __init__(
@@ -137,6 +139,7 @@ class NeuralDualSolver:
         self.valid_sinkhorn_kwargs = dict(valid_sinkhorn_kwargs)
         self.valid_sinkhorn_kwargs.setdefault("tau_a", self.tau_a)
         self.valid_sinkhorn_kwargs.setdefault("tau_b", self.tau_b)
+        self.valid_eps = self.valid_sinkhorn_kwargs.pop("epsilon", 1e-2)
         self.compute_wasserstein_baseline = compute_wasserstein_baseline
         self.key: ArrayLike = jax.random.PRNGKey(seed)
 
@@ -168,7 +171,19 @@ class NeuralDualSolver:
         self.setup(neural_f, neural_g, optimizer_f, optimizer_g)
 
     def setup(self, neural_f: ICNN, neural_g: ICNN, optimizer_f: optax.OptState, optimizer_g: optax.OptState):
-        """Initialize all components required to train the `NeuralDual`."""
+        """Initialize all components required to train the :class:`moscot.backends.ott.NeuralDual`.
+
+        Parameters
+        ----------
+        neural_f
+            Network to parameterize the reverse transport map.
+        neural_g
+            Network to parameterize the forward transport map.
+        optimizer_f
+            Optimizer for `neural_f`.
+        optimizer_g
+            Optimizer for `neural_g`.
+        """
         key_f, key_g, self.key = jax.random.split(self.key, 3)
 
         # check setting of network architectures
@@ -194,9 +209,21 @@ class NeuralDualSolver:
         trainloader: JaxSampler,
         validloader: JaxSampler,
     ) -> Tuple[DualPotentials, Train_t]:
-        """Call the training script, and return the trained neural dual."""
+        """Start the training pipeline of the :class:`moscot.backends.ott.NeuralDual`.
+
+        Parameters
+        ----------
+        trainloader
+            Data loader for the training data.
+        validloader
+            Data loader for the validation data.
+
+        Returns
+        -------
+        The trained model and training statistics.
+        """
         pretrain_logs = {}
-        if self.pretrain_iters > 0:  # TODO(@MUCDK) does it make sense to use the data for pretraining on the identity?
+        if self.pretrain_iters > 0:
             pretrain_logs = self.pretrain_identity(trainloader.conditions)
 
         train_logs = self.train_neuraldual(trainloader, validloader)
@@ -205,8 +232,20 @@ class NeuralDualSolver:
 
         return (res, logs)
 
-    def pretrain_identity(self, conditions: jnp.ndarray) -> Train_t:
-        """Pretrain the neural networks to identity."""
+    def pretrain_identity(
+        self, conditions: Optional[jnp.ndarray]
+    ) -> Train_t:  # TODO(@lucaeyr) conditions can be `None` right?
+        """Pretrain the neural networks to parameterize the identity map.
+
+        Parameters
+        ----------
+        conditions
+            Conditions in the case of a conditional Neural OT model, otherwise `None`.
+
+        Returns
+        -------
+        Pre-training statistics.
+        """
 
         @jax.jit
         def pretrain_loss_fn(
@@ -225,7 +264,7 @@ class NeuralDualSolver:
             """Update function for the pretraining on identity."""
             # sample gaussian data with given scale
             x = self.pretrain_scale * jax.random.normal(key, [self.batch_size, self.input_dim])
-            condition = jax.random.choice(key, conditions) if self.conditional else None
+            condition = jax.random.choice(key, conditions) if self.conditional else None  # type:ignore[arg-type]
             grad_fn = jax.value_and_grad(pretrain_loss_fn, argnums=0)
             loss, grads = grad_fn(state.params, x, condition, state)
             return loss, state.apply_gradients(grads=grads)
@@ -249,7 +288,19 @@ class NeuralDualSolver:
         trainloader: JaxSampler,
         validloader: JaxSampler,
     ) -> Train_t:
-        """Train the neural dual and call evaluation script."""
+        """Train the model.
+
+        Parameters
+        ----------
+        trainloader
+            Data loader for the training data.
+        validloader
+            Data loader for the validation data.
+
+        Returns
+        -------
+        Training statistics.
+        """
         # set logging dictionaries
         train_logs: Dict[str, List[float]] = defaultdict(list)
         valid_logs: Dict[str, List[float]] = defaultdict(list)
@@ -273,13 +324,13 @@ class NeuralDualSolver:
             if self.compute_wasserstein_baseline:
                 if valid_batch[pair]["source"].shape[0] * valid_batch[pair]["source"].shape[1] > 25000000:
                     logger.warning(
-                        "Validation Sinkhorn divergence is expensive to compute due to large size of the validation set. Consider setting `valid_sinkhorn_divergence` to False."
+                        "Validation Sinkhorn divergence is expensive to compute due to large size of the validation "
+                        "set. Consider setting `valid_sinkhorn_divergence` to False."
                     )
                 sink_dist.append(
                     _compute_sinkhorn_divergence(
                         point_cloud_1=valid_batch[pair]["source"],
                         point_cloud_2=valid_batch[pair]["target"],
-                        epsilon=self.epsilon,
                         **self.valid_sinkhorn_kwargs,
                     )
                 )
@@ -373,7 +424,7 @@ class NeuralDualSolver:
         self,
         to_optimize: Literal["f", "g"],
     ) -> Callable[[TrainState, TrainState, Dict[str, jnp.ndarray]], Tuple[TrainState, Dict[str, float]]]:
-        """Get train step."""
+        """Get one training step."""
 
         def loss_f_fn(
             params_f: jnp.ndarray,
@@ -452,7 +503,7 @@ class NeuralDualSolver:
     def get_eval_step(
         self,
     ) -> Callable[[TrainState, TrainState, Dict[str, jnp.ndarray]], Dict[str, float]]:
-        """Get validation step."""
+        """Get one validation step."""
 
         @jax.jit
         def valid_step(
@@ -486,14 +537,14 @@ class NeuralDualSolver:
                 PointCloud,
                 x=pred_target,
                 y=batch["target"],
-                epsilon=self.epsilon,
+                epsilon=self.valid_eps,
                 sinkhorn_kwargs=self.valid_sinkhorn_kwargs,
             ).divergence
             sink_loss_inverse = sinkhorn_divergence(
                 PointCloud,
                 x=pred_source,
                 y=batch["source"],
-                epsilon=self.epsilon,
+                epsilon=self.valid_eps,
                 sinkhorn_kwargs=self.valid_sinkhorn_kwargs,
             ).divergence
             return {
