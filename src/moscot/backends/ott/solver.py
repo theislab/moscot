@@ -146,6 +146,8 @@ class SinkhornSolver(OTTJaxSolver):
     ):
         super().__init__(jit=jit)
         if rank > -1:
+            kwargs.setdefault("gamma", 10)
+            kwargs.setdefault("gamma_rescale", True)
             initializer = "rank2" if initializer is None else initializer
             self._solver = LRSinkhorn(
                 rank=rank, epsilon=epsilon, initializer=initializer, kwargs_init=initializer_kwargs, **kwargs
@@ -218,11 +220,6 @@ class GWSolver(OTTJaxSolver):
     rank
         Rank of the quadratic solver. If `-1` use the full-rank GW :cite:`memoli:2011`,
         otherwise, use the low-rank approach :cite:`scetbon:21b`.
-    gamma
-        Only in low-rank setting: the (inverse of the) gradient step size used by the mirror descent algorithm
-        :cite:`scetbon:22b`.
-    gamma_rescale
-        Only in low-rank setting: whether to rescale `gamma` every iteration as described in :cite:`scetbon:22b`.
     initializer
         Initializer for :class:`~ott.solvers.quadratic.gromov_wasserstein.GromovWasserstein`.
     initializer_kwargs
@@ -236,17 +233,19 @@ class GWSolver(OTTJaxSolver):
 
     def __init__(
         self,
+        jit: bool = True,
         rank: int = -1,
-        gamma: float = 10.0,
-        gamma_rescale: bool = True,
         initializer: QuadInitializer_t = None,
         initializer_kwargs: Mapping[str, Any] = types.MappingProxyType({}),
         linear_solver_kwargs: Mapping[str, Any] = types.MappingProxyType({}),
         **kwargs: Any,
     ):
-        super().__init__()
+        super().__init__(jit=jit)
         if rank > -1:
-            linear_ot_solver = LRSinkhorn(rank=rank, gamma=gamma, gamma_rescale=gamma_rescale, **linear_solver_kwargs)
+            linear_solver_kwargs = dict(linear_solver_kwargs)
+            linear_solver_kwargs.setdefault("gamma", 10)
+            linear_solver_kwargs.setdefault("gamma_rescale", True)
+            linear_ot_solver = LRSinkhorn(rank=rank, **linear_solver_kwargs)
             initializer = "rank2" if initializer is None else initializer
         else:
             linear_ot_solver = Sinkhorn(**linear_solver_kwargs)

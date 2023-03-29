@@ -190,7 +190,7 @@ class TestSpatioTemporalProblem:
         solver = problem[key].solver.solver
         for arg, val in gw_solver_args.items():
             assert hasattr(solver, val)
-            assert getattr(solver, val) == args_to_check[arg]
+            assert getattr(solver, val) == args_to_check[arg], arg
 
         sinkhorn_solver = solver.linear_ot_solver
         lin_solver_args = gw_linear_solver_args if args_to_check["rank"] == -1 else gw_lr_linear_solver_args
@@ -201,8 +201,7 @@ class TestSpatioTemporalProblem:
                 if isinstance(getattr(sinkhorn_solver, val), tuple)
                 else getattr(sinkhorn_solver, val)
             )
-            args_to_c = args_to_check if arg in ["gamma", "gamma_rescale"] else args_to_check["linear_solver_kwargs"]
-            assert el == args_to_c[arg]
+            assert el == args_to_check["linear_solver_kwargs"][arg], arg
 
         quad_prob = problem[key]._solver._problem
         for arg, val in quad_prob_args.items():

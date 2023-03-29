@@ -117,8 +117,6 @@ class TestMappingProblem:
         adataref, adatasp = _adata_spatial_split(adata_mapping)
         problem = MappingProblem(adataref, adatasp)
 
-        adatasp = adatasp[adatasp.obs["batch"] == 1]
-
         key = ("1", "ref")
         problem = problem.prepare(batch_key="batch", sc_attr={"attr": "obsm", "key": "X_pca"})
         problem = problem.solve(**args_to_check)
@@ -137,8 +135,7 @@ class TestMappingProblem:
                 if isinstance(getattr(sinkhorn_solver, val), tuple)
                 else getattr(sinkhorn_solver, val)
             )
-            args_to_c = args_to_check if arg in ["gamma", "gamma_rescale"] else args_to_check["linear_solver_kwargs"]
-            assert el == args_to_c[arg]
+            assert el == args_to_check["linear_solver_kwargs"][arg], arg
 
         quad_prob = problem[key]._solver._problem
         for arg, val in quad_prob_args.items():
