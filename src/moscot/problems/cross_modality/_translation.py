@@ -40,7 +40,6 @@ class TranslationProblem(CompoundProblem[K, OTProblem], CrossModalityTranslation
     def __init__(self, adata_src: AnnData, adata_tgt: AnnData, **kwargs: Any):
         super().__init__(adata_src, **kwargs)
         self._adata_tgt = adata_tgt
-        self.filtered_vars: Optional[Sequence[str]] = None
 
     def _create_policy(  # type: ignore[override]
         self,
@@ -109,9 +108,9 @@ class TranslationProblem(CompoundProblem[K, OTProblem], CrossModalityTranslation
             xy = None
         else:    
             xy, kwargs = handle_joint_attr(joint_attr, kwargs)
-            self._joint_attr_1_shape = getattr(self.adata_src, xy["x_attr"])[xy["x_key"]].shape
-            self._joint_attr_2_shape = getattr(self.adata_tgt, xy["y_attr"])[xy["y_key"]].shape
-            if not self._joint_attr_1_shape[1] == self._joint_attr_2_shape[1]:
+            joint_attr_1_shape = getattr(self.adata_src, xy["x_attr"])[xy["x_key"]].shape
+            joint_attr_2_shape = getattr(self.adata_tgt, xy["y_attr"])[xy["y_key"]].shape
+            if not joint_attr_1_shape[1] == joint_attr_2_shape[1]:
                 raise ValueError("The `joint_attr` must be of same dimension.")
             kwargs["xy"] = xy
         xy, x, y = handle_cost(xy=xy, x=x, y=y, cost=cost)
