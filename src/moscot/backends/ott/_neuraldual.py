@@ -37,7 +37,7 @@ class NeuralDualSolver:
     input_dim
         Input dimension of data (without condition)
     conditional
-        Whether to use partial input convex neural networks (:cite:`amos2017niput`).
+        Whether to use partial input convex neural networks (:cite:`bunne2022supervised`).
     batch_size
         Batch size.
     tau_a
@@ -139,7 +139,7 @@ class NeuralDualSolver:
         self.valid_sinkhorn_kwargs = dict(valid_sinkhorn_kwargs)
         self.valid_sinkhorn_kwargs.setdefault("tau_a", self.tau_a)
         self.valid_sinkhorn_kwargs.setdefault("tau_b", self.tau_b)
-        self.valid_sinkhorn_kwargs.setdefault("epsilon", self.epsilon if epsilon is not None else 1e-2)
+        self.valid_sinkhorn_kwargs.setdefault("epsilon", 1e-2)
         self.compute_wasserstein_baseline = compute_wasserstein_baseline
         self.key: ArrayLike = jax.random.PRNGKey(seed)
 
@@ -235,7 +235,7 @@ class NeuralDualSolver:
     def pretrain_identity(
         self, conditions: Optional[jnp.ndarray]
     ) -> Train_t:  # TODO(@lucaeyr) conditions can be `None` right?
-        """Pretrain the neural networks to parameterize the identity map as suggested in :cite:`bunne2022supervised`.
+        """Pretrain the neural networks to parameterize the identity map.
 
         Parameters
         ----------
@@ -537,12 +537,14 @@ class NeuralDualSolver:
                 PointCloud,
                 x=pred_target,
                 y=batch["target"],
+                epsilon=self.valid_sinkhorn_kwargs.pop("epsilon"),
                 sinkhorn_kwargs=self.valid_sinkhorn_kwargs,
             ).divergence
             sink_loss_inverse = sinkhorn_divergence(
                 PointCloud,
                 x=pred_source,
                 y=batch["source"],
+                epsilon=self.valid_sinkhorn_kwargs.pop("epsilon"),
                 sinkhorn_kwargs=self.valid_sinkhorn_kwargs,
             ).divergence
             return {
