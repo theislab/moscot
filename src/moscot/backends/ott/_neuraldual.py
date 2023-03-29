@@ -139,7 +139,7 @@ class NeuralDualSolver:
         self.valid_sinkhorn_kwargs = dict(valid_sinkhorn_kwargs)
         self.valid_sinkhorn_kwargs.setdefault("tau_a", self.tau_a)
         self.valid_sinkhorn_kwargs.setdefault("tau_b", self.tau_b)
-        self.valid_sinkhorn_kwargs.setdefault("epsilon", 1e-2)
+        self.valid_eps = self.valid_sinkhorn_kwargs.pop("epsilon", 1e-2)
         self.compute_wasserstein_baseline = compute_wasserstein_baseline
         self.key: ArrayLike = jax.random.PRNGKey(seed)
 
@@ -537,14 +537,14 @@ class NeuralDualSolver:
                 PointCloud,
                 x=pred_target,
                 y=batch["target"],
-                epsilon=self.valid_sinkhorn_kwargs.pop("epsilon"),
+                epsilon=self.valid_eps,
                 sinkhorn_kwargs=self.valid_sinkhorn_kwargs,
             ).divergence
             sink_loss_inverse = sinkhorn_divergence(
                 PointCloud,
                 x=pred_source,
                 y=batch["source"],
-                epsilon=self.valid_sinkhorn_kwargs.pop("epsilon"),
+                epsilon=self.valid_eps,
                 sinkhorn_kwargs=self.valid_sinkhorn_kwargs,
             ).divergence
             return {
