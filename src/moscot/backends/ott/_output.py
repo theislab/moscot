@@ -323,7 +323,7 @@ class NeuralOutput(ConvergencePlotterMixin, BaseSolverOutput):
     @property
     def cost(self) -> float:
         """Predicted optimal transport cost."""
-        return self.training_logs["valid_logs"]["predicted_cost"][0]
+        return self.training_logs["valid_logs"]["predicted_cost"]
 
     @property
     def converged(self) -> bool:
@@ -383,8 +383,8 @@ class NeuralOutput(ConvergencePlotterMixin, BaseSolverOutput):
         if "sinkhorn_dist" in self.training_logs["valid_logs"].keys():
             params = {
                 "predicted_cost": round(self.cost, 3),
-                "best_loss": round(self.training_logs["valid_logs"]["best_loss"][0], 3),
-                "sinkhorn_dist": round(self.training_logs["valid_logs"]["sinkhorn_dist"][0], 3),
+                "best_loss": round(self.training_logs["valid_logs"]["best_loss"], 3),
+                "sinkhorn_dist": round(self.training_logs["valid_logs"]["sinkhorn_dist"], 3),
             }
         else:
             params = {
