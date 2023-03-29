@@ -77,7 +77,6 @@ class TranslationProblem(CompoundProblem[K, OTProblem], CrossModalityTranslation
         self,
         src_attr: Str_Dict_t,
         tgt_attr: Str_Dict_t,
-        var_names: Optional[Sequence[Any]] = None,
         joint_attr: Optional[Union[str, Mapping[str, Any]]] = None,
         cost: Union[
             Literal["sq_euclidean", "cosine", "bures", "unbalanced_bures"],
@@ -106,15 +105,17 @@ class TranslationProblem(CompoundProblem[K, OTProblem], CrossModalityTranslation
 
         x = {"attr": "obsm", "key": src_attr} if isinstance(src_attr, str) else src_attr
         y = {"attr": "obsm", "key": tgt_attr} if isinstance(tgt_attr, str) else tgt_attr
-        #self.filtered_vars = var_names
-        #if self.filtered_vars is not None:
-        #    xy, kwargs = handle_joint_attr(joint_attr, kwargs)
-        #else:
-        #    xy = None
-        xy, kwargs = handle_joint_attr(joint_attr, kwargs)
-        xy, x, y = handle_cost(xy=xy, x=x, y=y, cost=cost)
-        if xy is not None:
+        if joint_attr is None:
+            xy = None
+        else:    
+            xy, kwargs = handle_joint_attr(joint_attr, kwargs)
+            self._joint_attr_1_shape = getattr(self.adata_src, xy["x_attr"])[xy["x_key"]].shape
+            self._joint_attr_2_shape = getattr(self.adata_tgt, xy["y_attr"])[xy["y_key"]].shape
+            if not self._joint_attr_1_shape[1] == self._joint_attr_2_shape[1]:
+                raise ValueError("The `joint_attr` must be of same dimension.")
             kwargs["xy"] = xy
+        xy, x, y = handle_cost(xy=xy, x=x, y=y, cost=cost)
+            
         return super().prepare(x=x, y=y, policy="external_star", key=None, cost=cost, a=a, b=b, **kwargs)
 
     @d.dedent

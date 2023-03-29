@@ -68,7 +68,7 @@ class CrossModalityTranslationMixin(AnalysisMixin[K, B]):
         ----------
         %(forward)s
 
-        Return
+        Returns
         -------
         %(translation)s
         
