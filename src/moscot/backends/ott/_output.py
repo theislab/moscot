@@ -14,7 +14,7 @@ import jax.numpy as jnp
 import jaxlib.xla_extension as xla_ext
 
 from moscot._types import Device_t, ArrayLike
-from moscot.solvers._output import BaseSolverOutput
+from moscot.solvers._output import BaseNeuralOutput, BaseSolverOutput
 from moscot.backends.ott._utils import get_nearest_neighbors
 
 __all__ = ["OTTOutput", "NeuralOutput"]
@@ -180,9 +180,16 @@ class OTTOutput(ConvergencePlotterMixin, BaseSolverOutput):
         return jnp.ones((n,))
 
 
-class NeuralOutput(ConvergencePlotterMixin, BaseSolverOutput):
+class NeuralOutput(ConvergencePlotterMixin, BaseNeuralOutput):
     """
     Output representation of neural OT problems.
+
+    Parameters
+    ----------
+    output
+        The trained model as :class:`ott.problems.linear.potentials.DualPotentials`.
+    training_logs
+        Statistics of the model training.
     """
 
     def __init__(self, output: DualPotentials, training_logs: Train_t):
@@ -205,6 +212,27 @@ class NeuralOutput(ConvergencePlotterMixin, BaseSolverOutput):
         return_fig: bool = False,
         **kwargs: Any,
     ) -> Optional[Figure]:
+        """Plot the convergence curve.
+
+        Parameters
+        ----------
+        data
+            Which training curve to plot.
+        last_k
+            How many of the last k steps of the algorithm to plot. If `None`, plot the full curve.
+        title
+            Title of the plot. If `None`, it is determined automatically.
+        figsize
+            Size of the figure.
+        dpi
+            Dots per inch.
+        save
+            Path where to save the figure.
+        return_fig
+            Whether to return the figure.
+        kwargs
+            Keyword arguments for :meth:`~matplotlib.axes.Axes.plot`.
+        """
         if len(data) > 1:
             raise ValueError(f"`data` must be of length 1, but found {len(data)}.")
         k, v = next(iter(data.items()))
@@ -229,41 +257,73 @@ class NeuralOutput(ConvergencePlotterMixin, BaseSolverOutput):
         """%(shape)s"""
         raise NotImplementedError()
 
-    def project_transport_matrix(
+    def project_transport_matrix(  # type:ignore[override]
         self,
-        src: ArrayLike,
-        tgt: ArrayLike,
+        src_cells: ArrayLike,
+        tgt_cells: ArrayLike,
         forward: bool = True,
-        save_transport_matrix: bool = True,
+        save_transport_matrix: bool = False,  # TODO(@MUCDK) adapt order of arguments
         batch_size: int = 1024,
         k: int = 30,
         length_scale: Optional[float] = None,
         seed: int = 42,
     ) -> sp.csr_matrix:
-        """Project Monge Map onto a transport matrix."""
-        src, tgt = jnp.asarray(src), jnp.asarray(tgt)
-        func = self.push if forward else self.pull
-        src_dist, tgt_dist = src, tgt if forward else tgt, src
+        """Project Neural OT map onto cells.
+
+        In constrast to discrete OT, Neural OT does not necessarily map cells onto cells,
+        but a cell can also be mapped to a location between two cells. This function computes
+        a pseudo-transport matrix considering the neighborhood of where a cell is mapped to.
+        Therefore, a neighborhood graph of `k` target cells is computed around each transported cell
+        of the source distribution. The assignment likelihood of each mapped cell to the target cells is then
+        computed with a Gaussian kernel with parameter `length_scale`.
+
+        Parameters
+        ----------
+        src_cells
+            Cells which are to be mapped.
+        tgt_cells
+            Cells from which the neighborhood graph around the mapped `src_cells` are computed.
+        forward
+            Whether to map cells based on the forward transport map or backward transport map.
+        save_transport_matrix
+            Whether to save the transport matrix.
+        batch_size
+            Number of data points in the source distribution the neighborhoodgraph is computed
+            for in parallel.
+        k
+            Number of neighbors to construct the k-nearest neighbor graph of a mapped cell.
+        length_scale
+            Length scale of the Gaussian kernel used to compute the assignment likelihood. If `None`,
+            `length_scale` is set to the empirical standard deviation of `batch_size` pairs of data points of the
+            mapped source and target distribution.
+        seed
+            Random seed for sampling the pairs of distributions for computing the variance in case `length_scale`
+            is `None`.
+
+        Returns
+        -------
+        The projected transport matrix.
+        """
+        src_cells, tgt_cells = jnp.asarray(src_cells), jnp.asarray(tgt_cells)
+        func, src_dist, tgt_dist = (self.push, src_cells, tgt_cells) if forward else (self.pull, tgt_cells, src_cells)
         get_knn_fn = jax.vmap(get_nearest_neighbors, in_axes=(0, None, None))
         row_indices: Union[jnp.ndarray, List[jnp.ndarray]] = []
         column_indices: Union[jnp.ndarray, List[jnp.ndarray]] = []
         distances_list: Union[jnp.ndarray, List[jnp.ndarray]] = []
         if length_scale is None:
             key = jax.random.PRNGKey(seed)
-            src_batch = jax.random.choice(key, src.shape[0], shape=(batch_size))
-            tgt_batch = jax.random.choice(key, tgt.shape[0], shape=(batch_size))
-            length_scale = jnp.std(jnp.concatenate(src_batch, tgt_batch))
+            src_batch = jax.random.choice(key, src_cells.shape[0], shape=((batch_size,)))
+            tgt_batch = jax.random.choice(key, tgt_cells.shape[0], shape=((batch_size,)))
+            length_scale = jnp.std(jnp.concatenate(func(src_batch), tgt_batch))
         for index in range(0, len(src_dist), batch_size):
-            # compute k nearest neighbors for current source batch compared to whole target
             distances, indices = get_knn_fn(func(src_dist[index : index + batch_size]), tgt_dist, k)
             distances = jnp.exp(-((distances / length_scale) ** 2))
             distances /= jnp.expand_dims(jnp.sum(distances, axis=1), axis=1)
             distances_list.append(distances.flatten())
             column_indices.append(indices.flatten())
             row_indices.append(
-                jnp.repeat(jnp.arange(index, index + min(batch_size, len(src_dist) - index)), min(k, len(tgt)))
+                jnp.repeat(jnp.arange(index, index + min(batch_size, len(src_dist) - index)), min(k, len(tgt_cells)))
             )
-        # create sparse matrix with normalized exp(-d(x,y)) as entries
         distances = jnp.concatenate(distances_list)
         row_indices = jnp.concatenate(row_indices)
         column_indices = jnp.concatenate(column_indices)
@@ -279,17 +339,16 @@ class NeuralOutput(ConvergencePlotterMixin, BaseSolverOutput):
 
     @property
     def transport_matrix(self) -> ArrayLike:
-        """%(transport_matrix)s"""
+        """Projected transport matrix."""
         if self._transport_matrix is None:
             raise ValueError(
-                "The forward projected transport matrix has not been computed yet."
-                " Please call `project_transport_matrix`."
+                "The projected transport matrix has not been computed yet." " Please call `project_transport_matrix`."
             )
         return self._transport_matrix
 
     @property
     def inverse_transport_matrix(self) -> ArrayLike:
-        """%(inverse_transport_matrix)s"""
+        """Projected transport matrix based on the inverse map."""
         if self._inverse_transport_matrix is None:
             raise ValueError(
                 "The inverse projected transport matrix has not been computed yet."
@@ -301,8 +360,16 @@ class NeuralOutput(ConvergencePlotterMixin, BaseSolverOutput):
         self,
         device: Optional[Device_t] = None,
     ) -> "NeuralOutput":
-        """
-        Transfer the output to another device or change its data type.
+        """Transfer the output to another device or change its data type.
+
+        Parameters
+        ----------
+        device
+            If not `None`, the output will be transferred to `device`.
+
+        Returns
+        -------
+        The output on a saved on `device`.
         """
         # TODO(michalk8): when polishing docs, move the definition to the base class + use docrep
         if isinstance(device, str) and ":" in device:
@@ -335,7 +402,7 @@ class NeuralOutput(ConvergencePlotterMixin, BaseSolverOutput):
     def potentials(  # type: ignore[override]
         self,
     ) -> Tuple[Callable[[jnp.ndarray], float], Callable[[jnp.ndarray], float]]:
-        """Returns the two learned potential functions."""
+        """Return the learned potential functions."""
         f = jax.vmap(self._output.f)
         g = jax.vmap(self._output.g)
         return f, g

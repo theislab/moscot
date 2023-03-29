@@ -2,7 +2,7 @@ from docrep import DocstringProcessor
 
 _adata = """\
 adata
-    Annotated data object."""
+    Annotated data object of :class:`anndata.AnnData`."""
 _adatas = """\
 adatas
     Annotated data objects.

@@ -46,7 +46,7 @@ adata
 """
 _ott_jax_batch_size = """\
 batch_size
-    number of data points the matrix-vector products are applied to at the same time. The larger, the more memory
+    Number of data points the matrix-vector products are applied to at the same time. The larger, the more memory
     is required.
 """
 _key_added_plotting = """\
@@ -55,7 +55,7 @@ key_added
     for the corresponding plotting functions are stored.
     See TODO Notebook for how :mod:`moscot.plotting` works.
 """
-_return_cell_transition = "Transition matrix of cells or groups of cells."
+_return_cell_transition = "Aggregated transition matrix of cells or groups of cells."
 _notes_cell_transition = """\
 To visualise the results, see :func:`moscot.pl.cell_transition`.
 """
