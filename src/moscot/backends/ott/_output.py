@@ -380,9 +380,14 @@ class NeuralOutput(ConvergencePlotterMixin, BaseSolverOutput):
         return jnp.ones((n,))
 
     def _format_params(self, fmt: Callable[[Any], str]) -> str:
-        params = {
-            "predicted_cost": round(self.cost, 3),
-            "best_loss": round(self.training_logs["valid_logs"]["best_loss"][0], 3),
-            "sinkhorn_dist": round(self.training_logs["valid_logs"]["sinkhorn_dist"][0], 3),
-        }
+        if "sinkhorn_dist" in self.training_logs["valid_logs"].keys():
+            params = {
+                "predicted_cost": round(self.cost, 3),
+                "best_loss": round(self.training_logs["valid_logs"]["best_loss"][0], 3),
+                "sinkhorn_dist": round(self.training_logs["valid_logs"]["sinkhorn_dist"][0], 3),
+            }
+        else:
+            params = {
+                "predicted_cost": round(self.cost, 3),
+            }
         return ", ".join(f"{name}={fmt(val)}" for name, val in params.items())

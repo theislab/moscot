@@ -1,5 +1,5 @@
 from types import MappingProxyType
-from typing import Any, Dict, List, Tuple, Literal, Callable, Iterable
+from typing import Any, Dict, List, Tuple, Literal, Callable, Iterable, Union
 from collections import defaultdict
 
 from flax.core import freeze
@@ -252,7 +252,7 @@ class NeuralDualSolver:
         """Train the neural dual and call evaluation script."""
         # set logging dictionaries
         train_logs: Dict[str, List[float]] = defaultdict(list)
-        valid_logs: Dict[str, List[float]] = defaultdict(list)
+        valid_logs: Dict[str, Union[List[float], float]] = defaultdict(list)
         average_meters: Dict[str, RunningAverageMeter] = defaultdict(RunningAverageMeter)
         valid_average_meters: Dict[str, RunningAverageMeter] = defaultdict(RunningAverageMeter)
         sink_dist: List[float] = []
@@ -358,12 +358,14 @@ class NeuralDualSolver:
                     average_meter.reset()
             if curr_patience >= self.patience:
                 break
-        self.state_f = self.state_f.replace(params=best_params_f)
-        self.state_g = self.state_g.replace(params=best_params_g)
-        valid_logs["best_loss"] = [float(best_loss)]
         if self.compute_wasserstein_baseline:
-            valid_logs["sinkhorn_dist"] = [float(np.mean(sink_dist))]
-        valid_logs["predicted_cost"] = [float(best_iter_distance)]
+            self.state_f = self.state_f.replace(params=best_params_f)
+            self.state_g = self.state_g.replace(params=best_params_g)
+            valid_logs["best_loss"] = float(best_loss)
+            valid_logs["sinkhorn_dist"] = float(np.mean(sink_dist))
+            valid_logs["predicted_cost"] = float(best_iter_distance)
+        else:
+            valid_logs["predicted_cost"] = float(valid_logs["mean_neural_dual_dist"][-1])
         return {
             "train_logs": train_logs,
             "valid_logs": valid_logs,
