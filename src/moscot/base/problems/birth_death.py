@@ -113,34 +113,23 @@ class BirthDeathMixin:
             - mouse, apoptosis - `Hallmark P53 Pathway, MSigDB
               <https://www.gsea-msigdb.org/gsea/msigdb/cards/HALLMARK_P53_PATHWAY>`_.
         """
-        # TODO(michalk8): make slightly more compact
-        if gene_set_proliferation is None:
-            self.proliferation_key = None
-        else:
-            if isinstance(gene_set_proliferation, str):
-                sc.tl.score_genes(
-                    self.adata,
-                    proliferation_markers(gene_set_proliferation),  # type: ignore[arg-type]
-                    score_name=proliferation_key,
-                    **kwargs,
-                )
-            else:
-                sc.tl.score_genes(self.adata, gene_set_proliferation, score_name=proliferation_key, **kwargs)
+        if isinstance(gene_set_proliferation, str):
+            gene_set_proliferation = proliferation_markers(gene_set_proliferation)  # type: ignore[arg-type]
+        if gene_set_proliferation is not None:
+            sc.tl.score_genes(self.adata, gene_set_proliferation, score_name=proliferation_key, **kwargs)
             self.proliferation_key = proliferation_key
-        if gene_set_apoptosis is None:
-            self.apoptosis_key = None
         else:
-            if isinstance(gene_set_apoptosis, str):
-                sc.tl.score_genes(
-                    self.adata,
-                    apoptosis_markers(gene_set_apoptosis),  # type: ignore[arg-type]
-                    score_name=apoptosis_key,
-                    **kwargs,
-                )
-            else:
-                sc.tl.score_genes(self.adata, gene_set_apoptosis, score_name=apoptosis_key, **kwargs)
+            self.proliferation_key = None
+
+        if isinstance(gene_set_apoptosis, str):
+            gene_set_apoptosis = apoptosis_markers(gene_set_apoptosis)  # type: ignore[arg-type]
+        if gene_set_apoptosis is not None:
+            sc.tl.score_genes(self.adata, gene_set_apoptosis, score_name=apoptosis_key, **kwargs)
             self.apoptosis_key = apoptosis_key
-        if gene_set_proliferation is None and gene_set_apoptosis is None:
+        else:
+            self.apoptosis_key = None
+
+        if self.proliferation_key is None and self.apoptosis_key is None:
             logger.warning(
                 "At least one of `gene_set_proliferation` or `gene_set_apoptosis` must be provided to score genes."
             )
