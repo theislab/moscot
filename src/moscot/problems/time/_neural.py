@@ -4,7 +4,7 @@ from typing import Any, Dict, Type, Tuple, Union, Literal, Mapping, Iterable, Op
 from moscot._types import Numeric_t
 from moscot.problems._utils import handle_joint_attr
 from moscot._constants._constants import Policy
-from moscot.problems.time._mixins import NeuralAnalysisMixin
+from moscot.problems.base._mixins import NeuralAnalysisMixin
 from moscot.problems.base._birth_death import BirthDeathMixin, BirthDeathNeuralProblem
 from moscot.problems.base._compound_problem import CompoundProblem
 
@@ -34,10 +34,10 @@ class TemporalNeuralProblem(
         policy: Literal["sequential", "tril", "triu", "explicit"] = "sequential",
         a: Optional[str] = None,
         b: Optional[str] = None,
-        marginal_kwargs: Mapping[str, Any] = {},
+        marginal_kwargs: Mapping[str, Any] = MappingProxyType({}),
         **kwargs: Any,
     ) -> "TemporalNeuralProblem":
-        """Prepare the :class:`moscot.problems.time.TemporalNeuralProblem`.
+        r"""Prepare the :class:`moscot.problems.time.TemporalNeuralProblem`.
 
         Parameters
         ----------
@@ -47,28 +47,30 @@ class TemporalNeuralProblem(
             - If `None`, PCA on :attr:`anndata.AnnData.X` is computed.
             - If `str`, it must refer to a key in :attr:`anndata.AnnData.obsm`.
             - If `dict`, the dictionary stores `attr` (attribute of :class:`anndata.AnnData`) and `key`
-            (key of :class:`anndata.AnnData` ``['{attr}']``).
+              (key of :class:`anndata.AnnData` ``['{attr}']``).
         policy
-            Defines the rule according to which pairs of distributions are selected to compute the transport map between.
+            Defines the rule according to which pairs of distributions are selected to compute the transport map
+            between.
         a
             Specifies the left marginals. If
 
                 - ``a`` is :class:`str` - the left marginals are taken from :attr:`anndata.AnnData.obs`,
                 - if :meth:`~moscot.problems.base._birth_death.BirthDeathMixin.score_genes_for_marginals` was run and
-                if ``a`` is `None`, marginals are computed based on a birth-death process as suggested in
-                :cite:`schiebinger:19`,
+                  if ``a`` is `None`, marginals are computed based on a birth-death process as suggested in
+                  :cite:`schiebinger:19`,
                 - if :meth:`~moscot.problems.base._birth_death.BirthDeathMixin.score_genes_for_marginals` was run and
-                if ``a`` is `None`, and additionally ``'scaling'`` is provided in ``marginal_kwargs``,
-                the marginals are computed as
-                :math:`\\exp(\frac{(\textit{proliferation} - \textit{apoptosis}) \\cdot (t_2 - t_1)}{\textit{scaling}})`
-                rather than using a birth-death process,
+                  if ``a`` is `None`, and additionally ``'scaling'`` is provided in ``marginal_kwargs``,
+                  the marginals are computed as
+                  :math:`\\exp(\frac{(\textit{proliferation} - \textit{apoptosis}) \\cdot (t_2 - t_1)}{\textit{scaling}})` # noqa: E501
+                  rather than using a birth-death process,
                 - otherwise or if ``a`` is :obj:`False`, uniform marginals are used.
 
         b
             Specifies the right marginals. If
+
                 - ``b`` is :class:`str` - the left marginals are taken from :attr:`anndata.AnnData.obs`,
                 - if :meth:`~moscot.problems.base._birth_death.BirthDeathMixin.score_genes_for_marginals` was run
-                uniform (mean of left marginals) right marginals are used,
+                  uniform (mean of left marginals) right marginals are used,
                 - otherwise or if ``b`` is :obj:`False`, uniform marginals are used.
 
         marginal_kwargs
@@ -111,6 +113,7 @@ class TemporalNeuralProblem(
         xy, kwargs = handle_joint_attr(joint_attr, kwargs)
 
         # TODO(michalk8): needs to be modified
+        marginal_kwargs = dict(marginal_kwargs)
         marginal_kwargs["proliferation_key"] = self.proliferation_key
         marginal_kwargs["apoptosis_key"] = self.apoptosis_key
         if a is None:
@@ -128,7 +131,7 @@ class TemporalNeuralProblem(
             **kwargs,
         )
 
-    def solve(
+    def solve(  # type:ignore[override]
         self,
         batch_size: int = 1024,
         tau_a: float = 1.0,

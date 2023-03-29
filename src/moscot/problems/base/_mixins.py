@@ -569,8 +569,8 @@ class NeuralAnalysisMixin(AnalysisMixin[K, B]):
 
     def cell_transition(
         self,
-        source: Union[K, Tuple[AnnData, Dict[str, str]]],
-        target: Union[K, Tuple[AnnData, Dict[str, str]]],
+        source: Union[K, Tuple[K, AnnData, Union[str, Dict[str, str]]]],
+        target: Union[K, Tuple[K, AnnData, Union[str, Dict[str, str]]]],
         source_groups: Str_Dict_t,
         target_groups: Str_Dict_t,
         forward: bool = False,  # return value will be row-stochastic if forward=True, else column-stochastic
@@ -591,38 +591,54 @@ class NeuralAnalysisMixin(AnalysisMixin[K, B]):
         Parameters
         ----------
         source
-            If of type `K`, key identifying the source distribution. If tuple of :class:`anndata.AnnData`
+            If of type `K`, key identifying the source distribution.
+            If of type :class:`tuple``, the first argument is the key of the source distribution the model was
+            trained on, the second argument of :class:`anndata.AnnData`, and the third element one of
+
+                - `str`, then it must refer to a key in :attr:`anndata.AnnData.obsm`.
+                - `dict`, then the dictionary stores `attr` (attribute of :class:`anndata.AnnData`) and `key`
+                  (key of :class:`anndata.AnnData` ``['{attr}']``).
+
         target
-            Key identifying the target distribution.
+            If of type `K`, key identifying the target distribution.
+            If of type :class:`tuple``, the first argument is the key of the target distribution the model was
+            trained on, the second argument of :class:`anndata.AnnData`, and the third element one of
+
+                - `str`, then it must refer to a key in :attr:`anndata.AnnData.obsm`.
+                - `dict`, then the dictionary stores `attr` (attribute of :class:`anndata.AnnData`) and `key`
+                  (key of :class:`anndata.AnnData` ``['{attr}']``).
+
         source_groups
             Can be one of the following:
 
                 - if `source_groups` is of type :class:`str` this should correspond to a key in
-                :attr:`anndata.AnnData.obs`. In this case, the categories in the transition matrix correspond to the
-                unique values in :attr:`anndata.AnnData.obs` ``['{source_groups}']``.
+                  :attr:`anndata.AnnData.obs`. In this case, the categories in the transition matrix correspond to the
+                  unique values in :attr:`anndata.AnnData.obs` ``['{source_groups}']``.
 
                 - if `target_groups` is of type :class:`dict`, its key should correspond to a key in
-                :attr:`anndata.AnnData.obs` and its value to a list containing a subset of categories present in
-                :attr:`anndata.AnnData.obs` ``['{source_groups.keys()[0]}']``. The order of the list determines the
-                order in the transition matrix.
+                  :attr:`anndata.AnnData.obs` and its value to a list containing a subset of categories present in
+                  :attr:`anndata.AnnData.obs` ``['{source_groups.keys()[0]}']``. The order of the list determines the
+                  order in the transition matrix.
 
         target_groups
             Can be one of the following:
 
                 - if `target_groups` is of type :class:`str` this should correspond to a key in
-                :attr:`anndata.AnnData.obs`. In this case, the categories in the transition matrix correspond to the
-                unique values in :attr:`anndata.AnnData.obs` ``['{target_groups}']``.
+                  :attr:`anndata.AnnData.obs`. In this case, the categories in the transition matrix correspond to the
+                  unique values in :attr:`anndata.AnnData.obs` ``['{target_groups}']``.
 
                 - if `target_groups` is of :class:`dict`, its key should correspond to a key in
-                :attr:`anndata.AnnData.obs` and its value to a list containing a subset of categories present in
-                :attr:`anndata.AnnData.obs` ``['{target_groups.keys()[0]}']``. The order of the list determines the
-                order in the transition matrix.
+                  :attr:`anndata.AnnData.obs` and its value to a list containing a subset of categories present in
+                  :attr:`anndata.AnnData.obs` ``['{target_groups.keys()[0]}']``. The order of the list determines the
+                  order in the transition matrix.
+
         forward
-            If `True` computes transition from `source_annotations` to `target_annotations`, otherwise backward.
+            Computes transition from `source_annotations` to `target_annotations` if `True`, otherwise backward.
         aggregation_mode
 
             - `group`: transition probabilities from the groups defined by `source_annotation` are returned.
             - `cell`: the transition probabilities for each cell are returned.
+
         batch_size
             Number of data points the matrix-vector products are applied to at the same time.
             The larger, the more memory is required.
@@ -646,42 +662,66 @@ class NeuralAnalysisMixin(AnalysisMixin[K, B]):
         To visualise the results, see :func:`moscot.pl.cell_transition`.
         """
 
-        if TYPE_CHECKING:
-            assert isinstance(self.temporal_key, str)
-        problem = self.problems[source, target]
-        if new_adata is not None:
-            if new_adata_joint_attr is None:
-                raise ValueError("`new_adata_joint_attr` must be provided if `new_adata` is given.")
-            adata = new_adata
-            data_source = adata[adata.obs[self.temporal_key] == source].obsm[new_adata_joint_attr].copy()
-            data_target = adata[adata.obs[self.temporal_key] == target].obsm[new_adata_joint_attr].copy()
-            logger.info(f"Computing projected transport matrix for new adata object with k={k}.")
-            tm_result = problem.project_transport_matrix(  # type: ignore[union-attr]
-                data_source, data_target, forward=forward, save_transport_matrix=False, batch_size=batch_size, k=k
-            )
+        if isinstance(source, tuple):
+            if len(source) != 2:
+                raise ValueError("If `source` is a tuple it must be of length 2.")
+            if not isinstance(source[1], AnnData):
+                raise TypeError("The first element of the tuple must be of type AnnData.")
+            if isinstance(source[2], str):
+                source_data = source[1].obsm[source[2]]
+            elif isinstance(source[2], dict):
+                attr, val = next(iter(source[2]))
+                source_data = getattr(source[1], attr)[val]
+            else:
+                raise TypeError("The second element of the tuple must be of type `str` or `dict`.")
+            key_source, adata_src = source[0], source[1]
         else:
-            adata = self.adata
-            try:
-                # try to get projected transport matrix
-                if forward:
-                    tm_result = solution.transport_matrix  # type: ignore[union-attr]
-                else:
-                    tm_result = solution.inverse_transport_matrix  # type: ignore[union-attr]
-            except ValueError:
-                data_source = self.problems[source, target].xy.data_src  # type: ignore[union-attr]
-                data_target = self.problems[source, target].xy.data_tgt  # type: ignore[union-attr]
-                logger.info(f"Projecting transport matrix based on {k} nearest neighbors.")
-                tm_result = problem.project_transport_matrix(  # type: ignore[union-attr]
-                    source, target, forward=forward, save_transport_matrix=True, batch_size=batch_size, k=k
-                )
+            key_source, source_data, adata_src = source, None, self.adata  # type:ignore[attr-defined]
+
+        if isinstance(target, tuple):
+            if len(target) != 2:
+                raise ValueError("If `source` is a tuple it must be of length 2.")
+            if not isinstance(target[1], AnnData):
+                raise TypeError("The first element of the tuple must be of type AnnData.")
+            if isinstance(target[2], str):
+                target_data = target[1].obsm[target[2]]
+            elif isinstance(target[2], dict):
+                attr, val = next(iter(target[2]))
+                target_data = getattr(target[1], attr)[val]
+            else:
+                raise TypeError("The second element of the tuple must be of type `str` or `dict`.")
+            adata_tgt = target[0], target[1]
+        else:
+            key_target, target_data, adata_tgt = target, None, self.adata  # type:ignore[attr-defined]
+
+        problem = self.problems[key_source, key_target]  # type:ignore[attr-defined]
+        try:
+            if forward:
+                tm_result = problem.solution.transport_matrix
+            else:
+                tm_result = problem.solution.inverse_transport_matrix
+        except ValueError:
+            logger.info(f"Projecting transport matrix based on {k} nearest neighbors.")
+            tm_result = problem.project_transport_matrix(
+                source_data, target_data, forward=forward, save_transport_matrix=True, batch_size=batch_size, k=k
+            )
+
         annotation_key_source, annotations_present_source, annotations_ordered_source = _validate_args_cell_transition(
-            adata, source_groups
+            adata_src, source_groups
         )
         annotation_key_target, annotations_present_target, annotations_ordered_target = _validate_args_cell_transition(
-            adata, target_groups
+            adata_src, target_groups
         )
-        df_source = adata[adata.obs[self.temporal_key] == source].obs[[annotation_key_source]].copy()
-        df_target = adata[adata.obs[self.temporal_key] == target].obs[[annotation_key_target]].copy()
+        df_source = (
+            adata_src[adata_src.obs[self.temporal_key] == source]  # type:ignore[attr-defined]
+            .obs[[annotation_key_source]]
+            .copy()
+        )
+        df_target = (
+            adata_tgt[adata_tgt.obs[self.temporal_key] == target]  # type:ignore[attr-defined]
+            .obs[[annotation_key_target]]
+            .copy()
+        )
         annotations_verified_source, annotations_verified_target = _validate_annotations(
             df_source=df_source,
             df_target=df_target,
@@ -716,7 +756,7 @@ class NeuralAnalysisMixin(AnalysisMixin[K, B]):
                 "target_groups": target_groups,
             }
             Key.uns.set_plotting_vars(
-                adata=adata,
+                adata=self.adata,  # type:ignore[attr-defined]
                 pl_func_key=PlottingKeys.CELL_TRANSITION,
                 key=key_added,
                 value=plot_vars,
@@ -763,7 +803,7 @@ class NeuralAnalysisMixin(AnalysisMixin[K, B]):
         %(return_push_pull)s
 
         """
-        result = self._apply(
+        result = self._apply(  # type:ignore[attr-defined]
             start=source,
             end=target,
             data=data,
@@ -779,10 +819,10 @@ class NeuralAnalysisMixin(AnalysisMixin[K, B]):
 
         if key_added is not None:
             plot_vars = {
-                "temporal_key": self.temporal_key,
+                "temporal_key": self.temporal_key,  # type:ignore[attr-defined]
             }
-            self.adata.obs[key_added] = self._flatten(result, key=self.temporal_key)
-            Key.uns.set_plotting_vars(self.adata, PlottingKeys.PUSH, key_added, plot_vars)
+            self.adata.obs[key_added] = self._flatten(result, key=self.temporal_key)  # type:ignore[attr-defined, misc]
+            Key.uns.set_plotting_vars(self.adata, PlottingKeys.PUSH, key_added, plot_vars)  # type:ignore[attr-defined]
         if return_data:
             return result
 
@@ -819,7 +859,7 @@ class NeuralAnalysisMixin(AnalysisMixin[K, B]):
         %(return_push_pull)s
 
         """
-        result = self._apply(
+        result = self._apply(  # type:ignore[attr-defined]
             start=source,
             end=target,
             data=data,
@@ -834,9 +874,11 @@ class NeuralAnalysisMixin(AnalysisMixin[K, B]):
 
         if key_added is not None:
             plot_vars = {
-                "temporal_key": self.temporal_key,
+                "temporal_key": self.temporal_key,  # type:ignore[attr-defined]
             }
-            self.adata.obs[key_added] = self._flatten(result, key=self.temporal_key)
-            Key.uns.set_plotting_vars(self.adata, PlottingKeys.PULL, key_added, plot_vars)
+            self.adata.obs[key_added] = self._flatten(result, key=self.temporal_key)  # type:ignore[misc, attr-defined]
+            Key.uns.set_plotting_vars(
+                self.adata, PlottingKeys.PULL, key_added, plot_vars  # type:ignore[attr-defined]
+            )
         if return_data:
             return result

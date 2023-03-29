@@ -139,6 +139,7 @@ class NeuralDualSolver:
         self.valid_sinkhorn_kwargs = dict(valid_sinkhorn_kwargs)
         self.valid_sinkhorn_kwargs.setdefault("tau_a", self.tau_a)
         self.valid_sinkhorn_kwargs.setdefault("tau_b", self.tau_b)
+        self.valid_sinkhorn_kwargs.setdefault("epsilon", self.epsilon if epsilon is not None else 1e-2)
         self.compute_wasserstein_baseline = compute_wasserstein_baseline
         self.key: ArrayLike = jax.random.PRNGKey(seed)
 
@@ -263,7 +264,7 @@ class NeuralDualSolver:
             """Update function for the pretraining on identity."""
             # sample gaussian data with given scale
             x = self.pretrain_scale * jax.random.normal(key, [self.batch_size, self.input_dim])
-            condition = jax.random.choice(key, conditions) if self.conditional else None
+            condition = jax.random.choice(key, conditions) if self.conditional else None  # type:ignore[arg-type]
             grad_fn = jax.value_and_grad(pretrain_loss_fn, argnums=0)
             loss, grads = grad_fn(state.params, x, condition, state)
             return loss, state.apply_gradients(grads=grads)
@@ -330,7 +331,6 @@ class NeuralDualSolver:
                     _compute_sinkhorn_divergence(
                         point_cloud_1=valid_batch[pair]["source"],
                         point_cloud_2=valid_batch[pair]["target"],
-                        epsilon=self.epsilon,
                         **self.valid_sinkhorn_kwargs,
                     )
                 )
@@ -537,14 +537,12 @@ class NeuralDualSolver:
                 PointCloud,
                 x=pred_target,
                 y=batch["target"],
-                epsilon=self.epsilon,
                 sinkhorn_kwargs=self.valid_sinkhorn_kwargs,
             ).divergence
             sink_loss_inverse = sinkhorn_divergence(
                 PointCloud,
                 x=pred_source,
                 y=batch["source"],
-                epsilon=self.epsilon,
                 sinkhorn_kwargs=self.valid_sinkhorn_kwargs,
             ).divergence
             return {

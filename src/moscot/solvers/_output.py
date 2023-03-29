@@ -4,6 +4,7 @@ from typing import Any, Tuple, Callable, Iterable, Optional
 from functools import partial
 
 from scipy.sparse.linalg import LinearOperator
+import scipy.sparse as sp
 
 from moscot._types import Device_t, ArrayLike, DTypeLike
 from moscot._logging import logger
@@ -243,10 +244,20 @@ class MatrixSolverOutput(BaseSolverOutput, ABC):
 
 class BaseNeuralOutput(BaseSolverOutput, ABC):
     @abstractmethod
-    def project_transport_matrix():
+    def project_transport_matrix(
+        self,
+        source: Optional[ArrayLike] = None,
+        target: Optional[ArrayLike] = None,
+        forward: bool = True,
+        save_transport_matrix: bool = False,
+        batch_size: int = 1024,
+        k: int = 30,
+        length_scale: Optional[float] = None,
+        seed: int = 42,
+    ) -> sp.csr_matrix:
         pass
 
     @abstractmethod
     @property
-    def inverse_transport_matrix():
+    def inverse_transport_matrix(selft) -> ArrayLike:
         pass

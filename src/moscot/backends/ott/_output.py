@@ -257,7 +257,7 @@ class NeuralOutput(ConvergencePlotterMixin, BaseNeuralOutput):
         """%(shape)s"""
         raise NotImplementedError()
 
-    def project_transport_matrix(
+    def project_transport_matrix(  # type:ignore[override]
         self,
         src_cells: ArrayLike,
         tgt_cells: ArrayLike,
@@ -305,15 +305,15 @@ class NeuralOutput(ConvergencePlotterMixin, BaseNeuralOutput):
         The projected transport matrix.
         """
         src_cells, tgt_cells = jnp.asarray(src_cells), jnp.asarray(tgt_cells)
-        func, src_dist, tgt_dist = self.push, src_cells, tgt_cells if forward else self.pull, tgt_cells, src_cells
+        func, src_dist, tgt_dist = (self.push, src_cells, tgt_cells) if forward else (self.pull, tgt_cells, src_cells)
         get_knn_fn = jax.vmap(get_nearest_neighbors, in_axes=(0, None, None))
         row_indices: Union[jnp.ndarray, List[jnp.ndarray]] = []
         column_indices: Union[jnp.ndarray, List[jnp.ndarray]] = []
         distances_list: Union[jnp.ndarray, List[jnp.ndarray]] = []
         if length_scale is None:
             key = jax.random.PRNGKey(seed)
-            src_batch = jax.random.choice(key, src_cells.shape[0], shape=(batch_size))
-            tgt_batch = jax.random.choice(key, tgt_cells.shape[0], shape=(batch_size))
+            src_batch = jax.random.choice(key, src_cells.shape[0], shape=((batch_size,)))
+            tgt_batch = jax.random.choice(key, tgt_cells.shape[0], shape=((batch_size,)))
             length_scale = jnp.std(jnp.concatenate(func(src_batch), tgt_batch))
         for index in range(0, len(src_dist), batch_size):
             distances, indices = get_knn_fn(func(src_dist[index : index + batch_size]), tgt_dist, k)

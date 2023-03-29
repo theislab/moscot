@@ -680,6 +680,7 @@ class NeuralOTProblem(OTProblem):  # TODO override set_x/set_y
             backend=backend, device=device, conditional=False, input_dim=self._xy.data_src.shape[1], **kwargs
         )
 
+    @require_solution
     def project_transport_matrix(
         self,
         source: Optional[ArrayLike] = None,
@@ -730,9 +731,11 @@ class NeuralOTProblem(OTProblem):  # TODO override set_x/set_y
         -------
         The projected transport matrix.
         """
+        if TYPE_CHECKING:
+            assert isinstance(self._xy, TaggedArray)  # ensured by require_solution
         src_data = self._xy.data_src if source is None else source
         tgt_data = self._xy.data_tgt if target is None else target
-        return self.solution.project_transport_matrix(
+        return self.solution.project_transport_matrix(  # type:ignore[union-attr]
             src_data,
             tgt_data,
             forward=forward,
