@@ -5,6 +5,7 @@ import pytest
 import jax
 import jax.numpy as jnp
 import numpy as np
+from ott.geometry import costs
 from ott.geometry.geometry import Geometry
 from ott.geometry.low_rank import LRCGeometry
 from ott.geometry.pointcloud import PointCloud
@@ -21,7 +22,7 @@ from moscot.backends.ott import GWSolver, SinkhornSolver
 from moscot.backends.ott._utils import alpha_to_fused_penalty
 from moscot.base.output import BaseSolverOutput
 from moscot.base.solver import O, OTSolver
-from moscot.utils.tagged_array import Tag
+from moscot.utils.tagged_array import Tag, TaggedArray
 from tests._utils import ATOL, RTOL, Geom_t
 from tests.plotting.conftest import PlotTester, PlotTesterMeta
 
@@ -30,7 +31,7 @@ class TestSinkhorn:
     @pytest.mark.fast()
     @pytest.mark.parametrize("jit", [False, True])
     @pytest.mark.parametrize("eps", [None, 1e-2, 1e-1])
-    def test_matches_ott(self, x: Geom_t, eps: Optional[float], jit: bool) -> None:
+    def test_matches_ott(self, x: Geom_t, eps: Optional[float], jit: bool):
         fn = jax.jit(sinkhorn) if jit else sinkhorn
         gt = fn(PointCloud(x, epsilon=eps))
         solver = SinkhornSolver(jit=jit)
@@ -47,21 +48,42 @@ class TestSinkhorn:
 
     @pytest.mark.parametrize("rank", [5, 10])
     @pytest.mark.parametrize("initializer", ["random", "rank2", "k-means"])
-    def test_rank(self, y: Geom_t, rank: Optional[int], initializer: str) -> None:
+    def test_solver_rank(self, y: Geom_t, rank: Optional[int], initializer: str):
         eps = 1e-2
         lr_sinkhorn = LRSinkhorn(rank=rank, initializer=initializer)
-        problem = LinearProblem(PointCloud(y, y, epsilon=eps).to_LRCGeometry())
+        problem = LinearProblem(PointCloud(y, epsilon=eps))
         gt = lr_sinkhorn(problem)
+
         solver = SinkhornSolver(rank=rank, initializer=initializer)
+        assert solver.rank == rank
+        assert solver.is_low_rank
         assert solver.xy is None
         assert isinstance(solver.solver, LRSinkhorn)
 
         pred = solver(xy=(y, y), epsilon=eps)
 
-        assert solver.rank == rank
-        assert solver.is_low_rank
-        assert isinstance(solver.xy, LRCGeometry)
+        assert isinstance(solver.xy, PointCloud)
         assert pred.rank == rank
+        np.testing.assert_allclose(solver._problem.geom.cost_matrix, problem.geom.cost_matrix, rtol=RTOL, atol=ATOL)
+        np.testing.assert_allclose(gt.matrix, pred.transport_matrix, rtol=RTOL, atol=ATOL)
+
+    # TODO(michalk8): remove when new ott-jax version comes out
+    @pytest.mark.xfail(reason="broken on ott-jax==0.4.0")
+    @pytest.mark.parametrize(
+        ("rank", "cost_fn"), [(2, costs.Euclidean()), (3, costs.SqPNorm(p=1.5)), (5, costs.ElasticL1(0.1))]
+    )
+    def test_geometry_rank(self, x: Geom_t, rank: int, cost_fn: costs.CostFn):
+        eps = 0.05
+        geom = PointCloud(x, epsilon=eps, cost_fn=cost_fn).to_LRCGeometry(rank=rank)
+        problem = LinearProblem(geom)
+        gt = Sinkhorn()(problem)
+
+        solver = SinkhornSolver()
+        assert not solver.is_low_rank
+
+        pred = solver(xy=TaggedArray(x, cost=cost_fn), epsilon=eps, cost_matrix_rank=rank)
+
+        assert isinstance(solver.xy, LRCGeometry)
         np.testing.assert_allclose(solver._problem.geom.cost_matrix, problem.geom.cost_matrix, rtol=RTOL, atol=ATOL)
         np.testing.assert_allclose(gt.matrix, pred.transport_matrix, rtol=RTOL, atol=ATOL)
 
@@ -69,7 +91,7 @@ class TestSinkhorn:
 class TestGW:
     @pytest.mark.parametrize("jit", [False, True])
     @pytest.mark.parametrize("eps", [5e-2, 1e-2, 1e-1])
-    def test_matches_ott(self, x: Geom_t, y: Geom_t, eps: Optional[float], jit: bool) -> None:
+    def test_matches_ott(self, x: Geom_t, y: Geom_t, eps: Optional[float], jit: bool):
         thresh = 1e-2
         pc_x, pc_y = PointCloud(x, epsilon=eps), PointCloud(y, epsilon=eps)
         fn = jax.jit(gromov_wasserstein, static_argnames=["threshold", "epsilon"]) if jit else gromov_wasserstein
@@ -109,7 +131,7 @@ class TestGW:
         np.testing.assert_allclose(gt.matrix, pred.transport_matrix, rtol=RTOL, atol=ATOL)
 
     @pytest.mark.parametrize("rank", [-1, 7])
-    def test_rank(self, x: Geom_t, y: Geom_t, rank: int) -> None:
+    def test_solver_rank(self, x: Geom_t, y: Geom_t, rank: int) -> None:
         thresh, eps = 1e-2, 1e-2
         gt = GromovWasserstein(epsilon=eps, rank=rank, threshold=thresh)(
             QuadraticProblem(PointCloud(x, epsilon=eps), PointCloud(y, epsilon=eps))
