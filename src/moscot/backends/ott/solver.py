@@ -183,11 +183,8 @@ class SinkhornSolver(OTTJaxSolver):
             scale_cost=scale_cost,
             **cost_kwargs,
         )
-        # TODO(MUCDK): do we really want to do this? solver rank/geom rank are 2 different things
-        if self.is_low_rank:
-            rank = self.rank if cost_matrix_rank is None else cost_matrix_rank
-            # batch_size cannot be passed in this function
-            geom = geom.to_LRCGeometry(rank=rank)
+        if cost_matrix_rank is not None:
+            geom = geom.to_LRCGeometry(rank=cost_matrix_rank)
         self._problem = LinearProblem(geom, **kwargs)
         return self._problem
 
