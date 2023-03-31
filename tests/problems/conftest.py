@@ -235,7 +235,6 @@ lin_prob_args = {
 }
 
 neuraldual_args_1 = {
-    "conditional": False,
     "batch_size": 8,
     "tau_a": 1.0,
     "tau_b": 1.0,
@@ -255,17 +254,16 @@ neuraldual_args_1 = {
     "pretrain_iters": 10,
     "pretrain_scale": 3.0,
     "valid_sinkhorn_kwargs": {},
-    "compute_wasserstein_baseline": True,
+    "compute_wasserstein_baseline": False,
 }
 
 neuraldual_args_2 = {
-    "conditional": False,
     "batch_size": 8,
     "tau_a": 0.9,
     "tau_b": 0.9,
     "epsilon": 0.1,
     "seed": 0,
-    "pos_weights": False,
+    "pos_weights": True,
     "dim_hidden": (64, 64, 64, 64),
     "beta": 1.0,
     "best_model_metric": "sinkhorn_forward",
@@ -279,5 +277,27 @@ neuraldual_args_2 = {
     "pretrain_iters": 10,
     "pretrain_scale": 3.0,
     "valid_sinkhorn_kwargs": {},
-    "compute_wasserstein_baseline": False,
+    "compute_wasserstein_baseline": True,
+}
+
+neuraldual_solver_args = {
+    "batch_size": "batch_size",
+    "tau_a": "tau_a",
+    "tau_b": "tau_b",
+    "epsilon": "epsilon",
+    "pos_weights": "pos_weights",
+    "beta": "beta",
+    "best_model_metric": "best_model_metric",
+    "iterations": "iterations",
+    "inner_iters": "inner_iters",
+    "valid_freq": "valid_freq",
+    "log_freq": "log_freq",
+    "patience": "patience",
+    "optimizer_f_kwargs": "optimizer_f_kwargs",
+    "optimizer_g_kwargs": "optimizer_g_kwargs",
+    "pretrain_iters": "pretrain_iters",
+    "pretrain_scale": "pretrain_scale",
+    "valid_sinkhorn_kwargs": "valid_sinkhorn_kwargs",
+    "compute_wasserstein_baseline": "compute_wasserstein_baseline",
+    "key": "key",
 }
