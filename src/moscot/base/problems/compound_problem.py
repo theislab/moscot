@@ -264,7 +264,8 @@ class BaseCompoundProblem(BaseProblem, abc.ABC, Generic[K, B]):
         if TYPE_CHECKING:
             assert isinstance(self._problem_manager, ProblemManager)
         problems = self._problem_manager.get_problems(stage=stage)
-        # TODO(michalk8): print how many problems are being solved?
+
+        logger.info(f"Solving `{len(problems)}` problems")
         for _, problem in problems.items():
             logger.info(f"Solving problem {problem}.")
             _ = problem.solve(**kwargs)

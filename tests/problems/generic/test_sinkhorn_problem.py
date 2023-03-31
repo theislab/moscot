@@ -90,9 +90,8 @@ class TestSinkhornProblem:
         assert isinstance(problem[0, 1].xy.data_src, np.ndarray)
         assert problem[0, 1].xy.data_tgt is None
 
-        problem = problem.solve(
-            max_iterations=5, scale_cost=1
-        )  # TODO(@MUCDK) once fixed in OTT-JAX test for scale_cost
+        # TODO(@MUCDK) once fixed in OTT-JAX test for scale_cost
+        problem = problem.solve(max_iterations=5, scale_cost=1)
         assert isinstance(problem[0, 1].xy.data_src, np.ndarray)
         assert problem[0, 1].xy.data_tgt is None
 
@@ -110,27 +109,27 @@ class TestSinkhornProblem:
         solver = problem[(0, 1)].solver.solver
         args = sinkhorn_solver_args if args_to_check["rank"] == -1 else lr_sinkhorn_solver_args
         for arg, val in args.items():
-            assert hasattr(solver, val)
+            assert hasattr(solver, val), val
             el = getattr(solver, val)[0] if isinstance(getattr(solver, val), tuple) else getattr(solver, val)
-            assert el == args_to_check[arg]
+            assert el == args_to_check[arg], arg
 
         lin_prob = problem[(0, 1)]._solver._problem
         for arg, val in lin_prob_args.items():
-            assert hasattr(lin_prob, val)
+            assert hasattr(lin_prob, val), val
             el = getattr(lin_prob, val)[0] if isinstance(getattr(lin_prob, val), tuple) else getattr(lin_prob, val)
-            assert el == args_to_check[arg]
+            assert el == args_to_check[arg], arg
 
         geom = lin_prob.geom
         for arg, val in geometry_args.items():
-            assert hasattr(geom, val)
+            assert hasattr(geom, val), val
             el = getattr(geom, val)[0] if isinstance(getattr(geom, val), tuple) else getattr(geom, val)
-            assert el == args_to_check[arg]
+            assert el == args_to_check[arg], arg
 
         args = pointcloud_args if args_to_check["rank"] == -1 else lr_pointcloud_args
         for arg, val in args.items():
             el = getattr(geom, val)[0] if isinstance(getattr(geom, val), tuple) else getattr(geom, val)
-            assert hasattr(geom, val)
+            assert hasattr(geom, val), val
             if arg == "cost":
-                assert type(el) == type(args_to_check[arg])  # noqa: E721
+                assert type(el) == type(args_to_check[arg]), arg  # noqa: E721
             else:
-                assert el == args_to_check[arg]
+                assert el == args_to_check[arg], arg

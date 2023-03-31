@@ -318,7 +318,8 @@ class OTProblem(BaseProblem):
         device
             Device where to transfer the solution, see :meth:`moscot.base.output.BaseSolverOutput.to`.
         kwargs
-            Keyword arguments for :meth:`moscot.base.solver.BaseSolver.__call__`.
+            Keyword arguments for :class:`moscot.base.solver.BaseSolver` or
+            :meth:`moscot.base.solver.BaseSolver.__call__`.
 
         Returns
         -------
@@ -327,9 +328,9 @@ class OTProblem(BaseProblem):
         - :attr:`solver`: optimal transport solver.
         - :attr:`solution`: optimal transport solution.
         """
-        self._solver = backends.get_solver(self.problem_kind, backend=backend, **kwargs)
-
-        # TODO: add ScaleCost(scale_cost)
+        solver_class = backends.get_solver(self.problem_kind, backend=backend, return_class=True)
+        init_kwargs, call_kwargs = solver_class._partition_kwargs(**kwargs)
+        self._solver = solver_class(**init_kwargs)
 
         self._solution = self._solver(  # type: ignore[misc]
             xy=self._xy,
@@ -338,7 +339,7 @@ class OTProblem(BaseProblem):
             a=self.a,
             b=self.b,
             device=device,
-            **kwargs,
+            **call_kwargs,
         )
         return self
 

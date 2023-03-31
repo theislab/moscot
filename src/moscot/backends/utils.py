@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING, Any, Literal, Tuple, Union
+from typing import TYPE_CHECKING, Any, Literal, Tuple, Type, Union
 
 from moscot import _registry
 from moscot._types import ProblemKind_t
@@ -12,11 +12,12 @@ __all__ = ["get_solver", "register_solver", "get_available_backends"]
 _REGISTRY = _registry.Registry()
 
 
-def get_solver(problem_kind: ProblemKind_t, *, backend: str = "ott", **kwargs: Any) -> Any:
+def get_solver(problem_kind: ProblemKind_t, *, backend: str = "ott", return_class: bool = False, **kwargs: Any) -> Any:
     """TODO."""
     if backend not in _REGISTRY:
         raise ValueError(f"Backend `{backend!r}` is not available.")
-    return _REGISTRY[backend](problem_kind, **kwargs)
+    solver_class = _REGISTRY[backend](problem_kind)
+    return solver_class if return_class else solver_class(**kwargs)
 
 
 def register_solver(backend: str) -> Any:
@@ -25,13 +26,13 @@ def register_solver(backend: str) -> Any:
 
 
 @register_solver("ott")
-def _(problem_kind: Literal["linear", "quadratic"], **kwargs: Any) -> Union["ott.SinkhornSolver", "ott.GWSolver"]:
+def _(problem_kind: Literal["linear", "quadratic"]) -> Union[Type["ott.SinkhornSolver"], Type["ott.GWSolver"]]:
     from moscot.backends import ott
 
     if problem_kind == "linear":
-        return ott.SinkhornSolver(**kwargs)
+        return ott.SinkhornSolver
     if problem_kind == "quadratic":
-        return ott.GWSolver(**kwargs)
+        return ott.GWSolver
     raise NotImplementedError(f"Unable to create solver for `{problem_kind!r}` problem.")
 
 
