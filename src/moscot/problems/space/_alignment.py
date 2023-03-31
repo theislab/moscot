@@ -33,8 +33,8 @@ class AlignmentProblem(CompoundProblem[K, B], SpatialAlignmentMixin[K, B]):
         policy: Literal["sequential", "star"] = "sequential",
         reference: Optional[str] = None,
         cost: Union[
-            Literal["sq_euclidean", "cosine", "bures", "unbalanced_bures"],
-            Mapping[str, Literal["sq_euclidean", "cosine", "bures", "unbalanced_bures"]],
+            Literal["sq_euclidean", "cosine"],
+            Mapping[str, Literal["sq_euclidean", "cosine"]],
         ] = "sq_euclidean",
         a: Optional[str] = None,
         b: Optional[str] = None,

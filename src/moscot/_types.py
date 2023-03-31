@@ -29,7 +29,19 @@ Device_t = Literal["cpu", "gpu", "tpu"]
 
 # TODO(michalk8): autogenerate from the enums
 ScaleCost_t = Optional[Union[float, Literal["mean", "max_cost", "max_bound", "max_norm", "median"]]]
-OttCostFn_t = Literal["euclidean", "sq_euclidean", "cosine", "bures", "unbalanced_bures"]
+OttCostFn_t = Literal[
+    "euclidean",
+    "sq_euclidean",
+    "cosine",
+    "PNormP",
+    "SqPNorm",
+    "Euclidean",
+    "SqEuclidean",
+    "Cosine",
+    "ElasticL1",
+    "ElasticSTVS",
+    "ElasticSqKOverlap",
+]
 GenericCostFn_t = Literal["barcode_distance", "leaf_distance", "custom"]
 CostFn_t = Union[str, GenericCostFn_t, OttCostFn_t]
 PathLike = Union[os.PathLike, str]

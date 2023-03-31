@@ -84,8 +84,8 @@ class MappingProblem(CompoundProblem[K, OTProblem], SpatialMappingMixin[K, OTPro
         var_names: Optional[Sequence[Any]] = None,
         joint_attr: Optional[Union[str, Mapping[str, Any]]] = None,
         cost: Union[
-            Literal["sq_euclidean", "cosine", "bures", "unbalanced_bures"],
-            Mapping[str, Literal["sq_euclidean", "cosine", "bures", "unbalanced_bures"]],
+            Literal["sq_euclidean", "cosine"],
+            Mapping[str, Literal["sq_euclidean", "cosine"]],
         ] = "sq_euclidean",
         a: Optional[str] = None,
         b: Optional[str] = None,
