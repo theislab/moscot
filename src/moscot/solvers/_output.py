@@ -257,7 +257,7 @@ class BaseNeuralOutput(BaseSolverOutput, ABC):
     ) -> sp.csr_matrix:
         pass
 
-    @abstractmethod
     @property
+    @abstractmethod
     def inverse_transport_matrix(self) -> ArrayLike:
         pass
