@@ -132,6 +132,8 @@ linear_solver_kwargs2 = {
     "lse_mode": True,
     "threshold": 4e-2,
     "norm_error": 3,
+    "gamma": 9.4,
+    "gamma_rescale": False,
 }
 
 gw_args_2 = {
@@ -152,8 +154,6 @@ gw_args_2 = {
     "ranks": 3,
     "tolerances": 3e-2,
     "warm_start": True,
-    "gamma": 9.4,
-    "gamma_rescale": False,
     "linear_solver_kwargs": linear_solver_kwargs2,
 }
 

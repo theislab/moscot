@@ -8,6 +8,7 @@ from typing import (
     Mapping,
     NamedTuple,
     Optional,
+    Set,
     Tuple,
     TypeVar,
     Union,
@@ -137,6 +138,32 @@ class BaseSolver(Generic[O], abc.ABC):
         data = self._prepare(**kwargs)
         return self._solve(data)
 
+    @classmethod
+    @abc.abstractmethod
+    def _call_kwargs(cls) -> Tuple[Set[str], Set[str]]:
+        """Return arguments specific for :meth:`__call__` and arguments shared with :class:`BaseSolver`."""
+
+    @classmethod
+    def _partition_kwargs(cls, **kwargs: Any) -> Tuple[Dict[str, Any], Dict[str, Any]]:
+        """Partition keyword arguments.
+
+        Used by the :meth:`~moscot.problems.base.BaseProblem.solve`.
+
+        Parameters
+        ----------
+        kwargs
+            Keyword arguments to partition.
+
+        Returns
+        -------
+        Keyword arguments for :class:`BaseSolver` and :meth:`__call__`, respectively.
+        """
+        call_kws, shared_kws = cls._call_kwargs()
+        init_kwargs = {k: v for k, v in kwargs.items() if k not in call_kws or k in shared_kws}
+        call_kwargs = {k: v for k, v in kwargs.items() if k in call_kws or k in shared_kws}
+
+        return init_kwargs, call_kwargs
+
 
 @d.get_sections(base="OTSolver", sections=["Parameters", "Raises"])
 @d.dedent
@@ -174,14 +201,14 @@ class OTSolver(TagConverter, BaseSolver[O], abc.ABC):
         The optimal transport solution.
         """
         data = self._get_array_data(xy=xy, x=x, y=y, tags=tags)
-        kwargs = {**kwargs, **self._prepare_kwargs(data)}
+        kwargs = {**kwargs, **self._untag(data)}
         res = super().__call__(**kwargs)
         if not res.converged:
             logger.warning("Solver did not converge")
 
         return res.to(device=device)  # type: ignore[return-value]
 
-    def _prepare_kwargs(self, data: TaggedArrayData) -> Dict[str, Any]:
+    def _untag(self, data: TaggedArrayData) -> Dict[str, Any]:
         if self.problem_kind == "linear":
             if data.xy is None:
                 raise ValueError("No data specified for the linear term.")

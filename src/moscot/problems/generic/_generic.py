@@ -101,8 +101,6 @@ class SinkhornProblem(GenericAnalysisMixin[K, B], CompoundProblem[K, B]):
         inner_iterations: int = 10,
         min_iterations: int = 0,
         max_iterations: int = 2000,
-        gamma: float = 10.0,
-        gamma_rescale: bool = True,
         device: Optional[Literal["cpu", "gpu", "tpu"]] = None,
         cost_matrix_rank: Optional[int] = None,
         **kwargs: Any,
@@ -123,7 +121,6 @@ class SinkhornProblem(GenericAnalysisMixin[K, B], CompoundProblem[K, B]):
         %(initializer_kwargs)s
         %(jit)s
         %(sinkhorn_kwargs)s
-        %(sinkhorn_lr_kwargs)s
         %(device_solve)s
         %(cost_matrix_rank)s
         %(kwargs_linear)s
@@ -153,8 +150,6 @@ class SinkhornProblem(GenericAnalysisMixin[K, B], CompoundProblem[K, B]):
             inner_iterations=inner_iterations,
             min_iterations=min_iterations,
             max_iterations=max_iterations,
-            gamma=gamma,
-            gamma_rescale=gamma_rescale,
             cost_matrix_rank=cost_matrix_rank,
             device=device,
             **kwargs,
@@ -268,10 +263,6 @@ class GWProblem(GenericAnalysisMixin[K, B], CompoundProblem[K, B]):
         min_iterations: int = 5,
         max_iterations: int = 50,
         threshold: float = 1e-3,
-        gamma: float = 10.0,
-        gamma_rescale: bool = True,
-        ranks: Union[int, Tuple[int, ...]] = -1,
-        tolerances: Union[float, Tuple[float, ...]] = 1e-2,
         linear_solver_kwargs: Mapping[str, Any] = MappingProxyType({}),
         device: Optional[Literal["cpu", "gpu", "tpu"]] = None,
         **kwargs: Any,
@@ -292,8 +283,6 @@ class GWProblem(GenericAnalysisMixin[K, B], CompoundProblem[K, B]):
         %(initializer_quad)s
         %(initializer_kwargs)s
         %(gw_kwargs)s
-        %(sinkhorn_lr_kwargs)s
-        %(gw_lr_kwargs)s
         %(linear_solver_kwargs)s
         %(device_solve)s
         %(kwargs_quad)s
@@ -321,10 +310,6 @@ class GWProblem(GenericAnalysisMixin[K, B], CompoundProblem[K, B]):
             min_iterations=min_iterations,
             max_iterations=max_iterations,
             threshold=threshold,
-            gamma=gamma,
-            gamma_rescale=gamma_rescale,
-            ranks=ranks,
-            tolerances=tolerances,
             linear_solver_kwargs=linear_solver_kwargs,
             device=device,
             **kwargs,

@@ -276,13 +276,6 @@ min_iterations
 max_iterations
     The maximum number of Sinkhorn iterations.
 """
-_sinkhorn_lr_kwargs = """\
-gamma
-    Only in low-rank setting: the (inverse of the) gradient step size used by the mirror descent algorithm
-    (:cite:`scetbon:22b`).
-gamma_rescale
-    Only in low-rank setting: whether to rescale `gamma` every iteration as described in :cite:`scetbon:22b`.
-"""
 _cost_matrix_rank = """\
 cost_matrix_rank
     Rank of the matrix the cost matrix is approximated by. Only applies if a custom cost matrix is passed.
@@ -295,20 +288,6 @@ max_iterations
     Maximal number of outer Gromov-Wasserstein iterations.
 threshold
     Threshold used as convergence criterion for the outer Gromov-Wasserstein loop.
-"""
-_gw_lr_kwargs = """\
-ranks
-    Ranks of the cost matrices, see
-    :meth:`~ott.geometry.geometry.Geometry.to_LRCGeometry`. Used when
-    geometries are *not* :class:`~ott.geometry.pointcloud.PointCloud` with
-    `'sqeucl'` cost function. If `-1`, the geometries will not be converted
-    to low-rank. If :class:`tuple`, it specifies the ranks of ``geom_xx``,
-    ``geom_yy`` and ``geom_xy``, respectively. If :class:`int`, rank is shared
-    across all geometries.
-tolerances
-    Tolerances used when converting geometries to low-rank. Used
-    when geometries are not :class:`~ott.geometry.pointcloud.PointCloud` with
-    `'sqeucl'` cost. If :class:`float`, it is shared across all geometries.
 """
 _scale_cost = """\
 scale_cost
@@ -436,10 +415,8 @@ d = DocstringProcessor(
     initializer_kwargs=_initializer_kwargs,
     jit=_jit,
     sinkhorn_kwargs=_sinkhorn_kwargs,
-    sinkhorn_lr_kwargs=_sinkhorn_lr_kwargs,
     cost_matrix_rank=_cost_matrix_rank,  # TODO(@MUCDK): test for this. cannot be tested with current `test_pass_for_arguments`.  # noqa: E501
     gw_kwargs=_gw_kwargs,
-    gw_lr_kwargs=_gw_lr_kwargs,
     scale_cost=_scale_cost,
     cost_lin=_cost_lin,
     cost=_cost,
