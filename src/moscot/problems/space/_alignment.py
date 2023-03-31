@@ -2,7 +2,6 @@ from types import MappingProxyType
 from typing import Any, Literal, Mapping, Optional, Tuple, Type, Union
 
 from moscot import _constants
-from moscot._docs._docs import d
 from moscot._types import Policy_t, ProblemStage_t, QuadInitializer_t, ScaleCost_t
 from moscot.base.problems.compound_problem import B, CompoundProblem, K
 from moscot.base.problems.problem import OTProblem
@@ -12,7 +11,6 @@ from moscot.problems.space._mixins import SpatialAlignmentMixin
 __all__ = ["AlignmentProblem"]
 
 
-@d.dedent
 class AlignmentProblem(CompoundProblem[K, B], SpatialAlignmentMixin[K, B]):
     """
     Class for aligning spatial omics data, based on :cite:`zeira:22`.
@@ -24,7 +22,6 @@ class AlignmentProblem(CompoundProblem[K, B], SpatialAlignmentMixin[K, B]):
     %(adata)s
     """
 
-    @d.dedent
     def prepare(
         self,
         batch_key: str,
@@ -80,7 +77,6 @@ class AlignmentProblem(CompoundProblem[K, B], SpatialAlignmentMixin[K, B]):
             x=x, y=y, xy=xy, policy=policy, key=batch_key, reference=reference, cost=cost, a=a, b=b, **kwargs
         )
 
-    @d.dedent
     def solve(
         self,
         alpha: Optional[float] = 0.5,

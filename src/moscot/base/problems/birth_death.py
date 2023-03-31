@@ -16,7 +16,6 @@ import numpy as np
 import scanpy as sc
 from anndata import AnnData
 
-from moscot._docs._docs import d
 from moscot._logging import logger
 from moscot._types import ArrayLike
 from moscot.base.problems.problem import OTProblem
@@ -62,7 +61,6 @@ class BirthDeathMixin:
         self._scaling: float = 1.0
         self._prior_growth: Optional[ArrayLike] = None
 
-    @d.dedent
     def score_genes_for_marginals(
         self: BirthDeathProtocol,
         gene_set_proliferation: Optional[Union[Literal["human", "mouse"], Sequence[str]]] = None,
@@ -159,7 +157,6 @@ class BirthDeathMixin:
         self._apoptosis_key = key
 
 
-@d.dedent
 class BirthDeathProblem(BirthDeathMixin, OTProblem):
     """Optimal transport problem which allows to estimate the marginals with a birth-death process.
 

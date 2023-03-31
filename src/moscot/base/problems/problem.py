@@ -20,7 +20,6 @@ import scanpy as sc
 from anndata import AnnData
 
 from moscot import backends
-from moscot._docs._docs import d
 from moscot._logging import logger
 from moscot._types import ArrayLike, CostFn_t, Device_t, ProblemKind_t, ProblemStage_t
 from moscot.base.output import BaseSolverOutput
@@ -31,8 +30,6 @@ from moscot.utils.tagged_array import Tag, TaggedArray
 __all__ = ["BaseProblem", "OTProblem"]
 
 
-@d.get_sections(base="BaseProblem", sections=["Parameters", "Raises"])
-@d.dedent
 class BaseProblem(ABC):
     """Problem interface handling one optimal transport problem.
 
@@ -120,8 +117,6 @@ class BaseProblem(ABC):
         return self._problem_kind
 
 
-@d.get_sections(base="OTProblem", sections=["Parameters", "Raises"])
-@d.dedent
 class OTProblem(BaseProblem):
     """
     Base class for all optimal transport problems.
@@ -301,7 +296,6 @@ class OTProblem(BaseProblem):
         self._b = self._create_marginals(self.adata_tgt, data=b, source=False, **kwargs)
         return self
 
-    @d.get_sections(base="OTProblem_solve", sections=["Parameters", "Raises"])
     @wrap_solve
     def solve(
         self,
@@ -499,7 +493,6 @@ class OTProblem(BaseProblem):
         """TODO."""
         return np.ones((adata.n_obs,), dtype=float) / adata.n_obs
 
-    @d.dedent
     def set_xy(
         self,
         data: pd.DataFrame,
@@ -532,7 +525,6 @@ class OTProblem(BaseProblem):
         self._xy = TaggedArray(data_src=data.values, data_tgt=None, tag=Tag(tag), cost="cost")
         self._stage = "prepared"
 
-    @d.dedent
     def set_x(self, data: pd.DataFrame, tag: Literal["cost", "kernel"]) -> None:
         """
         Set a custom cost matrix/kernel in the quadratic source term.
@@ -565,7 +557,6 @@ class OTProblem(BaseProblem):
         self._x = TaggedArray(data_src=data.values, data_tgt=None, tag=Tag(tag), cost="cost")
         self._stage = "prepared"
 
-    @d.dedent
     def set_y(self, data: pd.DataFrame, tag: Literal["cost", "kernel"]) -> None:
         """
         Set a custom cost matrix/kernel in the quadratic target term.

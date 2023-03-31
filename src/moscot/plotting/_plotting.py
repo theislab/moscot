@@ -18,7 +18,6 @@ import matplotlib as mpl
 from anndata import AnnData
 
 from moscot import _constants
-from moscot._docs._docs_plot import d_plotting
 from moscot.plotting._utils import (
     _create_col_colors,
     _heatmap,
@@ -35,7 +34,6 @@ if TYPE_CHECKING:
 __all__ = ["cell_transition", "sankey", "push", "pull"]
 
 
-@d_plotting.dedent
 def cell_transition(
     inp: Union[AnnData, Tuple[AnnData, AnnData], "CompoundProblem"],  # type: ignore[type-arg]
     uns_key: str = _constants.CELL_TRANSITION,
@@ -103,7 +101,6 @@ def cell_transition(
     return fig if return_fig else None
 
 
-@d_plotting.dedent
 def sankey(
     inp: Union[AnnData, "TemporalProblem", "LineageProblem"],
     # TODO(MUCDK): rename to `key` or `key_added`?
@@ -170,7 +167,6 @@ def sankey(
     return fig if return_fig else None
 
 
-@d_plotting.dedent
 def push(
     inp: Union[AnnData, "TemporalProblem", "LineageProblem", "CompoundProblem"],  # type: ignore[type-arg]
     uns_key: str = _constants.PUSH,
@@ -254,7 +250,6 @@ def push(
     return fig.figure if return_fig else None
 
 
-@d_plotting.dedent
 def pull(
     inp: Union[AnnData, "TemporalProblem", "LineageProblem", "CompoundProblem"],  # type: ignore[type-arg]
     uns_key: str = _constants.PULL,

@@ -34,7 +34,6 @@ from scipy.stats import norm, rankdata
 
 from anndata import AnnData
 
-from moscot._docs._docs import d
 from moscot._logging import logger
 from moscot._types import ArrayLike, Str_Dict_t
 
@@ -233,7 +232,6 @@ def _order_transition_matrix(
     return tm if forward else tm.T
 
 
-@d.dedent
 def _correlation_test(
     X: Union[ArrayLike, sp.spmatrix],
     Y: pd.DataFrame,

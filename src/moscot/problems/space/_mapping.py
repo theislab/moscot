@@ -4,7 +4,6 @@ from typing import Any, Literal, Mapping, Optional, Sequence, Tuple, Type, Union
 from anndata import AnnData
 
 from moscot import _constants
-from moscot._docs._docs import d
 from moscot._types import (
     ArrayLike,
     Policy_t,
@@ -22,7 +21,6 @@ from moscot.utils.subset_policy import DummyPolicy, ExternalStarPolicy
 __all__ = ["MappingProblem"]
 
 
-@d.dedent
 class MappingProblem(CompoundProblem[K, OTProblem], SpatialMappingMixin[K, OTProblem]):
     """
     Class for mapping single cell omics data onto spatial data, based on :cite:`nitzan:19`.
@@ -75,7 +73,6 @@ class MappingProblem(CompoundProblem[K, OTProblem], SpatialMappingMixin[K, OTPro
             **kwargs,
         )
 
-    @d.dedent
     def prepare(
         self,
         sc_attr: Str_Dict_t,
@@ -139,7 +136,6 @@ class MappingProblem(CompoundProblem[K, OTProblem], SpatialMappingMixin[K, OTPro
             kwargs["xy"] = xy
         return super().prepare(x=x, y=y, policy="external_star", key=batch_key, cost=cost, a=a, b=b, **kwargs)
 
-    @d.dedent
     def solve(
         self,
         alpha: Optional[float] = 0.5,

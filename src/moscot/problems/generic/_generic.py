@@ -4,7 +4,6 @@ from typing import Any, Dict, List, Literal, Mapping, Optional, Tuple, Type, Uni
 from anndata import AnnData
 
 from moscot import _constants
-from moscot._docs._docs import d
 from moscot._types import (
     Policy_t,
     ProblemStage_t,
@@ -20,7 +19,6 @@ from moscot.problems.generic._mixins import GenericAnalysisMixin
 __all__ = ["SinkhornProblem", "GWProblem"]
 
 
-@d.dedent
 class SinkhornProblem(GenericAnalysisMixin[K, B], CompoundProblem[K, B]):
     """
     Class for solving linear OT problems.
@@ -33,7 +31,6 @@ class SinkhornProblem(GenericAnalysisMixin[K, B], CompoundProblem[K, B]):
     def __init__(self, adata: AnnData, **kwargs: Any):
         super().__init__(adata, **kwargs)
 
-    @d.dedent
     def prepare(
         self,
         key: str,
@@ -82,7 +79,6 @@ class SinkhornProblem(GenericAnalysisMixin[K, B], CompoundProblem[K, B]):
             **kwargs,
         )
 
-    @d.dedent
     def solve(
         self,
         epsilon: Optional[float] = 1e-3,
@@ -164,8 +160,6 @@ class SinkhornProblem(GenericAnalysisMixin[K, B], CompoundProblem[K, B]):
         return _constants.SEQUENTIAL, _constants.PAIRWISE, _constants.EXPLICIT  # type: ignore[return-value]
 
 
-@d.get_sections(base="GWProblem", sections=["Parameters"])
-@d.dedent
 class GWProblem(GenericAnalysisMixin[K, B], CompoundProblem[K, B]):
     """
     Class for solving (Fused) Gromov-Wasserstein problems.
@@ -178,7 +172,6 @@ class GWProblem(GenericAnalysisMixin[K, B], CompoundProblem[K, B]):
     def __init__(self, adata: AnnData, **kwargs: Any):
         super().__init__(adata, **kwargs)
 
-    @d.dedent
     def prepare(
         self,
         key: str,
@@ -246,7 +239,6 @@ class GWProblem(GenericAnalysisMixin[K, B], CompoundProblem[K, B]):
             **kwargs,
         )
 
-    @d.dedent
     def solve(
         self,
         alpha: float = 1.0,

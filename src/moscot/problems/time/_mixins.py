@@ -21,7 +21,6 @@ from pandas.api.types import infer_dtype, is_numeric_dtype
 from anndata import AnnData
 
 from moscot import _constants
-from moscot._docs._docs_mixins import d_mixins
 from moscot._types import ArrayLike, Numeric_t, Str_Dict_t
 from moscot.base.output import BaseSolverOutput
 from moscot.base.problems._mixins import AnalysisMixin, AnalysisMixinProtocol
@@ -162,7 +161,6 @@ class TemporalMixin(AnalysisMixin[K, B]):
         super().__init__(*args, **kwargs)
         self._temporal_key: Optional[str] = None
 
-    @d_mixins.dedent
     def cell_transition(
         self: TemporalMixinProtocol[K, B],
         source: K,
@@ -213,7 +211,6 @@ class TemporalMixin(AnalysisMixin[K, B]):
             key_added=key_added,
         )
 
-    @d_mixins.dedent
     def sankey(
         self: "TemporalMixinProtocol[K, B]",
         source: K,
@@ -309,7 +306,6 @@ class TemporalMixin(AnalysisMixin[K, B]):
             set_plotting_vars(self.adata, _constants.SANKEY, key=key_added, value=plot_vars)
         return cell_transitions_updated if return_data else None
 
-    @d_mixins.dedent
     def push(
         self: TemporalMixinProtocol[K, B],
         source: K,
@@ -367,7 +363,6 @@ class TemporalMixin(AnalysisMixin[K, B]):
             set_plotting_vars(self.adata, _constants.PUSH, key=key_added, value=plot_vars)
         return result if return_data else None
 
-    @d_mixins.dedent
     def pull(
         self: TemporalMixinProtocol[K, B],
         source: K,
@@ -574,7 +569,6 @@ class TemporalMixin(AnalysisMixin[K, B]):
             target_data,
         )
 
-    @d_mixins.dedent
     def compute_interpolated_distance(
         self: TemporalMixinProtocol[K, B],
         source: K,
@@ -648,7 +642,6 @@ class TemporalMixin(AnalysisMixin[K, B]):
             point_cloud_1=intermediate_data, point_cloud_2=interpolation, backend=backend, **kwargs
         )
 
-    @d_mixins.dedent
     def compute_random_distance(
         self: TemporalMixinProtocol[K, B],
         source: K,
@@ -707,7 +700,6 @@ class TemporalMixin(AnalysisMixin[K, B]):
         )
         return self._compute_wasserstein_distance(intermediate_data, random_interpolation, **kwargs)
 
-    @d_mixins.dedent
     def compute_time_point_distances(
         self: TemporalMixinProtocol[K, B],
         source: K,

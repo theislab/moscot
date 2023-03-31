@@ -4,7 +4,6 @@ from typing import Any, Literal, Mapping, Optional, Tuple, Type, Union
 from anndata import AnnData
 
 from moscot import _constants
-from moscot._docs._docs import d
 from moscot._types import (
     Numeric_t,
     Policy_t,
@@ -21,7 +20,6 @@ from moscot.problems.time._mixins import TemporalMixin
 __all__ = ["TemporalProblem", "LineageProblem"]
 
 
-@d.dedent
 class TemporalProblem(
     TemporalMixin[Numeric_t, BirthDeathProblem], BirthDeathMixin, CompoundProblem[Numeric_t, BirthDeathProblem]
 ):
@@ -43,7 +41,6 @@ class TemporalProblem(
     def __init__(self, adata: AnnData, **kwargs: Any):
         super().__init__(adata, **kwargs)
 
-    @d.dedent
     def prepare(
         self,
         time_key: str,
@@ -109,7 +106,6 @@ class TemporalProblem(
             **kwargs,
         )
 
-    @d.dedent
     def solve(
         self,
         epsilon: Optional[float] = 1e-3,
@@ -191,7 +187,6 @@ class TemporalProblem(
         return _constants.SEQUENTIAL, _constants.TRIU, _constants.EXPLICIT  # type: ignore[return-value]
 
 
-@d.dedent
 class LineageProblem(TemporalProblem):
     """
     Estimator for modelling time series single cell data based on moslin.
@@ -203,7 +198,6 @@ class LineageProblem(TemporalProblem):
     %(adata)s
     """
 
-    @d.dedent
     def prepare(
         self,
         time_key: str,
@@ -271,7 +265,6 @@ class LineageProblem(TemporalProblem):
             **kwargs,
         )
 
-    @d.dedent
     def solve(
         self,
         alpha: Optional[float] = 0.5,

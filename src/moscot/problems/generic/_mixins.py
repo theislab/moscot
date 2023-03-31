@@ -5,7 +5,6 @@ import pandas as pd
 from anndata import AnnData
 
 from moscot import _constants
-from moscot._docs._docs_mixins import d_mixins
 from moscot._types import ArrayLike, Str_Dict_t
 from moscot.base.problems._mixins import AnalysisMixin, AnalysisMixinProtocol
 from moscot.base.problems.compound_problem import ApplyOutput_t, B, K
@@ -36,7 +35,6 @@ class GenericAnalysisMixin(AnalysisMixin[K, B]):
         super().__init__(*args, **kwargs)
         self._batch_key: Optional[str] = None
 
-    @d_mixins.dedent
     def cell_transition(
         self: GenericAnalysisMixinProtocol[K, B],
         source: K,
@@ -90,7 +88,6 @@ class GenericAnalysisMixin(AnalysisMixin[K, B]):
             key_added=key_added,
         )
 
-    @d_mixins.dedent
     def push(
         self: GenericAnalysisMixinProtocol[K, B],
         source: K,
@@ -146,7 +143,6 @@ class GenericAnalysisMixin(AnalysisMixin[K, B]):
             set_plotting_vars(self.adata, _constants.PUSH, key=key_added, value=plot_vars)
         return result if return_data else None
 
-    @d_mixins.dedent
     def pull(
         self: GenericAnalysisMixinProtocol[K, B],
         source: K,

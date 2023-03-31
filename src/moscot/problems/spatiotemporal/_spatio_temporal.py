@@ -4,7 +4,6 @@ from typing import Any, Literal, Mapping, Optional, Tuple, Type, Union
 from anndata import AnnData
 
 from moscot import _constants
-from moscot._docs._docs import d
 from moscot._types import (
     Numeric_t,
     Policy_t,
@@ -20,7 +19,6 @@ from moscot.problems.time import TemporalMixin
 __all__ = ["SpatioTemporalProblem"]
 
 
-@d.dedent
 class SpatioTemporalProblem(
     TemporalMixin[Numeric_t, BirthDeathProblem],
     BirthDeathMixin,
@@ -42,7 +40,6 @@ class SpatioTemporalProblem(
     def __init__(self, adata: AnnData, **kwargs: Any):
         super().__init__(adata, **kwargs)
 
-    @d.dedent
     def prepare(
         self,
         time_key: str,
@@ -111,7 +108,6 @@ class SpatioTemporalProblem(
             **kwargs,
         )
 
-    @d.dedent
     def solve(
         self,
         alpha: Optional[float] = 0.5,

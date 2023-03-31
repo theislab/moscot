@@ -21,7 +21,6 @@ import scanpy as sc
 from anndata import AnnData
 
 from moscot import _constants
-from moscot._docs._docs import d
 from moscot._types import ArrayLike, Numeric_t, Str_Dict_t
 from moscot.base.output import BaseSolverOutput
 from moscot.base.problems._utils import (
@@ -437,7 +436,7 @@ class AnalysisMixin(Generic[K, B]):
         return tm
 
     # adapted from CellRank (github.com/theislab/cellrank)
-    @d.dedent
+
     def compute_feature_correlation(
         self: AnalysisMixinProtocol[K, B],
         obs_key: str,

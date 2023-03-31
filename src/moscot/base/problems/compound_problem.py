@@ -25,7 +25,6 @@ import scipy.sparse as sp
 
 from anndata import AnnData
 
-from moscot._docs._docs import d
 from moscot._logging import logger
 from moscot._types import ArrayLike, Policy_t, ProblemStage_t
 from moscot.base.output import BaseSolverOutput
@@ -55,8 +54,6 @@ ApplyOutput_t = Union[ArrayLike, Dict[K, ArrayLike]]
 # ApplyOutput_t = Union[ArrayLike, Dict[Tuple[K, K], ArrayLike]]
 
 
-@d.get_sections(base="BaseCompoundProblem", sections=["Parameters", "Raises"])
-@d.dedent
 class BaseCompoundProblem(BaseProblem, abc.ABC, Generic[K, B]):
     """
     Base class for all biological problems.
@@ -173,8 +170,6 @@ class BaseCompoundProblem(BaseProblem, abc.ABC, Generic[K, B]):
 
         return problems
 
-    @d.get_sections(base="BaseCompoundProblem_prepare", sections=["Parameters", "Raises"])
-    @d.dedent
     def prepare(
         self,
         key: str,
@@ -347,8 +342,6 @@ class BaseCompoundProblem(BaseProblem, abc.ABC, Generic[K, B]):
 
         return res if return_all else current_mass
 
-    @d.get_sections(base="BaseCompoundProblem_push", sections=["Parameters", "Raises"])
-    @d.dedent  # TODO(@MUCDK) document private _apply
     def push(self, *args: Any, **kwargs: Any) -> ApplyOutput_t[K]:
         """
         Push mass from `start` to `end`.
@@ -378,8 +371,6 @@ class BaseCompoundProblem(BaseProblem, abc.ABC, Generic[K, B]):
         _ = kwargs.pop("key_added", None)  # this should be handled by overriding method
         return self._apply(*args, forward=True, **kwargs)
 
-    @d.get_sections(base="BaseCompoundProblem_pull", sections=["Parameters", "Raises"])
-    @d.dedent  # TODO(@MUCDK) document private functions
     def pull(self, *args: Any, **kwargs: Any) -> ApplyOutput_t[K]:
         """
         Pull mass from `end` to `start`.
@@ -416,7 +407,6 @@ class BaseCompoundProblem(BaseProblem, abc.ABC, Generic[K, B]):
             return {}
         return self._problem_manager.problems
 
-    @d.dedent
     @require_prepare
     def add_problem(
         self,
@@ -449,7 +439,6 @@ class BaseCompoundProblem(BaseProblem, abc.ABC, Generic[K, B]):
         self._problem_manager.add_problem(key, problem, overwrite=overwrite, **kwargs)
         return self
 
-    @d.dedent
     @require_prepare
     def remove_problem(self, key: Tuple[K, K]) -> "BaseCompoundProblem[K, B]":
         """Remove a subproblem.
@@ -577,8 +566,6 @@ class BaseCompoundProblem(BaseProblem, abc.ABC, Generic[K, B]):
         return repr(self)
 
 
-@d.get_sections(base="CompoundProblem", sections=["Parameters", "Raises"])
-@d.dedent
 class CompoundProblem(BaseCompoundProblem[K, B], abc.ABC):
     """Class handling biological problems composed of exactly one :class:`~anndata.AnnData` instance.
 

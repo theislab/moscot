@@ -27,8 +27,6 @@ from sklearn.neighbors import NearestNeighbors
 from anndata import AnnData
 
 from moscot import _constants
-from moscot._docs._docs import d
-from moscot._docs._docs_mixins import d_mixins
 from moscot._logging import logger
 from moscot._types import ArrayLike, Device_t, Str_Dict_t
 from moscot.base.problems._mixins import AnalysisMixin, AnalysisMixinProtocol
@@ -150,7 +148,6 @@ class SpatialAlignmentMixin(AnalysisMixin[K, B]):
 
         return transport_maps, (transport_metadata if mode == "affine" else None)
 
-    @d.dedent
     def align(  # type: ignore[misc]
         self: SpatialAlignmentMixinProtocol[K, B],
         reference: K,
@@ -196,7 +193,6 @@ class SpatialAlignmentMixin(AnalysisMixin[K, B]):
             return aligned_basis
         self.adata.obsm[f"{self.spatial_key}_{mode}"] = aligned_basis  # noqa: RET503
 
-    @d_mixins.dedent
     def cell_transition(  # type: ignore[misc]
         self: SpatialAlignmentMixinProtocol[K, B],
         source: K,
@@ -414,7 +410,6 @@ class SpatialMappingMixin(AnalysisMixin[K, B]):
         adata_pred.obsm = self.adata_sp.obsm.copy()
         return adata_pred
 
-    @d.dedent
     def spatial_correspondence(  # type: ignore[misc]
         self: SpatialMappingMixinProtocol[K, B],
         interval: Union[ArrayLike, int] = 10,
@@ -484,7 +479,6 @@ class SpatialMappingMixin(AnalysisMixin[K, B]):
         features = _get_features(self.adata, attr)
         return _compute_correspondence(spatial, features, interval, max_dist)
 
-    @d_mixins.dedent
     def cell_transition(  # type: ignore[misc]
         self: SpatialMappingMixinProtocol[K, B],
         source: K,

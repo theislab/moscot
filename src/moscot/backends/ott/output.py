@@ -12,7 +12,6 @@ from ott.solvers.quadratic.gromov_wasserstein import GWOutput as OTTGWOutput
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 
-from moscot._docs._docs import d
 from moscot._types import ArrayLike, Device_t
 from moscot.base.output import BaseSolverOutput
 
@@ -36,7 +35,6 @@ class OTTOutput(BaseSolverOutput):
         self._costs = None if isinstance(output, OTTSinkhornOutput) else output.costs
         self._errors = output.errors
 
-    @d.get_sections(base="plot_costs", sections=["Parameters", "Returns"])
     def plot_costs(
         self,
         last: Optional[int] = None,
@@ -83,7 +81,6 @@ class OTTOutput(BaseSolverOutput):
             fig.savefig(save)
         return fig if return_fig else None
 
-    @d.dedent
     def plot_errors(
         self,
         last: Optional[int] = None,
