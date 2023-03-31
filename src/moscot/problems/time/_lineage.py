@@ -94,7 +94,7 @@ class TemporalProblem(
         if b is None:
             b = self.proliferation_key is not None or self.apoptosis_key is not None
 
-        return super().prepare(
+        return super().prepare(  # type: ignore[return-value]
             key=time_key,
             xy=xy,
             x=x,
@@ -156,7 +156,7 @@ class TemporalProblem(
         --------
         %(ex_solve_linear)s
         """
-        return super().solve(
+        return super().solve(  # type:ignore[return-value]
             epsilon=epsilon,
             tau_a=tau_a,
             tau_b=tau_b,
@@ -176,10 +176,10 @@ class TemporalProblem(
             cost_matrix_rank=cost_matrix_rank,
             device=device,
             **kwargs,
-        )  # type:ignore[return-value]
+        )
 
     @property
-    def _base_problem_type(self) -> Type[B]:  # type: ignore[override]
+    def _base_problem_type(self) -> Type[B]:
         return BirthDeathProblem  # type: ignore[return-value]
 
     @property
@@ -252,7 +252,7 @@ class LineageProblem(TemporalProblem):
         x = y = lineage_attr
 
         xy, kwargs = handle_joint_attr(joint_attr, kwargs)
-        return super().prepare(
+        return super().prepare(  # type: ignore[return-value]
             time_key,
             joint_attr=xy,
             x=x,
@@ -313,7 +313,7 @@ class LineageProblem(TemporalProblem):
         --------
         %(ex_solve_quadratic)s
         """
-        return super().solve(
+        return super().solve(  # type: ignore[return-value]
             alpha=alpha,
             epsilon=epsilon,
             tau_a=tau_a,

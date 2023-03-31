@@ -172,7 +172,7 @@ class BaseCompoundProblem(BaseProblem, abc.ABC, Generic[K, B]):
 
     def prepare(
         self,
-        key: str,
+        key: Optional[str],
         policy: Policy_t = "sequential",
         subset: Optional[Sequence[Tuple[K, K]]] = None,
         reference: Optional[Any] = None,

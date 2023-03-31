@@ -41,7 +41,7 @@ class MappingProblem(CompoundProblem[K, OTProblem], SpatialMappingMixin[K, OTPro
         # TODO(michalk8): rename to common_vars?
         self.filtered_vars: Optional[Sequence[str]] = None
 
-    def _create_policy(  # type: ignore[override]
+    def _create_policy(
         self,
         policy: Literal["external_star"] = "external_star",
         key: Optional[str] = None,
@@ -134,7 +134,9 @@ class MappingProblem(CompoundProblem[K, OTProblem], SpatialMappingMixin[K, OTPro
         xy, x, y = handle_cost(xy=xy, x=x, y=y, cost=cost)
         if xy is not None:
             kwargs["xy"] = xy
-        return super().prepare(x=x, y=y, policy="external_star", key=batch_key, cost=cost, a=a, b=b, **kwargs)
+        return super().prepare(  # type: ignore[return-value]
+            x=x, y=y, policy="external_star", key=batch_key, cost=cost, a=a, b=b, **kwargs
+        )
 
     def solve(
         self,
@@ -184,7 +186,7 @@ class MappingProblem(CompoundProblem[K, OTProblem], SpatialMappingMixin[K, OTPro
         --------
         %(ex_solve_quadratic)s
         """
-        return super().solve(
+        return super().solve(  # type: ignore[return-value]
             alpha=alpha,
             epsilon=epsilon,
             tau_a=tau_a,
@@ -202,7 +204,7 @@ class MappingProblem(CompoundProblem[K, OTProblem], SpatialMappingMixin[K, OTPro
             linear_solver_kwargs=linear_solver_kwargs,
             device=device,
             **kwargs,
-        )  # type: ignore[return-value]
+        )
 
     @property
     def adata_sc(self) -> AnnData:

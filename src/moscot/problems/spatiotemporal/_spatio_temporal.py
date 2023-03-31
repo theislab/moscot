@@ -95,7 +95,7 @@ class SpatioTemporalProblem(
         if b is None:
             b = self.proliferation_key is not None or self.apoptosis_key is not None
 
-        return super().prepare(
+        return super().prepare(  # type: ignore[return-value]
             spatial_key=spatial_key,
             batch_key=time_key,
             joint_attr=joint_attr,
@@ -155,7 +155,8 @@ class SpatioTemporalProblem(
         --------
         %(ex_solve_quadratic)s
         """
-        return super().solve(
+        # TODO(michalk8): use locals (and in other places)
+        return super().solve(  # type: ignore[return-value]
             alpha=alpha,
             epsilon=epsilon,
             tau_a=tau_a,
@@ -185,5 +186,5 @@ class SpatioTemporalProblem(
         )  # type: ignore[return-value]
 
     @property
-    def _base_problem_type(self) -> Type[B]:  # type: ignore[override]
+    def _base_problem_type(self) -> Type[B]:
         return BirthDeathProblem  # type: ignore[return-value]

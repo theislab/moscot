@@ -69,7 +69,7 @@ class SinkhornProblem(GenericAnalysisMixin[K, B], CompoundProblem[K, B]):
         self.batch_key = key  # type: ignore[misc]
         xy, kwargs = handle_joint_attr(joint_attr, kwargs)
         xy, _, _ = handle_cost(xy=xy, cost=cost)
-        return super().prepare(
+        return super().prepare(  # type: ignore[return-value]
             key=key,
             policy=policy,
             xy=xy,
@@ -227,7 +227,7 @@ class GWProblem(GenericAnalysisMixin[K, B], CompoundProblem[K, B]):
 
         xy, kwargs = handle_joint_attr(joint_attr, kwargs)
         xy, x, y = handle_cost(xy=xy, x=GW_updated[0], y=GW_updated[1], cost=cost)
-        return super().prepare(
+        return super().prepare(  # type: ignore[return-value]
             key=key,
             xy=xy,
             x=x,

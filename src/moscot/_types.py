@@ -37,7 +37,8 @@ Policy_t = Literal[
     "sequential",
     "star",
     "external_star",
+    "pairwise",
+    "explicit",
     "triu",
     "tril",
-    "explicit",
 ]

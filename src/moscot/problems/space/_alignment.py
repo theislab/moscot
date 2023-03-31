@@ -73,7 +73,7 @@ class AlignmentProblem(CompoundProblem[K, B], SpatialAlignmentMixin[K, B]):
         xy, kwargs = handle_joint_attr(joint_attr, kwargs)
         xy, x, y = handle_cost(xy=xy, x=x, y=y, cost=cost)
 
-        return super().prepare(
+        return super().prepare(  # type: ignore[return-value]
             x=x, y=y, xy=xy, policy=policy, key=batch_key, reference=reference, cost=cost, a=a, b=b, **kwargs
         )
 
@@ -125,7 +125,7 @@ class AlignmentProblem(CompoundProblem[K, B], SpatialAlignmentMixin[K, B]):
         --------
         %(ex_solve_quadratic)s
         """
-        return super().solve(
+        return super().solve(  # type: ignore[return-value]
             alpha=alpha,
             epsilon=epsilon,
             tau_a=tau_a,
@@ -143,7 +143,7 @@ class AlignmentProblem(CompoundProblem[K, B], SpatialAlignmentMixin[K, B]):
             linear_solver_kwargs=linear_solver_kwargs,
             device=device,
             **kwargs,
-        )  # type: ignore[return-value]
+        )
 
     @property
     def _base_problem_type(self) -> Type[B]:
