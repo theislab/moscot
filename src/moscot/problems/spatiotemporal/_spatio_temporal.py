@@ -1,4 +1,4 @@
-from types import MappingProxyType
+import types
 from typing import Any, Literal, Mapping, Optional, Tuple, Type, Union
 
 from anndata import AnnData
@@ -53,9 +53,10 @@ class SpatioTemporalProblem(
             Literal["sq_euclidean", "cosine"],
             Mapping[str, Literal["sq_euclidean", "cosine"]],
         ] = "sq_euclidean",
+        cost_kwargs: Union[Mapping[str, Any], Mapping[str, Mapping[str, Any]]] = types.MappingProxyType({}),
         a: Optional[str] = None,
         b: Optional[str] = None,
-        marginal_kwargs: Mapping[str, Any] = MappingProxyType({}),
+        marginal_kwargs: Mapping[str, Any] = types.MappingProxyType({}),
         **kwargs: Any,
     ) -> "SpatioTemporalProblem":
         """Prepare the problem.
@@ -123,12 +124,12 @@ class SpatioTemporalProblem(
         batch_size: Optional[int] = None,
         stage: Union[ProblemStage_t, Tuple[ProblemStage_t, ...]] = ("prepared", "solved"),
         initializer: QuadInitializer_t = None,
-        initializer_kwargs: Mapping[str, Any] = MappingProxyType({}),
+        initializer_kwargs: Mapping[str, Any] = types.MappingProxyType({}),
         jit: bool = True,
         min_iterations: int = 5,
         max_iterations: int = 50,
         threshold: float = 1e-3,
-        linear_solver_kwargs: Mapping[str, Any] = MappingProxyType({}),
+        linear_solver_kwargs: Mapping[str, Any] = types.MappingProxyType({}),
         device: Optional[Literal["cpu", "gpu", "tpu"]] = None,
         **kwargs: Any,
     ) -> "SpatioTemporalProblem":

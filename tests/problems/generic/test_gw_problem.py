@@ -137,8 +137,8 @@ class TestGWProblem:
             ("sq_euclidean", SqEuclidean, {}),
             ("euclidean", Euclidean, {}),
             ("cosine", Cosine, {}),
-            ("pnorm_p", PNormP, {"p":3}),
-            ("sq_pnorm", SqPNorm, {}, {"p":3}),
+            ("pnorm_p", PNormP, {"p": 3}),
+            ("sq_pnorm", SqPNorm, {"x": {"p": 3}, "y": {"p": 4}}),
             ("elastic_l1", ElasticL1, {}),
             ("elastic_stvs", ElasticSTVS, {}),
         ],
@@ -146,12 +146,7 @@ class TestGWProblem:
     def test_prepare_costs(self, adata_time: AnnData, cost: Tuple[str, Any, Mapping[str, int]]):
         problem = GWProblem(adata=adata_time)
         problem = problem.prepare(
-            key="time",
-            policy="sequential",
-            x_attr="X_pca",
-            y_attr="X_pca",
-            cost=cost[0],
-            cost_kwargs=cost[2]
+            key="time", policy="sequential", x_attr="X_pca", y_attr="X_pca", cost=cost[0], cost_kwargs=cost[2]
         )
         assert isinstance(problem[0, 1].x.cost, cost[1])
         assert isinstance(problem[0, 1].y.cost, cost[1])

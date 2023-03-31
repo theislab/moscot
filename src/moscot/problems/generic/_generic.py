@@ -1,4 +1,4 @@
-from types import MappingProxyType
+import types
 from typing import Any, Dict, List, Literal, Mapping, Optional, Tuple, Type, Union
 
 from anndata import AnnData
@@ -40,6 +40,7 @@ class SinkhornProblem(GenericAnalysisMixin[K, B], CompoundProblem[K, B]):
         joint_attr: Optional[Union[str, Mapping[str, Any]]] = None,
         policy: Literal["sequential", "pairwise", "explicit"] = "sequential",
         cost: Literal["sq_euclidean", "cosine"] = "sq_euclidean",
+        cost_kwargs: Union[Mapping[str, Any], Mapping[str, Mapping[str, Any]]] = types.MappingProxyType({}),
         a: Optional[str] = None,
         b: Optional[str] = None,
         **kwargs: Any,
@@ -71,7 +72,7 @@ class SinkhornProblem(GenericAnalysisMixin[K, B], CompoundProblem[K, B]):
         """
         self.batch_key = key  # type: ignore[misc]
         xy, kwargs = handle_joint_attr(joint_attr, kwargs)
-        xy, _, _ = handle_cost(xy=xy, cost=cost)
+        xy, _, _ = handle_cost(xy=xy, cost=cost, cost_kwargs=cost_kwargs)
         return super().prepare(
             key=key,
             policy=policy,
@@ -93,7 +94,7 @@ class SinkhornProblem(GenericAnalysisMixin[K, B], CompoundProblem[K, B]):
         batch_size: Optional[int] = None,
         stage: Union[ProblemStage_t, Tuple[ProblemStage_t, ...]] = ("prepared", "solved"),
         initializer: SinkhornInitializer_t = None,
-        initializer_kwargs: Mapping[str, Any] = MappingProxyType({}),
+        initializer_kwargs: Mapping[str, Any] = types.MappingProxyType({}),
         jit: bool = True,
         threshold: float = 1e-3,
         lse_mode: bool = True,
@@ -190,6 +191,7 @@ class GWProblem(GenericAnalysisMixin[K, B], CompoundProblem[K, B]):
             Literal["sq_euclidean", "cosine"],
             Mapping[str, Literal["sq_euclidean", "cosine"]],
         ] = "sq_euclidean",
+        cost_kwargs: Union[Mapping[str, Any], Mapping[str, Mapping[str, Any]]] = types.MappingProxyType({}),
         a: Optional[str] = None,
         b: Optional[str] = None,
         **kwargs: Any,
@@ -233,7 +235,7 @@ class GWProblem(GenericAnalysisMixin[K, B], CompoundProblem[K, B]):
                 raise TypeError("`x_attr` and `y_attr` must be of type `str` or `dict`.")
 
         xy, kwargs = handle_joint_attr(joint_attr, kwargs)
-        xy, x, y = handle_cost(xy=xy, x=GW_updated[0], y=GW_updated[1], cost=cost)
+        xy, x, y = handle_cost(xy=xy, x=GW_updated[0], y=GW_updated[1], cost=cost, cost_kwargs=cost_kwargs)
         return super().prepare(
             key=key,
             xy=xy,
@@ -258,12 +260,12 @@ class GWProblem(GenericAnalysisMixin[K, B], CompoundProblem[K, B]):
         batch_size: Optional[int] = None,
         stage: Union[ProblemStage_t, Tuple[ProblemStage_t, ...]] = ("prepared", "solved"),
         initializer: QuadInitializer_t = None,
-        initializer_kwargs: Mapping[str, Any] = MappingProxyType({}),
+        initializer_kwargs: Mapping[str, Any] = types.MappingProxyType({}),
         jit: bool = True,
         min_iterations: int = 5,
         max_iterations: int = 50,
         threshold: float = 1e-3,
-        linear_solver_kwargs: Mapping[str, Any] = MappingProxyType({}),
+        linear_solver_kwargs: Mapping[str, Any] = types.MappingProxyType({}),
         device: Optional[Literal["cpu", "gpu", "tpu"]] = None,
         **kwargs: Any,
     ) -> "GWProblem[K,B]":

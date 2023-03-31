@@ -1,4 +1,4 @@
-from types import MappingProxyType
+import types
 from typing import Any, Literal, Mapping, Optional, Tuple, Type, Union
 
 from anndata import AnnData
@@ -52,7 +52,7 @@ class TemporalProblem(
         cost: Literal["sq_euclidean", "cosine"] = "sq_euclidean",
         a: Optional[str] = None,
         b: Optional[str] = None,
-        marginal_kwargs: Mapping[str, Any] = MappingProxyType({}),
+        marginal_kwargs: Mapping[str, Any] = types.MappingProxyType({}),
         **kwargs: Any,
     ) -> "TemporalProblem":
         """
@@ -120,7 +120,7 @@ class TemporalProblem(
         batch_size: Optional[int] = None,
         stage: Union[ProblemStage_t, Tuple[ProblemStage_t, ...]] = ("prepared", "solved"),
         initializer: SinkhornInitializer_t = None,
-        initializer_kwargs: Mapping[str, Any] = MappingProxyType({}),
+        initializer_kwargs: Mapping[str, Any] = types.MappingProxyType({}),
         jit: bool = True,
         threshold: float = 1e-3,
         lse_mode: bool = True,
@@ -207,7 +207,7 @@ class LineageProblem(TemporalProblem):
     def prepare(
         self,
         time_key: str,
-        lineage_attr: Mapping[str, Any] = MappingProxyType({}),
+        lineage_attr: Mapping[str, Any] = types.MappingProxyType({}),
         joint_attr: Optional[Union[str, Mapping[str, Any]]] = None,
         policy: Literal["sequential", "tril", "triu", "sequential"] = "sequential",
         # TODO(michalk8): update
@@ -217,7 +217,7 @@ class LineageProblem(TemporalProblem):
         ] = "sq_euclidean",
         a: Optional[str] = None,
         b: Optional[str] = None,
-        marginal_kwargs: Mapping[str, Any] = MappingProxyType({}),
+        marginal_kwargs: Mapping[str, Any] = types.MappingProxyType({}),
         **kwargs: Any,
     ) -> "LineageProblem":
         """
@@ -283,12 +283,12 @@ class LineageProblem(TemporalProblem):
         batch_size: Optional[int] = None,
         stage: Union[ProblemStage_t, Tuple[ProblemStage_t, ...]] = ("prepared", "solved"),
         initializer: QuadInitializer_t = None,
-        initializer_kwargs: Mapping[str, Any] = MappingProxyType({}),
+        initializer_kwargs: Mapping[str, Any] = types.MappingProxyType({}),
         jit: bool = True,
         min_iterations: int = 5,
         max_iterations: int = 50,
         threshold: float = 1e-3,
-        linear_solver_kwargs: Mapping[str, Any] = MappingProxyType({}),
+        linear_solver_kwargs: Mapping[str, Any] = types.MappingProxyType({}),
         device: Optional[Literal["cpu", "gpu", "tpu"]] = None,
         **kwargs: Any,
     ) -> "LineageProblem":

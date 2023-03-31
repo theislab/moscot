@@ -1,3 +1,4 @@
+import types
 from typing import Any, Dict, Mapping, Optional, Tuple, Union
 
 from moscot._types import CostFn_t
@@ -52,6 +53,7 @@ def handle_cost(
     x: Optional[Mapping[str, Any]] = None,
     y: Optional[Mapping[str, Any]] = None,
     cost: Optional[Union[CostFn_t, Mapping[str, CostFn_t]]] = None,
+    cost_kwargs: Union[Mapping[str, Any], Mapping[str, Mapping[str, Any]]] = types.MappingProxyType({}),
     **_: Any,
 ) -> Tuple[Optional[Mapping[str, Any]], Optional[Mapping[str, Any]], Optional[Mapping[str, Any]]]:
     if cost is None:
@@ -66,8 +68,7 @@ def handle_cost(
         if y is not None and "cost" not in y:
             y = dict(y)
             y["cost"] = cost
-        return xy, x, y
-    if isinstance(cost, Mapping):
+    elif isinstance(cost, Mapping):
         if xy is not None and "cost" not in xy:
             xy = dict(xy)
             xy["cost"] = cost["xy"]
@@ -77,5 +78,13 @@ def handle_cost(
         if y is not None and "cost" not in y:
             y = dict(y)
             y["cost"] = cost["y"]
-        return xy, x, y
-    raise TypeError(type(cost))
+    else:
+        raise TypeError(type(cost))
+
+    if xy is not None:
+        xy.update(cost_kwargs if "xy" not in cost_kwargs else cost_kwargs["xy"])
+    if x is not None:
+        x.update(cost_kwargs if "x" not in cost_kwargs else cost_kwargs["x"])
+    if y is not None:
+        y.update(cost_kwargs if "y" not in cost_kwargs else cost_kwargs["y"])
+    return xy, x, y
