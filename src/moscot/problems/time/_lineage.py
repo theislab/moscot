@@ -280,14 +280,16 @@ class LineageProblem(TemporalProblem):
         xy, kwargs = handle_joint_attr(joint_attr, kwargs)
         xy, x, y = handle_cost(xy=xy, x=x, y=y, cost=cost, cost_kwargs=cost_kwargs)
 
-        x.setdefault("attr", "obsp")  # type:ignore[attr-defined]
-        x.setdefault("key", "cost_matrices")  # type:ignore[attr-defined]
-        x.setdefault("cost", "custom")  # type:ignore[attr-defined]
-        x.setdefault("tag", "cost_matrix")  # type:ignore[attr-defined]
-        y.setdefault("attr", "obsp")  # type:ignore[attr-defined]
-        y.setdefault("key", "cost_matrices")  # type:ignore[attr-defined]
-        y.setdefault("cost", "custom")  # type:ignore[attr-defined]
-        y.setdefault("tag", "cost_matrix")  # type:ignore[attr-defined]
+        x = dict(x)
+        y = dict(y)
+        x.setdefault("attr", "obsp")
+        x.setdefault("key", "cost_matrices")
+        x.setdefault("cost", "custom")
+        x.setdefault("tag", "cost_matrix")
+        y.setdefault("attr", "obsp")
+        y.setdefault("key", "cost_matrices")
+        y.setdefault("cost", "custom")
+        y.setdefault("tag", "cost_matrix")
 
         return super().prepare(
             time_key,
