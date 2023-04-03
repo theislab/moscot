@@ -51,7 +51,7 @@ class BaseCost(ABC):
         The computed cost matrix.
         """
         cost = self._compute(*args, **kwargs)
-        if not np.all(np.isnan(cost)):
+        if not np.all(~np.isnan(cost)):
             maxx = np.nanmax(cost)
             logger.warning(f"Cost matrix contains `NaN` values, setting them to the maximum value `{maxx}`.")
             cost = np.nan_to_num(cost, nan=maxx)  # type: ignore[call-overload]

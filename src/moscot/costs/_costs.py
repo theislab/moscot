@@ -29,6 +29,7 @@ class BarcodeDistance(BaseCost):
         *_: Any,
         **__: Any,
     ) -> ArrayLike:
+        print("computing barcode ditsance")
         barcodes = self.data
         n_cells = barcodes.shape[0]
         distances = np.zeros((n_cells, n_cells))
@@ -36,6 +37,8 @@ class BarcodeDistance(BaseCost):
             distances[i, i + 1 :] = [
                 self._scaled_hamming_dist(barcodes[i, :], barcodes[j, :]) for j in range(i + 1, n_cells)
             ]
+        print("1", np.isnan(distances).sum())
+        print("2", np.isnan(distances + np.transpose(distances)).sum())
         return distances + np.transpose(distances)
 
     @staticmethod
