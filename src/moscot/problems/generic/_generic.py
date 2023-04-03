@@ -54,6 +54,7 @@ class SinkhornProblem(GenericAnalysisMixin[K, B], CompoundProblem[K, B]):
         %(joint_attr)s
         %(policy)s
         %(cost_lin)s
+        %(cost_kwargs)s
         %(a)s
         %(b)s
         %(kwargs_prepare)s
@@ -207,6 +208,7 @@ class GWProblem(GenericAnalysisMixin[K, B], CompoundProblem[K, B]):
         %(joint_attr)s
         %(policy)s
         %(cost)s
+        %(cost_kwargs)s
         %(a)s
         %(b)s
         %(kwargs_prepare)s

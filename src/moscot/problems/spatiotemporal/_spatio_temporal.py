@@ -71,6 +71,7 @@ class SpatioTemporalProblem(
         %(joint_attr)s
         %(policy)s
         %(cost)s
+        %(cost_kwargs)s
         %(a)s
         %(b)s
         %(kwargs_prepare)s
@@ -106,6 +107,7 @@ class SpatioTemporalProblem(
             policy=policy,
             reference=None,
             cost=cost,
+            cost_kwargs=cost_kwargs,
             a=a,
             b=b,
             marginal_kwargs=marginal_kwargs,

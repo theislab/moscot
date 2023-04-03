@@ -55,9 +55,9 @@ def handle_cost(
     cost: Optional[Union[CostFn_t, Mapping[str, CostFn_t]]] = None,
     cost_kwargs: Union[Mapping[str, Any], Mapping[str, Mapping[str, Any]]] = types.MappingProxyType({}),
     **_: Any,
-) -> Tuple[Optional[Mapping[str, Any]], Optional[Mapping[str, Any]], Optional[Mapping[str, Any]]]:
+) -> Tuple[Optional[Dict[str, Any]], Optional[Dict[str, Any]], Optional[Dict[str, Any]]]:
     if cost is None:
-        return xy, x, y
+        return xy, x, y  # type:ignore[return-value]
     if isinstance(cost, str):
         if xy is not None and "cost" not in xy:
             xy = dict(xy)
@@ -82,9 +82,12 @@ def handle_cost(
         raise TypeError(type(cost))
 
     if xy is not None:
+        xy = dict(xy)
         xy.update(cost_kwargs if "xy" not in cost_kwargs else cost_kwargs["xy"])
     if x is not None:
+        x = dict(x)
         x.update(cost_kwargs if "x" not in cost_kwargs else cost_kwargs["x"])
     if y is not None:
+        y = dict(y)
         y.update(cost_kwargs if "y" not in cost_kwargs else cost_kwargs["y"])
     return xy, x, y

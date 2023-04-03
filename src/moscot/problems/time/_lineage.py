@@ -50,6 +50,7 @@ class TemporalProblem(
         joint_attr: Optional[Union[str, Mapping[str, Any]]] = None,
         policy: Literal["sequential", "tril", "triu", "explicit"] = "sequential",
         cost: Literal["sq_euclidean", "cosine"] = "sq_euclidean",
+        cost_kwargs: Union[Mapping[str, Any], Mapping[str, Mapping[str, Any]]] = types.MappingProxyType({}),
         a: Optional[str] = None,
         b: Optional[str] = None,
         marginal_kwargs: Mapping[str, Any] = types.MappingProxyType({}),
@@ -66,6 +67,7 @@ class TemporalProblem(
         %(joint_attr)s
         %(policy)s
         %(cost_lin)s
+        %(cost_kwargs)s
         %(a_temporal)s
         %(b_temporal)s
         %(marginal_kwargs)s
@@ -86,7 +88,9 @@ class TemporalProblem(
         """
         self.temporal_key = time_key
         xy, kwargs = handle_joint_attr(joint_attr, kwargs)
-        xy, x, y = handle_cost(xy=xy, x=kwargs.pop("x", None), y=kwargs.pop("y", None), cost=cost)
+        xy, x, y = handle_cost(
+            xy=xy, x=kwargs.pop("x", None), y=kwargs.pop("y", None), cost=cost, cost_kwargs=cost_kwargs
+        )
 
         # TODO(michalk8): needs to be modified
         marginal_kwargs = dict(marginal_kwargs)
@@ -103,6 +107,7 @@ class TemporalProblem(
             x=x,
             y=y,
             policy=policy,
+            cost=None,  # cost information is already stored in x,y,xy
             marginal_kwargs=marginal_kwargs,
             a=a,
             b=b,
@@ -215,6 +220,7 @@ class LineageProblem(TemporalProblem):
             Literal["sq_euclidean", "cosine"],
             Mapping[str, Literal["sq_euclidean", "cosine"]],
         ] = "sq_euclidean",
+        cost_kwargs: Union[Mapping[str, Any], Mapping[str, Mapping[str, Any]]] = types.MappingProxyType({}),
         a: Optional[str] = None,
         b: Optional[str] = None,
         marginal_kwargs: Mapping[str, Any] = types.MappingProxyType({}),
@@ -233,6 +239,7 @@ class LineageProblem(TemporalProblem):
         %(joint_attr)s
         %(policy)s
         %(cost)s
+        %(cost_kwargs)s
         %(a_temporal)s
         %(b_temporal)s
         %(marginal_kwargs)s
@@ -249,15 +256,20 @@ class LineageProblem(TemporalProblem):
         if not len(lineage_attr) and ("cost_matrices" not in self.adata.obsp):
             raise KeyError("Unable to find cost matrices in `adata.obsp['cost_matrices']`.")
 
-        lineage_attr = dict(lineage_attr)
-        lineage_attr.setdefault("attr", "obsp")
-        lineage_attr.setdefault("key", "cost_matrices")
-        lineage_attr.setdefault("cost", "custom")
-        lineage_attr.setdefault("tag", "cost_matrix")
-
         x = y = lineage_attr
 
         xy, kwargs = handle_joint_attr(joint_attr, kwargs)
+        xy, x, y = handle_cost(xy=xy, x=x, y=y, cost=cost, cost_kwargs=cost_kwargs)
+
+        x.setdefault("attr", "obsp")  # type:ignore[attr-defined]
+        x.setdefault("key", "cost_matrices")  # type:ignore[attr-defined]
+        x.setdefault("cost", "custom")  # type:ignore[attr-defined]
+        x.setdefault("tag", "cost_matrix")  # type:ignore[attr-defined]
+        y.setdefault("attr", "obsp")  # type:ignore[attr-defined]
+        y.setdefault("key", "cost_matrices")  # type:ignore[attr-defined]
+        y.setdefault("cost", "custom")  # type:ignore[attr-defined]
+        y.setdefault("tag", "cost_matrix")  # type:ignore[attr-defined]
+
         return super().prepare(
             time_key,
             joint_attr=xy,
