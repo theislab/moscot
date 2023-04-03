@@ -33,8 +33,22 @@ class AlignmentProblem(CompoundProblem[K, B], SpatialAlignmentMixin[K, B]):
         policy: Literal["sequential", "star"] = "sequential",
         reference: Optional[str] = None,
         cost: Union[
-            Literal["sq_euclidean", "cosine"],
-            Mapping[str, Literal["sq_euclidean", "cosine"]],
+            Literal[
+                "euclidean", "sq_euclidean", "cosine", "pnorm_p", "sq_pnorm", "sq_pnorm", "elastic_l1", "elastic_stvs"
+            ],
+            Mapping[
+                str,
+                Literal[
+                    "euclidean",
+                    "sq_euclidean",
+                    "cosine",
+                    "pnorm_p",
+                    "sq_pnorm",
+                    "sq_pnorm",
+                    "elastic_l1",
+                    "elastic_stvs",
+                ],
+            ],
         ] = "sq_euclidean",
         cost_kwargs: Union[Mapping[str, Any], Mapping[str, Mapping[str, Any]]] = types.MappingProxyType({}),
         a: Optional[str] = None,

@@ -49,7 +49,9 @@ class TemporalProblem(
         time_key: str,
         joint_attr: Optional[Union[str, Mapping[str, Any]]] = None,
         policy: Literal["sequential", "tril", "triu", "explicit"] = "sequential",
-        cost: Literal["sq_euclidean", "cosine"] = "sq_euclidean",
+        cost: Literal[
+            "euclidean", "sq_euclidean", "cosine", "pnorm_p", "sq_pnorm", "sq_pnorm", "elastic_l1", "elastic_stvs"
+        ] = "sq_euclidean",
         cost_kwargs: Union[Mapping[str, Any], Mapping[str, Mapping[str, Any]]] = types.MappingProxyType({}),
         a: Optional[str] = None,
         b: Optional[str] = None,
@@ -217,8 +219,25 @@ class LineageProblem(TemporalProblem):
         policy: Literal["sequential", "tril", "triu", "sequential"] = "sequential",
         # TODO(michalk8): update
         cost: Union[
-            Literal["sq_euclidean", "cosine"],
-            Mapping[str, Literal["sq_euclidean", "cosine"]],
+            Literal[
+                "euclidean", "sq_euclidean", "cosine", "pnorm_p", "sq_pnorm", "sq_pnorm", "elastic_l1", "elastic_stvs"
+            ],
+            Mapping[
+                str,
+                Literal[
+                    "euclidean",
+                    "sq_euclidean",
+                    "cosine",
+                    "pnorm_p",
+                    "sq_pnorm",
+                    "sq_pnorm",
+                    "elastic_l1",
+                    "elastic_stvs",
+                    "barcode",
+                    "leaf_distance",
+                    "barcode_distance",
+                ],
+            ],
         ] = "sq_euclidean",
         cost_kwargs: Union[Mapping[str, Any], Mapping[str, Mapping[str, Any]]] = types.MappingProxyType({}),
         a: Optional[str] = None,
