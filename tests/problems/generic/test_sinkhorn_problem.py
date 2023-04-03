@@ -1,9 +1,18 @@
-from typing import Any, Literal, Mapping
+from typing import Any, Literal, Mapping, Tuple
 
 import pytest
 
 import numpy as np
 import pandas as pd
+from ott.geometry.costs import (
+    Cosine,
+    ElasticL1,
+    ElasticSTVS,
+    Euclidean,
+    PNormP,
+    SqEuclidean,
+    SqPNorm,
+)
 
 from anndata import AnnData
 
@@ -54,6 +63,28 @@ class TestSinkhornProblem:
         for key, subsol in problem.solutions.items():
             assert isinstance(subsol, BaseSolverOutput)
             assert key in expected_keys
+
+    @pytest.mark.fast()
+    @pytest.mark.parametrize(
+        "cost",
+        [
+            ("sq_euclidean", SqEuclidean, {}),
+            ("euclidean", Euclidean, {}),
+            ("cosine", Cosine, {}),
+            ("pnorm_p", PNormP, {"p": 3}),
+            ("sq_pnorm", SqPNorm, {"p": 3}),
+            ("elastic_l1", ElasticL1, {}),
+            ("elastic_stvs", ElasticSTVS, {}),
+        ],
+    )
+    def test_prepare_costs(self, adata_time: AnnData, cost: Tuple[str, Any, Mapping[str, int]]):
+        problem = SinkhornProblem(adata=adata_time)
+        problem = problem.prepare(
+            key="time", policy="sequential", joint_attr="X_pca", cost=cost[0], cost_kwargs=cost[2]
+        )
+        assert isinstance(problem[0, 1].xy.cost, cost[1])
+
+        problem = problem.solve(max_iterations=2)
 
     @pytest.mark.parametrize("method", ["fischer", "perm_test"])
     def test_compute_feature_correlation(self, adata_time: AnnData, method: str):

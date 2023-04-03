@@ -61,7 +61,8 @@ def handle_cost(
     if isinstance(cost, str):
         if xy is not None and "cost" not in xy:
             xy = dict(xy)
-            xy["cost"] = cost
+            xy["x_cost"] = cost
+            xy["y_cost"] = cost
         if x is not None and "cost" not in x:
             x = dict(x)
             x["cost"] = cost
@@ -71,7 +72,8 @@ def handle_cost(
     elif isinstance(cost, Mapping):
         if xy is not None and "cost" not in xy:
             xy = dict(xy)
-            xy["cost"] = cost["xy"]
+            xy["x_cost"] = cost["xy"]
+            xy["y_cost"] = cost["xy"]
         if x is not None and "cost" not in x:
             x = dict(x)
             x["cost"] = cost["x"]
@@ -80,14 +82,19 @@ def handle_cost(
             y["cost"] = cost["y"]
     else:
         raise TypeError(type(cost))
-
-    if xy is not None:
+    if xy is not None and len(cost_kwargs):
         xy = dict(xy)
-        xy.update(cost_kwargs if "xy" not in cost_kwargs else cost_kwargs["xy"])
-    if x is not None:
+        if "xy" in cost_kwargs:
+            k, v = next(iter(cost_kwargs["xy"].items()))
+        else:
+            k, v = next(iter(cost_kwargs.items()))
+        xy["x_" + k] = v
+        xy["y_" + k] = v
+        # xy.update(cost_kwargs if "xy" not in cost_kwargs else cost_kwargs["xy"])
+    if x is not None and len(cost_kwargs):
         x = dict(x)
         x.update(cost_kwargs if "x" not in cost_kwargs else cost_kwargs["x"])
-    if y is not None:
+    if y is not None and len(cost_kwargs):
         y = dict(y)
         y.update(cost_kwargs if "y" not in cost_kwargs else cost_kwargs["y"])
-    return xy, x, y
+    return xy, x, y  # type:ignore[return-value]
