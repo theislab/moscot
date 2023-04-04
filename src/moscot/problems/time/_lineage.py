@@ -260,8 +260,8 @@ class LineageProblem(TemporalProblem):
         xy, kwargs = handle_joint_attr(joint_attr, kwargs)
         xy, x, y = handle_cost(xy=xy, x=x, y=y, cost=cost, cost_kwargs=cost_kwargs)
 
-        x = dict(x)
-        y = dict(y)
+        x = {} if x is None else dict(x)
+        y = {} if y is None else dict(y)
         x.setdefault("attr", "obsp")
         x.setdefault("key", "cost_matrices")
         x.setdefault("cost", "custom")
