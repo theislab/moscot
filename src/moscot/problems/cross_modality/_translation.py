@@ -24,7 +24,6 @@ from moscot.base.output import BaseSolverOutput
 __all__ = ["TranslationProblem"]
 
 
-@d.dedent
 class TranslationProblem(CompoundProblem[K, OTProblem], CrossModalityTranslationMixin[K, OTProblem]):
     """
     Class for integrating single cell multiomics data, based on :cite:`demetci-scot:22`.
@@ -32,9 +31,9 @@ class TranslationProblem(CompoundProblem[K, OTProblem], CrossModalityTranslation
     Parameters
     ----------
     adata_src
-        Instance of :class:`anndata.AnnData` containing the source data.
+        Instance of :class:`anndata.AnnData` containing the data of the source distribution.
     adata_tgt
-        Instance of :class:`anndata.AnnData` containing the target data.
+        Instance of :class:`anndata.AnnData` containing the data of the target distribution.
     """
 
     def __init__(self, adata_src: AnnData, adata_tgt: AnnData, **kwargs: Any):
@@ -71,12 +70,12 @@ class TranslationProblem(CompoundProblem[K, OTProblem], CrossModalityTranslation
             **kwargs,
         )
 
-    @d.dedent
     def prepare(
         self,
         src_attr: Str_Dict_t,
         tgt_attr: Str_Dict_t,
         joint_attr: Optional[Union[str, Mapping[str, Any]]] = None,
+        batch_key: Optional[str] = None,
         cost: Union[
             Literal["sq_euclidean", "cosine", "bures", "unbalanced_bures"],
             Mapping[str, Literal["sq_euclidean", "cosine", "bures", "unbalanced_bures"]],
@@ -92,7 +91,35 @@ class TranslationProblem(CompoundProblem[K, OTProblem], CrossModalityTranslation
 
         Parameters
         ----------
-        
+        src_attr
+            - If `str`, it must refer to a key in :attr:`anndata.AnnData.obsm`.
+            - If `dict`, the dictionary stores `attr` (attribute of :class:`anndata.AnnData`) and `key`
+            (key of :class:`anndata.AnnData` ``['{attr}']``).
+        tgt_attr
+            - If `str`, it must refer to a key in :attr:`anndata.AnnData.obsm`.
+            - If `dict`, the dictionary stores `attr` (attribute of :class:`anndata.AnnData`) and `key`
+            (key of :class:`anndata.AnnData` ``['{attr}']``).
+        joint_attr
+            - If `None`, PCA on :attr:`anndata.AnnData.X` is computed.
+            - If `str`, it must refer to a key in :attr:`anndata.AnnData.obsm`.
+            - If `dict`, the dictionary stores `attr` (attribute of :class:`anndata.AnnData`) and `key`
+              (key of :class:`anndata.AnnData` ``['{attr}']``).
+        batch_key
+                If present, specify the batch key of `:class:`anndata.AnnData`.
+        cost
+            Cost between two points in dimension d. Only used if no precomputed cost matrix is passed.
+            If `cost` is of type :obj:`str`, the cost will be used for all point clouds. If `cost` is of type :obj:`dict`,
+            it is expected to have keys `x`, `y`, and/or `xy`, with values corresponding to the cost functions
+            in the quadratic term of the source distribution, the quadratic term of the target distribution, and/or the
+            linear term, respectively.
+        a
+            Specifies the left marginals. If of type :class:`str` the left marginals are taken from
+            :attr:`anndata.AnnData.obs` ``['{a}']``. If ``a`` is `None` uniform marginals are used.
+        b
+            Specifies the right marginals. If of type :class:`str` the right marginals are taken from
+            :attr:`anndata.AnnData.obs` ``['{b}']``. If `b` is `None` uniform marginals are used.
+        kwargs
+            Keyword arguments
 
         Returns
         -------
@@ -102,6 +129,7 @@ class TranslationProblem(CompoundProblem[K, OTProblem], CrossModalityTranslation
         self._src_attr = src_attr if isinstance(src_attr, str) else src_attr['key']
         self._tgt_attr = tgt_attr if isinstance(tgt_attr, str) else tgt_attr['key']
 
+        self.batch_key = batch_key
         x = {"attr": "obsm", "key": src_attr} if isinstance(src_attr, str) else src_attr
         y = {"attr": "obsm", "key": tgt_attr} if isinstance(tgt_attr, str) else tgt_attr
         if joint_attr is None:
@@ -115,12 +143,11 @@ class TranslationProblem(CompoundProblem[K, OTProblem], CrossModalityTranslation
             kwargs["xy"] = xy
         xy, x, y = handle_cost(xy=xy, x=x, y=y, cost=cost)
             
-        return super().prepare(x=x, y=y, policy="external_star", key=None, cost=cost, a=a, b=b, **kwargs)
+        return super().prepare(x=x, y=y, policy="external_star", key=batch_key, cost=cost, a=a, b=b, **kwargs)
 
-    @d.dedent
     def solve(
         self,
-        alpha: Optional[float] = 0.5,
+        alpha: Optional[float] = 1.0,
         epsilon: Optional[float] = 1e-2,
         tau_a: float = 1.0,
         tau_b: float = 1.0,
@@ -147,22 +174,76 @@ class TranslationProblem(CompoundProblem[K, OTProblem], CrossModalityTranslation
 
         Parameters
         ----------
-        %(alpha)s
-        %(epsilon)s
-        %(tau_a)s
-        %(tau_b)s
-        %(rank)s
-        %(scale_cost)s
-        %(pointcloud_kwargs)s
-        %(stage)s
-        %(initializer_quad)s
-        %(initializer_kwargs)s
-        %(gw_kwargs)s
-        %(sinkhorn_lr_kwargs)s
-        %(gw_lr_kwargs)s
-        %(linear_solver_kwargs)s
-        %(device_solve)s
-        %(kwargs_quad_fused)s
+        alpha
+            Interpolation parameter between quadratic term and linear term, between 0 and 1. `alpha=1` corresponds to
+            pure Gromov-Wasserstein, while `alpha -> 0` corresponds to pure Sinkhorn.
+        epsilon
+            Entropic regularisation parameter.
+        tau_a
+            Unbalancedness parameter for left marginal between 0 and 1. `tau_a=1` means no unbalancedness
+            in the source distribution. The limit of `tau_a` going to 0 ignores the left marginals.
+        
+        tau_b
+            unbalancedness parameter for right marginal between 0 and 1. `tau_b=1` means no unbalancedness
+            in the target distribution. The limit of `tau_b` going to 0 ignores the right marginals.
+        rank
+            Rank of solver. If `-1` standard / full-rank optimal transport is applied.
+        scale_cost
+            How to rescale the cost matrix. Implemented scalings are
+            'median', 'mean', 'max_cost', 'max_norm' and 'max_bound'.
+            Alternatively, a float factor can be given to rescale the cost such
+            that ``cost_matrix /= scale_cost``.
+        batch_size
+            Number of data points the matrix-vector products are applied to at the same time. The larger, the more memory
+            is required. Only used if no precomputed cost matrix is used.
+        stage
+            Stages of subproblems which are to be solved.
+        initializer
+            Initializer to use for the problem.
+            If not low rank, the standard initializer is used (outer product of marginals).
+            If low rank, available options are:
+
+                - `random`
+                - `rank2` :cite:`scetbon:21a`
+                - `k-means` :cite:`scetbon:22b`
+                - `generalized-k-means` :cite:`scetbon:22b`:
+
+            If `None`, the low-rank initializer will be selected based on how the data is passed.
+            If the cost matrix is passed (instead of the data), the random initializer is used,
+            otherwise the K-means initializer.
+        initializer_kwargs
+            keyword arguments for the initializer.
+        jit
+            if True, automatically jits (just-in-time compiles) the function upon first call.
+        min_iterations
+            The minimum number of Sinkhorn iterations carried out before the error is computed and monitored.
+        max_iterations
+            The maximum number of Sinkhorn iterations.
+        threshold
+            If not `None`, set all entries below `threshold` to 0.
+        gamma
+            Only in low-rank setting: the (inverse of the) gradient step size used by the mirror descent algorithm
+            (:cite:`scetbon:22b`).
+        gamma_rescale
+            Only in low-rank setting: whether to rescale `gamma` every iteration as described in :cite:`scetbon:22b`.
+        ranks
+            Ranks of the cost matrices, see
+            :meth:`~ott.geometry.geometry.Geometry.to_LRCGeometry`. Used when
+            geometries are *not* :class:`~ott.geometry.pointcloud.PointCloud` with
+            `'sqeucl'` cost function. If `-1`, the geometries will not be converted
+            to low-rank. If :class:`tuple`, it specifies the ranks of ``geom_xx``,
+            ``geom_yy`` and ``geom_xy``, respectively. If :class:`int`, rank is shared
+            across all geometries.
+        tolerances
+            Tolerances used when converting geometries to low-rank. Used
+            when geometries are not :class:`~ott.geometry.pointcloud.PointCloud` with
+            `'sqeucl'` cost. If :class:`float`, it is shared across all geometries.
+        linear_solver_kwargs
+            Keyword arguments for the linear solver used in quadratic problems.
+        device
+            If not `None`, the output will be transferred to `device`.
+        kwargs    
+            Keyword arguments to solve the underlying Optimal Transport problem.
 
         Returns
         -------
