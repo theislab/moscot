@@ -55,12 +55,12 @@ def handle_cost(
     cost: Optional[Union[CostFn_t, Mapping[str, CostFn_t]]] = None,
     cost_kwargs: Union[Mapping[str, Any], Mapping[str, Mapping[str, Any]]] = types.MappingProxyType({}),
     **_: Any,
-) -> Tuple[Dict[str, Any], Dict[str, Any], Dict[str, Any]]:
+) -> Tuple[Optional[Dict[str, Any]], Optional[Dict[str, Any]], Optional[Dict[str, Any]]]:
     x = {} if x is None else dict(x)
     y = {} if y is None else dict(y)
     xy = {} if xy is None else dict(xy)
     if cost is None:
-        return xy, x, y
+        return xy if len(xy) > 0 else None, x if len(x) > 0 else None, y if len(y) > 0 else None
     if isinstance(cost, str):  # if cost is a str, we use it in all terms
         if len(xy) > 0 and "cost" not in xy:
             xy["x_cost"] = xy["y_cost"] = cost
@@ -82,9 +82,9 @@ def handle_cost(
             k, v = next(iter(cost_kwargs["xy"].items()))  # extract cost_kwargs explicit to xy-term if possible
         else:
             k, v = next(iter(cost_kwargs.items()))
-        xy["x_" + k] = y["y_" + k] = v
+        xy["x_" + k] = xy["y_" + k] = v
     if len(x) > 0 and len(cost_kwargs):
         x.update(cost_kwargs.get("x", cost_kwargs))  # extract cost_kwargs explicit to x-term if possible
     if len(y) > 0 and len(cost_kwargs):
         y.update(cost_kwargs.get("y", cost_kwargs))  # extract cost_kwargs explicit to y-term if possible
-    return xy, x, y
+    return xy if len(xy) > 0 else None, x if len(x) > 0 else None, y if len(y) > 0 else None

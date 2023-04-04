@@ -1,4 +1,4 @@
-from typing import Any, Literal, Mapping, Tuple
+from typing import Any, Literal, Mapping
 
 import pytest
 
@@ -66,7 +66,7 @@ class TestSinkhornProblem:
 
     @pytest.mark.fast()
     @pytest.mark.parametrize(
-        "cost",
+        ("cost_str", "cost_inst", "cost_kwargs"),
         [
             ("sq_euclidean", SqEuclidean, {}),
             ("euclidean", Euclidean, {}),
@@ -77,12 +77,12 @@ class TestSinkhornProblem:
             ("elastic_stvs", ElasticSTVS, {}),
         ],
     )
-    def test_prepare_costs(self, adata_time: AnnData, cost: Tuple[str, Any, Mapping[str, int]]):
+    def test_prepare_costs(self, adata_time: AnnData, cost_str: str, cost_inst: Any, cost_kwargs: Mapping[str, int]):
         problem = SinkhornProblem(adata=adata_time)
         problem = problem.prepare(
-            key="time", policy="sequential", joint_attr="X_pca", cost=cost[0], cost_kwargs=cost[2]
+            key="time", policy="sequential", joint_attr="X_pca", cost=cost_str, cost_kwargs=cost_kwargs
         )
-        assert isinstance(problem[0, 1].xy.cost, cost[1])
+        assert isinstance(problem[0, 1].xy.cost, cost_inst)
 
         problem = problem.solve(max_iterations=2)
 
