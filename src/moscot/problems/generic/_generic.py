@@ -6,6 +6,8 @@ from anndata import AnnData
 from moscot import _constants
 from moscot._docs._docs import d
 from moscot._types import (
+    OttCostFn_t,
+    OttCostFnMap_t,
     Policy_t,
     ProblemStage_t,
     QuadInitializer_t,
@@ -39,9 +41,7 @@ class SinkhornProblem(GenericAnalysisMixin[K, B], CompoundProblem[K, B]):
         key: str,
         joint_attr: Optional[Union[str, Mapping[str, Any]]] = None,
         policy: Literal["sequential", "pairwise", "explicit"] = "sequential",
-        cost: Literal[
-            "euclidean", "sq_euclidean", "cosine", "pnorm_p", "sq_pnorm", "sq_pnorm", "elastic_l1", "elastic_stvs"
-        ] = "sq_euclidean",
+        cost: OttCostFn_t = "sq_euclidean",
         cost_kwargs: Union[Mapping[str, Any], Mapping[str, Mapping[str, Any]]] = types.MappingProxyType({}),
         a: Optional[str] = None,
         b: Optional[str] = None,
@@ -190,24 +190,7 @@ class GWProblem(GenericAnalysisMixin[K, B], CompoundProblem[K, B]):
         y_attr: Union[str, Mapping[str, Any]],
         joint_attr: Optional[Union[str, Mapping[str, Any]]] = None,
         policy: Literal["sequential", "pairwise", "explicit"] = "sequential",
-        cost: Union[
-            Literal[
-                "euclidean", "sq_euclidean", "cosine", "pnorm_p", "sq_pnorm", "sq_pnorm", "elastic_l1", "elastic_stvs"
-            ],
-            Mapping[
-                str,
-                Literal[
-                    "euclidean",
-                    "sq_euclidean",
-                    "cosine",
-                    "pnorm_p",
-                    "sq_pnorm",
-                    "sq_pnorm",
-                    "elastic_l1",
-                    "elastic_stvs",
-                ],
-            ],
-        ] = "sq_euclidean",
+        cost: OttCostFnMap_t = "sq_euclidean",
         cost_kwargs: Union[Mapping[str, Any], Mapping[str, Mapping[str, Any]]] = types.MappingProxyType({}),
         a: Optional[str] = None,
         b: Optional[str] = None,

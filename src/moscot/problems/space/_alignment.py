@@ -3,7 +3,13 @@ from typing import Any, Literal, Mapping, Optional, Tuple, Type, Union
 
 from moscot import _constants
 from moscot._docs._docs import d
-from moscot._types import Policy_t, ProblemStage_t, QuadInitializer_t, ScaleCost_t
+from moscot._types import (
+    OttCostFnMap_t,
+    Policy_t,
+    ProblemStage_t,
+    QuadInitializer_t,
+    ScaleCost_t,
+)
 from moscot.base.problems.compound_problem import B, CompoundProblem, K
 from moscot.base.problems.problem import OTProblem
 from moscot.problems._utils import handle_cost, handle_joint_attr
@@ -32,24 +38,7 @@ class AlignmentProblem(CompoundProblem[K, B], SpatialAlignmentMixin[K, B]):
         joint_attr: Optional[Union[str, Mapping[str, Any]]] = None,
         policy: Literal["sequential", "star"] = "sequential",
         reference: Optional[str] = None,
-        cost: Union[
-            Literal[
-                "euclidean", "sq_euclidean", "cosine", "pnorm_p", "sq_pnorm", "sq_pnorm", "elastic_l1", "elastic_stvs"
-            ],
-            Mapping[
-                str,
-                Literal[
-                    "euclidean",
-                    "sq_euclidean",
-                    "cosine",
-                    "pnorm_p",
-                    "sq_pnorm",
-                    "sq_pnorm",
-                    "elastic_l1",
-                    "elastic_stvs",
-                ],
-            ],
-        ] = "sq_euclidean",
+        cost: OttCostFnMap_t = "sq_euclidean",
         cost_kwargs: Union[Mapping[str, Any], Mapping[str, Mapping[str, Any]]] = types.MappingProxyType({}),
         a: Optional[str] = None,
         b: Optional[str] = None,

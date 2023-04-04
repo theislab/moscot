@@ -6,7 +6,9 @@ from anndata import AnnData
 from moscot import _constants
 from moscot._docs._docs import d
 from moscot._types import (
+    CostFnMap_t,
     Numeric_t,
+    OttCostFn_t,
     Policy_t,
     ProblemStage_t,
     QuadInitializer_t,
@@ -49,9 +51,7 @@ class TemporalProblem(
         time_key: str,
         joint_attr: Optional[Union[str, Mapping[str, Any]]] = None,
         policy: Literal["sequential", "tril", "triu", "explicit"] = "sequential",
-        cost: Literal[
-            "euclidean", "sq_euclidean", "cosine", "pnorm_p", "sq_pnorm", "sq_pnorm", "elastic_l1", "elastic_stvs"
-        ] = "sq_euclidean",
+        cost: OttCostFn_t = "sq_euclidean",
         cost_kwargs: Union[Mapping[str, Any], Mapping[str, Mapping[str, Any]]] = types.MappingProxyType({}),
         a: Optional[str] = None,
         b: Optional[str] = None,
@@ -218,27 +218,7 @@ class LineageProblem(TemporalProblem):
         joint_attr: Optional[Union[str, Mapping[str, Any]]] = None,
         policy: Literal["sequential", "tril", "triu", "sequential"] = "sequential",
         # TODO(michalk8): update
-        cost: Union[
-            Literal[
-                "euclidean", "sq_euclidean", "cosine", "pnorm_p", "sq_pnorm", "sq_pnorm", "elastic_l1", "elastic_stvs"
-            ],
-            Mapping[
-                str,
-                Literal[
-                    "euclidean",
-                    "sq_euclidean",
-                    "cosine",
-                    "pnorm_p",
-                    "sq_pnorm",
-                    "sq_pnorm",
-                    "elastic_l1",
-                    "elastic_stvs",
-                    "barcode",
-                    "leaf_distance",
-                    "barcode_distance",
-                ],
-            ],
-        ] = "sq_euclidean",
+        cost: CostFnMap_t = "sq_euclidean",
         cost_kwargs: Union[Mapping[str, Any], Mapping[str, Mapping[str, Any]]] = types.MappingProxyType({}),
         a: Optional[str] = None,
         b: Optional[str] = None,
