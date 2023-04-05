@@ -1,4 +1,6 @@
 import os
+import pickle
+import urllib.request
 import warnings
 from types import MappingProxyType
 from typing import Any, List, Literal, Mapping, Optional, Tuple
@@ -12,7 +14,7 @@ from scanpy import read
 
 from moscot._types import PathLike
 
-__all__ = ["mosta", "hspc", "drosophila", "sim_align", "simulate_data"]
+__all__ = ["mosta", "hspc", "drosophila", "c_elegans", "sim_align", "simulate_data"]
 
 
 def mosta(
@@ -109,6 +111,32 @@ def drosophila(
         expected_shape=(1297, 2000),
         **kwargs,
     )
+
+
+def c_elegans(
+    path: PathLike = "~/.cache/moscot/c_elegans.h5ad",
+    **kwargs: Any,
+) -> Tuple[AnnData, nx.DiGraph]:  # pragma: no cover
+    """TODO.
+
+    Parameters
+    ----------
+    path
+        Path where to save the file.
+    kwargs
+        Keyword arguments for :func:`scanpy.read`.
+
+    Returns
+    -------
+    Annotated data object and the lineage tree.
+    """
+    adata = _load_dataset_from_url(
+        path, backup_url="https://figshare.com/ndownloader/files/39943585", expected_shape=(46151, 20222), **kwargs
+    )
+    with urllib.request.urlopen("https://figshare.com/ndownloader/files/39943603") as fin:
+        lineage_tree = pickle.load(fin)
+
+    return adata, lineage_tree
 
 
 def tedsim(
