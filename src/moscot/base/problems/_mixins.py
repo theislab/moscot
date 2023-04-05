@@ -117,10 +117,8 @@ class AnalysisMixin(Generic[K, B]):
         **kwargs: Any,
     ) -> pd.DataFrame:
         if aggregation_mode == "annotation" and (source_groups is None or target_groups is None):
-            raise ValueError(
-                "If `aggregation_mode=annotation`, `source_groups` and `target_groups` cannot be " "`None`."
-            )
-        if aggregation_mode == "cell" and (source_groups is None or target_groups is None):
+            raise ValueError("If `aggregation_mode=annotation`, `source_groups` and `target_groups` cannot be `None`.")
+        if aggregation_mode == "cell" and source_groups is None and target_groups is None:
             raise ValueError("At least one of `source_groups` and `target_group` must be specified.")
 
         _check_argument_compatibility_cell_transition(
