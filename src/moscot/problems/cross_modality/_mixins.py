@@ -58,6 +58,8 @@ class CrossModalityTranslationMixin(AnalysisMixin[K, B]):
 
     def translate(
             self: CrossModalityTranslationMixinProtocol[K, B],
+            source: K,
+            target: K,
             forward: bool = True,
             **kwargs: Any,
     ) -> ArrayLike:
@@ -66,6 +68,10 @@ class CrossModalityTranslationMixin(AnalysisMixin[K, B]):
 
         Parameters
         ----------
+        source
+            Key identifying the source distribution.
+        target
+            Key identifying the target distribution.
         forward
             If `True` computes translation from source object to target object, otherwise backward.
         kwargs
@@ -73,12 +79,15 @@ class CrossModalityTranslationMixin(AnalysisMixin[K, B]):
         
         """
         if forward:
-            self._translation = self[('src', 'tgt')].solution.pull(self.adata_tgt.obsm[self._tgt_attr], scale_by_marginals=True, **kwargs)
-            #self._translation_2 = self.problems['src', 'tgt'].pull(self.adata_tgt.obsm[self._tgt_attr], scale_by_marginals=True, **kwargs)
-            #self._translation_3 = self.pull(self.adata_tgt.obsm[self._tgt_attr], scale_by_marginals=True, **kwargs)
+            self._translation = self[(source, target)].solution.pull(self.adata_tgt.obsm[self._tgt_attr], scale_by_marginals=True, **kwargs)
+            # _translation_alternative = self.problems[source, target].pull(self.adata_tgt.obsm[self._tgt_attr], scale_by_marginals=True, **kwargs) 
+            # Note: to use the alternative, I had to comment out the negative mass error
         else:
-            self._translation = self[('src', 'tgt')].solution.push(self.adata_src.obsm[self._src_attr], scale_by_marginals=True, **kwargs)         
-
+            if self.batch_key is None:
+                self._translation = self[(source, target)].solution.push(self.adata_src.obsm[self._src_attr], scale_by_marginals=True, **kwargs)   
+            else:
+                self._translation = self[(source, target)].solution.push(self.adata_src[self.adata_src.obs[self.batch_key]==source].obsm[self._src_attr], scale_by_marginals=True, **kwargs)       
+        
         return self._translation
 
     def cell_transition(  # type: ignore[misc]
@@ -149,7 +158,7 @@ class CrossModalityTranslationMixin(AnalysisMixin[K, B]):
         if TYPE_CHECKING:
             assert self.batch_key is not None
         return self._cell_transition(
-            key=None, #self.batch_key,
+            key=self.batch_key,
             source=source,
             target=target,
             source_groups=source_groups,
