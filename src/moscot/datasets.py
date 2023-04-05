@@ -117,7 +117,7 @@ def c_elegans(
     path: PathLike = "~/.cache/moscot/c_elegans.h5ad",
     **kwargs: Any,
 ) -> Tuple[AnnData, nx.DiGraph]:  # pragma: no cover
-    """scRNA-seq time-series dataset of C. elegans embryogenesis :cite:`packer:19`.
+    """scRNA-seq time-series dataset of C.elegans embryogenesis :cite:`packer:19`.
 
     Contains raw counts of 46,151 cells with at least partial lineage information.
     In addition, this downloads the known C. elegans lineage tree.
