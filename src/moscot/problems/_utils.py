@@ -1,3 +1,4 @@
+import types
 from typing import Any, Dict, Mapping, Optional, Tuple, Union
 
 from moscot._types import CostFn_t
@@ -52,30 +53,38 @@ def handle_cost(
     x: Optional[Mapping[str, Any]] = None,
     y: Optional[Mapping[str, Any]] = None,
     cost: Optional[Union[CostFn_t, Mapping[str, CostFn_t]]] = None,
+    cost_kwargs: Union[Mapping[str, Any], Mapping[str, Mapping[str, Any]]] = types.MappingProxyType({}),
     **_: Any,
-) -> Tuple[Optional[Mapping[str, Any]], Optional[Mapping[str, Any]], Optional[Mapping[str, Any]]]:
+) -> Tuple[Optional[Dict[str, Any]], Optional[Dict[str, Any]], Optional[Dict[str, Any]]]:
+    x = {} if x is None else dict(x)
+    y = {} if y is None else dict(y)
+    xy = {} if xy is None else dict(xy)
     if cost is None:
-        return xy, x, y
-    if isinstance(cost, str):
-        if xy is not None and "cost" not in xy:
-            xy = dict(xy)
-            xy["cost"] = cost
-        if x is not None and "cost" not in x:
-            x = dict(x)
+        return xy if len(xy) > 0 else None, x if len(x) > 0 else None, y if len(y) > 0 else None
+    if isinstance(cost, str):  # if cost is a str, we use it in all terms
+        if len(xy) > 0 and "cost" not in xy:
+            xy["x_cost"] = xy["y_cost"] = cost
+        if len(x) > 0 and "cost" not in x:
             x["cost"] = cost
-        if y is not None and "cost" not in y:
-            y = dict(y)
+        if len(y) > 0 and "cost" not in y:
             y["cost"] = cost
-        return xy, x, y
-    if isinstance(cost, Mapping):
-        if xy is not None and "cost" not in xy:
-            xy = dict(xy)
-            xy["cost"] = cost["xy"]
-        if x is not None and "cost" not in x:
-            x = dict(x)
+    elif isinstance(cost, Mapping):  # if cost is a dict, the cost is specified for each term
+        if len(xy) > 0 and "cost" not in xy:
+            xy["x_cost"] = xy["y_cost"] = cost["xy"]
+        if len(x) > 0 and "cost" not in x:
             x["cost"] = cost["x"]
-        if y is not None and "cost" not in y:
-            y = dict(y)
+        if len(y) > 0 and "cost" not in y:
             y["cost"] = cost["y"]
-        return xy, x, y
-    raise TypeError(type(cost))
+    else:
+        raise TypeError(type(cost))
+    if len(xy) > 0 and len(cost_kwargs):  # distribute the cost_kwargs, possibly explicit to x/y/xy-term
+        if "xy" in cost_kwargs:
+            k, v = next(iter(cost_kwargs["xy"].items()))  # extract cost_kwargs explicit to xy-term if possible
+        else:
+            k, v = next(iter(cost_kwargs.items()))
+        xy["x_" + k] = xy["y_" + k] = v
+    if len(x) > 0 and len(cost_kwargs):
+        x.update(cost_kwargs.get("x", cost_kwargs))  # extract cost_kwargs explicit to x-term if possible
+    if len(y) > 0 and len(cost_kwargs):
+        y.update(cost_kwargs.get("y", cost_kwargs))  # extract cost_kwargs explicit to y-term if possible
+    return xy if len(xy) > 0 else None, x if len(x) > 0 else None, y if len(y) > 0 else None

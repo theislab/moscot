@@ -1,10 +1,18 @@
-from typing import Any, Literal, Mapping, Tuple
+from typing import Any, Literal, Mapping
 
 import pytest
 
 import numpy as np
 import pandas as pd
-from ott.geometry.costs import Cosine, Euclidean, SqEuclidean
+from ott.geometry.costs import (
+    Cosine,
+    ElasticL1,
+    ElasticSTVS,
+    Euclidean,
+    PNormP,
+    SqEuclidean,
+    SqPNorm,
+)
 
 from anndata import AnnData
 
@@ -123,18 +131,27 @@ class TestGWProblem:
             assert getattr(geom, val) == args_to_check[arg]
 
     @pytest.mark.fast()
-    @pytest.mark.parametrize("cost", [("sq_euclidean", SqEuclidean), ("euclidean", Euclidean), ("cosine", Cosine)])
-    def test_prepare_costs(self, adata_time: AnnData, cost: Tuple[str, Any]):
+    @pytest.mark.parametrize(
+        ("cost_str", "cost_inst", "cost_kwargs"),
+        [
+            ("sq_euclidean", SqEuclidean, {}),
+            ("euclidean", Euclidean, {}),
+            ("cosine", Cosine, {}),
+            ("pnorm_p", PNormP, {"p": 3}),
+            ("sq_pnorm", SqPNorm, {"x": {"p": 3}, "y": {"p": 4}}),
+            ("elastic_l1", ElasticL1, {}),
+            ("elastic_stvs", ElasticSTVS, {}),
+        ],
+    )
+    def test_prepare_costs(self, adata_time: AnnData, cost_str: str, cost_inst: Any, cost_kwargs: Mapping[str, int]):
         problem = GWProblem(adata=adata_time)
         problem = problem.prepare(
-            key="time",
-            policy="sequential",
-            x_attr="X_pca",
-            y_attr="X_pca",
-            cost=cost[0],
+            key="time", policy="sequential", x_attr="X_pca", y_attr="X_pca", cost=cost_str, cost_kwargs=cost_kwargs
         )
-        assert isinstance(problem[0, 1].x.cost, cost[1])
-        assert isinstance(problem[0, 1].y.cost, cost[1])
+        assert isinstance(problem[0, 1].x.cost, cost_inst)
+        assert isinstance(problem[0, 1].y.cost, cost_inst)
+
+        problem = problem.solve(max_iterations=2)
 
     @pytest.mark.parametrize("tag", ["cost_matrix", "kernel"])
     def test_set_x(self, adata_time: AnnData, tag: Literal["cost_matrix", "kernel"]):
