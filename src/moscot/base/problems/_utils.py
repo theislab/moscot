@@ -132,7 +132,7 @@ def _validate_args_cell_transition(
     arg: Str_Dict_t,
 ) -> Tuple[Optional[str], List[Any], Optional[List[str]]]:
     if arg is None:
-        return None, adata.obs[[]], None
+        return None, [], None
     if isinstance(arg, str):
         try:
             return arg, adata.obs[arg].cat.categories, None

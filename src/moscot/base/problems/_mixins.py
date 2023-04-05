@@ -112,12 +112,21 @@ class AnalysisMixin(Generic[K, B]):
         target: K,
         source_groups: Str_Dict_t,
         target_groups: Str_Dict_t,
+        aggregation_mode: Literal["annotation", "cell"] = "annotation",
         key_added: Optional[str] = _constants.CELL_TRANSITION,
         **kwargs: Any,
     ) -> pd.DataFrame:
+        if aggregation_mode == "annotation" and (source_groups is None or target_groups is None):
+            raise ValueError(
+                "If `aggregation_mode=annotation`, `source_groups` and `target_groups` cannot be " "`None`."
+            )
+        if aggregation_mode == "cell" and (source_groups is None or target_groups is None):
+            raise ValueError("At least one of `source_groups` and `target_group` must be specified.")
+
         _check_argument_compatibility_cell_transition(
             source_annotation=source_groups,
             target_annotation=target_groups,
+            aggregation_mode=aggregation_mode,
             **kwargs,
         )
         tm = self._cell_transition_online(
@@ -125,10 +134,10 @@ class AnalysisMixin(Generic[K, B]):
             target=target,
             source_groups=source_groups,
             target_groups=target_groups,
+            aggregation_mode=aggregation_mode,
             **kwargs,
         )
         if key_added is not None:
-            aggregation_mode = kwargs.pop("aggregation_mode")
             forward = kwargs.pop("forward")
             if aggregation_mode == "cell" and "cell" in self.adata.obs:
                 raise KeyError(f"Aggregation is already present in `adata.obs[{aggregation_mode!r}]`.")
