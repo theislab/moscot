@@ -117,7 +117,7 @@ def c_elegans(
     path: PathLike = "~/.cache/moscot/c_elegans.h5ad",
     **kwargs: Any,
 ) -> Tuple[AnnData, nx.DiGraph]:  # pragma: no cover
-    """TODO.
+    """TODO :cite:`packer:19`.
 
     Parameters
     ----------
@@ -143,7 +143,7 @@ def zebrafish(
     path: PathLike = "~/.cache/moscot/zebrafish.h5ad",
     **kwargs: Any,
 ) -> Tuple[AnnData, Dict[str, nx.DiGraph]]:
-    """TODO.
+    """TODO :cite:`hu:22`.
 
     Parameters
     ----------
