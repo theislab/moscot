@@ -116,6 +116,9 @@ linkcheck_ignore = [
     # 403 Client Error
     r"https://doi.org/10.1126/science.aad0501",
     r"https://resources.aertslab.org/cistarget/tf_lists/",
+    r"https://doi.org/10.1126/science.aax1971",
+    r"https://doi.org/10.1093/nar/gkac235",
+    r"https://www.science.org/doi/abs/10.1126/science.aax1971",
 ]
 
 exclude_patterns = ["_build", "**.ipynb_checkpoints", "notebooks/README.rst", "notebooks/CONTRIBUTING.rst"]
