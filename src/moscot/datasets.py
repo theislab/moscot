@@ -3,7 +3,7 @@ import pickle
 import urllib.request
 import warnings
 from types import MappingProxyType
-from typing import Any, List, Literal, Mapping, Optional, Tuple
+from typing import Any, Dict, List, Literal, Mapping, Optional, Tuple
 
 import networkx as nx
 import numpy as np
@@ -14,7 +14,7 @@ from scanpy import read
 
 from moscot._types import PathLike
 
-__all__ = ["mosta", "hspc", "drosophila", "c_elegans", "sim_align", "simulate_data"]
+__all__ = ["mosta", "hspc", "drosophila", "c_elegans", "zebrafish", "sim_align", "simulate_data"]
 
 
 def mosta(
@@ -134,9 +134,35 @@ def c_elegans(
         path, backup_url="https://figshare.com/ndownloader/files/39943585", expected_shape=(46151, 20222), **kwargs
     )
     with urllib.request.urlopen("https://figshare.com/ndownloader/files/39943603") as fin:
-        lineage_tree = pickle.load(fin)
+        tree = pickle.load(fin)
 
-    return adata, lineage_tree
+    return adata, tree
+
+
+def zebrafish(
+    path: PathLike = "~/.cache/moscot/zebrafish.h5ad",
+    **kwargs: Any,
+) -> Tuple[AnnData, Dict[str, nx.DiGraph]]:
+    """TODO.
+
+    Parameters
+    ----------
+    path
+        Path where to save the file.
+    kwargs
+        Keyword arguments for :func:`scanpy.read`.
+
+    Returns
+    -------
+    Annotated data object and the lineage trees.
+    """
+    adata = _load_dataset_from_url(
+        path, backup_url="https://figshare.com/ndownloader/files/39951073", expected_shape=(44014, 31466), **kwargs
+    )
+    with urllib.request.urlopen("https://figshare.com/ndownloader/files/39951076") as fin:
+        trees = pickle.load(fin)
+
+    return adata, trees
 
 
 def tedsim(
