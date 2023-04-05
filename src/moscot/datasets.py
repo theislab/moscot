@@ -117,8 +117,10 @@ def c_elegans(
     path: PathLike = "~/.cache/moscot/c_elegans.h5ad",
     **kwargs: Any,
 ) -> Tuple[AnnData, nx.DiGraph]:  # pragma: no cover
-    """TODO :cite:`packer:19`.
-
+    """scRNA-seq time-series dataset of C. elegans embryogenesis :cite:`packer:19`.
+    
+    Contains raw counts of 46,151 cells with at least partial lineage information. In addition, this downloads the known C. elegans lineaage tree. 
+    
     Parameters
     ----------
     path
@@ -130,7 +132,7 @@ def c_elegans(
     -------
     Annotated data object and the lineage tree.
     """
-    adata = _load_dataset_from_url(
+    adata = _load_dataset_from_url( 
         path, backup_url="https://figshare.com/ndownloader/files/39943585", expected_shape=(46151, 20222), **kwargs
     )
     with urllib.request.urlopen("https://figshare.com/ndownloader/files/39943603") as fin:
@@ -143,7 +145,9 @@ def zebrafish(
     path: PathLike = "~/.cache/moscot/zebrafish.h5ad",
     **kwargs: Any,
 ) -> Tuple[AnnData, Dict[str, nx.DiGraph]]:
-    """TODO :cite:`hu:22`.
+    """Lineage-traced scRNA-seq time-series dataset of zebrafish heart regeneration :cite:`hu:22`.
+
+    Contains gene expression vectors, LINNAEUS :cite:`spanjaard:18` reconstructed lineage trees, a low-dimensional embedding, and additional metadata. 
 
     Parameters
     ----------
