@@ -73,8 +73,8 @@ class TestSinkhornProblem:
             ("cosine", Cosine, {}),
             ("pnorm_p", PNormP, {"p": 3}),
             ("sq_pnorm", SqPNorm, {"p": 3}),
-            ("elastic_l1", ElasticL1, {}),
-            ("elastic_stvs", ElasticSTVS, {}),
+            ("elastic_l1", ElasticL1, {"gamma": 1.1}),
+            ("elastic_stvs", ElasticSTVS, {"gamma": 1.2}),
         ],
     )
     def test_prepare_costs(self, adata_time: AnnData, cost_str: str, cost_inst: Any, cost_kwargs: Mapping[str, int]):
@@ -83,6 +83,9 @@ class TestSinkhornProblem:
             key="time", policy="sequential", joint_attr="X_pca", cost=cost_str, cost_kwargs=cost_kwargs
         )
         assert isinstance(problem[0, 1].xy.cost, cost_inst)
+        if cost_kwargs:
+            k, v = next(iter(cost_kwargs.items()))
+            assert getattr(problem[0, 1].xy.cost, k) == v
 
         problem = problem.solve(max_iterations=2)
 

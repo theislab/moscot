@@ -152,8 +152,8 @@ class TestFGWProblem:
             ("cosine", Cosine, {}),
             ("pnorm_p", PNormP, {"p": 3}),
             ("sq_pnorm", SqPNorm, {"xy": {"p": 5}, "x": {"p": 3}, "y": {"p": 4}}),
-            ("elastic_l1", ElasticL1, {}),
-            ("elastic_stvs", ElasticSTVS, {}),
+            ("elastic_l1", ElasticL1, {"gamma": 1.1}),
+            ("elastic_stvs", ElasticSTVS, {"gamma": 1.2}),
         ],
     )
     def test_prepare_costs(self, adata_time: AnnData, cost_str: str, cost_inst: Any, cost_kwargs: Mapping[str, int]):
@@ -171,6 +171,20 @@ class TestFGWProblem:
         assert isinstance(problem[0, 1].x.cost, cost_inst)
         assert isinstance(problem[0, 1].y.cost, cost_inst)
         assert isinstance(problem[0, 1].xy.cost, cost_inst)
+
+        if cost_kwargs:
+            if len(cost_kwargs) > 1:
+                k, v = next(iter(cost_kwargs["x"].items()))
+                assert getattr(problem[0, 1].x.cost, k) == v
+                k, v = next(iter(cost_kwargs["y"].items()))
+                assert getattr(problem[0, 1].y.cost, k) == v
+                k, v = next(iter(cost_kwargs["xy"].items()))
+                assert getattr(problem[0, 1].xy.cost, k) == v
+            else:
+                k, v = next(iter(cost_kwargs.items()))
+                assert getattr(problem[0, 1].x.cost, k) == v
+                assert getattr(problem[0, 1].y.cost, k) == v
+                assert getattr(problem[0, 1].xy.cost, k) == v
 
         problem = problem.solve(max_iterations=2)
 

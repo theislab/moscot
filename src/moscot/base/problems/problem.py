@@ -270,10 +270,10 @@ class OTProblem(BaseProblem):
         self._x = self._y = self._xy = self._solution = None
         # TODO(michalk8): in the future, have a better dispatch
         # fmt: off
-        if xy is not None and x is None and y is None:
+        if xy and not x and not y:
             self._problem_kind = "linear"
             self._xy = xy if isinstance(xy, TaggedArray) else self._handle_linear(**xy)
-        elif x is not None and y is not None and xy is None:
+        elif x and y and not xy:
             self._problem_kind = "quadratic"
             if isinstance(x, TaggedArray):
                 self._x = x
@@ -283,7 +283,7 @@ class OTProblem(BaseProblem):
                 self._y = y
             else:
                 self._y = TaggedArray.from_adata(self.adata_tgt, dist_key=self._tgt_key, **y)
-        elif xy is not None and x is not None and y is not None:
+        elif xy and x and y:
             self._problem_kind = "quadratic"
             self._xy = xy if isinstance(xy, TaggedArray) else self._handle_linear(**xy)
             if isinstance(x, TaggedArray):
