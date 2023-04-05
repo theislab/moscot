@@ -1,7 +1,9 @@
 import os
+import pickle
+import urllib.request
 import warnings
 from types import MappingProxyType
-from typing import Any, List, Literal, Mapping, Optional, Tuple
+from typing import Any, Dict, List, Literal, Mapping, Optional, Tuple
 
 import networkx as nx
 import numpy as np
@@ -12,7 +14,7 @@ from scanpy import read
 
 from moscot._types import PathLike
 
-__all__ = ["mosta", "hspc", "drosophila", "sim_align", "simulate_data"]
+__all__ = ["mosta", "hspc", "drosophila", "c_elegans", "zebrafish", "sim_align", "simulate_data"]
 
 
 def mosta(
@@ -109,6 +111,64 @@ def drosophila(
         expected_shape=(1297, 2000),
         **kwargs,
     )
+
+
+def c_elegans(
+    path: PathLike = "~/.cache/moscot/c_elegans.h5ad",
+    **kwargs: Any,
+) -> Tuple[AnnData, nx.DiGraph]:  # pragma: no cover
+    """scRNA-seq time-series dataset of C.elegans embryogenesis :cite:`packer:19`.
+
+    Contains raw counts of 46,151 cells with at least partial lineage information.
+    In addition, this downloads the known C. elegans lineage tree.
+
+    Parameters
+    ----------
+    path
+        Path where to save the file.
+    kwargs
+        Keyword arguments for :func:`scanpy.read`.
+
+    Returns
+    -------
+    Annotated data object and the lineage tree.
+    """
+    adata = _load_dataset_from_url(
+        path, backup_url="https://figshare.com/ndownloader/files/39943585", expected_shape=(46151, 20222), **kwargs
+    )
+    with urllib.request.urlopen("https://figshare.com/ndownloader/files/39943603") as fin:
+        tree = pickle.load(fin)
+
+    return adata, tree
+
+
+def zebrafish(
+    path: PathLike = "~/.cache/moscot/zebrafish.h5ad",
+    **kwargs: Any,
+) -> Tuple[AnnData, Dict[str, nx.DiGraph]]:
+    """Lineage-traced scRNA-seq time-series dataset of zebrafish heart regeneration :cite:`hu:22`.
+
+    Contains gene expression vectors, LINNAEUS :cite:`spanjaard:18` reconstructed lineage trees,
+    a low-dimensional embedding, and additional metadata.
+
+    Parameters
+    ----------
+    path
+        Path where to save the file.
+    kwargs
+        Keyword arguments for :func:`scanpy.read`.
+
+    Returns
+    -------
+    Annotated data object and the lineage trees.
+    """
+    adata = _load_dataset_from_url(
+        path, backup_url="https://figshare.com/ndownloader/files/39951073", expected_shape=(44014, 31466), **kwargs
+    )
+    with urllib.request.urlopen("https://figshare.com/ndownloader/files/39951076") as fin:
+        trees = pickle.load(fin)
+
+    return adata, trees
 
 
 def tedsim(
