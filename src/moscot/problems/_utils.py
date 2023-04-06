@@ -49,9 +49,9 @@ def handle_joint_attr(
 
 
 def handle_cost(
-    xy: Mapping[str, Any] = None,
-    x: Mapping[str, Any] = None,
-    y: Mapping[str, Any] = None,
+    xy: Mapping[str, Any] = types.MappingProxyType({}),
+    x: Mapping[str, Any] = types.MappingProxyType({}),
+    y: Mapping[str, Any] = types.MappingProxyType({}),
     cost: Optional[Union[CostFn_t, Mapping[str, CostFn_t]]] = None,
     cost_kwargs: Union[Mapping[str, Any], Mapping[str, Mapping[str, Any]]] = types.MappingProxyType({}),
     **_: Any,
