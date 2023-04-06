@@ -38,6 +38,7 @@ class SpatioTemporalProblem(
     %(adata)s
     """
 
+    # TODO(michalk8): check if this is necessary
     def __init__(self, adata: AnnData, **kwargs: Any):
         super().__init__(adata, **kwargs)
 
@@ -57,11 +58,10 @@ class SpatioTemporalProblem(
         marginal_kwargs: Mapping[str, Any] = MappingProxyType({}),
         **kwargs: Any,
     ) -> "SpatioTemporalProblem":
-        """
-        Prepare the :class:`moscot.problems.spatio_temporal.SpatioTemporalProblem`.
+        """Prepare the problem.
 
         This method executes multiple steps to prepare the problem for the Optimal Transport solver to be ready
-        to solve it
+        to solve it.
 
         Parameters
         ----------
@@ -76,7 +76,7 @@ class SpatioTemporalProblem(
 
         Returns
         -------
-        :class:`moscot.problems.spatio_temporal.SpatioTemporalProblem`.
+        The prepared problem.
 
         Notes
         -----
@@ -128,16 +128,11 @@ class SpatioTemporalProblem(
         min_iterations: int = 5,
         max_iterations: int = 50,
         threshold: float = 1e-3,
-        gamma: float = 10.0,
-        gamma_rescale: bool = True,
-        ranks: Union[int, Tuple[int, ...]] = -1,
-        tolerances: Union[float, Tuple[float, ...]] = 1e-2,
         linear_solver_kwargs: Mapping[str, Any] = MappingProxyType({}),
         device: Optional[Literal["cpu", "gpu", "tpu"]] = None,
         **kwargs: Any,
     ) -> "SpatioTemporalProblem":
-        """
-        Solve optimal transport problems defined in :class:`moscot.problems.space.SpatioTemporalProblem`.
+        """Solve the problem.
 
         Parameters
         ----------
@@ -152,15 +147,13 @@ class SpatioTemporalProblem(
         %(initializer_quad)s
         %(initializer_kwargs)s
         %(gw_kwargs)s
-        %(sinkhorn_lr_kwargs)s
-        %(gw_lr_kwargs)s
         %(linear_solver_kwargs)s
         %(device_solve)s
         %(kwargs_quad_fused)s
 
         Returns
         -------
-        :class:`moscot.problems.space.SpatioTemporalProblem`.
+        The solved problem.
 
         Examples
         --------
@@ -181,10 +174,6 @@ class SpatioTemporalProblem(
             min_iterations=min_iterations,
             max_iterations=max_iterations,
             threshold=threshold,
-            gamma=gamma,
-            gamma_rescale=gamma_rescale,
-            ranks=ranks,
-            tolerances=tolerances,
             linear_solver_kwargs=linear_solver_kwargs,
             device=device,
             **kwargs,

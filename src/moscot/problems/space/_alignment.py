@@ -40,8 +40,7 @@ class AlignmentProblem(CompoundProblem[K, B], SpatialAlignmentMixin[K, B]):
         b: Optional[str] = None,
         **kwargs: Any,
     ) -> "AlignmentProblem[K, B]":
-        """
-        Prepare the :class:`moscot.problems.space.AlignmentProblem`.
+        """Prepare the problem.
 
         This method prepares the data to be passed to the optimal transport solver.
 
@@ -54,7 +53,7 @@ class AlignmentProblem(CompoundProblem[K, B], SpatialAlignmentMixin[K, B]):
 
         reference
             Only used if `policy="star"`, it's the value for reference stored
-            in :attr:`adata.obs` ``["batch_key"]``.
+            in :attr:`anndata.AnnData.obs` ``["batch_key"]``.
 
         %(cost)s
         %(a)s
@@ -98,10 +97,6 @@ class AlignmentProblem(CompoundProblem[K, B], SpatialAlignmentMixin[K, B]):
         min_iterations: int = 5,
         max_iterations: int = 50,
         threshold: float = 1e-3,
-        gamma: float = 10.0,
-        gamma_rescale: bool = True,
-        ranks: Union[int, Tuple[int, ...]] = -1,
-        tolerances: Union[float, Tuple[float, ...]] = 1e-2,
         linear_solver_kwargs: Mapping[str, Any] = MappingProxyType({}),
         device: Optional[Literal["cpu", "gpu", "tpu"]] = None,
         **kwargs: Any,
@@ -122,8 +117,6 @@ class AlignmentProblem(CompoundProblem[K, B], SpatialAlignmentMixin[K, B]):
         %(initializer_quad)s
         %(initializer_kwargs)s
         %(gw_kwargs)s
-        %(sinkhorn_lr_kwargs)s
-        %(gw_lr_kwargs)s
         %(linear_solver_kwargs)s
         %(device_solve)s
         %(kwargs_quad_fused)s
@@ -151,10 +144,6 @@ class AlignmentProblem(CompoundProblem[K, B], SpatialAlignmentMixin[K, B]):
             min_iterations=min_iterations,
             max_iterations=max_iterations,
             threshold=threshold,
-            gamma=gamma,
-            gamma_rescale=gamma_rescale,
-            ranks=ranks,
-            tolerances=tolerances,
             linear_solver_kwargs=linear_solver_kwargs,
             device=device,
             **kwargs,

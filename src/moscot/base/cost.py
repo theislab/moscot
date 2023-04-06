@@ -12,18 +12,18 @@ __all__ = ["BaseCost"]
 
 
 class BaseCost(ABC):
-    """Base class for all :mod:`moscot` losses.
+    """Base class for all :mod:`moscot.costs`.
 
     Parameters
     ----------
     adata
         Annotated data object.
     attr
-        Attribute of :class:`anndata.AnnData` used when computing the cost.
+        Attribute of :class:`~anndata.AnnData` used when computing the cost.
     key
-        Key in the ``attr`` of :class:`anndata.AnnData` used when computing the cost.
+        Key in the ``attr`` of :class:`~anndata.AnnData` used when computing the cost.
     dist_key
-        Helper key which determines which distribution ``adata`` belongs to.
+        Helper key which determines which distribution :attr:`adata` belongs to.
     """
 
     def __init__(self, adata: AnnData, attr: str, key: str, dist_key: Union[Any, Tuple[Any, Any]]):
@@ -42,16 +42,16 @@ class BaseCost(ABC):
         Parameters
         ----------
         args
-            Positional arguments for :meth:`_compute`.
+            Positional arguments for computation.
         kwargs
-            Keyword arguments for :meth:`_compute`.
+            Keyword arguments for computation.
 
         Returns
         -------
         The computed cost matrix.
         """
         cost = self._compute(*args, **kwargs)
-        if not np.all(np.isnan(cost)):
+        if np.any(np.isnan(cost)):
             maxx = np.nanmax(cost)
             logger.warning(f"Cost matrix contains `NaN` values, setting them to the maximum value `{maxx}`.")
             cost = np.nan_to_num(cost, nan=maxx)  # type: ignore[call-overload]
@@ -64,6 +64,7 @@ class BaseCost(ABC):
         """Annotated data object."""
         return self._adata
 
+    # TODO(michalk8): don't require impl.
     @property
     @abstractmethod
     def data(self) -> Any:

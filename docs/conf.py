@@ -59,6 +59,18 @@ master_doc = "index"
 pygments_style = "tango"
 pygments_dark_style = "monokai"
 
+nitpicky = True
+nitpick_ignore = [
+    ("py:class", "numpy.float64"),
+]
+# TODO(michalk8): remove once typing has been cleaned-up
+nitpick_ignore_regex = [
+    (r"py:class", r"moscot\..*(K|B|O)"),
+    (r"py:class", r"numpy\._typing.*"),
+    (r"py:class", r"moscot\..*Protocol.*"),
+]
+
+
 # bibliography
 bibtex_bibfiles = ["references.bib"]
 bibtex_reference_style = "author_year"
@@ -87,7 +99,6 @@ autodoc_typehints = "description"
 napoleon_google_docstring = False
 napoleon_numpy_docstring = True
 
-
 # spelling
 spelling_lang = "en_US"
 spelling_warning = True
@@ -99,6 +110,15 @@ spelling_filters = [
     "enchant.tokenize.URLFilter",
     "enchant.tokenize.EmailFilter",
     "enchant.tokenize.MentionFilter",
+]
+
+linkcheck_ignore = [
+    # 403 Client Error
+    r"https://doi.org/10.1126/science.aad0501",
+    r"https://resources.aertslab.org/cistarget/tf_lists/",
+    r"https://doi.org/10.1126/science.aax1971",
+    r"https://doi.org/10.1093/nar/gkac235",
+    r"https://www.science.org/doi/abs/10.1126/science.aax1971",
 ]
 
 exclude_patterns = ["_build", "**.ipynb_checkpoints", "notebooks/README.rst", "notebooks/CONTRIBUTING.rst"]

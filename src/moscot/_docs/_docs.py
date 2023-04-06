@@ -9,11 +9,11 @@ adatas
 """
 _adata_x = """\
 adata_x
-    Instance of :class:`anndata.AnnData` containing the data of the source distribution.
+    Instance of :class:`~anndata.AnnData` containing the data of the source distribution.
 """
 _adata_y = """\
 adata_y
-    Instance of :class:`anndata.AnnData` containing the data of the target distribution.
+    Instance of :class:`~anndata.AnnData` containing the data of the target distribution.
 """
 _solver = """\
 solver
@@ -21,14 +21,14 @@ solver
 """
 _source = """\
 source
-    Value in :attr:`anndata.AnnData.obs` defining the assignment to the source distribution."""
+    Value in :attr:`~anndata.AnnData.obs` defining the assignment to the source distribution."""
 _target = """\
 target
-    Value in :attr:`anndata.AnnData.obs` defining the assignment to the target distribution.
+    Value in :attr:`~anndata.AnnData.obs` defining the assignment to the target distribution.
 """
 _reference = """\
 reference
-    `reference` in :class:`moscot.problems._subset_policy.StarPolicy`.
+    `reference` in the :class:`~moscot.utils.subset_policy.StarPolicy`.
 """
 _xy_callback = """\
 xy_callback
@@ -86,7 +86,7 @@ data
     - If `data` is a :class:`str` this should correspond to a column in :attr:`anndata.AnnData.obs`.
       The transport map is applied to the subset corresponding to the source distribution
       (if `forward` is `True`) or target distribution (if `forward` is :obj:`False`) of that column.
-    - If `data` is a :class:npt.ArrayLike the transport map is applied to `data`.
+    - If `data` is a :class:`numpy.ndarray`, the transport map is applied to `data`.
     - If `data` is a :class:`dict` then the keys should correspond to the tuple defining a single optimal
       transport map and the value should be one of the two cases described above.
 """
@@ -96,23 +96,12 @@ subset
 """
 _marginal_kwargs = r"""
 marginal_kwargs
-    Keyword arguments for :meth:`~moscot.problems.BirthDeathProblem._estimate_marginals`. If ``'scaling'``
+    Keyword arguments for :meth:`~moscot.base.problems.BirthDeathProblem.estimate_marginals`. If ``'scaling'``
     is in ``marginal_kwargs``, the left marginals are computed as
     :math:`\exp(\frac{(\textit{proliferation} - \textit{apoptosis}) \cdot (t_2 - t_1)}{\textit{scaling}})`.
     Otherwise, the left marginals are computed using a birth-death process. The keyword arguments
-    are either used for :func:`~moscot.problems.time._utils.beta`, i.e. one of:
-
-        - beta_max: float
-        - beta_min: float
-        - beta_center: float
-        - beta_width: float
-
-    or for :func:`~moscot.problems.time._utils.delta`, i.e. one of:
-
-        - delta_max: float
-        - delta_min: float
-        - delta_center: float
-        - delta_width: float
+    are either used for :func:`~moscot.base.problems.birth_death.beta` or
+    :func:`~moscot.base.problems.birth_death.delta`.
 """
 _shape = """\
 shape
@@ -140,10 +129,10 @@ _a_temporal = r"""
 a
     Specifies the left marginals. If
         - ``a`` is :class:`str` - the left marginals are taken from :attr:`anndata.AnnData.obs`,
-        - if :meth:`~moscot.problems.base._birth_death.BirthDeathMixin.score_genes_for_marginals` was run and
+        - if :meth:`score_genes_for_marginals` was run and
           if ``a`` is `None`, marginals are computed based on a birth-death process as suggested in
           :cite:`schiebinger:19`,
-        - if :meth:`~moscot.problems.base._birth_death.BirthDeathMixin.score_genes_for_marginals` was run and
+        - if :meth:`score_genes_for_marginals` was run and
           if ``a`` is `None`, and additionally ``'scaling'`` is provided in ``marginal_kwargs``,
           the marginals are computed as
           :math:`\exp(\frac{(\textit{proliferation} - \textit{apoptosis}) \cdot (t_2 - t_1)}{\textit{scaling}})`
@@ -154,7 +143,7 @@ _b_temporal = """\
 b
     Specifies the right marginals. If
         - ``b`` is :class:`str` - the left marginals are taken from :attr:`anndata.AnnData.obs`,
-        - if :meth:`~moscot.problems.base._birth_death.BirthDeathMixin.score_genes_for_marginals` was run
+        - if :meth:`score_genes_for_marginals` was run
           uniform (mean of left marginals) right marginals are used,
         - otherwise or if ``b`` is :obj:`False`, uniform marginals are used.
 """
@@ -186,15 +175,15 @@ joint_attr
     - If `dict`, the dictionary stores `attr` (attribute of :class:`anndata.AnnData`) and `key`
       (key of :class:`anndata.AnnData` ``['{attr}']``).
 """
-_GW_x = """\
-GW_x
+_x_attr = """\
+x_attr
 
     - If `str`, it must refer to a key in :attr:`anndata.AnnData.obsm`.
     - If `dict`, the dictionary stores `attr` (attribute of :class:`anndata.AnnData`) and `key`
       (key of :class:`anndata.AnnData` ``['{attr}']``).
 """
-_GW_y = """\
-GW_y
+_y_attr = """\
+y_attr
 
     - If `str`, it must refer to a key in :attr:`anndata.AnnData.obsm`.
     - If `dict`, the dictionary stores `attr` (attribute of :class:`anndata.AnnData`) and `key`
@@ -287,13 +276,6 @@ min_iterations
 max_iterations
     The maximum number of Sinkhorn iterations.
 """
-_sinkhorn_lr_kwargs = """\
-gamma
-    Only in low-rank setting: the (inverse of the) gradient step size used by the mirror descent algorithm
-    (:cite:`scetbon:22b`).
-gamma_rescale
-    Only in low-rank setting: whether to rescale `gamma` every iteration as described in :cite:`scetbon:22b`.
-"""
 _cost_matrix_rank = """\
 cost_matrix_rank
     Rank of the matrix the cost matrix is approximated by. Only applies if a custom cost matrix is passed.
@@ -306,20 +288,6 @@ max_iterations
     Maximal number of outer Gromov-Wasserstein iterations.
 threshold
     Threshold used as convergence criterion for the outer Gromov-Wasserstein loop.
-"""
-_gw_lr_kwargs = """\
-ranks
-    Ranks of the cost matrices, see
-    :meth:`~ott.geometry.geometry.Geometry.to_LRCGeometry`. Used when
-    geometries are *not* :class:`~ott.geometry.pointcloud.PointCloud` with
-    `'sqeucl'` cost function. If `-1`, the geometries will not be converted
-    to low-rank. If :class:`tuple`, it specifies the ranks of ``geom_xx``,
-    ``geom_yy`` and ``geom_xy``, respectively. If :class:`int`, rank is shared
-    across all geometries.
-tolerances
-    Tolerances used when converting geometries to low-rank. Used
-    when geometries are not :class:`~ott.geometry.pointcloud.PointCloud` with
-    `'sqeucl'` cost. If :class:`float`, it is shared across all geometries.
 """
 _scale_cost = """\
 scale_cost
@@ -434,8 +402,8 @@ d = DocstringProcessor(
     policy=_policy,
     key=_key,
     joint_attr=_joint_attr,
-    GW_x=_GW_x,
-    GW_y=_GW_y,
+    x_attr=_x_attr,
+    y_attr=_y_attr,
     split_mass=_split_mass,
     inplace=_inplace,
     alignment_mixin_returns=_alignment_mixin_returns,
@@ -447,10 +415,8 @@ d = DocstringProcessor(
     initializer_kwargs=_initializer_kwargs,
     jit=_jit,
     sinkhorn_kwargs=_sinkhorn_kwargs,
-    sinkhorn_lr_kwargs=_sinkhorn_lr_kwargs,
     cost_matrix_rank=_cost_matrix_rank,  # TODO(@MUCDK): test for this. cannot be tested with current `test_pass_for_arguments`.  # noqa: E501
     gw_kwargs=_gw_kwargs,
-    gw_lr_kwargs=_gw_lr_kwargs,
     scale_cost=_scale_cost,
     cost_lin=_cost_lin,
     cost=_cost,

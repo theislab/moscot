@@ -1,13 +1,14 @@
-from typing import Any, Literal, Mapping, Tuple
+from typing import Any, Literal, Mapping, Type
 
 import pytest
 
 import numpy as np
 import pandas as pd
-from ott.geometry.costs import Cosine, Euclidean, SqEuclidean
+from ott.geometry.costs import Cosine, CostFn, Euclidean, SqEuclidean
 
 from anndata import AnnData
 
+from moscot.backends.ott._utils import alpha_to_fused_penalty
 from moscot.base.output import BaseSolverOutput
 from moscot.base.problems import OTProblem
 from moscot.problems.generic import GWProblem
@@ -37,8 +38,8 @@ class TestFGWProblem:
             key="batch",
             policy="sequential",
             joint_attr="X_pca",
-            GW_x={"attr": "obsm", "key": "spatial"},
-            GW_y={"attr": "obsm", "key": "spatial"},
+            x_attr={"attr": "obsm", "key": "spatial"},
+            y_attr={"attr": "obsm", "key": "spatial"},
         )
 
         assert isinstance(problem.problems, dict)
@@ -57,8 +58,8 @@ class TestFGWProblem:
             key="batch",
             policy="sequential",
             joint_attr="X_pca",
-            GW_x={"attr": "obsm", "key": "spatial"},
-            GW_y={"attr": "obsm", "key": "spatial"},
+            x_attr={"attr": "obsm", "key": "spatial"},
+            y_attr={"attr": "obsm", "key": "spatial"},
         )
         problem = problem.solve(alpha=0.5, epsilon=eps)
 
@@ -73,8 +74,8 @@ class TestFGWProblem:
             key="batch",
             policy="sequential",
             joint_attr="X_pca",
-            GW_x={"attr": "obsm", "key": "spatial"},
-            GW_y={"attr": "obsm", "key": "spatial"},
+            x_attr={"attr": "obsm", "key": "spatial"},
+            y_attr={"attr": "obsm", "key": "spatial"},
         )
 
         problem = problem.solve(**args_to_check)
@@ -82,7 +83,7 @@ class TestFGWProblem:
 
         solver = problem[key].solver.solver
         for arg, val in gw_solver_args.items():
-            assert getattr(solver, val, object()) == args_to_check[arg]
+            assert getattr(solver, val, object()) == args_to_check[arg], arg
 
         sinkhorn_solver = solver.linear_ot_solver
         lin_solver_args = gw_linear_solver_args if args_to_check["rank"] == -1 else gw_lr_linear_solver_args
@@ -92,37 +93,38 @@ class TestFGWProblem:
                 if isinstance(getattr(sinkhorn_solver, val), tuple)
                 else getattr(sinkhorn_solver, val)
             )
-            args_to_c = args_to_check if arg in ["gamma", "gamma_rescale"] else args_to_check["linear_solver_kwargs"]
-            assert el == args_to_c[arg]
+            assert el == args_to_check["linear_solver_kwargs"][arg], arg
 
         quad_prob = problem[key].solver._problem
         for arg, val in quad_prob_args.items():
             assert getattr(quad_prob, val, object()) == args_to_check[arg]
-        assert quad_prob.fused_penalty == problem[key].solver._alpha_to_fused_penalty(args_to_check["alpha"])
+        assert quad_prob.fused_penalty == alpha_to_fused_penalty(args_to_check["alpha"])
 
         geom = quad_prob.geom_xx
         for arg, val in geometry_args.items():
-            assert getattr(geom, val, object()) == args_to_check[arg]
+            assert getattr(geom, val, object()) == args_to_check[arg], arg
 
         geom = quad_prob.geom_xy
         for arg, val in pointcloud_args.items():
-            assert getattr(geom, val, object()) == args_to_check[arg]
+            assert getattr(geom, val, object()) == args_to_check[arg], arg
 
     @pytest.mark.fast()
-    @pytest.mark.parametrize("cost", [("sq_euclidean", SqEuclidean), ("euclidean", Euclidean), ("cosine", Cosine)])
-    def test_prepare_costs(self, adata_time: AnnData, cost: Tuple[str, Any]):
+    @pytest.mark.parametrize(
+        ("name", "cost_type"), [("sq_euclidean", SqEuclidean), ("euclidean", Euclidean), ("cosine", Cosine)]
+    )
+    def test_prepare_costs(self, adata_time: AnnData, name: str, cost_type: Type[CostFn]):
         problem = GWProblem(adata=adata_time)
         problem = problem.prepare(
             key="time",
             policy="sequential",
             joint_attr="X_umap",
-            GW_x="X_pca",
-            GW_y="X_pca",
-            cost=cost[0],
+            x_attr="X_pca",
+            y_attr="X_pca",
+            cost=name,
         )
-        assert isinstance(problem[0, 1].xy.cost, cost[1])
-        assert isinstance(problem[0, 1].x.cost, cost[1])
-        assert isinstance(problem[0, 1].y.cost, cost[1])
+        assert isinstance(problem[0, 1].xy.cost, cost_type)
+        assert isinstance(problem[0, 1].x.cost, cost_type)
+        assert isinstance(problem[0, 1].y.cost, cost_type)
 
     @pytest.mark.parametrize("tag", ["cost_matrix", "kernel"])
     def test_set_xy(self, adata_time: AnnData, tag: Literal["cost_matrix", "kernel"]):
@@ -130,8 +132,8 @@ class TestFGWProblem:
         adata_time = adata_time[adata_time.obs["time"].isin((0, 1))].copy()
         problem = GWProblem(adata=adata_time)
         problem = problem.prepare(
-            GW_x="X_pca",
-            GW_y="X_pca",
+            x_attr="X_pca",
+            y_attr="X_pca",
             joint_attr="X_pca",
             key="time",
             policy="sequential",
@@ -157,8 +159,8 @@ class TestFGWProblem:
         adata_time = adata_time[adata_time.obs["time"].isin((0, 1))].copy()
         problem = GWProblem(adata=adata_time)
         problem = problem.prepare(
-            GW_x="X_pca",
-            GW_y="X_pca",
+            x_attr="X_pca",
+            y_attr="X_pca",
             joint_attr="X_pca",
             key="time",
             policy="sequential",
@@ -183,8 +185,8 @@ class TestFGWProblem:
         adata_time = adata_time[adata_time.obs["time"].isin((0, 1))].copy()
         problem = GWProblem(adata=adata_time)
         problem = problem.prepare(
-            GW_x="X_pca",
-            GW_y="X_pca",
+            x_attr="X_pca",
+            y_attr="X_pca",
             joint_attr="X_pca",
             key="time",
             policy="sequential",
@@ -210,8 +212,8 @@ class TestFGWProblem:
             key="time",
             policy="sequential",
             joint_attr="X_umap",
-            GW_x="X_pca",
-            GW_y="X_pca",
+            x_attr="X_pca",
+            y_attr="X_pca",
             cost={"xy": "cosine", "x": "euclidean", "y": "sq_euclidean"},
         )
         assert isinstance(problem[0, 1].xy.cost, Cosine)

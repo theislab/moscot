@@ -180,7 +180,6 @@ xfail_strict = true
 filterwarnings = [
     "ignore:X.dtype being converted:FutureWarning",
     "ignore:No data for colormapping:UserWarning",
-    "ignore:jax\\.experimental\\.pjit\\.PartitionSpec:DeprecationWarning",
 ]
 
 [tool.coverage.run]
@@ -289,7 +288,8 @@ set_env = SPHINXOPTS = -W -q --keep-going
 changedir = {tox_root}{/}docs
 commands =
     make linkcheck {posargs}
-    make spelling {posargs}
+    # TODO(michalk8): uncomment after https://github.com/theislab/moscot/issues/490
+    # make spelling {posargs}
 
 [testenv:clean-docs]
 description = Remove the documentation.
@@ -323,4 +323,14 @@ commands =
     python -m twine check {tox_root}{/}dist{/}*
 commands_post =
     python -c 'import pathlib; print(f"Package is under:", pathlib.Path("{tox_root}") / "dist")'
+
+[testenv:format-references]
+description = Format references.bib.
+deps =
+skip_install = true
+allowlist_externals = biber
+commands = biber --tool --output_file={tox_root}{/}docs{/}references.bib --nolog \
+    --output_align --output_indent=2 --output_fieldcase=lower \
+    --output_legacy_dates --output-field-replace=journaltitle:journal,thesis:phdthesis,institution:school \
+    {tox_root}{/}docs{/}references.bib
 """

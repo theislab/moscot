@@ -35,8 +35,8 @@ class TestGWProblem:
         problem = problem.prepare(
             key="batch",
             policy="sequential",
-            GW_x={"attr": "obsm", "key": "spatial"},
-            GW_y={"attr": "obsm", "key": "spatial"},
+            x_attr={"attr": "obsm", "key": "spatial"},
+            y_attr={"attr": "obsm", "key": "spatial"},
         )
 
         assert isinstance(problem.problems, dict)
@@ -53,8 +53,8 @@ class TestGWProblem:
         problem = problem.prepare(
             key="batch",
             policy="sequential",
-            GW_x={"attr": "obsm", "key": "spatial"},
-            GW_y={"attr": "obsm", "key": "spatial"},
+            x_attr={"attr": "obsm", "key": "spatial"},
+            y_attr={"attr": "obsm", "key": "spatial"},
         )
         problem = problem.solve(epsilon=eps)
 
@@ -69,8 +69,8 @@ class TestGWProblem:
         problem = problem.prepare(
             key="batch",
             policy="sequential",
-            GW_x={"attr": "obsm", "key": "spatial"},
-            GW_y={"attr": "obsm", "key": "spatial"},
+            x_attr={"attr": "obsm", "key": "spatial"},
+            y_attr={"attr": "obsm", "key": "spatial"},
         )
         problem = problem.solve(epsilon=0.5)
         assert problem["0", "1"].solution.converged
@@ -87,11 +87,10 @@ class TestGWProblem:
     @pytest.mark.parametrize("args_to_check", [gw_args_1, gw_args_2])
     def test_pass_arguments(self, adata_space_rotate: AnnData, args_to_check: Mapping[str, Any]):
         problem = GWProblem(adata=adata_space_rotate)
-        adata_space_rotate = adata_space_rotate[adata_space_rotate.obs["batch"].isin((0, 1))].copy()
         problem = problem.prepare(
             key="batch",
-            GW_x={"attr": "obsm", "key": "spatial"},
-            GW_y={"attr": "obsm", "key": "spatial"},
+            x_attr={"attr": "obsm", "key": "spatial"},
+            y_attr={"attr": "obsm", "key": "spatial"},
             policy="sequential",
         )
 
@@ -111,8 +110,7 @@ class TestGWProblem:
                 if isinstance(getattr(sinkhorn_solver, val), tuple)
                 else getattr(sinkhorn_solver, val)
             )
-            args_to_c = args_to_check if arg in ["gamma", "gamma_rescale"] else args_to_check["linear_solver_kwargs"]
-            assert el == args_to_c[arg]
+            assert el == args_to_check["linear_solver_kwargs"][arg], arg
 
         quad_prob = problem[key]._solver._problem
         for arg, val in quad_prob_args.items():
@@ -131,8 +129,8 @@ class TestGWProblem:
         problem = problem.prepare(
             key="time",
             policy="sequential",
-            GW_x="X_pca",
-            GW_y="X_pca",
+            x_attr="X_pca",
+            y_attr="X_pca",
             cost=cost[0],
         )
         assert isinstance(problem[0, 1].x.cost, cost[1])
@@ -144,8 +142,8 @@ class TestGWProblem:
         adata_time = adata_time[adata_time.obs["time"].isin((0, 1))].copy()
         problem = GWProblem(adata=adata_time)
         problem = problem.prepare(
-            GW_x="X_pca",
-            GW_y="X_pca",
+            x_attr="X_pca",
+            y_attr="X_pca",
             key="time",
             policy="sequential",
         )
@@ -170,8 +168,8 @@ class TestGWProblem:
         adata_time = adata_time[adata_time.obs["time"].isin((0, 1))].copy()
         problem = GWProblem(adata=adata_time)
         problem = problem.prepare(
-            GW_x="X_pca",
-            GW_y="X_pca",
+            x_attr="X_pca",
+            y_attr="X_pca",
             key="time",
             policy="sequential",
         )
@@ -196,8 +194,8 @@ class TestGWProblem:
         problem = problem.prepare(
             key="time",
             policy="sequential",
-            GW_x="X_pca",
-            GW_y="X_pca",
+            x_attr="X_pca",
+            y_attr="X_pca",
             cost={"x": "euclidean", "y": "sq_euclidean"},
         )
         assert isinstance(problem[0, 1].x.cost, Euclidean)

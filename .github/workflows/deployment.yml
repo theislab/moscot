@@ -1,12 +1,10 @@
-name: Release
-
+name: Deployment
 on:
-  # TODO(michalk8): consider using GitHub releases
   push:
     tags: [v*]
 
 jobs:
-  release:
+  deploy:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
@@ -27,6 +25,6 @@ jobs:
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
           password: ${{ secrets.TWINE_API_KEY }}
-          skip_existing: true
-          verify_metadata: true
+          skip-existing: true
+          verify-metadata: true
           verbose: true

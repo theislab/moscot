@@ -56,16 +56,16 @@ class TestBirthDeathProblem:
 
         if proliferation_key is not None and "error" in proliferation_key:
             with pytest.raises(KeyError, match=r"Unable to find proliferation"):
-                _ = prob._estimate_marginals(
+                _ = prob.estimate_marginals(
                     adata, source=source, proliferation_key=proliferation_key, apoptosis_key=apoptosis_key
                 )
         elif proliferation_key is None and apoptosis_key is None:
             with pytest.raises(ValueError, match=r"Either `proliferation_key` or `apoptosis_key`"):
-                _ = prob._estimate_marginals(
+                _ = prob.estimate_marginals(
                     adata, source=source, proliferation_key=proliferation_key, apoptosis_key=apoptosis_key
                 )
         else:
-            a_estimated = prob._estimate_marginals(
+            a_estimated = prob.estimate_marginals(
                 adata, source=source, proliferation_key=proliferation_key, apoptosis_key=apoptosis_key
             )
             assert isinstance(a_estimated, np.ndarray)

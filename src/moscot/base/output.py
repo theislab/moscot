@@ -1,17 +1,20 @@
 from abc import ABC, abstractmethod
 from copy import copy
 from functools import partial
-from typing import Any, Callable, Iterable, Optional, Tuple
+from typing import Any, Callable, Iterable, List, Literal, Optional, Tuple
 
 import numpy as np
+import scipy.sparse as sp
 from scipy.sparse.linalg import LinearOperator
 
+from moscot._docs._docs import d
 from moscot._logging import logger
 from moscot._types import ArrayLike, Device_t, DTypeLike  # type: ignore[attr-defined]
 
 __all__ = ["BaseSolverOutput", "MatrixSolverOutput"]
 
 
+@d.dedent
 class BaseSolverOutput(ABC):
     """Base class for all solver outputs."""
 
@@ -44,7 +47,7 @@ class BaseSolverOutput(ABC):
     def potentials(self) -> Optional[Tuple[ArrayLike, ArrayLike]]:
         """Dual potentials :math:`f` and :math:`g`.
 
-        Only valid for the Sinkhorn's algorithm.
+        Only valid for the Sinkhorn algorithm.
         """
 
     @property
@@ -59,8 +62,7 @@ class BaseSolverOutput(ABC):
         Parameters
         ----------
         device
-            Device where to transfer the solver output.
-            If `None`, use the default device.
+            Device where to transfer the solver output. If `None`, use the default device.
 
         Returns
         -------
@@ -168,6 +170,90 @@ class BaseSolverOutput(ABC):
 
         return op
 
+    def sparsify(
+        self,
+        mode: Literal["threshold", "percentile", "min_row"],
+        value: Optional[float] = None,
+        batch_size: int = 1024,
+        n_samples: Optional[int] = None,
+        seed: Optional[int] = None,
+    ) -> "MatrixSolverOutput":
+        """Sparsify the :attr:`transport_matrix`.
+
+        This function sets all entries of the transport matrix below `threshold` to 0 and
+        returns an instance of the `MatrixSolverOutput` with the
+        sparsified transport matrix stored as a :class:`~scipy.sparse.csr_matrix`.
+
+        .. warning::
+            This function only serves for interfacing software which has to instantiate the transport matrix. Methods in
+            :mod:`moscot` never use the sparsified transport matrix.
+
+        Parameters
+        ----------
+        mode
+            How to determine the value below which entries are set to 0:
+
+                - 'threshold' - threshold below which entries are set to 0.
+                - 'percentile' - determine threshold by percentile below which entries are set to 0. Hence, between 0
+                  and 100.
+                - 'min_row' - choose the threshold such that each row has at least one non-zero entry.
+
+        value
+            Value to use for sparsification depending on ``mode``:
+
+                - `'threshold'` - `value` sets the threshold below which entries are set to 0.
+                - `percentile` - `value` is the percentile below which entries are set to 0.
+                - `min_row` - `value` is not used.
+        batch_size
+            How many rows of the transport matrix to sparsify per batch.
+        n_samples
+            If ``mode = 'percentile'``, determine the number of samples based on which the percentile
+            is computed stochastically. Note this means that a matrix of shape
+            `[n_samples, min(transport_matrix.shape)]` has to be instantiated. If `None`, ``n_samples`` is set to
+            ``batch_size``.
+        seed
+            Random seed needed for sampling if ``mode = 'percentile'``.
+
+        Returns
+        -------
+        Solve output with a sparsified transport matrix.
+        """
+        n, m = self.shape
+        if mode == "threshold":
+            if value is None:
+                raise ValueError("If `mode` is `threshold`, `threshold` must not be `None`.")
+            thr = value
+        elif mode == "percentile":
+            if value is None:
+                raise ValueError("If `mode` is `percentile`, `threshold` must not be `None`.")
+            rng = np.random.RandomState(seed=seed)
+            n_samples = n_samples if n_samples is not None else batch_size
+            k = min(n_samples, n)
+            x = np.zeros((m, k))
+            rows = rng.choice(m, size=k)
+            x[rows, np.arange(k)] = 1.0
+            res = self.pull(x, scale_by_marginals=False)  # tmap @ indicator_vectors
+            thr = np.percentile(res, value)
+        elif mode == "min_row":
+            thr = np.inf
+            for batch in range(0, m, batch_size):
+                x = np.eye(m, min(batch_size, m - batch), -(min(batch, m)))
+                res = self.pull(x, scale_by_marginals=False)  # tmap @ indicator_vectors
+                thr = min(thr, res.max(axis=1).min())
+        else:
+            raise NotImplementedError(mode)
+
+        k, func, fn_stack = (n, self.push, sp.vstack) if n < m else (m, self.pull, sp.hstack)
+        tmaps_sparse: List[sp.csr_matrix] = []
+        for batch in range(0, k, batch_size):
+            x = np.eye(k, min(batch_size, k - batch), -(min(batch, k)))
+            res = func(x, scale_by_marginals=False)
+            res[res < thr] = 0
+            tmaps_sparse.append(sp.csr_matrix(res.T if n < m else res))
+        return MatrixSolverOutput(
+            transport_matrix=fn_stack(tmaps_sparse), cost=self.cost, converged=self.converged, is_linear=self.is_linear
+        )
+
     @property
     def a(self) -> ArrayLike:
         """Marginals of the source distribution.
@@ -211,7 +297,7 @@ class BaseSolverOutput(ABC):
 
 
 class MatrixSolverOutput(BaseSolverOutput):
-    """Optimal transport output with materialized :attr:`transport_matrix`.
+    """Optimal transport output with materialized `transport_matrix`.
 
     Parameters
     ----------
@@ -225,6 +311,7 @@ class MatrixSolverOutput(BaseSolverOutput):
         TODO.
     """
 
+    # TODO(michalk8): don't provide defaults?
     def __init__(
         self, transport_matrix: ArrayLike, *, cost: float = np.nan, converged: bool = True, is_linear: bool = True
     ):

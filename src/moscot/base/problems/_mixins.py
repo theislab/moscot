@@ -29,7 +29,7 @@ from moscot.base.problems._utils import (
     _correlation_test,
     _get_df_cell_transition,
     _order_transition_matrix,
-    _validate_annotations_helper,
+    _validate_annotations,
     _validate_args_cell_transition,
 )
 from moscot.base.problems.compound_problem import ApplyOutput_t, B, K
@@ -99,19 +99,6 @@ class AnalysisMixinProtocol(Protocol[K, B]):
     ) -> pd.DataFrame:
         ...
 
-    def _validate_annotations(
-        self: "AnalysisMixinProtocol[K, B]",
-        df_source: pd.DataFrame,
-        df_target: pd.DataFrame,
-        source_annotation_key: Optional[str] = None,
-        target_annotation_key: Optional[str] = None,
-        source_annotations: Optional[List[Any]] = None,
-        target_annotations: Optional[List[Any]] = None,
-        aggregation_mode: Literal["annotation", "cell"] = "annotation",
-        forward: bool = False,
-    ) -> Tuple[List[Any], List[Any]]:
-        ...
-
 
 class AnalysisMixin(Generic[K, B]):
     """Base Analysis Mixin."""
@@ -125,12 +112,19 @@ class AnalysisMixin(Generic[K, B]):
         target: K,
         source_groups: Str_Dict_t,
         target_groups: Str_Dict_t,
+        aggregation_mode: Literal["annotation", "cell"] = "annotation",
         key_added: Optional[str] = _constants.CELL_TRANSITION,
         **kwargs: Any,
     ) -> pd.DataFrame:
+        if aggregation_mode == "annotation" and (source_groups is None or target_groups is None):
+            raise ValueError("If `aggregation_mode=annotation`, `source_groups` and `target_groups` cannot be `None`.")
+        if aggregation_mode == "cell" and source_groups is None and target_groups is None:
+            raise ValueError("At least one of `source_groups` and `target_group` must be specified.")
+
         _check_argument_compatibility_cell_transition(
             source_annotation=source_groups,
             target_annotation=target_groups,
+            aggregation_mode=aggregation_mode,
             **kwargs,
         )
         tm = self._cell_transition_online(
@@ -138,10 +132,10 @@ class AnalysisMixin(Generic[K, B]):
             target=target,
             source_groups=source_groups,
             target_groups=target_groups,
+            aggregation_mode=aggregation_mode,
             **kwargs,
         )
         if key_added is not None:
-            aggregation_mode = kwargs.pop("aggregation_mode")
             forward = kwargs.pop("forward")
             if aggregation_mode == "cell" and "cell" in self.adata.obs:
                 raise KeyError(f"Aggregation is already present in `adata.obs[{aggregation_mode!r}]`.")
@@ -183,18 +177,18 @@ class AnalysisMixin(Generic[K, B]):
         )
         df_source = _get_df_cell_transition(
             self.adata,
+            [source_annotation_key, target_annotation_key],
             key,
             source,
-            source_annotation_key,
         )
         df_target = _get_df_cell_transition(
             self.adata if other_adata is None else other_adata,
+            [source_annotation_key, target_annotation_key],
             key if other_adata is None else other_key,
             target,
-            target_annotation_key,
         )
 
-        source_annotations_verified, target_annotations_verified = self._validate_annotations(
+        source_annotations_verified, target_annotations_verified = _validate_annotations(
             df_source=df_source,
             df_target=df_target,
             source_annotation_key=source_annotation_key,
@@ -376,42 +370,6 @@ class AnalysisMixin(Generic[K, B]):
             tmp[mask] = np.squeeze(v)
         return tmp
 
-    def _validate_annotations(
-        self: AnalysisMixinProtocol[K, B],
-        df_source: pd.DataFrame,
-        df_target: pd.DataFrame,
-        source_annotation_key: Optional[str] = None,
-        target_annotation_key: Optional[str] = None,
-        source_annotations: Optional[List[Any]] = None,
-        target_annotations: Optional[List[Any]] = None,
-        aggregation_mode: Literal["annotation", "cell"] = "annotation",
-        forward: bool = False,
-    ) -> Tuple[List[Any], List[Any]]:
-        if forward:
-            if TYPE_CHECKING:  # checked in _check_argument_compatibility_cell_transition(
-                assert target_annotations is not None
-            target_annotations_verified = list(
-                set(df_target[target_annotation_key].cat.categories).intersection(target_annotations)
-            )
-            if not len(target_annotations_verified):
-                raise ValueError(f"None of `{target_annotations}`, found in the target annotations.")
-            source_annotations_verified = _validate_annotations_helper(
-                df_source, source_annotation_key, source_annotations, aggregation_mode
-            )
-            return source_annotations_verified, target_annotations_verified
-
-        if TYPE_CHECKING:  # checked in _check_argument_compatibility_cell_transition(
-            assert source_annotations is not None
-        source_annotations_verified = list(
-            set(df_source[source_annotation_key].cat.categories).intersection(set(source_annotations))
-        )
-        if not len(source_annotations_verified):
-            raise ValueError(f"None of `{source_annotations}`, found in the source annotations.")
-        target_annotations_verified = _validate_annotations_helper(
-            df_target, target_annotation_key, target_annotations, aggregation_mode
-        )
-        return source_annotations_verified, target_annotations_verified
-
     def _annotation_aggregation_transition(
         self: AnalysisMixinProtocol[K, B],
         source: K,
@@ -440,7 +398,7 @@ class AnalysisMixin(Generic[K, B]):
                 return_data=True,
             )
             df["distribution"] = result
-            cell_dist = df[df[annotation_key].isin(annotations_2)].groupby(annotation_key).sum()
+            cell_dist = df[df[annotation_key].isin(annotations_2)].groupby(annotation_key).sum(numeric_only=True)
             cell_dist /= cell_dist.sum()
             tm.loc[subset, :] = [
                 cell_dist.loc[annotation, "distribution"] if annotation in cell_dist.distribution.index else 0
@@ -534,7 +492,7 @@ class AnalysisMixin(Generic[K, B]):
                 - If of type :obj:`list`, the elements should be from :attr:`anndata.AnnData.var_names` or
                   :attr:`anndata.AnnData.obs_names`.
                 - If `human`, `mouse`, or `drosophila`, the features are subsetted to transcription factors,
-                  see :class:`moscot.utils._data.TranscriptionFactors`.
+                  see :func:`~moscot.utils.data.transcription_factors`.
 
         confidence_level
             Confidence level for the confidence interval calculation. Must be in interval `[0, 1]`.
@@ -543,7 +501,7 @@ class AnalysisMixin(Generic[K, B]):
         seed
             Random seed when ``method = perm_test``.
         kwargs
-            Keyword arguments for :func:`moscot._utils.parallelize`, e.g. `n_jobs`.
+            Keyword arguments for parallelization, e.g., `n_jobs`. # TODO(michalk8): consider making the function public
 
         Returns
         -------
