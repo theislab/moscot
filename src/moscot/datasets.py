@@ -14,7 +14,17 @@ from scanpy import read
 
 from moscot._types import PathLike
 
-__all__ = ["mosta", "hspc", "drosophila", "c_elegans", "zebrafish", "sim_align", "simulate_data"]
+__all__ = [
+    "mosta",
+    "hspc",
+    "drosophila",
+    "c_elegans",
+    "zebrafish",
+    "sim_align",
+    "simulate_data",
+    "bone_marrow_rna",
+    "bone_marrow_atac",
+]
 
 
 def mosta(
@@ -140,6 +150,54 @@ def c_elegans(
         tree = pickle.load(fin)
 
     return adata, tree
+
+
+def bone_marrow_rna(
+    path: PathLike = "~/.cache/moscot/bone_marrow_rna.h5ad",
+    **kwargs: Any,
+) -> AnnData:
+    """scRNA-seq time-series dataset of C.elegans embryogenesis :cite:`packer:19`.
+
+    Contains processed RNA counts of 6,224 cells.
+
+    Parameters
+    ----------
+    path
+        Path where to save the file.
+    kwargs
+        Keyword arguments for :func:`scanpy.read`.
+
+    Returns
+    -------
+    Annotated data object.
+    """
+    return _load_dataset_from_url(
+        path, backup_url="https://figshare.com/ndownloader/files/40046950", expected_shape=(6224, 2000), **kwargs
+    )
+
+
+def bone_marrow_atac(
+    path: PathLike = "~/.cache/moscot/bone_marrow_atac.h5ad",
+    **kwargs: Any,
+) -> AnnData:
+    """scRNA-seq time-series dataset of C.elegans embryogenesis :cite:`packer:19`.
+
+    Contains processed ATAC counts of 6,224 cells.
+
+    Parameters
+    ----------
+    path
+        Path where to save the file.
+    kwargs
+        Keyword arguments for :func:`scanpy.read`.
+
+    Returns
+    -------
+    Annotated data object.
+    """
+    return _load_dataset_from_url(
+        path, backup_url="https://figshare.com/ndownloader/files/40047034", expected_shape=(6224, 8000), **kwargs
+    )
 
 
 def zebrafish(
