@@ -1,5 +1,5 @@
 import types
-from typing import Any, Dict, List, Literal, Mapping, Optional, Tuple, Type, Union
+from typing import Any, Dict, Literal, Mapping, Optional, Tuple, Type, Union
 
 from anndata import AnnData
 
@@ -226,17 +226,17 @@ class GWProblem(GenericAnalysisMixin[K, B], CompoundProblem[K, B]):
         """
         self.batch_key = key  # type: ignore[misc]
 
-        GW_updated: List[Dict[str, Any]] = [{}] * 2
-        for i, z in enumerate([x_attr, y_attr]):
+        def set_quad_defaults(z: Union[str, Mapping[str, Any]]) -> Dict[str, str]:
             if isinstance(z, str):
-                GW_updated[i] = {"attr": "obsm", "key": z, "tag": "point_cloud"}  # cost handled by handle_cost
-            elif isinstance(z, dict):
-                GW_updated[i] = z
-            else:
-                raise TypeError("`x_attr` and `y_attr` must be of type `str` or `dict`.")
+                return {"attr": "obsm", "key": z, "tag": "point_cloud"}  # cost handled by handle_cost
+            if isinstance(z, Mapping):
+                return dict(z)
+            raise TypeError("`x_attr` and `y_attr` must be of type `str` or `dict`.")
 
         xy, kwargs = handle_joint_attr(joint_attr, kwargs)
-        xy, x, y = handle_cost(xy=xy, x=GW_updated[0], y=GW_updated[1], cost=cost, cost_kwargs=cost_kwargs)
+        x = set_quad_defaults(x_attr)
+        y = set_quad_defaults(y_attr)
+        xy, x, y = handle_cost(xy=xy, x=x, y=y, cost=cost, cost_kwargs=cost_kwargs)
         return super().prepare(
             key=key,
             xy=xy,

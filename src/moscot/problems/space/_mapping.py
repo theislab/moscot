@@ -12,7 +12,6 @@ from moscot._types import (
     ProblemStage_t,
     QuadInitializer_t,
     ScaleCost_t,
-    Str_Dict_t,
 )
 from moscot.base.problems.compound_problem import B, CompoundProblem, K
 from moscot.base.problems.problem import OTProblem
@@ -79,7 +78,7 @@ class MappingProblem(CompoundProblem[K, OTProblem], SpatialMappingMixin[K, OTPro
     @d.dedent
     def prepare(
         self,
-        sc_attr: Str_Dict_t,
+        sc_attr: Union[str, Mapping[str, Any]],
         batch_key: Optional[str] = None,
         spatial_key: Union[str, Mapping[str, Any]] = "spatial",
         var_names: Optional[Sequence[Any]] = None,
@@ -133,9 +132,9 @@ class MappingProblem(CompoundProblem[K, OTProblem], SpatialMappingMixin[K, OTPro
         if self.filtered_vars is not None:
             xy, kwargs = handle_joint_attr(joint_attr, kwargs)
         else:
-            xy = None
+            xy = {}
         xy, x, y = handle_cost(xy=xy, x=x, y=y, cost=cost, cost_kwargs=cost_kwargs)
-        if xy is not None:
+        if xy:
             kwargs["xy"] = xy
         return super().prepare(x=x, y=y, policy="external_star", key=batch_key, cost=cost, a=a, b=b, **kwargs)
 

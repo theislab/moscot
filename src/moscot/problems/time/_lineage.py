@@ -90,9 +90,7 @@ class TemporalProblem(
         """
         self.temporal_key = time_key
         xy, kwargs = handle_joint_attr(joint_attr, kwargs)
-        xy, x, y = handle_cost(
-            xy=xy, x=kwargs.pop("x", None), y=kwargs.pop("y", None), cost=cost, cost_kwargs=cost_kwargs
-        )
+        xy, x, y = handle_cost(xy=xy, x=kwargs.pop("x", {}), y=kwargs.pop("y", {}), cost=cost, cost_kwargs=cost_kwargs)
 
         # TODO(michalk8): needs to be modified
         marginal_kwargs = dict(marginal_kwargs)
@@ -260,8 +258,6 @@ class LineageProblem(TemporalProblem):
         xy, kwargs = handle_joint_attr(joint_attr, kwargs)
         xy, x, y = handle_cost(xy=xy, x=x, y=y, cost=cost, cost_kwargs=cost_kwargs)
 
-        x = {} if x is None else dict(x)
-        y = {} if y is None else dict(y)
         x.setdefault("attr", "obsp")
         x.setdefault("key", "cost_matrices")
         x.setdefault("cost", "custom")

@@ -212,9 +212,9 @@ class OTProblem(BaseProblem):
     @wrap_prepare
     def prepare(
         self,
-        xy: Optional[Union[Mapping[str, Any], TaggedArray]] = None,
-        x: Optional[Union[Mapping[str, Any], TaggedArray]] = None,
-        y: Optional[Union[Mapping[str, Any], TaggedArray]] = None,
+        xy: Union[Mapping[str, Any], TaggedArray] = None,
+        x: Union[Mapping[str, Any], TaggedArray] = None,
+        y: Union[Mapping[str, Any], TaggedArray] = None,
         a: Optional[Union[bool, str, ArrayLike]] = None,
         b: Optional[Union[bool, str, ArrayLike]] = None,
         **kwargs: Any,
@@ -223,20 +223,20 @@ class OTProblem(BaseProblem):
 
         Depending on which arguments are passed:
 
-        - if only ``xy`` is passed, :attr:`problem_kind` will be ``'linear'``.
-        - if only ``x`` and ``y`` are passed, :attr:`problem_kind` will be ``'quadratic'``.
-        - if all ``xy``, ``x`` and ``y`` are passed, :attr:`problem_kind` will be ``'quadratic'``.
+        - if only ``xy`` is non-empty, :attr:`problem_kind` will be ``'linear'``.
+        - if only ``x`` and ``y`` are non-empty, :attr:`problem_kind` will be ``'quadratic'``.
+        - if all ``xy``, ``x`` and ``y`` are non-empty, :attr:`problem_kind` will be ``'quadratic'``.
 
         Parameters
         ----------
         xy
-            Geometry defining the linear term. If passed as a :class:`dict`,
+            Geometry defining the linear term. If a non-empty :class:`dict`,
             :meth:`~moscot.utils.tagged_array.TaggedArray.from_adata` will be called.
         x
-            First geometry defining the quadratic term. If passed as a :class:`dict`,
+            First geometry defining the quadratic term. If a non-empty :class:`dict`,
             :meth:`~moscot.utils.tagged_array.TaggedArray.from_adata` will be called.
         y
-            Second geometry defining the quadratic term. If passed as a :class:`dict`,
+            Second geometry defining the quadratic term. If a non-empty :class:`dict`,
             :meth:`~moscot.utils.tagged_array.TaggedArray.from_adata` will be called.
         a
             Source marginals. Valid value are:

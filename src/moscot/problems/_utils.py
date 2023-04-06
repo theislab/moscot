@@ -6,12 +6,12 @@ from moscot._types import CostFn_t
 
 def handle_joint_attr(
     joint_attr: Optional[Union[str, Mapping[str, Any]]], kwargs: Dict[str, Any]
-) -> Tuple[Optional[Dict[str, Any]], Dict[str, Any]]:
+) -> Tuple[Dict[str, Any], Dict[str, Any]]:
     if joint_attr is None:
         if "xy_callback" not in kwargs:
             kwargs["xy_callback"] = "local-pca"
         kwargs.setdefault("xy_callback_kwargs", {})
-        return None, kwargs
+        return {}, kwargs
     if isinstance(joint_attr, str):
         xy = {
             "x_attr": "obsm",
@@ -49,40 +49,40 @@ def handle_joint_attr(
 
 
 def handle_cost(
-    xy: Optional[Mapping[str, Any]] = None,
-    x: Optional[Mapping[str, Any]] = None,
-    y: Optional[Mapping[str, Any]] = None,
+    xy: Mapping[str, Any] = None,
+    x: Mapping[str, Any] = None,
+    y: Mapping[str, Any] = None,
     cost: Optional[Union[CostFn_t, Mapping[str, CostFn_t]]] = None,
     cost_kwargs: Union[Mapping[str, Any], Mapping[str, Mapping[str, Any]]] = types.MappingProxyType({}),
     **_: Any,
 ) -> Tuple[Dict[str, Any], Dict[str, Any], Dict[str, Any]]:
-    x = {} if x is None else dict(x)
-    y = {} if y is None else dict(y)
-    xy = {} if xy is None else dict(xy)
+    x = dict(x)
+    y = dict(y)
+    xy = dict(xy)
     if cost is None:
         return xy, x, y
     if isinstance(cost, str):  # if cost is a str, we use it in all terms
-        if len(xy) > 0 and "cost" not in xy:
+        if xy and ("x_cost" not in xy or "y_cost" not in xy):
             xy["x_cost"] = xy["y_cost"] = cost
-        if len(x) > 0 and "cost" not in x:
+        if x and "cost" not in x:
             x["cost"] = cost
-        if len(y) > 0 and "cost" not in y:
+        if y and "cost" not in y:
             y["cost"] = cost
     elif isinstance(cost, Mapping):  # if cost is a dict, the cost is specified for each term
-        if len(xy) > 0 and "cost" not in xy:
+        if xy and ("x_cost" not in xy or "y_cost" not in xy):
             xy["x_cost"] = xy["y_cost"] = cost["xy"]
-        if len(x) > 0 and "cost" not in x:
+        if x and "cost" not in x:
             x["cost"] = cost["x"]
-        if len(y) > 0 and "cost" not in y:
+        if y and "cost" not in y:
             y["cost"] = cost["y"]
     else:
         raise TypeError(type(cost))
     if xy and cost_kwargs:  # distribute the cost_kwargs, possibly explicit to x/y/xy-term
-        if "xy" in cost_kwargs:
-            k, v = next(iter(cost_kwargs["xy"].items()))  # extract cost_kwargs explicit to xy-term if possible
-        else:
-            k, v = next(iter(cost_kwargs.items()))
-        xy["x_" + k] = xy["y_" + k] = v
+        items = (
+            cost_kwargs["xy"].items() if "xy" in cost_kwargs else cost_kwargs.items()
+        )  # extract cost_kwargs explicit to xy-term if possible
+        for k, v in items:
+            xy[f"x_{k}"] = xy[f"y_{k}"] = v
     if x and cost_kwargs:
         x.update(cost_kwargs.get("x", cost_kwargs))  # extract cost_kwargs explicit to x-term if possible
     if y and cost_kwargs:
