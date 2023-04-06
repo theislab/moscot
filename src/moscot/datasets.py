@@ -156,7 +156,7 @@ def bone_marrow_rna(
     path: PathLike = "~/.cache/moscot/bone_marrow_rna.h5ad",
     **kwargs: Any,
 ) -> AnnData:
-    """scRNA-seq time-series dataset of C.elegans embryogenesis :cite:`packer:19`.
+    """RNA data from Multiome bone marrow measurements :cite:`luecken:21`.
 
     Contains processed RNA counts of 6,224 cells.
 
@@ -180,7 +180,7 @@ def bone_marrow_atac(
     path: PathLike = "~/.cache/moscot/bone_marrow_atac.h5ad",
     **kwargs: Any,
 ) -> AnnData:
-    """scRNA-seq time-series dataset of C.elegans embryogenesis :cite:`packer:19`.
+    """ATAC data from Multiome bone marrow measurements :cite:`luecken:21`.
 
     Contains processed ATAC counts of 6,224 cells.
 
