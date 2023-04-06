@@ -4,7 +4,6 @@ from typing import Any, List, Literal, Mapping, Optional
 import pytest
 
 import numpy as np
-
 from anndata import AnnData
 
 from moscot.base.output import BaseSolverOutput
@@ -26,8 +25,33 @@ class TestTranslationProblem:
     @pytest.mark.parametrize("src_attr", ["emb_src", {"attr": "obsm", "key": "emb_src"}])
     @pytest.mark.parametrize("tgt_attr", ["emb_tgt", {"attr": "obsm", "key": "emb_tgt"}])
     @pytest.mark.parametrize("joint_attr", [None, "X_pca", {"attr": "obsm", "key": "X_pca"}])
+    def test_prepare_dummy_policy(
+        self, 
+        adata_translation: AnnData, 
+        src_attr: Mapping[str, str], 
+        tgt_attr: Mapping[str, str], 
+        joint_attr: Optional[Mapping[str, str]]
+        ):
 
-    def test_prepare(
+        adata_tgt, adata_src = _adata_modality_split(adata_translation)
+        n_obs = adata_tgt.shape[0]
+
+        tp = TranslationProblem(adata_src, adata_tgt)
+        assert tp.problems == {}
+        assert tp.solutions == {}
+
+        prob_key = ("src", "tgt")
+        tp = tp.prepare(src_attr = src_attr, tgt_attr = tgt_attr, joint_attr=joint_attr)
+        assert len(tp) == 1
+        assert isinstance(tp[prob_key], tp._base_problem_type)
+        assert tp[prob_key].shape == (2 * n_obs, n_obs)
+        np.testing.assert_array_equal(tp._policy._cat, prob_key)
+
+    @pytest.mark.fast()
+    @pytest.mark.parametrize("src_attr", ["emb_src", {"attr": "obsm", "key": "emb_src"}])
+    @pytest.mark.parametrize("tgt_attr", ["emb_tgt", {"attr": "obsm", "key": "emb_tgt"}])
+    @pytest.mark.parametrize("joint_attr", [None, "X_pca", {"attr": "obsm", "key": "X_pca"}])
+    def test_prepare_external_star_policy(
         self, 
         adata_translation: AnnData, 
         src_attr: Mapping[str, str], 
@@ -55,15 +79,6 @@ class TestTranslationProblem:
             assert tp[prob_key].y.data_src.shape == (n_obs, y_n_var)
             if joint_attr is not None:
                 assert tp[prob_key].xy.data_src.shape == tp[prob_key].xy.data_tgt.shape == (n_obs, xy_n_vars)
-
-        # test dummy
-        prob_key = ("src", "tgt")
-        tp = tp.prepare(src_attr = src_attr, tgt_attr = tgt_attr, joint_attr=joint_attr)
-        assert len(tp) == 1
-        assert isinstance(tp[prob_key], tp._base_problem_type)
-        assert tp[prob_key].shape == (2 * n_obs, n_obs)
-        np.testing.assert_array_equal(tp._policy._cat, prob_key)
-
 
     @pytest.mark.parametrize(
         ("epsilon", "alpha", "rank", "initializer"),

@@ -43,10 +43,12 @@ class TestCrossModalityTranslationAnalysisMixin:
         adata_tgt, adata_src = _adata_modality_split(adata_translation)
         tp = TranslationProblem(adata_src, adata_tgt)
         tp = tp.prepare(batch_key="batch", src_attr = 'emb_src', tgt_attr = 'emb_tgt', joint_attr='X_pca')
-        mock_tmap = np.abs(rng.randn(len(adata_src[adata_src.obs["batch"] == "1"]), len(adata_tgt)))
-        tp[("1", "ref")]._solution = MockSolverOutput(mock_tmap / np.sum(mock_tmap))
+        mock_tmap_1 = np.abs(rng.randn(len(adata_src[adata_src.obs["batch"] == "1"]), len(adata_tgt)))
+        mock_tmap_2 = np.abs(rng.randn(len(adata_src[adata_src.obs["batch"] == "2"]), len(adata_tgt)))
+        tp[("1", "ref")]._solution = MockSolverOutput(mock_tmap_1 / np.sum(mock_tmap_1))
+        tp[("2", "ref")]._solution = MockSolverOutput(mock_tmap_2 / np.sum(mock_tmap_2))
 
-        result = tp.cell_transition(
+        result1 = tp.cell_transition(
             source="1",
             source_groups="celltype",
             target_groups="celltype",
@@ -54,5 +56,16 @@ class TestCrossModalityTranslationAnalysisMixin:
             normalize=normalize,
         )
 
-        assert isinstance(result, pd.DataFrame)
-        assert result.shape == (3, 3)
+        result2 = tp.cell_transition(
+            source="2",
+            source_groups="celltype",
+            target_groups="celltype",
+            forward=forward,
+            normalize=normalize,
+        )
+
+        assert isinstance(result1, pd.DataFrame)
+        assert result1.shape == (3, 3)
+        assert isinstance(result2, pd.DataFrame)
+        assert result2.shape == (3, 3)
+        assert result1.all != result2.all

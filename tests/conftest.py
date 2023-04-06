@@ -189,8 +189,7 @@ def adata_mapping() -> AnnData:
 @pytest.fixture()
 def adata_translation() -> AnnData:
     rng = np.random.RandomState(31)
-    grid = _make_grid(10)
-    adatas = _make_adata(grid, n=3, seed=32)
+    adatas = [AnnData(X=csr_matrix(rng.normal(size=(100, 60))), dtype=float) for _ in range(3)]
     adata = adatas[0].concatenate(*adatas[1:], batch_key="batch")
     adata.obs["celltype"] = rng.choice(["A", "B", "C"], size=len(adata))
     adata.obs["celltype"] = adata.obs["celltype"].astype("category")

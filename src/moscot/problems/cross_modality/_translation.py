@@ -100,7 +100,7 @@ class TranslationProblem(CompoundProblem[K, OTProblem], CrossModalityTranslation
             - If `dict`, the dictionary stores `attr` (attribute of :class:`anndata.AnnData`) and `key`
             (key of :class:`anndata.AnnData` ``['{attr}']``).
         joint_attr
-            - If `None`, PCA on :attr:`anndata.AnnData.X` is computed.
+            - If `None`, the pure Gromov-Wasserstein case is computed.
             - If `str`, it must refer to a key in :attr:`anndata.AnnData.obsm`.
             - If `dict`, the dictionary stores `attr` (attribute of :class:`anndata.AnnData`) and `key`
               (key of :class:`anndata.AnnData` ``['{attr}']``).

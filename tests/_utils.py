@@ -62,8 +62,6 @@ def _adata_spatial_split(adata: AnnData) -> Tuple[AnnData, AnnData]:
 def _adata_modality_split(adata: AnnData):
     adata_tgt = adata[adata.obs.batch == "0"].copy()
     adata_src = adata[adata.obs.batch != "0"].copy()
-    adata_src.obsm.pop("spatial")
-    adata_tgt.obsm.pop("spatial")
     adata_src.obsm['emb_src'] = np.random.rand(adata_src.shape[0], 5)
     adata_tgt.obsm['emb_tgt'] = np.random.rand(adata_tgt.shape[0], 15)
     return adata_tgt, adata_src

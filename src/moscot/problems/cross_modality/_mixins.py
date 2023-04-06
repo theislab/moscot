@@ -79,14 +79,12 @@ class CrossModalityTranslationMixin(AnalysisMixin[K, B]):
         
         """
         if forward:
-            self._translation = self[(source, target)].solution.pull(self.adata_tgt.obsm[self._tgt_attr], scale_by_marginals=True, **kwargs)
-            # _translation_alternative = self.problems[source, target].pull(self.adata_tgt.obsm[self._tgt_attr], scale_by_marginals=True, **kwargs) 
-            # Note: to use the alternative, I had to comment out the negative mass error
+            self._translation = self[(source, target)].pull(self.adata_tgt.obsm[self._tgt_attr], scale_by_marginals=True, normalize=False, **kwargs)
         else:
             if self.batch_key is None:
-                self._translation = self[(source, target)].solution.push(self.adata_src.obsm[self._src_attr], scale_by_marginals=True, **kwargs)   
+                self._translation = self[(source, target)].push(self.adata_src.obsm[self._src_attr], scale_by_marginals=True, normalize=False, **kwargs)
             else:
-                self._translation = self[(source, target)].solution.push(self.adata_src[self.adata_src.obs[self.batch_key]==source].obsm[self._src_attr], scale_by_marginals=True, **kwargs)       
+                self._translation = self[(source, target)].push(self[(source, target)].adata_src.obsm[self._src_attr], scale_by_marginals=True, normalize=False, **kwargs)
         
         return self._translation
 
