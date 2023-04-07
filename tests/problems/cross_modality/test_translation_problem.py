@@ -6,6 +6,7 @@ import pytest
 import numpy as np
 from anndata import AnnData
 
+from moscot.backends.ott._utils import alpha_to_fused_penalty
 from moscot.base.output import BaseSolverOutput
 from moscot.problems.cross_modality import TranslationProblem
 from tests._utils import _adata_modality_split
@@ -142,15 +143,14 @@ class TestTranslationProblem:
                 if isinstance(getattr(sinkhorn_solver, val), tuple)
                 else getattr(sinkhorn_solver, val)
             )
-            args_to_c = args_to_check if arg in ["gamma", "gamma_rescale"] else args_to_check["linear_solver_kwargs"]
-            assert el == args_to_c[arg]
+            assert el == args_to_check["linear_solver_kwargs"][arg], arg
 
         quad_prob = tp[key]._solver._problem
         for arg, val in quad_prob_args.items():
             assert hasattr(quad_prob, val)
             assert getattr(quad_prob, val) == args_to_check[arg]
         assert hasattr(quad_prob, "fused_penalty")
-        assert quad_prob.fused_penalty == tp[key]._solver._alpha_to_fused_penalty(args_to_check["alpha"])
+        assert quad_prob.fused_penalty == alpha_to_fused_penalty(args_to_check["alpha"])
 
         geom = quad_prob.geom_xx
         for arg, val in geometry_args.items():
