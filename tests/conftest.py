@@ -185,3 +185,14 @@ def adata_mapping() -> AnnData:
     adata = adataref.concatenate(adata1, adata2, batch_key="batch", join="outer")
     adata.obs_names_make_unique()
     return adata
+
+@pytest.fixture()
+def adata_translation() -> AnnData:
+    rng = np.random.RandomState(31)
+    adatas = [AnnData(X=csr_matrix(rng.normal(size=(100, 60))), dtype=float) for _ in range(3)]
+    adata = adatas[0].concatenate(*adatas[1:], batch_key="batch")
+    adata.obs["celltype"] = rng.choice(["A", "B", "C"], size=len(adata))
+    adata.obs["celltype"] = adata.obs["celltype"].astype("category")
+    adata.obs_names_make_unique()
+    sc.pp.pca(adata)
+    return adata
