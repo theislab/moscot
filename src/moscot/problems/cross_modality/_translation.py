@@ -1,25 +1,23 @@
-from types import MappingProxyType
+import types
 from typing import Any, Literal, Mapping, Optional, Sequence, Tuple, Type, Union
 
 from anndata import AnnData
-import numpy as np
 
 from moscot import _constants
 from moscot._docs._docs import d
 from moscot._types import (
     ArrayLike,
+    OttCostFnMap_t,
     Policy_t,
     ProblemStage_t,
     QuadInitializer_t,
     ScaleCost_t,
-    Str_Dict_t,
 )
 from moscot.base.problems.compound_problem import B, CompoundProblem, K
 from moscot.base.problems.problem import OTProblem
 from moscot.problems._utils import handle_cost, handle_joint_attr
 from moscot.problems.cross_modality._mixins import CrossModalityTranslationMixin
 from moscot.utils.subset_policy import DummyPolicy, ExternalStarPolicy
-from moscot.base.output import BaseSolverOutput
 
 __all__ = ["TranslationProblem"]
 
@@ -72,14 +70,12 @@ class TranslationProblem(CompoundProblem[K, OTProblem], CrossModalityTranslation
 
     def prepare(
         self,
-        src_attr: Str_Dict_t,
-        tgt_attr: Str_Dict_t,
+        src_attr: Union[str, Mapping[str, Any]],
+        tgt_attr: Union[str, Mapping[str, Any]],
         joint_attr: Optional[Union[str, Mapping[str, Any]]] = None,
         batch_key: Optional[str] = None,
-        cost: Union[
-            Literal["sq_euclidean", "cosine", "bures", "unbalanced_bures"],
-            Mapping[str, Literal["sq_euclidean", "cosine", "bures", "unbalanced_bures"]],
-        ] = "sq_euclidean",
+        cost: OttCostFnMap_t = "sq_euclidean",
+        cost_kwargs: Union[Mapping[str, Any], Mapping[str, Mapping[str, Any]]] = types.MappingProxyType({}),
         a: Optional[str] = None,
         b: Optional[str] = None,
         **kwargs: Any,
@@ -133,16 +129,16 @@ class TranslationProblem(CompoundProblem[K, OTProblem], CrossModalityTranslation
         x = {"attr": "obsm", "key": src_attr} if isinstance(src_attr, str) else src_attr
         y = {"attr": "obsm", "key": tgt_attr} if isinstance(tgt_attr, str) else tgt_attr
         if joint_attr is None:
-            xy = None
+            xy = {}
         else:    
             xy, kwargs = handle_joint_attr(joint_attr, kwargs)
             joint_attr_1_shape = getattr(self.adata_src, xy["x_attr"])[xy["x_key"]].shape
             joint_attr_2_shape = getattr(self.adata_tgt, xy["y_attr"])[xy["y_key"]].shape
             if not joint_attr_1_shape[1] == joint_attr_2_shape[1]:
                 raise ValueError("The `joint_attr` must be of same dimension.")
-            kwargs["xy"] = xy
-        xy, x, y = handle_cost(xy=xy, x=x, y=y, cost=cost)
-            
+        xy, x, y = handle_cost(xy=xy, x=x, y=y, cost=cost, cost_kwargs=cost_kwargs)
+        if xy:
+            kwargs["xy"] = xy    
         return super().prepare(x=x, y=y, policy="external_star", key=batch_key, cost=cost, a=a, b=b, **kwargs)
 
     def solve(
@@ -156,7 +152,7 @@ class TranslationProblem(CompoundProblem[K, OTProblem], CrossModalityTranslation
         batch_size: Optional[int] = None,
         stage: Union[ProblemStage_t, Tuple[ProblemStage_t, ...]] = ("prepared", "solved"),
         initializer: QuadInitializer_t = None,
-        initializer_kwargs: Mapping[str, Any] = MappingProxyType({}),
+        initializer_kwargs: Mapping[str, Any] = types.MappingProxyType({}),
         jit: bool = True,
         min_iterations: int = 5,
         max_iterations: int = 50,
@@ -165,7 +161,7 @@ class TranslationProblem(CompoundProblem[K, OTProblem], CrossModalityTranslation
         gamma_rescale: bool = True,
         ranks: Union[int, Tuple[int, ...]] = -1,
         tolerances: Union[float, Tuple[float, ...]] = 1e-2,
-        linear_solver_kwargs: Mapping[str, Any] = MappingProxyType({}),
+        linear_solver_kwargs: Mapping[str, Any] = types.MappingProxyType({}),
         device: Optional[Literal["cpu", "gpu", "tpu"]] = None,
         **kwargs: Any,
     ) -> "TranslationProblem[K]":
