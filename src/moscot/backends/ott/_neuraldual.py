@@ -184,7 +184,7 @@ class NeuralDualSolver:
         optimizer_g
             Optimizer for `neural_g`.
         """
-        key_f, key_g, self.key = jax.random.split(self.key, 3)
+        key_f, key_g, self.key = jax.random.split(self.key, 3)  # type:ignore[arg-type]
 
         # check setting of network architectures
         if neural_g.pos_weights != self.pos_weights or neural_f.pos_weights != self.pos_weights:
@@ -271,7 +271,7 @@ class NeuralDualSolver:
 
         pretrain_logs: Dict[str, List[float]] = {"loss": []}
         for iteration in range(self.pretrain_iters):
-            key_pre, self.key = jax.random.split(self.key, 2)
+            key_pre, self.key = jax.random.split(self.key, 2)  # type:ignore[arg-type]
             # train step for potential f directly updating the train state
             loss, self.state_f = pretrain_update(self.state_f, key_pre)
             # clip weights of f
@@ -337,21 +337,21 @@ class NeuralDualSolver:
 
         for iteration in tqdm(range(self.iterations)):
             # sample policy and condition if given in trainloader
-            policy_key, target_key, self.key = jax.random.split(self.key, 3)
+            policy_key, target_key, self.key = jax.random.split(self.key, 3)  # type:ignore[arg-type]
             policy_pair, batch["condition"] = trainloader.sample_policy_pair(policy_key)
             # sample target batch
             batch["target"] = trainloader(target_key, policy_pair, sample="target")
 
             if not self.is_balanced:
                 # sample source batch and compute unbalanced marginals
-                source_key, self.key = jax.random.split(self.key, 2)
+                source_key, self.key = jax.random.split(self.key, 2)  # type:ignore[arg-type]
                 curr_source = trainloader(source_key, policy_pair, sample="source")
                 marginals_source, marginals_target = trainloader.compute_unbalanced_marginals(
                     curr_source, batch["target"]
                 )
 
             for _ in range(self.inner_iters):
-                source_key, self.key = jax.random.split(self.key, 2)
+                source_key, self.key = jax.random.split(self.key, 2)  # type:ignore[arg-type]
 
                 if self.is_balanced:
                     # sample source batch
@@ -365,7 +365,7 @@ class NeuralDualSolver:
                     average_meters[key].update(value)
             # resample target batch with unbalanced marginals
             if self.epsilon is not None:
-                target_key, self.key = jax.random.split(self.key, 2)
+                target_key, self.key = jax.random.split(self.key, 2)  # type:ignore[arg-type]
                 batch["target"] = trainloader.unbalanced_resample(target_key, batch["target"], marginals_target)
             # train step for potential f directly updating the train state
             self.state_f, train_f_metrics = self.train_step_f(self.state_f, self.state_g, batch)
@@ -504,7 +504,7 @@ class NeuralDualSolver:
 
     def get_eval_step(
         self,
-    ) -> Callable[[TrainState, TrainState, Dict[str, jnp.ndarray]], Dict[str, float]]:
+    ) -> Callable[[TrainState, TrainState, Dict[str, jnp.ndarray], jnp.ndarray], Dict[str, float]]:
         """Get one validation step."""
 
         @jax.jit
@@ -577,10 +577,10 @@ class NeuralDualSolver:
     def to_dual_potentials(self) -> DualPotentials:
         """Return the Kantorovich dual potentials from the trained potentials."""
 
-        def f(x):
+        def f(x) -> float:
             return self.state_f.apply_fn({"params": self.state_f.params}, x)
 
-        def g(x):
+        def g(x) -> float:
             return self.state_g.apply_fn({"params": self.state_g.params}, x)
 
         return DualPotentials(f, g, corr=True, cost_fn=costs.SqEuclidean())
@@ -588,10 +588,10 @@ class NeuralDualSolver:
     def to_cond_dual_potentials(self) -> DualPotentials:
         """Return the Kantorovich dual potentials from the trained potentials."""
 
-        def f(condition, x):
+        def f(x, condition) -> float:
             return self.state_f.apply_fn({"params": self.state_f.params}, x, condition)
 
-        def g(condition, x):
+        def g(x, condition) -> float:
             return self.state_g.apply_fn({"params": self.state_g.params}, x, condition)
 
         return ConditionalDualPotentials(f, g, corr=True, cost_fn=costs.SqEuclidean())

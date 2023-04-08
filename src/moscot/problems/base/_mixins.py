@@ -634,6 +634,7 @@ class NeuralAnalysisMixin(AnalysisMixin[K, B]):
 
         forward
             Computes transition from `source_annotations` to `target_annotations` if `True`, otherwise backward.
+
         aggregation_mode
 
             - `group`: transition probabilities from the groups defined by `source_annotation` are returned.

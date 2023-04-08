@@ -207,7 +207,7 @@ class TemporalNeuralProblem(
         pretrain_scale
             Variance of Gaussian distribution used for pretraining.
         combiner_kwargs
-            Keyword arguments for the combiner module in the PICNN TODO(@MUCDK cite Bunne).
+            Keyword arguments for the combiner module in the PICNN (:cite:`bunne2022supervised`).
         valid_sinkhorn_kwargs
             Keyword arguments for computing the discrete sinkhorn divergence for assessing model training.
             By default, the same `tau_a`, `tau_b` and `epsilon` are taken as for the inner sampling loop.

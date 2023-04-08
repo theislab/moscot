@@ -1,13 +1,23 @@
-from typing import Any, Tuple, Optional
+from typing import Any, Dict, Tuple, Callable, Optional, Sequence, TYPE_CHECKING
 from functools import partial
 
 from ott.geometry.pointcloud import PointCloud
 from ott.tools.sinkhorn_divergence import sinkhorn_divergence
 import jax
 import jax.numpy as jnp
+import jax.tree_util as jtu
 
 from moscot._types import ArrayLike, ScaleCost_t
 from moscot._logging import logger
+
+Potential_t = Callable[[jnp.ndarray], float]
+CondPotential_t = Callable[[jnp.ndarray, float], float]
+
+if TYPE_CHECKING:
+    from ott.geometry import costs
+
+
+__all__ = ["ConditionalDualPotentials"]
 
 
 def _compute_sinkhorn_divergence(
@@ -82,32 +92,23 @@ def get_nearest_neighbors(
     return -1 * negative_distances, indices
 
 
-from typing import Any, Callable, Dict, Optional, Sequence, TYPE_CHECKING, Tuple
-
-
-import jax
-import jax.numpy as jnp
-import jax.tree_util as jtu
-
-Potential_t = Callable[[jnp.ndarray], float]
-CondPotential_t = Callable[[float, jnp.ndarray], float]
-
-if TYPE_CHECKING:
-    from ott.geometry import costs
-
-
 @jtu.register_pytree_node_class
 class ConditionalDualPotentials:
-    r"""The Kantorovich dual potential functions :math:`f` and :math:`g`.
+    r"""The conditional Kantorovich dual potential functions as introduced in :cite:`bunne2022supervised`.
 
     :math:`f` and :math:`g` are a pair of functions, candidates for the dual
     OT Kantorovich problem, supposedly optimal for a given pair of measures.
 
-    Args:
-      f: The first dual potential function.
-      g: The second dual potential function.
-      cost_fn: The cost function used to solve the OT problem.
-      corr: Whether the duals solve the problem in distance form, or correlation
+    Parameters
+    ----------
+    f
+        The first conditional dual potential function.
+    g
+        The second conditional dual potential function.
+    cost_fn
+        The cost function used to solve the OT problem.
+    corr
+        Whether the duals solve the problem in distance form, or correlation
         form (as used for instance for ICNNs, see, e.g., top right of p.3 in
         :cite:`makkuva:20`)
     """
@@ -151,11 +152,11 @@ class ConditionalDualPotentials:
 
         vec = jnp.atleast_2d(vec)
         if self._corr and isinstance(self.cost_fn, costs.SqEuclidean):
-            return self._grad_f(condition, vec) if forward else self._grad_g(condition, vec)
+            return self._grad_f(vec, condition) if forward else self._grad_g(vec, condition)
         if forward:
-            return vec - self._grad_h_inv(self._grad_f(condition, vec))
+            return vec - self._grad_h_inv(self._grad_f(vec, condition))
         else:
-            return vec - self._grad_h_inv(self._grad_g(condition, vec))
+            return vec - self._grad_h_inv(self._grad_g(vec, condition))
 
     def distance(self, condition: float, src: jnp.ndarray, tgt: jnp.ndarray) -> float:
         """Evaluate 2-Wasserstein distance between samples using dual potentials.
@@ -163,45 +164,49 @@ class ConditionalDualPotentials:
         Uses Eq. 5 from :cite:`makkuva:20` when given in `corr` form, direct
         estimation by integrating dual function against points when using dual form.
 
-        Args:
-          src: Samples from the source distribution, array of shape ``[n, d]``.
-          tgt: Samples from the target distribution, array of shape ``[m, d]``.
+        Parameters
+        ----------
+        src
+            Samples from the source distribution, array of shape ``[n, d]``.
+        tgt
+            Samples from the target distribution, array of shape ``[m, d]``.
 
-        Returns:
-          Wasserstein distance.
+        Returns
+        -------
+            Wasserstein distance.
         """
         src, tgt = jnp.atleast_2d(src), jnp.atleast_2d(tgt)
         f = jax.vmap(self.f)
 
         if self._corr:
-            grad_g_y = self._grad_g(condition, tgt)
-            term1 = -jnp.mean(f(condition, src))
-            term2 = -jnp.mean(jnp.sum(tgt * grad_g_y, axis=-1) - f(condition, grad_g_y))
+            grad_g_y = self._grad_g(tgt, condition)
+            term1 = -jnp.mean(f(src, condition))
+            term2 = -jnp.mean(jnp.sum(tgt * grad_g_y, axis=-1) - f(grad_g_y, condition))
 
             C = jnp.mean(jnp.sum(src**2, axis=-1))
             C += jnp.mean(jnp.sum(tgt**2, axis=-1))
             return 2.0 * (term1 + term2) + C
 
         g = jax.vmap(self.g)
-        return jnp.mean(f(condition, src)) + jnp.mean(g(condition, tgt))
+        return jnp.mean(f(src, condition)) + jnp.mean(g(tgt, condition))
 
     @property
-    def f(self) -> Potential_t:
+    def f(self) -> CondPotential_t:
         """The first dual potential function."""
         return self._f
 
     @property
-    def g(self) -> Potential_t:
+    def g(self) -> CondPotential_t:
         """The second dual potential function."""
         return self._g
 
     @property
-    def _grad_f(self) -> Callable[[jnp.ndarray], jnp.ndarray]:
-        """Vectorized gradient of the conditional potential function :attr:`f`."""
+    def _grad_f(self) -> Callable[[float, jnp.ndarray], jnp.ndarray]:
+        """Vectorized gradient of the potential function :attr:`f`."""
         return jax.vmap(jax.grad(self.f, argnums=0))
 
     @property
-    def _grad_g(self) -> Callable[[jnp.ndarray], jnp.ndarray]:
+    def _grad_g(self) -> Callable[[float, jnp.ndarray], jnp.ndarray]:
         """Vectorized gradient of the conditional potential function :attr:`g`."""
         return jax.vmap(jax.grad(self.g, argnums=0))
 
@@ -214,9 +219,11 @@ class ConditionalDualPotentials:
         )
         return jax.vmap(jax.grad(self.cost_fn.h_legendre))
 
-    def tree_flatten(self) -> Tuple[Sequence[Any], Dict[str, Any]]:
+    def tree_flatten(self) -> Tuple[Sequence[Any], Dict[str, Any]]:  # noqa: D102
         return [], {"f": self._f, "g": self._g, "cost_fn": self.cost_fn, "corr": self._corr}
 
     @classmethod
-    def tree_unflatten(cls, aux_data: Dict[str, Any], children: Sequence[Any]) -> "ConditionalDualPotentials":
+    def tree_unflatten(  # noqa: D102
+        cls, aux_data: Dict[str, Any], children: Sequence[Any]
+    ) -> "ConditionalDualPotentials":
         return cls(*children, **aux_data)

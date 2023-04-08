@@ -1,5 +1,6 @@
 from types import MappingProxyType
 from typing import Any, Dict, List, Tuple, Union, Literal, Callable, Optional
+from functools import partial
 
 from matplotlib.figure import Figure
 import scipy.sparse as sp
@@ -15,9 +16,9 @@ import jaxlib.xla_extension as xla_ext
 
 from moscot._types import Device_t, ArrayLike
 from moscot.solvers._output import BaseNeuralOutput, BaseSolverOutput
-from moscot.backends.ott._utils import get_nearest_neighbors
+from moscot.backends.ott._utils import get_nearest_neighbors, ConditionalDualPotentials
 
-__all__ = ["OTTOutput", "NeuralOutput"]
+__all__ = ["OTTOutput", "NeuralOutput", "ConditionalNeuralOutput"]
 
 Train_t = Dict[str, Dict[str, List[float]]]
 
@@ -124,7 +125,7 @@ class OTTOutput(ConvergencePlotterMixin, BaseSolverOutput):
         super().__init__(costs=costs, errors=errors)
         self._output = output
 
-    def _apply(self, x: ArrayLike, *, forward: bool) -> ArrayLike:
+    def _apply(self, x: ArrayLike, *, forward: bool) -> ArrayLike:  # type:ignore[override]
         if x.ndim == 1:
             return self._output.apply(x, axis=1 - forward)
         return self._output.apply(x.T, axis=1 - forward).T  # convert to batch first
@@ -257,6 +258,49 @@ class NeuralOutput(ConvergencePlotterMixin, BaseNeuralOutput):
         """%(shape)s"""
         raise NotImplementedError()
 
+    def _project_transport_matrix(
+        self,
+        src_dist: ArrayLike,
+        tgt_dist: ArrayLike,
+        forward: bool,
+        func: Callable[[jnp.ndarray], jnp.ndarray],
+        save_transport_matrix: bool = False,  # TODO(@MUCDK) adapt order of arguments
+        batch_size: int = 1024,
+        k: int = 30,
+        length_scale: Optional[float] = None,
+        seed: int = 42,
+    ) -> sp.csr_matrix:
+        get_knn_fn = jax.vmap(get_nearest_neighbors, in_axes=(0, None, None))
+        row_indices: Union[jnp.ndarray, List[jnp.ndarray]] = []
+        column_indices: Union[jnp.ndarray, List[jnp.ndarray]] = []
+        distances_list: Union[jnp.ndarray, List[jnp.ndarray]] = []
+        if length_scale is None:
+            key = jax.random.PRNGKey(seed)
+            src_batch = jax.random.choice(key, src_dist.shape[0], shape=((batch_size,)))
+            tgt_batch = jax.random.choice(key, tgt_dist.shape[0], shape=((batch_size,)))
+            length_scale = jnp.std(jnp.concatenate((func(src_batch), tgt_batch)))
+        for index in range(0, len(src_dist), batch_size):
+            distances, indices = get_knn_fn(func(src_dist[index : index + batch_size]), tgt_dist, k)
+            distances = jnp.exp(-((distances / length_scale) ** 2))
+            distances /= jnp.expand_dims(jnp.sum(distances, axis=1), axis=1)
+            distances_list.append(distances.flatten())
+            column_indices.append(indices.flatten())
+            row_indices.append(
+                jnp.repeat(jnp.arange(index, index + min(batch_size, len(src_dist) - index)), min(k, len(tgt_dist)))
+            )
+        distances = jnp.concatenate(distances_list)
+        row_indices = jnp.concatenate(row_indices)
+        column_indices = jnp.concatenate(column_indices)
+        tm = sp.csr_matrix((distances, (row_indices, column_indices)), shape=[len(src_dist), len(tgt_dist)])
+        if forward:
+            if save_transport_matrix:
+                self._transport_matrix = tm
+        else:
+            tm = tm.T
+            if save_transport_matrix:
+                self._inverse_transport_matrix = tm
+        return tm
+
     def project_transport_matrix(  # type:ignore[override]
         self,
         src_cells: ArrayLike,
@@ -268,7 +312,7 @@ class NeuralOutput(ConvergencePlotterMixin, BaseNeuralOutput):
         length_scale: Optional[float] = None,
         seed: int = 42,
     ) -> sp.csr_matrix:
-        """Project Neural OT map onto cells.
+        """Project neural OT map onto cells.
 
         In constrast to discrete OT, Neural OT does not necessarily map cells onto cells,
         but a cell can also be mapped to a location between two cells. This function computes
@@ -306,36 +350,17 @@ class NeuralOutput(ConvergencePlotterMixin, BaseNeuralOutput):
         """
         src_cells, tgt_cells = jnp.asarray(src_cells), jnp.asarray(tgt_cells)
         func, src_dist, tgt_dist = (self.push, src_cells, tgt_cells) if forward else (self.pull, tgt_cells, src_cells)
-        get_knn_fn = jax.vmap(get_nearest_neighbors, in_axes=(0, None, None))
-        row_indices: Union[jnp.ndarray, List[jnp.ndarray]] = []
-        column_indices: Union[jnp.ndarray, List[jnp.ndarray]] = []
-        distances_list: Union[jnp.ndarray, List[jnp.ndarray]] = []
-        if length_scale is None:
-            key = jax.random.PRNGKey(seed)
-            src_batch = jax.random.choice(key, src_cells.shape[0], shape=((batch_size,)))
-            tgt_batch = jax.random.choice(key, tgt_cells.shape[0], shape=((batch_size,)))
-            length_scale = jnp.std(jnp.concatenate(func(src_batch), tgt_batch))
-        for index in range(0, len(src_dist), batch_size):
-            distances, indices = get_knn_fn(func(src_dist[index : index + batch_size]), tgt_dist, k)
-            distances = jnp.exp(-((distances / length_scale) ** 2))
-            distances /= jnp.expand_dims(jnp.sum(distances, axis=1), axis=1)
-            distances_list.append(distances.flatten())
-            column_indices.append(indices.flatten())
-            row_indices.append(
-                jnp.repeat(jnp.arange(index, index + min(batch_size, len(src_dist) - index)), min(k, len(tgt_cells)))
-            )
-        distances = jnp.concatenate(distances_list)
-        row_indices = jnp.concatenate(row_indices)
-        column_indices = jnp.concatenate(column_indices)
-        tm = sp.csr_matrix((distances, (row_indices, column_indices)), shape=[len(src_dist), len(tgt_dist)])
-        if forward:
-            if save_transport_matrix:
-                self._transport_matrix = tm
-        else:
-            tm = tm.T
-            if save_transport_matrix:
-                self._inverse_transport_matrix = tm
-        return tm
+        return self._project_transport_matrix(
+            src_dist=src_dist,
+            tgt_dist=tgt_dist,
+            forward=forward,
+            func=func,
+            save_transport_matrix=save_transport_matrix,  # TODO(@MUCDK) adapt order of arguments
+            batch_size=batch_size,
+            k=k,
+            length_scale=length_scale,
+            seed=seed,
+        )
 
     @property
     def transport_matrix(self) -> ArrayLike:
@@ -408,21 +433,65 @@ class NeuralOutput(ConvergencePlotterMixin, BaseNeuralOutput):
         return f, g
 
     def push(self, x: ArrayLike) -> ArrayLike:  # type: ignore[override]
+        """Push distribution `x`.
+
+        Parameters
+        ----------
+        x
+            Distribution to push.
+
+        Returns
+        -------
+        Pushed distribution.
+        """
         if x.ndim not in (1, 2):
             raise ValueError(f"Expected 1D or 2D array, found `{x.ndim}`.")
         return self._apply(x, forward=True)
 
     def pull(self, x: ArrayLike) -> ArrayLike:  # type: ignore[override]
+        """Pull distribution `x`.
+
+        Parameters
+        ----------
+        x
+            Distribution to pull.
+
+        Returns
+        -------
+        Pulled distribution.
+        """
         if x.ndim not in (1, 2):
             raise ValueError(f"Expected 1D or 2D array, found `{x.ndim}`.")
         return self._apply(x, forward=False)
 
     def push_potential(self, x: ArrayLike) -> ArrayLike:
+        """Apply forward potential to `x`.
+
+        Parameters
+        ----------
+        x
+            Distribution to apply potential to.
+
+        Returns
+        -------
+        Forward potential evaluated at `x`.
+        """
         if x.ndim not in (1, 2):
             raise ValueError(f"Expected 1D or 2D array, found `{x.ndim}`.")
         return jax.vmap(self._output.f)(x)
 
     def pull_potential(self, x: ArrayLike) -> ArrayLike:
+        """Apply backward potential to `x`.
+
+        Parameters
+        ----------
+        x
+            Distribution to apply backward potential to.
+
+        Returns
+        -------
+        Backward potential evaluated at `x`.
+        """
         if x.ndim not in (1, 2):
             raise ValueError(f"Expected 1D or 2D array, found `{x.ndim}`.")
         return jax.vmap(self._output.g)(x)
@@ -450,8 +519,8 @@ class NeuralOutput(ConvergencePlotterMixin, BaseNeuralOutput):
         if "sinkhorn_dist" in self.training_logs["valid_logs"].keys():
             params = {
                 "predicted_cost": round(self.cost, 3),
-                "best_loss": round(self.training_logs["valid_logs"]["best_loss"], 3),
-                "sinkhorn_dist": round(self.training_logs["valid_logs"]["sinkhorn_dist"], 3),
+                "best_loss": round(self.training_logs["valid_logs"]["best_loss"], 3),  # type: ignore[call-overload]
+                "sinkhorn_dist": round(self.training_logs["valid_logs"]["sinkhorn_dist"], 3),  # type: ignore[call-overload]
             }
         else:
             params = {
@@ -460,14 +529,28 @@ class NeuralOutput(ConvergencePlotterMixin, BaseNeuralOutput):
         return ", ".join(f"{name}={fmt(val)}" for name, val in params.items())
 
 
+class ConditionalNeuralOutput(NeuralOutput):
+    """
+    Output representation of conditional neural OT problems.
 
-class CondNeuralOutput(NeuralOutput):
+    Parameters
+    ----------
+    output
+        The trained model as :class:`moscot.backends.ott._utils.ConditionalDualPotentials`.
+    training_logs
+        Statistics of the model training.
+    """
 
-    def _apply(self, cond: float, x: ArrayLike, *, forward: bool) -> ArrayLike:
+    def __init__(self, *args, output: ConditionalDualPotentials, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._output = output
+
+    def _apply(self, cond: float, x: ArrayLike, *, forward: bool) -> ArrayLike:  # type:ignore[override]
         return self._output.transport(cond, x, forward=forward)
 
     def project_transport_matrix(  # type:ignore[override]
         self,
+        cond: float,
         src_cells: ArrayLike,
         tgt_cells: ArrayLike,
         forward: bool = True,
@@ -477,9 +560,9 @@ class CondNeuralOutput(NeuralOutput):
         length_scale: Optional[float] = None,
         seed: int = 42,
     ) -> sp.csr_matrix:
-        """Project Neural OT map onto cells.
+        """Project conditional neural OT map onto cells.
 
-        In constrast to discrete OT, Neural OT does not necessarily map cells onto cells,
+        In constrast to discrete OT, (conditional) neural OT does not necessarily map cells onto cells,
         but a cell can also be mapped to a location between two cells. This function computes
         a pseudo-transport matrix considering the neighborhood of where a cell is mapped to.
         Therefore, a neighborhood graph of `k` target cells is computed around each transported cell
@@ -488,6 +571,8 @@ class CondNeuralOutput(NeuralOutput):
 
         Parameters
         ----------
+        cond
+            Condition `src_cells` correspond to.
         src_cells
             Cells which are to be mapped.
         tgt_cells
@@ -514,37 +599,22 @@ class CondNeuralOutput(NeuralOutput):
         The projected transport matrix.
         """
         src_cells, tgt_cells = jnp.asarray(src_cells), jnp.asarray(tgt_cells)
-        func, src_dist, tgt_dist = (self.push, src_cells, tgt_cells) if forward else (self.pull, tgt_cells, src_cells)
-        get_knn_fn = jax.vmap(get_nearest_neighbors, in_axes=(0, None, None))
-        row_indices: Union[jnp.ndarray, List[jnp.ndarray]] = []
-        column_indices: Union[jnp.ndarray, List[jnp.ndarray]] = []
-        distances_list: Union[jnp.ndarray, List[jnp.ndarray]] = []
-        if length_scale is None:
-            key = jax.random.PRNGKey(seed)
-            src_batch = jax.random.choice(key, src_cells.shape[0], shape=((batch_size,)))
-            tgt_batch = jax.random.choice(key, tgt_cells.shape[0], shape=((batch_size,)))
-            length_scale = jnp.std(jnp.concatenate(func(src_batch), tgt_batch))
-        for index in range(0, len(src_dist), batch_size):
-            distances, indices = get_knn_fn(func(src_dist[index : index + batch_size]), tgt_dist, k)
-            distances = jnp.exp(-((distances / length_scale) ** 2))
-            distances /= jnp.expand_dims(jnp.sum(distances, axis=1), axis=1)
-            distances_list.append(distances.flatten())
-            column_indices.append(indices.flatten())
-            row_indices.append(
-                jnp.repeat(jnp.arange(index, index + min(batch_size, len(src_dist) - index)), min(k, len(tgt_cells)))
-            )
-        distances = jnp.concatenate(distances_list)
-        row_indices = jnp.concatenate(row_indices)
-        column_indices = jnp.concatenate(column_indices)
-        tm = sp.csr_matrix((distances, (row_indices, column_indices)), shape=[len(src_dist), len(tgt_dist)])
-        if forward:
-            if save_transport_matrix:
-                self._transport_matrix = tm
-        else:
-            tm = tm.T
-            if save_transport_matrix:
-                self._inverse_transport_matrix = tm
-        return tm
+        func, src_dist, tgt_dist = (
+            (partial(self.push, cond), src_cells, tgt_cells)
+            if forward
+            else (partial(self.pull, cond), tgt_cells, src_cells)
+        )
+        return self._project_transport_matrix(
+            src_dist=src_dist,
+            tgt_dist=tgt_dist,
+            forward=forward,
+            func=func,
+            save_transport_matrix=save_transport_matrix,  # TODO(@MUCDK) adapt order of arguments
+            batch_size=batch_size,
+            k=k,
+            length_scale=length_scale,
+            seed=seed,
+        )
 
     @property
     def transport_matrix(self) -> ArrayLike:
@@ -568,7 +638,7 @@ class CondNeuralOutput(NeuralOutput):
     def to(
         self,
         device: Optional[Device_t] = None,
-    ) -> "NeuralOutput":
+    ) -> "ConditionalNeuralOutput":
         """Transfer the output to another device or change its data type.
 
         Parameters
@@ -594,44 +664,76 @@ class CondNeuralOutput(NeuralOutput):
                 raise IndexError(f"Unable to fetch the device with `id={idx}`.")
 
         out = jax.device_put(self._output, device)
-        return NeuralOutput(out, self.training_logs)
+        return ConditionalNeuralOutput(output=out, training_logs=self.training_logs)
 
-    @property
-    def cost(self) -> float:
-        """Predicted optimal transport cost."""
-        return self.training_logs["valid_logs"]["predicted_cost"]
+    def push(self, cond: float, x: ArrayLike) -> ArrayLike:  # type: ignore[override]
+        """Push distribution `x` conditioned on condition `cond`.
 
-    @property
-    def converged(self) -> bool:
-        """%(converged)s."""
-        # always return True for now
-        return True
+        Parameters
+        ----------
+        cond
+            Condition of conditional neural OT.
+        x
+            Distribution to push.
 
-    @property
-    def potentials(  # type: ignore[override]
-        self,
-    ) -> Tuple[Callable[[jnp.ndarray], float], Callable[[jnp.ndarray], float]]:
-        """Return the learned potential functions."""
-        f = jax.vmap(self._output.f)
-        g = jax.vmap(self._output.g)
-        return f, g
-
-    def push(self, x: ArrayLike) -> ArrayLike:  # type: ignore[override]
+        Returns
+        -------
+        Pushed distribution.
+        """
         if x.ndim not in (1, 2):
             raise ValueError(f"Expected 1D or 2D array, found `{x.ndim}`.")
-        return self._apply(x, forward=True)
+        return self._apply(cond, x, forward=True)
 
-    def pull(self, x: ArrayLike) -> ArrayLike:  # type: ignore[override]
+    def pull(self, cond: float, x: ArrayLike) -> ArrayLike:  # type: ignore[override]
+        """Pull distribution `x` conditioned on condition `cond`.
+
+        Parameters
+        ----------
+        cond
+            Condition of conditional neural OT.
+        x
+            Distribution to pull.
+
+        Returns
+        -------
+        Pulled distribution.
+        """
         if x.ndim not in (1, 2):
             raise ValueError(f"Expected 1D or 2D array, found `{x.ndim}`.")
-        return self._apply(x, forward=False)
+        return self._apply(cond, x, forward=False)
 
-    def push_potential(self, x: ArrayLike) -> ArrayLike:
+    def push_potential(self, cond: float, x: ArrayLike) -> ArrayLike:  # type:ignore[override]
+        """Apply forward potential to `x` conditionend on condition `cond`.
+
+        Parameters
+        ----------
+        cond
+            Condition of conditional neural OT.
+        x
+            Distribution to apply potential to.
+
+        Returns
+        -------
+        Forward potential evaluated at `x`.
+        """
         if x.ndim not in (1, 2):
             raise ValueError(f"Expected 1D or 2D array, found `{x.ndim}`.")
-        return jax.vmap(self._output.f)(x)
+        return jax.vmap(self._output.f)(cond, x)
 
-    def pull_potential(self, x: ArrayLike) -> ArrayLike:
+    def pull_potential(self, cond: float, x: ArrayLike) -> ArrayLike:  # type:ignore[override]
+        """Apply backward potential to `x` conditionend on condition `cond`.
+
+        Parameters
+        ----------
+        cond
+            Condition of conditional neural OT.
+        x
+            Distribution to apply backward potential to.
+
+        Returns
+        -------
+        Backward potential evaluated at `x`.
+        """
         if x.ndim not in (1, 2):
             raise ValueError(f"Expected 1D or 2D array, found `{x.ndim}`.")
-        return jax.vmap(self._output.g)(x)
+        return jax.vmap(self._output.g)(cond, x)
