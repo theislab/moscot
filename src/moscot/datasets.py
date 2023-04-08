@@ -158,7 +158,8 @@ def bone_marrow_rna(
 ) -> AnnData:
     """RNA data from Multiome bone marrow measurements :cite:`luecken:21`.
 
-    Contains processed RNA counts of 6,224 cells.
+    Contains processed RNA counts of 6,224 cells and filtered to 2,000 top
+    highly variable genes.
 
     Parameters
     ----------
@@ -182,7 +183,8 @@ def bone_marrow_atac(
 ) -> AnnData:
     """ATAC data from Multiome bone marrow measurements :cite:`luecken:21`.
 
-    Contains processed ATAC counts of 6,224 cells.
+    Contains processed ATAC counts of 6,224 cells and filtered to 8,000 top
+    highly variable peaks.
 
     Parameters
     ----------
