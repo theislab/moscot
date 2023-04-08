@@ -458,3 +458,180 @@ class NeuralOutput(ConvergencePlotterMixin, BaseNeuralOutput):
                 "predicted_cost": round(self.cost, 3),
             }
         return ", ".join(f"{name}={fmt(val)}" for name, val in params.items())
+
+
+
+class CondNeuralOutput(NeuralOutput):
+
+    def _apply(self, cond: float, x: ArrayLike, *, forward: bool) -> ArrayLike:
+        return self._output.transport(cond, x, forward=forward)
+
+    def project_transport_matrix(  # type:ignore[override]
+        self,
+        src_cells: ArrayLike,
+        tgt_cells: ArrayLike,
+        forward: bool = True,
+        save_transport_matrix: bool = False,  # TODO(@MUCDK) adapt order of arguments
+        batch_size: int = 1024,
+        k: int = 30,
+        length_scale: Optional[float] = None,
+        seed: int = 42,
+    ) -> sp.csr_matrix:
+        """Project Neural OT map onto cells.
+
+        In constrast to discrete OT, Neural OT does not necessarily map cells onto cells,
+        but a cell can also be mapped to a location between two cells. This function computes
+        a pseudo-transport matrix considering the neighborhood of where a cell is mapped to.
+        Therefore, a neighborhood graph of `k` target cells is computed around each transported cell
+        of the source distribution. The assignment likelihood of each mapped cell to the target cells is then
+        computed with a Gaussian kernel with parameter `length_scale`.
+
+        Parameters
+        ----------
+        src_cells
+            Cells which are to be mapped.
+        tgt_cells
+            Cells from which the neighborhood graph around the mapped `src_cells` are computed.
+        forward
+            Whether to map cells based on the forward transport map or backward transport map.
+        save_transport_matrix
+            Whether to save the transport matrix.
+        batch_size
+            Number of data points in the source distribution the neighborhoodgraph is computed
+            for in parallel.
+        k
+            Number of neighbors to construct the k-nearest neighbor graph of a mapped cell.
+        length_scale
+            Length scale of the Gaussian kernel used to compute the assignment likelihood. If `None`,
+            `length_scale` is set to the empirical standard deviation of `batch_size` pairs of data points of the
+            mapped source and target distribution.
+        seed
+            Random seed for sampling the pairs of distributions for computing the variance in case `length_scale`
+            is `None`.
+
+        Returns
+        -------
+        The projected transport matrix.
+        """
+        src_cells, tgt_cells = jnp.asarray(src_cells), jnp.asarray(tgt_cells)
+        func, src_dist, tgt_dist = (self.push, src_cells, tgt_cells) if forward else (self.pull, tgt_cells, src_cells)
+        get_knn_fn = jax.vmap(get_nearest_neighbors, in_axes=(0, None, None))
+        row_indices: Union[jnp.ndarray, List[jnp.ndarray]] = []
+        column_indices: Union[jnp.ndarray, List[jnp.ndarray]] = []
+        distances_list: Union[jnp.ndarray, List[jnp.ndarray]] = []
+        if length_scale is None:
+            key = jax.random.PRNGKey(seed)
+            src_batch = jax.random.choice(key, src_cells.shape[0], shape=((batch_size,)))
+            tgt_batch = jax.random.choice(key, tgt_cells.shape[0], shape=((batch_size,)))
+            length_scale = jnp.std(jnp.concatenate(func(src_batch), tgt_batch))
+        for index in range(0, len(src_dist), batch_size):
+            distances, indices = get_knn_fn(func(src_dist[index : index + batch_size]), tgt_dist, k)
+            distances = jnp.exp(-((distances / length_scale) ** 2))
+            distances /= jnp.expand_dims(jnp.sum(distances, axis=1), axis=1)
+            distances_list.append(distances.flatten())
+            column_indices.append(indices.flatten())
+            row_indices.append(
+                jnp.repeat(jnp.arange(index, index + min(batch_size, len(src_dist) - index)), min(k, len(tgt_cells)))
+            )
+        distances = jnp.concatenate(distances_list)
+        row_indices = jnp.concatenate(row_indices)
+        column_indices = jnp.concatenate(column_indices)
+        tm = sp.csr_matrix((distances, (row_indices, column_indices)), shape=[len(src_dist), len(tgt_dist)])
+        if forward:
+            if save_transport_matrix:
+                self._transport_matrix = tm
+        else:
+            tm = tm.T
+            if save_transport_matrix:
+                self._inverse_transport_matrix = tm
+        return tm
+
+    @property
+    def transport_matrix(self) -> ArrayLike:
+        """Projected transport matrix."""
+        if self._transport_matrix is None:
+            raise ValueError(
+                "The projected transport matrix has not been computed yet." " Please call `project_transport_matrix`."
+            )
+        return self._transport_matrix
+
+    @property
+    def inverse_transport_matrix(self) -> ArrayLike:
+        """Projected transport matrix based on the inverse map."""
+        if self._inverse_transport_matrix is None:
+            raise ValueError(
+                "The inverse projected transport matrix has not been computed yet."
+                " Please call `project_transport_matrix`."
+            )
+        return self._inverse_transport_matrix
+
+    def to(
+        self,
+        device: Optional[Device_t] = None,
+    ) -> "NeuralOutput":
+        """Transfer the output to another device or change its data type.
+
+        Parameters
+        ----------
+        device
+            If not `None`, the output will be transferred to `device`.
+
+        Returns
+        -------
+        The output on a saved on `device`.
+        """
+        # TODO(michalk8): when polishing docs, move the definition to the base class + use docrep
+        if isinstance(device, str) and ":" in device:
+            device, ix = device.split(":")
+            idx = int(ix)
+        else:
+            idx = 0
+
+        if not isinstance(device, xla_ext.Device):
+            try:
+                device = jax.devices(device)[idx]
+            except IndexError:
+                raise IndexError(f"Unable to fetch the device with `id={idx}`.")
+
+        out = jax.device_put(self._output, device)
+        return NeuralOutput(out, self.training_logs)
+
+    @property
+    def cost(self) -> float:
+        """Predicted optimal transport cost."""
+        return self.training_logs["valid_logs"]["predicted_cost"]
+
+    @property
+    def converged(self) -> bool:
+        """%(converged)s."""
+        # always return True for now
+        return True
+
+    @property
+    def potentials(  # type: ignore[override]
+        self,
+    ) -> Tuple[Callable[[jnp.ndarray], float], Callable[[jnp.ndarray], float]]:
+        """Return the learned potential functions."""
+        f = jax.vmap(self._output.f)
+        g = jax.vmap(self._output.g)
+        return f, g
+
+    def push(self, x: ArrayLike) -> ArrayLike:  # type: ignore[override]
+        if x.ndim not in (1, 2):
+            raise ValueError(f"Expected 1D or 2D array, found `{x.ndim}`.")
+        return self._apply(x, forward=True)
+
+    def pull(self, x: ArrayLike) -> ArrayLike:  # type: ignore[override]
+        if x.ndim not in (1, 2):
+            raise ValueError(f"Expected 1D or 2D array, found `{x.ndim}`.")
+        return self._apply(x, forward=False)
+
+    def push_potential(self, x: ArrayLike) -> ArrayLike:
+        if x.ndim not in (1, 2):
+            raise ValueError(f"Expected 1D or 2D array, found `{x.ndim}`.")
+        return jax.vmap(self._output.f)(x)
+
+    def pull_potential(self, x: ArrayLike) -> ArrayLike:
+        if x.ndim not in (1, 2):
+            raise ValueError(f"Expected 1D or 2D array, found `{x.ndim}`.")
+        return jax.vmap(self._output.g)(x)

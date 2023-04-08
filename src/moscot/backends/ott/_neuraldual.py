@@ -1,5 +1,5 @@
 from types import MappingProxyType
-from typing import Any, Dict, List, Tuple, Literal, Callable, Iterable, Union, Optional
+from typing import Any, Dict, List, Tuple, Union, Literal, Callable, Iterable, Optional
 from collections import defaultdict
 
 from flax.core import freeze
@@ -19,7 +19,7 @@ import jax.numpy as jnp
 from moscot._types import ArrayLike
 from moscot._logging import logger
 from moscot.backends.ott._icnn import ICNN
-from moscot.backends.ott._utils import RunningAverageMeter, _compute_sinkhorn_divergence
+from moscot.backends.ott._utils import RunningAverageMeter, ConditionalDualPotentials, _compute_sinkhorn_divergence
 from moscot.backends.ott._jax_data import JaxSampler
 
 Train_t = Dict[str, Dict[str, List[float]]]
@@ -227,7 +227,7 @@ class NeuralDualSolver:
             pretrain_logs = self.pretrain_identity(trainloader.conditions)
 
         train_logs = self.train_neuraldual(trainloader, validloader)
-        res = self.to_dual_potentials()
+        res = self.to_cond_dual_potentials() if self.conditional else self.to_dual_potentials
         logs = pretrain_logs | train_logs
 
         return (res, logs)
@@ -584,6 +584,17 @@ class NeuralDualSolver:
             return self.state_g.apply_fn({"params": self.state_g.params}, x)
 
         return DualPotentials(f, g, corr=True, cost_fn=costs.SqEuclidean())
+
+    def to_cond_dual_potentials(self) -> DualPotentials:
+        """Return the Kantorovich dual potentials from the trained potentials."""
+
+        def f(condition, x):
+            return self.state_f.apply_fn({"params": self.state_f.params}, x, condition)
+
+        def g(condition, x):
+            return self.state_g.apply_fn({"params": self.state_g.params}, x, condition)
+
+        return ConditionalDualPotentials(f, g, corr=True, cost_fn=costs.SqEuclidean())
 
     @property
     def is_balanced(self) -> bool:
