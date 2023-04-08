@@ -1,3 +1,4 @@
+import types
 from abc import ABC, abstractmethod
 from typing import (
     TYPE_CHECKING,
@@ -212,9 +213,9 @@ class OTProblem(BaseProblem):
     @wrap_prepare
     def prepare(
         self,
-        xy: Union[Mapping[str, Any], TaggedArray] = None,
-        x: Union[Mapping[str, Any], TaggedArray] = None,
-        y: Union[Mapping[str, Any], TaggedArray] = None,
+        xy: Union[Mapping[str, Any], TaggedArray] = types.MappingProxyType({}),
+        x: Union[Mapping[str, Any], TaggedArray] = types.MappingProxyType({}),
+        y: Union[Mapping[str, Any], TaggedArray] = types.MappingProxyType({}),
         a: Optional[Union[bool, str, ArrayLike]] = None,
         b: Optional[Union[bool, str, ArrayLike]] = None,
         **kwargs: Any,

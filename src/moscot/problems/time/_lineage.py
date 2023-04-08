@@ -262,6 +262,7 @@ class LineageProblem(TemporalProblem):
         x.setdefault("key", "cost_matrices")
         x.setdefault("cost", "custom")
         x.setdefault("tag", "cost_matrix")
+
         y.setdefault("attr", "obsp")
         y.setdefault("key", "cost_matrices")
         y.setdefault("cost", "custom")

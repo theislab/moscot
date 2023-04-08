@@ -76,11 +76,10 @@ def handle_cost(
         if y and "cost" not in y:
             y["cost"] = cost["y"]
     else:
-        raise TypeError(type(cost))
+        raise TypeError(f"Expected `cost` to be either `str` or `dict`, found `{type(cost)}`.")
     if xy and cost_kwargs:  # distribute the cost_kwargs, possibly explicit to x/y/xy-term
-        items = (
-            cost_kwargs["xy"].items() if "xy" in cost_kwargs else cost_kwargs.items()
-        )  # extract cost_kwargs explicit to xy-term if possible
+        # extract cost_kwargs explicit to xy-term if possible
+        items = cost_kwargs["xy"].items() if "xy" in cost_kwargs else cost_kwargs.items()
         for k, v in items:
             xy[f"x_{k}"] = xy[f"y_{k}"] = v
     if x and cost_kwargs:

@@ -173,18 +173,15 @@ class TestFGWProblem:
         assert isinstance(problem[0, 1].xy.cost, cost_inst)
 
         if cost_kwargs:
-            if len(cost_kwargs) > 1:
-                k, v = next(iter(cost_kwargs["x"].items()))
-                assert getattr(problem[0, 1].x.cost, k) == v
-                k, v = next(iter(cost_kwargs["y"].items()))
-                assert getattr(problem[0, 1].y.cost, k) == v
-                k, v = next(iter(cost_kwargs["xy"].items()))
+            xy_items = cost_kwargs["xy"].items() if "xy" in cost_kwargs else cost_kwargs.items()
+            for k, v in xy_items:
                 assert getattr(problem[0, 1].xy.cost, k) == v
-            else:
-                k, v = next(iter(cost_kwargs.items()))
+            x_items = cost_kwargs["x"].items() if "x" in cost_kwargs else cost_kwargs.items()
+            for k, v in x_items:
                 assert getattr(problem[0, 1].x.cost, k) == v
+            y_items = cost_kwargs["y"].items() if "y" in cost_kwargs else cost_kwargs.items()
+            for k, v in y_items:
                 assert getattr(problem[0, 1].y.cost, k) == v
-                assert getattr(problem[0, 1].xy.cost, k) == v
 
         problem = problem.solve(max_iterations=2)
 
