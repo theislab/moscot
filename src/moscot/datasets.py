@@ -156,7 +156,7 @@ def bone_marrow_rna(
     path: PathLike = "~/.cache/moscot/bone_marrow_rna.h5ad",
     **kwargs: Any,
 ) -> AnnData:
-    """RNA data from Multiome bone marrow measurements :cite:`luecken:21`.
+    """RNA data from multiome bone marrow measurements :cite:`luecken:21`.
 
     Contains processed RNA counts of 6,224 cells and filtered to 2,000 top
     highly variable genes.
@@ -181,7 +181,7 @@ def bone_marrow_atac(
     path: PathLike = "~/.cache/moscot/bone_marrow_atac.h5ad",
     **kwargs: Any,
 ) -> AnnData:
-    """ATAC data from Multiome bone marrow measurements :cite:`luecken:21`.
+    """ATAC data from multiome bone marrow measurements :cite:`luecken:21`.
 
     Contains processed ATAC counts of 6,224 cells and filtered to 8,000 top
     highly variable peaks.
