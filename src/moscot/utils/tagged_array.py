@@ -95,6 +95,8 @@ class TaggedArray:
             - if ``tag = 'cost'`` or ``tag = 'kernel'``, and ``cost = 'custom'``,
               the extracted array is already assumed to be a cost/kernel matrix.
               Otherwise, :class:`~moscot.base.cost.BaseCost` is used to compute the cost matrix.
+        cost_kwargs
+            Keyword arguments for TODO
         backend
             Which backend to use, see :func:`~moscot.backends.utils.get_available_backends`.
         kwargs

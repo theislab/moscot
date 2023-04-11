@@ -308,6 +308,10 @@ cost
     in the quadratic term of the source distribution, the quadratic term of the target distribution, and/or the
     linear term, respectively.
     """
+_cost_kwargs = """\
+cost_kwargs
+    Keyword arguments for the cost.
+"""
 _pointcloud_kwargs = """\
 batch_size
     Number of data points the matrix-vector products are applied to at the same time. The larger, the more memory
@@ -420,6 +424,7 @@ d = DocstringProcessor(
     scale_cost=_scale_cost,
     cost_lin=_cost_lin,
     cost=_cost,
+    cost_kwargs=_cost_kwargs,
     pointcloud_kwargs=_pointcloud_kwargs,
     device_solve=_device_solve,
     linear_solver_kwargs=_linear_solver_kwargs,
