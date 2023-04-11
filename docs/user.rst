@@ -50,6 +50,8 @@ Datasets
     datasets.mosta
     datasets.hspc
     datasets.drosophila
+    datasets.c_elegans
+    datasets.zebrafish
     datasets.tedsim
     datasets.sim_align
     datasets.simulate_data
