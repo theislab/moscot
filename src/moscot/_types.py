@@ -16,7 +16,7 @@ except (ImportError, TypeError):
 ProblemKind_t = Literal["linear", "quadratic", "unknown"]
 Numeric_t = Union[int, float]  # type of `time_key` arguments
 Filter_t = Optional[Union[str, Mapping[str, Sequence[Any]]]]  # type how to filter adata
-Str_Dict_t = Union[str, Mapping[str, Sequence[Any]]]  # type for `cell_transition`
+Str_Dict_t = Optional[Union[str, Mapping[str, Sequence[Any]]]]  # type for `cell_transition`
 SinkFullRankInit = Literal["default", "gaussian", "sorting"]
 LRInitializer_t = Literal["random", "rank2", "k-means", "generalized-k-means"]
 

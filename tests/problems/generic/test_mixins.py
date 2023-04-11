@@ -98,7 +98,7 @@ class TestBaseAnalysisMixin:
             key="day",
             source=10,
             target=10.5,
-            source_groups="cell_type",
+            source_groups=None,
             target_groups="cell_type",
             forward=True,
             aggregation_mode="cell",
@@ -140,7 +140,7 @@ class TestBaseAnalysisMixin:
             source=10,
             target=10.5,
             source_groups="cell_type",
-            target_groups="cell_type",
+            target_groups=None,
             forward=False,
             aggregation_mode="cell",
         )

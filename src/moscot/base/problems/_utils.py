@@ -117,19 +117,21 @@ def _check_argument_compatibility_cell_transition(
 
 def _get_df_cell_transition(
     adata: AnnData,
-    annotation_keys: List[str],
+    annotation_keys: List[Optional[str]],
     filter_key: Optional[str] = None,
     filter_value: Optional[Any] = None,
 ) -> pd.DataFrame:
     if filter_key is not None:
         adata = adata[adata.obs[filter_key] == filter_value]
-    return adata.obs[list(set(annotation_keys))].copy()
+    return adata.obs[list({ak for ak in annotation_keys if ak is not None})].copy()
 
 
 def _validate_args_cell_transition(
     adata: AnnData,
     arg: Str_Dict_t,
-) -> Tuple[str, List[Any], Optional[List[str]]]:
+) -> Tuple[Optional[str], List[Any], Optional[List[str]]]:
+    if arg is None:
+        return None, [], None
     if isinstance(arg, str):
         try:
             return arg, adata.obs[arg].cat.categories, None
