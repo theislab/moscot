@@ -186,6 +186,7 @@ def adata_mapping() -> AnnData:
     adata.obs_names_make_unique()
     return adata
 
+
 @pytest.fixture()
 def adata_translation() -> AnnData:
     rng = np.random.RandomState(31)

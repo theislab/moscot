@@ -1,10 +1,9 @@
 import types
-from typing import Any, Literal, Mapping, Optional, Sequence, Tuple, Type, Union
+from typing import Any, Literal, Mapping, Optional, Tuple, Type, Union
 
 from anndata import AnnData
 
 from moscot import _constants
-from moscot._docs._docs import d
 from moscot._types import (
     ArrayLike,
     OttCostFnMap_t,
@@ -49,7 +48,7 @@ class TranslationProblem(CompoundProblem[K, OTProblem], CrossModalityTranslation
         if key is None:
             return DummyPolicy(self.adata, **kwargs)
         return ExternalStarPolicy(self.adata, key=key, **kwargs)
-    
+
     def _create_problem(
         self,
         src: K,
@@ -104,10 +103,10 @@ class TranslationProblem(CompoundProblem[K, OTProblem], CrossModalityTranslation
                 If present, specify the batch key of `:class:`anndata.AnnData`.
         cost
             Cost between two points in dimension d. Only used if no precomputed cost matrix is passed.
-            If `cost` is of type :obj:`str`, the cost will be used for all point clouds. If `cost` is of type :obj:`dict`,
-            it is expected to have keys `x`, `y`, and/or `xy`, with values corresponding to the cost functions
-            in the quadratic term of the source distribution, the quadratic term of the target distribution, and/or the
-            linear term, respectively.
+            If `cost` is of type :obj:`str`, the cost will be used for all point clouds. If `cost` is of type
+            :obj:`dict`, it is expected to have keys `x`, `y`, and/or `xy`, with values corresponding to the
+            cost functions in the quadratic term of the source distribution, the quadratic term of the target
+            distribution, and/or the linear term, respectively.
         a
             Specifies the left marginals. If of type :class:`str` the left marginals are taken from
             :attr:`anndata.AnnData.obs` ``['{a}']``. If ``a`` is `None` uniform marginals are used.
@@ -122,15 +121,15 @@ class TranslationProblem(CompoundProblem[K, OTProblem], CrossModalityTranslation
         :class:`moscot.problems.cross_modality.TranslationProblem`.
 
         """
-        self._src_attr = src_attr if isinstance(src_attr, str) else src_attr['key']
-        self._tgt_attr = tgt_attr if isinstance(tgt_attr, str) else tgt_attr['key']
+        self._src_attr = src_attr if isinstance(src_attr, str) else src_attr["key"]
+        self._tgt_attr = tgt_attr if isinstance(tgt_attr, str) else tgt_attr["key"]
 
         self.batch_key = batch_key
         x = {"attr": "obsm", "key": src_attr} if isinstance(src_attr, str) else src_attr
         y = {"attr": "obsm", "key": tgt_attr} if isinstance(tgt_attr, str) else tgt_attr
         if joint_attr is None:
-            xy = {}
-        else:    
+            xy = {}  # type: ignore[var-annotated]
+        else:
             xy, kwargs = handle_joint_attr(joint_attr, kwargs)
             joint_attr_1_shape = getattr(self.adata_src, xy["x_attr"])[xy["x_key"]].shape
             joint_attr_2_shape = getattr(self.adata_tgt, xy["y_attr"])[xy["y_key"]].shape
@@ -138,10 +137,10 @@ class TranslationProblem(CompoundProblem[K, OTProblem], CrossModalityTranslation
                 raise ValueError("The `joint_attr` must be of same dimension.")
         xy, x, y = handle_cost(xy=xy, x=x, y=y, cost=cost, cost_kwargs=cost_kwargs)
         if xy:
-            kwargs["xy"] = xy    
+            kwargs["xy"] = xy
         return super().prepare(x=x, y=y, policy="external_star", key=batch_key, cost=cost, a=a, b=b, **kwargs)
 
-    def solve(
+    def solve(  # type: ignore[override]
         self,
         alpha: Optional[float] = 1.0,
         epsilon: Optional[float] = 1e-2,
@@ -178,7 +177,7 @@ class TranslationProblem(CompoundProblem[K, OTProblem], CrossModalityTranslation
         tau_a
             Unbalancedness parameter for left marginal between 0 and 1. `tau_a=1` means no unbalancedness
             in the source distribution. The limit of `tau_a` going to 0 ignores the left marginals.
-        
+
         tau_b
             unbalancedness parameter for right marginal between 0 and 1. `tau_b=1` means no unbalancedness
             in the target distribution. The limit of `tau_b` going to 0 ignores the right marginals.
@@ -190,8 +189,8 @@ class TranslationProblem(CompoundProblem[K, OTProblem], CrossModalityTranslation
             Alternatively, a float factor can be given to rescale the cost such
             that ``cost_matrix /= scale_cost``.
         batch_size
-            Number of data points the matrix-vector products are applied to at the same time. The larger, the more memory
-            is required. Only used if no precomputed cost matrix is used.
+            Number of data points the matrix-vector products are applied to at the same time. The larger, the more
+            memory is required. Only used if no precomputed cost matrix is used.
         stage
             Stages of subproblems which are to be solved.
         initializer
@@ -238,7 +237,7 @@ class TranslationProblem(CompoundProblem[K, OTProblem], CrossModalityTranslation
             Keyword arguments for the linear solver used in quadratic problems.
         device
             If not `None`, the output will be transferred to `device`.
-        kwargs    
+        kwargs
             Keyword arguments to solve the underlying Optimal Transport problem.
 
         Returns
@@ -290,5 +289,3 @@ class TranslationProblem(CompoundProblem[K, OTProblem], CrossModalityTranslation
     @property
     def _valid_policies(self) -> Tuple[Policy_t, ...]:
         return _constants.EXTERNAL_STAR, _constants.DUMMY  # type: ignore[return-value]
-
-    

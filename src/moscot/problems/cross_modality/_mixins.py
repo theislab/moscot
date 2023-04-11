@@ -1,52 +1,30 @@
-import itertools
-from typing import (
-    TYPE_CHECKING,
-    Any,
-    Dict,
-    List,
-    Literal,
-    Mapping,
-    Optional,
-    Sequence,
-    Tuple,
-    Union,
-)
+from typing import TYPE_CHECKING, Any, Literal, Optional
 
-import numpy as np
 import pandas as pd
-from anndata import AnnData
-import scipy.spatial
-import anndata as ad
-import scanpy as sc
 
+from anndata import AnnData
 
 from moscot import _constants
-from moscot._docs._docs import d
-from moscot._docs._docs_mixins import d_mixins
-from moscot._logging import logger
-from moscot._types import ArrayLike, Device_t, Str_Dict_t
+from moscot._types import ArrayLike, Str_Dict_t
 from moscot.base.problems._mixins import AnalysisMixin, AnalysisMixinProtocol
 from moscot.base.problems.compound_problem import B, K
-from moscot.utils.subset_policy import StarPolicy
-from moscot.base.output import BaseSolverOutput
-
 
 __all__ = ["CrossModalityTranslationMixin"]
+
 
 class CrossModalityTranslationMixinProtocol(AnalysisMixinProtocol[K, B]):
     """Protocol class."""
 
     adata_src: AnnData
     adata_tgt: AnnData
-    src_attr: Optional[str]
-    tgt_attr: Optional[str]
+    _src_attr: Optional[str]
+    _tgt_attr: Optional[str]
+    _translation: Optional[ArrayLike]
+    batch_key: Optional[str]
 
-    def _cell_transition(
-            self: AnalysisMixinProtocol[K, B], 
-            *args: Any, 
-            **kwargs: Any
-    ) -> pd.DataFrame:
+    def _cell_transition(self: AnalysisMixinProtocol[K, B], *args: Any, **kwargs: Any) -> pd.DataFrame:
         ...
+
 
 class CrossModalityTranslationMixin(AnalysisMixin[K, B]):
     """Cross modality translation analysis mixin class."""
@@ -56,12 +34,12 @@ class CrossModalityTranslationMixin(AnalysisMixin[K, B]):
         self._src_attr: Optional[str] = None
         self._tgt_attr: Optional[str] = None
 
-    def translate(
-            self: CrossModalityTranslationMixinProtocol[K, B],
-            source: K,
-            target: K,
-            forward: bool = True,
-            **kwargs: Any,
+    def translate(  # type: ignore[misc]
+        self: CrossModalityTranslationMixinProtocol[K, B],
+        source: K,
+        target: K,
+        forward: bool = True,
+        **kwargs: Any,
     ) -> ArrayLike:
         """
         Translate source or target object.
@@ -76,17 +54,26 @@ class CrossModalityTranslationMixin(AnalysisMixin[K, B]):
             If `True` computes translation from source object to target object, otherwise backward.
         kwargs
             keyword arguments for policy-specific `_apply` method of :class:`moscot.problems.CompoundProblem`.
-        
+
         """
         if forward:
-            self._translation = self[(source, target)].pull(self.adata_tgt.obsm[self._tgt_attr], scale_by_marginals=True, normalize=False, **kwargs)
+            self._translation = self[(source, target)].pull(  # type: ignore[index]
+                self.adata_tgt.obsm[self._tgt_attr], scale_by_marginals=True, normalize=False, **kwargs
+            )
         else:
             if self.batch_key is None:
-                self._translation = self[(source, target)].push(self.adata_src.obsm[self._src_attr], scale_by_marginals=True, normalize=False, **kwargs)
+                self._translation = self[(source, target)].push(  # type: ignore[index]
+                    self.adata_src.obsm[self._src_attr], scale_by_marginals=True, normalize=False, **kwargs
+                )
             else:
-                self._translation = self[(source, target)].push(self[(source, target)].adata_src.obsm[self._src_attr], scale_by_marginals=True, normalize=False, **kwargs)
-        
-        return self._translation
+                self._translation = self[(source, target)].push(  # type: ignore[index]
+                    self[(source, target)].adata_src.obsm[self._src_attr],  # type: ignore[index]
+                    scale_by_marginals=True,
+                    normalize=False,
+                    **kwargs,
+                )
+
+        return self._translation  # type:ignore[return-value]
 
     def cell_transition(  # type: ignore[misc]
         self: CrossModalityTranslationMixinProtocol[K, B],
@@ -115,11 +102,13 @@ class CrossModalityTranslationMixin(AnalysisMixin[K, B]):
         source_groups
             Can be one of the following:
 
-                - if `source_groups` is of type :class:`str` this should correspond to a key in :attr:`anndata.AnnData.obs`. 
-                  In this case, the categories in the transition matrix correspond to the unique values in 
+                - if `source_groups` is of type :class:`str` this should correspond to a key in
+                  :attr:`anndata.AnnData.obs`.
+                  In this case, the categories in the transition matrix correspond to the unique values in
                   :attr:`anndata.AnnData.obs` ``['{source_groups}']``.
-                - if `target_groups` is of type :class:`dict`, its key should correspond to a key in :attr:`anndata.AnnData.obs` 
-                  and its value to a list containing a subset of categories present in :attr:`anndata.AnnData.obs` ``['{source_groups.keys()[0]}']``. 
+                - if `target_groups` is of type :class:`dict`, its key should correspond to a key in
+                  :attr:`anndata.AnnData.obs` and its value to a list containing a subset of categories
+                  present in :attr:`anndata.AnnData.obs` ``['{source_groups.keys()[0]}']``.
                   The order of the list determines the order in the transition matrix.
         target_groups
             Can be one of the following:
@@ -129,18 +118,19 @@ class CrossModalityTranslationMixin(AnalysisMixin[K, B]):
                   unique values in :attr:`anndata.AnnData.obs` ``['{target_groups}']``.
                 - if `target_groups` is of :class:`dict`, its key should correspond to a key in
                   :attr:`anndata.AnnData.obs` and its value to a list containing a subset of categories present in
-                  :attr:`anndata.AnnData.obs` ``['{target_groups.keys()[0]}']``. The order of the list determines the order
-                  in the transition matrix.
+                  :attr:`anndata.AnnData.obs` ``['{target_groups.keys()[0]}']``. The order of the list determines the
+                  order in the transition matrix.
         forward
             If `True` computes transition from `source_annotations` to `target_annotations`, otherwise backward.
         aggregation_mode
             - `annotation`: transition probabilities from the groups defined by `source_annotation` are returned.
             - `cell`: the transition probabilities for each cell are returned.
         batch_size
-            number of data points the matrix-vector products are applied to at the same time. The larger, the more memory is required.
+            number of data points the matrix-vector products are applied to at the same time. The larger,
+            the more memory is required.
         normalize
-            If `True` the transition matrix is normalized such that it is stochastic. If `forward` is `True`, the transition 
-            matrix is row-stochastic, otherwise column-stochastic.
+            If `True` the transition matrix is normalized such that it is stochastic. If `forward` is `True`, the
+            transition matrix is row-stochastic, otherwise column-stochastic.
         key_added
             Key in :attr:`anndata.AnnData.uns` and/or :attr:`anndata.AnnData.obs` where the results
             for the corresponding plotting functions are stored.
@@ -168,4 +158,4 @@ class CrossModalityTranslationMixin(AnalysisMixin[K, B]):
             batch_size=batch_size,
             normalize=normalize,
             key_added=key_added,
-        )        
+        )

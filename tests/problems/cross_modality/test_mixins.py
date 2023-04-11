@@ -1,7 +1,4 @@
-import pickle
-from math import acos
-from pathlib import Path
-from typing import Any, List, Literal, Mapping, Optional
+from typing import Mapping, Optional
 
 import pytest
 
@@ -12,7 +9,7 @@ from anndata import AnnData
 
 from moscot.problems.cross_modality import TranslationProblem
 from tests._utils import MockSolverOutput, _adata_modality_split
-from tests.conftest import ANGLES
+
 
 class TestCrossModalityTranslationAnalysisMixin:
     @pytest.mark.parametrize("src_attr", ["emb_src", {"attr": "obsm", "key": "emb_src"}])
@@ -21,14 +18,18 @@ class TestCrossModalityTranslationAnalysisMixin:
     def test_translate(
         self,
         adata_translation: AnnData,
-        src_attr: Mapping[str, str], 
-        tgt_attr: Mapping[str, str], 
-        joint_attr: Optional[Mapping[str, str]]
+        src_attr: Mapping[str, str],
+        tgt_attr: Mapping[str, str],
+        joint_attr: Optional[Mapping[str, str]],
     ):
         adata_tgt, adata_src = _adata_modality_split(adata_translation)
         expected_keys = {(i, "ref") for i in adata_src.obs.batch.cat.categories}
-        
-        tp = TranslationProblem(adata_src, adata_tgt).prepare(batch_key="batch", src_attr = src_attr, tgt_attr = tgt_attr, joint_attr=joint_attr).solve()
+
+        tp = (
+            TranslationProblem(adata_src, adata_tgt)
+            .prepare(batch_key="batch", src_attr=src_attr, tgt_attr=tgt_attr, joint_attr=joint_attr)
+            .solve()
+        )
         for prob_key in expected_keys:
             trans_forward = tp.translate(source=prob_key[0], target=prob_key[1], forward=True)
             assert trans_forward.shape == tp[prob_key].y.data_src.shape
@@ -42,7 +43,7 @@ class TestCrossModalityTranslationAnalysisMixin:
         rng = np.random.RandomState(0)
         adata_tgt, adata_src = _adata_modality_split(adata_translation)
         tp = TranslationProblem(adata_src, adata_tgt)
-        tp = tp.prepare(batch_key="batch", src_attr = 'emb_src', tgt_attr = 'emb_tgt', joint_attr='X_pca')
+        tp = tp.prepare(batch_key="batch", src_attr="emb_src", tgt_attr="emb_tgt", joint_attr="X_pca")
         mock_tmap_1 = np.abs(rng.randn(len(adata_src[adata_src.obs["batch"] == "1"]), len(adata_tgt)))
         mock_tmap_2 = np.abs(rng.randn(len(adata_src[adata_src.obs["batch"] == "2"]), len(adata_tgt)))
         tp[("1", "ref")]._solution = MockSolverOutput(mock_tmap_1 / np.sum(mock_tmap_1))

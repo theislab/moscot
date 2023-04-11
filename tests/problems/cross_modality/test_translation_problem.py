@@ -1,9 +1,9 @@
-from pathlib import Path
-from typing import Any, List, Literal, Mapping, Optional
+from typing import Any, Literal, Mapping, Optional
 
 import pytest
 
 import numpy as np
+
 from anndata import AnnData
 
 from moscot.backends.ott._utils import alpha_to_fused_penalty
@@ -21,19 +21,19 @@ from tests.problems.conftest import (
     quad_prob_args,
 )
 
+
 class TestTranslationProblem:
     @pytest.mark.fast()
     @pytest.mark.parametrize("src_attr", ["emb_src", {"attr": "obsm", "key": "emb_src"}])
     @pytest.mark.parametrize("tgt_attr", ["emb_tgt", {"attr": "obsm", "key": "emb_tgt"}])
     @pytest.mark.parametrize("joint_attr", [None, "X_pca", {"attr": "obsm", "key": "X_pca"}])
     def test_prepare_dummy_policy(
-        self, 
-        adata_translation: AnnData, 
-        src_attr: Mapping[str, str], 
-        tgt_attr: Mapping[str, str], 
-        joint_attr: Optional[Mapping[str, str]]
-        ):
-
+        self,
+        adata_translation: AnnData,
+        src_attr: Mapping[str, str],
+        tgt_attr: Mapping[str, str],
+        joint_attr: Optional[Mapping[str, str]],
+    ):
         adata_tgt, adata_src = _adata_modality_split(adata_translation)
         n_obs = adata_tgt.shape[0]
 
@@ -42,7 +42,7 @@ class TestTranslationProblem:
         assert tp.solutions == {}
 
         prob_key = ("src", "tgt")
-        tp = tp.prepare(src_attr = src_attr, tgt_attr = tgt_attr, joint_attr=joint_attr)
+        tp = tp.prepare(src_attr=src_attr, tgt_attr=tgt_attr, joint_attr=joint_attr)
         assert len(tp) == 1
         assert isinstance(tp[prob_key], tp._base_problem_type)
         assert tp[prob_key].shape == (2 * n_obs, n_obs)
@@ -53,13 +53,12 @@ class TestTranslationProblem:
     @pytest.mark.parametrize("tgt_attr", ["emb_tgt", {"attr": "obsm", "key": "emb_tgt"}])
     @pytest.mark.parametrize("joint_attr", [None, "X_pca", {"attr": "obsm", "key": "X_pca"}])
     def test_prepare_external_star_policy(
-        self, 
-        adata_translation: AnnData, 
-        src_attr: Mapping[str, str], 
-        tgt_attr: Mapping[str, str], 
-        joint_attr: Optional[Mapping[str, str]]
-        ):
-
+        self,
+        adata_translation: AnnData,
+        src_attr: Mapping[str, str],
+        tgt_attr: Mapping[str, str],
+        joint_attr: Optional[Mapping[str, str]],
+    ):
         adata_tgt, adata_src = _adata_modality_split(adata_translation)
         expected_keys = {(i, "ref") for i in adata_src.obs.batch.cat.categories}
         n_obs = adata_tgt.shape[0]
@@ -70,7 +69,7 @@ class TestTranslationProblem:
         assert tp.problems == {}
         assert tp.solutions == {}
 
-        tp = tp.prepare(batch_key="batch", src_attr = src_attr, tgt_attr = tgt_attr, joint_attr=joint_attr)
+        tp = tp.prepare(batch_key="batch", src_attr=src_attr, tgt_attr=tgt_attr, joint_attr=joint_attr)
 
         assert len(tp) == len(expected_keys)
         for prob_key in expected_keys:
@@ -89,11 +88,11 @@ class TestTranslationProblem:
     @pytest.mark.parametrize("tgt_attr", ["emb_tgt", {"attr": "obsm", "key": "emb_tgt"}])
     def test_solve_balanced(
         self,
-        adata_translation: AnnData, 
+        adata_translation: AnnData,
         epsilon: float,
         alpha: float,
         rank: int,
-        src_attr: Mapping[str, str], 
+        src_attr: Mapping[str, str],
         tgt_attr: Mapping[str, str],
         initializer: Optional[Literal["random", "rank2"]],
     ):
@@ -103,8 +102,8 @@ class TestTranslationProblem:
         if rank > -1:
             kwargs["initializer"] = initializer
 
-        tp = TranslationProblem(adata_src, adata_tgt)     
-        tp = tp.prepare(batch_key="batch", src_attr = src_attr, tgt_attr = tgt_attr)
+        tp = TranslationProblem(adata_src, adata_tgt)
+        tp = tp.prepare(batch_key="batch", src_attr=src_attr, tgt_attr=tgt_attr)
         tp = tp.solve(epsilon=epsilon, alpha=alpha, rank=rank, **kwargs)
 
         for key, subsol in tp.solutions.items():
@@ -115,18 +114,19 @@ class TestTranslationProblem:
         assert np.all([np.all(~np.isnan(sol.transport_matrix)) for sol in tp.solutions.values()])
 
     @pytest.mark.parametrize("args_to_check", [fgw_args_1, fgw_args_2])
-    def test_pass_arguments(
-        self, 
-        adata_translation: AnnData, 
-        args_to_check: Mapping[str, Any]
-        ):
+    def test_pass_arguments(self, adata_translation: AnnData, args_to_check: Mapping[str, Any]):
         adata_tgt, adata_src = _adata_modality_split(adata_translation)
         tp = TranslationProblem(adata_src, adata_tgt)
 
         adata_src = adata_src[adata_src.obs["batch"] == 1]
 
         key = ("1", "ref")
-        tp = tp.prepare(batch_key="batch", src_attr = {"attr": "obsm", "key": "emb_src"}, tgt_attr = {"attr": "obsm", "key": "emb_tgt"}, joint_attr='X_pca')
+        tp = tp.prepare(
+            batch_key="batch",
+            src_attr={"attr": "obsm", "key": "emb_src"},
+            tgt_attr={"attr": "obsm", "key": "emb_tgt"},
+            joint_attr="X_pca",
+        )
         tp = tp.solve(**args_to_check)
 
         solver = tp[key].solver.solver

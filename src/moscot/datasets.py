@@ -221,45 +221,54 @@ def sim_align(
         path, backup_url="https://figshare.com/ndownloader/files/37984926", expected_shape=(1200, 500), **kwargs
     )
 
-def bone_marrow_rna(
-    path: PathLike = "~/.cache/moscot/bone_marrow_rna.h5ad",
-    **kwargs: Any,
-) -> AnnData:
-    """RNA data from Multiome bone marrow measurements :cite:`luecken:21`.
-    Contains processed RNA counts of 6,224 cells.
-    Parameters
-    ----------
-    path
-        Path where to save the file.
-    kwargs
-        Keyword arguments for :func:`scanpy.read`.
-    Returns
-    -------
-    Annotated data object.
-    """
-    return _load_dataset_from_url(
-        path, backup_url="https://figshare.com/ndownloader/files/40046950", expected_shape=(6224, 2000), **kwargs
-    )
-
 
 def bone_marrow_atac(
     path: PathLike = "~/.cache/moscot/bone_marrow_atac.h5ad",
     **kwargs: Any,
 ) -> AnnData:
-    """ATAC data from Multiome bone marrow measurements :cite:`luecken:21`.
-    Contains processed ATAC counts of 6,224 cells.
+    """ATAC data from multiome bone marrow measurements :cite:`luecken:21`.
+
+    Contains processed ATAC counts of 6,224 cells and filtered to 8,000 top
+    highly variable peaks.
+
     Parameters
     ----------
     path
         Path where to save the file.
     kwargs
         Keyword arguments for :func:`scanpy.read`.
+
     Returns
     -------
     Annotated data object.
     """
     return _load_dataset_from_url(
         path, backup_url="https://figshare.com/ndownloader/files/40047034", expected_shape=(6224, 8000), **kwargs
+    )
+
+
+def bone_marrow_rna(
+    path: PathLike = "~/.cache/moscot/bone_marrow_rna.h5ad",
+    **kwargs: Any,
+) -> AnnData:
+    """RNA data from multiome bone marrow measurements :cite:`luecken:21`.
+
+    Contains processed RNA counts of 6,224 cells and filtered to 2,000 top
+    highly variable genes.
+
+    Parameters
+    ----------
+    path
+        Path where to save the file.
+    kwargs
+        Keyword arguments for :func:`scanpy.read`.
+
+    Returns
+    -------
+    Annotated data object.
+    """
+    return _load_dataset_from_url(
+        path, backup_url="https://figshare.com/ndownloader/files/40046950", expected_shape=(6224, 2000), **kwargs
     )
 
 
