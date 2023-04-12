@@ -96,7 +96,7 @@ class OTTJaxSolver(OTSolver[OTTOutput], abc.ABC):
 
     @property
     def solver(self) -> Union[Sinkhorn, LRSinkhorn, GromovWasserstein]:
-        """The underlying :mod:`ott` solver."""
+        """:mod:`ott` solver."""
         return self._solver
 
     @property

@@ -273,7 +273,7 @@ class SpatialAlignmentMixin(AnalysisMixin[K, B]):
     ) -> ArrayLike:
         if spatial_key is None:
             spatial_key = self.spatial_key
-        return self.adata[self.adata.obs[self._policy._subset_key] == k].obsm[spatial_key].astype(float, copy=True)
+        return self.adata[self.adata.obs[self._policy.key] == k].obsm[spatial_key].astype(float, copy=True)
 
     @staticmethod
     def _affine(
@@ -364,8 +364,8 @@ class SpatialMappingMixin(AnalysisMixin[K, B]):
         gexp_sc = self.adata_sc[:, var_sc].X if not sp.issparse(self.adata_sc.X) else self.adata_sc[:, var_sc].X.A
         for key, val in self.solutions.items():
             index_obs: List[Union[bool, int]] = (
-                self.adata_sp.obs[self._policy._subset_key] == key[0]
-                if self._policy._subset_key is not None
+                self.adata_sp.obs[self._policy.key] == key[0]
+                if self._policy.key is not None
                 else np.arange(self.adata_sp.shape[0])
             )
             gexp_sp = self.adata_sp[index_obs, var_sc].X

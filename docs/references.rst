@@ -27,3 +27,6 @@ Glossary
 
     dual potentials
         TODO.
+
+    barcode
+        TODO.

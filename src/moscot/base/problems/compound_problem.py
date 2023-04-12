@@ -212,11 +212,11 @@ class BaseCompoundProblem(BaseProblem, abc.ABC, Generic[K, B]):
             assert isinstance(policy, SubsetPolicy)
 
         if isinstance(policy, ExplicitPolicy):
-            policy = policy(subset=subset)
+            policy = policy.create_graph(subset=subset)
         elif isinstance(policy, StarPolicy):
-            policy = policy(reference=reference)
+            policy = policy.create_graph(reference=reference)
         else:
-            policy = policy()
+            policy = policy.create_graph()
 
         # TODO(michalk8): manager must be currently instantiated first, since `_create_problems` accesses the policy
         # when refactoring the callback, consider changing this

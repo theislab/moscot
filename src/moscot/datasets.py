@@ -146,7 +146,7 @@ def zebrafish(
     path: PathLike = "~/.cache/moscot/zebrafish.h5ad",
     **kwargs: Any,
 ) -> Tuple[AnnData, Dict[str, nx.DiGraph]]:
-    """Lineage-traced scRNA-seq time-series dataset of zebrafish heart regeneration :cite:`hu:22`.
+    """Lineage-traced scRNA-seq time-series dataset of Zebrafish heart regeneration :cite:`hu:22`.
 
     Contains gene expression vectors, LINNAEUS :cite:`spanjaard:18` reconstructed lineage trees,
     a low-dimensional embedding, and additional metadata.
@@ -177,12 +177,13 @@ def tedsim(
 ) -> AnnData:  # pragma: no cover
     """Dataset simulated with TedSim :cite:`pan:22`.
 
-    The data was simulated with asymmetric division rate of `0.2` and intermediate state step size of `0.2` and contains
-    the following fields:
+    The data was simulated with asymmetric division rate of `0.2` and
+    intermediate state step size of `0.2` and contain the following fields:
 
-    - :attr:`anndata.AnnData.obsm` ``['barcodes']``: barcodes.
-    - :attr:`anndata.AnnData.obsp` ``['barcodes_cost']``: pre-computed barcode distances.
-    - :attr:`anndata.AnnData.uns` ``['tree']``: lineage tree in the Newick format.
+    - :attr:`anndata.AnnData.obsm` ``['barcodes']``: :term:`barcodes<barcode>`.
+    - :attr:`anndata.AnnData.obsp` ``['barcodes_cost']``: pre-computed :term:`barcode` distances.
+    - :attr:`anndata.AnnData.uns` ``['tree']``: lineage tree in the
+      `Newick <https://en.wikipedia.org/wiki/Newick_format>`_ format.
 
     Parameters
     ----------

@@ -19,11 +19,11 @@ class BaseCost(ABC):
     adata
         Annotated data object.
     attr
-        Attribute of :class:`~anndata.AnnData` used when computing the cost.
+        Attribute of :class:`~anndata.AnnData`.
     key
-        Key in the ``attr`` of :class:`~anndata.AnnData` used when computing the cost.
+        Key in the attribute of :class:`~anndata.AnnData`.
     dist_key
-        Helper key which determines which distribution :attr:`adata` belongs to.
+        Key which determines into which source/target subset ``adata`` belongs.
     """
 
     def __init__(self, adata: AnnData, attr: str, key: str, dist_key: Union[Any, Tuple[Any, Any]]):
@@ -42,9 +42,9 @@ class BaseCost(ABC):
         Parameters
         ----------
         args
-            Positional arguments for computation.
+            Positional arguments.
         kwargs
-            Keyword arguments for computation.
+            Keyword arguments.
 
         Returns
         -------
