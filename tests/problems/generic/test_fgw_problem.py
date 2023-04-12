@@ -1,10 +1,18 @@
-from typing import Any, Literal, Mapping, Type
+from typing import Any, Literal, Mapping
 
 import pytest
 
 import numpy as np
 import pandas as pd
-from ott.geometry.costs import Cosine, CostFn, Euclidean, SqEuclidean
+from ott.geometry.costs import (
+    Cosine,
+    ElasticL1,
+    ElasticSTVS,
+    Euclidean,
+    PNormP,
+    SqEuclidean,
+    SqPNorm,
+)
 
 from anndata import AnnData
 
@@ -108,24 +116,6 @@ class TestFGWProblem:
         for arg, val in pointcloud_args.items():
             assert getattr(geom, val, object()) == args_to_check[arg], arg
 
-    @pytest.mark.fast()
-    @pytest.mark.parametrize(
-        ("name", "cost_type"), [("sq_euclidean", SqEuclidean), ("euclidean", Euclidean), ("cosine", Cosine)]
-    )
-    def test_prepare_costs(self, adata_time: AnnData, name: str, cost_type: Type[CostFn]):
-        problem = GWProblem(adata=adata_time)
-        problem = problem.prepare(
-            key="time",
-            policy="sequential",
-            joint_attr="X_umap",
-            x_attr="X_pca",
-            y_attr="X_pca",
-            cost=name,
-        )
-        assert isinstance(problem[0, 1].xy.cost, cost_type)
-        assert isinstance(problem[0, 1].x.cost, cost_type)
-        assert isinstance(problem[0, 1].y.cost, cost_type)
-
     @pytest.mark.parametrize("tag", ["cost_matrix", "kernel"])
     def test_set_xy(self, adata_time: AnnData, tag: Literal["cost_matrix", "kernel"]):
         rng = np.random.RandomState(42)
@@ -152,6 +142,48 @@ class TestFGWProblem:
         problem = problem.solve(alpha=0.5, max_iterations=5, scale_cost=1)
         assert isinstance(problem[0, 1].xy.data_src, np.ndarray)
         assert problem[0, 1].xy.data_tgt is None
+
+    @pytest.mark.fast()
+    @pytest.mark.parametrize(
+        ("cost_str", "cost_inst", "cost_kwargs"),
+        [
+            ("sq_euclidean", SqEuclidean, {}),
+            ("euclidean", Euclidean, {}),
+            ("cosine", Cosine, {}),
+            ("pnorm_p", PNormP, {"p": 3}),
+            ("sq_pnorm", SqPNorm, {"xy": {"p": 5}, "x": {"p": 3}, "y": {"p": 4}}),
+            ("elastic_l1", ElasticL1, {"gamma": 1.1}),
+            ("elastic_stvs", ElasticSTVS, {"gamma": 1.2}),
+        ],
+    )
+    def test_prepare_costs(self, adata_time: AnnData, cost_str: str, cost_inst: Any, cost_kwargs: Mapping[str, int]):
+        problem = GWProblem(adata=adata_time)
+        problem = problem.prepare(
+            key="time",
+            policy="sequential",
+            joint_attr="X_pca",
+            alpha=0.5,
+            x_attr="X_pca",
+            y_attr="X_pca",
+            cost=cost_str,
+            cost_kwargs=cost_kwargs,
+        )
+        assert isinstance(problem[0, 1].x.cost, cost_inst)
+        assert isinstance(problem[0, 1].y.cost, cost_inst)
+        assert isinstance(problem[0, 1].xy.cost, cost_inst)
+
+        if cost_kwargs:
+            xy_items = cost_kwargs["xy"].items() if "xy" in cost_kwargs else cost_kwargs.items()
+            for k, v in xy_items:
+                assert getattr(problem[0, 1].xy.cost, k) == v
+            x_items = cost_kwargs["x"].items() if "x" in cost_kwargs else cost_kwargs.items()
+            for k, v in x_items:
+                assert getattr(problem[0, 1].x.cost, k) == v
+            y_items = cost_kwargs["y"].items() if "y" in cost_kwargs else cost_kwargs.items()
+            for k, v in y_items:
+                assert getattr(problem[0, 1].y.cost, k) == v
+
+        problem = problem.solve(max_iterations=2)
 
     @pytest.mark.parametrize("tag", ["cost_matrix", "kernel"])
     def test_set_x(self, adata_time: AnnData, tag: Literal["cost_matrix", "kernel"]):

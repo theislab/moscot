@@ -1,3 +1,4 @@
+import types
 from abc import ABC, abstractmethod
 from typing import (
     TYPE_CHECKING,
@@ -207,9 +208,9 @@ class OTProblem(BaseProblem):
     @wrap_prepare
     def prepare(
         self,
-        xy: Optional[Union[Mapping[str, Any], TaggedArray]] = None,
-        x: Optional[Union[Mapping[str, Any], TaggedArray]] = None,
-        y: Optional[Union[Mapping[str, Any], TaggedArray]] = None,
+        xy: Union[Mapping[str, Any], TaggedArray] = types.MappingProxyType({}),
+        x: Union[Mapping[str, Any], TaggedArray] = types.MappingProxyType({}),
+        y: Union[Mapping[str, Any], TaggedArray] = types.MappingProxyType({}),
         a: Optional[Union[bool, str, ArrayLike]] = None,
         b: Optional[Union[bool, str, ArrayLike]] = None,
         **kwargs: Any,
@@ -218,20 +219,20 @@ class OTProblem(BaseProblem):
 
         Depending on which arguments are passed:
 
-        - if only ``xy`` is passed, :attr:`problem_kind` will be ``'linear'``.
-        - if only ``x`` and ``y`` are passed, :attr:`problem_kind` will be ``'quadratic'``.
-        - if all ``xy``, ``x`` and ``y`` are passed, :attr:`problem_kind` will be ``'quadratic'``.
+        - if only ``xy`` is non-empty, :attr:`problem_kind` will be ``'linear'``.
+        - if only ``x`` and ``y`` are non-empty, :attr:`problem_kind` will be ``'quadratic'``.
+        - if all ``xy``, ``x`` and ``y`` are non-empty, :attr:`problem_kind` will be ``'quadratic'``.
 
         Parameters
         ----------
         xy
-            Geometry defining the linear term. If passed as a :class:`dict`,
+            Geometry defining the linear term. If a non-empty :class:`dict`,
             :meth:`~moscot.utils.tagged_array.TaggedArray.from_adata` will be called.
         x
-            First geometry defining the quadratic term. If passed as a :class:`dict`,
+            First geometry defining the quadratic term. If a non-empty :class:`dict`,
             :meth:`~moscot.utils.tagged_array.TaggedArray.from_adata` will be called.
         y
-            Second geometry defining the quadratic term. If passed as a :class:`dict`,
+            Second geometry defining the quadratic term. If a non-empty :class:`dict`,
             :meth:`~moscot.utils.tagged_array.TaggedArray.from_adata` will be called.
         a
             Source marginals. Valid value are:
@@ -265,10 +266,10 @@ class OTProblem(BaseProblem):
         self._x = self._y = self._xy = self._solution = None
         # TODO(michalk8): in the future, have a better dispatch
         # fmt: off
-        if xy is not None and x is None and y is None:
+        if xy and not x and not y:
             self._problem_kind = "linear"
             self._xy = xy if isinstance(xy, TaggedArray) else self._handle_linear(**xy)
-        elif x is not None and y is not None and xy is None:
+        elif x and y and not xy:
             self._problem_kind = "quadratic"
             if isinstance(x, TaggedArray):
                 self._x = x
@@ -278,7 +279,7 @@ class OTProblem(BaseProblem):
                 self._y = y
             else:
                 self._y = TaggedArray.from_adata(self.adata_tgt, dist_key=self._tgt_key, **y)
-        elif xy is not None and x is not None and y is not None:
+        elif xy and x and y:
             self._problem_kind = "quadratic"
             self._xy = xy if isinstance(xy, TaggedArray) else self._handle_linear(**xy)
             if isinstance(x, TaggedArray):

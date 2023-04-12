@@ -1,10 +1,12 @@
-from types import MappingProxyType
-from typing import Any, Dict, List, Literal, Mapping, Optional, Tuple, Type, Union
+import types
+from typing import Any, Dict, Literal, Mapping, Optional, Tuple, Type, Union
 
 from anndata import AnnData
 
 from moscot import _constants
 from moscot._types import (
+    OttCostFn_t,
+    OttCostFnMap_t,
     Policy_t,
     ProblemStage_t,
     QuadInitializer_t,
@@ -36,7 +38,8 @@ class SinkhornProblem(GenericAnalysisMixin[K, B], CompoundProblem[K, B]):
         key: str,
         joint_attr: Optional[Union[str, Mapping[str, Any]]] = None,
         policy: Literal["sequential", "pairwise", "explicit"] = "sequential",
-        cost: Literal["sq_euclidean", "cosine", "bures", "unbalanced_bures"] = "sq_euclidean",
+        cost: OttCostFn_t = "sq_euclidean",
+        cost_kwargs: Union[Mapping[str, Any], Mapping[str, Mapping[str, Any]]] = types.MappingProxyType({}),
         a: Optional[str] = None,
         b: Optional[str] = None,
         **kwargs: Any,
@@ -50,6 +53,7 @@ class SinkhornProblem(GenericAnalysisMixin[K, B], CompoundProblem[K, B]):
         %(joint_attr)s
         %(policy)s
         %(cost_lin)s
+        %(cost_kwargs)s
         %(a)s
         %(b)s
         %(kwargs_prepare)s
@@ -68,7 +72,7 @@ class SinkhornProblem(GenericAnalysisMixin[K, B], CompoundProblem[K, B]):
         """
         self.batch_key = key  # type: ignore[misc]
         xy, kwargs = handle_joint_attr(joint_attr, kwargs)
-        xy, _, _ = handle_cost(xy=xy, cost=cost)
+        xy, _, _ = handle_cost(xy=xy, cost=cost, cost_kwargs=cost_kwargs)
         return super().prepare(  # type: ignore[return-value]
             key=key,
             policy=policy,
@@ -89,7 +93,7 @@ class SinkhornProblem(GenericAnalysisMixin[K, B], CompoundProblem[K, B]):
         batch_size: Optional[int] = None,
         stage: Union[ProblemStage_t, Tuple[ProblemStage_t, ...]] = ("prepared", "solved"),
         initializer: SinkhornInitializer_t = None,
-        initializer_kwargs: Mapping[str, Any] = MappingProxyType({}),
+        initializer_kwargs: Mapping[str, Any] = types.MappingProxyType({}),
         jit: bool = True,
         threshold: float = 1e-3,
         lse_mode: bool = True,
@@ -179,10 +183,8 @@ class GWProblem(GenericAnalysisMixin[K, B], CompoundProblem[K, B]):
         y_attr: Union[str, Mapping[str, Any]],
         joint_attr: Optional[Union[str, Mapping[str, Any]]] = None,
         policy: Literal["sequential", "pairwise", "explicit"] = "sequential",
-        cost: Union[
-            Literal["sq_euclidean", "cosine", "bures", "unbalanced_bures"],
-            Mapping[str, Literal["sq_euclidean", "cosine", "bures", "unbalanced_bures"]],
-        ] = "sq_euclidean",
+        cost: OttCostFnMap_t = "sq_euclidean",
+        cost_kwargs: Union[Mapping[str, Any], Mapping[str, Mapping[str, Any]]] = types.MappingProxyType({}),
         a: Optional[str] = None,
         b: Optional[str] = None,
         **kwargs: Any,
@@ -198,6 +200,7 @@ class GWProblem(GenericAnalysisMixin[K, B], CompoundProblem[K, B]):
         %(joint_attr)s
         %(policy)s
         %(cost)s
+        %(cost_kwargs)s
         %(a)s
         %(b)s
         %(kwargs_prepare)s
@@ -216,17 +219,17 @@ class GWProblem(GenericAnalysisMixin[K, B], CompoundProblem[K, B]):
         """
         self.batch_key = key  # type: ignore[misc]
 
-        GW_updated: List[Dict[str, Any]] = [{}] * 2
-        for i, z in enumerate([x_attr, y_attr]):
+        def set_quad_defaults(z: Union[str, Mapping[str, Any]]) -> Dict[str, str]:
             if isinstance(z, str):
-                GW_updated[i] = {"attr": "obsm", "key": z, "tag": "point_cloud"}  # cost handled by handle_cost
-            elif isinstance(z, dict):
-                GW_updated[i] = z
-            else:
-                raise TypeError("`x_attr` and `y_attr` must be of type `str` or `dict`.")
+                return {"attr": "obsm", "key": z, "tag": "point_cloud"}  # cost handled by handle_cost
+            if isinstance(z, Mapping):
+                return dict(z)
+            raise TypeError("`x_attr` and `y_attr` must be of type `str` or `dict`.")
 
         xy, kwargs = handle_joint_attr(joint_attr, kwargs)
-        xy, x, y = handle_cost(xy=xy, x=GW_updated[0], y=GW_updated[1], cost=cost)
+        x = set_quad_defaults(x_attr)
+        y = set_quad_defaults(y_attr)
+        xy, x, y = handle_cost(xy=xy, x=x, y=y, cost=cost, cost_kwargs=cost_kwargs)
         return super().prepare(  # type: ignore[return-value]
             key=key,
             xy=xy,
@@ -250,12 +253,12 @@ class GWProblem(GenericAnalysisMixin[K, B], CompoundProblem[K, B]):
         batch_size: Optional[int] = None,
         stage: Union[ProblemStage_t, Tuple[ProblemStage_t, ...]] = ("prepared", "solved"),
         initializer: QuadInitializer_t = None,
-        initializer_kwargs: Mapping[str, Any] = MappingProxyType({}),
+        initializer_kwargs: Mapping[str, Any] = types.MappingProxyType({}),
         jit: bool = True,
         min_iterations: int = 5,
         max_iterations: int = 50,
         threshold: float = 1e-3,
-        linear_solver_kwargs: Mapping[str, Any] = MappingProxyType({}),
+        linear_solver_kwargs: Mapping[str, Any] = types.MappingProxyType({}),
         device: Optional[Literal["cpu", "gpu", "tpu"]] = None,
         **kwargs: Any,
     ) -> "GWProblem[K,B]":

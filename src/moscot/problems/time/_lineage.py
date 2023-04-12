@@ -1,11 +1,13 @@
-from types import MappingProxyType
+import types
 from typing import Any, Literal, Mapping, Optional, Tuple, Type, Union
 
 from anndata import AnnData
 
 from moscot import _constants
 from moscot._types import (
+    CostFnMap_t,
     Numeric_t,
+    OttCostFn_t,
     Policy_t,
     ProblemStage_t,
     QuadInitializer_t,
@@ -46,10 +48,11 @@ class TemporalProblem(
         time_key: str,
         joint_attr: Optional[Union[str, Mapping[str, Any]]] = None,
         policy: Literal["sequential", "tril", "triu", "explicit"] = "sequential",
-        cost: Literal["sq_euclidean", "cosine", "bures", "unbalanced_bures"] = "sq_euclidean",
+        cost: OttCostFn_t = "sq_euclidean",
+        cost_kwargs: Union[Mapping[str, Any], Mapping[str, Mapping[str, Any]]] = types.MappingProxyType({}),
         a: Optional[str] = None,
         b: Optional[str] = None,
-        marginal_kwargs: Mapping[str, Any] = MappingProxyType({}),
+        marginal_kwargs: Mapping[str, Any] = types.MappingProxyType({}),
         **kwargs: Any,
     ) -> "TemporalProblem":
         """
@@ -63,6 +66,7 @@ class TemporalProblem(
         %(joint_attr)s
         %(policy)s
         %(cost_lin)s
+        %(cost_kwargs)s
         %(a_temporal)s
         %(b_temporal)s
         %(marginal_kwargs)s
@@ -83,7 +87,7 @@ class TemporalProblem(
         """
         self.temporal_key = time_key
         xy, kwargs = handle_joint_attr(joint_attr, kwargs)
-        xy, x, y = handle_cost(xy=xy, x=kwargs.pop("x", None), y=kwargs.pop("y", None), cost=cost)
+        xy, x, y = handle_cost(xy=xy, x=kwargs.pop("x", {}), y=kwargs.pop("y", {}), cost=cost, cost_kwargs=cost_kwargs)
 
         # TODO(michalk8): needs to be modified
         marginal_kwargs = dict(marginal_kwargs)
@@ -100,6 +104,7 @@ class TemporalProblem(
             x=x,
             y=y,
             policy=policy,
+            cost=None,  # cost information is already stored in x,y,xy
             marginal_kwargs=marginal_kwargs,
             a=a,
             b=b,
@@ -116,7 +121,7 @@ class TemporalProblem(
         batch_size: Optional[int] = None,
         stage: Union[ProblemStage_t, Tuple[ProblemStage_t, ...]] = ("prepared", "solved"),
         initializer: SinkhornInitializer_t = None,
-        initializer_kwargs: Mapping[str, Any] = MappingProxyType({}),
+        initializer_kwargs: Mapping[str, Any] = types.MappingProxyType({}),
         jit: bool = True,
         threshold: float = 1e-3,
         lse_mode: bool = True,
@@ -201,17 +206,15 @@ class LineageProblem(TemporalProblem):
     def prepare(
         self,
         time_key: str,
-        lineage_attr: Mapping[str, Any] = MappingProxyType({}),
+        lineage_attr: Mapping[str, Any] = types.MappingProxyType({}),
         joint_attr: Optional[Union[str, Mapping[str, Any]]] = None,
         policy: Literal["sequential", "tril", "triu", "sequential"] = "sequential",
         # TODO(michalk8): update
-        cost: Union[
-            Literal["sq_euclidean", "cosine"],
-            Mapping[str, Literal["sq_euclidean", "cosine"]],
-        ] = "sq_euclidean",
+        cost: CostFnMap_t = "sq_euclidean",
+        cost_kwargs: Union[Mapping[str, Any], Mapping[str, Mapping[str, Any]]] = types.MappingProxyType({}),
         a: Optional[str] = None,
         b: Optional[str] = None,
-        marginal_kwargs: Mapping[str, Any] = MappingProxyType({}),
+        marginal_kwargs: Mapping[str, Any] = types.MappingProxyType({}),
         **kwargs: Any,
     ) -> "LineageProblem":
         """
@@ -227,6 +230,7 @@ class LineageProblem(TemporalProblem):
         %(joint_attr)s
         %(policy)s
         %(cost)s
+        %(cost_kwargs)s
         %(a_temporal)s
         %(b_temporal)s
         %(marginal_kwargs)s
@@ -243,15 +247,21 @@ class LineageProblem(TemporalProblem):
         if not len(lineage_attr) and ("cost_matrices" not in self.adata.obsp):
             raise KeyError("Unable to find cost matrices in `adata.obsp['cost_matrices']`.")
 
-        lineage_attr = dict(lineage_attr)
-        lineage_attr.setdefault("attr", "obsp")
-        lineage_attr.setdefault("key", "cost_matrices")
-        lineage_attr.setdefault("cost", "custom")
-        lineage_attr.setdefault("tag", "cost_matrix")
-
         x = y = lineage_attr
 
         xy, kwargs = handle_joint_attr(joint_attr, kwargs)
+        xy, x, y = handle_cost(xy=xy, x=x, y=y, cost=cost, cost_kwargs=cost_kwargs)
+
+        x.setdefault("attr", "obsp")
+        x.setdefault("key", "cost_matrices")
+        x.setdefault("cost", "custom")
+        x.setdefault("tag", "cost_matrix")
+
+        y.setdefault("attr", "obsp")
+        y.setdefault("key", "cost_matrices")
+        y.setdefault("cost", "custom")
+        y.setdefault("tag", "cost_matrix")
+
         return super().prepare(  # type: ignore[return-value]
             time_key,
             joint_attr=xy,
@@ -276,12 +286,12 @@ class LineageProblem(TemporalProblem):
         batch_size: Optional[int] = None,
         stage: Union[ProblemStage_t, Tuple[ProblemStage_t, ...]] = ("prepared", "solved"),
         initializer: QuadInitializer_t = None,
-        initializer_kwargs: Mapping[str, Any] = MappingProxyType({}),
+        initializer_kwargs: Mapping[str, Any] = types.MappingProxyType({}),
         jit: bool = True,
         min_iterations: int = 5,
         max_iterations: int = 50,
         threshold: float = 1e-3,
-        linear_solver_kwargs: Mapping[str, Any] = MappingProxyType({}),
+        linear_solver_kwargs: Mapping[str, Any] = types.MappingProxyType({}),
         device: Optional[Literal["cpu", "gpu", "tpu"]] = None,
         **kwargs: Any,
     ) -> "LineageProblem":
