@@ -32,7 +32,7 @@ class OTTJaxSolver(OTSolver[OTTOutput], abc.ABC):
     Parameters
     ----------
     jit
-        Whether to jit the :attr:`solver`.
+        Whether to :func:`~jax.jit` the :attr:`solver`.
     """
 
     def __init__(self, jit: bool = True):
@@ -96,7 +96,7 @@ class OTTJaxSolver(OTSolver[OTTOutput], abc.ABC):
 
     @property
     def solver(self) -> Union[Sinkhorn, LRSinkhorn, GromovWasserstein]:
-        """Underlying :mod:`ott` solver."""
+        """The underlying :mod:`ott` solver."""
         return self._solver
 
     @property
@@ -111,17 +111,19 @@ class OTTJaxSolver(OTSolver[OTTOutput], abc.ABC):
 
 
 class SinkhornSolver(OTTJaxSolver):
-    """Linear optimal transport problem solver.
+    """Solver for the :term:`linear problem`.
 
-    The (Kantorovich relaxed) optimal transport problem is defined by two distributions in the same space.
+    The (Kantorovich relaxed) :term:`OT` problem is defined by two distributions in the same space.
     The aim is to obtain a probabilistic map from the source distribution to the target distribution such that
     the (weighted) sum of the distances between coupled data point in the source and the target distribution is
     minimized.
 
     Parameters
     ----------
+    jit
+        Whether to :func:`~jax.jit` the :attr:`solver`.
     rank
-        Rank of the linear solver. If `-1`, use :class:`~ott.solvers.linear.sinkhorn.Sinkhorn` :cite:`cuturi:2013`,
+        Rank of the solver. If `-1`, use :class:`~ott.solvers.linear.sinkhorn.Sinkhorn` :cite:`cuturi:2013`,
         otherwise, use :class:`~ott.solvers.linear.sinkhorn_lr.LRSinkhorn` :cite:`scetbon:21a`.
     epsilon
         Additional epsilon regularization for the low-rank approach.
@@ -206,21 +208,23 @@ class SinkhornSolver(OTTJaxSolver):
 
 
 class GWSolver(OTTJaxSolver):
-    """Solver solving quadratic optimal transport problem.
+    """Solver for the :term:`quadratic problem`.
 
-    The Gromov-Wasserstein (GW) problem involves two distribution in possibly two different spaces.
+    The :term:`Gromov-Wasserstein<GW>` problem involves two distribution in possibly two different spaces.
     Points in the source distribution are matched to points in the target distribution by comparing the relative
     location of the points within each distribution.
 
     Parameters
     ----------
+    jit
+        Whether to :func:`~jax.jit` the :attr:`solver`.
     rank
-        Rank of the quadratic solver. If `-1` use the full-rank GW :cite:`memoli:2011`,
+        Rank of the solver. If `-1` use the full-rank :term:`GW` :cite:`memoli:2011`,
         otherwise, use the low-rank approach :cite:`scetbon:21b`.
     initializer
         Initializer for :class:`~ott.solvers.quadratic.gromov_wasserstein.GromovWasserstein`.
     initializer_kwargs
-        Keyword arguments for the initializer.
+        Keyword arguments for the ``initializer``.
     linear_solver_kwargs
         Keyword arguments for :class:`~ott.solvers.linear.sinkhorn.Sinkhorn` or
         :class:`~ott.solvers.linear.sinkhorn_lr.LRSinkhorn`, depending on the ``rank``.
@@ -296,22 +300,22 @@ class GWSolver(OTTJaxSolver):
 
     @property
     def x(self) -> Optional[Geometry]:
-        """First geometry defining the quadratic term."""
+        """The first geometry defining the quadratic term."""
         return None if self._problem is None else self._problem.geom_xx
 
     @property
     def y(self) -> Geometry:
-        """Second geometry defining the quadratic term."""
+        """The second geometry defining the quadratic term."""
         return None if self._problem is None else self._problem.geom_yy
 
     @property
     def xy(self) -> Optional[Geometry]:
-        """Geometry defining the linear term in the fused case."""
+        """Geometry defining the linear term in the :term:`FGW`."""
         return None if self._problem is None else self._problem.geom_xy
 
     @property
     def is_fused(self) -> Optional[bool]:
-        """Whether the problem is fused."""
+        """Whether the solver is fused."""
         return None if self._problem is None else (self.xy is not None)
 
     @property

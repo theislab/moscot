@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING, Any, Literal, Tuple, Type, Union
+from typing import TYPE_CHECKING, Any, Callable, Literal, Tuple, Type, Union
 
 from moscot import _registry
 from moscot._types import ProblemKind_t
@@ -20,9 +20,21 @@ def get_solver(problem_kind: ProblemKind_t, *, backend: str = "ott", return_clas
     return solver_class if return_class else solver_class(**kwargs)
 
 
-def register_solver(backend: str) -> Any:
-    """TODO."""
-    return _REGISTRY.register(backend)
+def register_solver(
+    backend: str,
+) -> Callable[[Literal["linear", "quadratic"]], Union[Type["ott.SinkhornSolver"], Type["ott.GWSolver"]]]:
+    """Register a solver for a specific backend.
+
+    Parameters
+    ----------
+    backend
+        Name of the backend.
+
+    Returns
+    -------
+    The decorated function which returns the type of the solver.
+    """
+    return _REGISTRY.register(backend)  # type: ignore[return-value]
 
 
 @register_solver("ott")
@@ -37,5 +49,5 @@ def _(problem_kind: Literal["linear", "quadratic"]) -> Union[Type["ott.SinkhornS
 
 
 def get_available_backends() -> Tuple[str, ...]:
-    """TODO."""
+    """Return all available backends."""
     return tuple(backend for backend in _REGISTRY)

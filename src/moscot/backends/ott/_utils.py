@@ -1,5 +1,6 @@
 from typing import Any, Optional
 
+import jax
 import jax.numpy as jnp
 import scipy.sparse as sp
 from ott.geometry.geometry import Geometry
@@ -49,12 +50,26 @@ def check_shapes(geom_x: Geometry, geom_y: Geometry, geom_xy: Geometry) -> None:
 
 
 def alpha_to_fused_penalty(alpha: float) -> float:
+    """Convert."""
     if not (0 < alpha <= 1):
         raise ValueError(f"Expected `alpha` to be in interval `(0, 1]`, found `{alpha}`.")
     return (1 - alpha) / alpha
 
 
-def ensure_2d(arr: ArrayLike, *, reshape: bool = False) -> Optional[jnp.ndarray]:  # type: ignore[name-defined]
+def ensure_2d(arr: ArrayLike, *, reshape: bool = False) -> jax.Array:
+    """Ensure that ``arr`` is 2-dimensional.
+
+    Parameters
+    ----------
+    arr
+        Array to check.
+    reshape
+        Allow reshaping 1-dimensional array to ``[n, 1]``.
+
+    Returns
+    -------
+    :mod:`jax` 2-dimensional array.
+    """
     if sp.issparse(arr):
         arr = arr.A  # type: ignore[attr-defined]
     arr = jnp.asarray(arr)

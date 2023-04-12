@@ -12,3 +12,18 @@ Glossary
 
     OT
         Optimal transport.
+
+    linear problem
+        TODO.
+
+    quadratic problem
+        TODO.
+
+    GW
+        TODO.
+
+    FGW
+        TODO.
+
+    dual potentials
+        TODO.

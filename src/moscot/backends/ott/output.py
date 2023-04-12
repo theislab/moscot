@@ -19,7 +19,7 @@ __all__ = ["OTTOutput"]
 
 
 class OTTOutput(BaseSolverOutput):
-    """Output of various optimal transport problems.
+    """Output of various :term:`OT` problems.
 
     Parameters
     ----------
@@ -27,7 +27,7 @@ class OTTOutput(BaseSolverOutput):
         Output of :mod:`ott` backend.
     """
 
-    _NOT_COMPUTED = -1.0
+    _NOT_COMPUTED = -1.0  # sentinel value used in `ott`
 
     def __init__(self, output: Union[OTTSinkhornOutput, OTTLRSinkhornOutput, OTTGWOutput]):
         super().__init__()
@@ -40,36 +40,36 @@ class OTTOutput(BaseSolverOutput):
         last: Optional[int] = None,
         title: Optional[str] = None,
         return_fig: bool = False,
+        ax: Optional[mpl.axes.Axes] = None,
         figsize: Optional[Tuple[float, float]] = None,
         dpi: Optional[int] = None,
         save: Optional[str] = None,
-        ax: Optional[mpl.axes.Axes] = None,
         **kwargs: Any,
     ) -> Optional[mpl.figure.Figure]:
-        """Plot regularized OT costs during the iterations.
+        """Plot regularized :term:`OT` costs during the iterations.
 
         Parameters
         ----------
         last
-            How many of the last steps of the algorithm to plot. If `None`, plot the full curve.
+            How many of the last steps of the algorithm to plot. If :obj:`None`, plot the full curve.
         title
-            Title of the plot. If `None`, it is determined automatically.
+            Title of the plot. If :obj:`None`, it is determined automatically.
+        return_fig
+            Whether to return the figure.
+        ax
+            Axes on which to plot.
         figsize
             Size of the figure.
         dpi
             Dots per inch.
         save
             Path where to save the figure.
-        return_fig
-            Whether to return the figure.
-        ax
-            Axes on which to plot.
         kwargs
-            Keyword arguments for :meth:`~matplotlib.axes.Axes.plot`.
+            Keyword arguments for :meth:`matplotlib.axes.Axes.plot`.
 
         Returns
         -------
-        The figure if ``return_fig = True``.
+        If ``return_fig = True``, return the figure.
         """
         if self._costs is None:
             raise RuntimeError("No costs to plot.")
@@ -97,11 +97,29 @@ class OTTOutput(BaseSolverOutput):
 
         Parameters
         ----------
-        %(plot_costs.parameters)s
+        last
+            Whether to plot only the ``last`` errors. If :obj:`None`, plot all errors.
+        title
+            Title of the plot. If :obj:`None`, it is determined automatically.
+        outer_iteration
+            Which outermost iteration's errors to plot.
+            Only used when this is the solution to the :term:`quadratic problem`.
+        return_fig
+            Whether to return the figure.
+        ax
+            Axes on which to plot.
+        figsize
+            Size of the figure.
+        dpi
+            Dots per inch.
+        save
+            Path where to save the figure.
+        kwargs
+            Keyword arguments for :meth:`matplotlib.axes.Axes.plot`.
 
         Returns
         -------
-        %(plot_costs.returns)s
+        If ``return_fig = True``, return the figure.
         """
         if self._errors is None:
             raise RuntimeError("No errors to plot.")
