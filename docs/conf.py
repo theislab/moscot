@@ -114,8 +114,10 @@ spelling_filters = [
 ]
 
 # hover
-tippy_enable_mathjax = True
 tippy_anchor_parent_selector = "div.content"
+tippy_enable_mathjax = True
+# no need because of sphinxcontrib-bibtex
+tippy_enable_doitips = False
 
 linkcheck_ignore = [
     # 403 Client Error
@@ -147,6 +149,9 @@ html_theme_options = {
     "light_css_variables": {
         "color-brand-primary": "#003262",
         "color-brand-content": "#003262",
+        "admonition-font-size": "var(--font-size-normal)",
+        "admonition-title-font-size": "var(--font-size-normal)",
+        "code-font-size": "var(--font-size--small)",
     },
     "footer_icons": [
         {
