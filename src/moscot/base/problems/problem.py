@@ -425,7 +425,7 @@ class OTProblem(BaseProblem):
         return self.solution.pull(data, **kwargs)
 
     def set_solution(
-        self, solution: Union[ArrayLike, pd.DataFrame, BaseSolverOutput], overwrite: bool = False, **kwargs: Any
+        self, solution: Union[ArrayLike, pd.DataFrame, BaseSolverOutput], *, overwrite: bool = False, **kwargs: Any
     ) -> "OTProblem":
         """Set :attr:`solution`.
 
@@ -443,7 +443,7 @@ class OTProblem(BaseProblem):
         Sets :attr:`solution` and returns self.
         """
         if not overwrite and self.solution is not None:
-            raise ValueError("TODO")
+            raise ValueError(f"`{self}` already contains a solution, use `overwrite=True` to overwrite it.")
 
         if isinstance(solution, pd.DataFrame):
             pd.testing.assert_series_equal(self.adata_src.obs_names.to_series(), solution.index.to_series())

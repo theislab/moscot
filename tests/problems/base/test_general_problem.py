@@ -10,7 +10,7 @@ from ott.solvers.linear.sinkhorn import solve as sinkhorn
 
 from anndata import AnnData
 
-from moscot.base.output import BaseSolverOutput
+from moscot.base.output import BaseSolverOutput, MatrixSolverOutput
 from moscot.base.problems import OTProblem
 from tests._utils import ATOL, RTOL, Geom_t, MockSolverOutput
 
@@ -136,6 +136,33 @@ class TestOTProblem:
 
         assert prob.problem_kind == "quadratic"
 
+    @pytest.mark.parametrize("clazz", [np.array, pd.DataFrame, MatrixSolverOutput])
+    def test_set_solution(self, adata_x: AnnData, adata_y: AnnData, clazz: type):
+        rng = np.random.RandomState(42)
+        prob = OTProblem(adata_x, adata_y)
+        solution = rng.uniform(1, 10, size=prob.shape)
+        if clazz is pd.DataFrame:
+            solution = clazz(solution, index=prob.adata_src.obs_names, columns=prob.adata_tgt.obs_names)
+        elif clazz is MatrixSolverOutput:
+            solution = clazz(solution, cost=42, converged=True)
+        else:
+            solution = clazz(solution)
 
-class MultiMarginalProblem:
-    pass
+        prob = prob.set_solution(solution, cost=42, converged=True)
+
+        assert prob.stage == "solved"
+        assert isinstance(prob.solution, BaseSolverOutput)
+        assert prob.solution.shape == prob.shape
+        assert prob.solution.cost == 42
+        assert prob.solution.converged
+
+        _ = prob.push()
+        _ = prob.pull()
+
+        with pytest.raises(ValueError, match=r".* already contains a solution"):
+            _ = prob.set_solution(solution, overwrite=False)
+
+        solution2 = MatrixSolverOutput(solution, cost=42, converged=False)
+        prob = prob.set_solution(solution2, overwrite=True)
+
+        assert prob.solution is solution2
