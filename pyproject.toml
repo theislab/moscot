@@ -79,8 +79,8 @@ docs = [
     "sphinxcontrib-bibtex>=2.3.0",
     "sphinxcontrib-spelling>=7.6.2",
     "furo>=2022.09.29",
+    "sphinx-tippy>=0.4.1",
     "myst-nb>=0.17.1",
-    "nbsphinx>=0.8.1",
     "ipython>=7.20.0",
     "sphinx_design>=0.3.0",
 ]
@@ -212,6 +212,7 @@ ignore_directives = [
     "automodule",
     "autoclass",
     "bibliography",
+    "glossary",
     "card",
     "grid",
 ]

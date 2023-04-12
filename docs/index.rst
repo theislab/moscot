@@ -1,5 +1,6 @@
 Moscot - Multiomics Single-cell Optimal Transport
 =================================================
+.. module:: moscot
 
 :mod:`moscot` is a framework for optimal transport applications in single cell genomics.
 

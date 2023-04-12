@@ -1,7 +1,5 @@
 User API
 ########
-.. module:: moscot
-
 Import ``moscot`` as::
 
     import moscot as mt

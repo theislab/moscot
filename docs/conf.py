@@ -38,8 +38,8 @@ extensions = [
     "sphinxcontrib.bibtex",
     "sphinx_copybutton",
     "myst_nb",
-    "nbsphinx",
     "sphinx_design",  # for cards
+    "sphinx_tippy",
     "typed_returns",
 ]
 intersphinx_mapping = {
@@ -92,6 +92,7 @@ myst_enable_extensions = [
 ]
 myst_heading_anchors = 2
 
+
 # autodoc + napoleon
 autosummary_generate = True
 autodoc_member_order = "alphabetical"
@@ -111,6 +112,10 @@ spelling_filters = [
     "enchant.tokenize.EmailFilter",
     "enchant.tokenize.MentionFilter",
 ]
+
+# hover
+tippy_enable_mathjax = True
+tippy_anchor_parent_selector = "div.content"
 
 linkcheck_ignore = [
     # 403 Client Error
