@@ -24,7 +24,7 @@ from moscot import backends
 from moscot._docs._docs import d
 from moscot._logging import logger
 from moscot._types import ArrayLike, CostFn_t, Device_t, ProblemKind_t, ProblemStage_t
-from moscot.base.output import BaseSolverOutput
+from moscot.base.output import BaseSolverOutput, MatrixSolverOutput
 from moscot.base.problems._utils import require_solution, wrap_prepare, wrap_solve
 from moscot.base.solver import OTSolver
 from moscot.utils.tagged_array import Tag, TaggedArray
@@ -423,6 +423,41 @@ class OTProblem(BaseProblem):
             assert isinstance(self.solution, BaseSolverOutput)
         data = self._get_mass(self.adata_tgt, data=data, subset=subset, normalize=normalize, split_mass=split_mass)
         return self.solution.pull(data, **kwargs)
+
+    def set_solution(
+        self, solution: Union[ArrayLike, pd.DataFrame, BaseSolverOutput], overwrite: bool = False, **kwargs: Any
+    ) -> "OTProblem":
+        """Set :attr:`solution`.
+
+        Parameters
+        ----------
+        solution
+            TODO.
+        overwrite
+            TODO.
+        kwargs
+            TODO.
+
+        Returns
+        -------
+        Sets :attr:`solution` and returns self.
+        """
+        if not overwrite and self.solution is not None:
+            raise ValueError("TODO")
+
+        if isinstance(solution, pd.DataFrame):
+            pd.testing.assert_series_equal(self.adata_src.obs_names.to_series(), solution.index.to_series())
+            pd.testing.assert_series_equal(self.adata_tgt.obs_names.to_series(), solution.columns.to_series())
+            solution = solution.to_numpy()
+        if not isinstance(solution, BaseSolverOutput):
+            solution = MatrixSolverOutput(solution, **kwargs)
+
+        if solution.shape != self.shape:
+            raise ValueError("TODO")
+
+        self._stage = "solved"
+        self._solution = solution
+        return self
 
     @staticmethod
     def _local_pca_callback(
