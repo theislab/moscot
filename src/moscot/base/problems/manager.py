@@ -70,7 +70,7 @@ class ProblemManager(Generic[K, B]):
         if verify_integrity:
             self._verify_shape_integrity()
 
-    def add_problems(self, problems: Dict[Tuple[K, K], B], overwrite: bool = False) -> None:
+    def add_problems(self, problems: Dict[Tuple[K, K], B], overwrite: bool = True) -> None:
         """TODO: Add problems."""
         for key, prob in problems.items():
             self._add_problem(key, prob, overwrite=overwrite, verify_integrity=False)
