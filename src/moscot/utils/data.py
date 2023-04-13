@@ -5,9 +5,18 @@ __all__ = ["transcription_factors", "proliferation_markers", "apoptosis_markers"
 
 
 def transcription_factors(organism: Literal["human", "mouse", "drosophila"]) -> List[str]:
-    """TODO.
+    """Get transcription factors for a selected organism.
 
-    Taken from `here <https://resources.aertslab.org/cistarget/tf_lists/>`_.
+    The data was taken from this `source <https://resources.aertslab.org/cistarget/tf_lists/>`_.
+
+    Parameters
+    ----------
+    organism
+        Organism for which to select the transcription factors.
+
+    Returns
+    -------
+    Transcription factors for ``organism``.
     """
     if organism == "human":
         fname = "allTFs_hg38.txt"
@@ -23,7 +32,17 @@ def transcription_factors(organism: Literal["human", "mouse", "drosophila"]) -> 
 
 
 def proliferation_markers(organism: Literal["human", "mouse"]) -> List[str]:
-    """TODO."""
+    """Get proliferation markers for a selected organism.
+
+    Parameters
+    ----------
+    organism
+        Organism for which to select the marker genes.
+
+    Returns
+    -------
+    Proliferation markers for ``organism``.
+    """
     if organism not in ("human", "mouse"):
         raise NotImplementedError(f"Proliferation markers for `{organism!r}` are not yet implemented.")
 
@@ -33,7 +52,17 @@ def proliferation_markers(organism: Literal["human", "mouse"]) -> List[str]:
 
 
 def apoptosis_markers(organism: Literal["human", "mouse"]) -> List[str]:
-    """TODO."""
+    """Get apoptosis markers for a selected organism.
+
+    Parameters
+    ----------
+    organism
+        Organism for which to select the marker genes.
+
+    Returns
+    -------
+    Apoptosis markers for ``organism``.
+    """
     if organism not in ("human", "mouse"):
         raise NotImplementedError(f"Apoptosis markers for `{organism!r}` are not yet implemented.")
 

@@ -293,6 +293,7 @@ commands =
 
 [testenv:clean-docs]
 description = Remove the documentation.
+deps =
 skip_install = true
 changedir = {tox_root}{/}docs
 allowlist_externals = make
@@ -301,7 +302,6 @@ commands =
 
 [testenv:build-docs]
 description = Build the documentation.
-use_develop = true
 deps =
 extras = docs
 allowlist_externals = make
