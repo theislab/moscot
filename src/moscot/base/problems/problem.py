@@ -427,20 +427,21 @@ class OTProblem(BaseProblem):
     def set_solution(
         self, solution: Union[ArrayLike, pd.DataFrame, BaseSolverOutput], *, overwrite: bool = False, **kwargs: Any
     ) -> "OTProblem":
-        """Set :attr:`solution`.
+        """Set the :attr:`solution`.
 
         Parameters
         ----------
         solution
-            TODO.
+            Solution for this problem. If a :class:`~pandas.DataFrame` is passed, its index and columns
+            must match the indexes of :attr:`adata_src` and :attr:`adata_tgt`, respectively.
         overwrite
-            TODO.
+            Whether to overwrite an existing solution.
         kwargs
-            TODO.
+            Keyword arguments for :class:`~moscot.base.output.MatrixSolverOutput`.
 
         Returns
         -------
-        Sets :attr:`solution` and returns self.
+        Set :attr:`solution` and return self.
         """
         if not overwrite and self.solution is not None:
             raise ValueError(f"`{self}` already contains a solution, use `overwrite=True` to overwrite it.")
@@ -453,7 +454,7 @@ class OTProblem(BaseProblem):
             solution = MatrixSolverOutput(solution, **kwargs)
 
         if solution.shape != self.shape:
-            raise ValueError("TODO")
+            raise ValueError(f"Expected solution to have shape `{self.shape}`, found `{solution.shape}`.")
 
         self._stage = "solved"
         self._solution = solution
