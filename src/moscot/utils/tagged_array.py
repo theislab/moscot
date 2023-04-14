@@ -25,7 +25,23 @@ class Tag(str, enum.Enum):
 
 @dataclass(frozen=True, repr=True)
 class TaggedArray:
-    """Tagged array."""
+    """Interface to interpret array-like data for :mod:`moscot.solvers`.
+
+    It is used to extract array-like data stored in :class:`~anndata.AnnData` and interpret it as either
+    :attr:`cost matrix <is_cost_matrix>`, :attr:`kernel matrix <is_kernel>` or
+    a :attr:`point cloud <is_point_cloud>`, depending on the :attr:`tag`.
+
+    Parameters
+    ----------
+    data_src
+        Source data.
+    data_tgt
+        Target data.
+    tag
+        How to interpret :attr:`data_src` and :attr:`data_tgt`.
+    cost
+        Cost function when ``tag = 'point_cloud'``.
+    """
 
     data_src: ArrayLike  #: Source data.
     data_tgt: Optional[ArrayLike] = None  #: Target data.
@@ -40,11 +56,7 @@ class TaggedArray:
         key: Optional[str] = None,
     ) -> ArrayLike:
         modifier = f"adata.{attr}" if key is None else f"adata.{attr}[{key!r}]"
-
-        try:
-            data = getattr(adata, attr)
-        except AttributeError:
-            raise AttributeError(f"Annotated data object has no attribute `{attr}`.") from None
+        data = getattr(adata, attr)
 
         try:
             if key is not None:
@@ -76,6 +88,9 @@ class TaggedArray:
     ) -> "TaggedArray":
         """Create tagged array from :class:`~anndata.AnnData`.
 
+        .. warning::
+            Sparse arrays will be always densified.
+
         Parameters
         ----------
         adata
@@ -103,10 +118,6 @@ class TaggedArray:
         Returns
         -------
         The tagged array.
-
-        Notes
-        -----
-        Sparse arrays will be always densified.
         """
         if tag == Tag.COST_MATRIX:
             if cost == "custom":  # our custom cost functions
