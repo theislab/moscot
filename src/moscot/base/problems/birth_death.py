@@ -1,10 +1,8 @@
-from types import MappingProxyType
 from typing import (
     TYPE_CHECKING,
     Any,
     Callable,
     Literal,
-    Mapping,
     Optional,
     Protocol,
     Sequence,
@@ -52,7 +50,15 @@ class BirthDeathProblemProtocol(BirthDeathProtocol, Protocol):  # noqa: D101
 
 
 class BirthDeathMixin:
-    """Mixin for biological problems based on :class:`~moscot.base.problems.BirthDeathProblem`."""
+    """Mixin class used to estimate cell proliferation and apoptosis.
+
+    Parameters
+    ----------
+    args
+        Positional arguments.
+    kwargs
+        Keyword arguments.
+    """
 
     def __init__(self, *args: Any, **kwargs: Any):
         super().__init__(*args, **kwargs)
@@ -62,7 +68,7 @@ class BirthDeathMixin:
         self._prior_growth: Optional[ArrayLike] = None
 
     def score_genes_for_marginals(
-        self: BirthDeathProtocol,
+        self,  # type: BirthDeathProblemProtocol
         gene_set_proliferation: Optional[Union[Literal["human", "mouse"], Sequence[str]]] = None,
         gene_set_apoptosis: Optional[Union[Literal["human", "mouse"], Sequence[str]]] = None,
         proliferation_key: str = "proliferation",
@@ -71,45 +77,30 @@ class BirthDeathMixin:
     ) -> "BirthDeathMixin":
         """Compute gene scores to obtain prior knowledge about proliferation and apoptosis.
 
-        This method computes gene scores using :func:`~scanpy.tl.score_genes`. Therefore, a list of genes corresponding
-        to proliferation and/or apoptosis must be passed.
-
-        Alternatively, proliferation and apoptosis genes for humans and mice are saved in :mod:`moscot`.
-        The gene scores will be used in :meth:`~moscot.base.problems.BaseCompoundProblem.prepare` to estimate
-        the initial growth rates as suggested in :cite:`schiebinger:19`
+        The gene scores can be used in :meth:`~moscot.base.problems.BirthDeathProblem.estimate_marginals`
+        to estimate the initial growth rates as suggested in :cite:`schiebinger:19`
 
         Parameters
         ----------
         gene_set_proliferation
-            Set of marker genes for proliferation used in the birth-death process. If marker genes from :mod:`moscot`
-            are to be used the corresponding organism must be passed.
+            Set of proliferation marker genes. If a :class:`str` is passed, it should
+            correspond to the organism in :func:`~moscot.utils.data.proliferation_markers`.
         gene_set_apoptosis
-            Set of marker genes for apoptosis used in the birth-death process. If marker genes from :mod:`moscot` are
-            to be used the corresponding organism must be passed.
+            Set of apoptosis marker genes. If a :class:`str` is passed, it should
+            correspond to the organism in :func:`~moscot.utils.data.apoptosis_markers`.
         proliferation_key
-            Key in :attr:`anndata.AnnData.obs` where to add the genes scores.
+            Key in :attr:`~anndata.AnnData.obs` where to store the proliferation scores.
         apoptosis_key
-            TODO.
+            Key in :attr:`~anndata.AnnData.obs` where to store the apoptosis scores.
         kwargs
             Keyword arguments for :func:`~scanpy.tl.score_genes`.
 
         Returns
         -------
-        Returns self and updates the following:
+        Return self and update the following fields:
 
-            - :attr:`proliferation_key` - TODO: description
-            - :attr:`apoptosis_key` - TODO: description
-
-        Notes
-        -----
-        The marker genes in :mod:`moscot` are taken from the following sources:
-
-            - human, proliferation - :cite:`tirosh:16:science`.
-            - human, apoptosis - `Hallmark Apoptosis,
-              MSigDB <https://www.gsea-msigdb.org/gsea/msigdb/cards/HALLMARK_APOPTOSIS>`_.
-            - mouse, proliferation - :cite:`tirosh:16:nature`.
-            - mouse, apoptosis - `Hallmark P53 Pathway, MSigDB
-              <https://www.gsea-msigdb.org/gsea/msigdb/cards/HALLMARK_P53_PATHWAY>`_.
+        - :attr:`proliferation_key`
+        - :attr:`apoptosis_key`
         """
         if isinstance(gene_set_proliferation, str):
             gene_set_proliferation = proliferation_markers(gene_set_proliferation)  # type: ignore[arg-type]
@@ -147,7 +138,7 @@ class BirthDeathMixin:
 
     @property
     def apoptosis_key(self) -> Optional[str]:
-        """Key in :attr:`anndata.AnnData.obs` where cell apoptosis is stored."""
+        """Key in :attr:`~anndata.AnnData.obs` where cell apoptosis is stored."""
         return self._apoptosis_key
 
     @apoptosis_key.setter
@@ -158,23 +149,53 @@ class BirthDeathMixin:
 
 
 class BirthDeathProblem(BirthDeathMixin, OTProblem):
-    """Optimal transport problem which allows to estimate the marginals with a birth-death process.
+    """:term:`OT` problem used to estimate the :term:`marginals` with the
+    `birth-death process <https://en.wikipedia.org/wiki/Birth%E2%80%93death_process>`_.
 
     Parameters
     ----------
-    %(adata_x)s
-    """
+    args
+        Positional arguments for :class:`~moscot.base.problems.OTProblem`.
+    kwargs
+        Keyword arguments for :class:`~moscot.base.problems.OTProblem`.
+    """  # noqa: D205
 
     def estimate_marginals(
-        self: BirthDeathProblemProtocol,
+        self,  # type: BirthDeathProblemProtocol
         adata: AnnData,
         source: bool,
         proliferation_key: Optional[str] = None,
         apoptosis_key: Optional[str] = None,
-        marginal_kwargs: Mapping[str, Any] = MappingProxyType({}),
-        **_: Any,
+        **kwargs: Any,
     ) -> ArrayLike:
-        """TODO."""
+        """Estimate the source or target :term:`marginals` with the
+        `birth-death process <https://en.wikipedia.org/wiki/Birth%E2%80%93death_process>`_
+        as suggested in :cite:`schiebinger:19`.
+
+        See :meth:`score_genes_for_marginals` on how to compute the proliferation and apoptosis scores.
+
+        Parameters
+        ----------
+        adata
+            Annotated data object.
+        source
+            Whether to estimate the source or the target :term:`marginals`.
+        proliferation_key
+            Key in :attr:`~anndata.AnnData.obs` where proliferation scores are stored.
+        apoptosis_key
+            Key in :attr:`~anndata.AnnData.obs` where apoptosis scores are stored.
+        kwargs
+            Keyword arguments for :func:`~moscot.base.problems.birth_death.beta` and
+            :func:`~moscot.base.problems.birth_death.beta`.
+
+        Returns
+        -------
+        If ``source = True``, return source marginals and update the following fields:
+
+            - :attr:`prior_growth_rates`
+
+        Otherwise, return the estimated target marginals.
+        """  # noqa: D205
 
         def estimate(key: Optional[str], *, fn: Callable[..., ArrayLike], **kwargs: Any) -> ArrayLike:
             if key is None:
@@ -182,20 +203,23 @@ class BirthDeathProblem(BirthDeathMixin, OTProblem):
             try:
                 return fn(adata.obs[key].values.astype(float), **kwargs)
             except KeyError:
-                raise KeyError(f"Unable to fetch data from `adata.obs[{key}!r]`.") from None
+                raise KeyError(f"Unable to get data from `adata.obs[{key}!r]`.") from None
 
         if proliferation_key is None and apoptosis_key is None:
-            raise ValueError("Either `proliferation_key` or `apoptosis_key` must be specified.")
+            raise ValueError("At least one of `proliferation_key` or `apoptosis_key` must be specified.")
+
+        # TODO(michalk8): why does this need to be set?
         self.proliferation_key = proliferation_key
         self.apoptosis_key = apoptosis_key
-        if "scaling" in marginal_kwargs:
-            beta_fn = delta_fn = lambda x, *args, **kwargs: x
-            scaling = marginal_kwargs["scaling"]
+
+        if "scaling" in kwargs:
+            beta_fn = delta_fn = lambda x, *_, **__: x
+            scaling = kwargs["scaling"]
         else:
             beta_fn, delta_fn = beta, delta
             scaling = 1.0
-        birth = estimate(proliferation_key, fn=beta_fn, **marginal_kwargs)
-        death = estimate(apoptosis_key, fn=delta_fn, **marginal_kwargs)
+        birth = estimate(proliferation_key, fn=beta_fn, **kwargs)
+        death = estimate(apoptosis_key, fn=delta_fn, **kwargs)
 
         prior_growth = np.exp((birth - death) * self.delta / scaling)
 
@@ -204,9 +228,10 @@ class BirthDeathProblem(BirthDeathMixin, OTProblem):
         if source:
             self._scaling = scaling
             self._prior_growth = prior_growth
-        return normalized_growth if source else np.full(self.adata_tgt.n_obs, fill_value=np.mean(normalized_growth))
+            return normalized_growth
 
-    # TODO(michalk8): temporary fix to satisfy the mixin, consider removing the mixin
+        return np.full(self.adata_tgt.n_obs, fill_value=np.mean(normalized_growth))
+
     @property
     def adata(self) -> AnnData:
         """Annotated data object."""
@@ -214,23 +239,23 @@ class BirthDeathProblem(BirthDeathMixin, OTProblem):
 
     @property
     def prior_growth_rates(self) -> Optional[ArrayLike]:
-        """Return the prior estimate of growth rates of the cells in the source distribution."""
+        """Prior estimate of the growth rates for the source cells."""
         if self._prior_growth is None:
             return None
         return np.power(self._prior_growth, 1.0 / self.delta)
 
     @property
     def posterior_growth_rates(self) -> Optional[ArrayLike]:
-        """Return the posterior estimate of growth rates of the cells in the source distribution."""
-        if self.solution.a is None:  # type: ignore[union-attr]
+        """Posterior estimate of the growth rates for the source cells."""
+        if self.solution is None:
             return None
         if self.delta is None:
             return self.solution.a * self.adata.n_obs
-        return np.power(self.solution.a * self._scaling, 1.0 / self.delta)  # type: ignore[union-attr]
+        return np.power(self.solution.a * self._scaling, 1.0 / self.delta)
 
     @property
     def delta(self) -> float:
-        """TODO."""
+        """Time difference between the source and ."""
         if TYPE_CHECKING:
             assert isinstance(self._src_key, float)
             assert isinstance(self._tgt_key, float)

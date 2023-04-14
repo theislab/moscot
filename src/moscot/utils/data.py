@@ -37,7 +37,8 @@ def proliferation_markers(organism: Literal["human", "mouse"]) -> List[str]:
     Parameters
     ----------
     organism
-        Organism for which to select the marker genes.
+        Organism for which to select the marker genes. Human markers come from :cite:`tirosh:16:science`,
+        mouse markers come from :cite:`tirosh:16:nature`.
 
     Returns
     -------
@@ -57,7 +58,10 @@ def apoptosis_markers(organism: Literal["human", "mouse"]) -> List[str]:
     Parameters
     ----------
     organism
-        Organism for which to select the marker genes.
+        Organism for which to select the marker genes. Human markers come from
+        `Hallmark Apoptosis, MSigDB <https://www.gsea-msigdb.org/gsea/msigdb/cards/HALLMARK_APOPTOSIS>`_,
+        mouse markers come from
+        `Hallmark P53 Pathway, MSigDB <https://www.gsea-msigdb.org/gsea/msigdb/cards/HALLMARK_P53_PATHWAY>`_.
 
     Returns
     -------

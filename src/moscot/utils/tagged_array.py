@@ -16,7 +16,7 @@ __all__ = ["Tag", "TaggedArray"]
 
 @enum.unique
 class Tag(str, enum.Enum):
-    """Tag used to interpret array-like data in a class:`TaggedArray`."""
+    """Tag in the :class:`~moscot.utils.tagged_array.TaggedArray`."""
 
     COST_MATRIX = "cost_matrix"  #: Cost matrix.
     KERNEL = "kernel"  #: Kernel matrix.

@@ -30,3 +30,7 @@ Glossary
 
     barcode
         TODO.
+
+    marginals
+
+        TODO.
