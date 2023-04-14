@@ -21,8 +21,8 @@ Costs
 .. autosummary::
     :toctree: genapi
 
-    costs.LeafDistance
     costs.BarcodeDistance
+    costs.LeafDistance
     costs.get_cost
     costs.get_available_costs
     costs.register_cost

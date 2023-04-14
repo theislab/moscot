@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import Any, Tuple, Union
+from typing import Any, Optional, Tuple, Union
 
 import numpy as np
 
@@ -12,7 +12,7 @@ __all__ = ["BaseCost"]
 
 
 class BaseCost(ABC):
-    """Base class for all :mod:`moscot.costs`.
+    """Base class for :mod:`moscot.costs`.
 
     Parameters
     ----------
@@ -24,9 +24,10 @@ class BaseCost(ABC):
         Key in the attribute of :class:`~anndata.AnnData`.
     dist_key
         Key which determines into which source/target subset ``adata`` belongs.
+        Useful when :attr:`attr = 'uns' <anndata.AnnData.uns>`.
     """
 
-    def __init__(self, adata: AnnData, attr: str, key: str, dist_key: Union[Any, Tuple[Any, Any]]):
+    def __init__(self, adata: AnnData, attr: str, key: str, dist_key: Optional[Union[Any, Tuple[Any, Any]]] = None):
         self._adata = adata
         self._attr = attr
         self._key = key
@@ -37,7 +38,7 @@ class BaseCost(ABC):
         pass
 
     def __call__(self, *args: Any, **kwargs: Any) -> ArrayLike:
-        """Compute a cost matrix from :attr:`adata`.
+        """Compute the cost matrix.
 
         Parameters
         ----------
@@ -48,24 +49,21 @@ class BaseCost(ABC):
 
         Returns
         -------
-        The computed cost matrix.
+        The cost matrix.
         """
         cost = self._compute(*args, **kwargs)
         if np.any(np.isnan(cost)):
             maxx = np.nanmax(cost)
-            logger.warning(f"Cost matrix contains `NaN` values, setting them to the maximum value `{maxx}`.")
+            logger.warning(
+                f"Cost matrix contains `{np.sum(np.isnan(cost))}` NaN values, "
+                f"setting them to the maximum value `{maxx}`."
+            )
             cost = np.nan_to_num(cost, nan=maxx)  # type: ignore[call-overload]
         if np.any(cost < 0):
-            raise ValueError("Cost matrix contains negative values.")
+            raise ValueError(f"Cost matrix contains `{np.sum(cost < 0)}` negative values.")
         return cost
 
     @property
     def adata(self) -> AnnData:
         """Annotated data object."""
         return self._adata
-
-    # TODO(michalk8): don't require impl.
-    @property
-    @abstractmethod
-    def data(self) -> Any:
-        """Container containing the data."""
