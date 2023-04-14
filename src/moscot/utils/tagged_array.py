@@ -100,7 +100,7 @@ class TaggedArray:
         backend
             Which backend to use, see :func:`~moscot.backends.utils.get_available_backends`.
         kwargs
-            Keyword arguments for :class:`~moscot.base.cost.BaseCost`.
+            Keyword arguments for :class:`~moscot.base.cost.BaseCost` or any backend-specific cost.
 
         Returns
         -------
@@ -112,12 +112,13 @@ class TaggedArray:
         """
         if tag == Tag.COST_MATRIX:
             if cost == "custom":  # our custom cost functions
+                modifier = f"adata.{attr}" if key is None else f"adata.{attr}[{key!r}]"
                 data = cls._extract_data(adata, attr=attr, key=key)
                 if np.any(data < 0):
-                    raise ValueError("Cost matrix contains negative values.")
+                    raise ValueError(f"Cost matrix in `{modifier}` contains negative values.")
                 return cls(data_src=data, tag=Tag.COST_MATRIX, cost=None)
 
-            cost_fn = get_cost(cost, adata=adata, attr=attr, key=key, dist_key=dist_key)
+            cost_fn = get_cost(cost, backend="moscot", adata=adata, attr=attr, key=key, dist_key=dist_key)
             cost_matrix = cost_fn(**kwargs)
             return cls(data_src=cost_matrix, tag=Tag.COST_MATRIX, cost=None)
 
