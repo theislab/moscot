@@ -184,7 +184,7 @@ def tedsim(
     - :attr:`anndata.AnnData.obsm` ``['barcodes']``: barcodes.
     - :attr:`anndata.AnnData.obsp` ``['cost_matrices']``: pre-computed lineage cost matrices.
     - :attr:`anndata.AnnData.uns` ``['tree']``: lineage tree in the
-      `Newick <https://en.wikipedia.org/wiki/Newick_format>`_ format.
+      `Newick format <https://en.wikipedia.org/wiki/Newick_format>`_.
     - :attr:`anndata.AnnData.uns` ``['couplings']``: coupling matrix, based on ground-truth lineage tree.
 
 
