@@ -177,12 +177,15 @@ def tedsim(
 ) -> AnnData:  # pragma: no cover
     """Dataset simulated with TedSim :cite:`pan:22`.
 
-    The data was simulated with asymmetric division rate of `0.2` and intermediate state step size of `0.2` and contains
-    the following fields:
+    Simulated scRNA-seq dataset of a differentiation trajectory. For each cell, the dataset includes a (raw-counts)
+    gene expression vector as well as a lineage barcode. The data was simulated with asymmetric division rate of `0.2`
+    and intermediate state step size of `0.2` and contains the following fields:
 
     - :attr:`anndata.AnnData.obsm` ``['barcodes']``: barcodes.
-    - :attr:`anndata.AnnData.obsp` ``['barcodes_cost']``: pre-computed barcode distances.
+    - :attr:`anndata.AnnData.obsp` ``['cost_matrices']``: pre-computed lineage cost matrices.
     - :attr:`anndata.AnnData.uns` ``['tree']``: lineage tree in the Newick format.
+    - :attr:`anndata.AnnData.uns` ``['couplings']``: coupling matrix, based on ground-truth lineage tree.
+
 
     Parameters
     ----------
@@ -196,7 +199,7 @@ def tedsim(
     Annotated data object.
     """
     return _load_dataset_from_url(
-        path, backup_url="https://figshare.com/ndownloader/files/38031258", expected_shape=(16382, 500), **kwargs
+        path, backup_url="https://figshare.com/ndownloader/files/40178644", expected_shape=(8448, 500), **kwargs
     )
 
 
