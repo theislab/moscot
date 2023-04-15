@@ -177,13 +177,14 @@ def tedsim(
 ) -> AnnData:  # pragma: no cover
     """Dataset simulated with TedSim :cite:`pan:22`.
 
-    Simulated scRNA-seq dataset of a differentiation trajectory. For each cell, the dataset includes a (raw-counts)
-    gene expression vector as well as a lineage barcode. The data was simulated with asymmetric division rate of `0.2`
-    and intermediate state step size of `0.2` and contains the following fields:
+    Simulated scRNA-seq dataset of a differentiation trajectory. For each cell, the dataset includes a (raw counts)
+    gene expression vector as well as a lineage barcodes. The data was simulated with asymmetric division rate of `0.2`,
+    intermediate state step size of `0.2` and contains the following fields:
 
     - :attr:`anndata.AnnData.obsm` ``['barcodes']``: barcodes.
     - :attr:`anndata.AnnData.obsp` ``['cost_matrices']``: pre-computed lineage cost matrices.
-    - :attr:`anndata.AnnData.uns` ``['tree']``: lineage tree in the Newick format.
+    - :attr:`anndata.AnnData.uns` ``['tree']``: lineage tree in the
+      `Newick <https://en.wikipedia.org/wiki/Newick_format>`_ format.
     - :attr:`anndata.AnnData.uns` ``['couplings']``: coupling matrix, based on ground-truth lineage tree.
 
 
