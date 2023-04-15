@@ -177,12 +177,16 @@ def tedsim(
 ) -> AnnData:  # pragma: no cover
     """Dataset simulated with TedSim :cite:`pan:22`.
 
-    The data was simulated with asymmetric division rate of `0.2` and intermediate state step size of `0.2` and contains
-    the following fields:
+    Simulated scRNA-seq dataset of a differentiation trajectory. For each cell, the dataset includes a (raw counts)
+    gene expression vector as well as a lineage barcodes. The data was simulated with asymmetric division rate of
+    :math:`0.2`, intermediate state step size of :math:`0.2` and contains the following fields:
 
-    - :attr:`anndata.AnnData.obsm` ``['barcodes']``: barcodes.
-    - :attr:`anndata.AnnData.obsp` ``['barcodes_cost']``: pre-computed barcode distances.
-    - :attr:`anndata.AnnData.uns` ``['tree']``: lineage tree in the Newick format.
+    - :attr:`obsm['barcodes'] <anndata.AnnData.obsm>` - barcodes.
+    - :attr:`obsp['cost_matrices'] <anndata.AnnData.obsp>` - precomputed lineage cost matrices.
+    - :attr:`uns['tree'] <anndata.AnnData.uns>` - lineage tree in the
+      `Newick format <https://en.wikipedia.org/wiki/Newick_format>`_.
+    - :attr:`uns['couplings' ] <anndata.AnnData.uns>` - coupling matrix based on the ground-truth lineage tree.
+
 
     Parameters
     ----------
@@ -196,7 +200,7 @@ def tedsim(
     Annotated data object.
     """
     return _load_dataset_from_url(
-        path, backup_url="https://figshare.com/ndownloader/files/38031258", expected_shape=(16382, 500), **kwargs
+        path, backup_url="https://figshare.com/ndownloader/files/40178644", expected_shape=(8448, 500), **kwargs
     )
 
 
