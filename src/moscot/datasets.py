@@ -197,7 +197,7 @@ def bone_marrow(
     path
         Path where to save the file.
     rna
-        Returns the RNA data if `True`, otherwise returns ATAC data.
+        Return the RNA data if `True`, otherwise return ATAC data.
     kwargs
         Keyword arguments for :func:`scanpy.read`.
 
@@ -205,12 +205,19 @@ def bone_marrow(
     -------
     Annotated data object.
     """
+    path, _ = os.path.splitext(path)
     if rna:
         return _load_dataset_from_url(
-            path, backup_url="https://figshare.com/ndownloader/files/40046950", expected_shape=(6224, 2000), **kwargs
+            path + "_rna.h5ad",
+            backup_url="https://figshare.com/ndownloader/files/40046950",
+            expected_shape=(6224, 2000),
+            **kwargs,
         )
     return _load_dataset_from_url(
-        path, backup_url="https://figshare.com/ndownloader/files/40047034", expected_shape=(6224, 8000), **kwargs
+        path + "_atac.h5ad",
+        backup_url="https://figshare.com/ndownloader/files/40047034",
+        expected_shape=(6224, 8000),
+        **kwargs,
     )
 
 
