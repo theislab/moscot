@@ -1,3 +1,4 @@
+import types
 from abc import ABC, abstractmethod
 from typing import (
     TYPE_CHECKING,
@@ -23,7 +24,7 @@ from moscot import backends
 from moscot._docs._docs import d
 from moscot._logging import logger
 from moscot._types import ArrayLike, CostFn_t, Device_t, ProblemKind_t, ProblemStage_t
-from moscot.base.output import BaseSolverOutput
+from moscot.base.output import BaseSolverOutput, MatrixSolverOutput
 from moscot.base.problems._utils import require_solution, wrap_prepare, wrap_solve
 from moscot.base.solver import OTSolver
 from moscot.utils.tagged_array import Tag, TaggedArray
@@ -212,9 +213,9 @@ class OTProblem(BaseProblem):
     @wrap_prepare
     def prepare(
         self,
-        xy: Optional[Union[Mapping[str, Any], TaggedArray]] = None,
-        x: Optional[Union[Mapping[str, Any], TaggedArray]] = None,
-        y: Optional[Union[Mapping[str, Any], TaggedArray]] = None,
+        xy: Union[Mapping[str, Any], TaggedArray] = types.MappingProxyType({}),
+        x: Union[Mapping[str, Any], TaggedArray] = types.MappingProxyType({}),
+        y: Union[Mapping[str, Any], TaggedArray] = types.MappingProxyType({}),
         a: Optional[Union[bool, str, ArrayLike]] = None,
         b: Optional[Union[bool, str, ArrayLike]] = None,
         **kwargs: Any,
@@ -223,20 +224,20 @@ class OTProblem(BaseProblem):
 
         Depending on which arguments are passed:
 
-        - if only ``xy`` is passed, :attr:`problem_kind` will be ``'linear'``.
-        - if only ``x`` and ``y`` are passed, :attr:`problem_kind` will be ``'quadratic'``.
-        - if all ``xy``, ``x`` and ``y`` are passed, :attr:`problem_kind` will be ``'quadratic'``.
+        - if only ``xy`` is non-empty, :attr:`problem_kind` will be ``'linear'``.
+        - if only ``x`` and ``y`` are non-empty, :attr:`problem_kind` will be ``'quadratic'``.
+        - if all ``xy``, ``x`` and ``y`` are non-empty, :attr:`problem_kind` will be ``'quadratic'``.
 
         Parameters
         ----------
         xy
-            Geometry defining the linear term. If passed as a :class:`dict`,
+            Geometry defining the linear term. If a non-empty :class:`dict`,
             :meth:`~moscot.utils.tagged_array.TaggedArray.from_adata` will be called.
         x
-            First geometry defining the quadratic term. If passed as a :class:`dict`,
+            First geometry defining the quadratic term. If a non-empty :class:`dict`,
             :meth:`~moscot.utils.tagged_array.TaggedArray.from_adata` will be called.
         y
-            Second geometry defining the quadratic term. If passed as a :class:`dict`,
+            Second geometry defining the quadratic term. If a non-empty :class:`dict`,
             :meth:`~moscot.utils.tagged_array.TaggedArray.from_adata` will be called.
         a
             Source marginals. Valid value are:
@@ -270,10 +271,10 @@ class OTProblem(BaseProblem):
         self._x = self._y = self._xy = self._solution = None
         # TODO(michalk8): in the future, have a better dispatch
         # fmt: off
-        if xy is not None and x is None and y is None:
+        if xy and not x and not y:
             self._problem_kind = "linear"
             self._xy = xy if isinstance(xy, TaggedArray) else self._handle_linear(**xy)
-        elif x is not None and y is not None and xy is None:
+        elif x and y and not xy:
             self._problem_kind = "quadratic"
             if isinstance(x, TaggedArray):
                 self._x = x
@@ -283,7 +284,7 @@ class OTProblem(BaseProblem):
                 self._y = y
             else:
                 self._y = TaggedArray.from_adata(self.adata_tgt, dist_key=self._tgt_key, **y)
-        elif xy is not None and x is not None and y is not None:
+        elif xy and x and y:
             self._problem_kind = "quadratic"
             self._xy = xy if isinstance(xy, TaggedArray) else self._handle_linear(**xy)
             if isinstance(x, TaggedArray):
@@ -422,6 +423,42 @@ class OTProblem(BaseProblem):
             assert isinstance(self.solution, BaseSolverOutput)
         data = self._get_mass(self.adata_tgt, data=data, subset=subset, normalize=normalize, split_mass=split_mass)
         return self.solution.pull(data, **kwargs)
+
+    def set_solution(
+        self, solution: Union[ArrayLike, pd.DataFrame, BaseSolverOutput], *, overwrite: bool = False, **kwargs: Any
+    ) -> "OTProblem":
+        """Set the :attr:`solution`.
+
+        Parameters
+        ----------
+        solution
+            Solution for this problem. If a :class:`~pandas.DataFrame` is passed, its index and columns
+            must match the indexes of :attr:`adata_src` and :attr:`adata_tgt`, respectively.
+        overwrite
+            Whether to overwrite an existing solution.
+        kwargs
+            Keyword arguments for :class:`~moscot.base.output.MatrixSolverOutput`.
+
+        Returns
+        -------
+        Set :attr:`solution` and return self.
+        """
+        if not overwrite and self.solution is not None:
+            raise ValueError(f"`{self}` already contains a solution, use `overwrite=True` to overwrite it.")
+
+        if isinstance(solution, pd.DataFrame):
+            pd.testing.assert_series_equal(self.adata_src.obs_names.to_series(), solution.index.to_series())
+            pd.testing.assert_series_equal(self.adata_tgt.obs_names.to_series(), solution.columns.to_series())
+            solution = solution.to_numpy()
+        if not isinstance(solution, BaseSolverOutput):
+            solution = MatrixSolverOutput(solution, **kwargs)
+
+        if solution.shape != self.shape:
+            raise ValueError(f"Expected solution to have shape `{self.shape}`, found `{solution.shape}`.")
+
+        self._stage = "solved"
+        self._solution = solution
+        return self
 
     @staticmethod
     def _local_pca_callback(

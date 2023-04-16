@@ -22,8 +22,7 @@ __all__ = [
     "zebrafish",
     "sim_align",
     "simulate_data",
-    "bone_marrow_rna",
-    "bone_marrow_atac",
+    "bone_marrow",
 ]
 
 
@@ -152,56 +151,6 @@ def c_elegans(
     return adata, tree
 
 
-def bone_marrow_rna(
-    path: PathLike = "~/.cache/moscot/bone_marrow_rna.h5ad",
-    **kwargs: Any,
-) -> AnnData:
-    """RNA data from multiome bone marrow measurements :cite:`luecken:21`.
-
-    Contains processed RNA counts of 6,224 cells and filtered to 2,000 top
-    highly variable genes.
-
-    Parameters
-    ----------
-    path
-        Path where to save the file.
-    kwargs
-        Keyword arguments for :func:`scanpy.read`.
-
-    Returns
-    -------
-    Annotated data object.
-    """
-    return _load_dataset_from_url(
-        path, backup_url="https://figshare.com/ndownloader/files/40046950", expected_shape=(6224, 2000), **kwargs
-    )
-
-
-def bone_marrow_atac(
-    path: PathLike = "~/.cache/moscot/bone_marrow_atac.h5ad",
-    **kwargs: Any,
-) -> AnnData:
-    """ATAC data from multiome bone marrow measurements :cite:`luecken:21`.
-
-    Contains processed ATAC counts of 6,224 cells and filtered to 8,000 top
-    highly variable peaks.
-
-    Parameters
-    ----------
-    path
-        Path where to save the file.
-    kwargs
-        Keyword arguments for :func:`scanpy.read`.
-
-    Returns
-    -------
-    Annotated data object.
-    """
-    return _load_dataset_from_url(
-        path, backup_url="https://figshare.com/ndownloader/files/40047034", expected_shape=(6224, 8000), **kwargs
-    )
-
-
 def zebrafish(
     path: PathLike = "~/.cache/moscot/zebrafish.h5ad",
     **kwargs: Any,
@@ -231,18 +180,56 @@ def zebrafish(
     return adata, trees
 
 
+def bone_marrow(
+    path: PathLike = "~/.cache/moscot/bone_marrow.h5ad",
+    *,
+    rna: bool,
+    **kwargs: Any,
+) -> AnnData:
+    """Multiome data of bone marrow measurements :cite:`luecken:21`.
+
+    Contains processed counts of 6,224 cells. The RNA data was filtered to 2,000 top
+    highly variable genes, the ATAC data was filtered to 8,000 top highly variable
+    peaks.
+
+    Parameters
+    ----------
+    path
+        Path where to save the file.
+    rna
+        Returns the RNA data if `True`, otherwise returns ATAC data.
+    kwargs
+        Keyword arguments for :func:`scanpy.read`.
+
+    Returns
+    -------
+    Annotated data object.
+    """
+    if rna:
+        return _load_dataset_from_url(
+            path, backup_url="https://figshare.com/ndownloader/files/40046950", expected_shape=(6224, 2000), **kwargs
+        )
+    return _load_dataset_from_url(
+        path, backup_url="https://figshare.com/ndownloader/files/40047034", expected_shape=(6224, 8000), **kwargs
+    )
+
+
 def tedsim(
     path: PathLike = "~/.cache/moscot/tedsim.h5ad",
     **kwargs: Any,
 ) -> AnnData:  # pragma: no cover
     """Dataset simulated with TedSim :cite:`pan:22`.
 
-    The data was simulated with asymmetric division rate of `0.2` and intermediate state step size of `0.2` and contains
-    the following fields:
+    Simulated scRNA-seq dataset of a differentiation trajectory. For each cell, the dataset includes a (raw counts)
+    gene expression vector as well as a lineage barcodes. The data was simulated with asymmetric division rate of
+    :math:`0.2`, intermediate state step size of :math:`0.2` and contains the following fields:
 
-    - :attr:`anndata.AnnData.obsm` ``['barcodes']``: barcodes.
-    - :attr:`anndata.AnnData.obsp` ``['barcodes_cost']``: pre-computed barcode distances.
-    - :attr:`anndata.AnnData.uns` ``['tree']``: lineage tree in the Newick format.
+    - :attr:`obsm['barcodes'] <anndata.AnnData.obsm>` - barcodes.
+    - :attr:`obsp['cost_matrices'] <anndata.AnnData.obsp>` - precomputed lineage cost matrices.
+    - :attr:`uns['tree'] <anndata.AnnData.uns>` - lineage tree in the
+      `Newick format <https://en.wikipedia.org/wiki/Newick_format>`_.
+    - :attr:`uns['couplings' ] <anndata.AnnData.uns>` - coupling matrix based on the ground-truth lineage tree.
+
 
     Parameters
     ----------
@@ -256,7 +243,7 @@ def tedsim(
     Annotated data object.
     """
     return _load_dataset_from_url(
-        path, backup_url="https://figshare.com/ndownloader/files/38031258", expected_shape=(16382, 500), **kwargs
+        path, backup_url="https://figshare.com/ndownloader/files/40178644", expected_shape=(8448, 500), **kwargs
     )
 
 

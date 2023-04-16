@@ -1,4 +1,4 @@
-from types import MappingProxyType
+import types
 from typing import Any, Literal, Mapping, Optional, Tuple, Type, Union
 
 from anndata import AnnData
@@ -7,6 +7,7 @@ from moscot import _constants
 from moscot._docs._docs import d
 from moscot._types import (
     Numeric_t,
+    OttCostFnMap_t,
     Policy_t,
     ProblemStage_t,
     QuadInitializer_t,
@@ -49,13 +50,11 @@ class SpatioTemporalProblem(
         spatial_key: str = "spatial",
         joint_attr: Optional[Union[str, Mapping[str, Any]]] = None,
         policy: Literal["sequential", "tril", "triu", "explicit"] = "sequential",
-        cost: Union[
-            Literal["sq_euclidean", "cosine", "bures", "unbalanced_bures"],
-            Mapping[str, Literal["sq_euclidean", "cosine", "bures", "unbalanced_bures"]],
-        ] = "sq_euclidean",
+        cost: OttCostFnMap_t = "sq_euclidean",
+        cost_kwargs: Union[Mapping[str, Any], Mapping[str, Mapping[str, Any]]] = types.MappingProxyType({}),
         a: Optional[str] = None,
         b: Optional[str] = None,
-        marginal_kwargs: Mapping[str, Any] = MappingProxyType({}),
+        marginal_kwargs: Mapping[str, Any] = types.MappingProxyType({}),
         **kwargs: Any,
     ) -> "SpatioTemporalProblem":
         """Prepare the problem.
@@ -70,6 +69,7 @@ class SpatioTemporalProblem(
         %(joint_attr)s
         %(policy)s
         %(cost)s
+        %(cost_kwargs)s
         %(a)s
         %(b)s
         %(kwargs_prepare)s
@@ -105,6 +105,7 @@ class SpatioTemporalProblem(
             policy=policy,
             reference=None,
             cost=cost,
+            cost_kwargs=cost_kwargs,
             a=a,
             b=b,
             marginal_kwargs=marginal_kwargs,
@@ -123,12 +124,12 @@ class SpatioTemporalProblem(
         batch_size: Optional[int] = None,
         stage: Union[ProblemStage_t, Tuple[ProblemStage_t, ...]] = ("prepared", "solved"),
         initializer: QuadInitializer_t = None,
-        initializer_kwargs: Mapping[str, Any] = MappingProxyType({}),
+        initializer_kwargs: Mapping[str, Any] = types.MappingProxyType({}),
         jit: bool = True,
         min_iterations: int = 5,
         max_iterations: int = 50,
         threshold: float = 1e-3,
-        linear_solver_kwargs: Mapping[str, Any] = MappingProxyType({}),
+        linear_solver_kwargs: Mapping[str, Any] = types.MappingProxyType({}),
         device: Optional[Literal["cpu", "gpu", "tpu"]] = None,
         **kwargs: Any,
     ) -> "SpatioTemporalProblem":
