@@ -14,7 +14,16 @@ from scanpy import read
 
 from moscot._types import PathLike
 
-__all__ = ["mosta", "hspc", "drosophila", "c_elegans", "zebrafish", "sim_align", "simulate_data"]
+__all__ = [
+    "mosta",
+    "hspc",
+    "drosophila",
+    "c_elegans",
+    "zebrafish",
+    "sim_align",
+    "simulate_data",
+    "bone_marrow",
+]
 
 
 def mosta(
@@ -169,6 +178,47 @@ def zebrafish(
         trees = pickle.load(fin)
 
     return adata, trees
+
+
+def bone_marrow(
+    path: PathLike = "~/.cache/moscot/bone_marrow.h5ad",
+    *,
+    rna: bool,
+    **kwargs: Any,
+) -> AnnData:
+    """Multiome data of bone marrow measurements :cite:`luecken:21`.
+
+    Contains processed counts of 6,224 cells. The RNA data was filtered to 2,000 top
+    highly variable genes, the ATAC data was filtered to 8,000 top highly variable
+    peaks.
+
+    Parameters
+    ----------
+    path
+        Path where to save the file.
+    rna
+        Return the RNA data if `True`, otherwise return ATAC data.
+    kwargs
+        Keyword arguments for :func:`scanpy.read`.
+
+    Returns
+    -------
+    Annotated data object.
+    """
+    path, _ = os.path.splitext(path)
+    if rna:
+        return _load_dataset_from_url(
+            path + "_rna.h5ad",
+            backup_url="https://figshare.com/ndownloader/files/40046950",
+            expected_shape=(6224, 2000),
+            **kwargs,
+        )
+    return _load_dataset_from_url(
+        path + "_atac.h5ad",
+        backup_url="https://figshare.com/ndownloader/files/40047034",
+        expected_shape=(6224, 8000),
+        **kwargs,
+    )
 
 
 def tedsim(
