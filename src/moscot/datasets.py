@@ -1,5 +1,9 @@
+import contextlib
 import os
+import pathlib
 import pickle
+import shutil
+import tempfile
 import urllib.request
 import warnings
 from types import MappingProxyType
@@ -28,6 +32,7 @@ __all__ = [
 
 def mosta(
     path: PathLike = "~/.cache/moscot/mosta.h5ad",
+    force_download: bool = False,
     **kwargs: Any,
 ) -> AnnData:  # pragma: no cover
     """Preprocessed and extracted data as provided in :cite:`chen:22`.
@@ -41,6 +46,8 @@ def mosta(
     ----------
     path
         Path where to save the file.
+    force_download
+        Whether to force-download the data.
     kwargs
         Keyword arguments for :func:`scanpy.read`.
 
@@ -49,12 +56,17 @@ def mosta(
     Annotated data object.
     """
     return _load_dataset_from_url(
-        path, backup_url="https://figshare.com/ndownloader/files/37953852", expected_shape=(54134, 2000), **kwargs
+        path,
+        backup_url="https://figshare.com/ndownloader/files/37953852",
+        expected_shape=(54134, 2000),
+        force_download=force_download,
+        **kwargs,
     )
 
 
 def hspc(
     path: PathLike = "~/.cache/moscot/hspc.h5ad",
+    force_download: bool = False,
     **kwargs: Any,
 ) -> AnnData:  # pragma: no cover
     """CD34+ hematopoietic stem and progenitor cells from 4 healthy human donors.
@@ -70,6 +82,8 @@ def hspc(
     ----------
     path
         Path where to save the file.
+    force_download
+        Whether to force-download the data.
     kwargs
         Keyword arguments for :func:`scanpy.read`.
 
@@ -78,7 +92,11 @@ def hspc(
     Annotated data object.
     """
     return _load_dataset_from_url(
-        path, backup_url="https://figshare.com/ndownloader/files/37993503", expected_shape=(4000, 2000), **kwargs
+        path,
+        backup_url="https://figshare.com/ndownloader/files/37993503",
+        expected_shape=(4000, 2000),
+        force_download=force_download,
+        **kwargs,
     )
 
 
@@ -86,6 +104,7 @@ def drosophila(
     path: PathLike = "~/.cache/moscot/drosophila.h5ad",
     *,
     spatial: bool,
+    force_download: bool = False,
     **kwargs: Any,
 ) -> AnnData:
     """Embryo of Drosophila melanogaster described in :cite:`Li-spatial:22`.
@@ -98,6 +117,8 @@ def drosophila(
         Path where to save the file.
     spatial
         Whether to return the spatial or the scRNA-seq dataset.
+    force_download
+        Whether to force-download the data.
     kwargs
         Keyword arguments for :func:`scanpy.read`.
 
@@ -111,6 +132,7 @@ def drosophila(
             path + "_sp.h5ad",
             backup_url="https://figshare.com/ndownloader/files/37984935",
             expected_shape=(3039, 82),
+            force_download=force_download,
             **kwargs,
         )
 
@@ -118,12 +140,14 @@ def drosophila(
         path + "_sc.h5ad",
         backup_url="https://figshare.com/ndownloader/files/37984938",
         expected_shape=(1297, 2000),
+        force_download=force_download,
         **kwargs,
     )
 
 
 def c_elegans(
     path: PathLike = "~/.cache/moscot/c_elegans.h5ad",
+    force_download: bool = False,
     **kwargs: Any,
 ) -> Tuple[AnnData, nx.DiGraph]:  # pragma: no cover
     """scRNA-seq time-series dataset of C.elegans embryogenesis :cite:`packer:19`.
@@ -135,6 +159,8 @@ def c_elegans(
     ----------
     path
         Path where to save the file.
+    force_download
+        Whether to force-download the data.
     kwargs
         Keyword arguments for :func:`scanpy.read`.
 
@@ -143,8 +169,13 @@ def c_elegans(
     Annotated data object and the lineage tree.
     """
     adata = _load_dataset_from_url(
-        path, backup_url="https://figshare.com/ndownloader/files/39943585", expected_shape=(46151, 20222), **kwargs
+        path,
+        backup_url="https://figshare.com/ndownloader/files/39943585",
+        expected_shape=(46151, 20222),
+        force_download=force_download,
+        **kwargs,
     )
+    # TODO(michalk8): also cache or store in AnnData ad Newick + reconstruct?
     with urllib.request.urlopen("https://figshare.com/ndownloader/files/39943603") as fin:
         tree = pickle.load(fin)
 
@@ -153,6 +184,7 @@ def c_elegans(
 
 def zebrafish(
     path: PathLike = "~/.cache/moscot/zebrafish.h5ad",
+    force_download: bool = False,
     **kwargs: Any,
 ) -> Tuple[AnnData, Dict[str, nx.DiGraph]]:
     """Lineage-traced scRNA-seq time-series dataset of Zebrafish heart regeneration :cite:`hu:22`.
@@ -164,6 +196,8 @@ def zebrafish(
     ----------
     path
         Path where to save the file.
+    force_download
+        Whether to force-download the data.
     kwargs
         Keyword arguments for :func:`scanpy.read`.
 
@@ -172,8 +206,13 @@ def zebrafish(
     Annotated data object and the lineage trees.
     """
     adata = _load_dataset_from_url(
-        path, backup_url="https://figshare.com/ndownloader/files/39951073", expected_shape=(44014, 31466), **kwargs
+        path,
+        backup_url="https://figshare.com/ndownloader/files/39951073",
+        expected_shape=(44014, 31466),
+        force_download=force_download,
+        **kwargs,
     )
+    # TODO(michalk8): also cache or store in AnnData ad Newick + reconstruct?
     with urllib.request.urlopen("https://figshare.com/ndownloader/files/39951076") as fin:
         trees = pickle.load(fin)
 
@@ -184,6 +223,7 @@ def bone_marrow(
     path: PathLike = "~/.cache/moscot/bone_marrow.h5ad",
     *,
     rna: bool,
+    force_download: bool = False,
     **kwargs: Any,
 ) -> AnnData:
     """Multiome data of bone marrow measurements :cite:`luecken:21`.
@@ -198,6 +238,8 @@ def bone_marrow(
         Path where to save the file.
     rna
         Return the RNA data if `True`, otherwise return ATAC data.
+    force_download
+        Whether to force-download the data.
     kwargs
         Keyword arguments for :func:`scanpy.read`.
 
@@ -209,20 +251,23 @@ def bone_marrow(
     if rna:
         return _load_dataset_from_url(
             path + "_rna.h5ad",
-            backup_url="https://figshare.com/ndownloader/files/40046950",
+            backup_url="https://figshare.com/ndownloader/files/40195114",
             expected_shape=(6224, 2000),
+            force_download=force_download,
             **kwargs,
         )
     return _load_dataset_from_url(
         path + "_atac.h5ad",
-        backup_url="https://figshare.com/ndownloader/files/40047034",
+        backup_url="https://figshare.com/ndownloader/files/40195102",
         expected_shape=(6224, 8000),
+        force_download=force_download,
         **kwargs,
     )
 
 
 def tedsim(
     path: PathLike = "~/.cache/moscot/tedsim.h5ad",
+    force_download: bool = False,
     **kwargs: Any,
 ) -> AnnData:  # pragma: no cover
     """Dataset simulated with TedSim :cite:`pan:22`.
@@ -241,6 +286,8 @@ def tedsim(
     ----------
     path
         Path where to save the file.
+    force_download
+        Whether to force-download the data.
     kwargs
         Keyword arguments for :func:`scanpy.read`.
 
@@ -249,12 +296,17 @@ def tedsim(
     Annotated data object.
     """
     return _load_dataset_from_url(
-        path, backup_url="https://figshare.com/ndownloader/files/40178644", expected_shape=(8448, 500), **kwargs
+        path,
+        backup_url="https://figshare.com/ndownloader/files/40178644",
+        expected_shape=(8448, 500),
+        force_download=force_download,
+        **kwargs,
     )
 
 
 def sim_align(
     path: PathLike = "~/.cache/moscot/sim_align.h5ad",
+    force_download: bool = False,
     **kwargs: Any,
 ) -> AnnData:  # pragma: no cover
     """Spatial transcriptomics simulated dataset as described in :cite:`Jones-spatial:22`.
@@ -263,6 +315,8 @@ def sim_align(
     ----------
     path
         Location where the file is saved to.
+    force_download
+        Whether to force-download the data.
     kwargs
         Keyword arguments for :func:`scanpy.read`.
 
@@ -271,7 +325,11 @@ def sim_align(
     Annotated data object.
     """
     return _load_dataset_from_url(
-        path, backup_url="https://figshare.com/ndownloader/files/37984926", expected_shape=(1200, 500), **kwargs
+        path,
+        backup_url="https://figshare.com/ndownloader/files/37984926",
+        expected_shape=(1200, 500),
+        force_download=force_download,
+        **kwargs,
     )
 
 
@@ -289,8 +347,7 @@ def simulate_data(
     quad_cost_matrix: Optional[str] = None,
     **kwargs: Any,
 ) -> AnnData:
-    """
-    Simulate data.
+    """Simulate data.
 
     This function is used to generate data, mainly for the purpose of
     demonstrating certain functionalities of :mod:`moscot`.
@@ -380,16 +437,25 @@ def _load_dataset_from_url(
     *,
     backup_url: str,
     expected_shape: Tuple[int, int],
+    force_download: bool = False,
     sparse: bool = True,
     cache: bool = True,
     **kwargs: Any,
 ) -> AnnData:
-    fpath = str(fpath)
+    fpath = os.path.expanduser(fpath)
     if not fpath.endswith(".h5ad"):
         fpath += ".h5ad"
-    fpath = os.path.expanduser(fpath)
 
-    adata = read(filename=fpath, backup_url=backup_url, sparse=sparse, cache=cache, **kwargs)
+    if force_download:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tmp = pathlib.Path(tmpdir) / "data.h5ad"
+            adata = read(filename=tmp, backup_url=backup_url, sparse=sparse, cache=cache, **kwargs)
+            with contextlib.suppress(FileNotFoundError):
+                os.remove(fpath)
+            shutil.move(tmp, fpath)
+    else:
+        adata = read(filename=fpath, backup_url=backup_url, sparse=sparse, cache=cache, **kwargs)
+
     if adata.shape != expected_shape:
         raise ValueError(f"Expected `AnnData` object to have shape `{expected_shape}`, found `{adata.shape}`.")
 
