@@ -5,6 +5,7 @@ import numpy as np
 
 from anndata import AnnData
 
+from moscot._logging import logger
 from moscot._types import ArrayLike
 from moscot.base.cost import BaseCost
 from moscot.costs._utils import register_cost
@@ -38,8 +39,10 @@ class BarcodeDistance(BaseCost):
         *_: Any,
         **__: Any,
     ) -> ArrayLike:
-        # TODO(michalk8): use numba
+        logger.info("Computing barcode distance")
         n_cells = self.barcodes.shape[0]
+
+        # TODO(michalk8): use numba
         distances = np.zeros((n_cells, n_cells))
         for i in range(n_cells):
             distances[i, i + 1 :] = [
@@ -91,6 +94,7 @@ class LeafDistance(BaseCost):
         self,
         **kwargs: Any,
     ) -> ArrayLike:
+        logger.info("Computing tree distance")
         undirected_tree = self.tree.to_undirected()
         leaves = self._get_leaves()
         distances = np.zeros((len(leaves), len(leaves)), dtype=float)

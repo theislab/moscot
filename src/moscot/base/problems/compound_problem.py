@@ -640,7 +640,7 @@ class CompoundProblem(BaseCompoundProblem[K, B], abc.ABC):
             return {"xy": TaggedArray(linear_cost_matrix, tag=Tag.COST_MATRIX)}
 
         if term in ("x", "y"):
-            quad_cost_matrix = data[mask, :][:, mask_2]
+            quad_cost_matrix = data[mask, :][:, mask]
             if sp.issparse(quad_cost_matrix):
                 logger.warning("Quadratic cost matrix being densified.")
                 quad_cost_matrix = quad_cost_matrix.A
