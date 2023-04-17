@@ -209,13 +209,13 @@ def bone_marrow(
     if rna:
         return _load_dataset_from_url(
             path + "_rna.h5ad",
-            backup_url="https://figshare.com/ndownloader/files/40046950",
+            backup_url="https://figshare.com/ndownloader/files/40195114",
             expected_shape=(6224, 2000),
             **kwargs,
         )
     return _load_dataset_from_url(
         path + "_atac.h5ad",
-        backup_url="https://figshare.com/ndownloader/files/40047034",
+        backup_url="https://figshare.com/ndownloader/files/40195102",
         expected_shape=(6224, 8000),
         **kwargs,
     )
