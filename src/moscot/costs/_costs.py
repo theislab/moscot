@@ -3,6 +3,7 @@ from typing import Any, List, Mapping, Optional
 import networkx as nx
 import numpy as np
 
+from moscot._logging import logger
 from moscot._types import ArrayLike
 from moscot.base.cost import BaseCost
 from moscot.costs._utils import register_cost
@@ -29,6 +30,7 @@ class BarcodeDistance(BaseCost):
         *_: Any,
         **__: Any,
     ) -> ArrayLike:
+        logger.info("Computing barcode distance")
         barcodes = self.data
         n_cells = barcodes.shape[0]
         distances = np.zeros((n_cells, n_cells))
@@ -80,6 +82,7 @@ class LeafDistance(BaseCost):
         self,
         **kwargs: Any,
     ) -> ArrayLike:
+        logger.info("Computing tree distance")
         tree = self.data
         undirected_tree = tree.to_undirected()
         leaves = self._get_leaves(undirected_tree)
