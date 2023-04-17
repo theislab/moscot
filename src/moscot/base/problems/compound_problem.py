@@ -541,7 +541,7 @@ class BaseCompoundProblem(BaseProblem, abc.ABC, Generic[K, B]):
     def _policy(self) -> Optional[SubsetPolicy[K]]:
         if self._problem_manager is None:
             return None
-        return self._problem_manager._policy
+        return self._problem_manager.policy
 
     def _ensure_valid_policy(self, policy: Policy_t) -> None:
         if self._valid_policies and policy not in self._valid_policies:
