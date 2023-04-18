@@ -6,6 +6,7 @@ from anndata import AnnData
 from moscot import _constants
 from moscot._docs._docs import d
 from moscot._types import (
+    CostKwargs_t,
     OttCostFn_t,
     OttCostFnMap_t,
     Policy_t,
@@ -42,7 +43,7 @@ class SinkhornProblem(GenericAnalysisMixin[K, B], CompoundProblem[K, B]):
         joint_attr: Optional[Union[str, Mapping[str, Any]]] = None,
         policy: Literal["sequential", "pairwise", "explicit"] = "sequential",
         cost: OttCostFn_t = "sq_euclidean",
-        cost_kwargs: Union[Mapping[str, Any], Mapping[str, Mapping[str, Any]]] = types.MappingProxyType({}),
+        cost_kwargs: CostKwargs_t = types.MappingProxyType({}),
         a: Optional[str] = None,
         b: Optional[str] = None,
         **kwargs: Any,
@@ -191,7 +192,7 @@ class GWProblem(GenericAnalysisMixin[K, B], CompoundProblem[K, B]):
         joint_attr: Optional[Union[str, Mapping[str, Any]]] = None,
         policy: Literal["sequential", "pairwise", "explicit"] = "sequential",
         cost: OttCostFnMap_t = "sq_euclidean",
-        cost_kwargs: Union[Mapping[str, Any], Mapping[str, Mapping[str, Any]]] = types.MappingProxyType({}),
+        cost_kwargs: CostKwargs_t = types.MappingProxyType({}),
         a: Optional[str] = None,
         b: Optional[str] = None,
         **kwargs: Any,
