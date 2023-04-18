@@ -55,3 +55,4 @@ Policy_t = Literal[
     "tril",
     "explicit",
 ]
+CostKwargs_t = Union[Mapping[str, Any], Mapping[Literal["x", "y", "xy"], Mapping[str, Any]]]

@@ -4,6 +4,7 @@ from typing import Any, Literal, Mapping, Optional, Tuple, Type, Union
 from moscot import _constants
 from moscot._docs._docs import d
 from moscot._types import (
+    CostKwargs_t,
     OttCostFnMap_t,
     Policy_t,
     ProblemStage_t,
@@ -39,7 +40,7 @@ class AlignmentProblem(CompoundProblem[K, B], SpatialAlignmentMixin[K, B]):
         policy: Literal["sequential", "star"] = "sequential",
         reference: Optional[str] = None,
         cost: OttCostFnMap_t = "sq_euclidean",
-        cost_kwargs: Union[Mapping[str, Any], Mapping[str, Mapping[str, Any]]] = types.MappingProxyType({}),
+        cost_kwargs: CostKwargs_t = types.MappingProxyType({}),
         a: Optional[str] = None,
         b: Optional[str] = None,
         **kwargs: Any,

@@ -1,7 +1,7 @@
 import types
 from typing import Any, Dict, Mapping, Optional, Tuple, Union
 
-from moscot._types import CostFn_t
+from moscot._types import CostFn_t, CostKwargs_t
 
 
 def handle_joint_attr(
@@ -53,7 +53,7 @@ def handle_cost(
     x: Mapping[str, Any] = types.MappingProxyType({}),
     y: Mapping[str, Any] = types.MappingProxyType({}),
     cost: Optional[Union[CostFn_t, Mapping[str, CostFn_t]]] = None,
-    cost_kwargs: Union[Mapping[str, Any], Mapping[str, Mapping[str, Any]]] = types.MappingProxyType({}),
+    cost_kwargs: CostKwargs_t = types.MappingProxyType({}),
     **_: Any,
 ) -> Tuple[Dict[str, Any], Dict[str, Any], Dict[str, Any]]:
     x = dict(x)
@@ -82,8 +82,8 @@ def handle_cost(
         items = cost_kwargs["xy"].items() if "xy" in cost_kwargs else cost_kwargs.items()
         for k, v in items:
             xy[f"x_{k}"] = xy[f"y_{k}"] = v
-    if x and cost_kwargs:
-        x.update(cost_kwargs.get("x", cost_kwargs))  # extract cost_kwargs explicit to x-term if possible
-    if y and cost_kwargs:
-        y.update(cost_kwargs.get("y", cost_kwargs))  # extract cost_kwargs explicit to y-term if possible
+    if x and cost_kwargs:  # extract cost_kwargs explicit to x-term if possible
+        x.update(cost_kwargs.get("x", cost_kwargs))  # type:ignore[call-overload]
+    if y and cost_kwargs:  # extract cost_kwargs explicit to y-term if possible
+        y.update(cost_kwargs.get("y", cost_kwargs))  # type:ignore[call-overload]
     return xy, x, y
