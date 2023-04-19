@@ -16,6 +16,7 @@ from ott.geometry.costs import (
 
 from anndata import AnnData
 
+from moscot._types import CostKwargs_t
 from moscot.base.output import BaseSolverOutput
 from moscot.base.problems import OTProblem
 from moscot.problems.generic import GWProblem
@@ -143,7 +144,7 @@ class TestGWProblem:
             ("elastic_stvs", ElasticSTVS, {"x": {"gamma": 3}, "y": {"gamma": 4}}),
         ],
     )
-    def test_prepare_costs(self, adata_time: AnnData, cost_str: str, cost_inst: Any, cost_kwargs: Mapping[str, int]):
+    def test_prepare_costs(self, adata_time: AnnData, cost_str: str, cost_inst: Any, cost_kwargs: CostKwargs_t):
         problem = GWProblem(adata=adata_time)
         problem = problem.prepare(
             key="time", policy="sequential", x_attr="X_pca", y_attr="X_pca", cost=cost_str, cost_kwargs=cost_kwargs
