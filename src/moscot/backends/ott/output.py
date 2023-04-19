@@ -24,7 +24,7 @@ class OTTOutput(BaseSolverOutput):
     Parameters
     ----------
     output
-        Output of :mod:`ott` backend.
+        Output of the :mod:`ott` backend.
     """
 
     _NOT_COMPUTED = -1.0  # sentinel value used in `ott`

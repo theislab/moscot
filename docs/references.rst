@@ -13,6 +13,9 @@ Glossary
     OT
         Optimal transport.
 
+    unbalanced OT problem
+        TODO.
+
     linear problem
         TODO.
 
@@ -32,5 +35,10 @@ Glossary
         TODO.
 
     marginals
+        TODO.
 
+    Sinkhorn
+        TODO.
+
+    low-rank
         TODO.

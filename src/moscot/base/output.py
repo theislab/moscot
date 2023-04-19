@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 from copy import copy
 from functools import partial
-from typing import Any, Callable, Iterable, List, Literal, Optional, Tuple
+from typing import Any, Callable, Iterable, List, Literal, Optional, Tuple, Union
 
 import numpy as np
 import scipy.sparse as sp
@@ -18,7 +18,7 @@ class BaseSolverOutput(ABC):
 
     @abstractmethod
     def _apply(self, x: ArrayLike, *, forward: bool) -> ArrayLike:
-        pass
+        """Apply :attr:`transport_matrix` to an array of shape ``[n, d]`` or ``[m, d]``."""
 
     @property
     @abstractmethod
@@ -33,7 +33,7 @@ class BaseSolverOutput(ABC):
     @property
     @abstractmethod
     def cost(self) -> float:
-        """Regularized optimal transport cost."""
+        """Regularized :term:`OT` cost."""
 
     @property
     @abstractmethod
@@ -43,24 +43,25 @@ class BaseSolverOutput(ABC):
     @property
     @abstractmethod
     def potentials(self) -> Optional[Tuple[ArrayLike, ArrayLike]]:
-        """Dual potentials :math:`f` and :math:`g`.
+        """:term:`Dual potentials` :math:`f` and :math:`g`.
 
-        Only valid for the Sinkhorn algorithm.
+        Only valid for the :term:`Sinkhorn` algorithm.
         """
 
     @property
     @abstractmethod
     def is_linear(self) -> bool:
-        """Whether the output is linear."""
+        """Whether the output is a solution to a :term:`linear problem`."""
 
     @abstractmethod
     def to(self, device: Optional[Device_t] = None) -> "BaseSolverOutput":
-        """Transfer self to another device using :func:`jax.device_put`.
+        """Transfer self to another compute device.
 
         Parameters
         ----------
         device
-            Device where to transfer the solver output. If `None`, use the default device.
+            Device where to transfer the solver output.
+            If :obj:`None`, use the default device.
 
         Returns
         -------
@@ -74,13 +75,12 @@ class BaseSolverOutput(ABC):
 
     @property
     def is_low_rank(self) -> bool:
-        """Whether the :attr:`transport_matrix` is low-rank."""
+        """Whether the :attr:`transport_matrix` is :term:`low-rank`."""
         return self.rank > -1
 
-    # TODO(michalk8): mention in docs it needs to be broadcastable
     @abstractmethod
     def _ones(self, n: int) -> ArrayLike:
-        pass
+        """Generate vector of 1s of shape ``[n,]``."""
 
     def push(self, x: ArrayLike, scale_by_marginals: bool = False) -> ArrayLike:
         """Push mass through the :attr:`transport_matrix`.
@@ -96,7 +96,7 @@ class BaseSolverOutput(ABC):
 
         Returns
         -------
-        Array of shape ``[m,]`` or ``[m, d]``, depending on ``x``.
+        Array of shape ``[m,]`` or ``[m, d]``, depending on the shape of ``x``.
         """
         if x.ndim not in (1, 2):
             raise ValueError(f"Expected 1D or 2D array, found `{x.ndim}`.")
@@ -120,7 +120,7 @@ class BaseSolverOutput(ABC):
 
         Returns
         -------
-        Array of shape ``[n,]`` or ``[n, d]``, depending on ``x``.
+        Array of shape ``[n,]`` or ``[n, d]``, depending on the shape of ``x``.
         """
         if x.ndim not in (1, 2):
             raise ValueError(f"Expected 1D or 2D array, found `{x.ndim}`.")
@@ -136,7 +136,7 @@ class BaseSolverOutput(ABC):
         Parameters
         ----------
         scale_by_marginals
-            Whether to scale by marginals.
+            Whether to scale by :term:`marginals`.
 
         Returns
         -------
@@ -156,7 +156,7 @@ class BaseSolverOutput(ABC):
         outputs
             Sequence of transport matrices to chain.
         scale_by_marginals
-            Whether to scale by marginals.
+            Whether to scale by :term:`marginals`.
 
         Returns
         -------
@@ -178,52 +178,46 @@ class BaseSolverOutput(ABC):
     ) -> "MatrixSolverOutput":
         """Sparsify the :attr:`transport_matrix`.
 
-        This function sets all entries of the transport matrix below `threshold` to 0 and
-        returns an instance of the `MatrixSolverOutput` with the
-        sparsified transport matrix stored as a :class:`~scipy.sparse.csr_matrix`.
+        This function sets all entries of the transport matrix below a certain threshold to :math:`0` and
+        returns a :class:`~moscot.base.output.MatrixSolverOutput` with sparsified transport matrix stored
+        as a :class:`~scipy.sparse.csr_matrix`.
 
         .. warning::
-            This function only serves for interfacing software which has to instantiate the transport matrix. Methods in
-            :mod:`moscot` never use the sparsified transport matrix.
+            This function only serves for interfacing software which has to instantiate the transport matrix,
+            :mod:`moscot` never uses the sparsified transport matrix.
 
         Parameters
         ----------
         mode
-            How to determine the value below which entries are set to 0:
+            How to determine the value below which entries are set to :math:`0`. Valid options are:
 
-                - 'threshold' - threshold below which entries are set to 0.
-                - 'percentile' - determine threshold by percentile below which entries are set to 0. Hence, between 0
-                  and 100.
-                - 'min_row' - choose the threshold such that each row has at least one non-zero entry.
-
+            - `'threshold'` - ``value`` is the threshold below which entries are set to :math:`0`.
+            - `'percentile'` - ``value`` is the percentile in :math:`[0, 100]` of the :attr:`transport_matrix`.
+              below which entries are set to :math:`0`.
+            - 'min_row' - not used, the value is chosen such that each row has at least 1 non-zero entry.
         value
-            Value to use for sparsification depending on ``mode``:
-
-                - `'threshold'` - `value` sets the threshold below which entries are set to 0.
-                - `percentile` - `value` is the percentile below which entries are set to 0.
-                - `min_row` - `value` is not used.
+            Value to use for sparsification.
         batch_size
-            How many rows of the transport matrix to sparsify per batch.
+            How many rows of to materialize when sparsifying the :attr:`transport_matrix`.
         n_samples
-            If ``mode = 'percentile'``, determine the number of samples based on which the percentile
-            is computed stochastically. Note this means that a matrix of shape
-            `[n_samples, min(transport_matrix.shape)]` has to be instantiated. If `None`, ``n_samples`` is set to
-            ``batch_size``.
+            If ``mode = 'percentile'``, determine the number of samples based on which the percentile is computed
+            stochastically. Note this means that a matrix of shape `[n_samples, min(transport_matrix.shape)]`
+            has to be instantiated. If `None`, ``n_samples`` is set to ``batch_size``.
         seed
             Random seed needed for sampling if ``mode = 'percentile'``.
 
         Returns
         -------
-        Solve output with a sparsified transport matrix.
+        Output with sparsified transport matrix.
         """
         n, m = self.shape
         if mode == "threshold":
             if value is None:
-                raise ValueError("If `mode` is `threshold`, `threshold` must not be `None`.")
+                raise ValueError("If `mode='threshold'`, `threshold` must not be `None`.")
             thr = value
         elif mode == "percentile":
             if value is None:
-                raise ValueError("If `mode` is `percentile`, `threshold` must not be `None`.")
+                raise ValueError("If `mode='percentile'`, `threshold` must not be `None`.")
             rng = np.random.RandomState(seed=seed)
             n_samples = n_samples if n_samples is not None else batch_size
             k = min(n_samples, n)
@@ -239,32 +233,34 @@ class BaseSolverOutput(ABC):
                 res = self.pull(x, scale_by_marginals=False)  # tmap @ indicator_vectors
                 thr = min(thr, res.max(axis=1).min())
         else:
-            raise NotImplementedError(mode)
+            raise NotImplementedError(f"Mode `{mode}` is not yet implemented.")
 
         k, func, fn_stack = (n, self.push, sp.vstack) if n < m else (m, self.pull, sp.hstack)
         tmaps_sparse: List[sp.csr_matrix] = []
+
         for batch in range(0, k, batch_size):
             x = np.eye(k, min(batch_size, k - batch), -(min(batch, k)))
             res = func(x, scale_by_marginals=False)
             res[res < thr] = 0
             tmaps_sparse.append(sp.csr_matrix(res.T if n < m else res))
+
         return MatrixSolverOutput(
             transport_matrix=fn_stack(tmaps_sparse), cost=self.cost, converged=self.converged, is_linear=self.is_linear
         )
 
     @property
     def a(self) -> ArrayLike:
-        """Marginals of the source distribution.
+        """:term:`Marginals` of the source distribution.
 
-        If the output of an unbalanced OT problem, these are the posterior marginals.
+        If the output of an :term:`unbalanced OT problem`, these are the posterior marginals.
         """
         return self.pull(self._ones(self.shape[1]))
 
     @property
     def b(self) -> ArrayLike:
-        """Marginals of the target distribution.
+        """:term:`Marginals` of the target distribution.
 
-        If the output of an unbalanced OT problem, these are the posterior marginals.
+        If the output of an :term:`unbalanced OT problem`, these are the posterior marginals.
         """
         return self.push(self._ones(self.shape[0]))
 
@@ -295,23 +291,28 @@ class BaseSolverOutput(ABC):
 
 
 class MatrixSolverOutput(BaseSolverOutput):
-    """Optimal transport output with materialized `transport_matrix`.
+    """:term:`OT` solution with a materialized transport matrix.
 
     Parameters
     ----------
     transport_matrix
         Transport matrix of shape ``[n, m]``.
     cost
-        TODO
+        Cost of an :term:`OT` problem.
     converged
-        TODO.
+        Whether the solution converged.
     is_linear
-        TODO.
+        Whether this is a solution to a :term:`linear problem`.
     """
 
     # TODO(michalk8): don't provide defaults?
     def __init__(
-        self, transport_matrix: ArrayLike, *, cost: float = np.nan, converged: bool = True, is_linear: bool = True
+        self,
+        transport_matrix: Union[ArrayLike, sp.spmatrix],
+        *,
+        cost: float = np.nan,
+        converged: bool = True,
+        is_linear: bool = True,
     ):
         super().__init__()
         self._transport_matrix = transport_matrix
