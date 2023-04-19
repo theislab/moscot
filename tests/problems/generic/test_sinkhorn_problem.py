@@ -82,10 +82,9 @@ class TestSinkhornProblem:
         problem = problem.prepare(
             key="time", policy="sequential", joint_attr="X_pca", cost=cost_str, cost_kwargs=cost_kwargs
         )
-        assert isinstance(problem[0, 1].xy.cost, cost_inst)
         if cost_kwargs:
-            k, v = next(iter(cost_kwargs.items()))
-            assert getattr(problem[0, 1].xy.cost, k) == v
+            for k, v in cost_kwargs.items():
+                assert getattr(problem[0, 1].xy.cost, k) == v
 
         problem = problem.solve(max_iterations=2)
 

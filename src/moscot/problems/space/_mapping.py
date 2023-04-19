@@ -7,6 +7,7 @@ from moscot import _constants
 from moscot._docs._docs import d
 from moscot._types import (
     ArrayLike,
+    CostKwargs_t,
     OttCostFnMap_t,
     Policy_t,
     ProblemStage_t,
@@ -84,7 +85,7 @@ class MappingProblem(CompoundProblem[K, OTProblem], SpatialMappingMixin[K, OTPro
         var_names: Optional[Sequence[Any]] = None,
         joint_attr: Optional[Union[str, Mapping[str, Any]]] = None,
         cost: OttCostFnMap_t = "sq_euclidean",
-        cost_kwargs: Union[Mapping[str, Any], Mapping[str, Mapping[str, Any]]] = types.MappingProxyType({}),
+        cost_kwargs: CostKwargs_t = types.MappingProxyType({}),
         a: Optional[str] = None,
         b: Optional[str] = None,
         **kwargs: Any,
