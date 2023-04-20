@@ -16,6 +16,7 @@ from ott.geometry.costs import (
 
 from anndata import AnnData
 
+from moscot._types import CostKwargs_t
 from moscot.base.output import BaseSolverOutput
 from moscot.base.problems import OTProblem
 from moscot.problems.generic import GWProblem
@@ -143,7 +144,7 @@ class TestGWProblem:
             ("elastic_stvs", ElasticSTVS, {"x": {"gamma": 3}, "y": {"gamma": 4}}),
         ],
     )
-    def test_prepare_costs(self, adata_time: AnnData, cost_str: str, cost_inst: Any, cost_kwargs: Mapping[str, int]):
+    def test_prepare_costs(self, adata_time: AnnData, cost_str: str, cost_inst: Any, cost_kwargs: CostKwargs_t):
         problem = GWProblem(adata=adata_time)
         problem = problem.prepare(
             key="time", policy="sequential", x_attr="X_pca", y_attr="X_pca", cost=cost_str, cost_kwargs=cost_kwargs
@@ -152,14 +153,11 @@ class TestGWProblem:
         assert isinstance(problem[0, 1].y.cost, cost_inst)
 
         if cost_kwargs:
-            if len(cost_kwargs) > 1:
-                k, v = next(iter(cost_kwargs["x"].items()))
+            x_items = cost_kwargs["x"].items() if "x" in cost_kwargs else cost_kwargs.items()
+            for k, v in x_items:
                 assert getattr(problem[0, 1].x.cost, k) == v
-                k, v = next(iter(cost_kwargs["y"].items()))
-                assert getattr(problem[0, 1].y.cost, k) == v
-            else:
-                k, v = next(iter(cost_kwargs.items()))
-                assert getattr(problem[0, 1].x.cost, k) == v
+            y_items = cost_kwargs["y"].items() if "y" in cost_kwargs else cost_kwargs.items()
+            for k, v in y_items:
                 assert getattr(problem[0, 1].y.cost, k) == v
 
         problem = problem.solve(max_iterations=2)
