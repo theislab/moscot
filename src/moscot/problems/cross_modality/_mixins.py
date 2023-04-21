@@ -39,6 +39,7 @@ class CrossModalityTranslationMixin(AnalysisMixin[K, B]):
         source: K,
         target: K,
         forward: bool = True,
+        overwrite: bool = False,
         **kwargs: Any,
     ) -> ArrayLike:
         """
@@ -56,6 +57,9 @@ class CrossModalityTranslationMixin(AnalysisMixin[K, B]):
             keyword arguments for policy-specific `_apply` method of :class:`moscot.problems.CompoundProblem`.
 
         """
+        if not overwrite and hasattr(self, "_translation"):
+            raise RuntimeError("Translation already exists. Use `overwrite=True` to overwrite it.")
+
         if forward:
             self._translation = self[(source, target)].pull(  # type: ignore[index]
                 self.adata_tgt.obsm[self._tgt_attr], scale_by_marginals=True, normalize=False, **kwargs
