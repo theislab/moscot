@@ -1,3 +1,4 @@
+import warnings
 from typing import TYPE_CHECKING, Any, Literal, Optional
 
 import pandas as pd
@@ -58,7 +59,7 @@ class CrossModalityTranslationMixin(AnalysisMixin[K, B]):
 
         """
         if not overwrite and hasattr(self, "_translation"):
-            raise RuntimeError("Translation already exists. Use `overwrite=True` to overwrite it.")
+            warnings.warn("Translation already exists and is overwritten", UserWarning, stacklevel=1)
 
         if forward:
             self._translation = self[(source, target)].pull(  # type: ignore[index]
