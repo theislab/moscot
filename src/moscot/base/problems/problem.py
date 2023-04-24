@@ -103,12 +103,7 @@ class BaseProblem(ABC):
             data = np.reshape(data, (-1, 1))
         if data.shape[0] != adata.n_obs:
             raise ValueError(f"Expected array of shape `({adata.n_obs,}, ...)`, found `{data.shape}`.")
-        # if np.any(data < 0.0):
-        #    raise ValueError("Some entries have negative mass.")
         total = np.sum(data, axis=0, keepdims=True)
-        # if np.any(total <= 0.0):
-        #    raise ValueError("Some measures have no mass.")
-        # TODO(@MUCDK, @michalk): possibly introduce class property indicating whether we should check for negative mass
         return (data / total) if normalize else data
 
     @property
