@@ -46,8 +46,12 @@ class TestCrossModalityTranslationAnalysisMixin:
         tp = tp.prepare(batch_key="batch", src_attr="emb_src", tgt_attr="emb_tgt", joint_attr="X_pca")
         mock_tmap_1 = np.abs(rng.randn(len(adata_src[adata_src.obs["batch"] == "1"]), len(adata_tgt)))
         mock_tmap_2 = np.abs(rng.randn(len(adata_src[adata_src.obs["batch"] == "2"]), len(adata_tgt)))
-        tp[("1", "ref")]._solution = MockSolverOutput(mock_tmap_1 / np.sum(mock_tmap_1))
-        tp[("2", "ref")]._solution = MockSolverOutput(mock_tmap_2 / np.sum(mock_tmap_2))
+
+        solution1 = MockSolverOutput(mock_tmap_1 / np.sum(mock_tmap_1))
+        tp[("1", "ref")].set_solution(solution1, overwrite=True)
+
+        solution2 = MockSolverOutput(mock_tmap_2 / np.sum(mock_tmap_2))
+        tp[("2", "ref")].set_solution(solution2, overwrite=True)
 
         result1 = tp.cell_transition(
             source="1",
