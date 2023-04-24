@@ -24,14 +24,16 @@ __all__ = ["TranslationProblem"]
 
 class TranslationProblem(CompoundProblem[K, OTProblem], CrossModalityTranslationMixin[K, OTProblem]):
     """
-    Class for integrating single cell multiomics data, based on :cite:`demetci-scot:22`.
+    Class for integrating single-cell multiomics data, based on :cite:`demetci-scot:22`.
 
     Parameters
     ----------
     adata_src
-        Instance of :class:`anndata.AnnData` containing the data of the source distribution.
+        Annotated data object containing the source distribution.
     adata_tgt
-        Instance of :class:`anndata.AnnData` containing the data of the target distribution.
+        Annotated data object containing the target distribution.
+    kwargs
+        Keyword arguments for :class:`~moscot.base.problems.compound_problem.BaseCompoundProblem`.
     """
 
     def __init__(self, adata_src: AnnData, adata_tgt: AnnData, **kwargs: Any):
@@ -80,28 +82,25 @@ class TranslationProblem(CompoundProblem[K, OTProblem], CrossModalityTranslation
         b: Optional[str] = None,
         **kwargs: Any,
     ) -> "TranslationProblem[K]":
-        """
-        Prepare the :class:`moscot.problems.cross_modality.TranslationProblem`.
-
-        This method prepares the data to be passed to the optimal transport solver.
+        """Prepare the problem.
 
         Parameters
         ----------
         src_attr
-            - If `str`, it must refer to a key in :attr:`anndata.AnnData.obsm`.
-            - If `dict`, the dictionary stores `attr` (attribute of :class:`anndata.AnnData`) and `key`
+            - If :class:`str`, it must refer to a key in :attr:`anndata.AnnData.obsm`.
+            - If :class:`dict`, the dictionary stores `attr` (attribute of :class:`anndata.AnnData`) and `key`
             (key of :class:`anndata.AnnData` ``['{attr}']``).
         tgt_attr
-            - If `str`, it must refer to a key in :attr:`anndata.AnnData.obsm`.
-            - If `dict`, the dictionary stores `attr` (attribute of :class:`anndata.AnnData`) and `key`
+            - If :class:`str`, it must refer to a key in :attr:`anndata.AnnData.obsm`.
+            - If :class:`dict`, the dictionary stores `attr` (attribute of :class:`anndata.AnnData`) and `key`
             (key of :class:`anndata.AnnData` ``['{attr}']``).
         joint_attr
             - If `None`, the pure Gromov-Wasserstein case is computed.
-            - If `str`, it must refer to a key in :attr:`anndata.AnnData.obsm`.
-            - If `dict`, the dictionary stores `attr` (attribute of :class:`anndata.AnnData`) and `key`
+            - If :class:`str`, it must refer to a key in :attr:`anndata.AnnData.obsm`.
+            - If :class:`dict`, the dictionary stores `attr` (attribute of :class:`anndata.AnnData`) and `key`
               (key of :class:`anndata.AnnData` ``['{attr}']``).
         batch_key
-                If present, specify the batch key of `:class:`anndata.AnnData`.
+                If present, specify the batch key in :attr:`~anndata.AnnData.obs` of :class:`anndata.AnnData`.
         cost
             Cost between two points in dimension d. Only used if no precomputed cost matrix is passed.
             If `cost` is of type :obj:`str`, the cost will be used for all point clouds. If `cost` is of type
@@ -119,8 +118,7 @@ class TranslationProblem(CompoundProblem[K, OTProblem], CrossModalityTranslation
 
         Returns
         -------
-        :class:`moscot.problems.cross_modality.TranslationProblem`.
-
+        The prepared problem.
         """
         self._src_attr = src_attr if isinstance(src_attr, str) else src_attr["key"]
         self._tgt_attr = tgt_attr if isinstance(tgt_attr, str) else tgt_attr["key"]
@@ -157,16 +155,11 @@ class TranslationProblem(CompoundProblem[K, OTProblem], CrossModalityTranslation
         min_iterations: int = 5,
         max_iterations: int = 50,
         threshold: float = 1e-3,
-        gamma: float = 10.0,
-        gamma_rescale: bool = True,
-        ranks: Union[int, Tuple[int, ...]] = -1,
-        tolerances: Union[float, Tuple[float, ...]] = 1e-2,
         linear_solver_kwargs: Mapping[str, Any] = types.MappingProxyType({}),
         device: Optional[Literal["cpu", "gpu", "tpu"]] = None,
         **kwargs: Any,
     ) -> "TranslationProblem[K]":
-        """
-        Solve optimal transport problems defined in :class:`moscot.problems.cross_modality.TranslationProblem`.
+        """Solve the optimal transport problem.
 
         Parameters
         ----------
@@ -178,7 +171,6 @@ class TranslationProblem(CompoundProblem[K, OTProblem], CrossModalityTranslation
         tau_a
             Unbalancedness parameter for left marginal between 0 and 1. `tau_a=1` means no unbalancedness
             in the source distribution. The limit of `tau_a` going to 0 ignores the left marginals.
-
         tau_b
             unbalancedness parameter for right marginal between 0 and 1. `tau_b=1` means no unbalancedness
             in the target distribution. The limit of `tau_b` going to 0 ignores the right marginals.
@@ -217,23 +209,6 @@ class TranslationProblem(CompoundProblem[K, OTProblem], CrossModalityTranslation
             The maximum number of Sinkhorn iterations.
         threshold
             If not `None`, set all entries below `threshold` to 0.
-        gamma
-            Only in low-rank setting: the (inverse of the) gradient step size used by the mirror descent algorithm
-            (:cite:`scetbon:22b`).
-        gamma_rescale
-            Only in low-rank setting: whether to rescale `gamma` every iteration as described in :cite:`scetbon:22b`.
-        ranks
-            Ranks of the cost matrices, see
-            :meth:`~ott.geometry.geometry.Geometry.to_LRCGeometry`. Used when
-            geometries are *not* :class:`~ott.geometry.pointcloud.PointCloud` with
-            `'sqeucl'` cost function. If `-1`, the geometries will not be converted
-            to low-rank. If :class:`tuple`, it specifies the ranks of ``geom_xx``,
-            ``geom_yy`` and ``geom_xy``, respectively. If :class:`int`, rank is shared
-            across all geometries.
-        tolerances
-            Tolerances used when converting geometries to low-rank. Used
-            when geometries are not :class:`~ott.geometry.pointcloud.PointCloud` with
-            `'sqeucl'` cost. If :class:`float`, it is shared across all geometries.
         linear_solver_kwargs
             Keyword arguments for the linear solver used in quadratic problems.
         device
@@ -243,7 +218,7 @@ class TranslationProblem(CompoundProblem[K, OTProblem], CrossModalityTranslation
 
         Returns
         -------
-        :class:`moscot.problems.cross_modality.TranslationProblem`.
+        The solved problem.
 
         Examples
         --------
@@ -264,10 +239,6 @@ class TranslationProblem(CompoundProblem[K, OTProblem], CrossModalityTranslation
             min_iterations=min_iterations,
             max_iterations=max_iterations,
             threshold=threshold,
-            gamma=gamma,
-            gamma_rescale=gamma_rescale,
-            ranks=ranks,
-            tolerances=tolerances,
             linear_solver_kwargs=linear_solver_kwargs,
             device=device,
             **kwargs,

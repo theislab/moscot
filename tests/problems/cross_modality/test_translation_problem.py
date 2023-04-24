@@ -111,7 +111,8 @@ class TestTranslationProblem:
             assert key in expected_keys
             assert tp[key].solution.rank == rank
 
-        assert np.all([np.all(~np.isnan(sol.transport_matrix)) for sol in tp.solutions.values()])
+        for key, sol in tp.solutions.items():
+            np.testing.assert_array_equal(np.isfinite(sol.transport_matrix), True, err_msg=f"{key}")
 
     @pytest.mark.parametrize("args_to_check", [fgw_args_1, fgw_args_2])
     def test_pass_arguments(self, adata_translation: AnnData, args_to_check: Mapping[str, Any]):
@@ -131,13 +132,11 @@ class TestTranslationProblem:
 
         solver = tp[key].solver.solver
         for arg, val in gw_solver_args.items():
-            assert hasattr(solver, val)
-            assert getattr(solver, val) == args_to_check[arg]
+            assert getattr(solver, val) == args_to_check[arg], arg
 
         sinkhorn_solver = solver.linear_ot_solver
         lin_solver_args = gw_linear_solver_args if args_to_check["rank"] == -1 else gw_lr_linear_solver_args
         for arg, val in lin_solver_args.items():
-            assert hasattr(sinkhorn_solver, val)
             el = (
                 getattr(sinkhorn_solver, val)[0]
                 if isinstance(getattr(sinkhorn_solver, val), tuple)
@@ -147,17 +146,13 @@ class TestTranslationProblem:
 
         quad_prob = tp[key]._solver._problem
         for arg, val in quad_prob_args.items():
-            assert hasattr(quad_prob, val)
-            assert getattr(quad_prob, val) == args_to_check[arg]
-        assert hasattr(quad_prob, "fused_penalty")
+            assert getattr(quad_prob, val) == args_to_check[arg], arg
         assert quad_prob.fused_penalty == alpha_to_fused_penalty(args_to_check["alpha"])
 
         geom = quad_prob.geom_xx
         for arg, val in geometry_args.items():
-            assert hasattr(geom, val)
-            assert getattr(geom, val) == args_to_check[arg]
+            assert getattr(geom, val) == args_to_check[arg], arg
 
         geom = quad_prob.geom_xy
         for arg, val in pointcloud_args.items():
-            assert hasattr(geom, val)
-            assert getattr(geom, val) == args_to_check[arg]
+            assert getattr(geom, val) == args_to_check[arg], arg

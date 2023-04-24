@@ -34,6 +34,7 @@ class CrossModalityTranslationMixin(AnalysisMixin[K, B]):
         super().__init__(*args, **kwargs)
         self._src_attr: Optional[str] = None
         self._tgt_attr: Optional[str] = None
+        self._translation: Optional[ArrayLike] = None
 
     def translate(  # type: ignore[misc]
         self: CrossModalityTranslationMixinProtocol[K, B],
@@ -43,8 +44,7 @@ class CrossModalityTranslationMixin(AnalysisMixin[K, B]):
         overwrite: bool = False,
         **kwargs: Any,
     ) -> ArrayLike:
-        """
-        Translate source or target object.
+        """Translate source or target object.
 
         Parameters
         ----------
@@ -53,28 +53,34 @@ class CrossModalityTranslationMixin(AnalysisMixin[K, B]):
         target
             Key identifying the target distribution.
         forward
-            If `True` computes translation from source object to target object, otherwise backward.
+            If `True`, compute the translation from :attr:`adata_src` to :attr:`adata_tgt`, otherwise vice-versa.
         kwargs
-            keyword arguments for policy-specific `_apply` method of :class:`moscot.problems.CompoundProblem`.
+            Keyword arguments for :meth:`~moscot.base.problems.compound_problem.BaseCompoundProblem.push` or
+            :meth:`~moscot.base.problems.compound_problem.BaseCompoundProblem.pull`, depending on `forward`.
 
+        Returns
+        -------
+        Translation from :attr:`adata_src` in target domain or from :attr:`adata_tgt` in source domain,
+        depending on `forward`.
         """
         if not overwrite and hasattr(self, "_translation"):
             warnings.warn("Translation already exists and is overwritten", UserWarning, stacklevel=1)
 
+        kwargs["scale_by_marginals"] = True
+        kwargs["normalize"] = False
+
         if forward:
-            self._translation = self[(source, target)].pull(  # type: ignore[index]
-                self.adata_tgt.obsm[self._tgt_attr], scale_by_marginals=True, normalize=False, **kwargs
+            self._translation = self[source, target].pull(  # type: ignore[index]
+                self.adata_tgt.obsm[self._tgt_attr], **kwargs
             )
         else:
             if self.batch_key is None:
-                self._translation = self[(source, target)].push(  # type: ignore[index]
-                    self.adata_src.obsm[self._src_attr], scale_by_marginals=True, normalize=False, **kwargs
+                self._translation = self[source, target].push(  # type: ignore[index]
+                    self.adata_src.obsm[self._src_attr], **kwargs
                 )
             else:
-                self._translation = self[(source, target)].push(  # type: ignore[index]
+                self._translation = self[source, target].push(  # type: ignore[index]
                     self[(source, target)].adata_src.obsm[self._src_attr],  # type: ignore[index]
-                    scale_by_marginals=True,
-                    normalize=False,
                     **kwargs,
                 )
 
@@ -86,14 +92,13 @@ class CrossModalityTranslationMixin(AnalysisMixin[K, B]):
         target: Optional[K] = None,
         source_groups: Optional[Str_Dict_t] = None,
         target_groups: Optional[Str_Dict_t] = None,
-        forward: bool = False,  # return value will be row-stochastic if forward=True, else column-stochastic
+        forward: bool = False,
         aggregation_mode: Literal["annotation", "cell"] = "annotation",
         batch_size: Optional[int] = None,
         normalize: bool = True,
         key_added: Optional[str] = _constants.CELL_TRANSITION,
     ) -> pd.DataFrame:
-        """
-        Compute a grouped cell transition matrix.
+        """Compute a grouped cell transition matrix.
 
         This function computes a transition matrix with entries corresponding to categories, e.g. cell types.
         The transition matrix will be row-stochastic if `forward` is `True`, otherwise column-stochastic.
@@ -107,21 +112,21 @@ class CrossModalityTranslationMixin(AnalysisMixin[K, B]):
         source_groups
             Can be one of the following:
 
-                - if `source_groups` is of type :class:`str` this should correspond to a key in
+                - if ``source_groups`` is of type :class:`str` this should correspond to a key in
                   :attr:`anndata.AnnData.obs`.
                   In this case, the categories in the transition matrix correspond to the unique values in
                   :attr:`anndata.AnnData.obs` ``['{source_groups}']``.
-                - if `target_groups` is of type :class:`dict`, its key should correspond to a key in
+                - if ``target_groups`` is of type :class:`dict`, its key should correspond to a key in
                   :attr:`anndata.AnnData.obs` and its value to a list containing a subset of categories
                   present in :attr:`anndata.AnnData.obs` ``['{source_groups.keys()[0]}']``.
                   The order of the list determines the order in the transition matrix.
         target_groups
             Can be one of the following:
 
-                - if `target_groups` is of type :class:`str` this should correspond to a key in
+                - if ``target_groups`` is of type :class:`str` this should correspond to a key in
                   :attr:`anndata.AnnData.obs`. In this case, the categories in the transition matrix correspond to the
                   unique values in :attr:`anndata.AnnData.obs` ``['{target_groups}']``.
-                - if `target_groups` is of :class:`dict`, its key should correspond to a key in
+                - if ``target_groups`` is of :class:`dict`, its key should correspond to a key in
                   :attr:`anndata.AnnData.obs` and its value to a list containing a subset of categories present in
                   :attr:`anndata.AnnData.obs` ``['{target_groups.keys()[0]}']``. The order of the list determines the
                   order in the transition matrix.
@@ -137,7 +142,7 @@ class CrossModalityTranslationMixin(AnalysisMixin[K, B]):
             If `True` the transition matrix is normalized such that it is stochastic. If `forward` is `True`, the
             transition matrix is row-stochastic, otherwise column-stochastic.
         key_added
-            Key in :attr:`anndata.AnnData.uns` and/or :attr:`anndata.AnnData.obs` where the results
+            Key in :attr:`~anndata.AnnData.uns` and/or :attr:`~anndata.AnnData.obs` where the results
             for the corresponding plotting functions are stored.
 
         Returns

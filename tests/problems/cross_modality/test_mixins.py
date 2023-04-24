@@ -23,7 +23,7 @@ class TestCrossModalityTranslationAnalysisMixin:
         joint_attr: Optional[Mapping[str, str]],
     ):
         adata_tgt, adata_src = _adata_modality_split(adata_translation)
-        expected_keys = {(i, "ref") for i in adata_src.obs.batch.cat.categories}
+        expected_keys = {(i, "ref") for i in adata_src.obs["batch"]}
 
         tp = (
             TranslationProblem(adata_src, adata_tgt)
@@ -69,4 +69,5 @@ class TestCrossModalityTranslationAnalysisMixin:
         assert result1.shape == (3, 3)
         assert isinstance(result2, pd.DataFrame)
         assert result2.shape == (3, 3)
-        assert result1.all != result2.all
+        with pytest.raises(AssertionError):
+            pd.testing.assert_frame_equal(result1, result2)
