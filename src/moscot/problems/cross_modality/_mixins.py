@@ -41,7 +41,7 @@ class CrossModalityTranslationMixin(AnalysisMixin[K, B]):
         overwrite: bool = False,
         **kwargs: Any,
     ) -> ArrayLike:
-        """Translate source or target object.
+        """Translate source modality to target modality.
 
         Parameters
         ----------
