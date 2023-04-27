@@ -1,5 +1,4 @@
-import warnings
-from typing import TYPE_CHECKING, Any, Literal, Optional
+from typing import TYPE_CHECKING, Any, Dict, Literal, Optional
 
 import pandas as pd
 
@@ -18,9 +17,8 @@ class CrossModalityTranslationMixinProtocol(AnalysisMixinProtocol[K, B]):
 
     adata_src: AnnData
     adata_tgt: AnnData
-    _src_attr: Optional[str]
-    _tgt_attr: Optional[str]
-    _translation: Optional[ArrayLike]
+    _src_attr: Optional[Dict[str, Any]]
+    _tgt_attr: Optional[Dict[str, Any]]
     batch_key: Optional[str]
 
     def _cell_transition(self: AnalysisMixinProtocol[K, B], *args: Any, **kwargs: Any) -> pd.DataFrame:
@@ -32,9 +30,8 @@ class CrossModalityTranslationMixin(AnalysisMixin[K, B]):
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
-        self._src_attr: Optional[str] = None
-        self._tgt_attr: Optional[str] = None
-        self._translation: Optional[ArrayLike] = None
+        self._src_attr: Optional[Dict[str, Any]] = None
+        self._tgt_attr: Optional[Dict[str, Any]] = None
 
     def translate(  # type: ignore[misc]
         self: CrossModalityTranslationMixinProtocol[K, B],
@@ -63,28 +60,38 @@ class CrossModalityTranslationMixin(AnalysisMixin[K, B]):
         Translation from :attr:`adata_src` in target domain or from :attr:`adata_tgt` in source domain,
         depending on `forward`.
         """
-        if not overwrite and hasattr(self, "_translation"):
-            warnings.warn("Translation already exists and is overwritten", UserWarning, stacklevel=1)
-
         kwargs["scale_by_marginals"] = True
         kwargs["normalize"] = False
 
+        def _get_features(
+            adata: AnnData,
+            attr: Optional[Dict[str, Any]] = None,
+        ) -> ArrayLike:
+            attr = {"attr": "X"} if attr is None else attr
+            att = attr.get("attr", None)
+            key = attr.get("key", None)
+
+            if key is not None:
+                return getattr(adata, att)[key]
+            return getattr(adata, att)
+
         if forward:
-            self._translation = self[source, target].pull(  # type: ignore[index]
-                self.adata_tgt.obsm[self._tgt_attr], **kwargs
+            translation = self[source, target].pull(  # type: ignore[index]
+                _get_features(adata=self.adata_tgt, attr=self._tgt_attr),
+                **kwargs,
             )
         else:
             if self.batch_key is None:
-                self._translation = self[source, target].push(  # type: ignore[index]
-                    self.adata_src.obsm[self._src_attr], **kwargs
+                translation = self[source, target].push(  # type: ignore[index]
+                    _get_features(adata=self.adata_src, attr=self._src_attr), **kwargs
                 )
             else:
-                self._translation = self[source, target].push(  # type: ignore[index]
-                    self[(source, target)].adata_src.obsm[self._src_attr],  # type: ignore[index]
+                translation = self[source, target].push(  # type: ignore[index]
+                    _get_features(adata=self[(source, target)].adata_src, attr=self._src_attr),  # type: ignore[index]
                     **kwargs,
                 )
 
-        return self._translation  # type:ignore[return-value]
+        return translation
 
     def cell_transition(  # type: ignore[misc]
         self: CrossModalityTranslationMixinProtocol[K, B],
@@ -106,9 +113,9 @@ class CrossModalityTranslationMixin(AnalysisMixin[K, B]):
         Parameters
         ----------
         source
-            Key identifying the source distribution.
+            Key defining the batches in the source distribution.
         target
-            Key identifying the target distribution.
+            Key defining the batches in the target distribution.
         source_groups
             Can be one of the following:
 

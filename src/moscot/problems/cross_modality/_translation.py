@@ -89,11 +89,11 @@ class TranslationProblem(CompoundProblem[K, OTProblem], CrossModalityTranslation
         src_attr
             - If :class:`str`, it must refer to a key in :attr:`anndata.AnnData.obsm`.
             - If :class:`dict`, the dictionary stores `attr` (attribute of :class:`anndata.AnnData`) and `key`
-            (key of :class:`anndata.AnnData` ``['{attr}']``).
+              (key of :class:`anndata.AnnData` ``['{attr}']``).
         tgt_attr
             - If :class:`str`, it must refer to a key in :attr:`anndata.AnnData.obsm`.
             - If :class:`dict`, the dictionary stores `attr` (attribute of :class:`anndata.AnnData`) and `key`
-            (key of :class:`anndata.AnnData` ``['{attr}']``).
+              (key of :class:`anndata.AnnData` ``['{attr}']``).
         joint_attr
             - If `None`, the pure Gromov-Wasserstein case is computed.
             - If :class:`str`, it must refer to a key in :attr:`anndata.AnnData.obsm`.
@@ -120,8 +120,8 @@ class TranslationProblem(CompoundProblem[K, OTProblem], CrossModalityTranslation
         -------
         The prepared problem.
         """
-        self._src_attr = src_attr if isinstance(src_attr, str) else src_attr["key"]
-        self._tgt_attr = tgt_attr if isinstance(tgt_attr, str) else tgt_attr["key"]
+        self._src_attr = {"attr": "obsm", "key": src_attr} if isinstance(src_attr, str) else src_attr
+        self._tgt_attr = {"attr": "obsm", "key": tgt_attr} if isinstance(tgt_attr, str) else tgt_attr
 
         self.batch_key = batch_key
         x = {"attr": "obsm", "key": src_attr} if isinstance(src_attr, str) else src_attr

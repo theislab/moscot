@@ -194,6 +194,7 @@ def adata_translation() -> AnnData:
     adata = adatas[0].concatenate(*adatas[1:], batch_key="batch")
     adata.obs["celltype"] = rng.choice(["A", "B", "C"], size=len(adata))
     adata.obs["celltype"] = adata.obs["celltype"].astype("category")
+    adata.layers["counts"] = adata.X.A
     adata.obs_names_make_unique()
     sc.pp.pca(adata)
     return adata

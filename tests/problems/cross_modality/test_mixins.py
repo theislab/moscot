@@ -12,8 +12,12 @@ from tests._utils import MockSolverOutput, _adata_modality_split
 
 
 class TestCrossModalityTranslationAnalysisMixin:
-    @pytest.mark.parametrize("src_attr", ["emb_src", {"attr": "obsm", "key": "emb_src"}])
-    @pytest.mark.parametrize("tgt_attr", ["emb_tgt", {"attr": "obsm", "key": "emb_tgt"}])
+    @pytest.mark.parametrize(
+        "src_attr", ["emb_src", {"attr": "obsm", "key": "emb_src"}, {"attr": "layers", "key": "counts"}]
+    )
+    @pytest.mark.parametrize(
+        "tgt_attr", ["emb_tgt", {"attr": "obsm", "key": "emb_tgt"}, {"attr": "layers", "key": "counts"}]
+    )
     @pytest.mark.parametrize("joint_attr", [None, "X_pca", {"attr": "obsm", "key": "X_pca"}])
     def test_translate(
         self,
