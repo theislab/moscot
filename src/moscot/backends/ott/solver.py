@@ -1,8 +1,9 @@
 import types
-from typing import Any, Literal, Mapping, Optional, Union
+from typing import Any, Dict, List, Literal, Mapping, Optional, Tuple, Union
 
 import jax
 import jax.numpy as jnp
+import math
 import scipy.sparse as sp
 from ott.geometry import costs
 from ott.geometry.epsilon_scheduler import Epsilon
@@ -22,12 +23,14 @@ from moscot._types import (
     SinkhornInitializer_t,
 )
 from moscot.backends.ott._utils import _filter_kwargs
-from moscot.backends.ott.output import OTTOutput
+from moscot.backends.ott.output import OTTOutput, NeuralOutput
 from moscot.base.solver import OTSolver
 from moscot.costs import get_cost
 from moscot.utils.tagged_array import TaggedArray
+from moscot.backends.ott._jax_data import JaxSampler
+from moscot.backends.ott._neuraldual import NeuralDualSolver
 
-__all__ = ["SinkhornSolver", "GWSolver"]
+__all__ = ["OTTCost", "SinkhornSolver", "GWSolver", "NeuralSolver", "CondNeuralSolver"]
 
 Scale_t = Union[float, Literal["mean", "median", "max_cost", "max_norm", "max_bound"]]
 Epsilon_t = Union[float, Epsilon]
@@ -307,3 +310,190 @@ class GWSolver(OTTJaxSolver):
     @property
     def problem_kind(self) -> ProblemKind_t:  # noqa: D102
         return "quadratic"
+
+class NeuralSolver(OTSolver[OTTOutput]):
+    """Solver class solving Neural Optimal Transport problems."""
+
+    def __init__(self, **kwargs: Any) -> None:
+        super().__init__()
+        self._train_sampler: Optional[JaxSampler] = None
+        self._valid_sampler: Optional[JaxSampler] = None
+        kwargs = _filter_kwargs(NeuralDualSolver, **kwargs)
+        self._solver = NeuralDualSolver(**kwargs)
+
+    def _prepare(  # type: ignore[override]
+        self,
+        xy: TaggedArray,
+        a: Optional[ArrayLike] = None,
+        b: Optional[ArrayLike] = None,
+        **kwargs: Any,
+    ) -> Tuple[JaxSampler, JaxSampler]:
+        if xy.data_tgt is None:
+            raise ValueError(f"Unable to obtain target data from `xy={xy}`.")
+        x, y = self._assert2d(xy.data_src), self._assert2d(xy.data_tgt)
+        n, m = x.shape[1], y.shape[1]
+        if n != m:
+            raise ValueError(f"Expected `x/y` to have the same number of dimensions, found `{n}/{m}`.")
+        train_size = kwargs.pop("train_size", 1.0)
+        if train_size > 1.0 or train_size <= 0.0:
+            raise ValueError("Invalid train_size. Must be: 0 < train_size <= 1")
+        if train_size != 1.0:
+            seed = kwargs.pop("seed", 0)
+            train_x, train_y, valid_x, valid_y, train_a, train_b, valid_a, valid_b = self._split_data(
+                x, y, train_size=train_size, seed=seed, a=a, b=b
+            )
+        else:
+            train_x, train_y, train_a, train_b = x, y, a, b
+            valid_x, valid_y, valid_a, valid_b = x, y, a, b
+
+        kwargs = _filter_kwargs(JaxSampler, **kwargs)
+        self._train_sampler = JaxSampler(
+            [train_x, train_y], policy_pairs=[(0, 1)], a=[train_a, []], b=[[], train_b], **kwargs
+        )
+        self._valid_sampler = JaxSampler(
+            [valid_x, valid_y], policy_pairs=[(0, 1)], a=[valid_a, []], b=[[], valid_b], **kwargs
+        )
+        return (self._train_sampler, self._valid_sampler)
+
+    def _solve(self, data_samplers: Tuple[JaxSampler, JaxSampler]) -> NeuralOutput:  # type: ignore[override]
+        model, logs = self.solver(data_samplers[0], data_samplers[1])
+        return NeuralOutput(model, logs)
+
+    @staticmethod
+    def _assert2d(arr: ArrayLike, *, allow_reshape: bool = True) -> jnp.ndarray:
+        arr: jnp.ndarray = jnp.asarray(arr.A if sp.issparse(arr) else arr)  # type: ignore[no-redef, attr-defined]
+        if allow_reshape and arr.ndim == 1:
+            return jnp.reshape(arr, (-1, 1))
+        if arr.ndim != 2:
+            raise ValueError(f"Expected array to have 2 dimensions, found `{arr.ndim}`.")
+        return arr
+
+    def _split_data(
+        self,
+        x: ArrayLike,
+        y: ArrayLike,
+        train_size: float,
+        seed: int,
+        a: Optional[ArrayLike] = None,
+        b: Optional[ArrayLike] = None,
+    ) -> Tuple[
+        ArrayLike,
+        ArrayLike,
+        ArrayLike,
+        ArrayLike,
+        Optional[ArrayLike],
+        Optional[ArrayLike],
+        Optional[ArrayLike],
+        Optional[ArrayLike],
+    ]:
+        n_samples_x = x.shape[0]
+        n_samples_y = y.shape[0]
+        n_train_x = math.ceil(train_size * n_samples_x)
+        n_train_y = math.ceil(train_size * n_samples_y)
+        key = jax.random.PRNGKey(seed=seed)
+        x = jax.random.permutation(key, x)
+        y = jax.random.permutation(key, y)
+        if a is not None:
+            a = jax.random.permutation(key, a)
+        if b is not None:
+            b = jax.random.permutation(key, b)
+        return (
+            x[:n_train_x],
+            y[:n_train_y],
+            x[n_train_x:],
+            y[n_train_y:],
+            a[:n_train_x] if a is not None else None,
+            b[:n_train_x] if b is not None else None,
+            a[n_train_x:] if a is not None else None,
+            b[n_train_x:] if b is not None else None,
+        )
+
+    @property
+    def solver(self) -> NeuralDualSolver:
+        """Underlying optimal transport solver."""
+        return self._solver
+
+    @property
+    def problem_kind(self) -> ProblemKind_t:
+        return "linear"
+
+
+class CondNeuralSolver(NeuralSolver):
+    """Solver class solving Conditional Neural Optimal Transport problems."""
+
+    def __init__(self, **kwargs: Any) -> None:
+        super().__init__(conditional=True, **kwargs)
+
+    def _prepare(  # type: ignore[override]
+        self,
+        xy: Dict[Any, Tuple[TaggedArray, ArrayLike, ArrayLike]],
+        sample_pairs: List[Tuple[Any, Any]],
+        train_size: float = 0.9,
+        **kwargs: Any,
+    ) -> Tuple[JaxSampler, JaxSampler]:
+        train_data: List[Optional[ArrayLike]] = []
+        train_a: List[Optional[ArrayLike]] = []
+        train_b: List[Optional[ArrayLike]] = []
+        valid_data: List[Optional[ArrayLike]] = []
+        valid_a: List[Optional[ArrayLike]] = []
+        valid_b: List[Optional[ArrayLike]] = []
+
+        sample_to_idx: Dict[int, Any] = {}
+        kwargs = _filter_kwargs(JaxSampler, **kwargs)
+        if train_size == 1.0:
+            train_data = [d[0].data_src for d in xy.values()]
+            train_a = [d[1] for d in xy.values()]
+            train_b = [d[2] for d in xy.values()]
+            valid_data, valid_a, valid_b = train_data, train_a, train_b
+            sample_to_idx = {k: i for i, k in enumerate(xy.keys())}
+        else:
+            if train_size > 1.0 or train_size <= 0.0:
+                raise ValueError("Invalid train_size. Must be: 0 < train_size <= 1")
+
+            seed = kwargs.pop("seed", 0)
+            for i, (k, (d, a, b)) in enumerate(xy.items()):
+                t_data, v_data, t_a, t_b, v_a, v_b = self._split_data(
+                    d.data_src, train_size=train_size, seed=seed, a=a, b=b
+                )
+                train_data.append(t_data)
+                train_a.append(t_a)
+                train_b.append(t_b)
+                valid_data.append(v_data)
+                valid_a.append(v_a)
+                valid_b.append(v_b)
+                sample_to_idx[k] = i
+
+        self._train_sampler = JaxSampler(
+            train_data, sample_pairs, conditional=True, a=train_a, b=train_b, sample_to_idx=sample_to_idx, **kwargs
+        )
+        self._valid_sampler = JaxSampler(
+            valid_data, sample_pairs, conditional=True, a=valid_a, b=valid_b, sample_to_idx=sample_to_idx, **kwargs
+        )
+        return (self._train_sampler, self._valid_sampler)
+
+    def _split_data(  # type:ignore[override]
+        self,
+        x: ArrayLike,
+        train_size: float,
+        seed: int,
+        a: Optional[ArrayLike] = None,
+        b: Optional[ArrayLike] = None,
+    ) -> Tuple[
+        ArrayLike, ArrayLike, Optional[ArrayLike], Optional[ArrayLike], Optional[ArrayLike], Optional[ArrayLike]
+    ]:
+        n_samples_x = x.shape[0]
+        n_train_x = math.ceil(train_size * n_samples_x)
+        key = jax.random.PRNGKey(seed=seed)
+        x = jax.random.permutation(key, x)
+        if a is not None:
+            a = jax.random.permutation(key, a)
+        if b is not None:
+            b = jax.random.permutation(key, b)
+        return (
+            x[:n_train_x],
+            x[n_train_x:],
+            a[:n_train_x] if a is not None else None,
+            b[:n_train_x] if b is not None else None,
+            a[n_train_x:] if a is not None else None,
+            b[n_train_x:] if b is not None else None,
+        )

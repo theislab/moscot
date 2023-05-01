@@ -1,18 +1,14 @@
-from moscot.datasets import simulate_data
-from typing import Any, List, Mapping
+from typing import List
 
+import anndata as ad
+import numpy as np
 import pandas as pd
 import pytest
 
-import numpy as np
-
-import anndata as ad
-
-
 from moscot.problems.time import TemporalNeuralProblem
-from moscot.solvers._output import BaseSolverOutput
+from moscot.base.output import BaseSolverOutput
 from moscot.problems.time._lineage import BirthDeathProblem
-from tests._utils import ATOL, RTOL, MockSolverOutput
+from tests._utils import ATOL, RTOL
 from tests.problems.conftest import (
     neuraldual_args_1,
     neuraldual_args_2,
@@ -183,8 +179,7 @@ class TestTemporalNeuralProblem:
         problem = TemporalNeuralProblem(gt_temporal_adata)
         problem = problem.prepare(key)
         assert set(problem.problems.keys()) == {(key_1, key_2), (key_2, key_3)}
-        problem[(key_1, key_2)]._solution = MockSolverOutput(gt_temporal_adata.uns["tmap_10_105"])
-        problem[(key_2, key_3)]._solution = MockSolverOutput(gt_temporal_adata.uns["tmap_105_11"])
+        problem = problem.solve(**neuraldual_args_1)
 
         cell_types_present_key_1 = (
             gt_temporal_adata[gt_temporal_adata.obs[key] == key_1].obs["cell_type"].cat.categories
@@ -220,8 +215,7 @@ class TestTemporalNeuralProblem:
         problem = TemporalNeuralProblem(gt_temporal_adata)
         problem = problem.prepare(key)
         assert set(problem.problems.keys()) == {(key_1, key_2), (key_2, key_3)}
-        problem[key_1, key_2]._solution = MockSolverOutput(gt_temporal_adata.uns["tmap_10_105"])
-        problem[key_2, key_3]._solution = MockSolverOutput(gt_temporal_adata.uns["tmap_105_11"])
+        problem = problem.solve(**neuraldual_args_1)
 
         early_annotation = ["Stromal", "unknown"]
         late_annotation = ["Stromal", "Epithelial"]

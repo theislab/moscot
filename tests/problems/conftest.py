@@ -284,7 +284,6 @@ neuraldual_solver_args = {
     "batch_size": "batch_size",
     "tau_a": "tau_a",
     "tau_b": "tau_b",
-    "epsilon": "epsilon",
     "pos_weights": "pos_weights",
     "beta": "beta",
     "best_model_metric": "best_model_metric",
@@ -297,7 +296,6 @@ neuraldual_solver_args = {
     "optimizer_g_kwargs": "optimizer_g_kwargs",
     "pretrain_iters": "pretrain_iters",
     "pretrain_scale": "pretrain_scale",
-    "valid_sinkhorn_kwargs": "valid_sinkhorn_kwargs",
     "compute_wasserstein_baseline": "compute_wasserstein_baseline",
     "key": "key",
 }

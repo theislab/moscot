@@ -369,3 +369,24 @@ class MatrixSolverOutput(BaseSolverOutput):
         import jax.numpy as jnp
 
         return jnp.ones((n,), dtype=self.transport_matrix.dtype)
+
+
+class BaseNeuralOutput(BaseSolverOutput, ABC):
+    @abstractmethod
+    def project_transport_matrix(
+        self,
+        source: Optional[ArrayLike] = None,
+        target: Optional[ArrayLike] = None,
+        forward: bool = True,
+        save_transport_matrix: bool = False,
+        batch_size: int = 1024,
+        k: int = 30,
+        length_scale: Optional[float] = None,
+        seed: int = 42,
+    ) -> sp.csr_matrix:
+        pass
+
+    @property
+    @abstractmethod
+    def inverse_transport_matrix(selft) -> ArrayLike:
+        pass

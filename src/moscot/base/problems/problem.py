@@ -27,8 +27,9 @@ from moscot.base.output import BaseSolverOutput
 from moscot.base.problems._utils import require_solution, wrap_prepare, wrap_solve
 from moscot.base.solver import OTSolver
 from moscot.utils.tagged_array import Tag, TaggedArray
+from moscot.utils.subset_policy import Policy_t, SubsetPolicy, create_policy
 
-__all__ = ["BaseProblem", "OTProblem"]
+__all__ = ["BaseProblem", "OTProblem", "NeuralOTProblem", "CondOTProblem"]
 
 
 @d.get_sections(base="BaseProblem", sections=["Parameters", "Raises"])
@@ -327,7 +328,12 @@ class OTProblem(BaseProblem):
         - :attr:`solver`: optimal transport solver.
         - :attr:`solution`: optimal transport solution.
         """
-        self._solver = backends.get_solver(self.problem_kind, backend=backend, **kwargs)
+        self._solver = backends.get_solver(
+            self.problem_kind,
+            neural=isinstance(self, NeuralOTProblem),
+            backend=backend,
+            **kwargs,
+        )
 
         # TODO: add ScaleCost(scale_cost)
 
@@ -664,3 +670,242 @@ class OTProblem(BaseProblem):
 
     def __str__(self) -> str:
         return repr(self)
+
+class NeuralOTProblem(OTProblem):  # TODO override set_x/set_y
+    """Base class for non-conditional neural optimal transport problems."""
+
+    @d.get_sections(base="OTProblem_solve", sections=["Parameters", "Raises"])
+    @wrap_solve
+    def solve(
+        self,
+        backend: Literal["ott"] = "ott",
+        device: Optional[Device_t] = None,
+        **kwargs: Any,
+    ) -> "OTProblem":
+        """Solve method."""
+        if self._xy is None:
+            raise ValueError("Unable to solve the problem without `xy`.")
+        return super().solve(
+            backend=backend, device=device, conditional=False, input_dim=self._xy.data_src.shape[1], **kwargs
+        )
+
+    @require_solution
+    def project_transport_matrix(
+        self,
+        source: Optional[ArrayLike] = None,
+        target: Optional[ArrayLike] = None,
+        forward: bool = True,
+        save_transport_matrix: bool = False,
+        batch_size: int = 1024,
+        k: int = 30,
+        length_scale: Optional[float] = None,
+        seed: int = 42,
+    ) -> sp.csr_matrix:
+        """
+        Project Neural OT map onto cells.
+        In constrast to discrete OT, Neural OT does not necessarily map cells onto cells,
+        but a cell can also be mapped to a location between two cells. This function computes
+        a pseudo-transport matrix considering the neighborhood of where a cell is mapped to.
+        Therefore, a neighborhood graph of `k` target cells is computed around each transported cell
+        of the source distribution. The assignment likelihood of each mapped cell to the target cells is then
+        computed with a Gaussian kernel with parameter `length_scale`.
+        Parameters
+        ----------
+        source
+            If `None`, the source cells are extracted from the :attr:`moscot.base.NeuralOTProblem.adata`, otherwise the
+            provided data is used.
+        target
+            If `None`, the target cells are extracted from the :attr:`moscot.base.NeuralOTProblem.adata`, otherwise the
+            provided data is used.
+        forward
+            Whether to map cells based on the forward transport map or backward transport map.
+        save_transport_matrix
+            Whether to save the transport matrix.
+        batch_size
+            Number of data points in the source distribution the neighborhoodgraph is computed
+            for in parallel.
+        k
+            Number of neighbors to construct the k-nearest neighbor graph of a mapped cell.
+        length_scale
+            Length scale of the Gaussian kernel used to compute the assignment likelihood. If `None`,
+            `length_scale` is set to the empirical standard deviation of `batch_size` pairs of data points of the
+            mapped source and target distribution.
+        seed
+            Random seed for sampling the pairs of distributions for computing the variance in case `length_scale`
+            is `None`.
+        Returns
+        -------
+        The projected transport matrix.
+        """
+        if TYPE_CHECKING:
+            assert isinstance(self._xy, TaggedArray)  # ensured by require_solution
+        src_data = self._xy.data_src if source is None else source
+        tgt_data = self._xy.data_tgt if target is None else target
+        return self.solution.project_transport_matrix(  # type:ignore[union-attr]
+            src_data,
+            tgt_data,
+            forward=forward,
+            save_transport_matrix=save_transport_matrix,
+            batch_size=batch_size,
+            k=k,
+            length_scale=length_scale,
+            seed=seed,
+        )
+
+
+class CondOTProblem(BaseProblem):  # TODO(@MUCDK) check generic types, save and load
+    """
+    Base class for all optimal transport problems.
+    Parameters
+    ----------
+    adata
+        Source annotated data object.
+    kwargs
+        Keyword arguments for :class:`moscot.problems.base.BaseProblem.`
+    Notes
+    -----
+    If any of the source/target masks are specified, :attr:`adata_src`/:attr:`adata_tgt` will be a view.
+    """
+
+    def __init__(
+        self,
+        adata: AnnData,
+        **kwargs: Any,
+    ):
+        super().__init__(**kwargs)
+        self._adata = adata
+
+        self._distributions: Dict[Any, Tuple[TaggedArray, ArrayLike, ArrayLike]] = {}
+        self._inner_policy: Optional[SubsetPolicy[Any]] = None
+        self._sample_pairs: Optional[List[Tuple[Any, Any]]] = None
+
+        self._solver: Optional[OTSolver[BaseSolverOutput]] = None
+        self._solution: Optional[BaseSolverOutput] = None
+
+        self._a: Optional[str] = None
+        self._b: Optional[str] = None
+
+    @wrap_prepare
+    def prepare(
+        self,
+        policy_key: str,
+        policy: Policy_t,
+        xy: Mapping[str, Any],
+        a: Optional[str] = None,
+        b: Optional[str] = None,
+        **kwargs: Any,
+    ) -> "CondOTProblem":
+        """Prepare conditional optimal transport problem.
+        Parameters
+        ----------
+        xy
+            Geometry defining the linear term. If passed as a :class:`dict`,
+            :meth:`~moscot.solvers.TaggedArray.from_adata` will be called.
+        policy
+            Policy defining which pairs of distributions to sample from during training.
+        policy_key
+            %(key)s
+        cond_dim
+            Dimension of condition. Expected to be in the last dimensions of axis 1.
+        a
+            Source marginals.
+        b
+            Target marginals.
+        kwargs
+            Keyword arguments when creating the source/target marginals.
+        Returns
+        -------
+        Self and modifies the following attributes:
+        TODO
+        """
+        self._a = a
+        self._b = b
+        self._solution = None
+
+        self._inner_policy = create_policy(policy, adata=self.adata, key=policy_key)
+        self._sample_pairs = list(self._inner_policy()._graph)
+
+        xy = {k[2:]: v for k, v in xy.items() if k.startswith("x_")}
+        for (src, tgt), (src_mask, tgt_mask) in self._inner_policy().create_masks().items():
+            if src not in self._distributions.keys():
+                x_tagged = TaggedArray.from_adata(self.adata[src_mask], dist_key=policy_key, tag=Tag.POINT_CLOUD, **xy)
+                a = self._create_marginals(self.adata[src_mask], data=self._a, source=True, **kwargs)
+                b = self._create_marginals(self.adata[src_mask], data=self._b, source=False, **kwargs)
+                self._distributions[src] = (x_tagged, a, b)
+            if tgt not in self._distributions.keys():
+                x_tagged = TaggedArray.from_adata(self.adata[tgt_mask], dist_key=policy_key, tag=Tag.POINT_CLOUD, **xy)
+                a = self._create_marginals(self.adata[tgt_mask], data=self._a, source=True, **kwargs)
+                b = self._create_marginals(self.adata[tgt_mask], data=self._b, source=False, **kwargs)
+                self._distributions[tgt] = (x_tagged, a, b)
+
+        return self
+
+    @wrap_solve
+    def solve(
+        self,
+        backend: Literal["ott"] = "ott",
+        device: Optional[Device_t] = None,
+        **kwargs: Any,
+    ) -> "CondOTProblem":
+        """Solve optimal transport problem.
+        Parameters
+        ----------
+        backend
+            Which backend to use, see :func:`moscot.backends.get_available_backends`.
+        device
+            Device where to transfer the solution, see :meth:`moscot.solvers.BaseSolverOutput.to`.
+        kwargs
+            Keyword arguments for :meth:`moscot.solvers.BaseSolver.__call__`.
+        Returns
+        -------
+        Self and modifies the following attributes:
+        - :attr:`solver`: optimal transport solver.
+        - :attr:`solution`: optimal transport solution.
+        """
+
+        self._solver = backends.get_solver(
+            problem_kind=self._problem_kind,
+            neural="cond",
+            distributions=self._distributions,
+            sample_pairs=self._sample_pairs,
+            input_dim=list(self._distributions.values())[0][0].data_src.shape[1],
+            **kwargs,
+        )
+
+        self._solution = self._solver(  # type: ignore[misc]
+            xy=self._distributions,
+            sample_pairs=self._sample_pairs,
+            device=device,
+            **kwargs,
+        )
+
+        return self
+
+    def _create_marginals(
+        self, adata: AnnData, *, source: bool, data: Optional[str] = None, **kwargs: Any
+    ) -> ArrayLike:
+        if data is True:
+            marginals = self._estimate_marginals(adata, source=source, **kwargs)
+        elif data in (False, None):
+            marginals = np.ones((adata.n_obs,), dtype=float) / adata.n_obs
+        elif isinstance(data, str):
+            try:
+                marginals = np.asarray(adata.obs[data], dtype=float)
+            except KeyError:
+                raise KeyError(f"Unable to find data in `adata.obs[{data!r}]`.") from None
+        return marginals
+
+    @property
+    def adata(self) -> AnnData:
+        """Source annotated data object."""
+        return self._adata
+    
+    @property
+    def solution(self) -> Optional[BaseSolverOutput]:
+        """Solution of the optimal transport problem."""
+        return self._solution
+    
+    @property
+    def solver(self) -> Optional[BaseSolverOutput]:
+        """Solver of the optimal transport problem."""
+        return self._solver

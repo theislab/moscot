@@ -187,6 +187,6 @@ class ICNN(nn.Module):
         input_shape: Union[int, Tuple[int, ...]],
     ) -> train_state.TrainState:
         """Create initial `TrainState`."""
-        condition = jnp.ones([2]) if self.conditional else None
+        condition = jnp.ones(shape=[2,]) if self.conditional else None
         params = self.init(rng, x=jnp.ones(input_shape), c=condition)["params"]
         return train_state.TrainState.create(apply_fn=self.apply, params=params, tx=optimizer)

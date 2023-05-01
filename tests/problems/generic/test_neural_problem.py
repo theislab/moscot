@@ -1,11 +1,9 @@
-from typing import Mapping, Any
 import anndata as ad 
 import numpy as np
-import pandas as pd
 import pytest
 
-from moscot.problems.base import NeuralOTProblem
-from moscot.solvers._output import BaseSolverOutput
+from moscot.base.problems import NeuralOTProblem
+from moscot.base.output import BaseSolverOutput
 from moscot.problems.generic import NeuralProblem  # type: ignore[attr-defined]
 from tests.problems.conftest import (
     neuraldual_args_1,
@@ -36,7 +34,7 @@ class TestNeuralProblem:
     def test_solve_balanced_no_baseline(self, adata_time: ad.AnnData):  # type: ignore[no-untyped-def]
         expected_keys = [(0, 1), (1, 2)]
         problem = NeuralProblem(adata=adata_time)
-        problem = problem.prepare(time_key="time", joint_attr="X_pca")
+        problem = problem.prepare(key="time", joint_attr="X_pca")
         problem = problem.solve(**neuraldual_args_1)
 
         for key, subsol in problem.solutions.items():
@@ -46,7 +44,7 @@ class TestNeuralProblem:
     def test_solve_unbalanced_with_baseline(self, adata_time: ad.AnnData):
         expected_keys = [(0, 1), (1, 2)]
         problem = NeuralProblem(adata=adata_time)
-        problem = problem.prepare(time_key="time", joint_attr="X_pca")
+        problem = problem.prepare(key="time", joint_attr="X_pca")
         problem = problem.solve(**neuraldual_args_2)
 
         for key, subsol in problem.solutions.items():
@@ -56,7 +54,7 @@ class TestNeuralProblem:
     def test_reproducibility(self, adata_time: ad.AnnData):
         pc_tzero = adata_time[adata_time.obs["time"] == 0].obsm["X_pca"]
         problem_one = NeuralProblem(adata=adata_time)
-        problem_one = problem_one.prepare(time_key="time", joint_attr="X_pca")
+        problem_one = problem_one.prepare(key="time", joint_attr="X_pca")
         problem_one = problem_one.solve(**neuraldual_args_1)
 
         problem_two = NeuralProblem(adata=adata_time)
