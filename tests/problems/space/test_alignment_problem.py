@@ -1,5 +1,5 @@
-from typing import Any, Literal, Mapping, Optional
 from pathlib import Path
+from typing import Any, Literal, Mapping, Optional
 
 import pytest
 
@@ -12,11 +12,11 @@ from tests.problems.conftest import (
     fgw_args_1,
     fgw_args_2,
     geometry_args,
-    gw_solver_args,
-    quad_prob_args,
-    pointcloud_args,
     gw_linear_solver_args,
     gw_lr_linear_solver_args,
+    gw_solver_args,
+    pointcloud_args,
+    quad_prob_args,
 )
 
 # TODO(giovp): refactor as fixture
@@ -75,7 +75,7 @@ class TestAlignmentProblem:
             if initializer == "random":
                 # kwargs["kwargs_init"] = {"key": 0}
                 # kwargs["key"] = 0
-                return 0  # TODO(@MUCDK) fix after refactoring
+                return  # TODO(@MUCDK) fix after refactoring
         ap = (
             AlignmentProblem(adata=adata_space_rotate)
             .prepare(batch_key="batch")
@@ -86,9 +86,12 @@ class TestAlignmentProblem:
             if initializer != "random":  # TODO: is this valid?
                 assert ap[prob_key].solution.converged
 
+        # TODO(michalk8): use np.testing
         assert np.allclose(*(sol.cost for sol in ap.solutions.values()))
         assert np.all([sol.converged for sol in ap.solutions.values()])
-        assert np.all([np.all(~np.isnan(sol.transport_matrix)) for sol in ap.solutions.values()])
+        np.testing.assert_array_equal(
+            [np.all(np.isfinite(sol.transport_matrix)) for sol in ap.solutions.values()], True
+        )
 
     def test_solve_unbalanced(self, adata_space_rotate: AnnData):
         tau_a, tau_b = [0.8, 1]

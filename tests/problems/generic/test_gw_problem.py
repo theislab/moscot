@@ -1,24 +1,24 @@
-from typing import Any, Tuple, Literal, Mapping
+from typing import Any, Literal, Mapping, Tuple
 
-import pandas as pd
 import pytest
 
-from ott.geometry.costs import Cosine, Euclidean, SqEuclidean
 import numpy as np
+import pandas as pd
+from ott.geometry.costs import Cosine, Euclidean, SqEuclidean
 
 from anndata import AnnData
 
-from moscot.problems.base import OTProblem  # type:ignore[attr-defined]
-from moscot.solvers._output import BaseSolverOutput
-from moscot.problems.generic import GWProblem  # type:ignore[attr-defined]
+from moscot.base.output import BaseSolverOutput
+from moscot.base.problems import OTProblem
+from moscot.problems.generic import GWProblem
 from tests.problems.conftest import (
+    geometry_args,
     gw_args_1,
     gw_args_2,
-    geometry_args,
-    gw_solver_args,
-    quad_prob_args,
     gw_linear_solver_args,
     gw_lr_linear_solver_args,
+    gw_solver_args,
+    quad_prob_args,
 )
 
 
@@ -35,8 +35,8 @@ class TestGWProblem:
         problem = problem.prepare(
             key="batch",
             policy="sequential",
-            GW_x={"attr": "obsm", "key": "spatial"},
-            GW_y={"attr": "obsm", "key": "spatial"},
+            x_attr={"attr": "obsm", "key": "spatial"},
+            y_attr={"attr": "obsm", "key": "spatial"},
         )
 
         assert isinstance(problem.problems, dict)
@@ -53,8 +53,8 @@ class TestGWProblem:
         problem = problem.prepare(
             key="batch",
             policy="sequential",
-            GW_x={"attr": "obsm", "key": "spatial"},
-            GW_y={"attr": "obsm", "key": "spatial"},
+            x_attr={"attr": "obsm", "key": "spatial"},
+            y_attr={"attr": "obsm", "key": "spatial"},
         )
         problem = problem.solve(epsilon=eps)
 
@@ -69,8 +69,8 @@ class TestGWProblem:
         problem = problem.prepare(
             key="batch",
             policy="sequential",
-            GW_x={"attr": "obsm", "key": "spatial"},
-            GW_y={"attr": "obsm", "key": "spatial"},
+            x_attr={"attr": "obsm", "key": "spatial"},
+            y_attr={"attr": "obsm", "key": "spatial"},
         )
         problem = problem.solve(epsilon=0.5)
         assert problem["0", "1"].solution.converged
@@ -90,8 +90,8 @@ class TestGWProblem:
         adata_space_rotate = adata_space_rotate[adata_space_rotate.obs["batch"].isin((0, 1))].copy()
         problem = problem.prepare(
             key="batch",
-            GW_x={"attr": "obsm", "key": "spatial"},
-            GW_y={"attr": "obsm", "key": "spatial"},
+            x_attr={"attr": "obsm", "key": "spatial"},
+            y_attr={"attr": "obsm", "key": "spatial"},
             policy="sequential",
         )
 
@@ -131,8 +131,8 @@ class TestGWProblem:
         problem = problem.prepare(
             key="time",
             policy="sequential",
-            GW_x="X_pca",
-            GW_y="X_pca",
+            x_attr="X_pca",
+            y_attr="X_pca",
             cost=cost[0],
         )
         assert isinstance(problem[0, 1].x.cost, cost[1])
@@ -144,8 +144,8 @@ class TestGWProblem:
         adata_time = adata_time[adata_time.obs["time"].isin((0, 1))].copy()
         problem = GWProblem(adata=adata_time)
         problem = problem.prepare(
-            GW_x="X_pca",
-            GW_y="X_pca",
+            x_attr="X_pca",
+            y_attr="X_pca",
             key="time",
             policy="sequential",
         )
@@ -170,8 +170,8 @@ class TestGWProblem:
         adata_time = adata_time[adata_time.obs["time"].isin((0, 1))].copy()
         problem = GWProblem(adata=adata_time)
         problem = problem.prepare(
-            GW_x="X_pca",
-            GW_y="X_pca",
+            x_attr="X_pca",
+            y_attr="X_pca",
             key="time",
             policy="sequential",
         )
@@ -196,8 +196,8 @@ class TestGWProblem:
         problem = problem.prepare(
             key="time",
             policy="sequential",
-            GW_x="X_pca",
-            GW_y="X_pca",
+            x_attr="X_pca",
+            y_attr="X_pca",
             cost={"x": "euclidean", "y": "sq_euclidean"},
         )
         assert isinstance(problem[0, 1].x.cost, Euclidean)

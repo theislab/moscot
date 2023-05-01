@@ -1,16 +1,14 @@
-from typing import Any, List, Type, Tuple, Union, Optional
-
-from scipy.sparse import csr_matrix
+from typing import Any, List, Optional, Tuple, Type, Union
 
 import numpy as np
+from scipy.sparse import csr_matrix
 
 from anndata import AnnData
 
 from moscot._types import ArrayLike
-from moscot.problems.base import OTProblem, CompoundProblem
-from moscot.solvers._output import MatrixSolverOutput
-from moscot.problems.base._mixins import AnalysisMixin
-from moscot.problems.base._compound_problem import B
+from moscot.base.output import MatrixSolverOutput
+from moscot.base.problems import AnalysisMixin, CompoundProblem, OTProblem
+from moscot.base.problems.compound_problem import B
 
 Geom_t = Union[np.ndarray, Tuple[np.ndarray, np.ndarray]]
 RTOL = 1e-6
@@ -37,6 +35,10 @@ class MockSolverOutput(MatrixSolverOutput):
         return True
 
     @property
+    def is_linear(self) -> bool:
+        return True
+
+    @property
     def potentials(self) -> Tuple[Optional[ArrayLike], Optional[ArrayLike]]:
         return None, None
 
@@ -44,18 +46,10 @@ class MockSolverOutput(MatrixSolverOutput):
         return np.ones(n)
 
 
-class MockBaseSolverOutput:
-    def __init__(self, len_a: int, len_b: int):
-        rng = np.random.RandomState(42)
-        self.a = rng.randn(len_a)
-        self.b = rng.randn(len_b)
-
-
 def _make_adata(grid: ArrayLike, n: int, seed) -> List[AnnData]:
-    rng = np.random.default_rng(seed)
+    rng = np.random.RandomState(seed)
     X = rng.normal(size=(100, 60))
-    adatas = [AnnData(X=csr_matrix(X), obsm={"spatial": grid.copy()}, dtype=X.dtype) for _ in range(n)]
-    return adatas
+    return [AnnData(X=csr_matrix(X), obsm={"spatial": grid.copy()}, dtype=X.dtype) for _ in range(n)]
 
 
 def _adata_spatial_split(adata: AnnData) -> Tuple[AnnData, AnnData]:
@@ -70,8 +64,7 @@ def _make_grid(grid_size: int) -> ArrayLike:
     x1s = np.linspace(*xlimits, num=grid_size)
     x2s = np.linspace(*ylimits, num=grid_size)
     X1, X2 = np.meshgrid(x1s, x2s)
-    X_orig_single = np.vstack([X1.ravel(), X2.ravel()]).T
-    return X_orig_single
+    return np.vstack([X1.ravel(), X2.ravel()]).T
 
 
 class Problem(CompoundProblem[Any, OTProblem]):

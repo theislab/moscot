@@ -1,8 +1,8 @@
-from sklearn.metrics import pairwise_distances
-import pandas as pd
 import pytest
 
 import numpy as np
+import pandas as pd
+from sklearn.metrics import pairwise_distances
 
 from anndata import AnnData
 

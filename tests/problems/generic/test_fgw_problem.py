@@ -1,25 +1,25 @@
-from typing import Any, Tuple, Literal, Mapping
+from typing import Any, Literal, Mapping, Tuple
 
-import pandas as pd
 import pytest
 
-from ott.geometry.costs import Cosine, Euclidean, SqEuclidean
 import numpy as np
+import pandas as pd
+from ott.geometry.costs import Cosine, Euclidean, SqEuclidean
 
 from anndata import AnnData
 
-from moscot.problems.base import OTProblem  # type:ignore[attr-defined]
-from moscot.solvers._output import BaseSolverOutput
-from moscot.problems.generic import GWProblem  # type:ignore[attr-defined]
+from moscot.base.output import BaseSolverOutput
+from moscot.base.problems import OTProblem
+from moscot.problems.generic import GWProblem
 from tests.problems.conftest import (
     fgw_args_1,
     fgw_args_2,
     geometry_args,
-    gw_solver_args,
-    quad_prob_args,
-    pointcloud_args,
     gw_linear_solver_args,
     gw_lr_linear_solver_args,
+    gw_solver_args,
+    pointcloud_args,
+    quad_prob_args,
 )
 
 
@@ -37,8 +37,8 @@ class TestFGWProblem:
             key="batch",
             policy="sequential",
             joint_attr="X_pca",
-            GW_x={"attr": "obsm", "key": "spatial"},
-            GW_y={"attr": "obsm", "key": "spatial"},
+            x_attr={"attr": "obsm", "key": "spatial"},
+            y_attr={"attr": "obsm", "key": "spatial"},
         )
 
         assert isinstance(problem.problems, dict)
@@ -48,7 +48,7 @@ class TestFGWProblem:
             assert key in expected_keys
             assert isinstance(problem[key], OTProblem)
 
-    def test_solve_balanced(self, adata_space_rotate: AnnData):  # type: ignore[no-untyped-def]
+    def test_solve_balanced(self, adata_space_rotate: AnnData):
         eps = 0.5
         adata_space_rotate = adata_space_rotate[adata_space_rotate.obs["batch"].isin(("0", "1"))].copy()
         expected_keys = [("0", "1"), ("1", "2")]
@@ -57,8 +57,8 @@ class TestFGWProblem:
             key="batch",
             policy="sequential",
             joint_attr="X_pca",
-            GW_x={"attr": "obsm", "key": "spatial"},
-            GW_y={"attr": "obsm", "key": "spatial"},
+            x_attr={"attr": "obsm", "key": "spatial"},
+            y_attr={"attr": "obsm", "key": "spatial"},
         )
         problem = problem.solve(alpha=0.5, epsilon=eps)
 
@@ -73,8 +73,8 @@ class TestFGWProblem:
             key="batch",
             policy="sequential",
             joint_attr="X_pca",
-            GW_x={"attr": "obsm", "key": "spatial"},
-            GW_y={"attr": "obsm", "key": "spatial"},
+            x_attr={"attr": "obsm", "key": "spatial"},
+            y_attr={"attr": "obsm", "key": "spatial"},
         )
 
         problem = problem.solve(**args_to_check)
@@ -116,8 +116,8 @@ class TestFGWProblem:
             key="time",
             policy="sequential",
             joint_attr="X_umap",
-            GW_x="X_pca",
-            GW_y="X_pca",
+            x_attr="X_pca",
+            y_attr="X_pca",
             cost=cost[0],
         )
         assert isinstance(problem[0, 1].xy.cost, cost[1])
@@ -130,8 +130,8 @@ class TestFGWProblem:
         adata_time = adata_time[adata_time.obs["time"].isin((0, 1))].copy()
         problem = GWProblem(adata=adata_time)
         problem = problem.prepare(
-            GW_x="X_pca",
-            GW_y="X_pca",
+            x_attr="X_pca",
+            y_attr="X_pca",
             joint_attr="X_pca",
             key="time",
             policy="sequential",
@@ -157,8 +157,8 @@ class TestFGWProblem:
         adata_time = adata_time[adata_time.obs["time"].isin((0, 1))].copy()
         problem = GWProblem(adata=adata_time)
         problem = problem.prepare(
-            GW_x="X_pca",
-            GW_y="X_pca",
+            x_attr="X_pca",
+            y_attr="X_pca",
             joint_attr="X_pca",
             key="time",
             policy="sequential",
@@ -183,8 +183,8 @@ class TestFGWProblem:
         adata_time = adata_time[adata_time.obs["time"].isin((0, 1))].copy()
         problem = GWProblem(adata=adata_time)
         problem = problem.prepare(
-            GW_x="X_pca",
-            GW_y="X_pca",
+            x_attr="X_pca",
+            y_attr="X_pca",
             joint_attr="X_pca",
             key="time",
             policy="sequential",
@@ -210,8 +210,8 @@ class TestFGWProblem:
             key="time",
             policy="sequential",
             joint_attr="X_umap",
-            GW_x="X_pca",
-            GW_y="X_pca",
+            x_attr="X_pca",
+            y_attr="X_pca",
             cost={"xy": "cosine", "x": "euclidean", "y": "sq_euclidean"},
         )
         assert isinstance(problem[0, 1].xy.cost, Cosine)

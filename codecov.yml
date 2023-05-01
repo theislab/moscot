@@ -1,0 +1,18 @@
+codecov:
+  require_ci_to_pass: true
+  strict_yaml_branch: main
+
+coverage:
+  range: "80...100"
+  status:
+    project:
+      default:
+        target: 75%
+        threshold: 1%
+    patch: off
+
+comment:
+  layout: "reach, diff, files"
+  behavior: default
+  require_changes: true
+  branches: [main]

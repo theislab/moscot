@@ -1,24 +1,24 @@
 from typing import Any, Literal, Mapping
 
-import pandas as pd
 import pytest
 
 import numpy as np
+import pandas as pd
 
 from anndata import AnnData
 
-from moscot.problems.base import OTProblem
-from moscot.solvers._output import BaseSolverOutput
+from moscot.base.output import BaseSolverOutput
+from moscot.base.problems import OTProblem
 from moscot.problems.generic import SinkhornProblem
 from tests.problems.conftest import (
     geometry_args,
     lin_prob_args,
+    lr_pointcloud_args,
+    lr_sinkhorn_solver_args,
     pointcloud_args,
     sinkhorn_args_1,
     sinkhorn_args_2,
-    lr_pointcloud_args,
     sinkhorn_solver_args,
-    lr_sinkhorn_solver_args,
 )
 
 
@@ -44,7 +44,7 @@ class TestSinkhornProblem:
             assert key in expected_keys
             assert isinstance(problem[key], OTProblem)
 
-    def test_solve_balanced(self, adata_time: AnnData):  # type: ignore[no-untyped-def]
+    def test_solve_balanced(self, adata_time: AnnData):
         eps = 0.5
         expected_keys = [(0, 1), (1, 2)]
         problem = SinkhornProblem(adata=adata_time)
@@ -126,10 +126,7 @@ class TestSinkhornProblem:
             el = getattr(geom, val)[0] if isinstance(getattr(geom, val), tuple) else getattr(geom, val)
             assert el == args_to_check[arg]
 
-        if args_to_check["rank"] == -1:
-            args = pointcloud_args
-        else:
-            args = lr_pointcloud_args
+        args = pointcloud_args if args_to_check["rank"] == -1 else lr_pointcloud_args
         for arg, val in args.items():
             el = getattr(geom, val)[0] if isinstance(getattr(geom, val), tuple) else getattr(geom, val)
             assert hasattr(geom, val)

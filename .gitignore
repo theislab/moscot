@@ -134,10 +134,7 @@ dmypy.json
 .idea
 
 # docs
-docs/source/**/genapi
-docs/source/auto_examples
-docs/source/tutorials
-docs/source/gen_modules
+docs/**/genapi
 
 # macOS
 *.DS_Store
@@ -156,4 +153,4 @@ packages.dot
 .vscode
 
 # plotting tests
-tests/plotting/figures/
+tests/plotting/actual_figures/

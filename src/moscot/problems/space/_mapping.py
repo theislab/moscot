@@ -1,17 +1,23 @@
 from types import MappingProxyType
-from typing import Any, Type, Tuple, Union, Literal, Mapping, Optional, Sequence
+from typing import Any, Literal, Mapping, Optional, Sequence, Tuple, Type, Union
 
 from anndata import AnnData
 
-from moscot._types import ArrayLike, Str_Dict_t, ScaleCost_t, ProblemStage_t, QuadInitializer_t
+from moscot import _constants
 from moscot._docs._docs import d
-from moscot._constants._key import Key
+from moscot._types import (
+    ArrayLike,
+    Policy_t,
+    ProblemStage_t,
+    QuadInitializer_t,
+    ScaleCost_t,
+    Str_Dict_t,
+)
+from moscot.base.problems.compound_problem import B, CompoundProblem, K
+from moscot.base.problems.problem import OTProblem
 from moscot.problems._utils import handle_cost, handle_joint_attr
-from moscot._constants._constants import Policy
 from moscot.problems.space._mixins import SpatialMappingMixin
-from moscot.problems._subset_policy import DummyPolicy, ExternalStarPolicy
-from moscot.problems.base._base_problem import OTProblem
-from moscot.problems.base._compound_problem import B, K, CompoundProblem
+from moscot.utils.subset_policy import DummyPolicy, ExternalStarPolicy
 
 __all__ = ["MappingProblem"]
 
@@ -74,7 +80,7 @@ class MappingProblem(CompoundProblem[K, OTProblem], SpatialMappingMixin[K, OTPro
         self,
         sc_attr: Str_Dict_t,
         batch_key: Optional[str] = None,
-        spatial_key: Union[str, Mapping[str, Any]] = Key.obsm.spatial,
+        spatial_key: Union[str, Mapping[str, Any]] = "spatial",
         var_names: Optional[Sequence[Any]] = None,
         joint_attr: Optional[Union[str, Mapping[str, Any]]] = None,
         cost: Union[
@@ -224,21 +230,17 @@ class MappingProblem(CompoundProblem[K, OTProblem], SpatialMappingMixin[K, OTPro
 
     @property
     def filtered_vars(self) -> Optional[Sequence[str]]:
-        """Filtered variables."""  # noqa: D401
+        """Filtered variables."""
         return self._filtered_vars
 
     @filtered_vars.setter
     def filtered_vars(self, value: Optional[Sequence[str]]) -> None:
-        self._filtered_vars = self._filter_vars(var_names=value)
+        self._filtered_vars = self._filter_vars(var_names=value)  # type: ignore[misc]
 
     @property
     def _base_problem_type(self) -> Type[B]:
         return OTProblem  # type: ignore[return-value]
 
     @property
-    def _valid_policies(self) -> Tuple[str, ...]:
-        return (Policy.EXTERNAL_STAR, Policy.DUMMY)
-
-    @property
-    def _secondary_adata(self) -> Optional[AnnData]:
-        return self._adata_sc
+    def _valid_policies(self) -> Tuple[Policy_t, ...]:
+        return _constants.EXTERNAL_STAR, _constants.DUMMY  # type: ignore[return-value]

@@ -1,13 +1,15 @@
-from typing import Any, Tuple, Optional
+import inspect
+from typing import Any, Callable, Dict, Tuple, Optional
 from functools import partial
 
+import jax.numpy as jnp
 from ott.geometry.pointcloud import PointCloud
 from ott.tools.sinkhorn_divergence import sinkhorn_divergence
 import jax
 import jax.numpy as jnp
 
-from moscot._types import ArrayLike, ScaleCost_t
 from moscot._logging import logger
+from moscot._types import ArrayLike, ScaleCost_t
 
 
 def _compute_sinkhorn_divergence(
@@ -15,7 +17,7 @@ def _compute_sinkhorn_divergence(
     point_cloud_2: ArrayLike,
     a: Optional[ArrayLike] = None,
     b: Optional[ArrayLike] = None,
-    epsilon: float = 10.0,
+    epsilon: Optional[float] = 1e-1,
     tau_a: float = 1.0,
     tau_b: float = 1.0,
     scale_cost: ScaleCost_t = 1.0,
@@ -80,3 +82,11 @@ def get_nearest_neighbors(
     pairwise_euclidean_distances = jnp.sqrt(jnp.sum((input_batch - target) ** 2, axis=-1))
     negative_distances, indices = jax.lax.top_k(-1 * pairwise_euclidean_distances, k=k)
     return -1 * negative_distances, indices
+
+
+def _filter_kwargs(*funcs: Callable[..., Any], **kwargs: Any) -> Dict[str, Any]:
+    res = {}
+    for func in funcs:
+        params = inspect.signature(func).parameters
+        res.update({k: v for k, v in kwargs.items() if k in params})
+    return res

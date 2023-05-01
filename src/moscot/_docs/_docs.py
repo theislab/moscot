@@ -9,11 +9,11 @@ adatas
 """
 _adata_x = """\
 adata_x
-    Instance of :class:`anndata.AnnData` containing the data of the source distribution.
+    Instance of :class:`~anndata.AnnData` containing the data of the source distribution.
 """
 _adata_y = """\
 adata_y
-    Instance of :class:`anndata.AnnData` containing the data of the target distribution.
+    Instance of :class:`~anndata.AnnData` containing the data of the target distribution.
 """
 _solver = """\
 solver
@@ -21,14 +21,14 @@ solver
 """
 _source = """\
 source
-    Value in :attr:`anndata.AnnData.obs` defining the assignment to the source distribution."""
+    Value in :attr:`~anndata.AnnData.obs` defining the assignment to the source distribution."""
 _target = """\
 target
-    Value in :attr:`anndata.AnnData.obs` defining the assignment to the target distribution.
+    Value in :attr:`~anndata.AnnData.obs` defining the assignment to the target distribution.
 """
 _reference = """\
 reference
-    `reference` in :class:`moscot.problems._subset_policy.StarPolicy`.
+    `reference` in the :class:`~moscot.utils.subset_policy.StarPolicy`.
 """
 _xy_callback = """\
 xy_callback
@@ -86,7 +86,7 @@ data
     - If `data` is a :class:`str` this should correspond to a column in :attr:`anndata.AnnData.obs`.
       The transport map is applied to the subset corresponding to the source distribution
       (if `forward` is `True`) or target distribution (if `forward` is :obj:`False`) of that column.
-    - If `data` is a :class:npt.ArrayLike the transport map is applied to `data`.
+    - If `data` is a :class:`numpy.ndarray`, the transport map is applied to `data`.
     - If `data` is a :class:`dict` then the keys should correspond to the tuple defining a single optimal
       transport map and the value should be one of the two cases described above.
 """
@@ -96,23 +96,12 @@ subset
 """
 _marginal_kwargs = r"""
 marginal_kwargs
-    Keyword arguments for :meth:`~moscot.problems.BirthDeathProblem._estimate_marginals`. If ``'scaling'``
+    Keyword arguments for :meth:`~moscot.base.problems.BirthDeathProblem.estimate_marginals`. If ``'scaling'``
     is in ``marginal_kwargs``, the left marginals are computed as
     :math:`\exp(\frac{(\textit{proliferation} - \textit{apoptosis}) \cdot (t_2 - t_1)}{\textit{scaling}})`.
     Otherwise, the left marginals are computed using a birth-death process. The keyword arguments
-    are either used for :func:`~moscot.problems.time._utils.beta`, i.e. one of:
-
-        - beta_max: float
-        - beta_min: float
-        - beta_center: float
-        - beta_width: float
-
-    or for :func:`~moscot.problems.time._utils.delta`, i.e. one of:
-
-        - delta_max: float
-        - delta_min: float
-        - delta_center: float
-        - delta_width: float
+    are either used for :func:`~moscot.base.problems.birth_death.beta` or
+    :func:`~moscot.base.problems.birth_death.delta`.
 """
 _shape = """\
 shape
@@ -140,10 +129,10 @@ _a_temporal = r"""
 a
     Specifies the left marginals. If
         - ``a`` is :class:`str` - the left marginals are taken from :attr:`anndata.AnnData.obs`,
-        - if :meth:`~moscot.problems.base._birth_death.BirthDeathMixin.score_genes_for_marginals` was run and
+        - if :meth:`score_genes_for_marginals` was run and
           if ``a`` is `None`, marginals are computed based on a birth-death process as suggested in
           :cite:`schiebinger:19`,
-        - if :meth:`~moscot.problems.base._birth_death.BirthDeathMixin.score_genes_for_marginals` was run and
+        - if :meth:`score_genes_for_marginals` was run and
           if ``a`` is `None`, and additionally ``'scaling'`` is provided in ``marginal_kwargs``,
           the marginals are computed as
           :math:`\exp(\frac{(\textit{proliferation} - \textit{apoptosis}) \cdot (t_2 - t_1)}{\textit{scaling}})`
@@ -154,7 +143,7 @@ _b_temporal = """\
 b
     Specifies the right marginals. If
         - ``b`` is :class:`str` - the left marginals are taken from :attr:`anndata.AnnData.obs`,
-        - if :meth:`~moscot.problems.base._birth_death.BirthDeathMixin.score_genes_for_marginals` was run
+        - if :meth:`score_genes_for_marginals` was run
           uniform (mean of left marginals) right marginals are used,
         - otherwise or if ``b`` is :obj:`False`, uniform marginals are used.
 """
@@ -186,15 +175,15 @@ joint_attr
     - If `dict`, the dictionary stores `attr` (attribute of :class:`anndata.AnnData`) and `key`
       (key of :class:`anndata.AnnData` ``['{attr}']``).
 """
-_GW_x = """\
-GW_x
+_x_attr = """\
+x_attr
 
     - If `str`, it must refer to a key in :attr:`anndata.AnnData.obsm`.
     - If `dict`, the dictionary stores `attr` (attribute of :class:`anndata.AnnData`) and `key`
       (key of :class:`anndata.AnnData` ``['{attr}']``).
 """
-_GW_y = """\
-GW_y
+_y_attr = """\
+y_attr
 
     - If `str`, it must refer to a key in :attr:`anndata.AnnData.obsm`.
     - If `dict`, the dictionary stores `attr` (attribute of :class:`anndata.AnnData`) and `key`
@@ -373,21 +362,20 @@ kwargs
 # References to examples and notebooks
 
 _ex_solve_quadratic = """\
-See :ref:`sphx_glr_auto_examples_solvers_ex_quad_problems_basic.py` for a basic example
-how to solve quadratic problems.
-See :ref:`sphx_glr_auto_examples_solvers_ex_quad_problems_advanced.py` for an advanced
-example how to solve quadratic problems.
+See :doc:`../../notebooks/examples/solvers/300_quad_problems_basic` for a basic example of how to solve quadratic
+problems.
+See :doc:`../../notebooks/examples/solvers/400_quad_problems_advanced` for an advanced example how to solve quadratic
+problems.
 """
 _ex_solve_linear = """\
-See :ref:`sphx_glr_auto_examples_solvers_ex_linear_problems_basic.py` for a basic example
-how to solve linear problems.
-See :ref:`sphx_glr_auto_examples_solvers_ex_linear_problems_advanced.py` for an advanced
-example how to solve linear problems.
+See  :doc:`../../notebooks/examples/solvers/100_linear_problems_basic` for a basic example of how to solve linear
+problems.
+See :doc:`../../notebooks/examples/solvers/200_linear_problems_advanced` for an advanced example of how to solve linear
+problems.
 """
 _ex_prepare = """\
-See :ref:`sphx_glr_auto_examples_problems_ex_different_policies.py` for an example how to
-use different policies. See :ref:`sphx_glr_auto_examples_problems_ex_passing_marginals.py`
-for an example how to pass marginals.
+See :doc:`../../notebooks/examples/problems/400_subset_policy` for an example of how to use different policies.
+See :doc:`../../notebooks/examples/problems/500_passing_marginals` for an example of how to pass marginals.
 """
 _data_set = """\
 data
@@ -435,8 +423,8 @@ d = DocstringProcessor(
     policy=_policy,
     key=_key,
     joint_attr=_joint_attr,
-    GW_x=_GW_x,
-    GW_y=_GW_y,
+    x_attr=_x_attr,
+    y_attr=_y_attr,
     split_mass=_split_mass,
     inplace=_inplace,
     alignment_mixin_returns=_alignment_mixin_returns,

@@ -5,8 +5,8 @@
 # from the environment for the first two.
 SPHINXOPTS    ?=
 SPHINXBUILD   ?= sphinx-build
-SOURCEDIR     = source
-BUILDDIR      = build
+SOURCEDIR     = .
+BUILDDIR      = _build
 
 # Put it first so that "make" without argument is like "make help".
 help:
@@ -22,7 +22,3 @@ help:
 clean:
 	@rm -rf $(BUILDDIR)/*
 	@rm -rf $(SOURCEDIR)/genapi/
-	@rm -rf $(SOURCEDIR)/*/genapi/
-	@rm -rf $(SOURCEDIR)/auto_examples
-	@rm -rf $(SOURCEDIR)/auto_tutorials
-	@rm -rf $(SOURCEDIR)/gen_modules
