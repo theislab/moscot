@@ -5,6 +5,7 @@ from anndata import AnnData
 
 from moscot import _constants
 from moscot._types import (
+    CostKwargs_t,
     Numeric_t,
     OttCostFnMap_t,
     Policy_t,
@@ -48,7 +49,7 @@ class SpatioTemporalProblem(
         joint_attr: Optional[Union[str, Mapping[str, Any]]] = None,
         policy: Literal["sequential", "tril", "triu", "explicit"] = "sequential",
         cost: OttCostFnMap_t = "sq_euclidean",
-        cost_kwargs: Union[Mapping[str, Any], Mapping[str, Mapping[str, Any]]] = types.MappingProxyType({}),
+        cost_kwargs: CostKwargs_t = types.MappingProxyType({}),
         a: Optional[str] = None,
         b: Optional[str] = None,
         marginal_kwargs: Mapping[str, Any] = types.MappingProxyType({}),

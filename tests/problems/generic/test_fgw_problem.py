@@ -16,6 +16,7 @@ from ott.geometry.costs import (
 
 from anndata import AnnData
 
+from moscot._types import CostKwargs_t
 from moscot.backends.ott._utils import alpha_to_fused_penalty
 from moscot.base.output import BaseSolverOutput
 from moscot.base.problems import OTProblem
@@ -156,7 +157,7 @@ class TestFGWProblem:
             ("elastic_stvs", ElasticSTVS, {"gamma": 1.2}),
         ],
     )
-    def test_prepare_costs(self, adata_time: AnnData, cost_str: str, cost_inst: Any, cost_kwargs: Mapping[str, int]):
+    def test_prepare_costs(self, adata_time: AnnData, cost_str: str, cost_inst: Any, cost_kwargs: CostKwargs_t):
         problem = GWProblem(adata=adata_time)
         problem = problem.prepare(
             key="time",

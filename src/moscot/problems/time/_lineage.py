@@ -6,6 +6,7 @@ from anndata import AnnData
 from moscot import _constants
 from moscot._types import (
     CostFnMap_t,
+    CostKwargs_t,
     Numeric_t,
     OttCostFn_t,
     Policy_t,
@@ -49,7 +50,7 @@ class TemporalProblem(
         joint_attr: Optional[Union[str, Mapping[str, Any]]] = None,
         policy: Literal["sequential", "tril", "triu", "explicit"] = "sequential",
         cost: OttCostFn_t = "sq_euclidean",
-        cost_kwargs: Union[Mapping[str, Any], Mapping[str, Mapping[str, Any]]] = types.MappingProxyType({}),
+        cost_kwargs: CostKwargs_t = types.MappingProxyType({}),
         a: Optional[str] = None,
         b: Optional[str] = None,
         marginal_kwargs: Mapping[str, Any] = types.MappingProxyType({}),
@@ -211,7 +212,7 @@ class LineageProblem(TemporalProblem):
         policy: Literal["sequential", "tril", "triu", "sequential"] = "sequential",
         # TODO(michalk8): update
         cost: CostFnMap_t = "sq_euclidean",
-        cost_kwargs: Union[Mapping[str, Any], Mapping[str, Mapping[str, Any]]] = types.MappingProxyType({}),
+        cost_kwargs: CostKwargs_t = types.MappingProxyType({}),
         a: Optional[str] = None,
         b: Optional[str] = None,
         marginal_kwargs: Mapping[str, Any] = types.MappingProxyType({}),
