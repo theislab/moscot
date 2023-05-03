@@ -23,8 +23,7 @@ __all__ = ["TranslationProblem"]
 
 
 class TranslationProblem(CompoundProblem[K, OTProblem], CrossModalityTranslationMixin[K, OTProblem]):
-    """
-    Class for integrating single-cell multiomics data, based on :cite:`demetci-scot:22`.
+    """Class for integrating single-cell multiomics data, based on :cite:`demetci-scot:22`.
 
     Parameters
     ----------
@@ -88,19 +87,19 @@ class TranslationProblem(CompoundProblem[K, OTProblem], CrossModalityTranslation
         ----------
         src_attr
             - If :class:`str`, it must refer to a key in :attr:`anndata.AnnData.obsm`.
-            - If :class:`dict`, the dictionary stores `attr` (attribute of :class:`anndata.AnnData`) and `key`
-              (key of :class:`anndata.AnnData` ``['{attr}']``).
+            - If :class:`dict`, the dictionary stores `attr` (attribute of :class:`~anndata.AnnData`) and `key`
+              (key of :class:`AnnData.{attr} <anndata.AnnData>`).
         tgt_attr
             - If :class:`str`, it must refer to a key in :attr:`anndata.AnnData.obsm`.
-            - If :class:`dict`, the dictionary stores `attr` (attribute of :class:`anndata.AnnData`) and `key`
-              (key of :class:`anndata.AnnData` ``['{attr}']``).
+            - If :class:`dict`, the dictionary stores `attr` (attribute of :class:`~anndata.AnnData`) and `key`
+              (key of :class:`AnnData.{attr} <anndata.AnnData>`).
         joint_attr
             - If `None`, the pure Gromov-Wasserstein case is computed.
             - If :class:`str`, it must refer to a key in :attr:`anndata.AnnData.obsm`.
-            - If :class:`dict`, the dictionary stores `attr` (attribute of :class:`anndata.AnnData`) and `key`
-              (key of :class:`anndata.AnnData` ``['{attr}']``).
+            - If :class:`dict`, the dictionary stores `attr` (attribute of :class:`~anndata.AnnData`) and `key`
+              (key of :class:`AnnData.{attr} <anndata.AnnData>`).
         batch_key
-                If present, specify the batch key in :attr:`~anndata.AnnData.obs` of :class:`anndata.AnnData`.
+            If present, specify the batch key in :attr:`~anndata.AnnData.obs`.
         cost
             Cost between two points in dimension d. Only used if no precomputed cost matrix is passed.
             If `cost` is of type :obj:`str`, the cost will be used for all point clouds. If `cost` is of type
@@ -109,12 +108,12 @@ class TranslationProblem(CompoundProblem[K, OTProblem], CrossModalityTranslation
             distribution, and/or the linear term, respectively.
         a
             Specifies the left marginals. If of type :class:`str` the left marginals are taken from
-            :attr:`anndata.AnnData.obs` ``['{a}']``. If ``a`` is `None` uniform marginals are used.
+            :attr:`AnnData.{a}` <anndata.AnnData.obs>`. If ``a`` is `None` uniform marginals are used.
         b
             Specifies the right marginals. If of type :class:`str` the right marginals are taken from
-            :attr:`anndata.AnnData.obs` ``['{b}']``. If `b` is `None` uniform marginals are used.
+            :attr:`AnnData.{b}` <anndata.AnnData.obs>`. If `b` is `None` uniform marginals are used.
         kwargs
-            Keyword arguments
+            Keyword arguments.
 
         Returns
         -------
@@ -122,7 +121,6 @@ class TranslationProblem(CompoundProblem[K, OTProblem], CrossModalityTranslation
         """
         self._src_attr = {"attr": "obsm", "key": src_attr} if isinstance(src_attr, str) else src_attr
         self._tgt_attr = {"attr": "obsm", "key": tgt_attr} if isinstance(tgt_attr, str) else tgt_attr
-
         self.batch_key = batch_key
         x = {"attr": "obsm", "key": src_attr} if isinstance(src_attr, str) else src_attr
         y = {"attr": "obsm", "key": tgt_attr} if isinstance(tgt_attr, str) else tgt_attr

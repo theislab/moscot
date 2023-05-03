@@ -59,7 +59,7 @@ def _adata_spatial_split(adata: AnnData) -> Tuple[AnnData, AnnData]:
     return adata_ref, adata_sp
 
 
-def _adata_modality_split(adata: AnnData) -> Tuple[AnnData, AnnData]:
+def _adata_translation_split(adata: AnnData) -> Tuple[AnnData, AnnData]:
     adata_tgt = adata[adata.obs.batch == "0"].copy()
     adata_src = adata[adata.obs.batch != "0"].copy()
     rng = np.random.RandomState(15)

@@ -52,16 +52,17 @@ class CrossModalityTranslationMixin(AnalysisMixin[K, B]):
         forward
             If `True`, compute the translation from :attr:`adata_src` to :attr:`adata_tgt`, otherwise vice-versa.
         kwargs
-            Keyword arguments for :meth:`~moscot.base.problems.compound_problem.BaseCompoundProblem.push` or
-            :meth:`~moscot.base.problems.compound_problem.BaseCompoundProblem.pull`, depending on `forward`.
+            Keyword arguments for policy-specific `_apply` method of :class:`~moscot.base.problems.CompoundProblem`.
 
         Returns
         -------
         Translation from :attr:`adata_src` in target domain or from :attr:`adata_tgt` in source domain,
         depending on `forward`.
         """
-        kwargs["scale_by_marginals"] = True
-        kwargs["normalize"] = False
+        if self._src_attr is None:
+            raise ValueError("source attribute is None")
+        if self._tgt_attr is None:
+            raise ValueError("target attribute is None")
 
         def _get_features(
             adata: AnnData,
@@ -75,23 +76,22 @@ class CrossModalityTranslationMixin(AnalysisMixin[K, B]):
                 return getattr(adata, att)[key]
             return getattr(adata, att)
 
+        kwargs["scale_by_marginals"] = True
+        kwargs["normalize"] = False
+
         if forward:
-            translation = self[source, target].pull(  # type: ignore[index]
+            return self[source, target].pull(  # type: ignore[index]
                 _get_features(adata=self.adata_tgt, attr=self._tgt_attr),
                 **kwargs,
             )
-        else:
-            if self.batch_key is None:
-                translation = self[source, target].push(  # type: ignore[index]
-                    _get_features(adata=self.adata_src, attr=self._src_attr), **kwargs
-                )
-            else:
-                translation = self[source, target].push(  # type: ignore[index]
-                    _get_features(adata=self[(source, target)].adata_src, attr=self._src_attr),  # type: ignore[index]
-                    **kwargs,
-                )
-
-        return translation
+        if self.batch_key is None:
+            return self[source, target].push(  # type: ignore[index]
+                _get_features(adata=self.adata_src, attr=self._src_attr), **kwargs
+            )
+        return self[source, target].push(  # type: ignore[index]
+            _get_features(adata=self[source, target].adata_src, attr=self._src_attr),  # type: ignore[index]
+            **kwargs,
+        )
 
     def cell_transition(  # type: ignore[misc]
         self: CrossModalityTranslationMixinProtocol[K, B],
@@ -158,7 +158,7 @@ class CrossModalityTranslationMixin(AnalysisMixin[K, B]):
 
         Notes
         -----
-        To visualise the results, see :func:`moscot.pl.cell_transition`.
+        To visualise the results, see :func:`~moscot.pl.cell_transition`.
         """
         if TYPE_CHECKING:
             assert self.batch_key is not None
