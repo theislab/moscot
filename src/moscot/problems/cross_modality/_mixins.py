@@ -158,7 +158,7 @@ class CrossModalityTranslationMixin(AnalysisMixin[K, B]):
 
         Notes
         -----
-        To visualise the results, see :func:`~moscot.pl.cell_transition`.
+        To visualise the results, see :func:`~moscot.potting.cell_transition`.
         """
         if TYPE_CHECKING:
             assert self.batch_key is not None
