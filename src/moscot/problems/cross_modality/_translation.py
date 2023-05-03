@@ -121,6 +121,7 @@ class TranslationProblem(CompoundProblem[K, OTProblem], CrossModalityTranslation
         """
         self._src_attr = {"attr": "obsm", "key": src_attr} if isinstance(src_attr, str) else src_attr
         self._tgt_attr = {"attr": "obsm", "key": tgt_attr} if isinstance(tgt_attr, str) else tgt_attr
+
         self.batch_key = batch_key
         x = {"attr": "obsm", "key": src_attr} if isinstance(src_attr, str) else src_attr
         y = {"attr": "obsm", "key": tgt_attr} if isinstance(tgt_attr, str) else tgt_attr
