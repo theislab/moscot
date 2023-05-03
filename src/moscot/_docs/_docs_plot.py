@@ -161,7 +161,7 @@ save
 {_ax}"""
 _fig = """\
 fig
-    If not `None`, this is a :class:`matplotlib.figure.Figure corresponding to `ax`."""
+    If not `None`, this is a :class:`matplotlib.figure.Figure` corresponding to `ax`."""
 
 
 d_plotting = DocstringProcessor(
