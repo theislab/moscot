@@ -439,7 +439,7 @@ class TemporalMixin(AnalysisMixin[K, B]):
                     shape=(len(indices_remaining), 1),
                     fill_value=np.nan,
                 ),
-                index=indices_remaining,
+                index=list(indices_remaining),
                 columns=cols,
             )
         )
@@ -448,7 +448,6 @@ class TemporalMixin(AnalysisMixin[K, B]):
     @property
     def posterior_growth_rates(self: TemporalMixinProtocol[K, B]) -> Optional[pd.DataFrame]:
         """Return the posterior estimate of growth rates of the cells in the source distribution."""
-        # TODO(michalk8): FIXME
         cols = ["posterior_growth_rates"]
         df_list = [
             pd.DataFrame(problem.posterior_growth_rates, index=problem.adata.obs.index, columns=cols)
@@ -461,7 +460,7 @@ class TemporalMixin(AnalysisMixin[K, B]):
                     shape=(len(indices_remaining), 1),
                     fill_value=np.nan,
                 ),
-                index=indices_remaining,
+                index=list(indices_remaining),
                 columns=cols,
             )
         )
@@ -488,7 +487,7 @@ class TemporalMixin(AnalysisMixin[K, B]):
         df_list.append(
             pd.DataFrame(
                 np.full(shape=(len(indices_remaining), 1), fill_value=np.nan),
-                index=indices_remaining,
+                index=set(indices_remaining),
                 columns=["cell_cost_source"],
             )
         )
@@ -516,7 +515,7 @@ class TemporalMixin(AnalysisMixin[K, B]):
         df_list.append(
             pd.DataFrame(
                 np.full(shape=(len(indices_remaining), 1), fill_value=np.nan),
-                index=indices_remaining,
+                index=list(indices_remaining),
                 columns=["cell_cost_target"],
             )
         )
