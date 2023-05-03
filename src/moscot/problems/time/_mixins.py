@@ -487,7 +487,7 @@ class TemporalMixin(AnalysisMixin[K, B]):
         df_list.append(
             pd.DataFrame(
                 np.full(shape=(len(indices_remaining), 1), fill_value=np.nan),
-                index=set(indices_remaining),
+                index=list(indices_remaining),
                 columns=["cell_cost_source"],
             )
         )
