@@ -396,6 +396,7 @@ def _plot_temporal(
     dot_scale_factor: float = 2.0,
     na_color: str = "#e8ebe9",
     save: Optional[str] = None,
+    fig: Optional[mpl.figure.Figure] = None,
     ax: Optional[mpl.axes.Axes] = None,
     show: bool = False,
     suptitle_fontsize: Optional[float] = None,
@@ -406,10 +407,16 @@ def _plot_temporal(
     if cont_cmap is None or isinstance(cont_cmap, str):
         cont_cmap = plt.get_cmap(cont_cmap)
 
-    fig, axs = plt.subplots(
-        1, 1 if time_points is None else len(time_points), figsize=figsize, dpi=dpi, constrained_layout=True
-    )
-    axs = np.ravel(axs)  # make into iterable
+    if fig is None:
+        if ax is None:
+            fig, ax = plt.subplots(
+                1, 1 if time_points is None else len(time_points), figsize=figsize, dpi=dpi, constrained_layout=True
+            )
+        else:
+            raise ValueError("`ax` must be `None` if `fig` is `None`.")
+
+    ax = fig.axes if ax is None else ax
+    axs = np.ravel(ax)  # make into iterable
 
     if not push and time_points is not None:
         time_points = time_points[::-1]
@@ -482,7 +489,7 @@ def _plot_temporal(
                     adata.obs[keys[0]] = tmp
                     adata_view = adata
 
-            sc.pl.embedding(
+            axs[i] = sc.pl.embedding(
                 adata=adata_view,
                 basis=basis,
                 color=keys[0],
@@ -490,6 +497,7 @@ def _plot_temporal(
                 size=size,
                 ax=ax,
                 show=show,
+                return_fig=False,
                 **kwargs,
             )
     if suptitle is not None:

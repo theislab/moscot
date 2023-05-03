@@ -186,6 +186,7 @@ def push(
     figsize: Optional[Tuple[float, float]] = None,
     dpi: Optional[int] = None,
     save: Optional[str] = None,
+    fig: Optional[mpl.figure.Figure] = None,
     ax: Optional[mpl.axes.Axes] = None,
     return_fig: bool = False,
     suptitle_fontsize: Optional[float] = None,
@@ -209,6 +210,7 @@ def push(
     %(dot_scale_factor)s
     %(na_color)s
     %(figsize_dpi_save)s
+    %(fig)s
     %(suptitle_fontsize)s
 
     Returns
@@ -247,11 +249,12 @@ def push(
         suptitle=suptitle,
         figsize=figsize,
         dpi=dpi,
+        fig=fig,
         ax=ax,
         suptitle_fontsize=suptitle_fontsize,
         **kwargs,
     )
-    return fig.figure if return_fig else None
+    return fig if return_fig else None
 
 
 @d_plotting.dedent
@@ -270,6 +273,7 @@ def pull(
     figsize: Optional[Tuple[float, float]] = None,
     dpi: Optional[int] = None,
     save: Optional[str] = None,
+    fig: Optional[mpl.figure.Figure] = None,
     ax: Optional[mpl.axes.Axes] = None,
     return_fig: bool = False,
     suptitle_fontsize: Optional[float] = None,
@@ -293,6 +297,7 @@ def pull(
     %(dot_scale_factor)s
     %(na_color)s
     %(figsize_dpi_save)s
+    %(fig)s
     %(suptitle_fontsize)s
 
     Returns
@@ -332,8 +337,9 @@ def pull(
         suptitle=suptitle,
         figsize=figsize,
         dpi=dpi,
+        fig=fig,
         ax=ax,
         suptitle_fontsize=suptitle_fontsize,
         **kwargs,
     )
-    return fig.figure if return_fig else None
+    return fig if return_fig else None

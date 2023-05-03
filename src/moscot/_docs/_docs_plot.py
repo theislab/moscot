@@ -159,6 +159,9 @@ dpi
 save
     Path where to save the plot. If `None`, the plot is not saved.
 {_ax}"""
+_fig = """\
+fig
+    If not `None`, this is a :class:`matplotlib.figure.Figure corresponding to `ax`."""
 
 
 d_plotting = DocstringProcessor(
@@ -194,4 +197,5 @@ d_plotting = DocstringProcessor(
     dot_scale_factor=_dot_scale_factor,
     scale_push_pull=_scale_push_pull,
     suptitle_fontsize=_suptitle_fontsize,
+    fig=_fig,
 )
