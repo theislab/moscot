@@ -1,4 +1,4 @@
-from typing import Mapping, Optional
+from typing import Mapping, Optional, Tuple
 
 import pytest
 
@@ -8,7 +8,7 @@ import pandas as pd
 from anndata import AnnData
 
 from moscot.problems.cross_modality import TranslationProblem
-from tests._utils import MockSolverOutput, _adata_translation_split
+from tests._utils import MockSolverOutput
 
 
 class TestCrossModalityTranslationAnalysisMixin:
@@ -21,12 +21,12 @@ class TestCrossModalityTranslationAnalysisMixin:
     @pytest.mark.parametrize("joint_attr", [None, "X_pca", {"attr": "obsm", "key": "X_pca"}])
     def test_translate(
         self,
-        adata_translation: AnnData,
+        adata_translation_split: Tuple[AnnData, AnnData],
         src_attr: Mapping[str, str],
         tgt_attr: Mapping[str, str],
         joint_attr: Optional[Mapping[str, str]],
     ):
-        adata_tgt, adata_src = _adata_translation_split(adata_translation)
+        adata_tgt, adata_src = adata_translation_split
         expected_keys = {(i, "ref") for i in adata_src.obs["batch"]}
 
         tp = (
@@ -43,9 +43,11 @@ class TestCrossModalityTranslationAnalysisMixin:
     @pytest.mark.fast()
     @pytest.mark.parametrize("forward", [True, False])
     @pytest.mark.parametrize("normalize", [True, False])
-    def test_cell_transition_pipeline(self, adata_translation: AnnData, forward: bool, normalize: bool):
+    def test_cell_transition_pipeline(
+        self, adata_translation_split: Tuple[AnnData, AnnData], forward: bool, normalize: bool
+    ):
         rng = np.random.RandomState(0)
-        adata_tgt, adata_src = _adata_translation_split(adata_translation)
+        adata_tgt, adata_src = adata_translation_split
         tp = TranslationProblem(adata_src, adata_tgt)
         tp = tp.prepare(batch_key="batch", src_attr="emb_src", tgt_attr="emb_tgt", joint_attr="X_pca")
         mock_tmap_1 = np.abs(rng.randn(len(adata_src[adata_src.obs["batch"] == "1"]), len(adata_tgt)))

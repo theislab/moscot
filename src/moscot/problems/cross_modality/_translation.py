@@ -123,8 +123,6 @@ class TranslationProblem(CompoundProblem[K, OTProblem], CrossModalityTranslation
         self._tgt_attr = {"attr": "obsm", "key": tgt_attr} if isinstance(tgt_attr, str) else tgt_attr
 
         self.batch_key = batch_key
-        x = {"attr": "obsm", "key": src_attr} if isinstance(src_attr, str) else src_attr
-        y = {"attr": "obsm", "key": tgt_attr} if isinstance(tgt_attr, str) else tgt_attr
         if joint_attr is None:
             xy = {}  # type: ignore[var-annotated]
         else:
@@ -133,7 +131,9 @@ class TranslationProblem(CompoundProblem[K, OTProblem], CrossModalityTranslation
             joint_attr_2_shape = getattr(self.adata_tgt, xy["y_attr"])[xy["y_key"]].shape
             if not joint_attr_1_shape[1] == joint_attr_2_shape[1]:
                 raise ValueError("The `joint_attr` must be of same dimension.")
-        xy, x, y = handle_cost(xy=xy, x=x, y=y, cost=cost, cost_kwargs=cost_kwargs)
+        xy, x, y = handle_cost(
+            xy=xy, x=self._src_attr, y=self._tgt_attr, cost=cost, cost_kwargs=cost_kwargs  # type: ignore[arg-type]
+        )
         if xy:
             kwargs["xy"] = xy
         return super().prepare(x=x, y=y, policy="external_star", key=batch_key, cost=cost, a=a, b=b, **kwargs)

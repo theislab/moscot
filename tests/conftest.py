@@ -201,9 +201,9 @@ def adata_translation() -> AnnData:
 
 
 @pytest.fixture()
-def adata_translation_split() -> Tuple[AnnData, AnnData]:
-    adata_tgt = adata_translation[adata_translation().obs.batch == "0"].copy()
-    adata_src = adata_translation[adata_translation().obs.batch != "0"].copy()
+def adata_translation_split(adata_translation) -> Tuple[AnnData, AnnData]:
+    adata_tgt = adata_translation[adata_translation.obs.batch == "0"].copy()
+    adata_src = adata_translation[adata_translation.obs.batch != "0"].copy()
     rng = np.random.RandomState(15)
     adata_src.obsm["emb_src"] = rng.normal(size=(adata_src.shape[0], 5))
     adata_tgt.obsm["emb_tgt"] = rng.normal(size=(adata_tgt.shape[0], 15))

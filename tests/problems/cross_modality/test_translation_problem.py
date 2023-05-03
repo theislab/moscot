@@ -1,4 +1,4 @@
-from typing import Any, Literal, Mapping, Optional
+from typing import Any, Literal, Mapping, Optional, Tuple
 
 import pytest
 
@@ -9,7 +9,6 @@ from anndata import AnnData
 from moscot.backends.ott._utils import alpha_to_fused_penalty
 from moscot.base.output import BaseSolverOutput
 from moscot.problems.cross_modality import TranslationProblem
-from tests._utils import _adata_translation_split
 from tests.problems.conftest import (
     fgw_args_1,
     fgw_args_2,
@@ -29,12 +28,12 @@ class TestTranslationProblem:
     @pytest.mark.parametrize("joint_attr", [None, "X_pca", {"attr": "obsm", "key": "X_pca"}])
     def test_prepare_dummy_policy(
         self,
-        adata_translation: AnnData,
+        adata_translation_split: Tuple[AnnData, AnnData],
         src_attr: Mapping[str, str],
         tgt_attr: Mapping[str, str],
         joint_attr: Optional[Mapping[str, str]],
     ):
-        adata_tgt, adata_src = _adata_translation_split(adata_translation)
+        adata_tgt, adata_src = adata_translation_split
         n_obs = adata_tgt.shape[0]
 
         tp = TranslationProblem(adata_src, adata_tgt)
@@ -54,12 +53,12 @@ class TestTranslationProblem:
     @pytest.mark.parametrize("joint_attr", [None, "X_pca", {"attr": "obsm", "key": "X_pca"}])
     def test_prepare_external_star_policy(
         self,
-        adata_translation: AnnData,
+        adata_translation_split: Tuple[AnnData, AnnData],
         src_attr: Mapping[str, str],
         tgt_attr: Mapping[str, str],
         joint_attr: Optional[Mapping[str, str]],
     ):
-        adata_tgt, adata_src = _adata_translation_split(adata_translation)
+        adata_tgt, adata_src = adata_translation_split
         expected_keys = {(i, "ref") for i in adata_src.obs["batch"]}
         n_obs = adata_tgt.shape[0]
         x_n_var = adata_src.obsm["emb_src"].shape[1]
@@ -88,7 +87,7 @@ class TestTranslationProblem:
     @pytest.mark.parametrize("tgt_attr", ["emb_tgt", {"attr": "obsm", "key": "emb_tgt"}])
     def test_solve_balanced(
         self,
-        adata_translation: AnnData,
+        adata_translation_split: Tuple[AnnData, AnnData],
         epsilon: float,
         alpha: float,
         rank: int,
@@ -96,7 +95,7 @@ class TestTranslationProblem:
         tgt_attr: Mapping[str, str],
         initializer: Optional[Literal["random", "rank2"]],
     ):
-        adata_tgt, adata_src = _adata_translation_split(adata_translation)
+        adata_tgt, adata_src = adata_translation_split
         kwargs = {}
         expected_keys = {(i, "ref") for i in adata_src.obs["batch"]}
         if rank > -1:
@@ -115,8 +114,8 @@ class TestTranslationProblem:
             np.testing.assert_array_equal(np.isfinite(sol.transport_matrix), True, err_msg=f"{key}")
 
     @pytest.mark.parametrize("args_to_check", [fgw_args_1, fgw_args_2])
-    def test_pass_arguments(self, adata_translation: AnnData, args_to_check: Mapping[str, Any]):
-        adata_tgt, adata_src = _adata_translation_split(adata_translation)
+    def test_pass_arguments(self, adata_translation_split: Tuple[AnnData, AnnData], args_to_check: Mapping[str, Any]):
+        adata_tgt, adata_src = adata_translation_split
         tp = TranslationProblem(adata_src, adata_tgt)
 
         adata_src = adata_src[adata_src.obs["batch"] == 1]
