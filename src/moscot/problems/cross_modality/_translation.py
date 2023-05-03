@@ -108,10 +108,10 @@ class TranslationProblem(CompoundProblem[K, OTProblem], CrossModalityTranslation
             distribution, and/or the linear term, respectively.
         a
             Specifies the left marginals. If of type :class:`str` the left marginals are taken from
-            :attr:`AnnData.{a}` <anndata.AnnData.obs>`. If ``a`` is `None` uniform marginals are used.
+            :attr:`~anndata.AnnData.obs` ``['{a}']``. If ``a`` is `None` uniform marginals are used.
         b
             Specifies the right marginals. If of type :class:`str` the right marginals are taken from
-            :attr:`AnnData.{b}` <anndata.AnnData.obs>`. If `b` is `None` uniform marginals are used.
+            :attr:`~anndata.AnnData.obs` ``['{b}']``. If `b` is `None` uniform marginals are used.
         kwargs
             Keyword arguments.
 
