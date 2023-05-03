@@ -396,27 +396,22 @@ def _plot_temporal(
     dot_scale_factor: float = 2.0,
     na_color: str = "#e8ebe9",
     save: Optional[str] = None,
-    fig: Optional[mpl.figure.Figure] = None,
     ax: Optional[mpl.axes.Axes] = None,
-    show: bool = False,
     suptitle_fontsize: Optional[float] = None,
     **kwargs: Any,
-) -> plt.Figure:
+) -> Optional[plt.Figure]:
     if time_points is not None:
         time_points = sorted(time_points)
     if cont_cmap is None or isinstance(cont_cmap, str):
         cont_cmap = plt.get_cmap(cont_cmap)
 
-    if fig is None:
-        if ax is None:
-            fig, ax = plt.subplots(
-                1, 1 if time_points is None else len(time_points), figsize=figsize, dpi=dpi, constrained_layout=True
-            )
-        else:
-            raise ValueError("`ax` must be `None` if `fig` is `None`.")
-
-    ax = fig.axes if ax is None else ax
-    axs = np.ravel(ax)  # make into iterable
+    if ax is None:
+        fig, ax = plt.subplots(
+            1, 1 if time_points is None else len(time_points), figsize=figsize, dpi=dpi, constrained_layout=True
+        )
+    else:
+        fig = None
+    axs = np.ravel([ax])  # make into iterable
 
     if not push and time_points is not None:
         time_points = time_points[::-1]
@@ -489,20 +484,24 @@ def _plot_temporal(
                     adata.obs[keys[0]] = tmp
                     adata_view = adata
 
-            axs[i] = sc.pl.embedding(
+            sc.pl.embedding(
                 adata=adata_view,
                 basis=basis,
                 color=keys[0],
                 title=titles[i],
                 size=size,
                 ax=ax,
-                show=show,
+                show=False,
                 return_fig=False,
                 **kwargs,
             )
     if suptitle is not None:
+        if fig is None:
+            raise ValueError("Cannot set `suptitle` of figure when `ax` is not `None`.")
         fig.suptitle(suptitle, fontsize=suptitle_fontsize)
     if save:
+        if fig is None:
+            raise ValueError("Figure cannot be saved when `ax` is not `None`.")
         fig.figure.savefig(save, bbox_inches="tight")
     return fig
 

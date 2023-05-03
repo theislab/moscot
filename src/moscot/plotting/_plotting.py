@@ -30,7 +30,7 @@ from moscot.plotting._utils import (
 
 if TYPE_CHECKING:
     from moscot.base.problems import CompoundProblem
-    from moscot.problems import LineageProblem, TemporalProblem
+    from moscot.problems import LineageProblem, SpatioTemporalProblem, TemporalProblem
 
 __all__ = ["cell_transition", "sankey", "push", "pull"]
 
@@ -120,7 +120,7 @@ def sankey(
     ax: Optional[mpl.axes.Axes] = None,
     return_fig: bool = False,
     **kwargs: Any,
-) -> mpl.figure.Figure:
+) -> Optional[mpl.figure.Figure]:
     """
     Plot a Sankey diagram.
 
@@ -172,7 +172,7 @@ def sankey(
 
 @d_plotting.dedent
 def push(
-    inp: Union[AnnData, "TemporalProblem", "LineageProblem", "CompoundProblem"],  # type: ignore[type-arg]
+    inp: Union[AnnData, "TemporalProblem", "LineageProblem", "SpatioTemporalProblem", "CompoundProblem"],  # type: ignore[type-arg]  # noqa: 501
     uns_key: str = _constants.PUSH,
     time_points: Optional[Sequence[float]] = None,
     basis: str = "umap",
@@ -186,7 +186,6 @@ def push(
     figsize: Optional[Tuple[float, float]] = None,
     dpi: Optional[int] = None,
     save: Optional[str] = None,
-    fig: Optional[mpl.figure.Figure] = None,
     ax: Optional[mpl.axes.Axes] = None,
     return_fig: bool = False,
     suptitle_fontsize: Optional[float] = None,
@@ -210,7 +209,6 @@ def push(
     %(dot_scale_factor)s
     %(na_color)s
     %(figsize_dpi_save)s
-    %(fig)s
     %(suptitle_fontsize)s
 
     Returns
@@ -249,7 +247,6 @@ def push(
         suptitle=suptitle,
         figsize=figsize,
         dpi=dpi,
-        fig=fig,
         ax=ax,
         suptitle_fontsize=suptitle_fontsize,
         **kwargs,
@@ -259,7 +256,7 @@ def push(
 
 @d_plotting.dedent
 def pull(
-    inp: Union[AnnData, "TemporalProblem", "LineageProblem", "CompoundProblem"],  # type: ignore[type-arg]
+    inp: Union[AnnData, "TemporalProblem", "LineageProblem", "SpatioTemporalProblem", "CompoundProblem"],  # type: ignore[type-arg]  # noqa: 501
     uns_key: str = _constants.PULL,
     time_points: Optional[Sequence[float]] = None,
     basis: str = "umap",
@@ -273,12 +270,11 @@ def pull(
     figsize: Optional[Tuple[float, float]] = None,
     dpi: Optional[int] = None,
     save: Optional[str] = None,
-    fig: Optional[mpl.figure.Figure] = None,
     ax: Optional[mpl.axes.Axes] = None,
     return_fig: bool = False,
     suptitle_fontsize: Optional[float] = None,
     **kwargs: Any,
-) -> mpl.figure.Figure:
+) -> Optional[mpl.figure.Figure]:
     """
     Visualise the pull result in an embedding.
 
@@ -297,7 +293,6 @@ def pull(
     %(dot_scale_factor)s
     %(na_color)s
     %(figsize_dpi_save)s
-    %(fig)s
     %(suptitle_fontsize)s
 
     Returns
@@ -337,7 +332,6 @@ def pull(
         suptitle=suptitle,
         figsize=figsize,
         dpi=dpi,
-        fig=fig,
         ax=ax,
         suptitle_fontsize=suptitle_fontsize,
         **kwargs,

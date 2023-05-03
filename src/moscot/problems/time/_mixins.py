@@ -23,7 +23,6 @@ from anndata import AnnData
 from moscot import _constants
 from moscot._docs._docs_mixins import d_mixins
 from moscot._types import ArrayLike, Numeric_t, Str_Dict_t
-from moscot.base.output import BaseSolverOutput
 from moscot.base.problems._mixins import AnalysisMixin, AnalysisMixinProtocol
 from moscot.base.problems.birth_death import BirthDeathProblem
 from moscot.base.problems.compound_problem import ApplyOutput_t, B, K
@@ -429,97 +428,70 @@ class TemporalMixin(AnalysisMixin[K, B]):
         """Return the prior estimate of growth rates of the cells in the source distribution."""
         cols = ["prior_growth_rates"]
         df_list = [
-            pd.DataFrame(problem.prior_growth_rates, index=problem.adata.obs.index, columns=cols)
+            pd.DataFrame(problem.prior_growth_rates, index=problem.adata.obs_names, columns=cols)
             for problem in self.problems.values()
         ]
-        indices_remaining = set(self.adata.obs_names) - {ind for df in df_list for ind in df.index}
-        df_list.append(
-            pd.DataFrame(
-                np.full(
-                    shape=(len(indices_remaining), 1),
-                    fill_value=np.nan,
-                ),
-                index=list(indices_remaining),
-                columns=cols,
-            )
-        )
-        return pd.concat(df_list, verify_integrity=True)
+        df_1 = pd.concat(df_list, verify_integrity=True)
+        indices_remaining = set(self.adata.obs_names) - set(df_1.index)
+        df_2 = pd.DataFrame(np.nan, index=list(indices_remaining), columns=cols)
+
+        return pd.concat([df_1, df_2], verify_integrity=True)
 
     @property
     def posterior_growth_rates(self: TemporalMixinProtocol[K, B]) -> Optional[pd.DataFrame]:
         """Return the posterior estimate of growth rates of the cells in the source distribution."""
         cols = ["posterior_growth_rates"]
         df_list = [
-            pd.DataFrame(problem.posterior_growth_rates, index=problem.adata.obs.index, columns=cols)
+            pd.DataFrame(problem.posterior_growth_rates, index=problem.adata.obs_names, columns=cols)
             for problem in self.problems.values()
         ]
-        indices_remaining = set(self.adata.obs_names) - {ind for df in df_list for ind in df.index}
-        df_list.append(
-            pd.DataFrame(
-                np.full(
-                    shape=(len(indices_remaining), 1),
-                    fill_value=np.nan,
-                ),
-                index=list(indices_remaining),
-                columns=cols,
-            )
-        )
-        return pd.concat(df_list, verify_integrity=True)
+        df_1 = pd.concat(df_list, verify_integrity=True)
+        indices_remaining = set(self.adata.obs_names) - set(df_1.index)
+        df_2 = pd.DataFrame(np.nan, index=list(indices_remaining), columns=cols)
 
-    # TODO(michalk8): refactor me
+        return pd.concat([df_1, df_2], verify_integrity=True)
+
     @property
     def cell_costs_source(self: TemporalMixinProtocol[K, B]) -> Optional[pd.DataFrame]:
         """Return the cost of a cell obtained by the potentials of the optimal transport solution."""
-        sol = list(self.problems.values())[0].solution
-        if TYPE_CHECKING:
-            assert isinstance(sol, BaseSolverOutput)
-        if sol.potentials is None:
+        cols = ["cell_cost_source"]
+        sol = list(self.solutions.values())[0]
+        if sol is None or sol.potentials is None:
             return None
+
         df_list = [
             pd.DataFrame(
                 np.array(np.abs(problem.solution.potentials[0])),  # type: ignore[union-attr,index]
                 index=problem.adata_src.obs_names,
-                columns=["cell_cost_source"],
+                columns=cols,
             )
             for problem in self.problems.values()
         ]
-        indices_remaining = set(self.adata.obs_names) - {ind for df in df_list for ind in df.index}
-        df_list.append(
-            pd.DataFrame(
-                np.full(shape=(len(indices_remaining), 1), fill_value=np.nan),
-                index=list(indices_remaining),
-                columns=["cell_cost_source"],
-            )
-        )
-        return pd.concat(df_list, verify_integrity=True)
+        df_1 = pd.concat(df_list, verify_integrity=True)
+        indices_remaining = set(self.adata.obs_names) - set(df_1.index)
+        df_2 = pd.DataFrame(np.nan, index=list(indices_remaining), columns=cols)
+        return pd.concat([df_1, df_2], verify_integrity=True)
 
     @property
     def cell_costs_target(self: TemporalMixinProtocol[K, B]) -> Optional[pd.DataFrame]:
-        """Return the cost of a cell (see online methods) obtained by the potentials of the OT solution."""
-        sol = list(self.problems.values())[0].solution
-        if TYPE_CHECKING:
-            assert isinstance(sol, BaseSolverOutput)
-        if sol.potentials is None:
+        """Return the cost of a cell obtained by the potentials of the optimal transport solution."""
+        cols = ["cell_cost_target"]
+        sol = list(self.solutions.values())[0]
+        if sol is None or sol.potentials is None:
             return None
 
         df_list = [
             pd.DataFrame(
                 np.array(np.abs(problem.solution.potentials[1])),  # type: ignore[union-attr,index]
                 index=problem.adata_tgt.obs_names,
-                columns=["cell_cost_target"],
+                columns=cols,
             )
             for problem in self.problems.values()
         ]
-
-        indices_remaining = set(self.adata.obs_names) - {ind for df in df_list for ind in df.index}
-        df_list.append(
-            pd.DataFrame(
-                np.full(shape=(len(indices_remaining), 1), fill_value=np.nan),
-                index=list(indices_remaining),
-                columns=["cell_cost_target"],
-            )
-        )
-        return pd.concat(df_list, verify_integrity=True)
+        df_1 = pd.concat(df_list, verify_integrity=True)
+        indices_remaining = set(self.adata.obs_names) - set(df_1.index)
+        df_2 = pd.DataFrame(np.nan, index=list(indices_remaining), columns=cols)
+        return pd.concat([df_1, df_2], verify_integrity=True)
 
     # TODO(michalk8): refactor me
     def _get_data(
