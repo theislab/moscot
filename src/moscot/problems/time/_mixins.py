@@ -427,20 +427,19 @@ class TemporalMixin(AnalysisMixin[K, B]):
     @property
     def prior_growth_rates(self: TemporalMixinProtocol[K, B]) -> Optional[pd.DataFrame]:
         """Return the prior estimate of growth rates of the cells in the source distribution."""
-        # TODO(michalk8): FIXME
         cols = ["prior_growth_rates"]
         df_list = [
             pd.DataFrame(problem.prior_growth_rates, index=problem.adata.obs.index, columns=cols)
             for problem in self.problems.values()
         ]
-        tup = list(self)[-1]
+        indices_remaining = set(self.adata.obs_names) - {ind for df in df_list for ind in df.index}
         df_list.append(
             pd.DataFrame(
                 np.full(
-                    shape=(len(self.problems[tup].adata_tgt.obs), 1),
+                    shape=(len(indices_remaining), 1),
                     fill_value=np.nan,
                 ),
-                index=self.problems[tup].adata_tgt.obs.index,
+                index=indices_remaining,
                 columns=cols,
             )
         )
@@ -455,14 +454,14 @@ class TemporalMixin(AnalysisMixin[K, B]):
             pd.DataFrame(problem.posterior_growth_rates, index=problem.adata.obs.index, columns=cols)
             for problem in self.problems.values()
         ]
-        tup = list(self)[-1]
+        indices_remaining = set(self.adata.obs_names) - {ind for df in df_list for ind in df.index}
         df_list.append(
             pd.DataFrame(
                 np.full(
-                    shape=(len(self.problems[tup].adata_tgt.obs), 1),
+                    shape=(len(indices_remaining), 1),
                     fill_value=np.nan,
                 ),
-                index=self.problems[tup].adata_tgt.obs.index,
+                index=indices_remaining,
                 columns=cols,
             )
         )
@@ -485,11 +484,11 @@ class TemporalMixin(AnalysisMixin[K, B]):
             )
             for problem in self.problems.values()
         ]
-        tup = list(self)[-1]
+        indices_remaining = set(self.adata.obs_names) - {ind for df in df_list for ind in df.index}
         df_list.append(
             pd.DataFrame(
-                np.full(shape=(len(self.problems[tup].adata_tgt.obs), 1), fill_value=np.nan),
-                index=self.problems[tup].adata_tgt.obs_names,
+                np.full(shape=(len(indices_remaining), 1), fill_value=np.nan),
+                index=indices_remaining,
                 columns=["cell_cost_source"],
             )
         )
@@ -504,23 +503,22 @@ class TemporalMixin(AnalysisMixin[K, B]):
         if sol.potentials is None:
             return None
 
-        tup = list(self)[0]
         df_list = [
             pd.DataFrame(
-                np.full(shape=(len(self.problems[tup].adata_src), 1), fill_value=np.nan),
-                index=self.problems[tup].adata_src.obs_names,
+                np.array(np.abs(problem.solution.potentials[1])),  # type: ignore[union-attr,index]
+                index=problem.adata_tgt.obs_names,
                 columns=["cell_cost_target"],
             )
+            for problem in self.problems.values()
         ]
-        df_list.extend(
-            [
-                pd.DataFrame(
-                    np.array(np.abs(problem.solution.potentials[1])),  # type: ignore[union-attr,index]
-                    index=problem.adata_tgt.obs_names,
-                    columns=["cell_cost_target"],
-                )
-                for problem in self.problems.values()
-            ]
+
+        indices_remaining = set(self.adata.obs_names) - {ind for df in df_list for ind in df.index}
+        df_list.append(
+            pd.DataFrame(
+                np.full(shape=(len(indices_remaining), 1), fill_value=np.nan),
+                index=indices_remaining,
+                columns=["cell_cost_target"],
+            )
         )
         return pd.concat(df_list, verify_integrity=True)
 
