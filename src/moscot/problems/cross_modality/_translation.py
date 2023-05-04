@@ -130,7 +130,11 @@ class TranslationProblem(CompoundProblem[K, OTProblem], CrossModalityTranslation
             joint_attr_1_shape = getattr(self.adata_src, xy["x_attr"])[xy["x_key"]].shape
             joint_attr_2_shape = getattr(self.adata_tgt, xy["y_attr"])[xy["y_key"]].shape
             if not joint_attr_1_shape[1] == joint_attr_2_shape[1]:
-                raise ValueError("The `joint_attr` must be of same dimension.")
+                raise ValueError(
+                    f"The dimensions of `joint_attr` do not match. "
+                    f"The joint attribute in the source distribution has dimension {joint_attr_1_shape[1]}, "
+                    f"while the joint attribute in the target distribution has dimension {joint_attr_2_shape[1]}."
+                )
         xy, x, y = handle_cost(
             xy=xy, x=self._src_attr, y=self._tgt_attr, cost=cost, cost_kwargs=cost_kwargs  # type: ignore[arg-type]
         )
