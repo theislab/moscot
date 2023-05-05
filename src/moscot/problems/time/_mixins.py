@@ -426,6 +426,10 @@ class TemporalMixin(AnalysisMixin[K, B]):
     @property
     def prior_growth_rates(self: TemporalMixinProtocol[K, B]) -> Optional[pd.DataFrame]:
         """Return the prior estimate of growth rates of the cells in the source distribution."""
+        p = list(self.problems.values())[0]
+        if p.prior_growth_rates:
+            return None
+
         cols = ["prior_growth_rates"]
         df_list = [
             pd.DataFrame(problem.prior_growth_rates, index=problem.adata.obs_names, columns=cols)
@@ -440,6 +444,10 @@ class TemporalMixin(AnalysisMixin[K, B]):
     @property
     def posterior_growth_rates(self: TemporalMixinProtocol[K, B]) -> Optional[pd.DataFrame]:
         """Return the posterior estimate of growth rates of the cells in the source distribution."""
+        p = list(self.problems.values())[0]
+        if p.posterior_growth_rates:
+            return None
+
         cols = ["posterior_growth_rates"]
         df_list = [
             pd.DataFrame(problem.posterior_growth_rates, index=problem.adata.obs_names, columns=cols)
@@ -454,11 +462,11 @@ class TemporalMixin(AnalysisMixin[K, B]):
     @property
     def cell_costs_source(self: TemporalMixinProtocol[K, B]) -> Optional[pd.DataFrame]:
         """Return the cost of a cell obtained by the potentials of the optimal transport solution."""
-        cols = ["cell_cost_source"]
         sol = list(self.solutions.values())[0]
         if sol is None or sol.potentials is None:
             return None
 
+        cols = ["cell_cost_source"]
         df_list = [
             pd.DataFrame(
                 np.array(np.abs(problem.solution.potentials[0])),  # type: ignore[union-attr,index]
@@ -475,11 +483,11 @@ class TemporalMixin(AnalysisMixin[K, B]):
     @property
     def cell_costs_target(self: TemporalMixinProtocol[K, B]) -> Optional[pd.DataFrame]:
         """Return the cost of a cell obtained by the potentials of the optimal transport solution."""
-        cols = ["cell_cost_target"]
         sol = list(self.solutions.values())[0]
         if sol is None or sol.potentials is None:
             return None
 
+        cols = ["cell_cost_target"]
         df_list = [
             pd.DataFrame(
                 np.array(np.abs(problem.solution.potentials[1])),  # type: ignore[union-attr,index]

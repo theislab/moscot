@@ -497,12 +497,12 @@ def _plot_temporal(
             )
     if suptitle is not None:
         if fig is None:
-            raise ValueError("Cannot set `suptitle` of figure when `ax` is not `None`.")
+            raise Warning("Cannot set `suptitle` of figure when `ax` is not `None`.")
         fig.suptitle(suptitle, fontsize=suptitle_fontsize)
     if save:
         if fig is None:
             raise ValueError("Figure cannot be saved when `ax` is not `None`.")
-        fig.figure.savefig(save, bbox_inches="tight")
+        fig.savefig(save, bbox_inches="tight")
     return fig
 
 
