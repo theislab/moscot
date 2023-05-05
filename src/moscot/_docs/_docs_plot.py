@@ -160,7 +160,6 @@ save
     Path where to save the plot. If `None`, the plot is not saved.
 {_ax}"""
 
-
 d_plotting = DocstringProcessor(
     desc_cell_transition=_desc_cell_transition,
     transition_labels_cell_transition=_transition_labels_cell_transition,
