@@ -712,7 +712,7 @@ class NeuralAnalysisMixin(AnalysisMixin[K, B]):
                 tm.loc[annotation_src, annotation_tgt] = tm_result[
                     np.ix_((df_source == annotation_src).squeeze(), (df_target == annotation_tgt).squeeze())
                 ].sum()
-
+        tm = tm.reindex(annotations_ordered_source)[annotations_ordered_target]
         if normalize:
             tm = tm.div(tm.sum(axis=int(forward)), axis=int(not forward))
         if key_added is not None:
@@ -731,14 +731,7 @@ class NeuralAnalysisMixin(AnalysisMixin[K, B]):
                 key=key_added,
                 value=plot_vars,
             )
-        return _order_transition_matrix(
-            tm=tm,
-            source_annotations_verified=annotations_verified_source,
-            target_annotations_verified=annotations_verified_target,
-            source_annotations_ordered=annotations_ordered_source,
-            target_annotations_ordered=annotations_ordered_target,
-            forward=forward,
-        )
+        return tm
 
     def push(
         self,
