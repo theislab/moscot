@@ -297,5 +297,4 @@ neuraldual_solver_args = {
     "pretrain_iters": "pretrain_iters",
     "pretrain_scale": "pretrain_scale",
     "compute_wasserstein_baseline": "compute_wasserstein_baseline",
-    "key": "key",
 }

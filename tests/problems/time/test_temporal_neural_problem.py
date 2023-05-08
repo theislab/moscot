@@ -163,6 +163,8 @@ class TestTemporalNeuralProblem:
         key = (0, 1)
         solver = problem[key].solver.solver
         assert solver.conditional == False
+        print("solver is ", solver)
+        print("neuraldual_solver_args", neuraldual_solver_args)
         for arg, val in neuraldual_solver_args.items():
             assert hasattr(solver, val)
             el = getattr(solver, val)[0] if isinstance(getattr(solver, val), tuple) else getattr(solver, val)
@@ -217,8 +219,8 @@ class TestTemporalNeuralProblem:
         assert set(problem.problems.keys()) == {(key_1, key_2), (key_2, key_3)}
         problem = problem.solve(**neuraldual_args_1)
 
-        early_annotation = ["Stromal", "unknown"]
-        late_annotation = ["Stromal", "Epithelial"]
+        early_annotation = ["Stromal", "unknown"]# if forward else ["Stromal", "Epithelial"]
+        late_annotation = ["Stromal", "Epithelial"]# if forward else ["Stromal", "unknown"]
         result = problem.cell_transition(
             key_1,
             key_2,

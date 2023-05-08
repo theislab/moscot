@@ -712,6 +712,8 @@ class NeuralAnalysisMixin(AnalysisMixin[K, B]):
                 tm.loc[annotation_src, annotation_tgt] = tm_result[
                     np.ix_((df_source == annotation_src).squeeze(), (df_target == annotation_tgt).squeeze())
                 ].sum()
+        annotations_ordered_source = tm.index if annotations_ordered_source is None else annotations_ordered_source
+        annotations_ordered_target = tm.columns if annotations_ordered_target is None else annotations_ordered_target
         tm = tm.reindex(annotations_ordered_source)[annotations_ordered_target]
         if normalize:
             tm = tm.div(tm.sum(axis=int(forward)), axis=int(not forward))
