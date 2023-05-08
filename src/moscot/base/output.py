@@ -388,5 +388,5 @@ class BaseNeuralOutput(BaseSolverOutput, ABC):
 
     @property
     @abstractmethod
-    def inverse_transport_matrix(selft) -> ArrayLike:
+    def inverse_transport_matrix(self) -> ArrayLike:
         pass
