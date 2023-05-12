@@ -44,4 +44,4 @@ Please have a look at our `documentation <https://moscot.readthedocs.io>`_
 Reference
 ---------
 
-Our manuscript will be available soon.
+Our preprint "Mapping cells through time and space with moscot" can be found `here <https://www.biorxiv.org/content/10.1101/2023.05.11.540374v1>`_.
