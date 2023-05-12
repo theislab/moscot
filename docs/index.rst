@@ -51,7 +51,7 @@ well as the publication introducing the model, which can be found in the corresp
 
     .. grid-item-card:: Manuscript
 
-        Stay tuned, coming soon!
+        Please have a look at our manuscript :cite:`klein:23` to learn more.
 
 .. toctree::
     :maxdepth: 2
