@@ -38,7 +38,7 @@ class CrossModalityTranslationMixin(AnalysisMixin[K, B]):
         source: K,
         target: K,
         forward: bool = True,
-        overwrite: bool = False,
+        alternative_attr: Optional[Optional[Dict[str, Any]]] = None,
         **kwargs: Any,
     ) -> ArrayLike:
         """Translate source modality to target modality.
@@ -51,6 +51,11 @@ class CrossModalityTranslationMixin(AnalysisMixin[K, B]):
             Key identifying the target distribution.
         forward
             If `True`, compute the translation from :attr:`adata_src` to :attr:`adata_tgt`, otherwise vice-versa.
+        alternative_attr
+            Optional paramater to specify an alternative embedding to translate. If `forward = True` and
+            - if :class:`str`, it must refer to a key in :attr:`anndata.AnnData.obsm` in the target distribution.
+            - if :class:`dict`, the dictionary stores `attr` (attribute of :class:`~anndata.AnnData`) and `key`
+              (key of :class:`AnnData.{attr} <anndata.AnnData>`) in the target distribution.
         kwargs
             Keyword arguments for policy-specific `_apply` method of :class:`~moscot.base.problems.CompoundProblem`.
 
@@ -78,6 +83,23 @@ class CrossModalityTranslationMixin(AnalysisMixin[K, B]):
 
         kwargs["scale_by_marginals"] = True
         kwargs["normalize"] = False
+
+        if alternative_attr is not None:
+            _alternative_attr = (
+                {"attr": "obsm", "key": alternative_attr} if isinstance(alternative_attr, str) else alternative_attr
+            )
+            if forward:
+                return self[source, target].pull(  # type: ignore[index]
+                    _get_features(adata=self.adata_tgt, attr=_alternative_attr), **kwargs
+                )
+            if self.batch_key is None:
+                return self[source, target].push(  # type: ignore[index]
+                    _get_features(adata=self.adata_src, attr=_alternative_attr), **kwargs
+                )
+            return self[source, target].push(  # type: ignore[index]
+                _get_features(adata=self[source, target].adata_src, attr=_alternative_attr),  # type: ignore[index]
+                **kwargs,
+            )
 
         if forward:
             return self[source, target].pull(  # type: ignore[index]
