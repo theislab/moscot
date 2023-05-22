@@ -62,7 +62,7 @@ class CrossModalityTranslationMixin(AnalysisMixin[K, B]):
 
         Returns
         -------
-        Translation from :attr:`adata_src` in target domain or from :attr:`adata_tgt` in source domain,
+        Translation of :attr:`adata_src` to the target domain or :attr:`adata_tgt` to the source domain,
         depending on `forward`.
         """
 
@@ -91,7 +91,7 @@ class CrossModalityTranslationMixin(AnalysisMixin[K, B]):
                 {"attr": "obsm", "key": alternative_attr} if isinstance(alternative_attr, str) else alternative_attr
             )
 
-        if not forward:
+        if forward:
             return prob.pull(_get_features(self.adata_tgt, attr=tgt_attr), **kwargs)
 
         adata_src = self.adata_src if self.batch_key is None else prob.adata_src

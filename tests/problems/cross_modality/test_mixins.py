@@ -36,10 +36,10 @@ class TestCrossModalityTranslationAnalysisMixin:
         )
         for src, tgt in expected_keys:
             trans_forward = tp.translate(source=src, target=tgt, forward=True)
-            assert trans_forward.shape == tp[src, tgt].x.data_src.shape
+            assert trans_forward.shape == tp[src, tgt].y.data_src.shape
 
             trans_backward = tp.translate(source=src, target=tgt, forward=False)
-            assert trans_backward.shape == tp[src, tgt].y.data_src.shape
+            assert trans_backward.shape == tp[src, tgt].x.data_src.shape
 
     @pytest.mark.parametrize("src_attr", ["emb_src", {"attr": "obsm", "key": "emb_src"}])
     @pytest.mark.parametrize("tgt_attr", ["emb_tgt", {"attr": "obsm", "key": "emb_tgt"}])
