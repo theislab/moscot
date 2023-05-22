@@ -33,7 +33,7 @@ class TestTranslationProblem:
         tgt_attr: Mapping[str, str],
         joint_attr: Optional[Mapping[str, str]],
     ):
-        adata_tgt, adata_src = adata_translation_split
+        adata_src, adata_tgt = adata_translation_split
         n_obs = adata_tgt.shape[0]
 
         tp = TranslationProblem(adata_src, adata_tgt)
@@ -58,7 +58,7 @@ class TestTranslationProblem:
         tgt_attr: Mapping[str, str],
         joint_attr: Optional[Mapping[str, str]],
     ):
-        adata_tgt, adata_src = adata_translation_split
+        adata_src, adata_tgt = adata_translation_split
         expected_keys = {(i, "ref") for i in adata_src.obs["batch"]}
         n_obs = adata_tgt.shape[0]
         x_n_var = adata_src.obsm["emb_src"].shape[1]
@@ -95,7 +95,7 @@ class TestTranslationProblem:
         tgt_attr: Mapping[str, str],
         initializer: Optional[Literal["random", "rank2"]],
     ):
-        adata_tgt, adata_src = adata_translation_split
+        adata_src, adata_tgt = adata_translation_split
         kwargs = {}
         expected_keys = {(i, "ref") for i in adata_src.obs["batch"]}
         if rank > -1:
@@ -115,10 +115,8 @@ class TestTranslationProblem:
 
     @pytest.mark.parametrize("args_to_check", [fgw_args_1, fgw_args_2])
     def test_pass_arguments(self, adata_translation_split: Tuple[AnnData, AnnData], args_to_check: Mapping[str, Any]):
-        adata_tgt, adata_src = adata_translation_split
+        adata_src, adata_tgt = adata_translation_split
         tp = TranslationProblem(adata_src, adata_tgt)
-
-        adata_src = adata_src[adata_src.obs["batch"] == 1]
 
         key = ("1", "ref")
         tp = tp.prepare(

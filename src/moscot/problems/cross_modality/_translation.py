@@ -59,6 +59,7 @@ class TranslationProblem(CompoundProblem[K, OTProblem], CrossModalityTranslation
         tgt_mask: ArrayLike,
         **kwargs: Any,
     ) -> OTProblem:
+        del tgt_mask
         return self._base_problem_type(
             adata=self.adata_src,
             adata_tgt=self.adata_tgt,
@@ -106,6 +107,8 @@ class TranslationProblem(CompoundProblem[K, OTProblem], CrossModalityTranslation
             :obj:`dict`, it is expected to have keys `x`, `y`, and/or `xy`, with values corresponding to the
             cost functions in the quadratic term of the source distribution, the quadratic term of the target
             distribution, and/or the linear term, respectively.
+        cost_kwargs
+            TODO.
         a
             Specifies the left marginals. If of type :class:`str` the left marginals are taken from
             :attr:`~anndata.AnnData.obs` ``['{a}']``. If ``a`` is `None` uniform marginals are used.
@@ -127,13 +130,13 @@ class TranslationProblem(CompoundProblem[K, OTProblem], CrossModalityTranslation
             xy = {}  # type: ignore[var-annotated]
         else:
             xy, kwargs = handle_joint_attr(joint_attr, kwargs)
-            joint_attr_1_shape = getattr(self.adata_src, xy["x_attr"])[xy["x_key"]].shape
-            joint_attr_2_shape = getattr(self.adata_tgt, xy["y_attr"])[xy["y_key"]].shape
-            if not joint_attr_1_shape[1] == joint_attr_2_shape[1]:
+            _, dim_src = getattr(self.adata_src, xy["x_attr"])[xy["x_key"]].shape
+            _, dim_tgt = getattr(self.adata_tgt, xy["y_attr"])[xy["y_key"]].shape
+            if dim_src != dim_tgt:
                 raise ValueError(
                     f"The dimensions of `joint_attr` do not match. "
-                    f"The joint attribute in the source distribution has dimension {joint_attr_1_shape[1]}, "
-                    f"while the joint attribute in the target distribution has dimension {joint_attr_2_shape[1]}."
+                    f"The joint attribute in the source distribution has dimension {dim_src}, "
+                    f"while the joint attribute in the target distribution has dimension {dim_tgt}."
                 )
         xy, x, y = handle_cost(
             xy=xy, x=self._src_attr, y=self._tgt_attr, cost=cost, cost_kwargs=cost_kwargs  # type: ignore[arg-type]
@@ -248,14 +251,14 @@ class TranslationProblem(CompoundProblem[K, OTProblem], CrossModalityTranslation
         )  # type: ignore[return-value]
 
     @property
-    def adata_tgt(self) -> AnnData:
-        """Target data."""
-        return self._adata_tgt
-
-    @property
     def adata_src(self) -> AnnData:
         """Source data."""
         return self.adata
+
+    @property
+    def adata_tgt(self) -> AnnData:
+        """Target data."""
+        return self._adata_tgt
 
     @property
     def _base_problem_type(self) -> Type[B]:

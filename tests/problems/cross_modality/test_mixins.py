@@ -19,15 +19,15 @@ class TestCrossModalityTranslationAnalysisMixin:
         "tgt_attr", ["emb_tgt", {"attr": "obsm", "key": "emb_tgt"}, {"attr": "layers", "key": "counts"}]
     )
     @pytest.mark.parametrize("joint_attr", [None, "X_pca", {"attr": "obsm", "key": "X_pca"}])
-    def test_translate(
+    def test_translation_foo(
         self,
         adata_translation_split: Tuple[AnnData, AnnData],
         src_attr: Mapping[str, str],
         tgt_attr: Mapping[str, str],
         joint_attr: Optional[Mapping[str, str]],
     ):
-        adata_tgt, adata_src = adata_translation_split
-        expected_keys = {(i, "ref") for i in adata_src.obs["batch"]}
+        adata_src, adata_tgt = adata_translation_split
+        expected_keys = {(i, "ref") for i in adata_src.obs["batch"].cat.categories}
 
         tp = (
             TranslationProblem(adata_src, adata_tgt)
@@ -36,9 +36,10 @@ class TestCrossModalityTranslationAnalysisMixin:
         )
         for src, tgt in expected_keys:
             trans_forward = tp.translate(source=src, target=tgt, forward=True)
-            assert trans_forward.shape == tp[src, tgt].y.data_src.shape
+            assert trans_forward.shape == tp[src, tgt].x.data_src.shape
+
             trans_backward = tp.translate(source=src, target=tgt, forward=False)
-            assert trans_backward.shape == tp[src, tgt].x.data_src.shape
+            assert trans_backward.shape == tp[src, tgt].y.data_src.shape
 
     @pytest.mark.parametrize("src_attr", ["emb_src", {"attr": "obsm", "key": "emb_src"}])
     @pytest.mark.parametrize("tgt_attr", ["emb_tgt", {"attr": "obsm", "key": "emb_tgt"}])
@@ -50,8 +51,8 @@ class TestCrossModalityTranslationAnalysisMixin:
         tgt_attr: Mapping[str, str],
         alternative_attr: Optional[Mapping[str, str]],
     ):
-        adata_tgt, adata_src = adata_translation_split
-        expected_keys = {(i, "ref") for i in adata_src.obs["batch"]}
+        adata_src, adata_tgt = adata_translation_split
+        expected_keys = {(i, "ref") for i in adata_src.obs["batch"].cat.categories}
 
         tp = (
             TranslationProblem(adata_src, adata_tgt)
@@ -71,7 +72,7 @@ class TestCrossModalityTranslationAnalysisMixin:
         self, adata_translation_split: Tuple[AnnData, AnnData], forward: bool, normalize: bool
     ):
         rng = np.random.RandomState(0)
-        adata_tgt, adata_src = adata_translation_split
+        adata_src, adata_tgt = adata_translation_split
         tp = TranslationProblem(adata_src, adata_tgt)
         tp = tp.prepare(batch_key="batch", src_attr="emb_src", tgt_attr="emb_tgt", joint_attr="X_pca")
         mock_tmap_1 = np.abs(rng.randn(len(adata_src[adata_src.obs["batch"] == "1"]), len(adata_tgt)))

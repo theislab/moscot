@@ -38,7 +38,7 @@ class CrossModalityTranslationMixin(AnalysisMixin[K, B]):
         source: K,
         target: K,
         forward: bool = True,
-        alternative_attr: Optional[Optional[Dict[str, Any]]] = None,
+        alternative_attr: Optional[Dict[str, Any]] = None,
         **kwargs: Any,
     ) -> ArrayLike:
         """Translate source modality to target modality.
@@ -52,10 +52,10 @@ class CrossModalityTranslationMixin(AnalysisMixin[K, B]):
         forward
             If `True`, compute the translation from :attr:`adata_src` to :attr:`adata_tgt`, otherwise vice-versa.
         alternative_attr
-            Optional paramater to specify an alternative embedding to translate. If `forward = True` and
-            - if :class:`str`, it must refer to a key in :attr:`anndata.AnnData.obsm` in the target distribution.
+            Optional parameter to specify an alternative embedding to translate. If ``forward = True` and`
+            - if :class:`str`, it must refer to a key in :attr:`~anndata.AnnData.obsm` in the source distribution.
             - if :class:`dict`, the dictionary stores `attr` (attribute of :class:`~anndata.AnnData`) and `key`
-              (key of :class:`AnnData.{attr} <anndata.AnnData>`) in the target distribution.
+              (key of :class:`AnnData.{attr} <anndata.AnnData>`) in the source distribution.
         kwargs
             Keyword arguments for policy-specific `_apply` method of :class:`~moscot.base.problems.CompoundProblem`.
 
@@ -64,56 +64,37 @@ class CrossModalityTranslationMixin(AnalysisMixin[K, B]):
         Translation from :attr:`adata_src` in target domain or from :attr:`adata_tgt` in source domain,
         depending on `forward`.
         """
-        if self._src_attr is None:
-            raise ValueError("source attribute is None")
-        if self._tgt_attr is None:
-            raise ValueError("target attribute is None")
 
         def _get_features(
             adata: AnnData,
-            attr: Optional[Dict[str, Any]] = None,
+            attr: Dict[str, Any],
         ) -> ArrayLike:
-            attr = {"attr": "X"} if attr is None else attr
-            att = attr.get("attr", None)
+            data = getattr(adata, attr["attr"])
             key = attr.get("key", None)
+            return data if key is None else data[key]
 
-            if key is not None:
-                return getattr(adata, att)[key]
-            return getattr(adata, att)
+        if self._src_attr is None:
+            raise ValueError("Source attribute is None.")
+        if self._tgt_attr is None:
+            raise ValueError("Target attribute is None.")
 
         kwargs["scale_by_marginals"] = True
         kwargs["normalize"] = False
 
-        if alternative_attr is not None:
-            _alternative_attr = (
+        prob = self[source, target]  # type: ignore[index]
+        if alternative_attr is None:
+            src_attr = self._src_attr
+            tgt_attr = self._tgt_attr
+        else:
+            src_attr = tgt_attr = (
                 {"attr": "obsm", "key": alternative_attr} if isinstance(alternative_attr, str) else alternative_attr
             )
-            if forward:
-                return self[source, target].pull(  # type: ignore[index]
-                    _get_features(adata=self.adata_tgt, attr=_alternative_attr), **kwargs
-                )
-            if self.batch_key is None:
-                return self[source, target].push(  # type: ignore[index]
-                    _get_features(adata=self.adata_src, attr=_alternative_attr), **kwargs
-                )
-            return self[source, target].push(  # type: ignore[index]
-                _get_features(adata=self[source, target].adata_src, attr=_alternative_attr),  # type: ignore[index]
-                **kwargs,
-            )
 
-        if forward:
-            return self[source, target].pull(  # type: ignore[index]
-                _get_features(adata=self.adata_tgt, attr=self._tgt_attr),
-                **kwargs,
-            )
-        if self.batch_key is None:
-            return self[source, target].push(  # type: ignore[index]
-                _get_features(adata=self.adata_src, attr=self._src_attr), **kwargs
-            )
-        return self[source, target].push(  # type: ignore[index]
-            _get_features(adata=self[source, target].adata_src, attr=self._src_attr),  # type: ignore[index]
-            **kwargs,
-        )
+        if not forward:
+            return prob.pull(_get_features(self.adata_tgt, attr=tgt_attr), **kwargs)
+
+        adata_src = self.adata_src if self.batch_key is None else prob.adata_src
+        return prob.push(_get_features(adata_src, attr=src_attr), **kwargs)
 
     def cell_transition(  # type: ignore[misc]
         self: CrossModalityTranslationMixinProtocol[K, B],
