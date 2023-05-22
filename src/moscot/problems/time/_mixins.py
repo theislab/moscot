@@ -22,7 +22,6 @@ from anndata import AnnData
 
 from moscot import _constants
 from moscot._types import ArrayLike, Numeric_t, Str_Dict_t
-from moscot.base.output import BaseSolverOutput
 from moscot.base.problems._mixins import AnalysisMixin, AnalysisMixinProtocol
 from moscot.base.problems.birth_death import BirthDeathProblem
 from moscot.base.problems.compound_problem import ApplyOutput_t, B, K
@@ -422,102 +421,80 @@ class TemporalMixin(AnalysisMixin[K, B]):
     @property
     def prior_growth_rates(self: TemporalMixinProtocol[K, B]) -> Optional[pd.DataFrame]:
         """Return the prior estimate of growth rates of the cells in the source distribution."""
-        # TODO(michalk8): FIXME
+        computed = [isinstance(p.prior_growth_rates, np.ndarray) for p in self.problems.values()]
+        if not np.sum(computed):
+            return None
+
         cols = ["prior_growth_rates"]
         df_list = [
-            pd.DataFrame(problem.prior_growth_rates, index=problem.adata.obs.index, columns=cols)
+            pd.DataFrame(problem.prior_growth_rates, index=problem.adata.obs_names, columns=cols)
             for problem in self.problems.values()
         ]
-        tup = list(self)[-1]
-        df_list.append(
-            pd.DataFrame(
-                np.full(
-                    shape=(len(self.problems[tup].adata_tgt.obs), 1),
-                    fill_value=np.nan,
-                ),
-                index=self.problems[tup].adata_tgt.obs.index,
-                columns=cols,
-            )
-        )
-        return pd.concat(df_list, verify_integrity=True)
+        df_1 = pd.concat(df_list, verify_integrity=True)
+        indices_remaining = set(self.adata.obs_names) - set(df_1.index)
+        df_2 = pd.DataFrame(np.nan, index=list(indices_remaining), columns=cols)
+
+        return pd.concat([df_1, df_2], verify_integrity=True)
 
     @property
     def posterior_growth_rates(self: TemporalMixinProtocol[K, B]) -> Optional[pd.DataFrame]:
         """Return the posterior estimate of growth rates of the cells in the source distribution."""
-        # TODO(michalk8): FIXME
+        computed = [isinstance(p.posterior_growth_rates, np.ndarray) for p in self.problems.values()]
+        if not np.sum(computed):
+            return None
+
         cols = ["posterior_growth_rates"]
         df_list = [
-            pd.DataFrame(problem.posterior_growth_rates, index=problem.adata.obs.index, columns=cols)
+            pd.DataFrame(problem.posterior_growth_rates, index=problem.adata.obs_names, columns=cols)
             for problem in self.problems.values()
         ]
-        tup = list(self)[-1]
-        df_list.append(
-            pd.DataFrame(
-                np.full(
-                    shape=(len(self.problems[tup].adata_tgt.obs), 1),
-                    fill_value=np.nan,
-                ),
-                index=self.problems[tup].adata_tgt.obs.index,
-                columns=cols,
-            )
-        )
-        return pd.concat(df_list, verify_integrity=True)
+        df_1 = pd.concat(df_list, verify_integrity=True)
+        indices_remaining = set(self.adata.obs_names) - set(df_1.index)
+        df_2 = pd.DataFrame(np.nan, index=list(indices_remaining), columns=cols)
 
-    # TODO(michalk8): refactor me
+        return pd.concat([df_1, df_2], verify_integrity=True)
+
     @property
     def cell_costs_source(self: TemporalMixinProtocol[K, B]) -> Optional[pd.DataFrame]:
         """Return the cost of a cell obtained by the potentials of the optimal transport solution."""
-        sol = list(self.problems.values())[0].solution
-        if TYPE_CHECKING:
-            assert isinstance(sol, BaseSolverOutput)
-        if sol.potentials is None:
+        computed = [isinstance(s.potentials, tuple) for s in self.solutions.values()]
+        if not np.sum(computed):
             return None
+
+        cols = ["cell_cost_source"]
         df_list = [
             pd.DataFrame(
-                np.array(np.abs(problem.solution.potentials[0])),  # type: ignore[union-attr,index]
+                np.asarray(problem.solution.potentials[0]),  # type: ignore[union-attr,index]
                 index=problem.adata_src.obs_names,
-                columns=["cell_cost_source"],
+                columns=cols,
             )
             for problem in self.problems.values()
         ]
-        tup = list(self)[-1]
-        df_list.append(
-            pd.DataFrame(
-                np.full(shape=(len(self.problems[tup].adata_tgt.obs), 1), fill_value=np.nan),
-                index=self.problems[tup].adata_tgt.obs_names,
-                columns=["cell_cost_source"],
-            )
-        )
-        return pd.concat(df_list, verify_integrity=True)
+        df_1 = pd.concat(df_list, verify_integrity=True)
+        indices_remaining = set(self.adata.obs_names) - set(df_1.index)
+        df_2 = pd.DataFrame(np.nan, index=list(indices_remaining), columns=cols)
+        return pd.concat([df_1, df_2], verify_integrity=True)
 
     @property
     def cell_costs_target(self: TemporalMixinProtocol[K, B]) -> Optional[pd.DataFrame]:
-        """Return the cost of a cell (see online methods) obtained by the potentials of the OT solution."""
-        sol = list(self.problems.values())[0].solution
-        if TYPE_CHECKING:
-            assert isinstance(sol, BaseSolverOutput)
-        if sol.potentials is None:
+        """Return the cost of a cell obtained by the potentials of the optimal transport solution."""
+        computed = [isinstance(s.potentials, tuple) for s in self.solutions.values()]
+        if not np.sum(computed):
             return None
 
-        tup = list(self)[0]
+        cols = ["cell_cost_target"]
         df_list = [
             pd.DataFrame(
-                np.full(shape=(len(self.problems[tup].adata_src), 1), fill_value=np.nan),
-                index=self.problems[tup].adata_src.obs_names,
-                columns=["cell_cost_target"],
+                np.array(problem.solution.potentials[1]),  # type: ignore[union-attr,index]
+                index=problem.adata_tgt.obs_names,
+                columns=cols,
             )
+            for problem in self.problems.values()
         ]
-        df_list.extend(
-            [
-                pd.DataFrame(
-                    np.array(np.abs(problem.solution.potentials[1])),  # type: ignore[union-attr,index]
-                    index=problem.adata_tgt.obs_names,
-                    columns=["cell_cost_target"],
-                )
-                for problem in self.problems.values()
-            ]
-        )
-        return pd.concat(df_list, verify_integrity=True)
+        df_1 = pd.concat(df_list, verify_integrity=True)
+        indices_remaining = set(self.adata.obs_names) - set(df_1.index)
+        df_2 = pd.DataFrame(np.nan, index=list(indices_remaining), columns=cols)
+        return pd.concat([df_1, df_2], verify_integrity=True)
 
     # TODO(michalk8): refactor me
     def _get_data(

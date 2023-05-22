@@ -57,7 +57,7 @@ def mosta(
     """
     return _load_dataset_from_url(
         path,
-        backup_url="https://figshare.com/ndownloader/files/37953852",
+        backup_url="https://figshare.com/ndownloader/files/40569779",
         expected_shape=(54134, 2000),
         force_download=force_download,
         **kwargs,

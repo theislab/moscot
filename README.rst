@@ -25,11 +25,9 @@ In order to install **moscot** from source, run::
 
     git clone https://github.com/theislab/moscot
     cd moscot
-    pip install -e .'[dev]'
+    pip install -e .
 
-If used with GPU, additionally run::
-
-    pip install --upgrade "jax[cuda]" -f https://storage.googleapis.com/jax-releases/jax_cuda_releases.html
+For further instructions how to install jax, please refer to https://github.com/google/jax.
 
 
 .. |Codecov| image:: https://codecov.io/gh/theislab/moscot/branch/master/graph/badge.svg?token=Rgtm5Tsblo
@@ -44,4 +42,4 @@ Please have a look at our `documentation <https://moscot.readthedocs.io>`_
 Reference
 ---------
 
-Our manuscript will be available soon.
+Our preprint "Mapping cells through time and space with moscot" can be found `here <https://www.biorxiv.org/content/10.1101/2023.05.11.540374v1>`_.
