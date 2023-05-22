@@ -185,3 +185,26 @@ def adata_mapping() -> AnnData:
     adata = adataref.concatenate(adata1, adata2, batch_key="batch", join="outer")
     adata.obs_names_make_unique()
     return adata
+
+
+@pytest.fixture()
+def adata_translation() -> AnnData:
+    rng = np.random.RandomState(31)
+    adatas = [AnnData(X=csr_matrix(rng.normal(size=(100, 60))), dtype=float) for _ in range(3)]
+    adata = adatas[0].concatenate(*adatas[1:], batch_key="batch")
+    adata.obs["celltype"] = rng.choice(["A", "B", "C"], size=len(adata))
+    adata.obs["celltype"] = adata.obs["celltype"].astype("category")
+    adata.layers["counts"] = adata.X.A
+    adata.obs_names_make_unique()
+    sc.pp.pca(adata)
+    return adata
+
+
+@pytest.fixture()
+def adata_translation_split(adata_translation) -> Tuple[AnnData, AnnData]:
+    rng = np.random.RandomState(15)
+    adata_src = adata_translation[adata_translation.obs.batch != "0"].copy()
+    adata_tgt = adata_translation[adata_translation.obs.batch == "0"].copy()
+    adata_src.obsm["emb_src"] = rng.normal(size=(adata_src.shape[0], 5))
+    adata_tgt.obsm["emb_tgt"] = rng.normal(size=(adata_tgt.shape[0], 15))
+    return adata_src, adata_tgt

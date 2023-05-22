@@ -22,7 +22,7 @@ from moscot.utils.subset_policy import DummyPolicy, ExternalStarPolicy
 __all__ = ["MappingProblem"]
 
 
-class MappingProblem(CompoundProblem[K, OTProblem], SpatialMappingMixin[K, OTProblem]):
+class MappingProblem(SpatialMappingMixin[K, OTProblem], CompoundProblem[K, OTProblem]):
     """
     Class for mapping single cell omics data onto spatial data, based on :cite:`nitzan:19`.
 

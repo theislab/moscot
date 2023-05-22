@@ -18,7 +18,7 @@ from moscot.problems.space._mixins import SpatialAlignmentMixin
 __all__ = ["AlignmentProblem"]
 
 
-class AlignmentProblem(CompoundProblem[K, B], SpatialAlignmentMixin[K, B]):
+class AlignmentProblem(SpatialAlignmentMixin[K, B], CompoundProblem[K, B]):
     """
     Class for aligning spatial omics data, based on :cite:`zeira:22`.
 
