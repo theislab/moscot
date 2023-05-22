@@ -32,6 +32,7 @@ class CrossModalityTranslationMixin(AnalysisMixin[K, B]):
         super().__init__(*args, **kwargs)
         self._src_attr: Optional[Dict[str, Any]] = None
         self._tgt_attr: Optional[Dict[str, Any]] = None
+        self._batch_key: Optional[str] = None
 
     def translate(  # type: ignore[misc]
         self: CrossModalityTranslationMixinProtocol[K, B],
@@ -180,3 +181,14 @@ class CrossModalityTranslationMixin(AnalysisMixin[K, B]):
             normalize=normalize,
             key_added=key_added,
         )
+
+    @property
+    def batch_key(self) -> Optional[str]:
+        """Batch key in :attr:`anndata.AnnData.obs`."""
+        return self._batch_key
+
+    @batch_key.setter
+    def batch_key(self, key: Optional[str]) -> None:
+        if key is not None and key not in self.adata.obs:  # type: ignore[attr-defined]
+            raise KeyError(f"Unable to find batch data in `adata.obs[{key!r}]`.")
+        self._batch_key = key
