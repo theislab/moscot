@@ -52,10 +52,11 @@ class CrossModalityTranslationMixin(AnalysisMixin[K, B]):
         forward
             If `True`, compute the translation from :attr:`adata_src` to :attr:`adata_tgt`, otherwise vice-versa.
         alternative_attr
-            Optional parameter to specify an alternative embedding to translate. If ``forward = True` and`
-            - if :class:`str`, it must refer to a key in :attr:`~anndata.AnnData.obsm` in the source distribution.
-            - if :class:`dict`, the dictionary stores `attr` (attribute of :class:`~anndata.AnnData`) and `key`
-              (key of :class:`AnnData.{attr} <anndata.AnnData>`) in the source distribution.
+            Optional parameter to specify an alternative embedding to translate:
+
+            - if :class:`str`, it must refer to a key in :attr:`~anndata.AnnData.obsm`.
+            - if :class:`dict`, the dictionary should contain `'attr'`, the attribute of :class:`~anndata.AnnData` and
+              `'key'`, an optional key for the given attribute.
         kwargs
             Keyword arguments for policy-specific `_apply` method of :class:`~moscot.base.problems.CompoundProblem`.
 
