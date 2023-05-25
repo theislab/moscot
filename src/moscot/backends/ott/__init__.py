@@ -1,6 +1,6 @@
 from ott.geometry import costs
 
-from moscot.backends.ott._output import (
+from moscot.backends.ott.output import (
     ConditionalDualPotentials,
     ConditionalNeuralOutput,
     NeuralOutput,

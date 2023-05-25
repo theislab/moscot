@@ -17,7 +17,7 @@ from matplotlib.figure import Figure
 
 from moscot._types import ArrayLike, Device_t
 from moscot.backends.ott._utils import ConditionalDualPotentials, get_nearest_neighbors
-from moscot.solvers._output import BaseNeuralOutput, BaseSolverOutput
+from moscot.base.output import BaseNeuralOutput, BaseSolverOutput
 
 __all__ = ["OTTOutput", "NeuralOutput", "ConditionalNeuralOutput"]
 
