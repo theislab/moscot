@@ -464,7 +464,7 @@ class NeuralOutput(ConvergencePlotterMixin, BaseNeuralOutput):
             raise ValueError(f"Expected 1D or 2D array, found `{x.ndim}`.")
         return self._apply(x, forward=False)
 
-    def push_potential(self, x: ArrayLike) -> ArrayLike:
+    def evaluate_f(self, x: ArrayLike) -> ArrayLike:
         """Apply forward potential to `x`.
 
         Parameters
@@ -480,7 +480,7 @@ class NeuralOutput(ConvergencePlotterMixin, BaseNeuralOutput):
             raise ValueError(f"Expected 1D or 2D array, found `{x.ndim}`.")
         return jax.vmap(self._output.f)(x)
 
-    def pull_potential(self, x: ArrayLike) -> ArrayLike:
+    def evaluate_g(self, x: ArrayLike) -> ArrayLike:
         """Apply backward potential to `x`.
 
         Parameters
@@ -702,7 +702,7 @@ class ConditionalNeuralOutput(NeuralOutput):
             raise ValueError(f"Expected 1D or 2D array, found `{x.ndim}`.")
         return self._apply(cond, x, forward=False)
 
-    def push_potential(self, cond: float, x: ArrayLike) -> ArrayLike:  # type:ignore[override]
+    def evaluate_f(self, cond: float, x: ArrayLike) -> ArrayLike:  # type:ignore[override]
         """Apply forward potential to `x` conditionend on condition `cond`.
 
         Parameters
@@ -720,7 +720,7 @@ class ConditionalNeuralOutput(NeuralOutput):
             raise ValueError(f"Expected 1D or 2D array, found `{x.ndim}`.")
         return jax.vmap(self._output.f)(cond, x)
 
-    def pull_potential(self, cond: float, x: ArrayLike) -> ArrayLike:  # type:ignore[override]
+    def evaluate_g(self, cond: float, x: ArrayLike) -> ArrayLike:  # type:ignore[override]
         """Apply backward potential to `x` conditionend on condition `cond`.
 
         Parameters

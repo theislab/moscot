@@ -594,7 +594,7 @@ class NeuralDualSolver:
         def g(x, condition) -> float:
             return self.state_g.apply_fn({"params": self.state_g.params}, x, condition)
 
-        return ConditionalDualPotentials(f, g, corr=True, cost_fn=costs.SqEuclidean())
+        return ConditionalDualPotentials(self.state_f, self.state_g)
 
     @property
     def is_balanced(self) -> bool:

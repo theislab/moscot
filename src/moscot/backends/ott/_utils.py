@@ -3,9 +3,11 @@ from functools import partial
 
 from ott.geometry.pointcloud import PointCloud
 from ott.tools.sinkhorn_divergence import sinkhorn_divergence
+from ott.problems.linear.potentials import DualPotentials
 import jax
 import jax.numpy as jnp
 import jax.tree_util as jtu
+from flax.training.train_state import TrainState
 
 from moscot._types import ArrayLike, ScaleCost_t
 from moscot._logging import logger
@@ -93,7 +95,7 @@ def get_nearest_neighbors(
 
 
 @jtu.register_pytree_node_class
-class ConditionalDualPotentials:
+class ConditionalDualPotentials(DualPotentials):
     r"""The conditional Kantorovich dual potential functions as introduced in :cite:`bunne2022supervised`.
 
     :math:`f` and :math:`g` are a pair of functions, candidates for the dual
@@ -113,13 +115,11 @@ class ConditionalDualPotentials:
         :cite:`makkuva:20`)
     """
 
-    def __init__(self, f: CondPotential_t, g: CondPotential_t, *, cost_fn: "costs.CostFn", corr: bool = False):
-        self._f = f
-        self._g = g
-        self.cost_fn = cost_fn
-        self._corr = corr
+    def __init__(self, state_f: TrainState, state_g: TrainState):
+        self._state_f = state_f
+        self._state_g = state_g
 
-    def transport(self, condition: float, vec: jnp.ndarray, forward: bool = True) -> jnp.ndarray:
+    def transport(self, condition: float, x: jnp.ndarray, forward: bool = True) -> jnp.ndarray:
         r"""Conditionally transport ``vec`` according to Brenier formula :cite:`brenier:91`.
 
         Uses Theorem 1.17 from :cite:`santambrogio:15` to compute an OT map when
@@ -149,16 +149,24 @@ class ConditionalDualPotentials:
             The transported points.
         """
         from ott.geometry import costs
+        
+        dp = self.to_dual_potentials(condition=condition)
+        return dp.transport(x, forward=forward)
+        
+    def to_dual_potentials(self, condition: ArrayLike) -> DualPotentials:
+        """Return the Kantorovich dual potentials from the trained potentials."""
 
-        vec = jnp.atleast_2d(vec)
-        if self._corr and isinstance(self.cost_fn, costs.SqEuclidean):
-            return self._grad_f(vec, condition) if forward else self._grad_g(vec, condition)
-        if forward:
-            return vec - self._grad_h_inv(self._grad_f(vec, condition))
-        else:
-            return vec - self._grad_h_inv(self._grad_g(vec, condition))
+        
+        def f(x) -> float:
+            return self.state_f.apply_fn({"params": self.state_f.params}, x, condition)
 
-    def distance(self, condition: float, src: jnp.ndarray, tgt: jnp.ndarray) -> float:
+        def g(x) -> float:
+            return self.state_g.apply_fn({"params": self.state_g.params}, x, condition)
+
+        return DualPotentials(f, g, corr=True, cost_fn=costs.SqEuclidean())
+
+    
+    def distance(self, condition: float, src: ArrayLike, tgt: ArrayLike) -> float:
         """Evaluate 2-Wasserstein distance between samples using dual potentials.
 
         Uses Eq. 5 from :cite:`makkuva:20` when given in `corr` form, direct
@@ -175,49 +183,18 @@ class ConditionalDualPotentials:
         -------
             Wasserstein distance.
         """
-        src, tgt = jnp.atleast_2d(src), jnp.atleast_2d(tgt)
-        f = jax.vmap(self.f)
-
-        if self._corr:
-            grad_g_y = self._grad_g(tgt, condition)
-            term1 = -jnp.mean(f(src, condition))
-            term2 = -jnp.mean(jnp.sum(tgt * grad_g_y, axis=-1) - f(grad_g_y, condition))
-
-            C = jnp.mean(jnp.sum(src**2, axis=-1))
-            C += jnp.mean(jnp.sum(tgt**2, axis=-1))
-            return 2.0 * (term1 + term2) + C
-
-        g = jax.vmap(self.g)
-        return jnp.mean(f(src, condition)) + jnp.mean(g(tgt, condition))
+        dp = self.to_dual_potentials(condition=condition)
+        return dp.distance(src=src, tgt=tgt)
 
     @property
-    def f(self) -> CondPotential_t:
+    def f(self, condition: ArrayLike) -> DualPotentials:
         """The first dual potential function."""
-        return self._f
+        return lambda x: self._state_f.apply_fn({"params": self._state_f.params}, x=jnp.concatenate(x, condition))
 
     @property
-    def g(self) -> CondPotential_t:
+    def g(self, condition: ArrayLike) -> CondPotential_t:
         """The second dual potential function."""
-        return self._g
-
-    @property
-    def _grad_f(self) -> Callable[[float, jnp.ndarray], jnp.ndarray]:
-        """Vectorized gradient of the potential function :attr:`f`."""
-        return jax.vmap(jax.grad(self.f, argnums=0))
-
-    @property
-    def _grad_g(self) -> Callable[[float, jnp.ndarray], jnp.ndarray]:
-        """Vectorized gradient of the conditional potential function :attr:`g`."""
-        return jax.vmap(jax.grad(self.g, argnums=0))
-
-    @property
-    def _grad_h_inv(self) -> Callable[[jnp.ndarray], jnp.ndarray]:
-        from ott.geometry import costs
-
-        assert isinstance(self.cost_fn, costs.TICost), (
-            "Cost must be a `TICost` and " "provide access to Legendre transform of `h`."
-        )
-        return jax.vmap(jax.grad(self.cost_fn.h_legendre))
+        return lambda x: self._state_g.apply_fn({"params": self._state_g.params}, x=jnp.concatenate(x, condition))
 
     def tree_flatten(self) -> Tuple[Sequence[Any], Dict[str, Any]]:  # noqa: D102
         return [], {"f": self._f, "g": self._g, "cost_fn": self.cost_fn, "corr": self._corr}
