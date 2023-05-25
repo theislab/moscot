@@ -141,6 +141,10 @@ class OTTOutput(ConvergencePlotterMixin, BaseSolverOutput):
     def transport_matrix(self) -> ArrayLike:
         return self._output.matrix
 
+    @property
+    def is_linear(self) -> bool:  # noqa: D102
+        return isinstance(self._output, (OTTSinkhornOutput, OTTLRSinkhornOutput))
+
     def to(self, device: Optional[Device_t] = None) -> "OTTOutput":
         if isinstance(device, str) and ":" in device:
             device, ix = device.split(":")
