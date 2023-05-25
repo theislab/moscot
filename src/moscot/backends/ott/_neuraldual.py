@@ -227,7 +227,7 @@ class NeuralDualSolver:
             pretrain_logs = self.pretrain_identity(trainloader.conditions)
 
         train_logs = self.train_neuraldual(trainloader, validloader)
-        res = self.to_cond_dual_potentials() if self.conditional else self.to_dual_potentials
+        res = self.to_cond_dual_potentials() if self.conditional else self.to_dual_potentials()
         logs = pretrain_logs | train_logs
 
         return (res, logs)
@@ -586,14 +586,7 @@ class NeuralDualSolver:
         return DualPotentials(f, g, corr=True, cost_fn=costs.SqEuclidean())
 
     def to_cond_dual_potentials(self) -> DualPotentials:
-        """Return the Kantorovich dual potentials from the trained potentials."""
-
-        def f(x, condition) -> float:
-            return self.state_f.apply_fn({"params": self.state_f.params}, x, condition)
-
-        def g(x, condition) -> float:
-            return self.state_g.apply_fn({"params": self.state_g.params}, x, condition)
-
+        """Return the conditional Kantorovich dual potentials from the trained potentials."""
         return ConditionalDualPotentials(self.state_f, self.state_g)
 
     @property
