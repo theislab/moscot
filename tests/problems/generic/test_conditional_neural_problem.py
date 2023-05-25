@@ -63,7 +63,7 @@ class TestConditionalNeuralProblem:
         adata_time = adata_time[adata_time.obs["time"].isin((0, 1))]
         problem = problem.prepare(key="time", joint_attr="X_pca")
         problem = problem.solve(**neuraldual_args_1)
-      
+
         solver = problem.solver.solver
         assert solver.conditional is True
         for arg, val in neuraldual_solver_args.items():

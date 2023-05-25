@@ -1,22 +1,23 @@
-from types import MappingProxyType
-from typing import Any, Dict, List, Tuple, Union, Literal, Callable, Optional
 from functools import partial
+from types import MappingProxyType
+from typing import Any, Callable, Dict, List, Literal, Optional, Tuple, Union
 
-from matplotlib.figure import Figure
-import scipy.sparse as sp
-import matplotlib.pyplot as plt
-
-from ott.solvers.linear.sinkhorn import SinkhornOutput as OTTSinkhornOutput
-from ott.problems.linear.potentials import DualPotentials
-from ott.solvers.linear.sinkhorn_lr import LRSinkhornOutput as OTTLRSinkhornOutput
-from ott.solvers.quadratic.gromov_wasserstein import GWOutput as OTTGWOutput
-import jax
-import jax.numpy as jnp
 import jaxlib.xla_extension as xla_ext
 
-from moscot._types import Device_t, ArrayLike
-from moscot.base.output import BaseNeuralOutput, BaseSolverOutput
-from moscot.backends.ott._utils import get_nearest_neighbors
+import jax
+import jax.numpy as jnp
+import scipy.sparse as sp
+from ott.problems.linear.potentials import DualPotentials
+from ott.solvers.linear.sinkhorn import SinkhornOutput as OTTSinkhornOutput
+from ott.solvers.linear.sinkhorn_lr import LRSinkhornOutput as OTTLRSinkhornOutput
+from ott.solvers.quadratic.gromov_wasserstein import GWOutput as OTTGWOutput
+
+import matplotlib.pyplot as plt
+from matplotlib.figure import Figure
+
+from moscot._types import ArrayLike, Device_t
+from moscot.backends.ott._utils import ConditionalDualPotentials, get_nearest_neighbors
+from moscot.solvers._output import BaseNeuralOutput, BaseSolverOutput
 
 __all__ = ["OTTOutput", "NeuralOutput", "ConditionalNeuralOutput"]
 
@@ -167,7 +168,6 @@ class OTTOutput(ConvergencePlotterMixin, BaseSolverOutput):
 
     @property
     def potentials(self) -> Optional[Tuple[ArrayLike, ArrayLike]]:
-
         if isinstance(self._output, OTTSinkhornOutput):
             return self._output.f, self._output.g
         return None
@@ -255,7 +255,7 @@ class NeuralOutput(ConvergencePlotterMixin, BaseNeuralOutput):
 
     @property
     def shape(self) -> Tuple[int, int]:
-        """%(shape)s"""
+        """%(shape)s."""
         raise NotImplementedError()
 
     def is_linear(self) -> bool:
@@ -501,17 +501,13 @@ class NeuralOutput(ConvergencePlotterMixin, BaseNeuralOutput):
 
     @property
     def a(self) -> ArrayLike:
-        """
-        Marginals of the source distribution.
-        """
+        """Marginals of the source distribution."""
         # TODO: adapt when tracing marginals
         raise NotImplementedError()
 
     @property
     def b(self) -> ArrayLike:
-        """
-        Marginals of the target distribution.
-        """
+        """Marginals of the target distribution."""
         # TODO: adapt when tracing marginals
         raise NotImplementedError()
 
@@ -519,7 +515,7 @@ class NeuralOutput(ConvergencePlotterMixin, BaseNeuralOutput):
         return jnp.ones((n,))
 
     def _format_params(self, fmt: Callable[[Any], str]) -> str:
-        if "sinkhorn_dist" in self.training_logs["valid_logs"].keys():
+        if "sinkhorn_dist" in self.training_logs["valid_logs"]:
             params = {
                 "predicted_cost": round(self.cost, 3),
                 "best_loss": round(self.training_logs["valid_logs"]["best_loss"], 3),  # type: ignore[call-overload]
@@ -539,13 +535,13 @@ class ConditionalNeuralOutput(NeuralOutput):
     Parameters
     ----------
     output
-        The trained model as :class:`moscot.backends.ott.DualPotentials`.
+        The trained model as :class:`moscot.backends.ott._utils.ConditionalDualPotentials`.
     training_logs
         Statistics of the model training.
     """
 
-    def __init__(self, *args, output: DualPotentials, **kwargs):
-        super().__init__(*args, output=output, **kwargs)
+    def __init__(self, *args, output: ConditionalDualPotentials, **kwargs):
+        super().__init__(*args, **kwargs)
         self._output = output
 
     def _apply(self, cond: float, x: ArrayLike, *, forward: bool) -> ArrayLike:  # type:ignore[override]
