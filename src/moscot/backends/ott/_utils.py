@@ -10,7 +10,7 @@ import jax.tree_util as jtu
 from ott.geometry.pointcloud import PointCloud
 from ott.problems.linear.potentials import DualPotentials
 from ott.tools.sinkhorn_divergence import sinkhorn_divergence
-
+from ott.geometry import costs
 from moscot._logging import logger
 from moscot._types import ArrayLike, ScaleCost_t
 
@@ -165,10 +165,10 @@ class ConditionalDualPotentials(DualPotentials):
         """Return the Kantorovich dual potentials from the trained potentials."""
 
         def f(x) -> float:
-            return self.state_f.apply_fn({"params": self.state_f.params}, x, condition)
+            return self._state_f.apply_fn({"params": self._state_f.params}, x, condition)
 
         def g(x) -> float:
-            return self.state_g.apply_fn({"params": self.state_g.params}, x, condition)
+            return self._state_g.apply_fn({"params": self._state_g.params}, x, condition)
 
         return DualPotentials(f, g, corr=True, cost_fn=costs.SqEuclidean())
 
@@ -203,7 +203,7 @@ class ConditionalDualPotentials(DualPotentials):
         return lambda x: self._state_g.apply_fn({"params": self._state_g.params}, x=jnp.concatenate(x, condition))
 
     def tree_flatten(self) -> Tuple[Sequence[Any], Dict[str, Any]]:  # noqa: D102
-        return [], {"f": self._f, "g": self._g, "cost_fn": self.cost_fn, "corr": self._corr}
+        return [], {"state_f": self._state_f, "state_g": self._state_g}
 
     @classmethod
     def tree_unflatten(  # noqa: D102

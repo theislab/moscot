@@ -3,16 +3,18 @@ from types import MappingProxyType
 from typing import Any, Callable, Dict, List, Literal, Optional, Tuple, Union
 
 import jaxlib.xla_extension as xla_ext
-
+import numpy as np
 import jax
 import jax.numpy as jnp
 import scipy.sparse as sp
+from moscot._docs._docs import d
 from ott.problems.linear.potentials import DualPotentials
 from ott.solvers.linear.sinkhorn import SinkhornOutput as OTTSinkhornOutput
 from ott.solvers.linear.sinkhorn_lr import LRSinkhornOutput as OTTLRSinkhornOutput
 from ott.solvers.quadratic.gromov_wasserstein import GWOutput as OTTGWOutput
 
 import matplotlib.pyplot as plt
+import matplotlib as mpl
 from matplotlib.figure import Figure
 
 from moscot._types import ArrayLike, Device_t
@@ -130,6 +132,76 @@ class OTTOutput(ConvergencePlotterMixin, BaseSolverOutput):
         if x.ndim == 1:
             return self._output.apply(x, axis=1 - forward)
         return self._output.apply(x.T, axis=1 - forward).T  # convert to batch first
+
+    @d.get_sections(base="plot_costs", sections=["Parameters", "Returns"])
+    def plot_costs(
+        self,
+        last: Optional[int] = None,
+        title: Optional[str] = None,
+        return_fig: bool = False,
+        figsize: Optional[Tuple[float, float]] = None,
+        dpi: Optional[int] = None,
+        save: Optional[str] = None,
+        ax: Optional[mpl.axes.Axes] = None,
+        **kwargs: Any,
+    ) -> Optional[mpl.figure.Figure]:
+        """Plot regularized OT costs during the iterations.
+
+        Parameters
+        ----------
+        last
+            How many of the last steps of the algorithm to plot. If `None`, plot the full curve.
+        title
+            Title of the plot. If `None`, it is determined automatically.
+        figsize
+            Size of the figure.
+        dpi
+            Dots per inch.
+        save
+            Path where to save the figure.
+        return_fig
+            Whether to return the figure.
+        ax
+            Axes on which to plot.
+        kwargs
+            Keyword arguments for :meth:`~matplotlib.axes.Axes.plot`.
+
+        Returns
+        -------
+        The figure if ``return_fig = True``.
+        """
+        if self._costs is None:
+            raise RuntimeError("No costs to plot.")
+
+        fig, ax = plt.subplots(figsize=figsize, dpi=dpi) if ax is None else (ax.get_figure(), ax)
+        self._plot_lines(ax, np.asarray(self._costs), last=last, y_label="cost", title=title, **kwargs)
+
+        if save is not None:
+            fig.savefig(save)
+        return fig if return_fig else None
+
+    def _plot_lines(
+        self,
+        ax: mpl.axes.Axes,
+        values: ArrayLike,
+        last: Optional[int] = None,
+        y_label: Optional[str] = None,
+        title: Optional[str] = None,
+        **kwargs: Any,
+    ) -> None:
+        if values.ndim != 1:
+            raise ValueError(f"Expected array to be 1 dimensional, found `{values.ndim}`.")
+        values = values[values != self._NOT_COMPUTED]
+        ixs = np.arange(len(values))
+        if last is not None:
+            values = values[-last:]
+            ixs = ixs[-last:]
+
+        ax.plot(ixs, values, **kwargs)
+        ax.set_xlabel("iteration (logged)")
+        ax.set_ylabel(y_label)
+        ax.set_title(title if title is not None else "converged" if self.converged else "not converged")
+        ax.xaxis.set_major_locator(mpl.ticker.MaxNLocator(integer=True))
 
     @property
     def shape(self) -> Tuple[int, int]:
@@ -283,8 +355,8 @@ class NeuralOutput(ConvergencePlotterMixin, BaseNeuralOutput):
         distances_list: Union[jnp.ndarray, List[jnp.ndarray]] = []
         if length_scale is None:
             key = jax.random.PRNGKey(seed)
-            src_batch = jax.random.choice(key, src_dist.shape[0], shape=((batch_size,)))
-            tgt_batch = jax.random.choice(key, tgt_dist.shape[0], shape=((batch_size,)))
+            src_batch = src_dist[jax.random.choice(key, src_dist.shape[0], shape=((batch_size,)))]
+            tgt_batch = tgt_dist[jax.random.choice(key, tgt_dist.shape[0], shape=((batch_size,)))]
             length_scale = jnp.std(jnp.concatenate((func(src_batch), tgt_batch)))
         for index in range(0, len(src_dist), batch_size):
             distances, indices = get_knn_fn(func(src_dist[index : index + batch_size]), tgt_dist, k)
@@ -544,8 +616,8 @@ class ConditionalNeuralOutput(NeuralOutput):
         Statistics of the model training.
     """
 
-    def __init__(self, *args, output: ConditionalDualPotentials, **kwargs):
-        super().__init__(*args, **kwargs)
+    def __init__(self, output: ConditionalDualPotentials, **kwargs):
+        super().__init__(output=output, **kwargs)
         self._output = output
 
     def _apply(self, cond: float, x: ArrayLike, *, forward: bool) -> ArrayLike:  # type:ignore[override]
