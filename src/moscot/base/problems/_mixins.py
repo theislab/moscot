@@ -506,7 +506,6 @@ class AnalysisMixin(Generic[K, B]):
             - `qval` - corrected p-values using Benjamini-Hochberg method at level `0.05`.
             - `ci_low` - lower bound of the ``confidence_level`` correlation confidence interval.
             - `ci_high` - upper bound of the ``confidence_level`` correlation confidence interval.
-
         """
         if obs_key not in self.adata.obs:
             raise KeyError(f"Unable to access data in `adata.obs[{obs_key!r}]`.")

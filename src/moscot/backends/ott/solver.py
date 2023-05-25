@@ -358,11 +358,11 @@ class NeuralSolver(OTSolver[OTTOutput]):
 
     def _solve(self, data_samplers: Tuple[JaxSampler, JaxSampler]) -> NeuralOutput:  # type: ignore[override]
         model, logs = self.solver(data_samplers[0], data_samplers[1])
-        return NeuralOutput(model, logs)
+        return NeuralOutput(model, logs)  # type:ignore[arg-type]
 
     @staticmethod
     def _assert2d(arr: ArrayLike, *, allow_reshape: bool = True) -> jnp.ndarray:  # type:ignore[name-defined]
-        arr: jnp.ndarray = jnp.asarray(arr.A if sp.issparse(arr) else arr)  # type: ignore[no-redef, attr-defined, name-defined]
+        arr: jnp.ndarray = jnp.asarray(arr.A if sp.issparse(arr) else arr)  # type: ignore[no-redef, attr-defined, name-defined]   # noqa:E501
         if allow_reshape and arr.ndim == 1:
             return jnp.reshape(arr, (-1, 1))
         if arr.ndim != 2:

@@ -888,7 +888,7 @@ class CondOTProblem(BaseProblem):  # TODO(@MUCDK) check generic types, save and 
         )
 
         self._solution = self._solver(  # type: ignore[misc]
-            xy=self._distributions,  # type: ignore[]arg-type #TODO: handle better
+            xy=self._distributions,  # type: ignore[arg-type] #TODO: handle better
             sample_pairs=self._sample_pairs,
             device=device,
             **kwargs,

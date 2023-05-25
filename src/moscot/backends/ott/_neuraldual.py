@@ -510,7 +510,7 @@ class NeuralDualSolver:
 
     def get_eval_step(
         self,
-    ) -> Callable[[TrainState, TrainState, Dict[str, jnp.ndarray], jnp.ndarray], Dict[str, float]]:  # type: ignore[name-defined]
+    ) -> Callable[[TrainState, TrainState, Dict[str, jnp.ndarray], jnp.ndarray], Dict[str, float]]:  # type: ignore[name-defined]  # noqa:E501
         """Get one validation step."""
 
         @jax.jit

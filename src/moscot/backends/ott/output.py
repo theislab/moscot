@@ -31,7 +31,7 @@ class ConvergencePlotterMixin:
 
     _NOT_COMPUTED = -1.0
 
-    def __init__(self, costs: jnp.ndarray, errors: Optional[jnp.ndarray], *args: Any, **kwargs: Any):  # type: ignore[name-defined]
+    def __init__(self, costs: jnp.ndarray, errors: Optional[jnp.ndarray], *args: Any, **kwargs: Any):  # type: ignore[name-defined]  # noqa:E501
         super().__init__(*args, **kwargs)
         # TODO(michalk8): don't plot costs?
         self._costs = costs[costs != self._NOT_COMPUTED]
