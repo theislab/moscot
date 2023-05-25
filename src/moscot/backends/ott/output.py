@@ -1,24 +1,25 @@
 from types import MappingProxyType
-from typing import Any, Dict, List, Tuple, Union, Literal, Callable, Optional
+from typing import Any, Callable, Dict, List, Literal, Optional, Tuple, Union
+
+import jaxlib.xla_extension as xla_ext
 
 import jax
 import jax.numpy as jnp
-import jaxlib.xla_extension as xla_ext
 import numpy as np
+import scipy.sparse as sp
+from ott.problems.linear.potentials import DualPotentials
 from ott.solvers.linear.sinkhorn import SinkhornOutput as OTTSinkhornOutput
 from ott.solvers.linear.sinkhorn_lr import LRSinkhornOutput as OTTLRSinkhornOutput
 from ott.solvers.quadratic.gromov_wasserstein import GWOutput as OTTGWOutput
-from ott.problems.linear.potentials import DualPotentials
 
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 from matplotlib.figure import Figure
-import scipy.sparse as sp
 
 from moscot._docs._docs import d
 from moscot._types import ArrayLike, Device_t
-from moscot.base.output import BaseSolverOutput, BaseNeuralOutput
 from moscot.backends.ott._utils import get_nearest_neighbors
+from moscot.base.output import BaseNeuralOutput, BaseSolverOutput
 
 __all__ = ["OTTOutput"]
 
@@ -26,9 +27,11 @@ Train_t = Dict[str, Dict[str, List[float]]]
 
 
 class ConvergencePlotterMixin:
+    """Convergence plotter mixin."""
+
     _NOT_COMPUTED = -1.0
 
-    def __init__(self, costs: jnp.ndarray, errors: Optional[jnp.ndarray], *args: Any, **kwargs: Any):
+    def __init__(self, costs: jnp.ndarray, errors: Optional[jnp.ndarray], *args: Any, **kwargs: Any):  # type: ignore[name-defined]
         super().__init__(*args, **kwargs)
         # TODO(michalk8): don't plot costs?
         self._costs = costs[costs != self._NOT_COMPUTED]
@@ -75,7 +78,7 @@ class ConvergencePlotterMixin:
 
         def select_values(
             last_k: Optional[int] = None, data: Optional[Dict[str, List[float]]] = None
-        ) -> Tuple[str, jnp.ndarray, jnp.ndarray]:
+        ) -> Tuple[str, jnp.ndarray, jnp.ndarray]:  # type: ignore[name-defined]
             if data is None:  # this is for discrete OT classes
                 # `> 1` because of pure Sinkhorn
                 if len(self._costs) > 1 or self._errors is None:
@@ -296,6 +299,7 @@ class OTTOutput(BaseSolverOutput):
     def _ones(self, n: int) -> ArrayLike:  # noqa: D102
         return jnp.ones((n,))  # type: ignore[return-value]
 
+
 class NeuralOutput(ConvergencePlotterMixin, BaseNeuralOutput):
     """
     Output representation of neural OT problems.
@@ -370,17 +374,17 @@ class NeuralOutput(ConvergencePlotterMixin, BaseNeuralOutput):
 
     @property
     def shape(self) -> Tuple[int, int]:
-        """%(shape)s"""
+        """%(shape)s."""
         raise NotImplementedError()
-    
-    def is_linear(self) -> bool:
-        """%(is_linear)s"""
+
+    def is_linear(self) -> bool:  # type:ignore[override]
+        """%(is_linear)s."""
         return True
 
     def project_transport_matrix(  # type:ignore[override]
         self,
-        src_cells: ArrayLike,
-        tgt_cells: ArrayLike,
+        src_cells: jnp.ndarray,  # type:ignore[name-defined]
+        tgt_cells: jnp.ndarray,  # type:ignore[name-defined]
         forward: bool = True,
         save_transport_matrix: bool = False,  # TODO(@MUCDK) adapt order of arguments
         batch_size: int = 1024,
@@ -427,14 +431,14 @@ class NeuralOutput(ConvergencePlotterMixin, BaseNeuralOutput):
         src_cells, tgt_cells = jnp.asarray(src_cells), jnp.asarray(tgt_cells)
         func, src_dist, tgt_dist = (self.push, src_cells, tgt_cells) if forward else (self.pull, tgt_cells, src_cells)
         get_knn_fn = jax.vmap(get_nearest_neighbors, in_axes=(0, None, None))
-        row_indices: Union[jnp.ndarray, List[jnp.ndarray]] = []
-        column_indices: Union[jnp.ndarray, List[jnp.ndarray]] = []
-        distances_list: Union[jnp.ndarray, List[jnp.ndarray]] = []
+        row_indices: Union[jnp.ndarray, List[jnp.ndarray]] = []  # type: ignore[name-defined]
+        column_indices: Union[jnp.ndarray, List[jnp.ndarray]] = []  # type: ignore[name-defined]
+        distances_list: Union[jnp.ndarray, List[jnp.ndarray]] = []  # type: ignore[name-defined]
         if length_scale is None:
             key = jax.random.PRNGKey(seed)
             src_batch = jax.random.choice(key, src_dist, shape=((batch_size,)))
             tgt_batch = jax.random.choice(key, tgt_dist, shape=((batch_size,)))
-            length_scale = jnp.std(jnp.concatenate([func(src_batch), tgt_batch]))
+            length_scale = jnp.std(jnp.concatenate([func(src_batch), tgt_batch]))  # type: ignore[arg-type]
         for index in range(0, len(src_dist), batch_size):
             distances, indices = get_knn_fn(func(src_dist[index : index + batch_size]), tgt_dist, k)
             distances = jnp.exp(-((distances / length_scale) ** 2))
@@ -502,7 +506,7 @@ class NeuralOutput(ConvergencePlotterMixin, BaseNeuralOutput):
             try:
                 device = jax.devices(device)[idx]
             except IndexError:
-                raise IndexError(f"Unable to fetch the device with `id={idx}`.")
+                raise IndexError(f"Unable to fetch the device with `id={idx}`.")  # noqa:B904
 
         out = jax.device_put(self._output, device)
         return NeuralOutput(out, self.training_logs)
@@ -510,7 +514,7 @@ class NeuralOutput(ConvergencePlotterMixin, BaseNeuralOutput):
     @property
     def cost(self) -> float:
         """Predicted optimal transport cost."""
-        return self.training_logs["valid_logs"]["predicted_cost"]
+        return self.training_logs["valid_logs"]["predicted_cost"][-1]
 
     @property
     def converged(self) -> bool:
@@ -521,57 +525,59 @@ class NeuralOutput(ConvergencePlotterMixin, BaseNeuralOutput):
     @property
     def potentials(  # type: ignore[override]
         self,
-    ) -> Tuple[Callable[[jnp.ndarray], float], Callable[[jnp.ndarray], float]]:
+    ) -> Tuple[Callable[[jnp.ndarray], float], Callable[[jnp.ndarray], float]]:  # type:ignore[name-defined]
         """Return the learned potential functions."""
         f = jax.vmap(self._output.f)
         g = jax.vmap(self._output.g)
         return f, g
 
     def push(self, x: ArrayLike) -> ArrayLike:  # type: ignore[override]
+        """Push."""
         if x.ndim not in (1, 2):
             raise ValueError(f"Expected 1D or 2D array, found `{x.ndim}`.")
         return self._apply(x, forward=True)
 
     def pull(self, x: ArrayLike) -> ArrayLike:  # type: ignore[override]
+        """Pull."""
         if x.ndim not in (1, 2):
             raise ValueError(f"Expected 1D or 2D array, found `{x.ndim}`.")
         return self._apply(x, forward=False)
 
-    def push_potential(self, x: ArrayLike) -> ArrayLike:
+    def push_potential(self, x: ArrayLike) -> ArrayLike:  # TODO rename
+        """Push potential."""
         if x.ndim not in (1, 2):
             raise ValueError(f"Expected 1D or 2D array, found `{x.ndim}`.")
         return jax.vmap(self._output.f)(x)
 
-    def pull_potential(self, x: ArrayLike) -> ArrayLike:
+    def pull_potential(self, x: ArrayLike) -> ArrayLike:  # TODO rename
+        """Pull potential."""
         if x.ndim not in (1, 2):
             raise ValueError(f"Expected 1D or 2D array, found `{x.ndim}`.")
         return jax.vmap(self._output.g)(x)
 
     @property
     def a(self) -> ArrayLike:
-        """
-        Marginals of the source distribution.
-        """
+        """Marginals of the source distribution."""
         # TODO: adapt when tracing marginals
         raise NotImplementedError()
 
     @property
     def b(self) -> ArrayLike:
-        """
-        Marginals of the target distribution.
-        """
+        """Marginals of the target distribution."""
         # TODO: adapt when tracing marginals
         raise NotImplementedError()
 
-    def _ones(self, n: int) -> jnp.ndarray:
+    def _ones(self, n: int) -> jnp.ndarray:  # type: ignore[name-defined]
         return jnp.ones((n,))
 
     def _format_params(self, fmt: Callable[[Any], str]) -> str:
-        if "sinkhorn_dist" in self.training_logs["valid_logs"].keys():
+        if "sinkhorn_dist" in self.training_logs["valid_logs"]:
             params = {
                 "predicted_cost": round(self.cost, 3),
-                "best_loss": round(self.training_logs["valid_logs"]["best_loss"], 3),
-                "sinkhorn_dist": round(self.training_logs["valid_logs"]["sinkhorn_dist"], 3),
+                "best_loss": round(self.training_logs["valid_logs"]["best_loss"], 3),  # type:ignore[call-overload]
+                "sinkhorn_dist": round(
+                    self.training_logs["valid_logs"]["sinkhorn_dist"], 3
+                ),  # type:ignore[call-overload]
             }
         else:
             params = {

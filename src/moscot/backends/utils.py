@@ -25,7 +25,9 @@ def register_solver(backend: str) -> Any:
 
 
 @register_solver("ott")
-def _(problem_kind: Literal["linear", "quadratic"], neural: Union[bool, Literal["cond"]] = False, **kwargs: Any) -> Union["ott.SinkhornSolver", "ott.GWSolver"]:
+def _(
+    problem_kind: Literal["linear", "quadratic"], neural: Union[bool, Literal["cond"]] = False, **kwargs: Any
+) -> Union["ott.SinkhornSolver", "ott.GWSolver", "ott.NeuralSolver", "ott.CondNeuralSolver"]:
     from moscot.backends import ott
 
     if problem_kind == "linear":

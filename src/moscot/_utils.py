@@ -1,15 +1,15 @@
 # adapted from CellRank
 """Module used to parallelize model fitting."""
 
-from typing import Any, Union, Callable, Optional, Sequence
-from threading import Thread
 from multiprocessing import Manager, cpu_count
+from threading import Thread
+from typing import Any, Callable, Optional, Sequence, Union
 
-from numba import njit
-from scipy.sparse import issparse, spmatrix
 import joblib as jl
+from numba import njit
 
 import numpy as np
+from scipy.sparse import issparse, spmatrix
 
 from moscot._types import ArrayLike
 
@@ -58,7 +58,6 @@ def parallelize(
     -------
     The result depending on ``callable``, ``extractor`` and ``as_array``.
     """
-
     if show_progress_bar:
         try:
             from tqdm.auto import tqdm
@@ -186,7 +185,6 @@ def _np_apply_along_axis(func1d, axis: int, arr: ArrayLike) -> ArrayLike:
     -------
     The reduced array.
     """
-
     assert arr.ndim == 2
     assert axis in [0, 1]
 

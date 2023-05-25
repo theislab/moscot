@@ -1,5 +1,16 @@
 from types import MappingProxyType
-from typing import Any, Dict, List, Literal, Mapping, Iterable, Optional, Tuple, Type, Union
+from typing import (
+    Any,
+    Dict,
+    Iterable,
+    List,
+    Literal,
+    Mapping,
+    Optional,
+    Tuple,
+    Type,
+    Union,
+)
 
 from anndata import AnnData
 
@@ -13,11 +24,7 @@ from moscot._types import (
     SinkhornInitializer_t,
 )
 from moscot.base.problems.compound_problem import B, CompoundProblem, K
-from moscot.base.problems.problem import (  # type: ignore[attr-defined]
-    OTProblem,
-    CondOTProblem,
-    NeuralOTProblem,
-)
+from moscot.base.problems.problem import CondOTProblem, NeuralOTProblem, OTProblem
 from moscot.problems._utils import handle_cost, handle_joint_attr
 from moscot.problems.generic._mixins import GenericAnalysisMixin
 
@@ -358,7 +365,7 @@ class NeuralProblem(CompoundProblem[K, B], GenericAnalysisMixin[K, B]):
         **kwargs: Any,
     ) -> "NeuralProblem[K, B]":
         """Prepare the :class:`moscot.problems.generic.NeuralProblem[K, B]`."""
-        self.batch_key = key
+        self.batch_key = key  # type:ignore[misc]
         xy, kwargs = handle_joint_attr(joint_attr, kwargs)
         return super().prepare(
             key=key,
@@ -397,7 +404,7 @@ class NeuralProblem(CompoundProblem[K, B], GenericAnalysisMixin[K, B]):
         **kwargs: Any,
     ) -> "NeuralProblem[K, B]":
         """Solve."""
-        return super().solve(
+        return super().solve(  # type: ignore[return-value]
             batch_size=batch_size,
             tau_a=tau_a,
             tau_b=tau_b,
@@ -422,8 +429,8 @@ class NeuralProblem(CompoundProblem[K, B], GenericAnalysisMixin[K, B]):
         )
 
     @property
-    def _base_problem_type(self) -> Type["NeuralProblem[K, B]"]:
-        return NeuralOTProblem
+    def _base_problem_type(self) -> Type["NeuralProblem[K, B]"]:  # type:ignore[override]
+        return NeuralOTProblem  # type: ignore[return-value]
 
     @property
     def _valid_policies(self) -> Tuple[Policy_t, ...]:
@@ -445,7 +452,7 @@ class ConditionalNeuralProblem(CondOTProblem, GenericAnalysisMixin[K, B]):
         **kwargs: Any,
     ) -> "ConditionalNeuralProblem[K, B]":
         """Prepare the :class:`moscot.problems.generic.ConditionalNeuralProblem`."""
-        self.batch_key = key
+        self.batch_key = key  # type:ignore[misc]
         xy, kwargs = handle_joint_attr(joint_attr, kwargs)
         return super().prepare(
             policy_key=key,
@@ -509,7 +516,7 @@ class ConditionalNeuralProblem(CondOTProblem, GenericAnalysisMixin[K, B]):
         )
 
     @property
-    def _base_problem_type(self) -> Type["ConditionalNeuralProblem[K, B]"]:
+    def _base_problem_type(self) -> Type[CondOTProblem]:
         return CondOTProblem
 
     @property

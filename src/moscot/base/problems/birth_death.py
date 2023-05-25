@@ -19,7 +19,7 @@ from anndata import AnnData
 from moscot._docs._docs import d
 from moscot._logging import logger
 from moscot._types import ArrayLike
-from moscot.base.problems.problem import OTProblem, NeuralOTProblem
+from moscot.base.problems.problem import NeuralOTProblem, OTProblem
 from moscot.utils.data import apoptosis_markers, proliferation_markers
 
 __all__ = ["BirthDeathProblem", "BirthDeathMixin"]
@@ -244,9 +244,10 @@ class BirthDeathProblem(BirthDeathMixin, OTProblem):
 class BirthDeathNeuralProblem(BirthDeathProblem, NeuralOTProblem):
     """
     Class handling an neural problem which allows to estimate the marginals with a birth-death process.
+
     Parameters
     ----------
-    %(adata_x)s
+    %(adata_x)s.
     """
 
 

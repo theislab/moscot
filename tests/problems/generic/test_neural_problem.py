@@ -1,16 +1,19 @@
-import anndata as ad 
-import numpy as np
 import pytest
 
-from moscot.base.problems import NeuralOTProblem
+import numpy as np
+
+import anndata as ad
+
 from moscot.base.output import BaseSolverOutput
+from moscot.base.problems import NeuralOTProblem
 from moscot.problems.generic import NeuralProblem  # type: ignore[attr-defined]
+from tests._utils import ATOL, RTOL
 from tests.problems.conftest import (
     neuraldual_args_1,
     neuraldual_args_2,
     neuraldual_solver_args,
 )
-from tests._utils import ATOL, RTOL
+
 
 class TestNeuralProblem:
     @pytest.mark.fast()
@@ -61,7 +64,7 @@ class TestNeuralProblem:
         problem_two = problem_one.prepare("time", joint_attr="X_pca")
         problem_two = problem_one.solve(**neuraldual_args_1)
 
-        for key in problem_one.solutions.keys():
+        for key in problem_one.solutions:
             assert np.allclose(
                 problem_one[key].solution.push(pc_tzero),
                 problem_two[key].solution.push(pc_tzero),
@@ -74,7 +77,7 @@ class TestNeuralProblem:
                 rtol=RTOL,
                 atol=ATOL,
             )
-    
+
     def test_pass_arguments(self, adata_time: ad.AnnData):
         problem = NeuralProblem(adata=adata_time)
         adata_time = adata_time[adata_time.obs["time"].isin((0, 1))]
@@ -83,7 +86,7 @@ class TestNeuralProblem:
 
         key = (0, 1)
         solver = problem[key].solver.solver
-        assert solver.conditional == False
+        assert solver.conditional is False
         for arg, val in neuraldual_solver_args.items():
             assert hasattr(solver, val)
             el = getattr(solver, val)[0] if isinstance(getattr(solver, val), tuple) else getattr(solver, val)

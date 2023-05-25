@@ -1,7 +1,12 @@
 from ott.geometry import costs
 
-from moscot.backends.ott.output import OTTOutput, NeuralOutput
-from moscot.backends.ott.solver import GWSolver, SinkhornSolver, NeuralSolver, CondNeuralSolver
+from moscot.backends.ott.output import NeuralOutput, OTTOutput
+from moscot.backends.ott.solver import (
+    CondNeuralSolver,
+    GWSolver,
+    NeuralSolver,
+    SinkhornSolver,
+)
 from moscot.costs import register_cost
 
 __all__ = ["OTTOutput", "NeuralOutput", "GWSolver", "SinkhornSolver", "NeuralSolver", "CondNeuralSolver"]

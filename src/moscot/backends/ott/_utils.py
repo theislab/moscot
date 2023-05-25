@@ -1,12 +1,11 @@
 import inspect
-from typing import Any, Callable, Dict, Tuple, Optional
 from functools import partial
+from typing import Any, Callable, Dict, Optional, Tuple
 
+import jax
 import jax.numpy as jnp
 from ott.geometry.pointcloud import PointCloud
 from ott.tools.sinkhorn_divergence import sinkhorn_divergence
-import jax
-import jax.numpy as jnp
 
 from moscot._logging import logger
 from moscot._types import ArrayLike, ScaleCost_t
@@ -74,8 +73,8 @@ class RunningAverageMeter:
 
 @partial(jax.jit, static_argnames=["k"])
 def get_nearest_neighbors(
-    input_batch: jnp.ndarray, target: jnp.ndarray, k: int = 30
-) -> Tuple[jnp.ndarray, jnp.ndarray]:
+    input_batch: jnp.ndarray, target: jnp.ndarray, k: int = 30  # type: ignore[name-defined]
+) -> Tuple[jnp.ndarray, jnp.ndarray]:  # type: ignore[name-defined]
     """Get the k nearest neighbors of the input batch in the target."""
     if target.shape[0] < k:
         raise ValueError(f"k is {k}, but must be smaller or equal than {target.shape[0]}.")

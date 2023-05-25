@@ -372,6 +372,8 @@ class MatrixSolverOutput(BaseSolverOutput):
 
 
 class BaseNeuralOutput(BaseSolverOutput, ABC):
+    """Base class for output of."""
+
     @abstractmethod
     def project_transport_matrix(
         self,
@@ -384,9 +386,11 @@ class BaseNeuralOutput(BaseSolverOutput, ABC):
         length_scale: Optional[float] = None,
         seed: int = 42,
     ) -> sp.csr_matrix:
+        """Project transport matrix."""
         pass
 
     @property
     @abstractmethod
     def inverse_transport_matrix(self) -> ArrayLike:
+        """Inverse transport matrix."""
         pass

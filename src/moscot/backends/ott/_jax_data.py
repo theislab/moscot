@@ -1,11 +1,12 @@
-from types import MappingProxyType
-from typing import Any, Dict, List, Tuple, Union, Literal
 from functools import partial
+from types import MappingProxyType
+from typing import Any, Dict, List, Literal, Tuple, Union
 
-from ott.solvers.linear import sinkhorn
-from ott.geometry.pointcloud import PointCloud
 import jax
 import jax.numpy as jnp
+from ott.geometry.pointcloud import PointCloud
+from ott.problems.linear import linear_problem
+from ott.solvers.linear import sinkhorn
 
 
 class JaxSampler:
@@ -13,11 +14,11 @@ class JaxSampler:
 
     def __init__(
         self,
-        distributions: List[jnp.ndarray],
+        distributions: List[jnp.ndarray],  # type: ignore[name-defined]
         policy_pairs: List[Tuple[Any, Any]],
         conditional: bool = False,
-        a: List[jnp.ndarray] = None,
-        b: List[jnp.ndarray] = None,
+        a: List[jnp.ndarray] = None,  # type: ignore[name-defined]
+        b: List[jnp.ndarray] = None,  # type: ignore[name-defined]
         sample_to_idx: Dict[int, Any] = MappingProxyType({}),
         batch_size: int = 1024,
         tau_a: float = 1.0,
@@ -37,29 +38,24 @@ class JaxSampler:
         self._sample_to_idx = sample_to_idx
 
         @partial(jax.jit, static_argnames=["index"])
-        def _sample_source(key: jax.random.KeyArray, index: jnp.ndarray) -> jnp.ndarray:
+        def _sample_source(key: jax.random.KeyArray, index: jnp.ndarray) -> jnp.ndarray:  # type: ignore[name-defined]
             """Jitted sample function."""
             return jax.random.choice(key, self.distributions[index], shape=[batch_size], p=a[index])
 
         @partial(jax.jit, static_argnames=["index"])
-        def _sample_target(key: jax.random.KeyArray, index: jnp.ndarray) -> jnp.ndarray:
+        def _sample_target(key: jax.random.KeyArray, index: jnp.ndarray) -> jnp.ndarray:  # type: ignore[name-defined]
             """Jitted sample function."""
             return jax.random.choice(key, self.distributions[index], shape=[batch_size], p=b[index])
 
         @jax.jit
         def _compute_unbalanced_marginals(
-            batch_source: jnp.ndarray,
-            batch_target: jnp.ndarray,
-        ) -> Tuple[jnp.ndarray, jnp.ndarray]:
+            batch_source: jnp.ndarray,  # type: ignore[name-defined]
+            batch_target: jnp.ndarray,  # type: ignore[name-defined]
+            sinkhorn_kwargs: Dict[str, Any] = MappingProxyType({}),
+        ) -> Tuple[jnp.ndarray, jnp.ndarray]:  # type: ignore[name-defined]
             """Jitted function to compute the source and target marginals for a batch."""
             geom = PointCloud(batch_source, batch_target, epsilon=epsilon, scale_cost="mean")
-            out = sinkhorn.Sinkhorn(
-                geom,
-                tau_a=tau_a,
-                tau_b=tau_b,
-                jit=False,
-                max_iterations=1e7,
-            )
+            out = sinkhorn.Sinkhorn(**sinkhorn_kwargs)(linear_problem.LinearProblem(geom, tau_a=tau_a, tau_b=tau_b))
             # get log probabilities
             log_marginals_source = jnp.log(out.marginal(1))
             log_marginals_target = jnp.log(out.marginal(0))
@@ -68,9 +64,9 @@ class JaxSampler:
         @jax.jit
         def _unbalanced_resample(
             key: jax.random.KeyArray,
-            batch: jnp.ndarray,
-            log_marginals: jnp.ndarray,
-        ) -> jnp.ndarray:
+            batch: jnp.ndarray,  # type: ignore[name-defined]
+            log_marginals: jnp.ndarray,  # type: ignore[name-defined]
+        ) -> jnp.ndarray:  # type: ignore[name-defined]
             """Resample a batch based upon log marginals."""
             # sample from marginals
             indices = jax.random.categorical(key, log_marginals, shape=[batch_size])
@@ -95,7 +91,7 @@ class JaxSampler:
         policy_pair: Tuple[Any, Any] = (),
         full_dataset: bool = False,
         sample: Literal["pair", "source", "target"] = "pair",
-    ) -> Union[jnp.ndarray, Tuple[jnp.ndarray, jnp.ndarray]]:
+    ) -> Union[jnp.ndarray, Tuple[jnp.ndarray, jnp.ndarray]]:  # type: ignore[name-defined]
         """Sample data."""
         if full_dataset:
             if sample == "source":
@@ -116,7 +112,7 @@ class JaxSampler:
         )
 
     @property
-    def distributions(self) -> List[jnp.ndarray]:
+    def distributions(self) -> List[jnp.ndarray]:  # type: ignore[name-defined]
         """Return distributions."""
         return self._distributions
 
@@ -126,7 +122,7 @@ class JaxSampler:
         return self._policy_pairs
 
     @property
-    def conditions(self) -> jnp.ndarray:
+    def conditions(self) -> jnp.ndarray:  # type: ignore[name-defined]
         """Return conditions."""
         return self._conditions
 

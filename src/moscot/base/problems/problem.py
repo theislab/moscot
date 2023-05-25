@@ -26,8 +26,12 @@ from moscot._types import ArrayLike, CostFn_t, Device_t, ProblemKind_t, ProblemS
 from moscot.base.output import BaseSolverOutput
 from moscot.base.problems._utils import require_solution, wrap_prepare, wrap_solve
 from moscot.base.solver import OTSolver
+from moscot.utils.subset_policy import (  # type:ignore[attr-defined]
+    Policy_t,
+    SubsetPolicy,
+    create_policy,
+)
 from moscot.utils.tagged_array import Tag, TaggedArray
-from moscot.utils.subset_policy import Policy_t, SubsetPolicy, create_policy
 
 __all__ = ["BaseProblem", "OTProblem", "NeuralOTProblem", "CondOTProblem"]
 
@@ -671,6 +675,7 @@ class OTProblem(BaseProblem):
     def __str__(self) -> str:
         return repr(self)
 
+
 class NeuralOTProblem(OTProblem):  # TODO override set_x/set_y
     """Base class for non-conditional neural optimal transport problems."""
 
@@ -701,14 +706,15 @@ class NeuralOTProblem(OTProblem):  # TODO override set_x/set_y
         length_scale: Optional[float] = None,
         seed: int = 42,
     ) -> sp.csr_matrix:
-        """
-        Project Neural OT map onto cells.
+        """Project Neural OT map onto cells.
+
         In constrast to discrete OT, Neural OT does not necessarily map cells onto cells,
         but a cell can also be mapped to a location between two cells. This function computes
         a pseudo-transport matrix considering the neighborhood of where a cell is mapped to.
         Therefore, a neighborhood graph of `k` target cells is computed around each transported cell
         of the source distribution. The assignment likelihood of each mapped cell to the target cells is then
         computed with a Gaussian kernel with parameter `length_scale`.
+
         Parameters
         ----------
         source
@@ -733,6 +739,8 @@ class NeuralOTProblem(OTProblem):  # TODO override set_x/set_y
         seed
             Random seed for sampling the pairs of distributions for computing the variance in case `length_scale`
             is `None`.
+
+
         Returns
         -------
         The projected transport matrix.
@@ -756,6 +764,7 @@ class NeuralOTProblem(OTProblem):  # TODO override set_x/set_y
 class CondOTProblem(BaseProblem):  # TODO(@MUCDK) check generic types, save and load
     """
     Base class for all optimal transport problems.
+
     Parameters
     ----------
     adata
@@ -796,6 +805,7 @@ class CondOTProblem(BaseProblem):  # TODO(@MUCDK) check generic types, save and 
         **kwargs: Any,
     ) -> "CondOTProblem":
         """Prepare conditional optimal transport problem.
+
         Parameters
         ----------
         xy
@@ -813,11 +823,14 @@ class CondOTProblem(BaseProblem):  # TODO(@MUCDK) check generic types, save and 
             Target marginals.
         kwargs
             Keyword arguments when creating the source/target marginals.
+
+
         Returns
         -------
         Self and modifies the following attributes:
-        TODO
+        TODO.
         """
+        self._problem_kind = "linear"
         self._a = a
         self._b = b
         self._solution = None
@@ -848,6 +861,7 @@ class CondOTProblem(BaseProblem):  # TODO(@MUCDK) check generic types, save and 
         **kwargs: Any,
     ) -> "CondOTProblem":
         """Solve optimal transport problem.
+
         Parameters
         ----------
         backend
@@ -856,13 +870,14 @@ class CondOTProblem(BaseProblem):  # TODO(@MUCDK) check generic types, save and 
             Device where to transfer the solution, see :meth:`moscot.solvers.BaseSolverOutput.to`.
         kwargs
             Keyword arguments for :meth:`moscot.solvers.BaseSolver.__call__`.
+
+
         Returns
         -------
         Self and modifies the following attributes:
         - :attr:`solver`: optimal transport solver.
         - :attr:`solution`: optimal transport solution.
         """
-
         self._solver = backends.get_solver(
             problem_kind=self._problem_kind,
             neural="cond",
@@ -873,7 +888,7 @@ class CondOTProblem(BaseProblem):  # TODO(@MUCDK) check generic types, save and 
         )
 
         self._solution = self._solver(  # type: ignore[misc]
-            xy=self._distributions,
+            xy=self._distributions,  # type: ignore[]arg-type #TODO: handle better
             sample_pairs=self._sample_pairs,
             device=device,
             **kwargs,
@@ -899,13 +914,13 @@ class CondOTProblem(BaseProblem):  # TODO(@MUCDK) check generic types, save and 
     def adata(self) -> AnnData:
         """Source annotated data object."""
         return self._adata
-    
+
     @property
     def solution(self) -> Optional[BaseSolverOutput]:
         """Solution of the optimal transport problem."""
         return self._solution
-    
+
     @property
-    def solver(self) -> Optional[BaseSolverOutput]:
+    def solver(self) -> Optional[OTSolver[BaseSolverOutput]]:
         """Solver of the optimal transport problem."""
         return self._solver

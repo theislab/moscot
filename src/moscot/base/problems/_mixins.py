@@ -22,6 +22,7 @@ from anndata import AnnData
 
 from moscot import _constants
 from moscot._docs._docs import d
+from moscot._logging import logger
 from moscot._types import ArrayLike, Numeric_t, Str_Dict_t
 from moscot.base.output import BaseSolverOutput
 from moscot.base.problems._utils import (
@@ -36,7 +37,6 @@ from moscot.base.problems.compound_problem import ApplyOutput_t, B, K
 from moscot.plotting._utils import set_plotting_vars
 from moscot.utils.data import transcription_factors
 from moscot.utils.subset_policy import SubsetPolicy
-from moscot._logging import logger
 
 __all__ = ["AnalysisMixin"]
 
@@ -547,6 +547,7 @@ class AnalysisMixin(Generic[K, B]):
             **kwargs,
         )
 
+
 class NeuralAnalysisMixin(AnalysisMixin[K, B]):
     """Analysis Mixin for Neural OT problems."""
 
@@ -566,12 +567,13 @@ class NeuralAnalysisMixin(AnalysisMixin[K, B]):
         k: int = 30,
         key_added: Optional[str] = _constants.CELL_TRANSITION,
     ) -> Optional[pd.DataFrame]:
-        """
-        Compute a grouped transition matrix based on a pseudo-transport matrix.
+        """Compute a grouped transition matrix based on a pseudo-transport matrix.
+
         This function requires a projection of the velocity field onto existing cells, see
         :meth:`moscot.backends.ott.NeuralOutput.project_transport_matrix`.
         Afterwards, this function computes a transition matrix with entries corresponding to categories, e.g. cell
         types. The transition matrix will be row-stochastic if `forward` is `True`, otherwise column-stochastic.
+
         Parameters
         ----------
         source
@@ -624,14 +626,17 @@ class NeuralAnalysisMixin(AnalysisMixin[K, B]):
             Key in :attr:`anndata.AnnData.uns` and/or :attr:`anndata.AnnData.obs` where the results
             for the corresponding plotting functions are stored.
             See TODO Notebook for how :mod:`moscot.plotting` works.
+
+
         Returns
         -------
         Aggregated transition matrix of cells or groups of cells.
+
+
         Notes
         -----
         To visualise the results, see :func:`moscot.pl.cell_transition`.
         """
-
         if isinstance(source, tuple):
             if len(source) != 2:
                 raise ValueError("If `source` is a tuple it must be of length 2.")
@@ -666,10 +671,7 @@ class NeuralAnalysisMixin(AnalysisMixin[K, B]):
 
         problem = self.problems[key_source, key_target]  # type:ignore[attr-defined]
         try:
-            if forward:
-                tm_result = problem.solution.transport_matrix
-            else:
-                tm_result = problem.solution.inverse_transport_matrix
+            tm_result = problem.solution.transport_matrix if forward else problem.solution.inverse_transport_matrix
         except ValueError:
             logger.info(f"Projecting transport matrix based on {k} nearest neighbors.")
             tm_result = problem.project_transport_matrix(
@@ -718,7 +720,7 @@ class NeuralAnalysisMixin(AnalysisMixin[K, B]):
         if normalize:
             tm = tm.div(tm.sum(axis=int(forward)), axis=int(not forward))
         if key_added is not None:
-            if aggregation_mode == "cell" and "cell" in self.adata.obs:
+            if aggregation_mode == "cell" and "cell" in self.adata.obs:  # type:ignore[attr-defined]
                 raise KeyError(f"Aggregation is already present in `adata.obs[{aggregation_mode!r}]`.")
             plot_vars = {
                 "transition_matrix": tm,
@@ -749,6 +751,7 @@ class NeuralAnalysisMixin(AnalysisMixin[K, B]):
     ) -> Optional[ApplyOutput_t[K]]:
         """
         Push cells.
+
         Parameters
         ----------
         %(source)s
@@ -763,7 +766,7 @@ class NeuralAnalysisMixin(AnalysisMixin[K, B]):
         %(new_adata_joint_attr)s
         Return
         ------
-        %(return_push_pull)s
+        %(return_push_pull)s.
         """
         result = self._apply(  # type:ignore[attr-defined]
             start=source,
@@ -802,6 +805,7 @@ class NeuralAnalysisMixin(AnalysisMixin[K, B]):
     ) -> Optional[ApplyOutput_t[K]]:
         """
         Pull cells.
+
         Parameters
         ----------
         %(source)s
@@ -816,7 +820,7 @@ class NeuralAnalysisMixin(AnalysisMixin[K, B]):
         %(new_adata_joint_attr)s
         Return
         ------
-        %(return_push_pull)s
+        %(return_push_pull)s.
         """
         result = self._apply(  # type:ignore[attr-defined]
             start=source,

@@ -1,23 +1,24 @@
 from typing import List
 
-import anndata as ad
-import numpy as np
-import pandas as pd
 import pytest
 
-from moscot.problems.time import TemporalNeuralProblem
+import numpy as np
+import pandas as pd
+
+import anndata as ad
+
 from moscot.base.output import BaseSolverOutput
+from moscot.problems.time import TemporalNeuralProblem
 from moscot.problems.time._lineage import BirthDeathProblem
 from tests._utils import ATOL, RTOL
 from tests.problems.conftest import (
     neuraldual_args_1,
     neuraldual_args_2,
-    neuraldual_solver_args
+    neuraldual_solver_args,
 )
 
 
 class TestTemporalNeuralProblem:
-
     @pytest.mark.fast()
     def test_prepare(self, adata_time: ad.AnnData):
         expected_keys = [(0, 1), (1, 2)]
@@ -66,7 +67,7 @@ class TestTemporalNeuralProblem:
         problem_two = problem_one.prepare("time", joint_attr="X_pca")
         problem_two = problem_one.solve(**neuraldual_args_1)
 
-        for key in problem_one.solutions.keys():
+        for key in problem_one.solutions:
             assert np.allclose(
                 problem_one[key].solution.push(pc_tzero),
                 problem_two[key].solution.push(pc_tzero),
@@ -162,14 +163,12 @@ class TestTemporalNeuralProblem:
 
         key = (0, 1)
         solver = problem[key].solver.solver
-        assert solver.conditional == False
-        print("solver is ", solver)
-        print("neuraldual_solver_args", neuraldual_solver_args)
+        assert solver.conditional is False
         for arg, val in neuraldual_solver_args.items():
             assert hasattr(solver, val)
             el = getattr(solver, val)[0] if isinstance(getattr(solver, val), tuple) else getattr(solver, val)
             assert el == neuraldual_args_1[arg]
-    
+
     @pytest.mark.parametrize("forward", [True, False])
     def test_cell_transition_full_pipeline(self, gt_temporal_adata: ad.AnnData, forward: bool):
         config = gt_temporal_adata.uns
@@ -219,8 +218,8 @@ class TestTemporalNeuralProblem:
         assert set(problem.problems.keys()) == {(key_1, key_2), (key_2, key_3)}
         problem = problem.solve(**neuraldual_args_1)
 
-        early_annotation = ["Stromal", "unknown"]# if forward else ["Stromal", "Epithelial"]
-        late_annotation = ["Stromal", "Epithelial"]# if forward else ["Stromal", "unknown"]
+        early_annotation = ["Stromal", "unknown"]  # if forward else ["Stromal", "Epithelial"]
+        late_annotation = ["Stromal", "Epithelial"]  # if forward else ["Stromal", "unknown"]
         result = problem.cell_transition(
             key_1,
             key_2,

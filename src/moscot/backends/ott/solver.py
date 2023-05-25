@@ -1,9 +1,9 @@
+import math
 import types
 from typing import Any, Dict, List, Literal, Mapping, Optional, Tuple, Union
 
 import jax
 import jax.numpy as jnp
-import math
 import scipy.sparse as sp
 from ott.geometry import costs
 from ott.geometry.epsilon_scheduler import Epsilon
@@ -22,15 +22,15 @@ from moscot._types import (
     QuadInitializer_t,
     SinkhornInitializer_t,
 )
+from moscot.backends.ott._jax_data import JaxSampler
+from moscot.backends.ott._neuraldual import NeuralDualSolver
 from moscot.backends.ott._utils import _filter_kwargs
-from moscot.backends.ott.output import OTTOutput, NeuralOutput
+from moscot.backends.ott.output import NeuralOutput, OTTOutput
 from moscot.base.solver import OTSolver
 from moscot.costs import get_cost
 from moscot.utils.tagged_array import TaggedArray
-from moscot.backends.ott._jax_data import JaxSampler
-from moscot.backends.ott._neuraldual import NeuralDualSolver
 
-__all__ = ["OTTCost", "SinkhornSolver", "GWSolver", "NeuralSolver", "CondNeuralSolver"]
+__all__ = ["SinkhornSolver", "GWSolver", "NeuralSolver", "CondNeuralSolver"]
 
 Scale_t = Union[float, Literal["mean", "median", "max_cost", "max_norm", "max_bound"]]
 Epsilon_t = Union[float, Epsilon]
@@ -311,6 +311,7 @@ class GWSolver(OTTJaxSolver):
     def problem_kind(self) -> ProblemKind_t:  # noqa: D102
         return "quadratic"
 
+
 class NeuralSolver(OTSolver[OTTOutput]):
     """Solver class solving Neural Optimal Transport problems."""
 
@@ -360,8 +361,8 @@ class NeuralSolver(OTSolver[OTTOutput]):
         return NeuralOutput(model, logs)
 
     @staticmethod
-    def _assert2d(arr: ArrayLike, *, allow_reshape: bool = True) -> jnp.ndarray:
-        arr: jnp.ndarray = jnp.asarray(arr.A if sp.issparse(arr) else arr)  # type: ignore[no-redef, attr-defined]
+    def _assert2d(arr: ArrayLike, *, allow_reshape: bool = True) -> jnp.ndarray:  # type:ignore[name-defined]
+        arr: jnp.ndarray = jnp.asarray(arr.A if sp.issparse(arr) else arr)  # type: ignore[no-redef, attr-defined, name-defined]
         if allow_reshape and arr.ndim == 1:
             return jnp.reshape(arr, (-1, 1))
         if arr.ndim != 2:
@@ -415,6 +416,7 @@ class NeuralSolver(OTSolver[OTTOutput]):
 
     @property
     def problem_kind(self) -> ProblemKind_t:
+        """Problem kind."""
         return "linear"
 
 

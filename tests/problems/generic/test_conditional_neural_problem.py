@@ -1,16 +1,21 @@
-import anndata as ad 
-import numpy as np
 import pytest
 
-from moscot.base.problems import CondOTProblem
+import numpy as np
+
+import anndata as ad
+
 from moscot.base.output import BaseSolverOutput
-from moscot.problems.generic import ConditionalNeuralProblem  # type: ignore[attr-defined]
+from moscot.base.problems import CondOTProblem
+from moscot.problems.generic import (
+    ConditionalNeuralProblem,  # type: ignore[attr-defined]
+)
+from tests._utils import ATOL, RTOL
 from tests.problems.conftest import (
     neuraldual_args_1,
     neuraldual_args_2,
     neuraldual_solver_args,
 )
-from tests._utils import ATOL, RTOL
+
 
 class TestConditionalNeuralProblem:
     @pytest.mark.fast()
@@ -52,15 +57,15 @@ class TestConditionalNeuralProblem:
             rtol=RTOL,
             atol=ATOL,
         )
-    
+
     def test_pass_arguments(self, adata_time: ad.AnnData):
         problem = ConditionalNeuralProblem(adata=adata_time)
         adata_time = adata_time[adata_time.obs["time"].isin((0, 1))]
         problem = problem.prepare(key="time", joint_attr="X_pca")
         problem = problem.solve(**neuraldual_args_1)
-        
+
         solver = problem.solver
-        assert solver.conditional == True
+        assert solver.conditional is True
         for arg, val in neuraldual_solver_args.items():
             assert hasattr(solver, val)
             el = getattr(solver, val)[0] if isinstance(getattr(solver, val), tuple) else getattr(solver, val)

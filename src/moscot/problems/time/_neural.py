@@ -1,12 +1,12 @@
 from types import MappingProxyType
-from typing import Any, Dict, Type, Tuple, Union, Literal, Mapping, Iterable, Optional
+from typing import Any, Dict, Iterable, Literal, Mapping, Optional, Tuple, Type, Union
 
 from moscot import _constants
 from moscot._types import Numeric_t, Policy_t
-from moscot.problems._utils import handle_joint_attr
 from moscot.base.problems._mixins import NeuralAnalysisMixin
 from moscot.base.problems.birth_death import BirthDeathMixin, BirthDeathNeuralProblem
 from moscot.base.problems.compound_problem import CompoundProblem
+from moscot.problems._utils import handle_joint_attr
 
 
 class TemporalNeuralProblem(

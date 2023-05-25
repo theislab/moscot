@@ -1,11 +1,11 @@
-from typing import Tuple, Union, Callable, Optional, Sequence
+from typing import Callable, Optional, Sequence, Tuple, Union
 
+import optax
 from flax import linen as nn
 from flax.training import train_state
-import optax
 
-from ott.solvers.nn.layers import PositiveDense
 import jax.numpy as jnp
+from ott.solvers.nn.layers import PositiveDense
 
 
 class ICNN(nn.Module):
@@ -15,18 +15,15 @@ class ICNN(nn.Module):
     input_dim: int
     conditional: bool
     init_std: float = 0.1
-    init_fn: Callable[[jnp.ndarray], Callable[[jnp.ndarray], jnp.ndarray]] = nn.initializers.normal
-    act_fn: Callable[[jnp.ndarray], jnp.ndarray] = nn.leaky_relu
+    init_fn: Callable[[jnp.ndarray], Callable[[jnp.ndarray], jnp.ndarray]] = nn.initializers.normal  # type: ignore[name-defined]  # noqa: E501
+    act_fn: Callable[[jnp.ndarray], jnp.ndarray] = nn.leaky_relu  # type: ignore[name-defined]
     pos_weights: bool = False
 
     def setup(self):
         """Initialize ICNN architecture."""
         num_hidden = len(self.dim_hidden)
 
-        if self.pos_weights:
-            Dense = PositiveDense
-        else:
-            Dense = nn.Dense
+        Dense = PositiveDense if self.pos_weights else nn.Dense
         kernel_inits_wz = [self.init_fn(self.init_std) for _ in range(num_hidden + 1)]
 
         w_xs = []
@@ -139,7 +136,7 @@ class ICNN(nn.Module):
             self.v = v
 
     @nn.compact
-    def __call__(self, x: jnp.ndarray, c: Optional[jnp.ndarray] = None) -> jnp.ndarray:
+    def __call__(self, x: jnp.ndarray, c: Optional[jnp.ndarray] = None) -> jnp.ndarray:  # type: ignore[name-defined]
         """Apply ICNN module."""
         assert (c is not None) == (self.conditional), "`conditional` flag and whether `c` is provided must match."
 
@@ -182,11 +179,19 @@ class ICNN(nn.Module):
 
     def create_train_state(
         self,
-        rng: jnp.ndarray,
+        rng: jnp.ndarray,  # type: ignore[name-defined]
         optimizer: optax.OptState,
         input_shape: Union[int, Tuple[int, ...]],
     ) -> train_state.TrainState:
         """Create initial `TrainState`."""
-        condition = jnp.ones(shape=[2,]) if self.conditional else None
+        condition = (
+            jnp.ones(
+                shape=[
+                    2,
+                ]
+            )
+            if self.conditional
+            else None
+        )
         params = self.init(rng, x=jnp.ones(input_shape), c=condition)["params"]
         return train_state.TrainState.create(apply_fn=self.apply, params=params, tx=optimizer)
