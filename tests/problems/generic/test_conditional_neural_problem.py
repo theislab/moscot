@@ -46,14 +46,14 @@ class TestConditionalNeuralProblem:
         problem_two = problem_one.prepare("time", joint_attr="X_pca")
         problem_two = problem_one.solve(**neuraldual_args_1)
         assert np.allclose(
-            problem_one.solution.push(pc_tzero, 0),
-            problem_two.solution.push(pc_tzero, 0),
+            problem_one.solution.push(0, pc_tzero),
+            problem_two.solution.push(0, pc_tzero),
             rtol=RTOL,
             atol=ATOL,
         )
         assert np.allclose(
-            problem_one.solution.pull(pc_tzero, 0),
-            problem_two.solution.pull(pc_tzero, 0),
+            problem_one.solution.pull(0, pc_tzero),
+            problem_two.solution.pull(0, pc_tzero),
             rtol=RTOL,
             atol=ATOL,
         )
@@ -63,8 +63,8 @@ class TestConditionalNeuralProblem:
         adata_time = adata_time[adata_time.obs["time"].isin((0, 1))]
         problem = problem.prepare(key="time", joint_attr="X_pca")
         problem = problem.solve(**neuraldual_args_1)
-
-        solver = problem.solver
+      
+        solver = problem.solver.solver
         assert solver.conditional is True
         for arg, val in neuraldual_solver_args.items():
             assert hasattr(solver, val)

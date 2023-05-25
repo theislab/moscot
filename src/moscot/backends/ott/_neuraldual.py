@@ -281,7 +281,7 @@ class NeuralDualSolver:
             if not self.pos_weights:
                 self.state_f = self.state_f.replace(params=self.clip_weights_icnn(self.state_f.params))
             if iteration % self.log_freq == 0:
-                pretrain_logs["loss"].append(float(loss))
+                pretrain_logs["loss"].append(loss)
         # load params of f into state_g
         self.state_g = self.state_g.replace(params=self.state_f.params)
         return {"pretrain_logs": pretrain_logs}  # type:ignore[dict-item]
@@ -415,11 +415,11 @@ class NeuralDualSolver:
         if self.compute_wasserstein_baseline:
             self.state_f = self.state_f.replace(params=best_params_f)
             self.state_g = self.state_g.replace(params=best_params_g)
-            valid_logs["best_loss"] = float(best_loss)
-            valid_logs["sinkhorn_dist"] = float(np.mean(sink_dist))
+            valid_logs["best_loss"] = best_loss
+            valid_logs["sinkhorn_dist"] = np.mean(sink_dist)
             valid_logs["predicted_cost"] = None if best_iter_distance is None else float(best_iter_distance)
         else:
-            valid_logs["predicted_cost"] = float(valid_logs["mean_neural_dual_dist"])  # type:ignore[arg-type]
+            valid_logs["predicted_cost"] = valid_logs["mean_neural_dual_dist"] # type:ignore[arg-type]
         return {
             "train_logs": train_logs,  # type:ignore[dict-item]
             "valid_logs": valid_logs,
@@ -538,7 +538,7 @@ class NeuralDualSolver:
             tgt_sq = jnp.mean(jnp.sum(batch["target"] ** 2, axis=-1))
             neural_dual_dist = tgt_sq + src_sq + 2.0 * (jnp.mean(f_grad_g_src - src_dot_grad_g_src) - jnp.mean(f_tgt))
             if not self.compute_wasserstein_baseline:
-                return {"neural_dual_dist": float(neural_dual_dist)}
+                return {"neural_dual_dist": neural_dual_dist}
             # calculate sinkhorn loss between predicted and true samples
             # using sinkhorn_divergence because _compute_sinkhorn_divergence not jittable
             sink_loss_forward = sinkhorn_divergence(
@@ -556,9 +556,9 @@ class NeuralDualSolver:
                 sinkhorn_kwargs=self.valid_sinkhorn_kwargs,
             ).divergence
             return {
-                "sinkhorn_loss_forward": float(sink_loss_forward),
-                "sinkhorn_loss_inverse": float(sink_loss_inverse),
-                "neural_dual_dist": float(neural_dual_dist),
+                "sinkhorn_loss_forward": sink_loss_forward,
+                "sinkhorn_loss_inverse": sink_loss_inverse,
+                "neural_dual_dist": neural_dual_dist,
             }
 
         return valid_step

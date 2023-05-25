@@ -11,7 +11,7 @@ from moscot._docs._docs import d
 from moscot._logging import logger
 from moscot._types import ArrayLike, Device_t, DTypeLike  # type: ignore[attr-defined]
 
-__all__ = ["BaseSolverOutput", "MatrixSolverOutput"]
+__all__ = ["BaseSolverOutput", "MatrixSolverOutput", "BaseNeuralOutput"]
 
 
 @d.dedent

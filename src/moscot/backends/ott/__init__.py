@@ -1,6 +1,6 @@
 from ott.geometry import costs
 
-from moscot.backends.ott.output import NeuralOutput, OTTOutput
+from moscot.backends.ott.output import NeuralOutput, OTTOutput, ConditionalNeuralOutput
 from moscot.backends.ott.solver import (
     CondNeuralSolver,
     GWSolver,

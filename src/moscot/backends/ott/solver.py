@@ -25,7 +25,7 @@ from moscot._types import (
 from moscot.backends.ott._jax_data import JaxSampler
 from moscot.backends.ott._neuraldual import NeuralDualSolver
 from moscot.backends.ott._utils import _filter_kwargs
-from moscot.backends.ott.output import NeuralOutput, OTTOutput
+from moscot.backends.ott.output import NeuralOutput, OTTOutput, ConditionalNeuralOutput
 from moscot.base.solver import OTSolver
 from moscot.costs import get_cost
 from moscot.utils.tagged_array import TaggedArray
@@ -499,3 +499,7 @@ class CondNeuralSolver(NeuralSolver):
             a[n_train_x:] if a is not None else None,
             b[n_train_x:] if b is not None else None,
         )
+
+    def _solve(self, data_samplers: Tuple[JaxSampler, JaxSampler]) -> ConditionalNeuralOutput:  # type: ignore[override]
+        model, logs = self.solver(data_samplers[0], data_samplers[1])
+        return ConditionalNeuralOutput(output=model, training_logs=logs)  # type:ignore[arg-type]
