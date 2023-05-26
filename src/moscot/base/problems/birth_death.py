@@ -26,10 +26,10 @@ class BirthDeathProtocol(Protocol):  # noqa: D101
     adata: AnnData
     proliferation_key: Optional[str]
     apoptosis_key: Optional[str]
-    _proliferation_key: Optional[str] = None
-    _apoptosis_key: Optional[str] = None
-    _scaling: float = 1.0
-    _prior_growth: Optional[ArrayLike] = None
+    _proliferation_key: Optional[str]
+    _apoptosis_key: Optional[str]
+    _scaling: float
+    _prior_growth: Optional[ArrayLike]
 
     def score_genes_for_marginals(  # noqa: D102
         self: "BirthDeathProtocol",
@@ -83,10 +83,10 @@ class BirthDeathMixin:
         Parameters
         ----------
         gene_set_proliferation
-            Set of proliferation marker genes. If a :class:`str` is passed, it should
+            Set of proliferation marker genes. If a :class:`str`, it should
             correspond to the organism in :func:`~moscot.utils.data.proliferation_markers`.
         gene_set_apoptosis
-            Set of apoptosis marker genes. If a :class:`str` is passed, it should
+            Set of apoptosis marker genes. If a :class:`str`, it should
             correspond to the organism in :func:`~moscot.utils.data.apoptosis_markers`.
         proliferation_key
             Key in :attr:`~anndata.AnnData.obs` where to store the proliferation scores.
@@ -97,10 +97,10 @@ class BirthDeathMixin:
 
         Returns
         -------
-        Return self and update the following fields:
+        Self and updates the following fields:
 
-            - :attr:`proliferation_key`
-            - :attr:`apoptosis_key`
+        - :attr:`proliferation_key` - proliferation scores in :attr:`~anndata.AnnData.obs`.
+        - :attr:`apoptosis_key` - apoptosis scores in :attr:`~anndata.AnnData.obs`.
         """
         if isinstance(gene_set_proliferation, str):
             gene_set_proliferation = proliferation_markers(gene_set_proliferation)  # type: ignore[arg-type]
@@ -169,7 +169,7 @@ class BirthDeathProblem(BirthDeathMixin, OTProblem):
         **kwargs: Any,
     ) -> ArrayLike:
         """Estimate the source or target :term:`marginals` with the
-        `birth-death process <https://en.wikipedia.org/wiki/Birth%E2%80%93death_process>`_
+        `birth-death process <https://en.wikipedia.org/wiki/Birth%E2%80%93death_process>`_,
         as suggested in :cite:`schiebinger:19`.
 
         See :meth:`score_genes_for_marginals` on how to compute the proliferation and apoptosis scores.
@@ -186,15 +186,14 @@ class BirthDeathProblem(BirthDeathMixin, OTProblem):
             Key in :attr:`~anndata.AnnData.obs` where apoptosis scores are stored.
         kwargs
             Keyword arguments for :func:`~moscot.base.problems.birth_death.beta` and
-            :func:`~moscot.base.problems.birth_death.beta`.
+            :func:`~moscot.base.problems.birth_death.delta`.
 
         Returns
         -------
-        If ``source = True``, return source marginals and update the following fields:
+        The estimated source or target marginals of shape ``[n,]`` or ``[m,]``, depending on the ``source``.
+        If ``source = True``, also updates the following fields:
 
-            - :attr:`prior_growth_rates`
-
-        Otherwise, return the estimated target marginals.
+        - :attr:`prior_growth_rates` - prior estimate of the souce growth rates.
         """  # noqa: D205
 
         def estimate(key: Optional[str], *, fn: Callable[..., ArrayLike], **kwargs: Any) -> ArrayLike:
@@ -239,19 +238,19 @@ class BirthDeathProblem(BirthDeathMixin, OTProblem):
 
     @property
     def prior_growth_rates(self) -> Optional[ArrayLike]:
-        """Prior estimate of the growth rates for the source cells."""
+        """Prior estimate of the source growth rates."""
         if self._prior_growth is None:
             return None
         return np.power(self._prior_growth, 1.0 / self.delta)
 
     @property
     def posterior_growth_rates(self) -> Optional[ArrayLike]:
-        """Posterior estimate of the growth rates for the source cells."""
+        """Posterior estimate of the source growth rates."""
         if self.solution is None:
             return None
         if self.delta is None:
             return self.solution.a * self.adata.n_obs
-        return np.power(self.solution.a * self._scaling, 1.0 / self.delta)
+        return (self.solution.a * self._scaling) ** (1.0 / self.delta)
 
     @property
     def delta(self) -> float:
@@ -269,7 +268,7 @@ def _logistic(x: ArrayLike, L: float, k: float, center: float = 0) -> ArrayLike:
 
 def _gen_logistic(p: ArrayLike, sup: float, inf: float, center: float, width: float) -> ArrayLike:
     """Shifted logistic function."""
-    return inf + _logistic(p, L=sup - inf, k=4 / width, center=center)
+    return inf + _logistic(p, L=sup - inf, k=4.0 / width, center=center)
 
 
 def beta(
