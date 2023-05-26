@@ -276,7 +276,7 @@ class BaseCompoundProblem(BaseProblem, abc.ABC, Generic[K, B]):
 
     def solve(
         self,
-        stage: Union[ProblemStage_t, Tuple[ProblemStage_t, ...]] = ("prepared", "solved"),
+        stage: Optional[Union[ProblemStage_t, Tuple[ProblemStage_t, ...]]] = ("prepared", "solved"),
         **kwargs: Any,
     ) -> "BaseCompoundProblem[K,B]":
         """Solve the subproblems.
@@ -485,14 +485,14 @@ class BaseCompoundProblem(BaseProblem, abc.ABC, Generic[K, B]):
         Parameters
         ----------
         key
-            Key in :attr:`problems` to remove.
+            Key of the subproblem to remove.
 
         Returns
         -------
         Self and updates the following fields:
 
-            - :attr:`problems`
-            - :attr:`solutions`
+        - :attr:`problems`
+        - :attr:`solutions`
         """
         if TYPE_CHECKING:
             assert isinstance(self._problem_manager, ProblemManager)
