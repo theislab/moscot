@@ -1,8 +1,8 @@
+import functools
+import multiprocessing
+import threading
+import types
 import warnings
-from functools import partial, update_wrapper
-from multiprocessing import Manager, cpu_count
-from threading import Thread
-from types import MappingProxyType
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -19,23 +19,23 @@ from typing import (
 )
 
 import joblib as jl
-
-if TYPE_CHECKING:
-    from moscot.base.problems.compound_problem import BaseCompoundProblem
-    from moscot.base.problems.problem import BaseProblem
-
 import wrapt
-from statsmodels.stats.multitest import multipletests
 
 import numpy as np
 import pandas as pd
 import scipy.sparse as sp
-from scipy.stats import norm, rankdata
+import scipy.stats as st
+from statsmodels.stats.multitest import multipletests
 
 from anndata import AnnData
 
 from moscot._logging import logger
 from moscot._types import ArrayLike, Str_Dict_t
+
+if TYPE_CHECKING:
+    from moscot.base.problems.compound_problem import BaseCompoundProblem
+    from moscot.base.problems.problem import BaseProblem
+
 
 Callback = Callable[..., Any]
 
@@ -381,7 +381,7 @@ def _correlation_test_helper(
         X = sp.csr_matrix(X)
 
     if corr_method == "spearman":
-        X, Y = rankdata(X, method="average", axis=0), rankdata(Y, method="average", axis=0)
+        X, Y = st.rankdata(X, method="average", axis=0), st.rankdata(Y, method="average", axis=0)
     corr = _pearson_mat_mat_corr_sparse(X, Y) if sp.issparse(X) else _pearson_mat_mat_corr_dense(X, Y)
 
     if significance_method == "fischer":
@@ -390,10 +390,10 @@ def _correlation_test_helper(
         mean, se = np.arctanh(corr), 1 / np.sqrt(n - 3)
         z_score = (np.arctanh(corr) - np.arctanh(0)) * np.sqrt(n - 3)
 
-        z = norm.ppf(qh)
+        z = st.norm.ppf(qh)
         corr_ci_low = np.tanh(mean - z * se)
         corr_ci_high = np.tanh(mean + z * se)
-        pvals = 2 * norm.cdf(-np.abs(z_score))
+        pvals = 2 * st.norm.cdf(-np.abs(z_score))
 
     elif significance_method == "perm_test":
         if not isinstance(n_perms, int):
@@ -552,13 +552,13 @@ def attributedispatch(func: Optional[Callback] = None, attr: Optional[str] = Non
         return dispatch(typ)(instance, *args, **kwargs)
 
     if func is None:
-        return partial(attributedispatch, attr=attr)
+        return functools.partial(attributedispatch, attr=attr)
 
     registry: Dict[Type[Any], Callback] = {}
     wrapper.register = register  # type: ignore[attr-defined]
     wrapper.dispatch = dispatch  # type: ignore[attr-defined]
-    wrapper.registry = MappingProxyType(registry)  # type: ignore[attr-defined]
-    update_wrapper(wrapper, func)
+    wrapper.registry = types.MappingProxyType(registry)  # type: ignore[attr-defined]
+    functools.update_wrapper(wrapper, func)
 
     return wrapper
 
@@ -641,8 +641,8 @@ def parallelize(
     def wrapper(*args, **kwargs):
         if pass_queue and show_progress_bar:
             pbar = None if tqdm is None else tqdm(total=col_len, unit=unit, mininterval=0.125)
-            queue = Manager().Queue()
-            thread = Thread(target=update, args=(pbar, queue, len(collections)))
+            queue = multiprocessing.Manager().Queue()
+            thread = threading.Thread(target=update, args=(pbar, queue, len(collections)))
             thread.start()
         else:
             pbar, queue, thread = None, None, None
@@ -709,6 +709,6 @@ def _get_n_cores(n_cores: Optional[int], n_jobs: Optional[int]) -> int:
     if n_jobs == 1 or n_cores is None:
         return 1
     if n_cores < 0:
-        return cpu_count() + 1 + n_cores
+        return multiprocessing.cpu_count() + 1 + n_cores
 
     return n_cores

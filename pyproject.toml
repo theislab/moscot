@@ -167,9 +167,10 @@ include = '\.pyi?$'
 profile = "black"
 include_trailing_comma = true
 multi_line_output = 3
-sections = ["FUTURE", "STDLIB", "THIRDPARTY", "NUMERIC", "PLOTTING", "BIO", "FIRSTPARTY", "LOCALFOLDER"]
+sections = ["FUTURE", "STDLIB", "THIRDPARTY", "GENERIC", "NUMERIC", "PLOTTING", "BIO", "FIRSTPARTY", "LOCALFOLDER"]
 # also contains what we import in notebooks
-known_numeric = ["numpy", "scipy", "jax", "ott", "pandas", "sklearn", "networkx"]
+known_generic = ["wrapt", "joblib"]
+known_numeric = ["numpy", "scipy", "jax", "ott", "pandas", "sklearn", "networkx", "statsmodels"]
 known_bio = ["anndata", "scanpy", "squidpy"]
 known_plotting = ["IPython", "matplotlib", "mpl_toolkits", "seaborn"]
 
