@@ -19,7 +19,13 @@ Glossary
     linear problem
         TODO.
 
+    linear term
+        TODO.
+
     quadratic problem
+        TODO.
+
+    quadratic term
         TODO.
 
     GW

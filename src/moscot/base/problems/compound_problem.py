@@ -50,24 +50,19 @@ Callback_t = Callable[
     [Literal["xy", "x", "y"], AnnData, Optional[AnnData]], Mapping[Literal["xy", "x", "y"], TaggedArray]
 ]
 ApplyOutput_t = Union[ArrayLike, Dict[K, ArrayLike]]
-# TODO(michalk8): future behavior
-# ApplyOutput_t = Union[ArrayLike, Dict[Tuple[K, K], ArrayLike]]
 
 
 class BaseCompoundProblem(BaseProblem, abc.ABC, Generic[K, B]):
-    """
-    Base class for all biological problems.
+    """Base class for all biological problems.
 
-    This base class translates a biological problem to potentially multiple Optimal Transport problems.
+    This class translates a biological problem to multiple :term:`OT` problems.
 
     Parameters
     ----------
-    %(adata)s
-
-    Raises
-    ------
-    TypeError
-        If `base_problem_type` is not a subclass of :class:`~moscot.base.problems.OTProblem`.
+    adata
+        Annotated data object.
+    kwargs
+        Keyword arguments for :class:`~moscot.base.problems.problem.BaseProblem`.
     """
 
     def __init__(self, adata: AnnData, **kwargs: Any):
@@ -77,7 +72,25 @@ class BaseCompoundProblem(BaseProblem, abc.ABC, Generic[K, B]):
 
     @abc.abstractmethod
     def _create_problem(self, src: K, tgt: K, src_mask: ArrayLike, tgt_mask: ArrayLike, **kwargs: Any) -> B:
-        pass
+        """Create an :term:`OT` subproblem.
+
+        Parameters
+        ----------
+        src
+            Source key identifying the subproblem.
+        tgt
+            Target key identifying the subproblem.
+        src_mask
+            Source mask used to subset :attr:`adata`.
+        tgt_mask
+            Target mask used to subset :attr:`adata`.
+        kwargs
+            Additional keyword arguments.
+
+        Returns
+        -------
+        The subproblem.
+        """
 
     @abc.abstractmethod
     def _create_policy(
@@ -85,12 +98,26 @@ class BaseCompoundProblem(BaseProblem, abc.ABC, Generic[K, B]):
         policy: Policy_t,
         **kwargs: Any,
     ) -> SubsetPolicy[K]:
-        pass
+        """Create a policy used to split :attr:`adata`.
+
+        Only policies specified by :attr:`_valid_policies` will be passed to this function.
+
+        Parameters
+        ----------
+        policy
+            Name of the policy.
+        kwargs
+            Keyword arguments for :class:`~moscot.utils.subset_policy.SubsetPolicy`.
+
+        Returns
+        -------
+        The policy.
+        """
 
     @property
     @abc.abstractmethod
     def _valid_policies(self) -> Tuple[Policy_t, ...]:
-        pass
+        """Valid policies for this problem."""
 
     # TODO(michalk8): refactor me
     def _callback_handler(
@@ -184,27 +211,36 @@ class BaseCompoundProblem(BaseProblem, abc.ABC, Generic[K, B]):
         y_callback_kwargs: Mapping[str, Any] = MappingProxyType({}),
         **kwargs: Any,
     ) -> "BaseCompoundProblem[K, B]":
-        """
-        Prepare the biological problem.
+        """TODO.
 
         Parameters
         ----------
-        %(key)s
-        %(policy)s
-        %(subset)s
-        %(reference)s
-        %(xy_callback)s
-        %(x_callback)s
-        %(y_callback)s
-        %(xy_callback_kwargs)s
-        %(x_callback_kwargs)s
-        %(y_callback_kwargs)s
-        %(a)s
-        %(b)s
+        key
+            TODO.
+        policy
+            TODO.
+        subset
+            TODO.
+        reference
+            TODO.
+        xy_callback
+            TODO.
+        x_callback
+            TODO.
+        y_callback
+            TODO.
+        xy_callback_kwargs
+            TODO.
+        x_callback_kwargs
+            TODO.
+        y_callback_kwargs
+            TODO.
+        kwargs
+            TODO.
 
         Returns
         -------
-        The prepared problem.
+        TODO.
         """
         self._ensure_valid_policy(policy)
         policy = self._create_policy(policy=policy, key=key)
@@ -232,6 +268,7 @@ class BaseCompoundProblem(BaseProblem, abc.ABC, Generic[K, B]):
         )
         self._problem_manager.add_problems(problems)
 
+        # we assume all subproblems are of the same kind
         for p in self.problems.values():
             self._problem_kind = p._problem_kind
             break
@@ -242,19 +279,21 @@ class BaseCompoundProblem(BaseProblem, abc.ABC, Generic[K, B]):
         stage: Union[ProblemStage_t, Tuple[ProblemStage_t, ...]] = ("prepared", "solved"),
         **kwargs: Any,
     ) -> "BaseCompoundProblem[K,B]":
-        """
-        Solve the biological problem.
+        """Solve the subproblems.
 
         Parameters
         ----------
         stage
-            Some stage TODO.
+            TODO.
         kwargs
-            Keyword arguments for :meth:`~moscot.base.problems.OTProblem.solve`.
+            TODO.
 
         Returns
         -------
-        The solver problem.
+        Self and updates the following fields:
+
+            - :attr:`problems`
+            - :attr:`solutions`
         """
         if TYPE_CHECKING:
             assert isinstance(self._problem_manager, ProblemManager)
@@ -330,8 +369,6 @@ class BaseCompoundProblem(BaseProblem, abc.ABC, Generic[K, B]):
         problem = self.problems[src, tgt]
         adata = problem.adata_src if forward else problem.adata_tgt
         current_mass = problem._get_mass(adata, data=data, **kwargs)
-        # TODO(michlak8): future behavior
-        # res = {(None, src) if forward else (tgt, None): current_mass}
         res = {src if forward else tgt: current_mass}
         for _src, _tgt in [(src, tgt)] + rest:
             problem = self.problems[_src, _tgt]
@@ -402,7 +439,7 @@ class BaseCompoundProblem(BaseProblem, abc.ABC, Generic[K, B]):
 
     @property
     def problems(self) -> Dict[Tuple[K, K], B]:
-        """Return dictionary of OT problems which the biological problem consists of."""
+        """:term:`OT` subproblems that define the biological problem."""
         if self._problem_manager is None:
             return {}
         return self._problem_manager.problems
@@ -418,21 +455,23 @@ class BaseCompoundProblem(BaseProblem, abc.ABC, Generic[K, B]):
     ) -> "BaseCompoundProblem[K, B]":
         """Add a subproblem.
 
-        This function adds and prepares a problem, e.g. if it is not included by the initial
-        :class:`~moscot.utils.subset_policy.SubsetPolicy`.
-
         Parameters
         ----------
-        %(key)s
-
+        key
+            Key in :attr:`problems` where to add the subproblem.
         problem
-            Instance of a :class:`~moscot.base.problems.OTProblem`.
+            Subproblem to add.
         overwrite
-            If `True` the problem will be reinitialized and prepared even if a problem with `key` exists.
+            Whether ot overwrite an existing subproblem in :attr:`problems`.
+        kwargs
+            Keyword arguments for :meth:`~moscot.base.problems.manager.ProblemManager.add_problem`.
 
         Returns
         -------
-        The updated compound problem.
+        Self and updates the following fields:
+
+            - :attr:`problems`
+            - :attr:`solutions`
         """
         if TYPE_CHECKING:
             assert isinstance(self._problem_manager, ProblemManager)
@@ -445,11 +484,15 @@ class BaseCompoundProblem(BaseProblem, abc.ABC, Generic[K, B]):
 
         Parameters
         ----------
-        %(key)s
+        key
+            Key in :attr:`problems` to remove.
 
         Returns
         -------
-        The updated compound problem.
+        Self and updates the following fields:
+
+            - :attr:`problems`
+            - :attr:`solutions`
         """
         if TYPE_CHECKING:
             assert isinstance(self._problem_manager, ProblemManager)

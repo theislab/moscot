@@ -68,6 +68,7 @@ class ProblemManager(Generic[K, B]):
         self.policy.add_node(key)
         if verify_integrity:
             self._verify_shape_integrity()
+            # TODO(michalk8): add check for obs/var names
 
     def add_problems(self, problems: Dict[Tuple[K, K], B], overwrite: bool = False) -> None:
         """Add multiple problems to :attr:`problems`.
