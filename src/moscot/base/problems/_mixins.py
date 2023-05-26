@@ -442,13 +442,13 @@ class AnalysisMixin(Generic[K, B]):
             df_1 = df_1.drop(current_cells, axis=1)
         return tm
 
-    # adapted from CellRank (github.com/theislab/cellrank)
-
+    # adapted from:
+    # https://github.com/theislab/cellrank/blob/master/cellrank/_utils/_utils.py#L392
     def compute_feature_correlation(
         self: AnalysisMixinProtocol[K, B],
         obs_key: str,
         corr_method: Literal["pearson", "spearman"] = "pearson",
-        significance_method: Literal["fischer", "perm_test"] = "fischer",
+        significance_method: Literal["fisher", "perm_test"] = "fisher",
         annotation: Optional[Dict[str, Iterable[str]]] = None,
         layer: Optional[str] = None,
         features: Optional[Union[List[str], Literal["human", "mouse", "drosophila"]]] = None,
@@ -457,61 +457,57 @@ class AnalysisMixin(Generic[K, B]):
         seed: Optional[int] = None,
         **kwargs: Any,
     ) -> pd.DataFrame:
-        """
-        Compute correlation of push or pull distribution with features.
+        """Compute correlation of push-forward or pull-back distribution with features.
 
-        Correlates a feature (e.g. counts of a gene) with probabilities of cells mapped to a set of cells, e.g.
-        a pull back or push forward distribution.
+        Correlates a feature (e.g., counts of a gene) with probabilities of cells mapped to a set of cells, e.g.,
+        a push-forward or pull-back distribution.
 
         Parameters
         ----------
         obs_key
-            Column of :attr:`anndata.AnnData.obs` containing push-forward or pull-back distributions.
+            Key in :attr:`~anndata.AnnData.obs` containing the push-forward or pull-back distribution.
         corr_method
-            Which type of correlation to compute, options are `pearson`, and `spearman`.
+            Which type of correlation to compute. Valid options are ``'pearson'`` or ``'spearman'``.
         significance_method
             Mode to use when calculating p-values and confidence intervals. Valid options are:
 
-                - `fischer` - use Fischer transformation :cite:`fischer:21`.
-                - `perm_test` - use permutation test.
-
+            - ``'fisher'`` - Fischer transformation :cite:`fisher:21`.
+            - ``'perm_test'`` - permutation test.
         annotation
-            If not `None`, this defines the subset of data to be considered when computing the correlation.
-            Its key should correspond to a key in
-            :attr:`anndata.AnnData.obs` and its value to an iterable containing a subset of categories present in
-            :attr:`anndata.AnnData.obs` ``['{annotation.keys()[0]}']``.
+            If not :obj:`None`, this defines the subset of data to be considered when computing the correlation.
+            Its key should correspond to a key in :attr:`~anndata.AnnData.obs` and its value to an iterable
+            containing a subset of categories present in
+            :attr:`anndata.AnnData.obs['{annotation.keys()[0]}'] <anndata.AnnData.obs>`.
         layer
-            Key from :attr:`anndata.AnnData.layers` from which to get the expression.
-            If `None`, use :attr:`anndata.AnnData.X`.
+            Key in :attr:`~anndata.AnnData.layers` from which to get the expression.
+            If :obj:`None`, use :attr:`~anndata.AnnData.X`.
         features
-            Features in :class:`anndata.AnnData` which the correlation
-            of ``anndata.AnnData.obs['{obs_key}']`` is computed with:
+            Features in :class:`~anndata.AnnData` which the correlation
+            of :attr:`anndata.AnnData.obs['{obs_key}'] <anndata.AnnData.obs>` is computed with:
 
-                - If `None`, all features from :attr:`anndata.AnnData.var` will be taken into account.
-                - If of type :obj:`list`, the elements should be from :attr:`anndata.AnnData.var_names` or
-                  :attr:`anndata.AnnData.obs_names`.
-                - If `human`, `mouse`, or `drosophila`, the features are subsetted to transcription factors,
-                  see :func:`~moscot.utils.data.transcription_factors`.
-
+            - if :obj:`None`, all features from :attr:`~anndata.AnnData.var` will be taken into account.
+            - if a :obj:`list`, the elements should be from :attr:`~anndata.AnnData.var_names` or
+              :attr:`~anndata.AnnData.obs_names`.
+            - if ``'human'``, ``'mouse'``, or ``'drosophila'``, the features are subsetted to transcription factors,
+              see :func:`~moscot.utils.data.transcription_factors`.
         confidence_level
-            Confidence level for the confidence interval calculation. Must be in interval `[0, 1]`.
+            Confidence level for the confidence interval calculation. Must be in interval :math:`[0, 1]`.
         n_perms
-            Number of permutations to use when ``method = perm_test``.
+            Number of permutations to use when ``method = 'perm_test'``.
         seed
-            Random seed when ``method = perm_test``.
+            Random seed when ``method = 'perm_test'``.
         kwargs
-            Keyword arguments for parallelization, e.g., `n_jobs`. # TODO(michalk8): consider making the function public
+            Keyword arguments for parallelization, e.g., ``n_jobs``.
 
         Returns
         -------
-        Dataframe of shape ``(n_features, 5)`` containing the following columns, one for each lineage:
+        Dataframe of shape ``(n_features, 5)`` containing the following columns, one for each feature:
 
-            - `corr` - correlation between the count data and push/pull distributions.
-            - `pval` - calculated p-values for double-sided test.
-            - `qval` - corrected p-values using Benjamini-Hochberg method at level `0.05`.
-            - `ci_low` - lower bound of the ``confidence_level`` correlation confidence interval.
-            - `ci_high` - upper bound of the ``confidence_level`` correlation confidence interval.
-
+        - ``'corr'`` - correlation between the count data and push/pull distributions.
+        - ``'pval'`` - calculated p-values for double-sided test.
+        - ``'qval'`` - corrected p-values using Benjamini-Hochberg method at level `0.05`.
+        - ``'ci_low'`` - lower bound of the ``confidence_level`` correlation confidence interval.
+        - ``'ci_high'`` - upper bound of the ``confidence_level`` correlation confidence interval.
         """
         if obs_key not in self.adata.obs:
             raise KeyError(f"Unable to access data in `adata.obs[{obs_key!r}]`.")
@@ -522,7 +518,6 @@ class AnalysisMixin(Generic[K, B]):
                 raise KeyError(f"Unable to access data in [{annotation_key!r}.")
             if not isinstance(annotation_vals, Iterable):
                 raise TypeError("`annotation` expected to be dictionary of length 1 with value being a list.")
-
             adata = self.adata[self.adata.obs[annotation_key].isin(annotation_vals)]
         else:
             adata = self.adata
