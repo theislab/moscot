@@ -99,8 +99,8 @@ class BirthDeathMixin:
         -------
         Return self and update the following fields:
 
-        - :attr:`proliferation_key`
-        - :attr:`apoptosis_key`
+            - :attr:`proliferation_key`
+            - :attr:`apoptosis_key`
         """
         if isinstance(gene_set_proliferation, str):
             gene_set_proliferation = proliferation_markers(gene_set_proliferation)  # type: ignore[arg-type]
@@ -255,7 +255,7 @@ class BirthDeathProblem(BirthDeathMixin, OTProblem):
 
     @property
     def delta(self) -> float:
-        """Time difference between the source and ."""
+        """Time difference between the source and the target."""
         if TYPE_CHECKING:
             assert isinstance(self._src_key, float)
             assert isinstance(self._tgt_key, float)

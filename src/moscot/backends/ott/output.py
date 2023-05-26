@@ -5,9 +5,8 @@ import jaxlib.xla_extension as xla_ext
 import jax
 import jax.numpy as jnp
 import numpy as np
-from ott.solvers.linear.sinkhorn import SinkhornOutput as OTTSinkhornOutput
-from ott.solvers.linear.sinkhorn_lr import LRSinkhornOutput as OTTLRSinkhornOutput
-from ott.solvers.quadratic.gromov_wasserstein import GWOutput as OTTGWOutput
+from ott.solvers.linear import sinkhorn, sinkhorn_lr
+from ott.solvers.quadratic import gromov_wasserstein
 
 import matplotlib as mpl
 import matplotlib.pyplot as plt
@@ -29,10 +28,12 @@ class OTTOutput(BaseSolverOutput):
 
     _NOT_COMPUTED = -1.0  # sentinel value used in `ott`
 
-    def __init__(self, output: Union[OTTSinkhornOutput, OTTLRSinkhornOutput, OTTGWOutput]):
+    def __init__(
+        self, output: Union[sinkhorn.SinkhornOutput, sinkhorn_lr.LRSinkhornOutput, gromov_wasserstein.GWOutput]
+    ):
         super().__init__()
         self._output = output
-        self._costs = None if isinstance(output, OTTSinkhornOutput) else output.costs
+        self._costs = None if isinstance(output, sinkhorn.SinkhornOutput) else output.costs
         self._errors = output.errors
 
     def plot_costs(
@@ -170,7 +171,7 @@ class OTTOutput(BaseSolverOutput):
 
     @property
     def shape(self) -> Tuple[int, int]:  # noqa: D102
-        if isinstance(self._output, OTTSinkhornOutput):
+        if isinstance(self._output, sinkhorn.SinkhornOutput):
             return self._output.f.shape[0], self._output.g.shape[0]
         return self._output.geom.shape
 
@@ -180,7 +181,7 @@ class OTTOutput(BaseSolverOutput):
 
     @property
     def is_linear(self) -> bool:  # noqa: D102
-        return isinstance(self._output, (OTTSinkhornOutput, OTTLRSinkhornOutput))
+        return isinstance(self._output, (sinkhorn.SinkhornOutput, sinkhorn_lr.LRSinkhornOutput))
 
     def to(self, device: Optional[Device_t] = None) -> "OTTOutput":  # noqa: D102
         if isinstance(device, str) and ":" in device:
@@ -199,9 +200,7 @@ class OTTOutput(BaseSolverOutput):
 
     @property
     def cost(self) -> float:  # noqa: D102
-        if isinstance(self._output, (OTTSinkhornOutput, OTTLRSinkhornOutput)):
-            return float(self._output.reg_ot_cost)
-        return float(self._output.reg_gw_cost)
+        return float(self._output.reg_ot_cost if self.is_linear else self._output.reg_gw_cost)
 
     @property
     def converged(self) -> bool:  # noqa: D102
@@ -209,14 +208,14 @@ class OTTOutput(BaseSolverOutput):
 
     @property
     def potentials(self) -> Optional[Tuple[ArrayLike, ArrayLike]]:  # noqa: D102
-        if isinstance(self._output, OTTSinkhornOutput):
+        if isinstance(self._output, sinkhorn.SinkhornOutput):
             return self._output.f, self._output.g
         return None
 
     @property
     def rank(self) -> int:  # noqa: D102
         lin_output = self._output if self.is_linear else self._output.linear_state
-        return len(lin_output.g) if isinstance(lin_output, OTTLRSinkhornOutput) else -1
+        return len(lin_output.g) if isinstance(lin_output, sinkhorn_lr.LRSinkhornOutput) else -1
 
     def _ones(self, n: int) -> ArrayLike:  # noqa: D102
         return jnp.ones((n,))  # type: ignore[return-value]

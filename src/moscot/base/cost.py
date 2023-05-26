@@ -1,4 +1,4 @@
-from abc import ABC, abstractmethod
+import abc
 from typing import Any, Optional, Tuple, Union
 
 import numpy as np
@@ -11,7 +11,7 @@ from moscot._types import ArrayLike
 __all__ = ["BaseCost"]
 
 
-class BaseCost(ABC):
+class BaseCost(abc.ABC):
     """Base class for :mod:`moscot.costs`.
 
     Parameters
@@ -33,7 +33,7 @@ class BaseCost(ABC):
         self._key = key
         self._dist_key = dist_key
 
-    @abstractmethod
+    @abc.abstractmethod
     def _compute(self, *args: Any, **kwargs: Any) -> ArrayLike:
         pass
 

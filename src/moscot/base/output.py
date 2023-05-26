@@ -1,6 +1,6 @@
-from abc import ABC, abstractmethod
-from copy import copy
-from functools import partial
+import abc
+import copy
+import functools
 from typing import Any, Callable, Iterable, List, Literal, Optional, Tuple, Union
 
 import numpy as np
@@ -13,35 +13,35 @@ from moscot._types import ArrayLike, Device_t, DTypeLike  # type: ignore[attr-de
 __all__ = ["BaseSolverOutput", "MatrixSolverOutput"]
 
 
-class BaseSolverOutput(ABC):
+class BaseSolverOutput(abc.ABC):
     """Base class for all solver outputs."""
 
-    @abstractmethod
+    @abc.abstractmethod
     def _apply(self, x: ArrayLike, *, forward: bool) -> ArrayLike:
         """Apply :attr:`transport_matrix` to an array of shape ``[n, d]`` or ``[m, d]``."""
 
     @property
-    @abstractmethod
+    @abc.abstractmethod
     def transport_matrix(self) -> ArrayLike:
         """Transport matrix of shape ``[n, m]``."""
 
     @property
-    @abstractmethod
+    @abc.abstractmethod
     def shape(self) -> Tuple[int, int]:
         """Shape of the :attr:`transport_matrix`."""
 
     @property
-    @abstractmethod
+    @abc.abstractmethod
     def cost(self) -> float:
         """Regularized :term:`OT` cost."""
 
     @property
-    @abstractmethod
+    @abc.abstractmethod
     def converged(self) -> bool:
-        """Whether the algorithm converged."""
+        """Whether the solver converged."""
 
     @property
-    @abstractmethod
+    @abc.abstractmethod
     def potentials(self) -> Optional[Tuple[ArrayLike, ArrayLike]]:
         """:term:`Dual potentials` :math:`f` and :math:`g`.
 
@@ -49,11 +49,11 @@ class BaseSolverOutput(ABC):
         """
 
     @property
-    @abstractmethod
+    @abc.abstractmethod
     def is_linear(self) -> bool:
         """Whether the output is a solution to a :term:`linear problem`."""
 
-    @abstractmethod
+    @abc.abstractmethod
     def to(self, device: Optional[Device_t] = None) -> "BaseSolverOutput":
         """Transfer self to another compute device.
 
@@ -78,7 +78,7 @@ class BaseSolverOutput(ABC):
         """Whether the :attr:`transport_matrix` is :term:`low-rank`."""
         return self.rank > -1
 
-    @abstractmethod
+    @abc.abstractmethod
     def _ones(self, n: int) -> ArrayLike:
         """Generate vector of 1s of shape ``[n,]``."""
 
@@ -142,8 +142,8 @@ class BaseSolverOutput(ABC):
         -------
         The :attr:`transport_matrix` as a linear operator.
         """
-        push = partial(self.push, scale_by_marginals=scale_by_marginals)
-        pull = partial(self.pull, scale_by_marginals=scale_by_marginals)
+        push = functools.partial(self.push, scale_by_marginals=scale_by_marginals)
+        pull = functools.partial(self.pull, scale_by_marginals=scale_by_marginals)
         # push: a @ X (rmatvec)
         # pull: X @ a (matvec)
         return LinearOperator(shape=self.shape, dtype=self.dtype, matvec=pull, rmatvec=push)
@@ -341,7 +341,7 @@ class MatrixSolverOutput(BaseSolverOutput):
         if dtype is None:
             return self
 
-        obj = copy(self)
+        obj = copy.copy(self)
         obj._transport_matrix = obj.transport_matrix.astype(dtype)
         return obj
 
