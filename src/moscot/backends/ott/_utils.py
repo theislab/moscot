@@ -7,10 +7,11 @@ from flax.training.train_state import TrainState
 import jax
 import jax.numpy as jnp
 import jax.tree_util as jtu
+from ott.geometry import costs
 from ott.geometry.pointcloud import PointCloud
 from ott.problems.linear.potentials import DualPotentials
 from ott.tools.sinkhorn_divergence import sinkhorn_divergence
-from ott.geometry import costs
+
 from moscot._logging import logger
 from moscot._types import ArrayLike, ScaleCost_t
 
@@ -170,7 +171,7 @@ class ConditionalDualPotentials(DualPotentials):
         def g(x, c) -> float:
             return self._state_g.apply_fn({"params": self._state_g.params}, x, c)
 
-        return DualPotentials(partial(f, c=condition), partial(g,c=condition), corr=True, cost_fn=costs.SqEuclidean())
+        return DualPotentials(partial(f, c=condition), partial(g, c=condition), corr=True, cost_fn=costs.SqEuclidean())
 
     def distance(self, condition: ArrayLike, src: ArrayLike, tgt: ArrayLike) -> float:
         """Evaluate 2-Wasserstein distance between samples using dual potentials.

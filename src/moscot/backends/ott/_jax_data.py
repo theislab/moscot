@@ -29,6 +29,7 @@ class JaxSampler:
         if not len(distributions) == len(a) == len(b):
             raise ValueError("Number of distributions, a, and b must be equal.")
         self._distributions = distributions
+        self._batch_size = batch_size
         self._policy_pairs = policy_pairs
         self._conditions = jnp.array([pp[0] for pp in policy_pairs], dtype=float)[:, None] if conditional else None
         if not len(sample_to_idx):
@@ -130,3 +131,7 @@ class JaxSampler:
     def sample_to_idx(self) -> Dict[int, Any]:
         """Return sample to idx."""
         return self._sample_to_idx
+
+    @property
+    def batch_size(self) -> int:
+        return self._batch_size

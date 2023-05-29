@@ -3,20 +3,21 @@ from types import MappingProxyType
 from typing import Any, Callable, Dict, List, Literal, Optional, Tuple, Union
 
 import jaxlib.xla_extension as xla_ext
-import numpy as np
+
 import jax
 import jax.numpy as jnp
+import numpy as np
 import scipy.sparse as sp
-from moscot._docs._docs import d
 from ott.problems.linear.potentials import DualPotentials
 from ott.solvers.linear.sinkhorn import SinkhornOutput as OTTSinkhornOutput
 from ott.solvers.linear.sinkhorn_lr import LRSinkhornOutput as OTTLRSinkhornOutput
 from ott.solvers.quadratic.gromov_wasserstein import GWOutput as OTTGWOutput
 
-import matplotlib.pyplot as plt
 import matplotlib as mpl
+import matplotlib.pyplot as plt
 from matplotlib.figure import Figure
 
+from moscot._docs._docs import d
 from moscot._types import ArrayLike, Device_t
 from moscot.backends.ott._utils import ConditionalDualPotentials, get_nearest_neighbors
 from moscot.base.output import BaseNeuralOutput, BaseSolverOutput

@@ -1,9 +1,9 @@
 import pytest
 
+import jax.numpy as jnp
 import numpy as np
 
 import anndata as ad
-import jax.numpy as jnp
 
 from moscot.base.output import BaseSolverOutput
 from moscot.base.problems import CondOTProblem
@@ -28,13 +28,13 @@ class TestConditionalNeuralProblem:
     def test_solve_balanced_no_baseline(self, adata_time: ad.AnnData):  # type: ignore[no-untyped-def]
         problem = ConditionalNeuralProblem(adata=adata_time)
         problem = problem.prepare(key="time", joint_attr="X_pca")
-        problem = problem.solve(**neuraldual_args_1)
+        problem = problem.solve(cond_dim=1, **neuraldual_args_1)
         assert isinstance(problem.solution, BaseSolverOutput)
 
     def test_solve_unbalanced_with_baseline(self, adata_time: ad.AnnData):
         problem = ConditionalNeuralProblem(adata=adata_time)
         problem = problem.prepare(key="time", joint_attr="X_pca")
-        problem = problem.solve(**neuraldual_args_2)
+        problem = problem.solve(cond_dim=1, **neuraldual_args_2)
         assert isinstance(problem.solution, BaseSolverOutput)
 
     def test_reproducibility(self, adata_time: ad.AnnData):
@@ -63,10 +63,10 @@ class TestConditionalNeuralProblem:
         problem = ConditionalNeuralProblem(adata=adata_time)
         adata_time = adata_time[adata_time.obs["time"].isin((0, 1))]
         problem = problem.prepare(key="time", joint_attr="X_pca")
-        problem = problem.solve(**neuraldual_args_1)
+        problem = problem.solve(cond_dim=1, **neuraldual_args_1)
 
         solver = problem.solver.solver
-        assert solver.conditional is True
+        assert solver.cond_dim > 0
         for arg, val in neuraldual_solver_args.items():
             assert hasattr(solver, val)
             el = getattr(solver, val)[0] if isinstance(getattr(solver, val), tuple) else getattr(solver, val)

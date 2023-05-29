@@ -138,7 +138,7 @@ class ICNN(nn.Module):
     @nn.compact
     def __call__(self, x: jnp.ndarray, c: Optional[jnp.ndarray] = None) -> jnp.ndarray:  # type: ignore[name-defined]
         """Apply ICNN module."""
-        assert (c is not None) == (self.cond_dim>0), "`conditional` flag and whether `c` is provided must match."
+        assert (c is not None) == (self.cond_dim > 0), "`conditional` flag and whether `c` is provided must match."
 
         if not self.cond_dim:
             z = self.w_xs[0](x)

@@ -1,7 +1,6 @@
 from collections import defaultdict
 from types import MappingProxyType
 from typing import Any, Callable, Dict, Iterable, List, Literal, Optional, Tuple, Union
-from functools import partial
 
 import optax
 from flax.core import freeze
@@ -17,8 +16,8 @@ from ott.geometry.pointcloud import PointCloud
 from ott.problems.linear.potentials import DualPotentials
 from ott.tools.sinkhorn_divergence import sinkhorn_divergence
 
-from moscot._types import ArrayLike
 from moscot._logging import logger
+from moscot._types import ArrayLike
 from moscot.backends.ott._icnn import ICNN
 from moscot.backends.ott._jax_data import JaxSampler
 from moscot.backends.ott._utils import (
@@ -264,9 +263,9 @@ class NeuralDualSolver:
                 data
             )
             # loss is L2 reconstruction of the input
-            return ((grad_f_data - data) ** 2).sum(axis=1).mean() #TODO make nicer
+            return ((grad_f_data - data) ** 2).sum(axis=1).mean()  # TODO make nicer
 
-        #@jax.jit
+        # @jax.jit
         def pretrain_update(
             state: TrainState, key: jax.random.KeyArray
         ) -> Tuple[jnp.ndarray, TrainState]:  # type:ignore[name-defined]
@@ -586,7 +585,7 @@ class NeuralDualSolver:
                 penalty += jnp.linalg.norm(jax.nn.relu(-params[key]["kernel"]))
         return penalty
 
-    def to_dual_potentials(self, condition: Optional[ArrayLike]=None) -> DualPotentials:
+    def to_dual_potentials(self, condition: Optional[ArrayLike] = None) -> DualPotentials:
         """Return the Kantorovich dual potentials from the trained potentials."""
         if self.cond_dim:
 
@@ -598,13 +597,11 @@ class NeuralDualSolver:
 
             return ConditionalDualPotentials(self.state_f, self.state_g)
 
-        else:
+        def f(x) -> float:
+            return self.state_f.apply_fn({"params": self.state_f.params}, x)
 
-            def f(x) -> float:
-                return self.state_f.apply_fn({"params": self.state_f.params}, x)
-
-            def g(x) -> float:
-                return self.state_g.apply_fn({"params": self.state_g.params}, x)
+        def g(x) -> float:
+            return self.state_g.apply_fn({"params": self.state_g.params}, x)
 
         return DualPotentials(f, g, corr=True, cost_fn=costs.SqEuclidean())
 

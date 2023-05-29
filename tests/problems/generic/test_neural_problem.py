@@ -86,7 +86,7 @@ class TestNeuralProblem:
 
         key = (0, 1)
         solver = problem[key].solver.solver
-        assert solver.conditional is False
+        assert solver.cond_dim == 0
         for arg, val in neuraldual_solver_args.items():
             assert hasattr(solver, val)
             el = getattr(solver, val)[0] if isinstance(getattr(solver, val), tuple) else getattr(solver, val)
