@@ -1,6 +1,7 @@
 from collections import defaultdict
 from types import MappingProxyType
 from typing import Any, Callable, Dict, Iterable, List, Literal, Optional, Tuple, Union
+from functools import partial
 
 import optax
 from flax.core import freeze
@@ -16,6 +17,7 @@ from ott.geometry.pointcloud import PointCloud
 from ott.problems.linear.potentials import DualPotentials
 from ott.tools.sinkhorn_divergence import sinkhorn_divergence
 
+from moscot._types import ArrayLike
 from moscot._logging import logger
 from moscot.backends.ott._icnn import ICNN
 from moscot.backends.ott._jax_data import JaxSampler
@@ -97,7 +99,7 @@ class NeuralDualSolver:
     def __init__(
         self,
         input_dim: int,
-        conditional: bool = False,
+        cond_dim: int = 0,
         batch_size: int = 1024,
         tau_a: float = 1.0,
         tau_b: float = 1.0,
@@ -122,7 +124,7 @@ class NeuralDualSolver:
         compute_wasserstein_baseline: bool = True,
     ):
         self.input_dim = input_dim
-        self.conditional = conditional
+        self.cond_dim = cond_dim
         self.batch_size = batch_size
         self.tau_a = 1.0 if tau_a is None else tau_a
         self.tau_b = 1.0 if tau_b is None else tau_b
@@ -161,13 +163,13 @@ class NeuralDualSolver:
         neural_f = ICNN(
             dim_hidden=dim_hidden,
             input_dim=self.input_dim,
-            conditional=conditional,
+            cond_dim=cond_dim,
             pos_weights=pos_weights,
         )
         neural_g = ICNN(
             dim_hidden=dim_hidden,
             input_dim=self.input_dim,
-            conditional=conditional,
+            cond_dim=cond_dim,
             pos_weights=pos_weights,
         )
         # set optimizer and networks
@@ -230,7 +232,7 @@ class NeuralDualSolver:
             pretrain_logs = self.pretrain_identity(trainloader.conditions)
 
         train_logs = self.train_neuraldual(trainloader, validloader)
-        res = self.to_cond_dual_potentials() if self.conditional else self.to_dual_potentials()
+        res = self.to_cond_dual_potentials() if self.cond_dim else self.to_dual_potentials()
         logs = pretrain_logs | train_logs
 
         return (res, logs)
@@ -262,16 +264,16 @@ class NeuralDualSolver:
                 data
             )
             # loss is L2 reconstruction of the input
-            return ((grad_f_data - data) ** 2).sum(axis=1).mean()
+            return ((grad_f_data - data) ** 2).sum(axis=1).mean() #TODO make nicer
 
-        @jax.jit
+        #@jax.jit
         def pretrain_update(
             state: TrainState, key: jax.random.KeyArray
         ) -> Tuple[jnp.ndarray, TrainState]:  # type:ignore[name-defined]
             """Update function for the pretraining on identity."""
             # sample gaussian data with given scale
             x = self.pretrain_scale * jax.random.normal(key, [self.batch_size, self.input_dim])
-            condition = jax.random.choice(key, conditions) if self.conditional else None  # type:ignore[arg-type]
+            condition = jax.random.choice(key, conditions) if self.cond_dim else None  # type:ignore[arg-type]
             grad_fn = jax.value_and_grad(pretrain_loss_fn, argnums=0)
             loss, grads = grad_fn(state.params, x, condition, state)
             return loss, state.apply_gradients(grads=grads)
@@ -389,7 +391,7 @@ class NeuralDualSolver:
             # evalute on validation set periodically
             if iteration % self.valid_freq == 0:
                 for index, pair in enumerate(trainloader.policy_pairs):
-                    condition = trainloader.conditions[index] if self.conditional else None
+                    condition = trainloader.conditions[index] if self.cond_dim else None
                     valid_metrics = self.valid_step(self.state_f, self.state_g, valid_batch[pair], condition)
                     for key, value in valid_metrics.items():
                         valid_logs[f"{pair[0]}_{pair[1]}_{key}"].append(value)  # type:ignore[union-attr]
@@ -584,15 +586,17 @@ class NeuralDualSolver:
                 penalty += jnp.linalg.norm(jax.nn.relu(-params[key]["kernel"]))
         return penalty
 
-    def to_dual_potentials(self) -> DualPotentials:
+    def to_dual_potentials(self, condition: Optional[ArrayLike]=None) -> DualPotentials:
         """Return the Kantorovich dual potentials from the trained potentials."""
-        if self.conditional:
+        if self.cond_dim:
 
-            def f(x, condition):
-                return self.state_f.apply_fn({"params": self.state_f.params}, x, condition)
+            def f(x, c) -> float:
+                return self._state_f.apply_fn({"params": self._state_f.params}, x, c)
 
-            def g(x, condition):
-                return self.state_g.apply_fn({"params": self.state_g.params}, x, condition)
+            def g(x, c) -> float:
+                return self._state_g.apply_fn({"params": self._state_g.params}, x, c)
+
+            return ConditionalDualPotentials(self.state_f, self.state_g)
 
         else:
 

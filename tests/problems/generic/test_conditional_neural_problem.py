@@ -3,6 +3,7 @@ import pytest
 import numpy as np
 
 import anndata as ad
+import jax.numpy as jnp
 
 from moscot.base.output import BaseSolverOutput
 from moscot.base.problems import CondOTProblem
@@ -40,20 +41,20 @@ class TestConditionalNeuralProblem:
         pc_tzero = adata_time[adata_time.obs["time"] == 0].obsm["X_pca"]
         problem_one = ConditionalNeuralProblem(adata=adata_time)
         problem_one = problem_one.prepare(key="time", joint_attr="X_pca")
-        problem_one = problem_one.solve(**neuraldual_args_1)
+        problem_one = problem_one.solve(**neuraldual_args_1, cond_dim=1)
 
         problem_two = ConditionalNeuralProblem(adata=adata_time)
         problem_two = problem_one.prepare("time", joint_attr="X_pca")
-        problem_two = problem_one.solve(**neuraldual_args_1)
+        problem_two = problem_one.solve(**neuraldual_args_1, cond_dim=1)
         assert np.allclose(
-            problem_one.solution.push(0, pc_tzero),
-            problem_two.solution.push(0, pc_tzero),
+            problem_one.solution.push(jnp.array([0]), pc_tzero),
+            problem_two.solution.push(jnp.array([0]), pc_tzero),
             rtol=RTOL,
             atol=ATOL,
         )
         assert np.allclose(
-            problem_one.solution.pull(0, pc_tzero),
-            problem_two.solution.pull(0, pc_tzero),
+            problem_one.solution.pull(jnp.array([0]), pc_tzero),
+            problem_two.solution.pull(jnp.array([0]), pc_tzero),
             rtol=RTOL,
             atol=ATOL,
         )

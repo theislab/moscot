@@ -423,8 +423,8 @@ class NeuralSolver(OTSolver[OTTOutput]):
 class CondNeuralSolver(NeuralSolver):
     """Solver class solving Conditional Neural Optimal Transport problems."""
 
-    def __init__(self, **kwargs: Any) -> None:
-        super().__init__(conditional=True, **kwargs)
+    def __init__(self, *args, cond_dim: int, **kwargs: Any) -> None:
+        super().__init__(*args, cond_dim=cond_dim, **kwargs)
 
     def _prepare(  # type: ignore[override]
         self,
@@ -503,3 +503,4 @@ class CondNeuralSolver(NeuralSolver):
     def _solve(self, data_samplers: Tuple[JaxSampler, JaxSampler]) -> ConditionalNeuralOutput:  # type: ignore[override]
         model, logs = self.solver(data_samplers[0], data_samplers[1])
         return ConditionalNeuralOutput(output=model, training_logs=logs)  # type:ignore[arg-type]
+        

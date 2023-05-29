@@ -620,12 +620,13 @@ class ConditionalNeuralOutput(NeuralOutput):
         super().__init__(output=output, **kwargs)
         self._output = output
 
-    def _apply(self, cond: float, x: ArrayLike, *, forward: bool) -> ArrayLike:  # type:ignore[override]
+    def _apply(self, cond: ArrayLike, x: ArrayLike, *, forward: bool) -> ArrayLike:  # type:ignore[override]
+        cond = jnp.array(cond)
         return self._output.transport(cond, x, forward=forward)
 
     def project_transport_matrix(  # type:ignore[override]
         self,
-        cond: float,
+        cond: ArrayLike,
         src_cells: ArrayLike,
         tgt_cells: ArrayLike,
         forward: bool = True,
@@ -741,7 +742,7 @@ class ConditionalNeuralOutput(NeuralOutput):
         out = jax.device_put(self._output, device)
         return ConditionalNeuralOutput(output=out, training_logs=self.training_logs)
 
-    def push(self, cond: float, x: ArrayLike) -> ArrayLike:  # type: ignore[override]
+    def push(self, cond: ArrayLike, x: ArrayLike) -> ArrayLike:  # type: ignore[override]
         """Push distribution `x` conditioned on condition `cond`.
 
         Parameters
@@ -759,7 +760,7 @@ class ConditionalNeuralOutput(NeuralOutput):
             raise ValueError(f"Expected 1D or 2D array, found `{x.ndim}`.")
         return self._apply(cond, x, forward=True)
 
-    def pull(self, cond: float, x: ArrayLike) -> ArrayLike:  # type: ignore[override]
+    def pull(self, cond: ArrayLike, x: ArrayLike) -> ArrayLike:  # type: ignore[override]
         """Pull distribution `x` conditioned on condition `cond`.
 
         Parameters
@@ -777,7 +778,7 @@ class ConditionalNeuralOutput(NeuralOutput):
             raise ValueError(f"Expected 1D or 2D array, found `{x.ndim}`.")
         return self._apply(cond, x, forward=False)
 
-    def evaluate_f(self, cond: float, x: ArrayLike) -> ArrayLike:  # type:ignore[override]
+    def evaluate_f(self, cond: ArrayLike, x: ArrayLike) -> ArrayLike:  # type:ignore[override]
         """Apply forward potential to `x` conditionend on condition `cond`.
 
         Parameters
@@ -795,7 +796,7 @@ class ConditionalNeuralOutput(NeuralOutput):
             raise ValueError(f"Expected 1D or 2D array, found `{x.ndim}`.")
         return jax.vmap(self._output.f)(cond, x)
 
-    def evaluate_g(self, cond: float, x: ArrayLike) -> ArrayLike:  # type:ignore[override]
+    def evaluate_g(self, cond: ArrayLike, x: ArrayLike) -> ArrayLike:  # type:ignore[override]
         """Apply backward potential to `x` conditionend on condition `cond`.
 
         Parameters

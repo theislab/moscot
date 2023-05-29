@@ -164,13 +164,13 @@ class ConditionalDualPotentials(DualPotentials):
     def to_dual_potentials(self, condition: ArrayLike) -> DualPotentials:
         """Return the Kantorovich dual potentials from the trained potentials."""
 
-        def f(x) -> float:
-            return self._state_f.apply_fn({"params": self._state_f.params}, x, condition)
+        def f(x, c) -> float:
+            return self._state_f.apply_fn({"params": self._state_f.params}, x, c)
 
-        def g(x) -> float:
-            return self._state_g.apply_fn({"params": self._state_g.params}, x, condition)
+        def g(x, c) -> float:
+            return self._state_g.apply_fn({"params": self._state_g.params}, x, c)
 
-        return DualPotentials(f, g, corr=True, cost_fn=costs.SqEuclidean())
+        return DualPotentials(partial(f, c=condition), partial(g,c=condition), corr=True, cost_fn=costs.SqEuclidean())
 
     def distance(self, condition: ArrayLike, src: ArrayLike, tgt: ArrayLike) -> float:
         """Evaluate 2-Wasserstein distance between samples using dual potentials.

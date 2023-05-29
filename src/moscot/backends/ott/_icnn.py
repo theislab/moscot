@@ -13,7 +13,7 @@ class ICNN(nn.Module):
 
     dim_hidden: Sequence[int]
     input_dim: int
-    conditional: bool
+    cond_dim: int
     init_std: float = 0.1
     init_fn: Callable[[jnp.ndarray], Callable[[jnp.ndarray], jnp.ndarray]] = nn.initializers.normal  # type: ignore[name-defined]  # noqa: E501
     act_fn: Callable[[jnp.ndarray], jnp.ndarray] = nn.leaky_relu  # type: ignore[name-defined]
@@ -57,7 +57,7 @@ class ICNN(nn.Module):
         self.w_xs = w_xs
         self.w_zs = w_zs
 
-        if self.conditional:
+        if self.cond_dim:
             w_zu = []
             w_xu = []
             w_u = []
@@ -138,9 +138,9 @@ class ICNN(nn.Module):
     @nn.compact
     def __call__(self, x: jnp.ndarray, c: Optional[jnp.ndarray] = None) -> jnp.ndarray:  # type: ignore[name-defined]
         """Apply ICNN module."""
-        assert (c is not None) == (self.conditional), "`conditional` flag and whether `c` is provided must match."
+        assert (c is not None) == (self.cond_dim>0), "`conditional` flag and whether `c` is provided must match."
 
-        if not self.conditional:
+        if not self.cond_dim:
             z = self.w_xs[0](x)
             z = jnp.multiply(z, z)
             for Wz, Wx in zip(self.w_zs[:-1], self.w_xs[1:-1]):
@@ -187,10 +187,10 @@ class ICNN(nn.Module):
         condition = (
             jnp.ones(
                 shape=[
-                    2,
+                    self.cond_dim,
                 ]
             )
-            if self.conditional
+            if self.cond_dim
             else None
         )
         params = self.init(rng, x=jnp.ones(input_shape), c=condition)["params"]
