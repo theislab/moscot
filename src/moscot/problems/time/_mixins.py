@@ -1,22 +1,36 @@
-from typing import Any, Dict, List, Tuple, Union, Literal, Iterable, Iterator, Optional, Protocol, TYPE_CHECKING
-from pathlib import Path
 import itertools
-
-from pandas.api.types import infer_dtype, is_numeric_dtype
-import pandas as pd
+from pathlib import Path
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Dict,
+    Iterable,
+    Iterator,
+    List,
+    Literal,
+    Optional,
+    Protocol,
+    Tuple,
+    Union,
+)
 
 import numpy as np
+import pandas as pd
+from pandas.api.types import infer_dtype, is_numeric_dtype
 
 from anndata import AnnData
 
-from moscot._types import ArrayLike, Numeric_t, Str_Dict_t
-from moscot.solvers._output import BaseSolverOutput
+from moscot import _constants
 from moscot._docs._docs_mixins import d_mixins
-from moscot._constants._constants import Key, PlottingKeys, PlottingDefaults
-from moscot.problems.base._mixins import AnalysisMixin, AnalysisMixinProtocol
-from moscot.solvers._tagged_array import Tag
-from moscot.problems.base._birth_death import BirthDeathProblem
-from moscot.problems.base._compound_problem import B, K, ApplyOutput_t
+from moscot._types import ArrayLike, Numeric_t, Str_Dict_t
+from moscot.base.output import BaseSolverOutput
+from moscot.base.problems._mixins import AnalysisMixin, AnalysisMixinProtocol
+from moscot.base.problems.birth_death import BirthDeathProblem
+from moscot.base.problems.compound_problem import ApplyOutput_t, B, K
+from moscot.plotting._utils import set_plotting_vars
+from moscot.utils.tagged_array import Tag
+
+__all__ = ["TemporalMixin"]
 
 
 # TODO(@MUCDK, @michalk8): check for ignore[misc] in line below, might become redundant
@@ -38,7 +52,7 @@ class TemporalMixinProtocol(AnalysisMixinProtocol[K, B], Protocol[K, B]):  # typ
         aggregation_mode: Literal["annotation", "cell"] = "annotation",
         batch_size: Optional[int] = None,
         normalize: bool = True,
-        key_added: Optional[str] = PlottingDefaults.CELL_TRANSITION,
+        key_added: Optional[str] = _constants.CELL_TRANSITION,
     ) -> pd.DataFrame:
         ...
 
@@ -159,7 +173,7 @@ class TemporalMixin(AnalysisMixin[K, B]):
         aggregation_mode: Literal["annotation", "cell"] = "annotation",
         batch_size: Optional[int] = None,
         normalize: bool = True,
-        key_added: Optional[str] = PlottingDefaults.CELL_TRANSITION,
+        key_added: Optional[str] = _constants.CELL_TRANSITION,
     ) -> Optional[pd.DataFrame]:
         """
         Compute a grouped cell transition matrix.
@@ -184,7 +198,6 @@ class TemporalMixin(AnalysisMixin[K, B]):
         -----
         %(notes_cell_transition)s
         """
-
         if TYPE_CHECKING:
             assert isinstance(self.temporal_key, str)
         return self._cell_transition(
@@ -212,7 +225,7 @@ class TemporalMixin(AnalysisMixin[K, B]):
         forward: bool = True,
         restrict_to_existing: bool = True,
         order_annotations: Optional[List[Any]] = None,
-        key_added: Optional[str] = PlottingDefaults.SANKEY,
+        key_added: Optional[str] = _constants.SANKEY,
         return_data: bool = False,
     ) -> Optional[List[pd.DataFrame]]:
         """
@@ -235,11 +248,11 @@ class TemporalMixin(AnalysisMixin[K, B]):
 
         Notes
         -----
-        To visualise the results, see :func:`moscot.pl.sankey`.
+        To visualise the results, see :func:`moscot.plotting.sankey`.
         """
         tuples = self._policy.plan(start=source, end=target)
         cell_transitions = []
-        for (src, tgt) in tuples:
+        for src, tgt in tuples:
             cell_transitions.append(
                 self.cell_transition(
                     src,
@@ -293,9 +306,8 @@ class TemporalMixin(AnalysisMixin[K, B]):
                 "target_groups": target_groups,
                 "captions": [str(t) for t in tuples],
             }
-            Key.uns.set_plotting_vars(self.adata, PlottingKeys.SANKEY, key_added, plot_vars)
-        if return_data:
-            return cell_transitions_updated
+            set_plotting_vars(self.adata, _constants.SANKEY, key=key_added, value=plot_vars)
+        return cell_transitions_updated if return_data else None
 
     @d_mixins.dedent
     def push(
@@ -305,7 +317,7 @@ class TemporalMixin(AnalysisMixin[K, B]):
         data: Optional[Union[str, ArrayLike]] = None,
         subset: Optional[Union[str, List[str], Tuple[int, int]]] = None,
         scale_by_marginals: bool = True,
-        key_added: Optional[str] = PlottingDefaults.PUSH,
+        key_added: Optional[str] = _constants.PUSH,
         return_all: bool = False,
         return_data: bool = False,
         **kwargs: Any,
@@ -352,9 +364,8 @@ class TemporalMixin(AnalysisMixin[K, B]):
                 "subset": subset,
             }
             self.adata.obs[key_added] = self._flatten(result, key=self.temporal_key)
-            Key.uns.set_plotting_vars(self.adata, PlottingKeys.PUSH, key_added, plot_vars)
-        if return_data:
-            return result
+            set_plotting_vars(self.adata, _constants.PUSH, key=key_added, value=plot_vars)
+        return result if return_data else None
 
     @d_mixins.dedent
     def pull(
@@ -364,7 +375,7 @@ class TemporalMixin(AnalysisMixin[K, B]):
         data: Optional[Union[str, ArrayLike]] = None,
         subset: Optional[Union[str, List[str], Tuple[int, int]]] = None,
         scale_by_marginals: bool = True,
-        key_added: Optional[str] = PlottingDefaults.PULL,
+        key_added: Optional[str] = _constants.PULL,
         return_all: bool = False,
         return_data: bool = False,
         **kwargs: Any,
@@ -410,9 +421,8 @@ class TemporalMixin(AnalysisMixin[K, B]):
                 "target": target,
             }
             self.adata.obs[key_added] = self._flatten(result, key=self.temporal_key)
-            Key.uns.set_plotting_vars(self.adata, PlottingKeys.PULL, key_added, plot_vars)
-        if return_data:
-            return result
+            set_plotting_vars(self.adata, _constants.PULL, key=key_added, value=plot_vars)
+        return result if return_data else None
 
     @property
     def prior_growth_rates(self: TemporalMixinProtocol[K, B]) -> Optional[pd.DataFrame]:
@@ -525,7 +535,7 @@ class TemporalMixin(AnalysisMixin[K, B]):
         only_start: bool = False,
     ) -> Union[Tuple[ArrayLike, AnnData], Tuple[ArrayLike, ArrayLike, ArrayLike, AnnData, ArrayLike]]:
         # TODO: use .items()
-        for (src, tgt) in self.problems:
+        for src, tgt in self.problems:
             tag = self.problems[src, tgt].xy.tag  # type: ignore[union-attr]
             if tag != Tag.POINT_CLOUD:
                 raise ValueError(
@@ -542,14 +552,14 @@ class TemporalMixin(AnalysisMixin[K, B]):
                 break
         else:
             raise ValueError(f"No data found for `{source}` time point.")
-        for (src, tgt) in self.problems.keys():
+        for src, tgt in self.problems:
             if src == intermediate:
                 intermediate_data = self.problems[src, tgt].xy.data_src  # type: ignore[union-attr]
                 intermediate_adata = self.problems[src, tgt].adata_src
                 break
         else:
             raise ValueError(f"No data found for `{intermediate}` time point.")
-        for (src, tgt) in self.problems.keys():
+        for src, tgt in self.problems:
             if tgt == target:
                 target_data = self.problems[src, tgt].xy.data_tgt  # type: ignore[union-attr]
                 break
@@ -587,9 +597,7 @@ class TemporalMixin(AnalysisMixin[K, B]):
         Therefore, the Wasserstein distance between the interpolated and the real distribution is computed.
 
         It is recommended to compare the Wasserstein distance to the ones obtained by
-        :meth:`compute_time_point_distances`,
-        :meth:`compute_random_distance`, and
-        :meth:`compute_time_point_distance`.
+        :meth:`compute_time_point_distances` and :meth:`compute_random_distance`.
 
         This method does not instantiate the transport matrix if the solver output does not.
 
@@ -601,10 +609,10 @@ class TemporalMixin(AnalysisMixin[K, B]):
         %(start)s
         %(intermediate_interpolation)s
         %(end)s
-        %(interpolation_parameters)s
+        %(interpolation_parameter)s
         %(n_interpolated_cells)s
         %(account_for_unbalancedness)s
-        %(batch_size)s
+        %(ott_jax_batch_size)s
         %(use_posterior_marginals)s
         %(seed_sampling)s
         %(backend)s
@@ -841,12 +849,11 @@ class TemporalMixin(AnalysisMixin[K, B]):
         else:
             row_probability = growth_rates ** (1 - interpolation_parameter)
         row_probability /= np.sum(row_probability)
-        result = (
+        return (
             source_data[rng.choice(len(source_data), size=number_cells, p=row_probability), :]
             * (1 - interpolation_parameter)
             + target_data[rng.choice(len(target_data), size=number_cells), :] * interpolation_parameter
         )
-        return result
 
     @staticmethod
     def _get_interp_param(

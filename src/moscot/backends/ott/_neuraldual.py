@@ -1,28 +1,32 @@
-from types import MappingProxyType
-from typing import Any, Dict, List, Tuple, Literal, Callable, Iterable, Union, Optional
 from collections import defaultdict
+from types import MappingProxyType
+from typing import Any, Callable, Dict, Iterable, List, Literal, Optional, Tuple, Union
 
+import optax
 from flax.core import freeze
-from tqdm.auto import tqdm
 from flax.core.scope import FrozenVariableDict
 from flax.training.train_state import TrainState
-import optax
+from tqdm.auto import tqdm
 
+import jax
+import jax.numpy as jnp
+import numpy as np
 from ott.geometry import costs
 from ott.geometry.pointcloud import PointCloud
-from ott.tools.sinkhorn_divergence import sinkhorn_divergence
 from ott.problems.linear.potentials import DualPotentials
-import jax
-import numpy as np
-import jax.numpy as jnp
+from ott.tools.sinkhorn_divergence import sinkhorn_divergence
 
-from moscot._types import ArrayLike
 from moscot._logging import logger
+from moscot._types import ArrayLike
 from moscot.backends.ott._icnn import ICNN
-from moscot.backends.ott._utils import RunningAverageMeter, _compute_sinkhorn_divergence
 from moscot.backends.ott._jax_data import JaxSampler
+from moscot.backends.ott._utils import (
+    ConditionalDualPotentials,
+    RunningAverageMeter,
+    _compute_sinkhorn_divergence,
+)
 
-Train_t = Dict[str, Dict[str, List[float]]]
+Train_t = Dict[str, Dict[str, Union[float, List[float]]]]
 
 
 class NeuralDualSolver:
@@ -94,7 +98,7 @@ class NeuralDualSolver:
     def __init__(
         self,
         input_dim: int,
-        conditional: bool = False,
+        cond_dim: int = 0,
         batch_size: int = 1024,
         tau_a: float = 1.0,
         tau_b: float = 1.0,
@@ -119,7 +123,7 @@ class NeuralDualSolver:
         compute_wasserstein_baseline: bool = True,
     ):
         self.input_dim = input_dim
-        self.conditional = conditional
+        self.cond_dim = cond_dim
         self.batch_size = batch_size
         self.tau_a = 1.0 if tau_a is None else tau_a
         self.tau_b = 1.0 if tau_b is None else tau_b
@@ -141,7 +145,7 @@ class NeuralDualSolver:
         self.valid_sinkhorn_kwargs.setdefault("tau_b", self.tau_b)
         self.valid_eps = self.valid_sinkhorn_kwargs.pop("epsilon", 1e-2)
         self.compute_wasserstein_baseline = compute_wasserstein_baseline
-        self.key: ArrayLike = jax.random.PRNGKey(seed)
+        self.key: jax.random.PRNGKeyArray = jax.random.PRNGKey(seed)
 
         optimizer_f = optax.adamw(
             learning_rate=self.optimizer_f_kwargs.pop("learning_rate", 1e-3),
@@ -158,13 +162,13 @@ class NeuralDualSolver:
         neural_f = ICNN(
             dim_hidden=dim_hidden,
             input_dim=self.input_dim,
-            conditional=conditional,
+            cond_dim=cond_dim,
             pos_weights=pos_weights,
         )
         neural_g = ICNN(
             dim_hidden=dim_hidden,
             input_dim=self.input_dim,
-            conditional=conditional,
+            cond_dim=cond_dim,
             pos_weights=pos_weights,
         )
         # set optimizer and networks
@@ -184,7 +188,7 @@ class NeuralDualSolver:
         optimizer_g
             Optimizer for `neural_g`.
         """
-        key_f, key_g, self.key = jax.random.split(self.key, 3)
+        key_f, key_g, self.key = jax.random.split(self.key, 3)  # type:ignore[arg-type]
 
         # check setting of network architectures
         if neural_g.pos_weights != self.pos_weights or neural_f.pos_weights != self.pos_weights:
@@ -227,13 +231,13 @@ class NeuralDualSolver:
             pretrain_logs = self.pretrain_identity(trainloader.conditions)
 
         train_logs = self.train_neuraldual(trainloader, validloader)
-        res = self.to_dual_potentials()
+        res = self.to_cond_dual_potentials() if self.cond_dim else self.to_dual_potentials()
         logs = pretrain_logs | train_logs
 
         return (res, logs)
 
     def pretrain_identity(
-        self, conditions: Optional[jnp.ndarray]
+        self, conditions: Optional[jnp.ndarray]  # type:ignore[name-defined]
     ) -> Train_t:  # TODO(@lucaeyr) conditions can be `None` right?
         """Pretrain the neural networks to parameterize the identity map.
 
@@ -249,39 +253,43 @@ class NeuralDualSolver:
 
         @jax.jit
         def pretrain_loss_fn(
-            params: jnp.ndarray, data: jnp.ndarray, condition: jnp.ndarray, state: TrainState
+            params: jnp.ndarray,  # type: ignore[name-defined]
+            data: jnp.ndarray,  # type: ignore[name-defined]
+            condition: jnp.ndarray,  # type: ignore[name-defined]
+            state: TrainState,
         ) -> float:
             """Loss function for the pretraining on identity."""
             grad_f_data = jax.vmap(jax.grad(lambda x: state.apply_fn({"params": params}, x, condition), argnums=0))(
                 data
             )
             # loss is L2 reconstruction of the input
-            loss = ((grad_f_data - data) ** 2).sum(axis=1).mean()
-            return loss
+            return ((grad_f_data - data) ** 2).sum(axis=1).mean()  # TODO make nicer
 
-        @jax.jit
-        def pretrain_update(state: TrainState, key: jax.random.KeyArray) -> Tuple[jnp.ndarray, TrainState]:
+        # @jax.jit
+        def pretrain_update(
+            state: TrainState, key: jax.random.KeyArray
+        ) -> Tuple[jnp.ndarray, TrainState]:  # type:ignore[name-defined]
             """Update function for the pretraining on identity."""
             # sample gaussian data with given scale
             x = self.pretrain_scale * jax.random.normal(key, [self.batch_size, self.input_dim])
-            condition = jax.random.choice(key, conditions) if self.conditional else None  # type:ignore[arg-type]
+            condition = jax.random.choice(key, conditions) if self.cond_dim else None  # type:ignore[arg-type]
             grad_fn = jax.value_and_grad(pretrain_loss_fn, argnums=0)
             loss, grads = grad_fn(state.params, x, condition, state)
             return loss, state.apply_gradients(grads=grads)
 
         pretrain_logs: Dict[str, List[float]] = {"loss": []}
         for iteration in range(self.pretrain_iters):
-            key_pre, self.key = jax.random.split(self.key, 2)
+            key_pre, self.key = jax.random.split(self.key, 2)  # type:ignore[arg-type]
             # train step for potential f directly updating the train state
             loss, self.state_f = pretrain_update(self.state_f, key_pre)
             # clip weights of f
             if not self.pos_weights:
                 self.state_f = self.state_f.replace(params=self.clip_weights_icnn(self.state_f.params))
             if iteration % self.log_freq == 0:
-                pretrain_logs["loss"].append(float(loss))
+                pretrain_logs["loss"].append(loss)
         # load params of f into state_g
         self.state_g = self.state_g.replace(params=self.state_f.params)
-        return {"pretrain_logs": pretrain_logs}
+        return {"pretrain_logs": pretrain_logs}  # type:ignore[dict-item]
 
     def train_neuraldual(
         self,
@@ -310,12 +318,12 @@ class NeuralDualSolver:
         curr_patience: int = 0
         best_loss: float = jnp.inf
         best_iter_distance: float = None
-        best_params_f: jnp.ndarray = None
-        best_params_g: jnp.ndarray = None
+        best_params_f: jnp.ndarray = None  # type:ignore[name-defined]
+        best_params_g: jnp.ndarray = None  # type:ignore[name-defined]
 
         # define dict to contain source and target batch
-        batch: Dict[str, jnp.ndarray] = {}
-        valid_batch: Dict[Tuple[Any, Any], Dict[str, jnp.ndarray]] = {}
+        batch: Dict[str, jnp.ndarray] = {}  # type:ignore[name-defined]
+        valid_batch: Dict[Tuple[Any, Any], Dict[str, jnp.ndarray]] = {}  # type:ignore[name-defined]
         for pair in trainloader.policy_pairs:
             valid_batch[pair] = {}
             valid_batch[pair]["source"], valid_batch[pair]["target"] = validloader(
@@ -337,21 +345,21 @@ class NeuralDualSolver:
 
         for iteration in tqdm(range(self.iterations)):
             # sample policy and condition if given in trainloader
-            policy_key, target_key, self.key = jax.random.split(self.key, 3)
+            policy_key, target_key, self.key = jax.random.split(self.key, 3)  # type:ignore[arg-type]
             policy_pair, batch["condition"] = trainloader.sample_policy_pair(policy_key)
             # sample target batch
             batch["target"] = trainloader(target_key, policy_pair, sample="target")
 
             if not self.is_balanced:
                 # sample source batch and compute unbalanced marginals
-                source_key, self.key = jax.random.split(self.key, 2)
+                source_key, self.key = jax.random.split(self.key, 2)  # type:ignore[arg-type]
                 curr_source = trainloader(source_key, policy_pair, sample="source")
                 marginals_source, marginals_target = trainloader.compute_unbalanced_marginals(
                     curr_source, batch["target"]
                 )
 
             for _ in range(self.inner_iters):
-                source_key, self.key = jax.random.split(self.key, 2)
+                source_key, self.key = jax.random.split(self.key, 2)  # type:ignore[arg-type]
 
                 if self.is_balanced:
                     # sample source batch
@@ -365,7 +373,7 @@ class NeuralDualSolver:
                     average_meters[key].update(value)
             # resample target batch with unbalanced marginals
             if self.epsilon is not None:
-                target_key, self.key = jax.random.split(self.key, 2)
+                target_key, self.key = jax.random.split(self.key, 2)  # type:ignore[arg-type]
                 batch["target"] = trainloader.unbalanced_resample(target_key, batch["target"], marginals_target)
             # train step for potential f directly updating the train state
             self.state_f, train_f_metrics = self.train_step_f(self.state_f, self.state_g, batch)
@@ -382,10 +390,10 @@ class NeuralDualSolver:
             # evalute on validation set periodically
             if iteration % self.valid_freq == 0:
                 for index, pair in enumerate(trainloader.policy_pairs):
-                    condition = trainloader.conditions[index] if self.conditional else None
+                    condition = trainloader.conditions[index] if self.cond_dim else None
                     valid_metrics = self.valid_step(self.state_f, self.state_g, valid_batch[pair], condition)
                     for key, value in valid_metrics.items():
-                        valid_logs[f"{pair[0]}_{pair[1]}_{key}"].append(value)
+                        valid_logs[f"{pair[0]}_{pair[1]}_{key}"].append(value)  # type:ignore[union-attr]
                         valid_average_meters[key].update(value)
                 # update best model and patience as necessary
                 if self.best_model_metric == "sinkhorn":
@@ -405,36 +413,38 @@ class NeuralDualSolver:
                 else:
                     curr_patience += 1
                 for key, average_meter in valid_average_meters.items():
-                    valid_logs[f"mean_{key}"].append(average_meter.avg)
+                    valid_logs[f"mean_{key}"].append(average_meter.avg)  # type:ignore[union-attr]
                     average_meter.reset()
             if curr_patience >= self.patience:
                 break
         if self.compute_wasserstein_baseline:
             self.state_f = self.state_f.replace(params=best_params_f)
             self.state_g = self.state_g.replace(params=best_params_g)
-            valid_logs["best_loss"] = float(best_loss)
-            valid_logs["sinkhorn_dist"] = float(np.mean(sink_dist))
-            valid_logs["predicted_cost"] = float(best_iter_distance)
+            valid_logs["best_loss"] = best_loss
+            valid_logs["sinkhorn_dist"] = np.mean(sink_dist)
+            valid_logs["predicted_cost"] = None if best_iter_distance is None else float(best_iter_distance)
         else:
-            valid_logs["predicted_cost"] = float(valid_logs["mean_neural_dual_dist"][-1])
+            valid_logs["predicted_cost"] = valid_logs["mean_neural_dual_dist"]  # type:ignore[arg-type]
         return {
-            "train_logs": train_logs,
+            "train_logs": train_logs,  # type:ignore[dict-item]
             "valid_logs": valid_logs,
         }
 
     def get_train_step(
         self,
         to_optimize: Literal["f", "g"],
-    ) -> Callable[[TrainState, TrainState, Dict[str, jnp.ndarray]], Tuple[TrainState, Dict[str, float]]]:
+    ) -> Callable[  # type:ignore[name-defined]
+        [TrainState, TrainState, Dict[str, jnp.ndarray]], Tuple[TrainState, Dict[str, float]]
+    ]:
         """Get one training step."""
 
         def loss_f_fn(
-            params_f: jnp.ndarray,
-            params_g: jnp.ndarray,
+            params_f: jnp.ndarray,  # type:ignore[name-defined]
+            params_g: jnp.ndarray,  # type:ignore[name-defined]
             state_f: TrainState,
             state_g: TrainState,
-            batch: Dict[str, jnp.ndarray],
-        ) -> Tuple[jnp.ndarray, List[float]]:
+            batch: Dict[str, jnp.ndarray],  # type:ignore[name-defined]
+        ) -> Tuple[jnp.ndarray, List[jnp.ndarray]]:  # type:ignore[name-defined]
             """Loss function for f."""
             # get loss terms of kantorovich dual
             grad_g_src = jax.vmap(
@@ -455,12 +465,12 @@ class NeuralDualSolver:
             return loss, [total_loss, dist]
 
         def loss_g_fn(
-            params_f: jnp.ndarray,
-            params_g: jnp.ndarray,
+            params_f: jnp.ndarray,  # type:ignore[name-defined]
+            params_g: jnp.ndarray,  # type:ignore[name-defined]
             state_f: TrainState,
             state_g: TrainState,
-            batch: Dict[str, jnp.ndarray],
-        ) -> Tuple[jnp.ndarray, List[float]]:
+            batch: Dict[str, jnp.ndarray],  # type:ignore[name-defined]
+        ) -> Tuple[jnp.ndarray, List[float]]:  # type: ignore[name-defined]
             """Loss function for g."""
             # get loss terms of kantorovich dual
             grad_g_src = jax.vmap(
@@ -481,7 +491,7 @@ class NeuralDualSolver:
         def step_fn(
             state_f: TrainState,
             state_g: TrainState,
-            batch: Dict[str, jnp.ndarray],
+            batch: Dict[str, jnp.ndarray],  # type: ignore[name-defined]
         ) -> Tuple[TrainState, Dict[str, float]]:
             """Step function for training."""
             # get loss function for f or g
@@ -492,27 +502,28 @@ class NeuralDualSolver:
                 # return updated state and metrics dict
                 metrics = {"loss_f": loss, "loss": raw_metrics[0], "w_dist": raw_metrics[1]}
                 return state_f.apply_gradients(grads=grads), metrics
-            elif to_optimize == "g":
+            if to_optimize == "g":
                 grad_fn = jax.value_and_grad(loss_g_fn, argnums=1, has_aux=True)
                 # compute loss, gradients and metrics
                 (loss, raw_metrics), grads = grad_fn(state_f.params, state_g.params, state_f, state_g, batch)
                 # return updated state and metrics dict
                 metrics = {"loss_g": loss, "penalty": raw_metrics[0]}
                 return state_g.apply_gradients(grads=grads), metrics
+            raise NotImplementedError()
 
         return step_fn
 
     def get_eval_step(
         self,
-    ) -> Callable[[TrainState, TrainState, Dict[str, jnp.ndarray]], Dict[str, float]]:
+    ) -> Callable[[TrainState, TrainState, Dict[str, jnp.ndarray], jnp.ndarray], Dict[str, float]]:
         """Get one validation step."""
 
         @jax.jit
         def valid_step(
             state_f: TrainState,
             state_g: TrainState,
-            batch: Dict[str, jnp.ndarray],
-            condition: jnp.ndarray,
+            batch: Dict[str, jnp.ndarray],  # type:ignore[name-defined]
+            condition: jnp.ndarray,  # type:ignore[name-defined]
         ) -> Dict[str, float]:
             """Create a validation function."""
             # get transported source and inverse transported target
@@ -560,7 +571,7 @@ class NeuralDualSolver:
     def clip_weights_icnn(self, params: FrozenVariableDict) -> FrozenVariableDict:
         """Clip weights of ICNN."""
         params = params.unfreeze()
-        for key in params.keys():
+        for key in params:
             if key.startswith("w_zs"):
                 params[key]["kernel"] = jnp.clip(params[key]["kernel"], a_min=0)
 
@@ -569,21 +580,34 @@ class NeuralDualSolver:
     def penalize_weights_icnn(self, params: FrozenVariableDict) -> float:
         """Penalize weights of ICNN."""
         penalty = 0
-        for key in params.keys():
+        for key in params:
             if key.startswith("w_z"):
                 penalty += jnp.linalg.norm(jax.nn.relu(-params[key]["kernel"]))
         return penalty
 
-    def to_dual_potentials(self) -> DualPotentials:
+    def to_dual_potentials(self, condition: Optional[ArrayLike] = None) -> DualPotentials:
         """Return the Kantorovich dual potentials from the trained potentials."""
+        if self.cond_dim:
 
-        def f(x):
+            def f(x, c) -> float:
+                return self._state_f.apply_fn({"params": self._state_f.params}, x, c)
+
+            def g(x, c) -> float:
+                return self._state_g.apply_fn({"params": self._state_g.params}, x, c)
+
+            return ConditionalDualPotentials(self.state_f, self.state_g)
+
+        def f(x) -> float:
             return self.state_f.apply_fn({"params": self.state_f.params}, x)
 
-        def g(x):
+        def g(x) -> float:
             return self.state_g.apply_fn({"params": self.state_g.params}, x)
 
         return DualPotentials(f, g, corr=True, cost_fn=costs.SqEuclidean())
+
+    def to_cond_dual_potentials(self) -> DualPotentials:
+        """Return the conditional Kantorovich dual potentials from the trained potentials."""
+        return ConditionalDualPotentials(self.state_f, self.state_g)
 
     @property
     def is_balanced(self) -> bool:

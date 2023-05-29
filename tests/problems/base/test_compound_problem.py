@@ -1,20 +1,20 @@
-from typing import Any, Tuple, Literal, Mapping, Optional
 import os
+from typing import Any, Literal, Mapping, Optional, Tuple
 
-from pytest_mock import MockerFixture
-from sklearn.metrics.pairwise import euclidean_distances
 import pytest
+from pytest_mock import MockerFixture
 
+import numpy as np
 from ott.geometry.costs import Cosine, Euclidean, SqEuclidean
 from ott.geometry.pointcloud import PointCloud
-from ott.solvers.linear.sinkhorn import sinkhorn
-import numpy as np
+from ott.solvers.linear.sinkhorn import solve as sinkhorn
+from sklearn.metrics.pairwise import euclidean_distances
 
 from anndata import AnnData
 
+from moscot.base.problems import CompoundProblem, OTProblem
+from moscot.utils.tagged_array import Tag, TaggedArray
 from tests._utils import ATOL, RTOL, Problem
-from moscot.problems.base import OTProblem, CompoundProblem
-from moscot.solvers._tagged_array import Tag, TaggedArray
 
 
 class TestCompoundProblem:

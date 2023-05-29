@@ -1,24 +1,25 @@
 from math import cos, sin
-from typing import Tuple, Optional
-import random
+from typing import Optional, Tuple
 
-from scipy.sparse import csr_matrix
-import pandas as pd
 import pytest
 
-from jax.config import config
-import numpy as np
 import jax.numpy as jnp
+import numpy as np
+import pandas as pd
+from jax.config import config
+from scipy.sparse import csr_matrix
 
-from anndata import AnnData
+import matplotlib.pyplot as plt
+
 import scanpy as sc
-import anndata as ad
+from anndata import AnnData
 
-from tests._utils import Geom_t, _make_grid, _make_adata
+from tests._utils import Geom_t, _make_adata, _make_grid
 
 ANGLES = (0, 30, 60)
 
 
+# TODO(michalk8): consider passing this via env
 config.update("jax_enable_x64", True)
 
 
@@ -28,6 +29,13 @@ _gt_temporal_adata = sc.read("tests/data/moscot_temporal_tests.h5ad")
 def pytest_sessionstart() -> None:
     sc.pl.set_rcParams_defaults()
     sc.set_figure_params(dpi=40, color_map="viridis")
+
+
+@pytest.fixture(autouse=True)
+def _close_figure():
+    # prevent `RuntimeWarning: More than 20 figures have been opened.`
+    yield
+    plt.close()
 
 
 @pytest.fixture()
@@ -55,7 +63,7 @@ def y() -> Geom_t:
 
 
 @pytest.fixture()
-def xy() -> Geom_t:
+def xy() -> Tuple[Geom_t, Geom_t]:
     rng = np.random.RandomState(2)
     n = 20  # number of points in the first distribution
     n2 = 30  # number of points in the second distribution
@@ -119,7 +127,7 @@ def adata_time() -> AnnData:
     adata.obs["batch"] = rng.choice((0, 1, 2), len(adata))
     adata.obs["left_marginals"] = np.ones(len(adata))
     adata.obs["right_marginals"] = np.ones(len(adata))
-    adata.obs["celltype"] = np.random.choice(["A", "B", "C"], size=len(adata))
+    adata.obs["celltype"] = rng.choice(["A", "B", "C"], size=len(adata))
     # genes from mouse/human proliferation/apoptosis
     genes = ["ANLN", "ANP32E", "ATAD2", "Mcm4", "Smc4", "Gtse1", "ADD1", "AIFM3", "ANKH", "Ercc5", "Serpinb5", "Inhbb"]
     # genes which are transcription factors, 3 from drosophila, 2 from human, 1 from mouse
@@ -145,21 +153,23 @@ def create_marginals(n: int, m: int, *, uniform: bool = False, seed: Optional[in
 
 @pytest.fixture()
 def gt_temporal_adata() -> AnnData:
-    return _gt_temporal_adata.copy()
+    adata = _gt_temporal_adata.copy()
+    adata.obs_names_make_unique()
+    return adata
 
 
 @pytest.fixture()
 def adata_space_rotate() -> AnnData:
-    seed = random.randint(0, 422)
+    rng = np.random.RandomState(31)
     grid = _make_grid(10)
-    adatas = _make_adata(grid, n=len(ANGLES), seed=seed)
+    adatas = _make_adata(grid, n=len(ANGLES), seed=32)
     for adata, angle in zip(adatas, ANGLES):
         theta = np.deg2rad(angle)
         rot = np.array([[cos(theta), -sin(theta)], [sin(theta), cos(theta)]])
         adata.obsm["spatial"] = np.dot(adata.obsm["spatial"], rot)
 
-    adata = ad.concat(adatas, label="batch")
-    adata.obs["celltype"] = np.random.choice(["A", "B", "C"], size=len(adata))
+    adata = adatas[0].concatenate(*adatas[1:], batch_key="batch")
+    adata.obs["celltype"] = rng.choice(["A", "B", "C"], size=len(adata))
     adata.uns["spatial"] = {}
     adata.obs_names_make_unique()
     sc.pp.pca(adata)
@@ -168,11 +178,10 @@ def adata_space_rotate() -> AnnData:
 
 @pytest.fixture()
 def adata_mapping() -> AnnData:
-    seed = random.randint(0, 422)
     grid = _make_grid(10)
-    adataref, adata1, adata2 = _make_adata(grid, n=3, seed=seed)
+    adataref, adata1, adata2 = _make_adata(grid, n=3, seed=17)
     sc.pp.pca(adataref, n_comps=30)
 
-    adata = ad.concat([adataref, adata1, adata2], label="batch", join="outer")
+    adata = adataref.concatenate(adata1, adata2, batch_key="batch", join="outer")
     adata.obs_names_make_unique()
     return adata

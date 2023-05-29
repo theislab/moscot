@@ -1,14 +1,14 @@
 from typing import Tuple
 
-import pandas as pd
 import pytest
 
 import numpy as np
+import pandas as pd
 
 from anndata import AnnData
 
+from moscot.problems.time import TemporalProblem
 from tests._utils import MockSolverOutput
-from moscot.problems.time._lineage import TemporalProblem
 
 
 class TestTemporalMixin:
@@ -24,8 +24,8 @@ class TestTemporalMixin:
         problem = TemporalProblem(gt_temporal_adata)
         problem = problem.prepare(key)
         assert set(problem.problems.keys()) == {(key_1, key_2), (key_2, key_3)}
-        problem[(key_1, key_2)]._solution = MockSolverOutput(gt_temporal_adata.uns["tmap_10_105"])
-        problem[(key_2, key_3)]._solution = MockSolverOutput(gt_temporal_adata.uns["tmap_105_11"])
+        problem[key_1, key_2]._solution = MockSolverOutput(gt_temporal_adata.uns["tmap_10_105"])
+        problem[key_2, key_3]._solution = MockSolverOutput(gt_temporal_adata.uns["tmap_105_11"])
 
         cell_types_present_key_1 = (
             gt_temporal_adata[gt_temporal_adata.obs[key] == key_1].obs["cell_type"].cat.categories
@@ -48,7 +48,37 @@ class TestTemporalMixin:
         assert set(result.columns) == set(cell_types_present_key_2) if not forward else set(cell_types)
         marginal = result.sum(axis=forward == 1).values
         present_cell_type_marginal = marginal[marginal > 0]
-        np.testing.assert_almost_equal(present_cell_type_marginal, 1, decimal=5)
+        np.testing.assert_allclose(present_cell_type_marginal, 1.0)
+
+    @pytest.mark.fast()
+    @pytest.mark.parametrize("forward", [True, False])
+    def test_cell_transition_different_groups(self, gt_temporal_adata: AnnData, forward: bool):
+        config = gt_temporal_adata.uns
+        key = config["key"]
+        key_1 = config["key_1"]
+        key_2 = config["key_2"]
+        key_3 = config["key_3"]
+
+        gt_temporal_adata.obs["batch"] = gt_temporal_adata.obs["batch"].astype("category")
+        batches = set(gt_temporal_adata.obs["batch"].cat.categories)
+        problem = TemporalProblem(gt_temporal_adata)
+        problem = problem.prepare(key)
+        assert set(problem.problems.keys()) == {(key_1, key_2), (key_2, key_3)}
+        problem[key_1, key_2]._solution = MockSolverOutput(gt_temporal_adata.uns["tmap_10_105"])
+        problem[key_2, key_3]._solution = MockSolverOutput(gt_temporal_adata.uns["tmap_105_11"])
+
+        result = problem.cell_transition(
+            key_1,
+            key_2,
+            "cell_type",
+            "batch",
+            forward=forward,
+        )
+        assert isinstance(result, pd.DataFrame)
+        cell_types = set(gt_temporal_adata[gt_temporal_adata.obs[key] == key_1].obs["cell_type"].cat.categories)
+        batches = set(gt_temporal_adata[gt_temporal_adata.obs[key] == key_2].obs["batch"].cat.categories)
+        assert set(result.index) == cell_types
+        assert set(result.columns) == batches
 
     @pytest.mark.fast()
     @pytest.mark.parametrize("forward", [True, False])
@@ -80,7 +110,7 @@ class TestTemporalMixin:
 
         marginal = result.sum(axis=forward == 1).values
         present_cell_type_marginal = marginal[marginal > 0]
-        np.testing.assert_almost_equal(present_cell_type_marginal, np.ones(len(present_cell_type_marginal)), decimal=5)
+        np.testing.assert_allclose(present_cell_type_marginal, np.ones(len(present_cell_type_marginal)))
 
     @pytest.mark.parametrize("forward", [True, False])
     def test_cell_transition_regression(self, gt_temporal_adata: AnnData, forward: bool):
@@ -89,7 +119,6 @@ class TestTemporalMixin:
         key_1 = config["key_1"]
         key_2 = config["key_2"]
         key_3 = config["key_3"]
-        set(gt_temporal_adata.obs["cell_type"].cat.categories)
         problem = TemporalProblem(gt_temporal_adata)
         problem = problem.prepare(key)
         assert set(problem.problems.keys()) == {(key_1, key_2), (key_2, key_3)}
@@ -116,23 +145,23 @@ class TestTemporalMixin:
         assert result.shape == expected_shape
         marginal = result.sum(axis=forward == 1).values
         present_cell_type_marginal = marginal[marginal > 0]
-        np.testing.assert_almost_equal(present_cell_type_marginal, np.ones(len(present_cell_type_marginal)), decimal=5)
+        np.testing.assert_allclose(present_cell_type_marginal, 1.0, rtol=1e-6, atol=1e-6)
 
         direction = "forward" if forward else "backward"
         gt = gt_temporal_adata.uns[f"cell_transition_10_105_{direction}"]
         gt = gt.sort_index()
         result = result.sort_index()
         result = result[gt.columns]
-        np.testing.assert_almost_equal(result.values, gt.values, decimal=4)
+        np.testing.assert_allclose(result.values, gt.values, rtol=1e-6, atol=1e-6)
 
     def test_compute_time_point_distances_pipeline(self, adata_time: AnnData):
-        problem = TemporalProblem(adata_time)
-        problem.prepare("time")
+        problem = TemporalProblem(adata_time).prepare("time")
         distance_source_intermediate, distance_intermediate_target = problem.compute_time_point_distances(
             source=0,
             intermediate=1,
             target=2,
             posterior_marginals=False,
+            epsilon=10,
         )
         assert distance_source_intermediate > 0
         assert distance_source_intermediate < 100
@@ -142,7 +171,7 @@ class TestTemporalMixin:
         problem = TemporalProblem(adata_time)
         problem.prepare("time")
 
-        batch_distance = problem.compute_batch_distances(time=1, batch_key="batch")
+        batch_distance = problem.compute_batch_distances(time=1, batch_key="batch", epsilon=10)
         assert batch_distance > 0
 
     @pytest.mark.parametrize("account_for_unbalancedness", [True, False])
@@ -171,6 +200,7 @@ class TestTemporalMixin:
             account_for_unbalancedness=account_for_unbalancedness,
             posterior_marginals=False,
             seed=config["seed"],
+            epsilon=10,
         )
         assert isinstance(interpolation_result, float)
         assert interpolation_result > 0
@@ -195,12 +225,12 @@ class TestTemporalMixin:
         problem[key_1, key_3]._solution = MockSolverOutput(gt_temporal_adata.uns["tmap_10_11"])
 
         interpolation_result = problem.compute_interpolated_distance(
-            key_1, key_2, key_3, posterior_marginals=False, seed=config["seed"]
+            key_1, key_2, key_3, posterior_marginals=False, seed=config["seed"], epsilon=10
         )
         assert isinstance(interpolation_result, float)
         assert interpolation_result > 0
-        np.testing.assert_almost_equal(
-            interpolation_result, gt_temporal_adata.uns["interpolated_distance_10_105_11"], decimal=2
+        np.testing.assert_allclose(
+            interpolation_result, gt_temporal_adata.uns["interpolated_distance_10_105_11"], rtol=1e-6, atol=1e-6
         )
 
     def test_compute_time_point_distances_regression(self, gt_temporal_adata: AnnData):
@@ -222,12 +252,16 @@ class TestTemporalMixin:
         problem[key_2, key_3]._solution = MockSolverOutput(gt_temporal_adata.uns["tmap_105_11"])
         problem[key_1, key_3]._solution = MockSolverOutput(gt_temporal_adata.uns["tmap_10_11"])
 
-        result = problem.compute_time_point_distances(key_1, key_2, key_3, posterior_marginals=False)
+        result = problem.compute_time_point_distances(key_1, key_2, key_3, posterior_marginals=False, epsilon=10)
         assert isinstance(result, tuple)
         assert result[0] > 0
         assert result[1] > 0
-        np.testing.assert_almost_equal(result[0], gt_temporal_adata.uns["time_point_distances_10_105_11"][0], decimal=2)
-        np.testing.assert_almost_equal(result[1], gt_temporal_adata.uns["time_point_distances_10_105_11"][1], decimal=2)
+        np.testing.assert_allclose(
+            result[0], gt_temporal_adata.uns["time_point_distances_10_105_11"][0], rtol=1e-6, atol=1e-6
+        )
+        np.testing.assert_allclose(
+            result[1], gt_temporal_adata.uns["time_point_distances_10_105_11"][1], rtol=1e-6, atol=1e-6
+        )
 
     def test_compute_batch_distances_regression(self, gt_temporal_adata: AnnData):
         config = gt_temporal_adata.uns
@@ -248,9 +282,9 @@ class TestTemporalMixin:
         problem[key_2, key_3]._solution = MockSolverOutput(gt_temporal_adata.uns["tmap_105_11"])
         problem[key_1, key_3]._solution = MockSolverOutput(gt_temporal_adata.uns["tmap_10_11"])
 
-        result = problem.compute_batch_distances(key_1, "batch")
+        result = problem.compute_batch_distances(key_1, "batch", epsilon=10)
         assert isinstance(result, float)
-        np.testing.assert_almost_equal(result, gt_temporal_adata.uns["batch_distances_10"], decimal=2)
+        np.testing.assert_allclose(result, gt_temporal_adata.uns["batch_distances_10"], rtol=1e-5)
 
     def test_compute_random_distance_regression(self, gt_temporal_adata: AnnData):
         config = gt_temporal_adata.uns
@@ -268,9 +302,11 @@ class TestTemporalMixin:
         )
         assert set(problem.problems.keys()) == {(key_1, key_2), (key_2, key_3), (key_1, key_3)}
 
-        result = problem.compute_random_distance(key_1, key_2, key_3, posterior_marginals=False, seed=config["seed"])
+        result = problem.compute_random_distance(
+            key_1, key_2, key_3, posterior_marginals=False, seed=config["seed"], epsilon=10
+        )
         assert isinstance(result, float)
-        np.testing.assert_almost_equal(result, gt_temporal_adata.uns["random_distance_10_105_11"], decimal=2)
+        np.testing.assert_allclose(result, gt_temporal_adata.uns["random_distance_10_105_11"], rtol=1e-6, atol=1e-6)
 
     # TODO(MUCDK): split into 2 tests
     @pytest.mark.fast()
@@ -318,8 +354,7 @@ class TestTemporalMixin:
         self,
         adata_time_with_tmap: AnnData,
     ):  # TODO(MUCDK): please check.
-        problem = TemporalProblem(adata_time_with_tmap)
-        problem = problem.prepare("time")
+        problem = TemporalProblem(adata_time_with_tmap).prepare("time")
         problem[0, 1]._solution = MockSolverOutput(adata_time_with_tmap.uns["transport_matrix"])
 
         result = problem.cell_transition(
@@ -329,9 +364,10 @@ class TestTemporalMixin:
             target_groups="cell_type",
             forward=True,
         )
-        res = result.sort_index().sort_index(1)
-        df_expected = adata_time_with_tmap.uns["cell_transition_gt"].sort_index().sort_index(1)
-        np.testing.assert_almost_equal(res.values, df_expected.values, decimal=8)
+        res = result.sort_index().sort_index(axis=1)
+        df_expected = adata_time_with_tmap.uns["cell_transition_gt"].sort_index().sort_index(axis=1)
+        # TODO(MUCDK): use pandas.testing
+        np.testing.assert_allclose(res.values, df_expected.values, rtol=1e-6, atol=1e-6)
 
     @pytest.mark.fast()
     @pytest.mark.parametrize("temporal_key", ["celltype", "time", "missing"])
@@ -339,9 +375,11 @@ class TestTemporalMixin:
         problem = TemporalProblem(adata_time)
         if temporal_key == "missing":
             with pytest.raises(KeyError, match="Unable to find temporal key"):
-                problem = problem.prepare(temporal_key)
+                _ = problem.prepare(temporal_key)
         elif temporal_key == "celltype":
             with pytest.raises(TypeError, match="Temporal key has to be of numeric type"):
-                problem = problem.prepare(temporal_key)
+                _ = problem.prepare(temporal_key)
         elif temporal_key == "time":
-            problem = problem.prepare(temporal_key)
+            _ = problem.prepare(temporal_key)
+        else:
+            raise NotImplementedError(temporal_key)

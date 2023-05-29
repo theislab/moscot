@@ -1,11 +1,11 @@
-from typing import Tuple, Union, Callable, Optional, Sequence
+from typing import Callable, Optional, Sequence, Tuple, Union
 
+import optax
 from flax import linen as nn
 from flax.training import train_state
-import optax
 
-from ott.solvers.nn.layers import PositiveDense
 import jax.numpy as jnp
+from ott.solvers.nn.layers import PositiveDense
 
 
 class ICNN(nn.Module):
@@ -13,20 +13,17 @@ class ICNN(nn.Module):
 
     dim_hidden: Sequence[int]
     input_dim: int
-    conditional: bool
+    cond_dim: int
     init_std: float = 0.1
-    init_fn: Callable[[jnp.ndarray], Callable[[jnp.ndarray], jnp.ndarray]] = nn.initializers.normal
-    act_fn: Callable[[jnp.ndarray], jnp.ndarray] = nn.leaky_relu
+    init_fn: Callable[[jnp.ndarray], Callable[[jnp.ndarray], jnp.ndarray]] = nn.initializers.normal  # type: ignore[name-defined]  # noqa: E501
+    act_fn: Callable[[jnp.ndarray], jnp.ndarray] = nn.leaky_relu  # type: ignore[name-defined]
     pos_weights: bool = False
 
     def setup(self):
         """Initialize ICNN architecture."""
         num_hidden = len(self.dim_hidden)
 
-        if self.pos_weights:
-            Dense = PositiveDense
-        else:
-            Dense = nn.Dense
+        Dense = PositiveDense if self.pos_weights else nn.Dense
         kernel_inits_wz = [self.init_fn(self.init_std) for _ in range(num_hidden + 1)]
 
         w_xs = []
@@ -60,7 +57,7 @@ class ICNN(nn.Module):
         self.w_xs = w_xs
         self.w_zs = w_zs
 
-        if self.conditional:
+        if self.cond_dim:
             w_zu = []
             w_xu = []
             w_u = []
@@ -139,11 +136,11 @@ class ICNN(nn.Module):
             self.v = v
 
     @nn.compact
-    def __call__(self, x: jnp.ndarray, c: Optional[jnp.ndarray] = None) -> jnp.ndarray:
+    def __call__(self, x: jnp.ndarray, c: Optional[jnp.ndarray] = None) -> jnp.ndarray:  # type: ignore[name-defined]
         """Apply ICNN module."""
-        assert (c is not None) == (self.conditional), "`conditional` flag and whether `c` is provided must match."
+        assert (c is not None) == (self.cond_dim > 0), "`conditional` flag and whether `c` is provided must match."
 
-        if not self.conditional:
+        if not self.cond_dim:
             z = self.w_xs[0](x)
             z = jnp.multiply(z, z)
             for Wz, Wx in zip(self.w_zs[:-1], self.w_xs[1:-1]):
@@ -182,11 +179,19 @@ class ICNN(nn.Module):
 
     def create_train_state(
         self,
-        rng: jnp.ndarray,
+        rng: jnp.ndarray,  # type: ignore[name-defined]
         optimizer: optax.OptState,
         input_shape: Union[int, Tuple[int, ...]],
     ) -> train_state.TrainState:
         """Create initial `TrainState`."""
-        condition = jnp.ones([2]) if self.conditional else None
+        condition = (
+            jnp.ones(
+                shape=[
+                    self.cond_dim,
+                ]
+            )
+            if self.cond_dim
+            else None
+        )
         params = self.init(rng, x=jnp.ones(input_shape), c=condition)["params"]
         return train_state.TrainState.create(apply_fn=self.apply, params=params, tx=optimizer)

@@ -1,12 +1,12 @@
 from types import MappingProxyType
-from typing import Any, Dict, Type, Tuple, Union, Literal, Mapping, Iterable, Optional
+from typing import Any, Dict, Iterable, Literal, Mapping, Optional, Tuple, Type, Union
 
-from moscot._types import Numeric_t
+from moscot import _constants
+from moscot._types import Numeric_t, Policy_t
+from moscot.base.problems._mixins import NeuralAnalysisMixin
+from moscot.base.problems.birth_death import BirthDeathMixin, BirthDeathNeuralProblem
+from moscot.base.problems.compound_problem import CompoundProblem
 from moscot.problems._utils import handle_joint_attr
-from moscot._constants._constants import Policy
-from moscot.problems.base._mixins import NeuralAnalysisMixin
-from moscot.problems.base._birth_death import BirthDeathMixin, BirthDeathNeuralProblem
-from moscot.problems.base._compound_problem import CompoundProblem
 
 
 class TemporalNeuralProblem(
@@ -109,7 +109,6 @@ class TemporalNeuralProblem(
         for an example how to pass marginals.
         """
         self.temporal_key = time_key
-        policy = Policy(policy)  # type: ignore[assignment]
         xy, kwargs = handle_joint_attr(joint_attr, kwargs)
 
         # TODO(michalk8): needs to be modified
@@ -207,7 +206,7 @@ class TemporalNeuralProblem(
         pretrain_scale
             Variance of Gaussian distribution used for pretraining.
         combiner_kwargs
-            Keyword arguments for the combiner module in the PICNN TODO(@MUCDK cite Bunne).
+            Keyword arguments for the combiner module in the PICNN (:cite:`bunne2022supervised`).
         valid_sinkhorn_kwargs
             Keyword arguments for computing the discrete sinkhorn divergence for assessing model training.
             By default, the same `tau_a`, `tau_b` and `epsilon` are taken as for the inner sampling loop.
@@ -255,5 +254,5 @@ class TemporalNeuralProblem(
         return BirthDeathNeuralProblem
 
     @property
-    def _valid_policies(self) -> Tuple[str, ...]:
-        return Policy.SEQUENTIAL, Policy.TRIU, Policy.EXPLICIT
+    def _valid_policies(self) -> Tuple[Policy_t, ...]:
+        return _constants.SEQUENTIAL, _constants.TRIU, _constants.EXPLICIT  # type: ignore[return-value]

@@ -1,20 +1,32 @@
 from types import MappingProxyType
-from typing import Any, Dict, List, Type, Tuple, Union, Literal, Mapping, Iterable, Optional
+from typing import (
+    Any,
+    Dict,
+    Iterable,
+    List,
+    Literal,
+    Mapping,
+    Optional,
+    Tuple,
+    Type,
+    Union,
+)
 
 from anndata import AnnData
 
-from moscot._types import ScaleCost_t, ProblemStage_t, QuadInitializer_t, SinkhornInitializer_t
+from moscot import _constants
 from moscot._docs._docs import d
-from moscot.problems.base import (  # type: ignore[attr-defined]
-    OTProblem,
-    CondOTProblem,
-    CompoundProblem,
-    NeuralOTProblem,
+from moscot._types import (
+    Policy_t,
+    ProblemStage_t,
+    QuadInitializer_t,
+    ScaleCost_t,
+    SinkhornInitializer_t,
 )
+from moscot.base.problems.compound_problem import B, CompoundProblem, K
+from moscot.base.problems.problem import CondOTProblem, NeuralOTProblem, OTProblem
 from moscot.problems._utils import handle_cost, handle_joint_attr
-from moscot._constants._constants import Policy
 from moscot.problems.generic._mixins import GenericAnalysisMixin
-from moscot.problems.base._compound_problem import B, K
 
 __all__ = ["SinkhornProblem", "GWProblem", "NeuralProblem", "ConditionalNeuralProblem"]
 
@@ -68,7 +80,7 @@ class SinkhornProblem(GenericAnalysisMixin[K, B], CompoundProblem[K, B]):
         --------
         %(ex_prepare)s
         """
-        self.batch_key = key
+        self.batch_key = key  # type: ignore[misc]
         xy, kwargs = handle_joint_attr(joint_attr, kwargs)
         xy, _, _ = handle_cost(xy=xy, cost=cost)
         return super().prepare(
@@ -135,7 +147,7 @@ class SinkhornProblem(GenericAnalysisMixin[K, B], CompoundProblem[K, B]):
         --------
         %(ex_solve_linear)s
         """
-        return super().solve(
+        return super().solve(  # type: ignore[return-value]
             epsilon=epsilon,
             tau_a=tau_a,
             tau_b=tau_b,
@@ -161,18 +173,18 @@ class SinkhornProblem(GenericAnalysisMixin[K, B], CompoundProblem[K, B]):
 
     @property
     def _base_problem_type(self) -> Type[B]:
-        return OTProblem
+        return OTProblem  # type: ignore[return-value]
 
     @property
-    def _valid_policies(self) -> Tuple[str, ...]:
-        return "sequential", "pairwise", "explicit"
+    def _valid_policies(self) -> Tuple[Policy_t, ...]:
+        return _constants.SEQUENTIAL, _constants.PAIRWISE, _constants.EXPLICIT  # type: ignore[return-value]
 
 
 @d.get_sections(base="GWProblem", sections=["Parameters"])
 @d.dedent
 class GWProblem(GenericAnalysisMixin[K, B], CompoundProblem[K, B]):
     """
-    Class for solving Gromov-Wasserstein problems.
+    Class for solving (Fused) Gromov-Wasserstein problems.
 
     Parameters
     ----------
@@ -186,8 +198,8 @@ class GWProblem(GenericAnalysisMixin[K, B], CompoundProblem[K, B]):
     def prepare(
         self,
         key: str,
-        GW_x: Union[str, Mapping[str, Any]],
-        GW_y: Union[str, Mapping[str, Any]],
+        x_attr: Union[str, Mapping[str, Any]],
+        y_attr: Union[str, Mapping[str, Any]],
         joint_attr: Optional[Union[str, Mapping[str, Any]]] = None,
         policy: Literal["sequential", "pairwise", "explicit"] = "sequential",
         cost: Union[
@@ -204,8 +216,8 @@ class GWProblem(GenericAnalysisMixin[K, B], CompoundProblem[K, B]):
         Parameters
         ----------
         %(key)s
-        %(GW_x)s
-        %(GW_y)s
+        %(x_attr)s
+        %(y_attr)s
         %(joint_attr)s
         %(policy)s
         %(cost)s
@@ -225,16 +237,16 @@ class GWProblem(GenericAnalysisMixin[K, B], CompoundProblem[K, B]):
         --------
         %(ex_prepare)s
         """
-        self.batch_key = key
+        self.batch_key = key  # type: ignore[misc]
 
         GW_updated: List[Dict[str, Any]] = [{}] * 2
-        for i, z in enumerate([GW_x, GW_y]):
+        for i, z in enumerate([x_attr, y_attr]):
             if isinstance(z, str):
                 GW_updated[i] = {"attr": "obsm", "key": z, "tag": "point_cloud"}  # cost handled by handle_cost
             elif isinstance(z, dict):
                 GW_updated[i] = z
             else:
-                raise TypeError("`GW_x` and `GW_y` must be of type `str` or `dict`.")
+                raise TypeError("`x_attr` and `y_attr` must be of type `str` or `dict`.")
 
         xy, kwargs = handle_joint_attr(joint_attr, kwargs)
         xy, x, y = handle_cost(xy=xy, x=GW_updated[0], y=GW_updated[1], cost=cost)
@@ -305,7 +317,7 @@ class GWProblem(GenericAnalysisMixin[K, B], CompoundProblem[K, B]):
         --------
         %(ex_solve_quadratic)s
         """
-        return super().solve(
+        return super().solve(  # type: ignore[return-value]
             alpha=alpha,
             epsilon=epsilon,
             tau_a=tau_a,
@@ -331,147 +343,11 @@ class GWProblem(GenericAnalysisMixin[K, B], CompoundProblem[K, B]):
 
     @property
     def _base_problem_type(self) -> Type[B]:
-        return OTProblem
+        return OTProblem  # type: ignore[return-value]
 
     @property
-    def _valid_policies(self) -> Tuple[str, ...]:
-        return "sequential", "pairwise", "explicit"
-
-
-@d.dedent
-class FGWProblem(GWProblem[K, B]):
-    """
-    Class for solving Fused Gromov-Wasserstein problems.
-
-    Parameters
-    ----------
-    %(adata)s
-    """
-
-    @d.dedent
-    def prepare(
-        self,
-        key: str,
-        GW_x: Union[str, Mapping[str, Any]],
-        GW_y: Union[str, Mapping[str, Any]],
-        joint_attr: Optional[Union[str, Mapping[str, Any]]] = None,
-        policy: Literal["sequential", "pairwise", "explicit"] = "sequential",
-        cost: Union[
-            Literal["sq_euclidean", "cosine", "bures", "unbalanced_bures"],
-            Mapping[str, Literal["sq_euclidean", "cosine", "bures", "unbalanced_bures"]],
-        ] = "sq_euclidean",
-        a: Optional[str] = None,
-        b: Optional[str] = None,
-        **kwargs: Any,
-    ) -> "FGWProblem[K, B]":
-        """
-        Prepare the :class:`moscot.problems.generic.FGWProblem`.
-
-        Parameters
-        ----------
-        %(key)s
-        %(GW_x)s
-        %(GW_y)s
-        %(joint_attr)s
-        %(policy)s
-        %(cost)s
-        %(a)s
-        %(b)s
-        %(kwargs_prepare)s
-
-        Returns
-        -------
-        :class:`moscot.problems.generic.FGWProblem`
-
-        Notes
-        -----
-        If `a` and `b` are provided `marginal_kwargs` are ignored.
-
-        Examples
-        --------
-        %(ex_prepare)s
-        """
-        xy, kwargs = handle_joint_attr(joint_attr, kwargs)
-        return super().prepare(key=key, GW_x=GW_x, GW_y=GW_y, xy=xy, policy=policy, cost=cost, a=a, b=b, **kwargs)
-
-    @d.dedent
-    def solve(
-        self,
-        alpha: Optional[float] = 0.5,
-        epsilon: Optional[float] = 1e-3,
-        tau_a: float = 1.0,
-        tau_b: float = 1.0,
-        rank: int = -1,
-        scale_cost: ScaleCost_t = "mean",
-        batch_size: Optional[int] = None,
-        stage: Union[ProblemStage_t, Tuple[ProblemStage_t, ...]] = ("prepared", "solved"),
-        initializer: QuadInitializer_t = None,
-        initializer_kwargs: Mapping[str, Any] = MappingProxyType({}),
-        jit: bool = True,
-        min_iterations: int = 5,
-        max_iterations: int = 50,
-        threshold: float = 1e-3,
-        gamma: float = 10.0,
-        gamma_rescale: bool = True,
-        ranks: Union[int, Tuple[int, ...]] = -1,
-        tolerances: Union[float, Tuple[float, ...]] = 1e-2,
-        linear_solver_kwargs: Mapping[str, Any] = MappingProxyType({}),
-        device: Optional[Literal["cpu", "gpu", "tpu"]] = None,
-        **kwargs: Any,
-    ) -> "FGWProblem[K,B]":
-        """
-        Solve optimal transport problems defined in :class:`moscot.problems.generic.FGWProblem`.
-
-        Parameters
-        ----------
-        %(alpha)s
-        %(epsilon)s
-        %(tau_a)s
-        %(tau_b)s
-        %(rank)s
-        %(scale_cost)s
-        %(pointcloud_kwargs)s
-        %(stage)s
-        %(initializer_quad)s
-        %(initializer_kwargs)s
-        %(gw_kwargs)s
-        %(sinkhorn_lr_kwargs)s
-        %(gw_lr_kwargs)s
-        %(linear_solver_kwargs)s
-        %(device_solve)s
-        %(kwargs_quad_fused)s
-
-        Returns
-        -------
-        :class:`moscot.problems.generic.FGWProblem`.
-
-        Examples
-        --------
-        %(ex_solve_quadratic)s
-        """
-        return super().solve(
-            alpha=alpha,
-            epsilon=epsilon,
-            tau_a=tau_a,
-            tau_b=tau_b,
-            rank=rank,
-            scale_cost=scale_cost,
-            batch_size=batch_size,
-            stage=stage,
-            initializer=initializer,
-            initializer_kwargs=initializer_kwargs,
-            jit=jit,
-            min_iterations=min_iterations,
-            max_iterations=max_iterations,
-            threshold=threshold,
-            gamma=gamma,
-            gamma_rescale=gamma_rescale,
-            ranks=ranks,
-            tolerances=tolerances,
-            linear_solver_kwargs=linear_solver_kwargs,
-            device=device,
-            **kwargs,
-        )
+    def _valid_policies(self) -> Tuple[Policy_t, ...]:
+        return _constants.SEQUENTIAL, _constants.PAIRWISE, _constants.EXPLICIT  # type: ignore[return-value]
 
 
 @d.dedent
@@ -489,7 +365,7 @@ class NeuralProblem(CompoundProblem[K, B], GenericAnalysisMixin[K, B]):
         **kwargs: Any,
     ) -> "NeuralProblem[K, B]":
         """Prepare the :class:`moscot.problems.generic.NeuralProblem[K, B]`."""
-        self.batch_key = key
+        self.batch_key = key  # type:ignore[misc]
         xy, kwargs = handle_joint_attr(joint_attr, kwargs)
         return super().prepare(
             key=key,
@@ -528,7 +404,7 @@ class NeuralProblem(CompoundProblem[K, B], GenericAnalysisMixin[K, B]):
         **kwargs: Any,
     ) -> "NeuralProblem[K, B]":
         """Solve."""
-        return super().solve(
+        return super().solve(  # type: ignore[return-value]
             batch_size=batch_size,
             tau_a=tau_a,
             tau_b=tau_b,
@@ -553,12 +429,12 @@ class NeuralProblem(CompoundProblem[K, B], GenericAnalysisMixin[K, B]):
         )
 
     @property
-    def _base_problem_type(self) -> Type["NeuralProblem[K, B]"]:
-        return NeuralOTProblem
+    def _base_problem_type(self) -> Type["NeuralProblem[K, B]"]:  # type:ignore[override]
+        return NeuralOTProblem  # type: ignore[return-value]
 
     @property
-    def _valid_policies(self) -> Tuple[str, ...]:
-        return Policy.SEQUENTIAL, Policy.TRIU, Policy.EXPLICIT
+    def _valid_policies(self) -> Tuple[Policy_t, ...]:
+        return _constants.SEQUENTIAL, _constants.PAIRWISE, _constants.EXPLICIT  # type: ignore[return-value]
 
 
 @d.dedent
@@ -576,7 +452,7 @@ class ConditionalNeuralProblem(CondOTProblem, GenericAnalysisMixin[K, B]):
         **kwargs: Any,
     ) -> "ConditionalNeuralProblem[K, B]":
         """Prepare the :class:`moscot.problems.generic.ConditionalNeuralProblem`."""
-        self.batch_key = key
+        self.batch_key = key  # type:ignore[misc]
         xy, kwargs = handle_joint_attr(joint_attr, kwargs)
         return super().prepare(
             policy_key=key,
@@ -640,9 +516,9 @@ class ConditionalNeuralProblem(CondOTProblem, GenericAnalysisMixin[K, B]):
         )
 
     @property
-    def _base_problem_type(self) -> Type["ConditionalNeuralProblem[K, B]"]:
+    def _base_problem_type(self) -> Type[CondOTProblem]:
         return CondOTProblem
 
     @property
-    def _valid_policies(self) -> Tuple[str, ...]:
-        return Policy.SEQUENTIAL, Policy.TRIU, Policy.EXPLICIT
+    def _valid_policies(self) -> Tuple[Policy_t, ...]:
+        return _constants.SEQUENTIAL, _constants.PAIRWISE, _constants.EXPLICIT  # type: ignore[return-value]

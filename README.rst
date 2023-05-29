@@ -11,7 +11,7 @@ single-cell genomics. It can be used for
 - prototyping of new OT models in single-cell genomics
 
 **moscot** is powered by
-`OTT <https://ott-jax.readthedocs.io/en/latest/>`_ which is a JAX-based Optimal
+`OTT <https://ott-jax.readthedocs.io>`_ which is a JAX-based Optimal
 Transport toolkit that supports just-in-time compilation, GPU acceleration, automatic
 differentiation and linear memory complexity for OT problems.
 
@@ -39,7 +39,7 @@ If used with GPU, additionally run::
 Resources
 ---------
 
-Please have a look at our `documentation <https://moscot.readthedocs.io/en/latest/index.html/>`_
+Please have a look at our `documentation <https://moscot.readthedocs.io>`_
 
 Reference
 ---------

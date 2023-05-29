@@ -1,25 +1,28 @@
-from typing import Type, Tuple, Union, Optional
+from typing import Optional, Tuple, Type, Union
 
 import pytest
 
+import jax
+import jax.numpy as jnp
+import numpy as np
 from ott.geometry.geometry import Geometry
 from ott.geometry.low_rank import LRCGeometry
 from ott.geometry.pointcloud import PointCloud
-from ott.solvers.linear.sinkhorn import sinkhorn, Sinkhorn
-from ott.solvers.linear.sinkhorn_lr import LRSinkhorn
 from ott.problems.linear.linear_problem import LinearProblem
 from ott.problems.quadratic.quadratic_problem import QuadraticProblem
-from ott.solvers.quadratic.gromov_wasserstein import GromovWasserstein, gromov_wasserstein
-import jax
-import numpy as np
-import jax.numpy as jnp
+from ott.solvers.linear.sinkhorn import Sinkhorn
+from ott.solvers.linear.sinkhorn import solve as sinkhorn
+from ott.solvers.linear.sinkhorn_lr import LRSinkhorn
+from ott.solvers.quadratic.gromov_wasserstein import GromovWasserstein
+from ott.solvers.quadratic.gromov_wasserstein import solve as gromov_wasserstein
 
+from moscot._types import ArrayLike, Device_t
+from moscot.backends.ott import GWSolver, SinkhornSolver
+from moscot.base.output import BaseSolverOutput
+from moscot.base.solver import O, OTSolver
+from moscot.utils.tagged_array import Tag
 from tests._utils import ATOL, RTOL, Geom_t
-from moscot._types import Device_t, ArrayLike
-from moscot.backends.ott import GWSolver, SinkhornSolver  # type: ignore[attr-defined]
-from moscot.solvers._output import BaseSolverOutput
-from moscot.solvers._base_solver import O, OTSolver
-from moscot.solvers._tagged_array import Tag
+from tests.plotting.conftest import PlotTester, PlotTesterMeta
 
 
 class TestSinkhorn:
@@ -305,3 +308,21 @@ class TestSolverOutput:
                 _ = solver(xy=(x, x), device=device)
         else:
             _ = solver(xy=(x, x), device=device)
+
+
+class TestOutputPlotting(PlotTester, metaclass=PlotTesterMeta):
+    def test_plot_costs(self, x: Geom_t, y: Geom_t):
+        out = GWSolver()(x=x, y=y)
+        out.plot_costs()
+
+    def test_plot_costs_last(self, x: Geom_t, y: Geom_t):
+        out = GWSolver(rank=2)(x=x, y=y)
+        out.plot_costs(last=3)
+
+    def test_plot_errors_sink(self, x: Geom_t, y: Geom_t):
+        out = SinkhornSolver(store_inner_inners=True)(xy=(x, y))
+        out.plot_convergence()
+
+    def test_plot_errors_gw(self, x: Geom_t, y: Geom_t):
+        out = GWSolver(store_inner_errors=True)(x=x, y=y)
+        out.plot_convergence()

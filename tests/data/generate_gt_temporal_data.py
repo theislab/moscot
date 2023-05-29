@@ -1,5 +1,5 @@
-from typing import Any, Dict, Tuple, TYPE_CHECKING
 import sys
+from typing import TYPE_CHECKING, Any, Dict, Tuple
 
 try:
     import wot  # please install WOT from commit hash`ca5e94f05699997b01cf5ae13383f9810f0613f6`"
@@ -7,20 +7,18 @@ except ImportError:
     raise ImportError(
         "Please install WOT from commit hash`ca5e94f05699997b01cf5ae13383f9810f0613f6`"
         + "with `pip install git+https://github.com/broadinstitute/wot.git@ca5e94f05699997b01cf5ae13383f9810f0613f6`"
-    )
+    ) from None
 
 import os
 
-from sklearn.metrics import pairwise_distances
-import pandas as pd
-
 import numpy as np
+import pandas as pd
+from sklearn.metrics import pairwise_distances
 
-from anndata import AnnData
 import scanpy as sc
+from anndata import AnnData
 
-from moscot._types import ArrayLike
-from moscot.problems.time import TemporalProblem  # type: ignore[attr-defined]
+from moscot.problems.time import TemporalProblem
 
 eps = 0.5
 lam1 = 1
@@ -73,7 +71,6 @@ def _create_adata(data_path: str) -> AnnData:
     CELL_SETS_PATH = os.path.join(data_path, "major_cell_sets.gmt")
 
     adata = wot.io.read_dataset(VAR_GENE_DS_PATH, obs=[CELL_DAYS_PATH], obs_filter=SERUM_CELL_IDS_PATH)
-    CELL_SETS_PATH = os.path.join(data_path, "major_cell_sets.gmt")
     cell_sets = wot.io.read_sets(CELL_SETS_PATH, as_dict=True)
     cell_to_type = {v[i]: k for k, v in cell_sets.items() for i in range(len(v))}
     df_cell_type = pd.DataFrame(cell_to_type.items(), columns=["0", "cell_type"]).set_index("0")
@@ -95,19 +92,19 @@ def _write_analysis_output(cdata: AnnData, tp2: TemporalProblem, config: Dict[st
         config["key_1"], config["key_2"], source_groups="cell_type", target_groups="cell_type", forward=True
     )
     cdata.uns["interpolated_distance_10_105_11"] = tp2.compute_interpolated_distance(
-        config["key_1"], config["key_2"], config["key_3"], seed=config["seed"]
+        config["key_1"], config["key_2"], config["key_3"], seed=config["seed"], epsilon=10
     )
     cdata.uns["random_distance_10_105_11"] = tp2.compute_random_distance(
-        config["key_1"], config["key_2"], config["key_3"], seed=config["seed"]
+        config["key_1"], config["key_2"], config["key_3"], seed=config["seed"], epsilon=10
     )
     cdata.uns["time_point_distances_10_105_11"] = list(
-        tp2.compute_time_point_distances(config["key_1"], config["key_2"], config["key_3"])
+        tp2.compute_time_point_distances(config["key_1"], config["key_2"], config["key_3"], epsilon=10)
     )
-    cdata.uns["batch_distances_10"] = tp2.compute_batch_distances(config["key_1"], "batch")
+    cdata.uns["batch_distances_10"] = tp2.compute_batch_distances(config["key_1"], "batch", epsilon=10)
     return cdata
 
 
-def _prepare(adata: AnnData, config: Dict[str, Any]) -> Tuple[AnnData, ArrayLike, ArrayLike, ArrayLike]:
+def _prepare(adata: AnnData, config: Dict[str, Any]) -> Tuple[AnnData, pd.DataFrame, pd.DataFrame, pd.DataFrame]:
     adata_12 = adata[adata.obs[config["key"]].isin([config["key_1"], config["key_2"]])].copy()
     adata_23 = adata[adata.obs[config["key"]].isin([config["key_2"], config["key_3"]])].copy()
     adata_13 = adata[adata.obs[config["key"]].isin([config["key_1"], config["key_3"]])].copy()
@@ -135,14 +132,15 @@ def _prepare(adata: AnnData, config: Dict[str, Any]) -> Tuple[AnnData, ArrayLike
     )
     C_13 /= C_13.mean()
 
+    obs_names_1 = adata[adata.obs[config["key"]].isin([config["key_1"]])].obs_names
+    obs_names_2 = adata[adata.obs[config["key"]].isin([config["key_2"]])].obs_names
+    obs_names_3 = adata[adata.obs[config["key"]].isin([config["key_3"]])].obs_names
+
     return (
-        adata_12[adata_12.obs[config["key"]] == config["key_1"]].concatenate(
-            adata_12[adata_12.obs[config["key"]] == config["key_2"]],
-            adata_13[adata_13.obs[config["key"]] == config["key_3"]],
-        ),
-        C_12,
-        C_23,
-        C_13,
+        adata[list(obs_names_1) + list(obs_names_2) + list(obs_names_3)].copy(),
+        pd.DataFrame(data=C_12, index=obs_names_1, columns=obs_names_2),
+        pd.DataFrame(data=C_23, index=obs_names_2, columns=obs_names_3),
+        pd.DataFrame(data=C_13, index=obs_names_1, columns=obs_names_3),
     )
 
 
@@ -151,14 +149,6 @@ def generate_gt_temporal_data(data_path: str) -> None:
     adata = _create_adata(data_path)
 
     cdata, C_12, C_23, C_13 = _prepare(adata, config)
-    n_1, n_2, n_3 = len(C_12), len(C_23), C_23.shape[1]
-    cdata.obsp["cost_matrices"] = np.block(
-        [
-            [np.zeros((n_1, n_1)), C_12, C_13],
-            [np.zeros((n_2, n_1)), np.zeros((n_2, n_2)), C_23],
-            [np.zeros((n_3, n_1)), np.zeros((n_3, n_2)), np.zeros((n_3, n_3))],
-        ]
-    )
 
     if TYPE_CHECKING:
         assert isinstance(config["seed"], int)
@@ -168,43 +158,45 @@ def generate_gt_temporal_data(data_path: str) -> None:
     ot_model = wot.ot.OTModel(
         cdata, day_field="day", epsilon=config["eps"], lambda1=config["lam1"], lambda2=config["lam2"], local_pca=0
     )
-    tmap_wot_10_105 = ot_model.compute_transport_map(config["key_1"], config["key_2"], cost_matrix=C_12).X
-    tmap_wot_105_11 = ot_model.compute_transport_map(config["key_2"], config["key_3"], cost_matrix=C_23).X
-    tmap_wot_10_11 = ot_model.compute_transport_map(config["key_1"], config["key_3"], cost_matrix=C_13).X
+    tmap_wot_10_105 = ot_model.compute_transport_map(config["key_1"], config["key_2"], cost_matrix=np.array(C_12)).X
+    tmap_wot_105_11 = ot_model.compute_transport_map(config["key_2"], config["key_3"], cost_matrix=np.array(C_23)).X
+    tmap_wot_10_11 = ot_model.compute_transport_map(config["key_1"], config["key_3"], cost_matrix=np.array(C_13)).X
 
     tp = TemporalProblem(cdata)
     tp = tp.prepare(
         "day",
-        callback="cost-matrix",
         subset=[(10, 10.5), (10.5, 11), (10, 11)],
         policy="explicit",
-        callback_kwargs={"key": "cost_matrices"},
     )
+
+    tp[10, 10.5].set_xy(C_12, tag="cost_matrix")
+    tp[10.5, 11].set_xy(C_23, tag="cost_matrix")
+    tp[10, 11].set_xy(C_13, tag="cost_matrix")
     tp = tp.solve(epsilon=config["eps"], tau_a=config["tau_a"], tau_b=config["tau_b"])
 
-    assert (tp[config["key_1"], config["key_2"]].xy.data_src == C_12).all()
-    assert (tp[config["key_2"], config["key_3"]].xy.data_src == C_23).all()
-    assert (tp[config["key_1"], config["key_3"]].xy.data_src == C_13).all()
+    np.testing.assert_allclose(tp[config["key_1"], config["key_2"]].xy.data_src, C_12, atol=1e-6, rtol=1e-6)
+    np.testing.assert_allclose(tp[config["key_2"], config["key_3"]].xy.data_src, C_23, atol=1e-6, rtol=1e-6)
+    np.testing.assert_allclose(tp[config["key_1"], config["key_3"]].xy.data_src, C_13, atol=1e-6, rtol=1e-6)
 
     np.testing.assert_array_almost_equal(
         np.corrcoef(
             np.array(tp[config["key_1"], config["key_2"]].solution.transport_matrix).flatten(),
             tmap_wot_10_105.flatten(),
         ),
-        1,
+        1.0,
     )
     np.testing.assert_array_almost_equal(
         np.corrcoef(
             np.array(tp[config["key_2"], config["key_3"]].solution.transport_matrix).flatten(),
             tmap_wot_105_11.flatten(),
         ),
-        1,
+        1.0,
     )
     np.testing.assert_array_almost_equal(
         np.corrcoef(
             np.array(tp[config["key_1"], config["key_3"]].solution.transport_matrix).flatten(), tmap_wot_10_11.flatten()
         ),
-        1,
+        1.0,
     )
 
     cdata.uns["tmap_10_105"] = np.array(tp[config["key_1"], config["key_2"]].solution.transport_matrix)
@@ -216,21 +208,27 @@ def generate_gt_temporal_data(data_path: str) -> None:
         "day",
         subset=[(10, 10.5), (10.5, 11), (10, 11)],
         policy="explicit",
-        callback_kwargs={"n_comps": 50},
+        xy_callback_kwargs={"n_comps": 50},
     )
     tp2 = tp2.solve(epsilon=config["eps"], tau_a=config["tau_a"], tau_b=config["tau_b"], scale_cost="mean")
 
-    np.testing.assert_array_almost_equal(
+    np.testing.assert_allclose(
         np.array(tp[config["key_1"], config["key_2"]].solution.transport_matrix),
         np.array(tp2[config["key_1"], config["key_2"]].solution.transport_matrix),
+        rtol=1e-6,
+        atol=1e-6,
     )
-    np.testing.assert_array_almost_equal(
+    np.testing.assert_allclose(
         np.array(tp[config["key_2"], config["key_3"]].solution.transport_matrix),
         np.array(tp2[config["key_2"], config["key_3"]].solution.transport_matrix),
+        rtol=1e-6,
+        atol=1e-6,
     )
-    np.testing.assert_array_almost_equal(
+    np.testing.assert_allclose(
         np.array(tp[config["key_1"], config["key_3"]].solution.transport_matrix),
         np.array(tp2[config["key_1"], config["key_3"]].solution.transport_matrix),
+        rtol=1e-6,
+        atol=1e-6,
     )
 
     cdata = _write_analysis_output(cdata, tp2, config)

@@ -13,6 +13,7 @@ Biological Problems
 
     problems.time.TemporalProblem
     problems.time.LineageProblem
+    problems.time.TemporalNeuralProblem
     problems.space.AlignmentProblem
     problems.space.MappingProblem
     problems.spatio_temporal.SpatioTemporalProblem
@@ -28,3 +29,5 @@ Generic Problems
 
     SinkhornProblem
     GWProblem
+    NeuralProblem
+    ConditionalNeuralProblem

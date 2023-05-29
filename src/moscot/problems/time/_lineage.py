@@ -1,15 +1,24 @@
 from types import MappingProxyType
-from typing import Any, Type, Tuple, Union, Literal, Mapping, Optional
+from typing import Any, Literal, Mapping, Optional, Tuple, Type, Union
 
 from anndata import AnnData
 
-from moscot._types import Numeric_t, ScaleCost_t, ProblemStage_t, QuadInitializer_t, SinkhornInitializer_t
+from moscot import _constants
 from moscot._docs._docs import d
+from moscot._types import (
+    Numeric_t,
+    Policy_t,
+    ProblemStage_t,
+    QuadInitializer_t,
+    ScaleCost_t,
+    SinkhornInitializer_t,
+)
+from moscot.base.problems.birth_death import BirthDeathMixin, BirthDeathProblem
+from moscot.base.problems.compound_problem import B, CompoundProblem
 from moscot.problems._utils import handle_cost, handle_joint_attr
-from moscot._constants._constants import Policy
 from moscot.problems.time._mixins import TemporalMixin
-from moscot.problems.base._birth_death import BirthDeathMixin, BirthDeathProblem
-from moscot.problems.base._compound_problem import B, CompoundProblem
+
+__all__ = ["TemporalProblem", "LineageProblem"]
 
 
 @d.dedent
@@ -76,7 +85,6 @@ class TemporalProblem(
         %(ex_prepare)s
         """
         self.temporal_key = time_key
-        policy = Policy(policy)  # type: ignore[assignment]
         xy, kwargs = handle_joint_attr(joint_attr, kwargs)
         xy, x, y = handle_cost(xy=xy, x=kwargs.pop("x", None), y=kwargs.pop("y", None), cost=cost)
 
@@ -184,8 +192,8 @@ class TemporalProblem(
         return BirthDeathProblem  # type: ignore[return-value]
 
     @property
-    def _valid_policies(self) -> Tuple[str, ...]:
-        return Policy.SEQUENTIAL, Policy.TRIU, Policy.EXPLICIT
+    def _valid_policies(self) -> Tuple[Policy_t, ...]:
+        return _constants.SEQUENTIAL, _constants.TRIU, _constants.EXPLICIT  # type: ignore[return-value]
 
 
 @d.dedent
@@ -207,9 +215,10 @@ class LineageProblem(TemporalProblem):
         lineage_attr: Mapping[str, Any] = MappingProxyType({}),
         joint_attr: Optional[Union[str, Mapping[str, Any]]] = None,
         policy: Literal["sequential", "tril", "triu", "sequential"] = "sequential",
+        # TODO(michalk8): update
         cost: Union[
-            Literal["sq_euclidean", "cosine", "bures", "unbalanced_bures"],
-            Mapping[str, Literal["sq_euclidean", "cosine", "bures", "unbalanced_bures"]],
+            Literal["sq_euclidean", "cosine"],
+            Mapping[str, Literal["sq_euclidean", "cosine"]],
         ] = "sq_euclidean",
         a: Optional[str] = None,
         b: Optional[str] = None,

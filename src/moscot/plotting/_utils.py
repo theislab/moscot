@@ -1,32 +1,43 @@
-from copy import copy
+import collections
+import contextlib
+import copy
 from types import MappingProxyType
-from typing import Any, Dict, List, Tuple, Union, Mapping, Optional, Sequence, TYPE_CHECKING
-from collections import defaultdict
-
-from matplotlib import colors as mcolors, pyplot as plt
-from matplotlib.axes import Axes
-from pandas.api.types import is_categorical_dtype
-from matplotlib.colors import ListedColormap
-from sklearn.preprocessing import MinMaxScaler
-from mpl_toolkits.axes_grid1 import make_axes_locatable
-import pandas as pd
-import matplotlib as mpl
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Dict,
+    List,
+    Mapping,
+    Optional,
+    Sequence,
+    Set,
+    Tuple,
+    Union,
+)
 
 import numpy as np
+import pandas as pd
+from pandas.api.types import is_categorical_dtype
+from sklearn.preprocessing import MinMaxScaler
 
-from anndata import AnnData
-from scanpy.plotting._utils import add_colors_for_categorical_sample_annotation as add_color_palette
+import matplotlib as mpl
+import matplotlib.pyplot as plt
+from mpl_toolkits.axes_grid1 import make_axes_locatable
+
 import scanpy as sc
+from anndata import AnnData
+from scanpy.plotting._utils import (
+    add_colors_for_categorical_sample_annotation as add_color_palette,
+)
 
-from moscot.problems.base import CompoundProblem  # type: ignore[attr-defined]
-from moscot._constants._key import RandomKeys
-from moscot._constants._constants import AggregationMode
+if TYPE_CHECKING:
+    from moscot.base.problems import CompoundProblem
 
 
 def set_palette(
     adata: AnnData,
     key: str,
-    cont_cmap: Union[str, mcolors.Colormap] = "viridis",
+    cont_cmap: Union[str, mpl.colors.Colormap] = "viridis",
     force_update_colors: bool = True,
     **_: Any,
 ) -> None:
@@ -44,12 +55,12 @@ def _sankey(
     key: str,
     transition_matrices: List[pd.DataFrame],
     captions: Optional[List[str]] = None,
-    colorDict: Optional[Union[Dict[Any, str], ListedColormap]] = None,
+    colorDict: Optional[Union[Dict[Any, str], mpl.colors.ListedColormap]] = None,
     title: Optional[str] = None,
     figsize: Optional[Tuple[float, float]] = None,
     dpi: Optional[int] = None,
-    ax: Optional[Axes] = None,
-    cont_cmap: Union[str, mcolors.Colormap] = "viridis",
+    ax: Optional[mpl.axes.Axes] = None,
+    cont_cmap: Union[str, mpl.colors.Colormap] = "viridis",
     fontsize: float = 12.0,
     horizontal_space: float = 1.5,
     force_update_colors: bool = False,
@@ -80,7 +91,7 @@ def _sankey(
         rightLabels = list(dataFrame.columns)
 
         # Determine positions of left label patches and total widths
-        leftWidths: Dict[Any, Dict[Any, float]] = defaultdict()
+        leftWidths: Dict[Any, Dict[Any, float]] = collections.defaultdict()
         for i, leftLabel in enumerate(leftLabels):
             myD = {}
             myD["left"] = dataFrame.loc[leftLabel, :].sum()
@@ -94,7 +105,7 @@ def _sankey(
             leftWidths[leftLabel] = myD
 
         # Determine positions of right label patches and total widths
-        rightWidths: Dict[Any, Dict[Any, float]] = defaultdict()
+        rightWidths: Dict[Any, Dict[Any, float]] = collections.defaultdict()
         for i, rightLabel in enumerate(rightLabels):
             myD = {}
             myD["right"] = dataFrame.loc[:, rightLabel].sum()
@@ -194,25 +205,25 @@ def _heatmap(
     col_annotation: str,
     row_annotation_label: Optional[str] = None,
     col_annotation_label: Optional[str] = None,
-    cont_cmap: Union[str, mcolors.Colormap] = "viridis",
+    cont_cmap: Union[str, mpl.colors.Colormap] = "viridis",
     annotate_values: Optional[str] = "{x:.2f}",
     fontsize: float = 7.0,
     figsize: Optional[Tuple[float, float]] = None,
     dpi: Optional[int] = None,
     save: Optional[str] = None,
     cbar_kwargs: Mapping[str, Any] = MappingProxyType({}),
-    ax: Optional[Axes] = None,
+    ax: Optional[mpl.axes.Axes] = None,
     **kwargs: Any,
-) -> mpl.figure.Figure:
+) -> plt.Figure:
     cbar_kwargs = dict(cbar_kwargs)
 
     if ax is None:
         fig, ax = plt.subplots(constrained_layout=True, dpi=dpi, figsize=figsize)
     else:
         fig = ax.figure
-    if row_annotation != AggregationMode.CELL:
+    if row_annotation != "cell":
         set_palette(adata=row_adata, key=row_annotation, cont_cmap=cont_cmap)
-    if col_annotation != AggregationMode.CELL:
+    if col_annotation != "cell":
         set_palette(adata=col_adata, key=col_annotation, cont_cmap=cont_cmap)
 
     row_cmap, col_cmap, row_norm, col_norm = _get_cmap_norm(
@@ -225,7 +236,7 @@ def _heatmap(
     norm = mpl.colors.Normalize(
         vmin=kwargs.pop("vmin", np.nanmin(transition_matrix)), vmax=kwargs.pop("vmax", np.nanmax(transition_matrix))
     )
-    cont_cmap = copy(plt.get_cmap(cont_cmap))
+    cont_cmap = copy.copy(plt.get_cmap(cont_cmap))
     cont_cmap.set_bad(color="grey")
 
     im = ax.imshow(transition_matrix, cmap=cont_cmap, norm=norm)
@@ -249,14 +260,14 @@ def _heatmap(
         **cbar_kwargs,
     )
 
-    if col_annotation != AggregationMode.CELL:
+    if col_annotation != "cell":
         col_cats = divider.append_axes("top", size="2%", pad=0)
         c = fig.colorbar(col_sm, cax=col_cats, orientation="horizontal", ticklocation="top")
 
         c.set_ticks(np.arange(transition_matrix.shape[1]) + 0.5)
         c.ax.set_xticklabels(transition_matrix.columns, rotation=90)
         c.set_label(col_annotation if col_annotation_label is None else col_annotation_label)
-    if row_annotation != AggregationMode.CELL:
+    if row_annotation != "cell":
         row_cats = divider.append_axes("left", size="2%", pad=0)
         c = fig.colorbar(row_sm, cax=row_cats, orientation="vertical", ticklocation="left")
 
@@ -269,7 +280,7 @@ def _heatmap(
     return fig
 
 
-def _get_black_or_white(value: float, cmap: mcolors.Colormap) -> str:
+def _get_black_or_white(value: float, cmap: mpl.colors.Colormap) -> str:
     if not (0.0 <= value <= 1.0):
         raise ValueError(f"Expected value to be in interval `[0, 1]`, found `{value}`.")
 
@@ -312,9 +323,8 @@ def _get_cmap_norm(
     transition_matrix: pd.DataFrame,
     row_annotation: str,
     col_annotation: str,
-) -> Tuple[mcolors.ListedColormap, mcolors.ListedColormap, mcolors.BoundaryNorm, mcolors.BoundaryNorm]:
-
-    if row_annotation != AggregationMode.CELL:
+) -> Tuple[mpl.colors.ListedColormap, mpl.colors.ListedColormap, mpl.colors.BoundaryNorm, mpl.colors.BoundaryNorm]:
+    if row_annotation != "cell":
         row_color_dict = {
             row_adata.obs[row_annotation].cat.categories[i]: col
             for i, col in enumerate(row_adata.uns[f"{row_annotation}_colors"])
@@ -322,7 +332,8 @@ def _get_cmap_norm(
         row_colors = [row_color_dict[cat] for cat in transition_matrix.index][::-1]
     else:
         row_colors = [0, 0, 0]
-    if col_annotation != AggregationMode.CELL:
+
+    if col_annotation != "cell":
         col_color_dict = {
             col_adata.obs[col_annotation].cat.categories[i]: col
             for i, col in enumerate(col_adata.uns[f"{col_annotation}_colors"])
@@ -331,10 +342,10 @@ def _get_cmap_norm(
     else:
         col_colors = [0, 0, 0]
 
-    row_cmap = mcolors.ListedColormap(row_colors)
-    col_cmap = mcolors.ListedColormap(col_colors)
-    row_norm = mcolors.BoundaryNorm(np.arange(transition_matrix.shape[0] + 1), transition_matrix.shape[0])
-    col_norm = mcolors.BoundaryNorm(np.arange(transition_matrix.shape[1] + 1), transition_matrix.shape[1])
+    row_cmap = mpl.colors.ListedColormap(row_colors)
+    col_cmap = mpl.colors.ListedColormap(col_colors)
+    row_norm = mpl.colors.BoundaryNorm(np.arange(transition_matrix.shape[0] + 1), transition_matrix.shape[0])
+    col_norm = mpl.colors.BoundaryNorm(np.arange(transition_matrix.shape[1] + 1), transition_matrix.shape[1])
 
     return row_cmap, col_cmap, row_norm, col_norm
 
@@ -346,7 +357,11 @@ def _contrasting_color(r: int, g: int, b: int) -> str:
     return "#000000" if r * 0.299 + g * 0.587 + b * 0.114 > 186 else "#ffffff"
 
 
-def _input_to_adatas(inp: Union[AnnData, Tuple[AnnData, AnnData], CompoundProblem]) -> Tuple[AnnData, AnnData]:
+def _input_to_adatas(
+    inp: Union[AnnData, Tuple[AnnData, AnnData], "CompoundProblem"]  # type: ignore[type-arg]
+) -> Tuple[AnnData, AnnData]:
+    from moscot.base.problems import CompoundProblem
+
     if isinstance(inp, CompoundProblem):
         return inp.adata, inp.adata
     if isinstance(inp, AnnData):
@@ -373,7 +388,7 @@ def _plot_temporal(
     basis: str = "umap",
     constant_fill_value: float = np.nan,
     scale: bool = True,
-    cont_cmap: Union[str, mcolors.Colormap] = "viridis",
+    cont_cmap: Optional[Union[str, mpl.colors.Colormap]] = "viridis",
     title: Optional[Union[str, List[str]]] = None,
     suptitle: Optional[str] = None,
     figsize: Optional[Tuple[float, float]] = None,
@@ -381,15 +396,16 @@ def _plot_temporal(
     dot_scale_factor: float = 2.0,
     na_color: str = "#e8ebe9",
     save: Optional[str] = None,
-    ax: Optional[Axes] = None,
+    ax: Optional[mpl.axes.Axes] = None,
     show: bool = False,
     suptitle_fontsize: Optional[float] = None,
     **kwargs: Any,
-) -> mpl.figure.Figure:
+) -> plt.Figure:
     if time_points is not None:
         time_points = sorted(time_points)
-    if isinstance(cont_cmap, str):
-        cont_cmap = mpl.colormaps["viridis"]
+    if cont_cmap is None or isinstance(cont_cmap, str):
+        cont_cmap = plt.get_cmap(cont_cmap)
+
     fig, axs = plt.subplots(
         1, 1 if time_points is None else len(time_points), figsize=figsize, dpi=dpi, constrained_layout=True
     )
@@ -443,7 +459,8 @@ def _plot_temporal(
                     st = f"not in {time_points[i]}"
                     vmin, vmax = np.nanmin(tmp[mask]), np.nanmax(tmp[mask])
                     column = pd.Series(tmp).fillna(st).astype("category")
-                    if len(np.unique(column[mask.values].values)) != 2:
+                    # TODO(michalk8): check
+                    if len(np.unique(column[mask.values].values)) > 2:
                         raise ValueError(f"Not exactly two categories, found `{column.cat.categories}`.")
                     adata.obs[keys[0]] = column.values
                     adata.obs[keys[0]] = adata.obs[keys[0]].astype("category")
@@ -492,7 +509,7 @@ def _color_transition(c1: str, c2: str, num: int, alpha: float) -> List[str]:
     return [mpl.colors.to_rgb((1 - n / num) * c1_rgb + n / num * c2_rgb) + (alpha,) for n in range(num)]
 
 
-def _create_col_colors(adata: AnnData, obs_col: str, subset: Union[str, List[str]]) -> Optional[mcolors.Colormap]:
+def _create_col_colors(adata: AnnData, obs_col: str, subset: Union[str, List[str]]) -> Optional[mpl.colors.Colormap]:
     if isinstance(subset, list):
         subset = subset[0]
     if not is_categorical_dtype(adata.obs[obs_col]):
@@ -505,9 +522,82 @@ def _create_col_colors(adata: AnnData, obs_col: str, subset: Union[str, List[str
     else:
         raise ValueError(f"Cannot find color for {subset} in `adata.obs[{obs_col!r}]`.")
 
-    h, _, v = mcolors.rgb_to_hsv(mcolors.to_rgb(color))
-    end_color = mcolors.hsv_to_rgb([h, 1, v])
+    h, _, v = mpl.colors.rgb_to_hsv(mpl.colors.to_rgb(color))
+    end_color = mpl.colors.hsv_to_rgb([h, 1, v])
 
-    col_cmap = mcolors.LinearSegmentedColormap.from_list("category_cmap", ["darkgrey", end_color])
+    return mpl.colors.LinearSegmentedColormap.from_list("category_cmap", ["darkgrey", end_color])
 
-    return col_cmap
+
+def set_plotting_vars(
+    adata: AnnData,
+    func_key: str,
+    *,
+    key: str,
+    value: Any,
+    override: bool = True,
+) -> None:
+    uns_key = "moscot_results"
+    adata.uns.setdefault(uns_key, {}).setdefault(func_key, {})
+    if not override and key in adata.uns[uns_key][func_key]:
+        raise KeyError(
+            f"Data in `adata.uns[{uns_key!r}][{func_key!r}][{key!r}]` " f"already exists, use `override=True`."
+        )
+    adata.uns[uns_key][func_key][key] = value
+
+
+def get_plotting_vars(adata: AnnData, func_key: str, *, key: str) -> Any:
+    uns_key = "moscot_results"
+    try:
+        return adata.uns[uns_key][func_key][key]
+    except KeyError:
+        raise KeyError(f"No data found in `adata.uns[{uns_key!r}][{func_key!r}][{key!r}]`.") from None
+
+
+class RandomKeys:
+    """
+    Create random keys inside an :class:`~anndata.AnnData` object.
+
+    Parameters
+    ----------
+    adata
+        Annotated data object.
+    n
+        Number of keys, If `None`, create just 1 keys.
+    where
+        Attribute of ``adata``. If `'obs'`, also clean up `'{key}_colors'` for each generated key.
+
+    """
+
+    def __init__(self, adata: AnnData, n: Optional[int] = None, where: str = "obs"):
+        self._adata = adata
+        self._where = where
+        self._n = n or 1
+        self._keys: List[str] = []
+
+    def _generate_random_keys(self):
+        def generator() -> str:
+            return f"RNG_COL_{np.random.RandomState().randint(2 ** 16)}"
+
+        where = getattr(self._adata, self._where)
+        names: List[str] = []
+        seen: Set[str] = set(where.keys())
+
+        while len(names) != self._n:
+            name = generator()
+            if name not in seen:
+                seen.add(name)
+                names.append(name)
+
+        return names
+
+    def __enter__(self):
+        self._keys = self._generate_random_keys()
+        return self._keys
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        with contextlib.suppress(KeyError):
+            for key in self._keys:
+                df = getattr(self._adata, self._where)
+                df.drop(key, axis="columns", inplace=True)
+                if self._where == "obs":
+                    del self._adata.uns[f"{key}_colors"]

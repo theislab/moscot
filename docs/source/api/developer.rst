@@ -11,7 +11,8 @@ OTT Backend
     moscot.backends.ott.SinkhornSolver
     moscot.backends.ott.GWSolver
     moscot.backends.ott.OTTOutput
-    moscot.backends.ott.OTTCost
+    moscot.backends.ott.NeuralOutput
+    moscot.backends.ott.ConditionalNeuralOutput
 
 Costs
 ~~~~~
@@ -38,6 +39,8 @@ Optimal Transport classes
 
     moscot.problems.base.OTProblem
     moscot.problems.base.BirthDeathProblem
+    moscot.problems.base.NeuralProblem
+    moscot.problems.base.ConditionalNeuralProblem
 
 
 Mixin classes
@@ -57,7 +60,7 @@ Base classes
     moscot.solvers.BaseSolver
     moscot.solvers.OTSolver
     moscot.solvers.BaseSolverOutput
+    moscot.solvers.BaseNeuralOutput
     moscot.solvers.MatrixSolverOutput
-    moscot.costs.BaseCost
     moscot.solvers.TaggedArray
     moscot.solvers.Tag
