@@ -164,7 +164,8 @@ class ConditionalDualPotentials(DualPotentials):
 
     def to_dual_potentials(self, condition: ArrayLike) -> DualPotentials:
         """Return the Kantorovich dual potentials from the trained potentials."""
-
+        # Note that here the order of f and g should be correct already, as it's swapped in the initialization of CondDualPotentials
+        
         def f(x, c) -> float:
             return self._state_f.apply_fn({"params": self._state_f.params}, x, c)
 

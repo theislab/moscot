@@ -231,7 +231,7 @@ class NeuralDualSolver:
             pretrain_logs = self.pretrain_identity(trainloader.conditions)
 
         train_logs = self.train_neuraldual(trainloader, validloader)
-        res = self.to_cond_dual_potentials() if self.cond_dim else self.to_dual_potentials()
+        res = self.to_dual_potentials()
         logs = pretrain_logs | train_logs
 
         return (res, logs)
@@ -587,27 +587,26 @@ class NeuralDualSolver:
 
     def to_dual_potentials(self, condition: Optional[ArrayLike] = None) -> DualPotentials:
         """Return the Kantorovich dual potentials from the trained potentials."""
+
+        # This is a quick fix to change f and g. Eventually, the code should be rewritten and adapted
+        # to OTT-JAX.
         if self.cond_dim:
 
             def f(x, c) -> float:
-                return self._state_f.apply_fn({"params": self._state_f.params}, x, c)
+                return self._state_g.apply_fn({"params": self._state_g.params}, x, c) 
 
             def g(x, c) -> float:
-                return self._state_g.apply_fn({"params": self._state_g.params}, x, c)
+                return self._state_f.apply_fn({"params": self._state_f.params}, x, c)
 
-            return ConditionalDualPotentials(self.state_f, self.state_g)
+            return ConditionalDualPotentials(self.state_g, self.state_f)
 
         def f(x) -> float:
-            return self.state_f.apply_fn({"params": self.state_f.params}, x)
-
-        def g(x) -> float:
             return self.state_g.apply_fn({"params": self.state_g.params}, x)
 
-        return DualPotentials(f, g, corr=True, cost_fn=costs.SqEuclidean())
+        def g(x) -> float:
+            return self.state_f.apply_fn({"params": self.state_f.params}, x)
 
-    def to_cond_dual_potentials(self) -> DualPotentials:
-        """Return the conditional Kantorovich dual potentials from the trained potentials."""
-        return ConditionalDualPotentials(self.state_f, self.state_g)
+        return DualPotentials(f, g, corr=True, cost_fn=costs.SqEuclidean())
 
     @property
     def is_balanced(self) -> bool:
