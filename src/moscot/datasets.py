@@ -258,7 +258,7 @@ def bone_marrow(
         )
     return _load_dataset_from_url(
         path + "_atac.h5ad",
-        backup_url="https://figshare.com/ndownloader/files/40195102",
+        backup_url="https://figshare.com/ndownloader/files/41013551",
         expected_shape=(6224, 8000),
         force_download=force_download,
         **kwargs,
