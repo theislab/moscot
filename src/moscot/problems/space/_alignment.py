@@ -3,7 +3,6 @@ from typing import Any, Literal, Mapping, Optional, Tuple, Type, Union
 
 from moscot import _constants
 from moscot._docs._docs import d
-from moscot._logging import logger
 from moscot._types import (
     CostKwargs_t,
     OttCostFnMap_t,
@@ -36,12 +35,11 @@ class AlignmentProblem(SpatialAlignmentMixin[K, B], CompoundProblem[K, B]):
     def prepare(
         self,
         batch_key: str,
-        spatial_key: str = "spatial",
+        spatial_key: Union[str, Mapping[str, Any]] = "spatial",
         joint_attr: Optional[Union[str, Mapping[str, Any]]] = None,
         policy: Literal["sequential", "star"] = "sequential",
         reference: Optional[str] = None,
         normalize_spatial: bool = True,
-        normalize_key: str = "norm",
         cost: OttCostFnMap_t = "sq_euclidean",
         cost_kwargs: CostKwargs_t = types.MappingProxyType({}),
         a: Optional[str] = None,
@@ -65,8 +63,6 @@ class AlignmentProblem(SpatialAlignmentMixin[K, B], CompoundProblem[K, B]):
         normalize_spatial
             Whether to normalize the spatial coordinates. If `True`, the coordinates are normalized
             by standardizing them. If `False`, no normalization is performed.
-        normalize_key
-            Key to store the normalization coordinates in :attr:`adata.obsm`.
 
         %(cost)s
         %(cost_kwargs)s
@@ -82,18 +78,13 @@ class AlignmentProblem(SpatialAlignmentMixin[K, B], CompoundProblem[K, B]):
         --------
         %(ex_prepare)s
         """
-        if normalize_spatial:
-            self._normalize_spatial(
-                spatial_key=spatial_key,
-                normalize_key=normalize_key,
-            )
-            spatial_key = f"{spatial_key}_{normalize_key}"
-            logger.info(f"Normalizing spatial coordinates and saving them in `adata.obsm['{spatial_key}']`.")
-
         self.spatial_key = spatial_key
         self.batch_key = batch_key
 
         x = y = {"attr": "obsm", "key": self.spatial_key, "tag": "point_cloud"}
+
+        if normalize_spatial and "x_callback" not in kwargs and "y_callback" not in kwargs:
+            kwargs["x_callback"] = kwargs["y_callback"] = {"spatial-norm": {"spatial_key": self.spatial_key}}
 
         xy, kwargs = handle_joint_attr(joint_attr, kwargs)
         xy, x, y = handle_cost(xy=xy, x=x, y=y, cost=cost, cost_kwargs=cost_kwargs)
@@ -170,14 +161,6 @@ class AlignmentProblem(SpatialAlignmentMixin[K, B], CompoundProblem[K, B]):
             device=device,
             **kwargs,
         )  # type: ignore[return-value]
-
-    def _normalize_spatial(
-        self,
-        spatial_key: str,
-        normalize_key: str,
-    ) -> None:
-        spatial = self.adata.obsm[spatial_key]
-        self.adata.obsm[f"{spatial_key}_{normalize_key}"] = (spatial - spatial.mean()) / spatial.std()
 
     @property
     def _base_problem_type(self) -> Type[B]:

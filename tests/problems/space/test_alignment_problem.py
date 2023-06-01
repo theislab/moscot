@@ -45,10 +45,6 @@ class TestAlignmentProblem:
         ap = ap.prepare(batch_key="batch", joint_attr=joint_attr, normalize_spatial=normalize_spatial)
         assert len(ap) == 2
 
-        if normalize_spatial:
-            assert ap.spatial_key == "spatial_norm"
-            assert "spatial_norm" in ap.adata.obsm
-
         for prob_key in expected_keys:
             assert isinstance(ap[prob_key], ap._base_problem_type)
             assert ap[prob_key].shape == (n_obs, n_obs)

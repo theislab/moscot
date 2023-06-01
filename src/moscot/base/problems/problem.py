@@ -506,6 +506,24 @@ class OTProblem(BaseProblem):
             return {term: TaggedArray(x, tag=Tag.POINT_CLOUD)}
         raise ValueError(f"Expected `term` to be one of `x`, `y`, or `xy`, found `{term!r}`.")
 
+    @staticmethod
+    def _spatial_norm_callback(
+        term: Literal["x", "y"],
+        adata: AnnData,
+        spatial_key: str,
+        adata_y: Optional[AnnData] = None,
+        **kwargs: Any,
+    ) -> Dict[Literal["x", "y"], TaggedArray]:
+        if term == "x":
+            spatial = adata.obsm[spatial_key]
+        if term == "y":
+            if isinstance(adata_y, AnnData):
+                spatial = adata_y.obsm[spatial_key]
+            else:
+                raise ValueError("When `term` is `y` `adata_y` cannot be `None`.")
+        spatial = (spatial - spatial.mean()) / spatial.std()
+        return {term: TaggedArray(spatial, tag=Tag.POINT_CLOUD)}
+
     def _create_marginals(
         self, adata: AnnData, *, source: bool, data: Optional[Union[bool, str, ArrayLike]] = None, **kwargs: Any
     ) -> ArrayLike:
