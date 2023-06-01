@@ -881,10 +881,9 @@ class CondOTProblem(BaseProblem):  # TODO(@MUCDK) check generic types, save and 
         """
         self._solver = backends.get_solver(
             problem_kind=self._problem_kind,
-            neural="cond",
+            input_dim=list(self._distributions.values())[0][0].data_src.shape[1],
             distributions=self._distributions,
             sample_pairs=self._sample_pairs,
-            input_dim=list(self._distributions.values())[0][0].data_src.shape[1],
             **kwargs,
         )
 

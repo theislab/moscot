@@ -1,9 +1,9 @@
 import inspect
 from functools import partial
-from typing import TYPE_CHECKING, Any, Callable, Dict, Optional, Sequence, Tuple
+from typing import TYPE_CHECKING, Any, Callable, Dict, Optional, Sequence, Tuple, Iterable, Type
 
 from flax.training.train_state import TrainState
-
+import optax
 import jax
 import jax.numpy as jnp
 import jax.tree_util as jtu
@@ -11,7 +11,7 @@ from ott.geometry import costs
 from ott.geometry.pointcloud import PointCloud
 from ott.problems.linear.potentials import DualPotentials
 from ott.tools.sinkhorn_divergence import sinkhorn_divergence
-
+from moscot.backends.ott._icnn import ICNN
 from moscot._logging import logger
 from moscot._types import ArrayLike, ScaleCost_t
 
@@ -212,3 +212,10 @@ class ConditionalDualPotentials(DualPotentials):
         cls, aux_data: Dict[str, Any], children: Sequence[Any]
     ) -> "ConditionalDualPotentials":
         return cls(*children, **aux_data)
+
+
+def _get_icnn(input_dim: int, cond_dim: int, pos_weights: bool = False, dim_hidden: Iterable[int] = (64, 64, 64, 64), **kwargs: Any) -> ICNN:
+    return ICNN(input_dim = input_dim, cond_dim=cond_dim, pos_weights=pos_weights, dim_hidden=dim_hidden, **kwargs)
+
+def _get_optimizer(learning_rate: float = 1e-3, b1: float = 0.5, b2: float = 0.9, weight_decay: float = 0.0, **kwargs: Any) -> Type[optax.GradientTransformation]:
+    return optax.adamw(learning_rate=learning_rate, b1=b1, b2=b2, weight_decay=weight_decay, **kwargs)

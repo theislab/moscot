@@ -4,7 +4,9 @@ import jax.numpy as jnp
 import numpy as np
 
 import anndata as ad
+from optax import adagrad
 
+from moscot.backends.ott._icnn import ICNN
 from moscot.base.output import BaseSolverOutput
 from moscot.base.problems import CondOTProblem
 from moscot.problems.generic import (
@@ -71,3 +73,29 @@ class TestConditionalNeuralProblem:
             assert hasattr(solver, val)
             el = getattr(solver, val)[0] if isinstance(getattr(solver, val), tuple) else getattr(solver, val)
             assert el == neuraldual_args_1[arg]
+
+    def test_pass_custom_mlps(self, adata_time: ad.AnnData):
+        problem = ConditionalNeuralProblem(adata=adata_time)
+        adata_time = adata_time[adata_time.obs["time"].isin((0, 1))]
+        problem = problem.prepare(key="time", joint_attr="X_pca")
+        input_dim = adata_time.obsm["X_pca"].shape[1]
+        custom_f = ICNN([3, 3], input_dim=input_dim, cond_dim=1)
+        custom_g = ICNN((4,4), input_dim=input_dim, cond_dim=1)
+
+        problem = problem.solve(iterations=2, f=custom_f, g=custom_g)
+        assert problem.f == custom_f
+        assert problem.g == custom_g
+
+    def test_pass_custom_optimizers(self, adata_time: ad.AnnData):
+        problem = ConditionalNeuralProblem(adata=adata_time)
+        adata_time = adata_time[adata_time.obs["time"].isin((0, 1))]
+        problem = problem.prepare(key="time", joint_attr="X_pca")
+        input_dim = adata_time.obsm["X_pca"].shape[1]
+        custom_opt_f = adagrad(1e-4)
+        custom_opt_g = adagrad(1e-3)
+
+        problem = problem.solve(iterations=2, opt_f=custom_opt_f, opt_g=custom_opt_g, input_dim=input_dim)
+        assert problem.opt_f == custom_opt_f
+        assert problem.opt_g == custom_opt_g
+
+

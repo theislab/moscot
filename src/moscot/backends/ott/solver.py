@@ -23,14 +23,14 @@ from moscot._types import (
     SinkhornInitializer_t,
 )
 from moscot.backends.ott._jax_data import JaxSampler
-from moscot.backends.ott._neuraldual import NeuralDualSolver
+from moscot.backends.ott._neuraldual import OTTNeuralDualSolver
 from moscot.backends.ott._utils import _filter_kwargs
-from moscot.backends.ott.output import DualCondNeuralOutput, DualNeuralOutput, OTTOutput
+from moscot.backends.ott.output import CondNeuralDualOutput, NeuralDualOutput, OTTOutput
 from moscot.base.solver import OTSolver
 from moscot.costs import get_cost
 from moscot.utils.tagged_array import TaggedArray
 
-__all__ = ["SinkhornSolver", "GWSolver", "NeuralSolver", "CondNeuralDualSolver"]
+__all__ = ["SinkhornSolver", "GWSolver", "NeuralDualSolver", "CondNeuralDualSolver"]
 
 Scale_t = Union[float, Literal["mean", "median", "max_cost", "max_norm", "max_bound"]]
 Epsilon_t = Union[float, Epsilon]
@@ -312,15 +312,15 @@ class GWSolver(OTTJaxSolver):
         return "quadratic"
 
 
-class NeuralSolver(OTSolver[OTTOutput]):
+class NeuralDualSolver(OTSolver[OTTOutput]):
     """Solver class solving Neural Optimal Transport problems."""
 
     def __init__(self, **kwargs: Any) -> None:
         super().__init__()
         self._train_sampler: Optional[JaxSampler] = None
         self._valid_sampler: Optional[JaxSampler] = None
-        kwargs = _filter_kwargs(NeuralDualSolver, **kwargs)
-        self._solver = NeuralDualSolver(**kwargs)
+        kwargs = _filter_kwargs(OTTNeuralDualSolver, **kwargs)
+        self._solver = OTTNeuralDualSolver(**kwargs)
 
     def _prepare(  # type: ignore[override]
         self,
@@ -356,9 +356,9 @@ class NeuralSolver(OTSolver[OTTOutput]):
         )
         return (self._train_sampler, self._valid_sampler)
 
-    def _solve(self, data_samplers: Tuple[JaxSampler, JaxSampler]) -> DualNeuralOutput:  # type: ignore[override]
+    def _solve(self, data_samplers: Tuple[JaxSampler, JaxSampler]) -> NeuralDualOutput:  # type: ignore[override]
         model, logs = self.solver(data_samplers[0], data_samplers[1])
-        return DualNeuralOutput(model, logs)  # type:ignore[arg-type]
+        return NeuralDualOutput(model, logs)  # type:ignore[arg-type]
 
     @staticmethod
     def _assert2d(arr: ArrayLike, *, allow_reshape: bool = True) -> jnp.ndarray:  # type:ignore[name-defined]
@@ -410,7 +410,7 @@ class NeuralSolver(OTSolver[OTTOutput]):
         )
 
     @property
-    def solver(self) -> NeuralDualSolver:
+    def solver(self) -> OTTNeuralDualSolver:
         """Underlying optimal transport solver."""
         return self._solver
 
@@ -419,8 +419,7 @@ class NeuralSolver(OTSolver[OTTOutput]):
         """Problem kind."""
         return "linear"
 
-
-class CondNeuralDualSolver(NeuralSolver):
+class CondNeuralDualSolver(NeuralDualSolver):
     """Solver class solving Conditional Neural Optimal Transport problems."""
 
     def __init__(self, *args, cond_dim: int, **kwargs: Any) -> None:
@@ -500,6 +499,6 @@ class CondNeuralDualSolver(NeuralSolver):
             b[n_train_x:] if b is not None else None,
         )
 
-    def _solve(self, data_samplers: Tuple[JaxSampler, JaxSampler]) -> DualCondNeuralOutput:  # type: ignore[override]
+    def _solve(self, data_samplers: Tuple[JaxSampler, JaxSampler]) -> CondNeuralDualOutput:  # type: ignore[override]
         model, logs = self.solver(data_samplers[0], data_samplers[1])
-        return DualCondNeuralOutput(output=model, training_logs=logs)  # type:ignore[arg-type]
+        return CondNeuralDualOutput(output=model, training_logs=logs)  # type:ignore[arg-type]

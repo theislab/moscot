@@ -1,6 +1,6 @@
 from collections import defaultdict
 from types import MappingProxyType
-from typing import Any, Callable, Dict, Iterable, List, Literal, Optional, Tuple, Union
+from typing import Any, Callable, Dict, Iterable, List, Literal, Optional, Tuple, Union, Type
 
 import optax
 from flax.core import freeze
@@ -24,12 +24,14 @@ from moscot.backends.ott._utils import (
     ConditionalDualPotentials,
     RunningAverageMeter,
     _compute_sinkhorn_divergence,
+    _get_icnn,
+    _get_optimizer,
 )
 
 Train_t = Dict[str, Dict[str, Union[float, List[float]]]]
 
 
-class NeuralDualSolver:
+class OTTNeuralDualSolver:
     """Solver of the ICNN-based Kantorovich dual.
 
     Optimal transport mapping via input convex neural networks,
@@ -105,7 +107,8 @@ class NeuralDualSolver:
         epsilon: float = 0.1,
         seed: int = 0,
         pos_weights: bool = False,
-        dim_hidden: Iterable[int] = (64, 64, 64, 64),
+        f: Union[Dict[str, Any], ICNN] = MappingProxyType({}),
+        g: Union[Dict[str, Any], ICNN] = MappingProxyType({}),
         beta: float = 1.0,
         best_model_metric: Literal[
             "sinkhorn_forward", "sinkhorn"
@@ -115,8 +118,8 @@ class NeuralDualSolver:
         valid_freq: int = 250,
         log_freq: int = 10,
         patience: int = 100,
-        optimizer_f_kwargs: Dict[str, Any] = MappingProxyType({}),
-        optimizer_g_kwargs: Dict[str, Any] = MappingProxyType({}),
+        optimizer_f: Union[Dict[str, Any], Type[optax.GradientTransformation]] = MappingProxyType({}),
+        optimizer_g: Union[Dict[str, Any], Type[optax.GradientTransformation]] = MappingProxyType({}),
         pretrain_iters: int = 15001,
         pretrain_scale: float = 3.0,
         valid_sinkhorn_kwargs: Dict[str, Any] = MappingProxyType({}),
@@ -136,8 +139,6 @@ class NeuralDualSolver:
         self.valid_freq = valid_freq
         self.log_freq = log_freq
         self.patience = patience
-        self.optimizer_f_kwargs = dict(optimizer_f_kwargs)
-        self.optimizer_g_kwargs = dict(optimizer_g_kwargs)
         self.pretrain_iters = pretrain_iters
         self.pretrain_scale = pretrain_scale
         self.valid_sinkhorn_kwargs = dict(valid_sinkhorn_kwargs)
@@ -147,32 +148,12 @@ class NeuralDualSolver:
         self.compute_wasserstein_baseline = compute_wasserstein_baseline
         self.key: jax.random.PRNGKeyArray = jax.random.PRNGKey(seed)
 
-        optimizer_f = optax.adamw(
-            learning_rate=self.optimizer_f_kwargs.pop("learning_rate", 1e-3),
-            b1=self.optimizer_f_kwargs.pop("b1", 0.5),
-            b2=self.optimizer_f_kwargs.pop("b2", 0.9),
-            weight_decay=self.optimizer_f_kwargs.pop("weight_decay", 0.0),
-        )
-        optimizer_g = optax.adamw(
-            learning_rate=self.optimizer_g_kwargs.pop("learning_rate", 1e-3),
-            b1=self.optimizer_g_kwargs.pop("b1", 0.5),
-            b2=self.optimizer_g_kwargs.pop("b2", 0.9),
-            weight_decay=self.optimizer_g_kwargs.pop("weight_decay", 0.0),
-        )
-        neural_f = ICNN(
-            dim_hidden=dim_hidden,
-            input_dim=self.input_dim,
-            cond_dim=cond_dim,
-            pos_weights=pos_weights,
-        )
-        neural_g = ICNN(
-            dim_hidden=dim_hidden,
-            input_dim=self.input_dim,
-            cond_dim=cond_dim,
-            pos_weights=pos_weights,
-        )
+        self.optimizer_f = _get_optimizer(optimizer_f) if isinstance(optimizer_f, dict) else optimizer_f
+        self.optimizer_g = _get_optimizer(optimizer_g) if isinstance(optimizer_g, dict) else optimizer_g
+        self.neural_f = _get_icnn(f) if isinstance(f, dict) else f
+        self.neural_g = _get_icnn(g) if isinstance(g, dict) else g
         # set optimizer and networks
-        self.setup(neural_f, neural_g, optimizer_f, optimizer_g)
+        self.setup(self.neural_f, self.neural_g, self.optimizer_f, self.optimizer_g)
 
     def setup(self, neural_f: ICNN, neural_g: ICNN, optimizer_f: optax.OptState, optimizer_g: optax.OptState):
         """Initialize all components required to train the :class:`moscot.backends.ott.NeuralDual`.

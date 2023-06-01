@@ -22,7 +22,7 @@ from moscot._types import ArrayLike, Device_t
 from moscot.backends.ott._utils import ConditionalDualPotentials, get_nearest_neighbors
 from moscot.base.output import BaseNeuralOutput, BaseSolverOutput, BaseCondNeuralOutput
 
-__all__ = ["OTTOutput", "DualNeuralOutput", "DualCondNeuralOutput"]
+__all__ = ["OTTOutput", "NeuralDualOutput", "CondNeuralDualOutput"]
 
 Train_t = Dict[str, Dict[str, List[float]]]
 
@@ -304,7 +304,7 @@ class OTTNeuralOutput(BaseCondNeuralOutput):
         return tm
 
 
-class DualNeuralOutput(ConvergencePlotterMixin, OTTNeuralOutput):
+class NeuralDualOutput(ConvergencePlotterMixin, OTTNeuralOutput):
     """
     Output representation of neural OT problems.
 
@@ -467,7 +467,7 @@ class DualNeuralOutput(ConvergencePlotterMixin, OTTNeuralOutput):
     def to(
         self,
         device: Optional[Device_t] = None,
-    ) -> "DualNeuralOutput":
+    ) -> "NeuralDualOutput":
         """Transfer the output to another device or change its data type.
 
         Parameters
@@ -493,7 +493,7 @@ class DualNeuralOutput(ConvergencePlotterMixin, OTTNeuralOutput):
                 raise IndexError(f"Unable to fetch the device with `id={idx}`.")
 
         out = jax.device_put(self._output, device)
-        return DualNeuralOutput(out, self.training_logs)
+        return NeuralDualOutput(out, self.training_logs)
 
     @property
     def cost(self) -> float:
@@ -608,7 +608,7 @@ class DualNeuralOutput(ConvergencePlotterMixin, OTTNeuralOutput):
         return ", ".join(f"{name}={fmt(val)}" for name, val in params.items())
 
 
-class DualCondNeuralOutput(DualNeuralOutput):
+class CondNeuralDualOutput(NeuralDualOutput):
     """
     Output representation of conditional neural OT problems.
 
@@ -718,7 +718,7 @@ class DualCondNeuralOutput(DualNeuralOutput):
     def to(
         self,
         device: Optional[Device_t] = None,
-    ) -> "DualCondNeuralOutput":
+    ) -> "CondNeuralDualOutput":
         """Transfer the output to another device or change its data type.
 
         Parameters
@@ -744,7 +744,7 @@ class DualCondNeuralOutput(DualNeuralOutput):
                 raise IndexError(f"Unable to fetch the device with `id={idx}`.")
 
         out = jax.device_put(self._output, device)
-        return DualCondNeuralOutput(output=out, training_logs=self.training_logs)
+        return CondNeuralDualOutput(output=out, training_logs=self.training_logs)
 
     def push(self, cond: ArrayLike, x: ArrayLike) -> ArrayLike:  # type: ignore[override]
         """Push distribution `x` conditioned on condition `cond`.
