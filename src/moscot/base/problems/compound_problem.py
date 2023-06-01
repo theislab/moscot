@@ -196,8 +196,8 @@ class BaseCompoundProblem(BaseProblem, abc.ABC, Generic[K, B]):
 
     def prepare(
         self,
+        policy: Policy_t,
         key: Optional[str],
-        policy: Policy_t = "sequential",
         subset: Optional[Sequence[Tuple[K, K]]] = None,
         reference: Optional[Any] = None,
         xy_callback: Optional[Union[Literal["local-pca"], Callback_t]] = None,
@@ -208,36 +208,45 @@ class BaseCompoundProblem(BaseProblem, abc.ABC, Generic[K, B]):
         y_callback_kwargs: Mapping[str, Any] = types.MappingProxyType({}),
         **kwargs: Any,
     ) -> "BaseCompoundProblem[K, B]":
-        """TODO.
+        """Prepare the individual :term:`OT` subproblems.
+
+        .. seealso::
+            - See :doc:`../notebooks/examples/problems/400_subset_policy` on how to use different policies.
+            - See :doc:`../notebooks/examples/problems/900_callbacks` on how to pass the callback functions.
 
         Parameters
         ----------
-        key
-            TODO.
         policy
-            TODO.
+            The rule which defines how to construct the subproblems.
+        key
+            Key in :attr:`~anndata.AnnData.obs` for the :class:`~moscot.utils.subset_policy.SubsetPolicy`.
         subset
-            TODO.
+            Subset of :attr:`adata.obs['{key}'] <anndata.AnnData.obs>`
+            for the :class:`~moscot.utils.subset_policy.ExplicitPolicy`. Only used when ``policy = 'explicit'``.
         reference
-            TODO.
+            Reference for the :class:`~moscot.utils.subset_policy.SubsetPolicy`. Only used when ``policy = 'star'``.
         xy_callback
-            TODO.
+            Callback function used to prepare the data in the :term:`linear term`.
         x_callback
-            TODO.
+            Callback function used to prepare the data in the source :term:`quadratic term`.
         y_callback
-            TODO.
+            Callback function used to prepare the data in the target :term:`quadratic term`.
         xy_callback_kwargs
-            TODO.
+            Keyword arguments for the ``xy_callback``.
         x_callback_kwargs
-            TODO.
+            Keyword arguments for the ``x_callback``.
         y_callback_kwargs
-            TODO.
+            Keyword arguments for the ``y_callback``.
         kwargs
-            TODO.
+            Keyword arguments for the subproblems' :meth:`~moscot.base.problems.OTProblem.prepare` method.
 
         Returns
         -------
-        TODO.
+        Returns self and updates the following fields:
+
+        - :attr:`problems` - the prepared subproblems.
+        - :attr:`solutions` - set to an empty :class:`dict`.
+        - :attr:`stage` - set to ``'prepared'``.
         """
         self._ensure_valid_policy(policy)
         policy = self._create_policy(policy=policy, key=key)
@@ -265,42 +274,47 @@ class BaseCompoundProblem(BaseProblem, abc.ABC, Generic[K, B]):
         )
         self._problem_manager.add_problems(problems)
 
-        # we assume all subproblems are of the same kind
+        # we assume that all subproblems are of the same kind
         for p in self.problems.values():
             self._problem_kind = p._problem_kind
+            self._stage = "prepared"
             break
         return self
 
     def solve(
         self,
-        stage: Optional[Union[ProblemStage_t, Tuple[ProblemStage_t, ...]]] = ("prepared", "solved"),
+        stage: Union[ProblemStage_t, Tuple[ProblemStage_t, ...]] = ("prepared", "solved"),
         **kwargs: Any,
-    ) -> "BaseCompoundProblem[K,B]":
-        """Solve the subproblems.
+    ) -> "BaseCompoundProblem[K, B]":
+        """Solve the individual :term:`OT` subproblems.
+
+        .. seealso:
+            - TODO(michalk8): link an example/tutorial
 
         Parameters
         ----------
         stage
-            TODO.
+            Stage by which to filter the :attr:`problems` to be solved.
         kwargs
-            TODO.
+            Keyword arguments for the subproblems' :meth:`~moscot.base.problems.OTProblem.solve` method.
 
         Returns
         -------
         Self and updates the following fields:
 
-            - :attr:`problems`
-            - :attr:`solutions`
+        - :attr:`solutions` - the :term:`OT` solutions for each subproblem.
+        - :attr:`stage` - set to ``'solved'``.
         """
         if TYPE_CHECKING:
             assert isinstance(self._problem_manager, ProblemManager)
         problems = self._problem_manager.get_problems(stage=stage)
 
         logger.info(f"Solving `{len(problems)}` problems")
-        for _, problem in problems.items():
+        for problem in problems.values():
             logger.info(f"Solving problem {problem}.")
             _ = problem.solve(**kwargs)
 
+        self._stage = "solved"
         return self
 
     @attributedispatch(attr="_policy")
@@ -454,6 +468,9 @@ class BaseCompoundProblem(BaseProblem, abc.ABC, Generic[K, B]):
     ) -> "BaseCompoundProblem[K, B]":
         """Add a subproblem.
 
+        .. seealso::
+            - See :doc:`../notebooks/examples/problems/300_adding_and_removing_problems` on how to add subproblems.
+
         Parameters
         ----------
         key
@@ -463,14 +480,13 @@ class BaseCompoundProblem(BaseProblem, abc.ABC, Generic[K, B]):
         overwrite
             Whether ot overwrite an existing subproblem in :attr:`problems`.
         kwargs
-            Keyword arguments for :meth:`~moscot.base.problems.manager.ProblemManager.add_problem`.
+            Additional keyword arguments.
 
         Returns
         -------
         Self and updates the following fields:
 
         - :attr:`problems`
-        - :attr:`solutions`
         """
         if TYPE_CHECKING:
             assert isinstance(self._problem_manager, ProblemManager)
@@ -480,6 +496,9 @@ class BaseCompoundProblem(BaseProblem, abc.ABC, Generic[K, B]):
     @require_prepare
     def remove_problem(self, key: Tuple[K, K]) -> "BaseCompoundProblem[K, B]":
         """Remove a subproblem.
+
+        .. seealso::
+            - See :doc:`../notebooks/examples/problems/300_adding_and_removing_problems` on how to remove subproblems.
 
         Parameters
         ----------
@@ -491,7 +510,6 @@ class BaseCompoundProblem(BaseProblem, abc.ABC, Generic[K, B]):
         Self and updates the following fields:
 
         - :attr:`problems`
-        - :attr:`solutions`
         """
         if TYPE_CHECKING:
             assert isinstance(self._problem_manager, ProblemManager)
@@ -580,8 +598,6 @@ class CompoundProblem(BaseCompoundProblem[K, B], abc.ABC):
         callback: Optional[Union[Literal["local-pca", "cost-matrix"], Callback_t]] = None,
         **kwargs: Any,
     ) -> Mapping[Literal["xy", "x", "y"], TaggedArray]:
-        # TODO(michalk8): better name?
-
         if callback == "cost-matrix":
             return self._cost_matrix_callback(term=term, key_1=key_1, key_2=key_2, **kwargs)
         return super()._callback_handler(

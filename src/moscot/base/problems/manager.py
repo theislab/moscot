@@ -145,7 +145,7 @@ class ProblemManager(Generic[K, B]):
         return {k: v for k, v in self.problems.items() if v.stage in stage}
 
     def get_solutions(self, only_converged: bool = False) -> Dict[Tuple[K, K], BaseSolverOutput]:
-        """Get solutions to :term:`OT` :attr:`problems`, if present.
+        """Get solutions to the :term:`OT` subproblems.
 
         Parameters
         ----------
@@ -154,7 +154,7 @@ class ProblemManager(Generic[K, B]):
 
         Returns
         -------
-        The :term:`OT` solutions.
+        The :term:`OT` solutions for :attr:`problems`.
         """
         return {
             k: v.solution

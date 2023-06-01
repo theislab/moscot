@@ -848,7 +848,7 @@ class TemporalMixin(AnalysisMixin[K, B]):
 
     @property
     def temporal_key(self) -> Optional[str]:
-        """Temporal key in :attr:`anndata.AnnData.obs`."""
+        """Temporal key in :attr:`~anndata.AnnData.obs`."""
         return self._temporal_key
 
     @temporal_key.setter
@@ -858,7 +858,6 @@ class TemporalMixin(AnalysisMixin[K, B]):
             return
         if key not in self.adata.obs:
             raise KeyError(f"Unable to find temporal key in `adata.obs[{key!r}]`.")
-        # TODO(michalk8): check for numeric values
         if not (is_categorical_dtype(self.adata.obs[key]) and is_numeric_dtype(self.adata.obs[key].cat.categories)):
             raise TypeError(
                 "Temporal key has to be of numeric type. "

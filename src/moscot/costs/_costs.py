@@ -17,6 +17,10 @@ __all__ = ["LeafDistance", "BarcodeDistance"]
 class BarcodeDistance(BaseCost):
     """Scaled `Hamming distance <https://en.wikipedia.org/wiki/Hamming_distance>`_ between barcodes.
 
+    .. seealso::
+        - See :doc:`../notebooks/examples/problems/700_barcode_distance` on how to use this cost
+          in the :class:`~moscot.problems.time.LineageProblem`.
+
     Parameters
     ----------
     adata
@@ -60,13 +64,14 @@ class BarcodeDistance(BaseCost):
 class LeafDistance(BaseCost):
     """`Shortest path <https://en.wikipedia.org/wiki/Shortest_path_problem>`_ distance on a weighted tree.
 
-    .. note::
-        The tree is always extracted from the :attr:`~anndata.AnnData.uns` attribute.
+    .. seealso::
+        - See :doc:`../notebooks/examples/problems/600_leaf_distance` on how to use this cost
+          in the :class:`~moscot.problems.time.LineageProblem`.
 
     Parameters
     ----------
     adata
-        Annotated data object.
+        Annotated data object. The tree is always extracted from the :attr:`~anndata.AnnData.uns` attribute.
     weight
         If a :class:`str`, it is the edge weight attribute of the :attr:`tree`.
         If a function, it must accept arguments as described in

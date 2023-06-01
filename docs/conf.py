@@ -37,6 +37,7 @@ extensions = [
     "sphinx.ext.autosummary",
     "sphinxcontrib.bibtex",
     "sphinx_copybutton",
+    "sphinx_autodoc_typehints",
     "myst_nb",
     "sphinx_design",  # for cards
     "sphinx_tippy",

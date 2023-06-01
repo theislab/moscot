@@ -82,7 +82,7 @@ class BaseProblem(abc.ABC):
         path: Union[str, pathlib.Path],
         overwrite: bool = False,
     ) -> None:
-        """Save the problem using :mod:`cloudpickle`.
+        """Save the problem using.
 
         Parameters
         ----------
@@ -356,7 +356,6 @@ class OTProblem(BaseProblem):
         else:
             raise ValueError("Unable to prepare the data. Either only supply `xy=...`, or `x=..., y=...`, or all.")
         # fmt: on
-        self._stage = "prepared"
         self._a = self._create_marginals(self.adata_src, data=a, source=True, **kwargs)
         self._b = self._create_marginals(self.adata_tgt, data=b, source=False, **kwargs)
         return self
