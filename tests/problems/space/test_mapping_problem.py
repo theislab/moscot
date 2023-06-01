@@ -29,7 +29,14 @@ class TestMappingProblem:
     @pytest.mark.fast()
     @pytest.mark.parametrize("sc_attr", [{"attr": "X"}, {"attr": "obsm", "key": "X_pca"}])
     @pytest.mark.parametrize("joint_attr", [None, "X_pca", {"attr": "obsm", "key": "X_pca"}])
-    def test_prepare(self, adata_mapping: AnnData, sc_attr: Mapping[str, str], joint_attr: Optional[Mapping[str, str]]):
+    @pytest.mark.parametrize("normalize_spatial", [True, False])
+    def test_prepare(
+        self,
+        adata_mapping: AnnData,
+        sc_attr: Mapping[str, str],
+        joint_attr: Optional[Mapping[str, str]],
+        normalize_spatial: bool,
+    ):
         adataref, adatasp = _adata_spatial_split(adata_mapping)
         expected_keys = {(i, "ref") for i in adatasp.obs.batch.cat.categories}
         n_obs = adataref.shape[0]
@@ -40,7 +47,11 @@ class TestMappingProblem:
         assert mp.problems == {}
         assert mp.solutions == {}
 
-        mp = mp.prepare(batch_key="batch", sc_attr=sc_attr, joint_attr=joint_attr)
+        mp = mp.prepare(batch_key="batch", sc_attr=sc_attr, joint_attr=joint_attr, normalize_spatial=normalize_spatial)
+        if normalize_spatial:
+            assert mp[("1", "ref")].x.data_src.std() == mp[("2", "ref")].x.data_src.std() == 1
+            np.testing.assert_allclose(mp[("1", "ref")].x.data_src.mean(), 0, atol=1e-15)
+            np.testing.assert_allclose(mp[("2", "ref")].x.data_src.mean(), 0, atol=1e-15)
 
         assert len(mp) == len(expected_keys)
         for prob_key in expected_keys:

@@ -510,10 +510,10 @@ class OTProblem(BaseProblem):
     def _spatial_norm_callback(
         term: Literal["x", "y"],
         adata: AnnData,
-        spatial_key: str,
         adata_y: Optional[AnnData] = None,
         **kwargs: Any,
     ) -> Dict[Literal["x", "y"], TaggedArray]:
+        spatial_key = kwargs["spatial_key"]
         if term == "x":
             spatial = adata.obsm[spatial_key]
         if term == "y":
@@ -521,6 +521,7 @@ class OTProblem(BaseProblem):
                 spatial = adata_y.obsm[spatial_key]
             else:
                 raise ValueError("When `term` is `y` `adata_y` cannot be `None`.")
+        logger.info(f"Normalizing spatial coordinates of `{term}`.")
         spatial = (spatial - spatial.mean()) / spatial.std()
         return {term: TaggedArray(spatial, tag=Tag.POINT_CLOUD)}
 

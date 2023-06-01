@@ -84,7 +84,9 @@ class AlignmentProblem(SpatialAlignmentMixin[K, B], CompoundProblem[K, B]):
         x = y = {"attr": "obsm", "key": self.spatial_key, "tag": "point_cloud"}
 
         if normalize_spatial and "x_callback" not in kwargs and "y_callback" not in kwargs:
-            kwargs["x_callback"] = kwargs["y_callback"] = {"spatial-norm": {"spatial_key": self.spatial_key}}
+            kwargs["x_callback"] = kwargs["y_callback"] = "spatial-norm"
+            kwargs.setdefault("x_callback_kwargs", {"spatial_key": self.spatial_key})
+            kwargs.setdefault("y_callback_kwargs", {"spatial_key": self.spatial_key})
 
         xy, kwargs = handle_joint_attr(joint_attr, kwargs)
         xy, x, y = handle_cost(xy=xy, x=x, y=y, cost=cost, cost_kwargs=cost_kwargs)
