@@ -246,6 +246,7 @@ class TemporalNeuralProblem(
             valid_sinkhorn_kwargs=valid_sinkhorn_kwargs,
             compute_wasserstein_baseline=compute_wasserstein_baseline,
             train_size=train_size,
+            solver_name="NeuralDualSolver",
             **kwargs,
         )  # type:ignore[return-value]
 

@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING, Any, Literal, Tuple, Union
+from typing import TYPE_CHECKING, Any, Literal, Tuple, Union, Optional
 
 from moscot import _registry
 from moscot._types import ProblemKind_t
@@ -26,15 +26,16 @@ def register_solver(backend: str) -> Any:
 
 @register_solver("ott")
 def _(
-    problem_kind: Literal["linear", "quadratic"], neural: Union[bool, Literal["cond"]] = False, **kwargs: Any
-) -> Union["ott.SinkhornSolver", "ott.GWSolver", "ott.NeuralSolver", "ott.CondNeuralSolver"]:
+    problem_kind: Literal["linear", "quadratic"], solver_name: Optional[Literal["NeuralDualSolver", "CondNeuralDualSolver", "MongeGapSolver"]] = None, **kwargs: Any
+) -> Union["ott.SinkhornSolver", "ott.GWSolver", "ott.NeuralSolver", "ott.CondNeuralDualSolver", "ott.MongeGapSolver"]:
     from moscot.backends import ott
-
+    if solver_name == "DualNeural":
+        return ott.DualNeuralSolver
+    if solver_name == "condNeuralDual":
+        return ott.CondNeuralDualSolver
+    if solver_name == "MongeGap":
+        return ott.MongeGapSolver
     if problem_kind == "linear":
-        if neural:
-            if neural == "cond":
-                return ott.CondNeuralSolver(**kwargs)
-            return ott.NeuralSolver(**kwargs)
         return ott.SinkhornSolver(**kwargs)
     if problem_kind == "quadratic":
         return ott.GWSolver(**kwargs)

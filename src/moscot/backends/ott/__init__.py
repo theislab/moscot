@@ -2,19 +2,19 @@ from ott.geometry import costs
 
 from moscot.backends.ott.output import (
     ConditionalDualPotentials,
-    ConditionalNeuralOutput,
-    NeuralOutput,
+    DualCondNeuralOutput,
+    DualNeuralOutput,
     OTTOutput,
 )
 from moscot.backends.ott.solver import (
-    CondNeuralSolver,
+    CondNeuralDualSolver,
     GWSolver,
     NeuralSolver,
     SinkhornSolver,
 )
 from moscot.costs import register_cost
 
-__all__ = ["OTTOutput", "NeuralOutput", "GWSolver", "SinkhornSolver", "NeuralSolver", "CondNeuralSolver"]
+__all__ = ["OTTOutput", "DualNeuralOutput", "GWSolver", "SinkhornSolver", "NeuralSolver", "CondNeuralDualSolver"]
 
 register_cost("euclidean", backend="ott")(costs.Euclidean)
 register_cost("sq_euclidean", backend="ott")(costs.SqEuclidean)

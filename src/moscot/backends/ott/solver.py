@@ -25,12 +25,12 @@ from moscot._types import (
 from moscot.backends.ott._jax_data import JaxSampler
 from moscot.backends.ott._neuraldual import NeuralDualSolver
 from moscot.backends.ott._utils import _filter_kwargs
-from moscot.backends.ott.output import ConditionalNeuralOutput, NeuralOutput, OTTOutput
+from moscot.backends.ott.output import DualCondNeuralOutput, DualNeuralOutput, OTTOutput
 from moscot.base.solver import OTSolver
 from moscot.costs import get_cost
 from moscot.utils.tagged_array import TaggedArray
 
-__all__ = ["SinkhornSolver", "GWSolver", "NeuralSolver", "CondNeuralSolver"]
+__all__ = ["SinkhornSolver", "GWSolver", "NeuralSolver", "CondNeuralDualSolver"]
 
 Scale_t = Union[float, Literal["mean", "median", "max_cost", "max_norm", "max_bound"]]
 Epsilon_t = Union[float, Epsilon]
@@ -356,9 +356,9 @@ class NeuralSolver(OTSolver[OTTOutput]):
         )
         return (self._train_sampler, self._valid_sampler)
 
-    def _solve(self, data_samplers: Tuple[JaxSampler, JaxSampler]) -> NeuralOutput:  # type: ignore[override]
+    def _solve(self, data_samplers: Tuple[JaxSampler, JaxSampler]) -> DualNeuralOutput:  # type: ignore[override]
         model, logs = self.solver(data_samplers[0], data_samplers[1])
-        return NeuralOutput(model, logs)  # type:ignore[arg-type]
+        return DualNeuralOutput(model, logs)  # type:ignore[arg-type]
 
     @staticmethod
     def _assert2d(arr: ArrayLike, *, allow_reshape: bool = True) -> jnp.ndarray:  # type:ignore[name-defined]
@@ -420,7 +420,7 @@ class NeuralSolver(OTSolver[OTTOutput]):
         return "linear"
 
 
-class CondNeuralSolver(NeuralSolver):
+class CondNeuralDualSolver(NeuralSolver):
     """Solver class solving Conditional Neural Optimal Transport problems."""
 
     def __init__(self, *args, cond_dim: int, **kwargs: Any) -> None:
@@ -500,6 +500,6 @@ class CondNeuralSolver(NeuralSolver):
             b[n_train_x:] if b is not None else None,
         )
 
-    def _solve(self, data_samplers: Tuple[JaxSampler, JaxSampler]) -> ConditionalNeuralOutput:  # type: ignore[override]
+    def _solve(self, data_samplers: Tuple[JaxSampler, JaxSampler]) -> DualCondNeuralOutput:  # type: ignore[override]
         model, logs = self.solver(data_samplers[0], data_samplers[1])
-        return ConditionalNeuralOutput(output=model, training_logs=logs)  # type:ignore[arg-type]
+        return DualCondNeuralOutput(output=model, training_logs=logs)  # type:ignore[arg-type]

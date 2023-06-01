@@ -311,6 +311,7 @@ class OTProblem(BaseProblem):
     def solve(
         self,
         backend: Literal["ott"] = "ott",
+        solver_name: Optional[str] = None,
         device: Optional[Device_t] = None,
         **kwargs: Any,
     ) -> "OTProblem":
@@ -320,6 +321,8 @@ class OTProblem(BaseProblem):
         ----------
         backend
             Which backend to use, see :func:`~moscot.backends.utils.get_available_backends`.
+        solver_name
+            Literal defining the solver. If `None`, automatically infers the discrete OT solver.
         device
             Device where to transfer the solution, see :meth:`moscot.base.output.BaseSolverOutput.to`.
         kwargs
@@ -334,7 +337,7 @@ class OTProblem(BaseProblem):
         """
         self._solver = backends.get_solver(
             self.problem_kind,
-            neural=isinstance(self, NeuralOTProblem),
+            solver_name=solver_name,
             backend=backend,
             **kwargs,
         )
