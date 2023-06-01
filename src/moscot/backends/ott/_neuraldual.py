@@ -1,6 +1,7 @@
-from collections import defaultdict
+from collections import defaultdict, abc
 from types import MappingProxyType
 from typing import Any, Callable, Dict, Iterable, List, Literal, Optional, Tuple, Union, Type
+
 
 import optax
 from flax.core import freeze
@@ -148,10 +149,10 @@ class OTTNeuralDualSolver:
         self.compute_wasserstein_baseline = compute_wasserstein_baseline
         self.key: jax.random.PRNGKeyArray = jax.random.PRNGKey(seed)
 
-        self.optimizer_f = _get_optimizer(optimizer_f) if isinstance(optimizer_f, dict) else optimizer_f
-        self.optimizer_g = _get_optimizer(optimizer_g) if isinstance(optimizer_g, dict) else optimizer_g
-        self.neural_f = _get_icnn(f) if isinstance(f, dict) else f
-        self.neural_g = _get_icnn(g) if isinstance(g, dict) else g
+        self.optimizer_f = _get_optimizer(**optimizer_f) if isinstance(optimizer_f, abc.Mapping) else optimizer_f
+        self.optimizer_g = _get_optimizer(**optimizer_g) if isinstance(optimizer_g, abc.Mapping) else optimizer_g
+        self.neural_f = _get_icnn(input_dim=input_dim, cond_dim=cond_dim, **f) if isinstance(f, abc.Mapping) else f
+        self.neural_g = _get_icnn(input_dim=input_dim, cond_dim=cond_dim, **g) if isinstance(g, abc.Mapping) else g
         # set optimizer and networks
         self.setup(self.neural_f, self.neural_g, self.optimizer_f, self.optimizer_g)
 
