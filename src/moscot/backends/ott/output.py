@@ -166,8 +166,8 @@ class OTTOutput(BaseSolverOutput):
 
     def _apply(self, x: ArrayLike, *, forward: bool) -> ArrayLike:
         if x.ndim == 1:
-            return self._output.apply(x, axis=1 - forward)
-        return self._output.apply(x.T, axis=1 - forward).T  # convert to batch first
+            return jax.jit(self._output.apply, static_argnames="axis")(x, axis=1 - forward)
+        return jax.jit(self._output.apply)(x.T, axis=1 - forward).T  # convert to batch first
 
     @property
     def shape(self) -> Tuple[int, int]:  # noqa: D102
