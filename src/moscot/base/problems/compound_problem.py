@@ -1,6 +1,5 @@
 import abc
-import os
-from types import MappingProxyType
+import types
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -18,8 +17,6 @@ from typing import (
     TypeVar,
     Union,
 )
-
-import cloudpickle
 
 import scipy.sparse as sp
 
@@ -62,7 +59,7 @@ class BaseCompoundProblem(BaseProblem, abc.ABC, Generic[K, B]):
     adata
         Annotated data object.
     kwargs
-        Keyword arguments for :class:`~moscot.base.problems.problem.BaseProblem`.
+        Keyword arguments for :class:`~moscot.base.problems.BaseProblem`.
     """
 
     def __init__(self, adata: AnnData, **kwargs: Any):
@@ -155,9 +152,9 @@ class BaseCompoundProblem(BaseProblem, abc.ABC, Generic[K, B]):
         xy_callback: Optional[Union[Literal["local-pca"], Callback_t]] = None,
         x_callback: Optional[Union[Literal["local-pca"], Callback_t]] = None,
         y_callback: Optional[Union[Literal["local-pca"], Callback_t]] = None,
-        xy_callback_kwargs: Mapping[str, Any] = MappingProxyType({}),
-        x_callback_kwargs: Mapping[str, Any] = MappingProxyType({}),
-        y_callback_kwargs: Mapping[str, Any] = MappingProxyType({}),
+        xy_callback_kwargs: Mapping[str, Any] = types.MappingProxyType({}),
+        x_callback_kwargs: Mapping[str, Any] = types.MappingProxyType({}),
+        y_callback_kwargs: Mapping[str, Any] = types.MappingProxyType({}),
         **kwargs: Any,
     ) -> Dict[Tuple[K, K], B]:
         from moscot.base.problems.birth_death import BirthDeathProblem
@@ -206,9 +203,9 @@ class BaseCompoundProblem(BaseProblem, abc.ABC, Generic[K, B]):
         xy_callback: Optional[Union[Literal["local-pca"], Callback_t]] = None,
         x_callback: Optional[Union[Literal["local-pca"], Callback_t]] = None,
         y_callback: Optional[Union[Literal["local-pca"], Callback_t]] = None,
-        xy_callback_kwargs: Mapping[str, Any] = MappingProxyType({}),
-        x_callback_kwargs: Mapping[str, Any] = MappingProxyType({}),
-        y_callback_kwargs: Mapping[str, Any] = MappingProxyType({}),
+        xy_callback_kwargs: Mapping[str, Any] = types.MappingProxyType({}),
+        x_callback_kwargs: Mapping[str, Any] = types.MappingProxyType({}),
+        y_callback_kwargs: Mapping[str, Any] = types.MappingProxyType({}),
         **kwargs: Any,
     ) -> "BaseCompoundProblem[K, B]":
         """TODO.
@@ -379,6 +376,7 @@ class BaseCompoundProblem(BaseProblem, abc.ABC, Generic[K, B]):
 
         return res if return_all else current_mass
 
+    # TODO(michalk8): expose arguments
     def push(self, *args: Any, **kwargs: Any) -> ApplyOutput_t[K]:
         """
         Push mass from `start` to `end`.
@@ -408,6 +406,7 @@ class BaseCompoundProblem(BaseProblem, abc.ABC, Generic[K, B]):
         _ = kwargs.pop("key_added", None)  # this should be handled by overriding method
         return self._apply(*args, forward=True, **kwargs)
 
+    # TODO(michalk8): expose arguments
     def pull(self, *args: Any, **kwargs: Any) -> ApplyOutput_t[K]:
         """
         Pull mass from `end` to `start`.
@@ -470,8 +469,8 @@ class BaseCompoundProblem(BaseProblem, abc.ABC, Generic[K, B]):
         -------
         Self and updates the following fields:
 
-            - :attr:`problems`
-            - :attr:`solutions`
+        - :attr:`problems`
+        - :attr:`solutions`
         """
         if TYPE_CHECKING:
             assert isinstance(self._problem_manager, ProblemManager)
@@ -498,75 +497,6 @@ class BaseCompoundProblem(BaseProblem, abc.ABC, Generic[K, B]):
             assert isinstance(self._problem_manager, ProblemManager)
         self._problem_manager.remove_problem(key)
         return self
-
-    # TODO(MUCKD): should be on the OT problem level as well
-    def save(
-        self,
-        dir_path: str,
-        file_prefix: Optional[str] = None,
-        overwrite: bool = False,
-    ) -> None:
-        """
-        Save the model.
-
-        As of now this method pickled the problem class instance. Modifications depend on the I/O of the backend.
-
-        Parameters
-        ----------
-        dir_path
-            Path to a directory, defaults to current directory
-        file_prefix
-            Prefix to prepend to the file name.
-        overwrite
-            Whether to overwrite existing data or not.
-
-        Returns
-        -------
-        Nothing, just saves the problem.
-        """
-        file_name = (
-            f"{file_prefix}_{self.__class__.__name__}.pkl"
-            if file_prefix is not None
-            else f"{self.__class__.__name__}.pkl"
-        )
-        file_dir = os.path.join(dir_path, file_name) if dir_path is not None else file_name
-
-        if not overwrite and os.path.exists(file_dir):
-            raise RuntimeError(f"Unable to save to an existing file `{file_dir}` use `overwrite=True` to overwrite it.")
-        with open(file_dir, "wb") as f:
-            cloudpickle.dump(self, f)
-
-        logger.info(f"Successfully saved the problem as `{file_dir}`")
-
-    # TODO(MUCKD): should be on the OT problem level as well
-    @classmethod
-    def load(
-        cls,
-        filename: str,
-    ) -> "BaseCompoundProblem[K, B]":
-        """
-        Instantiate a moscot problem from a saved output.
-
-        Parameters
-        ----------
-        filename
-            filename of the model to load
-
-        Returns
-        -------
-        Loaded instance of the model.
-
-        Examples
-        --------
-        #TODO(michalk8): make nicer
-        >>> problem = ProblemClass.load(filename) # use the name of the model class used to save
-        >>> problem.push....
-        """
-        with open(filename, "rb") as f:
-            problem = cloudpickle.load(f)
-        if type(problem) is not cls:
-            raise TypeError(f"Expected the problem to be type of `{cls}`, found `{type(problem)}`.")
-        return problem
 
     @property
     def solutions(self) -> Dict[Tuple[K, K], BaseSolverOutput]:

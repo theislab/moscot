@@ -242,6 +242,7 @@ class TestCompoundProblem:
         assert list(problem.problems.keys()) == expected_keys + [(0, 2)]
 
     def test_save_load(self, adata_time: AnnData):
+        # TODO(michalk8): refactor this test
         dir_path = "tests/data"
         file_prefix = "test_save_load"
         file = os.path.join(dir_path, f"{file_prefix}_Problem.pkl")

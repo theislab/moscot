@@ -1,5 +1,6 @@
+import abc
+import pathlib
 import types
-from abc import ABC, abstractmethod
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -11,6 +12,8 @@ from typing import (
     Tuple,
     Union,
 )
+
+import cloudpickle
 
 import numpy as np
 import pandas as pd
@@ -31,14 +34,14 @@ from moscot.utils.tagged_array import Tag, TaggedArray
 __all__ = ["BaseProblem", "OTProblem"]
 
 
-class BaseProblem(ABC):
+class BaseProblem(abc.ABC):
     """Base class for all :term:`OT` problems."""
 
     def __init__(self):
         self._problem_kind: ProblemKind_t = "unknown"
         self._stage: ProblemStage_t = "initialized"
 
-    @abstractmethod
+    @abc.abstractmethod
     def prepare(self, *args: Any, **kwargs: Any) -> "BaseProblem":
         """Prepare the problem.
 
@@ -56,7 +59,7 @@ class BaseProblem(ABC):
         - :attr:`stage` - set to ``'prepared'``.
         """
 
-    @abstractmethod
+    @abc.abstractmethod
     def solve(self, *args: Any, **kwargs: Any) -> "BaseProblem":
         """Solve the problem.
 
@@ -73,6 +76,51 @@ class BaseProblem(ABC):
 
         - :attr:`stage` - set to ``'solved'``.
         """
+
+    def save(
+        self,
+        path: Union[str, pathlib.Path],
+        overwrite: bool = False,
+    ) -> None:
+        """Save the problem using :mod:`cloudpickle`.
+
+        Parameters
+        ----------
+        path
+            Path where to save the problem.
+        overwrite
+            Whether to overwrite an existing file.
+
+        Returns
+        -------
+        Nothing, just saves the problem.
+        """
+        path = str(path)
+        path = pathlib.Path(path)
+        if not overwrite and path.is_file():
+            raise RuntimeError(
+                f"Unable to write the model to an existing file `{path}`, " f"use `overwrite=True` to overwrite it."
+            )
+        with open(path, "wb") as fout:
+            cloudpickle.dump(self, fout)
+
+    @staticmethod
+    def load(
+        path: Union[str, pathlib.Path],
+    ) -> "BaseProblem":
+        """Load the model from a file.
+
+        Parameters
+        ----------
+        path
+            Path where the model is stored.
+
+        Returns
+        -------
+        The problem.
+        """
+        with open(path, "rb") as fin:
+            return cloudpickle.load(fin)
 
     @staticmethod
     def _get_mass(
