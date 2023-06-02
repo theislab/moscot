@@ -12,7 +12,7 @@ from tests._utils import Geom_t
 
 @pytest.fixture()
 def adata_with_cost_matrix(adata_x: Geom_t, adata_y: Geom_t) -> AnnData:
-    adata = ad.concat([adata_x, adata_y], label="batch")
+    adata = ad.concat([adata_x, adata_y], label="batch", index_unique="-")
     C = pairwise_distances(adata_x.obsm["X_pca"], adata_y.obsm["X_pca"]) ** 2
     adata.obs["batch"] = pd.to_numeric(adata.obs["batch"])
     adata.uns[0] = C / C.mean()  # TODO(@MUCDK) make a callback function and replace this part

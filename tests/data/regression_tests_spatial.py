@@ -23,7 +23,7 @@ def adata_space_rotate() -> AnnData:
         rot = np.array([[cos(theta), -sin(theta)], [sin(theta), cos(theta)]])
         adata.obsm["spatial"] = np.dot(adata.obsm["spatial"], rot)
 
-    adata = ad.concat(adatas, label="batch")
+    adata = ad.concat(adatas, label="batch", index_unique="-")
     adata.uns["spatial"] = {}
     return adata
 
@@ -33,7 +33,7 @@ def adata_mapping() -> AnnData:
     adataref, adata1, adata2 = _make_adata(grid, n=3)
     sc.pp.pca(adataref)
 
-    return ad.concat([adataref, adata1, adata2], label="batch", join="outer")
+    return ad.concat([adataref, adata1, adata2], label="batch", join="outer", index_unique="-")
 
 
 def _make_grid(grid_size: int) -> ArrayLike:

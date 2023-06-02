@@ -5,7 +5,6 @@ import pickle
 import shutil
 import tempfile
 import urllib.request
-import warnings
 from types import MappingProxyType
 from typing import Any, Dict, List, Literal, Mapping, Optional, Tuple
 
@@ -396,10 +395,7 @@ def simulate_data(
         )
         for _ in range(n_distributions)
     ]
-    # remove once new `anndata` is release
-    with warnings.catch_warnings():
-        warnings.simplefilter("ignore", category=FutureWarning)
-        adata = ad.concat(adatas, label=key)
+    adata = ad.concat(adatas, label=key, index_unique="-")
     if key == "day":
         adata.obs["day"] = pd.to_numeric(adata.obs["day"])
     for k, val in obs_to_add.items():

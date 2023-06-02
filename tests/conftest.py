@@ -123,7 +123,8 @@ def adata_y(y: Geom_t) -> AnnData:
 def adata_time() -> AnnData:
     rng = np.random.RandomState(42)
     adatas = [AnnData(X=csr_matrix(rng.normal(size=(96, 60)))) for _ in range(3)]
-    adata = ad.concat(adatas, label="time")
+    adata = ad.concat(adatas, label="time", index_unique="-")
+
     adata.obs["time"] = pd.to_numeric(adata.obs["time"]).astype("category")
     adata.obs["batch"] = rng.choice((0, 1, 2), len(adata))
     adata.obs["left_marginals"] = np.ones(len(adata))
@@ -155,7 +156,7 @@ def create_marginals(n: int, m: int, *, uniform: bool = False, seed: Optional[in
 @pytest.fixture()
 def gt_temporal_adata() -> AnnData:
     adata = _gt_temporal_adata.copy()
-    # TODO(michalk8): remove once data has been regenerated
+    # TODO(michalk8): remove both lines once data has been regenerated
     adata.obs["day"] = pd.to_numeric(adata.obs["day"]).astype("category")
     adata.obs_names_make_unique()
     return adata
@@ -171,10 +172,9 @@ def adata_space_rotate() -> AnnData:
         rot = np.array([[cos(theta), -sin(theta)], [sin(theta), cos(theta)]])
         adata.obsm["spatial"] = np.dot(adata.obsm["spatial"], rot)
 
-    adata = ad.concat(adatas, label="batch")
+    adata = ad.concat(adatas, label="batch", index_unique="-")
     adata.obs["celltype"] = rng.choice(["A", "B", "C"], size=len(adata))
     adata.uns["spatial"] = {}
-    adata.obs_names_make_unique()
     sc.pp.pca(adata)
     return adata
 
@@ -184,21 +184,17 @@ def adata_mapping() -> AnnData:
     grid = _make_grid(10)
     adataref, adata1, adata2 = _make_adata(grid, n=3, seed=17)
     sc.pp.pca(adataref, n_comps=30)
-
-    adata = ad.concat([adataref, adata1, adata2], label="batch", join="outer")
-    adata.obs_names_make_unique()
-    return adata
+    return ad.concat([adataref, adata1, adata2], label="batch", join="outer", index_unique="-")
 
 
 @pytest.fixture()
 def adata_translation() -> AnnData:
     rng = np.random.RandomState(31)
     adatas = [AnnData(X=csr_matrix(rng.normal(size=(100, 60)))) for _ in range(3)]
-    adata = ad.concat(adatas, label="batch")
+    adata = ad.concat(adatas, label="batch", index_unique="-")
     adata.obs["celltype"] = rng.choice(["A", "B", "C"], size=len(adata))
     adata.obs["celltype"] = adata.obs["celltype"].astype("category")
     adata.layers["counts"] = adata.X.A
-    adata.obs_names_make_unique()
     sc.pp.pca(adata)
     return adata
 
