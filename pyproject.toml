@@ -179,6 +179,7 @@ markers = ["fast: marks tests as fask"]
 xfail_strict = true
 filterwarnings = [
     "ignore:No data for colormapping:UserWarning",
+    "ignore:The dtype argument will be deprecated in anndata:PendingDeprecationWarning"
 ]
 
 [tool.coverage.run]
