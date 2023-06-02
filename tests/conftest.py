@@ -123,7 +123,7 @@ def adata_time() -> AnnData:
     rng = np.random.RandomState(42)
     adatas = [AnnData(X=csr_matrix(rng.normal(size=(96, 60))), dtype=float) for _ in range(3)]
     adata = adatas[0].concatenate(*adatas[1:], batch_key="time")
-    adata.obs["time"] = pd.to_numeric(adata.obs["time"])
+    adata.obs["time"] = pd.to_numeric(adata.obs["time"]).astype("category")
     adata.obs["batch"] = rng.choice((0, 1, 2), len(adata))
     adata.obs["left_marginals"] = np.ones(len(adata))
     adata.obs["right_marginals"] = np.ones(len(adata))
@@ -154,6 +154,8 @@ def create_marginals(n: int, m: int, *, uniform: bool = False, seed: Optional[in
 @pytest.fixture()
 def gt_temporal_adata() -> AnnData:
     adata = _gt_temporal_adata.copy()
+    # TODO(michalk8): remove once data has been regenerated
+    adata.obs["day"] = pd.to_numeric(adata.obs["day"]).astype("category")
     adata.obs_names_make_unique()
     return adata
 

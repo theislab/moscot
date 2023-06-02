@@ -869,7 +869,7 @@ class TemporalMixin(AnalysisMixin[K, B]):
         col = self.adata.obs[key]
         if not (is_categorical_dtype(col) and is_numeric_dtype(col.cat.categories)):
             raise TypeError(
-                "Temporal key has to be of numeric type. "
-                f"Found `adata.obs[{key!r}]` to be of type `{infer_dtype(col)}`."
+                f"Expected `adata.obs[{key!r}]` to be categorical with numeric categories, "
+                f"found `{infer_dtype(col)}`."
             )
         self._temporal_key = key

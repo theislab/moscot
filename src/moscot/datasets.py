@@ -338,7 +338,7 @@ def simulate_data(
     cells_per_distribution: int = 20,
     n_genes: int = 60,
     key: Literal["day", "batch"] = "batch",
-    var: float = 1,
+    var: float = 1.0,
     obs_to_add: Mapping[str, Any] = MappingProxyType({"celltype": 3}),
     marginals: Optional[Tuple[str, str]] = None,
     seed: int = 0,
