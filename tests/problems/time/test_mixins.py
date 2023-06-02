@@ -377,7 +377,7 @@ class TestTemporalMixin:
             with pytest.raises(KeyError, match=r"Unable to find temporal key"):
                 _ = problem.prepare(temporal_key)
         elif temporal_key == "celltype":
-            with pytest.raises(TypeError, match=r"Expected temporal key"):
+            with pytest.raises(TypeError, match=rf"Expected `adata.obs\[{temporal_key!r}\]`.*"):
                 _ = problem.prepare(temporal_key)
         elif temporal_key == "time":
             _ = problem.prepare(temporal_key)
