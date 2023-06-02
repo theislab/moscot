@@ -109,20 +109,20 @@ def xy_cost(xy: Geom_t) -> jnp.ndarray:
 def adata_x(x: Geom_t) -> AnnData:
     rng = np.random.RandomState(43)
     pc = rng.normal(size=(len(x), 4))
-    return AnnData(X=np.asarray(x, dtype=float), obsm={"X_pca": pc}, dtype=float)
+    return AnnData(X=np.asarray(x, dtype=float), obsm={"X_pca": pc})
 
 
 @pytest.fixture()
 def adata_y(y: Geom_t) -> AnnData:
     rng = np.random.RandomState(44)
     pc = rng.normal(size=(len(y), 4))
-    return AnnData(X=np.asarray(y, dtype=float), obsm={"X_pca": pc}, dtype=float)
+    return AnnData(X=np.asarray(y, dtype=float), obsm={"X_pca": pc})
 
 
 @pytest.fixture()
 def adata_time() -> AnnData:
     rng = np.random.RandomState(42)
-    adatas = [AnnData(X=csr_matrix(rng.normal(size=(96, 60))), dtype=float) for _ in range(3)]
+    adatas = [AnnData(X=csr_matrix(rng.normal(size=(96, 60)))) for _ in range(3)]
     adata = ad.concat(adatas, label="time")
     adata.obs["time"] = pd.to_numeric(adata.obs["time"]).astype("category")
     adata.obs["batch"] = rng.choice((0, 1, 2), len(adata))
@@ -193,7 +193,7 @@ def adata_mapping() -> AnnData:
 @pytest.fixture()
 def adata_translation() -> AnnData:
     rng = np.random.RandomState(31)
-    adatas = [AnnData(X=csr_matrix(rng.normal(size=(100, 60))), dtype=float) for _ in range(3)]
+    adatas = [AnnData(X=csr_matrix(rng.normal(size=(100, 60)))) for _ in range(3)]
     adata = ad.concat(adatas, label="batch")
     adata.obs["celltype"] = rng.choice(["A", "B", "C"], size=len(adata))
     adata.obs["celltype"] = adata.obs["celltype"].astype("category")

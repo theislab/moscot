@@ -393,7 +393,6 @@ def simulate_data(
                 cov=kwargs.pop("cov", var * np.diag(np.ones(n_genes))),
                 size=cells_per_distribution,
             ),
-            dtype=float,
         )
         for _ in range(n_distributions)
     ]

@@ -408,7 +408,7 @@ class SpatialMappingMixin(AnalysisMixin[K, B]):
             for val in self.solutions.values()
         ]
         gexp_pred = np.nan_to_num(np.vstack(pred_list), nan=0.0, copy=False)
-        adata_pred = AnnData(gexp_pred, dtype=np.float_)
+        adata_pred = AnnData(gexp_pred)
         adata_pred.obs_names = self.adata_sp.obs_names
         adata_pred.var_names = var_names
         adata_pred.obsm = self.adata_sp.obsm.copy()

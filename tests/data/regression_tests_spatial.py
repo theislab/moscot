@@ -47,7 +47,7 @@ def _make_grid(grid_size: int) -> ArrayLike:
 def _make_adata(grid: ArrayLike, n: int) -> List[AnnData]:
     rng = np.random.default_rng(42)
     X = rng.normal(size=(100, 60))
-    return [AnnData(X=csr_matrix(X), dtype=X.dtype, obsm={"spatial": grid.copy()}) for _ in range(3)]
+    return [AnnData(X=csr_matrix(X), obsm={"spatial": grid.copy()}) for _ in range(3)]
 
 
 def _adata_split(adata: AnnData) -> Tuple[AnnData, AnnData]:
