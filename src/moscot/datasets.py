@@ -13,6 +13,7 @@ import networkx as nx
 import numpy as np
 import pandas as pd
 
+import anndata as ad
 from anndata import AnnData
 from scanpy import read
 
@@ -399,7 +400,7 @@ def simulate_data(
     # remove once new `anndata` is release
     with warnings.catch_warnings():
         warnings.simplefilter("ignore", category=FutureWarning)
-        adata = adatas[0].concatenate(*adatas[1:], batch_key=key)
+        adata = ad.concat(adatas, label=key)
     if key == "day":
         adata.obs["day"] = pd.to_numeric(adata.obs["day"])
     for k, val in obs_to_add.items():

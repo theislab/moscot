@@ -11,6 +11,7 @@ from scipy.sparse import csr_matrix
 
 import matplotlib.pyplot as plt
 
+import anndata as ad
 import scanpy as sc
 from anndata import AnnData
 
@@ -122,7 +123,7 @@ def adata_y(y: Geom_t) -> AnnData:
 def adata_time() -> AnnData:
     rng = np.random.RandomState(42)
     adatas = [AnnData(X=csr_matrix(rng.normal(size=(96, 60))), dtype=float) for _ in range(3)]
-    adata = adatas[0].concatenate(*adatas[1:], batch_key="time")
+    adata = ad.concat(adatas, label="time")
     adata.obs["time"] = pd.to_numeric(adata.obs["time"]).astype("category")
     adata.obs["batch"] = rng.choice((0, 1, 2), len(adata))
     adata.obs["left_marginals"] = np.ones(len(adata))
@@ -170,7 +171,7 @@ def adata_space_rotate() -> AnnData:
         rot = np.array([[cos(theta), -sin(theta)], [sin(theta), cos(theta)]])
         adata.obsm["spatial"] = np.dot(adata.obsm["spatial"], rot)
 
-    adata = adatas[0].concatenate(*adatas[1:], batch_key="batch")
+    adata = ad.concat(adatas, label="batch")
     adata.obs["celltype"] = rng.choice(["A", "B", "C"], size=len(adata))
     adata.uns["spatial"] = {}
     adata.obs_names_make_unique()
@@ -184,7 +185,7 @@ def adata_mapping() -> AnnData:
     adataref, adata1, adata2 = _make_adata(grid, n=3, seed=17)
     sc.pp.pca(adataref, n_comps=30)
 
-    adata = adataref.concatenate(adata1, adata2, batch_key="batch", join="outer")
+    adata = ad.concat([adataref, adata1, adata2], label="batch", join="outer")
     adata.obs_names_make_unique()
     return adata
 
@@ -193,7 +194,7 @@ def adata_mapping() -> AnnData:
 def adata_translation() -> AnnData:
     rng = np.random.RandomState(31)
     adatas = [AnnData(X=csr_matrix(rng.normal(size=(100, 60))), dtype=float) for _ in range(3)]
-    adata = adatas[0].concatenate(*adatas[1:], batch_key="batch")
+    adata = ad.concat(adatas, label="batch")
     adata.obs["celltype"] = rng.choice(["A", "B", "C"], size=len(adata))
     adata.obs["celltype"] = adata.obs["celltype"].astype("category")
     adata.layers["counts"] = adata.X.A
