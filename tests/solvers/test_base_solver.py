@@ -2,6 +2,8 @@ from typing import Tuple
 
 import pytest
 
+import jax.numpy as jnp
+import jax.random
 import numpy as np
 import scipy.sparse as sp
 
@@ -64,7 +66,7 @@ class TestBaseSolverOutput:
     @pytest.mark.parametrize("shape", [(7, 2), (91, 103)])
     def test_sparsify_percentile(self, batch_size: int, threshold: float, shape: Tuple[int, int]) -> None:
         rng = np.random.RandomState(42)
-        tmap = np.abs(rng.rand(shape[0], shape[1])) + 1e-3  # make sure it's not 0
+        tmap = jnp.abs(jax.random.normal(jax.random.PRNGKey(0), shape=shape)) + 1e-3
         output = MockSolverOutput(tmap)
         mso = output.sparsify(mode="percentile", value=threshold, batch_size=batch_size, n_samples=shape[0], seed=42)
         assert isinstance(mso, MatrixSolverOutput)
