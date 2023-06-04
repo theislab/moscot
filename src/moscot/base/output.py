@@ -197,13 +197,12 @@ class BaseSolverOutput(ABC):
                 - 'percentile' - determine threshold by percentile below which entries are set to 0. Hence, between 0
                   and 100.
                 - 'min_row' - choose the threshold such that each row has at least one non-zero entry.
-
         value
-            Value to use for sparsification depending on ``mode``:
+            Value to use for sparsification depending on the ``mode``:
 
                 - `'threshold'` - `value` sets the threshold below which entries are set to 0.
-                - `percentile` - `value` is the percentile below which entries are set to 0.
-                - `min_row` - `value` is not used.
+                - `'percentile'` - `value` is the percentile below which entries are set to 0.
+                - `'min_row'` - `value` is not used.
         batch_size
             How many rows of the transport matrix to sparsify per batch.
         n_samples
@@ -221,11 +220,11 @@ class BaseSolverOutput(ABC):
         n, m = self.shape
         if mode == "threshold":
             if value is None:
-                raise ValueError("If `mode` is `threshold`, `threshold` must not be `None`.")
+                raise ValueError("If `mode = 'threshold'`, `threshold` cannot be `None`.")
             thr = value
         elif mode == "percentile":
             if value is None:
-                raise ValueError("If `mode` is `percentile`, `threshold` must not be `None`.")
+                raise ValueError("If `mode = 'percentile'`, `threshold` cannot be `None`.")
             rng = np.random.RandomState(seed=seed)
             n_samples = n_samples if n_samples is not None else batch_size
             k = min(n_samples, n)
@@ -239,16 +238,16 @@ class BaseSolverOutput(ABC):
             for batch in range(0, m, batch_size):
                 x = np.eye(m, min(batch_size, m - batch), -(min(batch, m)))
                 res = self.pull(x, scale_by_marginals=False)  # tmap @ indicator_vectors
-                thr = min(thr, res.max(axis=1).min())
+                thr = min(thr, float(res.max(axis=1).min()))
         else:
             raise NotImplementedError(mode)
 
         k, func, fn_stack = (n, self.push, sp.vstack) if n < m else (m, self.pull, sp.hstack)
         tmaps_sparse: List[sp.csr_matrix] = []
         for batch in range(0, k, batch_size):
-            x = np.eye(k, min(batch_size, k - batch), -(min(batch, k)))
-            res = func(x, scale_by_marginals=False)
-            res[res < thr] = 0
+            x = np.eye(k, min(batch_size, k - batch), -(min(batch, k)), dtype=float)
+            res = np.array(func(x, scale_by_marginals=False))
+            res[res < thr] = 0.0
             tmaps_sparse.append(sp.csr_matrix(res.T if n < m else res))
         return MatrixSolverOutput(
             transport_matrix=fn_stack(tmaps_sparse), cost=self.cost, converged=self.converged, is_linear=self.is_linear
