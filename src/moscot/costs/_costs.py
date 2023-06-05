@@ -77,7 +77,7 @@ class LeafDistance(BaseCost):
         If a function, it must accept arguments as described in
         :func:`~networkx.algorithms.shortest_paths.weighted.multi_source_dijkstra`.
     kwargs
-        Additional keyword arguments for the :class:`~moscot.base.cost.BaseCost`.
+        Keyword arguments for the :class:`~moscot.base.cost.BaseCost`.
     """
 
     def __init__(

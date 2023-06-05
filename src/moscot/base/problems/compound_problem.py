@@ -122,7 +122,7 @@ class BaseCompoundProblem(BaseProblem, abc.ABC, Generic[K, B]):
 
     def _callback_handler(
         self,
-        term: Literal["x", "y", "xy"],
+        term: Literal["xy", "x", "y"],
         key_1: K,
         key_2: K,
         problem: B,
@@ -589,14 +589,16 @@ class BaseCompoundProblem(BaseProblem, abc.ABC, Generic[K, B]):
 
 
 class CompoundProblem(BaseCompoundProblem[K, B], abc.ABC):
-    """Class handling biological problems composed of exactly one :class:`~anndata.AnnData` instance.
+    """Base class for all biological problems.
 
-    This class is needed to apply the `policy` to one :class:`~anndata.AnnData` objects and hence create the
-    Optimal Transport subproblems from the biological problem.
+    This class translates a biological problem to multiple :term:`OT` problems.
 
     Parameters
     ----------
-    %(BaseCompoundProblem.parameters)s
+    adata
+        Annotated data object.
+    kwargs
+        Keyword arguments for :class:`~moscot.base.problems.BaseCompoundProblem`.
     """
 
     @property
