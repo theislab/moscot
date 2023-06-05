@@ -210,16 +210,16 @@ class SinkhornSolver(OTTJaxSolver):
 class GWSolver(OTTJaxSolver):
     """Solver for the :term:`quadratic problem`.
 
-    The :term:`Gromov-Wasserstein<GW>` problem involves two distribution in possibly two different spaces.
-    Points in the source distribution are matched to points in the target distribution by comparing the relative
-    location of the points within each distribution.
+    The :term:`Gromov-Wasserstein (GW) <Gromov-Wasserstein>` problem involves two distribution in
+    possibly two different spaces. Points in the source distribution are matched to points in the target distribution
+    by comparing the relative location of the points within each distribution.
 
     Parameters
     ----------
     jit
         Whether to :func:`~jax.jit` the :attr:`solver`.
     rank
-        Rank of the solver. If `-1` use the full-rank :term:`GW` :cite:`memoli:2011`,
+        Rank of the solver. If `-1` use the full-rank :term:`GW <Gromov-Wasserstein>` :cite:`memoli:2011`,
         otherwise, use the low-rank approach :cite:`scetbon:21b`.
     initializer
         Initializer for :class:`~ott.solvers.quadratic.gromov_wasserstein.GromovWasserstein`.
@@ -312,7 +312,7 @@ class GWSolver(OTTJaxSolver):
 
     @property
     def xy(self) -> Optional[geometry.Geometry]:
-        """Geometry defining the linear term in the :term:`FGW`."""
+        """Geometry defining the linear term in the :term:`FGW <fused Gromov-Wasserstein>`."""
         return None if self._problem is None else self._problem.geom_xy
 
     @property

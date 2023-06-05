@@ -61,23 +61,20 @@ class SinkhornProblem(GenericAnalysisMixin[K, B], CompoundProblem[K, B]):
         joint_attr
             How to get the data for the :term:`linear term`:
 
-            - :obj:`None` - `PCA <https://en.wikipedia.org/wiki/Principal_component_analysis>`_
+            - :obj:`None` - run `PCA <https://en.wikipedia.org/wiki/Principal_component_analysis>`_
               on :attr:`~anndata.AnnData.X` is computed.
-            - :class:`str` - it is a key in :attr:`~anndata.AnnData.obsm` where the data is stored.
-            - :class:`dict`-  it should contain 2 keys, ``'attr'`` and ``'key'``, the attribute and key
-              of :class:`~anndata.AnnData`, respectively.
+            - :class:`str` - a key in :attr:`~anndata.AnnData.obsm` where the data is stored.
+            - :class:`dict`-  it should contain ``'attr'`` and ``'key'``, the attribute and the key
+              in :class:`~anndata.AnnData`, and optionally ``'tag'``, one of :class:`~moscot.utils.tagged_array.Tag`.
+
+            By default, :attr:`tag = 'point_cloud' <moscot.utils.tagged_array.Tag.POINT_CLOUD>` is used.
         policy
             Rule which defines how to construct the subproblems.
         cost
             Cost function to use:
 
-            - :class:`str` - name of the cost function, see :func:`~moscot.costs.get_available_costs`.
-            - :class:`dict` - a dictionary with the following keys:
-
-              - ``'attr'`` - attribute of :class:`~anndata.AnnData`.
-              - ``'key'`` -  key in the attribute of :class:`~anndata.AnnData`.
-              - ``'tag'`` - how to interpret the extracted data in the :class:`~moscot.utils.tagged_array.TaggedArray`.
-                If not specified, :attr:`~moscot.utils.tagged_array.Tag.POINT_CLOUD` will be used.
+            - :class:`str` - name of the cost function for the :term:`linear term`,
+              see :func:`~moscot.costs.get_available_costs`.
         cost_kwargs
             Keyword arguments for the :class:`~moscot.base.cost.BaseCost` or any backend-specific cost.
         a
@@ -139,7 +136,6 @@ class SinkhornProblem(GenericAnalysisMixin[K, B], CompoundProblem[K, B]):
         inner_iterations: int = 10,
         min_iterations: int = 0,
         max_iterations: int = 2000,
-        cost_matrix_rank: Optional[int] = None,
         device: Optional[Literal["cpu", "gpu", "tpu"]] = None,
         **kwargs: Any,
     ) -> "SinkhornProblem[K,B]":
@@ -194,8 +190,6 @@ class SinkhornProblem(GenericAnalysisMixin[K, B], CompoundProblem[K, B]):
             Minimum number of :term:`Sinkhorn` iterations.
         max_iterations
             Maximum number of :term:`Sinkhorn` iterations.
-        cost_matrix_rank
-            Rank of the cost matrix.
         device
             Transfer the solution to a different device, see :meth:`~moscot.base.output.BaseSolverOutput.to`.
             If :obj:`None`, keep the output on the original device.
@@ -225,7 +219,6 @@ class SinkhornProblem(GenericAnalysisMixin[K, B], CompoundProblem[K, B]):
             inner_iterations=inner_iterations,
             min_iterations=min_iterations,
             max_iterations=max_iterations,
-            cost_matrix_rank=cost_matrix_rank,
             device=device,
             **kwargs,
         )
@@ -240,7 +233,7 @@ class SinkhornProblem(GenericAnalysisMixin[K, B], CompoundProblem[K, B]):
 
 
 class GWProblem(GenericAnalysisMixin[K, B], CompoundProblem[K, B]):
-    """Class for solving :term:`quadratic problems <quadratic problem>`>.
+    """Class for solving :term:`(fused) quadratic OT problems <quadratic problem>`.
 
     Parameters
     ----------
@@ -249,6 +242,9 @@ class GWProblem(GenericAnalysisMixin[K, B], CompoundProblem[K, B]):
     kwargs
         Keyword arguments for :class:`~moscot.base.problems.CompoundProblem`.
     """
+
+    def __init__(self, adata: AnnData, **kwargs: Any):
+        super().__init__(adata, **kwargs)
 
     def prepare(
         self,
@@ -263,7 +259,83 @@ class GWProblem(GenericAnalysisMixin[K, B], CompoundProblem[K, B]):
         b: Optional[str] = None,
         **kwargs: Any,
     ) -> "GWProblem[K, B]":
-        """TODO."""
+        """Prepare the individual :term:`quadratic subproblems <quadratic problem>`.
+
+        .. seealso::
+            - TODO(michalk8): add an example how to pass `x_attr/y_attr`.
+
+        Parameters
+        ----------
+        key
+            Key in :attr:`~anndata.AnnData.obs` for the :class:`~moscot.utils.subset_policy.SubsetPolicy`.
+        x_attr
+            How to get the data for the source :term:`quadratic term`:
+
+            - :class:`str` - a key in :attr:`~anndata.AnnData.obsm` where the data is stored.
+            - :class:`dict`-  it should contain ``'attr'`` and ``'key'``, the attribute and the key
+              in :class:`~anndata.AnnData`, and optionally ``'tag'``, one of :class:`~moscot.utils.tagged_array.Tag`.
+
+            By default, :attr:`tag = 'point_cloud' <moscot.utils.tagged_array.Tag.POINT_CLOUD>` is used.
+        y_attr
+            How to get the data for the target :term:`quadratic term`:
+
+            - :class:`str` - a key in :attr:`~anndata.AnnData.obsm` where the data is stored.
+            - :class:`dict`-  it should contain ``'attr'`` and ``'key'``, the attribute and the key
+              in :class:`~anndata.AnnData`, and optionally ``'tag'``, one of :class:`~moscot.utils.tagged_array.Tag`.
+
+            By default, :attr:`tag = 'point_cloud' <moscot.utils.tagged_array.Tag.POINT_CLOUD>` is used.
+        joint_attr
+            How to get the data for the :term:`linear term` in the :term:`fused <fused Gromov-Wasserstein>` case:
+
+            - :obj:`None` - run `PCA <https://en.wikipedia.org/wiki/Principal_component_analysis>`_
+              on :attr:`~anndata.AnnData.X` is computed.
+            - :class:`str` - a key in :attr:`~anndata.AnnData.obsm` where the data is stored.
+            - :class:`dict`-  it should contain ``'attr'`` and ``'key'``, the attribute and the key
+              in :class:`~anndata.AnnData`, and optionally ``'tag'``, one of :class:`~moscot.utils.tagged_array.Tag`.
+
+            By default, :attr:`tag = 'point_cloud' <moscot.utils.tagged_array.Tag.POINT_CLOUD>` is used.
+        policy
+            Rule which defines how to construct the subproblems.
+        cost
+            Cost function to use:
+
+            - :class:`str` - name of the cost function for all terms, see :func:`~moscot.costs.get_available_costs`.
+            - :class:`dict` - a dictionary with the following keys and values:
+
+              - ``'xy'`` - cost function for the :term:`linear term`.
+              - ``'x'`` - cost function for the source :term:`quadratic term`.
+              - ``'y'`` - cost function for the target :term:`quadratic term`.
+        cost_kwargs
+            Keyword arguments for the :class:`~moscot.base.cost.BaseCost` or any backend-specific cost.
+        a
+            Source :term:`marginals`. Valid options are:
+
+            - :class:`str` - key in :attr:`~anndata.AnnData.obs` where the source marginals are stored.
+            - :class:`bool` - if :obj:`True`,
+              :meth:`estimate the marginals <moscot.base.problems.OTProblem.estimate_marginals>`,
+              otherwise use uniform marginals.
+            - :class:`~numpy.ndarray` - array of shape ``[n,]`` containing the source marginals.
+            - :obj:`None` - uniform marginals.
+        b
+            Target :term:`marginals`. Valid options are:
+
+            - :class:`str` - key in :attr:`~anndata.AnnData.obs` where the target marginals are stored.
+            - :class:`bool` - if :obj:`True`,
+              :meth:`estimate the marginals <moscot.base.problems.OTProblem.estimate_marginals>`,
+              otherwise use uniform marginals.
+            - :class:`~numpy.ndarray` - array of shape ``[m,]`` containing the target marginals.
+            - :obj:`None` - uniform marginals.
+        kwargs
+            Keyword arguments for :meth:`~moscot.base.problems.CompoundProblem.prepare`.
+
+        Returns
+        -------
+        Returns self and updates the following fields:
+
+        - :attr:`problems` - the prepared subproblems.
+        - :attr:`solutions` - set to an empty :class:`dict`.
+        - :attr:`stage` - set to ``'prepared'``.
+        """
 
         def set_quad_defaults(z: Union[str, Mapping[str, Any]]) -> Dict[str, str]:
             if isinstance(z, str):

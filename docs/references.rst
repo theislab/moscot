@@ -37,10 +37,10 @@ Glossary
     quadratic term
         TODO.
 
-    GW
+    Gromov-Wasserstein
         TODO.
 
-    FGW
+    fused Gromov-Wasserstein
         TODO.
 
     dual potentials
