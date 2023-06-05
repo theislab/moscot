@@ -394,7 +394,6 @@ class AnalysisMixin(Generic[K, B]):
                 scale_by_marginals=False,
                 split_mass=False,
                 key_added=None,
-                return_data=True,
             )
             df["distribution"] = result
             cell_dist = df[df[annotation_key].isin(annotations_2)].groupby(annotation_key).sum(numeric_only=True)
@@ -433,7 +432,6 @@ class AnalysisMixin(Generic[K, B]):
                 scale_by_marginals=False,
                 split_mass=True,
                 key_added=None,
-                return_data=True,
             )
             current_cells = df_2.iloc[range(batch, min(batch + batch_size, len(df_2)))].index.tolist()
             df_1.loc[:, current_cells] = result

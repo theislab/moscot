@@ -408,7 +408,7 @@ class OTProblem(BaseProblem):
         normalize: bool = True,
         *,
         split_mass: bool = False,
-        **kwargs: Any,
+        scale_by_marginals: bool = False,
     ) -> ArrayLike:
         r"""Push data through the :attr:`~moscot.base.output.BaseSolverOutput.transport_matrix`.
 
@@ -431,8 +431,8 @@ class OTProblem(BaseProblem):
             Whether to normalize the columns of ``data`` to sum to :math:`1`.
         split_mass
             Whether to split non-zero values in ``data`` into separate columns.
-        kwargs
-            Keyword arguments for :attr:`~moscot.base.output.BaseSolverOutput.push`.
+        scale_by_marginals
+            Whether to scale by the source :term`marginals` :attr:`a`.
 
         Returns
         -------
@@ -441,7 +441,7 @@ class OTProblem(BaseProblem):
         if TYPE_CHECKING:
             assert isinstance(self.solution, BaseSolverOutput)
         data = self._get_mass(self.adata_src, data=data, subset=subset, normalize=normalize, split_mass=split_mass)
-        return self.solution.push(data, **kwargs)
+        return self.solution.push(data, scale_by_marginals=scale_by_marginals)
 
     @require_solution
     def pull(
@@ -451,7 +451,7 @@ class OTProblem(BaseProblem):
         normalize: bool = True,
         *,
         split_mass: bool = False,
-        **kwargs: Any,
+        scale_by_marginals: bool = False,
     ) -> ArrayLike:
         r"""Pull data through the :attr:`~moscot.base.output.BaseSolverOutput.transport_matrix`.
 
@@ -474,8 +474,8 @@ class OTProblem(BaseProblem):
             Whether to normalize the columns of ``data`` to sum to :math:`1`.
         split_mass
             Whether to split non-zero values in ``data`` into separate columns.
-        kwargs
-            Keyword arguments for :attr:`~moscot.base.output.BaseSolverOutput.pull`.
+        scale_by_marginals
+            Whether to scale by the target :term`marginals` :attr:`b`.
 
         Returns
         -------
@@ -484,7 +484,7 @@ class OTProblem(BaseProblem):
         if TYPE_CHECKING:
             assert isinstance(self.solution, BaseSolverOutput)
         data = self._get_mass(self.adata_tgt, data=data, subset=subset, normalize=normalize, split_mass=split_mass)
-        return self.solution.pull(data, **kwargs)
+        return self.solution.pull(data, scale_by_marginals=scale_by_marginals)
 
     def set_solution(
         self, solution: Union[ArrayLike, pd.DataFrame, BaseSolverOutput], *, overwrite: bool = False, **kwargs: Any
