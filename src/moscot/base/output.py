@@ -6,6 +6,7 @@ from typing import Any, Callable, Iterable, List, Literal, Optional, Tuple
 import numpy as np
 import scipy.sparse as sp
 from scipy.sparse.linalg import LinearOperator
+from tqdm import tqdm
 
 from moscot._docs._docs import d
 from moscot._logging import logger
@@ -244,7 +245,7 @@ class BaseSolverOutput(ABC):
 
         k, func, fn_stack = (n, self.push, sp.vstack) if n < m else (m, self.pull, sp.hstack)
         tmaps_sparse: List[sp.csr_matrix] = []
-        for batch in range(0, k, batch_size):
+        for batch in tqdm(range(0, k, batch_size)):
             x = np.eye(k, min(batch_size, k - batch), -(min(batch, k)), dtype=float)
             res = np.array(func(x, scale_by_marginals=False))
             res[res < thr] = 0.0
