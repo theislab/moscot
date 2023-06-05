@@ -445,8 +445,8 @@ class BaseCompoundProblem(BaseProblem, abc.ABC, Generic[K, B]):
 
         Depends on the underlying policy:
 
-            - :class:`~moscot.utils.subset_policy.SequentialPolicy` - TODO.
-            - :class:`~moscot.utils.subset_policy.StarPolicy` - TODO.
+        - :class:`~moscot.utils.subset_policy.SequentialPolicy` - TODO.
+        - :class:`~moscot.utils.subset_policy.StarPolicy` - TODO.
 
         Parameters
         ----------
