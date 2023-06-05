@@ -82,7 +82,7 @@ class BaseProblem(abc.ABC):
         path: Union[str, pathlib.Path],
         overwrite: bool = False,
     ) -> None:
-        """Save the problem using.
+        """Save the problem to a file.
 
         Parameters
         ----------
@@ -93,9 +93,8 @@ class BaseProblem(abc.ABC):
 
         Returns
         -------
-        Nothing, just saves the problem.
+        Nothing, just saves the problem using :mod:`cloudpickle <pickle>`.
         """
-        path = str(path)
         path = pathlib.Path(path)
         if not overwrite and path.is_file():
             raise RuntimeError(
