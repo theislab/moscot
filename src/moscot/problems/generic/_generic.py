@@ -233,7 +233,7 @@ class SinkhornProblem(GenericAnalysisMixin[K, B], CompoundProblem[K, B]):
 
 
 class GWProblem(GenericAnalysisMixin[K, B], CompoundProblem[K, B]):
-    """Class for solving :term:`(fused) quadratic OT problems <quadratic problem>`.
+    """Class for solving the :term:`GW <Gromov-Wasserstein>` or :term:`FGW <fused Gromov-Wasserstein>` problems.
 
     Parameters
     ----------
