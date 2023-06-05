@@ -25,7 +25,7 @@ from anndata import AnnData
 
 from moscot import backends
 from moscot._logging import logger
-from moscot._types import ArrayLike, CostFn_t, Device_t, ProblemKind_t, ProblemStage_t
+from moscot._types import ArrayLike, CostFn_t, Device_t, ProblemKind_t
 from moscot.base.output import BaseSolverOutput, MatrixSolverOutput
 from moscot.base.problems._utils import require_solution, wrap_prepare, wrap_solve
 from moscot.base.solver import OTSolver
@@ -39,7 +39,7 @@ class BaseProblem(abc.ABC):
 
     def __init__(self):
         self._problem_kind: ProblemKind_t = "unknown"
-        self._stage: ProblemStage_t = "initialized"
+        self._stage: Literal["initialized", "prepared", "solved"] = "initialized"
 
     @abc.abstractmethod
     def prepare(self, *args: Any, **kwargs: Any) -> "BaseProblem":
@@ -174,7 +174,7 @@ class BaseProblem(abc.ABC):
         return data
 
     @property
-    def stage(self) -> ProblemStage_t:
+    def stage(self) -> Literal["initializer", "prepared", "solved"]:
         """Problem stage."""
         return self._stage
 
@@ -298,17 +298,19 @@ class OTProblem(BaseProblem):
         a
             Source :term:`marginals`. Valid options are:
 
-            - :class:`str`: key in :attr:`~anndata.AnnData.obs` where the source marginals are stored.
-            - :class:`bool`: if :obj:`True`, compute the marginals from :attr:`adata_src`, otherwise use uniform.
-            - :class:`~numpy.ndarray`: array of shape ``[n,]`` containing the source marginals.
-            - :obj:`None`: uniform marginals.
+            - :class:`str` - key in :attr:`~anndata.AnnData.obs` where the source marginals are stored.
+            - :class:`bool` - if :obj:`True`, :meth:`estimate the marginals <estimate_marginals>`
+              from :attr:`adata_src`, otherwise use uniform marginals.
+            - :class:`~numpy.ndarray` - array of shape ``[n,]`` containing the source marginals.
+            - :obj:`None` - uniform marginals.
         b
             Target :term:`marginals`. Valid options are:
 
-            - :class:`str`: key in :attr:`~anndata.AnnData.obs` where the target marginals are stored.
-            - :class:`bool`: if :obj:`True`, compute the marginals from :attr:`adata_tgt`, otherwise use uniform.
-            - :class:`~numpy.ndarray`: array of shape ``[m,]`` containing the target marginals.
-            - :obj:`None`: uniform marginals.
+            - :class:`str` - key in :attr:`~anndata.AnnData.obs` where the target marginals are stored.
+            - :class:`bool` - if :obj:`True`, :meth:`estimate the marginals <estimate_marginals>`
+              from :attr:`adata_tgt`, otherwise use uniform marginals.
+            - :class:`~numpy.ndarray` - array of shape ``[m,]`` containing the target marginals.
+            - :obj:`None` - uniform marginals.
         kwargs
             Keyword arguments for :meth:`estimate_marginals` when ``a = True`` or ``b = True``.
 
@@ -374,6 +376,7 @@ class OTProblem(BaseProblem):
             Which backend to use, see :func:`~moscot.backends.utils.get_available_backends`.
         device
             Transfer the solution to a different device, see :meth:`~moscot.base.output.BaseSolverOutput.to`.
+            If :obj:`None`, keep the output on the original device.
         kwargs
             Keyword arguments for :class:`~moscot.base.solver.BaseSolver` or its
             :meth:`__call__ <moscot.base.solver.BaseSolver.__call__>` method.
@@ -600,6 +603,9 @@ class OTProblem(BaseProblem):
 
     def estimate_marginals(self, adata: AnnData, *, source: bool, **kwargs: Any) -> ArrayLike:
         """Estimate the source or target :term:`marginals`.
+
+        .. note::
+            This function returns uniform marginals.
 
         Parameters
         ----------

@@ -113,7 +113,7 @@ class TaggedArray:
         backend
             Which backend to use, see :func:`~moscot.backends.utils.get_available_backends`.
         kwargs
-            Keyword arguments for :class:`~moscot.base.cost.BaseCost` or any backend-specific cost.
+            Keyword arguments for the :class:`~moscot.base.cost.BaseCost` or any backend-specific cost.
 
         Returns
         -------

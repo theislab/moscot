@@ -24,11 +24,11 @@ SinkhornInitializer_t = Optional[Union[SinkFullRankInit, LRInitializer_t]]
 QuadInitializer_t = Optional[LRInitializer_t]
 
 Initializer_t = Union[SinkhornInitializer_t, LRInitializer_t]
-ProblemStage_t = Literal["initialized", "prepared", "solved"]
+ProblemStage_t = Literal["prepared", "solved"]
 Device_t = Union[Literal["cpu", "gpu", "tpu"], str]
 
 # TODO(michalk8): autogenerate from the enums
-ScaleCost_t = Optional[Union[float, Literal["mean", "max_cost", "max_bound", "max_norm", "median"]]]
+ScaleCost_t = Union[float, Literal["mean", "max_cost", "max_bound", "max_norm", "median"]]
 OttCostFn_t = Literal[
     "euclidean",
     "sq_euclidean",

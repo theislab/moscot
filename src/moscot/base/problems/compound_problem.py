@@ -220,7 +220,7 @@ class BaseCompoundProblem(BaseProblem, abc.ABC, Generic[K, B]):
         Parameters
         ----------
         policy
-            The rule which defines how to construct the subproblems.
+            Rule which defines how to construct the subproblems.
         key
             Key in :attr:`~anndata.AnnData.obs` for the :class:`~moscot.utils.subset_policy.SubsetPolicy`.
         subset
@@ -303,7 +303,7 @@ class BaseCompoundProblem(BaseProblem, abc.ABC, Generic[K, B]):
 
         Returns
         -------
-        Self and updates the following fields:
+        Returns self and updates the following fields:
 
         - :attr:`solutions` - the :term:`OT` solutions for each subproblem.
         - :attr:`stage` - set to ``'solved'``.

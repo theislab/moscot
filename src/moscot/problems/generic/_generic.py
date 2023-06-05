@@ -5,6 +5,7 @@ from anndata import AnnData
 
 from moscot import _constants
 from moscot._types import (
+    ArrayLike,
     CostKwargs_t,
     OttCostFn_t,
     OttCostFnMap_t,
@@ -23,12 +24,14 @@ __all__ = ["SinkhornProblem", "GWProblem"]
 
 
 class SinkhornProblem(GenericAnalysisMixin[K, B], CompoundProblem[K, B]):
-    """
-    Class for solving linear OT problems.
+    """Class for solving :term:`linear OT problems <linear problem>`.
 
     Parameters
     ----------
-    %(adata)s
+    adata
+        Annotated data object.
+    kwargs
+        Keyword arguments for :class:`~moscot.base.problems.CompoundProblem`.
     """
 
     def __init__(self, adata: AnnData, **kwargs: Any):
@@ -41,35 +44,70 @@ class SinkhornProblem(GenericAnalysisMixin[K, B], CompoundProblem[K, B]):
         policy: Literal["sequential", "pairwise", "explicit"] = "sequential",
         cost: OttCostFn_t = "sq_euclidean",
         cost_kwargs: CostKwargs_t = types.MappingProxyType({}),
-        a: Optional[str] = None,
-        b: Optional[str] = None,
+        a: Optional[Union[bool, str, ArrayLike]] = None,
+        b: Optional[Union[bool, str, ArrayLike]] = None,
         **kwargs: Any,
     ) -> "SinkhornProblem[K, B]":
-        """
-        Prepare the :class:`moscot.problems.generic.SinkhornProblem`.
+        r"""Prepare the individual :term:`linear subproblems <linear problem>`.
+
+        .. seealso::
+            - See :doc:`../notebooks/examples/problems/200_custom_cost_matrices` on how to pass custom cost matrices.
+            - TODO(michalk8): add an example that shows how to pass different costs (with kwargs).
 
         Parameters
         ----------
-        %(key)s
-        %(joint_attr)s
-        %(policy)s
-        %(cost_lin)s
-        %(cost_kwargs)s
-        %(a)s
-        %(b)s
-        %(kwargs_prepare)s
+        key
+            Key in :attr:`~anndata.AnnData.obs` for the :class:`~moscot.utils.subset_policy.SubsetPolicy`.
+        joint_attr
+            How to get the data for the :term:`linear term`:
+
+            - :obj:`None` - `PCA <https://en.wikipedia.org/wiki/Principal_component_analysis>`_
+              on :attr:`~anndata.AnnData.X` is computed.
+            - :class:`str` - it is a key in :attr:`~anndata.AnnData.obsm` where the data is stored.
+            - :class:`dict`-  it should contain 2 keys, ``'attr'`` and ``'key'``, the attribute and key
+              of :class:`~anndata.AnnData`, respectively.
+        policy
+            Rule which defines how to construct the subproblems.
+        cost
+            Cost function to use:
+
+            - :class:`str` - name of the cost function, see :func:`~moscot.costs.get_available_costs`.
+            - :class:`dict` - a dictionary with the following keys:
+
+              - ``'attr'`` - attribute of :class:`~anndata.AnnData`.
+              - ``'key'`` -  key in the attribute of :class:`~anndata.AnnData`.
+              - ``'tag'`` - how to interpret the extracted data in the :class:`~moscot.utils.tagged_array.TaggedArray`.
+                If not specified, :attr:`~moscot.utils.tagged_array.Tag.POINT_CLOUD` will be used.
+        cost_kwargs
+            Keyword arguments for the :class:`~moscot.base.cost.BaseCost` or any backend-specific cost.
+        a
+            Source :term:`marginals`. Valid options are:
+
+            - :class:`str` - key in :attr:`~anndata.AnnData.obs` where the source marginals are stored.
+            - :class:`bool` - if :obj:`True`,
+              :meth:`estimate the marginals <moscot.base.problems.OTProblem.estimate_marginals>`,
+              otherwise use uniform marginals.
+            - :class:`~numpy.ndarray` - array of shape ``[n,]`` containing the source marginals.
+            - :obj:`None` - uniform marginals.
+        b
+            Target :term:`marginals`. Valid options are:
+
+            - :class:`str` - key in :attr:`~anndata.AnnData.obs` where the target marginals are stored.
+            - :class:`bool` - if :obj:`True`,
+              :meth:`estimate the marginals <moscot.base.problems.OTProblem.estimate_marginals>`,
+              otherwise use uniform marginals.
+            - :class:`~numpy.ndarray` - array of shape ``[m,]`` containing the target marginals.
+            - :obj:`None` - uniform marginals.
+        kwargs
+            Keyword arguments for :meth:`~moscot.base.problems.CompoundProblem.prepare`.
 
         Returns
         -------
-        :class:`moscot.problems.generic.SinkhornProblem`
+        Returns self and updates the following fields:
 
-        Notes
-        -----
-        If `a` and `b` are provided `marginal_kwargs` are ignored.
-
-        Examples
-        --------
-        %(ex_prepare)s
+        - :attr:`problems` - the prepared subproblems.
+        - :attr:`solutions` - set to an empty :class:`dict`.
+        - :attr:`stage` - set to ``'prepared'``.
         """
         self.batch_key = key  # type: ignore[misc]
         xy, kwargs = handle_joint_attr(joint_attr, kwargs)
@@ -98,42 +136,79 @@ class SinkhornProblem(GenericAnalysisMixin[K, B], CompoundProblem[K, B]):
         jit: bool = True,
         threshold: float = 1e-3,
         lse_mode: bool = True,
-        norm_error: int = 1,
         inner_iterations: int = 10,
         min_iterations: int = 0,
         max_iterations: int = 2000,
-        device: Optional[Literal["cpu", "gpu", "tpu"]] = None,
         cost_matrix_rank: Optional[int] = None,
+        device: Optional[Literal["cpu", "gpu", "tpu"]] = None,
         **kwargs: Any,
     ) -> "SinkhornProblem[K,B]":
-        """
-        Solve optimal transport problems defined in :class:`moscot.problems.generic.SinkhornProblem`.
+        r"""Solve the individual :term:`linear subproblems <linear problem>` \
+        using the :term:`Sinkhorn` algorithm :cite:`cuturi:2013`.
+
+        .. seealso:
+            - See :doc:`../notebooks/examples/solvers/100_linear_problem_basic` on how to specify
+              the most important parameters.
+            - See :doc:`../notebooks/examples/solvers/200_linear_problems_advanced` on how to specify
+              additional parameters, such as ``initializer``.
 
         Parameters
         ----------
-        %(epsilon)s
-        %(tau_a)s
-        %(tau_b)s
-        %(rank)s
-        %(scale_cost)s
-        %(pointcloud_kwargs)s
-        %(stage)s
-        %(initializer_lin)s
-        %(initializer_kwargs)s
-        %(jit)s
-        %(sinkhorn_kwargs)s
-        %(device_solve)s
-        %(cost_matrix_rank)s
-        %(kwargs_linear)s
+        epsilon
+            Entropic regularization.
+        tau_a
+            Parameter in :math:`(0, 1]` that defines how much :term:`unbalanced <unbalanced OT problem>` is the problem
+            on the source :term:`marginals`. If :math:`1`, the problem is :term:`balanced <balanced OT problem>`.
+        tau_b
+            Parameter in :math:`(0, 1]` that defines how much :term:`unbalanced <unbalanced OT problem>` is the problem
+            on the target :term:`marginals`. If :math:`1`, the problem is :term:`balanced <balanced OT problem>`.
+        rank
+            Rank of the :term:`low-rank OT` solver :cite:`scetbon:21a`. If :math:`-1`, full-rank solver is used.
+        scale_cost
+            How to re-scale the cost matrix. If a :class:`float`, the cost matrix
+            will be re-scaled as :math:`\frac{cost}{scale\_cost}`.
+        batch_size
+            Number of rows/columns of the cost matrix to materialize during the :term:`Sinkhorn` iterations.
+            Larger value will require more memory.
+        stage
+            Stage by which to filter the :attr:`problems` to be solved.
+        initializer
+            How to initialize the solution. If :obj:`None`, ``'default'`` will be used for a full-rank solver and
+            ``'rank2'`` for a low-rank solver.
+        initializer_kwargs
+            Keyword arguments for the ``initializer``.
+        jit
+            Whether to :func:`~jax.jit` the :mod:`ott.solvers`.
+        threshold
+            Convergence threshold of the :term:`Sinkhorn` algorithm. In the :term:`balanced <balanced OT problem>` case,
+            this is typically the deviation between the target :term:`marginals` and the marginals of the current
+            :term:`primal solution`. In the :term:`unbalanced <unbalanced OT problem>` case, the relative change between
+            the successive solutions is checked.
+        lse_mode
+            Whether to use `log-sum-exp (LSE)
+            <https://en.wikipedia.org/wiki/LogSumExp#log-sum-exp_trick_for_log-domain_calculations>`_
+            trick for numerical stability.
+        inner_iterations
+            Compute the convergence criterion every ``inner_iterations``.
+        min_iterations
+            Minimum number of :term:`Sinkhorn` iterations.
+        max_iterations
+            Maximum number of :term:`Sinkhorn` iterations.
+        cost_matrix_rank
+            Rank of the cost matrix.
+        device
+            Transfer the solution to a different device, see :meth:`~moscot.base.output.BaseSolverOutput.to`.
+            If :obj:`None`, keep the output on the original device.
+        kwargs
+            Keyword arguments for :meth:`~moscot.base.problems.CompoundProblem.solve`.
 
         Returns
         -------
-        :class:`moscot.problems.generic.SinkhornProblem`.
+        Returns self and updated the following fields:
 
-        Examples
-        --------
-        %(ex_solve_linear)s
-        """
+        - :attr:`solutions` - the :term:`OT` solutions for each subproblem.
+        - :attr:`stage` - set to ``'solved'``.
+        """  # noqa: D205
         return super().solve(  # type: ignore[return-value]
             epsilon=epsilon,
             tau_a=tau_a,
@@ -147,7 +222,6 @@ class SinkhornProblem(GenericAnalysisMixin[K, B], CompoundProblem[K, B]):
             jit=jit,
             threshold=threshold,
             lse_mode=lse_mode,
-            norm_error=norm_error,
             inner_iterations=inner_iterations,
             min_iterations=min_iterations,
             max_iterations=max_iterations,
@@ -166,16 +240,15 @@ class SinkhornProblem(GenericAnalysisMixin[K, B], CompoundProblem[K, B]):
 
 
 class GWProblem(GenericAnalysisMixin[K, B], CompoundProblem[K, B]):
-    """
-    Class for solving (Fused) Gromov-Wasserstein problems.
+    """Class for solving :term:`quadratic problems <quadratic problem>`>.
 
     Parameters
     ----------
-    %(adata)s
+    adata
+        Annotated data object.
+    kwargs
+        Keyword arguments for :class:`~moscot.base.problems.CompoundProblem`.
     """
-
-    def __init__(self, adata: AnnData, **kwargs: Any):
-        super().__init__(adata, **kwargs)
 
     def prepare(
         self,
@@ -190,35 +263,7 @@ class GWProblem(GenericAnalysisMixin[K, B], CompoundProblem[K, B]):
         b: Optional[str] = None,
         **kwargs: Any,
     ) -> "GWProblem[K, B]":
-        """
-        Prepare the :class:`moscot.problems.generic.GWProblem`.
-
-        Parameters
-        ----------
-        %(key)s
-        %(x_attr)s
-        %(y_attr)s
-        %(joint_attr)s
-        %(policy)s
-        %(cost)s
-        %(cost_kwargs)s
-        %(a)s
-        %(b)s
-        %(kwargs_prepare)s
-
-        Returns
-        -------
-        :class:`moscot.problems.generic.GWProblem`
-
-        Notes
-        -----
-        If `a` and `b` are provided `marginal_kwargs` are ignored.
-
-        Examples
-        --------
-        %(ex_prepare)s
-        """
-        self.batch_key = key  # type: ignore[misc]
+        """TODO."""
 
         def set_quad_defaults(z: Union[str, Mapping[str, Any]]) -> Dict[str, str]:
             if isinstance(z, str):
@@ -227,6 +272,7 @@ class GWProblem(GenericAnalysisMixin[K, B], CompoundProblem[K, B]):
                 return dict(z)
             raise TypeError("`x_attr` and `y_attr` must be of type `str` or `dict`.")
 
+        self.batch_key = key  # type: ignore[misc]
         xy, kwargs = handle_joint_attr(joint_attr, kwargs)
         x = set_quad_defaults(x_attr)
         y = set_quad_defaults(y_attr)
@@ -263,34 +309,7 @@ class GWProblem(GenericAnalysisMixin[K, B], CompoundProblem[K, B]):
         device: Optional[Literal["cpu", "gpu", "tpu"]] = None,
         **kwargs: Any,
     ) -> "GWProblem[K,B]":
-        """
-        Solve optimal transport problems defined in :class:`moscot.problems.generic.GWProblem`.
-
-        Parameters
-        ----------
-        %(alpha)s
-        %(epsilon)s
-        %(tau_a)s
-        %(tau_b)s
-        %(rank)s
-        %(scale_cost)s
-        %(pointcloud_kwargs)s
-        %(stage)s
-        %(initializer_quad)s
-        %(initializer_kwargs)s
-        %(gw_kwargs)s
-        %(linear_solver_kwargs)s
-        %(device_solve)s
-        %(kwargs_quad)s
-
-        Returns
-        -------
-        :class:`moscot.problems.generic.GWProblem`.
-
-        Examples
-        --------
-        %(ex_solve_quadratic)s
-        """
+        """TODO."""
         return super().solve(  # type: ignore[return-value]
             alpha=alpha,
             epsilon=epsilon,

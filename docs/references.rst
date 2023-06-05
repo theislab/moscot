@@ -11,9 +11,18 @@ Glossary
 .. glossary::
 
     OT
-        Optimal transport.
+        TODO.
+
+    low-rank OT
+        TODO.
+
+    balanced OT problem
+        TODO.
 
     unbalanced OT problem
+        TODO.
+
+    linear OT
         TODO.
 
     linear problem
@@ -47,4 +56,7 @@ Glossary
         TODO.
 
     low-rank
+        TODO.
+
+    primal solution
         TODO.
