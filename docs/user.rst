@@ -1,6 +1,6 @@
 User API
 ########
-Import ``moscot`` as::
+Import :mod:`moscot` as::
 
     import moscot as mt
 
