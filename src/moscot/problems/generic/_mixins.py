@@ -8,7 +8,6 @@ from moscot import _constants
 from moscot._types import ArrayLike, Str_Dict_t
 from moscot.base.problems._mixins import AnalysisMixin, AnalysisMixinProtocol
 from moscot.base.problems.compound_problem import ApplyOutput_t, B, K
-from moscot.plotting._utils import set_plotting_vars
 
 __all__ = ["GenericAnalysisMixin"]
 
@@ -47,30 +46,35 @@ class GenericAnalysisMixin(AnalysisMixin[K, B]):
         normalize: bool = True,
         key_added: Optional[str] = _constants.CELL_TRANSITION,
     ) -> pd.DataFrame:
-        """
-        Compute a grouped cell transition matrix.
+        """Compute a grouped cell transition matrix.
 
-        This function computes a transition matrix with entries corresponding to categories, e.g. cell types.
-        The transition matrix will be row-stochastic if `forward` is `True`, otherwise column-stochastic.
+        This function computes a transition matrix with entries corresponding to categories, e.g., cell types.
+        The transition matrix will be row-stochastic if ``forward = True``, otherwise column-stochastic.
 
         Parameters
         ----------
-        %(cell_trans_params)s
-        %(forward_cell_transition)s
-        %(aggregation_mode)s
-        %(other_key)s
-        %(other_adata)s
-        %(ott_jax_batch_size)s
-        %(normalize)s
-        %(key_added_plotting)s
+        source
+            TODO.
+        target
+            TODO.
+        source_groups
+            TODO.
+        target_groups
+            TODO.
+        forward
+            TODO.
+        aggregation_mode
+            TODO.
+        batch_size
+            TODO.
+        normalize
+            TODO.
+        key_added
+            TODO.
 
         Returns
         -------
-        %(return_cell_transition)s
-
-        Notes
-        -----
-        %(notes_cell_transition)s
+        TODO.
         """
         if TYPE_CHECKING:
             assert isinstance(self.batch_key, str)
@@ -97,51 +101,41 @@ class GenericAnalysisMixin(AnalysisMixin[K, B]):
         scale_by_marginals: bool = True,
         key_added: Optional[str] = _constants.PUSH,
         return_all: bool = False,
-        return_data: bool = False,
         **kwargs: Any,
     ) -> Optional[ApplyOutput_t[K]]:
-        """
-        Push distribution of cells from source to target.
+        """Push mass from source to target.
 
         Parameters
         ----------
-        %(start)s
-        %(end)s
-        %(data)s
-        %(subset)s
-        %(scale_by_marginals)s
-        %(key_added_plotting)s
-        %(return_all)s
-        %(return_data)s
+        source
+            Source key in :attr:`solutions`.
+        target
+            Target key in :attr:`solutions`.
+        data
+            Initial data to push, see :meth:`~moscot.base.problems.OTProblem.push` for information.
+        subset
+            Push values contained only within the subset.
+        scale_by_marginals
+            Whether to scale by the source :term:`marginals`.
+        key_added
+            Key in :attr:`~anndata.AnnData.obs` where to add the result.
+        return_all
+            Whether to also return intermediate results. Always true if ``key_added != None``.
+        kwargs
+            Keyword arguments for the subproblems' :meth:`~moscot.base.problems.OTProblem.push` method.
 
-        Return
-        ------
-        %(return_push_pull)s
+        Returns
+        -------
+        Depending on the ``key_added``:
 
+        - :obj:`None` - returns the result.
+        - otherwise, returns nothing and updates :attr:`adata.obs['{key_added}'] <anndata.AnnData.obs>`
+          with the result.
         """
-        result = self._apply(
-            source=source,
-            target=target,
-            data=data,
-            subset=subset,
-            forward=True,
-            return_all=return_all or key_added is not None,
-            scale_by_marginals=scale_by_marginals,
-            **kwargs,
-        )
-
-        if TYPE_CHECKING:
-            assert isinstance(result, dict)
-
-        if key_added is not None:
-            if TYPE_CHECKING:
-                assert isinstance(key_added, str)
-            plot_vars = {
-                "distribution_key": self.batch_key,
-            }
-            self.adata.obs[key_added] = self._flatten(result, key=self.batch_key)
-            set_plotting_vars(self.adata, _constants.PUSH, key=key_added, value=plot_vars)
-        return result if return_data else None
+        # TODO(michalk8): consider not overriding + update the defaults in `BaseCompoundProblem` + implement _post_apply
+        data = locals()
+        _ = data.pop("kwargs", None)
+        return super().push(**data, **kwargs)
 
     def pull(
         self: GenericAnalysisMixinProtocol[K, B],
@@ -152,52 +146,45 @@ class GenericAnalysisMixin(AnalysisMixin[K, B]):
         scale_by_marginals: bool = True,
         key_added: Optional[str] = _constants.PULL,
         return_all: bool = False,
-        return_data: bool = False,
         **kwargs: Any,
     ) -> Optional[ApplyOutput_t[K]]:
-        """
-        Pull distribution of cells from target to source.
+        """Pull mass from target to source.
 
         Parameters
         ----------
-        %(source)s
-        %(target)s
-        %(data)s
-        %(subset)s
-        %(scale_by_marginals)s
-        %(key_added_plotting)s
-        %(return_all)s
-        %(return_data)s
+        source
+            Source key in :attr:`solutions`.
+        target
+            Target key in :attr:`solutions`.
+        data
+            Initial data to pull, see :meth:`~moscot.base.problems.OTProblem.pull` for information.
+        subset
+            Pull values contained only within the subset.
+        scale_by_marginals
+            Whether to scale by the source :term:`marginals`.
+        key_added
+            Key in :attr:`~anndata.AnnData.obs` where to add the result.
+        return_all
+            Whether to also return intermediate results. Always true if ``key_added != None``.
+        kwargs
+            Keyword arguments for the subproblems' :meth:`~moscot.base.problems.OTProblem.pull` method.
 
-        Return
-        ------
-        %(return_push_pull)s
+        Returns
+        -------
+        Depending on the ``key_added``:
 
+        - :obj:`None` - returns the result.
+        - otherwise - returns nothing and updates :attr:`adata.obs['{key_added}'] <anndata.AnnData.obs>`
+          with the result.
         """
-        result = self._apply(
-            source=source,
-            target=target,
-            data=data,
-            subset=subset,
-            forward=False,
-            return_all=return_all or key_added is not None,
-            scale_by_marginals=scale_by_marginals,
-            **kwargs,
-        )
-        if TYPE_CHECKING:
-            assert isinstance(result, dict)
-
-        if key_added is not None:
-            plot_vars = {
-                "key": self.batch_key,
-            }
-            self.adata.obs[key_added] = self._flatten(result, key=self.batch_key)
-            set_plotting_vars(self.adata, _constants.PULL, key=key_added, value=plot_vars)
-        return result if return_data else None
+        # TODO(michalk8): consider not overriding + update the defaults in `BaseCompoundProblem` + implement _post_apply
+        data = locals()
+        _ = data.pop("kwargs", None)
+        return super().pull(**data, **kwargs)
 
     @property
     def batch_key(self: GenericAnalysisMixinProtocol[K, B]) -> Optional[str]:
-        """Batch key in :attr:`anndata.AnnData.obs`."""
+        """Batch key in :attr:`~anndata.AnnData.obs`."""
         return self._batch_key
 
     @batch_key.setter

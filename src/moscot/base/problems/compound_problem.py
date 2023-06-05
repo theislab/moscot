@@ -416,10 +416,10 @@ class BaseCompoundProblem(BaseProblem, abc.ABC, Generic[K, B]):
 
         Returns
         -------
-        Depending on ``key_added``:
+        Depending on the ``key_added``:
 
-        - If :obj:`None`, returns the result.
-        - Otherwise, returns nothing and updates :attr:`adata.obs['{key_added}'] <anndata.AnnData.obs>`
+        - :obj:`None` - returns the result.
+        - otherwise - returns nothing and updates :attr:`adata.obs['{key_added}'] <anndata.AnnData.obs>`
           with the result.
         """
         return_all = return_all or key_added is not None
@@ -465,10 +465,10 @@ class BaseCompoundProblem(BaseProblem, abc.ABC, Generic[K, B]):
 
         Returns
         -------
-        Depending on ``key_added``:
+        Depending on the ``key_added``:
 
-        - If :obj:`None`, returns the result.
-        - Otherwise, returns nothing and updates :attr:`adata.obs['{key_added}'] <anndata.AnnData.obs>`
+        - :obj:`None` - returns the result.
+        - otherwise - returns nothing and updates :attr:`adata.obs['{key_added}'] <anndata.AnnData.obs>`
           with the result.
         """
         return_all = return_all or key_added is not None

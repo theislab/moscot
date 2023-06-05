@@ -421,13 +421,14 @@ class OTProblem(BaseProblem):
             Data to push through the transport matrix. Valid options are:
 
             - :class:`~numpy.ndarray` - array of shape ``[n,]`` or ``[n, d]``.
-            - :class:`str` - key in :attr:`adata_src.obs['{data}'] <adata_src>`.
-              If ``subset`` is a :class:`list`, it defines a boolean mask. Useful for categorical data.
+            - :class:`str` - key in :attr:`adata_src.obs['{data}'] <adata_src>`. If ``subset`` is a :class:`list`,
+              the data will be a boolean mask determined by the subset. Useful for categorical data.
             - :obj:`None` - the value depends on the ``subset``.
 
-                - :class:`list` - names in :attr:`adata_src.obs_names <adata_src>` to push.
-                - :class:`tuple` - start and offset indices defining a boolean mask.
-                - :obj:`None` - uniform array of :math:`1`.
+              - :class:`list` - names in :attr:`adata_src.obs_names <adata_src>` to push.
+              - :class:`tuple` - start and offset indices :math:`(subset[0], subset[0] + subset[1])`
+                that define a boolean mask to push.
+              - :obj:`None` - uniform array of :math:`1`.
         subset
             Push values contained only within the subset.
         normalize
@@ -464,13 +465,14 @@ class OTProblem(BaseProblem):
             Data to pull through the transport matrix. Valid options are:
 
             - :class:`~numpy.ndarray` - array of shape ``[m,]`` or ``[m, d]``.
-            - :class:`str` - key in :attr:`adata_src.obs['{data}'] <adata_src>`.
-              If ``subset`` is a :class:`list`, it defines a boolean mask. Useful for categorical data.
+            - :class:`str` - key in :attr:`adata_tgt.obs['{data}'] <adata_tgt>`. If ``subset`` is a :class:`list`,
+              the data will be a boolean mask determined by the subset. Useful for categorical data.
             - :obj:`None` - the value depends on the ``subset``.
 
-                - :class:`list` - names in :attr:`adata_tgt.obs_names <adata_tgt>` to pull.
-                - :class:`tuple` - start and offset indices defining a boolean mask.
-                - :obj:`None` - uniform array of :math:`1`.
+              - :class:`list` - names in :attr:`adata_tgt.obs_names <adata_tgt>` to pull.
+              - :class:`tuple` - start and offset indices :math:`(subset[0], subset[0] + subset[1])`
+                that define a boolean mask to pull.
+              - :obj:`None` - uniform array of :math:`1`.
         subset
             Pull values contained only within the subset.
         normalize
