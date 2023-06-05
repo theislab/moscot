@@ -5,7 +5,6 @@ import pickle
 import shutil
 import tempfile
 import urllib.request
-import warnings
 from types import MappingProxyType
 from typing import Any, Dict, List, Literal, Mapping, Optional, Tuple
 
@@ -13,6 +12,7 @@ import networkx as nx
 import numpy as np
 import pandas as pd
 
+import anndata as ad
 from anndata import AnnData
 from scanpy import read
 
@@ -338,7 +338,7 @@ def simulate_data(
     cells_per_distribution: int = 20,
     n_genes: int = 60,
     key: Literal["day", "batch"] = "batch",
-    var: float = 1,
+    var: float = 1.0,
     obs_to_add: Mapping[str, Any] = MappingProxyType({"celltype": 3}),
     marginals: Optional[Tuple[str, str]] = None,
     seed: int = 0,
@@ -392,14 +392,10 @@ def simulate_data(
                 cov=kwargs.pop("cov", var * np.diag(np.ones(n_genes))),
                 size=cells_per_distribution,
             ),
-            dtype=float,
         )
         for _ in range(n_distributions)
     ]
-    # remove once new `anndata` is release
-    with warnings.catch_warnings():
-        warnings.simplefilter("ignore", category=FutureWarning)
-        adata = adatas[0].concatenate(*adatas[1:], batch_key=key)
+    adata = ad.concat(adatas, label=key, index_unique="-")
     if key == "day":
         adata.obs["day"] = pd.to_numeric(adata.obs["day"])
     for k, val in obs_to_add.items():

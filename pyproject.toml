@@ -51,7 +51,7 @@ dependencies = [
     "networkx>=2.6.3",
     # https://github.com/scverse/scanpy/issues/2411
     "matplotlib>=3.5.0",
-    "anndata>=0.8.0",
+    "anndata>=0.9.1",
     "scanpy>=1.9.3",
     "wrapt>=1.13.2",
     "docrep>=0.3.2",
@@ -178,8 +178,8 @@ known_plotting = ["IPython", "matplotlib", "mpl_toolkits", "seaborn"]
 markers = ["fast: marks tests as fask"]
 xfail_strict = true
 filterwarnings = [
-    "ignore:X.dtype being converted:FutureWarning",
     "ignore:No data for colormapping:UserWarning",
+    "ignore:The dtype argument will be deprecated in anndata:PendingDeprecationWarning"
 ]
 
 [tool.coverage.run]
