@@ -146,12 +146,12 @@ class SinkhornProblem(GenericAnalysisMixin[K, B], CompoundProblem[K, B]):
             - See :doc:`../notebooks/examples/solvers/100_linear_problem_basic` on how to specify
               the most important parameters.
             - See :doc:`../notebooks/examples/solvers/200_linear_problems_advanced` on how to specify
-              additional parameters, such as ``initializer``.
+              additional parameters, such as the ``initializer``.
 
         Parameters
         ----------
         epsilon
-            Entropic regularization.
+            :term:`Entropic regularization`.
         tau_a
             Parameter in :math:`(0, 1]` that defines how much :term:`unbalanced <unbalanced OT problem>` is the problem
             on the source :term:`marginals`. If :math:`1`, the problem is :term:`balanced <balanced OT problem>`.
@@ -159,7 +159,8 @@ class SinkhornProblem(GenericAnalysisMixin[K, B], CompoundProblem[K, B]):
             Parameter in :math:`(0, 1]` that defines how much :term:`unbalanced <unbalanced OT problem>` is the problem
             on the target :term:`marginals`. If :math:`1`, the problem is :term:`balanced <balanced OT problem>`.
         rank
-            Rank of the :term:`low-rank OT` solver :cite:`scetbon:21a`. If :math:`-1`, full-rank solver is used.
+            Rank of the :term:`low-rank OT` solver :cite:`scetbon:21a`.
+            If :math:`-1`, full-rank solver :cite:`cuturi:2013` is used.
         scale_cost
             How to re-scale the cost matrix. If a :class:`float`, the cost matrix
             will be re-scaled as :math:`\frac{cost}{scale\_cost}`.
@@ -174,7 +175,7 @@ class SinkhornProblem(GenericAnalysisMixin[K, B], CompoundProblem[K, B]):
         initializer_kwargs
             Keyword arguments for the ``initializer``.
         jit
-            Whether to :func:`~jax.jit` the :mod:`ott.solvers`.
+            Whether to :func:`~jax.jit` the underlying :mod:`ott` solver.
         threshold
             Convergence threshold of the :term:`Sinkhorn` algorithm. In the :term:`balanced <balanced OT problem>` case,
             this is typically the deviation between the target :term:`marginals` and the marginals of the current
@@ -381,7 +382,67 @@ class GWProblem(GenericAnalysisMixin[K, B], CompoundProblem[K, B]):
         device: Optional[Literal["cpu", "gpu", "tpu"]] = None,
         **kwargs: Any,
     ) -> "GWProblem[K,B]":
-        """TODO."""
+        r"""Solve the individual :term:`quadratic subproblems <quadratic problem>` :cite:`memoli:2011`.
+
+        .. seealso:
+            - See :doc:`../notebooks/examples/solvers/300_quad_problems_basic` on how to specify
+              the most important parameters.
+            - See :doc:`../notebooks/examples/solvers/400_quad_problems_advanced` on how to specify
+              additional parameters, such as the ``initializer``.
+
+        Parameters
+        ----------
+        alpha
+            Parameter in :math:`(0, 1]` that interpolates between the :term:`quadratic term` and
+            the :term:`linear term`. :math:`\alpha = 1` corresponds to the pure :term:`Gromov-Wasserstein` problem while
+            :math:`\alpha \to 0` corresponds to the pure :term:`linear OT` problem.
+        epsilon
+            :term:`Entropic regularization`.
+        tau_a
+            Parameter in :math:`(0, 1]` that defines how much :term:`unbalanced <unbalanced OT problem>` is the problem
+            on the source :term:`marginals`. If :math:`1`, the problem is :term:`balanced <balanced OT problem>`.
+        tau_b
+            Parameter in :math:`(0, 1]` that defines how much :term:`unbalanced <unbalanced OT problem>` is the problem
+            on the target :term:`marginals`. If :math:`1`, the problem is :term:`balanced <balanced OT problem>`.
+        rank
+            Rank of the :term:`low-rank OT` solver :cite:`scetbon:21b`.
+            If :math:`-1`, full-rank solver :cite:`peyre:2016` is used.
+        scale_cost
+            How to re-scale the cost matrices. If a :class:`float`, the cost matrices
+            will be re-scaled as :math:`\frac{cost}{scale\_cost}`.
+        batch_size
+            Number of rows/columns of the cost matrix to materialize during the solver iterations.
+            Larger value will require more memory.
+        stage
+            Stage by which to filter the :attr:`problems` to be solved.
+        initializer
+            How to initialize the solution. If :obj:`None`, ``'default'`` will be used for a full-rank solver and
+            ``'rank2'`` for a low-rank solver.
+        initializer_kwargs
+            Keyword arguments for the ``initializer``.
+        jit
+            Whether to :func:`~jax.jit` the underlying :mod:`ott` solver.
+        min_iterations
+            Minimum number of :term:`(fused) GW <Gromov-Wasserstein>` iterations.
+        max_iterations
+            Maximum number of :term:`(fused) GW <Gromov-Wasserstein>` iterations.
+        threshold
+            Convergence threshold of the :term:`GW <Gromov-Wasserstein>` solver.
+        linear_solver_kwargs
+            Keyword arguments for inner :term:`linear OT` solver.
+        device
+            Transfer the solution to a different device, see :meth:`~moscot.base.output.BaseSolverOutput.to`.
+            If :obj:`None`, keep the output on the original device.
+        kwargs
+            Keyword arguments for :meth:`~moscot.base.problems.CompoundProblem.solve`.
+
+        Returns
+        -------
+        Returns self and updated the following fields:
+
+        - :attr:`solutions` - the :term:`OT` solutions for each subproblem.
+        - :attr:`stage` - set to ``'solved'``.
+        """
         return super().solve(  # type: ignore[return-value]
             alpha=alpha,
             epsilon=epsilon,

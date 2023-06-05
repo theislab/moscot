@@ -208,7 +208,7 @@ class SinkhornSolver(OTTJaxSolver):
 
 
 class GWSolver(OTTJaxSolver):
-    """Solver for the :term:`quadratic problem`.
+    """Solver for the :term:`quadratic problem` :cite:`memoli:2011`.
 
     The :term:`Gromov-Wasserstein (GW) <Gromov-Wasserstein>` problem involves two distribution in
     possibly two different spaces. Points in the source distribution are matched to points in the target distribution
@@ -219,7 +219,7 @@ class GWSolver(OTTJaxSolver):
     jit
         Whether to :func:`~jax.jit` the :attr:`solver`.
     rank
-        Rank of the solver. If `-1` use the full-rank :term:`GW <Gromov-Wasserstein>` :cite:`memoli:2011`,
+        Rank of the solver. If `-1` use the full-rank :term:`GW <Gromov-Wasserstein>` :cite:`peyre:2016`,
         otherwise, use the low-rank approach :cite:`scetbon:21b`.
     initializer
         Initializer for :class:`~ott.solvers.quadratic.gromov_wasserstein.GromovWasserstein`.

@@ -60,3 +60,6 @@ Glossary
 
     primal solution
         TODO.
+
+    entropic regularization
+        TODO.
