@@ -32,7 +32,7 @@ class TranslationProblem(CrossModalityTranslationMixin[K, OTProblem], CompoundPr
     adata_tgt
         Annotated data object containing the target distribution.
     kwargs
-        Keyword arguments for :class:`~moscot.base.problems.compound_problem.BaseCompoundProblem`.
+        Keyword arguments for :class:`~moscot.base.problems.CompoundProblem`.
     """
 
     def __init__(self, adata_src: AnnData, adata_tgt: AnnData, **kwargs: Any):
@@ -45,7 +45,6 @@ class TranslationProblem(CrossModalityTranslationMixin[K, OTProblem], CompoundPr
         key: Optional[str] = None,
         **kwargs: Any,
     ) -> Union[DummyPolicy, ExternalStarPolicy[K]]:
-        """Private class to create DummyPolicy if no batches are present in the spatial anndata."""
         del policy
         if key is None:
             return DummyPolicy(self.adata, **kwargs)

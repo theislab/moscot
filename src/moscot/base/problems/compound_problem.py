@@ -383,6 +383,7 @@ class BaseCompoundProblem(BaseProblem, abc.ABC, Generic[K, B]):
 
         return res if return_all else current_mass
 
+    # TODO(michalk8): better description of `source/target` (also in other places).
     def push(
         self,
         source: Optional[K] = None,

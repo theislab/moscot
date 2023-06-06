@@ -426,7 +426,7 @@ class OTProblem(BaseProblem):
             - :obj:`None` - the value depends on the ``subset``.
 
               - :class:`list` - names in :attr:`adata_src.obs_names <adata_src>` to push.
-              - :class:`tuple` - start and offset indices :math:`(subset[0], subset[0] + subset[1])`
+              - :class:`tuple` - start and offset indices :math:`(subset[0], subset[0] + subset[1])`.
                 that define a boolean mask to push.
               - :obj:`None` - uniform array of :math:`1`.
         subset
@@ -470,7 +470,7 @@ class OTProblem(BaseProblem):
             - :obj:`None` - the value depends on the ``subset``.
 
               - :class:`list` - names in :attr:`adata_tgt.obs_names <adata_tgt>` to pull.
-              - :class:`tuple` - start and offset indices :math:`(subset[0], subset[0] + subset[1])`
+              - :class:`tuple` - start and offset indices :math:`(subset[0], subset[0] + subset[1])`.
                 that define a boolean mask to pull.
               - :obj:`None` - uniform array of :math:`1`.
         subset

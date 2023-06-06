@@ -42,7 +42,12 @@ class CrossModalityTranslationMixin(AnalysisMixin[K, B]):
         alternative_attr: Optional[Dict[str, Any]] = None,
         **kwargs: Any,
     ) -> ArrayLike:
-        """Translate source modality to target modality.
+        """Translate the source modality to the target modality.
+
+        .. seealso::
+            - See :doc:`../notebooks/tutorials/600_tutorial_translation` on how to translate
+              `chromatic accessibility <https://en.wikipedia.org/wiki/ATAC-seq>`_ to
+              `gene expression <https://en.wikipedia.org/wiki/Single-cell_sequencing>`_.
 
         Parameters
         ----------
@@ -51,20 +56,21 @@ class CrossModalityTranslationMixin(AnalysisMixin[K, B]):
         target
             Key identifying the target distribution.
         forward
-            If `True`, compute the translation from :attr:`adata_src` to :attr:`adata_tgt`, otherwise vice-versa.
+            If :obj:`True`, translate the ``source`` modality to the ``target`` modality, otherwise vice-versa.
         alternative_attr
-            Optional parameter to specify an alternative embedding to translate:
+            Alternative embedding to translate. Valid option are:
 
-            - if :class:`str`, it must refer to a key in :attr:`~anndata.AnnData.obsm`.
-            - if :class:`dict`, the dictionary should contain `'attr'`, the attribute of :class:`~anndata.AnnData` and
-              `'key'`, an optional key for the given attribute.
+            - :obj:`None` - use the features specified when :meth:`preparing <prepare>` the problem.
+            - :class:`str` - key in :attr:`~anndata.AnnData.obsm`.
+            - :class:`dict`-  it should contain ``'attr'`` and ``'key'``, the attribute and the key
+              in :class:`~anndata.AnnData`.
         kwargs
-            Keyword arguments for policy-specific `_apply` method of :class:`~moscot.base.problems.CompoundProblem`.
+            Keyword arguments for :meth:`push` or :meth:`pull`, depending on the ``forward``.
 
         Returns
         -------
-        Translation of :attr:`adata_src` to the target domain or :attr:`adata_tgt` to the source domain,
-        depending on `forward`.
+        If ``forward = True``, the translation of the ``source`` modality to the ``target`` modality,
+        otherwise vice-versa.
         """
 
         def _get_features(
@@ -76,9 +82,9 @@ class CrossModalityTranslationMixin(AnalysisMixin[K, B]):
             return data if key is None else data[key]
 
         if self._src_attr is None:
-            raise ValueError("Source attribute is None.")
+            raise ValueError("Source attribute is `None`.")
         if self._tgt_attr is None:
-            raise ValueError("Target attribute is None.")
+            raise ValueError("Target attribute is `None`.")
 
         kwargs["scale_by_marginals"] = True
         kwargs["normalize"] = False
@@ -87,10 +93,10 @@ class CrossModalityTranslationMixin(AnalysisMixin[K, B]):
         if alternative_attr is None:
             src_attr = self._src_attr
             tgt_attr = self._tgt_attr
+        elif isinstance(alternative_attr, str):
+            src_attr = tgt_attr = {"attr": "obsm", "key": alternative_attr}
         else:
-            src_attr = tgt_attr = (
-                {"attr": "obsm", "key": alternative_attr} if isinstance(alternative_attr, str) else alternative_attr
-            )
+            src_attr = tgt_attr = alternative_attr
 
         if forward:
             return prob.pull(_get_features(self.adata_tgt, attr=tgt_attr), **kwargs)
@@ -104,66 +110,61 @@ class CrossModalityTranslationMixin(AnalysisMixin[K, B]):
         target: Optional[K] = None,
         source_groups: Optional[Str_Dict_t] = None,
         target_groups: Optional[Str_Dict_t] = None,
-        forward: bool = False,
         aggregation_mode: Literal["annotation", "cell"] = "annotation",
+        forward: bool = False,
         batch_size: Optional[int] = None,
         normalize: bool = True,
         key_added: Optional[str] = _constants.CELL_TRANSITION,
     ) -> pd.DataFrame:
-        """Compute a grouped cell transition matrix.
+        """Compute an aggregate cell transition matrix.
 
-        This function computes a transition matrix with entries corresponding to categories, e.g. cell types.
-        The transition matrix will be row-stochastic if `forward` is `True`, otherwise column-stochastic.
+        This function computes a transition matrix with entries corresponding to categories, e.g., cell types.
+
+        .. seealso::
+            - See :doc:`../notebooks/examples/plotting/200_cell_transitions`
+              on how to compute and plot the cell transitions.
 
         Parameters
         ----------
         source
-            Key defining the batches in the source distribution.
+            Key identifying the source distribution.
         target
-            Key defining the batches in the target distribution.
+            Key identifying the target distribution. If :obj:`None`, use the reference.
         source_groups
-            Can be one of the following:
+            Source groups used for aggregation. Valid options are:
 
-                - if ``source_groups`` is of type :class:`str` this should correspond to a key in
-                  :attr:`anndata.AnnData.obs`.
-                  In this case, the categories in the transition matrix correspond to the unique values in
-                  :attr:`anndata.AnnData.obs` ``['{source_groups}']``.
-                - if ``target_groups`` is of type :class:`dict`, its key should correspond to a key in
-                  :attr:`anndata.AnnData.obs` and its value to a list containing a subset of categories
-                  present in :attr:`anndata.AnnData.obs` ``['{source_groups.keys()[0]}']``.
-                  The order of the list determines the order in the transition matrix.
+            - :class:`str` - key in :attr:`~anndata.AnnData.obs` where categorical data is stored.
+            - :class:`dict` - a dictionary with one key corresponding to a categorical column in
+              :attr:`~anndata.AnnData.obs` and values to a subset of categories.
         target_groups
-            Can be one of the following:
+            Target groups used for aggregation. Valid options are:
 
-                - if ``target_groups`` is of type :class:`str` this should correspond to a key in
-                  :attr:`anndata.AnnData.obs`. In this case, the categories in the transition matrix correspond to the
-                  unique values in :attr:`anndata.AnnData.obs` ``['{target_groups}']``.
-                - if ``target_groups`` is of :class:`dict`, its key should correspond to a key in
-                  :attr:`anndata.AnnData.obs` and its value to a list containing a subset of categories present in
-                  :attr:`anndata.AnnData.obs` ``['{target_groups.keys()[0]}']``. The order of the list determines the
-                  order in the transition matrix.
-        forward
-            If `True` computes transition from `source_annotations` to `target_annotations`, otherwise backward.
+            - :class:`str` - key in :attr:`~anndata.AnnData.obs` where categorical data is stored.
+            - :class:`dict` - a dictionary with one key corresponding to a categorical column in
+              :attr:`~anndata.AnnData.obs` and values to a subset of categories.
         aggregation_mode
-            - `annotation`: transition probabilities from the groups defined by `source_annotation` are returned.
-            - `cell`: the transition probabilities for each cell are returned.
+            How to aggregate the cell-level transport maps. Valid options are:
+
+            - ``'annotation'`` - group the transitions by the ``source_groups`` and the ``target_groups``.
+            - ``'cell'`` - TODO.
+        forward
+            If :obj:`True`, compute the transitions from the ``source_groups`` to the ``target_groups``.
         batch_size
-            number of data points the matrix-vector products are applied to at the same time. The larger,
-            the more memory is required.
+            Number of rows/columns of the cost matrix to materialize during :meth:`push` or :meth:`pull`.
+            Larger value will require more memory.
         normalize
-            If `True` the transition matrix is normalized such that it is stochastic. If `forward` is `True`, the
-            transition matrix is row-stochastic, otherwise column-stochastic.
+            If :obj:`True`, normalize the transition matrix. If ``forward = True``, the transition matrix
+            will be row-stochastic, otherwise column-stochastic.
         key_added
-            Key in :attr:`~anndata.AnnData.uns` and/or :attr:`~anndata.AnnData.obs` where the results
-            for the corresponding plotting functions are stored.
+            Key in :attr:`~anndata.AnnData.uns` where to save the result.
 
         Returns
         -------
-        Transition matrix of cells or groups of cells.
+        Depending on the ``key_added``:
 
-        Notes
-        -----
-        To visualise the results, see :func:`~moscot.plotting.cell_transition`.
+        - :obj:`None` - returns the transition matrix.
+        - :obj:`str` - returns nothing and saves the transition matrix to
+          :attr:`adata.uns['moscot_results']['cell_transition']['{key_added}'] <anndata.AnnData.uns>`
         """
         if TYPE_CHECKING:
             assert self.batch_key is not None
@@ -184,7 +185,7 @@ class CrossModalityTranslationMixin(AnalysisMixin[K, B]):
 
     @property
     def batch_key(self) -> Optional[str]:
-        """Batch key in :attr:`anndata.AnnData.obs`."""
+        """Batch key in :attr:`~anndata.AnnData.obs`."""
         return self._batch_key
 
     @batch_key.setter

@@ -57,9 +57,9 @@ class GenericAnalysisMixin(AnalysisMixin[K, B]):
         Parameters
         ----------
         source
-            Source key in :attr:`solutions`.
+            Key identifying the source distribution.
         target
-            Target key in :attr:`solutions`.
+            Key identifying the target distribution.
         source_groups
             Source groups used for aggregation. Valid options are:
 
@@ -72,13 +72,13 @@ class GenericAnalysisMixin(AnalysisMixin[K, B]):
             - :class:`str` - key in :attr:`~anndata.AnnData.obs` where categorical data is stored.
             - :class:`dict` - a dictionary with one key corresponding to a categorical column in
               :attr:`~anndata.AnnData.obs` and values to a subset of categories.
-        forward
-            If :obj:`True`, compute the transitions from the ``source_groups`` to the ``target_groups``.
         aggregation_mode
             How to aggregate the cell-level transport maps. Valid options are:
 
             - ``'annotation'`` - group the transitions by the ``source_groups`` and the ``target_groups``.
             - ``'cell'`` - TODO.
+        forward
+            If :obj:`True`, compute the transitions from the ``source_groups`` to the ``target_groups``.
         batch_size
             Number of rows/columns of the cost matrix to materialize during :meth:`push` or :meth:`pull`.
             Larger value will require more memory.
