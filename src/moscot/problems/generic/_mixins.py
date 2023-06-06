@@ -40,44 +40,65 @@ class GenericAnalysisMixin(AnalysisMixin[K, B]):
         target: K,
         source_groups: Optional[Str_Dict_t] = None,
         target_groups: Optional[Str_Dict_t] = None,
-        forward: bool = False,  # return value will be row-stochastic if forward=True, else column-stochastic
         aggregation_mode: Literal["annotation", "cell"] = "annotation",
+        forward: bool = False,
         batch_size: Optional[int] = None,
         normalize: bool = True,
         key_added: Optional[str] = _constants.CELL_TRANSITION,
     ) -> pd.DataFrame:
-        """Compute a grouped cell transition matrix.
+        """Compute an aggregate cell transition matrix.
 
         This function computes a transition matrix with entries corresponding to categories, e.g., cell types.
-        The transition matrix will be row-stochastic if ``forward = True``, otherwise column-stochastic.
+
+        .. seealso::
+            - See :doc:`../notebooks/examples/plotting/200_cell_transitions`
+              on how to compute and plot the cell transitions.
 
         Parameters
         ----------
         source
-            TODO.
+            Source key in :attr:`solutions`.
         target
-            TODO.
+            Target key in :attr:`solutions`.
         source_groups
-            TODO.
+            Source groups used for aggregation. Valid options are:
+
+            - :class:`str` - key in :attr:`~anndata.AnnData.obs` where categorical data is stored.
+            - :class:`dict` - a dictionary with one key corresponding to a categorical column in
+              :attr:`~anndata.AnnData.obs` and values to a subset of categories.
         target_groups
-            TODO.
+            Target groups used for aggregation. Valid options are:
+
+            - :class:`str` - key in :attr:`~anndata.AnnData.obs` where categorical data is stored.
+            - :class:`dict` - a dictionary with one key corresponding to a categorical column in
+              :attr:`~anndata.AnnData.obs` and values to a subset of categories.
         forward
-            TODO.
+            If :obj:`True`, compute the transitions from the ``source_groups`` to the ``target_groups``.
         aggregation_mode
-            TODO.
+            How to aggregate the cell-level transport maps. Valid options are:
+
+            - ``'annotation'`` - group the transitions by the ``source_groups`` and the ``target_groups``.
+            - ``'cell'`` - TODO.
         batch_size
-            TODO.
+            Number of rows/columns of the cost matrix to materialize during :meth:`push` or :meth:`pull`.
+            Larger value will require more memory.
         normalize
-            TODO.
+            If :obj:`True`, normalize the transition matrix. If ``forward = True``, the transition matrix
+            will be row-stochastic, otherwise column-stochastic.
         key_added
-            TODO.
+            Key in :attr:`~anndata.AnnData.uns` where to save the result.
 
         Returns
         -------
-        TODO.
+        Depending on the ``key_added``:
+
+        - :obj:`None` - returns the transition matrix.
+        - :obj:`str` - returns nothing and saves the transition matrix to
+          :attr:`adata.uns['moscot_results']['cell_transition']['{key_added}'] <anndata.AnnData.uns>`
         """
         if TYPE_CHECKING:
             assert isinstance(self.batch_key, str)
+        # TODO(michalk8): modify the behavior to match with the docs
         return self._cell_transition(
             key=self.batch_key,
             source=source,
@@ -129,7 +150,7 @@ class GenericAnalysisMixin(AnalysisMixin[K, B]):
         Depending on the ``key_added``:
 
         - :obj:`None` - returns the result.
-        - otherwise, returns nothing and updates :attr:`adata.obs['{key_added}'] <anndata.AnnData.obs>`
+        - :class:`str` - returns nothing and updates :attr:`adata.obs['{key_added}'] <anndata.AnnData.obs>`
           with the result.
         """
         # TODO(michalk8): consider not overriding + update the defaults in `BaseCompoundProblem` + implement _post_apply
@@ -174,7 +195,7 @@ class GenericAnalysisMixin(AnalysisMixin[K, B]):
         Depending on the ``key_added``:
 
         - :obj:`None` - returns the result.
-        - otherwise - returns nothing and updates :attr:`adata.obs['{key_added}'] <anndata.AnnData.obs>`
+        - :class:`str` - returns nothing and updates :attr:`adata.obs['{key_added}'] <anndata.AnnData.obs>`
           with the result.
         """
         # TODO(michalk8): consider not overriding + update the defaults in `BaseCompoundProblem` + implement _post_apply
