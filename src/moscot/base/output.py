@@ -1,12 +1,14 @@
 from abc import ABC, abstractmethod
 from copy import copy
 from functools import partial
-from typing import Any, Callable, Iterable, List, Literal, Optional, Tuple
+from typing import Any, Callable, Dict, Iterable, Literal, Optional, Tuple
+
+from joblib import Parallel, delayed
+from tqdm import tqdm
 
 import numpy as np
 import scipy.sparse as sp
 from scipy.sparse.linalg import LinearOperator
-from tqdm import tqdm
 
 from moscot._docs._docs import d
 from moscot._logging import logger
@@ -178,6 +180,7 @@ class BaseSolverOutput(ABC):
         batch_size: int = 1024,
         n_samples: Optional[int] = None,
         seed: Optional[int] = None,
+        n_jobs: int = -1,
     ) -> "MatrixSolverOutput":
         """Sparsify the :attr:`transport_matrix`.
 
@@ -213,12 +216,28 @@ class BaseSolverOutput(ABC):
             ``batch_size``.
         seed
             Random seed needed for sampling if ``mode = 'percentile'``.
+        n_jobs
+            TODO
 
         Returns
         -------
         Solve output with a sparsified transport matrix.
         """
         n, m = self.shape
+
+        def _min_row(batch: int) -> float:
+            x = np.eye(m, min(batch_size, m - batch), -(min(batch, m)))
+            res = self.pull(x, scale_by_marginals=False)  # tmap @ indicator_vectors
+            return float(res.max(axis=1).min())
+
+        def _min_row_with_thr(
+            batch: int, threshold: float, k: int, func: Callable[[np.ndarray, bool], np.ndarray]
+        ) -> Dict[int, sp.csr_matrix]:
+            x = np.eye(k, min(batch_size, k - batch), -(min(batch, k)), dtype=float)
+            res = np.array(func(x, scale_by_marginals=False))
+            res[res < threshold] = 0.0
+            return sp.csr_matrix(res.T if n < m else res)
+
         if mode == "threshold":
             if value is None:
                 raise ValueError("If `mode = 'threshold'`, `threshold` cannot be `None`.")
@@ -235,23 +254,33 @@ class BaseSolverOutput(ABC):
             res = self.pull(x, scale_by_marginals=False)  # tmap @ indicator_vectors
             thr = np.percentile(res, value)
         elif mode == "min_row":
-            thr = np.inf
-            for batch in range(0, m, batch_size):
-                x = np.eye(m, min(batch_size, m - batch), -(min(batch, m)))
-                res = self.pull(x, scale_by_marginals=False)  # tmap @ indicator_vectors
-                thr = min(thr, float(res.max(axis=1).min()))
+            # thr = np.inf
+            # for batch in tqdm(range(0, m, batch_size)):
+            #    x = np.eye(m, min(batch_size, m - batch), -(min(batch, m)))
+            #    res = self.pull(x, scale_by_marginals=False)  # tmap @ indicator_vectors
+            #   thr = min(thr, float(res.max(axis=1).min()))
+
+            results = Parallel(n_jobs=n_jobs, verbose=3)(
+                delayed(_min_row)(batch) for batch in tqdm(range(0, m, batch_size))
+            )
+            thr = np.min(results)
+
         else:
             raise NotImplementedError(mode)
 
         k, func, fn_stack = (n, self.push, sp.vstack) if n < m else (m, self.pull, sp.hstack)
-        tmaps_sparse: List[sp.csr_matrix] = []
-        for batch in tqdm(range(0, k, batch_size)):
-            x = np.eye(k, min(batch_size, k - batch), -(min(batch, k)), dtype=float)
-            res = np.array(func(x, scale_by_marginals=False))
-            res[res < thr] = 0.0
-            tmaps_sparse.append(sp.csr_matrix(res.T if n < m else res))
+        # tmaps_sparse: List[sp.csr_matrix] = []
+        # for batch in tqdm(range(0, k, batch_size)):
+        #    x = np.eye(k, min(batch_size, k - batch), -(min(batch, k)), dtype=float)
+        #    res = np.array(func(x, scale_by_marginals=False))
+        #    res[res < thr] = 0.0
+        #    tmaps_sparse.append(sp.csr_matrix(res.T if n < m else res))
+
+        results = Parallel(n_jobs=n_jobs, verbose=3)(
+            delayed(_min_row_with_thr)(batch, thr, k, func) for batch in tqdm(range(0, k, batch_size))
+        )
         return MatrixSolverOutput(
-            transport_matrix=fn_stack(tmaps_sparse), cost=self.cost, converged=self.converged, is_linear=self.is_linear
+            transport_matrix=fn_stack(results), cost=self.cost, converged=self.converged, is_linear=self.is_linear
         )
 
     @property
