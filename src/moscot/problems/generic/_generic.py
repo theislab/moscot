@@ -5,7 +5,6 @@ from anndata import AnnData
 
 from moscot import _constants
 from moscot._types import (
-    ArrayLike,
     CostKwargs_t,
     OttCostFn_t,
     OttCostFnMap_t,
@@ -44,8 +43,8 @@ class SinkhornProblem(GenericAnalysisMixin[K, B], CompoundProblem[K, B]):
         policy: Literal["sequential", "pairwise", "explicit"] = "sequential",
         cost: OttCostFn_t = "sq_euclidean",
         cost_kwargs: CostKwargs_t = types.MappingProxyType({}),
-        a: Optional[Union[bool, str, ArrayLike]] = None,
-        b: Optional[Union[bool, str, ArrayLike]] = None,
+        a: Optional[Union[bool, str]] = None,
+        b: Optional[Union[bool, str]] = None,
         **kwargs: Any,
     ) -> "SinkhornProblem[K, B]":
         r"""Prepare the individual :term:`linear subproblems <linear problem>`.
@@ -84,7 +83,6 @@ class SinkhornProblem(GenericAnalysisMixin[K, B], CompoundProblem[K, B]):
             - :class:`bool` - if :obj:`True`,
               :meth:`estimate the marginals <moscot.base.problems.OTProblem.estimate_marginals>`,
               otherwise use uniform marginals.
-            - :class:`~numpy.ndarray` - array of shape ``[n,]`` containing the source marginals.
             - :obj:`None` - uniform marginals.
         b
             Target :term:`marginals`. Valid options are:
@@ -93,7 +91,6 @@ class SinkhornProblem(GenericAnalysisMixin[K, B], CompoundProblem[K, B]):
             - :class:`bool` - if :obj:`True`,
               :meth:`estimate the marginals <moscot.base.problems.OTProblem.estimate_marginals>`,
               otherwise use uniform marginals.
-            - :class:`~numpy.ndarray` - array of shape ``[m,]`` containing the target marginals.
             - :obj:`None` - uniform marginals.
         kwargs
             Keyword arguments for :meth:`~moscot.base.problems.CompoundProblem.prepare`.
@@ -105,6 +102,7 @@ class SinkhornProblem(GenericAnalysisMixin[K, B], CompoundProblem[K, B]):
         - :attr:`problems` - the prepared subproblems.
         - :attr:`solutions` - set to an empty :class:`dict`.
         - :attr:`stage` - set to ``'prepared'``.
+        - :attr:`problem_kind` - set to ``'linear'``.
         """
         self.batch_key = key  # type: ignore[misc]
         xy, kwargs = handle_joint_attr(joint_attr, kwargs)
@@ -256,8 +254,8 @@ class GWProblem(GenericAnalysisMixin[K, B], CompoundProblem[K, B]):
         policy: Literal["sequential", "pairwise", "explicit"] = "sequential",
         cost: OttCostFnMap_t = "sq_euclidean",
         cost_kwargs: CostKwargs_t = types.MappingProxyType({}),
-        a: Optional[str] = None,
-        b: Optional[str] = None,
+        a: Optional[Union[bool, str]] = None,
+        b: Optional[Union[bool, str]] = None,
         **kwargs: Any,
     ) -> "GWProblem[K, B]":
         """Prepare the individual :term:`quadratic subproblems <quadratic problem>`.
@@ -315,7 +313,6 @@ class GWProblem(GenericAnalysisMixin[K, B], CompoundProblem[K, B]):
             - :class:`bool` - if :obj:`True`,
               :meth:`estimate the marginals <moscot.base.problems.OTProblem.estimate_marginals>`,
               otherwise use uniform marginals.
-            - :class:`~numpy.ndarray` - array of shape ``[n,]`` containing the source marginals.
             - :obj:`None` - uniform marginals.
         b
             Target :term:`marginals`. Valid options are:
@@ -324,7 +321,6 @@ class GWProblem(GenericAnalysisMixin[K, B], CompoundProblem[K, B]):
             - :class:`bool` - if :obj:`True`,
               :meth:`estimate the marginals <moscot.base.problems.OTProblem.estimate_marginals>`,
               otherwise use uniform marginals.
-            - :class:`~numpy.ndarray` - array of shape ``[m,]`` containing the target marginals.
             - :obj:`None` - uniform marginals.
         kwargs
             Keyword arguments for :meth:`~moscot.base.problems.CompoundProblem.prepare`.
@@ -336,6 +332,7 @@ class GWProblem(GenericAnalysisMixin[K, B], CompoundProblem[K, B]):
         - :attr:`problems` - the prepared subproblems.
         - :attr:`solutions` - set to an empty :class:`dict`.
         - :attr:`stage` - set to ``'prepared'``.
+        - :attr:`problem_kind` - set to ``'quadratic'``.
         """
 
         def set_quad_defaults(z: Union[str, Mapping[str, Any]]) -> Dict[str, str]:
@@ -382,7 +379,7 @@ class GWProblem(GenericAnalysisMixin[K, B], CompoundProblem[K, B]):
         device: Optional[Literal["cpu", "gpu", "tpu"]] = None,
         **kwargs: Any,
     ) -> "GWProblem[K,B]":
-        r"""Solve the individual :term:`quadratic subproblems <quadratic problem>` :cite:`memoli:2011`.
+        r"""Solve the individual :term:`quadratic subproblems <quadratic problem>`.
 
         .. seealso:
             - See :doc:`../notebooks/examples/solvers/300_quad_problems_basic` on how to specify

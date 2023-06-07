@@ -61,7 +61,7 @@ class CrossModalityTranslationMixin(AnalysisMixin[K, B]):
             Alternative embedding to translate. Valid option are:
 
             - :obj:`None` - use the features specified when :meth:`preparing <prepare>` the problem.
-            - :class:`str` - key in :attr:`~anndata.AnnData.obsm`.
+            - :class:`str` - key in :attr:`~anndata.AnnData.obsm` where the data is stored.
             - :class:`dict`-  it should contain ``'attr'`` and ``'key'``, the attribute and the key
               in :class:`~anndata.AnnData`.
         kwargs

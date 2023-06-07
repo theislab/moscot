@@ -193,7 +193,7 @@ class BirthDeathProblem(BirthDeathMixin, OTProblem):
         The estimated source or target marginals of shape ``[n,]`` or ``[m,]``, depending on the ``source``.
         If ``source = True``, also updates the following fields:
 
-        - :attr:`prior_growth_rates` - prior estimate of the souce growth rates.
+        - :attr:`prior_growth_rates` - prior estimate of the source growth rates.
         """  # noqa: D205
 
         def estimate(key: Optional[str], *, fn: Callable[..., ArrayLike], **kwargs: Any) -> ArrayLike:

@@ -24,7 +24,7 @@ def get_available_costs(backend: Optional[str] = None) -> Dict[str, Tuple[str, .
     Parameters
     ----------
     backend
-        Select cost specific to a backend. If ``None``, return costs for each backend.
+        Select cost specific to a backend. If :obj:`None`, return the costs for each backend.
 
     Returns
     -------

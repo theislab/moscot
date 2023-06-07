@@ -48,8 +48,6 @@ class GenericAnalysisMixin(AnalysisMixin[K, B]):
     ) -> pd.DataFrame:
         """Compute an aggregate cell transition matrix.
 
-        This function computes a transition matrix with entries corresponding to categories, e.g., cell types.
-
         .. seealso::
             - See :doc:`../notebooks/examples/plotting/200_cell_transitions`
               on how to compute and plot the cell transitions.

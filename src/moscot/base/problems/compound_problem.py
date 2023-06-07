@@ -250,6 +250,7 @@ class BaseCompoundProblem(BaseProblem, abc.ABC, Generic[K, B]):
         - :attr:`problems` - the prepared subproblems.
         - :attr:`solutions` - set to an empty :class:`dict`.
         - :attr:`stage` - set to ``'prepared'``.
+        - :attr:`problem_kind` - kind of the :term:`OT` problem.
         """
         self._ensure_valid_policy(policy)
         policy = self._create_policy(policy=policy, key=key)
@@ -550,7 +551,7 @@ class BaseCompoundProblem(BaseProblem, abc.ABC, Generic[K, B]):
 
     @property
     def solutions(self) -> Dict[Tuple[K, K], BaseSolverOutput]:
-        """Return dictionary of solutions of OT problems which the biological problem consists of."""
+        """Solutions to the :attr:`problems`."""
         if self._problem_manager is None:
             return {}
         return self._problem_manager.solutions

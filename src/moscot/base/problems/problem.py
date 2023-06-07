@@ -57,6 +57,7 @@ class BaseProblem(abc.ABC):
         Self and updates the following fields:
 
         - :attr:`stage` - set to ``'prepared'``.
+        - :attr:`problem_kind` - kind of the :term:`OT` problem.
         """
 
     @abc.abstractmethod
@@ -75,6 +76,7 @@ class BaseProblem(abc.ABC):
         Self and updates the following fields:
 
         - :attr:`stage` - set to ``'solved'``.
+        - :attr:`problem_kind` - kind of the :term:`OT` problem.
         """
 
     def save(
@@ -208,7 +210,7 @@ class OTProblem(BaseProblem):
 
     Notes
     -----
-    If any of the source/target masks are specified, :attr:`adata_src`/:attr:`adata_tgt` will be a view.
+    If source/target mask is specified, :attr:`adata_src`/:attr:`adata_tgt` will be a view.
     """
 
     def __init__(
@@ -323,9 +325,9 @@ class OTProblem(BaseProblem):
         - :attr:`y` - geometry of shape ``[m, m]`` defining the target :term:`quadratic term`.
         - :attr:`a` -  source :term:`marginals` of shape ``[n,]``.
         - :attr:`b` - target :term:`marginals` of shape ``[m,]``.
-        - :attr:`problem_kind` - kind of the :term:`OT` problem.
-        - :attr:`stage` - set to ``'prepared'``.
         - :attr:`solution` - set to :obj:`None`.
+        - :attr:`stage` - set to ``'prepared'``.
+        - :attr:`problem_kind` - kind of the :term:`OT` problem.
         """
         self._x = self._y = self._xy = self._solution = None
         # TODO(michalk8): in the future, have a better dispatch
