@@ -1,6 +1,8 @@
 import types
 from typing import Any, Literal, Mapping, Optional, Tuple, Type, Union
 
+from anndata import AnnData
+
 from moscot import _constants
 from moscot._types import (
     CostKwargs_t,
@@ -19,15 +21,18 @@ __all__ = ["AlignmentProblem"]
 
 
 class AlignmentProblem(SpatialAlignmentMixin[K, B], CompoundProblem[K, B]):
-    """
-    Class for aligning spatial omics data, based on :cite:`zeira:22`.
-
-    The `AlignmentProblem` allows to align spatial omics data via optimal transport.
+    """Class for aligning spatial omics data, based on :cite:`zeira:22`.
 
     Parameters
     ----------
-    %(adata)s
+    adata
+        Annotated data object.
+    kwargs
+        Keyword arguments for :class:`~moscot.base.problems.CompoundProblem`.
     """
+
+    def __init__(self, adata: AnnData, **kwargs: Any):
+        super().__init__(adata, **kwargs)
 
     def prepare(
         self,
@@ -38,38 +43,74 @@ class AlignmentProblem(SpatialAlignmentMixin[K, B], CompoundProblem[K, B]):
         reference: Optional[str] = None,
         cost: OttCostFnMap_t = "sq_euclidean",
         cost_kwargs: CostKwargs_t = types.MappingProxyType({}),
-        a: Optional[str] = None,
-        b: Optional[str] = None,
+        a: Optional[Union[bool, str]] = None,
+        b: Optional[Union[bool, str]] = None,
         **kwargs: Any,
     ) -> "AlignmentProblem[K, B]":
-        """Prepare the problem.
-
-        This method prepares the data to be passed to the optimal transport solver.
+        """Prepare the alignment problem problem.
 
         Parameters
         ----------
-        %(batch_key)s
-        %(spatial_key)s
-        %(joint_attr)s
-        %(policy)s
+        batch_key
+            Key in :attr:`~anndata.AnnData.obs` where the slices are stored.
+        spatial_key
+            Key in :attr:`~anndata.AnnData.obsm` where the spatial coordinates are stored.
+        joint_attr
+            How to get the data for the :term:`linear term` in the :term:`fused <fused Gromov-Wasserstein>` case:
 
+            - :obj:`None` - run `PCA <https://en.wikipedia.org/wiki/Principal_component_analysis>`_
+              on :attr:`~anndata.AnnData.X` is computed.
+            - :class:`str` - a key in :attr:`~anndata.AnnData.obsm` where the data is stored.
+            - :class:`dict`-  it should contain ``'attr'`` and ``'key'``, the attribute and the key
+              in :class:`~anndata.AnnData`, and optionally ``'tag'``, one of :class:`~moscot.utils.tagged_array.Tag`.
+
+            By default, :attr:`tag = 'point_cloud' <moscot.utils.tagged_array.Tag.POINT_CLOUD>` is used.
+        policy
+            Rule which defines how to construct the subproblems. Valid options are:
+
+            - ``'sequential'`` - align subsequent slices. The order is determined by the order of categories in
+              of :attr:`adata.obs[{'batch_key}'] <anndata.AnnData.obs>`.
+            - ``'star'`` - align all slices to the ``reference``.
         reference
-            Only used if `policy="star"`, it's the value for reference stored
-            in :attr:`anndata.AnnData.obs` ``["batch_key"]``.
+            Spatial reference when ``policy = 'star'``.
+        cost
+            Cost function to use:
 
-        %(cost)s
-        %(cost_kwargs)s
-        %(a)s
-        %(b)s
-        %(kwargs_prepare)s
+            - :class:`str` - name of the cost function for all terms, see :func:`~moscot.costs.get_available_costs`.
+            - :class:`dict` - a dictionary with the following keys and values:
+
+              - ``'xy'`` - cost function for the :term:`linear term`.
+              - ``'x'`` - cost function for the source :term:`quadratic term`.
+              - ``'y'`` - cost function for the target :term:`quadratic term`.
+        cost_kwargs
+            Keyword arguments for the :class:`~moscot.base.cost.BaseCost` or any backend-specific cost.
+        a
+            Source :term:`marginals`. Valid options are:
+
+            - :class:`str` - key in :attr:`~anndata.AnnData.obs` where the source marginals are stored.
+            - :class:`bool` - if :obj:`True`,
+              :meth:`estimate the marginals <moscot.base.problems.OTProblem.estimate_marginals>`,
+              otherwise use uniform marginals.
+            - :obj:`None` - uniform marginals.
+        b
+            Target :term:`marginals`. Valid options are:
+
+            - :class:`str` - key in :attr:`~anndata.AnnData.obs` where the target marginals are stored.
+            - :class:`bool` - if :obj:`True`,
+              :meth:`estimate the marginals <moscot.base.problems.OTProblem.estimate_marginals>`,
+              otherwise use uniform marginals.
+            - :obj:`None` - uniform marginals.
+        kwargs
+            Keyword arguments for :meth:`~moscot.base.problems.CompoundProblem.prepare`.
 
         Returns
         -------
-        :class:`moscot.problems.space.MappingProblem`.
+        Returns self and updates the following fields:
 
-        Examples
-        --------
-        %(ex_prepare)s
+        - :attr:`problems` - the prepared subproblems.
+        - :attr:`solutions` - set to an empty :class:`dict`.
+        - :attr:`stage` - set to ``'prepared'``.
+        - :attr:`problem_kind` - set to ``'quadratic'``.
         """
         self.spatial_key = spatial_key
         self.batch_key = batch_key
@@ -85,7 +126,7 @@ class AlignmentProblem(SpatialAlignmentMixin[K, B], CompoundProblem[K, B]):
 
     def solve(
         self,
-        alpha: Optional[float] = 0.5,
+        alpha: float = 0.5,
         epsilon: Optional[float] = 1e-2,
         tau_a: float = 1.0,
         tau_b: float = 1.0,
@@ -103,33 +144,60 @@ class AlignmentProblem(SpatialAlignmentMixin[K, B], CompoundProblem[K, B]):
         device: Optional[Literal["cpu", "gpu", "tpu"]] = None,
         **kwargs: Any,
     ) -> "AlignmentProblem[K,B]":
-        """
-        Solve optimal transport problems defined in :class:`moscot.problems.space.AlignmentProblem`.
+        r"""Solve the alignment problem.
 
         Parameters
         ----------
-        %(alpha)s
-        %(epsilon)s
-        %(tau_a)s
-        %(tau_b)s
-        %(rank)s
-        %(scale_cost)s
-        %(pointcloud_kwargs)s
-        %(stage)s
-        %(initializer_quad)s
-        %(initializer_kwargs)s
-        %(gw_kwargs)s
-        %(linear_solver_kwargs)s
-        %(device_solve)s
-        %(kwargs_quad_fused)s
+        alpha
+            Parameter in :math:`(0, 1]` that interpolates between the :term:`quadratic term` and
+            the :term:`linear term`. :math:`\alpha = 1` corresponds to the pure :term:`Gromov-Wasserstein` problem while
+            :math:`\alpha \to 0` corresponds to the pure :term:`linear OT` problem.
+        epsilon
+            :term:`Entropic regularization`.
+        tau_a
+            Parameter in :math:`(0, 1]` that defines how much :term:`unbalanced <unbalanced OT problem>` is the problem
+            on the source :term:`marginals`. If :math:`1`, the problem is :term:`balanced <balanced OT problem>`.
+        tau_b
+            Parameter in :math:`(0, 1]` that defines how much :term:`unbalanced <unbalanced OT problem>` is the problem
+            on the target :term:`marginals`. If :math:`1`, the problem is :term:`balanced <balanced OT problem>`.
+        rank
+            Rank of the :term:`low-rank OT` solver :cite:`scetbon:21b`.
+            If :math:`-1`, full-rank solver :cite:`peyre:2016` is used.
+        scale_cost
+            How to re-scale the cost matrices. If a :class:`float`, the cost matrices
+            will be re-scaled as :math:`\frac{\text{cost}}{\text{scale_cost}}`.
+        batch_size
+            Number of rows/columns of the cost matrix to materialize during the solver iterations.
+            Larger value will require more memory.
+        stage
+            Stage by which to filter the :attr:`problems` to be solved.
+        initializer
+            How to initialize the solution. If :obj:`None`, ``'default'`` will be used for a full-rank solver and
+            ``'rank2'`` for a low-rank solver.
+        initializer_kwargs
+            Keyword arguments for the ``initializer``.
+        jit
+            Whether to :func:`~jax.jit` the underlying :mod:`ott` solver.
+        min_iterations
+            Minimum number of :term:`(fused) GW <Gromov-Wasserstein>` iterations.
+        max_iterations
+            Maximum number of :term:`(fused) GW <Gromov-Wasserstein>` iterations.
+        threshold
+            Convergence threshold of the :term:`GW <Gromov-Wasserstein>` solver.
+        linear_solver_kwargs
+            Keyword arguments for inner :term:`linear OT` solver.
+        device
+            Transfer the solution to a different device, see :meth:`~moscot.base.output.BaseSolverOutput.to`.
+            If :obj:`None`, keep the output on the original device.
+        kwargs
+            Keyword arguments for :meth:`~moscot.base.problems.CompoundProblem.solve`.
 
         Returns
         -------
-        :class:`moscot.problems.space.AlignmentProblem`.
+        Returns self and updated the following fields:
 
-        Examples
-        --------
-        %(ex_solve_quadratic)s
+        - :attr:`solutions` - the :term:`OT` solutions for each subproblem.
+        - :attr:`stage` - set to ``'solved'``.
         """
         return super().solve(  # type: ignore[return-value]
             alpha=alpha,

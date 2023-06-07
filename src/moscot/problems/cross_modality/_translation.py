@@ -221,7 +221,7 @@ class TranslationProblem(CrossModalityTranslationMixin[K, OTProblem], CompoundPr
             If :math:`-1`, full-rank solver :cite:`peyre:2016` is used.
         scale_cost
             How to re-scale the cost matrices. If a :class:`float`, the cost matrices
-            will be re-scaled as :math:`\frac{cost}{scale\_cost}`.
+            will be re-scaled as :math:`\frac{\text{cost}}{\text{scale_cost}}`.
         batch_size
             Number of rows/columns of the cost matrix to materialize during the solver iterations.
             Larger value will require more memory.
