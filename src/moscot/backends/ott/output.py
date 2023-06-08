@@ -182,7 +182,8 @@ class OTTOutput(BaseSolverOutput):
         prob = self._output.ot_prob
         assert isinstance(prob.geom, pointcloud.PointCloud), "Only available for point clouds."
 
-        x, y, a, b = prob.geom.x, prob.geom.y, prob.a, prob.b
+        (x, y, *_, cost_fn), aux_data = prob.geom.tree_flatten()
+        a, b = prob.a, prob.b
         eps = prob.epsilon
 
         if src_ixs is not None:
@@ -190,8 +191,9 @@ class OTTOutput(BaseSolverOutput):
         if tgt_ixs is not None:
             g, y, g = g[tgt_ixs], y[tgt_ixs], b[tgt_ixs]
 
-        # TODO(michalk8): use flatten to pass other params (except batch_size)
-        geom = pointcloud.PointCloud(x, y, epsilon=eps)
+        _ = aux_data.pop("batch_size", None)
+        geom = pointcloud.PointCloud(x, y, epsilon=eps, cost_fn=cost_fn, **aux_data)
+
         prob = linear_problem.LinearProblem(geom, a=a, b=b, tau_a=prob.tau_a, tau_b=prob.tau_b)
         out = sinkhorn.SinkhornOutput(
             f=f, g=g, errors=self._output.errors, reg_ot_cost=self._output.reg_ot_cost, ot_prob=prob
