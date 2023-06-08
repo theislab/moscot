@@ -192,6 +192,8 @@ class OTTOutput(BaseSolverOutput):
             g, y, g = g[tgt_ixs], y[tgt_ixs], b[tgt_ixs]
 
         _ = aux_data.pop("batch_size", None)
+        # TODO(michalk8): remove this in the new ott-jax release
+        _ = aux_data.pop("epsilon", None)
         geom = pointcloud.PointCloud(x, y, epsilon=eps, cost_fn=cost_fn, **aux_data)
 
         prob = linear_problem.LinearProblem(geom, a=a, b=b, tau_a=prob.tau_a, tau_b=prob.tau_b)

@@ -4,7 +4,7 @@ from functools import partial
 from typing import Any, Callable, Iterable, Literal, Optional, Tuple, Union
 
 from joblib import Parallel, delayed
-from tqdm import tqdm
+from tqdm.auto import trange
 
 import numpy as np
 import scipy.sparse as sp
@@ -199,6 +199,7 @@ class BaseSolverOutput(ABC):
         n_samples: Optional[int] = None,
         seed: Optional[int] = None,
         n_jobs: int = 1,
+        **kwargs: Any,
     ) -> "MatrixSolverOutput":
         """Sparsify the :attr:`transport_matrix`.
 
@@ -236,6 +237,8 @@ class BaseSolverOutput(ABC):
             Random seed needed for sampling if ``mode = 'percentile'``.
         n_jobs
             Number of concurrent jobs to use. If :math:`-1`, use all cores.
+        kwargs
+            Keyword arguments for :class:`~joblib.Parallel`.
 
         Returns
         -------
@@ -267,16 +270,17 @@ class BaseSolverOutput(ABC):
             ixs = rng.choice(np.arange(n), size=n_samples, replace=False)
             thr = np.percentile(self.subset(ixs).transport_matrix, value)
         elif mode == "min_row":
-            results = Parallel(n_jobs=n_jobs, verbose=3)(
-                delayed(_min_row)(batch) for batch in tqdm(range(0, n, batch_size))
+            logger.info("Computing threshold for `mode='min_row'`")
+            results = Parallel(n_jobs=n_jobs, **kwargs)(
+                delayed(_min_row)(batch) for batch in trange(0, n, batch_size, unit="batch")
             )
             thr = np.min(results)
         else:
             raise NotImplementedError(mode)
 
-        n, _ = self.shape
-        results = Parallel(n_jobs=n_jobs, verbose=3)(
-            delayed(_sparsify)(batch, thr) for batch in tqdm(range(0, n, batch_size))
+        logger.info(f"Using `threshold={thr:.6}` for sparsification")
+        results = Parallel(n_jobs=n_jobs, **kwargs)(
+            delayed(_sparsify)(batch, thr) for batch in trange(0, n, batch_size, unit="batch")
         )
 
         return MatrixSolverOutput(
@@ -380,7 +384,7 @@ class MatrixSolverOutput(BaseSolverOutput):
     ) -> "BaseSolverOutput":
         mat = self.transport_matrix
         if src_ixs is not None:
-            mat = mat[src_ixs]
+            mat = mat[src_ixs, :]
         if tgt_ixs is not None:
             mat = mat[:, tgt_ixs]
 
