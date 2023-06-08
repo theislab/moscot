@@ -223,7 +223,7 @@ class BaseSolverOutput(ABC):
         seed
             Random seed needed for sampling if ``mode = 'percentile'``.
         n_jobs
-            TODO
+            Number of concurrent jobs to use. If :math:`-1`, use all cores.
 
         Returns
         -------
