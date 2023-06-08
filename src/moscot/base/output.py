@@ -252,19 +252,9 @@ class BaseSolverOutput(ABC):
                 raise ValueError("If `mode = 'percentile'`, `threshold` cannot be `None`.")
             rng = np.random.default_rng(seed=seed)
             n_samples = n_samples if n_samples is not None else batch_size
-            k = min(n_samples, n)
-            x = np.zeros((m, k))
-            rows = rng.choice(m, size=k)
-            x[rows, np.arange(k)] = 1.0
-            res = self.pull(x, scale_by_marginals=False)  # tmap @ indicator_vectors
-            thr = np.percentile(res, value)
+            ixs = rng.choice(np.arange(n), size=n_samples, replace=False)
+            thr = np.percentile(self.subset(ixs).transport_matrix, value)
         elif mode == "min_row":
-            # thr = np.inf
-            # for batch in tqdm(range(0, m, batch_size)):
-            #    x = np.eye(m, min(batch_size, m - batch), -(min(batch, m)))
-            #    res = self.pull(x, scale_by_marginals=False)  # tmap @ indicator_vectors
-            #   thr = min(thr, float(res.max(axis=1).min()))
-
             results = Parallel(n_jobs=n_jobs, verbose=3)(
                 delayed(_min_row)(batch) for batch in tqdm(range(0, n, batch_size))
             )
