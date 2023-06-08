@@ -91,7 +91,19 @@ class BaseSolverOutput(ABC):
     def subset(  # noqa: D102
         self, src_ixs: Optional[Union[slice, ArrayLike]] = None, tgt_ixs: Optional[Union[slice, ArrayLike]] = None
     ) -> "BaseSolverOutput":
-        """TODO."""
+        """Subset the transport matrix.
+
+        Parameters
+        ----------
+        src_ixs
+            Source indices. If :obj:`None`, don't subset the rows.
+        tgt_ixs
+            Target indices. If :obj:`None`, don't subset the columns.
+
+        Returns
+        -------
+        The subset of a transport matrix.
+        """
 
     def push(self, x: ArrayLike, scale_by_marginals: bool = False) -> ArrayLike:
         """Push mass through the :attr:`transport_matrix`.
