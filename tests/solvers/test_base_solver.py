@@ -11,7 +11,7 @@ from moscot.base.output import MatrixSolverOutput
 from tests._utils import ATOL, RTOL, MockSolverOutput
 
 
-class TestBaseSolverOutput:
+class TestSparsification:
     @pytest.mark.parametrize("batch_size", [1, 4])
     @pytest.mark.parametrize("threshold", [0.0, 1e-1, 1.0])
     @pytest.mark.parametrize("shape", [(7, 2), (91, 103)])
