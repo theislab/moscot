@@ -153,20 +153,6 @@ class OTTOutput(BaseSolverOutput):
             return self._output.apply(x, axis=1 - forward)
         return self._output.apply(x.T, axis=1 - forward).T  # convert to batch first
 
-    @property
-    def shape(self) -> Tuple[int, int]:  # noqa: D102
-        if isinstance(self._output, OTTSinkhornOutput):
-            return self._output.f.shape[0], self._output.g.shape[0]
-        return self._output.geom.shape
-
-    @property
-    def transport_matrix(self) -> ArrayLike:  # noqa: D102
-        return self._output.matrix
-
-    @property
-    def is_linear(self) -> bool:  # noqa: D102
-        return isinstance(self._output, (OTTSinkhornOutput, OTTLRSinkhornOutput))
-
     def to(self, device: Optional[Device_t] = None) -> "OTTOutput":  # noqa: D102
         if isinstance(device, str) and ":" in device:
             device, ix = device.split(":")
@@ -181,6 +167,51 @@ class OTTOutput(BaseSolverOutput):
                 raise IndexError(f"Unable to fetch the device with `id={idx}`.") from None
 
         return OTTOutput(jax.device_put(self._output, device))
+
+    def subset(  # noqa: D102
+        self, src_ixs: Optional[ArrayLike] = None, tgt_ixs: Optional[ArrayLike] = None
+    ) -> "OTTOutput":
+        from ott.geometry import pointcloud
+        from ott.problems.linear import linear_problem
+        from ott.solvers.linear import sinkhorn
+
+        assert self.is_linear, "Quadratic is not yet available."
+        assert not self.is_low_rank, "Low-rank is not yet available."
+
+        f, g = self.potentials  # type: ignore[misc]
+        prob = self._output.ot_prob
+        assert isinstance(prob.geom, pointcloud.PointCloud), "Only available for point clouds."
+
+        x, y, a, b = prob.geom.x, prob.geom.y, prob.a, prob.b
+        eps = prob.epsilon
+
+        if src_ixs is not None:
+            f, x, a = f[src_ixs], x[src_ixs], a[src_ixs]
+        if tgt_ixs is not None:
+            g, y, g = g[tgt_ixs], y[tgt_ixs], b[tgt_ixs]
+
+        # TODO(michalk8): use flatten to pass other params (except batch_size)
+        geom = pointcloud.PointCloud(x, y, epsilon=eps)
+        prob = linear_problem.LinearProblem(geom, a=a, b=b, tau_a=prob.tau_a, tau_b=prob.tau_b)
+        out = sinkhorn.SinkhornOutput(
+            f=f, g=g, errors=self._output.errors, reg_ot_cost=self._output.reg_ot_cost, ot_prob=prob
+        )
+
+        return type(self)(out)
+
+    @property
+    def shape(self) -> Tuple[int, int]:  # noqa: D102
+        if isinstance(self._output, OTTSinkhornOutput):
+            return self._output.f.shape[0], self._output.g.shape[0]
+        return self._output.geom.shape
+
+    @property
+    def transport_matrix(self) -> ArrayLike:  # noqa: D102
+        return self._output.matrix
+
+    @property
+    def is_linear(self) -> bool:  # noqa: D102
+        return isinstance(self._output, (OTTSinkhornOutput, OTTLRSinkhornOutput))
 
     @property
     def cost(self) -> float:  # noqa: D102

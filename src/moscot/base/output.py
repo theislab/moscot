@@ -87,6 +87,10 @@ class BaseSolverOutput(ABC):
     def _ones(self, n: int) -> ArrayLike:
         pass
 
+    @abstractmethod
+    def subset(self, src_ixs: Optional[ArrayLike] = None, tgt_ixs: Optional[ArrayLike] = None) -> "BaseSolverOutput":
+        """TODO."""
+
     def push(self, x: ArrayLike, scale_by_marginals: bool = False) -> ArrayLike:
         """Push mass through the :attr:`transport_matrix`.
 
@@ -231,10 +235,10 @@ class BaseSolverOutput(ABC):
             return float(res.max(axis=1).min())
 
         def _min_row_with_thr(
-            batch: int, threshold: float, k: int, func: Callable[[np.ndarray, bool], np.ndarray]
+            batch: int, threshold: float, k: int, func: Callable[[ArrayLike, bool], ArrayLike]
         ) -> Dict[int, sp.csr_matrix]:
             x = np.eye(k, min(batch_size, k - batch), -(min(batch, k)), dtype=float)
-            res = np.array(func(x, scale_by_marginals=False))
+            res = np.array(func(x, scale_by_marginals=False))  # type: ignore[call-arg]
             res[res < threshold] = 0.0
             return sp.csr_matrix(res.T if n < m else res)
 
@@ -374,6 +378,11 @@ class MatrixSolverOutput(BaseSolverOutput):
         obj = copy(self)
         obj._transport_matrix = obj.transport_matrix.astype(dtype)
         return obj
+
+    def subset(  # noqa: D102
+        self, src_ixs: Optional[ArrayLike] = None, tgt_ixs: Optional[ArrayLike] = None
+    ) -> "BaseSolverOutput":
+        raise NotImplementedError("Not yet implemented.")
 
     @property
     def cost(self) -> float:  # noqa: D102
