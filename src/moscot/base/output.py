@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 from copy import copy
 from functools import partial
-from typing import Any, Callable, Dict, Iterable, Literal, Optional, Tuple
+from typing import Any, Callable, Iterable, Literal, Optional, Tuple, Union
 
 from joblib import Parallel, delayed
 from tqdm import tqdm
@@ -88,7 +88,9 @@ class BaseSolverOutput(ABC):
         pass
 
     @abstractmethod
-    def subset(self, src_ixs: Optional[ArrayLike] = None, tgt_ixs: Optional[ArrayLike] = None) -> "BaseSolverOutput":
+    def subset(  # noqa: D102
+        self, src_ixs: Optional[Union[slice, ArrayLike]] = None, tgt_ixs: Optional[Union[slice, ArrayLike]] = None
+    ) -> "BaseSolverOutput":
         """TODO."""
 
     def push(self, x: ArrayLike, scale_by_marginals: bool = False) -> ArrayLike:
@@ -184,7 +186,7 @@ class BaseSolverOutput(ABC):
         batch_size: int = 1024,
         n_samples: Optional[int] = None,
         seed: Optional[int] = None,
-        n_jobs: int = -1,
+        n_jobs: int = 1,
     ) -> "MatrixSolverOutput":
         """Sparsify the :attr:`transport_matrix`.
 
@@ -227,21 +229,20 @@ class BaseSolverOutput(ABC):
         -------
         Solve output with a sparsified transport matrix.
         """
-        n, m = self.shape
 
         def _min_row(batch: int) -> float:
-            x = np.eye(m, min(batch_size, m - batch), -(min(batch, m)))
-            res = self.pull(x, scale_by_marginals=False)  # tmap @ indicator_vectors
+            res = self.subset(slice(batch, batch + batch_size)).transport_matrix
             return float(res.max(axis=1).min())
 
-        def _min_row_with_thr(
-            batch: int, threshold: float, k: int, func: Callable[[ArrayLike, bool], ArrayLike]
-        ) -> Dict[int, sp.csr_matrix]:
-            x = np.eye(k, min(batch_size, k - batch), -(min(batch, k)), dtype=float)
-            res = np.array(func(x, scale_by_marginals=False))  # type: ignore[call-arg]
-            res[res < threshold] = 0.0
-            return sp.csr_matrix(res.T if n < m else res)
+        def _sparsify(batch: int, threshold: float) -> sp.csr_matrix:
+            res = self.subset(slice(batch, batch + batch_size)).transport_matrix
+            if not isinstance(res, np.ndarray):
+                res = np.array(res)
 
+            res[res < threshold] = 0.0
+            return sp.csr_matrix(res)
+
+        n, m = self.shape
         if mode == "threshold":
             if value is None:
                 raise ValueError("If `mode = 'threshold'`, `threshold` cannot be `None`.")
@@ -249,7 +250,7 @@ class BaseSolverOutput(ABC):
         elif mode == "percentile":
             if value is None:
                 raise ValueError("If `mode = 'percentile'`, `threshold` cannot be `None`.")
-            rng = np.random.RandomState(seed=seed)
+            rng = np.random.default_rng(seed=seed)
             n_samples = n_samples if n_samples is not None else batch_size
             k = min(n_samples, n)
             x = np.zeros((m, k))
@@ -265,26 +266,19 @@ class BaseSolverOutput(ABC):
             #   thr = min(thr, float(res.max(axis=1).min()))
 
             results = Parallel(n_jobs=n_jobs, verbose=3)(
-                delayed(_min_row)(batch) for batch in tqdm(range(0, m, batch_size))
+                delayed(_min_row)(batch) for batch in tqdm(range(0, n, batch_size))
             )
             thr = np.min(results)
-
         else:
             raise NotImplementedError(mode)
 
-        k, func, fn_stack = (n, self.push, sp.vstack) if n < m else (m, self.pull, sp.hstack)
-        # tmaps_sparse: List[sp.csr_matrix] = []
-        # for batch in tqdm(range(0, k, batch_size)):
-        #    x = np.eye(k, min(batch_size, k - batch), -(min(batch, k)), dtype=float)
-        #    res = np.array(func(x, scale_by_marginals=False))
-        #    res[res < thr] = 0.0
-        #    tmaps_sparse.append(sp.csr_matrix(res.T if n < m else res))
-
+        n, _ = self.shape
         results = Parallel(n_jobs=n_jobs, verbose=3)(
-            delayed(_min_row_with_thr)(batch, thr, k, func) for batch in tqdm(range(0, k, batch_size))
+            delayed(_sparsify)(batch, thr) for batch in tqdm(range(0, n, batch_size))
         )
+
         return MatrixSolverOutput(
-            transport_matrix=fn_stack(results), cost=self.cost, converged=self.converged, is_linear=self.is_linear
+            transport_matrix=sp.vstack(results), cost=self.cost, converged=self.converged, is_linear=self.is_linear
         )
 
     @property
@@ -380,9 +374,15 @@ class MatrixSolverOutput(BaseSolverOutput):
         return obj
 
     def subset(  # noqa: D102
-        self, src_ixs: Optional[ArrayLike] = None, tgt_ixs: Optional[ArrayLike] = None
+        self, src_ixs: Optional[Union[slice, ArrayLike]] = None, tgt_ixs: Optional[Union[slice, ArrayLike]] = None
     ) -> "BaseSolverOutput":
-        raise NotImplementedError("Not yet implemented.")
+        mat = self.transport_matrix
+        if src_ixs is not None:
+            mat = mat[src_ixs]
+        if tgt_ixs is not None:
+            mat = mat[:, tgt_ixs]
+
+        return type(self)(mat, cost=self.cost, converged=self.converged, is_linear=self._is_linear)
 
     @property
     def cost(self) -> float:  # noqa: D102

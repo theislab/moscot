@@ -169,7 +169,7 @@ class OTTOutput(BaseSolverOutput):
         return OTTOutput(jax.device_put(self._output, device))
 
     def subset(  # noqa: D102
-        self, src_ixs: Optional[ArrayLike] = None, tgt_ixs: Optional[ArrayLike] = None
+        self, src_ixs: Optional[Union[slice, ArrayLike]] = None, tgt_ixs: Optional[Union[slice, ArrayLike]] = None
     ) -> "OTTOutput":
         from ott.geometry import pointcloud
         from ott.problems.linear import linear_problem
