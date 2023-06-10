@@ -17,7 +17,6 @@ from ott.problems.linear import linear_problem
 from moscot.backends.ott._icnn import ICNN
 from moscot._logging import logger
 from moscot._types import ArrayLike, ScaleCost_t
-from plotly.graph_objs import pointcloud
 
 Potential_t = Callable[[jnp.ndarray], float]
 CondPotential_t = Callable[[jnp.ndarray, float], float]
@@ -271,7 +270,7 @@ def _regularized_wasserstein(
     Compute a regularized Wasserstein distance to be used as the fitting term in the loss.
     Fitting term computes how far the predicted target is from teh actual target (ground truth)
     """
-    geom = pointcloud.PointCloud(
+    geom = PointCloud(
         x=x, y=y,
         **geometry_kwargs
     )
