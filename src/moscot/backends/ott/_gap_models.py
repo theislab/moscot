@@ -15,7 +15,7 @@ from ott.tools.sinkhorn_divergence import sinkhorn_divergence
 
 from moscot._types import ArrayLike
 from moscot._logging import logger
-from moscot.backends.ott.jax_data import JaxSampler
+from moscot.backends.ott._jax_data import JaxSampler
 from moscot.backends.ott._utils import RunningAverageMeter, _compute_sinkhorn_divergence, compute_ds_diff, mmd_rbf, _regularized_wasserstein
 
 import jax
