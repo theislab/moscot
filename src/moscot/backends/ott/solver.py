@@ -550,7 +550,7 @@ class GapSolver(OTSolver[OTTOutput]):
         )
         return (self._train_sampler, self._valid_sampler)
 
-    def _solve(self, data_samplers: Tuple[JaxSampler, JaxSampler]) -> MongeGapOutput:  # type: ignore[override]
+    def _solve(self, data_samplers: Tuple[JaxSampler, JaxSampler]) -> GapNeuralOutput:  # type: ignore[override]
         model, logs = self.solver(data_samplers[0], data_samplers[1])
         return GapNeuralOutput(model, logs)
 
