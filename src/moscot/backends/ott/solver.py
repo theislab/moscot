@@ -23,7 +23,6 @@ from moscot._types import (
     SinkhornInitializer_t,
 )
 
-from moscot.solvers._base_solver import OTSolver, ProblemKind
 from moscot.backends.ott._jax_data import JaxSampler
 from moscot.backends.ott._neuraldual import OTTNeuralDualSolver
 from moscot.backends.ott._gap_models import MongeGapSolver
@@ -610,5 +609,5 @@ class GapSolver(OTSolver[OTTOutput]):
         return self._solver
 
     @property
-    def problem_kind(self) -> ProblemKind:
-        return ProblemKind.LINEAR
+    def problem_kind(self) -> ProblemKind_t:
+        return "linear"
