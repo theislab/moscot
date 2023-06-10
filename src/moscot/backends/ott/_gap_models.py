@@ -67,7 +67,7 @@ class MongeGap:
         on the empirical reference measure samples defined by ``samples``.
         """
         T_samples = T(samples)
-        geom = pointcloud.PointCloud(
+        geom = PointCloud(
             x=samples, y=T_samples,
             **self.geometry_kwargs
         )
