@@ -16,7 +16,6 @@ import numpy as np
 import pandas as pd
 import scipy.sparse as sp
 from networkx import NetworkXNoPath
-from pandas.api.types import is_categorical_dtype
 from scipy.linalg import svd
 from scipy.sparse.linalg import LinearOperator
 from scipy.spatial import ConvexHull
@@ -338,39 +337,45 @@ class SpatialMappingMixin(AnalysisMixin[K, B]):
 
     def correlate(  # type: ignore[misc]
         self: SpatialMappingMixinProtocol[K, B],
-        var_names: Optional[List[str]] = None,
+        var_names: Optional[Sequence[str]] = None,
         corr_method: Literal["pearson", "spearman"] = "pearson",
     ) -> Mapping[Tuple[K, K], pd.Series]:
-        """
-        Calculate correlation between true and predicted gene expression.
+        """Correlate true and predicted gene expression.
+
+        .. warning::
+            Sparse matrices stored in :attr:`~anndata.AnnData.X` will be densified.
 
         Parameters
         ----------
         var_names
-            List of variable names.
+            Keys in :attr:`~anndata.AnnData.var_names`. If :obj:`None`, use all shared genes.
         corr_method
-            Correlation method:
+            Correlation method. Valid options are:
 
-                - 'pearson': Pearson correlation.
-                - 'spearman': Spearman correlation
+            - ``'pearson'`` - `Pearson correlation <https://en.wikipedia.org/wiki/Pearson_correlation_coefficient>`_.
+            - ``'spearman'`` - `Spearman's rank correlation
+              <https://en.wikipedia.org/wiki/Spearman%27s_rank_correlation_coefficient>`_.
 
         Returns
         -------
-        TODO
+        Correlation for each solution in :attr:`solutions`.
         """
         var_sc = self._filter_vars(var_names)
         if var_sc is None or not len(var_sc):
-            raise ValueError("No overlapping `var_names` between ` adata_sc` and `adata_sp`.")
+            raise ValueError("No overlapping `var_names` between spatial and gene expression data.")
 
         if corr_method == "pearson":
-            cor = pearsonr
+            corr = pearsonr
         elif corr_method == "spearman":
-            cor = spearmanr
+            corr = spearmanr
         else:
             raise NotImplementedError(f"Correlation method `{corr_method!r}` is not yet implemented.")
 
+        gexp_sc = self.adata_sc[:, var_sc].X
+        if sp.issparse(gexp_sc):
+            gexp_sc = gexp_sc.A
+
         corrs = {}
-        gexp_sc = self.adata_sc[:, var_sc].X if not sp.issparse(self.adata_sc.X) else self.adata_sc[:, var_sc].X.A
         for key, val in self.solutions.items():
             index_obs: List[Union[bool, int]] = (
                 self.adata_sp.obs[self._policy.key] == key[0]
@@ -379,72 +384,76 @@ class SpatialMappingMixin(AnalysisMixin[K, B]):
             )
             gexp_sp = self.adata_sp[index_obs, var_sc].X
             if sp.issparse(gexp_sp):
-                # TODO(giovp): in the future, logg if too large
                 gexp_sp = gexp_sp.A
             gexp_pred_sp = val.pull(gexp_sc, scale_by_marginals=True)
-            corr_val = [cor(gexp_pred_sp[:, gi], gexp_sp[:, gi])[0] for gi, _ in enumerate(var_sc)]
+            corr_val = [corr(gexp_pred_sp[:, gi], gexp_sp[:, gi])[0] for gi, _ in enumerate(var_sc)]
             corrs[key] = pd.Series(corr_val, index=var_sc)
 
         return corrs
 
     def impute(  # type: ignore[misc]
         self: SpatialMappingMixinProtocol[K, B],
-        var_names: Optional[Sequence[Any]] = None,
+        var_names: Optional[Sequence[str]] = None,
         device: Optional[Device_t] = None,
     ) -> AnnData:
-        """Impute expression of specific genes.
+        """Impute the expression of specific genes.
 
         Parameters
         ----------
-        var_names:
-            TODO: don't use device from docstrings here, as different use
+        var_names
+            Genes in :attr:`~anndata.AnnData.var_names` to impute. If :obj:`None`, use all genes in :attr:`adata_sc`.
+        device
+            Device where to transfer the solutions, see :meth:`~moscot.base.output.BaseSolverOutput.to`.
 
         Returns
         -------
-        Annotated data object with imputed gene expression values.
+        Annotated data object with the imputed gene expression.
         """
         if var_names is None:
             var_names = self.adata_sc.var_names
-        gexp_sc = self.adata_sc[:, var_names].X if not sp.issparse(self.adata_sc.X) else self.adata_sc[:, var_names].X.A
-        pred_list = [
-            val.to(device=device).pull(gexp_sc, scale_by_marginals=True)
-            if device is not None
-            else val.pull(gexp_sc, scale_by_marginals=True)
-            for val in self.solutions.values()
-        ]
-        gexp_pred = np.nan_to_num(np.vstack(pred_list), nan=0.0, copy=False)
-        adata_pred = AnnData(gexp_pred)
+
+        gexp_sc = self.adata_sc[:, var_names].X
+        if sp.issparse(gexp_sc):
+            gexp_sc = gexp_sc.A
+
+        predictions = [val.to(device=device).pull(gexp_sc, scale_by_marginals=True) for val in self.solutions.values()]
+
+        adata_pred = AnnData(np.nan_to_num(np.vstack(predictions), nan=0.0, copy=False))
         adata_pred.obs_names = self.adata_sp.obs_names
         adata_pred.var_names = var_names
         adata_pred.obsm = self.adata_sp.obsm.copy()
+
         return adata_pred
 
     def spatial_correspondence(  # type: ignore[misc]
         self: SpatialMappingMixinProtocol[K, B],
-        interval: Union[ArrayLike, int] = 10,
+        interval: Union[int, ArrayLike] = 10,
         max_dist: Optional[int] = None,
         attr: Optional[Dict[str, Any]] = None,
     ) -> pd.DataFrame:
-        """
-        Compute structural correspondence between spatial and molecular distances.
+        """Compute structural correspondence between spatial and molecular distances.
 
         Parameters
         ----------
         interval
-            Interval for the spatial distance.
+            Interval for the spatial distance. If :class:`int`, it will be set from the data.
         max_dist
-            Maximum distance for the interval, if `None` it is set from data.
+            Maximum distance for the interval. If :obj:`None`, it will set from the data.
         attr
-            Specify the attributes from which to compute the correspondence.
+            How to extract the data for correspondence. Valid options are:
+
+            - :obj:`None` - use :attr:`~anndata.AnnData.X`.
+            - :class:`dict` - key corresponds to an attribute of :class:`~anndata.AnnData` and
+              value to a key in that attribute. If the value is :obj:`None`, only the attribute will be used.
 
         Returns
         -------
-        :class:`pandas.DataFrame` with columns:
+        A dataframe with the following columns:
 
-            - `spatial`: average spatial distance.
-            - `expression`: average expression distance.
-            - `index`: index of the interval.
-            - `batch_key`: key of the batch (slide).
+        - ``'features_distance'`` - average spatial distance.
+        - ``'index_interval'`` - index of the interval.
+        - ``'value_interval'`` - average expression distance.
+        - ``'{batch_key}'`` key of the batch (slide).
         """
 
         def _get_features(
@@ -459,34 +468,23 @@ class SpatialMappingMixin(AnalysisMixin[K, B]):
                 return getattr(adata, att)[key]
             return getattr(adata, att)
 
-        if self.batch_key is not None:
-            out_list = []
-            if is_categorical_dtype(self.adata.obs[self.batch_key]):
-                categ = self.adata.obs[self.batch_key].cat.categories
-            else:
-                logger.info(f"adata_sp.obs[`{self.batch_key}`] is not `categorical`, using `unique()` method.")
-                categ = self.adata.obs[self.batch_key].unique()
-            if len(categ) > 1:
-                for c in categ:
-                    adata_subset = self.adata[self.adata.obs[self.batch_key] == c]
-                    spatial = adata_subset.obsm[self.spatial_key]
-                    features = _get_features(adata_subset, attr)
-                    out = _compute_correspondence(spatial, features, interval, max_dist)
-                    out[self.batch_key] = c
-                    out_list.append(out)
-            else:
-                spatial = self.adata.obsm[self.spatial_key]
-                features = _get_features(self.adata, attr)
-                out = _compute_correspondence(spatial, features, interval, max_dist)
-                out[self.batch_key] = categ[0]
-                out_list.append(out)
-            out = pd.concat(out_list, axis=0)
-            out[self.batch_key] = pd.Categorical(out[self.batch_key])
-            return out
+        if self.batch_key is None:
+            spatial = self.adata.obsm[self.spatial_key]
+            features = _get_features(self.adata, attr)
+            return _compute_correspondence(spatial, features, interval, max_dist)
 
-        spatial = self.adata.obsm[self.spatial_key]
-        features = _get_features(self.adata, attr)
-        return _compute_correspondence(spatial, features, interval, max_dist)
+        res = []
+        for c in self.adata.obs[self.batch_key].cat.categories:
+            adata_subset = self.adata[self.adata.obs[self.batch_key] == c]
+            spatial = adata_subset.obsm[self.spatial_key]
+            features = _get_features(adata_subset, attr)
+            out = _compute_correspondence(spatial, features, interval, max_dist)
+            out[self.batch_key] = c
+            res.append(out)
+
+        res = pd.concat(res, axis=0)
+        res[self.batch_key] = res[self.batch_key].astype("category")
+        return res
 
     def cell_transition(  # type: ignore[misc]
         self: SpatialMappingMixinProtocol[K, B],
@@ -542,7 +540,7 @@ class SpatialMappingMixin(AnalysisMixin[K, B]):
 
     @property
     def batch_key(self) -> Optional[str]:
-        """Batch key in :attr:`anndata.AnnData.obs`."""
+        """Batch key in :attr:`~anndata.AnnData.obs`."""
         return self._batch_key
 
     @batch_key.setter
@@ -553,7 +551,7 @@ class SpatialMappingMixin(AnalysisMixin[K, B]):
 
     @property
     def spatial_key(self) -> Optional[str]:
-        """Spatial key in :attr:`anndata.AnnData.obsm`."""
+        """Spatial key in :attr:`~anndata.AnnData.obsm`."""
         return self._spatial_key
 
     @spatial_key.setter
@@ -566,7 +564,7 @@ class SpatialMappingMixin(AnalysisMixin[K, B]):
 def _compute_correspondence(
     spatial: ArrayLike,
     features: ArrayLike,
-    interval: Union[ArrayLike, int] = 10,
+    interval: Union[int, ArrayLike] = 10,
     max_dist: Optional[int] = None,
 ) -> pd.DataFrame:
     if isinstance(interval, int):
@@ -577,20 +575,19 @@ def _compute_correspondence(
             max_dist = round(((area / 2) ** 0.5) / 2)
         support = np.linspace(max_dist / interval, max_dist, interval)
     else:
-        support = np.array(sorted(interval), dtype=np.float_, copy=True)
+        support = np.asarray(np.sort(interval), dtype=float)
 
     def pdist(row_idx: ArrayLike, col_idx: float, feat: ArrayLike) -> Any:
         if len(row_idx) > 0:
             return pairwise_distances(feat[row_idx, :], feat[[col_idx], :]).mean()  # type: ignore[index]
         return np.nan
 
+    # TODO(michalk8): vectorize using jax, this is just a for loop
     vpdist = np.vectorize(pdist, excluded=["feat"])
-    features = features.A if sp.issparse(features) else features  # type: ignore[attr-defined]
+    if sp.issparse(features):
+        features = features.A
 
-    feat_arr = []
-    index_arr = []
-    support_arr = []
-
+    feat_arr, index_arr, support_arr = [], [], []
     for ind, i in enumerate(support):
         tree = NearestNeighbors(radius=i).fit(spatial)
         _, idx = tree.radius_neighbors()
@@ -611,7 +608,7 @@ def _compute_correspondence(
         columns=["features_distance", "index_interval", "value_interval"],
     )
 
-    df["index_interval"] = pd.Categorical(df["index_interval"].astype(np.int_))
+    df["index_interval"] = df["index_interval"].astype(int).astype("category")
     return df
 
 

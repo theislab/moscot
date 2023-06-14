@@ -184,6 +184,9 @@ class OTTOutput(BaseSolverOutput):
         return isinstance(self._output, (sinkhorn.SinkhornOutput, sinkhorn_lr.LRSinkhornOutput))
 
     def to(self, device: Optional[Device_t] = None) -> "OTTOutput":  # noqa: D102
+        if device is None:
+            return OTTOutput(jax.device_put(self._output, device=device))
+
         if isinstance(device, str) and ":" in device:
             device, ix = device.split(":")
             idx = int(ix)

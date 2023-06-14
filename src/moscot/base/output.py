@@ -60,8 +60,7 @@ class BaseSolverOutput(abc.ABC):
         Parameters
         ----------
         device
-            Device where to transfer the solver output.
-            If :obj:`None`, use the default device.
+            Device where to transfer the solver output. If :obj:`None`, use the default device.
 
         Returns
         -------
