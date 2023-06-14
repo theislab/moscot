@@ -429,7 +429,7 @@ class SpatialMappingMixin(AnalysisMixin[K, B]):
         self: SpatialMappingMixinProtocol[K, B],
         interval: Union[int, ArrayLike] = 10,
         max_dist: Optional[int] = None,
-        attr: Optional[Dict[str, Any]] = None,
+        attr: Optional[Dict[str, Optional[str]]] = None,
     ) -> pd.DataFrame:
         """Compute structural correspondence between spatial and molecular distances.
 
@@ -492,34 +492,59 @@ class SpatialMappingMixin(AnalysisMixin[K, B]):
         target: Optional[K] = None,
         source_groups: Optional[Str_Dict_t] = None,
         target_groups: Optional[Str_Dict_t] = None,
-        forward: bool = False,  # return value will be row-stochastic if forward=True, else column-stochastic
         aggregation_mode: Literal["annotation", "cell"] = "annotation",
+        forward: bool = False,
         batch_size: Optional[int] = None,
         normalize: bool = True,
         key_added: Optional[str] = _constants.CELL_TRANSITION,
     ) -> pd.DataFrame:
-        """
-        Compute a grouped cell transition matrix.
+        """Compute an aggregate cell transition matrix.
 
-        This function computes a transition matrix with entries corresponding to categories, e.g. cell types.
-        The transition matrix will be row-stochastic if `forward` is `True`, otherwise column-stochastic.
+        .. seealso::
+            - See :doc:`../notebooks/examples/plotting/200_cell_transitions`
+              on how to compute and plot the cell transitions.
 
         Parameters
         ----------
-        %(cell_trans_params)s
-        %(forward_cell_transition)s
-        %(aggregation_mode)s
-        %(ott_jax_batch_size)s
-        %(normalize)s
-        %(key_added_plotting)s
+        source
+            Key identifying the source distribution.
+        target
+            Key identifying the target distribution.
+        source_groups
+            Source groups used for aggregation. Valid options are:
+
+            - :class:`str` - key in :attr:`~anndata.AnnData.obs` where categorical data is stored.
+            - :class:`dict` - a dictionary with one key corresponding to a categorical column in
+              :attr:`~anndata.AnnData.obs` and values to a subset of categories.
+        target_groups
+            Target groups used for aggregation. Valid options are:
+
+            - :class:`str` - key in :attr:`~anndata.AnnData.obs` where categorical data is stored.
+            - :class:`dict` - a dictionary with one key corresponding to a categorical column in
+              :attr:`~anndata.AnnData.obs` and values to a subset of categories.
+        aggregation_mode
+            How to aggregate the cell-level transport maps. Valid options are:
+
+            - ``'annotation'`` - group the transitions by the ``source_groups`` and the ``target_groups``.
+            - ``'cell'`` - do not group by the ``source_groups`` or the ``target_groups``, depending on the ``forward``.
+        forward
+            If :obj:`True`, compute the transitions from the ``source_groups`` to the ``target_groups``.
+        batch_size
+            Number of rows/columns of the cost matrix to materialize during :meth:`push` or :meth:`pull`.
+            Larger value will require more memory.
+        normalize
+            If :obj:`True`, normalize the transition matrix. If ``forward = True``, the transition matrix
+            will be row-stochastic, otherwise column-stochastic.
+        key_added
+            Key in :attr:`~anndata.AnnData.uns` where to save the result.
 
         Returns
         -------
-        %(return_cell_transition)s
+        Depending on the ``key_added``:
 
-        Notes
-        -----
-        %(notes_cell_transition)s
+        - :obj:`None` - returns the transition matrix.
+        - :obj:`str` - returns nothing and saves the transition matrix to
+          :attr:`adata.uns['moscot_results']['cell_transition']['{key_added}'] <anndata.AnnData.uns>`
         """
         if TYPE_CHECKING:
             assert self.batch_key is not None
