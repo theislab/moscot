@@ -49,6 +49,10 @@ class AlignmentProblem(SpatialAlignmentMixin[K, B], CompoundProblem[K, B]):
     ) -> "AlignmentProblem[K, B]":
         """Prepare the alignment problem problem.
 
+        .. seealso::
+            - See :doc:`../notebooks/tutorials/300_spatial_alignment` on how to
+              prepare and solve the :class:`~moscot.problems.space.AlignmentProblem`.
+
         Parameters
         ----------
         batch_key
@@ -145,6 +149,10 @@ class AlignmentProblem(SpatialAlignmentMixin[K, B], CompoundProblem[K, B]):
         **kwargs: Any,
     ) -> "AlignmentProblem[K,B]":
         r"""Solve the alignment problem.
+
+        .. seealso::
+            - See :doc:`../notebooks/tutorials/300_spatial_alignment` on how to
+              prepare and solve the :class:`~moscot.problems.space.AlignmentProblem`.
 
         Parameters
         ----------
