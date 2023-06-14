@@ -46,7 +46,7 @@ class SpatialAlignmentMixinProtocol(AnalysisMixinProtocol[K, B]):
     def _subset_spatial(  # type:ignore[empty-body]
         self: "SpatialAlignmentMixinProtocol[K, B]",
         k: K,
-        spatial_key: Optional[str] = None,
+        spatial_key: str,
     ) -> ArrayLike:
         ...
 
@@ -54,20 +54,8 @@ class SpatialAlignmentMixinProtocol(AnalysisMixinProtocol[K, B]):
         self: "SpatialAlignmentMixinProtocol[K, B]",
         reference: K,
         mode: Literal["warp", "affine"],
-        spatial_key: Optional[str] = None,
+        spatial_key: str,
     ) -> Tuple[Dict[K, ArrayLike], Optional[Dict[K, Optional[ArrayLike]]]]:
-        ...
-
-    @staticmethod
-    def _affine(  # type:ignore[empty-body]
-        tmap: LinearOperator, src: ArrayLike, tgt: ArrayLike
-    ) -> Tuple[ArrayLike, ArrayLike]:
-        ...
-
-    @staticmethod
-    def _warp(  # type: ignore[empty-body]
-        tmap: LinearOperator, src: ArrayLike, _: ArrayLike
-    ) -> Tuple[ArrayLike, Optional[ArrayLike]]:
         ...
 
     def _cell_transition(
@@ -109,7 +97,7 @@ class SpatialAlignmentMixin(AnalysisMixin[K, B]):
         self: SpatialAlignmentMixinProtocol[K, B],
         reference: K,
         mode: Literal["warp", "affine"],
-        spatial_key: Optional[str] = None,
+        spatial_key: str,
     ) -> Tuple[Dict[K, ArrayLike], Optional[Dict[K, Optional[ArrayLike]]]]:
         """Scheme for interpolation."""
         # get reference
@@ -126,9 +114,9 @@ class SpatialAlignmentMixin(AnalysisMixin[K, B]):
         starts = set(itertools.chain.from_iterable(full_steps)) - set(reference_)  # type: ignore[call-overload]
 
         if mode == "affine":
-            _transport = self._affine
+            _transport = _affine
         elif mode == "warp":
-            _transport = self._warp
+            _transport = _warp
         else:
             raise NotImplementedError(f"Alignment mode `{mode!r}` is not yet implemented.")
 
@@ -146,52 +134,68 @@ class SpatialAlignmentMixin(AnalysisMixin[K, B]):
             spatial_data = self._subset_spatial(key, spatial_key=spatial_key)
             transport_maps[key], transport_metadata[key] = _transport(tmap, src=src, tgt=spatial_data)
 
+        # TODO(michalk8): always return the metadata?
         return transport_maps, (transport_metadata if mode == "affine" else None)
 
     def align(  # type: ignore[misc]
         self: SpatialAlignmentMixinProtocol[K, B],
-        reference: K,
+        reference: Optional[K] = None,
         mode: Literal["warp", "affine"] = "warp",
         spatial_key: Optional[str] = None,
-        inplace: bool = True,
-    ) -> Optional[Union[ArrayLike, Tuple[ArrayLike, Optional[Dict[K, Optional[ArrayLike]]]]]]:
-        """
-        Align spatial data.
+        key_added: Optional[str] = None,
+    ) -> Optional[Tuple[ArrayLike, Optional[Dict[K, Optional[ArrayLike]]]]]:
+        """Align the spatial data.
 
         Parameters
         ----------
         reference
-            Reference key.
+            Reference key. If a :class:`star policy <moscot.utils.subset_policy.StarPolicy>` was used,
+            its reference will always be used.
         mode
-            Alignment mode:
+            Alignment mode. Valid options are:
 
-                - "warp": warp the data to the reference.
-                - "affine": align the data to the reference using affine transformation.
-
-        %(inplace)s
+            - ``'warp'`` - warp the data to the ``reference``.
+            - ``'affine'`` - align the data to the ``reference`` using affine transformation.
+        spatial_key
+            Key in :attr:`~anndata.AnnData.obsm` where the spatial coordinates are stored.
+            If :obj:`None`, use :attr:`spatial_key`.
+        key_added
+            Key in :attr:`~anndata.AnnData.obsm` and :attr:`~anndata.AnnData.uns` where to store the alignment.
 
         Returns
         -------
-        %(alignment_mixin_returns)s
+        Depending on the ``key_added``:
+
+        - :obj:`None` - returns the aligned coordinates and metadata.
+          The metadata is :obj:`None` when ``mode != 'affine'``.
+        - :class:`str` - updates :attr:`adata` with the following fields:
+
+          - :attr:`adata.obsm['{key_added}'] <anndata.AnnData.obsm>` - the aligned spatial coordinates.
+          - :attr:`adata.uns['{key_added}']['alignment_metadata'] <anndata.AnnData.uns>` - the metadata.
         """
+        if isinstance(self._policy, StarPolicy):
+            reference = self._policy.reference
+            logger.debug(f"Setting `reference={reference}`.")
+        if reference is None:
+            raise ValueError("Please specify `reference=...`.")
         if reference not in self._policy._cat:
-            raise ValueError(f"Reference `{reference}` is not in policy's categories: `{self._policy._cat}`.")
-        if isinstance(self._policy, StarPolicy) and reference != self._policy.reference:
-            # TODO(michalk8): just warn + optional reference?
-            raise ValueError(f"Expected reference to be `{self._policy.reference}`, found `{reference}`.")
+            raise ValueError(f"Reference `{reference}` is not in policy's categories `{self._policy._cat}`.")
+
+        if spatial_key is None:
+            spatial_key = self.spatial_key
+
         aligned_maps, aligned_metadata = self._interpolate_scheme(
             reference=reference, mode=mode, spatial_key=spatial_key
         )
         aligned_basis = np.vstack([aligned_maps[k] for k in self._policy._cat])
-        if mode == "affine":
-            if not inplace:
-                return aligned_basis, aligned_metadata
-            if self.spatial_key not in self.adata.uns:
-                self.adata.uns[self.spatial_key] = {}
-            self.adata.uns[self.spatial_key]["alignment_metadata"] = aligned_metadata
-        if not inplace:
-            return aligned_basis
-        self.adata.obsm[f"{self.spatial_key}_{mode}"] = aligned_basis  # noqa: RET503
+
+        if key_added is None:
+            return aligned_basis, aligned_metadata
+
+        self.adata.obsm[key_added] = aligned_basis
+        if mode == "affine":  # noqa: RET503
+            self.adata.uns.setdefault(key_added, {})
+            self.adata.uns[key_added]["alignment_metadata"] = aligned_metadata  # noqa: RET503
 
     def cell_transition(  # type: ignore[misc]
         self: SpatialAlignmentMixinProtocol[K, B],
@@ -199,34 +203,59 @@ class SpatialAlignmentMixin(AnalysisMixin[K, B]):
         target: K,
         source_groups: Optional[Str_Dict_t] = None,
         target_groups: Optional[Str_Dict_t] = None,
-        forward: bool = False,  # return value will be row-stochastic if forward=True, else column-stochastic
         aggregation_mode: Literal["annotation", "cell"] = "annotation",
+        forward: bool = False,
         batch_size: Optional[int] = None,
         normalize: bool = True,
         key_added: Optional[str] = _constants.CELL_TRANSITION,
     ) -> pd.DataFrame:
-        """
-        Compute a grouped cell transition matrix.
+        """Compute an aggregate cell transition matrix.
 
-        This function computes a transition matrix with entries corresponding to categories, e.g. cell types.
-        The transition matrix will be row-stochastic if `forward` is `True`, otherwise column-stochastic.
+        .. seealso::
+            - See :doc:`../notebooks/examples/plotting/200_cell_transitions`
+              on how to compute and plot the cell transitions.
 
         Parameters
         ----------
-        %(cell_trans_params)s
-        %(forward_cell_transition)s
-        %(aggregation_mode)s
-        %(ott_jax_batch_size)s
-        %(normalize)s
-        %(key_added_plotting)s
+        source
+            Key identifying the source distribution.
+        target
+            Key identifying the target distribution.
+        source_groups
+            Source groups used for aggregation. Valid options are:
+
+            - :class:`str` - key in :attr:`~anndata.AnnData.obs` where categorical data is stored.
+            - :class:`dict` - a dictionary with one key corresponding to a categorical column in
+              :attr:`~anndata.AnnData.obs` and values to a subset of categories.
+        target_groups
+            Target groups used for aggregation. Valid options are:
+
+            - :class:`str` - key in :attr:`~anndata.AnnData.obs` where categorical data is stored.
+            - :class:`dict` - a dictionary with one key corresponding to a categorical column in
+              :attr:`~anndata.AnnData.obs` and values to a subset of categories.
+        aggregation_mode
+            How to aggregate the cell-level transport maps. Valid options are:
+
+            - ``'annotation'`` - group the transitions by the ``source_groups`` and the ``target_groups``.
+            - ``'cell'`` - do not group by the ``source_groups`` or the ``target_groups``, depending on the ``forward``.
+        forward
+            If :obj:`True`, compute the transitions from the ``source_groups`` to the ``target_groups``.
+        batch_size
+            Number of rows/columns of the cost matrix to materialize during :meth:`push` or :meth:`pull`.
+            Larger value will require more memory.
+        normalize
+            If :obj:`True`, normalize the transition matrix. If ``forward = True``, the transition matrix
+            will be row-stochastic, otherwise column-stochastic.
+        key_added
+            Key in :attr:`~anndata.AnnData.uns` where to save the result.
 
         Returns
         -------
-        %(return_cell_transition)s
+        Depending on the ``key_added``:
 
-        Notes
-        -----
-        %(notes_cell_transition)s
+        - :obj:`None` - returns the transition matrix.
+        - :obj:`str` - returns nothing and saves the transition matrix to
+          :attr:`adata.uns['moscot_results']['cell_transition']['{key_added}'] <anndata.AnnData.uns>`
         """
         if TYPE_CHECKING:
             assert isinstance(self.batch_key, str)
@@ -248,7 +277,7 @@ class SpatialAlignmentMixin(AnalysisMixin[K, B]):
 
     @property
     def spatial_key(self) -> Optional[str]:
-        """Spatial key in :attr:`anndata.AnnData.obsm`."""
+        """Spatial key in :attr:`~anndata.AnnData.obsm`."""
         return self._spatial_key
 
     @spatial_key.setter
@@ -259,7 +288,7 @@ class SpatialAlignmentMixin(AnalysisMixin[K, B]):
 
     @property
     def batch_key(self) -> Optional[str]:
-        """Batch key in :attr:`anndata.AnnData.obs`."""
+        """Batch key in :attr:`~anndata.AnnData.obs`."""
         return self._batch_key
 
     @batch_key.setter
@@ -269,32 +298,12 @@ class SpatialAlignmentMixin(AnalysisMixin[K, B]):
         self._batch_key = key
 
     def _subset_spatial(  # type: ignore[misc]
-        self: SpatialAlignmentMixinProtocol[K, B], k: K, spatial_key: Optional[str] = None
+        self: SpatialAlignmentMixinProtocol[K, B],
+        k: K,
+        spatial_key: str,
     ) -> ArrayLike:
-        if spatial_key is None:
-            spatial_key = self.spatial_key
-        return self.adata[self.adata.obs[self._policy.key] == k].obsm[spatial_key].astype(float, copy=True)
-
-    @staticmethod
-    def _affine(
-        tmap: LinearOperator,
-        src: ArrayLike,
-        tgt: ArrayLike,
-    ) -> Tuple[ArrayLike, ArrayLike]:
-        """Affine transformation."""
-        tgt -= tgt.mean(0)
-        out = tmap @ src
-        H = tgt.T.dot(out)
-        U, _, Vt = svd(H)
-        R = Vt.T.dot(U.T)
-        tgt = R.dot(tgt.T).T
-        return tgt, R
-
-    @staticmethod
-    def _warp(tmap: LinearOperator, src: ArrayLike, tgt: ArrayLike) -> Tuple[ArrayLike, None]:
-        """Warp transformation."""
-        del tgt
-        return tmap @ src, None
+        mask = self.adata.obs[self._policy.key] == k
+        return self.adata[mask].obsm[spatial_key].astype(float, copy=True)
 
 
 class SpatialMappingMixin(AnalysisMixin[K, B]):
@@ -604,3 +613,22 @@ def _compute_correspondence(
 
     df["index_interval"] = pd.Categorical(df["index_interval"].astype(np.int_))
     return df
+
+
+def _affine(
+    tmap: LinearOperator,
+    src: ArrayLike,
+    tgt: ArrayLike,
+) -> Tuple[ArrayLike, ArrayLike]:
+    tgt -= tgt.mean(0)
+    out = tmap @ src
+    H = tgt.T.dot(out)
+    U, _, Vt = svd(H)
+    R = Vt.T.dot(U.T)
+    tgt = R.dot(tgt.T).T
+    return tgt, R
+
+
+def _warp(tmap: LinearOperator, src: ArrayLike, tgt: ArrayLike) -> Tuple[ArrayLike, None]:
+    del tgt
+    return tmap @ src, None

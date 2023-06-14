@@ -74,7 +74,7 @@ class GenericAnalysisMixin(AnalysisMixin[K, B]):
             How to aggregate the cell-level transport maps. Valid options are:
 
             - ``'annotation'`` - group the transitions by the ``source_groups`` and the ``target_groups``.
-            - ``'cell'`` - TODO.
+            - ``'cell'`` - do not group by the ``source_groups`` or the ``target_groups``, depending on the ``forward``.
         forward
             If :obj:`True`, compute the transitions from the ``source_groups`` to the ``target_groups``.
         batch_size
