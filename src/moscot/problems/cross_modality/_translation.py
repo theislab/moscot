@@ -200,7 +200,8 @@ class TranslationProblem(CrossModalityTranslationMixin[K, OTProblem], CompoundPr
         r"""Solve the translation problem.
 
         .. seealso::
-            - See :doc:`../notebooks/tutorials/600_tutorial_translation` on how to solve the translation problem.
+            - See :doc:`../notebooks/tutorials/600_tutorial_translation` on how to
+              solve the :class:`~moscot.problems.cross_modality.TranslationProblem`.
 
         Parameters
         ----------
@@ -241,7 +242,7 @@ class TranslationProblem(CrossModalityTranslationMixin[K, OTProblem], CompoundPr
         threshold
             Convergence threshold of the :term:`GW <Gromov-Wasserstein>` solver.
         linear_solver_kwargs
-            Keyword arguments for inner :term:`linear OT` solver.
+            Keyword arguments for the inner :term:`linear OT` solver.
         device
             Transfer the solution to a different device, see :meth:`~moscot.base.output.BaseSolverOutput.to`.
             If :obj:`None`, keep the output on the original device.
