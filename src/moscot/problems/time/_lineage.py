@@ -26,19 +26,14 @@ __all__ = ["TemporalProblem", "LineageProblem"]
 class TemporalProblem(
     TemporalMixin[Numeric_t, BirthDeathProblem], BirthDeathMixin, CompoundProblem[Numeric_t, BirthDeathProblem]
 ):
-    """
-    Class for analyzing time series single cell data based on :cite:`schiebinger:19`.
-
-    The `TemporalProblem` allows to model and analyze time series single cell data by matching
-    cells from previous time points to later time points via OT.
-    Based on the assumption that the considered cell modality is similar in consecutive time points
-    probabilistic couplings are computed between different time points.
-    This allows to understand cell trajectories by inferring ancestors and descendants of single cells.
+    """Class for analyzing time-series single cell data based on :cite:`schiebinger:19`.
 
     Parameters
     ----------
-    %(adata)s
-
+    adata
+        Annotated data object.
+    kwargs
+        Keyword arguments for :class:`~moscot.base.problems.CompoundProblem`.
     """
 
     def __init__(self, adata: AnnData, **kwargs: Any):
@@ -51,46 +46,15 @@ class TemporalProblem(
         policy: Literal["sequential", "tril", "triu", "explicit"] = "sequential",
         cost: OttCostFn_t = "sq_euclidean",
         cost_kwargs: CostKwargs_t = types.MappingProxyType({}),
-        a: Optional[str] = None,
-        b: Optional[str] = None,
+        a: Optional[Union[bool, str]] = None,
+        b: Optional[Union[bool, str]] = None,
         marginal_kwargs: Mapping[str, Any] = types.MappingProxyType({}),
         **kwargs: Any,
     ) -> "TemporalProblem":
-        """
-        Prepare the :class:`moscot.problems.time.TemporalProblem`.
-
-        This method executes multiple steps to prepare the optimal transport problems.
-
-        Parameters
-        ----------
-        %(time_key)s
-        %(joint_attr)s
-        %(policy)s
-        %(cost_lin)s
-        %(cost_kwargs)s
-        %(a_temporal)s
-        %(b_temporal)s
-        %(marginal_kwargs)s
-        %(kwargs_prepare)s
-
-
-        Returns
-        -------
-        :class:`moscot.problems.time.TemporalProblem`.
-
-        Notes
-        -----
-        If `a` and `b` are provided `marginal_kwargs` are ignored.
-
-        Examples
-        --------
-        %(ex_prepare)s
-        """
         self.temporal_key = time_key
         xy, kwargs = handle_joint_attr(joint_attr, kwargs)
         xy, x, y = handle_cost(xy=xy, x=kwargs.pop("x", {}), y=kwargs.pop("y", {}), cost=cost, cost_kwargs=cost_kwargs)
 
-        # TODO(michalk8): needs to be modified
         marginal_kwargs = dict(marginal_kwargs)
         marginal_kwargs["proliferation_key"] = self.proliferation_key
         marginal_kwargs["apoptosis_key"] = self.apoptosis_key
@@ -134,34 +98,6 @@ class TemporalProblem(
         device: Optional[Literal["cpu", "gpu", "tpu"]] = None,
         **kwargs: Any,
     ) -> "TemporalProblem":
-        """
-        Solve optimal transport problems defined in :class:`moscot.problems.time.TemporalProblem`.
-
-        Parameters
-        ----------
-        %(epsilon)s
-        %(tau_a)s
-        %(tau_b)s
-        %(rank)s
-        %(scale_cost)s
-        %(pointcloud_kwargs)s
-        %(stage)s
-        %(initializer_lin)s
-        %(initializer_kwargs)s
-        %(jit)s
-        %(sinkhorn_kwargs)s
-        %(device_solve)s
-        %(cost_matrix_rank)s
-        %(kwargs_linear)s
-
-        Returns
-        -------
-        :class:`moscot.problems.time.TemporalProblem`.
-
-        Examples
-        --------
-        %(ex_solve_linear)s
-        """
         return super().solve(  # type:ignore[return-value]
             epsilon=epsilon,
             tau_a=tau_a,

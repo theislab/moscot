@@ -340,6 +340,7 @@ class GWProblem(GenericAnalysisMixin[K, B], CompoundProblem[K, B]):
 
         - :attr:`problems` - the prepared subproblems.
         - :attr:`solutions` - set to an empty :class:`dict`.
+        - :attr:`batch_key` - key in :attr:`~anndata.AnnData.obs` where batches are stored.
         - :attr:`stage` - set to ``'prepared'``.
         - :attr:`problem_kind` - set to ``'quadratic'``.
         """

@@ -114,6 +114,8 @@ class AlignmentProblem(SpatialAlignmentMixin[K, B], CompoundProblem[K, B]):
 
         - :attr:`problems` - the prepared subproblems.
         - :attr:`solutions` - set to an empty :class:`dict`.
+        - :attr:`spatial_key` - key in :attr:`~anndata.AnnData.obsm` where the spatial coordinates are stored.
+        - :attr:`batch_key` - key in :attr:`~anndata.AnnData.obs` where batches are stored.
         - :attr:`stage` - set to ``'prepared'``.
         - :attr:`problem_kind` - set to ``'quadratic'``.
         """

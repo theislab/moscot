@@ -126,6 +126,8 @@ class SpatioTemporalProblem(
 
         - :attr:`problems` - the prepared subproblems.
         - :attr:`solutions` - set to an empty :class:`dict`.
+        - :attr:`spatial_key` - key in :attr:`~anndata.AnnData.obsm` where spatial coordinates are stored.
+        - :attr:`temporal_key` - key in :attr:`~anndata.AnnData.obs` where time points are stored.
         - :attr:`stage` - set to ``'prepared'``.
         - :attr:`problem_kind` - set to ``'quadratic'``.
         """
