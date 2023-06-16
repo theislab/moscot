@@ -109,8 +109,9 @@ class TranslationProblem(CrossModalityTranslationMixin[K, OTProblem], CompoundPr
 
             - :obj:`None` - the pure :term:`Gromov-Wasserstein` case is used.
             - :class:`str` - a key in :attr:`~anndata.AnnData.obsm` where the data is stored.
-            - :class:`dict`-  it should contain ``'attr'`` and ``'key'``, the attribute and the key
-              in :class:`~anndata.AnnData`, and optionally ``'tag'``, one of :class:`~moscot.utils.tagged_array.Tag`.
+            - :class:`dict`-  it should contain ``'attr'`` and ``'key'``, the attribute and key in
+              :class:`~anndata.AnnData`, and optionally ``'tag'`` from the
+              :class:`tags <moscot.utils.tagged_array.Tag>`.
 
             By default, :attr:`tag = 'point_cloud' <moscot.utils.tagged_array.Tag.POINT_CLOUD>` is used.
         batch_key
@@ -251,7 +252,7 @@ class TranslationProblem(CrossModalityTranslationMixin[K, OTProblem], CompoundPr
 
         Returns
         -------
-        Returns self and updated the following fields:
+        Returns self and updates the following fields:
 
         - :attr:`solutions` - the :term:`OT` solutions for each subproblem.
         - :attr:`stage` - set to ``'solved'``.

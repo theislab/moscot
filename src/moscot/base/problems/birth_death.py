@@ -97,10 +97,10 @@ class BirthDeathMixin:
 
         Returns
         -------
-        Self and updates the following fields:
+        Returns self and updates the following fields:
 
-        - :attr:`proliferation_key` - proliferation scores in :attr:`~anndata.AnnData.obs`.
-        - :attr:`apoptosis_key` - apoptosis scores in :attr:`~anndata.AnnData.obs`.
+        - :attr:`proliferation_key` - key in :attr:`~anndata.AnnData.obs` where proliferation scores are stored.
+        - :attr:`apoptosis_key` - key in :attr:`~anndata.AnnData.obs` where apoptosis scores are stored.
         """
         if isinstance(gene_set_proliferation, str):
             gene_set_proliferation = proliferation_markers(gene_set_proliferation)  # type: ignore[arg-type]

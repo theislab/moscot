@@ -4,7 +4,6 @@ STAR = "star"
 EXTERNAL_STAR = "external_star"
 TRIU = "triu"
 TRIL = "tril"
-PAIRWISE = "pairwise"
 EXPLICIT = "explicit"
 DUMMY = "dummy"
 # plotting

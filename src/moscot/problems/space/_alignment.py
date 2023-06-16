@@ -62,18 +62,19 @@ class AlignmentProblem(SpatialAlignmentMixin[K, B], CompoundProblem[K, B]):
         joint_attr
             How to get the data for the :term:`linear term` in the :term:`fused <fused Gromov-Wasserstein>` case:
 
-            - :obj:`None` - run `PCA <https://en.wikipedia.org/wiki/Principal_component_analysis>`_
+            - :obj:`None` - `PCA <https://en.wikipedia.org/wiki/Principal_component_analysis>`_
               on :attr:`~anndata.AnnData.X` is computed.
-            - :class:`str` - a key in :attr:`~anndata.AnnData.obsm` where the data is stored.
-            - :class:`dict`-  it should contain ``'attr'`` and ``'key'``, the attribute and the key
-              in :class:`~anndata.AnnData`, and optionally ``'tag'``, one of :class:`~moscot.utils.tagged_array.Tag`.
+            - :class:`str` - key in :attr:`~anndata.AnnData.obsm` where the data is stored.
+            - :class:`dict`-  it should contain ``'attr'`` and ``'key'``, the attribute and key in
+              :class:`~anndata.AnnData`, and optionally ``'tag'`` from the
+              :class:`tags <moscot.utils.tagged_array.Tag>`.
 
             By default, :attr:`tag = 'point_cloud' <moscot.utils.tagged_array.Tag.POINT_CLOUD>` is used.
         policy
-            Rule which defines how to construct the subproblems. Valid options are:
+            Rule which defines how to construct the subproblems using :attr:`obs['{batch_key}'] <anndata.AnnData.obs>`.
+            Valid options are:
 
-            - ``'sequential'`` - align subsequent slices. The order is determined by the order of categories in
-              of :attr:`adata.obs[{'batch_key}'] <anndata.AnnData.obs>`.
+            - ``'sequential'`` - align subsequent slices.
             - ``'star'`` - align all slices to the ``reference``.
         reference
             Spatial reference when ``policy = 'star'``.
@@ -202,7 +203,7 @@ class AlignmentProblem(SpatialAlignmentMixin[K, B], CompoundProblem[K, B]):
 
         Returns
         -------
-        Returns self and updated the following fields:
+        Returns self and updates the following fields:
 
         - :attr:`solutions` - the :term:`OT` solutions for each subproblem.
         - :attr:`stage` - set to ``'solved'``.

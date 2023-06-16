@@ -40,7 +40,7 @@ class SinkhornProblem(GenericAnalysisMixin[K, B], CompoundProblem[K, B]):
         self,
         key: str,
         joint_attr: Optional[Union[str, Mapping[str, Any]]] = None,
-        policy: Literal["sequential", "pairwise", "explicit"] = "sequential",
+        policy: Literal["sequential", "explicit"] = "sequential",
         cost: OttCostFn_t = "sq_euclidean",
         cost_kwargs: CostKwargs_t = types.MappingProxyType({}),
         a: Optional[Union[bool, str]] = None,
@@ -60,15 +60,20 @@ class SinkhornProblem(GenericAnalysisMixin[K, B], CompoundProblem[K, B]):
         joint_attr
             How to get the data for the :term:`linear term`:
 
-            - :obj:`None` - run `PCA <https://en.wikipedia.org/wiki/Principal_component_analysis>`_
+            - :obj:`None` - `PCA <https://en.wikipedia.org/wiki/Principal_component_analysis>`_
               on :attr:`~anndata.AnnData.X` is computed.
-            - :class:`str` - a key in :attr:`~anndata.AnnData.obsm` where the data is stored.
-            - :class:`dict`-  it should contain ``'attr'`` and ``'key'``, the attribute and the key
-              in :class:`~anndata.AnnData`, and optionally ``'tag'``, one of :class:`~moscot.utils.tagged_array.Tag`.
+            - :class:`str` - key in :attr:`~anndata.AnnData.obsm` where the data is stored.
+            - :class:`dict`-  it should contain ``'attr'`` and ``'key'``, the attribute and key in
+              :class:`~anndata.AnnData`, and optionally ``'tag'`` from the
+              :class:`tags <moscot.utils.tagged_array.Tag>`.
 
             By default, :attr:`tag = 'point_cloud' <moscot.utils.tagged_array.Tag.POINT_CLOUD>` is used.
         policy
-            Rule which defines how to construct the subproblems.
+            Rule which defines how to construct the subproblems using :attr:`obs['{key}'] <anndata.AnnData.obs>`.
+            Valid options are:
+
+            - ``'sequential'`` - align subsequent categories.
+            - ``'explicit'`` - explicit sequence of subsets passed via ``subset = [(b3, b0), ...]``.
         cost
             Cost function to use:
 
@@ -197,7 +202,7 @@ class SinkhornProblem(GenericAnalysisMixin[K, B], CompoundProblem[K, B]):
 
         Returns
         -------
-        Returns self and updated the following fields:
+        Returns self and updates the following fields:
 
         - :attr:`solutions` - the :term:`OT` solutions for each subproblem.
         - :attr:`stage` - set to ``'solved'``.
@@ -228,7 +233,7 @@ class SinkhornProblem(GenericAnalysisMixin[K, B], CompoundProblem[K, B]):
 
     @property
     def _valid_policies(self) -> Tuple[Policy_t, ...]:
-        return _constants.SEQUENTIAL, _constants.PAIRWISE, _constants.EXPLICIT  # type: ignore[return-value]
+        return _constants.SEQUENTIAL, _constants.EXPLICIT  # type: ignore[return-value]
 
 
 class GWProblem(GenericAnalysisMixin[K, B], CompoundProblem[K, B]):
@@ -251,7 +256,7 @@ class GWProblem(GenericAnalysisMixin[K, B], CompoundProblem[K, B]):
         x_attr: Union[str, Mapping[str, Any]],
         y_attr: Union[str, Mapping[str, Any]],
         joint_attr: Optional[Union[str, Mapping[str, Any]]] = None,
-        policy: Literal["sequential", "pairwise", "explicit"] = "sequential",
+        policy: Literal["sequential", "explicit"] = "sequential",
         cost: OttCostFnMap_t = "sq_euclidean",
         cost_kwargs: CostKwargs_t = types.MappingProxyType({}),
         a: Optional[Union[bool, str]] = None,
@@ -271,8 +276,9 @@ class GWProblem(GenericAnalysisMixin[K, B], CompoundProblem[K, B]):
             How to get the data for the source :term:`quadratic term`:
 
             - :class:`str` - a key in :attr:`~anndata.AnnData.obsm` where the data is stored.
-            - :class:`dict`-  it should contain ``'attr'`` and ``'key'``, the attribute and the key
-              in :class:`~anndata.AnnData`, and optionally ``'tag'``, one of :class:`~moscot.utils.tagged_array.Tag`.
+            - :class:`dict`-  it should contain ``'attr'`` and ``'key'``, the attribute and key in
+              :class:`~anndata.AnnData`, and optionally ``'tag'`` from the
+              :class:`tags <moscot.utils.tagged_array.Tag>`.
 
             By default, :attr:`tag = 'point_cloud' <moscot.utils.tagged_array.Tag.POINT_CLOUD>` is used.
         y_attr
@@ -294,7 +300,10 @@ class GWProblem(GenericAnalysisMixin[K, B], CompoundProblem[K, B]):
 
             By default, :attr:`tag = 'point_cloud' <moscot.utils.tagged_array.Tag.POINT_CLOUD>` is used.
         policy
-            Rule which defines how to construct the subproblems.
+            Rule which defines how to construct the subproblems. Valid options are:
+
+            - ``'sequential'`` - align subsequent categories in :attr:`obs[{'{key}'] <anndata.AnnData.obs>`.
+            - ``'explicit'`` - explicit sequence of subsets passed via ``subset = [(b3, b0), ...]``.
         cost
             Cost function to use:
 
@@ -435,7 +444,7 @@ class GWProblem(GenericAnalysisMixin[K, B], CompoundProblem[K, B]):
 
         Returns
         -------
-        Returns self and updated the following fields:
+        Returns self and updates the following fields:
 
         - :attr:`solutions` - the :term:`OT` solutions for each subproblem.
         - :attr:`stage` - set to ``'solved'``.
@@ -466,4 +475,4 @@ class GWProblem(GenericAnalysisMixin[K, B], CompoundProblem[K, B]):
 
     @property
     def _valid_policies(self) -> Tuple[Policy_t, ...]:
-        return _constants.SEQUENTIAL, _constants.PAIRWISE, _constants.EXPLICIT  # type: ignore[return-value]
+        return _constants.SEQUENTIAL, _constants.EXPLICIT  # type: ignore[return-value]

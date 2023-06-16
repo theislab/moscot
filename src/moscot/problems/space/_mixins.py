@@ -107,7 +107,7 @@ class SpatialAlignmentMixin(AnalysisMixin[K, B]):
             src -= src.mean(0)
             transport_metadata = {reference: np.diag((1, 1))}  # 2d data
 
-        # get policy
+        # get the reference
         reference_ = [reference] if isinstance(reference, str) else reference
         full_steps = self._policy._graph
         starts = set(itertools.chain.from_iterable(full_steps)) - set(reference_)  # type: ignore[call-overload]
@@ -169,8 +169,8 @@ class SpatialAlignmentMixin(AnalysisMixin[K, B]):
           The metadata is :obj:`None` when ``mode != 'affine'``.
         - :class:`str` - updates :attr:`adata` with the following fields:
 
-          - :attr:`adata.obsm['{key_added}'] <anndata.AnnData.obsm>` - the aligned spatial coordinates.
-          - :attr:`adata.uns['{key_added}']['alignment_metadata'] <anndata.AnnData.uns>` - the metadata.
+          - :attr:`obsm['{key_added}'] <anndata.AnnData.obsm>` - the aligned spatial coordinates.
+          - :attr:`uns['{key_added}']['alignment_metadata'] <anndata.AnnData.uns>` - the metadata.
         """
         if isinstance(self._policy, StarPolicy):
             reference = self._policy.reference
@@ -211,8 +211,8 @@ class SpatialAlignmentMixin(AnalysisMixin[K, B]):
         """Compute an aggregate cell transition matrix.
 
         .. seealso::
-            - See :doc:`../notebooks/examples/plotting/200_cell_transitions`
-              on how to compute and plot the cell transitions.
+            - See :doc:`../notebooks/examples/plotting/200_cell_transitions` on how to
+              compute and plot the cell transitions.
 
         Parameters
         ----------
