@@ -127,7 +127,7 @@ class MappingProblem(SpatialMappingMixin[K, OTProblem], CompoundProblem[K, OTPro
 
             By default, :attr:`tag = 'point_cloud' <moscot.utils.tagged_array.Tag.POINT_CLOUD>` is used.
         cost
-            Cost function to use:
+            Cost function to use. Valid options are:
 
             - :class:`str` - name of the cost function for all terms, see :func:`~moscot.costs.get_available_costs`.
             - :class:`dict` - a dictionary with the following keys and values:

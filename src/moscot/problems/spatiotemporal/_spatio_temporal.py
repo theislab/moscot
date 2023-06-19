@@ -87,7 +87,7 @@ class SpatioTemporalProblem(
             - ``'triu'`` - lower triangular matrix ``[(t_n, t_n-1), (t_n, t0), ..., (t_n-1, t_n-2), ...]``.
             - ``'explicit'`` - explicit sequence of subsets passed via ``subset = [(b3, b0), ...]``.
         cost
-            Cost function to use:
+            Cost function to use. Valid options are:
 
             - :class:`str` - name of the cost function for all terms, see :func:`~moscot.costs.get_available_costs`.
             - :class:`dict` - a dictionary with the following keys and values:
@@ -138,9 +138,9 @@ class SpatioTemporalProblem(
         marginal_kwargs["proliferation_key"] = self.proliferation_key
         marginal_kwargs["apoptosis_key"] = self.apoptosis_key
 
-        estimate = self.proliferation_key is not None or self.apoptosis_key is not None
-        a = estimate if a is None else a
-        b = estimate if b is None else b
+        estimate_marginals = self.proliferation_key is not None or self.apoptosis_key is not None
+        a = estimate_marginals if a is None else a
+        b = estimate_marginals if b is None else b
 
         return super().prepare(  # type: ignore[return-value]
             spatial_key=spatial_key,

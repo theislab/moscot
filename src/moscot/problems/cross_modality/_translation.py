@@ -117,7 +117,7 @@ class TranslationProblem(CrossModalityTranslationMixin[K, OTProblem], CompoundPr
         batch_key
             Key in :attr:`~anndata.AnnData.obs` specifying the batch.
         cost
-            Cost function to use:
+            Cost function to use. Valid options are:
 
             - :class:`str` - name of the cost function for all terms, see :func:`~moscot.costs.get_available_costs`.
             - :class:`dict` - a dictionary with the following keys and values:

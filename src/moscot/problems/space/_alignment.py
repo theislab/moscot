@@ -79,7 +79,7 @@ class AlignmentProblem(SpatialAlignmentMixin[K, B], CompoundProblem[K, B]):
         reference
             Spatial reference when ``policy = 'star'``.
         cost
-            Cost function to use:
+            Cost function to use. Valid options are:
 
             - :class:`str` - name of the cost function for all terms, see :func:`~moscot.costs.get_available_costs`.
             - :class:`dict` - a dictionary with the following keys and values:

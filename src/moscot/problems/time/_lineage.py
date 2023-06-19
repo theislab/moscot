@@ -51,6 +51,77 @@ class TemporalProblem(
         marginal_kwargs: Mapping[str, Any] = types.MappingProxyType({}),
         **kwargs: Any,
     ) -> "TemporalProblem":
+        """Prepare the temporal problem problem.
+
+        .. seealso::
+            - See :doc:`../notebooks/tutorials/200_temporal_problem` on how to
+              prepare and solve the :class:`~moscot.problems.time.TemporalProblem`.
+
+        Parameters
+        ----------
+        time_key
+            Key in :attr:`~anndata.AnnData.obs` where the time points are stored.
+        joint_attr
+            How to get the data defining the :term:`linear problem`:
+
+            - :obj:`None` - `PCA <https://en.wikipedia.org/wiki/Principal_component_analysis>`_
+              on :attr:`~anndata.AnnData.X` is computed.
+            - :class:`str` - key in :attr:`~anndata.AnnData.obsm` where the data is stored.
+            - :class:`dict`-  it should contain ``'attr'`` and ``'key'``, the attribute and key in
+              :class:`~anndata.AnnData`, and optionally ``'tag'`` from the
+              :class:`tags <moscot.utils.tagged_array.Tag>`.
+
+            By default, :attr:`tag = 'point_cloud' <moscot.utils.tagged_array.Tag.POINT_CLOUD>` is used.
+        policy
+            Rule which defines how to construct the subproblems using :attr:`obs['{time_key}'] <anndata.AnnData.obs>`.
+            Valid options are:
+
+            - ``'sequential'`` - align subsequent time points ``[(t0, t1), (t1, t2), ...]``.
+            - ``'tril'`` - upper triangular matrix ``[(t0, t1), (t0, t2), ..., (t1, t2), ...]``.
+            - ``'triu'`` - lower triangular matrix ``[(t_n, t_n-1), (t_n, t0), ..., (t_n-1, t_n-2), ...]``.
+            - ``'explicit'`` - explicit sequence of subsets passed via ``subset = [(b3, b0), ...]``.
+        cost
+            Cost function to use. Valid options are:
+
+            - :class:`str` - name of the cost function, see :func:`~moscot.costs.get_available_costs`.
+            - :class:`dict` - a dictionary with the following keys and values:
+
+              - ``'xy'`` - cost function for the :term:`linear term`, same as above.
+        cost_kwargs
+            Keyword arguments for the :class:`~moscot.base.cost.BaseCost` or any backend-specific cost.
+        a
+            Source :term:`marginals`. Valid options are:
+
+            - :class:`str` - key in :attr:`~anndata.AnnData.obs` where the source marginals are stored.
+            - :class:`bool` - if :obj:`True`,
+              :meth:`estimate the marginals <moscot.base.problems.BirthDeathProblem.estimate_marginals>`,
+              otherwise use uniform marginals.
+            - :obj:`None` - set to :obj:`True` if :attr:`proliferation_key` or :attr:`apoptosis_key` is not :obj:`None`.
+        b
+            Target :term:`marginals`. Valid options are:
+
+            - :class:`str` - key in :attr:`~anndata.AnnData.obs` where the target marginals are stored.
+            - :class:`bool` - if :obj:`True`,
+              :meth:`estimate the marginals <moscot.base.problems.BirthDeathProblem.estimate_marginals>`,
+              otherwise use uniform marginals.
+            - :obj:`None` - set to :obj:`True` if :attr:`proliferation_key` or :attr:`apoptosis_key` is not :obj:`None`.
+        marginal_kwargs
+            Keyword arguments for :meth:`~moscot.base.problems.BirthDeathProblem.estimate_marginals`.
+            It always contains :attr:`proliferation_key` and :attr:`apoptosis_key`,
+            see :meth:`score_genes_for_marginals` for more information.
+        kwargs
+            Keyword arguments for :meth:`~moscot.base.problems.CompoundProblem.prepare`.
+
+        Returns
+        -------
+        Returns self and updates the following fields:
+
+        - :attr:`problems` - the prepared subproblems.
+        - :attr:`solutions` - set to an empty :class:`dict`.
+        - :attr:`temporal_key` - key in :attr:`~anndata.AnnData.obs` where time points are stored.
+        - :attr:`stage` - set to ``'prepared'``.
+        - :attr:`problem_kind` - set to ``'linear'``.
+        """
         self.temporal_key = time_key
         xy, kwargs = handle_joint_attr(joint_attr, kwargs)
         xy, x, y = handle_cost(xy=xy, x=kwargs.pop("x", {}), y=kwargs.pop("y", {}), cost=cost, cost_kwargs=cost_kwargs)
@@ -58,10 +129,10 @@ class TemporalProblem(
         marginal_kwargs = dict(marginal_kwargs)
         marginal_kwargs["proliferation_key"] = self.proliferation_key
         marginal_kwargs["apoptosis_key"] = self.apoptosis_key
-        if a is None:
-            a = self.proliferation_key is not None or self.apoptosis_key is not None
-        if b is None:
-            b = self.proliferation_key is not None or self.apoptosis_key is not None
+
+        estimate_marginals = self.proliferation_key is not None or self.apoptosis_key is not None
+        a = estimate_marginals if a is None else a
+        b = estimate_marginals if b is None else b
 
         return super().prepare(  # type: ignore[return-value]
             key=time_key,

@@ -75,10 +75,12 @@ class SinkhornProblem(GenericAnalysisMixin[K, B], CompoundProblem[K, B]):
             - ``'sequential'`` - align subsequent categories.
             - ``'explicit'`` - explicit sequence of subsets passed via ``subset = [(b3, b0), ...]``.
         cost
-            Cost function to use:
+            Cost function to use. Valid options are:
 
-            - :class:`str` - name of the cost function for the :term:`linear term`,
-              see :func:`~moscot.costs.get_available_costs`.
+            - :class:`str` - name of the cost function, see :func:`~moscot.costs.get_available_costs`.
+            - :class:`dict` - a dictionary with the following keys and values:
+
+              - ``'xy'`` - cost function for the :term:`linear term`, same as above.
         cost_kwargs
             Keyword arguments for the :class:`~moscot.base.cost.BaseCost` or any backend-specific cost.
         a
@@ -305,7 +307,7 @@ class GWProblem(GenericAnalysisMixin[K, B], CompoundProblem[K, B]):
             - ``'sequential'`` - align subsequent categories in :attr:`obs[{'{key}'] <anndata.AnnData.obs>`.
             - ``'explicit'`` - explicit sequence of subsets passed via ``subset = [(b3, b0), ...]``.
         cost
-            Cost function to use:
+            Cost function to use. Valid options are:
 
             - :class:`str` - name of the cost function for all terms, see :func:`~moscot.costs.get_available_costs`.
             - :class:`dict` - a dictionary with the following keys and values:
