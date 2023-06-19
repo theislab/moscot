@@ -520,7 +520,7 @@ class OTProblem(BaseProblem):
             if isinstance(adata_y, AnnData):
                 spatial = adata_y.obsm[spatial_key]
             else:
-                raise ValueError("When `term` is `y` `adata_y` cannot be `None`.")
+                raise ValueError("When `term` is `y`, `adata_y` cannot be `None`.")
         logger.info(f"Normalizing spatial coordinates of `{term}`.")
         spatial = (spatial - spatial.mean()) / spatial.std()
         return {term: TaggedArray(spatial, tag=Tag.POINT_CLOUD)}

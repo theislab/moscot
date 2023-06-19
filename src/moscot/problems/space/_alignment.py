@@ -35,7 +35,7 @@ class AlignmentProblem(SpatialAlignmentMixin[K, B], CompoundProblem[K, B]):
     def prepare(
         self,
         batch_key: str,
-        spatial_key: Union[str, Mapping[str, Any]] = "spatial",
+        spatial_key: str = "spatial",
         joint_attr: Optional[Union[str, Mapping[str, Any]]] = None,
         policy: Literal["sequential", "star"] = "sequential",
         reference: Optional[str] = None,

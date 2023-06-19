@@ -49,7 +49,8 @@ class TestMappingProblem:
 
         mp = mp.prepare(batch_key="batch", sc_attr=sc_attr, joint_attr=joint_attr, normalize_spatial=normalize_spatial)
         if normalize_spatial:
-            assert mp[("1", "ref")].x.data_src.std() == mp[("2", "ref")].x.data_src.std() == 1
+            np.testing.assert_allclose(mp[("1", "ref")].x.data_src.std(), mp[("2", "ref")].x.data_src.std(), atol=1e-15)
+            np.testing.assert_allclose(mp[("1", "ref")].x.data_src.std(), 1.0, atol=1e-15)
             np.testing.assert_allclose(mp[("1", "ref")].x.data_src.mean(), 0, atol=1e-15)
             np.testing.assert_allclose(mp[("2", "ref")].x.data_src.mean(), 0, atol=1e-15)
 

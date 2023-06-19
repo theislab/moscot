@@ -45,7 +45,8 @@ class TestAlignmentProblem:
         ap = ap.prepare(batch_key="batch", joint_attr=joint_attr, normalize_spatial=normalize_spatial)
         assert len(ap) == 2
         if normalize_spatial:
-            assert ap[("1", "2")].x.data_src.std() == ap[("0", "1")].x.data_src.std() == 1
+            np.testing.assert_allclose(ap[("1", "2")].x.data_src.std(), ap[("0", "1")].x.data_src.std(), atol=1e-15)
+            np.testing.assert_allclose(ap[("1", "2")].x.data_src.std(), 1.0, atol=1e-15)
             np.testing.assert_allclose(ap[("1", "2")].x.data_src.mean(), 0, atol=1e-15)
             np.testing.assert_allclose(ap[("0", "1")].x.data_src.mean(), 0, atol=1e-15)
 
