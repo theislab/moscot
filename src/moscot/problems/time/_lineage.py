@@ -43,7 +43,7 @@ class TemporalProblem(
         self,
         time_key: str,
         joint_attr: Optional[Union[str, Mapping[str, Any]]] = None,
-        policy: Literal["sequential", "tril", "triu", "explicit"] = "sequential",
+        policy: Literal["sequential", "triu", "tril", "explicit"] = "sequential",
         cost: OttCostFn_t = "sq_euclidean",
         cost_kwargs: CostKwargs_t = types.MappingProxyType({}),
         a: Optional[Union[bool, str]] = None,
@@ -77,8 +77,8 @@ class TemporalProblem(
             Valid options are:
 
             - ``'sequential'`` - align subsequent time points ``[(t0, t1), (t1, t2), ...]``.
-            - ``'tril'`` - upper triangular matrix ``[(t0, t1), (t0, t2), ..., (t1, t2), ...]``.
-            - ``'triu'`` - lower triangular matrix ``[(t_n, t_n-1), (t_n, t0), ..., (t_n-1, t_n-2), ...]``.
+            - ``'triu'`` - upper triangular matrix ``[(t0, t1), (t0, t2), ..., (t1, t2), ...]``.
+            - ``'tril'`` - lower triangular matrix ``[(t_n, t_n-1), (t_n, t0), ..., (t_n-1, t_n-2), ...]``.
             - ``'explicit'`` - explicit sequence of subsets passed via ``subset = [(b3, b0), ...]``.
         cost
             Cost function to use. Valid options are:
@@ -259,14 +259,14 @@ class TemporalProblem(
 
 
 class LineageProblem(TemporalProblem):
-    """
-    Estimator for modelling time series single cell data based on moslin.
-
-    Class handling the computation and downstream analysis of temporal single cell data with lineage prior.
+    """Estimator for modelling time series single cell data based on :cite:`lange-moslin:23`.
 
     Parameters
     ----------
-    %(adata)s
+    adata
+        Annotated data object.
+    kwargs
+        Keyword arguments for :class:`~moscot.problems.time.TemporalProblem`.
     """
 
     def prepare(
@@ -274,8 +274,7 @@ class LineageProblem(TemporalProblem):
         time_key: str,
         lineage_attr: Mapping[str, Any] = types.MappingProxyType({}),
         joint_attr: Optional[Union[str, Mapping[str, Any]]] = None,
-        policy: Literal["sequential", "tril", "triu", "sequential"] = "sequential",
-        # TODO(michalk8): update
+        policy: Literal["sequential", "triu", "tril", "explicit"] = "sequential",
         cost: CostFnMap_t = "sq_euclidean",
         cost_kwargs: CostKwargs_t = types.MappingProxyType({}),
         a: Optional[str] = None,
@@ -283,38 +282,93 @@ class LineageProblem(TemporalProblem):
         marginal_kwargs: Mapping[str, Any] = types.MappingProxyType({}),
         **kwargs: Any,
     ) -> "LineageProblem":
-        """
-        Prepare the :class:`moscot.problems.time.LineageProblem`.
+        """Prepare the lineage problem problem.
+
+        .. seealso::
+            - See :doc:`../notebooks/tutorials/100_lineage` on how to
+              prepare and solve the :class:`~moscot.problems.time.LineageProblem`.
 
         Parameters
         ----------
-        %(time_key)s
-
+        time_key
+            Key in :attr:`~anndata.AnnData.obs` where the time points are stored.
         lineage_attr
-            Specifies the way the lineage information is processed. TODO: Specify.
+            How to get the lineage information, such as barcodes or lineage trees, for the :term:`quadratic term`:
 
-        %(joint_attr)s
-        %(policy)s
-        %(cost)s
-        %(cost_kwargs)s
-        %(a_temporal)s
-        %(b_temporal)s
-        %(marginal_kwargs)s
-        %(kwargs_prepare)s
+            - :class:`dict`-  it should contain ``'attr'`` and ``'key'``, the attribute and key in
+              :class:`~anndata.AnnData`, and optionally ``'tag'`` from the
+              :class:`tags <moscot.utils.tagged_array.Tag>`.
+              If an empty :class:`dict` is passed, use pre-computed cost matrices stored in
+              :attr:`obsp['cost_matrices'] <anndata.AnnData.obsp>`.
+        joint_attr
+            How to get the data for the :term:`linear term` in the :term:`fused <fused Gromov-Wasserstein>` case:
+
+            - :obj:`None` - `PCA <https://en.wikipedia.org/wiki/Principal_component_analysis>`_
+              on :attr:`~anndata.AnnData.X` is computed.
+            - :class:`str` - key in :attr:`~anndata.AnnData.obsm` where the data is stored.
+            - :class:`dict`-  it should contain ``'attr'`` and ``'key'``, the attribute and key in
+              :class:`~anndata.AnnData`, and optionally ``'tag'`` from the
+              :class:`tags <moscot.utils.tagged_array.Tag>`.
+
+            By default, :attr:`tag = 'point_cloud' <moscot.utils.tagged_array.Tag.POINT_CLOUD>` is used.
+        policy
+            Rule which defines how to construct the subproblems using :attr:`obs['{time_key}'] <anndata.AnnData.obs>`.
+            Valid options are:
+
+            - ``'sequential'`` - align subsequent time points ``[(t0, t1), (t1, t2), ...]``.
+            - ``'triu'`` - upper triangular matrix ``[(t0, t1), (t0, t2), ..., (t1, t2), ...]``.
+            - ``'tril'`` - lower triangular matrix ``[(t_n, t_n-1), (t_n, t0), ..., (t_n-1, t_n-2), ...]``.
+            - ``'explicit'`` - explicit sequence of subsets passed via ``subset = [(b3, b0), ...]``.
+        cost
+            Cost function to use. Valid options are:
+
+            - :class:`str` - name of the cost function for all terms, see :func:`~moscot.costs.get_available_costs`.
+            - :class:`dict` - a dictionary with the following keys and values:
+
+              - ``'xy'`` - cost function for the :term:`linear term`.
+              - ``'x'`` - cost function for the source :term:`quadratic term`, e.g., :func:`~moscot.costs.LeafDistance`
+                or :func:`~moscot.costs.BarcodeDistance`.
+              - ``'y'`` - cost function for the target :term:`quadratic term`, e.g., :func:`~moscot.costs.LeafDistance`
+                or :func:`~moscot.costs.BarcodeDistance`.
+        cost_kwargs
+            Keyword arguments for the :class:`~moscot.base.cost.BaseCost` or any backend-specific cost.
+        a
+            Source :term:`marginals`. Valid options are:
+
+            - :class:`str` - key in :attr:`~anndata.AnnData.obs` where the source marginals are stored.
+            - :class:`bool` - if :obj:`True`,
+              :meth:`estimate the marginals <moscot.base.problems.BirthDeathProblem.estimate_marginals>`,
+              otherwise use uniform marginals.
+            - :obj:`None` - set to :obj:`True` if :attr:`proliferation_key` or :attr:`apoptosis_key` is not :obj:`None`.
+        b
+            Target :term:`marginals`. Valid options are:
+
+            - :class:`str` - key in :attr:`~anndata.AnnData.obs` where the target marginals are stored.
+            - :class:`bool` - if :obj:`True`,
+              :meth:`estimate the marginals <moscot.base.problems.BirthDeathProblem.estimate_marginals>`,
+              otherwise use uniform marginals.
+            - :obj:`None` - set to :obj:`True` if :attr:`proliferation_key` or :attr:`apoptosis_key` is not :obj:`None`.
+        marginal_kwargs
+            Keyword arguments for :meth:`~moscot.base.problems.BirthDeathProblem.estimate_marginals`.
+            It always contains :attr:`proliferation_key` and :attr:`apoptosis_key`,
+            see :meth:`score_genes_for_marginals` for more information.
+        kwargs
+            Keyword arguments for :meth:`~moscot.base.problems.CompoundProblem.prepare`.
 
         Returns
         -------
-        :class:`moscot.problems.time.LineageProblem`
+        Returns self and updates the following fields:
 
-        Examples
-        --------
-        %(ex_prepare)s
+        - :attr:`problems` - the prepared subproblems.
+        - :attr:`solutions` - set to an empty :class:`dict`.
+        - :attr:`temporal_key` - key in :attr:`~anndata.AnnData.obs` where time points are stored.
+        - :attr:`stage` - set to ``'prepared'``.
+        - :attr:`problem_kind` - set to ``'quadratic'``.
         """
         if not len(lineage_attr) and ("cost_matrices" not in self.adata.obsp):
             raise KeyError("Unable to find cost matrices in `adata.obsp['cost_matrices']`.")
 
         x = y = lineage_attr
-
         xy, kwargs = handle_joint_attr(joint_attr, kwargs)
         xy, x, y = handle_cost(xy=xy, x=x, y=y, cost=cost, cost_kwargs=cost_kwargs)
 
@@ -361,34 +415,6 @@ class LineageProblem(TemporalProblem):
         device: Optional[Literal["cpu", "gpu", "tpu"]] = None,
         **kwargs: Any,
     ) -> "LineageProblem":
-        """
-        Solve optimal transport problems defined in :class:`moscot.problems.time.LineageProblem`.
-
-        Parameters
-        ----------
-        %(alpha)s
-        %(epsilon)s
-        %(tau_a)s
-        %(tau_b)s
-        %(rank)s
-        %(scale_cost)s
-        %(pointcloud_kwargs)s
-        %(stage)s
-        %(initializer_quad)s
-        %(initializer_kwargs)s
-        %(gw_kwargs)s
-        %(linear_solver_kwargs)s
-        %(device_solve)s
-        %(kwargs_quad_fused)s
-
-        Returns
-        -------
-        :class:`moscot.problems.time.LineageProblem`
-
-        Examples
-        --------
-        %(ex_solve_quadratic)s
-        """
         return super().solve(  # type: ignore[return-value]
             alpha=alpha,
             epsilon=epsilon,
