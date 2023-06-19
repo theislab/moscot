@@ -62,7 +62,7 @@ class TemporalProblem(
         time_key
             Key in :attr:`~anndata.AnnData.obs` where the time points are stored.
         joint_attr
-            How to get the data defining the :term:`linear problem`:
+            How to get the data that defines the :term:`linear problem`:
 
             - :obj:`None` - `PCA <https://en.wikipedia.org/wiki/Principal_component_analysis>`_
               on :attr:`~anndata.AnnData.X` is computed.
@@ -161,14 +161,74 @@ class TemporalProblem(
         jit: bool = True,
         threshold: float = 1e-3,
         lse_mode: bool = True,
-        norm_error: int = 1,
         inner_iterations: int = 10,
         min_iterations: int = 0,
         max_iterations: int = 2000,
-        cost_matrix_rank: Optional[int] = None,
         device: Optional[Literal["cpu", "gpu", "tpu"]] = None,
         **kwargs: Any,
     ) -> "TemporalProblem":
+        r"""Solve the temporal problem.
+
+        .. seealso:
+            - See :doc:`../notebooks/tutorials/200_temporal_problem` on how to
+              prepare and solve the :class:`~moscot.problems.time.TemporalProblem`.
+
+        Parameters
+        ----------
+        epsilon
+            :term:`Entropic regularization`.
+        tau_a
+            Parameter in :math:`(0, 1]` that defines how much :term:`unbalanced <unbalanced OT problem>` is the problem
+            on the source :term:`marginals`. If :math:`1`, the problem is :term:`balanced <balanced OT problem>`.
+        tau_b
+            Parameter in :math:`(0, 1]` that defines how much :term:`unbalanced <unbalanced OT problem>` is the problem
+            on the target :term:`marginals`. If :math:`1`, the problem is :term:`balanced <balanced OT problem>`.
+        rank
+            Rank of the :term:`low-rank OT` solver :cite:`scetbon:21a`.
+            If :math:`-1`, full-rank solver :cite:`cuturi:2013` is used.
+        scale_cost
+            How to re-scale the cost matrix. If a :class:`float`, the cost matrix
+            will be re-scaled as :math:`\frac{\text{cost}}{\text{scale_cost}}`.
+        batch_size
+            Number of rows/columns of the cost matrix to materialize during the :term:`Sinkhorn` iterations.
+            Larger value will require more memory.
+        stage
+            Stage by which to filter the :attr:`problems` to be solved.
+        initializer
+            How to initialize the solution. If :obj:`None`, ``'default'`` will be used for a full-rank solver and
+            ``'rank2'`` for a low-rank solver.
+        initializer_kwargs
+            Keyword arguments for the ``initializer``.
+        jit
+            Whether to :func:`~jax.jit` the underlying :mod:`ott` solver.
+        threshold
+            Convergence threshold of the :term:`Sinkhorn` algorithm. In the :term:`balanced <balanced OT problem>` case,
+            this is typically the deviation between the target :term:`marginals` and the marginals of the current
+            :term:`primal solution`. In the :term:`unbalanced <unbalanced OT problem>` case, the relative change between
+            the successive solutions is checked.
+        lse_mode
+            Whether to use `log-sum-exp (LSE)
+            <https://en.wikipedia.org/wiki/LogSumExp#log-sum-exp_trick_for_log-domain_calculations>`_
+            computations for numerical stability.
+        inner_iterations
+            Compute the convergence criterion every ``inner_iterations``.
+        min_iterations
+            Minimum number of :term:`Sinkhorn` iterations.
+        max_iterations
+            Maximum number of :term:`Sinkhorn` iterations.
+        device
+            Transfer the solution to a different device, see :meth:`~moscot.base.output.BaseSolverOutput.to`.
+            If :obj:`None`, keep the output on the original device.
+        kwargs
+            Keyword arguments for :meth:`~moscot.base.problems.CompoundProblem.solve`.
+
+        Returns
+        -------
+        Returns self and updates the following fields:
+
+        - :attr:`solutions` - the :term:`OT` solutions for each subproblem.
+        - :attr:`stage` - set to ``'solved'``.
+        """
         return super().solve(  # type:ignore[return-value]
             epsilon=epsilon,
             tau_a=tau_a,
@@ -182,11 +242,9 @@ class TemporalProblem(
             jit=jit,
             threshold=threshold,
             lse_mode=lse_mode,
-            norm_error=norm_error,
             inner_iterations=inner_iterations,
             min_iterations=min_iterations,
             max_iterations=max_iterations,
-            cost_matrix_rank=cost_matrix_rank,
             device=device,
             **kwargs,
         )
@@ -197,7 +255,7 @@ class TemporalProblem(
 
     @property
     def _valid_policies(self) -> Tuple[Policy_t, ...]:
-        return _constants.SEQUENTIAL, _constants.TRIU, _constants.EXPLICIT  # type: ignore[return-value]
+        return _constants.SEQUENTIAL, _constants.TRIL, _constants.TRIU, _constants.EXPLICIT  # type: ignore[return-value]
 
 
 class LineageProblem(TemporalProblem):

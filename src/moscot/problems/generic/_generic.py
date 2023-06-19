@@ -189,7 +189,7 @@ class SinkhornProblem(GenericAnalysisMixin[K, B], CompoundProblem[K, B]):
         lse_mode
             Whether to use `log-sum-exp (LSE)
             <https://en.wikipedia.org/wiki/LogSumExp#log-sum-exp_trick_for_log-domain_calculations>`_
-            trick for numerical stability.
+            computations for numerical stability.
         inner_iterations
             Compute the convergence criterion every ``inner_iterations``.
         min_iterations
