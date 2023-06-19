@@ -415,6 +415,65 @@ class LineageProblem(TemporalProblem):
         device: Optional[Literal["cpu", "gpu", "tpu"]] = None,
         **kwargs: Any,
     ) -> "LineageProblem":
+        r"""Solve the lineage problem.
+
+        .. seealso::
+            - See :doc:`../notebooks/tutorials/100_lineage` on how to
+              prepare and solve the :class:`~moscot.problems.time.LineageProblem`.
+
+        Parameters
+        ----------
+        alpha
+            Parameter in :math:`(0, 1]` that interpolates between the :term:`quadratic term` and
+            the :term:`linear term`. :math:`\alpha = 1` corresponds to the pure :term:`Gromov-Wasserstein` problem while
+            :math:`\alpha \to 0` corresponds to the pure :term:`linear OT` problem.
+        epsilon
+            :term:`Entropic regularization`.
+        tau_a
+            Parameter in :math:`(0, 1]` that defines how much :term:`unbalanced <unbalanced OT problem>` is the problem
+            on the source :term:`marginals`. If :math:`1`, the problem is :term:`balanced <balanced OT problem>`.
+        tau_b
+            Parameter in :math:`(0, 1]` that defines how much :term:`unbalanced <unbalanced OT problem>` is the problem
+            on the target :term:`marginals`. If :math:`1`, the problem is :term:`balanced <balanced OT problem>`.
+        rank
+            Rank of the :term:`low-rank OT` solver :cite:`scetbon:21b`.
+            If :math:`-1`, full-rank solver :cite:`peyre:2016` is used.
+        scale_cost
+            How to re-scale the cost matrices. If a :class:`float`, the cost matrices
+            will be re-scaled as :math:`\frac{\text{cost}}{\text{scale_cost}}`.
+        batch_size
+            Number of rows/columns of the cost matrix to materialize during the solver iterations.
+            Larger value will require more memory.
+        stage
+            Stage by which to filter the :attr:`problems` to be solved.
+        initializer
+            How to initialize the solution. If :obj:`None`, ``'default'`` will be used for a full-rank solver and
+            ``'rank2'`` for a low-rank solver.
+        initializer_kwargs
+            Keyword arguments for the ``initializer``.
+        jit
+            Whether to :func:`~jax.jit` the underlying :mod:`ott` solver.
+        min_iterations
+            Minimum number of :term:`(fused) GW <Gromov-Wasserstein>` iterations.
+        max_iterations
+            Maximum number of :term:`(fused) GW <Gromov-Wasserstein>` iterations.
+        threshold
+            Convergence threshold of the :term:`GW <Gromov-Wasserstein>` solver.
+        linear_solver_kwargs
+            Keyword arguments for the inner :term:`linear OT` solver.
+        device
+            Transfer the solution to a different device, see :meth:`~moscot.base.output.BaseSolverOutput.to`.
+            If :obj:`None`, keep the output on the original device.
+        kwargs
+            Keyword arguments for :meth:`~moscot.problems.time.TemporalProblem.solve`.
+
+        Returns
+        -------
+        Returns self and updates the following fields:
+
+        - :attr:`solutions` - the :term:`OT` solutions for each subproblem.
+        - :attr:`stage` - set to ``'solved'``.
+        """
         return super().solve(  # type: ignore[return-value]
             alpha=alpha,
             epsilon=epsilon,
