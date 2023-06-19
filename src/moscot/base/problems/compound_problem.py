@@ -118,10 +118,8 @@ class BaseCompoundProblem(BaseProblem, abc.ABC, Generic[K, B]):
             return {}
         if callback == "local-pca":
             callback = problem._local_pca_callback
-        elif callback == "spatial-norm":
+        if callback == "spatial-norm":
             callback = problem._spatial_norm_callback
-        else:
-            raise ValueError(f"Unknown callback `{callback!r}`.")
 
         if not callable(callback):
             raise TypeError("Callback is not a function.")
