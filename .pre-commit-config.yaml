@@ -10,7 +10,7 @@ repos:
     rev: v1.3.0
     hooks:
       - id: mypy
-        additional_dependencies: [jax]
+        additional_dependencies: [numpy>=1.25.0]
         files: ^src
   - repo: https://github.com/psf/black
     rev: 23.3.0
