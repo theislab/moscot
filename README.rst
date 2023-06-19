@@ -1,4 +1,4 @@
-|Codecov|
+|PyPI| |Downloads| |CI| |Pre-commit| |Codecov| |Docs|
 
 moscot - multi-omic single-cell optimal transport tools
 =======================================================
@@ -29,11 +29,6 @@ In order to install **moscot** from source, run::
 
 For further instructions how to install jax, please refer to https://github.com/google/jax.
 
-
-.. |Codecov| image:: https://codecov.io/gh/theislab/moscot/branch/master/graph/badge.svg?token=Rgtm5Tsblo
-    :target: https://codecov.io/gh/theislab/moscot
-    :alt: Coverage
-
 Resources
 ---------
 
@@ -43,3 +38,27 @@ Reference
 ---------
 
 Our preprint "Mapping cells through time and space with moscot" can be found `here <https://www.biorxiv.org/content/10.1101/2023.05.11.540374v1>`_.
+
+.. |Codecov| image:: https://codecov.io/gh/theislab/moscot/branch/master/graph/badge.svg?token=Rgtm5Tsblo
+    :target: https://codecov.io/gh/theislab/moscot
+    :alt: Coverage
+
+.. |PyPI| image:: https://img.shields.io/pypi/v/moscot.svg
+    :target: https://pypi.org/project/moscot/
+    :alt: PyPI
+
+.. |CI| image:: https://img.shields.io/github/actions/workflow/status/theislab/moscot/test.yml?branch=main
+    :target: https://github.com/theislab/moscot/actions
+    :alt: CI
+
+.. |Pre-commit| image:: https://results.pre-commit.ci/badge/github/theislab/moscot/main.svg
+   :target: https://results.pre-commit.ci/latest/github/theislab/moscot/main
+   :alt: pre-commit.ci status
+
+.. |Docs| image:: https://img.shields.io/readthedocs/moscot
+    :target: https://moscot.readthedocs.io/en/stable/
+    :alt: Documentation
+
+.. |Downloads| image:: https://pepy.tech/badge/moscot
+    :target: https://pepy.tech/project/moscot
+    :alt: Downloads
