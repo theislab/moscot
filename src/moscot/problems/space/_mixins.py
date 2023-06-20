@@ -12,14 +12,13 @@ from typing import (
     Union,
 )
 
+import networkx as nx
 import numpy as np
 import pandas as pd
 import scipy.sparse as sp
-from networkx import NetworkXNoPath
+import scipy.stats as st
 from scipy.linalg import svd
-from scipy.sparse.linalg import LinearOperator
 from scipy.spatial import ConvexHull
-from scipy.stats import pearsonr, spearmanr
 from sklearn.metrics import pairwise_distances
 from sklearn.neighbors import NearestNeighbors
 
@@ -123,7 +122,7 @@ class SpatialAlignmentMixin(AnalysisMixin[K, B]):
         for start in starts:
             try:
                 steps[start, reference, True] = self._policy.plan(start=start, end=reference)
-            except NetworkXNoPath:
+            except nx.NetworkXNoPath:
                 steps[reference, start, False] = self._policy.plan(start=reference, end=start)
 
         for (start, end, forward), path in steps.items():
@@ -365,9 +364,9 @@ class SpatialMappingMixin(AnalysisMixin[K, B]):
             raise ValueError("No overlapping `var_names` between spatial and gene expression data.")
 
         if corr_method == "pearson":
-            corr = pearsonr
+            corr = st.pearsonr
         elif corr_method == "spearman":
-            corr = spearmanr
+            corr = st.spearmanr
         else:
             raise NotImplementedError(f"Correlation method `{corr_method!r}` is not yet implemented.")
 
@@ -638,7 +637,7 @@ def _compute_correspondence(
 
 
 def _affine(
-    tmap: LinearOperator,
+    tmap: sp.linalg.LinearOperator,
     src: ArrayLike,
     tgt: ArrayLike,
 ) -> Tuple[ArrayLike, ArrayLike]:
@@ -651,6 +650,6 @@ def _affine(
     return tgt, R
 
 
-def _warp(tmap: LinearOperator, src: ArrayLike, tgt: ArrayLike) -> Tuple[ArrayLike, None]:
+def _warp(tmap: sp.linalg.LinearOperator, src: ArrayLike, tgt: ArrayLike) -> Tuple[ArrayLike, None]:
     del tgt
     return tmap @ src, None

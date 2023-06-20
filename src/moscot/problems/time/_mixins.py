@@ -1,5 +1,5 @@
 import itertools
-from pathlib import Path
+import pathlib
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -31,10 +31,7 @@ from moscot.utils.tagged_array import Tag
 __all__ = ["TemporalMixin"]
 
 
-# TODO(@MUCDK, @michalk8): check for ignore[misc] in line below, might become redundant
-class TemporalMixinProtocol(AnalysisMixinProtocol[K, B], Protocol[K, B]):  # type:ignore
-    """Protocol class."""
-
+class TemporalMixinProtocol(AnalysisMixinProtocol[K, B], Protocol[K, B]):
     adata: AnnData
     problems: Dict[Tuple[K, K], BirthDeathProblem]
     temporal_key: Optional[str]
@@ -54,11 +51,10 @@ class TemporalMixinProtocol(AnalysisMixinProtocol[K, B], Protocol[K, B]):  # typ
     ) -> pd.DataFrame:
         ...
 
-    def push(self, *args: Any, **kwargs: Any) -> Optional[ApplyOutput_t[K]]:  # noqa: D102
+    def push(self, *args: Any, **kwargs: Any) -> Optional[ApplyOutput_t[K]]:
         ...
 
     def pull(self, *args: Any, **kwargs: Any) -> Optional[ApplyOutput_t[K]]:
-        """Pull."""
         ...
 
     def _cell_transition(
@@ -138,7 +134,7 @@ class TemporalMixinProtocol(AnalysisMixinProtocol[K, B], Protocol[K, B]):  # typ
         basis: str = "umap",
         result_key: Optional[str] = None,
         fill_value: float = 0.0,
-        save: Optional[Union[str, Path]] = None,
+        save: Optional[Union[str, pathlib.Path]] = None,
         **kwargs: Any,
     ) -> None:
         ...
@@ -166,34 +162,59 @@ class TemporalMixin(AnalysisMixin[K, B]):
         target: K,
         source_groups: Str_Dict_t,
         target_groups: Str_Dict_t,
-        forward: bool = False,  # return value will be row-stochastic if forward=True, else column-stochastic
+        forward: bool = False,
         aggregation_mode: Literal["annotation", "cell"] = "annotation",
         batch_size: Optional[int] = None,
         normalize: bool = True,
         key_added: Optional[str] = _constants.CELL_TRANSITION,
     ) -> Optional[pd.DataFrame]:
-        """
-        Compute a grouped cell transition matrix.
+        """Compute an aggregate cell transition matrix.
 
-        This function computes a transition matrix with entries corresponding to categories, e.g. cell types.
-        The transition matrix will be row-stochastic if `forward` is `True`, otherwise column-stochastic.
+        .. seealso::
+            - See :doc:`../notebooks/examples/plotting/200_cell_transitions` on how to
+              compute and plot the cell transitions.
 
         Parameters
         ----------
-        %(cell_trans_params)s
-        %(forward_cell_transition)s
-        %(aggregation_mode)s
-        %(ott_jax_batch_size)s
-        %(normalize)s
-        %(key_added_plotting)s
+        source
+            Key identifying the source distribution.
+        target
+            Key identifying the target distribution.
+        source_groups
+            Source groups used for aggregation. Valid options are:
+
+            - :class:`str` - key in :attr:`~anndata.AnnData.obs` where categorical data is stored.
+            - :class:`dict` - a dictionary with one key corresponding to a categorical column in
+              :attr:`~anndata.AnnData.obs` and values to a subset of categories.
+        target_groups
+            Target groups used for aggregation. Valid options are:
+
+            - :class:`str` - key in :attr:`~anndata.AnnData.obs` where categorical data is stored.
+            - :class:`dict` - a dictionary with one key corresponding to a categorical column in
+              :attr:`~anndata.AnnData.obs` and values to a subset of categories.
+        aggregation_mode
+            How to aggregate the cell-level transport maps. Valid options are:
+
+            - ``'annotation'`` - group the transitions by the ``source_groups`` and the ``target_groups``.
+            - ``'cell'`` - do not group by the ``source_groups`` or the ``target_groups``, depending on the ``forward``.
+        forward
+            If :obj:`True`, compute the transitions from the ``source_groups`` to the ``target_groups``.
+        batch_size
+            Number of rows/columns of the cost matrix to materialize during :meth:`push` or :meth:`pull`.
+            Larger value will require more memory.
+        normalize
+            If :obj:`True`, normalize the transition matrix. If ``forward = True``, the transition matrix
+            will be row-stochastic, otherwise column-stochastic.
+        key_added
+            Key in :attr:`~anndata.AnnData.uns` where to save the result.
 
         Returns
         -------
-        %(return_cell_transition)s
+        Depending on the ``key_added``:
 
-        Notes
-        -----
-        %(notes_cell_transition)s
+        - :obj:`None` - returns the transition matrix.
+        - :obj:`str` - returns nothing and saves the transition matrix to
+          :attr:`adata.uns['moscot_results']['cell_transition']['{key_added}'] <anndata.AnnData.uns>`
         """
         if TYPE_CHECKING:
             assert isinstance(self.temporal_key, str)
@@ -222,30 +243,7 @@ class TemporalMixin(AnalysisMixin[K, B]):
         restrict_to_existing: bool = True,
         order_annotations: Optional[List[Any]] = None,
         key_added: Optional[str] = _constants.SANKEY,
-        return_data: bool = False,
     ) -> Optional[List[pd.DataFrame]]:
-        """
-        Draw a Sankey diagram visualising transitions of cells across time points.
-
-        Parameters
-        ----------
-        %(cell_trans_params)s
-        %(threshold)s
-        %(normalize)s
-        %(forward)s
-        %(restrict_to_existing)s
-        %(order_annotations)s
-        %(key_added_plotting)s
-        %(return_data)s
-
-        Returns
-        -------
-        Transition matrices of cells or groups of cells, as needed for a sankey.
-
-        Notes
-        -----
-        To visualise the results, see :func:`moscot.plotting.sankey`.
-        """
         tuples = self._policy.plan(start=source, end=target)
         cell_transitions = []
         for src, tgt in tuples:
@@ -292,18 +290,19 @@ class TemporalMixin(AnalysisMixin[K, B]):
         else:
             raise TypeError(f"Expected early cells to be either `str` or `dict`, found `{type(source_groups)}`.")
 
-        if key_added is not None:
-            plot_vars = {
-                "transition_matrices": cell_transitions_updated,
-                "key": key,
-                "source": source,
-                "target": target,
-                "source_groups": source_groups,
-                "target_groups": target_groups,
-                "captions": [str(t) for t in tuples],
-            }
-            set_plotting_vars(self.adata, _constants.SANKEY, key=key_added, value=plot_vars)
-        return cell_transitions_updated if return_data else None
+        if key_added is None:
+            return cell_transitions_updated
+
+        plot_vars = {
+            "transition_matrices": cell_transitions_updated,
+            "key": key,
+            "source": source,
+            "target": target,
+            "source_groups": source_groups,
+            "target_groups": target_groups,
+            "captions": [str(t) for t in tuples],
+        }
+        set_plotting_vars(self.adata, _constants.SANKEY, key=key_added, value=plot_vars)  # noqa: RET503
 
     def push(
         self: TemporalMixinProtocol[K, B],
@@ -314,53 +313,41 @@ class TemporalMixin(AnalysisMixin[K, B]):
         scale_by_marginals: bool = True,
         key_added: Optional[str] = _constants.PUSH,
         return_all: bool = False,
-        return_data: bool = False,
         **kwargs: Any,
     ) -> Optional[ApplyOutput_t[K]]:
-        """
-        Push distribution of cells through time.
+        """Push mass from source to target.
 
         Parameters
         ----------
-        %(source)s
-        %(target)s
-        %(data)s
-        %(subset)s
-        %(scale_by_marginals)s
-        %(key_added_plotting)s
-        %(return_all)s
-        %(return_data)s
+        source
+            Source key in :attr:`solutions`.
+        target
+            Target key in :attr:`solutions`.
+        data
+            Initial data to push, see :meth:`~moscot.base.problems.OTProblem.push` for information.
+        subset
+            Push values contained only within the subset.
+        scale_by_marginals
+            Whether to scale by the source :term:`marginals`.
+        key_added
+            Key in :attr:`~anndata.AnnData.obs` where to add the result.
+        return_all
+            Whether to also return intermediate results. Always true if ``key_added != None``.
+        kwargs
+            Keyword arguments for the subproblems' :meth:`~moscot.base.problems.OTProblem.push` method.
 
-        Return
-        ------
-        %(return_push_pull)s
+        Returns
+        -------
+        Depending on the ``key_added``:
 
+        - :obj:`None` - returns the result.
+        - :class:`str` - returns nothing and updates :attr:`adata.obs['{key_added}'] <anndata.AnnData.obs>`
+          with the result.
         """
-        result = self._apply(
-            source=source,
-            target=target,
-            data=data,
-            subset=subset,
-            forward=True,
-            return_all=return_all or key_added is not None,
-            scale_by_marginals=scale_by_marginals,
-            **kwargs,
-        )
-
-        if TYPE_CHECKING:
-            assert isinstance(result, dict)
-
-        if key_added is not None:
-            plot_vars = {
-                "source": source,
-                "target": target,
-                "temporal_key": self.temporal_key,
-                "data": data if isinstance(data, str) else None,
-                "subset": subset,
-            }
-            self.adata.obs[key_added] = self._flatten(result, key=self.temporal_key)
-            set_plotting_vars(self.adata, _constants.PUSH, key=key_added, value=plot_vars)
-        return result if return_data else None
+        # TODO(michalk8): consider not overriding + update the defaults in `BaseCompoundProblem` + implement _post_apply
+        data = locals()
+        _ = data.pop("kwargs", None)
+        return super().push(**data, **kwargs)
 
     def pull(
         self: TemporalMixinProtocol[K, B],
@@ -371,56 +358,45 @@ class TemporalMixin(AnalysisMixin[K, B]):
         scale_by_marginals: bool = True,
         key_added: Optional[str] = _constants.PULL,
         return_all: bool = False,
-        return_data: bool = False,
         **kwargs: Any,
     ) -> Optional[ApplyOutput_t[K]]:
-        """
-        Pull distribution of cells through time.
+        """Pull mass from target to source.
 
         Parameters
         ----------
-        %(source)s
-        %(target)s
-        %(data)s
-        %(subset)s
-        %(scale_by_marginals)s
-        %(key_added_plotting)s
-        %(return_all)s
-        %(return_data)s
+        source
+            Source key in :attr:`solutions`.
+        target
+            Target key in :attr:`solutions`.
+        data
+            Initial data to pull, see :meth:`~moscot.base.problems.OTProblem.pull` for information.
+        subset
+            Pull values contained only within the subset.
+        scale_by_marginals
+            Whether to scale by the source :term:`marginals`.
+        key_added
+            Key in :attr:`~anndata.AnnData.obs` where to add the result.
+        return_all
+            Whether to also return intermediate results. Always true if ``key_added != None``.
+        kwargs
+            Keyword arguments for the subproblems' :meth:`~moscot.base.problems.OTProblem.pull` method.
 
-        Return
-        ------
-        %(return_push_pull)s
+        Returns
+        -------
+        Depending on the ``key_added``:
 
+        - :obj:`None` - returns the result.
+        - :class:`str` - returns nothing and updates :attr:`adata.obs['{key_added}'] <anndata.AnnData.obs>`
+          with the result.
         """
-        result = self._apply(
-            source=source,
-            target=target,
-            data=data,
-            subset=subset,
-            forward=False,
-            return_all=return_all or key_added is not None,
-            scale_by_marginals=scale_by_marginals,
-            **kwargs,
-        )
-        if TYPE_CHECKING:
-            assert isinstance(result, dict)
-
-        if key_added is not None:
-            plot_vars = {
-                "temporal_key": self.temporal_key,
-                "data": data if isinstance(data, str) else None,
-                "subset": subset,
-                "source": source,
-                "target": target,
-            }
-            self.adata.obs[key_added] = self._flatten(result, key=self.temporal_key)
-            set_plotting_vars(self.adata, _constants.PULL, key=key_added, value=plot_vars)
-        return result if return_data else None
+        # TODO(michalk8): consider not overriding + update the defaults in `BaseCompoundProblem` + implement _post_apply
+        data = locals()
+        _ = data.pop("kwargs", None)
+        return super().pull(**data, **kwargs)
 
     @property
     def prior_growth_rates(self: TemporalMixinProtocol[K, B]) -> Optional[pd.DataFrame]:
-        """Return the prior estimate of growth rates of the cells in the source distribution."""
+        """Prior estimate of the source growth rates."""
         computed = [isinstance(p.prior_growth_rates, np.ndarray) for p in self.problems.values()]
         if not np.sum(computed):
             return None
@@ -438,7 +414,7 @@ class TemporalMixin(AnalysisMixin[K, B]):
 
     @property
     def posterior_growth_rates(self: TemporalMixinProtocol[K, B]) -> Optional[pd.DataFrame]:
-        """Return the posterior estimate of growth rates of the cells in the source distribution."""
+        """Posterior estimate of the source growth rates."""
         computed = [isinstance(p.posterior_growth_rates, np.ndarray) for p in self.problems.values()]
         if not np.sum(computed):
             return None
@@ -456,12 +432,16 @@ class TemporalMixin(AnalysisMixin[K, B]):
 
     @property
     def cell_costs_source(self: TemporalMixinProtocol[K, B]) -> Optional[pd.DataFrame]:
-        """Return the cost of a cell obtained by the potentials of the optimal transport solution."""
+        """Cell cost obtained by the :term:`first dual potential <dual potentials>`.
+
+        Only available for subproblems with :attr:`problem_kind = 'linear' <problem_kind>`.
+        """
         computed = [isinstance(s.potentials, tuple) for s in self.solutions.values()]
         if not np.sum(computed):
             return None
 
         cols = ["cell_cost_source"]
+        # TODO(michalk8): `[1]` will fail if potentials is None
         df_list = [
             pd.DataFrame(
                 np.asarray(problem.solution.potentials[0]),  # type: ignore[union-attr,index]
@@ -477,12 +457,16 @@ class TemporalMixin(AnalysisMixin[K, B]):
 
     @property
     def cell_costs_target(self: TemporalMixinProtocol[K, B]) -> Optional[pd.DataFrame]:
-        """Return the cost of a cell obtained by the potentials of the optimal transport solution."""
+        """Cell cost obtained by the :term:`second dual potential <dual potentials>`.
+
+        Only available for subproblems with :attr:`problem_kind = 'linear' <problem_kind>`.
+        """
         computed = [isinstance(s.potentials, tuple) for s in self.solutions.values()]
         if not np.sum(computed):
             return None
 
         cols = ["cell_cost_target"]
+        # TODO(michalk8): `[1]` will fail if potentials is None
         df_list = [
             pd.DataFrame(
                 np.array(problem.solution.potentials[1]),  # type: ignore[union-attr,index]
@@ -496,7 +480,6 @@ class TemporalMixin(AnalysisMixin[K, B]):
         df_2 = pd.DataFrame(np.nan, index=list(indices_remaining), columns=cols)
         return pd.concat([df_1, df_2], verify_integrity=True)
 
-    # TODO(michalk8): refactor me
     def _get_data(
         self: TemporalMixinProtocol[K, B],
         source: K,
