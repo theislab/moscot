@@ -151,9 +151,6 @@ target-version = "py38"
 "src/moscot/utils/subset_policy.py" = ["D101", "D102"]
 [tool.ruff.pydocstyle]
 convention = "numpy"
-[tool.ruff.pyupgrade]
-# Preserve types, even if a file imports `from __future__ import annotations`.
-keep-runtime-typing = true
 [tool.ruff.flake8-tidy-imports]
 ban-relative-imports = "all"
 [tool.ruff.flake8-quotes]
