@@ -20,7 +20,7 @@ from matplotlib.figure import Figure
 from moscot._docs._docs import d
 from moscot._types import ArrayLike, Device_t
 from moscot.backends.ott._utils import ConditionalDualPotentials, get_nearest_neighbors
-from moscot.base.output import BaseNeuralOutput, BaseSolverOutput, BaseCondNeuralOutput
+from moscot.base.output import BaseNeuralOutput, BaseSolverOutput
 
 __all__ = ["OTTOutput", "NeuralDualOutput", "CondNeuralDualOutput"]
 
@@ -257,7 +257,8 @@ class OTTOutput(ConvergencePlotterMixin, BaseSolverOutput):
     def _ones(self, n: int) -> jnp.ndarray:
         return jnp.ones((n,))
 
-class OTTNeuralOutput(BaseCondNeuralOutput):
+
+class OTTNeuralOutput(BaseNeuralOutput):
     """Base class for OTT neural OT output."""
 
     def _project_transport_matrix(
@@ -831,7 +832,7 @@ class GapNeuralOutput(ConvergencePlotterMixin, BaseNeuralOutput):
         Statistics of the model training.
     """
 
-    def __init__(self, output: Any, training_logs: Train_t): #TODO type
+    def __init__(self, output: Any, training_logs: Train_t):  # TODO type
         self._output = output
         self._training_logs = training_logs
         self._transport_matrix: ArrayLike = None
@@ -918,7 +919,6 @@ class GapNeuralOutput(ConvergencePlotterMixin, BaseNeuralOutput):
             )
         return self._transport_matrix
 
-    
     def to(
         self,
         device: Optional[Device_t] = None,
@@ -991,7 +991,6 @@ class GapNeuralOutput(ConvergencePlotterMixin, BaseNeuralOutput):
         """
         raise NotImplementedError("Gap models can only push distributions, not pull them.")
 
-    
     @property
     def a(self) -> ArrayLike:
         """Marginals of the source distribution."""
@@ -1007,7 +1006,7 @@ class GapNeuralOutput(ConvergencePlotterMixin, BaseNeuralOutput):
     def _ones(self, n: int) -> jnp.ndarray:
         return jnp.ones((n,))
 
-    def _format_params(self, fmt: Callable[[Any], str]) -> str: # TODO: adapt
+    def _format_params(self, fmt: Callable[[Any], str]) -> str:  # TODO: adapt
         if "sinkhorn_dist" in self.training_logs["valid_logs"]:
             params = {
                 "predicted_cost": round(self.cost, 3),

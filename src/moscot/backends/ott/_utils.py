@@ -109,7 +109,7 @@ def _filter_kwargs(*funcs: Callable[..., Any], **kwargs: Any) -> Dict[str, Any]:
 
 
 @jtu.register_pytree_node_class
-class ConditionalDualPotentials(DualPotentials):
+class ConditionalDualPotentials:
     r"""The conditional Kantorovich dual potential functions as introduced in :cite:`bunne2022supervised`.
 
     :math:`f` and :math:`g` are a pair of functions, candidates for the dual
@@ -168,7 +168,7 @@ class ConditionalDualPotentials(DualPotentials):
     def to_dual_potentials(self, condition: ArrayLike) -> DualPotentials:
         """Return the Kantorovich dual potentials from the trained potentials."""
         # Note that here the order of f and g should be correct already, as it's swapped in the initialization of CondDualPotentials
-        
+
         def f(x, c) -> float:
             return self._state_f.apply_fn({"params": self._state_f.params}, x, c)
 
@@ -217,11 +217,19 @@ class ConditionalDualPotentials(DualPotentials):
         return cls(*children, **aux_data)
 
 
-def _get_icnn(input_dim: int, cond_dim: int, pos_weights: bool = False, dim_hidden: Iterable[int] = (64, 64, 64, 64), **kwargs: Any) -> ICNN:
-    return ICNN(input_dim = input_dim, cond_dim=cond_dim, pos_weights=pos_weights, dim_hidden=dim_hidden, **kwargs)
+def _get_icnn(
+    input_dim: int,
+    cond_dim: int,
+    pos_weights: bool = False,
+    dim_hidden: Iterable[int] = (64, 64, 64, 64),
+    **kwargs: Any,
+) -> ICNN:
+    return ICNN(input_dim=input_dim, cond_dim=cond_dim, pos_weights=pos_weights, dim_hidden=dim_hidden, **kwargs)
 
 
-def _get_optimizer(learning_rate: float = 1e-3, b1: float = 0.5, b2: float = 0.9, weight_decay: float = 0.0, **kwargs: Any) -> Type[optax.GradientTransformation]:
+def _get_optimizer(
+    learning_rate: float = 1e-3, b1: float = 0.5, b2: float = 0.9, weight_decay: float = 0.0, **kwargs: Any
+) -> Type[optax.GradientTransformation]:
     return optax.adamw(learning_rate=learning_rate, b1=b1, b2=b2, weight_decay=weight_decay, **kwargs)
 
 
@@ -262,18 +270,50 @@ def mmd_rbf(x: jnp.ndarray, y: jnp.ndarray) -> float:
 
 
 def _regularized_wasserstein(
-        x: jnp.ndarray, y: jnp.ndarray,
-        sinkhorn_kwargs: Mapping[str, Any] = MappingProxyType({}),
-        geometry_kwargs: Mapping[str, Any] = MappingProxyType({})
+    x: jnp.ndarray,
+    y: jnp.ndarray,
+    sinkhorn_kwargs: Mapping[str, Any] = MappingProxyType({}),
+    geometry_kwargs: Mapping[str, Any] = MappingProxyType({}),
 ) -> Optional[float]:
     """
     Compute a regularized Wasserstein distance to be used as the fitting term in the loss.
     Fitting term computes how far the predicted target is from teh actual target (ground truth)
     """
-    geom = PointCloud(
-        x=x, y=y,
-        **geometry_kwargs
-    )
-    return sinkhorn.Sinkhorn(**sinkhorn_kwargs)(
-        linear_problem.LinearProblem(geom)
-    ).reg_ot_cost
+    geom = PointCloud(x=x, y=y, **geometry_kwargs)
+    return sinkhorn.Sinkhorn(**sinkhorn_kwargs)(linear_problem.LinearProblem(geom)).reg_ot_cost
+
+
+def _compute_metrics_sinkhorn(
+    tgt: jnp.ndarray,
+    src: jnp.ndarray,
+    pred_tgt: jnp.ndarray,
+    pred_src: jnp.ndarray,
+    valid_eps: float,
+    valid_sinkhorn_kwargs: Mapping[str, Any],
+) -> Dict[str, float]:
+    sinkhorn_loss_data = sinkhorn_divergence(
+        geom=PointCloud,
+        x=tgt,
+        y=src,
+        epsilon=valid_eps,
+        sinkhorn_kwargs=valid_sinkhorn_kwargs,
+    ).divergence
+    sinkhorn_loss_forward = sinkhorn_divergence(
+        geom=PointCloud,
+        x=tgt,
+        y=pred_tgt,
+        epsilon=valid_eps,
+        sinkhorn_kwargs=valid_sinkhorn_kwargs,
+    ).divergence
+    sinkhorn_loss_inverse = sinkhorn_divergence(
+        geom=PointCloud,
+        x=src,
+        y=pred_src,
+        epsilon=valid_eps,
+        sinkhorn_kwargs=valid_sinkhorn_kwargs,
+    ).divergence
+    return {
+        "sinkhorn_loss_forward": jnp.abs(sinkhorn_loss_forward),
+        "sinkhorn_loss_inverse": jnp.abs(sinkhorn_loss_inverse),
+        "sinkhorn_loss_data": jnp.abs(sinkhorn_divergence_data),
+    }
