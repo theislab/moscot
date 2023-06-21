@@ -22,7 +22,7 @@ from moscot._types import ArrayLike, Device_t
 from moscot.backends.ott._utils import ConditionalDualPotentials, get_nearest_neighbors
 from moscot.base.output import BaseNeuralOutput, BaseSolverOutput
 
-__all__ = ["OTTOutput", "NeuralOutput", "ConditionalNeuralOutput"]
+__all__ = ["OTTOutput", "NeuralDualOutput", "CondNeuralDualOutput"]
 
 Train_t = Dict[str, Dict[str, List[float]]]
 
@@ -258,7 +258,54 @@ class OTTOutput(ConvergencePlotterMixin, BaseSolverOutput):
         return jnp.ones((n,))
 
 
-class NeuralOutput(ConvergencePlotterMixin, BaseNeuralOutput):
+class OTTNeuralOutput(BaseNeuralOutput):
+    """Base class for OTT neural OT output."""
+
+    def _project_transport_matrix(
+        self,
+        src_dist: ArrayLike,
+        tgt_dist: ArrayLike,
+        forward: bool,
+        func: Callable[[jnp.ndarray], jnp.ndarray],
+        save_transport_matrix: bool = False,  # TODO(@MUCDK) adapt order of arguments
+        batch_size: int = 1024,
+        k: int = 30,
+        length_scale: Optional[float] = None,
+        seed: int = 42,
+    ) -> sp.csr_matrix:
+        get_knn_fn = jax.vmap(get_nearest_neighbors, in_axes=(0, None, None))
+        row_indices: Union[jnp.ndarray, List[jnp.ndarray]] = []
+        column_indices: Union[jnp.ndarray, List[jnp.ndarray]] = []
+        distances_list: Union[jnp.ndarray, List[jnp.ndarray]] = []
+        if length_scale is None:
+            key = jax.random.PRNGKey(seed)
+            src_batch = src_dist[jax.random.choice(key, src_dist.shape[0], shape=((batch_size,)))]
+            tgt_batch = tgt_dist[jax.random.choice(key, tgt_dist.shape[0], shape=((batch_size,)))]
+            length_scale = jnp.std(jnp.concatenate((func(src_batch), tgt_batch)))
+        for index in range(0, len(src_dist), batch_size):
+            distances, indices = get_knn_fn(func(src_dist[index : index + batch_size]), tgt_dist, k)
+            distances = jnp.exp(-((distances / length_scale) ** 2))
+            distances /= jnp.expand_dims(jnp.sum(distances, axis=1), axis=1)
+            distances_list.append(distances.flatten())
+            column_indices.append(indices.flatten())
+            row_indices.append(
+                jnp.repeat(jnp.arange(index, index + min(batch_size, len(src_dist) - index)), min(k, len(tgt_dist)))
+            )
+        distances = jnp.concatenate(distances_list)
+        row_indices = jnp.concatenate(row_indices)
+        column_indices = jnp.concatenate(column_indices)
+        tm = sp.csr_matrix((distances, (row_indices, column_indices)), shape=[len(src_dist), len(tgt_dist)])
+        if forward:
+            if save_transport_matrix:
+                self._transport_matrix = tm
+        else:
+            tm = tm.T
+            if save_transport_matrix:
+                self._inverse_transport_matrix = tm
+        return tm
+
+
+class NeuralDualOutput(ConvergencePlotterMixin, OTTNeuralOutput):
     """
     Output representation of neural OT problems.
 
@@ -337,49 +384,6 @@ class NeuralOutput(ConvergencePlotterMixin, BaseNeuralOutput):
 
     def is_linear(self) -> bool:
         return True
-
-    def _project_transport_matrix(
-        self,
-        src_dist: ArrayLike,
-        tgt_dist: ArrayLike,
-        forward: bool,
-        func: Callable[[jnp.ndarray], jnp.ndarray],
-        save_transport_matrix: bool = False,  # TODO(@MUCDK) adapt order of arguments
-        batch_size: int = 1024,
-        k: int = 30,
-        length_scale: Optional[float] = None,
-        seed: int = 42,
-    ) -> sp.csr_matrix:
-        get_knn_fn = jax.vmap(get_nearest_neighbors, in_axes=(0, None, None))
-        row_indices: Union[jnp.ndarray, List[jnp.ndarray]] = []
-        column_indices: Union[jnp.ndarray, List[jnp.ndarray]] = []
-        distances_list: Union[jnp.ndarray, List[jnp.ndarray]] = []
-        if length_scale is None:
-            key = jax.random.PRNGKey(seed)
-            src_batch = src_dist[jax.random.choice(key, src_dist.shape[0], shape=((batch_size,)))]
-            tgt_batch = tgt_dist[jax.random.choice(key, tgt_dist.shape[0], shape=((batch_size,)))]
-            length_scale = jnp.std(jnp.concatenate((func(src_batch), tgt_batch)))
-        for index in range(0, len(src_dist), batch_size):
-            distances, indices = get_knn_fn(func(src_dist[index : index + batch_size]), tgt_dist, k)
-            distances = jnp.exp(-((distances / length_scale) ** 2))
-            distances /= jnp.expand_dims(jnp.sum(distances, axis=1), axis=1)
-            distances_list.append(distances.flatten())
-            column_indices.append(indices.flatten())
-            row_indices.append(
-                jnp.repeat(jnp.arange(index, index + min(batch_size, len(src_dist) - index)), min(k, len(tgt_dist)))
-            )
-        distances = jnp.concatenate(distances_list)
-        row_indices = jnp.concatenate(row_indices)
-        column_indices = jnp.concatenate(column_indices)
-        tm = sp.csr_matrix((distances, (row_indices, column_indices)), shape=[len(src_dist), len(tgt_dist)])
-        if forward:
-            if save_transport_matrix:
-                self._transport_matrix = tm
-        else:
-            tm = tm.T
-            if save_transport_matrix:
-                self._inverse_transport_matrix = tm
-        return tm
 
     def project_transport_matrix(  # type:ignore[override]
         self,
@@ -464,7 +468,7 @@ class NeuralOutput(ConvergencePlotterMixin, BaseNeuralOutput):
     def to(
         self,
         device: Optional[Device_t] = None,
-    ) -> "NeuralOutput":
+    ) -> "NeuralDualOutput":
         """Transfer the output to another device or change its data type.
 
         Parameters
@@ -490,7 +494,7 @@ class NeuralOutput(ConvergencePlotterMixin, BaseNeuralOutput):
                 raise IndexError(f"Unable to fetch the device with `id={idx}`.")
 
         out = jax.device_put(self._output, device)
-        return NeuralOutput(out, self.training_logs)
+        return NeuralDualOutput(out, self.training_logs)
 
     @property
     def cost(self) -> float:
@@ -605,7 +609,7 @@ class NeuralOutput(ConvergencePlotterMixin, BaseNeuralOutput):
         return ", ".join(f"{name}={fmt(val)}" for name, val in params.items())
 
 
-class ConditionalNeuralOutput(NeuralOutput):
+class CondNeuralDualOutput(NeuralDualOutput):
     """
     Output representation of conditional neural OT problems.
 
@@ -627,7 +631,7 @@ class ConditionalNeuralOutput(NeuralOutput):
 
     def project_transport_matrix(  # type:ignore[override]
         self,
-        cond: ArrayLike,
+        condition: ArrayLike,
         src_cells: ArrayLike,
         tgt_cells: ArrayLike,
         forward: bool = True,
@@ -648,7 +652,7 @@ class ConditionalNeuralOutput(NeuralOutput):
 
         Parameters
         ----------
-        cond
+        condition
             Condition `src_cells` correspond to.
         src_cells
             Cells which are to be mapped.
@@ -677,9 +681,9 @@ class ConditionalNeuralOutput(NeuralOutput):
         """
         src_cells, tgt_cells = jnp.asarray(src_cells), jnp.asarray(tgt_cells)
         func, src_dist, tgt_dist = (
-            (partial(self.push, cond), src_cells, tgt_cells)
+            (partial(self.push, condition), src_cells, tgt_cells)
             if forward
-            else (partial(self.pull, cond), tgt_cells, src_cells)
+            else (partial(self.pull, condition), tgt_cells, src_cells)
         )
         return self._project_transport_matrix(
             src_dist=src_dist,
@@ -715,7 +719,7 @@ class ConditionalNeuralOutput(NeuralOutput):
     def to(
         self,
         device: Optional[Device_t] = None,
-    ) -> "ConditionalNeuralOutput":
+    ) -> "CondNeuralDualOutput":
         """Transfer the output to another device or change its data type.
 
         Parameters
@@ -741,7 +745,7 @@ class ConditionalNeuralOutput(NeuralOutput):
                 raise IndexError(f"Unable to fetch the device with `id={idx}`.")
 
         out = jax.device_put(self._output, device)
-        return ConditionalNeuralOutput(output=out, training_logs=self.training_logs)
+        return CondNeuralDualOutput(output=out, training_logs=self.training_logs)
 
     def push(self, cond: ArrayLike, x: ArrayLike) -> ArrayLike:  # type: ignore[override]
         """Push distribution `x` conditioned on condition `cond`.
@@ -814,3 +818,203 @@ class ConditionalNeuralOutput(NeuralOutput):
         if x.ndim not in (1, 2):
             raise ValueError(f"Expected 1D or 2D array, found `{x.ndim}`.")
         return jax.vmap(self._output.g)(cond, x)
+
+
+class GapNeuralOutput(ConvergencePlotterMixin, BaseNeuralOutput):
+    """
+    Output representation of neural OT problems based on Gap formulations.
+
+    Parameters
+    ----------
+    output
+        TODO
+    training_logs
+        Statistics of the model training.
+    """
+
+    def __init__(self, output: Any, training_logs: Train_t):  # TODO type
+        self._output = output
+        self._training_logs = training_logs
+        self._transport_matrix: ArrayLike = None
+
+    def _apply(self, x: ArrayLike) -> ArrayLike:
+        return self._output.transport(x, forward=True)
+
+    @property
+    def training_logs(self) -> Train_t:
+        """Training logs."""
+        return self._training_logs
+
+    @property
+    def shape(self) -> Tuple[int, int]:
+        """%(shape)s."""
+        raise NotImplementedError()
+
+    def is_linear(self) -> bool:
+        return True
+
+    def project_transport_matrix(  # type:ignore[override]
+        self,
+        src_cells: ArrayLike,
+        tgt_cells: ArrayLike,
+        save_transport_matrix: bool = False,  # TODO(@MUCDK) adapt order of arguments
+        batch_size: int = 1024,
+        k: int = 30,
+        length_scale: Optional[float] = None,
+        seed: int = 42,
+    ) -> sp.csr_matrix:
+        """Project neural OT map onto cells.
+
+        In contrast to discrete OT, Neural OT does not necessarily map cells onto cells,
+        but a cell can also be mapped to a location between two cells. This function computes
+        a pseudo-transport matrix considering the neighborhood of where a cell is mapped to.
+        Therefore, a neighborhood graph of `k` target cells is computed around each transported cell
+        of the source distribution. The assignment likelihood of each mapped cell to the target cells is then
+        computed with a Gaussian kernel with parameter `length_scale`.
+
+        Parameters
+        ----------
+        src_cells
+            Cells which are to be mapped.
+        tgt_cells
+            Cells from which the neighborhood graph around the mapped `src_cells` are computed.
+        save_transport_matrix
+            Whether to save the transport matrix.
+        batch_size
+            Number of data points in the source distribution the neighborhoodgraph is computed
+            for in parallel.
+        k
+            Number of neighbors to construct the k-nearest neighbor graph of a mapped cell.
+        length_scale
+            Length scale of the Gaussian kernel used to compute the assignment likelihood. If `None`,
+            `length_scale` is set to the empirical standard deviation of `batch_size` pairs of data points of the
+            mapped source and target distribution.
+        seed
+            Random seed for sampling the pairs of distributions for computing the variance in case `length_scale`
+            is `None`.
+
+        Returns
+        -------
+        The projected transport matrix.
+        """
+        src_cells, tgt_cells = jnp.asarray(src_cells), jnp.asarray(tgt_cells)
+        return self._project_transport_matrix(
+            src_dist=src_cells,
+            tgt_dist=tgt_cells,
+            forward=True,
+            func=self.push,
+            save_transport_matrix=save_transport_matrix,
+            batch_size=batch_size,
+            k=k,
+            length_scale=length_scale,
+            seed=seed,
+        )
+
+    @property
+    def transport_matrix(self) -> ArrayLike:
+        """Projected transport matrix."""
+        if self._transport_matrix is None:
+            raise ValueError(
+                "The projected transport matrix has not been computed yet." " Please call `project_transport_matrix`."
+            )
+        return self._transport_matrix
+
+    def to(
+        self,
+        device: Optional[Device_t] = None,
+    ) -> "GapNeuralOutput":
+        """Transfer the output to another device or change its data type.
+
+        Parameters
+        ----------
+        device
+            If not `None`, the output will be transferred to `device`.
+
+        Returns
+        -------
+        The output on a saved on `device`.
+        """
+        # TODO(michalk8): when polishing docs, move the definition to the base class + use docrep
+        if isinstance(device, str) and ":" in device:
+            device, ix = device.split(":")
+            idx = int(ix)
+        else:
+            idx = 0
+
+        if not isinstance(device, xla_ext.Device):
+            try:
+                device = jax.devices(device)[idx]
+            except IndexError:
+                raise IndexError(f"Unable to fetch the device with `id={idx}`.")
+
+        out = jax.device_put(self._output, device)
+        return GapNeuralOutput(out, self.training_logs)
+
+    @property
+    def cost(self) -> float:
+        """Predicted optimal transport cost."""
+        return self.training_logs["valid_logs"]["predicted_cost"]
+
+    @property
+    def converged(self) -> bool:
+        """%(converged)s."""
+        # always return True for now
+        return True
+
+    def push(self, x: ArrayLike) -> ArrayLike:  # type: ignore[override]
+        """Push distribution `x`.
+
+        Parameters
+        ----------
+        x
+            Distribution to push.
+
+        Returns
+        -------
+        Pushed distribution.
+        """
+        if x.ndim not in (1, 2):
+            raise ValueError(f"Expected 1D or 2D array, found `{x.ndim}`.")
+        return self._apply(x, forward=True)
+
+    def pull(self, x: ArrayLike) -> ArrayLike:  # type: ignore[override]
+        """Pull distribution `x`.
+
+        Parameters
+        ----------
+        x
+            Distribution to pull.
+
+        Returns
+        -------
+        Pulled distribution.
+        """
+        raise NotImplementedError("Gap models can only push distributions, not pull them.")
+
+    @property
+    def a(self) -> ArrayLike:
+        """Marginals of the source distribution."""
+        # TODO: adapt when tracing marginals
+        raise NotImplementedError()
+
+    @property
+    def b(self) -> ArrayLike:
+        """Marginals of the target distribution."""
+        # TODO: adapt when tracing marginals
+        raise NotImplementedError()
+
+    def _ones(self, n: int) -> jnp.ndarray:
+        return jnp.ones((n,))
+
+    def _format_params(self, fmt: Callable[[Any], str]) -> str:  # TODO: adapt
+        if "sinkhorn_dist" in self.training_logs["valid_logs"]:
+            params = {
+                "predicted_cost": round(self.cost, 3),
+                "best_loss": round(self.training_logs["valid_logs"]["best_loss"], 3),  # type: ignore[call-overload]
+                "sinkhorn_dist": round(self.training_logs["valid_logs"]["sinkhorn_dist"], 3),  # type: ignore[call-overload]
+            }
+        else:
+            params = {
+                "predicted_cost": round(self.cost, 3),
+            }
+        return ", ".join(f"{name}={fmt(val)}" for name, val in params.items())

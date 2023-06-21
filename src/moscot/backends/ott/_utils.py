@@ -1,9 +1,10 @@
 import inspect
 from functools import partial
-from typing import TYPE_CHECKING, Any, Callable, Dict, Optional, Sequence, Tuple
+from types import MappingProxyType
+from typing import TYPE_CHECKING, Any, Callable, Dict, Optional, Sequence, Tuple, Iterable, Type, Mapping
 
 from flax.training.train_state import TrainState
-
+import optax
 import jax
 import jax.numpy as jnp
 import jax.tree_util as jtu
@@ -11,7 +12,9 @@ from ott.geometry import costs
 from ott.geometry.pointcloud import PointCloud
 from ott.problems.linear.potentials import DualPotentials
 from ott.tools.sinkhorn_divergence import sinkhorn_divergence
-
+from ott.solvers.linear import sinkhorn
+from ott.problems.linear import linear_problem
+from moscot.backends.ott._icnn import ICNN
 from moscot._logging import logger
 from moscot._types import ArrayLike, ScaleCost_t
 
@@ -106,7 +109,7 @@ def _filter_kwargs(*funcs: Callable[..., Any], **kwargs: Any) -> Dict[str, Any]:
 
 
 @jtu.register_pytree_node_class
-class ConditionalDualPotentials(DualPotentials):
+class ConditionalDualPotentials:
     r"""The conditional Kantorovich dual potential functions as introduced in :cite:`bunne2022supervised`.
 
     :math:`f` and :math:`g` are a pair of functions, candidates for the dual
@@ -164,6 +167,7 @@ class ConditionalDualPotentials(DualPotentials):
 
     def to_dual_potentials(self, condition: ArrayLike) -> DualPotentials:
         """Return the Kantorovich dual potentials from the trained potentials."""
+        # Note that here the order of f and g should be correct already, as it's swapped in the initialization of CondDualPotentials
 
         def f(x, c) -> float:
             return self._state_f.apply_fn({"params": self._state_f.params}, x, c)
@@ -211,3 +215,105 @@ class ConditionalDualPotentials(DualPotentials):
         cls, aux_data: Dict[str, Any], children: Sequence[Any]
     ) -> "ConditionalDualPotentials":
         return cls(*children, **aux_data)
+
+
+def _get_icnn(
+    input_dim: int,
+    cond_dim: int,
+    pos_weights: bool = False,
+    dim_hidden: Iterable[int] = (64, 64, 64, 64),
+    **kwargs: Any,
+) -> ICNN:
+    return ICNN(input_dim=input_dim, cond_dim=cond_dim, pos_weights=pos_weights, dim_hidden=dim_hidden, **kwargs)
+
+
+def _get_optimizer(
+    learning_rate: float = 1e-3, b1: float = 0.5, b2: float = 0.9, weight_decay: float = 0.0, **kwargs: Any
+) -> Type[optax.GradientTransformation]:
+    return optax.adamw(learning_rate=learning_rate, b1=b1, b2=b2, weight_decay=weight_decay, **kwargs)
+
+
+# Compute the difference in drug signatures
+@jax.jit
+def compute_ds_diff(control, treated, push_fwd):
+    """
+    Compute Drug Signature difference as the norm between the vector of means of features
+    """
+    base = control.mean(0)
+
+    true = treated.mean(0) - base
+    pred = push_fwd.mean(0) - base
+
+    return jnp.linalg.norm(true - pred)
+
+
+def mmd_rbf(x: jnp.ndarray, y: jnp.ndarray) -> float:
+    """Compute MMD between x and y via RBF kernel."""
+    x_norm = jnp.square(x).sum(-1)
+    xx = jnp.einsum("ia, ja- > ij", x, x)
+    x_sq_dist = x_norm[..., :, None] + x_norm[..., None, :] - 2 * xx
+    y_norm = jnp.square(y).sum(-1)
+    yy = jnp.einsum("ia, ja -> ij", y, y)
+    y_sq_dist = y_norm[..., :, None] + y_norm[..., None, :] - 2 * yy
+    zz = jnp.einsum("ia, ja -> ij", x, y)
+    z_sq_dist = x_norm[..., :, None] + y_norm[..., None, :] - 2 * zz
+    var = jnp.var(z_sq_dist)
+    XX, YY, XY = (jnp.zeros(xx.shape), jnp.zeros(yy.shape), jnp.zeros(zz.shape))
+    array_sum = jnp.sum(y_sq_dist)
+    array_has_nan = jnp.isnan(array_sum)
+    bandwidth_range = [0.5, 0.1, 0.01, 0.005]
+    for scale in bandwidth_range:
+        XX += jnp.exp(-0.5 * x_sq_dist / (var * scale))
+        YY += jnp.exp(-0.5 * y_sq_dist / (var * scale))
+        XY += jnp.exp(-0.5 * z_sq_dist / (var * scale))
+    return jnp.mean(XX) + jnp.mean(YY) - 2.0 * jnp.mean(XY)
+
+
+def _regularized_wasserstein(
+    x: jnp.ndarray,
+    y: jnp.ndarray,
+    sinkhorn_kwargs: Mapping[str, Any] = MappingProxyType({}),
+    geometry_kwargs: Mapping[str, Any] = MappingProxyType({}),
+) -> Optional[float]:
+    """
+    Compute a regularized Wasserstein distance to be used as the fitting term in the loss.
+    Fitting term computes how far the predicted target is from teh actual target (ground truth)
+    """
+    geom = PointCloud(x=x, y=y, **geometry_kwargs)
+    return sinkhorn.Sinkhorn(**sinkhorn_kwargs)(linear_problem.LinearProblem(geom)).reg_ot_cost
+
+
+def _compute_metrics_sinkhorn(
+    tgt: jnp.ndarray,
+    src: jnp.ndarray,
+    pred_tgt: jnp.ndarray,
+    pred_src: jnp.ndarray,
+    valid_eps: float,
+    valid_sinkhorn_kwargs: Mapping[str, Any],
+) -> Dict[str, float]:
+    sinkhorn_loss_data = sinkhorn_divergence(
+        geom=PointCloud,
+        x=tgt,
+        y=src,
+        epsilon=valid_eps,
+        sinkhorn_kwargs=valid_sinkhorn_kwargs,
+    ).divergence
+    sinkhorn_loss_forward = sinkhorn_divergence(
+        geom=PointCloud,
+        x=tgt,
+        y=pred_tgt,
+        epsilon=valid_eps,
+        sinkhorn_kwargs=valid_sinkhorn_kwargs,
+    ).divergence
+    sinkhorn_loss_inverse = sinkhorn_divergence(
+        geom=PointCloud,
+        x=src,
+        y=pred_src,
+        epsilon=valid_eps,
+        sinkhorn_kwargs=valid_sinkhorn_kwargs,
+    ).divergence
+    return {
+        "sinkhorn_loss_forward": jnp.abs(sinkhorn_loss_forward),
+        "sinkhorn_loss_inverse": jnp.abs(sinkhorn_loss_inverse),
+        "sinkhorn_loss_data": jnp.abs(sinkhorn_loss_data),
+    }
