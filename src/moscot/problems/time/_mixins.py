@@ -599,8 +599,8 @@ class TemporalMixin(AnalysisMixin[K, B]):
         .. seealso::
             - TODO(MUCDK): create an example showing the usage.
 
-        This is a validation method which interpolates cells between ``source`` and ``target`` distributions
-        leveraging the :term:`OT` coupling to approximate cell distribution at the ``intermediate`` time point.
+        This is a validation method which interpolates cells between the ``source`` and ``target`` distributions
+        leveraging the :term:`OT` coupling to approximate cells at the ``intermediate`` time point.
 
         Parameters
         ----------
@@ -682,8 +682,8 @@ class TemporalMixin(AnalysisMixin[K, B]):
         .. seealso::
             - TODO(MUCDK): create an example showing the usage.
 
-        This function interpolates cells between ``source`` and ``target`` distributions using a random
-        :term:`OT` coupling to approximate cell distribution at the ``intermediate`` time point.
+        This function interpolates cells between the ``source`` and ``target`` distributions using a random
+        :term:`OT` coupling to approximate cells at the ``intermediate`` time point.
 
         Parameters
         ----------
@@ -746,22 +746,33 @@ class TemporalMixin(AnalysisMixin[K, B]):
         backend: Literal["ott"] = "ott",
         **kwargs: Any,
     ) -> Tuple[float, float]:
-        """
-        Compute the Wasserstein distance of cell distributions between time points.
+        """Compute `Wasserstein distance <https://en.wikipedia.org/wiki/Wasserstein_metric>`_ between time points.
 
-        This method computes the Wasserstein distance between the cell distribution corresponding to `start` and `
-        intermediate` and `intermediate` and `end`, respectively.
-
-        TODO: link to notebook
+        .. seealso::
+            - TODO(MUCDK): create an example showing the usage.
 
         Parameters
         ----------
-        %(start)s
-        %(intermediate)s
-        %(end)s
-        %(use_posterior_marginals)s
-        %(backend)s
-        %(kwargs_divergence)s
+        source
+            Key identifying the source distribution.
+        intermediate
+            Key identifying the intermediate distribution.
+        target
+            Key identifying the target distribution.
+        posterior_marginals
+            Whether to use :attr:`posterior_growth_rates` or :attr:`prior_growth_rates`.
+            TODO(MUCDK): needs more explanation
+        backend
+            Backend used for the distance computation.
+        kwargs
+            arguments for the distance function, depending on the ``backend``:
+
+            - ``'ott'`` - :func:`~ott.tools.sinkhorn_divergence.sinkhorn_divergence`.
+
+        Returns
+        -------
+        The distance between ``source`` and ``intermediate`` cells and
+        ``intermediate`` and ``target`` cells, respectively.
         """
         source_data, _, intermediate_data, _, target_data = self._get_data(  # type: ignore[misc]
             source,
