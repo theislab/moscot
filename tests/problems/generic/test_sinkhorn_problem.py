@@ -167,24 +167,25 @@ class TestSinkhornProblem:
                 assert type(el) == type(args_to_check[arg]), arg  # noqa: E721
             else:
                 assert el == args_to_check[arg], arg
-    
-    @pytest.mark.parametrize("memory,refresh", [(1,1), (5,3), (7,5)])
-    @pytest.mark.parametrize("recenter", [True, False])
-    def test_passing_ott_kwargs(self, adata_time : AnnData, memory : int, refresh : int, recenter : bool):
 
+    @pytest.mark.parametrize(("memory", "refresh"), [(1, 1), (5, 3), (7, 5)])
+    @pytest.mark.parametrize("recenter", [True, False])
+    def test_passing_ott_kwargs(self, adata_time: AnnData, memory: int, refresh: int, recenter: bool):
         problem = SinkhornProblem(adata=adata_time)
         problem = problem.prepare(
             key="time",
             policy="sequential",
         )
-        
-        problem = problem.solve(anderson=acceleration.AndersonAcceleration(memory=memory, refresh_every=refresh),
-                                recenter_potentials=recenter)
 
-        anderson = problem[0,1].solver.solver.anderson
+        problem = problem.solve(
+            anderson=acceleration.AndersonAcceleration(memory=memory, refresh_every=refresh),
+            recenter_potentials=recenter,
+        )
+
+        anderson = problem[0, 1].solver.solver.anderson
         assert isinstance(anderson, acceleration.AndersonAcceleration)
         assert anderson.memory == memory
         assert anderson.refresh_every == refresh
 
-        recenter_potentials = problem[0,1].solver.solver.recenter_potentials
+        recenter_potentials = problem[0, 1].solver.solver.recenter_potentials
         assert recenter_potentials == recenter
