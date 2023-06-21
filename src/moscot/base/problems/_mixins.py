@@ -488,7 +488,7 @@ class AnalysisMixin(Generic[K, B]):
             If :obj:`None`, use :attr:`~anndata.AnnData.X`.
         features
             Features in :class:`~anndata.AnnData` to correlate with
-            :attr:`adata.obs['{obs_key}'] <anndata.AnnData.obs>`:
+            :attr:`obs['{obs_key}'] <anndata.AnnData.obs>`:
 
             - :obj:`None` - all features from :attr:`~anndata.AnnData.var` will be taken into account.
             - :obj:`list` - subset of :attr:`~anndata.AnnData.var_names` or :attr:`~anndata.AnnData.obs_names`.

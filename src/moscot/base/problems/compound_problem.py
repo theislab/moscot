@@ -224,7 +224,7 @@ class BaseCompoundProblem(BaseProblem, abc.ABC, Generic[K, B]):
         key
             Key in :attr:`~anndata.AnnData.obs` for the :class:`~moscot.utils.subset_policy.SubsetPolicy`.
         subset
-            Subset of :attr:`adata.obs['{key}'] <anndata.AnnData.obs>`
+            Subset of :attr:`obs['{key}'] <anndata.AnnData.obs>`
             for the :class:`~moscot.utils.subset_policy.ExplicitPolicy`. Only used when ``policy = 'explicit'``.
         reference
             Reference for the :class:`~moscot.utils.subset_policy.SubsetPolicy`. Only used when ``policy = 'star'``.
@@ -398,8 +398,9 @@ class BaseCompoundProblem(BaseProblem, abc.ABC, Generic[K, B]):
 
         Depends on the underlying policy:
 
-        - :class:`~moscot.utils.subset_policy.SequentialPolicy` - TODO.
-        - :class:`~moscot.utils.subset_policy.StarPolicy` - TODO.
+        - :class:`~moscot.utils.subset_policy.SequentialPolicy`/:class:`~moscot.utils.subset_policy.TriangularPolicy`/
+          :class:`~moscot.utils.subset_policy.ExplicitPolicy` - TODO(michalk8)
+        - :class:`~moscot.utils.subset_policy.StarPolicy` - TODO(michalk8)
 
         Parameters
         ----------
@@ -421,7 +422,7 @@ class BaseCompoundProblem(BaseProblem, abc.ABC, Generic[K, B]):
         Depending on the ``key_added``:
 
         - :obj:`None` - returns the result.
-        - :obj:`str` - returns nothing and updates :attr:`adata.obs['{key_added}'] <anndata.AnnData.obs>`
+        - :obj:`str` - returns nothing and updates :attr:`obs['{key_added}'] <anndata.AnnData.obs>`
           with the result.
         """
         return_all = return_all or key_added is not None
@@ -447,8 +448,9 @@ class BaseCompoundProblem(BaseProblem, abc.ABC, Generic[K, B]):
 
         Depends on the underlying policy:
 
-        - :class:`~moscot.utils.subset_policy.SequentialPolicy` - TODO.
-        - :class:`~moscot.utils.subset_policy.StarPolicy` - TODO.
+        - :class:`~moscot.utils.subset_policy.SequentialPolicy`/:class:`~moscot.utils.subset_policy.TriangularPolicy`/
+          :class:`~moscot.utils.subset_policy.ExplicitPolicy` - TODO(michalk8)
+        - :class:`~moscot.utils.subset_policy.StarPolicy` - TODO(michalk8)
 
         Parameters
         ----------
@@ -470,7 +472,7 @@ class BaseCompoundProblem(BaseProblem, abc.ABC, Generic[K, B]):
         Depending on the ``key_added``:
 
         - :obj:`None` - returns the result.
-        - :obj:`str` - returns nothing and updates :attr:`adata.obs['{key_added}'] <anndata.AnnData.obs>`
+        - :obj:`str` - returns nothing and updates :attr:`obs['{key_added}'] <anndata.AnnData.obs>`
           with the result.
         """
         return_all = return_all or key_added is not None

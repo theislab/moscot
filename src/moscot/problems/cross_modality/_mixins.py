@@ -164,7 +164,7 @@ class CrossModalityTranslationMixin(AnalysisMixin[K, B]):
 
         - :obj:`None` - returns the transition matrix.
         - :obj:`str` - returns nothing and saves the transition matrix to
-          :attr:`adata.uns['moscot_results']['cell_transition']['{key_added}'] <anndata.AnnData.uns>`
+          :attr:`uns['moscot_results']['cell_transition']['{key_added}'] <anndata.AnnData.uns>`
         """
         if TYPE_CHECKING:
             assert self.batch_key is not None

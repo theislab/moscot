@@ -92,7 +92,7 @@ class GenericAnalysisMixin(AnalysisMixin[K, B]):
 
         - :obj:`None` - returns the transition matrix.
         - :obj:`str` - returns nothing and saves the transition matrix to
-          :attr:`adata.uns['moscot_results']['cell_transition']['{key_added}'] <anndata.AnnData.uns>`
+          :attr:`uns['moscot_results']['cell_transition']['{key_added}'] <anndata.AnnData.uns>`
         """
         if TYPE_CHECKING:
             assert isinstance(self.batch_key, str)
@@ -148,7 +148,7 @@ class GenericAnalysisMixin(AnalysisMixin[K, B]):
         Depending on the ``key_added``:
 
         - :obj:`None` - returns the result.
-        - :class:`str` - returns nothing and updates :attr:`adata.obs['{key_added}'] <anndata.AnnData.obs>`
+        - :class:`str` - returns nothing and updates :attr:`obs['{key_added}'] <anndata.AnnData.obs>`
           with the result.
         """
         # TODO(michalk8): consider not overriding + update the defaults in `BaseCompoundProblem` + implement _post_apply
@@ -193,7 +193,7 @@ class GenericAnalysisMixin(AnalysisMixin[K, B]):
         Depending on the ``key_added``:
 
         - :obj:`None` - returns the result.
-        - :class:`str` - returns nothing and updates :attr:`adata.obs['{key_added}'] <anndata.AnnData.obs>`
+        - :class:`str` - returns nothing and updates :attr:`obs['{key_added}'] <anndata.AnnData.obs>`
           with the result.
         """
         # TODO(michalk8): consider not overriding + update the defaults in `BaseCompoundProblem` + implement _post_apply
