@@ -13,6 +13,7 @@ from ott.geometry.costs import (
     SqEuclidean,
     SqPNorm,
 )
+from ott.solvers.linear import acceleration
 
 from anndata import AnnData
 
@@ -226,3 +227,29 @@ class TestGWProblem:
         )
         assert isinstance(problem[0, 1].x.cost, Euclidean)
         assert isinstance(problem[0, 1].y.cost, SqEuclidean)
+    
+    @pytest.mark.parametrize("memory,refresh", [(1,1), (5,3), (7,5)])
+    @pytest.mark.parametrize("recenter", [True, False])
+    def test_passing_ott_kwargs_linear(self, adata_space_rotate : AnnData, memory : int, refresh : int, recenter : bool):
+
+        problem = GWProblem(adata=adata_space_rotate)
+        problem = problem.prepare(
+            key="batch",
+            policy="sequential",
+            joint_attr="X_pca",
+            x_attr={"attr": "obsm", "key": "spatial"},
+            y_attr={"attr": "obsm", "key": "spatial"},
+        )
+
+        problem = problem.solve(linear_solver_kwargs={"anderson":acceleration.AndersonAcceleration(memory=memory, refresh_every=refresh),
+                                                      "recenter_potentials":recenter})
+
+        sinkhorn_solver = problem[("0", "1")].solver.solver.linear_ot_solver
+
+        anderson = sinkhorn_solver.anderson
+        assert isinstance(anderson, acceleration.AndersonAcceleration)
+        assert anderson.memory == memory
+        assert anderson.refresh_every == refresh
+
+        recenter_potentials = sinkhorn_solver.recenter_potentials
+        assert recenter_potentials == recenter
