@@ -593,7 +593,7 @@ class TemporalMixin(AnalysisMixin[K, B]):
         backend: Literal["ott"] = "ott",
         **kwargs: Any,
     ) -> float:
-        """Compute `Wasserstein distance <https://en.wikipedia.org/wiki/Wasserstein_metric>`_ between \
+        """Compute `Wasserstein distance <https://en.wikipedia.org/wiki/Wasserstein_metric>`_ between
         :term:`OT`-interpolated and intermediate cells.
 
         .. seealso::
@@ -629,7 +629,7 @@ class TemporalMixin(AnalysisMixin[K, B]):
         backend
             Backend used for the distance computation.
         kwargs
-            arguments for the distance function, depending on the ``backend``:
+            Keyword arguments for the distance function, depending on the ``backend``:
 
             - ``'ott'`` - :func:`~ott.tools.sinkhorn_divergence.sinkhorn_divergence`.
 
@@ -676,7 +676,7 @@ class TemporalMixin(AnalysisMixin[K, B]):
         backend: Literal["ott"] = "ott",
         **kwargs: Any,
     ) -> float:
-        """Compute `Wasserstein distance <https://en.wikipedia.org/wiki/Wasserstein_metric>`_ between randomly \
+        """Compute `Wasserstein distance <https://en.wikipedia.org/wiki/Wasserstein_metric>`_ between randomly
         interpolated and intermediate cells.
 
         .. seealso::
@@ -709,7 +709,7 @@ class TemporalMixin(AnalysisMixin[K, B]):
         backend
             Backend used for the distance computation.
         kwargs
-            arguments for the distance function, depending on the ``backend``:
+            Keyword arguments for the distance function, depending on the ``backend``:
 
             - ``'ott'`` - :func:`~ott.tools.sinkhorn_divergence.sinkhorn_divergence`.
 
@@ -765,7 +765,7 @@ class TemporalMixin(AnalysisMixin[K, B]):
         backend
             Backend used for the distance computation.
         kwargs
-            arguments for the distance function, depending on the ``backend``:
+            Keyword arguments for the distance function, depending on the ``backend``:
 
             - ``'ott'`` - :func:`~ott.tools.sinkhorn_divergence.sinkhorn_divergence`.
 
@@ -797,30 +797,43 @@ class TemporalMixin(AnalysisMixin[K, B]):
         posterior_marginals: bool = True,
         backend: Literal["ott"] = "ott",
         **kwargs: Any,
-    ) -> np.float_:
-        """
-        Compute the mean Wasserstein distance between batches of a distribution corresponding to one time point.
+    ) -> float:
+        """Compute the average `Wasserstein distance <https://en.wikipedia.org/wiki/Wasserstein_metric>`_ between
+        batches for a specific time point.
+
+        .. seealso::
+            - TODO(MUCDK): create an example showing the usage.
 
         Parameters
         ----------
-        %(time_batch_distance)s
-        %(batch_key_batch_distance)s
-        %(use_posterior_marginals)s
-        %(backend)s
-        %(kwargs_divergence)
+        time
+            Time point for which to compute the distances.
+        batch_key
+            Key in :attr:`~anndata.AnnData.obs` where batches are stored.
+        posterior_marginals
+            Whether to use :attr:`posterior_growth_rates` or :attr:`prior_growth_rates`.
+            TODO(MUCDK): needs more explanation
+        backend
+            Backend used for the distance computation.
+        kwargs
+            Keyword arguments for the distance function, depending on the ``backend``:
+
+            - ``'ott'`` - :func:`~ott.tools.sinkhorn_divergence.sinkhorn_divergence`.
 
         Returns
         -------
-        The mean Wasserstein distance between batches of a distribution corresponding to one time point.
-        """
+        The average distance between batches for a specific time point.
+        """  # noqa: D205
         data, adata = self._get_data(time, posterior_marginals=posterior_marginals, only_start=True)  # type: ignore[misc] # noqa: E501
-        assert len(adata) == len(data), "TODO: wrong shapes"
+        if len(data) != len(adata):
+            raise ValueError(f"Expected the `data` to have length `{len(adata)}`, found `{len(data)}`.")
+
         dist: List[float] = []
         for batch_1, batch_2 in itertools.combinations(adata.obs[batch_key].unique(), 2):
             dist.append(
                 self._compute_wasserstein_distance(
-                    point_cloud_1=data[(adata.obs[batch_key] == batch_1).values, :],
-                    point_cloud_2=data[(adata.obs[batch_key] == batch_2).values, :],
+                    point_cloud_1=data[(adata.obs[batch_key] == batch_1).values],
+                    point_cloud_2=data[(adata.obs[batch_key] == batch_2).values],
                     backend=backend,
                     **kwargs,
                 )
