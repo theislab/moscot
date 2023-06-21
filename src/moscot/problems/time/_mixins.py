@@ -10,6 +10,7 @@ from typing import (
     Literal,
     Optional,
     Protocol,
+    Sequence,
     Tuple,
     Union,
 )
@@ -21,7 +22,7 @@ from pandas.api.types import infer_dtype, is_categorical_dtype, is_numeric_dtype
 from anndata import AnnData
 
 from moscot import _constants
-from moscot._types import ArrayLike, Numeric_t, Str_Dict_t
+from moscot._types import ArrayLike, Str_Dict_t
 from moscot.base.problems._mixins import AnalysisMixin, AnalysisMixinProtocol
 from moscot.base.problems.birth_death import BirthDeathProblem
 from moscot.base.problems.compound_problem import ApplyOutput_t, B, K
@@ -73,7 +74,7 @@ class TemporalMixinProtocol(AnalysisMixinProtocol[K, B], Protocol[K, B]):
         target_dim: int,
         batch_size: int = 256,
         account_for_unbalancedness: bool = False,
-        interpolation_parameter: Optional[Numeric_t] = None,
+        interpolation_parameter: Optional[float] = None,
         seed: Optional[int] = None,
     ) -> Tuple[List[Any], List[ArrayLike]]:
         ...
@@ -86,7 +87,7 @@ class TemporalMixinProtocol(AnalysisMixinProtocol[K, B], Protocol[K, B]):
         b: Optional[ArrayLike] = None,
         backend: Literal["ott"] = "ott",
         **kwargs: Any,
-    ) -> Numeric_t:
+    ) -> float:
         ...
 
     def _interpolate_gex_with_ot(
@@ -142,7 +143,7 @@ class TemporalMixinProtocol(AnalysisMixinProtocol[K, B], Protocol[K, B]):
     @staticmethod
     def _get_interp_param(
         source: K, intermediate: K, target: K, interpolation_parameter: Optional[float] = None
-    ) -> Numeric_t:
+    ) -> float:
         ...
 
     def __iter__(self) -> Iterator[Tuple[K, K]]:
@@ -241,9 +242,58 @@ class TemporalMixin(AnalysisMixin[K, B]):
         normalize: bool = False,
         forward: bool = True,
         restrict_to_existing: bool = True,
-        order_annotations: Optional[List[Any]] = None,
+        order_annotations: Optional[Sequence[str]] = None,
         key_added: Optional[str] = _constants.SANKEY,
+        **kwargs: Any,
     ) -> Optional[List[pd.DataFrame]]:
+        """Plot `Sankey diagram <https://en.wikipedia.org/wiki/Sankey_diagram>`_ of cells across time points.
+
+        .. seealso::
+            - See :doc:`../notebooks/examples/plotting/300_sankey` on how to
+              compute and plot the Sankey diagram using :func:`~moscot.plotting.sankey`.
+
+        Parameters
+        ----------
+        source
+            Key identifying the source distribution.
+        target
+            Key identifying the target distribution.
+        source_groups
+            Source groups used for aggregation. Valid options are:
+
+            - :class:`str` - key in :attr:`~anndata.AnnData.obs` where categorical data is stored.
+            - :class:`dict` - a dictionary with one key corresponding to a categorical column in
+              :attr:`~anndata.AnnData.obs` and values to a subset of categories.
+        target_groups
+            Target groups used for aggregation. Valid options are:
+
+            - :class:`str` - key in :attr:`~anndata.AnnData.obs` where categorical data is stored.
+            - :class:`dict` - a dictionary with one key corresponding to a categorical column in
+              :attr:`~anndata.AnnData.obs` and values to a subset of categories.
+        threshold
+            Set cell transitions lower than ``threshold`` to :math:`0`.
+        normalize
+            If :obj:`True`, normalize the transition matrix. If ``forward = True``, the transition matrix
+            will be row-stochastic, otherwise column-stochastic.
+        forward
+            If :obj:`True`, compute the transitions from the ``source_groups`` to the ``target_groups``.
+        restrict_to_existing
+            TODO(MUCDK)
+        order_annotations
+            Order of annotations from top to bottom. If :obj:`None`, use the order defined by the categories.
+        key_added
+            Key in :attr:`~anndata.AnnData.uns` where to save the result.
+        kwargs
+            Keyword arguments for :meth:`cell_transition`.
+
+        Returns
+        -------
+        Depending on the ``key_added``:
+
+        - :obj:`None` - returns the cell transitions.
+        - :obj:`str` - returns nothing and saves the data for the diagram to
+          :attr:`adata.uns['moscot_results']['sankey']['{key_added}'] <anndata.AnnData.uns>`
+        """
         tuples = self._policy.plan(start=source, end=target)
         cell_transitions = []
         for src, tgt in tuples:
@@ -255,6 +305,8 @@ class TemporalMixin(AnalysisMixin[K, B]):
                     target_groups=target_groups,
                     forward=forward,
                     normalize=normalize,
+                    key_added=None,
+                    **kwargs,
                 )
             )
 
@@ -272,15 +324,16 @@ class TemporalMixin(AnalysisMixin[K, B]):
                 ct = ct.loc[order_annotations_present_index[::-1]]
                 order_annotations_present_columns = [ann for ann in order_annotations if ann in ct.columns]
                 ct = ct[order_annotations_present_columns[::-1]]
-            cell_transitions_updated.append(ct)
+                cell_transitions_updated.append(ct)
         else:
             cell_transitions_updated = cell_transitions
 
         if threshold is not None:
-            if threshold < 0:
-                raise ValueError(f"Expected threshold to be non-negative, found `{threshold}`.")
             for ct in cell_transitions:
                 ct[ct < threshold] = 0.0
+
+        if key_added is None:
+            return cell_transitions_updated
 
         if isinstance(source_groups, str):
             key = source_groups
@@ -289,9 +342,6 @@ class TemporalMixin(AnalysisMixin[K, B]):
             key = list(target_groups.keys())[0]
         else:
             raise TypeError(f"Expected early cells to be either `str` or `dict`, found `{type(source_groups)}`.")
-
-        if key_added is None:
-            return cell_transitions_updated
 
         plot_vars = {
             "transition_matrices": cell_transitions_updated,
@@ -542,39 +592,52 @@ class TemporalMixin(AnalysisMixin[K, B]):
         seed: Optional[int] = None,
         backend: Literal["ott"] = "ott",
         **kwargs: Any,
-    ) -> Numeric_t:
-        """
-        Compute the Wasserstein distance between the OT-interpolated distribution and the true cell distribution.
+    ) -> float:
+        """Compute the `Wasserstein distance <https://en.wikipedia.org/wiki/Wasserstein_metric>`_ between cells.
 
-        This is a validation method which interpolates the cell distributions corresponding to `start` and `end`
-        leveraging the OT coupling to obtain an approximation of the cell distribution at time point `intermediate`.
-        Therefore, the Wasserstein distance between the interpolated and the real distribution is computed.
+        .. seealso::
+            - TODO(MUCDK): create an example showing the usage.
 
-        It is recommended to compare the Wasserstein distance to the ones obtained by
-        :meth:`compute_time_point_distances` and :meth:`compute_random_distance`.
-
-        This method does not instantiate the transport matrix if the solver output does not.
-
-        TODO: link to notebook
-
+        This is a validation method which interpolates cells between ``source`` and ``target`` distributions
+        leveraging the :term:`OT` coupling to approximate cell distribution at the ``intermediate`` time point.
+        The Wasserstein distance is then computed between the interpolated cells and the ``intermediate`` cells.
+        It is recommended to compare this value to the distances computed by :meth:`compute_time_point_distances` and
+        :meth:`compute_random_distance`.
 
         Parameters
         ----------
-        %(start)s
-        %(intermediate_interpolation)s
-        %(end)s
-        %(interpolation_parameter)s
-        %(n_interpolated_cells)s
-        %(account_for_unbalancedness)s
-        %(ott_jax_batch_size)s
-        %(use_posterior_marginals)s
-        %(seed_sampling)s
-        %(backend)s
-        %(kwargs_divergence)s
+        source
+            Key identifying the source distribution.
+        intermediate
+            Key identifying the intermediate distribution.
+        target
+            Key identifying the target distribution.
+        interpolation_parameter
+            Interpolation parameter in :math:`(0, 1)` defining the weight of the ``source`` and ``target``
+            distributions. If :obj:`None`, it is linearly interpolated.
+        n_interpolated_cells
+            Number of cells used for interpolation. If :obj:`None`, use the number of cells in the ``intermediate``
+            distribution.
+        account_for_unbalancedness
+            Whether to account for unbalancedness by assuming exponential cell growth and death.
+        batch_size
+            Number of rows/columns of the cost matrix to materialize during :meth:`push` or :meth:`pull`.
+            Larger value will require more memory.
+        posterior_marginals
+            Whether to use :attr:`posterior_growth_rates` or :attr:`prior_growth_rates`.
+            TODO(MUCDK): needs more explanation
+        seed
+            Random seed used when sampling interpolated cells.
+        backend
+            Backend used for the distance computation.
+        kwargs
+            arguments for the distance function, depending on the ``backend``:
+
+            - ``'ott'`` - :func:`~ott.tools.sinkhorn_divergence.sinkhorn_divergence`.
 
         Returns
         -------
-        Wasserstein distance between OT-based interpolated distribution and the true cell distribution.
+        The distance between the interpolated cells and cells at the ``intermediate`` time point.
         """
         source_data, _, intermediate_data, _, target_data = self._get_data(  # type: ignore[misc]
             source,
@@ -614,7 +677,7 @@ class TemporalMixin(AnalysisMixin[K, B]):
         seed: Optional[int] = None,
         backend: Literal["ott"] = "ott",  # TODO: not used
         **kwargs: Any,
-    ) -> Numeric_t:
+    ) -> float:
         """
         Compute the Wasserstein distance of a randomly interpolated cell distribution and the true cell distribution.
 
@@ -668,7 +731,7 @@ class TemporalMixin(AnalysisMixin[K, B]):
         posterior_marginals: bool = True,
         backend: Literal["ott"] = "ott",
         **kwargs: Any,
-    ) -> Tuple[Numeric_t, Numeric_t]:
+    ) -> Tuple[float, float]:
         """
         Compute the Wasserstein distance of cell distributions between time points.
 
@@ -727,7 +790,7 @@ class TemporalMixin(AnalysisMixin[K, B]):
         """
         data, adata = self._get_data(time, posterior_marginals=posterior_marginals, only_start=True)  # type: ignore[misc] # noqa: E501
         assert len(adata) == len(data), "TODO: wrong shapes"
-        dist: List[Numeric_t] = []
+        dist: List[float] = []
         for batch_1, batch_2 in itertools.combinations(adata.obs[batch_key].unique(), 2):
             dist.append(
                 self._compute_wasserstein_distance(
@@ -749,14 +812,12 @@ class TemporalMixin(AnalysisMixin[K, B]):
         b: Optional[ArrayLike] = None,
         backend: Literal["ott"] = "ott",
         **kwargs: Any,
-    ) -> Numeric_t:
+    ) -> float:
         if backend == "ott":
-            from moscot.backends.ott._utils import _compute_sinkhorn_divergence
+            from moscot.backends.ott import sinkhorn_divergence
 
-            distance = _compute_sinkhorn_divergence(point_cloud_1, point_cloud_2, a, b, **kwargs)
-        else:
-            raise NotImplementedError("Only `ott` available as backend.")
-        return distance
+            return sinkhorn_divergence(point_cloud_1, point_cloud_2, a, b, **kwargs)
+        raise NotImplementedError("Only `ott` available as backend.")
 
     def _interpolate_gex_with_ot(
         self: TemporalMixinProtocol[K, B],
@@ -810,7 +871,7 @@ class TemporalMixin(AnalysisMixin[K, B]):
     @staticmethod
     def _get_interp_param(
         source: K, intermediate: K, target: K, interpolation_parameter: Optional[float] = None
-    ) -> Numeric_t:
+    ) -> float:
         if TYPE_CHECKING:
             assert isinstance(source, float)
             assert isinstance(intermediate, float)
