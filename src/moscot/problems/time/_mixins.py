@@ -246,7 +246,7 @@ class TemporalMixin(AnalysisMixin[K, B]):
         key_added: Optional[str] = _constants.SANKEY,
         **kwargs: Any,
     ) -> Optional[List[pd.DataFrame]]:
-        """Plot `Sankey diagram <https://en.wikipedia.org/wiki/Sankey_diagram>`_ of cells across time points.
+        """Plot `Sankey diagram <https://en.wikipedia.org/wiki/Sankey_diagram>`_ between cells across time points.
 
         .. seealso::
             - See :doc:`../notebooks/examples/plotting/300_sankey` on how to
@@ -593,16 +593,14 @@ class TemporalMixin(AnalysisMixin[K, B]):
         backend: Literal["ott"] = "ott",
         **kwargs: Any,
     ) -> float:
-        """Compute the `Wasserstein distance <https://en.wikipedia.org/wiki/Wasserstein_metric>`_ between cells.
+        """Compute `Wasserstein distance <https://en.wikipedia.org/wiki/Wasserstein_metric>`_ between \
+        :term:`OT`-interpolated and intermediate cells.
 
         .. seealso::
             - TODO(MUCDK): create an example showing the usage.
 
         This is a validation method which interpolates cells between ``source`` and ``target`` distributions
         leveraging the :term:`OT` coupling to approximate cell distribution at the ``intermediate`` time point.
-        The Wasserstein distance is then computed between the interpolated cells and the ``intermediate`` cells.
-        It is recommended to compare this value to the distances computed by :meth:`compute_time_point_distances` and
-        :meth:`compute_random_distance`.
 
         Parameters
         ----------
@@ -627,7 +625,7 @@ class TemporalMixin(AnalysisMixin[K, B]):
             Whether to use :attr:`posterior_growth_rates` or :attr:`prior_growth_rates`.
             TODO(MUCDK): needs more explanation
         seed
-            Random seed used when sampling interpolated cells.
+            Random seed used when sampling the interpolated cells.
         backend
             Backend used for the distance computation.
         kwargs
@@ -637,8 +635,10 @@ class TemporalMixin(AnalysisMixin[K, B]):
 
         Returns
         -------
-        The distance between the interpolated cells and cells at the ``intermediate`` time point.
-        """
+        The distance between :term:`OT`-interpolated cells and cells at the ``intermediate`` time point.
+        It is recommended to compare this to the distances computed by :meth:`compute_time_point_distances` and
+        :meth:`compute_random_distance`.
+        """  # noqa: D205
         source_data, _, intermediate_data, _, target_data = self._get_data(  # type: ignore[misc]
             source,
             intermediate,
@@ -661,9 +661,7 @@ class TemporalMixin(AnalysisMixin[K, B]):
             batch_size=batch_size,
             seed=seed,
         )
-        return self._compute_wasserstein_distance(
-            point_cloud_1=intermediate_data, point_cloud_2=interpolation, backend=backend, **kwargs
-        )
+        return self._compute_wasserstein_distance(intermediate_data, interpolation, backend=backend, **kwargs)
 
     def compute_random_distance(
         self: TemporalMixinProtocol[K, B],
@@ -675,34 +673,50 @@ class TemporalMixin(AnalysisMixin[K, B]):
         account_for_unbalancedness: bool = False,
         posterior_marginals: bool = True,
         seed: Optional[int] = None,
-        backend: Literal["ott"] = "ott",  # TODO: not used
+        backend: Literal["ott"] = "ott",
         **kwargs: Any,
     ) -> float:
-        """
-        Compute the Wasserstein distance of a randomly interpolated cell distribution and the true cell distribution.
+        """Compute `Wasserstein distance <https://en.wikipedia.org/wiki/Wasserstein_metric>`_ between randomly \
+        interpolated and intermediate cells.
 
-        This method interpolates the cell trajectories at the `intermediate` time point using a random coupling and
-        computes the distance to the true cell distribution.
+        .. seealso::
+            - TODO(MUCDK): create an example showing the usage.
 
-        TODO: link to notebook
+        This function interpolates cells between ``source`` and ``target`` distributions using a random
+        :term:`OT` coupling to approximate cell distribution at the ``intermediate`` time point.
 
         Parameters
         ----------
-        %(start)s
-        %(intermediate_interpolation)s
-        %(end)s
-        %(interpolation_parameter)s
-        %(n_interpolated_cells)s
-        %(account_for_unbalancedness)s
-        %(use_posterior_marginals)s
-        %(seed_interpolation)s
-        %(backend)s
-        %(kwargs_divergence)s
+        source
+            Key identifying the source distribution.
+        intermediate
+            Key identifying the intermediate distribution.
+        target
+            Key identifying the target distribution.
+        interpolation_parameter
+            Interpolation parameter in :math:`(0, 1)` defining the weight of the ``source`` and ``target``
+            distributions. If :obj:`None`, it is linearly interpolated.
+        n_interpolated_cells
+            Number of cells used for interpolation. If :obj:`None`, use the number of cells in the ``intermediate``
+            distribution.
+        account_for_unbalancedness
+            Whether to account for unbalancedness by assuming exponential cell growth and death.
+        posterior_marginals
+            Whether to use :attr:`posterior_growth_rates` or :attr:`prior_growth_rates`.
+            TODO(MUCDK): needs more explanation
+        seed
+            Random seed used when sampling the interpolated cells.
+        backend
+            Backend used for the distance computation.
+        kwargs
+            arguments for the distance function, depending on the ``backend``:
+
+            - ``'ott'`` - :func:`~ott.tools.sinkhorn_divergence.sinkhorn_divergence`.
 
         Returns
         -------
-        The Wasserstein distance between a randomly interpolated cell distribution and the true cell distribution.
-        """
+        The distance between randomly interpolated cells and cells at the ``intermediate`` time point.
+        """  # noqa: D205
         source_data, growth_rates_source, intermediate_data, _, target_data = self._get_data(  # type: ignore[misc]
             source, intermediate, target, posterior_marginals=posterior_marginals, only_start=False
         )
@@ -721,7 +735,7 @@ class TemporalMixin(AnalysisMixin[K, B]):
             growth_rates=growth_rates,
             seed=seed,
         )
-        return self._compute_wasserstein_distance(intermediate_data, random_interpolation, **kwargs)
+        return self._compute_wasserstein_distance(intermediate_data, random_interpolation, backend=backend, **kwargs)
 
     def compute_time_point_distances(
         self: TemporalMixinProtocol[K, B],
