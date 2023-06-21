@@ -256,3 +256,22 @@ class TestGWProblem:
 
         recenter_potentials = sinkhorn_solver.recenter_potentials
         assert recenter_potentials == recenter
+    
+    @pytest.mark.parametrize("warm_start", [True, False])
+    def test_passing_ott_kwargs_quadratic(self, adata_space_rotate: AnnData, warm_start: bool):
+        problem = GWProblem(adata=adata_space_rotate)
+        problem = problem.prepare(
+            key="batch",
+            policy="sequential",
+            joint_attr="X_pca",
+            x_attr={"attr": "obsm", "key": "spatial"},
+            y_attr={"attr": "obsm", "key": "spatial"},
+        )
+
+        problem = problem.solve(
+            warm_start = warm_start
+        )
+
+        solver = problem[("0", "1")].solver.solver
+
+        assert solver.warm_start == warm_start
