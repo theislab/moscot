@@ -295,13 +295,9 @@ class TestFGWProblem:
             y_attr={"attr": "obsm", "key": "spatial"},
         )
 
-        problem = problem.solve(
-            warm_start = warm_start,
-            unscale_last_linearization = unscale
-        )
+        problem = problem.solve(warm_start=warm_start, unscale_last_linearization=unscale)
 
         solver = problem[("0", "1")].solver.solver
 
         assert solver.warm_start == warm_start
-        #assert solver.unscale_last_linearization == unscale
-        
+        # assert solver.unscale_last_linearization == unscale
