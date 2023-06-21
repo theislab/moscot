@@ -65,7 +65,7 @@ def alpha_to_fused_penalty(alpha: float) -> float:
 
 
 def ensure_2d(arr: ArrayLike, *, reshape: bool = False) -> jax.Array:
-    """Ensure that ``arr`` is 2-dimensional.
+    """Ensure that an array is 2-dimensional.
 
     Parameters
     ----------
@@ -76,7 +76,7 @@ def ensure_2d(arr: ArrayLike, *, reshape: bool = False) -> jax.Array:
 
     Returns
     -------
-    :mod:`jax` 2-dimensional array.
+    2-dimensional :mod:`jax` array.
     """
     if sp.issparse(arr):
         arr = arr.A  # type: ignore[attr-defined]
