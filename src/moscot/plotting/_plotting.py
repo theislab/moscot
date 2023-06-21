@@ -67,7 +67,7 @@ def cell_transition(
         - :class:`tuple` - source and target :class:`~anndata.AnnData` objects.
         - :class:`~moscot.base.problems.CompoundProblem` - one of the :mod:`moscot.problems`.
     key
-        Key in :attr:`~anndata.AnnData.uns` where the cell transition data is stored.
+        Key in :attr:`uns['moscot_results'] <anndata.AnnData.uns>` where the cell transition data is stored.
     row_label
         Label for the rows of the transition matrix.
     col_label
@@ -126,7 +126,7 @@ def cell_transition(
 
 
 def sankey(
-    obj: Union[AnnData, "TemporalProblem", "LineageProblem"],
+    obj: Union[AnnData, "TemporalProblem", "LineageProblem", "SpatioTemporalProblem"],
     key: str = _constants.SANKEY,
     captions: Optional[List[str]] = None,
     title: Optional[str] = None,
@@ -154,10 +154,11 @@ def sankey(
         Valid options are:
 
         - :class:`~anndata.AnnData` - annotated data object containing the data.
-        - :class:`~moscot.problems.time.TemporalProblem`/:class:`~moscot.problems.time.LineageProblem` -
-          one of the :mod:`temporal problems <moscot.problems>`.
+        - :class:`~moscot.problems.time.TemporalProblem`/:class:`~moscot.problems.time.LineageProblem`/
+          :class:`~moscot.problems.spatiotemporal.SpatioTemporalProblem` - one of the
+          :mod:`temporal problems <moscot.problems>`.
     key
-        Key in :attr:`~anndata.AnnData.uns` where the cell transition data is stored.
+        Key in :attr:`uns['moscot_results'] <anndata.AnnData.uns>` where the cell transition data is stored.
     captions
         TODO(MUCDK)
     title
@@ -167,7 +168,7 @@ def sankey(
     alpha
         Transparency value in :math:`[0, 1]`; :math:`0` (transparent) and :math:`1` (opaque).
     interpolate_color
-        TODO(MUCDK)
+        Whether the color is continuously interpolated from the source to the target.
     cmap
         Colormap of the diagram.
     ax
@@ -211,16 +212,16 @@ def sankey(
 
 
 def push(
-    obj: Union[AnnData, "TemporalProblem", "LineageProblem", "SpatioTemporalProblem", "CompoundProblem"],  # type: ignore[type-arg]  # noqa: 501
-    key_added: str = _constants.PUSH,
+    obj: Union[AnnData, "CompoundProblem"],
+    key: str = _constants.PUSH,
     time_points: Optional[Sequence[float]] = None,
     basis: str = "umap",
     fill_value: float = np.nan,
     scale: bool = True,
     dot_scale_factor: float = 2.0,
-    title: Optional[Union[str, List[str]]] = None,
     cmap: Optional[Union[str, mpl.colors.Colormap]] = None,
     na_color: str = "#e8ebe9",
+    title: Optional[Union[str, List[str]]] = None,
     suptitle: Optional[str] = None,
     suptitle_fontsize: Optional[float] = None,
     ax: Optional[mpl.axes.Axes] = None,
@@ -230,18 +231,71 @@ def push(
     save: Optional[Union[str, pathlib.Path]] = None,
     **kwargs: Any,
 ) -> Optional[mpl.figure.Figure]:
-    adata, _ = _input_to_adatas(obj)
-    if key_added not in adata.obs:
-        raise KeyError(f"No data found in `adata.obs[{key_added!r}]`.")
+    """Plot the push-forward distribution.
 
-    data = get_plotting_vars(adata, _constants.PUSH, key=key_added)
+    .. seealso::
+        - See :doc:`../notebooks/examples/plotting/100_push_pull` on how to
+          :meth:`compute <moscot.base.problems.CompoundProblem.push>` and plot the push-forward distribution.
+
+    Parameters
+    ----------
+    obj
+        Object containing the :meth:`Sankey diagram <moscot.base.problems.CompoundProblem.push>` data.
+        Valid options are:
+
+        - :class:`~anndata.AnnData` - annotated data object.
+        - :class:`~moscot.base.problems.CompoundProblem` - one of the :mod:`moscot.problems`.
+    key
+        Key in :attr:`uns['moscot_results'] <anndata.AnnData.uns>` where the push-forward data is stored.
+    time_points
+        Time points in :attr:`~anndata.AnnData.obs` to highlight.
+    basis
+        Key in :attr:`~anndata.AnnData.obsm` where the embedding is stored.
+    fill_value
+        Fill value for observations not present in selected batches
+    scale
+        Whether to linearly scale the distribution.
+    dot_scale_factor
+        Scale factor of the ``time_points``.
+    cmap
+        Colormap for continuous observations.
+    na_color
+        Color for NaN values.
+    title
+        Title of the figure.
+    suptitle
+        Suptitle of the figure.
+    suptitle_fontsize
+        Font size of the suptitle.
+    ax
+        Ax used for plotting. If :obj:`None`, create a new one.
+    return_fig
+        Whether to return the figure.
+    figsize
+        Size of the figure.
+    dpi
+        Dots per inch.
+    save
+        Path where to save the figure.
+    kwargs
+        Keyword arguments for :func:`~scanpy.pl.embedding`.
+
+    Returns
+    -------
+    If ``return_fig = True``, returns and plots the figure. Otherwise, just plots the figure.
+    """
+    adata, _ = _input_to_adatas(obj)
+    if key not in adata.obs:
+        raise KeyError(f"No data found in `adata.obs[{key!r}]`.")
+
+    data = get_plotting_vars(adata, _constants.PUSH, key=key)
     if data["data"] is not None and data["subset"] is not None and cmap is None:
         cmap = _create_col_colors(adata, data["data"], data["subset"])
 
     fig = _plot_temporal(
         adata=adata,
         temporal_key=data["temporal_key"],
-        key_stored=key_added,
+        key_stored=key,
         source=data["source"],
         target=data["target"],
         categories=data["subset"],
