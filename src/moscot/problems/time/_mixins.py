@@ -173,7 +173,7 @@ class TemporalMixin(AnalysisMixin[K, B]):
 
         .. seealso::
             - See :doc:`../notebooks/examples/plotting/200_cell_transitions` on how to
-              compute and plot the cell transitions.
+              compute and :func:`plot <moscot.plotting.cell_transition>` the cell transitions.
 
         Parameters
         ----------
@@ -246,11 +246,11 @@ class TemporalMixin(AnalysisMixin[K, B]):
         key_added: Optional[str] = _constants.SANKEY,
         **kwargs: Any,
     ) -> Optional[List[pd.DataFrame]]:
-        """Plot `Sankey diagram <https://en.wikipedia.org/wiki/Sankey_diagram>`_ between cells across time points.
+        """Compute a `Sankey diagram <https://en.wikipedia.org/wiki/Sankey_diagram>`_ between cells across time points.
 
         .. seealso::
             - See :doc:`../notebooks/examples/plotting/300_sankey` on how to
-              compute and plot the Sankey diagram using :func:`~moscot.plotting.sankey`.
+              compute and :func:`plot <moscot.plotting.sankey>` the Sankey diagram.
 
         Parameters
         ----------

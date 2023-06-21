@@ -55,7 +55,7 @@ def cell_transition(
 
     .. seealso::
         - See :doc:`../notebooks/examples/plotting/200_cell_transitions` on how to
-          compute and plot the cell transitions.
+          :meth:`compute <moscot.problems.time.TemporalProblem.cell_transition>` and plot the cell transitions.
 
     Parameters
     ----------
@@ -95,7 +95,7 @@ def cell_transition(
 
     Returns
     -------
-    If ``return_fig = True``, plots and returns the figure. Otherwise, just plots the figure.
+    If ``return_fig = True``, returns and plots the figure. Otherwise, just plots the figure.
     """
     adata1, adata2 = _input_to_adatas(obj)
     data = get_plotting_vars(adata1, _constants.CELL_TRANSITION, key=key)
@@ -127,10 +127,10 @@ def cell_transition(
 
 def sankey(
     obj: Union[AnnData, "TemporalProblem", "LineageProblem"],
-    key_added: str = _constants.SANKEY,
+    key: str = _constants.SANKEY,
     captions: Optional[List[str]] = None,
     title: Optional[str] = None,
-    colors_dict: Optional[Dict[str, float]] = None,
+    colors: Optional[Dict[str, float]] = None,
     alpha: float = 1.0,
     interpolate_color: bool = False,
     cmap: Union[str, mpl.colors.Colormap] = "viridis",
@@ -141,15 +141,61 @@ def sankey(
     save: Optional[Union[str, pathlib.Path]] = None,
     **kwargs: Any,
 ) -> Optional[mpl.figure.Figure]:
+    """Plot a `Sankey diagram <https://en.wikipedia.org/wiki/Sankey_diagram>`_ between cells across time points.
+
+    .. seealso::
+        - See :doc:`../notebooks/examples/plotting/300_sankey` on how to
+          :meth:`compute <moscot.problems.time.TemporalProblem.sankey>` and plot the Sankey diagram.
+
+    Parameters
+    ----------
+    obj
+        Object containing the :meth:`Sankey diagram <moscot.problems.time.TemporalProblem.sankey>` data.
+        Valid options are:
+
+        - :class:`~anndata.AnnData` - annotated data object containing the data.
+        - :class:`~moscot.problems.time.TemporalProblem`/:class:`~moscot.problems.time.LineageProblem` -
+          one of the :mod:`temporal problems <moscot.problems>`.
+    key
+        Key in :attr:`~anndata.AnnData.uns` where the cell transition data is stored.
+    captions
+        TODO(MUCDK)
+    title
+        Title of the figure.
+    colors
+        TODO(MUCDK)
+    alpha
+        Transparency value in :math:`[0, 1]`; :math:`0` (transparent) and :math:`1` (opaque).
+    interpolate_color
+        TODO(MUCDK)
+    cmap
+        Colormap of the diagram.
+    ax
+        Ax used for plotting. If :obj:`None`, create a new one.
+    return_fig
+        Whether to return the figure.
+    figsize
+        Size of the figure.
+    dpi
+        Dots per inch.
+    save
+        Path where to save the figure.
+    kwargs
+        Keyword arguments for :meth:`~matplotlib.axes.Axes.fill_between`.
+
+    Returns
+    -------
+    If ``return_fig = True``, returns and plots the figure. Otherwise, just plots the figure.
+    """
     adata, _ = _input_to_adatas(obj)
-    data = get_plotting_vars(adata, _constants.SANKEY, key=key_added)
+    data = get_plotting_vars(adata, _constants.SANKEY, key=key)
 
     fig = _sankey(
         adata=adata,
         key=data["key"],
         transition_matrices=data["transition_matrices"],
         captions=data["captions"] if captions is None else captions,
-        colorDict=colors_dict,
+        colorDict=colors,
         cont_cmap=cmap,
         title=title,
         figsize=figsize,
