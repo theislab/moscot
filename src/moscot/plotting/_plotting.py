@@ -1,4 +1,5 @@
-from types import MappingProxyType
+import pathlib
+import types
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -35,46 +36,69 @@ __all__ = ["cell_transition", "sankey", "push", "pull"]
 
 
 def cell_transition(
-    inp: Union[AnnData, Tuple[AnnData, AnnData], "CompoundProblem"],  # type: ignore[type-arg]
-    uns_key: str = _constants.CELL_TRANSITION,
-    row_labels: Optional[str] = None,
-    col_labels: Optional[str] = None,
+    obj: Union[AnnData, Tuple[AnnData, AnnData], "CompoundProblem"],  # type: ignore[type-arg]
+    key: str = _constants.CELL_TRANSITION,
+    row_label: Optional[str] = None,
+    col_label: Optional[str] = None,
     annotate: Optional[str] = "{x:.2f}",
     fontsize: float = 7.0,
     cmap: Union[str, mpl.colors.Colormap] = "viridis",
-    figsize: Optional[Tuple[float, float]] = None,
-    dpi: Optional[int] = None,
-    save: Optional[str] = None,
+    cbar_kwargs: Mapping[str, Any] = types.MappingProxyType({}),
     ax: Optional[mpl.axes.Axes] = None,
     return_fig: bool = False,
-    cbar_kwargs: Mapping[str, Any] = MappingProxyType({}),
+    figsize: Optional[Tuple[float, float]] = None,
+    dpi: Optional[int] = None,
+    save: Optional[Union[str, pathlib.Path]] = None,
     **kwargs: Any,
 ) -> mpl.figure.Figure:
-    """
-    Plot a cell transition matrix.
+    """Plot an aggregate cell transition matrix.
 
-    %(desc_cell_transition)s
+    .. seealso::
+        - See :doc:`../notebooks/examples/plotting/200_cell_transitions` on how to
+          compute and plot the cell transitions.
 
     Parameters
     ----------
-    %(input_plotting)s
-    %(uns_key)s
-    %(transition_labels_cell_transition)s
-    %(fontsize)s
-    %(cmap)s
-    %(figsize_dpi_save)s
-    %(cbar_kwargs_cell_transition)s
+    obj
+        Object containing the :meth:`cell transition <moscot.problems.time.TemporalProblem.cell_transition>` data.
+        Valid options are:
+
+        - :class:`~anndata.AnnData` - annotated data object containing the data.
+        - :class:`tuple` - source and target :class:`~anndata.AnnData` objects.
+        - :class:`~moscot.base.problems.CompoundProblem` - one of the :mod:`moscot.problems`.
+    key
+        Key in :attr:`~anndata.AnnData.uns` where the cell transition data is stored.
+    row_label
+        Label for the rows of the transition matrix.
+    col_label
+        Label for the columns of the transition matrix.
+    annotate
+        Format used when annotating the cells. If :obj:`None`, don't annotate the cells.
+    fontsize
+        Font size for the annotations.
+    cmap
+        Colormap of the heatmap.
+    cbar_kwargs
+        Keyword arguments for :meth:`~matplotlib.figure.Figure.colorbar`.
+    ax
+        Ax used for plotting. If :obj:`None`, create a new one.
+    return_fig
+        Whether to return the figure.
+    figsize
+        Size of the figure.
+    dpi
+        Dots per inch.
+    save
+        Path where to save the figure.
+    kwargs
+        Keyword arguments for :meth:`~matplotlib.axes.Axes.text`.
 
     Returns
     -------
-    %(return_cell_transition)s
-
-    Notes
-    -----
-    %(notes_cell_transition)s
+    If ``return_fig = True``, plots and returns the figure. Otherwise, just plots the figure.
     """
-    adata1, adata2 = _input_to_adatas(inp)
-    data = get_plotting_vars(adata1, _constants.CELL_TRANSITION, key=uns_key)
+    adata1, adata2 = _input_to_adatas(obj)
+    data = get_plotting_vars(adata1, _constants.CELL_TRANSITION, key=key)
 
     fig = _heatmap(
         row_adata=adata1,
@@ -86,8 +110,8 @@ def cell_transition(
         col_annotation=data["target_groups"]
         if isinstance(data["target_groups"], str)
         else next(iter(data["target_groups"])),
-        row_annotation_label=data["source"] if row_labels is None else row_labels,
-        col_annotation_label=data["target"] if col_labels is None else col_labels,
+        row_annotation_label=data["source"] if row_label is None else row_label,
+        col_annotation_label=data["target"] if col_label is None else col_label,
         cont_cmap=cmap,
         annotate_values=annotate,
         fontsize=fontsize,
@@ -102,50 +126,23 @@ def cell_transition(
 
 
 def sankey(
-    inp: Union[AnnData, "TemporalProblem", "LineageProblem"],
-    # TODO(MUCDK): rename to `key` or `key_added`?
-    uns_key: str = _constants.SANKEY,
+    obj: Union[AnnData, "TemporalProblem", "LineageProblem"],
+    key_added: str = _constants.SANKEY,
     captions: Optional[List[str]] = None,
     title: Optional[str] = None,
     colors_dict: Optional[Dict[str, float]] = None,
     alpha: float = 1.0,
     interpolate_color: bool = False,
     cmap: Union[str, mpl.colors.Colormap] = "viridis",
-    figsize: Optional[Tuple[float, float]] = None,
-    dpi: Optional[int] = None,
-    save: Optional[str] = None,
     ax: Optional[mpl.axes.Axes] = None,
     return_fig: bool = False,
+    figsize: Optional[Tuple[float, float]] = None,
+    dpi: Optional[int] = None,
+    save: Optional[Union[str, pathlib.Path]] = None,
     **kwargs: Any,
 ) -> Optional[mpl.figure.Figure]:
-    """
-    Plot a Sankey diagram.
-
-    {desc_sankey}
-
-    Parameters
-    ----------
-    %(input_plotting)s
-    %(uns_key)s
-    %(captions_sankey)s
-    %(title)s
-    %(colors_dict_sankey)s
-    %(alpha_transparency)s
-    %(interpolate_color)s
-    %(cmap)s
-    %(figsize_dpi_save)s
-    %(sankey_kwargs)s
-
-    Returns
-    -------
-    %(return_sankey)s
-
-    Notes
-    -----
-    %(notes_sankey)s
-    """
-    adata, _ = _input_to_adatas(inp)
-    data = get_plotting_vars(adata, _constants.SANKEY, key=uns_key)
+    adata, _ = _input_to_adatas(obj)
+    data = get_plotting_vars(adata, _constants.SANKEY, key=key_added)
 
     fig = _sankey(
         adata=adata,
@@ -168,65 +165,37 @@ def sankey(
 
 
 def push(
-    inp: Union[AnnData, "TemporalProblem", "LineageProblem", "SpatioTemporalProblem", "CompoundProblem"],  # type: ignore[type-arg]  # noqa: 501
-    uns_key: str = _constants.PUSH,
+    obj: Union[AnnData, "TemporalProblem", "LineageProblem", "SpatioTemporalProblem", "CompoundProblem"],  # type: ignore[type-arg]  # noqa: 501
+    key_added: str = _constants.PUSH,
     time_points: Optional[Sequence[float]] = None,
     basis: str = "umap",
     fill_value: float = np.nan,
     scale: bool = True,
-    title: Optional[Union[str, List[str]]] = None,
-    suptitle: Optional[str] = None,
-    cmap: Optional[Union[str, mpl.colors.Colormap]] = None,
     dot_scale_factor: float = 2.0,
+    title: Optional[Union[str, List[str]]] = None,
+    cmap: Optional[Union[str, mpl.colors.Colormap]] = None,
     na_color: str = "#e8ebe9",
-    figsize: Optional[Tuple[float, float]] = None,
-    dpi: Optional[int] = None,
-    save: Optional[str] = None,
+    suptitle: Optional[str] = None,
+    suptitle_fontsize: Optional[float] = None,
     ax: Optional[mpl.axes.Axes] = None,
     return_fig: bool = False,
-    suptitle_fontsize: Optional[float] = None,
+    figsize: Optional[Tuple[float, float]] = None,
+    dpi: Optional[int] = None,
+    save: Optional[Union[str, pathlib.Path]] = None,
     **kwargs: Any,
-) -> mpl.figure.Figure:
-    """
-    Visualise the push result in an embedding.
+) -> Optional[mpl.figure.Figure]:
+    adata, _ = _input_to_adatas(obj)
+    if key_added not in adata.obs:
+        raise KeyError(f"No data found in `adata.obs[{key_added!r}]`.")
 
-    %(desc_sankey)s
-
-    Parameters
-    ----------
-    %(input_plotting)s
-    %(uns_key)s
-    %(time_points_push_pull)s
-    %(basis_push_pull)s
-    %(fill_value_push_pull)s
-    %(scale_push_pull)s
-    %(title)s
-    %(cmap)s
-    %(dot_scale_factor)s
-    %(na_color)s
-    %(figsize_dpi_save)s
-    %(suptitle_fontsize)s
-
-    Returns
-    -------
-    %(return_push_pull)s
-
-    Notes
-    -----
-    %(return_push_pull)s
-    """
-    adata, _ = _input_to_adatas(inp)
-    if uns_key not in adata.obs:
-        raise KeyError(f"No data found in `adata.obs[{uns_key!r}]`.")
-
-    data = get_plotting_vars(adata, _constants.PUSH, key=uns_key)
+    data = get_plotting_vars(adata, _constants.PUSH, key=key_added)
     if data["data"] is not None and data["subset"] is not None and cmap is None:
         cmap = _create_col_colors(adata, data["data"], data["subset"])
 
     fig = _plot_temporal(
         adata=adata,
         temporal_key=data["temporal_key"],
-        key_stored=uns_key,
+        key_stored=key_added,
         source=data["source"],
         target=data["target"],
         categories=data["subset"],
@@ -251,8 +220,8 @@ def push(
 
 
 def pull(
-    inp: Union[AnnData, "TemporalProblem", "LineageProblem", "SpatioTemporalProblem", "CompoundProblem"],  # type: ignore[type-arg]  # noqa: 501
-    uns_key: str = _constants.PULL,
+    obj: Union[AnnData, "TemporalProblem", "LineageProblem", "SpatioTemporalProblem", "CompoundProblem"],  # type: ignore[type-arg]  # noqa: 501
+    key_added: str = _constants.PULL,
     time_points: Optional[Sequence[float]] = None,
     basis: str = "umap",
     fill_value: float = np.nan,
@@ -264,53 +233,24 @@ def pull(
     na_color: str = "#e8ebe9",
     figsize: Optional[Tuple[float, float]] = None,
     dpi: Optional[int] = None,
-    save: Optional[str] = None,
+    save: Optional[Union[str, pathlib.Path]] = None,
     ax: Optional[mpl.axes.Axes] = None,
     return_fig: bool = False,
     suptitle_fontsize: Optional[float] = None,
     **kwargs: Any,
 ) -> Optional[mpl.figure.Figure]:
-    """
-    Visualise the pull result in an embedding.
+    adata, _ = _input_to_adatas(obj)
+    if key_added not in adata.obs:
+        raise KeyError(f"No data found in `adata.obs[{key_added!r}]`.")
 
-    %(desc_sankey)s
-
-    Parameters
-    ----------
-    %(input_plotting)s
-    %(uns_key)s
-    %(time_points_push_pull)s
-    %(basis_push_pull)s
-    %(fill_value_push_pull)s
-    %(scale_push_pull)s
-    %(title)s
-    %(cmap)s
-    %(dot_scale_factor)s
-    %(na_color)s
-    %(figsize_dpi_save)s
-    %(suptitle_fontsize)s
-
-    Returns
-    -------
-    %(return_push_pull)s
-
-    Notes
-    -----
-    %(return_push_pull)s
-    """
-    adata, _ = _input_to_adatas(inp)
-
-    if uns_key not in adata.obs:
-        raise KeyError(f"No data found in `adata.obs[{uns_key!r}]`.")
-
-    data = get_plotting_vars(adata, _constants.PULL, key=uns_key)
+    data = get_plotting_vars(adata, _constants.PULL, key=key_added)
     if data["data"] is not None and data["subset"] is not None and cmap is None:
         cmap = _create_col_colors(adata, data["data"], data["subset"])
 
     fig = _plot_temporal(
         adata=adata,
         temporal_key=data["temporal_key"],
-        key_stored=uns_key,
+        key_stored=key_added,
         source=data["source"],
         target=data["target"],
         categories=data["subset"],

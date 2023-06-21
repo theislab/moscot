@@ -1,7 +1,7 @@
 import collections
 import contextlib
 import copy
-from types import MappingProxyType
+import types
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -211,7 +211,7 @@ def _heatmap(
     figsize: Optional[Tuple[float, float]] = None,
     dpi: Optional[int] = None,
     save: Optional[str] = None,
-    cbar_kwargs: Mapping[str, Any] = MappingProxyType({}),
+    cbar_kwargs: Mapping[str, Any] = types.MappingProxyType({}),
     ax: Optional[mpl.axes.Axes] = None,
     **kwargs: Any,
 ) -> plt.Figure:
