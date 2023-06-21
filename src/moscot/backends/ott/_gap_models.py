@@ -16,7 +16,13 @@ from ott.tools.sinkhorn_divergence import sinkhorn_divergence
 from moscot._types import ArrayLike
 from moscot._logging import logger
 from moscot.backends.ott._jax_data import JaxSampler
-from moscot.backends.ott._utils import RunningAverageMeter, _compute_sinkhorn_divergence, compute_ds_diff, mmd_rbf, _regularized_wasserstein
+from moscot.backends.ott._utils import (
+    RunningAverageMeter,
+    _compute_sinkhorn_divergence,
+    compute_ds_diff,
+    mmd_rbf,
+    _regularized_wasserstein,
+)
 
 import jax
 import numpy as np
@@ -28,9 +34,6 @@ from flax.training.train_state import TrainState
 from flax.training.early_stopping import EarlyStopping
 
 import optax
-
-# For hyperparameter tunning
-import optuna
 
 Train_t = Dict[str, Dict[str, List[float]]]
 
@@ -52,40 +55,26 @@ class MongeGap:
     """
 
     def __init__(
-            self,
-            geometry_kwargs: Mapping[str, Any] = MappingProxyType({}),
-            sinkhorn_kwargs: Mapping[str, Any] = MappingProxyType({}),
+        self,
+        geometry_kwargs: Mapping[str, Any] = MappingProxyType({}),
+        sinkhorn_kwargs: Mapping[str, Any] = MappingProxyType({}),
     ) -> None:
         self.geometry_kwargs = geometry_kwargs
         self.sinkhorn_kwargs = sinkhorn_kwargs
 
-    def __call__(
-            self, samples: jnp.ndarray, T: Callable[[jnp.ndarray], jnp.ndarray]
-    ) -> float:
+    def __call__(self, samples: jnp.ndarray, T: Callable[[jnp.ndarray], jnp.ndarray]) -> float:
         """
         Evaluate the Monge gap of vector field ``T``,
         on the empirical reference measure samples defined by ``samples``.
         Use Shannon entropy instead of relative entropy as entropic regularizer to ensure Monge gap positivity
         """
         T_samples = T(samples)
-        geom = PointCloud(
-            x=samples, y=T_samples,
-            **self.geometry_kwargs
-        )
+        geom = PointCloud(x=samples, y=T_samples, **self.geometry_kwargs)
 
-        id_displacement = jnp.mean(
-            jax.vmap(self.cost_fn)(samples, T_samples)
-        )
+        id_displacement = jnp.mean(jax.vmap(self.cost_fn)(samples, T_samples))
 
-        opt_displacement = sinkhorn.Sinkhorn(
-            **self.sinkhorn_kwargs
-        )(
-            linear_problem.LinearProblem(geom)
-        ).reg_ot_cost
-        opt_displacement = jnp.add(
-            opt_displacement,
-            - 2 * geom.epsilon * jnp.log(len(samples))
-        )
+        opt_displacement = sinkhorn.Sinkhorn(**self.sinkhorn_kwargs)(linear_problem.LinearProblem(geom)).reg_ot_cost
+        opt_displacement = jnp.add(opt_displacement, -2 * geom.epsilon * jnp.log(len(samples)))
 
         return id_displacement - opt_displacement
 
@@ -102,38 +91,35 @@ class MongeGap:
 
 
 class MongeGapSolver:
-    def __init__(self,
-                 input_dim: int,
-                 batch_size: int = 256,
-                 tau_a: float = 1.0,
-                 tau_b: float = 1.0,
-                 epsilon: float = 0.1,
-                 seed: int = 0,
-                 best_model_metric: Literal["sinkhorn_forward", "sinkhorn"] = "sinkhorn_forward",
-                 max_iterations: int = 25000,
-                 valid_freq: int = 250,
-                 log_freq: int = 10,
-                 patience: int = 100,
-                 min_improvement: float = 1e-3,
-                 neural_net: ModelBase = MLP(
-                     dim_hidden=[128, 64, 64],
-                     is_potential=False,
-                     act_fn=nn.gelu
-                 ),
-                 optimizer: optax.OptState = optax.adamw(
-                     learning_rate=1e-3,
-                     b1=0.5,
-                     b2=0.9,
-                     weight_decay=0.0,
-                 ),
-                 valid_sinkhorn_kwargs: Dict[str, Any] = MappingProxyType({}),
-                 compute_wasserstein_baseline: bool = True,
-                 lambda_monge_gap: float = 0.1,
-                 monge_gap_geom_kwargs: Dict[str, Any] = MappingProxyType({}),
-                 monge_gap_sinkhorn_kwargs: Dict[str, Any] = MappingProxyType({}),
-                 trial: Any = None,
-                 use_relative: bool = False,
-                 ) -> None:
+    def __init__(
+        self,
+        input_dim: int,
+        batch_size: int = 256,
+        tau_a: float = 1.0,
+        tau_b: float = 1.0,
+        epsilon: float = 0.1,
+        seed: int = 0,
+        best_model_metric: Literal["sinkhorn_forward", "sinkhorn"] = "sinkhorn_forward",
+        max_iterations: int = 25000,
+        valid_freq: int = 250,
+        log_freq: int = 10,
+        patience: int = 100,
+        min_improvement: float = 1e-3,
+        neural_net: ModelBase = MLP(dim_hidden=[128, 64, 64], is_potential=False, act_fn=nn.gelu),
+        optimizer: optax.OptState = optax.adamw(
+            learning_rate=1e-3,
+            b1=0.5,
+            b2=0.9,
+            weight_decay=0.0,
+        ),
+        valid_sinkhorn_kwargs: Dict[str, Any] = MappingProxyType({}),
+        compute_wasserstein_baseline: bool = True,
+        lambda_monge_gap: float = 0.1,
+        monge_gap_geom_kwargs: Dict[str, Any] = MappingProxyType({}),
+        monge_gap_sinkhorn_kwargs: Dict[str, Any] = MappingProxyType({}),
+        trial: Any = None,
+        use_relative: bool = False,
+    ) -> None:
         """
         Initialize :class MongeGapSolver:
         :param input_dim:
@@ -191,16 +177,12 @@ class MongeGapSolver:
         Set up the Monge gap, neural network and optimizer to use. Get train and evaluation steps.
         """
         if self._monge_gap_geom_kwargs is None:
-            self._monge_gap_geom_kwargs = {
-                "epsilon": 1e-2,
-                "relative_epsilon": True,
-                "cost_fn": costs.Euclidean()
-            }
+            self._monge_gap_geom_kwargs = {"epsilon": 1e-2, "relative_epsilon": True, "cost_fn": costs.Euclidean()}
 
         if self._monge_gap_sinkhorn_kwargs is None:
             self._monge_gap_sinkhorn_kwargs = {
-                "momentum": acceleration.Momentum(value=1., start=25),
-                "use_danskin": True  # TODO: Can this be removed?
+                "momentum": acceleration.Momentum(value=1.0, start=25),
+                "use_danskin": True,  # TODO: Can this be removed?
             }
 
         self._monge_gap = MongeGap(
@@ -208,19 +190,16 @@ class MongeGapSolver:
             sinkhorn_kwargs=self._monge_gap_sinkhorn_kwargs,
         )
 
-        self._state_neural_net = self._neural_net.create_train_state(
-            self.key,
-            self._optimizer,
-            self.input_dim
-        )
+        self._state_neural_net = self._neural_net.create_train_state(self.key, self._optimizer, self.input_dim)
 
         self._train_step = self.get_train_step()
         self._valid_step = self.get_eval_step()
 
-    def __call__(self,
-                 trainloader: JaxSampler,
-                 validloader: JaxSampler,
-                 ) -> Tuple[TrainState, Train_t]:
+    def __call__(
+        self,
+        trainloader: JaxSampler,
+        validloader: JaxSampler,
+    ) -> Tuple[TrainState, Train_t]:
         """
         Start the training pipeline of the :class:'moscot.backends.ott.MongeGapSolver
         Parameters
@@ -239,10 +218,11 @@ class MongeGapSolver:
 
         return self._state_neural_net, logs
 
-    def train_monge_gap(self,
-                        trainloader: JaxSampler,
-                        validloader: JaxSampler,
-                        ) -> Train_t:
+    def train_monge_gap(
+        self,
+        trainloader: JaxSampler,
+        validloader: JaxSampler,
+    ) -> Train_t:
         """
         Train the model.
         :param trainloader: Data loader for the training data.
@@ -285,7 +265,7 @@ class MongeGapSolver:
         early_stop_callback = EarlyStopping(min_delta=self.min_improvement, patience=self.patience)
 
         # Training loop
-        tbar = trange(self.max_iterations, leave=True, file=sys.stdout, colour='GREEN', ncols=100)
+        tbar = trange(self.max_iterations, leave=True, file=sys.stdout, colour="GREEN", ncols=100)
         for iteration in tbar:
             policy_key, target_key, self.key = jax.random.split(self.key, 3)
             policy_pair, batch["condition"] = trainloader.sample_policy_pair(policy_key)
@@ -306,7 +286,7 @@ class MongeGapSolver:
             else:
                 batch["source"] = trainloader.unbalanced_resample(source_key, curr_source, marginals_source)
 
-            resample_with_unbalanced_marginals = (self.epsilon is not None)
+            resample_with_unbalanced_marginals = self.epsilon is not None
             if resample_with_unbalanced_marginals:
                 target_key, self.key = jax.random.split(self.key, 2)
                 batch["target"] = trainloader.unbalanced_resample(target_key, batch["target"], marginals_target)
@@ -315,13 +295,13 @@ class MongeGapSolver:
             for key, value in train_metrics.items():
                 average_meters[key].update(value)
 
-            is_logging_iteration = (iteration % self.log_freq == 0)
+            is_logging_iteration = iteration % self.log_freq == 0
             if is_logging_iteration:
                 for key, average_meter in average_meters.items():
                     train_logs[key].append(average_meter.avg)
                     average_meter.reset()
 
-            is_validation_iteration = (iteration % self.valid_freq == 0)
+            is_validation_iteration = iteration % self.valid_freq == 0
             if is_validation_iteration:
                 for index, pair in enumerate(trainloader.policy_pairs):
                     valid_metrics = self._valid_step(self._state_neural_net, valid_batch[pair])
@@ -340,7 +320,7 @@ class MongeGapSolver:
                 else:
                     raise ValueError(f"Unknown metric: {self.best_model_metric}.")
 
-                use_optuna = (self.trial is not None)
+                use_optuna = self.trial is not None
                 if use_optuna:
                     self._report_to_optuna(iteration, total_loss)
 
@@ -367,13 +347,14 @@ class MongeGapSolver:
         }
 
     def get_train_step(
-            self,
+        self,
     ) -> Callable[[TrainState, TrainState, Dict[str, jnp.ndarray]], Tuple[TrainState, Dict[str, float]]]:
         """Get one training step."""
+
         def __loss_fn(
-                params: FrozenDict,
-                state_neural_net: TrainState,
-                batch: Dict[str, jnp.ndarray],
+            params: FrozenDict,
+            state_neural_net: TrainState,
+            batch: Dict[str, jnp.ndarray],
         ) -> Tuple[float, Dict[str, float]]:
             """
             Loss function for training. Composed of:
@@ -381,31 +362,28 @@ class MongeGapSolver:
             - Monge gap loss: Monge gap as in :cite:`uscidda2023monge`
             """
 
-            pred_target = jax.vmap(
-                lambda x: state_neural_net.apply_fn({"params": params}, x)
-            )(batch["source"])
+            pred_target = jax.vmap(lambda x: state_neural_net.apply_fn({"params": params}, x))(batch["source"])
 
             fitting_loss = _regularized_wasserstein(pred_target, batch["target"])
 
             monge_gap_loss = self._monge_gap(
-                samples=batch["source"],
-                T=lambda x: state_neural_net.apply_fn({"params": params}, x)
+                samples=batch["source"], T=lambda x: state_neural_net.apply_fn({"params": params}, x)
             )
 
             total_loss = fitting_loss + self.lambda_monge_gap * monge_gap_loss
 
             loss_logs = {
-                'total_loss': total_loss,
-                'fitting_loss': fitting_loss,
-                'monge_gap_loss': monge_gap_loss,
+                "total_loss": total_loss,
+                "fitting_loss": fitting_loss,
+                "monge_gap_loss": monge_gap_loss,
             }
 
             return total_loss, loss_logs
 
         @jax.jit
         def step_fn(
-                state_neural_net: TrainState,
-                batch: Dict[str, jnp.ndarray],
+            state_neural_net: TrainState,
+            batch: Dict[str, jnp.ndarray],
         ) -> Tuple[TrainState, Dict[str, float]]:
             """
             Step function for training. Compute the value and gradient of the loss function and update accordingly.
@@ -414,24 +392,27 @@ class MongeGapSolver:
 
             (loss, raw_metrics), grads = grad_fn(state_neural_net.params, state_neural_net, batch)
 
-            metrics = {"fitting_loss": raw_metrics["fitting_loss"],
-                       "monge_gap": raw_metrics["monge_gap_loss"],
-                       "loss": raw_metrics["total_loss"]}
+            metrics = {
+                "fitting_loss": raw_metrics["fitting_loss"],
+                "monge_gap": raw_metrics["monge_gap_loss"],
+                "loss": raw_metrics["total_loss"],
+            }
 
             return state_neural_net.apply_gradients(grads=grads), metrics
 
         return step_fn
 
     def get_eval_step(
-            self,
+        self,
     ) -> Callable[[TrainState, TrainState, Dict[str, jnp.ndarray]], Dict[str, float]]:
         """
         Get one validation step.
         """
+
         def __loss_fn(
-                params: FrozenDict,
-                state_neural_net: TrainState,
-                batch: Dict[str, jnp.ndarray],
+            params: FrozenDict,
+            state_neural_net: TrainState,
+            batch: Dict[str, jnp.ndarray],
         ) -> Tuple[float, Dict[str, float]]:
             """
             Loss function for validation. As per :cite:`bunne2022supervised`, we compute:
@@ -440,9 +421,7 @@ class MongeGapSolver:
             - Drug Signature difference, i.e. the euclidian distance between the vectors of means
             """
 
-            pred_target = jax.vmap(
-                lambda x: state_neural_net.apply_fn({"params": params}, x)
-            )(batch["source"])
+            pred_target = jax.vmap(lambda x: state_neural_net.apply_fn({"params": params}, x))(batch["source"])
 
             sink_loss_forward = sinkhorn_divergence(
                 PointCloud,
@@ -458,8 +437,8 @@ class MongeGapSolver:
             )
 
             ds_diff = compute_ds_diff(
-                control=batch['source'],
-                treated=batch['target'],
+                control=batch["source"],
+                treated=batch["target"],
                 push_fwd=pred_target,
             )
 
@@ -472,8 +451,8 @@ class MongeGapSolver:
 
         @jax.jit
         def valid_step(
-                state_neural_net: TrainState,
-                batch: Dict[str, jnp.ndarray],
+            state_neural_net: TrainState,
+            batch: Dict[str, jnp.ndarray],
         ) -> Dict[str, float]:
             """
             Create a validation function.

@@ -80,7 +80,7 @@ class TestConditionalNeuralProblem:
         problem = problem.prepare(key="time", joint_attr="X_pca")
         input_dim = adata_time.obsm["X_pca"].shape[1]
         custom_f = ICNN([3, 3], input_dim=input_dim, cond_dim=1)
-        custom_g = ICNN((4,4), input_dim=input_dim, cond_dim=1)
+        custom_g = ICNN([3, 3], input_dim=input_dim, cond_dim=1)
 
         problem = problem.solve(iterations=2, f=custom_f, g=custom_g, cond_dim=1)
         assert problem.f == custom_f
@@ -94,7 +94,5 @@ class TestConditionalNeuralProblem:
         custom_opt_g = adagrad(1e-3)
 
         problem = problem.solve(iterations=2, opt_f=custom_opt_f, opt_g=custom_opt_g, cond_dim=1)
-        assert problem.opt_f == custom_opt_f
-        assert problem.opt_g == custom_opt_g
-
-
+        assert problem.optimizer_f == custom_opt_f
+        assert problem.optimizer_g == custom_opt_g

@@ -27,6 +27,7 @@ from moscot.backends.ott._utils import (
     _compute_sinkhorn_divergence,
     _get_icnn,
     _get_optimizer,
+    _compute_metrics_sinkhorn,
 )
 
 Train_t = Dict[str, Dict[str, Union[float, List[float]]]]
@@ -64,8 +65,9 @@ class OTTNeuralDualSolver:
         If `pos_weights` is not `None`, this determines the multiplicative constant of L2-penalization of
         negative weights in ICNNs.
     best_model_metric
-        Which metric to use to assess model training. If `sinkhorn_forward` only the forward map is taken
-        into account, while `sinkhorn` takes the mean between the forward and the inverse map.
+        Which metric to use to assess model training. The specified metric needs to be computed in the passed
+        `callback_func`. By default `sinkhorn_loss_forward` only takes into account the error in the forward map,
+        while `sinkhorn` computes the mean error between the forward and the inverse map.
     iterations
         Number of (outer) training steps (batches) of the training process.
     inner_iters
@@ -90,6 +92,10 @@ class OTTNeuralDualSolver:
     compute_wasserstein_baseline
         Whether to compute the Sinkhorn divergence between the source and the target distribution as
         a baseline for the Wasserstein-2 distance computed with the neural solver.
+    callback_func
+        Callback function to compute metrics during training. The function takes as input the
+        target and source batch and the predicted target and source batch and returns a dictionary of
+        metrics.
 
     Warning
     -------
@@ -111,9 +117,7 @@ class OTTNeuralDualSolver:
         f: Union[Dict[str, Any], ICNN] = MappingProxyType({}),
         g: Union[Dict[str, Any], ICNN] = MappingProxyType({}),
         beta: float = 1.0,
-        best_model_metric: Literal[
-            "sinkhorn_forward", "sinkhorn"
-        ] = "sinkhorn_forward",  # TODO(@MUCDK) include only backward sinkhorn
+        best_model_metric: str = "sinkhorn_loss_forward",
         iterations: int = 25000,  # TODO(@MUCDK): rename to max_iterations
         inner_iters: int = 10,
         valid_freq: int = 250,
@@ -124,7 +128,10 @@ class OTTNeuralDualSolver:
         pretrain_iters: int = 15001,
         pretrain_scale: float = 3.0,
         valid_sinkhorn_kwargs: Dict[str, Any] = MappingProxyType({}),
-        compute_wasserstein_baseline: bool = True,
+        compute_wasserstein_baseline: bool = False,
+        callback_func: Optional[
+            Callable[[jnp.ndarray, jnp.ndarray, jnp.ndarray, jnp.ndarray], Dict[str, float]]
+        ] = None,
     ):
         self.input_dim = input_dim
         self.cond_dim = cond_dim
@@ -153,6 +160,11 @@ class OTTNeuralDualSolver:
         self.optimizer_g = _get_optimizer(**optimizer_g) if isinstance(optimizer_g, abc.Mapping) else optimizer_g
         self.neural_f = _get_icnn(input_dim=input_dim, cond_dim=cond_dim, **f) if isinstance(f, abc.Mapping) else f
         self.neural_g = _get_icnn(input_dim=input_dim, cond_dim=cond_dim, **g) if isinstance(g, abc.Mapping) else g
+        self.callback_func = callback_func
+        if self.callback_func is None:
+            self.callback_func = lambda tgt, src, pred_tgt, pred_src: _compute_metrics_sinkhorn(
+                tgt, src, pred_tgt, pred_src, self.valid_eps, self.valid_sinkhorn_kwargs
+            )
         # set optimizer and networks
         self.setup(self.neural_f, self.neural_g, self.optimizer_f, self.optimizer_g)
 
@@ -162,9 +174,9 @@ class OTTNeuralDualSolver:
         Parameters
         ----------
         neural_f
-            Network to parameterize the reverse transport map.
-        neural_g
             Network to parameterize the forward transport map.
+        neural_g
+            Network to parameterize the reverse transport map.
         optimizer_f
             Optimizer for `neural_f`.
         optimizer_g
@@ -241,11 +253,11 @@ class OTTNeuralDualSolver:
             state: TrainState,
         ) -> float:
             """Loss function for the pretraining on identity."""
-            grad_f_data = jax.vmap(jax.grad(lambda x: state.apply_fn({"params": params}, x, condition), argnums=0))(
+            grad_g_data = jax.vmap(jax.grad(lambda x: state.apply_fn({"params": params}, x, condition), argnums=0))(
                 data
             )
             # loss is L2 reconstruction of the input
-            return ((grad_f_data - data) ** 2).sum(axis=1).mean()  # TODO make nicer
+            return ((grad_g_data - data) ** 2).sum(axis=1).mean()  # TODO make nicer
 
         # @jax.jit
         def pretrain_update(
@@ -262,15 +274,16 @@ class OTTNeuralDualSolver:
         pretrain_logs: Dict[str, List[float]] = {"loss": []}
         for iteration in range(self.pretrain_iters):
             key_pre, self.key = jax.random.split(self.key, 2)  # type:ignore[arg-type]
-            # train step for potential f directly updating the train state
-            loss, self.state_f = pretrain_update(self.state_f, key_pre)
-            # clip weights of f
+            # train step for potential g directly updating the train state
+            loss, self.state_g = pretrain_update(self.state_g, key_pre)
+            # clip weights of g
             if not self.pos_weights:
-                self.state_f = self.state_f.replace(params=self.clip_weights_icnn(self.state_f.params))
+                self.state_g = self.state_g.replace(params=self.clip_weights_icnn(self.state_g.params))
             if iteration % self.log_freq == 0:
                 pretrain_logs["loss"].append(loss)
-        # load params of f into state_g
-        self.state_g = self.state_g.replace(params=self.state_f.params)
+        # load params of g into state_f
+        # this only works when f & g have the same architecture
+        self.state_f = self.state_f.replace(params=self.state_g.params)
         return {"pretrain_logs": pretrain_logs}  # type:ignore[dict-item]
 
     def train_neuraldual(
@@ -350,20 +363,20 @@ class OTTNeuralDualSolver:
                     # resample source with unbalanced marginals
                     batch["source"] = trainloader.unbalanced_resample(source_key, curr_source, marginals_source)
                 # train step for potential g directly updating the train state
-                self.state_g, train_g_metrics = self.train_step_g(self.state_f, self.state_g, batch)
-                for key, value in train_g_metrics.items():
+                self.state_f, train_f_metrics = self.train_step_f(self.state_f, self.state_g, batch)
+                for key, value in train_f_metrics.items():
                     average_meters[key].update(value)
             # resample target batch with unbalanced marginals
             if self.epsilon is not None:
                 target_key, self.key = jax.random.split(self.key, 2)  # type:ignore[arg-type]
                 batch["target"] = trainloader.unbalanced_resample(target_key, batch["target"], marginals_target)
             # train step for potential f directly updating the train state
-            self.state_f, train_f_metrics = self.train_step_f(self.state_f, self.state_g, batch)
-            for key, value in train_f_metrics.items():
+            self.state_g, train_g_metrics = self.train_step_g(self.state_f, self.state_g, batch)
+            for key, value in train_g_metrics.items():
                 average_meters[key].update(value)
             # clip weights of f
             if not self.pos_weights:
-                self.state_f = self.state_f.replace(params=self.clip_weights_icnn(self.state_f.params))
+                self.state_g = self.state_g.replace(params=self.clip_weights_icnn(self.state_g.params))
             # log avg training values periodically
             if iteration % self.log_freq == 0:
                 for key, average_meter in average_meters.items():
@@ -379,13 +392,15 @@ class OTTNeuralDualSolver:
                         valid_average_meters[key].update(value)
                 # update best model and patience as necessary
                 if self.best_model_metric == "sinkhorn":
-                    total_loss = jnp.abs(valid_average_meters["sinkhorn_loss_forward"].avg) + jnp.abs(
-                        valid_average_meters["sink_loss_inverse"].avg
+                    total_loss = (
+                        valid_average_meters["sinkhorn_loss_forward"].avg
+                        + valid_average_meters["sinkhorn_loss_inverse"].avg
                     )
-                elif self.best_model_metric == "sinkhorn_forward":
-                    total_loss = jnp.abs(valid_average_meters["sinkhorn_loss_forward"].avg)
                 else:
-                    raise ValueError(f"Unknown metric: {self.best_model_metric}.")
+                    try:
+                        total_loss = valid_average_meters[self.best_model_metric].avg
+                    except ValueError:
+                        f"Unknown metric: {self.best_model_metric}."
                 if total_loss < best_loss:
                     best_loss = total_loss
                     best_iter_distance = valid_average_meters["neural_dual_dist"].avg
@@ -399,14 +414,12 @@ class OTTNeuralDualSolver:
                     average_meter.reset()
             if curr_patience >= self.patience:
                 break
+        self.state_f = self.state_f.replace(params=best_params_f)
+        self.state_g = self.state_g.replace(params=best_params_g)
+        valid_logs["best_loss"] = best_loss
+        valid_logs["predicted_cost"] = None if best_iter_distance is None else float(best_iter_distance)
         if self.compute_wasserstein_baseline:
-            self.state_f = self.state_f.replace(params=best_params_f)
-            self.state_g = self.state_g.replace(params=best_params_g)
-            valid_logs["best_loss"] = best_loss
             valid_logs["sinkhorn_dist"] = np.mean(sink_dist)
-            valid_logs["predicted_cost"] = None if best_iter_distance is None else float(best_iter_distance)
-        else:
-            valid_logs["predicted_cost"] = valid_logs["mean_neural_dual_dist"]  # type:ignore[arg-type]
         return {
             "train_logs": train_logs,  # type:ignore[dict-item]
             "valid_logs": valid_logs,
@@ -429,22 +442,19 @@ class OTTNeuralDualSolver:
         ) -> Tuple[jnp.ndarray, List[jnp.ndarray]]:  # type:ignore[name-defined]
             """Loss function for f."""
             # get loss terms of kantorovich dual
-            grad_g_src = jax.vmap(
-                jax.grad(lambda x: state_g.apply_fn({"params": params_g}, x, batch["condition"]), argnums=0)
+            grad_f_src = jax.vmap(
+                jax.grad(lambda x: state_f.apply_fn({"params": params_f}, x, batch["condition"]), argnums=0)
             )(batch["source"])
-
-            f_grad_g_src = jax.vmap(lambda x: state_f.apply_fn({"params": params_f}, x, batch["condition"]))(grad_g_src)
-            src_dot_grad_g_src = jnp.sum(batch["source"] * grad_g_src, axis=1)
+            g_grad_f_src = jax.vmap(lambda x: state_g.apply_fn({"params": params_g}, x, batch["condition"]))(grad_f_src)
+            src_dot_grad_f_src = jnp.sum(batch["source"] * grad_f_src, axis=1)
             # compute loss
-            f_tgt = jax.vmap(lambda x: state_f.apply_fn({"params": params_f}, x, batch["condition"]))(batch["target"])
-            loss = jnp.mean(f_tgt - f_grad_g_src)
-            total_loss = jnp.mean(f_grad_g_src - f_tgt - src_dot_grad_g_src)
-            # compute wasserstein distance
-            dist = 2 * total_loss + jnp.mean(
-                jnp.sum(batch["target"] * batch["target"], axis=1)
-                + 0.5 * jnp.sum(batch["source"] * batch["source"], axis=1)
-            )
-            return loss, [total_loss, dist]
+            loss = jnp.mean(g_grad_f_src - src_dot_grad_f_src)
+            if not self.pos_weights:
+                penalty = self.beta * self.penalize_weights_icnn(params_f)
+                loss += penalty
+            else:
+                penalty = 0
+            return loss, [penalty]
 
         def loss_g_fn(
             params_f: jnp.ndarray,  # type:ignore[name-defined]
@@ -455,19 +465,21 @@ class OTTNeuralDualSolver:
         ) -> Tuple[jnp.ndarray, List[float]]:  # type: ignore[name-defined]
             """Loss function for g."""
             # get loss terms of kantorovich dual
-            grad_g_src = jax.vmap(
-                jax.grad(lambda x: state_g.apply_fn({"params": params_g}, x, batch["condition"]), argnums=0)
+            grad_f_src = jax.vmap(
+                jax.grad(lambda x: state_f.apply_fn({"params": params_f}, x, batch["condition"]), argnums=0)
             )(batch["source"])
-            f_grad_g_src = jax.vmap(lambda x: state_f.apply_fn({"params": params_f}, x, batch["condition"]))(grad_g_src)
-            src_dot_grad_g_src = jnp.sum(batch["source"] * grad_g_src, axis=1)
+            g_grad_f_src = jax.vmap(lambda x: state_g.apply_fn({"params": params_g}, x, batch["condition"]))(grad_f_src)
+            src_dot_grad_f_src = jnp.sum(batch["source"] * grad_f_src, axis=1)
             # compute loss
-            loss = jnp.mean(f_grad_g_src - src_dot_grad_g_src)
-            if not self.pos_weights:
-                penalty = self.beta * self.penalize_weights_icnn(params_g)
-                loss += penalty
-            else:
-                penalty = 0
-            return loss, [penalty]
+            f_tgt = jax.vmap(lambda x: state_g.apply_fn({"params": params_g}, x, batch["condition"]))(batch["target"])
+            loss = jnp.mean(f_tgt - g_grad_f_src)
+            total_loss = jnp.mean(g_grad_f_src - f_tgt - src_dot_grad_f_src)
+            # compute wasserstein distance
+            dist = 2 * total_loss + jnp.mean(
+                jnp.sum(batch["target"] * batch["target"], axis=1)
+                + 0.5 * jnp.sum(batch["source"] * batch["source"], axis=1)
+            )
+            return loss, [total_loss, dist]
 
         @jax.jit
         def step_fn(
@@ -478,18 +490,18 @@ class OTTNeuralDualSolver:
             """Step function for training."""
             # get loss function for f or g
             if to_optimize == "f":
-                grad_fn = jax.value_and_grad(loss_f_fn, argnums=0, has_aux=True)
+                grad_fn = jax.value_and_grad(loss_f_fn, argnums=1, has_aux=True)
                 # compute loss, gradients and metrics
                 (loss, raw_metrics), grads = grad_fn(state_f.params, state_g.params, state_f, state_g, batch)
                 # return updated state and metrics dict
-                metrics = {"loss_f": loss, "loss": raw_metrics[0], "w_dist": raw_metrics[1]}
+                metrics = {"loss_f": loss, "penalty": raw_metrics[0]}
                 return state_f.apply_gradients(grads=grads), metrics
             if to_optimize == "g":
-                grad_fn = jax.value_and_grad(loss_g_fn, argnums=1, has_aux=True)
+                grad_fn = jax.value_and_grad(loss_g_fn, argnums=0, has_aux=True)
                 # compute loss, gradients and metrics
                 (loss, raw_metrics), grads = grad_fn(state_f.params, state_g.params, state_f, state_g, batch)
                 # return updated state and metrics dict
-                metrics = {"loss_g": loss, "penalty": raw_metrics[0]}
+                metrics = {"loss_g": loss, "loss": raw_metrics[0], "w_dist": raw_metrics[1]}
                 return state_g.apply_gradients(grads=grads), metrics
             raise NotImplementedError()
 
@@ -510,43 +522,23 @@ class OTTNeuralDualSolver:
             """Create a validation function."""
             # get transported source and inverse transported target
             pred_target = jax.vmap(
-                jax.grad(lambda x: state_g.apply_fn({"params": state_g.params}, x, condition), argnums=0)
+                jax.grad(lambda x: state_f.apply_fn({"params": state_f.params}, x, condition), argnums=0)
             )(batch["source"])
             pred_source = jax.vmap(
-                jax.grad(lambda x: state_f.apply_fn({"params": state_f.params}, x, condition), argnums=0)
+                jax.grad(lambda x: state_g.apply_fn({"params": state_g.params}, x, condition), argnums=0)
             )(batch["target"])
             pred_target = pred_target
             pred_source = pred_source
             # get neural dual distance between true source and target
-            f_tgt = jax.vmap(lambda x: state_f.apply_fn({"params": state_f.params}, x, condition))(batch["target"])
-            f_grad_g_src = jax.vmap(lambda x: state_f.apply_fn({"params": state_f.params}, x, condition))(pred_target)
-            src_dot_grad_g_src = jnp.sum(batch["source"] * pred_target, axis=-1)
+            g_tgt = jax.vmap(lambda x: state_g.apply_fn({"params": state_g.params}, x, condition))(batch["target"])
+            g_grad_f_src = jax.vmap(lambda x: state_g.apply_fn({"params": state_g.params}, x, condition))(pred_target)
+            src_dot_grad_f_src = jnp.sum(batch["source"] * pred_target, axis=-1)
             src_sq = jnp.mean(jnp.sum(batch["source"] ** 2, axis=-1))
             tgt_sq = jnp.mean(jnp.sum(batch["target"] ** 2, axis=-1))
-            neural_dual_dist = tgt_sq + src_sq + 2.0 * (jnp.mean(f_grad_g_src - src_dot_grad_g_src) - jnp.mean(f_tgt))
-            if not self.compute_wasserstein_baseline:
-                return {"neural_dual_dist": neural_dual_dist}
-            # calculate sinkhorn loss between predicted and true samples
-            # using sinkhorn_divergence because _compute_sinkhorn_divergence not jittable
-            sink_loss_forward = sinkhorn_divergence(
-                PointCloud,
-                x=pred_target,
-                y=batch["target"],
-                epsilon=self.valid_eps,
-                sinkhorn_kwargs=self.valid_sinkhorn_kwargs,
-            ).divergence
-            sink_loss_inverse = sinkhorn_divergence(
-                PointCloud,
-                x=pred_source,
-                y=batch["source"],
-                epsilon=self.valid_eps,
-                sinkhorn_kwargs=self.valid_sinkhorn_kwargs,
-            ).divergence
-            return {
-                "sinkhorn_loss_forward": sink_loss_forward,
-                "sinkhorn_loss_inverse": sink_loss_inverse,
-                "neural_dual_dist": neural_dual_dist,
-            }
+            neural_dual_dist = tgt_sq + src_sq + 2.0 * (jnp.mean(g_grad_f_src - src_dot_grad_f_src) - jnp.mean(g_tgt))
+            # calculate validation metrics
+            metric_dict = self.callback_func(batch["target"], batch["source"], pred_target, pred_source)
+            return metric_dict | {"neural_dual_dist": neural_dual_dist}
 
         return valid_step
 
@@ -570,23 +562,14 @@ class OTTNeuralDualSolver:
     def to_dual_potentials(self, condition: Optional[ArrayLike] = None) -> DualPotentials:
         """Return the Kantorovich dual potentials from the trained potentials."""
 
-        # This is a quick fix to change f and g. Eventually, the code should be rewritten and adapted
-        # to OTT-JAX.
         if self.cond_dim:
-
-            def f(x, c) -> float:
-                return self._state_g.apply_fn({"params": self._state_g.params}, x, c) 
-
-            def g(x, c) -> float:
-                return self._state_f.apply_fn({"params": self._state_f.params}, x, c)
-
-            return ConditionalDualPotentials(self.state_g, self.state_f)
+            return ConditionalDualPotentials(self.state_f, self.state_g)
 
         def f(x) -> float:
-            return self.state_g.apply_fn({"params": self.state_g.params}, x)
+            return self.state_f.apply_fn({"params": self.state_f.params}, x)
 
         def g(x) -> float:
-            return self.state_f.apply_fn({"params": self.state_f.params}, x)
+            return self.state_g.apply_fn({"params": self.state_g.params}, x)
 
         return DualPotentials(f, g, corr=True, cost_fn=costs.SqEuclidean())
 
