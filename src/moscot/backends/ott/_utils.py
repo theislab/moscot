@@ -315,5 +315,5 @@ def _compute_metrics_sinkhorn(
     return {
         "sinkhorn_loss_forward": jnp.abs(sinkhorn_loss_forward),
         "sinkhorn_loss_inverse": jnp.abs(sinkhorn_loss_inverse),
-        "sinkhorn_loss_data": jnp.abs(sinkhorn_divergence_data),
+        "sinkhorn_loss_data": jnp.abs(sinkhorn_loss_data),
     }
