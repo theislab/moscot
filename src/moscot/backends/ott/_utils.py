@@ -54,7 +54,7 @@ def alpha_to_fused_penalty(alpha: float) -> float:
     return (1 - alpha) / alpha
 
 
-def ensure_2d(arr: ArrayLike, *, reshape: bool = False) -> Optional[jnp.ndarray]:  # type: ignore[name-defined]
+def ensure_2d(arr: ArrayLike, *, reshape: bool = False) -> Optional[jnp.ndarray]:
     if sp.issparse(arr):
         arr = arr.A  # type: ignore[attr-defined]
     arr = jnp.asarray(arr)
