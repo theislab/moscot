@@ -26,13 +26,13 @@ Glossary
         :term:`OT` problem only containing a :term:`linear term` (and no :term:`quadratic term`).
 
     linear term
-        Cost on the shared space in :term:`linear problem` or in a :term:`fused Gromov-Wasserstein` problem.
+        Term of the cost function on the shared space.
 
     quadratic problem
         :term:`OT` problem containing a :term:`quadratic term` (and possibly a :term:`linear term`).
 
     quadratic term
-        Term of the cost function defined on two different spaces, appearing in .
+        Term of the cost function comparing two different spaces.
 
     Gromov-Wasserstein
         :term:`OT` problem between two distributions where a data point (cell) in the source distribution does not live in the same space as a data point in the target distribution. Such a problem is a :term:`quadratic problem`.
