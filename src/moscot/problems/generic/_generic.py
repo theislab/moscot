@@ -23,7 +23,7 @@ __all__ = ["SinkhornProblem", "GWProblem"]
 
 
 class SinkhornProblem(GenericAnalysisMixin[K, B], CompoundProblem[K, B]):
-    """Class for solving :term:`linear OT problems <linear problem>`.
+    """Class for solving a :term:`linear problem`.
 
     Parameters
     ----------
@@ -184,8 +184,8 @@ class SinkhornProblem(GenericAnalysisMixin[K, B], CompoundProblem[K, B]):
         threshold
             Convergence threshold of the :term:`Sinkhorn` algorithm. In the :term:`balanced <balanced OT problem>` case,
             this is typically the deviation between the target :term:`marginals` and the marginals of the current
-            :term:`primal solution`. In the :term:`unbalanced <unbalanced OT problem>` case, the relative change between
-            the successive solutions is checked.
+            :term:`transport matrix`. In the :term:`unbalanced <unbalanced OT problem>` case, the relative change
+            between the successive solutions is checked.
         lse_mode
             Whether to use `log-sum-exp (LSE)
             <https://en.wikipedia.org/wiki/LogSumExp#log-sum-exp_trick_for_log-domain_calculations>`_
@@ -404,7 +404,7 @@ class GWProblem(GenericAnalysisMixin[K, B], CompoundProblem[K, B]):
         alpha
             Parameter in :math:`(0, 1]` that interpolates between the :term:`quadratic term` and
             the :term:`linear term`. :math:`\alpha = 1` corresponds to the pure :term:`Gromov-Wasserstein` problem while
-            :math:`\alpha \to 0` corresponds to the pure :term:`linear OT` problem.
+            :math:`\alpha \to 0` corresponds to the pure :term:`linear problem`.
         epsilon
             :term:`Entropic regularization`.
         tau_a
@@ -438,7 +438,7 @@ class GWProblem(GenericAnalysisMixin[K, B], CompoundProblem[K, B]):
         threshold
             Convergence threshold of the :term:`GW <Gromov-Wasserstein>` solver.
         linear_solver_kwargs
-            Keyword arguments for the inner :term:`linear OT` solver.
+            Keyword arguments for the inner :term:`linear problem` solver.
         device
             Transfer the solution to a different device, see :meth:`~moscot.base.output.BaseSolverOutput.to`.
             If :obj:`None`, keep the output on the original device.

@@ -11,55 +11,49 @@ Glossary
 .. glossary::
 
     OT
-        TODO.
+        Optimal Transport. An `OT problem` is defined as a **single** matching task between distributions (sets of cells).
 
     low-rank OT
-        TODO.
+        Low-rank OT approximates full-rank OT, which allows for faster computations and lower memory complexity (:cite:`scetbon:21a`, :cite:`scetbon:21b`, :cite:`scetbon:22b`, :cite:`scetbon:23`).
 
     balanced OT problem
-        TODO.
+        :term:`OT` problem where the :term:`marginals` are fixed. Each data point (cell) of the source distribution emits a certain amount of mass given by the source :term:`marginals`, and each data point (cell) of the target distribution receives a certain amount of mass given by the target :term:`marginals`.
 
     unbalanced OT problem
-        TODO.
-
-    linear OT
-        TODO.
+        :term:`OT` problem where the :term:`marginals` are flexible. If beneficial, a data point might emit (or receive) more or less mass than given by the :term:`marginals`. The larger the unbalancedness parameters `tau_a` (and `tau_b`), the more the mass emitted (and received) can deviate from the :term:`marginals` (:cite:`chizat:18`).
 
     linear problem
-        TODO.
+        :term:`OT` problem only containing a :term:`linear term` (and no :term:`quadratic term`).
 
     linear term
-        TODO.
+        Cost on the shared space in :term:`linear problem` or in a :term:`fused Gromov-Wasserstein` problem.
 
     quadratic problem
-        TODO.
+        :term:`OT` problem containing a :term:`quadratic term` (and possibly a :term:`linear term`).
 
     quadratic term
-        TODO.
+        Term of the cost function defined on two different spaces, appearing in .
 
     Gromov-Wasserstein
-        TODO.
+        :term:`OT` problem between two distributions where a data point (cell) in the source distribution does not live in the same space as a data point in the target distribution. Such a problem is a :term:`quadratic problem`.
 
     fused Gromov-Wasserstein
-        TODO.
+        :term:`OT` problem between two distributions where a data point (cell) has both features in the same space as the target distribution (:term:`linear term`) and features in a different space than a data point in the target distribution (:term:`quadratic term`). Such a problem is a :term:`quadratic problem`.
 
     dual potentials
-        TODO.
-
-    barcode
-        TODO.
+        Potentials obtained by the term:`Sinkhorn` algorithm which define the solution of a :term:`linear problem` (:cite:`cuturi:2013`).
 
     marginals
-        TODO.
+        An :term:`OT` problem matches distributions, e.g. set of cells. The distribution is defined by the location of a cell, e.g. in gene expression space, and the weight assigned to one cell. These weights are refered to as `marginals`.
 
     Sinkhorn
-        TODO.
+        The Sinkhorn algorithm (:cite:`cuturi:2013`) is used for solving :term:`linear` :term:`OT` problems, and is also used in inner iterations for solving :term:`Gromov-Wasserstein` and :term:`fused Gromov-Wasserstein` problems.
 
     low-rank
-        TODO.
+        If the OT problem is solved with a low-rank solver (:term:`low-rank OT`), the transport matrix is the product of several matrices with low rank, and hence the transport matrix is low-rank.
 
-    primal solution
-        TODO.
+    transport matrix
+        The output of a discrete :term:`OT` problem indicating how much mass from data point `i` in row `i` is transported to data point `j` in row `j`.
 
     entropic regularization
-        TODO.
+        Entropy regularization of OT problems (cite:`cuturi:2013`) reduces the time complexity and allows for more desirable statistical properties. The higher the entropy regularization, the more diffused the OT solution.
