@@ -38,22 +38,22 @@ Glossary
         :term:`OT` problem between two distributions where a data point (cell) in the source distribution does not live in the same space as a data point in the target distribution. Such a problem is a :term:`quadratic problem`.
 
     fused Gromov-Wasserstein
-        :term:`OT` problem between two distributions where a data point (cell) has both features in the same space as the target distribution (:term:`linear term`) and features in a different space than a data point in the target distribution (:term:`quadratic term`). Such a problem is a :term:`quadratic problem`.
+        :term:`OT` problem between two distributions where a data point (cell) of the source distribution has both features in the same space as the target distribution (:term:`linear term`) and features in a different space than a data point in the target distribution (:term:`quadratic term`). Such a problem is a :term:`quadratic problem`.
 
     dual potentials
-        Potentials obtained by the term:`Sinkhorn` algorithm which define the solution of a :term:`linear problem` (:cite:`cuturi:2013`).
+        Potentials obtained by the :term:`Sinkhorn` algorithm which define the solution of a :term:`linear problem` (:cite:`cuturi:2013`).
 
     marginals
         An :term:`OT` problem matches distributions, e.g. set of cells. The distribution is defined by the location of a cell, e.g. in gene expression space, and the weight assigned to one cell. These weights are refered to as `marginals`.
 
     Sinkhorn
-        The Sinkhorn algorithm (:cite:`cuturi:2013`) is used for solving :term:`linear` :term:`OT` problems, and is also used in inner iterations for solving :term:`Gromov-Wasserstein` and :term:`fused Gromov-Wasserstein` problems.
+        The Sinkhorn algorithm (:cite:`cuturi:2013`) is used for solving a :term:`linear problem`, and is also used in inner iterations for solving :term:`Gromov-Wasserstein` and :term:`fused Gromov-Wasserstein` problems.
 
     low-rank
-        If the OT problem is solved with a low-rank solver (:term:`low-rank OT`), the transport matrix is the product of several matrices with low rank, and hence the transport matrix is low-rank.
+        If the OT problem is solved with a low-rank solver (:term:`low-rank OT`), the transport matrix is the product of several matrices with low rank (i.e. lower than the number of data points in the source distribution and the target distribution), and hence the transport matrix is low-rank.
 
     transport matrix
-        The output of a discrete :term:`OT` problem indicating how much mass from data point `i` in row `i` is transported to data point `j` in row `j`.
+        The output of a discrete :term:`OT` problem indicating how much mass from data point `i` in row `i` is transported to data point `j` in column `j`.
 
     entropic regularization
-        Entropy regularization of OT problems (cite:`cuturi:2013`) reduces the time complexity and allows for more desirable statistical properties. The higher the entropy regularization, the more diffused the OT solution.
+        Entropy regularization of :term:`OT` problems (cite:`cuturi:2013`) reduces the time complexity and allows for more desirable statistical properties. The higher the entropy regularization, the more diffused the OT solution.
