@@ -11,16 +11,16 @@ Glossary
 .. glossary::
 
     OT
-        Optimal Transport. An `OT problem` is defined as a **single** matching task between distributions (sets of cells).
+        Optimal Transport. An OT problem is defined as a matching task between distributions (sets of cells).
 
     low-rank OT
-        Low-rank OT approximates full-rank OT, which allows for faster computations and lower memory complexity (:cite:`scetbon:21a`, :cite:`scetbon:21b`, :cite:`scetbon:22b`, :cite:`scetbon:23`).
+        :term:`low-rank` :term:`OT`` approximates full-rank :term:`OT`, which allows for faster computations and lower memory complexity (:cite:`scetbon:21a`, :cite:`scetbon:21b`, :cite:`scetbon:22b`, :cite:`scetbon:23`). The :term:`transport matrix` will have a low rank.
 
     balanced OT problem
         :term:`OT` problem where the :term:`marginals` are fixed. Each data point (cell) of the source distribution emits a certain amount of mass given by the source :term:`marginals`, and each data point (cell) of the target distribution receives a certain amount of mass given by the target :term:`marginals`.
 
     unbalanced OT problem
-        :term:`OT` problem where the :term:`marginals` are flexible. If beneficial, a data point might emit (or receive) more or less mass than given by the :term:`marginals`. The larger the unbalancedness parameters `tau_a` (and `tau_b`), the more the mass emitted (and received) can deviate from the :term:`marginals` (:cite:`chizat:18`).
+        :term:`OT` problem where the :term:`marginals` are not fixed. If beneficial, a data point might emit (or receive) more or less mass than given by the :term:`marginals`. The larger the unbalancedness parameters `tau_a` (and `tau_b`), the more the mass emitted (and received) can deviate from the :term:`marginals` (:cite:`chizat:18`).
 
     linear problem
         :term:`OT` problem only containing a :term:`linear term` (and no :term:`quadratic term`).
@@ -47,10 +47,10 @@ Glossary
         An :term:`OT` problem matches distributions, e.g. set of cells. The distribution is defined by the location of a cell, e.g. in gene expression space, and the weight assigned to one cell. These weights are refered to as `marginals`.
 
     Sinkhorn
-        The Sinkhorn algorithm (:cite:`cuturi:2013`) is used for solving a :term:`linear problem`, and is also used in inner iterations for solving :term:`Gromov-Wasserstein` and :term:`fused Gromov-Wasserstein` problems.
+        The Sinkhorn algorithm (:cite:`cuturi:2013`) is used for solving a :term:`linear problem`, and is also used in inner iterations for solving a :term:`quadratic problem`.
 
     low-rank
-        If the OT problem is solved with a low-rank solver (:term:`low-rank OT`), the transport matrix is the product of several matrices with low rank (i.e. lower than the number of data points in the source distribution and the target distribution), and hence the transport matrix is low-rank.
+        If the OT problem is solved with a low-rank solver (:term:`low-rank OT`), the :term:`transport matrix`` is the product of several matrices with low rank (i.e. lower than the number of data points in the source distribution and the target distribution), and hence the transport matrix is low-rank.
 
     transport matrix
         The output of a discrete :term:`OT` problem indicating how much mass from data point `i` in row `i` is transported to data point `j` in column `j`.
