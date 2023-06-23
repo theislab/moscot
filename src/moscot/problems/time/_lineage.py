@@ -203,8 +203,8 @@ class TemporalProblem(
             Whether to :func:`~jax.jit` the underlying :mod:`ott` solver.
         threshold
             Convergence threshold of the :term:`Sinkhorn` algorithm. In the :term:`balanced <balanced OT problem>` case,
-            this is typically the deviation between the target :term:`marginals` aand the marginals of the current
-            :term:`transport matrix. In the :term:`unbalanced <unbalanced OT problem>` case, the relative change between
+            this is typically the deviation between the target :term:`marginals` and the marginals of the current
+            :term:`transport matrix`. In the :term:`unbalanced <unbalanced OT problem>` case, the relative change between
             the successive solutions is checked.
         lse_mode
             Whether to use `log-sum-exp (LSE)
