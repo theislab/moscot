@@ -5,9 +5,11 @@ moscot - multi-omic single-cell optimal transport tools
 
 **moscot** is a scalable framework for Optimal Transport (OT) applications in
 single-cell genomics. It can be used for
-- temporal and spatio-temporal trajectory inference
-- spatial mapping
-- spatial alignment
+
+- trajectory inference (incorporating spatial and lineage information)
+- mapping cells to their spatial organisation
+- aligning spatial transcriptomics slides
+- translating modalities
 - prototyping of new OT models in single-cell genomics
 
 **moscot** is powered by
@@ -21,7 +23,7 @@ You can install **moscot** via::
 
     pip install moscot
 
-In order to install **moscot** from source, run::
+In order to install **moscot** from in editable mode, run::
 
     git clone https://github.com/theislab/moscot
     cd moscot
