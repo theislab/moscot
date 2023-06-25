@@ -284,8 +284,8 @@ class TestFGWProblem:
         assert recenter_potentials == recenter
 
     @pytest.mark.parametrize("warm_start", [True, False])
-    @pytest.mark.parametrize("unscale", [True, False])
-    def test_passing_ott_kwargs_quadratic(self, adata_space_rotate: AnnData, warm_start: bool, unscale: bool):
+    @pytest.mark.parametrize("inner_errors", [True, False])
+    def test_passing_ott_kwargs_quadratic(self, adata_space_rotate: AnnData, warm_start: bool, inner_errors: bool):
         problem = GWProblem(adata=adata_space_rotate)
         problem = problem.prepare(
             key="batch",
@@ -295,9 +295,9 @@ class TestFGWProblem:
             y_attr={"attr": "obsm", "key": "spatial"},
         )
 
-        problem = problem.solve(warm_start=warm_start, unscale_last_linearization=unscale)
+        problem = problem.solve(warm_start=warm_start, store_inner_errors = inner_errors)
 
         solver = problem[("0", "1")].solver.solver
 
         assert solver.warm_start == warm_start
-        # assert solver.unscale_last_linearization == unscale
+        assert solver.store_inner_errors == inner_errors
