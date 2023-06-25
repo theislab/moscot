@@ -52,4 +52,4 @@ jobs:
           PLATFORM: ${{ matrix.os }}
           DISPLAY: :42
         run: |
-          jupytext -k python3 --execute docs/tutorials/${{ matrix.tutorial }}
+          jupytext -k python3 --execute docs\notebooks\examples\plotting\${{ matrix.example }}
