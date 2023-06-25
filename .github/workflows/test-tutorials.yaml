@@ -46,6 +46,7 @@ jobs:
       - name: Install dependencies
         run: |
           pip install ".[doc]"
+          pip install jupytext
       - name: Test
         env:
           MPLBACKEND: agg
