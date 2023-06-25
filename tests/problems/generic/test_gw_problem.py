@@ -269,7 +269,7 @@ class TestGWProblem:
             y_attr={"attr": "obsm", "key": "spatial"},
         )
 
-        problem = problem.solve(warm_start=warm_start, store_inner_errors = inner_errors)
+        problem = problem.solve(warm_start=warm_start, store_inner_errors=inner_errors)
 
         solver = problem[("0", "1")].solver.solver
 
