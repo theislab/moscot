@@ -21,7 +21,7 @@ jobs:
       fail-fast: false
       matrix:
         example:
-          - 100_push_pull.ipynb
+          - 100_push_pull
         os:
           - ubuntu-latest
         python:
@@ -53,4 +53,4 @@ jobs:
           PLATFORM: ${{ matrix.os }}
           DISPLAY: :42
         run: |
-          jupytext -k python3 --execute /examples/plotting/${{ matrix.example }}
+          jupytext -k python3 --execute /docs/notebooks/examples/plotting/${{ matrix.example }}
