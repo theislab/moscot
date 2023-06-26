@@ -11,10 +11,10 @@ Glossary
 .. glossary::
 
     OT
-        An `optimal transport <https://en.wikipedia.org/wiki/Transportation_theory_(mathematics)>_` problem is defined as a matching task between distributions, e.g. sets of cells.
+        An `optimal transport <https://en.wikipedia.org/wiki/Transportation_theory_(mathematics)>`_ problem is defined as a matching task between distributions, e.g. sets of cells.
 
     low-rank OT
-        `low-rank <https://en.wikipedia.org/wiki/Low-rank_approximation>`_` OT approximates full-rank :term:`OT`, which allows for faster computations and lower memory complexity :cite:`scetbon:21a,scetbon:21b,scetbon:22b,scetbon:23`. The :term:`transport matrix` will have a low rank.
+        `low-rank <https://en.wikipedia.org/wiki/Low-rank_approximation>`_ OT approximates full-rank :term:`OT`, which allows for faster computations and lower memory complexity :cite:`scetbon:21a,scetbon:21b,scetbon:22b,scetbon:23`. The :term:`transport matrix` will have a low rank.
 
     balanced OT problem
         :term:`OT` problem where the :term:`marginals` are fixed. Each data point (cell) of the source distribution emits a certain amount of mass given by the source :term:`marginals`, and each data point (cell) of the target distribution receives a certain amount of mass given by the target :term:`marginals`.
