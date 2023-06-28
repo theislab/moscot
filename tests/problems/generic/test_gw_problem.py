@@ -245,7 +245,7 @@ class TestGWProblem:
             linear_solver_kwargs={
                 "anderson": acceleration.AndersonAcceleration(memory=memory, refresh_every=refresh),
                 "recenter_potentials": recenter,
-            }
+            },
         )
 
         sinkhorn_solver = problem[("0", "1")].solver.solver.linear_ot_solver
