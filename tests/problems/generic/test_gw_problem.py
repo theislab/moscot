@@ -243,6 +243,7 @@ class TestGWProblem:
         problem = problem.solve(
             max_iterations=1,
             linear_solver_kwargs={
+                "max_iterations": 1,
                 "anderson": acceleration.AndersonAcceleration(memory=memory, refresh_every=refresh),
                 "recenter_potentials": recenter,
             },
