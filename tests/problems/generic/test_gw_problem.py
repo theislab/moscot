@@ -241,6 +241,7 @@ class TestGWProblem:
         )
 
         problem = problem.solve(
+            max_iterations=1,
             linear_solver_kwargs={
                 "anderson": acceleration.AndersonAcceleration(memory=memory, refresh_every=refresh),
                 "recenter_potentials": recenter,
@@ -269,7 +270,7 @@ class TestGWProblem:
             y_attr={"attr": "obsm", "key": "spatial"},
         )
 
-        problem = problem.solve(warm_start=warm_start, store_inner_errors=inner_errors)
+        problem = problem.solve(max_iterations=1, warm_start=warm_start, store_inner_errors=inner_errors)
 
         solver = problem[("0", "1")].solver.solver
 
