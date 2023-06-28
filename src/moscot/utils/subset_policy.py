@@ -64,7 +64,7 @@ class SubsetPolicy(Generic[K], abc.ABC):
 
     Examples
     --------
-    TODO(michalk8): add usage example
+    - See :doc:`../notebooks/examples/problems/400_subset_policy` on how to use different policies.
     """
 
     def __init__(
@@ -525,7 +525,7 @@ def create_policy(
 
     Notes
     -----
-    TODO(michalk8): link policy example.
+    - See :doc:`../notebooks/examples/problems/400_subset_policy` on how to use different policies.
     """
     if kind == _constants.SEQUENTIAL:
         return SequentialPolicy(adata, **kwargs)
