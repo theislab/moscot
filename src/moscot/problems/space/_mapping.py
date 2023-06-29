@@ -83,6 +83,7 @@ class MappingProblem(SpatialMappingMixin[K, OTProblem], CompoundProblem[K, OTPro
         batch_key: Optional[str] = None,
         spatial_key: Union[str, Mapping[str, Any]] = "spatial",
         var_names: Optional[Sequence[Any]] = None,
+        normalize_spatial: bool = True,
         joint_attr: Optional[Union[str, Mapping[str, Any]]] = None,
         cost: OttCostFnMap_t = "sq_euclidean",
         cost_kwargs: CostKwargs_t = types.MappingProxyType({}),
@@ -106,6 +107,9 @@ class MappingProblem(SpatialMappingMixin[K, OTProblem], CompoundProblem[K, OTPro
         var_names
             List of shared features to be used for the linear problem. If None, it defaults to the intersection
             between ``adata_sc`` and ``adata_sp``. If an empty list is pass, it defines a quadratic problem.
+        normalize_spatial
+            Whether to normalize the spatial coordinates. If `True`, the coordinates are normalized
+            by standardizing them. If `False`, no normalization is performed.
 
         %(joint_attr)s
         %(cost)s
@@ -124,6 +128,11 @@ class MappingProblem(SpatialMappingMixin[K, OTProblem], CompoundProblem[K, OTPro
         """
         x = {"attr": "obsm", "key": spatial_key} if isinstance(spatial_key, str) else spatial_key
         y = {"attr": "obsm", "key": sc_attr} if isinstance(sc_attr, str) else sc_attr
+
+        if normalize_spatial and "x_callback" not in kwargs:
+            kwargs["x_callback"] = "spatial-norm"
+            kwargs.setdefault("x_callback_kwargs", {"spatial_key": spatial_key})
+
         self.batch_key = batch_key
         if isinstance(spatial_key, str):
             self.spatial_key = spatial_key

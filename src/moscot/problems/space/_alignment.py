@@ -39,6 +39,7 @@ class AlignmentProblem(SpatialAlignmentMixin[K, B], CompoundProblem[K, B]):
         joint_attr: Optional[Union[str, Mapping[str, Any]]] = None,
         policy: Literal["sequential", "star"] = "sequential",
         reference: Optional[str] = None,
+        normalize_spatial: bool = True,
         cost: OttCostFnMap_t = "sq_euclidean",
         cost_kwargs: CostKwargs_t = types.MappingProxyType({}),
         a: Optional[str] = None,
@@ -59,6 +60,9 @@ class AlignmentProblem(SpatialAlignmentMixin[K, B], CompoundProblem[K, B]):
         reference
             Only used if `policy="star"`, it's the value for reference stored
             in :attr:`anndata.AnnData.obs` ``["batch_key"]``.
+        normalize_spatial
+            Whether to normalize the spatial coordinates. If `True`, the coordinates are normalized
+            by standardizing them. If `False`, no normalization is performed.
 
         %(cost)s
         %(cost_kwargs)s
@@ -78,6 +82,11 @@ class AlignmentProblem(SpatialAlignmentMixin[K, B], CompoundProblem[K, B]):
         self.batch_key = batch_key
 
         x = y = {"attr": "obsm", "key": self.spatial_key, "tag": "point_cloud"}
+
+        if normalize_spatial and "x_callback" not in kwargs and "y_callback" not in kwargs:
+            kwargs["x_callback"] = kwargs["y_callback"] = "spatial-norm"
+            kwargs.setdefault("x_callback_kwargs", {"spatial_key": self.spatial_key})
+            kwargs.setdefault("y_callback_kwargs", {"spatial_key": self.spatial_key})
 
         xy, kwargs = handle_joint_attr(joint_attr, kwargs)
         xy, x, y = handle_cost(xy=xy, x=x, y=y, cost=cost, cost_kwargs=cost_kwargs)
