@@ -1,7 +1,10 @@
 from abc import ABC, abstractmethod
 from copy import copy
 from functools import partial
-from typing import Any, Callable, Iterable, List, Literal, Optional, Tuple
+from typing import Any, Callable, Iterable, Literal, Optional, Tuple, Union
+
+from joblib import Parallel, delayed
+from tqdm.auto import trange
 
 import numpy as np
 import scipy.sparse as sp
@@ -83,6 +86,24 @@ class BaseSolverOutput(ABC):
     @abstractmethod
     def _ones(self, n: int) -> ArrayLike:
         pass
+
+    @abstractmethod
+    def subset(  # noqa: D102
+        self, src_ixs: Optional[Union[slice, ArrayLike]] = None, tgt_ixs: Optional[Union[slice, ArrayLike]] = None
+    ) -> "BaseSolverOutput":
+        """Subset the transport matrix.
+
+        Parameters
+        ----------
+        src_ixs
+            Source indices. If :obj:`None`, don't subset the rows.
+        tgt_ixs
+            Target indices. If :obj:`None`, don't subset the columns.
+
+        Returns
+        -------
+        The subset of a transport matrix.
+        """
 
     def push(self, x: ArrayLike, scale_by_marginals: bool = False) -> ArrayLike:
         """Push mass through the :attr:`transport_matrix`.
@@ -177,6 +198,8 @@ class BaseSolverOutput(ABC):
         batch_size: int = 1024,
         n_samples: Optional[int] = None,
         seed: Optional[int] = None,
+        n_jobs: int = 1,
+        **kwargs: Any,
     ) -> "MatrixSolverOutput":
         """Sparsify the :attr:`transport_matrix`.
 
@@ -212,11 +235,28 @@ class BaseSolverOutput(ABC):
             ``batch_size``.
         seed
             Random seed needed for sampling if ``mode = 'percentile'``.
+        n_jobs
+            Number of concurrent jobs to use. If :math:`-1`, use all cores.
+        kwargs
+            Keyword arguments for :class:`~joblib.Parallel`.
 
         Returns
         -------
         Solve output with a sparsified transport matrix.
         """
+
+        def _min_row(batch: int) -> float:
+            res = self.subset(slice(batch, batch + batch_size)).transport_matrix
+            return float(res.max(axis=1).min())
+
+        def _sparsify(batch: int, threshold: float) -> sp.csr_matrix:
+            res = self.subset(slice(batch, batch + batch_size)).transport_matrix
+            if not isinstance(res, np.ndarray):
+                res = np.array(res)
+
+            res[res < threshold] = 0.0
+            return sp.csr_matrix(res)
+
         n, m = self.shape
         if mode == "threshold":
             if value is None:
@@ -225,32 +265,26 @@ class BaseSolverOutput(ABC):
         elif mode == "percentile":
             if value is None:
                 raise ValueError("If `mode = 'percentile'`, `threshold` cannot be `None`.")
-            rng = np.random.RandomState(seed=seed)
+            rng = np.random.default_rng(seed=seed)
             n_samples = n_samples if n_samples is not None else batch_size
-            k = min(n_samples, n)
-            x = np.zeros((m, k))
-            rows = rng.choice(m, size=k)
-            x[rows, np.arange(k)] = 1.0
-            res = self.pull(x, scale_by_marginals=False)  # tmap @ indicator_vectors
-            thr = np.percentile(res, value)
+            ixs = rng.choice(np.arange(n), size=n_samples, replace=False)
+            thr = np.percentile(self.subset(ixs).transport_matrix, value)
         elif mode == "min_row":
-            thr = np.inf
-            for batch in range(0, m, batch_size):
-                x = np.eye(m, min(batch_size, m - batch), -(min(batch, m)))
-                res = self.pull(x, scale_by_marginals=False)  # tmap @ indicator_vectors
-                thr = min(thr, float(res.max(axis=1).min()))
+            logger.info("Computing threshold for `mode='min_row'`")
+            results = Parallel(n_jobs=n_jobs, **kwargs)(
+                delayed(_min_row)(batch) for batch in trange(0, n, batch_size, unit="batch")
+            )
+            thr = np.min(results)
         else:
             raise NotImplementedError(mode)
 
-        k, func, fn_stack = (n, self.push, sp.vstack) if n < m else (m, self.pull, sp.hstack)
-        tmaps_sparse: List[sp.csr_matrix] = []
-        for batch in range(0, k, batch_size):
-            x = np.eye(k, min(batch_size, k - batch), -(min(batch, k)), dtype=float)
-            res = np.array(func(x, scale_by_marginals=False))
-            res[res < thr] = 0.0
-            tmaps_sparse.append(sp.csr_matrix(res.T if n < m else res))
+        logger.info(f"Using `threshold={thr:.6}` for sparsification")
+        results = Parallel(n_jobs=n_jobs, **kwargs)(
+            delayed(_sparsify)(batch, thr) for batch in trange(0, n, batch_size, unit="batch")
+        )
+
         return MatrixSolverOutput(
-            transport_matrix=fn_stack(tmaps_sparse), cost=self.cost, converged=self.converged, is_linear=self.is_linear
+            transport_matrix=sp.vstack(results), cost=self.cost, converged=self.converged, is_linear=self.is_linear
         )
 
     @property
@@ -344,6 +378,17 @@ class MatrixSolverOutput(BaseSolverOutput):
         obj = copy(self)
         obj._transport_matrix = obj.transport_matrix.astype(dtype)
         return obj
+
+    def subset(  # noqa: D102
+        self, src_ixs: Optional[Union[slice, ArrayLike]] = None, tgt_ixs: Optional[Union[slice, ArrayLike]] = None
+    ) -> "BaseSolverOutput":
+        mat = self.transport_matrix
+        if src_ixs is not None:
+            mat = mat[src_ixs, :]
+        if tgt_ixs is not None:
+            mat = mat[:, tgt_ixs]
+
+        return type(self)(mat, cost=self.cost, converged=self.converged, is_linear=self._is_linear)
 
     @property
     def cost(self) -> float:  # noqa: D102
