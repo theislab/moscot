@@ -39,6 +39,7 @@ jobs:
           python-version: ${{ matrix.python }}
           cache: "pip"
           cache-dependency-path: "**/pyproject.toml"
+          submodules: true
 
       - name: Install test dependencies
         run: |
