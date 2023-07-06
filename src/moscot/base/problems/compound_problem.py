@@ -385,6 +385,7 @@ class BaseCompoundProblem(BaseProblem, abc.ABC, Generic[K, B]):
     # TODO(michalk8): better description of `source/target` (also in other places).
     def push(self, *args: Any, **kwargs: Any) -> ApplyOutput_t[K]:
         """Push mass from source to target.
+        
         TODO.
         """
         _ = kwargs.pop("return_data", None)

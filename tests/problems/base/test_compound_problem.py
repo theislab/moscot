@@ -133,7 +133,7 @@ class TestCompoundProblem:
         epsilon = 5
         xy = {"x_attr": "obsm", "x_key": "X_pca", "y_attr": "obsm", "y_key": "X_pca"}
         p1 = Problem(adata_with_cost_matrix)
-        p1 = p1.prepare(key="batch", xy=xy)
+        p1 = p1.prepare(key="batch", xy=xy, policy="sequential")
         p1 = p1.solve(epsilon=epsilon, scale_cost="mean")
         p1_tmap = p1[0, 1].solution.transport_matrix
 
@@ -249,7 +249,7 @@ class TestCompoundProblem:
         if os.path.exists(file):
             os.remove(file)
         problem = Problem(adata=adata_time)
-        problem = problem.prepare(xy={"x_attr": "X", "y_attr": "X"}, key="time")
+        problem = problem.prepare(xy={"x_attr": "X", "y_attr": "X"}, key="time", policy="sequential")
         problem.save(dir_path=dir_path, file_prefix=file_prefix)
 
         p = Problem.load(file)
@@ -264,7 +264,7 @@ class TestCompoundProblem:
         problem = Problem(adata=adata_time)
         problem = problem.prepare(policy="sequential", xy={"x_attr": "X", "y_attr": "X"}, key="time")
         problem = problem.solve(max_iterations=10)
-        problem.save(dir_path=dir_path, file_prefix=file_prefix)
+        problem.save(file)
 
         p = Problem.load(file)
         assert isinstance(p, Problem)

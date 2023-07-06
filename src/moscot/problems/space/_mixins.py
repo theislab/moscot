@@ -482,7 +482,7 @@ class SpatialMappingMixin(AnalysisMixin[K, B]):
             res.append(out)
 
         res = pd.concat(res, axis=0)
-        res[self.batch_key] = res[self.batch_key].astype("category")  # type: ignore[arg-type]
+        res[self.batch_key] = res[self.batch_key].astype("category")  # type: ignore[call-overload]
         return res
 
     def cell_transition(  # type: ignore[misc]
@@ -609,7 +609,7 @@ def _compute_correspondence(
     # TODO(michalk8): vectorize using jax, this is just a for loop
     vpdist = np.vectorize(pdist, excluded=["feat"])
     if sp.issparse(features):
-        features = features.A
+        features = features.A  # type: ignore[attr-defined]
 
     feat_arr, index_arr, support_arr = [], [], []
     for ind, i in enumerate(support):

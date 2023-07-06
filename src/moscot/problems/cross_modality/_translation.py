@@ -177,7 +177,7 @@ class TranslationProblem(CrossModalityTranslationMixin[K, OTProblem], CompoundPr
         )
         if xy:
             kwargs["xy"] = xy
-        return super().prepare(x=x, y=y, policy="external_star", key=batch_key, cost=cost, a=a, b=b, **kwargs)  # type: ignore[return-value]
+        return super().prepare(x=x, y=y, policy="external_star", key=batch_key, cost=cost, a=a, b=b, **kwargs)  # type: ignore[return-value] # noqa: E501
 
     def solve(  # type: ignore[override]
         self,

@@ -146,7 +146,7 @@ class SpatioTemporalProblem(
             spatial_key=spatial_key,
             batch_key=time_key,
             joint_attr=joint_attr,
-            policy=policy,  # type: ignore[misc]
+            policy=policy,  # type: ignore[arg-type]
             reference=None,
             cost=cost,
             cost_kwargs=cost_kwargs,

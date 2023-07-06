@@ -32,7 +32,7 @@ from moscot.utils.tagged_array import Tag
 __all__ = ["TemporalMixin"]
 
 
-class TemporalMixinProtocol(AnalysisMixinProtocol[K, B], Protocol[K, B]):  # type: ignore[arg-type, misc]
+class TemporalMixinProtocol(AnalysisMixinProtocol[K, B], Protocol[K, B]):  # type: ignore[misc]
     adata: AnnData
     problems: Dict[Tuple[K, K], BirthDeathProblem]
     temporal_key: Optional[str]
