@@ -331,6 +331,7 @@ class BaseCompoundProblem(BaseProblem, abc.ABC, Generic[K, B]):
         target: Optional[K] = None,
         data: Optional[Union[str, ArrayLike]] = None,
         forward: bool = True,
+        scale_by_marginals: bool = False,
         return_all: bool = False,
         **kwargs: Any,
     ) -> ApplyOutput_t[K]:
@@ -346,7 +347,7 @@ class BaseCompoundProblem(BaseProblem, abc.ABC, Generic[K, B]):
         ):
             problem = self.problems[src, tgt]
             fun = problem.push if forward else problem.pull
-            res[src] = fun(data=data, **kwargs)
+            res[src] = fun(data=data, scale_by_marginals=scale_by_marginals)
         return res if return_all else res[src]
 
     @_apply.register(ExplicitPolicy)
@@ -357,6 +358,7 @@ class BaseCompoundProblem(BaseProblem, abc.ABC, Generic[K, B]):
         target: Optional[K] = None,
         data: Optional[Union[str, ArrayLike]] = None,
         forward: bool = True,
+        scale_by_marginals: bool = False,
         return_all: bool = False,
         **kwargs: Any,
     ) -> ApplyOutput_t[K]:
@@ -378,14 +380,14 @@ class BaseCompoundProblem(BaseProblem, abc.ABC, Generic[K, B]):
         for _src, _tgt in [(src, tgt)] + rest:
             problem = self.problems[_src, _tgt]
             fun = problem.push if forward else problem.pull
-            res[_tgt if forward else _src] = current_mass = fun(current_mass, **kwargs)
+            res[_tgt if forward else _src] = current_mass = fun(current_mass, scale_by_marginals=scale_by_marginals)
 
         return res if return_all else current_mass
 
     # TODO(michalk8): better description of `source/target` (also in other places).
     def push(self, *args: Any, **kwargs: Any) -> ApplyOutput_t[K]:
         """Push mass from source to target.
-        
+
         TODO.
         """
         _ = kwargs.pop("return_data", None)
