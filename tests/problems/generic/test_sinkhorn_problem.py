@@ -36,9 +36,7 @@ class TestSinkhornProblem:
     @pytest.mark.fast()
     @pytest.mark.parametrize("policy", ["sequential", "pairwise", "star"])
     def test_prepare(self, adata_time: AnnData, policy):
-        expected_keys = {"sequential":[(0, 1), (1, 2)], 
-                         "pairwise":[(0, 1), (0, 2), (1, 2)], 
-                         "star":[(0, 1), (0, 2)]}
+        expected_keys = {"sequential": [(0, 1), (1, 2)], "pairwise": [(0, 1), (0, 2), (1, 2)], "star": [(0, 1), (0, 2)]}
         problem = SinkhornProblem(adata=adata_time)
 
         assert len(problem) == 0
