@@ -166,12 +166,12 @@ class TestBaseAnalysisMixin:
         )
 
     @pytest.mark.parametrize("corr_method", ["pearson", "spearman"])
-    @pytest.mark.parametrize("significance_method", ["fischer", "perm_test"])
+    @pytest.mark.parametrize("significance_method", ["fisher", "perm_test"])
     def test_compute_feature_correlation(
         self,
         adata_time: AnnData,
         corr_method: Literal["pearson", "spearman"],
-        significance_method: Literal["fischer", "perm_test"],
+        significance_method: Literal["fisher", "perm_test"],
     ):
         key_added = "test"
         rng = np.random.RandomState(42)
@@ -201,13 +201,13 @@ class TestBaseAnalysisMixin:
 
     @pytest.mark.parametrize("corr_method", ["pearson", "spearman"])
     @pytest.mark.parametrize("features", [10, None])
-    @pytest.mark.parametrize("method", ["fischer", "perm_test"])
+    @pytest.mark.parametrize("method", ["fisher", "perm_test"])
     def test_compute_feature_correlation_subset(
         self,
         adata_time: AnnData,
         features: Optional[int],
         corr_method: Literal["pearson", "spearman"],
-        method: Literal["fischer", "perm_test"],
+        method: Literal["fisher", "perm_test"],
     ):
         key_added = "test"
         rng = np.random.RandomState(42)

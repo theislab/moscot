@@ -22,7 +22,7 @@ from moscot.problems.generic._mixins import GenericAnalysisMixin
 __all__ = ["SinkhornProblem", "GWProblem"]
 
 
-class SinkhornProblem(GenericAnalysisMixin[K, B], CompoundProblem[K, B]):
+class SinkhornProblem(GenericAnalysisMixin[K, B], CompoundProblem[K, B]):  # type: ignore[misc]
     """Class for solving a :term:`linear problem`.
 
     Parameters
@@ -238,7 +238,7 @@ class SinkhornProblem(GenericAnalysisMixin[K, B], CompoundProblem[K, B]):
         return _constants.SEQUENTIAL, _constants.EXPLICIT  # type: ignore[return-value]
 
 
-class GWProblem(GenericAnalysisMixin[K, B], CompoundProblem[K, B]):
+class GWProblem(GenericAnalysisMixin[K, B], CompoundProblem[K, B]):  # type: ignore[misc]
     """Class for solving the :term:`GW <Gromov-Wasserstein>` or :term:`FGW <fused Gromov-Wasserstein>` problems.
 
     Parameters
@@ -358,7 +358,7 @@ class GWProblem(GenericAnalysisMixin[K, B], CompoundProblem[K, B]):
         xy, kwargs = handle_joint_attr(joint_attr, kwargs)
         x = set_quad_defaults(x_attr)
         y = set_quad_defaults(y_attr)
-        xy, x, y = handle_cost(xy=xy, x=x, y=y, cost=cost, cost_kwargs=cost_kwargs)
+        xy, x, y = handle_cost(xy=xy, x=x, y=y, cost=cost, cost_kwargs=cost_kwargs)  # type: ignore[arg-type]
         return super().prepare(  # type: ignore[return-value]
             key=key,
             xy=xy,

@@ -262,7 +262,7 @@ class TestCompoundProblem:
         if os.path.exists(file):
             os.remove(file)
         problem = Problem(adata=adata_time)
-        problem = problem.prepare(xy={"x_attr": "X", "y_attr": "X"}, key="time")
+        problem = problem.prepare(policy="sequential", xy={"x_attr": "X", "y_attr": "X"}, key="time")
         problem = problem.solve(max_iterations=10)
         problem.save(dir_path=dir_path, file_prefix=file_prefix)
 

@@ -176,7 +176,7 @@ class BaseProblem(abc.ABC):
         return data
 
     @property
-    def stage(self) -> Literal["initializer", "prepared", "solved"]:
+    def stage(self) -> Literal["initialized", "prepared", "solved"]:
         """Problem stage."""
         return self._stage
 

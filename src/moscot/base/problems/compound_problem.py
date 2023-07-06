@@ -383,105 +383,26 @@ class BaseCompoundProblem(BaseProblem, abc.ABC, Generic[K, B]):
         return res if return_all else current_mass
 
     # TODO(michalk8): better description of `source/target` (also in other places).
-    def push(
-        self,
-        source: Optional[K] = None,
-        target: Optional[K] = None,
-        data: Optional[Union[str, ArrayLike]] = None,
-        key_added: Optional[str] = None,
-        return_all: bool = False,
-        **kwargs: Any,
-    ) -> ApplyOutput_t[K]:
+    def push(self, *args: Any, **kwargs: Any) -> ApplyOutput_t[K]:
         """Push mass from source to target.
-
-        Depends on the underlying policy:
-
-        - :class:`~moscot.utils.subset_policy.SequentialPolicy`/:class:`~moscot.utils.subset_policy.TriangularPolicy`/
-          :class:`~moscot.utils.subset_policy.ExplicitPolicy` - TODO(michalk8)
-        - :class:`~moscot.utils.subset_policy.StarPolicy` - TODO(michalk8)
-
-        Parameters
-        ----------
-        source
-            Source key in :attr:`solutions`.
-        target
-            Target key in :attr:`solutions`.
-        data
-            Initial data to push, see :meth:`~moscot.base.problems.OTProblem.push` for information.
-        key_added
-            Key in :attr:`~anndata.AnnData.obs` where to add the result.
-        return_all
-            Whether to also return intermediate results. Always true if ``key_added != None``.
-        kwargs
-            Keyword arguments for the subproblems' :meth:`~moscot.base.problems.OTProblem.push` method.
-
-        Returns
-        -------
-        Depending on the ``key_added``:
-
-        - :obj:`None` - returns the result.
-        - :obj:`str` - returns nothing and updates :attr:`obs['{key_added}'] <anndata.AnnData.obs>`
-          with the result.
+        TODO.
         """
-        return_all = return_all or key_added is not None
-        metadata = locals()
-        _ = metadata.pop("return_all", None)
-        _ = metadata.pop("forward", None)
-
-        result = self._apply(source, target, data=data, return_all=return_all, forward=True, **kwargs)
-        if key_added is None:
-            return result
-        return self._save_apply_result(result, metadata, forward=True)
+        _ = kwargs.pop("return_data", None)
+        _ = kwargs.pop("key_added", None)  # this should be handled by overriding method
+        return self._apply(*args, forward=True, **kwargs)
 
     def pull(
         self,
-        source: Optional[K] = None,
-        target: Optional[K] = None,
-        data: Optional[Union[str, ArrayLike]] = None,
-        key_added: Optional[str] = None,
-        return_all: bool = False,
+        *args: Any,
         **kwargs: Any,
     ) -> ApplyOutput_t[K]:
         """Pull mass from target to source.
 
-        Depends on the underlying policy:
-
-        - :class:`~moscot.utils.subset_policy.SequentialPolicy`/:class:`~moscot.utils.subset_policy.TriangularPolicy`/
-          :class:`~moscot.utils.subset_policy.ExplicitPolicy` - TODO(michalk8)
-        - :class:`~moscot.utils.subset_policy.StarPolicy` - TODO(michalk8)
-
-        Parameters
-        ----------
-        source
-            Source key in :attr:`solutions`.
-        target
-            Target key in :attr:`solutions`.
-        data
-            Initial data to pull, see :meth:`~moscot.base.problems.OTProblem.pull` for information.
-        key_added
-            Key in :attr:`~anndata.AnnData.obs` where to add the result.
-        return_all
-            Whether to also return intermediate results. Always true if ``key_added != None``.
-        kwargs
-            Keyword arguments for the subproblems' :meth:`~moscot.base.problems.OTProblem.pull` method.
-
-        Returns
-        -------
-        Depending on the ``key_added``:
-
-        - :obj:`None` - returns the result.
-        - :obj:`str` - returns nothing and updates :attr:`obs['{key_added}'] <anndata.AnnData.obs>`
-          with the result.
+        TODO
         """
-        return_all = return_all or key_added is not None
-        metadata = locals()
-        _ = metadata.pop("return_all", None)
-        _ = metadata.pop("forward", None)
-
-        result = self._apply(source, target, data=data, return_all=return_all, forward=False, **kwargs)
-        if key_added is None:
-            return result
-        return self._save_apply_result(result, metadata, forward=False)
+        _ = kwargs.pop("return_data", None)
+        _ = kwargs.pop("key_added", None)  # this should be handled by overriding method
+        return self._apply(*args, forward=False, **kwargs)
 
     @property
     def problems(self) -> Dict[Tuple[K, K], B]:

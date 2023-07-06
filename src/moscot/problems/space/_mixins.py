@@ -183,7 +183,7 @@ class SpatialAlignmentMixin(AnalysisMixin[K, B]):
             spatial_key = self.spatial_key
 
         aligned_maps, aligned_metadata = self._interpolate_scheme(
-            reference=reference, mode=mode, spatial_key=spatial_key
+            reference=reference, mode=mode, spatial_key=spatial_key  # type: ignore[arg-type]
         )
         aligned_basis = np.vstack([aligned_maps[k] for k in self._policy._cat])
 
@@ -482,7 +482,7 @@ class SpatialMappingMixin(AnalysisMixin[K, B]):
             res.append(out)
 
         res = pd.concat(res, axis=0)
-        res[self.batch_key] = res[self.batch_key].astype("category")
+        res[self.batch_key] = res[self.batch_key].astype("category")  # type: ignore[arg-type]
         return res
 
     def cell_transition(  # type: ignore[misc]

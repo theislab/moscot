@@ -32,7 +32,7 @@ from moscot.utils.tagged_array import Tag
 __all__ = ["TemporalMixin"]
 
 
-class TemporalMixinProtocol(AnalysisMixinProtocol[K, B], Protocol[K, B]):
+class TemporalMixinProtocol(AnalysisMixinProtocol[K, B], Protocol[K, B]):  # type: ignore[arg-type, misc]
     adata: AnnData
     problems: Dict[Tuple[K, K], BirthDeathProblem]
     temporal_key: Optional[str]
@@ -881,7 +881,7 @@ class TemporalMixin(AnalysisMixin[K, B]):
                     **kwargs,
                 )
             )
-        return np.mean(dist)
+        return np.mean(dist)  # type: ignore[return-value]
 
     # TODO(@MUCDK) possibly offer two alternatives, once exact EMD with POT backend and once approximate,
     # faster with same solver as used for original problems

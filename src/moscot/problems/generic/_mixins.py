@@ -153,8 +153,8 @@ class GenericAnalysisMixin(AnalysisMixin[K, B]):
         """
         # TODO(michalk8): consider not overriding + update the defaults in `BaseCompoundProblem` + implement _post_apply
         data = locals()
-        _ = data.pop("kwargs", None)
-        return super().push(**data, **kwargs)
+        _ = data.pop("kwargs", None)  # type: ignore[union-attr]
+        return super().push(**data, **kwargs)  # type: ignore[arg-type]
 
     def pull(
         self: GenericAnalysisMixinProtocol[K, B],
@@ -199,7 +199,7 @@ class GenericAnalysisMixin(AnalysisMixin[K, B]):
         # TODO(michalk8): consider not overriding + update the defaults in `BaseCompoundProblem` + implement _post_apply
         data = locals()
         _ = data.pop("kwargs", None)  # type: ignore[union-attr]
-        return super().pull(**data, **kwargs)
+        return super().pull(**data, **kwargs)  # type: ignore[arg-type]
 
     @property
     def batch_key(self: GenericAnalysisMixinProtocol[K, B]) -> Optional[str]:

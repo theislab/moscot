@@ -146,7 +146,7 @@ class SpatioTemporalProblem(
             spatial_key=spatial_key,
             batch_key=time_key,
             joint_attr=joint_attr,
-            policy=policy,
+            policy=policy,  # type: ignore[misc]
             reference=None,
             cost=cost,
             cost_kwargs=cost_kwargs,
@@ -158,7 +158,7 @@ class SpatioTemporalProblem(
 
     def solve(
         self,
-        alpha: Optional[float] = 0.5,
+        alpha: float = 0.5,
         epsilon: Optional[float] = 1e-3,
         tau_a: float = 1.0,
         tau_b: float = 1.0,
