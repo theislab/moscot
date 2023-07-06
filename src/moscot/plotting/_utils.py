@@ -1,6 +1,7 @@
 import collections
 import contextlib
 import copy
+import pathlib
 import types
 from typing import (
     TYPE_CHECKING,
@@ -210,7 +211,7 @@ def _heatmap(
     fontsize: float = 7.0,
     figsize: Optional[Tuple[float, float]] = None,
     dpi: Optional[int] = None,
-    save: Optional[str] = None,
+    save: Optional[Union[str, pathlib.Path]] = None,
     cbar_kwargs: Mapping[str, Any] = types.MappingProxyType({}),
     ax: Optional[mpl.axes.Axes] = None,
     **kwargs: Any,
@@ -395,7 +396,7 @@ def _plot_temporal(
     dpi: Optional[int] = None,
     dot_scale_factor: float = 2.0,
     na_color: str = "#e8ebe9",
-    save: Optional[str] = None,
+    save: Optional[Union[str, pathlib.Path]] = None,
     ax: Optional[mpl.axes.Axes] = None,
     suptitle_fontsize: Optional[float] = None,
     **kwargs: Any,

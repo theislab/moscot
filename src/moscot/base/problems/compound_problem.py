@@ -116,10 +116,6 @@ class BaseCompoundProblem(BaseProblem, abc.ABC, Generic[K, B]):
     def _valid_policies(self) -> Tuple[Policy_t, ...]:
         """Valid policies for this problem."""
 
-    @abc.abstractmethod
-    def _save_apply_result(self, result: Dict[str, Any], metadata: Dict[str, Any], *, forward: bool) -> None:
-        """Save the result of :meth:`push` or :meth:`pull`."""
-
     def _callback_handler(
         self,
         term: Literal["xy", "x", "y"],

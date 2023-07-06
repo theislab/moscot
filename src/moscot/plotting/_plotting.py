@@ -212,7 +212,7 @@ def sankey(
 
 
 def push(
-    obj: Union[AnnData, "CompoundProblem"],
+    obj: Union[AnnData, "CompoundProblem"],  # type: ignore[type-arg]
     key: str = _constants.PUSH,
     basis: str = "umap",
     time_points: Optional[Sequence[float]] = None,
@@ -320,7 +320,7 @@ def push(
 
 
 def pull(
-    obj: Union[AnnData, "CompoundProblem"],
+    obj: Union[AnnData, "CompoundProblem"],  # type: ignore[type-arg]
     key: str = _constants.PULL,
     basis: str = "umap",
     time_points: Optional[Sequence[float]] = None,

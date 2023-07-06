@@ -198,7 +198,7 @@ class GenericAnalysisMixin(AnalysisMixin[K, B]):
         """
         # TODO(michalk8): consider not overriding + update the defaults in `BaseCompoundProblem` + implement _post_apply
         data = locals()
-        _ = data.pop("kwargs", None)
+        _ = data.pop("kwargs", None)  # type: ignore[union-attr]
         return super().pull(**data, **kwargs)
 
     @property
