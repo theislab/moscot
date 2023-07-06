@@ -43,11 +43,7 @@ class TestSinkhornProblem:
         assert problem.problems == {}
         assert problem.solutions == {}
 
-        problem = problem.prepare(
-            key="time",
-            policy=policy,
-            reference=0
-        )
+        problem = problem.prepare(key="time", policy=policy, reference=0)
 
         assert isinstance(problem.problems, dict)
         assert len(problem.problems) == len(expected_keys[policy])
