@@ -76,6 +76,7 @@ class MappingProblem(SpatialMappingMixin[K, OTProblem], CompoundProblem[K, OTPro
         batch_key: Optional[str] = None,
         spatial_key: Union[str, Mapping[str, Any]] = "spatial",
         var_names: Optional[Sequence[str]] = None,
+        normalize_spatial: bool = True,
         joint_attr: Optional[Union[str, Mapping[str, Any]]] = None,
         cost: OttCostFnMap_t = "sq_euclidean",
         cost_kwargs: CostKwargs_t = types.MappingProxyType({}),
@@ -115,6 +116,9 @@ class MappingProblem(SpatialMappingMixin[K, OTProblem], CompoundProblem[K, OTPro
               to the pure :term:`Gromov-Wasserstein` case.
 
             See also the ``joint_attribute`` parameter.
+        normalize_spatial
+            Whether to normalize the spatial coordinates. If `True`, the coordinates are normalized
+            by standardizing them. If `False`, no normalization is performed.
         joint_attr
             How to get the data for the :term:`linear term` in the :term:`fused <fused Gromov-Wasserstein>` case:
 
@@ -124,8 +128,6 @@ class MappingProblem(SpatialMappingMixin[K, OTProblem], CompoundProblem[K, OTPro
             - :class:`dict`-  it should contain ``'attr'`` and ``'key'``, the attribute and key in
               :class:`~anndata.AnnData`, and optionally ``'tag'`` from the
               :class:`tags <moscot.utils.tagged_array.Tag>`.
-
-            By default, :attr:`tag = 'point_cloud' <moscot.utils.tagged_array.Tag.POINT_CLOUD>` is used.
         cost
             Cost function to use. Valid options are:
 
@@ -167,6 +169,13 @@ class MappingProblem(SpatialMappingMixin[K, OTProblem], CompoundProblem[K, OTPro
         - :attr:`stage` - set to ``'prepared'``.
         - :attr:`problem_kind` - set to ``'quadratic'``.
         """
+        x = {"attr": "obsm", "key": spatial_key} if isinstance(spatial_key, str) else spatial_key
+        y = {"attr": "obsm", "key": sc_attr} if isinstance(sc_attr, str) else sc_attr
+
+        if normalize_spatial and "x_callback" not in kwargs:
+            kwargs["x_callback"] = "spatial-norm"
+            kwargs.setdefault("x_callback_kwargs", {"spatial_key": spatial_key})
+
         self.batch_key = batch_key
         self.spatial_key = spatial_key if isinstance(spatial_key, str) else spatial_key["key"]
         self.filtered_vars = var_names
