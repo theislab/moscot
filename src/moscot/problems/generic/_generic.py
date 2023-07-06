@@ -41,7 +41,7 @@ class SinkhornProblem(GenericAnalysisMixin[K, B], CompoundProblem[K, B]):
         self,
         key: str,
         joint_attr: Optional[Union[str, Mapping[str, Any]]] = None,
-        policy: Literal["sequential", "pairwise", "explicit"] = "sequential",
+        policy: Literal["sequential", "pairwise", "explicit", "star"] = "sequential",
         cost: OttCostFn_t = "sq_euclidean",
         cost_kwargs: CostKwargs_t = types.MappingProxyType({}),
         a: Optional[str] = None,
@@ -166,7 +166,8 @@ class SinkhornProblem(GenericAnalysisMixin[K, B], CompoundProblem[K, B]):
 
     @property
     def _valid_policies(self) -> Tuple[Policy_t, ...]:
-        return _constants.SEQUENTIAL, _constants.PAIRWISE, _constants.EXPLICIT, _constants.STAR  # type: ignore[return-value]
+        return _constants.SEQUENTIAL, _constants.PAIRWISE, _constants.EXPLICIT, _constants.STAR
+            # type: ignore[return-value]
 
 
 @d.get_sections(base="GWProblem", sections=["Parameters"])
@@ -190,7 +191,7 @@ class GWProblem(GenericAnalysisMixin[K, B], CompoundProblem[K, B]):
         x_attr: Union[str, Mapping[str, Any]],
         y_attr: Union[str, Mapping[str, Any]],
         joint_attr: Optional[Union[str, Mapping[str, Any]]] = None,
-        policy: Literal["sequential", "pairwise", "explicit"] = "sequential",
+        policy: Literal["sequential", "pairwise", "explicit", "star"] = "sequential",
         cost: OttCostFnMap_t = "sq_euclidean",
         cost_kwargs: CostKwargs_t = types.MappingProxyType({}),
         a: Optional[str] = None,

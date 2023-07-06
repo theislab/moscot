@@ -34,8 +34,12 @@ from tests.problems.conftest import (
 
 class TestGWProblem:
     @pytest.mark.fast()
-    def test_prepare(self, adata_space_rotate: AnnData):
-        expected_keys = [("0", "1"), ("1", "2")]
+    @pytest.mark.parametrize("policy", ["sequential", "star"])
+    def test_prepare(self, adata_space_rotate: AnnData, policy):
+        expected_keys = {
+            "sequential": [("0", "1"), ("1", "2")],
+            "star": [("1", "0"), ("2", "0")],
+        }
         problem = GWProblem(adata=adata_space_rotate)
 
         assert len(problem) == 0
@@ -44,16 +48,17 @@ class TestGWProblem:
 
         problem = problem.prepare(
             key="batch",
-            policy="sequential",
+            policy=policy,
+            reference="0",
             x_attr={"attr": "obsm", "key": "spatial"},
             y_attr={"attr": "obsm", "key": "spatial"},
         )
 
         assert isinstance(problem.problems, dict)
-        assert len(problem.problems) == len(expected_keys)
+        assert len(problem.problems) == len(expected_keys[policy])
 
         for key in problem:
-            assert key in expected_keys
+            assert key in expected_keys[policy]
             assert isinstance(problem[key], OTProblem)
 
     def test_solve_balanced(self, adata_space_rotate: AnnData):  # type: ignore[no-untyped-def]
