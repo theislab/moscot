@@ -8,6 +8,7 @@ from moscot import _constants
 from moscot._types import ArrayLike, Str_Dict_t
 from moscot.base.problems._mixins import AnalysisMixin, AnalysisMixinProtocol
 from moscot.base.problems.compound_problem import ApplyOutput_t, B, K
+from moscot.plotting._utils import set_plotting_vars
 
 __all__ = ["GenericAnalysisMixin"]
 
@@ -151,10 +152,30 @@ class GenericAnalysisMixin(AnalysisMixin[K, B]):
         - :class:`str` - returns nothing and updates :attr:`obs['{key_added}'] <anndata.AnnData.obs>`
           with the result.
         """
-        # TODO(michalk8): consider not overriding + update the defaults in `BaseCompoundProblem` + implement _post_apply
-        data = locals()
-        _ = data.pop("kwargs", None)  # type: ignore[union-attr]
-        return super().push(**data, **kwargs)  # type: ignore[arg-type]
+        result = self._apply(
+            source=source,
+            target=target,
+            data=data,
+            subset=subset,
+            forward=True,
+            return_all=return_all or key_added is not None,
+            scale_by_marginals=scale_by_marginals,
+            **kwargs,
+        )
+
+        if TYPE_CHECKING:
+            assert isinstance(result, dict)
+
+        if key_added is not None:
+            if TYPE_CHECKING:
+                assert isinstance(key_added, str)
+            plot_vars = {
+                "distribution_key": self.batch_key,
+            }
+            self.adata.obs[key_added] = self._flatten(result, key=self.batch_key)
+            set_plotting_vars(self.adata, _constants.PUSH, key=key_added, value=plot_vars)
+            return None
+        return result
 
     def pull(
         self: GenericAnalysisMixinProtocol[K, B],
@@ -196,10 +217,27 @@ class GenericAnalysisMixin(AnalysisMixin[K, B]):
         - :class:`str` - returns nothing and updates :attr:`obs['{key_added}'] <anndata.AnnData.obs>`
           with the result.
         """
-        # TODO(michalk8): consider not overriding + update the defaults in `BaseCompoundProblem` + implement _post_apply
-        data = locals()
-        _ = data.pop("kwargs", None)  # type: ignore[union-attr]
-        return super().pull(**data, **kwargs)  # type: ignore[arg-type]
+        result = self._apply(
+            source=source,
+            target=target,
+            data=data,
+            subset=subset,
+            forward=False,
+            return_all=return_all or key_added is not None,
+            scale_by_marginals=scale_by_marginals,
+            **kwargs,
+        )
+        if TYPE_CHECKING:
+            assert isinstance(result, dict)
+
+        if key_added is not None:
+            plot_vars = {
+                "key": self.batch_key,
+            }
+            self.adata.obs[key_added] = self._flatten(result, key=self.batch_key)
+            set_plotting_vars(self.adata, _constants.PULL, key=key_added, value=plot_vars)
+            return None
+        return result
 
     @property
     def batch_key(self: GenericAnalysisMixinProtocol[K, B]) -> Optional[str]:
