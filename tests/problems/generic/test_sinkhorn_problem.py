@@ -34,8 +34,11 @@ from tests.problems.conftest import (
 
 class TestSinkhornProblem:
     @pytest.mark.fast()
-    def test_prepare(self, adata_time: AnnData):
-        expected_keys = [(0, 1), (1, 2)]
+    @pytest.mark.parametrize("policy", ["sequential", "pairwise", "star"])
+    def test_prepare(self, adata_time: AnnData, policy):
+        expected_keys = {"sequential":[(0, 1), (1, 2)], 
+                         "pairwise":[(0, 1), (0, 2), (1, 2)], 
+                         "star":[(0, 1), (0, 2)]}
         problem = SinkhornProblem(adata=adata_time)
 
         assert len(problem) == 0
@@ -44,14 +47,14 @@ class TestSinkhornProblem:
 
         problem = problem.prepare(
             key="time",
-            policy="sequential",
+            policy=policy,
         )
 
         assert isinstance(problem.problems, dict)
-        assert len(problem.problems) == len(expected_keys)
+        assert len(problem.problems) == len(expected_keys[policy])
 
         for key in problem:
-            assert key in expected_keys
+            assert key in expected_keys[policy]
             assert isinstance(problem[key], OTProblem)
 
     def test_solve_balanced(self, adata_time: AnnData):

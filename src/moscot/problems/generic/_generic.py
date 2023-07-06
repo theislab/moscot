@@ -325,4 +325,5 @@ class GWProblem(GenericAnalysisMixin[K, B], CompoundProblem[K, B]):
 
     @property
     def _valid_policies(self) -> Tuple[Policy_t, ...]:
-        return _constants.SEQUENTIAL, _constants.PAIRWISE, _constants.EXPLICIT, _constants.STAR  # type: ignore[return-value]
+        return _constants.SEQUENTIAL, _constants.PAIRWISE, _constants.EXPLICIT, _constants.STAR
+            # type: ignore[return-value]
