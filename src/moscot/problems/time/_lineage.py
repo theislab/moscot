@@ -23,7 +23,7 @@ from moscot.problems.time._mixins import TemporalMixin
 __all__ = ["TemporalProblem", "LineageProblem"]
 
 
-class TemporalProblem(
+class TemporalProblem(  # type: ignore[misc]
     TemporalMixin[Numeric_t, BirthDeathProblem], BirthDeathMixin, CompoundProblem[Numeric_t, BirthDeathProblem]
 ):
     """Class for analyzing time-series single cell data based on :cite:`schiebinger:19`.

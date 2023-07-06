@@ -21,7 +21,7 @@ from moscot.problems.time import TemporalMixin
 __all__ = ["SpatioTemporalProblem"]
 
 
-class SpatioTemporalProblem(
+class SpatioTemporalProblem(  # type: ignore[misc]
     TemporalMixin[Numeric_t, BirthDeathProblem],
     BirthDeathMixin,
     AlignmentProblem[Numeric_t, BirthDeathProblem],

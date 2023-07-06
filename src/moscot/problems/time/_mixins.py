@@ -418,8 +418,8 @@ class TemporalMixin(AnalysisMixin[K, B]):
             }
             self.adata.obs[key_added] = self._flatten(result, key=self.temporal_key)
             set_plotting_vars(self.adata, _constants.PUSH, key=key_added, value=plot_vars)
-        else:
-            return result
+            return None
+        return result
 
     def pull(
         self: TemporalMixinProtocol[K, B],
@@ -484,8 +484,8 @@ class TemporalMixin(AnalysisMixin[K, B]):
             }
             self.adata.obs[key_added] = self._flatten(result, key=self.temporal_key)
             set_plotting_vars(self.adata, _constants.PULL, key=key_added, value=plot_vars)
-        else:
-            return result
+            return None
+        return result
 
     @property
     def prior_growth_rates(self: TemporalMixinProtocol[K, B]) -> Optional[pd.DataFrame]:

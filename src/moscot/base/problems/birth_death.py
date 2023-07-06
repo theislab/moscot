@@ -241,7 +241,7 @@ class BirthDeathProblem(BirthDeathMixin, OTProblem):
         """Prior estimate of the source growth rates."""
         if self._prior_growth is None:
             return None
-        return np.power(self._prior_growth, 1.0 / self.delta)
+        return np.asarray(np.power(self._prior_growth, 1.0 / self.delta))
 
     @property
     def posterior_growth_rates(self) -> Optional[ArrayLike]:
@@ -250,7 +250,7 @@ class BirthDeathProblem(BirthDeathMixin, OTProblem):
             return None
         if self.delta is None:
             return self.solution.a * self.adata.n_obs
-        return (self.solution.a * self._scaling) ** (1.0 / self.delta)
+        return np.asarray(self.solution.a * self._scaling) ** (1.0 / self.delta)
 
     @property
     def delta(self) -> float:
