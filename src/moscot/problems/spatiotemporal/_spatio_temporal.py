@@ -135,8 +135,6 @@ class SpatioTemporalProblem(  # type: ignore[misc]
         # handle_joint_attr and handle_cost in AlignmentProblem
         self.temporal_key = time_key
         marginal_kwargs = dict(marginal_kwargs)
-        marginal_kwargs["proliferation_key"] = self.proliferation_key
-        marginal_kwargs["apoptosis_key"] = self.apoptosis_key
 
         estimate_marginals = self.proliferation_key is not None or self.apoptosis_key is not None
         a = estimate_marginals if a is None else a

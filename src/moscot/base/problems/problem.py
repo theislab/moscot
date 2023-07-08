@@ -608,10 +608,16 @@ class OTProblem(BaseProblem):
         return {term: TaggedArray(spatial, tag=Tag.POINT_CLOUD)}
 
     def _create_marginals(
-        self, adata: AnnData, *, source: bool, data: Optional[Union[bool, str, ArrayLike]] = None, **kwargs: Any
+        self,
+        adata: AnnData,
+        *,
+        source: bool,
+        data: Optional[Union[bool, str, ArrayLike]] = None,
+        marginal_kwargs: Dict[str, Any] = types.MappingProxyType({}),
+        **kwargs: Any,
     ) -> ArrayLike:
         if data is True:
-            marginals = self.estimate_marginals(adata, source=source, **kwargs)
+            marginals = self.estimate_marginals(adata, source=source, **marginal_kwargs, **kwargs)
         elif data is False or data is None:
             marginals = np.ones((adata.n_obs,), dtype=float) / adata.n_obs
         elif isinstance(data, str):

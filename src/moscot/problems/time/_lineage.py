@@ -127,9 +127,6 @@ class TemporalProblem(  # type: ignore[misc]
         xy, x, y = handle_cost(xy=xy, x=kwargs.pop("x", {}), y=kwargs.pop("y", {}), cost=cost, cost_kwargs=cost_kwargs)
 
         marginal_kwargs = dict(marginal_kwargs)
-        marginal_kwargs["proliferation_key"] = self.proliferation_key
-        marginal_kwargs["apoptosis_key"] = self.apoptosis_key
-
         estimate_marginals = self.proliferation_key is not None or self.apoptosis_key is not None
         a = estimate_marginals if a is None else a
         b = estimate_marginals if b is None else b
