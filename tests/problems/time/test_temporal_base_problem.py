@@ -60,7 +60,9 @@ class TestBirthDeathProblem:
                     adata, source=source, proliferation_key=proliferation_key, apoptosis_key=apoptosis_key
                 )
         elif proliferation_key is None and apoptosis_key is None:
-            with pytest.raises(ValueError, match=r"At least one of `proliferation_key` or `apoptosis_key` must be specified"):
+            with pytest.raises(
+                ValueError, match=r"At least one of `proliferation_key` or `apoptosis_key` must be specified"
+            ):
                 _ = prob.estimate_marginals(
                     adata, source=source, proliferation_key=proliferation_key, apoptosis_key=apoptosis_key
                 )

@@ -18,6 +18,7 @@ import cloudpickle
 import numpy as np
 import pandas as pd
 import scipy.sparse as sp
+from pandas.api import types as pd_types
 from sklearn.preprocessing import StandardScaler
 
 import scanpy as sc
@@ -156,7 +157,11 @@ class BaseProblem(abc.ABC):
                 raise TypeError(f"Unable to interpret subset of type `{type(subset)}`.")
         elif not hasattr(data, "shape"):
             if subset is None:  # allow for numeric values
-                data = np.asarray(adata.obs[data], dtype=float)
+                data = (
+                    np.asarray(adata.obs[data], dtype=float)
+                    if pd_types.is_numeric_dtype(adata.obs[data])
+                    else np.ones((adata.n_obs,), dtype=float)
+                )
             else:
                 sset = subset if isinstance(subset, list) else [subset]  # type:ignore[list-item]
                 data = np.asarray(adata.obs[data].isin(sset), dtype=float)
