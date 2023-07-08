@@ -213,7 +213,6 @@ class BaseCompoundProblem(BaseProblem, abc.ABC, Generic[K, B]):
 
         .. seealso::
             - See :doc:`../notebooks/examples/problems/400_subset_policy` on how to use different policies.
-            - See :doc:`../notebooks/examples/problems/900_callbacks` on how to pass the callback functions.
 
         Parameters
         ----------
