@@ -24,11 +24,11 @@ SinkhornInitializer_t = Optional[Union[SinkFullRankInit, LRInitializer_t]]
 QuadInitializer_t = Optional[LRInitializer_t]
 
 Initializer_t = Union[SinkhornInitializer_t, LRInitializer_t]
-ProblemStage_t = Literal["initialized", "prepared", "solved"]
+ProblemStage_t = Literal["prepared", "solved"]
 Device_t = Union[Literal["cpu", "gpu", "tpu"], str]
 
 # TODO(michalk8): autogenerate from the enums
-ScaleCost_t = Optional[Union[float, Literal["mean", "max_cost", "max_bound", "max_norm", "median"]]]
+ScaleCost_t = Union[float, Literal["mean", "max_cost", "max_bound", "max_norm", "median"]]
 OttCostFn_t = Literal[
     "euclidean",
     "sq_euclidean",
@@ -42,7 +42,7 @@ OttCostFn_t = Literal[
     "ElasticSTVS",
     "ElasticSqKOverlap",
 ]
-OttCostFnMap_t = Union[OttCostFn_t, Mapping[str, OttCostFn_t]]
+OttCostFnMap_t = Union[OttCostFn_t, Mapping[Literal["xy", "x", "y"], OttCostFn_t]]
 GenericCostFn_t = Literal["barcode_distance", "leaf_distance", "custom"]
 CostFn_t = Union[str, GenericCostFn_t, OttCostFn_t]
 CostFnMap_t = Union[Union[OttCostFn_t, GenericCostFn_t], Mapping[str, Union[OttCostFn_t, GenericCostFn_t]]]
@@ -51,8 +51,8 @@ Policy_t = Literal[
     "sequential",
     "star",
     "external_star",
+    "explicit",
     "triu",
     "tril",
-    "explicit",
 ]
 CostKwargs_t = Union[Mapping[str, Any], Mapping[Literal["x", "y", "xy"], Mapping[str, Any]]]

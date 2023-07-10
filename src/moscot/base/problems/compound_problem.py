@@ -1,6 +1,5 @@
 import abc
-import os
-from types import MappingProxyType
+import types
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -19,13 +18,10 @@ from typing import (
     Union,
 )
 
-import cloudpickle
-
 import scipy.sparse as sp
 
 from anndata import AnnData
 
-from moscot._docs._docs import d
 from moscot._logging import logger
 from moscot._types import ArrayLike, Policy_t, ProblemStage_t
 from moscot.base.output import BaseSolverOutput
@@ -51,26 +47,19 @@ Callback_t = Callable[
     [Literal["xy", "x", "y"], AnnData, Optional[AnnData]], Mapping[Literal["xy", "x", "y"], TaggedArray]
 ]
 ApplyOutput_t = Union[ArrayLike, Dict[K, ArrayLike]]
-# TODO(michalk8): future behavior
-# ApplyOutput_t = Union[ArrayLike, Dict[Tuple[K, K], ArrayLike]]
 
 
-@d.get_sections(base="BaseCompoundProblem", sections=["Parameters", "Raises"])
-@d.dedent
 class BaseCompoundProblem(BaseProblem, abc.ABC, Generic[K, B]):
-    """
-    Base class for all biological problems.
+    """Base class for all biological problems.
 
-    This base class translates a biological problem to potentially multiple Optimal Transport problems.
+    This class translates a biological problem to multiple :term:`OT` problems.
 
     Parameters
     ----------
-    %(adata)s
-
-    Raises
-    ------
-    TypeError
-        If `base_problem_type` is not a subclass of :class:`~moscot.base.problems.OTProblem`.
+    adata
+        Annotated data object.
+    kwargs
+        Keyword arguments for :class:`~moscot.base.problems.BaseProblem`.
     """
 
     def __init__(self, adata: AnnData, **kwargs: Any):
@@ -80,7 +69,25 @@ class BaseCompoundProblem(BaseProblem, abc.ABC, Generic[K, B]):
 
     @abc.abstractmethod
     def _create_problem(self, src: K, tgt: K, src_mask: ArrayLike, tgt_mask: ArrayLike, **kwargs: Any) -> B:
-        pass
+        """Create an :term:`OT` subproblem.
+
+        Parameters
+        ----------
+        src
+            Source key identifying the subproblem.
+        tgt
+            Target key identifying the subproblem.
+        src_mask
+            Source mask used to subset :attr:`adata`.
+        tgt_mask
+            Target mask used to subset :attr:`adata`.
+        kwargs
+            Additional keyword arguments.
+
+        Returns
+        -------
+        The subproblem.
+        """
 
     @abc.abstractmethod
     def _create_policy(
@@ -88,17 +95,30 @@ class BaseCompoundProblem(BaseProblem, abc.ABC, Generic[K, B]):
         policy: Policy_t,
         **kwargs: Any,
     ) -> SubsetPolicy[K]:
-        pass
+        """Create a policy used to split :attr:`adata`.
+
+        Only policies specified by :attr:`_valid_policies` will be passed to this function.
+
+        Parameters
+        ----------
+        policy
+            Name of the policy.
+        kwargs
+            Keyword arguments for :class:`~moscot.utils.subset_policy.SubsetPolicy`.
+
+        Returns
+        -------
+        The policy.
+        """
 
     @property
     @abc.abstractmethod
     def _valid_policies(self) -> Tuple[Policy_t, ...]:
-        pass
+        """Valid policies for this problem."""
 
-    # TODO(michalk8): refactor me
     def _callback_handler(
         self,
-        term: Literal["x", "y", "xy"],
+        term: Literal["xy", "x", "y"],
         key_1: K,
         key_2: K,
         problem: B,
@@ -133,9 +153,9 @@ class BaseCompoundProblem(BaseProblem, abc.ABC, Generic[K, B]):
         xy_callback: Optional[Union[Literal["local-pca"], Callback_t]] = None,
         x_callback: Optional[Union[Literal["local-pca"], Callback_t]] = None,
         y_callback: Optional[Union[Literal["local-pca"], Callback_t]] = None,
-        xy_callback_kwargs: Mapping[str, Any] = MappingProxyType({}),
-        x_callback_kwargs: Mapping[str, Any] = MappingProxyType({}),
-        y_callback_kwargs: Mapping[str, Any] = MappingProxyType({}),
+        xy_callback_kwargs: Mapping[str, Any] = types.MappingProxyType({}),
+        x_callback_kwargs: Mapping[str, Any] = types.MappingProxyType({}),
+        y_callback_kwargs: Mapping[str, Any] = types.MappingProxyType({}),
         **kwargs: Any,
     ) -> Dict[Tuple[K, K], B]:
         from moscot.base.problems.birth_death import BirthDeathProblem
@@ -175,43 +195,59 @@ class BaseCompoundProblem(BaseProblem, abc.ABC, Generic[K, B]):
 
         return problems
 
-    @d.get_sections(base="BaseCompoundProblem_prepare", sections=["Parameters", "Raises"])
-    @d.dedent
     def prepare(
         self,
-        key: str,
-        policy: Policy_t = "sequential",
+        policy: Policy_t,
+        key: Optional[str],
         subset: Optional[Sequence[Tuple[K, K]]] = None,
         reference: Optional[Any] = None,
         xy_callback: Optional[Union[Literal["local-pca"], Callback_t]] = None,
         x_callback: Optional[Union[Literal["local-pca"], Callback_t]] = None,
         y_callback: Optional[Union[Literal["local-pca"], Callback_t]] = None,
-        xy_callback_kwargs: Mapping[str, Any] = MappingProxyType({}),
-        x_callback_kwargs: Mapping[str, Any] = MappingProxyType({}),
-        y_callback_kwargs: Mapping[str, Any] = MappingProxyType({}),
+        xy_callback_kwargs: Mapping[str, Any] = types.MappingProxyType({}),
+        x_callback_kwargs: Mapping[str, Any] = types.MappingProxyType({}),
+        y_callback_kwargs: Mapping[str, Any] = types.MappingProxyType({}),
         **kwargs: Any,
     ) -> "BaseCompoundProblem[K, B]":
-        """
-        Prepare the biological problem.
+        """Prepare the individual :term:`OT` subproblems.
+
+        .. seealso::
+            - See :doc:`../notebooks/examples/problems/400_subset_policy` on how to use different policies.
 
         Parameters
         ----------
-        %(key)s
-        %(policy)s
-        %(subset)s
-        %(reference)s
-        %(xy_callback)s
-        %(x_callback)s
-        %(y_callback)s
-        %(xy_callback_kwargs)s
-        %(x_callback_kwargs)s
-        %(y_callback_kwargs)s
-        %(a)s
-        %(b)s
+        policy
+            Rule which defines how to construct the subproblems.
+        key
+            Key in :attr:`~anndata.AnnData.obs` for the :class:`~moscot.utils.subset_policy.SubsetPolicy`.
+        subset
+            Subset of :attr:`obs['{key}'] <anndata.AnnData.obs>`
+            for the :class:`~moscot.utils.subset_policy.ExplicitPolicy`. Only used when ``policy = 'explicit'``.
+        reference
+            Reference for the :class:`~moscot.utils.subset_policy.SubsetPolicy`. Only used when ``policy = 'star'``.
+        xy_callback
+            Callback function used to prepare the data in the :term:`linear term`.
+        x_callback
+            Callback function used to prepare the data in the source :term:`quadratic term`.
+        y_callback
+            Callback function used to prepare the data in the target :term:`quadratic term`.
+        xy_callback_kwargs
+            Keyword arguments for the ``xy_callback``.
+        x_callback_kwargs
+            Keyword arguments for the ``x_callback``.
+        y_callback_kwargs
+            Keyword arguments for the ``y_callback``.
+        kwargs
+            Keyword arguments for the subproblems' :meth:`~moscot.base.problems.OTProblem.prepare` method.
 
         Returns
         -------
-        The prepared problem.
+        Returns self and updates the following fields:
+
+        - :attr:`problems` - the prepared subproblems.
+        - :attr:`solutions` - set to an empty :class:`dict`.
+        - :attr:`stage` - set to ``'prepared'``.
+        - :attr:`problem_kind` - kind of the :term:`OT` problem.
         """
         self._ensure_valid_policy(policy)
         policy = self._create_policy(policy=policy, key=key)
@@ -219,11 +255,11 @@ class BaseCompoundProblem(BaseProblem, abc.ABC, Generic[K, B]):
             assert isinstance(policy, SubsetPolicy)
 
         if isinstance(policy, ExplicitPolicy):
-            policy = policy(subset=subset)
+            policy = policy.create_graph(subset=subset)
         elif isinstance(policy, StarPolicy):
-            policy = policy(reference=reference)
+            policy = policy.create_graph(reference=reference)
         else:
-            policy = policy()
+            policy = policy.create_graph()
 
         # TODO(michalk8): manager must be currently instantiated first, since `_create_problems` accesses the policy
         # when refactoring the callback, consider changing this
@@ -239,8 +275,10 @@ class BaseCompoundProblem(BaseProblem, abc.ABC, Generic[K, B]):
         )
         self._problem_manager.add_problems(problems)
 
+        # we assume that all subproblems are of the same kind
         for p in self.problems.values():
             self._problem_kind = p._problem_kind
+            self._stage = "prepared"
             break
         return self
 
@@ -248,78 +286,78 @@ class BaseCompoundProblem(BaseProblem, abc.ABC, Generic[K, B]):
         self,
         stage: Union[ProblemStage_t, Tuple[ProblemStage_t, ...]] = ("prepared", "solved"),
         **kwargs: Any,
-    ) -> "BaseCompoundProblem[K,B]":
-        """
-        Solve the biological problem.
+    ) -> "BaseCompoundProblem[K, B]":
+        """Solve the individual :term:`OT` subproblems.
+
+        .. seealso:
+            - TODO(michalk8): link an example/tutorial
 
         Parameters
         ----------
         stage
-            Some stage TODO.
+            Stage by which to filter the :attr:`problems` to be solved.
         kwargs
-            Keyword arguments for :meth:`~moscot.base.problems.OTProblem.solve`.
+            Keyword arguments for the subproblems' :meth:`~moscot.base.problems.OTProblem.solve` method.
 
         Returns
         -------
-        The solver problem.
+        Returns self and updates the following fields:
+
+        - :attr:`solutions` - the :term:`OT` solutions for each subproblem.
+        - :attr:`stage` - set to ``'solved'``.
         """
         if TYPE_CHECKING:
             assert isinstance(self._problem_manager, ProblemManager)
         problems = self._problem_manager.get_problems(stage=stage)
 
         logger.info(f"Solving `{len(problems)}` problems")
-        for _, problem in problems.items():
+        for problem in problems.values():
             logger.info(f"Solving problem {problem}.")
             _ = problem.solve(**kwargs)
 
+        self._stage = "solved"
         return self
 
     @attributedispatch(attr="_policy")
-    def _apply(
-        self,
-        data: Optional[Union[str, ArrayLike]] = None,
-        forward: bool = True,
-        scale_by_marginals: bool = False,
-        **kwargs: Any,
-    ) -> ApplyOutput_t[K]:
+    def _apply(self, *_args: Any, **_kwargs: Any) -> ApplyOutput_t[K]:
         raise NotImplementedError(type(self._policy))
 
     @_apply.register(DummyPolicy)
     @_apply.register(StarPolicy)
     def _(
         self,
+        source: Optional[K] = None,
+        target: Optional[K] = None,
         data: Optional[Union[str, ArrayLike]] = None,
         forward: bool = True,
         scale_by_marginals: bool = False,
-        source: Optional[K] = None,
-        return_all: bool = True,
+        return_all: bool = False,
         **kwargs: Any,
     ) -> ApplyOutput_t[K]:
+        del target
         if TYPE_CHECKING:
             assert isinstance(self._policy, StarPolicy)
+
         res = {}
-        # TODO(michalk8): should use manager.plan (once implemented), as some problems may not be solved
-        # TODO: better check
         source = source if isinstance(source, list) else [source]
-        _ = kwargs.pop("target", None)  # make compatible with Explicit/Ordered policy
         for src, tgt in self._policy.plan(
             explicit_steps=kwargs.pop("explicit_steps", None),
             filter=source,  # type: ignore [arg-type]
         ):
             problem = self.problems[src, tgt]
             fun = problem.push if forward else problem.pull
-            res[src] = fun(data=data, scale_by_marginals=scale_by_marginals, **kwargs)
+            res[src] = fun(data=data, scale_by_marginals=scale_by_marginals)
         return res if return_all else res[src]
 
     @_apply.register(ExplicitPolicy)
     @_apply.register(OrderedPolicy)
     def _(
         self,
+        source: Optional[K] = None,
+        target: Optional[K] = None,
         data: Optional[Union[str, ArrayLike]] = None,
         forward: bool = True,
         scale_by_marginals: bool = False,
-        source: Optional[K] = None,
-        target: Optional[K] = None,
         return_all: bool = False,
         **kwargs: Any,
     ) -> ApplyOutput_t[K]:
@@ -337,75 +375,32 @@ class BaseCompoundProblem(BaseProblem, abc.ABC, Generic[K, B]):
         problem = self.problems[src, tgt]
         adata = problem.adata_src if forward else problem.adata_tgt
         current_mass = problem._get_mass(adata, data=data, **kwargs)
-        # TODO(michlak8): future behavior
-        # res = {(None, src) if forward else (tgt, None): current_mass}
         res = {src if forward else tgt: current_mass}
         for _src, _tgt in [(src, tgt)] + rest:
             problem = self.problems[_src, _tgt]
             fun = problem.push if forward else problem.pull
-            res[_tgt if forward else _src] = current_mass = fun(
-                current_mass, scale_by_marginals=scale_by_marginals, **kwargs
-            )
+            res[_tgt if forward else _src] = current_mass = fun(current_mass, scale_by_marginals=scale_by_marginals)
 
         return res if return_all else current_mass
 
-    @d.get_sections(base="BaseCompoundProblem_push", sections=["Parameters", "Raises"])
-    @d.dedent  # TODO(@MUCDK) document private _apply
+    # TODO(michalk8): better description of `source/target` (also in other places).
     def push(self, *args: Any, **kwargs: Any) -> ApplyOutput_t[K]:
-        """
-        Push mass from `start` to `end`.
+        """Push mass from source to target.
 
-        TODO: verify.
-
-        Parameters
-        ----------
-        %(data)s
-        %(subset)s
-        %(normalize)s
-
-        return_all
-            If `True` and transport maps are applied consecutively only the final mass is returned.
-            Otherwise, all intermediate step results are returned, too.
-
-        %(scale_by_marginals)s
-
-        kwargs
-            keyword arguments for policy-specific `_apply` method of :class:`moscot.base.problems.CompoundProblem`.
-
-        Returns
-        -------
         TODO.
         """
         _ = kwargs.pop("return_data", None)
         _ = kwargs.pop("key_added", None)  # this should be handled by overriding method
         return self._apply(*args, forward=True, **kwargs)
 
-    @d.get_sections(base="BaseCompoundProblem_pull", sections=["Parameters", "Raises"])
-    @d.dedent  # TODO(@MUCDK) document private functions
-    def pull(self, *args: Any, **kwargs: Any) -> ApplyOutput_t[K]:
-        """
-        Pull mass from `end` to `start`.
+    def pull(
+        self,
+        *args: Any,
+        **kwargs: Any,
+    ) -> ApplyOutput_t[K]:
+        """Pull mass from target to source.
 
-        TODO: expose kwargs.
-
-        Parameters
-        ----------
-        %(data)s
-        %(subset)s
-        %(normalize)s
-
-        return_all
-            If `True` and transport maps are applied consecutively only the final mass is returned. Otherwise,
-            all intermediate step results are returned, too.
-
-        %(scale_by_marginals)s
-
-        kwargs
-            keyword arguments for policy-specific `_apply` method of :class:`moscot.base.problems.CompoundProblem`.
-
-        Returns
-        -------
-        TODO.
+        TODO
         """
         _ = kwargs.pop("return_data", None)
         _ = kwargs.pop("key_added", None)  # this should be handled by overriding method
@@ -413,12 +408,11 @@ class BaseCompoundProblem(BaseProblem, abc.ABC, Generic[K, B]):
 
     @property
     def problems(self) -> Dict[Tuple[K, K], B]:
-        """Return dictionary of OT problems which the biological problem consists of."""
+        """:term:`OT` subproblems that define the biological problem."""
         if self._problem_manager is None:
             return {}
         return self._problem_manager.problems
 
-    @d.dedent
     @require_prepare
     def add_problem(
         self,
@@ -430,117 +424,57 @@ class BaseCompoundProblem(BaseProblem, abc.ABC, Generic[K, B]):
     ) -> "BaseCompoundProblem[K, B]":
         """Add a subproblem.
 
-        This function adds and prepares a problem, e.g. if it is not included by the initial
-        :class:`~moscot.utils.subset_policy.SubsetPolicy`.
+        .. seealso::
+            - See :doc:`../notebooks/examples/problems/300_adding_and_removing_problems` on how to add subproblems.
 
         Parameters
         ----------
-        %(key)s
-
+        key
+            Key in :attr:`problems` where to add the subproblem.
         problem
-            Instance of a :class:`~moscot.base.problems.OTProblem`.
+            Subproblem to add.
         overwrite
-            If `True` the problem will be reinitialized and prepared even if a problem with `key` exists.
+            Whether ot overwrite an existing subproblem in :attr:`problems`.
+        kwargs
+            Additional keyword arguments.
 
         Returns
         -------
-        The updated compound problem.
+        Self and updates the following fields:
+
+        - :attr:`problems`
         """
         if TYPE_CHECKING:
             assert isinstance(self._problem_manager, ProblemManager)
         self._problem_manager.add_problem(key, problem, overwrite=overwrite, **kwargs)
         return self
 
-    @d.dedent
     @require_prepare
     def remove_problem(self, key: Tuple[K, K]) -> "BaseCompoundProblem[K, B]":
         """Remove a subproblem.
 
+        .. seealso::
+            - See :doc:`../notebooks/examples/problems/300_adding_and_removing_problems` on how to remove subproblems.
+
         Parameters
         ----------
-        %(key)s
+        key
+            Key of the subproblem to remove.
 
         Returns
         -------
-        The updated compound problem.
+        Self and updates the following fields:
+
+        - :attr:`problems`
         """
         if TYPE_CHECKING:
             assert isinstance(self._problem_manager, ProblemManager)
         self._problem_manager.remove_problem(key)
         return self
 
-    # TODO(MUCKD): should be on the OT problem level as well
-    def save(
-        self,
-        dir_path: str,
-        file_prefix: Optional[str] = None,
-        overwrite: bool = False,
-    ) -> None:
-        """
-        Save the model.
-
-        As of now this method pickled the problem class instance. Modifications depend on the I/O of the backend.
-
-        Parameters
-        ----------
-        dir_path
-            Path to a directory, defaults to current directory
-        file_prefix
-            Prefix to prepend to the file name.
-        overwrite
-            Whether to overwrite existing data or not.
-
-        Returns
-        -------
-        Nothing, just saves the problem.
-        """
-        file_name = (
-            f"{file_prefix}_{self.__class__.__name__}.pkl"
-            if file_prefix is not None
-            else f"{self.__class__.__name__}.pkl"
-        )
-        file_dir = os.path.join(dir_path, file_name) if dir_path is not None else file_name
-
-        if not overwrite and os.path.exists(file_dir):
-            raise RuntimeError(f"Unable to save to an existing file `{file_dir}` use `overwrite=True` to overwrite it.")
-        with open(file_dir, "wb") as f:
-            cloudpickle.dump(self, f)
-
-        logger.info(f"Successfully saved the problem as `{file_dir}`")
-
-    # TODO(MUCKD): should be on the OT problem level as well
-    @classmethod
-    def load(
-        cls,
-        filename: str,
-    ) -> "BaseCompoundProblem[K, B]":
-        """
-        Instantiate a moscot problem from a saved output.
-
-        Parameters
-        ----------
-        filename
-            filename of the model to load
-
-        Returns
-        -------
-        Loaded instance of the model.
-
-        Examples
-        --------
-        #TODO(michalk8): make nicer
-        >>> problem = ProblemClass.load(filename) # use the name of the model class used to save
-        >>> problem.push....
-        """
-        with open(filename, "rb") as f:
-            problem = cloudpickle.load(f)
-        if type(problem) is not cls:
-            raise TypeError(f"Expected the problem to be type of `{cls}`, found `{type(problem)}`.")
-        return problem
-
     @property
     def solutions(self) -> Dict[Tuple[K, K], BaseSolverOutput]:
-        """Return dictionary of solutions of OT problems which the biological problem consists of."""
+        """Solutions to the :attr:`problems`."""
         if self._problem_manager is None:
             return {}
         return self._problem_manager.solutions
@@ -554,7 +488,7 @@ class BaseCompoundProblem(BaseProblem, abc.ABC, Generic[K, B]):
     def _policy(self) -> Optional[SubsetPolicy[K]]:
         if self._problem_manager is None:
             return None
-        return self._problem_manager._policy
+        return self._problem_manager.policy
 
     def _ensure_valid_policy(self, policy: Policy_t) -> None:
         if self._valid_policies and policy not in self._valid_policies:
@@ -579,17 +513,17 @@ class BaseCompoundProblem(BaseProblem, abc.ABC, Generic[K, B]):
         return repr(self)
 
 
-@d.get_sections(base="CompoundProblem", sections=["Parameters", "Raises"])
-@d.dedent
 class CompoundProblem(BaseCompoundProblem[K, B], abc.ABC):
-    """Class handling biological problems composed of exactly one :class:`~anndata.AnnData` instance.
+    """Base class for all biological problems.
 
-    This class is needed to apply the `policy` to one :class:`~anndata.AnnData` objects and hence create the
-    Optimal Transport subproblems from the biological problem.
+    This class translates a biological problem to multiple :term:`OT` problems.
 
     Parameters
     ----------
-    %(BaseCompoundProblem.parameters)s
+    adata
+        Annotated data object.
+    kwargs
+        Keyword arguments for :class:`~moscot.base.problems.BaseCompoundProblem`.
     """
 
     @property
@@ -622,8 +556,6 @@ class CompoundProblem(BaseCompoundProblem[K, B], abc.ABC):
         callback: Optional[Union[Literal["local-pca", "cost-matrix"], Callback_t]] = None,
         **kwargs: Any,
     ) -> Mapping[Literal["xy", "x", "y"], TaggedArray]:
-        # TODO(michalk8): better name?
-
         if callback == "cost-matrix":
             return self._cost_matrix_callback(term=term, key_1=key_1, key_2=key_2, **kwargs)
         return super()._callback_handler(

@@ -1,5 +1,5 @@
 import itertools
-from pathlib import Path
+import pathlib
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -10,6 +10,7 @@ from typing import (
     Literal,
     Optional,
     Protocol,
+    Sequence,
     Tuple,
     Union,
 )
@@ -21,8 +22,7 @@ from pandas.api.types import infer_dtype, is_categorical_dtype, is_numeric_dtype
 from anndata import AnnData
 
 from moscot import _constants
-from moscot._docs._docs_mixins import d_mixins
-from moscot._types import ArrayLike, Numeric_t, Str_Dict_t
+from moscot._types import ArrayLike, Str_Dict_t
 from moscot.base.problems._mixins import AnalysisMixin, AnalysisMixinProtocol
 from moscot.base.problems.birth_death import BirthDeathProblem
 from moscot.base.problems.compound_problem import ApplyOutput_t, B, K
@@ -32,10 +32,7 @@ from moscot.utils.tagged_array import Tag
 __all__ = ["TemporalMixin"]
 
 
-# TODO(@MUCDK, @michalk8): check for ignore[misc] in line below, might become redundant
-class TemporalMixinProtocol(AnalysisMixinProtocol[K, B], Protocol[K, B]):  # type:ignore
-    """Protocol class."""
-
+class TemporalMixinProtocol(AnalysisMixinProtocol[K, B], Protocol[K, B]):  # type: ignore[misc]
     adata: AnnData
     problems: Dict[Tuple[K, K], BirthDeathProblem]
     temporal_key: Optional[str]
@@ -55,11 +52,10 @@ class TemporalMixinProtocol(AnalysisMixinProtocol[K, B], Protocol[K, B]):  # typ
     ) -> pd.DataFrame:
         ...
 
-    def push(self, *args: Any, **kwargs: Any) -> Optional[ApplyOutput_t[K]]:  # noqa: D102
+    def push(self, *args: Any, **kwargs: Any) -> Optional[ApplyOutput_t[K]]:
         ...
 
     def pull(self, *args: Any, **kwargs: Any) -> Optional[ApplyOutput_t[K]]:
-        """Pull."""
         ...
 
     def _cell_transition(
@@ -78,7 +74,7 @@ class TemporalMixinProtocol(AnalysisMixinProtocol[K, B], Protocol[K, B]):  # typ
         target_dim: int,
         batch_size: int = 256,
         account_for_unbalancedness: bool = False,
-        interpolation_parameter: Optional[Numeric_t] = None,
+        interpolation_parameter: Optional[float] = None,
         seed: Optional[int] = None,
     ) -> Tuple[List[Any], List[ArrayLike]]:
         ...
@@ -91,7 +87,7 @@ class TemporalMixinProtocol(AnalysisMixinProtocol[K, B], Protocol[K, B]):  # typ
         b: Optional[ArrayLike] = None,
         backend: Literal["ott"] = "ott",
         **kwargs: Any,
-    ) -> Numeric_t:
+    ) -> float:
         ...
 
     def _interpolate_gex_with_ot(
@@ -139,7 +135,7 @@ class TemporalMixinProtocol(AnalysisMixinProtocol[K, B], Protocol[K, B]):  # typ
         basis: str = "umap",
         result_key: Optional[str] = None,
         fill_value: float = 0.0,
-        save: Optional[Union[str, Path]] = None,
+        save: Optional[Union[str, pathlib.Path]] = None,
         **kwargs: Any,
     ) -> None:
         ...
@@ -147,7 +143,7 @@ class TemporalMixinProtocol(AnalysisMixinProtocol[K, B], Protocol[K, B]):  # typ
     @staticmethod
     def _get_interp_param(
         source: K, intermediate: K, target: K, interpolation_parameter: Optional[float] = None
-    ) -> Numeric_t:
+    ) -> float:
         ...
 
     def __iter__(self) -> Iterator[Tuple[K, K]]:
@@ -161,41 +157,65 @@ class TemporalMixin(AnalysisMixin[K, B]):
         super().__init__(*args, **kwargs)
         self._temporal_key: Optional[str] = None
 
-    @d_mixins.dedent
     def cell_transition(
         self: TemporalMixinProtocol[K, B],
         source: K,
         target: K,
         source_groups: Str_Dict_t,
         target_groups: Str_Dict_t,
-        forward: bool = False,  # return value will be row-stochastic if forward=True, else column-stochastic
+        forward: bool = False,
         aggregation_mode: Literal["annotation", "cell"] = "annotation",
         batch_size: Optional[int] = None,
         normalize: bool = True,
         key_added: Optional[str] = _constants.CELL_TRANSITION,
     ) -> Optional[pd.DataFrame]:
-        """
-        Compute a grouped cell transition matrix.
+        """Aggregate the transport matrix.
 
-        This function computes a transition matrix with entries corresponding to categories, e.g. cell types.
-        The transition matrix will be row-stochastic if `forward` is `True`, otherwise column-stochastic.
+        .. seealso::
+            - See :doc:`../notebooks/examples/plotting/200_cell_transitions` on how to
+              compute and :func:`plot <moscot.plotting.cell_transition>` the cell transitions.
 
         Parameters
         ----------
-        %(cell_trans_params)s
-        %(forward_cell_transition)s
-        %(aggregation_mode)s
-        %(ott_jax_batch_size)s
-        %(normalize)s
-        %(key_added_plotting)s
+        source
+            Key identifying the source distribution.
+        target
+            Key identifying the target distribution.
+        source_groups
+            Source groups used for aggregation. Valid options are:
+
+            - :class:`str` - key in :attr:`~anndata.AnnData.obs` where categorical data is stored.
+            - :class:`dict` - a dictionary with one key corresponding to a categorical column in
+              :attr:`~anndata.AnnData.obs` and values to a subset of categories.
+        target_groups
+            Target groups used for aggregation. Valid options are:
+
+            - :class:`str` - key in :attr:`~anndata.AnnData.obs` where categorical data is stored.
+            - :class:`dict` - a dictionary with one key corresponding to a categorical column in
+              :attr:`~anndata.AnnData.obs` and values to a subset of categories.
+        aggregation_mode
+            How to aggregate the cell-level transport maps. Valid options are:
+
+            - ``'annotation'`` - group the transitions by the ``source_groups`` and the ``target_groups``.
+            - ``'cell'`` - do not group by the ``source_groups`` or the ``target_groups``, depending on the ``forward``.
+        forward
+            If :obj:`True`, compute the transitions from the ``source_groups`` to the ``target_groups``.
+        batch_size
+            Number of rows/columns of the cost matrix to materialize during :meth:`push` or :meth:`pull`.
+            Larger value will require more memory.
+        normalize
+            If :obj:`True`, normalize the transition matrix. If ``forward = True``, the transition matrix
+            will be row-stochastic, otherwise column-stochastic.
+        key_added
+            Key in :attr:`~anndata.AnnData.uns` where to save the result.
 
         Returns
         -------
-        %(return_cell_transition)s
+        Depending on the ``key_added``:
 
-        Notes
-        -----
-        %(notes_cell_transition)s
+        - :obj:`None` - returns the transition matrix.
+        - :obj:`str` - returns nothing and saves the transition matrix to
+          :attr:`uns['moscot_results']['cell_transition']['{key_added}'] <anndata.AnnData.uns>`
         """
         if TYPE_CHECKING:
             assert isinstance(self.temporal_key, str)
@@ -212,7 +232,6 @@ class TemporalMixin(AnalysisMixin[K, B]):
             key_added=key_added,
         )
 
-    @d_mixins.dedent
     def sankey(
         self: "TemporalMixinProtocol[K, B]",
         source: K,
@@ -223,31 +242,57 @@ class TemporalMixin(AnalysisMixin[K, B]):
         normalize: bool = False,
         forward: bool = True,
         restrict_to_existing: bool = True,
-        order_annotations: Optional[List[Any]] = None,
+        order_annotations: Optional[Sequence[str]] = None,
         key_added: Optional[str] = _constants.SANKEY,
-        return_data: bool = False,
+        **kwargs: Any,
     ) -> Optional[List[pd.DataFrame]]:
-        """
-        Draw a Sankey diagram visualising transitions of cells across time points.
+        """Compute a `Sankey diagram <https://en.wikipedia.org/wiki/Sankey_diagram>`_ between cells across time points.
+
+        .. seealso::
+            - See :doc:`../notebooks/examples/plotting/300_sankey` on how to
+              compute and :func:`plot <moscot.plotting.sankey>` the Sankey diagram.
 
         Parameters
         ----------
-        %(cell_trans_params)s
-        %(threshold)s
-        %(normalize)s
-        %(forward)s
-        %(restrict_to_existing)s
-        %(order_annotations)s
-        %(key_added_plotting)s
-        %(return_data)s
+        source
+            Key identifying the source distribution.
+        target
+            Key identifying the target distribution.
+        source_groups
+            Source groups used for aggregation. Valid options are:
+
+            - :class:`str` - key in :attr:`~anndata.AnnData.obs` where categorical data is stored.
+            - :class:`dict` - a dictionary with one key corresponding to a categorical column in
+              :attr:`~anndata.AnnData.obs` and values to a subset of categories.
+        target_groups
+            Target groups used for aggregation. Valid options are:
+
+            - :class:`str` - key in :attr:`~anndata.AnnData.obs` where categorical data is stored.
+            - :class:`dict` - a dictionary with one key corresponding to a categorical column in
+              :attr:`~anndata.AnnData.obs` and values to a subset of categories.
+        threshold
+            Set cell transitions lower than ``threshold`` to :math:`0`.
+        normalize
+            If :obj:`True`, normalize the transition matrix. If ``forward = True``, the transition matrix
+            will be row-stochastic, otherwise column-stochastic.
+        forward
+            If :obj:`True`, compute the transitions from the ``source_groups`` to the ``target_groups``.
+        restrict_to_existing
+            TODO(MUCDK)
+        order_annotations
+            Order of annotations from top to bottom. If :obj:`None`, use the order defined by the categories.
+        key_added
+            Key in :attr:`~anndata.AnnData.uns` where to save the result.
+        kwargs
+            Keyword arguments for :meth:`cell_transition`.
 
         Returns
         -------
-        Transition matrices of cells or groups of cells, as needed for a sankey.
+        Depending on the ``key_added``:
 
-        Notes
-        -----
-        To visualise the results, see :func:`moscot.plotting.sankey`.
+        - :obj:`None` - returns the cell transitions.
+        - :obj:`str` - returns nothing and saves the data for the diagram to
+          :attr:`uns['moscot_results']['sankey']['{key_added}'] <anndata.AnnData.uns>`
         """
         tuples = self._policy.plan(start=source, end=target)
         cell_transitions = []
@@ -260,6 +305,8 @@ class TemporalMixin(AnalysisMixin[K, B]):
                     target_groups=target_groups,
                     forward=forward,
                     normalize=normalize,
+                    key_added=None,
+                    **kwargs,
                 )
             )
 
@@ -277,15 +324,16 @@ class TemporalMixin(AnalysisMixin[K, B]):
                 ct = ct.loc[order_annotations_present_index[::-1]]
                 order_annotations_present_columns = [ann for ann in order_annotations if ann in ct.columns]
                 ct = ct[order_annotations_present_columns[::-1]]
-            cell_transitions_updated.append(ct)
+                cell_transitions_updated.append(ct)
         else:
             cell_transitions_updated = cell_transitions
 
         if threshold is not None:
-            if threshold < 0:
-                raise ValueError(f"Expected threshold to be non-negative, found `{threshold}`.")
             for ct in cell_transitions:
                 ct[ct < threshold] = 0.0
+
+        if key_added is None:
+            return cell_transitions_updated
 
         if isinstance(source_groups, str):
             key = source_groups
@@ -295,20 +343,17 @@ class TemporalMixin(AnalysisMixin[K, B]):
         else:
             raise TypeError(f"Expected early cells to be either `str` or `dict`, found `{type(source_groups)}`.")
 
-        if key_added is not None:
-            plot_vars = {
-                "transition_matrices": cell_transitions_updated,
-                "key": key,
-                "source": source,
-                "target": target,
-                "source_groups": source_groups,
-                "target_groups": target_groups,
-                "captions": [str(t) for t in tuples],
-            }
-            set_plotting_vars(self.adata, _constants.SANKEY, key=key_added, value=plot_vars)
-        return cell_transitions_updated if return_data else None
+        plot_vars = {
+            "transition_matrices": cell_transitions_updated,
+            "key": key,
+            "source": source,
+            "target": target,
+            "source_groups": source_groups,
+            "target_groups": target_groups,
+            "captions": [str(t) for t in tuples],
+        }
+        set_plotting_vars(self.adata, _constants.SANKEY, key=key_added, value=plot_vars)  # noqa: RET503
 
-    @d_mixins.dedent
     def push(
         self: TemporalMixinProtocol[K, B],
         source: K,
@@ -318,27 +363,36 @@ class TemporalMixin(AnalysisMixin[K, B]):
         scale_by_marginals: bool = True,
         key_added: Optional[str] = _constants.PUSH,
         return_all: bool = False,
-        return_data: bool = False,
         **kwargs: Any,
     ) -> Optional[ApplyOutput_t[K]]:
-        """
-        Push distribution of cells through time.
+        """Push mass from source to target.
 
         Parameters
         ----------
-        %(source)s
-        %(target)s
-        %(data)s
-        %(subset)s
-        %(scale_by_marginals)s
-        %(key_added_plotting)s
-        %(return_all)s
-        %(return_data)s
+        source
+            Source key in :attr:`solutions`.
+        target
+            Target key in :attr:`solutions`.
+        data
+            Initial data to push, see :meth:`~moscot.base.problems.OTProblem.push` for information.
+        subset
+            Push values contained only within the subset.
+        scale_by_marginals
+            Whether to scale by the source :term:`marginals`.
+        key_added
+            Key in :attr:`~anndata.AnnData.obs` where to add the result.
+        return_all
+            Whether to also return intermediate results. Always true if ``key_added != None``.
+        kwargs
+            Keyword arguments for the subproblems' :meth:`~moscot.base.problems.OTProblem.push` method.
 
-        Return
-        ------
-        %(return_push_pull)s
+        Returns
+        -------
+        Depending on the ``key_added``:
 
+        - :obj:`None` - returns the result.
+        - :class:`str` - returns nothing and updates :attr:`obs['{key_added}'] <anndata.AnnData.obs>`
+          with the result.
         """
         result = self._apply(
             source=source,
@@ -364,9 +418,9 @@ class TemporalMixin(AnalysisMixin[K, B]):
             }
             self.adata.obs[key_added] = self._flatten(result, key=self.temporal_key)
             set_plotting_vars(self.adata, _constants.PUSH, key=key_added, value=plot_vars)
-        return result if return_data else None
+            return None
+        return result
 
-    @d_mixins.dedent
     def pull(
         self: TemporalMixinProtocol[K, B],
         source: K,
@@ -376,27 +430,36 @@ class TemporalMixin(AnalysisMixin[K, B]):
         scale_by_marginals: bool = True,
         key_added: Optional[str] = _constants.PULL,
         return_all: bool = False,
-        return_data: bool = False,
         **kwargs: Any,
     ) -> Optional[ApplyOutput_t[K]]:
-        """
-        Pull distribution of cells through time.
+        """Pull mass from target to source.
 
         Parameters
         ----------
-        %(source)s
-        %(target)s
-        %(data)s
-        %(subset)s
-        %(scale_by_marginals)s
-        %(key_added_plotting)s
-        %(return_all)s
-        %(return_data)s
+        source
+            Source key in :attr:`solutions`.
+        target
+            Target key in :attr:`solutions`.
+        data
+            Initial data to pull, see :meth:`~moscot.base.problems.OTProblem.pull` for information.
+        subset
+            Pull values contained only within the subset.
+        scale_by_marginals
+            Whether to scale by the source :term:`marginals`.
+        key_added
+            Key in :attr:`~anndata.AnnData.obs` where to add the result.
+        return_all
+            Whether to also return intermediate results. Always true if ``key_added != None``.
+        kwargs
+            Keyword arguments for the subproblems' :meth:`~moscot.base.problems.OTProblem.pull` method.
 
-        Return
-        ------
-        %(return_push_pull)s
+        Returns
+        -------
+        Depending on the ``key_added``:
 
+        - :obj:`None` - returns the result.
+        - :class:`str` - returns nothing and updates :attr:`obs['{key_added}'] <anndata.AnnData.obs>`
+          with the result.
         """
         result = self._apply(
             source=source,
@@ -421,11 +484,12 @@ class TemporalMixin(AnalysisMixin[K, B]):
             }
             self.adata.obs[key_added] = self._flatten(result, key=self.temporal_key)
             set_plotting_vars(self.adata, _constants.PULL, key=key_added, value=plot_vars)
-        return result if return_data else None
+            return None
+        return result
 
     @property
     def prior_growth_rates(self: TemporalMixinProtocol[K, B]) -> Optional[pd.DataFrame]:
-        """Return the prior estimate of growth rates of the cells in the source distribution."""
+        """Prior estimate of the source growth rates."""
         computed = [isinstance(p.prior_growth_rates, np.ndarray) for p in self.problems.values()]
         if not np.sum(computed):
             return None
@@ -443,7 +507,7 @@ class TemporalMixin(AnalysisMixin[K, B]):
 
     @property
     def posterior_growth_rates(self: TemporalMixinProtocol[K, B]) -> Optional[pd.DataFrame]:
-        """Return the posterior estimate of growth rates of the cells in the source distribution."""
+        """Posterior estimate of the source growth rates."""
         computed = [isinstance(p.posterior_growth_rates, np.ndarray) for p in self.problems.values()]
         if not np.sum(computed):
             return None
@@ -461,12 +525,16 @@ class TemporalMixin(AnalysisMixin[K, B]):
 
     @property
     def cell_costs_source(self: TemporalMixinProtocol[K, B]) -> Optional[pd.DataFrame]:
-        """Return the cost of a cell obtained by the potentials of the optimal transport solution."""
+        """Cell cost obtained by the :term:`first dual potential <dual potentials>`.
+
+        Only available for subproblems with :attr:`problem_kind = 'linear' <problem_kind>`.
+        """
         computed = [isinstance(s.potentials, tuple) for s in self.solutions.values()]
         if not np.sum(computed):
             return None
 
         cols = ["cell_cost_source"]
+        # TODO(michalk8): `[1]` will fail if potentials is None
         df_list = [
             pd.DataFrame(
                 np.asarray(problem.solution.potentials[0]),  # type: ignore[union-attr,index]
@@ -482,12 +550,16 @@ class TemporalMixin(AnalysisMixin[K, B]):
 
     @property
     def cell_costs_target(self: TemporalMixinProtocol[K, B]) -> Optional[pd.DataFrame]:
-        """Return the cost of a cell obtained by the potentials of the optimal transport solution."""
+        """Cell cost obtained by the :term:`second dual potential <dual potentials>`.
+
+        Only available for subproblems with :attr:`problem_kind = 'linear' <problem_kind>`.
+        """
         computed = [isinstance(s.potentials, tuple) for s in self.solutions.values()]
         if not np.sum(computed):
             return None
 
         cols = ["cell_cost_target"]
+        # TODO(michalk8): `[1]` will fail if potentials is None
         df_list = [
             pd.DataFrame(
                 np.array(problem.solution.potentials[1]),  # type: ignore[union-attr,index]
@@ -501,7 +573,6 @@ class TemporalMixin(AnalysisMixin[K, B]):
         df_2 = pd.DataFrame(np.nan, index=list(indices_remaining), columns=cols)
         return pd.concat([df_1, df_2], verify_integrity=True)
 
-    # TODO(michalk8): refactor me
     def _get_data(
         self: TemporalMixinProtocol[K, B],
         source: K,
@@ -551,7 +622,6 @@ class TemporalMixin(AnalysisMixin[K, B]):
             target_data,
         )
 
-    @d_mixins.dedent
     def compute_interpolated_distance(
         self: TemporalMixinProtocol[K, B],
         source: K,
@@ -565,40 +635,53 @@ class TemporalMixin(AnalysisMixin[K, B]):
         seed: Optional[int] = None,
         backend: Literal["ott"] = "ott",
         **kwargs: Any,
-    ) -> Numeric_t:
-        """
-        Compute the Wasserstein distance between the OT-interpolated distribution and the true cell distribution.
+    ) -> float:
+        """Compute `Wasserstein distance <https://en.wikipedia.org/wiki/Wasserstein_metric>`_ between
+        :term:`OT`-interpolated and intermediate cells.
 
-        This is a validation method which interpolates the cell distributions corresponding to `start` and `end`
-        leveraging the OT coupling to obtain an approximation of the cell distribution at time point `intermediate`.
-        Therefore, the Wasserstein distance between the interpolated and the real distribution is computed.
+        .. seealso::
+            - TODO(MUCDK): create an example showing the usage.
 
-        It is recommended to compare the Wasserstein distance to the ones obtained by
-        :meth:`compute_time_point_distances` and :meth:`compute_random_distance`.
-
-        This method does not instantiate the transport matrix if the solver output does not.
-
-        TODO: link to notebook
-
+        This is a validation method which interpolates cells between the ``source`` and ``target`` distributions
+        leveraging the :term:`OT` coupling to approximate cells at the ``intermediate`` time point.
 
         Parameters
         ----------
-        %(start)s
-        %(intermediate_interpolation)s
-        %(end)s
-        %(interpolation_parameter)s
-        %(n_interpolated_cells)s
-        %(account_for_unbalancedness)s
-        %(ott_jax_batch_size)s
-        %(use_posterior_marginals)s
-        %(seed_sampling)s
-        %(backend)s
-        %(kwargs_divergence)s
+        source
+            Key identifying the source distribution.
+        intermediate
+            Key identifying the intermediate distribution.
+        target
+            Key identifying the target distribution.
+        interpolation_parameter
+            Interpolation parameter in :math:`(0, 1)` defining the weight of the ``source`` and ``target``
+            distributions. If :obj:`None`, it is linearly interpolated.
+        n_interpolated_cells
+            Number of cells used for interpolation. If :obj:`None`, use the number of cells in the ``intermediate``
+            distribution.
+        account_for_unbalancedness
+            Whether to account for unbalancedness by assuming exponential cell growth and death.
+        batch_size
+            Number of rows/columns of the cost matrix to materialize during :meth:`push` or :meth:`pull`.
+            Larger value will require more memory.
+        posterior_marginals
+            Whether to use :attr:`posterior_growth_rates` or :attr:`prior_growth_rates`.
+            TODO(MUCDK): needs more explanation
+        seed
+            Random seed used when sampling the interpolated cells.
+        backend
+            Backend used for the distance computation.
+        kwargs
+            Keyword arguments for the distance function, depending on the ``backend``:
+
+            - ``'ott'`` - :func:`~ott.tools.sinkhorn_divergence.sinkhorn_divergence`.
 
         Returns
         -------
-        Wasserstein distance between OT-based interpolated distribution and the true cell distribution.
-        """
+        The distance between :term:`OT`-interpolated cells and cells at the ``intermediate`` time point.
+        It is recommended to compare this to the distances computed by :meth:`compute_time_point_distances` and
+        :meth:`compute_random_distance`.
+        """  # noqa: D205
         source_data, _, intermediate_data, _, target_data = self._get_data(  # type: ignore[misc]
             source,
             intermediate,
@@ -621,11 +704,8 @@ class TemporalMixin(AnalysisMixin[K, B]):
             batch_size=batch_size,
             seed=seed,
         )
-        return self._compute_wasserstein_distance(
-            point_cloud_1=intermediate_data, point_cloud_2=interpolation, backend=backend, **kwargs
-        )
+        return self._compute_wasserstein_distance(intermediate_data, interpolation, backend=backend, **kwargs)
 
-    @d_mixins.dedent
     def compute_random_distance(
         self: TemporalMixinProtocol[K, B],
         source: K,
@@ -636,34 +716,50 @@ class TemporalMixin(AnalysisMixin[K, B]):
         account_for_unbalancedness: bool = False,
         posterior_marginals: bool = True,
         seed: Optional[int] = None,
-        backend: Literal["ott"] = "ott",  # TODO: not used
+        backend: Literal["ott"] = "ott",
         **kwargs: Any,
-    ) -> Numeric_t:
-        """
-        Compute the Wasserstein distance of a randomly interpolated cell distribution and the true cell distribution.
+    ) -> float:
+        """Compute `Wasserstein distance <https://en.wikipedia.org/wiki/Wasserstein_metric>`_ between randomly
+        interpolated and intermediate cells.
 
-        This method interpolates the cell trajectories at the `intermediate` time point using a random coupling and
-        computes the distance to the true cell distribution.
+        .. seealso::
+            - TODO(MUCDK): create an example showing the usage.
 
-        TODO: link to notebook
+        This function interpolates cells between the ``source`` and ``target`` distributions using a random
+        :term:`OT` coupling to approximate cells at the ``intermediate`` time point.
 
         Parameters
         ----------
-        %(start)s
-        %(intermediate_interpolation)s
-        %(end)s
-        %(interpolation_parameter)s
-        %(n_interpolated_cells)s
-        %(account_for_unbalancedness)s
-        %(use_posterior_marginals)s
-        %(seed_interpolation)s
-        %(backend)s
-        %(kwargs_divergence)s
+        source
+            Key identifying the source distribution.
+        intermediate
+            Key identifying the intermediate distribution.
+        target
+            Key identifying the target distribution.
+        interpolation_parameter
+            Interpolation parameter in :math:`(0, 1)` defining the weight of the ``source`` and ``target``
+            distributions. If :obj:`None`, it is linearly interpolated.
+        n_interpolated_cells
+            Number of cells used for interpolation. If :obj:`None`, use the number of cells in the ``intermediate``
+            distribution.
+        account_for_unbalancedness
+            Whether to account for unbalancedness by assuming exponential cell growth and death.
+        posterior_marginals
+            Whether to use :attr:`posterior_growth_rates` or :attr:`prior_growth_rates`.
+            TODO(MUCDK): needs more explanation
+        seed
+            Random seed used when sampling the interpolated cells.
+        backend
+            Backend used for the distance computation.
+        kwargs
+            Keyword arguments for the distance function, depending on the ``backend``:
+
+            - ``'ott'`` - :func:`~ott.tools.sinkhorn_divergence.sinkhorn_divergence`.
 
         Returns
         -------
-        The Wasserstein distance between a randomly interpolated cell distribution and the true cell distribution.
-        """
+        The distance between randomly interpolated cells and cells at the ``intermediate`` time point.
+        """  # noqa: D205
         source_data, growth_rates_source, intermediate_data, _, target_data = self._get_data(  # type: ignore[misc]
             source, intermediate, target, posterior_marginals=posterior_marginals, only_start=False
         )
@@ -682,9 +778,8 @@ class TemporalMixin(AnalysisMixin[K, B]):
             growth_rates=growth_rates,
             seed=seed,
         )
-        return self._compute_wasserstein_distance(intermediate_data, random_interpolation, **kwargs)
+        return self._compute_wasserstein_distance(intermediate_data, random_interpolation, backend=backend, **kwargs)
 
-    @d_mixins.dedent
     def compute_time_point_distances(
         self: TemporalMixinProtocol[K, B],
         source: K,
@@ -693,23 +788,34 @@ class TemporalMixin(AnalysisMixin[K, B]):
         posterior_marginals: bool = True,
         backend: Literal["ott"] = "ott",
         **kwargs: Any,
-    ) -> Tuple[Numeric_t, Numeric_t]:
-        """
-        Compute the Wasserstein distance of cell distributions between time points.
+    ) -> Tuple[float, float]:
+        """Compute `Wasserstein distance <https://en.wikipedia.org/wiki/Wasserstein_metric>`_ between time points.
 
-        This method computes the Wasserstein distance between the cell distribution corresponding to `start` and `
-        intermediate` and `intermediate` and `end`, respectively.
-
-        TODO: link to notebook
+        .. seealso::
+            - TODO(MUCDK): create an example showing the usage.
 
         Parameters
         ----------
-        %(start)s
-        %(intermediate)s
-        %(end)s
-        %(use_posterior_marginals)s
-        %(backend)s
-        %(kwargs_divergence)s
+        source
+            Key identifying the source distribution.
+        intermediate
+            Key identifying the intermediate distribution.
+        target
+            Key identifying the target distribution.
+        posterior_marginals
+            Whether to use :attr:`posterior_growth_rates` or :attr:`prior_growth_rates`.
+            TODO(MUCDK): needs more explanation
+        backend
+            Backend used for the distance computation.
+        kwargs
+            Keyword arguments for the distance function, depending on the ``backend``:
+
+            - ``'ott'`` - :func:`~ott.tools.sinkhorn_divergence.sinkhorn_divergence`.
+
+        Returns
+        -------
+        The distance between ``source`` and ``intermediate`` cells and
+        ``intermediate`` and ``target`` cells, respectively.
         """
         source_data, _, intermediate_data, _, target_data = self._get_data(  # type: ignore[misc]
             source,
@@ -734,35 +840,48 @@ class TemporalMixin(AnalysisMixin[K, B]):
         posterior_marginals: bool = True,
         backend: Literal["ott"] = "ott",
         **kwargs: Any,
-    ) -> np.float_:
-        """
-        Compute the mean Wasserstein distance between batches of a distribution corresponding to one time point.
+    ) -> float:
+        """Compute the average `Wasserstein distance <https://en.wikipedia.org/wiki/Wasserstein_metric>`_ between
+        batches for a specific time point.
+
+        .. seealso::
+            - TODO(MUCDK): create an example showing the usage.
 
         Parameters
         ----------
-        %(time_batch_distance)s
-        %(batch_key_batch_distance)s
-        %(use_posterior_marginals)s
-        %(backend)s
-        %(kwargs_divergence)
+        time
+            Time point for which to compute the distances.
+        batch_key
+            Key in :attr:`~anndata.AnnData.obs` where batches are stored.
+        posterior_marginals
+            Whether to use :attr:`posterior_growth_rates` or :attr:`prior_growth_rates`.
+            TODO(MUCDK): needs more explanation
+        backend
+            Backend used for the distance computation.
+        kwargs
+            Keyword arguments for the distance function, depending on the ``backend``:
+
+            - ``'ott'`` - :func:`~ott.tools.sinkhorn_divergence.sinkhorn_divergence`.
 
         Returns
         -------
-        The mean Wasserstein distance between batches of a distribution corresponding to one time point.
-        """
+        The average distance between batches for a specific time point.
+        """  # noqa: D205
         data, adata = self._get_data(time, posterior_marginals=posterior_marginals, only_start=True)  # type: ignore[misc] # noqa: E501
-        assert len(adata) == len(data), "TODO: wrong shapes"
-        dist: List[Numeric_t] = []
+        if len(data) != len(adata):
+            raise ValueError(f"Expected the `data` to have length `{len(adata)}`, found `{len(data)}`.")
+
+        dist: List[float] = []
         for batch_1, batch_2 in itertools.combinations(adata.obs[batch_key].unique(), 2):
             dist.append(
                 self._compute_wasserstein_distance(
-                    point_cloud_1=data[(adata.obs[batch_key] == batch_1).values, :],
-                    point_cloud_2=data[(adata.obs[batch_key] == batch_2).values, :],
+                    point_cloud_1=data[(adata.obs[batch_key] == batch_1).values],
+                    point_cloud_2=data[(adata.obs[batch_key] == batch_2).values],
                     backend=backend,
                     **kwargs,
                 )
             )
-        return np.mean(dist)
+        return np.mean(dist)  # type: ignore[return-value]
 
     # TODO(@MUCDK) possibly offer two alternatives, once exact EMD with POT backend and once approximate,
     # faster with same solver as used for original problems
@@ -774,14 +893,12 @@ class TemporalMixin(AnalysisMixin[K, B]):
         b: Optional[ArrayLike] = None,
         backend: Literal["ott"] = "ott",
         **kwargs: Any,
-    ) -> Numeric_t:
+    ) -> float:
         if backend == "ott":
-            from moscot.backends.ott._utils import _compute_sinkhorn_divergence
+            from moscot.backends.ott import sinkhorn_divergence
 
-            distance = _compute_sinkhorn_divergence(point_cloud_1, point_cloud_2, a, b, **kwargs)
-        else:
-            raise NotImplementedError("Only `ott` available as backend.")
-        return distance
+            return sinkhorn_divergence(point_cloud_1, point_cloud_2, a, b, **kwargs)
+        raise NotImplementedError("Only `ott` available as backend.")
 
     def _interpolate_gex_with_ot(
         self: TemporalMixinProtocol[K, B],
@@ -835,7 +952,7 @@ class TemporalMixin(AnalysisMixin[K, B]):
     @staticmethod
     def _get_interp_param(
         source: K, intermediate: K, target: K, interpolation_parameter: Optional[float] = None
-    ) -> Numeric_t:
+    ) -> float:
         if TYPE_CHECKING:
             assert isinstance(source, float)
             assert isinstance(intermediate, float)
@@ -855,7 +972,7 @@ class TemporalMixin(AnalysisMixin[K, B]):
 
     @property
     def temporal_key(self) -> Optional[str]:
-        """Temporal key in :attr:`anndata.AnnData.obs`."""
+        """Temporal key in :attr:`~anndata.AnnData.obs`."""
         return self._temporal_key
 
     @temporal_key.setter
@@ -863,7 +980,6 @@ class TemporalMixin(AnalysisMixin[K, B]):
         if key is None:
             self._temporal_key = key
             return
-
         if key not in self.adata.obs:
             raise KeyError(f"Unable to find temporal key in `adata.obs[{key!r}]`.")
         col = self.adata.obs[key]

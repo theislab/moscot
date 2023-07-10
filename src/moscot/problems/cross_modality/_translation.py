@@ -23,16 +23,16 @@ __all__ = ["TranslationProblem"]
 
 
 class TranslationProblem(CrossModalityTranslationMixin[K, OTProblem], CompoundProblem[K, OTProblem]):
-    """Class for integrating single-cell multiomics data, based on :cite:`demetci-scot:22`.
+    """Class for integrating single-cell multi-omics data, based on :cite:`demetci-scot:22`.
 
     Parameters
     ----------
     adata_src
-        Annotated data object containing the source distribution.
+        Annotated data object containing the source modality.
     adata_tgt
-        Annotated data object containing the target distribution.
+        Annotated data object containing the target modality.
     kwargs
-        Keyword arguments for :class:`~moscot.base.problems.compound_problem.BaseCompoundProblem`.
+        Keyword arguments for :class:`~moscot.base.problems.CompoundProblem`.
     """
 
     def __init__(self, adata_src: AnnData, adata_tgt: AnnData, **kwargs: Any):
@@ -45,7 +45,6 @@ class TranslationProblem(CrossModalityTranslationMixin[K, OTProblem], CompoundPr
         key: Optional[str] = None,
         **kwargs: Any,
     ) -> Union[DummyPolicy, ExternalStarPolicy[K]]:
-        """Private class to create DummyPolicy if no batches are present in the spatial anndata."""
         del policy
         if key is None:
             return DummyPolicy(self.adata, **kwargs)
@@ -78,54 +77,89 @@ class TranslationProblem(CrossModalityTranslationMixin[K, OTProblem], CompoundPr
         batch_key: Optional[str] = None,
         cost: OttCostFnMap_t = "sq_euclidean",
         cost_kwargs: CostKwargs_t = types.MappingProxyType({}),
-        a: Optional[str] = None,
-        b: Optional[str] = None,
+        a: Optional[Union[bool, str]] = None,
+        b: Optional[Union[bool, str]] = None,
         **kwargs: Any,
     ) -> "TranslationProblem[K]":
-        """Prepare the problem.
+        """Prepare the translation problem.
+
+        .. seealso::
+            - See :doc:`../notebooks/tutorials/600_tutorial_translation` on how to prepare the translation problem.
 
         Parameters
         ----------
         src_attr
-            - If :class:`str`, it must refer to a key in :attr:`anndata.AnnData.obsm`.
-            - If :class:`dict`, the dictionary stores `attr` (attribute of :class:`~anndata.AnnData`) and `key`
-              (key of :class:`AnnData.{attr} <anndata.AnnData>`).
+            How to get the data for the source modality:
+
+            - :class:`str` - a key in :attr:`~anndata.AnnData.obsm` where the data is stored.
+            - :class:`dict`-  it should contain ``'attr'`` and ``'key'``, the attribute and the key
+              in :class:`~anndata.AnnData`, and optionally ``'tag'``, one of :class:`~moscot.utils.tagged_array.Tag`.
+
+            By default, :attr:`tag = 'point_cloud' <moscot.utils.tagged_array.Tag.POINT_CLOUD>` is used.
         tgt_attr
-            - If :class:`str`, it must refer to a key in :attr:`anndata.AnnData.obsm`.
-            - If :class:`dict`, the dictionary stores `attr` (attribute of :class:`~anndata.AnnData`) and `key`
-              (key of :class:`AnnData.{attr} <anndata.AnnData>`).
+            How to get the data for the target modality:
+
+            - :class:`str` - a key in :attr:`~anndata.AnnData.obsm` where the data is stored.
+            - :class:`dict`-  it should contain ``'attr'`` and ``'key'``, the attribute and the key
+              in :class:`~anndata.AnnData`, and optionally ``'tag'``, one of :class:`~moscot.utils.tagged_array.Tag`.
+
+            By default, :attr:`tag = 'point_cloud' <moscot.utils.tagged_array.Tag.POINT_CLOUD>` is used.
         joint_attr
-            - If `None`, the pure Gromov-Wasserstein case is computed.
-            - If :class:`str`, it must refer to a key in :attr:`anndata.AnnData.obsm`.
-            - If :class:`dict`, the dictionary stores `attr` (attribute of :class:`~anndata.AnnData`) and `key`
-              (key of :class:`AnnData.{attr} <anndata.AnnData>`).
+            How to get the data for the :term:`linear term` in the :term:`fused <fused Gromov-Wasserstein>` case:
+
+            - :obj:`None` - the pure :term:`Gromov-Wasserstein` case is used.
+            - :class:`str` - a key in :attr:`~anndata.AnnData.obsm` where the data is stored.
+            - :class:`dict`-  it should contain ``'attr'`` and ``'key'``, the attribute and key in
+              :class:`~anndata.AnnData`, and optionally ``'tag'`` from the
+              :class:`tags <moscot.utils.tagged_array.Tag>`.
+
+            By default, :attr:`tag = 'point_cloud' <moscot.utils.tagged_array.Tag.POINT_CLOUD>` is used.
         batch_key
-            If present, specify the batch key in :attr:`~anndata.AnnData.obs`.
+            Key in :attr:`~anndata.AnnData.obs` specifying the batch.
         cost
-            Cost between two points in dimension d. Only used if no precomputed cost matrix is passed.
-            If `cost` is of type :obj:`str`, the cost will be used for all point clouds. If `cost` is of type
-            :obj:`dict`, it is expected to have keys `x`, `y`, and/or `xy`, with values corresponding to the
-            cost functions in the quadratic term of the source distribution, the quadratic term of the target
-            distribution, and/or the linear term, respectively.
+            Cost function to use. Valid options are:
+
+            - :class:`str` - name of the cost function for all terms, see :func:`~moscot.costs.get_available_costs`.
+            - :class:`dict` - a dictionary with the following keys and values:
+
+              - ``'xy'`` - cost function for the :term:`linear term`.
+              - ``'x'`` - cost function for the source modality.
+              - ``'y'`` - cost function for the target modality.
         cost_kwargs
-            TODO.
+            Keyword arguments for the :class:`~moscot.base.cost.BaseCost` or any backend-specific cost.
         a
-            Specifies the left marginals. If of type :class:`str` the left marginals are taken from
-            :attr:`~anndata.AnnData.obs` ``['{a}']``. If ``a`` is `None` uniform marginals are used.
+            Source :term:`marginals`. Valid options are:
+
+            - :class:`str` - key in :attr:`~anndata.AnnData.obs` where the source marginals are stored.
+            - :class:`bool` - if :obj:`True`,
+              :meth:`estimate the marginals <moscot.base.problems.OTProblem.estimate_marginals>`,
+              otherwise use uniform marginals.
+            - :obj:`None` - uniform marginals.
         b
-            Specifies the right marginals. If of type :class:`str` the right marginals are taken from
-            :attr:`~anndata.AnnData.obs` ``['{b}']``. If `b` is `None` uniform marginals are used.
+            Target :term:`marginals`. Valid options are:
+
+            - :class:`str` - key in :attr:`~anndata.AnnData.obs` where the target marginals are stored.
+            - :class:`bool` - if :obj:`True`,
+              :meth:`estimate the marginals <moscot.base.problems.OTProblem.estimate_marginals>`,
+              otherwise use uniform marginals.
+            - :obj:`None` - uniform marginals.
         kwargs
-            Keyword arguments.
+            Keyword arguments for :meth:`~moscot.base.problems.CompoundProblem.prepare`.
 
         Returns
         -------
-        The prepared problem.
+        Returns self and updates the following fields:
+
+        - :attr:`problems` - the prepared subproblems.
+        - :attr:`solutions` - set to an empty :class:`dict`.
+        - :attr:`batch_key` - key in :attr:`~anndata.AnnData.obs` where batches are stored.
+        - :attr:`stage` - set to ``'prepared'``.
+        - :attr:`problem_kind` - set to ``'quadratic'``.
         """
         self._src_attr = {"attr": "obsm", "key": src_attr} if isinstance(src_attr, str) else src_attr
         self._tgt_attr = {"attr": "obsm", "key": tgt_attr} if isinstance(tgt_attr, str) else tgt_attr
-
         self.batch_key = batch_key
+
         if joint_attr is None:
             xy = {}  # type: ignore[var-annotated]
         else:
@@ -143,7 +177,7 @@ class TranslationProblem(CrossModalityTranslationMixin[K, OTProblem], CompoundPr
         )
         if xy:
             kwargs["xy"] = xy
-        return super().prepare(x=x, y=y, policy="external_star", key=batch_key, cost=cost, a=a, b=b, **kwargs)
+        return super().prepare(x=x, y=y, policy="external_star", key=batch_key, cost=cost, a=a, b=b, **kwargs)  # type: ignore[return-value] # noqa: E501
 
     def solve(  # type: ignore[override]
         self,
@@ -165,70 +199,64 @@ class TranslationProblem(CrossModalityTranslationMixin[K, OTProblem], CompoundPr
         device: Optional[Literal["cpu", "gpu", "tpu"]] = None,
         **kwargs: Any,
     ) -> "TranslationProblem[K]":
-        """Solve the optimal transport problem.
+        r"""Solve the translation problem.
+
+        .. seealso::
+            - See :doc:`../notebooks/tutorials/600_tutorial_translation` on how to
+              solve the :class:`~moscot.problems.cross_modality.TranslationProblem`.
 
         Parameters
         ----------
         alpha
-            Interpolation parameter between quadratic term and linear term, between 0 and 1. `alpha=1` corresponds to
-            pure Gromov-Wasserstein, while `alpha -> 0` corresponds to pure Sinkhorn.
+            Parameter in :math:`(0, 1]` that interpolates between the :term:`quadratic term` and
+            the :term:`linear term`. :math:`\alpha = 1` corresponds to the pure :term:`Gromov-Wasserstein` problem while
+            :math:`\alpha \to 0` corresponds to the pure :term:`linear problem`.
         epsilon
-            Entropic regularisation parameter.
+            :term:`Entropic regularization`.
         tau_a
-            Unbalancedness parameter for left marginal between 0 and 1. `tau_a=1` means no unbalancedness
-            in the source distribution. The limit of `tau_a` going to 0 ignores the left marginals.
+            Parameter in :math:`(0, 1]` that defines how much :term:`unbalanced <unbalanced OT problem>` is the problem
+            on the source :term:`marginals`. If :math:`1`, the problem is :term:`balanced <balanced OT problem>`.
         tau_b
-            unbalancedness parameter for right marginal between 0 and 1. `tau_b=1` means no unbalancedness
-            in the target distribution. The limit of `tau_b` going to 0 ignores the right marginals.
+            Parameter in :math:`(0, 1]` that defines how much :term:`unbalanced <unbalanced OT problem>` is the problem
+            on the target :term:`marginals`. If :math:`1`, the problem is :term:`balanced <balanced OT problem>`.
         rank
-            Rank of solver. If `-1` standard / full-rank optimal transport is applied.
+            Rank of the :term:`low-rank OT` solver :cite:`scetbon:21b`.
+            If :math:`-1`, full-rank solver :cite:`peyre:2016` is used.
         scale_cost
-            How to rescale the cost matrix. Implemented scalings are
-            'median', 'mean', 'max_cost', 'max_norm' and 'max_bound'.
-            Alternatively, a float factor can be given to rescale the cost such
-            that ``cost_matrix /= scale_cost``.
+            How to re-scale the cost matrices. If a :class:`float`, the cost matrices
+            will be re-scaled as :math:`\frac{\text{cost}}{\text{scale_cost}}`.
         batch_size
-            Number of data points the matrix-vector products are applied to at the same time. The larger, the more
-            memory is required. Only used if no precomputed cost matrix is used.
+            Number of rows/columns of the cost matrix to materialize during the solver iterations.
+            Larger value will require more memory.
         stage
-            Stages of subproblems which are to be solved.
+            Stage by which to filter the :attr:`problems` to be solved.
         initializer
-            Initializer to use for the problem.
-            If not low rank, the standard initializer is used (outer product of marginals).
-            If low rank, available options are:
-
-                - `random`
-                - `rank2` :cite:`scetbon:21a`
-                - `k-means` :cite:`scetbon:22b`
-                - `generalized-k-means` :cite:`scetbon:22b`:
-
-            If `None`, the low-rank initializer will be selected based on how the data is passed.
-            If the cost matrix is passed (instead of the data), the random initializer is used,
-            otherwise the K-means initializer.
+            How to initialize the solution. If :obj:`None`, ``'default'`` will be used for a full-rank solver and
+            ``'rank2'`` for a low-rank solver.
         initializer_kwargs
-            keyword arguments for the initializer.
+            Keyword arguments for the ``initializer``.
         jit
-            if True, automatically jits (just-in-time compiles) the function upon first call.
+            Whether to :func:`~jax.jit` the underlying :mod:`ott` solver.
         min_iterations
-            The minimum number of Sinkhorn iterations carried out before the error is computed and monitored.
+            Minimum number of :term:`(fused) GW <Gromov-Wasserstein>` iterations.
         max_iterations
-            The maximum number of Sinkhorn iterations.
+            Maximum number of :term:`(fused) GW <Gromov-Wasserstein>` iterations.
         threshold
-            If not `None`, set all entries below `threshold` to 0.
+            Convergence threshold of the :term:`GW <Gromov-Wasserstein>` solver.
         linear_solver_kwargs
-            Keyword arguments for the linear solver used in quadratic problems.
+            Keyword arguments for the inner :term:`linear problem` solver.
         device
-            If not `None`, the output will be transferred to `device`.
+            Transfer the solution to a different device, see :meth:`~moscot.base.output.BaseSolverOutput.to`.
+            If :obj:`None`, keep the output on the original device.
         kwargs
-            Keyword arguments to solve the underlying Optimal Transport problem.
+            Keyword arguments for :meth:`~moscot.base.problems.CompoundProblem.solve`.
 
         Returns
         -------
-        The solved problem.
+        Returns self and updates the following fields:
 
-        Examples
-        --------
-        %(ex_solve_quadratic)s
+        - :attr:`solutions` - the :term:`OT` solutions for each subproblem.
+        - :attr:`stage` - set to ``'solved'``.
         """
         return super().solve(
             alpha=alpha,

@@ -21,7 +21,6 @@ import scanpy as sc
 from anndata import AnnData
 
 from moscot import _constants
-from moscot._docs._docs import d
 from moscot._types import ArrayLike, Numeric_t, Str_Dict_t
 from moscot.base.output import BaseSolverOutput
 from moscot.base.problems._utils import (
@@ -117,7 +116,9 @@ class AnalysisMixin(Generic[K, B]):
         **kwargs: Any,
     ) -> pd.DataFrame:
         if aggregation_mode == "annotation" and (source_groups is None or target_groups is None):
-            raise ValueError("If `aggregation_mode=annotation`, `source_groups` and `target_groups` cannot be `None`.")
+            raise ValueError(
+                "If `aggregation_mode='annotation'`, `source_groups` and `target_groups` cannot be `None`."
+            )
         if aggregation_mode == "cell" and source_groups is None and target_groups is None:
             raise ValueError("At least one of `source_groups` and `target_group` must be specified.")
 
@@ -140,11 +141,11 @@ class AnalysisMixin(Generic[K, B]):
             if aggregation_mode == "cell" and "cell" in self.adata.obs:
                 raise KeyError(f"Aggregation is already present in `adata.obs[{aggregation_mode!r}]`.")
             plot_vars = {
-                "transition_matrix": tm,
                 "source": source,
                 "target": target,
                 "source_groups": source_groups if (not forward or aggregation_mode == "annotation") else "cell",
                 "target_groups": target_groups if (forward or aggregation_mode == "annotation") else "cell",
+                "transition_matrix": tm,
             }
             set_plotting_vars(
                 self.adata,
@@ -395,7 +396,6 @@ class AnalysisMixin(Generic[K, B]):
                 scale_by_marginals=False,
                 split_mass=False,
                 key_added=None,
-                return_data=True,
             )
             df["distribution"] = result
             cell_dist = df[df[annotation_key].isin(annotations_2)].groupby(annotation_key).sum(numeric_only=True)
@@ -434,7 +434,6 @@ class AnalysisMixin(Generic[K, B]):
                 scale_by_marginals=False,
                 split_mass=True,
                 key_added=None,
-                return_data=True,
             )
             current_cells = df_2.iloc[range(batch, min(batch + batch_size, len(df_2)))].index.tolist()
             df_1.loc[:, current_cells] = result
@@ -443,13 +442,13 @@ class AnalysisMixin(Generic[K, B]):
             df_1 = df_1.drop(current_cells, axis=1)
         return tm
 
-    # adapted from CellRank (github.com/theislab/cellrank)
-    @d.dedent
+    # adapted from:
+    # https://github.com/theislab/cellrank/blob/master/cellrank/_utils/_utils.py#L392
     def compute_feature_correlation(
         self: AnalysisMixinProtocol[K, B],
         obs_key: str,
         corr_method: Literal["pearson", "spearman"] = "pearson",
-        significance_method: Literal["fischer", "perm_test"] = "fischer",
+        significance_method: Literal["fisher", "perm_test"] = "fisher",
         annotation: Optional[Dict[str, Iterable[str]]] = None,
         layer: Optional[str] = None,
         features: Optional[Union[List[str], Literal["human", "mouse", "drosophila"]]] = None,
@@ -458,61 +457,63 @@ class AnalysisMixin(Generic[K, B]):
         seed: Optional[int] = None,
         **kwargs: Any,
     ) -> pd.DataFrame:
-        """
-        Compute correlation of push or pull distribution with features.
+        """Compute correlation of push-forward or pull-back distribution with features.
 
-        Correlates a feature (e.g. counts of a gene) with probabilities of cells mapped to a set of cells, e.g.
-        a pull back or push forward distribution.
+        Correlates a feature, e.g., counts of a gene, with probabilities of cells mapped to a set of cells such as
+        the push-forward or pull-back distributions.
+
+        .. seealso::
+            - TODO: create and link an example
 
         Parameters
         ----------
         obs_key
-            Column of :attr:`anndata.AnnData.obs` containing push-forward or pull-back distributions.
+            Key in :attr:`~anndata.AnnData.obs` containing the push-forward or pull-back distribution.
         corr_method
-            Which type of correlation to compute, options are `pearson`, and `spearman`.
+            Which type of correlation to compute, either ``'pearson'`` or ``'spearman'``.
         significance_method
             Mode to use when calculating p-values and confidence intervals. Valid options are:
 
-                - `fischer` - use Fischer transformation :cite:`fischer:21`.
-                - `perm_test` - use permutation test.
-
+            - ``'fisher'`` - Fisher transformation :cite:`fisher:21`.
+            - ``'perm_test'`` - `permutation test <https://en.wikipedia.org/wiki/Permutation_test>`_.
         annotation
-            If not `None`, this defines the subset of data to be considered when computing the correlation.
-            Its key should correspond to a key in
-            :attr:`anndata.AnnData.obs` and its value to an iterable containing a subset of categories present in
-            :attr:`anndata.AnnData.obs` ``['{annotation.keys()[0]}']``.
+            How to subset the data when computing the correlation:
+
+            - :obj:`None` - do not subset the data.
+            - :class:`str` - key in :attr:`~anndata.AnnData.obs` where categorical data is stored.
+            - :class:`dict` - a dictionary with one key corresponding to a categorical column in
+              :attr:`~anndata.AnnData.obs` and values to a subset of categories.
         layer
-            Key from :attr:`anndata.AnnData.layers` from which to get the expression.
-            If `None`, use :attr:`anndata.AnnData.X`.
+            Key in :attr:`~anndata.AnnData.layers` from which to get the expression.
+            If :obj:`None`, use :attr:`~anndata.AnnData.X`.
         features
-            Features in :class:`anndata.AnnData` which the correlation
-            of ``anndata.AnnData.obs['{obs_key}']`` is computed with:
+            Features in :class:`~anndata.AnnData` to correlate with
+            :attr:`obs['{obs_key}'] <anndata.AnnData.obs>`:
 
-                - If `None`, all features from :attr:`anndata.AnnData.var` will be taken into account.
-                - If of type :obj:`list`, the elements should be from :attr:`anndata.AnnData.var_names` or
-                  :attr:`anndata.AnnData.obs_names`.
-                - If `human`, `mouse`, or `drosophila`, the features are subsetted to transcription factors,
-                  see :func:`~moscot.utils.data.transcription_factors`.
-
+            - :obj:`None` - all features from :attr:`~anndata.AnnData.var` will be taken into account.
+            - :obj:`list` - subset of :attr:`~anndata.AnnData.var_names` or :attr:`~anndata.AnnData.obs_names`.
+            - ``'human'``, ``'mouse'``, or ``'drosophila'`` - the features are subsetted to the transcription factors
+              from :func:`~moscot.utils.data.transcription_factors`.
         confidence_level
-            Confidence level for the confidence interval calculation. Must be in interval `[0, 1]`.
+            Confidence level for the confidence interval calculation. Must be in interval :math:`[0, 1]`.
         n_perms
-            Number of permutations to use when ``method = perm_test``.
+            Number of permutations to use when ``method = 'perm_test'``.
         seed
-            Random seed when ``method = perm_test``.
+            Random seed when ``method = 'perm_test'``.
         kwargs
-            Keyword arguments for parallelization, e.g., `n_jobs`. # TODO(michalk8): consider making the function public
+            Keyword arguments for parallelization, e.g., ``n_jobs``.
 
         Returns
         -------
-        Dataframe of shape ``(n_features, 5)`` containing the following columns, one for each lineage:
+        Dataframe of shape ``(n_features, 5)`` containing the following columns, one for each feature:
 
-            - `corr` - correlation between the count data and push/pull distributions.
-            - `pval` - calculated p-values for double-sided test.
-            - `qval` - corrected p-values using Benjamini-Hochberg method at level `0.05`.
-            - `ci_low` - lower bound of the ``confidence_level`` correlation confidence interval.
-            - `ci_high` - upper bound of the ``confidence_level`` correlation confidence interval.
-
+        - ``'corr'`` - correlation between the count data and push/pull distributions.
+        - ``'pval'`` - calculated p-values for double-sided test.
+        - ``'qval'`` - corrected p-values using the `Benjamini-Hochberg
+          <https://en.wikipedia.org/wiki/False_discovery_rate#Benjamini%E2%80%93Hochberg_procedure>`_ method
+          at :math:`0.05` level.
+        - ``'ci_low'`` - lower bound of the ``confidence_level`` correlation confidence interval.
+        - ``'ci_high'`` - upper bound of the ``confidence_level`` correlation confidence interval.
         """
         if obs_key not in self.adata.obs:
             raise KeyError(f"Unable to access data in `adata.obs[{obs_key!r}]`.")
@@ -520,18 +521,17 @@ class AnalysisMixin(Generic[K, B]):
         if annotation is not None:
             annotation_key, annotation_vals = next(iter(annotation.items()))
             if annotation_key not in self.adata.obs:
-                raise KeyError(f"Unable to access data in [{annotation_key!r}.")
+                raise KeyError(f"Unable to access data in `adata.obs[{annotation_key!r}]`.")
             if not isinstance(annotation_vals, Iterable):
-                raise TypeError("`annotation` expected to be dictionary of length 1 with value being a list.")
-
+                raise TypeError("`annotation` expected to be dictionary of length 1 with value being an iterable.")
             adata = self.adata[self.adata.obs[annotation_key].isin(annotation_vals)]
         else:
             adata = self.adata
 
         adata = adata[~adata.obs[obs_key].isnull()]
-        if adata.n_obs == 0:
+        if not adata.n_obs:
             raise ValueError(f"`adata.obs[{obs_key!r}]` only contains NaN values.")
-        distribution = adata.obs[[obs_key]]
+        distribution: pd.DataFrame = adata.obs[[obs_key]]
 
         if isinstance(features, str):
             tfs = transcription_factors(organism=features)

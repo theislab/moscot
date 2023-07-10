@@ -1,5 +1,6 @@
+import abc
+import pathlib
 import types
-from abc import ABC, abstractmethod
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -12,18 +13,20 @@ from typing import (
     Union,
 )
 
+import cloudpickle
+
 import numpy as np
 import pandas as pd
 import scipy.sparse as sp
+from pandas.api import types as pd_types
 from sklearn.preprocessing import StandardScaler
 
 import scanpy as sc
 from anndata import AnnData
 
 from moscot import backends
-from moscot._docs._docs import d
 from moscot._logging import logger
-from moscot._types import ArrayLike, CostFn_t, Device_t, ProblemKind_t, ProblemStage_t
+from moscot._types import ArrayLike, CostFn_t, Device_t, ProblemKind_t
 from moscot.base.output import BaseSolverOutput, MatrixSolverOutput
 from moscot.base.problems._utils import require_solution, wrap_prepare, wrap_solve
 from moscot.base.solver import OTSolver
@@ -32,29 +35,94 @@ from moscot.utils.tagged_array import Tag, TaggedArray
 __all__ = ["BaseProblem", "OTProblem"]
 
 
-@d.get_sections(base="BaseProblem", sections=["Parameters", "Raises"])
-@d.dedent
-class BaseProblem(ABC):
-    """Problem interface handling one optimal transport problem.
+class BaseProblem(abc.ABC):
+    """Base class for all :term:`OT` problems."""
 
-    Parameters
-    ----------
-    kwargs
-        Metadata.
-    """
-
-    def __init__(self, **kwargs: Any):
+    def __init__(self):
         self._problem_kind: ProblemKind_t = "unknown"
-        self._stage: ProblemStage_t = "initialized"
-        self._metadata = dict(kwargs)
+        self._stage: Literal["initialized", "prepared", "solved"] = "initialized"
 
-    @abstractmethod
+    @abc.abstractmethod
     def prepare(self, *args: Any, **kwargs: Any) -> "BaseProblem":
-        """Abstract prepare method."""
+        """Prepare the problem.
 
-    @abstractmethod
+        Parameters
+        ----------
+        args
+            Positional arguments.
+        kwargs
+            Keyword arguments.
+
+        Returns
+        -------
+        Self and updates the following fields:
+
+        - :attr:`stage` - set to ``'prepared'``.
+        - :attr:`problem_kind` - kind of the :term:`OT` problem.
+        """
+
+    @abc.abstractmethod
     def solve(self, *args: Any, **kwargs: Any) -> "BaseProblem":
-        """Abstract solve method."""
+        """Solve the problem.
+
+        Parameters
+        ----------
+        args
+            Positional arguments.
+        kwargs
+            Keyword arguments.
+
+        Returns
+        -------
+        Self and updates the following fields:
+
+        - :attr:`stage` - set to ``'solved'``.
+        - :attr:`problem_kind` - kind of the :term:`OT` problem.
+        """
+
+    def save(
+        self,
+        path: Union[str, pathlib.Path],
+        overwrite: bool = False,
+    ) -> None:
+        """Save the problem to a file.
+
+        Parameters
+        ----------
+        path
+            Path where to save the problem.
+        overwrite
+            Whether to overwrite an existing file.
+
+        Returns
+        -------
+        Nothing, just saves the problem using :mod:`cloudpickle <pickle>`.
+        """
+        path = pathlib.Path(path)
+        if not overwrite and path.is_file():
+            raise RuntimeError(
+                f"Unable to write the model to an existing file `{path}`, " f"use `overwrite=True` to overwrite it."
+            )
+        with open(path, "wb") as fout:
+            cloudpickle.dump(self, fout)
+
+    @staticmethod
+    def load(
+        path: Union[str, pathlib.Path],
+    ) -> "BaseProblem":
+        """Load the model from a file.
+
+        Parameters
+        ----------
+        path
+            Path where the model is stored.
+
+        Returns
+        -------
+        The problem.
+        """
+        with open(path, "rb") as fin:
+            return cloudpickle.load(fin)
 
     @staticmethod
     def _get_mass(
@@ -89,7 +157,11 @@ class BaseProblem(ABC):
                 raise TypeError(f"Unable to interpret subset of type `{type(subset)}`.")
         elif not hasattr(data, "shape"):
             if subset is None:  # allow for numeric values
-                data = np.asarray(adata.obs[data], dtype=float)
+                data = (
+                    np.asarray(adata.obs[data], dtype=float)
+                    if pd_types.is_numeric_dtype(adata.obs[data])
+                    else np.ones((adata.n_obs,), dtype=float)
+                )
             else:
                 sset = subset if isinstance(subset, list) else [subset]  # type:ignore[list-item]
                 data = np.asarray(adata.obs[data].isin(sset), dtype=float)
@@ -103,11 +175,13 @@ class BaseProblem(ABC):
             data = np.reshape(data, (-1, 1))
         if data.shape[0] != adata.n_obs:
             raise ValueError(f"Expected array of shape `({adata.n_obs,}, ...)`, found `{data.shape}`.")
-        total = np.sum(data, axis=0, keepdims=True)
-        return (data / total) if normalize else data
+
+        if normalize:
+            return data / np.sum(data, axis=0, keepdims=True)
+        return data
 
     @property
-    def stage(self) -> ProblemStage_t:
+    def stage(self) -> Literal["initialized", "prepared", "solved"]:
         """Problem stage."""
         return self._stage
 
@@ -117,11 +191,8 @@ class BaseProblem(ABC):
         return self._problem_kind
 
 
-@d.get_sections(base="OTProblem", sections=["Parameters", "Raises"])
-@d.dedent
 class OTProblem(BaseProblem):
-    """
-    Base class for all optimal transport problems.
+    """Base class for all :term:`OT` problems.
 
     Parameters
     ----------
@@ -138,15 +209,13 @@ class OTProblem(BaseProblem):
     tgt_var_mask
         Target variable mask that defines :attr:`adata_tgt`.
     src_key
-        Source key name, usually supplied by :class:`~moscot.base.problems.BaseCompoundProblem`.
+        Source key name, usually supplied by the :class:`~moscot.base.problems.BaseCompoundProblem`.
     tgt_key
-        Target key name, usually supplied by :class:`~moscot.base.problems.BaseCompoundProblem`.
-    kwargs
-        Keyword arguments for :class:`~moscot.base.problems.BaseProblem`.
+        Target key name, usually supplied by the :class:`~moscot.base.problems.BaseCompoundProblem`.
 
     Notes
     -----
-    If any of the source/target masks are specified, :attr:`adata_src`/:attr:`adata_tgt` will be a view.
+    If source/target mask is specified, :attr:`adata_src`/:attr:`adata_tgt` will be a view.
     """
 
     def __init__(
@@ -159,9 +228,8 @@ class OTProblem(BaseProblem):
         tgt_var_mask: Optional[ArrayLike] = None,
         src_key: Optional[Any] = None,
         tgt_key: Optional[Any] = None,
-        **kwargs: Any,
     ):
-        super().__init__(**kwargs)
+        super().__init__()
         self._adata_src = adata
         self._adata_tgt = adata if adata_tgt is None else adata_tgt
         self._src_obs_mask = src_obs_mask
@@ -203,7 +271,6 @@ class OTProblem(BaseProblem):
         x_array = TaggedArray.from_adata(self.adata_src, dist_key=self._src_key, **x_kwargs)
         y_array = TaggedArray.from_adata(self.adata_tgt, dist_key=self._tgt_key, **y_kwargs)
 
-        # restich together
         return TaggedArray(data_src=x_array.data_src, data_tgt=y_array.data_src, tag=Tag.POINT_CLOUD, cost=x_array.cost)
 
     @wrap_prepare
@@ -216,13 +283,13 @@ class OTProblem(BaseProblem):
         b: Optional[Union[bool, str, ArrayLike]] = None,
         **kwargs: Any,
     ) -> "OTProblem":
-        """Prepare optimal transport problem.
+        """Prepare the :term:`OT` problem.
 
-        Depending on which arguments are passed:
+        Depending on which arguments are passed, the :attr:`problem_kind` will be:
 
-        - if only ``xy`` is non-empty, :attr:`problem_kind` will be ``'linear'``.
-        - if only ``x`` and ``y`` are non-empty, :attr:`problem_kind` will be ``'quadratic'``.
-        - if all ``xy``, ``x`` and ``y`` are non-empty, :attr:`problem_kind` will be ``'quadratic'``.
+        - if only ``xy`` is non-empty, :attr:`problem_kind = 'linear' <problem_kind>`.
+        - if only ``x`` and ``y`` are non-empty, :attr:`problem_kind = 'quadratic' <problem_kind>`.
+        - if all ``xy``, ``x`` and ``y`` are non-empty, :attr:`problem_kind = 'quadratic' <problem_kind>`.
 
         Parameters
         ----------
@@ -230,39 +297,42 @@ class OTProblem(BaseProblem):
             Geometry defining the linear term. If a non-empty :class:`dict`,
             :meth:`~moscot.utils.tagged_array.TaggedArray.from_adata` will be called.
         x
-            First geometry defining the quadratic term. If a non-empty :class:`dict`,
+            Geometry defining the source :term:`quadratic term`. If a non-empty :class:`dict`,
             :meth:`~moscot.utils.tagged_array.TaggedArray.from_adata` will be called.
         y
-            Second geometry defining the quadratic term. If a non-empty :class:`dict`,
+            Geometry defining the target :term:`quadratic term`. If a non-empty :class:`dict`,
             :meth:`~moscot.utils.tagged_array.TaggedArray.from_adata` will be called.
         a
-            Source marginals. Valid value are:
+            Source :term:`marginals`. Valid options are:
 
-            - :class:`str`: key in :attr:`adata_src` :attr:`~anndata.AnnData.obs` where the marginals are stored.
-            - :class:`bool`: if `True`, compute the marginals from :attr:`adata_src`, otherwise use uniform.
-            - :class:`~numpy.ndarray`: array of shape ``[n,]`` containing the source marginals.
-            - :obj:`None`: uniform marginals.
+            - :class:`str` - key in :attr:`~anndata.AnnData.obs` where the source marginals are stored.
+            - :class:`bool` - if :obj:`True`, :meth:`estimate the marginals <estimate_marginals>`
+              from :attr:`adata_src`, otherwise use uniform marginals.
+            - :class:`~numpy.ndarray` - array of shape ``[n,]`` containing the source marginals.
+            - :obj:`None` - uniform marginals.
         b
-            Target marginals. Valid options are:
+            Target :term:`marginals`. Valid options are:
 
-            - :class:`str`: key in :attr:`adata_tgt` :attr:`~anndata.AnnData.obs` where the marginals are stored.
-            - :class:`bool`: if `True`, compute the marginals from :attr:`adata_tgt`, otherwise use uniform.
-            - :class:`~numpy.ndarray`: array of shape ``[m,]`` containing the target marginals.
-            - :obj:`None`: uniform marginals.
+            - :class:`str` - key in :attr:`~anndata.AnnData.obs` where the target marginals are stored.
+            - :class:`bool` - if :obj:`True`, :meth:`estimate the marginals <estimate_marginals>`
+              from :attr:`adata_tgt`, otherwise use uniform marginals.
+            - :class:`~numpy.ndarray` - array of shape ``[m,]`` containing the target marginals.
+            - :obj:`None` - uniform marginals.
         kwargs
-            Keyword arguments when creating the source/target marginals.
+            Keyword arguments for :meth:`estimate_marginals` when ``a = True`` or ``b = True``.
 
         Returns
         -------
-        Self and modifies the following attributes:
+        Self and updates the following fields:
 
-        - :attr:`xy`: geometry of shape ``[n, m]`` defining the linear term.
-        - :attr:`x`: first geometry of shape ``[n, n]`` defining  the quadratic term.
-        - :attr:`y`: second geometry of shape ``[m, m]`` defining the quadratic term.
-        - :attr:`a`: source marginals of shape ``[n,]``.
-        - :attr:`b`: target marginals of shape ``[m,]``.
-        - :attr:`problem_kind`: kind of the optimal transport problem.
-        - :attr:`solution`: set to :obj:`None`.
+        - :attr:`xy` - geometry of shape ``[n, m]`` defining the :term:`linear term`.
+        - :attr:`x` - geometry of shape ``[n, n]`` defining the source :term:`quadratic term`.
+        - :attr:`y` - geometry of shape ``[m, m]`` defining the target :term:`quadratic term`.
+        - :attr:`a` -  source :term:`marginals` of shape ``[n,]``.
+        - :attr:`b` - target :term:`marginals` of shape ``[m,]``.
+        - :attr:`solution` - set to :obj:`None`.
+        - :attr:`stage` - set to ``'prepared'``.
+        - :attr:`problem_kind` - kind of the :term:`OT` problem.
         """
         self._x = self._y = self._xy = self._solution = None
         # TODO(michalk8): in the future, have a better dispatch
@@ -298,7 +368,6 @@ class OTProblem(BaseProblem):
         self._b = self._create_marginals(self.adata_tgt, data=b, source=False, **kwargs)
         return self
 
-    @d.get_sections(base="OTProblem_solve", sections=["Parameters", "Raises"])
     @wrap_solve
     def solve(
         self,
@@ -306,24 +375,25 @@ class OTProblem(BaseProblem):
         device: Optional[Device_t] = None,
         **kwargs: Any,
     ) -> "OTProblem":
-        """Solve optimal transport problem.
+        """Solve the :term:`OT` problem.
 
         Parameters
         ----------
         backend
             Which backend to use, see :func:`~moscot.backends.utils.get_available_backends`.
         device
-            Device where to transfer the solution, see :meth:`moscot.base.output.BaseSolverOutput.to`.
+            Transfer the solution to a different device, see :meth:`~moscot.base.output.BaseSolverOutput.to`.
+            If :obj:`None`, keep the output on the original device.
         kwargs
-            Keyword arguments for :class:`moscot.base.solver.BaseSolver` or
-            :meth:`moscot.base.solver.BaseSolver.__call__`.
+            Keyword arguments for :class:`~moscot.base.solver.BaseSolver` or its
+            :meth:`__call__ <moscot.base.solver.BaseSolver.__call__>` method.
 
         Returns
         -------
-        Self and modifies the following attributes:
+        Self and updates the following fields:
 
-        - :attr:`solver`: optimal transport solver.
-        - :attr:`solution`: optimal transport solution.
+        - :attr:`solver` - the :term:`OT` solver.
+        - :attr:`solution` - the :term:`OT` solution.
         """
         solver_class = backends.get_solver(self.problem_kind, backend=backend, return_class=True)
         init_kwargs, call_kwargs = solver_class._partition_kwargs(**kwargs)
@@ -348,37 +418,41 @@ class OTProblem(BaseProblem):
         normalize: bool = True,
         *,
         split_mass: bool = False,
-        **kwargs: Any,
+        scale_by_marginals: bool = False,
     ) -> ArrayLike:
-        """Push mass through the :attr:`~moscot.base.output.BaseSolverOutput.transport_matrix`.
+        r"""Push data through the :attr:`~moscot.base.output.BaseSolverOutput.transport_matrix`.
 
         Parameters
         ----------
         data
             Data to push through the transport matrix. Valid options are:
 
-            - :class:`str`: key in :attr:`adata_src` :attr:`~anndata.AnnData.obs`.
-            - :class:`~numpy.ndarray`: array of shape ``[n,]``.
-            - :obj:`None`: depending on the ``subset``:
+            - :class:`~numpy.ndarray` - array of shape ``[n,]`` or ``[n, d]``.
+            - :class:`str` - key in :attr:`adata_src.obs['{data}'] <adata_src>`. If ``subset`` is a :class:`list`,
+              the data will be a boolean mask determined by the subset. Useful for categorical data.
+            - :obj:`None` - the value depends on the ``subset``.
 
-              - :class:`list`: observation names to push in :attr:`adata_src` :attr:`~anndata.AnnData.obs_names`.
-              - :class:`tuple`: start and offset indices defining the mask.
-              - :obj:`None`: uniform array of 1s.
+              - :class:`list` - names in :attr:`adata_src.obs_names <adata_src>` to push.
+              - :class:`tuple` - start and offset indices :math:`(subset[0], subset[0] + subset[1])`.
+                that define a boolean mask to push.
+              - :obj:`None` - uniform array of :math:`1`.
         subset
             Push values contained only within the subset.
         normalize
-            Whether to normalize the columns of ``data`` to sum to 1.
+            Whether to normalize the columns of ``data`` to sum to :math:`1`.
         split_mass
             Whether to split non-zero values in ``data`` into separate columns.
+        scale_by_marginals
+            Whether to scale by the source :term`marginals` :attr:`a`.
 
         Returns
         -------
-        Array of shape ``[m, d]``.
+        The transported values, array of shape ``[m, d]``.
         """
         if TYPE_CHECKING:
             assert isinstance(self.solution, BaseSolverOutput)
         data = self._get_mass(self.adata_src, data=data, subset=subset, normalize=normalize, split_mass=split_mass)
-        return self.solution.push(data, **kwargs)
+        return self.solution.push(data, scale_by_marginals=scale_by_marginals)
 
     @require_solution
     def pull(
@@ -388,48 +462,53 @@ class OTProblem(BaseProblem):
         normalize: bool = True,
         *,
         split_mass: bool = False,
-        **kwargs: Any,
+        scale_by_marginals: bool = False,
     ) -> ArrayLike:
-        """Pull mass through the :attr:`~moscot.base.output.BaseSolverOutput.transport_matrix`.
+        r"""Pull data through the :attr:`~moscot.base.output.BaseSolverOutput.transport_matrix`.
 
         Parameters
         ----------
         data
             Data to pull through the transport matrix. Valid options are:
 
-            - :class:`str`: key in :attr:`adata_tgt` :attr:`~anndata.AnnData.obs`.
-            - :class:`~numpy.ndarray`: array of shape ``[m,]``.
-            - :obj:`None`: depending on the ``subset``:
+            - :class:`~numpy.ndarray` - array of shape ``[m,]`` or ``[m, d]``.
+            - :class:`str` - key in :attr:`adata_tgt.obs['{data}'] <adata_tgt>`. If ``subset`` is a :class:`list`,
+              the data will be a boolean mask determined by the subset. Useful for categorical data.
+            - :obj:`None` - the value depends on the ``subset``.
 
-              - :class:`list`: observation names to pull in :attr:`adata_tgt` :attr:`~anndata.AnnData.obs_names`.
-              - :class:`tuple`: start and offset indices defining the mask.
-              - :obj:`None`: uniform array of 1s.
+              - :class:`list` - names in :attr:`adata_tgt.obs_names <adata_tgt>` to pull.
+              - :class:`tuple` - start and offset indices :math:`(subset[0], subset[0] + subset[1])`.
+                that define a boolean mask to pull.
+              - :obj:`None` - uniform array of :math:`1`.
         subset
             Pull values contained only within the subset.
         normalize
-            Whether to normalize the columns of ``data`` to sum to 1.
+            Whether to normalize the columns of ``data`` to sum to :math:`1`.
         split_mass
             Whether to split non-zero values in ``data`` into separate columns.
+        scale_by_marginals
+            Whether to scale by the target :term`marginals` :attr:`b`.
 
         Returns
         -------
-        Array of shape ``[n, d]``.
+        The transported values, array of shape ``[n, d]``.
         """
         if TYPE_CHECKING:
             assert isinstance(self.solution, BaseSolverOutput)
         data = self._get_mass(self.adata_tgt, data=data, subset=subset, normalize=normalize, split_mass=split_mass)
-        return self.solution.pull(data, **kwargs)
+        return self.solution.pull(data, scale_by_marginals=scale_by_marginals)
 
     def set_solution(
         self, solution: Union[ArrayLike, pd.DataFrame, BaseSolverOutput], *, overwrite: bool = False, **kwargs: Any
     ) -> "OTProblem":
-        """Set the :attr:`solution`.
+        """Set a :attr:`solution` to the :term:`OT` problem.
 
         Parameters
         ----------
         solution
-            Solution for this problem. If a :class:`~pandas.DataFrame` is passed, its index and columns
-            must match the indexes of :attr:`adata_src` and :attr:`adata_tgt`, respectively.
+            Solution for this problem. If a :class:`~pandas.DataFrame` is passed,
+            its index must be equal to :attr:`adata_src.obs_names <adata_src>`
+            and its columns to :attr:`adata_tgt.obs_names <adata_tgt>`.
         overwrite
             Whether to overwrite an existing solution.
         kwargs
@@ -437,7 +516,10 @@ class OTProblem(BaseProblem):
 
         Returns
         -------
-        Set :attr:`solution` and return self.
+        Self and updates the following fields:
+
+        - :attr:`solution` - the :term:`OT` solution.
+        - :attr:`stage` - set to ``'solved'``.
         """
         if not overwrite and self.solution is not None:
             raise ValueError(f"`{self}` already contains a solution, use `overwrite=True` to overwrite it.")
@@ -526,11 +608,17 @@ class OTProblem(BaseProblem):
         return {term: TaggedArray(spatial, tag=Tag.POINT_CLOUD)}
 
     def _create_marginals(
-        self, adata: AnnData, *, source: bool, data: Optional[Union[bool, str, ArrayLike]] = None, **kwargs: Any
+        self,
+        adata: AnnData,
+        *,
+        source: bool,
+        data: Optional[Union[bool, str, ArrayLike]] = None,
+        marginal_kwargs: Dict[str, Any] = types.MappingProxyType({}),
+        **kwargs: Any,
     ) -> ArrayLike:
         if data is True:
-            marginals = self.estimate_marginals(adata, source=source, **kwargs)
-        elif data in (False, None):
+            marginals = self.estimate_marginals(adata, source=source, **marginal_kwargs, **kwargs)
+        elif data is False or data is None:
             marginals = np.ones((adata.n_obs,), dtype=float) / adata.n_obs
         elif isinstance(data, str):
             try:
@@ -548,106 +636,109 @@ class OTProblem(BaseProblem):
         return marginals
 
     def estimate_marginals(self, adata: AnnData, *, source: bool, **kwargs: Any) -> ArrayLike:
-        """TODO."""
+        """Estimate the source or target :term:`marginals`.
+
+        .. note::
+            This function returns uniform marginals.
+
+        Parameters
+        ----------
+        adata
+            Annotated data object.
+        source
+            Whether to estimate the source or target :term:`marginals`.
+        kwargs
+            Additional keyword arguments.
+
+        Returns
+        -------
+        The estimated source or target marginals of shape ``[n,]`` or ``[m,]``, depending on the ``source``.
+        """
+        del kwargs
         return np.ones((adata.n_obs,), dtype=float) / adata.n_obs
 
-    @d.dedent
+    # TODO(michalk8): extend for point-clouds as Union[pd.DataFrame, Tuple[pd.DataFrame, pd.DataFrame]]
+    # TODO(michalk8): allow this to be nullified
     def set_xy(
         self,
         data: pd.DataFrame,
         tag: Literal["cost", "kernel"],
     ) -> None:
-        """
-        Set a custom cost matrix/kernel in the linear term.
+        """Set a cost/kernel matrix for the :term:`linear term`.
 
         Parameters
         ----------
-        %(data_set)s
-        %(tag_set)s
+        data
+            Cost or kernel matrix. Its index must be equal to :attr:`adata_src.obs_names <adata_src>`
+            and its columns to :attr:`adata_tgt.obs_names <adata_tgt>`.
+        tag
+            Whether ``data`` is a cost or a kernel matrix.
 
         Returns
         -------
-        None
+        Nothing, just updates the following fields:
+
+        - :attr:`xy` - the :term:`linear term`.
+        - :attr:`stage` - set to ``'prepared'``.
         """
-        if data.shape != self.shape:
-            raise ValueError(f"`data` is expected to have shape {self.shape} but found {data.shape}.")
-        if not isinstance(data, pd.DataFrame):
-            raise TypeError("If the data is to be validated, the data must be of type pandas.DataFrame.")
-        if list(data.index) != list(self.adata_src.obs_names):
-            raise ValueError(
-                "The index names of `data` do not correspond to `adata.obs_names` of the source distribution."
-            )
-        if list(data.columns) != list(self.adata_tgt.obs_names):
-            raise ValueError(
-                "The column names of `data` do not correspond to `adata.obs_names` of the target distribution."
-            )
-        self._xy = TaggedArray(data_src=data.values, data_tgt=None, tag=Tag(tag), cost="cost")
+        pd.testing.assert_series_equal(self.adata_src.obs_names.to_series(), data.index.to_series())
+        pd.testing.assert_series_equal(self.adata_tgt.obs_names.to_series(), data.columns.to_series())
+
+        self._xy = TaggedArray(data_src=data.to_numpy(), data_tgt=None, tag=Tag(tag), cost="cost")
         self._stage = "prepared"
 
-    @d.dedent
     def set_x(self, data: pd.DataFrame, tag: Literal["cost", "kernel"]) -> None:
-        """
-        Set a custom cost matrix/kernel in the quadratic source term.
+        """Set a cost/kernel matrix for the source :term:`quadratic term`.
 
         Parameters
         ----------
-        %(data_set)s
-        %(tag_set)s
+        data
+            Cost or kernel matrix. Its index must be equal to :attr:`adata_src.obs_names <adata_src>`
+            and its columns to :attr:`adata_src.obs_names <adata_src>`.
+        tag
+            Whether ``data`` is a cost or a kernel matrix.
 
         Returns
         -------
-        None
+        Nothing, just updates the following fields:
+
+        - :attr:`x` - the source :term:`quadratic term`.
+        - :attr:`stage` - set to ``'prepared'``.
         """
+        pd.testing.assert_series_equal(self.adata_src.obs_names.to_series(), data.index.to_series())
+        pd.testing.assert_series_equal(self.adata_src.obs_names.to_series(), data.columns.to_series())
+
         if self.problem_kind == "linear":
-            logger.info(f"Changing the problem type from {self.problem_kind} to fused-quadratic.")
+            logger.info(f"Changing the problem type from {self.problem_kind!r} to 'quadratic (fused)'.")
             self._problem_kind = "quadratic"
-        expected_shape = self.shape[0], self.shape[0]
-        if data.shape != expected_shape:
-            raise ValueError(f"`data` is expected to have shape {expected_shape} but found {data.shape}.")
-        if not isinstance(data, pd.DataFrame):
-            raise TypeError("If the data is to be validated, the data must be of type pandas.DataFrame.")
-        if list(data.index) != list(self.adata_src.obs_names):
-            raise ValueError(
-                "The index names of `data` do not correspond to `adata.obs_names` of the source distribution."
-            )
-        if list(data.columns) != list(self.adata_src.obs_names):
-            raise ValueError(
-                "The column names of `data` do not correspond to `adata.obs_names` of the source distribution."
-            )
-        self._x = TaggedArray(data_src=data.values, data_tgt=None, tag=Tag(tag), cost="cost")
+        self._x = TaggedArray(data_src=data.to_numpy(), data_tgt=None, tag=Tag(tag), cost="cost")
         self._stage = "prepared"
 
-    @d.dedent
     def set_y(self, data: pd.DataFrame, tag: Literal["cost", "kernel"]) -> None:
-        """
-        Set a custom cost matrix/kernel in the quadratic target term.
+        """Set a cost/kernel matrix for the target :term:`quadratic term`.
 
         Parameters
         ----------
-        %(data_set)s
-        %(tag_set)s
+        data
+            Cost or kernel matrix. Its index must be equal to :attr:`adata_tgt.obs_names <adata_tgt>`
+            and its columns to :attr:`adata_tgt.obs_names <adata_tgt>`.
+        tag
+            Whether ``data`` is a cost or a kernel matrix.
 
         Returns
         -------
-        None
+        Nothing, just updates the following fields:
+
+        - :attr:`y` - the target :term:`quadratic term`.
+        - :attr:`stage` - set to ``'prepared'``.
         """
+        pd.testing.assert_series_equal(self.adata_tgt.obs_names.to_series(), data.index.to_series())
+        pd.testing.assert_series_equal(self.adata_tgt.obs_names.to_series(), data.columns.to_series())
+
         if self.problem_kind == "linear":
-            logger.info(f"Changing the problem type from {self.problem_kind} to fused-quadratic.")
+            logger.info(f"Changing the problem type from {self.problem_kind!r} to 'quadratic (fused)'.")
             self._problem_kind = "quadratic"
-        expected_shape = self.shape[1], self.shape[1]
-        if data.shape != expected_shape:
-            raise ValueError(f"`data` is expected to have shape {expected_shape} but found {data.shape}.")
-        if not isinstance(data, pd.DataFrame):
-            raise TypeError("If the data is to be validated, the data must be of type pandas.DataFrame.")
-        if list(data.index) != list(self.adata_tgt.obs_names):
-            raise ValueError(
-                "The index names of `data` do not correspond to `adata.obs_names` of the source distribution."
-            )
-        if list(data.columns) != list(self.adata_tgt.obs_names):
-            raise ValueError(
-                "The column names of `data` do not correspond to `adata.obs_names` of the source distribution."
-            )
-        self._y = TaggedArray(data_src=data.values, data_tgt=None, tag=Tag(tag), cost="cost")
+        self._y = TaggedArray(data_src=data.to_numpy(), data_tgt=None, tag=Tag(tag), cost="cost")
         self._stage = "prepared"
 
     @property
@@ -674,42 +765,42 @@ class OTProblem(BaseProblem):
 
     @property
     def shape(self) -> Tuple[int, int]:
-        """Shape of the optimal transport problem."""
+        """Shape of the :term:`OT` problem."""
         return self.adata_src.n_obs, self.adata_tgt.n_obs
 
     @property
     def solution(self) -> Optional[BaseSolverOutput]:
-        """Solution of the optimal transport problem."""
+        """Solution of the :term:`OT` problem."""
         return self._solution
 
     @property
     def solver(self) -> Optional[OTSolver[BaseSolverOutput]]:
-        """Optimal transport solver."""
+        """:term:`OT` solver."""
         return self._solver
 
     @property
     def xy(self) -> Optional[TaggedArray]:
-        """Geometry defining the linear term."""
+        """Geometry defining the :term:`linear term`."""
         return self._xy
 
     @property
     def x(self) -> Optional[TaggedArray]:
-        """First geometry defining the quadratic term."""
+        """Geometry defining the source :term:`quadratic term`."""
         return self._x
 
     @property
     def y(self) -> Optional[TaggedArray]:
-        """Second geometry defining the quadratic term."""
+        """Geometry defining the target :term:`quadratic term`."""
         return self._y
 
     @property
     def a(self) -> Optional[ArrayLike]:
-        """Source marginals."""
+        """Source :term:`marginals`."""
         return self._a
 
     @property
     def b(self) -> Optional[ArrayLike]:
-        """Target marginals."""
+        """Target :term:`marginals`."""
         return self._b
 
     def __repr__(self) -> str:

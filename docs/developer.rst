@@ -11,7 +11,6 @@ Backends
     backends.ott.SinkhornSolver
     backends.ott.GWSolver
     backends.ott.OTTOutput
-
     backends.utils.get_solver
     backends.utils.get_available_backends
 
@@ -22,8 +21,8 @@ Costs
 .. autosummary::
     :toctree: genapi
 
-    costs.LeafDistance
     costs.BarcodeDistance
+    costs.LeafDistance
     costs.get_cost
     costs.get_available_costs
     costs.register_cost
@@ -83,9 +82,9 @@ Policies
     :toctree: genapi
 
     subset_policy.SubsetPolicy
+    subset_policy.OrderedPolicy
     subset_policy.StarPolicy
     subset_policy.ExternalStarPolicy
-    subset_policy.ExplicitPolicy
     subset_policy.SequentialPolicy
     subset_policy.TriangularPolicy
     subset_policy.ExplicitPolicy

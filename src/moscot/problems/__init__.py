@@ -4,10 +4,10 @@ from moscot.problems.spatiotemporal import SpatioTemporalProblem
 from moscot.problems.time import LineageProblem, TemporalProblem
 
 __all__ = [
+    "TranslationProblem",
     "AlignmentProblem",
     "MappingProblem",
     "SpatioTemporalProblem",
     "LineageProblem",
     "TemporalProblem",
-    "TranslationProblem",
 ]
