@@ -99,7 +99,7 @@ class OTTOutput(BaseSolverOutput):
         Parameters
         ----------
         last
-            Number of errors corresponding at the ``last`` steps of the algorithm to plot. If :obj:`None``,
+            Number of errors corresponding at the ``last`` steps of the algorithm to plot. If :obj:`None`,
             plot the full curve.
         title
             Title of the plot. If :obj:`None`, it is determined automatically.
