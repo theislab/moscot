@@ -94,12 +94,13 @@ class OTTOutput(BaseSolverOutput):
         ax: Optional[mpl.axes.Axes] = None,
         **kwargs: Any,
     ) -> Optional[mpl.figure.Figure]:
-        """Plot errors during the iterations.
+        """Plot errors along iterations.
 
         Parameters
         ----------
         last
-            Whether to plot only the ``last`` errors. If :obj:`None`, plot all errors.
+            Number of errors corresponding at the ``last`` steps of the algorithm to plot. If :obj:`None``,
+            plot the full curve.
         title
             Title of the plot. If :obj:`None`, it is determined automatically.
         outer_iteration

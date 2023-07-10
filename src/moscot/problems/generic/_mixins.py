@@ -47,7 +47,7 @@ class GenericAnalysisMixin(AnalysisMixin[K, B]):
         normalize: bool = True,
         key_added: Optional[str] = _constants.CELL_TRANSITION,
     ) -> pd.DataFrame:
-        """Compute an aggregate cell transition matrix.
+        """Aggregate the transport matrix.
 
         .. seealso::
             - See :doc:`../notebooks/examples/plotting/200_cell_transitions`

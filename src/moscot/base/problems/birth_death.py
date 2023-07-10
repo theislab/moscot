@@ -168,9 +168,9 @@ class BirthDeathProblem(BirthDeathMixin, OTProblem):
         apoptosis_key: Optional[str] = None,
         **kwargs: Any,
     ) -> ArrayLike:
-        """Estimate the source or target :term:`marginals` with the
+        """Estimate the source or target :term:`marginals` based on marker genes, either with the
         `birth-death process <https://en.wikipedia.org/wiki/Birth%E2%80%93death_process>`_,
-        as suggested in :cite:`schiebinger:19`.
+        as suggested in :cite:`schiebinger:19`, or with an exponential kernel.
 
         See :meth:`score_genes_for_marginals` on how to compute the proliferation and apoptosis scores.
 
