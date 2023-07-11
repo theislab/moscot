@@ -290,6 +290,16 @@ commands =
     # TODO(michalk8): uncomment after https://github.com/theislab/moscot/issues/490
     # make spelling {posargs}
 
+[testenv:examples-docs]
+description = Test examples in docs.
+deps =
+extras = docs
+ignore_errors = true
+pass_env = PYENCHANT_LIBRARY_PATH
+changedir = {tox_root}{/}docs
+commands =
+    jupytext --execute ./docs/notebooks/examples/plotting/500_passing_marginals.ipynb
+
 [testenv:clean-docs]
 description = Remove the documentation.
 deps =

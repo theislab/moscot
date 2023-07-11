@@ -1,4 +1,4 @@
-name: Test examples
+name: Test
 
 on:
   push:
@@ -13,21 +13,11 @@ concurrency:
 jobs:
   test:
     runs-on: ${{ matrix.os }}
-    defaults:
-      run:
-        shell: bash -e {0} # -e to fail on error
-
     strategy:
       fail-fast: false
       matrix:
-        os:
-          - ubuntu-latest
-        python:
-          - "3.10"
-
-    env:
-      OS: ${{ matrix.os }}
-      PYTHON: ${{ matrix.python }}
+        os: [ubuntu-latest]
+        python: ["3.10"]
 
     steps:
       - uses: actions/checkout@v3
@@ -35,21 +25,12 @@ jobs:
         uses: actions/setup-python@v4
         with:
           python-version: ${{ matrix.python }}
-          cache: "pip"
-          cache-dependency-path: "**/pyproject.toml"
-          submodules: true
 
-      - name: Install test dependencies
+      - name: Install pip dependencies
         run: |
-          python -m pip install --upgrade pip wheel
-      - name: Install dependencies
-        run: |
-          pip install ".[doc]"
-          pip install jupytext
+          python -m pip install --upgrade pip
+          pip install tox
+
       - name: Test
-        env:
-          MPLBACKEND: agg
-          PLATFORM: ${{ matrix.os }}
-          DISPLAY: :42
         run: |
-          jupytext --execute ./docs/notebooks/examples/plotting/500_passing_marginals.ipynb
+          tox -e py-${{ matrix.python }} examples-docs
