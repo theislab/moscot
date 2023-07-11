@@ -78,7 +78,7 @@ class TestGWProblem:
             assert key in expected_keys
             assert problem[key].solver._problem.geom_xy is None
 
-    @pytest.mark.parametrize("method", ["fischer", "perm_test"])
+    @pytest.mark.parametrize("method", ["fisher", "perm_test"])
     def test_compute_feature_correlation(self, adata_space_rotate: AnnData, method: str):
         problem = GWProblem(adata=adata_space_rotate)
         problem = problem.prepare(

@@ -5,7 +5,6 @@ import pandas as pd
 from anndata import AnnData
 
 from moscot import _constants
-from moscot._docs._docs_mixins import d_mixins
 from moscot._types import ArrayLike, Str_Dict_t
 from moscot.base.problems._mixins import AnalysisMixin, AnalysisMixinProtocol
 from moscot.base.problems.compound_problem import ApplyOutput_t, B, K
@@ -36,46 +35,69 @@ class GenericAnalysisMixin(AnalysisMixin[K, B]):
         super().__init__(*args, **kwargs)
         self._batch_key: Optional[str] = None
 
-    @d_mixins.dedent
     def cell_transition(
         self: GenericAnalysisMixinProtocol[K, B],
         source: K,
         target: K,
         source_groups: Optional[Str_Dict_t] = None,
         target_groups: Optional[Str_Dict_t] = None,
-        forward: bool = False,  # return value will be row-stochastic if forward=True, else column-stochastic
         aggregation_mode: Literal["annotation", "cell"] = "annotation",
+        forward: bool = False,
         batch_size: Optional[int] = None,
         normalize: bool = True,
         key_added: Optional[str] = _constants.CELL_TRANSITION,
     ) -> pd.DataFrame:
-        """
-        Compute a grouped cell transition matrix.
+        """Aggregate the transport matrix.
 
-        This function computes a transition matrix with entries corresponding to categories, e.g. cell types.
-        The transition matrix will be row-stochastic if `forward` is `True`, otherwise column-stochastic.
+        .. seealso::
+            - See :doc:`../notebooks/examples/plotting/200_cell_transitions`
+              on how to compute and plot the cell transitions.
 
         Parameters
         ----------
-        %(cell_trans_params)s
-        %(forward_cell_transition)s
-        %(aggregation_mode)s
-        %(other_key)s
-        %(other_adata)s
-        %(ott_jax_batch_size)s
-        %(normalize)s
-        %(key_added_plotting)s
+        source
+            Key identifying the source distribution.
+        target
+            Key identifying the target distribution.
+        source_groups
+            Source groups used for aggregation. Valid options are:
+
+            - :class:`str` - key in :attr:`~anndata.AnnData.obs` where categorical data is stored.
+            - :class:`dict` - a dictionary with one key corresponding to a categorical column in
+              :attr:`~anndata.AnnData.obs` and values to a subset of categories.
+        target_groups
+            Target groups used for aggregation. Valid options are:
+
+            - :class:`str` - key in :attr:`~anndata.AnnData.obs` where categorical data is stored.
+            - :class:`dict` - a dictionary with one key corresponding to a categorical column in
+              :attr:`~anndata.AnnData.obs` and values to a subset of categories.
+        aggregation_mode
+            How to aggregate the cell-level transport maps. Valid options are:
+
+            - ``'annotation'`` - group the transitions by the ``source_groups`` and the ``target_groups``.
+            - ``'cell'`` - do not group by the ``source_groups`` or the ``target_groups``, depending on the ``forward``.
+        forward
+            If :obj:`True`, compute the transitions from the ``source_groups`` to the ``target_groups``.
+        batch_size
+            Number of rows/columns of the cost matrix to materialize during :meth:`push` or :meth:`pull`.
+            Larger value will require more memory.
+        normalize
+            If :obj:`True`, normalize the transition matrix. If ``forward = True``, the transition matrix
+            will be row-stochastic, otherwise column-stochastic.
+        key_added
+            Key in :attr:`~anndata.AnnData.uns` where to save the result.
 
         Returns
         -------
-        %(return_cell_transition)s
+        Depending on the ``key_added``:
 
-        Notes
-        -----
-        %(notes_cell_transition)s
+        - :obj:`None` - returns the transition matrix.
+        - :obj:`str` - returns nothing and saves the transition matrix to
+          :attr:`uns['moscot_results']['cell_transition']['{key_added}'] <anndata.AnnData.uns>`
         """
         if TYPE_CHECKING:
             assert isinstance(self.batch_key, str)
+        # TODO(michalk8): modify the behavior to match with the docs
         return self._cell_transition(
             key=self.batch_key,
             source=source,
@@ -90,7 +112,6 @@ class GenericAnalysisMixin(AnalysisMixin[K, B]):
             key_added=key_added,
         )
 
-    @d_mixins.dedent
     def push(
         self: GenericAnalysisMixinProtocol[K, B],
         source: K,
@@ -100,27 +121,36 @@ class GenericAnalysisMixin(AnalysisMixin[K, B]):
         scale_by_marginals: bool = True,
         key_added: Optional[str] = _constants.PUSH,
         return_all: bool = False,
-        return_data: bool = False,
         **kwargs: Any,
     ) -> Optional[ApplyOutput_t[K]]:
-        """
-        Push distribution of cells from source to target.
+        """Push mass from source to target.
 
         Parameters
         ----------
-        %(start)s
-        %(end)s
-        %(data)s
-        %(subset)s
-        %(scale_by_marginals)s
-        %(key_added_plotting)s
-        %(return_all)s
-        %(return_data)s
+        source
+            Source key in :attr:`solutions`.
+        target
+            Target key in :attr:`solutions`.
+        data
+            Initial data to push, see :meth:`~moscot.base.problems.OTProblem.push` for information.
+        subset
+            Push values contained only within the subset.
+        scale_by_marginals
+            Whether to scale by the source :term:`marginals`.
+        key_added
+            Key in :attr:`~anndata.AnnData.obs` where to add the result.
+        return_all
+            Whether to also return intermediate results. Always true if ``key_added != None``.
+        kwargs
+            Keyword arguments for the subproblems' :meth:`~moscot.base.problems.OTProblem.push` method.
 
-        Return
-        ------
-        %(return_push_pull)s
+        Returns
+        -------
+        Depending on the ``key_added``:
 
+        - :obj:`None` - returns the result.
+        - :class:`str` - returns nothing and updates :attr:`obs['{key_added}'] <anndata.AnnData.obs>`
+          with the result.
         """
         result = self._apply(
             source=source,
@@ -144,9 +174,9 @@ class GenericAnalysisMixin(AnalysisMixin[K, B]):
             }
             self.adata.obs[key_added] = self._flatten(result, key=self.batch_key)
             set_plotting_vars(self.adata, _constants.PUSH, key=key_added, value=plot_vars)
-        return result if return_data else None
+            return None
+        return result
 
-    @d_mixins.dedent
     def pull(
         self: GenericAnalysisMixinProtocol[K, B],
         source: K,
@@ -156,27 +186,36 @@ class GenericAnalysisMixin(AnalysisMixin[K, B]):
         scale_by_marginals: bool = True,
         key_added: Optional[str] = _constants.PULL,
         return_all: bool = False,
-        return_data: bool = False,
         **kwargs: Any,
     ) -> Optional[ApplyOutput_t[K]]:
-        """
-        Pull distribution of cells from target to source.
+        """Pull mass from target to source.
 
         Parameters
         ----------
-        %(source)s
-        %(target)s
-        %(data)s
-        %(subset)s
-        %(scale_by_marginals)s
-        %(key_added_plotting)s
-        %(return_all)s
-        %(return_data)s
+        source
+            Source key in :attr:`solutions`.
+        target
+            Target key in :attr:`solutions`.
+        data
+            Initial data to pull, see :meth:`~moscot.base.problems.OTProblem.pull` for information.
+        subset
+            Pull values contained only within the subset.
+        scale_by_marginals
+            Whether to scale by the source :term:`marginals`.
+        key_added
+            Key in :attr:`~anndata.AnnData.obs` where to add the result.
+        return_all
+            Whether to also return intermediate results. Always true if ``key_added != None``.
+        kwargs
+            Keyword arguments for the subproblems' :meth:`~moscot.base.problems.OTProblem.pull` method.
 
-        Return
-        ------
-        %(return_push_pull)s
+        Returns
+        -------
+        Depending on the ``key_added``:
 
+        - :obj:`None` - returns the result.
+        - :class:`str` - returns nothing and updates :attr:`obs['{key_added}'] <anndata.AnnData.obs>`
+          with the result.
         """
         result = self._apply(
             source=source,
@@ -197,11 +236,12 @@ class GenericAnalysisMixin(AnalysisMixin[K, B]):
             }
             self.adata.obs[key_added] = self._flatten(result, key=self.batch_key)
             set_plotting_vars(self.adata, _constants.PULL, key=key_added, value=plot_vars)
-        return result if return_data else None
+            return None
+        return result
 
     @property
     def batch_key(self: GenericAnalysisMixinProtocol[K, B]) -> Optional[str]:
-        """Batch key in :attr:`anndata.AnnData.obs`."""
+        """Batch key in :attr:`~anndata.AnnData.obs`."""
         return self._batch_key
 
     @batch_key.setter
