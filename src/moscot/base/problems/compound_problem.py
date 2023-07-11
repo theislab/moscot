@@ -186,7 +186,7 @@ class BaseCompoundProblem(BaseProblem, abc.ABC, Generic[K, B]):
                 term="y", key_1=src, key_2=tgt, problem=problem, callback=y_callback, **y_callback_kwargs
             )
 
-            kws = {**kwargs, **xy_data, **x_data, **y_data}  # type: ignore[arg-type]
+            kws = {**kwargs, **xy_data, **x_data, **y_data}  # type: ignore[misc]
 
             if isinstance(problem, BirthDeathProblem):
                 kws["proliferation_key"] = self.proliferation_key  # type: ignore[attr-defined]
