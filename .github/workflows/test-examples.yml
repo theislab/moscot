@@ -20,8 +20,6 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        example:
-          - 100_push_pull.ipynb
         os:
           - ubuntu-latest
         python:
@@ -54,4 +52,4 @@ jobs:
           PLATFORM: ${{ matrix.os }}
           DISPLAY: :42
         run: |
-          jupytext --execute ./docs/notebooks/examples/plotting/${{ matrix.example }}
+          jupytext --execute ./docs/notebooks/examples/plotting/500_passing_marginals.ipynb
