@@ -33,4 +33,4 @@ jobs:
 
       - name: Test
         run: |
-          tox -e py-${{ matrix.python }} examples-docs
+          tox examples-docs -e py-${{ matrix.python }}
