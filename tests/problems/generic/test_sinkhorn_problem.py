@@ -89,7 +89,7 @@ class TestSinkhornProblem:
 
         problem = problem.solve(max_iterations=2)
 
-    @pytest.mark.parametrize("method", ["fischer", "perm_test"])
+    @pytest.mark.parametrize("method", ["fisher", "perm_test"])
     def test_compute_feature_correlation(self, adata_time: AnnData, method: str):
         problem = SinkhornProblem(adata=adata_time)
         problem = problem.prepare(key="time")

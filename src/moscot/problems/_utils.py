@@ -56,9 +56,7 @@ def handle_cost(
     cost_kwargs: CostKwargs_t = types.MappingProxyType({}),
     **_: Any,
 ) -> Tuple[Dict[str, Any], Dict[str, Any], Dict[str, Any]]:
-    x = dict(x)
-    y = dict(y)
-    xy = dict(xy)
+    xy, x, y = dict(xy), dict(x), dict(y)
     if cost is None:
         return xy, x, y
     if isinstance(cost, str):  # if cost is a str, we use it in all terms

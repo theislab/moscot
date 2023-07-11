@@ -14,7 +14,6 @@ from typing import (
     Union,
 )
 
-from moscot._docs._docs import d
 from moscot._logging import logger
 from moscot._types import ArrayLike, Device_t, ProblemKind_t
 from moscot.base.output import BaseSolverOutput
@@ -165,8 +164,6 @@ class BaseSolver(Generic[O], abc.ABC):
         return init_kwargs, call_kwargs
 
 
-@d.get_sections(base="OTSolver", sections=["Parameters", "Raises"])
-@d.dedent
 class OTSolver(TagConverter, BaseSolver[O], abc.ABC):
     """Base class for optimal transport solvers."""
 

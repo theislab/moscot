@@ -24,9 +24,9 @@ __all__ = [
     "drosophila",
     "c_elegans",
     "zebrafish",
+    "bone_marrow",
     "sim_align",
     "simulate_data",
-    "bone_marrow",
 ]
 
 
@@ -187,7 +187,7 @@ def zebrafish(
     force_download: bool = False,
     **kwargs: Any,
 ) -> Tuple[AnnData, Dict[str, nx.DiGraph]]:
-    """Lineage-traced scRNA-seq time-series dataset of zebrafish heart regeneration :cite:`hu:22`.
+    """Lineage-traced scRNA-seq time-series dataset of Zebrafish heart regeneration :cite:`hu:22`.
 
     Contains gene expression vectors, LINNAEUS :cite:`spanjaard:18` reconstructed lineage trees,
     a low-dimensional embedding, and additional metadata.

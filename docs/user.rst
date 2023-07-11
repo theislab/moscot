@@ -1,8 +1,6 @@
 User API
 ########
-.. module:: moscot
-
-Import ``moscot`` as::
+Import :mod:`moscot` as::
 
     import moscot as mt
 
@@ -53,7 +51,7 @@ Datasets
     datasets.drosophila
     datasets.c_elegans
     datasets.zebrafish
+    datasets.bone_marrow
     datasets.tedsim
     datasets.sim_align
     datasets.simulate_data
-    datasets.bone_marrow
