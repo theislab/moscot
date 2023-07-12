@@ -278,7 +278,6 @@ commands =
 
 [testenv:lint-docs]
 description = Lint the documentation.
-deps =
 extras = docs
 ignore_errors = true
 allowlist_externals = make
@@ -292,6 +291,7 @@ commands =
 
 [testenv:examples-docs]
 description = Test examples in docs.
+deps =
 extras = docs
 allowlist_externals = jupytext
 changedir = {tox_root}{/}docs
