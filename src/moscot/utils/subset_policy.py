@@ -65,7 +65,7 @@ class SubsetPolicy(Generic[K], abc.ABC):
 
     Examples
     --------
-    - See :doc:`../notebooks/examples/problems/400_subset_policy` on how to use different policies.
+    TODO(michalk8): add usage example
     """
 
     def __init__(
