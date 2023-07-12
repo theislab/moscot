@@ -26,8 +26,14 @@ SOLUTIONS_PATH = Path("./tests/data/alignment_solutions.pkl")  # base is moscot
 
 class TestAlignmentProblem:
     @pytest.mark.fast()
-    @pytest.mark.parametrize("joint_attr", [{"attr": "X"}])  # TODO(giovp): check that callback is correct
-    def test_prepare_sequential(self, adata_space_rotate: AnnData, joint_attr: Optional[Mapping[str, Any]]):
+    @pytest.mark.parametrize("joint_attr", [{"attr": "X"}])
+    @pytest.mark.parametrize("normalize_spatial", [True, False])
+    def test_prepare_sequential(
+        self,
+        adata_space_rotate: AnnData,
+        joint_attr: Optional[Mapping[str, Any]],
+        normalize_spatial: bool,
+    ):
         n_obs = adata_space_rotate.shape[0] // 3  # adata is made of 3 datasets
         n_var = adata_space_rotate.shape[1]
         expected_keys = {("0", "1"), ("1", "2")}
@@ -36,8 +42,13 @@ class TestAlignmentProblem:
         assert ap.problems == {}
         assert ap.solutions == {}
 
-        ap = ap.prepare(batch_key="batch", joint_attr=joint_attr)
+        ap = ap.prepare(batch_key="batch", joint_attr=joint_attr, normalize_spatial=normalize_spatial)
         assert len(ap) == 2
+        if normalize_spatial:
+            np.testing.assert_allclose(ap[("1", "2")].x.data_src.std(), ap[("0", "1")].x.data_src.std(), atol=1e-15)
+            np.testing.assert_allclose(ap[("1", "2")].x.data_src.std(), 1.0, atol=1e-15)
+            np.testing.assert_allclose(ap[("1", "2")].x.data_src.mean(), 0, atol=1e-15)
+            np.testing.assert_allclose(ap[("0", "1")].x.data_src.mean(), 0, atol=1e-15)
 
         for prob_key in expected_keys:
             assert isinstance(ap[prob_key], ap._base_problem_type)

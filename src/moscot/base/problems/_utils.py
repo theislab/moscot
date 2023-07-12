@@ -239,7 +239,7 @@ def _correlation_test(
     Y: pd.DataFrame,
     feature_names: Sequence[str],
     corr_method: Literal["pearson", "spearman"] = "pearson",
-    significance_method: Literal["fischer", "perm_test"] = "fischer",
+    significance_method: Literal["fisher", "perm_test"] = "fisher",
     confidence_level: float = 0.95,
     n_perms: Optional[int] = None,
     seed: Optional[int] = None,
@@ -326,7 +326,7 @@ def _correlation_test_helper(
     X: ArrayLike,
     Y: ArrayLike,
     corr_method: Literal["pearson", "spearman"] = "spearman",
-    significance_method: Literal["fischer", "perm_test"] = "fischer",
+    significance_method: Literal["fisher", "perm_test"] = "fisher",
     n_perms: Optional[int] = None,
     seed: Optional[int] = None,
     confidence_level: float = 0.95,
@@ -384,7 +384,7 @@ def _correlation_test_helper(
         X, Y = st.rankdata(X, method="average", axis=0), st.rankdata(Y, method="average", axis=0)
     corr = _pearson_mat_mat_corr_sparse(X, Y) if sp.issparse(X) else _pearson_mat_mat_corr_dense(X, Y)
 
-    if significance_method == "fischer":
+    if significance_method == "fisher":
         # see: https://en.wikipedia.org/wiki/Pearson_correlation_coefficient#Using_the_Fisher_transformation
         # for spearman see: https://www.sciencedirect.com/topics/mathematics/spearman-correlation
         mean, se = np.arctanh(corr), 1 / np.sqrt(n - 3)

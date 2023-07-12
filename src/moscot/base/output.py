@@ -197,7 +197,7 @@ class BaseSolverOutput(abc.ABC):
         value
             Value to use for sparsification.
         batch_size
-            How many rows of to materialize when sparsifying the :attr:`transport_matrix`.
+            How many rows to materialize when sparsifying the :attr:`transport_matrix`.
         n_samples
             If ``mode = 'percentile'``, determine the number of samples based on which the percentile is computed
             stochastically. Note this means that a matrix of shape `[n_samples, min(transport_matrix.shape)]`

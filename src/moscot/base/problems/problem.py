@@ -18,6 +18,7 @@ import cloudpickle
 import numpy as np
 import pandas as pd
 import scipy.sparse as sp
+from pandas.api import types as pd_types
 from sklearn.preprocessing import StandardScaler
 
 import scanpy as sc
@@ -156,7 +157,11 @@ class BaseProblem(abc.ABC):
                 raise TypeError(f"Unable to interpret subset of type `{type(subset)}`.")
         elif not hasattr(data, "shape"):
             if subset is None:  # allow for numeric values
-                data = np.asarray(adata.obs[data], dtype=float)
+                data = (
+                    np.asarray(adata.obs[data], dtype=float)
+                    if pd_types.is_numeric_dtype(adata.obs[data])
+                    else np.ones((adata.n_obs,), dtype=float)
+                )
             else:
                 sset = subset if isinstance(subset, list) else [subset]  # type:ignore[list-item]
                 data = np.asarray(adata.obs[data].isin(sset), dtype=float)
@@ -176,7 +181,7 @@ class BaseProblem(abc.ABC):
         return data
 
     @property
-    def stage(self) -> Literal["initializer", "prepared", "solved"]:
+    def stage(self) -> Literal["initialized", "prepared", "solved"]:
         """Problem stage."""
         return self._stage
 
@@ -583,11 +588,36 @@ class OTProblem(BaseProblem):
             return {term: TaggedArray(x, tag=Tag.POINT_CLOUD)}
         raise ValueError(f"Expected `term` to be one of `x`, `y`, or `xy`, found `{term!r}`.")
 
+    @staticmethod
+    def _spatial_norm_callback(
+        term: Literal["x", "y"],
+        adata: AnnData,
+        adata_y: Optional[AnnData] = None,
+        **kwargs: Any,
+    ) -> Dict[Literal["x", "y"], TaggedArray]:
+        spatial_key = kwargs["spatial_key"]
+        if term == "x":
+            spatial = adata.obsm[spatial_key]
+        if term == "y":
+            if adata_y is None:
+                raise ValueError("When `term` is `y`, `adata_y` cannot be `None`.")
+            spatial = adata_y.obsm[spatial_key]
+
+        logger.info(f"Normalizing spatial coordinates of `{term}`.")
+        spatial = (spatial - spatial.mean()) / spatial.std()
+        return {term: TaggedArray(spatial, tag=Tag.POINT_CLOUD)}
+
     def _create_marginals(
-        self, adata: AnnData, *, source: bool, data: Optional[Union[bool, str, ArrayLike]] = None, **kwargs: Any
+        self,
+        adata: AnnData,
+        *,
+        source: bool,
+        data: Optional[Union[bool, str, ArrayLike]] = None,
+        marginal_kwargs: Dict[str, Any] = types.MappingProxyType({}),
+        **kwargs: Any,
     ) -> ArrayLike:
         if data is True:
-            marginals = self.estimate_marginals(adata, source=source, **kwargs)
+            marginals = self.estimate_marginals(adata, source=source, **marginal_kwargs, **kwargs)
         elif data is False or data is None:
             marginals = np.ones((adata.n_obs,), dtype=float) / adata.n_obs
         elif isinstance(data, str):

@@ -116,7 +116,7 @@ class CrossModalityTranslationMixin(AnalysisMixin[K, B]):
         normalize: bool = True,
         key_added: Optional[str] = _constants.CELL_TRANSITION,
     ) -> pd.DataFrame:
-        """Compute an aggregate cell transition matrix.
+        """Aggregate the transport matrix.
 
         This function computes a transition matrix with entries corresponding to categories, e.g., cell types.
 

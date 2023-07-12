@@ -474,7 +474,7 @@ class AnalysisMixin(Generic[K, B]):
         significance_method
             Mode to use when calculating p-values and confidence intervals. Valid options are:
 
-            - ``'fisher'`` - Fischer transformation :cite:`fisher:21`.
+            - ``'fisher'`` - Fisher transformation :cite:`fisher:21`.
             - ``'perm_test'`` - `permutation test <https://en.wikipedia.org/wiki/Permutation_test>`_.
         annotation
             How to subset the data when computing the correlation:

@@ -168,9 +168,9 @@ class BirthDeathProblem(BirthDeathMixin, OTProblem):
         apoptosis_key: Optional[str] = None,
         **kwargs: Any,
     ) -> ArrayLike:
-        """Estimate the source or target :term:`marginals` with the
+        """Estimate the source or target :term:`marginals` based on marker genes, either with the
         `birth-death process <https://en.wikipedia.org/wiki/Birth%E2%80%93death_process>`_,
-        as suggested in :cite:`schiebinger:19`.
+        as suggested in :cite:`schiebinger:19`, or with an exponential kernel.
 
         See :meth:`score_genes_for_marginals` on how to compute the proliferation and apoptosis scores.
 
@@ -241,7 +241,7 @@ class BirthDeathProblem(BirthDeathMixin, OTProblem):
         """Prior estimate of the source growth rates."""
         if self._prior_growth is None:
             return None
-        return np.power(self._prior_growth, 1.0 / self.delta)
+        return np.asarray(np.power(self._prior_growth, 1.0 / self.delta))
 
     @property
     def posterior_growth_rates(self) -> Optional[ArrayLike]:
@@ -250,7 +250,7 @@ class BirthDeathProblem(BirthDeathMixin, OTProblem):
             return None
         if self.delta is None:
             return self.solution.a * self.adata.n_obs
-        return (self.solution.a * self._scaling) ** (1.0 / self.delta)
+        return np.asarray(self.solution.a * self._scaling) ** (1.0 / self.delta)
 
     @property
     def delta(self) -> float:

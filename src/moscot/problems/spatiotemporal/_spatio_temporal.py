@@ -21,7 +21,7 @@ from moscot.problems.time import TemporalMixin
 __all__ = ["SpatioTemporalProblem"]
 
 
-class SpatioTemporalProblem(
+class SpatioTemporalProblem(  # type: ignore[misc]
     TemporalMixin[Numeric_t, BirthDeathProblem],
     BirthDeathMixin,
     AlignmentProblem[Numeric_t, BirthDeathProblem],
@@ -135,8 +135,6 @@ class SpatioTemporalProblem(
         # handle_joint_attr and handle_cost in AlignmentProblem
         self.temporal_key = time_key
         marginal_kwargs = dict(marginal_kwargs)
-        marginal_kwargs["proliferation_key"] = self.proliferation_key
-        marginal_kwargs["apoptosis_key"] = self.apoptosis_key
 
         estimate_marginals = self.proliferation_key is not None or self.apoptosis_key is not None
         a = estimate_marginals if a is None else a
@@ -146,7 +144,7 @@ class SpatioTemporalProblem(
             spatial_key=spatial_key,
             batch_key=time_key,
             joint_attr=joint_attr,
-            policy=policy,
+            policy=policy,  # type: ignore[arg-type]
             reference=None,
             cost=cost,
             cost_kwargs=cost_kwargs,
@@ -158,7 +156,7 @@ class SpatioTemporalProblem(
 
     def solve(
         self,
-        alpha: Optional[float] = 0.5,
+        alpha: float = 0.5,
         epsilon: Optional[float] = 1e-3,
         tau_a: float = 1.0,
         tau_b: float = 1.0,

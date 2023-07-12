@@ -23,7 +23,7 @@ from moscot.problems.time._mixins import TemporalMixin
 __all__ = ["TemporalProblem", "LineageProblem"]
 
 
-class TemporalProblem(
+class TemporalProblem(  # type: ignore[misc]
     TemporalMixin[Numeric_t, BirthDeathProblem], BirthDeathMixin, CompoundProblem[Numeric_t, BirthDeathProblem]
 ):
     """Class for analyzing time-series single cell data based on :cite:`schiebinger:19`.
@@ -127,9 +127,6 @@ class TemporalProblem(
         xy, x, y = handle_cost(xy=xy, x=kwargs.pop("x", {}), y=kwargs.pop("y", {}), cost=cost, cost_kwargs=cost_kwargs)
 
         marginal_kwargs = dict(marginal_kwargs)
-        marginal_kwargs["proliferation_key"] = self.proliferation_key
-        marginal_kwargs["apoptosis_key"] = self.apoptosis_key
-
         estimate_marginals = self.proliferation_key is not None or self.apoptosis_key is not None
         a = estimate_marginals if a is None else a
         b = estimate_marginals if b is None else b
@@ -204,8 +201,8 @@ class TemporalProblem(
         threshold
             Convergence threshold of the :term:`Sinkhorn` algorithm. In the :term:`balanced <balanced OT problem>` case,
             this is typically the deviation between the target :term:`marginals` and the marginals of the current
-            :term:`transport matrix`. In the :term:`unbalanced <unbalanced OT problem>` case, the relative change between
-            the successive solutions is checked.
+            :term:`transport matrix`. In the :term:`unbalanced <unbalanced OT problem>` case, the relative change
+            between the successive solutions is checked.
         lse_mode
             Whether to use `log-sum-exp (LSE)
             <https://en.wikipedia.org/wiki/LogSumExp#log-sum-exp_trick_for_log-domain_calculations>`_
@@ -255,7 +252,7 @@ class TemporalProblem(
 
     @property
     def _valid_policies(self) -> Tuple[Policy_t, ...]:
-        return _constants.SEQUENTIAL, _constants.TRIL, _constants.TRIU, _constants.EXPLICIT  # type: ignore[return-value]
+        return _constants.SEQUENTIAL, _constants.TRIL, _constants.TRIU, _constants.EXPLICIT  # type: ignore[return-value] # noqa: E501
 
 
 class LineageProblem(TemporalProblem):
@@ -388,7 +385,7 @@ class LineageProblem(TemporalProblem):
             x=x,
             y=y,
             policy=policy,
-            cost=cost,
+            cost=cost,  # type: ignore[arg-type]
             a=a,
             b=b,
             marginal_kwargs=marginal_kwargs,
@@ -397,7 +394,7 @@ class LineageProblem(TemporalProblem):
 
     def solve(
         self,
-        alpha: Optional[float] = 0.5,
+        alpha: float = 0.5,
         epsilon: Optional[float] = 1e-3,
         tau_a: float = 1.0,
         tau_b: float = 1.0,

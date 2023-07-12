@@ -94,12 +94,13 @@ class OTTOutput(BaseSolverOutput):
         ax: Optional[mpl.axes.Axes] = None,
         **kwargs: Any,
     ) -> Optional[mpl.figure.Figure]:
-        """Plot errors during the iterations.
+        """Plot errors along iterations.
 
         Parameters
         ----------
         last
-            Whether to plot only the ``last`` errors. If :obj:`None`, plot all errors.
+            Number of errors corresponding at the ``last`` steps of the algorithm to plot. If :obj:`None`,
+            plot the full curve.
         title
             Title of the plot. If :obj:`None`, it is determined automatically.
         outer_iteration
@@ -166,8 +167,8 @@ class OTTOutput(BaseSolverOutput):
 
     def _apply(self, x: ArrayLike, *, forward: bool) -> ArrayLike:
         if x.ndim == 1:
-            return jax.jit(self._output.apply, static_argnames="axis")(x, axis=1 - forward)
-        return jax.jit(self._output.apply)(x.T, axis=1 - forward).T  # convert to batch first
+            return self._output.apply(x, axis=1 - forward)
+        return self._output.apply(x.T, axis=1 - forward).T  # convert to batch first
 
     @property
     def shape(self) -> Tuple[int, int]:  # noqa: D102

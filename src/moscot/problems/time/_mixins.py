@@ -32,7 +32,7 @@ from moscot.utils.tagged_array import Tag
 __all__ = ["TemporalMixin"]
 
 
-class TemporalMixinProtocol(AnalysisMixinProtocol[K, B], Protocol[K, B]):
+class TemporalMixinProtocol(AnalysisMixinProtocol[K, B], Protocol[K, B]):  # type: ignore[misc]
     adata: AnnData
     problems: Dict[Tuple[K, K], BirthDeathProblem]
     temporal_key: Optional[str]
@@ -169,7 +169,7 @@ class TemporalMixin(AnalysisMixin[K, B]):
         normalize: bool = True,
         key_added: Optional[str] = _constants.CELL_TRANSITION,
     ) -> Optional[pd.DataFrame]:
-        """Compute an aggregate cell transition matrix.
+        """Aggregate the transport matrix.
 
         .. seealso::
             - See :doc:`../notebooks/examples/plotting/200_cell_transitions` on how to
@@ -394,10 +394,32 @@ class TemporalMixin(AnalysisMixin[K, B]):
         - :class:`str` - returns nothing and updates :attr:`obs['{key_added}'] <anndata.AnnData.obs>`
           with the result.
         """
-        # TODO(michalk8): consider not overriding + update the defaults in `BaseCompoundProblem` + implement _post_apply
-        data = locals()
-        _ = data.pop("kwargs", None)
-        return super().push(**data, **kwargs)
+        result = self._apply(
+            source=source,
+            target=target,
+            data=data,
+            subset=subset,
+            forward=True,
+            return_all=return_all or key_added is not None,
+            scale_by_marginals=scale_by_marginals,
+            **kwargs,
+        )
+
+        if TYPE_CHECKING:
+            assert isinstance(result, dict)
+
+        if key_added is not None:
+            plot_vars = {
+                "source": source,
+                "target": target,
+                "temporal_key": self.temporal_key,
+                "data": data if isinstance(data, str) else None,
+                "subset": subset,
+            }
+            self.adata.obs[key_added] = self._flatten(result, key=self.temporal_key)
+            set_plotting_vars(self.adata, _constants.PUSH, key=key_added, value=plot_vars)
+            return None
+        return result
 
     def pull(
         self: TemporalMixinProtocol[K, B],
@@ -439,10 +461,31 @@ class TemporalMixin(AnalysisMixin[K, B]):
         - :class:`str` - returns nothing and updates :attr:`obs['{key_added}'] <anndata.AnnData.obs>`
           with the result.
         """
-        # TODO(michalk8): consider not overriding + update the defaults in `BaseCompoundProblem` + implement _post_apply
-        data = locals()
-        _ = data.pop("kwargs", None)
-        return super().pull(**data, **kwargs)
+        result = self._apply(
+            source=source,
+            target=target,
+            data=data,
+            subset=subset,
+            forward=False,
+            return_all=return_all or key_added is not None,
+            scale_by_marginals=scale_by_marginals,
+            **kwargs,
+        )
+        if TYPE_CHECKING:
+            assert isinstance(result, dict)
+
+        if key_added is not None:
+            plot_vars = {
+                "temporal_key": self.temporal_key,
+                "data": data if isinstance(data, str) else None,
+                "subset": subset,
+                "source": source,
+                "target": target,
+            }
+            self.adata.obs[key_added] = self._flatten(result, key=self.temporal_key)
+            set_plotting_vars(self.adata, _constants.PULL, key=key_added, value=plot_vars)
+            return None
+        return result
 
     @property
     def prior_growth_rates(self: TemporalMixinProtocol[K, B]) -> Optional[pd.DataFrame]:
@@ -838,7 +881,7 @@ class TemporalMixin(AnalysisMixin[K, B]):
                     **kwargs,
                 )
             )
-        return np.mean(dist)
+        return np.mean(dist)  # type: ignore[return-value]
 
     # TODO(@MUCDK) possibly offer two alternatives, once exact EMD with POT backend and once approximate,
     # faster with same solver as used for original problems

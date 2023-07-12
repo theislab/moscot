@@ -37,7 +37,7 @@ def register_solver(
     return _REGISTRY.register(backend)  # type: ignore[return-value]
 
 
-@register_solver("ott")
+@register_solver("ott")  # type: ignore[arg-type]
 def _(problem_kind: Literal["linear", "quadratic"]) -> Union[Type["ott.SinkhornSolver"], Type["ott.GWSolver"]]:
     from moscot.backends import ott
 

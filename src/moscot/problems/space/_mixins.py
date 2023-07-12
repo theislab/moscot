@@ -183,7 +183,7 @@ class SpatialAlignmentMixin(AnalysisMixin[K, B]):
             spatial_key = self.spatial_key
 
         aligned_maps, aligned_metadata = self._interpolate_scheme(
-            reference=reference, mode=mode, spatial_key=spatial_key
+            reference=reference, mode=mode, spatial_key=spatial_key  # type: ignore[arg-type]
         )
         aligned_basis = np.vstack([aligned_maps[k] for k in self._policy._cat])
 
@@ -207,7 +207,7 @@ class SpatialAlignmentMixin(AnalysisMixin[K, B]):
         normalize: bool = True,
         key_added: Optional[str] = _constants.CELL_TRANSITION,
     ) -> pd.DataFrame:
-        """Compute an aggregate cell transition matrix.
+        """Aggregate the transport matrix.
 
         .. seealso::
             - See :doc:`../notebooks/examples/plotting/200_cell_transitions` on how to
@@ -482,7 +482,7 @@ class SpatialMappingMixin(AnalysisMixin[K, B]):
             res.append(out)
 
         res = pd.concat(res, axis=0)
-        res[self.batch_key] = res[self.batch_key].astype("category")
+        res[self.batch_key] = res[self.batch_key].astype("category")  # type: ignore[call-overload]
         return res
 
     def cell_transition(  # type: ignore[misc]
@@ -497,7 +497,7 @@ class SpatialMappingMixin(AnalysisMixin[K, B]):
         normalize: bool = True,
         key_added: Optional[str] = _constants.CELL_TRANSITION,
     ) -> pd.DataFrame:
-        """Compute an aggregate cell transition matrix.
+        """Aggregate the transport matrix.
 
         .. seealso::
             - See :doc:`../notebooks/examples/plotting/200_cell_transitions`
@@ -609,7 +609,7 @@ def _compute_correspondence(
     # TODO(michalk8): vectorize using jax, this is just a for loop
     vpdist = np.vectorize(pdist, excluded=["feat"])
     if sp.issparse(features):
-        features = features.A
+        features = features.A  # type: ignore[attr-defined]
 
     feat_arr, index_arr, support_arr = [], [], []
     for ind, i in enumerate(support):
