@@ -297,7 +297,7 @@ extras = docs
 allowlist_externals = jupytext
 changedir = {tox_root}{/}docs
 commands =
-    jupytext --execute ./notebooks/examples/problems/500_passing_marginals.ipynb
+    jupytext -k python3 --execute ./notebooks/examples/problems/500_passing_marginals.ipynb
 
 [testenv:clean-docs]
 description = Remove the documentation.
