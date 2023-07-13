@@ -397,7 +397,7 @@ def simulate_data(
     ]
     adata = ad.concat(adatas, label=key, index_unique="-")
     if key == "day":
-        adata.obs["day"] = pd.to_numeric(adata.obs["day"]).astype('category')
+        adata.obs["day"] = pd.to_numeric(adata.obs["day"]).astype("category")
     for k, val in obs_to_add.items():
         adata.obs[k] = rng.choice(range(val), len(adata))
     if marginals:
