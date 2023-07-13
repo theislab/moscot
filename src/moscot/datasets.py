@@ -91,13 +91,16 @@ def hspc(
     -------
     Annotated data object.
     """
-    return _load_dataset_from_url(
+    dataset = _load_dataset_from_url(
         path,
         backup_url="https://figshare.com/ndownloader/files/37993503",
         expected_shape=(4000, 2000),
         force_download=force_download,
         **kwargs,
     )
+    dataset.obs["day"] = dataset.obs["day"].astype("category") # better solution to this?
+
+    return dataset
 
 
 def drosophila(
