@@ -91,13 +91,16 @@ def hspc(
     -------
     Annotated data object.
     """
-    return _load_dataset_from_url(
+    dataset = _load_dataset_from_url(
         path,
         backup_url="https://figshare.com/ndownloader/files/37993503",
         expected_shape=(4000, 2000),
         force_download=force_download,
         **kwargs,
     )
+    dataset.obs["day"] = dataset.obs["day"].astype("category")  # better solution to this?
+
+    return dataset
 
 
 def drosophila(
@@ -397,7 +400,7 @@ def simulate_data(
     ]
     adata = ad.concat(adatas, label=key, index_unique="-")
     if key == "day":
-        adata.obs["day"] = pd.to_numeric(adata.obs["day"])
+        adata.obs["day"] = pd.to_numeric(adata.obs["day"]).astype("category")
     for k, val in obs_to_add.items():
         adata.obs[k] = rng.choice(range(val), len(adata))
     if marginals:
