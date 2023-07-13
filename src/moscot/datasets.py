@@ -98,7 +98,7 @@ def hspc(
         force_download=force_download,
         **kwargs,
     )
-    dataset.obs["day"] = dataset.obs["day"].astype("category") # better solution to this?
+    dataset.obs["day"] = dataset.obs["day"].astype("category")  # better solution to this?
 
     return dataset
 
