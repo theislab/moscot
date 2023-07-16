@@ -291,6 +291,8 @@ commands =
 
 [testenv:examples-docs]
 description = Test examples in docs.
+use_develop = true
+deps =
 extras = docs
 allowlist_externals = jupytext
 changedir = {tox_root}{/}docs
