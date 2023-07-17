@@ -194,6 +194,12 @@ class BirthDeathProblem(BirthDeathMixin, OTProblem):
         If ``source = True``, also updates the following fields:
 
         - :attr:`prior_growth_rates` - prior estimate of the source growth rates.
+
+        Examples
+        --------
+        - See :doc:`../notebooks/examples/problems/800_score_genes_for_marginals`
+            on examples how to use :meth:`~moscot.problems.time.TemporalProblem.score_genes_for_marginals`.
+
         """  # noqa: D205
 
         def estimate(key: Optional[str], *, fn: Callable[..., ArrayLike], **kwargs: Any) -> ArrayLike:

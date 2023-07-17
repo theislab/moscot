@@ -290,7 +290,10 @@ class BaseCompoundProblem(BaseProblem, abc.ABC, Generic[K, B]):
         """Solve the individual :term:`OT` subproblems.
 
         .. seealso:
-            - TODO(michalk8): link an example/tutorial
+            - See :doc:`../notebooks/examples/solvers/100_linear_problems_basic`
+            for an introduction on how to solve linear problems.
+            - See :doc:`../notebooks/examples/solvers/300_quad_problems_basic`
+            for an introduction on how to solve quadratic problems.
 
         Parameters
         ----------
