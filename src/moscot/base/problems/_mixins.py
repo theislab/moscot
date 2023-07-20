@@ -290,18 +290,18 @@ class AnalysisMixin(Generic[K, B]):
     ):
         if mapping_mode == "sum":
             return self._cell_transition_online(
-                    key=key,
-                    source=source,
-                    target=target,
-                    source_groups=source_groups,
-                    target_groups=target_groups,
-                    forward=forward,
-                    aggregation_mode=aggregation_mode,
-                    other_key=other_key,
-                    other_adata=other_adata,
-                    batch_size=batch_size,
-                    normalize=normalize
-                    )
+                key=key,
+                source=source,
+                target=target,
+                source_groups=source_groups,
+                target_groups=target_groups,
+                forward=forward,
+                aggregation_mode=aggregation_mode,
+                other_key=other_key,
+                other_adata=other_adata,
+                batch_size=batch_size,
+                normalize=normalize,
+            )
         if mapping_mode == "max":
             source_annotation_key, source_annotations, source_annotations_ordered = _validate_args_cell_transition(
                 self.adata, source_groups

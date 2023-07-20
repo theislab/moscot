@@ -88,7 +88,7 @@ class SpatialMappingMixinProtocol(AnalysisMixinProtocol[K, B]):
 
     def _cell_transition(self: AnalysisMixinProtocol[K, B], *args: Any, **kwargs: Any) -> pd.DataFrame:
         ...
-    
+
     def _celltype_mapping(self: AnalysisMixinProtocol[K, B], *args: Any, **kwargs: Any) -> pd.DataFrame:
         ...
 
@@ -297,23 +297,23 @@ class SpatialAlignmentMixin(AnalysisMixin[K, B]):
         other_adata: Optional[str] = None,
         batch_size: Optional[int] = None,
         normalize: bool = True,
-        scale_by_marginals: bool = True
+        scale_by_marginals: bool = True,
     ) -> pd.DataFrame:
         return self._celltype_mapping(
-                mapping_mode=mapping_mode,
-                key=key,
-                source=source,
-                target=target,
-                source_groups=source_groups,
-                target_groups=target_groups,
-                forward=forward,
-                aggregation_mode=aggregation_mode,
-                other_key=other_key,
-                other_adata=other_adata,
-                batch_size=batch_size,
-                normalize=normalize,
-                scale_by_marginals=scale_by_marginals
-                )
+            mapping_mode=mapping_mode,
+            key=key,
+            source=source,
+            target=target,
+            source_groups=source_groups,
+            target_groups=target_groups,
+            forward=forward,
+            aggregation_mode=aggregation_mode,
+            other_key=other_key,
+            other_adata=other_adata,
+            batch_size=batch_size,
+            normalize=normalize,
+            scale_by_marginals=scale_by_marginals,
+        )
 
     @property
     def spatial_key(self) -> Optional[str]:
@@ -618,23 +618,23 @@ class SpatialMappingMixin(AnalysisMixin[K, B]):
         other_adata: Optional[str] = None,
         batch_size: Optional[int] = None,
         normalize: bool = True,
-        scale_by_marginals: bool = True
+        scale_by_marginals: bool = True,
     ) -> pd.DataFrame:
         return self._celltype_mapping(
-                mapping_mode=mapping_mode,
-                key=key,
-                source=source,
-                target=target,
-                source_groups=source_groups,
-                target_groups=target_groups,
-                forward=forward,
-                aggregation_mode=aggregation_mode,
-                other_key=other_key,
-                other_adata=other_adata,
-                batch_size=batch_size,
-                normalize=normalize,
-                scale_by_marginals=scale_by_marginals
-                )
+            mapping_mode=mapping_mode,
+            key=key,
+            source=source,
+            target=target,
+            source_groups=source_groups,
+            target_groups=target_groups,
+            forward=forward,
+            aggregation_mode=aggregation_mode,
+            other_key=other_key,
+            other_adata=other_adata,
+            batch_size=batch_size,
+            normalize=normalize,
+            scale_by_marginals=scale_by_marginals,
+        )
 
     @property
     def batch_key(self) -> Optional[str]:
