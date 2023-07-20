@@ -63,7 +63,7 @@ class SpatialAlignmentMixinProtocol(AnalysisMixinProtocol[K, B]):
     ) -> pd.DataFrame:
         ...
 
-    def _celltype_mapping(
+    def _annotation_mapping(
         self: AnalysisMixinProtocol[K, B],
         *args: Any,
         **kwargs: Any,
@@ -89,7 +89,7 @@ class SpatialMappingMixinProtocol(AnalysisMixinProtocol[K, B]):
     def _cell_transition(self: AnalysisMixinProtocol[K, B], *args: Any, **kwargs: Any) -> pd.DataFrame:
         ...
 
-    def _celltype_mapping(self: AnalysisMixinProtocol[K, B], *args: Any, **kwargs: Any) -> pd.DataFrame:
+    def _annotation_mapping(self: AnalysisMixinProtocol[K, B], *args: Any, **kwargs: Any) -> pd.DataFrame:
         ...
 
 
@@ -283,7 +283,7 @@ class SpatialAlignmentMixin(AnalysisMixin[K, B]):
             key_added=key_added,
         )
 
-    def celltype_mapping(
+    def annotation_mapping(
         self: AnalysisMixinProtocol[K, B],
         mapping_mode: Literal["sum", "max"],
         key: Optional[str],
@@ -299,7 +299,7 @@ class SpatialAlignmentMixin(AnalysisMixin[K, B]):
         normalize: bool = True,
         scale_by_marginals: bool = True,
     ) -> pd.DataFrame:
-        return self._celltype_mapping(
+        return self._annotation_mapping(
             mapping_mode=mapping_mode,
             key=key,
             source=source,
@@ -604,7 +604,7 @@ class SpatialMappingMixin(AnalysisMixin[K, B]):
             key_added=key_added,
         )
 
-    def celltype_mapping(
+    def annotation_mapping(
         self: AnalysisMixinProtocol[K, B],
         mapping_mode: Literal["sum", "max"],
         key: Optional[str],
@@ -620,7 +620,7 @@ class SpatialMappingMixin(AnalysisMixin[K, B]):
         normalize: bool = True,
         scale_by_marginals: bool = True,
     ) -> pd.DataFrame:
-        return self._celltype_mapping(
+        return self._annotation_mapping(
             mapping_mode=mapping_mode,
             key=key,
             source=source,

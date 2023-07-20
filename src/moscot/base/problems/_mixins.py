@@ -82,6 +82,18 @@ class AnalysisMixinProtocol(Protocol[K, B]):
         """Pull distribution."""
         ...
 
+    def _cell_transition(
+        self: "AnalysisMixinProtocol[K, B]",
+        source: K,
+        target: K,
+        source_groups: Str_Dict_t,
+        target_groups: Str_Dict_t,
+        aggregation_mode: Literal["annotation", "cell"] = "annotation",
+        key_added: Optional[str] = _constants.CELL_TRANSITION,
+        **kwargs: Any,
+    ) -> pd.DataFrame:
+        ...
+
     def _cell_transition_online(
         self: "AnalysisMixinProtocol[K, B]",
         key: Optional[str],
@@ -95,6 +107,24 @@ class AnalysisMixinProtocol(Protocol[K, B]):
         other_adata: Optional[str] = None,
         batch_size: Optional[int] = None,
         normalize: bool = True,
+    ) -> pd.DataFrame:
+        ...
+
+    def _annotation_mapping(
+        self: "AnalysisMixinProtocol[K, B]",
+        mapping_mode: Literal["sum", "max"],
+        key: Optional[str],
+        source: K,
+        target: K,
+        source_groups: Str_Dict_t,
+        target_groups: Str_Dict_t,
+        forward: bool = False,  # return value will be row-stochastic if forward=True, else column-stochastic
+        aggregation_mode: Literal["annotation", "cell"] = "annotation",
+        other_key: Optional[str] = None,
+        other_adata: Optional[str] = None,
+        batch_size: Optional[int] = None,
+        normalize: bool = True,
+        scale_by_marginals: bool = True,
     ) -> pd.DataFrame:
         ...
 
@@ -272,7 +302,7 @@ class AnalysisMixin(Generic[K, B]):
             forward=forward,
         )
 
-    def _celltype_mapping(
+    def _annotation_mapping(
         self: AnalysisMixinProtocol[K, B],
         mapping_mode: Literal["sum", "max"],
         key: Optional[str],
@@ -287,7 +317,7 @@ class AnalysisMixin(Generic[K, B]):
         batch_size: Optional[int] = None,
         normalize: bool = True,
         scale_by_marginals: bool = True,
-    ):
+    ) -> pd.DataFrame:
         if mapping_mode == "sum":
             return self._cell_transition_online(
                 key=key,
@@ -467,7 +497,7 @@ class AnalysisMixin(Generic[K, B]):
         if batch_size is None:
             batch_size = len(df_2)
         for batch in range(0, len(df_2), batch_size):
-            result = func(  # TODO(@MUCDK) check how to make compatible with all policies
+            result = func(  # TODO(@MUCDK) check how to make compatiAnalysisMixinProtocolcelltyble with all policies
                 source=source,
                 target=target,
                 data=None,
