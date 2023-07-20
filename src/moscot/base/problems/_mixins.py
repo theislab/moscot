@@ -272,22 +272,21 @@ class AnalysisMixin(Generic[K, B]):
             forward=forward,
         )
 
-
     def _celltype_mapping(
-            self: AnalysisMixinProtocol[K, B],
-            mapping_mode: Literal["sum", "max"],
-            key: Optional[str],
-            source: K,
-            target: K,
-            source_groups: Str_Dict_t,
-            target_groups: Str_Dict_t,
-            forward: bool = False,  # return value will be row-stochastic if forward=True, else column-stochastic
-            aggregation_mode: Literal["annotation", "cell"] = "annotation",
-            other_key: Optional[str] = None,
-            other_adata: Optional[str] = None,
-            batch_size: Optional[int] = None,
-            normalize: bool = True,
-            scale_by_marginals: bool = True
+        self: AnalysisMixinProtocol[K, B],
+        mapping_mode: Literal["sum", "max"],
+        key: Optional[str],
+        source: K,
+        target: K,
+        source_groups: Str_Dict_t,
+        target_groups: Str_Dict_t,
+        forward: bool = False,  # return value will be row-stochastic if forward=True, else column-stochastic
+        aggregation_mode: Literal["annotation", "cell"] = "annotation",
+        other_key: Optional[str] = None,
+        other_adata: Optional[str] = None,
+        batch_size: Optional[int] = None,
+        normalize: bool = True,
+        scale_by_marginals: bool = True,
     ):
         if mapping_mode == "sum":
             return self._cell_transition_online(
@@ -305,13 +304,13 @@ class AnalysisMixin(Generic[K, B]):
                     )
         if mapping_mode == "max":
             source_annotation_key, source_annotations, source_annotations_ordered = _validate_args_cell_transition(
-            self.adata, source_groups
+                self.adata, source_groups
             )
             target_annotation_key, target_annotations, target_annotations_ordered = _validate_args_cell_transition(
                 self.adata if other_adata is None else other_adata, target_groups
             )
             dummy = pd.get_dummies(source_annotations)
-            out= self.pull(dummy, scale_by_marginals=scale_by_marginals)
+            out = self.pull(dummy, scale_by_marginals=scale_by_marginals)
             return pd.Categorical([dummy.columns[i] for i in np.array(out.argmax(1))])
 
     def _sample_from_tmap(

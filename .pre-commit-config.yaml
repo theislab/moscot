@@ -13,7 +13,7 @@ repos:
         additional_dependencies: [numpy>=1.25.0]
         files: ^src
   - repo: https://github.com/psf/black
-    rev: 23.3.0
+    rev: 23.7.0
     hooks:
       - id: black
         additional_dependencies: [toml]
@@ -22,7 +22,7 @@ repos:
     hooks:
       - id: prettier
         language_version: system
-  - repo: https://github.com/timothycrosley/isort
+  - repo: https://github.com/PyCQA/isort
     rev: 5.12.0
     hooks:
       - id: isort
@@ -61,9 +61,9 @@ repos:
     rev: v1.1.1
     hooks:
       - id: doc8
-  - repo: https://github.com/charliermarsh/ruff-pre-commit
+  - repo: https://github.com/astral-sh/ruff-pre-commit
     # Ruff version.
-    rev: v0.0.277
+    rev: v0.0.278
     hooks:
       - id: ruff
         args: [--fix, --exit-non-zero-on-fix]
