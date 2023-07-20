@@ -302,7 +302,7 @@ class AnalysisMixin(Generic[K, B]):
                 batch_size=batch_size,
                 normalize=normalize,
             )
-        if mapping_mode == "max":
+        elif mapping_mode == "max":
             source_annotation_key, source_annotations, source_annotations_ordered = _validate_args_cell_transition(
                 self.adata, source_groups
             )
@@ -312,6 +312,8 @@ class AnalysisMixin(Generic[K, B]):
             dummy = pd.get_dummies(source_annotations)
             out = self.pull(dummy, scale_by_marginals=scale_by_marginals)
             return pd.Categorical([dummy.columns[i] for i in np.array(out.argmax(1))])
+        else:
+            raise NotImplementedError(f"Mapping mode `{mapping_mode!r}` is not yet implemented.")
 
     def _sample_from_tmap(
         self: AnalysisMixinProtocol[K, B],

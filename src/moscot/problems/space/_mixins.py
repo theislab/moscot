@@ -284,7 +284,7 @@ class SpatialAlignmentMixin(AnalysisMixin[K, B]):
         )
 
     def celltype_mapping(
-        self: SpatialAlignmentMixinProtocol[K, B],
+        self: AnalysisMixinProtocol[K, B],
         mapping_mode: Literal["sum", "max"],
         key: Optional[str],
         source: K,
@@ -605,7 +605,7 @@ class SpatialMappingMixin(AnalysisMixin[K, B]):
         )
 
     def celltype_mapping(
-        self: SpatialMappingMixinProtocol[K, B],
+        self: AnalysisMixinProtocol[K, B],
         mapping_mode: Literal["sum", "max"],
         key: Optional[str],
         source: K,
