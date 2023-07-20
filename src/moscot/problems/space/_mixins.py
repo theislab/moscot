@@ -63,6 +63,13 @@ class SpatialAlignmentMixinProtocol(AnalysisMixinProtocol[K, B]):
     ) -> pd.DataFrame:
         ...
 
+    def _celltype_mapping(
+        self: AnalysisMixinProtocol[K, B],
+        *args: Any,
+        **kwargs: Any,
+    ) -> pd.DataFrame:
+        ...
+
 
 class SpatialMappingMixinProtocol(AnalysisMixinProtocol[K, B]):
     """Protocol class."""
@@ -80,6 +87,9 @@ class SpatialMappingMixinProtocol(AnalysisMixinProtocol[K, B]):
         ...
 
     def _cell_transition(self: AnalysisMixinProtocol[K, B], *args: Any, **kwargs: Any) -> pd.DataFrame:
+        ...
+    
+    def _celltype_mapping(self: AnalysisMixinProtocol[K, B], *args: Any, **kwargs: Any) -> pd.DataFrame:
         ...
 
 
@@ -272,6 +282,38 @@ class SpatialAlignmentMixin(AnalysisMixin[K, B]):
             normalize=normalize,
             key_added=key_added,
         )
+
+    def celltype_mapping(
+        self: SpatialAlignmentMixinProtocol[K, B],
+        mapping_mode: Literal["sum", "max"],
+        key: Optional[str],
+        source: K,
+        target: K,
+        source_groups: Str_Dict_t,
+        target_groups: Str_Dict_t,
+        forward: bool = False,  # return value will be row-stochastic if forward=True, else column-stochastic
+        aggregation_mode: Literal["annotation", "cell"] = "annotation",
+        other_key: Optional[str] = None,
+        other_adata: Optional[str] = None,
+        batch_size: Optional[int] = None,
+        normalize: bool = True,
+        scale_by_marginals: bool = True
+    ) -> pd.DataFrame:
+        return self._celltype_mapping(
+                mapping_mode=mapping_mode,
+                key=key,
+                source=source,
+                target=target,
+                source_groups=source_groups,
+                target_groups=target_groups,
+                forward=forward,
+                aggregation_mode=aggregation_mode,
+                other_key=other_key,
+                other_adata=other_adata,
+                batch_size=batch_size,
+                normalize=normalize,
+                scale_by_marginals=scale_by_marginals
+                )
 
     @property
     def spatial_key(self) -> Optional[str]:
@@ -561,6 +603,38 @@ class SpatialMappingMixin(AnalysisMixin[K, B]):
             normalize=normalize,
             key_added=key_added,
         )
+
+    def celltype_mapping(
+        self: SpatialMappingMixinProtocol[K, B],
+        mapping_mode: Literal["sum", "max"],
+        key: Optional[str],
+        source: K,
+        target: K,
+        source_groups: Str_Dict_t,
+        target_groups: Str_Dict_t,
+        forward: bool = False,  # return value will be row-stochastic if forward=True, else column-stochastic
+        aggregation_mode: Literal["annotation", "cell"] = "annotation",
+        other_key: Optional[str] = None,
+        other_adata: Optional[str] = None,
+        batch_size: Optional[int] = None,
+        normalize: bool = True,
+        scale_by_marginals: bool = True
+    ) -> pd.DataFrame:
+        return self._celltype_mapping(
+                mapping_mode=mapping_mode,
+                key=key,
+                source=source,
+                target=target,
+                source_groups=source_groups,
+                target_groups=target_groups,
+                forward=forward,
+                aggregation_mode=aggregation_mode,
+                other_key=other_key,
+                other_adata=other_adata,
+                batch_size=batch_size,
+                normalize=normalize,
+                scale_by_marginals=scale_by_marginals
+                )
 
     @property
     def batch_key(self) -> Optional[str]:
