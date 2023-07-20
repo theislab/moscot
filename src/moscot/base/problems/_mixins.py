@@ -290,7 +290,7 @@ class AnalysisMixin(Generic[K, B]):
             scale_by_marginals: bool = True
     ):
         if mapping_mode == "sum":
-            return self._cell_transition(
+            return self._cell_transition_online(
                     key=key,
                     source=source,
                     target=target,
