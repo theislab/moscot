@@ -54,7 +54,7 @@ well as the publication introducing the model, which can be found in the corresp
 
     .. grid-item-card:: Manuscript
 
-        Please have a look at our manuscript :cite:`klein:23` to learn more.
+        Please have a look at our manuscript [`Klein et al., 2023 <https://www.biorxiv.org/content/10.1101/2023.05.11.540374v2>`_] to learn more.
 
 .. toctree::
     :maxdepth: 2
