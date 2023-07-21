@@ -331,7 +331,7 @@ class AnalysisMixin(Generic[K, B]):
                 other_adata=other_adata,
                 batch_size=batch_size,
                 normalize=normalize,
-                )
+            )
         if mapping_mode == "max":
             source_annotation_key, source_annotations, source_annotations_ordered = _validate_args_cell_transition(
                 self.adata, source_groups
