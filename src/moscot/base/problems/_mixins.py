@@ -7,12 +7,12 @@ from typing import (
     Iterable,
     List,
     Literal,
+    Mapping,
     Optional,
     Protocol,
     Sequence,
     Tuple,
     Union,
-    Mapping,
 )
 
 import numpy as np
@@ -307,11 +307,11 @@ class AnalysisMixin(Generic[K, B]):
         cell_transition_kwargs: Mapping[str, Any] = types.MappingProxyType({}),
     ) -> pd.DataFrame:
         if mapping_mode == "sum":
-            return self._cell_transition(
-                **cell_transition_kwargs
-            )
+            return self._cell_transition(**cell_transition_kwargs)
         if mapping_mode == "max":
-            assert (not cell_transition_kwargs), "cell_transition_kwargs is not empty, although cell_transition is not used."
+            assert (
+                not cell_transition_kwargs
+            ), "cell_transition_kwargs is not empty, although cell_transition is not used."
             source_annotation_key, source_annotations, source_annotations_ordered = _validate_args_cell_transition(
                 self.adata, source_groups
             )
@@ -319,7 +319,7 @@ class AnalysisMixin(Generic[K, B]):
                 self.adata if other_adata is None else other_adata, target_groups
             )
             dummy = pd.get_dummies(source_annotations)
-            out:ArrayLike = self.pull(dummy, scale_by_marginals=scale_by_marginals) # or assert out is not None
+            out: ArrayLike = self.pull(dummy, scale_by_marginals=scale_by_marginals)  # or assert out is not None
             return pd.Categorical([dummy.columns[i] for i in np.array(out.argmax(1))])
         else:
             raise NotImplementedError(f"Mapping mode `{mapping_mode!r}` is not yet implemented.")
