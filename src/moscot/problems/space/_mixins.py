@@ -286,33 +286,19 @@ class SpatialAlignmentMixin(AnalysisMixin[K, B]):
     def annotation_mapping(
         self: AnalysisMixinProtocol[K, B],
         mapping_mode: Literal["sum", "max"],
-        key: Optional[str],
-        source: K,
-        target: K,
         source_groups: Str_Dict_t,
         target_groups: Str_Dict_t,
-        forward: bool = False,  # return value will be row-stochastic if forward=True, else column-stochastic
-        aggregation_mode: Literal["annotation", "cell"] = "annotation",
-        other_key: Optional[str] = None,
         other_adata: Optional[str] = None,
-        batch_size: Optional[int] = None,
-        normalize: bool = True,
         scale_by_marginals: bool = True,
+        cell_transition_kwargs: Mapping[str, Any] = types.MappingProxyType({}),
     ) -> pd.DataFrame:
         return self._annotation_mapping(
             mapping_mode=mapping_mode,
-            key=key,
-            source=source,
-            target=target,
             source_groups=source_groups,
             target_groups=target_groups,
-            forward=forward,
-            aggregation_mode=aggregation_mode,
-            other_key=other_key,
             other_adata=other_adata,
-            batch_size=batch_size,
-            normalize=normalize,
             scale_by_marginals=scale_by_marginals,
+            cell_transition_kwargs=cell_transition_kwargs,
         )
 
     @property
@@ -607,33 +593,19 @@ class SpatialMappingMixin(AnalysisMixin[K, B]):
     def annotation_mapping(
         self: AnalysisMixinProtocol[K, B],
         mapping_mode: Literal["sum", "max"],
-        key: Optional[str],
-        source: K,
-        target: K,
         source_groups: Str_Dict_t,
         target_groups: Str_Dict_t,
-        forward: bool = False,  # return value will be row-stochastic if forward=True, else column-stochastic
-        aggregation_mode: Literal["annotation", "cell"] = "annotation",
-        other_key: Optional[str] = None,
         other_adata: Optional[str] = None,
-        batch_size: Optional[int] = None,
-        normalize: bool = True,
         scale_by_marginals: bool = True,
+        cell_transition_kwargs: Mapping[str, Any] = types.MappingProxyType({}),
     ) -> pd.DataFrame:
         return self._annotation_mapping(
             mapping_mode=mapping_mode,
-            key=key,
-            source=source,
-            target=target,
             source_groups=source_groups,
             target_groups=target_groups,
-            forward=forward,
-            aggregation_mode=aggregation_mode,
-            other_key=other_key,
             other_adata=other_adata,
-            batch_size=batch_size,
-            normalize=normalize,
             scale_by_marginals=scale_by_marginals,
+            cell_transition_kwargs=cell_transition_kwargs,
         )
 
     @property
