@@ -29,17 +29,17 @@ class TestSpatialAlignmentAnalysisMixin:
         categories = adata_space_rotate.obs.batch.cat.categories
 
         for ref in categories:
-            problem.align(reference=ref, mode="affine")
-            problem.align(reference=ref, mode="warp")
+            problem.align(reference=ref, mode="affine", key_added="spatial_affine")
+            problem.align(reference=ref, mode="warp", key_added="spatial_warp")
             tgts = set(categories) - set(ref)
             for c in zip(tgts):
                 assert (
                     adata_ref[adata_ref.obs.batch == c].obsm["spatial_warp"].shape
-                    == adata_ref[adata_ref.obs.batch == c].obsm["spatial"].shape
+                    == adata_ref[adata_ref.obs.batch == c].obsm["spatial_affine"].shape
                 )
             angles = sorted(
                 round(np.rad2deg(acos(arr[0, 0])), 3)
-                for arr in adata_ref.uns["spatial"]["alignment_metadata"].values()
+                for arr in adata_ref.uns["spatial_affine"]["alignment_metadata"].values()
                 if isinstance(arr, np.ndarray)
             )
             assert np.sum(angles) <= np.sum(ANGLES) + 2

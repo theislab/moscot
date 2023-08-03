@@ -47,7 +47,7 @@ maintainers = [
 dependencies = [
     "numpy>=1.20.0",
     "scipy>=1.7.0",
-    "pandas<2.0",
+    "pandas>=2.0.1",
     "networkx>=2.6.3",
     # https://github.com/scverse/scanpy/issues/2411
     "matplotlib>=3.5.0",
@@ -79,9 +79,10 @@ docs = [
     "sphinx_copybutton>=0.5.0",
     "sphinxcontrib-bibtex>=2.3.0",
     "sphinxcontrib-spelling>=7.6.2",
+    "sphinx-autodoc-typehints",
     "furo>=2022.09.29",
+    "sphinx-tippy>=0.4.1",
     "myst-nb>=0.17.1",
-    "nbsphinx>=0.8.1",
     "ipython>=7.20.0",
     "sphinx_design>=0.3.0",
 ]
@@ -165,9 +166,10 @@ include = '\.pyi?$'
 profile = "black"
 include_trailing_comma = true
 multi_line_output = 3
-sections = ["FUTURE", "STDLIB", "THIRDPARTY", "NUMERIC", "PLOTTING", "BIO", "FIRSTPARTY", "LOCALFOLDER"]
+sections = ["FUTURE", "STDLIB", "THIRDPARTY", "GENERIC", "NUMERIC", "PLOTTING", "BIO", "FIRSTPARTY", "LOCALFOLDER"]
 # also contains what we import in notebooks
-known_numeric = ["numpy", "scipy", "jax", "ott", "pandas", "sklearn", "networkx"]
+known_generic = ["wrapt", "joblib"]
+known_numeric = ["numpy", "scipy", "jax", "ott", "pandas", "sklearn", "networkx", "statsmodels"]
 known_bio = ["anndata", "scanpy", "squidpy"]
 known_plotting = ["IPython", "matplotlib", "mpl_toolkits", "seaborn"]
 
@@ -210,6 +212,7 @@ ignore_directives = [
     "automodule",
     "autoclass",
     "bibliography",
+    "glossary",
     "card",
     "grid",
 ]
@@ -247,7 +250,7 @@ show_column_numbers = true
 error_summary = true
 ignore_missing_imports = true
 
-disable_error_code = ["assignment", "comparison-overlap", "no-untyped-def"]
+disable_error_code = ["assignment", "comparison-overlap", "no-untyped-def", "override"]
 
 [tool.doc8]
 max_line_length = 120
@@ -290,6 +293,7 @@ commands =
 
 [testenv:clean-docs]
 description = Remove the documentation.
+deps =
 skip_install = true
 changedir = {tox_root}{/}docs
 allowlist_externals = make
@@ -298,7 +302,6 @@ commands =
 
 [testenv:build-docs]
 description = Build the documentation.
-use_develop = true
 deps =
 extras = docs
 allowlist_externals = make

@@ -13,6 +13,7 @@ from ott.geometry.costs import (
     SqEuclidean,
     SqPNorm,
 )
+from ott.solvers.linear import acceleration
 
 from anndata import AnnData
 
@@ -33,24 +34,22 @@ from tests.problems.conftest import (
 
 class TestSinkhornProblem:
     @pytest.mark.fast()
-    def test_prepare(self, adata_time: AnnData):
-        expected_keys = [(0, 1), (1, 2)]
+    @pytest.mark.parametrize("policy", ["sequential", "star"])
+    def test_prepare(self, adata_time: AnnData, policy):
+        expected_keys = {"sequential": [(0, 1), (1, 2)], "star": [(1, 0), (2, 0)]}
         problem = SinkhornProblem(adata=adata_time)
 
         assert len(problem) == 0
         assert problem.problems == {}
         assert problem.solutions == {}
 
-        problem = problem.prepare(
-            key="time",
-            policy="sequential",
-        )
+        problem = problem.prepare(key="time", policy=policy, reference=0)
 
         assert isinstance(problem.problems, dict)
-        assert len(problem.problems) == len(expected_keys)
+        assert len(problem.problems) == len(expected_keys[policy])
 
         for key in problem:
-            assert key in expected_keys
+            assert key in expected_keys[policy]
             assert isinstance(problem[key], OTProblem)
 
     def test_solve_balanced(self, adata_time: AnnData):
@@ -88,7 +87,7 @@ class TestSinkhornProblem:
 
         problem = problem.solve(max_iterations=2)
 
-    @pytest.mark.parametrize("method", ["fischer", "perm_test"])
+    @pytest.mark.parametrize("method", ["fisher", "perm_test"])
     def test_compute_feature_correlation(self, adata_time: AnnData, method: str):
         problem = SinkhornProblem(adata=adata_time)
         problem = problem.prepare(key="time")
@@ -166,3 +165,27 @@ class TestSinkhornProblem:
                 assert type(el) == type(args_to_check[arg]), arg  # noqa: E721
             else:
                 assert el == args_to_check[arg], arg
+
+    @pytest.mark.parametrize(("memory", "refresh"), [(1, 1), (5, 3), (7, 5)])
+    @pytest.mark.parametrize("recenter", [True, False])
+    def test_passing_ott_kwargs(self, adata_time: AnnData, memory: int, refresh: int, recenter: bool):
+        problem = SinkhornProblem(adata=adata_time)
+        problem = problem.prepare(
+            key="time",
+            policy="sequential",
+        )
+
+        problem = problem.solve(
+            inner_iterations=1,
+            max_iterations=1,
+            anderson=acceleration.AndersonAcceleration(memory=memory, refresh_every=refresh),
+            recenter_potentials=recenter,
+        )
+
+        anderson = problem[0, 1].solver.solver.anderson
+        assert isinstance(anderson, acceleration.AndersonAcceleration)
+        assert anderson.memory == memory
+        assert anderson.refresh_every == refresh
+
+        recenter_potentials = problem[0, 1].solver.solver.recenter_potentials
+        assert recenter_potentials == recenter

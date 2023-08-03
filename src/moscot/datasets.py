@@ -24,9 +24,9 @@ __all__ = [
     "drosophila",
     "c_elegans",
     "zebrafish",
+    "bone_marrow",
     "sim_align",
     "simulate_data",
-    "bone_marrow",
 ]
 
 
@@ -91,13 +91,16 @@ def hspc(
     -------
     Annotated data object.
     """
-    return _load_dataset_from_url(
+    dataset = _load_dataset_from_url(
         path,
         backup_url="https://figshare.com/ndownloader/files/37993503",
         expected_shape=(4000, 2000),
         force_download=force_download,
         **kwargs,
     )
+    dataset.obs["day"] = dataset.obs["day"].astype("category")  # better solution to this?
+
+    return dataset
 
 
 def drosophila(
@@ -187,7 +190,7 @@ def zebrafish(
     force_download: bool = False,
     **kwargs: Any,
 ) -> Tuple[AnnData, Dict[str, nx.DiGraph]]:
-    """Lineage-traced scRNA-seq time-series dataset of zebrafish heart regeneration :cite:`hu:22`.
+    """Lineage-traced scRNA-seq time-series dataset of Zebrafish heart regeneration :cite:`hu:22`.
 
     Contains gene expression vectors, LINNAEUS :cite:`spanjaard:18` reconstructed lineage trees,
     a low-dimensional embedding, and additional metadata.
@@ -397,7 +400,7 @@ def simulate_data(
     ]
     adata = ad.concat(adatas, label=key, index_unique="-")
     if key == "day":
-        adata.obs["day"] = pd.to_numeric(adata.obs["day"])
+        adata.obs["day"] = pd.to_numeric(adata.obs["day"]).astype("category")
     for k, val in obs_to_add.items():
         adata.obs[k] = rng.choice(range(val), len(adata))
     if marginals:

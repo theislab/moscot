@@ -1,8 +1,6 @@
 User API
 ########
-.. module:: moscot
-
-Import ``moscot`` as::
+Import :mod:`moscot` as::
 
     import moscot as mt
 
@@ -48,12 +46,12 @@ Datasets
 .. autosummary::
     :toctree: genapi
 
-    datasets.mosta
-    datasets.hspc
-    datasets.drosophila
+    datasets.bone_marrow
     datasets.c_elegans
-    datasets.zebrafish
-    datasets.tedsim
+    datasets.drosophila
+    datasets.hspc
+    datasets.mosta
     datasets.sim_align
     datasets.simulate_data
-    datasets.bone_marrow
+    datasets.tedsim
+    datasets.zebrafish
