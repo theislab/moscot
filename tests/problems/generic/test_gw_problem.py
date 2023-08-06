@@ -154,8 +154,8 @@ class TestGWProblem:
             ("cosine", Cosine, {}),
             ("pnorm_p", PNormP, {"p": 3}),
             ("sq_pnorm", SqPNorm, {"x": {"p": 3}, "y": {"p": 4}}),
-            ("elastic_l1", ElasticL1, {"x": {"gamma": 3}, "y": {"gamma": 4}}),
-            ("elastic_stvs", ElasticSTVS, {"x": {"gamma": 3}, "y": {"gamma": 4}}),
+            ("elastic_l1", ElasticL1, {"x": {"scaling_reg": 3}, "y": {"scaling_reg": 4}}),
+            ("elastic_stvs", ElasticSTVS, {"x": {"scaling_reg": 3}, "y": {"scaling_reg": 4}}),
         ],
     )
     def test_prepare_costs(self, adata_time: AnnData, cost_str: str, cost_inst: Any, cost_kwargs: CostKwargs_t):

@@ -168,8 +168,8 @@ class TestFGWProblem:
             ("cosine", Cosine, {}),
             ("pnorm_p", PNormP, {"p": 3}),
             ("sq_pnorm", SqPNorm, {"xy": {"p": 5}, "x": {"p": 3}, "y": {"p": 4}}),
-            ("elastic_l1", ElasticL1, {"gamma": 1.1}),
-            ("elastic_stvs", ElasticSTVS, {"gamma": 1.2}),
+            ("elastic_l1", ElasticL1, {"scaling_reg": 1.1}),
+            ("elastic_stvs", ElasticSTVS, {"scaling_reg": 1.2}),
         ],
     )
     def test_prepare_costs(self, adata_time: AnnData, cost_str: str, cost_inst: Any, cost_kwargs: CostKwargs_t):
