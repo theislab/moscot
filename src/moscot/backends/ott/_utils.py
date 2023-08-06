@@ -1,9 +1,9 @@
-from typing import Any, Optional
+from typing import Any, Optional, Union
 
 import jax
 import jax.numpy as jnp
 import scipy.sparse as sp
-from ott.geometry import geometry, pointcloud
+from ott.geometry import epsilon_scheduler, geometry, pointcloud
 from ott.tools import sinkhorn_divergence as sdiv
 
 from moscot._logging import logger
@@ -17,7 +17,7 @@ def sinkhorn_divergence(
     point_cloud_2: ArrayLike,
     a: Optional[ArrayLike] = None,
     b: Optional[ArrayLike] = None,
-    epsilon: Optional[float] = 1e-1,
+    epsilon: Optional[Union[float, epsilon_scheduler.Epsilon]] = 1e-1,
     scale_cost: ScaleCost_t = 1.0,
     **kwargs: Any,
 ) -> float:

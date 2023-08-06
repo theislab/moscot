@@ -1,6 +1,8 @@
 import types
 from typing import Any, Literal, Mapping, Optional, Tuple, Type, Union
 
+from ott.geometry import epsilon_scheduler
+
 from anndata import AnnData
 
 from moscot import _constants
@@ -157,7 +159,7 @@ class SpatioTemporalProblem(  # type: ignore[misc]
     def solve(
         self,
         alpha: float = 0.5,
-        epsilon: Optional[float] = 1e-3,
+        epsilon: Optional[Union[float, epsilon_scheduler.Epsilon]] = 1e-3,
         tau_a: float = 1.0,
         tau_b: float = 1.0,
         rank: int = -1,

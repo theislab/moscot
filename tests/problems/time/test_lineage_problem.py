@@ -3,6 +3,7 @@ from typing import Any, List, Mapping
 import pytest
 
 import numpy as np
+from ott.geometry import epsilon_scheduler
 
 from anndata import AnnData
 
@@ -254,7 +255,14 @@ class TestLineageProblem:
         geom = quad_prob.geom_xx
         for arg, val in geometry_args.items():
             assert hasattr(geom, val)
-            assert getattr(geom, val) == args_to_check[arg]
+            el = getattr(geom, val)[0] if isinstance(getattr(geom, val), tuple) else getattr(geom, val)
+            if arg == "epsilon":
+                eps_processed = getattr(geom, val)
+                assert isinstance(eps_processed, epsilon_scheduler.Epsilon)
+                assert eps_processed.target == args_to_check[arg], arg
+            else:
+                assert getattr(geom, val) == args_to_check[arg], arg
+                assert el == args_to_check[arg]
 
         geom = quad_prob.geom_xy
         for arg, val in pointcloud_args.items():
