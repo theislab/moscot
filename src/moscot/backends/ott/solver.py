@@ -141,7 +141,7 @@ class SinkhornSolver(OTTJaxSolver):
         self,
         jit: bool = True,
         rank: int = -1,
-        epsilon: float = 0.0,
+        epsilon: Optional[float] = 0.0,
         initializer: SinkhornInitializer_t = None,
         initializer_kwargs: Mapping[str, Any] = types.MappingProxyType({}),
         **kwargs: Any,
