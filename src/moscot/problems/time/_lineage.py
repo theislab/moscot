@@ -146,7 +146,7 @@ class TemporalProblem(  # type: ignore[misc]
 
     def solve(
         self,
-        epsilon: Optional[float] = 1e-3,
+        epsilon: float = 1e-3,
         tau_a: float = 1.0,
         tau_b: float = 1.0,
         rank: int = -1,
@@ -395,7 +395,7 @@ class LineageProblem(TemporalProblem):
     def solve(
         self,
         alpha: float = 0.5,
-        epsilon: Optional[float] = 1e-3,
+        epsilon: float = 1e-3,
         tau_a: float = 1.0,
         tau_b: float = 1.0,
         rank: int = -1,
