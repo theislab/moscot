@@ -97,7 +97,7 @@ class TestMappingProblem:
     def test_solve_balanced(
         self,
         adata_mapping: AnnData,
-        epsilon: Optional[float],
+        epsilon: float,
         alpha: float,
         rank: int,
         sc_attr: Mapping[str, str],

@@ -17,7 +17,7 @@ def sinkhorn_divergence(
     point_cloud_2: ArrayLike,
     a: Optional[ArrayLike] = None,
     b: Optional[ArrayLike] = None,
-    epsilon: Optional[Union[float, epsilon_scheduler.Epsilon]] = 1e-1,
+    epsilon: Union[float, epsilon_scheduler.Epsilon] = 1e-1,
     scale_cost: ScaleCost_t = 1.0,
     **kwargs: Any,
 ) -> float:

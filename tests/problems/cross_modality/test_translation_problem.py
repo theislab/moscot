@@ -89,7 +89,7 @@ class TestTranslationProblem:
     def test_solve_balanced(
         self,
         adata_translation_split: Tuple[AnnData, AnnData],
-        epsilon: Optional[float],
+        epsilon: float,
         alpha: float,
         rank: int,
         src_attr: Mapping[str, str],

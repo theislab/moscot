@@ -159,7 +159,7 @@ class SpatioTemporalProblem(  # type: ignore[misc]
     def solve(
         self,
         alpha: float = 0.5,
-        epsilon: Optional[Union[float, epsilon_scheduler.Epsilon]] = 1e-3,
+        epsilon: Union[float, epsilon_scheduler.Epsilon] = 1e-3,
         tau_a: float = 1.0,
         tau_b: float = 1.0,
         rank: int = -1,

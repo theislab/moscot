@@ -77,7 +77,7 @@ class TestAlignmentProblem:
     def test_solve_balanced(
         self,
         adata_space_rotate: AnnData,
-        epsilon: Optional[float],
+        epsilon: float,
         alpha: float,
         rank: int,
         initializer: Optional[Literal["random", "rank2"]],
