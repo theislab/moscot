@@ -16,7 +16,7 @@ Moscot - Multiomics Single-cell Optimal Transport
     :align: center
     :class: only-dark
 
-If you find a model useful for your research, please consider citing the ``moscot`` manuscript (in preparation) as
+If you find a model useful for your research, please consider citing the ``moscot`` manuscript [`Klein et al., 2023 <https://www.biorxiv.org/content/10.1101/2023.05.11.540374v2>`_] as
 well as the publication introducing the model, which can be found in the corresponding documentation.
 
 .. grid:: 3
