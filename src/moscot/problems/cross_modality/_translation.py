@@ -182,7 +182,7 @@ class TranslationProblem(CrossModalityTranslationMixin[K, OTProblem], CompoundPr
     def solve(  # type: ignore[override]
         self,
         alpha: Optional[float] = 1.0,
-        epsilon: Optional[float] = 1e-2,
+        epsilon: float = 1e-2,
         tau_a: float = 1.0,
         tau_b: float = 1.0,
         rank: int = -1,
