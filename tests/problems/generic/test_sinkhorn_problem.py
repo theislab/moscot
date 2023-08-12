@@ -4,6 +4,7 @@ import pytest
 
 import numpy as np
 import pandas as pd
+from ott.geometry import epsilon_scheduler
 from ott.geometry.costs import (
     Cosine,
     ElasticL1,
@@ -72,8 +73,8 @@ class TestSinkhornProblem:
             ("cosine", Cosine, {}),
             ("pnorm_p", PNormP, {"p": 3}),
             ("sq_pnorm", SqPNorm, {"p": 3}),
-            ("elastic_l1", ElasticL1, {"gamma": 1.1}),
-            ("elastic_stvs", ElasticSTVS, {"gamma": 1.2}),
+            ("elastic_l1", ElasticL1, {"scaling_reg": 1.1}),
+            ("elastic_stvs", ElasticSTVS, {"scaling_reg": 1.2}),
         ],
     )
     def test_prepare_costs(self, adata_time: AnnData, cost_str: str, cost_inst: Any, cost_kwargs: Mapping[str, int]):
@@ -153,9 +154,15 @@ class TestSinkhornProblem:
 
         geom = lin_prob.geom
         for arg, val in geometry_args.items():
-            assert hasattr(geom, val), val
+            assert hasattr(geom, val)
             el = getattr(geom, val)[0] if isinstance(getattr(geom, val), tuple) else getattr(geom, val)
-            assert el == args_to_check[arg], arg
+            if arg == "epsilon":
+                eps_processed = getattr(geom, val)
+                assert isinstance(eps_processed, epsilon_scheduler.Epsilon)
+                assert eps_processed.target == args_to_check[arg], arg
+            else:
+                assert getattr(geom, val) == args_to_check[arg], arg
+                assert el == args_to_check[arg]
 
         args = pointcloud_args if args_to_check["rank"] == -1 else lr_pointcloud_args
         for arg, val in args.items():

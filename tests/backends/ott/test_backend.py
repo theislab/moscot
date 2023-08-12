@@ -67,8 +67,6 @@ class TestSinkhorn:
         np.testing.assert_allclose(solver._problem.geom.cost_matrix, problem.geom.cost_matrix, rtol=RTOL, atol=ATOL)
         np.testing.assert_allclose(gt.matrix, pred.transport_matrix, rtol=RTOL, atol=ATOL)
 
-    # TODO(michalk8): remove when new ott-jax version comes out
-    @pytest.mark.xfail(reason="broken on ott-jax==0.4.0")
     @pytest.mark.parametrize(
         ("rank", "cost_fn"), [(2, costs.Euclidean()), (3, costs.SqPNorm(p=1.5)), (5, costs.ElasticL1(0.1))]
     )

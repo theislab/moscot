@@ -42,7 +42,7 @@ class OTTJaxSolver(OTSolver[OTTOutput], abc.ABC):
     def _create_geometry(
         self,
         x: TaggedArray,
-        epsilon: Optional[Union[float, epsilon_scheduler.Epsilon]] = None,
+        epsilon: Union[float, epsilon_scheduler.Epsilon] = None,
         relative_epsilon: Optional[bool] = None,
         scale_cost: Scale_t = 1.0,
         batch_size: Optional[int] = None,
@@ -164,7 +164,7 @@ class SinkhornSolver(OTTJaxSolver):
         x: Optional[TaggedArray] = None,
         y: Optional[TaggedArray] = None,
         # geometry
-        epsilon: Optional[Union[float, epsilon_scheduler.Epsilon]] = None,
+        epsilon: Union[float, epsilon_scheduler.Epsilon] = None,
         relative_epsilon: Optional[bool] = None,
         batch_size: Optional[int] = None,
         scale_cost: Scale_t = 1.0,
@@ -265,7 +265,7 @@ class GWSolver(OTTJaxSolver):
         x: Optional[TaggedArray] = None,
         y: Optional[TaggedArray] = None,
         # geometry
-        epsilon: Optional[Union[float, epsilon_scheduler.Epsilon]] = None,
+        epsilon: Union[float, epsilon_scheduler.Epsilon] = None,
         relative_epsilon: Optional[bool] = None,
         batch_size: Optional[int] = None,
         scale_cost: Scale_t = 1.0,
