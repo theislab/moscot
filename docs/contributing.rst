@@ -40,8 +40,8 @@ The Moscot project:
 
 - `moscot <../src/moscot>`_: the root of the package.
 
-  - `moscot/backends <../moscot/backends>`_: the OTT backend module, which deals with OTT solvers and output functions.
-  - `moscot/base <../moscot/base>`_: contains base Moscot classes.
+  - `moscot/backends <../src/moscot/backends>`_: the OTT backend module, which deals with OTT solvers and output functions.
+  - `moscot/base <../src/moscot/base>`_: contains base Moscot classes.
     - `moscot/base/problems <../src/moscot/base/problems>`_: the Moscot problems module.
   - `moscot/costs <../src/moscot/costs>`_: contains different costs computation functions.
   - `moscot/plotting <../src/moscot/plotting>`_: the plotting module.
