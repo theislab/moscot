@@ -38,10 +38,10 @@ Codebase structure
 ------------------
 The Moscot project:
 
-- `moscot <src/moscot>`_: the root of the package.
+- `moscot <../src/moscot>`_: the root of the package.
 
-  - `moscot/backends <src/moscot/backends>`_: the OTT backend module, which deals with OTT solvers and output functions.
-  - `moscot/base <src/moscot/base>`_: contains base Moscot classes.
+  - `moscot/backends <moscot/backends>`_: the OTT backend module, which deals with OTT solvers and output functions.
+  - `moscot/base </moscot/base>`_: contains base Moscot classes.
     - `moscot/base/problems <src/moscot/base/problems>`_: the Moscot problems module.
   - `moscot/costs <src/moscot/costs>`_: contains different costs computation functions.
   - `moscot/plotting <src/moscot/plotting>`_: the plotting module.
@@ -51,7 +51,7 @@ The Moscot project:
 
 Tests structure:
 
-- `tests <tests>`_: the root of the package
+- `tests <./tests>`_: the root of the package
 
   - `tests/backends <tests/backends>`_: tests for the ott backend.
   - `tests/costs <tests/costs>`_ tests for the solving costs.
