@@ -40,28 +40,28 @@ The Moscot project:
 
 - `moscot <../src/moscot>`_: the root of the package.
 
-  - `moscot/backends <moscot/backends>`_: the OTT backend module, which deals with OTT solvers and output functions.
-  - `moscot/base </moscot/base>`_: contains base Moscot classes.
-    - `moscot/base/problems <src/moscot/base/problems>`_: the Moscot problems module.
-  - `moscot/costs <src/moscot/costs>`_: contains different costs computation functions.
-  - `moscot/plotting <src/moscot/plotting>`_: the plotting module.
-  - `moscot/problems <src/moscot/problems>`_: the functionality of general problems classes, subdivided into problem types.
-  - `moscot/utils <src/moscot/utils>`_: contains various utility functions.
-  - `moscot/datasets.py <src/moscot/datasets.py>`_: contains loading and simulating functions for the datasets.
+  - `moscot/backends <../moscot/backends>`_: the OTT backend module, which deals with OTT solvers and output functions.
+  - `moscot/base <../moscot/base>`_: contains base Moscot classes.
+    - `moscot/base/problems <../src/moscot/base/problems>`_: the Moscot problems module.
+  - `moscot/costs <../src/moscot/costs>`_: contains different costs computation functions.
+  - `moscot/plotting <../src/moscot/plotting>`_: the plotting module.
+  - `moscot/problems <../src/moscot/problems>`_: the functionality of general problems classes, subdivided into problem types.
+  - `moscot/utils <../src/moscot/utils>`_: contains various utility functions.
+  - `moscot/datasets.py <../src/moscot/datasets.py>`_: contains loading and simulating functions for the datasets.
 
 Tests structure:
 
-- `tests <./tests>`_: the root of the package
+- `tests <../tests>`_: the root of the package
 
-  - `tests/backends <tests/backends>`_: tests for the ott backend.
-  - `tests/costs <tests/costs>`_ tests for the solving costs.
-  - `tests/data <tests/data>`_: tests for the simulated data module.
-  - `tests/datasets <tests/datasets>`_: tests for the datasets.
-  - `tests/plotting <tests/plotting>`_ tests for the plotting module.
-  - `tests/problems <tests/problems>`_ tests for the problem classes, divided by problem type.
-  - `tests/solvers <tests/solvers>`_ tests for the solvers.
-  - `tests/utils <tests/utils>`_ tests for the utility functions.
-  - `tests/conftest.py <tests/conftest.py>`_: ``pytest`` fixtures and utility functions.
+  - `tests/backends <../tests/backends>`_: tests for the ott backend.
+  - `tests/costs <../tests/costs>`_ tests for the solving costs.
+  - `tests/data <../tests/data>`_: tests for the simulated data module.
+  - `tests/datasets <../tests/datasets>`_: tests for the datasets.
+  - `tests/plotting <../tests/plotting>`_ tests for the plotting module.
+  - `tests/problems <../tests/problems>`_ tests for the problem classes, divided by problem type.
+  - `tests/solvers <../tests/solvers>`_ tests for the solvers.
+  - `tests/utils <../tests/utils>`_ tests for the utility functions.
+  - `tests/conftest.py <../tests/conftest.py>`_: ``pytest`` fixtures and utility functions.
 
 Code style guide
 ----------------
