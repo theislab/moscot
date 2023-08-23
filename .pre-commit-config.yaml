@@ -18,7 +18,7 @@ repos:
       - id: black
         additional_dependencies: [toml]
   - repo: https://github.com/pre-commit/mirrors-prettier
-    rev: v3.0.0
+    rev: v3.0.1
     hooks:
       - id: prettier
         language_version: system
@@ -42,7 +42,7 @@ repos:
       - id: check-yaml
       - id: check-toml
   - repo: https://github.com/asottile/pyupgrade
-    rev: v3.9.0
+    rev: v3.10.1
     hooks:
       - id: pyupgrade
         args: [--py3-plus, --py38-plus, --keep-runtime-typing]
@@ -63,7 +63,7 @@ repos:
       - id: doc8
   - repo: https://github.com/astral-sh/ruff-pre-commit
     # Ruff version.
-    rev: v0.0.280
+    rev: v0.0.282
     hooks:
       - id: ruff
         args: [--fix, --exit-non-zero-on-fix]
