@@ -61,6 +61,6 @@ Our preprint "Mapping cells through time and space with moscot" can be found `he
     :target: https://moscot.readthedocs.io/en/stable/
     :alt: Documentation
 
-.. |Downloads| image:: https://pepy.tech/badge/moscot
+.. |Downloads| image:: https://static.pepy.tech/badge/moscot
     :target: https://pepy.tech/project/moscot
     :alt: Downloads
