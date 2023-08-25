@@ -68,7 +68,7 @@ Code style guide
 We rely on ``black`` and ``isort`` to do the most of the formatting - both of them are integrated as pre-commit hooks.
 You can use ``tox`` to check the changes::
 
-    tox -e lint
+    tox -e lint-code
 
 Furthermore, we also require that:
 
@@ -82,7 +82,7 @@ Testing
 -------
 We use ``tox`` to automate our testing, as well as linting and documentation creation. To run the tests, run::
 
-    tox -e py{38,39,310}-{linux,macos}
+    tox -e py{38,39,310,311}-{linux,macos}
 
 depending on the Python version(s) in your ``PATH`` and your operating system. We use ``flake8`` and ``mypy`` to further
 analyze the code. Use ``# noqa: <error1>,<error2>`` to ignore certain ``flake8`` errors and
@@ -113,14 +113,14 @@ We use ``numpy``-style docstrings for the documentation with the following addit
 
 In order to build the documentation, run::
 
-    tox -e docs
+    tox -e build-docs
 
 Since the tutorials are hosted on a separate repository (see `Writing tutorials/examples`_), we download the newest
 tutorials/examples from there and build the documentation here.
 
 To validate the links inside the documentation, run::
 
-    tox -e check-docs
+    tox -e lint-docs
 
 If you need to clean the artifacts from previous documentation builds, run::
 
@@ -154,9 +154,3 @@ Creating release notes
 ----------------------
 TODO
 
-Troubleshooting
----------------
-- **The enchant C library was not found**
-  This can happen during the documentation build and because of a missing dependency for spell checker.
-  The installation instructions for the dependency can be found
-  `here <https://pyenchant.github.io/pyenchant/install.html#installing-the-enchant-c-library>`_.
