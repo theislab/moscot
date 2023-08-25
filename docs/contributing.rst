@@ -12,7 +12,6 @@ Table of Contents
 - `Making a new release`_
 - `Creating release notes`_
 - `Submitting a PR`_
-- `Troubleshooting`_
 
 Contributing to Moscot
 -----------------------
