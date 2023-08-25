@@ -153,4 +153,3 @@ TODO
 Creating release notes
 ----------------------
 TODO
-
