@@ -89,6 +89,6 @@ well as the publication introducing the model, which can be found in the corresp
     :target: https://moscot.readthedocs.io/en/stable/
     :alt: Documentation
 
-.. |Downloads| image:: https://pepy.tech/badge/moscot
+.. |Downloads| image:: https://static.pepy.tech/badge/moscot
     :target: https://pepy.tech/project/moscot
     :alt: Downloads
