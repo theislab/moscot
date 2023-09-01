@@ -14,8 +14,9 @@ from moscot.backends.ott.solver import (
     SinkhornSolver,
 )
 from moscot.costs import register_cost
-
+from moscot.backends.ott._utils import sinkhorn_divergence
 __all__ = ["OTTOutput", "NeuralDualOutput", "GWSolver", "SinkhornSolver", "OTTNeuralDualSolver", "OTTNeuralDualSolver", "CondNeuralDualSolver", "MongeGapSolver"]
+
 
 register_cost("euclidean", backend="ott")(costs.Euclidean)
 register_cost("sq_euclidean", backend="ott")(costs.SqEuclidean)

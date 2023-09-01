@@ -4,9 +4,11 @@ from typing import Any, Literal, Mapping, Optional
 import pytest
 
 import numpy as np
+from ott.geometry import epsilon_scheduler
 
 from anndata import AnnData
 
+from moscot.backends.ott._utils import alpha_to_fused_penalty
 from moscot.problems.space import AlignmentProblem
 from tests.problems.conftest import (
     fgw_args_1,
@@ -25,8 +27,14 @@ SOLUTIONS_PATH = Path("./tests/data/alignment_solutions.pkl")  # base is moscot
 
 class TestAlignmentProblem:
     @pytest.mark.fast()
-    @pytest.mark.parametrize("joint_attr", [{"attr": "X"}])  # TODO(giovp): check that callback is correct
-    def test_prepare_sequential(self, adata_space_rotate: AnnData, joint_attr: Optional[Mapping[str, Any]]):
+    @pytest.mark.parametrize("joint_attr", [{"attr": "X"}])
+    @pytest.mark.parametrize("normalize_spatial", [True, False])
+    def test_prepare_sequential(
+        self,
+        adata_space_rotate: AnnData,
+        joint_attr: Optional[Mapping[str, Any]],
+        normalize_spatial: bool,
+    ):
         n_obs = adata_space_rotate.shape[0] // 3  # adata is made of 3 datasets
         n_var = adata_space_rotate.shape[1]
         expected_keys = {("0", "1"), ("1", "2")}
@@ -35,8 +43,13 @@ class TestAlignmentProblem:
         assert ap.problems == {}
         assert ap.solutions == {}
 
-        ap = ap.prepare(batch_key="batch", joint_attr=joint_attr)
+        ap = ap.prepare(batch_key="batch", joint_attr=joint_attr, normalize_spatial=normalize_spatial)
         assert len(ap) == 2
+        if normalize_spatial:
+            np.testing.assert_allclose(ap[("1", "2")].x.data_src.std(), ap[("0", "1")].x.data_src.std(), atol=1e-15)
+            np.testing.assert_allclose(ap[("1", "2")].x.data_src.std(), 1.0, atol=1e-15)
+            np.testing.assert_allclose(ap[("1", "2")].x.data_src.mean(), 0, atol=1e-15)
+            np.testing.assert_allclose(ap[("0", "1")].x.data_src.mean(), 0, atol=1e-15)
 
         for prob_key in expected_keys:
             assert isinstance(ap[prob_key], ap._base_problem_type)
@@ -130,20 +143,26 @@ class TestAlignmentProblem:
                 if isinstance(getattr(sinkhorn_solver, val), tuple)
                 else getattr(sinkhorn_solver, val)
             )
-            args_to_c = args_to_check if arg in ["gamma", "gamma_rescale"] else args_to_check["linear_solver_kwargs"]
-            assert el == args_to_c[arg]
+            assert el == args_to_check["linear_solver_kwargs"][arg], arg
 
         quad_prob = problem[key]._solver._problem
         for arg, val in quad_prob_args.items():
             assert hasattr(quad_prob, val)
             assert getattr(quad_prob, val) == args_to_check[arg]
         assert hasattr(quad_prob, "fused_penalty")
-        assert quad_prob.fused_penalty == problem[key]._solver._alpha_to_fused_penalty(args_to_check["alpha"])
+        assert quad_prob.fused_penalty == alpha_to_fused_penalty(args_to_check["alpha"])
 
         geom = quad_prob.geom_xx
         for arg, val in geometry_args.items():
             assert hasattr(geom, val)
-            assert getattr(geom, val) == args_to_check[arg]
+            el = getattr(geom, val)[0] if isinstance(getattr(geom, val), tuple) else getattr(geom, val)
+            if arg == "epsilon":
+                eps_processed = getattr(geom, val)
+                assert isinstance(eps_processed, epsilon_scheduler.Epsilon)
+                assert eps_processed.target == args_to_check[arg], arg
+            else:
+                assert getattr(geom, val) == args_to_check[arg], arg
+                assert el == args_to_check[arg]
 
         geom = quad_prob.geom_xy
         for arg, val in pointcloud_args.items():

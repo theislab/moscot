@@ -7,17 +7,21 @@ import jaxlib.xla_extension as xla_ext
 import jax
 import jax.numpy as jnp
 import numpy as np
+<<<<<<< HEAD
 import scipy.sparse as sp
 from ott.problems.linear.potentials import DualPotentials
 from ott.solvers.linear.sinkhorn import SinkhornOutput as OTTSinkhornOutput
 from ott.solvers.linear.sinkhorn_lr import LRSinkhornOutput as OTTLRSinkhornOutput
 from ott.solvers.quadratic.gromov_wasserstein import GWOutput as OTTGWOutput
+=======
+from ott.solvers.linear import sinkhorn, sinkhorn_lr
+from ott.solvers.quadratic import gromov_wasserstein
+>>>>>>> main
 
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 from matplotlib.figure import Figure
 
-from moscot._docs._docs import d
 from moscot._types import ArrayLike, Device_t
 from moscot.backends.ott._utils import ConditionalDualPotentials, get_nearest_neighbors
 from moscot.base.output import BaseNeuralOutput, BaseSolverOutput
@@ -26,6 +30,7 @@ __all__ = ["OTTOutput", "NeuralDualOutput", "CondNeuralDualOutput"]
 
 Train_t = Dict[str, Dict[str, List[float]]]
 
+<<<<<<< HEAD
 
 class ConvergencePlotterMixin:
     _NOT_COMPUTED = -1.0
@@ -38,10 +43,33 @@ class ConvergencePlotterMixin:
         self._errors = None if errors is None else errors[errors != self._NOT_COMPUTED]
 
     def plot_convergence(
+=======
+class OTTOutput(BaseSolverOutput):
+    """Output of various :term:`OT` problems.
+
+    Parameters
+    ----------
+    output
+        Output of the :mod:`ott` backend.
+    """
+
+    _NOT_COMPUTED = -1.0  # sentinel value used in `ott`
+
+    def __init__(
+        self, output: Union[sinkhorn.SinkhornOutput, sinkhorn_lr.LRSinkhornOutput, gromov_wasserstein.GWOutput]
+    ):
+        super().__init__()
+        self._output = output
+        self._costs = None if isinstance(output, sinkhorn.SinkhornOutput) else output.costs
+        self._errors = output.errors
+
+    def plot_costs(
+>>>>>>> main
         self,
         last_k: Optional[int] = None,
         data: Optional[Dict[str, List[float]]] = None,
         title: Optional[str] = None,
+<<<<<<< HEAD
         figsize: Optional[Tuple[float, float]] = None,
         dpi: Optional[int] = None,
         save: Optional[str] = None,
@@ -57,22 +85,44 @@ class ConvergencePlotterMixin:
             How many of the last k steps of the algorithm to plot. If `None`, plot the full curve.
         data
             Data containing information on convergence.
+=======
+        return_fig: bool = False,
+        ax: Optional[mpl.axes.Axes] = None,
+        figsize: Optional[Tuple[float, float]] = None,
+        dpi: Optional[int] = None,
+        save: Optional[str] = None,
+        **kwargs: Any,
+    ) -> Optional[mpl.figure.Figure]:
+        """Plot regularized :term:`OT` costs during the iterations.
+
+        Parameters
+        ----------
+        last
+            How many of the last steps of the algorithm to plot. If :obj:`None`, plot the full curve.
+>>>>>>> main
         title
-            Title of the plot. If `None`, it is determined automatically.
+            Title of the plot. If :obj:`None`, it is determined automatically.
+        return_fig
+            Whether to return the figure.
+        ax
+            Axes on which to plot.
         figsize
             Size of the figure.
         dpi
             Dots per inch.
         save
             Path where to save the figure.
+<<<<<<< HEAD
         return_fig
             Whether to return the figure.
+=======
+>>>>>>> main
         kwargs
-            Keyword arguments for :meth:`~matplotlib.axes.Axes.plot`.
+            Keyword arguments for :meth:`matplotlib.axes.Axes.plot`.
 
         Returns
         -------
-        The figure if ``return_fig = True``.
+        If ``return_fig = True``, return the figure.
         """
 
         def select_values(
@@ -134,8 +184,12 @@ class OTTOutput(ConvergencePlotterMixin, BaseSolverOutput):
             return self._output.apply(x, axis=1 - forward)
         return self._output.apply(x.T, axis=1 - forward).T  # convert to batch first
 
+<<<<<<< HEAD
     @d.get_sections(base="plot_costs", sections=["Parameters", "Returns"])
     def plot_costs(
+=======
+    def plot_errors(
+>>>>>>> main
         self,
         last: Optional[int] = None,
         title: Optional[str] = None,
@@ -146,20 +200,39 @@ class OTTOutput(ConvergencePlotterMixin, BaseSolverOutput):
         ax: Optional[mpl.axes.Axes] = None,
         **kwargs: Any,
     ) -> Optional[mpl.figure.Figure]:
+<<<<<<< HEAD
         """Plot regularized OT costs during the iterations.
+=======
+        """Plot errors along iterations.
+>>>>>>> main
 
         Parameters
         ----------
         last
+<<<<<<< HEAD
             How many of the last steps of the algorithm to plot. If `None`, plot the full curve.
         title
             Title of the plot. If `None`, it is determined automatically.
+=======
+            Number of errors corresponding at the ``last`` steps of the algorithm to plot. If :obj:`None`,
+            plot the full curve.
+        title
+            Title of the plot. If :obj:`None`, it is determined automatically.
+        outer_iteration
+            Which outermost iteration's errors to plot.
+            Only used when this is the solution to the :term:`quadratic problem`.
+        return_fig
+            Whether to return the figure.
+        ax
+            Axes on which to plot.
+>>>>>>> main
         figsize
             Size of the figure.
         dpi
             Dots per inch.
         save
             Path where to save the figure.
+<<<<<<< HEAD
         return_fig
             Whether to return the figure.
         ax
@@ -170,6 +243,14 @@ class OTTOutput(ConvergencePlotterMixin, BaseSolverOutput):
         Returns
         -------
         The figure if ``return_fig = True``.
+=======
+        kwargs
+            Keyword arguments for :meth:`matplotlib.axes.Axes.plot`.
+
+        Returns
+        -------
+        If ``return_fig = True``, return the figure.
+>>>>>>> main
         """
         if self._costs is None:
             raise RuntimeError("No costs to plot.")
@@ -205,8 +286,13 @@ class OTTOutput(ConvergencePlotterMixin, BaseSolverOutput):
         ax.xaxis.set_major_locator(mpl.ticker.MaxNLocator(integer=True))
 
     @property
+<<<<<<< HEAD
     def shape(self) -> Tuple[int, int]:
         if isinstance(self._output, OTTSinkhornOutput):
+=======
+    def shape(self) -> Tuple[int, int]:  # noqa: D102
+        if isinstance(self._output, sinkhorn.SinkhornOutput):
+>>>>>>> main
             return self._output.f.shape[0], self._output.g.shape[0]
         return self._output.geom.shape
 
@@ -216,9 +302,16 @@ class OTTOutput(ConvergencePlotterMixin, BaseSolverOutput):
 
     @property
     def is_linear(self) -> bool:  # noqa: D102
-        return isinstance(self._output, (OTTSinkhornOutput, OTTLRSinkhornOutput))
+        return isinstance(self._output, (sinkhorn.SinkhornOutput, sinkhorn_lr.LRSinkhornOutput))
 
+<<<<<<< HEAD
     def to(self, device: Optional[Device_t] = None) -> "OTTOutput":
+=======
+    def to(self, device: Optional[Device_t] = None) -> "OTTOutput":  # noqa: D102
+        if device is None:
+            return OTTOutput(jax.device_put(self._output, device=device))
+
+>>>>>>> main
         if isinstance(device, str) and ":" in device:
             device, ix = device.split(":")
             idx = int(ix)
@@ -234,22 +327,33 @@ class OTTOutput(ConvergencePlotterMixin, BaseSolverOutput):
         return OTTOutput(jax.device_put(self._output, device))
 
     @property
+<<<<<<< HEAD
     def cost(self) -> float:
         if isinstance(self._output, (OTTSinkhornOutput, OTTLRSinkhornOutput)):
             return float(self._output.reg_ot_cost)
         return float(self._output.reg_gw_cost)
+=======
+    def cost(self) -> float:  # noqa: D102
+        return float(self._output.reg_ot_cost if self.is_linear else self._output.reg_gw_cost)
+>>>>>>> main
 
     @property
     def converged(self) -> bool:
         return bool(self._output.converged)
 
     @property
+<<<<<<< HEAD
     def potentials(self) -> Optional[Tuple[ArrayLike, ArrayLike]]:
         if isinstance(self._output, OTTSinkhornOutput):
+=======
+    def potentials(self) -> Optional[Tuple[ArrayLike, ArrayLike]]:  # noqa: D102
+        if isinstance(self._output, sinkhorn.SinkhornOutput):
+>>>>>>> main
             return self._output.f, self._output.g
         return None
 
     @property
+<<<<<<< HEAD
     def rank(self) -> int:
         lin_output = self._output.linear_state if isinstance(self._output, OTTGWOutput) else self._output
         return len(lin_output.g) if isinstance(lin_output, OTTLRSinkhornOutput) else -1
@@ -1018,3 +1122,11 @@ class GapNeuralOutput(ConvergencePlotterMixin, BaseNeuralOutput):
                 "predicted_cost": round(self.cost, 3),
             }
         return ", ".join(f"{name}={fmt(val)}" for name, val in params.items())
+=======
+    def rank(self) -> int:  # noqa: D102
+        lin_output = self._output if self.is_linear else self._output.linear_state
+        return len(lin_output.g) if isinstance(lin_output, sinkhorn_lr.LRSinkhornOutput) else -1
+
+    def _ones(self, n: int) -> ArrayLike:  # noqa: D102
+        return jnp.ones((n,))
+>>>>>>> main

@@ -5,6 +5,6 @@ from moscot.problems.space._mixins import SpatialAlignmentMixin, SpatialMappingM
 __all__ = [
     "AlignmentProblem",
     "MappingProblem",
-    "SpatialMappingMixin",
     "SpatialAlignmentMixin",
+    "SpatialMappingMixin",
 ]

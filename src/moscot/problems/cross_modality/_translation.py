@@ -1,93 +1,121 @@
 import types
 from typing import Any, Literal, Mapping, Optional, Tuple, Type, Union
 
-from ott.geometry import epsilon_scheduler
-
 from anndata import AnnData
 
 from moscot import _constants
 from moscot._types import (
+    ArrayLike,
     CostKwargs_t,
-    Numeric_t,
     OttCostFnMap_t,
     Policy_t,
     ProblemStage_t,
     QuadInitializer_t,
     ScaleCost_t,
 )
-from moscot.base.problems.birth_death import BirthDeathMixin, BirthDeathProblem
-from moscot.base.problems.compound_problem import B
-from moscot.problems.space import AlignmentProblem, SpatialAlignmentMixin
-from moscot.problems.time import TemporalMixin
+from moscot.base.problems.compound_problem import B, CompoundProblem, K
+from moscot.base.problems.problem import OTProblem
+from moscot.problems._utils import handle_cost, handle_joint_attr
+from moscot.problems.cross_modality._mixins import CrossModalityTranslationMixin
+from moscot.utils.subset_policy import DummyPolicy, ExternalStarPolicy
 
-__all__ = ["SpatioTemporalProblem"]
+__all__ = ["TranslationProblem"]
 
 
-class SpatioTemporalProblem(  # type: ignore[misc]
-    TemporalMixin[Numeric_t, BirthDeathProblem],
-    BirthDeathMixin,
-    AlignmentProblem[Numeric_t, BirthDeathProblem],
-    SpatialAlignmentMixin[Numeric_t, BirthDeathProblem],
-):
-    """Class for analyzing time series spatial single-cell data.
+class TranslationProblem(CrossModalityTranslationMixin[K, OTProblem], CompoundProblem[K, OTProblem]):
+    """Class for integrating single-cell multi-omics data, based on :cite:`demetci-scot:22`.
 
     Parameters
     ----------
-    adata
-        Annotated data object.
+    adata_src
+        Annotated data object containing the source modality.
+    adata_tgt
+        Annotated data object containing the target modality.
     kwargs
         Keyword arguments for :class:`~moscot.base.problems.CompoundProblem`.
     """
 
-    def __init__(self, adata: AnnData, **kwargs: Any):
-        super().__init__(adata, **kwargs)
+    def __init__(self, adata_src: AnnData, adata_tgt: AnnData, **kwargs: Any):
+        super().__init__(adata_src, **kwargs)
+        self._adata_tgt = adata_tgt
+
+    def _create_policy(  # type: ignore[override]
+        self,
+        policy: Literal["external_star"] = "external_star",
+        key: Optional[str] = None,
+        **kwargs: Any,
+    ) -> Union[DummyPolicy, ExternalStarPolicy[K]]:
+        del policy
+        if key is None:
+            return DummyPolicy(self.adata, **kwargs)
+        return ExternalStarPolicy(self.adata, key=key, **kwargs)
+
+    def _create_problem(
+        self,
+        src: K,
+        tgt: K,
+        src_mask: ArrayLike,
+        tgt_mask: ArrayLike,
+        **kwargs: Any,
+    ) -> OTProblem:
+        del tgt_mask
+        return self._base_problem_type(
+            adata=self.adata_src,
+            adata_tgt=self.adata_tgt,
+            src_obs_mask=src_mask,
+            tgt_obs_mask=None,
+            src_key=src,
+            tgt_key=tgt,
+            **kwargs,
+        )
 
     def prepare(
         self,
-        time_key: str,
-        spatial_key: str = "spatial",
+        src_attr: Union[str, Mapping[str, Any]],
+        tgt_attr: Union[str, Mapping[str, Any]],
         joint_attr: Optional[Union[str, Mapping[str, Any]]] = None,
-        policy: Literal["sequential", "triu", "tril", "explicit"] = "sequential",
+        batch_key: Optional[str] = None,
         cost: OttCostFnMap_t = "sq_euclidean",
         cost_kwargs: CostKwargs_t = types.MappingProxyType({}),
         a: Optional[Union[bool, str]] = None,
         b: Optional[Union[bool, str]] = None,
-        marginal_kwargs: Mapping[str, Any] = types.MappingProxyType({}),
         **kwargs: Any,
-    ) -> "SpatioTemporalProblem":
-        """Prepare the spatiotemporal problem problem.
+    ) -> "TranslationProblem[K]":
+        """Prepare the translation problem.
 
         .. seealso::
-            - See :doc:`../notebooks/tutorials/500_spatiotemporal` on how to
-              prepare and solve the :class:`~moscot.problems.spatiotemporal.SpatioTemporalProblem`.
-            - See :doc:`../notebooks/examples/problems/800_score_genes_for_marginals` on how to
-              :meth:`score genes for proliferation and apoptosis <score_genes_for_marginals>`.
+            - See :doc:`../notebooks/tutorials/600_tutorial_translation` on how to prepare the translation problem.
 
         Parameters
         ----------
-        time_key
-            Key in :attr:`~anndata.AnnData.obs` where the time points are stored.
-        spatial_key
-            Key in :attr:`~anndata.AnnData.obsm` where the spatial coordinates are stored.
+        src_attr
+            How to get the data for the source modality:
+
+            - :class:`str` - a key in :attr:`~anndata.AnnData.obsm` where the data is stored.
+            - :class:`dict`-  it should contain ``'attr'`` and ``'key'``, the attribute and the key
+              in :class:`~anndata.AnnData`, and optionally ``'tag'``, one of :class:`~moscot.utils.tagged_array.Tag`.
+
+            By default, :attr:`tag = 'point_cloud' <moscot.utils.tagged_array.Tag.POINT_CLOUD>` is used.
+        tgt_attr
+            How to get the data for the target modality:
+
+            - :class:`str` - a key in :attr:`~anndata.AnnData.obsm` where the data is stored.
+            - :class:`dict`-  it should contain ``'attr'`` and ``'key'``, the attribute and the key
+              in :class:`~anndata.AnnData`, and optionally ``'tag'``, one of :class:`~moscot.utils.tagged_array.Tag`.
+
+            By default, :attr:`tag = 'point_cloud' <moscot.utils.tagged_array.Tag.POINT_CLOUD>` is used.
         joint_attr
             How to get the data for the :term:`linear term` in the :term:`fused <fused Gromov-Wasserstein>` case:
 
-            - :obj:`None` - `PCA <https://en.wikipedia.org/wiki/Principal_component_analysis>`_
-              on :attr:`~anndata.AnnData.X` is computed.
-            - :class:`str` - key in :attr:`~anndata.AnnData.obsm` where the data is stored.
+            - :obj:`None` - the pure :term:`Gromov-Wasserstein` case is used.
+            - :class:`str` - a key in :attr:`~anndata.AnnData.obsm` where the data is stored.
             - :class:`dict`-  it should contain ``'attr'`` and ``'key'``, the attribute and key in
               :class:`~anndata.AnnData`, and optionally ``'tag'`` from the
               :class:`tags <moscot.utils.tagged_array.Tag>`.
 
             By default, :attr:`tag = 'point_cloud' <moscot.utils.tagged_array.Tag.POINT_CLOUD>` is used.
-        policy
-            Rule which defines how to construct the subproblems using :attr:`obs['{time_key}'] <anndata.AnnData.obs>`.
-            Valid options are:
-
-            - ``'sequential'`` - align subsequent time points ``[(t0, t1), (t1, t2), ...]``.
-            - ``'triu'`` - upper triangular matrix ``[(t0, t1), (t0, t2), ..., (t1, t2), ...]``.
-            - ``'tril'`` - lower triangular matrix ``[(t_n, t_n-1), (t_n, t0), ..., (t_n-1, t_n-2), ...]``.
-            - ``'explicit'`` - explicit sequence of subsets passed via ``subset = [(b3, b0), ...]``.
+        batch_key
+            Key in :attr:`~anndata.AnnData.obs` specifying the batch.
         cost
             Cost function to use. Valid options are:
 
@@ -95,8 +123,8 @@ class SpatioTemporalProblem(  # type: ignore[misc]
             - :class:`dict` - a dictionary with the following keys and values:
 
               - ``'xy'`` - cost function for the :term:`linear term`.
-              - ``'x'`` - cost function for the source :term:`quadratic term`.
-              - ``'y'`` - cost function for the target :term:`quadratic term`.
+              - ``'x'`` - cost function for the source modality.
+              - ``'y'`` - cost function for the target modality.
         cost_kwargs
             Keyword arguments for the :class:`~moscot.base.cost.BaseCost` or any backend-specific cost.
         a
@@ -104,21 +132,17 @@ class SpatioTemporalProblem(  # type: ignore[misc]
 
             - :class:`str` - key in :attr:`~anndata.AnnData.obs` where the source marginals are stored.
             - :class:`bool` - if :obj:`True`,
-              :meth:`estimate the marginals <moscot.base.problems.BirthDeathProblem.estimate_marginals>`,
+              :meth:`estimate the marginals <moscot.base.problems.OTProblem.estimate_marginals>`,
               otherwise use uniform marginals.
-            - :obj:`None` - set to :obj:`True` if :attr:`proliferation_key` or :attr:`apoptosis_key` is not :obj:`None`.
+            - :obj:`None` - uniform marginals.
         b
             Target :term:`marginals`. Valid options are:
 
             - :class:`str` - key in :attr:`~anndata.AnnData.obs` where the target marginals are stored.
             - :class:`bool` - if :obj:`True`,
-              :meth:`estimate the marginals <moscot.base.problems.BirthDeathProblem.estimate_marginals>`,
+              :meth:`estimate the marginals <moscot.base.problems.OTProblem.estimate_marginals>`,
               otherwise use uniform marginals.
-            - :obj:`None` - set to :obj:`True` if :attr:`proliferation_key` or :attr:`apoptosis_key` is not :obj:`None`.
-        marginal_kwargs
-            Keyword arguments for :meth:`~moscot.base.problems.BirthDeathProblem.estimate_marginals`.
-            It always contains :attr:`proliferation_key` and :attr:`apoptosis_key`,
-            see :meth:`score_genes_for_marginals` for more information.
+            - :obj:`None` - uniform marginals.
         kwargs
             Keyword arguments for :meth:`~moscot.base.problems.CompoundProblem.prepare`.
 
@@ -128,38 +152,37 @@ class SpatioTemporalProblem(  # type: ignore[misc]
 
         - :attr:`problems` - the prepared subproblems.
         - :attr:`solutions` - set to an empty :class:`dict`.
-        - :attr:`spatial_key` - key in :attr:`~anndata.AnnData.obsm` where spatial coordinates are stored.
-        - :attr:`temporal_key` - key in :attr:`~anndata.AnnData.obs` where time points are stored.
+        - :attr:`batch_key` - key in :attr:`~anndata.AnnData.obs` where batches are stored.
         - :attr:`stage` - set to ``'prepared'``.
         - :attr:`problem_kind` - set to ``'quadratic'``.
         """
-        # spatial key set in AlignmentProblem
-        # handle_joint_attr and handle_cost in AlignmentProblem
-        self.temporal_key = time_key
-        marginal_kwargs = dict(marginal_kwargs)
+        self._src_attr = {"attr": "obsm", "key": src_attr} if isinstance(src_attr, str) else src_attr
+        self._tgt_attr = {"attr": "obsm", "key": tgt_attr} if isinstance(tgt_attr, str) else tgt_attr
+        self.batch_key = batch_key
 
-        estimate_marginals = self.proliferation_key is not None or self.apoptosis_key is not None
-        a = estimate_marginals if a is None else a
-        b = estimate_marginals if b is None else b
-
-        return super().prepare(  # type: ignore[return-value]
-            spatial_key=spatial_key,
-            batch_key=time_key,
-            joint_attr=joint_attr,
-            policy=policy,  # type: ignore[arg-type]
-            reference=None,
-            cost=cost,
-            cost_kwargs=cost_kwargs,
-            a=a,
-            b=b,
-            marginal_kwargs=marginal_kwargs,
-            **kwargs,
+        if joint_attr is None:
+            xy = {}  # type: ignore[var-annotated]
+        else:
+            xy, kwargs = handle_joint_attr(joint_attr, kwargs)
+            _, dim_src = getattr(self.adata_src, xy["x_attr"])[xy["x_key"]].shape
+            _, dim_tgt = getattr(self.adata_tgt, xy["y_attr"])[xy["y_key"]].shape
+            if dim_src != dim_tgt:
+                raise ValueError(
+                    f"The dimensions of `joint_attr` do not match. "
+                    f"The joint attribute in the source distribution has dimension {dim_src}, "
+                    f"while the joint attribute in the target distribution has dimension {dim_tgt}."
+                )
+        xy, x, y = handle_cost(
+            xy=xy, x=self._src_attr, y=self._tgt_attr, cost=cost, cost_kwargs=cost_kwargs  # type: ignore[arg-type]
         )
+        if xy:
+            kwargs["xy"] = xy
+        return super().prepare(x=x, y=y, policy="external_star", key=batch_key, cost=cost, a=a, b=b, **kwargs)  # type: ignore[return-value] # noqa: E501
 
-    def solve(
+    def solve(  # type: ignore[override]
         self,
-        alpha: float = 0.5,
-        epsilon: Union[float, epsilon_scheduler.Epsilon] = 1e-3,
+        alpha: Optional[float] = 1.0,
+        epsilon: float = 1e-2,
         tau_a: float = 1.0,
         tau_b: float = 1.0,
         rank: int = -1,
@@ -175,12 +198,12 @@ class SpatioTemporalProblem(  # type: ignore[misc]
         linear_solver_kwargs: Mapping[str, Any] = types.MappingProxyType({}),
         device: Optional[Literal["cpu", "gpu", "tpu"]] = None,
         **kwargs: Any,
-    ) -> "SpatioTemporalProblem":
-        r"""Solve the spatiotemporal problem.
+    ) -> "TranslationProblem[K]":
+        r"""Solve the translation problem.
 
         .. seealso::
-            - See :doc:`../notebooks/tutorials/500_spatiotemporal` on how to
-              prepare and solve the :class:`~moscot.problems.spatiotemporal.SpatioTemporalProblem`.
+            - See :doc:`../notebooks/tutorials/600_tutorial_translation` on how to
+              solve the :class:`~moscot.problems.cross_modality.TranslationProblem`.
 
         Parameters
         ----------
@@ -226,7 +249,7 @@ class SpatioTemporalProblem(  # type: ignore[misc]
             Transfer the solution to a different device, see :meth:`~moscot.base.output.BaseSolverOutput.to`.
             If :obj:`None`, keep the output on the original device.
         kwargs
-            Keyword arguments for :meth:`~moscot.problems.space.AlignmentProblem.solve`.
+            Keyword arguments for :meth:`~moscot.base.problems.CompoundProblem.solve`.
 
         Returns
         -------
@@ -235,8 +258,7 @@ class SpatioTemporalProblem(  # type: ignore[misc]
         - :attr:`solutions` - the :term:`OT` solutions for each subproblem.
         - :attr:`stage` - set to ``'solved'``.
         """
-        # TODO(michalk8): use locals (and in other places)
-        return super().solve(  # type: ignore[return-value]
+        return super().solve(
             alpha=alpha,
             epsilon=epsilon,
             tau_a=tau_a,
@@ -254,17 +276,22 @@ class SpatioTemporalProblem(  # type: ignore[misc]
             linear_solver_kwargs=linear_solver_kwargs,
             device=device,
             **kwargs,
-        )
-
-    @property
-    def _valid_policies(self) -> Tuple[Policy_t, ...]:
-        return (
-            _constants.SEQUENTIAL,
-            _constants.TRIL,
-            _constants.TRIU,
-            _constants.EXPLICIT,
         )  # type: ignore[return-value]
 
     @property
+    def adata_src(self) -> AnnData:
+        """Source data."""
+        return self.adata
+
+    @property
+    def adata_tgt(self) -> AnnData:
+        """Target data."""
+        return self._adata_tgt
+
+    @property
     def _base_problem_type(self) -> Type[B]:
-        return BirthDeathProblem  # type: ignore[return-value]
+        return OTProblem  # type: ignore[return-value]
+
+    @property
+    def _valid_policies(self) -> Tuple[Policy_t, ...]:
+        return _constants.EXTERNAL_STAR, _constants.DUMMY  # type: ignore[return-value]

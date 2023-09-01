@@ -374,10 +374,10 @@ class TestTemporalMixin:
     def test_temporal_key_numeric(self, adata_time: AnnData, temporal_key: str):
         problem = TemporalProblem(adata_time)
         if temporal_key == "missing":
-            with pytest.raises(KeyError, match="Unable to find temporal key"):
+            with pytest.raises(KeyError, match=r"Unable to find temporal key"):
                 _ = problem.prepare(temporal_key)
         elif temporal_key == "celltype":
-            with pytest.raises(TypeError, match="Temporal key has to be of numeric type"):
+            with pytest.raises(TypeError, match=rf"Expected `adata.obs\[{temporal_key!r}\]`.*"):
                 _ = problem.prepare(temporal_key)
         elif temporal_key == "time":
             _ = problem.prepare(temporal_key)

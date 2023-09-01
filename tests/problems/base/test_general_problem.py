@@ -10,7 +10,7 @@ from ott.solvers.linear.sinkhorn import solve as sinkhorn
 
 from anndata import AnnData
 
-from moscot.base.output import BaseSolverOutput
+from moscot.base.output import BaseSolverOutput, MatrixSolverOutput
 from moscot.base.problems import OTProblem
 from tests._utils import ATOL, RTOL, Geom_t, MockSolverOutput
 
@@ -61,8 +61,7 @@ class TestOTProblem:
         prob.set_xy(cost_matrix, tag=tag)
         assert isinstance(prob.xy.data_src, np.ndarray)
         assert prob.xy.data_tgt is None
-
-        prob = prob.solve(max_iterations=5)  # TODO(@MUCDK) once fixed in OTT-JAX test for scale_cost
+        prob = prob.solve(epsilon=1.0, max_iterations=5)  # TODO(@MUCDK) once fixed in OTT-JAX test for scale_cost
         np.testing.assert_equal(prob.xy.data_src, cost_matrix.to_numpy())
 
     @pytest.mark.parametrize("tag", ["cost_matrix", "kernel"])
@@ -81,7 +80,7 @@ class TestOTProblem:
         assert isinstance(prob.x.data_src, np.ndarray)
         assert prob.x.data_tgt is None
 
-        prob = prob.solve(max_iterations=5)  # TODO(@MUCDK) once fixed in OTT-JAX test for scale_cost
+        prob = prob.solve(epsilon=1.0, max_iterations=5)  # TODO(@MUCDK) once fixed in OTT-JAX test for scale_cost
         np.testing.assert_equal(prob.x.data_src, cost_matrix.to_numpy())
 
     @pytest.mark.parametrize("tag", ["cost_matrix", "kernel"])
@@ -100,7 +99,7 @@ class TestOTProblem:
         assert isinstance(prob.y.data_src, np.ndarray)
         assert prob.y.data_tgt is None
 
-        prob = prob.solve(max_iterations=5)
+        prob = prob.solve(epsilon=1.0, max_iterations=5)
         np.testing.assert_equal(prob.y.data_src, cost_matrix.to_numpy())
 
     def test_set_xy_change_problem_kind(self, adata_x: AnnData, adata_y: AnnData):
@@ -136,6 +135,33 @@ class TestOTProblem:
 
         assert prob.problem_kind == "quadratic"
 
+    @pytest.mark.parametrize("clazz", [np.array, pd.DataFrame, MatrixSolverOutput])
+    def test_set_solution(self, adata_x: AnnData, adata_y: AnnData, clazz: type):
+        rng = np.random.RandomState(42)
+        prob = OTProblem(adata_x, adata_y)
+        solution = rng.uniform(1, 10, size=prob.shape)
+        if clazz is pd.DataFrame:
+            solution = clazz(solution, index=prob.adata_src.obs_names, columns=prob.adata_tgt.obs_names)
+        elif clazz is MatrixSolverOutput:
+            solution = clazz(solution, cost=42, converged=True)
+        else:
+            solution = clazz(solution)
 
-class MultiMarginalProblem:
-    pass
+        prob = prob.set_solution(solution, cost=42, converged=True)
+
+        assert prob.stage == "solved"
+        assert isinstance(prob.solution, BaseSolverOutput)
+        assert prob.solution.shape == prob.shape
+        assert prob.solution.cost == 42
+        assert prob.solution.converged
+
+        _ = prob.push()
+        _ = prob.pull()
+
+        with pytest.raises(ValueError, match=r".* already contains a solution"):
+            _ = prob.set_solution(solution, overwrite=False)
+
+        solution2 = MatrixSolverOutput(solution, cost=42, converged=False)
+        prob = prob.set_solution(solution2, overwrite=True)
+
+        assert prob.solution is solution2

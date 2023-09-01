@@ -37,9 +37,10 @@ extensions = [
     "sphinx.ext.autosummary",
     "sphinxcontrib.bibtex",
     "sphinx_copybutton",
+    "sphinx_autodoc_typehints",
     "myst_nb",
-    "nbsphinx",
     "sphinx_design",  # for cards
+    "sphinx_tippy",
     "typed_returns",
 ]
 intersphinx_mapping = {
@@ -92,6 +93,7 @@ myst_enable_extensions = [
 ]
 myst_heading_anchors = 2
 
+
 # autodoc + napoleon
 autosummary_generate = True
 autodoc_member_order = "alphabetical"
@@ -112,10 +114,19 @@ spelling_filters = [
     "enchant.tokenize.MentionFilter",
 ]
 
+# hover
+tippy_anchor_parent_selector = "div.content"
+tippy_enable_mathjax = True
+# no need because of sphinxcontrib-bibtex
+tippy_enable_doitips = False
+
 linkcheck_ignore = [
     # 403 Client Error
     r"https://doi.org/10.1126/science.aad0501",
     r"https://resources.aertslab.org/cistarget/tf_lists/",
+    r"https://doi.org/10.1126/science.aax1971",
+    r"https://doi.org/10.1093/nar/gkac235",
+    r"https://www.science.org/doi/abs/10.1126/science.aax1971",
 ]
 
 exclude_patterns = ["_build", "**.ipynb_checkpoints", "notebooks/README.rst", "notebooks/CONTRIBUTING.rst"]
@@ -139,6 +150,9 @@ html_theme_options = {
     "light_css_variables": {
         "color-brand-primary": "#003262",
         "color-brand-content": "#003262",
+        "admonition-font-size": "var(--font-size-normal)",
+        "admonition-title-font-size": "var(--font-size-normal)",
+        "code-font-size": "var(--font-size--small)",
     },
     "footer_icons": [
         {

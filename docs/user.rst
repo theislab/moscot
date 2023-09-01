@@ -1,8 +1,6 @@
 User API
 ########
-.. module:: moscot
-
-Import ``moscot`` as::
+Import :mod:`moscot` as::
 
     import moscot as mt
 
@@ -18,6 +16,7 @@ Biological Problems
     space.AlignmentProblem
     space.MappingProblem
     spatiotemporal.SpatioTemporalProblem
+    cross_modality.TranslationProblem
 
 
 Generic Problems
@@ -47,9 +46,12 @@ Datasets
 .. autosummary::
     :toctree: genapi
 
-    datasets.mosta
-    datasets.hspc
+    datasets.bone_marrow
+    datasets.c_elegans
     datasets.drosophila
-    datasets.tedsim
+    datasets.hspc
+    datasets.mosta
     datasets.sim_align
     datasets.simulate_data
+    datasets.tedsim
+    datasets.zebrafish

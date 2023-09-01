@@ -3,9 +3,11 @@ from typing import Any, List, Mapping
 import pytest
 
 import numpy as np
+from ott.geometry import epsilon_scheduler
 
 from anndata import AnnData
 
+from moscot.backends.ott._utils import alpha_to_fused_penalty
 from moscot.base.output import BaseSolverOutput
 from moscot.base.problems import BirthDeathProblem
 from moscot.problems.time import LineageProblem
@@ -219,7 +221,6 @@ class TestLineageProblem:
     @pytest.mark.parametrize("args_to_check", [fgw_args_1, fgw_args_2])
     def test_pass_arguments(self, adata_time_barcodes: AnnData, args_to_check: Mapping[str, Any]):
         problem = LineageProblem(adata=adata_time_barcodes)
-        adata_time_barcodes = adata_time_barcodes[adata_time_barcodes.obs["time"].isin((0, 1))]
         problem = problem.prepare(
             time_key="time",
             policy="sequential",
@@ -242,20 +243,26 @@ class TestLineageProblem:
                 if isinstance(getattr(sinkhorn_solver, val), tuple)
                 else getattr(sinkhorn_solver, val)
             )
-            args_to_c = args_to_check if arg in ["gamma", "gamma_rescale"] else args_to_check["linear_solver_kwargs"]
-            assert el == args_to_c[arg]
+            assert el == args_to_check["linear_solver_kwargs"][arg], arg
 
         quad_prob = problem[key]._solver._problem
         for arg, val in quad_prob_args.items():
             assert hasattr(quad_prob, val)
             assert getattr(quad_prob, val) == args_to_check[arg]
         assert hasattr(quad_prob, "fused_penalty")
-        assert quad_prob.fused_penalty == problem[key]._solver._alpha_to_fused_penalty(args_to_check["alpha"])
+        assert quad_prob.fused_penalty == alpha_to_fused_penalty(args_to_check["alpha"])
 
         geom = quad_prob.geom_xx
         for arg, val in geometry_args.items():
             assert hasattr(geom, val)
-            assert getattr(geom, val) == args_to_check[arg]
+            el = getattr(geom, val)[0] if isinstance(getattr(geom, val), tuple) else getattr(geom, val)
+            if arg == "epsilon":
+                eps_processed = getattr(geom, val)
+                assert isinstance(eps_processed, epsilon_scheduler.Epsilon)
+                assert eps_processed.target == args_to_check[arg], arg
+            else:
+                assert getattr(geom, val) == args_to_check[arg], arg
+                assert el == args_to_check[arg]
 
         geom = quad_prob.geom_xy
         for arg, val in pointcloud_args.items():

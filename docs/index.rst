@@ -1,5 +1,8 @@
+|PyPI| |Downloads| |CI| |Pre-commit| |Codecov| |Docs|
+
 Moscot - Multiomics Single-cell Optimal Transport
 =================================================
+.. module:: moscot
 
 :mod:`moscot` is a framework for optimal transport applications in single cell genomics.
 
@@ -51,7 +54,7 @@ well as the publication introducing the model, which can be found in the corresp
 
     .. grid-item-card:: Manuscript
 
-        Stay tuned, coming soon!
+        Please have a look at our manuscript [`Klein et al., 2023 <https://www.biorxiv.org/content/10.1101/2023.05.11.540374v2>`_] to learn more.
 
 .. toctree::
     :maxdepth: 2
@@ -64,3 +67,28 @@ well as the publication introducing the model, which can be found in the corresp
     notebooks/tutorials/index
     notebooks/examples/index
     references
+
+
+.. |Codecov| image:: https://codecov.io/gh/theislab/moscot/branch/master/graph/badge.svg?token=Rgtm5Tsblo
+    :target: https://codecov.io/gh/theislab/moscot
+    :alt: Coverage
+
+.. |PyPI| image:: https://img.shields.io/pypi/v/moscot.svg
+    :target: https://pypi.org/project/moscot/
+    :alt: PyPI
+
+.. |CI| image:: https://img.shields.io/github/actions/workflow/status/theislab/moscot/test.yml?branch=main
+    :target: https://github.com/theislab/moscot/actions
+    :alt: CI
+
+.. |Pre-commit| image:: https://results.pre-commit.ci/badge/github/theislab/moscot/main.svg
+   :target: https://results.pre-commit.ci/latest/github/theislab/moscot/main
+   :alt: pre-commit.ci status
+
+.. |Docs| image:: https://img.shields.io/readthedocs/moscot
+    :target: https://moscot.readthedocs.io/en/stable/
+    :alt: Documentation
+
+.. |Downloads| image:: https://pepy.tech/badge/moscot
+    :target: https://pepy.tech/project/moscot
+    :alt: Downloads

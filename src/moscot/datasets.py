@@ -1,22 +1,38 @@
+import contextlib
 import os
-import warnings
+import pathlib
+import pickle
+import shutil
+import tempfile
+import urllib.request
 from types import MappingProxyType
-from typing import Any, List, Literal, Mapping, Optional, Tuple
+from typing import Any, Dict, List, Literal, Mapping, Optional, Tuple
 
 import networkx as nx
 import numpy as np
 import pandas as pd
 
+import anndata as ad
 from anndata import AnnData
 from scanpy import read
 
 from moscot._types import PathLike
 
-__all__ = ["mosta", "hspc", "drosophila", "sim_align", "simulate_data"]
+__all__ = [
+    "mosta",
+    "hspc",
+    "drosophila",
+    "c_elegans",
+    "zebrafish",
+    "bone_marrow",
+    "sim_align",
+    "simulate_data",
+]
 
 
 def mosta(
     path: PathLike = "~/.cache/moscot/mosta.h5ad",
+    force_download: bool = False,
     **kwargs: Any,
 ) -> AnnData:  # pragma: no cover
     """Preprocessed and extracted data as provided in :cite:`chen:22`.
@@ -30,6 +46,8 @@ def mosta(
     ----------
     path
         Path where to save the file.
+    force_download
+        Whether to force-download the data.
     kwargs
         Keyword arguments for :func:`scanpy.read`.
 
@@ -38,12 +56,17 @@ def mosta(
     Annotated data object.
     """
     return _load_dataset_from_url(
-        path, backup_url="https://figshare.com/ndownloader/files/37953852", expected_shape=(54134, 2000), **kwargs
+        path,
+        backup_url="https://figshare.com/ndownloader/files/40569779",
+        expected_shape=(54134, 2000),
+        force_download=force_download,
+        **kwargs,
     )
 
 
 def hspc(
     path: PathLike = "~/.cache/moscot/hspc.h5ad",
+    force_download: bool = False,
     **kwargs: Any,
 ) -> AnnData:  # pragma: no cover
     """CD34+ hematopoietic stem and progenitor cells from 4 healthy human donors.
@@ -59,6 +82,8 @@ def hspc(
     ----------
     path
         Path where to save the file.
+    force_download
+        Whether to force-download the data.
     kwargs
         Keyword arguments for :func:`scanpy.read`.
 
@@ -66,15 +91,23 @@ def hspc(
     -------
     Annotated data object.
     """
-    return _load_dataset_from_url(
-        path, backup_url="https://figshare.com/ndownloader/files/37993503", expected_shape=(4000, 2000), **kwargs
+    dataset = _load_dataset_from_url(
+        path,
+        backup_url="https://figshare.com/ndownloader/files/37993503",
+        expected_shape=(4000, 2000),
+        force_download=force_download,
+        **kwargs,
     )
+    dataset.obs["day"] = dataset.obs["day"].astype("category")  # better solution to this?
+
+    return dataset
 
 
 def drosophila(
     path: PathLike = "~/.cache/moscot/drosophila.h5ad",
     *,
     spatial: bool,
+    force_download: bool = False,
     **kwargs: Any,
 ) -> AnnData:
     """Embryo of Drosophila melanogaster described in :cite:`Li-spatial:22`.
@@ -87,6 +120,8 @@ def drosophila(
         Path where to save the file.
     spatial
         Whether to return the spatial or the scRNA-seq dataset.
+    force_download
+        Whether to force-download the data.
     kwargs
         Keyword arguments for :func:`scanpy.read`.
 
@@ -100,6 +135,7 @@ def drosophila(
             path + "_sp.h5ad",
             backup_url="https://figshare.com/ndownloader/files/37984935",
             expected_shape=(3039, 82),
+            force_download=force_download,
             **kwargs,
         )
 
@@ -107,27 +143,154 @@ def drosophila(
         path + "_sc.h5ad",
         backup_url="https://figshare.com/ndownloader/files/37984938",
         expected_shape=(1297, 2000),
+        force_download=force_download,
+        **kwargs,
+    )
+
+
+def c_elegans(
+    path: PathLike = "~/.cache/moscot/c_elegans.h5ad",
+    force_download: bool = False,
+    **kwargs: Any,
+) -> Tuple[AnnData, nx.DiGraph]:  # pragma: no cover
+    """scRNA-seq time-series dataset of C.elegans embryogenesis :cite:`packer:19`.
+
+    Contains raw counts of 46,151 cells with at least partial lineage information.
+    In addition, this downloads the known C. elegans lineage tree.
+
+    Parameters
+    ----------
+    path
+        Path where to save the file.
+    force_download
+        Whether to force-download the data.
+    kwargs
+        Keyword arguments for :func:`scanpy.read`.
+
+    Returns
+    -------
+    Annotated data object and the lineage tree.
+    """
+    adata = _load_dataset_from_url(
+        path,
+        backup_url="https://figshare.com/ndownloader/files/39943585",
+        expected_shape=(46151, 20222),
+        force_download=force_download,
+        **kwargs,
+    )
+    # TODO(michalk8): also cache or store in AnnData ad Newick + reconstruct?
+    with urllib.request.urlopen("https://figshare.com/ndownloader/files/39943603") as fin:
+        tree = pickle.load(fin)
+
+    return adata, tree
+
+
+def zebrafish(
+    path: PathLike = "~/.cache/moscot/zebrafish.h5ad",
+    force_download: bool = False,
+    **kwargs: Any,
+) -> Tuple[AnnData, Dict[str, nx.DiGraph]]:
+    """Lineage-traced scRNA-seq time-series dataset of Zebrafish heart regeneration :cite:`hu:22`.
+
+    Contains gene expression vectors, LINNAEUS :cite:`spanjaard:18` reconstructed lineage trees,
+    a low-dimensional embedding, and additional metadata.
+
+    Parameters
+    ----------
+    path
+        Path where to save the file.
+    force_download
+        Whether to force-download the data.
+    kwargs
+        Keyword arguments for :func:`scanpy.read`.
+
+    Returns
+    -------
+    Annotated data object and the lineage trees.
+    """
+    adata = _load_dataset_from_url(
+        path,
+        backup_url="https://figshare.com/ndownloader/files/39951073",
+        expected_shape=(44014, 31466),
+        force_download=force_download,
+        **kwargs,
+    )
+    # TODO(michalk8): also cache or store in AnnData ad Newick + reconstruct?
+    with urllib.request.urlopen("https://figshare.com/ndownloader/files/39951076") as fin:
+        trees = pickle.load(fin)
+
+    return adata, trees
+
+
+def bone_marrow(
+    path: PathLike = "~/.cache/moscot/bone_marrow.h5ad",
+    *,
+    rna: bool,
+    force_download: bool = False,
+    **kwargs: Any,
+) -> AnnData:
+    """Multiome data of bone marrow measurements :cite:`luecken:21`.
+
+    Contains processed counts of 6,224 cells. The RNA data was filtered to 2,000 top
+    highly variable genes, the ATAC data was filtered to 8,000 top highly variable
+    peaks.
+
+    Parameters
+    ----------
+    path
+        Path where to save the file.
+    rna
+        Return the RNA data if `True`, otherwise return ATAC data.
+    force_download
+        Whether to force-download the data.
+    kwargs
+        Keyword arguments for :func:`scanpy.read`.
+
+    Returns
+    -------
+    Annotated data object.
+    """
+    path, _ = os.path.splitext(path)
+    if rna:
+        return _load_dataset_from_url(
+            path + "_rna.h5ad",
+            backup_url="https://figshare.com/ndownloader/files/40195114",
+            expected_shape=(6224, 2000),
+            force_download=force_download,
+            **kwargs,
+        )
+    return _load_dataset_from_url(
+        path + "_atac.h5ad",
+        backup_url="https://figshare.com/ndownloader/files/41013551",
+        expected_shape=(6224, 8000),
+        force_download=force_download,
         **kwargs,
     )
 
 
 def tedsim(
     path: PathLike = "~/.cache/moscot/tedsim.h5ad",
+    force_download: bool = False,
     **kwargs: Any,
 ) -> AnnData:  # pragma: no cover
     """Dataset simulated with TedSim :cite:`pan:22`.
 
-    The data was simulated with asymmetric division rate of `0.2` and intermediate state step size of `0.2` and contains
-    the following fields:
+    Simulated scRNA-seq dataset of a differentiation trajectory. For each cell, the dataset includes a (raw counts)
+    gene expression vector as well as a lineage barcodes. The data was simulated with asymmetric division rate of
+    :math:`0.2`, intermediate state step size of :math:`0.2` and contains the following fields:
 
-    - :attr:`anndata.AnnData.obsm` ``['barcodes']``: barcodes.
-    - :attr:`anndata.AnnData.obsp` ``['barcodes_cost']``: pre-computed barcode distances.
-    - :attr:`anndata.AnnData.uns` ``['tree']``: lineage tree in the Newick format.
+    - :attr:`obsm['barcodes'] <anndata.AnnData.obsm>` - barcodes.
+    - :attr:`obsp['cost_matrices'] <anndata.AnnData.obsp>` - precomputed lineage cost matrices.
+    - :attr:`uns['tree'] <anndata.AnnData.uns>` - lineage tree in the
+      `Newick format <https://en.wikipedia.org/wiki/Newick_format>`_.
+    - :attr:`uns['couplings' ] <anndata.AnnData.uns>` - coupling matrix based on the ground-truth lineage tree.
 
     Parameters
     ----------
     path
         Path where to save the file.
+    force_download
+        Whether to force-download the data.
     kwargs
         Keyword arguments for :func:`scanpy.read`.
 
@@ -136,12 +299,17 @@ def tedsim(
     Annotated data object.
     """
     return _load_dataset_from_url(
-        path, backup_url="https://figshare.com/ndownloader/files/38031258", expected_shape=(16382, 500), **kwargs
+        path,
+        backup_url="https://figshare.com/ndownloader/files/40178644",
+        expected_shape=(8448, 500),
+        force_download=force_download,
+        **kwargs,
     )
 
 
 def sim_align(
     path: PathLike = "~/.cache/moscot/sim_align.h5ad",
+    force_download: bool = False,
     **kwargs: Any,
 ) -> AnnData:  # pragma: no cover
     """Spatial transcriptomics simulated dataset as described in :cite:`Jones-spatial:22`.
@@ -150,6 +318,8 @@ def sim_align(
     ----------
     path
         Location where the file is saved to.
+    force_download
+        Whether to force-download the data.
     kwargs
         Keyword arguments for :func:`scanpy.read`.
 
@@ -158,7 +328,11 @@ def sim_align(
     Annotated data object.
     """
     return _load_dataset_from_url(
-        path, backup_url="https://figshare.com/ndownloader/files/37984926", expected_shape=(1200, 500), **kwargs
+        path,
+        backup_url="https://figshare.com/ndownloader/files/37984926",
+        expected_shape=(1200, 500),
+        force_download=force_download,
+        **kwargs,
     )
 
 
@@ -167,7 +341,7 @@ def simulate_data(
     cells_per_distribution: int = 20,
     n_genes: int = 60,
     key: Literal["day", "batch"] = "batch",
-    var: float = 1,
+    var: float = 1.0,
     obs_to_add: Mapping[str, Any] = MappingProxyType({"celltype": 3}),
     marginals: Optional[Tuple[str, str]] = None,
     seed: int = 0,
@@ -176,8 +350,7 @@ def simulate_data(
     quad_cost_matrix: Optional[str] = None,
     **kwargs: Any,
 ) -> AnnData:
-    """
-    Simulate data.
+    """Simulate data.
 
     This function is used to generate data, mainly for the purpose of
     demonstrating certain functionalities of :mod:`moscot`.
@@ -222,16 +395,12 @@ def simulate_data(
                 cov=kwargs.pop("cov", var * np.diag(np.ones(n_genes))),
                 size=cells_per_distribution,
             ),
-            dtype=float,
         )
         for _ in range(n_distributions)
     ]
-    # remove once new `anndata` is release
-    with warnings.catch_warnings():
-        warnings.simplefilter("ignore", category=FutureWarning)
-        adata = adatas[0].concatenate(*adatas[1:], batch_key=key)
+    adata = ad.concat(adatas, label=key, index_unique="-")
     if key == "day":
-        adata.obs["day"] = pd.to_numeric(adata.obs["day"])
+        adata.obs["day"] = pd.to_numeric(adata.obs["day"]).astype("category")
     for k, val in obs_to_add.items():
         adata.obs[k] = rng.choice(range(val), len(adata))
     if marginals:
@@ -267,16 +436,25 @@ def _load_dataset_from_url(
     *,
     backup_url: str,
     expected_shape: Tuple[int, int],
+    force_download: bool = False,
     sparse: bool = True,
     cache: bool = True,
     **kwargs: Any,
 ) -> AnnData:
-    fpath = str(fpath)
+    fpath = os.path.expanduser(fpath)
     if not fpath.endswith(".h5ad"):
         fpath += ".h5ad"
-    fpath = os.path.expanduser(fpath)
 
-    adata = read(filename=fpath, backup_url=backup_url, sparse=sparse, cache=cache, **kwargs)
+    if force_download:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tmp = pathlib.Path(tmpdir) / "data.h5ad"
+            adata = read(filename=tmp, backup_url=backup_url, sparse=sparse, cache=cache, **kwargs)
+            with contextlib.suppress(FileNotFoundError):
+                os.remove(fpath)
+            shutil.move(tmp, fpath)
+    else:
+        adata = read(filename=fpath, backup_url=backup_url, sparse=sparse, cache=cache, **kwargs)
+
     if adata.shape != expected_shape:
         raise ValueError(f"Expected `AnnData` object to have shape `{expected_shape}`, found `{adata.shape}`.")
 

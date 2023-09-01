@@ -4,6 +4,17 @@ import pytest
 
 import numpy as np
 import pandas as pd
+from ott.geometry import epsilon_scheduler
+from ott.geometry.costs import (
+    Cosine,
+    ElasticL1,
+    ElasticSTVS,
+    Euclidean,
+    PNormP,
+    SqEuclidean,
+    SqPNorm,
+)
+from ott.solvers.linear import acceleration
 
 from anndata import AnnData
 
@@ -24,24 +35,22 @@ from tests.problems.conftest import (
 
 class TestSinkhornProblem:
     @pytest.mark.fast()
-    def test_prepare(self, adata_time: AnnData):
-        expected_keys = [(0, 1), (1, 2)]
+    @pytest.mark.parametrize("policy", ["sequential", "star"])
+    def test_prepare(self, adata_time: AnnData, policy):
+        expected_keys = {"sequential": [(0, 1), (1, 2)], "star": [(1, 0), (2, 0)]}
         problem = SinkhornProblem(adata=adata_time)
 
         assert len(problem) == 0
         assert problem.problems == {}
         assert problem.solutions == {}
 
-        problem = problem.prepare(
-            key="time",
-            policy="sequential",
-        )
+        problem = problem.prepare(key="time", policy=policy, reference=0)
 
         assert isinstance(problem.problems, dict)
-        assert len(problem.problems) == len(expected_keys)
+        assert len(problem.problems) == len(expected_keys[policy])
 
         for key in problem:
-            assert key in expected_keys
+            assert key in expected_keys[policy]
             assert isinstance(problem[key], OTProblem)
 
     def test_solve_balanced(self, adata_time: AnnData):
@@ -55,7 +64,31 @@ class TestSinkhornProblem:
             assert isinstance(subsol, BaseSolverOutput)
             assert key in expected_keys
 
-    @pytest.mark.parametrize("method", ["fischer", "perm_test"])
+    @pytest.mark.fast()
+    @pytest.mark.parametrize(
+        ("cost_str", "cost_inst", "cost_kwargs"),
+        [
+            ("sq_euclidean", SqEuclidean, {}),
+            ("euclidean", Euclidean, {}),
+            ("cosine", Cosine, {}),
+            ("pnorm_p", PNormP, {"p": 3}),
+            ("sq_pnorm", SqPNorm, {"p": 3}),
+            ("elastic_l1", ElasticL1, {"scaling_reg": 1.1}),
+            ("elastic_stvs", ElasticSTVS, {"scaling_reg": 1.2}),
+        ],
+    )
+    def test_prepare_costs(self, adata_time: AnnData, cost_str: str, cost_inst: Any, cost_kwargs: Mapping[str, int]):
+        problem = SinkhornProblem(adata=adata_time)
+        problem = problem.prepare(
+            key="time", policy="sequential", joint_attr="X_pca", cost=cost_str, cost_kwargs=cost_kwargs
+        )
+        if cost_kwargs:
+            for k, v in cost_kwargs.items():
+                assert getattr(problem[0, 1].xy.cost, k) == v
+
+        problem = problem.solve(max_iterations=2)
+
+    @pytest.mark.parametrize("method", ["fisher", "perm_test"])
     def test_compute_feature_correlation(self, adata_time: AnnData, method: str):
         problem = SinkhornProblem(adata=adata_time)
         problem = problem.prepare(key="time")
@@ -90,9 +123,8 @@ class TestSinkhornProblem:
         assert isinstance(problem[0, 1].xy.data_src, np.ndarray)
         assert problem[0, 1].xy.data_tgt is None
 
-        problem = problem.solve(
-            max_iterations=5, scale_cost=1
-        )  # TODO(@MUCDK) once fixed in OTT-JAX test for scale_cost
+        # TODO(@MUCDK) once fixed in OTT-JAX test for scale_cost
+        problem = problem.solve(max_iterations=5, scale_cost=1)
         assert isinstance(problem[0, 1].xy.data_src, np.ndarray)
         assert problem[0, 1].xy.data_tgt is None
 
@@ -110,27 +142,57 @@ class TestSinkhornProblem:
         solver = problem[(0, 1)].solver.solver
         args = sinkhorn_solver_args if args_to_check["rank"] == -1 else lr_sinkhorn_solver_args
         for arg, val in args.items():
-            assert hasattr(solver, val)
+            assert hasattr(solver, val), val
             el = getattr(solver, val)[0] if isinstance(getattr(solver, val), tuple) else getattr(solver, val)
-            assert el == args_to_check[arg]
+            assert el == args_to_check[arg], arg
 
         lin_prob = problem[(0, 1)]._solver._problem
         for arg, val in lin_prob_args.items():
-            assert hasattr(lin_prob, val)
+            assert hasattr(lin_prob, val), val
             el = getattr(lin_prob, val)[0] if isinstance(getattr(lin_prob, val), tuple) else getattr(lin_prob, val)
-            assert el == args_to_check[arg]
+            assert el == args_to_check[arg], arg
 
         geom = lin_prob.geom
         for arg, val in geometry_args.items():
             assert hasattr(geom, val)
             el = getattr(geom, val)[0] if isinstance(getattr(geom, val), tuple) else getattr(geom, val)
-            assert el == args_to_check[arg]
+            if arg == "epsilon":
+                eps_processed = getattr(geom, val)
+                assert isinstance(eps_processed, epsilon_scheduler.Epsilon)
+                assert eps_processed.target == args_to_check[arg], arg
+            else:
+                assert getattr(geom, val) == args_to_check[arg], arg
+                assert el == args_to_check[arg]
 
         args = pointcloud_args if args_to_check["rank"] == -1 else lr_pointcloud_args
         for arg, val in args.items():
             el = getattr(geom, val)[0] if isinstance(getattr(geom, val), tuple) else getattr(geom, val)
-            assert hasattr(geom, val)
+            assert hasattr(geom, val), val
             if arg == "cost":
-                assert type(el) == type(args_to_check[arg])  # noqa: E721
+                assert type(el) == type(args_to_check[arg]), arg  # noqa: E721
             else:
-                assert el == args_to_check[arg]
+                assert el == args_to_check[arg], arg
+
+    @pytest.mark.parametrize(("memory", "refresh"), [(1, 1), (5, 3), (7, 5)])
+    @pytest.mark.parametrize("recenter", [True, False])
+    def test_passing_ott_kwargs(self, adata_time: AnnData, memory: int, refresh: int, recenter: bool):
+        problem = SinkhornProblem(adata=adata_time)
+        problem = problem.prepare(
+            key="time",
+            policy="sequential",
+        )
+
+        problem = problem.solve(
+            inner_iterations=1,
+            max_iterations=1,
+            anderson=acceleration.AndersonAcceleration(memory=memory, refresh_every=refresh),
+            recenter_potentials=recenter,
+        )
+
+        anderson = problem[0, 1].solver.solver.anderson
+        assert isinstance(anderson, acceleration.AndersonAcceleration)
+        assert anderson.memory == memory
+        assert anderson.refresh_every == refresh
+
+        recenter_potentials = problem[0, 1].solver.solver.recenter_potentials
+        assert recenter_potentials == recenter

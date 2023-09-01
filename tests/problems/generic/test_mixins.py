@@ -25,7 +25,7 @@ class TestBaseAnalysisMixin:
         source_dim = len(gt_temporal_adata[gt_temporal_adata.obs["day"] == 10])
         target_dim = len(gt_temporal_adata[gt_temporal_adata.obs["day"] == 10.5])
         problem = CompoundProblemWithMixin(gt_temporal_adata)
-        problem = problem.prepare("day", subset=[(10, 10.5)], policy="sequential", xy_callback="local-pca")
+        problem = problem.prepare(key="day", subset=[(10, 10.5)], policy="sequential", xy_callback="local-pca")
         problem[10, 10.5]._solution = MockSolverOutput(gt_temporal_adata.uns["tmap_10_105"])
 
         if interpolation_parameter is not None and not 0 <= interpolation_parameter <= 1:
@@ -71,7 +71,7 @@ class TestBaseAnalysisMixin:
     def test_interpolate_transport(self, gt_temporal_adata: AnnData, forward: bool, scale_by_marginals: bool):
         problem = CompoundProblemWithMixin(gt_temporal_adata)
         problem = problem.prepare(
-            "day", subset=[(10, 10.5), (10.5, 11), (10, 11)], policy="explicit", xy_callback="local-pca"
+            key="day", subset=[(10, 10.5), (10.5, 11), (10, 11)], policy="explicit", xy_callback="local-pca"
         )
         problem[(10.0, 10.5)]._solution = MockSolverOutput(gt_temporal_adata.uns["tmap_10_105"])
         problem[(10.5, 11.0)]._solution = MockSolverOutput(gt_temporal_adata.uns["tmap_105_11"])
@@ -90,7 +90,7 @@ class TestBaseAnalysisMixin:
         key_2 = config["key_2"]
         config["key_3"]
         problem = CompoundProblemWithMixin(gt_temporal_adata)
-        problem = problem.prepare("day", subset=[(10, 10.5)], policy="explicit", xy_callback="local-pca")
+        problem = problem.prepare(key="day", subset=[(10, 10.5)], policy="explicit", xy_callback="local-pca")
         assert set(problem.problems.keys()) == {(key_1, key_2)}
         problem[key_1, key_2]._solution = MockSolverOutput(gt_temporal_adata.uns["tmap_10_105"])
 
@@ -98,7 +98,7 @@ class TestBaseAnalysisMixin:
             key="day",
             source=10,
             target=10.5,
-            source_groups="cell_type",
+            source_groups=None,
             target_groups="cell_type",
             forward=True,
             aggregation_mode="cell",
@@ -131,7 +131,7 @@ class TestBaseAnalysisMixin:
         key_1 = config["key_1"]
         key_2 = config["key_2"]
         problem = CompoundProblemWithMixin(gt_temporal_adata)
-        problem = problem.prepare("day", subset=[(10, 10.5)], policy="explicit", xy_callback="local-pca")
+        problem = problem.prepare(key="day", subset=[(10, 10.5)], policy="explicit", xy_callback="local-pca")
         assert set(problem.problems.keys()) == {(key_1, key_2)}
         problem[key_1, key_2]._solution = MockSolverOutput(gt_temporal_adata.uns["tmap_10_105"])
 
@@ -140,7 +140,7 @@ class TestBaseAnalysisMixin:
             source=10,
             target=10.5,
             source_groups="cell_type",
-            target_groups="cell_type",
+            target_groups=None,
             forward=False,
             aggregation_mode="cell",
         )
@@ -166,12 +166,12 @@ class TestBaseAnalysisMixin:
         )
 
     @pytest.mark.parametrize("corr_method", ["pearson", "spearman"])
-    @pytest.mark.parametrize("significance_method", ["fischer", "perm_test"])
+    @pytest.mark.parametrize("significance_method", ["fisher", "perm_test"])
     def test_compute_feature_correlation(
         self,
         adata_time: AnnData,
         corr_method: Literal["pearson", "spearman"],
-        significance_method: Literal["fischer", "perm_test"],
+        significance_method: Literal["fisher", "perm_test"],
     ):
         key_added = "test"
         rng = np.random.RandomState(42)
@@ -181,7 +181,7 @@ class TestBaseAnalysisMixin:
         tmap = rng.uniform(1e-6, 1, size=(n0, n1))
         tmap /= tmap.sum().sum()
         problem = CompoundProblemWithMixin(adata_time)
-        problem = problem.prepare("time", xy_callback="local-pca")
+        problem = problem.prepare(key="time", xy_callback="local-pca", policy="sequential")
         problem[0, 1]._solution = MockSolverOutput(tmap)
 
         adata_time.obs[key_added] = np.hstack((np.zeros(n0), problem.pull(source=0, target=1).squeeze()))
@@ -201,13 +201,13 @@ class TestBaseAnalysisMixin:
 
     @pytest.mark.parametrize("corr_method", ["pearson", "spearman"])
     @pytest.mark.parametrize("features", [10, None])
-    @pytest.mark.parametrize("method", ["fischer", "perm_test"])
+    @pytest.mark.parametrize("method", ["fisher", "perm_test"])
     def test_compute_feature_correlation_subset(
         self,
         adata_time: AnnData,
         features: Optional[int],
         corr_method: Literal["pearson", "spearman"],
-        method: Literal["fischer", "perm_test"],
+        method: Literal["fisher", "perm_test"],
     ):
         key_added = "test"
         rng = np.random.RandomState(42)
@@ -217,7 +217,7 @@ class TestBaseAnalysisMixin:
         tmap = rng.uniform(1e-6, 1, size=(n0, n1))
         tmap /= tmap.sum().sum()
         problem = CompoundProblemWithMixin(adata_time)
-        problem = problem.prepare("time", xy_callback="local-pca")
+        problem = problem.prepare(key="time", xy_callback="local-pca", policy="sequential")
         problem[0, 1]._solution = MockSolverOutput(tmap)
 
         adata_time.obs[key_added] = np.hstack((np.zeros(n0), problem.pull(source=0, target=1).squeeze()))
@@ -260,7 +260,7 @@ class TestBaseAnalysisMixin:
         tmap = rng.uniform(1e-6, 1, size=(n0, n1))
         tmap /= tmap.sum().sum()
         problem = CompoundProblemWithMixin(adata_time)
-        problem = problem.prepare("time", xy_callback="local-pca")
+        problem = problem.prepare(key="time", xy_callback="local-pca", policy="sequential")
         problem[0, 1]._solution = MockSolverOutput(tmap)
 
         adata_time.obs[key_added] = np.hstack((np.zeros(n0), problem.pull(source=0, target=1).squeeze()))
@@ -287,7 +287,7 @@ class TestBaseAnalysisMixin:
         tmap = rng.uniform(1e-6, 1, size=(n0, n1))
         tmap /= tmap.sum().sum()
         problem = CompoundProblemWithMixin(adata_time)
-        problem = problem.prepare("time", xy_callback="local-pca")
+        problem = problem.prepare(key="time", xy_callback="local-pca", policy="sequential")
         problem[0, 1]._solution = MockSolverOutput(tmap)
 
         adata_time.obs[key_added] = np.hstack((np.zeros(n0), problem.pull(source=0, target=1).squeeze()))
@@ -318,7 +318,7 @@ class TestBaseAnalysisMixin:
         tmap = rng.uniform(1e-6, 1, size=(n0, n1))
         tmap /= tmap.sum().sum()
         problem = CompoundProblemWithMixin(adata_time)
-        problem = problem.prepare("time", xy_callback="local-pca")
+        problem = problem.prepare(key="time", xy_callback="local-pca", policy="sequential")
         problem[0, 1]._solution = MockSolverOutput(tmap)
 
         adata_time.obs[key_added] = np.hstack((np.zeros(n0), problem.pull(source=0, target=1).squeeze()))
@@ -345,7 +345,7 @@ class TestBaseAnalysisMixin:
         tmap = rng.uniform(1e-6, 1, size=(n0, n1))
         tmap /= tmap.sum().sum()
         problem = CompoundProblemWithMixin(adata_time)
-        problem = problem.prepare("time", xy_callback="local-pca")
+        problem = problem.prepare(key="time", xy_callback="local-pca", policy="sequential")
         problem[0, 1]._solution = MockSolverOutput(tmap)
 
         adata_time.obs[key_added] = np.hstack((np.zeros(n0), problem.pull(source=0, target=1).squeeze()))

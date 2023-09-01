@@ -11,6 +11,7 @@ from scipy.sparse import csr_matrix
 
 import matplotlib.pyplot as plt
 
+import anndata as ad
 import scanpy as sc
 from anndata import AnnData
 
@@ -108,22 +109,23 @@ def xy_cost(xy: Geom_t) -> jnp.ndarray:
 def adata_x(x: Geom_t) -> AnnData:
     rng = np.random.RandomState(43)
     pc = rng.normal(size=(len(x), 4))
-    return AnnData(X=np.asarray(x, dtype=float), obsm={"X_pca": pc}, dtype=float)
+    return AnnData(X=np.asarray(x, dtype=float), obsm={"X_pca": pc})
 
 
 @pytest.fixture()
 def adata_y(y: Geom_t) -> AnnData:
     rng = np.random.RandomState(44)
     pc = rng.normal(size=(len(y), 4))
-    return AnnData(X=np.asarray(y, dtype=float), obsm={"X_pca": pc}, dtype=float)
+    return AnnData(X=np.asarray(y, dtype=float), obsm={"X_pca": pc})
 
 
 @pytest.fixture()
 def adata_time() -> AnnData:
     rng = np.random.RandomState(42)
-    adatas = [AnnData(X=csr_matrix(rng.normal(size=(96, 60))), dtype=float) for _ in range(3)]
-    adata = adatas[0].concatenate(*adatas[1:], batch_key="time")
-    adata.obs["time"] = pd.to_numeric(adata.obs["time"])
+    adatas = [AnnData(X=csr_matrix(rng.normal(size=(96, 60)))) for _ in range(3)]
+    adata = ad.concat(adatas, label="time", index_unique="-")
+
+    adata.obs["time"] = pd.to_numeric(adata.obs["time"]).astype("category")
     adata.obs["batch"] = rng.choice((0, 1, 2), len(adata))
     adata.obs["left_marginals"] = np.ones(len(adata))
     adata.obs["right_marginals"] = np.ones(len(adata))
@@ -154,6 +156,8 @@ def create_marginals(n: int, m: int, *, uniform: bool = False, seed: Optional[in
 @pytest.fixture()
 def gt_temporal_adata() -> AnnData:
     adata = _gt_temporal_adata.copy()
+    # TODO(michalk8): remove both lines once data has been regenerated
+    adata.obs["day"] = pd.to_numeric(adata.obs["day"]).astype("category")
     adata.obs_names_make_unique()
     return adata
 
@@ -168,10 +172,9 @@ def adata_space_rotate() -> AnnData:
         rot = np.array([[cos(theta), -sin(theta)], [sin(theta), cos(theta)]])
         adata.obsm["spatial"] = np.dot(adata.obsm["spatial"], rot)
 
-    adata = adatas[0].concatenate(*adatas[1:], batch_key="batch")
+    adata = ad.concat(adatas, label="batch", index_unique="-")
     adata.obs["celltype"] = rng.choice(["A", "B", "C"], size=len(adata))
     adata.uns["spatial"] = {}
-    adata.obs_names_make_unique()
     sc.pp.pca(adata)
     return adata
 
@@ -181,7 +184,26 @@ def adata_mapping() -> AnnData:
     grid = _make_grid(10)
     adataref, adata1, adata2 = _make_adata(grid, n=3, seed=17)
     sc.pp.pca(adataref, n_comps=30)
+    return ad.concat([adataref, adata1, adata2], label="batch", join="outer", index_unique="-")
 
-    adata = adataref.concatenate(adata1, adata2, batch_key="batch", join="outer")
-    adata.obs_names_make_unique()
+
+@pytest.fixture()
+def adata_translation() -> AnnData:
+    rng = np.random.RandomState(31)
+    adatas = [AnnData(X=csr_matrix(rng.normal(size=(100, 60)))) for _ in range(3)]
+    adata = ad.concat(adatas, label="batch", index_unique="-")
+    adata.obs["celltype"] = rng.choice(["A", "B", "C"], size=len(adata))
+    adata.obs["celltype"] = adata.obs["celltype"].astype("category")
+    adata.layers["counts"] = adata.X.A
+    sc.pp.pca(adata)
     return adata
+
+
+@pytest.fixture()
+def adata_translation_split(adata_translation) -> Tuple[AnnData, AnnData]:
+    rng = np.random.RandomState(15)
+    adata_src = adata_translation[adata_translation.obs.batch != "0"].copy()
+    adata_tgt = adata_translation[adata_translation.obs.batch == "0"].copy()
+    adata_src.obsm["emb_src"] = rng.normal(size=(adata_src.shape[0], 5))
+    adata_tgt.obsm["emb_tgt"] = rng.normal(size=(adata_tgt.shape[0], 15))
+    return adata_src, adata_tgt

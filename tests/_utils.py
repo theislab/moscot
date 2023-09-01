@@ -49,7 +49,7 @@ class MockSolverOutput(MatrixSolverOutput):
 def _make_adata(grid: ArrayLike, n: int, seed) -> List[AnnData]:
     rng = np.random.RandomState(seed)
     X = rng.normal(size=(100, 60))
-    return [AnnData(X=csr_matrix(X), obsm={"spatial": grid.copy()}, dtype=X.dtype) for _ in range(n)]
+    return [AnnData(X=csr_matrix(X), obsm={"spatial": grid.copy()}) for _ in range(n)]
 
 
 def _adata_spatial_split(adata: AnnData) -> Tuple[AnnData, AnnData]:

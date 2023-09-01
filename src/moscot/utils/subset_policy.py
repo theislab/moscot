@@ -25,6 +25,7 @@ import pandas as pd
 from anndata import AnnData
 
 from moscot import _constants
+from moscot._logging import logger
 from moscot._types import ArrayLike, Policy_t
 
 __all__ = [
@@ -51,7 +52,21 @@ class FormatterMixin(abc.ABC):
 
 
 class SubsetPolicy(Generic[K], abc.ABC):
-    """Policy class."""
+    r"""Base policy class.
+
+    Parameters
+    ----------
+    adata
+        Annotated data object or a categorical data.
+    key
+        Key in :attr:`~anndata.AnnData.obs` where the categorical data is stored.
+    verify_integrity
+        Whether to check that the data has :math:`\ge 2` categories.
+
+    Examples
+    --------
+    - See :doc:`../notebooks/examples/problems/400_subset_policy` on how to use different policies.
+    """
 
     def __init__(
         self,
@@ -73,7 +88,29 @@ class SubsetPolicy(Generic[K], abc.ABC):
 
     @abc.abstractmethod
     def _create_graph(self, **kwargs: Any) -> Set[Tuple[K, K]]:
-        pass
+        """Create a policy graph."""
+
+    @abc.abstractmethod
+    def _plan(self, **kwargs: Any) -> Sequence[Tuple[K, K]]:
+        """Compute a sequence of steps based on the policy graph."""
+
+    def create_graph(self, **kwargs: Any) -> "SubsetPolicy[K]":
+        """Create a policy graph.
+
+        Parameters
+        ----------
+        kwargs
+            Keyword arguments.
+
+        Returns
+        -------
+        Return self.
+        """
+        graph = self._create_graph(**kwargs)
+        if not len(graph):
+            raise ValueError("The policy graph is empty.")
+        self._graph = graph
+        return self
 
     def plan(
         self,
@@ -81,17 +118,22 @@ class SubsetPolicy(Generic[K], abc.ABC):
         explicit_steps: Optional[Sequence[Tuple[K, K]]] = None,
         **kwargs: Any,
     ) -> Sequence[Tuple[K, K]]:
-        """Compute all pairs of distributions belonging to the policy.
+        """Compute a sequence of steps based on the policy graph.
+
+        Useful when calling :meth:`create_masks`.
 
         Parameters
         ----------
-        %(fitler)s
-        %(explicit_steps)s
-        %(kwargs_plan)s
+        filter
+            Steps to exclude. If :obj:`None`, keep all the steps.
+        explicit_steps
+            Precomputed sequence of steps to use.
+        kwargs
+            Additional keyword arguments.
 
         Returns
         -------
-        Sequence containing pairs of distributions.
+        Sequence of steps.
         """
         if explicit_steps is not None:
             G = nx.DiGraph()
@@ -100,8 +142,10 @@ class SubsetPolicy(Generic[K], abc.ABC):
                 raise ValueError(
                     f"Explicitly specified steps `{set(explicit_steps)}` must be a subset of `{self._cat}`."
                 )
-            if not nx.has_path(G, explicit_steps[0][0], explicit_steps[-1][1]):
-                raise ValueError("Explicitly specified steps do not form a connected path.")
+            src = explicit_steps[0][0]
+            tgt = explicit_steps[-1][1]
+            if not nx.has_path(G, src, tgt):
+                raise ValueError(f"Explicitly specified steps do not form a connected path from `{src}` to `{tgt}`.")
             return explicit_steps
         plan = self._plan(**kwargs)
         # TODO(michalk8): ensure unique
@@ -111,23 +155,25 @@ class SubsetPolicy(Generic[K], abc.ABC):
             raise ValueError("Unable to create a plan, no steps were selected after filtering.")
         return plan
 
-    @abc.abstractmethod
-    def _plan(self, **kwargs: Any) -> Sequence[Tuple[K, K]]:
-        pass
-
-    def __call__(self, **kwargs: Any) -> "SubsetPolicy[K]":
-        graph = self._create_graph(**kwargs)
-        if not len(graph):
-            raise ValueError("The policy graph is empty.")
-        self._graph = graph
-        return self
-
     def _filter_plan(
         self, plan: Sequence[Tuple[K, K]], filter: Sequence[Tuple[K, K]]  # noqa: A002
     ) -> Sequence[Tuple[K, K]]:
         return [step for step in plan if step in filter]
 
     def create_mask(self, value: Union[K, Sequence[K]], *, allow_empty: bool = False) -> ArrayLike:
+        """Create a mask used to subset the data.
+
+        Parameters
+        ----------
+        value
+            Values in the data which determine the mask.
+        allow_empty
+            Whether to allow empty mask.
+
+        Returns
+        -------
+        Boolean mask of the same shape as the data.
+        """
         if isinstance(value, str) or not isinstance(value, Iterable):
             mask = self._data == value
         else:
@@ -137,6 +183,17 @@ class SubsetPolicy(Generic[K], abc.ABC):
         return np.asarray(mask)
 
     def create_masks(self, discard_empty: bool = True) -> Dict[Tuple[K, K], Tuple[ArrayLike, ArrayLike]]:
+        """Create masks based on the policy graph.
+
+        Parameters
+        ----------
+        discard_empty
+            Whether to remove empty masks.
+
+        Returns
+        -------
+        Masks for each edge in the policy graph.
+        """
         res = {}
         for a, b in self._graph:
             try:
@@ -153,21 +210,20 @@ class SubsetPolicy(Generic[K], abc.ABC):
 
         return res
 
-    def add_node(self, node: Tuple[K, K], only_existing: bool = False) -> None:
-        """
-        Add a node to the policy.
+    def add_node(self, node: Tuple[K, K], only_existing: bool = False) -> "SubsetPolicy[K]":
+        """Add a node to the policy graph.
 
         Parameters
         ----------
-        %(node)s
-        %(only_existing)s
+        node
+            Node to add.
+        only_existing
+            Whether to allow creating new nodes or only connect existing ones.
 
         Returns
         -------
-        None
+        Remove the ``node``, if present and return self.
         """
-        if self._graph is None:
-            raise RuntimeError("Construct the policy graph first.")
         src, tgt = node
         if src == tgt:
             raise ValueError(f"Unable to add `{src, tgt}` node, self connections are disallowed.")
@@ -177,42 +233,47 @@ class SubsetPolicy(Generic[K], abc.ABC):
                 f"in the policy graph, use `only_existing=False` to override."
             )
         self._graph.add(node)
+        return self
 
-    def remove_node(self, node: Tuple[K, K]) -> None:
-        """
-        Remove a node from the policy graph.
+    def remove_node(self, node: Tuple[K, K]) -> "SubsetPolicy[K]":
+        """Remove a node from the policy graph.
 
         Parameters
         ----------
-        %(node)s
+        node
+            Node to remove.
 
         Returns
         -------
-        None
+        Remove the ``node``, if present and return self.
         """
-        if self._graph is None:
-            raise RuntimeError("Construct the policy graph first.")
         with contextlib.suppress(KeyError):
             self._graph.remove(node)
+        return self
+
+    @property
+    def key(self) -> Optional[str]:
+        """Key in :attr:`~anndata.AnnData.obs` defining the policy."""
+        return self._subset_key
 
 
 class OrderedPolicy(SubsetPolicy[K], abc.ABC):
-    """
-    Policy taking into account the order of nodes.
+    """Base ordered policy.
 
     Parameters
     ----------
-    %(adata_policy)s
-    %(kwargs_policy)s
-
-    Returns
-    -------
-    None
+    adata
+        Annotated data object or an ordered categorical data.
+    kwargs
+        Additional keyword arguments.
     """
 
     def __init__(self, adata: Union[AnnData, pd.Series, pd.Categorical], **kwargs: Any):
         super().__init__(adata, **kwargs)
-        # TODO(michalk8): verify whether they can be ordered (only numeric?) + warn (or just raise)
+        if not self._data.cat.ordered:
+            # TODO(michalk8, MUCDK): not order by default by us?
+            logger.info(f"Ordering {self._data.index} in ascending order.")
+            self._data.sort_values(ascending=True)
 
     def _plan(
         self, forward: bool = True, start: Optional[K] = None, end: Optional[K] = None, **_: Any
@@ -239,13 +300,33 @@ class OrderedPolicy(SubsetPolicy[K], abc.ABC):
 
         return path if forward else path[::-1]
 
+    def reverse(self) -> "OrderedPolicy[K]":
+        """Reverse the policy."""
+        cats = self._data.cat.categories
+        data = self._data.cat.reorder_categories(list(reversed(cats)))
+        return type(self)(data, key=self.key, verify_integrity=False)
+
 
 class SimplePlanPolicy(SubsetPolicy[K], abc.ABC):
+    """Policy whose plan is just the underlying policy graph."""
+
     def _plan(self, **_: Any) -> Sequence[Tuple[K, K]]:
         return list(self._graph)
 
 
 class StarPolicy(SimplePlanPolicy[K]):
+    r"""Policy with a star topology.
+
+    Parameters
+    ----------
+    adata
+        Annotated data object or a categorical data.
+    key
+        Key in :attr:`~anndata.AnnData.obs` where the categorical data is stored.
+    verify_integrity
+        Whether to check that the data has :math:`\ge 2` categories.
+    """
+
     def _create_graph(self, reference: K, **kwargs: Any) -> Set[Tuple[K, K]]:  # type: ignore[override]
         if reference not in self._cat:
             raise ValueError(f"Reference `{reference}` is not in valid nodes: `{self._cat}`.")
@@ -257,31 +338,42 @@ class StarPolicy(SimplePlanPolicy[K]):
         filter = [src[0] if isinstance(src, tuple) else src for src in filter]  # noqa: A001
         return [(src, ref) for src, ref in plan if src in filter]
 
+    def add_node(self, node: Union[K, Tuple[K, K]], only_existing: bool = False) -> "StarPolicy[K]":
+        if not isinstance(node, tuple):
+            node = (node, self.reference)
+        return super().add_node(node, only_existing=only_existing)  # type: ignore[return-value, arg-type]
+
+    def remove_node(self, node: Union[K, Tuple[K, K]]) -> "StarPolicy[K]":
+        if not isinstance(node, tuple):
+            node = (node, self.reference)
+        return super().remove_node(node)  # type: ignore[return-value, arg-type]
+
     @property
     def reference(self) -> K:
+        """Central node."""
         for _, ref in self._graph:
             return ref
         raise ValueError("Graph is empty.")
 
-    def add_node(self, node: Union[K, Tuple[K, K]], only_existing: bool = False) -> None:
-        if not isinstance(node, tuple):
-            node = (node, self.reference)
-        return super().add_node(node, only_existing=only_existing)  # type: ignore[arg-type]
-
-    def remove_node(self, node: Union[K, Tuple[K, K]]) -> None:
-        if not isinstance(node, tuple):
-            node = (node, self.reference)
-        return super().remove_node(node)  # type: ignore[arg-type]
-
 
 class ExternalStarPolicy(FormatterMixin, StarPolicy[K]):
-    """Policy with one central node connected to all other nodes."""
+    """Policy with star topology and external central node.
+
+    Parameters
+    ----------
+    adata
+        Annotated data object.
+    tgt_name
+        Name of the central node.
+    kwargs
+        Additional keyword arguments.
+    """
 
     _SENTINEL = object()
 
-    def __init__(self, adata: Union[AnnData, pd.Series, pd.Categorical], tgt_name: str = "ref", **kwargs: Any):
+    def __init__(self, adata: Union[AnnData, pd.Series, pd.Categorical], tgt_name: K = "ref", **kwargs: Any):
         super().__init__(adata, **kwargs)
-        self._tgt_name: K = tgt_name  # type: ignore [assignment]
+        self._tgt_name = tgt_name
 
     def _format(self, value: K, *, is_source: bool) -> K:
         if is_source:
@@ -296,38 +388,71 @@ class ExternalStarPolicy(FormatterMixin, StarPolicy[K]):
     def _plan(self, **_: Any) -> Sequence[Tuple[K, K]]:
         return [(src, self._format(tgt, is_source=False)) for (src, tgt) in self._graph]
 
-    def add_node(self, node: Union[K, Tuple[K, K]], only_existing: bool = False) -> None:
-        """Add a node to the policy."""
+    def add_node(self, node: Union[K, Tuple[K, K]], only_existing: bool = False) -> "ExternalStarPolicy[K]":
         if isinstance(node, tuple):
             _, tgt = node
+        # TODO(michalk8): tgt can be undefined
         if tgt is self._tgt_name:
-            return None
-        return super().add_node(node, only_existing=only_existing)  # type: ignore[arg-type]
+            return self
+        return super().add_node(node, only_existing=only_existing)  # type: ignore[return-value, arg-type]
 
     def create_masks(self, discard_empty: bool = True) -> Dict[Tuple[K, K], Tuple[ArrayLike, ArrayLike]]:
+        del discard_empty
         return super().create_masks(discard_empty=False)
 
 
 class SequentialPolicy(OrderedPolicy[K]):
-    """Policy connecting subsequent nodes."""
+    """Policy which connects immediate successors.
+
+    Parameters
+    ----------
+    adata
+        Annotated data object.
+    upper
+        Whether to use subsequent nodes instead of the preceding ones.
+    kwargs
+        Additional keyword arguments.
+    """
 
     def _create_graph(self, *_: Any, **__: Any) -> Set[Tuple[K, K]]:
         return set(zip(self._cat[:-1], self._cat[1:]))
 
 
 class TriangularPolicy(OrderedPolicy[K]):
-    """Connect all nodes with all subsequent nodes."""
+    """Policy which connects all preceding/subsequent nodes.
+
+    Parameters
+    ----------
+    adata
+        Annotated data object.
+    upper
+        Whether to use subsequent nodes instead of the preceding ones.
+    kwargs
+        Additional keyword arguments.
+    """
 
     def __init__(self, adata: Union[AnnData, pd.Series, pd.Categorical], upper: bool = True, **kwargs: Any):
         super().__init__(adata, **kwargs)
-        self._compare = operator.lt if upper else operator.gt
+        self._comparator = operator.lt if upper else operator.gt
 
     def _create_graph(self, **__: Any) -> Set[Tuple[K, K]]:
-        return {(a, b) for a, b in itertools.product(self._cat, self._cat) if self._compare(a, b)}
+        return {(a, b) for a, b in itertools.product(self._cat, self._cat) if self._comparator(a, b)}
 
 
 class ExplicitPolicy(SimplePlanPolicy[K]):
-    """A policy specified by the user."""
+    r"""Explicitly specified policy.
+
+    The policy graph is passed directly in :meth:`create_graph`.
+
+    Parameters
+    ----------
+    adata
+        Annotated data object or a categorical data.
+    key
+        Key in :attr:`~anndata.AnnData.obs` where the categorical data is stored.
+    verify_integrity
+        Whether to check that the data has :math:`\ge 2` categories.
+    """
 
     def _create_graph(self, subset: Sequence[Tuple[K, K]], **_: Any) -> Set[Tuple[K, K]]:  # type: ignore[override]
         if subset is None:
@@ -336,7 +461,19 @@ class ExplicitPolicy(SimplePlanPolicy[K]):
 
 
 class DummyPolicy(FormatterMixin, SubsetPolicy[str]):
-    """Policy to handle sentinel values."""
+    """Policy TODO.
+
+    Parameters
+    ----------
+    adata
+        Annotated data object or a categorical data.
+    src_name
+        TODO.
+    tgt_name
+        TODO.
+    kwargs
+        Additional keyword arguments.
+    """
 
     _SENTINEL = object()
 
@@ -377,10 +514,12 @@ def create_policy(
 
     Parameters
     ----------
-    %(policy_kind)s
-    %(adata)s
+    kind
+        What policy to create.
+    adata
+        Annotated data object.
     kwargs
-        Keyword arguments for a :class:`~moscot.utils.subset_policy.SubsetPolicy`.
+        Additional keyword arguments.
 
     Returns
     -------
@@ -388,7 +527,7 @@ def create_policy(
 
     Notes
     -----
-    TODO: link policy example.
+    - See :doc:`../notebooks/examples/problems/400_subset_policy` on how to use different policies.
     """
     if kind == _constants.SEQUENTIAL:
         return SequentialPolicy(adata, **kwargs)
@@ -403,4 +542,4 @@ def create_policy(
     if kind == _constants.EXPLICIT:
         return ExplicitPolicy(adata, **kwargs)
 
-    raise NotImplementedError(kind)
+    raise NotImplementedError(f"Policy `{kind}` is not yet implemented.")

@@ -1,7 +1,8 @@
 import collections
 import contextlib
 import copy
-from types import MappingProxyType
+import pathlib
+import types
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -210,8 +211,8 @@ def _heatmap(
     fontsize: float = 7.0,
     figsize: Optional[Tuple[float, float]] = None,
     dpi: Optional[int] = None,
-    save: Optional[str] = None,
-    cbar_kwargs: Mapping[str, Any] = MappingProxyType({}),
+    save: Optional[Union[str, pathlib.Path]] = None,
+    cbar_kwargs: Mapping[str, Any] = types.MappingProxyType({}),
     ax: Optional[mpl.axes.Axes] = None,
     **kwargs: Any,
 ) -> plt.Figure:
@@ -395,21 +396,23 @@ def _plot_temporal(
     dpi: Optional[int] = None,
     dot_scale_factor: float = 2.0,
     na_color: str = "#e8ebe9",
-    save: Optional[str] = None,
+    save: Optional[Union[str, pathlib.Path]] = None,
     ax: Optional[mpl.axes.Axes] = None,
-    show: bool = False,
     suptitle_fontsize: Optional[float] = None,
     **kwargs: Any,
-) -> plt.Figure:
+) -> Optional[plt.Figure]:
     if time_points is not None:
         time_points = sorted(time_points)
     if cont_cmap is None or isinstance(cont_cmap, str):
         cont_cmap = plt.get_cmap(cont_cmap)
 
-    fig, axs = plt.subplots(
-        1, 1 if time_points is None else len(time_points), figsize=figsize, dpi=dpi, constrained_layout=True
-    )
-    axs = np.ravel(axs)  # make into iterable
+    if ax is None:
+        fig, ax = plt.subplots(
+            1, 1 if time_points is None else len(time_points), figsize=figsize, dpi=dpi, constrained_layout=True
+        )
+    else:
+        fig = None
+    axs = np.ravel([ax])  # make into iterable
 
     if not push and time_points is not None:
         time_points = time_points[::-1]
@@ -489,13 +492,18 @@ def _plot_temporal(
                 title=titles[i],
                 size=size,
                 ax=ax,
-                show=show,
+                show=False,
+                return_fig=False,
                 **kwargs,
             )
     if suptitle is not None:
+        if fig is None:
+            raise Warning("Cannot set `suptitle` of figure when `ax` is not `None`.")
         fig.suptitle(suptitle, fontsize=suptitle_fontsize)
     if save:
-        fig.figure.savefig(save, bbox_inches="tight")
+        if fig is None:
+            raise ValueError("Figure cannot be saved when `ax` is not `None`.")
+        fig.savefig(save, bbox_inches="tight")
     return fig
 
 

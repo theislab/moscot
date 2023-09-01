@@ -4,9 +4,11 @@ from typing import Any, List, Literal, Mapping, Optional
 import pytest
 
 import numpy as np
+from ott.geometry import epsilon_scheduler
 
 from anndata import AnnData
 
+from moscot.backends.ott._utils import alpha_to_fused_penalty
 from moscot.problems.space import MappingProblem
 from tests._utils import _adata_spatial_split
 from tests.problems.conftest import (
@@ -28,7 +30,14 @@ class TestMappingProblem:
     @pytest.mark.fast()
     @pytest.mark.parametrize("sc_attr", [{"attr": "X"}, {"attr": "obsm", "key": "X_pca"}])
     @pytest.mark.parametrize("joint_attr", [None, "X_pca", {"attr": "obsm", "key": "X_pca"}])
-    def test_prepare(self, adata_mapping: AnnData, sc_attr: Mapping[str, str], joint_attr: Optional[Mapping[str, str]]):
+    @pytest.mark.parametrize("normalize_spatial", [True, False])
+    def test_prepare(
+        self,
+        adata_mapping: AnnData,
+        sc_attr: Mapping[str, str],
+        joint_attr: Optional[Mapping[str, str]],
+        normalize_spatial: bool,
+    ):
         adataref, adatasp = _adata_spatial_split(adata_mapping)
         expected_keys = {(i, "ref") for i in adatasp.obs.batch.cat.categories}
         n_obs = adataref.shape[0]
@@ -39,7 +48,12 @@ class TestMappingProblem:
         assert mp.problems == {}
         assert mp.solutions == {}
 
-        mp = mp.prepare(batch_key="batch", sc_attr=sc_attr, joint_attr=joint_attr)
+        mp = mp.prepare(batch_key="batch", sc_attr=sc_attr, joint_attr=joint_attr, normalize_spatial=normalize_spatial)
+        if normalize_spatial:
+            np.testing.assert_allclose(mp[("1", "ref")].x.data_src.std(), mp[("2", "ref")].x.data_src.std(), atol=1e-15)
+            np.testing.assert_allclose(mp[("1", "ref")].x.data_src.std(), 1.0, atol=1e-15)
+            np.testing.assert_allclose(mp[("1", "ref")].x.data_src.mean(), 0, atol=1e-15)
+            np.testing.assert_allclose(mp[("2", "ref")].x.data_src.mean(), 0, atol=1e-15)
 
         assert len(mp) == len(expected_keys)
         for prob_key in expected_keys:
@@ -116,8 +130,6 @@ class TestMappingProblem:
         adataref, adatasp = _adata_spatial_split(adata_mapping)
         problem = MappingProblem(adataref, adatasp)
 
-        adatasp = adatasp[adatasp.obs["batch"] == 1]
-
         key = ("1", "ref")
         problem = problem.prepare(batch_key="batch", sc_attr={"attr": "obsm", "key": "X_pca"})
         problem = problem.solve(**args_to_check)
@@ -136,20 +148,26 @@ class TestMappingProblem:
                 if isinstance(getattr(sinkhorn_solver, val), tuple)
                 else getattr(sinkhorn_solver, val)
             )
-            args_to_c = args_to_check if arg in ["gamma", "gamma_rescale"] else args_to_check["linear_solver_kwargs"]
-            assert el == args_to_c[arg]
+            assert el == args_to_check["linear_solver_kwargs"][arg], arg
 
         quad_prob = problem[key]._solver._problem
         for arg, val in quad_prob_args.items():
             assert hasattr(quad_prob, val)
             assert getattr(quad_prob, val) == args_to_check[arg]
         assert hasattr(quad_prob, "fused_penalty")
-        assert quad_prob.fused_penalty == problem[key]._solver._alpha_to_fused_penalty(args_to_check["alpha"])
+        assert quad_prob.fused_penalty == alpha_to_fused_penalty(args_to_check["alpha"])
 
         geom = quad_prob.geom_xx
         for arg, val in geometry_args.items():
             assert hasattr(geom, val)
-            assert getattr(geom, val) == args_to_check[arg]
+            el = getattr(geom, val)[0] if isinstance(getattr(geom, val), tuple) else getattr(geom, val)
+            if arg == "epsilon":
+                eps_processed = getattr(geom, val)
+                assert isinstance(eps_processed, epsilon_scheduler.Epsilon)
+                assert eps_processed.target == args_to_check[arg], arg
+            else:
+                assert getattr(geom, val) == args_to_check[arg], arg
+                assert el == args_to_check[arg]
 
         geom = quad_prob.geom_xy
         for arg, val in pointcloud_args.items():

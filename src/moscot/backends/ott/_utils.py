@@ -10,6 +10,7 @@ import jax.numpy as jnp
 import jax.tree_util as jtu
 from ott.geometry import costs
 from ott.geometry.pointcloud import PointCloud
+from ott.geometry import epsilon_scheduler
 from ott.problems.linear.potentials import DualPotentials
 from ott.tools.sinkhorn_divergence import sinkhorn_divergence
 from ott.solvers.linear import sinkhorn
@@ -25,15 +26,17 @@ if TYPE_CHECKING:
     from ott.geometry import costs
 
 
-__all__ = ["ConditionalDualPotentials"]
+__all__ = ["ConditionalDualPotentials", "sinkhorn_divergence"]
 
 
-def _compute_sinkhorn_divergence(
+
+
+def sinkhorn_divergence(
     point_cloud_1: ArrayLike,
     point_cloud_2: ArrayLike,
     a: Optional[ArrayLike] = None,
     b: Optional[ArrayLike] = None,
-    epsilon: Optional[float] = 1e-1,
+    epsilon: Union[float, epsilon_scheduler.Epsilon] = 1e-1,
     tau_a: float = 1.0,
     tau_b: float = 1.0,
     scale_cost: ScaleCost_t = 1.0,
@@ -317,3 +320,41 @@ def _compute_metrics_sinkhorn(
         "sinkhorn_loss_inverse": jnp.abs(sinkhorn_loss_inverse),
         "sinkhorn_loss_data": jnp.abs(sinkhorn_loss_data),
     }
+def check_shapes(geom_x: geometry.Geometry, geom_y: geometry.Geometry, geom_xy: geometry.Geometry) -> None:
+    n, m = geom_xy.shape
+    n_, m_ = geom_x.shape[0], geom_y.shape[0]
+    if n != n_:
+        raise ValueError(f"Expected the first geometry to have `{n}` points, found `{n_}`.")
+    if m != m_:
+        raise ValueError(f"Expected the second geometry to have `{m}` points, found `{m_}`.")
+
+
+def alpha_to_fused_penalty(alpha: float) -> float:
+    """Convert."""
+    if not (0 < alpha <= 1):
+        raise ValueError(f"Expected `alpha` to be in interval `(0, 1]`, found `{alpha}`.")
+    return (1 - alpha) / alpha
+
+
+def ensure_2d(arr: ArrayLike, *, reshape: bool = False) -> jax.Array:
+    """Ensure that an array is 2-dimensional.
+
+    Parameters
+    ----------
+    arr
+        Array to check.
+    reshape
+        Allow reshaping 1-dimensional array to ``[n, 1]``.
+
+    Returns
+    -------
+    2-dimensional :mod:`jax` array.
+    """
+    if sp.issparse(arr):
+        arr = arr.A  # type: ignore[attr-defined]
+    arr = jnp.asarray(arr)
+    if reshape and arr.ndim == 1:
+        return jnp.reshape(arr, (-1, 1))
+    if arr.ndim != 2:
+        raise ValueError(f"Expected array to have 2 dimensions, found `{arr.ndim}`.")
+    return arr
