@@ -1,10 +1,10 @@
 import pytest
+from optax import adagrad
 
 import jax.numpy as jnp
 import numpy as np
 
 import anndata as ad
-from optax import adagrad
 
 from moscot.backends.ott._icnn import ICNN
 from moscot.base.output import BaseSolverOutput

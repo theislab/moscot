@@ -1,39 +1,35 @@
 import sys
-
-from tqdm import trange
-from typing import Mapping, Any, Dict, List, Tuple, Literal, Callable, Union
-from types import MappingProxyType
 from collections import defaultdict
+from types import MappingProxyType
+from typing import Any, Callable, Dict, List, Literal, Mapping, Tuple, Union
 
-from ott.geometry import pointcloud
-from ott.solvers.nn.models import MLP, ModelBase
-from ott.problems.linear import linear_problem
-from ott.solvers.linear import sinkhorn, acceleration
+import optax
+from flax.core.scope import FrozenDict
+from flax.training.early_stopping import EarlyStopping
+from flax.training.train_state import TrainState
+from tqdm import trange
+
+import jax
+import jax.nn as nn
+import jax.numpy as jnp
+import numpy as np
 from ott.geometry import costs
 from ott.geometry.pointcloud import PointCloud
+from ott.problems.linear import linear_problem
+from ott.solvers.linear import acceleration, sinkhorn
+from ott.solvers.nn.models import MLP, ModelBase
 from ott.tools.sinkhorn_divergence import sinkhorn_divergence
 
-from moscot._types import ArrayLike
 from moscot._logging import logger
+from moscot._types import ArrayLike
 from moscot.backends.ott._jax_data import JaxSampler
 from moscot.backends.ott._utils import (
     RunningAverageMeter,
     _compute_sinkhorn_divergence,
+    _regularized_wasserstein,
     compute_ds_diff,
     mmd_rbf,
-    _regularized_wasserstein,
 )
-
-import jax
-import numpy as np
-import jax.numpy as jnp
-import jax.nn as nn
-
-from flax.core.scope import FrozenDict
-from flax.training.train_state import TrainState
-from flax.training.early_stopping import EarlyStopping
-
-import optax
 
 Train_t = Dict[str, Dict[str, List[float]]]
 
@@ -44,8 +40,8 @@ class MongeGap:
     For a cost function :`math:`c` and an empirical reference :math:`\rho_x`
     defined by samples :math:`x_i`, the (entropic) Monge gap of a vector field :math:`T`
     is defined as:
-        :math:`\mathcal{M}^c_{\rho_x, \epsilon} = \frac{1}{n} \sum_{i=1}^n c(x_i, T(x_i))
-        - W_\epsilon(\mu_x, T \# \rho_x)`.
+        :math:`\\mathcal{M}^c_{\rho_x, \\epsilon} = \frac{1}{n} \\sum_{i=1}^n c(x_i, T(x_i))
+        - W_\\epsilon(\\mu_x, T \\# \rho_x)`.
 
     Args:
     geometry_kwargs: Holds the kwargs to instanciate the geometry to compute the ``reg_ot_cost``.
@@ -66,7 +62,7 @@ class MongeGap:
         """
         Evaluate the Monge gap of vector field ``T``,
         on the empirical reference measure samples defined by ``samples``.
-        Use Shannon entropy instead of relative entropy as entropic regularizer to ensure Monge gap positivity
+        Use Shannon entropy instead of relative entropy as entropic regularizer to ensure Monge gap positivity.
         """
         T_samples = T(samples)
         geom = PointCloud(x=samples, y=T_samples, **self.geometry_kwargs)
@@ -142,7 +138,7 @@ class MongeGapSolver:
         :param monge_gap_geom_kwargs:
         :param monge_gap_sinkhorn_kwargs:
         :param trial:
-        :param use_relative: if True, measure distance with respect to initial distance between source and target
+        :param use_relative: if True, measure distance with respect to initial distance between source and target.
         """
         self.input_dim = input_dim
         self.batch_size = batch_size
@@ -173,9 +169,7 @@ class MongeGapSolver:
         self._setup()
 
     def _setup(self):
-        """
-        Set up the Monge gap, neural network and optimizer to use. Get train and evaluation steps.
-        """
+        """Set up the Monge gap, neural network and optimizer to use. Get train and evaluation steps."""
         if self._monge_gap_geom_kwargs is None:
             self._monge_gap_geom_kwargs = {"epsilon": 1e-2, "relative_epsilon": True, "cost_fn": costs.Euclidean()}
 
@@ -201,7 +195,8 @@ class MongeGapSolver:
         validloader: JaxSampler,
     ) -> Tuple[TrainState, Train_t]:
         """
-        Start the training pipeline of the :class:'moscot.backends.ott.MongeGapSolver
+        Start the training pipeline of the :class:'moscot.backends.ott.MongeGapSolver.
+
         Parameters
         ----------
         :param trainloader: Data loader for the training data.
@@ -359,9 +354,8 @@ class MongeGapSolver:
             """
             Loss function for training. Composed of:
             - Fitting loss: regularized wasserstein distance between source push-forward and target.
-            - Monge gap loss: Monge gap as in :cite:`uscidda2023monge`
+            - Monge gap loss: Monge gap as in :cite:`uscidda2023monge`.
             """
-
             pred_target = jax.vmap(lambda x: state_neural_net.apply_fn({"params": params}, x))(batch["source"])
 
             fitting_loss = _regularized_wasserstein(pred_target, batch["target"])
@@ -385,9 +379,7 @@ class MongeGapSolver:
             state_neural_net: TrainState,
             batch: Dict[str, jnp.ndarray],
         ) -> Tuple[TrainState, Dict[str, float]]:
-            """
-            Step function for training. Compute the value and gradient of the loss function and update accordingly.
-            """
+            """Step function for training. Compute the value and gradient of the loss function and update accordingly."""
             grad_fn = jax.value_and_grad(__loss_fn, argnums=0, has_aux=True)
 
             (loss, raw_metrics), grads = grad_fn(state_neural_net.params, state_neural_net, batch)
@@ -405,9 +397,7 @@ class MongeGapSolver:
     def get_eval_step(
         self,
     ) -> Callable[[TrainState, TrainState, Dict[str, jnp.ndarray]], Dict[str, float]]:
-        """
-        Get one validation step.
-        """
+        """Get one validation step."""
 
         def __loss_fn(
             params: FrozenDict,
@@ -418,9 +408,8 @@ class MongeGapSolver:
             Loss function for validation. As per :cite:`bunne2022supervised`, we compute:
             - Sinkhorn divergence between predicted target and ground truth
             - Maximum Mean Discrepancy
-            - Drug Signature difference, i.e. the euclidian distance between the vectors of means
+            - Drug Signature difference, i.e. the euclidian distance between the vectors of means.
             """
-
             pred_target = jax.vmap(lambda x: state_neural_net.apply_fn({"params": params}, x))(batch["source"])
 
             sink_loss_forward = sinkhorn_divergence(
@@ -454,10 +443,7 @@ class MongeGapSolver:
             state_neural_net: TrainState,
             batch: Dict[str, jnp.ndarray],
         ) -> Dict[str, float]:
-            """
-            Create a validation function.
-            """
-
+            """Create a validation function."""
             # Compute gradient of loss function and loss on valid batch
             grad_fn = jax.value_and_grad(__loss_fn, argnums=0, has_aux=True)
             (sink_loss, raw_metrics), grads = grad_fn(state_neural_net.params, state_neural_net, batch)
@@ -476,7 +462,7 @@ class MongeGapSolver:
         Reports intermediate validation results to enable optuna pruning of unpromising trials.
         :param epoch_idx: Step of the trial
         :param eval_metric: Evaluation metric on which to decide what trials are pruned. Does not have to
-        be the test metric
+        be the test metric.
         """
         self.trial.report(eval_metric, step=epoch_idx)
         if self.trial.should_prune():

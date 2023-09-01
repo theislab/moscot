@@ -1,6 +1,7 @@
 import abc
 import copy
 import functools
+from abc import ABC, abstractmethod
 from typing import Any, Callable, Iterable, List, Literal, Optional, Tuple, Union
 
 import numpy as np
@@ -392,7 +393,6 @@ class BaseNeuralOutput(BaseSolverOutput, ABC):
     def inverse_transport_matrix(self) -> ArrayLike:
         """Inverse transport matrix."""
         pass
-    
 
 
 class BaseCondNeuralOutput(BaseSolverOutput, ABC):
@@ -413,4 +413,3 @@ class BaseCondNeuralOutput(BaseSolverOutput, ABC):
     ) -> sp.csr_matrix:
         """Project transport matrix."""
         pass
-

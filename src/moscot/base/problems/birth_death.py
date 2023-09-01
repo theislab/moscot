@@ -267,14 +267,12 @@ class BirthDeathProblem(BirthDeathMixin, OTProblem):
         return self._tgt_key - self._src_key
 
 
-@d.dedent
 class BirthDeathNeuralProblem(BirthDeathProblem, NeuralOTProblem):
     """
     Class handling an neural problem which allows to estimate the marginals with a birth-death process.
 
     Parameters
     ----------
-    %(adata_x)s.
     """
 
 

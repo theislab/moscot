@@ -5,8 +5,9 @@ from multiprocessing import Manager, cpu_count
 from threading import Thread
 from typing import Any, Callable, Optional, Sequence, Union
 
-import joblib as jl
 from numba import njit
+
+import joblib as jl
 
 import numpy as np
 from scipy.sparse import issparse, spmatrix

@@ -1,20 +1,17 @@
+import abc
+import inspect
 import math
 import types
-from typing import Any, Dict, List, Literal, Mapping, Optional, Tuple, Union
+from typing import Any, Dict, List, Literal, Mapping, Optional, Set, Tuple, Union
 
 import jax
 import jax.numpy as jnp
 import scipy.sparse as sp
-from ott.geometry import costs
-from ott.geometry.epsilon_scheduler import Epsilon
-from ott.geometry.geometry import Geometry
-from ott.geometry.pointcloud import PointCloud
-from ott.problems.linear.linear_problem import LinearProblem
-from ott.problems.quadratic.quadratic_problem import QuadraticProblem
-from ott.solvers.linear.sinkhorn import Sinkhorn
-from ott.solvers.linear.sinkhorn_lr import LRSinkhorn
-from ott.solvers.quadratic.gromov_wasserstein import GromovWasserstein
-from ott.solvers.was_solver import WassersteinSolver
+from ott.geometry import costs, epsilon_scheduler, geometry, pointcloud
+from ott.problems.linear import linear_problem
+from ott.problems.quadratic import quadratic_problem
+from ott.solvers.linear import sinkhorn, sinkhorn_lr
+from ott.solvers.quadratic import gromov_wasserstein
 
 from moscot._types import (
     ArrayLike,
@@ -22,27 +19,21 @@ from moscot._types import (
     QuadInitializer_t,
     SinkhornInitializer_t,
 )
-
+from moscot.backends.ott._gap_models import MongeGapSolver
 from moscot.backends.ott._jax_data import JaxSampler
 from moscot.backends.ott._neuraldual import OTTNeuralDualSolver
-from moscot.backends.ott._gap_models import MongeGapSolver
-from moscot.backends.ott._utils import _filter_kwargs
-from moscot.backends.ott.output import CondNeuralDualOutput, NeuralDualOutput, OTTOutput, GapNeuralOutput
-import abc
-import inspect
-import types
-from typing import Any, Literal, Mapping, Optional, Set, Tuple, Union
-
-import jax
-from ott.geometry import costs, epsilon_scheduler, geometry, pointcloud
-from ott.problems.linear import linear_problem
-from ott.problems.quadratic import quadratic_problem
-from ott.solvers.linear import sinkhorn, sinkhorn_lr
-from ott.solvers.quadratic import gromov_wasserstein
-
-from moscot._types import ProblemKind_t, QuadInitializer_t, SinkhornInitializer_t
-from moscot.backends.ott._utils import alpha_to_fused_penalty, check_shapes, ensure_2d
-from moscot.backends.ott.output import OTTOutput
+from moscot.backends.ott._utils import (
+    _filter_kwargs,
+    alpha_to_fused_penalty,
+    check_shapes,
+    ensure_2d,
+)
+from moscot.backends.ott.output import (
+    CondNeuralDualOutput,
+    GapNeuralOutput,
+    NeuralDualOutput,
+    OTTOutput,
+)
 from moscot.base.solver import OTSolver
 from moscot.costs import get_cost
 from moscot.utils.tagged_array import TaggedArray
@@ -354,7 +345,6 @@ class GWSolver(OTTJaxSolver):
     def problem_kind(self) -> ProblemKind_t:  # noqa: D102
         return "quadratic"
 
-<<<<<<< HEAD
 
 class NeuralDualSolver(OTSolver[OTTOutput]):
     """Solver class solving Neural Optimal Transport problems."""
@@ -462,6 +452,7 @@ class NeuralDualSolver(OTSolver[OTTOutput]):
     def problem_kind(self) -> ProblemKind_t:
         """Problem kind."""
         return "linear"
+
 
 class CondNeuralDualSolver(NeuralDualSolver):
     """Solver class solving Conditional Neural Optimal Transport problems."""
@@ -653,7 +644,7 @@ class GapSolver(OTSolver[OTTOutput]):
     @property
     def problem_kind(self) -> ProblemKind_t:
         return "linear"
-=======
+
     @classmethod
     def _call_kwargs(cls) -> Tuple[Set[str], Set[str]]:
         geom_kwargs = {"epsilon", "relative_epsilon", "batch_size", "scale_cost", "cost_kwargs", "cost_matrix_rank"}
@@ -661,4 +652,3 @@ class GapSolver(OTSolver[OTTOutput]):
         problem_kwargs -= {"geom_xx", "geom_yy", "geom_xy", "fused_penalty"}
         problem_kwargs |= {"alpha"}
         return geom_kwargs | problem_kwargs, {"epsilon"}
->>>>>>> main

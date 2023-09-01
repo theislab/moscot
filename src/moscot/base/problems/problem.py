@@ -403,7 +403,6 @@ class OTProblem(BaseProblem):
         - :attr:`solver` - the :term:`OT` solver.
         - :attr:`solution` - the :term:`OT` solution.
         """
-<<<<<<< HEAD
         self._solver = backends.get_solver(
             self.problem_kind,
             solver_name=solver_name,
@@ -412,11 +411,6 @@ class OTProblem(BaseProblem):
         )
 
         # TODO: add ScaleCost(scale_cost)
-=======
-        solver_class = backends.get_solver(self.problem_kind, backend=backend, return_class=True)
-        init_kwargs, call_kwargs = solver_class._partition_kwargs(**kwargs)
-        self._solver = solver_class(**init_kwargs)
->>>>>>> main
 
         self._solution = self._solver(  # type: ignore[misc]
             xy=self._xy,
@@ -922,6 +916,7 @@ class CondOTProblem(BaseProblem):  # TODO(@MUCDK) check generic types, save and 
         Source annotated data object.
     kwargs
         Keyword arguments for :class:`moscot.problems.base.BaseProblem.`
+
     Notes
     -----
     If any of the source/target masks are specified, :attr:`adata_src`/:attr:`adata_tgt` will be a view.

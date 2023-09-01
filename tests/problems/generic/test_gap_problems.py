@@ -1,18 +1,9 @@
 import pytest
 
-import numpy as np
-
 import anndata as ad
 
-from moscot.base.output import BaseSolverOutput
 from moscot.base.problems import NeuralOTProblem
-from moscot.problems.generic import NeuralProblem, MGNeuralProblem  # type: ignore[attr-defined]
-from tests._utils import ATOL, RTOL
-from tests.problems.conftest import (
-    neuraldual_args_1,
-    neuraldual_args_2,
-    neuraldual_solver_args,
-)
+from moscot.problems.generic import MGNeuralProblem  # type: ignore[attr-defined]
 
 
 class TestMGNeuralProblem:
@@ -34,6 +25,5 @@ class TestMGNeuralProblem:
             assert key in expected_keys
             assert isinstance(problem[key], NeuralOTProblem)
 
-    
     def test_solve(self, adata_time: ad.AnnData):
         pass

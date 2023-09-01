@@ -14,12 +14,6 @@ from typing import (
     Union,
 )
 
-<<<<<<< HEAD
-import numpy as np
-
-from moscot._docs._docs import d
-=======
->>>>>>> main
 from moscot._logging import logger
 from moscot._types import ArrayLike, Device_t, ProblemKind_t
 from moscot.base.output import BaseSolverOutput
@@ -214,13 +208,11 @@ class OTSolver(TagConverter, BaseSolver[O], abc.ABC):
 
         return res.to(device=device)  # type: ignore[return-value]
 
-<<<<<<< HEAD
     def _prepare_kwargs(self, data: Union[TaggedArrayData, Dict[Any, Any]]) -> Dict[str, Any]:  # dict for CondOT
         if isinstance(data, dict):  # TODO: find better solution
             return {"xy": data}
-=======
+
     def _untag(self, data: TaggedArrayData) -> Dict[str, Any]:
->>>>>>> main
         if self.problem_kind == "linear":
             if data.xy is None:
                 raise ValueError("No data specified for the linear term.")

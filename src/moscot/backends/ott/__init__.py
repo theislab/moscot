@@ -1,5 +1,6 @@
 from ott.geometry import costs
 
+from moscot.backends.ott._utils import sinkhorn_divergence
 from moscot.backends.ott.output import (
     ConditionalDualPotentials,
     CondNeuralDualOutput,
@@ -9,13 +10,22 @@ from moscot.backends.ott.output import (
 from moscot.backends.ott.solver import (
     CondNeuralDualSolver,
     GWSolver,
-    OTTNeuralDualSolver,
     NeuralDualSolver,
+    OTTNeuralDualSolver,
     SinkhornSolver,
 )
 from moscot.costs import register_cost
-from moscot.backends.ott._utils import sinkhorn_divergence
-__all__ = ["OTTOutput", "NeuralDualOutput", "GWSolver", "SinkhornSolver", "OTTNeuralDualSolver", "OTTNeuralDualSolver", "CondNeuralDualSolver", "MongeGapSolver"]
+
+__all__ = [
+    "OTTOutput",
+    "NeuralDualOutput",
+    "GWSolver",
+    "SinkhornSolver",
+    "OTTNeuralDualSolver",
+    "OTTNeuralDualSolver",
+    "CondNeuralDualSolver",
+    "MongeGapSolver",
+]
 
 
 register_cost("euclidean", backend="ott")(costs.Euclidean)

@@ -1,17 +1,6 @@
 from types import MappingProxyType
-from typing import (
-    Any,
-    Dict,
-    Iterable,
-    List,
-    Literal,
-    Mapping,
-    Optional,
-    Tuple,
-    Type,
-    Union,
-)
-
+from typing import Any, Dict, Iterable, Literal, Mapping, Optional, Tuple, Type, Union
+import types
 from anndata import AnnData
 
 from moscot import _constants
@@ -492,11 +481,9 @@ class GWProblem(GenericAnalysisMixin[K, B], CompoundProblem[K, B]):  # type: ign
         return _constants.SEQUENTIAL, _constants.PAIRWISE, _constants.EXPLICIT  # type: ignore[return-value]
 
 
-@d.dedent
 class NeuralProblem(CompoundProblem[K, B], GenericAnalysisMixin[K, B]):
     """Class for solving Parameterized Monge Map problems / Neural OT problems."""
 
-    @d.dedent
     def prepare(
         self,
         key: str,
@@ -518,7 +505,6 @@ class NeuralProblem(CompoundProblem[K, B], GenericAnalysisMixin[K, B]):
             **kwargs,
         )
 
-    @d.dedent
     def solve(
         self,
         batch_size: int = 1024,
@@ -580,11 +566,9 @@ class NeuralProblem(CompoundProblem[K, B], GenericAnalysisMixin[K, B]):
         return _constants.SEQUENTIAL, _constants.PAIRWISE, _constants.EXPLICIT  # type: ignore[return-value]
 
 
-@d.dedent
 class ConditionalNeuralProblem(CondOTProblem, GenericAnalysisMixin[K, B]):
     """Class for solving Conditional Parameterized Monge Map problems / Conditional Neural OT problems."""
 
-    @d.dedent
     def prepare(
         self,
         key: str,
@@ -606,7 +590,6 @@ class ConditionalNeuralProblem(CondOTProblem, GenericAnalysisMixin[K, B]):
             **kwargs,
         )
 
-    @d.dedent
     def solve(
         self,
         batch_size: int = 1024,
@@ -667,10 +650,10 @@ class ConditionalNeuralProblem(CondOTProblem, GenericAnalysisMixin[K, B]):
     def _valid_policies(self) -> Tuple[Policy_t, ...]:
         return _constants.SEQUENTIAL, _constants.PAIRWISE, _constants.EXPLICIT  # type: ignore[return-value]
 
+
 class MGNeuralProblem(CompoundProblem[K, B], GenericAnalysisMixin[K, B]):
     """Class for solving Neural problems with the Monge gap, TODO cite."""
 
-    @d.dedent
     def prepare(
         self,
         key: str,
@@ -692,7 +675,6 @@ class MGNeuralProblem(CompoundProblem[K, B], GenericAnalysisMixin[K, B]):
             **kwargs,
         )
 
-    @d.dedent
     def solve(
         self,
         batch_size: int = 1024,
@@ -736,4 +718,3 @@ class MGNeuralProblem(CompoundProblem[K, B], GenericAnalysisMixin[K, B]):
     @property
     def _valid_policies(self) -> Tuple[Policy_t, ...]:
         return _constants.SEQUENTIAL, _constants.PAIRWISE, _constants.EXPLICIT  # type: ignore[return-value]
-    

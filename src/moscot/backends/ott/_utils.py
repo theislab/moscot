@@ -1,23 +1,35 @@
 import inspect
 from functools import partial
 from types import MappingProxyType
-from typing import TYPE_CHECKING, Any, Callable, Dict, Optional, Sequence, Tuple, Iterable, Type, Mapping
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Callable,
+    Dict,
+    Iterable,
+    Mapping,
+    Optional,
+    Sequence,
+    Tuple,
+    Type,
+)
 
-from flax.training.train_state import TrainState
 import optax
+from flax.training.train_state import TrainState
+
 import jax
 import jax.numpy as jnp
 import jax.tree_util as jtu
-from ott.geometry import costs
+from ott.geometry import costs, epsilon_scheduler, geometry
 from ott.geometry.pointcloud import PointCloud
-from ott.geometry import epsilon_scheduler
-from ott.problems.linear.potentials import DualPotentials
-from ott.tools.sinkhorn_divergence import sinkhorn_divergence
-from ott.solvers.linear import sinkhorn
 from ott.problems.linear import linear_problem
-from moscot.backends.ott._icnn import ICNN
+from ott.problems.linear.potentials import DualPotentials
+from ott.solvers.linear import sinkhorn
+from ott.tools.sinkhorn_divergence import sinkhorn_divergence
+
 from moscot._logging import logger
 from moscot._types import ArrayLike, ScaleCost_t
+from moscot.backends.ott._icnn import ICNN
 
 Potential_t = Callable[[jnp.ndarray], float]
 CondPotential_t = Callable[[jnp.ndarray, float], float]
@@ -27,8 +39,6 @@ if TYPE_CHECKING:
 
 
 __all__ = ["ConditionalDualPotentials", "sinkhorn_divergence"]
-
-
 
 
 def sinkhorn_divergence(
@@ -239,9 +249,7 @@ def _get_optimizer(
 # Compute the difference in drug signatures
 @jax.jit
 def compute_ds_diff(control, treated, push_fwd):
-    """
-    Compute Drug Signature difference as the norm between the vector of means of features
-    """
+    """Compute Drug Signature difference as the norm between the vector of means of features."""
     base = control.mean(0)
 
     true = treated.mean(0) - base
@@ -263,7 +271,7 @@ def mmd_rbf(x: jnp.ndarray, y: jnp.ndarray) -> float:
     var = jnp.var(z_sq_dist)
     XX, YY, XY = (jnp.zeros(xx.shape), jnp.zeros(yy.shape), jnp.zeros(zz.shape))
     array_sum = jnp.sum(y_sq_dist)
-    array_has_nan = jnp.isnan(array_sum)
+    jnp.isnan(array_sum)
     bandwidth_range = [0.5, 0.1, 0.01, 0.005]
     for scale in bandwidth_range:
         XX += jnp.exp(-0.5 * x_sq_dist / (var * scale))
@@ -280,7 +288,7 @@ def _regularized_wasserstein(
 ) -> Optional[float]:
     """
     Compute a regularized Wasserstein distance to be used as the fitting term in the loss.
-    Fitting term computes how far the predicted target is from teh actual target (ground truth)
+    Fitting term computes how far the predicted target is from teh actual target (ground truth).
     """
     geom = PointCloud(x=x, y=y, **geometry_kwargs)
     return sinkhorn.Sinkhorn(**sinkhorn_kwargs)(linear_problem.LinearProblem(geom)).reg_ot_cost
@@ -320,6 +328,8 @@ def _compute_metrics_sinkhorn(
         "sinkhorn_loss_inverse": jnp.abs(sinkhorn_loss_inverse),
         "sinkhorn_loss_data": jnp.abs(sinkhorn_loss_data),
     }
+
+
 def check_shapes(geom_x: geometry.Geometry, geom_y: geometry.Geometry, geom_xy: geometry.Geometry) -> None:
     n, m = geom_xy.shape
     n_, m_ = geom_x.shape[0], geom_y.shape[0]

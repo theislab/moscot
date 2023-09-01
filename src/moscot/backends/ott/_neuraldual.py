@@ -1,7 +1,6 @@
-from collections import defaultdict, abc
+from collections import abc, defaultdict
 from types import MappingProxyType
-from typing import Any, Callable, Dict, Iterable, List, Literal, Optional, Tuple, Union, Type
-
+from typing import Any, Callable, Dict, List, Literal, Optional, Tuple, Type, Union
 
 import optax
 from flax.core import freeze
@@ -13,9 +12,7 @@ import jax
 import jax.numpy as jnp
 import numpy as np
 from ott.geometry import costs
-from ott.geometry.pointcloud import PointCloud
 from ott.problems.linear.potentials import DualPotentials
-from ott.tools.sinkhorn_divergence import sinkhorn_divergence
 
 from moscot._logging import logger
 from moscot._types import ArrayLike
@@ -24,10 +21,10 @@ from moscot.backends.ott._jax_data import JaxSampler
 from moscot.backends.ott._utils import (
     ConditionalDualPotentials,
     RunningAverageMeter,
+    _compute_metrics_sinkhorn,
     _compute_sinkhorn_divergence,
     _get_icnn,
     _get_optimizer,
-    _compute_metrics_sinkhorn,
 )
 
 Train_t = Dict[str, Dict[str, Union[float, List[float]]]]
@@ -561,7 +558,6 @@ class OTTNeuralDualSolver:
 
     def to_dual_potentials(self, condition: Optional[ArrayLike] = None) -> DualPotentials:
         """Return the Kantorovich dual potentials from the trained potentials."""
-
         if self.cond_dim:
             return ConditionalDualPotentials(self.state_f, self.state_g)
 
