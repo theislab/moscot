@@ -403,14 +403,9 @@ class OTProblem(BaseProblem):
         - :attr:`solver` - the :term:`OT` solver.
         - :attr:`solution` - the :term:`OT` solution.
         """
-        self._solver = backends.get_solver(
-            self.problem_kind,
-            solver_name=solver_name,
-            backend=backend,
-            **kwargs,
-        )
-
-        # TODO: add ScaleCost(scale_cost)
+        solver_class = backends.get_solver(self.problem_kind, backend=backend, return_class=True)
+        init_kwargs, call_kwargs = solver_class._partition_kwargs(**kwargs)
+        self._solver = solver_class(**init_kwargs)
 
         self._solution = self._solver(  # type: ignore[misc]
             xy=self._xy,

@@ -12,6 +12,7 @@ from typing import (
     Sequence,
     Tuple,
     Type,
+    Union,
 )
 
 import optax

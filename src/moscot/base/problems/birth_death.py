@@ -268,12 +268,7 @@ class BirthDeathProblem(BirthDeathMixin, OTProblem):
 
 
 class BirthDeathNeuralProblem(BirthDeathProblem, NeuralOTProblem):
-    """
-    Class handling an neural problem which allows to estimate the marginals with a birth-death process.
-
-    Parameters
-    ----------
-    """
+    """Class handling an neural problem which allows to estimate the marginals with a birth-death process."""
 
 
 def _logistic(x: ArrayLike, L: float, k: float, center: float = 0) -> ArrayLike:

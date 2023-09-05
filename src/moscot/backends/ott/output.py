@@ -6,8 +6,8 @@ import jaxlib.xla_extension as xla_ext
 
 import jax
 import jax.numpy as jnp
-import numpy as np
-from ott.solvers.linear import sinkhorn, sinkhorn_lr
+import scipy.sparse as sp
+from ott.solvers.linear import potentials, sinkhorn, sinkhorn_lr
 from ott.solvers.quadratic import gromov_wasserstein
 
 import matplotlib as mpl
@@ -116,157 +116,6 @@ class OTTOutput(BaseSolverOutput):
             return fig
 
 
-class OTTOutput(BaseSolverOutput):
-    """Output of various optimal transport problems.
-
-    Parameters
-    ----------
-    output
-        Output of the :mod:`ott` backend.
-    """
-
-    def __init__(self, output: Union[OTTSinkhornOutput, OTTLRSinkhornOutput, OTTGWOutput]):
-        # TODO(michalk8): think about whether we want to plot the error in inner Sinkhorn in GW
-        if isinstance(output, OTTSinkhornOutput):
-            costs, errors = jnp.asarray([output.reg_ot_cost]), output.errors
-        else:
-            costs, errors = output.costs, None
-        super().__init__(costs=costs, errors=errors)
-        self._output = output
-
-    def _apply(self, x: ArrayLike, *, forward: bool) -> ArrayLike:  # type:ignore[override]
-        if x.ndim == 1:
-            return self._output.apply(x, axis=1 - forward)
-        return self._output.apply(x.T, axis=1 - forward).T  # convert to batch first
-
-    def plot_errors(
-        self,
-        last: Optional[int] = None,
-        title: Optional[str] = None,
-        return_fig: bool = False,
-        figsize: Optional[Tuple[float, float]] = None,
-        dpi: Optional[int] = None,
-        save: Optional[str] = None,
-        ax: Optional[mpl.axes.Axes] = None,
-        **kwargs: Any,
-    ) -> Optional[mpl.figure.Figure]:
-        """Plot errors along iterations.
-
-        Parameters
-        ----------
-        last
-            Number of errors corresponding at the ``last`` steps of the algorithm to plot. If :obj:`None`,
-            plot the full curve.
-        title
-            Title of the plot. If :obj:`None`, it is determined automatically.
-        outer_iteration
-            Which outermost iteration's errors to plot.
-            Only used when this is the solution to the :term:`quadratic problem`.
-        return_fig
-            Whether to return the figure.
-        ax
-            Axes on which to plot.
-        figsize
-            Size of the figure.
-        dpi
-            Dots per inch.
-        save
-            Path where to save the figure.
-        kwargs
-            Keyword arguments for :meth:`matplotlib.axes.Axes.plot`.
-
-        Returns
-        -------
-        If ``return_fig = True``, return the figure.
-        """
-        if self._costs is None:
-            raise RuntimeError("No costs to plot.")
-
-        fig, ax = plt.subplots(figsize=figsize, dpi=dpi) if ax is None else (ax.get_figure(), ax)
-        self._plot_lines(ax, np.asarray(self._costs), last=last, y_label="cost", title=title, **kwargs)
-
-        if save is not None:
-            fig.savefig(save)
-        return fig if return_fig else None
-
-    def _plot_lines(
-        self,
-        ax: mpl.axes.Axes,
-        values: ArrayLike,
-        last: Optional[int] = None,
-        y_label: Optional[str] = None,
-        title: Optional[str] = None,
-        **kwargs: Any,
-    ) -> None:
-        if values.ndim != 1:
-            raise ValueError(f"Expected array to be 1 dimensional, found `{values.ndim}`.")
-        values = values[values != self._NOT_COMPUTED]
-        ixs = np.arange(len(values))
-        if last is not None:
-            values = values[-last:]
-            ixs = ixs[-last:]
-
-        ax.plot(ixs, values, **kwargs)
-        ax.set_xlabel("iteration (logged)")
-        ax.set_ylabel(y_label)
-        ax.set_title(title if title is not None else "converged" if self.converged else "not converged")
-        ax.xaxis.set_major_locator(mpl.ticker.MaxNLocator(integer=True))
-
-    @property
-    def shape(self) -> Tuple[int, int]:  # noqa: D102
-        if isinstance(self._output, sinkhorn.SinkhornOutput):
-            return self._output.f.shape[0], self._output.g.shape[0]
-        return self._output.geom.shape
-
-    @property
-    def transport_matrix(self) -> ArrayLike:
-        return self._output.matrix
-
-    @property
-    def is_linear(self) -> bool:  # noqa: D102
-        return isinstance(self._output, (sinkhorn.SinkhornOutput, sinkhorn_lr.LRSinkhornOutput))
-
-    def to(self, device: Optional[Device_t] = None) -> "OTTOutput":  # noqa: D102
-        if device is None:
-            return OTTOutput(jax.device_put(self._output, device=device))
-
-        if isinstance(device, str) and ":" in device:
-            device, ix = device.split(":")
-            idx = int(ix)
-        else:
-            idx = 0
-
-        if not isinstance(device, xla_ext.Device):
-            try:
-                device = jax.devices(device)[idx]
-            except IndexError:
-                raise IndexError(f"Unable to fetch the device with `id={idx}`.")
-
-        return OTTOutput(jax.device_put(self._output, device))
-
-    @property
-    def cost(self) -> float:  # noqa: D102
-        return float(self._output.reg_ot_cost if self.is_linear else self._output.reg_gw_cost)
-
-    @property
-    def converged(self) -> bool:
-        return bool(self._output.converged)
-
-    @property
-    def potentials(self) -> Optional[Tuple[ArrayLike, ArrayLike]]:  # noqa: D102
-        if isinstance(self._output, sinkhorn.SinkhornOutput):
-            return self._output.f, self._output.g
-        return None
-
-    @property
-    def rank(self) -> int:
-        lin_output = self._output.linear_state if isinstance(self._output, OTTGWOutput) else self._output
-        return len(lin_output.g) if isinstance(lin_output, OTTLRSinkhornOutput) else -1
-
-    def _ones(self, n: int) -> jnp.ndarray:
-        return jnp.ones((n,))
-
-
 class OTTNeuralOutput(BaseNeuralOutput):
     """Base class for OTT neural OT output."""
 
@@ -314,7 +163,7 @@ class OTTNeuralOutput(BaseNeuralOutput):
         return tm
 
 
-class NeuralDualOutput(ConvergencePlotterMixin, OTTNeuralOutput):
+class NeuralDualOutput(OTTNeuralOutput):
     """
     Output representation of neural OT problems.
 
@@ -326,7 +175,7 @@ class NeuralDualOutput(ConvergencePlotterMixin, OTTNeuralOutput):
         Statistics of the model training.
     """
 
-    def __init__(self, output: DualPotentials, training_logs: Train_t):
+    def __init__(self, output: potentials.DualPotentials, training_logs: Train_t):
         self._output = output
         self._training_logs = training_logs
         self._transport_matrix: ArrayLike = None

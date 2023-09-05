@@ -36,8 +36,8 @@ Train_t = Dict[str, Dict[str, List[float]]]
 
 class MongeGap:
     r"""
-    A class to define the Monge gap regularizer. 
-    
+    A class to define the Monge gap regularizer.
+
     From Monge Gap paper :cite:`uscidda2023monge`:
     For a cost function :`math:`c` and an empirical reference :math:`\rho_x`
     defined by samples :math:`x_i`, the (entropic) Monge gap of a vector field :math:`T`
@@ -61,11 +61,7 @@ class MongeGap:
         self.sinkhorn_kwargs = sinkhorn_kwargs
 
     def __call__(self, samples: jnp.ndarray, T: Callable[[jnp.ndarray], jnp.ndarray]) -> float:
-        """
-        Evaluate the Monge gap of vector field ``T``,
-        on the empirical reference measure samples defined by ``samples``.
-        Use Shannon entropy instead of relative entropy as entropic regularizer to ensure Monge gap positivity.
-        """
+        """TODO: add docstring."""
         T_samples = T(samples)
         geom = PointCloud(x=samples, y=T_samples, **self.geometry_kwargs)
 
@@ -78,10 +74,7 @@ class MongeGap:
 
     @property
     def cost_fn(self) -> costs.CostFn:
-        """
-        Set cost function on which Monge gap is instanciated.
-        Default is squared euclidian.
-        """
+        """TODO: add docstring."""
         if "cost_fn" in self.geometry_kwargs:
             return self.geometry_kwargs["cost_fn"]
         return costs.SqEuclidean()
@@ -102,7 +95,7 @@ class MongeGapSolver:
         log_freq: int = 10,
         patience: int = 100,
         min_improvement: float = 1e-3,
-        neural_net: ModelBase = MLP(dim_hidden=[128, 64, 64], is_potential=False, act_fn=nn.gelu), 
+        neural_net: ModelBase = MLP(dim_hidden=[128, 64, 64], is_potential=False, act_fn=nn.gelu),
         optimizer: optax.OptState = optax.adamw(
             learning_rate=1e-3,
             b1=0.5,
@@ -117,9 +110,7 @@ class MongeGapSolver:
         trial: Any = None,
         use_relative: bool = False,
     ) -> None:
-        """ 
-        ToDo: Add docstring
-        """
+        """ToDo: Add docstring."""
         self.input_dim = input_dim
         self.batch_size = batch_size
         self.tau_a = 1.0 if tau_a is None else tau_a
@@ -436,4 +427,3 @@ class MongeGapSolver:
     def is_balanced(self) -> bool:
         """Return whether the problem is balanced."""
         return self.tau_a == self.tau_b == 1.0
-
