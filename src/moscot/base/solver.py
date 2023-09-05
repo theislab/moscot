@@ -1,5 +1,6 @@
 import abc
 import types
+import numpy as np
 from typing import (
     Any,
     Dict,
@@ -211,6 +212,7 @@ class OTSolver(TagConverter, BaseSolver[O], abc.ABC):
     def _prepare_kwargs(self, data: Union[TaggedArrayData, Dict[Any, Any]]) -> Dict[str, Any]:  # dict for CondOT
         if isinstance(data, dict):  # TODO: find better solution
             return {"xy": data}
+        return data
 
     def _untag(self, data: TaggedArrayData) -> Dict[str, Any]:
         if self.problem_kind == "linear":

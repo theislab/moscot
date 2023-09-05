@@ -35,8 +35,10 @@ Train_t = Dict[str, Dict[str, List[float]]]
 
 
 class MongeGap:
-    """
-    A class to define the Monge gap regularizer. From Monge Gap paper :cite:`uscidda2023monge`:
+    r"""
+    A class to define the Monge gap regularizer. 
+    
+    From Monge Gap paper :cite:`uscidda2023monge`:
     For a cost function :`math:`c` and an empirical reference :math:`\rho_x`
     defined by samples :math:`x_i`, the (entropic) Monge gap of a vector field :math:`T`
     is defined as:
@@ -82,8 +84,7 @@ class MongeGap:
         """
         if "cost_fn" in self.geometry_kwargs:
             return self.geometry_kwargs["cost_fn"]
-        else:
-            return costs.SqEuclidean()
+        return costs.SqEuclidean()
 
 
 class MongeGapSolver:
@@ -101,7 +102,7 @@ class MongeGapSolver:
         log_freq: int = 10,
         patience: int = 100,
         min_improvement: float = 1e-3,
-        neural_net: ModelBase = MLP(dim_hidden=[128, 64, 64], is_potential=False, act_fn=nn.gelu),
+        neural_net: ModelBase = MLP(dim_hidden=[128, 64, 64], is_potential=False, act_fn=nn.gelu), 
         optimizer: optax.OptState = optax.adamw(
             learning_rate=1e-3,
             b1=0.5,
@@ -116,29 +117,8 @@ class MongeGapSolver:
         trial: Any = None,
         use_relative: bool = False,
     ) -> None:
-        """
-        Initialize :class MongeGapSolver:
-        :param input_dim:
-        :param batch_size:
-        :param tau_a:
-        :param tau_b:
-        :param epsilon:
-        :param seed:
-        :param best_model_metric:
-        :param max_iterations:
-        :param valid_freq: frequency of validation steps
-        :param log_freq: logging frequency
-        :param patience:
-        :param min_improvement:
-        :param neural_net:
-        :param optimizer:
-        :param valid_sinkhorn_kwargs:
-        :param compute_wasserstein_baseline:
-        :param lambda_monge_gap:
-        :param monge_gap_geom_kwargs:
-        :param monge_gap_sinkhorn_kwargs:
-        :param trial:
-        :param use_relative: if True, measure distance with respect to initial distance between source and target.
+        """ 
+        ToDo: Add docstring
         """
         self.input_dim = input_dim
         self.batch_size = batch_size
@@ -457,13 +437,3 @@ class MongeGapSolver:
         """Return whether the problem is balanced."""
         return self.tau_a == self.tau_b == 1.0
 
-    def _report_to_optuna(self, epoch_idx, eval_metric):
-        """
-        Reports intermediate validation results to enable optuna pruning of unpromising trials.
-        :param epoch_idx: Step of the trial
-        :param eval_metric: Evaluation metric on which to decide what trials are pruned. Does not have to
-        be the test metric.
-        """
-        self.trial.report(eval_metric, step=epoch_idx)
-        if self.trial.should_prune():
-            raise optuna.exceptions.TrialPruned()

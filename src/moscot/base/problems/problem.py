@@ -826,7 +826,6 @@ class OTProblem(BaseProblem):
 class NeuralOTProblem(OTProblem):  # TODO override set_x/set_y
     """Base class for non-conditional neural optimal transport problems."""
 
-    @d.get_sections(base="OTProblem_solve", sections=["Parameters", "Raises"])
     @wrap_solve
     def solve(
         self,

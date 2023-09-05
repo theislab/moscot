@@ -116,7 +116,7 @@ class OTTOutput(BaseSolverOutput):
             return fig
 
 
-class OTTOutput(ConvergencePlotterMixin, BaseSolverOutput):
+class OTTOutput(BaseSolverOutput):
     """Output of various optimal transport problems.
 
     Parameters
