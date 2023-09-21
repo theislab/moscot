@@ -3,7 +3,7 @@ Contributing guide
 
 Table of Contents
 =================
-- `Contributing to Moscot`_
+- `Contributing to moscot`_
 - `Codebase structure`_
 - `Code style guide`_
 - `Testing`_
@@ -13,9 +13,9 @@ Table of Contents
 - `Creating release notes`_
 - `Submitting a PR`_
 
-Contributing to Moscot
+Contributing to moscot
 -----------------------
-Clone Moscot from source as::
+Clone moscot from source as::
 
     git clone https://github.com/theislab/moscot
     cd moscot
@@ -35,13 +35,13 @@ still commit using the ``--no-verify``.
 
 Codebase structure
 ------------------
-The Moscot project:
+The moscot project:
 
 - `moscot <../src/moscot>`_: the root of the package.
 
   - `moscot/backends <../src/moscot/backends>`_: the OTT backend module, which deals with OTT solvers and output functions.
-  - `moscot/base <../src/moscot/base>`_: contains base Moscot classes.
-    - `moscot/base/problems <../src/moscot/base/problems>`_: the Moscot problems module.
+  - `moscot/base <../src/moscot/base>`_: contains base moscot classes.
+    - `moscot/base/problems <../src/moscot/base/problems>`_: the moscot problems module.
   - `moscot/costs <../src/moscot/costs>`_: contains different costs computation functions.
   - `moscot/plotting <../src/moscot/plotting>`_: the plotting module.
   - `moscot/problems <../src/moscot/problems>`_: the functionality of general problems classes, subdivided into problem types.
