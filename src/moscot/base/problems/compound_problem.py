@@ -394,7 +394,7 @@ class BaseCompoundProblem(BaseProblem, abc.ABC, Generic[K, B]):
         """
         _ = kwargs.pop("return_data", None)
         _ = kwargs.pop("key_added", None)  # this should be handled by overriding method
-        return self._apply(*args, forward=True, **kwargs)
+        return self._(*args, forward=True, **kwargs)
 
     def pull(
         self,
@@ -407,7 +407,7 @@ class BaseCompoundProblem(BaseProblem, abc.ABC, Generic[K, B]):
         """
         _ = kwargs.pop("return_data", None)
         _ = kwargs.pop("key_added", None)  # this should be handled by overriding method
-        return self._apply(*args, forward=False, **kwargs)
+        return self._(*args, forward=False, **kwargs)
 
     @property
     def problems(self) -> Dict[Tuple[K, K], B]:
