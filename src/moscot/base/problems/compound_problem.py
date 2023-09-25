@@ -349,7 +349,7 @@ class BaseCompoundProblem(BaseProblem, abc.ABC, Generic[K, B]):
         ):
             problem = self.problems[src, tgt]
             fun = problem.push if forward else problem.pull
-            res[src] = fun(data=data, scale_by_marginals=scale_by_marginals)
+            res[src] = fun(data=data, scale_by_marginals=scale_by_marginals, **kwargs)
         return res if return_all else res[src]
 
     @_apply.register(ExplicitPolicy)
@@ -382,7 +382,7 @@ class BaseCompoundProblem(BaseProblem, abc.ABC, Generic[K, B]):
         for _src, _tgt in [(src, tgt)] + rest:
             problem = self.problems[_src, _tgt]
             fun = problem.push if forward else problem.pull
-            res[_tgt if forward else _src] = current_mass = fun(current_mass, scale_by_marginals=scale_by_marginals)
+            res[_tgt if forward else _src] = current_mass = fun(current_mass, scale_by_marginals=scale_by_marginals, **kwargs)
 
         return res if return_all else current_mass
 
@@ -394,7 +394,7 @@ class BaseCompoundProblem(BaseProblem, abc.ABC, Generic[K, B]):
         """
         _ = kwargs.pop("return_data", None)
         _ = kwargs.pop("key_added", None)  # this should be handled by overriding method
-        return self._(*args, forward=True, **kwargs)
+        return self._apply(*args, forward=True, **kwargs)
 
     def pull(
         self,
@@ -407,7 +407,7 @@ class BaseCompoundProblem(BaseProblem, abc.ABC, Generic[K, B]):
         """
         _ = kwargs.pop("return_data", None)
         _ = kwargs.pop("key_added", None)  # this should be handled by overriding method
-        return self._(*args, forward=False, **kwargs)
+        return self._apply(*args, forward=False, **kwargs)
 
     @property
     def problems(self) -> Dict[Tuple[K, K], B]:
