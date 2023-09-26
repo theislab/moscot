@@ -85,6 +85,7 @@ docs = [
     "myst-nb>=0.17.1",
     "ipython>=7.20.0",
     "sphinx_design>=0.3.0",
+    "rich"
 ]
 
 [project.urls]
