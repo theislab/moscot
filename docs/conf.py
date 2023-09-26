@@ -42,7 +42,6 @@ extensions = [
     "sphinx_design",  # for cards
     "sphinx_tippy",
     "typed_returns",
-    "rich",
 ]
 intersphinx_mapping = {
     "python": ("https://docs.python.org/3", None),
