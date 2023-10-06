@@ -8,7 +8,7 @@ from ott.geometry import costs, epsilon_scheduler, geometry, pointcloud
 from ott.problems.linear import linear_problem
 from ott.problems.quadratic import quadratic_problem
 from ott.solvers.linear import sinkhorn, sinkhorn_lr
-from ott.solvers.quadratic import gromov_wasserstein, gromov_wasserstein_lr
+from ott.solvers.quadratic import gromov_wasserstein
 
 from moscot._types import ProblemKind_t, QuadInitializer_t, SinkhornInitializer_t
 from moscot.backends.ott._utils import alpha_to_fused_penalty, check_shapes, ensure_2d
@@ -19,7 +19,12 @@ from moscot.utils.tagged_array import TaggedArray
 
 __all__ = ["SinkhornSolver", "GWSolver"]
 
-OTTSolver_t = Union[sinkhorn.Sinkhorn, sinkhorn_lr.LRSinkhorn, gromov_wasserstein.GromovWasserstein, gromov_wasserstein.LRGromovWasserstein]
+OTTSolver_t = Union[
+    sinkhorn.Sinkhorn,
+    sinkhorn_lr.LRSinkhorn,
+    gromov_wasserstein.GromovWasserstein,
+    gromov_wasserstein.LRGromovWasserstein,
+]
 OTTProblem_t = Union[linear_problem.LinearProblem, quadratic_problem.QuadraticProblem]
 Scale_t = Union[float, Literal["mean", "median", "max_cost", "max_norm", "max_bound"]]
 
