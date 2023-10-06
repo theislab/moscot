@@ -6,7 +6,7 @@ import jax
 import jax.numpy as jnp
 import numpy as np
 from ott.solvers.linear import sinkhorn, sinkhorn_lr
-from ott.solvers.quadratic import gromov_wasserstein
+from ott.solvers.quadratic import gromov_wasserstein, gromov_wasserstein_lr
 
 import matplotlib as mpl
 import matplotlib.pyplot as plt
@@ -29,7 +29,7 @@ class OTTOutput(BaseSolverOutput):
     _NOT_COMPUTED = -1.0  # sentinel value used in `ott`
 
     def __init__(
-        self, output: Union[sinkhorn.SinkhornOutput, sinkhorn_lr.LRSinkhornOutput, gromov_wasserstein.GWOutput]
+        self, output: Union[sinkhorn.SinkhornOutput, sinkhorn_lr.LRSinkhornOutput, gromov_wasserstein.GWOutput, gromov_wasserstein.LRGWOutput]
     ):
         super().__init__()
         self._output = output
@@ -218,7 +218,7 @@ class OTTOutput(BaseSolverOutput):
 
     @property
     def rank(self) -> int:  # noqa: D102
-        lin_output = self._output if self.is_linear else self._output.linear_state
+        lin_output = self._output if self.is_linear else self._output.linear_state  # is there still a linear state?
         return len(lin_output.g) if isinstance(lin_output, sinkhorn_lr.LRSinkhornOutput) else -1
 
     def _ones(self, n: int) -> ArrayLike:  # noqa: D102

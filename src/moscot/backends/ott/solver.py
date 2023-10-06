@@ -8,7 +8,7 @@ from ott.geometry import costs, epsilon_scheduler, geometry, pointcloud
 from ott.problems.linear import linear_problem
 from ott.problems.quadratic import quadratic_problem
 from ott.solvers.linear import sinkhorn, sinkhorn_lr
-from ott.solvers.quadratic import gromov_wasserstein
+from ott.solvers.quadratic import gromov_wasserstein, gromov_wasserstein_lr
 
 from moscot._types import ProblemKind_t, QuadInitializer_t, SinkhornInitializer_t
 from moscot.backends.ott._utils import alpha_to_fused_penalty, check_shapes, ensure_2d
@@ -19,7 +19,7 @@ from moscot.utils.tagged_array import TaggedArray
 
 __all__ = ["SinkhornSolver", "GWSolver"]
 
-OTTSolver_t = Union[sinkhorn.Sinkhorn, sinkhorn_lr.LRSinkhorn, gromov_wasserstein.GromovWasserstein]
+OTTSolver_t = Union[sinkhorn.Sinkhorn, sinkhorn_lr.LRSinkhorn, gromov_wasserstein.GromovWasserstein, gromov_wasserstein.LRGromovWasserstein]
 OTTProblem_t = Union[linear_problem.LinearProblem, quadratic_problem.QuadraticProblem]
 Scale_t = Union[float, Literal["mean", "median", "max_cost", "max_norm", "max_bound"]]
 
@@ -246,18 +246,24 @@ class GWSolver(OTTJaxSolver):
             linear_solver_kwargs = dict(linear_solver_kwargs)
             linear_solver_kwargs.setdefault("gamma", 10)
             linear_solver_kwargs.setdefault("gamma_rescale", True)
-            linear_ot_solver = sinkhorn_lr.LRSinkhorn(rank=rank, **linear_solver_kwargs)
             initializer = "rank2" if initializer is None else initializer
+            self._solver = gromov_wasserstein.LRGromovWasserstein(
+                rank=rank,
+                quad_initializer=initializer,
+                kwargs_init=initializer_kwargs,
+                **linear_solver_kwargs,
+                **kwargs,
+            )
+
         else:
-            linear_ot_solver = sinkhorn.Sinkhorn(**linear_solver_kwargs)
             initializer = None
-        self._solver = gromov_wasserstein.GromovWasserstein(
-            rank=rank,
-            linear_ot_solver=linear_ot_solver,
-            quad_initializer=initializer,
-            kwargs_init=initializer_kwargs,
-            **kwargs,
-        )
+            self._solver = gromov_wasserstein.GromovWasserstein(
+                rank=rank,
+                quad_initializer=initializer,
+                kwargs_init=initializer_kwargs,
+                **linear_solver_kwargs,
+                **kwargs,
+            )
 
     def _prepare(
         self,
