@@ -6,7 +6,7 @@ import jax
 import jax.numpy as jnp
 import numpy as np
 from ott.solvers.linear import sinkhorn, sinkhorn_lr
-from ott.solvers.quadratic import gromov_wasserstein
+from ott.solvers.quadratic import gromov_wasserstein, gromov_wasserstein_lr
 
 import matplotlib as mpl
 import matplotlib.pyplot as plt
@@ -34,7 +34,7 @@ class OTTOutput(BaseSolverOutput):
             sinkhorn.SinkhornOutput,
             sinkhorn_lr.LRSinkhornOutput,
             gromov_wasserstein.GWOutput,
-            gromov_wasserstein.LRGWOutput,
+            gromov_wasserstein_lr.LRGWOutput,
         ],
     ):
         super().__init__()
