@@ -254,7 +254,7 @@ class GWSolver(OTTJaxSolver):
             initializer = "rank2" if initializer is None else initializer
             self._solver = gromov_wasserstein_lr.LRGromovWasserstein(
                 rank=rank,
-                quad_initializer=initializer,
+                initializer=initializer,
                 kwargs_init=initializer_kwargs,
                 **linear_solver_kwargs,
             )
