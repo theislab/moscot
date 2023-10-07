@@ -224,13 +224,12 @@ class OTTOutput(BaseSolverOutput):
 
     @property
     def rank(self) -> int:  # noqa: D102
-        lin_output = (
+        output = (
             self._output.linear_state if isinstance(self._output, gromov_wasserstein.GWOutput) else self._output
         )
-        # lin_output = self._output if self.is_linear else self._output.linear_state
         return (
-            len(lin_output.g)
-            if isinstance(lin_output, sinkhorn_lr.LRSinkhornOutput or gromov_wasserstein_lr.LRGWOutput)
+            len(output.g)
+            if isinstance(output, sinkhorn_lr.LRSinkhornOutput) or isinstance(output, gromov_wasserstein_lr.LRGWOutput)
             else -1
         )
 

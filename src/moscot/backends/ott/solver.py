@@ -257,6 +257,7 @@ class GWSolver(OTTJaxSolver):
                 initializer=initializer,
                 kwargs_init=initializer_kwargs,
                 **linear_solver_kwargs,
+                **kwargs,
             )
 
         else:
@@ -265,6 +266,7 @@ class GWSolver(OTTJaxSolver):
                 rank=rank,
                 quad_initializer=initializer,
                 kwargs_init=initializer_kwargs,
+                **linear_solver_kwargs,
                 **kwargs,
             )
 
