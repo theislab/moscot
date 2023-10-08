@@ -154,7 +154,7 @@ gw_args_2 = {
     "gw_unbalanced_correction": False,
     "ranks": 3,
     "tolerances": 3e-2,
-    "warm_start": True,
+    #"warm_start": True,
     "linear_solver_kwargs": linear_solver_kwargs2,
 }
 
@@ -173,6 +173,14 @@ gw_solver_args = {
     "initializer_kwargs": "kwargs_init",
     "warm_start": "_warm_start",
     "initializer": "quad_initializer",
+}
+
+gw_lr_solver_args = {
+    "epsilon": "epsilon",
+    "rank": "rank",
+    "threshold": "threshold",
+    "initializer_kwargs": "kwargs_init",
+    "initializer": "initializer",
 }
 
 gw_linear_solver_args = {

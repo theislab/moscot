@@ -29,6 +29,7 @@ from tests.problems.conftest import (
     gw_linear_solver_args,
     gw_lr_linear_solver_args,
     gw_solver_args,
+    gw_lr_solver_args,
     quad_prob_args,
 )
 
@@ -113,11 +114,11 @@ class TestGWProblem:
         problem = problem.solve(**args_to_check)
         key = ("0", "1")
         solver = problem[key].solver.solver
-        for arg, val in gw_solver_args.items():
+        for arg, val in gw_solver_args.items() if args_to_check["rank"] == -1 else gw_lr_solver_args.items():
             assert hasattr(solver, val)
             assert getattr(solver, val) == args_to_check[arg]
 
-        sinkhorn_solver = solver.linear_ot_solver
+        sinkhorn_solver = solver.linear_ot_solver if args_to_check["rank"] == -1 else solver
         lin_solver_args = gw_linear_solver_args if args_to_check["rank"] == -1 else gw_lr_linear_solver_args
         for arg, val in lin_solver_args.items():
             assert hasattr(sinkhorn_solver, val)

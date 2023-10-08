@@ -248,6 +248,7 @@ class GWSolver(OTTJaxSolver):
     ):
         super().__init__(jit=jit)
         if rank > -1:
+            kwargs = {**linear_solver_kwargs, **kwargs}
             kwargs.setdefault("gamma", 10)
             kwargs.setdefault("gamma_rescale", True)
             initializer = "random" if initializer is None else initializer
@@ -260,6 +261,7 @@ class GWSolver(OTTJaxSolver):
 
         else:
             initializer = None
+            kwargs = {**linear_solver_kwargs, **kwargs}
             self._solver = gromov_wasserstein.GromovWasserstein(
                 rank=rank,
                 quad_initializer=initializer,
