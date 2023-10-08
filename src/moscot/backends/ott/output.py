@@ -29,8 +29,8 @@ class OTTOutput(BaseSolverOutput):
     _NOT_COMPUTED = -1.0  # sentinel value used in `ott`
 
     def __init__(
-            self,
-            output: Union[
+        self,
+        output: Union[
             sinkhorn.SinkhornOutput,
             sinkhorn_lr.LRSinkhornOutput,
             gromov_wasserstein.GWOutput,
