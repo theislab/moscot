@@ -19,7 +19,12 @@ from moscot.utils.tagged_array import TaggedArray
 
 __all__ = ["SinkhornSolver", "GWSolver"]
 
-OTTSolver_t = Union[sinkhorn.Sinkhorn, sinkhorn_lr.LRSinkhorn, gromov_wasserstein.GromovWasserstein, gromov_wasserstein_lr.LRGromovWasserstein]
+OTTSolver_t = Union[
+    sinkhorn.Sinkhorn,
+    sinkhorn_lr.LRSinkhorn,
+    gromov_wasserstein.GromovWasserstein,
+    gromov_wasserstein_lr.LRGromovWasserstein,
+]
 OTTProblem_t = Union[linear_problem.LinearProblem, quadratic_problem.QuadraticProblem]
 Scale_t = Union[float, Literal["mean", "median", "max_cost", "max_norm", "max_bound"]]
 
