@@ -248,15 +248,17 @@ class GWSolver(OTTJaxSolver):
     ):
         super().__init__(jit=jit)
         if rank > -1:
-            linear_solver_kwargs = dict(linear_solver_kwargs)
-            linear_solver_kwargs.setdefault("gamma", 10)
-            linear_solver_kwargs.setdefault("gamma_rescale", True)
+            #linear_solver_kwargs = dict(linear_solver_kwargs)
+            #linear_solver_kwargs.setdefault("gamma", 10)
+            #linear_solver_kwargs.setdefault("gamma_rescale", True)
+            kwargs.setdefault("gamma", 10)
+            kwargs.setdefault("gamma_rescale", True)
             initializer = "rank2" if initializer is None else initializer
             self._solver = gromov_wasserstein_lr.LRGromovWasserstein(
                 rank=rank,
                 initializer=initializer,
                 kwargs_init=initializer_kwargs,
-                **linear_solver_kwargs,
+                #**linear_solver_kwargs,
                 **kwargs,
             )
 
@@ -266,7 +268,6 @@ class GWSolver(OTTJaxSolver):
                 rank=rank,
                 quad_initializer=initializer,
                 kwargs_init=initializer_kwargs,
-                **linear_solver_kwargs,
                 **kwargs,
             )
 
