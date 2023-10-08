@@ -28,8 +28,8 @@ from tests.problems.conftest import (
     gw_args_2,
     gw_linear_solver_args,
     gw_lr_linear_solver_args,
-    gw_solver_args,
     gw_lr_solver_args,
+    gw_solver_args,
     quad_prob_args,
 )
 

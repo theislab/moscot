@@ -154,7 +154,7 @@ gw_args_2 = {
     "gw_unbalanced_correction": False,
     "ranks": 3,
     "tolerances": 3e-2,
-    #"warm_start": True,
+    # "warm_start": True,
     "linear_solver_kwargs": linear_solver_kwargs2,
 }
 
