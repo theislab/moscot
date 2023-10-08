@@ -248,7 +248,7 @@ class GWSolver(OTTJaxSolver):
     ):
         super().__init__(jit=jit)
         if rank > -1:
-            kwargs = {**linear_solver_kwargs, **kwargs}
+            kwargs = {**kwargs, **linear_solver_kwargs}
             kwargs.setdefault("gamma", 10)
             kwargs.setdefault("gamma_rescale", True)
             initializer = "random" if initializer is None else initializer
