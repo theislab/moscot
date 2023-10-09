@@ -152,7 +152,6 @@ class TestMappingProblem:
             )
             assert el == tmp_dict[arg], arg
 
-
         quad_prob = problem[key]._solver._problem
         for arg, val in quad_prob_args.items():
             assert hasattr(quad_prob, val)

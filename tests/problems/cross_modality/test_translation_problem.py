@@ -16,8 +16,8 @@ from tests.problems.conftest import (
     geometry_args,
     gw_linear_solver_args,
     gw_lr_linear_solver_args,
-    gw_solver_args,
     gw_lr_solver_args,
+    gw_solver_args,
     pointcloud_args,
     quad_prob_args,
 )

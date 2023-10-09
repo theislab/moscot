@@ -18,8 +18,8 @@ from tests.problems.conftest import (
     geometry_args,
     gw_linear_solver_args,
     gw_lr_linear_solver_args,
-    gw_solver_args,
     gw_lr_solver_args,
+    gw_solver_args,
     pointcloud_args,
     quad_prob_args,
 )
@@ -221,7 +221,6 @@ class TestLineageProblem:
 
     @pytest.mark.parametrize("args_to_check", [fgw_args_1, fgw_args_2])
     def test_pass_arguments(self, adata_time_barcodes: AnnData, args_to_check: Mapping[str, Any]):
-        print("args to check ", args_to_check)
         problem = LineageProblem(adata=adata_time_barcodes)
         problem = problem.prepare(
             time_key="time",
@@ -247,7 +246,6 @@ class TestLineageProblem:
                 else getattr(sinkhorn_solver, val)
             )
             assert el == tmp_dict[arg], arg
-
 
         quad_prob = problem[key]._solver._problem
         for arg, val in quad_prob_args.items():
