@@ -122,7 +122,7 @@ gw_args_1 = {  # no gamma/gamma_rescale/tolerances/ranks as these are LR-specifi
     "gw_unbalanced_correction": True,
     "ranks": 4,
     "tolerances": 2e-2,
-    #"warm_start": False,
+    # "warm_start": False,
     "linear_solver_kwargs": linear_solver_kwargs1,
 }
 
