@@ -28,6 +28,7 @@ from tests.problems.conftest import (
     gw_args_2,
     gw_linear_solver_args,
     gw_lr_linear_solver_args,
+    gw_lr_solver_args,
     gw_solver_args,
     quad_prob_args,
 )
@@ -113,7 +114,8 @@ class TestGWProblem:
         problem = problem.solve(**args_to_check)
         key = ("0", "1")
         solver = problem[key].solver.solver
-        for arg, val in gw_solver_args.items():
+        args = gw_solver_args if args_to_check["rank"] == -1 else gw_lr_solver_args
+        for arg, val in args.items():
             assert hasattr(solver, val)
             assert getattr(solver, val) == args_to_check[arg]
 
