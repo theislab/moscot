@@ -122,7 +122,7 @@ gw_args_1 = {  # no gamma/gamma_rescale/tolerances/ranks as these are LR-specifi
     "gw_unbalanced_correction": True,
     "ranks": 4,
     "tolerances": 2e-2,
-    #"warm_start": False,
+    "warm_start": False,
     "linear_solver_kwargs": linear_solver_kwargs1,
 }
 
@@ -154,8 +154,10 @@ gw_args_2 = {
     "gw_unbalanced_correction": False,
     "ranks": 3,
     "tolerances": 3e-2,
-    "linear_solver_kwargs": linear_solver_kwargs2,
+    #"linear_solver_kwargs": linear_solver_kwargs2,
 }
+
+gw_args_2 = {**gw_args_2, **linear_solver_kwargs2}
 
 fgw_args_1 = gw_args_1.copy()
 fgw_args_1["alpha"] = 0.6
@@ -172,6 +174,16 @@ gw_solver_args = {
     "initializer_kwargs": "kwargs_init",
     "warm_start": "_warm_start",
     "initializer": "quad_initializer",
+}
+
+gw_lr_solver_args = {
+    "epsilon": "epsilon",
+    "rank": "rank",
+    "threshold": "threshold",
+    "min_iterations": "min_iterations",
+    "max_iterations": "max_iterations",
+    "initializer_kwargs": "kwargs_init",
+    "initializer": "initializer",
 }
 
 gw_linear_solver_args = {
