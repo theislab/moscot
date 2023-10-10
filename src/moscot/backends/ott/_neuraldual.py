@@ -22,9 +22,9 @@ from moscot.backends.ott._utils import (
     ConditionalDualPotentials,
     RunningAverageMeter,
     _compute_metrics_sinkhorn,
-    _compute_sinkhorn_divergence,
     _get_icnn,
     _get_optimizer,
+    sinkhorn_divergence,
 )
 
 Train_t = Dict[str, Dict[str, Union[float, List[float]]]]
@@ -179,7 +179,7 @@ class OTTNeuralDualSolver:
         optimizer_g
             Optimizer for `neural_g`.
         """
-        key_f, key_g, self.key = jax.random.split(self.key, 3)  # type:ignore[arg-type]
+        key_f, key_g, self.key = jax.random.split(self.key, 3)
 
         # check setting of network architectures
         if neural_g.pos_weights != self.pos_weights or neural_f.pos_weights != self.pos_weights:
@@ -228,7 +228,7 @@ class OTTNeuralDualSolver:
         return (res, logs)
 
     def pretrain_identity(
-        self, conditions: Optional[jnp.ndarray]  # type:ignore[name-defined]
+        self, conditions: Optional[jnp.ndarray]
     ) -> Train_t:  # TODO(@lucaeyr) conditions can be `None` right?
         """Pretrain the neural networks to parameterize the identity map.
 
@@ -244,9 +244,9 @@ class OTTNeuralDualSolver:
 
         @jax.jit
         def pretrain_loss_fn(
-            params: jnp.ndarray,  # type: ignore[name-defined]
-            data: jnp.ndarray,  # type: ignore[name-defined]
-            condition: jnp.ndarray,  # type: ignore[name-defined]
+            params: jnp.ndarray,
+            data: jnp.ndarray,
+            condition: jnp.ndarray,
             state: TrainState,
         ) -> float:
             """Loss function for the pretraining on identity."""
@@ -257,20 +257,18 @@ class OTTNeuralDualSolver:
             return ((grad_g_data - data) ** 2).sum(axis=1).mean()  # TODO make nicer
 
         # @jax.jit
-        def pretrain_update(
-            state: TrainState, key: jax.random.KeyArray
-        ) -> Tuple[jnp.ndarray, TrainState]:  # type:ignore[name-defined]
+        def pretrain_update(state: TrainState, key: jax.random.KeyArray) -> Tuple[jnp.ndarray, TrainState]:
             """Update function for the pretraining on identity."""
             # sample gaussian data with given scale
             x = self.pretrain_scale * jax.random.normal(key, [self.batch_size, self.input_dim])
-            condition = jax.random.choice(key, conditions) if self.cond_dim else None  # type:ignore[arg-type]
+            condition = jax.random.choice(key, conditions) if self.cond_dim else None
             grad_fn = jax.value_and_grad(pretrain_loss_fn, argnums=0)
             loss, grads = grad_fn(state.params, x, condition, state)
             return loss, state.apply_gradients(grads=grads)
 
         pretrain_logs: Dict[str, List[float]] = {"loss": []}
         for iteration in range(self.pretrain_iters):
-            key_pre, self.key = jax.random.split(self.key, 2)  # type:ignore[arg-type]
+            key_pre, self.key = jax.random.split(self.key, 2)
             # train step for potential g directly updating the train state
             loss, self.state_g = pretrain_update(self.state_g, key_pre)
             # clip weights of g
@@ -310,12 +308,12 @@ class OTTNeuralDualSolver:
         curr_patience: int = 0
         best_loss: float = jnp.inf
         best_iter_distance: float = None
-        best_params_f: jnp.ndarray = None  # type:ignore[name-defined]
-        best_params_g: jnp.ndarray = None  # type:ignore[name-defined]
+        best_params_f: jnp.ndarray = None
+        best_params_g: jnp.ndarray = None
 
         # define dict to contain source and target batch
-        batch: Dict[str, jnp.ndarray] = {}  # type:ignore[name-defined]
-        valid_batch: Dict[Tuple[Any, Any], Dict[str, jnp.ndarray]] = {}  # type:ignore[name-defined]
+        batch: Dict[str, jnp.ndarray] = {}
+        valid_batch: Dict[Tuple[Any, Any], Dict[str, jnp.ndarray]] = {}
         for pair in trainloader.policy_pairs:
             valid_batch[pair] = {}
             valid_batch[pair]["source"], valid_batch[pair]["target"] = validloader(
@@ -328,7 +326,7 @@ class OTTNeuralDualSolver:
                         "set. Consider setting `valid_sinkhorn_divergence` to False."
                     )
                 sink_dist.append(
-                    _compute_sinkhorn_divergence(
+                    sinkhorn_divergence(
                         point_cloud_1=valid_batch[pair]["source"],
                         point_cloud_2=valid_batch[pair]["target"],
                         **self.valid_sinkhorn_kwargs,
@@ -337,21 +335,21 @@ class OTTNeuralDualSolver:
 
         for iteration in tqdm(range(self.iterations)):
             # sample policy and condition if given in trainloader
-            policy_key, target_key, self.key = jax.random.split(self.key, 3)  # type:ignore[arg-type]
+            policy_key, target_key, self.key = jax.random.split(self.key, 3)
             policy_pair, batch["condition"] = trainloader.sample_policy_pair(policy_key)
             # sample target batch
             batch["target"] = trainloader(target_key, policy_pair, sample="target")
 
             if not self.is_balanced:
                 # sample source batch and compute unbalanced marginals
-                source_key, self.key = jax.random.split(self.key, 2)  # type:ignore[arg-type]
+                source_key, self.key = jax.random.split(self.key, 2)
                 curr_source = trainloader(source_key, policy_pair, sample="source")
                 marginals_source, marginals_target = trainloader.compute_unbalanced_marginals(
                     curr_source, batch["target"]
                 )
 
             for _ in range(self.inner_iters):
-                source_key, self.key = jax.random.split(self.key, 2)  # type:ignore[arg-type]
+                source_key, self.key = jax.random.split(self.key, 2)
 
                 if self.is_balanced:
                     # sample source batch
@@ -365,7 +363,7 @@ class OTTNeuralDualSolver:
                     average_meters[key].update(value)
             # resample target batch with unbalanced marginals
             if self.epsilon is not None:
-                target_key, self.key = jax.random.split(self.key, 2)  # type:ignore[arg-type]
+                target_key, self.key = jax.random.split(self.key, 2)
                 batch["target"] = trainloader.unbalanced_resample(target_key, batch["target"], marginals_target)
             # train step for potential f directly updating the train state
             self.state_g, train_g_metrics = self.train_step_g(self.state_f, self.state_g, batch)
@@ -425,18 +423,16 @@ class OTTNeuralDualSolver:
     def get_train_step(
         self,
         to_optimize: Literal["f", "g"],
-    ) -> Callable[  # type:ignore[name-defined]
-        [TrainState, TrainState, Dict[str, jnp.ndarray]], Tuple[TrainState, Dict[str, float]]
-    ]:
+    ) -> Callable[[TrainState, TrainState, Dict[str, jnp.ndarray]], Tuple[TrainState, Dict[str, float]]]:
         """Get one training step."""
 
         def loss_f_fn(
-            params_f: jnp.ndarray,  # type:ignore[name-defined]
-            params_g: jnp.ndarray,  # type:ignore[name-defined]
+            params_f: jnp.ndarray,
+            params_g: jnp.ndarray,
             state_f: TrainState,
             state_g: TrainState,
-            batch: Dict[str, jnp.ndarray],  # type:ignore[name-defined]
-        ) -> Tuple[jnp.ndarray, List[jnp.ndarray]]:  # type:ignore[name-defined]
+            batch: Dict[str, jnp.ndarray],
+        ) -> Tuple[jnp.ndarray, List[jnp.ndarray]]:
             """Loss function for f."""
             # get loss terms of kantorovich dual
             grad_f_src = jax.vmap(
@@ -454,12 +450,12 @@ class OTTNeuralDualSolver:
             return loss, [penalty]
 
         def loss_g_fn(
-            params_f: jnp.ndarray,  # type:ignore[name-defined]
-            params_g: jnp.ndarray,  # type:ignore[name-defined]
+            params_f: jnp.ndarray,
+            params_g: jnp.ndarray,
             state_f: TrainState,
             state_g: TrainState,
-            batch: Dict[str, jnp.ndarray],  # type:ignore[name-defined]
-        ) -> Tuple[jnp.ndarray, List[float]]:  # type: ignore[name-defined]
+            batch: Dict[str, jnp.ndarray],
+        ) -> Tuple[jnp.ndarray, List[float]]:
             """Loss function for g."""
             # get loss terms of kantorovich dual
             grad_f_src = jax.vmap(
@@ -482,7 +478,7 @@ class OTTNeuralDualSolver:
         def step_fn(
             state_f: TrainState,
             state_g: TrainState,
-            batch: Dict[str, jnp.ndarray],  # type: ignore[name-defined]
+            batch: Dict[str, jnp.ndarray],
         ) -> Tuple[TrainState, Dict[str, float]]:
             """Step function for training."""
             # get loss function for f or g
@@ -513,8 +509,8 @@ class OTTNeuralDualSolver:
         def valid_step(
             state_f: TrainState,
             state_g: TrainState,
-            batch: Dict[str, jnp.ndarray],  # type:ignore[name-defined]
-            condition: jnp.ndarray,  # type:ignore[name-defined]
+            batch: Dict[str, jnp.ndarray],
+            condition: jnp.ndarray,
         ) -> Dict[str, float]:
             """Create a validation function."""
             # get transported source and inverse transported target

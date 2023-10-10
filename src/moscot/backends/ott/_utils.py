@@ -2,7 +2,6 @@ import inspect
 from functools import partial
 from types import MappingProxyType
 from typing import (
-    TYPE_CHECKING,
     Any,
     Callable,
     Dict,
@@ -21,12 +20,13 @@ from flax.training.train_state import TrainState
 import jax
 import jax.numpy as jnp
 import jax.tree_util as jtu
+import scipy.sparse as sp
 from ott.geometry import costs, epsilon_scheduler, geometry
 from ott.geometry.pointcloud import PointCloud
 from ott.problems.linear import linear_problem
 from ott.problems.linear.potentials import DualPotentials
 from ott.solvers.linear import sinkhorn
-from ott.tools.sinkhorn_divergence import sinkhorn_divergence
+from ott.tools.sinkhorn_divergence import sinkhorn_divergence as sinkhorn_div
 
 from moscot._logging import logger
 from moscot._types import ArrayLike, ScaleCost_t
@@ -34,9 +34,6 @@ from moscot.backends.ott._icnn import ICNN
 
 Potential_t = Callable[[jnp.ndarray], float]
 CondPotential_t = Callable[[jnp.ndarray, float], float]
-
-if TYPE_CHECKING:
-    from ott.geometry import costs
 
 
 __all__ = ["ConditionalDualPotentials", "sinkhorn_divergence"]
@@ -59,7 +56,7 @@ def sinkhorn_divergence(
     a = None if a is None else jnp.asarray(a)
     b = None if b is None else jnp.asarray(b)
 
-    output = sinkhorn_divergence(
+    output = sinkhorn_div(
         PointCloud,
         x=point_cloud_1,
         y=point_cloud_2,
@@ -104,7 +101,7 @@ class RunningAverageMeter:
 
 @partial(jax.jit, static_argnames=["k"])
 def get_nearest_neighbors(
-    input_batch: jnp.ndarray, target: jnp.ndarray, k: int = 30  # type: ignore[name-defined]
+    input_batch: jnp.ndarray, target: jnp.ndarray, k: int = 30
 ) -> Tuple[jnp.ndarray, jnp.ndarray]:  # type: ignore[name-defined]
     """Get the k nearest neighbors of the input batch in the target."""
     if target.shape[0] < k:
@@ -211,13 +208,11 @@ class ConditionalDualPotentials:
         dp = self.to_dual_potentials(condition=condition)
         return dp.distance(src=src, tgt=tgt)
 
-    @property
-    def f(self, condition: ArrayLike) -> DualPotentials:
+    def get_f(self, condition: ArrayLike) -> DualPotentials:
         """The first dual potential function."""
         return lambda x: self._state_f.apply_fn({"params": self._state_f.params}, x=jnp.concatenate(x, condition))
 
-    @property
-    def g(self, condition: ArrayLike) -> CondPotential_t:
+    def get_g(self, condition: ArrayLike) -> CondPotential_t:
         """The second dual potential function."""
         return lambda x: self._state_g.apply_fn({"params": self._state_g.params}, x=jnp.concatenate(x, condition))
 
@@ -303,21 +298,21 @@ def _compute_metrics_sinkhorn(
     valid_eps: float,
     valid_sinkhorn_kwargs: Mapping[str, Any],
 ) -> Dict[str, float]:
-    sinkhorn_loss_data = sinkhorn_divergence(
+    sinkhorn_loss_data = sinkhorn_div(
         geom=PointCloud,
         x=tgt,
         y=src,
         epsilon=valid_eps,
         sinkhorn_kwargs=valid_sinkhorn_kwargs,
     ).divergence
-    sinkhorn_loss_forward = sinkhorn_divergence(
+    sinkhorn_loss_forward = sinkhorn_div(
         geom=PointCloud,
         x=tgt,
         y=pred_tgt,
         epsilon=valid_eps,
         sinkhorn_kwargs=valid_sinkhorn_kwargs,
     ).divergence
-    sinkhorn_loss_inverse = sinkhorn_divergence(
+    sinkhorn_loss_inverse = sinkhorn_div(
         geom=PointCloud,
         x=src,
         y=pred_src,

@@ -16,6 +16,7 @@ from ott.solvers.linear.sinkhorn import solve as sinkhorn
 from ott.solvers.linear.sinkhorn_lr import LRSinkhorn
 from ott.solvers.quadratic.gromov_wasserstein import GromovWasserstein
 from ott.solvers.quadratic.gromov_wasserstein import solve as gromov_wasserstein
+from ott.solvers.quadratic.gromov_wasserstein_lr import LRGromovWasserstein
 
 from moscot._types import ArrayLike, Device_t
 from moscot.backends.ott import GWSolver, SinkhornSolver
@@ -131,9 +132,15 @@ class TestGW:
     @pytest.mark.parametrize("rank", [-1, 7])
     def test_solver_rank(self, x: Geom_t, y: Geom_t, rank: int) -> None:
         thresh, eps = 1e-2, 1e-2
-        gt = GromovWasserstein(epsilon=eps, rank=rank, threshold=thresh)(
-            QuadraticProblem(PointCloud(x, epsilon=eps), PointCloud(y, epsilon=eps))
-        )
+        if rank > -1:
+            gt = LRGromovWasserstein(epsilon=eps, rank=rank, threshold=thresh, initializer="rank2")(
+                QuadraticProblem(PointCloud(x, epsilon=eps), PointCloud(y, epsilon=eps))
+            )
+
+        else:
+            gt = GromovWasserstein(epsilon=eps, rank=rank, threshold=thresh)(
+                QuadraticProblem(PointCloud(x, epsilon=eps), PointCloud(y, epsilon=eps))
+            )
 
         solver = GWSolver(rank=rank, epsilon=eps, threshold=thresh)
         pred = solver(x=x, y=y, tags={"x": "point_cloud", "y": "point_cloud"})

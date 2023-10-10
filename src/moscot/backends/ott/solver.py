@@ -11,7 +11,7 @@ from ott.geometry import costs, epsilon_scheduler, geometry, pointcloud
 from ott.problems.linear import linear_problem
 from ott.problems.quadratic import quadratic_problem
 from ott.solvers.linear import sinkhorn, sinkhorn_lr
-from ott.solvers.quadratic import gromov_wasserstein
+from ott.solvers.quadratic import gromov_wasserstein, gromov_wasserstein_lr
 
 from moscot._types import (
     ArrayLike,
@@ -40,7 +40,12 @@ from moscot.utils.tagged_array import TaggedArray
 
 __all__ = ["SinkhornSolver", "GWSolver", "NeuralDualSolver", "CondNeuralDualSolver"]
 
-OTTSolver_t = Union[sinkhorn.Sinkhorn, sinkhorn_lr.LRSinkhorn, gromov_wasserstein.GromovWasserstein]
+OTTSolver_t = Union[
+    sinkhorn.Sinkhorn,
+    sinkhorn_lr.LRSinkhorn,
+    gromov_wasserstein.GromovWasserstein,
+    gromov_wasserstein_lr.LRGromovWasserstein,
+]
 OTTProblem_t = Union[linear_problem.LinearProblem, quadratic_problem.QuadraticProblem]
 Scale_t = Union[float, Literal["mean", "median", "max_cost", "max_norm", "max_bound"]]
 
@@ -264,21 +269,25 @@ class GWSolver(OTTJaxSolver):
     ):
         super().__init__(jit=jit)
         if rank > -1:
-            linear_solver_kwargs = dict(linear_solver_kwargs)
-            linear_solver_kwargs.setdefault("gamma", 10)
-            linear_solver_kwargs.setdefault("gamma_rescale", True)
-            linear_ot_solver = sinkhorn_lr.LRSinkhorn(rank=rank, **linear_solver_kwargs)
+            kwargs.setdefault("gamma", 10)
+            kwargs.setdefault("gamma_rescale", True)
             initializer = "rank2" if initializer is None else initializer
+            self._solver = gromov_wasserstein_lr.LRGromovWasserstein(
+                rank=rank,
+                initializer=initializer,
+                kwargs_init=initializer_kwargs,
+                **kwargs,
+            )
         else:
             linear_ot_solver = sinkhorn.Sinkhorn(**linear_solver_kwargs)
             initializer = None
-        self._solver = gromov_wasserstein.GromovWasserstein(
-            rank=rank,
-            linear_ot_solver=linear_ot_solver,
-            quad_initializer=initializer,
-            kwargs_init=initializer_kwargs,
-            **kwargs,
-        )
+            self._solver = gromov_wasserstein.GromovWasserstein(
+                rank=rank,
+                linear_ot_solver=linear_ot_solver,
+                quad_initializer=initializer,
+                kwargs_init=initializer_kwargs,
+                **kwargs,
+            )
 
     def _prepare(
         self,
@@ -395,7 +404,7 @@ class NeuralDualSolver(OTSolver[OTTOutput]):
         return NeuralDualOutput(model, logs)  # type:ignore[arg-type]
 
     @staticmethod
-    def _assert2d(arr: ArrayLike, *, allow_reshape: bool = True) -> jnp.ndarray:  # type:ignore[name-defined]
+    def _assert2d(arr: ArrayLike, *, allow_reshape: bool = True) -> jnp.ndarray:
         arr: jnp.ndarray = jnp.asarray(arr.A if sp.issparse(arr) else arr)  # type: ignore[no-redef, attr-defined, name-defined]   # noqa:E501
         if allow_reshape and arr.ndim == 1:
             return jnp.reshape(arr, (-1, 1))
@@ -589,7 +598,7 @@ class GapSolver(OTSolver[OTTOutput]):
 
     @staticmethod
     def _assert2d(arr: ArrayLike, *, allow_reshape: bool = True) -> jnp.ndarray:
-        arr: jnp.ndarray = jnp.asarray(arr.A if issparse(arr) else arr)  # type: ignore[no-redef, attr-defined]
+        arr: jnp.ndarray = jnp.asarray(arr.A if sp.issparse(arr) else arr)  # type: ignore[no-redef, attr-defined]
         if allow_reshape and arr.ndim == 1:
             return jnp.reshape(arr, (-1, 1))
         if arr.ndim != 2:

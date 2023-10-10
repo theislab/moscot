@@ -29,6 +29,7 @@ from tests.problems.conftest import (
     geometry_args,
     gw_linear_solver_args,
     gw_lr_linear_solver_args,
+    gw_lr_solver_args,
     gw_solver_args,
     pointcloud_args,
     quad_prob_args,
@@ -98,18 +99,20 @@ class TestFGWProblem:
         key = ("0", "1")
 
         solver = problem[key].solver.solver
-        for arg, val in gw_solver_args.items():
+        args = gw_solver_args if args_to_check["rank"] == -1 else gw_lr_solver_args
+        for arg, val in args.items():
             assert getattr(solver, val, object()) == args_to_check[arg], arg
 
-        sinkhorn_solver = solver.linear_ot_solver
+        sinkhorn_solver = solver.linear_ot_solver if args_to_check["rank"] == -1 else solver
         lin_solver_args = gw_linear_solver_args if args_to_check["rank"] == -1 else gw_lr_linear_solver_args
+        tmp_dict = args_to_check["linear_solver_kwargs"] if args_to_check["rank"] == -1 else args_to_check
         for arg, val in lin_solver_args.items():
             el = (
                 getattr(sinkhorn_solver, val)[0]
                 if isinstance(getattr(sinkhorn_solver, val), tuple)
                 else getattr(sinkhorn_solver, val)
             )
-            assert el == args_to_check["linear_solver_kwargs"][arg], arg
+            assert el == tmp_dict[arg], arg
 
         quad_prob = problem[key].solver._problem
         for arg, val in quad_prob_args.items():

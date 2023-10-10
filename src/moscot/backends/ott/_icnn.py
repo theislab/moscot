@@ -15,8 +15,8 @@ class ICNN(nn.Module):
     input_dim: int
     cond_dim: int
     init_std: float = 0.1
-    init_fn: Callable[[jnp.ndarray], Callable[[jnp.ndarray], jnp.ndarray]] = nn.initializers.normal  # type: ignore[name-defined]  # noqa: E501
-    act_fn: Callable[[jnp.ndarray], jnp.ndarray] = nn.leaky_relu  # type: ignore[name-defined]
+    init_fn: Callable[[jnp.ndarray], Callable[[jnp.ndarray], jnp.ndarray]] = nn.initializers.normal  # noqa: E501
+    act_fn: Callable[[jnp.ndarray], jnp.ndarray] = nn.leaky_relu
     pos_weights: bool = False
 
     def setup(self):
@@ -136,7 +136,7 @@ class ICNN(nn.Module):
             self.v = v
 
     @nn.compact
-    def __call__(self, x: jnp.ndarray, c: Optional[jnp.ndarray] = None) -> jnp.ndarray:  # type: ignore[name-defined]
+    def __call__(self, x: jnp.ndarray, c: Optional[jnp.ndarray] = None) -> jnp.ndarray:
         """Apply ICNN module."""
         assert (c is not None) == (self.cond_dim > 0), "`conditional` flag and whether `c` is provided must match."
 
@@ -179,7 +179,7 @@ class ICNN(nn.Module):
 
     def create_train_state(
         self,
-        rng: jnp.ndarray,  # type: ignore[name-defined]
+        rng: jnp.ndarray,
         optimizer: optax.OptState,
         input_shape: Union[int, Tuple[int, ...]],
     ) -> train_state.TrainState:

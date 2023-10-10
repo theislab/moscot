@@ -7,8 +7,9 @@ import jaxlib.xla_extension as xla_ext
 import jax
 import jax.numpy as jnp
 import scipy.sparse as sp
-from ott.solvers.linear import potentials, sinkhorn, sinkhorn_lr
-from ott.solvers.quadratic import gromov_wasserstein
+from ott.problems.linear import potentials
+from ott.solvers.linear import sinkhorn, sinkhorn_lr
+from ott.solvers.quadratic import gromov_wasserstein, gromov_wasserstein_lr
 
 import matplotlib as mpl
 import matplotlib.pyplot as plt
@@ -35,7 +36,13 @@ class OTTOutput(BaseSolverOutput):
     _NOT_COMPUTED = -1.0  # sentinel value used in `ott`
 
     def __init__(
-        self, output: Union[sinkhorn.SinkhornOutput, sinkhorn_lr.LRSinkhornOutput, gromov_wasserstein.GWOutput]
+        self,
+        output: Union[
+            sinkhorn.SinkhornOutput,
+            sinkhorn_lr.LRSinkhornOutput,
+            gromov_wasserstein.GWOutput,
+            gromov_wasserstein_lr.LRGWOutput,
+        ],
     ):
         super().__init__()
         self._output = output
@@ -107,13 +114,12 @@ class OTTOutput(BaseSolverOutput):
         ax.set_xlabel("iteration (logged)")
         ax.set_ylabel(kind)
         if title is None:
-            title = "converged" if self.converged else "not converged"  # type: ignore[attr-defined]
+            title = "converged" if self.converged else "not converged"
         ax.set_title(title)
 
         if save is not None:
             fig.savefig(save)
-        if return_fig:
-            return fig
+        return fig if return_fig else None
 
 
 class OTTNeuralOutput(BaseNeuralOutput):
@@ -184,7 +190,7 @@ class NeuralDualOutput(OTTNeuralOutput):
     def _apply(self, x: ArrayLike, *, forward: bool) -> ArrayLike:
         return self._output.transport(x, forward=forward)
 
-    def plot_convergence(  # type: ignore[override]
+    def plot_convergence(
         self,
         data: Dict[Literal["pretrain", "train", "valid"], str] = MappingProxyType({"train": "loss"}),
         last_k: Optional[int] = None,
@@ -241,6 +247,7 @@ class NeuralDualOutput(OTTNeuralOutput):
         raise NotImplementedError()
 
     def is_linear(self) -> bool:
+        """Return if problem is linear."""
         return True
 
     def project_transport_matrix(  # type:ignore[override]
@@ -678,7 +685,7 @@ class CondNeuralDualOutput(NeuralDualOutput):
         return jax.vmap(self._output.g)(cond, x)
 
 
-class GapNeuralOutput(ConvergencePlotterMixin, BaseNeuralOutput):
+class GapNeuralOutput(BaseNeuralOutput):
     """
     Output representation of neural OT problems based on Gap formulations.
 
@@ -878,8 +885,12 @@ class GapNeuralOutput(ConvergencePlotterMixin, BaseNeuralOutput):
         return ", ".join(f"{name}={fmt(val)}" for name, val in params.items())
 
     def rank(self) -> int:  # noqa: D102
-        lin_output = self._output if self.is_linear else self._output.linear_state
-        return len(lin_output.g) if isinstance(lin_output, sinkhorn_lr.LRSinkhornOutput) else -1
+        output = self._output.linear_state if isinstance(self._output, gromov_wasserstein.GWOutput) else self._output
+        return (
+            len(output.g)
+            if isinstance(output, (sinkhorn_lr.LRSinkhornOutput, gromov_wasserstein_lr.LRGWOutput))
+            else -1
+        )
 
     def _ones(self, n: int) -> ArrayLike:  # noqa: D102
         return jnp.ones((n,))

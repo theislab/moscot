@@ -1,7 +1,7 @@
 import sys
 from collections import defaultdict
 from types import MappingProxyType
-from typing import Any, Callable, Dict, List, Literal, Mapping, Tuple, Union
+from typing import Any, Callable, Dict, List, Literal, Mapping, Optional, Tuple, Union
 
 import optax
 from flax.core.scope import FrozenDict
@@ -25,10 +25,10 @@ from moscot._types import ArrayLike
 from moscot.backends.ott._jax_data import JaxSampler
 from moscot.backends.ott._utils import (
     RunningAverageMeter,
-    _compute_sinkhorn_divergence,
     _regularized_wasserstein,
     compute_ds_diff,
     mmd_rbf,
+    sinkhorn_divergence,
 )
 
 Train_t = Dict[str, Dict[str, List[float]]]
@@ -95,13 +95,8 @@ class MongeGapSolver:
         log_freq: int = 10,
         patience: int = 100,
         min_improvement: float = 1e-3,
-        neural_net: ModelBase = MLP(dim_hidden=[128, 64, 64], is_potential=False, act_fn=nn.gelu),
-        optimizer: optax.OptState = optax.adamw(
-            learning_rate=1e-3,
-            b1=0.5,
-            b2=0.9,
-            weight_decay=0.0,
-        ),
+        neural_net: Optional[ModelBase] = None,
+        optimizer: Optional[optax.OptState] = None,
         valid_sinkhorn_kwargs: Dict[str, Any] = MappingProxyType({}),
         compute_wasserstein_baseline: bool = True,
         lambda_monge_gap: float = 0.1,
@@ -125,8 +120,19 @@ class MongeGapSolver:
         self.lambda_monge_gap = lambda_monge_gap
         self._monge_gap_geom_kwargs = monge_gap_geom_kwargs
         self._monge_gap_sinkhorn_kwargs = monge_gap_sinkhorn_kwargs
-        self._neural_net = neural_net
-        self._optimizer = optimizer
+        self._neural_net = (
+            neural_net if neural_net is not None else MLP(dim_hidden=[128, 64, 64], is_potential=False, act_fn=nn.gelu)
+        )
+        self._optimizer = (
+            optimizer
+            if optimizer is not None
+            else optax.adamw(
+                learning_rate=1e-3,
+                b1=0.5,
+                b2=0.9,
+                weight_decay=0.0,
+            ),
+        )
         self.valid_sinkhorn_kwargs = dict(valid_sinkhorn_kwargs)
         self.valid_sinkhorn_kwargs.setdefault("tau_a", self.tau_a)
         self.valid_sinkhorn_kwargs.setdefault("tau_b", self.tau_b)
@@ -191,6 +197,7 @@ class MongeGapSolver:
     ) -> Train_t:
         """
         Train the model.
+
         :param trainloader: Data loader for the training data.
         :param validloader: Data loader for the validation data.
 
@@ -221,7 +228,7 @@ class MongeGapSolver:
                         "set. Consider setting `valid_sinkhorn_divergence` to False."
                     )
                 sink_dist.append(
-                    _compute_sinkhorn_divergence(
+                    sinkhorn_divergence(
                         point_cloud_1=valid_batch[pair]["source"],
                         point_cloud_2=valid_batch[pair]["target"],
                         **self.valid_sinkhorn_kwargs,
@@ -269,7 +276,7 @@ class MongeGapSolver:
 
             is_validation_iteration = iteration % self.valid_freq == 0
             if is_validation_iteration:
-                for index, pair in enumerate(trainloader.policy_pairs):
+                for pair in trainloader.policy_pairs:
                     valid_metrics = self._valid_step(self._state_neural_net, valid_batch[pair])
                     for key, value in valid_metrics.items():
                         valid_logs[f"{pair[0]}_{pair[1]}_{key}"].append(value)
@@ -323,7 +330,9 @@ class MongeGapSolver:
             batch: Dict[str, jnp.ndarray],
         ) -> Tuple[float, Dict[str, float]]:
             """
-            Loss function for training. Composed of:
+            Loss function for training.
+
+            Composed of:
             - Fitting loss: regularized wasserstein distance between source push-forward and target.
             - Monge gap loss: Monge gap as in :cite:`uscidda2023monge`.
             """

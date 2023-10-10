@@ -21,6 +21,7 @@ import scanpy as sc
 from anndata import AnnData
 
 from moscot import _constants
+from moscot._logging import logger
 from moscot._types import ArrayLike, Numeric_t, Str_Dict_t
 from moscot.base.output import BaseSolverOutput
 from moscot.base.problems._utils import (
@@ -795,8 +796,7 @@ class NeuralAnalysisMixin(AnalysisMixin[K, B]):
             }
             self.adata.obs[key_added] = self._flatten(result, key=self.temporal_key)  # type:ignore[attr-defined, misc]
             set_plotting_vars(self.adata, _constants.PUSH, key=key_added, value=plot_vars)  # type:ignore[attr-defined]
-        if return_data:
-            return result
+        return result if return_data else None
 
     def pull(
         self,
@@ -850,5 +850,4 @@ class NeuralAnalysisMixin(AnalysisMixin[K, B]):
             set_plotting_vars(
                 self.adata, _constants.PULL, key=key_added, value=plot_vars  # type:ignore[attr-defined]
             )
-        if return_data:
-            return result
+        return result if return_data else None

@@ -980,12 +980,12 @@ class CondOTProblem(BaseProblem):  # TODO(@MUCDK) check generic types, save and 
 
         xy = {k[2:]: v for k, v in xy.items() if k.startswith("x_")}
         for (src, tgt), (src_mask, tgt_mask) in self._inner_policy().create_masks().items():
-            if src not in self._distributions.keys():
+            if src not in self._distributions:
                 x_tagged = TaggedArray.from_adata(self.adata[src_mask], dist_key=policy_key, tag=Tag.POINT_CLOUD, **xy)
                 a = self._create_marginals(self.adata[src_mask], data=self._a, source=True, **kwargs)
                 b = self._create_marginals(self.adata[src_mask], data=self._b, source=False, **kwargs)
                 self._distributions[src] = (x_tagged, a, b)
-            if tgt not in self._distributions.keys():
+            if tgt not in self._distributions:
                 x_tagged = TaggedArray.from_adata(self.adata[tgt_mask], dist_key=policy_key, tag=Tag.POINT_CLOUD, **xy)
                 a = self._create_marginals(self.adata[tgt_mask], data=self._a, source=True, **kwargs)
                 b = self._create_marginals(self.adata[tgt_mask], data=self._b, source=False, **kwargs)
