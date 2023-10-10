@@ -354,6 +354,14 @@ class GWSolver(OTTJaxSolver):
     def problem_kind(self) -> ProblemKind_t:  # noqa: D102
         return "quadratic"
 
+    @classmethod
+    def _call_kwargs(cls) -> Tuple[Set[str], Set[str]]:
+        geom_kwargs = {"epsilon", "relative_epsilon", "batch_size", "scale_cost", "cost_kwargs", "cost_matrix_rank"}
+        problem_kwargs = set(inspect.signature(quadratic_problem.QuadraticProblem).parameters.keys())
+        problem_kwargs -= {"geom_xx", "geom_yy", "geom_xy", "fused_penalty"}
+        problem_kwargs |= {"alpha"}
+        return geom_kwargs | problem_kwargs, {"epsilon"}
+
 
 class NeuralDualSolver(OTSolver[OTTOutput]):
     """Solver class solving Neural Optimal Transport problems."""
