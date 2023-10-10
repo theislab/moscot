@@ -479,7 +479,7 @@ class GWProblem(GenericAnalysisMixin[K, B], CompoundProblem[K, B]):  # type: ign
 
     @property
     def _valid_policies(self) -> Tuple[Policy_t, ...]:
-        return _constants.SEQUENTIAL, _constants.PAIRWISE, _constants.EXPLICIT  # type: ignore[return-value]
+        return _constants.SEQUENTIAL, _constants.EXPLICIT  # type: ignore[return-value]
 
 
 class NeuralProblem(CompoundProblem[K, B], GenericAnalysisMixin[K, B]):
@@ -564,7 +564,7 @@ class NeuralProblem(CompoundProblem[K, B], GenericAnalysisMixin[K, B]):
 
     @property
     def _valid_policies(self) -> Tuple[Policy_t, ...]:
-        return _constants.SEQUENTIAL, _constants.PAIRWISE, _constants.EXPLICIT  # type: ignore[return-value]
+        return _constants.SEQUENTIAL, _constants.EXPLICIT  # type: ignore[return-value]
 
 
 class ConditionalNeuralProblem(CondOTProblem, GenericAnalysisMixin[K, B]):
@@ -649,7 +649,7 @@ class ConditionalNeuralProblem(CondOTProblem, GenericAnalysisMixin[K, B]):
 
     @property
     def _valid_policies(self) -> Tuple[Policy_t, ...]:
-        return _constants.SEQUENTIAL, _constants.PAIRWISE, _constants.EXPLICIT  # type: ignore[return-value]
+        return _constants.SEQUENTIAL, _constants.EXPLICIT  # type: ignore[return-value]
 
 
 class MGNeuralProblem(CompoundProblem[K, B], GenericAnalysisMixin[K, B]):
@@ -718,4 +718,4 @@ class MGNeuralProblem(CompoundProblem[K, B], GenericAnalysisMixin[K, B]):
 
     @property
     def _valid_policies(self) -> Tuple[Policy_t, ...]:
-        return _constants.SEQUENTIAL, _constants.PAIRWISE, _constants.EXPLICIT  # type: ignore[return-value]
+        return _constants.SEQUENTIAL, _constants.EXPLICIT  # type: ignore[return-value]
