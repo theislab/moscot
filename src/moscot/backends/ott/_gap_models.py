@@ -385,7 +385,9 @@ class MongeGapSolver:
             batch: Dict[str, jnp.ndarray],
         ) -> Tuple[float, Dict[str, float]]:
             """
-            Loss function for validation. As per :cite:`bunne2022supervised`, we compute:
+            Loss function for validation. 
+            
+            As per :cite:`bunne2022supervised`, we compute:
             - Sinkhorn divergence between predicted target and ground truth
             - Maximum Mean Discrepancy
             - Drug Signature difference, i.e. the euclidian distance between the vectors of means.
