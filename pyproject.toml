@@ -59,6 +59,7 @@ dependencies = [
     "cloudpickle>=2.2.0",
     "rich>=13.5",
     "optax>=0.1.7",
+    "flax>=0.7.1",
 ]
 
 [project.optional-dependencies]
