@@ -58,15 +58,14 @@ dependencies = [
     "ott-jax>=0.4.4",
     "cloudpickle>=2.2.0",
     "rich>=13.5",
+    "optax>=0.1.7",
 ]
 
 [project.optional-dependencies]
 spatial = [
     "squidpy>=1.2.3"
 ]
-neural = [
-    "optax",
-]
+
 dev = [
     "pre-commit>=3.0.0",
     "tox>=4",
