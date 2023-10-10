@@ -55,8 +55,9 @@ dependencies = [
     "scanpy>=1.9.3",
     "wrapt>=1.13.2",
     "docrep>=0.3.2",
-    "ott-jax>=0.4.3",
+    "ott-jax>=0.4.4",
     "cloudpickle>=2.2.0",
+    "rich>=13.5",
 ]
 
 [project.optional-dependencies]
