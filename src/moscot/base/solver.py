@@ -202,6 +202,9 @@ class OTSolver(TagConverter, BaseSolver[O], abc.ABC):
         -------
         The optimal transport solution.
         """
+        if isinstance(xy, dict):  # neural solvers TODO: this is unnecessary now
+            res = super().__call__(xy=xy, **kwargs)
+            return res.to(device=device)
         data = self._get_array_data(xy=xy, x=x, y=y, tags=tags)
         kwargs = {**kwargs, **self._untag(data)}
         res = super().__call__(**kwargs)
