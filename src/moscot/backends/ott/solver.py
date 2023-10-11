@@ -470,6 +470,10 @@ class NeuralDualSolver(OTSolver[OTTOutput]):
         """Problem kind."""
         return "linear"
 
+    @classmethod
+    def _call_kwargs(cls) -> Tuple[Set[str], Set[str]]:
+        return {"trainloader", "validloader"}
+
 
 class CondNeuralDualSolver(NeuralDualSolver):
     """Solver class solving Conditional Neural Optimal Transport problems."""
@@ -554,6 +558,10 @@ class CondNeuralDualSolver(NeuralDualSolver):
     def _solve(self, data_samplers: Tuple[JaxSampler, JaxSampler]) -> CondNeuralDualOutput:  # type: ignore[override]
         model, logs = self.solver(data_samplers[0], data_samplers[1])
         return CondNeuralDualOutput(output=model, training_logs=logs)  # type:ignore[arg-type]
+
+    @classmethod
+    def _call_kwargs(cls) -> Tuple[Set[str], Set[str]]:
+        return {"trainloader", "validloader"}
 
 
 class GapSolver(OTSolver[OTTOutput]):
@@ -664,8 +672,4 @@ class GapSolver(OTSolver[OTTOutput]):
 
     @classmethod
     def _call_kwargs(cls) -> Tuple[Set[str], Set[str]]:
-        geom_kwargs = {"epsilon", "relative_epsilon", "batch_size", "scale_cost", "cost_kwargs", "cost_matrix_rank"}
-        problem_kwargs = set(inspect.signature(quadratic_problem.QuadraticProblem).parameters.keys())
-        problem_kwargs -= {"geom_xx", "geom_yy", "geom_xy", "fused_penalty"}
-        problem_kwargs |= {"alpha"}
-        return geom_kwargs | problem_kwargs, {"epsilon"}
+        pass

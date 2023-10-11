@@ -18,7 +18,6 @@ from ott.geometry.pointcloud import PointCloud
 from ott.problems.linear import linear_problem
 from ott.solvers.linear import acceleration, sinkhorn
 from ott.solvers.nn.models import MLP, ModelBase
-from ott.tools.sinkhorn_divergence import sinkhorn_divergence
 
 from moscot._logging import logger
 from moscot._types import ArrayLike
@@ -385,8 +384,8 @@ class MongeGapSolver:
             batch: Dict[str, jnp.ndarray],
         ) -> Tuple[float, Dict[str, float]]:
             """
-            Loss function for validation. 
-            
+            Loss function for validation.
+
             As per :cite:`bunne2022supervised`, we compute:
             - Sinkhorn divergence between predicted target and ground truth
             - Maximum Mean Discrepancy

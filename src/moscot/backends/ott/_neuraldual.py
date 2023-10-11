@@ -537,7 +537,10 @@ class OTTNeuralDualSolver:
 
     def clip_weights_icnn(self, params: FrozenVariableDict) -> FrozenVariableDict:
         """Clip weights of ICNN."""
+        # try:
         params = params.unfreeze()
+        # except AttributeError:
+        #    pass
         for key in params:
             if key.startswith("w_zs"):
                 params[key]["kernel"] = jnp.clip(params[key]["kernel"], a_min=0)

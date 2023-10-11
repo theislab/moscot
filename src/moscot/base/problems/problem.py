@@ -403,7 +403,9 @@ class OTProblem(BaseProblem):
         - :attr:`solver` - the :term:`OT` solver.
         - :attr:`solution` - the :term:`OT` solution.
         """
-        solver_class = backends.get_solver(self.problem_kind, backend=backend, return_class=True)
+        solver_class = backends.get_solver(
+            self.problem_kind, solver_name=solver_name, backend=backend, return_class=True
+        )
         init_kwargs, call_kwargs = solver_class._partition_kwargs(**kwargs)
         self._solver = solver_class(**init_kwargs)
 

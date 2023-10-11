@@ -1,6 +1,18 @@
+import inspect
 import types
 from types import MappingProxyType
-from typing import Any, Dict, Iterable, Literal, Mapping, Optional, Tuple, Type, Union
+from typing import (
+    Any,
+    Dict,
+    Iterable,
+    Literal,
+    Mapping,
+    Optional,
+    Set,
+    Tuple,
+    Type,
+    Union,
+)
 
 from anndata import AnnData
 
@@ -565,6 +577,11 @@ class NeuralProblem(CompoundProblem[K, B], GenericAnalysisMixin[K, B]):
     @property
     def _valid_policies(self) -> Tuple[Policy_t, ...]:
         return _constants.SEQUENTIAL, _constants.EXPLICIT  # type: ignore[return-value]
+
+    @classmethod
+    def _call_kwargs(cls) -> Tuple[Set[str], Set[str]]:
+        init_kwargs = set(inspect.signature(NeuralOTProblem).parameters.keys())
+        return init_kwargs, {}
 
 
 class ConditionalNeuralProblem(CondOTProblem, GenericAnalysisMixin[K, B]):

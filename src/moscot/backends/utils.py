@@ -16,7 +16,7 @@ def get_solver(problem_kind: ProblemKind_t, *, backend: str = "ott", return_clas
     """TODO."""
     if backend not in _REGISTRY:
         raise ValueError(f"Backend `{backend!r}` is not available.")
-    solver_class = _REGISTRY[backend](problem_kind)
+    solver_class = _REGISTRY[backend](problem_kind, solver_name=kwargs.pop("solver_name", None))
     return solver_class if return_class else solver_class(**kwargs)
 
 
@@ -48,11 +48,11 @@ def _(
     from moscot.backends import ott
 
     if solver_name == "NeuralDualSolver":
-        return ott.NeuralDualSolver(**kwargs)
+        return ott.NeuralDualSolver
     if solver_name == "CondNeuralDualSolver":
-        return ott.CondNeuralDualSolver(**kwargs)
+        return ott.CondNeuralDualSolver
     if solver_name == "MongeGap":
-        return ott.MongeGapSolver(**kwargs)
+        return ott.MongeGapSolver
     if problem_kind == "linear":
         return ott.SinkhornSolver
     if problem_kind == "quadratic":
