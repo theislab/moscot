@@ -19,7 +19,6 @@ from moscot._types import (
     QuadInitializer_t,
     SinkhornInitializer_t,
 )
-from moscot.backends.ott._gap_models import MongeGapSolver
 from moscot.backends.ott._jax_data import JaxSampler
 from moscot.backends.ott._neuraldual import OTTNeuralDualSolver
 from moscot.backends.ott._utils import (
@@ -28,12 +27,7 @@ from moscot.backends.ott._utils import (
     check_shapes,
     ensure_2d,
 )
-from moscot.backends.ott.output import (
-    CondNeuralDualOutput,
-    GapNeuralOutput,
-    NeuralDualOutput,
-    OTTOutput,
-)
+from moscot.backends.ott.output import CondNeuralDualOutput, NeuralDualOutput, OTTOutput
 from moscot.base.solver import OTSolver
 from moscot.costs import get_cost
 from moscot.utils.tagged_array import TaggedArray
@@ -557,119 +551,8 @@ class CondNeuralDualSolver(NeuralDualSolver):
 
     def _solve(self, data_samplers: Tuple[JaxSampler, JaxSampler]) -> CondNeuralDualOutput:  # type: ignore[override]
         model, logs = self.solver(data_samplers[0], data_samplers[1])
-        return CondNeuralDualOutput(output=model, training_logs=logs)  # type:ignore[arg-type]
+        return CondNeuralDualOutput(output=model, training_logs=logs)
 
     @classmethod
     def _call_kwargs(cls) -> Tuple[Set[str], Set[str]]:
         return {"trainloader", "validloader"}
-
-
-class GapSolver(OTSolver[OTTOutput]):
-    """Solver class solving Gap Optimal Transport problems."""
-
-    def __init__(self, **kwargs: Any) -> None:
-        super().__init__()
-        self._train_sampler: Optional[JaxSampler] = None
-        self._valid_sampler: Optional[JaxSampler] = None
-        kwargs = _filter_kwargs(MongeGapSolver, **kwargs)
-        self._solver = MongeGapSolver(**kwargs)
-
-    def _prepare(  # type: ignore[override]
-        self,
-        xy: TaggedArray,
-        a: Optional[ArrayLike] = None,
-        b: Optional[ArrayLike] = None,
-        **kwargs: Any,
-    ) -> Tuple[JaxSampler, JaxSampler]:
-        if xy.data_tgt is None:
-            raise ValueError(f"Unable to obtain target data from `xy={xy}`.")
-        x, y = self._assert2d(xy.data_src), self._assert2d(xy.data_tgt)
-        n, m = x.shape[1], y.shape[1]
-        if n != m:
-            raise ValueError(f"Expected `x/y` to have the same number of dimensions, found `{n}/{m}`.")
-        train_size = kwargs.pop("train_size", 1.0)
-        if train_size > 1.0 or train_size <= 0.0:
-            raise ValueError("Invalid train_size. Must be: 0 < train_size <= 1")
-        if train_size != 1.0:
-            seed = kwargs.pop("seed", 0)
-            train_x, train_y, valid_x, valid_y, train_a, train_b, valid_a, valid_b = self._split_data(
-                x, y, train_size=train_size, seed=seed, a=a, b=b
-            )
-        else:
-            train_x, train_y, train_a, train_b = x, y, a, b
-            valid_x, valid_y, valid_a, valid_b = x, y, a, b
-
-        kwargs = _filter_kwargs(JaxSampler, **kwargs)
-        self._train_sampler = JaxSampler(
-            [train_x, train_y], policy_pairs=[(0, 1)], a=[train_a, []], b=[[], train_b], **kwargs
-        )
-        self._valid_sampler = JaxSampler(
-            [valid_x, valid_y], policy_pairs=[(0, 1)], a=[valid_a, []], b=[[], valid_b], **kwargs
-        )
-        return (self._train_sampler, self._valid_sampler)
-
-    def _solve(self, data_samplers: Tuple[JaxSampler, JaxSampler]) -> GapNeuralOutput:  # type: ignore[override]
-        model, logs = self.solver(data_samplers[0], data_samplers[1])
-        return GapNeuralOutput(model, logs)
-
-    @staticmethod
-    def _assert2d(arr: ArrayLike, *, allow_reshape: bool = True) -> jnp.ndarray:
-        arr: jnp.ndarray = jnp.asarray(arr.A if sp.issparse(arr) else arr)  # type: ignore[no-redef, attr-defined]
-        if allow_reshape and arr.ndim == 1:
-            return jnp.reshape(arr, (-1, 1))
-        if arr.ndim != 2:
-            raise ValueError(f"Expected array to have 2 dimensions, found `{arr.ndim}`.")
-        return arr
-
-    def _split_data(
-        self,
-        x: ArrayLike,
-        y: ArrayLike,
-        train_size: float,
-        seed: int,
-        a: Optional[ArrayLike] = None,
-        b: Optional[ArrayLike] = None,
-    ) -> Tuple[
-        ArrayLike,
-        ArrayLike,
-        ArrayLike,
-        ArrayLike,
-        Optional[ArrayLike],
-        Optional[ArrayLike],
-        Optional[ArrayLike],
-        Optional[ArrayLike],
-    ]:
-        n_samples_x = x.shape[0]
-        n_samples_y = y.shape[0]
-        n_train_x = math.ceil(train_size * n_samples_x)
-        n_train_y = math.ceil(train_size * n_samples_y)
-        key = jax.random.PRNGKey(seed=seed)
-        x = jax.random.permutation(key, x)
-        y = jax.random.permutation(key, y)
-        if a is not None:
-            a = jax.random.permutation(key, a)
-        if b is not None:
-            b = jax.random.permutation(key, b)
-        return (
-            x[:n_train_x],
-            y[:n_train_y],
-            x[n_train_x:],
-            y[n_train_y:],
-            a[:n_train_x] if a is not None else None,
-            b[:n_train_x] if b is not None else None,
-            a[n_train_x:] if a is not None else None,
-            b[n_train_x:] if b is not None else None,
-        )
-
-    @property
-    def solver(self) -> MongeGapSolver:
-        """Underlying optimal transport solver."""
-        return self._solver
-
-    @property
-    def problem_kind(self) -> ProblemKind_t:
-        return "linear"
-
-    @classmethod
-    def _call_kwargs(cls) -> Tuple[Set[str], Set[str]]:
-        pass

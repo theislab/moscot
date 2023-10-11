@@ -24,7 +24,6 @@ __all__ = [
     "OTTNeuralDualSolver",
     "OTTNeuralDualSolver",
     "CondNeuralDualSolver",
-    "MongeGapSolver",
 ]
 
 

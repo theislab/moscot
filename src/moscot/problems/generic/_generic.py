@@ -32,7 +32,7 @@ from moscot.base.problems.problem import CondOTProblem, NeuralOTProblem, OTProbl
 from moscot.problems._utils import handle_cost, handle_joint_attr
 from moscot.problems.generic._mixins import GenericAnalysisMixin
 
-__all__ = ["SinkhornProblem", "GWProblem", "NeuralProblem", "ConditionalNeuralProblem", "MGNeuralProblem"]
+__all__ = ["SinkhornProblem", "GWProblem", "NeuralProblem", "ConditionalNeuralProblem"]
 
 
 class SinkhornProblem(GenericAnalysisMixin[K, B], CompoundProblem[K, B]):  # type: ignore[misc]
@@ -667,72 +667,3 @@ class ConditionalNeuralProblem(CondOTProblem, GenericAnalysisMixin[K, B]):
     @property
     def _valid_policies(self) -> Tuple[Policy_t, ...]:
         return _constants.SEQUENTIAL, _constants.EXPLICIT  # type: ignore[return-value]
-
-
-class MGNeuralProblem(CompoundProblem[K, B], GenericAnalysisMixin[K, B]):
-    """Class for solving Neural problems with the Monge gap, TODO cite."""
-
-    def prepare(
-        self,
-        key: str,
-        joint_attr: Optional[Union[str, Mapping[str, Any]]] = None,
-        policy: Literal["sequential", "pairwise", "explicit"] = "sequential",
-        a: Optional[str] = None,
-        b: Optional[str] = None,
-        **kwargs: Any,
-    ) -> "MGNeuralProblem[K, B]":
-        """Prepare the :class:`moscot.problems.generic.MGNeuralProblem[K, B]`."""
-        self.batch_key = key  # type:ignore[misc]
-        xy, kwargs = handle_joint_attr(joint_attr, kwargs)
-        return super().prepare(
-            key=key,
-            policy=policy,
-            xy=xy,
-            a=a,
-            b=b,
-            **kwargs,
-        )
-
-    def solve(
-        self,
-        batch_size: int = 1024,
-        tau_a: float = 1.0,
-        tau_b: float = 1.0,
-        epsilon: float = 0.1,
-        seed: int = 0,
-        pos_weights: bool = False,
-        dim_hidden: Iterable[int] = (64, 64, 64, 64),
-        iterations: int = 25000,  # TODO(@MUCDK): rename to max_iterations
-        valid_freq: int = 50,
-        log_freq: int = 5,
-        patience: int = 100,
-        pretrain_iters: int = 15001,
-        train_size: float = 1.0,
-        **kwargs: Any,
-    ) -> "MGNeuralProblem[K, B]":
-        """Solve."""
-        return super().solve(  # type: ignore[return-value]
-            batch_size=batch_size,
-            tau_a=tau_a,
-            tau_b=tau_b,
-            epsilon=epsilon,
-            seed=seed,
-            pos_weights=pos_weights,
-            dim_hidden=dim_hidden,
-            iterations=iterations,
-            valid_freq=valid_freq,
-            log_freq=log_freq,
-            patience=patience,
-            pretrain_iters=pretrain_iters,
-            train_size=train_size,
-            solver_name="MongeGapSolver",
-            **kwargs,
-        )
-
-    @property
-    def _base_problem_type(self) -> Type["NeuralProblem[K, B]"]:  # type:ignore[override]
-        return NeuralOTProblem  # type: ignore[return-value]
-
-    @property
-    def _valid_policies(self) -> Tuple[Policy_t, ...]:
-        return _constants.SEQUENTIAL, _constants.EXPLICIT, _constants.STAR  # type: ignore[return-value]

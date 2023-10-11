@@ -40,19 +40,15 @@ def register_solver(
 @register_solver("ott")
 def _(
     problem_kind: Literal["linear", "quadratic"],
-    solver_name: Optional[Literal["NeuralDualSolver", "CondNeuralDualSolver", "MongeGapSolver"]] = None,
+    solver_name: Optional[Literal["NeuralDualSolver", "CondNeuralDualSolver"]] = None,
     **kwargs: Any,
-) -> Union[
-    "ott.SinkhornSolver", "ott.GWSolver", "ott.OTTNeuralDualSolver", "ott.CondNeuralDualSolver", "ott.MongeGapSolver"
-]:
+) -> Union["ott.SinkhornSolver", "ott.GWSolver", "ott.OTTNeuralDualSolver", "ott.CondNeuralDualSolver",]:
     from moscot.backends import ott
 
     if solver_name == "NeuralDualSolver":
         return ott.NeuralDualSolver
     if solver_name == "CondNeuralDualSolver":
         return ott.CondNeuralDualSolver
-    if solver_name == "MongeGap":
-        return ott.MongeGapSolver
     if problem_kind == "linear":
         return ott.SinkhornSolver
     if problem_kind == "quadratic":
