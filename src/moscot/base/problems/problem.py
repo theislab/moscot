@@ -1041,7 +1041,7 @@ class CondOTProblem(BaseProblem):  # TODO(@MUCDK) check generic types, save and 
         self, adata: AnnData, *, source: bool, data: Optional[str] = None, **kwargs: Any
     ) -> ArrayLike:
         if data is True:
-            marginals = self._estimate_marginals(adata, source=source, **kwargs)
+            marginals = self.estimate_marginals(adata, source=source, **kwargs)
         elif data in (False, None):
             marginals = np.ones((adata.n_obs,), dtype=float) / adata.n_obs
         elif isinstance(data, str):

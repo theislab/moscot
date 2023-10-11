@@ -111,14 +111,10 @@ class TemporalNeuralProblem(
         self.temporal_key = time_key
         xy, kwargs = handle_joint_attr(joint_attr, kwargs)
 
-        # TODO(michalk8): needs to be modified
         marginal_kwargs = dict(marginal_kwargs)
-        marginal_kwargs["proliferation_key"] = self.proliferation_key
-        marginal_kwargs["apoptosis_key"] = self.apoptosis_key
-        if a is None:
-            a = self.proliferation_key is not None or self.apoptosis_key is not None
-        if b is None:
-            b = self.proliferation_key is not None or self.apoptosis_key is not None
+        estimate_marginals = self.proliferation_key is not None or self.apoptosis_key is not None
+        a = estimate_marginals if a is None else a
+        b = estimate_marginals if b is None else b
 
         return super().prepare(
             key=time_key,
