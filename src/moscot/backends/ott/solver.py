@@ -30,7 +30,7 @@ from moscot.backends.ott._utils import (
 from moscot.backends.ott.output import CondNeuralDualOutput, NeuralDualOutput, OTTOutput
 from moscot.base.solver import OTSolver
 from moscot.costs import get_cost
-from moscot.utils.tagged_array import TaggedArray
+from moscot.utils.tagged_array import DistributionContainer, TaggedArray
 
 __all__ = ["SinkhornSolver", "GWSolver", "NeuralDualSolver", "CondNeuralDualSolver"]
 
@@ -477,7 +477,7 @@ class CondNeuralDualSolver(NeuralDualSolver):
 
     def _prepare(  # type: ignore[override]
         self,
-        xy: Dict[Any, Tuple[TaggedArray, ArrayLike, ArrayLike]],
+        distributions: DistributionContainer,
         sample_pairs: List[Tuple[Any, Any]],
         train_size: float = 0.9,
         **kwargs: Any,
@@ -492,19 +492,19 @@ class CondNeuralDualSolver(NeuralDualSolver):
         sample_to_idx: Dict[int, Any] = {}
         kwargs = _filter_kwargs(JaxSampler, **kwargs)
         if train_size == 1.0:
-            train_data = [d[0].data_src for d in xy.values()]
-            train_a = [d[1] for d in xy.values()]
-            train_b = [d[2] for d in xy.values()]
+            train_data = [d.xy for d in distributions]
+            train_a = [d.a for d in distributions]
+            train_b = [d.b for d in distributions]
             valid_data, valid_a, valid_b = train_data, train_a, train_b
-            sample_to_idx = {k: i for i, k in enumerate(xy.keys())}
+            sample_to_idx = {k: i for i, k in enumerate(distributions)}
         else:
             if train_size > 1.0 or train_size <= 0.0:
                 raise ValueError("Invalid train_size. Must be: 0 < train_size <= 1")
 
             seed = kwargs.pop("seed", 0)
-            for i, (k, (d, a, b)) in enumerate(xy.items()):
+            for i, (key, dist) in enumerate(distributions):
                 t_data, v_data, t_a, t_b, v_a, v_b = self._split_data(
-                    d.data_src, train_size=train_size, seed=seed, a=a, b=b
+                    dist.xy, train_size=train_size, seed=seed, a=dist.a, b=dist.b
                 )
                 train_data.append(t_data)
                 train_a.append(t_a)
@@ -512,7 +512,7 @@ class CondNeuralDualSolver(NeuralDualSolver):
                 valid_data.append(v_data)
                 valid_a.append(v_a)
                 valid_b.append(v_b)
-                sample_to_idx[k] = i
+                sample_to_idx[key] = i
 
         self._train_sampler = JaxSampler(
             train_data, sample_pairs, conditional=True, a=train_a, b=train_b, sample_to_idx=sample_to_idx, **kwargs

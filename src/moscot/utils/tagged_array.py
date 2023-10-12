@@ -1,6 +1,17 @@
 import enum
 from dataclasses import dataclass
-from typing import Any, Callable, Literal, Optional, Tuple, Union
+from typing import (
+    Any,
+    Callable,
+    Dict,
+    Hashable,
+    Iterator,
+    Literal,
+    Optional,
+    Tuple,
+    TypeVar,
+    Union,
+)
 
 import numpy as np
 import scipy.sparse as sp
@@ -8,8 +19,10 @@ import scipy.sparse as sp
 from anndata import AnnData
 
 from moscot._logging import logger
-from moscot._types import ArrayLike, CostFn_t
+from moscot._types import ArrayLike, CostFn_t, OttCostFn_t
 from moscot.costs import get_cost
+
+K = TypeVar("K", bound=Hashable)
 
 __all__ = ["Tag", "TaggedArray"]
 
@@ -159,3 +172,155 @@ class TaggedArray:
     def is_point_cloud(self) -> bool:
         """Whether :attr:`data_src` (and optionally) :attr:`data_tgt` is a point cloud."""
         return self.tag == Tag.POINT_CLOUD
+
+
+@dataclass(frozen=True, repr=True)
+class DistributionContainer:
+    """Data container for OT problems involving more than two distributions.
+
+    TODO
+
+    Parameters
+    ----------
+    xy
+        Distribution living in a shared space.
+    xx
+        Distribution living in an incomparable space.
+    a
+        Marginals when used as source distribution.
+    b
+        Marginals when used as target distribution.
+    cost_xy
+        Cost function when in the shared space.
+    cost_xx
+        Cost function in the incomparable space.
+    """
+
+    xy: Optional[ArrayLike]
+    xx: Optional[ArrayLike]
+    a: ArrayLike
+    b: ArrayLike
+    cost_xy: OttCostFn_t
+    cost_xx: OttCostFn_t
+
+    @staticmethod
+    def _extract_data(
+        adata: AnnData,
+        *,
+        attr: Literal["X", "obsp", "obsm", "layers", "uns"],
+        key: Optional[str] = None,
+    ) -> ArrayLike:
+        modifier = f"adata.{attr}" if key is None else f"adata.{attr}[{key!r}]"
+        data = getattr(adata, attr)
+
+        try:
+            if key is not None:
+                data = data[key]
+        except KeyError:
+            raise KeyError(f"Unable to fetch data from `{modifier}`.") from None
+        except IndexError:
+            raise IndexError(f"Unable to fetch data from `{modifier}`.") from None
+
+        if sp.issparse(data):
+            logger.warning(f"Densifying data in `{modifier}`")
+            data = data.A
+        if data.ndim != 2:
+            raise ValueError(f"Expected `{modifier}` to have `2` dimensions, found `{data.ndim}`.")
+
+        return data
+
+    @staticmethod
+    def _verify_input(
+        xy_attr: Optional[Literal["X", "obsp", "obsm", "layers", "uns"]],
+        xy_key: Optional[str],
+        xx_attr: Optional[Literal["X", "obsp", "obsm", "layers", "uns"]],
+        xx_key: Optional[str],
+    ) -> Tuple[bool, bool]:
+        if (xy_attr is None and xy_key is not None) or (xy_attr is not None and xy_key is None):
+            raise ValueError(r"Either both `xy_attr` and `xy_key` must be `None` or none of them.")
+        if (xx_attr is None and xx_key is not None) or (xx_attr is not None and xx_key is None):
+            raise ValueError(r"Either both `xy_attr` and `xy_key` must be `None` or none of them.")
+        return xy_attr is not None, xx_attr is not None
+
+    @classmethod
+    def from_adata(
+        cls,
+        adata: AnnData,
+        xy_attr: Literal["X", "obsp", "obsm", "layers", "uns"] = None,
+        xy_key: Optional[str] = None,
+        xy_cost: CostFn_t = "sq_euclidean",
+        xx_attr: Literal["X", "obsp", "obsm", "layers", "uns"] = None,
+        xx_key: Optional[str] = None,
+        xx_cost: CostFn_t = "sq_euclidean",
+        a: Optional[ArrayLike] = None,
+        b: Optional[ArrayLike] = None,
+        backend: Literal["ott"] = "ott",
+        **kwargs: Any,
+    ) -> "TaggedArray":
+        """Create tagged array from :class:`~anndata.AnnData`.
+
+        .. warning::
+            Sparse arrays will be always densified.
+
+        Parameters
+        ----------
+        adata
+            Annotated data object.
+        attr
+            Attribute of :class:`~anndata.AnnData` used when extracting/computing the cost.
+        backend
+            Which backend to use, see :func:`~moscot.backends.utils.get_available_backends`.
+        kwargs
+            Keyword arguments for the :class:`~moscot.base.cost.BaseCost` or any backend-specific cost.
+
+        Returns
+        -------
+        The distribution container.
+        """
+        contains_linear, contains_quadratic = cls._verify_input(xy_attr, xy_key, xx_attr, xx_key)
+        if contains_linear:
+            xy_data = cls._extract_data(adata, attr=xy_attr, key=xy_key)
+            xy_cost_fn = get_cost(xy_cost, backend=backend, **kwargs)
+        else:
+            xy_data = None
+            xy_cost_fn = None
+
+        if contains_quadratic:
+            xx_data = cls._extract_data(adata, attr=xx_attr, key=xx_key)
+            xx_cost_fn = get_cost(xx_cost, backend=backend, **kwargs)
+        else:
+            xx_data = None
+            xx_cost_fn = None
+        return cls(xy=xy_data, xx=xx_data, a=a, b=b, cost_xy=xy_cost_fn, cost_xx=xx_cost_fn)
+
+
+class DistributionCollection:
+    """TODO."""
+
+    def __init__(self):
+        self._distributions: Dict[K, DistributionContainer] = {}
+
+    def add_distribution(self, key: K, item: DistributionContainer) -> None:
+        self._distributions[key] = item
+
+    @property
+    def distributions(self) -> Dict[K, DistributionContainer]:
+        return self._distributions
+
+    def __getitem__(self, item: K) -> DistributionContainer:
+        return self.distributions[item]
+
+    def __contains__(self, key: K) -> bool:
+        return key in self.distributions
+
+    def __len__(self) -> int:
+        return len(self.distributions)
+
+    def __iter__(self) -> Iterator[K]:
+        return iter(self.distributions)
+
+    def __repr__(self) -> str:
+        return f"{self.__class__.__name__}{list(self.distributions.keys())}"
+
+    def __str__(self) -> str:
+        return repr(self)

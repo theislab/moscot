@@ -594,15 +594,30 @@ class ConditionalNeuralProblem(CondOTProblem, GenericAnalysisMixin[K, B]):
         policy: Literal["sequential", "pairwise", "explicit"] = "sequential",
         a: Optional[str] = None,
         b: Optional[str] = None,
+        cost: OttCostFn_t = "sq_euclidean",
+        cost_kwargs: CostKwargs_t = types.MappingProxyType({}),
         **kwargs: Any,
     ) -> "ConditionalNeuralProblem[K, B]":
         """Prepare the :class:`moscot.problems.generic.ConditionalNeuralProblem`."""
+        def set_quad_defaults(z: Union[str, Mapping[str, Any]]) -> Dict[str, str]:
+            if isinstance(z, str):
+                return {"attr": "obsm", "key": z}  # cost handled by handle_cost
+            if isinstance(z, Mapping):
+                return dict(z)
+            raise TypeError("`x_attr` and `y_attr` must be of type `str` or `dict`.")
+
+        quad_attr = None # at the moment we only have linear cond OT solvers
+        
         self.batch_key = key  # type:ignore[misc]
         xy, kwargs = handle_joint_attr(joint_attr, kwargs)
+        xx = {} if quad_attr is None else set_quad_defaults(quad_attr)
+        xy, xx, _ = handle_cost_tmp(xy=xy, x=xx, y=xx, cost=cost, cost_kwargs=cost_kwargs)  # type: ignore[arg-type]
+        
         return super().prepare(
             policy_key=key,
             policy=policy,
             xy=xy,
+            xx=xx,
             a=a,
             b=b,
             **kwargs,

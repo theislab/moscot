@@ -157,11 +157,13 @@ class OTTNeuralDualSolver:
         self.optimizer_g = _get_optimizer(**optimizer_g) if isinstance(optimizer_g, abc.Mapping) else optimizer_g
         self.neural_f = _get_icnn(input_dim=input_dim, cond_dim=cond_dim, **f) if isinstance(f, abc.Mapping) else f
         self.neural_g = _get_icnn(input_dim=input_dim, cond_dim=cond_dim, **g) if isinstance(g, abc.Mapping) else g
-        self.callback_func = callback_func
-        if self.callback_func is None:
-            self.callback_func = lambda tgt, src, pred_tgt, pred_src: _compute_metrics_sinkhorn(
+        self.callback_func = (
+            lambda tgt, src, pred_tgt, pred_src: _compute_metrics_sinkhorn(
                 tgt, src, pred_tgt, pred_src, self.valid_eps, self.valid_sinkhorn_kwargs
             )
+            if callback_func is None
+            else callback_func
+        )
         # set optimizer and networks
         self.setup(self.neural_f, self.neural_g, self.optimizer_f, self.optimizer_g)
 

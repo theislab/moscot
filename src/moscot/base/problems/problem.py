@@ -5,11 +5,15 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Dict,
+    Hashable,
+    Iterable,
     List,
     Literal,
     Mapping,
     Optional,
+    Sequence,
     Tuple,
+    TypeVar,
     Union,
 )
 
@@ -35,7 +39,14 @@ from moscot.utils.subset_policy import (  # type:ignore[attr-defined]
     SubsetPolicy,
     create_policy,
 )
-from moscot.utils.tagged_array import Tag, TaggedArray
+from moscot.utils.tagged_array import (
+    DistributionCollection,
+    DistributionContainer,
+    Tag,
+    TaggedArray,
+)
+
+K = TypeVar("K", bound=Hashable)
 
 __all__ = ["BaseProblem", "OTProblem", "NeuralOTProblem", "CondOTProblem"]
 
@@ -942,6 +953,7 @@ class CondOTProblem(BaseProblem):  # TODO(@MUCDK) check generic types, save and 
         policy_key: str,
         policy: Policy_t,
         xy: Mapping[str, Any],
+        xx: Mapping[str, Any],
         a: Optional[str] = None,
         b: Optional[str] = None,
         **kwargs: Any,
@@ -972,31 +984,28 @@ class CondOTProblem(BaseProblem):  # TODO(@MUCDK) check generic types, save and 
         Self and modifies the following attributes:
         TODO.
         """
-        from moscot.base.problems.manager import ProblemManager
-
         self._problem_kind = "linear"
-        self._a = a
-        self._b = b
+        self._distributions = DistributionCollection()
         self._solution = None
+        self._policy_key = policy_key
+        try:
+            self._distribution_id = pd.Series(self.adata.obs[policy_key])
+        except KeyError:
+            raise KeyError(f"Unable to find data in `adata.obs[{policy_key!r}]`.") from None
 
         self._inner_policy = create_policy(policy, adata=self.adata, key=policy_key)
         policy = self._inner_policy.create_graph()
         self._sample_pairs = list(self._inner_policy._graph)
-        self._problem_manager = ProblemManager(self, policy=policy)
 
-        xy = {k[2:]: v for k, v in xy.items() if k.startswith("x_")}
-        for (src, tgt), (src_mask, tgt_mask) in self._inner_policy.create_masks().items():
-            if src not in self._distributions:
-                x_tagged = TaggedArray.from_adata(self.adata[src_mask], dist_key=policy_key, tag=Tag.POINT_CLOUD, **xy)
-                a = self._create_marginals(self.adata[src_mask], data=self._a, source=True, **kwargs)
-                b = self._create_marginals(self.adata[src_mask], data=self._b, source=False, **kwargs)
-                self._distributions[src] = (x_tagged, a, b)
-            if tgt not in self._distributions:
-                x_tagged = TaggedArray.from_adata(self.adata[tgt_mask], dist_key=policy_key, tag=Tag.POINT_CLOUD, **xy)
-                a = self._create_marginals(self.adata[tgt_mask], data=self._a, source=True, **kwargs)
-                b = self._create_marginals(self.adata[tgt_mask], data=self._b, source=False, **kwargs)
-                self._distributions[tgt] = (x_tagged, a, b)
-
+        #xy = {k[2:]: v for k, v in xy.items() if k.startswith("x_")}
+        #xx = {k[2:]: v for k, v in xy.items() if k.startswith("xx_")}
+        for el in policy._cat:
+            mask = self._create_mask(el)
+            a_created = self._create_marginals(self.adata[mask], data=a, source=True, **kwargs)
+            b_created = self._create_marginals(self.adata[mask], data=b, source=False, **kwargs)
+            self.distributions.add_distribution(el, DistributionContainer.from_adata(
+                self.adata[mask], a=a_created, b=b_created, **xy, **xx
+            ))
         return self
 
     @wrap_solve
@@ -1024,16 +1033,17 @@ class CondOTProblem(BaseProblem):  # TODO(@MUCDK) check generic types, save and 
         - :attr:`solver`: optimal transport solver.
         - :attr:`solution`: optimal transport solution.
         """
+        tmp = next(iter(self.distributions))
         self._solver = backends.get_solver(
             problem_kind=self._problem_kind,
-            input_dim=list(self._distributions.values())[0][0].data_src.shape[1],
+            input_dim=self.distributions[tmp].xy.shape[1],
             distributions=self._distributions,
             sample_pairs=self._sample_pairs,
             **kwargs,
         )
 
         self._solution = self._solver(  # type: ignore[misc]
-            xy=self._distributions,  # type: ignore[arg-type] #TODO: handle better
+            xy=self.distributions,  # type: ignore[arg-type] #TODO: handle better
             sample_pairs=self._sample_pairs,
             device=device,
         )
@@ -1053,6 +1063,34 @@ class CondOTProblem(BaseProblem):  # TODO(@MUCDK) check generic types, save and 
             except KeyError:
                 raise KeyError(f"Unable to find data in `adata.obs[{data!r}]`.") from None
         return marginals
+
+    def _create_mask(self, value: Union[K, Sequence[K]], *, allow_empty: bool = False) -> ArrayLike:
+        """Create a mask used to subset the data.
+
+        TODO(@MUCDK): this is copied from SubsetPolicy, consider making this a function.
+
+        Parameters
+        ----------
+        value
+            Values in the data which determine the mask.
+        allow_empty
+            Whether to allow empty mask.
+
+        Returns
+        -------
+        Boolean mask of the same shape as the data.
+        """
+        if isinstance(value, str) or not isinstance(value, Iterable):
+            mask = self._distribution_id == value
+        else:
+            mask = self._distribution_id.isin(value)
+        if not allow_empty and not np.sum(mask):
+            raise ValueError("Unable to construct an empty mask, use `allow_empty=True` to override.")
+        return np.asarray(mask)
+
+    @property
+    def distributions(self) -> DistributionCollection:
+        return self._distributions
 
     @property
     def adata(self) -> AnnData:

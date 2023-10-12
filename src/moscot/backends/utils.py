@@ -42,7 +42,7 @@ def _(
     problem_kind: Literal["linear", "quadratic"],
     solver_name: Optional[Literal["NeuralDualSolver", "CondNeuralDualSolver"]] = None,
     **kwargs: Any,
-) -> Union["ott.SinkhornSolver", "ott.GWSolver", "ott.OTTNeuralDualSolver", "ott.CondNeuralDualSolver",]:
+) -> Union["ott.SinkhornSolver", "ott.GWSolver", "ott.NeuralDualSolver", "ott.CondNeuralDualSolver",]:
     from moscot.backends import ott
 
     if solver_name == "NeuralDualSolver":
