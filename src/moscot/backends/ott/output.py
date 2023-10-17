@@ -483,9 +483,9 @@ class NeuralDualOutput(OTTNeuralOutput):
         return NeuralDualOutput(out, self.training_logs)
 
     @property
-    def cost(self) -> List[float]:
-        """Predicted optimal transport cost."""
-        return self.training_logs["valid_logs"]["predicted_cost"]
+    def cost(self) -> float:
+        """Predicted optimal transport cost on validation dataset."""
+        return self.training_logs["valid_logs"]["predicted_cost"][-1]
 
     @property
     def converged(self) -> bool:

@@ -129,8 +129,6 @@ class OTTNeuralDualSolver:
             Callable[[jnp.ndarray, jnp.ndarray, jnp.ndarray, jnp.ndarray], Dict[str, float]]
         ] = None,
     ):
-        if pretrain_iters > 0:
-            raise NotImplementedError("Pretraining is not yet implemented.")
         self.input_dim = input_dim
         self.cond_dim = cond_dim
         self.batch_size = batch_size
@@ -275,9 +273,8 @@ class OTTNeuralDualSolver:
             # train step for potential g directly updating the train state
             loss, self.state_g = pretrain_update(self.state_g, key_pre)
             # clip weights of g
-            if not self.pos_weights:
-                raise NotImplementedError("Weight clipping not implemented currently.")
-                # self.state_g = self.state_g.replace(params=self.clip_weights_icnn(self.state_g.params))
+            if self.pos_weights:
+                self.state_g = self.state_g.replace(params=self.clip_weights_icnn(self.state_g.params))
             if iteration % self.log_freq == 0:
                 pretrain_logs["loss"].append(loss)
         # load params of g into state_f

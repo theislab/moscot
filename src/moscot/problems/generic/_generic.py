@@ -576,7 +576,7 @@ class NeuralProblem(CompoundProblem[K, B], GenericAnalysisMixin[K, B]):
         )
 
     @property
-    def _base_problem_type(self) -> Type["NeuralProblem[K, B]"]:  # type:ignore[override]
+    def _base_problem_type(self) -> Type["NeuralProblem[K, B]"]:
         return NeuralOTProblem  # type: ignore[return-value]
 
     @property
@@ -617,7 +617,7 @@ class ConditionalNeuralProblem(CondOTProblem, GenericAnalysisMixin[K, B]):
         self.batch_key = key  # type:ignore[misc]
         xy, kwargs = handle_joint_attr_tmp(joint_attr, kwargs)
         xx = {} if quad_attr is None else set_quad_defaults(quad_attr)
-        xy, xx = handle_cost_tmp(xy=xy, x=xx, y=xx, cost=cost, cost_kwargs=cost_kwargs)  # type: ignore[arg-type]
+        xy, xx = handle_cost_tmp(xy=xy, x=xx, y=xx, cost=cost, cost_kwargs=cost_kwargs)
         return super().prepare(
             policy_key=key,
             policy=policy,

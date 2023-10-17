@@ -275,7 +275,32 @@ class DistributionContainer:
 
         Parameters
         ----------
-        TODO
+        adata
+            Annotated data object.
+        a
+            Marginals when used as source distribution.
+        b
+            Marginals when used as target distribution.
+        xy_attr
+            Attribute of :paramref:`adata` containing the data for the shared space.
+        xy_key
+            Key of :paramref:`xy_attr` containing the data for the shared space.
+        xy_cost
+            Cost function when in the shared space.
+        xx_attr
+            Attribute of :paramref:`adata` containing the data for the incomparable space.
+        xx_key
+            Key of :paramref:`xx_attr` containing the data for the incomparable space.
+        xx_cost
+            Cost function in the incomparable space.
+        conditions_attr
+            Attribute of :paramref:`adata` containing the conditions.
+        conditions_key
+            Key of :paramref:`conditions_attr` containing the conditions.
+        backend
+            Backend to use.
+        kwargs
+            Keyword arguments to pass to the cost functions.
 
         Returns
         -------
@@ -300,22 +325,36 @@ class DistributionContainer:
             xx_cost_fn = None
 
         conditions_data = (
-            cls._extract_data(adata, attr=conditions_attr, key=conditions_key) if contains_condition else None  # type: ignore[arg-type]
+            cls._extract_data(adata, attr=conditions_attr, key=conditions_key) if contains_condition else None  # type: ignore[arg-type]  # noqa:E501
         )
         return cls(xy=xy_data, xx=xx_data, a=a, b=b, conditions=conditions_data, cost_xy=xy_cost_fn, cost_xx=xx_cost_fn)
 
 
 class DistributionCollection:
-    """TODO."""
+    """Collection of distributions."""
 
     def __init__(self):
         self._distributions: Dict[K, DistributionContainer] = {}
 
     def add_distribution(self, key: K, item: DistributionContainer) -> None:
+        """Add a distribution to the collection.
+
+        Parameters
+        ----------
+        key
+            Key defining the distribution.
+        item
+            Distribution to add to the DistributionCollection.
+
+        Returns
+        -------
+        None
+        """
         self._distributions[key] = item
 
     @property
     def distributions(self) -> Dict[K, DistributionContainer]:
+        """Distributions in the distribution collection."""
         return self._distributions
 
     def __getitem__(self, item: K) -> DistributionContainer:

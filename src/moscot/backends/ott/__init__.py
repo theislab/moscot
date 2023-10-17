@@ -25,6 +25,9 @@ __all__ = [
     "OTTNeuralDualSolver",
     "OTTNeuralDualSolver",
     "CondNeuralDualSolver",
+    "ConditionalDualPotentials",
+    "CondNeuralDualOutput",
+    "sinkhorn_divergence",
 ]
 
 
