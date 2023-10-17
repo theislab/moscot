@@ -997,15 +997,13 @@ class CondOTProblem(BaseProblem):  # TODO(@MUCDK) check generic types, save and 
         policy = self._inner_policy.create_graph()
         self._sample_pairs = list(self._inner_policy._graph)
 
-        #xy = {k[2:]: v for k, v in xy.items() if k.startswith("x_")}
-        #xx = {k[2:]: v for k, v in xy.items() if k.startswith("xx_")}
         for el in policy._cat:
             mask = self._create_mask(el)
             a_created = self._create_marginals(self.adata[mask], data=a, source=True, **kwargs)
             b_created = self._create_marginals(self.adata[mask], data=b, source=False, **kwargs)
-            self.distributions.add_distribution(el, DistributionContainer.from_adata(
-                self.adata[mask], a=a_created, b=b_created, **xy, **xx
-            ))
+            self.distributions.add_distribution(
+                el, DistributionContainer.from_adata(self.adata[mask], a=a_created, b=b_created, **xy, **xx)
+            )
         return self
 
     @wrap_solve
@@ -1090,6 +1088,7 @@ class CondOTProblem(BaseProblem):  # TODO(@MUCDK) check generic types, save and 
 
     @property
     def distributions(self) -> DistributionCollection:
+        """Collection of distributions."""
         return self._distributions
 
     @property

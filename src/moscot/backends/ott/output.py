@@ -476,8 +476,8 @@ class NeuralDualOutput(OTTNeuralOutput):
         if not isinstance(device, xla_ext.Device):
             try:
                 device = jax.devices(device)[idx]
-            except IndexError:
-                raise IndexError(f"Unable to fetch the device with `id={idx}`.")
+            except IndexError as err:
+                raise IndexError(f"Unable to fetch the device with `id={idx}`.") from err
 
         out = jax.device_put(self._output, device)
         return NeuralDualOutput(out, self.training_logs)
@@ -586,7 +586,7 @@ class NeuralDualOutput(OTTNeuralOutput):
             params = {
                 "predicted_cost": round(self.cost, 3),
                 "best_loss": round(self.training_logs["valid_logs"]["best_loss"], 3),  # type: ignore[call-overload]
-                "sinkhorn_dist": round(self.training_logs["valid_logs"]["sinkhorn_dist"], 3),  # type: ignore[call-overload]
+                "sinkhorn_dist": round(self.training_logs["valid_logs"]["sinkhorn_dist"], 3),  # type: ignore[call-overload]   # noqa: E501
             }
         else:
             params = {
@@ -727,8 +727,8 @@ class CondNeuralDualOutput(NeuralDualOutput):
         if not isinstance(device, xla_ext.Device):
             try:
                 device = jax.devices(device)[idx]
-            except IndexError:
-                raise IndexError(f"Unable to fetch the device with `id={idx}`.")
+            except IndexError as err:
+                raise IndexError(f"Unable to fetch the device with `id={idx}`.") from err
 
         out = jax.device_put(self._output, device)
         return CondNeuralDualOutput(output=out, training_logs=self.training_logs)

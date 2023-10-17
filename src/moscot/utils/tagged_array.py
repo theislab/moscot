@@ -190,6 +190,8 @@ class DistributionContainer:
         Marginals when used as source distribution.
     b
         Marginals when used as target distribution.
+    conditions
+        Conditions for the distributions.
     cost_xy
         Cost function when in the shared space.
     cost_xx
@@ -200,6 +202,7 @@ class DistributionContainer:
     xx: Optional[ArrayLike]
     a: ArrayLike
     b: ArrayLike
+    conditions: Optional[ArrayLike]
     cost_xy: OttCostFn_t
     cost_xx: OttCostFn_t
 
@@ -207,7 +210,7 @@ class DistributionContainer:
     def _extract_data(
         adata: AnnData,
         *,
-        attr: Literal["X", "obsp", "obsm", "layers", "uns"],
+        attr: Literal["X", "obs", "obsp", "obsm", "var", "varm", "layers", "uns"],
         key: Optional[str] = None,
     ) -> ArrayLike:
         modifier = f"adata.{attr}" if key is None else f"adata.{attr}[{key!r}]"
@@ -235,28 +238,36 @@ class DistributionContainer:
         xy_key: Optional[str],
         xx_attr: Optional[Literal["X", "obsp", "obsm", "layers", "uns"]],
         xx_key: Optional[str],
-    ) -> Tuple[bool, bool]:
+        conditions_attr: Optional[Literal["obs", "var", "obsm", "varm", "layers", "uns"]],
+        conditions_key: Optional[str],
+    ) -> Tuple[bool, bool, bool]:
         if (xy_attr is None and xy_key is not None) or (xy_attr is not None and xy_key is None):
             raise ValueError(r"Either both `xy_attr` and `xy_key` must be `None` or none of them.")
         if (xx_attr is None and xx_key is not None) or (xx_attr is not None and xx_key is None):
             raise ValueError(r"Either both `xy_attr` and `xy_key` must be `None` or none of them.")
-        return xy_attr is not None, xx_attr is not None
+        if (conditions_attr is None and conditions_key is not None) or (
+            conditions_attr is not None and conditions_key is None
+        ):
+            raise ValueError(r"Either both `conditions_attr` and `conditions_key` must be `None` or none of them.")
+        return xy_attr is not None, xx_attr is not None, conditions_attr is not None
 
     @classmethod
     def from_adata(
         cls,
         adata: AnnData,
+        a: ArrayLike,
+        b: ArrayLike,
         xy_attr: Literal["X", "obsp", "obsm", "layers", "uns"] = None,
         xy_key: Optional[str] = None,
         xy_cost: CostFn_t = "sq_euclidean",
         xx_attr: Literal["X", "obsp", "obsm", "layers", "uns"] = None,
         xx_key: Optional[str] = None,
         xx_cost: CostFn_t = "sq_euclidean",
-        a: Optional[ArrayLike] = None,
-        b: Optional[ArrayLike] = None,
+        conditions_attr: Optional[Literal["obs", "var", "obsm", "varm", "layers", "uns"]] = None,
+        conditions_key: Optional[str] = None,
         backend: Literal["ott"] = "ott",
         **kwargs: Any,
-    ) -> "TaggedArray":
+    ) -> "DistributionContainer":
         """Create tagged array from :class:`~anndata.AnnData`.
 
         .. warning::
@@ -264,20 +275,16 @@ class DistributionContainer:
 
         Parameters
         ----------
-        adata
-            Annotated data object.
-        attr
-            Attribute of :class:`~anndata.AnnData` used when extracting/computing the cost.
-        backend
-            Which backend to use, see :func:`~moscot.backends.utils.get_available_backends`.
-        kwargs
-            Keyword arguments for the :class:`~moscot.base.cost.BaseCost` or any backend-specific cost.
+        TODO
 
         Returns
         -------
         The distribution container.
         """
-        contains_linear, contains_quadratic = cls._verify_input(xy_attr, xy_key, xx_attr, xx_key)
+        contains_linear, contains_quadratic, contains_condition = cls._verify_input(
+            xy_attr, xy_key, xx_attr, xx_key, conditions_attr, conditions_key
+        )
+
         if contains_linear:
             xy_data = cls._extract_data(adata, attr=xy_attr, key=xy_key)
             xy_cost_fn = get_cost(xy_cost, backend=backend, **kwargs)
@@ -291,7 +298,11 @@ class DistributionContainer:
         else:
             xx_data = None
             xx_cost_fn = None
-        return cls(xy=xy_data, xx=xx_data, a=a, b=b, cost_xy=xy_cost_fn, cost_xx=xx_cost_fn)
+
+        conditions_data = (
+            cls._extract_data(adata, attr=conditions_attr, key=conditions_key) if contains_condition else None  # type: ignore[arg-type]
+        )
+        return cls(xy=xy_data, xx=xx_data, a=a, b=b, conditions=conditions_data, cost_xy=xy_cost_fn, cost_xx=xx_cost_fn)
 
 
 class DistributionCollection:

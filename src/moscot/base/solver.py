@@ -19,7 +19,7 @@ import numpy as np
 from moscot._logging import logger
 from moscot._types import ArrayLike, Device_t, ProblemKind_t
 from moscot.base.output import BaseSolverOutput
-from moscot.utils.tagged_array import Tag, TaggedArray
+from moscot.utils.tagged_array import DistributionCollection, Tag, TaggedArray
 
 __all__ = ["BaseSolver", "OTSolver"]
 
@@ -205,8 +205,11 @@ class OTSolver(TagConverter, BaseSolver[O], abc.ABC):
         if isinstance(xy, dict):  # neural solvers TODO: this is unnecessary now
             res = super().__call__(xy=xy, **kwargs)
             return res.to(device=device)
-        data = self._get_array_data(xy=xy, x=x, y=y, tags=tags)
-        kwargs = {**kwargs, **self._untag(data)}
+        if isinstance(xy, DistributionCollection):
+            kwargs["distributions"] = xy
+        else:
+            data = self._get_array_data(xy=xy, x=x, y=y, tags=tags)
+            kwargs = {**kwargs, **self._untag(data)}
         res = super().__call__(**kwargs)
         if not res.converged:
             logger.warning("Solver did not converge")

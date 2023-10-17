@@ -29,7 +29,12 @@ from moscot._types import (
 )
 from moscot.base.problems.compound_problem import B, CompoundProblem, K
 from moscot.base.problems.problem import CondOTProblem, NeuralOTProblem, OTProblem
-from moscot.problems._utils import handle_cost, handle_joint_attr
+from moscot.problems._utils import (
+    handle_cost,
+    handle_cost_tmp,
+    handle_joint_attr,
+    handle_joint_attr_tmp,
+)
 from moscot.problems.generic._mixins import GenericAnalysisMixin
 
 __all__ = ["SinkhornProblem", "GWProblem", "NeuralProblem", "ConditionalNeuralProblem"]
@@ -599,6 +604,7 @@ class ConditionalNeuralProblem(CondOTProblem, GenericAnalysisMixin[K, B]):
         **kwargs: Any,
     ) -> "ConditionalNeuralProblem[K, B]":
         """Prepare the :class:`moscot.problems.generic.ConditionalNeuralProblem`."""
+
         def set_quad_defaults(z: Union[str, Mapping[str, Any]]) -> Dict[str, str]:
             if isinstance(z, str):
                 return {"attr": "obsm", "key": z}  # cost handled by handle_cost
@@ -606,13 +612,12 @@ class ConditionalNeuralProblem(CondOTProblem, GenericAnalysisMixin[K, B]):
                 return dict(z)
             raise TypeError("`x_attr` and `y_attr` must be of type `str` or `dict`.")
 
-        quad_attr = None # at the moment we only have linear cond OT solvers
-        
+        quad_attr = None  # at the moment we only have linear cond OT solvers
+
         self.batch_key = key  # type:ignore[misc]
-        xy, kwargs = handle_joint_attr(joint_attr, kwargs)
+        xy, kwargs = handle_joint_attr_tmp(joint_attr, kwargs)
         xx = {} if quad_attr is None else set_quad_defaults(quad_attr)
-        xy, xx, _ = handle_cost_tmp(xy=xy, x=xx, y=xx, cost=cost, cost_kwargs=cost_kwargs)  # type: ignore[arg-type]
-        
+        xy, xx = handle_cost_tmp(xy=xy, x=xx, y=xx, cost=cost, cost_kwargs=cost_kwargs)  # type: ignore[arg-type]
         return super().prepare(
             policy_key=key,
             policy=policy,

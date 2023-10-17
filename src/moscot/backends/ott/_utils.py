@@ -204,11 +204,11 @@ class ConditionalDualPotentials:
         return dp.distance(src=src, tgt=tgt)
 
     def get_f(self, condition: ArrayLike) -> DualPotentials:
-        """The first dual potential function."""
+        """Get the first dual potential function."""
         return lambda x: self._state_f.apply_fn({"params": self._state_f.params}, x=jnp.concatenate(x, condition))
 
     def get_g(self, condition: ArrayLike) -> Potential_t:
-        """The second dual potential function."""
+        """Get the second dual potential function."""
         return lambda x: self._state_g.apply_fn({"params": self._state_g.params}, x=jnp.concatenate(x, condition))
 
     def tree_flatten(self) -> Tuple[Sequence[Any], Dict[str, Any]]:  # noqa: D102

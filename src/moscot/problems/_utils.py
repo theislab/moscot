@@ -87,28 +87,51 @@ def handle_cost(
     return xy, x, y
 
 
+def handle_joint_attr_tmp(
+    joint_attr: Union[str, Mapping[str, Any]], kwargs: Dict[str, Any]
+) -> Tuple[Dict[str, Any], Dict[str, Any]]:
+    if isinstance(joint_attr, str):
+        xy = {
+            "xy_attr": "obsm",
+            "xy_key": joint_attr,
+        }
+        return xy, kwargs
+    if isinstance(joint_attr, Mapping):  # input mapping does not distinguish between x and y as it's a shared space
+        joint_attr = dict(joint_attr)
+        if "attr" in joint_attr and joint_attr["attr"] == "X":  # we have a point cloud
+            return {"xy_attr": "X"}, kwargs
+        if "attr" in joint_attr and joint_attr["attr"] == "obsm":  # we have a point cloud
+            if "key" not in joint_attr:
+                raise KeyError("`key` must be provided when `attr` is `obsm`.")
+            xy = {
+                "xy_attr": "obsm",
+                "xy_key": joint_attr["key"],
+            }
+            return xy, kwargs
+
+    raise TypeError(f"Expected `joint_attr` to be either `str` or `dict`, found `{type(joint_attr)}`.")
+
+
 def handle_cost_tmp(
     xy: Mapping[str, Any] = types.MappingProxyType({}),
     xx: Mapping[str, Any] = types.MappingProxyType({}),
     cost: Optional[Union[CostFn_t, Mapping[str, CostFn_t]]] = None,
     cost_kwargs: CostKwargs_t = types.MappingProxyType({}),
     **_: Any,
-) -> Tuple[Dict[str, Any], Dict[str, Any], Dict[str, Any]]:
-    xy, x, y = dict(xy), dict(x), dict(y)
+) -> Tuple[Dict[str, Any], Dict[str, Any]]:
+    xy, xx = dict(xy), dict(xx)
     if cost is None:
-        return xy, x, y
+        return xy, xx
     if isinstance(cost, str):  # if cost is a str, we use it in all terms
         if xy and "cost" not in xy:
-            xy["cost"] = cost
+            xy["xy_cost"] = cost
         if xx and "cost" not in xx:
-            xx["cost"] = cost
+            xx["xy_cost"] = cost
     elif isinstance(cost, Mapping):  # if cost is a dict, the cost is specified for each term
-        if xy and ("x_cost" not in xy or "y_cost" not in xy):
-            xy["x_cost"] = xy["y_cost"] = cost["xy"]
-        if x and "cost" not in x:
-            x["cost"] = cost["x"]
-        if y and "cost" not in y:
-            y["cost"] = cost["y"]
+        if xy and ("xy_cost" not in xy or "xx_cost" not in xy):
+            xy["xy_cost"] = cost["xy"]
+        if xx and "cost" not in xx:
+            xx["xx_cost"] = cost["xx_cost"]
     else:
         raise TypeError(f"Expected `cost` to be either `str` or `dict`, found `{type(cost)}`.")
     if xy and cost_kwargs:  # distribute the cost_kwargs, possibly explicit to x/y/xy-term
@@ -118,4 +141,4 @@ def handle_cost_tmp(
             xy[f"xy_{k}"] = xy[f"xy_{k}"] = v
     if xx and cost_kwargs:  # extract cost_kwargs explicit to x-term if possible
         xx.update(cost_kwargs.get("xx", cost_kwargs))  # type:ignore[call-overload]
-    return xy, x, y
+    return xy, xx

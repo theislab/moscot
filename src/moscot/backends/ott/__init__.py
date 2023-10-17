@@ -21,6 +21,7 @@ __all__ = [
     "NeuralDualOutput",
     "GWSolver",
     "SinkhornSolver",
+    "NeuralDualSolver",
     "OTTNeuralDualSolver",
     "OTTNeuralDualSolver",
     "CondNeuralDualSolver",

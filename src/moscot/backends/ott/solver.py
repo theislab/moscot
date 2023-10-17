@@ -30,7 +30,7 @@ from moscot.backends.ott._utils import (
 from moscot.backends.ott.output import CondNeuralDualOutput, NeuralDualOutput, OTTOutput
 from moscot.base.solver import OTSolver
 from moscot.costs import get_cost
-from moscot.utils.tagged_array import DistributionContainer, TaggedArray
+from moscot.utils.tagged_array import DistributionCollection, TaggedArray
 
 __all__ = ["SinkhornSolver", "GWSolver", "NeuralDualSolver", "CondNeuralDualSolver"]
 
@@ -407,7 +407,7 @@ class NeuralDualSolver(OTSolver[OTTOutput]):
 
     @staticmethod
     def _assert2d(arr: ArrayLike, *, allow_reshape: bool = True) -> jnp.ndarray:
-        arr: jnp.ndarray = jnp.asarray(arr.A if sp.issparse(arr) else arr)  # type: ignore[no-redef, attr-defined, name-defined]   # noqa:E501
+        arr: jnp.ndarray = jnp.asarray(arr.A if sp.issparse(arr) else arr)  # type: ignore[no-redef, attr-defined]   # noqa:E501
         if allow_reshape and arr.ndim == 1:
             return jnp.reshape(arr, (-1, 1))
         if arr.ndim != 2:
@@ -477,7 +477,7 @@ class CondNeuralDualSolver(NeuralDualSolver):
 
     def _prepare(  # type: ignore[override]
         self,
-        distributions: DistributionContainer,
+        distributions: DistributionCollection,
         sample_pairs: List[Tuple[Any, Any]],
         train_size: float = 0.9,
         **kwargs: Any,
@@ -492,9 +492,9 @@ class CondNeuralDualSolver(NeuralDualSolver):
         sample_to_idx: Dict[int, Any] = {}
         kwargs = _filter_kwargs(JaxSampler, **kwargs)
         if train_size == 1.0:
-            train_data = [d.xy for d in distributions]
-            train_a = [d.a for d in distributions]
-            train_b = [d.b for d in distributions]
+            train_data = [d.xy for d in distributions]  # type:ignore[var-annotated]
+            train_a = [d.a for d in distributions]  # type:ignore[var-annotated]
+            train_b = [d.b for d in distributions]  # type:ignore[var-annotated]
             valid_data, valid_a, valid_b = train_data, train_a, train_b
             sample_to_idx = {k: i for i, k in enumerate(distributions)}
         else:
@@ -502,9 +502,13 @@ class CondNeuralDualSolver(NeuralDualSolver):
                 raise ValueError("Invalid train_size. Must be: 0 < train_size <= 1")
 
             seed = kwargs.pop("seed", 0)
-            for i, (key, dist) in enumerate(distributions):
+            for i, key in enumerate(distributions):
                 t_data, v_data, t_a, t_b, v_a, v_b = self._split_data(
-                    dist.xy, train_size=train_size, seed=seed, a=dist.a, b=dist.b
+                    distributions[key].xy,
+                    train_size=train_size,
+                    seed=seed,
+                    a=distributions[key].a,
+                    b=distributions[key].b,
                 )
                 train_data.append(t_data)
                 train_a.append(t_a)
