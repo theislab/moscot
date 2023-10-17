@@ -224,7 +224,7 @@ class OTTNeuralDualSolver:
 
         train_logs = self.train_neuraldual(trainloader, validloader)
         res = self.to_dual_potentials()
-        logs = pretrain_logs | train_logs
+        logs = {**pretrain_logs, **train_logs}
 
         return (res, logs)
 
@@ -532,18 +532,12 @@ class OTTNeuralDualSolver:
             neural_dual_dist = tgt_sq + src_sq + 2.0 * (jnp.mean(g_grad_f_src - src_dot_grad_f_src) - jnp.mean(g_tgt))
             # calculate validation metrics
             metric_dict = self.callback_func(batch["target"], batch["source"], pred_target, pred_source)
-            return metric_dict | {"neural_dual_dist": neural_dual_dist}
+            return {**metric_dict, "neural_dual_dist": neural_dual_dist}
 
         return valid_step
 
     def clip_weights_icnn(self, params: FrozenVariableDict) -> FrozenVariableDict:
         """Clip weights of ICNN."""
-        # if isinstance(params, FrozenVariableDict):
-        #    params = params.unfreeze()
-        # params = params.unfreeze()
-        # except AttributeError:
-        #    pass
-        # raise ValueError("not implemented")
         for key in params:
             if key.startswith("w_zs"):
                 params[key]["kernel"] = jnp.clip(params[key]["kernel"], a_min=0)
