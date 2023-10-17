@@ -346,7 +346,7 @@ class NeuralDualOutput(OTTNeuralOutput):
         if len(data) > 1:
             raise ValueError(f"`data` must be of length 1, but found {len(data)}.")
         k, v = next(iter(data.items()))
-        return super().plot_convergence(
+        return super().plot_convergence(  # type: ignore[misc]
             data={k + ": " + v: self._training_logs[f"{k}_logs"][v]},
             last_k=last_k,
             title=title,

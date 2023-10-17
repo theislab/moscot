@@ -252,6 +252,11 @@ class SubsetPolicy(Generic[K], abc.ABC):
         return self
 
     @property
+    def categories(self) -> Sequence[K]:
+        """Categories in the policy."""
+        return self._cat
+
+    @property
     def key(self) -> Optional[str]:
         """Key in :attr:`~anndata.AnnData.obs` defining the policy."""
         return self._subset_key

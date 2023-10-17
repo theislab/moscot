@@ -98,7 +98,7 @@ class RunningAverageMeter:
 @partial(jax.jit, static_argnames=["k"])
 def get_nearest_neighbors(
     input_batch: jnp.ndarray, target: jnp.ndarray, k: int = 30
-) -> Tuple[jnp.ndarray, jnp.ndarray]:  # type: ignore[name-defined]
+) -> Tuple[jnp.ndarray, jnp.ndarray]:
     """Get the k nearest neighbors of the input batch in the target."""
     if target.shape[0] < k:
         raise ValueError(f"k is {k}, but must be smaller or equal than {target.shape[0]}.")

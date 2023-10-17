@@ -24,7 +24,7 @@ from moscot.costs import get_cost
 
 K = TypeVar("K", bound=Hashable)
 
-__all__ = ["Tag", "TaggedArray"]
+__all__ = ["Tag", "TaggedArray", "DistributionContainer", "DistributionCollection"]
 
 
 @enum.unique

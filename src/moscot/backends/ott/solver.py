@@ -466,7 +466,7 @@ class NeuralDualSolver(OTSolver[OTTOutput]):
 
     @classmethod
     def _call_kwargs(cls) -> Tuple[Set[str], Set[str]]:
-        return {"trainloader", "validloader"}
+        return {"trainloader", "validloader"}, {}  # type: ignore[return-value]
 
 
 class CondNeuralDualSolver(NeuralDualSolver):
@@ -489,7 +489,7 @@ class CondNeuralDualSolver(NeuralDualSolver):
         valid_a: List[Optional[ArrayLike]] = []
         valid_b: List[Optional[ArrayLike]] = []
 
-        sample_to_idx: Dict[int, Any] = {}
+        sample_to_idx: Dict[Any, int] = {}
         kwargs = _filter_kwargs(JaxSampler, **kwargs)
         if train_size == 1.0:
             train_data = [d.xy for d in distributions]  # type:ignore[var-annotated]
@@ -504,7 +504,7 @@ class CondNeuralDualSolver(NeuralDualSolver):
             seed = kwargs.pop("seed", 0)
             for i, key in enumerate(distributions):
                 t_data, v_data, t_a, t_b, v_a, v_b = self._split_data(
-                    distributions[key].xy,
+                    distributions[key].xy,  # type:ignore[arg-type]
                     train_size=train_size,
                     seed=seed,
                     a=distributions[key].a,

@@ -938,7 +938,7 @@ class CondOTProblem(BaseProblem):  # TODO(@MUCDK) check generic types, save and 
         self._adata = adata
 
         self._distributions: Dict[Any, Tuple[TaggedArray, ArrayLike, ArrayLike]] = {}
-        self._inner_policy: Optional[SubsetPolicy[Any]] = None
+        self._policy: Optional[SubsetPolicy[Any]] = None
         self._sample_pairs: Optional[List[Tuple[Any, Any]]] = None
 
         self._solver: Optional[OTSolver[BaseSolverOutput]] = None
@@ -993,11 +993,11 @@ class CondOTProblem(BaseProblem):  # TODO(@MUCDK) check generic types, save and 
         except KeyError:
             raise KeyError(f"Unable to find data in `adata.obs[{policy_key!r}]`.") from None
 
-        self._inner_policy = create_policy(policy, adata=self.adata, key=policy_key)
-        policy = self._inner_policy.create_graph()
-        self._sample_pairs = list(self._inner_policy._graph)
+        self._policy = create_policy(policy, adata=self.adata, key=policy_key)
+        _ = self.policy.create_graph()  # type: ignore[union-attr]
+        self._sample_pairs = list(self.policy._graph)  # type: ignore[union-attr]
 
-        for el in policy._cat:
+        for el in self.policy.categories:  # type: ignore[union-attr]
             mask = self._create_mask(el)
             a_created = self._create_marginals(self.adata[mask], data=a, source=True, **kwargs)
             b_created = self._create_marginals(self.adata[mask], data=b, source=False, **kwargs)
@@ -1105,3 +1105,8 @@ class CondOTProblem(BaseProblem):  # TODO(@MUCDK) check generic types, save and 
     def solver(self) -> Optional[OTSolver[BaseSolverOutput]]:
         """Solver of the optimal transport problem."""
         return self._solver
+
+    @property
+    def policy(self) -> Optional[SubsetPolicy[Any]]:
+        """Policy used to subset the data."""
+        return self._policy

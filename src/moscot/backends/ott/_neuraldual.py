@@ -532,7 +532,7 @@ class OTTNeuralDualSolver:
             neural_dual_dist = tgt_sq + src_sq + 2.0 * (jnp.mean(g_grad_f_src - src_dot_grad_f_src) - jnp.mean(g_tgt))
             # calculate validation metrics
             metric_dict = self.callback_func(batch["target"], batch["source"], pred_target, pred_source)
-            return {**metric_dict, "neural_dual_dist": neural_dual_dist}
+            return {**metric_dict, "neural_dual_dist": neural_dual_dist}  # type: ignore[dict-item]
 
         return valid_step
 

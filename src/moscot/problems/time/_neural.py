@@ -9,7 +9,7 @@ from moscot.base.problems.compound_problem import CompoundProblem
 from moscot.problems._utils import handle_joint_attr
 
 
-class TemporalNeuralProblem(
+class TemporalNeuralProblem(  # type: ignore[misc]
     NeuralAnalysisMixin[Numeric_t, BirthDeathNeuralProblem],
     BirthDeathMixin,
     CompoundProblem[Numeric_t, BirthDeathNeuralProblem],

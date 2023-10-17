@@ -506,7 +506,7 @@ class NeuralProblem(CompoundProblem[K, B], GenericAnalysisMixin[K, B]):
         self,
         key: str,
         joint_attr: Optional[Union[str, Mapping[str, Any]]] = None,
-        policy: Literal["sequential", "pairwise", "explicit"] = "sequential",
+        policy: Literal["sequential", "star", "external_star", "explicit", "triu", "tril"] = "sequential",
         a: Optional[str] = None,
         b: Optional[str] = None,
         **kwargs: Any,
@@ -595,7 +595,7 @@ class ConditionalNeuralProblem(CondOTProblem, GenericAnalysisMixin[K, B]):
     def prepare(
         self,
         key: str,
-        joint_attr: str,
+        joint_attr: Union[str, Mapping[str, Any]],
         policy: Literal["sequential", "pairwise", "explicit"] = "sequential",
         a: Optional[str] = None,
         b: Optional[str] = None,
@@ -612,7 +612,7 @@ class ConditionalNeuralProblem(CondOTProblem, GenericAnalysisMixin[K, B]):
                 return dict(z)
             raise TypeError("`x_attr` and `y_attr` must be of type `str` or `dict`.")
 
-        quad_attr = None  # at the moment we only have linear cond OT solvers
+        quad_attr: Optional[Union[str, Dict[str, str]]] = None  # at the moment we only have linear cond OT solvers
 
         self.batch_key = key  # type:ignore[misc]
         xy, kwargs = handle_joint_attr_tmp(joint_attr, kwargs)
