@@ -937,7 +937,7 @@ class CondOTProblem(BaseProblem):  # TODO(@MUCDK) check generic types, save and 
         super().__init__(**kwargs)
         self._adata = adata
 
-        self._distributions: Dict[Any, Tuple[TaggedArray, ArrayLike, ArrayLike]] = {}
+        self._distributions: Optional[DistributionCollection] = None
         self._policy: Optional[SubsetPolicy[Any]] = None
         self._sample_pairs: Optional[List[Tuple[Any, Any]]] = None
 
@@ -1001,7 +1001,7 @@ class CondOTProblem(BaseProblem):  # TODO(@MUCDK) check generic types, save and 
             mask = self._create_mask(el)
             a_created = self._create_marginals(self.adata[mask], data=a, source=True, **kwargs)
             b_created = self._create_marginals(self.adata[mask], data=b, source=False, **kwargs)
-            self.distributions.add_distribution(
+            self.distributions.add_distribution(  # type: ignore[union-attr]
                 el, DistributionContainer.from_adata(self.adata[mask], a=a_created, b=b_created, **xy, **xx)
             )
         return self
@@ -1034,7 +1034,7 @@ class CondOTProblem(BaseProblem):  # TODO(@MUCDK) check generic types, save and 
         tmp = next(iter(self.distributions))
         self._solver = backends.get_solver(
             problem_kind=self._problem_kind,
-            input_dim=self.distributions[tmp].xy.shape[1],  # type: ignore[union-attr]
+            input_dim=self.distributions[tmp].xy.shape[1],  # type: ignore[union-attr, index]
             distributions=self._distributions,
             sample_pairs=self._sample_pairs,
             **kwargs,
@@ -1087,7 +1087,7 @@ class CondOTProblem(BaseProblem):  # TODO(@MUCDK) check generic types, save and 
         return np.asarray(mask)
 
     @property
-    def distributions(self) -> DistributionCollection:
+    def distributions(self) -> Optional[DistributionCollection]:
         """Collection of distributions."""
         return self._distributions
 

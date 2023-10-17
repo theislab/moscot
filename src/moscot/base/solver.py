@@ -216,10 +216,10 @@ class OTSolver(TagConverter, BaseSolver[O], abc.ABC):
 
         return res.to(device=device)  # type: ignore[return-value]
 
-    def _prepare_kwargs(self, data: Union[TaggedArrayData, Dict[Any, Any]]) -> Dict[str, Any]:  # dict for CondOT
-        if isinstance(data, dict):  # TODO: find better solution
-            return {"xy": data}
-        return data
+    # def _prepare_kwargs(self, data: Union[TaggedArrayData, Dict[Any, Any]]) -> Dict[str, Any]:  # dict for CondOT
+    #    if isinstance(data, dict):  # TODO: find better solution
+    #        return {"xy": data}
+    #    return data
 
     def _untag(self, data: TaggedArrayData) -> Dict[str, Any]:
         if self.problem_kind == "linear":

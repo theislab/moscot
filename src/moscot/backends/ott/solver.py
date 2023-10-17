@@ -559,4 +559,4 @@ class CondNeuralDualSolver(NeuralDualSolver):
 
     @classmethod
     def _call_kwargs(cls) -> Tuple[Set[str], Set[str]]:
-        return {"xy", "sample_pairs", "train_size"}
+        return {"xy", "sample_pairs", "train_size"}, {}  # type: ignore[return-value]

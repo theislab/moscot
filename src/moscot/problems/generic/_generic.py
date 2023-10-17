@@ -514,7 +514,7 @@ class NeuralProblem(CompoundProblem[K, B], GenericAnalysisMixin[K, B]):
         """Prepare the :class:`moscot.problems.generic.NeuralProblem[K, B]`."""
         self.batch_key = key  # type:ignore[misc]
         xy, kwargs = handle_joint_attr(joint_attr, kwargs)
-        return super().prepare(
+        return super().prepare(  # type: ignore[return-value]
             key=key,
             policy=policy,
             xy=xy,
@@ -586,7 +586,7 @@ class NeuralProblem(CompoundProblem[K, B], GenericAnalysisMixin[K, B]):
     @classmethod
     def _call_kwargs(cls) -> Tuple[Set[str], Set[str]]:
         init_kwargs = set(inspect.signature(NeuralOTProblem).parameters.keys())
-        return init_kwargs, {}
+        return init_kwargs, {}  # type: ignore[return-value]
 
 
 class ConditionalNeuralProblem(CondOTProblem, GenericAnalysisMixin[K, B]):
