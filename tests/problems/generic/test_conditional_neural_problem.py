@@ -83,8 +83,8 @@ class TestConditionalNeuralProblem:
         custom_g = ICNN([3, 3], input_dim=input_dim, cond_dim=1)
 
         problem = problem.solve(iterations=2, f=custom_f, g=custom_g, cond_dim=1)
-        assert problem.f == custom_f
-        assert problem.g == custom_g
+        assert problem.solver.solver.f == custom_f
+        assert problem.solver.solver.g == custom_g
 
     def test_pass_custom_optimizers(self, adata_time: ad.AnnData):
         problem = ConditionalNeuralProblem(adata=adata_time)

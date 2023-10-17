@@ -3,7 +3,6 @@ from types import MappingProxyType
 from typing import Any, Callable, Dict, List, Literal, Optional, Tuple, Type, Union
 
 import optax
-from flax.core import freeze
 from flax.core.scope import FrozenVariableDict
 from flax.training.train_state import TrainState
 from tqdm.auto import tqdm
@@ -122,7 +121,7 @@ class OTTNeuralDualSolver:
         patience: int = 100,
         optimizer_f: Union[Dict[str, Any], Type[optax.GradientTransformation]] = MappingProxyType({}),
         optimizer_g: Union[Dict[str, Any], Type[optax.GradientTransformation]] = MappingProxyType({}),
-        pretrain_iters: int = 15001,
+        pretrain_iters: int = 0,
         pretrain_scale: float = 3.0,
         valid_sinkhorn_kwargs: Dict[str, Any] = MappingProxyType({}),
         compute_wasserstein_baseline: bool = False,
@@ -130,6 +129,8 @@ class OTTNeuralDualSolver:
             Callable[[jnp.ndarray, jnp.ndarray, jnp.ndarray, jnp.ndarray], Dict[str, float]]
         ] = None,
     ):
+        if pretrain_iters > 0:
+            raise NotImplementedError("Pretraining is not yet implemented.")
         self.input_dim = input_dim
         self.cond_dim = cond_dim
         self.batch_size = batch_size
@@ -155,8 +156,8 @@ class OTTNeuralDualSolver:
 
         self.optimizer_f = _get_optimizer(**optimizer_f) if isinstance(optimizer_f, abc.Mapping) else optimizer_f
         self.optimizer_g = _get_optimizer(**optimizer_g) if isinstance(optimizer_g, abc.Mapping) else optimizer_g
-        self.neural_f = _get_icnn(input_dim=input_dim, cond_dim=cond_dim, **f) if isinstance(f, abc.Mapping) else f
-        self.neural_g = _get_icnn(input_dim=input_dim, cond_dim=cond_dim, **g) if isinstance(g, abc.Mapping) else g
+        self.f = _get_icnn(input_dim=input_dim, cond_dim=cond_dim, **f) if isinstance(f, abc.Mapping) else f
+        self.g = _get_icnn(input_dim=input_dim, cond_dim=cond_dim, **g) if isinstance(g, abc.Mapping) else g
         self.callback_func = (
             lambda tgt, src, pred_tgt, pred_src: _compute_metrics_sinkhorn(
                 tgt, src, pred_tgt, pred_src, self.valid_eps, self.valid_sinkhorn_kwargs
@@ -165,7 +166,7 @@ class OTTNeuralDualSolver:
             else callback_func
         )
         # set optimizer and networks
-        self.setup(self.neural_f, self.neural_g, self.optimizer_f, self.optimizer_g)
+        self.setup(self.f, self.g, self.optimizer_f, self.optimizer_g)
 
     def setup(self, neural_f: ICNN, neural_g: ICNN, optimizer_f: optax.OptState, optimizer_g: optax.OptState):
         """Initialize all components required to train the :class:`moscot.backends.ott.NeuralDual`.
@@ -275,7 +276,8 @@ class OTTNeuralDualSolver:
             loss, self.state_g = pretrain_update(self.state_g, key_pre)
             # clip weights of g
             if not self.pos_weights:
-                self.state_g = self.state_g.replace(params=self.clip_weights_icnn(self.state_g.params))
+                raise NotImplementedError("Weight clipping not implemented currently.")
+                # self.state_g = self.state_g.replace(params=self.clip_weights_icnn(self.state_g.params))
             if iteration % self.log_freq == 0:
                 pretrain_logs["loss"].append(loss)
         # load params of g into state_f
@@ -372,7 +374,7 @@ class OTTNeuralDualSolver:
             for key, value in train_g_metrics.items():
                 average_meters[key].update(value)
             # clip weights of f
-            if not self.pos_weights:
+            if self.pos_weights:
                 self.state_g = self.state_g.replace(params=self.clip_weights_icnn(self.state_g.params))
             # log avg training values periodically
             if iteration % self.log_freq == 0:
@@ -539,15 +541,17 @@ class OTTNeuralDualSolver:
 
     def clip_weights_icnn(self, params: FrozenVariableDict) -> FrozenVariableDict:
         """Clip weights of ICNN."""
-        # try:
-        params = params.unfreeze()
+        # if isinstance(params, FrozenVariableDict):
+        #    params = params.unfreeze()
+        # params = params.unfreeze()
         # except AttributeError:
         #    pass
+        # raise ValueError("not implemented")
         for key in params:
             if key.startswith("w_zs"):
                 params[key]["kernel"] = jnp.clip(params[key]["kernel"], a_min=0)
 
-        return freeze(params)
+        return params  # freeze(params)
 
     def penalize_weights_icnn(self, params: FrozenVariableDict) -> float:
         """Penalize weights of ICNN."""

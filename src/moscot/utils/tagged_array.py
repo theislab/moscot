@@ -268,7 +268,7 @@ class DistributionContainer:
         backend: Literal["ott"] = "ott",
         **kwargs: Any,
     ) -> "DistributionContainer":
-        """Create tagged array from :class:`~anndata.AnnData`.
+        """Create distribution container from :class:`~anndata.AnnData`.
 
         .. warning::
             Sparse arrays will be always densified.

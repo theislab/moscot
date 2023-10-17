@@ -146,7 +146,7 @@ class TemporalNeuralProblem(
         patience: int = 100,
         optimizer_f_kwargs: Dict[str, Any] = MappingProxyType({}),
         optimizer_g_kwargs: Dict[str, Any] = MappingProxyType({}),
-        pretrain_iters: int = 15001,
+        pretrain_iters: int = 0,
         pretrain_scale: float = 3.0,
         valid_sinkhorn_kwargs: Dict[str, Any] = MappingProxyType({}),
         compute_wasserstein_baseline: bool = True,
