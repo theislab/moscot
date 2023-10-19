@@ -300,8 +300,8 @@ class AnalysisMixin(Generic[K, B]):
     def _annotation_mapping(
         self: AnalysisMixinProtocol[K, B],
         mapping_mode: Literal["sum", "max"],
-        #source_groups: Str_Dict_t,
-        #target_groups: Str_Dict_t,
+        # source_groups: Str_Dict_t,
+        # target_groups: Str_Dict_t,
         label: str,
         forward: bool,
         other_adata: Optional[str] = None,
@@ -309,7 +309,7 @@ class AnalysisMixin(Generic[K, B]):
         cell_transition_kwargs: Mapping[str, Any] = types.MappingProxyType({}),
     ) -> pd.DataFrame:
         if mapping_mode == "sum":
-            return self._cell_transition(**cell_transition_kwargs) #aggregation mode should set to cell
+            return self._cell_transition(**cell_transition_kwargs)  # aggregation mode should set to cell
         if mapping_mode == "max":
             assert (
                 not cell_transition_kwargs
@@ -324,7 +324,7 @@ class AnalysisMixin(Generic[K, B]):
                 )
             dummy = pd.get_dummies(source_annotations)
             out: ArrayLike = self.pull(dummy, scale_by_marginals=scale_by_marginals)  # or assert out is not None
-            # 
+            #
             return pd.Categorical([dummy.columns[i] for i in np.array(out.argmax(1))])
         raise NotImplementedError(f"Mapping mode `{mapping_mode!r}` is not yet implemented.")
 
