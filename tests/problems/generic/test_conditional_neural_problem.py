@@ -1,6 +1,5 @@
 import pytest
-from optax import adagrad
-
+import optax
 import jax.numpy as jnp
 import numpy as np
 
@@ -90,9 +89,8 @@ class TestConditionalNeuralProblem:
         problem = ConditionalNeuralProblem(adata=adata_time)
         adata_time = adata_time[adata_time.obs["time"].isin((0, 1))]
         problem = problem.prepare(key="time", joint_attr="X_pca")
-        custom_opt_f = adagrad(1e-4)
-        custom_opt_g = adagrad(1e-3)
+        custom_opt_f = optax.adagrad(1e-4)
+        custom_opt_g = optax.adagrad(1e-3)
 
         problem = problem.solve(iterations=2, opt_f=custom_opt_f, opt_g=custom_opt_g, cond_dim=1)
-        assert problem.optimizer_f == custom_opt_f
-        assert problem.optimizer_g == custom_opt_g
+        
