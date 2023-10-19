@@ -115,8 +115,8 @@ class AnalysisMixinProtocol(Protocol[K, B]):
     def _annotation_mapping(
         self: "AnalysisMixinProtocol[K, B]",
         mapping_mode: Literal["sum", "max"],
-        source_groups: Str_Dict_t,
-        target_groups: Str_Dict_t,
+        annotation_label: str,
+        forward: bool,
         other_adata: Optional[str] = None,
         scale_by_marginals: bool = True,
         cell_transition_kwargs: Mapping[str, Any] = types.MappingProxyType({}),
@@ -300,9 +300,7 @@ class AnalysisMixin(Generic[K, B]):
     def _annotation_mapping(
         self: AnalysisMixinProtocol[K, B],
         mapping_mode: Literal["sum", "max"],
-        #source_groups: Str_Dict_t,
-        #target_groups: Str_Dict_t,
-        label: str,
+        annotation_label: str,
         forward: bool,
         other_adata: Optional[str] = None,
         scale_by_marginals: bool = True,
@@ -316,15 +314,15 @@ class AnalysisMixin(Generic[K, B]):
             ), "cell_transition_kwargs is not empty, although cell_transition is not used."
             if forward:
                 source_annotation_key, source_annotations, source_annotations_ordered = _validate_args_cell_transition(
-                    self.adata, label
+                    self.adata, annotation_label
                 )
+                dummy = pd.get_dummies(source_annotations)
             elif not forward:
                 target_annotation_key, target_annotations, target_annotations_ordered = _validate_args_cell_transition(
-                    self.adata if other_adata is None else other_adata, label
+                    self.adata if other_adata is None else other_adata, annotation_label
                 )
-            dummy = pd.get_dummies(source_annotations)
+                dummy = pd.get_dummies(target_annotations)
             out: ArrayLike = self.pull(dummy, scale_by_marginals=scale_by_marginals)  # or assert out is not None
-            # 
             return pd.Categorical([dummy.columns[i] for i in np.array(out.argmax(1))])
         raise NotImplementedError(f"Mapping mode `{mapping_mode!r}` is not yet implemented.")
 

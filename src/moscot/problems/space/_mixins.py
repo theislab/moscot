@@ -287,16 +287,16 @@ class SpatialAlignmentMixin(AnalysisMixin[K, B]):
     def annotation_mapping(
         self: AnalysisMixinProtocol[K, B],
         mapping_mode: Literal["sum", "max"],
-        source_groups: Str_Dict_t,
-        target_groups: Str_Dict_t,
+        annotation_label: str,
+        forward: bool,
         other_adata: Optional[str] = None,
         scale_by_marginals: bool = True,
         cell_transition_kwargs: Mapping[str, Any] = types.MappingProxyType({}),
     ) -> pd.DataFrame:
         return self._annotation_mapping(
             mapping_mode=mapping_mode,
-            source_groups=source_groups,
-            target_groups=target_groups,
+            annotation_label=annotation_label,
+            forward=forward,
             other_adata=other_adata,
             scale_by_marginals=scale_by_marginals,
             cell_transition_kwargs=cell_transition_kwargs,
@@ -594,16 +594,16 @@ class SpatialMappingMixin(AnalysisMixin[K, B]):
     def annotation_mapping(
         self: AnalysisMixinProtocol[K, B],
         mapping_mode: Literal["sum", "max"],
-        source_groups: Str_Dict_t,
-        target_groups: Str_Dict_t,
+        annotation_label: str,
+        forward: bool,
         other_adata: Optional[str] = None,
         scale_by_marginals: bool = True,
         cell_transition_kwargs: Mapping[str, Any] = types.MappingProxyType({}),
     ) -> pd.DataFrame:
         return self._annotation_mapping(
             mapping_mode=mapping_mode,
-            source_groups=source_groups,
-            target_groups=target_groups,
+            annotation_label=annotation_label,
+            forward=forward,
             other_adata=other_adata,
             scale_by_marginals=scale_by_marginals,
             cell_transition_kwargs=cell_transition_kwargs,
