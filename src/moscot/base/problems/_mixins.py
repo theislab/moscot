@@ -307,7 +307,7 @@ class AnalysisMixin(Generic[K, B]):
         cell_transition_kwargs: Mapping[str, Any] = types.MappingProxyType({}),
     ) -> pd.DataFrame:
         if mapping_mode == "sum":
-            return self._cell_transition(**cell_transition_kwargs) #aggregation mode should set to cell
+            return self._cell_transition(**cell_transition_kwargs)  # aggregation mode should set to cell
         if mapping_mode == "max":
             assert (
                 not cell_transition_kwargs
