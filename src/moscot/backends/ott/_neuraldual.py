@@ -4,7 +4,7 @@ from typing import Any, Callable, Dict, List, Literal, Optional, Tuple, Type, Un
 
 import optax
 from flax.core.scope import FrozenVariableDict
-from flax.training.train_state import TrainState
+from flax.training import train_state
 from tqdm.auto import tqdm
 
 import jax
@@ -29,7 +29,97 @@ from moscot.backends.ott._utils import (
 Train_t = Dict[str, Dict[str, Union[float, List[float]]]]
 
 
-class OTTNeuralDualSolver:
+class UnbalancedNeuralMixin:
+    def __init__(
+        self, mlp_eta: Callable[[jnp.ndarray], float] = None, mlp_xi: Callable[[jnp.ndarray], float] = None, **_: Any
+    ) -> None:
+        self.mlp_eta = mlp_eta
+        self.mlp_xi = mlp_xi
+        self.state_eta: Optional[train_state.TrainState] = None
+        self.state_xi: Optional[train_state.TrainState] = None
+        self.opt_eta: Optional[optax.GradientTransformation] = None
+        self.opt_xi: Optional[optax.GradientTransformation] = None
+
+    def setup(self, **kwargs: Any):
+        self.unbalancedness_step_fn = self._get_step_fn()
+        if self.mlp_eta is not None:
+            opt_eta = opt_eta if opt_eta is not None else optax.adamw(learning_rate=1e-4, weight_decay=1e-10)
+            self.state_eta = self.mlp_eta.create_train_state(self.rng, opt_eta, self.input_dim)
+        if self.mlp_xi is not None:
+            opt_xi = opt_xi if opt_xi is not None else optax.adamw(learning_rate=1e-4, weight_decay=1e-10)
+            self.state_xi = self.mlp_xi.create_train_state(self.rng, opt_xi, self.output_dim)
+
+    def _get_step_fn(self) -> Callable:
+        def loss_a_fn(
+            params_eta: Optional[jnp.ndarray],
+            apply_fn_eta: Optional[Callable],
+            x: jnp.ndarray,
+            a: jnp.ndarray,
+            expectation_reweighting: float,
+        ) -> float:
+            eta_predictions = apply_fn_eta({"params": params_eta}, x)
+            return (
+                optax.l2_loss(eta_predictions[:, 0], a).mean()
+                + optax.l2_loss(jnp.mean(eta_predictions) - expectation_reweighting),
+                eta_predictions,
+            )
+
+        def loss_b_fn(
+            params_xi: Optional[jnp.ndarray],
+            apply_fn_xi: Optional[Callable],
+            x: jnp.ndarray,
+            b: jnp.ndarray,
+            expectation_reweighting: float,
+        ) -> float:
+            xi_predictions = apply_fn_xi({"params": params_xi}, x)
+            return (
+                optax.l2_loss(xi_predictions, b).mean()
+                + optax.l2_loss(jnp.mean(xi_predictions) - expectation_reweighting),
+                xi_predictions,
+            )
+
+        @jax.jit
+        def step_fn(
+            batch: Dict[str, jnp.array],
+            metrics: Dict[str, List[float]],
+            state_eta: Optional[train_state.TrainState] = None,
+            state_xi: Optional[train_state.TrainState] = None,
+        ):
+            a, b, source, target = batch["a"], batch["b"], batch["source"], batch["target"]
+            if state_eta is not None:
+                grad_a_fn = jax.value_and_grad(loss_a_fn, argnums=0, has_aux=True)
+                (loss_a, eta_predictions), grads_eta = grad_a_fn(
+                    state_eta.params,
+                    state_eta.apply_fn,
+                    source[:,],
+                    a * len(a),
+                    jnp.sum(b),
+                )
+                new_state_eta = state_eta.apply_gradients(grads=grads_eta)
+                metrics["loss_eta"] = loss_a
+
+            else:
+                new_state_eta = eta_predictions = None
+            if state_xi is not None:
+                grad_b_fn = jax.value_and_grad(loss_b_fn, argnums=0, has_aux=True)
+                (loss_b, xi_predictions), grads_xi = grad_b_fn(
+                    state_xi.params,
+                    state_xi.apply_fn,
+                    target,
+                    b * len(b),
+                    jnp.sum(a),
+                )
+                new_state_xi = state_xi.apply_gradients(grads=grads_xi)
+                metrics["loss_xi"] = loss_b
+            else:
+                new_state_xi = xi_predictions = None
+
+            return new_state_eta, new_state_xi, eta_predictions, xi_predictions, metrics
+
+        return step_fn
+
+
+class OTTNeuralDualSolver(UnbalancedNeuralMixin):
     """Solver of the ICNN-based Kantorovich dual.
 
     Optimal transport mapping via input convex neural networks,
@@ -107,6 +197,9 @@ class OTTNeuralDualSolver:
         batch_size: int = 1024,
         tau_a: float = 1.0,
         tau_b: float = 1.0,
+        mlp_eta: Callable[[jnp.ndarray], float] = None,
+        mlp_xi: Callable[[jnp.ndarray], float] = None,
+        unbalancedness_kwargs: Dict[str, Any] = MappingProxyType({}),
         epsilon: float = 0.1,
         seed: int = 0,
         pos_weights: bool = False,
@@ -129,6 +222,7 @@ class OTTNeuralDualSolver:
             Callable[[jnp.ndarray, jnp.ndarray, jnp.ndarray, jnp.ndarray], Dict[str, float]]
         ] = None,
     ):
+        super().__init__(mlp_eta=mlp_eta, mlp_xi=mlp_xi, **unbalancedness_kwargs)
         self.input_dim = input_dim
         self.cond_dim = cond_dim
         self.batch_size = batch_size
@@ -248,7 +342,7 @@ class OTTNeuralDualSolver:
             params: jnp.ndarray,
             data: jnp.ndarray,
             condition: jnp.ndarray,
-            state: TrainState,
+            state: train_state.train_state.TrainState,
         ) -> float:
             """Loss function for the pretraining on identity."""
             grad_g_data = jax.vmap(jax.grad(lambda x: state.apply_fn({"params": params}, x, condition), argnums=0))(
@@ -258,7 +352,9 @@ class OTTNeuralDualSolver:
             return ((grad_g_data - data) ** 2).sum(axis=1).mean()  # TODO make nicer
 
         # @jax.jit
-        def pretrain_update(state: TrainState, key: jax.random.KeyArray) -> Tuple[jnp.ndarray, TrainState]:
+        def pretrain_update(
+            state: train_state.TrainState, key: jax.random.KeyArray
+        ) -> Tuple[jnp.ndarray, train_state.TrainState]:
             """Update function for the pretraining on identity."""
             # sample gaussian data with given scale
             x = self.pretrain_scale * jax.random.normal(key, [self.batch_size, self.input_dim])
@@ -303,6 +399,7 @@ class OTTNeuralDualSolver:
         # set logging dictionaries
         train_logs: Dict[str, List[float]] = defaultdict(list)
         valid_logs: Dict[str, Union[List[float], float]] = defaultdict(list)
+        unbalanced_train_logs: Dict[str, List[float]] = defaultdict(list)
         average_meters: Dict[str, RunningAverageMeter] = defaultdict(RunningAverageMeter)
         valid_average_meters: Dict[str, RunningAverageMeter] = defaultdict(RunningAverageMeter)
         sink_dist: List[float] = []
@@ -345,9 +442,18 @@ class OTTNeuralDualSolver:
                 # sample source batch and compute unbalanced marginals
                 source_key, self.key = jax.random.split(self.key, 2)
                 curr_source = trainloader(source_key, policy_pair, sample="source")
-                marginals_source, marginals_target = trainloader.compute_unbalanced_marginals(
-                    curr_source, batch["target"]
+                posterior_a, posterior_b = trainloader.compute_unbalanced_marginals(curr_source, batch["target"])
+                (
+                    self.state_eta,
+                    self.state_xi,
+                    eta_predictions,
+                    xi_predictions,
+                    unbalanced_train_logs,
+                ) = self.unbalancedness_step_fn(
+                    batch["source"], batch["target"], posterior_a, posterior_b, self.metrics
                 )
+                for key, value in unbalanced_train_logs.items():
+                    average_meters[key].update(value)
 
             for _ in range(self.inner_iters):
                 source_key, self.key = jax.random.split(self.key, 2)
@@ -419,19 +525,23 @@ class OTTNeuralDualSolver:
         return {
             "train_logs": train_logs,  # type:ignore[dict-item]
             "valid_logs": valid_logs,
+            "unbalanced_logs": unbalanced_logs,
         }
 
     def get_train_step(
         self,
         to_optimize: Literal["f", "g"],
-    ) -> Callable[[TrainState, TrainState, Dict[str, jnp.ndarray]], Tuple[TrainState, Dict[str, float]]]:
+    ) -> Callable[
+        [train_state.TrainState, train_state.TrainState, Dict[str, jnp.ndarray]],
+        Tuple[train_state.TrainState, Dict[str, float]],
+    ]:
         """Get one training step."""
 
         def loss_f_fn(
             params_f: jnp.ndarray,
             params_g: jnp.ndarray,
-            state_f: TrainState,
-            state_g: TrainState,
+            state_f: train_state.TrainState,
+            state_g: train_state.TrainState,
             batch: Dict[str, jnp.ndarray],
         ) -> Tuple[jnp.ndarray, List[jnp.ndarray]]:
             """Loss function for f."""
@@ -453,8 +563,8 @@ class OTTNeuralDualSolver:
         def loss_g_fn(
             params_f: jnp.ndarray,
             params_g: jnp.ndarray,
-            state_f: TrainState,
-            state_g: TrainState,
+            state_f: train_state.TrainState,
+            state_g: train_state.TrainState,
             batch: Dict[str, jnp.ndarray],
         ) -> Tuple[jnp.ndarray, List[float]]:
             """Loss function for g."""
@@ -477,10 +587,10 @@ class OTTNeuralDualSolver:
 
         @jax.jit
         def step_fn(
-            state_f: TrainState,
-            state_g: TrainState,
+            state_f: train_state.TrainState,
+            state_g: train_state.TrainState,
             batch: Dict[str, jnp.ndarray],
-        ) -> Tuple[TrainState, Dict[str, float]]:
+        ) -> Tuple[train_state.TrainState, Dict[str, float]]:
             """Step function for training."""
             # get loss function for f or g
             if to_optimize == "f":
@@ -503,13 +613,15 @@ class OTTNeuralDualSolver:
 
     def get_eval_step(
         self,
-    ) -> Callable[[TrainState, TrainState, Dict[str, jnp.ndarray], jnp.ndarray], Dict[str, float]]:
+    ) -> Callable[
+        [train_state.TrainState, train_state.TrainState, Dict[str, jnp.ndarray], jnp.ndarray], Dict[str, float]
+    ]:
         """Get one validation step."""
 
         @jax.jit
         def valid_step(
-            state_f: TrainState,
-            state_g: TrainState,
+            state_f: train_state.TrainState,
+            state_g: train_state.TrainState,
             batch: Dict[str, jnp.ndarray],
             condition: jnp.ndarray,
         ) -> Dict[str, float]:

@@ -1,5 +1,6 @@
-import pytest
 import optax
+import pytest
+
 import jax.numpy as jnp
 import numpy as np
 
@@ -93,4 +94,3 @@ class TestConditionalNeuralProblem:
         custom_opt_g = optax.adagrad(1e-3)
 
         problem = problem.solve(iterations=2, opt_f=custom_opt_f, opt_g=custom_opt_g, cond_dim=1)
-        

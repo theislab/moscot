@@ -57,20 +57,17 @@ class JaxSampler:
             """Jitted function to compute the source and target marginals for a batch."""
             geom = PointCloud(batch_source, batch_target, epsilon=epsilon, scale_cost="mean")
             out = sinkhorn.Sinkhorn(**sinkhorn_kwargs)(linear_problem.LinearProblem(geom, tau_a=tau_a, tau_b=tau_b))
-            # get log probabilities
-            log_marginals_source = jnp.log(out.marginal(1))
-            log_marginals_target = jnp.log(out.marginal(0))
-            return log_marginals_source, log_marginals_target
+            return out.matrix.sum(axis=1), out.matrix.sum(axis=0)
 
         @jax.jit
         def _unbalanced_resample(
             key: jax.random.KeyArray,
             batch: jnp.ndarray,
-            log_marginals: jnp.ndarray,
+            marginals: jnp.ndarray,
         ) -> jnp.ndarray:
             """Resample a batch based upon log marginals."""
             # sample from marginals
-            indices = jax.random.categorical(key, log_marginals, shape=[batch_size])
+            indices = jax.random.choice(key, marginals, shape=[batch_size])
             return batch[indices]
 
         def _sample_policy_pair(key: jax.random.KeyArray) -> Tuple[Tuple[Any, Any], Any]:
