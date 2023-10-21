@@ -438,11 +438,14 @@ class OTTNeuralDualSolver(UnbalancedNeuralMixin):
             # sample target batch
             batch["target"] = trainloader(target_key, policy_pair, sample="target")
 
-            if not self.is_balanced:
+            if self.is_balanced:
+                a = jnp.ones(batch["source"].shape[0]) / batch["source"].shape[0]
+                b = jnp.ones(batch["target"].shape[0]) / batch["target"].shape[0]
+            else:
                 # sample source batch and compute unbalanced marginals
                 source_key, self.key = jax.random.split(self.key, 2)
                 curr_source = trainloader(source_key, policy_pair, sample="source")
-                posterior_a, posterior_b = trainloader.compute_unbalanced_marginals(curr_source, batch["target"])
+                a, b = trainloader.compute_unbalanced_marginals(curr_source, batch["target"])
                 (
                     self.state_eta,
                     self.state_xi,
@@ -450,7 +453,7 @@ class OTTNeuralDualSolver(UnbalancedNeuralMixin):
                     xi_predictions,
                     unbalanced_train_logs,
                 ) = self.unbalancedness_step_fn(
-                    batch["source"], batch["target"], posterior_a, posterior_b, self.metrics
+                    batch["source"], batch["target"], a, b, self.metrics
                 )
                 for key, value in unbalanced_train_logs.items():
                     average_meters[key].update(value)
@@ -463,7 +466,7 @@ class OTTNeuralDualSolver(UnbalancedNeuralMixin):
                     batch["source"] = trainloader(source_key, policy_pair, sample="source")
                 else:
                     # resample source with unbalanced marginals
-                    batch["source"] = trainloader.unbalanced_resample(source_key, curr_source, marginals_source)
+                    batch["source"] = trainloader.unbalanced_resample(source_key, curr_source, a)
                 # train step for potential g directly updating the train state
                 self.state_f, train_f_metrics = self.train_step_f(self.state_f, self.state_g, batch)
                 for key, value in train_f_metrics.items():
@@ -471,7 +474,7 @@ class OTTNeuralDualSolver(UnbalancedNeuralMixin):
             # resample target batch with unbalanced marginals
             if self.epsilon is not None:
                 target_key, self.key = jax.random.split(self.key, 2)
-                batch["target"] = trainloader.unbalanced_resample(target_key, batch["target"], marginals_target)
+                batch["target"] = trainloader.unbalanced_resample(target_key, batch["target"], b)
             # train step for potential f directly updating the train state
             self.state_g, train_g_metrics = self.train_step_g(self.state_f, self.state_g, batch)
             for key, value in train_g_metrics.items():
@@ -525,7 +528,6 @@ class OTTNeuralDualSolver(UnbalancedNeuralMixin):
         return {
             "train_logs": train_logs,  # type:ignore[dict-item]
             "valid_logs": valid_logs,
-            "unbalanced_logs": unbalanced_logs,
         }
 
     def get_train_step(
