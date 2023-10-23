@@ -27,7 +27,7 @@ from ott.tools.sinkhorn_divergence import sinkhorn_divergence as sinkhorn_div
 
 from moscot._logging import logger
 from moscot._types import ArrayLike, ScaleCost_t
-from moscot.backends.ott._icnn import ICNN
+from moscot.backends.ott.nets._icnn import ICNN
 
 Potential_t = Callable[[jnp.ndarray], float]
 

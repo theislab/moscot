@@ -6,7 +6,7 @@ import numpy as np
 
 import anndata as ad
 
-from moscot.backends.ott._icnn import ICNN
+from moscot.backends.ott.nets._icnn import ICNN
 from moscot.base.output import BaseSolverOutput
 from moscot.base.problems import CondOTProblem
 from moscot.problems.generic import (
@@ -94,3 +94,12 @@ class TestConditionalNeuralProblem:
         custom_opt_g = optax.adagrad(1e-3)
 
         problem = problem.solve(iterations=2, opt_f=custom_opt_f, opt_g=custom_opt_g, cond_dim=1)
+
+    def test_unbalanced(self, adata_time: ad.AnnData):
+        problem = ConditionalNeuralProblem(adata=adata_time)
+        mlp_eta = MLP()
+        mlp_xi = MLP()
+        adata_time = adata_time[adata_time.obs["time"].isin((0, 1))]
+        problem = problem.prepare(key="time", joint_attr="X_pca")
+        problem = problem.solve(cond_dim=1, mlp_eta=mlp_eta, mlp_xi=mlp_xi, **neuraldual_args_2)
+        assert isinstance(problem.solution, BaseSolverOutput)

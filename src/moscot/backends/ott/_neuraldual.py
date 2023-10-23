@@ -15,7 +15,6 @@ from ott.problems.linear.potentials import DualPotentials
 
 from moscot._logging import logger
 from moscot._types import ArrayLike
-from moscot.backends.ott._icnn import ICNN
 from moscot.backends.ott._jax_data import JaxSampler
 from moscot.backends.ott._utils import (
     ConditionalDualPotentials,
@@ -25,6 +24,7 @@ from moscot.backends.ott._utils import (
     _get_optimizer,
     sinkhorn_divergence,
 )
+from moscot.backends.ott.nets._icnn import ICNN
 
 Train_t = Dict[str, Dict[str, Union[float, List[float]]]]
 
@@ -439,8 +439,7 @@ class OTTNeuralDualSolver(UnbalancedNeuralMixin):
             batch["target"] = trainloader(target_key, policy_pair, sample="target")
 
             if self.is_balanced:
-                a = jnp.ones(batch["source"].shape[0]) / batch["source"].shape[0]
-                b = jnp.ones(batch["target"].shape[0]) / batch["target"].shape[0]
+                a = b = jnp.ones(self.batch_size) / self.batch_size
             else:
                 # sample source batch and compute unbalanced marginals
                 source_key, self.key = jax.random.split(self.key, 2)
@@ -449,12 +448,10 @@ class OTTNeuralDualSolver(UnbalancedNeuralMixin):
                 (
                     self.state_eta,
                     self.state_xi,
-                    eta_predictions,
-                    xi_predictions,
+                    _,
+                    _,
                     unbalanced_train_logs,
-                ) = self.unbalancedness_step_fn(
-                    batch["source"], batch["target"], a, b, self.metrics
-                )
+                ) = self.unbalancedness_step_fn(batch["source"], batch["target"], a, b, self.metrics)
                 for key, value in unbalanced_train_logs.items():
                     average_meters[key].update(value)
 
@@ -467,6 +464,15 @@ class OTTNeuralDualSolver(UnbalancedNeuralMixin):
                 else:
                     # resample source with unbalanced marginals
                     batch["source"] = trainloader.unbalanced_resample(source_key, curr_source, a)
+                    (
+                        self.state_eta,
+                        self.state_xi,
+                        _,
+                        _,
+                        unbalanced_train_logs,
+                    ) = self.unbalancedness_step_fn(batch["source"], batch["target"], a, b, self.metrics)
+                    for key, value in unbalanced_train_logs.items():
+                        average_meters[key].update(value)
                 # train step for potential g directly updating the train state
                 self.state_f, train_f_metrics = self.train_step_f(self.state_f, self.state_g, batch)
                 for key, value in train_f_metrics.items():
