@@ -17,6 +17,7 @@ import matplotlib.pyplot as plt
 from matplotlib.figure import Figure
 
 from moscot._types import ArrayLike, Device_t
+from moscot.backends.ott._neuraldual import OTTNeuralDualSolver
 from moscot.backends.ott._utils import ConditionalDualPotentials, get_nearest_neighbors
 from moscot.base.output import BaseNeuralOutput, BaseSolverOutput
 
@@ -302,8 +303,9 @@ class NeuralDualOutput(OTTNeuralOutput):
         Statistics of the model training.
     """
 
-    def __init__(self, output: potentials.DualPotentials, training_logs: Train_t):
+    def __init__(self, output: potentials.DualPotentials, model: OTTNeuralDualSolver, training_logs: Train_t):
         self._output = output
+        self._model = model
         self._training_logs = training_logs
         self._transport_matrix: ArrayLike = None
         self._inverse_transport_matrix: ArrayLike = None
@@ -566,17 +568,17 @@ class NeuralDualOutput(OTTNeuralOutput):
             raise ValueError(f"Expected 1D or 2D array, found `{x.ndim}`.")
         return jax.vmap(self._output.g)(x)
 
-    @property
-    def a(self) -> ArrayLike:
+    def evaluate_a(self, x: ArrayLike) -> ArrayLike:
         """Marginals of the source distribution."""
-        # TODO: adapt when tracing marginals
-        raise NotImplementedError()
+        if self._model.mlp_xi is None:
+            raise ValueError("The source marginals have not been traced.")
+        return self._model.state_eta.apply_fn({"params": self._model.state_eta.params}, x)  # type:ignore[union-attr]
 
-    @property
-    def b(self) -> ArrayLike:
+    def evaluate_b(self, x: ArrayLike) -> ArrayLike:
         """Marginals of the target distribution."""
-        # TODO: adapt when tracing marginals
-        raise NotImplementedError()
+        if self._model.mlp_eta is None:
+            raise ValueError("The target marginals have not been traced.")
+        return self._model.state_xi.apply_fn({"params": self._model.state_xi.params}, x)  # type:ignore[union-attr]
 
     def _ones(self, n: int) -> jnp.ndarray:
         return jnp.ones((n,))
@@ -607,8 +609,8 @@ class CondNeuralDualOutput(NeuralDualOutput):
         Statistics of the model training.
     """
 
-    def __init__(self, output: ConditionalDualPotentials, **kwargs):
-        super().__init__(output=output, **kwargs)
+    def __init__(self, output: ConditionalDualPotentials, model: Any, **kwargs):  # TODO: adapt type
+        super().__init__(output=output, model=model, **kwargs)
         self._output = output
 
     def _apply(self, cond: ArrayLike, x: ArrayLike, *, forward: bool) -> ArrayLike:  # type:ignore[override]
@@ -731,7 +733,8 @@ class CondNeuralDualOutput(NeuralDualOutput):
                 raise IndexError(f"Unable to fetch the device with `id={idx}`.") from err
 
         out = jax.device_put(self._output, device)
-        return CondNeuralDualOutput(output=out, training_logs=self.training_logs)
+        # TODO: allow model to be transferred to device
+        return CondNeuralDualOutput(output=out, model=self._model, training_logs=self.training_logs)
 
     def push(self, cond: ArrayLike, x: ArrayLike) -> ArrayLike:  # type: ignore[override]
         """Push distribution `x` conditioned on condition `cond`.

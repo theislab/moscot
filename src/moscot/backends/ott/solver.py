@@ -554,8 +554,8 @@ class CondNeuralDualSolver(NeuralDualSolver):
         )
 
     def _solve(self, data_samplers: Tuple[JaxSampler, JaxSampler]) -> CondNeuralDualOutput:  # type: ignore[override]
-        model, logs = self.solver(data_samplers[0], data_samplers[1])
-        return CondNeuralDualOutput(output=model, training_logs=logs)
+        dual_potentials, model, logs = self.solver(data_samplers[0], data_samplers[1])
+        return CondNeuralDualOutput(output=dual_potentials, model=model, training_logs=logs)
 
     @classmethod
     def _call_kwargs(cls) -> Tuple[Set[str], Set[str]]:

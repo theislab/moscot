@@ -12,6 +12,7 @@ import jax.numpy as jnp
 import numpy as np
 from ott.geometry import costs
 from ott.problems.linear.potentials import DualPotentials
+from ott.solvers.nn import models
 
 from moscot._logging import logger
 from moscot._types import ArrayLike
@@ -31,32 +32,49 @@ Train_t = Dict[str, Dict[str, Union[float, List[float]]]]
 
 class UnbalancedNeuralMixin:
     def __init__(
-        self, mlp_eta: Callable[[jnp.ndarray], float] = None, mlp_xi: Callable[[jnp.ndarray], float] = None, **_: Any
+        self,
+        source_dim: int,
+        target_dim: int,
+        mlp_eta: Optional[models.ModelBase],
+        mlp_xi: Optional[models.ModelBase],
+        seed: Optional[int] = None,
+        opt_eta: Optional[optax.GradientTransformation] = None,
+        opt_xi: Optional[optax.GradientTransformation] = None,
+        **_: Any,
     ) -> None:
+        self.source_dim = source_dim
+        self.target_dim = target_dim
         self.mlp_eta = mlp_eta
         self.mlp_xi = mlp_xi
         self.state_eta: Optional[train_state.TrainState] = None
         self.state_xi: Optional[train_state.TrainState] = None
-        self.opt_eta: Optional[optax.GradientTransformation] = None
-        self.opt_xi: Optional[optax.GradientTransformation] = None
+        self.opt_eta = opt_eta
+        self.opt_xi = opt_xi
+        self._key: jax.random.PRNGKeyArray = jax.random.PRNGKey(seed) if seed is not None else jax.random.PRNGKey(0)
 
-    def setup(self, **kwargs: Any):
+        self._setup()
+
+    def _setup(self, **_: Any):
         self.unbalancedness_step_fn = self._get_step_fn()
         if self.mlp_eta is not None:
-            opt_eta = opt_eta if opt_eta is not None else optax.adamw(learning_rate=1e-4, weight_decay=1e-10)
-            self.state_eta = self.mlp_eta.create_train_state(self.rng, opt_eta, self.input_dim)
+            self.opt_eta = (
+                self.opt_eta if self.opt_eta is not None else optax.adamw(learning_rate=1e-4, weight_decay=1e-10)
+            )
+            self.state_eta = self.mlp_eta.create_train_state(self._key, self.opt_eta, self.source_dim)
         if self.mlp_xi is not None:
-            opt_xi = opt_xi if opt_xi is not None else optax.adamw(learning_rate=1e-4, weight_decay=1e-10)
-            self.state_xi = self.mlp_xi.create_train_state(self.rng, opt_xi, self.output_dim)
+            self.opt_xi = (
+                self.opt_xi if self.opt_xi is not None else optax.adamw(learning_rate=1e-4, weight_decay=1e-10)
+            )
+            self.state_xi = self.mlp_xi.create_train_state(self._key, self.opt_xi, self.target_dim)
 
-    def _get_step_fn(self) -> Callable:
+    def _get_step_fn(self) -> Callable:  # type:ignore[type-arg]
         def loss_a_fn(
             params_eta: Optional[jnp.ndarray],
-            apply_fn_eta: Optional[Callable],
+            apply_fn_eta: Callable[[Dict[str, jnp.ndarray], jnp.ndarray], jnp.ndarray],
             x: jnp.ndarray,
             a: jnp.ndarray,
             expectation_reweighting: float,
-        ) -> float:
+        ) -> Tuple[float, jnp.ndarray]:
             eta_predictions = apply_fn_eta({"params": params_eta}, x)
             return (
                 optax.l2_loss(eta_predictions[:, 0], a).mean()
@@ -66,26 +84,28 @@ class UnbalancedNeuralMixin:
 
         def loss_b_fn(
             params_xi: Optional[jnp.ndarray],
-            apply_fn_xi: Optional[Callable],
+            apply_fn_xi: Callable[[Dict[str, jnp.ndarray], jnp.ndarray], jnp.ndarray],
             x: jnp.ndarray,
             b: jnp.ndarray,
             expectation_reweighting: float,
-        ) -> float:
+        ) -> Tuple[float, jnp.ndarray]:
             xi_predictions = apply_fn_xi({"params": params_xi}, x)
             return (
-                optax.l2_loss(xi_predictions, b).mean()
+                optax.l2_loss(xi_predictions[:, 0], b).mean()
                 + optax.l2_loss(jnp.mean(xi_predictions) - expectation_reweighting),
                 xi_predictions,
             )
 
         @jax.jit
         def step_fn(
-            batch: Dict[str, jnp.array],
-            metrics: Dict[str, List[float]],
+            source: jnp.ndarray,
+            target: jnp.ndarray,
+            a: jnp.ndarray,
+            b: jnp.ndarray,
             state_eta: Optional[train_state.TrainState] = None,
             state_xi: Optional[train_state.TrainState] = None,
         ):
-            a, b, source, target = batch["a"], batch["b"], batch["source"], batch["target"]
+            metrics: Dict[str, Any] = {}
             if state_eta is not None:
                 grad_a_fn = jax.value_and_grad(loss_a_fn, argnums=0, has_aux=True)
                 (loss_a, eta_predictions), grads_eta = grad_a_fn(
@@ -222,7 +242,14 @@ class OTTNeuralDualSolver(UnbalancedNeuralMixin):
             Callable[[jnp.ndarray, jnp.ndarray, jnp.ndarray, jnp.ndarray], Dict[str, float]]
         ] = None,
     ):
-        super().__init__(mlp_eta=mlp_eta, mlp_xi=mlp_xi, **unbalancedness_kwargs)
+        super().__init__(
+            source_dim=input_dim,
+            target_dim=input_dim,
+            mlp_eta=mlp_eta,
+            mlp_xi=mlp_xi,
+            seed=seed,
+            **unbalancedness_kwargs,
+        )
         self.input_dim = input_dim
         self.cond_dim = cond_dim
         self.batch_size = batch_size
@@ -320,7 +347,7 @@ class OTTNeuralDualSolver(UnbalancedNeuralMixin):
         res = self.to_dual_potentials()
         logs = {**pretrain_logs, **train_logs}
 
-        return (res, logs)
+        return (res, self, logs)
 
     def pretrain_identity(
         self, conditions: Optional[jnp.ndarray]
@@ -342,7 +369,7 @@ class OTTNeuralDualSolver(UnbalancedNeuralMixin):
             params: jnp.ndarray,
             data: jnp.ndarray,
             condition: jnp.ndarray,
-            state: train_state.train_state.TrainState,
+            state: train_state.TrainState,
         ) -> float:
             """Loss function for the pretraining on identity."""
             grad_g_data = jax.vmap(jax.grad(lambda x: state.apply_fn({"params": params}, x, condition), argnums=0))(
@@ -451,7 +478,7 @@ class OTTNeuralDualSolver(UnbalancedNeuralMixin):
                     _,
                     _,
                     unbalanced_train_logs,
-                ) = self.unbalancedness_step_fn(batch["source"], batch["target"], a, b, self.metrics)
+                ) = self.unbalancedness_step_fn(curr_source, batch["target"], a, b, self.state_eta, self.state_xi)
                 for key, value in unbalanced_train_logs.items():
                     average_meters[key].update(value)
 
@@ -464,15 +491,6 @@ class OTTNeuralDualSolver(UnbalancedNeuralMixin):
                 else:
                     # resample source with unbalanced marginals
                     batch["source"] = trainloader.unbalanced_resample(source_key, curr_source, a)
-                    (
-                        self.state_eta,
-                        self.state_xi,
-                        _,
-                        _,
-                        unbalanced_train_logs,
-                    ) = self.unbalancedness_step_fn(batch["source"], batch["target"], a, b, self.metrics)
-                    for key, value in unbalanced_train_logs.items():
-                        average_meters[key].update(value)
                 # train step for potential g directly updating the train state
                 self.state_f, train_f_metrics = self.train_step_f(self.state_f, self.state_g, batch)
                 for key, value in train_f_metrics.items():

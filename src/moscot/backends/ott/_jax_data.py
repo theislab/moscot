@@ -67,7 +67,7 @@ class JaxSampler:
         ) -> jnp.ndarray:
             """Resample a batch based upon log marginals."""
             # sample from marginals
-            indices = jax.random.choice(key, marginals, shape=[batch_size])
+            indices = jax.random.choice(key, a=len(marginals), p=marginals, shape=[batch_size])
             return batch[indices]
 
         def _sample_policy_pair(key: jax.random.KeyArray) -> Tuple[Tuple[Any, Any], Any]:

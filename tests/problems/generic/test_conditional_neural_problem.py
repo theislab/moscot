@@ -6,7 +6,8 @@ import numpy as np
 
 import anndata as ad
 
-from moscot.backends.ott.nets._icnn import ICNN
+from moscot.backends.ott.nets import ICNN, MLP_marginal
+from moscot.backends.ott.output import NeuralDualOutput
 from moscot.base.output import BaseSolverOutput
 from moscot.base.problems import CondOTProblem
 from moscot.problems.generic import (
@@ -95,11 +96,21 @@ class TestConditionalNeuralProblem:
 
         problem = problem.solve(iterations=2, opt_f=custom_opt_f, opt_g=custom_opt_g, cond_dim=1)
 
-    def test_unbalanced(self, adata_time: ad.AnnData):
+    def test_learning_rescaling_factors(self, adata_time: ad.AnnData):
+        hidden_dim = 10
         problem = ConditionalNeuralProblem(adata=adata_time)
-        mlp_eta = MLP()
-        mlp_xi = MLP()
+        mlp_eta = MLP_marginal(hidden_dim)
+        mlp_xi = MLP_marginal(hidden_dim)
         adata_time = adata_time[adata_time.obs["time"].isin((0, 1))]
         problem = problem.prepare(key="time", joint_attr="X_pca")
         problem = problem.solve(cond_dim=1, mlp_eta=mlp_eta, mlp_xi=mlp_xi, **neuraldual_args_2)
         assert isinstance(problem.solution, BaseSolverOutput)
+        assert isinstance(problem.solution, NeuralDualOutput)
+
+        array = adata_time.obsm["X_pca"]
+        learnt_eta = problem.solution.evaluate_a(array)
+        learnt_xi = problem.solution.evaluate_b(array)
+        assert learnt_eta.shape == (array.shape[0], 1)
+        assert learnt_xi.shape == (array.shape[0], 1)
+        assert np.sum(np.isnan(learnt_eta)) == 0
+        assert np.sum(np.isnan(learnt_xi)) == 0
