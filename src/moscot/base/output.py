@@ -11,7 +11,7 @@ from scipy.sparse.linalg import LinearOperator
 from moscot._logging import logger
 from moscot._types import ArrayLike, Device_t, DTypeLike  # type: ignore[attr-defined]
 
-__all__ = ["BaseSolverOutput", "MatrixSolverOutput", "BaseNeuralOutput", "BaseCondNeuralOutput"]
+__all__ = ["BaseSolverOutput", "MatrixSolverOutput", "BaseNeuralOutput"]
 
 
 class BaseSolverOutput(abc.ABC):
@@ -376,26 +376,6 @@ class BaseNeuralOutput(BaseSolverOutput, ABC):
     @abstractmethod
     def project_transport_matrix(
         self,
-        source: Optional[ArrayLike] = None,
-        target: Optional[ArrayLike] = None,
-        forward: bool = True,
-        save_transport_matrix: bool = False,
-        batch_size: int = 1024,
-        k: int = 30,
-        length_scale: Optional[float] = None,
-        seed: int = 42,
-    ) -> sp.csr_matrix:
-        """Project transport matrix."""
-        pass
-
-
-class BaseCondNeuralOutput(BaseSolverOutput, ABC):
-    """Base class for output of."""
-
-    @abstractmethod
-    def project_transport_matrix(
-        self,
-        condition: ArrayLike,
         source: Optional[ArrayLike] = None,
         target: Optional[ArrayLike] = None,
         forward: bool = True,

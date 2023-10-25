@@ -19,7 +19,7 @@ from matplotlib.figure import Figure
 from moscot._types import ArrayLike, Device_t
 from moscot.backends.ott._neuraldual import OTTNeuralDualSolver
 from moscot.backends.ott._utils import ConditionalDualPotentials, get_nearest_neighbors
-from moscot.base.output import BaseNeuralOutput, BaseSolverOutput
+from moscot.base.output import BaseSolverOutput, BaseNeuralOutput
 
 __all__ = ["OTTOutput", "NeuralDualOutput", "CondNeuralDualOutput", "ConditionalDualPotentials"]
 
