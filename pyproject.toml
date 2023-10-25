@@ -58,6 +58,8 @@ dependencies = [
     "ott-jax>=0.4.4",
     "cloudpickle>=2.2.0",
     "rich>=13.5",
+    "optax>=0.1.7",
+    "flax>=0.7.1",
 ]
 
 [project.optional-dependencies]
@@ -80,8 +82,6 @@ test = [
     "pytest-mock>=3.5.0",
     "pytest-cov>=4",
     "coverage[toml]>=7",
-    "optax>=0.1.7",
-    "flax>=0.7.1", 
 ]
 docs = [
     "sphinx>=5.1.1",
