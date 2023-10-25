@@ -2,7 +2,17 @@ import abc
 import inspect
 import math
 import types
-from typing import Any, Dict, List, Literal, Mapping, Optional, Set, Tuple, Union
+from typing import (
+    Any,
+    List,
+    Literal,
+    Mapping,
+    NamedTuple,
+    Optional,
+    Set,
+    Tuple,
+    Union,
+)
 
 import jax
 import jax.numpy as jnp
@@ -42,6 +52,15 @@ OTTSolver_t = Union[
 ]
 OTTProblem_t = Union[linear_problem.LinearProblem, quadratic_problem.QuadraticProblem]
 Scale_t = Union[float, Literal["mean", "median", "max_cost", "max_norm", "max_bound"]]
+
+
+class SingleDistributionData(NamedTuple):
+    data_train: ArrayLike
+    data_test: ArrayLike
+    a_train: Optional[ArrayLike]
+    a_test: Optional[ArrayLike]
+    b_train: Optional[ArrayLike]
+    b_test: Optional[ArrayLike]
 
 
 class OTTJaxSolver(OTSolver[OTTOutput], abc.ABC):
@@ -385,19 +404,26 @@ class NeuralDualSolver(OTSolver[OTTOutput]):
             raise ValueError("Invalid train_size. Must be: 0 < train_size <= 1")
         if train_size != 1.0:
             seed = kwargs.pop("seed", 0)
-            train_x, train_y, valid_x, valid_y, train_a, train_b, valid_a, valid_b = self._split_data(
-                x, y, train_size=train_size, seed=seed, a=a, b=b
-            )
+            dist_data_source = self._split_data(x, train_size, seed, a=a)
+            dist_data_target = self._split_data(y, train_size, seed, b=b)
         else:
-            train_x, train_y, train_a, train_b = x, y, a, b
-            valid_x, valid_y, valid_a, valid_b = x, y, a, b
+            dist_data_source = SingleDistributionData(data_train=x, data_valid=x, a_train=a, a_valid=a)
+            dist_data_target = SingleDistributionData(data_train=y, data_valid=y, b_train=b, b_valid=b)
 
         kwargs = _filter_kwargs(JaxSampler, **kwargs)
         self._train_sampler = JaxSampler(
-            [train_x, train_y], policy_pairs=[(0, 1)], a=[train_a, []], b=[[], train_b], **kwargs
+            [dist_data_source.data_train, dist_data_target.data_train],
+            policy_pairs=[(0, 1)],
+            a=[dist_data_source.a_train, []],
+            b=[[], dist_data_target.b_train],
+            **kwargs,
         )
         self._valid_sampler = JaxSampler(
-            [valid_x, valid_y], policy_pairs=[(0, 1)], a=[valid_a, []], b=[[], valid_b], **kwargs
+            [dist_data_source.data_test, dist_data_target.data_test],
+            policy_pairs=[(0, 1)],
+            a=[dist_data_source.a_test, []],
+            b=[[], dist_data_target.a_test],
+            **kwargs,
         )
         return (self._train_sampler, self._valid_sampler)
 
@@ -417,41 +443,27 @@ class NeuralDualSolver(OTSolver[OTTOutput]):
     def _split_data(
         self,
         x: ArrayLike,
-        y: ArrayLike,
         train_size: float,
         seed: int,
         a: Optional[ArrayLike] = None,
         b: Optional[ArrayLike] = None,
-    ) -> Tuple[
-        ArrayLike,
-        ArrayLike,
-        ArrayLike,
-        ArrayLike,
-        Optional[ArrayLike],
-        Optional[ArrayLike],
-        Optional[ArrayLike],
-        Optional[ArrayLike],
-    ]:
+    ) -> SingleDistributionData:
         n_samples_x = x.shape[0]
-        n_samples_y = y.shape[0]
         n_train_x = math.ceil(train_size * n_samples_x)
-        n_train_y = math.ceil(train_size * n_samples_y)
         key = jax.random.PRNGKey(seed=seed)
         x = jax.random.permutation(key, x)
-        y = jax.random.permutation(key, y)
         if a is not None:
             a = jax.random.permutation(key, a)
         if b is not None:
             b = jax.random.permutation(key, b)
-        return (
-            x[:n_train_x],
-            y[:n_train_y],
-            x[n_train_x:],
-            y[n_train_y:],
-            a[:n_train_x] if a is not None else None,
-            b[:n_train_x] if b is not None else None,
-            a[n_train_x:] if a is not None else None,
-            b[n_train_x:] if b is not None else None,
+
+        return SingleDistributionData(
+            data_train=x[:n_train_x],
+            data_test=x[n_train_x:],
+            a_train=a[:n_train_x] if a is not None else None,
+            a_test=a[n_train_x:] if a is not None else None,
+            b_train=b[:n_train_x] if b is not None else None,
+            b_test=b[n_train_x:] if b is not None else None,
         )
 
     @property
@@ -502,19 +514,19 @@ class CondNeuralDualSolver(NeuralDualSolver):
 
             seed = kwargs.pop("seed", 0)
             for i, (key, dist) in enumerate(distributions.distributions.items()):
-                t_data, v_data, t_a, t_b, v_a, v_b = self._split_data(
+                dist_data = self._split_data(
                     dist.xy,  # type:ignore[arg-type]
                     train_size=train_size,
                     seed=seed,
                     a=dist.a,
                     b=dist.b,
                 )
-                train_data.append(t_data)
-                train_a.append(t_a)
-                train_b.append(t_b)
-                valid_data.append(v_data)
-                valid_a.append(v_a)
-                valid_b.append(v_b)
+                train_data.append(dist_data.data_train)
+                train_a.append(dist_data.a_train)
+                train_b.append(dist_data.b_train)
+                valid_data.append(dist_data.data_test)
+                valid_a.append(dist_data.a_test)
+                valid_b.append(dist_data.b_test)
                 sample_to_idx[key] = i
 
         self._train_sampler = JaxSampler(
@@ -524,33 +536,6 @@ class CondNeuralDualSolver(NeuralDualSolver):
             valid_data, sample_pairs, conditional=True, a=valid_a, b=valid_b, sample_to_idx=sample_to_idx, **kwargs
         )
         return (self._train_sampler, self._valid_sampler)
-
-    def _split_data(  # type:ignore[override]
-        self,
-        x: ArrayLike,
-        train_size: float,
-        seed: int,
-        a: Optional[ArrayLike] = None,
-        b: Optional[ArrayLike] = None,
-    ) -> Tuple[
-        ArrayLike, ArrayLike, Optional[ArrayLike], Optional[ArrayLike], Optional[ArrayLike], Optional[ArrayLike]
-    ]:
-        n_samples_x = x.shape[0]
-        n_train_x = math.ceil(train_size * n_samples_x)
-        key = jax.random.PRNGKey(seed=seed)
-        x = jax.random.permutation(key, x)
-        if a is not None:
-            a = jax.random.permutation(key, a)
-        if b is not None:
-            b = jax.random.permutation(key, b)
-        return (
-            x[:n_train_x],
-            x[n_train_x:],
-            a[:n_train_x] if a is not None else None,
-            b[:n_train_x] if b is not None else None,
-            a[n_train_x:] if a is not None else None,
-            b[n_train_x:] if b is not None else None,
-        )
 
     def _solve(self, data_samplers: Tuple[JaxSampler, JaxSampler]) -> CondNeuralDualOutput:  # type: ignore[override]
         dual_potentials, model, logs = self.solver(data_samplers[0], data_samplers[1])

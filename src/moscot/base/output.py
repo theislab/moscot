@@ -388,12 +388,6 @@ class BaseNeuralOutput(BaseSolverOutput, ABC):
         """Project transport matrix."""
         pass
 
-    @property
-    @abstractmethod
-    def inverse_transport_matrix(self) -> ArrayLike:
-        """Inverse transport matrix."""
-        pass
-
 
 class BaseCondNeuralOutput(BaseSolverOutput, ABC):
     """Base class for output of."""

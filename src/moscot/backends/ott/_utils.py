@@ -20,8 +20,7 @@ import jax
 import jax.numpy as jnp
 import jax.tree_util as jtu
 import scipy.sparse as sp
-from ott.geometry import costs, epsilon_scheduler, geometry
-from ott.geometry.pointcloud import PointCloud
+from ott.geometry import costs, epsilon_scheduler, geometry, pointcloud
 from ott.problems.linear.potentials import DualPotentials
 from ott.tools.sinkhorn_divergence import sinkhorn_divergence as sinkhorn_div
 
@@ -53,7 +52,7 @@ def sinkhorn_divergence(
     b = None if b is None else jnp.asarray(b)
 
     output = sinkhorn_div(
-        PointCloud,
+        pointcloud.PointCloud,
         x=point_cloud_1,
         y=point_cloud_2,
         batch_size=batch_size,
@@ -102,9 +101,9 @@ def get_nearest_neighbors(
     """Get the k nearest neighbors of the input batch in the target."""
     if target.shape[0] < k:
         raise ValueError(f"k is {k}, but must be smaller or equal than {target.shape[0]}.")
-    pairwise_euclidean_distances = jnp.sqrt(jnp.sum((input_batch - target) ** 2, axis=-1))
+    pairwise_euclidean_distances = pointcloud.PointCloud(input_batch, target).cost_matrix
     negative_distances, indices = jax.lax.top_k(-1 * pairwise_euclidean_distances, k=k)
-    return -1 * negative_distances, indices
+    return jax.lax.approx_min_k(pairwise_euclidean_distances, k=k, recall_target=0.95, aggregate_to_topk=True)
 
 
 def _filter_kwargs(*funcs: Callable[..., Any], **kwargs: Any) -> Dict[str, Any]:
@@ -246,21 +245,21 @@ def _compute_metrics_sinkhorn(
     valid_sinkhorn_kwargs: Mapping[str, Any],
 ) -> Dict[str, float]:
     sinkhorn_loss_data = sinkhorn_div(
-        geom=PointCloud,
+        geom=pointcloud.PointCloud,
         x=tgt,
         y=src,
         epsilon=valid_eps,
         sinkhorn_kwargs=valid_sinkhorn_kwargs,
     ).divergence
     sinkhorn_loss_forward = sinkhorn_div(
-        geom=PointCloud,
+        geom=pointcloud.PointCloud,
         x=tgt,
         y=pred_tgt,
         epsilon=valid_eps,
         sinkhorn_kwargs=valid_sinkhorn_kwargs,
     ).divergence
     sinkhorn_loss_inverse = sinkhorn_div(
-        geom=PointCloud,
+        geom=pointcloud.PointCloud,
         x=src,
         y=pred_src,
         epsilon=valid_eps,

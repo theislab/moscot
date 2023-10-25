@@ -102,12 +102,12 @@ class TestNeuralProblem:
         adata_time = adata_time[adata_time.obs["time"].isin((0, 1))]
         problem = problem.prepare(key="time", joint_attr="X_pca")
         problem = problem.solve(mlp_eta=mlp_eta, mlp_xi=mlp_xi, **neuraldual_args_2)
-        assert isinstance(problem[0,1].solution, BaseSolverOutput)
-        assert isinstance(problem[0,1].solution, NeuralDualOutput)
+        assert isinstance(problem[0, 1].solution, BaseSolverOutput)
+        assert isinstance(problem[0, 1].solution, NeuralDualOutput)
 
         array = adata_time.obsm["X_pca"]
-        learnt_eta = problem[0,1].solution.evaluate_a(array)
-        learnt_xi = problem[0,1].solution.evaluate_b(array)
+        learnt_eta = problem[0, 1].solution.evaluate_a(array)
+        learnt_xi = problem[0, 1].solution.evaluate_b(array)
         assert learnt_eta.shape == (array.shape[0], 1)
         assert learnt_xi.shape == (array.shape[0], 1)
         assert np.sum(np.isnan(learnt_eta)) == 0
