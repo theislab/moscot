@@ -58,11 +58,14 @@ dependencies = [
     "ott-jax>=0.4.4",
     "cloudpickle>=2.2.0",
     "rich>=13.5",
+]
+
+[project.optional-dependencies]
+neural = [
     "optax>=0.1.7",
     "flax>=0.7.1",
 ]
 
-[project.optional-dependencies]
 spatial = [
     "squidpy>=1.2.3"
 ]
@@ -267,7 +270,7 @@ env_list = lint-code,py{3.8,3.9,3.10,3.11}
 skip_missing_interpreters = true
 
 [testenv]
-extras = test
+extras = [test, neural]
 pass_env = PYTEST_*,CI
 commands =
     python -m pytest {tty:--color=yes} {posargs: \
