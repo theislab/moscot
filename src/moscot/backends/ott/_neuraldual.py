@@ -449,6 +449,7 @@ class OTTNeuralDualSolver(UnbalancedNeuralMixin):
                         "Validation Sinkhorn divergence is expensive to compute due to large size of the validation "
                         "set. Consider setting `valid_sinkhorn_divergence` to False."
                     )
+                logger.info("Computing Sinkhorn divergence as a baseline.")
                 sink_dist.append(
                     sinkhorn_divergence(
                         point_cloud_1=valid_batch[pair]["source"],
