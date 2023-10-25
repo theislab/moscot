@@ -372,6 +372,7 @@ class NeuralDualSolver(OTSolver[OTTOutput]):
         xy: TaggedArray,
         a: Optional[ArrayLike] = None,
         b: Optional[ArrayLike] = None,
+        train_size: float = 0.9,
         **kwargs: Any,
     ) -> Tuple[JaxSampler, JaxSampler]:
         if xy.data_tgt is None:
@@ -380,7 +381,6 @@ class NeuralDualSolver(OTSolver[OTTOutput]):
         n, m = x.shape[1], y.shape[1]
         if n != m:
             raise ValueError(f"Expected `x/y` to have the same number of dimensions, found `{n}/{m}`.")
-        train_size = kwargs.pop("train_size", 1.0)
         if train_size > 1.0 or train_size <= 0.0:
             raise ValueError("Invalid train_size. Must be: 0 < train_size <= 1")
         if train_size != 1.0:
@@ -489,20 +489,19 @@ class CondNeuralDualSolver(NeuralDualSolver):
         valid_a: List[Optional[ArrayLike]] = []
         valid_b: List[Optional[ArrayLike]] = []
 
-        sample_to_idx: Dict[Any, int] = {}
         kwargs = _filter_kwargs(JaxSampler, **kwargs)
+        sample_to_idx = {k: i for i, k in enumerate(distributions.distributions.keys())}
         if train_size == 1.0:
             train_data = [d.xy for d in distributions.values()]  # type:ignore[var-annotated]
             train_a = [d.a for d in distributions.values()]  # type:ignore[var-annotated]
             train_b = [d.b for d in distributions.values()]  # type:ignore[var-annotated]
             valid_data, valid_a, valid_b = train_data, train_a, train_b
-            sample_to_idx = {k: i for i, k in enumerate(distributions.keys())}
         else:
             if train_size > 1.0 or train_size <= 0.0:
                 raise ValueError("Invalid train_size. Must be: 0 < train_size <= 1")
 
             seed = kwargs.pop("seed", 0)
-            for i, (key, dist) in enumerate(distributions.items()):
+            for i, (key, dist) in enumerate(distributions.distributions.items()):
                 t_data, v_data, t_a, t_b, v_a, v_b = self._split_data(
                     dist.xy,  # type:ignore[arg-type]
                     train_size=train_size,

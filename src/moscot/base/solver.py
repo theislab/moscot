@@ -202,9 +202,6 @@ class OTSolver(TagConverter, BaseSolver[O], abc.ABC):
         -------
         The optimal transport solution.
         """
-        if isinstance(xy, dict):  # neural solvers TODO: this is unnecessary now
-            res = super().__call__(xy=xy, **kwargs)
-            return res.to(device=device)
         if isinstance(xy, DistributionCollection):
             kwargs["distributions"] = xy
         else:

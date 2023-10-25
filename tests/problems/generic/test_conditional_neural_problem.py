@@ -28,10 +28,11 @@ class TestConditionalNeuralProblem:
         problem = problem.prepare(key="time", joint_attr="X_pca")
         assert isinstance(problem, CondOTProblem)
 
-    def test_solve_balanced_no_baseline(self, adata_time: ad.AnnData):  # type: ignore[no-untyped-def]
+    @pytest.mark.parametrize("train_size", [0.9, 1.0])
+    def test_solve_balanced_no_baseline(self, adata_time: ad.AnnData, train_size: float):  # type: ignore[no-untyped-def]
         problem = ConditionalNeuralProblem(adata=adata_time)
         problem = problem.prepare(key="time", joint_attr="X_pca")
-        problem = problem.solve(cond_dim=1, **neuraldual_args_1)
+        problem = problem.solve(cond_dim=1, train_size=train_size, **neuraldual_args_1)
         assert isinstance(problem.solution, BaseSolverOutput)
 
     def test_solve_unbalanced_with_baseline(self, adata_time: ad.AnnData):

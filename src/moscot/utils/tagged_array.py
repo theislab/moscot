@@ -206,6 +206,21 @@ class DistributionContainer:
     cost_xy: OttCostFn_t
     cost_xx: OttCostFn_t
 
+    @property
+    def contains_linear(self) -> bool:
+        """Whether the distribution contains data corresponding to the linear term."""
+        return self.xy is not None
+
+    @property
+    def contains_quadratic(self) -> bool:
+        """Whether the distribution contains data corresponding to the quadratic term."""
+        return self.xx is not None
+
+    @property
+    def contains_condition(self) -> bool:
+        """Whether the distribution contains data corresponding to the condition."""
+        return self.conditions is not None
+
     @staticmethod
     def _extract_data(
         adata: AnnData,

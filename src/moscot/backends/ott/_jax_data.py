@@ -26,6 +26,7 @@ class JaxSampler:
         epsilon: float = 0.1,
     ):
         """Initialize data sampler."""
+        print("in jaxsampler, sample 2 idx is ", sample_to_idx)
         if not len(distributions) == len(a) == len(b):
             raise ValueError("Number of distributions, a, and b must be equal.")
         self._distributions = distributions
