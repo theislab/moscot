@@ -842,7 +842,7 @@ class NeuralOTProblem(OTProblem):  # TODO override set_x/set_y
         **kwargs: Any,
     ) -> "OTProblem":
         """Solve method."""
-        if self._xy is None:
+        if self.xy is None:
             raise ValueError("Unable to solve the problem without `xy`.")
         return super().solve(backend=backend, device=device, cond_dim=0, input_dim=self._xy.data_src.shape[1], **kwargs)
 

@@ -481,8 +481,8 @@ class NeuralDualOutput(OTTNeuralOutput):
             except IndexError as err:
                 raise IndexError(f"Unable to fetch the device with `id={idx}`.") from err
 
-        out = jax.device_put(self._output, device)
-        return NeuralDualOutput(out, self.training_logs)
+        out = jax.device_put(self._output, device) # TODO: also move self._model to device
+        return NeuralDualOutput(out, self._model, self.training_logs)
 
     @property
     def cost(self) -> float:
