@@ -844,7 +844,7 @@ class NeuralOTProblem(OTProblem):  # TODO override set_x/set_y
         """Solve method."""
         if self.xy is None:
             raise ValueError("Unable to solve the problem without `xy`.")
-        return super().solve(backend=backend, device=device, cond_dim=0, input_dim=self._xy.data_src.shape[1], **kwargs)
+        return super().solve(backend=backend, device=device, cond_dim=0, input_dim=self.xy.data_src.shape[1], **kwargs)
 
     @require_solution
     def project_transport_matrix(

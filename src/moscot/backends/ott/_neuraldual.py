@@ -325,7 +325,7 @@ class OTTNeuralDualSolver(UnbalancedNeuralMixin):
         self,
         trainloader: JaxSampler,
         validloader: JaxSampler,
-    ) -> Tuple[DualPotentials, Train_t]:
+    ) -> Tuple[DualPotentials, "OTTNeuralDualSolver", Train_t]:
         """Start the training pipeline of the :class:`moscot.backends.ott.NeuralDual`.
 
         Parameters
@@ -426,7 +426,6 @@ class OTTNeuralDualSolver(UnbalancedNeuralMixin):
         # set logging dictionaries
         train_logs: Dict[str, List[float]] = defaultdict(list)
         valid_logs: Dict[str, Union[List[float], float]] = defaultdict(list)
-        unbalanced_train_logs: Dict[str, List[float]] = defaultdict(list)
         average_meters: Dict[str, RunningAverageMeter] = defaultdict(RunningAverageMeter)
         valid_average_meters: Dict[str, RunningAverageMeter] = defaultdict(RunningAverageMeter)
         sink_dist: List[float] = []

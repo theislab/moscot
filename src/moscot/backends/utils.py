@@ -41,16 +41,17 @@ def register_solver(
 def _(
     problem_kind: Literal["linear", "quadratic"],
     solver_name: Optional[Literal["NeuralDualSolver", "CondNeuralDualSolver"]] = None,
-    **kwargs: Any,
+    **_: Any,
 ) -> Union["ott.SinkhornSolver", "ott.GWSolver", "ott.NeuralDualSolver", "ott.CondNeuralDualSolver",]:
     from moscot.backends import ott
 
-    if solver_name == "NeuralDualSolver":
-        return ott.NeuralDualSolver  # type: ignore[return-value]
-    if solver_name == "CondNeuralDualSolver":
-        return ott.CondNeuralDualSolver  # type: ignore[return-value]
     if problem_kind == "linear":
-        return ott.SinkhornSolver  # type: ignore[return-value]
+        if solver_name == "NeuralDualSolver":
+            return ott.NeuralDualSolver  # type: ignore[return-value]
+        if solver_name == "CondNeuralDualSolver":
+            return ott.CondNeuralDualSolver  # type: ignore[return-value]
+        if solver_name is None:
+            return ott.SinkhornSolver  # type: ignore[return-value]
     if problem_kind == "quadratic":
         return ott.GWSolver  # type: ignore[return-value]
     raise NotImplementedError(f"Unable to create solver for `{problem_kind!r}` problem.")

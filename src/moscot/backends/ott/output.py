@@ -21,7 +21,7 @@ from moscot.backends.ott._neuraldual import OTTNeuralDualSolver
 from moscot.backends.ott._utils import ConditionalDualPotentials, get_nearest_neighbors
 from moscot.base.output import BaseNeuralOutput, BaseSolverOutput
 
-__all__ = ["OTTOutput", "NeuralDualOutput", "CondNeuralDualOutput"]
+__all__ = ["OTTOutput", "NeuralDualOutput", "CondNeuralDualOutput", "ConditionalDualPotentials"]
 
 Train_t = Dict[str, Dict[str, List[float]]]
 
@@ -259,7 +259,6 @@ class OTTNeuralOutput(BaseNeuralOutput):
         length_scale: Optional[float] = None,
         seed: int = 42,
     ) -> sp.csr_matrix:
-        get_knn_fn = jax.vmap(get_nearest_neighbors, in_axes=(0, None, None))
         row_indices: Union[jnp.ndarray, List[jnp.ndarray]] = []
         column_indices: Union[jnp.ndarray, List[jnp.ndarray]] = []
         distances_list: Union[jnp.ndarray, List[jnp.ndarray]] = []
@@ -269,7 +268,7 @@ class OTTNeuralOutput(BaseNeuralOutput):
             tgt_batch = tgt_dist[jax.random.choice(key, tgt_dist.shape[0], shape=((batch_size,)))]
             length_scale = jnp.std(jnp.concatenate((func(src_batch), tgt_batch)))
         for index in range(0, len(src_dist), batch_size):
-            distances, indices = get_knn_fn(func(src_dist[index : index + batch_size]), tgt_dist, k)
+            distances, indices = get_nearest_neighbors(func(src_dist[index : index + batch_size, :]), tgt_dist, k)
             distances = jnp.exp(-((distances / length_scale) ** 2))
             distances /= jnp.expand_dims(jnp.sum(distances, axis=1), axis=1)
             distances_list.append(distances.flatten())

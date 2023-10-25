@@ -1,12 +1,14 @@
 from functools import partial
 from types import MappingProxyType
-from typing import Any, Dict, List, Literal, Tuple, Union
+from typing import Any, Dict, Hashable, List, Literal, Tuple, TypeVar, Union
 
 import jax
 import jax.numpy as jnp
 from ott.geometry.pointcloud import PointCloud
 from ott.problems.linear import linear_problem
 from ott.solvers.linear import sinkhorn
+
+K = TypeVar("K", bound=Hashable)
 
 
 class JaxSampler:
@@ -19,7 +21,7 @@ class JaxSampler:
         conditional: bool = False,
         a: List[jnp.ndarray] = None,
         b: List[jnp.ndarray] = None,
-        sample_to_idx: Dict[int, Any] = MappingProxyType({}),
+        sample_to_idx: Dict[K, Any] = MappingProxyType({}),
         batch_size: int = 1024,
         tau_a: float = 1.0,
         tau_b: float = 1.0,
@@ -125,7 +127,7 @@ class JaxSampler:
         return self._conditions
 
     @property
-    def sample_to_idx(self) -> Dict[int, Any]:
+    def sample_to_idx(self) -> Dict[K, Any]:
         """Return sample to idx."""
         return self._sample_to_idx
 

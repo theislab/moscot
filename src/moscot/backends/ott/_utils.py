@@ -102,7 +102,6 @@ def get_nearest_neighbors(
     if target.shape[0] < k:
         raise ValueError(f"k is {k}, but must be smaller or equal than {target.shape[0]}.")
     pairwise_euclidean_distances = pointcloud.PointCloud(input_batch, target).cost_matrix
-    negative_distances, indices = jax.lax.top_k(-1 * pairwise_euclidean_distances, k=k)
     return jax.lax.approx_min_k(pairwise_euclidean_distances, k=k, recall_target=0.95, aggregate_to_topk=True)
 
 
