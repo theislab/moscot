@@ -2,7 +2,19 @@ import abc
 import inspect
 import math
 import types
-from typing import Any, List, Literal, Mapping, NamedTuple, Optional, Set, Tuple, Union
+from typing import (
+    Any,
+    Hashable,
+    List,
+    Literal,
+    Mapping,
+    NamedTuple,
+    Optional,
+    Set,
+    Tuple,
+    TypeVar,
+    Union,
+)
 
 import jax
 import jax.numpy as jnp
@@ -42,6 +54,7 @@ OTTSolver_t = Union[
 ]
 OTTProblem_t = Union[linear_problem.LinearProblem, quadratic_problem.QuadraticProblem]
 Scale_t = Union[float, Literal["mean", "median", "max_cost", "max_norm", "max_bound"]]
+K = TypeVar("K", bound=Hashable)
 
 
 class SingleDistributionData(NamedTuple):
@@ -483,7 +496,7 @@ class CondNeuralDualSolver(NeuralDualSolver):
 
     def _prepare(  # type: ignore[override]
         self,
-        distributions: DistributionCollection,
+        distributions: DistributionCollection[K],
         sample_pairs: List[Tuple[Any, Any]],
         train_size: float = 0.9,
         **kwargs: Any,
@@ -496,20 +509,20 @@ class CondNeuralDualSolver(NeuralDualSolver):
         valid_b: List[Optional[ArrayLike]] = []
 
         kwargs = _filter_kwargs(JaxSampler, **kwargs)
-        sample_to_idx = {k: i for i, k in enumerate(distributions.distributions.keys())}
+        sample_to_idx = {k: i for i, k in enumerate(distributions.keys())}
         if train_size == 1.0:
-            train_data = [d.xy for d in distributions.distributions.values()]
-            train_a = [d.a for d in distributions.distributions.values()]
-            train_b = [d.b for d in distributions.distributions.values()]
+            train_data = [d.xy for d in distributions.values()]
+            train_a = [d.a for d in distributions.values()]
+            train_b = [d.b for d in distributions.values()]
             valid_data, valid_a, valid_b = train_data, train_a, train_b
         else:
             if train_size > 1.0 or train_size <= 0.0:
                 raise ValueError("Invalid train_size. Must be: 0 < train_size <= 1")
 
             seed = kwargs.pop("seed", 0)
-            for i, (key, dist) in enumerate(distributions.distributions.items()):
+            for i, (key, dist) in enumerate(distributions.items()):
                 dist_data = self._split_data(
-                    dist.xy,  # type:ignore[arg-type]
+                    dist.xy,
                     train_size=train_size,
                     seed=seed,
                     a=dist.a,

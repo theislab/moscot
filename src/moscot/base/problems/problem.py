@@ -937,7 +937,7 @@ class CondOTProblem(BaseProblem):  # TODO(@MUCDK) check generic types, save and 
         super().__init__(**kwargs)
         self._adata = adata
 
-        self._distributions: Optional[DistributionCollection] = None
+        self._distributions: Optional[DistributionCollection[K]] = None
         self._policy: Optional[SubsetPolicy[Any]] = None
         self._sample_pairs: Optional[List[Tuple[Any, Any]]] = None
 
@@ -1001,8 +1001,8 @@ class CondOTProblem(BaseProblem):  # TODO(@MUCDK) check generic types, save and 
             adata_masked = self.adata[self._create_mask(el)]
             a_created = self._create_marginals(adata_masked, data=a, source=True, **kwargs)
             b_created = self._create_marginals(adata_masked, data=b, source=False, **kwargs)
-            self.distributions.add_distribution(  # type: ignore[union-attr]
-                el, DistributionContainer.from_adata(adata_masked, a=a_created, b=b_created, **xy, **xx)
+            self.distributions[el] = DistributionContainer.from_adata(
+                adata_masked, a=a_created, b=b_created, **xy, **xx
             )
         return self
 
@@ -1031,10 +1031,10 @@ class CondOTProblem(BaseProblem):  # TODO(@MUCDK) check generic types, save and 
         - :attr:`solver`: optimal transport solver.
         - :attr:`solution`: optimal transport solution.
         """
-        tmp = next(iter(self.distributions))
+        tmp = next(iter(self.distributions))  # type: ignore[arg-type]
         self._solver = backends.get_solver(
             problem_kind=self._problem_kind,
-            input_dim=self.distributions[tmp].xy.shape[1],  # type: ignore[union-attr, index]
+            input_dim=self.distributions[tmp].xy.shape[1],  # type:ignore[union-attr, index]
             distributions=self._distributions,
             sample_pairs=self._sample_pairs,
             **kwargs,
@@ -1087,7 +1087,7 @@ class CondOTProblem(BaseProblem):  # TODO(@MUCDK) check generic types, save and 
         return np.asarray(mask)
 
     @property
-    def distributions(self) -> Optional[DistributionCollection]:
+    def distributions(self) -> Optional[DistributionCollection[K]]:
         """Collection of distributions."""
         return self._distributions
 

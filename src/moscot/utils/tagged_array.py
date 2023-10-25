@@ -1,17 +1,7 @@
 import enum
+from collections import OrderedDict
 from dataclasses import dataclass
-from typing import (
-    Any,
-    Callable,
-    Dict,
-    Hashable,
-    Iterator,
-    Literal,
-    Optional,
-    Tuple,
-    TypeVar,
-    Union,
-)
+from typing import Any, Callable, Hashable, Literal, Optional, Tuple, TypeVar, Union
 
 import numpy as np
 import scipy.sparse as sp
@@ -345,47 +335,11 @@ class DistributionContainer:
         return cls(xy=xy_data, xx=xx_data, a=a, b=b, conditions=conditions_data, cost_xy=xy_cost_fn, cost_xx=xx_cost_fn)
 
 
-class DistributionCollection:
+class DistributionCollection(OrderedDict[K, DistributionContainer]):
     """Collection of distributions."""
 
-    def __init__(self):
-        self._distributions: Dict[K, DistributionContainer] = {}
-
-    def add_distribution(self, key: K, item: DistributionContainer) -> None:
-        """Add a distribution to the collection.
-
-        Parameters
-        ----------
-        key
-            Key defining the distribution.
-        item
-            Distribution to add to the DistributionCollection.
-
-        Returns
-        -------
-        None
-        """
-        self._distributions[key] = item
-
-    @property
-    def distributions(self) -> Dict[K, DistributionContainer]:
-        """Distributions in the distribution collection."""
-        return self._distributions
-
-    def __getitem__(self, item: K) -> DistributionContainer:
-        return self.distributions[item]
-
-    def __contains__(self, key: K) -> bool:
-        return key in self.distributions
-
-    def __len__(self) -> int:
-        return len(self.distributions)
-
-    def __iter__(self) -> Iterator[K]:
-        return iter(self.distributions)
-
     def __repr__(self) -> str:
-        return f"{self.__class__.__name__}{list(self.distributions.keys())}"
+        return f"{self.__class__.__name__}{list(self.keys())}"
 
     def __str__(self) -> str:
         return repr(self)

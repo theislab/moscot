@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING, Any, Callable, Literal, Optional, Tuple, Type, Union
+from typing import TYPE_CHECKING, Any, Callable, Literal, Optional, Tuple, Union
 
 from moscot import _registry
 from moscot._types import ProblemKind_t
@@ -7,6 +7,11 @@ if TYPE_CHECKING:
     from moscot.backends import ott
 
 __all__ = ["get_solver", "register_solver", "get_available_backends"]
+
+register_solver_t = Callable[
+    [Literal["linear", "quadratic"], Optional[Literal["NeuralDualSolver", "CondNeuralDualSolver"]]],
+    Union["ott.SinkhornSolver", "ott.GWSolver", "ott.NeuralDualSolver", "ott.CondNeuralDualSolver"],
+]
 
 
 _REGISTRY = _registry.Registry()
@@ -22,7 +27,7 @@ def get_solver(problem_kind: ProblemKind_t, *, backend: str = "ott", return_clas
 
 def register_solver(
     backend: str,
-) -> Callable[[Literal["linear", "quadratic"]], Union[Type["ott.SinkhornSolver"], Type["ott.GWSolver"]]]:
+) -> register_solver_t:
     """Register a solver for a specific backend.
 
     Parameters
@@ -41,8 +46,7 @@ def register_solver(
 def _(
     problem_kind: Literal["linear", "quadratic"],
     solver_name: Optional[Literal["NeuralDualSolver", "CondNeuralDualSolver"]] = None,
-    **_: Any,
-) -> Union["ott.SinkhornSolver", "ott.GWSolver", "ott.NeuralDualSolver", "ott.CondNeuralDualSolver",]:
+) -> Union["ott.SinkhornSolver", "ott.GWSolver", "ott.NeuralDualSolver", "ott.CondNeuralDualSolver"]:
     from moscot.backends import ott
 
     if problem_kind == "linear":
