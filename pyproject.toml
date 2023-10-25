@@ -80,6 +80,8 @@ test = [
     "pytest-mock>=3.5.0",
     "pytest-cov>=4",
     "coverage[toml]>=7",
+    "optax>=0.1.7",
+    "flax>=0.7.1", 
 ]
 docs = [
     "sphinx>=5.1.1",
@@ -270,7 +272,7 @@ env_list = lint-code,py{3.8,3.9,3.10,3.11}
 skip_missing_interpreters = true
 
 [testenv]
-extras = [test, neural]
+extras = [test]
 pass_env = PYTEST_*,CI
 commands =
     python -m pytest {tty:--color=yes} {posargs: \
