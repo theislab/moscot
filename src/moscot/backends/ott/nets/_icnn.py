@@ -223,6 +223,7 @@ class ICNN(ModelBase):
         self,
         params: frozen_dict.FrozenDict[str, jnp.ndarray],
         other_potential_value_fn: Optional[PotentialValueFn_t] = None,
+        c: Optional[jnp.ndarray] = None,
     ) -> PotentialValueFn_t:
         r"""Return a function giving the value of the potential.
 
@@ -248,7 +249,7 @@ class ICNN(ModelBase):
         interpolation of a potential.
         """
         if self.is_potential:
-            return lambda x: self.apply({"params": params}, x)
+            return lambda x: self.apply({"params": params}, x, c=c)
 
         assert other_potential_value_fn is not None, (
             "The value of the gradient-based potential depends " "on the value of the other potential."
@@ -267,6 +268,7 @@ class ICNN(ModelBase):
     def potential_gradient_fn(
         self,
         params: frozen_dict.FrozenDict[str, jnp.ndarray],
+        c: Optional[jnp.ndarray] = None,
     ) -> PotentialGradientFn_t:
         """Return a function returning a vector or the gradient of the potential.
 
@@ -279,4 +281,4 @@ class ICNN(ModelBase):
         """
         if self.is_potential:
             return jax.vmap(jax.grad(self.potential_value_fn(params)))
-        return lambda x: self.apply({"params": params}, x)
+        return lambda x: self.apply({"params": params}, x, c=c)

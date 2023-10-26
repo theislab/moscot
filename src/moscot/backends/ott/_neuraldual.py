@@ -461,12 +461,12 @@ class OTTNeuralDualSolver(UnbalancedNeuralMixin):
 
         average_meters: Dict[str, RunningAverageMeter] = defaultdict(RunningAverageMeter)
         valid_average_meters: Dict[str, RunningAverageMeter] = defaultdict(RunningAverageMeter)
-        sink_dist: List[float] = []
+        discrete_sinkhorn_div: List[float] = []
         curr_patience: int = 0
         best_loss: float = jnp.inf
         best_iter_distance: float = None
-        best_params_f: jnp.ndarray = None
-        best_params_g: jnp.ndarray = None
+        best_params_f: Optional[jnp.ndarray] = None
+        best_params_g: Optional[jnp.ndarray] = None
 
         # define dict to contain source and target batch
         batch: Dict[str, jnp.ndarray] = {}
@@ -484,7 +484,7 @@ class OTTNeuralDualSolver(UnbalancedNeuralMixin):
                         "set. Consider setting `valid_sinkhorn_divergence` to False."
                     )
                 logger.info("Computing Sinkhorn divergence as a baseline.")
-                sink_dist.append(
+                discrete_sinkhorn_div.append(
                     sinkhorn_divergence(
                         point_cloud_1=baseline_batch[pair]["source"],
                         point_cloud_2=baseline_batch[pair]["target"],
@@ -582,7 +582,7 @@ class OTTNeuralDualSolver(UnbalancedNeuralMixin):
         logs["best_loss"] = best_loss
         logs["predicted_cost"] = None if best_iter_distance is None else float(best_iter_distance)
         if self.compute_wasserstein_baseline:
-            logs["sinkhorn_dist"] = np.mean(sink_dist)
+            logs["sinkhorn_div"] = np.mean(discrete_sinkhorn_div)
         return logs, unbalancedness_logs
 
     def get_step_fn(self, train: bool, to_optimize: Literal["f", "g"]):
@@ -593,25 +593,25 @@ class OTTNeuralDualSolver(UnbalancedNeuralMixin):
             # get two distributions
             source, target = batch["source"], batch["target"]
 
-            init_source_hat = g_gradient(params_g)(target)
+            init_source_hat = g_gradient(params_g)(target, batch["condition"])
 
             def g_value_partial(y: jnp.ndarray) -> jnp.ndarray:
                 """Lazy way of evaluating g if f's computation needs it."""
-                return g_value(params_g)(y)
+                return g_value(params_g, batch["condition"])(y)
 
-            f_value_partial = f_value(params_f, g_value_partial)
+            f_value_partial = f_value(params_f, g_value_partial, batch["condition"])
 
             source_hat_detach = init_source_hat
 
             batch_dot = jax.vmap(jnp.dot)
 
-            f_source = f_value_partial(source)
+            f_source = f_value_partial(source, batch["condition"])
             f_star_target = batch_dot(source_hat_detach, target) - f_value_partial(source_hat_detach)
             dual_source = f_source.mean()
             dual_target = f_star_target.mean()
             dual_loss = dual_source + dual_target
 
-            f_value_parameters_detached = f_value(jax.lax.stop_gradient(params_f), g_value_partial)
+            f_value_parameters_detached = f_value(jax.lax.stop_gradient(params_f), g_value_partial, batch["condition"])
             amor_loss = (f_value_parameters_detached(init_source_hat) - batch_dot(init_source_hat, target)).mean()
             if to_optimize == "f":
                 loss = dual_loss
@@ -649,16 +649,7 @@ class OTTNeuralDualSolver(UnbalancedNeuralMixin):
                     state_g.potential_gradient_fn,
                     batch,
                 )
-                # update state
-                if to_optimize == "both":
-                    return (
-                        state_f.apply_gradients(grads=grads_f),
-                        state_g.apply_gradients(grads=grads_g),
-                        loss,
-                        loss_f,
-                        loss_g,
-                        W2_dist,
-                    )
+                
                 if to_optimize == "f":
                     return state_f.apply_gradients(grads=grads_f), loss_f, W2_dist
                 if to_optimize == "g":

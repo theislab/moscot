@@ -2,10 +2,10 @@ from typing import Any, Callable
 
 import flax.linen as nn
 import optax
+from flax.training import train_state
 
 import jax
 import jax.numpy as jnp
-from ott.solvers.nn.models import ModelBase, NeuralTrainState
 
 
 class Block(nn.Module):
@@ -22,7 +22,7 @@ class Block(nn.Module):
         return nn.Dense(self.out_dim, name="fc_final")(x)
 
 
-class MLP_marginal(ModelBase):
+class MLP_marginal(nn.Module):
     hidden_dim: int
     is_potential: bool = False
     act_fn: Callable[[jnp.ndarray], jnp.ndarray] = nn.selu
@@ -39,6 +39,6 @@ class MLP_marginal(ModelBase):
         rng: jax.random.PRNGKeyArray,
         optimizer: optax.OptState,
         input_dim: int,
-    ) -> NeuralTrainState:
+    ) -> train_state.TrainState:
         params = self.init(rng, jnp.ones((1, input_dim)))["params"]
-        return NeuralTrainState.create(apply_fn=self.apply, params=params, tx=optimizer)
+        return train_state.TrainState.create(apply_fn=self.apply, params=params, tx=optimizer)
