@@ -1,16 +1,17 @@
-from typing import Callable, Optional, Sequence, Tuple, Union, Any
+from typing import Any, Callable, Optional, Sequence, Tuple, Union
 
-import jax
 import optax
 from flax import linen as nn
-from flax.training import train_state
 from flax.core import frozen_dict
+
+import jax
 import jax.numpy as jnp
 from ott.solvers.nn.layers import PositiveDense
 from ott.solvers.nn.models import ModelBase, NeuralTrainState
 
 PotentialValueFn_t = Callable[[jnp.ndarray], jnp.ndarray]
 PotentialGradientFn_t = Callable[[jnp.ndarray], jnp.ndarray]
+
 
 class ICNN(ModelBase):
     """Input convex neural network (ICNN) architecture."""
@@ -208,11 +209,11 @@ class ICNN(ModelBase):
             **kwargs,
         )
 
-
     def is_potential(self) -> bool:
-        """Indicates if the module implements a potential value or a vector field.
+        """Indicate if the module implements a potential value or a vector field.
 
-        Returns:
+        Returns
+        -------
         ``True`` if the module defines a potential, ``False`` if it defines a
         vector field.
         """
@@ -241,24 +242,24 @@ class ICNN(ModelBase):
         other_potential_value_fn: function giving the value of the other
             potential. Only needed when :attr:`is_potential` is ``False``.
 
-        Returns:
+        Returns
+        -------
         A function that can be evaluated to obtain a potential value, or a linear
         interpolation of a potential.
         """
         if self.is_potential:
             return lambda x: self.apply({"params": params}, x)
 
-        assert other_potential_value_fn is not None, \
-            "The value of the gradient-based potential depends " \
-            "on the value of the other potential."
+        assert other_potential_value_fn is not None, (
+            "The value of the gradient-based potential depends " "on the value of the other potential."
+        )
 
         def value_fn(x: jnp.ndarray) -> jnp.ndarray:
             squeeze = x.ndim == 1
             if squeeze:
                 x = jnp.expand_dims(x, 0)
             grad_g_x = jax.lax.stop_gradient(self.apply({"params": params}, x))
-            value = -other_potential_value_fn(grad_g_x) + \
-                jax.vmap(jnp.dot)(grad_g_x, x)
+            value = -other_potential_value_fn(grad_g_x) + jax.vmap(jnp.dot)(grad_g_x, x)
             return value.squeeze(0) if squeeze else value
 
         return value_fn
@@ -272,7 +273,8 @@ class ICNN(ModelBase):
         Args:
         params: parameters of the module
 
-        Returns:
+        Returns
+        -------
         A function that can be evaluated to obtain the potential's gradient
         """
         if self.is_potential:

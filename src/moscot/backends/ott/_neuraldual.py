@@ -6,11 +6,12 @@ import optax
 from flax.core.scope import FrozenVariableDict
 from flax.training import train_state
 from tqdm.auto import tqdm
-from ott.problems.linear import potentials
+
 import jax
 import jax.numpy as jnp
 import numpy as np
 from ott.geometry import costs
+from ott.problems.linear import potentials
 from ott.problems.linear.potentials import DualPotentials
 from ott.solvers.nn import models
 
@@ -105,7 +106,7 @@ class UnbalancedNeuralMixin:
             state_eta: Optional[train_state.TrainState] = None,
             state_xi: Optional[train_state.TrainState] = None,
             *,
-            is_training: bool = True, 
+            is_training: bool = True,
         ):
             if state_eta is not None:
                 grad_a_fn = jax.value_and_grad(loss_a_fn, argnums=0, has_aux=True)
@@ -119,7 +120,7 @@ class UnbalancedNeuralMixin:
                 new_state_eta = state_eta.apply_gradients(grads=grads_eta) if is_training else None
 
             else:
-                new_state_eta = eta_predictions = None
+                new_state_eta = eta_predictions = loss_a = None
             if state_xi is not None:
                 grad_b_fn = jax.value_and_grad(loss_b_fn, argnums=0, has_aux=True)
                 (loss_b, xi_predictions), grads_xi = grad_b_fn(
@@ -131,20 +132,31 @@ class UnbalancedNeuralMixin:
                 )
                 new_state_xi = state_xi.apply_gradients(grads=grads_xi) if is_training else None
             else:
-                new_state_xi = xi_predictions = None
+                new_state_xi = xi_predictions = loss_b = None
 
             return new_state_eta, new_state_xi, eta_predictions, xi_predictions, loss_a, loss_b
 
         return step_fn
 
+    @staticmethod
     def _update_unbalancedness_logs(
-        logs: Dict[str, List[Union[float, str]]],
-        loss_eta: jnp.ndarray,
-        loss_xi: jnp.ndarray,
-        ) -> None:
-        logs["loss_eta"].append(float(loss_eta))
-        logs["loss_xi"].append(float(loss_xi))
-    
+        logs: Dict[str, List[float]],
+        loss_eta: Optional[jnp.ndarray],
+        loss_xi: Optional[jnp.ndarray],
+        *,
+        is_train_set: bool = True,
+    ) -> Dict[str, List[float]]:
+        if is_train_set:
+            if loss_eta is not None:
+                logs["train_loss_eta"].append(float(loss_eta))
+            if loss_xi is not None:
+                logs["train_loss_xi"].append(float(loss_xi))
+        else:
+            if loss_eta is not None:
+                logs["valid_loss_eta"].append(float(loss_eta))
+            if loss_xi is not None:
+                logs["valid_loss_xi"].append(float(loss_xi))
+        return logs
 
 
 class OTTNeuralDualSolver(UnbalancedNeuralMixin):
@@ -234,13 +246,20 @@ class OTTNeuralDualSolver(UnbalancedNeuralMixin):
         f: Union[Dict[str, Any], ICNN] = MappingProxyType({}),
         g: Union[Dict[str, Any], ICNN] = MappingProxyType({}),
         beta: float = 1.0,
-        best_model_selection: bool = True, 
+        best_model_selection: bool = True,
         iterations: int = 25000,  # TODO(@MUCDK): rename to max_iterations
         inner_iters: int = 10,
         valid_freq: int = 250,
         log_freq: int = 10,
         patience: int = 100,
-        patience_metric: Optional[str] = ["train_loss_f", "train_loss_g", "train_w_dist", "valid_loss_f", "valid_loss_g", "valid_w_dist"],
+        patience_metric: Literal[
+            "train_loss_f",
+            "train_loss_g",
+            "train_w_dist",
+            "valid_loss_f",
+            "valid_loss_g",
+            "valid_w_dist",
+        ] = "valid_w_dist",
         optimizer_f: Union[Dict[str, Any], Type[optax.GradientTransformation]] = MappingProxyType({}),
         optimizer_g: Union[Dict[str, Any], Type[optax.GradientTransformation]] = MappingProxyType({}),
         pretrain_iters: int = 0,
@@ -409,7 +428,7 @@ class OTTNeuralDualSolver(UnbalancedNeuralMixin):
             loss, self.state_g = pretrain_update(self.state_g, key_pre)
             # clip weights of g
             if self.pos_weights:
-                self.state_g = self.state_g.replace(params=self.clip_weights_icnn(self.state_g.params))
+                self.state_g = self.state_g.replace(params=self._clip_weights_icnn(self.state_g.params))
             if iteration % self.log_freq == 0:
                 pretrain_logs["pretrain_loss"].append(loss)
         # load params of g into state_f
@@ -436,13 +455,9 @@ class OTTNeuralDualSolver(UnbalancedNeuralMixin):
         Training statistics.
         """
         # set logging dictionaries
-        
-        #train_logs: Dict[str, List[float]] = defaultdict(list)
-        #valid_logs: Dict[str, Union[List[float], float]] = defaultdict(list)
-        
-        logging_keys = ["train_loss_f", "train_loss_g", "train_w_dist", "valid_loss_f", "valid_loss_g", "valid_w_dist"]
-        logs = {key: [] for key in logging_keys}
-        unbalancedness_logs = {"eta_loss": [], "xi_loss": []}
+
+        logs: Dict[str, List[float]] = defaultdict(list)
+        unbalancedness_logs: Dict[str, List[float]] = defaultdict(list)
 
         average_meters: Dict[str, RunningAverageMeter] = defaultdict(RunningAverageMeter)
         valid_average_meters: Dict[str, RunningAverageMeter] = defaultdict(RunningAverageMeter)
@@ -455,14 +470,15 @@ class OTTNeuralDualSolver(UnbalancedNeuralMixin):
 
         # define dict to contain source and target batch
         batch: Dict[str, jnp.ndarray] = {}
-        valid_batch: Dict[Tuple[Any, Any], Dict[str, jnp.ndarray]] = {}
+        valid_batch: Dict[str, jnp.ndarray] = {}
+        baseline_batch: Dict[Tuple[Any, Any], Dict[str, jnp.ndarray]] = {}
         for pair in trainloader.policy_pairs:
-            valid_batch[pair] = {}
-            valid_batch[pair]["source"], valid_batch[pair]["target"] = validloader(
+            baseline_batch[pair] = {}
+            baseline_batch[pair]["source"], baseline_batch[pair]["target"] = validloader(
                 key=None, policy_pair=pair, full_dataset=True
             )
             if self.compute_wasserstein_baseline:
-                if valid_batch[pair]["source"].shape[0] * valid_batch[pair]["source"].shape[1] > 25000000:
+                if baseline_batch[pair]["source"].shape[0] * baseline_batch[pair]["source"].shape[1] > 25000000:
                     logger.warning(
                         "Validation Sinkhorn divergence is expensive to compute due to large size of the validation "
                         "set. Consider setting `valid_sinkhorn_divergence` to False."
@@ -470,8 +486,8 @@ class OTTNeuralDualSolver(UnbalancedNeuralMixin):
                 logger.info("Computing Sinkhorn divergence as a baseline.")
                 sink_dist.append(
                     sinkhorn_divergence(
-                        point_cloud_1=valid_batch[pair]["source"],
-                        point_cloud_2=valid_batch[pair]["target"],
+                        point_cloud_1=baseline_batch[pair]["source"],
+                        point_cloud_2=baseline_batch[pair]["target"],
                         **self.valid_sinkhorn_kwargs,
                     )
                 )
@@ -498,7 +514,7 @@ class OTTNeuralDualSolver(UnbalancedNeuralMixin):
                     loss_eta,
                     loss_xi,
                 ) = self.unbalancedness_step_fn(curr_source, batch["target"], a, b, self.state_eta, self.state_xi)
-                self._update_unbalancedness_logs(unbalancedness_logs, loss_eta, loss_xi)
+                self._update_unbalancedness_logs(unbalancedness_logs, loss_eta, loss_xi, is_train_set=True)
 
             for _ in range(self.inner_iters):
                 source_key, self.key = jax.random.split(self.key, 2)
@@ -512,17 +528,17 @@ class OTTNeuralDualSolver(UnbalancedNeuralMixin):
                 # train step for potential g directly updating the train state
                 self.state_g, loss_g, _ = self.train_step_g(self.state_f, self.state_g, batch)
                 average_meters["train_loss_g"].update(loss_g)
-                self._update_logs(logs, None, loss_g, None, is_train_set=True)
+                logs = self._update_logs(logs, None, loss_g, None, is_train_set=True)
             # resample target batch with unbalanced marginals
             if not self.is_balanced:
                 target_key, self.key = jax.random.split(self.key, 2)
                 batch["target"] = trainloader.unbalanced_resample(target_key, batch["target"], b)
             # train step for potential f directly updating the train state
             self.state_f, loss_f, w_dist = self.train_step_f(self.state_f, self.state_g, batch)
-            self._update_logs(logs, loss_f, None, w_dist, is_train_set=True)
+            logs = self._update_logs(logs, loss_f, None, w_dist, is_train_set=True)
             # clip weights of f
             if self.pos_weights:
-                self.state_f = self.state_f.replace(params=self.clip_weights_icnn(self.state_g.params))
+                self.state_f = self.state_f.replace(params=self._clip_weights_icnn(self.state_g.params))
             # log avg training values periodically
             if iteration % self.log_freq == 0:
                 for key, average_meter in average_meters.items():
@@ -531,31 +547,25 @@ class OTTNeuralDualSolver(UnbalancedNeuralMixin):
             # evalute on validation set periodically
             if iteration % self.valid_freq == 0:
                 for index, pair in enumerate(trainloader.policy_pairs):
-                    condition = validloader.conditions[index] if self.cond_dim else None
+                    # condition = validloader.conditions[index] if self.cond_dim else None
                     valid_batch["source"] = validloader(source_key, policy_pair, sample="source")
                     valid_batch["target"] = validloader(source_key, policy_pair, sample="target")
-                    valid_loss_f, _ = self.valid_step_f(
-                        self.state_f, self.state_g, valid_batch
-                    )
-                    valid_loss_g, valid_w_dist = self.valid_step_g(
-                        self.state_f, self.state_g, valid_batch
-                    )
-                    
+                    valid_loss_f, _ = self.valid_step_f(self.state_f, self.state_g, valid_batch)
+                    valid_loss_g, valid_w_dist = self.valid_step_g(self.state_f, self.state_g, valid_batch)
+                    logs = self._update_logs(logs, valid_loss_f, valid_loss_g, valid_w_dist, is_train_set=False)
                     a, b = validloader.compute_unbalanced_marginals(valid_batch["source"], valid_batch["target"])
-                    _, _, _, _, loss_eta, loss_xi = self.unbalancedness_step_fn(curr_source, batch["target"], a, b, self.state_eta, self.state_xi)
-                    self._update_logs(unbalancedness_logs, valid_loss_f, valid_loss_g, valid_w_dist, is_train_set=False)
+                    _, _, _, _, loss_eta, loss_xi = self.unbalancedness_step_fn(
+                        valid_batch["source"], valid_batch["target"], a, b, self.state_eta, self.state_xi
+                    )
+                    unbalancedness_logs = self._update_unbalancedness_logs(
+                        unbalancedness_logs, loss_eta, loss_xi, is_train_set=False
+                    )
 
                 # update best model and patience as necessary
-                if self.patience_metric == "sinkhorn":
-                    total_loss = (
-                        valid_average_meters["valid_sinkhorn_loss_forward"].avg
-                        + valid_average_meters["valid_sinkhorn_loss_inverse"].avg
-                    )
-                else:
-                    try:
-                        total_loss = valid_average_meters[self.patience_metric].avg
-                    except ValueError:
-                        f"Unknown metric: {self.patience_metric}."
+                try:
+                    total_loss = logs[self.patience_metric][-1]
+                except ValueError:
+                    f"Unknown metric: {self.patience_metric}."
                 if total_loss < best_loss:
                     best_loss = total_loss
                     best_iter_distance = valid_average_meters["valid_neural_dual_dist"].avg
@@ -564,9 +574,6 @@ class OTTNeuralDualSolver(UnbalancedNeuralMixin):
                     curr_patience = 0
                 else:
                     curr_patience += 1
-                for key, average_meter in valid_average_meters.items():
-                    valid_logs[f"mean_{key}"].append(average_meter.avg)  # type:ignore[union-attr]
-                    average_meter.reset()
             if curr_patience >= self.patience:
                 break
         if self.best_model_selection:
@@ -593,46 +600,38 @@ class OTTNeuralDualSolver(UnbalancedNeuralMixin):
                 return g_value(params_g)(y)
 
             f_value_partial = f_value(params_f, g_value_partial)
-            
+
             source_hat_detach = init_source_hat
 
             batch_dot = jax.vmap(jnp.dot)
 
             f_source = f_value_partial(source)
-            f_star_target = batch_dot(source_hat_detach,
-                                        target) - f_value_partial(source_hat_detach)
+            f_star_target = batch_dot(source_hat_detach, target) - f_value_partial(source_hat_detach)
             dual_source = f_source.mean()
             dual_target = f_star_target.mean()
             dual_loss = dual_source + dual_target
 
-            f_value_parameters_detached = f_value(
-                    jax.lax.stop_gradient(params_f), g_value_partial
-                )
-            amor_loss = (
-                    f_value_parameters_detached(init_source_hat) -
-                    batch_dot(init_source_hat, target)
-                ).mean()
+            f_value_parameters_detached = f_value(jax.lax.stop_gradient(params_f), g_value_partial)
+            amor_loss = (f_value_parameters_detached(init_source_hat) - batch_dot(init_source_hat, target)).mean()
             if to_optimize == "f":
                 loss = dual_loss
             elif to_optimize == "g":
                 loss = amor_loss
             else:
-                raise ValueError(
-                    f"Optimization target {to_optimize} has been misspecified."
-                )
+                raise ValueError(f"Optimization target {to_optimize} has been misspecified.")
 
             if self.pos_weights:
                 # Penalize the weights of both networks, even though one
                 # of them will be exactly clipped.
                 # Having both here is necessary in case this is being called with
                 # the potentials reversed with the back_and_forth.
-                loss += self.beta * self._penalize_weights_icnn(params_f) + \
-                    self.beta * self._penalize_weights_icnn(params_g)
+                loss += self.beta * self._penalize_weights_icnn(params_f) + self.beta * self._penalize_weights_icnn(
+                    params_g
+                )
 
             # compute Wasserstein-2 distance
-            C = jnp.mean(jnp.sum(source ** 2, axis=-1)) + \
-                jnp.mean(jnp.sum(target ** 2, axis=-1))
-            W2_dist = C - 2. * (f_source.mean() + f_star_target.mean())
+            C = jnp.mean(jnp.sum(source**2, axis=-1)) + jnp.mean(jnp.sum(target**2, axis=-1))
+            W2_dist = C - 2.0 * (f_source.mean() + f_star_target.mean())
 
             return loss, (dual_loss, amor_loss, W2_dist)
 
@@ -654,8 +653,11 @@ class OTTNeuralDualSolver(UnbalancedNeuralMixin):
                 if to_optimize == "both":
                     return (
                         state_f.apply_gradients(grads=grads_f),
-                        state_g.apply_gradients(grads=grads_g), loss, loss_f, loss_g,
-                        W2_dist
+                        state_g.apply_gradients(grads=grads_g),
+                        loss,
+                        loss_f,
+                        loss_g,
+                        W2_dist,
                     )
                 if to_optimize == "f":
                     return state_f.apply_gradients(grads=grads_f), loss_f, W2_dist
@@ -684,7 +686,7 @@ class OTTNeuralDualSolver(UnbalancedNeuralMixin):
 
         return step_fn
 
-    def clip_weights_icnn(self, params: FrozenVariableDict) -> FrozenVariableDict:
+    def _clip_weights_icnn(self, params: FrozenVariableDict) -> FrozenVariableDict:
         """Clip weights of ICNN."""
         for key in params:
             if key.startswith("w_zs"):
@@ -692,7 +694,7 @@ class OTTNeuralDualSolver(UnbalancedNeuralMixin):
 
         return params  # freeze(params)
 
-    def penalize_weights_icnn(self, params: FrozenVariableDict) -> float:
+    def _penalize_weights_icnn(self, params: FrozenVariableDict) -> float:
         """Penalize weights of ICNN."""
         penalty = 0
         for key in params:
@@ -719,40 +721,40 @@ class OTTNeuralDualSolver(UnbalancedNeuralMixin):
         Args:
         finetune_g: Run the conjugate solver to fine-tune the prediction.
 
-        Returns:
+        Returns
+        -------
         A dual potential object
         """
         f_value = self.state_f.potential_value_fn(self.state_f.params)
-        g_value_prediction = self.state_g.potential_value_fn(
-            self.state_g.params, f_value
-        )
-        return potentials.DualPotentials(
-            f=f_value,
-            g=g_value_prediction,
-            cost_fn=costs.SqEuclidean(),
-            corr=True
-        )
+        g_value_prediction = self.state_g.potential_value_fn(self.state_g.params, f_value)
+        return potentials.DualPotentials(f=f_value, g=g_value_prediction, cost_fn=costs.SqEuclidean(), corr=True)
 
     @property
     def is_balanced(self) -> bool:
         """Return whether the problem is balanced."""
         return self.tau_a == self.tau_b == 1.0
 
-
     @staticmethod
     def _update_logs(
-        logs: Dict[str, List[Union[float, str]]],
+        logs: Dict[str, List[float]],
         loss_f: Optional[jnp.ndarray],
         loss_g: Optional[jnp.ndarray],
         w_dist: Optional[jnp.ndarray],
         *,
         is_train_set: bool,
-    ) -> None:
+    ) -> Dict[str, List[float]]:
         if is_train_set:
-            if loss_f is not None: logs["train_loss_f"].append(float(loss_f))
-            if loss_g is not None: logs["train_loss_g"].append(float(loss_g))
-            if w_dist is not None: logs["train_w_dist"].append(float(w_dist))
+            if loss_f is not None:
+                logs["train_loss_f"].append(float(loss_f))
+            if loss_g is not None:
+                logs["train_loss_g"].append(float(loss_g))
+            if w_dist is not None:
+                logs["train_w_dist"].append(float(w_dist))
         else:
-            if loss_f is not None: logs["valid_loss_f"].append(float(loss_f))
-            if loss_g is not None: logs["valid_loss_g"].append(float(loss_g))
-            if w_dist is not None: logs["valid_w_dist"].append(float(w_dist))
+            if loss_f is not None:
+                logs["valid_loss_f"].append(float(loss_f))
+            if loss_g is not None:
+                logs["valid_loss_g"].append(float(loss_g))
+            if w_dist is not None:
+                logs["valid_w_dist"].append(float(w_dist))
+        return logs

@@ -23,7 +23,7 @@ from moscot.base.output import BaseNeuralOutput, BaseSolverOutput
 
 __all__ = ["OTTOutput", "NeuralDualOutput", "CondNeuralDualOutput", "ConditionalDualPotentials"]
 
-Train_t = Dict[str, Dict[str, List[float]]]
+Train_t = Dict[str, Union[float, List[float]]]
 
 
 class OTTOutput(BaseSolverOutput):
@@ -486,7 +486,7 @@ class NeuralDualOutput(OTTNeuralOutput):
     @property
     def cost(self) -> float:
         """Predicted optimal transport cost on validation dataset."""
-        return self.training_logs["valid_logs"]["predicted_cost"]
+        return self._training_logs["predicted_cost"]
 
     @property
     def converged(self) -> bool:
