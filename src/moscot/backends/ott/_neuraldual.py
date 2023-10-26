@@ -6,7 +6,7 @@ import optax
 from flax.core.scope import FrozenVariableDict
 from flax.training import train_state
 from tqdm.auto import tqdm
-
+from ott.problems.linear import potentials
 import jax
 import jax.numpy as jnp
 import numpy as np
@@ -104,8 +104,9 @@ class UnbalancedNeuralMixin:
             b: jnp.ndarray,
             state_eta: Optional[train_state.TrainState] = None,
             state_xi: Optional[train_state.TrainState] = None,
+            *,
+            is_training: bool = True, 
         ):
-            metrics: Dict[str, Any] = {}
             if state_eta is not None:
                 grad_a_fn = jax.value_and_grad(loss_a_fn, argnums=0, has_aux=True)
                 (loss_a, eta_predictions), grads_eta = grad_a_fn(
@@ -115,8 +116,7 @@ class UnbalancedNeuralMixin:
                     a * len(a),
                     jnp.sum(b),
                 )
-                new_state_eta = state_eta.apply_gradients(grads=grads_eta)
-                metrics["loss_eta"] = loss_a
+                new_state_eta = state_eta.apply_gradients(grads=grads_eta) if is_training else None
 
             else:
                 new_state_eta = eta_predictions = None
@@ -129,14 +129,22 @@ class UnbalancedNeuralMixin:
                     b * len(b),
                     jnp.sum(a),
                 )
-                new_state_xi = state_xi.apply_gradients(grads=grads_xi)
-                metrics["loss_xi"] = loss_b
+                new_state_xi = state_xi.apply_gradients(grads=grads_xi) if is_training else None
             else:
                 new_state_xi = xi_predictions = None
 
-            return new_state_eta, new_state_xi, eta_predictions, xi_predictions, metrics
+            return new_state_eta, new_state_xi, eta_predictions, xi_predictions, loss_a, loss_b
 
         return step_fn
+
+    def _update_unbalancedness_logs(
+        logs: Dict[str, List[Union[float, str]]],
+        loss_eta: jnp.ndarray,
+        loss_xi: jnp.ndarray,
+        ) -> None:
+        logs["loss_eta"].append(float(loss_eta))
+        logs["loss_xi"].append(float(loss_xi))
+    
 
 
 class OTTNeuralDualSolver(UnbalancedNeuralMixin):
@@ -226,12 +234,13 @@ class OTTNeuralDualSolver(UnbalancedNeuralMixin):
         f: Union[Dict[str, Any], ICNN] = MappingProxyType({}),
         g: Union[Dict[str, Any], ICNN] = MappingProxyType({}),
         beta: float = 1.0,
-        best_model_metric: str = "sinkhorn_loss_forward",
+        best_model_selection: bool = True, 
         iterations: int = 25000,  # TODO(@MUCDK): rename to max_iterations
         inner_iters: int = 10,
         valid_freq: int = 250,
         log_freq: int = 10,
         patience: int = 100,
+        patience_metric: Optional[str] = ["train_loss_f", "train_loss_g", "train_w_dist", "valid_loss_f", "valid_loss_g", "valid_w_dist"],
         optimizer_f: Union[Dict[str, Any], Type[optax.GradientTransformation]] = MappingProxyType({}),
         optimizer_g: Union[Dict[str, Any], Type[optax.GradientTransformation]] = MappingProxyType({}),
         pretrain_iters: int = 0,
@@ -258,12 +267,13 @@ class OTTNeuralDualSolver(UnbalancedNeuralMixin):
         self.epsilon = epsilon if self.tau_a != 1.0 or self.tau_b != 1.0 else None
         self.pos_weights = pos_weights
         self.beta = beta
-        self.best_model_metric = best_model_metric
+        self.best_model_selection = best_model_selection
         self.iterations = iterations
         self.inner_iters = inner_iters
         self.valid_freq = valid_freq
         self.log_freq = log_freq
         self.patience = patience
+        self.patience_metric = patience_metric
         self.pretrain_iters = pretrain_iters
         self.pretrain_scale = pretrain_scale
         self.valid_sinkhorn_kwargs = dict(valid_sinkhorn_kwargs)
@@ -317,9 +327,10 @@ class OTTNeuralDualSolver(UnbalancedNeuralMixin):
         self.state_f = neural_f.create_train_state(key_f, optimizer_f, self.input_dim)
         self.state_g = neural_g.create_train_state(key_g, optimizer_g, self.input_dim)
 
-        self.train_step_f = self.get_train_step(to_optimize="f")
-        self.train_step_g = self.get_train_step(to_optimize="g")
-        self.valid_step = self.get_eval_step()
+        self.train_step_f = self.get_step_fn(train=True, to_optimize="f")
+        self.valid_step_f = self.get_step_fn(train=False, to_optimize="f")
+        self.train_step_g = self.get_step_fn(train=True, to_optimize="g")
+        self.valid_step_g = self.get_step_fn(train=False, to_optimize="g")
 
     def __call__(
         self,
@@ -343,9 +354,9 @@ class OTTNeuralDualSolver(UnbalancedNeuralMixin):
         if self.pretrain_iters > 0:
             pretrain_logs = self.pretrain_identity(trainloader.conditions)
 
-        train_logs = self.train_neuraldual(trainloader, validloader)
+        train_logs, unbalancedness_logs = self.train_neuraldual(trainloader, validloader)
         res = self.to_dual_potentials()
-        logs = {**pretrain_logs, **train_logs}
+        logs = {**pretrain_logs, **train_logs, **unbalancedness_logs}
 
         return (res, self, logs)
 
@@ -390,8 +401,9 @@ class OTTNeuralDualSolver(UnbalancedNeuralMixin):
             loss, grads = grad_fn(state.params, x, condition, state)
             return loss, state.apply_gradients(grads=grads)
 
-        pretrain_logs: Dict[str, List[float]] = {"loss": []}
-        for iteration in range(self.pretrain_iters):
+        pretrain_logs: Dict[str, List[float]] = {"pretrain_loss": []}
+        logger.info(f"Pretraining for {self.pretrain_iters} iterations.")
+        for iteration in tqdm(range(self.pretrain_iters)):
             key_pre, self.key = jax.random.split(self.key, 2)
             # train step for potential g directly updating the train state
             loss, self.state_g = pretrain_update(self.state_g, key_pre)
@@ -399,7 +411,7 @@ class OTTNeuralDualSolver(UnbalancedNeuralMixin):
             if self.pos_weights:
                 self.state_g = self.state_g.replace(params=self.clip_weights_icnn(self.state_g.params))
             if iteration % self.log_freq == 0:
-                pretrain_logs["loss"].append(loss)
+                pretrain_logs["pretrain_loss"].append(loss)
         # load params of g into state_f
         # this only works when f & g have the same architecture
         self.state_f = self.state_f.replace(params=self.state_g.params)
@@ -424,8 +436,14 @@ class OTTNeuralDualSolver(UnbalancedNeuralMixin):
         Training statistics.
         """
         # set logging dictionaries
-        train_logs: Dict[str, List[float]] = defaultdict(list)
-        valid_logs: Dict[str, Union[List[float], float]] = defaultdict(list)
+        
+        #train_logs: Dict[str, List[float]] = defaultdict(list)
+        #valid_logs: Dict[str, Union[List[float], float]] = defaultdict(list)
+        
+        logging_keys = ["train_loss_f", "train_loss_g", "train_w_dist", "valid_loss_f", "valid_loss_g", "valid_w_dist"]
+        logs = {key: [] for key in logging_keys}
+        unbalancedness_logs = {"eta_loss": [], "xi_loss": []}
+
         average_meters: Dict[str, RunningAverageMeter] = defaultdict(RunningAverageMeter)
         valid_average_meters: Dict[str, RunningAverageMeter] = defaultdict(RunningAverageMeter)
         sink_dist: List[float] = []
@@ -477,10 +495,10 @@ class OTTNeuralDualSolver(UnbalancedNeuralMixin):
                     self.state_xi,
                     _,
                     _,
-                    unbalanced_train_logs,
+                    loss_eta,
+                    loss_xi,
                 ) = self.unbalancedness_step_fn(curr_source, batch["target"], a, b, self.state_eta, self.state_xi)
-                for key, value in unbalanced_train_logs.items():
-                    average_meters[key].update(value)
+                self._update_unbalancedness_logs(unbalancedness_logs, loss_eta, loss_xi)
 
             for _ in range(self.inner_iters):
                 source_key, self.key = jax.random.split(self.key, 2)
@@ -492,47 +510,55 @@ class OTTNeuralDualSolver(UnbalancedNeuralMixin):
                     # resample source with unbalanced marginals
                     batch["source"] = trainloader.unbalanced_resample(source_key, curr_source, a)
                 # train step for potential g directly updating the train state
-                self.state_f, train_f_metrics = self.train_step_f(self.state_f, self.state_g, batch)
-                for key, value in train_f_metrics.items():
-                    average_meters[key].update(value)
+                self.state_g, loss_g, _ = self.train_step_g(self.state_f, self.state_g, batch)
+                average_meters["train_loss_g"].update(loss_g)
+                self._update_logs(logs, None, loss_g, None, is_train_set=True)
             # resample target batch with unbalanced marginals
-            if self.epsilon is not None:
+            if not self.is_balanced:
                 target_key, self.key = jax.random.split(self.key, 2)
                 batch["target"] = trainloader.unbalanced_resample(target_key, batch["target"], b)
             # train step for potential f directly updating the train state
-            self.state_g, train_g_metrics = self.train_step_g(self.state_f, self.state_g, batch)
-            for key, value in train_g_metrics.items():
-                average_meters[key].update(value)
+            self.state_f, loss_f, w_dist = self.train_step_f(self.state_f, self.state_g, batch)
+            self._update_logs(logs, loss_f, None, w_dist, is_train_set=True)
             # clip weights of f
             if self.pos_weights:
-                self.state_g = self.state_g.replace(params=self.clip_weights_icnn(self.state_g.params))
+                self.state_f = self.state_f.replace(params=self.clip_weights_icnn(self.state_g.params))
             # log avg training values periodically
             if iteration % self.log_freq == 0:
                 for key, average_meter in average_meters.items():
-                    train_logs[key].append(average_meter.avg)
+                    logs[key].append(average_meter.avg)
                     average_meter.reset()
             # evalute on validation set periodically
             if iteration % self.valid_freq == 0:
                 for index, pair in enumerate(trainloader.policy_pairs):
-                    condition = trainloader.conditions[index] if self.cond_dim else None
-                    valid_metrics = self.valid_step(self.state_f, self.state_g, valid_batch[pair], condition)
-                    for key, value in valid_metrics.items():
-                        valid_logs[f"{pair[0]}_{pair[1]}_{key}"].append(value)  # type:ignore[union-attr]
-                        valid_average_meters[key].update(value)
+                    condition = validloader.conditions[index] if self.cond_dim else None
+                    valid_batch["source"] = validloader(source_key, policy_pair, sample="source")
+                    valid_batch["target"] = validloader(source_key, policy_pair, sample="target")
+                    valid_loss_f, _ = self.valid_step_f(
+                        self.state_f, self.state_g, valid_batch
+                    )
+                    valid_loss_g, valid_w_dist = self.valid_step_g(
+                        self.state_f, self.state_g, valid_batch
+                    )
+                    
+                    a, b = validloader.compute_unbalanced_marginals(valid_batch["source"], valid_batch["target"])
+                    _, _, _, _, loss_eta, loss_xi = self.unbalancedness_step_fn(curr_source, batch["target"], a, b, self.state_eta, self.state_xi)
+                    self._update_logs(unbalancedness_logs, valid_loss_f, valid_loss_g, valid_w_dist, is_train_set=False)
+
                 # update best model and patience as necessary
-                if self.best_model_metric == "sinkhorn":
+                if self.patience_metric == "sinkhorn":
                     total_loss = (
-                        valid_average_meters["sinkhorn_loss_forward"].avg
-                        + valid_average_meters["sinkhorn_loss_inverse"].avg
+                        valid_average_meters["valid_sinkhorn_loss_forward"].avg
+                        + valid_average_meters["valid_sinkhorn_loss_inverse"].avg
                     )
                 else:
                     try:
-                        total_loss = valid_average_meters[self.best_model_metric].avg
+                        total_loss = valid_average_meters[self.patience_metric].avg
                     except ValueError:
-                        f"Unknown metric: {self.best_model_metric}."
+                        f"Unknown metric: {self.patience_metric}."
                 if total_loss < best_loss:
                     best_loss = total_loss
-                    best_iter_distance = valid_average_meters["neural_dual_dist"].avg
+                    best_iter_distance = valid_average_meters["valid_neural_dual_dist"].avg
                     best_params_f = self.state_f.params
                     best_params_g = self.state_g.params
                     curr_patience = 0
@@ -543,136 +569,120 @@ class OTTNeuralDualSolver(UnbalancedNeuralMixin):
                     average_meter.reset()
             if curr_patience >= self.patience:
                 break
-        self.state_f = self.state_f.replace(params=best_params_f)
-        self.state_g = self.state_g.replace(params=best_params_g)
-        valid_logs["best_loss"] = best_loss
-        valid_logs["predicted_cost"] = None if best_iter_distance is None else float(best_iter_distance)
+        if self.best_model_selection:
+            self.state_f = self.state_f.replace(params=best_params_f)
+            self.state_g = self.state_g.replace(params=best_params_g)
+        logs["best_loss"] = best_loss
+        logs["predicted_cost"] = None if best_iter_distance is None else float(best_iter_distance)
         if self.compute_wasserstein_baseline:
-            valid_logs["sinkhorn_dist"] = np.mean(sink_dist)
-        return {
-            "train_logs": train_logs,  # type:ignore[dict-item]
-            "valid_logs": valid_logs,
-        }
+            logs["sinkhorn_dist"] = np.mean(sink_dist)
+        return logs, unbalancedness_logs
 
-    def get_train_step(
-        self,
-        to_optimize: Literal["f", "g"],
-    ) -> Callable[
-        [train_state.TrainState, train_state.TrainState, Dict[str, jnp.ndarray]],
-        Tuple[train_state.TrainState, Dict[str, float]],
-    ]:
-        """Get one training step."""
+    def get_step_fn(self, train: bool, to_optimize: Literal["f", "g"]):
+        """Create a parallel training and evaluation function."""
 
-        def loss_f_fn(
-            params_f: jnp.ndarray,
-            params_g: jnp.ndarray,
-            state_f: train_state.TrainState,
-            state_g: train_state.TrainState,
-            batch: Dict[str, jnp.ndarray],
-        ) -> Tuple[jnp.ndarray, List[jnp.ndarray]]:
-            """Loss function for f."""
-            # get loss terms of kantorovich dual
-            grad_f_src = jax.vmap(
-                jax.grad(lambda x: state_f.apply_fn({"params": params_f}, x, batch["condition"]), argnums=0)
-            )(batch["source"])
-            g_grad_f_src = jax.vmap(lambda x: state_g.apply_fn({"params": params_g}, x, batch["condition"]))(grad_f_src)
-            src_dot_grad_f_src = jnp.sum(batch["source"] * grad_f_src, axis=1)
-            # compute loss
-            loss = jnp.mean(g_grad_f_src - src_dot_grad_f_src)
-            if not self.pos_weights:
-                penalty = self.beta * self.penalize_weights_icnn(params_f)
-                loss += penalty
+        def loss_fn(params_f, params_g, f_value, g_value, g_gradient, batch):
+            """Loss function for both potentials."""
+            # get two distributions
+            source, target = batch["source"], batch["target"]
+
+            init_source_hat = g_gradient(params_g)(target)
+
+            def g_value_partial(y: jnp.ndarray) -> jnp.ndarray:
+                """Lazy way of evaluating g if f's computation needs it."""
+                return g_value(params_g)(y)
+
+            f_value_partial = f_value(params_f, g_value_partial)
+            
+            source_hat_detach = init_source_hat
+
+            batch_dot = jax.vmap(jnp.dot)
+
+            f_source = f_value_partial(source)
+            f_star_target = batch_dot(source_hat_detach,
+                                        target) - f_value_partial(source_hat_detach)
+            dual_source = f_source.mean()
+            dual_target = f_star_target.mean()
+            dual_loss = dual_source + dual_target
+
+            f_value_parameters_detached = f_value(
+                    jax.lax.stop_gradient(params_f), g_value_partial
+                )
+            amor_loss = (
+                    f_value_parameters_detached(init_source_hat) -
+                    batch_dot(init_source_hat, target)
+                ).mean()
+            if to_optimize == "f":
+                loss = dual_loss
+            elif to_optimize == "g":
+                loss = amor_loss
             else:
-                penalty = 0
-            return loss, [penalty]
+                raise ValueError(
+                    f"Optimization target {to_optimize} has been misspecified."
+                )
 
-        def loss_g_fn(
-            params_f: jnp.ndarray,
-            params_g: jnp.ndarray,
-            state_f: train_state.TrainState,
-            state_g: train_state.TrainState,
-            batch: Dict[str, jnp.ndarray],
-        ) -> Tuple[jnp.ndarray, List[float]]:
-            """Loss function for g."""
-            # get loss terms of kantorovich dual
-            grad_f_src = jax.vmap(
-                jax.grad(lambda x: state_f.apply_fn({"params": params_f}, x, batch["condition"]), argnums=0)
-            )(batch["source"])
-            g_grad_f_src = jax.vmap(lambda x: state_g.apply_fn({"params": params_g}, x, batch["condition"]))(grad_f_src)
-            src_dot_grad_f_src = jnp.sum(batch["source"] * grad_f_src, axis=1)
-            # compute loss
-            f_tgt = jax.vmap(lambda x: state_g.apply_fn({"params": params_g}, x, batch["condition"]))(batch["target"])
-            loss = jnp.mean(f_tgt - g_grad_f_src)
-            total_loss = jnp.mean(g_grad_f_src - f_tgt - src_dot_grad_f_src)
-            # compute wasserstein distance
-            dist = 2 * total_loss + jnp.mean(
-                jnp.sum(batch["target"] * batch["target"], axis=1)
-                + 0.5 * jnp.sum(batch["source"] * batch["source"], axis=1)
-            )
-            return loss, [total_loss, dist]
+            if self.pos_weights:
+                # Penalize the weights of both networks, even though one
+                # of them will be exactly clipped.
+                # Having both here is necessary in case this is being called with
+                # the potentials reversed with the back_and_forth.
+                loss += self.beta * self._penalize_weights_icnn(params_f) + \
+                    self.beta * self._penalize_weights_icnn(params_g)
+
+            # compute Wasserstein-2 distance
+            C = jnp.mean(jnp.sum(source ** 2, axis=-1)) + \
+                jnp.mean(jnp.sum(target ** 2, axis=-1))
+            W2_dist = C - 2. * (f_source.mean() + f_star_target.mean())
+
+            return loss, (dual_loss, amor_loss, W2_dist)
 
         @jax.jit
-        def step_fn(
-            state_f: train_state.TrainState,
-            state_g: train_state.TrainState,
-            batch: Dict[str, jnp.ndarray],
-        ) -> Tuple[train_state.TrainState, Dict[str, float]]:
-            """Step function for training."""
-            # get loss function for f or g
+        def step_fn(state_f, state_g, batch):
+            """Step function of either training or validation."""
+            grad_fn = jax.value_and_grad(loss_fn, argnums=[0, 1], has_aux=True)
+            if train:
+                # compute loss and gradients
+                (loss, (loss_f, loss_g, W2_dist)), (grads_f, grads_g) = grad_fn(
+                    state_f.params,
+                    state_g.params,
+                    state_f.potential_value_fn,
+                    state_g.potential_value_fn,
+                    state_g.potential_gradient_fn,
+                    batch,
+                )
+                # update state
+                if to_optimize == "both":
+                    return (
+                        state_f.apply_gradients(grads=grads_f),
+                        state_g.apply_gradients(grads=grads_g), loss, loss_f, loss_g,
+                        W2_dist
+                    )
+                if to_optimize == "f":
+                    return state_f.apply_gradients(grads=grads_f), loss_f, W2_dist
+                if to_optimize == "g":
+                    return state_g.apply_gradients(grads=grads_g), loss_g, W2_dist
+                raise ValueError("Optimization target has been misspecified.")
+
+            # compute loss and gradients
+            (loss, (loss_f, loss_g, W2_dist)), _ = grad_fn(
+                state_f.params,
+                state_g.params,
+                state_f.potential_value_fn,
+                state_g.potential_value_fn,
+                state_g.potential_gradient_fn,
+                batch,
+            )
+
+            # do not update state
+            if to_optimize == "both":
+                return loss_f, loss_g, W2_dist
             if to_optimize == "f":
-                grad_fn = jax.value_and_grad(loss_f_fn, argnums=1, has_aux=True)
-                # compute loss, gradients and metrics
-                (loss, raw_metrics), grads = grad_fn(state_f.params, state_g.params, state_f, state_g, batch)
-                # return updated state and metrics dict
-                metrics = {"loss_f": loss, "penalty": raw_metrics[0]}
-                return state_f.apply_gradients(grads=grads), metrics
+                return loss_f, W2_dist
             if to_optimize == "g":
-                grad_fn = jax.value_and_grad(loss_g_fn, argnums=0, has_aux=True)
-                # compute loss, gradients and metrics
-                (loss, raw_metrics), grads = grad_fn(state_f.params, state_g.params, state_f, state_g, batch)
-                # return updated state and metrics dict
-                metrics = {"loss_g": loss, "loss": raw_metrics[0], "w_dist": raw_metrics[1]}
-                return state_g.apply_gradients(grads=grads), metrics
-            raise NotImplementedError()
+                return loss_g, W2_dist
+            raise ValueError("Optimization target has been misspecified.")
 
         return step_fn
-
-    def get_eval_step(
-        self,
-    ) -> Callable[
-        [train_state.TrainState, train_state.TrainState, Dict[str, jnp.ndarray], jnp.ndarray], Dict[str, float]
-    ]:
-        """Get one validation step."""
-
-        @jax.jit
-        def valid_step(
-            state_f: train_state.TrainState,
-            state_g: train_state.TrainState,
-            batch: Dict[str, jnp.ndarray],
-            condition: jnp.ndarray,
-        ) -> Dict[str, float]:
-            """Create a validation function."""
-            # get transported source and inverse transported target
-            pred_target = jax.vmap(
-                jax.grad(lambda x: state_f.apply_fn({"params": state_f.params}, x, condition), argnums=0)
-            )(batch["source"])
-            pred_source = jax.vmap(
-                jax.grad(lambda x: state_g.apply_fn({"params": state_g.params}, x, condition), argnums=0)
-            )(batch["target"])
-            pred_target = pred_target
-            pred_source = pred_source
-            # get neural dual distance between true source and target
-            g_tgt = jax.vmap(lambda x: state_g.apply_fn({"params": state_g.params}, x, condition))(batch["target"])
-            g_grad_f_src = jax.vmap(lambda x: state_g.apply_fn({"params": state_g.params}, x, condition))(pred_target)
-            src_dot_grad_f_src = jnp.sum(batch["source"] * pred_target, axis=-1)
-            src_sq = jnp.mean(jnp.sum(batch["source"] ** 2, axis=-1))
-            tgt_sq = jnp.mean(jnp.sum(batch["target"] ** 2, axis=-1))
-            neural_dual_dist = tgt_sq + src_sq + 2.0 * (jnp.mean(g_grad_f_src - src_dot_grad_f_src) - jnp.mean(g_tgt))
-            # calculate validation metrics
-            metric_dict = self.callback_func(batch["target"], batch["source"], pred_target, pred_source)
-            return {**metric_dict, "neural_dual_dist": neural_dual_dist}  # type: ignore[dict-item]
-
-        return valid_step
 
     def clip_weights_icnn(self, params: FrozenVariableDict) -> FrozenVariableDict:
         """Clip weights of ICNN."""
@@ -690,7 +700,7 @@ class OTTNeuralDualSolver(UnbalancedNeuralMixin):
                 penalty += jnp.linalg.norm(jax.nn.relu(-params[key]["kernel"]))
         return penalty
 
-    def to_dual_potentials(self, condition: Optional[ArrayLike] = None) -> DualPotentials:
+    def to_dual_potentials_old(self, condition: Optional[ArrayLike] = None) -> DualPotentials:
         """Return the Kantorovich dual potentials from the trained potentials."""
         if self.cond_dim:
             return ConditionalDualPotentials(self.state_f, self.state_g)
@@ -703,7 +713,46 @@ class OTTNeuralDualSolver(UnbalancedNeuralMixin):
 
         return DualPotentials(f, g, corr=True, cost_fn=costs.SqEuclidean())
 
+    def to_dual_potentials(self, finetune_g: bool = False) -> potentials.DualPotentials:
+        r"""Return the Kantorovich dual potentials from the trained potentials.
+
+        Args:
+        finetune_g: Run the conjugate solver to fine-tune the prediction.
+
+        Returns:
+        A dual potential object
+        """
+        f_value = self.state_f.potential_value_fn(self.state_f.params)
+        g_value_prediction = self.state_g.potential_value_fn(
+            self.state_g.params, f_value
+        )
+        return potentials.DualPotentials(
+            f=f_value,
+            g=g_value_prediction,
+            cost_fn=costs.SqEuclidean(),
+            corr=True
+        )
+
     @property
     def is_balanced(self) -> bool:
         """Return whether the problem is balanced."""
         return self.tau_a == self.tau_b == 1.0
+
+
+    @staticmethod
+    def _update_logs(
+        logs: Dict[str, List[Union[float, str]]],
+        loss_f: Optional[jnp.ndarray],
+        loss_g: Optional[jnp.ndarray],
+        w_dist: Optional[jnp.ndarray],
+        *,
+        is_train_set: bool,
+    ) -> None:
+        if is_train_set:
+            if loss_f is not None: logs["train_loss_f"].append(float(loss_f))
+            if loss_g is not None: logs["train_loss_g"].append(float(loss_g))
+            if w_dist is not None: logs["train_w_dist"].append(float(w_dist))
+        else:
+            if loss_f is not None: logs["valid_loss_f"].append(float(loss_f))
+            if loss_g is not None: logs["valid_loss_g"].append(float(loss_g))
+            if w_dist is not None: logs["valid_w_dist"].append(float(w_dist))

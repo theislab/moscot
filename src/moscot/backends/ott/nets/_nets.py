@@ -42,4 +42,4 @@ class MLP_marginal(ModelBase):
         input_dim: int,
     ) -> NeuralTrainState:
         params = self.init(rng, jnp.ones((1, input_dim)))["params"]
-        return train_state.TrainState.create(apply_fn=self.apply, params=params, tx=optimizer)
+        return NeuralTrainState.create(apply_fn=self.apply, params=params, tx=optimizer)

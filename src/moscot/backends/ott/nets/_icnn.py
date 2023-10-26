@@ -1,14 +1,18 @@
-from typing import Callable, Optional, Sequence, Tuple, Union
+from typing import Callable, Optional, Sequence, Tuple, Union, Any
 
+import jax
 import optax
 from flax import linen as nn
 from flax.training import train_state
-
+from flax.core import frozen_dict
 import jax.numpy as jnp
 from ott.solvers.nn.layers import PositiveDense
+from ott.solvers.nn.models import ModelBase, NeuralTrainState
 
+PotentialValueFn_t = Callable[[jnp.ndarray], jnp.ndarray]
+PotentialGradientFn_t = Callable[[jnp.ndarray], jnp.ndarray]
 
-class ICNN(nn.Module):
+class ICNN(ModelBase):
     """Input convex neural network (ICNN) architecture."""
 
     dim_hidden: Sequence[int]
@@ -182,7 +186,8 @@ class ICNN(nn.Module):
         rng: jnp.ndarray,
         optimizer: optax.OptState,
         input_shape: Union[int, Tuple[int, ...]],
-    ) -> train_state.TrainState:
+        **kwargs: Any,
+    ) -> NeuralTrainState:
         """Create initial `TrainState`."""
         condition = (
             jnp.ones(
@@ -194,4 +199,82 @@ class ICNN(nn.Module):
             else None
         )
         params = self.init(rng, x=jnp.ones(input_shape), c=condition)["params"]
-        return train_state.TrainState.create(apply_fn=self.apply, params=params, tx=optimizer)
+        return NeuralTrainState.create(
+            apply_fn=self.apply,
+            params=params,
+            tx=optimizer,
+            potential_value_fn=self.potential_value_fn,
+            potential_gradient_fn=self.potential_gradient_fn,
+            **kwargs,
+        )
+
+
+    def is_potential(self) -> bool:
+        """Indicates if the module implements a potential value or a vector field.
+
+        Returns:
+        ``True`` if the module defines a potential, ``False`` if it defines a
+        vector field.
+        """
+        return True
+
+    def potential_value_fn(
+        self,
+        params: frozen_dict.FrozenDict[str, jnp.ndarray],
+        other_potential_value_fn: Optional[PotentialValueFn_t] = None,
+    ) -> PotentialValueFn_t:
+        r"""Return a function giving the value of the potential.
+
+        Applies the module if :attr:`is_potential` is ``True``, otherwise
+        constructs the value of the potential from the gradient with
+
+        .. math::
+
+        g(y) = -f(\nabla_y g(y)) + y^T \nabla_y g(y)
+
+        where :math:`\nabla_y g(y)` is detached for the envelope theorem
+        :cite:`danskin:67,bertsekas:71`
+        to give the appropriate first derivatives of this construction.
+
+        Args:
+        params: parameters of the module
+        other_potential_value_fn: function giving the value of the other
+            potential. Only needed when :attr:`is_potential` is ``False``.
+
+        Returns:
+        A function that can be evaluated to obtain a potential value, or a linear
+        interpolation of a potential.
+        """
+        if self.is_potential:
+            return lambda x: self.apply({"params": params}, x)
+
+        assert other_potential_value_fn is not None, \
+            "The value of the gradient-based potential depends " \
+            "on the value of the other potential."
+
+        def value_fn(x: jnp.ndarray) -> jnp.ndarray:
+            squeeze = x.ndim == 1
+            if squeeze:
+                x = jnp.expand_dims(x, 0)
+            grad_g_x = jax.lax.stop_gradient(self.apply({"params": params}, x))
+            value = -other_potential_value_fn(grad_g_x) + \
+                jax.vmap(jnp.dot)(grad_g_x, x)
+            return value.squeeze(0) if squeeze else value
+
+        return value_fn
+
+    def potential_gradient_fn(
+        self,
+        params: frozen_dict.FrozenDict[str, jnp.ndarray],
+    ) -> PotentialGradientFn_t:
+        """Return a function returning a vector or the gradient of the potential.
+
+        Args:
+        params: parameters of the module
+
+        Returns:
+        A function that can be evaluated to obtain the potential's gradient
+        """
+        if self.is_potential:
+            return jax.vmap(jax.grad(self.potential_value_fn(params)))
+        return lambda x: self.apply({"params": params}, x)
