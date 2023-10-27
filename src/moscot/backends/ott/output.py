@@ -584,8 +584,8 @@ class NeuralDualOutput(OTTNeuralOutput):
 
     def _format_params(self, fmt: Callable[[Any], str]) -> str:
         params = {
-                "predicted_cost": round(self.cost, 3),
-            }
+            "predicted_cost": round(self.cost, 3),
+        }
         return ", ".join(f"{name}={fmt(val)}" for name, val in params.items())
 
 

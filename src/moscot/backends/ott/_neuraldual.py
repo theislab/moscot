@@ -415,7 +415,7 @@ class OTTNeuralDualSolver(UnbalancedNeuralMixin):
             """Update function for the pretraining on identity."""
             # sample gaussian data with given scale
             x = self.pretrain_scale * jax.random.normal(key, [self.batch_size, self.input_dim])
-            condition = jax.random.choice(key, conditions) if self.cond_dim else None
+            condition = jax.random.choice(key, conditions, shape=(self.batch_size,)) if self.cond_dim else None
             grad_fn = jax.value_and_grad(pretrain_loss_fn, argnums=0)
             loss, grads = grad_fn(state.params, x, condition, state)
             return loss, state.apply_gradients(grads=grads)
@@ -504,7 +504,7 @@ class OTTNeuralDualSolver(UnbalancedNeuralMixin):
             else:
                 # sample source batch and compute unbalanced marginals
                 source_key, self.key = jax.random.split(self.key, 2)
-                curr_source = trainloader(source_key, policy_pair, sample="source")
+                curr_source, _ = trainloader(source_key, policy_pair, sample="source")
                 a, b = trainloader.compute_unbalanced_marginals(curr_source, batch["target"])
                 (
                     self.state_eta,
@@ -519,12 +519,12 @@ class OTTNeuralDualSolver(UnbalancedNeuralMixin):
             for _ in range(self.inner_iters):
                 source_key, self.key = jax.random.split(self.key, 2)
 
-                if self.is_balanced:
-                    # sample source batch
-                    batch["source"] = trainloader(source_key, policy_pair, sample="source")
-                else:
+                batch["source"], batch["condition"] = trainloader(source_key, policy_pair, sample="source")
+                if not self.is_balanced:
                     # resample source with unbalanced marginals
-                    batch["source"] = trainloader.unbalanced_resample(source_key, curr_source, a)
+                    batch["source"], batch["condition"] = trainloader.unbalanced_resample(
+                        source_key, (batch["source"], batch["condition"]), a
+                    )
                 # train step for potential g directly updating the train state
                 self.state_g, loss_g, _ = self.train_step_g(self.state_f, self.state_g, batch)
                 average_meters["train_loss_g"].update(loss_g)
@@ -548,7 +548,9 @@ class OTTNeuralDualSolver(UnbalancedNeuralMixin):
             if iteration % self.valid_freq == 0:
                 for index, pair in enumerate(trainloader.policy_pairs):
                     # condition = validloader.conditions[index] if self.cond_dim else None
-                    valid_batch["source"] = validloader(source_key, policy_pair, sample="source")
+                    valid_batch["source"], valid_batch["condition"] = validloader(
+                        source_key, policy_pair, sample="source"
+                    )
                     valid_batch["target"] = validloader(source_key, policy_pair, sample="target")
                     valid_loss_f, _ = self.valid_step_f(self.state_f, self.state_g, valid_batch)
                     valid_loss_g, valid_w_dist = self.valid_step_g(self.state_f, self.state_g, valid_batch)
@@ -597,7 +599,7 @@ class OTTNeuralDualSolver(UnbalancedNeuralMixin):
 
             def g_value_partial(y: jnp.ndarray) -> jnp.ndarray:
                 """Lazy way of evaluating g if f's computation needs it."""
-                return g_value(params_g, batch["condition"])(y)
+                return g_value(params_g)(y, batch["condition"])
 
             f_value_partial = f_value(params_f, g_value_partial, batch["condition"])
 
@@ -606,13 +608,17 @@ class OTTNeuralDualSolver(UnbalancedNeuralMixin):
             batch_dot = jax.vmap(jnp.dot)
 
             f_source = f_value_partial(source, batch["condition"])
-            f_star_target = batch_dot(source_hat_detach, target) - f_value_partial(source_hat_detach)
+            f_star_target = batch_dot(source_hat_detach, target) - f_value_partial(
+                source_hat_detach, batch["condition"]
+            )
             dual_source = f_source.mean()
             dual_target = f_star_target.mean()
             dual_loss = dual_source + dual_target
 
             f_value_parameters_detached = f_value(jax.lax.stop_gradient(params_f), g_value_partial, batch["condition"])
-            amor_loss = (f_value_parameters_detached(init_source_hat) - batch_dot(init_source_hat, target)).mean()
+            amor_loss = (
+                f_value_parameters_detached(init_source_hat, batch["condition"]) - batch_dot(init_source_hat, target)
+            ).mean()
             if to_optimize == "f":
                 loss = dual_loss
             elif to_optimize == "g":
@@ -649,7 +655,7 @@ class OTTNeuralDualSolver(UnbalancedNeuralMixin):
                     state_g.potential_gradient_fn,
                     batch,
                 )
-                
+
                 if to_optimize == "f":
                     return state_f.apply_gradients(grads=grads_f), loss_f, W2_dist
                 if to_optimize == "g":

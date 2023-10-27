@@ -954,6 +954,7 @@ class CondOTProblem(BaseProblem):  # TODO(@MUCDK) check generic types, save and 
         policy: Policy_t,
         xy: Mapping[str, Any],
         xx: Mapping[str, Any],
+        conditions: Mapping[str, Any],
         a: Optional[str] = None,
         b: Optional[str] = None,
         **kwargs: Any,
@@ -969,8 +970,6 @@ class CondOTProblem(BaseProblem):  # TODO(@MUCDK) check generic types, save and 
             Policy defining which pairs of distributions to sample from during training.
         policy_key
             %(key)s
-        cond_dim
-            Dimension of condition. Expected to be in the last dimensions of axis 1.
         a
             Source marginals.
         b
@@ -1002,7 +1001,7 @@ class CondOTProblem(BaseProblem):  # TODO(@MUCDK) check generic types, save and 
             a_created = self._create_marginals(adata_masked, data=a, source=True, **kwargs)
             b_created = self._create_marginals(adata_masked, data=b, source=False, **kwargs)
             self.distributions[el] = DistributionContainer.from_adata(
-                adata_masked, a=a_created, b=b_created, **xy, **xx
+                adata_masked, a=a_created, b=b_created, **xy, **xx, **conditions
             )
         return self
 
@@ -1035,6 +1034,7 @@ class CondOTProblem(BaseProblem):  # TODO(@MUCDK) check generic types, save and 
         self._solver = backends.get_solver(
             problem_kind=self._problem_kind,
             input_dim=self.distributions[tmp].xy.shape[1],  # type:ignore[union-attr, index]
+            cond_dim=self.distributions[tmp].conditions.shape[1],  # type:ignore[union-attr, index
             distributions=self._distributions,
             sample_pairs=self._sample_pairs,
             **kwargs,

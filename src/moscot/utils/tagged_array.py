@@ -229,6 +229,8 @@ class DistributionContainer:
         except IndexError:
             raise IndexError(f"Unable to fetch data from `{modifier}`.") from None
 
+        if attr == "obs":
+            data = np.expand_dims(data, axis=1)
         if sp.issparse(data):
             logger.warning(f"Densifying data in `{modifier}`")
             data = data.A

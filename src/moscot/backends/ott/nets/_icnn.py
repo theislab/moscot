@@ -102,6 +102,8 @@ class ICNN(ModelBase):
                         bias_init=self.init_fn(self.init_std),
                     )
                 )
+
+            # These are the last layers
             w_zu.append(
                 nn.Dense(
                     self.dim_hidden[-1],
@@ -222,8 +224,8 @@ class ICNN(ModelBase):
     def potential_value_fn(
         self,
         params: frozen_dict.FrozenDict[str, jnp.ndarray],
-        other_potential_value_fn: Optional[PotentialValueFn_t] = None,
         c: Optional[jnp.ndarray] = None,
+        other_potential_value_fn: Optional[PotentialValueFn_t] = None,
     ) -> PotentialValueFn_t:
         r"""Return a function giving the value of the potential.
 
@@ -249,7 +251,7 @@ class ICNN(ModelBase):
         interpolation of a potential.
         """
         if self.is_potential:
-            return lambda x: self.apply({"params": params}, x, c=c)
+            return lambda x, c=None: self.apply({"params": params}, x, c=c)
 
         assert other_potential_value_fn is not None, (
             "The value of the gradient-based potential depends " "on the value of the other potential."

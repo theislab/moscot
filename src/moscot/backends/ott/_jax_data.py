@@ -1,6 +1,6 @@
 from functools import partial
 from types import MappingProxyType
-from typing import Any, Dict, Hashable, List, Literal, Tuple, TypeVar, Union
+from typing import Any, Dict, Hashable, List, Literal, Optional, Tuple, TypeVar, Union
 
 import jax
 import jax.numpy as jnp
@@ -18,7 +18,7 @@ class JaxSampler:
         self,
         distributions: List[jnp.ndarray],
         policy_pairs: List[Tuple[Any, Any]],
-        conditional: bool = False,
+        conditions: Optional[List[jnp.ndarray]],
         a: List[jnp.ndarray] = None,
         b: List[jnp.ndarray] = None,
         sample_to_idx: Dict[K, Any] = MappingProxyType({}),
@@ -31,9 +31,9 @@ class JaxSampler:
         if not len(distributions) == len(a) == len(b):
             raise ValueError("Number of distributions, a, and b must be equal.")
         self._distributions = distributions
+        self._conditions = conditions
         self._batch_size = batch_size
         self._policy_pairs = policy_pairs
-        self._conditions = jnp.array([pp[0] for pp in policy_pairs], dtype=float)[:, None] if conditional else None
         if not len(sample_to_idx):
             if len(self.policy_pairs) > 1:
                 raise ValueError("If `policy_pairs` contains more than 1 value, `sample_to_idx` is required.")
@@ -41,14 +41,24 @@ class JaxSampler:
         self._sample_to_idx = sample_to_idx
 
         @partial(jax.jit, static_argnames=["index"])
-        def _sample_source(key: jax.random.KeyArray, index: jnp.ndarray) -> jnp.ndarray:
+        def _sample_source(key: jax.random.KeyArray, index: jnp.ndarray) -> Tuple[jnp.ndarray]:
             """Jitted sample function."""
-            return jax.random.choice(key, self.distributions[index], shape=[batch_size], p=a[index])
+            samples = jax.random.choice(key, self.distributions[index], shape=[batch_size], p=jnp.squeeze(b[index]))
+            return jnp.asarray(samples), None
+
+        @partial(jax.jit, static_argnames=["index"])
+        def _sample_source_conditional(
+            key: jax.random.KeyArray, index: jnp.ndarray
+        ) -> Tuple[jnp.ndarray, Optional[jnp.ndarray]]:
+            """Jitted sample function."""
+            samples = jax.random.choice(key, self.distributions[index], shape=[batch_size], p=jnp.squeeze(b[index]))
+            conds = jax.random.choice(key, self.conditions[index], shape=[batch_size], p=jnp.squeeze(b[index]))
+            return samples, conds
 
         @partial(jax.jit, static_argnames=["index"])
         def _sample_target(key: jax.random.KeyArray, index: jnp.ndarray) -> jnp.ndarray:
             """Jitted sample function."""
-            return jax.random.choice(key, self.distributions[index], shape=[batch_size], p=b[index])
+            return jax.random.choice(key, self.distributions[index], shape=[batch_size], p=jnp.squeeze(b[index]))
 
         @jax.jit
         def _compute_unbalanced_marginals(
@@ -64,13 +74,13 @@ class JaxSampler:
         @jax.jit
         def _unbalanced_resample(
             key: jax.random.KeyArray,
-            batch: jnp.ndarray,
+            batch: Tuple[jnp.ndarray, ...],
             marginals: jnp.ndarray,
-        ) -> jnp.ndarray:
+        ) -> Tuple[jnp.ndarray]:
             """Resample a batch based upon log marginals."""
             # sample from marginals
-            indices = jax.random.choice(key, a=len(marginals), p=marginals, shape=[batch_size])
-            return batch[indices]
+            indices = jax.random.choice(key, a=len(marginals), p=jnp.squeeze(marginals), shape=[batch_size])
+            return tuple(b[indices] if b is not None else None for b in batch)
 
         def _sample_policy_pair(key: jax.random.KeyArray) -> Tuple[Tuple[Any, Any], Any]:
             """Sample a policy pair. If conditions are provided, return the policy pair and the conditions."""
@@ -79,7 +89,7 @@ class JaxSampler:
             condition = self.conditions[index] if self.conditions is not None else None
             return policy_pair, condition
 
-        self._sample_source = _sample_source
+        self._sample_source = _sample_source if self.conditions is None else _sample_source_conditional
         self._sample_target = _sample_target
         self.sample_policy_pair = _sample_policy_pair
         self.compute_unbalanced_marginals = _compute_unbalanced_marginals
@@ -88,21 +98,18 @@ class JaxSampler:
     def __call__(
         self,
         key: jax.random.KeyArray,
-        policy_pair: Tuple[Any, Any] = (),
+        policy_pair: Tuple[Any, Any],
+        sample: Literal["source", "target"],
         full_dataset: bool = False,
-        sample: Literal["pair", "source", "target"] = "pair",
     ) -> Union[jnp.ndarray, Tuple[jnp.ndarray, jnp.ndarray]]:
         """Sample data."""
         if full_dataset:
             if sample == "source":
-                return self.distributions[self.sample_to_idx[policy_pair[0]]]
+                return jnp.asarray(
+                    self.distributions[self.sample_to_idx[policy_pair[0]]]
+                ), None if self.conditions is None else jnp.asarray(self.conditions[self.sample_to_idx[policy_pair[0]]])
             if sample == "target":
-                return self.distributions[self.sample_to_idx[policy_pair[1]]]
-            if sample == "pair":
-                return (
-                    self.distributions[self.sample_to_idx[policy_pair[0]]],
-                    self.distributions[self.sample_to_idx[policy_pair[1]]],
-                )
+                return jnp.asarray(self.distributions[self.sample_to_idx[policy_pair[1]]])
         if sample == "source":
             return self._sample_source(key, self.sample_to_idx[policy_pair[0]])
         if sample == "target":
@@ -122,9 +129,9 @@ class JaxSampler:
         return self._policy_pairs
 
     @property
-    def conditions(self) -> jnp.ndarray:
+    def conditions(self) -> Optional[jnp.ndarray]:
         """Return conditions."""
-        return self._conditions
+        return None if self._conditions is None else jnp.asarray(self._conditions)
 
     @property
     def sample_to_idx(self) -> Dict[K, Any]:

@@ -87,6 +87,26 @@ def handle_cost(
     return xy, x, y
 
 
+def handle_conditional_attr(conditional_attr: Optional[Union[str, Mapping[str, Any]]]) -> Dict[str, Any]:
+    if isinstance(conditional_attr, str):
+        conditional_attr = {"attr": "obsm", "key": conditional_attr}
+    elif isinstance(conditional_attr, Mapping):
+        conditional_attr = dict(conditional_attr)
+        if "attr" not in conditional_attr:
+            raise KeyError("`attr` must be provided when `conditional_attr` is a mapping.")
+        if conditional_attr["attr"] == "X":
+            conditions_attr = "X"
+            conditions_key = None
+        else:
+            if "key" not in conditional_attr:
+                raise KeyError("`key` must be provided when `attr` is not `X`.")
+            conditions_attr = conditional_attr["attr"]
+            conditions_key = conditional_attr["key"]
+    else:
+        raise TypeError("Expected `conditional_attr` to be either `str` or `dict`.")
+    return {"conditions_attr": conditions_attr, "conditions_key": conditions_key}
+
+
 def handle_joint_attr_tmp(
     joint_attr: Union[str, Mapping[str, Any]], kwargs: Dict[str, Any]
 ) -> Tuple[Dict[str, Any], Dict[str, Any]]:

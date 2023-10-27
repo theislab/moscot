@@ -60,6 +60,8 @@ K = TypeVar("K", bound=Hashable)
 class SingleDistributionData(NamedTuple):
     data_train: ArrayLike
     data_valid: ArrayLike
+    conditions_train: Optional[ArrayLike]
+    conditions_valid: Optional[ArrayLike]
     a_train: Optional[ArrayLike]
     a_valid: Optional[ArrayLike]
     b_train: Optional[ArrayLike]
@@ -407,20 +409,35 @@ class NeuralDualSolver(OTSolver[OTTOutput]):
             raise ValueError("Invalid train_size. Must be: 0 < train_size <= 1")
         if train_size != 1.0:
             seed = kwargs.pop("seed", 0)
-            dist_data_source = self._split_data(x, train_size, seed, a=a)
-            dist_data_target = self._split_data(y, train_size, seed, b=b)
+            dist_data_source = self._split_data(x, conditions=None, train_size=train_size, seed=seed, a=a)
+            dist_data_target = self._split_data(y, conditions=None, train_size=train_size, seed=seed, b=b)
         else:
             dist_data_source = SingleDistributionData(
-                data_train=x, data_valid=x, a_train=a, a_valid=a, b_train=None, b_valid=None
+                data_train=x,
+                data_valid=x,
+                conditions_train=None,
+                conditiona_valid=None,
+                a_train=a,
+                a_valid=a,
+                b_train=None,
+                b_valid=None,
             )
             dist_data_target = SingleDistributionData(
-                data_train=y, data_valid=y, a_train=None, a_valid=None, b_train=b, b_valid=b
+                data_train=y,
+                data_valid=y,
+                conditions_train=None,
+                conditions_valid=None,
+                a_train=None,
+                a_valid=None,
+                b_train=b,
+                b_valid=b,
             )
 
         kwargs = _filter_kwargs(JaxSampler, **kwargs)
         self._train_sampler = JaxSampler(
             [dist_data_source.data_train, dist_data_target.data_train],
             policy_pairs=[(0, 1)],
+            conditions=None,
             a=[dist_data_source.a_train, []],
             b=[[], dist_data_target.b_train],
             **kwargs,
@@ -428,6 +445,7 @@ class NeuralDualSolver(OTSolver[OTTOutput]):
         self._valid_sampler = JaxSampler(
             [dist_data_source.data_valid, dist_data_target.data_valid],
             policy_pairs=[(0, 1)],
+            conditions=None,
             a=[dist_data_source.a_valid, []],
             b=[[], dist_data_target.a_valid],
             **kwargs,
@@ -450,6 +468,7 @@ class NeuralDualSolver(OTSolver[OTTOutput]):
     def _split_data(
         self,
         x: ArrayLike,
+        conditions: Optional[ArrayLike],
         train_size: float,
         seed: int,
         a: Optional[ArrayLike] = None,
@@ -467,6 +486,8 @@ class NeuralDualSolver(OTSolver[OTTOutput]):
         return SingleDistributionData(
             data_train=x[:n_train_x],
             data_valid=x[n_train_x:],
+            conditions_train=conditions[:n_train_x] if conditions is not None else None,
+            conditions_valid=conditions[n_train_x:] if conditions is not None else None,
             a_train=a[:n_train_x] if a is not None else None,
             a_valid=a[n_train_x:] if a is not None else None,
             b_train=b[:n_train_x] if b is not None else None,
@@ -502,9 +523,11 @@ class CondNeuralDualSolver(NeuralDualSolver):
         **kwargs: Any,
     ) -> Tuple[JaxSampler, JaxSampler]:
         train_data: List[Optional[ArrayLike]] = []
+        train_conditions: List[Optional[ArrayLike]] = []
         train_a: List[Optional[ArrayLike]] = []
         train_b: List[Optional[ArrayLike]] = []
         valid_data: List[Optional[ArrayLike]] = []
+        valid_conditions: List[Optional[ArrayLike]] = []
         valid_a: List[Optional[ArrayLike]] = []
         valid_b: List[Optional[ArrayLike]] = []
 
@@ -512,6 +535,7 @@ class CondNeuralDualSolver(NeuralDualSolver):
         sample_to_idx = {k: i for i, k in enumerate(distributions.keys())}
         if train_size == 1.0:
             train_data = [d.xy for d in distributions.values()]
+            train_conditions = [d.conditions for d in distributions.values()]
             train_a = [d.a for d in distributions.values()]
             train_b = [d.b for d in distributions.values()]
             valid_data, valid_a, valid_b = train_data, train_a, train_b
@@ -523,24 +547,39 @@ class CondNeuralDualSolver(NeuralDualSolver):
             for i, (key, dist) in enumerate(distributions.items()):
                 dist_data = self._split_data(
                     dist.xy,
+                    conditions=dist.conditions,
                     train_size=train_size,
                     seed=seed,
                     a=dist.a,
                     b=dist.b,
                 )
                 train_data.append(dist_data.data_train)
+                train_conditions.append(dist_data.conditions_train)
                 train_a.append(dist_data.a_train)
                 train_b.append(dist_data.b_train)
                 valid_data.append(dist_data.data_valid)
+                valid_conditions.append(dist_data.conditions_valid)
                 valid_a.append(dist_data.a_valid)
                 valid_b.append(dist_data.b_valid)
                 sample_to_idx[key] = i
 
         self._train_sampler = JaxSampler(
-            train_data, sample_pairs, conditional=True, a=train_a, b=train_b, sample_to_idx=sample_to_idx, **kwargs
+            train_data,
+            sample_pairs,
+            conditions=train_conditions,
+            a=train_a,
+            b=train_b,
+            sample_to_idx=sample_to_idx,
+            **kwargs,
         )
         self._valid_sampler = JaxSampler(
-            valid_data, sample_pairs, conditional=True, a=valid_a, b=valid_b, sample_to_idx=sample_to_idx, **kwargs
+            valid_data,
+            sample_pairs,
+            conditions=valid_conditions,
+            a=valid_a,
+            b=valid_b,
+            sample_to_idx=sample_to_idx,
+            **kwargs,
         )
         return (self._train_sampler, self._valid_sampler)
 

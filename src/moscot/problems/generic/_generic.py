@@ -30,6 +30,7 @@ from moscot._types import (
 from moscot.base.problems.compound_problem import B, CompoundProblem, K
 from moscot.base.problems.problem import CondOTProblem, NeuralOTProblem, OTProblem
 from moscot.problems._utils import (
+    handle_conditional_attr,
     handle_cost,
     handle_cost_tmp,
     handle_joint_attr,
@@ -596,6 +597,7 @@ class ConditionalNeuralProblem(CondOTProblem, GenericAnalysisMixin[K, B]):
         self,
         key: str,
         joint_attr: Union[str, Mapping[str, Any]],
+        conditional_attr: Union[str, Mapping[str, Any]],
         policy: Literal["sequential", "pairwise", "explicit"] = "sequential",
         a: Optional[str] = None,
         b: Optional[str] = None,
@@ -616,6 +618,7 @@ class ConditionalNeuralProblem(CondOTProblem, GenericAnalysisMixin[K, B]):
 
         self.batch_key = key  # type:ignore[misc]
         xy, kwargs = handle_joint_attr_tmp(joint_attr, kwargs)
+        conditions = handle_conditional_attr(conditional_attr)
         xx = {} if quad_attr is None else set_quad_defaults(quad_attr)
         xy, xx = handle_cost_tmp(xy=xy, x=xx, y=xx, cost=cost, cost_kwargs=cost_kwargs)
         return super().prepare(
@@ -623,6 +626,7 @@ class ConditionalNeuralProblem(CondOTProblem, GenericAnalysisMixin[K, B]):
             policy=policy,
             xy=xy,
             xx=xx,
+            conditions=conditions,
             a=a,
             b=b,
             **kwargs,
