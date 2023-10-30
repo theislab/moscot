@@ -41,15 +41,13 @@ class JaxSampler:
         self._sample_to_idx = sample_to_idx
 
         @partial(jax.jit, static_argnames=["index"])
-        def _sample_source(key: jax.random.KeyArray, index: jnp.ndarray) -> Tuple[jnp.ndarray]:
+        def _sample_source(key: jax.random.KeyArray, index: jnp.ndarray) -> Tuple[jnp.ndarray, None]:
             """Jitted sample function."""
             samples = jax.random.choice(key, self.distributions[index], shape=[batch_size], p=jnp.squeeze(b[index]))
             return jnp.asarray(samples), None
 
         @partial(jax.jit, static_argnames=["index"])
-        def _sample_source_conditional(
-            key: jax.random.KeyArray, index: jnp.ndarray
-        ) -> Tuple[jnp.ndarray, Optional[jnp.ndarray]]:
+        def _sample_source_conditional(key: jax.random.KeyArray, index: jnp.ndarray) -> Tuple[jnp.ndarray, jnp.ndarray]:
             """Jitted sample function."""
             samples = jax.random.choice(key, self.distributions[index], shape=[batch_size], p=jnp.squeeze(b[index]))
             conds = jax.random.choice(key, self.conditions[index], shape=[batch_size], p=jnp.squeeze(b[index]))
@@ -99,24 +97,37 @@ class JaxSampler:
         self,
         key: jax.random.KeyArray,
         policy_pair: Tuple[Any, Any],
-        sample: Literal["source", "target"],
+        sample: Literal["source", "target", "both"] = "both",
         full_dataset: bool = False,
-    ) -> Union[jnp.ndarray, Tuple[jnp.ndarray, jnp.ndarray]]:
-        """Sample data."""
+    ) -> Union[Tuple[jnp.ndarray, jnp.ndarray], Tuple[jnp.ndarray, jnp.ndarray, jnp.ndarray]]:
+        """Sample data. When sampling the source, the conditions are returned, too."""
         if full_dataset:
             if sample == "source":
                 return jnp.asarray(
                     self.distributions[self.sample_to_idx[policy_pair[0]]]
                 ), None if self.conditions is None else jnp.asarray(self.conditions[self.sample_to_idx[policy_pair[0]]])
             if sample == "target":
-                return jnp.asarray(self.distributions[self.sample_to_idx[policy_pair[1]]])
+                return jnp.asarray(
+                    self.distributions[self.sample_to_idx[policy_pair[1]]]
+                ), None if self.conditions is None else jnp.asarray(self.conditions[self.sample_to_idx[policy_pair[0]]])
+            if sample == "both":
+                return (
+                    jnp.asarray(self.distributions[self.sample_to_idx[policy_pair[0]]]),
+                    None
+                    if self.conditions is None
+                    else jnp.asarray(self.conditions[self.sample_to_idx[policy_pair[0]]]),
+                    jnp.asarray(self.distributions[self.sample_to_idx[policy_pair[1]]]),
+                )
+            raise NotImplementedError(f"Sample type {sample} not implemented.")
         if sample == "source":
             return self._sample_source(key, self.sample_to_idx[policy_pair[0]])
         if sample == "target":
             return self._sample_target(key, self.sample_to_idx[policy_pair[1]])
-        return self._sample_source(key, self.sample_to_idx[policy_pair[0]]), self._sample_target(
-            key, self.sample_to_idx[policy_pair[1]]
-        )
+        if sample == "both":
+            return (*self._sample_source(key, self.sample_to_idx[policy_pair[0]]), self._sample_target(
+                key, self.sample_to_idx[policy_pair[1]]
+            ))
+        raise NotImplementedError(f"Sample type {sample} not implemented.")
 
     @property
     def distributions(self) -> List[jnp.ndarray]:

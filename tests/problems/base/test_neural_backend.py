@@ -1,21 +1,46 @@
+from flax.training import train_state
+import pytest
 import jax
 import jax.numpy as jnp
 import numpy as np
+from ott.problems.linear.potentials import DualPotentials
 
 from moscot.backends.ott._jax_data import JaxSampler
+from moscot.backends.ott._neuraldual import OTTNeuralDualSolver
 from moscot.backends.ott.nets._icnn import ICNN
+from moscot.backends.ott.nets._nets import MLP_marginal
 
 
 class TestNeural:
-    def test_jaxsampler_no_condition(self, sampler_no_conditions: JaxSampler):
+
+    @pytest.mark.parametrize("full_dataset", [True, False])
+    def test_jaxsampler_no_condition(self, sampler_no_conditions: JaxSampler, full_dataset: bool):
         out = sampler_no_conditions(jax.random.PRNGKey(0), (0, 1), "source")
         assert isinstance(out, tuple)
         assert len(out) == 2
         assert isinstance(out[0], jnp.ndarray)
         assert out[1] is None
 
-        out = sampler_no_conditions(jax.random.PRNGKey(0), (0, 1), "target")
+        out = sampler_no_conditions(jax.random.PRNGKey(0), (0, 1), "target", full_dataset=full_dataset)
         assert isinstance(out, jnp.ndarray)
+
+        out = sampler_no_conditions(jax.random.PRNGKey(0), (0, 1), "both", full_dataset=full_dataset)
+        assert isinstance(out, tuple)
+        assert len(out) == 3
+        assert isinstance(out[0], jnp.ndarray)
+        assert out[1] is None
+        assert isinstance(out[2], jnp.ndarray)
+
+        out_marginals = sampler_no_conditions.compute_unbalanced_marginals(jax.random.PRNGKey(0), out["source"], out["target"])
+        assert isinstance(out_marginals, tuple)
+        assert len(out_marginals) == 2
+        assert isinstance(out_marginals[0], jnp.ndarray)
+        assert isinstance(out_marginals[1], jnp.ndarray)
+
+        out_resampled = sampler_no_conditions.unbalanced_resample(jax.random.PRNGKey(0), (out["source"],), out_marginals[0])
+        assert isinstance(out_resampled, tuple)
+        assert len(out_resampled) == 1
+        assert isinstance(out_resampled[0], jnp.ndarray)
 
     def test_jaxsampler_with_condition(self, sampler_with_conditions: JaxSampler):
         out = sampler_with_conditions(jax.random.PRNGKey(0), (0, 1), "source")
@@ -50,6 +75,18 @@ class TestNeural:
 
         np.testing.assert_array_equal(jnp.asarray(out) >= 0, True)
 
+    def test_mlp_marginal(self):
+        input_dim = 10
+        n_samples = 100
+        model = MLP_marginal(32)
+
+        params = model.init(jax.random.PRNGKey(0), jnp.ones(input_dim))["params"]
+        x = jax.random.normal(jax.random.PRNGKey(0), (n_samples, input_dim))
+
+        out_x = model.apply({"params": params}, x)
+        assert isinstance(out_x, jnp.ndarray)
+        assert out_x.shape == (n_samples, 1)
+
     def test_cond_icnn(self):
         input_dim = 11
         n_samples = 100
@@ -65,3 +102,56 @@ class TestNeural:
 
         out = model.apply({"params": params}, x, cond)
         assert isinstance(out, jnp.ndarray)
+
+    def test_ott_neural_dual_solver_balanced(self, sampler_no_conditions: JaxSampler):
+        input_dim = sampler_no_conditions.distributions[0].shape[1]
+        solver = OTTNeuralDualSolver(input_dim=input_dim, cond_dim=0, batch_size=32, iterations=3)
+
+        out = solver(sampler_no_conditions, sampler_no_conditions)
+        assert isinstance(out, tuple)
+        assert len(out) == 3
+        assert isinstance(out[0], DualPotentials)
+        assert isinstance(out[1], OTTNeuralDualSolver)
+        assert isinstance(out[2], dict)
+
+        assert solver.cond_dim == 0
+        assert solver.tau_a == 1.0
+        assert solver.tau_b == 1.0
+        assert solver.state_eta is None
+        assert solver.state_xi is None
+        assert solver.opt_eta is None
+        assert solver.opt_xi is None
+
+    def test_ott_neural_dual_solver_unbalanced(self, sampler_no_conditions: JaxSampler):
+        input_dim = sampler_no_conditions.distributions[0].shape[1]
+        mlp_eta = MLP_marginal(32)
+        mlp_xi = MLP_marginal(32)
+        solver = OTTNeuralDualSolver(input_dim, cond_dim=0, batch_size=32, iterations=3, tau_a=0.5, tau_b=0.6, mlp_eta=mlp_eta, mlp_xi=mlp_xi)
+
+        out = solver(sampler_no_conditions, sampler_no_conditions)
+        assert isinstance(out, tuple)
+        assert len(out) == 3
+        assert isinstance(out[0], DualPotentials)
+        assert isinstance(out[1], OTTNeuralDualSolver)
+        assert isinstance(out[2], dict)
+
+        assert solver.cond_dim == 0
+        assert solver.tau_a == 0.5
+        assert solver.tau_b == 0.6
+        assert isinstance(solver.state_eta, train_state.TrainState)
+        assert isinstance(solver.state_xi, train_state.TrainState)
+        assert solver.opt_eta is not None
+        assert solver.opt_xi is not None
+
+    def test_ott_neural_dual_solver_unbalanced2(self, sampler_no_conditions: JaxSampler):
+        input_dim = sampler_no_conditions.distributions[0].shape[1]
+        solver = OTTNeuralDualSolver(input_dim, cond_dim=0, batch_size=32, iterations=3, tau_a=0.5, tau_b=0.6)
+
+        out = solver(sampler_no_conditions, sampler_no_conditions)
+        assert isinstance(out, tuple)
+        assert len(out) == 3
+        assert isinstance(out[0], DualPotentials)
+        assert isinstance(out[1], OTTNeuralDualSolver)
+        assert isinstance(out[2], dict)
+
+        

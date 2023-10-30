@@ -9,9 +9,9 @@ from moscot.backends.ott._jax_data import JaxSampler
 
 @pytest.fixture()
 def sampler_no_conditions(adata_time: ad.AnnData) -> JaxSampler:
-    dist_0 = adata_time[adata_time.obs["time"] == 0].obsm["X_pca"].copy()
-    dist_1 = adata_time[adata_time.obs["time"] == 1].obsm["X_pca"].copy()
-    dist_2 = adata_time[adata_time.obs["time"] == 2].obsm["X_pca"].copy()
+    dist_0 = adata_time[adata_time.obs["time"] == 0].obsm["X_pca"]
+    dist_1 = adata_time[adata_time.obs["time"] == 1].obsm["X_pca"]
+    dist_2 = adata_time[adata_time.obs["time"] == 2].obsm["X_pca"]
     a_0 = np.ones((dist_0.shape[0], 1))
     a_1 = np.ones((dist_1.shape[0], 1))
     a_2 = np.ones((dist_2.shape[0], 1))
@@ -27,9 +27,9 @@ def sampler_no_conditions(adata_time: ad.AnnData) -> JaxSampler:
 
 @pytest.fixture()
 def sampler_with_conditions(adata_time: ad.AnnData) -> JaxSampler:
-    dist_0 = adata_time[adata_time.obs["time"] == 0].obsm["X_pca"].copy()
-    dist_1 = adata_time[adata_time.obs["time"] == 1].obsm["X_pca"].copy()
-    dist_2 = adata_time[adata_time.obs["time"] == 2].obsm["X_pca"].copy()
+    dist_0 = adata_time[adata_time.obs["time"] == 0].obsm["X_pca"]
+    dist_1 = adata_time[adata_time.obs["time"] == 1].obsm["X_pca"]
+    dist_2 = adata_time[adata_time.obs["time"] == 2].obsm["X_pca"]
     a_0 = np.ones((dist_0.shape[0], 1))
     a_1 = np.ones((dist_1.shape[0], 1))
     a_2 = np.ones((dist_2.shape[0], 1))

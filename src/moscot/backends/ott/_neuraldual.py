@@ -36,6 +36,7 @@ class UnbalancedNeuralMixin:
         self,
         source_dim: int,
         target_dim: int,
+        cond_dim: int,
         mlp_eta: Optional[models.ModelBase],
         mlp_xi: Optional[models.ModelBase],
         seed: Optional[int] = None,
@@ -43,8 +44,6 @@ class UnbalancedNeuralMixin:
         opt_xi: Optional[optax.GradientTransformation] = None,
         **_: Any,
     ) -> None:
-        self.source_dim = source_dim
-        self.target_dim = target_dim
         self.mlp_eta = mlp_eta
         self.mlp_xi = mlp_xi
         self.state_eta: Optional[train_state.TrainState] = None
@@ -53,20 +52,20 @@ class UnbalancedNeuralMixin:
         self.opt_xi = opt_xi
         self._key: jax.random.PRNGKeyArray = jax.random.PRNGKey(seed) if seed is not None else jax.random.PRNGKey(0)
 
-        self._setup()
+        self._setup(source_dim=source_dim, target_dim=target_dim, cond_dim=cond_dim)
 
-    def _setup(self, **_: Any):
+    def _setup(self, source_dim: int, target_dim: int, cond_dim: int):
         self.unbalancedness_step_fn = self._get_step_fn()
         if self.mlp_eta is not None:
             self.opt_eta = (
                 self.opt_eta if self.opt_eta is not None else optax.adamw(learning_rate=1e-4, weight_decay=1e-10)
             )
-            self.state_eta = self.mlp_eta.create_train_state(self._key, self.opt_eta, self.source_dim)
+            self.state_eta = self.mlp_eta.create_train_state(self._key, self.opt_eta, source_dim + cond_dim)
         if self.mlp_xi is not None:
             self.opt_xi = (
                 self.opt_xi if self.opt_xi is not None else optax.adamw(learning_rate=1e-4, weight_decay=1e-10)
             )
-            self.state_xi = self.mlp_xi.create_train_state(self._key, self.opt_xi, self.target_dim)
+            self.state_xi = self.mlp_xi.create_train_state(self._key, self.opt_xi, target_dim + cond_dim)
 
     def _get_step_fn(self) -> Callable:  # type:ignore[type-arg]
         def loss_a_fn(
@@ -273,6 +272,7 @@ class OTTNeuralDualSolver(UnbalancedNeuralMixin):
         super().__init__(
             source_dim=input_dim,
             target_dim=input_dim,
+            cond_dim=cond_dim,
             mlp_eta=mlp_eta,
             mlp_xi=mlp_xi,
             seed=seed,
@@ -474,8 +474,8 @@ class OTTNeuralDualSolver(UnbalancedNeuralMixin):
         baseline_batch: Dict[Tuple[Any, Any], Dict[str, jnp.ndarray]] = {}
         for pair in trainloader.policy_pairs:
             baseline_batch[pair] = {}
-            baseline_batch[pair]["source"], baseline_batch[pair]["target"] = validloader(
-                key=None, policy_pair=pair, full_dataset=True
+            baseline_batch[pair]["source"], _, baseline_batch[pair]["target"] = validloader(
+                key=None, policy_pair=pair, sample="both", full_dataset=True
             )
             if self.compute_wasserstein_baseline:
                 if baseline_batch[pair]["source"].shape[0] * baseline_batch[pair]["source"].shape[1] > 25000000:
@@ -532,7 +532,7 @@ class OTTNeuralDualSolver(UnbalancedNeuralMixin):
             # resample target batch with unbalanced marginals
             if not self.is_balanced:
                 target_key, self.key = jax.random.split(self.key, 2)
-                batch["target"] = trainloader.unbalanced_resample(target_key, batch["target"], b)
+                batch["target"] = trainloader.unbalanced_resample(target_key, (batch["target"],), b)
             # train step for potential f directly updating the train state
             self.state_f, loss_f, w_dist = self.train_step_f(self.state_f, self.state_g, batch)
             logs = self._update_logs(logs, loss_f, None, w_dist, is_train_set=True)
