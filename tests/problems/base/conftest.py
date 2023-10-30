@@ -34,9 +34,9 @@ def sampler_with_conditions(adata_time: ad.AnnData) -> JaxSampler:
     a_1 = np.ones((dist_1.shape[0], 1))
     a_2 = np.ones((dist_2.shape[0], 1))
 
-    cond_0 = adata_time[adata_time.obs["time"] == 0].obs["time"]
-    cond_1 = adata_time[adata_time.obs["time"] == 1].obs["time"]
-    cond_2 = adata_time[adata_time.obs["time"] == 2].obs["time"]
+    cond_0 = adata_time[adata_time.obs["time"] == 0].obs["time"].astype("float").values[:, None]
+    cond_1 = adata_time[adata_time.obs["time"] == 1].obs["time"].astype("float").values[:, None]
+    cond_2 = adata_time[adata_time.obs["time"] == 2].obs["time"].astype("float").values[:, None]
 
     distributions = [dist_0, dist_1, dist_2]
     a = [a_0, a_1, a_2]

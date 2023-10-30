@@ -74,10 +74,10 @@ class JaxSampler:
             key: jax.random.KeyArray,
             batch: Tuple[jnp.ndarray, ...],
             marginals: jnp.ndarray,
-        ) -> Tuple[jnp.ndarray]:
+        ) -> Tuple[jnp.ndarray, ...]:
             """Resample a batch based upon log marginals."""
             # sample from marginals
-            indices = jax.random.choice(key, a=len(marginals), p=jnp.squeeze(marginals), shape=[batch_size])
+            indices = jax.random.choice(key, a=len(marginals), p=jnp.squeeze(marginals), shape=[len(marginals)])
             return tuple(b[indices] if b is not None else None for b in batch)
 
         def _sample_policy_pair(key: jax.random.KeyArray) -> Tuple[Tuple[Any, Any], Any]:
@@ -107,9 +107,7 @@ class JaxSampler:
                     self.distributions[self.sample_to_idx[policy_pair[0]]]
                 ), None if self.conditions is None else jnp.asarray(self.conditions[self.sample_to_idx[policy_pair[0]]])
             if sample == "target":
-                return jnp.asarray(
-                    self.distributions[self.sample_to_idx[policy_pair[1]]]
-                ), None if self.conditions is None else jnp.asarray(self.conditions[self.sample_to_idx[policy_pair[0]]])
+                return jnp.asarray(self.distributions[self.sample_to_idx[policy_pair[1]]])
             if sample == "both":
                 return (
                     jnp.asarray(self.distributions[self.sample_to_idx[policy_pair[0]]]),
@@ -124,9 +122,10 @@ class JaxSampler:
         if sample == "target":
             return self._sample_target(key, self.sample_to_idx[policy_pair[1]])
         if sample == "both":
-            return (*self._sample_source(key, self.sample_to_idx[policy_pair[0]]), self._sample_target(
-                key, self.sample_to_idx[policy_pair[1]]
-            ))
+            return (
+                *self._sample_source(key, self.sample_to_idx[policy_pair[0]]),
+                self._sample_target(key, self.sample_to_idx[policy_pair[1]]),
+            )
         raise NotImplementedError(f"Sample type {sample} not implemented.")
 
     @property
@@ -142,7 +141,7 @@ class JaxSampler:
     @property
     def conditions(self) -> Optional[jnp.ndarray]:
         """Return conditions."""
-        return None if self._conditions is None else jnp.asarray(self._conditions)
+        return self._conditions
 
     @property
     def sample_to_idx(self) -> Dict[K, Any]:

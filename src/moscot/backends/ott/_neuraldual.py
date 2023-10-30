@@ -100,6 +100,7 @@ class UnbalancedNeuralMixin:
         def step_fn(
             source: jnp.ndarray,
             target: jnp.ndarray,
+            condition: Optional[jnp.ndarray],
             a: jnp.ndarray,
             b: jnp.ndarray,
             state_eta: Optional[train_state.TrainState] = None,
@@ -107,12 +108,18 @@ class UnbalancedNeuralMixin:
             *,
             is_training: bool = True,
         ):
+            if condition is None:
+                input_source = source
+                input_target = target
+            else:
+                input_source = jnp.concatenate([source, condition], axis=-1)
+                input_target = jnp.concatenate([target, condition], axis=-1)
             if state_eta is not None:
                 grad_a_fn = jax.value_and_grad(loss_a_fn, argnums=0, has_aux=True)
                 (loss_a, eta_predictions), grads_eta = grad_a_fn(
                     state_eta.params,
                     state_eta.apply_fn,
-                    source[:,],
+                    input_source,
                     a * len(a),
                     jnp.sum(b),
                 )
@@ -125,7 +132,7 @@ class UnbalancedNeuralMixin:
                 (loss_b, xi_predictions), grads_xi = grad_b_fn(
                     state_xi.params,
                     state_xi.apply_fn,
-                    target,
+                    input_target,
                     b * len(b),
                     jnp.sum(a),
                 )
@@ -371,7 +378,7 @@ class OTTNeuralDualSolver(UnbalancedNeuralMixin):
         """
         pretrain_logs = {}
         if self.pretrain_iters > 0:
-            pretrain_logs = self.pretrain_identity(trainloader.conditions)
+            pretrain_logs = self.pretrain_identity(jnp.asarray(trainloader.conditions) if self.cond_dim > 0 else None)
 
         train_logs, unbalancedness_logs = self.train_neuraldual(trainloader, validloader)
         res = self.to_dual_potentials()
@@ -472,6 +479,12 @@ class OTTNeuralDualSolver(UnbalancedNeuralMixin):
         batch: Dict[str, jnp.ndarray] = {}
         valid_batch: Dict[str, jnp.ndarray] = {}
         baseline_batch: Dict[Tuple[Any, Any], Dict[str, jnp.ndarray]] = {}
+
+        # assert batch size of model is same as batch size of data loader
+        if self.batch_size != trainloader.batch_size:
+            logger.info(f"Changing batch size of model from {self.batch_size} to {trainloader.batch_size}.")
+            self.batch_size = trainloader.batch_size
+
         for pair in trainloader.policy_pairs:
             baseline_batch[pair] = {}
             baseline_batch[pair]["source"], _, baseline_batch[pair]["target"] = validloader(
@@ -504,8 +517,9 @@ class OTTNeuralDualSolver(UnbalancedNeuralMixin):
             else:
                 # sample source batch and compute unbalanced marginals
                 source_key, self.key = jax.random.split(self.key, 2)
-                curr_source, _ = trainloader(source_key, policy_pair, sample="source")
+                curr_source, curr_condition = trainloader(source_key, policy_pair, sample="source")
                 a, b = trainloader.compute_unbalanced_marginals(curr_source, batch["target"])
+
                 (
                     self.state_eta,
                     self.state_xi,
@@ -513,7 +527,15 @@ class OTTNeuralDualSolver(UnbalancedNeuralMixin):
                     _,
                     loss_eta,
                     loss_xi,
-                ) = self.unbalancedness_step_fn(curr_source, batch["target"], a, b, self.state_eta, self.state_xi)
+                ) = self.unbalancedness_step_fn(
+                    source=curr_source,
+                    target=batch["target"],
+                    condition=curr_condition,
+                    a=a,
+                    b=b,
+                    state_eta=self.state_eta,
+                    state_xi=self.state_xi,
+                )
                 self._update_unbalancedness_logs(unbalancedness_logs, loss_eta, loss_xi, is_train_set=True)
 
             for _ in range(self.inner_iters):
@@ -532,7 +554,7 @@ class OTTNeuralDualSolver(UnbalancedNeuralMixin):
             # resample target batch with unbalanced marginals
             if not self.is_balanced:
                 target_key, self.key = jax.random.split(self.key, 2)
-                batch["target"] = trainloader.unbalanced_resample(target_key, (batch["target"],), b)
+                batch["target"] = trainloader.unbalanced_resample(target_key, (batch["target"],), b)[0]
             # train step for potential f directly updating the train state
             self.state_f, loss_f, w_dist = self.train_step_f(self.state_f, self.state_g, batch)
             logs = self._update_logs(logs, loss_f, None, w_dist, is_train_set=True)
@@ -557,7 +579,13 @@ class OTTNeuralDualSolver(UnbalancedNeuralMixin):
                     logs = self._update_logs(logs, valid_loss_f, valid_loss_g, valid_w_dist, is_train_set=False)
                     a, b = validloader.compute_unbalanced_marginals(valid_batch["source"], valid_batch["target"])
                     _, _, _, _, loss_eta, loss_xi = self.unbalancedness_step_fn(
-                        valid_batch["source"], valid_batch["target"], a, b, self.state_eta, self.state_xi
+                        valid_batch["source"],
+                        valid_batch["target"],
+                        valid_batch["condition"],
+                        a,
+                        b,
+                        self.state_eta,
+                        self.state_xi,
                     )
                     unbalancedness_logs = self._update_unbalancedness_logs(
                         unbalancedness_logs, loss_eta, loss_xi, is_train_set=False
