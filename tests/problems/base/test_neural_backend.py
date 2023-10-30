@@ -8,6 +8,7 @@ from ott.problems.linear.potentials import DualPotentials
 
 from moscot.backends.ott._jax_data import JaxSampler
 from moscot.backends.ott._neuraldual import OTTNeuralDualSolver
+from moscot.backends.ott._utils import ConditionalDualPotentials
 from moscot.backends.ott.nets._icnn import ICNN
 from moscot.backends.ott.nets._nets import MLP_marginal
 
@@ -179,7 +180,7 @@ class TestOTTNeuralDualSolver:
         out = solver(sampler_with_conditions, sampler_with_conditions)
         assert isinstance(out, tuple)
         assert len(out) == 3
-        assert isinstance(out[0], DualPotentials)
+        assert isinstance(out[0], ConditionalDualPotentials)
         assert isinstance(out[1], OTTNeuralDualSolver)
         assert isinstance(out[2], dict)
 
@@ -233,7 +234,7 @@ class TestOTTNeuralDualSolver:
         out = solver(sampler_with_conditions, sampler_with_conditions)
         assert isinstance(out, tuple)
         assert len(out) == 3
-        assert isinstance(out[0], DualPotentials)
+        assert isinstance(out[0], ConditionalDualPotentials)
         assert isinstance(out[1], OTTNeuralDualSolver)
         assert isinstance(out[2], dict)
 

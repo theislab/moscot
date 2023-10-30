@@ -799,3 +799,25 @@ class CondNeuralDualOutput(NeuralDualOutput):
         if x.ndim not in (1, 2):
             raise ValueError(f"Expected 1D or 2D array, found `{x.ndim}`.")
         return jax.vmap(self._output.g)(cond, x)
+
+    def evaluate_a(self, cond: ArrayLike, x: ArrayLike) -> ArrayLike:
+        """Conditional marginals of the source distribution."""
+        if self._model.mlp_xi is None:
+            raise ValueError("The source marginals have not been traced.")
+        if cond.n_dim != 2:
+            cond = cond[:, None]
+        input = jnp.concatenate((x, cond), axis=-1)
+        return self._model.state_eta.apply_fn(
+            {"params": self._model.state_eta.params}, input
+        )  # type:ignore[union-attr]
+
+    def evaluate_b(self, cond: ArrayLike, x: ArrayLike) -> ArrayLike:
+        """Conditional marginals of the target distribution."""
+        if self._model.mlp_eta is None:
+            raise ValueError("The target marginals have not been traced.")
+        if cond.n_dim != 2:
+            cond = cond[:, None]
+        input = jnp.concatenate((x, cond), axis=-1)
+        return self._model.state_xi.apply_fn(
+            {"params": self._model.state_xi.params}, input
+        )  # type:ignore[union-attr]

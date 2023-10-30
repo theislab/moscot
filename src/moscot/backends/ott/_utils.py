@@ -105,14 +105,6 @@ def get_nearest_neighbors(
     return jax.lax.approx_min_k(pairwise_euclidean_distances, k=k, recall_target=0.95, aggregate_to_topk=True)
 
 
-def _filter_kwargs(*funcs: Callable[..., Any], **kwargs: Any) -> Dict[str, Any]:
-    res = {}
-    for func in funcs:
-        params = inspect.signature(func).parameters
-        res.update({k: v for k, v in kwargs.items() if k in params})
-    return res
-
-
 @jtu.register_pytree_node_class
 class ConditionalDualPotentials:
     r"""The conditional Kantorovich dual potential functions as introduced in :cite:`bunne2022supervised`.

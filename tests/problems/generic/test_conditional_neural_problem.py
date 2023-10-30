@@ -27,30 +27,36 @@ class TestConditionalNeuralProblem:
     @pytest.mark.fast()
     def test_prepare(self, adata_time: ad.AnnData):
         problem = ConditionalNeuralProblem(adata=adata_time)
-        problem = problem.prepare(key="time", joint_attr="X_pca")
+        problem = problem.prepare(key="time", joint_attr="X_pca", conditional_attr={"attr": "obs", "key": "time"})
         assert isinstance(problem, CondOTProblem)
         assert isinstance(problem.distributions, DistributionCollection)
-        assert list(problem.distirubtions.keys()) == [0, 1, 2]
+        assert list(problem.distributions.keys()) == [0, 1, 2]
 
         container = problem.distributions[0]
+        n_obs_0 = adata_time[adata_time.obs["time"] == 0].n_obs
         assert isinstance(container, DistributionContainer)
         assert isinstance(container.xy, np.ndarray)
+        assert container.xy.shape == (n_obs_0, 50)
         assert container.xx is None
+        assert isinstance(container.conditions, np.ndarray)
+        assert container.conditions.shape == (n_obs_0, 1)
         assert isinstance(container.a, np.ndarray)
+        assert container.a.shape == (n_obs_0,)
         assert isinstance(container.b, np.ndarray)
+        assert container.b.shape == (n_obs_0,)
         assert isinstance(container.cost_xy, costs.SqEuclidean)
         assert container.cost_xx is None
 
     @pytest.mark.parametrize("train_size", [0.9, 1.0])
     def test_solve_balanced_no_baseline(self, adata_time: ad.AnnData, train_size: float):  # type: ignore[no-untyped-def]
         problem = ConditionalNeuralProblem(adata=adata_time)
-        problem = problem.prepare(key="time", joint_attr="X_pca", conditions_attr={"attr": "obs", "key": "time"})
+        problem = problem.prepare(key="time", joint_attr="X_pca", conditional_attr={"attr": "obs", "key": "time"})
         problem = problem.solve(train_size=train_size, **neuraldual_args_1)
         assert isinstance(problem.solution, BaseSolverOutput)
 
     def test_solve_unbalanced_with_baseline(self, adata_time: ad.AnnData):
         problem = ConditionalNeuralProblem(adata=adata_time)
-        problem = problem.prepare(key="time", joint_attr="X_pca", conditions_attr={"attr": "obs", "key": "time"})
+        problem = problem.prepare(key="time", joint_attr="X_pca", conditional_attr={"attr": "obs", "key": "time"})
         problem = problem.solve(**neuraldual_args_2)
         assert isinstance(problem.solution, BaseSolverOutput)
 
@@ -58,12 +64,12 @@ class TestConditionalNeuralProblem:
         pc_tzero = adata_time[adata_time.obs["time"] == 0].obsm["X_pca"]
         problem_one = ConditionalNeuralProblem(adata=adata_time)
         problem_one = problem_one.prepare(
-            key="time", joint_attr="X_pca", conditions_attr={"attr": "obs", "key": "time"}
+            key="time", joint_attr="X_pca", conditional_attr={"attr": "obs", "key": "time"}
         )
         problem_one = problem_one.solve(**neuraldual_args_1)
 
         problem_two = ConditionalNeuralProblem(adata=adata_time)
-        problem_two = problem_one.prepare("time", joint_attr="X_pca", conditions_attr={"attr": "obs", "key": "time"})
+        problem_two = problem_one.prepare("time", joint_attr="X_pca", conditional_attr={"attr": "obs", "key": "time"})
         problem_two = problem_one.solve(**neuraldual_args_1)
         assert np.allclose(
             problem_one.solution.push(jnp.array([0]), pc_tzero),
@@ -81,7 +87,7 @@ class TestConditionalNeuralProblem:
     def test_pass_arguments(self, adata_time: ad.AnnData):
         problem = ConditionalNeuralProblem(adata=adata_time)
         adata_time = adata_time[adata_time.obs["time"].isin((0, 1))]
-        problem = problem.prepare(key="time", joint_attr="X_pca", conditions_attr={"attr": "obs", "key": "time"})
+        problem = problem.prepare(key="time", joint_attr="X_pca", conditional_attr={"attr": "obs", "key": "time"})
         problem = problem.solve(**neuraldual_args_1)
 
         solver = problem.solver.solver
@@ -94,7 +100,7 @@ class TestConditionalNeuralProblem:
     def test_pass_custom_mlps(self, adata_time: ad.AnnData):
         problem = ConditionalNeuralProblem(adata=adata_time)
         adata_time = adata_time[adata_time.obs["time"].isin((0, 1))]
-        problem = problem.prepare(key="time", joint_attr="X_pca")
+        problem = problem.prepare(key="time", joint_attr="X_pca", conditional_attr={"attr": "obs", "key": "time"})
         input_dim = adata_time.obsm["X_pca"].shape[1]
         custom_f = ICNN([3, 3], input_dim=input_dim, cond_dim=1)
         custom_g = ICNN([3, 3], input_dim=input_dim, cond_dim=1)
@@ -106,7 +112,7 @@ class TestConditionalNeuralProblem:
     def test_pass_custom_optimizers(self, adata_time: ad.AnnData):
         problem = ConditionalNeuralProblem(adata=adata_time)
         adata_time = adata_time[adata_time.obs["time"].isin((0, 1))]
-        problem = problem.prepare(key="time", joint_attr="X_pca", conditions_attr={"attr": "obs", "key": "time"})
+        problem = problem.prepare(key="time", joint_attr="X_pca", conditional_attr={"attr": "obs", "key": "time"})
         custom_opt_f = optax.adagrad(1e-4)
         custom_opt_g = optax.adagrad(1e-3)
 
@@ -124,9 +130,20 @@ class TestConditionalNeuralProblem:
         assert isinstance(problem.solution, NeuralDualOutput)
 
         array = adata_time.obsm["X_pca"]
-        learnt_eta = problem.solution.evaluate_a(array)
-        learnt_xi = problem.solution.evaluate_b(array)
-        assert learnt_eta.shape == (array.shape[0], 1)
-        assert learnt_xi.shape == (array.shape[0], 1)
-        assert np.sum(np.isnan(learnt_eta)) == 0
-        assert np.sum(np.isnan(learnt_xi)) == 0
+        cond1 = np.array(jnp.ones_like(array))
+        cond2 = np.array(jnp.zeros_like(array))
+        learnt_eta_1 = problem.solution.evaluate_a(array, cond1)
+        learnt_xi_1 = problem.solution.evaluate_b(array, cond1)
+        learnt_eta_2 = problem.solution.evaluate_a(array, cond2)
+        learnt_xi_2 = problem.solution.evaluate_b(array, cond2)
+        assert learnt_eta_1.shape == (array.shape[0], 1)
+        assert learnt_xi_1.shape == (array.shape[0], 1)
+        assert learnt_eta_2.shape == (array.shape[0], 1)
+        assert learnt_xi_2.shape == (array.shape[0], 1)
+        assert np.sum(np.isnan(learnt_eta_1)) == 0
+        assert np.sum(np.isnan(learnt_xi_1)) == 0
+        assert np.sum(np.isnan(learnt_eta_2)) == 0
+        assert np.sum(np.isnan(learnt_xi_2)) == 0
+
+        np.testing.assert_raises(AssertionError, np.testing.assert_array_equal, learnt_eta_1, learnt_eta_2)
+        np.testing.assert_raises(AssertionError, np.testing.assert_array_equal, learnt_xi_1, learnt_xi_2)

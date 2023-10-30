@@ -11,12 +11,10 @@ import jax
 import jax.numpy as jnp
 import numpy as np
 from ott.geometry import costs
-from ott.problems.linear import potentials
 from ott.problems.linear.potentials import DualPotentials
 from ott.solvers.nn import models
 
 from moscot._logging import logger
-from moscot._types import ArrayLike
 from moscot.backends.ott._jax_data import JaxSampler
 from moscot.backends.ott._utils import (
     ConditionalDualPotentials,
@@ -376,9 +374,14 @@ class OTTNeuralDualSolver(UnbalancedNeuralMixin):
         -------
         The trained model and training statistics.
         """
+        # assert batch size of model is same as batch size of data loader
+        if self.batch_size != trainloader.batch_size:
+            logger.info(f"Changing batch size of model from {self.batch_size} to {trainloader.batch_size}.")
+            self.batch_size = trainloader.batch_size
+
         pretrain_logs = {}
         if self.pretrain_iters > 0:
-            pretrain_logs = self.pretrain_identity(jnp.asarray(trainloader.conditions) if self.cond_dim > 0 else None)
+            pretrain_logs = self.pretrain_identity(trainloader)
 
         train_logs, unbalancedness_logs = self.train_neuraldual(trainloader, validloader)
         res = self.to_dual_potentials()
@@ -386,15 +389,13 @@ class OTTNeuralDualSolver(UnbalancedNeuralMixin):
 
         return (res, self, logs)
 
-    def pretrain_identity(
-        self, conditions: Optional[jnp.ndarray]
-    ) -> Train_t:  # TODO(@lucaeyr) conditions can be `None` right?
+    def pretrain_identity(self, trainloader: JaxSampler) -> Train_t:  # TODO(@lucaeyr) conditions can be `None` right?
         """Pretrain the neural networks to parameterize the identity map.
 
         Parameters
         ----------
-        conditions
-            Conditions in the case of a conditional Neural OT model, otherwise `None`.
+        train_loader
+            Train loader needed for conditions in the case of a conditional Neural OT model.
 
         Returns
         -------
@@ -409,9 +410,9 @@ class OTTNeuralDualSolver(UnbalancedNeuralMixin):
             state: train_state.TrainState,
         ) -> float:
             """Loss function for the pretraining on identity."""
-            grad_g_data = jax.vmap(jax.grad(lambda x: state.apply_fn({"params": params}, x, condition), argnums=0))(
-                data
-            )
+            grad_g_data = jax.vmap(
+                jax.grad(lambda x, condition: state.apply_fn({"params": params}, x, condition), argnums=0)
+            )(data, condition)
             # loss is L2 reconstruction of the input
             return ((grad_g_data - data) ** 2).sum(axis=1).mean()  # TODO make nicer
 
@@ -422,7 +423,8 @@ class OTTNeuralDualSolver(UnbalancedNeuralMixin):
             """Update function for the pretraining on identity."""
             # sample gaussian data with given scale
             x = self.pretrain_scale * jax.random.normal(key, [self.batch_size, self.input_dim])
-            condition = jax.random.choice(key, conditions, shape=(self.batch_size,)) if self.cond_dim else None
+            policy_pair = trainloader.sample_policy_pair(key)
+            _, condition = trainloader(key, policy_pair, "source")
             grad_fn = jax.value_and_grad(pretrain_loss_fn, argnums=0)
             loss, grads = grad_fn(state.params, x, condition, state)
             return loss, state.apply_gradients(grads=grads)
@@ -480,11 +482,6 @@ class OTTNeuralDualSolver(UnbalancedNeuralMixin):
         valid_batch: Dict[str, jnp.ndarray] = {}
         baseline_batch: Dict[Tuple[Any, Any], Dict[str, jnp.ndarray]] = {}
 
-        # assert batch size of model is same as batch size of data loader
-        if self.batch_size != trainloader.batch_size:
-            logger.info(f"Changing batch size of model from {self.batch_size} to {trainloader.batch_size}.")
-            self.batch_size = trainloader.batch_size
-
         for pair in trainloader.policy_pairs:
             baseline_batch[pair] = {}
             baseline_batch[pair]["source"], _, baseline_batch[pair]["target"] = validloader(
@@ -508,7 +505,7 @@ class OTTNeuralDualSolver(UnbalancedNeuralMixin):
         for iteration in tqdm(range(self.iterations)):
             # sample policy and condition if given in trainloader
             policy_key, target_key, self.key = jax.random.split(self.key, 3)
-            policy_pair, batch["condition"] = trainloader.sample_policy_pair(policy_key)
+            policy_pair = trainloader.sample_policy_pair(policy_key)
             # sample target batch
             batch["target"] = trainloader(target_key, policy_pair, sample="target")
 
@@ -727,7 +724,7 @@ class OTTNeuralDualSolver(UnbalancedNeuralMixin):
                 penalty += jnp.linalg.norm(jax.nn.relu(-params[key]["kernel"]))
         return penalty
 
-    def to_dual_potentials_old(self, condition: Optional[ArrayLike] = None) -> DualPotentials:
+    def to_dual_potentials(self) -> DualPotentials:
         """Return the Kantorovich dual potentials from the trained potentials."""
         if self.cond_dim:
             return ConditionalDualPotentials(self.state_f, self.state_g)
@@ -739,20 +736,6 @@ class OTTNeuralDualSolver(UnbalancedNeuralMixin):
             return self.state_g.apply_fn({"params": self.state_g.params}, x)
 
         return DualPotentials(f, g, corr=True, cost_fn=costs.SqEuclidean())
-
-    def to_dual_potentials(self, finetune_g: bool = False) -> potentials.DualPotentials:
-        r"""Return the Kantorovich dual potentials from the trained potentials.
-
-        Args:
-        finetune_g: Run the conjugate solver to fine-tune the prediction.
-
-        Returns
-        -------
-        A dual potential object
-        """
-        f_value = self.state_f.potential_value_fn(self.state_f.params)
-        g_value_prediction = self.state_g.potential_value_fn(self.state_g.params, f_value)
-        return potentials.DualPotentials(f=f_value, g=g_value_prediction, cost_fn=costs.SqEuclidean(), corr=True)
 
     @property
     def is_balanced(self) -> bool:

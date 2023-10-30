@@ -34,7 +34,6 @@ from moscot._types import (
 from moscot.backends.ott._jax_data import JaxSampler
 from moscot.backends.ott._neuraldual import OTTNeuralDualSolver
 from moscot.backends.ott._utils import (
-    _filter_kwargs,
     alpha_to_fused_penalty,
     check_shapes,
     ensure_2d,
@@ -388,7 +387,6 @@ class NeuralDualSolver(OTSolver[OTTOutput]):
         super().__init__()
         self._train_sampler: Optional[JaxSampler] = None
         self._valid_sampler: Optional[JaxSampler] = None
-        kwargs = _filter_kwargs(OTTNeuralDualSolver, **kwargs)
         self._solver = OTTNeuralDualSolver(**kwargs)
 
     def _prepare(  # type: ignore[override]
@@ -433,21 +431,20 @@ class NeuralDualSolver(OTSolver[OTTOutput]):
                 b_valid=b,
             )
 
-        kwargs = _filter_kwargs(JaxSampler, **kwargs)
         self._train_sampler = JaxSampler(
             [dist_data_source.data_train, dist_data_target.data_train],
             policy_pairs=[(0, 1)],
             conditions=None,
-            a=[dist_data_source.a_train, []],
-            b=[[], dist_data_target.b_train],
+            a=[dist_data_source.a_train, None],
+            b=[None, dist_data_target.b_train],
             **kwargs,
         )
         self._valid_sampler = JaxSampler(
             [dist_data_source.data_valid, dist_data_target.data_valid],
             policy_pairs=[(0, 1)],
             conditions=None,
-            a=[dist_data_source.a_valid, []],
-            b=[[], dist_data_target.a_valid],
+            a=[dist_data_source.a_valid, None],
+            b=[None, dist_data_target.b_valid],
             **kwargs,
         )
         return (self._train_sampler, self._valid_sampler)
@@ -531,7 +528,6 @@ class CondNeuralDualSolver(NeuralDualSolver):
         valid_a: List[Optional[ArrayLike]] = []
         valid_b: List[Optional[ArrayLike]] = []
 
-        kwargs = _filter_kwargs(JaxSampler, **kwargs)
         sample_to_idx = {k: i for i, k in enumerate(distributions.keys())}
         if train_size == 1.0:
             train_data = [d.xy for d in distributions.values()]
@@ -584,9 +580,9 @@ class CondNeuralDualSolver(NeuralDualSolver):
         return (self._train_sampler, self._valid_sampler)
 
     def _solve(self, data_samplers: Tuple[JaxSampler, JaxSampler]) -> CondNeuralDualOutput:  # type: ignore[override]
-        dual_potentials, model, logs = self.solver(data_samplers[0], data_samplers[1])
-        return CondNeuralDualOutput(output=dual_potentials, model=model, training_logs=logs)
+        cond_dual_potentials, model, logs = self.solver(data_samplers[0], data_samplers[1])
+        return CondNeuralDualOutput(output=cond_dual_potentials, model=model, training_logs=logs)
 
     @classmethod
     def _call_kwargs(cls) -> Tuple[Set[str], Set[str]]:
-        return {"xy", "sample_pairs", "train_size"}, {}  # type: ignore[return-value]
+        return {"distributions", "sample_pairs", "train_size"}, {}  # type: ignore[return-value]

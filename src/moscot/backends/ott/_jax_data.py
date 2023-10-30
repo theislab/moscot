@@ -43,14 +43,14 @@ class JaxSampler:
         @partial(jax.jit, static_argnames=["index"])
         def _sample_source(key: jax.random.KeyArray, index: jnp.ndarray) -> Tuple[jnp.ndarray, None]:
             """Jitted sample function."""
-            samples = jax.random.choice(key, self.distributions[index], shape=[batch_size], p=jnp.squeeze(b[index]))
+            samples = jax.random.choice(key, self.distributions[index], shape=[batch_size], p=jnp.squeeze(a[index]))
             return jnp.asarray(samples), None
 
         @partial(jax.jit, static_argnames=["index"])
         def _sample_source_conditional(key: jax.random.KeyArray, index: jnp.ndarray) -> Tuple[jnp.ndarray, jnp.ndarray]:
             """Jitted sample function."""
-            samples = jax.random.choice(key, self.distributions[index], shape=[batch_size], p=jnp.squeeze(b[index]))
-            conds = jax.random.choice(key, self.conditions[index], shape=[batch_size], p=jnp.squeeze(b[index]))
+            samples = jax.random.choice(key, self.distributions[index], shape=[batch_size], p=jnp.squeeze(a[index]))
+            conds = jax.random.choice(key, self.conditions[index], shape=[batch_size], p=jnp.squeeze(a[index]))
             return samples, conds
 
         @partial(jax.jit, static_argnames=["index"])
@@ -80,13 +80,11 @@ class JaxSampler:
             indices = jax.random.choice(key, a=len(marginals), p=jnp.squeeze(marginals), shape=[len(marginals)])
             return tuple(b[indices] if b is not None else None for b in batch)
 
-        def _sample_policy_pair(key: jax.random.KeyArray) -> Tuple[Tuple[Any, Any], Any]:
-            """Sample a policy pair. If conditions are provided, return the policy pair and the conditions."""
+        def _sample_policy_pair(key: jax.random.KeyArray) -> Tuple[Tuple[Any, Any]]:
+            """Sample a policy pair."""
             index = jax.random.randint(key, shape=[], minval=0, maxval=len(self.policy_pairs))
-            policy_pair = self.policy_pairs[index]
-            condition = self.conditions[index] if self.conditions is not None else None
-            return policy_pair, condition
-
+            return self.policy_pairs[index]
+       
         self._sample_source = _sample_source if self.conditions is None else _sample_source_conditional
         self._sample_target = _sample_target
         self.sample_policy_pair = _sample_policy_pair
