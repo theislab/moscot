@@ -301,10 +301,13 @@ class AnalysisMixin(Generic[K, B]):
         self: AnalysisMixinProtocol[K, B],
         mapping_mode: Literal["sum", "max"],
         annotation_label: str,
-        forward: bool,
+        forward: bool = True,
+        #source_label: Optional[str] = "adata",
+        #target_label: Optional[str] = "adata",
         other_adata: Optional[str] = None,
         scale_by_marginals: bool = True,
         cell_transition_kwargs: Mapping[str, Any] = types.MappingProxyType({}),
+        #key_added: Optional[str] = None,
     ) -> pd.DataFrame:
         if mapping_mode == "sum":
             return self._cell_transition(**cell_transition_kwargs)  # aggregation mode should set to cell
