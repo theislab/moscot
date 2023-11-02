@@ -606,11 +606,11 @@ class SpatialMappingMixin(AnalysisMixin[K, B]):
         annotation = self._annotation_mapping(
             mapping_mode=mapping_mode,
             annotation_label=annotation_label,
-            forward=not forward, # inverted for MappingProblem
+            forward=not forward,  # inverted for MappingProblem
             other_adata=self.adata_sc,
             scale_by_marginals=scale_by_marginals,
             cell_transition_kwargs=cell_transition_kwargs,
-            )
+        )
         if key_added is None:
             return annotation
         if key_added not in self.adata.obs:
@@ -621,10 +621,8 @@ class SpatialMappingMixin(AnalysisMixin[K, B]):
             idx = self.adata[self.adata.obs[self.batch_key] == source]
             self.adata[idx].obs[key_added] = annotation
         else:
-            idx = self.adata_sc[self.adata_sc.obs[self.batch_key] == target] # is target correct here?
+            idx = self.adata_sc[self.adata_sc.obs[self.batch_key] == target]  # is target correct here?
             self.adata_sc[idx].obs[key_added] = annotation
-            
-
 
     @property
     def batch_key(self) -> Optional[str]:

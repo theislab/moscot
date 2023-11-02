@@ -302,12 +302,12 @@ class AnalysisMixin(Generic[K, B]):
         mapping_mode: Literal["sum", "max"],
         annotation_label: str,
         forward: bool = True,
-        #source_label: Optional[str] = "adata",
-        #target_label: Optional[str] = "adata",
+        # source_label: Optional[str] = "adata",
+        # target_label: Optional[str] = "adata",
         other_adata: Optional[str] = None,
         scale_by_marginals: bool = True,
         cell_transition_kwargs: Mapping[str, Any] = types.MappingProxyType({}),
-        #key_added: Optional[str] = None,
+        # key_added: Optional[str] = None,
     ) -> pd.DataFrame:
         if mapping_mode == "sum":
             cell_transition_kwargs.setdefault("aggregation_mode", "cell")
