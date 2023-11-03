@@ -1,8 +1,11 @@
 from types import MappingProxyType
-from typing import Any, Dict, Iterable, Literal, Mapping, Optional, Tuple, Type, Union
+from typing import Any, Dict, Literal, Mapping, Optional, Tuple, Type, Union
+
+import optax
 
 from moscot import _constants
 from moscot._types import Numeric_t, Policy_t
+from moscot.backends.ott.nets._icnn import ICNN
 from moscot.base.problems._mixins import NeuralAnalysisMixin
 from moscot.base.problems.birth_death import BirthDeathMixin, BirthDeathNeuralProblem
 from moscot.base.problems.compound_problem import CompoundProblem
@@ -134,23 +137,31 @@ class TemporalNeuralProblem(  # type: ignore[misc]
         epsilon: float = 0.1,
         seed: int = 0,
         pos_weights: bool = False,
-        dim_hidden: Iterable[int] = (64, 64, 64, 64),
         beta: float = 1.0,
-        best_model_metric: Literal[
-            "sinkhorn_forward", "sinkhorn"
-        ] = "sinkhorn_forward",  # TODO(@MUCDK) include only backward sinkhorn
+        best_model_selection: bool = True,
         iterations: int = 25000,  # TODO(@MUCDK): rename to max_iterations
         inner_iters: int = 10,
         valid_freq: int = 50,
         log_freq: int = 5,
         patience: int = 100,
-        optimizer_f_kwargs: Dict[str, Any] = MappingProxyType({}),
-        optimizer_g_kwargs: Dict[str, Any] = MappingProxyType({}),
+        patience_metric: Literal[
+            "train_loss_f",
+            "train_loss_g",
+            "train_w_dist",
+            "valid_loss_f",
+            "valid_loss_g",
+            "valid_w_dist",
+        ] = "valid_w_dist",
+        f: Union[Dict[str, Any], ICNN] = MappingProxyType({}),
+        g: Union[Dict[str, Any], ICNN] = MappingProxyType({}),
+        optimizer_f: Union[Dict[str, Any], Type[optax.GradientTransformation]] = MappingProxyType({}),
+        optimizer_g: Union[Dict[str, Any], Type[optax.GradientTransformation]] = MappingProxyType({}),
         pretrain_iters: int = 0,
         pretrain_scale: float = 3.0,
         valid_sinkhorn_kwargs: Dict[str, Any] = MappingProxyType({}),
         compute_wasserstein_baseline: bool = True,
         train_size: float = 1.0,
+        solver_name: Literal["NeuralDualSolver"] = "NeuralDualSolver",
         **kwargs: Any,
     ) -> "TemporalNeuralProblem":
         """Solve optimal transport problems defined in :class:`moscot.problems.time.TemporalNeuralProblem`.
@@ -174,15 +185,11 @@ class TemporalNeuralProblem(  # type: ignore[misc]
             Seed for splitting the data.
         pos_weights
             If `True` enforces non-negativity of corresponding weights of ICNNs, else only penalizes negativity.
-        dim_hidden
-            The length of `dim_hidden` determines the depth of the ICNNs, while the entries of the list determine
-            the layer widhts.
         beta
             If `pos_weights` is not `None`, this determines the multiplicative constant of L2-penalization of
             negative weights in ICNNs.
-        best_model_metric
-            Which metric to use to assess model training. If `sinkhorn_forward` only the forward map is taken
-            into account, while `sinkhorn` takes the mean between the forward and the inverse map.
+        best_model_selection
+            TODO
         iterations
             Number of (outer) training steps (batches) of the training process.
         inner_iters
@@ -220,6 +227,8 @@ class TemporalNeuralProblem(  # type: ignore[misc]
         dataset which scales linearly in the validation set size. If `train_size=1.0` the validation dataset size
         is the full dataset size, hence this is a source of prolonged run time or Out of Memory Error.
         """
+        if solver_name not in self._valid_solver_names:
+            raise ValueError(f"Solver name {solver_name} not in {self._valid_solver_names}.")
         return super().solve(
             batch_size=batch_size,
             tau_a=tau_a,
@@ -227,16 +236,17 @@ class TemporalNeuralProblem(  # type: ignore[misc]
             epsilon=epsilon,
             seed=seed,
             pos_weights=pos_weights,
-            dim_hidden=dim_hidden,
             beta=beta,
-            best_model_metric=best_model_metric,
+            best_model_selection=best_model_selection,
             iterations=iterations,
             inner_iters=inner_iters,
             valid_freq=valid_freq,
             log_freq=log_freq,
             patience=patience,
-            optimizer_f_kwargs=optimizer_f_kwargs,
-            optimizer_g_kwargs=optimizer_g_kwargs,
+            f=f,
+            g=g,
+            optimizer_f=optimizer_f,
+            optimizer_g=optimizer_g,
             pretrain_iters=pretrain_iters,
             pretrain_scale=pretrain_scale,
             valid_sinkhorn_kwargs=valid_sinkhorn_kwargs,
@@ -253,3 +263,7 @@ class TemporalNeuralProblem(  # type: ignore[misc]
     @property
     def _valid_policies(self) -> Tuple[Policy_t, ...]:
         return _constants.SEQUENTIAL, _constants.TRIU, _constants.EXPLICIT  # type: ignore[return-value]
+
+    @property
+    def _valid_solver_names(self) -> Tuple[str, ...]:
+        return ("NeuralDualSolver",)

@@ -14,6 +14,8 @@ from typing import (
     Union,
 )
 
+import optax
+
 from anndata import AnnData
 
 from moscot import _constants
@@ -534,16 +536,14 @@ class NeuralProblem(CompoundProblem[K, B], GenericAnalysisMixin[K, B]):
         pos_weights: bool = False,
         dim_hidden: Iterable[int] = (64, 64, 64, 64),
         beta: float = 1.0,
-        best_model_metric: Literal[
-            "sinkhorn_forward", "sinkhorn"
-        ] = "sinkhorn_forward",  # TODO(@MUCDK) include only backward sinkhorn
+        best_model_selection: bool = True,
         iterations: int = 25000,  # TODO(@MUCDK): rename to max_iterations
         inner_iters: int = 10,
         valid_freq: int = 50,
         log_freq: int = 5,
         patience: int = 100,
-        optimizer_f_kwargs: Dict[str, Any] = MappingProxyType({}),
-        optimizer_g_kwargs: Dict[str, Any] = MappingProxyType({}),
+        optimizer_f: Union[Dict[str, Any], Type[optax.GradientTransformation]] = MappingProxyType({}),
+        optimizer_g: Union[Dict[str, Any], Type[optax.GradientTransformation]] = MappingProxyType({}),
         pretrain_iters: int = 0,
         pretrain_scale: float = 3.0,
         valid_sinkhorn_kwargs: Dict[str, Any] = MappingProxyType({}),
@@ -560,14 +560,14 @@ class NeuralProblem(CompoundProblem[K, B], GenericAnalysisMixin[K, B]):
             pos_weights=pos_weights,
             dim_hidden=dim_hidden,
             beta=beta,
-            best_model_metric=best_model_metric,
+            best_model_selection=best_model_selection,
             iterations=iterations,
             inner_iters=inner_iters,
             valid_freq=valid_freq,
             log_freq=log_freq,
             patience=patience,
-            optimizer_f_kwargs=optimizer_f_kwargs,
-            optimizer_g_kwargs=optimizer_g_kwargs,
+            optimizer_f=optimizer_f,
+            optimizer_g=optimizer_g,
             pretrain_iters=pretrain_iters,
             pretrain_scale=pretrain_scale,
             valid_sinkhorn_kwargs=valid_sinkhorn_kwargs,
@@ -642,16 +642,14 @@ class ConditionalNeuralProblem(CondOTProblem, GenericAnalysisMixin[K, B]):
         pos_weights: bool = False,
         dim_hidden: Iterable[int] = (64, 64, 64, 64),
         beta: float = 1.0,
-        best_model_metric: Literal[
-            "sinkhorn_forward", "sinkhorn"
-        ] = "sinkhorn_forward",  # TODO(@MUCDK) include only backward sinkhorn
+        best_model_selection: bool = True,
         iterations: int = 25000,  # TODO(@MUCDK): rename to max_iterations
         inner_iters: int = 10,
         valid_freq: int = 50,
         log_freq: int = 5,
         patience: int = 100,
-        optimizer_f_kwargs: Dict[str, Any] = MappingProxyType({}),
-        optimizer_g_kwargs: Dict[str, Any] = MappingProxyType({}),
+        optimizer_f: Union[Dict[str, Any], Type[optax.GradientTransformation]] = MappingProxyType({}),
+        optimizer_g: Union[Dict[str, Any], Type[optax.GradientTransformation]] = MappingProxyType({}),
         pretrain_iters: int = 0,
         pretrain_scale: float = 3.0,
         valid_sinkhorn_kwargs: Dict[str, Any] = MappingProxyType({}),
@@ -668,14 +666,14 @@ class ConditionalNeuralProblem(CondOTProblem, GenericAnalysisMixin[K, B]):
             pos_weights=pos_weights,
             dim_hidden=dim_hidden,
             beta=beta,
-            best_model_metric=best_model_metric,
+            best_model_selection=best_model_selection,
             iterations=iterations,
             inner_iters=inner_iters,
             valid_freq=valid_freq,
             log_freq=log_freq,
             patience=patience,
-            optimizer_f_kwargs=optimizer_f_kwargs,
-            optimizer_g_kwargs=optimizer_g_kwargs,
+            optimizer_f=optimizer_f,
+            optimizer_g=optimizer_g,
             pretrain_iters=pretrain_iters,
             pretrain_scale=pretrain_scale,
             valid_sinkhorn_kwargs=valid_sinkhorn_kwargs,

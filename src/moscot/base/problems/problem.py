@@ -420,6 +420,7 @@ class OTProblem(BaseProblem):
         init_kwargs, call_kwargs = solver_class._partition_kwargs(**kwargs)
         self._solver = solver_class(**init_kwargs)
 
+        # note that the solver call consists of solver._prepare and solver._solve
         self._solution = self._solver(  # type: ignore[misc]
             xy=self._xy,
             x=self._x,
@@ -842,7 +843,7 @@ class NeuralOTProblem(OTProblem):  # TODO override set_x/set_y
         **kwargs: Any,
     ) -> "OTProblem":
         """Solve method."""
-        if self.xy is None:
+        if self.xy is None:  # TODO: adapt when introducing neural Gromov solvers
             raise ValueError("Unable to solve the problem without `xy`.")
         return super().solve(backend=backend, device=device, cond_dim=0, input_dim=self.xy.data_src.shape[1], **kwargs)
 

@@ -188,16 +188,11 @@ class OTTNeuralDualSolver(UnbalancedNeuralMixin):
         Seed for splitting the data.
     pos_weights
         If `True` enforces non-negativity of corresponding weights of ICNNs, else only penalizes negativity.
-    dim_hidden
-        The length of `dim_hidden` determines the depth of the ICNNs, while the entries of the list determine
-        the layer widhts.
     beta
         If `pos_weights` is not `None`, this determines the multiplicative constant of L2-penalization of
         negative weights in ICNNs.
-    best_model_metric
-        Which metric to use to assess model training. The specified metric needs to be computed in the passed
-        `callback_func`. By default `sinkhorn_loss_forward` only takes into account the error in the forward map,
-        while `sinkhorn` computes the mean error between the forward and the inverse map.
+    best_model_selection
+        TODO
     iterations
         Number of (outer) training steps (batches) of the training process.
     inner_iters
@@ -208,10 +203,6 @@ class OTTNeuralDualSolver(UnbalancedNeuralMixin):
         Frequency at which training is logged.
     patience
         Number of iterations of no performance increase after which to apply early stopping.
-    optimizer_f_kwargs
-        Keyword arguments for the optimizer :class:`optax.adamw` for f.
-    optimizer_g_kwargs
-        Keyword arguments for the optimizer :class:`optax.adamw` for g.
     pretrain_iters
         Number of iterations (batches) for pretraining with the identity map.
     pretrain_scale
@@ -238,7 +229,6 @@ class OTTNeuralDualSolver(UnbalancedNeuralMixin):
         self,
         input_dim: int,
         cond_dim: int = 0,
-        batch_size: int = 1024,
         tau_a: float = 1.0,
         tau_b: float = 1.0,
         mlp_eta: Callable[[jnp.ndarray], float] = None,
@@ -285,7 +275,6 @@ class OTTNeuralDualSolver(UnbalancedNeuralMixin):
         )
         self.input_dim = input_dim
         self.cond_dim = cond_dim
-        self.batch_size = batch_size
         self.tau_a = 1.0 if tau_a is None else tau_a
         self.tau_b = 1.0 if tau_b is None else tau_b
         self.epsilon = epsilon if self.tau_a != 1.0 or self.tau_b != 1.0 else None
@@ -318,6 +307,7 @@ class OTTNeuralDualSolver(UnbalancedNeuralMixin):
             if callback_func is None
             else callback_func
         )
+        self.batch_size: Optional[int] = None
         # set optimizer and networks
         self.setup(self.f, self.g, self.optimizer_f, self.optimizer_g)
 
@@ -374,10 +364,7 @@ class OTTNeuralDualSolver(UnbalancedNeuralMixin):
         -------
         The trained model and training statistics.
         """
-        # assert batch size of model is same as batch size of data loader
-        if self.batch_size != trainloader.batch_size:
-            logger.info(f"Changing batch size of model from {self.batch_size} to {trainloader.batch_size}.")
-            self.batch_size = trainloader.batch_size
+        self.batch_size = trainloader.batch_size
 
         pretrain_logs = {}
         if self.pretrain_iters > 0:

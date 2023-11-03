@@ -1,6 +1,16 @@
 import enum
 from dataclasses import dataclass
-from typing import Any, Dict, Callable, Hashable, Literal, Optional, Tuple, TypeVar, Union
+from typing import (
+    Any,
+    Callable,
+    Dict,
+    Hashable,
+    Literal,
+    Optional,
+    Tuple,
+    TypeVar,
+    Union,
+)
 
 import numpy as np
 import scipy.sparse as sp

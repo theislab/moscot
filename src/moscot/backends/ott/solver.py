@@ -391,6 +391,7 @@ class NeuralDualSolver(OTSolver[OTTOutput]):
         a: Optional[ArrayLike] = None,
         b: Optional[ArrayLike] = None,
         train_size: float = 0.9,
+        batch_size: int = 1024,
         **kwargs: Any,
     ) -> Tuple[JaxSampler, JaxSampler]:
         if xy.data_tgt is None:
@@ -410,7 +411,7 @@ class NeuralDualSolver(OTSolver[OTTOutput]):
                 data_train=x,
                 data_valid=x,
                 conditions_train=None,
-                conditiona_valid=None,
+                conditions_valid=None,
                 a_train=a,
                 a_valid=a,
                 b_train=None,
@@ -433,6 +434,7 @@ class NeuralDualSolver(OTSolver[OTTOutput]):
             conditions=None,
             a=[dist_data_source.a_train, None],
             b=[None, dist_data_target.b_train],
+            batch_size=batch_size,
             **kwargs,
         )
         self._valid_sampler = JaxSampler(
@@ -441,6 +443,7 @@ class NeuralDualSolver(OTSolver[OTTOutput]):
             conditions=None,
             a=[dist_data_source.a_valid, None],
             b=[None, dist_data_target.b_valid],
+            batch_size=batch_size,
             **kwargs,
         )
         return (self._train_sampler, self._valid_sampler)
@@ -499,7 +502,7 @@ class NeuralDualSolver(OTSolver[OTTOutput]):
 
     @classmethod
     def _call_kwargs(cls) -> Tuple[Set[str], Set[str]]:
-        return {"trainloader", "validloader"}, {}  # type: ignore[return-value]
+        return {"batch_size", "train_size", "trainloader", "validloader"}, {}  # type: ignore[return-value]
 
 
 class CondNeuralDualSolver(NeuralDualSolver):
@@ -513,6 +516,7 @@ class CondNeuralDualSolver(NeuralDualSolver):
         distributions: DistributionCollection[K],
         sample_pairs: List[Tuple[Any, Any]],
         train_size: float = 0.9,
+        batch_size: int = 1024,
         **kwargs: Any,
     ) -> Tuple[JaxSampler, JaxSampler]:
         train_data: List[Optional[ArrayLike]] = []
@@ -562,6 +566,7 @@ class CondNeuralDualSolver(NeuralDualSolver):
             a=train_a,
             b=train_b,
             sample_to_idx=sample_to_idx,
+            batch_size=batch_size,
             **kwargs,
         )
         self._valid_sampler = JaxSampler(
@@ -571,6 +576,7 @@ class CondNeuralDualSolver(NeuralDualSolver):
             a=valid_a,
             b=valid_b,
             sample_to_idx=sample_to_idx,
+            batch_size=batch_size,
             **kwargs,
         )
         return (self._train_sampler, self._valid_sampler)
@@ -581,4 +587,4 @@ class CondNeuralDualSolver(NeuralDualSolver):
 
     @classmethod
     def _call_kwargs(cls) -> Tuple[Set[str], Set[str]]:
-        return {"distributions", "sample_pairs", "train_size"}, {}  # type: ignore[return-value]
+        return {"distributions", "sample_pairs", "train_size", "batch_size"}, {}  # type: ignore[return-value]
