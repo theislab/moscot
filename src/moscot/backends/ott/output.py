@@ -818,6 +818,4 @@ class CondNeuralDualOutput(NeuralDualOutput):
         if cond.n_dim != 2:
             cond = cond[:, None]
         input = jnp.concatenate((x, cond), axis=-1)
-        return self._model.state_xi.apply_fn(
-            {"params": self._model.state_xi.params}, input
-        )  # type:ignore[union-attr]
+        return self._model.state_xi.apply_fn({"params": self._model.state_xi.params}, input)  # type:ignore[union-attr]

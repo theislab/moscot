@@ -33,11 +33,7 @@ from moscot._types import (
 )
 from moscot.backends.ott._jax_data import JaxSampler
 from moscot.backends.ott._neuraldual import OTTNeuralDualSolver
-from moscot.backends.ott._utils import (
-    alpha_to_fused_penalty,
-    check_shapes,
-    ensure_2d,
-)
+from moscot.backends.ott._utils import alpha_to_fused_penalty, check_shapes, ensure_2d
 from moscot.backends.ott.output import CondNeuralDualOutput, NeuralDualOutput, OTTOutput
 from moscot.base.solver import OTSolver
 from moscot.costs import get_cost

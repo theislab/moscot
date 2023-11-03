@@ -84,7 +84,7 @@ class JaxSampler:
             """Sample a policy pair."""
             index = jax.random.randint(key, shape=[], minval=0, maxval=len(self.policy_pairs))
             return self.policy_pairs[index]
-       
+
         self._sample_source = _sample_source if self.conditions is None else _sample_source_conditional
         self._sample_target = _sample_target
         self.sample_policy_pair = _sample_policy_pair

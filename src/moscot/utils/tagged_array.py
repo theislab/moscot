@@ -1,5 +1,4 @@
 import enum
-from collections import OrderedDict
 from dataclasses import dataclass
 from typing import Any, Callable, Hashable, Literal, Optional, Tuple, TypeVar, Union
 
@@ -337,7 +336,7 @@ class DistributionContainer:
         return cls(xy=xy_data, xx=xx_data, a=a, b=b, conditions=conditions_data, cost_xy=xy_cost_fn, cost_xx=xx_cost_fn)
 
 
-class DistributionCollection(OrderedDict[K, DistributionContainer]):
+class DistributionCollection(Dict[K, DistributionContainer]):
     """Collection of distributions."""
 
     def __repr__(self) -> str:
