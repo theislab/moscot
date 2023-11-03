@@ -19,7 +19,7 @@ import numpy as np
 from moscot._logging import logger
 from moscot._types import ArrayLike, Device_t, ProblemKind_t
 from moscot.base.output import BaseSolverOutput
-from moscot.utils.tagged_array import DistributionCollection, Tag, TaggedArray
+from moscot.utils.tagged_array import Tag, TaggedArray
 
 __all__ = ["BaseSolver", "OTSolver"]
 
@@ -179,6 +179,8 @@ class OTSolver(TagConverter, BaseSolver[O], abc.ABC):
         y: Optional[Union[TaggedArray, ArrayLike]] = None,
         tags: Mapping[Literal["x", "y", "xy"], Tag] = types.MappingProxyType({}),
         device: Optional[Device_t] = None,
+        *,
+        is_conditional: bool = False,
         **kwargs: Any,
     ) -> O:
         """Solve an optimal transport problem.
@@ -195,6 +197,8 @@ class OTSolver(TagConverter, BaseSolver[O], abc.ABC):
             How to interpret the data in ``xy``, ``x`` and ``y``.
         device
             Device to transfer the output to, see :meth:`~moscot.base.output.BaseSolverOutput.to`.
+        is_conditional
+            Whether the OT problem is conditional.
         kwargs
             Keyword arguments for parent's :meth:`__call__`.
 
@@ -202,7 +206,7 @@ class OTSolver(TagConverter, BaseSolver[O], abc.ABC):
         -------
         The optimal transport solution.
         """
-        if isinstance(xy, DistributionCollection):
+        if is_conditional:
             kwargs["distributions"] = xy
         else:
             data = self._get_array_data(xy=xy, x=x, y=y, tags=tags)

@@ -428,6 +428,7 @@ class OTProblem(BaseProblem):
             a=self.a,
             b=self.b,
             device=device,
+            is_conditional=False,
             **call_kwargs,
         )
         return self
@@ -1010,6 +1011,7 @@ class CondOTProblem(BaseProblem):  # TODO(@MUCDK) check generic types, save and 
     def solve(
         self,
         backend: Literal["ott"] = "ott",
+        solver_name: Literal["CondNeuralDualSolver"] = "CondNeuralDualSolver",
         device: Optional[Device_t] = None,
         **kwargs: Any,
     ) -> "CondOTProblem":
@@ -1032,19 +1034,36 @@ class CondOTProblem(BaseProblem):  # TODO(@MUCDK) check generic types, save and 
         - :attr:`solution`: optimal transport solution.
         """
         tmp = next(iter(self.distributions))  # type: ignore[arg-type]
-        self._solver = backends.get_solver(
-            problem_kind=self._problem_kind,
-            input_dim=self.distributions[tmp].xy.shape[1],  # type:ignore[union-attr, index]
-            cond_dim=self.distributions[tmp].conditions.shape[1],  # type:ignore[union-attr, index
-            distributions=self._distributions,
-            sample_pairs=self._sample_pairs,
-            **kwargs,
-        )
+        input_dim = self.distributions[tmp].xy.shape[1]
+        cond_dim = self.distributions[tmp].conditions.shape[1]
 
+        # self._solver = backends.get_solver(
+        #    problem_kind=self._problem_kind,
+        #    input_dim=self.distributions[tmp].xy.shape[1],  # type:ignore[union-attr, index]
+        #    cond_dim=self.distributions[tmp].conditions.shape[1],  # type:ignore[union-attr, index
+        #    sample_pairs=self._sample_pairs,
+        #    **kwargs,
+        # )
+
+        # self._solution = self._solver(  # type: ignore[misc]
+        #    distributions=self.distributions,  # type: ignore[arg-type] #TODO: handle better
+        #    sample_pairs=self._sample_pairs,
+        #    device=device,
+        # )
+
+        solver_class = backends.get_solver(
+            self.problem_kind, solver_name=solver_name, backend=backend, return_class=True
+        )
+        init_kwargs, call_kwargs = solver_class._partition_kwargs(**kwargs)
+        self._solver = solver_class(input_dim=input_dim, cond_dim=cond_dim, **init_kwargs)
+
+        # note that the solver call consists of solver._prepare and solver._solve
         self._solution = self._solver(  # type: ignore[misc]
-            xy=self.distributions,  # type: ignore[arg-type] #TODO: handle better
-            sample_pairs=self._sample_pairs,
             device=device,
+            distributions=self.distributions,
+            sample_pairs=self._sample_pairs,
+            is_conditional=True,
+            **call_kwargs,
         )
 
         return self

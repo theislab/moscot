@@ -1,18 +1,7 @@
 import inspect
 import types
 from types import MappingProxyType
-from typing import (
-    Any,
-    Dict,
-    Iterable,
-    Literal,
-    Mapping,
-    Optional,
-    Set,
-    Tuple,
-    Type,
-    Union,
-)
+from typing import Any, Dict, Literal, Mapping, Optional, Set, Tuple, Type, Union
 
 import optax
 
@@ -29,6 +18,7 @@ from moscot._types import (
     ScaleCost_t,
     SinkhornInitializer_t,
 )
+from moscot.backends.ott.nets._icnn import ICNN
 from moscot.base.problems.compound_problem import B, CompoundProblem, K
 from moscot.base.problems.problem import CondOTProblem, NeuralOTProblem, OTProblem
 from moscot.problems._utils import (
@@ -534,7 +524,8 @@ class NeuralProblem(CompoundProblem[K, B], GenericAnalysisMixin[K, B]):
         epsilon: float = 0.1,
         seed: int = 0,
         pos_weights: bool = False,
-        dim_hidden: Iterable[int] = (64, 64, 64, 64),
+        f: Union[Dict[str, Any], ICNN] = MappingProxyType({}),
+        g: Union[Dict[str, Any], ICNN] = MappingProxyType({}),
         beta: float = 1.0,
         best_model_selection: bool = True,
         iterations: int = 25000,  # TODO(@MUCDK): rename to max_iterations
@@ -558,7 +549,8 @@ class NeuralProblem(CompoundProblem[K, B], GenericAnalysisMixin[K, B]):
             epsilon=epsilon,
             seed=seed,
             pos_weights=pos_weights,
-            dim_hidden=dim_hidden,
+            f=f,
+            g=g,
             beta=beta,
             best_model_selection=best_model_selection,
             iterations=iterations,
@@ -640,7 +632,8 @@ class ConditionalNeuralProblem(CondOTProblem, GenericAnalysisMixin[K, B]):
         epsilon: float = 0.1,
         seed: int = 0,
         pos_weights: bool = False,
-        dim_hidden: Iterable[int] = (64, 64, 64, 64),
+        f: Union[Dict[str, Any], ICNN] = MappingProxyType({}),
+        g: Union[Dict[str, Any], ICNN] = MappingProxyType({}),
         beta: float = 1.0,
         best_model_selection: bool = True,
         iterations: int = 25000,  # TODO(@MUCDK): rename to max_iterations
@@ -664,7 +657,8 @@ class ConditionalNeuralProblem(CondOTProblem, GenericAnalysisMixin[K, B]):
             epsilon=epsilon,
             seed=seed,
             pos_weights=pos_weights,
-            dim_hidden=dim_hidden,
+            f=f,
+            g=g,
             beta=beta,
             best_model_selection=best_model_selection,
             iterations=iterations,
