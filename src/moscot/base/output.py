@@ -20,7 +20,7 @@ class BaseSolverOutput(abc.ABC):
     @property
     @abc.abstractmethod
     def shape(self) -> Tuple[int, int]:
-        """Shape of the :attr:`transport_matrix`."""
+        """Shape of the problem."""
 
     @abc.abstractmethod
     def to(self, device: Optional[Device_t] = None) -> "BaseDiscreteSolverOutput":
@@ -76,6 +76,11 @@ class BaseDiscreteSolverOutput(BaseSolverOutput, abc.ABC):
 
         Only valid for the :term:`Sinkhorn` algorithm.
         """
+
+    @property
+    @abc.abstractmethod
+    def shape(self) -> Tuple[int, int]:
+        """Shape of the :attr:`transport_matrix`."""
 
     @property
     @abc.abstractmethod
