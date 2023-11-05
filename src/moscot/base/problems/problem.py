@@ -443,7 +443,7 @@ class OTProblem(BaseProblem):
         split_mass: bool = False,
         scale_by_marginals: bool = False,
     ) -> ArrayLike:
-        r"""Push data through the :attr:`~moscot.base.output.BaseSolverOutput.transport_matrix`.
+        r"""Push data through the :attr:`~moscot.base.output.BaseDiscreteSolverOutput.transport_matrix`.
 
         Parameters
         ----------
@@ -487,7 +487,7 @@ class OTProblem(BaseProblem):
         split_mass: bool = False,
         scale_by_marginals: bool = False,
     ) -> ArrayLike:
-        r"""Pull data through the :attr:`~moscot.base.output.BaseSolverOutput.transport_matrix`.
+        r"""Pull data through the :attr:`~moscot.base.output.BaseDiscreteSolverOutput.transport_matrix`.
 
         Parameters
         ----------
