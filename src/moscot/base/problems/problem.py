@@ -685,7 +685,7 @@ class OTProblem(BaseProblem):
     def set_xy(
         self,
         data: pd.DataFrame,
-        tag: Literal["cost", "kernel"],
+        tag: Literal["cost_matrix", "kernel"],
     ) -> None:
         """Set a cost/kernel matrix for the :term:`linear term`.
 
@@ -710,7 +710,7 @@ class OTProblem(BaseProblem):
         self._xy = TaggedArray(data_src=data.to_numpy(), data_tgt=None, tag=Tag(tag), cost="cost")
         self._stage = "prepared"
 
-    def set_x(self, data: pd.DataFrame, tag: Literal["cost", "kernel"]) -> None:
+    def set_x(self, data: pd.DataFrame, tag: Literal["cost_matrix", "kernel"]) -> None:
         """Set a cost/kernel matrix for the source :term:`quadratic term`.
 
         Parameters
@@ -737,7 +737,7 @@ class OTProblem(BaseProblem):
         self._x = TaggedArray(data_src=data.to_numpy(), data_tgt=None, tag=Tag(tag), cost="cost")
         self._stage = "prepared"
 
-    def set_y(self, data: pd.DataFrame, tag: Literal["cost", "kernel"]) -> None:
+    def set_y(self, data: pd.DataFrame, tag: Literal["cost_matrix", "kernel"]) -> None:
         """Set a cost/kernel matrix for the target :term:`quadratic term`.
 
         Parameters
