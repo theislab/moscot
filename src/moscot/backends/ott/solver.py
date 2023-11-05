@@ -450,7 +450,7 @@ class NeuralDualSolver(OTSolver[OTTOutput]):
 
     def _solve(self, data_samplers: Tuple[JaxSampler, JaxSampler]) -> NeuralDualOutput:  # type: ignore[override]
         output, model, logs = self.solver(data_samplers[0], data_samplers[1])
-        return NeuralDualOutput(output, model, logs)  # type:ignore[arg-type]
+        return NeuralDualOutput(output, model, logs)
 
     @staticmethod
     def _assert2d(arr: ArrayLike, *, allow_reshape: bool = True) -> jnp.ndarray:

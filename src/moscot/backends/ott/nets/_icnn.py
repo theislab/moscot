@@ -250,8 +250,8 @@ class ICNN(ModelBase):
         A function that can be evaluated to obtain a potential value, or a linear
         interpolation of a potential.
         """
-        if self.is_potential:
-            return lambda x, c=None: self.apply({"params": params}, x, c=c)
+        if self.is_potential:  # type: ignore[truthy-function]
+            return lambda x, c=None: self.apply({"params": params}, x, c=c)  # type: ignore[misc]
 
         assert other_potential_value_fn is not None, (
             "The value of the gradient-based potential depends " "on the value of the other potential."
@@ -281,6 +281,6 @@ class ICNN(ModelBase):
         -------
         A function that can be evaluated to obtain the potential's gradient
         """
-        if self.is_potential:
+        if self.is_potential:  # type: ignore[truthy-function]
             return jax.vmap(jax.grad(self.potential_value_fn(params)))
         return lambda x: self.apply({"params": params}, x, c=c)

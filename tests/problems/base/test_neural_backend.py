@@ -155,7 +155,7 @@ class TestMLPMarginals:
 class TestOTTNeuralDualSolver:
     def test_ott_neural_dual_solver_balanced_unconditional(self, sampler_no_conditions: JaxSampler):
         input_dim = sampler_no_conditions.distributions[0].shape[1]
-        solver = OTTNeuralDualSolver(input_dim=input_dim, cond_dim=0, batch_size=32, iterations=3)
+        solver = OTTNeuralDualSolver(input_dim=input_dim, cond_dim=0, iterations=3)
 
         out = solver(sampler_no_conditions, sampler_no_conditions)
         assert isinstance(out, tuple)
@@ -175,7 +175,7 @@ class TestOTTNeuralDualSolver:
     def test_ott_neural_dual_solver_balanced_conditional(self, sampler_with_conditions: JaxSampler):
         input_dim = sampler_with_conditions.distributions[0].shape[1]
         cond_dim = sampler_with_conditions.conditions[0].shape[1]
-        solver = OTTNeuralDualSolver(input_dim=input_dim, cond_dim=cond_dim, batch_size=32, iterations=3)
+        solver = OTTNeuralDualSolver(input_dim=input_dim, cond_dim=cond_dim, iterations=3)
 
         out = solver(sampler_with_conditions, sampler_with_conditions)
         assert isinstance(out, tuple)
@@ -197,7 +197,7 @@ class TestOTTNeuralDualSolver:
         mlp_eta = MLP_marginal(32)
         mlp_xi = MLP_marginal(32)
         solver = OTTNeuralDualSolver(
-            input_dim, cond_dim=0, batch_size=32, iterations=3, tau_a=0.5, tau_b=0.6, mlp_eta=mlp_eta, mlp_xi=mlp_xi
+            input_dim, cond_dim=0, iterations=3, tau_a=0.5, tau_b=0.6, mlp_eta=mlp_eta, mlp_xi=mlp_xi
         )
 
         out = solver(sampler_no_conditions, sampler_no_conditions)
@@ -223,7 +223,6 @@ class TestOTTNeuralDualSolver:
         solver = OTTNeuralDualSolver(
             input_dim,
             cond_dim=cond_dim,
-            batch_size=32,
             iterations=3,
             tau_a=0.5,
             tau_b=0.6,

@@ -42,7 +42,7 @@ def register_solver(
     return _REGISTRY.register(backend)  # type: ignore[return-value]
 
 
-@register_solver("ott")
+@register_solver("ott")  # type: ignore[call-arg]
 def _(
     problem_kind: Literal["linear", "quadratic"],
     solver_name: Optional[Literal["NeuralDualSolver", "CondNeuralDualSolver"]] = None,

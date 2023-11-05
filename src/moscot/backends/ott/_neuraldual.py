@@ -26,7 +26,7 @@ from moscot.backends.ott._utils import (
 )
 from moscot.backends.ott.nets._icnn import ICNN
 
-Train_t = Dict[str, Dict[str, Union[float, List[float]]]]
+Train_t = Tuple[Dict[str, Union[float, List[float]]], Dict[str, Union[float, List[float]]]]
 
 
 class UnbalancedNeuralMixin:
@@ -350,7 +350,7 @@ class OTTNeuralDualSolver(UnbalancedNeuralMixin):
         self,
         trainloader: JaxSampler,
         validloader: JaxSampler,
-    ) -> Tuple[DualPotentials, "OTTNeuralDualSolver", Train_t]:
+    ) -> Tuple[DualPotentials, "OTTNeuralDualSolver", Dict[str, Union[float, List[float]]]]:
         """Start the training pipeline of the :class:`moscot.backends.ott.NeuralDual`.
 
         Parameters
@@ -366,7 +366,7 @@ class OTTNeuralDualSolver(UnbalancedNeuralMixin):
         """
         self.batch_size = trainloader.batch_size
 
-        pretrain_logs = {}
+        pretrain_logs: Dict[str, Dict[str, Union[float, List[float]]]] = {}
         if self.pretrain_iters > 0:
             pretrain_logs = self.pretrain_identity(trainloader)
 
@@ -411,7 +411,7 @@ class OTTNeuralDualSolver(UnbalancedNeuralMixin):
             # sample gaussian data with given scale
             x = self.pretrain_scale * jax.random.normal(key, [self.batch_size, self.input_dim])
             policy_pair = trainloader.sample_policy_pair(key)
-            _, condition = trainloader(key, policy_pair, "source")
+            _, condition = trainloader(key, policy_pair, "source")  # type: ignore[misc]
             grad_fn = jax.value_and_grad(pretrain_loss_fn, argnums=0)
             loss, grads = grad_fn(state.params, x, condition, state)
             return loss, state.apply_gradients(grads=grads)
@@ -430,7 +430,7 @@ class OTTNeuralDualSolver(UnbalancedNeuralMixin):
         # load params of g into state_f
         # this only works when f & g have the same architecture
         self.state_f = self.state_f.replace(params=self.state_g.params)
-        return {"pretrain_logs": pretrain_logs}  # type:ignore[dict-item]
+        return {"pretrain_logs": pretrain_logs}
 
     def train_neuraldual(
         self,
@@ -471,7 +471,7 @@ class OTTNeuralDualSolver(UnbalancedNeuralMixin):
 
         for pair in trainloader.policy_pairs:
             baseline_batch[pair] = {}
-            baseline_batch[pair]["source"], _, baseline_batch[pair]["target"] = validloader(
+            baseline_batch[pair]["source"], _, baseline_batch[pair]["target"] = validloader(  # type: ignore[misc]
                 key=None, policy_pair=pair, sample="both", full_dataset=True
             )
             if self.compute_wasserstein_baseline:
@@ -501,7 +501,7 @@ class OTTNeuralDualSolver(UnbalancedNeuralMixin):
             else:
                 # sample source batch and compute unbalanced marginals
                 source_key, self.key = jax.random.split(self.key, 2)
-                curr_source, curr_condition = trainloader(source_key, policy_pair, sample="source")
+                curr_source, curr_condition = trainloader(source_key, policy_pair, sample="source")  # type: ignore[misc]
                 a, b = trainloader.compute_unbalanced_marginals(curr_source, batch["target"])
 
                 (
@@ -525,7 +525,7 @@ class OTTNeuralDualSolver(UnbalancedNeuralMixin):
             for _ in range(self.inner_iters):
                 source_key, self.key = jax.random.split(self.key, 2)
 
-                batch["source"], batch["condition"] = trainloader(source_key, policy_pair, sample="source")
+                batch["source"], batch["condition"] = trainloader(source_key, policy_pair, sample="source")  # type: ignore[misc]
                 if not self.is_balanced:
                     # resample source with unbalanced marginals
                     batch["source"], batch["condition"] = trainloader.unbalanced_resample(
@@ -554,7 +554,7 @@ class OTTNeuralDualSolver(UnbalancedNeuralMixin):
             if iteration % self.valid_freq == 0:
                 for index, pair in enumerate(trainloader.policy_pairs):
                     # condition = validloader.conditions[index] if self.cond_dim else None
-                    valid_batch["source"], valid_batch["condition"] = validloader(
+                    valid_batch["source"], valid_batch["condition"] = validloader(  # type: ignore[misc]
                         source_key, policy_pair, sample="source"
                     )
                     valid_batch["target"] = validloader(source_key, policy_pair, sample="target")

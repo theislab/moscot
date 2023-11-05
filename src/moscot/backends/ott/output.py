@@ -802,18 +802,18 @@ class CondNeuralDualOutput(NeuralDualOutput):
 
     def evaluate_a(self, cond: ArrayLike, x: ArrayLike) -> ArrayLike:
         """Conditional marginals of the source distribution."""
-        if self._model.mlp_xi is None:
+        if self._model.mlp_eta is None:
             raise ValueError("The source marginals have not been traced.")
         if cond.ndim != 2:
             cond = cond[:, None]
         input = jnp.concatenate((x, cond), axis=-1)
-        return self._model.state_eta.apply_fn(
+        return self._model.state_eta.apply_fn(  # type:ignore[union-attr]
             {"params": self._model.state_eta.params}, input
-        )  # type:ignore[union-attr]
+        )
 
     def evaluate_b(self, cond: ArrayLike, x: ArrayLike) -> ArrayLike:
         """Conditional marginals of the target distribution."""
-        if self._model.mlp_eta is None:
+        if self._model.mlp_xi is None:
             raise ValueError("The target marginals have not been traced.")
         if cond.ndim != 2:
             cond = cond[:, None]

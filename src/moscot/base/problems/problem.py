@@ -1034,8 +1034,8 @@ class CondOTProblem(BaseProblem):  # TODO(@MUCDK) check generic types, save and 
         - :attr:`solution`: optimal transport solution.
         """
         tmp = next(iter(self.distributions))  # type: ignore[arg-type]
-        input_dim = self.distributions[tmp].xy.shape[1]
-        cond_dim = self.distributions[tmp].conditions.shape[1]
+        input_dim = self.distributions[tmp].xy.shape[1]  # type: ignore[union-attr]
+        cond_dim = self.distributions[tmp].conditions.shape[1]  # type: ignore[union-attr]
 
         solver_class = backends.get_solver(
             self.problem_kind, solver_name=solver_name, backend=backend, return_class=True

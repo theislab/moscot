@@ -50,7 +50,7 @@ class JaxSampler:
         def _sample_source_conditional(key: jax.random.KeyArray, index: jnp.ndarray) -> Tuple[jnp.ndarray, jnp.ndarray]:
             """Jitted sample function."""
             samples = jax.random.choice(key, self.distributions[index], shape=[batch_size], p=jnp.squeeze(a[index]))
-            conds = jax.random.choice(key, self.conditions[index], shape=[batch_size], p=jnp.squeeze(a[index]))
+            conds = jax.random.choice(key, self.conditions[index], shape=[batch_size], p=jnp.squeeze(a[index]))  # type: ignore[index]
             return samples, conds
 
         @partial(jax.jit, static_argnames=["index"])
@@ -80,7 +80,7 @@ class JaxSampler:
             indices = jax.random.choice(key, a=len(marginals), p=jnp.squeeze(marginals), shape=[len(marginals)])
             return tuple(b[indices] if b is not None else None for b in batch)
 
-        def _sample_policy_pair(key: jax.random.KeyArray) -> Tuple[Tuple[Any, Any]]:
+        def _sample_policy_pair(key: jax.random.KeyArray) -> Tuple[Any, Any]:
             """Sample a policy pair."""
             index = jax.random.randint(key, shape=[], minval=0, maxval=len(self.policy_pairs))
             return self.policy_pairs[index]
@@ -97,7 +97,7 @@ class JaxSampler:
         policy_pair: Tuple[Any, Any],
         sample: Literal["source", "target", "both"] = "both",
         full_dataset: bool = False,
-    ) -> Union[Tuple[jnp.ndarray, jnp.ndarray], Tuple[jnp.ndarray, jnp.ndarray, jnp.ndarray]]:
+    ) -> Union[jnp.ndarray, Tuple[jnp.ndarray, jnp.ndarray], Tuple[jnp.ndarray, jnp.ndarray, jnp.ndarray]]:
         """Sample data. When sampling the source, the conditions are returned, too."""
         if full_dataset:
             if sample == "source":
