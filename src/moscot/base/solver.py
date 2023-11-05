@@ -206,9 +206,7 @@ class OTSolver(TagConverter, BaseSolver[O], abc.ABC):
         -------
         The optimal transport solution.
         """
-        if is_conditional:
-            kwargs["distributions"] = xy
-        else:
+        if not is_conditional:
             data = self._get_array_data(xy=xy, x=x, y=y, tags=tags)
             kwargs = {**kwargs, **self._untag(data)}
         res = super().__call__(**kwargs)

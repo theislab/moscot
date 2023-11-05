@@ -1037,20 +1037,6 @@ class CondOTProblem(BaseProblem):  # TODO(@MUCDK) check generic types, save and 
         input_dim = self.distributions[tmp].xy.shape[1]
         cond_dim = self.distributions[tmp].conditions.shape[1]
 
-        # self._solver = backends.get_solver(
-        #    problem_kind=self._problem_kind,
-        #    input_dim=self.distributions[tmp].xy.shape[1],  # type:ignore[union-attr, index]
-        #    cond_dim=self.distributions[tmp].conditions.shape[1],  # type:ignore[union-attr, index
-        #    sample_pairs=self._sample_pairs,
-        #    **kwargs,
-        # )
-
-        # self._solution = self._solver(  # type: ignore[misc]
-        #    distributions=self.distributions,  # type: ignore[arg-type] #TODO: handle better
-        #    sample_pairs=self._sample_pairs,
-        #    device=device,
-        # )
-
         solver_class = backends.get_solver(
             self.problem_kind, solver_name=solver_name, backend=backend, return_class=True
         )

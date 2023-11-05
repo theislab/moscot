@@ -804,7 +804,7 @@ class CondNeuralDualOutput(NeuralDualOutput):
         """Conditional marginals of the source distribution."""
         if self._model.mlp_xi is None:
             raise ValueError("The source marginals have not been traced.")
-        if cond.n_dim != 2:
+        if cond.ndim != 2:
             cond = cond[:, None]
         input = jnp.concatenate((x, cond), axis=-1)
         return self._model.state_eta.apply_fn(
@@ -815,7 +815,7 @@ class CondNeuralDualOutput(NeuralDualOutput):
         """Conditional marginals of the target distribution."""
         if self._model.mlp_eta is None:
             raise ValueError("The target marginals have not been traced.")
-        if cond.n_dim != 2:
+        if cond.ndim != 2:
             cond = cond[:, None]
         input = jnp.concatenate((x, cond), axis=-1)
         return self._model.state_xi.apply_fn({"params": self._model.state_xi.params}, input)  # type:ignore[union-attr]

@@ -534,7 +534,7 @@ class CondNeuralDualSolver(NeuralDualSolver):
             train_conditions = [d.conditions for d in distributions.values()]
             train_a = [d.a for d in distributions.values()]
             train_b = [d.b for d in distributions.values()]
-            valid_data, valid_a, valid_b = train_data, train_a, train_b
+            valid_data, valid_conditions, valid_a, valid_b = train_data, train_conditions, train_a, train_b
         else:
             if train_size > 1.0 or train_size <= 0.0:
                 raise ValueError("Invalid train_size. Must be: 0 < train_size <= 1")
@@ -579,6 +579,7 @@ class CondNeuralDualSolver(NeuralDualSolver):
             batch_size=batch_size,
             **kwargs,
         )
+
         return (self._train_sampler, self._valid_sampler)
 
     def _solve(self, data_samplers: Tuple[JaxSampler, JaxSampler]) -> CondNeuralDualOutput:  # type: ignore[override]
