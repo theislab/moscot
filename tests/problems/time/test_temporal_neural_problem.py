@@ -7,7 +7,7 @@ import pandas as pd
 
 import anndata as ad
 
-from moscot.base.output import BaseSolverOutput
+from moscot.base.output import BaseDiscreteSolverOutput
 from moscot.problems.time import TemporalNeuralProblem
 from moscot.problems.time._lineage import BirthDeathProblem
 from tests._utils import ATOL, RTOL
@@ -44,7 +44,7 @@ class TestTemporalNeuralProblem:
         problem = problem.solve(**neuraldual_args_1)
 
         for key, subsol in problem.solutions.items():
-            assert isinstance(subsol, BaseSolverOutput)
+            assert isinstance(subsol, BaseDiscreteSolverOutput)
             assert key in expected_keys
 
     def test_solve_unbalanced_with_baseline(self, adata_time: ad.AnnData):
@@ -54,7 +54,7 @@ class TestTemporalNeuralProblem:
         problem = problem.solve(**neuraldual_args_2)
 
         for key, subsol in problem.solutions.items():
-            assert isinstance(subsol, BaseSolverOutput)
+            assert isinstance(subsol, BaseDiscreteSolverOutput)
             assert key in expected_keys
 
     def test_reproducibility(self, adata_time: ad.AnnData):

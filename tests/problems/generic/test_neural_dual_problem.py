@@ -6,7 +6,7 @@ import anndata as ad
 
 from moscot.backends.ott.nets import MLP_marginal
 from moscot.backends.ott.output import NeuralDualOutput
-from moscot.base.output import BaseSolverOutput
+from moscot.base.output import BaseDiscreteSolverOutput
 from moscot.base.problems import NeuralOTProblem
 from moscot.problems.generic import NeuralProblem  # type: ignore[attr-defined]
 from tests._utils import ATOL, RTOL
@@ -43,7 +43,7 @@ class TestNeuralProblem:
         problem = problem.solve(**neuraldual_args_1)
 
         for key, subsol in problem.solutions.items():
-            assert isinstance(subsol, BaseSolverOutput)
+            assert isinstance(subsol, BaseDiscreteSolverOutput)
             assert key in expected_keys
 
     def test_solve_unbalanced_with_baseline(self, adata_time: ad.AnnData):
@@ -53,7 +53,7 @@ class TestNeuralProblem:
         problem = problem.solve(**neuraldual_args_2)
 
         for key, subsol in problem.solutions.items():
-            assert isinstance(subsol, BaseSolverOutput)
+            assert isinstance(subsol, BaseDiscreteSolverOutput)
             assert key in expected_keys
 
     def test_reproducibility(self, adata_time: ad.AnnData):
@@ -102,7 +102,7 @@ class TestNeuralProblem:
         adata_time = adata_time[adata_time.obs["time"].isin((0, 1))]
         problem = problem.prepare(key="time", joint_attr="X_pca")
         problem = problem.solve(mlp_eta=mlp_eta, mlp_xi=mlp_xi, **neuraldual_args_2)
-        assert isinstance(problem[0, 1].solution, BaseSolverOutput)
+        assert isinstance(problem[0, 1].solution, BaseDiscreteSolverOutput)
         assert isinstance(problem[0, 1].solution, NeuralDualOutput)
 
         array = adata_time.obsm["X_pca"]

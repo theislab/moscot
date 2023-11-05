@@ -31,7 +31,7 @@ from anndata import AnnData
 from moscot import backends
 from moscot._logging import logger
 from moscot._types import ArrayLike, CostFn_t, Device_t, ProblemKind_t
-from moscot.base.output import BaseSolverOutput, MatrixSolverOutput
+from moscot.base.output import BaseDiscreteSolverOutput, MatrixSolverOutput
 from moscot.base.problems._utils import require_solution, wrap_prepare, wrap_solve
 from moscot.base.solver import OTSolver
 from moscot.utils.subset_policy import (  # type:ignore[attr-defined]
@@ -255,8 +255,8 @@ class OTProblem(BaseProblem):
         self._src_key = src_key
         self._tgt_key = tgt_key
 
-        self._solver: Optional[OTSolver[BaseSolverOutput]] = None
-        self._solution: Optional[BaseSolverOutput] = None
+        self._solver: Optional[OTSolver[BaseDiscreteSolverOutput]] = None
+        self._solution: Optional[BaseDiscreteSolverOutput] = None
 
         self._x: Optional[TaggedArray] = None
         self._y: Optional[TaggedArray] = None
@@ -473,7 +473,7 @@ class OTProblem(BaseProblem):
         The transported values, array of shape ``[m, d]``.
         """
         if TYPE_CHECKING:
-            assert isinstance(self.solution, BaseSolverOutput)
+            assert isinstance(self.solution, BaseDiscreteSolverOutput)
         data = self._get_mass(self.adata_src, data=data, subset=subset, normalize=normalize, split_mass=split_mass)
         return self.solution.push(data, scale_by_marginals=scale_by_marginals)
 
@@ -517,12 +517,16 @@ class OTProblem(BaseProblem):
         The transported values, array of shape ``[n, d]``.
         """
         if TYPE_CHECKING:
-            assert isinstance(self.solution, BaseSolverOutput)
+            assert isinstance(self.solution, BaseDiscreteSolverOutput)
         data = self._get_mass(self.adata_tgt, data=data, subset=subset, normalize=normalize, split_mass=split_mass)
         return self.solution.pull(data, scale_by_marginals=scale_by_marginals)
 
     def set_solution(
-        self, solution: Union[ArrayLike, pd.DataFrame, BaseSolverOutput], *, overwrite: bool = False, **kwargs: Any
+        self,
+        solution: Union[ArrayLike, pd.DataFrame, BaseDiscreteSolverOutput],
+        *,
+        overwrite: bool = False,
+        **kwargs: Any,
     ) -> "OTProblem":
         """Set a :attr:`solution` to the :term:`OT` problem.
 
@@ -551,7 +555,7 @@ class OTProblem(BaseProblem):
             pd.testing.assert_series_equal(self.adata_src.obs_names.to_series(), solution.index.to_series())
             pd.testing.assert_series_equal(self.adata_tgt.obs_names.to_series(), solution.columns.to_series())
             solution = solution.to_numpy()
-        if not isinstance(solution, BaseSolverOutput):
+        if not isinstance(solution, BaseDiscreteSolverOutput):
             solution = MatrixSolverOutput(solution, **kwargs)
 
         if solution.shape != self.shape:
@@ -792,12 +796,12 @@ class OTProblem(BaseProblem):
         return self.adata_src.n_obs, self.adata_tgt.n_obs
 
     @property
-    def solution(self) -> Optional[BaseSolverOutput]:
+    def solution(self) -> Optional[BaseDiscreteSolverOutput]:
         """Solution of the :term:`OT` problem."""
         return self._solution
 
     @property
-    def solver(self) -> Optional[OTSolver[BaseSolverOutput]]:
+    def solver(self) -> Optional[OTSolver[BaseDiscreteSolverOutput]]:
         """:term:`OT` solver."""
         return self._solver
 
@@ -943,8 +947,8 @@ class CondOTProblem(BaseProblem):  # TODO(@MUCDK) check generic types, save and 
         self._policy: Optional[SubsetPolicy[Any]] = None
         self._sample_pairs: Optional[List[Tuple[Any, Any]]] = None
 
-        self._solver: Optional[OTSolver[BaseSolverOutput]] = None
-        self._solution: Optional[BaseSolverOutput] = None
+        self._solver: Optional[OTSolver[BaseDiscreteSolverOutput]] = None
+        self._solution: Optional[BaseDiscreteSolverOutput] = None
 
         self._a: Optional[str] = None
         self._b: Optional[str] = None
@@ -1103,12 +1107,12 @@ class CondOTProblem(BaseProblem):  # TODO(@MUCDK) check generic types, save and 
         return self._adata
 
     @property
-    def solution(self) -> Optional[BaseSolverOutput]:
+    def solution(self) -> Optional[BaseDiscreteSolverOutput]:
         """Solution of the optimal transport problem."""
         return self._solution
 
     @property
-    def solver(self) -> Optional[OTSolver[BaseSolverOutput]]:
+    def solver(self) -> Optional[OTSolver[BaseDiscreteSolverOutput]]:
         """Solver of the optimal transport problem."""
         return self._solver
 

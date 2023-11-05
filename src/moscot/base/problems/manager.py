@@ -11,7 +11,7 @@ from typing import (
 )
 
 from moscot._types import ProblemStage_t
-from moscot.base.output import BaseSolverOutput
+from moscot.base.output import BaseDiscreteSolverOutput
 from moscot.base.problems.problem import OTProblem
 from moscot.utils.subset_policy import SubsetPolicy
 
@@ -144,7 +144,7 @@ class ProblemManager(Generic[K, B]):
         stage = (stage,) if isinstance(stage, str) else stage
         return {k: v for k, v in self.problems.items() if v.stage in stage}
 
-    def get_solutions(self, only_converged: bool = False) -> Dict[Tuple[K, K], BaseSolverOutput]:
+    def get_solutions(self, only_converged: bool = False) -> Dict[Tuple[K, K], BaseDiscreteSolverOutput]:
         """Get solutions to the :term:`OT` subproblems.
 
         Parameters
@@ -174,7 +174,7 @@ class ProblemManager(Generic[K, B]):
                 raise ValueError(f"Problem `{key}` is associated with different dimensions: `{dim}`.")
 
     @property
-    def solutions(self) -> Dict[Tuple[K, K], BaseSolverOutput]:
+    def solutions(self) -> Dict[Tuple[K, K], BaseDiscreteSolverOutput]:
         """Solutions for the :term:`OT` :attr:`problems`."""
         return self.get_solutions(only_converged=False)
 

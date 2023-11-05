@@ -62,6 +62,7 @@ Solvers
     solver.BaseSolver
     solver.OTSolver
     output.BaseSolverOutput
+    output.BaseDiscreteSolverOutput
 
 Output
 ^^^^^^
@@ -69,6 +70,7 @@ Output
     :toctree: genapi
 
     output.BaseSolverOutput
+    output.BaseDiscreteSolverOutput
     output.MatrixSolverOutput
 
 Utils

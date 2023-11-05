@@ -18,14 +18,14 @@ from matplotlib.figure import Figure
 from moscot._types import ArrayLike, Device_t
 from moscot.backends.ott._neuraldual import OTTNeuralDualSolver
 from moscot.backends.ott._utils import ConditionalDualPotentials, get_nearest_neighbors
-from moscot.base.output import BaseNeuralOutput, BaseSolverOutput
+from moscot.base.output import BaseDiscreteSolverOutput, BaseNeuralOutput
 
 __all__ = ["OTTOutput", "NeuralDualOutput", "CondNeuralDualOutput", "ConditionalDualPotentials"]
 
 Train_t = Dict[str, Union[float, List[float]]]
 
 
-class OTTOutput(BaseSolverOutput):
+class OTTOutput(BaseDiscreteSolverOutput):
     """Output of various :term:`OT` problems.
 
     Parameters
@@ -501,7 +501,7 @@ class NeuralDualOutput(OTTNeuralOutput):
         g = jax.vmap(self._output.g)
         return f, g
 
-    def push(self, x: ArrayLike) -> ArrayLike:  # type: ignore[override]
+    def push(self, x: ArrayLike) -> ArrayLike:
         """Push distribution `x`.
 
         Parameters
@@ -517,7 +517,7 @@ class NeuralDualOutput(OTTNeuralOutput):
             raise ValueError(f"Expected 1D or 2D array, found `{x.ndim}`.")
         return self._apply(x, forward=True)
 
-    def pull(self, x: ArrayLike) -> ArrayLike:  # type: ignore[override]
+    def pull(self, x: ArrayLike) -> ArrayLike:
         """Pull distribution `x`.
 
         Parameters
