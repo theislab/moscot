@@ -1,6 +1,5 @@
 from functools import partial
-from types import MappingProxyType
-from typing import Any, Callable, Dict, List, Literal, Optional, Tuple, Union
+from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 
 import jaxlib.xla_extension as xla_ext
 
@@ -314,7 +313,7 @@ class NeuralDualOutput(OTTNeuralOutput):
 
     def plot_convergence(
         self,
-        data: Dict[Literal["pretrain", "train", "valid"], str] = MappingProxyType({"train": "loss"}),
+        data: str = "loss",
         last_k: Optional[int] = None,
         title: Optional[str] = None,
         figsize: Optional[Tuple[float, float]] = None,
@@ -328,7 +327,7 @@ class NeuralDualOutput(OTTNeuralOutput):
         Parameters
         ----------
         data
-            Which training curve to plot.
+            Which curve to plot.
         last_k
             How many of the last k steps of the algorithm to plot. If `None`, plot the full curve.
         title
@@ -346,9 +345,8 @@ class NeuralDualOutput(OTTNeuralOutput):
         """
         if len(data) > 1:
             raise ValueError(f"`data` must be of length 1, but found {len(data)}.")
-        k, v = next(iter(data.items()))
         return super().plot_convergence(  # type: ignore[misc]
-            data={k + ": " + v: self._training_logs[f"{k}_logs"][v]},
+            data={data: self._training_logs[data]},
             last_k=last_k,
             title=title,
             figsize=figsize,
@@ -486,7 +484,7 @@ class NeuralDualOutput(OTTNeuralOutput):
     @property
     def cost(self) -> float:
         """Predicted optimal transport cost on validation dataset."""
-        return self._training_logs["predicted_cost"]
+        return self._training_logs["predicted_cost"]  # type: ignore[return-value]
 
     @property
     def converged(self) -> bool:
@@ -808,7 +806,7 @@ class CondNeuralDualOutput(NeuralDualOutput):
             cond = cond[:, None]
         input = jnp.concatenate((x, cond), axis=-1)
         return self._model.state_eta.apply_fn(  # type:ignore[union-attr]
-            {"params": self._model.state_eta.params}, input
+            {"params": self._model.state_eta.params}, input  # type:ignore[union-attr]
         )
 
     def evaluate_b(self, cond: ArrayLike, x: ArrayLike) -> ArrayLike:

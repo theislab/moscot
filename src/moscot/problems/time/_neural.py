@@ -64,7 +64,8 @@ class TemporalNeuralProblem(  # type: ignore[misc]
                 - if :meth:`~moscot.problems.base._birth_death.BirthDeathMixin.score_genes_for_marginals` was run and
                   if ``a`` is `None`, and additionally ``'scaling'`` is provided in ``marginal_kwargs``,
                   the marginals are computed as
-                  :math:`\\exp(\frac{(\textit{proliferation} - \textit{apoptosis}) \\cdot (t_2 - t_1)}{\textit{scaling}})`  # noqa:E501
+                  :math:`\\exp(\frac{(\textit{proliferation} -
+                  \textit{apoptosis}) \\cdot (t_2 - t_1)}{\textit{scaling}})`
                   rather than using a birth-death process,
                 - otherwise or if ``a`` is :obj:`False`, uniform marginals are used.
 

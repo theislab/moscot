@@ -461,7 +461,7 @@ class NeuralDualSolver(OTSolver[OTTOutput]):
             raise ValueError(f"Expected array to have 2 dimensions, found `{arr.ndim}`.")
         return arr
 
-    def _split_data(
+    def _split_data(  # TODO: adapt for Gromov terms
         self,
         x: ArrayLike,
         conditions: Optional[ArrayLike],
@@ -541,8 +541,8 @@ class CondNeuralDualSolver(NeuralDualSolver):
 
             seed = kwargs.pop("seed", 0)
             for i, (key, dist) in enumerate(distributions.items()):
-                dist_data = self._split_data(
-                    dist.xy,
+                dist_data = self._split_data(  # TODO: adapt for Gromov term
+                    dist.xy,  # type: ignore[arg-type]
                     conditions=dist.conditions,
                     train_size=train_size,
                     seed=seed,

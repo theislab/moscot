@@ -939,7 +939,7 @@ class CondOTProblem(BaseProblem):  # TODO(@MUCDK) check generic types, save and 
         super().__init__(**kwargs)
         self._adata = adata
 
-        self._distributions: Optional[DistributionCollection[K]] = None
+        self._distributions: Optional[DistributionCollection[K]] = None  # type: ignore[valid-type]
         self._policy: Optional[SubsetPolicy[Any]] = None
         self._sample_pairs: Optional[List[Tuple[Any, Any]]] = None
 
@@ -1002,7 +1002,7 @@ class CondOTProblem(BaseProblem):  # TODO(@MUCDK) check generic types, save and 
             adata_masked = self.adata[self._create_mask(el)]
             a_created = self._create_marginals(adata_masked, data=a, source=True, **kwargs)
             b_created = self._create_marginals(adata_masked, data=b, source=False, **kwargs)
-            self.distributions[el] = DistributionContainer.from_adata(
+            self.distributions[el] = DistributionContainer.from_adata(  # type: ignore[index]
                 adata_masked, a=a_created, b=b_created, **xy, **xx, **conditions
             )
         return self
@@ -1034,8 +1034,8 @@ class CondOTProblem(BaseProblem):  # TODO(@MUCDK) check generic types, save and 
         - :attr:`solution`: optimal transport solution.
         """
         tmp = next(iter(self.distributions))  # type: ignore[arg-type]
-        input_dim = self.distributions[tmp].xy.shape[1]  # type: ignore[union-attr]
-        cond_dim = self.distributions[tmp].conditions.shape[1]  # type: ignore[union-attr]
+        input_dim = self.distributions[tmp].xy.shape[1]  # type: ignore[union-attr, index]
+        cond_dim = self.distributions[tmp].conditions.shape[1]  # type: ignore[union-attr, index]
 
         solver_class = backends.get_solver(
             self.problem_kind, solver_name=solver_name, backend=backend, return_class=True

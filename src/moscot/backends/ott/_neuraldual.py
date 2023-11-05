@@ -147,19 +147,21 @@ class UnbalancedNeuralMixin:
         logs: Dict[str, List[float]],
         loss_eta: Optional[jnp.ndarray],
         loss_xi: Optional[jnp.ndarray],
+        policy_pair: Tuple[Any, Any],
         *,
         is_train_set: bool = True,
     ) -> Dict[str, List[float]]:
+        policy_pair_str = f"{policy_pair[0]}_{policy_pair[1]}"
         if is_train_set:
             if loss_eta is not None:
-                logs["train_loss_eta"].append(float(loss_eta))
+                logs[f"train_loss_eta_{policy_pair_str}"].append(float(loss_eta))
             if loss_xi is not None:
-                logs["train_loss_xi"].append(float(loss_xi))
+                logs[f"train_loss_xi_{policy_pair_str}"].append(float(loss_xi))
         else:
             if loss_eta is not None:
-                logs["valid_loss_eta"].append(float(loss_eta))
+                logs[f"valid_loss_eta_{policy_pair_str}"].append(float(loss_eta))
             if loss_xi is not None:
-                logs["valid_loss_xi"].append(float(loss_xi))
+                logs[f"valid_loss_xi_{policy_pair_str}"].append(float(loss_xi))
         return logs
 
 
@@ -366,7 +368,7 @@ class OTTNeuralDualSolver(UnbalancedNeuralMixin):
         """
         self.batch_size = trainloader.batch_size
 
-        pretrain_logs: Dict[str, Dict[str, Union[float, List[float]]]] = {}
+        pretrain_logs: Dict[str, Union[float, List[float]]] = {}
         if self.pretrain_iters > 0:
             pretrain_logs = self.pretrain_identity(trainloader)
 
@@ -376,7 +378,7 @@ class OTTNeuralDualSolver(UnbalancedNeuralMixin):
 
         return (res, self, logs)
 
-    def pretrain_identity(self, trainloader: JaxSampler) -> Train_t:  # TODO(@lucaeyr) conditions can be `None` right?
+    def pretrain_identity(self, trainloader: JaxSampler) -> Dict[str, List[float]]:
         """Pretrain the neural networks to parameterize the identity map.
 
         Parameters
@@ -430,7 +432,7 @@ class OTTNeuralDualSolver(UnbalancedNeuralMixin):
         # load params of g into state_f
         # this only works when f & g have the same architecture
         self.state_f = self.state_f.replace(params=self.state_g.params)
-        return {"pretrain_logs": pretrain_logs}
+        return pretrain_logs
 
     def train_neuraldual(
         self,
@@ -501,7 +503,7 @@ class OTTNeuralDualSolver(UnbalancedNeuralMixin):
             else:
                 # sample source batch and compute unbalanced marginals
                 source_key, self.key = jax.random.split(self.key, 2)
-                curr_source, curr_condition = trainloader(source_key, policy_pair, sample="source")  # type: ignore[misc]
+                curr_source, curr_condition = trainloader(source_key, policy_pair, sample="source")  # type: ignore[misc]  # noqa: E501
                 a, b = trainloader.compute_unbalanced_marginals(curr_source, batch["target"])
 
                 (
@@ -520,12 +522,12 @@ class OTTNeuralDualSolver(UnbalancedNeuralMixin):
                     state_eta=self.state_eta,
                     state_xi=self.state_xi,
                 )
-                self._update_unbalancedness_logs(unbalancedness_logs, loss_eta, loss_xi, is_train_set=True)
+                self._update_unbalancedness_logs(unbalancedness_logs, loss_eta, loss_xi, policy_pair, is_train_set=True)
 
             for _ in range(self.inner_iters):
                 source_key, self.key = jax.random.split(self.key, 2)
 
-                batch["source"], batch["condition"] = trainloader(source_key, policy_pair, sample="source")  # type: ignore[misc]
+                batch["source"], batch["condition"] = trainloader(source_key, policy_pair, sample="source")  # type: ignore[misc]  # noqa: E501
                 if not self.is_balanced:
                     # resample source with unbalanced marginals
                     batch["source"], batch["condition"] = trainloader.unbalanced_resample(
@@ -550,10 +552,9 @@ class OTTNeuralDualSolver(UnbalancedNeuralMixin):
                 for key, average_meter in average_meters.items():
                     logs[key].append(average_meter.avg)
                     average_meter.reset()
-            # evalute on validation set periodically
+            # evaluate on validation set periodically
             if iteration % self.valid_freq == 0:
-                for index, pair in enumerate(trainloader.policy_pairs):
-                    # condition = validloader.conditions[index] if self.cond_dim else None
+                for policy_pair in trainloader.policy_pairs:
                     valid_batch["source"], valid_batch["condition"] = validloader(  # type: ignore[misc]
                         source_key, policy_pair, sample="source"
                     )
@@ -572,7 +573,7 @@ class OTTNeuralDualSolver(UnbalancedNeuralMixin):
                         self.state_xi,
                     )
                     unbalancedness_logs = self._update_unbalancedness_logs(
-                        unbalancedness_logs, loss_eta, loss_xi, is_train_set=False
+                        unbalancedness_logs, loss_eta, loss_xi, policy_pair, is_train_set=False
                     )
 
                 # update best model and patience as necessary
@@ -597,7 +598,7 @@ class OTTNeuralDualSolver(UnbalancedNeuralMixin):
         logs["predicted_cost"] = None if best_iter_distance is None else float(best_iter_distance)
         if self.compute_wasserstein_baseline:
             logs["sinkhorn_div"] = np.mean(discrete_sinkhorn_div)
-        return logs, unbalancedness_logs
+        return logs, unbalancedness_logs  # type: ignore[return-value]
 
     def get_step_fn(self, train: bool, to_optimize: Literal["f", "g"]):
         """Create a parallel training and evaluation function."""

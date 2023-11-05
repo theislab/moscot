@@ -48,7 +48,7 @@ class TestConditionalNeuralProblem:
         assert container.cost_xx is None
 
     @pytest.mark.parametrize("train_size", [0.9, 1.0])
-    def test_solve_balanced_no_baseline(self, adata_time: ad.AnnData, train_size: float):  # type: ignore[no-untyped-def]
+    def test_solve_balanced_no_baseline(self, adata_time: ad.AnnData, train_size: float):  # type: ignore[no-untyped-def]  # noqa: E501
         problem = ConditionalNeuralProblem(adata=adata_time)
         problem = problem.prepare(key="time", joint_attr="X_pca", conditional_attr={"attr": "obs", "key": "time"})
         problem = problem.solve(train_size=train_size, **neuraldual_args_1)
@@ -116,7 +116,7 @@ class TestConditionalNeuralProblem:
         custom_opt_f = optax.adagrad(1e-4)
         custom_opt_g = optax.adagrad(1e-3)
 
-        problem = problem.solve(iterations=2, opt_f=custom_opt_f, opt_g=custom_opt_g)
+        problem = problem.solve(iterations=2, optimizer_f=custom_opt_f, optimizer_g=custom_opt_g)
 
     def test_learning_rescaling_factors(self, adata_time: ad.AnnData):
         hidden_dim = 10
