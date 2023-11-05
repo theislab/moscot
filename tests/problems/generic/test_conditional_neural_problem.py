@@ -9,7 +9,7 @@ import anndata as ad
 
 from moscot.backends.ott.nets import ICNN, MLP_marginal
 from moscot.backends.ott.output import NeuralDualOutput
-from moscot.base.output import BaseDiscreteSolverOutput
+from moscot.base.output import BaseSolverOutput
 from moscot.base.problems import CondOTProblem
 from moscot.problems.generic import (
     ConditionalNeuralProblem,  # type: ignore[attr-defined]
@@ -52,13 +52,13 @@ class TestConditionalNeuralProblem:
         problem = ConditionalNeuralProblem(adata=adata_time)
         problem = problem.prepare(key="time", joint_attr="X_pca", conditional_attr={"attr": "obs", "key": "time"})
         problem = problem.solve(train_size=train_size, **neuraldual_args_1)
-        assert isinstance(problem.solution, BaseDiscreteSolverOutput)
+        assert isinstance(problem.solution, BaseSolverOutput)
 
     def test_solve_unbalanced_with_baseline(self, adata_time: ad.AnnData):
         problem = ConditionalNeuralProblem(adata=adata_time)
         problem = problem.prepare(key="time", joint_attr="X_pca", conditional_attr={"attr": "obs", "key": "time"})
         problem = problem.solve(**neuraldual_args_2)
-        assert isinstance(problem.solution, BaseDiscreteSolverOutput)
+        assert isinstance(problem.solution, BaseSolverOutput)
 
     def test_reproducibility(self, adata_time: ad.AnnData):
         pc_tzero = adata_time[adata_time.obs["time"] == 0].obsm["X_pca"]
@@ -126,7 +126,7 @@ class TestConditionalNeuralProblem:
         adata_time = adata_time[adata_time.obs["time"].isin((0, 1))]
         problem = problem.prepare(key="time", joint_attr="X_pca", conditional_attr={"attr": "obs", "key": "time"})
         problem = problem.solve(mlp_eta=mlp_eta, mlp_xi=mlp_xi, **neuraldual_args_2)
-        assert isinstance(problem.solution, BaseDiscreteSolverOutput)
+        assert isinstance(problem.solution, BaseSolverOutput)
         assert isinstance(problem.solution, NeuralDualOutput)
 
         array = np.asarray(adata_time.obsm["X_pca"].copy())
