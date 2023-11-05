@@ -22,6 +22,20 @@ class BaseSolverOutput(abc.ABC):
     def shape(self) -> Tuple[int, int]:
         """Shape of the :attr:`transport_matrix`."""
 
+    @abc.abstractmethod
+    def to(self, device: Optional[Device_t] = None) -> "BaseDiscreteSolverOutput":
+        """Transfer self to another compute device.
+
+        Parameters
+        ----------
+        device
+            Device where to transfer the solver output. If :obj:`None`, use the default device.
+
+        Returns
+        -------
+        Self transferred to the ``device``.
+        """
+
     def _format_params(self, fmt: Callable[[Any], str]) -> str:
         params = {"shape": self.shape}
         return ", ".join(f"{name}={fmt(val)}" for name, val in params.items())
@@ -67,20 +81,6 @@ class BaseDiscreteSolverOutput(BaseSolverOutput, abc.ABC):
     @abc.abstractmethod
     def is_linear(self) -> bool:
         """Whether the output is a solution to a :term:`linear problem`."""
-
-    @abc.abstractmethod
-    def to(self, device: Optional[Device_t] = None) -> "BaseDiscreteSolverOutput":
-        """Transfer self to another compute device.
-
-        Parameters
-        ----------
-        device
-            Device where to transfer the solver output. If :obj:`None`, use the default device.
-
-        Returns
-        -------
-        Self transferred to the ``device``.
-        """
 
     @property
     def rank(self) -> int:
