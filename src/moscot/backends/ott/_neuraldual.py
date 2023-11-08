@@ -546,7 +546,7 @@ class OTTNeuralDualSolver(UnbalancedNeuralMixin):
             logs = self._update_logs(logs, loss_f, None, w_dist, is_train_set=True)
             # clip weights of f
             if self.pos_weights:
-                self.state_f = self.state_f.replace(params=self._clip_weights_icnn(self.state_g.params))
+                self.state_f = self.state_f.replace(params=self._clip_weights_icnn(self.state_f.params))
             # log avg training values periodically
             if iteration % self.log_freq == 0:
                 for key, average_meter in average_meters.items():
