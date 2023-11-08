@@ -1,7 +1,7 @@
 from collections import abc, defaultdict
 from types import MappingProxyType
 from typing import Any, Callable, Dict, List, Literal, Optional, Tuple, Type, Union
-
+import functools
 import optax
 from flax.core.scope import FrozenVariableDict
 from flax.training import train_state
@@ -312,7 +312,7 @@ class OTTNeuralDualSolver(UnbalancedNeuralMixin):
         self.batch_size: Optional[int] = None
         # set optimizer and networks
         self.setup(self.f, self.g, self.optimizer_f, self.optimizer_g)
-
+        
     def setup(self, neural_f: ICNN, neural_g: ICNN, optimizer_f: optax.OptState, optimizer_g: optax.OptState):
         """Initialize all components required to train the :class:`moscot.backends.ott.NeuralDual`.
 
@@ -343,10 +343,11 @@ class OTTNeuralDualSolver(UnbalancedNeuralMixin):
         self.state_f = neural_f.create_train_state(key_f, optimizer_f, self.input_dim)
         self.state_g = neural_g.create_train_state(key_g, optimizer_g, self.input_dim)
 
-        self.train_step_f = self.get_step_fn(train=True, to_optimize="f")
-        self.valid_step_f = self.get_step_fn(train=False, to_optimize="f")
-        self.train_step_g = self.get_step_fn(train=True, to_optimize="g")
-        self.valid_step_g = self.get_step_fn(train=False, to_optimize="g")
+        self.train_step = self.get_step_fn()
+        #self.train_step_f = self.get_step_fn(train=True, to_optimize="f")
+        #self.valid_step_f = self.get_step_fn(train=False, to_optimize="f")
+        #self.train_step_g = self.get_step_fn(train=True, to_optimize="g")
+        #self.valid_step_g = self.get_step_fn(train=False, to_optimize="g")
 
     def __call__(
         self,
@@ -524,6 +525,7 @@ class OTTNeuralDualSolver(UnbalancedNeuralMixin):
                 )
                 self._update_unbalancedness_logs(unbalancedness_logs, loss_eta, loss_xi, policy_pair, is_train_set=True)
 
+            grads_f_accumulated = jax.jit(jax.grad(lambda _: 0.0))(self.state_f.params)
             for _ in range(self.inner_iters):
                 source_key, self.key = jax.random.split(self.key, 2)
 
@@ -534,26 +536,47 @@ class OTTNeuralDualSolver(UnbalancedNeuralMixin):
                         source_key, (batch["source"], batch["condition"]), a
                     )
                 # train step for potential g directly updating the train state
-                self.state_g, loss_g, _ = self.train_step_g(self.state_f, self.state_g, batch)
-                average_meters["train_loss_g"].update(loss_g)
+                #self.state_g, loss_g, _ = self.train_step_g(self.state_f, self.state_g, batch)
+                #average_meters["train_loss_g"].update(loss_g)
+
+                (
+                    self.state_g,
+                    grads_f,
+                    loss,
+                    w_dist,
+                    penalty,
+                    loss_f,
+                    loss_g,
+                ) = self.train_step(self.state_f, self.state_g, batch)
+                
+
+
                 logs = self._update_logs(logs, None, loss_g, None, is_train_set=True)
             # resample target batch with unbalanced marginals
             if not self.is_balanced:
                 target_key, self.key = jax.random.split(self.key, 2)
                 batch["target"] = trainloader.unbalanced_resample(target_key, (batch["target"],), b)[0]
             # train step for potential f directly updating the train state
-            self.state_f, loss_f, w_dist = self.train_step_f(self.state_f, self.state_g, batch)
-            logs = self._update_logs(logs, loss_f, None, w_dist, is_train_set=True)
+            #self.state_f, loss_f, w_dist = self.train_step_f(self.state_f, self.state_g, batch)
+            #logs = self._update_logs(logs, loss_f, None, w_dist, is_train_set=True)
+            grads_f_accumulated = subtract_pytrees(grads_f_accumulated, grads_f, self.inner_iters)
+            self.state_f = self.state_f.apply_gradients(grads=grads_f_accumulated)
+            
             # clip weights of f
-            if self.pos_weights:
-                self.state_f = self.state_f.replace(params=self._clip_weights_icnn(self.state_g.params))
+            if not self.pos_weights:
+                self.state_f = self.state_f.replace(
+                    params=self._clip_weights_icnn(self.state_f.params)
+                )
+            # clip weights of f
+            #if self.pos_weights:
+            #    self.state_f = self.state_f.replace(params=self._clip_weights_icnn(self.state_f.params))
             # log avg training values periodically
             if iteration % self.log_freq == 0:
                 for key, average_meter in average_meters.items():
                     logs[key].append(average_meter.avg)
                     average_meter.reset()
             # evaluate on validation set periodically
-            if iteration % self.valid_freq == 0:
+            if False: #iteration % self.valid_freq == 0:
                 for policy_pair in trainloader.policy_pairs:
                     valid_batch["source"], valid_batch["condition"] = validloader(  # type: ignore[misc]
                         source_key, policy_pair, sample="source"
@@ -600,10 +623,10 @@ class OTTNeuralDualSolver(UnbalancedNeuralMixin):
             logs["sinkhorn_div"] = np.mean(discrete_sinkhorn_div)
         return logs, unbalancedness_logs  # type: ignore[return-value]
 
-    def get_step_fn(self, train: bool, to_optimize: Literal["f", "g"]):
+    def get_step_fn_old(self, train: bool, to_optimize: Literal["f", "g"]):
         """Create a parallel training and evaluation function."""
 
-        def loss_fn(params_f, params_g, f_value, g_value, g_gradient, batch):
+        def loss_fn_old(params_f, params_g, f_value, g_value, g_gradient, batch):
             """Loss function for both potentials."""
             # get two distributions
             source, target = batch["source"], batch["target"]
@@ -655,9 +678,9 @@ class OTTNeuralDualSolver(UnbalancedNeuralMixin):
             return loss, (dual_loss, amor_loss, W2_dist)
 
         @jax.jit
-        def step_fn(state_f, state_g, batch):
+        def step_fn_old(state_f, state_g, batch):
             """Step function of either training or validation."""
-            grad_fn = jax.value_and_grad(loss_fn, argnums=[0, 1], has_aux=True)
+            grad_fn = jax.value_and_grad(loss_fn_old, argnums=[0, 1], has_aux=True)
             if train:
                 # compute loss and gradients
                 (loss, (loss_f, loss_g, W2_dist)), (grads_f, grads_g) = grad_fn(
@@ -693,6 +716,67 @@ class OTTNeuralDualSolver(UnbalancedNeuralMixin):
             if to_optimize == "g":
                 return loss_g, W2_dist
             raise ValueError("Optimization target has been misspecified.")
+
+        return step_fn_old
+
+    def get_step_fn(self):
+        """Get the training step."""
+
+        @jax.jit
+        def loss_fn(params_f, params_g, batch):
+            """Loss function for potential f."""
+            # get two distributions
+            source, target = batch["source"], batch["target"]
+
+            # get loss terms of kantorovich dual
+            f_t = self.state_f.apply_fn({"params": params_f}, batch["target"])
+
+            #grad_g_s = self.transport_with_grad(params_g, batch["source"])
+            grad_g_s = jax.vmap(lambda x: jax.grad(self.state_g.apply_fn, argnums=1)({"params": params_g}, x))(batch["source"])
+
+            f_grad_g_s = self.state_f.apply_fn({"params": params_f}, grad_g_s)
+
+            s_dot_grad_g_s = jnp.sum(source * grad_g_s, axis=1)
+
+            s_sq = jnp.sum(source * source, axis=1)
+            t_sq = jnp.sum(target * target, axis=1)
+
+            loss_f = jnp.mean(f_t - f_grad_g_s)
+            loss_g = jnp.mean(f_grad_g_s - s_dot_grad_g_s)
+            loss = jnp.mean(f_grad_g_s - f_t - s_dot_grad_g_s)
+            # compute wasserstein distance
+            dist = 2 * (loss + jnp.mean(0.5 * t_sq + 0.5 * s_sq))
+            
+            if not self.pos_weights:
+                penalty = self.beta * self._penalize_weights_icnn(params_g)
+                loss += penalty
+            else:
+                penalty = 0
+            return loss, (dist, loss_f, loss_g, penalty)
+
+        @functools.partial(jax.jit, static_argnums=3)
+        def step_fn(
+            state_f: train_state.TrainState,
+            state_g: train_state.TrainState,
+            batch: jnp.ndarray,
+            #learning_rate_fn: Callable[[int], float],
+        ):
+            """Step function for training."""
+            grad_fn = jax.value_and_grad(loss_fn, argnums=(0, 1), has_aux=True)
+            # compute loss and gradients
+            (loss, (dist, loss_f, loss_g, penalty)), (grads_f, grads_g) = grad_fn(state_f.params, state_g.params, batch)
+            #learning_rate_fn(state_g.step)
+            state_g.step
+            # update state and return training stats
+            return (
+                state_g.apply_gradients(grads=grads_g),
+                grads_f,
+                loss,
+                dist,
+                penalty,
+                loss_f,
+                loss_g,
+            )
 
         return step_fn
 
@@ -754,3 +838,25 @@ class OTTNeuralDualSolver(UnbalancedNeuralMixin):
             if w_dist is not None:
                 logs["valid_w_dist"].append(float(w_dist))
         return logs
+
+    @jax.jit
+    def transport_with_grad(self, params: jnp.ndarray, data: jnp.ndarray) -> jnp.ndarray:
+        """Transport with explicit params needed for gradient computation."""
+        return jax.vmap(lambda x: jax.grad(self.state_g.apply_fn, argnums=1)({"params": params}, x))(data)
+
+    @jax.jit
+    def inverse_transport(self, data: jnp.ndarray) -> jnp.ndarray:
+        """Transport target data samples with potential f."""
+        return jax.vmap(lambda x: jax.grad(self.state_f.apply_fn, argnums=1)({"params": self.state_f.params}, x))(data)
+
+@jax.jit
+def subtract_pytrees(pytree1, pytree2, num_accumulations: int):
+    """Subtract one pytree from another divided by number of grad accumulations."""
+    return jax.tree_util.tree_map(lambda pt1, pt2: pt1 - pt2 / num_accumulations, pytree1, pytree2)
+
+
+@jax.jit
+def add_pytrees(pytree1, pytree2, num_accumulations: int):
+    """Add one pytree from another divided by number of grad accumulations."""
+    return jax.tree_util.tree_map(lambda pt1, pt2: pt1 + pt2 / num_accumulations, pytree1, pytree2)
+
