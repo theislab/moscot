@@ -425,7 +425,7 @@ class OTTNeuralDualSolver(UnbalancedNeuralMixin):
             # train step for potential g directly updating the train state
             loss, self.state_g = pretrain_update(self.state_g, key_pre)
             # clip weights of g
-            if self.pos_weights:
+            if not self.pos_weights:
                 self.state_g = self.state_g.replace(params=self._clip_weights_icnn(self.state_g.params))
             if iteration % self.log_freq == 0:
                 pretrain_logs["pretrain_loss"].append(loss)
@@ -528,25 +528,26 @@ class OTTNeuralDualSolver(UnbalancedNeuralMixin):
                 source_key, self.key = jax.random.split(self.key, 2)
 
                 batch["source"], batch["condition"] = trainloader(source_key, policy_pair, sample="source")  # type: ignore[misc]  # noqa: E501
+                a, b = trainloader.compute_unbalanced_marginals(batch["source"], batch["target"])
                 if not self.is_balanced:
                     # resample source with unbalanced marginals
                     batch["source"], batch["condition"] = trainloader.unbalanced_resample(
                         source_key, (batch["source"], batch["condition"]), a
                     )
                 # train step for potential g directly updating the train state
-                self.state_g, loss_g, _ = self.train_step_g(self.state_f, self.state_g, batch)
-                average_meters["train_loss_g"].update(loss_g)
-                logs = self._update_logs(logs, None, loss_g, None, is_train_set=True)
+                self.state_f, loss, W2_dist, loss_f, loss_g, penalty = self.train_step_f(self.state_f, self.state_g, batch)
+                average_meters["train_loss_f"].update(loss_f)
+                logs = self._update_logs(logs, None, loss_f, None, is_train_set=True)
             # resample target batch with unbalanced marginals
             if not self.is_balanced:
                 target_key, self.key = jax.random.split(self.key, 2)
                 batch["target"] = trainloader.unbalanced_resample(target_key, (batch["target"],), b)[0]
             # train step for potential f directly updating the train state
-            self.state_f, loss_f, w_dist = self.train_step_f(self.state_f, self.state_g, batch)
-            logs = self._update_logs(logs, loss_f, None, w_dist, is_train_set=True)
-            # clip weights of f
-            if self.pos_weights:
-                self.state_f = self.state_f.replace(params=self._clip_weights_icnn(self.state_f.params))
+            self.state_g, loss, W2_dist, loss_f, loss_g, penalty = self.train_step_g(self.state_f, self.state_g, batch)
+            logs = self._update_logs(logs, loss_g, None, W2_dist, is_train_set=True)
+            # clip weights of g
+            if not self.pos_weights:
+                self.state_g = self.state_g.replace(params=self._clip_weights_icnn(self.state_g.params))
             # log avg training values periodically
             if iteration % self.log_freq == 0:
                 for key, average_meter in average_meters.items():
@@ -559,9 +560,9 @@ class OTTNeuralDualSolver(UnbalancedNeuralMixin):
                         source_key, policy_pair, sample="source"
                     )
                     valid_batch["target"] = validloader(source_key, policy_pair, sample="target")
-                    valid_loss_f, _ = self.valid_step_f(self.state_f, self.state_g, valid_batch)
-                    valid_loss_g, valid_w_dist = self.valid_step_g(self.state_f, self.state_g, valid_batch)
-                    logs = self._update_logs(logs, valid_loss_f, valid_loss_g, valid_w_dist, is_train_set=False)
+                    valid_loss, valid_W2_dist, valid_loss_f, valid_loss_g, valid_penalty = self.valid_step_f(self.state_f, self.state_g, valid_batch)
+                    #valid_loss_g, valid_w_dist = self.valid_step_g(self.state_f, self.state_g, valid_batch)
+                    logs = self._update_logs(logs, valid_loss_f, valid_loss_g, valid_W2_dist, is_train_set=False)
                     a, b = validloader.compute_unbalanced_marginals(valid_batch["source"], valid_batch["target"])
                     _, _, _, _, loss_eta, loss_xi = self.unbalancedness_step_fn(
                         valid_batch["source"],
@@ -603,56 +604,37 @@ class OTTNeuralDualSolver(UnbalancedNeuralMixin):
     def get_step_fn(self, train: bool, to_optimize: Literal["f", "g"]):
         """Create a parallel training and evaluation function."""
 
-        def loss_fn(params_f, params_g, f_value, g_value, g_gradient, batch):
+        def loss_fn(params_f, params_g, f_value, g_value, f_gradient, batch):
             """Loss function for both potentials."""
-            # get two distributions
-            source, target = batch["source"], batch["target"]
 
-            init_source_hat = g_gradient(params_g)(target, batch["condition"])
+            source, target, condition = batch["source"], batch["target"], batch["condition"]
+            g_target = g_value(params_g)(target, condition)
+            grad_f_s = f_gradient(params_f)(source, condition)
+            g_grad_f_s = g_value(params_g)(grad_f_s, condition)
 
-            def g_value_partial(y: jnp.ndarray) -> jnp.ndarray:
-                """Lazy way of evaluating g if f's computation needs it."""
-                return g_value(params_g)(y, batch["condition"])
+            s_dot_grad_f_s = jnp.sum(source * grad_f_s, axis=1)
 
-            f_value_partial = f_value(params_f, g_value_partial, batch["condition"])
+            s_sq = jnp.sum(source * source, axis=1)
+            t_sq = jnp.sum(target * target, axis=1)
 
-            source_hat_detach = init_source_hat
+            loss_f = jnp.mean(g_grad_f_s - s_dot_grad_f_s)
+            loss_g = jnp.mean(g_target - g_grad_f_s)
+            loss = jnp.mean(g_grad_f_s - g_target - s_dot_grad_f_s)
+            # compute wasserstein distance
+            W2_dist = 2 * (loss + jnp.mean(0.5 * t_sq + 0.5 * s_sq))
 
-            batch_dot = jax.vmap(jnp.dot)
-
-            f_source = f_value_partial(source, batch["condition"])
-            f_star_target = batch_dot(source_hat_detach, target) - f_value_partial(
-                source_hat_detach, batch["condition"]
-            )
-            dual_source = f_source.mean()
-            dual_target = f_star_target.mean()
-            dual_loss = dual_source + dual_target
-
-            f_value_parameters_detached = f_value(jax.lax.stop_gradient(params_f), g_value_partial, batch["condition"])
-            amor_loss = (
-                f_value_parameters_detached(init_source_hat, batch["condition"]) - batch_dot(init_source_hat, target)
-            ).mean()
-            if to_optimize == "f":
-                loss = dual_loss
-            elif to_optimize == "g":
-                loss = amor_loss
+            if not self.pos_weights:
+                penalty = self.beta * self._penalize_weights_icnn(params_f)
+                loss += penalty
+                loss_f += penalty
             else:
-                raise ValueError(f"Optimization target {to_optimize} has been misspecified.")
+                penalty = 0
+            if to_optimize == "f":
+                return loss_f, (loss, W2_dist, loss_f, loss_g, penalty)
+            if to_optimize == "g":
+                return loss_g, (loss, W2_dist, loss_f, loss_g, penalty)
+            raise NotImplementedError
 
-            if self.pos_weights:
-                # Penalize the weights of both networks, even though one
-                # of them will be exactly clipped.
-                # Having both here is necessary in case this is being called with
-                # the potentials reversed with the back_and_forth.
-                loss += self.beta * self._penalize_weights_icnn(params_f) + self.beta * self._penalize_weights_icnn(
-                    params_g
-                )
-
-            # compute Wasserstein-2 distance
-            C = jnp.mean(jnp.sum(source**2, axis=-1)) + jnp.mean(jnp.sum(target**2, axis=-1))
-            W2_dist = C - 2.0 * (f_source.mean() + f_star_target.mean())
-
-            return loss, (dual_loss, amor_loss, W2_dist)
 
         @jax.jit
         def step_fn(state_f, state_g, batch):
@@ -660,39 +642,32 @@ class OTTNeuralDualSolver(UnbalancedNeuralMixin):
             grad_fn = jax.value_and_grad(loss_fn, argnums=[0, 1], has_aux=True)
             if train:
                 # compute loss and gradients
-                (loss, (loss_f, loss_g, W2_dist)), (grads_f, grads_g) = grad_fn(
+                (_, (loss, W2_dist, loss_f, loss_g, penalty)), (grads_f, grads_g) = grad_fn(
                     state_f.params,
                     state_g.params,
                     state_f.potential_value_fn,
                     state_g.potential_value_fn,
-                    state_g.potential_gradient_fn,
+                    state_f.potential_gradient_fn,
                     batch,
                 )
 
                 if to_optimize == "f":
-                    return state_f.apply_gradients(grads=grads_f), loss_f, W2_dist
+                    return state_f.apply_gradients(grads=grads_f), loss, W2_dist, loss_f, loss_g, penalty
                 if to_optimize == "g":
-                    return state_g.apply_gradients(grads=grads_g), loss_g, W2_dist
+                    return state_g.apply_gradients(grads=grads_g), loss, W2_dist, loss_f, loss_g, penalty
                 raise ValueError("Optimization target has been misspecified.")
 
             # compute loss and gradients
-            (loss, (loss_f, loss_g, W2_dist)), _ = grad_fn(
+            (_, (loss, W2_dist, loss_f, loss_g, penalty)), _ = grad_fn(
                 state_f.params,
                 state_g.params,
                 state_f.potential_value_fn,
                 state_g.potential_value_fn,
-                state_g.potential_gradient_fn,
+                state_f.potential_gradient_fn,
                 batch,
             )
 
-            # do not update state
-            if to_optimize == "both":
-                return loss_f, loss_g, W2_dist
-            if to_optimize == "f":
-                return loss_f, W2_dist
-            if to_optimize == "g":
-                return loss_g, W2_dist
-            raise ValueError("Optimization target has been misspecified.")
+            return loss, W2_dist, loss_f, loss_g, penalty
 
         return step_fn
 
@@ -754,3 +729,8 @@ class OTTNeuralDualSolver(UnbalancedNeuralMixin):
             if w_dist is not None:
                 logs["valid_w_dist"].append(float(w_dist))
         return logs
+
+@jax.jit
+def subtract_pytrees(pytree1, pytree2, num_accumulations: int):
+    """Subtract one pytree from another divided by number of grad accumulations."""
+    return jax.tree_util.tree_map(lambda pt1, pt2: pt1 - pt2 / num_accumulations, pytree1, pytree2)
