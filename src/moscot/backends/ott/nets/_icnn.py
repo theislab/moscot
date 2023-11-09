@@ -251,21 +251,21 @@ class ICNN(ModelBase):
         interpolation of a potential.
         """
         if self.is_potential:  # type: ignore[truthy-function]
-            return lambda x, c=None: self.apply({"params": params}, x, c=c)  # type: ignore[misc]
+            return lambda x, c: self.apply({"params": params}, x, c=c)  # type: ignore[misc]
 
-        assert other_potential_value_fn is not None, (
-            "The value of the gradient-based potential depends " "on the value of the other potential."
-        )
+        #assert other_potential_value_fn is not None, (
+        #    "The value of the gradient-based potential depends " "on the value of the other potential."
+        #)
 
-        def value_fn(x: jnp.ndarray) -> jnp.ndarray:
-            squeeze = x.ndim == 1
-            if squeeze:
-                x = jnp.expand_dims(x, 0)
-            grad_g_x = jax.lax.stop_gradient(self.apply({"params": params}, x))
-            value = -other_potential_value_fn(grad_g_x) + jax.vmap(jnp.dot)(grad_g_x, x)
-            return value.squeeze(0) if squeeze else value
+        #def value_fn(x: jnp.ndarray) -> jnp.ndarray:
+        #    squeeze = x.ndim == 1
+        #    if squeeze:
+        #        x = jnp.expand_dims(x, 0)
+        #    grad_g_x = jax.lax.stop_gradient(self.apply({"params": params}, x))
+        #    value = -other_potential_value_fn(grad_g_x) + jax.vmap(jnp.dot)(grad_g_x, x)
+        #    return value.squeeze(0) if squeeze else value
 
-        return value_fn
+        #return value_fn
 
     def potential_gradient_fn(
         self,
