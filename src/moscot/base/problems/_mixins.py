@@ -15,6 +15,7 @@ from typing import (
 
 import numpy as np
 import pandas as pd
+from scipy import stats
 from scipy.sparse.linalg import LinearOperator
 
 import scanpy as sc
@@ -552,13 +553,20 @@ class AnalysisMixin(Generic[K, B]):
             seed=seed,
             **kwargs,
         )
-    
-    def compute_entropy(self, source: K, target: K, forward: bool = True, key_added: Optional[str] = "conditional_entropy", batch_size: Optional[int] = None) -> Optional[pd.DataFrame]:
+
+    def compute_entropy(
+        self: AnalysisMixinProtocol[K, B],
+        source: K,
+        target: K,
+        forward: bool = True,
+        key_added: Optional[str] = "conditional_entropy",
+        batch_size: Optional[int] = None,
+    ) -> Optional[pd.DataFrame]:
         """Compute the conditional entropy per cell.
-         
+
         The conditional entropy reflects the uncertainty of the mapping of a single cell.
-        
-        
+
+
         Parameters
         ----------
         source
@@ -566,23 +574,27 @@ class AnalysisMixin(Generic[K, B]):
         target
             Target key.
         forward
-            If `True`, computes the conditional entropy of a cell in the source distribution, else the 
+            If `True`, computes the conditional entropy of a cell in the source distribution, else the
             conditional entropy of a cell in the target distribution.
         key_added
             Key in :attr:`~anndata.AnnData.obs` where the entropy is stored.
         batch_size
             Batch size for the computation of the entropy. If `None`, the entire dataset is used.
-        
+
         Returns
         -------
-        `None` if `key_added` is not None. Else, dataframe of shape ``(n_cells, 1)`` containing the conditional entropy per cell.
+        `None` if `key_added` is not None. Else, dataframe of shape ``(n_cells, 1)`` containing the
+        conditional entropy per cell.
         """
         filter_value = source if forward else target
-        df = pd.DataFrame(index=self.adata[self.adata.obs[self.key]==filter_value, :].obs_names, columns=key_added if key_added is not None else ["entropy"])
+        df = pd.DataFrame(
+            index=self.adata[self.adata.obs[self._policy.key] == filter_value, :].obs_names,
+            columns=[key_added] if key_added is not None else ["entropy"],
+        )
         batch_size = batch_size if batch_size is not None else len(df)
         func = self.push if forward else self.pull
         for batch in range(0, len(df), batch_size):
-            result = func(  
+            cond_dist = func(
                 source=source,
                 target=target,
                 data=None,
@@ -593,7 +605,8 @@ class AnalysisMixin(Generic[K, B]):
                 split_mass=True,
                 key_added=None,
             )
-            df.iloc[range(batch, min(batch + batch_size, len(df))), 0] = result
-        if key_added is None:
-            return df
-        self.adata.obs[key_added] = df
+            df.iloc[range(batch, min(batch + batch_size, len(df))), 0] = stats.entropy(cond_dist, axis=1)
+        if key_added is not None:
+            self.adata.obs[key_added] = df
+
+        return df if key_added is None else None

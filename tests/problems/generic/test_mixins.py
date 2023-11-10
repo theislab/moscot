@@ -278,6 +278,51 @@ class TestBaseAnalysisMixin:
             assert isinstance(res, pd.DataFrame)
             assert set(res.index) == set(features[1])
 
+    @pytest.mark.parametrize("forward", [True, False])
+    @pytest.mark.parametrize("key_added", [None, "test"])
+    def test_compute_entropy_pipeline(self, adata_time: AnnData, forward: bool, key_added: Optional[str]):
+        rng = np.random.RandomState(42)
+        adata_time = adata_time[adata_time.obs["time"].isin((0, 1))].copy()
+        n0 = adata_time[adata_time.obs["time"] == 0].n_obs
+        n1 = adata_time[adata_time.obs["time"] == 1].n_obs
+
+        tmap = rng.uniform(1e-6, 1, size=(n0, n1))
+        tmap /= tmap.sum().sum()
+        problem = CompoundProblemWithMixin(adata_time)
+        problem = problem.prepare(key="time", xy_callback="local-pca", policy="sequential")
+        problem[0, 1]._solution = MockSolverOutput(tmap)
+
+        out = problem.compute_entropy(source=0, target=1, forward=forward, key_added=key_added)
+        if key_added is None:
+            assert isinstance(out, pd.DataFrame)
+            assert len(out) == n0
+        else:
+            assert out is None
+            assert key_added in adata_time.obs
+            assert np.sum(adata_time[adata_time.obs["time"] == int(1 - forward)].obs[key_added].isna()) == 0
+            assert (
+                np.sum(adata_time[adata_time.obs["time"] == int(forward)].obs[key_added].isna()) == n1
+                if forward
+                else n0
+            )
+
+    @pytest.mark.parametrize("forward", [True, False])
+    @pytest.mark.parametrize("key_added", [None, "test"])
+    def test_compute_entropy_regression(self, adata_time: AnnData, forward: bool, key_added: Optional[str]):
+        rng = np.random.RandomState(42)
+        adata_time = adata_time[adata_time.obs["time"].isin((0, 1))].copy()
+        n0 = adata_time[adata_time.obs["time"] == 0].n_obs
+        n1 = adata_time[adata_time.obs["time"] == 1].n_obs
+
+        tmap = rng.uniform(1e-6, 1, size=(n0, n1))
+        tmap /= tmap.sum().sum()
+        problem = CompoundProblemWithMixin(adata_time)
+        problem = problem.prepare(key="time", xy_callback="local-pca", policy="sequential")
+        problem[0, 1]._solution = MockSolverOutput(tmap)
+
+        _ = problem.compute_entropy(source=0, target=1, forward=forward, key_added=key_added)
+        # TODO: add regression test
+
     def test_seed_reproducible(self, adata_time: AnnData):
         key_added = "test"
         rng = np.random.RandomState(42)
