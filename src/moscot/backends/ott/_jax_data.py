@@ -55,14 +55,14 @@ class JaxSampler:
         @partial(jax.jit, static_argnames=["index"])
         def _sample_target(key: jax.random.KeyArray, index: jnp.ndarray) -> Tuple[jnp.ndarray, jnp.ndarray]:
             """Jitted sample function."""
-            samples = jax.random.choice(key, self.distributions[index], shape=[batch_size], p=jnp.squeeze(a[index]))
+            samples = jax.random.choice(key, self.distributions[index], shape=[batch_size], p=jnp.squeeze(b[index]))
             return samples, None
         
         @partial(jax.jit, static_argnames=["index"])
         def _sample_target_conditional(key: jax.random.KeyArray, index: jnp.ndarray) -> Tuple[jnp.ndarray, jnp.ndarray]:
             """Jitted sample function."""
-            samples = jax.random.choice(key, self.distributions[index], shape=[batch_size], p=jnp.squeeze(a[index]))
-            conds = jax.random.choice(key, self.conditions[index], shape=[batch_size], p=jnp.squeeze(a[index]))  # type: ignore[index]  # noqa: E501
+            samples = jax.random.choice(key, self.distributions[index], shape=[batch_size], p=jnp.squeeze(b[index]))
+            conds = jax.random.choice(key, self.conditions[index], shape=[batch_size], p=jnp.squeeze(b[index]))  # type: ignore[index]  # noqa: E501
             return samples, conds
 
         @jax.jit
