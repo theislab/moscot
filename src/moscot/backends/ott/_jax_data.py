@@ -39,7 +39,6 @@ class JaxSampler:
                 raise ValueError("If `policy_pairs` contains more than 1 value, `sample_to_idx` is required.")
             sample_to_idx = {self.policy_pairs[0][0]: 0, self.policy_pairs[0][1]: 1}
         self._sample_to_idx = sample_to_idx
-
         @partial(jax.jit, static_argnames=["index"])
         def _sample_source(key: jax.random.KeyArray, index: jnp.ndarray) -> Tuple[jnp.ndarray, None]:
             """Jitted sample function."""
@@ -54,9 +53,17 @@ class JaxSampler:
             return samples, conds
 
         @partial(jax.jit, static_argnames=["index"])
-        def _sample_target(key: jax.random.KeyArray, index: jnp.ndarray) -> jnp.ndarray:
+        def _sample_target(key: jax.random.KeyArray, index: jnp.ndarray) -> Tuple[jnp.ndarray, jnp.ndarray]:
             """Jitted sample function."""
-            return jax.random.choice(key, self.distributions[index], shape=[batch_size], p=jnp.squeeze(b[index]))
+            samples = jax.random.choice(key, self.distributions[index], shape=[batch_size], p=jnp.squeeze(a[index]))
+            return samples, None
+        
+        @partial(jax.jit, static_argnames=["index"])
+        def _sample_target_conditional(key: jax.random.KeyArray, index: jnp.ndarray) -> Tuple[jnp.ndarray, jnp.ndarray]:
+            """Jitted sample function."""
+            samples = jax.random.choice(key, self.distributions[index], shape=[batch_size], p=jnp.squeeze(a[index]))
+            conds = jax.random.choice(key, self.conditions[index], shape=[batch_size], p=jnp.squeeze(a[index]))  # type: ignore[index]  # noqa: E501
+            return samples, conds
 
         @jax.jit
         def _compute_unbalanced_marginals(
@@ -86,7 +93,7 @@ class JaxSampler:
             return self.policy_pairs[index]
 
         self._sample_source = _sample_source if self.conditions is None else _sample_source_conditional
-        self._sample_target = _sample_target
+        self._sample_target = _sample_target if self.conditions is None else _sample_target_conditional
         self.sample_policy_pair = _sample_policy_pair
         self.compute_unbalanced_marginals = _compute_unbalanced_marginals
         self.unbalanced_resample = _unbalanced_resample
@@ -97,7 +104,7 @@ class JaxSampler:
         policy_pair: Tuple[Any, Any],
         sample: Literal["source", "target", "both"] = "both",
         full_dataset: bool = False,
-    ) -> Union[jnp.ndarray, Tuple[jnp.ndarray, jnp.ndarray], Tuple[jnp.ndarray, jnp.ndarray, jnp.ndarray]]:
+    ) -> Union[Tuple[jnp.ndarray, jnp.ndarray], Tuple[jnp.ndarray, jnp.ndarray, jnp.ndarray]]:
         """Sample data. When sampling the source, the conditions are returned, too."""
         if full_dataset:
             if sample == "source":
@@ -105,7 +112,7 @@ class JaxSampler:
                     self.distributions[self.sample_to_idx[policy_pair[0]]]
                 ), None if self.conditions is None else jnp.asarray(self.conditions[self.sample_to_idx[policy_pair[0]]])
             if sample == "target":
-                return jnp.asarray(self.distributions[self.sample_to_idx[policy_pair[1]]])
+                return jnp.asarray(self.distributions[self.sample_to_idx[policy_pair[1]]]), None if self.conditions is None else jnp.asarray(self.conditions[self.sample_to_idx[policy_pair[0]]])
             if sample == "both":
                 return (
                     jnp.asarray(self.distributions[self.sample_to_idx[policy_pair[0]]]),
@@ -121,8 +128,8 @@ class JaxSampler:
             return self._sample_target(key, self.sample_to_idx[policy_pair[1]])
         if sample == "both":
             return (
-                *self._sample_source(key, self.sample_to_idx[policy_pair[0]]),
-                self._sample_target(key, self.sample_to_idx[policy_pair[1]]),
+                self._sample_source(key, self.sample_to_idx[policy_pair[0]])[0],
+                *self._sample_target(key, self.sample_to_idx[policy_pair[1]]),
             )
         raise NotImplementedError(f"Sample type {sample} not implemented.")
 

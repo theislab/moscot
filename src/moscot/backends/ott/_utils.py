@@ -221,7 +221,7 @@ def _get_icnn(
 
 
 def _get_optimizer(
-    learning_rate: float = 1e-3, b1: float = 0.5, b2: float = 0.9, weight_decay: float = 0.0, **kwargs: Any
+    learning_rate: float = 1e-4, b1: float = 0.5, b2: float = 0.9, weight_decay: float = 0.0, **kwargs: Any
 ) -> Type[optax.GradientTransformation]:
     return optax.adamw(learning_rate=learning_rate, b1=b1, b2=b2, weight_decay=weight_decay, **kwargs)
 

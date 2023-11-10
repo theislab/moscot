@@ -496,15 +496,15 @@ class OTTNeuralDualSolver(UnbalancedNeuralMixin):
             policy_key, target_key, self.key = jax.random.split(self.key, 3)
             policy_pair = trainloader.sample_policy_pair(policy_key)
             # sample target batch
-            batch["target"] = trainloader(target_key, policy_pair, sample="target")
+            batch["target"], batch["condition"] = trainloader(target_key, policy_pair, sample="target")
 
             if self.is_balanced:
                 a = b = jnp.ones(self.batch_size) / self.batch_size
             else:
                 # sample source batch and compute unbalanced marginals
                 source_key, self.key = jax.random.split(self.key, 2)
-                curr_source, curr_condition = trainloader(source_key, policy_pair, sample="source")  # type: ignore[misc]  # noqa: E501
-                a, b = trainloader.compute_unbalanced_marginals(curr_source, batch["target"])
+                batch["source"], batch["target"], batch["condition"] = trainloader(source_key, policy_pair, sample="source")  # type: ignore[misc]  # noqa: E501
+                a, b = trainloader.compute_unbalanced_marginals(batch["source"], batch["target"])
 
                 (
                     self.state_eta,
@@ -514,9 +514,9 @@ class OTTNeuralDualSolver(UnbalancedNeuralMixin):
                     loss_eta,
                     loss_xi,
                 ) = self.unbalancedness_step_fn(
-                    source=curr_source,
+                    source=batch["source"],
                     target=batch["target"],
-                    condition=curr_condition,
+                    condition=batch["condition"],
                     a=a,
                     b=b,
                     state_eta=self.state_eta,
@@ -527,9 +527,9 @@ class OTTNeuralDualSolver(UnbalancedNeuralMixin):
             for _ in range(self.inner_iters):
                 source_key, self.key = jax.random.split(self.key, 2)
 
-                batch["source"], batch["condition"] = trainloader(source_key, policy_pair, sample="source")  # type: ignore[misc]  # noqa: E501
-                a, b = trainloader.compute_unbalanced_marginals(batch["source"], batch["target"])
+                batch["source"], batch["target"], batch["condition"] = trainloader(source_key, policy_pair, sample="both")  # type: ignore[misc]  # noqa: E501
                 if not self.is_balanced:
+                    a, b = trainloader.compute_unbalanced_marginals(batch["source"], batch["target"])
                     # resample source with unbalanced marginals
                     batch["source"], batch["condition"] = trainloader.unbalanced_resample(
                         source_key, (batch["source"], batch["condition"]), a
@@ -542,7 +542,7 @@ class OTTNeuralDualSolver(UnbalancedNeuralMixin):
             # resample target batch with unbalanced marginals
             if not self.is_balanced:
                 target_key, self.key = jax.random.split(self.key, 2)
-                batch["target"] = trainloader.unbalanced_resample(target_key, (batch["target"],), b)[0]
+                batch["target"], batch["condition"] = trainloader.unbalanced_resample(target_key, (batch["target"], batch["condition"]), b)
             # train step for potential f directly updating the train state
             self.state_g, loss, W2_dist, loss_f, loss_g, penalty = self.train_step_g(self.state_f, self.state_g, batch)
             #logs = self._update_logs(logs, loss_g, None, W2_dist, is_train_set=True)
@@ -561,7 +561,7 @@ class OTTNeuralDualSolver(UnbalancedNeuralMixin):
                     valid_batch["source"], valid_batch["condition"] = validloader(  # type: ignore[misc]
                         source_key, policy_pair, sample="source"
                     )
-                    valid_batch["target"] = validloader(source_key, policy_pair, sample="target")
+                    valid_batch["target"], batch["condition"] = validloader(source_key, policy_pair, sample="target")
                     valid_loss, valid_W2_dist, valid_loss_f, valid_loss_g, valid_penalty = self.valid_step_f(self.state_f, self.state_g, valid_batch)
                     #valid_loss_g, valid_w_dist = self.valid_step_g(self.state_f, self.state_g, valid_batch)
                     #logs = self._update_logs(logs, valid_loss_f, valid_loss_g, valid_W2_dist, is_train_set=False)
