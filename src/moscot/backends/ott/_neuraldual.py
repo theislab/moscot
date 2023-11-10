@@ -529,7 +529,7 @@ class OTTNeuralDualSolver(UnbalancedNeuralMixin):
 
                 if not self.is_balanced:
                     # resample source with unbalanced marginals
-                    batch["source"], batch["condition"] = trainloader.unbalanced_resample(source_key, (source, condition), a)  # type: ignore[misc]  # noqa: E501
+                    batch["source"], batch["condition"] = trainloader.unbalanced_resample(source_key, (source, condition), a)  # noqa: E501
                 # train step for potential g directly updating the train state
                 self.state_f, loss, W2_dist, loss_f, loss_g, penalty = self.train_step_f(
                     self.state_f, self.state_g, batch
