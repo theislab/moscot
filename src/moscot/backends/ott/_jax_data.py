@@ -39,6 +39,7 @@ class JaxSampler:
                 raise ValueError("If `policy_pairs` contains more than 1 value, `sample_to_idx` is required.")
             sample_to_idx = {self.policy_pairs[0][0]: 0, self.policy_pairs[0][1]: 1}
         self._sample_to_idx = sample_to_idx
+
         @partial(jax.jit, static_argnames=["index"])
         def _sample_source(key: jax.random.KeyArray, index: jnp.ndarray) -> Tuple[jnp.ndarray, None]:
             """Jitted sample function."""
@@ -57,7 +58,7 @@ class JaxSampler:
             """Jitted sample function."""
             samples = jax.random.choice(key, self.distributions[index], shape=[batch_size], p=jnp.squeeze(b[index]))
             return samples, None
-        
+
         @partial(jax.jit, static_argnames=["index"])
         def _sample_target_conditional(key: jax.random.KeyArray, index: jnp.ndarray) -> Tuple[jnp.ndarray, jnp.ndarray]:
             """Jitted sample function."""
@@ -112,7 +113,9 @@ class JaxSampler:
                     self.distributions[self.sample_to_idx[policy_pair[0]]]
                 ), None if self.conditions is None else jnp.asarray(self.conditions[self.sample_to_idx[policy_pair[0]]])
             if sample == "target":
-                return jnp.asarray(self.distributions[self.sample_to_idx[policy_pair[1]]]), None if self.conditions is None else jnp.asarray(self.conditions[self.sample_to_idx[policy_pair[0]]])
+                return jnp.asarray(
+                    self.distributions[self.sample_to_idx[policy_pair[1]]]
+                ), None if self.conditions is None else jnp.asarray(self.conditions[self.sample_to_idx[policy_pair[0]]])
             if sample == "both":
                 return (
                     jnp.asarray(self.distributions[self.sample_to_idx[policy_pair[0]]]),
