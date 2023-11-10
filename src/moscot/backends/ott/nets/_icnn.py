@@ -225,7 +225,6 @@ class ICNN(ModelBase):
         self,
         params: frozen_dict.FrozenDict[str, jnp.ndarray],
         c: Optional[jnp.ndarray] = None,
-        other_potential_value_fn: Optional[PotentialValueFn_t] = None,
     ) -> PotentialValueFn_t:
         r"""Return a function giving the value of the potential.
 
@@ -252,6 +251,7 @@ class ICNN(ModelBase):
         """
         if self.is_potential:  # type: ignore[truthy-function]
             return lambda x, c: self.apply({"params": params}, x, c=c)  # type: ignore[misc]
+        raise ValueError("`is_potential` must be `True`.")
 
         #assert other_potential_value_fn is not None, (
         #    "The value of the gradient-based potential depends " "on the value of the other potential."
