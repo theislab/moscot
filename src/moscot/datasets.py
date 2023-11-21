@@ -178,9 +178,9 @@ def c_elegans(
         force_download=force_download,
         **kwargs,
     )
-    # TODO(michalk8): also cache or store in AnnData ad Newick + reconstruct?
-    with urllib.request.urlopen("https://figshare.com/ndownloader/files/39943603") as fin:
-        tree = pickle.load(fin)
+
+    with urllib.request.urlopen("https://figshare.com/ndownloader/files/43064842") as fin:
+        tree = nx.read_gml(fin)
 
     return adata, tree
 
