@@ -341,12 +341,12 @@ class StarPolicy(SimplePlanPolicy[K]):
     def add_node(self, node: Union[K, Tuple[K, K]], only_existing: bool = False) -> "StarPolicy[K]":
         if not isinstance(node, tuple):
             node = (node, self.reference)
-        return super().add_node(node, only_existing=only_existing)  # type: ignore[return-value, arg-type]
+        return super().add_node(node, only_existing=only_existing)  # type: ignore[return-value]
 
     def remove_node(self, node: Union[K, Tuple[K, K]]) -> "StarPolicy[K]":
         if not isinstance(node, tuple):
             node = (node, self.reference)
-        return super().remove_node(node)  # type: ignore[return-value, arg-type]
+        return super().remove_node(node)  # type: ignore[return-value]
 
     @property
     def reference(self) -> K:
@@ -394,7 +394,7 @@ class ExternalStarPolicy(FormatterMixin, StarPolicy[K]):
         # TODO(michalk8): tgt can be undefined
         if tgt is self._tgt_name:
             return self
-        return super().add_node(node, only_existing=only_existing)  # type: ignore[return-value, arg-type]
+        return super().add_node(node, only_existing=only_existing)  # type: ignore[return-value]
 
     def create_masks(self, discard_empty: bool = True) -> Dict[Tuple[K, K], Tuple[ArrayLike, ArrayLike]]:
         del discard_empty
