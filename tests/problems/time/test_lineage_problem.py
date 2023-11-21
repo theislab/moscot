@@ -8,7 +8,7 @@ from ott.geometry import epsilon_scheduler
 from anndata import AnnData
 
 from moscot.backends.ott._utils import alpha_to_fused_penalty
-from moscot.base.output import BaseSolverOutput
+from moscot.base.output import BaseDiscreteSolverOutput
 from moscot.base.problems import BirthDeathProblem
 from moscot.problems.time import LineageProblem
 from tests._utils import ATOL, RTOL
@@ -58,7 +58,7 @@ class TestLineageProblem:
         problem = problem.solve(epsilon=eps)
 
         for key, subsol in problem.solutions.items():
-            assert isinstance(subsol, BaseSolverOutput)
+            assert isinstance(subsol, BaseDiscreteSolverOutput)
             assert key == key
 
     def test_solve_unbalanced(self, adata_time_barcodes: AnnData):

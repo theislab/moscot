@@ -24,7 +24,7 @@ from anndata import AnnData
 
 from moscot._logging import logger
 from moscot._types import ArrayLike, Policy_t, ProblemStage_t
-from moscot.base.output import BaseSolverOutput
+from moscot.base.output import BaseDiscreteSolverOutput
 from moscot.base.problems._utils import attributedispatch, require_prepare
 from moscot.base.problems.manager import ProblemManager
 from moscot.base.problems.problem import BaseProblem, OTProblem
@@ -478,7 +478,7 @@ class BaseCompoundProblem(BaseProblem, abc.ABC, Generic[K, B]):
         return self
 
     @property
-    def solutions(self) -> Dict[Tuple[K, K], BaseSolverOutput]:
+    def solutions(self) -> Dict[Tuple[K, K], BaseDiscreteSolverOutput]:
         """Solutions to the :attr:`problems`."""
         if self._problem_manager is None:
             return {}

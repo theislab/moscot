@@ -8,7 +8,7 @@ from ott.geometry import epsilon_scheduler
 
 from anndata import AnnData
 
-from moscot.base.output import BaseSolverOutput
+from moscot.base.output import BaseDiscreteSolverOutput
 from moscot.base.problems import BirthDeathProblem
 from moscot.problems.time import TemporalProblem
 from tests._utils import ATOL, RTOL
@@ -54,7 +54,7 @@ class TestTemporalProblem:
         problem = problem.solve(epsilon=eps)
 
         for key, subsol in problem.solutions.items():
-            assert isinstance(subsol, BaseSolverOutput)
+            assert isinstance(subsol, BaseDiscreteSolverOutput)
             assert key in expected_keys
 
     def test_solve_unbalanced(self, adata_time: AnnData):

@@ -10,7 +10,7 @@ from ott.solvers.linear.sinkhorn import solve as sinkhorn
 
 from anndata import AnnData
 
-from moscot.base.output import BaseSolverOutput, MatrixSolverOutput
+from moscot.base.output import BaseDiscreteSolverOutput, MatrixSolverOutput
 from moscot.base.problems import OTProblem
 from tests._utils import ATOL, RTOL, Geom_t, MockSolverOutput
 
@@ -24,7 +24,7 @@ class TestOTProblem:
             y={"attr": "X"},
         ).solve(epsilon=5e-1)
 
-        assert isinstance(prob.solution, BaseSolverOutput)
+        assert isinstance(prob.solution, BaseDiscreteSolverOutput)
 
     @pytest.mark.fast()
     def test_output(self, adata_x: AnnData, x: Geom_t):
@@ -150,7 +150,7 @@ class TestOTProblem:
         prob = prob.set_solution(solution, cost=42, converged=True)
 
         assert prob.stage == "solved"
-        assert isinstance(prob.solution, BaseSolverOutput)
+        assert isinstance(prob.solution, BaseDiscreteSolverOutput)
         assert prob.solution.shape == prob.shape
         assert prob.solution.cost == 42
         assert prob.solution.converged
