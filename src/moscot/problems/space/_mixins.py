@@ -626,8 +626,8 @@ class SpatialMappingMixin(AnalysisMixin[K, B]):
                 self.adata[idx].obs[key_added] = annotation
             else:
                 self.adata.obs[key_added] = annotation
-        else: # target is always 'tgt'
-                self.adata_sc.obs[key_added] = annotation
+        else:  # target is always 'tgt'
+            self.adata_sc.obs[key_added] = annotation
 
     @property
     def batch_key(self) -> Optional[str]:
