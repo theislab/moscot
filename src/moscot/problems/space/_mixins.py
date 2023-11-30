@@ -597,32 +597,37 @@ class SpatialMappingMixin(AnalysisMixin[K, B]):
         annotation_label: str,
         forward: bool,
         source: str = "src",
-        target: str = "tgt",
+        # target: str = "tgt",
         scale_by_marginals: bool = True,
         key_added: str | None = None,
         cell_transition_kwargs: Mapping[str, Any] = types.MappingProxyType({}),
     ) -> pd.DataFrame:
         # mp[("batch_0","tgt"), ("batch_1","tgt")] # from sc tgt to spatial batch
-        annotation = self._annotation_mapping(
-            mapping_mode=mapping_mode,
-            annotation_label=annotation_label,
-            forward=not forward,  # inverted for MappingProblem
-            other_adata=self.adata_sc,
-            scale_by_marginals=scale_by_marginals,
-            cell_transition_kwargs=cell_transition_kwargs,
-        )
+        if cell_transition_kwargs:
+            annotation = self._annotation_mapping(
+                mapping_mode=mapping_mode,
+                annotation_label=annotation_label,
+                source=source,
+                forward=not forward,  # inverted for MappingProblem
+                other_adata=self.adata_sc,
+                scale_by_marginals=scale_by_marginals,
+                cell_transition_kwargs=cell_transition_kwargs,
+            )
         if key_added is None:
             return annotation
-        if key_added not in self.adata.obs:
-            self.adata.obs[key_added] = pd.empty(len(self.adata))
+
+        if key_added not in list(self.adata.obs):
+            self.adata.obs[key_added] = np.empty(len(self.adata))
 
         # if forward add in self.adata; forward false - self.adata_sc
         if forward:
-            idx = self.adata[self.adata.obs[self.batch_key] == source]
-            self.adata[idx].obs[key_added] = annotation
-        else:
-            idx = self.adata_sc[self.adata_sc.obs[self.batch_key] == target]  # is target correct here?
-            self.adata_sc[idx].obs[key_added] = annotation
+            if source != "src":
+                idx = self.adata[self.adata.obs[self.batch_key] == source]
+                self.adata[idx].obs[key_added] = annotation
+            else:
+                self.adata.obs[key_added] = annotation
+        else: # target is always 'tgt'
+                self.adata_sc.obs[key_added] = annotation
 
     @property
     def batch_key(self) -> Optional[str]:
