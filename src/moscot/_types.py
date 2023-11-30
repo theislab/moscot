@@ -33,14 +33,13 @@ OttCostFn_t = Literal[
     "euclidean",
     "sq_euclidean",
     "cosine",
-    "PNormP",
-    "SqPNorm",
-    "Euclidean",
-    "SqEuclidean",
-    "Cosine",
-    "ElasticL1",
-    "ElasticSTVS",
-    "ElasticSqKOverlap",
+    "pnorm_p",
+    "sq_pnorm",
+    "cosine",
+    "elastic_l1",
+    "elastic_l2",
+    "elastic_stvs",
+    "elastic_sqk_overlap",
 ]
 OttCostFnMap_t = Union[OttCostFn_t, Mapping[Literal["xy", "x", "y"], OttCostFn_t]]
 GenericCostFn_t = Literal["barcode_distance", "leaf_distance", "custom"]
