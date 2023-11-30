@@ -45,7 +45,7 @@ OttCostFnMap_t = Union[OttCostFn_t, Mapping[Literal["xy", "x", "y"], OttCostFn_t
 GenericCostFn_t = Literal["barcode_distance", "leaf_distance", "custom"]
 CostFn_t = Union[str, GenericCostFn_t, OttCostFn_t]
 CostFnMap_t = Union[Union[OttCostFn_t, GenericCostFn_t], Mapping[str, Union[OttCostFn_t, GenericCostFn_t]]]
-PathLike = Union[os.PathLike, str]
+PathLike = Union[os.PathLike, str]  # type: ignore[type-arg]
 Policy_t = Literal[
     "sequential",
     "star",
