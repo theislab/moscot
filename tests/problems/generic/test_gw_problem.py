@@ -8,6 +8,7 @@ from ott.geometry import epsilon_scheduler
 from ott.geometry.costs import (
     Cosine,
     ElasticL1,
+    ElasticL2,
     ElasticSTVS,
     Euclidean,
     PNormP,
@@ -157,6 +158,7 @@ class TestGWProblem:
             ("pnorm_p", PNormP, {"p": 3}),
             ("sq_pnorm", SqPNorm, {"x": {"p": 3}, "y": {"p": 4}}),
             ("elastic_l1", ElasticL1, {"x": {"scaling_reg": 3}, "y": {"scaling_reg": 4}}),
+            ("elastic_l2", ElasticL2, {"x": {"scaling_reg": 3}, "y": {"scaling_reg": 4}}),
             ("elastic_stvs", ElasticSTVS, {"x": {"scaling_reg": 3}, "y": {"scaling_reg": 4}}),
         ],
     )
