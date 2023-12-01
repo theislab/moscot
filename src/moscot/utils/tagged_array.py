@@ -82,7 +82,7 @@ class TaggedArray:
         attr: Literal["X", "obsp", "obsm", "layers", "uns"],
         tag: Tag = Tag.POINT_CLOUD,
         key: Optional[str] = None,
-        cost: CostFn_t = "sq_euclidean",
+        cost: Union[CostFn_t, Literal["geodesic"]] = "sq_euclidean",
         backend: Literal["ott"] = "ott",
         **kwargs: Any,
     ) -> "TaggedArray":
@@ -107,6 +107,7 @@ class TaggedArray:
             Cost function to apply to the extracted array, depending on ``tag``:
 
             - if ``tag = 'point_cloud'``, it is extracted from the ``backend``.
+            - if ``tag = 'kernel'`` and ``cost = 'geodesic'``, the geodesic kernel is used.
             - if ``tag = 'cost'`` or ``tag = 'kernel'``, and ``cost = 'custom'``,
               the extracted array is already assumed to be a cost/kernel matrix.
               Otherwise, :class:`~moscot.base.cost.BaseCost` is used to compute the cost matrix.
@@ -119,6 +120,9 @@ class TaggedArray:
         -------
         The tagged array.
         """
+        if cost == "geodesic":
+            data = cls._extract_data(adata, attr=attr, key=key)
+            return cls(data_src=data, tag=Tag.KERNEL, cost="geodesic")
         if tag == Tag.COST_MATRIX:
             if cost == "custom":  # our custom cost functions
                 modifier = f"adata.{attr}" if key is None else f"adata.{attr}[{key!r}]"

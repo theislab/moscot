@@ -10,12 +10,14 @@ from ott.geometry.geometry import Geometry
 from ott.geometry.low_rank import LRCGeometry
 from ott.geometry.pointcloud import PointCloud
 from ott.problems.linear.linear_problem import LinearProblem
+from ott.problems.quadratic import quadratic_problem
 from ott.problems.quadratic.quadratic_problem import QuadraticProblem
 from ott.solvers.linear.sinkhorn import Sinkhorn
 from ott.solvers.linear.sinkhorn import solve as sinkhorn
 from ott.solvers.linear.sinkhorn_lr import LRSinkhorn
 from ott.solvers.quadratic.gromov_wasserstein import GromovWasserstein
-from ott.solvers.quadratic.gromov_wasserstein import solve as gromov_wasserstein
+
+# from ott.solvers.quadratic.gromov_wasserstein import solve as gromov_wasserstein
 from ott.solvers.quadratic.gromov_wasserstein_lr import LRGromovWasserstein
 
 from moscot._types import ArrayLike, Device_t
@@ -93,8 +95,10 @@ class TestGW:
     def test_matches_ott(self, x: Geom_t, y: Geom_t, eps: Optional[float], jit: bool):
         thresh = 1e-2
         pc_x, pc_y = PointCloud(x, epsilon=eps), PointCloud(y, epsilon=eps)
-        fn = jax.jit(gromov_wasserstein, static_argnames=["threshold", "epsilon"]) if jit else gromov_wasserstein
-        gt = fn(pc_x, pc_y, threshold=thresh, epsilon=eps)
+        prob = quadratic_problem.QuadraticProblem(pc_x, pc_y)
+        sol = GromovWasserstein(epsilon=eps, threshold=thresh)
+        solver = jax.jit(sol, static_argnames=["threshold", "epsilon"]) if jit else sol
+        gt = solver(prob)
 
         solver = GWSolver(jit=jit, epsilon=eps, threshold=thresh)
         assert isinstance(solver.solver, GromovWasserstein)
@@ -158,14 +162,14 @@ class TestFGW:
         thresh = 1e-2
         xx, yy = xy
 
-        gt = gromov_wasserstein(
+        ott_solver = GromovWasserstein(epsilon=eps, threshold=thresh)
+        problem = quadratic_problem.QuadraticProblem(
             geom_xx=PointCloud(x, epsilon=eps),
             geom_yy=PointCloud(y, epsilon=eps),
             geom_xy=PointCloud(xx, yy, epsilon=eps),
             fused_penalty=alpha_to_fused_penalty(alpha),
-            epsilon=eps,
-            threshold=thresh,
         )
+        gt = ott_solver(problem)
 
         solver = GWSolver(epsilon=eps, threshold=thresh)
         assert isinstance(solver.solver, GromovWasserstein)
@@ -185,14 +189,15 @@ class TestFGW:
         thresh, eps = 5e-2, 1e-1
         xx, yy = xy
 
-        gt = gromov_wasserstein(
+        ott_solver = GromovWasserstein(epsilon=eps, threshold=thresh)
+        problem = quadratic_problem.QuadraticProblem(
             geom_xx=PointCloud(x, epsilon=eps),
             geom_yy=PointCloud(y, epsilon=eps),
             geom_xy=PointCloud(xx, yy, epsilon=eps),
             fused_penalty=alpha_to_fused_penalty(alpha),
-            epsilon=eps,
-            threshold=thresh,
         )
+        gt = ott_solver(problem)
+
         solver = GWSolver(epsilon=eps, threshold=thresh)
         pred = solver(x=x, y=y, xy=xy, alpha=alpha, tags={"x": "point_cloud", "y": "point_cloud", "xy": "point_cloud"})
 

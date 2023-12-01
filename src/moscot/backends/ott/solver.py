@@ -4,7 +4,7 @@ import types
 from typing import Any, Literal, Mapping, Optional, Set, Tuple, Union
 
 import jax
-from ott.geometry import costs, epsilon_scheduler, geometry, pointcloud
+from ott.geometry import costs, epsilon_scheduler, geodesic, geometry, pointcloud
 from ott.problems.linear import linear_problem
 from ott.problems.quadratic import quadratic_problem
 from ott.solvers.linear import sinkhorn, sinkhorn_lr
@@ -85,6 +85,8 @@ class OTTJaxSolver(OTSolver[OTTOutput], abc.ABC):
                 cost_matrix=arr, epsilon=epsilon, relative_epsilon=relative_epsilon, scale_cost=scale_cost
             )
         if x.is_kernel:
+            if x.cost == "geodesic":
+                return geodesic.Geodesic.from_graph(arr, t=epsilon, directed=True, **kwargs)
             return geometry.Geometry(
                 kernel_matrix=arr, epsilon=epsilon, relative_epsilon=relative_epsilon, scale_cost=scale_cost
             )
