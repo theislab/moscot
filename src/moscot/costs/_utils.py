@@ -30,10 +30,7 @@ def get_available_costs(backend: Optional[str] = None) -> Dict[str, Tuple[str, .
     -------
     Dictionary with keys as backend names and values as registered cost functions.
     """
-    groups: Dict[str, List[str]] = collections.defaultdict(list)
-    for key in _REGISTRY:
-        back, *name = key.split(_SEP)
-        groups[back].append(_SEP.join(name))
+    groups: Dict[str, List[str]] = _get_available_backends_n_costs()
 
     if backend is None:
         return {k: tuple(v) for k, v in groups.items()}
@@ -46,3 +43,17 @@ def get_available_costs(backend: Optional[str] = None) -> Dict[str, Tuple[str, .
 def register_cost(name: str, *, backend: str) -> Any:
     """Register cost function for a specific backend."""
     return _REGISTRY.register(f"{backend}{_SEP}{name}")
+
+
+def _get_available_backends_n_costs():
+    """Return a dictionary of available backends with their corresponding list of costs.
+
+    Returns
+    -------
+    Default dictionary with keys as backend names and values as registered cost functions.
+    """
+    groups: Dict[str, List[str]] = collections.defaultdict(list)
+    for key in _REGISTRY:
+        back, *name = key.split(_SEP)
+        groups[back].append(_SEP.join(name))
+    return groups
