@@ -5,6 +5,7 @@ import pytest
 import numpy as np
 import pandas as pd
 from ott.geometry import epsilon_scheduler
+from scipy.sparse import csr_matrix
 
 import scanpy as sc
 from anndata import AnnData
@@ -245,14 +246,40 @@ class TestTemporalProblem:
 
     @pytest.mark.parametrize("key", ["connectivities", "distances"])
     def test_geodesic_cost(self, adata_time, key: str):
-        adata_time = adata_time[adata_time.obs["time"].isin((0, 1))]
-        sc.pp.neighbors(adata_time, key_added="0_1")
-        adata_time.obsp["0_1_connectivities"] = adata_time.obsp[f"0_1_{key}"].astype("float64")
+        time_column = "time"
+        unique_times = adata_time.obs[time_column].unique()
+
+        for i in range(len(unique_times) - 1):
+            time1 = unique_times[i]
+            time2 = unique_times[i + 1]
+
+            indices = np.where((adata_time.obs[time_column] == time1) | (adata_time.obs[time_column] == time2))[0]
+            adata_subset = adata_time[indices]
+            sc.pp.neighbors(adata_subset, n_neighbors=15, use_rep="X_pca")
+            placeholder_shape = (adata_time.shape[0], adata_time.shape[0])
+            placeholder_matrix_1 = csr_matrix(placeholder_shape)
+            placeholder_matrix_2 = csr_matrix(placeholder_shape)
+            subset_connectivities = adata_subset.obsp["connectivities"]
+            subset_distances = adata_subset.obsp["distances"]
+            placeholder_matrix_1[indices][:, indices] = subset_connectivities
+            placeholder_matrix_2[indices][:, indices] = subset_distances
+            obsp_key_1 = f"{time1}_{time2}_connectivities"
+            obsp_key_2 = f"{time1}_{time2}_distances"
+            adata_time.obsp[obsp_key_1] = placeholder_matrix_1
+            adata_time.obsp[obsp_key_2] = placeholder_matrix_2
+
         tp = TemporalProblem(adata_time)
         tp = tp.prepare("time", joint_attr={"attr": "obsp", "key": key}, cost="geodesic")
         tp = tp.solve(max_iterations=2, lse_mode=False)
 
         ta = tp[0, 1].xy
+        assert isinstance(ta, TaggedArray)
+        assert isinstance(ta.data_src, np.ndarray)  # this will change once OTT-JAX allows for sparse matrices
+        assert ta.data_tgt is None
+        assert ta.tag == Tag.KERNEL
+        assert ta.cost == "geodesic"
+
+        ta = tp[1, 2].xy
         assert isinstance(ta, TaggedArray)
         assert isinstance(ta.data_src, np.ndarray)  # this will change once OTT-JAX allows for sparse matrices
         assert ta.data_tgt is None
