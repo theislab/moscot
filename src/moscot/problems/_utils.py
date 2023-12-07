@@ -84,4 +84,5 @@ def handle_cost(
         x.update(cost_kwargs.get("x", cost_kwargs))  # type:ignore[call-overload]
     if y and cost_kwargs:  # extract cost_kwargs explicit to y-term if possible
         y.update(cost_kwargs.get("y", cost_kwargs))  # type:ignore[call-overload]
+    print("xy is ", xy)
     return xy, x, y

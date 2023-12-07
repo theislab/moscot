@@ -5,7 +5,7 @@ import pytest
 import numpy as np
 import pandas as pd
 from ott.geometry import epsilon_scheduler
-
+import scanpy as sc
 from anndata import AnnData
 
 from moscot.base.output import BaseSolverOutput
@@ -241,6 +241,14 @@ class TestTemporalProblem:
             np.array(tp[key_1, key_3].solution.transport_matrix),
         )
 
+    def test_geodesic_cost(self, adata_time):
+        adata_time = adata_time[adata_time.obs["time"].isin((0, 1))]
+        sc.pp.neighbors(adata_time, key_added="0_1")
+        tp = TemporalProblem(adata_time)
+        tp = tp.prepare("time", joint_attr={"attr": "obsp", "key": "connectivities"}, cost="geodesic")
+        tp = tp.solve(max_iterations=2)
+        
+
     @pytest.mark.parametrize("args_to_check", [sinkhorn_args_1, sinkhorn_args_2])
     def test_pass_arguments(self, adata_time: AnnData, args_to_check: Mapping[str, Any]):
         problem = TemporalProblem(adata=adata_time)
@@ -286,3 +294,4 @@ class TestTemporalProblem:
                 assert type(el) == type(args_to_check[arg])  # noqa: E721
             else:
                 assert el == args_to_check[arg]
+

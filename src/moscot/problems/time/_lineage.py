@@ -44,7 +44,7 @@ class TemporalProblem(  # type: ignore[misc]
         time_key: str,
         joint_attr: Optional[Union[str, Mapping[str, Any]]] = None,
         policy: Literal["sequential", "triu", "tril", "explicit"] = "sequential",
-        cost: OttCostFn_t = "sq_euclidean",
+        cost: CostFnMap_t = "sq_euclidean",
         cost_kwargs: CostKwargs_t = types.MappingProxyType({}),
         a: Optional[Union[bool, str]] = None,
         b: Optional[Union[bool, str]] = None,

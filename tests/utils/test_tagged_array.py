@@ -1,7 +1,7 @@
 from typing import Any, Mapping
 
 import pytest
-
+import scanpy as sc
 from moscot.utils.tagged_array import Tag, TaggedArray
 
 
@@ -28,8 +28,10 @@ class TestTaggedArray:
         assert tagged_array.tag == Tag.POINT_CLOUD
 
     def test_from_adata_geodesic_cost(self, adata_time):
+        adata_time = adata_time[adata_time.obs["time"].isin((0, 1))]
+        sc.pp.neighbors(adata_time, key_added="0_1")
         tagged_array = TaggedArray.from_adata(
-            adata_time, dist_key="time", attr="obsp", key="neighbors", tag=Tag.KERNEL, cost="geodesic"
+            adata_time, dist_key="time", attr="obsp", key="0_1_connectivities", tag=Tag.KERNEL, cost="geodesic"
         )
         assert isinstance(tagged_array, TaggedArray)
         assert tagged_array.tag == Tag.KERNEL
