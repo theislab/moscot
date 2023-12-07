@@ -8,7 +8,6 @@ from moscot._types import (
     CostFnMap_t,
     CostKwargs_t,
     Numeric_t,
-    OttCostFn_t,
     Policy_t,
     ProblemStage_t,
     QuadInitializer_t,
@@ -385,7 +384,7 @@ class LineageProblem(TemporalProblem):
             x=x,
             y=y,
             policy=policy,
-            cost=cost,  # type: ignore[arg-type]
+            cost=cost,
             a=a,
             b=b,
             marginal_kwargs=marginal_kwargs,

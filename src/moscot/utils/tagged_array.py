@@ -121,7 +121,8 @@ class TaggedArray:
         The tagged array.
         """
         if cost == "geodesic":
-            data = cls._extract_data(adata, attr=attr, key=key)
+            dist_key = f"{dist_key[0]}_{dist_key[1]}" if isinstance(dist_key, tuple) else dist_key
+            data = cls._extract_data(adata, attr=attr, key=f"{dist_key}_{key}")
             return cls(data_src=data, tag=Tag.KERNEL, cost="geodesic")
         if tag == Tag.COST_MATRIX:
             if cost == "custom":  # our custom cost functions

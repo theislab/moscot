@@ -5,12 +5,14 @@ import pytest
 import numpy as np
 import pandas as pd
 from ott.geometry import epsilon_scheduler
+
 import scanpy as sc
 from anndata import AnnData
 
 from moscot.base.output import BaseSolverOutput
 from moscot.base.problems import BirthDeathProblem
 from moscot.problems.time import TemporalProblem
+from moscot.utils.tagged_array import Tag, TaggedArray
 from tests._utils import ATOL, RTOL
 from tests.problems.conftest import (
     geometry_args,
@@ -241,13 +243,21 @@ class TestTemporalProblem:
             np.array(tp[key_1, key_3].solution.transport_matrix),
         )
 
-    def test_geodesic_cost(self, adata_time):
+    @pytest.mark.parametrize("key", ["connectivities", "distances"])
+    def test_geodesic_cost(self, adata_time, key: str):
         adata_time = adata_time[adata_time.obs["time"].isin((0, 1))]
         sc.pp.neighbors(adata_time, key_added="0_1")
+        adata_time.obsp["0_1_connectivities"] = adata_time.obsp[f"0_1_{key}"].astype("float64")
         tp = TemporalProblem(adata_time)
-        tp = tp.prepare("time", joint_attr={"attr": "obsp", "key": "connectivities"}, cost="geodesic")
-        tp = tp.solve(max_iterations=2)
-        
+        tp = tp.prepare("time", joint_attr={"attr": "obsp", "key": key}, cost="geodesic")
+        tp = tp.solve(max_iterations=2, lse_mode=False)
+
+        ta = tp[0, 1].xy
+        assert isinstance(ta, TaggedArray)
+        assert isinstance(ta.data_src, np.ndarray)  # this will change once OTT-JAX allows for sparse matrices
+        assert ta.data_tgt is None
+        assert ta.tag == Tag.KERNEL
+        assert ta.cost == "geodesic"
 
     @pytest.mark.parametrize("args_to_check", [sinkhorn_args_1, sinkhorn_args_2])
     def test_pass_arguments(self, adata_time: AnnData, args_to_check: Mapping[str, Any]):
@@ -294,4 +304,3 @@ class TestTemporalProblem:
                 assert type(el) == type(args_to_check[arg])  # noqa: E721
             else:
                 assert el == args_to_check[arg]
-

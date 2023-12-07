@@ -255,10 +255,15 @@ class OTProblem(BaseProblem):
             attr = kwargs.pop("attr", "obsm")
             if cost == "geodesic":
                 key = kwargs.pop("key", "connectivities")
-                return TaggedArray.from_adata(self.adata_src, dist_key=f"{self._src_key}_{self._tgt_key}_{key}", tag=Tag.Kernel, cost="geodesic")
-            print("cost is ", cost)
+                return TaggedArray.from_adata(
+                    self.adata_src,
+                    attr=attr,
+                    dist_key=(self._src_key, self._tgt_key),
+                    key=key,
+                    tag=Tag.KERNEL,
+                    cost="geodesic",
+                )
             if attr in ("obsm", "uns", "obsp"):
-                print("cost is ", cost)
                 return TaggedArray.from_adata(
                     self.adata_src, dist_key=(self._src_key, self._tgt_key), attr=attr, cost="custom", **kwargs
                 )
@@ -341,7 +346,6 @@ class OTProblem(BaseProblem):
         self._x = self._y = self._xy = self._solution = None
         # TODO(michalk8): in the future, have a better dispatch
         # fmt: off
-        print("xy is ", xy)
         if xy and not x and not y:
             self._problem_kind = "linear"
             self._xy = xy if isinstance(xy, TaggedArray) else self._handle_linear(**xy)
@@ -352,17 +356,34 @@ class OTProblem(BaseProblem):
             else:
                 if x["cost"] == "geodesic":
                     key = x["key"] if "key" in x else "connectivities"
-                    self._x = TaggedArray.from_adata(self.adata_src, dist_key=f"{self._src_key}_{key}", tag=Tag.Kernel, cost="geodesic")
-            
-                self._x = TaggedArray.from_adata(self.adata_src, dist_key=self._src_key, **x)
+                    attr = x["attr"] if "attr" in x else "obsp"
+                    self._x = TaggedArray.from_adata(
+                    self.adata_src,
+                    attr=attr,
+                    dist_key=self._src_key,
+                    key=key,
+                    tag=Tag.KERNEL,
+                    cost="geodesic",
+                )
+
+                else:
+                    self._x = TaggedArray.from_adata(self.adata_src, dist_key=self._src_key, **x)
             if isinstance(y, TaggedArray):
                 self._y = y
             else:
                 if y["cost"] == "geodesic":
                     key = y["key"] if "key" in y else "connectivities"
-                    self._y = TaggedArray.from_adata(self.adata_src, dist_key=f"{self._tgt_key}_{key}", tag=Tag.Kernel, cost="geodesic")
-            
-                self._y = TaggedArray.from_adata(self.adata_tgt, dist_key=self._tgt_key, **y)
+                    attr = y["attr"] if "attr" in y else "obsp"
+                    self._y = TaggedArray.from_adata(
+                    self.adata_tgt,
+                    attr=attr,
+                    dist_key=self._tgt_key,
+                    key=key,
+                    tag=Tag.KERNEL,
+                    cost="geodesic",
+                )
+                else:
+                    self._y = TaggedArray.from_adata(self.adata_tgt, dist_key=self._tgt_key, **y)
         elif xy and x and y:
             self._problem_kind = "quadratic"
             self._xy = xy if isinstance(xy, TaggedArray) else self._handle_linear(**xy)
@@ -371,16 +392,33 @@ class OTProblem(BaseProblem):
             else:
                 if x["cost"] == "geodesic":
                     key = x["key"] if "key" in x else "connectivities"
-                    self._x = TaggedArray.from_adata(self.adata_src, dist_key=f"{self._src_key}_{key}", tag=Tag.Kernel, cost="geodesic")
-            
-                self._x = TaggedArray.from_adata(self.adata_src, dist_key=self._src_key, **x)
+                    attr = x["attr"] if "attr" in x else "obsp"
+                    self._x = TaggedArray.from_adata(
+                    self.adata_src,
+                    attr=attr,
+                    dist_key=self._src_key,
+                    key=key,
+                    tag=Tag.KERNEL,
+                    cost="geodesic",
+                )
+                else:
+                    self._x = TaggedArray.from_adata(self.adata_src, dist_key=self._src_key, **x)
             if isinstance(y, TaggedArray):
                 self._y = y
             else:
                 if y["cost"] == "geodesic":
                     key = y["key"] if "key" in y else "connectivities"
-                    self._y = TaggedArray.from_adata(self.adata_src, dist_key=f"{self._tgt_key}_{key}", tag=Tag.Kernel, cost="geodesic")
-                self._y = TaggedArray.from_adata(self.adata_tgt, dist_key=self._tgt_key, **y)
+                    attr = y["attr"] if "attr" in y else "obsp"
+                    self._y = TaggedArray.from_adata(
+                    self.adata_tgt,
+                    attr=attr,
+                    dist_key=self._tgt_key,
+                    key=key,
+                    tag=Tag.KERNEL,
+                    cost="geodesic",
+                )
+                else:
+                    self._y = TaggedArray.from_adata(self.adata_tgt, dist_key=self._tgt_key, **y)
         else:
             raise ValueError("Unable to prepare the data. Either only supply `xy=...`, or `x=..., y=...`, or all.")
         # fmt: on

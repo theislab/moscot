@@ -1,7 +1,9 @@
 from typing import Any, Mapping
 
 import pytest
+
 import scanpy as sc
+
 from moscot.utils.tagged_array import Tag, TaggedArray
 
 

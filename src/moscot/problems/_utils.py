@@ -60,15 +60,15 @@ def handle_cost(
     if cost is None:
         return xy, x, y
     if isinstance(cost, str):  # if cost is a str, we use it in all terms
-        if xy and ("x_cost" not in xy or "y_cost" not in xy):
-            xy["x_cost"] = xy["y_cost"] = cost
+        if xy and "cost" not in xy:
+            xy["cost"] = cost
         if x and "cost" not in x:
             x["cost"] = cost
         if y and "cost" not in y:
             y["cost"] = cost
     elif isinstance(cost, Mapping):  # if cost is a dict, the cost is specified for each term
-        if xy and ("x_cost" not in xy or "y_cost" not in xy):
-            xy["x_cost"] = xy["y_cost"] = cost["xy"]
+        if xy and "cost" not in xy:
+            xy["cost"] = cost["xy"]
         if x and "cost" not in x:
             x["cost"] = cost["x"]
         if y and "cost" not in y:
@@ -84,5 +84,4 @@ def handle_cost(
         x.update(cost_kwargs.get("x", cost_kwargs))  # type:ignore[call-overload]
     if y and cost_kwargs:  # extract cost_kwargs explicit to y-term if possible
         y.update(cost_kwargs.get("y", cost_kwargs))  # type:ignore[call-overload]
-    print("xy is ", xy)
     return xy, x, y
