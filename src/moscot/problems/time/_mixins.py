@@ -1,5 +1,6 @@
 import itertools
 import pathlib
+import types
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -8,6 +9,7 @@ from typing import (
     Iterator,
     List,
     Literal,
+    Mapping,
     Optional,
     Protocol,
     Sequence,
@@ -59,6 +61,13 @@ class TemporalMixinProtocol(AnalysisMixinProtocol[K, B], Protocol[K, B]):  # typ
         ...
 
     def _cell_transition(
+        self: AnalysisMixinProtocol[K, B],
+        *args: Any,
+        **kwargs: Any,
+    ) -> pd.DataFrame:
+        ...
+
+    def _annotation_mapping(
         self: AnalysisMixinProtocol[K, B],
         *args: Any,
         **kwargs: Any,
@@ -231,6 +240,48 @@ class TemporalMixin(AnalysisMixin[K, B]):
             normalize=normalize,
             key_added=key_added,
         )
+
+    def annotation_mapping(
+        self: AnalysisMixinProtocol[K, B],
+        mapping_mode: Literal["sum", "max"],
+        annotation_label: str,
+        forward: bool,
+        source: str = "src",
+        target: str = "tgt",
+        scale_by_marginals: bool = True,
+        other_adata: Optional[str] = None,
+        key_added: str | None = None,
+        cell_transition_kwargs: Mapping[str, Any] = types.MappingProxyType({}),
+    ) -> pd.DataFrame:
+        annotation = self._annotation_mapping(
+            mapping_mode=mapping_mode,
+            annotation_label=annotation_label,
+            source=source,
+            target=target,
+            forward=forward,
+            other_adata=other_adata,
+            scale_by_marginals=scale_by_marginals,
+            cell_transition_kwargs=cell_transition_kwargs,
+        )
+
+        if key_added is None:
+            return annotation
+
+        if key_added not in list(self.adata.obs):
+            self.adata.obs[key_added] = np.empty(len(self.adata))
+
+        if forward:
+            if source != "src":
+                idx = self.adata[self.adata.obs[self.batch_key] == source]
+                self.adata[idx].obs[key_added] = annotation
+            else:
+                self.adata.obs[key_added] = annotation
+        else:
+            if target != "tgt":
+                idx = self.adata[self.adata.obs[self.batch_key] == target]
+                self.adata[idx].obs[key_added] = annotation
+            else:
+                self.adata.obs[key_added] = annotation
 
     def sankey(
         self: "TemporalMixinProtocol[K, B]",

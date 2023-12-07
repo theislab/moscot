@@ -289,18 +289,42 @@ class SpatialAlignmentMixin(AnalysisMixin[K, B]):
         mapping_mode: Literal["sum", "max"],
         annotation_label: str,
         forward: bool,
+        source: str = "src",
+        target: str = "tgt",
         other_adata: Optional[str] = None,
         scale_by_marginals: bool = True,
+        key_added: str | None = None,
         cell_transition_kwargs: Mapping[str, Any] = types.MappingProxyType({}),
     ) -> pd.DataFrame:
-        return self._annotation_mapping(
+        annotation = self._annotation_mapping(
             mapping_mode=mapping_mode,
             annotation_label=annotation_label,
+            source=source,
+            target=target,
             forward=forward,
             other_adata=other_adata,
             scale_by_marginals=scale_by_marginals,
             cell_transition_kwargs=cell_transition_kwargs,
         )
+
+        if key_added is None:
+            return annotation
+
+        if key_added not in list(self.adata.obs):
+            self.adata.obs[key_added] = np.empty(len(self.adata))
+
+        if forward:
+            if source != "src":
+                idx = self.adata[self.adata.obs[self.batch_key] == source]
+                self.adata[idx].obs[key_added] = annotation
+            else:
+                self.adata.obs[key_added] = annotation
+        else:
+            if target != "tgt":
+                idx = self.adata[self.adata.obs[self.batch_key] == target]
+                self.adata[idx].obs[key_added] = annotation
+            else:
+                self.adata.obs[key_added] = annotation
 
     @property
     def spatial_key(self) -> Optional[str]:
@@ -603,16 +627,17 @@ class SpatialMappingMixin(AnalysisMixin[K, B]):
         cell_transition_kwargs: Mapping[str, Any] = types.MappingProxyType({}),
     ) -> pd.DataFrame:
         # mp[("batch_0","tgt"), ("batch_1","tgt")] # from sc tgt to spatial batch
-        if cell_transition_kwargs:
-            annotation = self._annotation_mapping(
-                mapping_mode=mapping_mode,
-                annotation_label=annotation_label,
-                source=source,
-                forward=not forward,  # inverted for MappingProblem
-                other_adata=self.adata_sc,
-                scale_by_marginals=scale_by_marginals,
-                cell_transition_kwargs=cell_transition_kwargs,
-            )
+        annotation = self._annotation_mapping(
+            mapping_mode=mapping_mode,
+            annotation_label=annotation_label,
+            source=source,
+            target="tgt",  # target always 'tgt'
+            forward=not forward,  # inverted for MappingProblem
+            other_adata=self.adata_sc,
+            scale_by_marginals=scale_by_marginals,
+            cell_transition_kwargs=cell_transition_kwargs,
+        )
+
         if key_added is None:
             return annotation
 

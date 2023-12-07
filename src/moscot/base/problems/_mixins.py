@@ -302,6 +302,7 @@ class AnalysisMixin(Generic[K, B]):
         mapping_mode: Literal["sum", "max"],
         annotation_label: str,
         source: K,
+        target: K,
         forward: bool = True,
         # source_label: Optional[str] = "adata",
         # target_label: Optional[str] = "adata",
@@ -310,41 +311,40 @@ class AnalysisMixin(Generic[K, B]):
         cell_transition_kwargs: Mapping[str, Any] = types.MappingProxyType({}),
         # key_added: Optional[str] = None,
     ) -> pd.DataFrame:
-        if not forward:
-            source_annotation_key, source_annotations, source_annotations_ordered = _validate_args_cell_transition(
-                self.adata, annotation_label
+        if forward:
+            source_df = _get_df_cell_transition(
+                self.adata,
+                annotation_keys=[annotation_label],
+                filter_key=self.batch_key,
+                filter_value=source,
             )
-            # source_df = _get_df_cell_transition(source_annotations, source)
-            print("source anno", source_annotations)
-            dummy = pd.get_dummies(source_annotations)
-        elif forward:
-            target_annotation_key, target_annotations, target_annotations_ordered = _validate_args_cell_transition(
-                self.adata if other_adata is None else other_adata, annotation_label
-            )
-            dummy = pd.get_dummies(target_annotations)
+            dummy = pd.get_dummies(source_df)
+        elif not forward:
+            target_df = _get_df_cell_transition(
+                self.adata if other_adata is None else other_adata,
+                annotation_keys=[annotation_label],
+                filter_key=self.batch_key,
+                filter_value=target,
+                )
+            dummy = pd.get_dummies(target_df)
         if mapping_mode == "sum":
             cell_transition_kwargs = dict(cell_transition_kwargs)
-            cell_transition_kwargs.setdefault("aggregation_mode", "cell")
-            cell_transition_kwargs.setdefault("key", annotation_label)
+            cell_transition_kwargs.setdefault("aggregation_mode", "cell") # aggregation mode should be set to cell
+            #cell_transition_kwargs.setdefault("key", annotation_label)
+            cell_transition_kwargs.setdefault("key", self.batch_key)
             cell_transition_kwargs.setdefault("source", source)
-            cell_transition_kwargs.setdefault("target", "tgt")  # target always tgt
+            cell_transition_kwargs.setdefault("target", target)
             cell_transition_kwargs.setdefault("other_adata", other_adata)
             out: ArrayLike = self._cell_transition(**cell_transition_kwargs)
-            # return pd.Categorical(out.argmax(1))
-            # return self._cell_transition(**cell_transition_kwargs)  # aggregation mode should set to cell
         elif mapping_mode == "max":
             assert (
                 not cell_transition_kwargs
             ), "cell_transition_kwargs is not empty, although cell_transition is not used."
             out: ArrayLike = self.pull(dummy, scale_by_marginals=scale_by_marginals)  # or assert out is not None
-            # return pd.Categorical([dummy.columns[i] for i in out.argmax(1)])
         else:
             raise NotImplementedError(f"Mapping mode `{mapping_mode!r}` is not yet implemented.")
         # return for both modes
-        print("forward in problems:", forward)
-        print(dummy)
-        print("res", pd.Categorical([dummy.columns[i] for i in np.argmax(out, axis=1)]))
-        return pd.Categorical([dummy.columns[i] for i in np.argmax(out, axis=1)])
+        return pd.Categorical(out.idxmax(axis="columns"))
 
     def _sample_from_tmap(
         self: AnalysisMixinProtocol[K, B],
