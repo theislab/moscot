@@ -354,7 +354,7 @@ class OTProblem(BaseProblem):
             if isinstance(x, TaggedArray):
                 self._x = x
             else:
-                if x["cost"] == "geodesic":
+                if "cost" in x and x["cost"] == "geodesic":
                     key = x["key"] if "key" in x else "connectivities"
                     attr = x["attr"] if "attr" in x else "obsp"
                     self._x = TaggedArray.from_adata(
@@ -371,7 +371,7 @@ class OTProblem(BaseProblem):
             if isinstance(y, TaggedArray):
                 self._y = y
             else:
-                if y["cost"] == "geodesic":
+                if "cost" in y and y["cost"] == "geodesic":
                     key = y["key"] if "key" in y else "connectivities"
                     attr = y["attr"] if "attr" in y else "obsp"
                     self._y = TaggedArray.from_adata(
@@ -390,7 +390,7 @@ class OTProblem(BaseProblem):
             if isinstance(x, TaggedArray):
                 self._x = x
             else:
-                if x["cost"] == "geodesic":
+                if "cost" in x and x["cost"] == "geodesic":
                     key = x["key"] if "key" in x else "connectivities"
                     attr = x["attr"] if "attr" in x else "obsp"
                     self._x = TaggedArray.from_adata(
@@ -406,7 +406,7 @@ class OTProblem(BaseProblem):
             if isinstance(y, TaggedArray):
                 self._y = y
             else:
-                if y["cost"] == "geodesic":
+                if "cost" in y and y["cost"] == "geodesic":
                     key = y["key"] if "key" in y else "connectivities"
                     attr = y["attr"] if "attr" in y else "obsp"
                     self._y = TaggedArray.from_adata(
