@@ -33,7 +33,7 @@ class TestTaggedArray:
         adata_time = adata_time[adata_time.obs["time"].isin((0, 1))]
         sc.pp.neighbors(adata_time, key_added="0_1")
         tagged_array = TaggedArray.from_adata(
-            adata_time, dist_key="time", attr="obsp", key="0_1_connectivities", tag=Tag.KERNEL, cost="geodesic"
+            adata_time, dist_key=(0, 1), attr="obsp", key="connectivities", tag=Tag.KERNEL, cost="geodesic"
         )
         assert isinstance(tagged_array, TaggedArray)
         assert tagged_array.tag == Tag.KERNEL
