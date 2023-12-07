@@ -325,12 +325,12 @@ class AnalysisMixin(Generic[K, B]):
                 annotation_keys=[annotation_label],
                 filter_key=self.batch_key,
                 filter_value=target,
-                )
+            )
             dummy = pd.get_dummies(target_df)
         if mapping_mode == "sum":
             cell_transition_kwargs = dict(cell_transition_kwargs)
-            cell_transition_kwargs.setdefault("aggregation_mode", "cell") # aggregation mode should be set to cell
-            #cell_transition_kwargs.setdefault("key", annotation_label)
+            cell_transition_kwargs.setdefault("aggregation_mode", "cell")  # aggregation mode should be set to cell
+            # cell_transition_kwargs.setdefault("key", annotation_label)
             cell_transition_kwargs.setdefault("key", self.batch_key)
             cell_transition_kwargs.setdefault("source", source)
             cell_transition_kwargs.setdefault("target", target)
