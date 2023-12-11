@@ -315,7 +315,7 @@ class SpatialAlignmentMixin(AnalysisMixin[K, B]):
 
         if forward:
             if source != "src":
-                idx = self.adata[self.adata.obs[self.batch_key] == source]
+                idx = self.adata.obs[self.batch_key] == source
                 self.adata[idx].obs[key_added] = annotation
             else:
                 self.adata.obs[key_added] = annotation

@@ -331,6 +331,7 @@ class AnalysisMixin(Generic[K, B]):
             cell_transition_kwargs = dict(cell_transition_kwargs)
             cell_transition_kwargs.setdefault("aggregation_mode", "cell") # aggregation mode should be set to cell
             #cell_transition_kwargs.setdefault("key", annotation_label)
+            cell_transition_kwargs.setdefault("forward", forward)
             cell_transition_kwargs.setdefault("key", self.batch_key)
             cell_transition_kwargs.setdefault("source", source)
             cell_transition_kwargs.setdefault("target", target)
