@@ -1,7 +1,10 @@
 import pytest
-from moscot.costs._utils import get_cost, get_available_costs, _get_available_backends_n_costs
 
-
+from moscot.costs._utils import (
+    _get_available_backends_n_costs,
+    get_available_costs,
+    get_cost,
+)
 
 
 class TestCostUtils:
