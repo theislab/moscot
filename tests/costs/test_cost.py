@@ -1,47 +1,76 @@
 import pytest
-from moscot.costs._utils import get_cost, get_available_costs, _get_available_backends_n_costs
+
+import numpy as np
+
+import anndata as ad
+
+from moscot.costs._costs import BarcodeDistance, _scaled_hamming_dist
+from moscot.costs._utils import get_cost
 
 
-class TestCost:  # TODO
-    pass
-
-
-class TestCostUtils:
-    ALL_BACKENDS_N_COSTS = {
-        "moscot": ("barcode_distance", "leaf_distance"),
-        "ott": (
-            "euclidean",
-            "sq_euclidean",
-            "cosine",
-            "pnorm_p",
-            "sq_pnorm",
-            "elastic_l1",
-            "elastic_l2",
-            "elastic_stvs",
-            "elastic_sqk_overlap",
-        ),
-    }
+class TestBarcodeDistance:
+    RNG = np.random.RandomState(0)
 
     @staticmethod
-    def test_get_available_backends_n_costs():
-        assert dict(_get_available_backends_n_costs()) == {
-            k: list(v) for k, v in _get_available_backends_n_costs().items()
-        }
-
-    @staticmethod
-    def test_get_available_costs():
-        assert get_available_costs() == TestCostUtils.ALL_BACKENDS_N_COSTS
-        assert get_available_costs("moscot") == {"moscot": (TestCostUtils.ALL_BACKENDS_N_COSTS["moscot"])}
-        assert get_available_costs("ott") == {"ott": TestCostUtils.ALL_BACKENDS_N_COSTS["ott"]}
+    def test_barcode_distance_init():
+        adata = ad.AnnData(TestBarcodeDistance.RNG.rand(3, 3), obsm={"barcodes": TestBarcodeDistance.RNG.rand(3, 3)})
+        # initialization failure when no adata is provided
+        with pytest.raises(TypeError):
+            get_cost("barcode_distance", backend="moscot")
+        # initialization failure when invalid key is provided
         with pytest.raises(KeyError):
-            get_available_costs("foo")
+            get_cost("barcode_distance", backend="moscot", adata=adata, key="invalid_key", attr="obsm")
+        # initialization failure when invalid attr
+        with pytest.raises(AttributeError):
+            get_cost("barcode_distance", backend="moscot", adata=adata, key="barcodes", attr="invalid_attr")
+        # check if not None
+        cost_fn: BarcodeDistance = get_cost(
+            "barcode_distance", backend="moscot", adata=adata, key="barcodes", attr="obsm"
+        )
+        assert cost_fn is not None
 
     @staticmethod
-    def test_get_cost_fails():
-        invalid_cost = "foo"
-        invalid_backend = "bar"
-        with pytest.raises(ValueError):
-            get_cost(invalid_cost, backend=invalid_backend)
-        for backend in TestCostUtils.ALL_BACKENDS_N_COSTS.keys():
-            with pytest.raises(ValueError):
-                get_cost(invalid_cost, backend=backend)
+    def test_scaled_hamming_dist_with_sample_inputs():
+        # Sample input arrays
+        x = np.array([1, -1, 0, 1])
+        y = np.array([0, 1, 1, 1])
+
+        # Expected output
+        expected_distance = 2.0 / 3
+
+        # Compute the scaled Hamming distance
+        computed_distance = _scaled_hamming_dist(x, y)
+
+        # Check if the computed distance matches the expected distance
+        np.testing.assert_almost_equal(computed_distance, expected_distance, decimal=4)
+
+    @staticmethod
+    def test_scaled_hamming_dist_if_nan():
+        # Sample input arrays with no shared indices
+        x = np.array([-1, -1, 0, 1])
+        y = np.array([0, 1, -1, -1])
+
+        assert _scaled_hamming_dist(x, y) is np.nan
+
+    @staticmethod
+    def test_barcode_distance_with_sample_input():
+        # Example barcodes
+        barcodes = np.array([[1, 0, 1], [1, 1, 0], [0, 1, 1]])
+
+        # Create a dummy AnnData object with the example barcodes
+        adata = ad.AnnData(TestBarcodeDistance.RNG.rand(3, 3))
+        adata.obsm["barcodes"] = barcodes
+
+        # Initialize BarcodeDistance
+        cost_fn: BarcodeDistance = get_cost(
+            "barcode_distance", backend="moscot", adata=adata, key="barcodes", attr="obsm"
+        )
+
+        # Compute distances
+        computed_distances = cost_fn()
+
+        # Expected distance matrix
+        expected_distances = np.array([[0.0, 2.0, 2.0], [2.0, 0.0, 2.0], [2.0, 2.0, 0.0]]) / 3.0
+
+        # Check if the computed distances match the expected distances
+        np.testing.assert_almost_equal(computed_distances, expected_distances, decimal=4)
