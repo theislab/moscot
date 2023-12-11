@@ -329,7 +329,7 @@ class AnalysisMixin(Generic[K, B]):
             source_df = _get_df_cell_transition(
                 self.adata,
                 annotation_keys=[annotation_label],
-                filter_key=batch_key,
+                filter_key=key,
                 filter_value=source,
             )
             dummy = pd.get_dummies(source_df)
@@ -340,7 +340,7 @@ class AnalysisMixin(Generic[K, B]):
             target_df = _get_df_cell_transition(
                 self.adata if other_adata is None else other_adata,
                 annotation_keys=[annotation_label],
-                filter_key=batch_key,
+                filter_key=key,
                 filter_value=target,
             )
             dummy = pd.get_dummies(target_df)
@@ -349,14 +349,15 @@ class AnalysisMixin(Generic[K, B]):
             cell_transition_kwargs.setdefault("target_groups", None)
         if mapping_mode == "sum":
             out: pd.DataFrame = self._cell_transition(**cell_transition_kwargs)
+            return out.idxmax(axis=axis).to_frame(name=annotation_label)
         elif mapping_mode == "max":
             if forward:
-                print(self[(source, target)])
                 out: ArrayLike = self[(source, target)].push(dummy, scale_by_marginals=scale_by_marginals)
-            return out
+            else:
+                out: ArrayLike = self[(source, target)].pull(dummy, scale_by_marginals=scale_by_marginals)
+            return pd.DataFrame(out.argmax(1), columns=[annotation_label])
+        else:
             raise NotImplementedError(f"Mapping mode `{mapping_mode!r}` is not yet implemented.")
-        # return for both modes
-        return out.idxmax(axis=axis).to_frame(name=annotation_label)
 
     def _sample_from_tmap(
         self: AnalysisMixinProtocol[K, B],
