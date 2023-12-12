@@ -301,6 +301,7 @@ class SpatialAlignmentMixin(AnalysisMixin[K, B]):
             annotation_label=annotation_label,
             source=source,
             target=target,
+            key=self._batch_key,
             forward=forward,
             other_adata=other_adata,
             scale_by_marginals=scale_by_marginals,
