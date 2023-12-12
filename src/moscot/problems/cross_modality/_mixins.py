@@ -1,4 +1,5 @@
-from typing import TYPE_CHECKING, Any, Dict, Literal, Optional
+import types
+from typing import TYPE_CHECKING, Any, Dict, Literal, Mapping, Optional
 
 import pandas as pd
 
@@ -182,6 +183,31 @@ class CrossModalityTranslationMixin(AnalysisMixin[K, B]):
             normalize=normalize,
             key_added=key_added,
         )
+
+    def annotation_mapping(
+        self: CrossModalityTranslationMixinProtocol[K, B],
+        mapping_mode: Literal["sum", "max"],
+        annotation_label: str,
+        forward: bool,
+        source: K,
+        target: K,
+        scale_by_marginals: bool = True,
+        other_adata: Optional[str] = None,
+        cell_transition_kwargs: Mapping[str, Any] = types.MappingProxyType({}),
+    ) -> pd.DataFrame:
+        annotation: pd.DataFrame = self._annotation_mapping(
+            mapping_mode=mapping_mode,
+            annotation_label=annotation_label,
+            source=source,
+            target=target,
+            key=self.batch_key,
+            forward=forward,
+            other_adata=other_adata,
+            scale_by_marginals=scale_by_marginals,
+            cell_transition_kwargs=cell_transition_kwargs,
+        )
+
+        return annotation
 
     @property
     def batch_key(self) -> Optional[str]:

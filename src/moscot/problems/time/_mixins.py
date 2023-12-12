@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import itertools
 import pathlib
 import types
@@ -41,7 +43,7 @@ class TemporalMixinProtocol(AnalysisMixinProtocol[K, B], Protocol[K, B]):  # typ
     _temporal_key: Optional[str]
 
     def cell_transition(  # noqa: D102
-        self: "TemporalMixinProtocol[K, B]",
+        self: TemporalMixinProtocol[K, B],
         source: K,
         target: K,
         source_groups: Str_Dict_t,
@@ -67,15 +69,8 @@ class TemporalMixinProtocol(AnalysisMixinProtocol[K, B], Protocol[K, B]):  # typ
     ) -> pd.DataFrame:
         ...
 
-    def _annotation_mapping(
-        self: AnalysisMixinProtocol[K, B],
-        *args: Any,
-        **kwargs: Any,
-    ) -> pd.DataFrame:
-        ...
-
     def _sample_from_tmap(
-        self: "TemporalMixinProtocol[K, B]",
+        self: TemporalMixinProtocol[K, B],
         source: K,
         target: K,
         n_samples: int,
@@ -89,7 +84,7 @@ class TemporalMixinProtocol(AnalysisMixinProtocol[K, B], Protocol[K, B]):  # typ
         ...
 
     def _compute_wasserstein_distance(
-        self: "TemporalMixinProtocol[K, B]",
+        self: TemporalMixinProtocol[K, B],
         point_cloud_1: ArrayLike,
         point_cloud_2: ArrayLike,
         a: Optional[ArrayLike] = None,
@@ -100,7 +95,7 @@ class TemporalMixinProtocol(AnalysisMixinProtocol[K, B], Protocol[K, B]):  # typ
         ...
 
     def _interpolate_gex_with_ot(
-        self: "TemporalMixinProtocol[K, B]",
+        self: TemporalMixinProtocol[K, B],
         number_cells: int,
         source_data: ArrayLike,
         target_data: ArrayLike,
@@ -114,7 +109,7 @@ class TemporalMixinProtocol(AnalysisMixinProtocol[K, B], Protocol[K, B]):  # typ
         ...
 
     def _get_data(
-        self: "TemporalMixinProtocol[K, B]",
+        self: TemporalMixinProtocol[K, B],
         source: K,
         intermediate: Optional[K] = None,
         target: Optional[K] = None,
@@ -125,7 +120,7 @@ class TemporalMixinProtocol(AnalysisMixinProtocol[K, B], Protocol[K, B]):  # typ
         ...
 
     def _interpolate_gex_randomly(
-        self: "TemporalMixinProtocol[K, B]",
+        self: TemporalMixinProtocol[K, B],
         number_cells: int,
         source_data: ArrayLike,
         target_data: ArrayLike,
@@ -136,7 +131,7 @@ class TemporalMixinProtocol(AnalysisMixinProtocol[K, B], Protocol[K, B]):  # typ
         ...
 
     def _plot_temporal(
-        self: "TemporalMixinProtocol[K, B]",
+        self: TemporalMixinProtocol[K, B],
         data: Dict[K, ArrayLike],
         source: K,
         target: K,
@@ -242,49 +237,32 @@ class TemporalMixin(AnalysisMixin[K, B]):
         )
 
     def annotation_mapping(
-        self: AnalysisMixinProtocol[K, B],
+        self: TemporalMixinProtocol[K, B],
         mapping_mode: Literal["sum", "max"],
         annotation_label: str,
         forward: bool,
-        source: str = "src",
-        target: str = "tgt",
+        source: K,
+        target: K,
         scale_by_marginals: bool = True,
         other_adata: Optional[str] = None,
-        key_added: str | None = None,
         cell_transition_kwargs: Mapping[str, Any] = types.MappingProxyType({}),
     ) -> pd.DataFrame:
-        annotation = self._annotation_mapping(
+        annotation: pd.DataFrame = self._annotation_mapping(
             mapping_mode=mapping_mode,
             annotation_label=annotation_label,
             source=source,
             target=target,
+            key=self._temporal_key,
             forward=forward,
             other_adata=other_adata,
             scale_by_marginals=scale_by_marginals,
             cell_transition_kwargs=cell_transition_kwargs,
         )
 
-        if key_added is None:
-            return annotation
-
-        if key_added not in list(self.adata.obs):
-            self.adata.obs[key_added] = np.empty(len(self.adata))
-
-        if forward:
-            if source != "src":
-                idx = self.adata[self.adata.obs[self.batch_key] == source]
-                self.adata[idx].obs[key_added] = annotation
-            else:
-                self.adata.obs[key_added] = annotation
-        else:
-            if target != "tgt":
-                idx = self.adata[self.adata.obs[self.batch_key] == target]
-                self.adata[idx].obs[key_added] = annotation
-            else:
-                self.adata.obs[key_added] = annotation
+        return annotation
 
     def sankey(
-        self: "TemporalMixinProtocol[K, B]",
+        self: TemporalMixinProtocol[K, B],
         source: K,
         target: K,
         source_groups: Str_Dict_t,
