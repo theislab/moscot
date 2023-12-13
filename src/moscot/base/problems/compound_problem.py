@@ -126,8 +126,8 @@ class BaseCompoundProblem(BaseProblem, abc.ABC, Generic[K, B]):
         callback: Optional[Union[Literal["local-pca"], Callback_t]] = None,
         **kwargs: Any,
     ) -> Mapping[Literal["xy", "x", "y"], TaggedArray]:
-        def verify_data(data: Mapping[Literal["xy", "x", "y"], TaggedArray]) -> None:
-            keys = ("xy", "x", "y")
+        def verify_data(data: Mapping[Literal["xy_ta", "x_ta", "y_ta"], TaggedArray]) -> None:
+            keys = ("xy_ta", "x_ta", "y_ta")
             for key, val in data.items():
                 if key not in keys:
                     raise ValueError(f"Expected key to be one of `{keys}`, found `{key!r}`.")
@@ -140,6 +140,8 @@ class BaseCompoundProblem(BaseProblem, abc.ABC, Generic[K, B]):
             callback = problem._local_pca_callback
         if callback == "spatial-norm":
             callback = problem._spatial_norm_callback
+        if callback == "graph-construction":
+            callback = problem._graph_construction_callback
 
         if not callable(callback):
             raise TypeError("Callback is not a function.")
@@ -187,7 +189,8 @@ class BaseCompoundProblem(BaseProblem, abc.ABC, Generic[K, B]):
             )
 
             kws = {**kwargs, **xy_data, **x_data, **y_data}  # type: ignore[misc]
-
+            print("kwargs are ", kwargs)
+            print("kws are ", kws)
             if isinstance(problem, BirthDeathProblem):
                 kws["proliferation_key"] = self.proliferation_key  # type: ignore[attr-defined]
                 kws["apoptosis_key"] = self.apoptosis_key  # type: ignore[attr-defined]

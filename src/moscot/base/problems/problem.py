@@ -16,6 +16,7 @@ from typing import (
 import cloudpickle
 
 import numpy as np
+import anndata as ad
 import pandas as pd
 import scipy.sparse as sp
 from pandas.api import types as pd_types
@@ -285,6 +286,9 @@ class OTProblem(BaseProblem):
     @wrap_prepare
     def prepare(
         self,
+        xy_ta: Any = None,
+        x_ta: Any = None,
+        y_ta: Any = None,
         xy: Union[Mapping[str, Any], TaggedArray] = types.MappingProxyType({}),
         x: Union[Mapping[str, Any], TaggedArray] = types.MappingProxyType({}),
         y: Union[Mapping[str, Any], TaggedArray] = types.MappingProxyType({}),
@@ -348,11 +352,11 @@ class OTProblem(BaseProblem):
         # fmt: off
         if xy and not x and not y:
             self._problem_kind = "linear"
-            self._xy = xy if isinstance(xy, TaggedArray) else self._handle_linear(**xy)
+            self._xy = xy_ta._add_cost(**xy) if isinstance(xy_ta, TaggedArray) else self._handle_linear(**xy)
         elif x and y and not xy:
             self._problem_kind = "quadratic"
             if isinstance(x, TaggedArray):
-                self._x = x
+                self._x = x._add_cost(x)
             else:
                 if "cost" in x and x["cost"] == "geodesic":
                     key = x["key"] if "key" in x else "connectivities"
@@ -369,7 +373,7 @@ class OTProblem(BaseProblem):
                 else:
                     self._x = TaggedArray.from_adata(self.adata_src, dist_key=self._src_key, **x)
             if isinstance(y, TaggedArray):
-                self._y = y
+                self._y = y._add_cost(y)
             else:
                 if "cost" in y and y["cost"] == "geodesic":
                     key = y["key"] if "key" in y else "connectivities"
@@ -631,19 +635,19 @@ class OTProblem(BaseProblem):
             data = concat(x, y)
             if data.shape[1] <= n_comps:
                 # TODO(michalk8): log
-                return {"xy": TaggedArray(data[:n], data[n:], tag=Tag.POINT_CLOUD)}
+                return {f"{term}_ta": TaggedArray(data[:n], data[n:], tag=Tag.POINT_CLOUD)}
 
             logger.info(f"Computing pca with `n_comps={n_comps}` for `xy` using `{msg}`")
             data = sc.pp.pca(data, n_comps=n_comps, **kwargs)
             if scaler is not None:
                 data = scaler.fit_transform(data)
-            return {"xy": TaggedArray(data[:n], data[n:], tag=Tag.POINT_CLOUD)}
+            return {f"{term}_ta": TaggedArray(data[:n], data[n:], tag=Tag.POINT_CLOUD)}
         if term in ("x", "y"):  # if we don't have a shared space, then adata_y is always None
             logger.info(f"Computing pca with `n_comps={n_comps}` for `{term}` using `{msg}`")
             x = sc.pp.pca(x, n_comps=n_comps, **kwargs)
             if scaler is not None:
                 x = scaler.fit_transform(x)
-            return {term: TaggedArray(x, tag=Tag.POINT_CLOUD)}
+            return {f"{term}_ta": TaggedArray(x, tag=Tag.POINT_CLOUD)}
         raise ValueError(f"Expected `term` to be one of `x`, `y`, or `xy`, found `{term!r}`.")
 
     @staticmethod
@@ -663,8 +667,23 @@ class OTProblem(BaseProblem):
 
         logger.info(f"Normalizing spatial coordinates of `{term}`.")
         spatial = (spatial - spatial.mean()) / spatial.std()
-        return {term: TaggedArray(spatial, tag=Tag.POINT_CLOUD)}
-
+        return {f"{term}_ta": TaggedArray(spatial, tag=Tag.POINT_CLOUD)}
+    
+    @staticmethod
+    def _graph_construction_callback(term: Literal["xy"], adata: AnnData, adata_y: Optional[AnnData] = None, use_rep: str = "X_pca", **kwargs: Any) -> Dict[Literal["xy"], TaggedArray]:
+        if term == "xy":
+            if adata_y is None:
+                raise ValueError("When `term` is `xy`, `adata_y` cannot be `None`.")
+            if use_rep not in adata.obsm.keys():
+                raise ValueError(f"Unable to find `{use_rep}` in `adata.obsm`.")
+            if use_rep not in adata_y.obsm.keys():
+                raise ValueError(f"Unable to find `{use_rep}` in `adata_y.obsm`.")
+            adata_concat = ad.concatenate(adata, adata_y, join="inner", batch_key="batch", batch_categories=["source", "target"])
+            logger.info(f"Computing graph construction for `xy` using `{use_rep}`")
+            sc.pp.neighbors(adata_concat, **kwargs)
+            return {f"{term}_ta": TaggedArray(data_src=adata_concat.obsp["connectivities"], adata_tgt=None, tag=Tag.KERNEL)}
+        raise ValueError(f"Expected `term` to be `xy`, found `{term!r}`.")
+    
     def _create_marginals(
         self,
         adata: AnnData,
@@ -714,6 +733,47 @@ class OTProblem(BaseProblem):
         """
         del kwargs
         return np.ones((adata.n_obs,), dtype=float) / adata.n_obs
+
+    def set_graph_xy(
+        self,
+        data: Union[pd.DataFrame, Tuple[sp.csr_matrix, pd.Series, pd.Series]],
+        cost: Literal["geodesic"] = "geodesic",
+    ) -> None:
+        """Set a graph for the :term:`linear term` for graph based distances.
+
+        Parameters
+        ----------
+        data
+            Data containing the graph.
+            - If of type :class:`pandas.DataFrame`, its index must be equal to :attr:`adata_src.obs_names <adata_src>`
+            and its columns to :attr:`adata_tgt.obs_names <adata_tgt>`.
+            - If of type :class:`tuple`, it must be of the form (sp.csr_matrix, pd.Series, pd.Series), where the first
+            element is the graph, the second element and the third element are the annotations of the graph.
+        cost
+            Which graph-based distance to use.
+
+        Returns
+        -------
+        Nothing, just updates the following fields:
+        - :attr:`xy` - the :term:`linear term`.
+        - :attr:`stage` - set to ``'prepared'``.
+        """
+        expected_series = pd.concat([self.adata_src.obs_names.to_series(), self.adata_tgt.obs_names.to_series()])
+        if isinstance(data, pd.DataFrame):
+            pd.testing.assert_series_equal(expected_series, data.index.to_series())
+            pd.testing.assert_series_equal(expected_series, data.columns.to_series())
+            data_src = data.to_numpy()
+        elif isinstance(data, tuple):
+            pd.testing.assert_series_equal(expected_series, data[1])
+            pd.testing.assert_series_equal(expected_series, data[2])
+            data_src = data[0]
+        else:
+            raise ValueError(
+                "Expected data to be a pd.DataFrame or a tuple of (sp.csr_matrix, pd.Series, pd.Series), "
+                + f"found {type(data)}."
+            )
+        self._xy = TaggedArray(data_src=data_src, data_tgt=None, tag=Tag.KERNEL, cost=cost)
+        self._stage = "prepared"
 
     # TODO(michalk8): extend for point-clouds as Union[pd.DataFrame, Tuple[pd.DataFrame, pd.DataFrame]]
     # TODO(michalk8): allow this to be nullified

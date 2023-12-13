@@ -4,6 +4,7 @@ import types
 from typing import Any, Literal, Mapping, Optional, Set, Tuple, Union
 
 import jax
+import jax.numpy as jnp
 from ott.geometry import costs, epsilon_scheduler, geodesic, geometry, pointcloud
 from ott.problems.linear import linear_problem
 from ott.problems.quadratic import quadratic_problem
@@ -178,6 +179,8 @@ class SinkhornSolver(OTTJaxSolver):
         cost_kwargs: Mapping[str, Any] = types.MappingProxyType({}),
         cost_matrix_rank: Optional[int] = None,
         # problem
+        a: Optional[jnp.ndarray] = None,
+        b: Optional[jnp.ndarray] = None,
         **kwargs: Any,
     ) -> linear_problem.LinearProblem:
         del x, y
@@ -194,7 +197,12 @@ class SinkhornSolver(OTTJaxSolver):
         )
         if cost_matrix_rank is not None:
             geom = geom.to_LRCGeometry(rank=cost_matrix_rank)
-        self._problem = linear_problem.LinearProblem(geom, **kwargs)
+
+        if xy.cost == "geodesic":
+            orig_a = a
+            a = jnp.concatenate((a, jnp.zeros_like(b)), axis=0)
+            b = jnp.concatenate((jnp.zeros_like(orig_a), b), axis=0)
+        self._problem = linear_problem.LinearProblem(geom, a=a, b=b, **kwargs)
         return self._problem
 
     @property

@@ -53,8 +53,10 @@ class TestTemporalProblem:
         eps = 0.5
         expected_keys = [(0, 1), (1, 2)]
         problem = TemporalProblem(adata=adata_time)
-        problem = problem.prepare("time")
+        problem = problem.prepare("time", cost="cosine", xy_callback="local-pca")
         problem = problem.solve(epsilon=eps)
+        print(problem[0,1].xy.cost)
+        assert False
 
         for key, subsol in problem.solutions.items():
             assert isinstance(subsol, BaseSolverOutput)
@@ -244,44 +246,85 @@ class TestTemporalProblem:
             np.array(tp[key_1, key_3].solution.transport_matrix),
         )
 
-    @pytest.mark.parametrize("key", ["connectivities", "distances"])
-    def test_geodesic_cost(self, adata_time, key: str):
-        time_column = "time"
-        unique_times = adata_time.obs[time_column].unique()
+    def test_geodesic_cost_set_xy_cost_dense(self, adata_time):
+        # TODO(@MUCDK) add test for failure case
+        tp = TemporalProblem(adata_time)
+        tp = tp.prepare("time", joint_attr="X_pca")
+        batch_column = "time"
+        unique_batches = adata_time.obs[batch_column].unique()
 
-        for i in range(len(unique_times) - 1):
-            time1 = unique_times[i]
-            time2 = unique_times[i + 1]
+        dfs = []
+        for i in range(len(unique_batches) - 1):
+            batch1 = unique_batches[i]
+            batch2 = unique_batches[i + 1]
 
-            indices = np.where((adata_time.obs[time_column] == time1) | (adata_time.obs[time_column] == time2))[0]
+            indices = np.where((adata_time.obs[batch_column] == batch1) | (adata_time.obs[batch_column] == batch2))[0]
             adata_subset = adata_time[indices]
             sc.pp.neighbors(adata_subset, n_neighbors=15, use_rep="X_pca")
-            placeholder_shape = (adata_time.shape[0], adata_time.shape[0])
-            placeholder_matrix_1 = csr_matrix(placeholder_shape)
-            placeholder_matrix_2 = csr_matrix(placeholder_shape)
-            subset_connectivities = adata_subset.obsp["connectivities"]
-            subset_distances = adata_subset.obsp["distances"]
-            placeholder_matrix_1[indices][:, indices] = subset_connectivities
-            placeholder_matrix_2[indices][:, indices] = subset_distances
-            obsp_key_1 = f"{time1}_{time2}_connectivities"
-            obsp_key_2 = f"{time1}_{time2}_distances"
-            adata_time.obsp[obsp_key_1] = placeholder_matrix_1
-            adata_time.obsp[obsp_key_2] = placeholder_matrix_2
+            dfs.append(
+                pd.DataFrame(
+                    index=adata_subset.obs_names,
+                    columns=adata_subset.obs_names,
+                    data=adata_subset.obsp["connectivities"].A.astype("float64"),
+                )
+            )
 
-        tp = TemporalProblem(adata_time)
-        tp = tp.prepare("time", joint_attr={"attr": "obsp", "key": key}, cost="geodesic")
+        tp[0, 1].set_graph_xy(dfs[0], cost="geodesic")
         tp = tp.solve(max_iterations=2, lse_mode=False)
 
         ta = tp[0, 1].xy
         assert isinstance(ta, TaggedArray)
-        assert isinstance(ta.data_src, np.ndarray)  # this will change once OTT-JAX allows for sparse matrices
+        assert isinstance(ta.data_src, np.ndarray)
         assert ta.data_tgt is None
         assert ta.tag == Tag.KERNEL
         assert ta.cost == "geodesic"
 
+        tp[1, 2].set_graph_xy(dfs[1], cost="geodesic")
+        tp = tp.solve(max_iterations=2, lse_mode=False)
+
         ta = tp[1, 2].xy
         assert isinstance(ta, TaggedArray)
-        assert isinstance(ta.data_src, np.ndarray)  # this will change once OTT-JAX allows for sparse matrices
+        assert isinstance(ta.data_src, np.ndarray)
+        assert ta.data_tgt is None
+        assert ta.tag == Tag.KERNEL
+        assert ta.cost == "geodesic"
+
+    def test_geodesic_cost_set_xy_cost_sparse(self, adata_time):
+        tp = TemporalProblem(adata_time)
+        tp = tp.prepare("time", joint_attr="X_pca")
+        batch_column = "time"
+        unique_batches = adata_time.obs[batch_column].unique()
+
+        elements = []
+        for i in range(len(unique_batches) - 1):
+            batch1 = unique_batches[i]
+            batch2 = unique_batches[i + 1]
+
+            indices = np.where((adata_time.obs[batch_column] == batch1) | (adata_time.obs[batch_column] == batch2))[0]
+            adata_subset = adata_time[indices]
+            sc.pp.neighbors(adata_subset, n_neighbors=15, use_rep="X_pca")
+
+            sparse_matrix = adata_subset.obsp["connectivities"].astype("float64")
+            row_names = adata_subset.obs_names.to_series()
+            col_names = adata_subset.obs_names.to_series()
+            elements.append((sparse_matrix, row_names, col_names))
+
+        tp[0, 1].set_graph_xy(elements[0], cost="geodesic")
+        tp = tp.solve(max_iterations=2, lse_mode=False)
+
+        ta = tp[0, 1].xy
+        assert isinstance(ta, TaggedArray)
+        assert isinstance(ta.data_src, csr_matrix)
+        assert ta.data_tgt is None
+        assert ta.tag == Tag.KERNEL
+        assert ta.cost == "geodesic"
+
+        tp[1, 2].set_graph_xy(elements[1], cost="geodesic")
+        tp = tp.solve(max_iterations=2, lse_mode=False)
+
+        ta = tp[1, 2].xy
+        assert isinstance(ta, TaggedArray)
+        assert isinstance(ta.data_src, csr_matrix)
         assert ta.data_tgt is None
         assert ta.tag == Tag.KERNEL
         assert ta.cost == "geodesic"
