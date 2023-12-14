@@ -310,12 +310,9 @@ class AnalysisMixin(Generic[K, B]):
         target: K,
         key: str | None = None,
         forward: bool = True,
-        # source_label: Optional[str] = "adata",
-        # target_label: Optional[str] = "adata",
         other_adata: Optional[str] = None,
         scale_by_marginals: bool = True,
         cell_transition_kwargs: Mapping[str, Any] = types.MappingProxyType({}),
-        # key_added: Optional[str] = None,
     ) -> pd.DataFrame:
         batch_key = getattr(self, "batch_key", None)
         cell_transition_kwargs = dict(cell_transition_kwargs)

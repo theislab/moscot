@@ -244,7 +244,6 @@ class TemporalMixin(AnalysisMixin[K, B]):
         source: K,
         target: K,
         scale_by_marginals: bool = True,
-        other_adata: Optional[str] = None,
         cell_transition_kwargs: Mapping[str, Any] = types.MappingProxyType({}),
     ) -> pd.DataFrame:
         annotation: pd.DataFrame = self._annotation_mapping(
@@ -254,7 +253,7 @@ class TemporalMixin(AnalysisMixin[K, B]):
             target=target,
             key=self._temporal_key,
             forward=forward,
-            other_adata=other_adata,
+            other_adata=None,
             scale_by_marginals=scale_by_marginals,
             cell_transition_kwargs=cell_transition_kwargs,
         )
