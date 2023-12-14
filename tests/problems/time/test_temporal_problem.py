@@ -1,10 +1,10 @@
-from typing import Any, List, Mapping
+from typing import Any, List, Mapping, Optional
 
 import pytest
 
 import numpy as np
 import pandas as pd
-from ott.geometry import epsilon_scheduler
+from ott.geometry import costs, epsilon_scheduler
 from scipy.sparse import csr_matrix
 
 import scanpy as sc
@@ -49,15 +49,16 @@ class TestTemporalProblem:
             assert key in expected_keys
             assert isinstance(problem[key], BirthDeathProblem)
 
-    def test_solve_balanced(self, adata_time: AnnData):
+    @pytest.mark.parametrize("callback", ["local-pca", None])
+    def test_solve_balanced(self, adata_time: AnnData, callback: Optional[str]):
         eps = 0.5
+        joint_attr = None if callback else "X_pca"
         expected_keys = [(0, 1), (1, 2)]
         problem = TemporalProblem(adata=adata_time)
-        problem = problem.prepare("time", cost="cosine", xy_callback="local-pca")
+        problem = problem.prepare("time", cost="cosine", xy_callback=callback, joint_attr=joint_attr)
         problem = problem.solve(epsilon=eps)
-        print(problem[0,1].xy.cost)
-        assert False
 
+        assert isinstance(problem[0, 1].xy.cost, costs.Cosine)
         for key, subsol in problem.solutions.items():
             assert isinstance(subsol, BaseSolverOutput)
             assert key in expected_keys
@@ -328,6 +329,39 @@ class TestTemporalProblem:
         assert ta.data_tgt is None
         assert ta.tag == Tag.KERNEL
         assert ta.cost == "geodesic"
+
+    @pytest.mark.parametrize("callback_kwargs", [{}, {"n_neighbors": 3}, {"foo": "bar"}])
+    def test_graph_construction_callback(self, adata_time: AnnData, callback_kwargs: Mapping[str, Any]):
+        eps = 0.5
+        expected_keys = [(0, 1), (1, 2)]
+        problem = TemporalProblem(adata=adata_time)
+
+        if "foo" in callback_kwargs:
+            with pytest.raises(TypeError):
+                problem = problem.prepare(
+                    "time", cost="geodesic", xy_callback="graph-construction", xy_callback_kwargs=callback_kwargs
+                )
+            return
+        problem = problem.prepare(
+            "time", cost="geodesic", xy_callback="graph-construction", xy_callback_kwargs=callback_kwargs
+        )
+
+        problem = problem.solve(epsilon=eps, lse_mode=False)
+
+        assert problem[0, 1].xy.cost == "geodesic"
+        for key, subsol in problem.solutions.items():
+            assert isinstance(subsol, BaseSolverOutput)
+            assert key in expected_keys
+
+        if "n_neighbors" in callback_kwargs:
+            callback_kwargs["n_neighbors"] = callback_kwargs["n_neighbors"] + 20
+            problem2 = TemporalProblem(adata=adata_time)
+            problem2 = problem2.prepare(
+                "time", cost="geodesic", xy_callback="graph-construction", xy_callback_kwargs=callback_kwargs
+            )
+
+            assert np.sum(problem2[0, 1].xy.data_src.sum(axis=1) != problem[0, 1].xy.data_src.sum(axis=1)) > 0
+            assert np.all(problem2[0, 1].xy.data_src.sum(axis=1) > problem[0, 1].xy.data_src.sum(axis=1))
 
     @pytest.mark.parametrize("args_to_check", [sinkhorn_args_1, sinkhorn_args_2])
     def test_pass_arguments(self, adata_time: AnnData, args_to_check: Mapping[str, Any]):

@@ -73,16 +73,21 @@ class TaggedArray:
             raise ValueError(f"Expected `{modifier}` to have `2` dimensions, found `{data.ndim}`.")
 
         return data
-    
-    def _add_cost(self, cost: Union[CostFn_t, Literal["geodesic"]] = "sq_euclidean", backend: Literal["ott"] = "ott", **kwargs: Any) -> "TaggedArray":
+
+    def _add_cost(
+        self,
+        cost: Union[CostFn_t, Literal["geodesic"]] = "sq_euclidean",
+        backend: Literal["ott"] = "ott",
+        **kwargs: Any,
+    ) -> "TaggedArray":
         if cost == "custom":
             raise ValueError("Custom cost functions are handled in `TaggedArray.from_adata`.")
         if cost == "geodesic":
-            raise ValueError("Geodesic kernel is handled in `TaggedArray.from_adata`.")
+            self.cost = cost
+            return self
         cost_fn = get_cost(cost, backend=backend, **kwargs)
         self.cost = cost_fn
         return self
-
 
     @classmethod
     def from_adata(

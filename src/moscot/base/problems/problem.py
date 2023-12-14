@@ -16,12 +16,12 @@ from typing import (
 import cloudpickle
 
 import numpy as np
-import anndata as ad
 import pandas as pd
 import scipy.sparse as sp
 from pandas.api import types as pd_types
 from sklearn.preprocessing import StandardScaler
 
+import anndata as ad
 import scanpy as sc
 from anndata import AnnData
 
@@ -286,12 +286,9 @@ class OTProblem(BaseProblem):
     @wrap_prepare
     def prepare(
         self,
-        xy_ta: Any = None,
-        x_ta: Any = None,
-        y_ta: Any = None,
-        xy: Union[Mapping[str, Any], TaggedArray] = types.MappingProxyType({}),
-        x: Union[Mapping[str, Any], TaggedArray] = types.MappingProxyType({}),
-        y: Union[Mapping[str, Any], TaggedArray] = types.MappingProxyType({}),
+        xy: Mapping[str, Any],
+        x: Mapping[str, Any],
+        y: Mapping[str, Any],
         a: Optional[Union[bool, str, ArrayLike]] = None,
         b: Optional[Union[bool, str, ArrayLike]] = None,
         **kwargs: Any,
@@ -352,77 +349,22 @@ class OTProblem(BaseProblem):
         # fmt: off
         if xy and not x and not y:
             self._problem_kind = "linear"
-            self._xy = xy_ta._add_cost(**xy) if isinstance(xy_ta, TaggedArray) else self._handle_linear(**xy)
+            self._xy = xy["tagged_array"]._add_cost(**xy) if "tagged_array" in xy else self._handle_linear(**xy)
         elif x and y and not xy:
             self._problem_kind = "quadratic"
-            if isinstance(x, TaggedArray):
-                self._x = x._add_cost(x)
-            else:
-                if "cost" in x and x["cost"] == "geodesic":
-                    key = x["key"] if "key" in x else "connectivities"
-                    attr = x["attr"] if "attr" in x else "obsp"
-                    self._x = TaggedArray.from_adata(
-                    self.adata_src,
-                    attr=attr,
-                    dist_key=self._src_key,
-                    key=key,
-                    tag=Tag.KERNEL,
-                    cost="geodesic",
-                )
-
-                else:
-                    self._x = TaggedArray.from_adata(self.adata_src, dist_key=self._src_key, **x)
-            if isinstance(y, TaggedArray):
-                self._y = y._add_cost(y)
-            else:
-                if "cost" in y and y["cost"] == "geodesic":
-                    key = y["key"] if "key" in y else "connectivities"
-                    attr = y["attr"] if "attr" in y else "obsp"
-                    self._y = TaggedArray.from_adata(
-                    self.adata_tgt,
-                    attr=attr,
-                    dist_key=self._tgt_key,
-                    key=key,
-                    tag=Tag.KERNEL,
-                    cost="geodesic",
-                )
-                else:
-                    self._y = TaggedArray.from_adata(self.adata_tgt, dist_key=self._tgt_key, **y)
+            self._x = (x["tagged_array"]._add_cost(**x) if "tagged_array" in x else
+                       TaggedArray.from_adata(self.adata_src, dist_key=self._src_key, **x))
+            self._y = (y["tagged_array"]._add_cost(**y) if "tagged_array" in y else
+                       TaggedArray.from_adata(self.adata_tgt, dist_key=self._tgt_key, **y))
         elif xy and x and y:
             self._problem_kind = "quadratic"
-            self._xy = xy if isinstance(xy, TaggedArray) else self._handle_linear(**xy)
-            if isinstance(x, TaggedArray):
-                self._x = x
-            else:
-                if "cost" in x and x["cost"] == "geodesic":
-                    key = x["key"] if "key" in x else "connectivities"
-                    attr = x["attr"] if "attr" in x else "obsp"
-                    self._x = TaggedArray.from_adata(
-                    self.adata_src,
-                    attr=attr,
-                    dist_key=self._src_key,
-                    key=key,
-                    tag=Tag.KERNEL,
-                    cost="geodesic",
-                )
-                else:
-                    self._x = TaggedArray.from_adata(self.adata_src, dist_key=self._src_key, **x)
-            if isinstance(y, TaggedArray):
-                self._y = y
-            else:
-                if "cost" in y and y["cost"] == "geodesic":
-                    key = y["key"] if "key" in y else "connectivities"
-                    attr = y["attr"] if "attr" in y else "obsp"
-                    self._y = TaggedArray.from_adata(
-                    self.adata_tgt,
-                    attr=attr,
-                    dist_key=self._tgt_key,
-                    key=key,
-                    tag=Tag.KERNEL,
-                    cost="geodesic",
-                )
-                else:
-                    self._y = TaggedArray.from_adata(self.adata_tgt, dist_key=self._tgt_key, **y)
+            self._xy = (xy["tagged_array"]._add_cost(**xy) if "tagged_array" in xy else
+                        self._handle_linear(**xy))
+            self._x = (x["tagged_array"]._add_cost(**x) if "tagged_array" in x else
+                       TaggedArray.from_adata(self.adata_src, dist_key=self._src_key, **x))
+            self._y = (y["tagged_array"]._add_cost(**y) if "tagged_array" in y else
+                       TaggedArray.from_adata(self.adata_tgt, dist_key=self._tgt_key, **y))
+
         else:
             raise ValueError("Unable to prepare the data. Either only supply `xy=...`, or `x=..., y=...`, or all.")
         # fmt: on
@@ -609,7 +551,7 @@ class OTProblem(BaseProblem):
         n_comps: int = 30,
         scale: bool = False,
         **kwargs: Any,
-    ) -> Dict[Literal["xy", "x", "y"], TaggedArray]:
+    ) -> TaggedArray:
         def concat(x: ArrayLike, y: ArrayLike) -> ArrayLike:
             if sp.issparse(x):
                 return sp.vstack([x, sp.csr_matrix(y)])
@@ -635,19 +577,19 @@ class OTProblem(BaseProblem):
             data = concat(x, y)
             if data.shape[1] <= n_comps:
                 # TODO(michalk8): log
-                return {f"{term}_ta": TaggedArray(data[:n], data[n:], tag=Tag.POINT_CLOUD)}
+                return TaggedArray(data[:n], data[n:], tag=Tag.POINT_CLOUD)
 
             logger.info(f"Computing pca with `n_comps={n_comps}` for `xy` using `{msg}`")
             data = sc.pp.pca(data, n_comps=n_comps, **kwargs)
             if scaler is not None:
                 data = scaler.fit_transform(data)
-            return {f"{term}_ta": TaggedArray(data[:n], data[n:], tag=Tag.POINT_CLOUD)}
+            return TaggedArray(data[:n], data[n:], tag=Tag.POINT_CLOUD)
         if term in ("x", "y"):  # if we don't have a shared space, then adata_y is always None
             logger.info(f"Computing pca with `n_comps={n_comps}` for `{term}` using `{msg}`")
             x = sc.pp.pca(x, n_comps=n_comps, **kwargs)
             if scaler is not None:
                 x = scaler.fit_transform(x)
-            return {f"{term}_ta": TaggedArray(x, tag=Tag.POINT_CLOUD)}
+            return TaggedArray(x, tag=Tag.POINT_CLOUD)
         raise ValueError(f"Expected `term` to be one of `x`, `y`, or `xy`, found `{term!r}`.")
 
     @staticmethod
@@ -655,9 +597,8 @@ class OTProblem(BaseProblem):
         term: Literal["x", "y"],
         adata: AnnData,
         adata_y: Optional[AnnData] = None,
-        **kwargs: Any,
-    ) -> Dict[Literal["x", "y"], TaggedArray]:
-        spatial_key = kwargs["spatial_key"]
+        spatial_key: str = "spatial",
+    ) -> TaggedArray:
         if term == "x":
             spatial = adata.obsm[spatial_key]
         if term == "y":
@@ -667,23 +608,28 @@ class OTProblem(BaseProblem):
 
         logger.info(f"Normalizing spatial coordinates of `{term}`.")
         spatial = (spatial - spatial.mean()) / spatial.std()
-        return {f"{term}_ta": TaggedArray(spatial, tag=Tag.POINT_CLOUD)}
-    
+        return TaggedArray(spatial, tag=Tag.POINT_CLOUD)
+
     @staticmethod
-    def _graph_construction_callback(term: Literal["xy"], adata: AnnData, adata_y: Optional[AnnData] = None, use_rep: str = "X_pca", **kwargs: Any) -> Dict[Literal["xy"], TaggedArray]:
+    def _graph_construction_callback(
+        term: Literal["xy"], adata: AnnData, adata_y: Optional[AnnData] = None, use_rep: str = "X_pca", **kwargs: Any
+    ) -> TaggedArray:
         if term == "xy":
             if adata_y is None:
                 raise ValueError("When `term` is `xy`, `adata_y` cannot be `None`.")
-            if use_rep not in adata.obsm.keys():
+            if use_rep not in adata.obsm:
                 raise ValueError(f"Unable to find `{use_rep}` in `adata.obsm`.")
-            if use_rep not in adata_y.obsm.keys():
+            if use_rep not in adata_y.obsm:
                 raise ValueError(f"Unable to find `{use_rep}` in `adata_y.obsm`.")
-            adata_concat = ad.concatenate(adata, adata_y, join="inner", batch_key="batch", batch_categories=["source", "target"])
+            adata_concat = ad.concat((adata, adata_y), join="inner")
             logger.info(f"Computing graph construction for `xy` using `{use_rep}`")
             sc.pp.neighbors(adata_concat, **kwargs)
-            return {f"{term}_ta": TaggedArray(data_src=adata_concat.obsp["connectivities"], adata_tgt=None, tag=Tag.KERNEL)}
+            return TaggedArray(
+                data_src=adata_concat.obsp["connectivities"].astype("float64"), data_tgt=None, tag=Tag.KERNEL
+            )
+
         raise ValueError(f"Expected `term` to be `xy`, found `{term!r}`.")
-    
+
     def _create_marginals(
         self,
         adata: AnnData,
