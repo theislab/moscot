@@ -178,7 +178,6 @@ class BaseCompoundProblem(BaseProblem, abc.ABC, Generic[K, B]):
             y_data = self._callback_handler(
                 term="y", key_1=src, key_2=tgt, problem=problem, callback=y_callback, **y_callback_kwargs
             )
-            print("xy data is ", xy_data)
             if xy_data:
                 xy = dict(xy)
                 xy["tagged_array"] = xy_data

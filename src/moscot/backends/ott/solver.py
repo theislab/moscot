@@ -168,6 +168,8 @@ class SinkhornSolver(OTTJaxSolver):
 
     def _prepare(
         self,
+        a: jnp.ndarray,
+        b: jnp.ndarray,
         xy: Optional[TaggedArray] = None,
         x: Optional[TaggedArray] = None,
         y: Optional[TaggedArray] = None,
@@ -179,8 +181,6 @@ class SinkhornSolver(OTTJaxSolver):
         cost_kwargs: Mapping[str, Any] = types.MappingProxyType({}),
         cost_matrix_rank: Optional[int] = None,
         # problem
-        a: Optional[jnp.ndarray] = None,
-        b: Optional[jnp.ndarray] = None,
         **kwargs: Any,
     ) -> linear_problem.LinearProblem:
         del x, y

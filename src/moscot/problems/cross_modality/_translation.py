@@ -173,7 +173,7 @@ class TranslationProblem(CrossModalityTranslationMixin[K, OTProblem], CompoundPr
                     f"while the joint attribute in the target distribution has dimension {dim_tgt}."
                 )
         xy, x, y = handle_cost(
-            xy=xy, x=self._src_attr, y=self._tgt_attr, cost=cost, cost_kwargs=cost_kwargs  # type: ignore[arg-type]
+            xy=xy, x=self._src_attr, y=self._tgt_attr, cost=cost, cost_kwargs=cost_kwargs, **kwargs  # type: ignore[arg-type]
         )
         if xy:
             kwargs["xy"] = xy

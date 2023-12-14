@@ -370,9 +370,6 @@ class OTProblem(BaseProblem):
         elif (self._x and self._y and not self._xy) or (self._x and self._y and self._xy):
             self._problem_kind = "quadratic"
         else:
-            print("xy is    ", xy)
-            print("x is     ", x)
-            print("y is     ", y)
             raise ValueError("Unable to prepare the data. Either only supply `xy=...`, or `x=..., y=...`, or all.")
         # fmt: on
         self._a = self._create_marginals(self.adata_src, data=a, source=True, **kwargs)
@@ -599,7 +596,7 @@ class OTProblem(BaseProblem):
             return TaggedArray(x, tag=Tag.POINT_CLOUD)
         raise ValueError(f"Expected `term` to be one of `x`, `y`, or `xy`, found `{term!r}`.")
 
-    #TODO(@giovp): refactor
+    # TODO(@giovp): refactor
     @staticmethod
     def _spatial_norm_callback(
         term: Literal["x", "y"],
@@ -609,8 +606,9 @@ class OTProblem(BaseProblem):
         spatial_key: str = "spatial",
     ) -> TaggedArray:
         if term == "x":
-            spatial = adata.obsm[spatial_key]
-            TaggedArray._extract_data(adata, attr=attrs["attr"], key=attrs["key"])
+            pass
+            # spatial = adata.obsm[spatial_key]
+            # TaggedArray._extract_data(adata, attr=attrs["attr"], key=attrs["key"])
         if term == "y":
             if adata_y is None:
                 raise ValueError("When `term` is `y`, `adata_y` cannot be `None`.")

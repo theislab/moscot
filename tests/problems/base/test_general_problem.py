@@ -39,7 +39,7 @@ class TestOTProblem:
         gt = sinkhorn(PointCloud(jnp.asarray(adata_x.X), batch_size=batch_size, epsilon=eps, scale_cost=scale_cost))
 
         prob = OTProblem(adata_x)
-        prob = prob.prepare(xy={"x_attr": "X", "y_attr": "X"}).solve(
+        prob = prob.prepare(xy={"x_attr": "X", "y_attr": "X"}, x={}, y={}).solve(
             batch_size=batch_size, epsilon=eps, scale_cost=scale_cost
         )
         sol = prob.solution
@@ -106,6 +106,7 @@ class TestOTProblem:
         rng = np.random.RandomState(42)
         prob = OTProblem(adata_x, adata_y)
         prob = prob.prepare(
+            xy={},
             x={"attr": "X"},
             y={"attr": "X"},
         )
@@ -122,6 +123,8 @@ class TestOTProblem:
         prob = OTProblem(adata_x, adata_y)
         prob = prob.prepare(
             xy={"x_attr": "obsm", "x_key": "X_pca", "y_attr": "obsm", "y_key": "X_pca"},
+            x={},
+            y={},
         )
         assert prob.problem_kind == "linear"
 
