@@ -254,16 +254,6 @@ class OTProblem(BaseProblem):
         if "x_attr" not in kwargs or "y_attr" not in kwargs:
             kwargs.setdefault("tag", Tag.COST_MATRIX)
             attr = kwargs.pop("attr", "obsm")
-            if cost == "geodesic":
-                key = kwargs.pop("key", "connectivities")
-                return TaggedArray.from_adata(
-                    self.adata_src,
-                    attr=attr,
-                    dist_key=(self._src_key, self._tgt_key),
-                    key=key,
-                    tag=Tag.KERNEL,
-                    cost="geodesic",
-                )
             if attr in ("obsm", "uns", "obsp"):
                 return TaggedArray.from_adata(
                     self.adata_src, dist_key=(self._src_key, self._tgt_key), attr=attr, cost="custom", **kwargs
