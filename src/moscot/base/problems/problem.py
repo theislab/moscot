@@ -347,24 +347,27 @@ class OTProblem(BaseProblem):
         self._x = self._y = self._xy = self._solution = None
         # TODO(michalk8): in the future, have a better dispatch
         # fmt: off
+        if xy:
+            if xy["tagged_array"]:
+                self._xy = xy.pop("tagged_array")._add_cost(**xy)
+            else:
+                self._xy = self._handle_linear(**xy)
+        if x:
+            if x["tagged_array"]:
+                self._x = x.pop("tagged_array")._add_cost(**x)
+            else:
+                self._x = TaggedArray.from_adata(self.adata_src, dist_key=self._src_key, **x)
+        if y:
+            if y["tagged_array"]:
+                self._y = y.pop("tagged_array")._add_cost(**y)
+            else:
+                self._y = TaggedArray.from_adata(self.adata_tgt, dist_key=self._tgt_key, **y)
         if xy and not x and not y:
             self._problem_kind = "linear"
-            self._xy = xy["tagged_array"]._add_cost(**xy) if "tagged_array" in xy else self._handle_linear(**xy)
         elif x and y and not xy:
             self._problem_kind = "quadratic"
-            self._x = (x["tagged_array"]._add_cost(**x) if "tagged_array" in x else
-                       TaggedArray.from_adata(self.adata_src, dist_key=self._src_key, **x))
-            self._y = (y["tagged_array"]._add_cost(**y) if "tagged_array" in y else
-                       TaggedArray.from_adata(self.adata_tgt, dist_key=self._tgt_key, **y))
         elif xy and x and y:
             self._problem_kind = "quadratic"
-            self._xy = (xy["tagged_array"]._add_cost(**xy) if "tagged_array" in xy else
-                        self._handle_linear(**xy))
-            self._x = (x["tagged_array"]._add_cost(**x) if "tagged_array" in x else
-                       TaggedArray.from_adata(self.adata_src, dist_key=self._src_key, **x))
-            self._y = (y["tagged_array"]._add_cost(**y) if "tagged_array" in y else
-                       TaggedArray.from_adata(self.adata_tgt, dist_key=self._tgt_key, **y))
-
         else:
             raise ValueError("Unable to prepare the data. Either only supply `xy=...`, or `x=..., y=...`, or all.")
         # fmt: on
