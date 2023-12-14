@@ -178,17 +178,14 @@ class BaseCompoundProblem(BaseProblem, abc.ABC, Generic[K, B]):
             y_data = self._callback_handler(
                 term="y", key_1=src, key_2=tgt, problem=problem, callback=y_callback, **y_callback_kwargs
             )
-
-            xy = dict(xy)
-            x = dict(x)
-            y = dict(y)
-            if xy:
+            print("xy data is ", xy_data)
+            if xy_data:
                 xy = dict(xy)
                 xy["tagged_array"] = xy_data
-            if x:
+            if x_data:
                 x = dict(x)
                 x["tagged_array"] = x_data
-            if y:
+            if y_data:
                 y = dict(y)
                 y["tagged_array"] = y_data
             if isinstance(problem, BirthDeathProblem):

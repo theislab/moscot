@@ -348,27 +348,31 @@ class OTProblem(BaseProblem):
         # TODO(michalk8): in the future, have a better dispatch
         # fmt: off
         if xy:
-            if xy["tagged_array"]:
+            if "tagged_array" in xy:
+                xy = dict(xy)
                 self._xy = xy.pop("tagged_array")._add_cost(**xy)
             else:
                 self._xy = self._handle_linear(**xy)
         if x:
-            if x["tagged_array"]:
+            if "tagged_array" in x:
+                x = dict(x)
                 self._x = x.pop("tagged_array")._add_cost(**x)
             else:
                 self._x = TaggedArray.from_adata(self.adata_src, dist_key=self._src_key, **x)
         if y:
-            if y["tagged_array"]:
+            if "tagged_array" in y:
+                y = dict(y)
                 self._y = y.pop("tagged_array")._add_cost(**y)
             else:
                 self._y = TaggedArray.from_adata(self.adata_tgt, dist_key=self._tgt_key, **y)
-        if xy and not x and not y:
+        if self._xy and not self._x and not self._y:
             self._problem_kind = "linear"
-        elif x and y and not xy:
-            self._problem_kind = "quadratic"
-        elif xy and x and y:
+        elif (self._x and self._y and not self._xy) or (self._x and self._y and self._xy):
             self._problem_kind = "quadratic"
         else:
+            print("xy is    ", xy)
+            print("x is     ", x)
+            print("y is     ", y)
             raise ValueError("Unable to prepare the data. Either only supply `xy=...`, or `x=..., y=...`, or all.")
         # fmt: on
         self._a = self._create_marginals(self.adata_src, data=a, source=True, **kwargs)
@@ -595,15 +599,18 @@ class OTProblem(BaseProblem):
             return TaggedArray(x, tag=Tag.POINT_CLOUD)
         raise ValueError(f"Expected `term` to be one of `x`, `y`, or `xy`, found `{term!r}`.")
 
+    #TODO(@giovp): refactor
     @staticmethod
     def _spatial_norm_callback(
         term: Literal["x", "y"],
         adata: AnnData,
         adata_y: Optional[AnnData] = None,
+        attrs: Optional[Mapping[str, Any]] = None,
         spatial_key: str = "spatial",
     ) -> TaggedArray:
         if term == "x":
             spatial = adata.obsm[spatial_key]
+            TaggedArray._extract_data(adata, attr=attrs["attr"], key=attrs["key"])
         if term == "y":
             if adata_y is None:
                 raise ValueError("When `term` is `y`, `adata_y` cannot be `None`.")

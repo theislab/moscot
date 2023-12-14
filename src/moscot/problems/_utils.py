@@ -11,7 +11,7 @@ def handle_joint_attr(
         if "xy_callback" not in kwargs:
             kwargs["xy_callback"] = "local-pca"
         kwargs.setdefault("xy_callback_kwargs", {})
-        return {"xy_callback": "local-pca"}, kwargs
+        return {}, kwargs
     if isinstance(joint_attr, str):
         xy = {
             "x_attr": "obsm",
@@ -84,7 +84,4 @@ def handle_cost(
         x.update(cost_kwargs.get("x", cost_kwargs))  # type:ignore[call-overload]
     if y and cost_kwargs:  # extract cost_kwargs explicit to y-term if possible
         y.update(cost_kwargs.get("y", cost_kwargs))  # type:ignore[call-overload]
-    xy.pop("xy_callback", None)
-    x.pop("x_callback", None)
-    y.pop("y_callback", None)
     return xy, x, y
