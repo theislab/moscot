@@ -19,7 +19,7 @@ from moscot.base.problems.problem import OTProblem
 from moscot.problems._utils import handle_cost, handle_joint_attr
 from moscot.problems.generic._mixins import GenericAnalysisMixin
 
-__all__ = ["SinkhornProblem", "GWProblem"]
+__all__ = ["SinkhornProblem", "GWProblem", "FGWProblem"]
 
 
 class SinkhornProblem(GenericAnalysisMixin[K, B], CompoundProblem[K, B]):  # type: ignore[misc]
@@ -257,6 +257,229 @@ class GWProblem(GenericAnalysisMixin[K, B], CompoundProblem[K, B]):  # type: ign
         key: str,
         x_attr: Union[str, Mapping[str, Any]],
         y_attr: Union[str, Mapping[str, Any]],
+        policy: Literal["sequential", "explicit", "star"] = "sequential",
+        cost: OttCostFnMap_t = "sq_euclidean",
+        cost_kwargs: CostKwargs_t = types.MappingProxyType({}),
+        a: Optional[Union[bool, str]] = None,
+        b: Optional[Union[bool, str]] = None,
+        **kwargs: Any,
+    ) -> "GWProblem[K, B]":
+        """Prepare the individual :term:`quadratic subproblems <quadratic problem>`.
+
+        .. seealso::
+            - TODO(michalk8): add an example how to pass `x_attr/y_attr`.
+
+        Parameters
+        ----------
+        key
+            Key in :attr:`~anndata.AnnData.obs` for the :class:`~moscot.utils.subset_policy.SubsetPolicy`.
+        x_attr
+            How to get the data for the source :term:`quadratic term`:
+
+            - :class:`str` - a key in :attr:`~anndata.AnnData.obsm` where the data is stored.
+            - :class:`dict`-  it should contain ``'attr'`` and ``'key'``, the attribute and key in
+              :class:`~anndata.AnnData`, and optionally ``'tag'`` from the
+              :class:`tags <moscot.utils.tagged_array.Tag>`.
+
+            By default, :attr:`tag = 'point_cloud' <moscot.utils.tagged_array.Tag.POINT_CLOUD>` is used.
+        y_attr
+            How to get the data for the target :term:`quadratic term`:
+
+            - :class:`str` - a key in :attr:`~anndata.AnnData.obsm` where the data is stored.
+            - :class:`dict`-  it should contain ``'attr'`` and ``'key'``, the attribute and the key
+              in :class:`~anndata.AnnData`, and optionally ``'tag'``, one of :class:`~moscot.utils.tagged_array.Tag`.
+
+            By default, :attr:`tag = 'point_cloud' <moscot.utils.tagged_array.Tag.POINT_CLOUD>` is used.
+        policy
+            Rule which defines how to construct the subproblems. Valid options are:
+
+            - ``'sequential'`` - align subsequent categories in :attr:`obs[{'{key}'] <anndata.AnnData.obs>`.
+            - ``'explicit'`` - explicit sequence of subsets passed via ``subset = [(b3, b0), ...]``.
+        cost
+            Cost function to use. Valid options are:
+
+            - :class:`str` - name of the cost function for all terms, see :func:`~moscot.costs.get_available_costs`.
+            - :class:`dict` - a dictionary with the following keys and values:
+
+              - ``'xy'`` - cost function for the :term:`linear term`.
+              - ``'x'`` - cost function for the source :term:`quadratic term`.
+              - ``'y'`` - cost function for the target :term:`quadratic term`.
+        cost_kwargs
+            Keyword arguments for the :class:`~moscot.base.cost.BaseCost` or any backend-specific cost.
+        a
+            Source :term:`marginals`. Valid options are:
+
+            - :class:`str` - key in :attr:`~anndata.AnnData.obs` where the source marginals are stored.
+            - :class:`bool` - if :obj:`True`,
+              :meth:`estimate the marginals <moscot.base.problems.OTProblem.estimate_marginals>`,
+              otherwise use uniform marginals.
+            - :obj:`None` - uniform marginals.
+        b
+            Target :term:`marginals`. Valid options are:
+
+            - :class:`str` - key in :attr:`~anndata.AnnData.obs` where the target marginals are stored.
+            - :class:`bool` - if :obj:`True`,
+              :meth:`estimate the marginals <moscot.base.problems.OTProblem.estimate_marginals>`,
+              otherwise use uniform marginals.
+            - :obj:`None` - uniform marginals.
+        kwargs
+            Keyword arguments for :meth:`~moscot.base.problems.CompoundProblem.prepare`.
+
+        Returns
+        -------
+        Returns self and updates the following fields:
+
+        - :attr:`problems` - the prepared subproblems.
+        - :attr:`solutions` - set to an empty :class:`dict`.
+        - :attr:`batch_key` - key in :attr:`~anndata.AnnData.obs` where batches are stored.
+        - :attr:`stage` - set to ``'prepared'``.
+        - :attr:`problem_kind` - set to ``'quadratic'``.
+        """
+
+        def set_quad_defaults(z: Union[str, Mapping[str, Any]]) -> Dict[str, str]:
+            if isinstance(z, str):
+                return {"attr": "obsm", "key": z, "tag": "point_cloud"}  # cost handled by handle_cost
+            if isinstance(z, Mapping):
+                return dict(z)
+            raise TypeError("`x_attr` and `y_attr` must be of type `str` or `dict`.")
+
+        self.batch_key = key  # type: ignore[misc]
+        x = set_quad_defaults(x_attr)
+        y = set_quad_defaults(y_attr)
+        xy, x, y = handle_cost(xy={}, x=x, y=y, cost=cost, cost_kwargs=cost_kwargs, **kwargs)  # type: ignore[arg-type]
+        return super().prepare(  # type: ignore[return-value]
+            key=key,
+            xy=xy,
+            x=x,
+            y=y,
+            policy=policy,
+            cost=cost,
+            a=a,
+            b=b,
+            **kwargs,
+        )
+
+    def solve(
+        self,
+        epsilon: float = 1e-3,
+        tau_a: float = 1.0,
+        tau_b: float = 1.0,
+        rank: int = -1,
+        scale_cost: ScaleCost_t = "mean",
+        batch_size: Optional[int] = None,
+        stage: Union[ProblemStage_t, Tuple[ProblemStage_t, ...]] = ("prepared", "solved"),
+        initializer: QuadInitializer_t = None,
+        initializer_kwargs: Mapping[str, Any] = types.MappingProxyType({}),
+        jit: bool = True,
+        min_iterations: int = 5,
+        max_iterations: int = 50,
+        threshold: float = 1e-3,
+        linear_solver_kwargs: Mapping[str, Any] = types.MappingProxyType({}),
+        device: Optional[Literal["cpu", "gpu", "tpu"]] = None,
+        **kwargs: Any,
+    ) -> "GWProblem[K,B]":
+        r"""Solve the individual :term:`quadratic subproblems <quadratic problem>`.
+
+        .. seealso:
+            - See :doc:`../notebooks/examples/solvers/300_quad_problems_basic` on how to specify
+              the most important parameters.
+            - See :doc:`../notebooks/examples/solvers/400_quad_problems_advanced` on how to specify
+              additional parameters, such as the ``initializer``.
+
+        Parameters
+        ----------
+        epsilon
+            :term:`Entropic regularization`.
+        tau_a
+            Parameter in :math:`(0, 1]` that defines how much :term:`unbalanced <unbalanced OT problem>` is the problem
+            on the source :term:`marginals`. If :math:`1`, the problem is :term:`balanced <balanced OT problem>`.
+        tau_b
+            Parameter in :math:`(0, 1]` that defines how much :term:`unbalanced <unbalanced OT problem>` is the problem
+            on the target :term:`marginals`. If :math:`1`, the problem is :term:`balanced <balanced OT problem>`.
+        rank
+            Rank of the :term:`low-rank OT` solver :cite:`scetbon:21b`.
+            If :math:`-1`, full-rank solver :cite:`peyre:2016` is used.
+        scale_cost
+            How to re-scale the cost matrices. If a :class:`float`, the cost matrices
+            will be re-scaled as :math:`\frac{\text{cost}}{\text{scale_cost}}`.
+        batch_size
+            Number of rows/columns of the cost matrix to materialize during the solver iterations.
+            Larger value will require more memory.
+        stage
+            Stage by which to filter the :attr:`problems` to be solved.
+        initializer
+            How to initialize the solution. If :obj:`None`, ``'default'`` will be used for a full-rank solver and
+            ``'rank2'`` for a low-rank solver.
+        initializer_kwargs
+            Keyword arguments for the ``initializer``.
+        jit
+            Whether to :func:`~jax.jit` the underlying :mod:`ott` solver.
+        min_iterations
+            Minimum number of :term:`(fused) GW <Gromov-Wasserstein>` iterations.
+        max_iterations
+            Maximum number of :term:`(fused) GW <Gromov-Wasserstein>` iterations.
+        threshold
+            Convergence threshold of the :term:`GW <Gromov-Wasserstein>` solver.
+        linear_solver_kwargs
+            Keyword arguments for the inner :term:`linear problem` solver.
+        device
+            Transfer the solution to a different device, see :meth:`~moscot.base.output.BaseSolverOutput.to`.
+            If :obj:`None`, keep the output on the original device.
+        kwargs
+            Keyword arguments for :meth:`~moscot.base.problems.CompoundProblem.solve`.
+
+        Returns
+        -------
+        Returns self and updates the following fields:
+
+        - :attr:`solutions` - the :term:`OT` solutions for each subproblem.
+        - :attr:`stage` - set to ``'solved'``.
+        """
+        return super().solve(  # type: ignore[return-value]
+            alpha=1.0,
+            epsilon=epsilon,
+            tau_a=tau_a,
+            tau_b=tau_b,
+            rank=rank,
+            scale_cost=scale_cost,
+            batch_size=batch_size,
+            stage=stage,
+            initializer=initializer,
+            initializer_kwargs=initializer_kwargs,
+            jit=jit,
+            min_iterations=min_iterations,
+            max_iterations=max_iterations,
+            threshold=threshold,
+            linear_solver_kwargs=linear_solver_kwargs,
+            device=device,
+            **kwargs,
+        )
+
+    @property
+    def _base_problem_type(self) -> Type[B]:
+        return OTProblem  # type: ignore[return-value]
+
+    @property
+    def _valid_policies(self) -> Tuple[Policy_t, ...]:
+        return _constants.SEQUENTIAL, _constants.EXPLICIT, _constants.STAR  # type: ignore[return-value]
+
+
+class FGWProblem(GWProblem[K, B]):
+    """Class for solving the :term:`FGW <fused Gromov-Wasserstein>` problem.
+
+    Parameters
+    ----------
+    adata
+        Annotated data object.
+    kwargs
+        Keyword arguments for :class:`~moscot.base.problems.CompoundProblem`.
+    """
+
+    def prepare(
+        self,
+        key: str,
+        x_attr: Union[str, Mapping[str, Any]],
+        y_attr: Union[str, Mapping[str, Any]],
         joint_attr: Optional[Union[str, Mapping[str, Any]]] = None,
         policy: Literal["sequential", "explicit", "star"] = "sequential",
         cost: OttCostFnMap_t = "sq_euclidean",
@@ -359,7 +582,8 @@ class GWProblem(GenericAnalysisMixin[K, B], CompoundProblem[K, B]):  # type: ign
         x = set_quad_defaults(x_attr)
         y = set_quad_defaults(y_attr)
         xy, x, y = handle_cost(xy=xy, x=x, y=y, cost=cost, cost_kwargs=cost_kwargs, **kwargs)  # type: ignore[arg-type]
-        return super().prepare(  # type: ignore[return-value]
+        return CompoundProblem.prepare(
+            self,  # type: ignore[return-value, arg-type]
             key=key,
             xy=xy,
             x=x,
@@ -452,7 +676,8 @@ class GWProblem(GenericAnalysisMixin[K, B], CompoundProblem[K, B]):  # type: ign
         - :attr:`solutions` - the :term:`OT` solutions for each subproblem.
         - :attr:`stage` - set to ``'solved'``.
         """
-        return super().solve(  # type: ignore[return-value]
+        return CompoundProblem.solve(
+            self,  # type: ignore[return-value, arg-type]
             alpha=alpha,
             epsilon=epsilon,
             tau_a=tau_a,
@@ -471,11 +696,3 @@ class GWProblem(GenericAnalysisMixin[K, B], CompoundProblem[K, B]):  # type: ign
             device=device,
             **kwargs,
         )
-
-    @property
-    def _base_problem_type(self) -> Type[B]:
-        return OTProblem  # type: ignore[return-value]
-
-    @property
-    def _valid_policies(self) -> Tuple[Policy_t, ...]:
-        return _constants.SEQUENTIAL, _constants.EXPLICIT, _constants.STAR  # type: ignore[return-value]

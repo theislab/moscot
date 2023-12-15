@@ -23,7 +23,7 @@ from moscot._types import CostKwargs_t
 from moscot.backends.ott._utils import alpha_to_fused_penalty
 from moscot.base.output import BaseSolverOutput
 from moscot.base.problems import OTProblem
-from moscot.problems.generic import GWProblem
+from moscot.problems.generic import FGWProblem
 from tests.problems.conftest import (
     fgw_args_1,
     fgw_args_2,
@@ -45,7 +45,7 @@ class TestFGWProblem:
             "sequential": [("0", "1"), ("1", "2")],
             "star": [("1", "0"), ("2", "0")],
         }
-        problem = GWProblem(adata=adata_space_rotate)
+        problem = FGWProblem(adata=adata_space_rotate)
 
         assert len(problem) == 0
         assert problem.problems == {}
@@ -71,7 +71,7 @@ class TestFGWProblem:
         eps = 0.5
         adata_space_rotate = adata_space_rotate[adata_space_rotate.obs["batch"].isin(("0", "1"))].copy()
         expected_keys = [("0", "1"), ("1", "2")]
-        problem = GWProblem(adata=adata_space_rotate)
+        problem = FGWProblem(adata=adata_space_rotate)
         problem = problem.prepare(
             key="batch",
             policy="sequential",
@@ -87,7 +87,7 @@ class TestFGWProblem:
 
     @pytest.mark.parametrize("args_to_check", [fgw_args_1, fgw_args_2])
     def test_pass_arguments(self, adata_space_rotate: AnnData, args_to_check: Mapping[str, Any]):
-        problem = GWProblem(adata=adata_space_rotate)
+        problem = FGWProblem(adata=adata_space_rotate)
         problem = problem.prepare(
             key="batch",
             policy="sequential",
@@ -140,7 +140,7 @@ class TestFGWProblem:
     def test_set_xy(self, adata_time: AnnData, tag: Literal["cost_matrix", "kernel"]):
         rng = np.random.RandomState(42)
         adata_time = adata_time[adata_time.obs["time"].isin((0, 1))].copy()
-        problem = GWProblem(adata=adata_time)
+        problem = FGWProblem(adata=adata_time)
         problem = problem.prepare(
             x_attr="X_pca",
             y_attr="X_pca",
@@ -178,7 +178,7 @@ class TestFGWProblem:
         ],
     )
     def test_prepare_costs(self, adata_time: AnnData, cost_str: str, cost_inst: Any, cost_kwargs: CostKwargs_t):
-        problem = GWProblem(adata=adata_time)
+        problem = FGWProblem(adata=adata_time)
         problem = problem.prepare(
             key="time",
             policy="sequential",
@@ -210,7 +210,7 @@ class TestFGWProblem:
     def test_set_x(self, adata_time: AnnData, tag: Literal["cost_matrix", "kernel"]):
         rng = np.random.RandomState(42)
         adata_time = adata_time[adata_time.obs["time"].isin((0, 1))].copy()
-        problem = GWProblem(adata=adata_time)
+        problem = FGWProblem(adata=adata_time)
         problem = problem.prepare(
             x_attr="X_pca",
             y_attr="X_pca",
@@ -236,7 +236,7 @@ class TestFGWProblem:
     def test_set_y(self, adata_time: AnnData, tag: Literal["cost_matrix", "kernel"]):
         rng = np.random.RandomState(42)
         adata_time = adata_time[adata_time.obs["time"].isin((0, 1))].copy()
-        problem = GWProblem(adata=adata_time)
+        problem = FGWProblem(adata=adata_time)
         problem = problem.prepare(
             x_attr="X_pca",
             y_attr="X_pca",
@@ -260,7 +260,7 @@ class TestFGWProblem:
 
     @pytest.mark.fast()
     def test_prepare_different_costs(self, adata_time: AnnData):
-        problem = GWProblem(adata=adata_time)
+        problem = FGWProblem(adata=adata_time)
         problem = problem.prepare(
             key="time",
             policy="sequential",
@@ -276,7 +276,7 @@ class TestFGWProblem:
     @pytest.mark.parametrize(("memory", "refresh"), [(1, 1), (5, 3), (7, 5)])
     @pytest.mark.parametrize("recenter", [True, False])
     def test_passing_ott_kwargs_linear(self, adata_space_rotate: AnnData, memory: int, refresh: int, recenter: bool):
-        problem = GWProblem(adata=adata_space_rotate)
+        problem = FGWProblem(adata=adata_space_rotate)
         problem = problem.prepare(
             key="batch",
             policy="sequential",
@@ -308,7 +308,7 @@ class TestFGWProblem:
     @pytest.mark.parametrize("warm_start", [True, False])
     @pytest.mark.parametrize("inner_errors", [True, False])
     def test_passing_ott_kwargs_quadratic(self, adata_space_rotate: AnnData, warm_start: bool, inner_errors: bool):
-        problem = GWProblem(adata=adata_space_rotate)
+        problem = FGWProblem(adata=adata_space_rotate)
         problem = problem.prepare(
             key="batch",
             policy="sequential",
