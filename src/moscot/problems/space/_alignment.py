@@ -133,8 +133,13 @@ class AlignmentProblem(SpatialAlignmentMixin[K, B], CompoundProblem[K, B]):
 
         if normalize_spatial and "x_callback" not in kwargs and "y_callback" not in kwargs:
             kwargs["x_callback"] = kwargs["y_callback"] = "spatial-norm"
-            kwargs.setdefault("x_callback_kwargs", {"spatial_key": self.spatial_key})
-            kwargs.setdefault("y_callback_kwargs", {"spatial_key": self.spatial_key})
+            kwargs.setdefault("x_callback_kwargs", x)
+            kwargs.setdefault("y_callback_kwargs", y)
+        if ("x_callback" in kwargs and "y_callback" in kwargs) and (
+            "spatial-norm" in kwargs["x_callback"] and "spatial-norm" in kwargs["y_callback"]
+        ):
+            x = {}
+            y = {}
 
         xy, kwargs = handle_joint_attr(joint_attr, kwargs)
         xy, x, y = handle_cost(xy=xy, x=x, y=y, cost=cost, cost_kwargs=cost_kwargs, **kwargs)  # type: ignore[arg-type]

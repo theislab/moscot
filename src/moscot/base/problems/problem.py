@@ -596,16 +596,14 @@ class OTProblem(BaseProblem):
         adata: AnnData,
         adata_y: Optional[AnnData] = None,
         attrs: Optional[Mapping[str, Any]] = None,
-        spatial_key: str = "spatial",
     ) -> TaggedArray:
-        if term == "x":
-            pass
-            # spatial = adata.obsm[spatial_key]
-            # TaggedArray._extract_data(adata, attr=attrs["attr"], key=attrs["key"])
         if term == "y":
             if adata_y is None:
                 raise ValueError("When `term` is `y`, `adata_y` cannot be `None`.")
-            spatial = adata_y.obsm[spatial_key]
+            adata = adata_y
+        if attrs is None:
+            raise ValueError("`attrs` cannot be `None` with this callback.")
+        spatial = TaggedArray._extract_data(adata, attr=attrs["attr"], key=attrs["key"])
 
         logger.info(f"Normalizing spatial coordinates of `{term}`.")
         spatial = (spatial - spatial.mean()) / spatial.std()
