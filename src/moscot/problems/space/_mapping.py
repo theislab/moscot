@@ -182,9 +182,6 @@ class MappingProblem(SpatialMappingMixin[K, OTProblem], CompoundProblem[K, OTPro
         self.spatial_key = spatial_key if isinstance(spatial_key, str) else spatial_key["key"]
         self.filtered_vars = var_names
 
-        x = {"attr": "obsm", "key": spatial_key} if isinstance(spatial_key, str) else spatial_key
-        y = {"attr": "obsm", "key": sc_attr} if isinstance(sc_attr, str) else sc_attr
-
         if self.filtered_vars is not None:
             xy, kwargs = handle_joint_attr(joint_attr, kwargs)
         else:
