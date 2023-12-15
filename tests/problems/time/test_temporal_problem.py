@@ -363,6 +363,51 @@ class TestTemporalProblem:
             assert np.sum(problem2[0, 1].xy.data_src.sum(axis=1) != problem[0, 1].xy.data_src.sum(axis=1)) > 0
             assert np.all(problem2[0, 1].xy.data_src.sum(axis=1) > problem[0, 1].xy.data_src.sum(axis=1))
 
+    @pytest.mark.parametrize("forward", [True, False])
+    def test_geodesic_cost_cell_transition(self, adata_time: AnnData, forward: bool):
+        # TODO(@MUCDK) add test for failure case
+        sc.pp.subsample(adata_time, n_obs=30)
+        tp = TemporalProblem(adata_time)
+        tp = tp.prepare("time", joint_attr="X_pca")
+        batch_column = "time"
+        unique_batches = adata_time.obs[batch_column].unique()
+
+        dfs = []
+        for i in range(len(unique_batches) - 1):
+            batch1 = unique_batches[i]
+            batch2 = unique_batches[i + 1]
+
+            indices = np.where((adata_time.obs[batch_column] == batch1) | (adata_time.obs[batch_column] == batch2))[0]
+            adata_subset = adata_time[indices]
+            sc.pp.neighbors(adata_subset, n_neighbors=len(adata_subset), use_rep="X_pca")
+            df = pd.DataFrame(
+                index=adata_subset.obs_names,
+                columns=adata_subset.obs_names,
+                data=adata_subset.obsp["connectivities"].A.astype("float64"),
+            )
+            order = pd.concat(
+                (tp[batch1, batch2].adata_src.obs_names.to_series(), tp[batch1, batch2].adata_tgt.obs_names.to_series())
+            )
+            df = df.loc[order, :]
+            df = df.loc[:, order]
+            dfs.append(df)
+
+        tp[0, 1].set_graph_xy(dfs[0], cost="geodesic")
+        tp = tp.solve(max_iterations=1e8, lse_mode=False)
+
+        ta = tp[0, 1].xy
+        assert isinstance(ta, TaggedArray)
+        assert isinstance(ta.data_src, np.ndarray)
+        assert ta.data_tgt is None
+        assert ta.tag == Tag.KERNEL
+        assert ta.cost == "geodesic"
+
+        adata_time.obs["celltype"] = adata_time.obs["celltype"].astype("category")
+        df = tp.cell_transition(0, 1, "celltype", "celltype", forward=forward)
+        assert isinstance(df, pd.DataFrame)
+        assert df.isna().sum().sum() == 0
+        assert df.sum().sum() > 0
+
     @pytest.mark.parametrize("args_to_check", [sinkhorn_args_1, sinkhorn_args_2])
     def test_pass_arguments(self, adata_time: AnnData, args_to_check: Mapping[str, Any]):
         problem = TemporalProblem(adata=adata_time)

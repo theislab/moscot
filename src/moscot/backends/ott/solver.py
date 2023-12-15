@@ -13,7 +13,7 @@ from ott.solvers.quadratic import gromov_wasserstein, gromov_wasserstein_lr
 
 from moscot._types import ProblemKind_t, QuadInitializer_t, SinkhornInitializer_t
 from moscot.backends.ott._utils import alpha_to_fused_penalty, check_shapes, ensure_2d
-from moscot.backends.ott.output import OTTOutput
+from moscot.backends.ott.output import GraphOTTOutput, OTTOutput
 from moscot.base.solver import OTSolver
 from moscot.costs import get_cost
 from moscot.utils.tagged_array import TaggedArray
@@ -44,10 +44,14 @@ class OTTJaxSolver(OTSolver[OTTOutput], abc.ABC):
         self._solver: Optional[OTTSolver_t] = None
         self._problem: Optional[OTTProblem_t] = None
         self._jit = jit
+        self._a: Optional[jnp.ndarray] = None
+        self._b: Optional[jnp.ndarray] = None
+        self._graph_in_linear_term = False
 
     def _create_geometry(
         self,
         x: TaggedArray,
+        is_linear_term: bool,
         epsilon: Union[float, epsilon_scheduler.Epsilon] = None,
         relative_epsilon: Optional[bool] = None,
         scale_cost: Scale_t = 1.0,
@@ -87,6 +91,8 @@ class OTTJaxSolver(OTSolver[OTTOutput], abc.ABC):
             )
         if x.is_kernel:
             if x.cost == "geodesic":
+                if is_linear_term:
+                    self._graph_in_linear_term = True
                 return geodesic.Geodesic.from_graph(arr, t=epsilon, directed=True, **kwargs)
             return geometry.Geometry(
                 kernel_matrix=arr, epsilon=epsilon, relative_epsilon=relative_epsilon, scale_cost=scale_cost
@@ -100,6 +106,8 @@ class OTTJaxSolver(OTSolver[OTTOutput], abc.ABC):
     ) -> OTTOutput:
         solver = jax.jit(self.solver) if self._jit else self.solver
         out = solver(prob, **kwargs)
+        if self._graph_in_linear_term:
+            return GraphOTTOutput(out, a=self._a, b=self._b)
         return OTTOutput(out)
 
     @property
@@ -116,6 +124,10 @@ class OTTJaxSolver(OTSolver[OTTOutput], abc.ABC):
     def is_low_rank(self) -> bool:
         """Whether the :attr:`solver` is low-rank."""
         return self.rank > -1
+
+    @property
+    def graph_in_linear_term(self) -> bool:
+        return self._graph_in_linear_term
 
 
 class SinkhornSolver(OTTJaxSolver):
@@ -186,9 +198,11 @@ class SinkhornSolver(OTTJaxSolver):
         del x, y
         if xy is None:
             raise ValueError(f"Unable to create geometry from `xy={xy}`.")
-
+        self._a = a
+        self._b = b
         geom = self._create_geometry(
             xy,
+            is_linear_term=True,
             epsilon=epsilon,
             relative_epsilon=relative_epsilon,
             batch_size=batch_size,
@@ -198,9 +212,8 @@ class SinkhornSolver(OTTJaxSolver):
         if cost_matrix_rank is not None:
             geom = geom.to_LRCGeometry(rank=cost_matrix_rank)
         if xy.cost == "geodesic":
-            orig_a = a
-            a = jnp.concatenate((a, jnp.zeros_like(b)), axis=0)
-            b = jnp.concatenate((jnp.zeros_like(orig_a), b), axis=0)
+            a = jnp.concatenate((a, jnp.zeros_like(self._b)), axis=0)
+            b = jnp.concatenate((jnp.zeros_like(self._a), b), axis=0)
         self._problem = linear_problem.LinearProblem(geom, a=a, b=b, **kwargs)
         return self._problem
 
@@ -279,6 +292,8 @@ class GWSolver(OTTJaxSolver):
 
     def _prepare(
         self,
+        a: jnp.ndarray,
+        b: jnp.ndarray,
         xy: Optional[TaggedArray] = None,
         x: Optional[TaggedArray] = None,
         y: Optional[TaggedArray] = None,
@@ -293,6 +308,8 @@ class GWSolver(OTTJaxSolver):
         alpha: float = 0.5,
         **kwargs: Any,
     ) -> quadratic_problem.QuadraticProblem:
+        self._a = a
+        self._b = b
         if x is None or y is None:
             raise ValueError(f"Unable to create geometry from `x={x}`, `y={y}`.")
         geom_kwargs: Any = {
@@ -311,7 +328,7 @@ class GWSolver(OTTJaxSolver):
             geom_xy, fused_penalty = None, 1.0
         else:  # FGW
             fused_penalty = alpha_to_fused_penalty(alpha)
-            geom_xy = self._create_geometry(xy, **geom_kwargs)
+            geom_xy = self._create_geometry(xy, is_linear_term=True, **geom_kwargs)
             check_shapes(geom_xx, geom_yy, geom_xy)
 
         self._problem = quadratic_problem.QuadraticProblem(

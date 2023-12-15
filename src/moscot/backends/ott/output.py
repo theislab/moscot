@@ -174,7 +174,10 @@ class OTTOutput(BaseSolverOutput):
     def _apply(self, x: ArrayLike, *, forward: bool) -> ArrayLike:
         if x.ndim == 1:
             return self._output.apply(x, axis=1 - forward)
-        return self._output.apply(x.T, axis=1 - forward).T  # convert to batch first
+        return self._output.apply(
+            x.T,
+            axis=1 - forward,
+        ).T  # convert to batch first
 
     @property
     def shape(self) -> Tuple[int, int]:  # noqa: D102
@@ -233,3 +236,43 @@ class OTTOutput(BaseSolverOutput):
 
     def _ones(self, n: int) -> ArrayLike:  # noqa: D102
         return jnp.ones((n,))
+
+
+class GraphOTTOutput(OTTOutput):
+    """Output of :term:`OT` problems with a graph geometry in the linear term.
+
+    Parameters
+    ----------
+    output
+        Output of the :mod:`ott` backend.
+    """
+
+    def __init__(
+        self,
+        output: Union[
+            sinkhorn.SinkhornOutput,
+            sinkhorn_lr.LRSinkhornOutput,
+            gromov_wasserstein.GWOutput,
+            gromov_wasserstein_lr.LRGWOutput,
+        ],
+        a: jnp.ndarray,
+        b: jnp.ndarray,
+    ):
+        self._a = a
+        self._b = b
+        super().__init__(output)
+
+    @property
+    def shape(self) -> Tuple[int, int]:  # noqa: D102
+        return (len(self._a), len(self._b))
+
+    def _expand_data(self, x: jnp.ndarray, forward: bool) -> jnp.ndarray:
+        if forward:
+            return jnp.concatenate((jnp.atleast_2d(x), jnp.zeros(len(self._b))))
+        return jnp.concatenate((jnp.zeros(len(self._a)), jnp.atleast_2d(x)))
+
+    def _apply(self, x: ArrayLike, *, forward: bool) -> ArrayLike:
+        x_expanded = self._expand_data(x.T, forward=forward)
+        # ott-jax only supports lse_mode=False with graph geometry
+        res = self._output.apply(x_expanded, axis=1 - forward, lse_mode=False).T
+        return res[: len(x)] if forward else res[len(x) :]
