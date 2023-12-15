@@ -111,6 +111,7 @@ class TestGWProblem:
             y_attr={"attr": "obsm", "key": "spatial"},
             policy="sequential",
         )
+        _ = args_to_check.pop("alpha", None)
 
         problem = problem.solve(**args_to_check)
         key = ("0", "1")
