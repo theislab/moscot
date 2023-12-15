@@ -61,14 +61,14 @@ def handle_cost(
         return xy, x, y
     if isinstance(cost, str):  # if cost is a str, we use it in all terms
         if (xy or "xy_callback" in kwargs) and "cost" not in xy:
-            xy["cost"] = cost
+            xy["x_cost"] = xy["y_cost"] = cost
         if (x or "x_callback" in kwargs) and "cost" not in x:
             x["cost"] = cost
         if (y or "y_callback" in kwargs) and "cost" not in y:
             y["cost"] = cost
     elif isinstance(cost, Mapping):  # if cost is a dict, the cost is specified for each term
         if (xy or "xy_callback" in kwargs) and "cost" not in xy:
-            xy["cost"] = cost["xy"]
+            xy["x_cost"] = xy["y_cost"] = cost["xy"]
         if (x or "x_callback" in kwargs) and "cost" not in x:
             x["cost"] = cost["x"]
         if (y or "y_callback" in kwargs) and "cost" not in y:

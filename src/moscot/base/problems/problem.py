@@ -260,8 +260,10 @@ class OTProblem(BaseProblem):
                 )
             raise ValueError(f"Storing `{kwargs['tag']!r}` in `adata.{attr}` is disallowed.")
 
-        x_kwargs = {k[2:]: v for k, v in kwargs.items() if k.startswith("x_")}
-        y_kwargs = {k[2:]: v for k, v in kwargs.items() if k.startswith("y_")}
+        (
+            x_kwargs,
+            y_kwargs,
+        ) = self._split_xy_kwargs(**kwargs)
         if cost is not None:
             x_kwargs["cost"] = cost
             y_kwargs["cost"] = cost
@@ -339,8 +341,9 @@ class OTProblem(BaseProblem):
         # fmt: off
         if xy:
             if "tagged_array" in xy:
-                xy = dict(xy)
-                self._xy = xy.pop("tagged_array")._add_cost(**xy)
+                kws, _= self._split_xy_kwargs(**xy)
+                xy=dict(xy)
+                self._xy = xy.pop("tagged_array")._add_cost(**kws)
             else:
                 self._xy = self._handle_linear(**xy)
         if x:
@@ -802,6 +805,12 @@ class OTProblem(BaseProblem):
             self._problem_kind = "quadratic"
         self._y = TaggedArray(data_src=data.to_numpy(), data_tgt=None, tag=Tag(tag), cost="cost")
         self._stage = "prepared"
+
+    @staticmethod
+    def _split_xy_kwargs(**kwargs: Any) -> Tuple[Dict[str, Any], Dict[str, Any]]:
+        x_kwargs = {k[2:]: v for k, v in kwargs.items() if k.startswith("x_")}
+        y_kwargs = {k[2:]: v for k, v in kwargs.items() if k.startswith("y_")}
+        return x_kwargs, y_kwargs
 
     @property
     def adata_src(self) -> AnnData:

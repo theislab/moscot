@@ -180,6 +180,23 @@ class TestCompoundProblem:
         assert isinstance(problem[0, 1].y.cost, cost[1])
 
     @pytest.mark.fast()
+    @pytest.mark.parametrize("cost", [("sq_euclidean", SqEuclidean), ("euclidean", Euclidean), ("cosine", Cosine)])
+    def test_prepare_cost_with_callback(self, adata_time: AnnData, cost: Tuple[str, Any]):
+        problem = Problem(adata=adata_time)
+        problem = problem.prepare(
+            xy_callback="local-pca",
+            x_callback="local-pca",
+            xy={"x_cost": cost[0], "y_cost": cost[0]},
+            x={"cost": cost[0]},
+            y={"attr": "X", "cost": cost[0]},
+            key="time",
+            policy="sequential",
+        )
+        assert isinstance(problem[0, 1].xy.cost, cost[1])
+        assert isinstance(problem[0, 1].x.cost, cost[1])
+        assert isinstance(problem[0, 1].y.cost, cost[1])
+
+    @pytest.mark.fast()
     def test_prepare_different_costs(self, adata_time: AnnData):
         problem = Problem(adata=adata_time)
         problem = problem.prepare(
