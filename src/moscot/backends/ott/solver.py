@@ -300,9 +300,10 @@ class GWSolver(OTTJaxSolver):
             "relative_epsilon": relative_epsilon,
             "batch_size": batch_size,
             "scale_cost": scale_cost,
-            "cost_matrix_rank": cost_matrix_rank,
             **cost_kwargs,
         }
+        if cost_matrix_rank is not None:
+            geom_kwargs["cost_matrix_rank"] = cost_matrix_rank
         geom_xx = self._create_geometry(x, **geom_kwargs)
         geom_yy = self._create_geometry(y, **geom_kwargs)
         if alpha == 1.0 or xy is None:  # GW

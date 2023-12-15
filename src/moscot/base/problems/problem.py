@@ -595,15 +595,16 @@ class OTProblem(BaseProblem):
         term: Literal["x", "y"],
         adata: AnnData,
         adata_y: Optional[AnnData] = None,
-        attrs: Optional[Mapping[str, Any]] = None,
+        attr: Optional[Literal["X", "obsp", "obsm", "layers", "uns"]] = None,
+        key: Optional[str] = None,
     ) -> TaggedArray:
         if term == "y":
             if adata_y is None:
                 raise ValueError("When `term` is `y`, `adata_y` cannot be `None`.")
             adata = adata_y
-        if attrs is None:
+        if attr is None:
             raise ValueError("`attrs` cannot be `None` with this callback.")
-        spatial = TaggedArray._extract_data(adata, attr=attrs["attr"], key=attrs["key"])
+        spatial = TaggedArray._extract_data(adata, attr=attr, key=key)
 
         logger.info(f"Normalizing spatial coordinates of `{term}`.")
         spatial = (spatial - spatial.mean()) / spatial.std()

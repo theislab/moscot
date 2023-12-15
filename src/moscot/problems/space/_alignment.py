@@ -129,7 +129,7 @@ class AlignmentProblem(SpatialAlignmentMixin[K, B], CompoundProblem[K, B]):
         self.spatial_key = spatial_key
         self.batch_key = batch_key
 
-        x = y = {"attr": "obsm", "key": self.spatial_key, "tag": "point_cloud"}
+        x = y = {"attr": "obsm", "key": self.spatial_key}
 
         if normalize_spatial and "x_callback" not in kwargs and "y_callback" not in kwargs:
             kwargs["x_callback"] = kwargs["y_callback"] = "spatial-norm"

@@ -5,14 +5,11 @@ import pytest
 
 import numpy as np
 from ott.geometry import epsilon_scheduler
-from scipy.sparse import csr_matrix
 
-import scanpy as sc
 from anndata import AnnData
 
 from moscot.backends.ott._utils import alpha_to_fused_penalty
 from moscot.problems.space import AlignmentProblem
-from moscot.utils.tagged_array import Tag, TaggedArray
 from tests.problems.conftest import (
     fgw_args_1,
     fgw_args_2,
@@ -115,7 +112,7 @@ class TestAlignmentProblem:
         marg_a = "a"
         marg_b = "b"
         adata_space_rotate.obs[marg_a] = adata_space_rotate.obs[marg_b] = np.ones(300)
-        ap = (
+        ap: AlignmentProblem = (
             AlignmentProblem(adata=adata_space_rotate)
             .prepare(batch_key="batch", a=marg_a, b=marg_b)
             .solve(tau_a=tau_a, tau_b=tau_b)
@@ -125,67 +122,49 @@ class TestAlignmentProblem:
         assert np.all([sol.converged for sol in ap.solutions.values()])
         assert np.allclose(*(sol.cost for sol in ap.solutions.values()), rtol=1e-5, atol=1e-5)
 
-    @pytest.mark.parametrize("key", ["connectivities", "distances"])
-    def test_geodesic_cost(self, adata_space_rotate: AnnData, key: str):
-        batch_column = "batch"
-        unique_batches = adata_space_rotate.obs[batch_column].unique()
+    # TODO: (giovp) add tests for geodesic once fixes in ott-jax are merged
+    # @pytest.mark.parametrize("key", ["connectivities", "distances"])
+    # def test_geodesic_cost(self, adata_space_rotate: AnnData, key: str):
+    #     batch_column = "batch"
+    #     unique_batches = adata_space_rotate.obs[batch_column].unique()
 
-        for i in range(len(unique_batches)):
-            batch = unique_batches[i]
+    #     dfs = []
+    #     print(unique_batches)
+    #     for i in range(len(unique_batches)-1):
+    #         batch1 = unique_batches[i]
+    #         batch2 = unique_batches[i + 1]
+    #         indices = np.where(
+    #           (adata_space_rotate.obs[batch_column] == batch1) | (adata_space_rotate.obs[batch_column] == batch2)
+    #           )[0]
+    #         adata_subset = adata_space_rotate[indices]
+    #         sc.pp.neighbors(adata_subset, n_neighbors=15, use_rep="X_pca")
+    #         dfs.append(
+    #             pd.DataFrame(
+    #                 index=adata_subset.obs_names,
+    #                 columns=adata_subset.obs_names,
+    #                 data=adata_subset.obsp["connectivities"].A.astype("float64"),
+    #             )
+    #         )
 
-            indices = np.where(adata_space_rotate.obs[batch_column] == batch)
-            adata_subset = adata_space_rotate[indices]
-            sc.pp.neighbors(adata_subset, n_neighbors=15, use_rep="X_pca")
-            placeholder_shape = (adata_space_rotate.shape[0], adata_space_rotate.shape[0])
-            placeholder_matrix_1 = csr_matrix(placeholder_shape)
-            placeholder_matrix_2 = csr_matrix(placeholder_shape)
-            subset_connectivities = adata_subset.obsp["connectivities"]
-            subset_distances = adata_subset.obsp["distances"]
-            placeholder_matrix_1[indices][:, indices] = subset_connectivities
-            placeholder_matrix_2[indices][:, indices] = subset_distances
-            obsp_key_1 = f"{batch}_connectivities"
-            obsp_key_2 = f"{batch}_distances"
-            adata_space_rotate.obsp[obsp_key_1] = placeholder_matrix_1
-            adata_space_rotate.obsp[obsp_key_2] = placeholder_matrix_2
+    #     ap: AlignmentProblem = AlignmentProblem(adata=adata_space_rotate)
+    #     ap = ap.prepare(batch_key=batch_column, joint_attr={"attr": "obsm", "key": "X_pca"})
 
-        for i in range(len(unique_batches) - 1):
-            batch1 = unique_batches[i]
-            batch2 = unique_batches[i + 1]
+    #     ap[('0', "1")].set_graph_xy(dfs[0], cost="geodesic")
+    #     ap = ap.solve(max_iterations=2, lse_mode=False)
 
-            indices = np.where(
-                (adata_space_rotate.obs[batch_column] == batch1) | (adata_space_rotate.obs[batch_column] == batch2)
-            )[0]
-            adata_subset = adata_space_rotate[indices]
-            sc.pp.neighbors(adata_subset, n_neighbors=15, use_rep="X_pca")
-            placeholder_shape = (adata_space_rotate.shape[0], adata_space_rotate.shape[0])
-            placeholder_matrix_1 = csr_matrix(placeholder_shape)
-            placeholder_matrix_2 = csr_matrix(placeholder_shape)
-            subset_connectivities = adata_subset.obsp["connectivities"]
-            subset_distances = adata_subset.obsp["distances"]
-            placeholder_matrix_1[indices][:, indices] = subset_connectivities
-            placeholder_matrix_2[indices][:, indices] = subset_distances
-            obsp_key_1 = f"{batch1}_{batch2}_connectivities"
-            obsp_key_2 = f"{batch1}_{batch2}_distances"
-            adata_space_rotate.obsp[obsp_key_1] = placeholder_matrix_1
-            adata_space_rotate.obsp[obsp_key_2] = placeholder_matrix_2
+    #     ta = ap[('0', "1")].xy
+    #     assert isinstance(ta, TaggedArray)
+    #     assert isinstance(ta.data_src, np.ndarray)  # this will change once OTT-JAX allows for sparse matrices
+    #     assert ta.data_tgt is None
+    #     assert ta.tag == Tag.KERNEL
+    #     assert ta.cost == "geodesic"
 
-        ap = AlignmentProblem(adata=adata_space_rotate)
-        ap = ap.prepare(batch_key=batch_column, joint_attr={"attr": "obsp", "key": key}, cost="geodesic")
-        ap = ap.solve(max_iterations=2)
-
-        ta = ap[0, 1].xy
-        assert isinstance(ta, TaggedArray)
-        assert isinstance(ta.data_src, np.ndarray)  # this will change once OTT-JAX allows for sparse matrices
-        assert ta.data_tgt is None
-        assert ta.tag == Tag.KERNEL
-        assert ta.cost == "geodesic"
-
-        ta = ap[1, 2].xy
-        assert isinstance(ta, TaggedArray)
-        assert isinstance(ta.data_src, np.ndarray)  # this will change once OTT-JAX allows for sparse matrices
-        assert ta.data_tgt is None
-        assert ta.tag == Tag.KERNEL
-        assert ta.cost == "geodesic"
+    #     ta = ap[('0', "1")].xy
+    #     assert isinstance(ta, TaggedArray)
+    #     assert isinstance(ta.data_src, np.ndarray)  # this will change once OTT-JAX allows for sparse matrices
+    #     assert ta.data_tgt is None
+    #     assert ta.tag == Tag.KERNEL
+    #     assert ta.cost == "geodesic"
 
     @pytest.mark.parametrize("args_to_check", [fgw_args_1, fgw_args_2])
     def test_pass_arguments(self, adata_space_rotate: AnnData, args_to_check: Mapping[str, Any]):
