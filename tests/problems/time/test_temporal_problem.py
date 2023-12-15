@@ -2,6 +2,7 @@ from typing import Any, List, Mapping, Optional
 
 import pytest
 
+import jax.numpy as jnp
 import numpy as np
 import pandas as pd
 from ott.geometry import costs, epsilon_scheduler
@@ -365,7 +366,7 @@ class TestTemporalProblem:
             assert np.all(problem2[0, 1].xy.data_src.sum(axis=1) > problem[0, 1].xy.data_src.sum(axis=1))
 
     @pytest.mark.parametrize("forward", [True, False])
-    def test_geodesic_cost_cell_transition(self, adata_time: AnnData, forward: bool):
+    def test_geodesic_cost_downstream(self, adata_time: AnnData, forward: bool):
         # TODO(@MUCDK) add test for failure case
         adata_time = adata_time[adata_time.obs["time"].isin([0, 1])]
         tp = TemporalProblem(adata_time)
@@ -403,6 +404,11 @@ class TestTemporalProblem:
         assert ta.data_tgt is None
         assert ta.tag == Tag.KERNEL
         assert ta.cost == "geodesic"
+
+        func = tp.push if forward else tp.pull
+        out = func(0, 1, "celltype", "A", key_added=None)
+        assert isinstance(out, jnp.ndarray)
+        assert jnp.sum(jnp.isnan(out)) == 0
 
         adata_time.obs["celltype"] = adata_time.obs["celltype"].astype("category")
         df = tp.cell_transition(0, 1, "celltype", "celltype", forward=forward)

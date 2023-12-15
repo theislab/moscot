@@ -268,13 +268,15 @@ class GraphOTTOutput(OTTOutput):
 
     def _expand_data(self, x: jnp.ndarray, forward: bool) -> jnp.ndarray:
         if forward:
-            return jnp.concatenate((x, jnp.zeros((len(self._b), 1))))
-        return jnp.concatenate((jnp.zeros((len(self._a), 1)), x))
+            shape = (len(self._b),) if x.ndim == 1 else (len(self._b), x.shape[1])
+            return jnp.concatenate((x, jnp.zeros(shape)))
+        shape = (len(self._a),) if x.ndim == 1 else (len(self._a), x.shape[1])
+        return jnp.concatenate((jnp.zeros(shape), x))
 
     def _apply(self, x: ArrayLike, *, forward: bool) -> ArrayLike:
-        x_expanded = self._expand_data(x, forward=forward).T
+        x_expanded = self._expand_data(x, forward=forward)
         # ott-jax only supports lse_mode=False with graph geometry
-        res = self._output.apply(x_expanded, axis=1 - forward, lse_mode=False).T
+        res = self._output.apply(x_expanded.T, axis=1 - forward, lse_mode=False).T
         return res[: len(x)] if forward else res[len(x) :]
 
     def to(self, device: Optional[Device_t] = None) -> "GraphOTTOutput":  # noqa: D102
