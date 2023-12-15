@@ -10,6 +10,7 @@ from scipy.sparse import csr_matrix
 import scanpy as sc
 from anndata import AnnData
 
+from moscot.backends.ott.output import GraphOTTOutput
 from moscot.base.output import BaseSolverOutput
 from moscot.base.problems import BirthDeathProblem
 from moscot.problems.time import TemporalProblem
@@ -366,7 +367,7 @@ class TestTemporalProblem:
     @pytest.mark.parametrize("forward", [True, False])
     def test_geodesic_cost_cell_transition(self, adata_time: AnnData, forward: bool):
         # TODO(@MUCDK) add test for failure case
-        sc.pp.subsample(adata_time, n_obs=30)
+        adata_time = adata_time[adata_time.obs["time"].isin([0, 1])]
         tp = TemporalProblem(adata_time)
         tp = tp.prepare("time", joint_attr="X_pca")
         batch_column = "time"
@@ -393,7 +394,8 @@ class TestTemporalProblem:
             dfs.append(df)
 
         tp[0, 1].set_graph_xy(dfs[0], cost="geodesic")
-        tp = tp.solve(max_iterations=1e8, lse_mode=False)
+        tp = tp.solve(max_iterations=5, lse_mode=False)
+        assert isinstance(tp[0, 1].solution, GraphOTTOutput)
 
         ta = tp[0, 1].xy
         assert isinstance(ta, TaggedArray)

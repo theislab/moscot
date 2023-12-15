@@ -202,7 +202,6 @@ class OTSolver(TagConverter, BaseSolver[O], abc.ABC):
         res = super().__call__(**kwargs)
         if not res.converged:
             logger.warning("Solver did not converge")
-
         return res.to(device=device)  # type: ignore[return-value]
 
     def _untag(self, data: TaggedArrayData) -> Dict[str, Any]:

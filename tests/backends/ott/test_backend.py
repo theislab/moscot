@@ -375,5 +375,5 @@ class TestOutputPlotting(PlotTester, metaclass=PlotTesterMeta):
         out.plot_errors()
 
     def test_plot_errors_gw(self, x: Geom_t, y: Geom_t):
-        out = GWSolver(a=None, b=None, store_inner_errors=True)(x=x, y=y)
+        out = GWSolver(a=None, b=None, store_inner_errors=True)(a=None, b=None, x=x, y=y)
         out.plot_errors()

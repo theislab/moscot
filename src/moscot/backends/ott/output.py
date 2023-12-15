@@ -14,7 +14,7 @@ import matplotlib.pyplot as plt
 from moscot._types import ArrayLike, Device_t
 from moscot.base.output import BaseSolverOutput
 
-__all__ = ["OTTOutput"]
+__all__ = ["OTTOutput", "GraphOTTOutput"]
 
 
 class OTTOutput(BaseSolverOutput):
@@ -258,9 +258,9 @@ class GraphOTTOutput(OTTOutput):
         a: jnp.ndarray,
         b: jnp.ndarray,
     ):
+        super().__init__(output)
         self._a = a
         self._b = b
-        super().__init__(output)
 
     @property
     def shape(self) -> Tuple[int, int]:  # noqa: D102
@@ -268,11 +268,29 @@ class GraphOTTOutput(OTTOutput):
 
     def _expand_data(self, x: jnp.ndarray, forward: bool) -> jnp.ndarray:
         if forward:
-            return jnp.concatenate((jnp.atleast_2d(x), jnp.zeros(len(self._b))))
-        return jnp.concatenate((jnp.zeros(len(self._a)), jnp.atleast_2d(x)))
+            return jnp.concatenate((x, jnp.zeros((len(self._b), 1))))
+        return jnp.concatenate((jnp.zeros((len(self._a), 1)), x))
 
     def _apply(self, x: ArrayLike, *, forward: bool) -> ArrayLike:
-        x_expanded = self._expand_data(x.T, forward=forward)
+        x_expanded = self._expand_data(x, forward=forward).T
         # ott-jax only supports lse_mode=False with graph geometry
         res = self._output.apply(x_expanded, axis=1 - forward, lse_mode=False).T
         return res[: len(x)] if forward else res[len(x) :]
+
+    def to(self, device: Optional[Device_t] = None) -> "GraphOTTOutput":  # noqa: D102
+        if device is None:
+            return GraphOTTOutput(jax.device_put(self._output, device=device), a=self._a, b=self._b)
+
+        if isinstance(device, str) and ":" in device:
+            device, ix = device.split(":")
+            idx = int(ix)
+        else:
+            idx = 0
+
+        if not isinstance(device, xla_ext.Device):
+            try:
+                device = jax.devices(device)[idx]
+            except IndexError:
+                raise IndexError(f"Unable to fetch the device with `id={idx}`.") from None
+
+        return GraphOTTOutput(jax.device_put(self._output, device), a=self._a, b=self._b)
