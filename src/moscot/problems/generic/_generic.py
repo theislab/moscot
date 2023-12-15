@@ -22,6 +22,14 @@ from moscot.problems.generic._mixins import GenericAnalysisMixin
 __all__ = ["SinkhornProblem", "GWProblem", "FGWProblem"]
 
 
+def set_quad_defaults(z: Optional[Union[str, Mapping[str, Any]]]) -> Dict[str, str]:
+    if isinstance(z, str):
+        return {"attr": "obsm", "key": z, "tag": "point_cloud"}  # cost handled by handle_cost
+    if isinstance(z, Mapping):
+        return dict(z)
+    raise TypeError("`x_attr` and `y_attr` must be of type `str` or `dict` if no callback is provided.")
+
+
 class SinkhornProblem(GenericAnalysisMixin[K, B], CompoundProblem[K, B]):  # type: ignore[misc]
     """Class for solving a :term:`linear problem`.
 
@@ -255,8 +263,8 @@ class GWProblem(GenericAnalysisMixin[K, B], CompoundProblem[K, B]):  # type: ign
     def prepare(
         self,
         key: str,
-        x_attr: Union[str, Mapping[str, Any]],
-        y_attr: Union[str, Mapping[str, Any]],
+        x_attr: Optional[Union[str, Mapping[str, Any]]] = None,
+        y_attr: Optional[Union[str, Mapping[str, Any]]] = None,
         policy: Literal["sequential", "explicit", "star"] = "sequential",
         cost: OttCostFnMap_t = "sq_euclidean",
         cost_kwargs: CostKwargs_t = types.MappingProxyType({}),
@@ -280,6 +288,7 @@ class GWProblem(GenericAnalysisMixin[K, B], CompoundProblem[K, B]):  # type: ign
             - :class:`dict`-  it should contain ``'attr'`` and ``'key'``, the attribute and key in
               :class:`~anndata.AnnData`, and optionally ``'tag'`` from the
               :class:`tags <moscot.utils.tagged_array.Tag>`.
+            - :obj:`None` - ``'x_callback'`` must be passed via ``kwargs``.
 
             By default, :attr:`tag = 'point_cloud' <moscot.utils.tagged_array.Tag.POINT_CLOUD>` is used.
         y_attr
@@ -288,6 +297,7 @@ class GWProblem(GenericAnalysisMixin[K, B], CompoundProblem[K, B]):  # type: ign
             - :class:`str` - a key in :attr:`~anndata.AnnData.obsm` where the data is stored.
             - :class:`dict`-  it should contain ``'attr'`` and ``'key'``, the attribute and the key
               in :class:`~anndata.AnnData`, and optionally ``'tag'``, one of :class:`~moscot.utils.tagged_array.Tag`.
+            - :obj:`None` - ``'y_callback'`` must be passed via ``kwargs``.
 
             By default, :attr:`tag = 'point_cloud' <moscot.utils.tagged_array.Tag.POINT_CLOUD>` is used.
         policy
@@ -335,17 +345,9 @@ class GWProblem(GenericAnalysisMixin[K, B], CompoundProblem[K, B]):  # type: ign
         - :attr:`stage` - set to ``'prepared'``.
         - :attr:`problem_kind` - set to ``'quadratic'``.
         """
-
-        def set_quad_defaults(z: Union[str, Mapping[str, Any]]) -> Dict[str, str]:
-            if isinstance(z, str):
-                return {"attr": "obsm", "key": z, "tag": "point_cloud"}  # cost handled by handle_cost
-            if isinstance(z, Mapping):
-                return dict(z)
-            raise TypeError("`x_attr` and `y_attr` must be of type `str` or `dict`.")
-
         self.batch_key = key  # type: ignore[misc]
-        x = set_quad_defaults(x_attr)
-        y = set_quad_defaults(y_attr)
+        x = set_quad_defaults(x_attr) if "x_callback" not in kwargs else {}
+        y = set_quad_defaults(y_attr) if "y_callback" not in kwargs else {}
         xy, x, y = handle_cost(xy={}, x=x, y=y, cost=cost, cost_kwargs=cost_kwargs, **kwargs)  # type: ignore[arg-type]
         return super().prepare(  # type: ignore[return-value]
             key=key,
@@ -478,9 +480,9 @@ class FGWProblem(GWProblem[K, B]):
     def prepare(
         self,
         key: str,
-        x_attr: Union[str, Mapping[str, Any]],
-        y_attr: Union[str, Mapping[str, Any]],
         joint_attr: Optional[Union[str, Mapping[str, Any]]] = None,
+        x_attr: Optional[Union[str, Mapping[str, Any]]] = None,
+        y_attr: Optional[Union[str, Mapping[str, Any]]] = None,
         policy: Literal["sequential", "explicit", "star"] = "sequential",
         cost: OttCostFnMap_t = "sq_euclidean",
         cost_kwargs: CostKwargs_t = types.MappingProxyType({}),
@@ -497,23 +499,6 @@ class FGWProblem(GWProblem[K, B]):
         ----------
         key
             Key in :attr:`~anndata.AnnData.obs` for the :class:`~moscot.utils.subset_policy.SubsetPolicy`.
-        x_attr
-            How to get the data for the source :term:`quadratic term`:
-
-            - :class:`str` - a key in :attr:`~anndata.AnnData.obsm` where the data is stored.
-            - :class:`dict`-  it should contain ``'attr'`` and ``'key'``, the attribute and key in
-              :class:`~anndata.AnnData`, and optionally ``'tag'`` from the
-              :class:`tags <moscot.utils.tagged_array.Tag>`.
-
-            By default, :attr:`tag = 'point_cloud' <moscot.utils.tagged_array.Tag.POINT_CLOUD>` is used.
-        y_attr
-            How to get the data for the target :term:`quadratic term`:
-
-            - :class:`str` - a key in :attr:`~anndata.AnnData.obsm` where the data is stored.
-            - :class:`dict`-  it should contain ``'attr'`` and ``'key'``, the attribute and the key
-              in :class:`~anndata.AnnData`, and optionally ``'tag'``, one of :class:`~moscot.utils.tagged_array.Tag`.
-
-            By default, :attr:`tag = 'point_cloud' <moscot.utils.tagged_array.Tag.POINT_CLOUD>` is used.
         joint_attr
             How to get the data for the :term:`linear term` in the :term:`fused <fused Gromov-Wasserstein>` case:
 
@@ -522,6 +507,25 @@ class FGWProblem(GWProblem[K, B]):
             - :class:`str` - a key in :attr:`~anndata.AnnData.obsm` where the data is stored.
             - :class:`dict`-  it should contain ``'attr'`` and ``'key'``, the attribute and the key
               in :class:`~anndata.AnnData`, and optionally ``'tag'``, one of :class:`~moscot.utils.tagged_array.Tag`.
+
+            By default, :attr:`tag = 'point_cloud' <moscot.utils.tagged_array.Tag.POINT_CLOUD>` is used.
+        x_attr
+            How to get the data for the source :term:`quadratic term`:
+
+            - :class:`str` - a key in :attr:`~anndata.AnnData.obsm` where the data is stored.
+            - :class:`dict`-  it should contain ``'attr'`` and ``'key'``, the attribute and key in
+              :class:`~anndata.AnnData`, and optionally ``'tag'`` from the
+              :class:`tags <moscot.utils.tagged_array.Tag>`.
+            - :obj:`None` - ``'x_callback'`` must be passed via ``kwargs``.
+
+            By default, :attr:`tag = 'point_cloud' <moscot.utils.tagged_array.Tag.POINT_CLOUD>` is used.
+        y_attr
+            How to get the data for the target :term:`quadratic term`:
+
+            - :class:`str` - a key in :attr:`~anndata.AnnData.obsm` where the data is stored.
+            - :class:`dict`-  it should contain ``'attr'`` and ``'key'``, the attribute and the key
+              in :class:`~anndata.AnnData`, and optionally ``'tag'``, one of :class:`~moscot.utils.tagged_array.Tag`.
+            - :obj:`None` - ``'y_callback'`` must be passed via ``kwargs``.
 
             By default, :attr:`tag = 'point_cloud' <moscot.utils.tagged_array.Tag.POINT_CLOUD>` is used.
         policy
@@ -569,18 +573,10 @@ class FGWProblem(GWProblem[K, B]):
         - :attr:`stage` - set to ``'prepared'``.
         - :attr:`problem_kind` - set to ``'quadratic'``.
         """
-
-        def set_quad_defaults(z: Union[str, Mapping[str, Any]]) -> Dict[str, str]:
-            if isinstance(z, str):
-                return {"attr": "obsm", "key": z, "tag": "point_cloud"}  # cost handled by handle_cost
-            if isinstance(z, Mapping):
-                return dict(z)
-            raise TypeError("`x_attr` and `y_attr` must be of type `str` or `dict`.")
-
         self.batch_key = key  # type: ignore[misc]
         xy, kwargs = handle_joint_attr(joint_attr, kwargs)
-        x = set_quad_defaults(x_attr)
-        y = set_quad_defaults(y_attr)
+        x = set_quad_defaults(x_attr) if "x_callback" not in kwargs else {}
+        y = set_quad_defaults(y_attr) if "y_callback" not in kwargs else {}
         xy, x, y = handle_cost(xy=xy, x=x, y=y, cost=cost, cost_kwargs=cost_kwargs, **kwargs)  # type: ignore[arg-type]
         return CompoundProblem.prepare(
             self,  # type: ignore[return-value, arg-type]
