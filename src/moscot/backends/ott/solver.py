@@ -321,8 +321,8 @@ class GWSolver(OTTJaxSolver):
         }
         if cost_matrix_rank is not None:
             geom_kwargs["cost_matrix_rank"] = cost_matrix_rank
-        geom_xx = self._create_geometry(x, **geom_kwargs)
-        geom_yy = self._create_geometry(y, **geom_kwargs)
+        geom_xx = self._create_geometry(x, is_linear_term=False, **geom_kwargs)
+        geom_yy = self._create_geometry(y, is_linear_term=False, **geom_kwargs)
         if alpha == 1.0 or xy is None:  # GW
             # arbitrary fused penalty; must be positive
             geom_xy, fused_penalty = None, 1.0
