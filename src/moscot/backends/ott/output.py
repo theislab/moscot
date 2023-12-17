@@ -277,7 +277,7 @@ class GraphOTTOutput(OTTOutput):
         x_expanded = self._expand_data(x, forward=forward)
         # ott-jax only supports lse_mode=False with graph geometry
         res = self._output.apply(x_expanded.T, axis=1 - forward, lse_mode=False).T
-        return res[: len(x)] if forward else res[len(x) :]
+        return res[len(x) :] if forward else res[: -len(x)]
 
     def to(self, device: Optional[Device_t] = None) -> "GraphOTTOutput":  # noqa: D102
         if device is None:
