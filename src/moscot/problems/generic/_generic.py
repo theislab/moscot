@@ -489,7 +489,7 @@ class FGWProblem(GWProblem[K, B]):
         a: Optional[Union[bool, str]] = None,
         b: Optional[Union[bool, str]] = None,
         **kwargs: Any,
-    ) -> "GWProblem[K, B]":
+    ) -> "FGWProblem[K, B]":
         """Prepare the individual :term:`quadratic subproblems <quadratic problem>`.
 
         .. seealso::
@@ -610,7 +610,7 @@ class FGWProblem(GWProblem[K, B]):
         linear_solver_kwargs: Mapping[str, Any] = types.MappingProxyType({}),
         device: Optional[Literal["cpu", "gpu", "tpu"]] = None,
         **kwargs: Any,
-    ) -> "GWProblem[K,B]":
+    ) -> "FGWProblem[K,B]":
         r"""Solve the individual :term:`quadratic subproblems <quadratic problem>`.
 
         .. seealso:

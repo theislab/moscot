@@ -16,8 +16,6 @@ from ott.solvers.linear.sinkhorn import Sinkhorn
 from ott.solvers.linear.sinkhorn import solve as sinkhorn
 from ott.solvers.linear.sinkhorn_lr import LRSinkhorn
 from ott.solvers.quadratic.gromov_wasserstein import GromovWasserstein
-
-# from ott.solvers.quadratic.gromov_wasserstein import solve as gromov_wasserstein
 from ott.solvers.quadratic.gromov_wasserstein_lr import LRGromovWasserstein
 
 from moscot._types import ArrayLike, Device_t

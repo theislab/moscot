@@ -94,9 +94,9 @@ class OTTJaxSolver(OTSolver[OTTOutput], abc.ABC):
                 kernel_matrix=arr, epsilon=epsilon, relative_epsilon=relative_epsilon, scale_cost=scale_cost
             )
         if x.is_graph:
+            if is_linear_term:
+                self._graph_in_linear_term = True
             if x.cost == "geodesic":
-                if is_linear_term:
-                    self._graph_in_linear_term = True
                 return geodesic.Geodesic.from_graph(arr, t=epsilon, directed=True, **kwargs)
             raise NotImplementedError(f"If the geometry is a graph, `cost` must be `geodesic`, found `{x.cost}`.")
         raise NotImplementedError(f"Creating geometry from `tag={x.tag!r}` is not yet implemented.")
@@ -105,7 +105,7 @@ class OTTJaxSolver(OTSolver[OTTOutput], abc.ABC):
         self,
         prob: OTTProblem_t,
         **kwargs: Any,
-    ) -> OTTOutput:
+    ) -> Union[OTTOutput, GraphOTTOutput]:
         solver = jax.jit(self.solver) if self._jit else self.solver
         out = solver(prob, **kwargs)
         if self._graph_in_linear_term:
@@ -129,6 +129,7 @@ class OTTJaxSolver(OTSolver[OTTOutput], abc.ABC):
 
     @property
     def graph_in_linear_term(self) -> bool:
+        """Whether the :attr:`solver` has a graph in the linear term."""
         return self._graph_in_linear_term
 
 
