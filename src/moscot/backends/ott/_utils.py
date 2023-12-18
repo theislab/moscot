@@ -3,7 +3,7 @@ from typing import Any, Optional, Union
 import jax
 import jax.numpy as jnp
 import scipy.sparse as sp
-from ott.geometry import epsilon_scheduler, geodesic, geometry, pointcloud
+from ott.geometry import epsilon_scheduler, geometry, pointcloud
 from ott.tools import sinkhorn_divergence as sdiv
 
 from moscot._logging import logger
@@ -51,16 +51,10 @@ def sinkhorn_divergence(
 def check_shapes(geom_x: geometry.Geometry, geom_y: geometry.Geometry, geom_xy: geometry.Geometry) -> None:
     n, m = geom_xy.shape
     n_, m_ = geom_x.shape[0], geom_y.shape[0]
-    if isinstance(geom_xy, geodesic.Geodesic):
-        if n != n_ + m_:
-            raise ValueError(f"Expected the first geometry to have `{n_ + m}` points, found `{n}`.")
-        if m != n_ + m_:
-            raise ValueError(f"Expected the second geometry to have `{n_ + m}` points, found `{m}`.")
-    else:
-        if n != n_:
-            raise ValueError(f"Expected the first geometry to have `{n}` points, found `{n_}`.")
-        if m != m_:
-            raise ValueError(f"Expected the second geometry to have `{m}` points, found `{m_}`.")
+    if n != n_:
+        raise ValueError(f"Expected the first geometry to have `{n}` points, found `{n_}`.")
+    if m != m_:
+        raise ValueError(f"Expected the second geometry to have `{m}` points, found `{m_}`.")
 
 
 def alpha_to_fused_penalty(alpha: float) -> float:
