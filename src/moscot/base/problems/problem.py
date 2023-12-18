@@ -719,7 +719,7 @@ class OTProblem(BaseProblem):
                 "Expected data to be a pd.DataFrame or a tuple of (sp.csr_matrix, pd.Series, pd.Series), "
                 + f"found {type(data)}."
             )
-        self._xy = TaggedArray(data_src=data_src, data_tgt=None, tag=Tag.KERNEL, cost=cost)
+        self._xy = TaggedArray(data_src=data_src, data_tgt=None, tag=Tag.GRAPH, cost=cost)
         self._stage = "prepared"
 
     # TODO(michalk8): extend for point-clouds as Union[pd.DataFrame, Tuple[pd.DataFrame, pd.DataFrame]]

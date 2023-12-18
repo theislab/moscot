@@ -90,13 +90,15 @@ class OTTJaxSolver(OTSolver[OTTOutput], abc.ABC):
                 cost_matrix=arr, epsilon=epsilon, relative_epsilon=relative_epsilon, scale_cost=scale_cost
             )
         if x.is_kernel:
+            return geometry.Geometry(
+                kernel_matrix=arr, epsilon=epsilon, relative_epsilon=relative_epsilon, scale_cost=scale_cost
+            )
+        if x.is_graph:
             if x.cost == "geodesic":
                 if is_linear_term:
                     self._graph_in_linear_term = True
                 return geodesic.Geodesic.from_graph(arr, t=epsilon, directed=True, **kwargs)
-            return geometry.Geometry(
-                kernel_matrix=arr, epsilon=epsilon, relative_epsilon=relative_epsilon, scale_cost=scale_cost
-            )
+            raise NotImplementedError(f"If the geometry is a graph, `cost` must be `geodesic`, found `{x.cost}`.")
         raise NotImplementedError(f"Creating geometry from `tag={x.tag!r}` is not yet implemented.")
 
     def _solve(  # type: ignore[override]
@@ -211,7 +213,7 @@ class SinkhornSolver(OTTJaxSolver):
         )
         if cost_matrix_rank is not None:
             geom = geom.to_LRCGeometry(rank=cost_matrix_rank)
-        if xy.cost == "geodesic":
+        if xy.is_graph:
             a = jnp.concatenate((a, jnp.zeros_like(self._b)), axis=0)
             b = jnp.concatenate((jnp.zeros_like(self._a), b), axis=0)
         self._problem = linear_problem.LinearProblem(geom, a=a, b=b, **kwargs)
