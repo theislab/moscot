@@ -175,15 +175,12 @@ class MappingProblem(SpatialMappingMixin[K, OTProblem], CompoundProblem[K, OTPro
         if normalize_spatial and "x_callback" not in kwargs:
             kwargs["x_callback"] = "spatial-norm"
             kwargs.setdefault("x_callback_kwargs", x)
-        if "spatial-norm" in kwargs:
+        if "x_callback" in kwargs and "spatial-norm" in kwargs["x_callback"]:
             x = {}
 
         self.batch_key = batch_key
         self.spatial_key = spatial_key if isinstance(spatial_key, str) else spatial_key["key"]
         self.filtered_vars = var_names
-
-        x = {"attr": "obsm", "key": spatial_key} if isinstance(spatial_key, str) else spatial_key
-        y = {"attr": "obsm", "key": sc_attr} if isinstance(sc_attr, str) else sc_attr
 
         if self.filtered_vars is not None:
             xy, kwargs = handle_joint_attr(joint_attr, kwargs)
