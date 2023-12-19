@@ -605,6 +605,13 @@ class SpatialMappingMixin(AnalysisMixin[K, B]):
         scale_by_marginals: bool = True,
         cell_transition_kwargs: Mapping[str, Any] = types.MappingProxyType({}),
     ) -> pd.DataFrame:
+        """
+
+        Notes
+        -----
+        If forward is True, it means that the annotation columns (annotation label) needs to be in the target adata,
+        If forward is False, it means that the annotation column (annotation label) needs to be in the source adata.
+        """
         cell_transition_kwargs = dict(cell_transition_kwargs)
         if forward:
             cell_transition_kwargs.setdefault("source_groups", None)
