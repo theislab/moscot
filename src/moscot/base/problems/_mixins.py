@@ -314,7 +314,6 @@ class AnalysisMixin(Generic[K, B]):
         scale_by_marginals: bool = True,
         cell_transition_kwargs: Mapping[str, Any] = types.MappingProxyType({}),
     ) -> pd.DataFrame:
-        batch_key = getattr(self, "batch_key", None)
         cell_transition_kwargs = dict(cell_transition_kwargs)
         cell_transition_kwargs.setdefault("aggregation_mode", "cell")  # aggregation mode should be set to cell
         cell_transition_kwargs.setdefault("key", key)
@@ -329,7 +328,7 @@ class AnalysisMixin(Generic[K, B]):
                 filter_key=key,
                 filter_value=source,
             )
-            dummy = pd.get_dummies(source_df)
+            dummy = pd.get_dummies(source_df, prefix="", prefix_sep="")
             axis = 1  # columns
             cell_transition_kwargs.setdefault("source_groups", None)
             cell_transition_kwargs.setdefault("target_groups", annotation_label)
@@ -340,7 +339,7 @@ class AnalysisMixin(Generic[K, B]):
                 filter_key=key,
                 filter_value=target,
             )
-            dummy = pd.get_dummies(target_df)
+            dummy = pd.get_dummies(target_df, prefix="", prefix_sep="")
             axis = 0  # rows
             cell_transition_kwargs.setdefault("source_groups", annotation_label)
             cell_transition_kwargs.setdefault("target_groups", None)
@@ -352,7 +351,7 @@ class AnalysisMixin(Generic[K, B]):
                 out: ArrayLike = self[(source, target)].push(dummy, scale_by_marginals=scale_by_marginals)
             else:
                 out: ArrayLike = self[(source, target)].pull(dummy, scale_by_marginals=scale_by_marginals)
-            categories = pd.Categorical([(dummy.columns[i]).split("_")[-1] for i in np.array(out.argmax(1))])
+            categories = pd.Categorical([dummy.columns[i] for i in np.array(out.argmax(1))])
             return pd.DataFrame(categories, columns=[annotation_label])
         else:
             raise NotImplementedError(f"Mapping mode `{mapping_mode!r}` is not yet implemented.")
