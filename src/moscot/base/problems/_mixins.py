@@ -151,7 +151,6 @@ class AnalysisMixin(Generic[K, B]):
             )
         if aggregation_mode == "cell" and source_groups is None and target_groups is None:
             raise ValueError("At least one of `source_groups` and `target_group` must be specified.")
-
         _check_argument_compatibility_cell_transition(
             source_annotation=source_groups,
             target_annotation=target_groups,
@@ -208,13 +207,13 @@ class AnalysisMixin(Generic[K, B]):
         )
         df_source = _get_df_cell_transition(
             self.adata,
-            [source_annotation_key, target_annotation_key],
+            [source_annotation_key],
             key,
             source,
         )
         df_target = _get_df_cell_transition(
             self.adata if other_adata is None else other_adata,
-            [source_annotation_key, target_annotation_key],
+            [target_annotation_key],
             key if other_adata is None else other_key,
             target,
         )
@@ -323,7 +322,7 @@ class AnalysisMixin(Generic[K, B]):
         cell_transition_kwargs.setdefault("forward", forward)
         if forward:
             source_df = _get_df_cell_transition(
-                self.adata,
+                self.adata if other_adata is None else other_adata,
                 annotation_keys=[annotation_label],
                 filter_key=key,
                 filter_value=source,
@@ -332,9 +331,9 @@ class AnalysisMixin(Generic[K, B]):
             axis = 1  # columns
             cell_transition_kwargs.setdefault("source_groups", None)
             cell_transition_kwargs.setdefault("target_groups", annotation_label)
-        elif not forward:
+        else:
             target_df = _get_df_cell_transition(
-                self.adata if other_adata is None else other_adata,
+                self.adata,
                 annotation_keys=[annotation_label],
                 filter_key=key,
                 filter_value=target,
@@ -346,7 +345,7 @@ class AnalysisMixin(Generic[K, B]):
         if mapping_mode == "sum":
             out: pd.DataFrame = self._cell_transition(**cell_transition_kwargs)
             return out.idxmax(axis=axis).to_frame(name=annotation_label)
-        elif mapping_mode == "max":
+        if mapping_mode == "max":
             if forward:
                 out: ArrayLike = self[(source, target)].push(dummy, scale_by_marginals=scale_by_marginals)
             else:
