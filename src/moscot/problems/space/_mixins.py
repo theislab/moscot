@@ -614,8 +614,8 @@ class SpatialMappingMixin(AnalysisMixin[K, B]):
         """
         cell_transition_kwargs = dict(cell_transition_kwargs)
         if forward:
-            cell_transition_kwargs.setdefault("source_groups", None)
-            cell_transition_kwargs.setdefault("target_groups", annotation_label)
+            cell_transition_kwargs.setdefault("source_groups", annotation_label)
+            cell_transition_kwargs.setdefault("target_groups", None)
         else:
             cell_transition_kwargs.setdefault("source_groups", None)
             cell_transition_kwargs.setdefault("target_groups", annotation_label)
