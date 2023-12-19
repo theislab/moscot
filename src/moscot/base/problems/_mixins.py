@@ -352,7 +352,8 @@ class AnalysisMixin(Generic[K, B]):
                 out: ArrayLike = self[(source, target)].push(dummy, scale_by_marginals=scale_by_marginals)
             else:
                 out: ArrayLike = self[(source, target)].pull(dummy, scale_by_marginals=scale_by_marginals)
-            return pd.DataFrame(out.argmax(1), columns=[annotation_label])
+            categories = pd.Categorical([(dummy.columns[i]).split("_")[-1] for i in np.array(out.argmax(1))])
+            return pd.DataFrame(categories, columns=[annotation_label])
         else:
             raise NotImplementedError(f"Mapping mode `{mapping_mode!r}` is not yet implemented.")
 

@@ -202,7 +202,7 @@ class CrossModalityTranslationMixin(AnalysisMixin[K, B]):
             target=target,
             key=self.batch_key,
             forward=forward,
-            other_adata=other_adata,
+            other_adata=self.adata_tgt if forward else self.adata_src,
             scale_by_marginals=scale_by_marginals,
             cell_transition_kwargs=cell_transition_kwargs,
         )
