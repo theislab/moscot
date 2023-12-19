@@ -123,7 +123,6 @@ class TestAlignmentProblem:
         assert np.all([sol.converged for sol in ap.solutions.values()])
         assert np.allclose(*(sol.cost for sol in ap.solutions.values()), rtol=1e-5, atol=1e-5)
 
-    # TODO: (giovp) add tests for geodesic once fixes in ott-jax are merged
     @pytest.mark.parametrize("key", ["connectivities", "distances"])
     def test_geodesic_cost(self, adata_space_rotate: AnnData, key: str):
         import pandas as pd
