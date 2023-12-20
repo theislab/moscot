@@ -97,7 +97,7 @@ class OTTJaxSolver(OTSolver[OTTOutput], abc.ABC):
             if is_linear_term:
                 self._graph_in_linear_term = True
             if x.cost == "geodesic":
-                return geodesic.Geodesic.from_graph(arr, t=epsilon, directed=True, **kwargs)
+                return geodesic.Geodesic.from_graph(arr, t=epsilon / 4, directed=True, **kwargs)
             raise NotImplementedError(f"If the geometry is a graph, `cost` must be `geodesic`, found `{x.cost}`.")
         raise NotImplementedError(f"Creating geometry from `tag={x.tag!r}` is not yet implemented.")
 
