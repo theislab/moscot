@@ -322,7 +322,7 @@ class AnalysisMixin(Generic[K, B]):
         cell_transition_kwargs.setdefault("forward", forward)
         if forward:
             source_df = _get_df_cell_transition(
-                self.adata if other_adata is None else other_adata,
+                self.adata if (other_adata is None or mapping_mode == "max") else other_adata,
                 annotation_keys=[annotation_label],
                 filter_key=key,
                 filter_value=source,
@@ -333,7 +333,7 @@ class AnalysisMixin(Generic[K, B]):
             cell_transition_kwargs.setdefault("target_groups", annotation_label)
         else:
             target_df = _get_df_cell_transition(
-                self.adata,
+                self.adata if (other_adata is None or mapping_mode == "sum") else other_adata,
                 annotation_keys=[annotation_label],
                 filter_key=key,
                 filter_value=target,

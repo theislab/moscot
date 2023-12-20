@@ -624,7 +624,7 @@ class SpatialMappingMixin(AnalysisMixin[K, B]):
             annotation_label=annotation_label,
             source=source,
             target=target,
-            forward=not forward,
+            forward=not forward if mapping_mode == "sum" else forward,
             key=self.batch_key,
             other_adata=self.adata_sc,
             scale_by_marginals=scale_by_marginals,
