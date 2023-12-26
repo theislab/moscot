@@ -294,7 +294,7 @@ class SpatialAlignmentMixin(AnalysisMixin[K, B]):
         scale_by_marginals: bool = True,
         cell_transition_kwargs: Mapping[str, Any] = types.MappingProxyType({}),
     ) -> pd.DataFrame:
-        annotation = self._annotation_mapping(
+        return self._annotation_mapping(
             mapping_mode=mapping_mode,
             annotation_label=annotation_label,
             source=source,
@@ -304,7 +304,6 @@ class SpatialAlignmentMixin(AnalysisMixin[K, B]):
             scale_by_marginals=scale_by_marginals,
             cell_transition_kwargs=cell_transition_kwargs,
         )
-        return annotation
 
     @property
     def spatial_key(self) -> Optional[str]:
@@ -619,7 +618,7 @@ class SpatialMappingMixin(AnalysisMixin[K, B]):
         else:
             cell_transition_kwargs.setdefault("source_groups", None)
             cell_transition_kwargs.setdefault("target_groups", annotation_label)
-        annotation = self._annotation_mapping(
+        return self._annotation_mapping(
             mapping_mode=mapping_mode,
             annotation_label=annotation_label,
             source=source,
@@ -630,7 +629,6 @@ class SpatialMappingMixin(AnalysisMixin[K, B]):
             scale_by_marginals=scale_by_marginals,
             cell_transition_kwargs=cell_transition_kwargs,
         )
-        return annotation
 
     @property
     def batch_key(self) -> Optional[str]:

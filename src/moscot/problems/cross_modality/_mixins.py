@@ -195,7 +195,7 @@ class CrossModalityTranslationMixin(AnalysisMixin[K, B]):
         other_adata: Optional[str] = None,
         cell_transition_kwargs: Mapping[str, Any] = types.MappingProxyType({}),
     ) -> pd.DataFrame:
-        annotation: pd.DataFrame = self._annotation_mapping(
+        return self._annotation_mapping(
             mapping_mode=mapping_mode,
             annotation_label=annotation_label,
             source=source,
@@ -207,7 +207,6 @@ class CrossModalityTranslationMixin(AnalysisMixin[K, B]):
             cell_transition_kwargs=cell_transition_kwargs,
         )
 
-        return annotation
 
     @property
     def batch_key(self) -> Optional[str]:

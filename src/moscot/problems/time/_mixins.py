@@ -246,7 +246,7 @@ class TemporalMixin(AnalysisMixin[K, B]):
         scale_by_marginals: bool = True,
         cell_transition_kwargs: Mapping[str, Any] = types.MappingProxyType({}),
     ) -> pd.DataFrame:
-        annotation: pd.DataFrame = self._annotation_mapping(
+        return self._annotation_mapping(
             mapping_mode=mapping_mode,
             annotation_label=annotation_label,
             source=source,
@@ -258,7 +258,6 @@ class TemporalMixin(AnalysisMixin[K, B]):
             cell_transition_kwargs=cell_transition_kwargs,
         )
 
-        return annotation
 
     def sankey(
         self: TemporalMixinProtocol[K, B],

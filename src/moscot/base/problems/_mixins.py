@@ -352,8 +352,7 @@ class AnalysisMixin(Generic[K, B]):
                 out: ArrayLike = self[(source, target)].pull(dummy, scale_by_marginals=scale_by_marginals)
             categories = pd.Categorical([dummy.columns[i] for i in np.array(out.argmax(1))])
             return pd.DataFrame(categories, columns=[annotation_label])
-        else:
-            raise NotImplementedError(f"Mapping mode `{mapping_mode!r}` is not yet implemented.")
+        raise NotImplementedError(f"Mapping mode `{mapping_mode!r}` is not yet implemented.")
 
     def _sample_from_tmap(
         self: AnalysisMixinProtocol[K, B],
