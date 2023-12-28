@@ -268,9 +268,9 @@ class GraphOTTOutput(OTTOutput):
 
     def _expand_data(self, x: jnp.ndarray, forward: bool) -> jnp.ndarray:
         if forward:
-            shape = (len(self._b),) if x.ndim == 1 else (len(self._b), x.shape[1])
+            shape = self._b.shape if x.ndim == 1 else (len(self._b), x.shape[1])
             return jnp.concatenate((x, jnp.zeros(shape)))
-        shape = (len(self._a),) if x.ndim == 1 else (len(self._a), x.shape[1])
+        shape = self._a.shape if x.ndim == 1 else (len(self._a), x.shape[1])
         return jnp.concatenate((jnp.zeros(shape), x))
 
     def _apply(self, x: ArrayLike, *, forward: bool) -> ArrayLike:

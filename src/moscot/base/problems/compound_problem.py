@@ -121,7 +121,7 @@ class BaseCompoundProblem(BaseProblem, abc.ABC, Generic[K, B]):
         key_2: K,
         problem: B,
         *,
-        callback: Optional[Union[Literal["local-pca"], Callback_t]] = None,
+        callback: Optional[Union[Literal["local-pca", "spatial-norm", "graph-construction"], Callback_t]] = None,
         **kwargs: Any,
     ) -> Optional[TaggedArray]:
         if callback is None:
