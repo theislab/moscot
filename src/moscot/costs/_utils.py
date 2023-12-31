@@ -30,7 +30,7 @@ def get_available_costs(backend: Optional[str] = None) -> Dict[str, Tuple[str, .
     -------
     Dictionary with keys as backend names and values as registered cost functions.
     """
-    groups: Dict[str, List[str]] = _get_available_backends_n_costs()
+    groups: Dict[str, List[str]] = _get_available_backends_and_costs()
 
     if backend is None:
         return {k: tuple(v) for k, v in groups.items()}

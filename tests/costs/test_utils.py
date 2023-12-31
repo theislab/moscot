@@ -41,8 +41,12 @@ class TestCostUtils:
     def test_get_cost_fails():
         invalid_cost = "foo"
         invalid_backend = "bar"
-        with pytest.raises(ValueError):
+        with pytest.raises(
+            ValueError, match=f"Cost `{invalid_cost!r}` is not available for backend `{invalid_backend!r}`."
+        ):
             get_cost(invalid_cost, backend=invalid_backend)
-        for backend in TestCostUtils.ALL_BACKENDS_N_COSTS.keys():
-            with pytest.raises(ValueError):
+        for backend in TestCostUtils.ALL_BACKENDS_N_COSTS:
+            with pytest.raises(
+                ValueError, match=f"Cost `{invalid_cost!r}` is not available for backend `{backend!r}`."
+            ):
                 get_cost(invalid_cost, backend=backend)

@@ -132,7 +132,7 @@ def _scaled_hamming_dist(x: ArrayLike, y: ArrayLike) -> float:
 
     # there may not be any sites where both were measured
     if not len(b1):
-        return np.nan
+        raise ValueError("No shared indices.")
     b2 = y[shared_indices]
 
     differences = b1 != b2

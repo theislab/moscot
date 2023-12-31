@@ -50,7 +50,8 @@ class TestBarcodeDistance:
         x = np.array([-1, -1, 0, 1])
         y = np.array([0, 1, -1, -1])
 
-        assert _scaled_hamming_dist(x, y) is np.nan
+        with pytest.raises(ValueError, match="No shared indices."):
+            _scaled_hamming_dist(x, y)
 
     @staticmethod
     def test_barcode_distance_with_sample_input():
