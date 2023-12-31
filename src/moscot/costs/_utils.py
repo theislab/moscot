@@ -45,7 +45,7 @@ def register_cost(name: str, *, backend: str) -> Any:
     return _REGISTRY.register(f"{backend}{_SEP}{name}")
 
 
-def _get_available_backends_n_costs():
+def _get_available_backends_and_costs():
     """Return a dictionary of available backends with their corresponding list of costs.
 
     Returns
