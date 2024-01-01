@@ -65,7 +65,7 @@ class LeafDistance(BaseCost):
     """`Shortest path <https://en.wikipedia.org/wiki/Shortest_path_problem>`_ distance on a weighted tree.
 
     .. note::
-            This class ignores `attr` which is always set to :attr:`uns`.
+            This class ignores `attr` which is always set to `uns`.
 
     .. seealso::
         - See :doc:`../notebooks/examples/problems/600_leaf_distance` on how to use this cost
