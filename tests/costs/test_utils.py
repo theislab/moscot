@@ -1,7 +1,7 @@
 import pytest
 
 from moscot.costs._utils import (
-    _get_available_backends_n_costs,
+    _get_available_backends_and_costs,
     get_available_costs,
     get_cost,
 )
@@ -25,8 +25,8 @@ class TestCostUtils:
 
     @staticmethod
     def test_get_available_backends_n_costs():
-        assert dict(_get_available_backends_n_costs()) == {
-            k: list(v) for k, v in _get_available_backends_n_costs().items()
+        assert dict(_get_available_backends_and_costs()) == {
+            k: list(v) for k, v in _get_available_backends_and_costs().items()
         }
 
     @staticmethod
