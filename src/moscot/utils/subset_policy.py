@@ -268,13 +268,6 @@ class OrderedPolicy(SubsetPolicy[K], abc.ABC):
         Additional keyword arguments.
     """
 
-    def __init__(self, adata: Union[AnnData, pd.Series, pd.Categorical], **kwargs: Any):
-        super().__init__(adata, **kwargs)
-        if not self._data.cat.ordered:
-            # TODO(michalk8, MUCDK): not order by default by us?
-            logger.info(f"Ordering {self._data.index} in ascending order.")
-            self._data.sort_values(by=self._cat, ascending=True)
-
     def _plan(
         self, forward: bool = True, start: Optional[K] = None, end: Optional[K] = None, **_: Any
     ) -> Sequence[Tuple[K, K]]:
