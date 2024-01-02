@@ -273,7 +273,7 @@ class OrderedPolicy(SubsetPolicy[K], abc.ABC):
         if not self._data.cat.ordered:
             # TODO(michalk8, MUCDK): not order by default by us?
             logger.info(f"Ordering {self._data.index} in ascending order.")
-            self._data.sort_values(ascending=True)
+            self._data.sort_values(by=self._cat, ascending=True)
 
     def _plan(
         self, forward: bool = True, start: Optional[K] = None, end: Optional[K] = None, **_: Any
