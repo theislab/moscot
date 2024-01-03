@@ -111,7 +111,7 @@ class OTTJaxSolver(OTSolver[OTTOutput], abc.ABC):
         solver = jax.jit(self.solver) if self._jit else self.solver
         out = solver(prob, **kwargs)
         if self._graph_in_linear_term:
-            return GraphOTTOutput(out, a=self._a, b=self._b)
+            return GraphOTTOutput(out, a_len=len(self._a), b_len=len(self._b))  # type: ignore[arg-type]
         return OTTOutput(out)
 
     @property
