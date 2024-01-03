@@ -25,7 +25,6 @@ import pandas as pd
 from anndata import AnnData
 
 from moscot import _constants
-from moscot._logging import logger
 from moscot._types import ArrayLike, Policy_t
 
 __all__ = [
