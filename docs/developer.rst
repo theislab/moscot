@@ -30,7 +30,7 @@ Costs
 
 Base
 ~~~~
-.. module:: moscob.base
+.. module:: moscot.base
 .. currentmodule:: moscot.base
 
 Problems

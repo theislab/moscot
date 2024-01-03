@@ -245,6 +245,10 @@ class GraphOTTOutput(OTTOutput):
     ----------
     output
         Output of the :mod:`ott` backend.
+    a_len
+        Number of data points in the source distribution.
+    b_len
+        Number of data points in the target distribution.
     """
 
     def __init__(
