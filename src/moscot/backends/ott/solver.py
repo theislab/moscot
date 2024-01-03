@@ -98,15 +98,9 @@ class OTTJaxSolver(OTSolver[OTTOutput], abc.ABC):
             if is_linear_term:
                 self._graph_in_linear_term = True
             if x.cost == "geodesic":
-                if n_src_tgt is not None:
-                    n_src, n_tgt = n_src_tgt
-                    if n_src + n_tgt != arr.shape[0]:
-                        raise ValueError(f"Expected `x` to have `{n_src + n_tgt}` points, found `{arr.shape[0]}`.")
-                    cm = geodesic.Geodesic.from_graph(arr, t=epsilon, directed=True, **kwargs).cost_matrix[
-                        :n_src, n_src:
-                    ]
-                    return geometry.Geometry(cm)
-                return geodesic.Geodesic.from_graph(arr, t=epsilon, directed=True, **kwargs)
+                return geodesic.Geodesic.from_graph(
+                    arr, t=epsilon / 4.0, directed=kwargs.pop("directed", True), **kwargs
+                )
             raise NotImplementedError(f"If the geometry is a graph, `cost` must be `geodesic`, found `{x.cost}`.")
         raise NotImplementedError(f"Creating geometry from `tag={x.tag!r}` is not yet implemented.")
 
