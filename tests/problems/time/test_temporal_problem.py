@@ -279,7 +279,7 @@ class TestTemporalProblem:
         assert isinstance(ta, TaggedArray)
         assert isinstance(ta.data_src, np.ndarray)
         assert ta.data_tgt is None
-        assert ta.tag == Tag.KERNEL
+        assert ta.tag == Tag.GRAPH
         assert ta.cost == "geodesic"
 
         tp[1, 2].set_graph_xy(dfs[1], cost="geodesic")
@@ -289,7 +289,7 @@ class TestTemporalProblem:
         assert isinstance(ta, TaggedArray)
         assert isinstance(ta.data_src, np.ndarray)
         assert ta.data_tgt is None
-        assert ta.tag == Tag.KERNEL
+        assert ta.tag == Tag.GRAPH
         assert ta.cost == "geodesic"
 
     def test_geodesic_cost_set_xy_cost_sparse(self, adata_time):
@@ -319,7 +319,7 @@ class TestTemporalProblem:
         assert isinstance(ta, TaggedArray)
         assert isinstance(ta.data_src, csr_matrix)
         assert ta.data_tgt is None
-        assert ta.tag == Tag.KERNEL
+        assert ta.tag == Tag.GRAPH
         assert ta.cost == "geodesic"
 
         tp[1, 2].set_graph_xy(elements[1], cost="geodesic")
@@ -329,7 +329,7 @@ class TestTemporalProblem:
         assert isinstance(ta, TaggedArray)
         assert isinstance(ta.data_src, csr_matrix)
         assert ta.data_tgt is None
-        assert ta.tag == Tag.KERNEL
+        assert ta.tag == Tag.GRAPH
         assert ta.cost == "geodesic"
 
     @pytest.mark.parametrize("callback_kwargs", [{}, {"n_neighbors": 3}, {"foo": "bar"}])
@@ -402,7 +402,7 @@ class TestTemporalProblem:
         assert isinstance(ta, TaggedArray)
         assert isinstance(ta.data_src, np.ndarray)
         assert ta.data_tgt is None
-        assert ta.tag == Tag.KERNEL
+        assert ta.tag == Tag.GRAPH
         assert ta.cost == "geodesic"
 
         func = tp.push if forward else tp.pull
