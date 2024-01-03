@@ -625,7 +625,7 @@ class OTProblem(BaseProblem):
             logger.info(f"Computing graph construction for `xy` using `{use_rep}`")
             sc.pp.neighbors(adata_concat, **kwargs)
             return TaggedArray(
-                data_src=adata_concat.obsp["connectivities"].astype("float64"), data_tgt=None, tag=Tag.KERNEL
+                data_src=adata_concat.obsp["connectivities"].astype("float64"), data_tgt=None, tag=Tag.GRAPH
             )
 
         raise ValueError(f"Expected `term` to be `xy`, found `{term!r}`.")
