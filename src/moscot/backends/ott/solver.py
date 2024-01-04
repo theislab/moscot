@@ -240,7 +240,7 @@ class SinkhornSolver(OTTJaxSolver):
         )
         if cost_matrix_rank is not None:
             geom = geom.to_LRCGeometry(rank=cost_matrix_rank)
-        if xy.is_graph:
+        if self._requires_graph_output:
             a = jnp.concatenate((a, jnp.zeros_like(self._b)), axis=0)
             b = jnp.concatenate((jnp.zeros_like(self._a), b), axis=0)
         self._problem = linear_problem.LinearProblem(geom, a=a, b=b, **kwargs)
