@@ -109,7 +109,9 @@ class OTTJaxSolver(OTSolver[OTTOutput], abc.ABC):
                     cm = geodesic.Geodesic.from_graph(
                         arr, t=t, directed=kwargs.pop("directed", True), **kwargs
                     ).cost_matrix[:n_src, n_src:]
-                    return geometry.Geometry(cm)
+                    return geometry.Geometry(
+                        cm, epsilon=epsilon, relative_epsilon=relative_epsilon, scale_cost=scale_cost
+                    )
 
                 if self.problem_kind == "quadratic":
                     n_src, n_tgt = n_src_tgt
@@ -119,7 +121,9 @@ class OTTJaxSolver(OTSolver[OTTOutput], abc.ABC):
                     cm = geodesic.Geodesic.from_graph(
                         arr, t=t, directed=kwargs.pop("directed", True), **kwargs
                     ).cost_matrix[:n_src, n_src:]
-                    return geometry.Geometry(cm)
+                    return geometry.Geometry(
+                        cm, epsilon=epsilon, relative_epsilon=relative_epsilon, scale_cost=scale_cost
+                    )
 
                 raise NotImplementedError(f"Invalid problem kind `{self.problem_kind}`.")
             raise NotImplementedError(f"If the geometry is a graph, `cost` must be `geodesic`, found `{x.cost}`.")
