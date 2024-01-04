@@ -46,7 +46,7 @@ class OTTJaxSolver(OTSolver[OTTOutput], abc.ABC):
         self._jit = jit
         self._a: Optional[jnp.ndarray] = None
         self._b: Optional[jnp.ndarray] = None
-        self._graph_in_linear_term = False
+        self._graph_in_linear_term = False  # resolve which output to use, OTTOutput v. GraphOTTOutput
 
     def _create_geometry(
         self,
@@ -56,6 +56,7 @@ class OTTJaxSolver(OTSolver[OTTOutput], abc.ABC):
         relative_epsilon: Optional[bool] = None,
         scale_cost: Scale_t = 1.0,
         batch_size: Optional[int] = None,
+        n_src_tgt: Optional[Tuple[int, int]] = None,
         **kwargs: Any,
     ) -> geometry.Geometry:
         if x.is_point_cloud:
@@ -97,6 +98,15 @@ class OTTJaxSolver(OTSolver[OTTOutput], abc.ABC):
             if is_linear_term:
                 self._graph_in_linear_term = True
             if x.cost == "geodesic":
+                if n_src_tgt is not None:
+                    n_src, n_tgt = n_src_tgt
+                    if n_src + n_tgt != arr.shape[0]:
+                        raise ValueError(f"Expected `x` to have `{n_src + n_tgt}` points, found `{arr.shape[0]}`.")
+                    self._graph_in_linear_term = False  # set to false since now we instantiate the cost matrix directly
+                    cm = geodesic.Geodesic.from_graph(
+                        arr, t=epsilon / 4.0, directed=kwargs.pop("directed", True), **kwargs
+                    ).cost_matrix[:n_src, n_src:]
+                    return geometry.Geometry(cm)
                 return geodesic.Geodesic.from_graph(
                     arr, t=epsilon / 4.0, directed=kwargs.pop("directed", True), **kwargs
                 )
@@ -317,7 +327,7 @@ class GWSolver(OTTJaxSolver):
         self._b = b
         if x is None or y is None:
             raise ValueError(f"Unable to create geometry from `x={x}`, `y={y}`.")
-        geom_kwargs: Any = {
+        geom_kwargs: dict[str, Any] = {
             "epsilon": epsilon,
             "relative_epsilon": relative_epsilon,
             "batch_size": batch_size,
@@ -333,7 +343,7 @@ class GWSolver(OTTJaxSolver):
             geom_xy, fused_penalty = None, 1.0
         else:  # FGW
             fused_penalty = alpha_to_fused_penalty(alpha)
-            geom_xy = self._create_geometry(xy, is_linear_term=True, **geom_kwargs)
+            geom_xy = self._create_geometry(xy, is_linear_term=True, n_src_tgt=(x.shape[0], y.shape[0]), **geom_kwargs)
             check_shapes(geom_xx, geom_yy, geom_xy)
 
         self._problem = quadratic_problem.QuadraticProblem(
