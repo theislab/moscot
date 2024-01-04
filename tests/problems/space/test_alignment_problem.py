@@ -153,6 +153,7 @@ class TestAlignmentProblem:
         ap = ap.prepare(batch_key=batch_column, joint_attr={"attr": "obsm", "key": "X_pca"})
 
         ap[("0", "1")].set_graph_xy(dfs[0], cost="geodesic")
+        ap[("1", "2")].set_graph_xy(dfs[1], cost="geodesic")
         ap = ap.solve(max_iterations=2, lse_mode=False)
 
         ta = ap[("0", "1")].xy
@@ -162,7 +163,7 @@ class TestAlignmentProblem:
         assert ta.tag == Tag.GRAPH
         assert ta.cost == "geodesic"
 
-        ta = ap[("0", "1")].xy
+        ta = ap[("1", "2")].xy
         assert isinstance(ta, TaggedArray)
         assert isinstance(ta.data_src, np.ndarray)  # this will change once OTT-JAX allows for sparse matrices
         assert ta.data_tgt is None
