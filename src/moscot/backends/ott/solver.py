@@ -261,7 +261,15 @@ class SinkhornSolver(OTTJaxSolver):
 
     @classmethod
     def _call_kwargs(cls) -> Tuple[Set[str], Set[str]]:
-        geom_kwargs = {"epsilon", "relative_epsilon", "batch_size", "scale_cost", "cost_kwargs", "cost_matrix_rank"}
+        geom_kwargs = {
+            "epsilon",
+            "relative_epsilon",
+            "batch_size",
+            "scale_cost",
+            "cost_kwargs",
+            "cost_matrix_rank",
+            "t",
+        }
         problem_kwargs = set(inspect.signature(linear_problem.LinearProblem).parameters.keys())
         problem_kwargs -= {"geom"}
         return geom_kwargs | problem_kwargs, {"epsilon"}
