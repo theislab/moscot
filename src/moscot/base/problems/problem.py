@@ -250,6 +250,8 @@ class OTProblem(BaseProblem):
         self._a: Optional[ArrayLike] = None
         self._b: Optional[ArrayLike] = None
 
+        self._t: Optional[float] = None  # only needed for diffusion-based distances
+
     def _handle_linear(self, cost: CostFn_t = None, **kwargs: Any) -> TaggedArray:
         if "x_attr" not in kwargs or "y_attr" not in kwargs:
             kwargs.setdefault("tag", Tag.COST_MATRIX)
@@ -407,6 +409,7 @@ class OTProblem(BaseProblem):
             a=self.a,
             b=self.b,
             device=device,
+            t=self._t,
             **call_kwargs,
         )
         return self
@@ -684,8 +687,9 @@ class OTProblem(BaseProblem):
         self,
         data: Union[pd.DataFrame, Tuple[sp.csr_matrix, pd.Series, pd.Series]],
         cost: Literal["geodesic"] = "geodesic",
+        t: Optional[float] = None,
     ) -> None:
-        """Set a graph for the :term:`linear term` for graph based distances.
+        r"""Set a graph for the :term:`linear term` for graph based distances.
 
         Parameters
         ----------
@@ -697,6 +701,11 @@ class OTProblem(BaseProblem):
             element is the graph, the second element and the third element are the annotations of the graph.
         cost
             Which graph-based distance to use.
+        t
+            Time parameter at which to solve the heat equation, see :cite:`crane:13`. When ``t`` is :obj:`None`,
+            ``t`` will be set to :math:`\epsilon / 4`, where :math:`\epsilon` is the entropy regularisation term.
+            This approaches the geodesic distance and allows for linear memory complexity as the cost matrix does
+            not have to be instantiated :cite:`huguet:23`.
 
         Returns
         -------
@@ -720,6 +729,7 @@ class OTProblem(BaseProblem):
             )
         self._xy = TaggedArray(data_src=data_src, data_tgt=None, tag=Tag.GRAPH, cost=cost)
         self._stage = "prepared"
+        self._t = t
 
     # TODO(michalk8): extend for point-clouds as Union[pd.DataFrame, Tuple[pd.DataFrame, pd.DataFrame]]
     # TODO(michalk8): allow this to be nullified

@@ -39,7 +39,7 @@ class TestSinkhorn:
         assert solver.xy is None
         assert isinstance(solver.solver, Sinkhorn)
 
-        pred = solver(a=None, b=None, xy=(x, x), epsilon=eps)
+        pred = solver(a=jnp.ones(len(x)) / len(x), b=jnp.ones(len(x)) / len(x), xy=(x, x), epsilon=eps)
 
         assert solver.rank == -1
         assert not solver.is_low_rank
@@ -61,7 +61,7 @@ class TestSinkhorn:
         assert solver.xy is None
         assert isinstance(solver.solver, LRSinkhorn)
 
-        pred = solver(a=None, b=None, xy=(y, y), epsilon=eps)
+        pred = solver(a=jnp.ones(len(y)) / len(y), b=jnp.ones(len(y)) / len(y), xy=(y, y), epsilon=eps)
 
         assert isinstance(solver.xy, PointCloud)
         assert pred.rank == rank
@@ -80,7 +80,13 @@ class TestSinkhorn:
         solver = SinkhornSolver()
         assert not solver.is_low_rank
 
-        pred = solver(a=None, b=None, xy=TaggedArray(x, cost=cost_fn), epsilon=eps, cost_matrix_rank=rank)
+        pred = solver(
+            a=jnp.ones(len(x)) / len(x),
+            b=jnp.ones(len(x)) / len(x),
+            xy=TaggedArray(x, cost=cost_fn),
+            epsilon=eps,
+            cost_matrix_rank=rank,
+        )
 
         assert isinstance(solver.xy, LRCGeometry)
         np.testing.assert_allclose(solver._problem.geom.cost_matrix, problem.geom.cost_matrix, rtol=RTOL, atol=ATOL)
@@ -103,7 +109,13 @@ class TestGW:
         assert solver.x is None
         assert solver.y is None
 
-        pred = solver(a=None, b=None, x=x, y=y, tags={"x": "point_cloud", "y": "point_cloud"})
+        pred = solver(
+            a=jnp.ones(len(x)) / len(x),
+            b=jnp.ones(len(y)) / len(y),
+            x=x,
+            y=y,
+            tags={"x": "point_cloud", "y": "point_cloud"},
+        )
 
         assert solver.is_fused is False
         assert solver.rank == -1
@@ -122,7 +134,13 @@ class TestGW:
         gt = GromovWasserstein(epsilon=eps, threshold=thresh)(problem)
         solver = GWSolver(epsilon=eps, threshold=thresh)
 
-        pred = solver(a=None, b=None, x=x_cost, y=y_cost, tags={"x": Tag.COST_MATRIX, "y": Tag.COST_MATRIX})
+        pred = solver(
+            a=jnp.ones(len(x_cost)) / len(x_cost),
+            b=jnp.ones(len(y_cost)) / len(y_cost),
+            x=x_cost,
+            y=y_cost,
+            tags={"x": Tag.COST_MATRIX, "y": Tag.COST_MATRIX},
+        )
 
         assert solver.is_fused is False
         assert pred.rank == -1
@@ -145,7 +163,13 @@ class TestGW:
             )
 
         solver = GWSolver(rank=rank, epsilon=eps, threshold=thresh)
-        pred = solver(a=None, b=None, x=x, y=y, tags={"x": "point_cloud", "y": "point_cloud"})
+        pred = solver(
+            a=jnp.ones(len(x)) / len(x),
+            b=jnp.ones(len(y)) / len(y),
+            x=x,
+            y=y,
+            tags={"x": "point_cloud", "y": "point_cloud"},
+        )
 
         assert solver.is_fused is False
         assert solver.rank == rank
@@ -174,8 +198,8 @@ class TestFGW:
         assert solver.xy is None
 
         pred = solver(
-            a=None,
-            b=None,
+            a=jnp.ones(len(x)) / len(x),
+            b=jnp.ones(len(y)) / len(y),
             x=x,
             y=y,
             xy=xy,
@@ -206,8 +230,8 @@ class TestFGW:
 
         solver = GWSolver(epsilon=eps, threshold=thresh)
         pred = solver(
-            a=None,
-            b=None,
+            a=jnp.ones(len(x)) / len(x),
+            b=jnp.ones(len(y)) / len(y),
             x=x,
             y=y,
             xy=xy,
@@ -237,8 +261,8 @@ class TestFGW:
 
         solver = GWSolver(epsilon=eps, threshold=thresh)
         pred = solver(
-            a=None,
-            b=None,
+            a=jnp.ones(len(x_cost)) / len(x_cost),
+            b=jnp.ones(len(y_cost)) / len(y_cost),
             x=x_cost,
             y=y_cost,
             xy=xy_cost,
@@ -258,7 +282,9 @@ class TestScaleCost:
         gt = sinkhorn(PointCloud(x, epsilon=eps, scale_cost=scale_cost))
 
         solver = SinkhornSolver()
-        pred = solver(a=None, b=None, xy=(x, x), epsilon=eps, scale_cost=scale_cost)
+        pred = solver(
+            a=jnp.ones(len(x)) / len(x), b=jnp.ones(len(x)) / len(x), xy=(x, x), epsilon=eps, scale_cost=scale_cost
+        )
 
         np.testing.assert_allclose(gt.matrix, pred.transport_matrix, rtol=RTOL, atol=ATOL)
 
@@ -267,7 +293,7 @@ class TestSolverOutput:
     def test_properties(self, x: ArrayLike, y: ArrayLike) -> None:
         solver = SinkhornSolver()
 
-        out = solver(a=None, b=None, xy=(x, y), epsilon=1e-1)
+        out = solver(a=jnp.ones(len(x)) / len(x), b=jnp.ones(len(y)) / len(y), xy=(x, y), epsilon=1e-1)
         a, b = out.a, out.b
 
         assert isinstance(a, jnp.ndarray)
@@ -294,7 +320,7 @@ class TestSolverOutput:
         a, ndim = (a, a.shape[1]) if batched else (a[:, 0], None)
         solver = SinkhornSolver(rank=rank)
 
-        out = solver(a=None, b=None, xy=(x, y))
+        out = solver(a=jnp.ones(len(x)) / len(x), b=jnp.ones(len(y)) / len(y), xy=(x, y))
         p = out.push(a, scale_by_marginals=False)
 
         assert isinstance(out, BaseSolverOutput)
@@ -320,7 +346,7 @@ class TestSolverOutput:
         xx, yy = xy
         solver = solver_t()
 
-        out = solver(a=None, b=None, x=x, y=y, xy=(xx, yy))
+        out = solver(a=jnp.ones(len(x)) / len(x), b=jnp.ones(len(y)) / len(y), x=x, y=y, xy=(xx, yy))
         p = out.pull(b, scale_by_marginals=False)
 
         assert isinstance(out, BaseSolverOutput)
@@ -337,7 +363,7 @@ class TestSolverOutput:
         a, _ = ab
         z = a if batched else a[:, 0]
 
-        out = solver(a=None, b=None, xy=(x, x))
+        out = solver(a=jnp.ones(len(x)) / len(x), b=jnp.ones(len(x)) / len(x), xy=(x, x))
         p = (out.push if forward else out.pull)(z, scale_by_marginals=True)
 
         if batched:
@@ -351,27 +377,29 @@ class TestSolverOutput:
         solver = SinkhornSolver()
         if device == "explicit":
             device = jax.devices()[0]
-            _ = solver(a=None, b=None, xy=(x, x), device=device)
+            _ = solver(a=jnp.ones(len(x)) / len(x), b=jnp.ones(len(x)) / len(x), xy=(x, x), device=device)
         elif device == "cpu:1":
             with pytest.raises(IndexError, match=r"Unable to fetch the device with `id=1`."):
-                _ = solver(a=None, b=None, xy=(x, x), device=device)
+                _ = solver(a=jnp.ones(len(x)) / len(x), b=jnp.ones(len(x)) / len(x), xy=(x, x), device=device)
         else:
-            _ = solver(a=None, b=None, xy=(x, x), device=device)
+            _ = solver(a=jnp.ones(len(x)) / len(x), b=jnp.ones(len(x)) / len(x), xy=(x, x), device=device)
 
 
 class TestOutputPlotting(PlotTester, metaclass=PlotTesterMeta):
     def test_plot_costs(self, x: Geom_t, y: Geom_t):
-        out = GWSolver()(a=None, b=None, x=x, y=y)
+        out = GWSolver()(a=jnp.ones(len(x)) / len(x), b=jnp.ones(len(y)) / len(y), x=x, y=y)
         out.plot_costs()
 
     def test_plot_costs_last(self, x: Geom_t, y: Geom_t):
-        out = GWSolver(rank=2)(a=None, b=None, x=x, y=y)
+        out = GWSolver(rank=2)(a=jnp.ones(len(x)) / len(x), b=jnp.ones(len(y)) / len(y), x=x, y=y)
         out.plot_costs(last=3)
 
     def test_plot_errors_sink(self, x: Geom_t, y: Geom_t):
-        out = SinkhornSolver()(a=None, b=None, xy=(x, y))
+        out = SinkhornSolver()(a=jnp.ones(len(x)) / len(x), b=jnp.ones(len(y)) / len(y), xy=(x, y))
         out.plot_errors()
 
     def test_plot_errors_gw(self, x: Geom_t, y: Geom_t):
-        out = GWSolver(a=None, b=None, store_inner_errors=True)(a=None, b=None, x=x, y=y)
+        out = GWSolver(a=jnp.ones(len(x)) / len(x), b=jnp.ones(len(y)) / len(y), store_inner_errors=True)(
+            a=jnp.ones(len(x)) / len(x), b=jnp.ones(len(y)) / len(y), x=x, y=y
+        )
         out.plot_errors()
