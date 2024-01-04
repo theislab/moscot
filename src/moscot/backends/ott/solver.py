@@ -46,7 +46,7 @@ class OTTJaxSolver(OTSolver[OTTOutput], abc.ABC):
         self._jit = jit
         self._a: Optional[jnp.ndarray] = None
         self._b: Optional[jnp.ndarray] = None
-        self._graph_in_linear_term = False
+        self._graph_in_linear_term = False  # resolve which output to use, OTTOutput v. GraphOTTOutput
 
     def _create_geometry(
         self,
@@ -102,6 +102,7 @@ class OTTJaxSolver(OTSolver[OTTOutput], abc.ABC):
                     n_src, n_tgt = n_src_tgt
                     if n_src + n_tgt != arr.shape[0]:
                         raise ValueError(f"Expected `x` to have `{n_src + n_tgt}` points, found `{arr.shape[0]}`.")
+                    self._graph_in_linear_term = False  # set to false since now we instantiate the cost matrix directly
                     cm = geodesic.Geodesic.from_graph(
                         arr, t=epsilon / 4.0, directed=kwargs.pop("directed", True), **kwargs
                     ).cost_matrix[:n_src, n_src:]
