@@ -308,7 +308,21 @@ class TestBaseAnalysisMixin:
 
     @pytest.mark.parametrize("forward", [True, False])
     @pytest.mark.parametrize("key_added", [None, "test"])
-    def test_compute_entropy_regression(self, adata_time: AnnData, forward: bool, key_added: Optional[str]):
+    @pytest.mark.parametrize("batch_size", [None, 2, 15])
+    def test_compute_entropy_regression(self, adata_time: AnnData, forward: bool, batch_size: Optional[int]):
+        def gt_conditional_entropy(matrix):
+            px = np.sum(matrix, axis=1)
+
+            # Initialize conditional entropy vector
+            h_y_given_x = np.zeros(px.shape)
+
+            # Compute conditional entropy for each value of x
+            for i in range(matrix.shape[0]):
+                for j in range(matrix.shape[1]):
+                    h_y_given_x[i] -= matrix[i, j] * np.log(matrix[i, j] / px[i])
+
+            return h_y_given_x
+
         rng = np.random.RandomState(42)
         adata_time = adata_time[adata_time.obs["time"].isin((0, 1))].copy()
         n0 = adata_time[adata_time.obs["time"] == 0].n_obs
@@ -320,8 +334,10 @@ class TestBaseAnalysisMixin:
         problem = problem.prepare(key="time", xy_callback="local-pca", policy="sequential")
         problem[0, 1]._solution = MockSolverOutput(tmap)
 
-        _ = problem.compute_entropy(source=0, target=1, forward=forward, key_added=key_added)
-        # TODO: add regression test
+        moscot_out = problem.compute_entropy(source=0, target=1, forward=forward, batch_size=batch_size, key_added=None)
+        gt_out = gt_conditional_entropy(tmap) if forward else gt_conditional_entropy(tmap.T)
+
+        np.testing.assert_allclose(moscot_out, gt_out, rtol=RTOL, atol=ATOL)
 
     def test_seed_reproducible(self, adata_time: AnnData):
         key_added = "test"

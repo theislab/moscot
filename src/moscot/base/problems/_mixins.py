@@ -579,11 +579,11 @@ class AnalysisMixin(Generic[K, B]):
         key_added
             Key in :attr:`~anndata.AnnData.obs` where the entropy is stored.
         batch_size
-            Batch size for the computation of the entropy. If `None`, the entire dataset is used.
+            Batch size for the computation of the entropy. If :obj:`None`, the entire dataset is used.
 
         Returns
         -------
-        `None` if `key_added` is not None. Else, dataframe of shape ``(n_cells, 1)`` containing the
+        `None` if ``key_added`` is not None. Otherwise, returns a data frame of shape ``(n_cells, 1)`` containing the
         conditional entropy per cell.
         """
         filter_value = source if forward else target
