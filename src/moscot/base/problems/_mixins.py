@@ -15,7 +15,6 @@ from typing import (
 
 import numpy as np
 import pandas as pd
-from scipy import stats
 from scipy.sparse.linalg import LinearOperator
 
 import scanpy as sc
@@ -26,6 +25,7 @@ from moscot._types import ArrayLike, Numeric_t, Str_Dict_t
 from moscot.base.output import BaseSolverOutput
 from moscot.base.problems._utils import (
     _check_argument_compatibility_cell_transition,
+    _compute_conditional_entropy,
     _correlation_test,
     _get_df_cell_transition,
     _order_transition_matrix,
@@ -594,7 +594,7 @@ class AnalysisMixin(Generic[K, B]):
         batch_size = batch_size if batch_size is not None else len(df)
         func = self.push if forward else self.pull
         for batch in range(0, len(df), batch_size):
-            cond_dist = func(
+            cond_dists = func(
                 source=source,
                 target=target,
                 data=None,
@@ -605,8 +605,7 @@ class AnalysisMixin(Generic[K, B]):
                 split_mass=True,
                 key_added=None,
             )
-            df.iloc[range(batch, min(batch + batch_size, len(df))), 0] = stats.entropy(cond_dist, axis=1)
+            df.iloc[range(batch, min(batch + batch_size, len(df))), 0] = _compute_conditional_entropy(cond_dists)  # type: ignore[arg-type]
         if key_added is not None:
             self.adata.obs[key_added] = df
-
         return df if key_added is None else None
