@@ -21,6 +21,7 @@ import scipy.sparse as sp
 from pandas.api import types as pd_types
 from sklearn.preprocessing import StandardScaler
 
+import anndata as ad
 import scanpy as sc
 from anndata import AnnData
 
@@ -249,19 +250,22 @@ class OTProblem(BaseProblem):
         self._a: Optional[ArrayLike] = None
         self._b: Optional[ArrayLike] = None
 
+        self._t: Optional[float] = None  # only needed for diffusion-based distances
+
     def _handle_linear(self, cost: CostFn_t = None, **kwargs: Any) -> TaggedArray:
         if "x_attr" not in kwargs or "y_attr" not in kwargs:
             kwargs.setdefault("tag", Tag.COST_MATRIX)
             attr = kwargs.pop("attr", "obsm")
-
             if attr in ("obsm", "uns"):
                 return TaggedArray.from_adata(
                     self.adata_src, dist_key=(self._src_key, self._tgt_key), attr=attr, cost="custom", **kwargs
                 )
             raise ValueError(f"Storing `{kwargs['tag']!r}` in `adata.{attr}` is disallowed.")
 
-        x_kwargs = {k[2:]: v for k, v in kwargs.items() if k.startswith("x_")}
-        y_kwargs = {k[2:]: v for k, v in kwargs.items() if k.startswith("y_")}
+        (
+            x_kwargs,
+            y_kwargs,
+        ) = self._split_xy_kwargs(**kwargs)
         if cost is not None:
             x_kwargs["cost"] = cost
             y_kwargs["cost"] = cost
@@ -276,9 +280,9 @@ class OTProblem(BaseProblem):
     @wrap_prepare
     def prepare(
         self,
-        xy: Union[Mapping[str, Any], TaggedArray] = types.MappingProxyType({}),
-        x: Union[Mapping[str, Any], TaggedArray] = types.MappingProxyType({}),
-        y: Union[Mapping[str, Any], TaggedArray] = types.MappingProxyType({}),
+        xy: Mapping[str, Any],
+        x: Mapping[str, Any],
+        y: Mapping[str, Any],
         a: Optional[Union[bool, str, ArrayLike]] = None,
         b: Optional[Union[bool, str, ArrayLike]] = None,
         **kwargs: Any,
@@ -337,30 +341,29 @@ class OTProblem(BaseProblem):
         self._x = self._y = self._xy = self._solution = None
         # TODO(michalk8): in the future, have a better dispatch
         # fmt: off
-        if xy and not x and not y:
+        if xy:
+            if "tagged_array" in xy:
+                kws, _= self._split_xy_kwargs(**xy)
+                xy=dict(xy)
+                self._xy = xy.pop("tagged_array")._add_cost(**kws)
+            else:
+                self._xy = self._handle_linear(**xy)
+        if x:
+            if "tagged_array" in x:
+                x = dict(x)
+                self._x = x.pop("tagged_array")._add_cost(**x)
+            else:
+                self._x = TaggedArray.from_adata(self.adata_src, dist_key=self._src_key, **x)
+        if y:
+            if "tagged_array" in y:
+                y = dict(y)
+                self._y = y.pop("tagged_array")._add_cost(**y)
+            else:
+                self._y = TaggedArray.from_adata(self.adata_tgt, dist_key=self._tgt_key, **y)
+        if self._xy and not self._x and not self._y:
             self._problem_kind = "linear"
-            self._xy = xy if isinstance(xy, TaggedArray) else self._handle_linear(**xy)
-        elif x and y and not xy:
+        elif (self._x and self._y and not self._xy) or (self._x and self._y and self._xy):
             self._problem_kind = "quadratic"
-            if isinstance(x, TaggedArray):
-                self._x = x
-            else:
-                self._x = TaggedArray.from_adata(self.adata_src, dist_key=self._src_key, **x)
-            if isinstance(y, TaggedArray):
-                self._y = y
-            else:
-                self._y = TaggedArray.from_adata(self.adata_tgt, dist_key=self._tgt_key, **y)
-        elif xy and x and y:
-            self._problem_kind = "quadratic"
-            self._xy = xy if isinstance(xy, TaggedArray) else self._handle_linear(**xy)
-            if isinstance(x, TaggedArray):
-                self._x = x
-            else:
-                self._x = TaggedArray.from_adata(self.adata_src, dist_key=self._src_key, **x)
-            if isinstance(y, TaggedArray):
-                self._y = y
-            else:
-                self._y = TaggedArray.from_adata(self.adata_tgt, dist_key=self._tgt_key, **y)
         else:
             raise ValueError("Unable to prepare the data. Either only supply `xy=...`, or `x=..., y=...`, or all.")
         # fmt: on
@@ -406,6 +409,7 @@ class OTProblem(BaseProblem):
             a=self.a,
             b=self.b,
             device=device,
+            t=self._t,
             **call_kwargs,
         )
         return self
@@ -547,7 +551,7 @@ class OTProblem(BaseProblem):
         n_comps: int = 30,
         scale: bool = False,
         **kwargs: Any,
-    ) -> Dict[Literal["xy", "x", "y"], TaggedArray]:
+    ) -> TaggedArray:
         def concat(x: ArrayLike, y: ArrayLike) -> ArrayLike:
             if sp.issparse(x):
                 return sp.vstack([x, sp.csr_matrix(y)])
@@ -573,39 +577,61 @@ class OTProblem(BaseProblem):
             data = concat(x, y)
             if data.shape[1] <= n_comps:
                 # TODO(michalk8): log
-                return {"xy": TaggedArray(data[:n], data[n:], tag=Tag.POINT_CLOUD)}
+                return TaggedArray(data[:n], data[n:], tag=Tag.POINT_CLOUD)
 
             logger.info(f"Computing pca with `n_comps={n_comps}` for `xy` using `{msg}`")
             data = sc.pp.pca(data, n_comps=n_comps, **kwargs)
             if scaler is not None:
                 data = scaler.fit_transform(data)
-            return {"xy": TaggedArray(data[:n], data[n:], tag=Tag.POINT_CLOUD)}
+            return TaggedArray(data[:n], data[n:], tag=Tag.POINT_CLOUD)
         if term in ("x", "y"):  # if we don't have a shared space, then adata_y is always None
             logger.info(f"Computing pca with `n_comps={n_comps}` for `{term}` using `{msg}`")
             x = sc.pp.pca(x, n_comps=n_comps, **kwargs)
             if scaler is not None:
                 x = scaler.fit_transform(x)
-            return {term: TaggedArray(x, tag=Tag.POINT_CLOUD)}
+            return TaggedArray(x, tag=Tag.POINT_CLOUD)
         raise ValueError(f"Expected `term` to be one of `x`, `y`, or `xy`, found `{term!r}`.")
 
+    # TODO(@giovp): refactor
     @staticmethod
     def _spatial_norm_callback(
         term: Literal["x", "y"],
         adata: AnnData,
         adata_y: Optional[AnnData] = None,
-        **kwargs: Any,
-    ) -> Dict[Literal["x", "y"], TaggedArray]:
-        spatial_key = kwargs["spatial_key"]
-        if term == "x":
-            spatial = adata.obsm[spatial_key]
+        attr: Optional[Literal["X", "obsp", "obsm", "layers", "uns"]] = None,
+        key: Optional[str] = None,
+    ) -> TaggedArray:
         if term == "y":
             if adata_y is None:
                 raise ValueError("When `term` is `y`, `adata_y` cannot be `None`.")
-            spatial = adata_y.obsm[spatial_key]
+            adata = adata_y
+        if attr is None:
+            raise ValueError("`attrs` cannot be `None` with this callback.")
+        spatial = TaggedArray._extract_data(adata, attr=attr, key=key)
 
         logger.info(f"Normalizing spatial coordinates of `{term}`.")
         spatial = (spatial - spatial.mean()) / spatial.std()
-        return {term: TaggedArray(spatial, tag=Tag.POINT_CLOUD)}
+        return TaggedArray(spatial, tag=Tag.POINT_CLOUD)
+
+    @staticmethod
+    def _graph_construction_callback(
+        term: Literal["xy"], adata: AnnData, adata_y: Optional[AnnData] = None, use_rep: str = "X_pca", **kwargs: Any
+    ) -> TaggedArray:
+        if term == "xy":
+            if adata_y is None:
+                raise ValueError("When `term` is `xy`, `adata_y` cannot be `None`.")
+            if use_rep not in adata.obsm:
+                raise ValueError(f"Unable to find `{use_rep}` in `adata.obsm`.")
+            if use_rep not in adata_y.obsm:
+                raise ValueError(f"Unable to find `{use_rep}` in `adata_y.obsm`.")
+            adata_concat = ad.concat((adata, adata_y), join="inner")
+            logger.info(f"Computing graph construction for `xy` using `{use_rep}`")
+            sc.pp.neighbors(adata_concat, **kwargs)
+            return TaggedArray(
+                data_src=adata_concat.obsp["connectivities"].astype("float64"), data_tgt=None, tag=Tag.GRAPH
+            )
+
+        raise ValueError(f"Expected `term` to be `xy`, found `{term!r}`.")
 
     def _create_marginals(
         self,
@@ -656,6 +682,54 @@ class OTProblem(BaseProblem):
         """
         del kwargs
         return np.ones((adata.n_obs,), dtype=float) / adata.n_obs
+
+    def set_graph_xy(
+        self,
+        data: Union[pd.DataFrame, Tuple[sp.csr_matrix, pd.Series, pd.Series]],
+        cost: Literal["geodesic"] = "geodesic",
+        t: Optional[float] = None,
+    ) -> None:
+        r"""Set a graph for the :term:`linear term` for graph based distances.
+
+        Parameters
+        ----------
+        data
+            Data containing the graph.
+            - If of type :class:`pandas.DataFrame`, its index must be equal to :attr:`adata_src.obs_names <adata_src>`
+            and its columns to :attr:`adata_tgt.obs_names <adata_tgt>`.
+            - If of type :class:`tuple`, it must be of the form (sp.csr_matrix, pd.Series, pd.Series), where the first
+            element is the graph, the second element and the third element are the annotations of the graph.
+        cost
+            Which graph-based distance to use.
+        t
+            Time parameter at which to solve the heat equation, see :cite:`crane:13`. When ``t`` is :obj:`None`,
+            ``t`` will be set to :math:`\epsilon / 4`, where :math:`\epsilon` is the entropy regularisation term.
+            This approaches the geodesic distance and allows for linear memory complexity as the cost matrix does
+            not have to be instantiated :cite:`huguet:23`.
+
+        Returns
+        -------
+        Nothing, just updates the following fields:
+        - :attr:`xy` - the :term:`linear term`.
+        - :attr:`stage` - set to ``'prepared'``.
+        """
+        expected_series = pd.concat([self.adata_src.obs_names.to_series(), self.adata_tgt.obs_names.to_series()])
+        if isinstance(data, pd.DataFrame):
+            pd.testing.assert_series_equal(expected_series, data.index.to_series())
+            pd.testing.assert_series_equal(expected_series, data.columns.to_series())
+            data_src = data.to_numpy()
+        elif isinstance(data, tuple):
+            pd.testing.assert_series_equal(expected_series, data[1])
+            pd.testing.assert_series_equal(expected_series, data[2])
+            data_src = data[0]
+        else:
+            raise ValueError(
+                "Expected data to be a pd.DataFrame or a tuple of (sp.csr_matrix, pd.Series, pd.Series), "
+                + f"found {type(data)}."
+            )
+        self._xy = TaggedArray(data_src=data_src, data_tgt=None, tag=Tag.GRAPH, cost=cost)
+        self._stage = "prepared"
+        self._t = t
 
     # TODO(michalk8): extend for point-clouds as Union[pd.DataFrame, Tuple[pd.DataFrame, pd.DataFrame]]
     # TODO(michalk8): allow this to be nullified
@@ -740,6 +814,12 @@ class OTProblem(BaseProblem):
             self._problem_kind = "quadratic"
         self._y = TaggedArray(data_src=data.to_numpy(), data_tgt=None, tag=Tag(tag), cost="cost")
         self._stage = "prepared"
+
+    @staticmethod
+    def _split_xy_kwargs(**kwargs: Any) -> Tuple[Dict[str, Any], Dict[str, Any]]:
+        x_kwargs = {k[2:]: v for k, v in kwargs.items() if k.startswith("x_")}
+        y_kwargs = {k[2:]: v for k, v in kwargs.items() if k.startswith("y_")}
+        return x_kwargs, y_kwargs
 
     @property
     def adata_src(self) -> AnnData:

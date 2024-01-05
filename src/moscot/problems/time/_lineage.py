@@ -44,7 +44,7 @@ class TemporalProblem(  # type: ignore[misc]
         time_key: str,
         joint_attr: Optional[Union[str, Mapping[str, Any]]] = None,
         policy: Literal["sequential", "triu", "tril", "explicit"] = "sequential",
-        cost: OttCostFn_t = "sq_euclidean",
+        cost: Union[OttCostFn_t, Literal["geodesic"]] = "sq_euclidean",
         cost_kwargs: CostKwargs_t = types.MappingProxyType({}),
         a: Optional[Union[bool, str]] = None,
         b: Optional[Union[bool, str]] = None,
@@ -124,8 +124,9 @@ class TemporalProblem(  # type: ignore[misc]
         """
         self.temporal_key = time_key
         xy, kwargs = handle_joint_attr(joint_attr, kwargs)
-        xy, x, y = handle_cost(xy=xy, x=kwargs.pop("x", {}), y=kwargs.pop("y", {}), cost=cost, cost_kwargs=cost_kwargs)
-
+        xy, x, y = handle_cost(
+            xy=xy, x=kwargs.pop("x", {}), y=kwargs.pop("y", {}), cost=cost, cost_kwargs=cost_kwargs, **kwargs
+        )
         marginal_kwargs = dict(marginal_kwargs)
         estimate_marginals = self.proliferation_key is not None or self.apoptosis_key is not None
         a = estimate_marginals if a is None else a
@@ -367,7 +368,7 @@ class LineageProblem(TemporalProblem):
 
         x = y = lineage_attr
         xy, kwargs = handle_joint_attr(joint_attr, kwargs)
-        xy, x, y = handle_cost(xy=xy, x=x, y=y, cost=cost, cost_kwargs=cost_kwargs)
+        xy, x, y = handle_cost(xy=xy, x=x, y=y, cost=cost, cost_kwargs=cost_kwargs, **kwargs)
 
         x.setdefault("attr", "obsp")
         x.setdefault("key", "cost_matrices")

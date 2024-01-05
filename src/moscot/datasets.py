@@ -178,9 +178,9 @@ def c_elegans(
         force_download=force_download,
         **kwargs,
     )
-    # TODO(michalk8): also cache or store in AnnData ad Newick + reconstruct?
-    with urllib.request.urlopen("https://figshare.com/ndownloader/files/39943603") as fin:
-        tree = pickle.load(fin)
+
+    with urllib.request.urlopen("https://figshare.com/ndownloader/files/43064842") as fin:
+        tree = nx.read_gml(fin)
 
     return adata, tree
 
@@ -302,6 +302,38 @@ def tedsim(
         path,
         backup_url="https://figshare.com/ndownloader/files/40178644",
         expected_shape=(8448, 500),
+        force_download=force_download,
+        **kwargs,
+    )
+
+
+def sciplex(
+    path: PathLike = "~/.cache/moscot/sciplex.h5ad",
+    force_download: bool = False,
+    **kwargs: Any,
+) -> AnnData:  # pragma: no cover
+    """Perturbation dataset published in :cite:`srivatsan:20`.
+
+    Transcriptomes of A549, K562, and mCF7 cells exposed to 188 compounds.
+    Data obtained from http://projects.sanderlab.org/scperturb/.
+
+    Parameters
+    ----------
+    path
+        Path where to save the file.
+    force_download
+        Whether to force-download the data.
+    kwargs
+        Keyword arguments for :func:`scanpy.read`.
+
+    Returns
+    -------
+    Annotated data object.
+    """
+    return _load_dataset_from_url(
+        path,
+        backup_url="https://figshare.com/ndownloader/files/43381398",
+        expected_shape=(799317, 110984),
         force_download=force_download,
         **kwargs,
     )

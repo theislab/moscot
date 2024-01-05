@@ -8,6 +8,7 @@ from ott.geometry import epsilon_scheduler
 from ott.geometry.costs import (
     Cosine,
     ElasticL1,
+    ElasticL2,
     ElasticSTVS,
     Euclidean,
     PNormP,
@@ -22,7 +23,7 @@ from moscot._types import CostKwargs_t
 from moscot.backends.ott._utils import alpha_to_fused_penalty
 from moscot.base.output import BaseSolverOutput
 from moscot.base.problems import OTProblem
-from moscot.problems.generic import GWProblem
+from moscot.problems.generic import FGWProblem
 from tests.problems.conftest import (
     fgw_args_1,
     fgw_args_2,
@@ -44,7 +45,7 @@ class TestFGWProblem:
             "sequential": [("0", "1"), ("1", "2")],
             "star": [("1", "0"), ("2", "0")],
         }
-        problem = GWProblem(adata=adata_space_rotate)
+        problem = FGWProblem(adata=adata_space_rotate)
 
         assert len(problem) == 0
         assert problem.problems == {}
@@ -70,7 +71,7 @@ class TestFGWProblem:
         eps = 0.5
         adata_space_rotate = adata_space_rotate[adata_space_rotate.obs["batch"].isin(("0", "1"))].copy()
         expected_keys = [("0", "1"), ("1", "2")]
-        problem = GWProblem(adata=adata_space_rotate)
+        problem = FGWProblem(adata=adata_space_rotate)
         problem = problem.prepare(
             key="batch",
             policy="sequential",
@@ -86,7 +87,7 @@ class TestFGWProblem:
 
     @pytest.mark.parametrize("args_to_check", [fgw_args_1, fgw_args_2])
     def test_pass_arguments(self, adata_space_rotate: AnnData, args_to_check: Mapping[str, Any]):
-        problem = GWProblem(adata=adata_space_rotate)
+        problem = FGWProblem(adata=adata_space_rotate)
         problem = problem.prepare(
             key="batch",
             policy="sequential",
@@ -139,7 +140,7 @@ class TestFGWProblem:
     def test_set_xy(self, adata_time: AnnData, tag: Literal["cost_matrix", "kernel"]):
         rng = np.random.RandomState(42)
         adata_time = adata_time[adata_time.obs["time"].isin((0, 1))].copy()
-        problem = GWProblem(adata=adata_time)
+        problem = FGWProblem(adata=adata_time)
         problem = problem.prepare(
             x_attr="X_pca",
             y_attr="X_pca",
@@ -172,11 +173,12 @@ class TestFGWProblem:
             ("pnorm_p", PNormP, {"p": 3}),
             ("sq_pnorm", SqPNorm, {"xy": {"p": 5}, "x": {"p": 3}, "y": {"p": 4}}),
             ("elastic_l1", ElasticL1, {"scaling_reg": 1.1}),
+            ("elastic_l2", ElasticL2, {"scaling_reg": 1.1}),
             ("elastic_stvs", ElasticSTVS, {"scaling_reg": 1.2}),
         ],
     )
     def test_prepare_costs(self, adata_time: AnnData, cost_str: str, cost_inst: Any, cost_kwargs: CostKwargs_t):
-        problem = GWProblem(adata=adata_time)
+        problem = FGWProblem(adata=adata_time)
         problem = problem.prepare(
             key="time",
             policy="sequential",
@@ -204,11 +206,56 @@ class TestFGWProblem:
 
         problem = problem.solve(max_iterations=2)
 
+    @pytest.mark.fast()
+    @pytest.mark.parametrize(
+        ("cost_str", "cost_inst", "cost_kwargs"),
+        [
+            ("sq_euclidean", SqEuclidean, {}),
+            ("euclidean", Euclidean, {}),
+            ("cosine", Cosine, {}),
+            ("pnorm_p", PNormP, {"p": 3}),
+            ("sq_pnorm", SqPNorm, {"xy": {"p": 5}, "x": {"p": 3}, "y": {"p": 4}}),
+            ("elastic_l1", ElasticL1, {"scaling_reg": 1.1}),
+            ("elastic_l2", ElasticL2, {"scaling_reg": 1.1}),
+            ("elastic_stvs", ElasticSTVS, {"scaling_reg": 1.2}),
+        ],
+    )
+    def test_prepare_costs_with_callback(
+        self, adata_time: AnnData, cost_str: str, cost_inst: Any, cost_kwargs: CostKwargs_t
+    ):
+        problem = FGWProblem(adata=adata_time)
+        problem = problem.prepare(
+            key="time",
+            policy="sequential",
+            xy_callback="local-pca",
+            alpha=0.5,
+            x_callback="local-pca",
+            y_callback="local-pca",
+            cost=cost_str,
+            cost_kwargs=cost_kwargs,
+        )
+        assert isinstance(problem[0, 1].x.cost, cost_inst)
+        assert isinstance(problem[0, 1].y.cost, cost_inst)
+        assert isinstance(problem[0, 1].xy.cost, cost_inst)
+
+        if cost_kwargs:
+            xy_items = cost_kwargs["xy"].items() if "xy" in cost_kwargs else cost_kwargs.items()
+            for k, v in xy_items:
+                assert getattr(problem[0, 1].xy.cost, k) == v
+            x_items = cost_kwargs["x"].items() if "x" in cost_kwargs else cost_kwargs.items()
+            for k, v in x_items:
+                assert getattr(problem[0, 1].x.cost, k) == v
+            y_items = cost_kwargs["y"].items() if "y" in cost_kwargs else cost_kwargs.items()
+            for k, v in y_items:
+                assert getattr(problem[0, 1].y.cost, k) == v
+
+        problem = problem.solve(max_iterations=2)
+
     @pytest.mark.parametrize("tag", ["cost_matrix", "kernel"])
     def test_set_x(self, adata_time: AnnData, tag: Literal["cost_matrix", "kernel"]):
         rng = np.random.RandomState(42)
         adata_time = adata_time[adata_time.obs["time"].isin((0, 1))].copy()
-        problem = GWProblem(adata=adata_time)
+        problem = FGWProblem(adata=adata_time)
         problem = problem.prepare(
             x_attr="X_pca",
             y_attr="X_pca",
@@ -234,7 +281,7 @@ class TestFGWProblem:
     def test_set_y(self, adata_time: AnnData, tag: Literal["cost_matrix", "kernel"]):
         rng = np.random.RandomState(42)
         adata_time = adata_time[adata_time.obs["time"].isin((0, 1))].copy()
-        problem = GWProblem(adata=adata_time)
+        problem = FGWProblem(adata=adata_time)
         problem = problem.prepare(
             x_attr="X_pca",
             y_attr="X_pca",
@@ -258,7 +305,7 @@ class TestFGWProblem:
 
     @pytest.mark.fast()
     def test_prepare_different_costs(self, adata_time: AnnData):
-        problem = GWProblem(adata=adata_time)
+        problem = FGWProblem(adata=adata_time)
         problem = problem.prepare(
             key="time",
             policy="sequential",
@@ -274,7 +321,7 @@ class TestFGWProblem:
     @pytest.mark.parametrize(("memory", "refresh"), [(1, 1), (5, 3), (7, 5)])
     @pytest.mark.parametrize("recenter", [True, False])
     def test_passing_ott_kwargs_linear(self, adata_space_rotate: AnnData, memory: int, refresh: int, recenter: bool):
-        problem = GWProblem(adata=adata_space_rotate)
+        problem = FGWProblem(adata=adata_space_rotate)
         problem = problem.prepare(
             key="batch",
             policy="sequential",
@@ -306,7 +353,7 @@ class TestFGWProblem:
     @pytest.mark.parametrize("warm_start", [True, False])
     @pytest.mark.parametrize("inner_errors", [True, False])
     def test_passing_ott_kwargs_quadratic(self, adata_space_rotate: AnnData, warm_start: bool, inner_errors: bool):
-        problem = GWProblem(adata=adata_space_rotate)
+        problem = FGWProblem(adata=adata_space_rotate)
         problem = problem.prepare(
             key="batch",
             policy="sequential",

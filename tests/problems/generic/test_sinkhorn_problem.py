@@ -8,6 +8,7 @@ from ott.geometry import epsilon_scheduler
 from ott.geometry.costs import (
     Cosine,
     ElasticL1,
+    ElasticL2,
     ElasticSTVS,
     Euclidean,
     PNormP,
@@ -74,6 +75,7 @@ class TestSinkhornProblem:
             ("pnorm_p", PNormP, {"p": 3}),
             ("sq_pnorm", SqPNorm, {"p": 3}),
             ("elastic_l1", ElasticL1, {"scaling_reg": 1.1}),
+            ("elastic_l2", ElasticL2, {"scaling_reg": 1.1}),
             ("elastic_stvs", ElasticSTVS, {"scaling_reg": 1.2}),
         ],
     )
@@ -81,6 +83,33 @@ class TestSinkhornProblem:
         problem = SinkhornProblem(adata=adata_time)
         problem = problem.prepare(
             key="time", policy="sequential", joint_attr="X_pca", cost=cost_str, cost_kwargs=cost_kwargs
+        )
+        if cost_kwargs:
+            for k, v in cost_kwargs.items():
+                assert getattr(problem[0, 1].xy.cost, k) == v
+
+        problem = problem.solve(max_iterations=2)
+
+    @pytest.mark.fast()
+    @pytest.mark.parametrize(
+        ("cost_str", "cost_inst", "cost_kwargs"),
+        [
+            ("sq_euclidean", SqEuclidean, {}),
+            ("euclidean", Euclidean, {}),
+            ("cosine", Cosine, {}),
+            ("pnorm_p", PNormP, {"p": 3}),
+            ("sq_pnorm", SqPNorm, {"p": 3}),
+            ("elastic_l1", ElasticL1, {"scaling_reg": 1.1}),
+            ("elastic_l2", ElasticL2, {"scaling_reg": 1.1}),
+            ("elastic_stvs", ElasticSTVS, {"scaling_reg": 1.2}),
+        ],
+    )
+    def test_prepare_costs_with_callback(
+        self, adata_time: AnnData, cost_str: str, cost_inst: Any, cost_kwargs: Mapping[str, int]
+    ):
+        problem = SinkhornProblem(adata=adata_time)
+        problem = problem.prepare(
+            key="time", policy="sequential", xy_callback="local-pca", cost=cost_str, cost_kwargs=cost_kwargs
         )
         if cost_kwargs:
             for k, v in cost_kwargs.items():

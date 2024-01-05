@@ -124,7 +124,6 @@ def adata_time() -> AnnData:
     rng = np.random.RandomState(42)
     adatas = [AnnData(X=csr_matrix(rng.normal(size=(96, 60)))) for _ in range(3)]
     adata = ad.concat(adatas, label="time", index_unique="-")
-
     adata.obs["time"] = pd.to_numeric(adata.obs["time"]).astype("category")
     adata.obs["batch"] = rng.choice((0, 1, 2), len(adata))
     adata.obs["left_marginals"] = np.ones(len(adata))

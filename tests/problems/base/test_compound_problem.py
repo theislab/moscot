@@ -1,5 +1,5 @@
 import os
-from typing import Any, Literal, Mapping, Optional, Tuple
+from typing import Any, Literal, Optional, Tuple
 
 import pytest
 from pytest_mock import MockerFixture
@@ -21,26 +21,26 @@ class TestCompoundProblem:
     @staticmethod
     def xy_callback(
         term: Literal["x", "y", "xy"], adata: AnnData, adata_y: Optional[AnnData] = None, sentinel: bool = False
-    ) -> Mapping[Literal["xy", "x", "y"], TaggedArray]:
+    ) -> TaggedArray:
         assert sentinel
         assert isinstance(adata_y, AnnData)
-        return {term: TaggedArray(euclidean_distances(adata.X, adata_y.X), tag=Tag.COST_MATRIX)}
+        return TaggedArray(euclidean_distances(adata.X, adata_y.X), tag=Tag.COST_MATRIX)
 
     @staticmethod
     def x_callback(
         term: Literal["x", "y", "xy"], adata: AnnData, adata_y: Optional[AnnData] = None, sentinel: bool = False
-    ) -> Mapping[Literal["xy", "x", "y"], TaggedArray]:
+    ) -> TaggedArray:
         assert sentinel
         assert isinstance(adata_y, AnnData)
-        return {term: TaggedArray(euclidean_distances(adata.X, adata_y.X), tag=Tag.COST_MATRIX)}
+        return TaggedArray(euclidean_distances(adata.X, adata_y.X), tag=Tag.COST_MATRIX)
 
     @staticmethod
     def y_callback(
         term: Literal["x", "y", "xy"], adata: AnnData, adata_y: Optional[AnnData] = None, sentinel: bool = False
-    ) -> Mapping[Literal["xy", "x", "y"], TaggedArray]:
+    ) -> TaggedArray:
         assert sentinel
         assert isinstance(adata_y, AnnData)
-        return {term: TaggedArray(euclidean_distances(adata.X, adata_y.X), tag=Tag.COST_MATRIX)}
+        return TaggedArray(euclidean_distances(adata.X, adata_y.X), tag=Tag.COST_MATRIX)
 
     def test_sc_pipeline(self, adata_time: AnnData):
         expected_keys = [(0, 1), (1, 2)]
@@ -78,7 +78,6 @@ class TestCompoundProblem:
         mocker.patch.object(problem, attribute="_create_problem", return_value=subproblem)
 
         problem = problem.prepare(
-            xy={"x_attr": "X", "y_attr": "X"},
             key="time",
             policy="sequential",
             xy_callback="local-pca",
@@ -96,9 +95,9 @@ class TestCompoundProblem:
 
         problem = Problem(adata=adata_time)
         _ = problem.prepare(
-            xy=None,
-            x={"attr": "X"},
-            y={"attr": "X"},
+            xy={},
+            x={},
+            y={},
             key="time",
             policy="sequential",
             xy_callback=TestCompoundProblem.xy_callback,
@@ -115,9 +114,9 @@ class TestCompoundProblem:
 
         problem = Problem(adata=adata_time)
         _ = problem.prepare(
-            xy=None,
-            x={"attr": "X"},
-            y={"attr": "X"},
+            xy={},
+            x={},
+            y={},
             key="time",
             policy="sequential",
             x_callback=TestCompoundProblem.x_callback,
@@ -172,6 +171,23 @@ class TestCompoundProblem:
         problem = problem.prepare(
             xy={"x_attr": "X", "y_attr": "X", "cost": cost[0]},
             x={"attr": "X", "cost": cost[0]},
+            y={"attr": "X", "cost": cost[0]},
+            key="time",
+            policy="sequential",
+        )
+        assert isinstance(problem[0, 1].xy.cost, cost[1])
+        assert isinstance(problem[0, 1].x.cost, cost[1])
+        assert isinstance(problem[0, 1].y.cost, cost[1])
+
+    @pytest.mark.fast()
+    @pytest.mark.parametrize("cost", [("sq_euclidean", SqEuclidean), ("euclidean", Euclidean), ("cosine", Cosine)])
+    def test_prepare_cost_with_callback(self, adata_time: AnnData, cost: Tuple[str, Any]):
+        problem = Problem(adata=adata_time)
+        problem = problem.prepare(
+            xy_callback="local-pca",
+            x_callback="local-pca",
+            xy={"x_cost": cost[0], "y_cost": cost[0]},
+            x={"cost": cost[0]},
             y={"attr": "X", "cost": cost[0]},
             key="time",
             policy="sequential",

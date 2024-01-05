@@ -372,7 +372,7 @@ def _input_to_adatas(
             raise TypeError(f"Expected object to be of type `AnnData`, found `{type(inp[0])}`.")
         if not isinstance(inp[1], AnnData):
             raise TypeError(f"Expected object to be of type `AnnData`, found `{type(inp[1])}`.")
-        return inp  # type: ignore[return-value]
+        return inp
     raise ValueError(f"Unable to interpret input of type `{type(inp)}`.")
 
 

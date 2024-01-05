@@ -21,9 +21,10 @@ class Tag(str, enum.Enum):
     COST_MATRIX = "cost_matrix"  #: Cost matrix.
     KERNEL = "kernel"  #: Kernel matrix.
     POINT_CLOUD = "point_cloud"  #: Point cloud.
+    GRAPH = "graph"  #: Graph distances, means [n+m, n+m] transport matrix.
 
 
-@dataclass(frozen=True, repr=True)
+@dataclass(frozen=False, repr=True)
 class TaggedArray:
     """Interface to interpret array-like data for :mod:`moscot.solvers`.
 
@@ -74,6 +75,21 @@ class TaggedArray:
 
         return data
 
+    def _add_cost(
+        self,
+        cost: Union[CostFn_t, Literal["geodesic"]] = "sq_euclidean",
+        backend: Literal["ott"] = "ott",
+        **kwargs: Any,
+    ) -> "TaggedArray":
+        if cost == "custom":
+            raise ValueError("Custom cost functions are handled in `TaggedArray.from_adata`.")
+        if cost == "geodesic":
+            self.cost = cost
+            return self
+        cost_fn = get_cost(cost, backend=backend, **kwargs)
+        self.cost = cost_fn
+        return self
+
     @classmethod
     def from_adata(
         cls,
@@ -82,7 +98,7 @@ class TaggedArray:
         attr: Literal["X", "obsp", "obsm", "layers", "uns"],
         tag: Tag = Tag.POINT_CLOUD,
         key: Optional[str] = None,
-        cost: CostFn_t = "sq_euclidean",
+        cost: Union[CostFn_t, Literal["geodesic"]] = "sq_euclidean",
         backend: Literal["ott"] = "ott",
         **kwargs: Any,
     ) -> "TaggedArray":
@@ -107,6 +123,7 @@ class TaggedArray:
             Cost function to apply to the extracted array, depending on ``tag``:
 
             - if ``tag = 'point_cloud'``, it is extracted from the ``backend``.
+            - if ``tag = 'graph'`` the ``cost`` has to be ``'geodesic'``.
             - if ``tag = 'cost'`` or ``tag = 'kernel'``, and ``cost = 'custom'``,
               the extracted array is already assumed to be a cost/kernel matrix.
               Otherwise, :class:`~moscot.base.cost.BaseCost` is used to compute the cost matrix.
@@ -119,6 +136,12 @@ class TaggedArray:
         -------
         The tagged array.
         """
+        if tag == Tag.GRAPH:
+            if cost == "geodesic":
+                dist_key = f"{dist_key[0]}_{dist_key[1]}" if isinstance(dist_key, tuple) else dist_key
+                data = cls._extract_data(adata, attr=attr, key=f"{dist_key}_{key}")
+                return cls(data_src=data, tag=Tag.GRAPH, cost="geodesic")
+            raise ValueError(f"Expected `cost` to be `geodesic`, found `{cost}`.")
         if tag == Tag.COST_MATRIX:
             if cost == "custom":  # our custom cost functions
                 modifier = f"adata.{attr}" if key is None else f"adata.{attr}[{key!r}]"
@@ -159,3 +182,8 @@ class TaggedArray:
     def is_point_cloud(self) -> bool:
         """Whether :attr:`data_src` (and optionally) :attr:`data_tgt` is a point cloud."""
         return self.tag == Tag.POINT_CLOUD
+
+    @property
+    def is_graph(self) -> bool:
+        """Whether :attr:`data_src` is a graph."""
+        return self.tag == Tag.GRAPH

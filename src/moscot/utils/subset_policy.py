@@ -25,7 +25,6 @@ import pandas as pd
 from anndata import AnnData
 
 from moscot import _constants
-from moscot._logging import logger
 from moscot._types import ArrayLike, Policy_t
 
 __all__ = [
@@ -268,13 +267,6 @@ class OrderedPolicy(SubsetPolicy[K], abc.ABC):
         Additional keyword arguments.
     """
 
-    def __init__(self, adata: Union[AnnData, pd.Series, pd.Categorical], **kwargs: Any):
-        super().__init__(adata, **kwargs)
-        if not self._data.cat.ordered:
-            # TODO(michalk8, MUCDK): not order by default by us?
-            logger.info(f"Ordering {self._data.index} in ascending order.")
-            self._data.sort_values(ascending=True)
-
     def _plan(
         self, forward: bool = True, start: Optional[K] = None, end: Optional[K] = None, **_: Any
     ) -> Sequence[Tuple[K, K]]:
@@ -341,12 +333,12 @@ class StarPolicy(SimplePlanPolicy[K]):
     def add_node(self, node: Union[K, Tuple[K, K]], only_existing: bool = False) -> "StarPolicy[K]":
         if not isinstance(node, tuple):
             node = (node, self.reference)
-        return super().add_node(node, only_existing=only_existing)  # type: ignore[return-value, arg-type]
+        return super().add_node(node, only_existing=only_existing)  # type: ignore[return-value]
 
     def remove_node(self, node: Union[K, Tuple[K, K]]) -> "StarPolicy[K]":
         if not isinstance(node, tuple):
             node = (node, self.reference)
-        return super().remove_node(node)  # type: ignore[return-value, arg-type]
+        return super().remove_node(node)  # type: ignore[return-value]
 
     @property
     def reference(self) -> K:
@@ -394,7 +386,7 @@ class ExternalStarPolicy(FormatterMixin, StarPolicy[K]):
         # TODO(michalk8): tgt can be undefined
         if tgt is self._tgt_name:
             return self
-        return super().add_node(node, only_existing=only_existing)  # type: ignore[return-value, arg-type]
+        return super().add_node(node, only_existing=only_existing)  # type: ignore[return-value]
 
     def create_masks(self, discard_empty: bool = True) -> Dict[Tuple[K, K], Tuple[ArrayLike, ArrayLike]]:
         del discard_empty

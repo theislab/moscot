@@ -47,6 +47,7 @@ class SpatioTemporalProblem(  # type: ignore[misc]
         time_key: str,
         spatial_key: str = "spatial",
         joint_attr: Optional[Union[str, Mapping[str, Any]]] = None,
+        normalize_spatial: bool = True,
         policy: Literal["sequential", "triu", "tril", "explicit"] = "sequential",
         cost: OttCostFnMap_t = "sq_euclidean",
         cost_kwargs: CostKwargs_t = types.MappingProxyType({}),
@@ -80,6 +81,9 @@ class SpatioTemporalProblem(  # type: ignore[misc]
               :class:`tags <moscot.utils.tagged_array.Tag>`.
 
             By default, :attr:`tag = 'point_cloud' <moscot.utils.tagged_array.Tag.POINT_CLOUD>` is used.
+        normalize_spatial
+            Whether to normalize the spatial coordinates. If `True`, the coordinates are normalized
+            by standardizing them. If `False`, no normalization is performed.
         policy
             Rule which defines how to construct the subproblems using :attr:`obs['{time_key}'] <anndata.AnnData.obs>`.
             Valid options are:
@@ -146,6 +150,7 @@ class SpatioTemporalProblem(  # type: ignore[misc]
             spatial_key=spatial_key,
             batch_key=time_key,
             joint_attr=joint_attr,
+            normalize_spatial=normalize_spatial,
             policy=policy,  # type: ignore[arg-type]
             reference=None,
             cost=cost,

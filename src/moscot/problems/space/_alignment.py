@@ -129,15 +129,20 @@ class AlignmentProblem(SpatialAlignmentMixin[K, B], CompoundProblem[K, B]):
         self.spatial_key = spatial_key
         self.batch_key = batch_key
 
-        x = y = {"attr": "obsm", "key": self.spatial_key, "tag": "point_cloud"}
+        x = y = {"attr": "obsm", "key": self.spatial_key}
 
         if normalize_spatial and "x_callback" not in kwargs and "y_callback" not in kwargs:
             kwargs["x_callback"] = kwargs["y_callback"] = "spatial-norm"
-            kwargs.setdefault("x_callback_kwargs", {"spatial_key": self.spatial_key})
-            kwargs.setdefault("y_callback_kwargs", {"spatial_key": self.spatial_key})
+            kwargs.setdefault("x_callback_kwargs", x)
+            kwargs.setdefault("y_callback_kwargs", y)
+        if ("x_callback" in kwargs and "y_callback" in kwargs) and (
+            "spatial-norm" in kwargs["x_callback"] and "spatial-norm" in kwargs["y_callback"]
+        ):
+            x = {}
+            y = {}
 
         xy, kwargs = handle_joint_attr(joint_attr, kwargs)
-        xy, x, y = handle_cost(xy=xy, x=x, y=y, cost=cost, cost_kwargs=cost_kwargs)  # type: ignore[arg-type]
+        xy, x, y = handle_cost(xy=xy, x=x, y=y, cost=cost, cost_kwargs=cost_kwargs, **kwargs)  # type: ignore[arg-type]
 
         return super().prepare(  # type: ignore[return-value]
             x=x, y=y, xy=xy, policy=policy, key=batch_key, reference=reference, cost=cost, a=a, b=b, **kwargs
