@@ -258,7 +258,6 @@ class TemporalMixin(AnalysisMixin[K, B]):
             cell_transition_kwargs=cell_transition_kwargs,
         )
 
-
     def sankey(
         self: TemporalMixinProtocol[K, B],
         source: K,

@@ -207,7 +207,6 @@ class CrossModalityTranslationMixin(AnalysisMixin[K, B]):
             cell_transition_kwargs=cell_transition_kwargs,
         )
 
-
     @property
     def batch_key(self) -> Optional[str]:
         """Batch key in :attr:`~anndata.AnnData.obs`."""
