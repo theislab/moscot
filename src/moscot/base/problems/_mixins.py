@@ -207,13 +207,13 @@ class AnalysisMixin(Generic[K, B]):
         )
         df_source = _get_df_cell_transition(
             self.adata,
-            [source_annotation_key],
+            [source_annotation_key] if aggregation_mode == "cell" else [source_annotation_key, target_annotation_key],
             key,
             source,
         )
         df_target = _get_df_cell_transition(
             self.adata if other_adata is None else other_adata,
-            [target_annotation_key],
+            [target_annotation_key] if aggregation_mode == "cell" else [source_annotation_key, target_annotation_key],
             key if other_adata is None else other_key,
             target,
         )
