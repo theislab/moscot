@@ -613,7 +613,11 @@ class OTProblem(BaseProblem):
 
     @staticmethod
     def _graph_construction_callback(
-        term: Literal["xy"], adata: AnnData, adata_y: Optional[AnnData] = None, use_rep: str = "X_pca", **kwargs: Any
+        term: Literal["xy", "x", "y"],
+        adata: AnnData,
+        adata_y: Optional[AnnData] = None,
+        use_rep: str = "X_pca",
+        **kwargs: Any,
     ) -> TaggedArray:
         if term == "xy":
             if adata_y is None:
@@ -624,12 +628,17 @@ class OTProblem(BaseProblem):
                 raise ValueError(f"Unable to find `{use_rep}` in `adata_y.obsm`.")
             adata_concat = ad.concat((adata, adata_y), join="inner")
             logger.info(f"Computing graph construction for `xy` using `{use_rep}`")
-            sc.pp.neighbors(adata_concat, **kwargs)
+            sc.pp.neighbors(adata_concat, use_rep=use_rep, **kwargs)
             return TaggedArray(
                 data_src=adata_concat.obsp["connectivities"].astype("float64"), data_tgt=None, tag=Tag.GRAPH
             )
 
-        raise ValueError(f"Expected `term` to be `xy`, found `{term!r}`.")
+        if use_rep not in adata.obsm:
+            raise ValueError(f"Unable to find `{use_rep}` in `adata.obsm`.")
+
+        logger.info(f"Computing graph construction for `{term}` using `{use_rep}`")
+        sc.pp.neighbors(adata, use_rep=use_rep, **kwargs)
+        return TaggedArray(data_src=adata_concat.obsp["connectivities"].astype("float64"), data_tgt=None, tag=Tag.GRAPH)
 
     def _create_marginals(
         self,
