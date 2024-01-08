@@ -46,7 +46,6 @@ class OTTJaxSolver(OTSolver[OTTOutput], abc.ABC):
         self._jit = jit
         self._a: Optional[jnp.ndarray] = None
         self._b: Optional[jnp.ndarray] = None
-        self._requires_graph_output = False  # resolve which output to use, OTTOutput v. GraphOTTOutput
 
     def _create_geometry(
         self,
@@ -98,7 +97,6 @@ class OTTJaxSolver(OTSolver[OTTOutput], abc.ABC):
             if x.cost == "geodesic":
                 if self.problem_kind == "linear":
                     if t is None:
-                        self._requires_graph_output = True
                         return geodesic.Geodesic.from_graph(
                             arr, t=epsilon / 4.0, directed=kwargs.pop("directed", True), **kwargs
                         )
@@ -136,8 +134,8 @@ class OTTJaxSolver(OTSolver[OTTOutput], abc.ABC):
     ) -> Union[OTTOutput, GraphOTTOutput]:
         solver = jax.jit(self.solver) if self._jit else self.solver
         out = solver(prob, **kwargs)
-        if self._requires_graph_output:
-            return GraphOTTOutput(out, a_len=len(self._a), b_len=len(self._b))  # type: ignore[arg-type]
+        if prob.is_linear and isinstance(prob.geom_xy, geodesic.Geodesic):
+            return GraphOTTOutput(out, shape=(len(self._a), len(self._b)))  # type: ignore[arg-type]
         return OTTOutput(out)
 
     @property
@@ -154,11 +152,6 @@ class OTTJaxSolver(OTSolver[OTTOutput], abc.ABC):
     def is_low_rank(self) -> bool:
         """Whether the :attr:`solver` is low-rank."""
         return self.rank > -1
-
-    @property
-    def graph_in_linear_term(self) -> bool:
-        """Whether the :attr:`solver` has a graph in the linear term."""
-        return self._requires_graph_output
 
 
 class SinkhornSolver(OTTJaxSolver):
@@ -244,7 +237,7 @@ class SinkhornSolver(OTTJaxSolver):
         )
         if cost_matrix_rank is not None:
             geom = geom.to_LRCGeometry(rank=cost_matrix_rank)
-        if self._requires_graph_output:
+        if isinstance(geom, geodesic.Geodesic):
             a = jnp.concatenate((a, jnp.zeros_like(self._b)), axis=0)
             b = jnp.concatenate((jnp.zeros_like(self._a), b), axis=0)
         self._problem = linear_problem.LinearProblem(geom, a=a, b=b, **kwargs)
