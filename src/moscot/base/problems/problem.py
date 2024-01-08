@@ -700,7 +700,7 @@ class OTProblem(BaseProblem):
             Which graph-based distance to use.
         t
             Time parameter at which to solve the heat equation, see :cite:`crane:13`. When ``t`` is :obj:`None`,
-            ``t`` will be set to :math:`\epsilon / 4`, where :math:`\epsilon` is the entropy regularisation term.
+            ``t`` will be set to :math:`\epsilon / 4`, where :math:`\epsilon` is the entropy regularization term.
             This approaches the geodesic distance and allows for linear memory complexity as the cost matrix does
             not have to be instantiated :cite:`huguet:23`.
 
