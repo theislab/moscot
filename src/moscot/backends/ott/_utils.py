@@ -1,9 +1,9 @@
-from typing import Any, Literal, Optional, Union
+from typing import Any, Literal, Optional, Tuple, Union
 
 import jax
 import jax.numpy as jnp
 import scipy.sparse as sp
-from ott.geometry import epsilon_scheduler, geometry, pointcloud
+from ott.geometry import epsilon_scheduler, geodesic, geometry, pointcloud
 from ott.tools import sinkhorn_divergence as sdiv
 
 from moscot._logging import logger
@@ -89,3 +89,21 @@ def ensure_2d(arr: ArrayLike, *, reshape: bool = False) -> jax.Array:
     if arr.ndim != 2:
         raise ValueError(f"Expected array to have 2 dimensions, found `{arr.ndim}`.")
     return arr
+
+
+def _instantiate_geodesic_cost(
+    arr: jax.Array,
+    problem_shape: Tuple[int, int],
+    t: Optional[float],
+    epsilon: Union[float, epsilon_scheduler.Epsilon] = None,
+    relative_epsilon: Optional[bool] = None,
+    scale_cost: Scale_t = 1.0,
+    directed: bool = True,
+    **kwargs: Any,
+) -> geometry.Geometry:
+    n_src, n_tgt = problem_shape
+    if n_src + n_tgt != arr.shape[0]:
+        raise ValueError(f"Expected `x` to have `{n_src + n_tgt}` points, found `{arr.shape[0]}`.")
+    t = epsilon / 4.0 if t is None else t
+    cm = geodesic.Geodesic.from_graph(arr, t=t, directed=directed, **kwargs).cost_matrix[:n_src, n_src:]
+    return geometry.Geometry(cm, epsilon=epsilon, relative_epsilon=relative_epsilon, scale_cost=scale_cost)

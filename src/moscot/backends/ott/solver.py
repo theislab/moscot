@@ -12,7 +12,12 @@ from ott.solvers.linear import sinkhorn, sinkhorn_lr
 from ott.solvers.quadratic import gromov_wasserstein, gromov_wasserstein_lr
 
 from moscot._types import ProblemKind_t, QuadInitializer_t, SinkhornInitializer_t
-from moscot.backends.ott._utils import alpha_to_fused_penalty, check_shapes, ensure_2d
+from moscot.backends.ott._utils import (
+    _instantiate_geodesic_cost,
+    alpha_to_fused_penalty,
+    check_shapes,
+    ensure_2d,
+)
 from moscot.backends.ott.output import GraphOTTOutput, OTTOutput
 from moscot.base.solver import OTSolver
 from moscot.costs import get_cost
@@ -56,6 +61,7 @@ class OTTJaxSolver(OTSolver[OTTOutput], abc.ABC):
         batch_size: Optional[int] = None,
         problem_shape: Optional[Tuple[int, int]] = None,
         t: Optional[float] = None,
+        directed: bool = True,
         **kwargs: Any,
     ) -> geometry.Geometry:
         if x.is_point_cloud:
@@ -102,6 +108,7 @@ class OTTJaxSolver(OTSolver[OTTOutput], abc.ABC):
                 epsilon=epsilon,
                 relative_epsilon=relative_epsilon,
                 scale_cost=scale_cost,
+                directed=directed,
                 **kwargs,
             )
         raise NotImplementedError(f"Creating geometry from `tag={x.tag!r}` is not yet implemented.")
@@ -126,6 +133,7 @@ class OTTJaxSolver(OTSolver[OTTOutput], abc.ABC):
         epsilon: Union[float, epsilon_scheduler.Epsilon] = None,
         relative_epsilon: Optional[bool] = None,
         scale_cost: Scale_t = 1.0,
+        directed: bool = True,
         **kwargs: Any,
     ) -> geometry.Geometry:
         if x.cost == "geodesic":
@@ -133,27 +141,29 @@ class OTTJaxSolver(OTSolver[OTTOutput], abc.ABC):
                 if t is None:
                     if epsilon is None:
                         raise ValueError("`epsilon` cannot be `None`.")
-                    return geodesic.Geodesic.from_graph(
-                        arr, t=epsilon / 4.0, directed=kwargs.pop("directed", True), **kwargs
-                    )
+                    return geodesic.Geodesic.from_graph(arr, t=epsilon / 4.0, directed=directed, **kwargs)
 
-                n_src, n_tgt = problem_shape
-                if n_src + n_tgt != arr.shape[0]:
-                    raise ValueError(f"Expected `x` to have `{n_src + n_tgt}` points, found `{arr.shape[0]}`.")
-                cm = geodesic.Geodesic.from_graph(
-                    arr, t=t, directed=kwargs.pop("directed", True), **kwargs
-                ).cost_matrix[:n_src, n_src:]
-                return geometry.Geometry(cm, epsilon=epsilon, relative_epsilon=relative_epsilon, scale_cost=scale_cost)
-
+                return _instantiate_geodesic_cost(
+                    arr=arr,
+                    problem_shape=problem_shape,
+                    t=t,
+                    epsilon=epsilon,
+                    relative_epsilon=relative_epsilon,
+                    scale_cost=scale_cost,
+                    directed=directed,
+                    **kwargs,
+                )
             if self.problem_kind == "quadratic":
-                n_src, n_tgt = problem_shape
-                if n_src + n_tgt != arr.shape[0]:
-                    raise ValueError(f"Expected `x` to have `{n_src + n_tgt}` points, found `{arr.shape[0]}`.")
-                t = epsilon / 4.0 if t is None else t
-                cm = geodesic.Geodesic.from_graph(
-                    arr, t=t, directed=kwargs.pop("directed", True), **kwargs
-                ).cost_matrix[:n_src, n_src:]
-                return geometry.Geometry(cm, epsilon=epsilon, relative_epsilon=relative_epsilon, scale_cost=scale_cost)
+                return _instantiate_geodesic_cost(
+                    arr=arr,
+                    problem_shape=problem_shape,
+                    t=t,
+                    epsilon=epsilon,
+                    relative_epsilon=relative_epsilon,
+                    scale_cost=scale_cost,
+                    directed=directed,
+                    **kwargs,
+                )
 
             raise NotImplementedError(f"Invalid problem kind `{self.problem_kind}`.")
         raise NotImplementedError(f"If the geometry is a graph, `cost` must be `geodesic`, found `{x.cost}`.")
