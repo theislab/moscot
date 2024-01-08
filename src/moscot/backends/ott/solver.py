@@ -147,6 +147,7 @@ class OTTJaxSolver(OTSolver[OTTOutput], abc.ABC):
                     arr=arr,
                     problem_shape=problem_shape,
                     t=t,
+                    is_linear_term=True,
                     epsilon=epsilon,
                     relative_epsilon=relative_epsilon,
                     scale_cost=scale_cost,
@@ -156,8 +157,9 @@ class OTTJaxSolver(OTSolver[OTTOutput], abc.ABC):
             if self.problem_kind == "quadratic":
                 return _instantiate_geodesic_cost(
                     arr=arr,
-                    problem_shape=problem_shape,
+                    problem_shape=arr.shape,
                     t=t,
+                    is_linear_term=False,
                     epsilon=epsilon,
                     relative_epsilon=relative_epsilon,
                     scale_cost=scale_cost,

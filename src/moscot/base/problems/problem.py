@@ -407,7 +407,7 @@ class OTProblem(BaseProblem):
             a=self.a,
             b=self.b,
             device=device,
-            t=(self._t_xy, self._t_x, self._t_y),
+            ts=(self._t_xy, self._t_x, self._t_y),
             **call_kwargs,
         )
         return self
@@ -808,7 +808,7 @@ class OTProblem(BaseProblem):
         - :attr:`x` - the target :term:`quadratic term`.
         - :attr:`stage` - set to ``'prepared'``.
         """
-        expected_series = self.adata_src.obs_names.to_series()
+        expected_series = self.adata_tgt.obs_names.to_series()
         if isinstance(data, pd.DataFrame):
             pd.testing.assert_series_equal(expected_series, data.index.to_series())
             pd.testing.assert_series_equal(expected_series, data.columns.to_series())
@@ -820,7 +820,7 @@ class OTProblem(BaseProblem):
             raise ValueError(
                 "Expected data to be a pd.DataFrame or a tuple of (sp.csr_matrix, pd.Series), " f"found {type(data)}."
             )
-        self._x = TaggedArray(data_src=data_src, data_tgt=None, tag=Tag.GRAPH, cost=cost)
+        self._y = TaggedArray(data_src=data_src, data_tgt=None, tag=Tag.GRAPH, cost=cost)
         self._stage = "prepared"
         self._t_y = t
 

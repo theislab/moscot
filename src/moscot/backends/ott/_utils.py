@@ -95,6 +95,7 @@ def _instantiate_geodesic_cost(
     arr: jax.Array,
     problem_shape: Tuple[int, int],
     t: Optional[float],
+    is_linear_term: bool,
     epsilon: Union[float, epsilon_scheduler.Epsilon] = None,
     relative_epsilon: Optional[bool] = None,
     scale_cost: Scale_t = 1.0,
@@ -102,8 +103,9 @@ def _instantiate_geodesic_cost(
     **kwargs: Any,
 ) -> geometry.Geometry:
     n_src, n_tgt = problem_shape
-    if n_src + n_tgt != arr.shape[0]:
+    if is_linear_term and n_src + n_tgt != arr.shape[0]:
         raise ValueError(f"Expected `x` to have `{n_src + n_tgt}` points, found `{arr.shape[0]}`.")
     t = epsilon / 4.0 if t is None else t
-    cm = geodesic.Geodesic.from_graph(arr, t=t, directed=directed, **kwargs).cost_matrix[:n_src, n_src:]
+    cm_full = geodesic.Geodesic.from_graph(arr, t=t, directed=directed, **kwargs).cost_matrix
+    cm = cm_full[:n_src, n_src:] if is_linear_term else cm_full
     return geometry.Geometry(cm, epsilon=epsilon, relative_epsilon=relative_epsilon, scale_cost=scale_cost)
