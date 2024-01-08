@@ -55,6 +55,8 @@ class OTTJaxSolver(OTSolver[OTTOutput], abc.ABC):
     def _create_geometry(
         self,
         x: TaggedArray,
+        *,
+        is_linear_term: bool,
         epsilon: Union[float, epsilon_scheduler.Epsilon] = None,
         relative_epsilon: Optional[bool] = None,
         scale_cost: Scale_t = 1.0,
@@ -101,6 +103,7 @@ class OTTJaxSolver(OTSolver[OTTOutput], abc.ABC):
             )
         if x.is_graph:  # we currently only support this for the linear term.
             return self._create_graph_geometry(
+                is_linear_term=is_linear_term,
                 x=x,
                 arr=arr,
                 problem_shape=problem_shape,  # type: ignore[arg-type]
@@ -126,6 +129,7 @@ class OTTJaxSolver(OTSolver[OTTOutput], abc.ABC):
 
     def _create_graph_geometry(
         self,
+        is_linear_term: bool,
         x: TaggedArray,
         arr: jax.Array,
         problem_shape: Tuple[int, int],
@@ -157,9 +161,9 @@ class OTTJaxSolver(OTSolver[OTTOutput], abc.ABC):
             if self.problem_kind == "quadratic":
                 return _instantiate_geodesic_cost(
                     arr=arr,
-                    problem_shape=arr.shape,
+                    problem_shape=problem_shape,
                     t=t,
-                    is_linear_term=False,
+                    is_linear_term=is_linear_term,
                     epsilon=epsilon,
                     relative_epsilon=relative_epsilon,
                     scale_cost=scale_cost,
@@ -259,6 +263,7 @@ class SinkhornSolver(OTTJaxSolver):
         self._b = b
         geom = self._create_geometry(
             xy,
+            is_linear_term=True,
             epsilon=epsilon,
             relative_epsilon=relative_epsilon,
             batch_size=batch_size,
@@ -388,14 +393,16 @@ class GWSolver(OTTJaxSolver):
         }
         if cost_matrix_rank is not None:
             geom_kwargs["cost_matrix_rank"] = cost_matrix_rank
-        geom_xx = self._create_geometry(x, t=ts[1], **geom_kwargs)
-        geom_yy = self._create_geometry(y, t=ts[2], **geom_kwargs)
+        geom_xx = self._create_geometry(x, t=ts[1], is_linear_term=False, **geom_kwargs)
+        geom_yy = self._create_geometry(y, t=ts[2], is_linear_term=False, **geom_kwargs)
         if alpha == 1.0 or xy is None:  # GW
             # arbitrary fused penalty; must be positive
             geom_xy, fused_penalty = None, 1.0
         else:  # FGW
             fused_penalty = alpha_to_fused_penalty(alpha)
-            geom_xy = self._create_geometry(xy, t=ts[0], problem_shape=(x.shape[0], y.shape[0]), **geom_kwargs)
+            geom_xy = self._create_geometry(
+                xy, t=ts[0], problem_shape=(x.shape[0], y.shape[0]), is_linear_term=True, **geom_kwargs
+            )
             check_shapes(geom_xx, geom_yy, geom_xy)
 
         self._problem = quadratic_problem.QuadraticProblem(

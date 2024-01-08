@@ -77,7 +77,7 @@ class TaggedArray:
 
     def _set_cost(
         self,
-        cost: Union[CostFn_t, Literal["geodesic"]] = "sq_euclidean",
+        cost: CostFn_t = "sq_euclidean",
         backend: Literal["ott"] = "ott",
         **kwargs: Any,
     ) -> "TaggedArray":
@@ -96,7 +96,7 @@ class TaggedArray:
         attr: Literal["X", "obsp", "obsm", "layers", "uns"],
         tag: Tag = Tag.POINT_CLOUD,
         key: Optional[str] = None,
-        cost: Union[CostFn_t, Literal["geodesic"]] = "sq_euclidean",
+        cost: CostFn_t = "sq_euclidean",
         backend: Literal["ott"] = "ott",
         **kwargs: Any,
     ) -> "TaggedArray":

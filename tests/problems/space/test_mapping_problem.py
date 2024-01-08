@@ -4,8 +4,11 @@ from typing import Any, List, Literal, Mapping, Optional
 import pytest
 
 import numpy as np
+import pandas as pd
 from ott.geometry import epsilon_scheduler
 
+import anndata as ad
+import scanpy as sc
 from anndata import AnnData
 
 from moscot.backends.ott._utils import alpha_to_fused_penalty
@@ -128,12 +131,7 @@ class TestMappingProblem:
         assert np.all([np.all(~np.isnan(sol.transport_matrix)) for sol in mp.solutions.values()])
 
     @pytest.mark.parametrize("key", ["connectivities", "distances"])
-    def test_geodesic_cost(self, adata_mapping: AnnData, key: str):
-        import pandas as pd
-
-        import anndata as ad
-        import scanpy as sc
-
+    def test_geodesic_cost_xy(self, adata_mapping: AnnData, key: str):
         adataref, adatasp = _adata_spatial_split(adata_mapping)
 
         batch_column = "batch"
