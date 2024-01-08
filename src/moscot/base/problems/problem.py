@@ -707,6 +707,7 @@ class OTProblem(BaseProblem):
         Returns
         -------
         Nothing, just updates the following fields:
+
         - :attr:`xy` - the :term:`linear term`.
         - :attr:`stage` - set to ``'prepared'``.
         """

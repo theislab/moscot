@@ -106,7 +106,7 @@ class OTTJaxSolver(OTSolver[OTTOutput], abc.ABC):
     ) -> Union[OTTOutput, GraphOTTOutput]:
         solver = jax.jit(self.solver) if self._jit else self.solver
         out = solver(prob, **kwargs)
-        if isinstance(prob, linear_problem.LinearProblem) and isinstance(prob.geom_xy, geodesic.Geodesic):
+        if isinstance(prob, linear_problem.LinearProblem) and isinstance(prob.geom, geodesic.Geodesic):
             return GraphOTTOutput(out, shape=(len(self._a), len(self._b)))  # type: ignore[arg-type]
         return OTTOutput(out)
 
