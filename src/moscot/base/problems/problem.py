@@ -638,7 +638,7 @@ class OTProblem(BaseProblem):
 
         logger.info(f"Computing graph construction for `{term}` using `{use_rep}`")
         sc.pp.neighbors(adata, use_rep=use_rep, **kwargs)
-        return TaggedArray(data_src=adata_concat.obsp["connectivities"].astype("float64"), data_tgt=None, tag=Tag.GRAPH)
+        return TaggedArray(data_src=adata.obsp["connectivities"].astype("float64"), data_tgt=None, tag=Tag.GRAPH)
 
     def _create_marginals(
         self,
