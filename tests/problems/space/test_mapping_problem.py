@@ -131,7 +131,8 @@ class TestMappingProblem:
         assert np.all([np.all(~np.isnan(sol.transport_matrix)) for sol in mp.solutions.values()])
 
     @pytest.mark.parametrize("key", ["connectivities", "distances"])
-    def test_geodesic_cost_xy(self, adata_mapping: AnnData, key: str):
+    @pytest.mark.parametrize("geodesic_y", [True, False])
+    def test_geodesic_cost_xy(self, adata_mapping: AnnData, key: str, geodesic_y: bool):
         adataref, adatasp = _adata_spatial_split(adata_mapping)
 
         batch_column = "batch"
@@ -151,12 +152,23 @@ class TestMappingProblem:
                 )
             )
 
+        if geodesic_y:
+            sc.pp.neighbors(adataref, n_neighbors=15, use_rep="X")
+            df_y = pd.DataFrame(
+                index=adataref.obs_names,
+                columns=adataref.obs_names,
+                data=adataref.obsp["connectivities"].A.astype("float64"),
+            )
+
         mp: MappingProblem = MappingProblem(adataref, adatasp)
         mp = mp.prepare(batch_key="batch", sc_attr={"attr": "X"})
         mp = mp.solve(epsilon=1)
 
         mp[("1", "ref")].set_graph_xy(dfs[0], cost="geodesic")
         mp[("2", "ref")].set_graph_xy(dfs[1], cost="geodesic")
+        if geodesic_y:
+            mp[("1", "ref")].set_graph_y(df_y, cost="geodesic")
+            mp[("2", "ref")].set_graph_y(df_y, cost="geodesic")
         mp = mp.solve(max_iterations=2, lse_mode=False)
 
         ta = mp[("1", "ref")].xy
@@ -165,6 +177,13 @@ class TestMappingProblem:
         assert ta.data_tgt is None
         assert ta.tag == Tag.GRAPH
         assert ta.cost == "geodesic"
+        if geodesic_y:
+            ta = mp[("1", "ref")].y
+            assert isinstance(ta, TaggedArray)
+            assert isinstance(ta.data_src, np.ndarray)  # this will change once OTT-JAX allows for sparse matrices
+            assert ta.data_tgt is None
+            assert ta.tag == Tag.GRAPH
+            assert ta.cost == "geodesic"
 
         ta = mp[("2", "ref")].xy
         assert isinstance(ta, TaggedArray)
@@ -172,6 +191,13 @@ class TestMappingProblem:
         assert ta.data_tgt is None
         assert ta.tag == Tag.GRAPH
         assert ta.cost == "geodesic"
+        if geodesic_y:
+            ta = mp[("2", "ref")].y
+            assert isinstance(ta, TaggedArray)
+            assert isinstance(ta.data_src, np.ndarray)  # this will change once OTT-JAX allows for sparse matrices
+            assert ta.data_tgt is None
+            assert ta.tag == Tag.GRAPH
+            assert ta.cost == "geodesic"
 
     @pytest.mark.parametrize("args_to_check", [fgw_args_1, fgw_args_2])
     def test_pass_arguments(self, adata_mapping: AnnData, args_to_check: Mapping[str, Any]):
