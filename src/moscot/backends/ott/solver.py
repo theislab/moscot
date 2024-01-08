@@ -246,7 +246,7 @@ class SinkhornSolver(OTTJaxSolver):
         scale_cost: Scale_t = 1.0,
         cost_kwargs: Mapping[str, Any] = types.MappingProxyType({}),
         cost_matrix_rank: Optional[int] = None,
-        t: Optional[float] = None,
+        ts: Tuple[Optional[float], Optional[float], Optional[float]] = (None, None, None),
         # problem
         **kwargs: Any,
     ) -> linear_problem.LinearProblem:
@@ -262,7 +262,7 @@ class SinkhornSolver(OTTJaxSolver):
             batch_size=batch_size,
             problem_shape=(len(self._a), len(self._b)),
             scale_cost=scale_cost,
-            t=t,
+            t=ts[0],
             **cost_kwargs,
         )
         if cost_matrix_rank is not None:
@@ -368,7 +368,7 @@ class GWSolver(OTTJaxSolver):
         scale_cost: Scale_t = 1.0,
         cost_kwargs: Mapping[str, Any] = types.MappingProxyType({}),
         cost_matrix_rank: Optional[int] = None,
-        t: Optional[float] = None,
+        ts: Tuple[Optional[float], Optional[float], Optional[float]] = (None, None, None),
         # problem
         alpha: float = 0.5,
         **kwargs: Any,
@@ -386,14 +386,14 @@ class GWSolver(OTTJaxSolver):
         }
         if cost_matrix_rank is not None:
             geom_kwargs["cost_matrix_rank"] = cost_matrix_rank
-        geom_xx = self._create_geometry(x, t=t, **geom_kwargs)
-        geom_yy = self._create_geometry(y, t=t, **geom_kwargs)
+        geom_xx = self._create_geometry(x, t=ts[1], **geom_kwargs)
+        geom_yy = self._create_geometry(y, t=ts[2], **geom_kwargs)
         if alpha == 1.0 or xy is None:  # GW
             # arbitrary fused penalty; must be positive
             geom_xy, fused_penalty = None, 1.0
         else:  # FGW
             fused_penalty = alpha_to_fused_penalty(alpha)
-            geom_xy = self._create_geometry(xy, problem_shape=(x.shape[0], y.shape[0]), **geom_kwargs)
+            geom_xy = self._create_geometry(xy, t=ts[0], problem_shape=(x.shape[0], y.shape[0]), **geom_kwargs)
             check_shapes(geom_xx, geom_yy, geom_xy)
 
         self._problem = quadratic_problem.QuadraticProblem(
