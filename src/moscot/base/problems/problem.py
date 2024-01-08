@@ -342,19 +342,19 @@ class OTProblem(BaseProblem):
             if "tagged_array" in xy:
                 kws, _ = self._split_xy_kwargs(**xy)
                 xy=dict(xy)
-                self._xy = xy.pop("tagged_array")._set_cost(**kws)
+                self._xy = xy["tagged_array"]._set_cost(**kws)
             else:
                 self._xy = self._handle_linear(**xy)
         if x:
             if "tagged_array" in x:
                 x = dict(x)
-                self._x = x.pop("tagged_array")._set_cost(**x)
+                self._x = x["tagged_array"]._set_cost(**x)
             else:
                 self._x = TaggedArray.from_adata(self.adata_src, dist_key=self._src_key, **x)
         if y:
             if "tagged_array" in y:
                 y = dict(y)
-                self._y = y.pop("tagged_array")._set_cost(**y)
+                self._y = y["tagged_array"]._set_cost(**y)
             else:
                 self._y = TaggedArray.from_adata(self.adata_tgt, dist_key=self._tgt_key, **y)
         if self._xy and not self._x and not self._y:
@@ -711,16 +711,15 @@ class OTProblem(BaseProblem):
         - :attr:`xy` - the :term:`linear term`.
         - :attr:`stage` - set to ``'prepared'``.
         """
-        data_src, index_src, index_tgt = data
         expected_series = pd.concat([self.adata_src.obs_names.to_series(), self.adata_tgt.obs_names.to_series()])
         if isinstance(data, pd.DataFrame):
             pd.testing.assert_series_equal(expected_series, data.index.to_series())
             pd.testing.assert_series_equal(expected_series, data.columns.to_series())
             data_src = data.to_numpy()
         elif isinstance(data, tuple):
+            data_src, index_src, index_tgt = data
             pd.testing.assert_series_equal(expected_series, index_src)
             pd.testing.assert_series_equal(expected_series, index_tgt)
-            data_src = data_src
         else:
             raise ValueError(
                 "Expected data to be a pd.DataFrame or a tuple of (sp.csr_matrix, pd.Series, pd.Series), "

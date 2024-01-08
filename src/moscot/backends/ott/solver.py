@@ -95,7 +95,14 @@ class OTTJaxSolver(OTSolver[OTTOutput], abc.ABC):
             )
         if x.is_graph:  # we currently only support this for the linear term.
             return self._create_graph_geometry(
-                x=x, arr=arr, problem_kind=self.problem_kind, problem_shape=problem_shape, t=t, **kwargs  # type: ignore[arg-type]
+                x=x,
+                arr=arr,
+                problem_shape=problem_shape,  # type: ignore[arg-type]
+                t=t,
+                epsilon=epsilon,
+                relative_epsilon=relative_epsilon,
+                scale_cost=scale_cost,
+                **kwargs,
             )
         raise NotImplementedError(f"Creating geometry from `tag={x.tag!r}` is not yet implemented.")
 
@@ -124,6 +131,8 @@ class OTTJaxSolver(OTSolver[OTTOutput], abc.ABC):
         if x.cost == "geodesic":
             if self.problem_kind == "linear":
                 if t is None:
+                    if epsilon is None:
+                        raise ValueError("`epsilon` cannot be `None`.")
                     return geodesic.Geodesic.from_graph(
                         arr, t=epsilon / 4.0, directed=kwargs.pop("directed", True), **kwargs
                     )

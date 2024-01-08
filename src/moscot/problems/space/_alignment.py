@@ -135,9 +135,8 @@ class AlignmentProblem(SpatialAlignmentMixin[K, B], CompoundProblem[K, B]):
             kwargs["x_callback"] = kwargs["y_callback"] = "spatial-norm"
             kwargs.setdefault("x_callback_kwargs", x)
             kwargs.setdefault("y_callback_kwargs", y)
-        if ("x_callback" in kwargs and "y_callback" in kwargs) and (
-            "spatial-norm" in kwargs["x_callback"] and "spatial-norm" in kwargs["y_callback"]
-        ):
+
+        if "spatial-norm" in kwargs.get("x_callback", {}) and "spatial-norm" in kwargs.get("y_callback", {}):
             x = {}
             y = {}
 

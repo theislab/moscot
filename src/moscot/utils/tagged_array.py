@@ -83,10 +83,8 @@ class TaggedArray:
     ) -> "TaggedArray":
         if cost == "custom":
             raise ValueError("Custom cost functions are handled in `TaggedArray.from_adata`.")
-        if cost == "geodesic":
-            self.cost = cost
-            return self
-        cost_fn = get_cost(cost, backend=backend, **kwargs)
+        if cost != "geodesic":
+            cost_fn = get_cost(cost, backend=backend, **kwargs)
         self.cost = cost_fn
         return self
 

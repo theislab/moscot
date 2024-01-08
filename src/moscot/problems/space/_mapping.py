@@ -175,7 +175,7 @@ class MappingProblem(SpatialMappingMixin[K, OTProblem], CompoundProblem[K, OTPro
         if normalize_spatial and "x_callback" not in kwargs:
             kwargs["x_callback"] = "spatial-norm"
             kwargs.setdefault("x_callback_kwargs", x)
-        if "x_callback" in kwargs and "spatial-norm" in kwargs["x_callback"]:
+        if "spatial-norm" in kwargs.get("x_callback", {}):
             x = {}
 
         self.batch_key = batch_key
