@@ -240,7 +240,7 @@ def bone_marrow(
     path
         Path where to save the file.
     rna
-        Return the RNA data if `True`, otherwise return ATAC data.
+        Return the RNA data If :obj:`True`, otherwise return ATAC data.
     force_download
         Whether to force-download the data.
     kwargs

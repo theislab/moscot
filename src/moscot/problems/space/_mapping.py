@@ -98,7 +98,7 @@ class MappingProblem(SpatialMappingMixin[K, OTProblem], CompoundProblem[K, OTPro
             `PCA <https://en.wikipedia.org/wiki/Principal_component_analysis>`_ can also be used. Valid options are:
 
             - :class:`str` - a key in :attr:`~anndata.AnnData.obsm`.
-            - :class:`dict`-  it should contain ``'attr'`` and ``'key'``, the attribute and key in
+            - :class:`dict` -  it should contain ``'attr'`` and ``'key'``, the attribute and key in
               :class:`~anndata.AnnData`, and optionally ``'tag'`` from the
               :class:`tags <moscot.utils.tagged_array.Tag>`.
 
@@ -117,15 +117,15 @@ class MappingProblem(SpatialMappingMixin[K, OTProblem], CompoundProblem[K, OTPro
 
             See also the ``joint_attribute`` parameter.
         normalize_spatial
-            Whether to normalize the spatial coordinates. If `True`, the coordinates are normalized
-            by standardizing them. If `False`, no normalization is performed.
+            Whether to normalize the spatial coordinates. If :obj:`True`, the coordinates are normalized
+            by standardizing them.
         joint_attr
             How to get the data for the :term:`linear term` in the :term:`fused <fused Gromov-Wasserstein>` case:
 
             - :obj:`None` - `PCA <https://en.wikipedia.org/wiki/Principal_component_analysis>`_
               on :attr:`~anndata.AnnData.X` is computed.
             - :class:`str` - key in :attr:`~anndata.AnnData.obsm` where the data is stored.
-            - :class:`dict`-  it should contain ``'attr'`` and ``'key'``, the attribute and key in
+            - :class:`dict` -  it should contain ``'attr'`` and ``'key'``, the attribute and key in
               :class:`~anndata.AnnData`, and optionally ``'tag'`` from the
               :class:`tags <moscot.utils.tagged_array.Tag>`.
         cost

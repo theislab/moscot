@@ -1,13 +1,17 @@
-from typing import Any, Optional, Union
+from typing import Any, Literal, Optional, Tuple, Union
 
 import jax
 import jax.numpy as jnp
 import scipy.sparse as sp
-from ott.geometry import epsilon_scheduler, geometry, pointcloud
+from ott.geometry import epsilon_scheduler, geodesic, geometry, pointcloud
 from ott.tools import sinkhorn_divergence as sdiv
 
 from moscot._logging import logger
 from moscot._types import ArrayLike, ScaleCost_t
+from moscot.utils.tagged_array import TaggedArray
+
+Scale_t = Union[float, Literal["mean", "median", "max_cost", "max_norm", "max_bound"]]
+
 
 __all__ = ["sinkhorn_divergence"]
 
@@ -86,3 +90,66 @@ def ensure_2d(arr: ArrayLike, *, reshape: bool = False) -> jax.Array:
     if arr.ndim != 2:
         raise ValueError(f"Expected array to have 2 dimensions, found `{arr.ndim}`.")
     return arr
+
+
+def create_graph_geometry(
+    x: TaggedArray,
+    arr: jax.Array,
+    problem_kind: Literal["linear", "quadratic"],
+    problem_shape: Tuple[int, int],
+    t: Optional[float],
+    epsilon: Union[float, epsilon_scheduler.Epsilon] = None,
+    relative_epsilon: Optional[bool] = None,
+    scale_cost: Scale_t = 1.0,
+    **kwargs: Any,
+) -> geometry.Geometry:
+    """Create a :class:`ott.geometry.Geometry` from a graph.
+
+    Parameters
+    ----------
+    x
+        Tagged array.
+    arr
+        Array representation of the graph.
+    problem_kind
+        Problem kind.
+    problem_shape
+        Number of source and target points.
+    t
+        Time parameter of the heat equation.
+    epsilon
+        Regularization parameter.
+    relative_epsilon
+        Whether to use relative or absolute epsilon.
+    scale_cost
+        Scale cost.
+    kwargs
+        Additional keyword arguments.
+    """
+    if x.cost == "geodesic":
+        if problem_kind == "linear":
+            if t is None:
+                return geodesic.Geodesic.from_graph(
+                    arr, t=epsilon / 4.0, directed=kwargs.pop("directed", True), **kwargs
+                )
+
+            n_src, n_tgt = problem_shape
+            if n_src + n_tgt != arr.shape[0]:
+                raise ValueError(f"Expected `x` to have `{n_src + n_tgt}` points, found `{arr.shape[0]}`.")
+            cm = geodesic.Geodesic.from_graph(arr, t=t, directed=kwargs.pop("directed", True), **kwargs).cost_matrix[
+                :n_src, n_src:
+            ]
+            return geometry.Geometry(cm, epsilon=epsilon, relative_epsilon=relative_epsilon, scale_cost=scale_cost)
+
+        if problem_kind == "quadratic":
+            n_src, n_tgt = problem_shape
+            if n_src + n_tgt != arr.shape[0]:
+                raise ValueError(f"Expected `x` to have `{n_src + n_tgt}` points, found `{arr.shape[0]}`.")
+            t = epsilon / 4.0 if t is None else t
+            cm = geodesic.Geodesic.from_graph(arr, t=t, directed=kwargs.pop("directed", True), **kwargs).cost_matrix[
+                :n_src, n_src:
+            ]
+            return geometry.Geometry(cm, epsilon=epsilon, relative_epsilon=relative_epsilon, scale_cost=scale_cost)
+
+        raise NotImplementedError(f"Invalid problem kind `{problem_kind}`.")
+    raise NotImplementedError(f"If the geometry is a graph, `cost` must be `geodesic`, found `{x.cost}`.")

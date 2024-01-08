@@ -76,14 +76,14 @@ class SpatioTemporalProblem(  # type: ignore[misc]
             - :obj:`None` - `PCA <https://en.wikipedia.org/wiki/Principal_component_analysis>`_
               on :attr:`~anndata.AnnData.X` is computed.
             - :class:`str` - key in :attr:`~anndata.AnnData.obsm` where the data is stored.
-            - :class:`dict`-  it should contain ``'attr'`` and ``'key'``, the attribute and key in
+            - :class:`dict` -  it should contain ``'attr'`` and ``'key'``, the attribute and key in
               :class:`~anndata.AnnData`, and optionally ``'tag'`` from the
               :class:`tags <moscot.utils.tagged_array.Tag>`.
 
             By default, :attr:`tag = 'point_cloud' <moscot.utils.tagged_array.Tag.POINT_CLOUD>` is used.
         normalize_spatial
-            Whether to normalize the spatial coordinates. If `True`, the coordinates are normalized
-            by standardizing them. If `False`, no normalization is performed.
+            Whether to normalize the spatial coordinates. If :obj:`True`, the coordinates are normalized
+            by standardizing them.
         policy
             Rule which defines how to construct the subproblems using :attr:`obs['{time_key}'] <anndata.AnnData.obs>`.
             Valid options are:

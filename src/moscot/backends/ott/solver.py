@@ -12,7 +12,12 @@ from ott.solvers.linear import sinkhorn, sinkhorn_lr
 from ott.solvers.quadratic import gromov_wasserstein, gromov_wasserstein_lr
 
 from moscot._types import ProblemKind_t, QuadInitializer_t, SinkhornInitializer_t
-from moscot.backends.ott._utils import alpha_to_fused_penalty, check_shapes, ensure_2d
+from moscot.backends.ott._utils import (
+    alpha_to_fused_penalty,
+    check_shapes,
+    create_graph_geometry,
+    ensure_2d,
+)
 from moscot.backends.ott.output import GraphOTTOutput, OTTOutput
 from moscot.base.solver import OTSolver
 from moscot.costs import get_cost
@@ -50,11 +55,11 @@ class OTTJaxSolver(OTSolver[OTTOutput], abc.ABC):
     def _create_geometry(
         self,
         x: TaggedArray,
-        n_src_tgt: Tuple[int, int],
         epsilon: Union[float, epsilon_scheduler.Epsilon] = None,
         relative_epsilon: Optional[bool] = None,
         scale_cost: Scale_t = 1.0,
         batch_size: Optional[int] = None,
+        problem_shape: Optional[Tuple[int, int]] = None,
         t: Optional[float] = None,
         **kwargs: Any,
     ) -> geometry.Geometry:
@@ -94,37 +99,9 @@ class OTTJaxSolver(OTSolver[OTTOutput], abc.ABC):
                 kernel_matrix=arr, epsilon=epsilon, relative_epsilon=relative_epsilon, scale_cost=scale_cost
             )
         if x.is_graph:  # we currently only support this for the linear term.
-            if x.cost == "geodesic":
-                if self.problem_kind == "linear":
-                    if t is None:
-                        return geodesic.Geodesic.from_graph(
-                            arr, t=epsilon / 4.0, directed=kwargs.pop("directed", True), **kwargs
-                        )
-
-                    n_src, n_tgt = n_src_tgt
-                    if n_src + n_tgt != arr.shape[0]:
-                        raise ValueError(f"Expected `x` to have `{n_src + n_tgt}` points, found `{arr.shape[0]}`.")
-                    cm = geodesic.Geodesic.from_graph(
-                        arr, t=t, directed=kwargs.pop("directed", True), **kwargs
-                    ).cost_matrix[:n_src, n_src:]
-                    return geometry.Geometry(
-                        cm, epsilon=epsilon, relative_epsilon=relative_epsilon, scale_cost=scale_cost
-                    )
-
-                if self.problem_kind == "quadratic":
-                    n_src, n_tgt = n_src_tgt
-                    if n_src + n_tgt != arr.shape[0]:
-                        raise ValueError(f"Expected `x` to have `{n_src + n_tgt}` points, found `{arr.shape[0]}`.")
-                    t = epsilon / 4.0 if t is None else t
-                    cm = geodesic.Geodesic.from_graph(
-                        arr, t=t, directed=kwargs.pop("directed", True), **kwargs
-                    ).cost_matrix[:n_src, n_src:]
-                    return geometry.Geometry(
-                        cm, epsilon=epsilon, relative_epsilon=relative_epsilon, scale_cost=scale_cost
-                    )
-
-                raise NotImplementedError(f"Invalid problem kind `{self.problem_kind}`.")
-            raise NotImplementedError(f"If the geometry is a graph, `cost` must be `geodesic`, found `{x.cost}`.")
+            return create_graph_geometry(
+                x=x, arr=arr, problem_kind=self.problem_kind, problem_shape=problem_shape, t=t, **kwargs  # type: ignore[arg-type]
+            )
         raise NotImplementedError(f"Creating geometry from `tag={x.tag!r}` is not yet implemented.")
 
     def _solve(  # type: ignore[override]
@@ -134,7 +111,7 @@ class OTTJaxSolver(OTSolver[OTTOutput], abc.ABC):
     ) -> Union[OTTOutput, GraphOTTOutput]:
         solver = jax.jit(self.solver) if self._jit else self.solver
         out = solver(prob, **kwargs)
-        if prob.is_linear and isinstance(prob.geom_xy, geodesic.Geodesic):
+        if isinstance(prob, linear_problem.LinearProblem) and isinstance(prob.geom_xy, geodesic.Geodesic):
             return GraphOTTOutput(out, shape=(len(self._a), len(self._b)))  # type: ignore[arg-type]
         return OTTOutput(out)
 
@@ -230,7 +207,7 @@ class SinkhornSolver(OTTJaxSolver):
             epsilon=epsilon,
             relative_epsilon=relative_epsilon,
             batch_size=batch_size,
-            n_src_tgt=(len(self._a), len(self._b)),
+            problem_shape=(len(self._a), len(self._b)),
             scale_cost=scale_cost,
             t=t,
             **cost_kwargs,
@@ -356,14 +333,14 @@ class GWSolver(OTTJaxSolver):
         }
         if cost_matrix_rank is not None:
             geom_kwargs["cost_matrix_rank"] = cost_matrix_rank
-        geom_xx = self._create_geometry(x, n_src_tgt=(len(self._a), len(self._b)), t=t, **geom_kwargs)
-        geom_yy = self._create_geometry(y, n_src_tgt=(len(self._a), len(self._b)), t=t, **geom_kwargs)
+        geom_xx = self._create_geometry(x, t=t, **geom_kwargs)
+        geom_yy = self._create_geometry(y, t=t, **geom_kwargs)
         if alpha == 1.0 or xy is None:  # GW
             # arbitrary fused penalty; must be positive
             geom_xy, fused_penalty = None, 1.0
         else:  # FGW
             fused_penalty = alpha_to_fused_penalty(alpha)
-            geom_xy = self._create_geometry(xy, n_src_tgt=(x.shape[0], y.shape[0]), **geom_kwargs)
+            geom_xy = self._create_geometry(xy, problem_shape=(x.shape[0], y.shape[0]), **geom_kwargs)
             check_shapes(geom_xx, geom_yy, geom_xy)
 
         self._problem = quadratic_problem.QuadraticProblem(

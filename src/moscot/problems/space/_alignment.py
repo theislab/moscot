@@ -66,7 +66,7 @@ class AlignmentProblem(SpatialAlignmentMixin[K, B], CompoundProblem[K, B]):
             - :obj:`None` - `PCA <https://en.wikipedia.org/wiki/Principal_component_analysis>`_
               on :attr:`~anndata.AnnData.X` is computed.
             - :class:`str` - key in :attr:`~anndata.AnnData.obsm` where the data is stored.
-            - :class:`dict`-  it should contain ``'attr'`` and ``'key'``, the attribute and key in
+            - :class:`dict` -  it should contain ``'attr'`` and ``'key'``, the attribute and key in
               :class:`~anndata.AnnData`, and optionally ``'tag'`` from the
               :class:`tags <moscot.utils.tagged_array.Tag>`.
 
@@ -80,8 +80,8 @@ class AlignmentProblem(SpatialAlignmentMixin[K, B], CompoundProblem[K, B]):
         reference
             Spatial reference when ``policy = 'star'``.
         normalize_spatial
-            Whether to normalize the spatial coordinates. If `True`, the coordinates are normalized
-            by standardizing them. If `False`, no normalization is performed.
+            Whether to normalize the spatial coordinates. If :obj:`True`, the coordinates are normalized
+            by standardizing them.
         cost
             Cost function to use. Valid options are:
 
