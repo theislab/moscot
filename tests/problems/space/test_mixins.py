@@ -175,3 +175,14 @@ class TestSpatialMappingAnalysisMixin:
 
         assert isinstance(result, pd.DataFrame)
         assert result.shape == (3, 4)
+
+    @pytest.mark.fast()
+    @pytest.mark.parametrize("forward", [True])#, False])
+    @pytest.mark.parametrize("mapping_mode", ["max"])#, "sum"])
+    @pytest.mark.parametrize("problem_kind", ["mapping"])
+    def test_annotation_mapping(self, adata_anno: AnnData, forward: bool, mapping_mode, gt_tm_annotation):
+        rng = np.random.RandomState(0)
+        adataref, adatasp = _adata_spatial_split(adata_anno)
+        mp = MappingProblem(adataref, adatasp)
+        mp = mp.prepare(batch_key="batch", sc_attr={"attr": "obsm", "key": "X_pca"})
+

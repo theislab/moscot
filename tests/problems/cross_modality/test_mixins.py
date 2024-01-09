@@ -106,3 +106,15 @@ class TestCrossModalityTranslationAnalysisMixin:
         assert result2.shape == (3, 3)
         with pytest.raises(AssertionError):
             pd.testing.assert_frame_equal(result1, result2)
+
+    @pytest.mark.fast()
+    @pytest.mark.parametrize("forward", [True])#, False])
+    @pytest.mark.parametrize("mapping_mode", ["max"])#, "sum"])
+    @pytest.mark.parametrize("problem_kind", ["cross_modality"])
+    def test_annotation_mapping(
+        self, adata_anno: Tuple[AnnData, AnnData], forward: bool, mapping_mode, gt_tm_annotation
+    ):
+        rng = np.random.RandomState(0)
+        adata_src, adata_tgt = adata_anno
+        tp = TranslationProblem(adata_src, adata_tgt)
+        tp = tp.prepare(batch_key="batch", src_attr="emb_src", tgt_attr="emb_tgt", joint_attr="X_pca")
