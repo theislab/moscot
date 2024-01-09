@@ -583,8 +583,8 @@ class AnalysisMixin(Generic[K, B]):
 
         Returns
         -------
-        `None` if ``key_added`` is not None. Otherwise, returns a data frame of shape ``(n_cells, 1)`` containing the
-        conditional entropy per cell.
+        :obj:`None` if ``key_added`` is not None. Otherwise, returns a data frame of shape ``(n_cells, 1)`` containing
+        the conditional entropy per cell.
         """
         filter_value = source if forward else target
         df = pd.DataFrame(
