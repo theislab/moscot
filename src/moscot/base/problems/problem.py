@@ -704,10 +704,10 @@ class OTProblem(BaseProblem):
             Data containing the graph.
 
                 - If of type :class:`~pandas.DataFrame`, its index must be equal to
-                :attr:`adata_src.obs_names <adata_src>` and its columns to :attr:`adata_tgt.obs_names <adata_tgt>`.
+                  :attr:`adata_src.obs_names <adata_src>` and its columns to :attr:`adata_tgt.obs_names <adata_tgt>`.
                 - If of type :class:`tuple`, it must be of the form (sp.csr_matrix, pd.Series, pd.Series),
-                where the first element is the graph, the second element and the third element
-                are the annotations of the graph.
+                  where the first element is the graph, the second element and the third element
+                  are the annotations of the graph.
 
         cost
             Which graph-based distance to use.
@@ -721,8 +721,8 @@ class OTProblem(BaseProblem):
         -------
         Nothing, just updates the following fields:
 
-            - :attr:`xy` - the :term:`linear term`.
-            - :attr:`stage` - set to ``'prepared'``.
+        - :attr:`xy` - the :term:`linear term`.
+        - :attr:`stage` - set to ``'prepared'``.
         """
         expected_series = pd.concat([self.adata_src.obs_names.to_series(), self.adata_tgt.obs_names.to_series()])
         if isinstance(data, pd.DataFrame):
@@ -756,9 +756,9 @@ class OTProblem(BaseProblem):
             Data containing the graph.
 
                 - If of type :class:`~pandas.DataFrame`, its index and columns must be equal to
-                :attr:`adata_src.obs_names <adata_src>`.
+                  :attr:`adata_src.obs_names <adata_src>`.
                 - If of type :class:`tuple`, it must be of the form (sp.csr_matrix, pd.Series), where the first
-                element is the graph and the second element is the annotation of the graph.
+                  element is the graph and the second element is the annotation of the graph.
 
         cost
             Which graph-based distance to use.
@@ -772,8 +772,8 @@ class OTProblem(BaseProblem):
         -------
         Nothing, just updates the following fields:
 
-            - :attr:`x` - the source :term:`quadratic term`.
-            - :attr:`stage` - set to ``'prepared'``.
+        - :attr:`x` - the source :term:`quadratic term`.
+        - :attr:`stage` - set to ``'prepared'``.
         """
         expected_series = self.adata_src.obs_names.to_series()
         if isinstance(data, pd.DataFrame):
@@ -805,9 +805,9 @@ class OTProblem(BaseProblem):
             Data containing the graph.
 
                 - If of type :class:`~pandas.DataFrame`, its index and columns must be equal to
-                :attr:`adata_tgt.obs_names <adata_tgt>`.
+                  :attr:`adata_tgt.obs_names <adata_tgt>`.
                 - If of type :class:`tuple`, it must be of the form (sp.csr_matrix, pd.Series), where the first
-                element is the graph and the second element is the annotation of the graph.
+                  element is the graph and the second element is the annotation of the graph.
 
         cost
             Which graph-based distance to use.
@@ -821,8 +821,8 @@ class OTProblem(BaseProblem):
         -------
         Nothing, just updates the following fields:
 
-            - :attr:`x` - the target :term:`quadratic term`.
-            - :attr:`stage` - set to ``'prepared'``.
+        - :attr:`x` - the target :term:`quadratic term`.
+        - :attr:`stage` - set to ``'prepared'``.
         """
         expected_series = self.adata_tgt.obs_names.to_series()
         if isinstance(data, pd.DataFrame):
