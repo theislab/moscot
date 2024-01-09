@@ -29,7 +29,12 @@ from moscot import backends
 from moscot._logging import logger
 from moscot._types import ArrayLike, CostFn_t, Device_t, ProblemKind_t
 from moscot.base.output import BaseSolverOutput, MatrixSolverOutput
-from moscot.base.problems._utils import require_solution, wrap_prepare, wrap_solve
+from moscot.base.problems._utils import (
+    TimeScalesHeatKernel,
+    require_solution,
+    wrap_prepare,
+    wrap_solve,
+)
 from moscot.base.solver import OTSolver
 from moscot.utils.tagged_array import Tag, TaggedArray
 
@@ -250,10 +255,6 @@ class OTProblem(BaseProblem):
         self._a: Optional[ArrayLike] = None
         self._b: Optional[ArrayLike] = None
 
-        self._t_xy: Optional[float] = None  # only needed for diffusion-based distances in linear term
-        self._t_x: Optional[float] = None  # only needed for diffusion-based distances in source q. term
-        self._t_y: Optional[float] = None  # only needed for diffusion-based distances in target q. term
-
     def _handle_linear(self, cost: CostFn_t = None, **kwargs: Any) -> TaggedArray:
         if "x_attr" not in kwargs or "y_attr" not in kwargs:
             kwargs.setdefault("tag", Tag.COST_MATRIX)
@@ -407,7 +408,6 @@ class OTProblem(BaseProblem):
             a=self.a,
             b=self.b,
             device=device,
-            ts=(self._t_xy, self._t_x, self._t_y),
             **call_kwargs,
         )
         return self
@@ -609,36 +609,7 @@ class OTProblem(BaseProblem):
 
         logger.info(f"Normalizing spatial coordinates of `{term}`.")
         spatial = (spatial - spatial.mean()) / spatial.std()
-        return TaggedArray(spatial, tag=Tag.POINT_CLOUD)
-
-    @staticmethod
-    def _graph_construction_callback(
-        term: Literal["xy", "x", "y"],
-        adata: AnnData,
-        adata_y: Optional[AnnData] = None,
-        use_rep: str = "X_pca",
-        **kwargs: Any,
-    ) -> TaggedArray:
-        if term == "xy":
-            if adata_y is None:
-                raise ValueError("When `term` is `xy`, `adata_y` cannot be `None`.")
-            if use_rep not in adata.obsm:
-                raise ValueError(f"Unable to find `{use_rep}` in `adata.obsm`.")
-            if use_rep not in adata_y.obsm:
-                raise ValueError(f"Unable to find `{use_rep}` in `adata_y.obsm`.")
-            adata_concat = ad.concat((adata, adata_y), join="inner")
-            logger.info(f"Computing graph construction for `xy` using `{use_rep}`")
-            sc.pp.neighbors(adata_concat, use_rep=use_rep, **kwargs)
-            return TaggedArray(
-                data_src=adata_concat.obsp["connectivities"].astype("float64"), data_tgt=None, tag=Tag.GRAPH
-            )
-
-        if use_rep not in adata.obsm:
-            raise ValueError(f"Unable to find `{use_rep}` in `adata.obsm`.")
-
-        logger.info(f"Computing graph construction for `{term}` using `{use_rep}`")
-        sc.pp.neighbors(adata, use_rep=use_rep, **kwargs)
-        return TaggedArray(data_src=adata.obsp["connectivities"].astype("float64"), data_tgt=None, tag=Tag.GRAPH)
+        return {term: TaggedArray(spatial, tag=Tag.POINT_CLOUD)}
 
     def _create_marginals(
         self,
@@ -689,149 +660,6 @@ class OTProblem(BaseProblem):
         """
         del kwargs
         return np.ones((adata.n_obs,), dtype=float) / adata.n_obs
-
-    def set_graph_xy(
-        self,
-        data: Union[pd.DataFrame, Tuple[sp.csr_matrix, pd.Series, pd.Series]],
-        cost: Literal["geodesic"] = "geodesic",
-        t: Optional[float] = None,
-    ) -> None:
-        r"""Set a graph for the :term:`linear term` for graph based distances.
-
-        Parameters
-        ----------
-        data
-            Data containing the graph.
-            - If of type :class:`~pandas.DataFrame`, its index must be equal to :attr:`adata_src.obs_names <adata_src>`
-              and its columns to :attr:`adata_tgt.obs_names <adata_tgt>`.
-            - If of type :class:`tuple`, it must be of the form (sp.csr_matrix, pd.Series, pd.Series), where the first
-              element is the graph, the second element and the third element are the annotations of the graph.
-        cost
-            Which graph-based distance to use.
-        t
-            Time parameter at which to solve the heat equation, see :cite:`crane:13`. When ``t`` is :obj:`None`,
-            ``t`` will be set to :math:`\epsilon / 4`, where :math:`\epsilon` is the entropy regularization term.
-            This approaches the geodesic distance and allows for linear memory complexity as the cost matrix does
-            not have to be instantiated :cite:`huguet:23`.
-
-        Returns
-        -------
-        Nothing, just updates the following fields:
-
-        - :attr:`xy` - the :term:`linear term`.
-        - :attr:`stage` - set to ``'prepared'``.
-        """
-        expected_series = pd.concat([self.adata_src.obs_names.to_series(), self.adata_tgt.obs_names.to_series()])
-        if isinstance(data, pd.DataFrame):
-            pd.testing.assert_series_equal(expected_series, data.index.to_series())
-            pd.testing.assert_series_equal(expected_series, data.columns.to_series())
-            data_src = data.to_numpy()
-        elif isinstance(data, tuple):
-            data_src, index_src, index_tgt = data
-            pd.testing.assert_series_equal(expected_series, index_src)
-            pd.testing.assert_series_equal(expected_series, index_tgt)
-        else:
-            raise ValueError(
-                "Expected data to be a pd.DataFrame or a tuple of (sp.csr_matrix, pd.Series, pd.Series), "
-                f"found {type(data)}."
-            )
-        self._xy = TaggedArray(data_src=data_src, data_tgt=None, tag=Tag.GRAPH, cost=cost)
-        self._stage = "prepared"
-        self._t_xy = t
-
-    def set_graph_x(
-        self,
-        data: Union[pd.DataFrame, Tuple[sp.csr_matrix, pd.Series]],
-        cost: Literal["geodesic"] = "geodesic",
-        t: Optional[float] = None,
-    ) -> None:
-        r"""Set a graph for the source :term:`quadratic term`.
-
-        Parameters
-        ----------
-        data
-            Data containing the graph.
-            - If of type :class:`~pandas.DataFrame`, its index and columns must be equal to
-              :attr:`adata_src.obs_names <adata_src>`.
-            - If of type :class:`tuple`, it must be of the form (sp.csr_matrix, pd.Series), where the first
-              element is the graph and the second element is the annotation of the graph.
-        cost
-            Which graph-based distance to use.
-        t
-            Time parameter at which to solve the heat equation, see :cite:`crane:13`. When ``t`` is :obj:`None`,
-            ``t`` will be set to :math:`\epsilon / 4`, where :math:`\epsilon` is the entropy regularization term.
-            This approaches the geodesic distance and allows for linear memory complexity as the cost matrix does
-            not have to be instantiated :cite:`huguet:23`.
-
-        Returns
-        -------
-        Nothing, just updates the following fields:
-
-        - :attr:`x` - the source :term:`quadratic term`.
-        - :attr:`stage` - set to ``'prepared'``.
-        """
-        expected_series = self.adata_src.obs_names.to_series()
-        if isinstance(data, pd.DataFrame):
-            pd.testing.assert_series_equal(expected_series, data.index.to_series())
-            pd.testing.assert_series_equal(expected_series, data.columns.to_series())
-            data_src = data.to_numpy()
-        elif isinstance(data, tuple):
-            data_src, index_src = data
-            pd.testing.assert_series_equal(expected_series, index_src)
-        else:
-            raise ValueError(
-                "Expected data to be a pd.DataFrame or a tuple of (sp.csr_matrix, pd.Series), " f"found {type(data)}."
-            )
-        self._x = TaggedArray(data_src=data_src, data_tgt=None, tag=Tag.GRAPH, cost=cost)
-        self._stage = "prepared"
-        self._t_x = t
-
-    def set_graph_y(
-        self,
-        data: Union[pd.DataFrame, Tuple[sp.csr_matrix, pd.Series]],
-        cost: Literal["geodesic"] = "geodesic",
-        t: Optional[float] = None,
-    ) -> None:
-        r"""Set a graph for the target :term:`quadratic term`.
-
-        Parameters
-        ----------
-        data
-            Data containing the graph.
-            - If of type :class:`~pandas.DataFrame`, its index and columns must be equal to
-              :attr:`adata_tgt.obs_names <adata_tgt>`.
-            - If of type :class:`tuple`, it must be of the form (sp.csr_matrix, pd.Series), where the first
-              element is the graph and the second element is the annotation of the graph.
-        cost
-            Which graph-based distance to use.
-        t
-            Time parameter at which to solve the heat equation, see :cite:`crane:13`. When ``t`` is :obj:`None`,
-            ``t`` will be set to :math:`\epsilon / 4`, where :math:`\epsilon` is the entropy regularization term.
-            This approaches the geodesic distance and allows for linear memory complexity as the cost matrix does
-            not have to be instantiated :cite:`huguet:23`.
-
-        Returns
-        -------
-        Nothing, just updates the following fields:
-
-        - :attr:`x` - the target :term:`quadratic term`.
-        - :attr:`stage` - set to ``'prepared'``.
-        """
-        expected_series = self.adata_tgt.obs_names.to_series()
-        if isinstance(data, pd.DataFrame):
-            pd.testing.assert_series_equal(expected_series, data.index.to_series())
-            pd.testing.assert_series_equal(expected_series, data.columns.to_series())
-            data_src = data.to_numpy()
-        elif isinstance(data, tuple):
-            data_src, index_src = data
-            pd.testing.assert_series_equal(expected_series, index_src)
-        else:
-            raise ValueError(
-                "Expected data to be a pd.DataFrame or a tuple of (sp.csr_matrix, pd.Series), " f"found {type(data)}."
-            )
-        self._y = TaggedArray(data_src=data_src, data_tgt=None, tag=Tag.GRAPH, cost=cost)
-        self._stage = "prepared"
-        self._t_y = t
 
     # TODO(michalk8): extend for point-clouds as Union[pd.DataFrame, Tuple[pd.DataFrame, pd.DataFrame]]
     # TODO(michalk8): allow this to be nullified

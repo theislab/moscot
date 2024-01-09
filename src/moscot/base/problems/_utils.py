@@ -11,6 +11,7 @@ from typing import (
     List,
     Literal,
     Mapping,
+    NamedTuple,
     Optional,
     Sequence,
     Tuple,
@@ -38,6 +39,12 @@ if TYPE_CHECKING:
 
 
 Callback = Callable[..., Any]
+
+
+class TimeScalesHeatKernel(NamedTuple):  # noqa: D101
+    x: Optional[float]
+    y: Optional[float]
+    xy: Optional[float]
 
 
 def _validate_annotations(
