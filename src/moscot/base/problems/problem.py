@@ -29,7 +29,12 @@ from moscot import backends
 from moscot._logging import logger
 from moscot._types import ArrayLike, CostFn_t, Device_t, ProblemKind_t
 from moscot.base.output import BaseSolverOutput, MatrixSolverOutput
-from moscot.base.problems._utils import require_solution, wrap_prepare, wrap_solve
+from moscot.base.problems._utils import (
+    TimeScalesHeatKernel,
+    require_solution,
+    wrap_prepare,
+    wrap_solve,
+)
 from moscot.base.solver import OTSolver
 from moscot.utils.tagged_array import Tag, TaggedArray
 
@@ -250,9 +255,7 @@ class OTProblem(BaseProblem):
         self._a: Optional[ArrayLike] = None
         self._b: Optional[ArrayLike] = None
 
-        self._t_xy: Optional[float] = None  # only needed for diffusion-based distances in linear term
-        self._t_x: Optional[float] = None  # only needed for diffusion-based distances in source q. term
-        self._t_y: Optional[float] = None  # only needed for diffusion-based distances in target q. term
+        self._time_scales_heat_kernel = TimeScalesHeatKernel(None, None, None)
 
     def _handle_linear(self, cost: CostFn_t = None, **kwargs: Any) -> TaggedArray:
         if "x_attr" not in kwargs or "y_attr" not in kwargs:
@@ -407,7 +410,7 @@ class OTProblem(BaseProblem):
             a=self.a,
             b=self.b,
             device=device,
-            ts=(self._t_xy, self._t_x, self._t_y),
+            time_scales_heat_kernel=self._time_scales_heat_kernel,
             **call_kwargs,
         )
         return self
@@ -631,7 +634,7 @@ class OTProblem(BaseProblem):
             sc.pp.neighbors(adata_concat, use_rep=use_rep, **kwargs)
             return TaggedArray(
                 data_src=adata_concat.obsp["connectivities"].astype("float64"), data_tgt=None, tag=Tag.GRAPH
-            )
+            )  # TODO(@michalk8): find a better solution.
 
         if use_rep not in adata.obsm:
             raise ValueError(f"Unable to find `{use_rep}` in `adata.obsm`.")
@@ -735,12 +738,12 @@ class OTProblem(BaseProblem):
             pd.testing.assert_series_equal(expected_series, index_tgt)
         else:
             raise ValueError(
-                "Expected data to be a pd.DataFrame or a tuple of (sp.csr_matrix, pd.Series, pd.Series), "
-                f"found {type(data)}."
+                "Expected data to be a `pd.DataFrame` or a tuple of (`sp.csr_matrix`, `pd.Series`, `pd.Series`), "
+                f"found `{type(data)}`."
             )
         self._xy = TaggedArray(data_src=data_src, data_tgt=None, tag=Tag.GRAPH, cost=cost)
         self._stage = "prepared"
-        self._t_xy = t
+        self._time_scales_heat_kernel = self._time_scales_heat_kernel._replace(xy=t)
 
     def set_graph_x(
         self,
@@ -785,11 +788,12 @@ class OTProblem(BaseProblem):
             pd.testing.assert_series_equal(expected_series, index_src)
         else:
             raise ValueError(
-                "Expected data to be a pd.DataFrame or a tuple of (sp.csr_matrix, pd.Series), " f"found {type(data)}."
+                "Expected data to be a `pd.DataFrame` or a tuple of (`sp.csr_matrix`, `pd.Series`), "
+                f"found `{type(data)}`."
             )
         self._x = TaggedArray(data_src=data_src, data_tgt=None, tag=Tag.GRAPH, cost=cost)
         self._stage = "prepared"
-        self._t_x = t
+        self._time_scales_heat_kernel = self._time_scales_heat_kernel._replace(x=t)
 
     def set_graph_y(
         self,
@@ -834,11 +838,12 @@ class OTProblem(BaseProblem):
             pd.testing.assert_series_equal(expected_series, index_src)
         else:
             raise ValueError(
-                "Expected data to be a pd.DataFrame or a tuple of (sp.csr_matrix, pd.Series), " f"found {type(data)}."
+                "Expected data to be a `pd.DataFrame` or a tuple of (`sp.csr_matrix`, `pd.Series`), "
+                f"found `{type(data)}`."
             )
         self._y = TaggedArray(data_src=data_src, data_tgt=None, tag=Tag.GRAPH, cost=cost)
         self._stage = "prepared"
-        self._t_y = t
+        self._time_scales_heat_kernel = self._time_scales_heat_kernel._replace(y=t)
 
     # TODO(michalk8): extend for point-clouds as Union[pd.DataFrame, Tuple[pd.DataFrame, pd.DataFrame]]
     # TODO(michalk8): allow this to be nullified

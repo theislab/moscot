@@ -19,6 +19,7 @@ from moscot.backends.ott._utils import (
     ensure_2d,
 )
 from moscot.backends.ott.output import GraphOTTOutput, OTTOutput
+from moscot.base.problems._utils import TimeScalesHeatKernel
 from moscot.base.solver import OTSolver
 from moscot.costs import get_cost
 from moscot.utils.tagged_array import TaggedArray
@@ -253,11 +254,14 @@ class SinkhornSolver(OTTJaxSolver):
         scale_cost: Scale_t = 1.0,
         cost_kwargs: Mapping[str, Any] = types.MappingProxyType({}),
         cost_matrix_rank: Optional[int] = None,
-        ts: Tuple[Optional[float], Optional[float], Optional[float]] = (None, None, None),
+        time_scales_heat_kernel: Optional[TimeScalesHeatKernel] = None,
         # problem
         **kwargs: Any,
     ) -> linear_problem.LinearProblem:
         del x, y
+        time_scales_heat_kernel = (
+            TimeScalesHeatKernel(None, None, None) if time_scales_heat_kernel is None else time_scales_heat_kernel
+        )
         if xy is None:
             raise ValueError(f"Unable to create geometry from `xy={xy}`.")
         self._a = a
@@ -270,7 +274,7 @@ class SinkhornSolver(OTTJaxSolver):
             batch_size=batch_size,
             problem_shape=(len(self._a), len(self._b)),
             scale_cost=scale_cost,
-            t=ts[0],
+            t=time_scales_heat_kernel.xy,
             **cost_kwargs,
         )
         if cost_matrix_rank is not None:
@@ -376,13 +380,16 @@ class GWSolver(OTTJaxSolver):
         scale_cost: Scale_t = 1.0,
         cost_kwargs: Mapping[str, Any] = types.MappingProxyType({}),
         cost_matrix_rank: Optional[int] = None,
-        ts: Tuple[Optional[float], Optional[float], Optional[float]] = (None, None, None),
+        time_scales_heat_kernel: Optional[TimeScalesHeatKernel] = None,
         # problem
         alpha: float = 0.5,
         **kwargs: Any,
     ) -> quadratic_problem.QuadraticProblem:
         self._a = a
         self._b = b
+        time_scales_heat_kernel = (
+            TimeScalesHeatKernel(None, None, None) if time_scales_heat_kernel is None else time_scales_heat_kernel
+        )
         if x is None or y is None:
             raise ValueError(f"Unable to create geometry from `x={x}`, `y={y}`.")
         geom_kwargs: dict[str, Any] = {
@@ -394,15 +401,19 @@ class GWSolver(OTTJaxSolver):
         }
         if cost_matrix_rank is not None:
             geom_kwargs["cost_matrix_rank"] = cost_matrix_rank
-        geom_xx = self._create_geometry(x, t=ts[1], is_linear_term=False, **geom_kwargs)
-        geom_yy = self._create_geometry(y, t=ts[2], is_linear_term=False, **geom_kwargs)
+        geom_xx = self._create_geometry(x, t=time_scales_heat_kernel.x, is_linear_term=False, **geom_kwargs)
+        geom_yy = self._create_geometry(y, t=time_scales_heat_kernel.y, is_linear_term=False, **geom_kwargs)
         if alpha == 1.0 or xy is None:  # GW
             # arbitrary fused penalty; must be positive
             geom_xy, fused_penalty = None, 1.0
         else:  # FGW
             fused_penalty = alpha_to_fused_penalty(alpha)
             geom_xy = self._create_geometry(
-                xy, t=ts[0], problem_shape=(x.shape[0], y.shape[0]), is_linear_term=True, **geom_kwargs
+                xy,
+                t=time_scales_heat_kernel.xy,
+                problem_shape=(x.shape[0], y.shape[0]),
+                is_linear_term=True,
+                **geom_kwargs,
             )
             check_shapes(geom_xx, geom_yy, geom_xy)
 
