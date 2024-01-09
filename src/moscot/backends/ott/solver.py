@@ -4,15 +4,22 @@ import types
 from typing import Any, Literal, Mapping, Optional, Set, Tuple, Union
 
 import jax
-from ott.geometry import costs, epsilon_scheduler, geometry, pointcloud
+import jax.numpy as jnp
+from ott.geometry import costs, epsilon_scheduler, geodesic, geometry, pointcloud
 from ott.problems.linear import linear_problem
 from ott.problems.quadratic import quadratic_problem
 from ott.solvers.linear import sinkhorn, sinkhorn_lr
 from ott.solvers.quadratic import gromov_wasserstein, gromov_wasserstein_lr
 
 from moscot._types import ProblemKind_t, QuadInitializer_t, SinkhornInitializer_t
-from moscot.backends.ott._utils import alpha_to_fused_penalty, check_shapes, ensure_2d
-from moscot.backends.ott.output import OTTOutput
+from moscot.backends.ott._utils import (
+    _instantiate_geodesic_cost,
+    alpha_to_fused_penalty,
+    check_shapes,
+    ensure_2d,
+)
+from moscot.backends.ott.output import GraphOTTOutput, OTTOutput
+from moscot.base.problems._utils import TimeScalesHeatKernel
 from moscot.base.solver import OTSolver
 from moscot.costs import get_cost
 from moscot.utils.tagged_array import TaggedArray
@@ -43,14 +50,21 @@ class OTTJaxSolver(OTSolver[OTTOutput], abc.ABC):
         self._solver: Optional[OTTSolver_t] = None
         self._problem: Optional[OTTProblem_t] = None
         self._jit = jit
+        self._a: Optional[jnp.ndarray] = None
+        self._b: Optional[jnp.ndarray] = None
 
     def _create_geometry(
         self,
         x: TaggedArray,
+        *,
+        is_linear_term: bool,
         epsilon: Union[float, epsilon_scheduler.Epsilon] = None,
         relative_epsilon: Optional[bool] = None,
         scale_cost: Scale_t = 1.0,
         batch_size: Optional[int] = None,
+        problem_shape: Optional[Tuple[int, int]] = None,
+        t: Optional[float] = None,
+        directed: bool = True,
         **kwargs: Any,
     ) -> geometry.Geometry:
         if x.is_point_cloud:
@@ -88,16 +102,79 @@ class OTTJaxSolver(OTSolver[OTTOutput], abc.ABC):
             return geometry.Geometry(
                 kernel_matrix=arr, epsilon=epsilon, relative_epsilon=relative_epsilon, scale_cost=scale_cost
             )
+        if x.is_graph:  # we currently only support this for the linear term.
+            return self._create_graph_geometry(
+                is_linear_term=is_linear_term,
+                x=x,
+                arr=arr,
+                problem_shape=problem_shape,
+                t=t,
+                epsilon=epsilon,
+                relative_epsilon=relative_epsilon,
+                scale_cost=scale_cost,
+                directed=directed,
+                **kwargs,
+            )
         raise NotImplementedError(f"Creating geometry from `tag={x.tag!r}` is not yet implemented.")
 
     def _solve(  # type: ignore[override]
         self,
         prob: OTTProblem_t,
         **kwargs: Any,
-    ) -> OTTOutput:
+    ) -> Union[OTTOutput, GraphOTTOutput]:
         solver = jax.jit(self.solver) if self._jit else self.solver
         out = solver(prob, **kwargs)
+        if isinstance(prob, linear_problem.LinearProblem) and isinstance(prob.geom, geodesic.Geodesic):
+            return GraphOTTOutput(out, shape=(len(self._a), len(self._b)))  # type: ignore[arg-type]
         return OTTOutput(out)
+
+    def _create_graph_geometry(
+        self,
+        is_linear_term: bool,
+        x: TaggedArray,
+        arr: jax.Array,
+        problem_shape: Optional[Tuple[int, int]],
+        t: Optional[float],
+        epsilon: Union[float, epsilon_scheduler.Epsilon] = None,
+        relative_epsilon: Optional[bool] = None,
+        scale_cost: Scale_t = 1.0,
+        directed: bool = True,
+        **kwargs: Any,
+    ) -> geometry.Geometry:
+        if x.cost == "geodesic":
+            if self.problem_kind == "linear":
+                if t is None:
+                    if epsilon is None:
+                        raise ValueError("`epsilon` cannot be `None`.")
+                    return geodesic.Geodesic.from_graph(arr, t=epsilon / 4.0, directed=directed, **kwargs)
+
+                return _instantiate_geodesic_cost(
+                    arr=arr,
+                    problem_shape=problem_shape,  # type: ignore[arg-type]
+                    t=t,
+                    is_linear_term=True,
+                    epsilon=epsilon,
+                    relative_epsilon=relative_epsilon,
+                    scale_cost=scale_cost,
+                    directed=directed,
+                    **kwargs,
+                )
+            if self.problem_kind == "quadratic":
+                problem_shape = x.shape if problem_shape is None else problem_shape
+                return _instantiate_geodesic_cost(
+                    arr=arr,
+                    problem_shape=problem_shape,
+                    t=t,
+                    is_linear_term=is_linear_term,
+                    epsilon=epsilon,
+                    relative_epsilon=relative_epsilon,
+                    scale_cost=scale_cost,
+                    directed=directed,
+                    **kwargs,
+                )
+
+            raise NotImplementedError(f"Invalid problem kind `{self.problem_kind}`.")
+        raise NotImplementedError(f"If the geometry is a graph, `cost` must be `geodesic`, found `{x.cost}`.")
 
     @property
     def solver(self) -> OTTSolver_t:
@@ -165,6 +242,8 @@ class SinkhornSolver(OTTJaxSolver):
 
     def _prepare(
         self,
+        a: jnp.ndarray,
+        b: jnp.ndarray,
         xy: Optional[TaggedArray] = None,
         x: Optional[TaggedArray] = None,
         y: Optional[TaggedArray] = None,
@@ -175,24 +254,35 @@ class SinkhornSolver(OTTJaxSolver):
         scale_cost: Scale_t = 1.0,
         cost_kwargs: Mapping[str, Any] = types.MappingProxyType({}),
         cost_matrix_rank: Optional[int] = None,
+        time_scales_heat_kernel: Optional[TimeScalesHeatKernel] = None,
         # problem
         **kwargs: Any,
     ) -> linear_problem.LinearProblem:
         del x, y
+        time_scales_heat_kernel = (
+            TimeScalesHeatKernel(None, None, None) if time_scales_heat_kernel is None else time_scales_heat_kernel
+        )
         if xy is None:
             raise ValueError(f"Unable to create geometry from `xy={xy}`.")
-
+        self._a = a
+        self._b = b
         geom = self._create_geometry(
             xy,
+            is_linear_term=True,
             epsilon=epsilon,
             relative_epsilon=relative_epsilon,
             batch_size=batch_size,
+            problem_shape=(len(self._a), len(self._b)),
             scale_cost=scale_cost,
+            t=time_scales_heat_kernel.xy,
             **cost_kwargs,
         )
         if cost_matrix_rank is not None:
             geom = geom.to_LRCGeometry(rank=cost_matrix_rank)
-        self._problem = linear_problem.LinearProblem(geom, **kwargs)
+        if isinstance(geom, geodesic.Geodesic):
+            a = jnp.concatenate((a, jnp.zeros_like(self._b)), axis=0)
+            b = jnp.concatenate((jnp.zeros_like(self._a), b), axis=0)
+        self._problem = linear_problem.LinearProblem(geom, a=a, b=b, **kwargs)
         return self._problem
 
     @property
@@ -206,7 +296,15 @@ class SinkhornSolver(OTTJaxSolver):
 
     @classmethod
     def _call_kwargs(cls) -> Tuple[Set[str], Set[str]]:
-        geom_kwargs = {"epsilon", "relative_epsilon", "batch_size", "scale_cost", "cost_kwargs", "cost_matrix_rank"}
+        geom_kwargs = {
+            "epsilon",
+            "relative_epsilon",
+            "batch_size",
+            "scale_cost",
+            "cost_kwargs",
+            "cost_matrix_rank",
+            "t",
+        }
         problem_kwargs = set(inspect.signature(linear_problem.LinearProblem).parameters.keys())
         problem_kwargs -= {"geom"}
         return geom_kwargs | problem_kwargs, {"epsilon"}
@@ -270,6 +368,8 @@ class GWSolver(OTTJaxSolver):
 
     def _prepare(
         self,
+        a: jnp.ndarray,
+        b: jnp.ndarray,
         xy: Optional[TaggedArray] = None,
         x: Optional[TaggedArray] = None,
         y: Optional[TaggedArray] = None,
@@ -280,28 +380,41 @@ class GWSolver(OTTJaxSolver):
         scale_cost: Scale_t = 1.0,
         cost_kwargs: Mapping[str, Any] = types.MappingProxyType({}),
         cost_matrix_rank: Optional[int] = None,
+        time_scales_heat_kernel: Optional[TimeScalesHeatKernel] = None,
         # problem
         alpha: float = 0.5,
         **kwargs: Any,
     ) -> quadratic_problem.QuadraticProblem:
+        self._a = a
+        self._b = b
+        time_scales_heat_kernel = (
+            TimeScalesHeatKernel(None, None, None) if time_scales_heat_kernel is None else time_scales_heat_kernel
+        )
         if x is None or y is None:
             raise ValueError(f"Unable to create geometry from `x={x}`, `y={y}`.")
-        geom_kwargs: Any = {
+        geom_kwargs: dict[str, Any] = {
             "epsilon": epsilon,
             "relative_epsilon": relative_epsilon,
             "batch_size": batch_size,
             "scale_cost": scale_cost,
-            "cost_matrix_rank": cost_matrix_rank,
             **cost_kwargs,
         }
-        geom_xx = self._create_geometry(x, **geom_kwargs)
-        geom_yy = self._create_geometry(y, **geom_kwargs)
+        if cost_matrix_rank is not None:
+            geom_kwargs["cost_matrix_rank"] = cost_matrix_rank
+        geom_xx = self._create_geometry(x, t=time_scales_heat_kernel.x, is_linear_term=False, **geom_kwargs)
+        geom_yy = self._create_geometry(y, t=time_scales_heat_kernel.y, is_linear_term=False, **geom_kwargs)
         if alpha == 1.0 or xy is None:  # GW
             # arbitrary fused penalty; must be positive
             geom_xy, fused_penalty = None, 1.0
         else:  # FGW
             fused_penalty = alpha_to_fused_penalty(alpha)
-            geom_xy = self._create_geometry(xy, **geom_kwargs)
+            geom_xy = self._create_geometry(
+                xy,
+                t=time_scales_heat_kernel.xy,
+                problem_shape=(x.shape[0], y.shape[0]),
+                is_linear_term=True,
+                **geom_kwargs,
+            )
             check_shapes(geom_xx, geom_yy, geom_xy)
 
         self._problem = quadratic_problem.QuadraticProblem(

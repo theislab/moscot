@@ -54,34 +54,34 @@ def handle_cost(
     y: Mapping[str, Any] = types.MappingProxyType({}),
     cost: Optional[Union[CostFn_t, Mapping[str, CostFn_t]]] = None,
     cost_kwargs: CostKwargs_t = types.MappingProxyType({}),
-    **_: Any,
+    **kwargs: Any,
 ) -> Tuple[Dict[str, Any], Dict[str, Any], Dict[str, Any]]:
     xy, x, y = dict(xy), dict(x), dict(y)
     if cost is None:
         return xy, x, y
     if isinstance(cost, str):  # if cost is a str, we use it in all terms
-        if xy and ("x_cost" not in xy or "y_cost" not in xy):
+        if (xy or "xy_callback" in kwargs) and "cost" not in xy:
             xy["x_cost"] = xy["y_cost"] = cost
-        if x and "cost" not in x:
+        if (x or "x_callback" in kwargs) and "cost" not in x:
             x["cost"] = cost
-        if y and "cost" not in y:
+        if (y or "y_callback" in kwargs) and "cost" not in y:
             y["cost"] = cost
     elif isinstance(cost, Mapping):  # if cost is a dict, the cost is specified for each term
-        if xy and ("x_cost" not in xy or "y_cost" not in xy):
+        if (xy or "xy_callback" in kwargs) and "cost" not in xy:
             xy["x_cost"] = xy["y_cost"] = cost["xy"]
-        if x and "cost" not in x:
+        if (x or "x_callback" in kwargs) and "cost" not in x:
             x["cost"] = cost["x"]
-        if y and "cost" not in y:
+        if (y or "y_callback" in kwargs) and "cost" not in y:
             y["cost"] = cost["y"]
     else:
         raise TypeError(f"Expected `cost` to be either `str` or `dict`, found `{type(cost)}`.")
-    if xy and cost_kwargs:  # distribute the cost_kwargs, possibly explicit to x/y/xy-term
+    if (xy or "xy_callback" in kwargs) and cost_kwargs:  # distribute the cost_kwargs, possibly explicit to x/y/xy-term
         # extract cost_kwargs explicit to xy-term if possible
         items = cost_kwargs["xy"].items() if "xy" in cost_kwargs else cost_kwargs.items()
         for k, v in items:
             xy[f"x_{k}"] = xy[f"y_{k}"] = v
-    if x and cost_kwargs:  # extract cost_kwargs explicit to x-term if possible
+    if (x or "x_callback" in kwargs) and cost_kwargs:  # extract cost_kwargs explicit to x-term if possible
         x.update(cost_kwargs.get("x", cost_kwargs))  # type:ignore[call-overload]
-    if y and cost_kwargs:  # extract cost_kwargs explicit to y-term if possible
+    if (y or "y_callback" in kwargs) and cost_kwargs:  # extract cost_kwargs explicit to y-term if possible
         y.update(cost_kwargs.get("y", cost_kwargs))  # type:ignore[call-overload]
     return xy, x, y
