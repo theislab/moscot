@@ -1,5 +1,5 @@
 from math import cos, sin
-from typing import Optional, Tuple, Literal
+from typing import Literal, Optional, Tuple
 
 import pytest
 
@@ -208,11 +208,12 @@ def adata_translation_split(adata_translation) -> Tuple[AnnData, AnnData]:
     adata_tgt.obsm["emb_tgt"] = rng.normal(size=(adata_tgt.shape[0], 15))
     return adata_src, adata_tgt
 
+
 @pytest.fixture()
 def adata_anno(
     problem_kind: Literal["temporal", "cross_modality", "alignment", "mapping"],
-    #forward: bool
-            ) -> AnnData | Tuple[AnnData, AnnData]:
+    # forward: bool
+) -> AnnData | Tuple[AnnData, AnnData]:
     rng = np.random.RandomState(31)
     adata_src = AnnData(X=csr_matrix(rng.normal(size=(10, 60))))
     adata_src.obs["celltype"] = _gt_source_annotation
@@ -228,22 +229,24 @@ def adata_anno(
         sc.pp.pca(adata_src)
         sc.pp.pca(adata_tgt)
         return adata_src, adata_tgt
-    if problem_kind in ["alignment","mapping"]:
+    if problem_kind in ["alignment", "mapping"]:
         adata_src.obsm["spatial"] = rng.normal(size=(adata_src.n_obs, 2))
         adata_tgt.obsm["spatial"] = rng.normal(size=(adata_tgt.n_obs, 2))
     key = "day" if problem_kind == "temporal" else "batch"
-    adatas = [adata_src, adata_tgt] # if forward else [adata_tgt, adata_src]
+    adatas = [adata_src, adata_tgt]  # if forward else [adata_tgt, adata_src]
     adata = ad.concat(adatas, join="outer", label=key, index_unique="-", uns_merge="unique")
     adata.obs[key] = (pd.to_numeric(adata.obs[key]) if key == "day" else adata.obs[key]).astype("category")
     adata.layers["counts"] = adata.X.A
     sc.pp.pca(adata)
     return adata
 
+
 _gt_source_annotation = np.array(["A", "A", "B", "A", "B", "C", "A", "A", "A", "A"], dtype="U1")
 
 _gt_target_max_annotation = np.array(["A", "A", "B", "A", "B", "C", "A", "A", "A", "A", "B", "B", "B", "B", "B"])
 
 _gt_target_sum_annotation = np.array(["A", "A", "B", "A", "B", "C", "A", "A", "A", "A", "A", "A", "A", "A", "A"])
+
 
 @pytest.fixture()
 def gt_tm_annotation() -> np.ndarray:

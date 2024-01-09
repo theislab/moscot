@@ -108,8 +108,8 @@ class TestCrossModalityTranslationAnalysisMixin:
             pd.testing.assert_frame_equal(result1, result2)
 
     @pytest.mark.fast()
-    @pytest.mark.parametrize("forward", [True])#, False])
-    @pytest.mark.parametrize("mapping_mode", ["max"])#, "sum"])
+    @pytest.mark.parametrize("forward", [True])  # , False])
+    @pytest.mark.parametrize("mapping_mode", ["max"])  # , "sum"])
     @pytest.mark.parametrize("problem_kind", ["cross_modality"])
     def test_annotation_mapping(
         self, adata_anno: Tuple[AnnData, AnnData], forward: bool, mapping_mode, gt_tm_annotation
