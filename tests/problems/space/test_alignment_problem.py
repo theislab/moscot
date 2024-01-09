@@ -4,8 +4,10 @@ from typing import Any, Literal, Mapping, Optional
 import pytest
 
 import numpy as np
+import pandas as pd
 from ott.geometry import epsilon_scheduler
 
+import scanpy as sc
 from anndata import AnnData
 
 from moscot.backends.ott._utils import alpha_to_fused_penalty
@@ -124,11 +126,7 @@ class TestAlignmentProblem:
         assert np.allclose(*(sol.cost for sol in ap.solutions.values()), rtol=1e-5, atol=1e-5)
 
     @pytest.mark.parametrize("key", ["connectivities", "distances"])
-    def test_geodesic_cost(self, adata_space_rotate: AnnData, key: str):
-        import pandas as pd
-
-        import scanpy as sc
-
+    def test_geodesic_cost_xy(self, adata_space_rotate: AnnData, key: str):
         batch_column = "batch"
         unique_batches = adata_space_rotate.obs[batch_column].unique()
 

@@ -44,7 +44,7 @@ class TemporalProblem(  # type: ignore[misc]
         time_key: str,
         joint_attr: Optional[Union[str, Mapping[str, Any]]] = None,
         policy: Literal["sequential", "triu", "tril", "explicit"] = "sequential",
-        cost: Union[OttCostFn_t, Literal["geodesic"]] = "sq_euclidean",
+        cost: OttCostFn_t = "sq_euclidean",
         cost_kwargs: CostKwargs_t = types.MappingProxyType({}),
         a: Optional[Union[bool, str]] = None,
         b: Optional[Union[bool, str]] = None,
@@ -67,7 +67,7 @@ class TemporalProblem(  # type: ignore[misc]
             - :obj:`None` - `PCA <https://en.wikipedia.org/wiki/Principal_component_analysis>`_
               on :attr:`~anndata.AnnData.X` is computed.
             - :class:`str` - key in :attr:`~anndata.AnnData.obsm` where the data is stored.
-            - :class:`dict`-  it should contain ``'attr'`` and ``'key'``, the attribute and key in
+            - :class:`dict` -  it should contain ``'attr'`` and ``'key'``, the attribute and key in
               :class:`~anndata.AnnData`, and optionally ``'tag'`` from the
               :class:`tags <moscot.utils.tagged_array.Tag>`.
 
@@ -293,7 +293,7 @@ class LineageProblem(TemporalProblem):
         lineage_attr
             How to get the lineage information, such as barcodes or lineage trees, for the :term:`quadratic term`:
 
-            - :class:`dict`-  it should contain ``'attr'`` and ``'key'``, the attribute and key in
+            - :class:`dict` -  it should contain ``'attr'`` and ``'key'``, the attribute and key in
               :class:`~anndata.AnnData`, and optionally ``'tag'`` from the
               :class:`tags <moscot.utils.tagged_array.Tag>`.
               If an empty :class:`dict` is passed, use pre-computed cost matrices stored in
@@ -304,7 +304,7 @@ class LineageProblem(TemporalProblem):
             - :obj:`None` - `PCA <https://en.wikipedia.org/wiki/Principal_component_analysis>`_
               on :attr:`~anndata.AnnData.X` is computed.
             - :class:`str` - key in :attr:`~anndata.AnnData.obsm` where the data is stored.
-            - :class:`dict`-  it should contain ``'attr'`` and ``'key'``, the attribute and key in
+            - :class:`dict` -  it should contain ``'attr'`` and ``'key'``, the attribute and key in
               :class:`~anndata.AnnData`, and optionally ``'tag'`` from the
               :class:`tags <moscot.utils.tagged_array.Tag>`.
 

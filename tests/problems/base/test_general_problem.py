@@ -173,7 +173,7 @@ class TestOTProblem:
         assert prob.solution is solution2
 
     @pytest.mark.parametrize("ts", [(1.0, 10.0)])
-    def test_graph_set_xy(self, adata_x: AnnData, adata_y: AnnData, ts: Tuple[Optional[float], float]):
+    def test_set_graph_xy(self, adata_x: AnnData, adata_y: AnnData, ts: Tuple[Optional[float], float]):
         new_obs_names = [name + "_src" for name in adata_x.obs_names]
         adata_x.obs_names = new_obs_names
 
@@ -221,8 +221,76 @@ class TestOTProblem:
 
         assert not np.allclose(prob1.solution._output.geom.cost_matrix, prob2.solution._output.geom.cost_matrix)
 
+    @pytest.mark.parametrize("ts", [(1.0, 10.0)])
+    def test_set_graph_x_y(self, adata_x: AnnData, adata_y: AnnData, ts: Tuple[Optional[float], float]):
+        sc.pp.neighbors(adata_x, n_neighbors=15)
+        graph_to_set_x = pd.DataFrame(
+            index=adata_x.obs_names,
+            columns=adata_x.obs_names,
+            data=adata_x.obsp["connectivities"].A.astype("float64"),
+        )
+
+        sc.pp.neighbors(adata_y, n_neighbors=15)
+        graph_to_set_y = pd.DataFrame(
+            index=adata_y.obs_names,
+            columns=adata_y.obs_names,
+            data=adata_y.obsp["connectivities"].A.astype("float64"),
+        )
+
+        prob1 = OTProblem(adata_x, adata_y)
+        prob1 = prob1.prepare(
+            xy={},
+            x={"attr": "obsm", "key": "X_pca"},
+            y={"attr": "obsm", "key": "X_pca"},
+        )
+        prob1.set_graph_x(graph_to_set_x, t=ts[0], cost="geodesic")
+        prob1.set_graph_y(graph_to_set_y, t=ts[0], cost="geodesic")
+
+        ta1 = prob1.x
+        assert isinstance(ta1, TaggedArray)
+        assert isinstance(ta1.data_src, np.ndarray)
+        assert ta1.data_tgt is None
+        assert ta1.tag == Tag.GRAPH
+        assert ta1.cost == "geodesic"
+
+        ta2 = prob1.y
+        assert isinstance(ta2, TaggedArray)
+        assert isinstance(ta2.data_src, np.ndarray)
+        assert ta2.data_tgt is None
+        assert ta2.tag == Tag.GRAPH
+        assert ta2.cost == "geodesic"
+
+        prob1 = prob1.solve(lse_mode=False, epsilon=10.0)
+
+        prob2 = OTProblem(adata_x, adata_y)
+        prob2 = prob2.prepare(
+            xy={},
+            x={"attr": "obsm", "key": "X_pca"},
+            y={"attr": "obsm", "key": "X_pca"},
+        )
+        prob2.set_graph_x(graph_to_set_x, t=ts[1], cost="geodesic")
+        prob2.set_graph_y(graph_to_set_y, t=ts[1], cost="geodesic")
+
+        ta1 = prob2.x
+        assert isinstance(ta1, TaggedArray)
+        assert isinstance(ta1.data_src, np.ndarray)
+        assert ta1.data_tgt is None
+        assert ta1.tag == Tag.GRAPH
+        assert ta1.cost == "geodesic"
+
+        ta2 = prob2.y
+        assert isinstance(ta2, TaggedArray)
+        assert isinstance(ta2.data_src, np.ndarray)
+        assert ta2.data_tgt is None
+        assert ta2.tag == Tag.GRAPH
+        assert ta2.cost == "geodesic"
+
+        prob2 = prob2.solve(lse_mode=False, epsilon=10.0)
+
+        assert not np.allclose(prob1.solution._output.geom.cost_matrix, prob2.solution._output.geom.cost_matrix)
+
     @pytest.mark.parametrize("t", [1.0, 10.0])
-    def test_graph_set_xy_test_t(self, adata_x: AnnData, adata_y: AnnData, t: float):
+    def test_set_graph_xy_test_t(self, adata_x: AnnData, adata_y: AnnData, t: float):
         rng = np.random.RandomState(42)
         new_obs_names = [name + "_src" for name in adata_x.obs_names]
         adata_x.obs_names = new_obs_names

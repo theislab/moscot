@@ -12,7 +12,12 @@ from ott.solvers.linear import sinkhorn, sinkhorn_lr
 from ott.solvers.quadratic import gromov_wasserstein, gromov_wasserstein_lr
 
 from moscot._types import ProblemKind_t, QuadInitializer_t, SinkhornInitializer_t
-from moscot.backends.ott._utils import alpha_to_fused_penalty, check_shapes, ensure_2d
+from moscot.backends.ott._utils import (
+    _instantiate_geodesic_cost,
+    alpha_to_fused_penalty,
+    check_shapes,
+    ensure_2d,
+)
 from moscot.backends.ott.output import GraphOTTOutput, OTTOutput
 from moscot.base.solver import OTSolver
 from moscot.costs import get_cost
@@ -46,17 +51,19 @@ class OTTJaxSolver(OTSolver[OTTOutput], abc.ABC):
         self._jit = jit
         self._a: Optional[jnp.ndarray] = None
         self._b: Optional[jnp.ndarray] = None
-        self._requires_graph_output = False  # resolve which output to use, OTTOutput v. GraphOTTOutput
 
     def _create_geometry(
         self,
         x: TaggedArray,
-        n_src_tgt: Tuple[int, int],
+        *,
+        is_linear_term: bool,
         epsilon: Union[float, epsilon_scheduler.Epsilon] = None,
         relative_epsilon: Optional[bool] = None,
         scale_cost: Scale_t = 1.0,
         batch_size: Optional[int] = None,
+        problem_shape: Optional[Tuple[int, int]] = None,
         t: Optional[float] = None,
+        directed: bool = True,
         **kwargs: Any,
     ) -> geometry.Geometry:
         if x.is_point_cloud:
@@ -95,38 +102,18 @@ class OTTJaxSolver(OTSolver[OTTOutput], abc.ABC):
                 kernel_matrix=arr, epsilon=epsilon, relative_epsilon=relative_epsilon, scale_cost=scale_cost
             )
         if x.is_graph:  # we currently only support this for the linear term.
-            if x.cost == "geodesic":
-                if self.problem_kind == "linear":
-                    if t is None:
-                        self._requires_graph_output = True
-                        return geodesic.Geodesic.from_graph(
-                            arr, t=epsilon / 4.0, directed=kwargs.pop("directed", True), **kwargs
-                        )
-
-                    n_src, n_tgt = n_src_tgt
-                    if n_src + n_tgt != arr.shape[0]:
-                        raise ValueError(f"Expected `x` to have `{n_src + n_tgt}` points, found `{arr.shape[0]}`.")
-                    cm = geodesic.Geodesic.from_graph(
-                        arr, t=t, directed=kwargs.pop("directed", True), **kwargs
-                    ).cost_matrix[:n_src, n_src:]
-                    return geometry.Geometry(
-                        cm, epsilon=epsilon, relative_epsilon=relative_epsilon, scale_cost=scale_cost
-                    )
-
-                if self.problem_kind == "quadratic":
-                    n_src, n_tgt = n_src_tgt
-                    if n_src + n_tgt != arr.shape[0]:
-                        raise ValueError(f"Expected `x` to have `{n_src + n_tgt}` points, found `{arr.shape[0]}`.")
-                    t = epsilon / 4.0 if t is None else t
-                    cm = geodesic.Geodesic.from_graph(
-                        arr, t=t, directed=kwargs.pop("directed", True), **kwargs
-                    ).cost_matrix[:n_src, n_src:]
-                    return geometry.Geometry(
-                        cm, epsilon=epsilon, relative_epsilon=relative_epsilon, scale_cost=scale_cost
-                    )
-
-                raise NotImplementedError(f"Invalid problem kind `{self.problem_kind}`.")
-            raise NotImplementedError(f"If the geometry is a graph, `cost` must be `geodesic`, found `{x.cost}`.")
+            return self._create_graph_geometry(
+                is_linear_term=is_linear_term,
+                x=x,
+                arr=arr,
+                problem_shape=problem_shape,
+                t=t,
+                epsilon=epsilon,
+                relative_epsilon=relative_epsilon,
+                scale_cost=scale_cost,
+                directed=directed,
+                **kwargs,
+            )
         raise NotImplementedError(f"Creating geometry from `tag={x.tag!r}` is not yet implemented.")
 
     def _solve(  # type: ignore[override]
@@ -136,9 +123,57 @@ class OTTJaxSolver(OTSolver[OTTOutput], abc.ABC):
     ) -> Union[OTTOutput, GraphOTTOutput]:
         solver = jax.jit(self.solver) if self._jit else self.solver
         out = solver(prob, **kwargs)
-        if self._requires_graph_output:
-            return GraphOTTOutput(out, a_len=len(self._a), b_len=len(self._b))  # type: ignore[arg-type]
+        if isinstance(prob, linear_problem.LinearProblem) and isinstance(prob.geom, geodesic.Geodesic):
+            return GraphOTTOutput(out, shape=(len(self._a), len(self._b)))  # type: ignore[arg-type]
         return OTTOutput(out)
+
+    def _create_graph_geometry(
+        self,
+        is_linear_term: bool,
+        x: TaggedArray,
+        arr: jax.Array,
+        problem_shape: Optional[Tuple[int, int]],
+        t: Optional[float],
+        epsilon: Union[float, epsilon_scheduler.Epsilon] = None,
+        relative_epsilon: Optional[bool] = None,
+        scale_cost: Scale_t = 1.0,
+        directed: bool = True,
+        **kwargs: Any,
+    ) -> geometry.Geometry:
+        if x.cost == "geodesic":
+            if self.problem_kind == "linear":
+                if t is None:
+                    if epsilon is None:
+                        raise ValueError("`epsilon` cannot be `None`.")
+                    return geodesic.Geodesic.from_graph(arr, t=epsilon / 4.0, directed=directed, **kwargs)
+
+                return _instantiate_geodesic_cost(
+                    arr=arr,
+                    problem_shape=problem_shape,  # type: ignore[arg-type]
+                    t=t,
+                    is_linear_term=True,
+                    epsilon=epsilon,
+                    relative_epsilon=relative_epsilon,
+                    scale_cost=scale_cost,
+                    directed=directed,
+                    **kwargs,
+                )
+            if self.problem_kind == "quadratic":
+                problem_shape = x.shape if problem_shape is None else problem_shape
+                return _instantiate_geodesic_cost(
+                    arr=arr,
+                    problem_shape=problem_shape,
+                    t=t,
+                    is_linear_term=is_linear_term,
+                    epsilon=epsilon,
+                    relative_epsilon=relative_epsilon,
+                    scale_cost=scale_cost,
+                    directed=directed,
+                    **kwargs,
+                )
+
+            raise NotImplementedError(f"Invalid problem kind `{self.problem_kind}`.")
+        raise NotImplementedError(f"If the geometry is a graph, `cost` must be `geodesic`, found `{x.cost}`.")
 
     @property
     def solver(self) -> OTTSolver_t:
@@ -154,11 +189,6 @@ class OTTJaxSolver(OTSolver[OTTOutput], abc.ABC):
     def is_low_rank(self) -> bool:
         """Whether the :attr:`solver` is low-rank."""
         return self.rank > -1
-
-    @property
-    def graph_in_linear_term(self) -> bool:
-        """Whether the :attr:`solver` has a graph in the linear term."""
-        return self._requires_graph_output
 
 
 class SinkhornSolver(OTTJaxSolver):
@@ -223,7 +253,7 @@ class SinkhornSolver(OTTJaxSolver):
         scale_cost: Scale_t = 1.0,
         cost_kwargs: Mapping[str, Any] = types.MappingProxyType({}),
         cost_matrix_rank: Optional[int] = None,
-        t: Optional[float] = None,
+        ts: Tuple[Optional[float], Optional[float], Optional[float]] = (None, None, None),
         # problem
         **kwargs: Any,
     ) -> linear_problem.LinearProblem:
@@ -234,17 +264,18 @@ class SinkhornSolver(OTTJaxSolver):
         self._b = b
         geom = self._create_geometry(
             xy,
+            is_linear_term=True,
             epsilon=epsilon,
             relative_epsilon=relative_epsilon,
             batch_size=batch_size,
-            n_src_tgt=(len(self._a), len(self._b)),
+            problem_shape=(len(self._a), len(self._b)),
             scale_cost=scale_cost,
-            t=t,
+            t=ts[0],
             **cost_kwargs,
         )
         if cost_matrix_rank is not None:
             geom = geom.to_LRCGeometry(rank=cost_matrix_rank)
-        if self._requires_graph_output:
+        if isinstance(geom, geodesic.Geodesic):
             a = jnp.concatenate((a, jnp.zeros_like(self._b)), axis=0)
             b = jnp.concatenate((jnp.zeros_like(self._a), b), axis=0)
         self._problem = linear_problem.LinearProblem(geom, a=a, b=b, **kwargs)
@@ -345,7 +376,7 @@ class GWSolver(OTTJaxSolver):
         scale_cost: Scale_t = 1.0,
         cost_kwargs: Mapping[str, Any] = types.MappingProxyType({}),
         cost_matrix_rank: Optional[int] = None,
-        t: Optional[float] = None,
+        ts: Tuple[Optional[float], Optional[float], Optional[float]] = (None, None, None),
         # problem
         alpha: float = 0.5,
         **kwargs: Any,
@@ -363,14 +394,16 @@ class GWSolver(OTTJaxSolver):
         }
         if cost_matrix_rank is not None:
             geom_kwargs["cost_matrix_rank"] = cost_matrix_rank
-        geom_xx = self._create_geometry(x, n_src_tgt=(len(self._a), len(self._b)), t=t, **geom_kwargs)
-        geom_yy = self._create_geometry(y, n_src_tgt=(len(self._a), len(self._b)), t=t, **geom_kwargs)
+        geom_xx = self._create_geometry(x, t=ts[1], is_linear_term=False, **geom_kwargs)
+        geom_yy = self._create_geometry(y, t=ts[2], is_linear_term=False, **geom_kwargs)
         if alpha == 1.0 or xy is None:  # GW
             # arbitrary fused penalty; must be positive
             geom_xy, fused_penalty = None, 1.0
         else:  # FGW
             fused_penalty = alpha_to_fused_penalty(alpha)
-            geom_xy = self._create_geometry(xy, n_src_tgt=(x.shape[0], y.shape[0]), **geom_kwargs)
+            geom_xy = self._create_geometry(
+                xy, t=ts[0], problem_shape=(x.shape[0], y.shape[0]), is_linear_term=True, **geom_kwargs
+            )
             check_shapes(geom_xx, geom_yy, geom_xy)
 
         self._problem = quadratic_problem.QuadraticProblem(

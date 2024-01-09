@@ -49,7 +49,7 @@ class SinkhornProblem(GenericAnalysisMixin[K, B], CompoundProblem[K, B]):  # typ
         key: str,
         joint_attr: Optional[Union[str, Mapping[str, Any]]] = None,
         policy: Literal["sequential", "explicit", "star"] = "sequential",
-        cost: Union[OttCostFn_t, Literal["geodesic"]] = "sq_euclidean",
+        cost: OttCostFn_t = "sq_euclidean",
         cost_kwargs: CostKwargs_t = types.MappingProxyType({}),
         a: Optional[Union[bool, str]] = None,
         b: Optional[Union[bool, str]] = None,
@@ -71,7 +71,7 @@ class SinkhornProblem(GenericAnalysisMixin[K, B], CompoundProblem[K, B]):  # typ
             - :obj:`None` - `PCA <https://en.wikipedia.org/wiki/Principal_component_analysis>`_
               on :attr:`~anndata.AnnData.X` is computed.
             - :class:`str` - key in :attr:`~anndata.AnnData.obsm` where the data is stored.
-            - :class:`dict`-  it should contain ``'attr'`` and ``'key'``, the attribute and key in
+            - :class:`dict` -  it should contain ``'attr'`` and ``'key'``, the attribute and key in
               :class:`~anndata.AnnData`, and optionally ``'tag'`` from the
               :class:`tags <moscot.utils.tagged_array.Tag>`.
 
@@ -285,7 +285,7 @@ class GWProblem(GenericAnalysisMixin[K, B], CompoundProblem[K, B]):  # type: ign
             How to get the data for the source :term:`quadratic term`:
 
             - :class:`str` - a key in :attr:`~anndata.AnnData.obsm` where the data is stored.
-            - :class:`dict`-  it should contain ``'attr'`` and ``'key'``, the attribute and key in
+            - :class:`dict` -  it should contain ``'attr'`` and ``'key'``, the attribute and key in
               :class:`~anndata.AnnData`, and optionally ``'tag'`` from the
               :class:`tags <moscot.utils.tagged_array.Tag>`.
             - :obj:`None` - ``'x_callback'`` must be passed via ``kwargs``.
@@ -295,7 +295,7 @@ class GWProblem(GenericAnalysisMixin[K, B], CompoundProblem[K, B]):  # type: ign
             How to get the data for the target :term:`quadratic term`:
 
             - :class:`str` - a key in :attr:`~anndata.AnnData.obsm` where the data is stored.
-            - :class:`dict`-  it should contain ``'attr'`` and ``'key'``, the attribute and the key
+            - :class:`dict` -  it should contain ``'attr'`` and ``'key'``, the attribute and the key
               in :class:`~anndata.AnnData`, and optionally ``'tag'``, one of :class:`~moscot.utils.tagged_array.Tag`.
             - :obj:`None` - ``'y_callback'`` must be passed via ``kwargs``.
 
@@ -303,7 +303,7 @@ class GWProblem(GenericAnalysisMixin[K, B], CompoundProblem[K, B]):  # type: ign
         policy
             Rule which defines how to construct the subproblems. Valid options are:
 
-            - ``'sequential'`` - align subsequent categories in :attr:`obs[{'{key}'] <anndata.AnnData.obs>`.
+            - ``'sequential'`` - align subsequent categories in :attr:`obs['{key}'] <anndata.AnnData.obs>`.
             - ``'explicit'`` - explicit sequence of subsets passed via ``subset = [(b3, b0), ...]``.
         cost
             Cost function to use. Valid options are:
@@ -505,7 +505,7 @@ class FGWProblem(GWProblem[K, B]):
             - :obj:`None` - run `PCA <https://en.wikipedia.org/wiki/Principal_component_analysis>`_
               on :attr:`~anndata.AnnData.X` is computed.
             - :class:`str` - a key in :attr:`~anndata.AnnData.obsm` where the data is stored.
-            - :class:`dict`-  it should contain ``'attr'`` and ``'key'``, the attribute and the key
+            - :class:`dict` -  it should contain ``'attr'`` and ``'key'``, the attribute and the key
               in :class:`~anndata.AnnData`, and optionally ``'tag'``, one of :class:`~moscot.utils.tagged_array.Tag`.
 
             By default, :attr:`tag = 'point_cloud' <moscot.utils.tagged_array.Tag.POINT_CLOUD>` is used.
@@ -513,7 +513,7 @@ class FGWProblem(GWProblem[K, B]):
             How to get the data for the source :term:`quadratic term`:
 
             - :class:`str` - a key in :attr:`~anndata.AnnData.obsm` where the data is stored.
-            - :class:`dict`-  it should contain ``'attr'`` and ``'key'``, the attribute and key in
+            - :class:`dict` -  it should contain ``'attr'`` and ``'key'``, the attribute and key in
               :class:`~anndata.AnnData`, and optionally ``'tag'`` from the
               :class:`tags <moscot.utils.tagged_array.Tag>`.
             - :obj:`None` - ``'x_callback'`` must be passed via ``kwargs``.
@@ -523,7 +523,7 @@ class FGWProblem(GWProblem[K, B]):
             How to get the data for the target :term:`quadratic term`:
 
             - :class:`str` - a key in :attr:`~anndata.AnnData.obsm` where the data is stored.
-            - :class:`dict`-  it should contain ``'attr'`` and ``'key'``, the attribute and the key
+            - :class:`dict` -  it should contain ``'attr'`` and ``'key'``, the attribute and the key
               in :class:`~anndata.AnnData`, and optionally ``'tag'``, one of :class:`~moscot.utils.tagged_array.Tag`.
             - :obj:`None` - ``'y_callback'`` must be passed via ``kwargs``.
 
@@ -531,7 +531,7 @@ class FGWProblem(GWProblem[K, B]):
         policy
             Rule which defines how to construct the subproblems. Valid options are:
 
-            - ``'sequential'`` - align subsequent categories in :attr:`obs[{'{key}'] <anndata.AnnData.obs>`.
+            - ``'sequential'`` - align subsequent categories in :attr:`obs['{key}'] <anndata.AnnData.obs>`.
             - ``'explicit'`` - explicit sequence of subsets passed via ``subset = [(b3, b0), ...]``.
         cost
             Cost function to use. Valid options are:

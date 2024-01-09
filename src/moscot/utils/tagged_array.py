@@ -75,19 +75,17 @@ class TaggedArray:
 
         return data
 
-    def _add_cost(
+    def _set_cost(
         self,
-        cost: Union[CostFn_t, Literal["geodesic"]] = "sq_euclidean",
+        cost: CostFn_t = "sq_euclidean",
         backend: Literal["ott"] = "ott",
         **kwargs: Any,
     ) -> "TaggedArray":
         if cost == "custom":
             raise ValueError("Custom cost functions are handled in `TaggedArray.from_adata`.")
-        if cost == "geodesic":
-            self.cost = cost
-            return self
-        cost_fn = get_cost(cost, backend=backend, **kwargs)
-        self.cost = cost_fn
+        if cost != "geodesic":
+            cost = get_cost(cost, backend=backend, **kwargs)
+        self.cost = cost
         return self
 
     @classmethod
@@ -98,7 +96,7 @@ class TaggedArray:
         attr: Literal["X", "obsp", "obsm", "layers", "uns"],
         tag: Tag = Tag.POINT_CLOUD,
         key: Optional[str] = None,
-        cost: Union[CostFn_t, Literal["geodesic"]] = "sq_euclidean",
+        cost: CostFn_t = "sq_euclidean",
         backend: Literal["ott"] = "ott",
         **kwargs: Any,
     ) -> "TaggedArray":
@@ -141,7 +139,7 @@ class TaggedArray:
                 dist_key = f"{dist_key[0]}_{dist_key[1]}" if isinstance(dist_key, tuple) else dist_key
                 data = cls._extract_data(adata, attr=attr, key=f"{dist_key}_{key}")
                 return cls(data_src=data, tag=Tag.GRAPH, cost="geodesic")
-            raise ValueError(f"Expected `cost` to be `geodesic`, found `{cost}`.")
+            raise ValueError(f"Expected `cost=geodesic`, found `{cost}`.")
         if tag == Tag.COST_MATRIX:
             if cost == "custom":  # our custom cost functions
                 modifier = f"adata.{attr}" if key is None else f"adata.{attr}[{key!r}]"
