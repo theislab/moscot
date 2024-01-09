@@ -4,12 +4,16 @@ from typing import Any, List, Literal, Mapping, Optional
 import pytest
 
 import numpy as np
+import pandas as pd
 from ott.geometry import epsilon_scheduler
 
+import anndata as ad
+import scanpy as sc
 from anndata import AnnData
 
 from moscot.backends.ott._utils import alpha_to_fused_penalty
 from moscot.problems.space import MappingProblem
+from moscot.utils.tagged_array import Tag, TaggedArray
 from tests._utils import _adata_spatial_split
 from tests.problems.conftest import (
     fgw_args_1,
@@ -125,6 +129,75 @@ class TestMappingProblem:
         assert np.allclose(*(sol.cost for sol in mp.solutions.values()))
         assert np.all([sol.converged for sol in mp.solutions.values()])
         assert np.all([np.all(~np.isnan(sol.transport_matrix)) for sol in mp.solutions.values()])
+
+    @pytest.mark.parametrize("key", ["connectivities", "distances"])
+    @pytest.mark.parametrize("geodesic_y", [True, False])
+    def test_geodesic_cost_xy(self, adata_mapping: AnnData, key: str, geodesic_y: bool):
+        adataref, adatasp = _adata_spatial_split(adata_mapping)
+
+        batch_column = "batch"
+        unique_batches = adatasp.obs[batch_column].unique()
+
+        dfs = []
+        for batch in unique_batches:
+            indices = np.where(adatasp.obs[batch_column] == batch)[0]
+            adata_spatial_subset = adatasp[indices]
+            adata_subset = ad.concat([adata_spatial_subset, adataref])
+            sc.pp.neighbors(adata_subset, n_neighbors=15, use_rep="X")
+            dfs.append(
+                pd.DataFrame(
+                    index=adata_subset.obs_names,
+                    columns=adata_subset.obs_names,
+                    data=adata_subset.obsp["connectivities"].A.astype("float64"),
+                )
+            )
+
+        if geodesic_y:
+            sc.pp.neighbors(adataref, n_neighbors=15, use_rep="X")
+            df_y = pd.DataFrame(
+                index=adataref.obs_names,
+                columns=adataref.obs_names,
+                data=adataref.obsp["connectivities"].A.astype("float64"),
+            )
+
+        mp: MappingProblem = MappingProblem(adataref, adatasp)
+        mp = mp.prepare(batch_key="batch", sc_attr={"attr": "X"})
+        mp = mp.solve(epsilon=1)
+
+        mp[("1", "ref")].set_graph_xy(dfs[0], cost="geodesic")
+        mp[("2", "ref")].set_graph_xy(dfs[1], cost="geodesic")
+        if geodesic_y:
+            mp[("1", "ref")].set_graph_y(df_y, cost="geodesic")
+            mp[("2", "ref")].set_graph_y(df_y, cost="geodesic")
+        mp = mp.solve(max_iterations=2, lse_mode=False)
+
+        ta = mp[("1", "ref")].xy
+        assert isinstance(ta, TaggedArray)
+        assert isinstance(ta.data_src, np.ndarray)  # this will change once OTT-JAX allows for sparse matrices
+        assert ta.data_tgt is None
+        assert ta.tag == Tag.GRAPH
+        assert ta.cost == "geodesic"
+        if geodesic_y:
+            ta = mp[("1", "ref")].y
+            assert isinstance(ta, TaggedArray)
+            assert isinstance(ta.data_src, np.ndarray)  # this will change once OTT-JAX allows for sparse matrices
+            assert ta.data_tgt is None
+            assert ta.tag == Tag.GRAPH
+            assert ta.cost == "geodesic"
+
+        ta = mp[("2", "ref")].xy
+        assert isinstance(ta, TaggedArray)
+        assert isinstance(ta.data_src, np.ndarray)  # this will change once OTT-JAX allows for sparse matrices
+        assert ta.data_tgt is None
+        assert ta.tag == Tag.GRAPH
+        assert ta.cost == "geodesic"
+        if geodesic_y:
+            ta = mp[("2", "ref")].y
+            assert isinstance(ta, TaggedArray)
+            assert isinstance(ta.data_src, np.ndarray)  # this will change once OTT-JAX allows for sparse matrices
+            assert ta.data_tgt is None
+            assert ta.tag == Tag.GRAPH
+            assert ta.cost == "geodesic"
 
     @pytest.mark.parametrize("args_to_check", [fgw_args_1, fgw_args_2])
     def test_pass_arguments(self, adata_mapping: AnnData, args_to_check: Mapping[str, Any]):

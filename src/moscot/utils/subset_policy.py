@@ -25,7 +25,6 @@ import pandas as pd
 from anndata import AnnData
 
 from moscot import _constants
-from moscot._logging import logger
 from moscot._types import ArrayLike, Policy_t
 
 __all__ = [
@@ -267,13 +266,6 @@ class OrderedPolicy(SubsetPolicy[K], abc.ABC):
     kwargs
         Additional keyword arguments.
     """
-
-    def __init__(self, adata: Union[AnnData, pd.Series, pd.Categorical], **kwargs: Any):
-        super().__init__(adata, **kwargs)
-        if not self._data.cat.ordered:
-            # TODO(michalk8, MUCDK): not order by default by us?
-            logger.info(f"Ordering {self._data.index} in ascending order.")
-            self._data.sort_values(ascending=True)
 
     def _plan(
         self, forward: bool = True, start: Optional[K] = None, end: Optional[K] = None, **_: Any

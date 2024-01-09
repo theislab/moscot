@@ -66,7 +66,7 @@ class AlignmentProblem(SpatialAlignmentMixin[K, B], CompoundProblem[K, B]):
             - :obj:`None` - `PCA <https://en.wikipedia.org/wiki/Principal_component_analysis>`_
               on :attr:`~anndata.AnnData.X` is computed.
             - :class:`str` - key in :attr:`~anndata.AnnData.obsm` where the data is stored.
-            - :class:`dict`-  it should contain ``'attr'`` and ``'key'``, the attribute and key in
+            - :class:`dict` -  it should contain ``'attr'`` and ``'key'``, the attribute and key in
               :class:`~anndata.AnnData`, and optionally ``'tag'`` from the
               :class:`tags <moscot.utils.tagged_array.Tag>`.
 
@@ -80,8 +80,8 @@ class AlignmentProblem(SpatialAlignmentMixin[K, B], CompoundProblem[K, B]):
         reference
             Spatial reference when ``policy = 'star'``.
         normalize_spatial
-            Whether to normalize the spatial coordinates. If `True`, the coordinates are normalized
-            by standardizing them. If `False`, no normalization is performed.
+            Whether to normalize the spatial coordinates. If :obj:`True`, the coordinates are normalized
+            by standardizing them.
         cost
             Cost function to use. Valid options are:
 
@@ -129,15 +129,19 @@ class AlignmentProblem(SpatialAlignmentMixin[K, B], CompoundProblem[K, B]):
         self.spatial_key = spatial_key
         self.batch_key = batch_key
 
-        x = y = {"attr": "obsm", "key": self.spatial_key, "tag": "point_cloud"}
+        x = y = {"attr": "obsm", "key": self.spatial_key}
 
         if normalize_spatial and "x_callback" not in kwargs and "y_callback" not in kwargs:
             kwargs["x_callback"] = kwargs["y_callback"] = "spatial-norm"
-            kwargs.setdefault("x_callback_kwargs", {"spatial_key": self.spatial_key})
-            kwargs.setdefault("y_callback_kwargs", {"spatial_key": self.spatial_key})
+            kwargs.setdefault("x_callback_kwargs", x)
+            kwargs.setdefault("y_callback_kwargs", y)
+
+        if "spatial-norm" in kwargs.get("x_callback", {}) and "spatial-norm" in kwargs.get("y_callback", {}):
+            x = {}
+            y = {}
 
         xy, kwargs = handle_joint_attr(joint_attr, kwargs)
-        xy, x, y = handle_cost(xy=xy, x=x, y=y, cost=cost, cost_kwargs=cost_kwargs)  # type: ignore[arg-type]
+        xy, x, y = handle_cost(xy=xy, x=x, y=y, cost=cost, cost_kwargs=cost_kwargs, **kwargs)  # type: ignore[arg-type]
 
         return super().prepare(  # type: ignore[return-value]
             x=x, y=y, xy=xy, policy=policy, key=batch_key, reference=reference, cost=cost, a=a, b=b, **kwargs

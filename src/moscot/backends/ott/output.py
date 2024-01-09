@@ -14,7 +14,7 @@ import matplotlib.pyplot as plt
 from moscot._types import ArrayLike, Device_t
 from moscot.base.output import BaseSolverOutput
 
-__all__ = ["OTTOutput"]
+__all__ = ["OTTOutput", "GraphOTTOutput"]
 
 
 class OTTOutput(BaseSolverOutput):
@@ -174,7 +174,10 @@ class OTTOutput(BaseSolverOutput):
     def _apply(self, x: ArrayLike, *, forward: bool) -> ArrayLike:
         if x.ndim == 1:
             return self._output.apply(x, axis=1 - forward)
-        return self._output.apply(x.T, axis=1 - forward).T  # convert to batch first
+        return self._output.apply(
+            x.T,
+            axis=1 - forward,
+        ).T  # convert to batch first
 
     @property
     def shape(self) -> Tuple[int, int]:  # noqa: D102
@@ -233,3 +236,63 @@ class OTTOutput(BaseSolverOutput):
 
     def _ones(self, n: int) -> ArrayLike:  # noqa: D102
         return jnp.ones((n,))
+
+
+class GraphOTTOutput(OTTOutput):
+    """Output of :term:`OT` problems with a graph geometry in the linear term.
+
+    Parameters
+    ----------
+    output
+        Output of the :mod:`ott` backend.
+    shape
+        Shape of the problem.
+    """
+
+    def __init__(
+        self,
+        output: Union[
+            sinkhorn.SinkhornOutput,
+            sinkhorn_lr.LRSinkhornOutput,
+            gromov_wasserstein.GWOutput,
+            gromov_wasserstein_lr.LRGWOutput,
+        ],
+        shape: Tuple[int, int],
+    ):
+        super().__init__(output)
+        self._shape = shape
+
+    @property
+    def shape(self) -> Tuple[int, int]:  # noqa: D102
+        return self._shape
+
+    def _expand_data(self, x: jnp.ndarray, forward: bool) -> jnp.ndarray:
+        if forward:
+            shape = (self.shape[1],) if x.ndim == 1 else (self.shape[1], x.shape[1])
+            return jnp.concatenate((x, jnp.zeros(shape)))
+        shape = (self.shape[0],) if x.ndim == 1 else (self.shape[0], x.shape[1])
+        return jnp.concatenate((jnp.zeros(shape), x))
+
+    def _apply(self, x: ArrayLike, *, forward: bool) -> ArrayLike:
+        x_expanded = self._expand_data(x, forward=forward)
+        # ott-jax only supports lse_mode=False with graph geometry
+        res = self._output.apply(x_expanded.T, axis=1 - forward, lse_mode=False).T
+        return res[len(x) :] if forward else res[: -len(x)]
+
+    def to(self, device: Optional[Device_t] = None) -> "GraphOTTOutput":  # noqa: D102
+        if device is None:
+            return GraphOTTOutput(jax.device_put(self._output, device=device), shape=self.shape)
+
+        if isinstance(device, str) and ":" in device:
+            device, ix = device.split(":")
+            idx = int(ix)
+        else:
+            idx = 0
+
+        if not isinstance(device, xla_ext.Device):
+            try:
+                device = jax.devices(device)[idx]
+            except IndexError:
+                raise IndexError(f"Unable to fetch the device with `id={idx}`.") from None
+
+        return GraphOTTOutput(jax.device_put(self._output, device), shape=self.shape)
