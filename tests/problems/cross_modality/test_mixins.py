@@ -109,7 +109,7 @@ class TestCrossModalityTranslationAnalysisMixin:
 
     @pytest.mark.fast()
     @pytest.mark.parametrize("forward", [True])#, False])
-    @pytest.mark.parametrize("mapping_mode", ["max"])#, "sum"])
+    @pytest.mark.parametrize("mapping_mode",["max",])# "sum"])
     @pytest.mark.parametrize("problem_kind", ["cross_modality"])
     def test_annotation_mapping(
         self, adata_anno: Tuple[AnnData, AnnData], forward: bool, mapping_mode, gt_tm_annotation
@@ -117,4 +117,15 @@ class TestCrossModalityTranslationAnalysisMixin:
         rng = np.random.RandomState(0)
         adata_src, adata_tgt = adata_anno
         tp = TranslationProblem(adata_src, adata_tgt)
-        tp = tp.prepare(batch_key="batch", src_attr="emb_src", tgt_attr="emb_tgt", joint_attr="X_pca")
+        tp = tp.prepare(src_attr="emb_src", tgt_attr="emb_tgt")
+        problem_keys = ("src", "tgt")
+        assert set(tp.problems.keys()) == {problem_keys}
+        tp[problem_keys].set_solution(MockSolverOutput(gt_tm_annotation), overwrite=True)
+
+        result = tp.annotation_mapping(
+            mapping_mode=mapping_mode,
+            annotation_label="celltype",
+            forward=forward,
+        )
+        expected_result = (adata_src.uns["expected_max"] if mapping_mode == "max" else adata_src.uns["expected_sum"])
+        assert (result["celltype"] == expected_result).all()

@@ -177,12 +177,24 @@ class TestSpatialMappingAnalysisMixin:
         assert result.shape == (3, 4)
 
     @pytest.mark.fast()
-    @pytest.mark.parametrize("forward", [True])#, False])
-    @pytest.mark.parametrize("mapping_mode", ["max"])#, "sum"])
+    @pytest.mark.parametrize("forward", [False,])# True])
+    @pytest.mark.parametrize("mapping_mode", ["max", "sum"])
     @pytest.mark.parametrize("problem_kind", ["mapping"])
     def test_annotation_mapping(self, adata_anno: AnnData, forward: bool, mapping_mode, gt_tm_annotation):
         rng = np.random.RandomState(0)
         adataref, adatasp = _adata_spatial_split(adata_anno)
         mp = MappingProblem(adataref, adatasp)
-        mp = mp.prepare(batch_key="batch", sc_attr={"attr": "obsm", "key": "X_pca"})
+        mp = mp.prepare(sc_attr={"attr": "obsm", "key": "X_pca"}, joint_attr={"attr": "X"})
+        problem_keys = ("src", "tgt")
+        assert set(mp.problems.keys()) == {problem_keys}
+        mp[problem_keys].set_solution(MockSolverOutput(gt_tm_annotation.T))
+
+        result = mp.annotation_mapping(
+            mapping_mode=mapping_mode,
+            annotation_label="celltype",
+            source="src",
+            forward=forward,
+        )
+        expected_result = (adataref.uns["expected_max"] if mapping_mode == "max" else adataref.uns["expected_sum"])
+        assert (result["celltype"] == expected_result).all()
 

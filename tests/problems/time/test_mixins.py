@@ -51,7 +51,7 @@ class TestTemporalMixin:
         np.testing.assert_allclose(present_cell_type_marginal, 1.0)
 
     @pytest.mark.fast()
-    @pytest.mark.parametrize("forward", [True])#, False])
+    @pytest.mark.parametrize("forward", [True,])# False])
     @pytest.mark.parametrize("mapping_mode", ["max"])#, "sum"])
     @pytest.mark.parametrize("problem_kind", ["temporal"])
     def test_annotation_mapping(self, adata_anno: AnnData, forward: bool, mapping_mode, gt_tm_annotation):

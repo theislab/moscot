@@ -343,7 +343,7 @@ class AnalysisMixin(Generic[K, B]):
                 out: ArrayLike = self[(source, target)].push(dummy, scale_by_marginals=scale_by_marginals)
             else:
                 target_df = _get_df_cell_transition(
-                    other_adata,
+                    self.adata if other_adata is None else other_adata,
                     annotation_keys=[annotation_label],
                     filter_key=key,
                     filter_value=target,
