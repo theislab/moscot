@@ -14,6 +14,7 @@ from typing import (
     Sequence,
     Tuple,
     Union,
+    Optional
 )
 
 import numpy as np
