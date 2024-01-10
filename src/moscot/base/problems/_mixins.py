@@ -4,16 +4,16 @@ import types
 from typing import (
     TYPE_CHECKING,
     Any,
-    Dict,
+    dict,
     Generic,
     Iterable,
-    List,
+    list,
     Literal,
     Mapping,
     Optional,
     Protocol,
     Sequence,
-    Tuple,
+    tuple,
     Union,
 )
 
@@ -25,7 +25,7 @@ import scanpy as sc
 from anndata import AnnData
 
 from moscot import _constants
-from moscot._types import ArrayLike, Numeric_t, Str_Dict_t
+from moscot._types import ArrayLike, Numeric_t, Str_dict_t
 from moscot.base.output import BaseSolverOutput
 from moscot.base.problems._utils import (
     _check_argument_compatibility_cell_transition,
@@ -49,14 +49,14 @@ class AnalysisMixinProtocol(Protocol[K, B]):
 
     adata: AnnData
     _policy: SubsetPolicy[K]
-    solutions: Dict[Tuple[K, K], BaseSolverOutput]
-    problems: Dict[Tuple[K, K], B]
+    solutions: dict[tuple[K, K], BaseSolverOutput]
+    problems: dict[tuple[K, K], B]
 
     def _apply(
         self,
-        data: Optional[Union[str, ArrayLike]] = None,
-        source: Optional[K] = None,
-        target: Optional[K] = None,
+        data: None | Union[str, ArrayLike] = None,
+        source: None | K = None,
+        target: None | K = None,
         forward: bool = True,
         return_all: bool = False,
         scale_by_marginals: bool = False,
@@ -66,24 +66,24 @@ class AnalysisMixinProtocol(Protocol[K, B]):
 
     def _interpolate_transport(
         self: AnalysisMixinProtocol[K, B],
-        path: Sequence[Tuple[K, K]],
+        path: Sequence[tuple[K, K]],
         scale_by_marginals: bool = True,
     ) -> LinearOperator:
         ...
 
     def _flatten(
         self: AnalysisMixinProtocol[K, B],
-        data: Dict[K, ArrayLike],
+        data: dict[K, ArrayLike],
         *,
-        key: Optional[str],
+        key: None | str,
     ) -> ArrayLike:
         ...
 
-    def push(self, *args: Any, **kwargs: Any) -> Optional[ApplyOutput_t[K]]:
+    def push(self, *args: Any, **kwargs: Any) -> None | ApplyOutput_t[K]:
         """Push distribution."""
         ...
 
-    def pull(self, *args: Any, **kwargs: Any) -> Optional[ApplyOutput_t[K]]:
+    def pull(self, *args: Any, **kwargs: Any) -> None | ApplyOutput_t[K]:
         """Pull distribution."""
         ...
 
@@ -91,26 +91,26 @@ class AnalysisMixinProtocol(Protocol[K, B]):
         self: AnalysisMixinProtocol[K, B],
         source: K,
         target: K,
-        source_groups: Str_Dict_t,
-        target_groups: Str_Dict_t,
+        source_groups: Str_dict_t,
+        target_groups: Str_dict_t,
         aggregation_mode: Literal["annotation", "cell"] = "annotation",
-        key_added: Optional[str] = _constants.CELL_TRANSITION,
+        key_added: None | str = _constants.CELL_TRANSITION,
         **kwargs: Any,
     ) -> pd.DataFrame:
         ...
 
     def _cell_transition_online(
         self: AnalysisMixinProtocol[K, B],
-        key: Optional[str],
+        key: None | str,
         source: K,
         target: K,
-        source_groups: Str_Dict_t,
-        target_groups: Str_Dict_t,
+        source_groups: Str_dict_t,
+        target_groups: Str_dict_t,
         forward: bool = False,  # return value will be row-stochastic if forward=True, else column-stochastic
         aggregation_mode: Literal["annotation", "cell"] = "annotation",
-        other_key: Optional[str] = None,
-        other_adata: Optional[str] = None,
-        batch_size: Optional[int] = None,
+        other_key: None | str = None,
+        other_adata: None | str = None,
+        batch_size: None | int = None,
         normalize: bool = True,
     ) -> pd.DataFrame:
         ...
@@ -123,7 +123,7 @@ class AnalysisMixinProtocol(Protocol[K, B]):
         source: K,
         target: K,
         key: str,
-        other_adata: Optional[str] = None,
+        other_adata: None | str = None,
         scale_by_marginals: bool = True,
         cell_transition_kwargs: Mapping[str, Any] = types.MappingProxyType({}),
     ) -> pd.DataFrame:
@@ -140,10 +140,10 @@ class AnalysisMixin(Generic[K, B]):
         self: AnalysisMixinProtocol[K, B],
         source: K,
         target: K,
-        source_groups: Str_Dict_t,
-        target_groups: Str_Dict_t,
+        source_groups: Str_dict_t,
+        target_groups: Str_dict_t,
         aggregation_mode: Literal["annotation", "cell"] = "annotation",
-        key_added: Optional[str] = _constants.CELL_TRANSITION,
+        key_added: None | str = _constants.CELL_TRANSITION,
         **kwargs: Any,
     ) -> pd.DataFrame:
         if aggregation_mode == "annotation" and (source_groups is None or target_groups is None):
@@ -187,16 +187,16 @@ class AnalysisMixin(Generic[K, B]):
 
     def _cell_transition_online(
         self: AnalysisMixinProtocol[K, B],
-        key: Optional[str],
+        key: None | str,
         source: K,
         target: K,
-        source_groups: Str_Dict_t,
-        target_groups: Str_Dict_t,
+        source_groups: Str_dict_t,
+        target_groups: Str_dict_t,
         forward: bool = False,  # return value will be row-stochastic if forward=True, else column-stochastic
         aggregation_mode: Literal["annotation", "cell"] = "annotation",
-        other_key: Optional[str] = None,
-        other_adata: Optional[str] = None,
-        batch_size: Optional[int] = None,
+        other_key: None | str = None,
+        other_adata: None | str = None,
+        batch_size: None | int = None,
         normalize: bool = True,
         **_: Any,
     ) -> pd.DataFrame:
@@ -310,7 +310,7 @@ class AnalysisMixin(Generic[K, B]):
         target: K,
         key: str | None = None,
         forward: bool = True,
-        other_adata: Optional[str] = None,
+        other_adata: None | str = None,
         scale_by_marginals: bool = True,
         cell_transition_kwargs: Mapping[str, Any] = types.MappingProxyType({}),
     ) -> pd.DataFrame:
@@ -364,9 +364,9 @@ class AnalysisMixin(Generic[K, B]):
         target_dim: int,
         batch_size: int = 256,
         account_for_unbalancedness: bool = False,
-        interpolation_parameter: Optional[Numeric_t] = None,
-        seed: Optional[int] = None,
-    ) -> Tuple[List[Any], List[ArrayLike]]:
+        interpolation_parameter: None | Numeric_t = None,
+        seed: None | int = None,
+    ) -> tuple[list[Any], list[ArrayLike]]:
         rng = np.random.RandomState(seed)
         if account_for_unbalancedness and interpolation_parameter is None:
             raise ValueError("When accounting for unbalancedness, interpolation parameter must be provided.")
@@ -403,7 +403,7 @@ class AnalysisMixin(Generic[K, B]):
 
         rows_sampled = rng.choice(source_dim, p=row_probability / row_probability.sum(), size=n_samples)
         rows, counts = np.unique(rows_sampled, return_counts=True)
-        all_cols_sampled: List[str] = []
+        all_cols_sampled: list[str] = []
         for batch in range(0, len(rows), batch_size):
             rows_batch = rows[batch : batch + batch_size]
             counts_batch = counts[batch : batch + batch_size]
@@ -436,7 +436,7 @@ class AnalysisMixin(Generic[K, B]):
     def _interpolate_transport(
         self: AnalysisMixinProtocol[K, B],
         # TODO(@giovp): rename this to 'explicit_steps', pass to policy.plan() and reintroduce (source_key, target_key)
-        path: Sequence[Tuple[K, K]],
+        path: Sequence[tuple[K, K]],
         scale_by_marginals: bool = True,
         **_: Any,
     ) -> LinearOperator:
@@ -447,7 +447,7 @@ class AnalysisMixin(Generic[K, B]):
         fst, *rest = path
         return self.solutions[fst].chain([self.solutions[r] for r in rest], scale_by_marginals=scale_by_marginals)
 
-    def _flatten(self: AnalysisMixinProtocol[K, B], data: Dict[K, ArrayLike], *, key: Optional[str]) -> ArrayLike:
+    def _flatten(self: AnalysisMixinProtocol[K, B], data: dict[K, ArrayLike], *, key: None | str) -> ArrayLike:
         tmp = np.full(len(self.adata), np.nan)
         for k, v in data.items():
             mask = self.adata.obs[key] == k
@@ -459,8 +459,8 @@ class AnalysisMixin(Generic[K, B]):
         source: K,
         target: K,
         annotation_key: str,
-        annotations_1: List[Any],
-        annotations_2: List[Any],
+        annotations_1: list[Any],
+        annotations_2: list[Any],
         df: pd.DataFrame,
         tm: pd.DataFrame,
         forward: bool,
@@ -495,12 +495,12 @@ class AnalysisMixin(Generic[K, B]):
         target: str,
         annotation_key: str,
         # TODO(MUCDK): unused variables, del below
-        annotations_1: List[Any],
-        annotations_2: List[Any],
+        annotations_1: list[Any],
+        annotations_2: list[Any],
         df_1: pd.DataFrame,
         df_2: pd.DataFrame,
         tm: pd.DataFrame,
-        batch_size: Optional[int],
+        batch_size: None | int,
         forward: bool,
     ) -> pd.DataFrame:
         func = self.push if forward else self.pull
@@ -532,12 +532,12 @@ class AnalysisMixin(Generic[K, B]):
         obs_key: str,
         corr_method: Literal["pearson", "spearman"] = "pearson",
         significance_method: Literal["fisher", "perm_test"] = "fisher",
-        annotation: Optional[Dict[str, Iterable[str]]] = None,
-        layer: Optional[str] = None,
-        features: Optional[Union[List[str], Literal["human", "mouse", "drosophila"]]] = None,
+        annotation: None | dict[str, Iterable[str]] = None,
+        layer: None | str = None,
+        features: None | Union[list[str], Literal["human", "mouse", "drosophila"]] = None,
         confidence_level: float = 0.95,
         n_perms: int = 1000,
-        seed: Optional[int] = None,
+        seed: None | int = None,
         **kwargs: Any,
     ) -> pd.DataFrame:
         """Compute correlation of push-forward or pull-back distribution with features.
@@ -641,9 +641,9 @@ class AnalysisMixin(Generic[K, B]):
         source: K,
         target: K,
         forward: bool = True,
-        key_added: Optional[str] = "conditional_entropy",
-        batch_size: Optional[int] = None,
-    ) -> Optional[pd.DataFrame]:
+        key_added: None | str = "conditional_entropy",
+        batch_size: None | int = None,
+    ) -> None | pd.DataFrame:
         """Compute the conditional entropy per cell.
 
         The conditional entropy reflects the uncertainty of the mapping of a single cell.
