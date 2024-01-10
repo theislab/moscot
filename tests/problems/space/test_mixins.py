@@ -177,7 +177,12 @@ class TestSpatialMappingAnalysisMixin:
         assert result.shape == (3, 4)
 
     @pytest.mark.fast()
-    @pytest.mark.parametrize("forward", [False,])# True])
+    @pytest.mark.parametrize(
+        "forward",
+        [
+            False,
+        ],
+    )  # True])
     @pytest.mark.parametrize("mapping_mode", ["max", "sum"])
     @pytest.mark.parametrize("problem_kind", ["mapping"])
     def test_annotation_mapping(self, adata_anno: AnnData, forward: bool, mapping_mode, gt_tm_annotation):
@@ -195,6 +200,5 @@ class TestSpatialMappingAnalysisMixin:
             source="src",
             forward=forward,
         )
-        expected_result = (adataref.uns["expected_max"] if mapping_mode == "max" else adataref.uns["expected_sum"])
+        expected_result = adataref.uns["expected_max"] if mapping_mode == "max" else adataref.uns["expected_sum"]
         assert (result["celltype"] == expected_result).all()
-

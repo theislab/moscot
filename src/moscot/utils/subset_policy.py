@@ -84,8 +84,10 @@ class SubsetPolicy(Generic[K], abc.ABC):
         self._subset_key: Optional[str] = key
 
         if verify_integrity and len(self._cat) < 2:
-            raise ValueError(f"Policy must contain at least `2` different values, found `{len(self._cat)}`.\n"
-                             "Is it possible that there is only one `batch` in `batch_key`?")
+            raise ValueError(
+                f"Policy must contain at least `2` different values, found `{len(self._cat)}`.\n"
+                "Is it possible that there is only one `batch` in `batch_key`?"
+            )
 
     @abc.abstractmethod
     def _create_graph(self, **kwargs: Any) -> Set[Tuple[K, K]]:
