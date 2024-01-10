@@ -61,13 +61,9 @@ class TestTemporalMixin:
         assert set(problem.problems.keys()) == {problem_keys}
         problem[problem_keys]._solution = MockSolverOutput(gt_tm_annotation)
         result = problem.annotation_mapping(
-            mapping_mode=mapping_mode,
-            annotation_label="celltype",
-            forward=forward,
-            source=0,
-            target=1
+            mapping_mode=mapping_mode, annotation_label="celltype", forward=forward, source=0, target=1
         )
-        expected_result = (adata_anno.uns["expected_max"] if mapping_mode == "max" else adata_anno.uns["expected_sum"])
+        expected_result = adata_anno.uns["expected_max"] if mapping_mode == "max" else adata_anno.uns["expected_sum"]
         assert (result["celltype"] == expected_result).all()
 
     @pytest.mark.fast()
