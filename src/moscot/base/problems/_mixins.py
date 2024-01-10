@@ -4,17 +4,16 @@ import types
 from typing import (
     TYPE_CHECKING,
     Any,
-    dict,
     Generic,
     Iterable,
-    list,
     Literal,
     Mapping,
-    Optional,
     Protocol,
     Sequence,
-    tuple,
     Union,
+    dict,
+    list,
+    tuple,
 )
 
 import numpy as np
