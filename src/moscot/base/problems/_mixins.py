@@ -10,11 +10,11 @@ from typing import (
     List,
     Literal,
     Mapping,
+    Optional,
     Protocol,
     Sequence,
     Tuple,
     Union,
-    Optional
 )
 
 import numpy as np
