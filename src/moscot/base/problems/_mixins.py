@@ -29,6 +29,7 @@ from moscot._types import ArrayLike, Numeric_t, Str_Dict_t
 from moscot.base.output import BaseSolverOutput
 from moscot.base.problems._utils import (
     _check_argument_compatibility_cell_transition,
+    _compute_conditional_entropy,
     _correlation_test,
     _get_df_cell_transition,
     _order_transition_matrix,
@@ -634,3 +635,59 @@ class AnalysisMixin(Generic[K, B]):
             seed=seed,
             **kwargs,
         )
+
+    def compute_entropy(
+        self: AnalysisMixinProtocol[K, B],
+        source: K,
+        target: K,
+        forward: bool = True,
+        key_added: Optional[str] = "conditional_entropy",
+        batch_size: Optional[int] = None,
+    ) -> Optional[pd.DataFrame]:
+        """Compute the conditional entropy per cell.
+
+        The conditional entropy reflects the uncertainty of the mapping of a single cell.
+
+
+        Parameters
+        ----------
+        source
+            Source key.
+        target
+            Target key.
+        forward
+            If `True`, computes the conditional entropy of a cell in the source distribution, else the
+            conditional entropy of a cell in the target distribution.
+        key_added
+            Key in :attr:`~anndata.AnnData.obs` where the entropy is stored.
+        batch_size
+            Batch size for the computation of the entropy. If :obj:`None`, the entire dataset is used.
+
+        Returns
+        -------
+        :obj:`None` if ``key_added`` is not None. Otherwise, returns a data frame of shape ``(n_cells, 1)`` containing
+        the conditional entropy per cell.
+        """
+        filter_value = source if forward else target
+        df = pd.DataFrame(
+            index=self.adata[self.adata.obs[self._policy.key] == filter_value, :].obs_names,
+            columns=[key_added] if key_added is not None else ["entropy"],
+        )
+        batch_size = batch_size if batch_size is not None else len(df)
+        func = self.push if forward else self.pull
+        for batch in range(0, len(df), batch_size):
+            cond_dists = func(
+                source=source,
+                target=target,
+                data=None,
+                subset=(batch, batch_size),
+                normalize=True,
+                return_all=False,
+                scale_by_marginals=False,
+                split_mass=True,
+                key_added=None,
+            )
+            df.iloc[range(batch, min(batch + batch_size, len(df))), 0] = _compute_conditional_entropy(cond_dists)  # type: ignore[arg-type]
+        if key_added is not None:
+            self.adata.obs[key_added] = df
+        return df if key_added is None else None
