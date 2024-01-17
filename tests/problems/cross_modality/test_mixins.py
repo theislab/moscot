@@ -109,7 +109,7 @@ class TestCrossModalityTranslationAnalysisMixin:
 
     @pytest.mark.fast()
     @pytest.mark.parametrize("forward", [True, False])
-    @pytest.mark.parametrize("mapping_mode",["max", "sum"])
+    @pytest.mark.parametrize("mapping_mode", ["max", "sum"])
     @pytest.mark.parametrize("problem_kind", ["cross_modality"])
     def test_annotation_mapping(
         self, adata_anno: Tuple[AnnData, AnnData], forward: bool, mapping_mode, gt_tm_annotation
@@ -122,14 +122,14 @@ class TestCrossModalityTranslationAnalysisMixin:
         tp[problem_keys].set_solution(MockSolverOutput(gt_tm_annotation), overwrite=True)
         annotation_label = "celltype1" if forward else "celltype2"
         result = tp.annotation_mapping(
-            mapping_mode=mapping_mode,
-            annotation_label=annotation_label,
-            forward=forward,
-            source="src",
-            target="tgt"
+            mapping_mode=mapping_mode, annotation_label=annotation_label, forward=forward, source="src", target="tgt"
         )
         if forward:
-            expected_result = adata_src.uns["expected_max1"] if mapping_mode == "max" else adata_src.uns["expected_sum1"]
+            expected_result = (
+                adata_src.uns["expected_max1"] if mapping_mode == "max" else adata_src.uns["expected_sum1"]
+            )
         else:
-            expected_result = adata_tgt.uns["expected_max2"] if mapping_mode == "max" else adata_tgt.uns["expected_sum2"]
+            expected_result = (
+                adata_tgt.uns["expected_max2"] if mapping_mode == "max" else adata_tgt.uns["expected_sum2"]
+            )
         assert (result[annotation_label] == expected_result).all()

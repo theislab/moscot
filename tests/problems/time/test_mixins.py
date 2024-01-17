@@ -51,7 +51,7 @@ class TestTemporalMixin:
         np.testing.assert_allclose(present_cell_type_marginal, 1.0)
 
     @pytest.mark.fast()
-    @pytest.mark.parametrize("forward",[True, False])
+    @pytest.mark.parametrize("forward", [True, False])
     @pytest.mark.parametrize("mapping_mode", ["max", "sum"])
     @pytest.mark.parametrize("problem_kind", ["temporal"])
     def test_annotation_mapping(self, adata_anno: AnnData, forward: bool, mapping_mode, gt_tm_annotation):
@@ -63,11 +63,15 @@ class TestTemporalMixin:
         annotation_label = "celltype1" if forward else "celltype2"
         result = problem.annotation_mapping(
             mapping_mode=mapping_mode, annotation_label=annotation_label, forward=forward, source=0, target=1
-            )
+        )
         if forward:
-            expected_result = adata_anno.uns["expected_max1"] if mapping_mode == "max" else adata_anno.uns["expected_sum1"]
+            expected_result = (
+                adata_anno.uns["expected_max1"] if mapping_mode == "max" else adata_anno.uns["expected_sum1"]
+            )
         else:
-            expected_result = adata_anno.uns["expected_max2"] if mapping_mode == "max" else adata_anno.uns["expected_sum2"]
+            expected_result = (
+                adata_anno.uns["expected_max2"] if mapping_mode == "max" else adata_anno.uns["expected_sum2"]
+            )
         assert (result[annotation_label] == expected_result).all()
 
     @pytest.mark.fast()

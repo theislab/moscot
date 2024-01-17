@@ -112,10 +112,15 @@ class TestSpatialAlignmentAnalysisMixin:
             forward=forward,
         )
         if forward:
-            expected_result = adata_anno.uns["expected_max1"] if mapping_mode == "max" else adata_anno.uns["expected_sum1"]
+            expected_result = (
+                adata_anno.uns["expected_max1"] if mapping_mode == "max" else adata_anno.uns["expected_sum1"]
+            )
         else:
-            expected_result = adata_anno.uns["expected_max2"] if mapping_mode == "max" else adata_anno.uns["expected_sum2"]
+            expected_result = (
+                adata_anno.uns["expected_max2"] if mapping_mode == "max" else adata_anno.uns["expected_sum2"]
+            )
         assert (result[annotation_label] == expected_result).all()
+
 
 class TestSpatialMappingAnalysisMixin:
     @pytest.mark.parametrize("sc_attr", [{"attr": "X"}, {"attr": "obsm", "key": "X_pca"}])

@@ -260,8 +260,8 @@ def gt_tm_annotation() -> np.ndarray:
     for i in range(10):
         tm[i][i] = 1
     for i in range(10, 15):
-        tm[i-5][i] = 1
-    for j in range(2,5):
-        for i in range(2,5):
+        tm[i - 5][i] = 1
+    for j in range(2, 5):
+        for i in range(2, 5):
             tm[i][j] = 0.3 if i != j else 0.4
     return tm
