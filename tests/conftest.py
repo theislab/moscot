@@ -1,5 +1,5 @@
 from math import cos, sin
-from typing import Literal, Optional, Tuple
+from typing import Literal, Optional, Tuple, Union
 
 import pytest
 
@@ -211,15 +211,22 @@ def adata_translation_split(adata_translation) -> Tuple[AnnData, AnnData]:
 @pytest.fixture()
 def adata_anno(
     problem_kind: Literal["temporal", "cross_modality", "alignment", "mapping"],
-    # forward: bool
-) -> AnnData | Tuple[AnnData, AnnData]:
+) -> Union[AnnData, Tuple[AnnData, AnnData]]:
     rng = np.random.RandomState(31)
     adata_src = AnnData(X=csr_matrix(rng.normal(size=(10, 60))))
-    adata_src.obs["celltype"] = _gt_source_annotation
-    adata_src.obs["celltype"] = adata_src.obs["celltype"].astype("category")
-    adata_src.uns["expected_max"] = _gt_target_max_annotation
-    adata_src.uns["expected_sum"] = _gt_target_sum_annotation
+    rng_src = rng.choice(["A", "B", "C"], size=5).tolist()
+    adata_src.obs["celltype1"] = ["C", "C", "A", "B", "B"] + rng_src
+    adata_src.obs["celltype1"] = adata_src.obs["celltype1"].astype("category")
+    adata_src.uns["expected_max1"] = ["C", "C", "A", "B", "B"] + rng_src + rng_src
+    adata_src.uns["expected_sum1"] = ["C", "C", "B", "B", "B"] + rng_src + rng_src
+
     adata_tgt = AnnData(X=csr_matrix(rng.normal(size=(15, 60))))
+    rng_tgt = rng.choice(["A", "B", "C"], size=5).tolist()
+    adata_tgt.obs["celltype2"] = ["C", "C", "A", "B", "B"] + rng_tgt + rng_tgt
+    adata_tgt.obs["celltype2"] = adata_tgt.obs["celltype2"].astype("category")
+    adata_tgt.uns["expected_max2"] = ["C", "C", "A", "B", "B"] + rng_tgt
+    adata_tgt.uns["expected_sum2"] = ["C", "C", "B", "B", "B"] + rng_tgt
+
     if problem_kind == "cross_modality":
         adata_src.obs["batch"] = "0"
         adata_tgt.obs["batch"] = "1"
@@ -228,23 +235,23 @@ def adata_anno(
         sc.pp.pca(adata_src)
         sc.pp.pca(adata_tgt)
         return adata_src, adata_tgt
-    if problem_kind in ["alignment", "mapping"]:
+    if problem_kind == "mapping":
+        adata_src.obs["batch"] = "0"
+        adata_tgt.obs["batch"] = "1"
+        sc.pp.pca(adata_src)
+        sc.pp.pca(adata_tgt)
+        adata_tgt.obsm["spatial"] = rng.normal(size=(adata_tgt.n_obs, 2))
+        return adata_src, adata_tgt
+    if problem_kind == "alignment":
         adata_src.obsm["spatial"] = rng.normal(size=(adata_src.n_obs, 2))
         adata_tgt.obsm["spatial"] = rng.normal(size=(adata_tgt.n_obs, 2))
     key = "day" if problem_kind == "temporal" else "batch"
-    adatas = [adata_src, adata_tgt]  # if forward else [adata_tgt, adata_src]
+    adatas = [adata_src, adata_tgt]
     adata = ad.concat(adatas, join="outer", label=key, index_unique="-", uns_merge="unique")
     adata.obs[key] = (pd.to_numeric(adata.obs[key]) if key == "day" else adata.obs[key]).astype("category")
     adata.layers["counts"] = adata.X.A
     sc.pp.pca(adata)
     return adata
-
-
-_gt_source_annotation = np.array(["A", "A", "B", "A", "B", "C", "A", "A", "A", "A"], dtype="U1")
-
-_gt_target_max_annotation = np.array(["A", "A", "B", "A", "B", "C", "A", "A", "A", "A", "B", "B", "B", "B", "B"])
-
-_gt_target_sum_annotation = np.array(["A", "A", "B", "A", "B", "C", "A", "A", "A", "A", "A", "A", "A", "A", "A"])
 
 
 @pytest.fixture()
@@ -253,7 +260,8 @@ def gt_tm_annotation() -> np.ndarray:
     for i in range(10):
         tm[i][i] = 1
     for i in range(10, 15):
-        tm[0][i] = 0.3
-        tm[1][i] = 0.3
-        tm[2][i] = 0.4
+        tm[i-5][i] = 1
+    for j in range(2,5):
+        for i in range(2,5):
+            tm[i][j] = 0.3 if i != j else 0.4
     return tm

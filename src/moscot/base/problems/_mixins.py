@@ -310,8 +310,9 @@ class AnalysisMixin(Generic[K, B]):
         target: K,
         key: str | None = None,
         forward: bool = True,
-        other_adata: Optional[str] = None,
+        other_adata: str | None = None,
         scale_by_marginals: bool = True,
+        batch_size: int | None = None,
         cell_transition_kwargs: Mapping[str, Any] = types.MappingProxyType({}),
     ) -> pd.DataFrame:
         if mapping_mode == "sum":
@@ -321,18 +322,19 @@ class AnalysisMixin(Generic[K, B]):
             cell_transition_kwargs.setdefault("source", source)
             cell_transition_kwargs.setdefault("target", target)
             cell_transition_kwargs.setdefault("other_adata", other_adata)
-            cell_transition_kwargs.setdefault("forward", forward)
+            cell_transition_kwargs.setdefault("forward", not forward)
             if forward:
-                cell_transition_kwargs.setdefault("source_groups", None)
-                cell_transition_kwargs.setdefault("target_groups", annotation_label)
-                axis = 1  # columns
-            else:
                 cell_transition_kwargs.setdefault("source_groups", annotation_label)
                 cell_transition_kwargs.setdefault("target_groups", None)
                 axis = 0  # rows
+            else:
+                cell_transition_kwargs.setdefault("source_groups", None)
+                cell_transition_kwargs.setdefault("target_groups", annotation_label)
+                axis = 1  # columns
             out: pd.DataFrame = self._cell_transition(**cell_transition_kwargs)
             return out.idxmax(axis=axis).to_frame(name=annotation_label)
         if mapping_mode == "max":
+            out = []
             if forward:
                 source_df = _get_df_cell_transition(
                     self.adata,
@@ -340,8 +342,23 @@ class AnalysisMixin(Generic[K, B]):
                     filter_key=key,
                     filter_value=source,
                 )
-                dummy = pd.get_dummies(source_df, prefix="", prefix_sep="")
-                out: ArrayLike = self[(source, target)].push(dummy, scale_by_marginals=scale_by_marginals)
+                out_len = self[(source, target)].solution.shape[1]
+                batch_size = batch_size if batch_size is not None else out_len
+                for batch in range(0, out_len, batch_size):
+                    tm_batch = self.push(
+                        source=source,
+                        target=target,
+                        data=None,
+                        subset=(batch, batch_size),
+                        normalize=True,
+                        return_all=False,
+                        scale_by_marginals=scale_by_marginals,
+                        split_mass=True,
+                        key_added=None,
+                    )
+                    v = np.array(tm_batch.argmax(1))
+                    out.extend(source_df[annotation_label][v[i]] for i in range(len(v)))
+
             else:
                 target_df = _get_df_cell_transition(
                     self.adata if other_adata is None else other_adata,
@@ -349,9 +366,23 @@ class AnalysisMixin(Generic[K, B]):
                     filter_key=key,
                     filter_value=target,
                 )
-                dummy = pd.get_dummies(target_df, prefix="", prefix_sep="")
-                out: ArrayLike = self[(source, target)].pull(dummy, scale_by_marginals=scale_by_marginals)
-            categories = pd.Categorical([dummy.columns[i] for i in np.array(out.argmax(1))])
+                out_len = self[(source, target)].solution.shape[0]
+                batch_size = batch_size if batch_size is not None else out_len
+                for batch in range(0, out_len, batch_size):
+                    tm_batch = self.pull(
+                        source=source,
+                        target=target,
+                        data=None,
+                        subset=(batch, batch_size),
+                        normalize=True,
+                        return_all=False,
+                        scale_by_marginals=scale_by_marginals,
+                        split_mass=True,
+                        key_added=None,
+                    )
+                    v = np.array(tm_batch.argmax(1))
+                    out.extend(target_df[annotation_label][v[i]] for i in range(len(v)))
+            categories = pd.Categorical(out)
             return pd.DataFrame(categories, columns=[annotation_label])
         raise NotImplementedError(f"Mapping mode `{mapping_mode!r}` is not yet implemented.")
 
@@ -507,7 +538,7 @@ class AnalysisMixin(Generic[K, B]):
         if batch_size is None:
             batch_size = len(df_2)
         for batch in range(0, len(df_2), batch_size):
-            result = func(  # TODO(@MUCDK) check how to make compatiAnalysisMixinProtocolcelltyble with all policies
+            result = func(  # TODO(@MUCDK) check how to make compatible with all policies
                 source=source,
                 target=target,
                 data=None,
