@@ -49,8 +49,8 @@ class AnalysisMixinProtocol(Protocol[K, B]):
 
     adata: AnnData
     _policy: SubsetPolicy[K]
-    solutions: Dict[Tuple[K, K], BaseSolverOutput]
-    problems: Dict[Tuple[K, K], B]
+    solutions: dict[tuple[K, K], BaseSolverOutput]
+    problems: dict[tuple[K, K], B]
 
     def _apply(
         self,
@@ -66,14 +66,14 @@ class AnalysisMixinProtocol(Protocol[K, B]):
 
     def _interpolate_transport(
         self: AnalysisMixinProtocol[K, B],
-        path: Sequence[Tuple[K, K]],
+        path: Sequence[tuple[K, K]],
         scale_by_marginals: bool = True,
     ) -> LinearOperator:
         ...
 
     def _flatten(
         self: AnalysisMixinProtocol[K, B],
-        data: Dict[K, ArrayLike],
+        data: dict[K, ArrayLike],
         *,
         key: Optional[str],
     ) -> ArrayLike:
@@ -345,7 +345,7 @@ class AnalysisMixin(Generic[K, B]):
                 out_len = self.solutions[(source, target)].shape[1]
                 batch_size = batch_size if batch_size is not None else out_len
                 for batch in range(0, out_len, batch_size):
-                    tm_batch: ArrayLike = self.push(  # type: ignore[attr-defined]
+                    tm_batch: ArrayLike = self.push(  # type: ignore[no-redef]
                         source=source,
                         target=target,
                         data=None,
@@ -369,7 +369,7 @@ class AnalysisMixin(Generic[K, B]):
                 out_len = self.solutions[(source, target)].shape[0]
                 batch_size = batch_size if batch_size is not None else out_len
                 for batch in range(0, out_len, batch_size):
-                    tm_batch: ArrayLike = self.pull(  # type: ignore[attr-defined]
+                    tm_batch: ArrayLike = self.pull(  # type: ignore[no-redef]
                         source=source,
                         target=target,
                         data=None,
@@ -397,7 +397,7 @@ class AnalysisMixin(Generic[K, B]):
         account_for_unbalancedness: bool = False,
         interpolation_parameter: Optional[Numeric_t] = None,
         seed: Optional[int] = None,
-    ) -> Tuple[List[Any], List[ArrayLike]]:
+    ) -> tuple[list[Any], list[ArrayLike]]:
         rng = np.random.RandomState(seed)
         if account_for_unbalancedness and interpolation_parameter is None:
             raise ValueError("When accounting for unbalancedness, interpolation parameter must be provided.")
@@ -434,7 +434,7 @@ class AnalysisMixin(Generic[K, B]):
 
         rows_sampled = rng.choice(source_dim, p=row_probability / row_probability.sum(), size=n_samples)
         rows, counts = np.unique(rows_sampled, return_counts=True)
-        all_cols_sampled: List[str] = []
+        all_cols_sampled: list[str] = []
         for batch in range(0, len(rows), batch_size):
             rows_batch = rows[batch : batch + batch_size]
             counts_batch = counts[batch : batch + batch_size]
@@ -467,7 +467,7 @@ class AnalysisMixin(Generic[K, B]):
     def _interpolate_transport(
         self: AnalysisMixinProtocol[K, B],
         # TODO(@giovp): rename this to 'explicit_steps', pass to policy.plan() and reintroduce (source_key, target_key)
-        path: Sequence[Tuple[K, K]],
+        path: Sequence[tuple[K, K]],
         scale_by_marginals: bool = True,
         **_: Any,
     ) -> LinearOperator:
@@ -478,7 +478,7 @@ class AnalysisMixin(Generic[K, B]):
         fst, *rest = path
         return self.solutions[fst].chain([self.solutions[r] for r in rest], scale_by_marginals=scale_by_marginals)
 
-    def _flatten(self: AnalysisMixinProtocol[K, B], data: Dict[K, ArrayLike], *, key: Optional[str]) -> ArrayLike:
+    def _flatten(self: AnalysisMixinProtocol[K, B], data: dict[K, ArrayLike], *, key: Optional[str]) -> ArrayLike:
         tmp = np.full(len(self.adata), np.nan)
         for k, v in data.items():
             mask = self.adata.obs[key] == k
@@ -490,8 +490,8 @@ class AnalysisMixin(Generic[K, B]):
         source: K,
         target: K,
         annotation_key: str,
-        annotations_1: List[Any],
-        annotations_2: List[Any],
+        annotations_1: list[Any],
+        annotations_2: list[Any],
         df: pd.DataFrame,
         tm: pd.DataFrame,
         forward: bool,
@@ -526,8 +526,8 @@ class AnalysisMixin(Generic[K, B]):
         target: str,
         annotation_key: str,
         # TODO(MUCDK): unused variables, del below
-        annotations_1: List[Any],
-        annotations_2: List[Any],
+        annotations_1: list[Any],
+        annotations_2: list[Any],
         df_1: pd.DataFrame,
         df_2: pd.DataFrame,
         tm: pd.DataFrame,
@@ -563,9 +563,9 @@ class AnalysisMixin(Generic[K, B]):
         obs_key: str,
         corr_method: Literal["pearson", "spearman"] = "pearson",
         significance_method: Literal["fisher", "perm_test"] = "fisher",
-        annotation: Optional[Dict[str, Iterable[str]]] = None,
+        annotation: Optional[dict[str, Iterable[str]]] = None,
         layer: Optional[str] = None,
-        features: Optional[Union[List[str], Literal["human", "mouse", "drosophila"]]] = None,
+        features: Optional[Union[list[str], Literal["human", "mouse", "drosophila"]]] = None,
         confidence_level: float = 0.95,
         n_perms: int = 1000,
         seed: Optional[int] = None,

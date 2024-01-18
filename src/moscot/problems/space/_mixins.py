@@ -599,7 +599,7 @@ class SpatialMappingMixin(AnalysisMixin[K, B]):
         mapping_mode: Literal["sum", "max"],
         annotation_label: str,
         source: K,
-        target: K | str = "tgt",
+        target: Union[K, str] = "tgt",
         forward: bool = False,
         scale_by_marginals: bool = True,
         cell_transition_kwargs: Mapping[str, Any] = types.MappingProxyType({}),

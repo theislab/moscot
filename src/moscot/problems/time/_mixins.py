@@ -38,7 +38,7 @@ __all__ = ["TemporalMixin"]
 
 class TemporalMixinProtocol(AnalysisMixinProtocol[K, B], Protocol[K, B]):  # type: ignore[misc]
     adata: AnnData
-    problems: Dict[Tuple[K, K], BirthDeathProblem]
+    problems: dict[tuple[K, K], BirthDeathProblem]
     temporal_key: Optional[str]
     _temporal_key: Optional[str]
 
@@ -87,7 +87,7 @@ class TemporalMixinProtocol(AnalysisMixinProtocol[K, B], Protocol[K, B]):  # typ
         account_for_unbalancedness: bool = False,
         interpolation_parameter: Optional[float] = None,
         seed: Optional[int] = None,
-    ) -> Tuple[List[Any], List[ArrayLike]]:
+    ) -> tuple[list[Any], list[ArrayLike]]:
         ...
 
     def _compute_wasserstein_distance(
@@ -123,7 +123,7 @@ class TemporalMixinProtocol(AnalysisMixinProtocol[K, B], Protocol[K, B]):  # typ
         posterior_marginals: bool = True,
         *,
         only_start: bool = False,
-    ) -> Union[Tuple[ArrayLike, AnnData], Tuple[ArrayLike, ArrayLike, ArrayLike, AnnData, ArrayLike]]:
+    ) -> Union[tuple[ArrayLike, AnnData], tuple[ArrayLike, ArrayLike, ArrayLike, AnnData, ArrayLike]]:
         ...
 
     def _interpolate_gex_randomly(
@@ -139,7 +139,7 @@ class TemporalMixinProtocol(AnalysisMixinProtocol[K, B], Protocol[K, B]):  # typ
 
     def _plot_temporal(
         self: TemporalMixinProtocol[K, B],
-        data: Dict[K, ArrayLike],
+        data: dict[K, ArrayLike],
         source: K,
         target: K,
         time_points: Optional[Iterable[K]] = None,
@@ -157,7 +157,7 @@ class TemporalMixinProtocol(AnalysisMixinProtocol[K, B], Protocol[K, B]):  # typ
     ) -> float:
         ...
 
-    def __iter__(self) -> Iterator[Tuple[K, K]]:
+    def __iter__(self) -> Iterator[tuple[K, K]]:
         ...
 
 
@@ -278,7 +278,7 @@ class TemporalMixin(AnalysisMixin[K, B]):
         order_annotations: Optional[Sequence[str]] = None,
         key_added: Optional[str] = _constants.SANKEY,
         **kwargs: Any,
-    ) -> Optional[List[pd.DataFrame]]:
+    ) -> Optional[list[pd.DataFrame]]:
         """Compute a `Sankey diagram <https://en.wikipedia.org/wiki/Sankey_diagram>`_ between cells across time points.
 
         .. seealso::
@@ -392,7 +392,7 @@ class TemporalMixin(AnalysisMixin[K, B]):
         source: K,
         target: K,
         data: Optional[Union[str, ArrayLike]] = None,
-        subset: Optional[Union[str, List[str], Tuple[int, int]]] = None,
+        subset: Optional[Union[str, list[str], tuple[int, int]]] = None,
         scale_by_marginals: bool = True,
         key_added: Optional[str] = _constants.PUSH,
         return_all: bool = False,
@@ -459,7 +459,7 @@ class TemporalMixin(AnalysisMixin[K, B]):
         source: K,
         target: K,
         data: Optional[Union[str, ArrayLike]] = None,
-        subset: Optional[Union[str, List[str], Tuple[int, int]]] = None,
+        subset: Optional[Union[str, list[str], tuple[int, int]]] = None,
         scale_by_marginals: bool = True,
         key_added: Optional[str] = _constants.PULL,
         return_all: bool = False,
@@ -614,7 +614,7 @@ class TemporalMixin(AnalysisMixin[K, B]):
         posterior_marginals: bool = True,
         *,
         only_start: bool = False,
-    ) -> Union[Tuple[ArrayLike, AnnData], Tuple[ArrayLike, ArrayLike, ArrayLike, AnnData, ArrayLike]]:
+    ) -> Union[tuple[ArrayLike, AnnData], tuple[ArrayLike, ArrayLike, ArrayLike, AnnData, ArrayLike]]:
         # TODO: use .items()
         for src, tgt in self.problems:
             tag = self.problems[src, tgt].xy.tag  # type: ignore[union-attr]
@@ -821,7 +821,7 @@ class TemporalMixin(AnalysisMixin[K, B]):
         posterior_marginals: bool = True,
         backend: Literal["ott"] = "ott",
         **kwargs: Any,
-    ) -> Tuple[float, float]:
+    ) -> tuple[float, float]:
         """Compute `Wasserstein distance <https://en.wikipedia.org/wiki/Wasserstein_metric>`_ between time points.
 
         .. seealso::
@@ -904,7 +904,7 @@ class TemporalMixin(AnalysisMixin[K, B]):
         if len(data) != len(adata):
             raise ValueError(f"Expected the `data` to have length `{len(adata)}`, found `{len(data)}`.")
 
-        dist: List[float] = []
+        dist: list[float] = []
         for batch_1, batch_2 in itertools.combinations(adata.obs[batch_key].unique(), 2):
             dist.append(
                 self._compute_wasserstein_distance(
