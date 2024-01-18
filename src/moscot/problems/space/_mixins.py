@@ -284,8 +284,8 @@ class SpatialAlignmentMixin(AnalysisMixin[K, B]):
             key_added=key_added,
         )
 
-    def annotation_mapping(
-        self: AnalysisMixinProtocol[K, B],
+    def annotation_mapping(  # type: ignore[misc]
+        self: SpatialAlignmentMixinProtocol[K, B],
         mapping_mode: Literal["sum", "max"],
         annotation_label: str,
         forward: bool,
@@ -299,7 +299,7 @@ class SpatialAlignmentMixin(AnalysisMixin[K, B]):
             annotation_label=annotation_label,
             source=source,
             target=target,
-            key=self._batch_key,
+            key=self.batch_key,
             forward=forward,
             scale_by_marginals=scale_by_marginals,
             cell_transition_kwargs=cell_transition_kwargs,
@@ -594,12 +594,12 @@ class SpatialMappingMixin(AnalysisMixin[K, B]):
             key_added=key_added,
         )
 
-    def annotation_mapping(
-        self: AnalysisMixinProtocol[K, B],
+    def annotation_mapping(  # type: ignore[misc]
+        self: SpatialMappingMixinProtocol[K, B],
         mapping_mode: Literal["sum", "max"],
         annotation_label: str,
-        source: str,
-        target: str = "tgt",
+        source: K,
+        target: K | str = "tgt",
         forward: bool = False,
         scale_by_marginals: bool = True,
         cell_transition_kwargs: Mapping[str, Any] = types.MappingProxyType({}),

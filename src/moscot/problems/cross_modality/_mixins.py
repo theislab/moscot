@@ -25,6 +25,8 @@ class CrossModalityTranslationMixinProtocol(AnalysisMixinProtocol[K, B]):
     def _cell_transition(self: AnalysisMixinProtocol[K, B], *args: Any, **kwargs: Any) -> pd.DataFrame:
         ...
 
+    def _annotation_mapping(self: AnalysisMixinProtocol[K, B], *args: Any, **kwargs: Any) -> pd.DataFrame:
+        ...
 
 class CrossModalityTranslationMixin(AnalysisMixin[K, B]):
     """Cross modality translation analysis mixin class."""
@@ -184,13 +186,13 @@ class CrossModalityTranslationMixin(AnalysisMixin[K, B]):
             key_added=key_added,
         )
 
-    def annotation_mapping(
+    def annotation_mapping(  # type: ignore[misc]
         self: CrossModalityTranslationMixinProtocol[K, B],
         mapping_mode: Literal["sum", "max"],
         annotation_label: str,
         forward: bool,
-        source: K = "src",
-        target: K = "tgt",
+        source: str = "src",
+        target: str = "tgt",
         scale_by_marginals: bool = True,
         other_adata: Optional[str] = None,
         cell_transition_kwargs: Mapping[str, Any] = types.MappingProxyType({}),
@@ -202,7 +204,7 @@ class CrossModalityTranslationMixin(AnalysisMixin[K, B]):
             target=target,
             key=self.batch_key,
             forward=forward,
-            other_adata=self.adata_tgt,
+            other_adata=self.adata_tgt if other_adata is None else other_adata,
             scale_by_marginals=scale_by_marginals,
             cell_transition_kwargs=cell_transition_kwargs,
         )

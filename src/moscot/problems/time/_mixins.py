@@ -69,6 +69,13 @@ class TemporalMixinProtocol(AnalysisMixinProtocol[K, B], Protocol[K, B]):  # typ
     ) -> pd.DataFrame:
         ...
 
+    def _annotation_mapping(
+        self: AnalysisMixinProtocol[K, B],
+        *args: Any,
+        **kwargs: Any,
+    ) -> pd.DataFrame:
+        ...
+
     def _sample_from_tmap(
         self: TemporalMixinProtocol[K, B],
         source: K,

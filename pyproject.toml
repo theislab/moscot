@@ -122,6 +122,8 @@ ignore = [
     "D107",
     # Missing docstring in magic method
     "D105",
+    # Use `X | Y` for type annotations
+    "UP007",
 ]
 line-length = 120
 select = [

@@ -122,7 +122,7 @@ class AnalysisMixinProtocol(Protocol[K, B]):
         forward: bool,
         source: K,
         target: K,
-        key: str,
+        key: str | None = None,
         other_adata: Optional[str] = None,
         scale_by_marginals: bool = True,
         cell_transition_kwargs: Mapping[str, Any] = types.MappingProxyType({}),
@@ -342,10 +342,10 @@ class AnalysisMixin(Generic[K, B]):
                     filter_key=key,
                     filter_value=source,
                 )
-                out_len = self[(source, target)].solution.shape[1]
+                out_len = self.solutions[(source, target)].shape[1]
                 batch_size = batch_size if batch_size is not None else out_len
                 for batch in range(0, out_len, batch_size):
-                    tm_batch = self.push(
+                    tm_batch : ArrayLike = self.push(  # type: ignore[attr-defined]
                         source=source,
                         target=target,
                         data=None,
@@ -366,10 +366,10 @@ class AnalysisMixin(Generic[K, B]):
                     filter_key=key,
                     filter_value=target,
                 )
-                out_len = self[(source, target)].solution.shape[0]
+                out_len = self.solutions[(source, target)].shape[0]
                 batch_size = batch_size if batch_size is not None else out_len
                 for batch in range(0, out_len, batch_size):
-                    tm_batch = self.pull(
+                    tm_batch : ArrayLike = self.pull(  # type: ignore[attr-defined]
                         source=source,
                         target=target,
                         data=None,
