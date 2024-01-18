@@ -28,6 +28,7 @@ class CrossModalityTranslationMixinProtocol(AnalysisMixinProtocol[K, B]):
     def _annotation_mapping(self: AnalysisMixinProtocol[K, B], *args: Any, **kwargs: Any) -> pd.DataFrame:
         ...
 
+
 class CrossModalityTranslationMixin(AnalysisMixin[K, B]):
     """Cross modality translation analysis mixin class."""
 
