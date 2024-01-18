@@ -6,16 +6,13 @@ import types
 from typing import (
     TYPE_CHECKING,
     Any,
-    Dict,
     Iterable,
     Iterator,
-    List,
     Literal,
     Mapping,
     Optional,
     Protocol,
     Sequence,
-    Tuple,
     Union,
 )
 
