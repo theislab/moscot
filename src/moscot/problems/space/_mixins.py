@@ -294,6 +294,35 @@ class SpatialAlignmentMixin(AnalysisMixin[K, B]):
         scale_by_marginals: bool = True,
         cell_transition_kwargs: Mapping[str, Any] = types.MappingProxyType({}),
     ) -> pd.DataFrame:
+        """Transfer annotations between distributions.
+
+        This function transfers annotation labels (e.g. cell types) between groups of cells.
+
+        Parameters
+        ----------
+        mapping_mode
+            How to decide which label to transfer. Valid options are:
+
+            - ``'max'`` - pick the label of the annotated cell with the highest mapping weight.
+            - ``'sum'`` - compute :meth:`cell_transition` of annotation labels to target cells and
+              pick the label with the highest transition weight.
+        annotation_label
+            Key in :attr:`~anndata.AnnData.obs` where the annotation is stored.
+        forward
+            If :obj:`True`, transfer the annotations from ``source`` to ``target``.
+        source
+            Key identifying the source distribution.
+        target
+            Key identifying the target distribution.
+        scale_by_marginals
+            Whether to scale by the source :term:`marginals`.
+        cell_transition_kwargs
+            Keyword arguments for :meth:`cell_transition`, used only if ``mapping_mode = 'sum'``.
+
+        Returns
+        -------
+        :obj:`pd.DataFrame` - returns the DataFrame of transferred annotations.
+        """
         return self._annotation_mapping(
             mapping_mode=mapping_mode,
             annotation_label=annotation_label,
@@ -604,6 +633,35 @@ class SpatialMappingMixin(AnalysisMixin[K, B]):
         scale_by_marginals: bool = True,
         cell_transition_kwargs: Mapping[str, Any] = types.MappingProxyType({}),
     ) -> pd.DataFrame:
+        """Transfer annotations between distributions.
+
+        This function transfers annotation labels (e.g. cell types) between groups of cells.
+
+        Parameters
+        ----------
+        mapping_mode
+            How to decide which label to transfer. Valid options are:
+
+            - ``'max'`` - pick the label of the annotated cell with the highest mapping weight.
+            - ``'sum'`` - compute :meth:`cell_transition` of annotation labels to target cells and
+              pick the label with the highest transition weight.
+        annotation_label
+            Key in :attr:`~anndata.AnnData.obs` where the annotation is stored.
+        forward
+            If :obj:`True`, transfer the annotations from ``source`` to ``target``.
+        source
+            Key identifying the source distribution.
+        target
+            Key identifying the target distribution.
+        scale_by_marginals
+            Whether to scale by the source :term:`marginals`.
+        cell_transition_kwargs
+            Keyword arguments for :meth:`cell_transition`, used only if ``mapping_mode = 'sum'``.
+
+        Returns
+        -------
+        :obj:`pd.DataFrame` - returns the DataFrame of transferred annotations.
+        """
         return self._annotation_mapping(
             mapping_mode=mapping_mode,
             annotation_label=annotation_label,

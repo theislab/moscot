@@ -342,7 +342,7 @@ class AnalysisMixin(Generic[K, B]):
                 out_len = self.solutions[(source, target)].shape[1]
                 batch_size = batch_size if batch_size is not None else out_len
                 for batch in range(0, out_len, batch_size):
-                    tm_batch: ArrayLike = self.push(  # type: ignore[no-redef]
+                    tm_batch: ArrayLike = self.push(
                         source=source,
                         target=target,
                         data=None,
