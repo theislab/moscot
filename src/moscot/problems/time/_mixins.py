@@ -277,7 +277,7 @@ class TemporalMixin(AnalysisMixin[K, B]):
 
         Returns
         -------
-        :obj:`pd.DataFrame` - returns the DataFrame of transferred annotations.
+        :class:`~pandas.DataFrame` - returns the DataFrame of transferred annotations.
         """
         return self._annotation_mapping(
             mapping_mode=mapping_mode,

@@ -221,13 +221,13 @@ class CrossModalityTranslationMixin(AnalysisMixin[K, B]):
         scale_by_marginals
             Whether to scale by the source :term:`marginals`.
         other_adata
-            The second :obj:`anndata.AnnData` if present.
+            The second :class:`anndata.AnnData` if present.
         cell_transition_kwargs
             Keyword arguments for :meth:`cell_transition`, used only if ``mapping_mode = 'sum'``.
 
         Returns
         -------
-        :obj:`pd.DataFrame` - returns the DataFrame of transferred annotations.
+        :class:`~pandas.DataFrame`. - returns the DataFrame of transferred annotations.
         """
         return self._annotation_mapping(
             mapping_mode=mapping_mode,
