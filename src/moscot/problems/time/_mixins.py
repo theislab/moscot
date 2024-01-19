@@ -247,21 +247,20 @@ class TemporalMixin(AnalysisMixin[K, B]):
         forward: bool,
         source: K,
         target: K,
-        scale_by_marginals: bool = True,
         cell_transition_kwargs: Mapping[str, Any] = types.MappingProxyType({}),
     ) -> pd.DataFrame:
         """Transfer annotations between distributions.
 
-        This function transfers annotation labels (e.g. cell types) between groups of cells.
+        This function transfers annotations (e.g. cell type labels) between distributions of cells.
 
         Parameters
         ----------
         mapping_mode
             How to decide which label to transfer. Valid options are:
 
-            - ``'max'`` - pick the label of the annotated cell with the highest mapping weight.
-            - ``'sum'`` - compute :meth:`cell_transition` of annotation labels to target cells and
-              pick the label with the highest transition weight.
+            - ``'max'`` - pick the label of the annotated cell with the highest matching probability.
+            - ``'sum'`` - aggregate the annotated cells by label then
+              pick the label with the highest total matching probability.
         annotation_label
             Key in :attr:`~anndata.AnnData.obs` where the annotation is stored.
         forward
@@ -270,8 +269,6 @@ class TemporalMixin(AnalysisMixin[K, B]):
             Key identifying the source distribution.
         target
             Key identifying the target distribution.
-        scale_by_marginals
-            Whether to scale by the source :term:`marginals`.
         cell_transition_kwargs
             Keyword arguments for :meth:`cell_transition`, used only if ``mapping_mode = 'sum'``.
 
@@ -287,7 +284,6 @@ class TemporalMixin(AnalysisMixin[K, B]):
             key=self._temporal_key,
             forward=forward,
             other_adata=None,
-            scale_by_marginals=scale_by_marginals,
             cell_transition_kwargs=cell_transition_kwargs,
         )
 

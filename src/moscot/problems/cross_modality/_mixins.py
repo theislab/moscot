@@ -194,22 +194,20 @@ class CrossModalityTranslationMixin(AnalysisMixin[K, B]):
         forward: bool,
         source: str = "src",
         target: str = "tgt",
-        scale_by_marginals: bool = True,
-        other_adata: Optional[str] = None,
         cell_transition_kwargs: Mapping[str, Any] = types.MappingProxyType({}),
     ) -> pd.DataFrame:
         """Transfer annotations between distributions.
 
-        This function transfers annotation labels (e.g. cell types) between groups of cells.
+        This function transfers annotations (e.g. cell type labels) between distributions of cells.
 
         Parameters
         ----------
         mapping_mode
             How to decide which label to transfer. Valid options are:
 
-            - ``'max'`` - pick the label of the annotated cell with the highest mapping weight.
-            - ``'sum'`` - compute :meth:`cell_transition` of annotation labels to target cells and
-              pick the label with the highest transition weight.
+            - ``'max'`` - pick the label of the annotated cell with the highest matching probability.
+            - ``'sum'`` - aggregate the annotated cells by label then
+              pick the label with the highest total matching probability.
         annotation_label
             Key in :attr:`~anndata.AnnData.obs` where the annotation is stored.
         forward
@@ -218,10 +216,6 @@ class CrossModalityTranslationMixin(AnalysisMixin[K, B]):
             Key identifying the source distribution.
         target
             Key identifying the target distribution.
-        scale_by_marginals
-            Whether to scale by the source :term:`marginals`.
-        other_adata
-            The second :class:`anndata.AnnData` if present.
         cell_transition_kwargs
             Keyword arguments for :meth:`cell_transition`, used only if ``mapping_mode = 'sum'``.
 
@@ -236,8 +230,7 @@ class CrossModalityTranslationMixin(AnalysisMixin[K, B]):
             target=target,
             key=self.batch_key,
             forward=forward,
-            other_adata=self.adata_tgt if other_adata is None else other_adata,
-            scale_by_marginals=scale_by_marginals,
+            other_adata=self.adata_tgt,
             cell_transition_kwargs=cell_transition_kwargs,
         )
 
