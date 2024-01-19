@@ -114,7 +114,7 @@ def _check_argument_compatibility_cell_transition(
         raise ValueError("Unable to infer distributions, missing `adata` and `key`.")
     if forward and target_annotation is None:
         raise ValueError("No target annotation provided.")
-    if not forward and source_annotation is None:
+    if aggregation_mode == "annotation" and (not forward and source_annotation is None):
         raise ValueError("No source annotation provided.")
     if (aggregation_mode == "annotation") and (source_annotation is None or target_annotation is None):
         raise ValueError(

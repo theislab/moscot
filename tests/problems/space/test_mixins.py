@@ -93,6 +93,34 @@ class TestSpatialAlignmentAnalysisMixin:
         assert isinstance(result, pd.DataFrame)
         assert result.shape == (3, 3)
 
+    @pytest.mark.fast()
+    @pytest.mark.parametrize("forward", [True, False])
+    @pytest.mark.parametrize("mapping_mode", ["max", "sum"])
+    @pytest.mark.parametrize("problem_kind", ["alignment"])
+    def test_annotation_mapping(self, adata_anno: AnnData, forward: bool, mapping_mode, gt_tm_annotation):
+        ap = AlignmentProblem(adata=adata_anno)
+        ap = ap.prepare(batch_key="batch", joint_attr={"attr": "X"})
+        problem_keys = ("0", "1")
+        assert set(ap.problems.keys()) == {problem_keys}
+        ap[problem_keys].set_solution(MockSolverOutput(gt_tm_annotation))
+        annotation_label = "celltype1" if forward else "celltype2"
+        result = ap.annotation_mapping(
+            mapping_mode=mapping_mode,
+            annotation_label=annotation_label,
+            source="0",
+            target="1",
+            forward=forward,
+        )
+        if forward:
+            expected_result = (
+                adata_anno.uns["expected_max1"] if mapping_mode == "max" else adata_anno.uns["expected_sum1"]
+            )
+        else:
+            expected_result = (
+                adata_anno.uns["expected_max2"] if mapping_mode == "max" else adata_anno.uns["expected_sum2"]
+            )
+        assert (result[annotation_label] == expected_result).all()
+
 
 class TestSpatialMappingAnalysisMixin:
     @pytest.mark.parametrize("sc_attr", [{"attr": "X"}, {"attr": "obsm", "key": "X_pca"}])
@@ -175,3 +203,27 @@ class TestSpatialMappingAnalysisMixin:
 
         assert isinstance(result, pd.DataFrame)
         assert result.shape == (3, 4)
+
+    @pytest.mark.fast()
+    @pytest.mark.parametrize("forward", [True, False])
+    @pytest.mark.parametrize("mapping_mode", ["max", "sum"])
+    @pytest.mark.parametrize("problem_kind", ["mapping"])
+    def test_annotation_mapping(self, adata_anno: AnnData, forward: bool, mapping_mode, gt_tm_annotation):
+        adataref, adatasp = adata_anno
+        mp = MappingProblem(adataref, adatasp)
+        mp = mp.prepare(sc_attr={"attr": "obsm", "key": "X_pca"}, joint_attr={"attr": "X"})
+        problem_keys = ("src", "tgt")
+        assert set(mp.problems.keys()) == {problem_keys}
+        mp[problem_keys].set_solution(MockSolverOutput(gt_tm_annotation.T))
+        annotation_label = "celltype1" if not forward else "celltype2"
+        result = mp.annotation_mapping(
+            mapping_mode=mapping_mode,
+            annotation_label=annotation_label,
+            source="src",
+            forward=forward,
+        )
+        if not forward:
+            expected_result = adataref.uns["expected_max1"] if mapping_mode == "max" else adataref.uns["expected_sum1"]
+        else:
+            expected_result = adatasp.uns["expected_max2"] if mapping_mode == "max" else adatasp.uns["expected_sum2"]
+        assert (result[annotation_label] == expected_result).all()

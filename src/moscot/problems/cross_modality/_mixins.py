@@ -1,4 +1,5 @@
-from typing import TYPE_CHECKING, Any, Dict, Literal, Optional
+import types
+from typing import TYPE_CHECKING, Any, Dict, Literal, Mapping, Optional
 
 import pandas as pd
 
@@ -22,6 +23,9 @@ class CrossModalityTranslationMixinProtocol(AnalysisMixinProtocol[K, B]):
     batch_key: Optional[str]
 
     def _cell_transition(self: AnalysisMixinProtocol[K, B], *args: Any, **kwargs: Any) -> pd.DataFrame:
+        ...
+
+    def _annotation_mapping(self: AnalysisMixinProtocol[K, B], *args: Any, **kwargs: Any) -> pd.DataFrame:
         ...
 
 
@@ -181,6 +185,53 @@ class CrossModalityTranslationMixin(AnalysisMixin[K, B]):
             batch_size=batch_size,
             normalize=normalize,
             key_added=key_added,
+        )
+
+    def annotation_mapping(  # type: ignore[misc]
+        self: CrossModalityTranslationMixinProtocol[K, B],
+        mapping_mode: Literal["sum", "max"],
+        annotation_label: str,
+        forward: bool,
+        source: str = "src",
+        target: str = "tgt",
+        cell_transition_kwargs: Mapping[str, Any] = types.MappingProxyType({}),
+    ) -> pd.DataFrame:
+        """Transfer annotations between distributions.
+
+        This function transfers annotations (e.g. cell type labels) between distributions of cells.
+
+        Parameters
+        ----------
+        mapping_mode
+            How to decide which label to transfer. Valid options are:
+
+            - ``'max'`` - pick the label of the annotated cell with the highest matching probability.
+            - ``'sum'`` - aggregate the annotated cells by label then
+              pick the label with the highest total matching probability.
+        annotation_label
+            Key in :attr:`~anndata.AnnData.obs` where the annotation is stored.
+        forward
+            If :obj:`True`, transfer the annotations from ``source`` to ``target``.
+        source
+            Key identifying the source distribution.
+        target
+            Key identifying the target distribution.
+        cell_transition_kwargs
+            Keyword arguments for :meth:`cell_transition`, used only if ``mapping_mode = 'sum'``.
+
+        Returns
+        -------
+        :class:`~pandas.DataFrame` - Returns the DataFrame of transferred annotations.
+        """
+        return self._annotation_mapping(
+            mapping_mode=mapping_mode,
+            annotation_label=annotation_label,
+            source=source,
+            target=target,
+            key=self.batch_key,
+            forward=forward,
+            other_adata=self.adata_tgt,
+            cell_transition_kwargs=cell_transition_kwargs,
         )
 
     @property
