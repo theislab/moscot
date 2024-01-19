@@ -208,7 +208,6 @@ class CrossModalityTranslationMixin(AnalysisMixin[K, B]):
             - ``'max'`` - pick the label of the annotated cell with the highest matching probability.
             - ``'sum'`` - aggregate the annotated cells by label then
               pick the label with the highest total matching probability.
-              
         annotation_label
             Key in :attr:`~anndata.AnnData.obs` where the annotation is stored.
         forward
@@ -222,7 +221,7 @@ class CrossModalityTranslationMixin(AnalysisMixin[K, B]):
 
         Returns
         -------
-        :class:`~pandas.DataFrame`. - returns the DataFrame of transferred annotations.
+        :class:`~pandas.DataFrame` - Returns the DataFrame of transferred annotations.
         """
         return self._annotation_mapping(
             mapping_mode=mapping_mode,

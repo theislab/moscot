@@ -318,7 +318,7 @@ class SpatialAlignmentMixin(AnalysisMixin[K, B]):
 
         Returns
         -------
-        :class:`~pandas.DataFrame` - returns the DataFrame of transferred annotations.
+        :class:`~pandas.DataFrame` - Returns the DataFrame of transferred annotations.
         """
         return self._annotation_mapping(
             mapping_mode=mapping_mode,
@@ -653,7 +653,7 @@ class SpatialMappingMixin(AnalysisMixin[K, B]):
 
         Returns
         -------
-        :class:`~pandas.DataFrame` - returns the DataFrame of transferred annotations.
+        :class:`~pandas.DataFrame` - Returns the DataFrame of transferred annotations.
         """
         return self._annotation_mapping(
             mapping_mode=mapping_mode,
