@@ -62,7 +62,7 @@ class TestTemporalMixin:
         problem[problem_keys]._solution = MockSolverOutput(gt_tm_annotation)
         annotation_label = "celltype1" if forward else "celltype2"
         result = problem.annotation_mapping(
-            mapping_mode=mapping_mode, annotation_label=annotation_label, forward=forward, source=0, target=1
+            mapping_mode=mapping_mode, annotation_label=annotation_label, forward=forward, source=0, target=1, batch_size=7,
         )
         if forward:
             expected_result = (

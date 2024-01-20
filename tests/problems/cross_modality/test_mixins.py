@@ -122,7 +122,7 @@ class TestCrossModalityTranslationAnalysisMixin:
         tp[problem_keys].set_solution(MockSolverOutput(gt_tm_annotation), overwrite=True)
         annotation_label = "celltype1" if forward else "celltype2"
         result = tp.annotation_mapping(
-            mapping_mode=mapping_mode, annotation_label=annotation_label, forward=forward, source="src", target="tgt"
+            mapping_mode=mapping_mode, annotation_label=annotation_label, forward=forward, source="src", target="tgt", batch_size=7,
         )
         if forward:
             expected_result = (

@@ -110,6 +110,7 @@ class TestSpatialAlignmentAnalysisMixin:
             source="0",
             target="1",
             forward=forward,
+            batch_size=7,
         )
         if forward:
             expected_result = (
@@ -221,6 +222,7 @@ class TestSpatialMappingAnalysisMixin:
             annotation_label=annotation_label,
             source="src",
             forward=forward,
+            batch_size=7,
         )
         if not forward:
             expected_result = adataref.uns["expected_max1"] if mapping_mode == "max" else adataref.uns["expected_sum1"]

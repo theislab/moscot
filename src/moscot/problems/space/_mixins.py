@@ -292,6 +292,7 @@ class SpatialAlignmentMixin(AnalysisMixin[K, B]):
         source: str = "src",
         target: str = "tgt",
         cell_transition_kwargs: Mapping[str, Any] = types.MappingProxyType({}),
+        **kwargs: Mapping[str, Any]
     ) -> pd.DataFrame:
         """Transfer annotations between distributions.
 
@@ -328,6 +329,7 @@ class SpatialAlignmentMixin(AnalysisMixin[K, B]):
             key=self.batch_key,
             forward=forward,
             cell_transition_kwargs=cell_transition_kwargs,
+            **kwargs
         )
 
     @property
@@ -627,6 +629,7 @@ class SpatialMappingMixin(AnalysisMixin[K, B]):
         target: Union[K, str] = "tgt",
         forward: bool = False,
         cell_transition_kwargs: Mapping[str, Any] = types.MappingProxyType({}),
+        **kwargs: Mapping[str, Any]
     ) -> pd.DataFrame:
         """Transfer annotations between distributions.
 
@@ -664,6 +667,7 @@ class SpatialMappingMixin(AnalysisMixin[K, B]):
             key=self.batch_key,
             other_adata=self.adata_sc,
             cell_transition_kwargs=cell_transition_kwargs,
+            **kwargs
         )
 
     @property
