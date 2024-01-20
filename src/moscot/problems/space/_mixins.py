@@ -291,7 +291,7 @@ class SpatialAlignmentMixin(AnalysisMixin[K, B]):
         forward: bool,
         source: str = "src",
         target: str = "tgt",
-        batch_size: int | None = None,
+        batch_size: Optional[int] = None,
         cell_transition_kwargs: Mapping[str, Any] = types.MappingProxyType({}),
         **kwargs: Mapping[str, Any],
     ) -> pd.DataFrame:
@@ -633,7 +633,7 @@ class SpatialMappingMixin(AnalysisMixin[K, B]):
         source: K,
         target: Union[K, str] = "tgt",
         forward: bool = False,
-        batch_size: int | None = None,
+        batch_size: Optional[int] = None,
         cell_transition_kwargs: Mapping[str, Any] = types.MappingProxyType({}),
         **kwargs: Mapping[str, Any],
     ) -> pd.DataFrame:
