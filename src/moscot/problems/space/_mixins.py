@@ -291,6 +291,7 @@ class SpatialAlignmentMixin(AnalysisMixin[K, B]):
         forward: bool,
         source: str = "src",
         target: str = "tgt",
+        batch_size: int | None = None,
         cell_transition_kwargs: Mapping[str, Any] = types.MappingProxyType({}),
         **kwargs: Mapping[str, Any],
     ) -> pd.DataFrame:
@@ -314,6 +315,9 @@ class SpatialAlignmentMixin(AnalysisMixin[K, B]):
             Key identifying the source distribution.
         target
             Key identifying the target distribution.
+        batch_size
+            Number of rows/columns of the cost matrix to materialize during :meth:`push` or :meth:`pull`.
+            Larger value will require more memory.
         cell_transition_kwargs
             Keyword arguments for :meth:`cell_transition`, used only if ``mapping_mode = 'sum'``.
 
@@ -328,6 +332,7 @@ class SpatialAlignmentMixin(AnalysisMixin[K, B]):
             target=target,
             key=self.batch_key,
             forward=forward,
+            batch_size=batch_size,
             cell_transition_kwargs=cell_transition_kwargs,
             **kwargs,
         )
@@ -628,6 +633,7 @@ class SpatialMappingMixin(AnalysisMixin[K, B]):
         source: K,
         target: Union[K, str] = "tgt",
         forward: bool = False,
+        batch_size: int | None = None,
         cell_transition_kwargs: Mapping[str, Any] = types.MappingProxyType({}),
         **kwargs: Mapping[str, Any],
     ) -> pd.DataFrame:
@@ -651,6 +657,9 @@ class SpatialMappingMixin(AnalysisMixin[K, B]):
             Key identifying the source distribution.
         target
             Key identifying the target distribution.
+        batch_size
+            Number of rows/columns of the cost matrix to materialize during :meth:`push` or :meth:`pull`.
+            Larger value will require more memory.
         cell_transition_kwargs
             Keyword arguments for :meth:`cell_transition`, used only if ``mapping_mode = 'sum'``.
 
@@ -666,6 +675,7 @@ class SpatialMappingMixin(AnalysisMixin[K, B]):
             forward=forward,
             key=self.batch_key,
             other_adata=self.adata_sc,
+            batch_size=batch_size,
             cell_transition_kwargs=cell_transition_kwargs,
             **kwargs,
         )

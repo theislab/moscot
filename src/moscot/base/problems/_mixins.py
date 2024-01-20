@@ -320,6 +320,7 @@ class AnalysisMixin(Generic[K, B]):
             cell_transition_kwargs.setdefault("target", target)
             cell_transition_kwargs.setdefault("other_adata", other_adata)
             cell_transition_kwargs.setdefault("forward", not forward)
+            cell_transition_kwargs.setdefault("batch_size", batch_size)
             if forward:
                 cell_transition_kwargs.setdefault("source_groups", annotation_label)
                 cell_transition_kwargs.setdefault("target_groups", None)

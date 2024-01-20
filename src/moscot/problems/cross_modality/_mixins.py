@@ -194,6 +194,7 @@ class CrossModalityTranslationMixin(AnalysisMixin[K, B]):
         forward: bool,
         source: str = "src",
         target: str = "tgt",
+        batch_size: int | None = None,
         cell_transition_kwargs: Mapping[str, Any] = types.MappingProxyType({}),
         **kwargs: Mapping[str, Any],
     ) -> pd.DataFrame:
@@ -217,6 +218,9 @@ class CrossModalityTranslationMixin(AnalysisMixin[K, B]):
             Key identifying the source distribution.
         target
             Key identifying the target distribution.
+        batch_size
+            Number of rows/columns of the cost matrix to materialize during :meth:`push` or :meth:`pull`.
+            Larger value will require more memory.
         cell_transition_kwargs
             Keyword arguments for :meth:`cell_transition`, used only if ``mapping_mode = 'sum'``.
 
@@ -232,6 +236,7 @@ class CrossModalityTranslationMixin(AnalysisMixin[K, B]):
             key=self.batch_key,
             forward=forward,
             other_adata=self.adata_tgt,
+            batch_size=batch_size,
             cell_transition_kwargs=cell_transition_kwargs,
             **kwargs,
         )
