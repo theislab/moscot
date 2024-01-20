@@ -195,7 +195,7 @@ class CrossModalityTranslationMixin(AnalysisMixin[K, B]):
         source: str = "src",
         target: str = "tgt",
         cell_transition_kwargs: Mapping[str, Any] = types.MappingProxyType({}),
-        **kwargs: Mapping[str, Any]
+        **kwargs: Mapping[str, Any],
     ) -> pd.DataFrame:
         """Transfer annotations between distributions.
 
@@ -233,7 +233,7 @@ class CrossModalityTranslationMixin(AnalysisMixin[K, B]):
             forward=forward,
             other_adata=self.adata_tgt,
             cell_transition_kwargs=cell_transition_kwargs,
-            **kwargs
+            **kwargs,
         )
 
     @property

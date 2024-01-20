@@ -353,7 +353,7 @@ class AnalysisMixin(Generic[K, B]):
                         split_mass=True,
                         key_added=None,
                     )
-                    v = (tm_batch.argmax(0))
+                    v = tm_batch.argmax(0)
                     out.extend(source_df[annotation_label][v[i]] for i in range(len(v)))
 
             else:
@@ -377,7 +377,7 @@ class AnalysisMixin(Generic[K, B]):
                         split_mass=True,
                         key_added=None,
                     )
-                    v = (tm_batch.argmax(0))
+                    v = tm_batch.argmax(0)
                     out.extend(target_df[annotation_label][v[i]] for i in range(len(v)))
             categories = pd.Categorical(out)
             return pd.DataFrame(categories, columns=[annotation_label])

@@ -248,7 +248,7 @@ class TemporalMixin(AnalysisMixin[K, B]):
         source: K,
         target: K,
         cell_transition_kwargs: Mapping[str, Any] = types.MappingProxyType({}),
-        **kwargs: Mapping[str, Any]
+        **kwargs: Mapping[str, Any],
     ) -> pd.DataFrame:
         """Transfer annotations between distributions.
 
@@ -286,7 +286,7 @@ class TemporalMixin(AnalysisMixin[K, B]):
             forward=forward,
             other_adata=None,
             cell_transition_kwargs=cell_transition_kwargs,
-            **kwargs
+            **kwargs,
         )
 
     def sankey(
