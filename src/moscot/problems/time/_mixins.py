@@ -247,7 +247,7 @@ class TemporalMixin(AnalysisMixin[K, B]):
         forward: bool,
         source: K,
         target: K,
-        batch_size: int | None = None,
+        batch_size: Optional[int] = None,
         cell_transition_kwargs: Mapping[str, Any] = types.MappingProxyType({}),
         **kwargs: Mapping[str, Any],
     ) -> pd.DataFrame:
@@ -273,6 +273,7 @@ class TemporalMixin(AnalysisMixin[K, B]):
             Key identifying the target distribution.
         batch_size
             Number of rows/columns of the cost matrix to materialize during :meth:`push` or :meth:`pull`.
+            If :obj:`None`, the entire cost matrix will be materialized.
             Larger value will require more memory.
         cell_transition_kwargs
             Keyword arguments for :meth:`cell_transition`, used only if ``mapping_mode = 'sum'``.
