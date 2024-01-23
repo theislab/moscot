@@ -53,8 +53,9 @@ class TestTemporalMixin:
     @pytest.mark.fast()
     @pytest.mark.parametrize("forward", [True, False])
     @pytest.mark.parametrize("mapping_mode", ["max", "sum"])
+    @pytest.mark.parametrize("batch_size", [3, 7, None])
     @pytest.mark.parametrize("problem_kind", ["temporal"])
-    def test_annotation_mapping(self, adata_anno: AnnData, forward: bool, mapping_mode, gt_tm_annotation):
+    def test_annotation_mapping(self, adata_anno: AnnData, forward: bool, mapping_mode, batch_size, gt_tm_annotation):
         problem = TemporalProblem(adata_anno)
         problem_keys = (0, 1)
         problem = problem.prepare(time_key="day", joint_attr="X_pca")
@@ -62,7 +63,12 @@ class TestTemporalMixin:
         problem[problem_keys]._solution = MockSolverOutput(gt_tm_annotation)
         annotation_label = "celltype1" if forward else "celltype2"
         result = problem.annotation_mapping(
-            mapping_mode=mapping_mode, annotation_label=annotation_label, forward=forward, source=0, target=1
+            mapping_mode=mapping_mode,
+            annotation_label=annotation_label,
+            forward=forward,
+            source=0,
+            target=1,
+            batch_size=batch_size,
         )
         if forward:
             expected_result = (
