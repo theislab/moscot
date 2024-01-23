@@ -273,8 +273,8 @@ class TemporalMixin(AnalysisMixin[K, B]):
             Key identifying the target distribution.
         batch_size
             Number of rows/columns of the cost matrix to materialize during :meth:`push` or :meth:`pull`.
-            If :obj:`None`, the entire cost matrix will be materialized.
             Larger value will require more memory.
+            If :obj:`None`, the entire cost matrix will be materialized.
         cell_transition_kwargs
             Keyword arguments for :meth:`cell_transition`, used only if ``mapping_mode = 'sum'``.
 
