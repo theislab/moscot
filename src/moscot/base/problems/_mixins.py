@@ -320,6 +320,7 @@ class AnalysisMixin(Generic[K, B]):
             cell_transition_kwargs.setdefault("target", target)
             cell_transition_kwargs.setdefault("other_adata", other_adata)
             cell_transition_kwargs.setdefault("forward", not forward)
+            cell_transition_kwargs.setdefault("batch_size", batch_size)
             if forward:
                 cell_transition_kwargs.setdefault("source_groups", annotation_label)
                 cell_transition_kwargs.setdefault("target_groups", None)
@@ -342,7 +343,7 @@ class AnalysisMixin(Generic[K, B]):
                 out_len = self.solutions[(source, target)].shape[1]
                 batch_size = batch_size if batch_size is not None else out_len
                 for batch in range(0, out_len, batch_size):
-                    tm_batch: ArrayLike = self.push(
+                    tm_batch: ArrayLike = self.pull(
                         source=source,
                         target=target,
                         data=None,
@@ -353,7 +354,7 @@ class AnalysisMixin(Generic[K, B]):
                         split_mass=True,
                         key_added=None,
                     )
-                    v = np.array(tm_batch.argmax(1))
+                    v = np.array(tm_batch.argmax(0))
                     out.extend(source_df[annotation_label][v[i]] for i in range(len(v)))
 
             else:
@@ -366,7 +367,7 @@ class AnalysisMixin(Generic[K, B]):
                 out_len = self.solutions[(source, target)].shape[0]
                 batch_size = batch_size if batch_size is not None else out_len
                 for batch in range(0, out_len, batch_size):
-                    tm_batch: ArrayLike = self.pull(  # type: ignore[no-redef]
+                    tm_batch: ArrayLike = self.push(  # type: ignore[no-redef]
                         source=source,
                         target=target,
                         data=None,
@@ -377,7 +378,7 @@ class AnalysisMixin(Generic[K, B]):
                         split_mass=True,
                         key_added=None,
                     )
-                    v = np.array(tm_batch.argmax(1))
+                    v = np.array(tm_batch.argmax(0))
                     out.extend(target_df[annotation_label][v[i]] for i in range(len(v)))
             categories = pd.Categorical(out)
             return pd.DataFrame(categories, columns=[annotation_label])

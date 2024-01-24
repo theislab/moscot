@@ -96,8 +96,9 @@ class TestSpatialAlignmentAnalysisMixin:
     @pytest.mark.fast()
     @pytest.mark.parametrize("forward", [True, False])
     @pytest.mark.parametrize("mapping_mode", ["max", "sum"])
+    @pytest.mark.parametrize("batch_size", [3, 7, None])
     @pytest.mark.parametrize("problem_kind", ["alignment"])
-    def test_annotation_mapping(self, adata_anno: AnnData, forward: bool, mapping_mode, gt_tm_annotation):
+    def test_annotation_mapping(self, adata_anno: AnnData, forward: bool, mapping_mode, batch_size, gt_tm_annotation):
         ap = AlignmentProblem(adata=adata_anno)
         ap = ap.prepare(batch_key="batch", joint_attr={"attr": "X"})
         problem_keys = ("0", "1")
@@ -110,6 +111,7 @@ class TestSpatialAlignmentAnalysisMixin:
             source="0",
             target="1",
             forward=forward,
+            batch_size=batch_size,
         )
         if forward:
             expected_result = (
@@ -207,8 +209,9 @@ class TestSpatialMappingAnalysisMixin:
     @pytest.mark.fast()
     @pytest.mark.parametrize("forward", [True, False])
     @pytest.mark.parametrize("mapping_mode", ["max", "sum"])
+    @pytest.mark.parametrize("batch_size", [3, 7, None])
     @pytest.mark.parametrize("problem_kind", ["mapping"])
-    def test_annotation_mapping(self, adata_anno: AnnData, forward: bool, mapping_mode, gt_tm_annotation):
+    def test_annotation_mapping(self, adata_anno: AnnData, forward: bool, mapping_mode, batch_size, gt_tm_annotation):
         adataref, adatasp = adata_anno
         mp = MappingProblem(adataref, adatasp)
         mp = mp.prepare(sc_attr={"attr": "obsm", "key": "X_pca"}, joint_attr={"attr": "X"})
@@ -221,6 +224,7 @@ class TestSpatialMappingAnalysisMixin:
             annotation_label=annotation_label,
             source="src",
             forward=forward,
+            batch_size=batch_size,
         )
         if not forward:
             expected_result = adataref.uns["expected_max1"] if mapping_mode == "max" else adataref.uns["expected_sum1"]

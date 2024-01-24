@@ -110,9 +110,10 @@ class TestCrossModalityTranslationAnalysisMixin:
     @pytest.mark.fast()
     @pytest.mark.parametrize("forward", [True, False])
     @pytest.mark.parametrize("mapping_mode", ["max", "sum"])
+    @pytest.mark.parametrize("batch_size", [3, 7, None])
     @pytest.mark.parametrize("problem_kind", ["cross_modality"])
     def test_annotation_mapping(
-        self, adata_anno: Tuple[AnnData, AnnData], forward: bool, mapping_mode, gt_tm_annotation
+        self, adata_anno: Tuple[AnnData, AnnData], forward: bool, mapping_mode, batch_size, gt_tm_annotation
     ):
         adata_src, adata_tgt = adata_anno
         tp = TranslationProblem(adata_src, adata_tgt)
@@ -122,7 +123,12 @@ class TestCrossModalityTranslationAnalysisMixin:
         tp[problem_keys].set_solution(MockSolverOutput(gt_tm_annotation), overwrite=True)
         annotation_label = "celltype1" if forward else "celltype2"
         result = tp.annotation_mapping(
-            mapping_mode=mapping_mode, annotation_label=annotation_label, forward=forward, source="src", target="tgt"
+            mapping_mode=mapping_mode,
+            annotation_label=annotation_label,
+            forward=forward,
+            source="src",
+            target="tgt",
+            batch_size=batch_size,
         )
         if forward:
             expected_result = (
