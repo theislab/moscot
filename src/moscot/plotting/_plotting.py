@@ -294,7 +294,8 @@ def push(
 
     fig = _plot_temporal(
         adata=adata,
-        temporal_key=data["temporal_key"],
+        temporal_key=data["temporal_key"] if "temporal_key" in data else None,
+        generic_key=data["key"] if "key" in data else None,
         key_stored=key,
         source=data["source"],
         target=data["target"],
@@ -402,7 +403,8 @@ def pull(
 
     fig = _plot_temporal(
         adata=adata,
-        temporal_key=data["temporal_key"],
+        temporal_key=data["temporal_key"] if "temporal_key" in data else None,
+        generic_key=data["key"] if "key" in data else None,
         key_stored=key,
         source=data["source"],
         target=data["target"],

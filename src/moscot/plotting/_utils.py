@@ -379,6 +379,7 @@ def _input_to_adatas(
 def _plot_temporal(
     adata: AnnData,
     temporal_key: str,
+    generic_key: str,
     key_stored: str,
     source: float,
     target: float,
@@ -431,6 +432,9 @@ def _plot_temporal(
         else:
             titles = [
                 f"{categories if categories is not None else 'Cells'} at time {source if push else target} and {name}"
+            ] if generic_key is None else [
+                f"{'Push' if push else 'Pull'} {categories if categories is not None else 'cells'} " +
+                f"from {source if push else target} to {target if push else source}"
             ]
     for i, ax in enumerate(axs):
         # we need to create adata_view because otherwise the view of the adata is copied in the next step i+1
