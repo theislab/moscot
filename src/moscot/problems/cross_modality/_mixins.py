@@ -22,11 +22,9 @@ class CrossModalityTranslationMixinProtocol(AnalysisMixinProtocol[K, B]):
     _tgt_attr: Optional[Dict[str, Any]]
     batch_key: Optional[str]
 
-    def _cell_transition(self: AnalysisMixinProtocol[K, B], *args: Any, **kwargs: Any) -> pd.DataFrame:
-        ...
+    def _cell_transition(self: AnalysisMixinProtocol[K, B], *args: Any, **kwargs: Any) -> pd.DataFrame: ...
 
-    def _annotation_mapping(self: AnalysisMixinProtocol[K, B], *args: Any, **kwargs: Any) -> pd.DataFrame:
-        ...
+    def _annotation_mapping(self: AnalysisMixinProtocol[K, B], *args: Any, **kwargs: Any) -> pd.DataFrame: ...
 
 
 class CrossModalityTranslationMixin(AnalysisMixin[K, B]):
