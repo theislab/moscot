@@ -13,7 +13,7 @@ repos:
         additional_dependencies: [numpy>=1.25.0]
         files: ^src
   - repo: https://github.com/psf/black
-    rev: 23.12.1
+    rev: 24.1.1
     hooks:
       - id: black
         additional_dependencies: [toml]
