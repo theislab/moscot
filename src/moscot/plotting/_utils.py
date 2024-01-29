@@ -430,12 +430,14 @@ def _plot_temporal(
             titles = [f"{categories if categories is not None else 'Cells'} at time {source if push else target}"]
             titles.extend([f"{name} at time {time_points[i]}" for i in range(1, len(time_points))])
         else:
-            titles = [
-                f"{categories if categories is not None else 'Cells'} at time {source if push else target} and {name}"
-            ] if generic_key is None else [
-                f"{'Push' if push else 'Pull'} {categories if categories is not None else 'cells'} " +
-                f"from {source if push else target} to {target if push else source}"
-            ]
+            titles = (
+                [f"{categories if categories is not None else 'Cells'} at time {source if push else target} and {name}"]
+                if generic_key is None
+                else [
+                    f"{'Push' if push else 'Pull'} {categories if categories is not None else 'cells'} "
+                    + f"from {source if push else target} to {target if push else source}"
+                ]
+            )
     for i, ax in enumerate(axs):
         # we need to create adata_view because otherwise the view of the adata is copied in the next step i+1
         with RandomKeys(adata, n=2, where="obs") as keys:
