@@ -165,7 +165,7 @@ class BirthDeathProblem(BirthDeathMixin, OTProblem):
         source: bool,
         proliferation_key: Optional[str] = None,
         apoptosis_key: Optional[str] = None,
-        scaling: Optional[float] = 1.0,
+        scaling: float = 1.0,
         **kwargs: Any,
     ) -> ArrayLike:
         """Estimate the source or target :term:`marginals` based on marker genes, either with the
