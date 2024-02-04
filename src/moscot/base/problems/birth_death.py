@@ -38,8 +38,7 @@ class BirthDeathProtocol(Protocol):  # noqa: D101
         proliferation_key: str = "proliferation",
         apoptosis_key: str = "apoptosis",
         **kwargs: Any,
-    ) -> "BirthDeathProtocol":
-        ...
+    ) -> "BirthDeathProtocol": ...
 
 
 class BirthDeathProblemProtocol(BirthDeathProtocol, Protocol):  # noqa: D101

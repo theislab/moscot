@@ -58,23 +58,20 @@ class AnalysisMixinProtocol(Protocol[K, B]):
         return_all: bool = False,
         scale_by_marginals: bool = False,
         **kwargs: Any,
-    ) -> ApplyOutput_t[K]:
-        ...
+    ) -> ApplyOutput_t[K]: ...
 
     def _interpolate_transport(
         self: AnalysisMixinProtocol[K, B],
         path: Sequence[tuple[K, K]],
         scale_by_marginals: bool = True,
-    ) -> LinearOperator:
-        ...
+    ) -> LinearOperator: ...
 
     def _flatten(
         self: AnalysisMixinProtocol[K, B],
         data: dict[K, ArrayLike],
         *,
         key: Optional[str],
-    ) -> ArrayLike:
-        ...
+    ) -> ArrayLike: ...
 
     def push(self, *args: Any, **kwargs: Any) -> Optional[ApplyOutput_t[K]]:
         """Push distribution."""
@@ -93,8 +90,7 @@ class AnalysisMixinProtocol(Protocol[K, B]):
         aggregation_mode: Literal["annotation", "cell"] = "annotation",
         key_added: Optional[str] = _constants.CELL_TRANSITION,
         **kwargs: Any,
-    ) -> pd.DataFrame:
-        ...
+    ) -> pd.DataFrame: ...
 
     def _cell_transition_online(
         self: AnalysisMixinProtocol[K, B],
@@ -109,8 +105,7 @@ class AnalysisMixinProtocol(Protocol[K, B]):
         other_adata: Optional[str] = None,
         batch_size: Optional[int] = None,
         normalize: bool = True,
-    ) -> pd.DataFrame:
-        ...
+    ) -> pd.DataFrame: ...
 
     def _annotation_mapping(
         self: AnalysisMixinProtocol[K, B],
@@ -123,8 +118,7 @@ class AnalysisMixinProtocol(Protocol[K, B]):
         other_adata: Optional[str] = None,
         scale_by_marginals: bool = True,
         cell_transition_kwargs: Mapping[str, Any] = types.MappingProxyType({}),
-    ) -> pd.DataFrame:
-        ...
+    ) -> pd.DataFrame: ...
 
 
 class AnalysisMixin(Generic[K, B]):

@@ -104,12 +104,12 @@ def cell_transition(
         row_adata=adata1,
         col_adata=adata2,
         transition_matrix=data["transition_matrix"],
-        row_annotation=data["source_groups"]
-        if isinstance(data["source_groups"], str)
-        else next(iter(data["source_groups"])),
-        col_annotation=data["target_groups"]
-        if isinstance(data["target_groups"], str)
-        else next(iter(data["target_groups"])),
+        row_annotation=(
+            data["source_groups"] if isinstance(data["source_groups"], str) else next(iter(data["source_groups"]))
+        ),
+        col_annotation=(
+            data["target_groups"] if isinstance(data["target_groups"], str) else next(iter(data["target_groups"]))
+        ),
         row_annotation_label=data["source"] if row_label is None else row_label,
         col_annotation_label=data["target"] if col_label is None else col_label,
         cont_cmap=cmap,
