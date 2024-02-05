@@ -223,6 +223,7 @@ class BirthDeathProblem(BirthDeathMixin, OTProblem):
             beta_fn = delta_fn = lambda x, *_, **__: x
         else:
             beta_fn, delta_fn = beta, delta
+            scaling = 1.0
         birth = estimate(proliferation_key, fn=beta_fn, **kwargs)
         death = estimate(apoptosis_key, fn=delta_fn, **kwargs)
 
