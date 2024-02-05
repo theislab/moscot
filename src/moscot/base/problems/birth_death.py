@@ -185,7 +185,10 @@ class BirthDeathProblem(BirthDeathMixin, OTProblem):
         apoptosis_key
             Key in :attr:`~anndata.AnnData.obs` where apoptosis scores are stored.
         scaling
-            A scaling parameter to use in prior growth rate estimation.
+            A parameter for prior growth rate estimation.
+            If :obj:`float` is passed, it will be used as a scaling parameter in an exponential kernel
+            with proliferation and apoptosis scores.
+            If :obj:`None`, parameters corresponding to the birth and death processes will be used.
         kwargs
             Keyword arguments for :func:`~moscot.base.problems.birth_death.beta` and
             :func:`~moscot.base.problems.birth_death.delta`.
