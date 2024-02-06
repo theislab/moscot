@@ -376,9 +376,8 @@ def _input_to_adatas(
     raise ValueError(f"Unable to interpret input of type `{type(inp)}`.")
 
 
-def _plot_temporal(
+def _plot_scatter(
     adata: AnnData,
-    temporal_key: str,
     generic_key: str,
     key_stored: str,
     source: float,
@@ -452,7 +451,7 @@ def _plot_temporal(
                 adata_view = adata
             else:
                 tmp = np.full(len(adata), constant_fill_value)
-                mask = adata.obs[temporal_key] == time_points[i]
+                mask = adata.obs[generic_key] == time_points[i]
 
                 tmp[mask] = adata[mask].obs[key_stored]
                 if scale:
