@@ -12,6 +12,7 @@ from typing import (
     Optional,
     Set,
     Tuple,
+    Type,
     TypeVar,
     Union,
 )
@@ -25,6 +26,8 @@ from ott.problems.quadratic import quadratic_problem
 from ott.solvers.linear import sinkhorn, sinkhorn_lr
 from ott.solvers.quadratic import gromov_wasserstein, gromov_wasserstein_lr
 from ott.neural.models.base_solver import BaseNeuralSolver # TODO(ilan-gold): package structure will change when michaln reviews
+from ott.neural.flows.genot import GENOT
+from ott.neural.data.dataloaders import OTDataLoader, ConditionalDataLoader
 
 from moscot._types import (
     ArrayLike,
@@ -32,14 +35,13 @@ from moscot._types import (
     QuadInitializer_t,
     SinkhornInitializer_t,
 )
-from moscot.backends.ott._jax_data import JaxSampler
 from moscot.backends.ott._utils import alpha_to_fused_penalty, check_shapes, ensure_2d
-from moscot.backends.ott.output import CondNeuralDualOutput, NeuralDualOutput, OTTOutput
+from moscot.backends.ott.output import OTTNeuralOutput, OTTOutput
 from moscot.base.solver import OTSolver
 from moscot.costs import get_cost
 from moscot.utils.tagged_array import DistributionCollection, TaggedArray
 
-__all__ = ["SinkhornSolver", "GWSolver", "NeuralDualSolver", "CondNeuralDualSolver"]
+__all__ = ["SinkhornSolver", "GWSolver", "LinearConditionalNeuralSolver"]
 
 OTTSolver_t = Union[
     sinkhorn.Sinkhorn,
@@ -375,83 +377,81 @@ class GWSolver(OTTJaxSolver):
         problem_kwargs |= {"alpha"}
         return geom_kwargs | problem_kwargs, {"epsilon"}
 
+class LinearConditionalNeuralSolver(OTSolver[OTTOutput]):
 
-class NeuralDualSolver(OTSolver[OTTOutput]):
-    """Solver class solving Neural Optimal Transport problems."""
-
-    def __init__(self, **kwargs: Any) -> None:
+    def __init__(self, solver: Type[BaseNeuralSolver] = type(GENOT), **kwargs: Any) -> None:
         super().__init__()
-        self._train_sampler: Optional[JaxSampler] = None
-        self._valid_sampler: Optional[JaxSampler] = None
-        self._solver = BaseNeuralSolver(**kwargs)
+        self._train_sampler: Optional[ConditionalDataLoader] = None
+        self._valid_sampler: Optional[ConditionalDataLoader] = None
+        self._solver = solver(**kwargs)
 
     def _prepare(  # type: ignore[override]
         self,
-        xy: TaggedArray,
-        a: Optional[ArrayLike] = None,
-        b: Optional[ArrayLike] = None,
+        distributions: DistributionCollection[K],
+        sample_pairs: List[Tuple[Any, Any]],
         train_size: float = 0.9,
         batch_size: int = 1024,
         **kwargs: Any,
-    ) -> Tuple[JaxSampler, JaxSampler]:
-        if xy.data_tgt is None:
-            raise ValueError(f"Unable to obtain target data from `xy={xy}`.")
-        x, y = self._assert2d(xy.data_src), self._assert2d(xy.data_tgt)
-        n, m = x.shape[1], y.shape[1]
-        if n != m:
-            raise ValueError(f"Expected `x/y` to have the same number of dimensions, found `{n}/{m}`.")
-        if train_size > 1.0 or train_size <= 0.0:
-            raise ValueError("Invalid train_size. Must be: 0 < train_size <= 1")
-        if train_size != 1.0:
-            seed = kwargs.pop("seed", 0)
-            dist_data_source = self._split_data(x, conditions=None, train_size=train_size, seed=seed, a=a)
-            dist_data_target = self._split_data(y, conditions=None, train_size=train_size, seed=seed, b=b)
+    ) -> Tuple[ConditionalDataLoader, ConditionalDataLoader]:
+        train_loaders = []
+        validate_loaders = []
+        if train_size == 1.0:
+            for sample_pair in sample_pairs:
+                source_key = sample_pair[0]
+                target_key = sample_pair[1]
+                loader = OTDataLoader(
+                    batch_size=batch_size,
+                    source_lin=distributions[source_key].xy,
+                    target_lin=distributions[target_key].xy,
+                    source_conditions=distributions[source_key].conditions,
+                    target_conditions=distributions[target_key].conditions
+                )
+                train_loaders.append(loader)
+                validate_loaders.append(loader)
         else:
-            dist_data_source = SingleDistributionData(
-                data_train=x,
-                data_valid=x,
-                conditions_train=None,
-                conditions_valid=None,
-                a_train=a,
-                a_valid=a,
-                b_train=None,
-                b_valid=None,
-            )
-            dist_data_target = SingleDistributionData(
-                data_train=y,
-                data_valid=y,
-                conditions_train=None,
-                conditions_valid=None,
-                a_train=None,
-                a_valid=None,
-                b_train=b,
-                b_valid=b,
-            )
+            if train_size > 1.0 or train_size <= 0.0:
+                raise ValueError("Invalid train_size. Must be: 0 < train_size <= 1")
 
-        self._train_sampler = JaxSampler(
-            [dist_data_source.data_train, dist_data_target.data_train],
-            policy_pairs=[(0, 1)],
-            conditions=None,
-            a=[dist_data_source.a_train, None],
-            b=[None, dist_data_target.b_train],
-            batch_size=batch_size,
-            **kwargs,
-        )
-        self._valid_sampler = JaxSampler(
-            [dist_data_source.data_valid, dist_data_target.data_valid],
-            policy_pairs=[(0, 1)],
-            conditions=None,
-            a=[dist_data_source.a_valid, None],
-            b=[None, dist_data_target.b_valid],
-            batch_size=batch_size,
-            **kwargs,
-        )
-        return (self._train_sampler, self._valid_sampler)
+            seed = kwargs.pop("seed", 0)
+            for sample_pair in sample_pairs:
+                source_key = sample_pair[0]
+                target_key = sample_pair[1]
+                source_split_data = self._split_data(
+                    distributions[source_key].xy,
+                    conditions=distributions[source_key].conditions,
+                    train_size=train_size,
+                    seed=seed,
+                    a=distributions[source_key].a,
+                    b=distributions[source_key].b,
+                )
+                target_split_data = self._split_data(
+                    distributions[target_key].xy,
+                    conditions=distributions[target_key].conditions,
+                    train_size=train_size,
+                    seed=seed,
+                    a=distributions[target_key].a,
+                    b=distributions[target_key].b,
+                )
+                train_loader = OTDataLoader(
+                    batch_size=batch_size,
+                    source_lin=source_split_data.data_train,
+                    target_lin=target_split_data.data_train,
+                    source_conditions=source_split_data.conditions_train,
+                    target_conditions=target_split_data.conditions_train
+                )
+                validate_loader = OTDataLoader(
+                    batch_size=batch_size,
+                    source_lin=source_split_data.data_valid,
+                    target_lin=target_split_data.data_valid,
+                    source_conditions=source_split_data.conditions_valid,
+                    target_conditions=target_split_data.conditions_valid
+                )
+                train_loaders.append(train_loader)
+                validate_loaders.append(validate_loader)
+        # TODO(ilan-gold) weighting for probability of sampling
+        return ConditionalDataLoader(dict(enumerate(train_loaders)), [1. / len(sample_pairs)] * len(sample_pairs), seed=seed)
 
-    def _solve(self, data_samplers: Tuple[JaxSampler, JaxSampler]) -> NeuralDualOutput:  # type: ignore[override]
-        output, model, logs = self.solver(data_samplers[0], data_samplers[1])
-        return NeuralDualOutput(output, model, logs)
-
+                
     @staticmethod
     def _assert2d(arr: ArrayLike, *, allow_reshape: bool = True) -> jnp.ndarray:
         arr: jnp.ndarray = jnp.asarray(arr.A if sp.issparse(arr) else arr)  # type: ignore[no-redef, attr-defined]   # noqa:E501
@@ -495,97 +495,10 @@ class NeuralDualSolver(OTSolver[OTTOutput]):
         """Underlying optimal transport solver."""
         return self._solver
 
-    @property
-    def problem_kind(self) -> ProblemKind_t:
-        """Problem kind."""
-        return "linear"
-
     @classmethod
     def _call_kwargs(cls) -> Tuple[Set[str], Set[str]]:
         return {"batch_size", "train_size", "trainloader", "validloader"}, {}  # type: ignore[return-value]
 
-
-class CondNeuralDualSolver(NeuralDualSolver):
-    """Solver class solving Conditional Neural Optimal Transport problems."""
-
-    def __init__(self, *args, cond_dim: int, **kwargs: Any) -> None:
-        super().__init__(*args, cond_dim=cond_dim, **kwargs)
-
-    def _prepare(  # type: ignore[override]
-        self,
-        distributions: DistributionCollection[K],
-        sample_pairs: List[Tuple[Any, Any]],
-        train_size: float = 0.9,
-        batch_size: int = 1024,
-        **kwargs: Any,
-    ) -> Tuple[JaxSampler, JaxSampler]:
-        train_data: List[Optional[ArrayLike]] = []
-        train_conditions: List[Optional[ArrayLike]] = []
-        train_a: List[Optional[ArrayLike]] = []
-        train_b: List[Optional[ArrayLike]] = []
-        valid_data: List[Optional[ArrayLike]] = []
-        valid_conditions: List[Optional[ArrayLike]] = []
-        valid_a: List[Optional[ArrayLike]] = []
-        valid_b: List[Optional[ArrayLike]] = []
-
-        sample_to_idx = {k: i for i, k in enumerate(distributions.keys())}
-        if train_size == 1.0:
-            train_data = [d.xy for d in distributions.values()]
-            train_conditions = [d.conditions for d in distributions.values()]
-            train_a = [d.a for d in distributions.values()]
-            train_b = [d.b for d in distributions.values()]
-            valid_data, valid_conditions, valid_a, valid_b = train_data, train_conditions, train_a, train_b
-        else:
-            if train_size > 1.0 or train_size <= 0.0:
-                raise ValueError("Invalid train_size. Must be: 0 < train_size <= 1")
-
-            seed = kwargs.pop("seed", 0)
-            for i, (key, dist) in enumerate(distributions.items()):
-                dist_data = self._split_data(  # TODO: adapt for Gromov term
-                    dist.xy,  # type: ignore[arg-type]
-                    conditions=dist.conditions,
-                    train_size=train_size,
-                    seed=seed,
-                    a=dist.a,
-                    b=dist.b,
-                )
-                train_data.append(dist_data.data_train)
-                train_conditions.append(dist_data.conditions_train)
-                train_a.append(dist_data.a_train)
-                train_b.append(dist_data.b_train)
-                valid_data.append(dist_data.data_valid)
-                valid_conditions.append(dist_data.conditions_valid)
-                valid_a.append(dist_data.a_valid)
-                valid_b.append(dist_data.b_valid)
-                sample_to_idx[key] = i
-
-        self._train_sampler = JaxSampler(
-            train_data,
-            sample_pairs,
-            conditions=train_conditions,
-            a=train_a,
-            b=train_b,
-            sample_to_idx=sample_to_idx,
-            batch_size=batch_size,
-            **kwargs,
-        )
-        self._valid_sampler = JaxSampler(
-            valid_data,
-            sample_pairs,
-            conditions=valid_conditions,
-            a=valid_a,
-            b=valid_b,
-            sample_to_idx=sample_to_idx,
-            batch_size=batch_size,
-            **kwargs,
-        )
-
-        return (self._train_sampler, self._valid_sampler)
-
-    def _solve(self, data_samplers: Tuple[JaxSampler, JaxSampler]) -> CondNeuralDualOutput:  # type: ignore[override]
-        cond_dual_potentials, model, logs = self.solver(data_samplers[0], data_samplers[1])
-        return CondNeuralDualOutput(output=cond_dual_potentials, model=model, training_logs=logs)
-
-    @classmethod
-    def _call_kwargs(cls) -> Tuple[Set[str], Set[str]]:
-        return {"train_size", "batch_size"}, {}  # type: ignore[return-value]
+    def _solve(self, data_samplers: Tuple[ConditionalDataLoader, ConditionalDataLoader]) -> OTTNeuralOutput:  # type: ignore[override]
+        self.solver(data_samplers[0], data_samplers[1])
+        return OTTNeuralOutput(self.solver)
