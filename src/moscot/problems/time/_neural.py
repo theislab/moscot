@@ -161,7 +161,7 @@ class TemporalNeuralProblem(  # type: ignore[misc]
         valid_sinkhorn_kwargs: Dict[str, Any] = MappingProxyType({}),
         compute_wasserstein_baseline: bool = True,
         train_size: float = 1.0,
-        solver_name: Literal["NeuralDualSolver"] = "NeuralDualSolver",
+        solver_name: Literal["LinearConditionalNeuralSolver"] = "LinearConditionalNeuralSolver",
         **kwargs: Any,
     ) -> "TemporalNeuralProblem":
         """Solve optimal transport problems defined in :class:`moscot.problems.time.TemporalNeuralProblem`.
@@ -252,7 +252,7 @@ class TemporalNeuralProblem(  # type: ignore[misc]
             valid_sinkhorn_kwargs=valid_sinkhorn_kwargs,
             compute_wasserstein_baseline=compute_wasserstein_baseline,
             train_size=train_size,
-            solver_name="NeuralDualSolver",
+            solver_name="LinearConditionalNeuralSolver",
             **kwargs,
         )  # type:ignore[return-value]
 
@@ -266,4 +266,4 @@ class TemporalNeuralProblem(  # type: ignore[misc]
 
     @property
     def _valid_solver_names(self) -> Tuple[str, ...]:
-        return ("NeuralDualSolver",)
+        return ("LinearConditionalNeuralSolver",)

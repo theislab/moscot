@@ -7,7 +7,7 @@ from ott.geometry import costs
 
 import anndata as ad
 
-from moscot.backends.ott.output import NeuralDualOutput
+from moscot.backends.ott.output import OTTNeuralOutput
 from moscot.base.output import BaseSolverOutput
 from moscot.base.problems import CondOTProblem
 from moscot.problems.generic import (

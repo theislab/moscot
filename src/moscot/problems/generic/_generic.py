@@ -563,7 +563,7 @@ class NeuralProblem(CompoundProblem[K, B], GenericAnalysisMixin[K, B]):
             pretrain_scale=pretrain_scale,
             valid_sinkhorn_kwargs=valid_sinkhorn_kwargs,
             train_size=train_size,
-            solver_name="NeuralDualSolver",
+            solver_name="LinearConditionalNeuralSolver",
             **kwargs,
         )
 
@@ -671,7 +671,7 @@ class ConditionalNeuralProblem(CondOTProblem, GenericAnalysisMixin[K, B]):
             pretrain_scale=pretrain_scale,
             valid_sinkhorn_kwargs=valid_sinkhorn_kwargs,
             train_size=train_size,
-            solver_name="CondNeuralDualSolver",
+            solver_name="LinearConditionalNeuralSolver",
             **kwargs,
         )
 

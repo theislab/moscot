@@ -4,7 +4,7 @@ import numpy as np
 
 import anndata as ad
 
-from moscot.backends.ott.output import NeuralDualOutput
+from moscot.backends.ott.output import OTTNeuralOutput
 from moscot.base.output import BaseNeuralOutput
 from moscot.base.problems import NeuralOTProblem
 from moscot.problems.generic import NeuralProblem  # type: ignore[attr-defined]

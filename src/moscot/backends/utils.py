@@ -9,8 +9,8 @@ if TYPE_CHECKING:
 __all__ = ["get_solver", "register_solver", "get_available_backends"]
 
 register_solver_t = Callable[
-    [Literal["linear", "quadratic"], Optional[Literal["NeuralDualSolver", "CondNeuralDualSolver"]]],
-    Union["ott.SinkhornSolver", "ott.GWSolver", "ott.NeuralDualSolver", "ott.CondNeuralDualSolver"],
+    [Literal["linear", "quadratic"], Optional[Literal["LinearConditionalNeuralSolver"]]],
+    Union["ott.SinkhornSolver", "ott.GWSolver", "ott.LinearConditionalNeuralSolver"],
 ]
 
 
@@ -27,7 +27,7 @@ def get_solver(problem_kind: ProblemKind_t, *, backend: str = "ott", return_clas
 
 def register_solver(
     backend: str,
-) -> Union["ott.SinkhornSolver", "ott.GWSolver", "ott.NeuralDualSolver", "ott.CondNeuralDualSolver"]:
+) -> Union["ott.SinkhornSolver", "ott.GWSolver", "ott.LinearConditionalNeuralSolver"]:
     """Register a solver for a specific backend.
 
     Parameters
@@ -46,20 +46,18 @@ def register_solver(
 @register_solver("ott")  # type: ignore[arg-type]
 def _(
     problem_kind: Literal["linear", "quadratic"],
-    solver_name: Optional[Literal["NeuralDualSolver", "CondNeuralDualSolver"]] = None,
-) -> Union["ott.SinkhornSolver", "ott.GWSolver", "ott.NeuralDualSolver", "ott.CondNeuralDualSolver"]:
+    solver_name: Optional[Literal["LinearConditionalNeuralSolver"]] = None,
+) -> Union["ott.SinkhornSolver", "ott.GWSolver", "ott.LinearConditionalNeuralSolver"]:
     from moscot.backends import ott
 
     if problem_kind == "linear":
-        if solver_name == "NeuralDualSolver":
-            return ott.NeuralDualSolver  # type: ignore[return-value]
-        if solver_name == "CondNeuralDualSolver":
-            return ott.CondNeuralDualSolver  # type: ignore[return-value]
+        if solver_name == "LinearConditionalNeuralSolver":
+            return ott.LinearConditionalNeuralSolver  # type: ignore[return-value]
         if solver_name is None:
             return ott.SinkhornSolver  # type: ignore[return-value]
     if problem_kind == "quadratic":
         return ott.GWSolver  # type: ignore[return-value]
-    raise NotImplementedError(f"Unable to create solver for `{problem_kind!r}` problem.")
+    raise NotImplementedError(f"Unable to create solver for `{problem_kind!r}`, {solver_name} problem.")
 
 
 def get_available_backends() -> Tuple[str, ...]:

@@ -3,28 +3,24 @@ from ott.geometry import costs
 from moscot.backends.ott._utils import sinkhorn_divergence
 from moscot.backends.ott.output import (
     ConditionalDualPotentials,
-    CondNeuralDualOutput,
-    NeuralDualOutput,
     OTTOutput,
+    OTTNeuralOutput
 )
 from moscot.backends.ott.solver import (
-    CondNeuralDualSolver,
     GWSolver,
-    NeuralDualSolver,
     SinkhornSolver,
+    LinearConditionalNeuralSolver,
 )
 from moscot.costs import register_cost
 
 __all__ = [
     "OTTOutput",
-    "NeuralDualOutput",
     "GWSolver",
     "SinkhornSolver",
-    "NeuralDualSolver",
-    "CondNeuralDualSolver",
     "ConditionalDualPotentials",
-    "CondNeuralDualOutput",
+    "OTTNeuralOutput",
     "sinkhorn_divergence",
+    "LinearConditionalNeuralSolver"
 ]
 
 
