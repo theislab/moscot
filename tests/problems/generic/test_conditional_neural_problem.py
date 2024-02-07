@@ -7,7 +7,6 @@ from ott.geometry import costs
 
 import anndata as ad
 
-from moscot.backends.ott.nets import ICNN, MLP_marginal
 from moscot.backends.ott.output import NeuralDualOutput
 from moscot.base.output import BaseSolverOutput
 from moscot.base.problems import CondOTProblem
@@ -97,18 +96,6 @@ class TestConditionalNeuralProblem:
             el = getattr(solver, val)[0] if isinstance(getattr(solver, val), tuple) else getattr(solver, val)
             assert el == neuraldual_args_1[arg]
 
-    def test_pass_custom_mlps(self, adata_time: ad.AnnData):
-        problem = ConditionalNeuralProblem(adata=adata_time)
-        adata_time = adata_time[adata_time.obs["time"].isin((0, 1))]
-        problem = problem.prepare(key="time", joint_attr="X_pca", conditional_attr={"attr": "obs", "key": "time"})
-        input_dim = adata_time.obsm["X_pca"].shape[1]
-        custom_f = ICNN([3, 3], input_dim=input_dim, cond_dim=1)
-        custom_g = ICNN([3, 3], input_dim=input_dim, cond_dim=1)
-
-        problem = problem.solve(iterations=2, f=custom_f, g=custom_g)
-        assert problem.solver.solver.f == custom_f
-        assert problem.solver.solver.g == custom_g
-
     def test_pass_custom_optimizers(self, adata_time: ad.AnnData):
         problem = ConditionalNeuralProblem(adata=adata_time)
         adata_time = adata_time[adata_time.obs["time"].isin((0, 1))]
@@ -118,32 +105,32 @@ class TestConditionalNeuralProblem:
 
         problem = problem.solve(iterations=2, optimizer_f=custom_opt_f, optimizer_g=custom_opt_g)
 
-    def test_learning_rescaling_factors(self, adata_time: ad.AnnData):
-        hidden_dim = 10
-        problem = ConditionalNeuralProblem(adata=adata_time)
-        mlp_eta = MLP_marginal(hidden_dim)
-        mlp_xi = MLP_marginal(hidden_dim)
-        adata_time = adata_time[adata_time.obs["time"].isin((0, 1))]
-        problem = problem.prepare(key="time", joint_attr="X_pca", conditional_attr={"attr": "obs", "key": "time"})
-        problem = problem.solve(mlp_eta=mlp_eta, mlp_xi=mlp_xi, **neuraldual_args_2)
-        assert isinstance(problem.solution, BaseSolverOutput)
-        assert isinstance(problem.solution, NeuralDualOutput)
+    # def test_learning_rescaling_factors(self, adata_time: ad.AnnData):
+    #     hidden_dim = 10
+    #     problem = ConditionalNeuralProblem(adata=adata_time)
+    #     mlp_eta = MLP_marginal(hidden_dim)
+    #     mlp_xi = MLP_marginal(hidden_dim)
+    #     adata_time = adata_time[adata_time.obs["time"].isin((0, 1))]
+    #     problem = problem.prepare(key="time", joint_attr="X_pca", conditional_attr={"attr": "obs", "key": "time"})
+    #     problem = problem.solve(mlp_eta=mlp_eta, mlp_xi=mlp_xi, **neuraldual_args_2)
+    #     assert isinstance(problem.solution, BaseSolverOutput)
+    #     assert isinstance(problem.solution, NeuralDualOutput)
 
-        array = np.asarray(adata_time.obsm["X_pca"].copy())
-        cond1 = jnp.ones((array.shape[0],))
-        cond2 = jnp.zeros((array.shape[0],))
-        learnt_eta_1 = problem.solution.evaluate_a(cond1, array)
-        learnt_xi_1 = problem.solution.evaluate_b(cond1, array)
-        learnt_eta_2 = problem.solution.evaluate_a(cond2, array)
-        learnt_xi_2 = problem.solution.evaluate_b(cond2, array)
-        assert learnt_eta_1.shape == (array.shape[0], 1)
-        assert learnt_xi_1.shape == (array.shape[0], 1)
-        assert learnt_eta_2.shape == (array.shape[0], 1)
-        assert learnt_xi_2.shape == (array.shape[0], 1)
-        assert np.sum(np.isnan(learnt_eta_1)) == 0
-        assert np.sum(np.isnan(learnt_xi_1)) == 0
-        assert np.sum(np.isnan(learnt_eta_2)) == 0
-        assert np.sum(np.isnan(learnt_xi_2)) == 0
+    #     array = np.asarray(adata_time.obsm["X_pca"].copy())
+    #     cond1 = jnp.ones((array.shape[0],))
+    #     cond2 = jnp.zeros((array.shape[0],))
+    #     learnt_eta_1 = problem.solution.evaluate_a(cond1, array)
+    #     learnt_xi_1 = problem.solution.evaluate_b(cond1, array)
+    #     learnt_eta_2 = problem.solution.evaluate_a(cond2, array)
+    #     learnt_xi_2 = problem.solution.evaluate_b(cond2, array)
+    #     assert learnt_eta_1.shape == (array.shape[0], 1)
+    #     assert learnt_xi_1.shape == (array.shape[0], 1)
+    #     assert learnt_eta_2.shape == (array.shape[0], 1)
+    #     assert learnt_xi_2.shape == (array.shape[0], 1)
+    #     assert np.sum(np.isnan(learnt_eta_1)) == 0
+    #     assert np.sum(np.isnan(learnt_xi_1)) == 0
+    #     assert np.sum(np.isnan(learnt_eta_2)) == 0
+    #     assert np.sum(np.isnan(learnt_xi_2)) == 0
 
-        np.testing.assert_raises(AssertionError, np.testing.assert_array_equal, learnt_eta_1, learnt_eta_2)
-        np.testing.assert_raises(AssertionError, np.testing.assert_array_equal, learnt_xi_1, learnt_xi_2)
+    #     np.testing.assert_raises(AssertionError, np.testing.assert_array_equal, learnt_eta_1, learnt_eta_2)
+    #     np.testing.assert_raises(AssertionError, np.testing.assert_array_equal, learnt_xi_1, learnt_xi_2)

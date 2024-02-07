@@ -18,7 +18,6 @@ from moscot._types import (
     ScaleCost_t,
     SinkhornInitializer_t,
 )
-from moscot.backends.ott.nets._icnn import ICNN
 from moscot.base.problems.compound_problem import B, CompoundProblem, K
 from moscot.base.problems.problem import CondOTProblem, NeuralOTProblem, OTProblem
 from moscot.problems._utils import (
@@ -524,8 +523,8 @@ class NeuralProblem(CompoundProblem[K, B], GenericAnalysisMixin[K, B]):
         epsilon: float = 0.1,
         seed: int = 0,
         pos_weights: bool = False,
-        f: Union[Dict[str, Any], ICNN] = MappingProxyType({}),
-        g: Union[Dict[str, Any], ICNN] = MappingProxyType({}),
+        f: Union[Dict[str, Any], Any] = MappingProxyType({}), # TODO(@ilan-gold): replace these with correct type
+        g: Union[Dict[str, Any], Any] = MappingProxyType({}),
         beta: float = 1.0,
         best_model_selection: bool = True,
         iterations: int = 25000,  # TODO(@MUCDK): rename to max_iterations
@@ -632,8 +631,8 @@ class ConditionalNeuralProblem(CondOTProblem, GenericAnalysisMixin[K, B]):
         epsilon: float = 0.1,
         seed: int = 0,
         pos_weights: bool = False,
-        f: Union[Dict[str, Any], ICNN] = MappingProxyType({}),
-        g: Union[Dict[str, Any], ICNN] = MappingProxyType({}),
+        f: Union[Dict[str, Any], Any] = MappingProxyType({}), # TODO(@ilan-gold): replace with correct type
+        g: Union[Dict[str, Any], Any] = MappingProxyType({}),
         beta: float = 1.0,
         best_model_selection: bool = True,
         iterations: int = 25000,  # TODO(@MUCDK): rename to max_iterations

@@ -25,7 +25,6 @@ from ott.tools.sinkhorn_divergence import sinkhorn_divergence as sinkhorn_div
 
 from moscot._logging import logger
 from moscot._types import ArrayLike, ScaleCost_t
-from moscot.backends.ott.nets._icnn import ICNN
 
 Potential_t = Callable[[jnp.ndarray], float]
 
@@ -208,17 +207,6 @@ class ConditionalDualPotentials:
         cls, aux_data: Dict[str, Any], children: Sequence[Any]
     ) -> "ConditionalDualPotentials":
         return cls(*children, **aux_data)
-
-
-def _get_icnn(
-    input_dim: int,
-    cond_dim: int,
-    pos_weights: bool = False,
-    dim_hidden: Iterable[int] = (64, 64, 64, 64),
-    **kwargs: Any,
-) -> ICNN:
-    return ICNN(input_dim=input_dim, cond_dim=cond_dim, pos_weights=pos_weights, dim_hidden=dim_hidden, **kwargs)
-
 
 def _get_optimizer(
     learning_rate: float = 1e-4, b1: float = 0.5, b2: float = 0.9, weight_decay: float = 0.0, **kwargs: Any

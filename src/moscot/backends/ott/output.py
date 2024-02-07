@@ -10,13 +10,13 @@ import scipy.sparse as sp
 from ott.problems.linear import potentials
 from ott.solvers.linear import sinkhorn, sinkhorn_lr
 from ott.solvers.quadratic import gromov_wasserstein, gromov_wasserstein_lr
+from ott.neural.models.base_solver import BaseNeuralSolver # TODO(ilan-gold): package structure will change when michaln reviews
 
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 from matplotlib.figure import Figure
 
 from moscot._types import ArrayLike, Device_t
-from moscot.backends.ott._neuraldual import OTTNeuralDualSolver
 from moscot.backends.ott._utils import ConditionalDualPotentials, get_nearest_neighbors
 from moscot.base.output import BaseDiscreteSolverOutput, BaseNeuralOutput
 
@@ -301,7 +301,7 @@ class NeuralDualOutput(OTTNeuralOutput):
         Statistics of the model training.
     """
 
-    def __init__(self, output: potentials.DualPotentials, model: OTTNeuralDualSolver, training_logs: Train_t):
+    def __init__(self, output: potentials.DualPotentials, model: BaseNeuralSolver, training_logs: Train_t):
         self._output = output
         self._model = model
         self._training_logs = training_logs

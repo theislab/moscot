@@ -5,7 +5,6 @@ import optax
 
 from moscot import _constants
 from moscot._types import Numeric_t, Policy_t
-from moscot.backends.ott.nets._icnn import ICNN
 from moscot.base.problems._mixins import NeuralAnalysisMixin
 from moscot.base.problems.birth_death import BirthDeathMixin, BirthDeathNeuralProblem
 from moscot.base.problems.compound_problem import CompoundProblem
@@ -153,8 +152,8 @@ class TemporalNeuralProblem(  # type: ignore[misc]
             "valid_loss_g",
             "valid_w_dist",
         ] = "valid_w_dist",
-        f: Union[Dict[str, Any], ICNN] = MappingProxyType({}),
-        g: Union[Dict[str, Any], ICNN] = MappingProxyType({}),
+        f: Union[Dict[str, Any], Any] = MappingProxyType({}), # TODO(ilan-gold): replace with corect type
+        g: Union[Dict[str, Any], Any] = MappingProxyType({}),
         optimizer_f: Union[Dict[str, Any], Type[optax.GradientTransformation]] = MappingProxyType({}),
         optimizer_g: Union[Dict[str, Any], Type[optax.GradientTransformation]] = MappingProxyType({}),
         pretrain_iters: int = 0,

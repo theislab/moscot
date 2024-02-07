@@ -24,6 +24,7 @@ from ott.problems.linear import linear_problem
 from ott.problems.quadratic import quadratic_problem
 from ott.solvers.linear import sinkhorn, sinkhorn_lr
 from ott.solvers.quadratic import gromov_wasserstein, gromov_wasserstein_lr
+from ott.neural.models.base_solver import BaseNeuralSolver # TODO(ilan-gold): package structure will change when michaln reviews
 
 from moscot._types import (
     ArrayLike,
@@ -32,14 +33,13 @@ from moscot._types import (
     SinkhornInitializer_t,
 )
 from moscot.backends.ott._jax_data import JaxSampler
-from moscot.backends.ott._neuraldual import OTTNeuralDualSolver
 from moscot.backends.ott._utils import alpha_to_fused_penalty, check_shapes, ensure_2d
 from moscot.backends.ott.output import CondNeuralDualOutput, NeuralDualOutput, OTTOutput
 from moscot.base.solver import OTSolver
 from moscot.costs import get_cost
 from moscot.utils.tagged_array import DistributionCollection, TaggedArray
 
-__all__ = ["SinkhornSolver", "GWSolver", "NeuralDualSolver", "CondNeuralDualSolver", "OTTNeuralDualSolver"]
+__all__ = ["SinkhornSolver", "GWSolver", "NeuralDualSolver", "CondNeuralDualSolver"]
 
 OTTSolver_t = Union[
     sinkhorn.Sinkhorn,
@@ -383,7 +383,7 @@ class NeuralDualSolver(OTSolver[OTTOutput]):
         super().__init__()
         self._train_sampler: Optional[JaxSampler] = None
         self._valid_sampler: Optional[JaxSampler] = None
-        self._solver = OTTNeuralDualSolver(**kwargs)
+        self._solver = BaseNeuralSolver(**kwargs)
 
     def _prepare(  # type: ignore[override]
         self,
@@ -491,7 +491,7 @@ class NeuralDualSolver(OTSolver[OTTOutput]):
         )
 
     @property
-    def solver(self) -> OTTNeuralDualSolver:
+    def solver(self) -> BaseNeuralSolver:
         """Underlying optimal transport solver."""
         return self._solver
 
