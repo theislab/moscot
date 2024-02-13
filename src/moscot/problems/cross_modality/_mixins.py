@@ -80,7 +80,7 @@ class CrossModalityTranslationMixin(AnalysisMixin[K, B]):
             attr: Dict[str, Any],
         ) -> ArrayLike:
             data = getattr(adata, attr["attr"])
-            key = attr.get("key", None)
+            key = attr.get("key")
             return data if key is None else data[key]
 
         if self._src_attr is None:
