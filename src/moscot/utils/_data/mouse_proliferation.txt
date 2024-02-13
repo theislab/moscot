@@ -76,7 +76,6 @@ Tpx2
 Aurka
 Anln
 Chaf1b
-Hjurp
 Tacc3
 Mcm5
 Anp32e
