@@ -10,7 +10,7 @@ import scipy.sparse as sp
 from ott.problems.linear import potentials
 from ott.solvers.linear import sinkhorn, sinkhorn_lr
 from ott.solvers.quadratic import gromov_wasserstein, gromov_wasserstein_lr
-from ott.neural.models.base_solver import BaseNeuralSolver # TODO(ilan-gold): package structure will change when michaln reviews
+from ott.neural.flows.genot import GENOTBase # TODO(ilan-gold): will neeed to update for ICNN's
 
 import matplotlib as mpl
 import matplotlib.pyplot as plt
@@ -244,8 +244,7 @@ class OTTOutput(BaseDiscreteSolverOutput):
 
 
 class OTTNeuralOutput(BaseNeuralOutput):
-    """Base class for OTT neural OT output."""
-    def __init__(self, model: BaseNeuralSolver):
+    def __init__(self, model: GENOTBase):
         self._model = model
         
     def _project_transport_matrix(
@@ -398,3 +397,46 @@ class OTTNeuralOutput(BaseNeuralOutput):
     
     def _apply(self, x: ArrayLike, forward: bool, cond: ArrayLike | None = None) -> ArrayLike:
         return self._model.transport(x, cond=cond, forward=forward)
+    
+    @property
+    def shape(self) -> Tuple[int, int]:
+        """%(shape)s."""
+        raise NotImplementedError()
+    
+    def to(
+        self,
+        device: Optional[Device_t] = None,
+    ) -> "OTTNeuralOutput":
+        """Transfer the output to another device or change its data type.
+        Parameters
+        ----------
+        device
+            If not `None`, the output will be transferred to `device`.
+        Returns
+        -------
+        The output on a saved on `device`.
+        """
+        # # TODO(michalk8): when polishing docs, move the definition to the base class + use docrep
+        # if isinstance(device, str) and ":" in device:
+        #     device, ix = device.split(":")
+        #     idx = int(ix)
+        # else:
+        #     idx = 0
+
+        # if not isinstance(device, xla_ext.Device):
+        #     try:
+        #         device = jax.devices(device)[idx]
+        #     except IndexError as err:
+        #         raise IndexError(f"Unable to fetch the device with `id={idx}`.") from err
+
+        # out = jax.device_put(self._model, device)
+        # return OTTNeuralOutput(out)
+        return self #TODO(ilan-gold) move model to device
+    
+    @property
+    def converged(self) -> bool:
+        """%(converged)s."""
+        # always return True for now
+        return True
+
+

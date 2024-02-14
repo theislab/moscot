@@ -270,6 +270,15 @@ neuraldual_args_1 = {
     "compute_wasserstein_baseline": False,
 }
 
+neurallin_cond_args_1 = {
+    "batch_size": 8,
+    "tau_a": 1.0,
+    "tau_b": 1.0,
+    "seed": 0,
+    "iterations": 2,
+    "valid_freq": 4,
+}
+
 neuraldual_args_2 = {
     "batch_size": 8,
     "tau_a": 0.9,

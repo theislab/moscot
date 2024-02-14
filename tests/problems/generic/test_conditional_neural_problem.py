@@ -16,7 +16,7 @@ from moscot.problems.generic import (
 from moscot.utils.tagged_array import DistributionCollection, DistributionContainer
 from tests._utils import ATOL, RTOL
 from tests.problems.conftest import (
-    neuraldual_args_1,
+    neurallin_cond_args_1,
     neuraldual_args_2,
     neuraldual_solver_args,
 )
@@ -50,7 +50,7 @@ class TestConditionalNeuralProblem:
     def test_solve_balanced_no_baseline(self, adata_time: ad.AnnData, train_size: float):  # type: ignore[no-untyped-def]  # noqa: E501
         problem = ConditionalNeuralProblem(adata=adata_time)
         problem = problem.prepare(key="time", joint_attr="X_pca", conditional_attr={"attr": "obs", "key": "time"})
-        problem = problem.solve(train_size=train_size, **neuraldual_args_1)
+        problem = problem.solve(train_size=train_size, **neurallin_cond_args_1)
         assert isinstance(problem.solution, BaseSolverOutput)
 
     def test_solve_unbalanced_with_baseline(self, adata_time: ad.AnnData):
@@ -65,11 +65,11 @@ class TestConditionalNeuralProblem:
         problem_one = problem_one.prepare(
             key="time", joint_attr="X_pca", conditional_attr={"attr": "obs", "key": "time"}
         )
-        problem_one = problem_one.solve(**neuraldual_args_1)
+        problem_one = problem_one.solve(**neurallin_cond_args_1)
 
         problem_two = ConditionalNeuralProblem(adata=adata_time)
         problem_two = problem_one.prepare("time", joint_attr="X_pca", conditional_attr={"attr": "obs", "key": "time"})
-        problem_two = problem_one.solve(**neuraldual_args_1)
+        problem_two = problem_one.solve(**neurallin_cond_args_1)
         assert np.allclose(
             problem_one.solution.push(jnp.array([0]), pc_tzero),
             problem_two.solution.push(jnp.array([0]), pc_tzero),
@@ -87,14 +87,14 @@ class TestConditionalNeuralProblem:
         problem = ConditionalNeuralProblem(adata=adata_time)
         adata_time = adata_time[adata_time.obs["time"].isin((0, 1))]
         problem = problem.prepare(key="time", joint_attr="X_pca", conditional_attr={"attr": "obs", "key": "time"})
-        problem = problem.solve(**neuraldual_args_1)
+        problem = problem.solve(**neurallin_cond_args_1)
 
         solver = problem.solver.solver
         assert solver.cond_dim > 0
         for arg, val in neuraldual_solver_args.items():
             assert hasattr(solver, val)
             el = getattr(solver, val)[0] if isinstance(getattr(solver, val), tuple) else getattr(solver, val)
-            assert el == neuraldual_args_1[arg]
+            assert el == neurallin_cond_args_1[arg]
 
     def test_pass_custom_optimizers(self, adata_time: ad.AnnData):
         problem = ConditionalNeuralProblem(adata=adata_time)
