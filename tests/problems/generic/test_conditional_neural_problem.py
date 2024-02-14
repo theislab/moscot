@@ -95,10 +95,9 @@ class TestConditionalNeuralProblem:
         problem = ConditionalNeuralProblem(adata=adata_time)
         adata_time = adata_time[adata_time.obs["time"].isin((0, 1))]
         problem = problem.prepare(key="time", joint_attr="X_pca", conditional_attr={"attr": "obs", "key": "time"})
-        custom_opt_f = optax.adagrad(1e-4)
-        custom_opt_g = optax.adagrad(1e-3)
+        custom_opt = optax.adagrad(1e-4)
 
-        problem = problem.solve(iterations=2, optimizer_f=custom_opt_f, optimizer_g=custom_opt_g)
+        problem = problem.solve(iterations=2, optimizer=custom_opt)
 
     # def test_learning_rescaling_factors(self, adata_time: ad.AnnData):
     #     hidden_dim = 10

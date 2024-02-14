@@ -491,7 +491,7 @@ class LinearConditionalNeuralSolver(OTSolver[OTTOutput]):
         unbalancedness_handler = UnbalancednessHandler(
             rng=rng, source_dim=source_dim, target_dim=target_dim, cond_dim=condition_dim, tau_a=tau_a, tau_b=tau_b, rescaling_a=rescaling_a, rescaling_b=rescaling_b,
         )
-        optimizer = optax.adam(learning_rate=self._neural_kwargs.pop("learning_rate", 1e-3))
+        optimizer = self._neural_kwargs.pop("optimizer", optax.adam(learning_rate=1e-3))
         self._solver = GENOTLin(
             velocity_field=neural_vf,
             input_dim=source_dim,
