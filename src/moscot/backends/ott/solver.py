@@ -475,7 +475,7 @@ class LinearConditionalNeuralSolver(OTSolver[OTTOutput]):
         neural_vf = VelocityField(
             output_dim=target_dim,
             condition_dim=source_dim + condition_dim,
-            latent_embed_dim=5,
+            latent_embed_dim=self._neural_kwargs.pop("latent_embed_dim", 5),
         )
         ot_solver = sinkhorn.Sinkhorn(**self._neural_kwargs.pop("valid_sinkhorn_kwargs", {}))
         tau_a=self._neural_kwargs.pop("tau_a", 1)
@@ -502,6 +502,8 @@ class LinearConditionalNeuralSolver(OTSolver[OTTOutput]):
             optimizer=optimizer,
             time_sampler=time_sampler,
             rng=rng,
+            matcher_latent_to_data=OTMatcherLinear(sinkhorn.Sinkhorn()) if self._neural_kwargs.pop("solver_latent_to_data", True) else None,
+            k_samples_per_x=self._neural_kwargs.pop("k_samples_per_x", 1),
             **self._neural_kwargs
         )
         return ConditionalOTDataLoader(dataloaders=train_loaders, seed=seed), ConditionalOTDataLoader(dataloaders=validate_loaders, seed=seed)

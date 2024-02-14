@@ -17,7 +17,7 @@ from moscot.utils.tagged_array import DistributionCollection, DistributionContai
 from tests._utils import ATOL, RTOL
 from tests.problems.conftest import (
     neurallin_cond_args_1,
-    neuraldual_args_2,
+    neurallin_cond_args_2,
     neuraldual_solver_args,
 )
 
@@ -56,11 +56,12 @@ class TestConditionalNeuralProblem:
     def test_solve_unbalanced_with_baseline(self, adata_time: ad.AnnData):
         problem = ConditionalNeuralProblem(adata=adata_time)
         problem = problem.prepare(key="time", joint_attr="X_pca", conditional_attr={"attr": "obs", "key": "time"})
-        problem = problem.solve(**neuraldual_args_2)
+        problem = problem.solve(**neurallin_cond_args_2)
         assert isinstance(problem.solution, BaseSolverOutput)
 
     def test_reproducibility(self, adata_time: ad.AnnData):
-        pc_tzero = adata_time[adata_time.obs["time"] == 0].obsm["X_pca"]
+        cond_zero_mask = np.array(adata_time.obs["time"] == 0)
+        pc_tzero = adata_time[cond_zero_mask].obsm["X_pca"]
         problem_one = ConditionalNeuralProblem(adata=adata_time)
         problem_one = problem_one.prepare(
             key="time", joint_attr="X_pca", conditional_attr={"attr": "obs", "key": "time"}
@@ -71,14 +72,8 @@ class TestConditionalNeuralProblem:
         problem_two = problem_one.prepare("time", joint_attr="X_pca", conditional_attr={"attr": "obs", "key": "time"})
         problem_two = problem_one.solve(**neurallin_cond_args_1)
         assert np.allclose(
-            problem_one.solution.push(jnp.array([0]), pc_tzero),
-            problem_two.solution.push(jnp.array([0]), pc_tzero),
-            rtol=RTOL,
-            atol=ATOL,
-        )
-        assert np.allclose(
-            problem_one.solution.pull(jnp.array([0]), pc_tzero),
-            problem_two.solution.pull(jnp.array([0]), pc_tzero),
+            problem_one.solution.push(pc_tzero, cond=np.zeros((cond_zero_mask.sum(),1))),
+            problem_two.solution.push(pc_tzero, cond=np.zeros((cond_zero_mask.sum(),1))),
             rtol=RTOL,
             atol=ATOL,
         )
@@ -112,7 +107,7 @@ class TestConditionalNeuralProblem:
     #     mlp_xi = MLP_marginal(hidden_dim)
     #     adata_time = adata_time[adata_time.obs["time"].isin((0, 1))]
     #     problem = problem.prepare(key="time", joint_attr="X_pca", conditional_attr={"attr": "obs", "key": "time"})
-    #     problem = problem.solve(mlp_eta=mlp_eta, mlp_xi=mlp_xi, **neuraldual_args_2)
+    #     problem = problem.solve(mlp_eta=mlp_eta, mlp_xi=mlp_xi, **neurallin_cond_args_2)
     #     assert isinstance(problem.solution, BaseSolverOutput)
     #     assert isinstance(problem.solution, NeuralDualOutput)
 

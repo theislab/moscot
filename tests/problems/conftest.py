@@ -279,6 +279,15 @@ neurallin_cond_args_1 = {
     "valid_freq": 4,
 }
 
+neurallin_cond_args_2 = {
+    "batch_size": 8,
+    "tau_a": 0.9,
+    "tau_b": 0.9,
+    "seed": 0,
+    "iterations": 2,
+    "valid_freq": 4,
+}
+
 neuraldual_args_2 = {
     "batch_size": 8,
     "tau_a": 0.9,
