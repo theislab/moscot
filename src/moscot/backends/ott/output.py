@@ -396,7 +396,7 @@ class OTTNeuralOutput(BaseNeuralOutput):
         return self._apply(x, cond=cond, forward=False)
     
     def _apply(self, x: ArrayLike, forward: bool, cond: ArrayLike | None = None) -> ArrayLike:
-        return self._model.transport(x, cond=cond, forward=forward)
+        return self._model.transport(x, condition=cond, forward=forward)
     
     @property
     def shape(self) -> Tuple[int, int]:
