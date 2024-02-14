@@ -19,6 +19,7 @@ from typing import (
 
 import jax
 import jax.numpy as jnp
+import numpy as np
 import optax
 import scipy.sparse as sp
 from ott.geometry import costs, epsilon_scheduler, geometry, pointcloud
@@ -32,7 +33,7 @@ from ott.neural.flows.models import VelocityField
 from ott.neural.flows.samplers import uniform_sampler
 from ott.neural.models.base_solver import UnbalancednessHandler, OTMatcherLinear
 from ott.neural.models.nets import RescalingMLP
-from torch.utils.data import DataLoader
+from torch.utils.data import DataLoader, RandomSampler
 from moscot._types import (
     ArrayLike,
     ProblemKind_t,
@@ -407,15 +408,16 @@ class LinearConditionalNeuralSolver(OTSolver[OTTOutput]):
             for sample_pair in sample_pairs:
                 source_key = sample_pair[0]
                 target_key = sample_pair[1]
+                ds = OTDataSet(
+                    source_lin=distributions[source_key].xy,
+                    target_lin=distributions[target_key].xy,
+                    source_conditions=distributions[source_key].conditions,
+                    target_conditions=distributions[target_key].conditions
+                )
                 loader = DataLoader(
-                    OTDataSet(
-                        source_lin=distributions[source_key].xy,
-                        target_lin=distributions[target_key].xy,
-                        source_conditions=distributions[source_key].conditions,
-                        target_conditions=distributions[target_key].conditions
-                    ),
+                    ds,
                     batch_size=batch_size,
-                    shuffle=True
+                    sampler=RandomSampler(ds, replacement=True)
                 )
                 train_loaders.append(loader)
                 validate_loaders.append(loader)
@@ -443,29 +445,30 @@ class LinearConditionalNeuralSolver(OTSolver[OTTOutput]):
                     a=distributions[target_key].a,
                     b=distributions[target_key].b,
                 )
+                ds_train = OTDataSet(
+                    source_lin=source_split_data.data_train,
+                    target_lin=target_split_data.data_train,
+                    source_conditions=source_split_data.conditions_train,
+                    target_conditions=target_split_data.conditions_train
+                )
                 train_loader = DataLoader(
-                    OTDataSet(
-                        source_lin=source_split_data.data_train,
-                        target_lin=target_split_data.data_train,
-                        source_conditions=source_split_data.conditions_train,
-                        target_conditions=target_split_data.conditions_train
-                    ),
+                    ds_train,
                     batch_size=batch_size,
-                    shuffle=True
+                    sampler=RandomSampler(ds_train, replacement=True),
+                )
+                ds_validate = OTDataSet(
+                    source_lin=source_split_data.data_valid,
+                    target_lin=target_split_data.data_valid,
+                    source_conditions=source_split_data.conditions_valid,
+                    target_conditions=target_split_data.conditions_valid
                 )
                 validate_loader = DataLoader(
-                    OTDataSet(
-                        source_lin=source_split_data.data_valid,
-                        target_lin=target_split_data.data_valid,
-                        source_conditions=source_split_data.conditions_valid,
-                        target_conditions=target_split_data.conditions_valid
-                    ),
+                    ds_validate,
                     batch_size=batch_size,
-                    shuffle=True
+                    sampler=RandomSampler(ds_validate, replacement=True)
                 )
                 train_loaders.append(train_loader)
                 validate_loaders.append(validate_loader)
-        exemplar_dist = distributions[list(distributions.keys())[0]]
         source_dim = self._neural_kwargs.pop("input_dim")
         target_dim = source_dim
         condition_dim = self._neural_kwargs.pop("cond_dim")
@@ -524,12 +527,12 @@ class LinearConditionalNeuralSolver(OTSolver[OTTOutput]):
     ) -> SingleDistributionData:
         n_samples_x = x.shape[0]
         n_train_x = math.ceil(train_size * n_samples_x)
-        key = jax.random.PRNGKey(seed=seed)
-        x = jax.random.permutation(key, x)
+        rng = np.random.default_rng(seed)
+        x = rng.permutation(x)
         if a is not None:
-            a = jax.random.permutation(key, a)
+            a = rng.permutation(a)
         if b is not None:
-            b = jax.random.permutation(key, b)
+            b = rng.permutation(b)
 
         return SingleDistributionData(
             data_train=x[:n_train_x],
