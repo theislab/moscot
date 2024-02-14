@@ -379,12 +379,16 @@ class GWSolver(OTTJaxSolver):
 
 class LinearConditionalNeuralSolver(OTSolver[OTTOutput]):
 
-    def __init__(self, solver: Type[BaseNeuralSolver] = type(GENOT), **kwargs: Any) -> None:
+    def __init__(self, **kwargs: Any) -> None:
         super().__init__()
         self._train_sampler: Optional[ConditionalDataLoader] = None
         self._valid_sampler: Optional[ConditionalDataLoader] = None
-        self._solver = solver(**kwargs)
+        self._solver = GENOT(**kwargs)
 
+    @property
+    def problem_kind(self) -> ProblemKind_t:  # noqa: D102        
+        return "linear"  
+   
     def _prepare(  # type: ignore[override]
         self,
         distributions: DistributionCollection[K],
