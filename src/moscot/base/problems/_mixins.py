@@ -666,6 +666,7 @@ class AnalysisMixin(Generic[K, B]):
         forward: bool = True,
         key_added: Optional[str] = "conditional_entropy",
         batch_size: Optional[int] = None,
+        c: float = 0.0,
     ) -> Optional[pd.DataFrame]:
         """Compute the conditional entropy per cell.
 
@@ -685,6 +686,8 @@ class AnalysisMixin(Generic[K, B]):
             Key in :attr:`~anndata.AnnData.obs` where the entropy is stored.
         batch_size
             Batch size for the computation of the entropy. If :obj:`None`, the entire dataset is used.
+        c
+            Constant added to each row of the transport matrix to avoid numerical instability.
 
         Returns
         -------
@@ -710,7 +713,7 @@ class AnalysisMixin(Generic[K, B]):
                 split_mass=True,
                 key_added=None,
             )
-            df.iloc[range(batch, min(batch + batch_size, len(df))), 0] = _compute_conditional_entropy(cond_dists)  # type: ignore[arg-type]
+            df.iloc[range(batch, min(batch + batch_size, len(df))), 0] = _compute_conditional_entropy(cond_dists + c)  # type: ignore[arg-type, operator]
         if key_added is not None:
             self.adata.obs[key_added] = df
         return df if key_added is None else None
