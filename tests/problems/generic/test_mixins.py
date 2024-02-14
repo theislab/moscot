@@ -281,8 +281,9 @@ class TestBaseAnalysisMixin:
     @pytest.mark.parametrize("forward", [True, False])
     @pytest.mark.parametrize("key_added", [None, "test"])
     @pytest.mark.parametrize("batch_size", [None, 2])
+    @pytest.mark.parametrize("c", [0.0, 0.1])
     def test_compute_entropy_pipeline(
-        self, adata_time: AnnData, forward: bool, key_added: Optional[str], batch_size: int
+        self, adata_time: AnnData, forward: bool, key_added: Optional[str], batch_size: int, c: float
     ):
         rng = np.random.RandomState(42)
         adata_time = adata_time[adata_time.obs["time"].isin((0, 1))].copy()
@@ -295,7 +296,9 @@ class TestBaseAnalysisMixin:
         problem = problem.prepare(key="time", xy_callback="local-pca", policy="sequential")
         problem[0, 1]._solution = MockSolverOutput(tmap)
 
-        out = problem.compute_entropy(source=0, target=1, forward=forward, key_added=key_added, batch_size=batch_size)
+        out = problem.compute_entropy(
+            source=0, target=1, forward=forward, key_added=key_added, batch_size=batch_size, c=c
+        )
         if key_added is None:
             assert isinstance(out, pd.DataFrame)
             assert len(out) == n0
