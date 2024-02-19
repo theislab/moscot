@@ -1015,7 +1015,7 @@ class CondOTProblem(BaseProblem):  # TODO(@MUCDK) check generic types, save and 
     def solve(
         self,
         backend: Literal["ott"] = "ott",
-        solver_name: Literal["LinearConditionalNeuralSolver"] = "LinearConditionalNeuralSolver",
+        solver_name: Literal["GENOTLinSolver"] = "GENOTLinSolver",
         device: Optional[Device_t] = None,
         **kwargs: Any,
     ) -> "CondOTProblem":

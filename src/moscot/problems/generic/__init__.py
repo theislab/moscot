@@ -1,5 +1,5 @@
 from moscot.problems.generic._generic import (
-    ConditionalNeuralProblem,
+    GENOTLinProblem,
     GWProblem,
     NeuralProblem,
     SinkhornProblem,
@@ -9,7 +9,7 @@ from moscot.problems.generic._mixins import GenericAnalysisMixin
 __all__ = [
     "SinkhornProblem",
     "NeuralProblem",
-    "ConditionalNeuralProblem",
+    "GENOTLinProblem",
     "GWProblem",
     "GenericAnalysisMixin",
 ]

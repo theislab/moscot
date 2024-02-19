@@ -9,7 +9,7 @@ from moscot.backends.ott.output import (
 from moscot.backends.ott.solver import (
     GWSolver,
     SinkhornSolver,
-    LinearConditionalNeuralSolver,
+    GENOTLinSolver,
 )
 from moscot.costs import register_cost
 
@@ -20,7 +20,7 @@ __all__ = [
     "ConditionalDualPotentials",
     "OTTNeuralOutput",
     "sinkhorn_divergence",
-    "LinearConditionalNeuralSolver"
+    "GENOTLinSolver"
 ]
 
 

@@ -11,7 +11,7 @@ from moscot.backends.ott.output import OTTNeuralOutput
 from moscot.base.output import BaseSolverOutput
 from moscot.base.problems import CondOTProblem
 from moscot.problems.generic import (
-    ConditionalNeuralProblem,  # type: ignore[attr-defined]
+    GENOTLinProblem,  # type: ignore[attr-defined]
 )
 from moscot.utils.tagged_array import DistributionCollection, DistributionContainer
 from tests._utils import ATOL, RTOL
@@ -22,10 +22,10 @@ from tests.problems.conftest import (
 )
 
 
-class TestConditionalNeuralProblem:
+class TestGENOTLinProblem:
     @pytest.mark.fast()
     def test_prepare(self, adata_time: ad.AnnData):
-        problem = ConditionalNeuralProblem(adata=adata_time)
+        problem = GENOTLinProblem(adata=adata_time)
         problem = problem.prepare(key="time", joint_attr="X_pca", conditional_attr={"attr": "obs", "key": "time"})
         assert isinstance(problem, CondOTProblem)
         assert isinstance(problem.distributions, DistributionCollection)
@@ -48,13 +48,13 @@ class TestConditionalNeuralProblem:
 
     @pytest.mark.parametrize("train_size", [0.9, 1.0])
     def test_solve_balanced_no_baseline(self, adata_time: ad.AnnData, train_size: float):  # type: ignore[no-untyped-def]  # noqa: E501
-        problem = ConditionalNeuralProblem(adata=adata_time)
+        problem = GENOTLinProblem(adata=adata_time)
         problem = problem.prepare(key="time", joint_attr="X_pca", conditional_attr={"attr": "obs", "key": "time"})
         problem = problem.solve(train_size=train_size, **neurallin_cond_args_1)
         assert isinstance(problem.solution, BaseSolverOutput)
 
     def test_solve_unbalanced_with_baseline(self, adata_time: ad.AnnData):
-        problem = ConditionalNeuralProblem(adata=adata_time)
+        problem = GENOTLinProblem(adata=adata_time)
         problem = problem.prepare(key="time", joint_attr="X_pca", conditional_attr={"attr": "obs", "key": "time"})
         problem = problem.solve(**neurallin_cond_args_2)
         assert isinstance(problem.solution, BaseSolverOutput)
@@ -62,13 +62,13 @@ class TestConditionalNeuralProblem:
     def test_reproducibility(self, adata_time: ad.AnnData):
         cond_zero_mask = np.array(adata_time.obs["time"] == 0)
         pc_tzero = adata_time[cond_zero_mask].obsm["X_pca"]
-        problem_one = ConditionalNeuralProblem(adata=adata_time)
+        problem_one = GENOTLinProblem(adata=adata_time)
         problem_one = problem_one.prepare(
             key="time", joint_attr="X_pca", conditional_attr={"attr": "obs", "key": "time"}
         )
         problem_one = problem_one.solve(**neurallin_cond_args_1)
 
-        problem_two = ConditionalNeuralProblem(adata=adata_time)
+        problem_two = GENOTLinProblem(adata=adata_time)
         problem_two = problem_one.prepare("time", joint_attr="X_pca", conditional_attr={"attr": "obs", "key": "time"})
         problem_two = problem_one.solve(**neurallin_cond_args_1)
         assert np.allclose(
@@ -79,7 +79,7 @@ class TestConditionalNeuralProblem:
         )
 
     # def test_pass_arguments(self, adata_time: ad.AnnData): # TODO(ilan-gold) implement this once the OTT PR is settled
-    #     problem = ConditionalNeuralProblem(adata=adata_time)
+    #     problem = GENOTLinProblem(adata=adata_time)
     #     adata_time = adata_time[adata_time.obs["time"].isin((0, 1))]
     #     problem = problem.prepare(key="time", joint_attr="X_pca", conditional_attr={"attr": "obs", "key": "time"})
     #     problem = problem.solve(**neurallin_cond_args_1)
@@ -91,7 +91,7 @@ class TestConditionalNeuralProblem:
     #         assert el == neurallin_cond_args_1[arg]
 
     def test_pass_custom_optimizers(self, adata_time: ad.AnnData):
-        problem = ConditionalNeuralProblem(adata=adata_time)
+        problem = GENOTLinProblem(adata=adata_time)
         adata_time = adata_time[adata_time.obs["time"].isin((0, 1))]
         problem = problem.prepare(key="time", joint_attr="X_pca", conditional_attr={"attr": "obs", "key": "time"})
         custom_opt = optax.adagrad(1e-4)
@@ -99,7 +99,7 @@ class TestConditionalNeuralProblem:
         problem = problem.solve(iterations=2, optimizer=custom_opt)
 
     def test_learning_rescaling_factors(self, adata_time: ad.AnnData):
-        problem = ConditionalNeuralProblem(adata=adata_time)
+        problem = GENOTLinProblem(adata=adata_time)
         adata_time = adata_time[adata_time.obs["time"].isin((0, 1))]
         problem = problem.prepare(key="time", joint_attr="X_pca", conditional_attr={"attr": "obs", "key": "time"})
         problem = problem.solve(**neurallin_cond_args_2)
