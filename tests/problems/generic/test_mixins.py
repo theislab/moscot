@@ -315,18 +315,7 @@ class TestBaseAnalysisMixin:
     @pytest.mark.parametrize("forward", [True, False])
     @pytest.mark.parametrize("batch_size", [None, 2, 15])
     def test_compute_entropy_regression(self, adata_time: AnnData, forward: bool, batch_size: Optional[int]):
-        def gt_conditional_entropy(matrix):
-            px = np.sum(matrix, axis=1)
-
-            # Initialize conditional entropy vector
-            h_y_given_x = np.zeros((len(px), 1))
-
-            # Compute conditional entropy for each value of x
-            for i in range(matrix.shape[0]):
-                for j in range(matrix.shape[1]):
-                    h_y_given_x[i] -= matrix[i, j] * np.log(matrix[i, j] / px[i])
-
-            return h_y_given_x
+        from scipy import stats
 
         rng = np.random.RandomState(42)
         adata_time = adata_time[adata_time.obs["time"].isin((0, 1))].copy()
@@ -340,7 +329,8 @@ class TestBaseAnalysisMixin:
         problem[0, 1]._solution = MockSolverOutput(tmap)
 
         moscot_out = problem.compute_entropy(source=0, target=1, forward=forward, batch_size=batch_size, key_added=None)
-        gt_out = gt_conditional_entropy(tmap) if forward else gt_conditional_entropy(tmap.T)
+        gt_out = stats.entropy(tmap + 1e-10, axis=1 if forward else 0)
+        gt_out = np.expand_dims(gt_out, axis=1) if forward else np.expand_dims(gt_out, axis=0).T
 
         np.testing.assert_allclose(
             np.array(moscot_out, dtype=float), np.array(gt_out, dtype=float), rtol=RTOL, atol=ATOL
