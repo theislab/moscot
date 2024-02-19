@@ -98,32 +98,28 @@ class TestConditionalNeuralProblem:
 
         problem = problem.solve(iterations=2, optimizer=custom_opt)
 
-    # def test_learning_rescaling_factors(self, adata_time: ad.AnnData):
-    #     hidden_dim = 10
-    #     problem = ConditionalNeuralProblem(adata=adata_time)
-    #     mlp_eta = MLP_marginal(hidden_dim)
-    #     mlp_xi = MLP_marginal(hidden_dim)
-    #     adata_time = adata_time[adata_time.obs["time"].isin((0, 1))]
-    #     problem = problem.prepare(key="time", joint_attr="X_pca", conditional_attr={"attr": "obs", "key": "time"})
-    #     problem = problem.solve(mlp_eta=mlp_eta, mlp_xi=mlp_xi, **neurallin_cond_args_2)
-    #     assert isinstance(problem.solution, BaseSolverOutput)
-    #     assert isinstance(problem.solution, NeuralDualOutput)
+    def test_learning_rescaling_factors(self, adata_time: ad.AnnData):
+        problem = ConditionalNeuralProblem(adata=adata_time)
+        adata_time = adata_time[adata_time.obs["time"].isin((0, 1))]
+        problem = problem.prepare(key="time", joint_attr="X_pca", conditional_attr={"attr": "obs", "key": "time"})
+        problem = problem.solve(**neurallin_cond_args_2)
+        assert isinstance(problem.solution, BaseSolverOutput)
 
-    #     array = np.asarray(adata_time.obsm["X_pca"].copy())
-    #     cond1 = jnp.ones((array.shape[0],))
-    #     cond2 = jnp.zeros((array.shape[0],))
-    #     learnt_eta_1 = problem.solution.evaluate_a(cond1, array)
-    #     learnt_xi_1 = problem.solution.evaluate_b(cond1, array)
-    #     learnt_eta_2 = problem.solution.evaluate_a(cond2, array)
-    #     learnt_xi_2 = problem.solution.evaluate_b(cond2, array)
-    #     assert learnt_eta_1.shape == (array.shape[0], 1)
-    #     assert learnt_xi_1.shape == (array.shape[0], 1)
-    #     assert learnt_eta_2.shape == (array.shape[0], 1)
-    #     assert learnt_xi_2.shape == (array.shape[0], 1)
-    #     assert np.sum(np.isnan(learnt_eta_1)) == 0
-    #     assert np.sum(np.isnan(learnt_xi_1)) == 0
-    #     assert np.sum(np.isnan(learnt_eta_2)) == 0
-    #     assert np.sum(np.isnan(learnt_xi_2)) == 0
+        array = np.asarray(adata_time.obsm["X_pca"].copy())
+        cond1 = jnp.ones((array.shape[0],1))
+        cond2 = jnp.zeros((array.shape[0],1))
+        learnt_eta_1 = problem.solver.solver.unbalancedness_handler.evaluate_eta(array, cond1) # TODO(ilan-gold): sould this be wrapped?
+        learnt_xi_1 = problem.solver.solver.unbalancedness_handler.evaluate_xi(array, cond1)
+        learnt_eta_2 = problem.solver.solver.unbalancedness_handler.evaluate_eta(array, cond2)
+        learnt_xi_2 = problem.solver.solver.unbalancedness_handler.evaluate_xi(array, cond2)
+        assert learnt_eta_1.shape == (array.shape[0], 4)
+        assert learnt_xi_1.shape == (array.shape[0], 4)
+        assert learnt_eta_2.shape == (array.shape[0], 4)
+        assert learnt_xi_2.shape == (array.shape[0], 4)
+        assert np.sum(np.isnan(learnt_eta_1)) == 0
+        assert np.sum(np.isnan(learnt_xi_1)) == 0
+        assert np.sum(np.isnan(learnt_eta_2)) == 0
+        assert np.sum(np.isnan(learnt_xi_2)) == 0
 
-    #     np.testing.assert_raises(AssertionError, np.testing.assert_array_equal, learnt_eta_1, learnt_eta_2)
-    #     np.testing.assert_raises(AssertionError, np.testing.assert_array_equal, learnt_xi_1, learnt_xi_2)
+        np.testing.assert_raises(AssertionError, np.testing.assert_array_equal, learnt_eta_1, learnt_eta_2)
+        np.testing.assert_raises(AssertionError, np.testing.assert_array_equal, learnt_xi_1, learnt_xi_2)

@@ -480,17 +480,17 @@ class LinearConditionalNeuralSolver(OTSolver[OTTOutput]):
         ot_solver = sinkhorn.Sinkhorn(**self._neural_kwargs.pop("valid_sinkhorn_kwargs", {}))
         tau_a=self._neural_kwargs.pop("tau_a", 1)
         tau_b=self._neural_kwargs.pop("tau_b", 1)
-        rescaling_a = RescalingMLP(hidden_dim=self._neural_kwargs.pop("hidden_dim_rescaling_a", 4), condition_dim=condition_dim)
-        rescaling_b = RescalingMLP(hidden_dim=self._neural_kwargs.pop("hidden_dim_rescaling_b", 4), condition_dim=condition_dim)
+        rescaling_a = self._neural_kwargs.pop("rescaling_a", RescalingMLP(hidden_dim=4, condition_dim=condition_dim))
+        rescaling_b = self._neural_kwargs.pop("rescaling_b", RescalingMLP(hidden_dim=4, condition_dim=condition_dim))
         seed = self._neural_kwargs.pop("seed", 0)
         rng = jax.random.PRNGKey(seed)
-        ot_matcher = OTMatcherLinear(
-            ot_solver, cost_fn=costs.SqEuclidean(), scale_cost=self._neural_kwargs.pop("scale_cost", "mean"), tau_a=tau_a, tau_b=tau_b
-        )
-        time_sampler = uniform_sampler
-        unbalancedness_handler = UnbalancednessHandler(
+        ot_matcher = self._neural_kwargs.pop("ot_matcher", OTMatcherLinear(
+            ot_solver, tau_a=tau_a, tau_b=tau_b
+        ))
+        time_sampler = self._neural_kwargs.pop("time_sampler", uniform_sampler)
+        unbalancedness_handler = self._neural_kwargs.pop("unbalancedness_handler", UnbalancednessHandler(
             rng=rng, source_dim=source_dim, target_dim=target_dim, cond_dim=condition_dim, tau_a=tau_a, tau_b=tau_b, rescaling_a=rescaling_a, rescaling_b=rescaling_b,
-        )
+        ))
         optimizer = self._neural_kwargs.pop("optimizer", optax.adam(learning_rate=1e-3))
         self._solver = GENOTLin(
             velocity_field=neural_vf,
