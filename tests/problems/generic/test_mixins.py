@@ -329,8 +329,8 @@ class TestBaseAnalysisMixin:
         problem[0, 1]._solution = MockSolverOutput(tmap)
 
         moscot_out = problem.compute_entropy(source=0, target=1, forward=forward, batch_size=batch_size, key_added=None)
-        gt_out = stats.entropy(tmap + 1e-10, axis=1 if forward else 0, keepdims=True)
-        gt_out = gt_out if forward else gt_out.T
+        gt_out = stats.entropy(tmap + 1e-10, axis=1 if forward else 0)
+        gt_out = np.expand_dims(gt_out, axis=1) if forward else np.expand_dims(gt_out, axis=0).T
 
         np.testing.assert_allclose(
             np.array(moscot_out, dtype=float), np.array(gt_out, dtype=float), rtol=RTOL, atol=ATOL
