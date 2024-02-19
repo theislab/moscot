@@ -719,7 +719,3 @@ def _get_n_cores(n_cores: Optional[int], n_jobs: Optional[int]) -> int:
         return multiprocessing.cpu_count() + 1 + n_cores
 
     return n_cores
-
-
-def _compute_conditional_entropy(p_xy: ArrayLike, c: float = 0.0) -> ArrayLike:
-    return -np.sum(p_xy * np.log(p_xy / p_xy.sum(axis=0)), axis=0)
