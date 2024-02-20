@@ -169,7 +169,11 @@ class GenericAnalysisMixin(AnalysisMixin[K, B]):
             if TYPE_CHECKING:
                 assert isinstance(key_added, str)
             plot_vars = {
-                "distribution_key": self.batch_key,
+                "source": source,
+                "target": target,
+                "key": self.batch_key,
+                "data": data if isinstance(data, str) else None,
+                "subset": subset,
             }
             self.adata.obs[key_added] = self._flatten(result, key=self.batch_key)
             set_plotting_vars(self.adata, _constants.PUSH, key=key_added, value=plot_vars)
@@ -232,6 +236,10 @@ class GenericAnalysisMixin(AnalysisMixin[K, B]):
         if key_added is not None:
             plot_vars = {
                 "key": self.batch_key,
+                "data": data if isinstance(data, str) else None,
+                "subset": subset,
+                "source": source,
+                "target": target,
             }
             self.adata.obs[key_added] = self._flatten(result, key=self.batch_key)
             set_plotting_vars(self.adata, _constants.PULL, key=key_added, value=plot_vars)

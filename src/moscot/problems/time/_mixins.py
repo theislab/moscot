@@ -462,7 +462,7 @@ class TemporalMixin(AnalysisMixin[K, B]):
             plot_vars = {
                 "source": source,
                 "target": target,
-                "temporal_key": self.temporal_key,
+                "key": self.temporal_key,
                 "data": data if isinstance(data, str) else None,
                 "subset": subset,
             }
@@ -526,7 +526,7 @@ class TemporalMixin(AnalysisMixin[K, B]):
 
         if key_added is not None:
             plot_vars = {
-                "temporal_key": self.temporal_key,
+                "key": self.temporal_key,
                 "data": data if isinstance(data, str) else None,
                 "subset": subset,
                 "source": source,
