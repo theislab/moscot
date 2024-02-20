@@ -43,9 +43,7 @@ __all__ = ["BaseCompoundProblem", "CompoundProblem"]
 
 K = TypeVar("K", bound=Hashable)
 B = TypeVar("B", bound=OTProblem)
-Callback_t = Callable[
-    [Literal["xy", "x", "y"], AnnData, Optional[AnnData]], Mapping[Literal["xy", "x", "y"], TaggedArray]
-]
+Callback_t = Callable[[Literal["xy", "x", "y"], AnnData, Optional[AnnData]], Optional[TaggedArray]]
 ApplyOutput_t = Union[ArrayLike, Dict[K, ArrayLike]]
 
 
@@ -123,33 +121,28 @@ class BaseCompoundProblem(BaseProblem, abc.ABC, Generic[K, B]):
         key_2: K,
         problem: B,
         *,
-        callback: Optional[Union[Literal["local-pca"], Callback_t]] = None,
+        callback: Optional[Union[Literal["local-pca", "spatial-norm", "graph-construction"], Callback_t]] = None,
         **kwargs: Any,
-    ) -> Mapping[Literal["xy", "x", "y"], TaggedArray]:
-        def verify_data(data: Mapping[Literal["xy", "x", "y"], TaggedArray]) -> None:
-            keys = ("xy", "x", "y")
-            for key, val in data.items():
-                if key not in keys:
-                    raise ValueError(f"Expected key to be one of `{keys}`, found `{key!r}`.")
-                if not isinstance(val, TaggedArray):
-                    raise TypeError(f"Expected value for `{key}` to be a `TaggedArray`, found `{type(val)}`.")
-
+    ) -> Optional[TaggedArray]:
         if callback is None:
-            return {}
+            return None
         if callback == "local-pca":
             callback = problem._local_pca_callback
         if callback == "spatial-norm":
             callback = problem._spatial_norm_callback
+        if callback == "graph-construction":
+            callback = problem._graph_construction_callback
 
         if not callable(callback):
             raise TypeError("Callback is not a function.")
-        data = callback(term, problem.adata_src, problem.adata_tgt, **kwargs)
-        verify_data(data)
-        return data
+        return callback(term, problem.adata_src, problem.adata_tgt, **kwargs)
 
     # TODO(michalk8): refactor me
     def _create_problems(
         self,
+        xy: Mapping[str, Any] = types.MappingProxyType({}),
+        x: Mapping[str, Any] = types.MappingProxyType({}),
+        y: Mapping[str, Any] = types.MappingProxyType({}),
         xy_callback: Optional[Union[Literal["local-pca"], Callback_t]] = None,
         x_callback: Optional[Union[Literal["local-pca"], Callback_t]] = None,
         y_callback: Optional[Union[Literal["local-pca"], Callback_t]] = None,
@@ -185,13 +178,19 @@ class BaseCompoundProblem(BaseProblem, abc.ABC, Generic[K, B]):
             y_data = self._callback_handler(
                 term="y", key_1=src, key_2=tgt, problem=problem, callback=y_callback, **y_callback_kwargs
             )
-
-            kws = {**kwargs, **xy_data, **x_data, **y_data}  # type: ignore[misc]
-
+            if xy_data:
+                xy = dict(xy)
+                xy["tagged_array"] = xy_data
+            if x_data:
+                x = dict(x)
+                x["tagged_array"] = x_data
+            if y_data:
+                y = dict(y)
+                y["tagged_array"] = y_data
             if isinstance(problem, BirthDeathProblem):
-                kws["proliferation_key"] = self.proliferation_key  # type: ignore[attr-defined]
-                kws["apoptosis_key"] = self.apoptosis_key  # type: ignore[attr-defined]
-            problems[src_name, tgt_name] = problem.prepare(**kws)
+                kwargs["proliferation_key"] = self.proliferation_key  # type: ignore[attr-defined]
+                kwargs["apoptosis_key"] = self.apoptosis_key  # type: ignore[attr-defined]
+            problems[src_name, tgt_name] = problem.prepare(xy=xy, x=x, y=y, **kwargs)
 
         return problems
 
@@ -290,7 +289,10 @@ class BaseCompoundProblem(BaseProblem, abc.ABC, Generic[K, B]):
         """Solve the individual :term:`OT` subproblems.
 
         .. seealso:
-            - TODO(michalk8): link an example/tutorial
+            - See :doc:`../notebooks/examples/solvers/100_linear_problems_basic`
+            for an introduction on how to solve linear problems.
+            - See :doc:`../notebooks/examples/solvers/300_quad_problems_basic`
+            for an introduction on how to solve quadratic problems.
 
         Parameters
         ----------
@@ -346,7 +348,7 @@ class BaseCompoundProblem(BaseProblem, abc.ABC, Generic[K, B]):
         ):
             problem = self.problems[src, tgt]
             fun = problem.push if forward else problem.pull
-            res[src] = fun(data=data, scale_by_marginals=scale_by_marginals)
+            res[src] = fun(data=data, scale_by_marginals=scale_by_marginals, **kwargs)
         return res if return_all else res[src]
 
     @_apply.register(ExplicitPolicy)
@@ -379,7 +381,9 @@ class BaseCompoundProblem(BaseProblem, abc.ABC, Generic[K, B]):
         for _src, _tgt in [(src, tgt)] + rest:
             problem = self.problems[_src, _tgt]
             fun = problem.push if forward else problem.pull
-            res[_tgt if forward else _src] = current_mass = fun(current_mass, scale_by_marginals=scale_by_marginals)
+            res[_tgt if forward else _src] = current_mass = fun(
+                current_mass, scale_by_marginals=scale_by_marginals, **kwargs
+            )
 
         return res if return_all else current_mass
 
@@ -555,7 +559,7 @@ class CompoundProblem(BaseCompoundProblem[K, B], abc.ABC):
         *,
         callback: Optional[Union[Literal["local-pca", "cost-matrix"], Callback_t]] = None,
         **kwargs: Any,
-    ) -> Mapping[Literal["xy", "x", "y"], TaggedArray]:
+    ) -> Optional[TaggedArray]:
         if callback == "cost-matrix":
             return self._cost_matrix_callback(term=term, key_1=key_1, key_2=key_2, **kwargs)
         return super()._callback_handler(
@@ -564,7 +568,7 @@ class CompoundProblem(BaseCompoundProblem[K, B], abc.ABC):
 
     def _cost_matrix_callback(
         self, term: Literal["xy", "x", "y"], *, key: str, key_1: K, key_2: Optional[K] = None, **_: Any
-    ) -> Mapping[Literal["xy", "x", "y"], TaggedArray]:
+    ) -> Optional[TaggedArray]:
         if TYPE_CHECKING:
             assert isinstance(self._policy, SubsetPolicy)
 
@@ -584,13 +588,13 @@ class CompoundProblem(BaseCompoundProblem[K, B], abc.ABC):
             if sp.issparse(linear_cost_matrix):
                 logger.warning("Linear cost matrix being densified.")
                 linear_cost_matrix = linear_cost_matrix.A
-            return {"xy": TaggedArray(linear_cost_matrix, tag=Tag.COST_MATRIX)}
+            return TaggedArray(linear_cost_matrix, tag=Tag.COST_MATRIX)
 
         if term in ("x", "y"):
             quad_cost_matrix = data[mask, :][:, mask]
             if sp.issparse(quad_cost_matrix):
                 logger.warning("Quadratic cost matrix being densified.")
                 quad_cost_matrix = quad_cost_matrix.A
-            return {term: TaggedArray(quad_cost_matrix, tag=Tag.COST_MATRIX)}
+            return TaggedArray(quad_cost_matrix, tag=Tag.COST_MATRIX)
 
         raise ValueError(f"Expected `term` to be one of `x`, `y`, or `xy`, found `{term!r}`.")

@@ -16,7 +16,7 @@ Moscot - Multiomics Single-cell Optimal Transport
     :align: center
     :class: only-dark
 
-If you find a model useful for your research, please consider citing the ``moscot`` manuscript (in preparation) as
+If you find a model useful for your research, please consider citing the ``moscot`` manuscript [`Klein et al., 2023 <https://www.biorxiv.org/content/10.1101/2023.05.11.540374v2>`_] as
 well as the publication introducing the model, which can be found in the corresponding documentation.
 
 .. grid:: 3
@@ -54,7 +54,7 @@ well as the publication introducing the model, which can be found in the corresp
 
     .. grid-item-card:: Manuscript
 
-        Please have a look at our manuscript :cite:`klein:23` to learn more.
+        Please have a look at our manuscript [`Klein et al., 2023 <https://www.biorxiv.org/content/10.1101/2023.05.11.540374v2>`_] to learn more.
 
 .. toctree::
     :maxdepth: 2
@@ -89,6 +89,6 @@ well as the publication introducing the model, which can be found in the corresp
     :target: https://moscot.readthedocs.io/en/stable/
     :alt: Documentation
 
-.. |Downloads| image:: https://pepy.tech/badge/moscot
+.. |Downloads| image:: https://static.pepy.tech/badge/moscot
     :target: https://pepy.tech/project/moscot
     :alt: Downloads

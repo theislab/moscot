@@ -11,6 +11,7 @@ from typing import (
     List,
     Literal,
     Mapping,
+    NamedTuple,
     Optional,
     Sequence,
     Tuple,
@@ -38,6 +39,12 @@ if TYPE_CHECKING:
 
 
 Callback = Callable[..., Any]
+
+
+class TimeScalesHeatKernel(NamedTuple):  # noqa: D101
+    x: Optional[float]
+    y: Optional[float]
+    xy: Optional[float]
 
 
 def _validate_annotations(
@@ -107,7 +114,7 @@ def _check_argument_compatibility_cell_transition(
         raise ValueError("Unable to infer distributions, missing `adata` and `key`.")
     if forward and target_annotation is None:
         raise ValueError("No target annotation provided.")
-    if not forward and source_annotation is None:
+    if aggregation_mode == "annotation" and (not forward and source_annotation is None):
         raise ValueError("No source annotation provided.")
     if (aggregation_mode == "annotation") and (source_annotation is None or target_annotation is None):
         raise ValueError(
@@ -674,7 +681,7 @@ def parallelize(
             collections = [collection[[ix], :] for ix in range(collection.shape[0])]  # type: ignore
         else:
             step = collection.shape[0] // n_split  # type: ignore[union-attr]
-            ixs = [np.arange(i * step, min((i + 1) * step, collection.shape[0])) for i in range(n_split)]  # type: ignore  # noqa: 501
+            ixs = [np.arange(i * step, min((i + 1) * step, collection.shape[0])) for i in range(n_split)]  # type: ignore  # noqa: E501
             ixs[-1] = np.append(ixs[-1], np.arange(ixs[-1][-1] + 1, collection.shape[0]))  # type: ignore
 
             collections = [collection[ix, :] for ix in filter(len, ixs)]  # type:ignore[call-overload]

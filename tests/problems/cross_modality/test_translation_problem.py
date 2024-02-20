@@ -3,6 +3,7 @@ from typing import Any, Literal, Mapping, Optional, Tuple
 import pytest
 
 import numpy as np
+from ott.geometry import epsilon_scheduler
 
 from anndata import AnnData
 
@@ -15,6 +16,7 @@ from tests.problems.conftest import (
     geometry_args,
     gw_linear_solver_args,
     gw_lr_linear_solver_args,
+    gw_lr_solver_args,
     gw_solver_args,
     pointcloud_args,
     quad_prob_args,
@@ -128,18 +130,21 @@ class TestTranslationProblem:
         tp = tp.solve(**args_to_check)
 
         solver = tp[key].solver.solver
-        for arg, val in gw_solver_args.items():
+
+        args = gw_solver_args if args_to_check["rank"] == -1 else gw_lr_solver_args
+        for arg, val in args.items():
             assert getattr(solver, val) == args_to_check[arg], arg
 
-        sinkhorn_solver = solver.linear_ot_solver
+        sinkhorn_solver = solver.linear_ot_solver if args_to_check["rank"] == -1 else solver
         lin_solver_args = gw_linear_solver_args if args_to_check["rank"] == -1 else gw_lr_linear_solver_args
+        tmp_dict = args_to_check["linear_solver_kwargs"] if args_to_check["rank"] == -1 else args_to_check
         for arg, val in lin_solver_args.items():
             el = (
                 getattr(sinkhorn_solver, val)[0]
                 if isinstance(getattr(sinkhorn_solver, val), tuple)
                 else getattr(sinkhorn_solver, val)
             )
-            assert el == args_to_check["linear_solver_kwargs"][arg], arg
+            assert el == tmp_dict[arg], arg
 
         quad_prob = tp[key]._solver._problem
         for arg, val in quad_prob_args.items():
@@ -148,7 +153,15 @@ class TestTranslationProblem:
 
         geom = quad_prob.geom_xx
         for arg, val in geometry_args.items():
-            assert getattr(geom, val) == args_to_check[arg], arg
+            assert hasattr(geom, val)
+            el = getattr(geom, val)[0] if isinstance(getattr(geom, val), tuple) else getattr(geom, val)
+            if arg == "epsilon":
+                eps_processed = getattr(geom, val)
+                assert isinstance(eps_processed, epsilon_scheduler.Epsilon)
+                assert eps_processed.target == args_to_check[arg], arg
+            else:
+                assert getattr(geom, val) == args_to_check[arg], arg
+                assert el == args_to_check[arg]
 
         geom = quad_prob.geom_xy
         for arg, val in pointcloud_args.items():

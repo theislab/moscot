@@ -54,8 +54,10 @@ dependencies = [
     "anndata>=0.9.1",
     "scanpy>=1.9.3",
     "wrapt>=1.13.2",
-    "ott-jax==0.4.0",
+    "docrep>=0.3.2",
+    "ott-jax>=0.4.5",
     "cloudpickle>=2.2.0",
+    "rich>=13.5",
 ]
 
 [project.optional-dependencies]
@@ -120,6 +122,8 @@ ignore = [
     "D107",
     # Missing docstring in magic method
     "D105",
+    # Use `X | Y` for type annotations
+    "UP007",
 ]
 line-length = 120
 select = [

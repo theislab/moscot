@@ -24,8 +24,7 @@ class GenericAnalysisMixinProtocol(AnalysisMixinProtocol[K, B], Protocol[K, B]):
         self: AnalysisMixinProtocol[K, B],
         *args: Any,
         **kwargs: Any,
-    ) -> pd.DataFrame:
-        ...
+    ) -> pd.DataFrame: ...
 
 
 class GenericAnalysisMixin(AnalysisMixin[K, B]):

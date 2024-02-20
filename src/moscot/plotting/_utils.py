@@ -372,7 +372,7 @@ def _input_to_adatas(
             raise TypeError(f"Expected object to be of type `AnnData`, found `{type(inp[0])}`.")
         if not isinstance(inp[1], AnnData):
             raise TypeError(f"Expected object to be of type `AnnData`, found `{type(inp[1])}`.")
-        return inp  # type: ignore[return-value]
+        return inp
     raise ValueError(f"Unable to interpret input of type `{type(inp)}`.")
 
 
@@ -426,10 +426,12 @@ def _plot_temporal(
     else:
         name = "descendants" if push else "ancestors"
         if time_points is not None:
-            titles = [f"{categories} at time {source if push else target}"]
+            titles = [f"{categories if categories is not None else 'Cells'} at time {source if push else target}"]
             titles.extend([f"{name} at time {time_points[i]}" for i in range(1, len(time_points))])
         else:
-            titles = [f"{categories} at time {source if push else target} and {name}"]
+            titles = [
+                f"{categories if categories is not None else 'Cells'} at time {source if push else target} and {name}"
+            ]
     for i, ax in enumerate(axs):
         # we need to create adata_view because otherwise the view of the adata is copied in the next step i+1
         with RandomKeys(adata, n=2, where="obs") as keys:
