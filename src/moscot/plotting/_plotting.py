@@ -23,7 +23,7 @@ from moscot.plotting._utils import (
     _create_col_colors,
     _heatmap,
     _input_to_adatas,
-    _plot_temporal,
+    _plot_scatter,
     _sankey,
     get_plotting_vars,
 )
@@ -292,9 +292,9 @@ def push(
     if data["data"] is not None and data["subset"] is not None and cmap is None:
         cmap = _create_col_colors(adata, data["data"], data["subset"])
 
-    fig = _plot_temporal(
+    fig = _plot_scatter(
         adata=adata,
-        temporal_key=data["temporal_key"],
+        generic_key=data["key"],
         key_stored=key,
         source=data["source"],
         target=data["target"],
@@ -400,9 +400,9 @@ def pull(
     if data["data"] is not None and data["subset"] is not None and cmap is None:
         cmap = _create_col_colors(adata, data["data"], data["subset"])
 
-    fig = _plot_temporal(
+    fig = _plot_scatter(
         adata=adata,
-        temporal_key=data["temporal_key"],
+        generic_key=data["key"],
         key_stored=key,
         source=data["source"],
         target=data["target"],
