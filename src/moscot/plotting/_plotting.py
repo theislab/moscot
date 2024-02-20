@@ -402,7 +402,7 @@ def pull(
 
     fig = _plot_scatter(
         adata=adata,
-        generic_key=data["key"] if "key" in data else None,
+        generic_key=data["key"],
         key_stored=key,
         source=data["source"],
         target=data["target"],
