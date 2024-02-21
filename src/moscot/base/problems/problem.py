@@ -989,7 +989,6 @@ class CondOTProblem(BaseProblem):  # TODO(@MUCDK) check generic types, save and 
         Self and modifies the following attributes:
         TODO.
         """
-        self._problem_kind = "linear"
         self._distributions = DistributionCollection()
         self._solution = None
         self._policy_key = policy_key
@@ -1010,6 +1009,11 @@ class CondOTProblem(BaseProblem):  # TODO(@MUCDK) check generic types, save and 
                 adata_masked, a=a_created, b=b_created, **xy, **xx, **conditions
             )
         return self
+    
+    @property
+    @abc.abstractmethod
+    def problem_kind(self) -> ProblemKind_t:
+        """Name of the solver class"""
 
     @wrap_solve
     def solve(

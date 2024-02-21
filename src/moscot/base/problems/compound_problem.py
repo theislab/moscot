@@ -277,7 +277,7 @@ class BaseCompoundProblem(BaseProblem, abc.ABC, Generic[K, B]):
 
         # we assume that all subproblems are of the same kind
         for p in self.problems.values():
-            self._problem_kind = p._problem_kind
+            self._problem_kind = p.problem_kind
             self._stage = "prepared"
             break
         return self

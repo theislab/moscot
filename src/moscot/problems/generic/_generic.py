@@ -1,9 +1,9 @@
+import abc
 import inspect
 import types
 from types import MappingProxyType
 from typing import Any, Dict, Literal, Mapping, Optional, Set, Tuple, Type, Union
 
-import optax
 
 from anndata import AnnData
 
@@ -17,6 +17,7 @@ from moscot._types import (
     QuadInitializer_t,
     ScaleCost_t,
     SinkhornInitializer_t,
+    ProblemKind_t
 )
 from moscot.base.problems.compound_problem import B, CompoundProblem, K
 from moscot.base.problems.problem import CondOTProblem, NeuralOTProblem, OTProblem
@@ -573,15 +574,56 @@ class NeuralProblem(CompoundProblem[K, B], GenericAnalysisMixin[K, B]):
         return init_kwargs, {}  # type: ignore[return-value]
 
 
-class GENOTLinProblem(CondOTProblem, GenericAnalysisMixin[K, B]):
-    """Class for solving Conditional Parameterized Monge Map problems / Conditional Neural OT problems."""
+class GENOTProblem(CondOTProblem, GenericAnalysisMixin[K, B], abc.ABC):
+    """Base class for solving problems using GENOT."""
 
+    def solve(
+        self,
+        batch_size: int = 1024,
+        tau_a: float = 1.0,
+        tau_b: float = 1.0,
+        seed: int = 0,
+        iterations: int = 25000,  # TODO(@MUCDK): rename to max_iterations
+        valid_freq: int = 50,
+        valid_sinkhorn_kwargs: Dict[str, Any] = MappingProxyType({}),
+        train_size: float = 1.0,
+        **kwargs: Any,
+    ) -> "GENOTProblem[K, B]":
+        """Solve."""
+        return super().solve(
+            batch_size=batch_size,
+            tau_a=tau_a,
+            tau_b=tau_b,
+            seed=seed,
+            iterations=iterations,
+            valid_freq=valid_freq,
+            valid_sinkhorn_kwargs=valid_sinkhorn_kwargs,
+            train_size=train_size,
+            solver_name=self._neural_solver_name,
+            **kwargs,
+        )
+
+    @property
+    def _base_problem_type(self) -> Type[CondOTProblem]:
+        return CondOTProblem
+
+    @property
+    def _valid_policies(self) -> Tuple[Policy_t, ...]:
+        return _constants.SEQUENTIAL, _constants.EXPLICIT  # type: ignore[return-value]
+    
+    @property
+    @abc.abstractmethod
+    def _neural_solver_name(self) -> Literal["GENOTQuadSolver", "GENOTLinSolver", "GENOTFusedSolver"]:
+        """Name of the solver class"""
+
+     
     def prepare(
         self,
         key: str,
         joint_attr: Union[str, Mapping[str, Any]],
         conditional_attr: Union[str, Mapping[str, Any]],
         policy: Literal["sequential", "pairwise", "explicit"] = "sequential",
+        quad_attr: Optional[Union[str, Dict[str, str]]] = None,
         a: Optional[str] = None,
         b: Optional[str] = None,
         cost: OttCostFn_t = "sq_euclidean",
@@ -597,7 +639,6 @@ class GENOTLinProblem(CondOTProblem, GenericAnalysisMixin[K, B]):
                 return dict(z)
             raise TypeError("`x_attr` and `y_attr` must be of type `str` or `dict`.")
 
-        quad_attr: Optional[Union[str, Dict[str, str]]] = None  # at the moment we only have linear cond OT solvers
 
         self.batch_key = key  # type:ignore[misc]
         xy, kwargs = handle_joint_attr_tmp(joint_attr, kwargs)
@@ -615,36 +656,27 @@ class GENOTLinProblem(CondOTProblem, GenericAnalysisMixin[K, B]):
             **kwargs,
         )
 
-    def solve(
-        self,
-        batch_size: int = 1024,
-        tau_a: float = 1.0,
-        tau_b: float = 1.0,
-        seed: int = 0,
-        iterations: int = 25000,  # TODO(@MUCDK): rename to max_iterations
-        valid_freq: int = 50,
-        valid_sinkhorn_kwargs: Dict[str, Any] = MappingProxyType({}),
-        train_size: float = 1.0,
-        **kwargs: Any,
-    ) -> "GENOTLinProblem[K, B]":
-        """Solve."""
-        return super().solve(
-            batch_size=batch_size,
-            tau_a=tau_a,
-            tau_b=tau_b,
-            seed=seed,
-            iterations=iterations,
-            valid_freq=valid_freq,
-            valid_sinkhorn_kwargs=valid_sinkhorn_kwargs,
-            train_size=train_size,
-            solver_name="GENOTLinSolver",
-            **kwargs,
-        )
+
+class GENOTQuadProblem(GENOTProblem[K,B]):
+    """Class for linear conditional Neural problems using GENOT."""
 
     @property
-    def _base_problem_type(self) -> Type[CondOTProblem]:
-        return CondOTProblem
+    def problem_kind(self) -> ProblemKind_t:
+        return "quadratic"
+    
+    @property
+    def _neural_solver_name(self) -> Literal["GENOTQuadSolver", "GENOTLinSolver", "GENOTFusedSolver"]:
+        """Name of the solver class"""
+        return "GENOTQuadSolver"
+
+class GENOTLinProblem(GENOTProblem[K,B]):
+    """Class for quadratic conditional Neural problems using GENOT."""
 
     @property
-    def _valid_policies(self) -> Tuple[Policy_t, ...]:
-        return _constants.SEQUENTIAL, _constants.EXPLICIT  # type: ignore[return-value]
+    def _neural_solver_name(self) -> Literal["GENOTQuadSolver", "GENOTLinSolver", "GENOTFusedSolver"]:
+        """Name of the solver class"""
+        return "GENOTLinSolver"
+    
+    @property
+    def problem_kind(self) -> ProblemKind_t:
+        return "linear"
