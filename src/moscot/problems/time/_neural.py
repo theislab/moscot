@@ -7,14 +7,14 @@ from moscot import _constants
 from moscot._types import Numeric_t, Policy_t
 from moscot.base.problems._mixins import NeuralAnalysisMixin
 from moscot.base.problems.birth_death import BirthDeathMixin, BirthDeathNeuralProblem
-from moscot.base.problems.compound_problem import CompoundProblem
+from moscot.problems.generic import GENOTLinProblem
 from moscot.problems._utils import handle_joint_attr
 
 
 class TemporalNeuralProblem(  # type: ignore[misc]
     NeuralAnalysisMixin[Numeric_t, BirthDeathNeuralProblem],
     BirthDeathMixin,
-    CompoundProblem[Numeric_t, BirthDeathNeuralProblem],
+    GENOTLinProblem[Numeric_t, BirthDeathNeuralProblem],
 ):
     """Class for analyzing time series single cell data with MongeVelor based on :cite:`eyring2022modeling`.
 
@@ -32,8 +32,8 @@ class TemporalNeuralProblem(  # type: ignore[misc]
     def prepare(
         self,
         time_key: str,
-        joint_attr: Optional[Union[str, Mapping[str, Any]]] = None,
-        policy: Literal["sequential", "tril", "triu", "explicit"] = "sequential",
+        joint_attr: Union[str, Mapping[str, Any]],
+        policy: Literal["sequential", "tril", "triu"] = "sequential",
         a: Optional[str] = None,
         b: Optional[str] = None,
         marginal_kwargs: Mapping[str, Any] = MappingProxyType({}),
@@ -118,10 +118,12 @@ class TemporalNeuralProblem(  # type: ignore[misc]
         estimate_marginals = self.proliferation_key is not None or self.apoptosis_key is not None
         a = estimate_marginals if a is None else a
         b = estimate_marginals if b is None else b
+        conditional_attr={"attr": "obs", "key": time_key}
 
         return super().prepare(  # type:ignore[return-value]
             key=time_key,
-            xy=xy,
+            conditional_attr=conditional_attr,
+            joint_attr=joint_attr,
             policy=policy,
             a=a,
             b=b,
@@ -136,30 +138,13 @@ class TemporalNeuralProblem(  # type: ignore[misc]
         tau_b: float = 1.0,
         epsilon: float = 0.1,
         seed: int = 0,
-        pos_weights: bool = False,
         beta: float = 1.0,
-        best_model_selection: bool = True,
         iterations: int = 25000,  # TODO(@MUCDK): rename to max_iterations
         inner_iters: int = 10,
         valid_freq: int = 50,
-        log_freq: int = 5,
-        patience: int = 100,
-        patience_metric: Literal[
-            "train_loss_f",
-            "train_loss_g",
-            "train_w_dist",
-            "valid_loss_f",
-            "valid_loss_g",
-            "valid_w_dist",
-        ] = "valid_w_dist",
-        f: Union[Dict[str, Any], Any] = MappingProxyType({}), # TODO(ilan-gold): replace with corect type
-        g: Union[Dict[str, Any], Any] = MappingProxyType({}),
-        optimizer_f: Union[Dict[str, Any], Type[optax.GradientTransformation]] = MappingProxyType({}),
-        optimizer_g: Union[Dict[str, Any], Type[optax.GradientTransformation]] = MappingProxyType({}),
         pretrain_iters: int = 0,
         pretrain_scale: float = 3.0,
         valid_sinkhorn_kwargs: Dict[str, Any] = MappingProxyType({}),
-        compute_wasserstein_baseline: bool = True,
         train_size: float = 1.0,
         solver_name: Literal["GENOTLinSolver"] = "GENOTLinSolver",
         **kwargs: Any,
@@ -235,22 +220,13 @@ class TemporalNeuralProblem(  # type: ignore[misc]
             tau_b=tau_b,
             epsilon=epsilon,
             seed=seed,
-            pos_weights=pos_weights,
             beta=beta,
-            best_model_selection=best_model_selection,
             iterations=iterations,
             inner_iters=inner_iters,
             valid_freq=valid_freq,
-            log_freq=log_freq,
-            patience=patience,
-            f=f,
-            g=g,
-            optimizer_f=optimizer_f,
-            optimizer_g=optimizer_g,
             pretrain_iters=pretrain_iters,
             pretrain_scale=pretrain_scale,
             valid_sinkhorn_kwargs=valid_sinkhorn_kwargs,
-            compute_wasserstein_baseline=compute_wasserstein_baseline,
             train_size=train_size,
             solver_name="GENOTLinSolver",
             **kwargs,

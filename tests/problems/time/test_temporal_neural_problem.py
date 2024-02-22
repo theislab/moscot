@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Literal
 
 import pytest
 
@@ -12,46 +12,33 @@ from moscot.problems.time import TemporalNeuralProblem
 from moscot.problems.time._lineage import BirthDeathProblem
 from tests._utils import ATOL, RTOL
 from tests.problems.conftest import (
-    neuraldual_args_1,
-    neuraldual_args_2,
-    neuraldual_solver_args,
+    neurallin_cond_args_1,
+    neurallin_cond_args_2,
 )
 
 
 class TestTemporalNeuralProblem:
+
+    @pytest.mark.parametrize("policy", ["sequential", "tril", "triu"])
     @pytest.mark.fast()
-    def test_prepare(self, adata_time: ad.AnnData):
-        expected_keys = [(0, 1), (1, 2)]
+    def test_prepare(self, adata_time: ad.AnnData, policy: Literal["sequential", "tril", "triu"]):
         problem = TemporalNeuralProblem(adata=adata_time)
 
-        assert len(problem) == 0
-        assert problem.problems == {}
-        assert problem.solutions == {}
+        problem = problem.prepare(time_key="time", joint_attr="X_pca", policy=policy)
 
-        problem = problem.prepare(time_key="time", joint_attr="X_pca", policy="sequential")
+        assert len(problem.distributions) == 3
 
-        assert isinstance(problem.problems, dict)
-        assert len(problem.problems) == len(expected_keys)
-
-        for key in problem:
-            assert key in expected_keys
-            assert isinstance(problem[key], BirthDeathProblem)
-
-    def test_solve_balanced_no_baseline(self, adata_time: ad.AnnData):
-        expected_keys = [(0, 1), (1, 2)]
+    @pytest.mark.parametrize("policy", ["sequential", "tril", "triu"])
+    def test_solve_balanced_no_baseline(self, adata_time: ad.AnnData, policy: Literal["sequential", "tril", "triu"]):
         problem = TemporalNeuralProblem(adata=adata_time)
-        problem = problem.prepare(time_key="time", joint_attr="X_pca")
-        problem = problem.solve(**neuraldual_args_1)
-
-        for key, subsol in problem.solutions.items():
-            assert isinstance(subsol, BaseNeuralOutput)
-            assert key in expected_keys
+        problem = problem.prepare(time_key="time", joint_attr="X_pca", policy=policy)
+        problem = problem.solve(**neurallin_cond_args_1)
 
     def test_solve_unbalanced_with_baseline(self, adata_time: ad.AnnData):
         expected_keys = [(0, 1), (1, 2)]
         problem = TemporalNeuralProblem(adata=adata_time)
         problem = problem.prepare(time_key="time", joint_attr="X_pca")
-        problem = problem.solve(**neuraldual_args_2)
+        problem = problem.solve(**neurallin_cond_args_2)
 
         for key, subsol in problem.solutions.items():
             assert isinstance(subsol, BaseNeuralOutput)
@@ -61,11 +48,11 @@ class TestTemporalNeuralProblem:
         pc_tzero = adata_time[adata_time.obs["time"] == 0].obsm["X_pca"]
         problem_one = TemporalNeuralProblem(adata=adata_time)
         problem_one = problem_one.prepare(time_key="time", joint_attr="X_pca")
-        problem_one = problem_one.solve(**neuraldual_args_1)
+        problem_one = problem_one.solve(**neurallin_cond_args_1)
 
         problem_two = TemporalNeuralProblem(adata=adata_time)
         problem_two = problem_one.prepare("time", joint_attr="X_pca")
-        problem_two = problem_one.solve(**neuraldual_args_1)
+        problem_two = problem_one.solve(**neurallin_cond_args_1)
 
         for key in problem_one.solutions:
             assert np.allclose(
@@ -159,7 +146,7 @@ class TestTemporalNeuralProblem:
         problem = TemporalNeuralProblem(adata=adata_time)
         adata_time = adata_time[adata_time.obs["time"].isin((0, 1))]
         problem = problem.prepare(time_key="time", joint_attr="X_pca")
-        problem = problem.solve(**neuraldual_args_1)
+        problem = problem.solve(**neurallin_cond_args_1)
 
         key = (0, 1)
         solver = problem[key].solver.solver
@@ -167,7 +154,7 @@ class TestTemporalNeuralProblem:
         for arg, val in neuraldual_solver_args.items():
             assert hasattr(solver, val)
             el = getattr(solver, val)[0] if isinstance(getattr(solver, val), tuple) else getattr(solver, val)
-            assert el == neuraldual_args_1[arg]
+            assert el == neurallin_cond_args_1[arg]
 
     @pytest.mark.parametrize("forward", [True, False])
     def test_cell_transition_full_pipeline(self, gt_temporal_adata: ad.AnnData, forward: bool):
@@ -180,7 +167,7 @@ class TestTemporalNeuralProblem:
         problem = TemporalNeuralProblem(gt_temporal_adata)
         problem = problem.prepare(key)
         assert set(problem.problems.keys()) == {(key_1, key_2), (key_2, key_3)}
-        problem = problem.solve(**neuraldual_args_1)
+        problem = problem.solve(**neurallin_cond_args_1)
 
         cell_types_present_key_1 = (
             gt_temporal_adata[gt_temporal_adata.obs[key] == key_1].obs["cell_type"].cat.categories
@@ -216,7 +203,7 @@ class TestTemporalNeuralProblem:
         problem = TemporalNeuralProblem(gt_temporal_adata)
         problem = problem.prepare(key)
         assert set(problem.problems.keys()) == {(key_1, key_2), (key_2, key_3)}
-        problem = problem.solve(**neuraldual_args_1)
+        problem = problem.solve(**neurallin_cond_args_1)
 
         early_annotation = ["Stromal", "unknown"]  # if forward else ["Stromal", "Epithelial"]
         late_annotation = ["Stromal", "Epithelial"]  # if forward else ["Stromal", "unknown"]

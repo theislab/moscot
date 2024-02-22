@@ -622,7 +622,7 @@ class GENOTProblem(CondOTProblem, GenericAnalysisMixin[K, B], abc.ABC):
         key: str,
         joint_attr: Union[str, Mapping[str, Any]],
         conditional_attr: Union[str, Mapping[str, Any]],
-        policy: Literal["sequential", "pairwise", "explicit"] = "sequential",
+        policy: Literal["sequential", "tril", "triu"] = "sequential",
         quad_attr: Optional[Union[str, Dict[str, str]]] = None,
         a: Optional[str] = None,
         b: Optional[str] = None,
