@@ -112,7 +112,7 @@ class TemporalNeuralProblem(  # type: ignore[misc]
         for an example how to pass marginals.
         """
         self.temporal_key = time_key
-        xy, kwargs = handle_joint_attr(joint_attr, kwargs)
+        _, kwargs = handle_joint_attr(joint_attr, kwargs)
 
         marginal_kwargs = dict(marginal_kwargs)
         estimate_marginals = self.proliferation_key is not None or self.apoptosis_key is not None
@@ -136,14 +136,9 @@ class TemporalNeuralProblem(  # type: ignore[misc]
         batch_size: int = 1024,
         tau_a: float = 1.0,
         tau_b: float = 1.0,
-        epsilon: float = 0.1,
         seed: int = 0,
-        beta: float = 1.0,
         iterations: int = 25000,  # TODO(@MUCDK): rename to max_iterations
-        inner_iters: int = 10,
         valid_freq: int = 50,
-        pretrain_iters: int = 0,
-        pretrain_scale: float = 3.0,
         valid_sinkhorn_kwargs: Dict[str, Any] = MappingProxyType({}),
         train_size: float = 1.0,
         solver_name: Literal["GENOTLinSolver"] = "GENOTLinSolver",
@@ -218,17 +213,11 @@ class TemporalNeuralProblem(  # type: ignore[misc]
             batch_size=batch_size,
             tau_a=tau_a,
             tau_b=tau_b,
-            epsilon=epsilon,
             seed=seed,
-            beta=beta,
             iterations=iterations,
-            inner_iters=inner_iters,
             valid_freq=valid_freq,
-            pretrain_iters=pretrain_iters,
-            pretrain_scale=pretrain_scale,
             valid_sinkhorn_kwargs=valid_sinkhorn_kwargs,
             train_size=train_size,
-            solver_name="GENOTLinSolver",
             **kwargs,
         )  # type:ignore[return-value]
 

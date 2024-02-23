@@ -599,7 +599,7 @@ class GENOTProblem(CondOTProblem, GenericAnalysisMixin[K, B], abc.ABC):
             valid_freq=valid_freq,
             valid_sinkhorn_kwargs=valid_sinkhorn_kwargs,
             train_size=train_size,
-            solver_name=self._neural_solver_name,
+            solver_name=kwargs.pop("solver_name", self._neural_solver_name),
             **kwargs,
         )
 

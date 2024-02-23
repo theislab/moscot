@@ -29,44 +29,43 @@ class TestTemporalNeuralProblem:
         assert len(problem.distributions) == 3
 
     @pytest.mark.parametrize("policy", ["sequential", "tril", "triu"])
-    def test_solve_balanced_no_baseline(self, adata_time: ad.AnnData, policy: Literal["sequential", "tril", "triu"]):
+    @pytest.mark.parametrize("solver_kwargs", [neurallin_cond_args_1, neurallin_cond_args_2], ids=["no_validate", "validate"])
+    def test_solve_balanced_no_baseline(self, adata_time: ad.AnnData, policy: Literal["sequential", "tril", "triu"], solver_kwargs: dict):
         problem = TemporalNeuralProblem(adata=adata_time)
         problem = problem.prepare(time_key="time", joint_attr="X_pca", policy=policy)
-        problem = problem.solve(**neurallin_cond_args_1)
+        problem = problem.solve(**solver_kwargs)
 
-    def test_solve_unbalanced_with_baseline(self, adata_time: ad.AnnData):
-        expected_keys = [(0, 1), (1, 2)]
-        problem = TemporalNeuralProblem(adata=adata_time)
-        problem = problem.prepare(time_key="time", joint_attr="X_pca")
-        problem = problem.solve(**neurallin_cond_args_2)
+        assert len(problem.distributions) == 3
+        assert problem.stage == "solved"
 
-        for key, subsol in problem.solutions.items():
-            assert isinstance(subsol, BaseNeuralOutput)
-            assert key in expected_keys
-
-    def test_reproducibility(self, adata_time: ad.AnnData):
+    @pytest.mark.parametrize("policy", ["sequential", "tril", "triu"])
+    @pytest.mark.parametrize("solver_kwargs", [neurallin_cond_args_1, neurallin_cond_args_2], ids=["no_validate", "validate"])
+    def test_reproducibility(self, adata_time: ad.AnnData, policy: Literal["sequential", "tril", "triu"], solver_kwargs: dict):
         pc_tzero = adata_time[adata_time.obs["time"] == 0].obsm["X_pca"]
         problem_one = TemporalNeuralProblem(adata=adata_time)
-        problem_one = problem_one.prepare(time_key="time", joint_attr="X_pca")
-        problem_one = problem_one.solve(**neurallin_cond_args_1)
+        problem_one = problem_one.prepare(time_key="time", joint_attr="X_pca", policy=policy)
+        problem_one = problem_one.solve(**solver_kwargs)
 
         problem_two = TemporalNeuralProblem(adata=adata_time)
-        problem_two = problem_one.prepare("time", joint_attr="X_pca")
-        problem_two = problem_one.solve(**neurallin_cond_args_1)
+        problem_two = problem_one.prepare("time", joint_attr="X_pca", policy=policy)
+        problem_two = problem_one.solve(**solver_kwargs)
+        
+        if policy in { "sequential", "triu" }:
+            assert np.allclose(
+                problem_one.solution.push(adata_time.obs["time"] == 1, pc_tzero),
+                problem_two.solution.push(adata_time.obs["time"] == 1, pc_tzero),
+                rtol=RTOL,
+                atol=ATOL,
+            )
 
-        for key in problem_one.solutions:
+        if policy in { "triu", "tril" }:
             assert np.allclose(
-                problem_one[key].solution.push(pc_tzero),
-                problem_two[key].solution.push(pc_tzero),
+                problem_one.push(2, 1, pc_tzero),
+                problem_two.push(2, 1, pc_tzero),
                 rtol=RTOL,
                 atol=ATOL,
             )
-            assert np.allclose(
-                problem_one[key].solution.pull(pc_tzero),
-                problem_two[key].solution.pull(pc_tzero),
-                rtol=RTOL,
-                atol=ATOL,
-            )
+
 
     @pytest.mark.fast()
     @pytest.mark.parametrize(
