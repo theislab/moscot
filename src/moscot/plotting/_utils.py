@@ -376,9 +376,9 @@ def _input_to_adatas(
     raise ValueError(f"Unable to interpret input of type `{type(inp)}`.")
 
 
-def _plot_temporal(
+def _plot_scatter(
     adata: AnnData,
-    temporal_key: str,
+    generic_key: str,
     key_stored: str,
     source: float,
     target: float,
@@ -430,7 +430,8 @@ def _plot_temporal(
             titles.extend([f"{name} at time {time_points[i]}" for i in range(1, len(time_points))])
         else:
             titles = [
-                f"{categories if categories is not None else 'Cells'} at time {source if push else target} and {name}"
+                f"{'Push' if push else 'Pull'} {categories if categories is not None else 'cells'} "
+                + f"from {source if push else target} to {target if push else source}"
             ]
     for i, ax in enumerate(axs):
         # we need to create adata_view because otherwise the view of the adata is copied in the next step i+1
@@ -446,7 +447,7 @@ def _plot_temporal(
                 adata_view = adata
             else:
                 tmp = np.full(len(adata), constant_fill_value)
-                mask = adata.obs[temporal_key] == time_points[i]
+                mask = adata.obs[generic_key] == time_points[i]
 
                 tmp[mask] = adata[mask].obs[key_stored]
                 if scale:

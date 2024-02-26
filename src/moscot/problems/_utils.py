@@ -36,9 +36,7 @@ def handle_joint_attr(
             return xy, kwargs
 
         # if this is True we have custom cost matrix or moscot cost - in this case we have a custom cost matrix
-        if joint_attr.get("tag", None) == "cost_matrix" and (
-            len(joint_attr) == 2 or kwargs.get("attr", None) == "obsp"
-        ):
+        if joint_attr.get("tag", None) == "cost_matrix" and (len(joint_attr) == 2 or kwargs.get("attr") == "obsp"):
             joint_attr.setdefault("cost", "custom")
             joint_attr.setdefault("attr", "obsp")
             kwargs["xy_callback"] = "cost-matrix"

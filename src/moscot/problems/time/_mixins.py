@@ -50,28 +50,23 @@ class TemporalMixinProtocol(AnalysisMixinProtocol[K, B], Protocol[K, B]):  # typ
         batch_size: Optional[int] = None,
         normalize: bool = True,
         key_added: Optional[str] = _constants.CELL_TRANSITION,
-    ) -> pd.DataFrame:
-        ...
+    ) -> pd.DataFrame: ...
 
-    def push(self, *args: Any, **kwargs: Any) -> Optional[ApplyOutput_t[K]]:
-        ...
+    def push(self, *args: Any, **kwargs: Any) -> Optional[ApplyOutput_t[K]]: ...
 
-    def pull(self, *args: Any, **kwargs: Any) -> Optional[ApplyOutput_t[K]]:
-        ...
+    def pull(self, *args: Any, **kwargs: Any) -> Optional[ApplyOutput_t[K]]: ...
 
     def _cell_transition(
         self: AnalysisMixinProtocol[K, B],
         *args: Any,
         **kwargs: Any,
-    ) -> pd.DataFrame:
-        ...
+    ) -> pd.DataFrame: ...
 
     def _annotation_mapping(
         self: AnalysisMixinProtocol[K, B],
         *args: Any,
         **kwargs: Any,
-    ) -> pd.DataFrame:
-        ...
+    ) -> pd.DataFrame: ...
 
     def _sample_from_tmap(
         self: TemporalMixinProtocol[K, B],
@@ -84,8 +79,7 @@ class TemporalMixinProtocol(AnalysisMixinProtocol[K, B], Protocol[K, B]):  # typ
         account_for_unbalancedness: bool = False,
         interpolation_parameter: Optional[float] = None,
         seed: Optional[int] = None,
-    ) -> tuple[list[Any], list[ArrayLike]]:
-        ...
+    ) -> tuple[list[Any], list[ArrayLike]]: ...
 
     def _compute_wasserstein_distance(
         self: TemporalMixinProtocol[K, B],
@@ -95,8 +89,7 @@ class TemporalMixinProtocol(AnalysisMixinProtocol[K, B], Protocol[K, B]):  # typ
         b: Optional[ArrayLike] = None,
         backend: Literal["ott"] = "ott",
         **kwargs: Any,
-    ) -> float:
-        ...
+    ) -> float: ...
 
     def _interpolate_gex_with_ot(
         self: TemporalMixinProtocol[K, B],
@@ -109,8 +102,7 @@ class TemporalMixinProtocol(AnalysisMixinProtocol[K, B], Protocol[K, B]):  # typ
         account_for_unbalancedness: bool = True,
         batch_size: int = 256,
         seed: Optional[int] = None,
-    ) -> ArrayLike:
-        ...
+    ) -> ArrayLike: ...
 
     def _get_data(
         self: TemporalMixinProtocol[K, B],
@@ -120,8 +112,7 @@ class TemporalMixinProtocol(AnalysisMixinProtocol[K, B], Protocol[K, B]):  # typ
         posterior_marginals: bool = True,
         *,
         only_start: bool = False,
-    ) -> Union[tuple[ArrayLike, AnnData], tuple[ArrayLike, ArrayLike, ArrayLike, AnnData, ArrayLike]]:
-        ...
+    ) -> Union[tuple[ArrayLike, AnnData], tuple[ArrayLike, ArrayLike, ArrayLike, AnnData, ArrayLike]]: ...
 
     def _interpolate_gex_randomly(
         self: TemporalMixinProtocol[K, B],
@@ -131,8 +122,7 @@ class TemporalMixinProtocol(AnalysisMixinProtocol[K, B], Protocol[K, B]):  # typ
         interpolation_parameter: float,
         growth_rates: Optional[ArrayLike] = None,
         seed: Optional[int] = None,
-    ) -> ArrayLike:
-        ...
+    ) -> ArrayLike: ...
 
     def _plot_temporal(
         self: TemporalMixinProtocol[K, B],
@@ -145,17 +135,14 @@ class TemporalMixinProtocol(AnalysisMixinProtocol[K, B], Protocol[K, B]):  # typ
         fill_value: float = 0.0,
         save: Optional[Union[str, pathlib.Path]] = None,
         **kwargs: Any,
-    ) -> None:
-        ...
+    ) -> None: ...
 
     @staticmethod
     def _get_interp_param(
         source: K, intermediate: K, target: K, interpolation_parameter: Optional[float] = None
-    ) -> float:
-        ...
+    ) -> float: ...
 
-    def __iter__(self) -> Iterator[tuple[K, K]]:
-        ...
+    def __iter__(self) -> Iterator[tuple[K, K]]: ...
 
 
 class TemporalMixin(AnalysisMixin[K, B]):
@@ -475,7 +462,7 @@ class TemporalMixin(AnalysisMixin[K, B]):
             plot_vars = {
                 "source": source,
                 "target": target,
-                "temporal_key": self.temporal_key,
+                "key": self.temporal_key,
                 "data": data if isinstance(data, str) else None,
                 "subset": subset,
             }
@@ -539,7 +526,7 @@ class TemporalMixin(AnalysisMixin[K, B]):
 
         if key_added is not None:
             plot_vars = {
-                "temporal_key": self.temporal_key,
+                "key": self.temporal_key,
                 "data": data if isinstance(data, str) else None,
                 "subset": subset,
                 "source": source,

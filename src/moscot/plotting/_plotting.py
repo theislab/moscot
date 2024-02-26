@@ -23,7 +23,7 @@ from moscot.plotting._utils import (
     _create_col_colors,
     _heatmap,
     _input_to_adatas,
-    _plot_temporal,
+    _plot_scatter,
     _sankey,
     get_plotting_vars,
 )
@@ -104,12 +104,12 @@ def cell_transition(
         row_adata=adata1,
         col_adata=adata2,
         transition_matrix=data["transition_matrix"],
-        row_annotation=data["source_groups"]
-        if isinstance(data["source_groups"], str)
-        else next(iter(data["source_groups"])),
-        col_annotation=data["target_groups"]
-        if isinstance(data["target_groups"], str)
-        else next(iter(data["target_groups"])),
+        row_annotation=(
+            data["source_groups"] if isinstance(data["source_groups"], str) else next(iter(data["source_groups"]))
+        ),
+        col_annotation=(
+            data["target_groups"] if isinstance(data["target_groups"], str) else next(iter(data["target_groups"]))
+        ),
         row_annotation_label=data["source"] if row_label is None else row_label,
         col_annotation_label=data["target"] if col_label is None else col_label,
         cont_cmap=cmap,
@@ -292,9 +292,9 @@ def push(
     if data["data"] is not None and data["subset"] is not None and cmap is None:
         cmap = _create_col_colors(adata, data["data"], data["subset"])
 
-    fig = _plot_temporal(
+    fig = _plot_scatter(
         adata=adata,
-        temporal_key=data["temporal_key"],
+        generic_key=data["key"],
         key_stored=key,
         source=data["source"],
         target=data["target"],
@@ -400,9 +400,9 @@ def pull(
     if data["data"] is not None and data["subset"] is not None and cmap is None:
         cmap = _create_col_colors(adata, data["data"], data["subset"])
 
-    fig = _plot_temporal(
+    fig = _plot_scatter(
         adata=adata,
-        temporal_key=data["temporal_key"],
+        generic_key=data["key"],
         key_stored=key,
         source=data["source"],
         target=data["target"],

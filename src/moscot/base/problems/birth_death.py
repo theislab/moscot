@@ -38,8 +38,7 @@ class BirthDeathProtocol(Protocol):  # noqa: D101
         proliferation_key: str = "proliferation",
         apoptosis_key: str = "apoptosis",
         **kwargs: Any,
-    ) -> "BirthDeathProtocol":
-        ...
+    ) -> "BirthDeathProtocol": ...
 
 
 class BirthDeathProblemProtocol(BirthDeathProtocol, Protocol):  # noqa: D101
@@ -166,6 +165,7 @@ class BirthDeathProblem(BirthDeathMixin, OTProblem):
         source: bool,
         proliferation_key: Optional[str] = None,
         apoptosis_key: Optional[str] = None,
+        scaling: Optional[float] = None,
         **kwargs: Any,
     ) -> ArrayLike:
         """Estimate the source or target :term:`marginals` based on marker genes, either with the
@@ -184,6 +184,11 @@ class BirthDeathProblem(BirthDeathMixin, OTProblem):
             Key in :attr:`~anndata.AnnData.obs` where proliferation scores are stored.
         apoptosis_key
             Key in :attr:`~anndata.AnnData.obs` where apoptosis scores are stored.
+        scaling
+            A parameter for prior growth rate estimation.
+            If :obj:`float` is passed, it will be used as a scaling parameter in an exponential kernel
+            with proliferation and apoptosis scores.
+            If :obj:`None`, parameters corresponding to the birth and death processes will be used.
         kwargs
             Keyword arguments for :func:`~moscot.base.problems.birth_death.beta` and
             :func:`~moscot.base.problems.birth_death.delta`.
@@ -217,9 +222,8 @@ class BirthDeathProblem(BirthDeathMixin, OTProblem):
         self.proliferation_key = proliferation_key
         self.apoptosis_key = apoptosis_key
 
-        if "scaling" in kwargs:
+        if scaling:
             beta_fn = delta_fn = lambda x, *_, **__: x
-            scaling = kwargs["scaling"]
         else:
             beta_fn, delta_fn = beta, delta
             scaling = 1.0

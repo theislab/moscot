@@ -46,30 +46,26 @@ class SpatialAlignmentMixinProtocol(AnalysisMixinProtocol[K, B]):
         self: "SpatialAlignmentMixinProtocol[K, B]",
         k: K,
         spatial_key: str,
-    ) -> ArrayLike:
-        ...
+    ) -> ArrayLike: ...
 
     def _interpolate_scheme(  # type:ignore[empty-body]
         self: "SpatialAlignmentMixinProtocol[K, B]",
         reference: K,
         mode: Literal["warp", "affine"],
         spatial_key: str,
-    ) -> Tuple[Dict[K, ArrayLike], Optional[Dict[K, Optional[ArrayLike]]]]:
-        ...
+    ) -> Tuple[Dict[K, ArrayLike], Optional[Dict[K, Optional[ArrayLike]]]]: ...
 
     def _cell_transition(
         self: AnalysisMixinProtocol[K, B],
         *args: Any,
         **kwargs: Any,
-    ) -> pd.DataFrame:
-        ...
+    ) -> pd.DataFrame: ...
 
     def _annotation_mapping(
         self: AnalysisMixinProtocol[K, B],
         *args: Any,
         **kwargs: Any,
-    ) -> pd.DataFrame:
-        ...
+    ) -> pd.DataFrame: ...
 
 
 class SpatialMappingMixinProtocol(AnalysisMixinProtocol[K, B]):
@@ -84,14 +80,11 @@ class SpatialMappingMixinProtocol(AnalysisMixinProtocol[K, B]):
     def _filter_vars(
         self: "SpatialMappingMixinProtocol[K, B]",
         var_names: Optional[Sequence[str]] = None,
-    ) -> Optional[List[str]]:
-        ...
+    ) -> Optional[List[str]]: ...
 
-    def _cell_transition(self: AnalysisMixinProtocol[K, B], *args: Any, **kwargs: Any) -> pd.DataFrame:
-        ...
+    def _cell_transition(self: AnalysisMixinProtocol[K, B], *args: Any, **kwargs: Any) -> pd.DataFrame: ...
 
-    def _annotation_mapping(self: AnalysisMixinProtocol[K, B], *args: Any, **kwargs: Any) -> pd.DataFrame:
-        ...
+    def _annotation_mapping(self: AnalysisMixinProtocol[K, B], *args: Any, **kwargs: Any) -> pd.DataFrame: ...
 
 
 class SpatialAlignmentMixin(AnalysisMixin[K, B]):
