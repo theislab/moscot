@@ -26,7 +26,6 @@ from moscot._types import ArrayLike, Numeric_t, Str_Dict_t
 from moscot.base.output import BaseDiscreteSolverOutput
 from moscot.base.problems._utils import (
     _check_argument_compatibility_cell_transition,
-    _compute_conditional_entropy,
     _correlation_test,
     _get_df_cell_transition,
     _order_transition_matrix,
@@ -58,23 +57,20 @@ class AnalysisMixinProtocol(Protocol[K, B]):
         return_all: bool = False,
         scale_by_marginals: bool = False,
         **kwargs: Any,
-    ) -> ApplyOutput_t[K]:
-        ...
+    ) -> ApplyOutput_t[K]: ...
 
     def _interpolate_transport(
         self: AnalysisMixinProtocol[K, B],
         path: Sequence[tuple[K, K]],
         scale_by_marginals: bool = True,
-    ) -> LinearOperator:
-        ...
+    ) -> LinearOperator: ...
 
     def _flatten(
         self: AnalysisMixinProtocol[K, B],
         data: dict[K, ArrayLike],
         *,
         key: Optional[str],
-    ) -> ArrayLike:
-        ...
+    ) -> ArrayLike: ...
 
     def push(self, *args: Any, **kwargs: Any) -> Optional[ApplyOutput_t[K]]:
         """Push distribution."""
@@ -93,8 +89,7 @@ class AnalysisMixinProtocol(Protocol[K, B]):
         aggregation_mode: Literal["annotation", "cell"] = "annotation",
         key_added: Optional[str] = _constants.CELL_TRANSITION,
         **kwargs: Any,
-    ) -> pd.DataFrame:
-        ...
+    ) -> pd.DataFrame: ...
 
     def _cell_transition_online(
         self: AnalysisMixinProtocol[K, B],
@@ -109,8 +104,7 @@ class AnalysisMixinProtocol(Protocol[K, B]):
         other_adata: Optional[str] = None,
         batch_size: Optional[int] = None,
         normalize: bool = True,
-    ) -> pd.DataFrame:
-        ...
+    ) -> pd.DataFrame: ...
 
     def _annotation_mapping(
         self: AnalysisMixinProtocol[K, B],
@@ -123,8 +117,7 @@ class AnalysisMixinProtocol(Protocol[K, B]):
         other_adata: Optional[str] = None,
         scale_by_marginals: bool = True,
         cell_transition_kwargs: Mapping[str, Any] = types.MappingProxyType({}),
-    ) -> pd.DataFrame:
-        ...
+    ) -> pd.DataFrame: ...
 
 
 class AnalysisMixin(Generic[K, B]):
@@ -672,11 +665,12 @@ class AnalysisMixin(Generic[K, B]):
         forward: bool = True,
         key_added: Optional[str] = "conditional_entropy",
         batch_size: Optional[int] = None,
+        c: float = 1e-10,
+        **kwargs: Any,
     ) -> Optional[pd.DataFrame]:
         """Compute the conditional entropy per cell.
 
         The conditional entropy reflects the uncertainty of the mapping of a single cell.
-
 
         Parameters
         ----------
@@ -691,12 +685,18 @@ class AnalysisMixin(Generic[K, B]):
             Key in :attr:`~anndata.AnnData.obs` where the entropy is stored.
         batch_size
             Batch size for the computation of the entropy. If :obj:`None`, the entire dataset is used.
+        c
+            Constant added to each row of the transport matrix to avoid numerical instability.
+        kwargs
+            Kwargs for :func:`~scipy.stats.entropy`.
 
         Returns
         -------
         :obj:`None` if ``key_added`` is not None. Otherwise, returns a data frame of shape ``(n_cells, 1)`` containing
         the conditional entropy per cell.
         """
+        from scipy import stats
+
         filter_value = source if forward else target
         df = pd.DataFrame(
             index=self.adata[self.adata.obs[self._policy.key] == filter_value, :].obs_names,
@@ -716,7 +716,7 @@ class AnalysisMixin(Generic[K, B]):
                 split_mass=True,
                 key_added=None,
             )
-            df.iloc[range(batch, min(batch + batch_size, len(df))), 0] = _compute_conditional_entropy(cond_dists)  # type: ignore[arg-type]
+            df.iloc[range(batch, min(batch + batch_size, len(df))), 0] = stats.entropy(cond_dists + c, **kwargs)  # type: ignore[operator]
         if key_added is not None:
             self.adata.obs[key_added] = df
         return df if key_added is None else None
