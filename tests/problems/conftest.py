@@ -246,30 +246,6 @@ lin_prob_args = {
     "tau_b": "tau_b",
 }
 
-neuraldual_args_1 = {
-    "batch_size": 8,
-    "tau_a": 1.0,
-    "tau_b": 1.0,
-    "epsilon": 0.1,
-    "seed": 0,
-    "pos_weights": False,
-    "f": {"dim_hidden": (64, 64, 64, 64)},
-    "g": {"dim_hidden": (64, 64, 64, 64)},
-    "beta": 1.0,
-    "best_model_selection": True,
-    "iterations": 2,
-    "inner_iters": 2,
-    "valid_freq": 4,
-    "log_freq": 2,
-    "patience": 10,
-    "optimizer_f": {},
-    "optimizer_g": {},
-    "pretrain_iters": 4,
-    "pretrain_scale": 3.0,
-    "valid_sinkhorn_kwargs": {},
-    "compute_wasserstein_baseline": False,
-}
-
 neurallin_cond_args_1 = {
     "batch_size": 8,
     "tau_a": 1.0,
@@ -286,43 +262,4 @@ neurallin_cond_args_2 = {
     "seed": 0,
     "iterations": 2,
     "valid_freq": 4,
-}
-
-neuraldual_args_2 = {
-    "batch_size": 8,
-    "tau_a": 0.9,
-    "tau_b": 0.9,
-    "epsilon": 0.1,
-    "seed": 0,
-    "pos_weights": True,
-    "f": {"dim_hidden": (64, 64, 64, 64)},
-    "g": {"dim_hidden": (64, 64, 64, 64)},
-    "beta": 1.0,
-    "best_model_selection": True,  # TODO (also in other places), add corresponding metric
-    "iterations": 2,
-    "inner_iters": 2,
-    "valid_freq": 4,
-    "log_freq": 2,
-    "patience": 10,
-    "pretrain_iters": 2,
-    "pretrain_scale": 3.0,
-    "valid_sinkhorn_kwargs": {},
-    "compute_wasserstein_baseline": True,
-}
-
-neuraldual_solver_args = {
-    "batch_size": "batch_size",
-    "tau_a": "tau_a",
-    "tau_b": "tau_b",
-    "pos_weights": "pos_weights",
-    "beta": "beta",
-    "best_model_selection": "best_model_selection",
-    "iterations": "iterations",
-    "inner_iters": "inner_iters",
-    "valid_freq": "valid_freq",
-    "log_freq": "log_freq",
-    "patience": "patience",
-    "pretrain_iters": "pretrain_iters",
-    "pretrain_scale": "pretrain_scale",
-    "compute_wasserstein_baseline": "compute_wasserstein_baseline",
 }

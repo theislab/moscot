@@ -2,7 +2,6 @@ from ott.geometry import costs
 
 from moscot.backends.ott._utils import sinkhorn_divergence
 from moscot.backends.ott.output import (
-    ConditionalDualPotentials,
     OTTOutput,
     OTTNeuralOutput
 )
@@ -17,7 +16,6 @@ __all__ = [
     "OTTOutput",
     "GWSolver",
     "SinkhornSolver",
-    "ConditionalDualPotentials",
     "OTTNeuralOutput",
     "sinkhorn_divergence",
     "GENOTLinSolver"

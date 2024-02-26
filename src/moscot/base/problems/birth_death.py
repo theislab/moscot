@@ -16,7 +16,7 @@ from anndata import AnnData
 
 from moscot._logging import logger
 from moscot._types import ArrayLike
-from moscot.base.problems.problem import NeuralOTProblem, OTProblem
+from moscot.base.problems.problem import OTProblem
 from moscot.utils.data import apoptosis_markers, proliferation_markers
 
 __all__ = ["BirthDeathProblem", "BirthDeathMixin"]
@@ -265,10 +265,6 @@ class BirthDeathProblem(BirthDeathMixin, OTProblem):
             assert isinstance(self._src_key, float)
             assert isinstance(self._tgt_key, float)
         return self._tgt_key - self._src_key
-
-
-class BirthDeathNeuralProblem(BirthDeathProblem, NeuralOTProblem):
-    """Class handling an neural problem which allows to estimate the marginals with a birth-death process."""
 
 
 def _logistic(x: ArrayLike, L: float, k: float, center: float = 0) -> ArrayLike:

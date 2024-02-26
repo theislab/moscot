@@ -19,7 +19,7 @@ from moscot._types import (
     SinkhornInitializer_t,
 )
 from moscot.base.problems.compound_problem import B, CompoundProblem, K
-from moscot.base.problems.problem import CondOTProblem, NeuralOTProblem, OTProblem
+from moscot.base.problems.problem import CondOTProblem, OTProblem
 from moscot.problems._utils import (
     handle_conditional_attr,
     handle_cost,
@@ -29,7 +29,7 @@ from moscot.problems._utils import (
 )
 from moscot.problems.generic._mixins import GenericAnalysisMixin
 
-__all__ = ["SinkhornProblem", "GWProblem", "NeuralProblem", "GENOTLinProblem"]
+__all__ = ["SinkhornProblem", "GWProblem", "GENOTLinProblem"]
 
 
 class SinkhornProblem(GenericAnalysisMixin[K, B], CompoundProblem[K, B]):  # type: ignore[misc]
@@ -489,89 +489,6 @@ class GWProblem(GenericAnalysisMixin[K, B], CompoundProblem[K, B]):  # type: ign
     @property
     def _valid_policies(self) -> Tuple[Policy_t, ...]:
         return _constants.SEQUENTIAL, _constants.EXPLICIT, _constants.STAR  # type: ignore[return-value]
-
-
-class NeuralProblem(CompoundProblem[K, B], GenericAnalysisMixin[K, B]):
-    """Class for solving Parameterized Monge Map problems / Neural OT problems."""
-
-    def prepare(
-        self,
-        key: str,
-        joint_attr: Optional[Union[str, Mapping[str, Any]]] = None,
-        policy: Literal["sequential", "star", "external_star", "explicit", "triu", "tril"] = "sequential",
-        a: Optional[str] = None,
-        b: Optional[str] = None,
-        **kwargs: Any,
-    ) -> "NeuralProblem[K, B]":
-        """Prepare the :class:`moscot.problems.generic.NeuralProblem[K, B]`."""
-        self.batch_key = key  # type:ignore[misc]
-        xy, kwargs = handle_joint_attr(joint_attr, kwargs)
-        return super().prepare(  # type: ignore[return-value]
-            key=key,
-            policy=policy,
-            xy=xy,
-            a=a,
-            b=b,
-            **kwargs,
-        )
-
-    def solve(
-        self,
-        batch_size: int = 1024,
-        tau_a: float = 1.0,
-        tau_b: float = 1.0,
-        epsilon: float = 0.1,
-        seed: int = 0,
-        pos_weights: bool = False,
-        beta: float = 1.0,
-        best_model_selection: bool = True,
-        iterations: int = 25000,  # TODO(@MUCDK): rename to max_iterations
-        inner_iters: int = 10,
-        valid_freq: int = 50,
-        log_freq: int = 5,
-        patience: int = 100,
-        pretrain_iters: int = 0,
-        pretrain_scale: float = 3.0,
-        valid_sinkhorn_kwargs: Dict[str, Any] = MappingProxyType({}),
-        train_size: float = 1.0,
-        **kwargs: Any,
-    ) -> "NeuralProblem[K, B]":
-        """Solve."""
-        return super().solve(  # type: ignore[return-value]
-            batch_size=batch_size,
-            tau_a=tau_a,
-            tau_b=tau_b,
-            epsilon=epsilon,
-            seed=seed,
-            pos_weights=pos_weights,
-            beta=beta,
-            best_model_selection=best_model_selection,
-            iterations=iterations,
-            inner_iters=inner_iters,
-            valid_freq=valid_freq,
-            log_freq=log_freq,
-            patience=patience,
-            pretrain_iters=pretrain_iters,
-            pretrain_scale=pretrain_scale,
-            valid_sinkhorn_kwargs=valid_sinkhorn_kwargs,
-            train_size=train_size,
-            solver_name="GENOTLinSolver",
-            **kwargs,
-        )
-
-    @property
-    def _base_problem_type(self) -> Type["NeuralProblem[K, B]"]:
-        return NeuralOTProblem  # type: ignore[return-value]
-
-    @property
-    def _valid_policies(self) -> Tuple[Policy_t, ...]:
-        return _constants.SEQUENTIAL, _constants.EXPLICIT  # type: ignore[return-value]
-
-    @classmethod
-    def _call_kwargs(cls) -> Tuple[Set[str], Set[str]]:
-        init_kwargs = set(inspect.signature(NeuralOTProblem).parameters.keys())
-        return init_kwargs, {}  # type: ignore[return-value]
-
 
 class GENOTLinProblem(CondOTProblem, GenericAnalysisMixin[K, B]):
     """Class for solving Conditional Parameterized Monge Map problems / Conditional Neural OT problems."""

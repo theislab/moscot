@@ -18,7 +18,6 @@ from tests._utils import ATOL, RTOL
 from tests.problems.conftest import (
     neurallin_cond_args_1,
     neurallin_cond_args_2,
-    neuraldual_solver_args,
 )
 
 

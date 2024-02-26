@@ -5,7 +5,6 @@ from moscot.base.problems.manager import ProblemManager
 from moscot.base.problems.problem import (
     BaseProblem,
     CondOTProblem,
-    NeuralOTProblem,
     OTProblem,
 )
 
@@ -18,6 +17,5 @@ __all__ = [
     "ProblemManager",
     "BaseProblem",
     "OTProblem",
-    "NeuralOTProblem",
     "CondOTProblem",
 ]

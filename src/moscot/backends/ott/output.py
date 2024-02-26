@@ -17,10 +17,10 @@ import matplotlib.pyplot as plt
 from matplotlib.figure import Figure
 
 from moscot._types import ArrayLike, Device_t
-from moscot.backends.ott._utils import ConditionalDualPotentials, get_nearest_neighbors
+from moscot.backends.ott._utils import get_nearest_neighbors
 from moscot.base.output import BaseDiscreteSolverOutput, BaseNeuralOutput
 
-__all__ = ["OTTOutput", "", "Cond", "ConditionalDualPotentials"]
+__all__ = ["OTTOutput", "", "Cond"]
 
 Train_t = Dict[str, Union[float, List[float]]]
 
