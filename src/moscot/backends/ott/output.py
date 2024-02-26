@@ -10,7 +10,7 @@ import scipy.sparse as sp
 from ott.problems.linear import potentials
 from ott.solvers.linear import sinkhorn, sinkhorn_lr
 from ott.solvers.quadratic import gromov_wasserstein, gromov_wasserstein_lr
-from ott.neural.flows.genot import GENOTBase # TODO(ilan-gold): will neeed to update for ICNN's
+from ott.neural.flow_models.genot import GENOTBase # TODO(ilan-gold): will neeed to update for ICNN's
 
 import matplotlib as mpl
 import matplotlib.pyplot as plt

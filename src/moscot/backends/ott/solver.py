@@ -27,10 +27,10 @@ from ott.problems.linear import linear_problem
 from ott.problems.quadratic import quadratic_problem
 from ott.solvers.linear import sinkhorn, sinkhorn_lr
 from ott.solvers.quadratic import gromov_wasserstein, gromov_wasserstein_lr
-from ott.neural.flows.genot import GENOTLin
-from ott.neural.data.dataloaders import OTDataSet, ConditionalOTDataLoader
-from ott.neural.flows.models import VelocityField
-from ott.neural.flows.samplers import uniform_sampler
+from ott.neural.flow_models.genot import GENOTLin
+from ott.neural.data.datasets import OTDataset, ConditionalOTDataset
+from ott.neural.flow_models.models import VelocityField
+from ott.neural.flow_models.samplers import uniform_sampler
 from ott.neural.models.base_solver import UnbalancednessHandler, OTMatcherLinear
 from ott.neural.models.nets import RescalingMLP
 from torch.utils.data import DataLoader, RandomSampler
@@ -386,8 +386,8 @@ class GENOTLinSolver(OTSolver[OTTOutput]):
 
     def __init__(self, **kwargs: Any) -> None:
         super().__init__()
-        self._train_sampler: Optional[ConditionalOTDataLoader] = None
-        self._valid_sampler: Optional[ConditionalOTDataLoader] = None
+        self._train_sampler: Optional[ConditionalOTDataset] = None
+        self._valid_sampler: Optional[ConditionalOTDataset] = None
         self._neural_kwargs = kwargs
 
     @property
@@ -401,26 +401,33 @@ class GENOTLinSolver(OTSolver[OTTOutput]):
         train_size: float = 0.9,
         batch_size: int = 1024,
         **kwargs: Any,
-    ) -> Tuple[ConditionalOTDataLoader, ConditionalOTDataLoader]:
+    ) -> Tuple[ConditionalOTDataset, ConditionalOTDataset]:
         train_loaders = []
         validate_loaders = []
         if train_size == 1.0:
             for sample_pair in sample_pairs:
                 source_key = sample_pair[0]
                 target_key = sample_pair[1]
-                ds = OTDataSet(
-                    source_lin=distributions[source_key].xy,
-                    target_lin=distributions[target_key].xy,
-                    source_conditions=distributions[source_key].conditions,
-                    target_conditions=distributions[target_key].conditions
+                source_ds = OTDataset(
+                    lin=distributions[source_key].xy,
+                    conditions=distributions[source_key].conditions,
                 )
-                loader = DataLoader(
-                    ds,
+                source_loader = DataLoader(
+                    source_ds,
                     batch_size=batch_size,
-                    sampler=RandomSampler(ds, replacement=True)
+                    sampler=RandomSampler(source_ds, replacement=True)
                 )
-                train_loaders.append(loader)
-                validate_loaders.append(loader)
+                target_ds = OTDataset(
+                    lin=distributions[target_key].xy,
+                    conditions=distributions[target_key].conditions
+                )
+                target_loader = DataLoader(
+                    target_ds,
+                    batch_size=batch_size,
+                    sampler=RandomSampler(target_ds, replacement=True)
+                )
+                train_loaders.append((source_loader, target_loader))
+                validate_loaders.append((source_loader, target_loader))
         else:
             if train_size > 1.0 or train_size <= 0.0:
                 raise ValueError("Invalid train_size. Must be: 0 < train_size <= 1")
@@ -445,30 +452,44 @@ class GENOTLinSolver(OTSolver[OTTOutput]):
                     a=distributions[target_key].a,
                     b=distributions[target_key].b,
                 )
-                ds_train = OTDataSet(
-                    source_lin=source_split_data.data_train,
-                    target_lin=target_split_data.data_train,
-                    source_conditions=source_split_data.conditions_train,
-                    target_conditions=target_split_data.conditions_train
+                source_ds_train = OTDataset(
+                    lin=source_split_data.data_train,
+                    conditions=source_split_data.conditions_train,
                 )
-                train_loader = DataLoader(
-                    ds_train,
+                source_train_loader = DataLoader(
+                    source_ds_train,
                     batch_size=batch_size,
-                    sampler=RandomSampler(ds_train, replacement=True),
+                    sampler=RandomSampler(source_ds_train, replacement=True),
                 )
-                ds_validate = OTDataSet(
-                    source_lin=source_split_data.data_valid,
-                    target_lin=target_split_data.data_valid,
-                    source_conditions=source_split_data.conditions_valid,
-                    target_conditions=target_split_data.conditions_valid
+                target_ds_train = OTDataset(
+                    lin=target_split_data.data_train,
+                    conditions=target_split_data.conditions_train
                 )
-                validate_loader = DataLoader(
-                    ds_validate,
+                target_train_loader = DataLoader(
+                    target_ds_train,
                     batch_size=batch_size,
-                    sampler=RandomSampler(ds_validate, replacement=True)
+                    sampler=RandomSampler(target_ds_train, replacement=True),
                 )
-                train_loaders.append(train_loader)
-                validate_loaders.append(validate_loader)
+                source_ds_validate = OTDataset(
+                    lin=source_split_data.data_valid,
+                    conditions=source_split_data.conditions_valid,
+                )
+                source_validate_loader = DataLoader(
+                    source_ds_validate,
+                    batch_size=batch_size,
+                    sampler=RandomSampler(source_ds_validate, replacement=True)
+                )
+                target_ds_validate = OTDataset(
+                    lin=target_split_data.data_valid,
+                    conditions=target_split_data.conditions_valid
+                )
+                target_validate_loader = DataLoader(
+                    target_ds_validate,
+                    batch_size=batch_size,
+                    sampler=RandomSampler(target_ds_validate, replacement=True)
+                )
+                train_loaders.append((source_train_loader, target_train_loader))
+                validate_loaders.append((source_validate_loader, target_validate_loader))
         source_dim = self._neural_kwargs.pop("input_dim")
         target_dim = source_dim
         condition_dim = self._neural_kwargs.pop("cond_dim")
@@ -506,7 +527,7 @@ class GENOTLinSolver(OTSolver[OTTOutput]):
             k_samples_per_x=self._neural_kwargs.pop("k_samples_per_x", 1),
             **self._neural_kwargs
         )
-        return ConditionalOTDataLoader(dataloaders=train_loaders, seed=seed), ConditionalOTDataLoader(dataloaders=validate_loaders, seed=seed)
+        return ConditionalOTDataset(datasets=train_loaders, seed=seed), ConditionalOTDataset(datasets=validate_loaders, seed=seed)
 
                 
     @staticmethod
@@ -556,6 +577,6 @@ class GENOTLinSolver(OTSolver[OTTOutput]):
     def _call_kwargs(cls) -> Tuple[Set[str], Set[str]]:
         return {"batch_size", "train_size", "trainloader", "validloader"}, {}  # type: ignore[return-value]
 
-    def _solve(self, data_samplers: Tuple[ConditionalOTDataLoader, ConditionalOTDataLoader]) -> OTTNeuralOutput:  # type: ignore[override]
+    def _solve(self, data_samplers: Tuple[ConditionalOTDataset, ConditionalOTDataset]) -> OTTNeuralOutput:  # type: ignore[override]
         self.solver(data_samplers[0], data_samplers[1])
         return OTTNeuralOutput(self.solver)
