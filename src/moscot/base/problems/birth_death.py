@@ -148,18 +148,6 @@ class BirthDeathMixin:
         self._apoptosis_key = key
 
 
-class BirthDeathProblem(BirthDeathMixin, OTProblem):
-    """:term:`OT` problem used to estimate the :term:`marginals` with the
-    `birth-death process <https://en.wikipedia.org/wiki/Birth%E2%80%93death_process>`_.
-
-    Parameters
-    ----------
-    args
-        Positional arguments for :class:`~moscot.base.problems.OTProblem`.
-    kwargs
-        Keyword arguments for :class:`~moscot.base.problems.OTProblem`.
-    """  # noqa: D205
-
     def estimate_marginals(
         self,  # type: BirthDeathProblemProtocol
         adata: AnnData,
@@ -237,6 +225,20 @@ class BirthDeathProblem(BirthDeathMixin, OTProblem):
 
         return np.full(self.adata_tgt.n_obs, fill_value=np.mean(normalized_growth))
 
+
+
+class BirthDeathProblem(BirthDeathMixin, OTProblem):
+    """:term:`OT` problem used to estimate the :term:`marginals` with the
+    `birth-death process <https://en.wikipedia.org/wiki/Birth%E2%80%93death_process>`_.
+
+    Parameters
+    ----------
+    args
+        Positional arguments for :class:`~moscot.base.problems.OTProblem`.
+    kwargs
+        Keyword arguments for :class:`~moscot.base.problems.OTProblem`.
+    """  # noqa: D205
+
     @property
     def adata(self) -> AnnData:
         """Annotated data object."""
@@ -265,7 +267,6 @@ class BirthDeathProblem(BirthDeathMixin, OTProblem):
             assert isinstance(self._src_key, float)
             assert isinstance(self._tgt_key, float)
         return self._tgt_key - self._src_key
-
 
 class BirthDeathNeuralProblem(BirthDeathProblem, NeuralOTProblem):
     """Class handling an neural problem which allows to estimate the marginals with a birth-death process."""

@@ -998,13 +998,13 @@ class CondOTProblem(BaseProblem):  # TODO(@MUCDK) check generic types, save and 
             raise KeyError(f"Unable to find data in `adata.obs[{policy_key!r}]`.") from None
 
         self._policy = create_policy(policy, adata=self.adata, key=policy_key)
-        _ = self.policy.create_graph()  # type: ignore[union-attr]
+        _ = self.policy.create_graph(reference=kwargs.pop("reference", None))  # type: ignore[union-attr]
         self._sample_pairs = list(self.policy._graph)  # type: ignore[union-attr]
 
         for el in self.policy.categories:  # type: ignore[union-attr]
             adata_masked = self.adata[self._create_mask(el)]
-            a_created = self._create_marginals(adata_masked, data=a, source=True, **kwargs)
-            b_created = self._create_marginals(adata_masked, data=b, source=False, **kwargs)
+            a_created = self._create_marginals(adata_masked, data=a, source=True, delta=self.delta() **kwargs['marginal_kwargs'])
+            b_created = self._create_marginals(adata_masked, data=b, source=False, delta=self.delta() **kwargs['marginal_kwargs'])
             self.distributions[el] = DistributionContainer.from_adata(  # type: ignore[index]
                 adata_masked, a=a_created, b=b_created, **xy, **xx, **conditions
             )

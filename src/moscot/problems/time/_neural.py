@@ -33,7 +33,7 @@ class TemporalNeuralProblem(  # type: ignore[misc]
         self,
         time_key: str,
         joint_attr: Union[str, Mapping[str, Any]],
-        policy: Literal["sequential", "tril", "triu"] = "sequential",
+        policy: Literal["sequential", "star"] = "sequential",
         a: Optional[str] = None,
         b: Optional[str] = None,
         marginal_kwargs: Mapping[str, Any] = MappingProxyType({}),

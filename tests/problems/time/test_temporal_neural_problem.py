@@ -19,53 +19,43 @@ from tests.problems.conftest import (
 
 class TestTemporalNeuralProblem:
 
-    @pytest.mark.parametrize("policy", ["sequential", "tril", "triu"])
+    @pytest.mark.parametrize("policy", ["sequential", "star"])
     @pytest.mark.fast()
-    def test_prepare(self, adata_time: ad.AnnData, policy: Literal["sequential", "tril", "triu"]):
+    def test_prepare(self, adata_time: ad.AnnData, policy: Literal["sequential", "star"]):
         problem = TemporalNeuralProblem(adata=adata_time)
 
-        problem = problem.prepare(time_key="time", joint_attr="X_pca", policy=policy)
+        problem = problem.prepare(time_key="time", joint_attr="X_pca", policy=policy, reference=1 if policy == "star" else None)
 
         assert len(problem.distributions) == 3
 
-    @pytest.mark.parametrize("policy", ["sequential", "tril", "triu"])
+    @pytest.mark.parametrize("policy", ["sequential", "star"])
     @pytest.mark.parametrize("solver_kwargs", [neurallin_cond_args_1, neurallin_cond_args_2], ids=["no_validate", "validate"])
-    def test_solve_balanced_no_baseline(self, adata_time: ad.AnnData, policy: Literal["sequential", "tril", "triu"], solver_kwargs: dict):
+    def test_solve_balanced_no_baseline(self, adata_time: ad.AnnData, policy: Literal["sequential", "star"], solver_kwargs: dict):
         problem = TemporalNeuralProblem(adata=adata_time)
-        problem = problem.prepare(time_key="time", joint_attr="X_pca", policy=policy)
+        problem = problem.prepare(time_key="time", joint_attr="X_pca", policy=policy, reference=1 if policy == "star" else None)
         problem = problem.solve(**solver_kwargs)
 
         assert len(problem.distributions) == 3
         assert problem.stage == "solved"
 
-    @pytest.mark.parametrize("policy", ["sequential", "tril", "triu"])
+    @pytest.mark.parametrize("policy", ["sequential", "star"])
     @pytest.mark.parametrize("solver_kwargs", [neurallin_cond_args_1, neurallin_cond_args_2], ids=["no_validate", "validate"])
-    def test_reproducibility(self, adata_time: ad.AnnData, policy: Literal["sequential", "tril", "triu"], solver_kwargs: dict):
+    def test_reproducibility(self, adata_time: ad.AnnData, policy: Literal["sequential", "star"], solver_kwargs: dict):
         pc_tzero = adata_time[adata_time.obs["time"] == 0].obsm["X_pca"]
         problem_one = TemporalNeuralProblem(adata=adata_time)
-        problem_one = problem_one.prepare(time_key="time", joint_attr="X_pca", policy=policy)
+        problem_one = problem_one.prepare(time_key="time", joint_attr="X_pca", policy=policy, reference=1 if policy == "star" else None)
         problem_one = problem_one.solve(**solver_kwargs)
 
         problem_two = TemporalNeuralProblem(adata=adata_time)
-        problem_two = problem_one.prepare("time", joint_attr="X_pca", policy=policy)
+        problem_two = problem_one.prepare("time", joint_attr="X_pca", policy=policy, reference=1 if policy == "star" else None)
         problem_two = problem_one.solve(**solver_kwargs)
         
-        if policy in { "sequential", "triu" }:
-            assert np.allclose(
-                problem_one.solution.push(adata_time.obs["time"] == 1, pc_tzero),
-                problem_two.solution.push(adata_time.obs["time"] == 1, pc_tzero),
-                rtol=RTOL,
-                atol=ATOL,
-            )
-
-        if policy in { "triu", "tril" }:
-            assert np.allclose(
-                problem_one.push(2, 1, pc_tzero),
-                problem_two.push(2, 1, pc_tzero),
-                rtol=RTOL,
-                atol=ATOL,
-            )
-
+        assert np.allclose(
+            problem_one.solution.push(np.ones(((adata_time.obs["time"] == 1).sum(), 1)), pc_tzero),
+            problem_two.solution.push(np.ones(((adata_time.obs["time"] == 1).sum(), 1)), pc_tzero),
+            rtol=RTOL,
+            atol=ATOL,
+        )
 
     @pytest.mark.fast()
     @pytest.mark.parametrize(
@@ -80,7 +70,7 @@ class TestTemporalNeuralProblem:
     def test_score_genes(self, adata_time: ad.AnnData, gene_set_list: List[List[str]]):
         gene_set_proliferation = gene_set_list[0]
         gene_set_apoptosis = gene_set_list[1]
-        problem = TemporalNeuralProblem(adata_time)
+        problem = TemporalNeuralProblem(adata_time, joint_attr="X_pca")
         problem.score_genes_for_marginals(
             gene_set_proliferation=gene_set_proliferation, gene_set_apoptosis=gene_set_apoptosis
         )
@@ -135,7 +125,7 @@ class TestTemporalNeuralProblem:
         problem.score_genes_for_marginals(gene_set_proliferation="human", gene_set_apoptosis="human")
         assert problem.proliferation_key == "proliferation"
 
-        problem = problem.prepare(time_key="time", marginal_kwargs={"scaling": scaling})
+        problem = problem.prepare(time_key="time", joint_attr="X_pca", marginal_kwargs={"scaling": scaling, "proliferation_key": problem.proliferation_key, "apoptosis_key": problem.apoptosis_key}) #TODO(ilan-gold): a little wonky to have to specify this after it is set.  Should `BirthDeathProblem` just try to infer this?
         prolif = adata_time[adata_time.obs["time"] == keys[0]].obs["proliferation"]
         apopt = adata_time[adata_time.obs["time"] == keys[0]].obs["apoptosis"]
         expected_marginals = np.exp((prolif - apopt) * delta / scaling)
