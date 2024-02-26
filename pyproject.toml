@@ -66,6 +66,7 @@ dependencies = [
 neural = [
     "optax>=0.1.7",
     "flax>=0.7.1",
+    "torch"
 ]
 
 spatial = [
