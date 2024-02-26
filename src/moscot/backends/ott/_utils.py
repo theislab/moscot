@@ -1,16 +1,6 @@
 from functools import partial
-from typing import (
-    Any,
-    Dict,
-    Mapping,
-    Optional,
-    Tuple,
-    Type,
-    Union,
-    Literal
-)
+from typing import Any, Literal, Optional, Tuple, Union
 
-import optax
 
 import jax
 import jax.numpy as jnp

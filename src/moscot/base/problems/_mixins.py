@@ -22,7 +22,6 @@ import scanpy as sc
 from anndata import AnnData
 
 from moscot import _constants
-from moscot._logging import logger
 from moscot._types import ArrayLike, Numeric_t, Str_Dict_t
 from moscot.base.output import BaseDiscreteSolverOutput
 from moscot.base.problems._utils import (

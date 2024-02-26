@@ -1,5 +1,4 @@
-from functools import partial
-from typing import Any, Callable, Dict, List, Optional, Tuple, Union
+from typing import Any, Callable, List, Optional, Tuple, Union
 
 import jaxlib.xla_extension as xla_ext
 
@@ -7,14 +6,14 @@ import jax
 import jax.numpy as jnp
 import numpy as np
 import scipy.sparse as sp
-from ott.problems.linear import potentials
+from ott.neural.flow_models.genot import (
+    GENOTBase,  # TODO(ilan-gold): will neeed to update for ICNN's
+)
 from ott.solvers.linear import sinkhorn, sinkhorn_lr
 from ott.solvers.quadratic import gromov_wasserstein, gromov_wasserstein_lr
-from ott.neural.flow_models.genot import GENOTBase # TODO(ilan-gold): will neeed to update for ICNN's
 
 import matplotlib as mpl
 import matplotlib.pyplot as plt
-from matplotlib.figure import Figure
 
 from moscot._types import ArrayLike, Device_t
 from moscot.backends.ott._utils import get_nearest_neighbors
@@ -247,7 +246,7 @@ class OTTOutput(BaseDiscreteSolverOutput):
 class OTTNeuralOutput(BaseNeuralOutput):
     def __init__(self, model: GENOTBase):
         self._model = model
-        
+
     def _project_transport_matrix(
         self,
         src_dist: ArrayLike,
@@ -289,7 +288,7 @@ class OTTNeuralOutput(BaseNeuralOutput):
             if save_transport_matrix:
                 self._inverse_transport_matrix = tm
         return tm
-    
+
     def project_transport_matrix(  # type:ignore[override]
         self,
         src_cells: ArrayLike,
@@ -341,13 +340,9 @@ class OTTNeuralOutput(BaseNeuralOutput):
         The projected transport matrix.
         """
         src_cells, tgt_cells = jnp.asarray(src_cells), jnp.asarray(tgt_cells)
-        push = self.push if condition is None else lambda x : self.push(x, condition)
-        pull = self.pull if condition is None else lambda x : self.pull(x, condition)
-        func, src_dist, tgt_dist = (
-            (push, src_cells, tgt_cells)
-            if forward
-            else (pull, tgt_cells, src_cells)
-        )
+        push = self.push if condition is None else lambda x: self.push(x, condition)
+        pull = self.pull if condition is None else lambda x: self.pull(x, condition)
+        func, src_dist, tgt_dist = (push, src_cells, tgt_cells) if forward else (pull, tgt_cells, src_cells)
         return self._project_transport_matrix(
             src_dist=src_dist,
             tgt_dist=tgt_dist,
@@ -359,7 +354,7 @@ class OTTNeuralOutput(BaseNeuralOutput):
             length_scale=length_scale,
             seed=seed,
         )
-    
+
     def push(self, x: ArrayLike, cond: ArrayLike | None = None) -> ArrayLike:  # type: ignore[override]
         """Push distribution `x` conditioned on condition `cond`.
 
@@ -395,24 +390,26 @@ class OTTNeuralOutput(BaseNeuralOutput):
         if x.ndim not in (1, 2):
             raise ValueError(f"Expected 1D or 2D array, found `{x.ndim}`.")
         return self._apply(x, cond=cond, forward=False)
-    
+
     def _apply(self, x: ArrayLike, forward: bool, cond: ArrayLike | None = None) -> ArrayLike:
         return self._model.transport(x, condition=cond, forward=forward)
-    
+
     @property
     def shape(self) -> Tuple[int, int]:
         """%(shape)s."""
         raise NotImplementedError()
-    
+
     def to(
         self,
         device: Optional[Device_t] = None,
     ) -> "OTTNeuralOutput":
         """Transfer the output to another device or change its data type.
+
         Parameters
         ----------
         device
             If not `None`, the output will be transferred to `device`.
+
         Returns
         -------
         The output on a saved on `device`.
@@ -432,8 +429,8 @@ class OTTNeuralOutput(BaseNeuralOutput):
 
         # out = jax.device_put(self._model, device)
         # return OTTNeuralOutput(out)
-        return self #TODO(ilan-gold) move model to device
-    
+        return self  # TODO(ilan-gold) move model to device
+
     @property
     def converged(self) -> bool:
         """%(converged)s."""

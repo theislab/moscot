@@ -12,39 +12,43 @@ from typing import (
     Optional,
     Set,
     Tuple,
-    Type,
     TypeVar,
     Union,
 )
 
+import optax
+from torch.utils.data import DataLoader, RandomSampler
+
 import jax
 import jax.numpy as jnp
 import numpy as np
-import optax
 import scipy.sparse as sp
-from ott.geometry import costs, epsilon_scheduler, geometry, pointcloud, geodesic
+from ott.geometry import costs, epsilon_scheduler, geodesic, geometry, pointcloud
+from ott.neural.data.datasets import ConditionalOTDataset, OTDataset
+from ott.neural.flow_models.genot import GENOTLin
+from ott.neural.flow_models.models import VelocityField
+from ott.neural.flow_models.samplers import uniform_sampler
+from ott.neural.models.base_solver import OTMatcherLinear, UnbalancednessHandler
+from ott.neural.models.nets import RescalingMLP
 from ott.problems.linear import linear_problem
 from ott.problems.quadratic import quadratic_problem
 from ott.solvers.linear import sinkhorn, sinkhorn_lr
 from ott.solvers.quadratic import gromov_wasserstein, gromov_wasserstein_lr
-from ott.neural.flow_models.genot import GENOTLin
-from ott.neural.data.datasets import OTDataset, ConditionalOTDataset
-from ott.neural.flow_models.models import VelocityField
-from ott.neural.flow_models.samplers import uniform_sampler
-from ott.neural.models.base_solver import UnbalancednessHandler, OTMatcherLinear
-from ott.neural.models.nets import RescalingMLP
-from torch.utils.data import DataLoader, RandomSampler
+
 from moscot._types import (
     ArrayLike,
     ProblemKind_t,
     QuadInitializer_t,
     SinkhornInitializer_t,
 )
-from moscot.backends.ott._utils import alpha_to_fused_penalty, check_shapes, ensure_2d, _instantiate_geodesic_cost
-from moscot.backends.ott.output import GraphOTTOutput, OTTOutput
-from moscot.backends.ott.output import OTTNeuralOutput, OTTOutput, 
+from moscot.backends.ott._utils import (
+    _instantiate_geodesic_cost,
+    alpha_to_fused_penalty,
+    check_shapes,
+    ensure_2d,
+)
+from moscot.backends.ott.output import GraphOTTOutput, OTTNeuralOutput, OTTOutput
 from moscot.base.problems._utils import TimeScalesHeatKernel
-
 from moscot.base.solver import OTSolver
 from moscot.costs import get_cost
 from moscot.utils.tagged_array import DistributionCollection, TaggedArray
@@ -500,9 +504,9 @@ class GENOTLinSolver(OTSolver[OTTOutput]):
         self._neural_kwargs = kwargs
 
     @property
-    def problem_kind(self) -> ProblemKind_t:  # noqa: D102        
-        return "linear"  
-   
+    def problem_kind(self) -> ProblemKind_t:  # noqa: D102
+        return "linear"
+
     def _prepare(  # type: ignore[override]
         self,
         distributions: DistributionCollection[K],
@@ -638,7 +642,7 @@ class GENOTLinSolver(OTSolver[OTTOutput]):
         )
         return ConditionalOTDataset(datasets=train_loaders, seed=seed), ConditionalOTDataset(datasets=validate_loaders, seed=seed)
 
-                
+
     @staticmethod
     def _assert2d(arr: ArrayLike, *, allow_reshape: bool = True) -> jnp.ndarray:
         arr: jnp.ndarray = jnp.asarray(arr.A if sp.issparse(arr) else arr)  # type: ignore[no-redef, attr-defined]   # noqa:E501

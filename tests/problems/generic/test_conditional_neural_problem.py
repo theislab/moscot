@@ -7,18 +7,12 @@ from ott.geometry import costs
 
 import anndata as ad
 
-from moscot.backends.ott.output import OTTNeuralOutput
 from moscot.base.output import BaseDiscreteSolverOutput
 from moscot.base.problems import CondOTProblem
-from moscot.problems.generic import (
-    GENOTLinProblem,  # type: ignore[attr-defined]
-)
+from moscot.problems.generic import GENOTLinProblem  # type: ignore[attr-defined]
 from moscot.utils.tagged_array import DistributionCollection, DistributionContainer
 from tests._utils import ATOL, RTOL
-from tests.problems.conftest import (
-    neurallin_cond_args_1,
-    neurallin_cond_args_2,
-)
+from tests.problems.conftest import neurallin_cond_args_1, neurallin_cond_args_2
 
 
 class TestGENOTLinProblem:
@@ -71,8 +65,8 @@ class TestGENOTLinProblem:
         problem_two = problem_one.prepare("time", joint_attr="X_pca", conditional_attr={"attr": "obs", "key": "time"})
         problem_two = problem_one.solve(**neurallin_cond_args_1)
         assert np.allclose(
-            problem_one.solution.push(pc_tzero, cond=np.zeros((cond_zero_mask.sum(),1))),
-            problem_two.solution.push(pc_tzero, cond=np.zeros((cond_zero_mask.sum(),1))),
+            problem_one.solution.push(pc_tzero, cond=np.zeros((cond_zero_mask.sum(), 1))),
+            problem_two.solution.push(pc_tzero, cond=np.zeros((cond_zero_mask.sum(), 1))),
             rtol=RTOL,
             atol=ATOL,
         )
@@ -105,9 +99,11 @@ class TestGENOTLinProblem:
         assert isinstance(problem.solution, BaseDiscreteSolverOutput)
 
         array = np.asarray(adata_time.obsm["X_pca"].copy())
-        cond1 = jnp.ones((array.shape[0],1))
-        cond2 = jnp.zeros((array.shape[0],1))
-        learnt_eta_1 = problem.solver.solver.unbalancedness_handler.evaluate_eta(array, cond1) # TODO(ilan-gold): sould this be wrapped?
+        cond1 = jnp.ones((array.shape[0], 1))
+        cond2 = jnp.zeros((array.shape[0], 1))
+        learnt_eta_1 = problem.solver.solver.unbalancedness_handler.evaluate_eta(
+            array, cond1
+        )  # TODO(ilan-gold): sould this be wrapped?
         learnt_xi_1 = problem.solver.solver.unbalancedness_handler.evaluate_xi(array, cond1)
         learnt_eta_2 = problem.solver.solver.unbalancedness_handler.evaluate_eta(array, cond2)
         learnt_xi_2 = problem.solver.solver.unbalancedness_handler.evaluate_xi(array, cond2)
