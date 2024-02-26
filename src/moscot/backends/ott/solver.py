@@ -46,7 +46,7 @@ from moscot.base.solver import OTSolver
 from moscot.costs import get_cost
 from moscot.utils.tagged_array import DistributionCollection, TaggedArray
 
-__all__ = ["SinkhornSolver", "GWSolver", "LinearConditionalNeuralSolver"]
+__all__ = ["SinkhornSolver", "GWSolver", "GENOTLinSolver"]
 
 OTTSolver_t = Union[
     sinkhorn.Sinkhorn,
@@ -382,7 +382,7 @@ class GWSolver(OTTJaxSolver):
         problem_kwargs |= {"alpha"}
         return geom_kwargs | problem_kwargs, {"epsilon"}
 
-class LinearConditionalNeuralSolver(OTSolver[OTTOutput]):
+class GENOTLinSolver(OTSolver[OTTOutput]):
 
     def __init__(self, **kwargs: Any) -> None:
         super().__init__()

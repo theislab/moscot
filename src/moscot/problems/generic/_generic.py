@@ -29,7 +29,7 @@ from moscot.problems._utils import (
 )
 from moscot.problems.generic._mixins import GenericAnalysisMixin
 
-__all__ = ["SinkhornProblem", "GWProblem", "NeuralProblem", "ConditionalNeuralProblem"]
+__all__ = ["SinkhornProblem", "GWProblem", "NeuralProblem", "GENOTLinProblem"]
 
 
 class SinkhornProblem(GenericAnalysisMixin[K, B], CompoundProblem[K, B]):  # type: ignore[misc]
@@ -555,7 +555,7 @@ class NeuralProblem(CompoundProblem[K, B], GenericAnalysisMixin[K, B]):
             pretrain_scale=pretrain_scale,
             valid_sinkhorn_kwargs=valid_sinkhorn_kwargs,
             train_size=train_size,
-            solver_name="LinearConditionalNeuralSolver",
+            solver_name="GENOTLinSolver",
             **kwargs,
         )
 
@@ -573,7 +573,7 @@ class NeuralProblem(CompoundProblem[K, B], GenericAnalysisMixin[K, B]):
         return init_kwargs, {}  # type: ignore[return-value]
 
 
-class ConditionalNeuralProblem(CondOTProblem, GenericAnalysisMixin[K, B]):
+class GENOTLinProblem(CondOTProblem, GenericAnalysisMixin[K, B]):
     """Class for solving Conditional Parameterized Monge Map problems / Conditional Neural OT problems."""
 
     def prepare(
@@ -587,8 +587,8 @@ class ConditionalNeuralProblem(CondOTProblem, GenericAnalysisMixin[K, B]):
         cost: OttCostFn_t = "sq_euclidean",
         cost_kwargs: CostKwargs_t = types.MappingProxyType({}),
         **kwargs: Any,
-    ) -> "ConditionalNeuralProblem[K, B]":
-        """Prepare the :class:`moscot.problems.generic.ConditionalNeuralProblem`."""
+    ) -> "GENOTLinProblem[K, B]":
+        """Prepare the :class:`moscot.problems.generic.GENOTLinProblem`."""
 
         def set_quad_defaults(z: Union[str, Mapping[str, Any]]) -> Dict[str, str]:
             if isinstance(z, str):
@@ -626,7 +626,7 @@ class ConditionalNeuralProblem(CondOTProblem, GenericAnalysisMixin[K, B]):
         valid_sinkhorn_kwargs: Dict[str, Any] = MappingProxyType({}),
         train_size: float = 1.0,
         **kwargs: Any,
-    ) -> "ConditionalNeuralProblem[K, B]":
+    ) -> "GENOTLinProblem[K, B]":
         """Solve."""
         return super().solve(
             batch_size=batch_size,
@@ -637,7 +637,7 @@ class ConditionalNeuralProblem(CondOTProblem, GenericAnalysisMixin[K, B]):
             valid_freq=valid_freq,
             valid_sinkhorn_kwargs=valid_sinkhorn_kwargs,
             train_size=train_size,
-            solver_name="LinearConditionalNeuralSolver",
+            solver_name="GENOTLinSolver",
             **kwargs,
         )
 
