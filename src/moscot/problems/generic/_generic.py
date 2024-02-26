@@ -1,9 +1,6 @@
-import inspect
 import types
 from types import MappingProxyType
-from typing import Any, Dict, Literal, Mapping, Optional, Set, Tuple, Type, Union
-
-import optax
+from typing import Any, Dict, Literal, Mapping, Optional, Tuple, Type, Union
 
 from anndata import AnnData
 
@@ -30,6 +27,7 @@ from moscot.problems._utils import (
 from moscot.problems.generic._mixins import GenericAnalysisMixin
 
 __all__ = ["SinkhornProblem", "GWProblem", "GENOTLinProblem", "FGWProblem"]
+
 
 def set_quad_defaults(z: Optional[Union[str, Mapping[str, Any]]]) -> Dict[str, str]:
     if isinstance(z, str):
@@ -709,6 +707,7 @@ class FGWProblem(GWProblem[K, B]):
     @property
     def _valid_policies(self) -> Tuple[Policy_t, ...]:
         return _constants.SEQUENTIAL, _constants.EXPLICIT, _constants.STAR  # type: ignore[return-value]
+
 
 class GENOTLinProblem(CondOTProblem, GenericAnalysisMixin[K, B]):
     """Class for solving Conditional Parameterized Monge Map problems / Conditional Neural OT problems."""

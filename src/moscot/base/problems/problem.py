@@ -33,7 +33,12 @@ from moscot import backends
 from moscot._logging import logger
 from moscot._types import ArrayLike, CostFn_t, Device_t, ProblemKind_t
 from moscot.base.output import BaseDiscreteSolverOutput, MatrixSolverOutput
-from moscot.base.problems._utils import TimeScalesHeatKernel, require_solution, wrap_prepare, wrap_solve
+from moscot.base.problems._utils import (
+    TimeScalesHeatKernel,
+    require_solution,
+    wrap_prepare,
+    wrap_solve,
+)
 from moscot.base.solver import OTSolver
 from moscot.utils.subset_policy import (  # type:ignore[attr-defined]
     Policy_t,
@@ -1024,6 +1029,7 @@ class OTProblem(BaseProblem):
 
     def __str__(self) -> str:
         return repr(self)
+
 
 class CondOTProblem(BaseProblem):  # TODO(@MUCDK) check generic types, save and load
     """

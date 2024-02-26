@@ -1,15 +1,13 @@
 from moscot.problems.generic._generic import (
+    FGWProblem,
     GENOTLinProblem,
     GWProblem,
     SinkhornProblem,
-    FGWProblem
 )
-
 from moscot.problems.generic._mixins import GenericAnalysisMixin
 
 __all__ = [
-    "FGWProblem"
-    "SinkhornProblem",
+    "FGWProblem" "SinkhornProblem",
     "GENOTLinProblem",
     "GWProblem",
     "GenericAnalysisMixin",

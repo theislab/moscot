@@ -12,39 +12,43 @@ from typing import (
     Optional,
     Set,
     Tuple,
-    Type,
     TypeVar,
     Union,
 )
 
+import optax
+from torch.utils.data import DataLoader, RandomSampler
+
 import jax
 import jax.numpy as jnp
 import numpy as np
-import optax
 import scipy.sparse as sp
-from ott.geometry import costs, epsilon_scheduler, geometry, pointcloud, geodesic
+from ott.geometry import costs, epsilon_scheduler, geodesic, geometry, pointcloud
+from ott.neural.data.datasets import ConditionalOTDataset, OTDataset
+from ott.neural.flow_models.genot import GENOTLin
+from ott.neural.flow_models.models import VelocityField
+from ott.neural.flow_models.samplers import uniform_sampler
+from ott.neural.models.base_solver import OTMatcherLinear, UnbalancednessHandler
+from ott.neural.models.nets import RescalingMLP
 from ott.problems.linear import linear_problem
 from ott.problems.quadratic import quadratic_problem
 from ott.solvers.linear import sinkhorn, sinkhorn_lr
 from ott.solvers.quadratic import gromov_wasserstein, gromov_wasserstein_lr
-from ott.neural.flow_models.genot import GENOTLin
-from ott.neural.data.datasets import OTDataset, ConditionalOTDataset
-from ott.neural.flow_models.models import VelocityField
-from ott.neural.flow_models.samplers import uniform_sampler
-from ott.neural.models.base_solver import UnbalancednessHandler, OTMatcherLinear
-from ott.neural.models.nets import RescalingMLP
-from torch.utils.data import DataLoader, RandomSampler
+
 from moscot._types import (
     ArrayLike,
     ProblemKind_t,
     QuadInitializer_t,
     SinkhornInitializer_t,
 )
-from moscot.backends.ott._utils import alpha_to_fused_penalty, check_shapes, ensure_2d, _instantiate_geodesic_cost
-from moscot.backends.ott.output import GraphOTTOutput, OTTOutput
-from moscot.backends.ott.output import OTTNeuralOutput, OTTOutput, 
+from moscot.backends.ott._utils import (
+    _instantiate_geodesic_cost,
+    alpha_to_fused_penalty,
+    check_shapes,
+    ensure_2d,
+)
+from moscot.backends.ott.output import GraphOTTOutput, OTTNeuralOutput, OTTOutput
 from moscot.base.problems._utils import TimeScalesHeatKernel
-
 from moscot.base.solver import OTSolver
 from moscot.costs import get_cost
 from moscot.utils.tagged_array import DistributionCollection, TaggedArray
@@ -491,18 +495,21 @@ class GWSolver(OTTJaxSolver):
         problem_kwargs |= {"alpha"}
         return geom_kwargs | problem_kwargs, {"epsilon"}
 
+
 class GENOTLinSolver(OTSolver[OTTOutput]):
+    """Solver class for GENOT linear :cite:`klein2023generative`."""
 
     def __init__(self, **kwargs: Any) -> None:
+        """Initiate the class with any kwargs passed to the ott-jax class."""
         super().__init__()
         self._train_sampler: Optional[ConditionalOTDataset] = None
         self._valid_sampler: Optional[ConditionalOTDataset] = None
         self._neural_kwargs = kwargs
 
     @property
-    def problem_kind(self) -> ProblemKind_t:  # noqa: D102        
-        return "linear"  
-   
+    def problem_kind(self) -> ProblemKind_t:  # noqa: D102
+        return "linear"
+
     def _prepare(  # type: ignore[override]
         self,
         distributions: DistributionCollection[K],
@@ -522,18 +529,11 @@ class GENOTLinSolver(OTSolver[OTTOutput]):
                     conditions=distributions[source_key].conditions,
                 )
                 source_loader = DataLoader(
-                    source_ds,
-                    batch_size=batch_size,
-                    sampler=RandomSampler(source_ds, replacement=True)
+                    source_ds, batch_size=batch_size, sampler=RandomSampler(source_ds, replacement=True)
                 )
-                target_ds = OTDataset(
-                    lin=distributions[target_key].xy,
-                    conditions=distributions[target_key].conditions
-                )
+                target_ds = OTDataset(lin=distributions[target_key].xy, conditions=distributions[target_key].conditions)
                 target_loader = DataLoader(
-                    target_ds,
-                    batch_size=batch_size,
-                    sampler=RandomSampler(target_ds, replacement=True)
+                    target_ds, batch_size=batch_size, sampler=RandomSampler(target_ds, replacement=True)
                 )
                 train_loaders.append((source_loader, target_loader))
                 validate_loaders.append((source_loader, target_loader))
@@ -545,8 +545,10 @@ class GENOTLinSolver(OTSolver[OTTOutput]):
             for sample_pair in sample_pairs:
                 source_key = sample_pair[0]
                 target_key = sample_pair[1]
+                source_data: ArrayLike = distributions[source_key].xy
+                target_data: ArrayLike = distributions[target_key].xy
                 source_split_data = self._split_data(
-                    distributions[source_key].xy,
+                    source_data,
                     conditions=distributions[source_key].conditions,
                     train_size=train_size,
                     seed=seed,
@@ -554,7 +556,7 @@ class GENOTLinSolver(OTSolver[OTTOutput]):
                     b=distributions[source_key].b,
                 )
                 target_split_data = self._split_data(
-                    distributions[target_key].xy,
+                    target_data,
                     conditions=distributions[target_key].conditions,
                     train_size=train_size,
                     seed=seed,
@@ -571,8 +573,7 @@ class GENOTLinSolver(OTSolver[OTTOutput]):
                     sampler=RandomSampler(source_ds_train, replacement=True),
                 )
                 target_ds_train = OTDataset(
-                    lin=target_split_data.data_train,
-                    conditions=target_split_data.conditions_train
+                    lin=target_split_data.data_train, conditions=target_split_data.conditions_train
                 )
                 target_train_loader = DataLoader(
                     target_ds_train,
@@ -586,16 +587,15 @@ class GENOTLinSolver(OTSolver[OTTOutput]):
                 source_validate_loader = DataLoader(
                     source_ds_validate,
                     batch_size=batch_size,
-                    sampler=RandomSampler(source_ds_validate, replacement=True)
+                    sampler=RandomSampler(source_ds_validate, replacement=True),
                 )
                 target_ds_validate = OTDataset(
-                    lin=target_split_data.data_valid,
-                    conditions=target_split_data.conditions_valid
+                    lin=target_split_data.data_valid, conditions=target_split_data.conditions_valid
                 )
                 target_validate_loader = DataLoader(
                     target_ds_validate,
                     batch_size=batch_size,
-                    sampler=RandomSampler(target_ds_validate, replacement=True)
+                    sampler=RandomSampler(target_ds_validate, replacement=True),
                 )
                 train_loaders.append((source_train_loader, target_train_loader))
                 validate_loaders.append((source_validate_loader, target_validate_loader))
@@ -608,19 +608,27 @@ class GENOTLinSolver(OTSolver[OTTOutput]):
             latent_embed_dim=self._neural_kwargs.pop("latent_embed_dim", 5),
         )
         ot_solver = sinkhorn.Sinkhorn(**self._neural_kwargs.pop("valid_sinkhorn_kwargs", {}))
-        tau_a=self._neural_kwargs.pop("tau_a", 1)
-        tau_b=self._neural_kwargs.pop("tau_b", 1)
+        tau_a = self._neural_kwargs.pop("tau_a", 1)
+        tau_b = self._neural_kwargs.pop("tau_b", 1)
         rescaling_a = self._neural_kwargs.pop("rescaling_a", RescalingMLP(hidden_dim=4, condition_dim=condition_dim))
         rescaling_b = self._neural_kwargs.pop("rescaling_b", RescalingMLP(hidden_dim=4, condition_dim=condition_dim))
         seed = self._neural_kwargs.pop("seed", 0)
         rng = jax.random.PRNGKey(seed)
-        ot_matcher = self._neural_kwargs.pop("ot_matcher", OTMatcherLinear(
-            ot_solver, tau_a=tau_a, tau_b=tau_b
-        ))
+        ot_matcher = self._neural_kwargs.pop("ot_matcher", OTMatcherLinear(ot_solver, tau_a=tau_a, tau_b=tau_b))
         time_sampler = self._neural_kwargs.pop("time_sampler", uniform_sampler)
-        unbalancedness_handler = self._neural_kwargs.pop("unbalancedness_handler", UnbalancednessHandler(
-            rng=rng, source_dim=source_dim, target_dim=target_dim, cond_dim=condition_dim, tau_a=tau_a, tau_b=tau_b, rescaling_a=rescaling_a, rescaling_b=rescaling_b,
-        ))
+        unbalancedness_handler = self._neural_kwargs.pop(
+            "unbalancedness_handler",
+            UnbalancednessHandler(
+                rng=rng,
+                source_dim=source_dim,
+                target_dim=target_dim,
+                cond_dim=condition_dim,
+                tau_a=tau_a,
+                tau_b=tau_b,
+                rescaling_a=rescaling_a,
+                rescaling_b=rescaling_b,
+            ),
+        )
         optimizer = self._neural_kwargs.pop("optimizer", optax.adam(learning_rate=1e-3))
         self._solver = GENOTLin(
             velocity_field=neural_vf,
@@ -632,13 +640,15 @@ class GENOTLinSolver(OTSolver[OTTOutput]):
             optimizer=optimizer,
             time_sampler=time_sampler,
             rng=rng,
-            matcher_latent_to_data=OTMatcherLinear(sinkhorn.Sinkhorn()) if self._neural_kwargs.pop("solver_latent_to_data", True) else None,
+            matcher_latent_to_data=self._neural_kwargs.pop("matcher_latent_to_data", None),
             k_samples_per_x=self._neural_kwargs.pop("k_samples_per_x", 1),
-            **self._neural_kwargs
+            **self._neural_kwargs,
         )
-        return ConditionalOTDataset(datasets=train_loaders, seed=seed), ConditionalOTDataset(datasets=validate_loaders, seed=seed)
+        return (
+            ConditionalOTDataset(datasets=train_loaders, seed=seed),
+            ConditionalOTDataset(datasets=validate_loaders, seed=seed),
+        )
 
-                
     @staticmethod
     def _assert2d(arr: ArrayLike, *, allow_reshape: bool = True) -> jnp.ndarray:
         arr: jnp.ndarray = jnp.asarray(arr.A if sp.issparse(arr) else arr)  # type: ignore[no-redef, attr-defined]   # noqa:E501

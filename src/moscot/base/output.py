@@ -2,7 +2,17 @@ import abc
 import copy
 import functools
 from abc import abstractmethod
-from typing import Any, Callable, Iterable, List, Literal, Optional, Tuple, Union
+from typing import (
+    Any,
+    Callable,
+    Iterable,
+    List,
+    Literal,
+    Optional,
+    Tuple,
+    TypeVar,
+    Union,
+)
 
 import numpy as np
 import scipy.sparse as sp
@@ -11,10 +21,12 @@ from scipy.sparse.linalg import LinearOperator
 from moscot._logging import logger
 from moscot._types import ArrayLike, Device_t, DTypeLike  # type: ignore[attr-defined]
 
-__all__ = ["BaseDiscreteSolverOutput", "BaseDiscreteSolverOutput", "MatrixSolverOutput", "BaseNeuralOutput"]
+__all__ = ["BaseDiscreteSolverOutput", "MatrixSolverOutput", "BaseNeuralOutput"]
+
+OutputClass = TypeVar("OutputClass", bound="BaseSolverOutput")  # use string
 
 
-class BaseDiscreteSolverOutput(abc.ABC):
+class BaseSolverOutput(abc.ABC):
     """Base class for all solver outputs."""
 
     @property
@@ -23,7 +35,7 @@ class BaseDiscreteSolverOutput(abc.ABC):
         """Shape of the problem."""
 
     @abc.abstractmethod
-    def to(self, device: Optional[Device_t] = None) -> "BaseDiscreteSolverOutput":
+    def to(self: OutputClass, device: Optional[Device_t] = None) -> OutputClass:
         """Transfer self to another compute device.
 
         Parameters
@@ -47,7 +59,7 @@ class BaseDiscreteSolverOutput(abc.ABC):
         return f"{self.__class__.__name__}[{self._format_params(str)}]"
 
 
-class BaseDiscreteSolverOutput(BaseDiscreteSolverOutput, abc.ABC):
+class BaseDiscreteSolverOutput(BaseSolverOutput, abc.ABC):
     """Base class for all discrete solver outputs."""
 
     @abc.abstractmethod
@@ -401,3 +413,18 @@ class BaseNeuralOutput(BaseDiscreteSolverOutput, abc.ABC):
     ) -> sp.csr_matrix:
         """Project transport matrix."""
         pass
+
+    @property
+    def transport_matrix(self):  # noqa: D102
+        raise NotImplementedError("Neural output does not require a transport matrix.")
+
+    @property
+    def cost(self):  # noqa: D102
+        raise NotImplementedError("Neural output does not implement a cost property.")
+
+    @property
+    def potentials(self):  # noqa: D102
+        raise NotImplementedError("Neural output does not need to implement a potentials property.")
+
+    def _ones(self, n: int):  # noqa: D102
+        raise NotImplementedError("Neural output does not need to implement a `_ones` property.")

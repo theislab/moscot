@@ -1,21 +1,10 @@
 from functools import partial
-from typing import (
-    Any,
-    Dict,
-    Mapping,
-    Optional,
-    Tuple,
-    Type,
-    Union,
-    Literal
-)
-
-import optax
+from typing import Any, Literal, Optional, Tuple, Union
 
 import jax
 import jax.numpy as jnp
 import scipy.sparse as sp
-from ott.geometry import epsilon_scheduler, geometry, pointcloud
+from ott.geometry import epsilon_scheduler, geodesic, geometry, pointcloud
 from ott.tools.sinkhorn_divergence import sinkhorn_divergence as sinkhorn_div
 
 from moscot._logging import logger
