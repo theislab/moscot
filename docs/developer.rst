@@ -63,14 +63,12 @@ Solvers
     solver.BaseSolver
     solver.OTSolver
     output.BaseDiscreteSolverOutput
-    output.BaseDiscreteSolverOutput
 
 Output
 ^^^^^^
 .. autosummary::
     :toctree: genapi
 
-    output.BaseDiscreteSolverOutput
     output.BaseDiscreteSolverOutput
     output.MatrixSolverOutput
 
