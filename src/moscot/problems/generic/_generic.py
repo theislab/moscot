@@ -2,7 +2,6 @@ import types
 from types import MappingProxyType
 from typing import Any, Dict, Literal, Mapping, Optional, Tuple, Type, Union
 
-
 from anndata import AnnData
 
 from moscot import _constants

@@ -1,7 +1,6 @@
 from functools import partial
 from typing import Any, Literal, Optional, Tuple, Union
 
-
 import jax
 import jax.numpy as jnp
 import scipy.sparse as sp
