@@ -11,10 +11,10 @@ from scipy.sparse.linalg import LinearOperator
 from moscot._logging import logger
 from moscot._types import ArrayLike, Device_t, DTypeLike  # type: ignore[attr-defined]
 
-__all__ = ["BaseSolverOutput", "BaseDiscreteSolverOutput", "MatrixSolverOutput", "BaseNeuralOutput"]
+__all__ = ["BaseDiscreteSolverOutput", "BaseDiscreteSolverOutput", "MatrixSolverOutput", "BaseNeuralOutput"]
 
 
-class BaseSolverOutput(abc.ABC):
+class BaseDiscreteSolverOutput(abc.ABC):
     """Base class for all solver outputs."""
 
     @property
@@ -47,7 +47,7 @@ class BaseSolverOutput(abc.ABC):
         return f"{self.__class__.__name__}[{self._format_params(str)}]"
 
 
-class BaseDiscreteSolverOutput(BaseSolverOutput, abc.ABC):
+class BaseDiscreteSolverOutput(BaseDiscreteSolverOutput, abc.ABC):
     """Base class for all discrete solver outputs."""
 
     @abc.abstractmethod
@@ -383,7 +383,7 @@ class MatrixSolverOutput(BaseDiscreteSolverOutput):
         return jnp.ones((n,), dtype=self.transport_matrix.dtype)
 
 
-class BaseNeuralOutput(BaseSolverOutput, abc.ABC):
+class BaseNeuralOutput(BaseDiscreteSolverOutput, abc.ABC):
     """Base class for output of."""
 
     @abstractmethod

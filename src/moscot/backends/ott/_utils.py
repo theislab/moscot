@@ -1,32 +1,27 @@
 from functools import partial
 from typing import (
     Any,
-    Callable,
     Dict,
-    Iterable,
     Mapping,
     Optional,
-    Sequence,
     Tuple,
     Type,
     Union,
+    Literal
 )
 
 import optax
-from flax.training.train_state import TrainState
 
 import jax
 import jax.numpy as jnp
-import jax.tree_util as jtu
 import scipy.sparse as sp
-from ott.geometry import costs, epsilon_scheduler, geometry, pointcloud
-from ott.problems.linear.potentials import DualPotentials
+from ott.geometry import epsilon_scheduler, geometry, pointcloud
 from ott.tools.sinkhorn_divergence import sinkhorn_divergence as sinkhorn_div
 
 from moscot._logging import logger
 from moscot._types import ArrayLike, ScaleCost_t
 
-Potential_t = Callable[[jnp.ndarray], float]
+Scale_t = Union[float, Literal["mean", "median", "max_cost", "max_norm", "max_bound"]]
 
 
 __all__ = ["sinkhorn_divergence"]
@@ -73,25 +68,6 @@ def sinkhorn_divergence(
     return float(output.divergence)
 
 
-class RunningAverageMeter:
-    """Computes and stores the average value."""
-
-    def __init__(self) -> None:
-        self.reset()
-
-    def reset(self) -> None:
-        """Reset the meter."""
-        self.avg: float = 0.0
-        self.sum: float = 0.0
-        self.count: float = 0.0
-
-    def update(self, val: float, n: int = 1) -> None:
-        """Update the meter."""
-        self.sum += val * n
-        self.count += n
-        self.avg = self.sum / self.count
-
-
 @partial(jax.jit, static_argnames=["k"])
 def get_nearest_neighbors(
     input_batch: jnp.ndarray, target: jnp.ndarray, k: int = 30
@@ -101,47 +77,6 @@ def get_nearest_neighbors(
         raise ValueError(f"k is {k}, but must be smaller or equal than {target.shape[0]}.")
     pairwise_euclidean_distances = pointcloud.PointCloud(input_batch, target).cost_matrix
     return jax.lax.approx_min_k(pairwise_euclidean_distances, k=k, recall_target=0.95, aggregate_to_topk=True)
-
-def _get_optimizer(
-    learning_rate: float = 1e-4, b1: float = 0.5, b2: float = 0.9, weight_decay: float = 0.0, **kwargs: Any
-) -> Type[optax.GradientTransformation]:
-    return optax.adamw(learning_rate=learning_rate, b1=b1, b2=b2, weight_decay=weight_decay, **kwargs)
-
-
-def _compute_metrics_sinkhorn(
-    tgt: jnp.ndarray,
-    src: jnp.ndarray,
-    pred_tgt: jnp.ndarray,
-    pred_src: jnp.ndarray,
-    valid_eps: float,
-    valid_sinkhorn_kwargs: Mapping[str, Any],
-) -> Dict[str, float]:
-    sinkhorn_loss_data = sinkhorn_div(
-        geom=pointcloud.PointCloud,
-        x=tgt,
-        y=src,
-        epsilon=valid_eps,
-        sinkhorn_kwargs=valid_sinkhorn_kwargs,
-    ).divergence
-    sinkhorn_loss_forward = sinkhorn_div(
-        geom=pointcloud.PointCloud,
-        x=tgt,
-        y=pred_tgt,
-        epsilon=valid_eps,
-        sinkhorn_kwargs=valid_sinkhorn_kwargs,
-    ).divergence
-    sinkhorn_loss_inverse = sinkhorn_div(
-        geom=pointcloud.PointCloud,
-        x=src,
-        y=pred_src,
-        epsilon=valid_eps,
-        sinkhorn_kwargs=valid_sinkhorn_kwargs,
-    ).divergence
-    return {
-        "sinkhorn_loss_forward": jnp.abs(sinkhorn_loss_forward),
-        "sinkhorn_loss_inverse": jnp.abs(sinkhorn_loss_inverse),
-        "sinkhorn_loss_data": jnp.abs(sinkhorn_loss_data),
-    }
 
 
 def check_shapes(geom_x: geometry.Geometry, geom_y: geometry.Geometry, geom_xy: geometry.Geometry) -> None:
@@ -182,3 +117,23 @@ def ensure_2d(arr: ArrayLike, *, reshape: bool = False) -> jax.Array:
     if arr.ndim != 2:
         raise ValueError(f"Expected array to have 2 dimensions, found `{arr.ndim}`.")
     return arr
+
+
+def _instantiate_geodesic_cost(
+    arr: jax.Array,
+    problem_shape: Tuple[int, int],
+    t: Optional[float],
+    is_linear_term: bool,
+    epsilon: Union[float, epsilon_scheduler.Epsilon] = None,
+    relative_epsilon: Optional[bool] = None,
+    scale_cost: Scale_t = 1.0,
+    directed: bool = True,
+    **kwargs: Any,
+) -> geometry.Geometry:
+    n_src, n_tgt = problem_shape
+    if is_linear_term and n_src + n_tgt != arr.shape[0]:
+        raise ValueError(f"Expected `x` to have `{n_src + n_tgt}` points, found `{arr.shape[0]}`.")
+    t = epsilon / 4.0 if t is None else t
+    cm_full = geodesic.Geodesic.from_graph(arr, t=t, directed=directed, **kwargs).cost_matrix
+    cm = cm_full[:n_src, n_src:] if is_linear_term else cm_full
+    return geometry.Geometry(cm, epsilon=epsilon, relative_epsilon=relative_epsilon, scale_cost=scale_cost)

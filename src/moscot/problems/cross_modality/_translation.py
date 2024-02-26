@@ -92,7 +92,7 @@ class TranslationProblem(CrossModalityTranslationMixin[K, OTProblem], CompoundPr
             How to get the data for the source modality:
 
             - :class:`str` - a key in :attr:`~anndata.AnnData.obsm` where the data is stored.
-            - :class:`dict`-  it should contain ``'attr'`` and ``'key'``, the attribute and the key
+            - :class:`dict` -  it should contain ``'attr'`` and ``'key'``, the attribute and the key
               in :class:`~anndata.AnnData`, and optionally ``'tag'``, one of :class:`~moscot.utils.tagged_array.Tag`.
 
             By default, :attr:`tag = 'point_cloud' <moscot.utils.tagged_array.Tag.POINT_CLOUD>` is used.
@@ -100,7 +100,7 @@ class TranslationProblem(CrossModalityTranslationMixin[K, OTProblem], CompoundPr
             How to get the data for the target modality:
 
             - :class:`str` - a key in :attr:`~anndata.AnnData.obsm` where the data is stored.
-            - :class:`dict`-  it should contain ``'attr'`` and ``'key'``, the attribute and the key
+            - :class:`dict` -  it should contain ``'attr'`` and ``'key'``, the attribute and the key
               in :class:`~anndata.AnnData`, and optionally ``'tag'``, one of :class:`~moscot.utils.tagged_array.Tag`.
 
             By default, :attr:`tag = 'point_cloud' <moscot.utils.tagged_array.Tag.POINT_CLOUD>` is used.
@@ -109,7 +109,7 @@ class TranslationProblem(CrossModalityTranslationMixin[K, OTProblem], CompoundPr
 
             - :obj:`None` - the pure :term:`Gromov-Wasserstein` case is used.
             - :class:`str` - a key in :attr:`~anndata.AnnData.obsm` where the data is stored.
-            - :class:`dict`-  it should contain ``'attr'`` and ``'key'``, the attribute and key in
+            - :class:`dict` -  it should contain ``'attr'`` and ``'key'``, the attribute and key in
               :class:`~anndata.AnnData`, and optionally ``'tag'`` from the
               :class:`tags <moscot.utils.tagged_array.Tag>`.
 
@@ -173,7 +173,7 @@ class TranslationProblem(CrossModalityTranslationMixin[K, OTProblem], CompoundPr
                     f"while the joint attribute in the target distribution has dimension {dim_tgt}."
                 )
         xy, x, y = handle_cost(
-            xy=xy, x=self._src_attr, y=self._tgt_attr, cost=cost, cost_kwargs=cost_kwargs  # type: ignore[arg-type]
+            xy=xy, x=self._src_attr, y=self._tgt_attr, cost=cost, cost_kwargs=cost_kwargs, **kwargs  # type: ignore[arg-type]
         )
         if xy:
             kwargs["xy"] = xy
@@ -246,7 +246,7 @@ class TranslationProblem(CrossModalityTranslationMixin[K, OTProblem], CompoundPr
         linear_solver_kwargs
             Keyword arguments for the inner :term:`linear problem` solver.
         device
-            Transfer the solution to a different device, see :meth:`~moscot.base.output.BaseSolverOutput.to`.
+            Transfer the solution to a different device, see :meth:`~moscot.base.output.BaseDiscreteSolverOutput.to`.
             If :obj:`None`, keep the output on the original device.
         kwargs
             Keyword arguments for :meth:`~moscot.base.problems.CompoundProblem.solve`.

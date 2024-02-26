@@ -8,6 +8,7 @@ from ott.geometry import epsilon_scheduler
 from ott.geometry.costs import (
     Cosine,
     ElasticL1,
+    ElasticL2,
     ElasticSTVS,
     Euclidean,
     PNormP,
@@ -110,6 +111,7 @@ class TestGWProblem:
             y_attr={"attr": "obsm", "key": "spatial"},
             policy="sequential",
         )
+        _ = args_to_check.pop("alpha", None)
 
         problem = problem.solve(**args_to_check)
         key = ("0", "1")
@@ -157,6 +159,7 @@ class TestGWProblem:
             ("pnorm_p", PNormP, {"p": 3}),
             ("sq_pnorm", SqPNorm, {"x": {"p": 3}, "y": {"p": 4}}),
             ("elastic_l1", ElasticL1, {"x": {"scaling_reg": 3}, "y": {"scaling_reg": 4}}),
+            ("elastic_l2", ElasticL2, {"x": {"scaling_reg": 3}, "y": {"scaling_reg": 4}}),
             ("elastic_stvs", ElasticSTVS, {"x": {"scaling_reg": 3}, "y": {"scaling_reg": 4}}),
         ],
     )
@@ -164,6 +167,45 @@ class TestGWProblem:
         problem = GWProblem(adata=adata_time)
         problem = problem.prepare(
             key="time", policy="sequential", x_attr="X_pca", y_attr="X_pca", cost=cost_str, cost_kwargs=cost_kwargs
+        )
+        assert isinstance(problem[0, 1].x.cost, cost_inst)
+        assert isinstance(problem[0, 1].y.cost, cost_inst)
+
+        if cost_kwargs:
+            x_items = cost_kwargs["x"].items() if "x" in cost_kwargs else cost_kwargs.items()
+            for k, v in x_items:
+                assert getattr(problem[0, 1].x.cost, k) == v
+            y_items = cost_kwargs["y"].items() if "y" in cost_kwargs else cost_kwargs.items()
+            for k, v in y_items:
+                assert getattr(problem[0, 1].y.cost, k) == v
+
+        problem = problem.solve(max_iterations=2)
+
+    @pytest.mark.fast()
+    @pytest.mark.parametrize(
+        ("cost_str", "cost_inst", "cost_kwargs"),
+        [
+            ("sq_euclidean", SqEuclidean, {}),
+            ("euclidean", Euclidean, {}),
+            ("cosine", Cosine, {}),
+            ("pnorm_p", PNormP, {"p": 3}),
+            ("sq_pnorm", SqPNorm, {"x": {"p": 3}, "y": {"p": 4}}),
+            ("elastic_l1", ElasticL1, {"x": {"scaling_reg": 3}, "y": {"scaling_reg": 4}}),
+            ("elastic_l2", ElasticL2, {"x": {"scaling_reg": 3}, "y": {"scaling_reg": 4}}),
+            ("elastic_stvs", ElasticSTVS, {"x": {"scaling_reg": 3}, "y": {"scaling_reg": 4}}),
+        ],
+    )
+    def test_prepare_costs_with_callback(
+        self, adata_time: AnnData, cost_str: str, cost_inst: Any, cost_kwargs: CostKwargs_t
+    ):
+        problem = GWProblem(adata=adata_time)
+        problem = problem.prepare(
+            key="time",
+            policy="sequential",
+            x_callback="local-pca",
+            y_attr="X_pca",
+            cost=cost_str,
+            cost_kwargs=cost_kwargs,
         )
         assert isinstance(problem[0, 1].x.cost, cost_inst)
         assert isinstance(problem[0, 1].y.cost, cost_inst)

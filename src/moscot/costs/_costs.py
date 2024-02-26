@@ -64,6 +64,9 @@ class BarcodeDistance(BaseCost):
 class LeafDistance(BaseCost):
     """`Shortest path <https://en.wikipedia.org/wiki/Shortest_path_problem>`_ distance on a weighted tree.
 
+    .. note::
+            This class ignores `attr` which is always set to `uns`.
+
     .. seealso::
         - See :doc:`../notebooks/examples/problems/600_leaf_distance` on how to use this cost
           in the :class:`~moscot.problems.time.LineageProblem`.
@@ -83,7 +86,7 @@ class LeafDistance(BaseCost):
     def __init__(
         self, adata: AnnData, weight: Union[str, Callable[[Any, Any, Dict[Any, Any]], float]] = "weight", **kwargs: Any
     ):
-        kwargs["attr"] = "uns"
+        kwargs["attr"] = "uns"  # TODO: maybe document that attr is ignored
         super().__init__(adata, **kwargs)
         self._weight = weight
 
@@ -132,7 +135,7 @@ def _scaled_hamming_dist(x: ArrayLike, y: ArrayLike) -> float:
 
     # there may not be any sites where both were measured
     if not len(b1):
-        return np.nan
+        raise ValueError("No shared indices.")
     b2 = y[shared_indices]
 
     differences = b1 != b2

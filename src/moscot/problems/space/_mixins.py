@@ -1,4 +1,5 @@
 import itertools
+import types
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -63,6 +64,13 @@ class SpatialAlignmentMixinProtocol(AnalysisMixinProtocol[K, B]):
     ) -> pd.DataFrame:
         ...
 
+    def _annotation_mapping(
+        self: AnalysisMixinProtocol[K, B],
+        *args: Any,
+        **kwargs: Any,
+    ) -> pd.DataFrame:
+        ...
+
 
 class SpatialMappingMixinProtocol(AnalysisMixinProtocol[K, B]):
     """Protocol class."""
@@ -80,6 +88,9 @@ class SpatialMappingMixinProtocol(AnalysisMixinProtocol[K, B]):
         ...
 
     def _cell_transition(self: AnalysisMixinProtocol[K, B], *args: Any, **kwargs: Any) -> pd.DataFrame:
+        ...
+
+    def _annotation_mapping(self: AnalysisMixinProtocol[K, B], *args: Any, **kwargs: Any) -> pd.DataFrame:
         ...
 
 
@@ -273,6 +284,60 @@ class SpatialAlignmentMixin(AnalysisMixin[K, B]):
             key_added=key_added,
         )
 
+    def annotation_mapping(  # type: ignore[misc]
+        self: SpatialAlignmentMixinProtocol[K, B],
+        mapping_mode: Literal["sum", "max"],
+        annotation_label: str,
+        forward: bool,
+        source: str = "src",
+        target: str = "tgt",
+        batch_size: Optional[int] = None,
+        cell_transition_kwargs: Mapping[str, Any] = types.MappingProxyType({}),
+        **kwargs: Mapping[str, Any],
+    ) -> pd.DataFrame:
+        """Transfer annotations between distributions.
+
+        This function transfers annotations (e.g. cell type labels) between distributions of cells.
+
+        Parameters
+        ----------
+        mapping_mode
+            How to decide which label to transfer. Valid options are:
+
+            - ``'max'`` - pick the label of the annotated cell with the highest matching probability.
+            - ``'sum'`` - aggregate the annotated cells by label then
+              pick the label with the highest total matching probability.
+        annotation_label
+            Key in :attr:`~anndata.AnnData.obs` where the annotation is stored.
+        forward
+            If :obj:`True`, transfer the annotations from ``source`` to ``target``.
+        source
+            Key identifying the source distribution.
+        target
+            Key identifying the target distribution.
+        batch_size
+            Number of rows/columns of the cost matrix to materialize during :meth:`push` or :meth:`pull`.
+            Larger value will require more memory.
+            If :obj:`None`, the entire cost matrix will be materialized.
+        cell_transition_kwargs
+            Keyword arguments for :meth:`cell_transition`, used only if ``mapping_mode = 'sum'``.
+
+        Returns
+        -------
+        :class:`~pandas.DataFrame` - Returns the DataFrame of transferred annotations.
+        """
+        return self._annotation_mapping(
+            mapping_mode=mapping_mode,
+            annotation_label=annotation_label,
+            source=source,
+            target=target,
+            key=self.batch_key,
+            forward=forward,
+            batch_size=batch_size,
+            cell_transition_kwargs=cell_transition_kwargs,
+            **kwargs,
+        )
+
     @property
     def spatial_key(self) -> Optional[str]:
         """Spatial key in :attr:`~anndata.AnnData.obsm`."""
@@ -402,7 +467,7 @@ class SpatialMappingMixin(AnalysisMixin[K, B]):
         var_names
             Genes in :attr:`~anndata.AnnData.var_names` to impute. If :obj:`None`, use all genes in :attr:`adata_sc`.
         device
-            Device where to transfer the solutions, see :meth:`~moscot.base.output.BaseSolverOutput.to`.
+            Device where to transfer the solutions, see :meth:`~moscot.base.output.BaseDiscreteSolverOutput.to`.
 
         Returns
         -------
@@ -560,6 +625,61 @@ class SpatialMappingMixin(AnalysisMixin[K, B]):
             batch_size=batch_size,
             normalize=normalize,
             key_added=key_added,
+        )
+
+    def annotation_mapping(  # type: ignore[misc]
+        self: SpatialMappingMixinProtocol[K, B],
+        mapping_mode: Literal["sum", "max"],
+        annotation_label: str,
+        source: K,
+        target: Union[K, str] = "tgt",
+        forward: bool = False,
+        batch_size: Optional[int] = None,
+        cell_transition_kwargs: Mapping[str, Any] = types.MappingProxyType({}),
+        **kwargs: Mapping[str, Any],
+    ) -> pd.DataFrame:
+        """Transfer annotations between distributions.
+
+        This function transfers annotations (e.g. cell type labels) between distributions of cells.
+
+        Parameters
+        ----------
+        mapping_mode
+            How to decide which label to transfer. Valid options are:
+
+            - ``'max'`` - pick the label of the annotated cell with the highest matching probability.
+            - ``'sum'`` - aggregate the annotated cells by label then
+              pick the label with the highest total matching probability.
+        annotation_label
+            Key in :attr:`~anndata.AnnData.obs` where the annotation is stored.
+        forward
+            If :obj:`True`, transfer the annotations from ``source`` to ``target``.
+        source
+            Key identifying the source distribution.
+        target
+            Key identifying the target distribution.
+        batch_size
+            Number of rows/columns of the cost matrix to materialize during :meth:`push` or :meth:`pull`.
+            Larger value will require more memory.
+            If :obj:`None`, the entire cost matrix will be materialized.
+        cell_transition_kwargs
+            Keyword arguments for :meth:`cell_transition`, used only if ``mapping_mode = 'sum'``.
+
+        Returns
+        -------
+        :class:`~pandas.DataFrame` - Returns the DataFrame of transferred annotations.
+        """
+        return self._annotation_mapping(
+            mapping_mode=mapping_mode,
+            annotation_label=annotation_label,
+            source=source,
+            target=target,
+            forward=forward,
+            key=self.batch_key,
+            other_adata=self.adata_sc,
+            batch_size=batch_size,
+            cell_transition_kwargs=cell_transition_kwargs,
+            **kwargs,
         )
 
     @property

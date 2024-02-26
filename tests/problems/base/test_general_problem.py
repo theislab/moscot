@@ -1,4 +1,4 @@
-from typing import Literal
+from typing import Literal, Optional, Tuple
 
 import pytest
 
@@ -8,10 +8,13 @@ import pandas as pd
 from ott.geometry.pointcloud import PointCloud
 from ott.solvers.linear.sinkhorn import solve as sinkhorn
 
+import scanpy as sc
 from anndata import AnnData
 
+from moscot.backends.ott.output import GraphOTTOutput, OTTOutput
 from moscot.base.output import BaseDiscreteSolverOutput, MatrixSolverOutput
 from moscot.base.problems import OTProblem
+from moscot.utils.tagged_array import Tag, TaggedArray
 from tests._utils import ATOL, RTOL, Geom_t, MockSolverOutput
 
 
@@ -39,7 +42,7 @@ class TestOTProblem:
         gt = sinkhorn(PointCloud(jnp.asarray(adata_x.X), batch_size=batch_size, epsilon=eps, scale_cost=scale_cost))
 
         prob = OTProblem(adata_x)
-        prob = prob.prepare(xy={"x_attr": "X", "y_attr": "X"}).solve(
+        prob = prob.prepare(xy={"x_attr": "X", "y_attr": "X"}, x={}, y={}).solve(
             batch_size=batch_size, epsilon=eps, scale_cost=scale_cost
         )
         sol = prob.solution
@@ -106,6 +109,7 @@ class TestOTProblem:
         rng = np.random.RandomState(42)
         prob = OTProblem(adata_x, adata_y)
         prob = prob.prepare(
+            xy={},
             x={"attr": "X"},
             y={"attr": "X"},
         )
@@ -122,6 +126,8 @@ class TestOTProblem:
         prob = OTProblem(adata_x, adata_y)
         prob = prob.prepare(
             xy={"x_attr": "obsm", "x_key": "X_pca", "y_attr": "obsm", "y_key": "X_pca"},
+            x={},
+            y={},
         )
         assert prob.problem_kind == "linear"
 
@@ -165,3 +171,174 @@ class TestOTProblem:
         prob = prob.set_solution(solution2, overwrite=True)
 
         assert prob.solution is solution2
+
+    @pytest.mark.parametrize("ts", [(1.0, 10.0)])
+    def test_set_graph_xy(self, adata_x: AnnData, adata_y: AnnData, ts: Tuple[Optional[float], float]):
+        new_obs_names = [name + "_src" for name in adata_x.obs_names]
+        adata_x.obs_names = new_obs_names
+
+        adata_concat = adata_x.concatenate(adata_y, index_unique=None)
+        sc.pp.neighbors(adata_concat, n_neighbors=15)
+        graph_to_set = pd.DataFrame(
+            index=adata_concat.obs_names,
+            columns=adata_concat.obs_names,
+            data=adata_concat.obsp["connectivities"].A.astype("float64"),
+        )
+
+        prob1 = OTProblem(adata_x, adata_y)
+        prob1 = prob1.prepare(
+            xy={"x_attr": "obsm", "x_key": "X_pca", "y_attr": "obsm", "y_key": "X_pca"},
+            x={},
+            y={},
+        )
+        prob1.set_graph_xy(graph_to_set, t=ts[0], cost="geodesic")
+
+        ta1 = prob1.xy
+        assert isinstance(ta1, TaggedArray)
+        assert isinstance(ta1.data_src, np.ndarray)
+        assert ta1.data_tgt is None
+        assert ta1.tag == Tag.GRAPH
+        assert ta1.cost == "geodesic"
+
+        prob1 = prob1.solve(lse_mode=False, epsilon=10.0)
+
+        prob2 = OTProblem(adata_x, adata_y)
+        prob2 = prob2.prepare(
+            xy={"x_attr": "obsm", "x_key": "X_pca", "y_attr": "obsm", "y_key": "X_pca"},
+            x={},
+            y={},
+        )
+        prob2.set_graph_xy(graph_to_set, t=ts[1], cost="geodesic")
+
+        ta2 = prob2.xy
+        assert isinstance(ta2, TaggedArray)
+        assert isinstance(ta2.data_src, np.ndarray)
+        assert ta2.data_tgt is None
+        assert ta2.tag == Tag.GRAPH
+        assert ta2.cost == "geodesic"
+
+        prob2 = prob2.solve(lse_mode=False, epsilon=10.0)
+
+        assert not np.allclose(prob1.solution._output.geom.cost_matrix, prob2.solution._output.geom.cost_matrix)
+
+    @pytest.mark.parametrize("ts", [(1.0, 10.0)])
+    def test_set_graph_x_y(self, adata_x: AnnData, adata_y: AnnData, ts: Tuple[Optional[float], float]):
+        sc.pp.neighbors(adata_x, n_neighbors=15)
+        graph_to_set_x = pd.DataFrame(
+            index=adata_x.obs_names,
+            columns=adata_x.obs_names,
+            data=adata_x.obsp["connectivities"].A.astype("float64"),
+        )
+
+        sc.pp.neighbors(adata_y, n_neighbors=15)
+        graph_to_set_y = pd.DataFrame(
+            index=adata_y.obs_names,
+            columns=adata_y.obs_names,
+            data=adata_y.obsp["connectivities"].A.astype("float64"),
+        )
+
+        prob1 = OTProblem(adata_x, adata_y)
+        prob1 = prob1.prepare(
+            xy={},
+            x={"attr": "obsm", "key": "X_pca"},
+            y={"attr": "obsm", "key": "X_pca"},
+        )
+        prob1.set_graph_x(graph_to_set_x, t=ts[0], cost="geodesic")
+        prob1.set_graph_y(graph_to_set_y, t=ts[0], cost="geodesic")
+
+        ta1 = prob1.x
+        assert isinstance(ta1, TaggedArray)
+        assert isinstance(ta1.data_src, np.ndarray)
+        assert ta1.data_tgt is None
+        assert ta1.tag == Tag.GRAPH
+        assert ta1.cost == "geodesic"
+
+        ta2 = prob1.y
+        assert isinstance(ta2, TaggedArray)
+        assert isinstance(ta2.data_src, np.ndarray)
+        assert ta2.data_tgt is None
+        assert ta2.tag == Tag.GRAPH
+        assert ta2.cost == "geodesic"
+
+        prob1 = prob1.solve(lse_mode=False, epsilon=10.0)
+
+        prob2 = OTProblem(adata_x, adata_y)
+        prob2 = prob2.prepare(
+            xy={},
+            x={"attr": "obsm", "key": "X_pca"},
+            y={"attr": "obsm", "key": "X_pca"},
+        )
+        prob2.set_graph_x(graph_to_set_x, t=ts[1], cost="geodesic")
+        prob2.set_graph_y(graph_to_set_y, t=ts[1], cost="geodesic")
+
+        ta1 = prob2.x
+        assert isinstance(ta1, TaggedArray)
+        assert isinstance(ta1.data_src, np.ndarray)
+        assert ta1.data_tgt is None
+        assert ta1.tag == Tag.GRAPH
+        assert ta1.cost == "geodesic"
+
+        ta2 = prob2.y
+        assert isinstance(ta2, TaggedArray)
+        assert isinstance(ta2.data_src, np.ndarray)
+        assert ta2.data_tgt is None
+        assert ta2.tag == Tag.GRAPH
+        assert ta2.cost == "geodesic"
+
+        prob2 = prob2.solve(lse_mode=False, epsilon=10.0)
+
+        assert not np.allclose(prob1.solution._output.geom.cost_matrix, prob2.solution._output.geom.cost_matrix)
+
+    @pytest.mark.parametrize("t", [1.0, 10.0])
+    def test_set_graph_xy_test_t(self, adata_x: AnnData, adata_y: AnnData, t: float):
+        rng = np.random.RandomState(42)
+        new_obs_names = [name + "_src" for name in adata_x.obs_names]
+        adata_x.obs_names = new_obs_names
+
+        adata_concat = adata_x.concatenate(adata_y, index_unique=None)
+        sc.pp.neighbors(adata_concat, n_neighbors=5)
+        graph_to_set = pd.DataFrame(
+            index=adata_concat.obs_names,
+            columns=adata_concat.obs_names,
+            data=adata_concat.obsp["connectivities"].A.astype("float64"),
+        )
+
+        prob0 = OTProblem(adata_x, adata_y)
+        prob0 = prob0.prepare(
+            xy={"x_attr": "obsm", "x_key": "X_pca", "y_attr": "obsm", "y_key": "X_pca"},
+            x={},
+            y={},
+        )
+        prob0 = prob0.solve(lse_mode=False, epsilon=t)
+
+        prob1 = OTProblem(adata_x, adata_y)
+        prob1 = prob1.prepare(
+            xy={"x_attr": "obsm", "x_key": "X_pca", "y_attr": "obsm", "y_key": "X_pca"},
+            x={},
+            y={},
+        )
+        prob1.set_graph_xy(graph_to_set, t=None, cost="geodesic")
+        prob1 = prob1.solve(lse_mode=False, epsilon=t)
+
+        assert isinstance(prob1.solution, GraphOTTOutput)
+
+        prob2 = OTProblem(adata_x, adata_y)
+        prob2 = prob2.prepare(
+            xy={"x_attr": "obsm", "x_key": "X_pca", "y_attr": "obsm", "y_key": "X_pca"},
+            x={},
+            y={},
+        )
+        prob2.set_graph_xy(graph_to_set, t=t / 4.0, cost="geodesic")
+        prob2 = prob2.solve(lse_mode=False, epsilon=t / 4.0, scale_cost=1.0)
+
+        assert isinstance(prob2.solution, OTTOutput)
+
+        to_push = rng.uniform(1, 10, size=(adata_x.n_obs, 1))
+        pushed_0 = prob0.push(to_push)
+        pushed_1 = prob1.push(to_push)
+        pushed_2 = prob2.push(to_push)
+
+        assert pushed_1.shape == pushed_2.shape
+        assert pushed_0.shape == pushed_1.shape
+        assert np.all(np.abs(pushed_0 - pushed_1).sum() > np.abs(pushed_2 - pushed_1).sum())
+        assert np.all(np.abs(pushed_0 - pushed_2).sum() > np.abs(pushed_1 - pushed_2).sum())

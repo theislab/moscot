@@ -106,3 +106,36 @@ class TestCrossModalityTranslationAnalysisMixin:
         assert result2.shape == (3, 3)
         with pytest.raises(AssertionError):
             pd.testing.assert_frame_equal(result1, result2)
+
+    @pytest.mark.fast()
+    @pytest.mark.parametrize("forward", [True, False])
+    @pytest.mark.parametrize("mapping_mode", ["max", "sum"])
+    @pytest.mark.parametrize("batch_size", [3, 7, None])
+    @pytest.mark.parametrize("problem_kind", ["cross_modality"])
+    def test_annotation_mapping(
+        self, adata_anno: Tuple[AnnData, AnnData], forward: bool, mapping_mode, batch_size, gt_tm_annotation
+    ):
+        adata_src, adata_tgt = adata_anno
+        tp = TranslationProblem(adata_src, adata_tgt)
+        tp = tp.prepare(src_attr="emb_src", tgt_attr="emb_tgt")
+        problem_keys = ("src", "tgt")
+        assert set(tp.problems.keys()) == {problem_keys}
+        tp[problem_keys].set_solution(MockSolverOutput(gt_tm_annotation), overwrite=True)
+        annotation_label = "celltype1" if forward else "celltype2"
+        result = tp.annotation_mapping(
+            mapping_mode=mapping_mode,
+            annotation_label=annotation_label,
+            forward=forward,
+            source="src",
+            target="tgt",
+            batch_size=batch_size,
+        )
+        if forward:
+            expected_result = (
+                adata_src.uns["expected_max1"] if mapping_mode == "max" else adata_src.uns["expected_sum1"]
+            )
+        else:
+            expected_result = (
+                adata_tgt.uns["expected_max2"] if mapping_mode == "max" else adata_tgt.uns["expected_sum2"]
+            )
+        assert (result[annotation_label] == expected_result).all()

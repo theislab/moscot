@@ -1,15 +1,16 @@
+from __future__ import annotations
+
+import types
 from typing import (
     TYPE_CHECKING,
     Any,
-    Dict,
     Generic,
     Iterable,
-    List,
     Literal,
+    Mapping,
     Optional,
     Protocol,
     Sequence,
-    Tuple,
     Union,
 )
 
@@ -26,6 +27,7 @@ from moscot._types import ArrayLike, Numeric_t, Str_Dict_t
 from moscot.base.output import BaseDiscreteSolverOutput
 from moscot.base.problems._utils import (
     _check_argument_compatibility_cell_transition,
+    _compute_conditional_entropy,
     _correlation_test,
     _get_df_cell_transition,
     _order_transition_matrix,
@@ -45,8 +47,8 @@ class AnalysisMixinProtocol(Protocol[K, B]):
 
     adata: AnnData
     _policy: SubsetPolicy[K]
-    solutions: Dict[Tuple[K, K], BaseDiscreteSolverOutput]
-    problems: Dict[Tuple[K, K], B]
+    solutions: dict[tuple[K, K], BaseDiscreteSolverOutput]
+    problems: dict[tuple[K, K], B]
 
     def _apply(
         self,
@@ -61,15 +63,15 @@ class AnalysisMixinProtocol(Protocol[K, B]):
         ...
 
     def _interpolate_transport(
-        self: "AnalysisMixinProtocol[K, B]",
-        path: Sequence[Tuple[K, K]],
+        self: AnalysisMixinProtocol[K, B],
+        path: Sequence[tuple[K, K]],
         scale_by_marginals: bool = True,
     ) -> LinearOperator:
         ...
 
     def _flatten(
-        self: "AnalysisMixinProtocol[K, B]",
-        data: Dict[K, ArrayLike],
+        self: AnalysisMixinProtocol[K, B],
+        data: dict[K, ArrayLike],
         *,
         key: Optional[str],
     ) -> ArrayLike:
@@ -83,8 +85,20 @@ class AnalysisMixinProtocol(Protocol[K, B]):
         """Pull distribution."""
         ...
 
+    def _cell_transition(
+        self: AnalysisMixinProtocol[K, B],
+        source: K,
+        target: K,
+        source_groups: Str_Dict_t,
+        target_groups: Str_Dict_t,
+        aggregation_mode: Literal["annotation", "cell"] = "annotation",
+        key_added: Optional[str] = _constants.CELL_TRANSITION,
+        **kwargs: Any,
+    ) -> pd.DataFrame:
+        ...
+
     def _cell_transition_online(
-        self: "AnalysisMixinProtocol[K, B]",
+        self: AnalysisMixinProtocol[K, B],
         key: Optional[str],
         source: K,
         target: K,
@@ -96,6 +110,20 @@ class AnalysisMixinProtocol(Protocol[K, B]):
         other_adata: Optional[str] = None,
         batch_size: Optional[int] = None,
         normalize: bool = True,
+    ) -> pd.DataFrame:
+        ...
+
+    def _annotation_mapping(
+        self: AnalysisMixinProtocol[K, B],
+        mapping_mode: Literal["sum", "max"],
+        annotation_label: str,
+        forward: bool,
+        source: K,
+        target: K,
+        key: str | None = None,
+        other_adata: Optional[str] = None,
+        scale_by_marginals: bool = True,
+        cell_transition_kwargs: Mapping[str, Any] = types.MappingProxyType({}),
     ) -> pd.DataFrame:
         ...
 
@@ -122,7 +150,6 @@ class AnalysisMixin(Generic[K, B]):
             )
         if aggregation_mode == "cell" and source_groups is None and target_groups is None:
             raise ValueError("At least one of `source_groups` and `target_group` must be specified.")
-
         _check_argument_compatibility_cell_transition(
             source_annotation=source_groups,
             target_annotation=target_groups,
@@ -179,13 +206,13 @@ class AnalysisMixin(Generic[K, B]):
         )
         df_source = _get_df_cell_transition(
             self.adata,
-            [source_annotation_key, target_annotation_key],
+            [source_annotation_key] if aggregation_mode == "cell" else [source_annotation_key, target_annotation_key],
             key,
             source,
         )
         df_target = _get_df_cell_transition(
             self.adata if other_adata is None else other_adata,
-            [source_annotation_key, target_annotation_key],
+            [target_annotation_key] if aggregation_mode == "cell" else [source_annotation_key, target_annotation_key],
             key if other_adata is None else other_key,
             target,
         )
@@ -273,6 +300,91 @@ class AnalysisMixin(Generic[K, B]):
             forward=forward,
         )
 
+    def _annotation_mapping(
+        self: AnalysisMixinProtocol[K, B],
+        mapping_mode: Literal["sum", "max"],
+        annotation_label: str,
+        source: K,
+        target: K,
+        key: str | None = None,
+        forward: bool = True,
+        other_adata: str | None = None,
+        scale_by_marginals: bool = True,
+        batch_size: int | None = None,
+        cell_transition_kwargs: Mapping[str, Any] = types.MappingProxyType({}),
+    ) -> pd.DataFrame:
+        if mapping_mode == "sum":
+            cell_transition_kwargs = dict(cell_transition_kwargs)
+            cell_transition_kwargs.setdefault("aggregation_mode", "cell")  # aggregation mode should be set to cell
+            cell_transition_kwargs.setdefault("key", key)
+            cell_transition_kwargs.setdefault("source", source)
+            cell_transition_kwargs.setdefault("target", target)
+            cell_transition_kwargs.setdefault("other_adata", other_adata)
+            cell_transition_kwargs.setdefault("forward", not forward)
+            cell_transition_kwargs.setdefault("batch_size", batch_size)
+            if forward:
+                cell_transition_kwargs.setdefault("source_groups", annotation_label)
+                cell_transition_kwargs.setdefault("target_groups", None)
+                axis = 0  # rows
+            else:
+                cell_transition_kwargs.setdefault("source_groups", None)
+                cell_transition_kwargs.setdefault("target_groups", annotation_label)
+                axis = 1  # columns
+            out: pd.DataFrame = self._cell_transition(**cell_transition_kwargs)
+            return out.idxmax(axis=axis).to_frame(name=annotation_label)
+        if mapping_mode == "max":
+            out = []
+            if forward:
+                source_df = _get_df_cell_transition(
+                    self.adata,
+                    annotation_keys=[annotation_label],
+                    filter_key=key,
+                    filter_value=source,
+                )
+                out_len = self.solutions[(source, target)].shape[1]
+                batch_size = batch_size if batch_size is not None else out_len
+                for batch in range(0, out_len, batch_size):
+                    tm_batch: ArrayLike = self.pull(
+                        source=source,
+                        target=target,
+                        data=None,
+                        subset=(batch, batch_size),
+                        normalize=True,
+                        return_all=False,
+                        scale_by_marginals=scale_by_marginals,
+                        split_mass=True,
+                        key_added=None,
+                    )
+                    v = np.array(tm_batch.argmax(0))
+                    out.extend(source_df[annotation_label][v[i]] for i in range(len(v)))
+
+            else:
+                target_df = _get_df_cell_transition(
+                    self.adata if other_adata is None else other_adata,
+                    annotation_keys=[annotation_label],
+                    filter_key=key,
+                    filter_value=target,
+                )
+                out_len = self.solutions[(source, target)].shape[0]
+                batch_size = batch_size if batch_size is not None else out_len
+                for batch in range(0, out_len, batch_size):
+                    tm_batch: ArrayLike = self.push(  # type: ignore[no-redef]
+                        source=source,
+                        target=target,
+                        data=None,
+                        subset=(batch, batch_size),
+                        normalize=True,
+                        return_all=False,
+                        scale_by_marginals=scale_by_marginals,
+                        split_mass=True,
+                        key_added=None,
+                    )
+                    v = np.array(tm_batch.argmax(0))
+                    out.extend(target_df[annotation_label][v[i]] for i in range(len(v)))
+            categories = pd.Categorical(out)
+            return pd.DataFrame(categories, columns=[annotation_label])
+        raise NotImplementedError(f"Mapping mode `{mapping_mode!r}` is not yet implemented.")
+
     def _sample_from_tmap(
         self: AnalysisMixinProtocol[K, B],
         source: K,
@@ -284,7 +396,7 @@ class AnalysisMixin(Generic[K, B]):
         account_for_unbalancedness: bool = False,
         interpolation_parameter: Optional[Numeric_t] = None,
         seed: Optional[int] = None,
-    ) -> Tuple[List[Any], List[ArrayLike]]:
+    ) -> tuple[list[Any], list[ArrayLike]]:
         rng = np.random.RandomState(seed)
         if account_for_unbalancedness and interpolation_parameter is None:
             raise ValueError("When accounting for unbalancedness, interpolation parameter must be provided.")
@@ -321,7 +433,7 @@ class AnalysisMixin(Generic[K, B]):
 
         rows_sampled = rng.choice(source_dim, p=row_probability / row_probability.sum(), size=n_samples)
         rows, counts = np.unique(rows_sampled, return_counts=True)
-        all_cols_sampled: List[str] = []
+        all_cols_sampled: list[str] = []
         for batch in range(0, len(rows), batch_size):
             rows_batch = rows[batch : batch + batch_size]
             counts_batch = counts[batch : batch + batch_size]
@@ -354,7 +466,7 @@ class AnalysisMixin(Generic[K, B]):
     def _interpolate_transport(
         self: AnalysisMixinProtocol[K, B],
         # TODO(@giovp): rename this to 'explicit_steps', pass to policy.plan() and reintroduce (source_key, target_key)
-        path: Sequence[Tuple[K, K]],
+        path: Sequence[tuple[K, K]],
         scale_by_marginals: bool = True,
         **_: Any,
     ) -> LinearOperator:
@@ -365,7 +477,7 @@ class AnalysisMixin(Generic[K, B]):
         fst, *rest = path
         return self.solutions[fst].chain([self.solutions[r] for r in rest], scale_by_marginals=scale_by_marginals)
 
-    def _flatten(self: AnalysisMixinProtocol[K, B], data: Dict[K, ArrayLike], *, key: Optional[str]) -> ArrayLike:
+    def _flatten(self: AnalysisMixinProtocol[K, B], data: dict[K, ArrayLike], *, key: Optional[str]) -> ArrayLike:
         tmp = np.full(len(self.adata), np.nan)
         for k, v in data.items():
             mask = self.adata.obs[key] == k
@@ -377,8 +489,8 @@ class AnalysisMixin(Generic[K, B]):
         source: K,
         target: K,
         annotation_key: str,
-        annotations_1: List[Any],
-        annotations_2: List[Any],
+        annotations_1: list[Any],
+        annotations_2: list[Any],
         df: pd.DataFrame,
         tm: pd.DataFrame,
         forward: bool,
@@ -413,8 +525,8 @@ class AnalysisMixin(Generic[K, B]):
         target: str,
         annotation_key: str,
         # TODO(MUCDK): unused variables, del below
-        annotations_1: List[Any],
-        annotations_2: List[Any],
+        annotations_1: list[Any],
+        annotations_2: list[Any],
         df_1: pd.DataFrame,
         df_2: pd.DataFrame,
         tm: pd.DataFrame,
@@ -450,9 +562,9 @@ class AnalysisMixin(Generic[K, B]):
         obs_key: str,
         corr_method: Literal["pearson", "spearman"] = "pearson",
         significance_method: Literal["fisher", "perm_test"] = "fisher",
-        annotation: Optional[Dict[str, Iterable[str]]] = None,
+        annotation: Optional[dict[str, Iterable[str]]] = None,
         layer: Optional[str] = None,
-        features: Optional[Union[List[str], Literal["human", "mouse", "drosophila"]]] = None,
+        features: Optional[Union[list[str], Literal["human", "mouse", "drosophila"]]] = None,
         confidence_level: float = 0.95,
         n_perms: int = 1000,
         seed: Optional[int] = None,
@@ -553,3 +665,59 @@ class AnalysisMixin(Generic[K, B]):
             seed=seed,
             **kwargs,
         )
+
+    def compute_entropy(
+        self: AnalysisMixinProtocol[K, B],
+        source: K,
+        target: K,
+        forward: bool = True,
+        key_added: Optional[str] = "conditional_entropy",
+        batch_size: Optional[int] = None,
+    ) -> Optional[pd.DataFrame]:
+        """Compute the conditional entropy per cell.
+
+        The conditional entropy reflects the uncertainty of the mapping of a single cell.
+
+
+        Parameters
+        ----------
+        source
+            Source key.
+        target
+            Target key.
+        forward
+            If `True`, computes the conditional entropy of a cell in the source distribution, else the
+            conditional entropy of a cell in the target distribution.
+        key_added
+            Key in :attr:`~anndata.AnnData.obs` where the entropy is stored.
+        batch_size
+            Batch size for the computation of the entropy. If :obj:`None`, the entire dataset is used.
+
+        Returns
+        -------
+        :obj:`None` if ``key_added`` is not None. Otherwise, returns a data frame of shape ``(n_cells, 1)`` containing
+        the conditional entropy per cell.
+        """
+        filter_value = source if forward else target
+        df = pd.DataFrame(
+            index=self.adata[self.adata.obs[self._policy.key] == filter_value, :].obs_names,
+            columns=[key_added] if key_added is not None else ["entropy"],
+        )
+        batch_size = batch_size if batch_size is not None else len(df)
+        func = self.push if forward else self.pull
+        for batch in range(0, len(df), batch_size):
+            cond_dists = func(
+                source=source,
+                target=target,
+                data=None,
+                subset=(batch, batch_size),
+                normalize=True,
+                return_all=False,
+                scale_by_marginals=False,
+                split_mass=True,
+                key_added=None,
+            )
+            df.iloc[range(batch, min(batch + batch_size, len(df))), 0] = _compute_conditional_entropy(cond_dists)  # type: ignore[arg-type]
+        if key_added is not None:
+            self.adata.obs[key_added] = df
+        return df if key_added is None else None

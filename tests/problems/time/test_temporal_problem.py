@@ -1,16 +1,21 @@
-from typing import Any, List, Mapping
+from typing import Any, List, Mapping, Optional
 
 import pytest
 
+import jax.numpy as jnp
 import numpy as np
 import pandas as pd
-from ott.geometry import epsilon_scheduler
+from ott.geometry import costs, epsilon_scheduler
+from scipy.sparse import csr_matrix
 
+import scanpy as sc
 from anndata import AnnData
 
+from moscot.backends.ott.output import GraphOTTOutput
 from moscot.base.output import BaseDiscreteSolverOutput
 from moscot.base.problems import BirthDeathProblem
 from moscot.problems.time import TemporalProblem
+from moscot.utils.tagged_array import Tag, TaggedArray
 from tests._utils import ATOL, RTOL
 from tests.problems.conftest import (
     geometry_args,
@@ -46,13 +51,16 @@ class TestTemporalProblem:
             assert key in expected_keys
             assert isinstance(problem[key], BirthDeathProblem)
 
-    def test_solve_balanced(self, adata_time: AnnData):
+    @pytest.mark.parametrize("callback", ["local-pca", None])
+    def test_solve_balanced(self, adata_time: AnnData, callback: Optional[str]):
         eps = 0.5
+        joint_attr = None if callback else "X_pca"
         expected_keys = [(0, 1), (1, 2)]
         problem = TemporalProblem(adata=adata_time)
-        problem = problem.prepare("time")
+        problem = problem.prepare("time", cost="cosine", xy_callback=callback, joint_attr=joint_attr)
         problem = problem.solve(epsilon=eps)
 
+        assert isinstance(problem[0, 1].xy.cost, costs.Cosine)
         for key, subsol in problem.solutions.items():
             assert isinstance(subsol, BaseDiscreteSolverOutput)
             assert key in expected_keys
@@ -240,6 +248,173 @@ class TestTemporalProblem:
             adata.uns["tmap_10_11"],
             np.array(tp[key_1, key_3].solution.transport_matrix),
         )
+
+    def test_geodesic_cost_set_xy_cost_dense(self, adata_time):
+        # TODO(@MUCDK) add test for failure case
+        tp = TemporalProblem(adata_time)
+        tp = tp.prepare("time", joint_attr="X_pca")
+        batch_column = "time"
+        unique_batches = adata_time.obs[batch_column].unique()
+
+        dfs = []
+        for i in range(len(unique_batches) - 1):
+            batch1 = unique_batches[i]
+            batch2 = unique_batches[i + 1]
+
+            indices = np.where((adata_time.obs[batch_column] == batch1) | (adata_time.obs[batch_column] == batch2))[0]
+            adata_subset = adata_time[indices]
+            sc.pp.neighbors(adata_subset, n_neighbors=15, use_rep="X_pca")
+            dfs.append(
+                pd.DataFrame(
+                    index=adata_subset.obs_names,
+                    columns=adata_subset.obs_names,
+                    data=adata_subset.obsp["connectivities"].A.astype("float64"),
+                )
+            )
+
+        tp[0, 1].set_graph_xy(dfs[0], cost="geodesic")
+        tp = tp.solve(max_iterations=2, lse_mode=False)
+
+        ta = tp[0, 1].xy
+        assert isinstance(ta, TaggedArray)
+        assert isinstance(ta.data_src, np.ndarray)
+        assert ta.data_tgt is None
+        assert ta.tag == Tag.GRAPH
+        assert ta.cost == "geodesic"
+
+        tp[1, 2].set_graph_xy(dfs[1], cost="geodesic")
+        tp = tp.solve(max_iterations=2, lse_mode=False)
+
+        ta = tp[1, 2].xy
+        assert isinstance(ta, TaggedArray)
+        assert isinstance(ta.data_src, np.ndarray)
+        assert ta.data_tgt is None
+        assert ta.tag == Tag.GRAPH
+        assert ta.cost == "geodesic"
+
+    def test_geodesic_cost_set_xy_cost_sparse(self, adata_time):
+        tp = TemporalProblem(adata_time)
+        tp = tp.prepare("time", joint_attr="X_pca")
+        batch_column = "time"
+        unique_batches = adata_time.obs[batch_column].unique()
+
+        elements = []
+        for i in range(len(unique_batches) - 1):
+            batch1 = unique_batches[i]
+            batch2 = unique_batches[i + 1]
+
+            indices = np.where((adata_time.obs[batch_column] == batch1) | (adata_time.obs[batch_column] == batch2))[0]
+            adata_subset = adata_time[indices]
+            sc.pp.neighbors(adata_subset, n_neighbors=15, use_rep="X_pca")
+
+            sparse_matrix = adata_subset.obsp["connectivities"].astype("float64")
+            row_names = adata_subset.obs_names.to_series()
+            col_names = adata_subset.obs_names.to_series()
+            elements.append((sparse_matrix, row_names, col_names))
+
+        tp[0, 1].set_graph_xy(elements[0], cost="geodesic")
+        tp = tp.solve(max_iterations=2, lse_mode=False)
+
+        ta = tp[0, 1].xy
+        assert isinstance(ta, TaggedArray)
+        assert isinstance(ta.data_src, csr_matrix)
+        assert ta.data_tgt is None
+        assert ta.tag == Tag.GRAPH
+        assert ta.cost == "geodesic"
+
+        tp[1, 2].set_graph_xy(elements[1], cost="geodesic")
+        tp = tp.solve(max_iterations=2, lse_mode=False)
+
+        ta = tp[1, 2].xy
+        assert isinstance(ta, TaggedArray)
+        assert isinstance(ta.data_src, csr_matrix)
+        assert ta.data_tgt is None
+        assert ta.tag == Tag.GRAPH
+        assert ta.cost == "geodesic"
+
+    @pytest.mark.parametrize("callback_kwargs", [{}, {"n_neighbors": 3}, {"foo": "bar"}])
+    def test_graph_construction_callback(self, adata_time: AnnData, callback_kwargs: Mapping[str, Any]):
+        eps = 0.5
+        expected_keys = [(0, 1), (1, 2)]
+        problem = TemporalProblem(adata=adata_time)
+
+        if "foo" in callback_kwargs:
+            with pytest.raises(TypeError):
+                problem = problem.prepare(
+                    "time", cost="geodesic", xy_callback="graph-construction", xy_callback_kwargs=callback_kwargs
+                )
+            return
+        problem = problem.prepare(
+            "time", cost="geodesic", xy_callback="graph-construction", xy_callback_kwargs=callback_kwargs
+        )
+
+        problem = problem.solve(epsilon=eps, lse_mode=False)
+
+        assert problem[0, 1].xy.cost == "geodesic"
+        for key, subsol in problem.solutions.items():
+            assert isinstance(subsol, BaseDiscreteSolverOutput)
+            assert key in expected_keys
+
+        if "n_neighbors" in callback_kwargs:
+            callback_kwargs["n_neighbors"] = callback_kwargs["n_neighbors"] + 20
+            problem2 = TemporalProblem(adata=adata_time)
+            problem2 = problem2.prepare(
+                "time", cost="geodesic", xy_callback="graph-construction", xy_callback_kwargs=callback_kwargs
+            )
+
+            assert np.sum(problem2[0, 1].xy.data_src.sum(axis=1) != problem[0, 1].xy.data_src.sum(axis=1)) > 0
+            assert np.all(problem2[0, 1].xy.data_src.sum(axis=1) > problem[0, 1].xy.data_src.sum(axis=1))
+
+    @pytest.mark.parametrize("forward", [True, False])
+    def test_geodesic_cost_downstream(self, adata_time: AnnData, forward: bool):
+        # TODO(@MUCDK) add test for failure case
+        adata_time = adata_time[adata_time.obs["time"].isin([0, 1])]
+        tp = TemporalProblem(adata_time)
+        tp = tp.prepare("time", joint_attr="X_pca")
+        batch_column = "time"
+        unique_batches = adata_time.obs[batch_column].unique()
+
+        dfs = []
+        for i in range(len(unique_batches) - 1):
+            batch1 = unique_batches[i]
+            batch2 = unique_batches[i + 1]
+
+            indices = np.where((adata_time.obs[batch_column] == batch1) | (adata_time.obs[batch_column] == batch2))[0]
+            adata_subset = adata_time[indices]
+            sc.pp.neighbors(adata_subset, n_neighbors=len(adata_subset), use_rep="X_pca")
+            df = pd.DataFrame(
+                index=adata_subset.obs_names,
+                columns=adata_subset.obs_names,
+                data=adata_subset.obsp["connectivities"].A.astype("float64"),
+            )
+            order = pd.concat(
+                (tp[batch1, batch2].adata_src.obs_names.to_series(), tp[batch1, batch2].adata_tgt.obs_names.to_series())
+            )
+            df = df.loc[order, :]
+            df = df.loc[:, order]
+            dfs.append(df)
+
+        tp[0, 1].set_graph_xy(dfs[0], cost="geodesic")
+        tp = tp.solve(max_iterations=5, lse_mode=False)
+        assert isinstance(tp[0, 1].solution, GraphOTTOutput)
+
+        ta = tp[0, 1].xy
+        assert isinstance(ta, TaggedArray)
+        assert isinstance(ta.data_src, np.ndarray)
+        assert ta.data_tgt is None
+        assert ta.tag == Tag.GRAPH
+        assert ta.cost == "geodesic"
+
+        func = tp.push if forward else tp.pull
+        out = func(0, 1, "celltype", "A", key_added=None)
+        assert isinstance(out, jnp.ndarray)
+        assert jnp.sum(jnp.isnan(out)) == 0
+
+        adata_time.obs["celltype"] = adata_time.obs["celltype"].astype("category")
+        df = tp.cell_transition(0, 1, "celltype", "celltype", forward=forward)
+        assert isinstance(df, pd.DataFrame)
+        assert df.isna().sum().sum() == 0
+        assert df.sum().sum() > 0
 
     @pytest.mark.parametrize("args_to_check", [sinkhorn_args_1, sinkhorn_args_2])
     def test_pass_arguments(self, adata_time: AnnData, args_to_check: Mapping[str, Any]):

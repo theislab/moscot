@@ -11,6 +11,7 @@ from typing import (
     List,
     Literal,
     Mapping,
+    NamedTuple,
     Optional,
     Sequence,
     Tuple,
@@ -38,6 +39,12 @@ if TYPE_CHECKING:
 
 
 Callback = Callable[..., Any]
+
+
+class TimeScalesHeatKernel(NamedTuple):  # noqa: D101
+    x: Optional[float]
+    y: Optional[float]
+    xy: Optional[float]
 
 
 def _validate_annotations(
@@ -107,7 +114,7 @@ def _check_argument_compatibility_cell_transition(
         raise ValueError("Unable to infer distributions, missing `adata` and `key`.")
     if forward and target_annotation is None:
         raise ValueError("No target annotation provided.")
-    if not forward and source_annotation is None:
+    if aggregation_mode == "annotation" and (not forward and source_annotation is None):
         raise ValueError("No source annotation provided.")
     if (aggregation_mode == "annotation") and (source_annotation is None or target_annotation is None):
         raise ValueError(
@@ -712,3 +719,7 @@ def _get_n_cores(n_cores: Optional[int], n_jobs: Optional[int]) -> int:
         return multiprocessing.cpu_count() + 1 + n_cores
 
     return n_cores
+
+
+def _compute_conditional_entropy(p_xy: ArrayLike) -> ArrayLike:
+    return -np.sum(p_xy * np.log(p_xy / p_xy.sum(axis=0)), axis=0)

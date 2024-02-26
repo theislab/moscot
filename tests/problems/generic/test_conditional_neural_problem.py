@@ -8,7 +8,7 @@ from ott.geometry import costs
 import anndata as ad
 
 from moscot.backends.ott.output import OTTNeuralOutput
-from moscot.base.output import BaseSolverOutput
+from moscot.base.output import BaseDiscreteSolverOutput
 from moscot.base.problems import CondOTProblem
 from moscot.problems.generic import (
     GENOTLinProblem,  # type: ignore[attr-defined]
@@ -50,13 +50,13 @@ class TestGENOTLinProblem:
         problem = GENOTLinProblem(adata=adata_time)
         problem = problem.prepare(key="time", joint_attr="X_pca", conditional_attr={"attr": "obs", "key": "time"})
         problem = problem.solve(train_size=train_size, **neurallin_cond_args_1)
-        assert isinstance(problem.solution, BaseSolverOutput)
+        assert isinstance(problem.solution, BaseDiscreteSolverOutput)
 
     def test_solve_unbalanced_with_baseline(self, adata_time: ad.AnnData):
         problem = GENOTLinProblem(adata=adata_time)
         problem = problem.prepare(key="time", joint_attr="X_pca", conditional_attr={"attr": "obs", "key": "time"})
         problem = problem.solve(**neurallin_cond_args_2)
-        assert isinstance(problem.solution, BaseSolverOutput)
+        assert isinstance(problem.solution, BaseDiscreteSolverOutput)
 
     def test_reproducibility(self, adata_time: ad.AnnData):
         cond_zero_mask = np.array(adata_time.obs["time"] == 0)
@@ -102,7 +102,7 @@ class TestGENOTLinProblem:
         adata_time = adata_time[adata_time.obs["time"].isin((0, 1))]
         problem = problem.prepare(key="time", joint_attr="X_pca", conditional_attr={"attr": "obs", "key": "time"})
         problem = problem.solve(**neurallin_cond_args_2)
-        assert isinstance(problem.solution, BaseSolverOutput)
+        assert isinstance(problem.solution, BaseDiscreteSolverOutput)
 
         array = np.asarray(adata_time.obsm["X_pca"].copy())
         cond1 = jnp.ones((array.shape[0],1))

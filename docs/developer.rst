@@ -11,6 +11,7 @@ Backends
     backends.ott.SinkhornSolver
     backends.ott.GWSolver
     backends.ott.OTTOutput
+    backends.ott.GraphOTTOutput
     backends.utils.get_solver
     backends.utils.get_available_backends
 
@@ -29,7 +30,7 @@ Costs
 
 Base
 ~~~~
-.. module:: moscob.base
+.. module:: moscot.base
 .. currentmodule:: moscot.base
 
 Problems
@@ -61,7 +62,7 @@ Solvers
 
     solver.BaseSolver
     solver.OTSolver
-    output.BaseSolverOutput
+    output.BaseDiscreteSolverOutput
     output.BaseDiscreteSolverOutput
 
 Output
@@ -69,7 +70,7 @@ Output
 .. autosummary::
     :toctree: genapi
 
-    output.BaseSolverOutput
+    output.BaseDiscreteSolverOutput
     output.BaseDiscreteSolverOutput
     output.MatrixSolverOutput
 

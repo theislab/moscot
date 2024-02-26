@@ -67,7 +67,7 @@ class TemporalProblem(  # type: ignore[misc]
             - :obj:`None` - `PCA <https://en.wikipedia.org/wiki/Principal_component_analysis>`_
               on :attr:`~anndata.AnnData.X` is computed.
             - :class:`str` - key in :attr:`~anndata.AnnData.obsm` where the data is stored.
-            - :class:`dict`-  it should contain ``'attr'`` and ``'key'``, the attribute and key in
+            - :class:`dict` -  it should contain ``'attr'`` and ``'key'``, the attribute and key in
               :class:`~anndata.AnnData`, and optionally ``'tag'`` from the
               :class:`tags <moscot.utils.tagged_array.Tag>`.
 
@@ -124,8 +124,9 @@ class TemporalProblem(  # type: ignore[misc]
         """
         self.temporal_key = time_key
         xy, kwargs = handle_joint_attr(joint_attr, kwargs)
-        xy, x, y = handle_cost(xy=xy, x=kwargs.pop("x", {}), y=kwargs.pop("y", {}), cost=cost, cost_kwargs=cost_kwargs)
-
+        xy, x, y = handle_cost(
+            xy=xy, x=kwargs.pop("x", {}), y=kwargs.pop("y", {}), cost=cost, cost_kwargs=cost_kwargs, **kwargs
+        )
         marginal_kwargs = dict(marginal_kwargs)
         estimate_marginals = self.proliferation_key is not None or self.apoptosis_key is not None
         a = estimate_marginals if a is None else a
@@ -214,7 +215,7 @@ class TemporalProblem(  # type: ignore[misc]
         max_iterations
             Maximum number of :term:`Sinkhorn` iterations.
         device
-            Transfer the solution to a different device, see :meth:`~moscot.base.output.BaseSolverOutput.to`.
+            Transfer the solution to a different device, see :meth:`~moscot.base.output.BaseDiscreteSolverOutput.to`.
             If :obj:`None`, keep the output on the original device.
         kwargs
             Keyword arguments for :meth:`~moscot.base.problems.CompoundProblem.solve`.
@@ -292,7 +293,7 @@ class LineageProblem(TemporalProblem):
         lineage_attr
             How to get the lineage information, such as barcodes or lineage trees, for the :term:`quadratic term`:
 
-            - :class:`dict`-  it should contain ``'attr'`` and ``'key'``, the attribute and key in
+            - :class:`dict` -  it should contain ``'attr'`` and ``'key'``, the attribute and key in
               :class:`~anndata.AnnData`, and optionally ``'tag'`` from the
               :class:`tags <moscot.utils.tagged_array.Tag>`.
               If an empty :class:`dict` is passed, use pre-computed cost matrices stored in
@@ -303,7 +304,7 @@ class LineageProblem(TemporalProblem):
             - :obj:`None` - `PCA <https://en.wikipedia.org/wiki/Principal_component_analysis>`_
               on :attr:`~anndata.AnnData.X` is computed.
             - :class:`str` - key in :attr:`~anndata.AnnData.obsm` where the data is stored.
-            - :class:`dict`-  it should contain ``'attr'`` and ``'key'``, the attribute and key in
+            - :class:`dict` -  it should contain ``'attr'`` and ``'key'``, the attribute and key in
               :class:`~anndata.AnnData`, and optionally ``'tag'`` from the
               :class:`tags <moscot.utils.tagged_array.Tag>`.
 
@@ -367,7 +368,7 @@ class LineageProblem(TemporalProblem):
 
         x = y = lineage_attr
         xy, kwargs = handle_joint_attr(joint_attr, kwargs)
-        xy, x, y = handle_cost(xy=xy, x=x, y=y, cost=cost, cost_kwargs=cost_kwargs)
+        xy, x, y = handle_cost(xy=xy, x=x, y=y, cost=cost, cost_kwargs=cost_kwargs, **kwargs)
 
         x.setdefault("attr", "obsp")
         x.setdefault("key", "cost_matrices")
@@ -459,7 +460,7 @@ class LineageProblem(TemporalProblem):
         linear_solver_kwargs
             Keyword arguments for the inner :term:`linear problem` solver.
         device
-            Transfer the solution to a different device, see :meth:`~moscot.base.output.BaseSolverOutput.to`.
+            Transfer the solution to a different device, see :meth:`~moscot.base.output.BaseDiscreteSolverOutput.to`.
             If :obj:`None`, keep the output on the original device.
         kwargs
             Keyword arguments for :meth:`~moscot.problems.time.TemporalProblem.solve`.

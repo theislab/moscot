@@ -196,7 +196,7 @@ class OTSolver(TagConverter, BaseSolver[O], abc.ABC):
         tags
             How to interpret the data in ``xy``, ``x`` and ``y``.
         device
-            Device to transfer the output to, see :meth:`~moscot.base.output.BaseSolverOutput.to`.
+            Device to transfer the output to, see :meth:`~moscot.base.output.BaseDiscreteSolverOutput.to`.
         is_conditional
             Whether the OT problem is conditional.
         kwargs
@@ -212,7 +212,6 @@ class OTSolver(TagConverter, BaseSolver[O], abc.ABC):
         res = super().__call__(**kwargs)
         if not res.converged:
             logger.warning("Solver did not converge")
-
         return res.to(device=device)  # type: ignore[return-value]
 
     # def _prepare_kwargs(self, data: Union[TaggedArrayData, Dict[Any, Any]]) -> Dict[str, Any]:  # dict for CondOT

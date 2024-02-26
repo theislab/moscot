@@ -3,7 +3,8 @@ from ott.geometry import costs
 from moscot.backends.ott._utils import sinkhorn_divergence
 from moscot.backends.ott.output import (
     OTTOutput,
-    OTTNeuralOutput
+    OTTNeuralOutput,
+    GraphOTTOutput
 )
 from moscot.backends.ott.solver import (
     GWSolver,
@@ -28,4 +29,6 @@ register_cost("cosine", backend="ott")(costs.Cosine)
 register_cost("pnorm_p", backend="ott")(costs.PNormP)
 register_cost("sq_pnorm", backend="ott")(costs.SqPNorm)
 register_cost("elastic_l1", backend="ott")(costs.ElasticL1)
+register_cost("elastic_l2", backend="ott")(costs.ElasticL2)
 register_cost("elastic_stvs", backend="ott")(costs.ElasticSTVS)
+register_cost("elastic_sqk_overlap", backend="ott")(costs.ElasticSqKOverlap)

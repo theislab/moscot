@@ -26,6 +26,7 @@ Generic Problems
 
     generic.SinkhornProblem
     generic.GWProblem
+    generic.FGWProblem
 
 Plotting
 ~~~~~~~~
@@ -51,6 +52,7 @@ Datasets
     datasets.drosophila
     datasets.hspc
     datasets.mosta
+    datasets.sciplex
     datasets.sim_align
     datasets.simulate_data
     datasets.tedsim
