@@ -296,11 +296,12 @@ commands =
 [testenv:examples-docs]
 description = Build the docs and run the notebooks.
 use_develop = true
-deps =
+deps = ipykernel
 extras = docs
 changedir = {tox_root}{/}docs
 commands =
-    sphinx-build -b html . _build/html -D nb_execution_mode=force
+    python -m ipykernel install --user --name=moscot
+    sphinx-build -b html . _build/html -D nb_execution_mode=force -D nbsphinx_kernel_name=moscot
 
 [testenv:clean-docs]
 description = Remove the documentation.
