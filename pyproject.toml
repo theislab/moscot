@@ -293,15 +293,14 @@ commands =
     # TODO(michalk8): uncomment after https://github.com/theislab/moscot/issues/490
     # make spelling {posargs}
 
-[testenv:examples-docs]
-description = Test examples in docs.
+[testenv:build-docs]
+description = Build the docs and run the notebooks.
 use_develop = true
 deps =
 extras = docs
-allowlist_externals = jupytext
 changedir = {tox_root}{/}docs
 commands =
-    jupytext --execute ./notebooks/examples/problems/500_passing_marginals.ipynb
+    sphinx-build -b html . _build/html -D nb_execution_mode=force
 
 [testenv:clean-docs]
 description = Remove the documentation.
