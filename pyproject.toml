@@ -293,7 +293,7 @@ commands =
     # TODO(michalk8): uncomment after https://github.com/theislab/moscot/issues/490
     # make spelling {posargs}
 
-[testenv:build-docs]
+[testenv:examples-docs]
 description = Build the docs and run the notebooks.
 use_develop = true
 deps =

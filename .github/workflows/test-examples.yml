@@ -35,4 +35,4 @@ jobs:
 
       - name: Test examples
         run: |
-          tox -e build-docs
+          tox -e examples-docs
