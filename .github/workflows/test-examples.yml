@@ -35,7 +35,7 @@ jobs:
       - name: Install Jupyter Kernel
         run: |
           python -m pip install ipykernel
-          python -m ipykernel install --user --name=github-actions-kernel --display-name="Python ${matrix.python} (GitHub Actions)"
+          python -m ipykernel install --user --name=github-actions-kernel
       - name: Test examples
         run: |
           tox -e examples-docs
