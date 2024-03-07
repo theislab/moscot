@@ -296,7 +296,7 @@ commands =
 [testenv:examples-docs]
 description = Run the notebooks.
 use_develop = true
-deps = 
+deps =
     ipykernel
     jupytext
     nbconvert
