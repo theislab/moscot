@@ -294,14 +294,19 @@ commands =
     # make spelling {posargs}
 
 [testenv:examples-docs]
-description = Build the docs and run the notebooks.
+description = Run the notebooks.
 use_develop = true
-deps = ipykernel
+deps = 
+    ipykernel
+    jupytext
+    nbconvert
 extras = docs
 changedir = {tox_root}{/}docs
 commands =
     python -m ipykernel install --user --name=moscot
-    sphinx-build -b html . _build/html -D nb_execution_mode=force -D nbsphinx_kernel_name=moscot
+    jupytext -k moscot --execute notebooks/examples/plotting/*ipynb
+    jupytext -k moscot --execute notebooks/examples/problems/*ipynb
+    jupytext -k moscot --execute notebooks/examples/solvers/*ipynb
 
 [testenv:clean-docs]
 description = Remove the documentation.

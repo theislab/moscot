@@ -163,5 +163,3 @@ html_theme_options = {
         },
     ],
 }
-
-nbsphinx_kernel_name = "moscot"

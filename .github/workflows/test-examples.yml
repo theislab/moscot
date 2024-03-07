@@ -33,5 +33,9 @@ jobs:
           python -m pip install --upgrade pip
           pip install tox
       - name: Test examples
+        env:
+          MPLBACKEND: agg
+          PLATFORM: ${{ matrix.os }}
+          DISPLAY: :42
         run: |
           tox -e examples-docs
