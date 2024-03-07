@@ -297,7 +297,7 @@ commands =
 allowlist_externals = bash
 description = Run the notebooks.
 use_develop = true
-deps = 
+deps =
     ipykernel
     jupytext
     nbconvert
