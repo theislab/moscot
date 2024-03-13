@@ -67,6 +67,20 @@ def _make_grid(grid_size: int) -> ArrayLike:
     return np.vstack([X1.ravel(), X2.ravel()]).T
 
 
+def _assert_marginals_set(adata_time, problem, key, marginal_keys):
+    """Helper function to check if marginals are set correctly"""
+    adata_time0 = adata_time[key[0] == adata_time.obs["time"]]
+    adata_time1 = adata_time[key[1] == adata_time.obs["time"]]
+    if marginal_keys[0] is not None:  # check if marginal keys are set
+        a = adata_time0.obs[marginal_keys[0]].values
+        b = adata_time1.obs[marginal_keys[1]].values
+        assert np.allclose(problem[key].a, a)
+        assert np.allclose(problem[key].b, b)
+    else:  # otherwise check if marginals are uniform
+        assert np.allclose(problem[key].a, 1.0 / adata_time0.shape[0])
+        assert np.allclose(problem[key].b, 1.0 / adata_time1.shape[0])
+
+
 class Problem(CompoundProblem[Any, OTProblem]):
     @property
     def _base_problem_type(self) -> Type[B]:
