@@ -31,6 +31,7 @@ from moscot._types import ArrayLike, CostFn_t, Device_t, ProblemKind_t
 from moscot.base.output import BaseSolverOutput, MatrixSolverOutput
 from moscot.base.problems._utils import (
     TimeScalesHeatKernel,
+    _assert_series_match,
     require_solution,
     wrap_prepare,
     wrap_solve,
@@ -869,10 +870,8 @@ class OTProblem(BaseProblem):
         - :attr:`xy` - the :term:`linear term`.
         - :attr:`stage` - set to ``'prepared'``.
         """
-        pd.testing.assert_series_equal(self.adata_src.obs_names.to_series(), data.index.to_series(), check_names=False)
-        pd.testing.assert_series_equal(
-            self.adata_tgt.obs_names.to_series(), data.columns.to_series(), check_names=False
-        )
+        _assert_series_match(self.adata_src.obs_names, data.index)
+        _assert_series_match(self.adata_tgt.obs_names, data.columns)
 
         self._xy = TaggedArray(data_src=data.to_numpy(), data_tgt=None, tag=Tag(tag), cost="cost")
         self._stage = "prepared"
@@ -895,10 +894,8 @@ class OTProblem(BaseProblem):
         - :attr:`x` - the source :term:`quadratic term`.
         - :attr:`stage` - set to ``'prepared'``.
         """
-        pd.testing.assert_series_equal(self.adata_src.obs_names.to_series(), data.index.to_series(), check_names=False)
-        pd.testing.assert_series_equal(
-            self.adata_src.obs_names.to_series(), data.columns.to_series(), check_names=False
-        )
+        _assert_series_match(self.adata_src.obs_names, data.index)
+        _assert_series_match(self.adata_src.obs_names, data.columns)
 
         if self.problem_kind == "linear":
             logger.info(f"Changing the problem type from {self.problem_kind!r} to 'quadratic (fused)'.")
@@ -924,10 +921,8 @@ class OTProblem(BaseProblem):
         - :attr:`y` - the target :term:`quadratic term`.
         - :attr:`stage` - set to ``'prepared'``.
         """
-        pd.testing.assert_series_equal(self.adata_tgt.obs_names.to_series(), data.index.to_series(), check_names=False)
-        pd.testing.assert_series_equal(
-            self.adata_tgt.obs_names.to_series(), data.columns.to_series(), check_names=False
-        )
+        _assert_series_match(self.adata_tgt.obs_names, data.index)
+        _assert_series_match(self.adata_tgt.obs_names, data.columns)
 
         if self.problem_kind == "linear":
             logger.info(f"Changing the problem type from {self.problem_kind!r} to 'quadratic (fused)'.")

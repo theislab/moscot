@@ -158,6 +158,10 @@ def _validate_args_cell_transition(
     raise TypeError(f"Expected argument to be either `str` or `dict`, found `{type(arg)}`.")
 
 
+def _assert_series_match(a: Union[pd.Series, pd.Index], b: Union[pd.Series, pd.Index]):
+    pd.testing.assert_series_equal(a, b, check_names=False)
+
+
 def _get_cell_indices(
     adata: AnnData,
     key: Optional[str] = None,
