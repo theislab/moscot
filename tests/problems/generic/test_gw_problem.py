@@ -84,6 +84,9 @@ class TestGWProblem:
             assert isinstance(subsol, BaseSolverOutput)
             assert key in expected_keys
             assert problem[key].solver._problem.geom_xy is None
+            # assert prior and posterior marginals are the same
+            assert np.allclose(subsol.a, problem[key].solver._problem.a, atol=1e-5)
+            assert np.allclose(subsol.b, problem[key].solver._problem.b, atol=1e-5)
 
     @pytest.mark.parametrize("method", ["fisher", "perm_test"])
     def test_compute_feature_correlation(self, adata_space_rotate: AnnData, method: str):

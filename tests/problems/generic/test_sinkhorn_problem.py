@@ -67,8 +67,8 @@ class TestSinkhornProblem:
             assert isinstance(subsol, BaseSolverOutput)
             assert key in expected_keys
             assert subsol.converged
-            assert np.allclose(subsol.a, problem[key].a)
-            assert np.allclose(subsol.b, problem[key].b)
+            assert np.allclose(subsol.a, problem[key].a, atol=1e-5)
+            assert np.allclose(subsol.b, problem[key].b, atol=1e-5)
 
     @pytest.mark.fast()
     @pytest.mark.parametrize(

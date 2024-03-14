@@ -100,6 +100,9 @@ class TestFGWProblem:
         for key, subsol in problem.solutions.items():
             assert isinstance(subsol, BaseSolverOutput)
             assert key in expected_keys
+            # assert that prior and posterior marginals same
+            assert np.allclose(subsol.a, problem[key].a, atol=1e-5)
+            assert np.allclose(subsol.b, problem[key].b, atol=1e-5)
 
     @pytest.mark.parametrize("args_to_check", [fgw_args_1, fgw_args_2])
     def test_pass_arguments(self, adata_space_rotate: AnnData, args_to_check: Mapping[str, Any]):
