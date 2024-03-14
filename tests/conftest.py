@@ -6,7 +6,7 @@ import pytest
 import jax.numpy as jnp
 import numpy as np
 import pandas as pd
-from jax.config import config
+from jax import config
 from scipy.sparse import csr_matrix
 
 import matplotlib.pyplot as plt

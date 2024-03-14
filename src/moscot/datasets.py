@@ -461,7 +461,9 @@ def simulate_data(
     if lin_cost_matrix is not None:
         adata.uns[lin_cost_matrix] = {}
         for i in range(n_distributions):
-            adata.uns[lin_cost_matrix][(str(i), str(i+1))] = np.abs(rng.normal(size=(cells_per_distribution, cells_per_distribution)))
+            adata.uns[lin_cost_matrix][(str(i), str(i + 1))] = np.abs(
+                rng.normal(size=(cells_per_distribution, cells_per_distribution))
+            )
     if quad_cost_matrix is not None:
         quad_costs = [(np.abs(rng.normal(size=(cells_per_distribution, cells_per_distribution))))
                       for i in range(n_distributions)]
