@@ -69,8 +69,8 @@ class TestTemporalProblem:
         taus = [9e-1, 1e-2]
         problem1 = TemporalProblem(adata=adata_time)
         problem2 = TemporalProblem(adata=adata_time)
-        problem1 = problem1.prepare("time", a="left_marginals", b="right_marginals")
-        problem2 = problem2.prepare("time", a="left_marginals", b="right_marginals")
+        problem1 = problem1.prepare("time", a="left_marginals_unbalanced", b="right_marginals_unbalanced")
+        problem2 = problem2.prepare("time", a="left_marginals_unbalanced", b="right_marginals_unbalanced")
 
         assert problem1[0, 1].a is not None
         assert problem1[0, 1].b is not None
