@@ -7,6 +7,7 @@ import tempfile
 import urllib.request
 from types import MappingProxyType
 from typing import Any, Dict, List, Literal, Mapping, Optional, Tuple
+from itertools import combinations
 
 import networkx as nx
 import numpy as np
@@ -412,7 +413,7 @@ def simulate_data(
         Literal indicating whether to add costs corresponding to a specific problem setting.
         If `None`, no quadratic cost element is generated.
     lin_cost_matrix
-        Key where to save the linear cost matrix. It is generated according to the sequential policy.
+        Key where to save the linear cost matrix. It is generated according to the pairwise policy.
         If `None`, no linear cost matrix is generated.
     quad_cost_matrix
         Key where to save the quadratic cost matrices. If `None`, no quadratic cost matrix is generated.
@@ -460,8 +461,8 @@ def simulate_data(
         adata.obsm["barcode"] = rng.choice(n_intBCs, size=(adata.n_obs, barcode_dim))
     if lin_cost_matrix is not None:
         adata.uns[lin_cost_matrix] = {}
-        for i in range(n_distributions):
-            adata.uns[lin_cost_matrix][(str(i), str(i + 1))] = np.abs(
+        for i,j in combinations(range(n_distributions), 2):
+            adata.uns[lin_cost_matrix][(str(i), str(j))] = np.abs(
                 rng.normal(size=(cells_per_distribution, cells_per_distribution))
             )
     if quad_cost_matrix is not None:
