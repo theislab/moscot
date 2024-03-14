@@ -460,7 +460,7 @@ class SpatialMappingMixin(AnalysisMixin[K, B]):
         var_names
             Genes in :attr:`~anndata.AnnData.var_names` to impute. If :obj:`None`, use all genes in :attr:`adata_sc`.
         device
-            Device where to transfer the solutions, see :meth:`~moscot.base.output.BaseSolverOutput.to`.
+            Device where to transfer the solutions, see :meth:`~moscot.base.output.BaseDiscreteSolverOutput.to`.
 
         Returns
         -------

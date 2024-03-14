@@ -9,7 +9,7 @@ from ott.geometry import epsilon_scheduler
 from anndata import AnnData
 
 from moscot.backends.ott._utils import alpha_to_fused_penalty
-from moscot.base.output import BaseSolverOutput
+from moscot.base.output import BaseDiscreteSolverOutput
 from moscot.base.problems import BirthDeathProblem
 from moscot.problems.spatiotemporal import SpatioTemporalProblem
 from tests._utils import ATOL, RTOL
@@ -57,7 +57,7 @@ class TestSpatioTemporalProblem:
         problem = problem.solve(alpha=alpha, epsilon=eps)
 
         for key, subsol in problem.solutions.items():
-            assert isinstance(subsol, BaseSolverOutput)
+            assert isinstance(subsol, BaseDiscreteSolverOutput)
             assert key in expected_keys
 
     def test_solve_unbalanced(self, adata_spatio_temporal: AnnData):

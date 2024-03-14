@@ -55,15 +55,24 @@ dependencies = [
     "scanpy>=1.9.3",
     "wrapt>=1.13.2",
     "docrep>=0.3.2",
-    "ott-jax>=0.4.5",
+    "ott-jax@git+https://github.com/MUCDK/ott#egg=draft/neural_base_solver",
     "cloudpickle>=2.2.0",
     "rich>=13.5",
+    "optax>=0.1.7",
+    "flax>=0.7.1",
 ]
 
 [project.optional-dependencies]
+neural = [
+    "optax>=0.1.7",
+    "flax>=0.7.1",
+    "torch"
+]
+
 spatial = [
     "squidpy>=1.2.3"
 ]
+
 dev = [
     "pre-commit>=3.0.0",
     "tox>=4",

@@ -1,10 +1,11 @@
+from functools import partial
 from typing import Any, Literal, Optional, Tuple, Union
 
 import jax
 import jax.numpy as jnp
 import scipy.sparse as sp
 from ott.geometry import epsilon_scheduler, geodesic, geometry, pointcloud
-from ott.tools import sinkhorn_divergence as sdiv
+from ott.tools.sinkhorn_divergence import sinkhorn_divergence as sinkhorn_div
 
 from moscot._logging import logger
 from moscot._types import ArrayLike, ScaleCost_t
@@ -21,7 +22,10 @@ def sinkhorn_divergence(
     a: Optional[ArrayLike] = None,
     b: Optional[ArrayLike] = None,
     epsilon: Union[float, epsilon_scheduler.Epsilon] = 1e-1,
+    tau_a: float = 1.0,
+    tau_b: float = 1.0,
     scale_cost: ScaleCost_t = 1.0,
+    batch_size: Optional[int] = None,
     **kwargs: Any,
 ) -> float:
     point_cloud_1 = jnp.asarray(point_cloud_1)
@@ -29,14 +33,16 @@ def sinkhorn_divergence(
     a = None if a is None else jnp.asarray(a)
     b = None if b is None else jnp.asarray(b)
 
-    output = sdiv.sinkhorn_divergence(
+    output = sinkhorn_div(
         pointcloud.PointCloud,
         x=point_cloud_1,
         y=point_cloud_2,
+        batch_size=batch_size,
         a=a,
         b=b,
-        epsilon=epsilon,
+        sinkhorn_kwargs={"tau_a": tau_a, "tau_b": tau_b},
         scale_cost=scale_cost,
+        epsilon=epsilon,
         **kwargs,
     )
     xy_conv, xx_conv, *yy_conv = output.converged
@@ -49,6 +55,17 @@ def sinkhorn_divergence(
         logger.warning("Solver did not converge in the `y/y` term.")
 
     return float(output.divergence)
+
+
+@partial(jax.jit, static_argnames=["k"])
+def get_nearest_neighbors(
+    input_batch: jnp.ndarray, target: jnp.ndarray, k: int = 30
+) -> Tuple[jnp.ndarray, jnp.ndarray]:
+    """Get the k nearest neighbors of the input batch in the target."""
+    if target.shape[0] < k:
+        raise ValueError(f"k is {k}, but must be smaller or equal than {target.shape[0]}.")
+    pairwise_euclidean_distances = pointcloud.PointCloud(input_batch, target).cost_matrix
+    return jax.lax.approx_min_k(pairwise_euclidean_distances, k=k, recall_target=0.95, aggregate_to_topk=True)
 
 
 def check_shapes(geom_x: geometry.Geometry, geom_y: geometry.Geometry, geom_xy: geometry.Geometry) -> None:

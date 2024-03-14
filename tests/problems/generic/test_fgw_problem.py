@@ -21,7 +21,7 @@ from anndata import AnnData
 
 from moscot._types import CostKwargs_t
 from moscot.backends.ott._utils import alpha_to_fused_penalty
-from moscot.base.output import BaseSolverOutput
+from moscot.base.output import BaseDiscreteSolverOutput
 from moscot.base.problems import OTProblem
 from moscot.problems.generic import FGWProblem
 from tests.problems.conftest import (
@@ -82,7 +82,7 @@ class TestFGWProblem:
         problem = problem.solve(alpha=0.5, epsilon=eps)
 
         for key, subsol in problem.solutions.items():
-            assert isinstance(subsol, BaseSolverOutput)
+            assert isinstance(subsol, BaseDiscreteSolverOutput)
             assert key in expected_keys
 
     @pytest.mark.parametrize("args_to_check", [fgw_args_1, fgw_args_2])
