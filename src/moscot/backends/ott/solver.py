@@ -418,7 +418,7 @@ class GWSolver(OTTJaxSolver):
             check_shapes(geom_xx, geom_yy, geom_xy)
 
         self._problem = quadratic_problem.QuadraticProblem(
-            geom_xx, geom_yy, geom_xy, fused_penalty=fused_penalty, **kwargs
+            geom_xx, geom_yy, geom_xy, fused_penalty=fused_penalty, a=self._a, b=self._b, **kwargs
         )
         return self._problem
 
