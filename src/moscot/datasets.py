@@ -459,12 +459,12 @@ def simulate_data(
         barcode_dim = kwargs.pop("barcode_dim", 10)
         adata.obsm["barcode"] = rng.choice(n_intBCs, size=(adata.n_obs, barcode_dim))
     if lin_cost_matrix is not None:
-        adata.uns[lin_cost_matrix] = dict()
+        adata.uns[lin_cost_matrix] = {}
         for i in range(n_distributions):
             adata.uns[lin_cost_matrix][(str(i), str(i+1))] = np.abs(rng.normal(size=(cells_per_distribution, cells_per_distribution)))
     if quad_cost_matrix is not None:
-        quad_costs = ((np.abs(rng.normal(size=(cells_per_distribution, cells_per_distribution))))
-                      for i in range(n_distributions))
+        quad_costs = [(np.abs(rng.normal(size=(cells_per_distribution, cells_per_distribution))))
+                      for i in range(n_distributions)]
         quad_costs = block_diag(*quad_costs)
         np.fill_diagonal(quad_costs, 0)
         adata.obsp[quad_cost_matrix] = quad_costs
