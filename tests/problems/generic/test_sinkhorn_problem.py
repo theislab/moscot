@@ -22,6 +22,7 @@ from anndata import AnnData
 from moscot.base.output import BaseSolverOutput
 from moscot.base.problems import OTProblem
 from moscot.problems.generic import SinkhornProblem
+from tests._utils import _assert_marginals_set
 from tests.problems.conftest import (
     geometry_args,
     lin_prob_args,
@@ -37,15 +38,14 @@ from tests.problems.conftest import (
 class TestSinkhornProblem:
     @pytest.mark.fast()
     @pytest.mark.parametrize("policy", ["sequential", "star"])
-    def test_prepare(self, adata_time: AnnData, policy):
+    def test_prepare(self, adata_time: AnnData, policy, marginal_keys):
         expected_keys = {"sequential": [(0, 1), (1, 2)], "star": [(1, 0), (2, 0)]}
         problem = SinkhornProblem(adata=adata_time)
-
         assert len(problem) == 0
         assert problem.problems == {}
         assert problem.solutions == {}
 
-        problem = problem.prepare(key="time", policy=policy, reference=0)
+        problem = problem.prepare(key="time", policy=policy, reference=0, a=marginal_keys[0], b=marginal_keys[1])
 
         assert isinstance(problem.problems, dict)
         assert len(problem.problems) == len(expected_keys[policy])
@@ -54,16 +54,21 @@ class TestSinkhornProblem:
             assert key in expected_keys[policy]
             assert isinstance(problem[key], OTProblem)
 
-    def test_solve_balanced(self, adata_time: AnnData):
+            _assert_marginals_set(adata_time, problem, key, marginal_keys)
+
+    def test_solve_balanced(self, adata_time: AnnData, marginal_keys):
         eps = 0.5
         expected_keys = [(0, 1), (1, 2)]
         problem = SinkhornProblem(adata=adata_time)
-        problem = problem.prepare(key="time")
+        problem = problem.prepare(key="time", a=marginal_keys[0], b=marginal_keys[1])
         problem = problem.solve(epsilon=eps)
 
         for key, subsol in problem.solutions.items():
             assert isinstance(subsol, BaseSolverOutput)
             assert key in expected_keys
+            assert subsol.converged
+            assert np.allclose(subsol.a, problem[key].a, atol=1e-5)
+            assert np.allclose(subsol.b, problem[key].b, atol=1e-5)
 
     @pytest.mark.fast()
     @pytest.mark.parametrize(

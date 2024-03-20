@@ -119,15 +119,32 @@ def adata_y(y: Geom_t) -> AnnData:
     return AnnData(X=np.asarray(y, dtype=float), obsm={"X_pca": pc})
 
 
+def creat_prob(n: int, *, uniform: bool = False, seed: Optional[int] = None) -> Geom_t:
+    rng = np.random.RandomState(seed)
+    a = np.ones((n,)) if uniform else np.abs(rng.normal(size=(n,)))
+    a /= np.sum(a)
+    return jnp.asarray(a)
+
+
 @pytest.fixture()
 def adata_time() -> AnnData:
     rng = np.random.RandomState(42)
-    adatas = [AnnData(X=csr_matrix(rng.normal(size=(96, 60)))) for _ in range(3)]
+
+    adatas = [
+        AnnData(
+            X=csr_matrix(rng.normal(size=(96, 60))),
+            obs={
+                "left_marginals_balanced": creat_prob(96, seed=42),
+                "right_marginals_balanced": creat_prob(96, seed=42),
+            },
+        )
+        for _ in range(3)
+    ]
     adata = ad.concat(adatas, label="time", index_unique="-")
     adata.obs["time"] = pd.to_numeric(adata.obs["time"]).astype("category")
     adata.obs["batch"] = rng.choice((0, 1, 2), len(adata))
-    adata.obs["left_marginals"] = np.ones(len(adata))
-    adata.obs["right_marginals"] = np.ones(len(adata))
+    adata.obs["left_marginals_unbalanced"] = np.ones(len(adata))
+    adata.obs["right_marginals_unbalanced"] = np.ones(len(adata))
     adata.obs["celltype"] = rng.choice(["A", "B", "C"], size=len(adata))
     # genes from mouse/human proliferation/apoptosis
     genes = ["ANLN", "ANP32E", "ATAD2", "Mcm4", "Smc4", "Gtse1", "ADD1", "AIFM3", "ANKH", "Ercc5", "Serpinb5", "Inhbb"]
@@ -137,19 +154,6 @@ def adata_time() -> AnnData:
     adata.obsm["X_umap"] = rng.randn(len(adata), 2)
     sc.pp.pca(adata)
     return adata
-
-
-def create_marginals(n: int, m: int, *, uniform: bool = False, seed: Optional[int] = None) -> Geom_t:
-    rng = np.random.RandomState(seed)
-    if uniform:
-        a, b = np.ones((n,)), np.ones((m,))
-    else:
-        a = np.abs(rng.normal(size=(n,)))
-        b = np.abs(rng.normal(size=(m,)))
-    a /= np.sum(a)
-    b /= np.sum(b)
-
-    return jnp.asarray(a), jnp.asarray(b)
 
 
 @pytest.fixture()
