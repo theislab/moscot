@@ -12,8 +12,8 @@ from ott.geometry.pointcloud import PointCloud
 from ott.problems.linear.linear_problem import LinearProblem
 from ott.problems.quadratic import quadratic_problem
 from ott.problems.quadratic.quadratic_problem import QuadraticProblem
+from ott.solvers.linear import solve as sinkhorn
 from ott.solvers.linear.sinkhorn import Sinkhorn
-from ott.solvers.linear.sinkhorn import solve as sinkhorn
 from ott.solvers.linear.sinkhorn_lr import LRSinkhorn
 from ott.solvers.quadratic.gromov_wasserstein import GromovWasserstein
 from ott.solvers.quadratic.gromov_wasserstein_lr import LRGromovWasserstein
