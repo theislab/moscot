@@ -86,7 +86,7 @@ class TestAlignmentProblem:
         rank: int,
         initializer: Optional[Literal["random", "rank2"]],
     ):
-        kwargs = {}
+        kwargs = {'inner_iterations': 10}
         if rank > -1:
             kwargs["initializer"] = initializer
             if initializer == "random":
