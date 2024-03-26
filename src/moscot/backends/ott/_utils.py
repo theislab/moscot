@@ -109,7 +109,7 @@ def ensure_2d(arr: ArrayLike, *, reshape: bool = False) -> jax.Array:
 
 
 def convert_scipy_sparse(arr: Union[sp.spmatrix, jesp.BCOO]) -> jesp.BCOO:
-    """ If the input is a scipy sparse matrix, convert it to a jax BCOO."""
+    """If the input is a scipy sparse matrix, convert it to a jax BCOO."""
     if sp.issparse(arr):
         return jesp.BCOO.from_scipy_sparse(arr)
     return arr
