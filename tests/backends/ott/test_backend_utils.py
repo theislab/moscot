@@ -1,4 +1,3 @@
-
 import pytest
 
 import jax.experimental.sparse as jesp
@@ -6,9 +5,7 @@ import numpy as np
 import scipy.sparse as sp
 from ott.geometry.geometry import Geometry
 
-from moscot.backends.ott._utils import (
-    _instantiate_geodesic_cost,
-)
+from moscot.backends.ott._utils import _instantiate_geodesic_cost
 
 
 class TestBackendUtils:
