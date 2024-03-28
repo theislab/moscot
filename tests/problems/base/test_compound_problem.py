@@ -7,7 +7,7 @@ from pytest_mock import MockerFixture
 import numpy as np
 from ott.geometry.costs import Cosine, Euclidean, SqEuclidean
 from ott.geometry.pointcloud import PointCloud
-from ott.solvers.linear.sinkhorn import solve as sinkhorn
+from ott.solvers.linear import solve as sinkhorn
 from sklearn.metrics.pairwise import euclidean_distances
 
 from anndata import AnnData
