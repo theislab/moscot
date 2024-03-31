@@ -208,6 +208,8 @@ class OTSolver(TagConverter, BaseSolver[O], abc.ABC):
         if self.problem_kind == "linear":
             if data.xy is None:
                 raise ValueError("No data specified for the linear term.")
+            if data.x is not None or data.y is not None:
+                logger.warning("Ignoring `x` and `y` data as they are not needed for the linear term.")
             data_kwargs: Dict[str, Any] = {"xy": data.xy}
         elif self.problem_kind == "quadratic":
             if data.x is None or data.y is None:
