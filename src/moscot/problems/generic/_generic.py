@@ -437,6 +437,8 @@ class GWProblem(GenericAnalysisMixin[K, B], CompoundProblem[K, B]):  # type: ign
         - :attr:`solutions` - the :term:`OT` solutions for each subproblem.
         - :attr:`stage` - set to ``'solved'``.
         """
+        if self._xy is not None:
+            raise ValueError("The `xy` cost matrix is not supported for the GWProblem.")
         return super().solve(  # type: ignore[return-value]
             alpha=1.0,
             epsilon=epsilon,
