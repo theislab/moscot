@@ -437,8 +437,11 @@ class GWProblem(GenericAnalysisMixin[K, B], CompoundProblem[K, B]):  # type: ign
         - :attr:`solutions` - the :term:`OT` solutions for each subproblem.
         - :attr:`stage` - set to ``'solved'``.
         """
+        sentence_end = "is not supported in the GWProblem. Use FGWProblem instead."
+        if kwargs.get("alpha", 1.0) != 1.0:
+            raise ValueError(f"The 'alpha' parameter {sentence_end}")
         if self._xy is not None:
-            raise ValueError("The `xy` cost matrix is not supported for the GWProblem.")
+            raise ValueError(f"Linear term {sentence_end}")
         return super().solve(  # type: ignore[return-value]
             alpha=1.0,
             epsilon=epsilon,
@@ -468,7 +471,7 @@ class GWProblem(GenericAnalysisMixin[K, B], CompoundProblem[K, B]):  # type: ign
         return _constants.SEQUENTIAL, _constants.EXPLICIT, _constants.STAR  # type: ignore[return-value]
 
 
-class FGWProblem(GWProblem[K, B]):
+class FGWProblem(GenericAnalysisMixin[K, B], CompoundProblem[K, B]):  # type: ignore[misc]
     """Class for solving the :term:`FGW <fused Gromov-Wasserstein>` problem.
 
     Parameters
@@ -580,8 +583,8 @@ class FGWProblem(GWProblem[K, B]):
         x = set_quad_defaults(x_attr) if "x_callback" not in kwargs else {}
         y = set_quad_defaults(y_attr) if "y_callback" not in kwargs else {}
         xy, x, y = handle_cost(xy=xy, x=x, y=y, cost=cost, cost_kwargs=cost_kwargs, **kwargs)  # type: ignore[arg-type]
-        return CompoundProblem.prepare(
-            self,  # type: ignore[return-value, arg-type]
+        return self.prepare(
+            self,  # type: ignore[return-value]
             key=key,
             xy=xy,
             x=x,
@@ -674,8 +677,8 @@ class FGWProblem(GWProblem[K, B]):
         - :attr:`solutions` - the :term:`OT` solutions for each subproblem.
         - :attr:`stage` - set to ``'solved'``.
         """
-        return CompoundProblem.solve(
-            self,  # type: ignore[return-value, arg-type]
+        return self.solve(
+            self,  # type: ignore[return-value]
             alpha=alpha,
             epsilon=epsilon,
             tau_a=tau_a,
@@ -694,3 +697,11 @@ class FGWProblem(GWProblem[K, B]):
             device=device,
             **kwargs,
         )
+
+    @property
+    def _base_problem_type(self) -> Type[B]:
+        return OTProblem  # type: ignore[return-value]
+
+    @property
+    def _valid_policies(self) -> Tuple[Policy_t, ...]:
+        return _constants.SEQUENTIAL, _constants.EXPLICIT, _constants.STAR  # type: ignore[return-value]
