@@ -403,7 +403,9 @@ class OTProblem(BaseProblem):
         """
         solver_class = backends.get_solver(self.problem_kind, backend=backend, return_class=True)
         init_kwargs, call_kwargs = solver_class._partition_kwargs(**kwargs)
-        alpha = call_kwargs.get("alpha", 0.0)
+        # if linear problem, then alpha is 0.0 by default
+        # if quadratic problem, then alpha is 1.0 by default
+        alpha = call_kwargs.get("alpha", 0.0 if self.problem_kind == "linear" else 1.0)
         if alpha < 0.0 or alpha > 1.0:
             raise ValueError("Expected `alpha` to be in the range `[0, 1]`, found `{alpha}`.")
         if self.problem_kind == "linear" and (alpha != 0.0 or not (self._x is None or self._y is None)):
