@@ -82,8 +82,8 @@ class TestTranslationProblem:
                 assert tp[prob_key].xy.data_src.shape == tp[prob_key].xy.data_tgt.shape == (n_obs, xy_n_vars)
 
     @pytest.mark.parametrize(
-        ("epsilon", "alpha", "rank", "initializer"),
-        [(1e-2, 0.9, -1, None), (2, 0.5, -1, "random"), (2, 0.5, -1, "rank2"), (2, 0.1, -1, None)],
+        ("epsilon", "rank", "initializer"),
+        [(1e-2, -1, None), (2, -1, "random"), (2, -1, "rank2"), (2, -1, None)],
     )
     @pytest.mark.parametrize("src_attr", ["emb_src", {"attr": "obsm", "key": "emb_src"}])
     @pytest.mark.parametrize("tgt_attr", ["emb_tgt", {"attr": "obsm", "key": "emb_tgt"}])
@@ -91,7 +91,6 @@ class TestTranslationProblem:
         self,
         adata_translation_split: Tuple[AnnData, AnnData],
         epsilon: float,
-        alpha: float,
         rank: int,
         src_attr: Mapping[str, str],
         tgt_attr: Mapping[str, str],
@@ -105,7 +104,7 @@ class TestTranslationProblem:
 
         tp = TranslationProblem(adata_src, adata_tgt)
         tp = tp.prepare(batch_key="batch", src_attr=src_attr, tgt_attr=tgt_attr)
-        tp = tp.solve(epsilon=epsilon, alpha=alpha, rank=rank, **kwargs)
+        tp = tp.solve(epsilon=epsilon, rank=rank, **kwargs)
 
         for key, subsol in tp.solutions.items():
             assert isinstance(subsol, BaseSolverOutput)
