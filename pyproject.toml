@@ -55,7 +55,7 @@ dependencies = [
     "scanpy>=1.9.3",
     "wrapt>=1.13.2",
     "docrep>=0.3.2",
-    "ott-jax @ git+https://github.com/ott-jax/ott.git@51a658aaa026528a3b9702e3d25c8f7af598cef0",
+    "ott-jax @ git+https://github.com/ott-jax/ott.git@e1bbd34aaa6c003258912caf478bbfd718a750a0",
     "cloudpickle>=2.2.0",
     "rich>=13.5",
 ]
