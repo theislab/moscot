@@ -31,6 +31,8 @@ from moscot._types import ArrayLike, CostFn_t, Device_t, ProblemKind_t
 from moscot.base.output import BaseSolverOutput, MatrixSolverOutput
 from moscot.base.problems._utils import (
     TimeScalesHeatKernel,
+    _assert_columns_and_index_match,
+    _assert_series_match,
     require_solution,
     wrap_prepare,
     wrap_solve,
@@ -530,8 +532,8 @@ class OTProblem(BaseProblem):
             raise ValueError(f"`{self}` already contains a solution, use `overwrite=True` to overwrite it.")
 
         if isinstance(solution, pd.DataFrame):
-            pd.testing.assert_series_equal(self.adata_src.obs_names.to_series(), solution.index.to_series())
-            pd.testing.assert_series_equal(self.adata_tgt.obs_names.to_series(), solution.columns.to_series())
+            _assert_series_match(self.adata_src.obs_names.to_series(), solution.index.to_series())
+            _assert_series_match(self.adata_tgt.obs_names.to_series(), solution.columns.to_series())
             solution = solution.to_numpy()
         if not isinstance(solution, BaseSolverOutput):
             solution = MatrixSolverOutput(solution, **kwargs)
@@ -729,13 +731,12 @@ class OTProblem(BaseProblem):
         """
         expected_series = pd.concat([self.adata_src.obs_names.to_series(), self.adata_tgt.obs_names.to_series()])
         if isinstance(data, pd.DataFrame):
-            pd.testing.assert_series_equal(expected_series, data.index.to_series())
-            pd.testing.assert_series_equal(expected_series, data.columns.to_series())
+            _assert_columns_and_index_match(expected_series, data)
             data_src = data.to_numpy()
         elif isinstance(data, tuple):
             data_src, index_src, index_tgt = data
-            pd.testing.assert_series_equal(expected_series, index_src)
-            pd.testing.assert_series_equal(expected_series, index_tgt)
+            _assert_series_match(expected_series, index_src)
+            _assert_series_match(expected_series, index_tgt)
         else:
             raise ValueError(
                 "Expected data to be a `pd.DataFrame` or a tuple of (`sp.csr_matrix`, `pd.Series`, `pd.Series`), "
@@ -780,12 +781,11 @@ class OTProblem(BaseProblem):
         """
         expected_series = self.adata_src.obs_names.to_series()
         if isinstance(data, pd.DataFrame):
-            pd.testing.assert_series_equal(expected_series, data.index.to_series())
-            pd.testing.assert_series_equal(expected_series, data.columns.to_series())
+            _assert_columns_and_index_match(expected_series, data)
             data_src = data.to_numpy()
         elif isinstance(data, tuple):
             data_src, index_src = data
-            pd.testing.assert_series_equal(expected_series, index_src)
+            _assert_series_match(expected_series, index_src)
         else:
             raise ValueError(
                 "Expected data to be a `pd.DataFrame` or a tuple of (`sp.csr_matrix`, `pd.Series`), "
@@ -830,12 +830,11 @@ class OTProblem(BaseProblem):
         """
         expected_series = self.adata_tgt.obs_names.to_series()
         if isinstance(data, pd.DataFrame):
-            pd.testing.assert_series_equal(expected_series, data.index.to_series())
-            pd.testing.assert_series_equal(expected_series, data.columns.to_series())
+            _assert_columns_and_index_match(expected_series, data)
             data_src = data.to_numpy()
         elif isinstance(data, tuple):
             data_src, index_src = data
-            pd.testing.assert_series_equal(expected_series, index_src)
+            _assert_series_match(expected_series, index_src)
         else:
             raise ValueError(
                 "Expected data to be a `pd.DataFrame` or a tuple of (`sp.csr_matrix`, `pd.Series`), "
@@ -869,8 +868,8 @@ class OTProblem(BaseProblem):
         - :attr:`xy` - the :term:`linear term`.
         - :attr:`stage` - set to ``'prepared'``.
         """
-        pd.testing.assert_series_equal(self.adata_src.obs_names.to_series(), data.index.to_series())
-        pd.testing.assert_series_equal(self.adata_tgt.obs_names.to_series(), data.columns.to_series())
+        _assert_series_match(self.adata_src.obs_names.to_series(), data.index.to_series())
+        _assert_series_match(self.adata_tgt.obs_names.to_series(), data.columns.to_series())
 
         self._xy = TaggedArray(data_src=data.to_numpy(), data_tgt=None, tag=Tag(tag), cost="cost")
         self._stage = "prepared"
@@ -893,8 +892,7 @@ class OTProblem(BaseProblem):
         - :attr:`x` - the source :term:`quadratic term`.
         - :attr:`stage` - set to ``'prepared'``.
         """
-        pd.testing.assert_series_equal(self.adata_src.obs_names.to_series(), data.index.to_series())
-        pd.testing.assert_series_equal(self.adata_src.obs_names.to_series(), data.columns.to_series())
+        _assert_columns_and_index_match(self.adata_src.obs_names.to_series(), data)
 
         if self.problem_kind == "linear":
             logger.info(f"Changing the problem type from {self.problem_kind!r} to 'quadratic (fused)'.")
@@ -920,8 +918,7 @@ class OTProblem(BaseProblem):
         - :attr:`y` - the target :term:`quadratic term`.
         - :attr:`stage` - set to ``'prepared'``.
         """
-        pd.testing.assert_series_equal(self.adata_tgt.obs_names.to_series(), data.index.to_series())
-        pd.testing.assert_series_equal(self.adata_tgt.obs_names.to_series(), data.columns.to_series())
+        _assert_columns_and_index_match(self.adata_tgt.obs_names.to_series(), data)
 
         if self.problem_kind == "linear":
             logger.info(f"Changing the problem type from {self.problem_kind!r} to 'quadratic (fused)'.")
