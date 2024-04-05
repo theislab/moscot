@@ -108,6 +108,8 @@ class TestTranslationProblem:
         tp = tp.solve(epsilon=epsilon, alpha=alpha, rank=rank, **kwargs)
 
         for key, subsol in tp.solutions.items():
+            if tp[key].xy is None:
+                assert alpha == 1.0, f"xy={tp[key].xy} but alpha={alpha}"
             assert isinstance(subsol, BaseSolverOutput)
             assert key in expected_keys
             assert tp[key].solution.rank == rank

@@ -122,6 +122,8 @@ class TestMappingProblem:
         mp = mp.solve(epsilon=epsilon, alpha=alpha, rank=rank, **kwargs)
 
         for prob_key in mp:
+            if alpha != 1.0:
+                assert mp[prob_key].xy is not None, f"xy={mp[prob_key].xy}, alpha={alpha}"
             assert mp[prob_key].solution.rank == rank
             if initializer != "random":  # TODO: is this valid?
                 assert mp[prob_key].solution.converged
