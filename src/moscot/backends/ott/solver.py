@@ -587,7 +587,7 @@ class GENOTLinSolver(OTSolver[OTTOutput]):
         source_dim = self._neural_kwargs.get("input_dim")
         target_dim = source_dim
         condition_dim = self._neural_kwargs.get("cond_dim")
-        # TODO: What are reasonable defaults here?
+        # TODO(ilan-gold): What are reasonable defaults here?
         neural_vf = VelocityField(
             output_dims=[*self._neural_kwargs.get("velocity_field_output_dims", []), target_dim],
             condition_dims=[*self._neural_kwargs.get("velocity_field_condition_dims", []), condition_dim],
@@ -668,9 +668,9 @@ class GENOTLinSolver(OTSolver[OTTOutput]):
         return {"batch_size", "train_size", "trainloader", "validloader"}, {}  # type: ignore[return-value]
 
     def _solve(self, data_samplers: Tuple[MultiLoader, MultiLoader]) -> OTTNeuralOutput:  # type: ignore[override]
-        seed = self._neural_kwargs.get("seed", 0)  # TODO: unify rng hadnling like OTT tests
+        seed = self._neural_kwargs.get("seed", 0)  # TODO(ilan-gold): unify rng hadnling like OTT tests
         rng = jax.random.PRNGKey(seed)
         self.solver(
             data_samplers[0], n_iters=self._neural_kwargs.get("n_iters", 100), rng=rng
-        )  # TODO: validation and figure out defualts
+        )  # TODO(ilan-gold): validation and figure out defualts
         return OTTNeuralOutput(self.solver)
