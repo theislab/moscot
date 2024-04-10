@@ -1,4 +1,5 @@
 import abc
+import functools
 import inspect
 import math
 import types
@@ -17,23 +18,20 @@ from typing import (
 )
 
 import optax
-from torch.utils.data import DataLoader, RandomSampler
 
 import jax
 import jax.numpy as jnp
 import numpy as np
 import scipy.sparse as sp
 from ott.geometry import costs, epsilon_scheduler, geodesic, geometry, pointcloud
-from ott.neural.data.datasets import ConditionalOTDataset, OTDataset
-from ott.neural.flow_models.genot import GENOTLin
-from ott.neural.flow_models.models import VelocityField
-from ott.neural.flow_models.samplers import uniform_sampler
-from ott.neural.models.base_solver import OTMatcherLinear, UnbalancednessHandler
-from ott.neural.models.nets import RescalingMLP
+from ott.neural.datasets import OTData, OTDataset
+from ott.neural.methods.flows import dynamics, genot
+from ott.neural.networks.velocity_field import VelocityField
 from ott.problems.linear import linear_problem
 from ott.problems.quadratic import quadratic_problem
 from ott.solvers.linear import sinkhorn, sinkhorn_lr
 from ott.solvers.quadratic import gromov_wasserstein, gromov_wasserstein_lr
+from ott.solvers.utils import uniform_sampler
 
 from moscot._types import (
     ArrayLike,
@@ -42,9 +40,12 @@ from moscot._types import (
     SinkhornInitializer_t,
 )
 from moscot.backends.ott._utils import (
+    Loader,
+    MultiLoader,
     _instantiate_geodesic_cost,
     alpha_to_fused_penalty,
     check_shapes,
+    data_match_fn,
     ensure_2d,
 )
 from moscot.backends.ott.output import GraphOTTOutput, OTTNeuralOutput, OTTOutput
@@ -497,13 +498,13 @@ class GWSolver(OTTJaxSolver):
 
 
 class GENOTLinSolver(OTSolver[OTTOutput]):
-    """Solver class for GENOT linear :cite:`klein2023generative`."""
+    """Solver class for genot.GENOT linear :cite:`klein2023generative`."""
 
     def __init__(self, **kwargs: Any) -> None:
         """Initiate the class with any kwargs passed to the ott-jax class."""
         super().__init__()
-        self._train_sampler: Optional[ConditionalOTDataset] = None
-        self._valid_sampler: Optional[ConditionalOTDataset] = None
+        self._train_sampler: Optional[MultiLoader] = None
+        self._valid_sampler: Optional[MultiLoader] = None
         self._neural_kwargs = kwargs
 
     @property
@@ -517,31 +518,29 @@ class GENOTLinSolver(OTSolver[OTTOutput]):
         train_size: float = 0.9,
         batch_size: int = 1024,
         **kwargs: Any,
-    ) -> Tuple[ConditionalOTDataset, ConditionalOTDataset]:
+    ) -> Tuple[MultiLoader, MultiLoader]:
         train_loaders = []
         validate_loaders = []
+        seed = kwargs.get("seed", None)
+        is_aligned = kwargs.get("is_aligned", False)
         if train_size == 1.0:
             for sample_pair in sample_pairs:
                 source_key = sample_pair[0]
                 target_key = sample_pair[1]
-                source_ds = OTDataset(
+                src_data = OTData(
                     lin=distributions[source_key].xy,
-                    conditions=distributions[source_key].conditions,
+                    condition=distributions[source_key].conditions,
                 )
-                source_loader = DataLoader(
-                    source_ds, batch_size=batch_size, sampler=RandomSampler(source_ds, replacement=True)
-                )
-                target_ds = OTDataset(lin=distributions[target_key].xy, conditions=distributions[target_key].conditions)
-                target_loader = DataLoader(
-                    target_ds, batch_size=batch_size, sampler=RandomSampler(target_ds, replacement=True)
-                )
-                train_loaders.append((source_loader, target_loader))
-                validate_loaders.append((source_loader, target_loader))
+                tgt_data = OTData(lin=distributions[target_key].xy, condition=distributions[target_key].conditions)
+                dataset = OTDataset(src_data=src_data, tgt_data=tgt_data, seed=seed, is_aligned=is_aligned)
+                loader = Loader(dataset, batch_size=batch_size, seed=seed)
+                train_loaders.append(loader)
+                validate_loaders.append(loader)
         else:
             if train_size > 1.0 or train_size <= 0.0:
                 raise ValueError("Invalid train_size. Must be: 0 < train_size <= 1")
 
-            seed = kwargs.pop("seed", 0)
+            seed = kwargs.get("seed", 0)
             for sample_pair in sample_pairs:
                 source_key = sample_pair[0]
                 target_key = sample_pair[1]
@@ -563,90 +562,62 @@ class GENOTLinSolver(OTSolver[OTTOutput]):
                     a=distributions[target_key].a,
                     b=distributions[target_key].b,
                 )
-                source_ds_train = OTDataset(
+                src_data_train = OTData(
                     lin=source_split_data.data_train,
-                    conditions=source_split_data.conditions_train,
+                    condition=source_split_data.conditions_train,
                 )
-                source_train_loader = DataLoader(
-                    source_ds_train,
-                    batch_size=batch_size,
-                    sampler=RandomSampler(source_ds_train, replacement=True),
+                tgt_data_train = OTData(lin=target_split_data.data_train, condition=target_split_data.conditions_train)
+                train_dataset = OTDataset(
+                    src_data=src_data_train, tgt_data=tgt_data_train, seed=seed, is_aligned=is_aligned
                 )
-                target_ds_train = OTDataset(
-                    lin=target_split_data.data_train, conditions=target_split_data.conditions_train
-                )
-                target_train_loader = DataLoader(
-                    target_ds_train,
-                    batch_size=batch_size,
-                    sampler=RandomSampler(target_ds_train, replacement=True),
-                )
-                source_ds_validate = OTDataset(
+                train_loader = Loader(train_dataset, batch_size=batch_size, seed=seed)
+                src_data_validate = OTData(
                     lin=source_split_data.data_valid,
-                    conditions=source_split_data.conditions_valid,
+                    condition=source_split_data.conditions_valid,
                 )
-                source_validate_loader = DataLoader(
-                    source_ds_validate,
-                    batch_size=batch_size,
-                    sampler=RandomSampler(source_ds_validate, replacement=True),
+                tgt_data_validate = OTData(
+                    lin=target_split_data.data_valid, condition=target_split_data.conditions_valid
                 )
-                target_ds_validate = OTDataset(
-                    lin=target_split_data.data_valid, conditions=target_split_data.conditions_valid
+                validate_dataset = OTDataset(
+                    src_data=src_data_validate, tgt_data=tgt_data_validate, seed=seed, is_aligned=is_aligned
                 )
-                target_validate_loader = DataLoader(
-                    target_ds_validate,
-                    batch_size=batch_size,
-                    sampler=RandomSampler(target_ds_validate, replacement=True),
-                )
-                train_loaders.append((source_train_loader, target_train_loader))
-                validate_loaders.append((source_validate_loader, target_validate_loader))
-        source_dim = self._neural_kwargs.pop("input_dim")
+                validate_loader = Loader(validate_dataset, batch_size=batch_size, seed=seed)
+                train_loaders.append(train_loader)
+                validate_loaders.append(validate_loader)
+        source_dim = self._neural_kwargs.get("input_dim")
         target_dim = source_dim
-        condition_dim = self._neural_kwargs.pop("cond_dim")
+        condition_dim = self._neural_kwargs.get("cond_dim")
+        # TODO: What are reasonable defaults here?
         neural_vf = VelocityField(
-            output_dim=target_dim,
-            condition_dim=source_dim + condition_dim,
-            latent_embed_dim=self._neural_kwargs.pop("latent_embed_dim", 5),
+            output_dims=[*self._neural_kwargs.get("velocity_field_output_dims", []), target_dim],
+            condition_dims=[*self._neural_kwargs.get("velocity_field_condition_dims", []), condition_dim],
+            hidden_dims=self._neural_kwargs.get("velocity_field_condition_dims", [7, 7, 7]),
+            time_dims=self._neural_kwargs.get("velocity_field_time_dims", None),
         )
-        ot_solver = sinkhorn.Sinkhorn(**self._neural_kwargs.pop("valid_sinkhorn_kwargs", {}))
-        tau_a = self._neural_kwargs.pop("tau_a", 1)
-        tau_b = self._neural_kwargs.pop("tau_b", 1)
-        rescaling_a = self._neural_kwargs.pop("rescaling_a", RescalingMLP(hidden_dim=4, condition_dim=condition_dim))
-        rescaling_b = self._neural_kwargs.pop("rescaling_b", RescalingMLP(hidden_dim=4, condition_dim=condition_dim))
-        seed = self._neural_kwargs.pop("seed", 0)
+        seed = self._neural_kwargs.get("seed", 0)
         rng = jax.random.PRNGKey(seed)
-        ot_matcher = self._neural_kwargs.pop("ot_matcher", OTMatcherLinear(ot_solver, tau_a=tau_a, tau_b=tau_b))
-        time_sampler = self._neural_kwargs.pop("time_sampler", uniform_sampler)
-        unbalancedness_handler = self._neural_kwargs.pop(
-            "unbalancedness_handler",
-            UnbalancednessHandler(
-                rng=rng,
-                source_dim=source_dim,
-                target_dim=target_dim,
-                cond_dim=condition_dim,
-                tau_a=tau_a,
-                tau_b=tau_b,
-                rescaling_a=rescaling_a,
-                rescaling_b=rescaling_b,
+        data_match_fn_kwargs = self._neural_kwargs.get("data_match_fn_kwargs", {})
+        time_sampler = self._neural_kwargs.get("time_sampler", uniform_sampler)
+        optimizer = self._neural_kwargs.get("optimizer", optax.adam(learning_rate=1e-3))
+        self._solver = genot.GENOT(
+            vf=neural_vf,
+            flow=self._neural_kwargs.get(
+                "flow",
+                dynamics.ConstantNoiseFlow(0.0),
             ),
-        )
-        optimizer = self._neural_kwargs.pop("optimizer", optax.adam(learning_rate=1e-3))
-        self._solver = GENOTLin(
-            velocity_field=neural_vf,
-            input_dim=source_dim,
-            output_dim=target_dim,
-            cond_dim=condition_dim,
-            ot_matcher=ot_matcher,
-            unbalancedness_handler=unbalancedness_handler,
+            data_match_fn=functools.partial(data_match_fn, typ="lin", **data_match_fn_kwargs),
+            source_dim=source_dim,
+            target_dim=target_dim,
+            condition_dim=condition_dim,
             optimizer=optimizer,
             time_sampler=time_sampler,
             rng=rng,
-            matcher_latent_to_data=self._neural_kwargs.pop("matcher_latent_to_data", None),
-            k_samples_per_x=self._neural_kwargs.pop("k_samples_per_x", 1),
-            **self._neural_kwargs,
+            latent_noise_fn=self._neural_kwargs.get("latent_noise_fn", None),
+            **self._neural_kwargs.get("velocity_field_train_state_kwargs", {}),
         )
         return (
-            ConditionalOTDataset(datasets=train_loaders, seed=seed),
-            ConditionalOTDataset(datasets=validate_loaders, seed=seed),
+            MultiLoader(datasets=train_loaders, seed=seed),
+            MultiLoader(datasets=validate_loaders, seed=seed),
         )
 
     @staticmethod
@@ -688,7 +659,7 @@ class GENOTLinSolver(OTSolver[OTTOutput]):
         )
 
     @property
-    def solver(self) -> GENOTLin:
+    def solver(self) -> genot.GENOT:
         """Underlying optimal transport solver."""
         return self._solver
 
@@ -696,6 +667,10 @@ class GENOTLinSolver(OTSolver[OTTOutput]):
     def _call_kwargs(cls) -> Tuple[Set[str], Set[str]]:
         return {"batch_size", "train_size", "trainloader", "validloader"}, {}  # type: ignore[return-value]
 
-    def _solve(self, data_samplers: Tuple[ConditionalOTDataset, ConditionalOTDataset]) -> OTTNeuralOutput:  # type: ignore[override]
-        self.solver(data_samplers[0], data_samplers[1])
+    def _solve(self, data_samplers: Tuple[MultiLoader, MultiLoader]) -> OTTNeuralOutput:  # type: ignore[override]
+        seed = self._neural_kwargs.get("seed", 0)  # TODO: unify rng hadnling like OTT tests
+        rng = jax.random.PRNGKey(seed)
+        self.solver(
+            data_samplers[0], n_iters=self._neural_kwargs.get("n_iters", 100), rng=rng
+        )  # TODO: validation and figure out defualts
         return OTTNeuralOutput(self.solver)

@@ -1,10 +1,14 @@
+from collections import defaultdict
 from functools import partial
-from typing import Any, Literal, Optional, Tuple, Union
+from typing import Any, Dict, Iterable, Literal, Optional, Tuple, Union
 
 import jax
 import jax.numpy as jnp
+import numpy as np
 import scipy.sparse as sp
 from ott.geometry import epsilon_scheduler, geodesic, geometry, pointcloud
+from ott.neural import datasets
+from ott.solvers import utils as solver_utils
 from ott.tools.sinkhorn_divergence import sinkhorn_divergence as sinkhorn_div
 
 from moscot._logging import logger
@@ -126,3 +130,88 @@ def _instantiate_geodesic_cost(
     cm_full = geodesic.Geodesic.from_graph(arr, t=t, directed=directed, **kwargs).cost_matrix
     cm = cm_full[:n_src, n_src:] if is_linear_term else cm_full
     return geometry.Geometry(cm, epsilon=epsilon, relative_epsilon=relative_epsilon, scale_cost=scale_cost)
+
+
+def data_match_fn(
+    src_lin: Optional[jnp.ndarray],
+    tgt_lin: Optional[jnp.ndarray],
+    src_quad: Optional[jnp.ndarray],
+    tgt_quad: Optional[jnp.ndarray],
+    *,
+    typ: Literal["lin", "quad", "fused"],
+    **data_match_fn_kwargs,
+) -> jnp.ndarray:
+    if typ == "lin":
+        return solver_utils.match_linear(x=src_lin, y=tgt_lin, **data_match_fn_kwargs)
+    if typ == "quad":
+        return solver_utils.match_quadratic(xx=src_quad, yy=tgt_quad, **data_match_fn_kwargs)
+    if typ == "fused":
+        return solver_utils.match_quadratic(xx=src_quad, yy=tgt_quad, x=src_lin, y=tgt_lin, **data_match_fn_kwargs)
+    raise NotImplementedError(f"Unknown type: {typ}.")
+
+
+class Loader:
+
+    def __init__(self, dataset: datasets.OTDataset, batch_size: int, seed: Optional[int] = None):
+        self.dataset = dataset
+        self.batch_size = batch_size
+        self.seed = seed
+
+    def __iter__(self):
+        self._rng = np.random.default_rng(self.seed)
+        return self
+
+    def __next__(self) -> Dict[str, jnp.ndarray]:
+        data = defaultdict(list)
+        for _ in range(self.batch_size):
+            ix = self._rng.integers(0, len(self.dataset))
+            for k, v in self.dataset[ix].items():
+                data[k].append(v)
+
+        return {k: jnp.vstack(v) for k, v in data.items()}
+
+    def __len__(self):
+        return len(self.dataset)
+
+
+class MultiLoader:
+    """Dataset for OT problems with conditions.
+
+    This data loader wraps several data loaders and samples from them.
+
+    Args:
+      datasets: Datasets to sample from.
+      seed: Random seed.
+    """
+
+    def __init__(
+        self,
+        datasets: Iterable[Loader],
+        seed: Optional[int] = None,
+    ):
+        self.datasets = tuple(datasets)
+        self._rng = np.random.default_rng(seed)
+        self._iterators: list[MultiLoader] = []
+        self._it = 0
+
+    def __next__(self) -> Dict[str, jnp.ndarray]:
+        if self._it == len(self):
+            raise StopIteration
+        self._it += 1
+
+        ix = self._rng.choice(len(self._iterators))
+        iterator = self._iterators[ix]
+        try:
+            return next(iterator)
+        except StopIteration:
+            # reset the consumed iterator and return it's first element
+            self._iterators[ix] = iterator = iter(self.datasets[ix])
+            return next(iterator)
+
+    def __iter__(self) -> "MultiLoader":
+        self._it = 0
+        self._iterators = [iter(ds) for ds in self.datasets]
+        return self
+
+    def __len__(self) -> int:
+        return max((len(ds) for ds in self.datasets), default=0)

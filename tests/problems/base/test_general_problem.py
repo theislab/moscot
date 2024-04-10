@@ -6,7 +6,7 @@ import jax.numpy as jnp
 import numpy as np
 import pandas as pd
 from ott.geometry.pointcloud import PointCloud
-from ott.solvers.linear.sinkhorn import solve as sinkhorn
+from ott.solvers.linear import solve as sinkhorn
 
 import scanpy as sc
 from anndata import AnnData

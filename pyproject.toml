@@ -55,7 +55,7 @@ dependencies = [
     "scanpy>=1.9.3",
     "wrapt>=1.13.2",
     "docrep>=0.3.2",
-    "ott-jax@git+https://github.com/MUCDK/ott#egg=draft/neural_base_solver",
+    "ott-jax[neural]@git+https://github.com/ott-jax/ott",
     "cloudpickle>=2.2.0",
     "rich>=13.5",
     "optax>=0.1.7",
@@ -66,7 +66,6 @@ dependencies = [
 neural = [
     "optax>=0.1.7",
     "flax>=0.7.1",
-    "torch"
 ]
 
 spatial = [

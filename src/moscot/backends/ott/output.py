@@ -6,9 +6,7 @@ import jax
 import jax.numpy as jnp
 import numpy as np
 import scipy.sparse as sp
-from ott.neural.flow_models.genot import (
-    GENOTBase,  # TODO(ilan-gold): will neeed to update for ICNN's
-)
+from ott.neural.methods.flows.genot import GENOT
 from ott.solvers.linear import sinkhorn, sinkhorn_lr
 from ott.solvers.quadratic import gromov_wasserstein, gromov_wasserstein_lr
 
@@ -244,17 +242,17 @@ class OTTOutput(BaseDiscreteSolverOutput):
 
 
 class OTTNeuralOutput(BaseNeuralOutput):
-    """Output wrapper for GENOTBase."""
+    """Output wrapper for GENOT."""
 
     def __init__(
-        self, model: GENOTBase
+        self, model: GENOT
     ):  # TODO(ilan-gold): Swap out once a more general implemenetation fo the base model is available.
         """Initialize `OTTNeuralOutput`.
 
         Parameters
         ----------
-        model : GENOTBase
-            The OTT-Jax GENOTBase model
+        model : GENOT
+            The OTT-Jax GENOT model
         """
         self._model = model
 
@@ -403,11 +401,13 @@ class OTTNeuralOutput(BaseNeuralOutput):
         return self._apply(x, cond=cond, forward=False)
 
     def _apply(self, x: ArrayLike, forward: bool, cond: Optional[ArrayLike] = None) -> ArrayLike:
-        return self._model.transport(x, condition=cond, forward=forward)
+        if not forward:
+            raise NotImplementedError("Backward i.e., pull on neural OT is not supported.")
+        return self._model.transport(x, condition=cond)
 
     @property
     def is_linear(self) -> bool:  # noqa: D102
-        return True  # TODO(ilan-gold): need to contribute something to ott-jax so this is resolvable from GENOTBase
+        return True  # TODO(ilan-gold): need to contribute something to ott-jax so this is resolvable from GENOT
 
     @property
     def shape(self) -> Tuple[int, int]:

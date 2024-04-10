@@ -1,7 +1,6 @@
 import optax
 import pytest
 
-import jax.numpy as jnp
 import numpy as np
 from ott.geometry import costs
 
@@ -12,7 +11,7 @@ from moscot.base.problems import CondOTProblem
 from moscot.problems.generic import GENOTLinProblem  # type: ignore[attr-defined]
 from moscot.utils.tagged_array import DistributionCollection, DistributionContainer
 from tests._utils import ATOL, RTOL
-from tests.problems.conftest import neurallin_cond_args_1, neurallin_cond_args_2
+from tests.problems.conftest import neurallin_cond_args_1
 
 
 class TestGENOTLinProblem:
@@ -44,12 +43,6 @@ class TestGENOTLinProblem:
         problem = GENOTLinProblem(adata=adata_time)
         problem = problem.prepare(key="time", joint_attr="X_pca", conditional_attr={"attr": "obs", "key": "time"})
         problem = problem.solve(train_size=train_size, **neurallin_cond_args_1)
-        assert isinstance(problem.solution, BaseDiscreteSolverOutput)
-
-    def test_solve_unbalanced_with_baseline(self, adata_time: ad.AnnData):
-        problem = GENOTLinProblem(adata=adata_time)
-        problem = problem.prepare(key="time", joint_attr="X_pca", conditional_attr={"attr": "obs", "key": "time"})
-        problem = problem.solve(**neurallin_cond_args_2)
         assert isinstance(problem.solution, BaseDiscreteSolverOutput)
 
     def test_reproducibility(self, adata_time: ad.AnnData):
@@ -90,31 +83,3 @@ class TestGENOTLinProblem:
         custom_opt = optax.adagrad(1e-4)
 
         problem = problem.solve(iterations=2, optimizer=custom_opt)
-
-    def test_learning_rescaling_factors(self, adata_time: ad.AnnData):
-        problem = GENOTLinProblem(adata=adata_time)
-        adata_time = adata_time[adata_time.obs["time"].isin((0, 1))]
-        problem = problem.prepare(key="time", joint_attr="X_pca", conditional_attr={"attr": "obs", "key": "time"})
-        problem = problem.solve(**neurallin_cond_args_2)
-        assert isinstance(problem.solution, BaseDiscreteSolverOutput)
-
-        array = np.asarray(adata_time.obsm["X_pca"].copy())
-        cond1 = jnp.ones((array.shape[0], 1))
-        cond2 = jnp.zeros((array.shape[0], 1))
-        learnt_eta_1 = problem.solver.solver.unbalancedness_handler.evaluate_eta(
-            array, cond1
-        )  # TODO(ilan-gold): sould this be wrapped?
-        learnt_xi_1 = problem.solver.solver.unbalancedness_handler.evaluate_xi(array, cond1)
-        learnt_eta_2 = problem.solver.solver.unbalancedness_handler.evaluate_eta(array, cond2)
-        learnt_xi_2 = problem.solver.solver.unbalancedness_handler.evaluate_xi(array, cond2)
-        assert learnt_eta_1.shape == (array.shape[0], 4)
-        assert learnt_xi_1.shape == (array.shape[0], 4)
-        assert learnt_eta_2.shape == (array.shape[0], 4)
-        assert learnt_xi_2.shape == (array.shape[0], 4)
-        assert np.sum(np.isnan(learnt_eta_1)) == 0
-        assert np.sum(np.isnan(learnt_xi_1)) == 0
-        assert np.sum(np.isnan(learnt_eta_2)) == 0
-        assert np.sum(np.isnan(learnt_xi_2)) == 0
-
-        np.testing.assert_raises(AssertionError, np.testing.assert_array_equal, learnt_eta_1, learnt_eta_2)
-        np.testing.assert_raises(AssertionError, np.testing.assert_array_equal, learnt_xi_1, learnt_xi_2)

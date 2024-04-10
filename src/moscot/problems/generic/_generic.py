@@ -766,10 +766,10 @@ class GENOTLinProblem(CondOTProblem, GenericAnalysisMixin[K, B]):
         """Solve."""
         return super().solve(
             batch_size=batch_size,
-            tau_a=tau_a,
-            tau_b=tau_b,
+            # tau_a=tau_a, # TODO: unbalancedness handler
+            # tau_b=tau_b,
             seed=seed,
-            iterations=iterations,
+            n_iters=iterations,
             valid_freq=valid_freq,
             valid_sinkhorn_kwargs=valid_sinkhorn_kwargs,
             train_size=train_size,
