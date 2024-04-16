@@ -403,6 +403,21 @@ class OTProblem(BaseProblem):
         """
         solver_class = backends.get_solver(self.problem_kind, backend=backend, return_class=True)
         init_kwargs, call_kwargs = solver_class._partition_kwargs(**kwargs)
+        # if linear problem, then alpha is 0.0 by default
+        # if quadratic problem, then alpha is 1.0 by default
+        alpha = call_kwargs.get("alpha", 0.0 if self.problem_kind == "linear" else 1.0)
+        if alpha < 0.0 or alpha > 1.0:
+            raise ValueError("Expected `alpha` to be in the range `[0, 1]`, found `{alpha}`.")
+        if self.problem_kind == "linear" and (alpha != 0.0 or not (self.x is None or self.y is None)):
+            raise ValueError("Unable to solve a linear problem with `alpha != 0` or `x` and `y` supplied.")
+        if self.problem_kind == "quadratic":
+            if self.x is None or self.y is None:
+                raise ValueError("Unable to solve a quadratic problem without `x` and `y` supplied.")
+            if alpha != 1.0 and self.xy is None:  # means FGW case
+                raise ValueError(
+                    "`alpha` must be 1.0 for quadratic problems without `xy` supplied. See `FGWProblem` class."
+                )
+
         self._solver = solver_class(**init_kwargs)
 
         self._solution = self._solver(  # type: ignore[misc]

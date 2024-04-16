@@ -83,7 +83,14 @@ class TestTranslationProblem:
 
     @pytest.mark.parametrize(
         ("epsilon", "alpha", "rank", "initializer"),
-        [(1e-2, 0.9, -1, None), (2, 0.5, -1, "random"), (2, 0.5, -1, "rank2"), (2, 0.1, -1, None)],
+        [
+            (1e-2, 0.9, -1, None),
+            (2, 0.5, -1, "random"),
+            (2, 1.0, -1, "rank2"),
+            (2, 0.1, -1, None),
+            (2, 1.0, -1, None),
+            (1.3, 1.0, -1, "random"),
+        ],
     )
     @pytest.mark.parametrize("src_attr", ["emb_src", {"attr": "obsm", "key": "emb_src"}])
     @pytest.mark.parametrize("tgt_attr", ["emb_tgt", {"attr": "obsm", "key": "emb_tgt"}])
@@ -104,7 +111,8 @@ class TestTranslationProblem:
             kwargs["initializer"] = initializer
 
         tp = TranslationProblem(adata_src, adata_tgt)
-        tp = tp.prepare(batch_key="batch", src_attr=src_attr, tgt_attr=tgt_attr)
+        joint_attr = None if alpha == 1.0 else {"attr": "obsm", "key": "X_pca"}
+        tp = tp.prepare(batch_key="batch", src_attr=src_attr, tgt_attr=tgt_attr, joint_attr=joint_attr)
         tp = tp.solve(epsilon=epsilon, alpha=alpha, rank=rank, **kwargs)
 
         for key, subsol in tp.solutions.items():
