@@ -1158,13 +1158,13 @@ class CondOTProblem(BaseProblem):  # TODO(@MUCDK) check generic types, save and 
         )
         init_kwargs, call_kwargs = solver_class._partition_kwargs(**kwargs)
         self._solver = solver_class(input_dim=input_dim, cond_dim=cond_dim, **init_kwargs)
-
+        sample_pairs = self._sample_pairs if self._sample_pairs is not None else []
         # note that the solver call consists of solver._prepare and solver._solve
         self._solution = self._solver(  # type: ignore[misc]
             device=device,
             distributions=self.distributions,
             sample_pairs=self._sample_pairs,
-            is_conditional=True,
+            is_conditional=len(sample_pairs) > 1,
             **call_kwargs,
         )
 

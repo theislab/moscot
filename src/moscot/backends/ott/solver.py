@@ -517,6 +517,7 @@ class GENOTLinSolver(OTSolver[OTTOutput]):
         sample_pairs: List[Tuple[Any, Any]],
         train_size: float = 0.9,
         batch_size: int = 1024,
+        is_conditional: bool = True,
         **kwargs: Any,
     ) -> Tuple[MultiLoader, MultiLoader]:
         train_loaders = []
@@ -529,9 +530,12 @@ class GENOTLinSolver(OTSolver[OTTOutput]):
                 target_key = sample_pair[1]
                 src_data = OTData(
                     lin=distributions[source_key].xy,
-                    condition=distributions[source_key].conditions,
+                    condition=distributions[source_key].conditions if is_conditional else None,
                 )
-                tgt_data = OTData(lin=distributions[target_key].xy, condition=distributions[target_key].conditions)
+                tgt_data = OTData(
+                    lin=distributions[target_key].xy,
+                    condition=distributions[target_key].conditions if is_conditional else None,
+                )
                 dataset = OTDataset(src_data=src_data, tgt_data=tgt_data, seed=seed, is_aligned=is_aligned)
                 loader = Loader(dataset, batch_size=batch_size, seed=seed)
                 train_loaders.append(loader)
@@ -564,19 +568,23 @@ class GENOTLinSolver(OTSolver[OTTOutput]):
                 )
                 src_data_train = OTData(
                     lin=source_split_data.data_train,
-                    condition=source_split_data.conditions_train,
+                    condition=source_split_data.conditions_train if is_conditional else None,
                 )
-                tgt_data_train = OTData(lin=target_split_data.data_train, condition=target_split_data.conditions_train)
+                tgt_data_train = OTData(
+                    lin=target_split_data.data_train,
+                    condition=target_split_data.conditions_train if is_conditional else None,
+                )
                 train_dataset = OTDataset(
                     src_data=src_data_train, tgt_data=tgt_data_train, seed=seed, is_aligned=is_aligned
                 )
                 train_loader = Loader(train_dataset, batch_size=batch_size, seed=seed)
                 src_data_validate = OTData(
                     lin=source_split_data.data_valid,
-                    condition=source_split_data.conditions_valid,
+                    condition=source_split_data.conditions_valid if is_conditional else None,
                 )
                 tgt_data_validate = OTData(
-                    lin=target_split_data.data_valid, condition=target_split_data.conditions_valid
+                    lin=target_split_data.data_valid,
+                    condition=target_split_data.conditions_valid if is_conditional else None,
                 )
                 validate_dataset = OTDataset(
                     src_data=src_data_validate, tgt_data=tgt_data_validate, seed=seed, is_aligned=is_aligned
@@ -584,13 +592,17 @@ class GENOTLinSolver(OTSolver[OTTOutput]):
                 validate_loader = Loader(validate_dataset, batch_size=batch_size, seed=seed)
                 train_loaders.append(train_loader)
                 validate_loaders.append(validate_loader)
-        source_dim = self._neural_kwargs.get("input_dim")
+        source_dim = self._neural_kwargs.get("input_dim", 0)
         target_dim = source_dim
-        condition_dim = self._neural_kwargs.get("cond_dim")
+        condition_dim = self._neural_kwargs.get("cond_dim", 0)
         # TODO(ilan-gold): What are reasonable defaults here?
         neural_vf = VelocityField(
             output_dims=[*self._neural_kwargs.get("velocity_field_output_dims", []), target_dim],
-            condition_dims=[*self._neural_kwargs.get("velocity_field_condition_dims", []), condition_dim],
+            condition_dims=(
+                self._neural_kwargs.get("velocity_field_condition_dims", [source_dim + condition_dim])
+                if is_conditional
+                else None
+            ),
             hidden_dims=self._neural_kwargs.get("velocity_field_condition_dims", [7, 7, 7]),
             time_dims=self._neural_kwargs.get("velocity_field_time_dims", None),
         )
@@ -608,7 +620,7 @@ class GENOTLinSolver(OTSolver[OTTOutput]):
             data_match_fn=functools.partial(data_match_fn, typ="lin", **data_match_fn_kwargs),
             source_dim=source_dim,
             target_dim=target_dim,
-            condition_dim=condition_dim,
+            condition_dim=condition_dim if is_conditional else None,
             optimizer=optimizer,
             time_sampler=time_sampler,
             rng=rng,
