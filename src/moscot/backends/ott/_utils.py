@@ -155,10 +155,9 @@ class Loader:
     def __init__(self, dataset: datasets.OTDataset, batch_size: int, seed: Optional[int] = None):
         self.dataset = dataset
         self.batch_size = batch_size
-        self.seed = seed
+        self._rng = np.random.default_rng(seed)
 
     def __iter__(self):
-        self._rng = np.random.default_rng(self.seed)
         return self
 
     def __next__(self) -> Dict[str, jnp.ndarray]:
@@ -167,7 +166,6 @@ class Loader:
             ix = self._rng.integers(0, len(self.dataset))
             for k, v in self.dataset[ix].items():
                 data[k].append(v)
-
         return {k: jnp.vstack(v) for k, v in data.items()}
 
     def __len__(self):

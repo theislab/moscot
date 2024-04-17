@@ -677,7 +677,7 @@ class GENOTLinSolver(OTSolver[OTTOutput]):
 
     @classmethod
     def _call_kwargs(cls) -> Tuple[Set[str], Set[str]]:
-        return {"batch_size", "train_size", "trainloader", "validloader"}, {}  # type: ignore[return-value]
+        return {"batch_size", "train_size", "trainloader", "validloader", "seed"}, {}  # type: ignore[return-value]
 
     def _solve(self, data_samplers: Tuple[MultiLoader, MultiLoader]) -> OTTNeuralOutput:  # type: ignore[override]
         seed = self._neural_kwargs.get("seed", 0)  # TODO(ilan-gold): unify rng hadnling like OTT tests

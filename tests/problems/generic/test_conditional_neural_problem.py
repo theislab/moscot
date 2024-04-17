@@ -50,13 +50,14 @@ class TestGENOTLinProblem:
         pc_tzero = adata_time[cond_zero_mask].obsm["X_pca"]
         problem_one = GENOTLinProblem(adata=adata_time)
         problem_one = problem_one.prepare(
-            key="time", joint_attr="X_pca", conditional_attr={"attr": "obs", "key": "time"}
+            key="time", joint_attr="X_pca", conditional_attr={"attr": "obs", "key": "time"}, seed=0
         )
         problem_one = problem_one.solve(**neurallin_cond_args_1)
-
         problem_two = GENOTLinProblem(adata=adata_time)
-        problem_two = problem_one.prepare("time", joint_attr="X_pca", conditional_attr={"attr": "obs", "key": "time"})
-        problem_two = problem_one.solve(**neurallin_cond_args_1)
+        problem_two = problem_two.prepare(
+            key="time", joint_attr="X_pca", conditional_attr={"attr": "obs", "key": "time"}, seed=0
+        )
+        problem_two = problem_two.solve(**neurallin_cond_args_1)
         assert np.allclose(
             problem_one.solution.push(pc_tzero, cond=np.zeros((cond_zero_mask.sum(), 1))),
             problem_two.solution.push(pc_tzero, cond=np.zeros((cond_zero_mask.sum(), 1))),
