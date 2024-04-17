@@ -245,7 +245,7 @@ class OTTNeuralOutput(BaseNeuralOutput):
     """Output wrapper for GENOT."""
 
     def __init__(
-        self, model: GENOT
+        self, model: GENOT, logs: dict[str, list[float]]
     ):  # TODO(ilan-gold): Swap out once a more general implemenetation fo the base model is available.
         """Initialize `OTTNeuralOutput`.
 
@@ -254,7 +254,18 @@ class OTTNeuralOutput(BaseNeuralOutput):
         model : GENOT
             The OTT-Jax GENOT model
         """
+        self._logs = logs
         self._model = model
+
+    @property
+    def logs(self):
+        """Logs of the training.  A dictionary containing what the numeric values are i.e., loss.
+
+        Returns
+        -------
+        dict[str, list[float]]
+        """
+        return self._logs
 
     def _project_transport_matrix(
         self,

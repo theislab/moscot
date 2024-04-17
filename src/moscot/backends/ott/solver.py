@@ -682,7 +682,7 @@ class GENOTLinSolver(OTSolver[OTTOutput]):
     def _solve(self, data_samplers: Tuple[MultiLoader, MultiLoader]) -> OTTNeuralOutput:  # type: ignore[override]
         seed = self._neural_kwargs.get("seed", 0)  # TODO(ilan-gold): unify rng hadnling like OTT tests
         rng = jax.random.PRNGKey(seed)
-        self.solver(
+        logs = self.solver(
             data_samplers[0], n_iters=self._neural_kwargs.get("n_iters", 100), rng=rng
         )  # TODO(ilan-gold): validation and figure out defualts
-        return OTTNeuralOutput(self.solver)
+        return OTTNeuralOutput(self.solver, logs)
