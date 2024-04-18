@@ -179,8 +179,6 @@ class OTSolver(TagConverter, BaseSolver[O], abc.ABC):
         y: Optional[Union[TaggedArray, ArrayLike]] = None,
         tags: Mapping[Literal["x", "y", "xy"], Tag] = types.MappingProxyType({}),
         device: Optional[Device_t] = None,
-        *,
-        is_conditional: bool = False,
         **kwargs: Any,
     ) -> O:
         """Solve an optimal transport problem.
@@ -206,7 +204,7 @@ class OTSolver(TagConverter, BaseSolver[O], abc.ABC):
         -------
         The optimal transport solution.
         """
-        if not is_conditional:
+        if all(data is not None for data in [xy, x, y]):
             data = self._get_array_data(xy=xy, x=x, y=y, tags=tags)
             kwargs = {**kwargs, **self._untag(data)}
         res = super().__call__(**kwargs)
