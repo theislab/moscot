@@ -314,9 +314,9 @@ class BaseCompoundProblem(BaseProblem, abc.ABC, Generic[K, B]):
 
         logger.info(f"Solving `{len(problems)}` problems")
         # expose min/max iterations to the user but remove them if they are None
-        if kwargs.get("min_iterations") is None:
+        if "min_iterations" in kwargs and kwargs["min_iterations"] is None:
             kwargs.pop("min_iterations")
-        if kwargs.get("max_iterations") is None:
+        if "max_iterations" in kwargs and kwargs["max_iterations"] is None:
             kwargs.pop("max_iterations")
         for problem in problems.values():
             logger.info(f"Solving problem {problem}.")
