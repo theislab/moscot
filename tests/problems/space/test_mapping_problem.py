@@ -119,6 +119,7 @@ class TestMappingProblem:
                 return  # TODO(@MUCDK) fix after refactoring
         mp = MappingProblem(adataref, adatasp)
         mp = mp.prepare(batch_key="batch", sc_attr=sc_attr, var_names=var_names)
+        alpha = alpha if mp.filtered_vars is not None else 1.0
         mp = mp.solve(epsilon=epsilon, alpha=alpha, rank=rank, **kwargs)
 
         for prob_key in mp:
