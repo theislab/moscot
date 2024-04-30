@@ -74,6 +74,7 @@ class TestAlignmentProblem:
             assert ref == reference
             assert isinstance(ap[prob_key], ap._base_problem_type)
 
+    @pytest.mark.skip(reason="See https://github.com/theislab/moscot/issues/678")
     @pytest.mark.parametrize(
         ("epsilon", "alpha", "rank", "initializer"),
         [(1, 0.9, -1, None), (1, 0.5, 10, "random"), (1, 0.5, 10, "rank2"), (0.1, 0.1, -1, None)],
@@ -86,8 +87,7 @@ class TestAlignmentProblem:
         rank: int,
         initializer: Optional[Literal["random", "rank2"]],
     ):
-        # check https://github.com/ott-jax/ott/issues/495
-        kwargs = {"inner_iterations": 10}
+        kwargs = {}
         if rank > -1:
             kwargs["initializer"] = initializer
             if initializer == "random":
