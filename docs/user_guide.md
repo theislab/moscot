@@ -3,6 +3,7 @@
 moscot is a toolbox which can solve a wide range of tasks in single-cell genomics building upon the concept of Optimal Transport.
 
 moscot builds upon three principles:
+
 - moscot applications are scalable. While traditional OT implementations are computationally expensive, moscot implements a wide range of solvers which can handle hunreds of thousands of cells.
 - moscot supports OT applications across [multiple modalities](#multimodality)
 - moscot offers a unified [user interface](#user-interface) and provides flexible implementations
@@ -53,10 +54,5 @@ moscot problems implement problem-specific downstream methods, so we recommend t
 
 ## Hyperparameters
 
- - $\tau_a$ and $\tau_b$
- - $\varepsilon$
-
-
-
-
-
+- $\tau_a$ and $\tau_b$
+- $\varepsilon$
