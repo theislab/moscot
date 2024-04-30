@@ -58,6 +58,18 @@ def adata_time_with_tmap(adata_time: AnnData) -> AnnData:
     return adata
 
 
+# keys for marginals
+@pytest.fixture(
+    params=[
+        (None, None),
+        ("left_marginals_balanced", "right_marginals_balanced"),
+    ],
+    ids=["default", "balanced"],
+)
+def marginal_keys(request):
+    return request.param
+
+
 sinkhorn_args_1 = {
     "epsilon": 0.7,
     "tau_a": 1.0,
@@ -154,9 +166,10 @@ gw_args_2 = {
     "gw_unbalanced_correction": False,
     "ranks": 3,
     "tolerances": 3e-2,
-    "warm_start": True,
-    "linear_solver_kwargs": linear_solver_kwargs2,
+    # "linear_solver_kwargs": linear_solver_kwargs2,
 }
+
+gw_args_2 = {**gw_args_2, **linear_solver_kwargs2}
 
 fgw_args_1 = gw_args_1.copy()
 fgw_args_1["alpha"] = 0.6
@@ -173,6 +186,16 @@ gw_solver_args = {
     "initializer_kwargs": "kwargs_init",
     "warm_start": "_warm_start",
     "initializer": "quad_initializer",
+}
+
+gw_lr_solver_args = {
+    "epsilon": "epsilon",
+    "rank": "rank",
+    "threshold": "threshold",
+    "min_iterations": "min_iterations",
+    "max_iterations": "max_iterations",
+    "initializer_kwargs": "kwargs_init",
+    "initializer": "initializer",
 }
 
 gw_linear_solver_args = {

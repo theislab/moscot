@@ -1,17 +1,18 @@
+from __future__ import annotations
+
 import itertools
 import pathlib
+import types
 from typing import (
     TYPE_CHECKING,
     Any,
-    Dict,
     Iterable,
     Iterator,
-    List,
     Literal,
+    Mapping,
     Optional,
     Protocol,
     Sequence,
-    Tuple,
     Union,
 )
 
@@ -34,12 +35,12 @@ __all__ = ["TemporalMixin"]
 
 class TemporalMixinProtocol(AnalysisMixinProtocol[K, B], Protocol[K, B]):  # type: ignore[misc]
     adata: AnnData
-    problems: Dict[Tuple[K, K], BirthDeathProblem]
+    problems: dict[tuple[K, K], BirthDeathProblem]
     temporal_key: Optional[str]
     _temporal_key: Optional[str]
 
     def cell_transition(  # noqa: D102
-        self: "TemporalMixinProtocol[K, B]",
+        self: TemporalMixinProtocol[K, B],
         source: K,
         target: K,
         source_groups: Str_Dict_t,
@@ -49,24 +50,26 @@ class TemporalMixinProtocol(AnalysisMixinProtocol[K, B], Protocol[K, B]):  # typ
         batch_size: Optional[int] = None,
         normalize: bool = True,
         key_added: Optional[str] = _constants.CELL_TRANSITION,
-    ) -> pd.DataFrame:
-        ...
+    ) -> pd.DataFrame: ...
 
-    def push(self, *args: Any, **kwargs: Any) -> Optional[ApplyOutput_t[K]]:
-        ...
+    def push(self, *args: Any, **kwargs: Any) -> Optional[ApplyOutput_t[K]]: ...
 
-    def pull(self, *args: Any, **kwargs: Any) -> Optional[ApplyOutput_t[K]]:
-        ...
+    def pull(self, *args: Any, **kwargs: Any) -> Optional[ApplyOutput_t[K]]: ...
 
     def _cell_transition(
         self: AnalysisMixinProtocol[K, B],
         *args: Any,
         **kwargs: Any,
-    ) -> pd.DataFrame:
-        ...
+    ) -> pd.DataFrame: ...
+
+    def _annotation_mapping(
+        self: AnalysisMixinProtocol[K, B],
+        *args: Any,
+        **kwargs: Any,
+    ) -> pd.DataFrame: ...
 
     def _sample_from_tmap(
-        self: "TemporalMixinProtocol[K, B]",
+        self: TemporalMixinProtocol[K, B],
         source: K,
         target: K,
         n_samples: int,
@@ -76,22 +79,20 @@ class TemporalMixinProtocol(AnalysisMixinProtocol[K, B], Protocol[K, B]):  # typ
         account_for_unbalancedness: bool = False,
         interpolation_parameter: Optional[float] = None,
         seed: Optional[int] = None,
-    ) -> Tuple[List[Any], List[ArrayLike]]:
-        ...
+    ) -> tuple[list[Any], list[ArrayLike]]: ...
 
     def _compute_wasserstein_distance(
-        self: "TemporalMixinProtocol[K, B]",
+        self: TemporalMixinProtocol[K, B],
         point_cloud_1: ArrayLike,
         point_cloud_2: ArrayLike,
         a: Optional[ArrayLike] = None,
         b: Optional[ArrayLike] = None,
         backend: Literal["ott"] = "ott",
         **kwargs: Any,
-    ) -> float:
-        ...
+    ) -> float: ...
 
     def _interpolate_gex_with_ot(
-        self: "TemporalMixinProtocol[K, B]",
+        self: TemporalMixinProtocol[K, B],
         number_cells: int,
         source_data: ArrayLike,
         target_data: ArrayLike,
@@ -101,34 +102,31 @@ class TemporalMixinProtocol(AnalysisMixinProtocol[K, B], Protocol[K, B]):  # typ
         account_for_unbalancedness: bool = True,
         batch_size: int = 256,
         seed: Optional[int] = None,
-    ) -> ArrayLike:
-        ...
+    ) -> ArrayLike: ...
 
     def _get_data(
-        self: "TemporalMixinProtocol[K, B]",
+        self: TemporalMixinProtocol[K, B],
         source: K,
         intermediate: Optional[K] = None,
         target: Optional[K] = None,
         posterior_marginals: bool = True,
         *,
         only_start: bool = False,
-    ) -> Union[Tuple[ArrayLike, AnnData], Tuple[ArrayLike, ArrayLike, ArrayLike, AnnData, ArrayLike]]:
-        ...
+    ) -> Union[tuple[ArrayLike, AnnData], tuple[ArrayLike, ArrayLike, ArrayLike, AnnData, ArrayLike]]: ...
 
     def _interpolate_gex_randomly(
-        self: "TemporalMixinProtocol[K, B]",
+        self: TemporalMixinProtocol[K, B],
         number_cells: int,
         source_data: ArrayLike,
         target_data: ArrayLike,
         interpolation_parameter: float,
         growth_rates: Optional[ArrayLike] = None,
         seed: Optional[int] = None,
-    ) -> ArrayLike:
-        ...
+    ) -> ArrayLike: ...
 
     def _plot_temporal(
-        self: "TemporalMixinProtocol[K, B]",
-        data: Dict[K, ArrayLike],
+        self: TemporalMixinProtocol[K, B],
+        data: dict[K, ArrayLike],
         source: K,
         target: K,
         time_points: Optional[Iterable[K]] = None,
@@ -137,17 +135,14 @@ class TemporalMixinProtocol(AnalysisMixinProtocol[K, B], Protocol[K, B]):  # typ
         fill_value: float = 0.0,
         save: Optional[Union[str, pathlib.Path]] = None,
         **kwargs: Any,
-    ) -> None:
-        ...
+    ) -> None: ...
 
     @staticmethod
     def _get_interp_param(
         source: K, intermediate: K, target: K, interpolation_parameter: Optional[float] = None
-    ) -> float:
-        ...
+    ) -> float: ...
 
-    def __iter__(self) -> Iterator[Tuple[K, K]]:
-        ...
+    def __iter__(self) -> Iterator[tuple[K, K]]: ...
 
 
 class TemporalMixin(AnalysisMixin[K, B]):
@@ -232,8 +227,63 @@ class TemporalMixin(AnalysisMixin[K, B]):
             key_added=key_added,
         )
 
+    def annotation_mapping(
+        self: TemporalMixinProtocol[K, B],
+        mapping_mode: Literal["sum", "max"],
+        annotation_label: str,
+        forward: bool,
+        source: K,
+        target: K,
+        batch_size: Optional[int] = None,
+        cell_transition_kwargs: Mapping[str, Any] = types.MappingProxyType({}),
+        **kwargs: Mapping[str, Any],
+    ) -> pd.DataFrame:
+        """Transfer annotations between distributions.
+
+        This function transfers annotations (e.g. cell type labels) between distributions of cells.
+
+        Parameters
+        ----------
+        mapping_mode
+            How to decide which label to transfer. Valid options are:
+
+            - ``'max'`` - pick the label of the annotated cell with the highest matching probability.
+            - ``'sum'`` - aggregate the annotated cells by label then
+              pick the label with the highest total matching probability.
+        annotation_label
+            Key in :attr:`~anndata.AnnData.obs` where the annotation is stored.
+        forward
+            If :obj:`True`, transfer the annotations from ``source`` to ``target``.
+        source
+            Key identifying the source distribution.
+        target
+            Key identifying the target distribution.
+        batch_size
+            Number of rows/columns of the cost matrix to materialize during :meth:`push` or :meth:`pull`.
+            Larger value will require more memory.
+            If :obj:`None`, the entire cost matrix will be materialized.
+        cell_transition_kwargs
+            Keyword arguments for :meth:`cell_transition`, used only if ``mapping_mode = 'sum'``.
+
+        Returns
+        -------
+        :class:`~pandas.DataFrame` - Returns the DataFrame of transferred annotations.
+        """
+        return self._annotation_mapping(
+            mapping_mode=mapping_mode,
+            annotation_label=annotation_label,
+            source=source,
+            target=target,
+            key=self._temporal_key,
+            forward=forward,
+            other_adata=None,
+            batch_size=batch_size,
+            cell_transition_kwargs=cell_transition_kwargs,
+            **kwargs,
+        )
+
     def sankey(
-        self: "TemporalMixinProtocol[K, B]",
+        self: TemporalMixinProtocol[K, B],
         source: K,
         target: K,
         source_groups: Str_Dict_t,
@@ -245,7 +295,7 @@ class TemporalMixin(AnalysisMixin[K, B]):
         order_annotations: Optional[Sequence[str]] = None,
         key_added: Optional[str] = _constants.SANKEY,
         **kwargs: Any,
-    ) -> Optional[List[pd.DataFrame]]:
+    ) -> Optional[list[pd.DataFrame]]:
         """Compute a `Sankey diagram <https://en.wikipedia.org/wiki/Sankey_diagram>`_ between cells across time points.
 
         .. seealso::
@@ -359,7 +409,7 @@ class TemporalMixin(AnalysisMixin[K, B]):
         source: K,
         target: K,
         data: Optional[Union[str, ArrayLike]] = None,
-        subset: Optional[Union[str, List[str], Tuple[int, int]]] = None,
+        subset: Optional[Union[str, list[str], tuple[int, int]]] = None,
         scale_by_marginals: bool = True,
         key_added: Optional[str] = _constants.PUSH,
         return_all: bool = False,
@@ -412,7 +462,7 @@ class TemporalMixin(AnalysisMixin[K, B]):
             plot_vars = {
                 "source": source,
                 "target": target,
-                "temporal_key": self.temporal_key,
+                "key": self.temporal_key,
                 "data": data if isinstance(data, str) else None,
                 "subset": subset,
             }
@@ -426,7 +476,7 @@ class TemporalMixin(AnalysisMixin[K, B]):
         source: K,
         target: K,
         data: Optional[Union[str, ArrayLike]] = None,
-        subset: Optional[Union[str, List[str], Tuple[int, int]]] = None,
+        subset: Optional[Union[str, list[str], tuple[int, int]]] = None,
         scale_by_marginals: bool = True,
         key_added: Optional[str] = _constants.PULL,
         return_all: bool = False,
@@ -476,7 +526,7 @@ class TemporalMixin(AnalysisMixin[K, B]):
 
         if key_added is not None:
             plot_vars = {
-                "temporal_key": self.temporal_key,
+                "key": self.temporal_key,
                 "data": data if isinstance(data, str) else None,
                 "subset": subset,
                 "source": source,
@@ -581,7 +631,7 @@ class TemporalMixin(AnalysisMixin[K, B]):
         posterior_marginals: bool = True,
         *,
         only_start: bool = False,
-    ) -> Union[Tuple[ArrayLike, AnnData], Tuple[ArrayLike, ArrayLike, ArrayLike, AnnData, ArrayLike]]:
+    ) -> Union[tuple[ArrayLike, AnnData], tuple[ArrayLike, ArrayLike, ArrayLike, AnnData, ArrayLike]]:
         # TODO: use .items()
         for src, tgt in self.problems:
             tag = self.problems[src, tgt].xy.tag  # type: ignore[union-attr]
@@ -788,7 +838,7 @@ class TemporalMixin(AnalysisMixin[K, B]):
         posterior_marginals: bool = True,
         backend: Literal["ott"] = "ott",
         **kwargs: Any,
-    ) -> Tuple[float, float]:
+    ) -> tuple[float, float]:
         """Compute `Wasserstein distance <https://en.wikipedia.org/wiki/Wasserstein_metric>`_ between time points.
 
         .. seealso::
@@ -871,7 +921,7 @@ class TemporalMixin(AnalysisMixin[K, B]):
         if len(data) != len(adata):
             raise ValueError(f"Expected the `data` to have length `{len(adata)}`, found `{len(data)}`.")
 
-        dist: List[float] = []
+        dist: list[float] = []
         for batch_1, batch_2 in itertools.combinations(adata.obs[batch_key].unique(), 2):
             dist.append(
                 self._compute_wasserstein_distance(

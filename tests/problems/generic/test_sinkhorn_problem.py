@@ -4,9 +4,11 @@ import pytest
 
 import numpy as np
 import pandas as pd
+from ott.geometry import epsilon_scheduler
 from ott.geometry.costs import (
     Cosine,
     ElasticL1,
+    ElasticL2,
     ElasticSTVS,
     Euclidean,
     PNormP,
@@ -20,6 +22,7 @@ from anndata import AnnData
 from moscot.base.output import BaseSolverOutput
 from moscot.base.problems import OTProblem
 from moscot.problems.generic import SinkhornProblem
+from tests._utils import _assert_marginals_set
 from tests.problems.conftest import (
     geometry_args,
     lin_prob_args,
@@ -35,15 +38,14 @@ from tests.problems.conftest import (
 class TestSinkhornProblem:
     @pytest.mark.fast()
     @pytest.mark.parametrize("policy", ["sequential", "star"])
-    def test_prepare(self, adata_time: AnnData, policy):
+    def test_prepare(self, adata_time: AnnData, policy, marginal_keys):
         expected_keys = {"sequential": [(0, 1), (1, 2)], "star": [(1, 0), (2, 0)]}
         problem = SinkhornProblem(adata=adata_time)
-
         assert len(problem) == 0
         assert problem.problems == {}
         assert problem.solutions == {}
 
-        problem = problem.prepare(key="time", policy=policy, reference=0)
+        problem = problem.prepare(key="time", policy=policy, reference=0, a=marginal_keys[0], b=marginal_keys[1])
 
         assert isinstance(problem.problems, dict)
         assert len(problem.problems) == len(expected_keys[policy])
@@ -52,16 +54,21 @@ class TestSinkhornProblem:
             assert key in expected_keys[policy]
             assert isinstance(problem[key], OTProblem)
 
-    def test_solve_balanced(self, adata_time: AnnData):
+            _assert_marginals_set(adata_time, problem, key, marginal_keys)
+
+    def test_solve_balanced(self, adata_time: AnnData, marginal_keys):
         eps = 0.5
         expected_keys = [(0, 1), (1, 2)]
         problem = SinkhornProblem(adata=adata_time)
-        problem = problem.prepare(key="time")
+        problem = problem.prepare(key="time", a=marginal_keys[0], b=marginal_keys[1])
         problem = problem.solve(epsilon=eps)
 
         for key, subsol in problem.solutions.items():
             assert isinstance(subsol, BaseSolverOutput)
             assert key in expected_keys
+            assert subsol.converged
+            assert np.allclose(subsol.a, problem[key].a, atol=1e-5)
+            assert np.allclose(subsol.b, problem[key].b, atol=1e-5)
 
     @pytest.mark.fast()
     @pytest.mark.parametrize(
@@ -72,14 +79,42 @@ class TestSinkhornProblem:
             ("cosine", Cosine, {}),
             ("pnorm_p", PNormP, {"p": 3}),
             ("sq_pnorm", SqPNorm, {"p": 3}),
-            ("elastic_l1", ElasticL1, {"gamma": 1.1}),
-            ("elastic_stvs", ElasticSTVS, {"gamma": 1.2}),
+            ("elastic_l1", ElasticL1, {"scaling_reg": 1.1}),
+            ("elastic_l2", ElasticL2, {"scaling_reg": 1.1}),
+            ("elastic_stvs", ElasticSTVS, {"scaling_reg": 1.2}),
         ],
     )
     def test_prepare_costs(self, adata_time: AnnData, cost_str: str, cost_inst: Any, cost_kwargs: Mapping[str, int]):
         problem = SinkhornProblem(adata=adata_time)
         problem = problem.prepare(
             key="time", policy="sequential", joint_attr="X_pca", cost=cost_str, cost_kwargs=cost_kwargs
+        )
+        if cost_kwargs:
+            for k, v in cost_kwargs.items():
+                assert getattr(problem[0, 1].xy.cost, k) == v
+
+        problem = problem.solve(max_iterations=2)
+
+    @pytest.mark.fast()
+    @pytest.mark.parametrize(
+        ("cost_str", "cost_inst", "cost_kwargs"),
+        [
+            ("sq_euclidean", SqEuclidean, {}),
+            ("euclidean", Euclidean, {}),
+            ("cosine", Cosine, {}),
+            ("pnorm_p", PNormP, {"p": 3}),
+            ("sq_pnorm", SqPNorm, {"p": 3}),
+            ("elastic_l1", ElasticL1, {"scaling_reg": 1.1}),
+            ("elastic_l2", ElasticL2, {"scaling_reg": 1.1}),
+            ("elastic_stvs", ElasticSTVS, {"scaling_reg": 1.2}),
+        ],
+    )
+    def test_prepare_costs_with_callback(
+        self, adata_time: AnnData, cost_str: str, cost_inst: Any, cost_kwargs: Mapping[str, int]
+    ):
+        problem = SinkhornProblem(adata=adata_time)
+        problem = problem.prepare(
+            key="time", policy="sequential", xy_callback="local-pca", cost=cost_str, cost_kwargs=cost_kwargs
         )
         if cost_kwargs:
             for k, v in cost_kwargs.items():
@@ -153,9 +188,15 @@ class TestSinkhornProblem:
 
         geom = lin_prob.geom
         for arg, val in geometry_args.items():
-            assert hasattr(geom, val), val
+            assert hasattr(geom, val)
             el = getattr(geom, val)[0] if isinstance(getattr(geom, val), tuple) else getattr(geom, val)
-            assert el == args_to_check[arg], arg
+            if arg == "epsilon":
+                eps_processed = getattr(geom, val)
+                assert isinstance(eps_processed, epsilon_scheduler.Epsilon)
+                assert eps_processed.target == args_to_check[arg], arg
+            else:
+                assert getattr(geom, val) == args_to_check[arg], arg
+                assert el == args_to_check[arg]
 
         args = pointcloud_args if args_to_check["rank"] == -1 else lr_pointcloud_args
         for arg, val in args.items():

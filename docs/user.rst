@@ -26,6 +26,7 @@ Generic Problems
 
     generic.SinkhornProblem
     generic.GWProblem
+    generic.FGWProblem
 
 Plotting
 ~~~~~~~~
@@ -46,12 +47,13 @@ Datasets
 .. autosummary::
     :toctree: genapi
 
-    datasets.mosta
-    datasets.hspc
-    datasets.drosophila
-    datasets.c_elegans
-    datasets.zebrafish
     datasets.bone_marrow
-    datasets.tedsim
+    datasets.c_elegans
+    datasets.drosophila
+    datasets.hspc
+    datasets.mosta
+    datasets.sciplex
     datasets.sim_align
     datasets.simulate_data
+    datasets.tedsim
+    datasets.zebrafish

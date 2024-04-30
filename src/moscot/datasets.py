@@ -5,12 +5,14 @@ import pickle
 import shutil
 import tempfile
 import urllib.request
+from itertools import combinations
 from types import MappingProxyType
 from typing import Any, Dict, List, Literal, Mapping, Optional, Tuple
 
 import networkx as nx
 import numpy as np
 import pandas as pd
+from scipy.linalg import block_diag
 
 import anndata as ad
 from anndata import AnnData
@@ -178,9 +180,9 @@ def c_elegans(
         force_download=force_download,
         **kwargs,
     )
-    # TODO(michalk8): also cache or store in AnnData ad Newick + reconstruct?
-    with urllib.request.urlopen("https://figshare.com/ndownloader/files/39943603") as fin:
-        tree = pickle.load(fin)
+
+    with urllib.request.urlopen("https://figshare.com/ndownloader/files/43064842") as fin:
+        tree = nx.read_gml(fin)
 
     return adata, tree
 
@@ -240,7 +242,7 @@ def bone_marrow(
     path
         Path where to save the file.
     rna
-        Return the RNA data if `True`, otherwise return ATAC data.
+        Return the RNA data If :obj:`True`, otherwise return ATAC data.
     force_download
         Whether to force-download the data.
     kwargs
@@ -302,6 +304,38 @@ def tedsim(
         path,
         backup_url="https://figshare.com/ndownloader/files/40178644",
         expected_shape=(8448, 500),
+        force_download=force_download,
+        **kwargs,
+    )
+
+
+def sciplex(
+    path: PathLike = "~/.cache/moscot/sciplex.h5ad",
+    force_download: bool = False,
+    **kwargs: Any,
+) -> AnnData:  # pragma: no cover
+    """Perturbation dataset published in :cite:`srivatsan:20`.
+
+    Transcriptomes of A549, K562, and mCF7 cells exposed to 188 compounds.
+    Data obtained from http://projects.sanderlab.org/scperturb/.
+
+    Parameters
+    ----------
+    path
+        Path where to save the file.
+    force_download
+        Whether to force-download the data.
+    kwargs
+        Keyword arguments for :func:`scanpy.read`.
+
+    Returns
+    -------
+    Annotated data object.
+    """
+    return _load_dataset_from_url(
+        path,
+        backup_url="https://figshare.com/ndownloader/files/43381398",
+        expected_shape=(799317, 110984),
         force_download=force_download,
         **kwargs,
     )
@@ -379,7 +413,8 @@ def simulate_data(
         Literal indicating whether to add costs corresponding to a specific problem setting.
         If `None`, no quadratic cost element is generated.
     lin_cost_matrix
-        Key where to save the linear cost matrix. If `None`, no linear cost matrix is generated.
+        Key where to save the linear cost matrix. It is generated according to the pairwise policy.
+        If `None`, no linear cost matrix is generated.
     quad_cost_matrix
         Key where to save the quadratic cost matrices. If `None`, no quadratic cost matrix is generated.
 
@@ -425,9 +460,18 @@ def simulate_data(
         barcode_dim = kwargs.pop("barcode_dim", 10)
         adata.obsm["barcode"] = rng.choice(n_intBCs, size=(adata.n_obs, barcode_dim))
     if lin_cost_matrix is not None:
-        raise NotImplementedError("TODO")
+        adata.uns[lin_cost_matrix] = {}
+        for i, j in combinations(range(n_distributions), 2):
+            adata.uns[lin_cost_matrix][(str(i), str(j))] = np.abs(
+                rng.normal(size=(cells_per_distribution, cells_per_distribution))
+            )
     if quad_cost_matrix is not None:
-        raise NotImplementedError("TODO")
+        quad_costs = [
+            (np.abs(rng.normal(size=(cells_per_distribution, cells_per_distribution)))) for i in range(n_distributions)
+        ]
+        quad_cm = block_diag(*quad_costs)
+        np.fill_diagonal(quad_cm, 0)
+        adata.obsp[quad_cost_matrix] = quad_cm
     return adata
 
 

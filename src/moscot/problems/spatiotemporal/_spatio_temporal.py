@@ -1,6 +1,8 @@
 import types
 from typing import Any, Literal, Mapping, Optional, Tuple, Type, Union
 
+from ott.geometry import epsilon_scheduler
+
 from anndata import AnnData
 
 from moscot import _constants
@@ -45,6 +47,7 @@ class SpatioTemporalProblem(  # type: ignore[misc]
         time_key: str,
         spatial_key: str = "spatial",
         joint_attr: Optional[Union[str, Mapping[str, Any]]] = None,
+        normalize_spatial: bool = True,
         policy: Literal["sequential", "triu", "tril", "explicit"] = "sequential",
         cost: OttCostFnMap_t = "sq_euclidean",
         cost_kwargs: CostKwargs_t = types.MappingProxyType({}),
@@ -73,11 +76,14 @@ class SpatioTemporalProblem(  # type: ignore[misc]
             - :obj:`None` - `PCA <https://en.wikipedia.org/wiki/Principal_component_analysis>`_
               on :attr:`~anndata.AnnData.X` is computed.
             - :class:`str` - key in :attr:`~anndata.AnnData.obsm` where the data is stored.
-            - :class:`dict`-  it should contain ``'attr'`` and ``'key'``, the attribute and key in
+            - :class:`dict` -  it should contain ``'attr'`` and ``'key'``, the attribute and key in
               :class:`~anndata.AnnData`, and optionally ``'tag'`` from the
               :class:`tags <moscot.utils.tagged_array.Tag>`.
 
             By default, :attr:`tag = 'point_cloud' <moscot.utils.tagged_array.Tag.POINT_CLOUD>` is used.
+        normalize_spatial
+            Whether to normalize the spatial coordinates. If :obj:`True`, the coordinates are normalized
+            by standardizing them.
         policy
             Rule which defines how to construct the subproblems using :attr:`obs['{time_key}'] <anndata.AnnData.obs>`.
             Valid options are:
@@ -144,6 +150,7 @@ class SpatioTemporalProblem(  # type: ignore[misc]
             spatial_key=spatial_key,
             batch_key=time_key,
             joint_attr=joint_attr,
+            normalize_spatial=normalize_spatial,
             policy=policy,  # type: ignore[arg-type]
             reference=None,
             cost=cost,
@@ -157,7 +164,7 @@ class SpatioTemporalProblem(  # type: ignore[misc]
     def solve(
         self,
         alpha: float = 0.5,
-        epsilon: Optional[float] = 1e-3,
+        epsilon: Union[float, epsilon_scheduler.Epsilon] = 1e-3,
         tau_a: float = 1.0,
         tau_b: float = 1.0,
         rank: int = -1,

@@ -4,9 +4,11 @@ import pytest
 
 import numpy as np
 import pandas as pd
+from ott.geometry import epsilon_scheduler
 from ott.geometry.costs import (
     Cosine,
     ElasticL1,
+    ElasticL2,
     ElasticSTVS,
     Euclidean,
     PNormP,
@@ -21,12 +23,14 @@ from moscot._types import CostKwargs_t
 from moscot.base.output import BaseSolverOutput
 from moscot.base.problems import OTProblem
 from moscot.problems.generic import GWProblem
+from tests._utils import _assert_marginals_set
 from tests.problems.conftest import (
     geometry_args,
     gw_args_1,
     gw_args_2,
     gw_linear_solver_args,
     gw_lr_linear_solver_args,
+    gw_lr_solver_args,
     gw_solver_args,
     quad_prob_args,
 )
@@ -34,7 +38,10 @@ from tests.problems.conftest import (
 
 class TestGWProblem:
     @pytest.mark.fast()
-    @pytest.mark.parametrize("policy", ["sequential", "star"])
+    @pytest.mark.parametrize(
+        "policy",
+        ["sequential", "star"],
+    )
     def test_prepare(self, adata_space_rotate: AnnData, policy):
         expected_keys = {
             "sequential": [("0", "1"), ("1", "2")],
@@ -77,6 +84,9 @@ class TestGWProblem:
             assert isinstance(subsol, BaseSolverOutput)
             assert key in expected_keys
             assert problem[key].solver._problem.geom_xy is None
+            # assert prior and posterior marginals are the same
+            assert np.allclose(subsol.a, problem[key].solver._problem.a, atol=1e-5)
+            assert np.allclose(subsol.b, problem[key].solver._problem.b, atol=1e-5)
 
     @pytest.mark.parametrize("method", ["fisher", "perm_test"])
     def test_compute_feature_correlation(self, adata_space_rotate: AnnData, method: str):
@@ -108,24 +118,26 @@ class TestGWProblem:
             y_attr={"attr": "obsm", "key": "spatial"},
             policy="sequential",
         )
+        _ = args_to_check.pop("alpha", None)
 
         problem = problem.solve(**args_to_check)
         key = ("0", "1")
         solver = problem[key].solver.solver
-        for arg, val in gw_solver_args.items():
+        args = gw_solver_args if args_to_check["rank"] == -1 else gw_lr_solver_args
+        for arg, val in args.items():
             assert hasattr(solver, val)
             assert getattr(solver, val) == args_to_check[arg]
 
-        sinkhorn_solver = solver.linear_ot_solver
+        sinkhorn_solver = solver.linear_ot_solver if args_to_check["rank"] == -1 else solver
         lin_solver_args = gw_linear_solver_args if args_to_check["rank"] == -1 else gw_lr_linear_solver_args
+        tmp_dict = args_to_check["linear_solver_kwargs"] if args_to_check["rank"] == -1 else args_to_check
         for arg, val in lin_solver_args.items():
-            assert hasattr(sinkhorn_solver, val)
             el = (
                 getattr(sinkhorn_solver, val)[0]
                 if isinstance(getattr(sinkhorn_solver, val), tuple)
                 else getattr(sinkhorn_solver, val)
             )
-            assert el == args_to_check["linear_solver_kwargs"][arg], arg
+            assert el == tmp_dict[arg], arg
 
         quad_prob = problem[key]._solver._problem
         for arg, val in quad_prob_args.items():
@@ -135,7 +147,14 @@ class TestGWProblem:
         geom = quad_prob.geom_xx
         for arg, val in geometry_args.items():
             assert hasattr(geom, val)
-            assert getattr(geom, val) == args_to_check[arg]
+            el = getattr(geom, val)[0] if isinstance(getattr(geom, val), tuple) else getattr(geom, val)
+            if arg == "epsilon":
+                eps_processed = getattr(geom, val)
+                assert isinstance(eps_processed, epsilon_scheduler.Epsilon)
+                assert eps_processed.target == args_to_check[arg], arg
+            else:
+                assert getattr(geom, val) == args_to_check[arg], arg
+                assert el == args_to_check[arg]
 
     @pytest.mark.fast()
     @pytest.mark.parametrize(
@@ -146,14 +165,63 @@ class TestGWProblem:
             ("cosine", Cosine, {}),
             ("pnorm_p", PNormP, {"p": 3}),
             ("sq_pnorm", SqPNorm, {"x": {"p": 3}, "y": {"p": 4}}),
-            ("elastic_l1", ElasticL1, {"x": {"gamma": 3}, "y": {"gamma": 4}}),
-            ("elastic_stvs", ElasticSTVS, {"x": {"gamma": 3}, "y": {"gamma": 4}}),
+            ("elastic_l1", ElasticL1, {"x": {"scaling_reg": 3}, "y": {"scaling_reg": 4}}),
+            ("elastic_l2", ElasticL2, {"x": {"scaling_reg": 3}, "y": {"scaling_reg": 4}}),
+            ("elastic_stvs", ElasticSTVS, {"x": {"scaling_reg": 3}, "y": {"scaling_reg": 4}}),
         ],
     )
     def test_prepare_costs(self, adata_time: AnnData, cost_str: str, cost_inst: Any, cost_kwargs: CostKwargs_t):
         problem = GWProblem(adata=adata_time)
         problem = problem.prepare(
             key="time", policy="sequential", x_attr="X_pca", y_attr="X_pca", cost=cost_str, cost_kwargs=cost_kwargs
+        )
+        assert isinstance(problem[0, 1].x.cost, cost_inst)
+        assert isinstance(problem[0, 1].y.cost, cost_inst)
+
+        if cost_kwargs:
+            x_items = cost_kwargs["x"].items() if "x" in cost_kwargs else cost_kwargs.items()
+            for k, v in x_items:
+                assert getattr(problem[0, 1].x.cost, k) == v
+            y_items = cost_kwargs["y"].items() if "y" in cost_kwargs else cost_kwargs.items()
+            for k, v in y_items:
+                assert getattr(problem[0, 1].y.cost, k) == v
+
+        problem = problem.solve(max_iterations=2)
+
+    @pytest.mark.fast()
+    def test_prepare_marginals(self, adata_time: AnnData, marginal_keys):
+        problem = GWProblem(adata=adata_time)
+        problem = problem.prepare(
+            a=marginal_keys[0], b=marginal_keys[1], key="time", policy="sequential", x_attr="X_pca", y_attr="X_pca"
+        )
+        for key in problem:
+            _assert_marginals_set(adata_time, problem, key, marginal_keys)
+
+    @pytest.mark.fast()
+    @pytest.mark.parametrize(
+        ("cost_str", "cost_inst", "cost_kwargs"),
+        [
+            ("sq_euclidean", SqEuclidean, {}),
+            ("euclidean", Euclidean, {}),
+            ("cosine", Cosine, {}),
+            ("pnorm_p", PNormP, {"p": 3}),
+            ("sq_pnorm", SqPNorm, {"x": {"p": 3}, "y": {"p": 4}}),
+            ("elastic_l1", ElasticL1, {"x": {"scaling_reg": 3}, "y": {"scaling_reg": 4}}),
+            ("elastic_l2", ElasticL2, {"x": {"scaling_reg": 3}, "y": {"scaling_reg": 4}}),
+            ("elastic_stvs", ElasticSTVS, {"x": {"scaling_reg": 3}, "y": {"scaling_reg": 4}}),
+        ],
+    )
+    def test_prepare_costs_with_callback(
+        self, adata_time: AnnData, cost_str: str, cost_inst: Any, cost_kwargs: CostKwargs_t
+    ):
+        problem = GWProblem(adata=adata_time)
+        problem = problem.prepare(
+            key="time",
+            policy="sequential",
+            x_callback="local-pca",
+            y_attr="X_pca",
+            cost=cost_str,
+            cost_kwargs=cost_kwargs,
         )
         assert isinstance(problem[0, 1].x.cost, cost_inst)
         assert isinstance(problem[0, 1].y.cost, cost_inst)
