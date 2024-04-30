@@ -637,8 +637,8 @@ class TemporalMixin(AnalysisMixin[K, B]):
             tag = self.problems[src, tgt].xy.tag  # type: ignore[union-attr]
             if tag != Tag.POINT_CLOUD:
                 raise ValueError(
-                    f"Expected `tag={Tag.POINT_CLOUD}`, "  # type: ignore[union-attr]
-                    f"found `tag={self.problems[src, tgt].xy.tag}`."
+                    f"Expected `tag={Tag.POINT_CLOUD}`, "
+                    f"found `tag={self.problems[src, tgt].xy.tag}`."  # type: ignore[union-attr]
                 )
             if src == source:
                 source_data = self.problems[src, tgt].xy.data_src  # type: ignore[union-attr]
