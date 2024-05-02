@@ -26,6 +26,7 @@ import scipy.sparse as sp
 from ott.geometry import costs, epsilon_scheduler, geodesic, geometry, pointcloud
 from ott.neural.datasets import OTData, OTDataset
 from ott.neural.methods.flows import dynamics, genot
+from ott.neural.networks.layers import time_encoder
 from ott.neural.networks.velocity_field import VelocityField
 from ott.problems.linear import linear_problem
 from ott.problems.quadratic import quadratic_problem
@@ -605,17 +606,22 @@ class GENOTLinSolver(OTSolver[OTTOutput]):
             ),
             hidden_dims=self._neural_kwargs.get("velocity_field_hidden_dims", [7, 7, 7]),
             time_dims=self._neural_kwargs.get("velocity_field_time_dims", None),
+            time_encoder=self._neural_kwargs.get(
+                "velocity_field_time_encoder", functools.partial(time_encoder.cyclical_time_encoder, n_freqs=1024)
+            ),
         )
         seed = self._neural_kwargs.get("seed", 0)
         rng = jax.random.PRNGKey(seed)
-        data_match_fn_kwargs = self._neural_kwargs.get("data_match_fn_kwargs", {})
+        data_match_fn_kwargs = self._neural_kwargs.get(
+            "data_match_fn_kwargs", {"epsilon": 1e-1, "tau_a": 1.0, "tau_b": 1.0}
+        )
         time_sampler = self._neural_kwargs.get("time_sampler", uniform_sampler)
-        optimizer = self._neural_kwargs.get("optimizer", optax.adam(learning_rate=1e-3))
+        optimizer = self._neural_kwargs.get("optimizer", optax.adam(learning_rate=1e-4))
         self._solver = genot.GENOT(
             vf=neural_vf,
             flow=self._neural_kwargs.get(
                 "flow",
-                dynamics.ConstantNoiseFlow(0.0),
+                dynamics.ConstantNoiseFlow(0.1),
             ),
             data_match_fn=functools.partial(data_match_fn, typ="lin", **data_match_fn_kwargs),
             source_dim=source_dim,
