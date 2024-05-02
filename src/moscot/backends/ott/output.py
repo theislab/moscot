@@ -396,20 +396,22 @@ class OTTNeuralOutput(BaseNeuralOutput):
     def pull(self, x: ArrayLike, cond: Optional[ArrayLike] = None) -> ArrayLike:
         """Pull distribution `x` conditioned on condition `cond`.
 
+        This does not make sense for some neural models and is therefore left unimplemented.
+
         Parameters
         ----------
-        x
-            Distribution to pull.
-        cond
-            Condition of conditional neural OT.
+        x : ArrayLike
+        cond : Optional[ArrayLike], optional
 
         Returns
         -------
-        Pulled distribution.
+        ArrayLike
+
+        Raises
+        ------
+        NotImplementedError
         """
-        if x.ndim not in (1, 2):
-            raise ValueError(f"Expected 1D or 2D array, found `{x.ndim}`.")
-        return self._apply(x, cond=cond, forward=False)
+        raise NotImplementedError("`pull` does not make sense for neural OT.")
 
     def _apply(self, x: ArrayLike, forward: bool, cond: Optional[ArrayLike] = None) -> ArrayLike:
         if not forward:
