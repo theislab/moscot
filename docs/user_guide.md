@@ -22,7 +22,7 @@ moscot builds upon three principles:
      - Module
    * - :mod:`moscot.problems.time.TemporalProblem`
      - Class for analyzing time-series single cell data based on :cite:p:`schiebinger:19`
-     - :module:`moscot.problems.time`
+     - :mod:`moscot.problems.time`
 ```
 
 ### Generic problems
@@ -37,7 +37,7 @@ moscot builds upon three principles:
      - Module
    * - :mod:`moscot.problems.generic.SinkhornProblem`
      - Class for solving a :term:`linear problem`.
-     - :module:`moscot.problems.generic`
+     - :mod:`moscot.problems.generic`
 ```
 
 ## Scalability

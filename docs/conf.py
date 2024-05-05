@@ -91,7 +91,7 @@ myst_enable_extensions = [
     "dollarmath",
     "amsmath",
 ]
-myst_heading_anchors = 2
+myst_heading_anchors = 3
 
 
 # autodoc + napoleon
