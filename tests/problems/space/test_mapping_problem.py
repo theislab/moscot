@@ -111,8 +111,7 @@ class TestMappingProblem:
         initializer: Optional[Literal["random", "rank2"]],
     ):
         adataref, adatasp = _adata_spatial_split(adata_mapping)
-        # check https://github.com/ott-jax/ott/issues/495
-        kwargs = {"inner_iterations": 10}
+        kwargs = {}
         if rank > -1:
             kwargs["initializer"] = initializer
             if initializer == "random":

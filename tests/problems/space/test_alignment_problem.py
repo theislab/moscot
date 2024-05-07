@@ -87,8 +87,7 @@ class TestAlignmentProblem:
         rank: int,
         initializer: Optional[Literal["random", "rank2"]],
     ):
-        # check https://github.com/ott-jax/ott/issues/495
-        kwargs = {"inner_iterations": 10}
+        kwargs = {}
         if rank > -1:
             kwargs["initializer"] = initializer
             if initializer == "random":
