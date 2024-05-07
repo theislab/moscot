@@ -25,7 +25,7 @@ class TestOTProblem:
             xy={"x_attr": "obsm", "x_key": "X_pca", "y_attr": "obsm", "y_key": "X_pca"},
             x={"attr": "X"},
             y={"attr": "X"},
-        ).solve(epsilon=5e-1)
+        ).solve(epsilon=5e-1, alpha=0.5)
 
         assert isinstance(prob.solution, BaseSolverOutput)
 
@@ -64,7 +64,7 @@ class TestOTProblem:
         prob.set_xy(cost_matrix, tag=tag)
         assert isinstance(prob.xy.data_src, np.ndarray)
         assert prob.xy.data_tgt is None
-        prob = prob.solve(epsilon=1.0, max_iterations=5)  # TODO(@MUCDK) once fixed in OTT-JAX test for scale_cost
+        prob = prob.solve(epsilon=1.0, max_iterations=5, alpha=0.5)  # TODO(@MUCDK) once fixed in OTT-JAX test for scale_cost
         np.testing.assert_equal(prob.xy.data_src, cost_matrix.to_numpy())
 
     @pytest.mark.parametrize("tag", ["cost_matrix", "kernel"])
@@ -83,7 +83,7 @@ class TestOTProblem:
         assert isinstance(prob.x.data_src, np.ndarray)
         assert prob.x.data_tgt is None
 
-        prob = prob.solve(epsilon=1.0, max_iterations=5)  # TODO(@MUCDK) once fixed in OTT-JAX test for scale_cost
+        prob = prob.solve(epsilon=1.0, max_iterations=5, alpha=0.5)  # TODO(@MUCDK) once fixed in OTT-JAX test for scale_cost
         np.testing.assert_equal(prob.x.data_src, cost_matrix.to_numpy())
 
     @pytest.mark.parametrize("tag", ["cost_matrix", "kernel"])
@@ -102,7 +102,7 @@ class TestOTProblem:
         assert isinstance(prob.y.data_src, np.ndarray)
         assert prob.y.data_tgt is None
 
-        prob = prob.solve(epsilon=1.0, max_iterations=5)
+        prob = prob.solve(epsilon=1.0, max_iterations=5, alpha=0.5)
         np.testing.assert_equal(prob.y.data_src, cost_matrix.to_numpy())
 
     def test_set_xy_change_problem_kind(self, adata_x: AnnData, adata_y: AnnData):
