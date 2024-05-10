@@ -28,11 +28,11 @@ class TestCrossModalityTranslationAnalysisMixin:
     ):
         adata_src, adata_tgt = adata_translation_split
         expected_keys = {(i, "ref") for i in adata_src.obs["batch"].cat.categories}
-
+        alpha = 1.0 if joint_attr is None else 0.5
         tp = (
             TranslationProblem(adata_src, adata_tgt)
             .prepare(batch_key="batch", src_attr=src_attr, tgt_attr=tgt_attr, joint_attr=joint_attr)
-            .solve()
+            .solve(alpha=alpha)
         )
         for src, tgt in expected_keys:
             trans_forward = tp.translate(source=src, target=tgt, forward=True)
