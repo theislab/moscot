@@ -100,5 +100,9 @@ moscot problems implement problem-specific downstream methods, so we recommend t
 
 ## Hyperparameters
 
-- $\tau_a$ and $\tau_b$
-- $\varepsilon$
+moscot problems' `solve` methods have the following parameters that can be set depending on the specific task:
+
+- $\alpha$ - Parameter in $(0, 1]$ that interpolates between the {term}`quadratic term` and the {term}`linear term`. $\alpha = 1$ corresponds to the pure {term}`Gromov-Wasserstein` problem while $\alpha \to 0$ corresponds to the pure {term}`linear problem`.
+- $\tau_a$ and $\tau_b$ - Parameters in $(0, 1]$ that define how {term}`unbalanced <unbalanced OT problem>` is the problem on the source and target {term}`marginals`. If $1$, the problem is {term}`balanced <balanced OT problem>`.
+- $\varepsilon$ - {term}`Entropic regularization`.
+- `rank` - Rank of the {term}`low-rank OT` solver {cite}`scetbon:21b`. If :math:`-1`, full-rank solver {cite}`peyre:2016` is used.
