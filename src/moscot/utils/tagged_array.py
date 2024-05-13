@@ -3,11 +3,9 @@ from dataclasses import dataclass
 from typing import Any, Callable, Literal, Optional, Tuple, Union
 
 import numpy as np
-import scipy.sparse as sp
 
 from anndata import AnnData
 
-from moscot._logging import logger
 from moscot._types import ArrayLike, CostFn_t
 from moscot.costs import get_cost
 
@@ -67,9 +65,6 @@ class TaggedArray:
         except IndexError:
             raise IndexError(f"Unable to fetch data from `{modifier}`.") from None
 
-        if sp.issparse(data):
-            logger.warning(f"Densifying data in `{modifier}`")
-            data = data.A
         if data.ndim != 2:
             raise ValueError(f"Expected `{modifier}` to have `2` dimensions, found `{data.ndim}`.")
 
@@ -101,9 +96,6 @@ class TaggedArray:
         **kwargs: Any,
     ) -> "TaggedArray":
         """Create tagged array from :class:`~anndata.AnnData`.
-
-        .. warning::
-            Sparse arrays will be always densified.
 
         Parameters
         ----------
