@@ -12,32 +12,77 @@ moscot builds upon three principles:
 
 ### Biological problems
 
+#### Temporal data
+
 ```{eval-rst}
 .. list-table::
-   :widths: 15 100 25
+   :widths: 15 100
    :header-rows: 1
 
    * - Problem
      - Description
-     - Module
    * - :mod:`moscot.problems.time.TemporalProblem`
-     - Class for analyzing time-series single cell data based on :cite:p:`schiebinger:19`
-     - module:: moscot.problems.time
+     - Class for analyzing time-series single cell data based on :cite:`schiebinger:19`.
+   * - :mod:`moscot.problems.time.LineageProblem`
+     - Estimator for modelling time series single cell data based on :cite:`lange-moslin:23`.
+```
+
+#### Spatial data
+
+```{eval-rst}
+.. list-table::
+   :widths: 15 100
+   :header-rows: 1
+
+   * - Problem
+     - Description
+   * - :mod:`moscot.problems.space.AlignmentProblem`
+     - Class for aligning spatial omics data, based on :cite:`zeira:22`.
+   * - :mod:`moscot.problems.space.MappingProblem`
+     - Class for mapping single cell omics data onto spatial data, based on :cite:`nitzan:19`.
+```
+
+#### Spatiotemporal data
+
+```{eval-rst}
+.. list-table::
+   :widths: 15 100
+   :header-rows: 1
+
+   * - Problem
+     - Description
+   * - :mod:`moscot.problems.cross_modality.TranslationProblem`
+     - Class for analyzing time series spatial single-cell data.
+```
+
+#### Multimodal data
+
+```{eval-rst}
+.. list-table::
+   :widths: 15 100
+   :header-rows: 1
+
+   * - Problem
+     - Description
+   * - :mod:`moscot.problems.spatiotemporal.SpatioTemporalProblem`
+     - Class for integrating single-cell multi-omics data, based on :cite:`demetci-scot:22`.
 ```
 
 ### Generic problems
 
 ```{eval-rst}
 .. list-table::
-   :widths: 15 100 25
+   :widths: 15 100
    :header-rows: 1
 
    * - Problem
      - Description
-     - Module
    * - :mod:`moscot.problems.generic.SinkhornProblem`
      - Class for solving a :term:`linear problem`.
-     - module:: moscot.problems.generic
+   * - :mod:`moscot.problems.generic.GWProblem`
+     - Class for solving a :term:`Gromov-Wasserstein` problem.
+   * - :mod:`moscot.problems.generic.FGWProblem`
+     - Class for solving a :term:`fused Gromov-Wasserstein` problem.
 ```
 
 ## Scalability
