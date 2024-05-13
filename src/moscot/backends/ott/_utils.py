@@ -69,7 +69,7 @@ def alpha_to_fused_penalty(alpha: float) -> float:
 
 
 def densify(arr: ArrayLike) -> jax.Array:
-    """If the input is sparse, convert it t dense.
+    """If the input is sparse, convert it to dense.
 
     Parameters
     ----------
