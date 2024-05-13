@@ -1,6 +1,6 @@
 # User guide
 
-moscot is a toolbox which can solve a wide range of tasks in single-cell genomics building upon the concept of Optimal Transport.
+moscot is a toolbox which can solve a wide range of tasks in single-cell genomics building upon the concept of [Optimal Transport (OT)](https://en.wikipedia.org/wiki/Transportation_theory_(mathematics)).
 
 moscot builds upon three principles:
 
