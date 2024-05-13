@@ -3,9 +3,11 @@ from dataclasses import dataclass
 from typing import Any, Callable, Literal, Optional, Tuple, Union
 
 import numpy as np
+import scipy.sparse as sp
 
 from anndata import AnnData
 
+from moscot._logging import logger
 from moscot._types import ArrayLike, CostFn_t
 from moscot.costs import get_cost
 
@@ -53,6 +55,7 @@ class TaggedArray:
         *,
         attr: Literal["X", "obsp", "obsm", "layers", "uns"],
         key: Optional[str] = None,
+        densify: bool = False,
     ) -> ArrayLike:
         modifier = f"adata.{attr}" if key is None else f"adata.{attr}[{key!r}]"
         data = getattr(adata, attr)
@@ -65,6 +68,9 @@ class TaggedArray:
         except IndexError:
             raise IndexError(f"Unable to fetch data from `{modifier}`.") from None
 
+        if sp.issparse(data) and densify:
+            logger.warning(f"Densifying data in `{modifier}`")
+            data = data.A
         if data.ndim != 2:
             raise ValueError(f"Expected `{modifier}` to have `2` dimensions, found `{data.ndim}`.")
 
@@ -96,6 +102,9 @@ class TaggedArray:
         **kwargs: Any,
     ) -> "TaggedArray":
         """Create tagged array from :class:`~anndata.AnnData`.
+
+        .. warning::
+            Sparse arrays will be densified except when ``tag = Tag.GRAPH``.
 
         Parameters
         ----------
@@ -129,13 +138,13 @@ class TaggedArray:
         if tag == Tag.GRAPH:
             if cost == "geodesic":
                 dist_key = f"{dist_key[0]}_{dist_key[1]}" if isinstance(dist_key, tuple) else dist_key
-                data = cls._extract_data(adata, attr=attr, key=f"{dist_key}_{key}")
+                data = cls._extract_data(adata, attr=attr, key=f"{dist_key}_{key}", densify=False)
                 return cls(data_src=data, tag=Tag.GRAPH, cost="geodesic")
             raise ValueError(f"Expected `cost=geodesic`, found `{cost}`.")
         if tag == Tag.COST_MATRIX:
             if cost == "custom":  # our custom cost functions
                 modifier = f"adata.{attr}" if key is None else f"adata.{attr}[{key!r}]"
-                data = cls._extract_data(adata, attr=attr, key=key)
+                data = cls._extract_data(adata, attr=attr, key=key, densify=True)
                 if np.any(data < 0):
                     raise ValueError(f"Cost matrix in `{modifier}` contains negative values.")
                 return cls(data_src=data, tag=Tag.COST_MATRIX, cost=None)
@@ -145,7 +154,7 @@ class TaggedArray:
             return cls(data_src=cost_matrix, tag=Tag.COST_MATRIX, cost=None)
 
         # tag is either a point cloud or a kernel
-        data = cls._extract_data(adata, attr=attr, key=key)
+        data = cls._extract_data(adata, attr=attr, key=key, densify=True)
         cost_fn = get_cost(cost, backend=backend, **kwargs)
         return cls(data_src=data, tag=tag, cost=cost_fn)
 
