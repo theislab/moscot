@@ -417,6 +417,8 @@ class OTProblem(BaseProblem):
                 raise ValueError(
                     "`alpha` must be 1.0 for quadratic problems without `xy` supplied. See `FGWProblem` class."
                 )
+            if alpha == 1.0 and self.xy is not None:
+                raise ValueError("Unable to solve a quadratic problem with `alpha = 1` and `xy` supplied.")
 
         self._solver = solver_class(**init_kwargs)
 
