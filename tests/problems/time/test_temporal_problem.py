@@ -5,9 +5,9 @@ import pytest
 import jax.numpy as jnp
 import numpy as np
 import pandas as pd
+import scipy.sparse as sp
 from ott.geometry import costs, epsilon_scheduler
 from scipy.sparse import csr_matrix
-import scipy.sparse as sp
 
 import scanpy as sc
 from anndata import AnnData
@@ -266,14 +266,18 @@ class TestTemporalProblem:
             indices = np.where((adata_time.obs[batch_column] == batch1) | (adata_time.obs[batch_column] == batch2))[0]
             adata_subset = adata_time[indices]
             sc.pp.neighbors(adata_subset, n_neighbors=15, use_rep="X_pca")
-            df = pd.DataFrame(
-                index=adata_subset.obs_names,
-                columns=adata_subset.obs_names,
-                data=adata_subset.obsp["connectivities"].A.astype("float64"),
-            ) if dense_input else (
-                adata_subset.obsp["connectivities"].astype("float64"),
-                adata_subset.obs_names.to_series(),
-                adata_subset.obs_names.to_series(),
+            df = (
+                pd.DataFrame(
+                    index=adata_subset.obs_names,
+                    columns=adata_subset.obs_names,
+                    data=adata_subset.obsp["connectivities"].A.astype("float64"),
+                )
+                if dense_input
+                else (
+                    adata_subset.obsp["connectivities"].astype("float64"),
+                    adata_subset.obs_names.to_series(),
+                    adata_subset.obs_names.to_series(),
+                )
             )
             dfs.append(df)
 
