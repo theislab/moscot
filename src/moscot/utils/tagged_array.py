@@ -104,7 +104,7 @@ class TaggedArray:
         """Create tagged array from :class:`~anndata.AnnData`.
 
         .. warning::
-            Sparse arrays will be densified except when ``tag = Tag.GRAPH``.
+            Sparse arrays will be densified except when ``tag = 'graph'``.
 
         Parameters
         ----------
