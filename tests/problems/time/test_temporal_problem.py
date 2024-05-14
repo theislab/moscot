@@ -251,7 +251,7 @@ class TestTemporalProblem:
         )
 
     @pytest.mark.parametrize("dense_input", [True, False])
-    def test_geodesic_cost_set_xy_cost_dense(self, adata_time, dense_input):
+    def test_geodesic_cost_set_xy_cost(self, adata_time, dense_input):
         # TODO(@MUCDK) add test for failure case
         tp = TemporalProblem(adata_time)
         tp = tp.prepare("time", joint_attr="X_pca")
