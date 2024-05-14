@@ -142,14 +142,18 @@ class TestAlignmentProblem:
             )[0]
             adata_subset = adata_space_rotate[indices]
             sc.pp.neighbors(adata_subset, n_neighbors=15, use_rep="X_pca")
-            df = pd.DataFrame(
-                index=adata_subset.obs_names,
-                columns=adata_subset.obs_names,
-                data=adata_subset.obsp[key].A.astype("float64"),
-            ) if dense_input else (
-                adata_subset.obsp[key].astype("float64"),
-                adata_subset.obs_names.to_series(),
-                adata_subset.obs_names.to_series(),
+            df = (
+                pd.DataFrame(
+                    index=adata_subset.obs_names,
+                    columns=adata_subset.obs_names,
+                    data=adata_subset.obsp[key].A.astype("float64"),
+                )
+                if dense_input
+                else (
+                    adata_subset.obsp[key].astype("float64"),
+                    adata_subset.obs_names.to_series(),
+                    adata_subset.obs_names.to_series(),
+                )
             )
             dfs.append(df)
 
