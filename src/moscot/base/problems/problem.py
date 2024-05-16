@@ -41,6 +41,7 @@ from moscot.base.problems._utils import (
 )
 from moscot.base.solver import OTSolver
 from moscot.utils.subset_policy import (  # type:ignore[attr-defined]
+    ExplicitPolicy,
     Policy_t,
     SubsetPolicy,
     create_policy,
@@ -1075,6 +1076,7 @@ class CondOTProblem(BaseProblem):  # TODO(@MUCDK) check generic types, save and 
         conditions: Mapping[str, Any],
         a: Optional[str] = None,
         b: Optional[str] = None,
+        subset: Optional[Sequence[Tuple[K, K]]] = None,
         **kwargs: Any,
     ) -> "CondOTProblem":
         """Prepare conditional optimal transport problem.
@@ -1111,7 +1113,10 @@ class CondOTProblem(BaseProblem):  # TODO(@MUCDK) check generic types, save and 
             raise KeyError(f"Unable to find data in `adata.obs[{policy_key!r}]`.") from None
 
         self._policy = create_policy(policy, adata=self.adata, key=policy_key)
-        _ = self.policy.create_graph()  # type: ignore[union-attr]
+        if isinstance(self._policy, ExplicitPolicy):
+            self._policy = self._policy.create_graph(subset=subset)
+        else:
+            _ = self.policy.create_graph()  # type: ignore[union-attr]
         self._sample_pairs = list(self.policy._graph)  # type: ignore[union-attr]
 
         for el in self.policy.categories:  # type: ignore[union-attr]
