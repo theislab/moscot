@@ -717,7 +717,7 @@ class GENOTLinProblem(CondOTProblem, GenericAnalysisMixin[K, B]):
         key: str,
         joint_attr: Union[str, Mapping[str, Any]],
         conditional_attr: Union[str, Mapping[str, Any]],
-        policy: Literal["sequential", "pairwise", "explicit"] = "sequential",
+        policy: Literal["sequential", "star", "explicit"] = "sequential",
         a: Optional[str] = None,
         b: Optional[str] = None,
         cost: OttCostFn_t = "sq_euclidean",
