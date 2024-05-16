@@ -193,18 +193,15 @@ class MultiLoader:
         self._it = 0
 
     def __next__(self) -> Dict[str, jnp.ndarray]:
-        if self._it == len(self):
-            raise StopIteration
         self._it += 1
 
         ix = self._rng.choice(len(self._iterators))
         iterator = self._iterators[ix]
-        try:
+        if self._it < len(self):
             return next(iterator)
-        except StopIteration:
-            # reset the consumed iterator and return it's first element
-            self._iterators[ix] = iterator = iter(self.datasets[ix])
-            return next(iterator)
+        # reset the consumed iterator and return it's first element
+        self._iterators[ix] = iterator = iter(self.datasets[ix])
+        return next(iterator)
 
     def __iter__(self) -> "MultiLoader":
         self._it = 0
