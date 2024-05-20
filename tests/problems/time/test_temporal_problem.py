@@ -5,6 +5,7 @@ import pytest
 import jax.numpy as jnp
 import numpy as np
 import pandas as pd
+import scipy.sparse as sp
 from ott.geometry import costs, epsilon_scheduler
 from scipy.sparse import csr_matrix
 
@@ -249,7 +250,8 @@ class TestTemporalProblem:
             np.array(tp[key_1, key_3].solution.transport_matrix),
         )
 
-    def test_geodesic_cost_set_xy_cost_dense(self, adata_time):
+    @pytest.mark.parametrize("dense_input", [True, False])
+    def test_geodesic_cost_set_xy_cost(self, adata_time, dense_input):
         # TODO(@MUCDK) add test for failure case
         tp = TemporalProblem(adata_time)
         tp = tp.prepare("time", joint_attr="X_pca")
@@ -264,20 +266,27 @@ class TestTemporalProblem:
             indices = np.where((adata_time.obs[batch_column] == batch1) | (adata_time.obs[batch_column] == batch2))[0]
             adata_subset = adata_time[indices]
             sc.pp.neighbors(adata_subset, n_neighbors=15, use_rep="X_pca")
-            dfs.append(
+            df = (
                 pd.DataFrame(
                     index=adata_subset.obs_names,
                     columns=adata_subset.obs_names,
                     data=adata_subset.obsp["connectivities"].A.astype("float64"),
                 )
+                if dense_input
+                else (
+                    adata_subset.obsp["connectivities"].astype("float64"),
+                    adata_subset.obs_names.to_series(),
+                    adata_subset.obs_names.to_series(),
+                )
             )
+            dfs.append(df)
 
         tp[0, 1].set_graph_xy(dfs[0], cost="geodesic")
         tp = tp.solve(max_iterations=2, lse_mode=False)
 
         ta = tp[0, 1].xy
         assert isinstance(ta, TaggedArray)
-        assert isinstance(ta.data_src, np.ndarray)
+        assert isinstance(ta.data_src, np.ndarray) if dense_input else sp.issparse(ta.data_src)
         assert ta.data_tgt is None
         assert ta.tag == Tag.GRAPH
         assert ta.cost == "geodesic"
@@ -287,7 +296,7 @@ class TestTemporalProblem:
 
         ta = tp[1, 2].xy
         assert isinstance(ta, TaggedArray)
-        assert isinstance(ta.data_src, np.ndarray)
+        assert isinstance(ta.data_src, np.ndarray) if dense_input else sp.issparse(ta.data_src)
         assert ta.data_tgt is None
         assert ta.tag == Tag.GRAPH
         assert ta.cost == "geodesic"

@@ -16,6 +16,8 @@ from moscot.backends.ott._utils import (
     _instantiate_geodesic_cost,
     alpha_to_fused_penalty,
     check_shapes,
+    convert_scipy_sparse,
+    densify,
     ensure_2d,
 )
 from moscot.backends.ott.output import GraphOTTOutput, OTTOutput
@@ -76,8 +78,8 @@ class OTTJaxSolver(OTSolver[OTTOutput], abc.ABC):
             if not isinstance(cost_fn, costs.CostFn):
                 raise TypeError(f"Expected `cost_fn` to be `ott.geometry.costs.CostFn`, found `{type(cost_fn)}`.")
 
-            y = None if x.data_tgt is None else ensure_2d(x.data_tgt, reshape=True)
-            x = ensure_2d(x.data_src, reshape=True)
+            y = None if x.data_tgt is None else densify(ensure_2d(x.data_tgt, reshape=True))
+            x = densify(ensure_2d(x.data_src, reshape=True))
             if y is not None and x.shape[1] != y.shape[1]:
                 raise ValueError(
                     f"Expected `x/y` to have the same number of dimensions, found `{x.shape[1]}/{y.shape[1]}`."
@@ -94,6 +96,8 @@ class OTTJaxSolver(OTSolver[OTTOutput], abc.ABC):
             )
 
         arr = ensure_2d(x.data_src, reshape=False)
+        arr = densify(arr) if x.is_graph else convert_scipy_sparse(arr)
+
         if x.is_cost_matrix:
             return geometry.Geometry(
                 cost_matrix=arr, epsilon=epsilon, relative_epsilon=relative_epsilon, scale_cost=scale_cost

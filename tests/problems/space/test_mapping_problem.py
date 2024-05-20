@@ -5,6 +5,7 @@ import pytest
 
 import numpy as np
 import pandas as pd
+import scipy.sparse as sp
 from ott.geometry import epsilon_scheduler
 
 import anndata as ad
@@ -134,7 +135,8 @@ class TestMappingProblem:
 
     @pytest.mark.parametrize("key", ["connectivities", "distances"])
     @pytest.mark.parametrize("geodesic_y", [True, False])
-    def test_geodesic_cost_xy(self, adata_mapping: AnnData, key: str, geodesic_y: bool):
+    @pytest.mark.parametrize("dense_input", [True, False])
+    def test_geodesic_cost_xy(self, adata_mapping: AnnData, key: str, geodesic_y: bool, dense_input: bool):
         adataref, adatasp = _adata_spatial_split(adata_mapping)
 
         batch_column = "batch"
@@ -146,20 +148,34 @@ class TestMappingProblem:
             adata_spatial_subset = adatasp[indices]
             adata_subset = ad.concat([adata_spatial_subset, adataref])
             sc.pp.neighbors(adata_subset, n_neighbors=15, use_rep="X")
-            dfs.append(
+            df = (
                 pd.DataFrame(
                     index=adata_subset.obs_names,
                     columns=adata_subset.obs_names,
-                    data=adata_subset.obsp["connectivities"].A.astype("float64"),
+                    data=adata_subset.obsp[key].A.astype("float64"),
+                )
+                if dense_input
+                else (
+                    adata_subset.obsp[key].astype("float64"),
+                    adata_subset.obs_names.to_series(),
+                    adata_subset.obs_names.to_series(),
                 )
             )
+            dfs.append(df)
 
         if geodesic_y:
             sc.pp.neighbors(adataref, n_neighbors=15, use_rep="X")
-            df_y = pd.DataFrame(
-                index=adataref.obs_names,
-                columns=adataref.obs_names,
-                data=adataref.obsp["connectivities"].A.astype("float64"),
+            df_y = (
+                pd.DataFrame(
+                    index=adataref.obs_names,
+                    columns=adataref.obs_names,
+                    data=adataref.obsp[key].A.astype("float64"),
+                )
+                if dense_input
+                else (
+                    adataref.obsp[key].astype("float64"),
+                    adataref.obs_names.to_series(),
+                )
             )
 
         mp: MappingProblem = MappingProblem(adataref, adatasp)
@@ -175,28 +191,28 @@ class TestMappingProblem:
 
         ta = mp[("1", "ref")].xy
         assert isinstance(ta, TaggedArray)
-        assert isinstance(ta.data_src, np.ndarray)  # this will change once OTT-JAX allows for sparse matrices
+        assert isinstance(ta.data_src, np.ndarray) if dense_input else sp.issparse(ta.data_src)
         assert ta.data_tgt is None
         assert ta.tag == Tag.GRAPH
         assert ta.cost == "geodesic"
         if geodesic_y:
             ta = mp[("1", "ref")].y
             assert isinstance(ta, TaggedArray)
-            assert isinstance(ta.data_src, np.ndarray)  # this will change once OTT-JAX allows for sparse matrices
+            assert isinstance(ta.data_src, np.ndarray) if dense_input else sp.issparse(ta.data_src)
             assert ta.data_tgt is None
             assert ta.tag == Tag.GRAPH
             assert ta.cost == "geodesic"
 
         ta = mp[("2", "ref")].xy
         assert isinstance(ta, TaggedArray)
-        assert isinstance(ta.data_src, np.ndarray)  # this will change once OTT-JAX allows for sparse matrices
+        assert isinstance(ta.data_src, np.ndarray) if dense_input else sp.issparse(ta.data_src)
         assert ta.data_tgt is None
         assert ta.tag == Tag.GRAPH
         assert ta.cost == "geodesic"
         if geodesic_y:
             ta = mp[("2", "ref")].y
             assert isinstance(ta, TaggedArray)
-            assert isinstance(ta.data_src, np.ndarray)  # this will change once OTT-JAX allows for sparse matrices
+            assert isinstance(ta.data_src, np.ndarray) if dense_input else sp.issparse(ta.data_src)
             assert ta.data_tgt is None
             assert ta.tag == Tag.GRAPH
             assert ta.cost == "geodesic"
