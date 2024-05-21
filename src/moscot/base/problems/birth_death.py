@@ -8,7 +8,8 @@ from typing import (
     Sequence,
     Union,
 )
-
+from inspect import signature
+from functools import partial
 import numpy as np
 
 import scanpy as sc
@@ -38,7 +39,8 @@ class BirthDeathProtocol(Protocol):  # noqa: D101
         proliferation_key: str = "proliferation",
         apoptosis_key: str = "apoptosis",
         **kwargs: Any,
-    ) -> "BirthDeathProtocol": ...
+    ) -> "BirthDeathProtocol":
+        ...
 
 
 class BirthDeathProblemProtocol(BirthDeathProtocol, Protocol):  # noqa: D101
@@ -159,6 +161,14 @@ class BirthDeathProblem(BirthDeathMixin, OTProblem):
         Keyword arguments for :class:`~moscot.base.problems.OTProblem`.
     """  # noqa: D205
 
+    _BETA_ARGS = {"beta"}
+    _DELTA_KWARGS = {
+        "delta_max": 1.7,
+        "delta_min": 0.3,
+        "delta_center": 0.1,
+        "delta_width": 0.2,
+    }
+
     def estimate_marginals(
         self,  # type: BirthDeathProblemProtocol
         adata: AnnData,
@@ -223,12 +233,23 @@ class BirthDeathProblem(BirthDeathMixin, OTProblem):
         self.apoptosis_key = apoptosis_key
 
         if scaling:
-            beta_fn = delta_fn = lambda x, *_, **__: x
+            beta_fn = delta_fn = lambda x: x
+            if len(kwargs):
+                raise ValueError(
+                    f"If `scaling` is passed, no additional keyword arguments are allowed but found: {kwargs}."
+                )
         else:
-            beta_fn, delta_fn = beta, delta
+            # get the parameter names from delta and beta functions
+            beta_params = signature(beta).parameters.keys()
+            delta_params = signature(delta).parameters.keys()
+            valid_keys = set(beta_params) | set(delta_params)
+            if not set(kwargs.keys()).issubset(valid_keys):
+                raise ValueError(f"Invalid keyword arguments. Allowed keys are {valid_keys}.")
+            beta_fn = partial(beta, **{k: kwargs[k] for k in beta_params & kwargs.keys()})
+            delta_fn = partial(delta, **{k: kwargs[k] for k in delta_params & kwargs.keys()})
             scaling = 1.0
-        birth = estimate(proliferation_key, fn=beta_fn, **kwargs)
-        death = estimate(apoptosis_key, fn=delta_fn, **kwargs)
+        birth = estimate(proliferation_key, fn=beta_fn)
+        death = estimate(apoptosis_key, fn=delta_fn)
 
         prior_growth = np.exp((birth - death) * self.delta / scaling)
 
@@ -287,7 +308,6 @@ def beta(
     beta_min: float = 0.3,
     beta_center: float = 0.25,
     beta_width: float = 0.5,
-    **_: Any,
 ) -> ArrayLike:
     """Birth process."""
     return _gen_logistic(p, beta_max, beta_min, beta_center, beta_width)
@@ -299,7 +319,6 @@ def delta(
     delta_min: float = 0.3,
     delta_center: float = 0.1,
     delta_width: float = 0.2,
-    **_: Any,
 ) -> ArrayLike:
     """Death process."""
     return _gen_logistic(a, delta_max, delta_min, delta_center, delta_width)
