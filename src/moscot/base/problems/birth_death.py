@@ -1,3 +1,5 @@
+from functools import partial
+from inspect import signature
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -8,8 +10,7 @@ from typing import (
     Sequence,
     Union,
 )
-from inspect import signature
-from functools import partial
+
 import numpy as np
 
 import scanpy as sc
@@ -39,8 +40,7 @@ class BirthDeathProtocol(Protocol):  # noqa: D101
         proliferation_key: str = "proliferation",
         apoptosis_key: str = "apoptosis",
         **kwargs: Any,
-    ) -> "BirthDeathProtocol":
-        ...
+    ) -> "BirthDeathProtocol": ...
 
 
 class BirthDeathProblemProtocol(BirthDeathProtocol, Protocol):  # noqa: D101
