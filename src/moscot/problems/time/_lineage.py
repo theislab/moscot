@@ -131,14 +131,12 @@ class TemporalProblem(  # type: ignore[misc]
         estimate_marginals = self.proliferation_key is not None or self.apoptosis_key is not None
         a = estimate_marginals if a is None else a
         b = estimate_marginals if b is None else b
-
         return super().prepare(  # type: ignore[return-value]
             key=time_key,
             xy=xy,
             x=x,
             y=y,
             policy=policy,
-            cost=None,  # cost information is already stored in x,y,xy
             marginal_kwargs=marginal_kwargs,
             a=a,
             b=b,
@@ -379,7 +377,6 @@ class LineageProblem(TemporalProblem):
         y.setdefault("key", "cost_matrices")
         y.setdefault("cost", "custom")
         y.setdefault("tag", "cost_matrix")
-
         return super().prepare(  # type: ignore[return-value]
             time_key,
             joint_attr=xy,
