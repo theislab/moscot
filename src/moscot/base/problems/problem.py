@@ -690,7 +690,7 @@ class OTProblem(BaseProblem):
             )
         return marginals
 
-    def estimate_marginals(self, adata: AnnData, *, source: bool, **kwargs: Any) -> ArrayLike:
+    def estimate_marginals(self, adata: AnnData, *, source: bool) -> ArrayLike:
         """Estimate the source or target :term:`marginals`.
 
         .. note::
@@ -709,7 +709,6 @@ class OTProblem(BaseProblem):
         -------
         The estimated source or target marginals of shape ``[n,]`` or ``[m,]``, depending on the ``source``.
         """
-        del kwargs
         return np.ones((adata.n_obs,), dtype=float) / adata.n_obs
 
     def set_graph_xy(
