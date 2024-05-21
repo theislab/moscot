@@ -671,8 +671,10 @@ class OTProblem(BaseProblem):
         marginal_kwargs: Dict[str, Any] = types.MappingProxyType({}),
         **kwargs: Any,
     ) -> ArrayLike:
-        if data is True:
+        if data is True:  # this is the only case when kwargs are passed
             marginals = self.estimate_marginals(adata, source=source, **marginal_kwargs, **kwargs)
+        elif len(kwargs):
+            raise ValueError(f"Unknown keyword arguments for prepare `{kwargs.keys()}`.")
         elif data is False or data is None:
             marginals = np.ones((adata.n_obs,), dtype=float) / adata.n_obs
         elif isinstance(data, str):
