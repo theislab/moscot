@@ -727,21 +727,10 @@ class GENOTLinProblem(CondOTProblem, GenericAnalysisMixin[K, B]):
         **kwargs: Any,
     ) -> "GENOTLinProblem[K, B]":
         """Prepare the :class:`moscot.problems.generic.GENOTLinProblem`."""
-
-        def set_quad_defaults(z: Union[str, Mapping[str, Any]]) -> Dict[str, str]:
-            if isinstance(z, str):
-                return {"attr": "obsm", "key": z}  # cost handled by handle_cost
-            if isinstance(z, Mapping):
-                return dict(z)
-            raise TypeError("`x_attr` and `y_attr` must be of type `str` or `dict`.")
-
-        quad_attr: Optional[Union[str, Dict[str, str]]] = None  # at the moment we only have linear cond OT solvers
-
         self.batch_key = key  # type:ignore[misc]
         xy, kwargs = handle_joint_attr_tmp(joint_attr, kwargs)
         conditions = handle_conditional_attr(conditional_attr)
-        xx = {} if quad_attr is None else set_quad_defaults(quad_attr)
-        xy, xx = handle_cost_tmp(xy=xy, x=xx, y=xx, cost=cost, cost_kwargs=cost_kwargs)
+        xy, xx = handle_cost_tmp(xy=xy, x={}, y={}, cost=cost, cost_kwargs=cost_kwargs)
         return super().prepare(
             policy_key=key,
             policy=policy,
@@ -756,8 +745,6 @@ class GENOTLinProblem(CondOTProblem, GenericAnalysisMixin[K, B]):
     def solve(
         self,
         batch_size: int = 1024,
-        tau_a: float = 1.0,
-        tau_b: float = 1.0,
         seed: int = 0,
         iterations: int = 25000,  # TODO(@MUCDK): rename to max_iterations
         valid_freq: int = 50,
