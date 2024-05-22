@@ -65,11 +65,9 @@ neural = [
     "optax>=0.1.7",
     "flax>=0.7.1",
 ]
-
 spatial = [
     "squidpy>=1.2.3"
 ]
-
 dev = [
     "pre-commit>=3.0.0",
     "tox>=4",
