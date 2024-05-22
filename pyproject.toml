@@ -58,13 +58,11 @@ dependencies = [
     "ott-jax>=0.4.6",
     "cloudpickle>=2.2.0",
     "rich>=13.5",
-]
-
-[project.optional-dependencies]
-neural = [
     "optax>=0.1.7",
     "flax>=0.7.1",
 ]
+
+[project.optional-dependencies]
 spatial = [
     "squidpy>=1.2.3"
 ]
