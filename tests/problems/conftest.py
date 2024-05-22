@@ -58,6 +58,18 @@ def adata_time_with_tmap(adata_time: AnnData) -> AnnData:
     return adata
 
 
+# keys for marginals
+@pytest.fixture(
+    params=[
+        (None, None),
+        ("left_marginals_balanced", "right_marginals_balanced"),
+    ],
+    ids=["default", "balanced"],
+)
+def marginal_keys(request):
+    return request.param
+
+
 sinkhorn_args_1 = {
     "epsilon": 0.7,
     "tau_a": 1.0,

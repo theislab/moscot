@@ -1,3 +1,4 @@
+from contextlib import nullcontext
 from typing import Any, Literal, Mapping, Optional, Tuple
 
 import pytest
@@ -82,8 +83,17 @@ class TestTranslationProblem:
                 assert tp[prob_key].xy.data_src.shape == tp[prob_key].xy.data_tgt.shape == (n_obs, xy_n_vars)
 
     @pytest.mark.parametrize(
-        ("epsilon", "alpha", "rank", "initializer"),
-        [(1e-2, 0.9, -1, None), (2, 0.5, -1, "random"), (2, 0.5, -1, "rank2"), (2, 0.1, -1, None)],
+        ("epsilon", "alpha", "rank", "initializer", "joint_attr", "expect_fail"),
+        [
+            (1e-2, 0.9, -1, None, {"attr": "obsm", "key": "X_pca"}, False),
+            (2, 0.5, -1, "random", None, True),
+            (2, 0.5, -1, "random", {"attr": "X"}, False),
+            (2, 1.0, -1, "rank2", None, False),
+            (2, 1.0, -1, "rank2", {"attr": "obsm", "key": "X_pca"}, True),
+            (2, 0.1, -1, None, {"attr": "obsm", "key": "X_pca"}, False),
+            (2, 1.0, -1, None, None, False),
+            (1.3, 1.0, -1, "random", None, False),
+        ],
     )
     @pytest.mark.parametrize("src_attr", ["emb_src", {"attr": "obsm", "key": "emb_src"}])
     @pytest.mark.parametrize("tgt_attr", ["emb_tgt", {"attr": "obsm", "key": "emb_tgt"}])
@@ -96,6 +106,8 @@ class TestTranslationProblem:
         src_attr: Mapping[str, str],
         tgt_attr: Mapping[str, str],
         initializer: Optional[Literal["random", "rank2"]],
+        joint_attr: Optional[Mapping[str, str]],
+        expect_fail: bool,
     ):
         adata_src, adata_tgt = adata_translation_split
         kwargs = {}
@@ -104,8 +116,10 @@ class TestTranslationProblem:
             kwargs["initializer"] = initializer
 
         tp = TranslationProblem(adata_src, adata_tgt)
-        tp = tp.prepare(batch_key="batch", src_attr=src_attr, tgt_attr=tgt_attr)
-        tp = tp.solve(epsilon=epsilon, alpha=alpha, rank=rank, **kwargs)
+        tp = tp.prepare(batch_key="batch", src_attr=src_attr, tgt_attr=tgt_attr, joint_attr=joint_attr)
+        context = pytest.raises(ValueError, match="alpha") if expect_fail else nullcontext()
+        with context:
+            tp = tp.solve(epsilon=epsilon, alpha=alpha, rank=rank, **kwargs)
 
         for key, subsol in tp.solutions.items():
             assert isinstance(subsol, BaseDiscreteSolverOutput)

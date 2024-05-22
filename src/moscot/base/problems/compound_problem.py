@@ -313,6 +313,11 @@ class BaseCompoundProblem(BaseProblem, abc.ABC, Generic[K, B]):
         problems = self._problem_manager.get_problems(stage=stage)
 
         logger.info(f"Solving `{len(problems)}` problems")
+        # expose min/max iterations to the user but remove them if they are None
+        if "min_iterations" in kwargs and kwargs["min_iterations"] is None:
+            kwargs.pop("min_iterations")
+        if "max_iterations" in kwargs and kwargs["max_iterations"] is None:
+            kwargs.pop("max_iterations")
         for problem in problems.values():
             logger.info(f"Solving problem {problem}.")
             _ = problem.solve(**kwargs)

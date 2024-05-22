@@ -35,6 +35,8 @@ from moscot._types import ArrayLike, CostFn_t, Device_t, ProblemKind_t
 from moscot.base.output import BaseDiscreteSolverOutput, MatrixSolverOutput
 from moscot.base.problems._utils import (
     TimeScalesHeatKernel,
+    _assert_columns_and_index_match,
+    _assert_series_match,
     require_solution,
     wrap_prepare,
     wrap_solve,
@@ -424,6 +426,23 @@ class OTProblem(BaseProblem):
             self.problem_kind, solver_name=solver_name, backend=backend, return_class=True
         )
         init_kwargs, call_kwargs = solver_class._partition_kwargs(**kwargs)
+        # if linear problem, then alpha is 0.0 by default
+        # if quadratic problem, then alpha is 1.0 by default
+        alpha = call_kwargs.get("alpha", 0.0 if self.problem_kind == "linear" else 1.0)
+        if alpha < 0.0 or alpha > 1.0:
+            raise ValueError("Expected `alpha` to be in the range `[0, 1]`, found `{alpha}`.")
+        if self.problem_kind == "linear" and (alpha != 0.0 or not (self.x is None or self.y is None)):
+            raise ValueError("Unable to solve a linear problem with `alpha != 0` or `x` and `y` supplied.")
+        if self.problem_kind == "quadratic":
+            if self.x is None or self.y is None:
+                raise ValueError("Unable to solve a quadratic problem without `x` and `y` supplied.")
+            if alpha != 1.0 and self.xy is None:  # means FGW case
+                raise ValueError(
+                    "`alpha` must be 1.0 for quadratic problems without `xy` supplied. See `FGWProblem` class."
+                )
+            if alpha == 1.0 and self.xy is not None:
+                raise ValueError("Unable to solve a quadratic problem with `alpha = 1` and `xy` supplied.")
+
         self._solver = solver_class(**init_kwargs)
 
         # note that the solver call consists of solver._prepare and solver._solve
@@ -559,8 +578,8 @@ class OTProblem(BaseProblem):
             raise ValueError(f"`{self}` already contains a solution, use `overwrite=True` to overwrite it.")
 
         if isinstance(solution, pd.DataFrame):
-            pd.testing.assert_series_equal(self.adata_src.obs_names.to_series(), solution.index.to_series())
-            pd.testing.assert_series_equal(self.adata_tgt.obs_names.to_series(), solution.columns.to_series())
+            _assert_series_match(self.adata_src.obs_names.to_series(), solution.index.to_series())
+            _assert_series_match(self.adata_tgt.obs_names.to_series(), solution.columns.to_series())
             solution = solution.to_numpy()
         if not isinstance(solution, BaseDiscreteSolverOutput):
             solution = MatrixSolverOutput(solution, **kwargs)
@@ -758,13 +777,12 @@ class OTProblem(BaseProblem):
         """
         expected_series = pd.concat([self.adata_src.obs_names.to_series(), self.adata_tgt.obs_names.to_series()])
         if isinstance(data, pd.DataFrame):
-            pd.testing.assert_series_equal(expected_series, data.index.to_series())
-            pd.testing.assert_series_equal(expected_series, data.columns.to_series())
+            _assert_columns_and_index_match(expected_series, data)
             data_src = data.to_numpy()
         elif isinstance(data, tuple):
             data_src, index_src, index_tgt = data
-            pd.testing.assert_series_equal(expected_series, index_src)
-            pd.testing.assert_series_equal(expected_series, index_tgt)
+            _assert_series_match(expected_series, index_src)
+            _assert_series_match(expected_series, index_tgt)
         else:
             raise ValueError(
                 "Expected data to be a `pd.DataFrame` or a tuple of (`sp.csr_matrix`, `pd.Series`, `pd.Series`), "
@@ -809,12 +827,11 @@ class OTProblem(BaseProblem):
         """
         expected_series = self.adata_src.obs_names.to_series()
         if isinstance(data, pd.DataFrame):
-            pd.testing.assert_series_equal(expected_series, data.index.to_series())
-            pd.testing.assert_series_equal(expected_series, data.columns.to_series())
+            _assert_columns_and_index_match(expected_series, data)
             data_src = data.to_numpy()
         elif isinstance(data, tuple):
             data_src, index_src = data
-            pd.testing.assert_series_equal(expected_series, index_src)
+            _assert_series_match(expected_series, index_src)
         else:
             raise ValueError(
                 "Expected data to be a `pd.DataFrame` or a tuple of (`sp.csr_matrix`, `pd.Series`), "
@@ -859,12 +876,11 @@ class OTProblem(BaseProblem):
         """
         expected_series = self.adata_tgt.obs_names.to_series()
         if isinstance(data, pd.DataFrame):
-            pd.testing.assert_series_equal(expected_series, data.index.to_series())
-            pd.testing.assert_series_equal(expected_series, data.columns.to_series())
+            _assert_columns_and_index_match(expected_series, data)
             data_src = data.to_numpy()
         elif isinstance(data, tuple):
             data_src, index_src = data
-            pd.testing.assert_series_equal(expected_series, index_src)
+            _assert_series_match(expected_series, index_src)
         else:
             raise ValueError(
                 "Expected data to be a `pd.DataFrame` or a tuple of (`sp.csr_matrix`, `pd.Series`), "
@@ -898,8 +914,8 @@ class OTProblem(BaseProblem):
         - :attr:`xy` - the :term:`linear term`.
         - :attr:`stage` - set to ``'prepared'``.
         """
-        pd.testing.assert_series_equal(self.adata_src.obs_names.to_series(), data.index.to_series())
-        pd.testing.assert_series_equal(self.adata_tgt.obs_names.to_series(), data.columns.to_series())
+        _assert_series_match(self.adata_src.obs_names.to_series(), data.index.to_series())
+        _assert_series_match(self.adata_tgt.obs_names.to_series(), data.columns.to_series())
 
         self._xy = TaggedArray(data_src=data.to_numpy(), data_tgt=None, tag=Tag(tag), cost="cost")
         self._stage = "prepared"
@@ -922,8 +938,7 @@ class OTProblem(BaseProblem):
         - :attr:`x` - the source :term:`quadratic term`.
         - :attr:`stage` - set to ``'prepared'``.
         """
-        pd.testing.assert_series_equal(self.adata_src.obs_names.to_series(), data.index.to_series())
-        pd.testing.assert_series_equal(self.adata_src.obs_names.to_series(), data.columns.to_series())
+        _assert_columns_and_index_match(self.adata_src.obs_names.to_series(), data)
 
         if self.problem_kind == "linear":
             logger.info(f"Changing the problem type from {self.problem_kind!r} to 'quadratic (fused)'.")
@@ -949,8 +964,7 @@ class OTProblem(BaseProblem):
         - :attr:`y` - the target :term:`quadratic term`.
         - :attr:`stage` - set to ``'prepared'``.
         """
-        pd.testing.assert_series_equal(self.adata_tgt.obs_names.to_series(), data.index.to_series())
-        pd.testing.assert_series_equal(self.adata_tgt.obs_names.to_series(), data.columns.to_series())
+        _assert_columns_and_index_match(self.adata_tgt.obs_names.to_series(), data)
 
         if self.problem_kind == "linear":
             logger.info(f"Changing the problem type from {self.problem_kind!r} to 'quadratic (fused)'.")

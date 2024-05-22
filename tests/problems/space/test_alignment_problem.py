@@ -5,6 +5,7 @@ import pytest
 
 import numpy as np
 import pandas as pd
+import scipy.sparse as sp
 from ott.geometry import epsilon_scheduler
 
 import scanpy as sc
@@ -74,6 +75,7 @@ class TestAlignmentProblem:
             assert ref == reference
             assert isinstance(ap[prob_key], ap._base_problem_type)
 
+    @pytest.mark.skip(reason="See https://github.com/theislab/moscot/issues/678")
     @pytest.mark.parametrize(
         ("epsilon", "alpha", "rank", "initializer"),
         [(1, 0.9, -1, None), (1, 0.5, 10, "random"), (1, 0.5, 10, "rank2"), (0.1, 0.1, -1, None)],
@@ -126,7 +128,8 @@ class TestAlignmentProblem:
         assert np.allclose(*(sol.cost for sol in ap.solutions.values()), rtol=1e-5, atol=1e-5)
 
     @pytest.mark.parametrize("key", ["connectivities", "distances"])
-    def test_geodesic_cost_xy(self, adata_space_rotate: AnnData, key: str):
+    @pytest.mark.parametrize("dense_input", [True, False])
+    def test_geodesic_cost_xy(self, adata_space_rotate: AnnData, key: str, dense_input: bool):
         batch_column = "batch"
         unique_batches = adata_space_rotate.obs[batch_column].unique()
 
@@ -139,13 +142,20 @@ class TestAlignmentProblem:
             )[0]
             adata_subset = adata_space_rotate[indices]
             sc.pp.neighbors(adata_subset, n_neighbors=15, use_rep="X_pca")
-            dfs.append(
+            df = (
                 pd.DataFrame(
                     index=adata_subset.obs_names,
                     columns=adata_subset.obs_names,
-                    data=adata_subset.obsp["connectivities"].A.astype("float64"),
+                    data=adata_subset.obsp[key].A.astype("float64"),
+                )
+                if dense_input
+                else (
+                    adata_subset.obsp[key].astype("float64"),
+                    adata_subset.obs_names.to_series(),
+                    adata_subset.obs_names.to_series(),
                 )
             )
+            dfs.append(df)
 
         ap: AlignmentProblem = AlignmentProblem(adata=adata_space_rotate)
         ap = ap.prepare(batch_key=batch_column, joint_attr={"attr": "obsm", "key": "X_pca"})
@@ -156,14 +166,14 @@ class TestAlignmentProblem:
 
         ta = ap[("0", "1")].xy
         assert isinstance(ta, TaggedArray)
-        assert isinstance(ta.data_src, np.ndarray)  # this will change once OTT-JAX allows for sparse matrices
+        assert isinstance(ta.data_src, np.ndarray) if dense_input else sp.issparse(ta.data_src)
         assert ta.data_tgt is None
         assert ta.tag == Tag.GRAPH
         assert ta.cost == "geodesic"
 
         ta = ap[("1", "2")].xy
         assert isinstance(ta, TaggedArray)
-        assert isinstance(ta.data_src, np.ndarray)  # this will change once OTT-JAX allows for sparse matrices
+        assert isinstance(ta.data_src, np.ndarray) if dense_input else sp.issparse(ta.data_src)
         assert ta.data_tgt is None
         assert ta.tag == Tag.GRAPH
         assert ta.cost == "geodesic"

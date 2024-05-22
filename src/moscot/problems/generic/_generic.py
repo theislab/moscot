@@ -154,8 +154,8 @@ class SinkhornProblem(GenericAnalysisMixin[K, B], CompoundProblem[K, B]):  # typ
         threshold: float = 1e-3,
         lse_mode: bool = True,
         inner_iterations: int = 10,
-        min_iterations: int = 0,
-        max_iterations: int = 2000,
+        min_iterations: Optional[int] = None,
+        max_iterations: Optional[int] = None,
         device: Optional[Literal["cpu", "gpu", "tpu"]] = None,
         **kwargs: Any,
     ) -> "SinkhornProblem[K,B]":
@@ -380,8 +380,8 @@ class GWProblem(GenericAnalysisMixin[K, B], CompoundProblem[K, B]):  # type: ign
         initializer: QuadInitializer_t = None,
         initializer_kwargs: Mapping[str, Any] = types.MappingProxyType({}),
         jit: bool = True,
-        min_iterations: int = 5,
-        max_iterations: int = 50,
+        min_iterations: Optional[int] = None,
+        max_iterations: Optional[int] = None,
         threshold: float = 1e-3,
         linear_solver_kwargs: Mapping[str, Any] = types.MappingProxyType({}),
         device: Optional[Literal["cpu", "gpu", "tpu"]] = None,
@@ -600,7 +600,7 @@ class FGWProblem(GWProblem[K, B]):
 
     def solve(
         self,
-        alpha: float = 1.0,
+        alpha: float = 0.5,
         epsilon: float = 1e-3,
         tau_a: float = 1.0,
         tau_b: float = 1.0,
@@ -611,8 +611,8 @@ class FGWProblem(GWProblem[K, B]):
         initializer: QuadInitializer_t = None,
         initializer_kwargs: Mapping[str, Any] = types.MappingProxyType({}),
         jit: bool = True,
-        min_iterations: int = 5,
-        max_iterations: int = 50,
+        min_iterations: Optional[int] = None,
+        max_iterations: Optional[int] = None,
         threshold: float = 1e-3,
         linear_solver_kwargs: Mapping[str, Any] = types.MappingProxyType({}),
         device: Optional[Literal["cpu", "gpu", "tpu"]] = None,
@@ -629,7 +629,7 @@ class FGWProblem(GWProblem[K, B]):
         Parameters
         ----------
         alpha
-            Parameter in :math:`(0, 1]` that interpolates between the :term:`quadratic term` and
+            Parameter in :math:`(0, 1)` that interpolates between the :term:`quadratic term` and
             the :term:`linear term`. :math:`\alpha = 1` corresponds to the pure :term:`Gromov-Wasserstein` problem while
             :math:`\alpha \to 0` corresponds to the pure :term:`linear problem`.
         epsilon
@@ -679,6 +679,8 @@ class FGWProblem(GWProblem[K, B]):
         - :attr:`solutions` - the :term:`OT` solutions for each subproblem.
         - :attr:`stage` - set to ``'solved'``.
         """
+        if alpha == 1.0:
+            raise ValueError("The `FGWProblem` is equivalent to the `GWProblem` when `alpha=1.0`.")
         return CompoundProblem.solve(
             self,  # type: ignore[return-value, arg-type]
             alpha=alpha,

@@ -3,6 +3,7 @@ from functools import partial
 from typing import Any, Dict, Iterable, Literal, Optional, Tuple, Union
 
 import jax
+import jax.experimental.sparse as jesp
 import jax.numpy as jnp
 import numpy as np
 import scipy.sparse as sp
@@ -88,6 +89,25 @@ def alpha_to_fused_penalty(alpha: float) -> float:
     return (1 - alpha) / alpha
 
 
+def densify(arr: ArrayLike) -> jax.Array:
+    """If the input is sparse, convert it to dense.
+
+    Parameters
+    ----------
+    arr
+        Array to check.
+
+    Returns
+    -------
+    dense :mod:`jax` array.
+    """
+    if sp.issparse(arr):
+        arr = arr.A  # type: ignore[attr-defined]
+    elif isinstance(arr, jesp.BCOO):
+        arr = arr.todense()
+    return jnp.asarray(arr)
+
+
 def ensure_2d(arr: ArrayLike, *, reshape: bool = False) -> jax.Array:
     """Ensure that an array is 2-dimensional.
 
@@ -102,13 +122,17 @@ def ensure_2d(arr: ArrayLike, *, reshape: bool = False) -> jax.Array:
     -------
     2-dimensional :mod:`jax` array.
     """
-    if sp.issparse(arr):
-        arr = arr.A  # type: ignore[attr-defined]
-    arr = jnp.asarray(arr)
     if reshape and arr.ndim == 1:
         return jnp.reshape(arr, (-1, 1))
     if arr.ndim != 2:
         raise ValueError(f"Expected array to have 2 dimensions, found `{arr.ndim}`.")
+    return arr
+
+
+def convert_scipy_sparse(arr: Union[sp.spmatrix, jesp.BCOO]) -> jesp.BCOO:
+    """If the input is a scipy sparse matrix, convert it to a jax BCOO."""
+    if sp.issparse(arr):
+        return jesp.BCOO.from_scipy_sparse(arr)
     return arr
 
 

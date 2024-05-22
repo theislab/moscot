@@ -23,6 +23,7 @@ from moscot._types import CostKwargs_t
 from moscot.base.output import BaseDiscreteSolverOutput
 from moscot.base.problems import OTProblem
 from moscot.problems.generic import GWProblem
+from tests._utils import _assert_marginals_set
 from tests.problems.conftest import (
     geometry_args,
     gw_args_1,
@@ -37,7 +38,10 @@ from tests.problems.conftest import (
 
 class TestGWProblem:
     @pytest.mark.fast()
-    @pytest.mark.parametrize("policy", ["sequential", "star"])
+    @pytest.mark.parametrize(
+        "policy",
+        ["sequential", "star"],
+    )
     def test_prepare(self, adata_space_rotate: AnnData, policy):
         expected_keys = {
             "sequential": [("0", "1"), ("1", "2")],
@@ -80,6 +84,9 @@ class TestGWProblem:
             assert isinstance(subsol, BaseDiscreteSolverOutput)
             assert key in expected_keys
             assert problem[key].solver._problem.geom_xy is None
+            # assert prior and posterior marginals are the same
+            assert np.allclose(subsol.a, problem[key].solver._problem.a, atol=1e-5)
+            assert np.allclose(subsol.b, problem[key].solver._problem.b, atol=1e-5)
 
     @pytest.mark.parametrize("method", ["fisher", "perm_test"])
     def test_compute_feature_correlation(self, adata_space_rotate: AnnData, method: str):
@@ -180,6 +187,15 @@ class TestGWProblem:
                 assert getattr(problem[0, 1].y.cost, k) == v
 
         problem = problem.solve(max_iterations=2)
+
+    @pytest.mark.fast()
+    def test_prepare_marginals(self, adata_time: AnnData, marginal_keys):
+        problem = GWProblem(adata=adata_time)
+        problem = problem.prepare(
+            a=marginal_keys[0], b=marginal_keys[1], key="time", policy="sequential", x_attr="X_pca", y_attr="X_pca"
+        )
+        for key in problem:
+            _assert_marginals_set(adata_time, problem, key, marginal_keys)
 
     @pytest.mark.fast()
     @pytest.mark.parametrize(

@@ -55,7 +55,7 @@ dependencies = [
     "scanpy>=1.9.3",
     "wrapt>=1.13.2",
     "docrep>=0.3.2",
-    "ott-jax[neural]@git+https://github.com/ott-jax/ott",
+    "ott-jax>=0.4.6",
     "cloudpickle>=2.2.0",
     "rich>=13.5",
     "optax>=0.1.7",
@@ -290,7 +290,6 @@ commands =
 
 [testenv:lint-docs]
 description = Lint the documentation.
-deps =
 extras = docs
 ignore_errors = true
 allowlist_externals = make
@@ -301,6 +300,22 @@ commands =
     make linkcheck {posargs}
     # TODO(michalk8): uncomment after https://github.com/theislab/moscot/issues/490
     # make spelling {posargs}
+
+[testenv:examples-docs]
+allowlist_externals = bash
+description = Run the notebooks.
+use_develop = true
+deps =
+    ipykernel
+    jupytext
+    nbconvert
+    leidenalg
+extras = docs
+changedir = {tox_root}{/}docs
+commands =
+    python -m ipykernel install --user --name=moscot
+    bash -c "for nb in notebooks/examples/plotting/*.ipynb notebooks/examples/problems/*ipynb notebooks/examples/solvers/*ipynb; do echo Running $nb; jupytext -k moscot --execute $nb; done"
+
 
 [testenv:clean-docs]
 description = Remove the documentation.

@@ -164,14 +164,15 @@ class TranslationProblem(CrossModalityTranslationMixin[K, OTProblem], CompoundPr
             xy = {}  # type: ignore[var-annotated]
         else:
             xy, kwargs = handle_joint_attr(joint_attr, kwargs)
-            _, dim_src = getattr(self.adata_src, xy["x_attr"])[xy["x_key"]].shape
-            _, dim_tgt = getattr(self.adata_tgt, xy["y_attr"])[xy["y_key"]].shape
-            if dim_src != dim_tgt:
-                raise ValueError(
-                    f"The dimensions of `joint_attr` do not match. "
-                    f"The joint attribute in the source distribution has dimension {dim_src}, "
-                    f"while the joint attribute in the target distribution has dimension {dim_tgt}."
-                )
+            if "x_key" in xy and "y_key" in xy:
+                _, dim_src = getattr(self.adata_src, xy["x_attr"])[xy["x_key"]].shape
+                _, dim_tgt = getattr(self.adata_tgt, xy["y_attr"])[xy["y_key"]].shape
+                if dim_src != dim_tgt:
+                    raise ValueError(
+                        f"The dimensions of `joint_attr` do not match. "
+                        f"The joint attribute in the source distribution has dimension {dim_src}, "
+                        f"while the joint attribute in the target distribution has dimension {dim_tgt}."
+                    )
         xy, x, y = handle_cost(
             xy=xy, x=self._src_attr, y=self._tgt_attr, cost=cost, cost_kwargs=cost_kwargs, **kwargs  # type: ignore[arg-type]
         )
@@ -192,8 +193,8 @@ class TranslationProblem(CrossModalityTranslationMixin[K, OTProblem], CompoundPr
         initializer: QuadInitializer_t = None,
         initializer_kwargs: Mapping[str, Any] = types.MappingProxyType({}),
         jit: bool = True,
-        min_iterations: int = 5,
-        max_iterations: int = 50,
+        min_iterations: Optional[int] = None,
+        max_iterations: Optional[int] = None,
         threshold: float = 1e-3,
         linear_solver_kwargs: Mapping[str, Any] = types.MappingProxyType({}),
         device: Optional[Literal["cpu", "gpu", "tpu"]] = None,

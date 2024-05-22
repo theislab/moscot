@@ -24,6 +24,7 @@ from moscot.backends.ott._utils import alpha_to_fused_penalty
 from moscot.base.output import BaseDiscreteSolverOutput
 from moscot.base.problems import OTProblem
 from moscot.problems.generic import FGWProblem
+from tests._utils import _assert_marginals_set
 from tests.problems.conftest import (
     fgw_args_1,
     fgw_args_2,
@@ -67,6 +68,21 @@ class TestFGWProblem:
             assert key in expected_keys[policy]
             assert isinstance(problem[key], OTProblem)
 
+    @pytest.mark.fast()
+    def test_prepare_marginals(self, adata_time: AnnData, marginal_keys):
+        problem = FGWProblem(adata=adata_time)
+        problem = problem.prepare(
+            key="time",
+            policy="sequential",
+            joint_attr="X_pca",
+            x_attr="X_pca",
+            y_attr="X_pca",
+            a=marginal_keys[0],
+            b=marginal_keys[1],
+        )
+        for key in problem:
+            _assert_marginals_set(adata_time, problem, key, marginal_keys)
+
     def test_solve_balanced(self, adata_space_rotate: AnnData):
         eps = 0.5
         adata_space_rotate = adata_space_rotate[adata_space_rotate.obs["batch"].isin(("0", "1"))].copy()
@@ -84,6 +100,9 @@ class TestFGWProblem:
         for key, subsol in problem.solutions.items():
             assert isinstance(subsol, BaseDiscreteSolverOutput)
             assert key in expected_keys
+            # assert that prior and posterior marginals same
+            assert np.allclose(subsol.a, problem[key].a, atol=1e-5)
+            assert np.allclose(subsol.b, problem[key].b, atol=1e-5)
 
     @pytest.mark.parametrize("args_to_check", [fgw_args_1, fgw_args_2])
     def test_pass_arguments(self, adata_space_rotate: AnnData, args_to_check: Mapping[str, Any]):

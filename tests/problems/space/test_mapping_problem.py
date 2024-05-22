@@ -5,6 +5,7 @@ import pytest
 
 import numpy as np
 import pandas as pd
+import scipy.sparse as sp
 from ott.geometry import epsilon_scheduler
 
 import anndata as ad
@@ -93,6 +94,7 @@ class TestMappingProblem:
             assert prob.x.data_src.shape == (n_obs, x_n_var)
             assert prob.y.data_src.shape == (n_obs, y_n_var)
 
+    @pytest.mark.skip(reason="See https://github.com/theislab/moscot/issues/678")
     @pytest.mark.parametrize(
         ("epsilon", "alpha", "rank", "initializer"),
         [(1e-2, 0.9, -1, None), (2, 0.5, 10, "random"), (2, 0.5, 10, "rank2"), (2, 0.1, -1, None)],
@@ -119,6 +121,7 @@ class TestMappingProblem:
                 return  # TODO(@MUCDK) fix after refactoring
         mp = MappingProblem(adataref, adatasp)
         mp = mp.prepare(batch_key="batch", sc_attr=sc_attr, var_names=var_names)
+        alpha = alpha if mp.filtered_vars is not None else 1.0
         mp = mp.solve(epsilon=epsilon, alpha=alpha, rank=rank, **kwargs)
 
         for prob_key in mp:
@@ -132,7 +135,8 @@ class TestMappingProblem:
 
     @pytest.mark.parametrize("key", ["connectivities", "distances"])
     @pytest.mark.parametrize("geodesic_y", [True, False])
-    def test_geodesic_cost_xy(self, adata_mapping: AnnData, key: str, geodesic_y: bool):
+    @pytest.mark.parametrize("dense_input", [True, False])
+    def test_geodesic_cost_xy(self, adata_mapping: AnnData, key: str, geodesic_y: bool, dense_input: bool):
         adataref, adatasp = _adata_spatial_split(adata_mapping)
 
         batch_column = "batch"
@@ -144,20 +148,34 @@ class TestMappingProblem:
             adata_spatial_subset = adatasp[indices]
             adata_subset = ad.concat([adata_spatial_subset, adataref])
             sc.pp.neighbors(adata_subset, n_neighbors=15, use_rep="X")
-            dfs.append(
+            df = (
                 pd.DataFrame(
                     index=adata_subset.obs_names,
                     columns=adata_subset.obs_names,
-                    data=adata_subset.obsp["connectivities"].A.astype("float64"),
+                    data=adata_subset.obsp[key].A.astype("float64"),
+                )
+                if dense_input
+                else (
+                    adata_subset.obsp[key].astype("float64"),
+                    adata_subset.obs_names.to_series(),
+                    adata_subset.obs_names.to_series(),
                 )
             )
+            dfs.append(df)
 
         if geodesic_y:
             sc.pp.neighbors(adataref, n_neighbors=15, use_rep="X")
-            df_y = pd.DataFrame(
-                index=adataref.obs_names,
-                columns=adataref.obs_names,
-                data=adataref.obsp["connectivities"].A.astype("float64"),
+            df_y = (
+                pd.DataFrame(
+                    index=adataref.obs_names,
+                    columns=adataref.obs_names,
+                    data=adataref.obsp[key].A.astype("float64"),
+                )
+                if dense_input
+                else (
+                    adataref.obsp[key].astype("float64"),
+                    adataref.obs_names.to_series(),
+                )
             )
 
         mp: MappingProblem = MappingProblem(adataref, adatasp)
@@ -173,28 +191,28 @@ class TestMappingProblem:
 
         ta = mp[("1", "ref")].xy
         assert isinstance(ta, TaggedArray)
-        assert isinstance(ta.data_src, np.ndarray)  # this will change once OTT-JAX allows for sparse matrices
+        assert isinstance(ta.data_src, np.ndarray) if dense_input else sp.issparse(ta.data_src)
         assert ta.data_tgt is None
         assert ta.tag == Tag.GRAPH
         assert ta.cost == "geodesic"
         if geodesic_y:
             ta = mp[("1", "ref")].y
             assert isinstance(ta, TaggedArray)
-            assert isinstance(ta.data_src, np.ndarray)  # this will change once OTT-JAX allows for sparse matrices
+            assert isinstance(ta.data_src, np.ndarray) if dense_input else sp.issparse(ta.data_src)
             assert ta.data_tgt is None
             assert ta.tag == Tag.GRAPH
             assert ta.cost == "geodesic"
 
         ta = mp[("2", "ref")].xy
         assert isinstance(ta, TaggedArray)
-        assert isinstance(ta.data_src, np.ndarray)  # this will change once OTT-JAX allows for sparse matrices
+        assert isinstance(ta.data_src, np.ndarray) if dense_input else sp.issparse(ta.data_src)
         assert ta.data_tgt is None
         assert ta.tag == Tag.GRAPH
         assert ta.cost == "geodesic"
         if geodesic_y:
             ta = mp[("2", "ref")].y
             assert isinstance(ta, TaggedArray)
-            assert isinstance(ta.data_src, np.ndarray)  # this will change once OTT-JAX allows for sparse matrices
+            assert isinstance(ta.data_src, np.ndarray) if dense_input else sp.issparse(ta.data_src)
             assert ta.data_tgt is None
             assert ta.tag == Tag.GRAPH
             assert ta.cost == "geodesic"

@@ -57,9 +57,8 @@ class TestLineageProblem:
         )
         problem = problem.solve(epsilon=eps)
 
-        for key, subsol in problem.solutions.items():
+        for _, subsol in problem.solutions.items():
             assert isinstance(subsol, BaseDiscreteSolverOutput)
-            assert key == key
 
     def test_solve_unbalanced(self, adata_time_barcodes: AnnData):
         taus = [9e-1, 1e-2]
