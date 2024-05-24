@@ -157,10 +157,10 @@ def _instantiate_geodesic_cost(
 
 
 def data_match_fn(
-    src_lin: Optional[jnp.ndarray],
-    tgt_lin: Optional[jnp.ndarray],
-    src_quad: Optional[jnp.ndarray],
-    tgt_quad: Optional[jnp.ndarray],
+    src_lin: Optional[jnp.ndarray] = None,
+    tgt_lin: Optional[jnp.ndarray] = None,
+    src_quad: Optional[jnp.ndarray] = None,
+    tgt_quad: Optional[jnp.ndarray] = None,
     *,
     typ: Literal["lin", "quad", "fused"],
     **data_match_fn_kwargs,

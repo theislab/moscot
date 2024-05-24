@@ -453,7 +453,6 @@ class OTProblem(BaseProblem):
             a=self.a,
             b=self.b,
             device=device,
-            is_conditional=False,
             time_scales_heat_kernel=self._time_scales_heat_kernel,
             **call_kwargs,
         )

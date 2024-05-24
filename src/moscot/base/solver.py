@@ -18,7 +18,7 @@ import numpy as np
 
 from moscot._logging import logger
 from moscot._types import ArrayLike, Device_t, ProblemKind_t
-from moscot.base.output import BaseDiscreteSolverOutput, BaseSolverOutput
+from moscot.base.output import BaseDiscreteSolverOutput
 from moscot.utils.tagged_array import Tag, TaggedArray
 
 __all__ = ["BaseSolver", "OTSolver"]
@@ -180,7 +180,7 @@ class OTSolver(TagConverter, BaseSolver[O], abc.ABC):
         tags: Mapping[Literal["x", "y", "xy"], Tag] = types.MappingProxyType({}),
         device: Optional[Device_t] = None,
         **kwargs: Any,
-    ) -> BaseSolverOutput:
+    ) -> O:
         """Solve an optimal transport problem.
 
         Parameters
@@ -204,13 +204,13 @@ class OTSolver(TagConverter, BaseSolver[O], abc.ABC):
         -------
         The optimal transport solution.
         """
-        if all(data is not None for data in [xy, x, y]):
+        if not kwargs.get("is_conditional", False):  # signals that this is a neural problem
             data = self._get_array_data(xy=xy, x=x, y=y, tags=tags)
             kwargs = {**kwargs, **self._untag(data)}
         res = super().__call__(**kwargs)
         if not res.converged:
             logger.warning("Solver did not converge")
-        return res.to(device=device)
+        return res.to(device=device)  # type: ignore[return-value]
 
     def _untag(self, data: TaggedArrayData) -> Dict[str, Any]:
         if self.problem_kind == "linear":
