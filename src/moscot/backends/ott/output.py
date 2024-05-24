@@ -244,9 +244,7 @@ class OTTOutput(BaseDiscreteSolverOutput):
 class OTTNeuralOutput(BaseNeuralOutput):
     """Output wrapper for GENOT."""
 
-    def __init__(
-        self, model: GENOT, logs: dict[str, list[float]]
-    ):  # TODO(ilan-gold): Swap out once a more general implemenetation fo the base model is available.
+    def __init__(self, model: GENOT, logs: dict[str, list[float]]):
         """Initialize `OTTNeuralOutput`.
 
         Parameters
