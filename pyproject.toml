@@ -272,6 +272,7 @@ commands =
     python -m pytest {tty:--color=yes} {posargs: \
         --cov={env_site_packages_dir}{/}moscot --cov-config={tox_root}{/}pyproject.toml \
         --no-cov-on-fail --cov-report=xml --cov-report=term-missing:skip-covered}
+passenv = *
 
 [testenv:lint-code]
 description = Lint the code.
