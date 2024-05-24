@@ -1,18 +1,10 @@
+from __future__ import annotations
+
 import abc
 import copy
 import functools
 from abc import abstractmethod
-from typing import (
-    Any,
-    Callable,
-    Iterable,
-    List,
-    Literal,
-    Optional,
-    Tuple,
-    TypeVar,
-    Union,
-)
+from typing import Any, Callable, Iterable, Literal, Optional, Union
 
 import numpy as np
 import scipy.sparse as sp
@@ -23,19 +15,25 @@ from moscot._types import ArrayLike, Device_t, DTypeLike  # type: ignore[attr-de
 
 __all__ = ["BaseDiscreteSolverOutput", "MatrixSolverOutput", "BaseNeuralOutput"]
 
-OutputClass = TypeVar("OutputClass", bound="BaseSolverOutput")  # use string
-
 
 class BaseSolverOutput(abc.ABC):
     """Base class for all solver outputs."""
 
+    @abc.abstractmethod
+    def pull(self, x: ArrayLike, **kwargs) -> ArrayLike:
+        """Pull the solution based on a condition."""
+
+    @abc.abstractmethod
+    def push(self, x: ArrayLike, **kwargs) -> ArrayLike:
+        """Push the solution based on a condition."""
+
     @property
     @abc.abstractmethod
-    def shape(self) -> Tuple[int, int]:
+    def shape(self) -> tuple[int, int]:
         """Shape of the problem."""
 
     @abc.abstractmethod
-    def to(self: OutputClass, device: Optional[Device_t] = None) -> OutputClass:
+    def to(self: BaseSolverOutput, device: Optional[Device_t] = None) -> BaseSolverOutput:
         """Transfer self to another compute device.
 
         Parameters
@@ -83,7 +81,7 @@ class BaseDiscreteSolverOutput(BaseSolverOutput, abc.ABC):
 
     @property
     @abc.abstractmethod
-    def potentials(self) -> Optional[Tuple[ArrayLike, ArrayLike]]:
+    def potentials(self) -> Optional[tuple[ArrayLike, ArrayLike]]:
         """:term:`Dual potentials` :math:`f` and :math:`g`.
 
         Only valid for the :term:`Sinkhorn` algorithm.
@@ -91,7 +89,7 @@ class BaseDiscreteSolverOutput(BaseSolverOutput, abc.ABC):
 
     @property
     @abc.abstractmethod
-    def shape(self) -> Tuple[int, int]:
+    def shape(self) -> tuple[int, int]:
         """Shape of the :attr:`transport_matrix`."""
 
     @property
@@ -179,7 +177,7 @@ class BaseDiscreteSolverOutput(BaseSolverOutput, abc.ABC):
         # pull: X @ a (matvec)
         return LinearOperator(shape=self.shape, dtype=self.dtype, matvec=pull, rmatvec=push)
 
-    def chain(self, outputs: Iterable["BaseDiscreteSolverOutput"], scale_by_marginals: bool = False) -> LinearOperator:
+    def chain(self, outputs: Iterable[BaseDiscreteSolverOutput], scale_by_marginals: bool = False) -> LinearOperator:
         """Chain subsequent applications of :attr:`transport_matrix`.
 
         Parameters
@@ -206,7 +204,7 @@ class BaseDiscreteSolverOutput(BaseSolverOutput, abc.ABC):
         batch_size: int = 1024,
         n_samples: Optional[int] = None,
         seed: Optional[int] = None,
-    ) -> "MatrixSolverOutput":
+    ) -> MatrixSolverOutput:
         """Sparsify the :attr:`transport_matrix`.
 
         This function sets all entries of the transport matrix below a certain threshold to :math:`0` and
@@ -267,7 +265,7 @@ class BaseDiscreteSolverOutput(BaseSolverOutput, abc.ABC):
             raise NotImplementedError(f"Mode `{mode}` is not yet implemented.")
 
         k, func, fn_stack = (n, self.push, sp.vstack) if n < m else (m, self.pull, sp.hstack)
-        tmaps_sparse: List[sp.csr_matrix] = []
+        tmaps_sparse: list[sp.csr_matrix] = []
 
         for batch in range(0, k, batch_size):
             x = np.eye(k, min(batch_size, k - batch), -(min(batch, k)), dtype=float)
@@ -355,12 +353,12 @@ class MatrixSolverOutput(BaseDiscreteSolverOutput):
         return self._transport_matrix
 
     @property
-    def shape(self) -> Tuple[int, int]:  # noqa: D102
+    def shape(self) -> tuple[int, int]:  # noqa: D102
         return self.transport_matrix.shape  # type: ignore[return-value]
 
     def to(  # noqa: D102
         self, device: Optional[Device_t] = None, dtype: Optional[DTypeLike] = None
-    ) -> "BaseDiscreteSolverOutput":
+    ) -> BaseDiscreteSolverOutput:
         if device is not None:
             logger.warning(f"`{self!r}` does not support the `device` argument, ignoring.")
         if dtype is None:
@@ -379,7 +377,7 @@ class MatrixSolverOutput(BaseDiscreteSolverOutput):
         return self._converged
 
     @property
-    def potentials(self) -> Optional[Tuple[ArrayLike, ArrayLike]]:  # noqa: D102
+    def potentials(self) -> Optional[tuple[ArrayLike, ArrayLike]]:  # noqa: D102
         return None
 
     @property

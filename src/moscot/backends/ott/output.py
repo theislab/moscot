@@ -400,12 +400,10 @@ class OTTNeuralOutput(BaseNeuralOutput):
 
         Parameters
         ----------
-        x : ArrayLike
-        cond : Optional[ArrayLike], optional
-
-        Returns
-        -------
-        ArrayLike
+         x
+            Distribution to push.
+        cond
+            Condition of conditional neural OT.
 
         Raises
         ------

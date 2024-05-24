@@ -18,7 +18,7 @@ import numpy as np
 
 from moscot._logging import logger
 from moscot._types import ArrayLike, Device_t, ProblemKind_t
-from moscot.base.output import BaseDiscreteSolverOutput
+from moscot.base.output import BaseDiscreteSolverOutput, BaseSolverOutput
 from moscot.utils.tagged_array import Tag, TaggedArray
 
 __all__ = ["BaseSolver", "OTSolver"]
@@ -151,7 +151,7 @@ class BaseSolver(Generic[O], abc.ABC):
     def _partition_kwargs(cls, **kwargs: Any) -> Tuple[Dict[str, Any], Dict[str, Any]]:
         """Partition keyword arguments.
 
-        Used by the :meth:`~moscot.problems.base.BaseProblem.solve`.
+        Used by the :meth:`~moscot.base.problems.problem.BaseProblem.solve`.
 
         Parameters
         ----------
@@ -180,7 +180,7 @@ class OTSolver(TagConverter, BaseSolver[O], abc.ABC):
         tags: Mapping[Literal["x", "y", "xy"], Tag] = types.MappingProxyType({}),
         device: Optional[Device_t] = None,
         **kwargs: Any,
-    ) -> O:
+    ) -> BaseSolverOutput:
         """Solve an optimal transport problem.
 
         Parameters

@@ -1049,18 +1049,14 @@ class OTProblem(BaseProblem):
 
 class CondOTProblem(BaseProblem):  # TODO(@MUCDK) check generic types, save and load
     """
-    Base class for all optimal transport problems.
+    Base class for all conditional (nerual) optimal transport problems.
 
     Parameters
     ----------
     adata
         Source annotated data object.
     kwargs
-        Keyword arguments for :class:`moscot.problems.base.BaseProblem.`
-
-    Notes
-    -----
-    If any of the source/target masks are specified, :attr:`adata_src`/:attr:`adata_tgt` will be a view.
+        Keyword arguments for :class:`moscot.base.problems.problem.BaseProblem`
     """
 
     def __init__(
@@ -1101,7 +1097,7 @@ class CondOTProblem(BaseProblem):  # TODO(@MUCDK) check generic types, save and 
         ----------
         xy
             Geometry defining the linear term. If passed as a :class:`dict`,
-            :meth:`~moscot.solvers.TaggedArray.from_adata` will be called.
+            :meth:`~moscot.utils.tagged_array.TaggedArray.from_adata` will be called.
         policy
             Policy defining which pairs of distributions to sample from during training.
         policy_key
@@ -1159,11 +1155,11 @@ class CondOTProblem(BaseProblem):  # TODO(@MUCDK) check generic types, save and 
         Parameters
         ----------
         backend
-            Which backend to use, see :func:`moscot.backends.get_available_backends`.
+            Which backend to use, see :func:`moscot.backends.utils.get_available_backends`.
         device
-            Device where to transfer the solution, see :meth:`moscot.solvers.BaseDiscreteSolverOutput.to`.
+            Device where to transfer the solution, see :meth:`moscot.base.output.BaseDiscreteSolverOutput.to`.
         kwargs
-            Keyword arguments for :meth:`moscot.solvers.BaseSolver.__call__`.
+            Keyword arguments for :meth:`moscot.base.solver.BaseSolver.__call__`.
 
 
         Returns

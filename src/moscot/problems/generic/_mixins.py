@@ -143,9 +143,9 @@ class GenericAnalysisMixin(AnalysisMixin[K, B]):
         Parameters
         ----------
         source
-            Source key in :attr:`solutions`.
+            Source key in `solutions`.
         target
-            Target key in :attr:`solutions`.
+            Target key in `solutions`.
         data
             Initial data to push, see :meth:`~moscot.base.problems.OTProblem.push` for information.
         subset
@@ -212,9 +212,9 @@ class GenericAnalysisMixin(AnalysisMixin[K, B]):
         Parameters
         ----------
         source
-            Source key in :attr:`solutions`.
+            Source key in `solutions`.
         target
-            Target key in :attr:`solutions`.
+            Target key in `solutions`.
         data
             Initial data to pull, see :meth:`~moscot.base.problems.OTProblem.pull` for information.
         subset

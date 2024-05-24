@@ -1,16 +1,6 @@
 import enum
 from dataclasses import dataclass
-from typing import (
-    Any,
-    Callable,
-    Dict,
-    Hashable,
-    Literal,
-    Optional,
-    Tuple,
-    TypeVar,
-    Union,
-)
+from typing import Any, Callable, Hashable, Literal, Optional, Tuple, TypeVar, Union
 
 import numpy as np
 import scipy.sparse as sp
@@ -325,21 +315,21 @@ class DistributionContainer:
         b
             Marginals when used as target distribution.
         xy_attr
-            Attribute of :paramref:`adata` containing the data for the shared space.
+            Attribute of `adata` containing the data for the shared space.
         xy_key
-            Key of :paramref:`xy_attr` containing the data for the shared space.
+            Key of `xy_attr` containing the data for the shared space.
         xy_cost
             Cost function when in the shared space.
         xx_attr
-            Attribute of :paramref:`adata` containing the data for the incomparable space.
+            Attribute of `adata` containing the data for the incomparable space.
         xx_key
-            Key of :paramref:`xx_attr` containing the data for the incomparable space.
+            Key of `xx_attr` containing the data for the incomparable space.
         xx_cost
             Cost function in the incomparable space.
         conditions_attr
-            Attribute of :paramref:`adata` containing the conditions.
+            Attribute of `adata` containing the conditions.
         conditions_key
-            Key of :paramref:`conditions_attr` containing the conditions.
+            Key of `conditions_attr` containing the conditions.
         backend
             Backend to use.
         kwargs
@@ -373,7 +363,7 @@ class DistributionContainer:
         return cls(xy=xy_data, xx=xx_data, a=a, b=b, conditions=conditions_data, cost_xy=xy_cost_fn, cost_xx=xx_cost_fn)
 
 
-class DistributionCollection(Dict[K, DistributionContainer]):
+class DistributionCollection(dict[K, DistributionContainer]):
     """Collection of distributions."""
 
     def __repr__(self) -> str:
