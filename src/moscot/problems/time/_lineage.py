@@ -443,12 +443,12 @@ class LineageProblem(TemporalProblem):
             xy=xy,
             x=x,
             y=y,
-            cost=cost,
+            cost=cost,  # type: ignore[arg-type]
             cost_kwargs=cost_kwargs,
             x_callback=x_callback,
             y_callback=y_callback,
             xy_callback=xy_callback,
-        )  # type: ignore
+        )
 
         x.setdefault("attr", "obsp")
         x.setdefault("key", "cost_matrices")
