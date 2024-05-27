@@ -1,5 +1,6 @@
 import types
-from typing import Any, Literal, Mapping, Optional, Tuple, Type, Union
+import warnings
+from typing import Any, Literal, Mapping, Optional, Sequence, Tuple, Type, Union
 
 from anndata import AnnData
 
@@ -12,9 +13,14 @@ from moscot._types import (
     QuadInitializer_t,
     ScaleCost_t,
 )
-from moscot.base.problems.compound_problem import B, CompoundProblem, K
+from moscot.base.problems.compound_problem import B, Callback_t, CompoundProblem, K
 from moscot.base.problems.problem import OTProblem
-from moscot.problems._utils import handle_cost, handle_joint_attr
+from moscot.problems._utils import (
+    handle_cost,
+    handle_joint_attr,
+    pop_callback_kwargs,
+    pop_callbacks,
+)
 from moscot.problems.space._mixins import SpatialAlignmentMixin
 
 __all__ = ["AlignmentProblem"]
@@ -46,7 +52,14 @@ class AlignmentProblem(SpatialAlignmentMixin[K, B], CompoundProblem[K, B]):
         cost_kwargs: CostKwargs_t = types.MappingProxyType({}),
         a: Optional[Union[bool, str]] = None,
         b: Optional[Union[bool, str]] = None,
-        **kwargs: Any,
+        xy_callback: Optional[Union[Literal["local-pca"], Callback_t]] = None,
+        x_callback: Optional[Union[Literal["local-pca"], Callback_t]] = None,
+        y_callback: Optional[Union[Literal["local-pca"], Callback_t]] = None,
+        x_callback_kwargs: Mapping[str, Any] = types.MappingProxyType({}),
+        y_callback_kwargs: Mapping[str, Any] = types.MappingProxyType({}),
+        xy_callback_kwargs: Mapping[str, Any] = types.MappingProxyType({}),
+        subset: Optional[Sequence[Tuple[K, K]]] = None,
+        marginal_kwargs: Mapping[str, Any] = types.MappingProxyType({}),
     ) -> "AlignmentProblem[K, B]":
         """Prepare the alignment problem problem.
 
@@ -128,23 +141,70 @@ class AlignmentProblem(SpatialAlignmentMixin[K, B], CompoundProblem[K, B]):
         """
         self.spatial_key = spatial_key
         self.batch_key = batch_key
-
+        if policy == "star" and reference is None:
+            raise ValueError("Reference must be provided when `policy='star'`.")
         x = y = {"attr": "obsm", "key": self.spatial_key}
 
-        if normalize_spatial and "x_callback" not in kwargs and "y_callback" not in kwargs:
-            kwargs["x_callback"] = kwargs["y_callback"] = "spatial-norm"
-            kwargs.setdefault("x_callback_kwargs", x)
-            kwargs.setdefault("y_callback_kwargs", y)
+        callback_dict = {
+            "x_callback": x_callback,
+            "y_callback": y_callback,
+            "xy_callback": xy_callback,
+            "x_callback_kwargs": x_callback_kwargs,
+            "y_callback_kwargs": y_callback_kwargs,
+            "xy_callback_kwargs": xy_callback_kwargs,
+        }
+        callback_dict = {k: v for k, v in callback_dict.items() if v}
+        del x_callback, y_callback, xy_callback, x_callback_kwargs, y_callback_kwargs, xy_callback_kwargs
+        if normalize_spatial:
+            if "x_callback" not in callback_dict and "y_callback" not in callback_dict:
+                callback_dict["x_callback"] = callback_dict["y_callback"] = "spatial-norm"
+                callback_dict.setdefault("x_callback_kwargs", x)
+                callback_dict.setdefault("y_callback_kwargs", y)
+            else:
+                raise ValueError(
+                    "Cannot normalize spatial coordinates when `x_callback` and `y_callback` are provided."
+                )
+                warnings.warn(
+                    "Ignoring `normalize_spatial` as `x_callback` and `y_callback` are provided.",
+                    UserWarning,
+                    stacklevel=2,  # TODO: idk check these later
+                )
 
-        if "spatial-norm" in kwargs.get("x_callback", {}) and "spatial-norm" in kwargs.get("y_callback", {}):
-            x = {}
-            y = {}
+        # TODO: why are these in the same statement?
+        # TODO: Would {"spatial-norm"} also work beside "spatial-norm"?
+        if callback_dict.get("x_callback") == "spatial-norm" and callback_dict.get("y_callback") == "spatial-norm":
+            x = y = {}
+        xy, callback_dict = handle_joint_attr(joint_attr, callback_dict)
+        x_callback, y_callback, xy_callback = pop_callbacks(callback_dict)
+        x_callback_kwargs, y_callback_kwargs, xy_callback_kwargs = pop_callback_kwargs(callback_dict)
 
-        xy, kwargs = handle_joint_attr(joint_attr, kwargs)
-        xy, x, y = handle_cost(xy=xy, x=x, y=y, cost=cost, cost_kwargs=cost_kwargs, **kwargs)  # type: ignore[arg-type]
-
+        xy, x, y = handle_cost(
+            xy=xy,
+            x=x,
+            y=y,
+            cost=cost,
+            cost_kwargs=cost_kwargs,
+            xy_callback=xy_callback,
+            x_callback=x_callback,
+            y_callback=y_callback,
+        )
         return super().prepare(  # type: ignore[return-value]
-            x=x, y=y, xy=xy, policy=policy, key=batch_key, reference=reference, cost=cost, a=a, b=b, **kwargs
+            x=x,
+            y=y,
+            xy=xy,
+            policy=policy,
+            key=batch_key,
+            reference=reference,
+            subset=subset,
+            a=a,
+            b=b,
+            x_callback=x_callback,
+            y_callback=y_callback,
+            xy_callback=xy_callback,
+            x_callback_kwargs=x_callback_kwargs,
+            y_callback_kwargs=y_callback_kwargs,
+            xy_callback_kwargs=xy_callback_kwargs,
+            marginal_kwargs=marginal_kwargs,
         )
 
     def solve(

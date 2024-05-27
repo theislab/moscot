@@ -1,10 +1,12 @@
+import types
 from functools import partial
-from inspect import signature
 from typing import (
     TYPE_CHECKING,
     Any,
     Callable,
+    Dict,
     Literal,
+    Mapping,
     Optional,
     Protocol,
     Sequence,
@@ -161,13 +163,25 @@ class BirthDeathProblem(BirthDeathMixin, OTProblem):
         Keyword arguments for :class:`~moscot.base.problems.OTProblem`.
     """  # noqa: D205
 
-    _BETA_ARGS = {"beta"}
-    _DELTA_KWARGS = {
-        "delta_max": 1.7,
-        "delta_min": 0.3,
-        "delta_center": 0.1,
-        "delta_width": 0.2,
-    }
+    def prepare(
+        self,
+        xy: Mapping[str, Any],
+        x: Mapping[str, Any],
+        y: Mapping[str, Any],
+        a: Optional[Union[bool, str, ArrayLike]] = None,
+        b: Optional[Union[bool, str, ArrayLike]] = None,
+        marginal_kwargs: Dict[str, Any] = types.MappingProxyType({}),
+        proliferation_key: Optional[str] = None,
+        apoptosis_key: Optional[str] = None,
+    ) -> "BirthDeathProblem":
+        """TODO."""
+        self.proliferation_key = proliferation_key
+        self.apoptosis_key = apoptosis_key
+        if proliferation_key is not None:
+            marginal_kwargs["proliferation_key"] = proliferation_key
+        if apoptosis_key is not None:
+            marginal_kwargs["apoptosis_key"] = apoptosis_key
+        return super().prepare(xy=xy, x=x, y=y, a=a, b=b, marginal_kwargs=marginal_kwargs)
 
     def estimate_marginals(
         self,  # type: BirthDeathProblemProtocol
@@ -176,7 +190,14 @@ class BirthDeathProblem(BirthDeathMixin, OTProblem):
         proliferation_key: Optional[str] = None,
         apoptosis_key: Optional[str] = None,
         scaling: Optional[float] = None,
-        **kwargs: Any,
+        beta_max: float = 1.7,
+        beta_min: float = 0.3,
+        beta_center: float = 0.25,
+        beta_width: float = 0.5,
+        delta_max: float = 1.7,
+        delta_min: float = 0.3,
+        delta_center: float = 0.1,
+        delta_width: float = 0.2,
     ) -> ArrayLike:
         """Estimate the source or target :term:`marginals` based on marker genes, either with the
         `birth-death process <https://en.wikipedia.org/wiki/Birth%E2%80%93death_process>`_,
@@ -199,9 +220,22 @@ class BirthDeathProblem(BirthDeathMixin, OTProblem):
             If :obj:`float` is passed, it will be used as a scaling parameter in an exponential kernel
             with proliferation and apoptosis scores.
             If :obj:`None`, parameters corresponding to the birth and death processes will be used.
-        kwargs
-            Keyword arguments for :func:`~moscot.base.problems.birth_death.beta` and
-            :func:`~moscot.base.problems.birth_death.delta`.
+        beta_max
+            Argument for :func:`~moscot.base.problems.birth_death.beta`
+        beta_min
+            Argument for :func:`~moscot.base.problems.birth_death.beta`
+        beta_center
+            Argument for :func:`~moscot.base.problems.birth_death.beta`
+        beta_width
+            Argument for :func:`~moscot.base.problems.birth_death.beta`
+        delta_max
+            Argument for :func:`~moscot.base.problems.birth_death.delta`
+        delta_min
+            Argument for :func:`~moscot.base.problems.birth_death.delta`
+        delta_center
+            Argument for :func:`~moscot.base.problems.birth_death.delta`
+        delta_width
+            Argument for :func:`~moscot.base.problems.birth_death.delta`
 
         Returns
         -------
@@ -234,19 +268,14 @@ class BirthDeathProblem(BirthDeathMixin, OTProblem):
 
         if scaling:
             beta_fn = delta_fn = lambda x: x
-            if len(kwargs):
-                raise ValueError(
-                    f"If `scaling` is passed, no additional keyword arguments are allowed but found: {kwargs}."
-                )
         else:
-            # get the parameter names from delta and beta functions
-            beta_params = signature(beta).parameters.keys()
-            delta_params = signature(delta).parameters.keys()
-            valid_keys = set(beta_params) | set(delta_params)
-            if not set(kwargs.keys()).issubset(valid_keys):
-                raise ValueError(f"Invalid keyword arguments. Allowed keys are {valid_keys}.")
-            beta_fn = partial(beta, **{k: kwargs[k] for k in beta_params & kwargs.keys()})
-            delta_fn = partial(delta, **{k: kwargs[k] for k in delta_params & kwargs.keys()})
+            beta_fn = partial(
+                beta, beta_max=beta_max, beta_min=beta_min, beta_center=beta_center, beta_width=beta_width
+            )
+            delta_fn = partial(
+                delta, delta_max=delta_max, delta_min=delta_min, delta_center=delta_center, delta_width=delta_width
+            )
+
             scaling = 1.0
         birth = estimate(proliferation_key, fn=beta_fn)
         death = estimate(apoptosis_key, fn=delta_fn)

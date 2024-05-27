@@ -15,7 +15,11 @@ from moscot._types import (
 )
 from moscot.base.problems.compound_problem import B, CompoundProblem, K
 from moscot.base.problems.problem import OTProblem
-from moscot.problems._utils import handle_cost, handle_joint_attr
+from moscot.problems._utils import (
+    handle_cost,
+    handle_joint_attr,
+    pop_callbacks_compound_prepare,
+)
 from moscot.problems.space._mixins import SpatialMappingMixin
 from moscot.utils.subset_policy import DummyPolicy, ExternalStarPolicy
 
@@ -186,12 +190,43 @@ class MappingProblem(SpatialMappingMixin[K, OTProblem], CompoundProblem[K, OTPro
             xy, kwargs = handle_joint_attr(joint_attr, kwargs)
         else:
             xy = {}
-        xy, x, y = handle_cost(xy=xy, x=x, y=y, cost=cost, cost_kwargs=cost_kwargs, **kwargs)  # type: ignore[arg-type]
-        if xy:
-            kwargs["xy"] = xy
+        (
+            x_callback,
+            y_callback,
+            xy_callback,
+            x_callback_kwargs,
+            y_callback_kwargs,
+            xy_callback_kwargs,
+            reference,
+            subset,
+        ) = pop_callbacks_compound_prepare(kwargs)
+        xy, x, y = handle_cost(
+            xy=xy,
+            x=x,
+            y=y,
+            cost=cost,
+            cost_kwargs=cost_kwargs,
+            x_callback=x_callback,
+            y_callback=y_callback,
+            xy_callback=xy_callback,
+        )
 
+        if kwargs:
+            raise ValueError(f"Unknown keyword arguments: {list(kwargs)}.")
         return super().prepare(  # type: ignore[return-value]
-            x=x, y=y, policy="external_star", key=batch_key, cost=cost, a=a, b=b, **kwargs
+            xy=xy,
+            x=x,
+            y=y,
+            policy="external_star",
+            key=batch_key,
+            a=a,
+            b=b,
+            x_callback=x_callback,
+            y_callback=y_callback,
+            xy_callback=xy_callback,
+            x_callback_kwargs=x_callback_kwargs,
+            y_callback_kwargs=y_callback_kwargs,
+            xy_callback_kwargs=xy_callback_kwargs,
         )
 
     def solve(

@@ -17,7 +17,7 @@ from moscot._types import (
 )
 from moscot.base.problems.birth_death import BirthDeathMixin, BirthDeathProblem
 from moscot.base.problems.compound_problem import B, CompoundProblem
-from moscot.problems._utils import handle_cost, handle_joint_attr
+from moscot.problems._utils import handle_cost, handle_joint_attr, pop_callbacks
 from moscot.problems.time._mixins import TemporalMixin
 
 __all__ = ["TemporalProblem", "LineageProblem"]
@@ -131,6 +131,18 @@ class TemporalProblem(  # type: ignore[misc]
         estimate_marginals = self.proliferation_key is not None or self.apoptosis_key is not None
         a = estimate_marginals if a is None else a
         b = estimate_marginals if b is None else b
+        (
+            x_callback,
+            y_callback,
+            xy_callback,
+            x_callback_kwargs,
+            y_callback_kwargs,
+            xy_callback_kwargs,
+            reference,
+            subset,
+        ) = pop_callbacks(kwargs)
+        if kwargs:
+            raise ValueError(f"Unknown keyword arguments: {list(kwargs)}.")
         return super().prepare(  # type: ignore[return-value]
             key=time_key,
             xy=xy,
@@ -140,7 +152,14 @@ class TemporalProblem(  # type: ignore[misc]
             marginal_kwargs=marginal_kwargs,
             a=a,
             b=b,
-            **kwargs,
+            x_callback=x_callback,
+            y_callback=y_callback,
+            xy_callback=xy_callback,
+            x_callback_kwargs=x_callback_kwargs,
+            y_callback_kwargs=y_callback_kwargs,
+            xy_callback_kwargs=xy_callback_kwargs,
+            reference=reference,
+            subset=subset,
         )
 
     def solve(
@@ -365,8 +384,9 @@ class LineageProblem(TemporalProblem):
             raise KeyError("Unable to find cost matrices in `adata.obsp['cost_matrices']`.")
 
         x = y = lineage_attr
+
         xy, kwargs = handle_joint_attr(joint_attr, kwargs)
-        xy, x, y = handle_cost(xy=xy, x=x, y=y, cost=cost, cost_kwargs=cost_kwargs, **kwargs)
+        xy, x, y = handle_cost(xy=xy, x=x, y=y, cost=cost, cost_kwargs=cost_kwargs, **kwargs)  # type: ignore
 
         x.setdefault("attr", "obsp")
         x.setdefault("key", "cost_matrices")
@@ -377,6 +397,19 @@ class LineageProblem(TemporalProblem):
         y.setdefault("key", "cost_matrices")
         y.setdefault("cost", "custom")
         y.setdefault("tag", "cost_matrix")
+
+        (
+            x_callback,
+            y_callback,
+            xy_callback,
+            x_callback_kwargs,
+            y_callback_kwargs,
+            xy_callback_kwargs,
+            reference,
+            subset,
+        ) = pop_callbacks(kwargs)
+        if kwargs:
+            raise ValueError(f"Unknown keyword arguments: {list(kwargs)}.")
         return super().prepare(  # type: ignore[return-value]
             time_key,
             joint_attr=xy,
@@ -387,7 +420,14 @@ class LineageProblem(TemporalProblem):
             a=a,
             b=b,
             marginal_kwargs=marginal_kwargs,
-            **kwargs,
+            x_callback=x_callback,
+            y_callback=y_callback,
+            xy_callback=xy_callback,
+            x_callback_kwargs=x_callback_kwargs,
+            y_callback_kwargs=y_callback_kwargs,
+            xy_callback_kwargs=xy_callback_kwargs,
+            reference=reference,
+            subset=subset,
         )
 
     def solve(

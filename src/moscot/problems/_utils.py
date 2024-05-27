@@ -1,7 +1,8 @@
 import types
-from typing import Any, Dict, Mapping, Optional, Tuple, Union
+from typing import Any, Dict, Literal, Mapping, Optional, Tuple, Union
 
-from moscot._types import CostFn_t, CostKwargs_t
+from moscot._types import CostKwargs_t, OttCostFnMap_t
+from moscot.base.problems.compound_problem import Callback_t
 
 
 def handle_joint_attr(
@@ -50,36 +51,73 @@ def handle_cost(
     xy: Mapping[str, Any] = types.MappingProxyType({}),
     x: Mapping[str, Any] = types.MappingProxyType({}),
     y: Mapping[str, Any] = types.MappingProxyType({}),
-    cost: Optional[Union[CostFn_t, Mapping[str, CostFn_t]]] = None,
+    cost: Optional[OttCostFnMap_t] = None,
     cost_kwargs: CostKwargs_t = types.MappingProxyType({}),
-    **kwargs: Any,
+    xy_callback: Optional[Union[Literal["local-pca"], Callback_t]] = None,
+    x_callback: Optional[Union[Literal["local-pca"], Callback_t]] = None,
+    y_callback: Optional[Union[Literal["local-pca"], Callback_t]] = None,
 ) -> Tuple[Dict[str, Any], Dict[str, Any], Dict[str, Any]]:
     xy, x, y = dict(xy), dict(x), dict(y)
     if cost is None:
         return xy, x, y
-    if isinstance(cost, str):  # if cost is a str, we use it in all terms
-        if (xy or "xy_callback" in kwargs) and "cost" not in xy:
-            xy["x_cost"] = xy["y_cost"] = cost
-        if (x or "x_callback" in kwargs) and "cost" not in x:
-            x["cost"] = cost
-        if (y or "y_callback" in kwargs) and "cost" not in y:
-            y["cost"] = cost
-    elif isinstance(cost, Mapping):  # if cost is a dict, the cost is specified for each term
-        if (xy or "xy_callback" in kwargs) and "cost" not in xy:
-            xy["x_cost"] = xy["y_cost"] = cost["xy"]
-        if (x or "x_callback" in kwargs) and "cost" not in x:
-            x["cost"] = cost["x"]
-        if (y or "y_callback" in kwargs) and "cost" not in y:
-            y["cost"] = cost["y"]
+
+    # cost candidates to set
+    # if cost_candidates["x"] is True, x["cost"] is set
+    cost_candidates = {
+        "xy": (xy or xy_callback) and "cost" not in xy,
+        "x": (x or x_callback) and "cost" not in x,
+        "y": (y or y_callback) and "cost" not in y,
+    }
+    if isinstance(cost, Mapping):
+        cost_candidates = {k: cost[k] for k, v in cost_candidates.items() if v}  # type:ignore[index,misc]
+    elif isinstance(cost, str):
+        cost_candidates = {k: cost for k, v in cost_candidates.items() if v}  # type:ignore[misc]
     else:
         raise TypeError(f"Expected `cost` to be either `str` or `dict`, found `{type(cost)}`.")
-    if (xy or "xy_callback" in kwargs) and cost_kwargs:  # distribute the cost_kwargs, possibly explicit to x/y/xy-term
-        # extract cost_kwargs explicit to xy-term if possible
-        items = cost_kwargs["xy"].items() if "xy" in cost_kwargs else cost_kwargs.items()
-        for k, v in items:
-            xy[f"x_{k}"] = xy[f"y_{k}"] = v
-    if (x or "x_callback" in kwargs) and cost_kwargs:  # extract cost_kwargs explicit to x-term if possible
-        x.update(cost_kwargs.get("x", cost_kwargs))  # type:ignore[call-overload]
-    if (y or "y_callback" in kwargs) and cost_kwargs:  # extract cost_kwargs explicit to y-term if possible
-        y.update(cost_kwargs.get("y", cost_kwargs))  # type:ignore[call-overload]
+
+    # set cost
+    if "xy" in cost_candidates:
+        xy["x_cost"] = xy["y_cost"] = cost_candidates["xy"]
+    if "x" in cost_candidates:
+        x["cost"] = cost_candidates["x"]
+    if "y" in cost_candidates:
+        y["cost"] = cost_candidates["y"]
+
+    if cost_kwargs:
+        if "xy" in cost_candidates:
+            items = cost_kwargs["xy"].items() if "xy" in cost_kwargs else cost_kwargs.items()
+            for k, v in items:
+                xy[f"x_{k}"] = xy[f"y_{k}"] = v
+        if "x" in cost_candidates:
+            x.update(cost_kwargs.get("x", cost_kwargs))  # type:ignore[call-overload]
+        if "y" in cost_candidates:
+            y.update(cost_kwargs.get("y", cost_kwargs))  # type:ignore[call-overload]
     return xy, x, y
+
+
+def pop_callbacks_compound_prepare(kwargs: Dict[str, Any]) -> Tuple[Any, ...]:
+    """
+    Pop callbacks from kwargs and return x, y, xy callbacks and their kwargs,
+    then reference and subset respectively. For use before `CompoundProblem.prepare`.
+    """  # noqa: D205
+    cb = pop_callbacks(kwargs)
+    kws = pop_callback_kwargs(kwargs)
+    others = pop_reference_subset(kwargs)
+    return (*cb, *kws, *others)
+
+
+def pop_callbacks(kwargs: Dict[str, Any]) -> Tuple[Any, ...]:
+    """Pop callbacks from kwargs and return x, y, xy callbacks respectively."""  # noqa: D205
+    cb_keys = ("x", "y", "xy")
+    return tuple(kwargs.pop(k + "_callback", None) for k in cb_keys)
+
+
+def pop_callback_kwargs(kwargs: Dict[str, Any]) -> Tuple[Any, ...]:
+    """Pop callbacks from kwargs and return x, y, xy callback kwargs respectively."""  # noqa: D205
+    cb_keys = ("x", "y", "xy")
+    return tuple(kwargs.pop(k + "_callback_kwargs", {}) for k in cb_keys)
+
+
+def pop_reference_subset(kwargs: Dict[str, Any]) -> Tuple[Any, Any]:
+    """Pop reference and subset from kwargs and return them respectively."""  # noqa: D205
+    return kwargs.pop("reference", None), kwargs.pop("subset", None)

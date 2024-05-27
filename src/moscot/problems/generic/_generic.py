@@ -16,7 +16,12 @@ from moscot._types import (
 )
 from moscot.base.problems.compound_problem import B, CompoundProblem, K
 from moscot.base.problems.problem import OTProblem
-from moscot.problems._utils import handle_cost, handle_joint_attr
+from moscot.problems._utils import (
+    handle_cost,
+    handle_joint_attr,
+    pop_callbacks_compound_prepare,
+    pop_reference_subset,
+)
 from moscot.problems.generic._mixins import GenericAnalysisMixin
 
 __all__ = ["SinkhornProblem", "GWProblem", "FGWProblem"]
@@ -121,15 +126,34 @@ class SinkhornProblem(GenericAnalysisMixin[K, B], CompoundProblem[K, B]):  # typ
         """
         self.batch_key = key  # type: ignore[misc]
         xy, kwargs = handle_joint_attr(joint_attr, kwargs)
-        xy, _, _ = handle_cost(xy=xy, cost=cost, cost_kwargs=cost_kwargs, **kwargs)
+        quad_callback_keys = {"x", "y", "x_callback", "y_callback", "x_callback_kwargs", "y_callback_kwargs"}
+        given_quad_keys = set(kwargs.keys()) & quad_callback_keys
+        if given_quad_keys:
+            raise ValueError(
+                f"SinkhornProblem does not support passing: {given_quad_keys} since it is a linear problem."
+            )
+        reference, subset = pop_reference_subset(kwargs)  # TODO: make sure they are expected or not
+        xy_callback, xy_callback_kwargs = kwargs.pop("xy_callback", None), kwargs.pop("xy_callback_kwargs", {})
+        xy, _, _ = handle_cost(
+            xy=xy,
+            x={},
+            y={},
+            cost=cost,
+            cost_kwargs=cost_kwargs,
+            xy_callback=xy_callback,
+        )
+        if kwargs:
+            raise ValueError(f"Unknown keyword arguments: {kwargs}.")
         return super().prepare(  # type: ignore[return-value]
             key=key,
             policy=policy,
             xy=xy,
-            cost=cost,
             a=a,
             b=b,
-            **kwargs,
+            xy_callback=xy_callback,
+            xy_callback_kwargs=xy_callback_kwargs,
+            reference=reference,
+            subset=subset,
         )
 
     def solve(
@@ -348,17 +372,47 @@ class GWProblem(GenericAnalysisMixin[K, B], CompoundProblem[K, B]):  # type: ign
         self.batch_key = key  # type: ignore[misc]
         x = set_quad_defaults(x_attr) if "x_callback" not in kwargs else {}
         y = set_quad_defaults(y_attr) if "y_callback" not in kwargs else {}
-        xy, x, y = handle_cost(xy={}, x=x, y=y, cost=cost, cost_kwargs=cost_kwargs, **kwargs)  # type: ignore[arg-type]
+        if "xy" in kwargs:
+            raise ValueError("GWProblem does not support passing `xy`.")
+        (
+            x_callback,
+            y_callback,
+            xy_callback,
+            xy_callback_kwargs,
+            x_callback_kwargs,
+            y_callback_kwargs,
+            reference,
+            subset,
+        ) = pop_callbacks_compound_prepare(kwargs)
+
+        xy, x, y = handle_cost(
+            xy={},
+            x=x,
+            y=y,
+            cost=cost,
+            cost_kwargs=cost_kwargs,
+            x_callback=x_callback,
+            y_callback=y_callback,
+            xy_callback=xy_callback,
+        )
+        if kwargs:
+            raise ValueError(f"Unknown keyword arguments: {kwargs}.")
         return super().prepare(  # type: ignore[return-value]
             key=key,
             xy=xy,
             x=x,
             y=y,
             policy=policy,
-            cost=cost,
             a=a,
             b=b,
-            **kwargs,
+            x_callback=x_callback,
+            y_callback=y_callback,
+            xy_callback=xy_callback,
+            xy_callback_kwargs=xy_callback_kwargs,
+            x_callback_kwargs=x_callback_kwargs,
+            y_callback_kwargs=y_callback_kwargs,
+            subset=subset,
+            reference=reference,
         )
 
     def solve(
@@ -574,10 +628,33 @@ class FGWProblem(GWProblem[K, B]):
         - :attr:`problem_kind` - set to ``'quadratic'``.
         """
         self.batch_key = key  # type: ignore[misc]
-        xy, kwargs = handle_joint_attr(joint_attr, kwargs)
-        x = set_quad_defaults(x_attr) if "x_callback" not in kwargs else {}
+        x = (
+            set_quad_defaults(x_attr) if "x_callback" not in kwargs else {}
+        )  # does x_callback or set_default(x_attr) work?
         y = set_quad_defaults(y_attr) if "y_callback" not in kwargs else {}
-        xy, x, y = handle_cost(xy=xy, x=x, y=y, cost=cost, cost_kwargs=cost_kwargs, **kwargs)  # type: ignore[arg-type]
+        xy, kwargs = handle_joint_attr(joint_attr, kwargs)
+        (
+            x_callback,
+            y_callback,
+            xy_callback,
+            x_callback_kwargs,
+            y_callback_kwargs,
+            xy_callback_kwargs,
+            reference,
+            subset,
+        ) = pop_callbacks_compound_prepare(kwargs)
+        xy, x, y = handle_cost(
+            xy=xy,
+            x=x,
+            y=y,
+            cost=cost,
+            x_callback=x_callback,
+            y_callback=y_callback,
+            xy_callback=xy_callback,
+            cost_kwargs=cost_kwargs,
+        )
+        if kwargs:
+            raise ValueError(f"Unknown keyword arguments: {kwargs}.")
         return CompoundProblem.prepare(
             self,  # type: ignore[return-value, arg-type]
             key=key,
@@ -585,10 +662,16 @@ class FGWProblem(GWProblem[K, B]):
             x=x,
             y=y,
             policy=policy,
-            cost=cost,
             a=a,
             b=b,
-            **kwargs,
+            reference=reference,
+            subset=subset,
+            x_callback=x_callback,
+            y_callback=y_callback,
+            xy_callback=xy_callback,
+            x_callback_kwargs=x_callback_kwargs,
+            y_callback_kwargs=y_callback_kwargs,
+            xy_callback_kwargs=xy_callback_kwargs,
         )
 
     def solve(

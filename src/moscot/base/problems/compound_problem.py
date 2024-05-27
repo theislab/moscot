@@ -149,9 +149,10 @@ class BaseCompoundProblem(BaseProblem, abc.ABC, Generic[K, B]):
         xy_callback_kwargs: Mapping[str, Any] = types.MappingProxyType({}),
         x_callback_kwargs: Mapping[str, Any] = types.MappingProxyType({}),
         y_callback_kwargs: Mapping[str, Any] = types.MappingProxyType({}),
-        **kwargs: Any,
+        a: Optional[Union[bool, str, ArrayLike]] = None,
+        b: Optional[Union[bool, str, ArrayLike]] = None,
+        marginal_kwargs: Mapping[str, Any] = types.MappingProxyType({}),
     ) -> Dict[Tuple[K, K], B]:
-        from moscot.base.problems.birth_death import BirthDeathProblem
 
         if TYPE_CHECKING:
             assert isinstance(self._policy, SubsetPolicy)
@@ -187,10 +188,7 @@ class BaseCompoundProblem(BaseProblem, abc.ABC, Generic[K, B]):
             if y_data:
                 y = dict(y)
                 y["tagged_array"] = y_data
-            if isinstance(problem, BirthDeathProblem):
-                kwargs["proliferation_key"] = self.proliferation_key  # type: ignore[attr-defined]
-                kwargs["apoptosis_key"] = self.apoptosis_key  # type: ignore[attr-defined]
-            problems[src_name, tgt_name] = problem.prepare(xy=xy, x=x, y=y, **kwargs)
+            problems[src_name, tgt_name] = problem.prepare(xy=xy, x=x, y=y, a=a, b=b, marginal_kwargs=marginal_kwargs)
 
         return problems
 
@@ -206,7 +204,12 @@ class BaseCompoundProblem(BaseProblem, abc.ABC, Generic[K, B]):
         xy_callback_kwargs: Mapping[str, Any] = types.MappingProxyType({}),
         x_callback_kwargs: Mapping[str, Any] = types.MappingProxyType({}),
         y_callback_kwargs: Mapping[str, Any] = types.MappingProxyType({}),
-        **kwargs: Any,
+        a: Optional[Union[bool, str, ArrayLike]] = None,
+        b: Optional[Union[bool, str, ArrayLike]] = None,
+        x: Mapping[str, Any] = types.MappingProxyType({}),
+        y: Mapping[str, Any] = types.MappingProxyType({}),
+        xy: Mapping[str, Any] = types.MappingProxyType({}),
+        marginal_kwargs: Mapping[str, Any] = types.MappingProxyType({}),
     ) -> "BaseCompoundProblem[K, B]":
         """Prepare the individual :term:`OT` subproblems.
 
@@ -264,13 +267,18 @@ class BaseCompoundProblem(BaseProblem, abc.ABC, Generic[K, B]):
         # when refactoring the callback, consider changing this
         self._problem_manager = ProblemManager(self, policy=policy)
         problems = self._create_problems(
-            xy_callback=xy_callback,
+            x=x,
+            y=y,
+            xy=xy,
+            a=a,
+            b=b,
             x_callback=x_callback,
             y_callback=y_callback,
-            xy_callback_kwargs=xy_callback_kwargs,
+            xy_callback=xy_callback,
             x_callback_kwargs=x_callback_kwargs,
             y_callback_kwargs=y_callback_kwargs,
-            **kwargs,
+            xy_callback_kwargs=xy_callback_kwargs,
+            marginal_kwargs=marginal_kwargs,
         )
         self._problem_manager.add_problems(problems)
 

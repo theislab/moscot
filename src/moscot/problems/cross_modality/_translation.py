@@ -15,7 +15,11 @@ from moscot._types import (
 )
 from moscot.base.problems.compound_problem import B, CompoundProblem, K
 from moscot.base.problems.problem import OTProblem
-from moscot.problems._utils import handle_cost, handle_joint_attr
+from moscot.problems._utils import (
+    handle_cost,
+    handle_joint_attr,
+    pop_callbacks_compound_prepare,
+)
 from moscot.problems.cross_modality._mixins import CrossModalityTranslationMixin
 from moscot.utils.subset_policy import DummyPolicy, ExternalStarPolicy
 
@@ -156,8 +160,8 @@ class TranslationProblem(CrossModalityTranslationMixin[K, OTProblem], CompoundPr
         - :attr:`stage` - set to ``'prepared'``.
         - :attr:`problem_kind` - set to ``'quadratic'``.
         """
-        self._src_attr = {"attr": "obsm", "key": src_attr} if isinstance(src_attr, str) else src_attr
-        self._tgt_attr = {"attr": "obsm", "key": tgt_attr} if isinstance(tgt_attr, str) else tgt_attr
+        self._src_attr: Mapping[str, Any] = {"attr": "obsm", "key": src_attr} if isinstance(src_attr, str) else src_attr
+        self._tgt_attr: Mapping[str, Any] = {"attr": "obsm", "key": tgt_attr} if isinstance(tgt_attr, str) else tgt_attr
         self.batch_key = batch_key
 
         if joint_attr is None:
@@ -173,12 +177,45 @@ class TranslationProblem(CrossModalityTranslationMixin[K, OTProblem], CompoundPr
                         f"The joint attribute in the source distribution has dimension {dim_src}, "
                         f"while the joint attribute in the target distribution has dimension {dim_tgt}."
                     )
+        (
+            x_callback,
+            y_callback,
+            xy_callback,
+            x_callback_kwargs,
+            y_callback_kwargs,
+            xy_callback_kwargs,
+            reference,
+            subset,
+        ) = pop_callbacks_compound_prepare(kwargs)
         xy, x, y = handle_cost(
-            xy=xy, x=self._src_attr, y=self._tgt_attr, cost=cost, cost_kwargs=cost_kwargs, **kwargs  # type: ignore[arg-type]
+            xy=xy,
+            x=self._src_attr,
+            y=self._tgt_attr,
+            cost=cost,
+            cost_kwargs=cost_kwargs,
+            x_callback=x_callback,
+            y_callback=y_callback,
+            xy_callback=xy_callback,
         )
-        if xy:
-            kwargs["xy"] = xy
-        return super().prepare(x=x, y=y, policy="external_star", key=batch_key, cost=cost, a=a, b=b, **kwargs)  # type: ignore[return-value] # noqa: E501
+        if kwargs:
+            raise TypeError(f"Unknown keyword arguments: {list(kwargs)}.")
+        return super().prepare(
+            x_callback=x_callback,
+            y_callback=y_callback,
+            xy_callback=xy_callback,
+            x_callback_kwargs=x_callback_kwargs,
+            y_callback_kwargs=y_callback_kwargs,
+            xy_callback_kwargs=xy_callback_kwargs,
+            x=x,
+            y=y,
+            xy=xy,
+            policy="external_star",
+            key=batch_key,
+            a=a,
+            b=b,
+            reference=reference,
+            subset=subset,
+        )  # type: ignore[return-value] # noqa: E501
 
     def solve(  # type: ignore[override]
         self,
