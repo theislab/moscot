@@ -112,3 +112,8 @@ Moscot problems' `solve` methods have the following parameters that can be set d
 - `rank` - Rank of the {term}`low-rank OT` solver {cite}`scetbon:21b`. If $-1$, full-rank solver {cite}`peyre:2016` is used.
 
 For more hyperparameters and their usage please refer to {doc}`/notebooks/examples/solvers/200_linear_problems_advanced` and {doc}`/notebooks/examples/solvers/400_quad_problems_advanced`.
+
+## Further links
+
+For tutorials showcasing use cases for data analysis please see {doc}`/notebooks/tutorials/index`.
+For short examples showcasing core moscot functionality please refer to {doc}`/notebooks/examples/index`.
