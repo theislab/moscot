@@ -308,7 +308,6 @@ class TestGWProblem:
         problem = problem.prepare(
             key="batch",
             policy="sequential",
-            joint_attr="X_pca",
             x_attr={"attr": "obsm", "key": "spatial"},
             y_attr={"attr": "obsm", "key": "spatial"},
         )
@@ -340,7 +339,6 @@ class TestGWProblem:
         problem = problem.prepare(
             key="batch",
             policy="sequential",
-            joint_attr="X_pca",
             x_attr={"attr": "obsm", "key": "spatial"},
             y_attr={"attr": "obsm", "key": "spatial"},
         )
