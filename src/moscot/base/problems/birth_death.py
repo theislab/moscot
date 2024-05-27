@@ -177,6 +177,7 @@ class BirthDeathProblem(BirthDeathMixin, OTProblem):
         """TODO."""
         self.proliferation_key = proliferation_key
         self.apoptosis_key = apoptosis_key
+        marginal_kwargs = dict(marginal_kwargs)
         if proliferation_key is not None:
             marginal_kwargs["proliferation_key"] = proliferation_key
         if apoptosis_key is not None:
