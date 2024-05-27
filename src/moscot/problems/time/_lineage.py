@@ -1,5 +1,5 @@
 import types
-from typing import Any, Literal, Mapping, Optional, Tuple, Type, Union
+from typing import Any, Literal, Mapping, Optional, Tuple, Type, Union, Sequence
 
 from anndata import AnnData
 
@@ -16,8 +16,8 @@ from moscot._types import (
     SinkhornInitializer_t,
 )
 from moscot.base.problems.birth_death import BirthDeathMixin, BirthDeathProblem
-from moscot.base.problems.compound_problem import B, CompoundProblem
-from moscot.problems._utils import handle_cost, handle_joint_attr, pop_callbacks
+from moscot.base.problems.compound_problem import B, CompoundProblem, Callback_t
+from moscot.problems._utils import handle_cost, handle_joint_attr, pop_callbacks, pop_callback_kwargs
 from moscot.problems.time._mixins import TemporalMixin
 
 __all__ = ["TemporalProblem", "LineageProblem"]
@@ -49,7 +49,17 @@ class TemporalProblem(  # type: ignore[misc]
         a: Optional[Union[bool, str]] = None,
         b: Optional[Union[bool, str]] = None,
         marginal_kwargs: Mapping[str, Any] = types.MappingProxyType({}),
-        **kwargs: Any,
+        subset: Optional[Sequence[Tuple[Numeric_t, Numeric_t]]] = None,
+        reference: Optional[Any] = None,
+        xy_callback: Optional[Union[Literal["local-pca"], Callback_t]] = None,
+        x_callback: Optional[Union[Literal["local-pca"], Callback_t]] = None,
+        y_callback: Optional[Union[Literal["local-pca"], Callback_t]] = None,
+        xy_callback_kwargs: Mapping[str, Any] = types.MappingProxyType({}),
+        x_callback_kwargs: Mapping[str, Any] = types.MappingProxyType({}),
+        y_callback_kwargs: Mapping[str, Any] = types.MappingProxyType({}),
+        x: Mapping[str, Any] = types.MappingProxyType({}),
+        y: Mapping[str, Any] = types.MappingProxyType({}),
+        xy: Mapping[str, Any] = types.MappingProxyType({}),
     ) -> "TemporalProblem":
         """Prepare the temporal problem problem.
 
@@ -123,26 +133,41 @@ class TemporalProblem(  # type: ignore[misc]
         - :attr:`problem_kind` - set to ``'linear'``.
         """
         self.temporal_key = time_key
-        xy, kwargs = handle_joint_attr(joint_attr, kwargs)
+
+        callback_dict = {
+            "x_callback": x_callback,
+            "y_callback": y_callback,
+            "xy_callback": xy_callback,
+            "x_callback_kwargs": x_callback_kwargs,
+            "y_callback_kwargs": y_callback_kwargs,
+            "xy_callback_kwargs": xy_callback_kwargs,
+        }
+        callback_dict = {k: v for k, v in callback_dict.items() if v}
+        del x_callback, y_callback, xy_callback, x_callback_kwargs, y_callback_kwargs, xy_callback_kwargs
+
+        xy, callback_dict = handle_joint_attr(joint_attr, callback_dict)
+        x_callback, y_callback, xy_callback = pop_callbacks(callback_dict)
+        x_callback_kwargs, y_callback_kwargs, xy_callback_kwargs = pop_callback_kwargs(callback_dict)
         xy, x, y = handle_cost(
-            xy=xy, x=kwargs.pop("x", {}), y=kwargs.pop("y", {}), cost=cost, cost_kwargs=cost_kwargs, **kwargs
+            xy=xy,
+            x=x,
+            y=y,
+            cost=cost,
+            cost_kwargs=cost_kwargs,
+            xy_callback=xy_callback,
+            x_callback=x_callback,
+            y_callback=y_callback,
         )
         marginal_kwargs = dict(marginal_kwargs)
+        if self.apoptosis_key is not None:
+            marginal_kwargs["apoptosis_key"] = self.apoptosis_key
+        if self.proliferation_key is not None:
+            marginal_kwargs["proliferation_key"] = self.proliferation_key
         estimate_marginals = self.proliferation_key is not None or self.apoptosis_key is not None
         a = estimate_marginals if a is None else a
         b = estimate_marginals if b is None else b
-        (
-            x_callback,
-            y_callback,
-            xy_callback,
-            x_callback_kwargs,
-            y_callback_kwargs,
-            xy_callback_kwargs,
-            reference,
-            subset,
-        ) = pop_callbacks(kwargs)
-        if kwargs:
-            raise ValueError(f"Unknown keyword arguments: {list(kwargs)}.")
+        assert callback_dict == {}, f"Unknown callback arguments: {callback_dict}."
+
         return super().prepare(  # type: ignore[return-value]
             key=time_key,
             xy=xy,
@@ -295,7 +320,17 @@ class LineageProblem(TemporalProblem):
         a: Optional[str] = None,
         b: Optional[str] = None,
         marginal_kwargs: Mapping[str, Any] = types.MappingProxyType({}),
-        **kwargs: Any,
+        subset: Optional[Sequence[Tuple[Numeric_t, Numeric_t]]] = None,
+        reference: Optional[Any] = None,
+        xy_callback: Optional[Union[Literal["local-pca"], Callback_t]] = None,
+        x_callback: Optional[Union[Literal["local-pca"], Callback_t]] = None,
+        y_callback: Optional[Union[Literal["local-pca"], Callback_t]] = None,
+        xy_callback_kwargs: Mapping[str, Any] = types.MappingProxyType({}),
+        x_callback_kwargs: Mapping[str, Any] = types.MappingProxyType({}),
+        y_callback_kwargs: Mapping[str, Any] = types.MappingProxyType({}),
+        x: Mapping[str, Any] = types.MappingProxyType({}),
+        y: Mapping[str, Any] = types.MappingProxyType({}),
+        xy: Mapping[str, Any] = types.MappingProxyType({}),
     ) -> "LineageProblem":
         """Prepare the lineage problem problem.
 
@@ -385,8 +420,30 @@ class LineageProblem(TemporalProblem):
 
         x = y = lineage_attr
 
-        xy, kwargs = handle_joint_attr(joint_attr, kwargs)
-        xy, x, y = handle_cost(xy=xy, x=x, y=y, cost=cost, cost_kwargs=cost_kwargs, **kwargs)  # type: ignore
+        callback_dict = {
+            "x_callback": x_callback,
+            "y_callback": y_callback,
+            "xy_callback": xy_callback,
+            "x_callback_kwargs": x_callback_kwargs,
+            "y_callback_kwargs": y_callback_kwargs,
+            "xy_callback_kwargs": xy_callback_kwargs,
+        }
+        callback_dict = {k: v for k, v in callback_dict.items() if v}
+        del x_callback, y_callback, xy_callback, x_callback_kwargs, y_callback_kwargs, xy_callback_kwargs
+        xy, callback_dict = handle_joint_attr(joint_attr, callback_dict)
+
+        x_callback, y_callback, xy_callback = pop_callbacks(callback_dict)
+        x_callback_kwargs, y_callback_kwargs, xy_callback_kwargs = pop_callback_kwargs(callback_dict)
+        xy, x, y = handle_cost(
+            xy=xy,
+            x=x,
+            y=y,
+            cost=cost,
+            cost_kwargs=cost_kwargs,
+            x_callback=x_callback,
+            y_callback=y_callback,
+            xy_callback=xy_callback,
+        )  # type: ignore
 
         x.setdefault("attr", "obsp")
         x.setdefault("key", "cost_matrices")
@@ -398,18 +455,6 @@ class LineageProblem(TemporalProblem):
         y.setdefault("cost", "custom")
         y.setdefault("tag", "cost_matrix")
 
-        (
-            x_callback,
-            y_callback,
-            xy_callback,
-            x_callback_kwargs,
-            y_callback_kwargs,
-            xy_callback_kwargs,
-            reference,
-            subset,
-        ) = pop_callbacks(kwargs)
-        if kwargs:
-            raise ValueError(f"Unknown keyword arguments: {list(kwargs)}.")
         return super().prepare(  # type: ignore[return-value]
             time_key,
             joint_attr=xy,

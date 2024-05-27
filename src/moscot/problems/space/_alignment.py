@@ -55,9 +55,9 @@ class AlignmentProblem(SpatialAlignmentMixin[K, B], CompoundProblem[K, B]):
         xy_callback: Optional[Union[Literal["local-pca"], Callback_t]] = None,
         x_callback: Optional[Union[Literal["local-pca"], Callback_t]] = None,
         y_callback: Optional[Union[Literal["local-pca"], Callback_t]] = None,
+        xy_callback_kwargs: Mapping[str, Any] = types.MappingProxyType({}),
         x_callback_kwargs: Mapping[str, Any] = types.MappingProxyType({}),
         y_callback_kwargs: Mapping[str, Any] = types.MappingProxyType({}),
-        xy_callback_kwargs: Mapping[str, Any] = types.MappingProxyType({}),
         subset: Optional[Sequence[Tuple[K, K]]] = None,
         marginal_kwargs: Mapping[str, Any] = types.MappingProxyType({}),
     ) -> "AlignmentProblem[K, B]":
