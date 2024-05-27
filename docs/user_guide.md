@@ -1,10 +1,10 @@
 # User guide
 
-moscot is a toolbox which can solve a wide range of tasks in single-cell genomics building upon the concept of [Optimal Transport (OT)](<https://en.wikipedia.org/wiki/Transportation_theory_(mathematics)>).
+Moscot is a toolbox which can solve a wide range of tasks in single-cell genomics building upon the concept of [Optimal Transport (OT)](<https://en.wikipedia.org/wiki/Transportation_theory_(mathematics)>).
 
-moscot builds upon three principles:
+Moscot builds upon three principles:
 
-- moscot applications are scalable. While traditional OT implementations are computationally expensive, moscot implements a wide range of solvers which can handle hunreds of thousands of cells.
+- moscot applications are scalable. While traditional OT implementations are computationally expensive, moscot implements a wide range of solvers which can handle hundreds of thousands of cells
 - moscot supports OT applications across [multiple modalities](#multimodality)
 - moscot offers a unified [user interface](#user-interface) and provides flexible implementations
 
@@ -51,7 +51,7 @@ moscot builds upon three principles:
 
    * - Problem
      - Description
-   * - :mod:`moscot.problems.cross_modality.TranslationProblem`
+   * - :mod:`moscot.problems.spatiotemporal.SpatioTemporalProblem`
      - Class for analyzing time series spatial single-cell data.
 ```
 
@@ -64,7 +64,7 @@ moscot builds upon three principles:
 
    * - Problem
      - Description
-   * - :mod:`moscot.problems.spatiotemporal.SpatioTemporalProblem`
+   * - :mod:`moscot.problems.cross_modality.TranslationProblem`
      - Class for integrating single-cell multi-omics data, based on :cite:`demetci-scot:22`.
 ```
 
@@ -87,22 +87,28 @@ moscot builds upon three principles:
 
 ## Scalability
 
-In their original formulation, OT algorithms don't scale to large datasets du to their high computational complexity. Moscot overcomes this limitation by allowing for the use of low-rank solvers. in each `solve` method we have the rank parameter, by default $-1$. Whenever possible,it's best to start with the full rank, but when needed, the rank should be set to a positive integer. The higher the rank, the better the full-rank approximation. Hence, one should start with a reasonable high rank, e.g. $5000$. Consecutively decrease the rank if needed due to memory constraints. Note that the scale of $\tau_a$ and $\tau_b$ change whenever we are in the low-rank setting. while they should be still between $0$ and $1$, empirically they should be set in the range between $0.1$ and $0.5$. See [below](#hyperparameters) for a more detailed discussion and {doc}`/notebooks/examples/solvers/100_linear_problems_basic` and {doc}`/notebooks/examples/solvers/300_quad_problems_basic` on how to use low-rank solutions.
+In their original formulation, OT algorithms don't scale to large datasets due to their high computational complexity. Moscot overcomes this limitation by allowing for the use of low-rank solvers. In each `solve` method we have the `rank` parameter, by default $-1$ -- the full rank.
+Whenever possible, it's best to start with the full rank, but when needed, the rank should be set to a positive integer. The higher the rank, the better the full-rank approximation. Hence, one should start with a reasonable high rank, e.g. $5000$. Consecutively decrease the rank if needed due to memory constraints. Note that the scale of $\tau_a$ and $\tau_b$ changes whenever we are in the low-rank setting. While they should be still between $0$ and $1$, empirically they should be set in the range between $0.1$ and $0.5$. See {doc}`/notebooks/examples/solvers/100_linear_problems_basic` and {doc}`/notebooks/examples/solvers/300_quad_problems_basic` on how to use low-rank solutions.
+Another option to use the full rank is to specify the `batch_size` parameter of the `solve` method. It determines the number of rows or columns of the cost matrix to materialize during the {term}`Sinkhorn` iterations. Larger values will require more memory and can be adjusted due to memory constraints as well.
+See [below](#hyperparameters) for a more detailed discussion.
 
 ## Multimodality
 
-All moscot problems are in general applicable to any modality, as the solution of the moscot problem only depends on pairwise distances of cells. Yet, it is up to the users to apply the preprocessing. We recommend using embeddings, e.g. [scVI-tools](https://docs.scvi-tools.org/en/stable/index.html) based or linear embeddings of dimension $10-100$. On how to pass certain embeddings please have a look at {doc}`/notebooks/tutorials/600_tutorial_translation`.
+All moscot problems are in general applicable to any modality, as the solution of the moscot problem only depends on pairwise distances of cells. Yet, it is up to the users to apply the preprocessing. We recommend using embeddings, e.g. [scVI-tools](https://docs.scvi-tools.org/en/stable/index.html) based or linear embeddings ([PCA for GEX](https://muon-tutorials.readthedocs.io/en/latest/single-cell-rna-atac/pbmc10k/1-Gene-Expression-Processing.html) and [LSI for ATAC-seq data](https://muon-tutorials.readthedocs.io/en/latest/single-cell-rna-atac/pbmc10k/2-Chromatin-Accessibility-Processing.html)) of dimension $10-100$. On how to pass certain embeddings please have a look at {doc}`/notebooks/tutorials/600_tutorial_translation`.
 When working with multiple modalities, we can construct a joint space, e.g. by using VAEs incorporating multiple modalities ([MultiVI](https://docs.scvi-tools.org/en/stable/user_guide/models/multivi.html)), or by concatenating linear embeddings (e.g. concatenate PCA and LSI space of GEX and ATAC, respectively)
 
 ## User interface
 
-moscot problems implement problem-specific downstream methods, so we recommend to use task-specific moscot problems. Yet, we also offer [generic solvers](#generic-problems) with a limited range of downstream applications for more advanced users, which allow for more flexiblity.
+Moscot problems implement problem-specific downstream methods, so we recommend to use task-specific moscot problems. Yet, we also offer [generic solvers](#generic-problems) with a limited range of downstream applications for more advanced users, which allow for more flexibility.
 
 ## Hyperparameters
 
-moscot problems' `solve` methods have the following parameters that can be set depending on the specific task:
+Moscot problems' `solve` methods have the following parameters that can be set depending on the specific task:
 
-- $\alpha$ - Parameter in $(0, 1]$ that interpolates between the {term}`quadratic term` and the {term}`linear term`. $\alpha = 1$ corresponds to the pure {term}`Gromov-Wasserstein` problem while $\alpha \to 0$ corresponds to the pure {term}`linear problem`.
-- $\tau_a$ and $\tau_b$ - Parameters in $(0, 1]$ that define how {term}`unbalanced <unbalanced OT problem>` is the problem on the source and target {term}`marginals`. If $1$, the problem is {term}`balanced <balanced OT problem>`.
 - $\varepsilon$ - {term}`Entropic regularization`.
+- $\tau_a$ and $\tau_b$ - Parameters in $(0, 1]$ that define how {term}`unbalanced <unbalanced OT problem>` is the problem on the source and target {term}`marginals`. If $1$, the problem is {term}`balanced <balanced OT problem>`.
+- $\alpha$ - Parameter in $(0, 1]$ that interpolates between the {term}`quadratic term` and the {term}`linear term`. $\alpha = 1$ corresponds to the pure {term}`Gromov-Wasserstein` problem while $\alpha \to 0$ corresponds to the pure {term}`linear problem`.
+- `batch_size` - Number of rows/columns of the cost matrix to materialize during the solver iterations. Larger value will require more memory.
 - `rank` - Rank of the {term}`low-rank OT` solver {cite}`scetbon:21b`. If $-1$, full-rank solver {cite}`peyre:2016` is used.
+
+For more hyperparameters and their usage please refer to {doc}`/notebooks/examples/solvers/200_linear_problems_advanced` and {doc}`/notebooks/examples/solvers/400_quad_problems_advanced`.
