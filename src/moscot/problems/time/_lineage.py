@@ -1,5 +1,5 @@
 import types
-from typing import Any, Literal, Mapping, Optional, Tuple, Type, Union, Sequence
+from typing import Any, Literal, Mapping, Optional, Sequence, Tuple, Type, Union
 
 from anndata import AnnData
 
@@ -16,8 +16,13 @@ from moscot._types import (
     SinkhornInitializer_t,
 )
 from moscot.base.problems.birth_death import BirthDeathMixin, BirthDeathProblem
-from moscot.base.problems.compound_problem import B, CompoundProblem, Callback_t
-from moscot.problems._utils import handle_cost, handle_joint_attr, pop_callbacks, pop_callback_kwargs
+from moscot.base.problems.compound_problem import B, Callback_t, CompoundProblem
+from moscot.problems._utils import (
+    handle_cost,
+    handle_joint_attr,
+    pop_callback_kwargs,
+    pop_callbacks,
+)
 from moscot.problems.time._mixins import TemporalMixin
 
 __all__ = ["TemporalProblem", "LineageProblem"]
