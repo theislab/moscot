@@ -71,7 +71,7 @@ class BaseCompoundProblem(BaseProblem, abc.ABC, Generic[K, B]):
         self._problem_manager: Optional[ProblemManager[K, B]] = None
 
     def __deepcopy__(self, memo) -> "BaseCompoundProblem[K, B]":
-        vars_to_shallow_copy = ("_adata", "_adata_sc")
+        vars_to_shallow_copy = ("_adata", "_adata_sc", "_adata_tgt")
 
         return _copy_depth_helper(self, memo, vars_to_shallow_copy)
 
