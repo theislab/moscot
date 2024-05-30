@@ -1,3 +1,4 @@
+import copy
 import functools
 import multiprocessing
 import threading
@@ -16,6 +17,7 @@ from typing import (
     Sequence,
     Tuple,
     Type,
+    TypeVar,
     Union,
 )
 
@@ -730,3 +732,21 @@ def _get_n_cores(n_cores: Optional[int], n_jobs: Optional[int]) -> int:
         return multiprocessing.cpu_count() + 1 + n_cores
 
     return n_cores
+
+
+C = TypeVar("C", bound=object)
+
+
+def _copy_deep_shallow_helper(
+    original: C, memo: dict[int, Any], shallow_copy: tuple[str, ...] = (), dont_copy: tuple[str, ...] = ()
+) -> C:
+    cls = original.__class__
+    result = cls.__new__(cls)
+    memo[id(original)] = result
+    for k, v in original.__dict__.items():
+        if k in shallow_copy:
+            setattr(result, k, v)
+            memo[id(v)] = v
+        elif k not in dont_copy:
+            setattr(result, k, copy.deepcopy(v, memo))
+    return result

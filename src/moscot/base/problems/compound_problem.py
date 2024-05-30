@@ -1,4 +1,5 @@
 import abc
+import copy
 import types
 from typing import (
     TYPE_CHECKING,
@@ -25,7 +26,11 @@ from anndata import AnnData
 from moscot._logging import logger
 from moscot._types import ArrayLike, Policy_t, ProblemStage_t
 from moscot.base.output import BaseSolverOutput
-from moscot.base.problems._utils import attributedispatch, require_prepare
+from moscot.base.problems._utils import (
+    _copy_deep_shallow_helper,
+    attributedispatch,
+    require_prepare,
+)
 from moscot.base.problems.manager import ProblemManager
 from moscot.base.problems.problem import BaseProblem, OTProblem
 from moscot.utils.subset_policy import (
@@ -38,6 +43,8 @@ from moscot.utils.subset_policy import (
     create_policy,
 )
 from moscot.utils.tagged_array import Tag, TaggedArray
+
+# from moscot.base.problems._utils import _custom_copy
 
 __all__ = ["BaseCompoundProblem", "CompoundProblem"]
 
@@ -64,6 +71,23 @@ class BaseCompoundProblem(BaseProblem, abc.ABC, Generic[K, B]):
         super().__init__(**kwargs)
         self._adata = adata
         self._problem_manager: Optional[ProblemManager[K, B]] = None
+
+    def __deepcopy__(self, memo) -> "BaseCompoundProblem[K, B]":
+        vars_to_shallow_copy = ("_adata",)
+
+        return _copy_deep_shallow_helper(self, memo, vars_to_shallow_copy)
+
+    def copy(self) -> "BaseCompoundProblem[K, B]":
+        """Create a copy of self.
+
+        It deep-copies everything except for the data which is shallow-copied (by reference)
+        to improve the memory footprint
+
+        Returns
+        -------
+        Copy of Self
+        """
+        return copy.deepcopy(self)
 
     @abc.abstractmethod
     def _create_problem(self, src: K, tgt: K, src_mask: ArrayLike, tgt_mask: ArrayLike, **kwargs: Any) -> B:

@@ -1,4 +1,5 @@
 import abc
+import copy
 import pathlib
 import types
 from typing import (
@@ -33,6 +34,7 @@ from moscot.base.problems._utils import (
     TimeScalesHeatKernel,
     _assert_columns_and_index_match,
     _assert_series_match,
+    _copy_deep_shallow_helper,
     require_solution,
     wrap_prepare,
     wrap_solve,
@@ -68,6 +70,19 @@ class BaseProblem(abc.ABC):
         - :attr:`stage` - set to ``'prepared'``.
         - :attr:`problem_kind` - kind of the :term:`OT` problem.
         """
+
+    @abc.abstractmethod
+    def copy(self) -> "BaseProblem":
+        """Create a copy of self.
+
+        It deep-copies everything except for the data which is shallow-copied (by reference)
+        to improve the memory footprint
+
+        Returns
+        -------
+        Copy of Self
+        """
+        pass
 
     @abc.abstractmethod
     def solve(self, *args: Any, **kwargs: Any) -> "BaseProblem":
@@ -199,6 +214,7 @@ class BaseProblem(abc.ABC):
         return self._problem_kind
 
 
+# from moscot.base.problems._utils import _custom_copy
 class OTProblem(BaseProblem):
     """Base class for all :term:`OT` problems.
 
@@ -258,6 +274,30 @@ class OTProblem(BaseProblem):
         self._b: Optional[ArrayLike] = None
 
         self._time_scales_heat_kernel = TimeScalesHeatKernel(None, None, None)
+
+    def __deepcopy__(self, memo) -> "OTProblem":
+        vars_to_shallow_copy = (
+            "_adata_src",
+            "_adata_tgt",
+            "_src_obs_mask",
+            "_tgt_obs_mask",
+            "_src_var_mask",
+            "_tgt_var_mask",
+        )
+
+        return _copy_deep_shallow_helper(self, memo, vars_to_shallow_copy)
+
+    def copy(self) -> "OTProblem":
+        """Create a copy of self.
+
+        It deep-copies everything except for the data which is shallow-copied (by reference)
+        to improve the memory footprint
+
+        Returns
+        -------
+        Copy of Self
+        """
+        return copy.deepcopy(self)
 
     def _handle_linear(self, cost: CostFn_t = None, **kwargs: Any) -> TaggedArray:
         if "x_attr" not in kwargs or "y_attr" not in kwargs:
