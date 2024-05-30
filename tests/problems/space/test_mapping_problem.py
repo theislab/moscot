@@ -269,7 +269,7 @@ class TestMappingProblem:
             assert getattr(geom, val) == args_to_check[arg]
 
     def test_copy(self, adata_mapping: AnnData):
-        shallow_copy = ("_adata",)
+        shallow_copy = ("_adata", "_adata_sc")
 
         prepare_params = {"batch_key": "batch", "sc_attr": {"attr": "X"}}
         adataref, adatasp = _adata_spatial_split(adata_mapping)

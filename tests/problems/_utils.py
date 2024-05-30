@@ -17,6 +17,11 @@ def _check_is_copy(o1: object, o2: object, shallow_copy: tuple[str, ...]) -> boo
             if id(v1) != id(v2):
                 return False
         else:
+            if isinstance(v1, list) and all(isinstance(v, (str, int, bool, float)) or v is None for v in v1):
+                # when deepcopying a list of basic types, python might decide to
+                # not keep the id of the list the same until it is changed, so it's
+                # ok to have lists of basic types the same id
+                continue
             if id(v1) == id(v2):
                 return False
 
