@@ -297,6 +297,8 @@ class OTProblem(BaseProblem):
         -------
         Copy of Self
         """
+        if self.stage == "solved":
+            raise copy.Error("Cannot copy problem that has already been solved.")
         return copy.deepcopy(self)
 
     def _handle_linear(self, cost: CostFn_t = None, **kwargs: Any) -> TaggedArray:

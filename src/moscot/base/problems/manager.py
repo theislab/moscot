@@ -53,6 +53,8 @@ class ProblemManager(Generic[K, B]):
         -------
         Copy of Self
         """
+        if self._compound_problem.stage == "solved":
+            raise copy.Error("Cannot copy problem that has already been solved.")
         return copy.deepcopy(self)
 
     def add_problem(

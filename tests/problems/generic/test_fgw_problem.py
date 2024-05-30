@@ -1,3 +1,4 @@
+import copy
 from typing import Any, Literal, Mapping
 
 import pytest
@@ -25,6 +26,7 @@ from moscot.base.output import BaseSolverOutput
 from moscot.base.problems import OTProblem
 from moscot.problems.generic import FGWProblem
 from tests._utils import _assert_marginals_set
+from tests.problems._utils import check_is_copy_multiple
 from tests.problems.conftest import (
     fgw_args_1,
     fgw_args_2,
@@ -82,6 +84,35 @@ class TestFGWProblem:
         )
         for key in problem:
             _assert_marginals_set(adata_time, problem, key, marginal_keys)
+
+    def test_copy(self, adata_space_rotate: AnnData):
+        shallow_copy = ("_adata",)
+
+        eps = 0.5
+        adata_space_rotate = adata_space_rotate[adata_space_rotate.obs["batch"].isin(("0", "1"))].copy()
+        prepare_params = {
+            "key": "batch",
+            "policy": "sequential",
+            "joint_attr": "X_pca",
+            "x_attr": {"attr": "obsm", "key": "spatial"},
+            "y_attr": {"attr": "obsm", "key": "spatial"},
+        }
+        solve_params = {"alpha": 0.5, "epsilon": eps}
+
+        prob = FGWProblem(adata=adata_space_rotate)
+        prob_copy_1 = prob.copy()
+
+        assert check_is_copy_multiple((prob, prob_copy_1), shallow_copy)
+
+        prob = prob.prepare(**prepare_params)  # type: ignore
+        prob_copy_1 = prob_copy_1.prepare(**prepare_params)  # type: ignore
+        prob_copy_2 = prob.copy()
+
+        assert check_is_copy_multiple((prob, prob_copy_1, prob_copy_2), shallow_copy)
+
+        prob = prob.solve(**solve_params)  # type: ignore
+        with pytest.raises(copy.Error):
+            _ = prob.copy()
 
     def test_solve_balanced(self, adata_space_rotate: AnnData):
         eps = 0.5

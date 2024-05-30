@@ -1,3 +1,4 @@
+import copy
 from typing import Any, List, Mapping, Optional
 
 import pytest
@@ -18,6 +19,7 @@ from moscot.base.problems import BirthDeathProblem
 from moscot.problems.time import TemporalProblem
 from moscot.utils.tagged_array import Tag, TaggedArray
 from tests._utils import ATOL, RTOL
+from tests.problems._utils import check_is_copy_multiple
 from tests.problems.conftest import (
     geometry_args,
     lin_prob_args,
@@ -51,6 +53,31 @@ class TestTemporalProblem:
         for key in problem:
             assert key in expected_keys
             assert isinstance(problem[key], BirthDeathProblem)
+
+    @pytest.mark.parametrize("callback", ["local-pca", None])
+    def test_copy(self, adata_time: AnnData, callback: Optional[str]):
+        shallow_copy = ("_adata",)
+
+        eps = 0.5
+        joint_attr = None if callback else "X_pca"
+
+        prepare_params = {"time_key": "time", "cost": "cosine", "xy_callback": callback, "joint_attr": joint_attr}
+        solve_params = {"epsilon": eps}
+
+        prob = TemporalProblem(adata=adata_time)
+        prob_copy_1 = prob.copy()
+
+        assert check_is_copy_multiple((prob, prob_copy_1), shallow_copy)
+
+        prob = prob.prepare(**prepare_params)  # type: ignore
+        prob_copy_1 = prob_copy_1.prepare(**prepare_params)  # type: ignore
+        prob_copy_2 = prob.copy()
+
+        assert check_is_copy_multiple((prob, prob_copy_1, prob_copy_2), shallow_copy)
+
+        prob = prob.solve(**solve_params)  # type: ignore
+        with pytest.raises(copy.Error):
+            _ = prob.copy()
 
     @pytest.mark.parametrize("callback", ["local-pca", None])
     def test_solve_balanced(self, adata_time: AnnData, callback: Optional[str]):

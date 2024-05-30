@@ -87,6 +87,8 @@ class BaseCompoundProblem(BaseProblem, abc.ABC, Generic[K, B]):
         -------
         Copy of Self
         """
+        if self.stage == "solved":
+            raise copy.Error("Cannot copy problem that has already been solved.")
         return copy.deepcopy(self)
 
     @abc.abstractmethod

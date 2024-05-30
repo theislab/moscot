@@ -1,3 +1,4 @@
+import copy
 from typing import Literal, Optional, Tuple
 
 import pytest
@@ -16,9 +17,42 @@ from moscot.base.output import BaseSolverOutput, MatrixSolverOutput
 from moscot.base.problems import OTProblem
 from moscot.utils.tagged_array import Tag, TaggedArray
 from tests._utils import ATOL, RTOL, Geom_t, MockSolverOutput
+from tests.problems._utils import check_is_copy_multiple
 
 
 class TestOTProblem:
+    def test_copy_problem(self, adata_x: AnnData, adata_y: AnnData):
+        shallow_copy = (
+            "_adata_src",
+            "_adata_tgt",
+            "_src_obs_mask",
+            "_tgt_obs_mask",
+            "_src_var_mask",
+            "_tgt_var_mask",
+        )
+
+        prepare_params = {
+            "xy": {"x_attr": "obsm", "x_key": "X_pca", "y_attr": "obsm", "y_key": "X_pca"},
+            "x": {"attr": "X"},
+            "y": {"attr": "X"},
+        }
+        solve_params = {"epsilon": 5e-1, "alpha": 0.5}
+
+        prob = OTProblem(adata_x, adata_y)
+        prob_copy_1 = prob.copy()
+
+        assert check_is_copy_multiple((prob, prob_copy_1), shallow_copy)
+
+        prob = prob.prepare(**prepare_params)  # type: ignore
+        prob_copy_1 = prob_copy_1.prepare(**prepare_params)  # type: ignore
+        prob_copy_2 = prob.copy()
+
+        assert check_is_copy_multiple((prob, prob_copy_1, prob_copy_2), shallow_copy)
+
+        prob.solve(**solve_params)  # type: ignore
+        with pytest.raises(copy.Error):
+            _ = prob.copy()
+
     def test_simple_run(self, adata_x: AnnData, adata_y: AnnData):
         prob = OTProblem(adata_x, adata_y)
         prob = prob.prepare(

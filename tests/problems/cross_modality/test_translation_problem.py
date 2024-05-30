@@ -1,3 +1,4 @@
+import copy
 from contextlib import nullcontext
 from typing import Any, Literal, Mapping, Optional, Tuple
 
@@ -11,6 +12,7 @@ from anndata import AnnData
 from moscot.backends.ott._utils import alpha_to_fused_penalty
 from moscot.base.output import BaseSolverOutput
 from moscot.problems.cross_modality import TranslationProblem
+from tests.problems._utils import check_is_copy_multiple
 from tests.problems.conftest import (
     fgw_args_1,
     fgw_args_2,
@@ -81,6 +83,36 @@ class TestTranslationProblem:
             assert tp[prob_key].y.data_src.shape == (n_obs, y_n_var)
             if joint_attr is not None:
                 assert tp[prob_key].xy.data_src.shape == tp[prob_key].xy.data_tgt.shape == (n_obs, xy_n_vars)
+
+    def test_copy(self, adata_translation_split: Tuple[AnnData, AnnData]):
+        # shallow_copy = ("_adata",)
+        shallow_copy = (
+            "_adata",
+            "_adata_tgt",
+        )
+
+        adata_src, adata_tgt = adata_translation_split
+        epsilon, alpha, rank, joint_attr = 1e-2, 0.9, -1, {"attr": "obsm", "key": "X_pca"}
+        src_attr = "emb_src"
+        tgt_attr = "emb_tgt"
+
+        prepare_params = {"batch_key": "batch", "src_attr": src_attr, "tgt_attr": tgt_attr, "joint_attr": joint_attr}
+        solve_params = {"epsilon": epsilon, "alpha": alpha, "rank": rank}
+
+        prob = TranslationProblem(adata_src, adata_tgt)
+        prob_copy_1 = prob.copy()
+
+        assert check_is_copy_multiple((prob, prob_copy_1), shallow_copy)
+
+        prob = prob.prepare(**prepare_params)  # type: ignore
+        prob_copy_1 = prob_copy_1.prepare(**prepare_params)  # type: ignore
+        prob_copy_2 = prob.copy()
+
+        assert check_is_copy_multiple((prob, prob_copy_1, prob_copy_2), shallow_copy)
+
+        prob = prob.solve(**solve_params)  # type: ignore
+        with pytest.raises(copy.Error):
+            _ = prob.copy()
 
     @pytest.mark.parametrize(
         ("epsilon", "alpha", "rank", "initializer", "joint_attr", "expect_fail"),

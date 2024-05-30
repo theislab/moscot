@@ -1,3 +1,4 @@
+import copy
 import os
 from typing import Any, Literal, Optional, Tuple
 
@@ -15,6 +16,7 @@ from anndata import AnnData
 from moscot.base.problems import CompoundProblem, OTProblem
 from moscot.utils.tagged_array import Tag, TaggedArray
 from tests._utils import ATOL, RTOL, Problem
+from tests.problems._utils import check_is_copy_multiple
 
 
 class TestCompoundProblem:
@@ -41,6 +43,31 @@ class TestCompoundProblem:
         assert sentinel
         assert isinstance(adata_y, AnnData)
         return TaggedArray(euclidean_distances(adata.X, adata_y.X), tag=Tag.COST_MATRIX)
+
+    def test_copy(self, adata_time: AnnData):
+        shallow_copy = ("_adata",)
+
+        prepare_params = {
+            "xy": {"x_attr": "X", "y_attr": "X"},
+            "key": "time",
+            "policy": "sequential",
+        }
+        solve_params = {"max_iterations": 2}
+
+        prob = Problem(adata_time)
+        prob_copy_1 = prob.copy()
+
+        assert check_is_copy_multiple((prob, prob_copy_1), shallow_copy)
+
+        prob = prob.prepare(**prepare_params)  # type: ignore
+        prob_copy_1 = prob_copy_1.prepare(**prepare_params)  # type: ignore
+        prob_copy_2 = prob.copy()
+
+        assert check_is_copy_multiple((prob, prob_copy_1, prob_copy_2), shallow_copy)
+
+        prob = prob.solve(**solve_params)  # type: ignore
+        with pytest.raises(copy.Error):
+            _ = prob.copy()
 
     def test_sc_pipeline(self, adata_time: AnnData):
         expected_keys = [(0, 1), (1, 2)]
