@@ -39,6 +39,18 @@ class TemporalProblem(  # type: ignore[misc]
     def __init__(self, adata: AnnData, **kwargs: Any):
         super().__init__(adata, **kwargs)
 
+    def copy(self) -> "TemporalProblem":
+        """Create a copy of self.
+
+        It deep-copies everything except for the data which is shallow-copied (by reference)
+        to improve the memory footprint.
+
+        Returns
+        -------
+        Copy of Self
+        """
+        return super().copy()  # type: ignore
+
     def prepare(
         self,
         time_key: str,
@@ -266,6 +278,18 @@ class LineageProblem(TemporalProblem):
     kwargs
         Keyword arguments for :class:`~moscot.problems.time.TemporalProblem`.
     """
+
+    def copy(self) -> "LineageProblem":
+        """Create a copy of self.
+
+        It deep-copies everything except for the data which is shallow-copied (by reference)
+        to improve the memory footprint.
+
+        Returns
+        -------
+        Copy of Self
+        """
+        return super().copy()  # type: ignore
 
     def prepare(
         self,

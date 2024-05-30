@@ -70,6 +70,18 @@ class MappingProblem(SpatialMappingMixin[K, OTProblem], CompoundProblem[K, OTPro
             **kwargs,
         )
 
+    def copy(self) -> "MappingProblem[K]":
+        """Create a copy of self.
+
+        It deep-copies everything except for the data which is shallow-copied (by reference)
+        to improve the memory footprint.
+
+        Returns
+        -------
+        Copy of Self
+        """
+        return super().copy()  # type: ignore
+
     def prepare(
         self,
         sc_attr: Union[str, Mapping[str, Any]],

@@ -78,6 +78,18 @@ class TranslationProblem(CrossModalityTranslationMixin[K, OTProblem], CompoundPr
 
         return _copy_depth_helper(self, memo, vars_to_shallow_copy)
 
+    def copy(self) -> "TranslationProblem[K]":
+        """Create a copy of self.
+
+        It deep-copies everything except for the data which is shallow-copied (by reference)
+        to improve the memory footprint.
+
+        Returns
+        -------
+        Copy of Self
+        """
+        return super().copy()  # type: ignore
+
     def prepare(
         self,
         src_attr: Union[str, Mapping[str, Any]],
