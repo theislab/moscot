@@ -27,7 +27,7 @@ from moscot._logging import logger
 from moscot._types import ArrayLike, Policy_t, ProblemStage_t
 from moscot.base.output import BaseSolverOutput
 from moscot.base.problems._utils import (
-    _copy_deep_shallow_helper,
+    _copy_depth_helper,
     attributedispatch,
     require_prepare,
 )
@@ -43,8 +43,6 @@ from moscot.utils.subset_policy import (
     create_policy,
 )
 from moscot.utils.tagged_array import Tag, TaggedArray
-
-# from moscot.base.problems._utils import _custom_copy
 
 __all__ = ["BaseCompoundProblem", "CompoundProblem"]
 
@@ -75,13 +73,13 @@ class BaseCompoundProblem(BaseProblem, abc.ABC, Generic[K, B]):
     def __deepcopy__(self, memo) -> "BaseCompoundProblem[K, B]":
         vars_to_shallow_copy = ("_adata",)
 
-        return _copy_deep_shallow_helper(self, memo, vars_to_shallow_copy)
+        return _copy_depth_helper(self, memo, vars_to_shallow_copy)
 
     def copy(self) -> "BaseCompoundProblem[K, B]":
         """Create a copy of self.
 
         It deep-copies everything except for the data which is shallow-copied (by reference)
-        to improve the memory footprint
+        to improve the memory footprint.
 
         Returns
         -------

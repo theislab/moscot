@@ -48,33 +48,6 @@ class TestLineageProblem:
             assert key in expected_keys
             assert isinstance(problem[key], BirthDeathProblem)
 
-    def test_copy(self, adata_time_barcodes: AnnData):
-        shallow_copy = ("_adata",)
-
-        eps, key = 0.5, (0, 1)
-        adata_time_barcodes = adata_time_barcodes[adata_time_barcodes.obs["time"].isin(key)].copy()
-        prepare_params = {
-            "time_key": "time",
-            "policy": "sequential",
-            "lineage_attr": {"attr": "obsm", "key": "barcodes", "tag": "cost_matrix", "cost": "barcode_distance"},
-        }
-        solve_params = {"epsilon": eps}
-
-        prob = LineageProblem(adata=adata_time_barcodes)
-        prob_copy_1 = prob.copy()
-
-        assert check_is_copy_multiple((prob, prob_copy_1), shallow_copy)
-
-        prob = prob.prepare(**prepare_params)  # type: ignore
-        prob_copy_1 = prob_copy_1.prepare(**prepare_params)  # type: ignore
-        prob_copy_2 = prob.copy()
-
-        assert check_is_copy_multiple((prob, prob_copy_1, prob_copy_2), shallow_copy)
-
-        prob = prob.solve(**solve_params)  # type: ignore
-        with pytest.raises(copy.Error):
-            _ = prob.copy()
-
     def test_solve_balanced(self, adata_time_barcodes: AnnData):
         eps, key = 0.5, (0, 1)
         adata_time_barcodes = adata_time_barcodes[adata_time_barcodes.obs["time"].isin(key)].copy()
@@ -298,3 +271,30 @@ class TestLineageProblem:
         for arg, val in pointcloud_args.items():
             assert hasattr(geom, val)
             assert getattr(geom, val) == args_to_check[arg]
+
+    def test_copy(self, adata_time_barcodes: AnnData):
+        shallow_copy = ("_adata",)
+
+        eps, key = 0.5, (0, 1)
+        adata_time_barcodes = adata_time_barcodes[adata_time_barcodes.obs["time"].isin(key)].copy()
+        prepare_params = {
+            "time_key": "time",
+            "policy": "sequential",
+            "lineage_attr": {"attr": "obsm", "key": "barcodes", "tag": "cost_matrix", "cost": "barcode_distance"},
+        }
+        solve_params = {"epsilon": eps}
+
+        prob = LineageProblem(adata=adata_time_barcodes)
+        prob_copy_1 = prob.copy()
+
+        assert check_is_copy_multiple((prob, prob_copy_1), shallow_copy)
+
+        prob = prob.prepare(**prepare_params)  # type: ignore
+        prob_copy_1 = prob_copy_1.prepare(**prepare_params)  # type: ignore
+        prob_copy_2 = prob.copy()
+
+        assert check_is_copy_multiple((prob, prob_copy_1, prob_copy_2), shallow_copy)
+
+        prob = prob.solve(**solve_params)  # type: ignore
+        with pytest.raises(copy.Error):
+            _ = prob.copy()

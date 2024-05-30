@@ -50,30 +50,6 @@ class TestSpatioTemporalProblem:
             assert key in expected_keys
             assert isinstance(problem[key], BirthDeathProblem)
 
-    def test_copy(self, adata_spatio_temporal: AnnData):
-        shallow_copy = ("_adata",)
-
-        eps = 1
-        alpha = 0.5
-
-        prepare_params = {"time_key": "time", "spatial_key": "spatial"}
-        solve_params = {"alpha": alpha, "epsilon": eps}
-
-        prob = SpatioTemporalProblem(adata=adata_spatio_temporal)
-        prob_copy_1 = prob.copy()
-
-        assert check_is_copy_multiple((prob, prob_copy_1), shallow_copy)
-
-        prob = prob.prepare(**prepare_params)  # type: ignore
-        prob_copy_1 = prob_copy_1.prepare(**prepare_params)  # type: ignore
-        prob_copy_2 = prob.copy()
-
-        assert check_is_copy_multiple((prob, prob_copy_1, prob_copy_2), shallow_copy)
-
-        prob = prob.solve(**solve_params)  # type: ignore
-        with pytest.raises(copy.Error):
-            _ = prob.copy()
-
     def test_solve_balanced(self, adata_spatio_temporal: AnnData):
         eps = 1
         alpha = 0.5
@@ -260,3 +236,27 @@ class TestSpatioTemporalProblem:
         for arg, val in pointcloud_args.items():
             assert hasattr(geom, val)
             assert getattr(geom, val) == args_to_check[arg]
+
+    def test_copy(self, adata_spatio_temporal: AnnData):
+        shallow_copy = ("_adata",)
+
+        eps = 1
+        alpha = 0.5
+
+        prepare_params = {"time_key": "time", "spatial_key": "spatial"}
+        solve_params = {"alpha": alpha, "epsilon": eps}
+
+        prob = SpatioTemporalProblem(adata=adata_spatio_temporal)
+        prob_copy_1 = prob.copy()
+
+        assert check_is_copy_multiple((prob, prob_copy_1), shallow_copy)
+
+        prob = prob.prepare(**prepare_params)  # type: ignore
+        prob_copy_1 = prob_copy_1.prepare(**prepare_params)  # type: ignore
+        prob_copy_2 = prob.copy()
+
+        assert check_is_copy_multiple((prob, prob_copy_1, prob_copy_2), shallow_copy)
+
+        prob = prob.solve(**solve_params)  # type: ignore
+        with pytest.raises(copy.Error):
+            _ = prob.copy()

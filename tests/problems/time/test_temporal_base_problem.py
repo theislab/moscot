@@ -33,41 +33,6 @@ class TestBirthDeathProblem:
         assert isinstance(prob.a, np.ndarray)
         assert isinstance(prob.b, np.ndarray)
 
-    def test_copy(self, adata_time_marginal_estimations: AnnData):
-        t1, t2 = 0, 1
-        adata_x = adata_time_marginal_estimations[adata_time_marginal_estimations.obs["time"] == t1]
-        adata_y = adata_time_marginal_estimations[adata_time_marginal_estimations.obs["time"] == t2]
-
-        shallow_copy = (
-            "_adata_src",
-            "_adata_tgt",
-            "_src_obs_mask",
-            "_tgt_obs_mask",
-            "_src_var_mask",
-            "_tgt_var_mask",
-        )
-
-        prepare_params = {
-            "xy": {},
-            "x": {"attr": "X"},
-            "y": {"attr": "X"},
-            "a": True,
-            "b": True,
-            "proliferation_key": "proliferation",
-            "apoptosis_key": "apoptosis",
-        }
-
-        prob = BirthDeathProblem(adata_x, adata_y, src_key=t1, tgt_key=t2)
-        prob_copy_1 = prob.copy()
-
-        assert check_is_copy_multiple((prob, prob_copy_1), shallow_copy)
-
-        prob = prob.prepare(**prepare_params)  # type: ignore
-        prob_copy_1 = prob_copy_1.prepare(**prepare_params)  # type: ignore
-        prob_copy_2 = prob.copy()
-
-        assert check_is_copy_multiple((prob, prob_copy_1, prob_copy_2), shallow_copy)
-
     # TODO(MUCDK): break this test
     @pytest.mark.fast()
     @pytest.mark.parametrize(
@@ -171,3 +136,38 @@ class TestBirthDeathProblem:
             assert not np.allclose(gr1, gr2)
         else:
             assert np.allclose(gr1, gr2)
+
+    def test_copy(self, adata_time_marginal_estimations: AnnData):
+        t1, t2 = 0, 1
+        adata_x = adata_time_marginal_estimations[adata_time_marginal_estimations.obs["time"] == t1]
+        adata_y = adata_time_marginal_estimations[adata_time_marginal_estimations.obs["time"] == t2]
+
+        shallow_copy = (
+            "_adata_src",
+            "_adata_tgt",
+            "_src_obs_mask",
+            "_tgt_obs_mask",
+            "_src_var_mask",
+            "_tgt_var_mask",
+        )
+
+        prepare_params = {
+            "xy": {},
+            "x": {"attr": "X"},
+            "y": {"attr": "X"},
+            "a": True,
+            "b": True,
+            "proliferation_key": "proliferation",
+            "apoptosis_key": "apoptosis",
+        }
+
+        prob = BirthDeathProblem(adata_x, adata_y, src_key=t1, tgt_key=t2)
+        prob_copy_1 = prob.copy()
+
+        assert check_is_copy_multiple((prob, prob_copy_1), shallow_copy)
+
+        prob = prob.prepare(**prepare_params)  # type: ignore
+        prob_copy_1 = prob_copy_1.prepare(**prepare_params)  # type: ignore
+        prob_copy_2 = prob.copy()
+
+        assert check_is_copy_multiple((prob, prob_copy_1, prob_copy_2), shallow_copy)

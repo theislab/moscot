@@ -13,7 +13,7 @@ from moscot._types import (
     QuadInitializer_t,
     ScaleCost_t,
 )
-from moscot.base.problems._utils import _copy_deep_shallow_helper
+from moscot.base.problems._utils import _copy_depth_helper
 from moscot.base.problems.compound_problem import B, CompoundProblem, K
 from moscot.base.problems.problem import OTProblem
 from moscot.problems._utils import handle_cost, handle_joint_attr
@@ -76,7 +76,7 @@ class TranslationProblem(CrossModalityTranslationMixin[K, OTProblem], CompoundPr
             "_adata_tgt",
         )
 
-        return _copy_deep_shallow_helper(self, memo, vars_to_shallow_copy)
+        return _copy_depth_helper(self, memo, vars_to_shallow_copy)
 
     def prepare(
         self,

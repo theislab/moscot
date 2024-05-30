@@ -737,7 +737,7 @@ def _get_n_cores(n_cores: Optional[int], n_jobs: Optional[int]) -> int:
 C = TypeVar("C", bound=object)
 
 
-def _copy_deep_shallow_helper(
+def _copy_depth_helper(
     original: C, memo: dict[int, Any], shallow_copy: tuple[str, ...] = (), dont_copy: tuple[str, ...] = ()
 ) -> C:
     cls = original.__class__

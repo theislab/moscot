@@ -58,28 +58,6 @@ class TestSinkhornProblem:
 
             _assert_marginals_set(adata_time, problem, key, marginal_keys)
 
-    def test_copy(self, adata_time: AnnData, marginal_keys):
-        shallow_copy = ("_adata",)
-
-        eps = 0.5
-        prepare_params = {"key": "time", "a": marginal_keys[0], "b": marginal_keys[1]}
-        solve_params = {"epsilon": eps}
-
-        prob = SinkhornProblem(adata=adata_time)
-        prob_copy_1 = prob.copy()
-
-        assert check_is_copy_multiple((prob, prob_copy_1), shallow_copy)
-
-        prob = prob.prepare(**prepare_params)  # type: ignore
-        prob_copy_1 = prob_copy_1.prepare(**prepare_params)  # type: ignore
-        prob_copy_2 = prob.copy()
-
-        assert check_is_copy_multiple((prob, prob_copy_1, prob_copy_2), shallow_copy)
-
-        prob = prob.solve(**solve_params)  # type: ignore
-        with pytest.raises(copy.Error):
-            _ = prob.copy()
-
     def test_solve_balanced(self, adata_time: AnnData, marginal_keys):
         eps = 0.5
         expected_keys = [(0, 1), (1, 2)]
@@ -254,3 +232,25 @@ class TestSinkhornProblem:
 
         recenter_potentials = problem[0, 1].solver.solver.recenter_potentials
         assert recenter_potentials == recenter
+
+    def test_copy(self, adata_time: AnnData, marginal_keys):
+        shallow_copy = ("_adata",)
+
+        eps = 0.5
+        prepare_params = {"key": "time", "a": marginal_keys[0], "b": marginal_keys[1]}
+        solve_params = {"epsilon": eps}
+
+        prob = SinkhornProblem(adata=adata_time)
+        prob_copy_1 = prob.copy()
+
+        assert check_is_copy_multiple((prob, prob_copy_1), shallow_copy)
+
+        prob = prob.prepare(**prepare_params)  # type: ignore
+        prob_copy_1 = prob_copy_1.prepare(**prepare_params)  # type: ignore
+        prob_copy_2 = prob.copy()
+
+        assert check_is_copy_multiple((prob, prob_copy_1, prob_copy_2), shallow_copy)
+
+        prob = prob.solve(**solve_params)  # type: ignore
+        with pytest.raises(copy.Error):
+            _ = prob.copy()

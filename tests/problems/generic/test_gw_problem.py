@@ -70,34 +70,6 @@ class TestGWProblem:
             assert key in expected_keys[policy]
             assert isinstance(problem[key], OTProblem)
 
-    def test_copy(self, adata_space_rotate: AnnData):  # type: ignore[no-untyped-def]
-        shallow_copy = ("_adata",)
-
-        eps = 0.5
-
-        prepare_params = {
-            "key": "batch",
-            "policy": "sequential",
-            "x_attr": {"attr": "obsm", "key": "spatial"},
-            "y_attr": {"attr": "obsm", "key": "spatial"},
-        }
-        solve_params = {"epsilon": eps}
-
-        prob = GWProblem(adata=adata_space_rotate)
-        prob_copy_1 = prob.copy()
-
-        assert check_is_copy_multiple((prob, prob_copy_1), shallow_copy)
-
-        prob = prob.prepare(**prepare_params)  # type: ignore
-        prob_copy_1 = prob_copy_1.prepare(**prepare_params)  # type: ignore
-        prob_copy_2 = prob.copy()
-
-        assert check_is_copy_multiple((prob, prob_copy_1, prob_copy_2), shallow_copy)
-
-        prob = prob.solve(**solve_params)  # type: ignore
-        with pytest.raises(copy.Error):
-            _ = prob.copy()
-
     def test_solve_balanced(self, adata_space_rotate: AnnData):  # type: ignore[no-untyped-def]
         eps = 0.5
         expected_keys = [("0", "1"), ("1", "2")]
@@ -389,3 +361,31 @@ class TestGWProblem:
 
         assert solver.warm_start == warm_start
         assert solver.store_inner_errors == inner_errors
+
+    def test_copy(self, adata_space_rotate: AnnData):  # type: ignore[no-untyped-def]
+        shallow_copy = ("_adata",)
+
+        eps = 0.5
+
+        prepare_params = {
+            "key": "batch",
+            "policy": "sequential",
+            "x_attr": {"attr": "obsm", "key": "spatial"},
+            "y_attr": {"attr": "obsm", "key": "spatial"},
+        }
+        solve_params = {"epsilon": eps}
+
+        prob = GWProblem(adata=adata_space_rotate)
+        prob_copy_1 = prob.copy()
+
+        assert check_is_copy_multiple((prob, prob_copy_1), shallow_copy)
+
+        prob = prob.prepare(**prepare_params)  # type: ignore
+        prob_copy_1 = prob_copy_1.prepare(**prepare_params)  # type: ignore
+        prob_copy_2 = prob.copy()
+
+        assert check_is_copy_multiple((prob, prob_copy_1, prob_copy_2), shallow_copy)
+
+        prob = prob.solve(**solve_params)  # type: ignore
+        with pytest.raises(copy.Error):
+            _ = prob.copy()

@@ -10,8 +10,8 @@ def _check_is_copy(o1: object, o2: object, shallow_copy: tuple[str, ...]) -> boo
         v2 = getattr(o2, k)
         if type(v1) is not type(v2):
             return False
+        # these basic types are treated differently in python and there's no point in comparing their ids
         if isinstance(v1, (str, int, bool, float)) or v1 is None:
-            # these basic types are treated differently in python and there's no point in comparing their ids
             continue
         if k in shallow_copy:
             if id(v1) != id(v2):

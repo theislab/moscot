@@ -34,7 +34,7 @@ from moscot.base.problems._utils import (
     TimeScalesHeatKernel,
     _assert_columns_and_index_match,
     _assert_series_match,
-    _copy_deep_shallow_helper,
+    _copy_depth_helper,
     require_solution,
     wrap_prepare,
     wrap_solve,
@@ -76,7 +76,7 @@ class BaseProblem(abc.ABC):
         """Create a copy of self.
 
         It deep-copies everything except for the data which is shallow-copied (by reference)
-        to improve the memory footprint
+        to improve the memory footprint.
 
         Returns
         -------
@@ -214,7 +214,6 @@ class BaseProblem(abc.ABC):
         return self._problem_kind
 
 
-# from moscot.base.problems._utils import _custom_copy
 class OTProblem(BaseProblem):
     """Base class for all :term:`OT` problems.
 
@@ -285,13 +284,13 @@ class OTProblem(BaseProblem):
             "_tgt_var_mask",
         )
 
-        return _copy_deep_shallow_helper(self, memo, vars_to_shallow_copy)
+        return _copy_depth_helper(self, memo, vars_to_shallow_copy)
 
     def copy(self) -> "OTProblem":
         """Create a copy of self.
 
         It deep-copies everything except for the data which is shallow-copied (by reference)
-        to improve the memory footprint
+        to improve the memory footprint.
 
         Returns
         -------

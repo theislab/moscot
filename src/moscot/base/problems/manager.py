@@ -1,6 +1,4 @@
 import collections
-
-# from moscot.base.problems._utils import _custom_copy
 import copy
 from typing import (
     TYPE_CHECKING,
@@ -47,7 +45,7 @@ class ProblemManager(Generic[K, B]):
         """Create a copy of self.
 
         It deep-copies everything except for the data which is shallow-copied (by reference)
-        to improve the memory footprint
+        to improve the memory footprint.
 
         Returns
         -------

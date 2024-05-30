@@ -77,32 +77,6 @@ class TestAlignmentProblem:
             assert ref == reference
             assert isinstance(ap[prob_key], ap._base_problem_type)
 
-    def test_copy(self, adata_space_rotate: AnnData):
-        shallow_copy = ("_adata",)
-
-        tau_a, tau_b = [0.8, 1]
-        marg_a = "a"
-        marg_b = "b"
-        adata_space_rotate.obs[marg_a] = adata_space_rotate.obs[marg_b] = np.ones(300)
-
-        prepare_params = {"batch_key": "batch", "a": marg_a, "b": marg_b}
-        solve_params = {"tau_a": tau_a, "tau_b": tau_b}
-
-        prob = AlignmentProblem(adata=adata_space_rotate)
-        prob_copy_1 = prob.copy()
-
-        assert check_is_copy_multiple((prob, prob_copy_1), shallow_copy)
-
-        prob = prob.prepare(**prepare_params)  # type: ignore
-        prob_copy_1 = prob_copy_1.prepare(**prepare_params)  # type: ignore
-        prob_copy_2 = prob.copy()
-
-        assert check_is_copy_multiple((prob, prob_copy_1, prob_copy_2), shallow_copy)
-
-        prob = prob.solve(**solve_params)  # type: ignore
-        with pytest.raises(copy.Error):
-            _ = prob.copy()
-
     @pytest.mark.skip(reason="See https://github.com/theislab/moscot/issues/678")
     @pytest.mark.parametrize(
         ("epsilon", "alpha", "rank", "initializer"),
@@ -254,3 +228,29 @@ class TestAlignmentProblem:
         for arg, val in pointcloud_args.items():
             assert hasattr(geom, val)
             assert getattr(geom, val) == args_to_check[arg]
+
+    def test_copy(self, adata_space_rotate: AnnData):
+        shallow_copy = ("_adata",)
+
+        tau_a, tau_b = [0.8, 1]
+        marg_a = "a"
+        marg_b = "b"
+        adata_space_rotate.obs[marg_a] = adata_space_rotate.obs[marg_b] = np.ones(300)
+
+        prepare_params = {"batch_key": "batch", "a": marg_a, "b": marg_b}
+        solve_params = {"tau_a": tau_a, "tau_b": tau_b}
+
+        prob = AlignmentProblem(adata=adata_space_rotate)
+        prob_copy_1 = prob.copy()
+
+        assert check_is_copy_multiple((prob, prob_copy_1), shallow_copy)
+
+        prob = prob.prepare(**prepare_params)  # type: ignore
+        prob_copy_1 = prob_copy_1.prepare(**prepare_params)  # type: ignore
+        prob_copy_2 = prob.copy()
+
+        assert check_is_copy_multiple((prob, prob_copy_1, prob_copy_2), shallow_copy)
+
+        prob = prob.solve(**solve_params)  # type: ignore
+        with pytest.raises(copy.Error):
+            _ = prob.copy()

@@ -95,27 +95,6 @@ class TestMappingProblem:
             assert prob.x.data_src.shape == (n_obs, x_n_var)
             assert prob.y.data_src.shape == (n_obs, y_n_var)
 
-    def test_copy(self, adata_mapping: AnnData):
-        shallow_copy = ("_adata",)
-
-        prepare_params = {"batch_key": "batch", "sc_attr": {"attr": "X"}}
-        adataref, adatasp = _adata_spatial_split(adata_mapping)
-
-        prob = MappingProblem(adataref, adatasp)
-        prob_copy_1 = prob.copy()
-
-        assert check_is_copy_multiple((prob, prob_copy_1), shallow_copy)
-
-        prob = prob.prepare(**prepare_params)  # type: ignore
-        prob_copy_1 = prob_copy_1.prepare(**prepare_params)  # type: ignore
-        prob_copy_2 = prob.copy()
-
-        assert check_is_copy_multiple((prob, prob_copy_1, prob_copy_2), shallow_copy)
-
-        # with pytest.raises(copy.Error):
-        #     prob = prob.solve(**solve_params) # type: ignore
-        #     _ = prob.copy()
-
     @pytest.mark.skip(reason="See https://github.com/theislab/moscot/issues/678")
     @pytest.mark.parametrize(
         ("epsilon", "alpha", "rank", "initializer"),
@@ -288,3 +267,20 @@ class TestMappingProblem:
         for arg, val in pointcloud_args.items():
             assert hasattr(geom, val)
             assert getattr(geom, val) == args_to_check[arg]
+
+    def test_copy(self, adata_mapping: AnnData):
+        shallow_copy = ("_adata",)
+
+        prepare_params = {"batch_key": "batch", "sc_attr": {"attr": "X"}}
+        adataref, adatasp = _adata_spatial_split(adata_mapping)
+
+        prob = MappingProblem(adataref, adatasp)
+        prob_copy_1 = prob.copy()
+
+        assert check_is_copy_multiple((prob, prob_copy_1), shallow_copy)
+
+        prob = prob.prepare(**prepare_params)  # type: ignore
+        prob_copy_1 = prob_copy_1.prepare(**prepare_params)  # type: ignore
+        prob_copy_2 = prob.copy()
+
+        assert check_is_copy_multiple((prob, prob_copy_1, prob_copy_2), shallow_copy)
