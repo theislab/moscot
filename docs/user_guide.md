@@ -88,10 +88,13 @@ Moscot builds upon three principles:
 ## Scalability
 
 In their original formulation, OT algorithms don't scale to large datasets due to their high computational complexity. Moscot provides several options to overcome this limitation.
+/
 For {term}`linear problem`s we can specify the `batch_size` parameter of the `solve` method. It determines the number of rows or columns of the cost matrix to materialize during the {term}`Sinkhorn` iterations. Smaller `batch_size` reduces memory complexity, but slightly increases time complexity.
+/
 Whenever time complexity in a {term}`linear problem` (e.g. {class}`moscot.problems.time.TemporalProblem`) should be reduced, or memory/time complexity in a {term}`quadratic problem` should be reduced, we use {term}`low-rank OT`.
 In each `solve` method we have the `rank` parameter, by default $-1$ -- the full rank.
 Whenever possible, it's best to start with the full rank, but when needed, the rank should be set to a positive integer. The higher the rank, the better the full-rank approximation. Hence, one should start with a reasonable high rank, e.g. $5000$. Consecutively decrease the rank if needed due to memory constraints. Note that the scale of $\tau_a$ and $\tau_b$ changes whenever we are in the low-rank setting. While they should be still between $0$ and $1$, empirically they should be set in the range between $0.1$ and $0.5$. See {doc}`/notebooks/examples/solvers/100_linear_problems_basic` and {doc}`/notebooks/examples/solvers/300_quad_problems_basic` on how to use low-rank solutions.
+/
 See [below](#hyperparameters) for a more detailed discussion.
 
 ## Multimodality
@@ -118,4 +121,5 @@ For more hyperparameters and their usage please refer to {doc}`/notebooks/exampl
 ## Further links
 
 For tutorials showcasing use cases for data analysis please see {doc}`/notebooks/tutorials/index`.
+/
 For short examples showcasing core moscot functionality please refer to {doc}`/notebooks/examples/index`.
