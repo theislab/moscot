@@ -87,9 +87,11 @@ Moscot builds upon three principles:
 
 ## Scalability
 
-In their original formulation, OT algorithms don't scale to large datasets due to their high computational complexity. Moscot overcomes this limitation by allowing for the use of low-rank solvers. In each `solve` method we have the `rank` parameter, by default $-1$ -- the full rank.
+In their original formulation, OT algorithms don't scale to large datasets due to their high computational complexity. Moscot provides several options to overcome this limitation.
+For {term}`linear problem`s we can specify the `batch_size` parameter of the `solve` method. It determines the number of rows or columns of the cost matrix to materialize during the {term}`Sinkhorn` iterations. Smaller `batch_size` reduces memory complexity, but slightly increases time complexity.
+Whenever time complexity in a {term}`linear problem` (e.g. {class}`TemporalProblem`) should be reduced, or memory/time complexity in a {term}`quadratic problem` should be reduced, we use {term}`low-rank OT`.
+In each `solve` method we have the `rank` parameter, by default $-1$ -- the full rank.
 Whenever possible, it's best to start with the full rank, but when needed, the rank should be set to a positive integer. The higher the rank, the better the full-rank approximation. Hence, one should start with a reasonable high rank, e.g. $5000$. Consecutively decrease the rank if needed due to memory constraints. Note that the scale of $\tau_a$ and $\tau_b$ changes whenever we are in the low-rank setting. While they should be still between $0$ and $1$, empirically they should be set in the range between $0.1$ and $0.5$. See {doc}`/notebooks/examples/solvers/100_linear_problems_basic` and {doc}`/notebooks/examples/solvers/300_quad_problems_basic` on how to use low-rank solutions.
-Another option to use the full rank is to specify the `batch_size` parameter of the `solve` method. It determines the number of rows or columns of the cost matrix to materialize during the {term}`Sinkhorn` iterations. Larger values will require more memory and can be adjusted due to memory constraints as well.
 See [below](#hyperparameters) for a more detailed discussion.
 
 ## Multimodality
@@ -103,15 +105,15 @@ Moscot problems implement problem-specific downstream methods, so we recommend t
 
 ## Hyperparameters
 
-Moscot problems' `solve` methods have the following parameters that can be set depending on the specific task:
+The `solve` method of moscot problems has a wide range of parameters. In the following, we discuss the most relevant ones:
 
-- $\varepsilon$ - {term}`Entropic regularization`.
-- $\tau_a$ and $\tau_b$ - Parameters in $(0, 1]$ that define how {term}`unbalanced <unbalanced OT problem>` is the problem on the source and target {term}`marginals`. If $1$, the problem is {term}`balanced <balanced OT problem>`.
-- $\alpha$ - Parameter in $(0, 1]$ that interpolates between the {term}`quadratic term` and the {term}`linear term`. $\alpha = 1$ corresponds to the pure {term}`Gromov-Wasserstein` problem while $\alpha \to 0$ corresponds to the pure {term}`linear problem`.
-- `batch_size` - Number of rows/columns of the cost matrix to materialize during the solver iterations. Larger value will require more memory.
-- `rank` - Rank of the {term}`low-rank OT` solver {cite}`scetbon:21b`. If $-1$, full-rank solver {cite}`peyre:2016` is used.
+- $\varepsilon$ - {term}`Entropic regularization`. This determines the stochasticity of the map. The higher the $\varepsilon$, the more stochastic the map is.
+- $\tau_a$ and $\tau_b$ - Parameters in $(0, 1]$ that define how {term}`unbalanced <unbalanced OT problem>` is the problem on the source and target {term}`marginals`. The lower the $\tau$, the more {term}`unbalanced <unbalanced OT problem>` the problem. Unbalancedness allows to automatically discard outliers, compensate for undesired distributional shifts, and model cell proliferation and apoptosis. If $\tau = 1$, the problem is {term}`balanced <balanced OT problem>`.
+- $\alpha$ (only in problems building upon {term}`fused Gromov-Wasserstein`) - Parameter in $(0, 1]$ that interpolates between the {term}`quadratic term` and the {term}`linear term`. $\alpha = 1$ corresponds to the pure {term}`Gromov-Wasserstein` problem while $\alpha \to 0$ corresponds to the pure {term}`linear problem`.
+- `batch_size` - Number of rows/columns of the cost matrix to materialize during the solver iterations. Larger value will require more memory. See above the [](#scalability).
+- `rank` - Rank of the {term}`low-rank OT` solver {cite}`scetbon:21b`. If $-1$, full-rank solver {cite}`peyre:2016` is used. See above the [](#scalability).
 
-For more hyperparameters and their usage please refer to {doc}`/notebooks/examples/solvers/200_linear_problems_advanced` and {doc}`/notebooks/examples/solvers/400_quad_problems_advanced`.
+For more hyperparameters and their usage please refer to {doc}`/notebooks/examples/solvers/100_linear_problems_basic`, {doc}`/notebooks/examples/solvers/200_linear_problems_advanced`, {doc}`/notebooks/examples/solvers/300_quad_problems_basic` and {doc}`/notebooks/examples/solvers/400_quad_problems_advanced`.
 
 ## Further links
 
