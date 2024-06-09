@@ -15,12 +15,7 @@ from moscot._types import (
 )
 from moscot.base.problems.compound_problem import B, Callback_t, CompoundProblem, K
 from moscot.base.problems.problem import OTProblem
-from moscot.problems._utils import (
-    handle_cost,
-    handle_joint_attr,
-    pop_callback_kwargs,
-    pop_callbacks,
-)
+from moscot.problems._utils import handle_cost, handle_joint_attr
 from moscot.problems.space._mixins import SpatialAlignmentMixin
 
 __all__ = ["AlignmentProblem"]
@@ -145,38 +140,24 @@ class AlignmentProblem(SpatialAlignmentMixin[K, B], CompoundProblem[K, B]):
             raise ValueError("Reference must be provided when `policy='star'`.")
         x = y = {"attr": "obsm", "key": self.spatial_key}
 
-        callback_dict = {
-            "x_callback": x_callback,
-            "y_callback": y_callback,
-            "xy_callback": xy_callback,
-            "x_callback_kwargs": x_callback_kwargs,
-            "y_callback_kwargs": y_callback_kwargs,
-            "xy_callback_kwargs": xy_callback_kwargs,
-        }
-        callback_dict = {k: v for k, v in callback_dict.items() if v}
-        del x_callback, y_callback, xy_callback, x_callback_kwargs, y_callback_kwargs, xy_callback_kwargs
         if normalize_spatial:
-            if "x_callback" not in callback_dict and "y_callback" not in callback_dict:
-                callback_dict["x_callback"] = callback_dict["y_callback"] = "spatial-norm"
-                callback_dict.setdefault("x_callback_kwargs", x)
-                callback_dict.setdefault("y_callback_kwargs", y)
+            if x_callback is None and y_callback is None:
+                x_callback = y_callback = "spatial-norm"
+                if not len(x_callback_kwargs):
+                    x_callback_kwargs = x
+                if not len(y_callback_kwargs):
+                    y_callback_kwargs = y
             else:
-                raise ValueError(
-                    "Cannot normalize spatial coordinates when `x_callback` and `y_callback` are provided."
-                )
+                raise ValueError("Cannot normalize spatial coordinates when `x_callback` and `y_callback` are set.")
                 warnings.warn(
-                    "Ignoring `normalize_spatial` as `x_callback` and `y_callback` are provided.",
+                    "Ignoring `normalize_spatial` as `x_callback` and `y_callback` are set.",
                     UserWarning,
-                    stacklevel=2,  # TODO: idk check these later
+                    stacklevel=2,  # TODO: check these later
                 )
-
-        # TODO: why are these in the same statement?
-        # TODO: Would {"spatial-norm"} also work beside "spatial-norm"?
-        if callback_dict.get("x_callback") == "spatial-norm" and callback_dict.get("y_callback") == "spatial-norm":
+        # TODO: what if one is spatial norm?
+        if x_callback == "spatial-norm" and y_callback == "spatial-norm":
             x = y = {}
-        xy, callback_dict = handle_joint_attr(joint_attr, callback_dict)
-        x_callback, y_callback, xy_callback = pop_callbacks(callback_dict)
-        x_callback_kwargs, y_callback_kwargs, xy_callback_kwargs = pop_callback_kwargs(callback_dict)
+        xy, xy_callback, xy_callback_kwargs = handle_joint_attr(joint_attr, xy_callback, xy_callback_kwargs)
 
         xy, x, y = handle_cost(
             xy=xy,

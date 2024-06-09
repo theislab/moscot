@@ -17,12 +17,7 @@ from moscot._types import (
 )
 from moscot.base.problems.birth_death import BirthDeathMixin, BirthDeathProblem
 from moscot.base.problems.compound_problem import B, Callback_t, CompoundProblem
-from moscot.problems._utils import (
-    handle_cost,
-    handle_joint_attr,
-    pop_callback_kwargs,
-    pop_callbacks,
-)
+from moscot.problems._utils import handle_cost, handle_joint_attr
 from moscot.problems.time._mixins import TemporalMixin
 
 __all__ = ["TemporalProblem", "LineageProblem"]
@@ -139,20 +134,7 @@ class TemporalProblem(  # type: ignore[misc]
         """
         self.temporal_key = time_key
 
-        callback_dict = {
-            "x_callback": x_callback,
-            "y_callback": y_callback,
-            "xy_callback": xy_callback,
-            "x_callback_kwargs": x_callback_kwargs,
-            "y_callback_kwargs": y_callback_kwargs,
-            "xy_callback_kwargs": xy_callback_kwargs,
-        }
-        callback_dict = {k: v for k, v in callback_dict.items() if v}
-        del x_callback, y_callback, xy_callback, x_callback_kwargs, y_callback_kwargs, xy_callback_kwargs
-
-        xy, callback_dict = handle_joint_attr(joint_attr, callback_dict)
-        x_callback, y_callback, xy_callback = pop_callbacks(callback_dict)
-        x_callback_kwargs, y_callback_kwargs, xy_callback_kwargs = pop_callback_kwargs(callback_dict)
+        xy, xy_callback, xy_callback_kwargs = handle_joint_attr(joint_attr, xy_callback, xy_callback_kwargs)
         xy, x, y = handle_cost(
             xy=xy,
             x=x,
@@ -171,7 +153,6 @@ class TemporalProblem(  # type: ignore[misc]
         estimate_marginals = self.proliferation_key is not None or self.apoptosis_key is not None
         a = estimate_marginals if a is None else a
         b = estimate_marginals if b is None else b
-        assert callback_dict == {}, f"Unknown callback arguments: {callback_dict}."
 
         return super().prepare(  # type: ignore[return-value]
             key=time_key,
@@ -424,21 +405,7 @@ class LineageProblem(TemporalProblem):
             raise KeyError("Unable to find cost matrices in `adata.obsp['cost_matrices']`.")
 
         x = y = lineage_attr
-
-        callback_dict = {
-            "x_callback": x_callback,
-            "y_callback": y_callback,
-            "xy_callback": xy_callback,
-            "x_callback_kwargs": x_callback_kwargs,
-            "y_callback_kwargs": y_callback_kwargs,
-            "xy_callback_kwargs": xy_callback_kwargs,
-        }
-        callback_dict = {k: v for k, v in callback_dict.items() if v}
-        del x_callback, y_callback, xy_callback, x_callback_kwargs, y_callback_kwargs, xy_callback_kwargs
-        xy, callback_dict = handle_joint_attr(joint_attr, callback_dict)
-
-        x_callback, y_callback, xy_callback = pop_callbacks(callback_dict)
-        x_callback_kwargs, y_callback_kwargs, xy_callback_kwargs = pop_callback_kwargs(callback_dict)
+        xy, xy_callback, xy_callback_kwargs = handle_joint_attr(joint_attr, xy_callback, xy_callback_kwargs)
         xy, x, y = handle_cost(
             xy=xy,
             x=x,

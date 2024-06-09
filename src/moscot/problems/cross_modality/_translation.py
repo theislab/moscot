@@ -1,5 +1,5 @@
 import types
-from typing import Any, Literal, Mapping, Optional, Tuple, Type, Union
+from typing import Any, Literal, Mapping, Optional, Sequence, Tuple, Type, Union
 
 from anndata import AnnData
 
@@ -13,13 +13,9 @@ from moscot._types import (
     QuadInitializer_t,
     ScaleCost_t,
 )
-from moscot.base.problems.compound_problem import B, CompoundProblem, K
+from moscot.base.problems.compound_problem import B, Callback_t, CompoundProblem, K
 from moscot.base.problems.problem import OTProblem
-from moscot.problems._utils import (
-    handle_cost,
-    handle_joint_attr,
-    pop_callbacks_compound_prepare,
-)
+from moscot.problems._utils import handle_cost, handle_joint_attr
 from moscot.problems.cross_modality._mixins import CrossModalityTranslationMixin
 from moscot.utils.subset_policy import DummyPolicy, ExternalStarPolicy
 
@@ -83,7 +79,15 @@ class TranslationProblem(CrossModalityTranslationMixin[K, OTProblem], CompoundPr
         cost_kwargs: CostKwargs_t = types.MappingProxyType({}),
         a: Optional[Union[bool, str]] = None,
         b: Optional[Union[bool, str]] = None,
-        **kwargs: Any,
+        xy_callback: Optional[Union[Literal["local-pca"], Callback_t]] = None,
+        x_callback: Optional[Union[Literal["local-pca"], Callback_t]] = None,
+        y_callback: Optional[Union[Literal["local-pca"], Callback_t]] = None,
+        xy_callback_kwargs: Mapping[str, Any] = types.MappingProxyType({}),
+        x_callback_kwargs: Mapping[str, Any] = types.MappingProxyType({}),
+        y_callback_kwargs: Mapping[str, Any] = types.MappingProxyType({}),
+        marginal_kwargs: Mapping[str, Any] = types.MappingProxyType({}),
+        subset: Optional[Sequence[Tuple[K, K]]] = None,
+        reference: Optional[Any] = None,
     ) -> "TranslationProblem[K]":
         """Prepare the translation problem.
 
@@ -167,7 +171,7 @@ class TranslationProblem(CrossModalityTranslationMixin[K, OTProblem], CompoundPr
         if joint_attr is None:
             xy = {}  # type: ignore[var-annotated]
         else:
-            xy, kwargs = handle_joint_attr(joint_attr, kwargs)
+            xy, xy_callback, xy_callback_kwargs = handle_joint_attr(joint_attr, xy_callback, xy_callback_kwargs)
             if "x_key" in xy and "y_key" in xy:
                 _, dim_src = getattr(self.adata_src, xy["x_attr"])[xy["x_key"]].shape
                 _, dim_tgt = getattr(self.adata_tgt, xy["y_attr"])[xy["y_key"]].shape
@@ -177,16 +181,6 @@ class TranslationProblem(CrossModalityTranslationMixin[K, OTProblem], CompoundPr
                         f"The joint attribute in the source distribution has dimension {dim_src}, "
                         f"while the joint attribute in the target distribution has dimension {dim_tgt}."
                     )
-        (
-            x_callback,
-            y_callback,
-            xy_callback,
-            x_callback_kwargs,
-            y_callback_kwargs,
-            xy_callback_kwargs,
-            reference,
-            subset,
-        ) = pop_callbacks_compound_prepare(kwargs)
         xy, x, y = handle_cost(
             xy=xy,
             x=self._src_attr,
@@ -197,8 +191,6 @@ class TranslationProblem(CrossModalityTranslationMixin[K, OTProblem], CompoundPr
             y_callback=y_callback,
             xy_callback=xy_callback,
         )
-        if kwargs:
-            raise TypeError(f"Unknown keyword arguments: {list(kwargs)}.")
         return super().prepare(
             x_callback=x_callback,
             y_callback=y_callback,

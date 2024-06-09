@@ -13,13 +13,9 @@ from moscot._types import (
     QuadInitializer_t,
     ScaleCost_t,
 )
-from moscot.base.problems.compound_problem import B, CompoundProblem, K
+from moscot.base.problems.compound_problem import B, Callback_t, CompoundProblem, K
 from moscot.base.problems.problem import OTProblem
-from moscot.problems._utils import (
-    handle_cost,
-    handle_joint_attr,
-    pop_callbacks_compound_prepare,
-)
+from moscot.problems._utils import handle_cost, handle_joint_attr
 from moscot.problems.space._mixins import SpatialMappingMixin
 from moscot.utils.subset_policy import DummyPolicy, ExternalStarPolicy
 
@@ -86,7 +82,14 @@ class MappingProblem(SpatialMappingMixin[K, OTProblem], CompoundProblem[K, OTPro
         cost_kwargs: CostKwargs_t = types.MappingProxyType({}),
         a: Optional[str] = None,
         b: Optional[str] = None,
-        **kwargs: Any,
+        xy_callback: Optional[Union[Literal["local-pca"], Callback_t]] = None,
+        x_callback: Optional[Union[Literal["local-pca"], Callback_t]] = None,
+        y_callback: Optional[Union[Literal["local-pca"], Callback_t]] = None,
+        xy_callback_kwargs: Mapping[str, Any] = types.MappingProxyType({}),
+        x_callback_kwargs: Mapping[str, Any] = types.MappingProxyType({}),
+        y_callback_kwargs: Mapping[str, Any] = types.MappingProxyType({}),
+        subset: Optional[Sequence[Tuple[K, K]]] = None,
+        reference: Optional[Any] = None,
     ) -> "MappingProblem[K]":
         """Prepare the mapping problem problem.
 
@@ -176,10 +179,11 @@ class MappingProblem(SpatialMappingMixin[K, OTProblem], CompoundProblem[K, OTPro
         x = {"attr": "obsm", "key": spatial_key} if isinstance(spatial_key, str) else spatial_key
         y = {"attr": "obsm", "key": sc_attr} if isinstance(sc_attr, str) else sc_attr
 
-        if normalize_spatial and "x_callback" not in kwargs:
-            kwargs["x_callback"] = "spatial-norm"
-            kwargs.setdefault("x_callback_kwargs", x)
-        if "spatial-norm" in kwargs.get("x_callback", {}):
+        if normalize_spatial and x_callback is None:
+            x_callback = "spatial-norm"
+            if not len(x_callback_kwargs):
+                x_callback_kwargs = x
+        if isinstance(x_callback, str) and x_callback in "spatial-norm":
             x = {}
 
         self.batch_key = batch_key
@@ -187,19 +191,9 @@ class MappingProblem(SpatialMappingMixin[K, OTProblem], CompoundProblem[K, OTPro
         self.filtered_vars = var_names
 
         if self.filtered_vars is not None:
-            xy, kwargs = handle_joint_attr(joint_attr, kwargs)
+            xy, xy_callback, xy_callback_kwargs = handle_joint_attr(joint_attr, xy_callback, xy_callback_kwargs)
         else:
             xy = {}
-        (
-            x_callback,
-            y_callback,
-            xy_callback,
-            x_callback_kwargs,
-            y_callback_kwargs,
-            xy_callback_kwargs,
-            reference,
-            subset,
-        ) = pop_callbacks_compound_prepare(kwargs)
         xy, x, y = handle_cost(
             xy=xy,
             x=x,
@@ -210,9 +204,6 @@ class MappingProblem(SpatialMappingMixin[K, OTProblem], CompoundProblem[K, OTPro
             y_callback=y_callback,
             xy_callback=xy_callback,
         )
-
-        if kwargs:
-            raise ValueError(f"Unknown keyword arguments: {list(kwargs)}.")
         return super().prepare(  # type: ignore[return-value]
             xy=xy,
             x=x,
@@ -227,6 +218,8 @@ class MappingProblem(SpatialMappingMixin[K, OTProblem], CompoundProblem[K, OTPro
             x_callback_kwargs=x_callback_kwargs,
             y_callback_kwargs=y_callback_kwargs,
             xy_callback_kwargs=xy_callback_kwargs,
+            subset=subset,
+            reference=reference,
         )
 
     def solve(
