@@ -124,31 +124,3 @@ def handle_cost(
         if "y" in cost_candidates:
             y.update(cost_kwargs.get("y", cost_kwargs))  # type:ignore[call-overload]
     return xy, x, y
-
-
-def pop_callbacks_compound_prepare(kwargs: Dict[str, Any]) -> Tuple[Any, ...]:
-    """
-    Pop callbacks from kwargs and return x, y, xy callbacks and their kwargs,
-    then reference and subset respectively. For use before `CompoundProblem.prepare`.
-    """  # noqa: D205
-    cb = pop_callbacks(kwargs)
-    kws = pop_callback_kwargs(kwargs)
-    others = pop_reference_subset(kwargs)
-    return (*cb, *kws, *others)
-
-
-def pop_callbacks(kwargs: Dict[str, Any]) -> Tuple[Any, ...]:
-    """Pop callbacks from kwargs and return x, y, xy callbacks respectively."""  # noqa: D205
-    cb_keys = ("x", "y", "xy")
-    return tuple(kwargs.pop(k + "_callback", None) for k in cb_keys)
-
-
-def pop_callback_kwargs(kwargs: Dict[str, Any]) -> Tuple[Any, ...]:
-    """Pop callbacks from kwargs and return x, y, xy callback kwargs respectively."""  # noqa: D205
-    cb_keys = ("x", "y", "xy")
-    return tuple(kwargs.pop(k + "_callback_kwargs", {}) for k in cb_keys)
-
-
-def pop_reference_subset(kwargs: Dict[str, Any]) -> Tuple[Any, Any]:
-    """Pop reference and subset from kwargs and return them respectively."""  # noqa: D205
-    return kwargs.pop("reference", None), kwargs.pop("subset", None)
