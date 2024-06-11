@@ -720,3 +720,91 @@ class AnalysisMixin(Generic[K, B]):
         if key_added is not None:
             self.adata.obs[key_added] = df
         return df if key_added is None else None
+    
+    def compute_variance(
+        self: AnalysisMixinProtocol[K, B],
+        source: K,
+        target: K,
+        forward: bool = True,
+        latent_space_selection: Union[str, list[str]] = "X_pca",
+        key_added: Optional[str] = "conditional_variance",
+        batch_size: Optional[int] = None,
+    ) -> Optional[pd.DataFrame]:
+        """Compute the conditional variance per cell.
+
+        The conditional variance reflects the uncertainty of the mapping of a single cell by taking into account 
+        a given latent space representation of all cells.
+
+        Parameters
+        ----------
+        source
+            Source key.
+        target
+            Target key.
+        forward
+            If `True`, computes the conditional variance given a cell in the source distribution, else the
+            conditional variance given a cell in the target distribution.
+        latent_space_selection:
+            Key or Keys which specifies the latent or feature space used for computing the conditional variance.
+            A single key can be a latent space in `~anndata.AnnData.obsm` or a gene in `~anndata.AnnData.var_names`,
+            a set of keys has to be a subset of genes in `~anndata.AnnData.var_names`.
+        key_added
+            Key in :attr:`~anndata.AnnData.obs` where the variance is stored.
+        batch_size
+            Batch size for the computation of the variance. If :obj:`None`, the entire dataset is used.
+
+        Returns
+        -------
+        :obj:`None` if ``key_added`` is not None. Otherwise, returns a data frame of shape ``(n_cells, 1)`` containing
+        the conditional variance given each cell.
+        """
+        filter_value = source if forward else target
+        opposite_filter_value = target if forward else source
+
+        if type(latent_space_selection) == str:
+            if latent_space_selection in self.adata.obsm:
+                latent_space = self.adata.obsm[latent_space_selection]
+            elif latent_space_selection in self.adata.var_names:
+                latent_space = self.adata[:, latent_space_selection in self.adata.var_names].X.toarray()
+            else:
+                raise KeyError("Gene/Latent space not found.")
+        elif type(latent_space_selection) in [list, np.ndarray]:
+            mask = [True if var_name in latent_space_selection else False for var_name in self.adata.var_names]
+            latent_space = self.adata[:, mask].X.toarray()
+        else:
+            raise KeyError("Unknown latent space selection.")
+
+        latent_space_filtered = latent_space[np.array(self.adata.obs[self._policy.key] == opposite_filter_value), :]
+
+        df = pd.DataFrame(
+            index=self.adata[self.adata.obs[self._policy.key] == filter_value, :].obs_names,
+            columns=[key_added] if key_added is not None else ["variance"],
+        )
+
+        batch_size = batch_size if batch_size is not None else len(df)
+        func = self.push if forward else self.pull
+        for batch in range(0, len(df), batch_size):
+            cond_dists = func(
+                source=source,
+                target=target,
+                data=None,
+                subset=(batch, batch_size),
+                normalize=True,
+                return_all=False,
+                scale_by_marginals=False,
+                split_mass=True,
+                key_added=None,
+            )
+
+            cond_var = []
+            for i in range(cond_dists.shape[1]):
+                expected_val = (cond_dists[:,i]).reshape(-1,1) * latent_space_filtered
+                cond_var.append(np.linalg.norm((latent_space_filtered - expected_val), axis=1)**2 @ cond_dists[:,i])
+
+            df.iloc[range(batch, min(batch + batch_size, len(df))), 0] = np.array(cond_var)
+
+
+        if key_added is not None:
+            self.adata.obs[key_added] = df
+        return df if key_added is None else None
+
