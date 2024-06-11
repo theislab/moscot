@@ -720,7 +720,7 @@ class AnalysisMixin(Generic[K, B]):
         if key_added is not None:
             self.adata.obs[key_added] = df
         return df if key_added is None else None
-    
+
     def compute_variance(
         self: AnalysisMixinProtocol[K, B],
         source: K,
@@ -732,7 +732,7 @@ class AnalysisMixin(Generic[K, B]):
     ) -> Optional[pd.DataFrame]:
         """Compute the conditional variance per cell.
 
-        The conditional variance reflects the uncertainty of the mapping of a single cell by taking into account 
+        The conditional variance reflects the uncertainty of the mapping of a single cell by taking into account
         a given latent space representation of all cells.
 
         Parameters
@@ -798,13 +798,11 @@ class AnalysisMixin(Generic[K, B]):
 
             cond_var = []
             for i in range(cond_dists.shape[1]):
-                expected_val = (cond_dists[:,i]).reshape(-1,1) * latent_space_filtered
-                cond_var.append(np.linalg.norm((latent_space_filtered - expected_val), axis=1)**2 @ cond_dists[:,i])
+                expected_val = (cond_dists[:, i]).reshape(-1, 1) * latent_space_filtered
+                cond_var.append(np.linalg.norm((latent_space_filtered - expected_val), axis=1) ** 2 @ cond_dists[:, i])
 
             df.iloc[range(batch, min(batch + batch_size, len(df))), 0] = np.array(cond_var)
-
 
         if key_added is not None:
             self.adata.obs[key_added] = df
         return df if key_added is None else None
-

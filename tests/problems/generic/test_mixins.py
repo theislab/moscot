@@ -355,7 +355,12 @@ class TestBaseAnalysisMixin:
         problem[0, 1]._solution = MockSolverOutput(tmap)
 
         out = problem.compute_variance(
-            source=0, target=1, forward=forward, key_added=key_added, latent_space_selection=latent_space_selection, batch_size=batch_size
+            source=0,
+            target=1,
+            forward=forward,
+            key_added=key_added,
+            latent_space_selection=latent_space_selection,
+            batch_size=batch_size,
         )
         if key_added is None:
             assert isinstance(out, pd.DataFrame)
@@ -369,7 +374,6 @@ class TestBaseAnalysisMixin:
                 if forward
                 else n0
             )
-
 
     def test_seed_reproducible(self, adata_time: AnnData):
         key_added = "test"
