@@ -746,7 +746,7 @@ class AnalysisMixin(Generic[K, B]):
             conditional variance given a cell in the target distribution.
         latent_space_selection:
             Key or Keys which specifies the latent or feature space used for computing the conditional variance.
-            A single key has to be a latent space in :attr:`~anndata.AnnData.obsm` or 
+            A single key has to be a latent space in :attr:`~anndata.AnnData.obsm` or
             a gene in :attr:`~anndata.AnnData.var_names`.
             A set of keys has to be a subset of genes in :attr:`~anndata.AnnData.var_names`.
         key_added
