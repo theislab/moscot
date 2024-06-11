@@ -746,8 +746,9 @@ class AnalysisMixin(Generic[K, B]):
             conditional variance given a cell in the target distribution.
         latent_space_selection:
             Key or Keys which specifies the latent or feature space used for computing the conditional variance.
-            A single key has to be a latent space in :attr:`~anndata.AnnData.obsm` or a gene in :attr:`~anndata.AnnData.var_names`,
-            a set of keys has to be a subset of genes in :attr:`~anndata.AnnData.var_names`.
+            A single key has to be a latent space in :attr:`~anndata.AnnData.obsm` or 
+            a gene in :attr:`~anndata.AnnData.var_names`.
+            A set of keys has to be a subset of genes in :attr:`~anndata.AnnData.var_names`.
         key_added
             Key in :attr:`~anndata.AnnData.obs` where the variance is stored.
         batch_size
@@ -761,7 +762,7 @@ class AnalysisMixin(Generic[K, B]):
         filter_value = source if forward else target
         opposite_filter_value = target if forward else source
 
-        if type(latent_space_selection) == str:
+        if isinstance(latent_space_selection, str):
             if latent_space_selection in self.adata.obsm:
                 latent_space = self.adata.obsm[latent_space_selection]
             elif latent_space_selection in self.adata.var_names:
@@ -769,7 +770,7 @@ class AnalysisMixin(Generic[K, B]):
             else:
                 raise KeyError("Gene/Latent space not found.")
         elif type(latent_space_selection) in [list, np.ndarray]:
-            mask = [True if var_name in latent_space_selection else False for var_name in self.adata.var_names]
+            mask = [var_name in latent_space_selection for var_name in self.adata.var_names]
             latent_space = self.adata[:, mask].X.toarray()
         else:
             raise KeyError("Unknown latent space selection.")
