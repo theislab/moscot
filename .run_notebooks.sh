@@ -11,9 +11,9 @@ base_dir=$1
 
 # Define notebook directories or patterns
 declare -a notebooks=(
-    # "$base_dir/examples/plotting/*.ipynb"
-    # "$base_dir/examples/problems/*.ipynb"
-    # "$base_dir/examples/solvers/*.ipynb"
+    "$base_dir/examples/plotting/*.ipynb"
+    "$base_dir/examples/problems/*.ipynb"
+    "$base_dir/examples/solvers/*.ipynb"
     "$base_dir/tutorials/*.ipynb"
 )
 
