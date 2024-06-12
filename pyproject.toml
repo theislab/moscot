@@ -302,6 +302,8 @@ deps =
     jupytext
     nbconvert
     leidenalg
+    squidpy
+    pot
 extras = docs
 changedir = {tox_root}{/}docs
 commands =
