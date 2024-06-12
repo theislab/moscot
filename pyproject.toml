@@ -305,6 +305,7 @@ deps =
 extras = docs
 changedir = {tox_root}{/}docs
 commands =
+    set -Eeuo pipefail
     python -m ipykernel install --user --name=moscot
     bash -c "for nb in notebooks/examples/plotting/*.ipynb notebooks/examples/problems/*ipynb notebooks/examples/solvers/*ipynb; do echo Running $nb; jupytext -k moscot --execute $nb; done"
 
