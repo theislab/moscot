@@ -302,11 +302,13 @@ deps =
     jupytext
     nbconvert
     leidenalg
+    squidpy
+    pot
 extras = docs
+changedir = {tox_root}{/}docs
 commands =
     python -m ipykernel install --user --name=moscot
-    bash {tox_root}/.run_notebooks.sh {tox_root}{/}docs/notebooks/examples/plotting/*.ipynb {tox_root}{/}docs/notebooks/examples/problems/*ipynb {tox_root}{/}docs/notebooks/examples/solvers/*ipynb
-
+    bash {tox_root}/.run_notebooks.sh {tox_root}{/}docs/notebooks
 
 [testenv:clean-docs]
 description = Remove the documentation.
