@@ -58,6 +58,7 @@ dependencies = [
     "ott-jax>=0.4.6",
     "cloudpickle>=2.2.0",
     "rich>=13.5",
+    "docstring_inheritance" # TODO: Set version
 ]
 
 [project.optional-dependencies]
@@ -86,7 +87,6 @@ docs = [
     "myst-nb>=0.17.1",
     "ipython>=7.20.0",
     "sphinx_design>=0.3.0",
-    "docstring_inheritance"
 ]
 
 [project.urls]
