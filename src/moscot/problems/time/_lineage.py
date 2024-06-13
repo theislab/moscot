@@ -119,8 +119,6 @@ class TemporalProblem(  # type: ignore[misc]
             Keyword arguments for :meth:`~moscot.base.problems.BirthDeathProblem.estimate_marginals`.
             It always contains :attr:`proliferation_key` and :attr:`apoptosis_key`,
             see :meth:`score_genes_for_marginals` for more information.
-        kwargs
-            Keyword arguments for :meth:`~moscot.base.problems.CompoundProblem.prepare`.
 
         Returns
         -------
@@ -388,8 +386,6 @@ class LineageProblem(TemporalProblem):
             Keyword arguments for :meth:`~moscot.base.problems.BirthDeathProblem.estimate_marginals`.
             It always contains :attr:`proliferation_key` and :attr:`apoptosis_key`,
             see :meth:`score_genes_for_marginals` for more information.
-        kwargs
-            Keyword arguments for :meth:`~moscot.base.problems.CompoundProblem.prepare`.
 
         Returns
         -------

@@ -117,10 +117,6 @@ class AlignmentProblem(SpatialAlignmentMixin[K, B], CompoundProblem[K, B]):
               :meth:`estimate the marginals <moscot.base.problems.OTProblem.estimate_marginals>`,
               otherwise use uniform marginals.
             - :obj:`None` - uniform marginals.
-        kwargs
-            Keyword arguments for :meth:`~moscot.base.problems.CompoundProblem.prepare`.
-            Only used if `policy="star"`, it's the value for reference stored
-            in :attr:`anndata.AnnData.obs` ``["batch_key"]``.
 
 
         Returns

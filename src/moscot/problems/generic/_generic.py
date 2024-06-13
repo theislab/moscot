@@ -110,8 +110,7 @@ class SinkhornProblem(GenericAnalysisMixin[K, B], CompoundProblem[K, B]):  # typ
               :meth:`estimate the marginals <moscot.base.problems.OTProblem.estimate_marginals>`,
               otherwise use uniform marginals.
             - :obj:`None` - uniform marginals.
-        kwargs
-            Keyword arguments for :meth:`~moscot.base.problems.CompoundProblem.prepare`.
+
 
         Returns
         -------
@@ -349,8 +348,6 @@ class GWProblem(GenericAnalysisMixin[K, B], CompoundProblem[K, B]):  # type: ign
               :meth:`estimate the marginals <moscot.base.problems.OTProblem.estimate_marginals>`,
               otherwise use uniform marginals.
             - :obj:`None` - uniform marginals.
-        kwargs
-            Keyword arguments for :meth:`~moscot.base.problems.CompoundProblem.prepare`.
 
         Returns
         -------
@@ -597,8 +594,24 @@ class FGWProblem(GWProblem[K, B]):
               :meth:`estimate the marginals <moscot.base.problems.OTProblem.estimate_marginals>`,
               otherwise use uniform marginals.
             - :obj:`None` - uniform marginals.
-        kwargs
-            Keyword arguments for :meth:`~moscot.base.problems.CompoundProblem.prepare`.
+        xy
+            Data for the :term:`linear term`.
+        x
+            Data for the source :term:`quadratic term`.
+        y
+            Data for the target :term:`quadratic term`.
+        xy_callback
+            Callback function used to prepare the data in the :term:`linear term`.
+        x_callback
+            Callback function used to prepare the data in the source :term:`quadratic term`.
+        y_callback
+            Callback function used to prepare the data in the target :term:`quadratic term`.
+        xy_callback_kwargs
+            Keyword arguments for the ``xy_callback``.
+        x_callback_kwargs
+            Keyword arguments for the ``x_callback``.
+        y_callback_kwargs
+            Keyword arguments for the ``y_callback``.
 
         Returns
         -------

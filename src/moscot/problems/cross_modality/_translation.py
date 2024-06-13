@@ -151,8 +151,6 @@ class TranslationProblem(CrossModalityTranslationMixin[K, OTProblem], CompoundPr
               :meth:`estimate the marginals <moscot.base.problems.OTProblem.estimate_marginals>`,
               otherwise use uniform marginals.
             - :obj:`None` - uniform marginals.
-        kwargs
-            Keyword arguments for :meth:`~moscot.base.problems.CompoundProblem.prepare`.
 
         Returns
         -------
@@ -207,6 +205,7 @@ class TranslationProblem(CrossModalityTranslationMixin[K, OTProblem], CompoundPr
             b=b,
             reference=reference,
             subset=subset,
+            marginal_kwargs=marginal_kwargs,
         )  # type: ignore[return-value] # noqa: E501
 
     def solve(  # type: ignore[override]

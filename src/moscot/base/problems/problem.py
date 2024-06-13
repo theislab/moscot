@@ -39,11 +39,15 @@ from moscot.base.problems._utils import (
 )
 from moscot.base.solver import OTSolver
 from moscot.utils.tagged_array import Tag, TaggedArray
-
+from docstring_inheritance import NumpyDocstringInheritanceMeta
 __all__ = ["BaseProblem", "OTProblem"]
 
 
-class BaseProblem(abc.ABC):
+class CombinedMeta(abc.ABCMeta, NumpyDocstringInheritanceMeta):
+    pass
+
+
+class BaseProblem(abc.ABC, metaclass=CombinedMeta):
     """Base class for all :term:`OT` problems."""
 
     def __init__(self):
@@ -326,7 +330,7 @@ class OTProblem(BaseProblem):
               from :attr:`adata_tgt`, otherwise use uniform marginals.
             - :class:`~numpy.ndarray` - array of shape ``[m,]`` containing the target marginals.
             - :obj:`None` - uniform marginals.
-        kwargs
+        marginal_kwargs
             Keyword arguments for :meth:`estimate_marginals` when ``a = True`` or ``b = True``.
 
         Returns

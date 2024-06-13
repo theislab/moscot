@@ -198,6 +198,9 @@ class BaseCompoundProblem(BaseProblem, abc.ABC, Generic[K, B]):
         key: Optional[str],
         subset: Optional[Sequence[Tuple[K, K]]] = None,
         reference: Optional[Any] = None,
+        xy: Mapping[str, Any] = types.MappingProxyType({}),
+        x: Mapping[str, Any] = types.MappingProxyType({}),
+        y: Mapping[str, Any] = types.MappingProxyType({}),
         xy_callback: Optional[Union[Literal["local-pca"], Callback_t]] = None,
         x_callback: Optional[Union[Literal["local-pca"], Callback_t]] = None,
         y_callback: Optional[Union[Literal["local-pca"], Callback_t]] = None,
@@ -206,9 +209,6 @@ class BaseCompoundProblem(BaseProblem, abc.ABC, Generic[K, B]):
         y_callback_kwargs: Mapping[str, Any] = types.MappingProxyType({}),
         a: Optional[Union[bool, str, ArrayLike]] = None,
         b: Optional[Union[bool, str, ArrayLike]] = None,
-        x: Mapping[str, Any] = types.MappingProxyType({}),
-        y: Mapping[str, Any] = types.MappingProxyType({}),
-        xy: Mapping[str, Any] = types.MappingProxyType({}),
         marginal_kwargs: Mapping[str, Any] = types.MappingProxyType({}),
     ) -> "BaseCompoundProblem[K, B]":
         """Prepare the individual :term:`OT` subproblems.
@@ -227,6 +227,12 @@ class BaseCompoundProblem(BaseProblem, abc.ABC, Generic[K, B]):
             for the :class:`~moscot.utils.subset_policy.ExplicitPolicy`. Only used when ``policy = 'explicit'``.
         reference
             Reference for the :class:`~moscot.utils.subset_policy.SubsetPolicy`. Only used when ``policy = 'star'``.
+        xy
+            Data for the :term:`linear term`.
+        x
+            Data for the source :term:`quadratic term`.
+        y
+            Data for the target :term:`quadratic term`.
         xy_callback
             Callback function used to prepare the data in the :term:`linear term`.
         x_callback
@@ -239,8 +245,24 @@ class BaseCompoundProblem(BaseProblem, abc.ABC, Generic[K, B]):
             Keyword arguments for the ``x_callback``.
         y_callback_kwargs
             Keyword arguments for the ``y_callback``.
-        kwargs
-            Keyword arguments for the subproblems' :meth:`~moscot.base.problems.OTProblem.prepare` method.
+        a
+            Source :term:`marginals`. Valid options are:
+
+            - :class:`str` - key in :attr:`~anndata.AnnData.obs` where the source marginals are stored.
+            - :class:`bool` - if :obj:`True`,
+              :meth:`estimate the marginals <moscot.base.problems.OTProblem.estimate_marginals>`,
+              otherwise use uniform marginals.
+            - :obj:`None` - uniform marginals.
+        b
+            Target :term:`marginals`. Valid options are:
+
+            - :class:`str` - key in :attr:`~anndata.AnnData.obs` where the target marginals are stored.
+            - :class:`bool` - if :obj:`True`,
+              :meth:`estimate the marginals <moscot.base.problems.OTProblem.estimate_marginals>`,
+              otherwise use uniform marginals.
+            - :obj:`None` - uniform marginals.
+        marginal_kwargs
+            Keyword arguments for the :meth:`~moscot.base.problems.OTProblem.estimate_marginals` method.
 
         Returns
         -------

@@ -174,7 +174,18 @@ class BirthDeathProblem(BirthDeathMixin, OTProblem):
         proliferation_key: Optional[str] = None,
         apoptosis_key: Optional[str] = None,
     ) -> "BirthDeathProblem":
-        """TODO."""
+        """Prepare the problem by scoring genes for proliferation and apoptosis.
+
+        All arguments except for `proliferation_key` and `apoptosis_key` are inherited from :meth:`OTProblem.prepare`.
+
+        Parameters
+        ----------
+        proliferation_key
+            Key in :attr:`~anndata.AnnData.obs` where proliferation scores are stored.
+        apoptosis_key
+            Key in :attr:`~anndata.AnnData.obs` where apoptosis scores are stored.
+
+        """
         self.proliferation_key = proliferation_key
         self.apoptosis_key = apoptosis_key
         marginal_kwargs = dict(marginal_kwargs)
