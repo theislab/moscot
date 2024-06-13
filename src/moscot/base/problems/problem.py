@@ -14,6 +14,7 @@ from typing import (
 )
 
 import cloudpickle
+from docstring_inheritance import NumpyDocstringInheritanceMeta
 
 import numpy as np
 import pandas as pd
@@ -39,7 +40,7 @@ from moscot.base.problems._utils import (
 )
 from moscot.base.solver import OTSolver
 from moscot.utils.tagged_array import Tag, TaggedArray
-from docstring_inheritance import NumpyDocstringInheritanceMeta
+
 __all__ = ["BaseProblem", "OTProblem"]
 
 
