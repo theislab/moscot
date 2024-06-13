@@ -798,9 +798,9 @@ class AnalysisMixin(Generic[K, B]):
             )
 
             cond_var = []
-            for i in range(cond_dists.shape[1]):
-                expected_val = (cond_dists[:, i]).reshape(-1, 1) * latent_space_filtered
-                cond_var.append(np.linalg.norm((latent_space_filtered - expected_val), axis=1) ** 2 @ cond_dists[:, i])
+            for i in range(cond_dists.shape[1]):  # type: ignore[union-attr]
+                expected_val = (cond_dists[:, i]).reshape(-1, 1) * latent_space_filtered  # type: ignore[index]
+                cond_var.append(np.linalg.norm((latent_space_filtered - expected_val), axis=1) ** 2 @ cond_dists[:, i])  # type: ignore[index]
 
             df.iloc[range(batch, min(batch + batch_size, len(df))), 0] = np.array(cond_var)
 
