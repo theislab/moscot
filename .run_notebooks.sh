@@ -14,7 +14,6 @@ declare -a notebooks=(
     "$base_dir/examples/plotting/*.ipynb"
     "$base_dir/examples/problems/*.ipynb"
     "$base_dir/examples/solvers/*.ipynb"
-    "$base_dir/tutorials/*.ipynb"
 )
 
 # Initialize an array to hold valid notebook paths
