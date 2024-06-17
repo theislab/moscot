@@ -60,7 +60,7 @@ class TestSpatioTemporalProblem:
             assert isinstance(subsol, BaseSolverOutput)
             assert key in expected_keys
 
-    @pytest.mark.skip(reason="unbalanced does not work yet")
+    # @pytest.mark.skip(reason="unbalanced does not work yet")
     def test_solve_unbalanced(self, adata_spatio_temporal: AnnData):
         taus = [9e-1, 1e-2]
         problem1 = SpatioTemporalProblem(adata=adata_spatio_temporal)
@@ -76,8 +76,8 @@ class TestSpatioTemporalProblem:
         assert problem2[0, 1].a is not None
         assert problem2[0, 1].b is not None
 
-        problem1 = problem1.solve(epsilon=1, tau_a=taus[0], tau_b=taus[0], max_iterations=10000)
-        problem2 = problem2.solve(epsilon=1, tau_a=taus[1], tau_b=taus[1], max_iterations=10000)
+        problem1 = problem1.solve(epsilon=1, tau_a=taus[0], tau_b=taus[0])
+        problem2 = problem2.solve(epsilon=1, tau_a=taus[1], tau_b=taus[1])
 
         assert problem1[0, 1].solution.a is not None
         assert problem1[0, 1].solution.b is not None
