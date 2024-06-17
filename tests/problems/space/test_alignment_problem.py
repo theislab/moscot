@@ -100,8 +100,7 @@ class TestAlignmentProblem:
         )
         for prob_key in ap:
             assert ap[prob_key].solution.rank == rank
-            if initializer != "random":  # TODO: is this valid?
-                assert ap[prob_key].solution.converged
+            assert ap[prob_key].solution.converged
 
         # TODO(michalk8): use np.testing
         assert np.allclose(*(sol.cost for sol in ap.solutions.values()))
