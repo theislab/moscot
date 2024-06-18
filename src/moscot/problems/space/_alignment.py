@@ -5,6 +5,7 @@ from typing import Any, Literal, Mapping, Optional, Sequence, Tuple, Type, Union
 from anndata import AnnData
 
 from moscot import _constants
+from moscot._logging import logger
 from moscot._types import (
     CostKwargs_t,
     OttCostFnMap_t,
@@ -144,15 +145,18 @@ class AlignmentProblem(SpatialAlignmentMixin[K, B], CompoundProblem[K, B]):
                 if not len(y_callback_kwargs):
                     y_callback_kwargs = y
             else:
-                raise ValueError("Cannot normalize spatial coordinates when `x_callback` and `y_callback` are set.")
-                warnings.warn(
+                logger.warning(
                     "Ignoring `normalize_spatial` as `x_callback` and `y_callback` are set.",
                     UserWarning,
-                    stacklevel=2,  # TODO: check these later
                 )
-        # TODO: what if one is spatial norm?
-        if x_callback == "spatial-norm" and y_callback == "spatial-norm":
+        if x_callback == "spatial-norm" or y_callback == "spatial-norm":
             x = y = {}
+            if x_callback != y_callback:
+                logger.warning(
+                    "Only one of `x_callback` and `y_callback` is set to `spatial-norm`. Treating, both as `spatial-norm`.",
+                    UserWarning,
+                )
+
         xy, xy_callback, xy_callback_kwargs = handle_joint_attr(joint_attr, xy_callback, xy_callback_kwargs)
 
         xy, x, y = handle_cost(
