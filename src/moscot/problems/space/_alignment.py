@@ -1,5 +1,4 @@
 import types
-import warnings
 from typing import Any, Literal, Mapping, Optional, Sequence, Tuple, Type, Union
 
 from anndata import AnnData
