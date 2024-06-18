@@ -163,38 +163,6 @@ class BirthDeathProblem(BirthDeathMixin, OTProblem):
         Keyword arguments for :class:`~moscot.base.problems.OTProblem`.
     """  # noqa: D205
 
-    def prepare(
-        self,
-        xy: Mapping[str, Any],
-        x: Mapping[str, Any],
-        y: Mapping[str, Any],
-        a: Optional[Union[bool, str, ArrayLike]] = None,
-        b: Optional[Union[bool, str, ArrayLike]] = None,
-        marginal_kwargs: Dict[str, Any] = types.MappingProxyType({}),
-        proliferation_key: Optional[str] = None,
-        apoptosis_key: Optional[str] = None,
-    ) -> "BirthDeathProblem":
-        """Prepare the problem by scoring genes for proliferation and apoptosis.
-
-        All arguments except for `proliferation_key` and `apoptosis_key` are inherited from :meth:`OTProblem.prepare`.
-
-        Parameters
-        ----------
-        proliferation_key
-            Key in :attr:`~anndata.AnnData.obs` where proliferation scores are stored.
-        apoptosis_key
-            Key in :attr:`~anndata.AnnData.obs` where apoptosis scores are stored.
-
-        """
-        self.proliferation_key = proliferation_key
-        self.apoptosis_key = apoptosis_key
-        marginal_kwargs = dict(marginal_kwargs)
-        if proliferation_key is not None:
-            marginal_kwargs["proliferation_key"] = proliferation_key
-        if apoptosis_key is not None:
-            marginal_kwargs["apoptosis_key"] = apoptosis_key
-        return super().prepare(xy=xy, x=x, y=y, a=a, b=b, marginal_kwargs=marginal_kwargs)
-
     def estimate_marginals(
         self,  # type: BirthDeathProblemProtocol
         adata: AnnData,
