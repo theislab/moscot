@@ -64,13 +64,19 @@ def sinkhorn_divergence(
 
 @partial(jax.jit, static_argnames=["k"])
 def get_nearest_neighbors(
-    input_batch: jnp.ndarray, target: jnp.ndarray, k: int = 30
+    input_batch: jnp.ndarray,
+    target: jnp.ndarray,
+    k: int = 30,
+    recall_target: float = 0.95,
+    aggregate_to_topk: bool = True,
 ) -> Tuple[jnp.ndarray, jnp.ndarray]:
     """Get the k nearest neighbors of the input batch in the target."""
     if target.shape[0] < k:
         raise ValueError(f"k is {k}, but must be smaller or equal than {target.shape[0]}.")
     pairwise_euclidean_distances = pointcloud.PointCloud(input_batch, target).cost_matrix
-    return jax.lax.approx_min_k(pairwise_euclidean_distances, k=k, recall_target=0.95, aggregate_to_topk=True)
+    return jax.lax.approx_min_k(
+        pairwise_euclidean_distances, k=k, recall_target=recall_target, aggregate_to_topk=aggregate_to_topk
+    )
 
 
 def check_shapes(geom_x: geometry.Geometry, geom_y: geometry.Geometry, geom_xy: geometry.Geometry) -> None:

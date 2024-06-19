@@ -276,6 +276,8 @@ class OTTNeuralOutput(BaseNeuralOutput):
         k: int = 30,
         length_scale: Optional[float] = None,
         seed: int = 42,
+        recall_target: float = 0.95,
+        aggregate_to_topk: bool = True,
     ) -> sp.csr_matrix:
         row_indices: Union[jnp.ndarray, List[jnp.ndarray]] = []
         column_indices: Union[jnp.ndarray, List[jnp.ndarray]] = []
@@ -286,7 +288,13 @@ class OTTNeuralOutput(BaseNeuralOutput):
             tgt_batch = tgt_dist[jax.random.choice(key, tgt_dist.shape[0], shape=((batch_size,)))]
             length_scale = jnp.std(jnp.concatenate((func(src_batch), tgt_batch)))
         for index in range(0, len(src_dist), batch_size):
-            distances, indices = get_nearest_neighbors(func(src_dist[index : index + batch_size, :]), tgt_dist, k)
+            distances, indices = get_nearest_neighbors(
+                func(src_dist[index : index + batch_size, :]),
+                tgt_dist,
+                k,
+                recall_target=recall_target,
+                aggregate_to_topk=aggregate_to_topk,
+            )
             distances = jnp.exp(-((distances / length_scale) ** 2))
             distances /= jnp.expand_dims(jnp.sum(distances, axis=1), axis=1)
             distances_list.append(distances.flatten())
@@ -318,6 +326,8 @@ class OTTNeuralOutput(BaseNeuralOutput):
         k: int = 30,
         length_scale: Optional[float] = None,
         seed: int = 42,
+        recall_target: float = 0.95,
+        aggregate_to_topk: bool = True,
     ) -> sp.csr_matrix:
         """Project conditional neural OT map onto cells.
 
@@ -352,6 +362,13 @@ class OTTNeuralOutput(BaseNeuralOutput):
         seed
             Random seed for sampling the pairs of distributions for computing the variance in case `length_scale`
             is `None`.
+        recall_target
+            Recall target for the approximation.
+        aggregate_to_topk
+            When true, the nearest neighbor aggregates approximate results to the top-k in sorted order.
+            When false, returns the approximate results unsorted.
+            In this case, the number of the approximate results is implementation defined and is greater or
+            equal to the specified k.
 
         Returns
         -------
@@ -371,6 +388,8 @@ class OTTNeuralOutput(BaseNeuralOutput):
             k=k,
             length_scale=length_scale,
             seed=seed,
+            recall_target=recall_target,
+            aggregate_to_topk=aggregate_to_topk,
         )
 
     def push(self, x: ArrayLike, cond: Optional[ArrayLike] = None) -> ArrayLike:
