@@ -315,7 +315,7 @@ class OTTNeuralOutput(BaseNeuralOutput):
                 self._inverse_transport_matrix = tm
         return tm
 
-    def project_transport_matrix(  # type:ignore[override]
+    def project_to_transport_matrix(  # type:ignore[override]
         self,
         src_cells: ArrayLike,
         tgt_cells: ArrayLike,

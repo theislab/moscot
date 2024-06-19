@@ -296,7 +296,7 @@ class NeuralAnalysisMixin(AnalysisMixin[K, B]):
         """Compute a grouped transition matrix based on a pseudo-transport matrix.
 
         This function requires a projection of the velocity field onto existing cells, see
-        :meth:`moscot.backends.ott.NeuralOutput.project_transport_matrix`.
+        :meth:`moscot.backends.ott.NeuralOutput.project_to_transport_matrix`.
         Afterwards, this function computes a transition matrix with entries corresponding to categories, e.g. cell
         types. The transition matrix will be row-stochastic if `forward` is `True`, otherwise column-stochastic.
 
@@ -398,7 +398,7 @@ class NeuralAnalysisMixin(AnalysisMixin[K, B]):
             tm_result = problem.solution.transport_matrix if forward else problem.solution.inverse_transport_matrix
         except ValueError:
             logger.info(f"Projecting transport matrix based on {k} nearest neighbors.")
-            tm_result = problem.project_transport_matrix(
+            tm_result = problem.project_to_transport_matrix(
                 source_data, target_data, forward=forward, save_transport_matrix=True, batch_size=batch_size, k=k
             )
 

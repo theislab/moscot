@@ -397,7 +397,7 @@ class BaseNeuralOutput(BaseDiscreteSolverOutput, abc.ABC):
     """Base class for output of."""
 
     @abstractmethod
-    def project_transport_matrix(
+    def project_to_transport_matrix(
         self,
         source: Optional[ArrayLike] = None,
         target: Optional[ArrayLike] = None,
