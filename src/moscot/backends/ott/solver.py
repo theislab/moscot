@@ -608,7 +608,7 @@ class GENOTLinSolver(OTSolver[OTTOutput]):
                 if is_conditional
                 else None
             ),
-            hidden_dims=self._neural_kwargs.get("velocity_field_hidden_dims", [512, 512, 512]),
+            hidden_dims=self._neural_kwargs.get("velocity_field_hidden_dims", [1024, 1024, 1024]),
             time_dims=self._neural_kwargs.get("velocity_field_time_dims", None),
             time_encoder=self._neural_kwargs.get(
                 "velocity_field_time_encoder", functools.partial(time_encoder.cyclical_time_encoder, n_freqs=1024)
