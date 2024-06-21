@@ -96,7 +96,7 @@ See [below](#hyperparameters) for a more detailed discussion.
 
 ## Multimodality
 
-All moscot problems are in general applicable to any modality, as the solution of the moscot problem only depends on pairwise distances of cells. Yet, it is up to the users to apply the preprocessing. We recommend using embeddings, e.g. [scVI-tools](https://docs.scvi-tools.org/en/stable/index.html) based or linear embeddings ([PCA for GEX](https://muon-tutorials.readthedocs.io/en/latest/single-cell-rna-atac/pbmc10k/1-Gene-Expression-Processing.html) and [LSI for ATAC-seq data](https://muon-tutorials.readthedocs.io/en/latest/single-cell-rna-atac/pbmc10k/2-Chromatin-Accessibility-Processing.html)) of dimension $10-100$. On how to pass certain embeddings please have a look at {doc}`/notebooks/tutorials/600_tutorial_translation`.
+All moscot problems are in general applicable to any modality, as the solution of the moscot problem only depends on pairwise distances of cells. Yet, it is up to the users to apply the preprocessing. We recommend using embeddings, e.g. [scVI-tools](https://docs.scvi-tools.org/en/stable/index.html) based or linear embeddings ([PCA for GEX](https://muon-tutorials.readthedocs.io/en/latest/single-cell-rna-atac/pbmc10k/1-Gene-Expression-Processing.html) and [LSI for ATAC-seq data](https://muon-tutorials.readthedocs.io/en/latest/single-cell-rna-atac/pbmc10k/2-Chromatin-Accessibility-Processing.html)) of dimension $10-100$.
 When working with multiple modalities, we can construct a joint space, e.g. by using VAEs incorporating multiple modalities ([MultiVI](https://docs.scvi-tools.org/en/stable/user_guide/models/multivi.html)), or by concatenating linear embeddings (e.g. concatenate PCA and LSI space of GEX and ATAC, respectively)
 
 ## User interface
