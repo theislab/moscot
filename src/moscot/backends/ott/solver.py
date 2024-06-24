@@ -617,7 +617,8 @@ class GENOTLinSolver(OTSolver[OTTOutput]):
         seed = self._neural_kwargs.get("seed", 0)
         rng = jax.random.PRNGKey(seed)
         data_match_fn_kwargs = self._neural_kwargs.get(
-            "data_match_fn_kwargs", {"epsilon": 1e-1, "tau_a": 1.0, "tau_b": 1.0}
+            "data_match_fn_kwargs",
+            {} if "data_match_fn" in self._neural_kwargs else {"epsilon": 1e-1, "tau_a": 1.0, "tau_b": 1.0},
         )
         time_sampler = self._neural_kwargs.get("time_sampler", uniform_sampler)
         optimizer = self._neural_kwargs.get("optimizer", optax.adam(learning_rate=1e-4))
@@ -627,7 +628,9 @@ class GENOTLinSolver(OTSolver[OTTOutput]):
                 "flow",
                 dynamics.ConstantNoiseFlow(0.1),
             ),
-            data_match_fn=functools.partial(data_match_fn, typ="lin", **data_match_fn_kwargs),
+            data_match_fn=functools.partial(
+                self._neural_kwargs.get("data_match_fn", data_match_fn), typ="lin", **data_match_fn_kwargs
+            ),
             source_dim=source_dim,
             target_dim=target_dim,
             condition_dim=condition_dim if is_conditional else None,
