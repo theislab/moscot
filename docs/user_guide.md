@@ -2,7 +2,7 @@
 
 Moscot is a toolbox which can solve a wide range of tasks in single-cell genomics building upon the concept of [Optimal Transport (OT)](<https://en.wikipedia.org/wiki/Transportation_theory_(mathematics)>).
 
-Moscot builds upon three principles:
+Moscot follows three design principles:
 
 - moscot applications are scalable. While traditional OT implementations are computationally expensive, moscot implements a wide range of solvers which can handle hundreds of thousands of cells
 - moscot supports OT applications across [multiple modalities](#multimodality)
@@ -117,5 +117,5 @@ For more hyperparameters and their usage please refer to {doc}`/notebooks/exampl
 
 ## Further links
 
-For tutorials showcasing use cases for data analysis please see {doc}`/notebooks/tutorials/index`.\
+For tutorials demonstrating use cases for data analysis please see {doc}`/notebooks/tutorials/index`.\
 For short examples showcasing core moscot functionality please refer to {doc}`/notebooks/examples/index`.
