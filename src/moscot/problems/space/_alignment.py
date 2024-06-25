@@ -152,7 +152,8 @@ class AlignmentProblem(SpatialAlignmentMixin[K, B], CompoundProblem[K, B]):
             x = y = {}
             if x_callback != y_callback:
                 logger.warning(
-                    "Only one of `x_callback` and `y_callback` is set to `spatial-norm`. Treating, both as `spatial-norm`.",
+                    "Only one of `x_callback` and `y_callback` is set to `spatial-norm`."
+                    "Treating, both as `spatial-norm`.",
                     UserWarning,
                 )
 
