@@ -55,7 +55,7 @@ dependencies = [
     "scanpy>=1.9.3",
     "wrapt>=1.13.2",
     "docrep>=0.3.2",
-    "ott-jax>=0.4.6",
+    "ott-jax[neural]>=0.4.6",
     "cloudpickle>=2.2.0",
     "rich>=13.5",
 ]
@@ -267,11 +267,11 @@ skip_missing_interpreters = true
 
 [testenv]
 extras = test
-pass_env = PYTEST_*,CI
 commands =
     python -m pytest {tty:--color=yes} {posargs: \
         --cov={env_site_packages_dir}{/}moscot --cov-config={tox_root}{/}pyproject.toml \
         --no-cov-on-fail --cov-report=xml --cov-report=term-missing:skip-covered}
+passenv = PYTEST_*,CI
 
 [testenv:lint-code]
 description = Lint the code.

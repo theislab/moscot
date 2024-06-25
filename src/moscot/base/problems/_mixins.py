@@ -23,7 +23,7 @@ from anndata import AnnData
 
 from moscot import _constants
 from moscot._types import ArrayLike, Numeric_t, Str_Dict_t
-from moscot.base.output import BaseSolverOutput
+from moscot.base.output import BaseDiscreteSolverOutput
 from moscot.base.problems._utils import (
     _check_argument_compatibility_cell_transition,
     _correlation_test,
@@ -45,7 +45,7 @@ class AnalysisMixinProtocol(Protocol[K, B]):
 
     adata: AnnData
     _policy: SubsetPolicy[K]
-    solutions: dict[tuple[K, K], BaseSolverOutput]
+    solutions: dict[tuple[K, K], BaseDiscreteSolverOutput]
     problems: dict[tuple[K, K], B]
 
     def _apply(
