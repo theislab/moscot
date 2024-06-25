@@ -722,7 +722,7 @@ def _compute_correspondence(
     # TODO(michalk8): vectorize using jax, this is just a for loop
     vpdist = np.vectorize(pdist, excluded=["feat"])
     if sp.issparse(features):
-        features = features.A  # type: ignore[attr-defined]
+        features = features.toarray()
 
     feat_arr, index_arr, support_arr = [], [], []
     for ind, i in enumerate(support):
