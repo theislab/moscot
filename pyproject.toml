@@ -58,7 +58,7 @@ dependencies = [
     "ott-jax>=0.4.6",
     "cloudpickle>=2.2.0",
     "rich>=13.5",
-    "docstring_inheritance" # TODO: Set version
+    "docstring_inheritance>=2.0.0"
 ]
 
 [project.optional-dependencies]
