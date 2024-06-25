@@ -159,10 +159,10 @@ class SpatialAlignmentMixin(AnalysisMixin[K, B]):
             - ``'warp'`` - warp the data to the ``reference``.
             - ``'affine'`` - align the data to the ``reference`` using affine transformation.
         spatial_key
-            Key in :attr:`~anndata.toarray()nnData.obsm` where the spatial coordinates are stored.
+            Key in :attr:`~anndata.AnnData.obsm` where the spatial coordinates are stored.
             If :obj:`None`, use :attr:`spatial_key`.
         key_added
-            Key in :attr:`~anndata.toarray()nnData.obsm` and :attr:`~anndata.toarray()nnData.uns` where to store the alignment.
+            Key in :attr:`~anndata.AnnData.obsm` and :attr:`~anndata.AnnData.uns` where to store the alignment.
 
         Returns
         -------
@@ -172,8 +172,8 @@ class SpatialAlignmentMixin(AnalysisMixin[K, B]):
           The metadata is :obj:`None` when ``mode != 'affine'``.
         - :class:`str` - updates :attr:`adata` with the following fields:
 
-          - :attr:`obsm['{key_added}'] <anndata.toarray()nnData.obsm>` - the aligned spatial coordinates.
-          - :attr:`uns['{key_added}']['alignment_metadata'] <anndata.toarray()nnData.uns>` - the metadata.
+          - :attr:`obsm['{key_added}'] <anndata.AnnData.obsm>` - the aligned spatial coordinates.
+          - :attr:`uns['{key_added}']['alignment_metadata'] <anndata.AnnData.uns>` - the metadata.
         """
         if isinstance(self._policy, StarPolicy):
             reference = self._policy.reference
@@ -226,15 +226,15 @@ class SpatialAlignmentMixin(AnalysisMixin[K, B]):
         source_groups
             Source groups used for aggregation. Valid options are:
 
-            - :class:`str` - key in :attr:`~anndata.toarray()nnData.obs` where categorical data is stored.
+            - :class:`str` - key in :attr:`~anndata.AnnData.obs` where categorical data is stored.
             - :class:`dict` - a dictionary with one key corresponding to a categorical column in
-              :attr:`~anndata.toarray()nnData.obs` and values to a subset of categories.
+              :attr:`~anndata.AnnData.obs` and values to a subset of categories.
         target_groups
             Target groups used for aggregation. Valid options are:
 
-            - :class:`str` - key in :attr:`~anndata.toarray()nnData.obs` where categorical data is stored.
+            - :class:`str` - key in :attr:`~anndata.AnnData.obs` where categorical data is stored.
             - :class:`dict` - a dictionary with one key corresponding to a categorical column in
-              :attr:`~anndata.toarray()nnData.obs` and values to a subset of categories.
+              :attr:`~anndata.AnnData.obs` and values to a subset of categories.
         aggregation_mode
             How to aggregate the cell-level transport maps. Valid options are:
 
@@ -249,7 +249,7 @@ class SpatialAlignmentMixin(AnalysisMixin[K, B]):
             If :obj:`True`, normalize the transition matrix. If ``forward = True``, the transition matrix
             will be row-stochastic, otherwise column-stochastic.
         key_added
-            Key in :attr:`~anndata.toarray()nnData.uns` where to save the result.
+            Key in :attr:`~anndata.AnnData.uns` where to save the result.
 
         Returns
         -------
@@ -257,7 +257,7 @@ class SpatialAlignmentMixin(AnalysisMixin[K, B]):
 
         - :obj:`None` - returns the transition matrix.
         - :obj:`str` - returns nothing and saves the transition matrix to
-          :attr:`uns['moscot_results']['cell_transition']['{key_added}'] <anndata.toarray()nnData.uns>`
+          :attr:`uns['moscot_results']['cell_transition']['{key_added}'] <anndata.AnnData.uns>`
         """
         if TYPE_CHECKING:
             assert isinstance(self.batch_key, str)
@@ -301,7 +301,7 @@ class SpatialAlignmentMixin(AnalysisMixin[K, B]):
             - ``'sum'`` - aggregate the annotated cells by label then
               pick the label with the highest total matching probability.
         annotation_label
-            Key in :attr:`~anndata.toarray()nnData.obs` where the annotation is stored.
+            Key in :attr:`~anndata.AnnData.obs` where the annotation is stored.
         forward
             If :obj:`True`, transfer the annotations from ``source`` to ``target``.
         source
@@ -333,7 +333,7 @@ class SpatialAlignmentMixin(AnalysisMixin[K, B]):
 
     @property
     def spatial_key(self) -> Optional[str]:
-        """Spatial key in :attr:`~anndata.toarray()nnData.obsm`."""
+        """Spatial key in :attr:`~anndata.AnnData.obsm`."""
         return self._spatial_key
 
     @spatial_key.setter
@@ -344,7 +344,7 @@ class SpatialAlignmentMixin(AnalysisMixin[K, B]):
 
     @property
     def batch_key(self) -> Optional[str]:
-        """Batch key in :attr:`~anndata.toarray()nnData.obs`."""
+        """Batch key in :attr:`~anndata.AnnData.obs`."""
         return self._batch_key
 
     @batch_key.setter
@@ -400,12 +400,12 @@ class SpatialMappingMixin(AnalysisMixin[K, B]):
         """Correlate true and predicted gene expression.
 
         .. warning::
-            Sparse matrices stored in :attr:`~anndata.toarray()nnData.X` will be densified.
+            Sparse matrices stored in :attr:`~anndata.AnnData.X` will be densified.
 
         Parameters
         ----------
         var_names
-            Keys in :attr:`~anndata.toarray()nnData.var_names`. If :obj:`None`, use all shared genes.
+            Keys in :attr:`~anndata.AnnData.var_names`. If :obj:`None`, use all shared genes.
         corr_method
             Correlation method. Valid options are:
 
@@ -458,7 +458,7 @@ class SpatialMappingMixin(AnalysisMixin[K, B]):
         Parameters
         ----------
         var_names
-            Genes in :attr:`~anndata.toarray()nnData.var_names` to impute. If :obj:`None`, use all genes in :attr:`adata_sc`.
+            Genes in :attr:`~anndata.AnnData.var_names` to impute. If :obj:`None`, use all genes in :attr:`adata_sc`.
         device
             Device where to transfer the solutions, see :meth:`~moscot.base.output.BaseSolverOutput.to`.
 
@@ -499,8 +499,8 @@ class SpatialMappingMixin(AnalysisMixin[K, B]):
         attr
             How to extract the data for correspondence. Valid options are:
 
-            - :obj:`None` - use :attr:`~anndata.toarray()nnData.X`.
-            - :class:`dict` - key corresponds to an attribute of :class:`~anndata.toarray()nnData` and
+            - :obj:`None` - use :attr:`~anndata.AnnData.X`.
+            - :class:`dict` - key corresponds to an attribute of :class:`~anndata.AnnData` and
               value to a key in that attribute. If the value is :obj:`None`, only the attribute will be used.
 
         Returns
@@ -570,15 +570,15 @@ class SpatialMappingMixin(AnalysisMixin[K, B]):
         source_groups
             Source groups used for aggregation. Valid options are:
 
-            - :class:`str` - key in :attr:`~anndata.toarray()nnData.obs` where categorical data is stored.
+            - :class:`str` - key in :attr:`~anndata.AnnData.obs` where categorical data is stored.
             - :class:`dict` - a dictionary with one key corresponding to a categorical column in
-              :attr:`~anndata.toarray()nnData.obs` and values to a subset of categories.
+              :attr:`~anndata.AnnData.obs` and values to a subset of categories.
         target_groups
             Target groups used for aggregation. Valid options are:
 
-            - :class:`str` - key in :attr:`~anndata.toarray()nnData.obs` where categorical data is stored.
+            - :class:`str` - key in :attr:`~anndata.AnnData.obs` where categorical data is stored.
             - :class:`dict` - a dictionary with one key corresponding to a categorical column in
-              :attr:`~anndata.toarray()nnData.obs` and values to a subset of categories.
+              :attr:`~anndata.AnnData.obs` and values to a subset of categories.
         aggregation_mode
             How to aggregate the cell-level transport maps. Valid options are:
 
@@ -593,7 +593,7 @@ class SpatialMappingMixin(AnalysisMixin[K, B]):
             If :obj:`True`, normalize the transition matrix. If ``forward = True``, the transition matrix
             will be row-stochastic, otherwise column-stochastic.
         key_added
-            Key in :attr:`~anndata.toarray()nnData.uns` where to save the result.
+            Key in :attr:`~anndata.AnnData.uns` where to save the result.
 
         Returns
         -------
@@ -601,7 +601,7 @@ class SpatialMappingMixin(AnalysisMixin[K, B]):
 
         - :obj:`None` - returns the transition matrix.
         - :obj:`str` - returns nothing and saves the transition matrix to
-          :attr:`uns['moscot_results']['cell_transition']['{key_added}'] <anndata.toarray()nnData.uns>`
+          :attr:`uns['moscot_results']['cell_transition']['{key_added}'] <anndata.AnnData.uns>`
         """
         if TYPE_CHECKING:
             assert self.batch_key is not None
@@ -644,7 +644,7 @@ class SpatialMappingMixin(AnalysisMixin[K, B]):
             - ``'sum'`` - aggregate the annotated cells by label then
               pick the label with the highest total matching probability.
         annotation_label
-            Key in :attr:`~anndata.toarray()nnData.obs` where the annotation is stored.
+            Key in :attr:`~anndata.AnnData.obs` where the annotation is stored.
         forward
             If :obj:`True`, transfer the annotations from ``source`` to ``target``.
         source
@@ -677,7 +677,7 @@ class SpatialMappingMixin(AnalysisMixin[K, B]):
 
     @property
     def batch_key(self) -> Optional[str]:
-        """Batch key in :attr:`~anndata.toarray()nnData.obs`."""
+        """Batch key in :attr:`~anndata.AnnData.obs`."""
         return self._batch_key
 
     @batch_key.setter
@@ -688,7 +688,7 @@ class SpatialMappingMixin(AnalysisMixin[K, B]):
 
     @property
     def spatial_key(self) -> Optional[str]:
-        """Spatial key in :attr:`~anndata.toarray()nnData.obsm`."""
+        """Spatial key in :attr:`~anndata.AnnData.obsm`."""
         return self._spatial_key
 
     @spatial_key.setter
@@ -722,7 +722,7 @@ def _compute_correspondence(
     # TODO(michalk8): vectorize using jax, this is just a for loop
     vpdist = np.vectorize(pdist, excluded=["feat"])
     if sp.issparse(features):
-        features = features.toarray()
+        features = features.toarray()  # type: ignore[attr-defined]
 
     feat_arr, index_arr, support_arr = [], [], []
     for ind, i in enumerate(support):
