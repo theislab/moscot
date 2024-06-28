@@ -149,9 +149,10 @@ class BaseCompoundProblem(BaseProblem, abc.ABC, Generic[K, B]):
         xy_callback_kwargs: Mapping[str, Any] = types.MappingProxyType({}),
         x_callback_kwargs: Mapping[str, Any] = types.MappingProxyType({}),
         y_callback_kwargs: Mapping[str, Any] = types.MappingProxyType({}),
-        **kwargs: Any,
+        a: Optional[Union[bool, str, ArrayLike]] = None,
+        b: Optional[Union[bool, str, ArrayLike]] = None,
+        marginal_kwargs: Mapping[str, Any] = types.MappingProxyType({}),
     ) -> Dict[Tuple[K, K], B]:
-        from moscot.base.problems.birth_death import BirthDeathProblem
 
         if TYPE_CHECKING:
             assert isinstance(self._policy, SubsetPolicy)
@@ -187,10 +188,7 @@ class BaseCompoundProblem(BaseProblem, abc.ABC, Generic[K, B]):
             if y_data:
                 y = dict(y)
                 y["tagged_array"] = y_data
-            if isinstance(problem, BirthDeathProblem):
-                kwargs["proliferation_key"] = self.proliferation_key  # type: ignore[attr-defined]
-                kwargs["apoptosis_key"] = self.apoptosis_key  # type: ignore[attr-defined]
-            problems[src_name, tgt_name] = problem.prepare(xy=xy, x=x, y=y, **kwargs)
+            problems[src_name, tgt_name] = problem.prepare(xy=xy, x=x, y=y, a=a, b=b, marginal_kwargs=marginal_kwargs)
 
         return problems
 
@@ -200,13 +198,18 @@ class BaseCompoundProblem(BaseProblem, abc.ABC, Generic[K, B]):
         key: Optional[str],
         subset: Optional[Sequence[Tuple[K, K]]] = None,
         reference: Optional[Any] = None,
+        xy: Mapping[str, Any] = types.MappingProxyType({}),
+        x: Mapping[str, Any] = types.MappingProxyType({}),
+        y: Mapping[str, Any] = types.MappingProxyType({}),
         xy_callback: Optional[Union[Literal["local-pca"], Callback_t]] = None,
         x_callback: Optional[Union[Literal["local-pca"], Callback_t]] = None,
         y_callback: Optional[Union[Literal["local-pca"], Callback_t]] = None,
         xy_callback_kwargs: Mapping[str, Any] = types.MappingProxyType({}),
         x_callback_kwargs: Mapping[str, Any] = types.MappingProxyType({}),
         y_callback_kwargs: Mapping[str, Any] = types.MappingProxyType({}),
-        **kwargs: Any,
+        a: Optional[Union[bool, str, ArrayLike]] = None,
+        b: Optional[Union[bool, str, ArrayLike]] = None,
+        marginal_kwargs: Mapping[str, Any] = types.MappingProxyType({}),
     ) -> "BaseCompoundProblem[K, B]":
         """Prepare the individual :term:`OT` subproblems.
 
@@ -224,6 +227,12 @@ class BaseCompoundProblem(BaseProblem, abc.ABC, Generic[K, B]):
             for the :class:`~moscot.utils.subset_policy.ExplicitPolicy`. Only used when ``policy = 'explicit'``.
         reference
             Reference for the :class:`~moscot.utils.subset_policy.SubsetPolicy`. Only used when ``policy = 'star'``.
+        xy
+            Data for the :term:`linear term`.
+        x
+            Data for the source :term:`quadratic term`.
+        y
+            Data for the target :term:`quadratic term`.
         xy_callback
             Callback function used to prepare the data in the :term:`linear term`.
         x_callback
@@ -236,8 +245,24 @@ class BaseCompoundProblem(BaseProblem, abc.ABC, Generic[K, B]):
             Keyword arguments for the ``x_callback``.
         y_callback_kwargs
             Keyword arguments for the ``y_callback``.
-        kwargs
-            Keyword arguments for the subproblems' :meth:`~moscot.base.problems.OTProblem.prepare` method.
+        a
+            Source :term:`marginals`. Valid options are:
+
+            - :class:`str` - key in :attr:`~anndata.AnnData.obs` where the source marginals are stored.
+            - :class:`bool` - if :obj:`True`,
+              :meth:`estimate the marginals <moscot.base.problems.OTProblem.estimate_marginals>`,
+              otherwise use uniform marginals.
+            - :obj:`None` - uniform marginals.
+        b
+            Target :term:`marginals`. Valid options are:
+
+            - :class:`str` - key in :attr:`~anndata.AnnData.obs` where the target marginals are stored.
+            - :class:`bool` - if :obj:`True`,
+              :meth:`estimate the marginals <moscot.base.problems.OTProblem.estimate_marginals>`,
+              otherwise use uniform marginals.
+            - :obj:`None` - uniform marginals.
+        marginal_kwargs
+            Keyword arguments for the :meth:`~moscot.base.problems.OTProblem.estimate_marginals` method.
 
         Returns
         -------
@@ -264,13 +289,18 @@ class BaseCompoundProblem(BaseProblem, abc.ABC, Generic[K, B]):
         # when refactoring the callback, consider changing this
         self._problem_manager = ProblemManager(self, policy=policy)
         problems = self._create_problems(
-            xy_callback=xy_callback,
+            x=x,
+            y=y,
+            xy=xy,
+            a=a,
+            b=b,
             x_callback=x_callback,
             y_callback=y_callback,
-            xy_callback_kwargs=xy_callback_kwargs,
+            xy_callback=xy_callback,
             x_callback_kwargs=x_callback_kwargs,
             y_callback_kwargs=y_callback_kwargs,
-            **kwargs,
+            xy_callback_kwargs=xy_callback_kwargs,
+            marginal_kwargs=marginal_kwargs,
         )
         self._problem_manager.add_problems(problems)
 
@@ -592,14 +622,14 @@ class CompoundProblem(BaseCompoundProblem[K, B], abc.ABC):
             linear_cost_matrix = data[mask, :][:, mask_2]
             if sp.issparse(linear_cost_matrix):
                 logger.warning("Linear cost matrix being densified.")
-                linear_cost_matrix = linear_cost_matrix.A
+                linear_cost_matrix = linear_cost_matrix.toarray()
             return TaggedArray(linear_cost_matrix, tag=Tag.COST_MATRIX)
 
         if term in ("x", "y"):
             quad_cost_matrix = data[mask, :][:, mask]
             if sp.issparse(quad_cost_matrix):
                 logger.warning("Quadratic cost matrix being densified.")
-                quad_cost_matrix = quad_cost_matrix.A
+                quad_cost_matrix = quad_cost_matrix.toarray()
             return TaggedArray(quad_cost_matrix, tag=Tag.COST_MATRIX)
 
         raise ValueError(f"Expected `term` to be one of `x`, `y`, or `xy`, found `{term!r}`.")

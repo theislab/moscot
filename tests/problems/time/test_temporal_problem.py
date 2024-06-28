@@ -270,7 +270,7 @@ class TestTemporalProblem:
                 pd.DataFrame(
                     index=adata_subset.obs_names,
                     columns=adata_subset.obs_names,
-                    data=adata_subset.obsp["connectivities"].A.astype("float64"),
+                    data=adata_subset.obsp["connectivities"].toarray().astype("float64"),
                 )
                 if dense_input
                 else (
@@ -394,7 +394,7 @@ class TestTemporalProblem:
             df = pd.DataFrame(
                 index=adata_subset.obs_names,
                 columns=adata_subset.obs_names,
-                data=adata_subset.obsp["connectivities"].A.astype("float64"),
+                data=adata_subset.obsp["connectivities"].toarray().astype("float64"),
             )
             order = pd.concat(
                 (tp[batch1, batch2].adata_src.obs_names.to_series(), tp[batch1, batch2].adata_tgt.obs_names.to_series())

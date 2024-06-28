@@ -1,5 +1,5 @@
 import types
-from typing import Any, Dict, Literal, Mapping, Optional, Tuple, Type, Union
+from typing import Any, Dict, Literal, Mapping, Optional, Sequence, Tuple, Type, Union
 
 from anndata import AnnData
 
@@ -14,7 +14,7 @@ from moscot._types import (
     ScaleCost_t,
     SinkhornInitializer_t,
 )
-from moscot.base.problems.compound_problem import B, CompoundProblem, K
+from moscot.base.problems.compound_problem import B, Callback_t, CompoundProblem, K
 from moscot.base.problems.problem import OTProblem
 from moscot.problems._utils import handle_cost, handle_joint_attr
 from moscot.problems.generic._mixins import GenericAnalysisMixin
@@ -53,7 +53,10 @@ class SinkhornProblem(GenericAnalysisMixin[K, B], CompoundProblem[K, B]):  # typ
         cost_kwargs: CostKwargs_t = types.MappingProxyType({}),
         a: Optional[Union[bool, str]] = None,
         b: Optional[Union[bool, str]] = None,
-        **kwargs: Any,
+        xy_callback: Optional[Union[Literal["local-pca"], Callback_t]] = None,
+        xy_callback_kwargs: Mapping[str, Any] = types.MappingProxyType({}),
+        subset: Optional[Sequence[Tuple[K, K]]] = None,
+        reference: Optional[Any] = None,
     ) -> "SinkhornProblem[K, B]":
         r"""Prepare the individual :term:`linear subproblems <linear problem>`.
 
@@ -107,8 +110,7 @@ class SinkhornProblem(GenericAnalysisMixin[K, B], CompoundProblem[K, B]):  # typ
               :meth:`estimate the marginals <moscot.base.problems.OTProblem.estimate_marginals>`,
               otherwise use uniform marginals.
             - :obj:`None` - uniform marginals.
-        kwargs
-            Keyword arguments for :meth:`~moscot.base.problems.CompoundProblem.prepare`.
+
 
         Returns
         -------
@@ -120,16 +122,25 @@ class SinkhornProblem(GenericAnalysisMixin[K, B], CompoundProblem[K, B]):  # typ
         - :attr:`problem_kind` - set to ``'linear'``.
         """
         self.batch_key = key  # type: ignore[misc]
-        xy, kwargs = handle_joint_attr(joint_attr, kwargs)
-        xy, _, _ = handle_cost(xy=xy, cost=cost, cost_kwargs=cost_kwargs, **kwargs)
+        xy, xy_callback, xy_callback_kwargs = handle_joint_attr(joint_attr, xy_callback, xy_callback_kwargs)
+        xy, _, _ = handle_cost(
+            xy=xy,
+            x={},
+            y={},
+            cost=cost,
+            cost_kwargs=cost_kwargs,
+            xy_callback=xy_callback,
+        )
         return super().prepare(  # type: ignore[return-value]
             key=key,
             policy=policy,
             xy=xy,
-            cost=cost,
             a=a,
             b=b,
-            **kwargs,
+            xy_callback=xy_callback,
+            xy_callback_kwargs=xy_callback_kwargs,
+            reference=reference,
+            subset=subset,
         )
 
     def solve(
@@ -270,7 +281,12 @@ class GWProblem(GenericAnalysisMixin[K, B], CompoundProblem[K, B]):  # type: ign
         cost_kwargs: CostKwargs_t = types.MappingProxyType({}),
         a: Optional[Union[bool, str]] = None,
         b: Optional[Union[bool, str]] = None,
-        **kwargs: Any,
+        subset: Optional[Sequence[Tuple[K, K]]] = None,
+        reference: Optional[Any] = None,
+        x_callback: Optional[Union[Literal["local-pca"], Callback_t]] = None,
+        y_callback: Optional[Union[Literal["local-pca"], Callback_t]] = None,
+        x_callback_kwargs: Mapping[str, Any] = types.MappingProxyType({}),
+        y_callback_kwargs: Mapping[str, Any] = types.MappingProxyType({}),
     ) -> "GWProblem[K, B]":
         """Prepare the individual :term:`quadratic subproblems <quadratic problem>`.
 
@@ -332,8 +348,6 @@ class GWProblem(GenericAnalysisMixin[K, B], CompoundProblem[K, B]):  # type: ign
               :meth:`estimate the marginals <moscot.base.problems.OTProblem.estimate_marginals>`,
               otherwise use uniform marginals.
             - :obj:`None` - uniform marginals.
-        kwargs
-            Keyword arguments for :meth:`~moscot.base.problems.CompoundProblem.prepare`.
 
         Returns
         -------
@@ -346,19 +360,32 @@ class GWProblem(GenericAnalysisMixin[K, B], CompoundProblem[K, B]):  # type: ign
         - :attr:`problem_kind` - set to ``'quadratic'``.
         """
         self.batch_key = key  # type: ignore[misc]
-        x = set_quad_defaults(x_attr) if "x_callback" not in kwargs else {}
-        y = set_quad_defaults(y_attr) if "y_callback" not in kwargs else {}
-        xy, x, y = handle_cost(xy={}, x=x, y=y, cost=cost, cost_kwargs=cost_kwargs, **kwargs)  # type: ignore[arg-type]
+        x = set_quad_defaults(x_attr) if x_callback is None else {}
+        y = set_quad_defaults(y_attr) if y_callback is None else {}
+
+        xy, x, y = handle_cost(
+            xy={},
+            x=x,
+            y=y,
+            cost=cost,
+            cost_kwargs=cost_kwargs,
+            x_callback=x_callback,
+            y_callback=y_callback,
+        )
         return super().prepare(  # type: ignore[return-value]
             key=key,
             xy=xy,
             x=x,
             y=y,
             policy=policy,
-            cost=cost,
             a=a,
             b=b,
-            **kwargs,
+            x_callback=x_callback,
+            y_callback=y_callback,
+            x_callback_kwargs=x_callback_kwargs,
+            y_callback_kwargs=y_callback_kwargs,
+            subset=subset,
+            reference=reference,
         )
 
     def solve(
@@ -488,7 +515,14 @@ class FGWProblem(GWProblem[K, B]):
         cost_kwargs: CostKwargs_t = types.MappingProxyType({}),
         a: Optional[Union[bool, str]] = None,
         b: Optional[Union[bool, str]] = None,
-        **kwargs: Any,
+        xy_callback: Optional[Union[Literal["local-pca"], Callback_t]] = None,
+        x_callback: Optional[Union[Literal["local-pca"], Callback_t]] = None,
+        y_callback: Optional[Union[Literal["local-pca"], Callback_t]] = None,
+        xy_callback_kwargs: Mapping[str, Any] = types.MappingProxyType({}),
+        x_callback_kwargs: Mapping[str, Any] = types.MappingProxyType({}),
+        y_callback_kwargs: Mapping[str, Any] = types.MappingProxyType({}),
+        subset: Optional[Sequence[Tuple[K, K]]] = None,
+        reference: Optional[Any] = None,
     ) -> "FGWProblem[K, B]":
         """Prepare the individual :term:`quadratic subproblems <quadratic problem>`.
 
@@ -560,8 +594,24 @@ class FGWProblem(GWProblem[K, B]):
               :meth:`estimate the marginals <moscot.base.problems.OTProblem.estimate_marginals>`,
               otherwise use uniform marginals.
             - :obj:`None` - uniform marginals.
-        kwargs
-            Keyword arguments for :meth:`~moscot.base.problems.CompoundProblem.prepare`.
+        xy
+            Data for the :term:`linear term`.
+        x
+            Data for the source :term:`quadratic term`.
+        y
+            Data for the target :term:`quadratic term`.
+        xy_callback
+            Callback function used to prepare the data in the :term:`linear term`.
+        x_callback
+            Callback function used to prepare the data in the source :term:`quadratic term`.
+        y_callback
+            Callback function used to prepare the data in the target :term:`quadratic term`.
+        xy_callback_kwargs
+            Keyword arguments for the ``xy_callback``.
+        x_callback_kwargs
+            Keyword arguments for the ``x_callback``.
+        y_callback_kwargs
+            Keyword arguments for the ``y_callback``.
 
         Returns
         -------
@@ -574,10 +624,19 @@ class FGWProblem(GWProblem[K, B]):
         - :attr:`problem_kind` - set to ``'quadratic'``.
         """
         self.batch_key = key  # type: ignore[misc]
-        xy, kwargs = handle_joint_attr(joint_attr, kwargs)
-        x = set_quad_defaults(x_attr) if "x_callback" not in kwargs else {}
-        y = set_quad_defaults(y_attr) if "y_callback" not in kwargs else {}
-        xy, x, y = handle_cost(xy=xy, x=x, y=y, cost=cost, cost_kwargs=cost_kwargs, **kwargs)  # type: ignore[arg-type]
+        x = set_quad_defaults(x_attr) if x_callback is None else {}
+        y = set_quad_defaults(y_attr) if y_callback is None else {}
+        xy, xy_callback, xy_callback_kwargs = handle_joint_attr(joint_attr, xy_callback, xy_callback_kwargs)
+        xy, x, y = handle_cost(
+            xy=xy,
+            x=x,
+            y=y,
+            cost=cost,
+            x_callback=x_callback,
+            y_callback=y_callback,
+            xy_callback=xy_callback,
+            cost_kwargs=cost_kwargs,
+        )
         return CompoundProblem.prepare(
             self,  # type: ignore[return-value, arg-type]
             key=key,
@@ -585,10 +644,16 @@ class FGWProblem(GWProblem[K, B]):
             x=x,
             y=y,
             policy=policy,
-            cost=cost,
             a=a,
             b=b,
-            **kwargs,
+            reference=reference,
+            subset=subset,  # type: ignore[arg-type]
+            x_callback=x_callback,
+            y_callback=y_callback,
+            xy_callback=xy_callback,
+            x_callback_kwargs=x_callback_kwargs,
+            y_callback_kwargs=y_callback_kwargs,
+            xy_callback_kwargs=xy_callback_kwargs,
         )
 
     def solve(

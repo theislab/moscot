@@ -152,7 +152,7 @@ class TestMappingProblem:
                 pd.DataFrame(
                     index=adata_subset.obs_names,
                     columns=adata_subset.obs_names,
-                    data=adata_subset.obsp[key].A.astype("float64"),
+                    data=adata_subset.obsp[key].toarray().astype("float64"),
                 )
                 if dense_input
                 else (
@@ -169,7 +169,7 @@ class TestMappingProblem:
                 pd.DataFrame(
                     index=adataref.obs_names,
                     columns=adataref.obs_names,
-                    data=adataref.obsp[key].A.astype("float64"),
+                    data=adataref.obsp[key].toarray().astype("float64"),
                 )
                 if dense_input
                 else (

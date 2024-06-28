@@ -1,9 +1,10 @@
 import types
-from typing import Any, Literal, Mapping, Optional, Tuple, Type, Union
+from typing import Any, Literal, Mapping, Optional, Sequence, Tuple, Type, Union
 
 from anndata import AnnData
 
 from moscot import _constants
+from moscot._logging import logger
 from moscot._types import (
     CostKwargs_t,
     OttCostFnMap_t,
@@ -12,7 +13,7 @@ from moscot._types import (
     QuadInitializer_t,
     ScaleCost_t,
 )
-from moscot.base.problems.compound_problem import B, CompoundProblem, K
+from moscot.base.problems.compound_problem import B, Callback_t, CompoundProblem, K
 from moscot.base.problems.problem import OTProblem
 from moscot.problems._utils import handle_cost, handle_joint_attr
 from moscot.problems.space._mixins import SpatialAlignmentMixin
@@ -46,7 +47,14 @@ class AlignmentProblem(SpatialAlignmentMixin[K, B], CompoundProblem[K, B]):
         cost_kwargs: CostKwargs_t = types.MappingProxyType({}),
         a: Optional[Union[bool, str]] = None,
         b: Optional[Union[bool, str]] = None,
-        **kwargs: Any,
+        xy_callback: Optional[Union[Literal["local-pca"], Callback_t]] = None,
+        x_callback: Optional[Union[Literal["local-pca"], Callback_t]] = None,
+        y_callback: Optional[Union[Literal["local-pca"], Callback_t]] = None,
+        xy_callback_kwargs: Mapping[str, Any] = types.MappingProxyType({}),
+        x_callback_kwargs: Mapping[str, Any] = types.MappingProxyType({}),
+        y_callback_kwargs: Mapping[str, Any] = types.MappingProxyType({}),
+        subset: Optional[Sequence[Tuple[K, K]]] = None,
+        marginal_kwargs: Mapping[str, Any] = types.MappingProxyType({}),
     ) -> "AlignmentProblem[K, B]":
         """Prepare the alignment problem problem.
 
@@ -109,10 +117,6 @@ class AlignmentProblem(SpatialAlignmentMixin[K, B], CompoundProblem[K, B]):
               :meth:`estimate the marginals <moscot.base.problems.OTProblem.estimate_marginals>`,
               otherwise use uniform marginals.
             - :obj:`None` - uniform marginals.
-        kwargs
-            Keyword arguments for :meth:`~moscot.base.problems.CompoundProblem.prepare`.
-            Only used if `policy="star"`, it's the value for reference stored
-            in :attr:`anndata.AnnData.obs` ``["batch_key"]``.
 
 
         Returns
@@ -128,23 +132,60 @@ class AlignmentProblem(SpatialAlignmentMixin[K, B], CompoundProblem[K, B]):
         """
         self.spatial_key = spatial_key
         self.batch_key = batch_key
-
+        if policy == "star" and reference is None:
+            raise ValueError("Reference must be provided when `policy='star'`.")
         x = y = {"attr": "obsm", "key": self.spatial_key}
 
-        if normalize_spatial and "x_callback" not in kwargs and "y_callback" not in kwargs:
-            kwargs["x_callback"] = kwargs["y_callback"] = "spatial-norm"
-            kwargs.setdefault("x_callback_kwargs", x)
-            kwargs.setdefault("y_callback_kwargs", y)
+        if normalize_spatial:
+            if x_callback is None and y_callback is None:
+                x_callback = y_callback = "spatial-norm"
+                if not len(x_callback_kwargs):
+                    x_callback_kwargs = x
+                if not len(y_callback_kwargs):
+                    y_callback_kwargs = y
+            else:
+                logger.warning(
+                    "Ignoring `normalize_spatial` as `x_callback` and `y_callback` are set.",
+                    UserWarning,
+                )
+        if x_callback == "spatial-norm" or y_callback == "spatial-norm":
+            x = y = {}
+            if x_callback != y_callback:
+                logger.warning(
+                    "Only one of `x_callback` and `y_callback` is set to `spatial-norm`."
+                    "Treating, both as `spatial-norm`.",
+                    UserWarning,
+                )
 
-        if "spatial-norm" in kwargs.get("x_callback", {}) and "spatial-norm" in kwargs.get("y_callback", {}):
-            x = {}
-            y = {}
+        xy, xy_callback, xy_callback_kwargs = handle_joint_attr(joint_attr, xy_callback, xy_callback_kwargs)
 
-        xy, kwargs = handle_joint_attr(joint_attr, kwargs)
-        xy, x, y = handle_cost(xy=xy, x=x, y=y, cost=cost, cost_kwargs=cost_kwargs, **kwargs)  # type: ignore[arg-type]
-
+        xy, x, y = handle_cost(
+            xy=xy,
+            x=x,
+            y=y,
+            cost=cost,
+            cost_kwargs=cost_kwargs,
+            xy_callback=xy_callback,
+            x_callback=x_callback,
+            y_callback=y_callback,
+        )
         return super().prepare(  # type: ignore[return-value]
-            x=x, y=y, xy=xy, policy=policy, key=batch_key, reference=reference, cost=cost, a=a, b=b, **kwargs
+            x=x,
+            y=y,
+            xy=xy,
+            policy=policy,
+            key=batch_key,
+            reference=reference,
+            subset=subset,
+            a=a,
+            b=b,
+            x_callback=x_callback,
+            y_callback=y_callback,
+            xy_callback=xy_callback,
+            x_callback_kwargs=x_callback_kwargs,
+            y_callback_kwargs=y_callback_kwargs,
+            xy_callback_kwargs=xy_callback_kwargs,
+            marginal_kwargs=marginal_kwargs,
         )
 
     def solve(

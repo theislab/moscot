@@ -1,5 +1,5 @@
 import types
-from typing import Any, Literal, Mapping, Optional, Tuple, Type, Union
+from typing import Any, Literal, Mapping, Optional, Sequence, Tuple, Type, Union
 
 from ott.geometry import epsilon_scheduler
 
@@ -16,7 +16,7 @@ from moscot._types import (
     ScaleCost_t,
 )
 from moscot.base.problems.birth_death import BirthDeathMixin, BirthDeathProblem
-from moscot.base.problems.compound_problem import B
+from moscot.base.problems.compound_problem import B, Callback_t
 from moscot.problems.space import AlignmentProblem, SpatialAlignmentMixin
 from moscot.problems.time import TemporalMixin
 
@@ -54,7 +54,13 @@ class SpatioTemporalProblem(  # type: ignore[misc]
         a: Optional[Union[bool, str]] = None,
         b: Optional[Union[bool, str]] = None,
         marginal_kwargs: Mapping[str, Any] = types.MappingProxyType({}),
-        **kwargs: Any,
+        subset: Optional[Sequence[Tuple[Numeric_t, Numeric_t]]] = None,
+        xy_callback: Optional[Union[Literal["local-pca"], Callback_t]] = None,
+        x_callback: Optional[Union[Literal["local-pca"], Callback_t]] = None,
+        y_callback: Optional[Union[Literal["local-pca"], Callback_t]] = None,
+        xy_callback_kwargs: Mapping[str, Any] = types.MappingProxyType({}),
+        x_callback_kwargs: Mapping[str, Any] = types.MappingProxyType({}),
+        y_callback_kwargs: Mapping[str, Any] = types.MappingProxyType({}),
     ) -> "SpatioTemporalProblem":
         """Prepare the spatiotemporal problem problem.
 
@@ -123,8 +129,6 @@ class SpatioTemporalProblem(  # type: ignore[misc]
             Keyword arguments for :meth:`~moscot.base.problems.BirthDeathProblem.estimate_marginals`.
             It always contains :attr:`proliferation_key` and :attr:`apoptosis_key`,
             see :meth:`score_genes_for_marginals` for more information.
-        kwargs
-            Keyword arguments for :meth:`~moscot.base.problems.CompoundProblem.prepare`.
 
         Returns
         -------
@@ -145,6 +149,10 @@ class SpatioTemporalProblem(  # type: ignore[misc]
         estimate_marginals = self.proliferation_key is not None or self.apoptosis_key is not None
         a = estimate_marginals if a is None else a
         b = estimate_marginals if b is None else b
+        if self.apoptosis_key is not None:
+            marginal_kwargs["apoptosis_key"] = self.apoptosis_key
+        if self.proliferation_key is not None:
+            marginal_kwargs["proliferation_key"] = self.proliferation_key
 
         return super().prepare(  # type: ignore[return-value]
             spatial_key=spatial_key,
@@ -158,7 +166,13 @@ class SpatioTemporalProblem(  # type: ignore[misc]
             a=a,
             b=b,
             marginal_kwargs=marginal_kwargs,
-            **kwargs,
+            subset=subset,
+            x_callback=x_callback,
+            y_callback=y_callback,
+            xy_callback=xy_callback,
+            x_callback_kwargs=x_callback_kwargs,
+            y_callback_kwargs=y_callback_kwargs,
+            xy_callback_kwargs=xy_callback_kwargs,
         )
 
     def solve(

@@ -430,7 +430,7 @@ class SpatialMappingMixin(AnalysisMixin[K, B]):
 
         gexp_sc = self.adata_sc[:, var_sc].X
         if sp.issparse(gexp_sc):
-            gexp_sc = gexp_sc.A
+            gexp_sc = gexp_sc.toarray()
 
         corrs = {}
         for key, val in self.solutions.items():
@@ -441,7 +441,7 @@ class SpatialMappingMixin(AnalysisMixin[K, B]):
             )
             gexp_sp = self.adata_sp[index_obs, var_sc].X
             if sp.issparse(gexp_sp):
-                gexp_sp = gexp_sp.A
+                gexp_sp = gexp_sp.toarray()
             gexp_pred_sp = val.pull(gexp_sc, scale_by_marginals=True)
             corr_val = [corr(gexp_pred_sp[:, gi], gexp_sp[:, gi])[0] for gi, _ in enumerate(var_sc)]
             corrs[key] = pd.Series(corr_val, index=var_sc)
@@ -471,7 +471,7 @@ class SpatialMappingMixin(AnalysisMixin[K, B]):
 
         gexp_sc = self.adata_sc[:, var_names].X
         if sp.issparse(gexp_sc):
-            gexp_sc = gexp_sc.A
+            gexp_sc = gexp_sc.toarray()
 
         predictions = [val.to(device=device).pull(gexp_sc, scale_by_marginals=True) for val in self.solutions.values()]
 
@@ -722,7 +722,7 @@ def _compute_correspondence(
     # TODO(michalk8): vectorize using jax, this is just a for loop
     vpdist = np.vectorize(pdist, excluded=["feat"])
     if sp.issparse(features):
-        features = features.A  # type: ignore[attr-defined]
+        features = features.toarray()  # type: ignore[attr-defined]
 
     feat_arr, index_arr, support_arr = [], [], []
     for ind, i in enumerate(support):

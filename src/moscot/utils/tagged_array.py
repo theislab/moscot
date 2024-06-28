@@ -70,7 +70,7 @@ class TaggedArray:
 
         if sp.issparse(data) and densify:
             logger.warning(f"Densifying data in `{modifier}`")
-            data = data.A
+            data = data.toarray()
         if data.ndim != 2:
             raise ValueError(f"Expected `{modifier}` to have `2` dimensions, found `{data.ndim}`.")
 
