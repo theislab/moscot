@@ -159,6 +159,8 @@ class LinearMappingProblem(SpatialMappingMixin[K, OTProblem], CompoundProblem[K,
         initializer_kwargs: Mapping[str, Any] = types.MappingProxyType({}),
         jit: bool = True,
         threshold: float = 1e-3,
+        lse_mode: bool = True,
+        inner_iterations: int = 10,
         min_iterations: Optional[int] = None,
         max_iterations: Optional[int] = None,
         device: Optional[Literal["cpu", "gpu", "tpu"]] = None,
@@ -207,6 +209,12 @@ class LinearMappingProblem(SpatialMappingMixin[K, OTProblem], CompoundProblem[K,
             this is typically the deviation between the target :term:`marginals` and the marginals of the current
             :term:`transport matrix`. In the :term:`unbalanced <unbalanced OT problem>` case, the relative change
             between the successive solutions is checked.
+        lse_mode
+            Whether to use `log-sum-exp (LSE)
+            <https://en.wikipedia.org/wiki/LogSumExp#log-sum-exp_trick_for_log-domain_calculations>`_
+            computations for numerical stability.
+        inner_iterations
+            Compute the convergence criterion every ``inner_iterations``.
         device
             Transfer the solution to a different device, see :meth:`~moscot.base.output.BaseSolverOutput.to`.
             If :obj:`None`, keep the output on the original device.
@@ -232,6 +240,8 @@ class LinearMappingProblem(SpatialMappingMixin[K, OTProblem], CompoundProblem[K,
             initializer_kwargs=initializer_kwargs,
             jit=jit,
             threshold=threshold,
+            lse_mode=lse_mode,
+            inner_iterations=inner_iterations,
             min_iterations=min_iterations,
             max_iterations=max_iterations,
             device=device,
