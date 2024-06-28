@@ -25,6 +25,8 @@ __all__ = ["LinearMappingProblem"]
 class LinearMappingProblem(SpatialMappingMixin[K, OTProblem], CompoundProblem[K, OTProblem]):
     """Class for mapping single cell omics data onto spatial data, based on :cite:`nitzan:19`.
 
+    This class is designed for linear mapping in a spatially-informed latent space.
+
     Parameters
     ----------
     adata_sc
@@ -72,54 +74,20 @@ class LinearMappingProblem(SpatialMappingMixin[K, OTProblem], CompoundProblem[K,
 
     def prepare(
         self,
-        # sc_attr: Union[str, Mapping[str, Any]],
         batch_key: Optional[str] = None,
-        # spatial_key: Union[str, Mapping[str, Any]] = "spatial",
-        # var_names: Optional[Sequence[str]] = None,
-        # normalize_spatial: bool = True,
         joint_attr: Optional[Union[str, Mapping[str, Any]]] = None,
-        # cost: OttCostFnMap_t = "sq_euclidean",
         cost: OttCostFn_t = "sq_euclidean",
         cost_kwargs: CostKwargs_t = types.MappingProxyType({}),
         a: Optional[str] = None,
         b: Optional[str] = None,
         **kwargs: Any,
     ) -> "LinearMappingProblem[K]":
-        """Prepare the mapping problem problem.
-
-        .. seealso::
-            - See :doc:`../notebooks/tutorials/400_spatial_mapping` on how to
-              prepare and solve the :class:`~moscot.problems.space.MappingProblem`.
+        """Prepare the linear mapping problem.
 
         Parameters
         ----------
-        sc_attr
-            How to get the data for the :term:`quadratic term`. Usually, it’s the :attr:`~anndata.AnnData.X` attribute,
-            which contains normalized counts, but a different modality or a pre-computed
-            `PCA <https://en.wikipedia.org/wiki/Principal_component_analysis>`_ can also be used. Valid options are:
-
-            - :class:`str` - a key in :attr:`~anndata.AnnData.obsm`.
-            - :class:`dict` -  it should contain ``'attr'`` and ``'key'``, the attribute and key in
-              :class:`~anndata.AnnData`, and optionally ``'tag'`` from the
-              :class:`tags <moscot.utils.tagged_array.Tag>`.
-
-            By default, :attr:`tag = 'point_cloud' <moscot.utils.tagged_array.Tag.POINT_CLOUD>` is used.
         batch_key
             Key in :attr:`~anndata.AnnData.obs` where the slices are stored.
-        spatial_key
-            Key in :attr:`~anndata.AnnData.obsm` where the spatial coordinates are stored.
-        var_names
-            Genes in :attr:`~anndata.AnnData.var_names` for the :term:`linear term` in the
-            :term:`fused <fused Gromov-Wasserstein>` case. Valid options are:
-
-            - :obj:`None` - use all genes shared between :attr:`adata_sp` and :attr:`adata_sc`.
-            - :class:`~typing.Sequence` - use a subset of genes. If an empty sequence, the problem will correspond
-              to the pure :term:`Gromov-Wasserstein` case.
-
-            See also the ``joint_attribute`` parameter.
-        normalize_spatial
-            Whether to normalize the spatial coordinates. If :obj:`True`, the coordinates are normalized
-            by standardizing them.
         joint_attr
             How to get the data for the :term:`linear term` in the :term:`fused <fused Gromov-Wasserstein>` case:
 
@@ -165,24 +133,10 @@ class LinearMappingProblem(SpatialMappingMixin[K, OTProblem], CompoundProblem[K,
 
         - :attr:`problems` - the prepared subproblems.
         - :attr:`solutions` - set to an empty :class:`dict`.
-        - :attr:`spatial_key` - key in :attr:`~anndata.AnnData.obsm` where the spatial coordinates are stored.
         - :attr:`batch_key` - key in :attr:`~anndata.AnnData.obs` where batches are stored.
         - :attr:`stage` - set to ``'prepared'``.
-        - :attr:`problem_kind` - set to ``'quadratic'``.
+        - :attr:`problem_kind` - set to ``'linear'``.
         """
-        # x = {"attr": "obsm", "key": spatial_key} if isinstance(spatial_key, str) else spatial_key
-        # y = {"attr": "obsm", "key": sc_attr} if isinstance(sc_attr, str) else sc_attr
-
-        # if normalize_spatial and "x_callback" not in kwargs:
-        #     kwargs["x_callback"] = "spatial-norm"
-        #     kwargs.setdefault("x_callback_kwargs", x)
-        # if "spatial-norm" in kwargs.get("x_callback", {}):
-        #     x = {}
-
-        # self.batch_key = batch_key
-        # self.spatial_key = spatial_key if isinstance(spatial_key, str) else spatial_key["key"]
-        # self.filtered_vars = var_names
-
         xy, kwargs = handle_joint_attr(joint_attr, kwargs)
         xy, x, y = handle_cost(
             xy=xy, x=kwargs.pop("x", {}), y=kwargs.pop("y", {}), cost=cost, cost_kwargs=cost_kwargs, **kwargs
@@ -194,7 +148,6 @@ class LinearMappingProblem(SpatialMappingMixin[K, OTProblem], CompoundProblem[K,
 
     def solve(
         self,
-        # alpha: float = 0.5,
         epsilon: float = 1e-2,
         tau_a: float = 1.0,
         tau_b: float = 1.0,
@@ -202,14 +155,12 @@ class LinearMappingProblem(SpatialMappingMixin[K, OTProblem], CompoundProblem[K,
         scale_cost: ScaleCost_t = "mean",
         batch_size: Optional[int] = None,
         stage: Union[ProblemStage_t, Tuple[ProblemStage_t, ...]] = ("prepared", "solved"),
-        # initializer: QuadInitializer_t = None,
         initializer: SinkhornInitializer_t = None,
         initializer_kwargs: Mapping[str, Any] = types.MappingProxyType({}),
         jit: bool = True,
         threshold: float = 1e-3,
         min_iterations: Optional[int] = None,
         max_iterations: Optional[int] = None,
-        # linear_solver_kwargs: Mapping[str, Any] = types.MappingProxyType({}),
         device: Optional[Literal["cpu", "gpu", "tpu"]] = None,
         **kwargs: Any,
     ) -> "LinearMappingProblem[K]":
@@ -221,10 +172,6 @@ class LinearMappingProblem(SpatialMappingMixin[K, OTProblem], CompoundProblem[K,
 
         Parameters
         ----------
-        alpha
-            Parameter in :math:`(0, 1]` that interpolates between the :term:`quadratic term` and
-            the :term:`linear term`. :math:`\alpha = 1` corresponds to the pure :term:`Gromov-Wasserstein` problem while
-            :math:`\alpha \to 0` corresponds to the pure :term:`linear problem`.
         epsilon
             :term:`Entropic regularization`.
         tau_a
@@ -252,13 +199,14 @@ class LinearMappingProblem(SpatialMappingMixin[K, OTProblem], CompoundProblem[K,
         jit
             Whether to :func:`~jax.jit` the underlying :mod:`ott` solver.
         min_iterations
-            Minimum number of :term:`(fused) GW <Gromov-Wasserstein>` iterations.
+            Minimum number of :term:`Sinkhorn` iterations.
         max_iterations
-            Maximum number of :term:`(fused) GW <Gromov-Wasserstein>` iterations.
+            Maximum number of :term:`Sinkhorn` iterations.
         threshold
-            Convergence threshold of the :term:`GW <Gromov-Wasserstein>` solver.
-        linear_solver_kwargs
-            Keyword arguments for the inner :term:`linear problem` solver.
+            Convergence threshold of the :term:`Sinkhorn` algorithm. In the :term:`balanced <balanced OT problem>` case,
+            this is typically the deviation between the target :term:`marginals` and the marginals of the current
+            :term:`transport matrix`. In the :term:`unbalanced <unbalanced OT problem>` case, the relative change
+            between the successive solutions is checked.
         device
             Transfer the solution to a different device, see :meth:`~moscot.base.output.BaseSolverOutput.to`.
             If :obj:`None`, keep the output on the original device.
@@ -273,7 +221,6 @@ class LinearMappingProblem(SpatialMappingMixin[K, OTProblem], CompoundProblem[K,
         - :attr:`stage` - set to ``'solved'``.
         """
         return super().solve(  # type: ignore[return-value]
-            # alpha=alpha,
             epsilon=epsilon,
             tau_a=tau_a,
             tau_b=tau_b,
@@ -287,7 +234,6 @@ class LinearMappingProblem(SpatialMappingMixin[K, OTProblem], CompoundProblem[K,
             threshold=threshold,
             min_iterations=min_iterations,
             max_iterations=max_iterations,
-            # linear_solver_kwargs=linear_solver_kwargs,
             device=device,
             **kwargs,
         )
