@@ -446,11 +446,7 @@ class SpatialMappingMixin(AnalysisMixin[K, B]):
             gexp_sp = self.adata_sp[index_obs, var_sc].X
             if sp.issparse(gexp_sp):
                 gexp_sp = gexp_sp.A
-
-            val.to(device=device)
-            self.problems[key].set_solution(np.array(val.transport_matrix), overwrite=True)
-            gexp_pred_sp = val.pull(gexp_sc, scale_by_marginals=True)
-
+            gexp_pred_sp = val.to(device=device).pull(gexp_sc, scale_by_marginals=True)
             corr_val = [corr(gexp_pred_sp[:, gi], gexp_sp[:, gi])[0] for gi, _ in enumerate(var_sc)]
             corrs[key] = pd.Series(corr_val, index=var_sc)
 
@@ -481,12 +477,7 @@ class SpatialMappingMixin(AnalysisMixin[K, B]):
         if sp.issparse(gexp_sc):
             gexp_sc = gexp_sc.A
 
-        # this is a bit hacky, I materialize the solution here
-        predictions = []
-        for problem, solution in zip(self.problems.values(), self.solutions.values()):
-            solution.to(device=device)
-            problem.set_solution(np.array(solution.transport_matrix), overwrite=True)
-            predictions.append(solution.pull(gexp_sc, scale_by_marginals=True))
+        predictions = [val.to(device=device).pull(gexp_sc, scale_by_marginals=True) for val in self.solutions.values()]
 
         adata_pred = AnnData(np.nan_to_num(np.vstack(predictions), nan=0.0, copy=False))
         adata_pred.obs_names = self.adata_sp.obs_names
