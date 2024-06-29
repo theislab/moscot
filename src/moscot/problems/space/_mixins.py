@@ -475,10 +475,10 @@ class SpatialMappingMixin(AnalysisMixin[K, B]):
 
         # this is a bit hacky, I materialize the solution here
         predictions = []
-        for val in self.problems.values():
-            val.solution.to(device=device)
-            val.set_solution(np.array(val.solution.transport_matrix), overwrite=True)
-            predictions.append(val.pull(gexp_sc, scale_by_marginals=True))
+        for problem, solution in zip(self.problems.values(), self.solutions.values()):
+            solution.to(device=device)
+            problem.set_solution(np.array(solution.transport_matrix), overwrite=True)
+            predictions.append(solution.pull(gexp_sc, scale_by_marginals=True))
 
         adata_pred = AnnData(np.nan_to_num(np.vstack(predictions), nan=0.0, copy=False))
         adata_pred.obs_names = self.adata_sp.obs_names
