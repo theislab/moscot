@@ -75,6 +75,7 @@ class LinearMappingProblem(SpatialMappingMixin[K, OTProblem], CompoundProblem[K,
     def prepare(
         self,
         batch_key: Optional[str] = None,
+        spatial_key: Union[str, Mapping[str, Any]] = "spatial",
         joint_attr: Optional[Union[str, Mapping[str, Any]]] = None,
         cost: OttCostFn_t = "sq_euclidean",
         cost_kwargs: CostKwargs_t = types.MappingProxyType({}),
@@ -88,6 +89,8 @@ class LinearMappingProblem(SpatialMappingMixin[K, OTProblem], CompoundProblem[K,
         ----------
         batch_key
             Key in :attr:`~anndata.AnnData.obs` where the slices are stored.
+        spatial_key
+            Key in :attr:`~anndata.AnnData.obsm` where the spatial coordinates are stored.
         joint_attr
             How to get the data that defines the :term:`linear problem`:
 
@@ -133,10 +136,14 @@ class LinearMappingProblem(SpatialMappingMixin[K, OTProblem], CompoundProblem[K,
 
         - :attr:`problems` - the prepared subproblems.
         - :attr:`solutions` - set to an empty :class:`dict`.
+        - :attr:`spatial_key` - key in :attr:`~anndata.AnnData.obsm` where the spatial coordinates are stored.
         - :attr:`batch_key` - key in :attr:`~anndata.AnnData.obs` where batches are stored.
         - :attr:`stage` - set to ``'prepared'``.
         - :attr:`problem_kind` - set to ``'linear'``.
         """
+        self.spatial_key = spatial_key if isinstance(spatial_key, str) else spatial_key["key"]
+        self.batch_key = batch_key
+
         xy, kwargs = handle_joint_attr(joint_attr, kwargs)
         xy, x, y = handle_cost(
             xy=xy, x=kwargs.pop("x", {}), y=kwargs.pop("y", {}), cost=cost, cost_kwargs=cost_kwargs, **kwargs
