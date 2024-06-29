@@ -396,6 +396,7 @@ class SpatialMappingMixin(AnalysisMixin[K, B]):
         self: SpatialMappingMixinProtocol[K, B],
         var_names: Optional[Sequence[str]] = None,
         corr_method: Literal["pearson", "spearman"] = "pearson",
+        device: Optional[Device_t] = None,
     ) -> Mapping[Tuple[K, K], pd.Series]:
         """Correlate true and predicted gene expression.
 
@@ -412,6 +413,9 @@ class SpatialMappingMixin(AnalysisMixin[K, B]):
             - ``'pearson'`` - `Pearson correlation <https://en.wikipedia.org/wiki/Pearson_correlation_coefficient>`_.
             - ``'spearman'`` - `Spearman's rank correlation
               <https://en.wikipedia.org/wiki/Spearman%27s_rank_correlation_coefficient>`_.
+
+        device
+            Device where to transfer the solutions, see :meth:`~moscot.base.output.BaseSolverOutput.to`.
 
         Returns
         -------
@@ -442,7 +446,11 @@ class SpatialMappingMixin(AnalysisMixin[K, B]):
             gexp_sp = self.adata_sp[index_obs, var_sc].X
             if sp.issparse(gexp_sp):
                 gexp_sp = gexp_sp.A
+
+            val.to(device=device)
+            self.problems[key].set_solution(np.array(val.transport_matrix), overwrite=True)
             gexp_pred_sp = val.pull(gexp_sc, scale_by_marginals=True)
+
             corr_val = [corr(gexp_pred_sp[:, gi], gexp_sp[:, gi])[0] for gi, _ in enumerate(var_sc)]
             corrs[key] = pd.Series(corr_val, index=var_sc)
 
