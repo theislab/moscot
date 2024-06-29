@@ -473,7 +473,12 @@ class SpatialMappingMixin(AnalysisMixin[K, B]):
         if sp.issparse(gexp_sc):
             gexp_sc = gexp_sc.A
 
-        predictions = [val.to(device=device).pull(gexp_sc, scale_by_marginals=True) for val in self.solutions.values()]
+        # this is a bit hacky, I materialize the solution here
+        predictions = []
+        for val in self.problems.values():
+            val.solution.to(device=device)
+            val.set_solution(np.array(val.solution.transport_matrix), overwrite=True)
+            predictions.append(val.pull(gexp_sc, scale_by_marginals=True))
 
         adata_pred = AnnData(np.nan_to_num(np.vstack(predictions), nan=0.0, copy=False))
         adata_pred.obs_names = self.adata_sp.obs_names

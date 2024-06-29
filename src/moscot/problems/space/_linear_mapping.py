@@ -89,7 +89,7 @@ class LinearMappingProblem(SpatialMappingMixin[K, OTProblem], CompoundProblem[K,
         batch_key
             Key in :attr:`~anndata.AnnData.obs` where the slices are stored.
         joint_attr
-            How to get the data for the :term:`linear term` in the :term:`fused <fused Gromov-Wasserstein>` case:
+            How to get the data that defines the :term:`linear problem`:
 
             - :obj:`None` - `PCA <https://en.wikipedia.org/wiki/Principal_component_analysis>`_
               on :attr:`~anndata.AnnData.X` is computed.
@@ -97,15 +97,15 @@ class LinearMappingProblem(SpatialMappingMixin[K, OTProblem], CompoundProblem[K,
             - :class:`dict` -  it should contain ``'attr'`` and ``'key'``, the attribute and key in
               :class:`~anndata.AnnData`, and optionally ``'tag'`` from the
               :class:`tags <moscot.utils.tagged_array.Tag>`.
+
+            By default, :attr:`tag = 'point_cloud' <moscot.utils.tagged_array.Tag.POINT_CLOUD>` is used.
         cost
             Cost function to use. Valid options are:
 
-            - :class:`str` - name of the cost function for all terms, see :func:`~moscot.costs.get_available_costs`.
+            - :class:`str` - name of the cost function, see :func:`~moscot.costs.get_available_costs`.
             - :class:`dict` - a dictionary with the following keys and values:
 
-              - ``'xy'`` - cost function for the :term:`linear term`.
-              - ``'x'`` - cost function for the source :term:`quadratic term`.
-              - ``'y'`` - cost function for the target :term:`quadratic term`.
+              - ``'xy'`` - cost function for the :term:`linear term`, same as above.
         cost_kwargs
             Keyword arguments for the :class:`~moscot.base.cost.BaseCost` or any backend-specific cost.
         a
@@ -148,7 +148,7 @@ class LinearMappingProblem(SpatialMappingMixin[K, OTProblem], CompoundProblem[K,
 
     def solve(
         self,
-        epsilon: float = 1e-2,
+        epsilon: float = 1e-3,
         tau_a: float = 1.0,
         tau_b: float = 1.0,
         rank: int = -1,
@@ -183,8 +183,8 @@ class LinearMappingProblem(SpatialMappingMixin[K, OTProblem], CompoundProblem[K,
             Parameter in :math:`(0, 1]` that defines how much :term:`unbalanced <unbalanced OT problem>` is the problem
             on the target :term:`marginals`. If :math:`1`, the problem is :term:`balanced <balanced OT problem>`.
         rank
-            Rank of the :term:`low-rank OT` solver :cite:`scetbon:21b`.
-            If :math:`-1`, full-rank solver :cite:`peyre:2016` is used.
+            Rank of the :term:`low-rank OT` solver :cite:`scetbon:21a`.
+            If :math:`-1`, full-rank solver :cite:`cuturi:2013` is used.
         scale_cost
             How to re-scale the cost matrices. If a :class:`float`, the cost matrices
             will be re-scaled as :math:`\frac{\text{cost}}{\text{scale_cost}}`.
