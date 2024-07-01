@@ -397,7 +397,8 @@ class SpatialMappingMixin(AnalysisMixin[K, B]):
         var_names: Optional[Sequence[str]] = None,
         corr_method: Literal["pearson", "spearman"] = "pearson",
         device: Optional[Device_t] = None,
-    ) -> Mapping[Tuple[K, K], pd.Series]:
+        groupby: Optional[str] = None,
+    ) -> Mapping[Any, Mapping[Tuple[K, K], pd.Series]]:
         """Correlate true and predicted gene expression.
 
         .. warning::
@@ -412,7 +413,10 @@ class SpatialMappingMixin(AnalysisMixin[K, B]):
 
             - ``'pearson'`` - `Pearson correlation <https://en.wikipedia.org/wiki/Pearson_correlation_coefficient>`_.
             - ``'spearman'`` - `Spearman's rank correlation
-              <https://en.wikipedia.org/wiki/Spearman%27s_rank_correlation_coefficient>`_.
+                <https://en.wikipedia.org/wiki/Spearman%27s_rank_correlation_coefficient>`_.
+
+        groupby
+            Optional `obs` field in `AnnData` to compute correlations over categorical groups.
 
         device
             Device where to transfer the solutions, see :meth:`~moscot.base.output.BaseSolverOutput.to`.
@@ -436,19 +440,45 @@ class SpatialMappingMixin(AnalysisMixin[K, B]):
         if sp.issparse(gexp_sc):
             gexp_sc = gexp_sc.A
 
-        corrs = {}
+        corrs = {}  # type: ignore
         for key, val in self.solutions.items():
-            index_obs: List[Union[bool, int]] = (
-                self.adata_sp.obs[self._policy.key] == key[0]
+
+            # create mask corresponding to the current batch of spatial data
+            index_obs = (
+                (self.adata_sp.obs[self._policy.key] == key[0])
                 if self._policy.key is not None
                 else np.arange(self.adata_sp.shape[0])
             )
-            gexp_sp = self.adata_sp[index_obs, var_sc].X
+            adata_sp = self.adata_sp[index_obs, var_sc]
+
+            # initialize a dict of group masks
+            if groupby:
+                groups = adata_sp.obs[groupby].cat.categories
+                group_masks = {group: adata_sp.obs[groupby] == group for group in groups}
+                corrs[key] = {}
+            else:
+                group_masks = {"all": np.ones(adata_sp.shape[0], dtype=bool)}
+
+            gexp_sp = adata_sp.X
             if sp.issparse(gexp_sp):
                 gexp_sp = gexp_sp.A
+
+            # predict spatial feature expression
             gexp_pred_sp = val.to(device=device).pull(gexp_sc, scale_by_marginals=True)
-            corr_val = [corr(gexp_pred_sp[:, gi], gexp_sp[:, gi])[0] for gi, _ in enumerate(var_sc)]
-            corrs[key] = pd.Series(corr_val, index=var_sc)
+
+            # loop over groups and compute correlations
+            for group, group_mask in group_masks.items():
+                if np.sum(group_mask) < 2:
+                    logger.debug(f"Skipping `group={group}` as it contains less then 2 samples.")
+                    continue
+
+                corr_val = [
+                    corr(gexp_pred_sp[group_mask, gi], gexp_sp[group_mask, gi])[0] for gi, _ in enumerate(var_sc)
+                ]
+                if groupby:
+                    corrs[key][group] = pd.Series(corr_val, index=var_sc)
+                else:
+                    corrs[key] = pd.Series(corr_val, index=var_sc)
 
         return corrs
 
